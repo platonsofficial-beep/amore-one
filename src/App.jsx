@@ -45,7 +45,7 @@ const quickActions = [
   { label: 'Create Order', icon: '↗' },
 ]
 
-const staffEmployees = [
+const initialStaffEmployees = [
   { id: 1, name: 'Luca Romano', position: 'Head Sommelier', phone: '+1 212 555 0148', email: 'luca@amoreone.com', hireDate: 'Mar 12, 2021', salary: '$84,000', emergencyContact: 'Marta Romano • +1 212 555 0162', weeklyHours: '42 hrs', notes: 'Excellent with VIP guests and wine pairings.', shift: 'Evening', status: 'Working', department: 'Service' },
   { id: 2, name: 'Sofia Alvarez', position: 'Floor Manager', phone: '+1 212 555 0187', email: 'sofia@amoreone.com', hireDate: 'Jun 08, 2019', salary: '$91,000', emergencyContact: 'Diego Alvarez • +1 212 555 0159', weeklyHours: '40 hrs', notes: 'Leads floor operations and team handoffs.', shift: 'Evening', status: 'Working', department: 'Management' },
   { id: 3, name: 'Nadia Chen', position: 'Pastry Chef', phone: '+1 212 555 0134', email: 'nadia@amoreone.com', hireDate: 'Nov 22, 2022', salary: '$76,000', emergencyContact: 'Rina Chen • +1 212 555 0170', weeklyHours: '38 hrs', notes: 'Specializes in tasting desserts and custom plated items.', shift: 'Day', status: 'Break', department: 'Kitchen' },
@@ -177,7 +177,33 @@ function DashboardView() {
   )
 }
 
-function StaffView({ employees, selectedEmployee, onSelectEmployee, searchTerm, onSearchChange, activeFilter, onFilterChange, onOpenDrawer }) {
+function buildEmployeeForm(employee = null) {
+  return {
+    fullName: employee?.name ?? '',
+    position: employee?.position ?? '',
+    phone: employee?.phone ?? '',
+    email: employee?.email ?? '',
+    hireDate: employee?.hireDate ?? '',
+    salary: employee?.salary ?? '',
+    department: employee?.department ?? 'Service',
+    shift: employee?.shift ?? 'Evening',
+    status: employee?.status ?? 'Working',
+    emergencyContact: employee?.emergencyContact ?? '',
+    notes: employee?.notes ?? '',
+  }
+}
+
+function StaffView({
+  employees,
+  selectedEmployee,
+  onSelectEmployee,
+  searchTerm,
+  onSearchChange,
+  activeFilter,
+  onFilterChange,
+  onOpenAddEmployee,
+  onOpenEditEmployee,
+}) {
   const overviewCards = [
     { label: 'Total Employees', value: employees.length, detail: 'Across all departments' },
     { label: 'On Shift', value: employees.filter((employee) => employee.status === 'Working').length, detail: 'Active service team' },
@@ -193,7 +219,7 @@ function StaffView({ employees, selectedEmployee, onSelectEmployee, searchTerm, 
           <h3>Team overview</h3>
           <p className="staff-subtitle">Monitor service coverage, shifts, and employee details from one place.</p>
         </div>
-        <button type="button" className="primary-btn" onClick={onOpenDrawer}>
+        <button type="button" className="primary-btn" onClick={onOpenAddEmployee}>
           + Add Employee
         </button>
       </div>
@@ -270,12 +296,20 @@ function StaffView({ employees, selectedEmployee, onSelectEmployee, searchTerm, 
                     </span>
                   </td>
                   <td>
-                    <button type="button" className="ghost-btn small" onClick={(event) => {
-                      event.stopPropagation()
-                      onSelectEmployee(employee)
-                    }}>
-                      View
-                    </button>
+                    <div className="action-group">
+                      <button type="button" className="ghost-btn small" onClick={(event) => {
+                        event.stopPropagation()
+                        onSelectEmployee(employee)
+                      }}>
+                        View
+                      </button>
+                      <button type="button" className="ghost-btn small" onClick={(event) => {
+                        event.stopPropagation()
+                        onOpenEditEmployee(employee)
+                      }}>
+                        Edit
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -331,7 +365,11 @@ function App() {
   const [activeView, setActiveView] = useState('dashboard')
   const [searchTerm, setSearchTerm] = useState('')
   const [activeFilter, setActiveFilter] = useState('All')
+  const [employees, setEmployees] = useState(initialStaffEmployees)
   const [selectedEmployee, setSelectedEmployee] = useState(null)
+  const [isEmployeeModalOpen, setIsEmployeeModalOpen] = useState(false)
+  const [editingEmployee, setEditingEmployee] = useState(null)
+  const [employeeForm, setEmployeeForm] = useState(() => buildEmployeeForm())
 
   const todayLabel = new Intl.DateTimeFormat('en', {
     weekday: 'long',
@@ -340,14 +378,71 @@ function App() {
   }).format(new Date())
 
   const filteredEmployees = useMemo(() => {
-    return staffEmployees.filter((employee) => {
+    return employees.filter((employee) => {
       const matchesSearch = `${employee.name} ${employee.position} ${employee.department}`
         .toLowerCase()
         .includes(searchTerm.toLowerCase())
       const matchesFilter = activeFilter === 'All' || employee.department === activeFilter
       return matchesSearch && matchesFilter
     })
-  }, [activeFilter, searchTerm])
+  }, [activeFilter, employees, searchTerm])
+
+  const handleOpenAddEmployee = () => {
+    setEditingEmployee(null)
+    setEmployeeForm(buildEmployeeForm())
+    setIsEmployeeModalOpen(true)
+  }
+
+  const handleOpenEditEmployee = (employee) => {
+    setEditingEmployee(employee)
+    setEmployeeForm(buildEmployeeForm(employee))
+    setIsEmployeeModalOpen(true)
+  }
+
+  const handleCloseEmployeeModal = () => {
+    setIsEmployeeModalOpen(false)
+    setEditingEmployee(null)
+    setEmployeeForm(buildEmployeeForm())
+  }
+
+  const handleEmployeeSubmit = (event) => {
+    event.preventDefault()
+
+    if (!employeeForm.fullName.trim()) {
+      return
+    }
+
+    const hireDate = employeeForm.hireDate
+      ? new Date(employeeForm.hireDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+      : 'TBD'
+
+    const nextEmployee = {
+      id: editingEmployee ? editingEmployee.id : Math.max(...employees.map((employee) => employee.id), 0) + 1,
+      name: employeeForm.fullName.trim(),
+      position: employeeForm.position.trim(),
+      phone: employeeForm.phone.trim(),
+      email: employeeForm.email.trim(),
+      hireDate,
+      salary: employeeForm.salary.trim() || 'TBD',
+      emergencyContact: employeeForm.emergencyContact.trim() || 'Not provided',
+      weeklyHours: editingEmployee?.weeklyHours ?? '36 hrs',
+      notes: employeeForm.notes.trim() || 'No notes yet.',
+      shift: employeeForm.shift,
+      status: employeeForm.status,
+      department: employeeForm.department,
+    }
+
+    if (editingEmployee) {
+      setEmployees((current) => current.map((employee) => (
+        employee.id === editingEmployee.id ? { ...employee, ...nextEmployee, id: employee.id } : employee
+      )))
+    } else {
+      setEmployees((current) => [nextEmployee, ...current])
+    }
+
+    setSelectedEmployee(nextEmployee)
+    handleCloseEmployeeModal()
+  }
 
   const heroTitle = activeView === 'dashboard' ? 'Good morning, Platon 👋' : 'Staff management'
   const heroSubtitle = activeView === 'dashboard'
@@ -431,8 +526,91 @@ function App() {
             onSearchChange={(event) => setSearchTerm(event.target.value)}
             activeFilter={activeFilter}
             onFilterChange={setActiveFilter}
-            onOpenDrawer={() => setSelectedEmployee(staffEmployees[0])}
+            onOpenAddEmployee={handleOpenAddEmployee}
+            onOpenEditEmployee={handleOpenEditEmployee}
           />
+        ) : null}
+
+        {isEmployeeModalOpen ? (
+          <div className="employee-modal-backdrop" onClick={handleCloseEmployeeModal}>
+            <div className="employee-modal" onClick={(event) => event.stopPropagation()}>
+              <div className="drawer-header">
+                <div>
+                  <p className="eyebrow">Employee form</p>
+                  <h3>{editingEmployee ? 'Edit employee' : 'Add employee'}</h3>
+                </div>
+                <button type="button" className="icon-btn" onClick={handleCloseEmployeeModal}>✕</button>
+              </div>
+
+              <form className="employee-form" onSubmit={handleEmployeeSubmit}>
+                <div className="form-grid">
+                  <label className="form-field">
+                    <span>Full Name</span>
+                    <input value={employeeForm.fullName} onChange={(event) => setEmployeeForm((current) => ({ ...current, fullName: event.target.value }))} placeholder="Full Name" required />
+                  </label>
+                  <label className="form-field">
+                    <span>Position</span>
+                    <input value={employeeForm.position} onChange={(event) => setEmployeeForm((current) => ({ ...current, position: event.target.value }))} placeholder="Position" required />
+                  </label>
+                  <label className="form-field">
+                    <span>Phone</span>
+                    <input value={employeeForm.phone} onChange={(event) => setEmployeeForm((current) => ({ ...current, phone: event.target.value }))} placeholder="Phone" />
+                  </label>
+                  <label className="form-field">
+                    <span>Email</span>
+                    <input type="email" value={employeeForm.email} onChange={(event) => setEmployeeForm((current) => ({ ...current, email: event.target.value }))} placeholder="Email" />
+                  </label>
+                  <label className="form-field">
+                    <span>Hire Date</span>
+                    <input type="date" value={employeeForm.hireDate ? new Date(employeeForm.hireDate).toISOString().split('T')[0] : ''} onChange={(event) => setEmployeeForm((current) => ({ ...current, hireDate: event.target.value }))} />
+                  </label>
+                  <label className="form-field">
+                    <span>Salary</span>
+                    <input value={employeeForm.salary} onChange={(event) => setEmployeeForm((current) => ({ ...current, salary: event.target.value }))} placeholder="Salary" />
+                  </label>
+                  <label className="form-field">
+                    <span>Department</span>
+                    <select value={employeeForm.department} onChange={(event) => setEmployeeForm((current) => ({ ...current, department: event.target.value }))}>
+                      <option value="Service">Service</option>
+                      <option value="Bar">Bar</option>
+                      <option value="Kitchen">Kitchen</option>
+                      <option value="Management">Management</option>
+                    </select>
+                  </label>
+                  <label className="form-field">
+                    <span>Shift</span>
+                    <select value={employeeForm.shift} onChange={(event) => setEmployeeForm((current) => ({ ...current, shift: event.target.value }))}>
+                      <option value="Day">Day</option>
+                      <option value="Evening">Evening</option>
+                    </select>
+                  </label>
+                  <label className="form-field">
+                    <span>Status</span>
+                    <select value={employeeForm.status} onChange={(event) => setEmployeeForm((current) => ({ ...current, status: event.target.value }))}>
+                      <option value="Working">Working</option>
+                      <option value="Break">Break</option>
+                      <option value="Day Off">Day Off</option>
+                      <option value="Leave">Leave</option>
+                    </select>
+                  </label>
+                  <label className="form-field">
+                    <span>Emergency Contact</span>
+                    <input value={employeeForm.emergencyContact} onChange={(event) => setEmployeeForm((current) => ({ ...current, emergencyContact: event.target.value }))} placeholder="Emergency Contact" />
+                  </label>
+                </div>
+
+                <label className="form-field full-width">
+                  <span>Notes</span>
+                  <textarea rows="4" value={employeeForm.notes} onChange={(event) => setEmployeeForm((current) => ({ ...current, notes: event.target.value }))} placeholder="Notes" />
+                </label>
+
+                <div className="modal-actions">
+                  <button type="button" className="ghost-btn" onClick={handleCloseEmployeeModal}>Cancel</button>
+                  <button type="submit" className="primary-btn">Save</button>
+                </div>
+              </form>
+            </div>
+          </div>
         ) : null}
       </main>
     </div>
