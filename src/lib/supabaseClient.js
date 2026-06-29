@@ -1,6 +1,15 @@
 import { createClient } from '@supabase/supabase-js'
 
-const supabaseUrl = import.meta.env?.VITE_SUPABASE_URL ?? process.env.VITE_SUPABASE_URL
+function normalizeSupabaseUrl(url) {
+  if (!url) return ''
+
+  return url
+    .replace(/\/rest\/v1\/?$/i, '')
+    .replace(/\/rest\/v1\//i, '/')
+    .replace(/\/$/, '')
+}
+
+const supabaseUrl = normalizeSupabaseUrl(import.meta.env?.VITE_SUPABASE_URL ?? process.env.VITE_SUPABASE_URL)
 const supabaseAnonKey = import.meta.env?.VITE_SUPABASE_PUBLISHABLE_KEY ?? process.env.VITE_SUPABASE_PUBLISHABLE_KEY
 
 if (!supabaseUrl || !supabaseAnonKey) {

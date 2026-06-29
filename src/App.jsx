@@ -1,5 +1,6 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import './App.css'
+import { createEmployee, getEmployees, updateEmployee } from './services/staffService'
 
 const navItems = [
   { id: 'dashboard', label: 'Dashboard', icon: '◈' },
@@ -177,13 +178,59 @@ function DashboardView() {
   )
 }
 
+function toDateInputValue(value) {
+  if (!value) return ''
+
+  const trimmed = `${value}`.trim()
+  if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
+    return trimmed
+  }
+
+  const parsed = new Date(trimmed)
+  if (Number.isNaN(parsed.getTime())) {
+    return ''
+  }
+
+  return parsed.toISOString().split('T')[0]
+}
+
+function formatHireDate(value) {
+  if (!value) return 'TBD'
+
+  const trimmed = `${value}`.trim()
+  if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
+    const [year, month, day] = trimmed.split('-')
+    const parsed = new Date(`${year}-${month}-${day}`)
+    return parsed.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+  }
+
+  const parsed = new Date(trimmed)
+  if (Number.isNaN(parsed.getTime())) {
+    return trimmed
+  }
+
+  return parsed.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+}
+
+function normalizeNumericValue(value) {
+  if (value === null || value === undefined || value === '') return null
+
+  const trimmed = `${value}`.trim()
+  if (!trimmed) return null
+  if (trimmed.toLowerCase() === 'tbd' || trimmed.toLowerCase() === 'n/a') return null
+
+  const cleaned = trimmed.replace(/[$,\s]/g, '')
+  const parsed = Number(cleaned)
+  return Number.isFinite(parsed) ? parsed : null
+}
+
 function buildEmployeeForm(employee = null) {
   return {
     fullName: employee?.name ?? '',
     position: employee?.position ?? '',
     phone: employee?.phone ?? '',
     email: employee?.email ?? '',
-    hireDate: employee?.hireDate ?? '',
+    hireDate: toDateInputValue(employee?.hireDate ?? ''),
     salary: employee?.salary ?? '',
     department: employee?.department ?? 'Service',
     shift: employee?.shift ?? 'Evening',
@@ -203,6 +250,9 @@ function StaffView({
   onFilterChange,
   onOpenAddEmployee,
   onOpenEditEmployee,
+  isLoading,
+  noticeMessage,
+  isSaving,
 }) {
   const overviewCards = [
     { label: 'Total Employees', value: employees.length, detail: 'Across all departments' },
@@ -219,8 +269,8 @@ function StaffView({
           <h3>Team overview</h3>
           <p className="staff-subtitle">Monitor service coverage, shifts, and employee details from one place.</p>
         </div>
-        <button type="button" className="primary-btn" onClick={onOpenAddEmployee}>
-          + Add Employee
+        <button type="button" className="primary-btn" onClick={onOpenAddEmployee} disabled={isSaving}>
+          {isSaving ? 'Saving…' : '+ Add Employee'}
         </button>
       </div>
 
@@ -253,6 +303,9 @@ function StaffView({
           ))}
         </div>
       </div>
+
+      {noticeMessage ? <div className="staff-status-banner">{noticeMessage}</div> : null}
+      {isLoading ? <div className="staff-status-banner">Loading staff roster…</div> : null}
 
       <div className="panel staff-panel">
         <div className="panel-heading">
@@ -370,12 +423,51 @@ function App() {
   const [isEmployeeModalOpen, setIsEmployeeModalOpen] = useState(false)
   const [editingEmployee, setEditingEmployee] = useState(null)
   const [employeeForm, setEmployeeForm] = useState(() => buildEmployeeForm())
+  const [isLoadingStaff, setIsLoadingStaff] = useState(true)
+  const [staffNotice, setStaffNotice] = useState('')
+  const [isSavingEmployee, setIsSavingEmployee] = useState(false)
+  const [saveError, setSaveError] = useState('')
 
   const todayLabel = new Intl.DateTimeFormat('en', {
     weekday: 'long',
     month: 'long',
     day: 'numeric',
   }).format(new Date())
+
+  useEffect(() => {
+    let isMounted = true
+
+    const loadEmployees = async () => {
+      setIsLoadingStaff(true)
+      setStaffNotice('')
+
+      try {
+        const remoteEmployees = await getEmployees()
+        if (!isMounted) return
+
+        if (remoteEmployees.length > 0) {
+          setEmployees(remoteEmployees)
+        } else {
+          setEmployees(initialStaffEmployees)
+        }
+      } catch (error) {
+        if (!isMounted) return
+
+        setEmployees(initialStaffEmployees)
+        setStaffNotice(error.message || 'Unable to load employees right now.')
+      } finally {
+        if (isMounted) {
+          setIsLoadingStaff(false)
+        }
+      }
+    }
+
+    loadEmployees()
+
+    return () => {
+      isMounted = false
+    }
+  }, [])
 
   const filteredEmployees = useMemo(() => {
     return employees.filter((employee) => {
@@ -389,12 +481,14 @@ function App() {
 
   const handleOpenAddEmployee = () => {
     setEditingEmployee(null)
+    setSaveError('')
     setEmployeeForm(buildEmployeeForm())
     setIsEmployeeModalOpen(true)
   }
 
   const handleOpenEditEmployee = (employee) => {
     setEditingEmployee(employee)
+    setSaveError('')
     setEmployeeForm(buildEmployeeForm(employee))
     setIsEmployeeModalOpen(true)
   }
@@ -402,46 +496,87 @@ function App() {
   const handleCloseEmployeeModal = () => {
     setIsEmployeeModalOpen(false)
     setEditingEmployee(null)
+    setSaveError('')
     setEmployeeForm(buildEmployeeForm())
   }
 
-  const handleEmployeeSubmit = (event) => {
+  const handleEmployeeSubmit = async (event) => {
     event.preventDefault()
 
     if (!employeeForm.fullName.trim()) {
       return
     }
 
-    const hireDate = employeeForm.hireDate
-      ? new Date(employeeForm.hireDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
-      : 'TBD'
+    setIsSavingEmployee(true)
+    setSaveError('')
 
-    const nextEmployee = {
-      id: editingEmployee ? editingEmployee.id : Math.max(...employees.map((employee) => employee.id), 0) + 1,
+    const payload = {
       name: employeeForm.fullName.trim(),
       position: employeeForm.position.trim(),
       phone: employeeForm.phone.trim(),
       email: employeeForm.email.trim(),
-      hireDate,
-      salary: employeeForm.salary.trim() || 'TBD',
+      hireDate: employeeForm.hireDate,
+      salary: normalizeNumericValue(employeeForm.salary),
       emergencyContact: employeeForm.emergencyContact.trim() || 'Not provided',
-      weeklyHours: editingEmployee?.weeklyHours ?? '36 hrs',
+      weeklyHours: normalizeNumericValue(editingEmployee?.weeklyHours),
       notes: employeeForm.notes.trim() || 'No notes yet.',
       shift: employeeForm.shift,
       status: employeeForm.status,
       department: employeeForm.department,
     }
 
-    if (editingEmployee) {
-      setEmployees((current) => current.map((employee) => (
-        employee.id === editingEmployee.id ? { ...employee, ...nextEmployee, id: employee.id } : employee
-      )))
-    } else {
-      setEmployees((current) => [nextEmployee, ...current])
-    }
+    try {
+      const savedEmployee = editingEmployee
+        ? await updateEmployee(editingEmployee.id, payload)
+        : await createEmployee(payload)
 
-    setSelectedEmployee(nextEmployee)
-    handleCloseEmployeeModal()
+      const nextEmployee = {
+        ...savedEmployee,
+        hireDate: formatHireDate(savedEmployee.hireDate),
+      }
+
+      if (editingEmployee) {
+        setEmployees((current) => current.map((employee) => (
+          employee.id === editingEmployee.id ? nextEmployee : employee
+        )))
+      } else {
+        setEmployees((current) => [nextEmployee, ...current])
+      }
+
+      setSelectedEmployee(nextEmployee)
+      setStaffNotice('')
+      handleCloseEmployeeModal()
+    } catch (error) {
+      const nextEmployee = {
+        id: editingEmployee ? editingEmployee.id : Math.max(...employees.map((employee) => employee.id), 0) + 1,
+        name: payload.name,
+        position: payload.position,
+        phone: payload.phone,
+        email: payload.email,
+        hireDate: formatHireDate(payload.hireDate),
+        salary: payload.salary ?? '',
+        emergencyContact: payload.emergencyContact,
+        weeklyHours: payload.weeklyHours,
+        notes: payload.notes,
+        shift: payload.shift,
+        status: payload.status,
+        department: payload.department,
+      }
+
+      if (editingEmployee) {
+        setEmployees((current) => current.map((employee) => (
+          employee.id === editingEmployee.id ? nextEmployee : employee
+        )))
+      } else {
+        setEmployees((current) => [nextEmployee, ...current])
+      }
+
+      setSelectedEmployee(nextEmployee)
+      setStaffNotice(error.message || 'Unable to save employee right now.')
+      setSaveError(error.message || 'Unable to save employee right now.')
+    } finally {
+      setIsSavingEmployee(false)
+    }
   }
 
   const heroTitle = activeView === 'dashboard' ? 'Good morning, Platon 👋' : 'Staff management'
@@ -528,6 +663,9 @@ function App() {
             onFilterChange={setActiveFilter}
             onOpenAddEmployee={handleOpenAddEmployee}
             onOpenEditEmployee={handleOpenEditEmployee}
+            isLoading={isLoadingStaff}
+            noticeMessage={staffNotice}
+            isSaving={isSavingEmployee}
           />
         ) : null}
 
@@ -604,9 +742,13 @@ function App() {
                   <textarea rows="4" value={employeeForm.notes} onChange={(event) => setEmployeeForm((current) => ({ ...current, notes: event.target.value }))} placeholder="Notes" />
                 </label>
 
+                {saveError ? <div className="staff-status-banner">{saveError}</div> : null}
+
                 <div className="modal-actions">
                   <button type="button" className="ghost-btn" onClick={handleCloseEmployeeModal}>Cancel</button>
-                  <button type="submit" className="primary-btn">Save</button>
+                  <button type="submit" className="primary-btn" disabled={isSavingEmployee}>
+                    {isSavingEmployee ? 'Saving…' : 'Save'}
+                  </button>
                 </div>
               </form>
             </div>
