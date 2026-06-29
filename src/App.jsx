@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import './App.css'
 import { createEmployee, getEmployees, updateEmployee } from './services/staffService'
+import { createShift, deleteShift, getShifts, updateShift } from './services/scheduleService'
+import { createReservation, deleteReservation, getReservations, updateReservation } from './services/reservationService'
 
 const navItems = [
   { id: 'dashboard', label: 'Dashboard', icon: '◈' },
@@ -414,12 +416,595 @@ function StaffView({
   )
 }
 
+function ScheduleView({ shifts, employees, onOpenAddShift, onOpenEditShift, onDeleteShift, isLoading, noticeMessage, isSaving }) {
+  const [selectedDay, setSelectedDay] = useState(null)
+  const [selectedShift, setSelectedShift] = useState(null)
+  const [filters, setFilters] = useState({
+    department: 'All',
+    shift: 'All',
+    status: 'All',
+    search: '',
+  })
+
+  const weekDays = useMemo(() => {
+    const start = new Date()
+    start.setHours(0, 0, 0, 0)
+    const day = start.getDay()
+    const diff = start.getDate() - day + (day === 0 ? -6 : 1)
+    start.setDate(diff)
+
+    return Array.from({ length: 7 }, (_, index) => {
+      const date = new Date(start)
+      date.setDate(start.getDate() + index)
+      return {
+        key: date.toISOString().split('T')[0],
+        label: date.toLocaleDateString('en-US', { weekday: 'short' }),
+        shortDate: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+        count: shifts.filter((shift) => shift.date === date.toISOString().split('T')[0]).length,
+      }
+    })
+  }, [shifts])
+
+  useEffect(() => {
+    if (!selectedDay && weekDays.length > 0) {
+      setSelectedDay(weekDays[0].key)
+      return
+    }
+
+    if (selectedDay && !weekDays.some((day) => day.key === selectedDay)) {
+      setSelectedDay(weekDays[0]?.key ?? null)
+    }
+  }, [selectedDay, weekDays])
+
+  const parseTimeToMinutes = (value) => {
+    if (!value) return Number.MAX_SAFE_INTEGER
+
+    const [hours, minutes] = `${value}`.split(':').map(Number)
+    return (Number.isNaN(hours) ? 0 : hours) * 60 + (Number.isNaN(minutes) ? 0 : minutes)
+  }
+
+  const getShiftDepartment = (shift) => {
+    const employeeRecord = shift.employeeRecord ?? null
+    if (employeeRecord?.department) {
+      return employeeRecord.department
+    }
+
+    const normalized = `${shift.area || ''} ${shift.role || ''}`.toLowerCase()
+    if (normalized.includes('bar')) return 'Bar'
+    if (normalized.includes('host')) return 'Host'
+    if (normalized.includes('kitchen')) return 'Kitchen'
+    if (normalized.includes('management')) return 'Management'
+    return 'Service'
+  }
+
+  const getShiftPeriod = (shift) => {
+    const minutes = parseTimeToMinutes(shift.startTime)
+    if (minutes < 12 * 60) return 'Morning'
+    if (minutes < 20 * 60) return 'Evening'
+    return 'Night'
+  }
+
+  const getShiftIndicator = (shift) => {
+    const period = getShiftPeriod(shift)
+    if (period === 'Morning') return { label: 'Morning', className: 'shift-indicator morning' }
+    if (period === 'Evening') return { label: 'Evening', className: 'shift-indicator evening' }
+    return { label: 'Night', className: 'shift-indicator night' }
+  }
+
+  const getShiftStatusClass = (status) => {
+    if (!status) return 'scheduled'
+    const normalized = `${status}`.toLowerCase()
+    if (normalized.includes('confirm')) return 'confirmed'
+    if (normalized.includes('complete')) return 'completed'
+    return 'scheduled'
+  }
+
+  const isEmployeeUnavailable = (employee) => {
+    if (!employee?.status) return false
+    const normalized = `${employee.status}`.toLowerCase()
+    return normalized.includes('day off') || normalized.includes('vacation') || normalized.includes('sick') || normalized.includes('leave')
+  }
+
+  const getCoverageState = (dayShifts) => {
+    if (!dayShifts.length) {
+      return { icon: '🔴', label: 'Understaffed', className: 'coverage-pill understaffed' }
+    }
+
+    const totalDepartments = new Set(dayShifts.map((shift) => getShiftDepartment(shift))).size
+    const hasEnoughCoverage = dayShifts.length >= 4 && totalDepartments >= 3
+    if (hasEnoughCoverage) {
+      return { icon: '🟢', label: 'Fully Staffed', className: 'coverage-pill staffed' }
+    }
+
+    if (dayShifts.length >= 2 || totalDepartments >= 2) {
+      return { icon: '🟡', label: 'Needs Attention', className: 'coverage-pill attention' }
+    }
+
+    return { icon: '🔴', label: 'Understaffed', className: 'coverage-pill understaffed' }
+  }
+
+  const selectedDate = weekDays.find((day) => day.key === selectedDay)?.key ?? null
+  const selectedDayShifts = useMemo(() => {
+    if (!selectedDate) return []
+
+    return shifts
+      .filter((shift) => shift.date === selectedDate)
+      .map((shift) => ({
+        ...shift,
+        employeeRecord: employees.find((employee) => employee.id === shift.employeeId) ?? null,
+      }))
+      .sort((left, right) => parseTimeToMinutes(left.startTime) - parseTimeToMinutes(right.startTime))
+  }, [employees, selectedDate, shifts])
+
+  const filteredDayShifts = useMemo(() => {
+    const searchTerm = filters.search.trim().toLowerCase()
+
+    return selectedDayShifts.filter((shift) => {
+      const employeeName = `${shift.employees?.full_name || shift.employeeName || shift.employeeRecord?.name || ''}`.toLowerCase()
+      const matchesSearch = !searchTerm || employeeName.includes(searchTerm)
+      const matchesDepartment = filters.department === 'All' || getShiftDepartment(shift) === filters.department
+      const matchesShift = filters.shift === 'All' || getShiftPeriod(shift) === filters.shift
+      const matchesStatus = filters.status === 'All' || `${shift.status || 'Scheduled'}`.toLowerCase() === filters.status.toLowerCase()
+      return matchesSearch && matchesDepartment && matchesShift && matchesStatus
+    })
+  }, [filters.department, filters.search, filters.shift, filters.status, selectedDayShifts])
+
+  const departmentGroups = useMemo(() => {
+    const groups = ['Bar', 'Service', 'Host', 'Kitchen', 'Management'].map((department) => ({
+      department,
+      shifts: [],
+    }))
+
+    filteredDayShifts.forEach((shift) => {
+      const department = getShiftDepartment(shift)
+      const target = groups.find((group) => group.department === department)
+      if (target) {
+        target.shifts.push(shift)
+      }
+    })
+
+    return groups
+  }, [filteredDayShifts])
+
+  const weekSummary = useMemo(() => {
+    const weekShifts = shifts.filter((shift) => weekDays.some((day) => day.key === shift.date))
+    const workingEmployees = new Set(weekShifts.map((shift) => shift.employeeId).filter(Boolean))
+    const totalHours = weekShifts.reduce((sum, shift) => {
+      if (!shift.startTime || !shift.endTime) return sum
+      const startMinutes = parseTimeToMinutes(shift.startTime)
+      const endMinutes = parseTimeToMinutes(shift.endTime)
+      if (Number.isFinite(startMinutes) && Number.isFinite(endMinutes) && endMinutes > startMinutes) {
+        return sum + (endMinutes - startMinutes) / 60
+      }
+      return sum
+    }, 0)
+
+    const employeesOff = employees.filter((employee) => isEmployeeUnavailable(employee)).length
+    const coverage = weekShifts.length ? Math.min(100, Math.round((weekShifts.length / Math.max(1, weekDays.length * 4)) * 100)) : 0
+
+    return {
+      employeesScheduled: workingEmployees.size,
+      totalShifts: weekShifts.length,
+      totalHours: totalHours.toFixed(1),
+      employeesOff,
+      coverage,
+    }
+  }, [employees, shifts, weekDays])
+
+  const daySummaries = useMemo(() => {
+    return weekDays.map((day) => {
+      const dayShifts = shifts
+        .filter((shift) => shift.date === day.key)
+        .map((shift) => ({
+          ...shift,
+          employeeRecord: employees.find((employee) => employee.id === shift.employeeId) ?? null,
+        }))
+        .sort((left, right) => parseTimeToMinutes(left.startTime) - parseTimeToMinutes(right.startTime))
+
+      const timelineSegments = dayShifts.map((shift) => {
+        const start = parseTimeToMinutes(shift.startTime)
+        const end = parseTimeToMinutes(shift.endTime)
+        const left = Math.max(0, ((start - 8 * 60) / (18 * 60)) * 100)
+        const width = Math.max(8, (((end - start) / (18 * 60)) * 100))
+        return { left, width, className: shift.status === 'Completed' ? 'timeline-segment completed' : 'timeline-segment' }
+      })
+
+      return {
+        ...day,
+        shifts: dayShifts,
+        coverage: getCoverageState(dayShifts),
+        timelineSegments,
+      }
+    })
+  }, [employees, shifts, weekDays])
+
+  const handleOpenShiftDetails = (shift) => {
+    setSelectedShift(shift)
+  }
+
+  const handleCloseShiftDetails = () => {
+    setSelectedShift(null)
+  }
+
+  const handleEditSelectedShift = () => {
+    if (!selectedShift) return
+    onOpenEditShift(selectedShift)
+    handleCloseShiftDetails()
+  }
+
+  const handleDeleteSelectedShift = () => {
+    if (!selectedShift) return
+    onDeleteShift(selectedShift.id)
+    handleCloseShiftDetails()
+  }
+
+  return (
+    <section className="staff-page">
+      <div className="staff-header-card">
+        <div>
+          <p className="eyebrow">Schedule management</p>
+          <h3>Premium weekly roster</h3>
+          <p className="staff-subtitle">Coordinate staffing, assignments, and coverage across the week.</p>
+        </div>
+        <button type="button" className="primary-btn" onClick={onOpenAddShift} disabled={isSaving}>
+          {isSaving ? 'Saving…' : '+ Add Shift'}
+        </button>
+      </div>
+
+      <div className="roster-summary-grid roster-summary-bar">
+        <article className="roster-summary-card">
+          <p className="eyebrow">Employees scheduled</p>
+          <h3>{weekSummary.employeesScheduled}</h3>
+        </article>
+        <article className="roster-summary-card">
+          <p className="eyebrow">Total shifts</p>
+          <h3>{weekSummary.totalShifts}</h3>
+        </article>
+        <article className="roster-summary-card">
+          <p className="eyebrow">Total working hours</p>
+          <h3>{weekSummary.totalHours}h</h3>
+        </article>
+        <article className="roster-summary-card">
+          <p className="eyebrow">Employees off</p>
+          <h3>{weekSummary.employeesOff}</h3>
+        </article>
+        <article className="roster-summary-card">
+          <p className="eyebrow">Coverage</p>
+          <h3>{weekSummary.coverage}%</h3>
+        </article>
+      </div>
+
+      <div className="schedule-week-grid">
+        {daySummaries.map((day) => (
+          <button
+            key={day.key}
+            type="button"
+            className={`schedule-week-day ${selectedDay === day.key ? 'active' : ''}`}
+            onClick={() => setSelectedDay(day.key)}
+          >
+            <div className="schedule-week-day-top">
+              <div>
+                <strong>{day.label}</strong>
+                <span>{day.shortDate}</span>
+              </div>
+              <span className={`day-coverage-pill ${day.coverage.className}`}>{day.coverage.icon} {day.coverage.label}</span>
+            </div>
+            <p>{day.shifts.length} shift{day.shifts.length === 1 ? '' : 's'}</p>
+            <div className="roster-day-timeline">
+              <div className="roster-day-timeline-track">
+                <span className="timeline-label">08:00</span>
+                {day.timelineSegments.map((segment, index) => (
+                  <span key={`${day.key}-${index}`} className={segment.className} style={{ left: `${segment.left}%`, width: `${segment.width}%` }} />
+                ))}
+                <span className="timeline-label">01:00</span>
+              </div>
+            </div>
+          </button>
+        ))}
+      </div>
+
+      {noticeMessage ? <div className="staff-status-banner">{noticeMessage}</div> : null}
+      {isLoading ? <div className="staff-status-banner">Loading schedule…</div> : null}
+
+      <div className="panel staff-panel">
+        <div className="panel-heading">
+          <div>
+            <p className="eyebrow">Weekly roster</p>
+            <h3>{selectedDay ? weekDays.find((day) => day.key === selectedDay)?.label : 'Planning'} coverage</h3>
+          </div>
+        </div>
+
+        <div className="roster-filters">
+          <label className="roster-filter">
+            <span>Department</span>
+            <select value={filters.department} onChange={(event) => setFilters((current) => ({ ...current, department: event.target.value }))}>
+              <option value="All">All</option>
+              <option value="Bar">Bar</option>
+              <option value="Service">Service</option>
+              <option value="Host">Host</option>
+              <option value="Kitchen">Kitchen</option>
+              <option value="Management">Management</option>
+            </select>
+          </label>
+          <label className="roster-filter">
+            <span>Shift</span>
+            <select value={filters.shift} onChange={(event) => setFilters((current) => ({ ...current, shift: event.target.value }))}>
+              <option value="All">All</option>
+              <option value="Morning">Morning</option>
+              <option value="Evening">Evening</option>
+              <option value="Night">Night</option>
+            </select>
+          </label>
+          <label className="roster-filter">
+            <span>Status</span>
+            <select value={filters.status} onChange={(event) => setFilters((current) => ({ ...current, status: event.target.value }))}>
+              <option value="All">All</option>
+              <option value="Scheduled">Scheduled</option>
+              <option value="Confirmed">Confirmed</option>
+              <option value="Completed">Completed</option>
+            </select>
+          </label>
+          <label className="roster-filter roster-filter-search">
+            <span>Employee</span>
+            <input value={filters.search} onChange={(event) => setFilters((current) => ({ ...current, search: event.target.value }))} placeholder="Search" />
+          </label>
+        </div>
+
+        {filteredDayShifts.length === 0 && !isLoading ? (
+          <div className="schedule-empty-state">
+            <h4>No employees match this view.</h4>
+            <p>Adjust the filters or create a new shift for this day.</p>
+          </div>
+        ) : null}
+
+        <div className="roster-department-groups">
+          {departmentGroups.map((group) => (
+            <section key={group.department} className="roster-department-card">
+              <div className="roster-department-heading">
+                <h4>{group.department}</h4>
+                <span>{group.shifts.length} shift{group.shifts.length === 1 ? '' : 's'}</span>
+              </div>
+
+              {group.shifts.length === 0 ? (
+                <p className="roster-empty-department">No employees scheduled</p>
+              ) : (
+                <div className="roster-shift-list">
+                  {group.shifts.map((shift) => {
+                    const indicator = getShiftIndicator(shift)
+                    const employeeName = shift.employees?.full_name || shift.employeeName || shift.employeeRecord?.name || 'Unassigned'
+                    const employeePosition = shift.employeeRecord?.position || shift.role || 'Team member'
+                    const employeeAvatar = getInitials(employeeName)
+
+                    return (
+                      <button key={shift.id} type="button" className="roster-shift-card" onClick={() => handleOpenShiftDetails(shift)}>
+                        <div className="roster-shift-main">
+                          <div className="roster-avatar">{employeeAvatar}</div>
+                          <div className="roster-shift-copy">
+                            <strong>{employeeName}</strong>
+                            <p>{employeePosition}</p>
+                          </div>
+                        </div>
+                        <div className="roster-shift-meta">
+                          <span>{shift.startTime || '—'} – {shift.endTime || '—'}</span>
+                          <span>{shift.area || 'Guest floor'}</span>
+                        </div>
+                        <div className="roster-shift-footer">
+                          <span className={`status-pill ${getShiftStatusClass(shift.status)}`}>{shift.status || 'Scheduled'}</span>
+                          <span className={indicator.className}>{indicator.label}</span>
+                        </div>
+                      </button>
+                    )
+                  })}
+                </div>
+              )}
+            </section>
+          ))}
+        </div>
+      </div>
+
+      {selectedShift ? (
+        <>
+          <div className="drawer-backdrop" onClick={handleCloseShiftDetails} />
+          <aside className="employee-drawer">
+            <div className="drawer-header">
+              <div>
+                <p className="eyebrow">Shift details</p>
+                <h3>{selectedShift.employees?.full_name || selectedShift.employeeName || selectedShift.employeeRecord?.name || 'Unassigned'}</h3>
+              </div>
+              <button type="button" className="icon-btn" onClick={handleCloseShiftDetails}>✕</button>
+            </div>
+
+            <div className="drawer-profile">
+              <div className="employee-photo large">{getInitials(selectedShift.employees?.full_name || selectedShift.employeeName || selectedShift.employeeRecord?.name || 'Unassigned')}</div>
+              <div>
+                <strong>{selectedShift.employeeRecord?.position || selectedShift.role || 'Team member'}</strong>
+                <p>{selectedShift.employeeRecord?.department || 'Service'}</p>
+              </div>
+            </div>
+
+            <div className="drawer-grid">
+              <div className="drawer-row"><span>Time</span><strong>{selectedShift.startTime || '—'} – {selectedShift.endTime || '—'}</strong></div>
+              <div className="drawer-row"><span>Area</span><strong>{selectedShift.area || '—'}</strong></div>
+              <div className="drawer-row"><span>Status</span><strong>{selectedShift.status || 'Scheduled'}</strong></div>
+              <div className="drawer-row"><span>Date</span><strong>{selectedShift.date || '—'}</strong></div>
+            </div>
+
+            <div className="drawer-notes">
+              <p className="eyebrow">Notes</p>
+              <p>{selectedShift.notes || 'No notes for this shift.'}</p>
+            </div>
+
+            <div className="action-group" style={{ marginTop: '16px' }}>
+              <button type="button" className="ghost-btn" onClick={handleEditSelectedShift}>Edit</button>
+              <button type="button" className="ghost-btn" onClick={handleDeleteSelectedShift}>Delete</button>
+            </div>
+          </aside>
+        </>
+      ) : null}
+    </section>
+  )
+}
+
+function ReservationsView({ reservations, onOpenAddReservation, onOpenEditReservation, onDeleteReservation, isLoading, noticeMessage, isSaving }) {
+  const today = new Date().toISOString().split('T')[0]
+  const todayReservations = reservations.filter((reservation) => reservation.date === today)
+  const upcomingReservations = reservations.filter((reservation) => reservation.date !== today)
+
+  return (
+    <section className="staff-page">
+      <div className="staff-header-card">
+        <div>
+          <p className="eyebrow">Reservations</p>
+          <h3>Luxury booking flow</h3>
+          <p className="staff-subtitle">Track arrivals, seating, and guest notes across the evening.</p>
+        </div>
+        <button type="button" className="primary-btn" onClick={onOpenAddReservation} disabled={isSaving}>
+          {isSaving ? 'Saving…' : '+ Add Reservation'}
+        </button>
+      </div>
+
+      {noticeMessage ? <div className="staff-status-banner">{noticeMessage}</div> : null}
+      {isLoading ? <div className="staff-status-banner">Loading reservations…</div> : null}
+
+      <div className="roster-summary-grid">
+        <article className="roster-summary-card">
+          <p className="eyebrow">Today</p>
+          <h3>{todayReservations.length}</h3>
+        </article>
+        <article className="roster-summary-card">
+          <p className="eyebrow">Upcoming</p>
+          <h3>{upcomingReservations.length}</h3>
+        </article>
+        <article className="roster-summary-card">
+          <p className="eyebrow">Booked</p>
+          <h3>{reservations.filter((reservation) => reservation.status === 'Booked').length}</h3>
+        </article>
+      </div>
+
+      <div className="panel staff-panel">
+        <div className="panel-heading">
+          <div>
+            <p className="eyebrow">Today’s reservations</p>
+            <h3>Arrival board</h3>
+          </div>
+        </div>
+
+        {todayReservations.length === 0 && !isLoading ? (
+          <div className="schedule-empty-state">
+            <h4>No reservations yet.</h4>
+            <p>Your guest arrival board is clear for today.</p>
+          </div>
+        ) : (
+          <div className="roster-shift-list">
+            {todayReservations.map((reservation) => (
+              <article key={reservation.id} className="roster-shift-card reservation-card">
+                <div className="roster-shift-main">
+                  <div className="roster-avatar">{getInitials(reservation.guestName || 'Guest')}</div>
+                  <div className="roster-shift-copy">
+                    <strong>{reservation.guestName || 'Guest'}</strong>
+                    <p>{reservation.phone || 'Phone not provided'}</p>
+                  </div>
+                </div>
+                <div className="roster-shift-meta">
+                  <span>{reservation.date || '—'}</span>
+                  <span>{reservation.time || '—'}</span>
+                </div>
+                <div className="roster-shift-meta">
+                  <span>{reservation.guests || 0} guests</span>
+                  <span>Table {reservation.tableNumber || '—'}</span>
+                </div>
+                <div className="roster-shift-meta">
+                  <span>{reservation.area || '—'}</span>
+                  <span className={`status-pill ${reservation.status === 'Completed' ? 'completed' : reservation.status === 'Cancelled' ? 'scheduled' : 'confirmed'}`}>{reservation.status || 'Booked'}</span>
+                </div>
+                <div className="drawer-notes">
+                  <p>{reservation.notes || 'No notes.'}</p>
+                </div>
+                <div className="action-group" style={{ marginTop: '12px' }}>
+                  <button type="button" className="ghost-btn" onClick={() => onOpenEditReservation(reservation)}>Edit</button>
+                  <button type="button" className="ghost-btn" onClick={() => onDeleteReservation(reservation.id)}>Delete</button>
+                </div>
+              </article>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div className="panel staff-panel">
+        <div className="panel-heading">
+          <div>
+            <p className="eyebrow">Upcoming reservations</p>
+            <h3>Future bookings</h3>
+          </div>
+        </div>
+
+        {upcomingReservations.length === 0 && !isLoading ? (
+          <div className="schedule-empty-state">
+            <h4>No reservations yet.</h4>
+            <p>New reservations will appear here as they are added.</p>
+          </div>
+        ) : (
+          <div className="roster-shift-list">
+            {upcomingReservations.map((reservation) => (
+              <article key={reservation.id} className="roster-shift-card reservation-card">
+                <div className="roster-shift-main">
+                  <div className="roster-avatar">{getInitials(reservation.guestName || 'Guest')}</div>
+                  <div className="roster-shift-copy">
+                    <strong>{reservation.guestName || 'Guest'}</strong>
+                    <p>{reservation.phone || 'Phone not provided'}</p>
+                  </div>
+                </div>
+                <div className="roster-shift-meta">
+                  <span>{reservation.date || '—'}</span>
+                  <span>{reservation.time || '—'}</span>
+                </div>
+                <div className="roster-shift-meta">
+                  <span>{reservation.guests || 0} guests</span>
+                  <span>Table {reservation.tableNumber || '—'}</span>
+                </div>
+                <div className="roster-shift-meta">
+                  <span>{reservation.area || '—'}</span>
+                  <span className={`status-pill ${reservation.status === 'Completed' ? 'completed' : reservation.status === 'Cancelled' ? 'scheduled' : 'confirmed'}`}>{reservation.status || 'Booked'}</span>
+                </div>
+                <div className="drawer-notes">
+                  <p>{reservation.notes || 'No notes.'}</p>
+                </div>
+                <div className="action-group" style={{ marginTop: '12px' }}>
+                  <button type="button" className="ghost-btn" onClick={() => onOpenEditReservation(reservation)}>Edit</button>
+                  <button type="button" className="ghost-btn" onClick={() => onDeleteReservation(reservation.id)}>Delete</button>
+                </div>
+              </article>
+            ))}
+          </div>
+        )}
+      </div>
+    </section>
+  )
+}
+
 function App() {
   const [activeView, setActiveView] = useState('dashboard')
   const [searchTerm, setSearchTerm] = useState('')
   const [activeFilter, setActiveFilter] = useState('All')
   const [employees, setEmployees] = useState(initialStaffEmployees)
   const [selectedEmployee, setSelectedEmployee] = useState(null)
+  const [shifts, setShifts] = useState([])
+  const [scheduleEmployees, setScheduleEmployees] = useState(initialStaffEmployees)
+  const [isScheduleLoading, setIsScheduleLoading] = useState(true)
+  const [scheduleNotice, setScheduleNotice] = useState('')
+  const [isShiftModalOpen, setIsShiftModalOpen] = useState(false)
+  const [editingShift, setEditingShift] = useState(null)
+  const [formData, setFormData] = useState({
+    employee_id: '',
+    shift_date: '',
+    start_time: '',
+    end_time: '',
+    role: '',
+    area: '',
+    status: 'Scheduled',
+    notes: '',
+  })
+  const [isSavingShift, setIsSavingShift] = useState(false)
   const [isEmployeeModalOpen, setIsEmployeeModalOpen] = useState(false)
   const [editingEmployee, setEditingEmployee] = useState(null)
   const [employeeForm, setEmployeeForm] = useState(() => buildEmployeeForm())
@@ -427,6 +1012,23 @@ function App() {
   const [staffNotice, setStaffNotice] = useState('')
   const [isSavingEmployee, setIsSavingEmployee] = useState(false)
   const [saveError, setSaveError] = useState('')
+  const [reservations, setReservations] = useState([])
+  const [reservationNotice, setReservationNotice] = useState('')
+  const [isReservationsLoading, setIsReservationsLoading] = useState(true)
+  const [isReservationModalOpen, setIsReservationModalOpen] = useState(false)
+  const [editingReservation, setEditingReservation] = useState(null)
+  const [reservationForm, setReservationForm] = useState({
+    guestName: '',
+    phone: '',
+    date: '',
+    time: '',
+    guests: '2',
+    tableNumber: '',
+    area: 'Main Dining',
+    status: 'Booked',
+    notes: '',
+  })
+  const [isSavingReservation, setIsSavingReservation] = useState(false)
 
   const todayLabel = new Intl.DateTimeFormat('en', {
     weekday: 'long',
@@ -463,6 +1065,76 @@ function App() {
     }
 
     loadEmployees()
+
+    return () => {
+      isMounted = false
+    }
+  }, [])
+
+  useEffect(() => {
+    let isMounted = true
+
+    const loadScheduleData = async () => {
+      setIsScheduleLoading(true)
+      setScheduleNotice('')
+
+      try {
+        const [remoteEmployees, remoteShifts] = await Promise.all([getEmployees(), getShifts()])
+        if (!isMounted) return
+
+        if (remoteEmployees.length > 0) {
+          setEmployees(remoteEmployees)
+          setScheduleEmployees(remoteEmployees)
+        } else {
+          setEmployees(initialStaffEmployees)
+          setScheduleEmployees(initialStaffEmployees)
+        }
+
+        setShifts(remoteShifts)
+      } catch (error) {
+        if (!isMounted) return
+
+        setEmployees(initialStaffEmployees)
+        setScheduleEmployees(initialStaffEmployees)
+        setShifts([])
+        setScheduleNotice(error.message || 'Unable to load schedule right now.')
+      } finally {
+        if (isMounted) {
+          setIsScheduleLoading(false)
+        }
+      }
+    }
+
+    loadScheduleData()
+
+    return () => {
+      isMounted = false
+    }
+  }, [])
+
+  useEffect(() => {
+    let isMounted = true
+
+    const loadReservations = async () => {
+      setIsReservationsLoading(true)
+      setReservationNotice('')
+
+      try {
+        const remoteReservations = await getReservations()
+        if (!isMounted) return
+        setReservations(remoteReservations)
+      } catch (error) {
+        if (!isMounted) return
+        setReservations([])
+        setReservationNotice(error.message || 'Unable to load reservations right now.')
+      } finally {
+        if (isMounted) {
+          setIsReservationsLoading(false)
+        }
+      }
+    }
+
+    loadReservations()
 
     return () => {
       isMounted = false
@@ -579,10 +1251,288 @@ function App() {
     }
   }
 
-  const heroTitle = activeView === 'dashboard' ? 'Good morning, Platon 👋' : 'Staff management'
+  const parseShiftTimeToMinutes = (value) => {
+    if (!value) return null
+
+    const [hours, minutes] = `${value}`.split(':').map(Number)
+    if (Number.isNaN(hours) || Number.isNaN(minutes)) return null
+    return hours * 60 + minutes
+  }
+
+  const isUnavailableEmployee = (employee) => {
+    if (!employee?.status) return false
+    const normalized = `${employee.status}`.toLowerCase()
+    return normalized.includes('day off') || normalized.includes('vacation') || normalized.includes('sick') || normalized.includes('leave')
+  }
+
+  const handleOpenAddShift = () => {
+    setEditingShift(null)
+    setFormData({
+      employee_id: '',
+      shift_date: '',
+      start_time: '',
+      end_time: '',
+      role: '',
+      area: '',
+      status: 'Scheduled',
+      notes: '',
+    })
+    setIsShiftModalOpen(true)
+  }
+
+  const handleOpenEditShift = (shift) => {
+    setEditingShift(shift)
+    setFormData({
+      employee_id: shift.employeeId ? String(shift.employeeId) : '',
+      shift_date: shift.date ?? '',
+      start_time: shift.startTime ?? '',
+      end_time: shift.endTime ?? '',
+      role: shift.role ?? '',
+      area: shift.area ?? '',
+      status: shift.status ?? 'Scheduled',
+      notes: shift.notes ?? '',
+    })
+    setIsShiftModalOpen(true)
+  }
+
+  const handleCloseShiftModal = () => {
+    setIsShiftModalOpen(false)
+    setEditingShift(null)
+    setFormData({
+      employee_id: '',
+      shift_date: '',
+      start_time: '',
+      end_time: '',
+      role: '',
+      area: '',
+      status: 'Scheduled',
+      notes: '',
+    })
+  }
+
+  const handleDeleteShift = async (id) => {
+    try {
+      await deleteShift(id)
+      setShifts((current) => current.filter((shift) => shift.id !== id))
+      setScheduleNotice('Shift removed.')
+    } catch (error) {
+      setScheduleNotice(error.message || 'Unable to delete shift right now.')
+    }
+  }
+
+  const handleShiftSubmit = async (event) => {
+    event.preventDefault()
+
+    console.log('shift formData', formData)
+
+    if (!formData.employee_id) {
+      setScheduleNotice('Please select an employee before saving the shift.')
+      return
+    }
+
+    const employeeId = Number(formData.employee_id)
+    const selectedEmployee = scheduleEmployees.find((employee) => employee.id === employeeId)
+
+    if (!selectedEmployee) {
+      setScheduleNotice('That employee could not be found in the roster.')
+      return
+    }
+
+    if (isUnavailableEmployee(selectedEmployee)) {
+      setScheduleNotice('That employee is currently unavailable and cannot be assigned to a shift.')
+      return
+    }
+
+    const startMinutes = parseShiftTimeToMinutes(formData.start_time)
+    const endMinutes = parseShiftTimeToMinutes(formData.end_time)
+
+    if (startMinutes === null || endMinutes === null) {
+      setScheduleNotice('Please add a valid start and end time.')
+      return
+    }
+
+    if (endMinutes <= startMinutes) {
+      setScheduleNotice('End time cannot be earlier than the start time.')
+      return
+    }
+
+    const sameDayShifts = shifts.filter((shift) => {
+      if (shift.id === editingShift?.id) return false
+      return Number(shift.employeeId) === employeeId && shift.date === formData.shift_date
+    })
+
+    if (sameDayShifts.length > 0) {
+      const overlap = sameDayShifts.some((shift) => {
+        const existingStart = parseShiftTimeToMinutes(shift.startTime)
+        const existingEnd = parseShiftTimeToMinutes(shift.endTime)
+        if (existingStart === null || existingEnd === null) return false
+        return startMinutes < existingEnd && endMinutes > existingStart
+      })
+
+      if (overlap) {
+        setScheduleNotice('This employee already has an overlapping shift on that day.')
+        return
+      }
+
+      setScheduleNotice('This employee already has a shift scheduled for that day.')
+      return
+    }
+
+    setIsSavingShift(true)
+    setScheduleNotice('')
+
+    const payload = {
+      employee_id: formData.employee_id,
+      role: formData.role,
+      area: formData.area,
+      date: formData.shift_date,
+      startTime: formData.start_time,
+      endTime: formData.end_time,
+      status: formData.status,
+      notes: formData.notes,
+    }
+
+    console.log('[App] saving shift payload', payload)
+
+    try {
+      const savedShift = editingShift
+        ? await updateShift(editingShift.id, payload)
+        : await createShift(payload)
+
+      const resolvedShift = {
+        ...savedShift,
+        employeeName: savedShift?.employeeName || savedShift?.employees?.full_name || '',
+        employees: savedShift?.employees ?? null,
+      }
+
+      setShifts((current) => {
+        if (editingShift) {
+          return current.map((shift) => (shift.id === editingShift.id ? resolvedShift : shift))
+        }
+
+        return [resolvedShift, ...current]
+      })
+      handleCloseShiftModal()
+    } catch (error) {
+      setScheduleNotice(error.message || 'Unable to save shift right now.')
+    } finally {
+      setIsSavingShift(false)
+    }
+  }
+
+  const employeeOptions = useMemo(() => {
+    return scheduleEmployees.filter((employee) => !isUnavailableEmployee(employee) || String(employee.id) === formData.employee_id)
+  }, [formData.employee_id, scheduleEmployees])
+
+  const handleOpenAddReservation = () => {
+    setEditingReservation(null)
+    setReservationForm({
+      guestName: '',
+      phone: '',
+      date: '',
+      time: '',
+      guests: '2',
+      tableNumber: '',
+      area: 'Main Dining',
+      status: 'Booked',
+      notes: '',
+    })
+    setIsReservationModalOpen(true)
+  }
+
+  const handleOpenEditReservation = (reservation) => {
+    setEditingReservation(reservation)
+    setReservationForm({
+      guestName: reservation.guestName ?? '',
+      phone: reservation.phone ?? '',
+      date: reservation.date ?? '',
+      time: reservation.time ?? '',
+      guests: `${reservation.guests ?? 2}`,
+      tableNumber: reservation.tableNumber ?? '',
+      area: reservation.area ?? 'Main Dining',
+      status: reservation.status ?? 'Booked',
+      notes: reservation.notes ?? '',
+    })
+    setIsReservationModalOpen(true)
+  }
+
+  const handleCloseReservationModal = () => {
+    setIsReservationModalOpen(false)
+    setEditingReservation(null)
+    setReservationForm({
+      guestName: '',
+      phone: '',
+      date: '',
+      time: '',
+      guests: '2',
+      tableNumber: '',
+      area: 'Main Dining',
+      status: 'Booked',
+      notes: '',
+    })
+  }
+
+  const handleDeleteReservation = async (id) => {
+    try {
+      await deleteReservation(id)
+      setReservations((current) => current.filter((reservation) => reservation.id !== id))
+      setReservationNotice('Reservation removed.')
+    } catch (error) {
+      setReservationNotice(error.message || 'Unable to delete reservation right now.')
+    }
+  }
+
+  const handleReservationSubmit = async (event) => {
+    event.preventDefault()
+
+    if (!reservationForm.guestName.trim()) {
+      setReservationNotice('Please provide the guest name.')
+      return
+    }
+
+    setIsSavingReservation(true)
+    setReservationNotice('')
+
+    const payload = {
+      guestName: reservationForm.guestName.trim(),
+      phone: reservationForm.phone.trim(),
+      date: reservationForm.date,
+      time: reservationForm.time,
+      guests: Number(reservationForm.guests) || 2,
+      tableNumber: reservationForm.tableNumber.trim(),
+      area: reservationForm.area,
+      status: reservationForm.status,
+      notes: reservationForm.notes.trim(),
+    }
+
+    try {
+      const savedReservation = editingReservation
+        ? await updateReservation(editingReservation.id, payload)
+        : await createReservation(payload)
+
+      setReservations((current) => {
+        if (editingReservation) {
+          return current.map((reservation) => (reservation.id === editingReservation.id ? savedReservation : reservation))
+        }
+
+        return [savedReservation, ...current]
+      })
+
+      setReservationNotice(editingReservation ? 'Reservation updated.' : 'Reservation created.')
+      handleCloseReservationModal()
+    } catch (error) {
+      setReservationNotice(error.message || 'Unable to save reservation right now.')
+    } finally {
+      setIsSavingReservation(false)
+    }
+  }
+
+  const heroTitle = activeView === 'dashboard' ? 'Good morning, Platon 👋' : activeView === 'staff' ? 'Staff management' : activeView === 'schedule' ? 'Schedule management' : 'Reservations management'
   const heroSubtitle = activeView === 'dashboard'
     ? 'Monday, June 29 · Everything is running smoothly.'
-    : 'Search, filter, and review the full team roster.'
+    : activeView === 'reservations'
+      ? 'Review service flow, seating, and guest arrivals.'
+      : 'Search, filter, and review the full team roster.'
 
   return (
     <div className="app-shell">
@@ -669,6 +1619,31 @@ function App() {
           />
         ) : null}
 
+        {activeView === 'schedule' ? (
+          <ScheduleView
+            shifts={shifts}
+            employees={scheduleEmployees}
+            onOpenAddShift={handleOpenAddShift}
+            onOpenEditShift={handleOpenEditShift}
+            onDeleteShift={handleDeleteShift}
+            isLoading={isScheduleLoading}
+            noticeMessage={scheduleNotice}
+            isSaving={isSavingShift}
+          />
+        ) : null}
+
+        {activeView === 'reservations' ? (
+          <ReservationsView
+            reservations={reservations}
+            onOpenAddReservation={handleOpenAddReservation}
+            onOpenEditReservation={handleOpenEditReservation}
+            onDeleteReservation={handleDeleteReservation}
+            isLoading={isReservationsLoading}
+            noticeMessage={reservationNotice}
+            isSaving={isSavingReservation}
+          />
+        ) : null}
+
         {isEmployeeModalOpen ? (
           <div className="employee-modal-backdrop" onClick={handleCloseEmployeeModal}>
             <div className="employee-modal" onClick={(event) => event.stopPropagation()}>
@@ -748,6 +1723,155 @@ function App() {
                   <button type="button" className="ghost-btn" onClick={handleCloseEmployeeModal}>Cancel</button>
                   <button type="submit" className="primary-btn" disabled={isSavingEmployee}>
                     {isSavingEmployee ? 'Saving…' : 'Save'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        ) : null}
+
+        {isShiftModalOpen ? (
+          <div className="employee-modal-backdrop" onClick={handleCloseShiftModal}>
+            <div className="employee-modal" onClick={(event) => event.stopPropagation()}>
+              <div className="drawer-header">
+                <div>
+                  <p className="eyebrow">Shift form</p>
+                  <h3>{editingShift ? 'Edit shift' : 'Add shift'}</h3>
+                </div>
+                <button type="button" className="icon-btn" onClick={handleCloseShiftModal}>✕</button>
+              </div>
+
+              <form className="employee-form" onSubmit={handleShiftSubmit}>
+                <div className="form-grid">
+                  <label className="form-field">
+                    <span>Employee</span>
+                    <select
+                      value={formData.employee_id}
+                      onChange={(event) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          employee_id: event.target.value,
+                        }))
+                      }
+                    >
+                      <option value="">Select employee</option>
+                      {employeeOptions.map((employee) => (
+                        <option key={employee.id} value={String(employee.id)}>
+                          {employee.full_name || employee.name}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="form-field">
+                    <span>Date</span>
+                    <input type="date" value={formData.shift_date} onChange={(event) => setFormData((current) => ({ ...current, shift_date: event.target.value }))} required />
+                  </label>
+                  <label className="form-field">
+                    <span>Start Time</span>
+                    <input type="time" value={formData.start_time} onChange={(event) => setFormData((current) => ({ ...current, start_time: event.target.value }))} required />
+                  </label>
+                  <label className="form-field">
+                    <span>End Time</span>
+                    <input type="time" value={formData.end_time} onChange={(event) => setFormData((current) => ({ ...current, end_time: event.target.value }))} required />
+                  </label>
+                  <label className="form-field">
+                    <span>Role</span>
+                    <input value={formData.role} onChange={(event) => setFormData((current) => ({ ...current, role: event.target.value }))} placeholder="Role" />
+                  </label>
+                  <label className="form-field">
+                    <span>Area</span>
+                    <input value={formData.area} onChange={(event) => setFormData((current) => ({ ...current, area: event.target.value }))} placeholder="Area" />
+                  </label>
+                  <label className="form-field">
+                    <span>Status</span>
+                    <select value={formData.status} onChange={(event) => setFormData((current) => ({ ...current, status: event.target.value }))}>
+                      <option value="Scheduled">Scheduled</option>
+                      <option value="Confirmed">Confirmed</option>
+                      <option value="Pending">Pending</option>
+                      <option value="Completed">Completed</option>
+                    </select>
+                  </label>
+                </div>
+
+                <label className="form-field full-width">
+                  <span>Notes</span>
+                  <textarea rows="4" value={formData.notes} onChange={(event) => setFormData((current) => ({ ...current, notes: event.target.value }))} placeholder="Notes" />
+                </label>
+
+                <div className="modal-actions">
+                  <button type="button" className="ghost-btn" onClick={handleCloseShiftModal}>Cancel</button>
+                  <button type="submit" className="primary-btn" disabled={isSavingShift}>
+                    {isSavingShift ? 'Saving…' : 'Save'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        ) : null}
+
+        {isReservationModalOpen ? (
+          <div className="employee-modal-backdrop" onClick={handleCloseReservationModal}>
+            <div className="employee-modal" onClick={(event) => event.stopPropagation()}>
+              <div className="drawer-header">
+                <div>
+                  <p className="eyebrow">Reservation form</p>
+                  <h3>{editingReservation ? 'Edit reservation' : 'Add reservation'}</h3>
+                </div>
+                <button type="button" className="icon-btn" onClick={handleCloseReservationModal}>✕</button>
+              </div>
+
+              <form className="employee-form" onSubmit={handleReservationSubmit}>
+                <div className="form-grid">
+                  <label className="form-field">
+                    <span>Guest Name</span>
+                    <input value={reservationForm.guestName} onChange={(event) => setReservationForm((current) => ({ ...current, guestName: event.target.value }))} placeholder="Guest Name" required />
+                  </label>
+                  <label className="form-field">
+                    <span>Phone</span>
+                    <input value={reservationForm.phone} onChange={(event) => setReservationForm((current) => ({ ...current, phone: event.target.value }))} placeholder="Phone" />
+                  </label>
+                  <label className="form-field">
+                    <span>Date</span>
+                    <input type="date" value={reservationForm.date} onChange={(event) => setReservationForm((current) => ({ ...current, date: event.target.value }))} required />
+                  </label>
+                  <label className="form-field">
+                    <span>Time</span>
+                    <input type="time" value={reservationForm.time} onChange={(event) => setReservationForm((current) => ({ ...current, time: event.target.value }))} required />
+                  </label>
+                  <label className="form-field">
+                    <span>Guests</span>
+                    <input type="number" min="1" value={reservationForm.guests} onChange={(event) => setReservationForm((current) => ({ ...current, guests: event.target.value }))} required />
+                  </label>
+                  <label className="form-field">
+                    <span>Table Number</span>
+                    <input value={reservationForm.tableNumber} onChange={(event) => setReservationForm((current) => ({ ...current, tableNumber: event.target.value }))} placeholder="Table Number" />
+                  </label>
+                  <label className="form-field">
+                    <span>Area</span>
+                    <input value={reservationForm.area} onChange={(event) => setReservationForm((current) => ({ ...current, area: event.target.value }))} placeholder="Area" />
+                  </label>
+                  <label className="form-field">
+                    <span>Status</span>
+                    <select value={reservationForm.status} onChange={(event) => setReservationForm((current) => ({ ...current, status: event.target.value }))}>
+                      <option value="Booked">Booked</option>
+                      <option value="Confirmed">Confirmed</option>
+                      <option value="Seated">Seated</option>
+                      <option value="Completed">Completed</option>
+                      <option value="Cancelled">Cancelled</option>
+                      <option value="No Show">No Show</option>
+                    </select>
+                  </label>
+                </div>
+
+                <label className="form-field full-width">
+                  <span>Notes</span>
+                  <textarea rows="4" value={reservationForm.notes} onChange={(event) => setReservationForm((current) => ({ ...current, notes: event.target.value }))} placeholder="Notes" />
+                </label>
+
+                <div className="modal-actions">
+                  <button type="button" className="ghost-btn" onClick={handleCloseReservationModal}>Cancel</button>
+                  <button type="submit" className="primary-btn" disabled={isSavingReservation}>
+                    {isSavingReservation ? 'Saving…' : 'Save'}
                   </button>
                 </div>
               </form>
