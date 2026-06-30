@@ -35,6 +35,11 @@ import {
   isEmployeeUnavailable,
   resolvePositionForDrop,
 } from './lib/scheduleDropUtils'
+import {
+  buildCloneRawPayload,
+  buildShiftCellKeyFromParts,
+  buildShiftDedupeKey,
+} from './lib/scheduleBulkUtils'
 
 const navItems = [
   { id: 'dashboard', label: 'Dashboard', icon: '◈' },
@@ -746,6 +751,11 @@ function ScheduleView({
   onDuplicateShiftTemplate,
   onDeleteShiftTemplate,
   onCopyHistoricalWeek,
+  onCopyDay,
+  onCopyWeek,
+  onClearDay,
+  onClearWeek,
+  onAutoFillWeekFromTemplate,
   schedulePublication,
   publishedShifts,
   weekStartDate,
@@ -810,6 +820,19 @@ function ScheduleView({
   const [shiftTemplateRenameName, setShiftTemplateRenameName] = useState('')
   const [browseWeekAnchorDate, setBrowseWeekAnchorDate] = useState('')
   const [isCopyThisWeekModalOpen, setIsCopyThisWeekModalOpen] = useState(false)
+  const [dayActionMenuKey, setDayActionMenuKey] = useState(null)
+  const [isCopyDayModalOpen, setIsCopyDayModalOpen] = useState(false)
+  const [copyDaySourceDay, setCopyDaySourceDay] = useState(null)
+  const [copyDayTargetKey, setCopyDayTargetKey] = useState('')
+  const [isClearDayModalOpen, setIsClearDayModalOpen] = useState(false)
+  const [clearDayTarget, setClearDayTarget] = useState(null)
+  const [isCopyWeekModalOpen, setIsCopyWeekModalOpen] = useState(false)
+  const [copyWeekTargetDate, setCopyWeekTargetDate] = useState('')
+  const [copyWeekTargetShiftCount, setCopyWeekTargetShiftCount] = useState(0)
+  const [isCopyWeekTargetLoading, setIsCopyWeekTargetLoading] = useState(false)
+  const [isClearWeekModalOpen, setIsClearWeekModalOpen] = useState(false)
+  const [isAutoFillModalOpen, setIsAutoFillModalOpen] = useState(false)
+  const [autoFillReplaceExisting, setAutoFillReplaceExisting] = useState(false)
   const [isPublishConfirmOpen, setIsPublishConfirmOpen] = useState(false)
   const [isUnpublishConfirmOpen, setIsUnpublishConfirmOpen] = useState(false)
   const [isPublishing, setIsPublishing] = useState(false)
@@ -844,6 +867,7 @@ function ScheduleView({
     setCapacityDraftMap({})
     setCapacityPickerKey('')
     setSelectedDay(null)
+    setDayActionMenuKey(null)
   }, [weekStartDate])
 
   useEffect(() => {
@@ -884,6 +908,45 @@ function ScheduleView({
       isMounted = false
     }
   }, [browseWeekAnchorDate])
+
+  useEffect(() => {
+    let isMounted = true
+
+    if (!copyWeekTargetDate || !isCopyWeekModalOpen) {
+      setCopyWeekTargetShiftCount(0)
+      setIsCopyWeekTargetLoading(false)
+      return () => {
+        isMounted = false
+      }
+    }
+
+    const loadTargetWeekCount = async () => {
+      setIsCopyWeekTargetLoading(true)
+      try {
+        const targetWeekStart = getWeekStartDate(parseLocalDate(copyWeekTargetDate))
+        const targetKeys = getWeekDateKeys(targetWeekStart)
+        const remoteShifts = await getShifts({
+          startDate: targetKeys[0],
+          endDate: targetKeys[targetKeys.length - 1],
+        })
+        if (!isMounted) return
+        setCopyWeekTargetShiftCount(remoteShifts.length)
+      } catch {
+        if (!isMounted) return
+        setCopyWeekTargetShiftCount(0)
+      } finally {
+        if (isMounted) {
+          setIsCopyWeekTargetLoading(false)
+        }
+      }
+    }
+
+    loadTargetWeekCount()
+
+    return () => {
+      isMounted = false
+    }
+  }, [copyWeekTargetDate, isCopyWeekModalOpen])
 
   const isWeekPublished = schedulePublication?.status === 'published'
   const hasUnpublishedChanges = isWeekPublished
@@ -1191,6 +1254,161 @@ function ScheduleView({
       setAssignmentError('')
     } catch (error) {
       setAssignmentError(error?.message || 'Unable to copy this week right now.')
+    }
+  }
+
+  const copyWeekTargetWeekStart = copyWeekTargetDate
+    ? getWeekStartDate(parseLocalDate(copyWeekTargetDate))
+    : ''
+  const isCopyWeekTargetCurrentWeek = copyWeekTargetWeekStart === weekStartDate
+
+  const handleOpenCopyDayModal = (day) => {
+    setDayActionMenuKey(null)
+    setCopyDaySourceDay(day)
+    const fallbackTarget = weekDays.find((item) => item.key !== day.key)?.key ?? ''
+    setCopyDayTargetKey(fallbackTarget)
+    setAssignmentError('')
+    setIsCopyDayModalOpen(true)
+  }
+
+  const handleOpenClearDayModal = (day) => {
+    setDayActionMenuKey(null)
+    setClearDayTarget(day)
+    setAssignmentError('')
+    setIsClearDayModalOpen(true)
+  }
+
+  const copyDayTargetShiftCount = copyDayTargetKey
+    ? visibleWeekShifts.filter((shift) => shift.date === copyDayTargetKey).length
+    : 0
+
+  const handleConfirmCopyDay = async () => {
+    if (!copyDaySourceDay?.key || !copyDayTargetKey) {
+      setAssignmentError('Select a target day first.')
+      return
+    }
+
+    if (copyDaySourceDay.key === copyDayTargetKey) {
+      setAssignmentError('Source and target day must be different.')
+      return
+    }
+
+    try {
+      await onCopyDay({
+        sourceDate: copyDaySourceDay.key,
+        targetDate: copyDayTargetKey,
+        overwrite: copyDayTargetShiftCount > 0,
+      })
+      setIsCopyDayModalOpen(false)
+      setCopyDaySourceDay(null)
+      setCopyDayTargetKey('')
+      setAssignmentError('')
+    } catch (error) {
+      setAssignmentError(error?.message || 'Unable to copy this day right now.')
+    }
+  }
+
+  const handleConfirmClearDay = async () => {
+    if (!clearDayTarget?.key) return
+
+    try {
+      await onClearDay(clearDayTarget.key)
+      setIsClearDayModalOpen(false)
+      setClearDayTarget(null)
+      setAssignmentError('')
+    } catch (error) {
+      setAssignmentError(error?.message || 'Unable to clear this day right now.')
+    }
+  }
+
+  const handleOpenCopyWeekModal = () => {
+    setCopyWeekTargetDate('')
+    setCopyWeekTargetShiftCount(0)
+    setAssignmentError('')
+    setIsCopyWeekModalOpen(true)
+  }
+
+  const handleConfirmCopyWeek = async () => {
+    if (!copyWeekTargetDate) {
+      setAssignmentError('Select a target week first.')
+      return
+    }
+
+    if (isCopyWeekTargetCurrentWeek) {
+      setAssignmentError('Select a different week as the copy target.')
+      return
+    }
+
+    const sourceShiftCount = visibleWeekShifts.length
+    if (sourceShiftCount === 0) {
+      setAssignmentError('Current week has no assignments to copy.')
+      return
+    }
+
+    try {
+      await onCopyWeek({
+        sourceWeekDays: weekDays,
+        targetWeekStartDate: copyWeekTargetWeekStart,
+        overwrite: copyWeekTargetShiftCount > 0,
+      })
+      setIsCopyWeekModalOpen(false)
+      setCopyWeekTargetDate('')
+      setAssignmentError('')
+    } catch (error) {
+      setAssignmentError(error?.message || 'Unable to copy week right now.')
+    }
+  }
+
+  const handleOpenClearWeekModal = () => {
+    setAssignmentError('')
+    setIsClearWeekModalOpen(true)
+  }
+
+  const handleConfirmClearWeek = async () => {
+    try {
+      await onClearWeek(weekDays)
+      setIsClearWeekModalOpen(false)
+      setAssignmentError('')
+    } catch (error) {
+      setAssignmentError(error?.message || 'Unable to clear this week right now.')
+    }
+  }
+
+  const handleOpenAutoFillModal = () => {
+    if (!selectedWeeklyTemplateId) {
+      setAssignmentError('Select a weekly template first.')
+      return
+    }
+
+    setAssignmentError('')
+    setAutoFillReplaceExisting(false)
+    setLoadWeekOptions({
+      employees: true,
+      positions: true,
+      areas: true,
+      times: true,
+      notes: true,
+    })
+    setIsAutoFillModalOpen(true)
+  }
+
+  const handleConfirmAutoFillWeek = async () => {
+    if (!selectedWeeklyTemplateId) {
+      setAssignmentError('Select a weekly template first.')
+      return
+    }
+
+    try {
+      await onAutoFillWeekFromTemplate({
+        templateId: selectedWeeklyTemplateId,
+        weekDays,
+        options: loadWeekOptions,
+        replaceExisting: autoFillReplaceExisting,
+      })
+      setIsAutoFillModalOpen(false)
+      setAssignmentError('')
+    } catch (error) {
+      setAssignmentError(error?.message || 'Unable to auto fill week right now.')
     }
   }
 
@@ -2367,7 +2585,7 @@ function ScheduleView({
   }
 
   return (
-    <section className="staff-page" onClick={() => setCapacityPickerKey('')}>
+    <section className="staff-page" onClick={() => { setCapacityPickerKey(''); setDayActionMenuKey(null) }}>
       <div className="staff-header-card">
         <div>
           <p className="eyebrow">Schedule management</p>
@@ -2405,6 +2623,22 @@ function ScheduleView({
           </button>
         </div>
         <div className="schedule-week-nav-actions">
+          <button
+            type="button"
+            className="ghost-btn"
+            onClick={handleOpenCopyWeekModal}
+            disabled={isLoading || isSaving || isPublishing || visibleWeekShifts.length === 0}
+          >
+            Copy Week
+          </button>
+          <button
+            type="button"
+            className="ghost-btn danger-text"
+            onClick={handleOpenClearWeekModal}
+            disabled={isLoading || isSaving || isPublishing || visibleWeekShifts.length === 0}
+          >
+            Clear Week
+          </button>
           <button
             type="button"
             className="ghost-btn schedule-week-nav-today"
@@ -2476,6 +2710,7 @@ function ScheduleView({
           <div className="action-group">
             <button type="button" className="ghost-btn" onClick={handleOpenSaveWeekTemplateModal} disabled={isSaving}>Save Current Week</button>
             <button type="button" className="ghost-btn" onClick={handleOpenLoadWeekTemplateModal} disabled={isSaving || !selectedWeeklyTemplateId}>Load Saved Week</button>
+            <button type="button" className="ghost-btn" onClick={handleOpenAutoFillModal} disabled={isSaving || !selectedWeeklyTemplateId}>Auto Fill Empty Week</button>
             <button type="button" className="ghost-btn" onClick={handleStartRenameWeeklyTemplate} disabled={isSaving || !selectedWeeklyTemplateId}>Rename Saved Week</button>
             <button type="button" className="ghost-btn" onClick={handleDeleteSelectedWeeklyTemplate} disabled={isSaving || !selectedWeeklyTemplateId}>Delete Saved Week</button>
           </div>
@@ -2621,15 +2856,51 @@ function ScheduleView({
             <div className="blend-grid-table" style={{ gridTemplateColumns: `300px repeat(${weekDays.length}, minmax(190px, 1fr))` }}>
               <div className="blend-grid-header blend-grid-header-template">Shift template</div>
               {weekDays.map((day) => (
-                <button
+                <div
                   key={`head-${day.key}`}
-                  type="button"
                   className={`blend-grid-header blend-grid-header-day ${selectedDay === day.key ? 'active' : ''}`}
-                  onClick={() => setSelectedDay(day.key)}
                 >
-                  <strong>{day.label}</strong>
-                  <span>{day.shortDate}</span>
-                </button>
+                  <button
+                    type="button"
+                    className="blend-grid-header-day-select"
+                    onClick={() => setSelectedDay(day.key)}
+                  >
+                    <strong>{day.label}</strong>
+                    <span>{day.shortDate}</span>
+                  </button>
+                  <button
+                    type="button"
+                    className="blend-grid-header-day-menu-btn"
+                    onClick={(event) => {
+                      event.stopPropagation()
+                      setDayActionMenuKey((current) => (current === day.key ? null : day.key))
+                    }}
+                    aria-label={`Day actions for ${day.label}`}
+                    disabled={isSaving}
+                  >
+                    ⋯
+                  </button>
+                  {dayActionMenuKey === day.key ? (
+                    <div className="template-card-menu blend-day-header-menu" onClick={(event) => event.stopPropagation()}>
+                      <button
+                        type="button"
+                        className="template-card-menu-item"
+                        onClick={() => handleOpenCopyDayModal(day)}
+                        disabled={isSaving || (shiftCountByDate[day.key] ?? 0) === 0}
+                      >
+                        Copy Day
+                      </button>
+                      <button
+                        type="button"
+                        className="template-card-menu-item danger"
+                        onClick={() => handleOpenClearDayModal(day)}
+                        disabled={isSaving || (shiftCountByDate[day.key] ?? 0) === 0}
+                      >
+                        Clear Day
+                      </button>
+                    </div>
+                  ) : null}
+                </div>
               ))}
 
               {blendGridRows.map((row) => (
@@ -3127,6 +3398,217 @@ function ScheduleView({
             <div className="modal-actions">
               <button type="button" className="ghost-btn" onClick={() => setIsCopyThisWeekModalOpen(false)}>Cancel</button>
               <button type="button" className="primary-btn" onClick={handleConfirmCopyThisWeek} disabled={isSaving}>Copy This Week</button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {isCopyDayModalOpen && copyDaySourceDay ? (
+        <div className="employee-modal-backdrop" onClick={() => setIsCopyDayModalOpen(false)}>
+          <div className="employee-modal blend-compact-modal" onClick={(event) => event.stopPropagation()}>
+            <div className="drawer-header">
+              <div>
+                <p className="eyebrow">Copy day</p>
+                <h3>Copy {copyDaySourceDay.label} assignments</h3>
+              </div>
+              <button type="button" className="icon-btn" onClick={() => setIsCopyDayModalOpen(false)}>✕</button>
+            </div>
+
+            <label className="form-field">
+              <span>Copy to</span>
+              <select
+                value={copyDayTargetKey}
+                onChange={(event) => setCopyDayTargetKey(event.target.value)}
+              >
+                <option value="">Select target day</option>
+                {weekDays
+                  .filter((day) => day.key !== copyDaySourceDay.key)
+                  .map((day) => (
+                    <option key={`copy-day-target-${day.key}`} value={day.key}>
+                      {day.label} ({day.shortDate})
+                    </option>
+                  ))}
+              </select>
+            </label>
+
+            {copyDayTargetShiftCount > 0 ? (
+              <p className="template-delete-copy">
+                {copyDayTargetShiftCount} assignment{copyDayTargetShiftCount === 1 ? '' : 's'} already exist on the target day. Copying will replace them.
+              </p>
+            ) : (
+              <p className="template-delete-copy">
+                All assignments from {copyDaySourceDay.label} will be copied to the selected day.
+              </p>
+            )}
+
+            {assignmentError ? <div className="staff-status-banner">{assignmentError}</div> : null}
+
+            <div className="modal-actions">
+              <button type="button" className="ghost-btn" onClick={() => setIsCopyDayModalOpen(false)}>Cancel</button>
+              <button type="button" className="primary-btn" onClick={handleConfirmCopyDay} disabled={isSaving || !copyDayTargetKey}>
+                {copyDayTargetShiftCount > 0 ? 'Replace & Copy' : 'Copy Day'}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {isClearDayModalOpen && clearDayTarget ? (
+        <div className="employee-modal-backdrop" onClick={() => setIsClearDayModalOpen(false)}>
+          <div className="employee-modal blend-compact-modal" onClick={(event) => event.stopPropagation()}>
+            <div className="drawer-header">
+              <div>
+                <p className="eyebrow">Clear day</p>
+                <h3>Remove all {clearDayTarget.label} assignments?</h3>
+              </div>
+              <button type="button" className="icon-btn" onClick={() => setIsClearDayModalOpen(false)}>✕</button>
+            </div>
+
+            <p className="template-delete-copy">
+              This will remove {shiftCountByDate[clearDayTarget.key] ?? 0} draft assignment{(shiftCountByDate[clearDayTarget.key] ?? 0) === 1 ? '' : 's'} from {clearDayTarget.label}. Published schedule is not affected.
+            </p>
+
+            {assignmentError ? <div className="staff-status-banner">{assignmentError}</div> : null}
+
+            <div className="modal-actions">
+              <button type="button" className="ghost-btn" onClick={() => setIsClearDayModalOpen(false)}>Cancel</button>
+              <button type="button" className="primary-btn" onClick={handleConfirmClearDay} disabled={isSaving}>Clear Day</button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {isCopyWeekModalOpen ? (
+        <div className="employee-modal-backdrop" onClick={() => setIsCopyWeekModalOpen(false)}>
+          <div className="employee-modal blend-compact-modal" onClick={(event) => event.stopPropagation()}>
+            <div className="drawer-header">
+              <div>
+                <p className="eyebrow">Copy week</p>
+                <h3>Copy {weekRangeLabel(weekDays)} to another week</h3>
+              </div>
+              <button type="button" className="icon-btn" onClick={() => setIsCopyWeekModalOpen(false)}>✕</button>
+            </div>
+
+            <label className="form-field">
+              <span>Target week</span>
+              <input
+                type="date"
+                value={copyWeekTargetDate}
+                onChange={(event) => setCopyWeekTargetDate(event.target.value)}
+              />
+            </label>
+
+            {copyWeekTargetDate ? (
+              <p className="template-delete-copy">
+                {isCopyWeekTargetCurrentWeek
+                  ? 'Select a different week than the one you are viewing.'
+                  : isCopyWeekTargetLoading
+                    ? 'Checking target week…'
+                    : copyWeekTargetShiftCount > 0
+                      ? `${copyWeekTargetShiftCount} assignment${copyWeekTargetShiftCount === 1 ? '' : 's'} already exist in the target week. Copying will replace them. Draft only — nothing will be published.`
+                      : 'All assignments will be copied as draft shifts. Nothing will be published automatically.'}
+              </p>
+            ) : (
+              <p className="template-delete-copy">Pick any date in the week you want to copy into.</p>
+            )}
+
+            {assignmentError ? <div className="staff-status-banner">{assignmentError}</div> : null}
+
+            <div className="modal-actions">
+              <button type="button" className="ghost-btn" onClick={() => setIsCopyWeekModalOpen(false)}>Cancel</button>
+              <button
+                type="button"
+                className="primary-btn"
+                onClick={handleConfirmCopyWeek}
+                disabled={isSaving || !copyWeekTargetDate || isCopyWeekTargetCurrentWeek || isCopyWeekTargetLoading}
+              >
+                {copyWeekTargetShiftCount > 0 ? 'Replace & Copy Week' : 'Copy Week'}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {isClearWeekModalOpen ? (
+        <div className="employee-modal-backdrop" onClick={() => setIsClearWeekModalOpen(false)}>
+          <div className="employee-modal blend-compact-modal" onClick={(event) => event.stopPropagation()}>
+            <div className="drawer-header">
+              <div>
+                <p className="eyebrow">Clear week</p>
+                <h3>Remove all draft assignments?</h3>
+              </div>
+              <button type="button" className="icon-btn" onClick={() => setIsClearWeekModalOpen(false)}>✕</button>
+            </div>
+
+            <p className="template-delete-copy">
+              This will remove {visibleWeekShifts.length} draft assignment{visibleWeekShifts.length === 1 ? '' : 's'} from {weekRangeLabel(weekDays)}. Published schedule remains untouched.
+            </p>
+
+            {assignmentError ? <div className="staff-status-banner">{assignmentError}</div> : null}
+
+            <div className="modal-actions">
+              <button type="button" className="ghost-btn" onClick={() => setIsClearWeekModalOpen(false)}>Cancel</button>
+              <button type="button" className="primary-btn" onClick={handleConfirmClearWeek} disabled={isSaving}>Clear Week</button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {isAutoFillModalOpen ? (
+        <div className="employee-modal-backdrop" onClick={() => setIsAutoFillModalOpen(false)}>
+          <div className="employee-modal blend-compact-modal" onClick={(event) => event.stopPropagation()}>
+            <div className="drawer-header">
+              <div>
+                <p className="eyebrow">Auto fill week</p>
+                <h3>Fill empty cells from template</h3>
+              </div>
+              <button type="button" className="icon-btn" onClick={() => setIsAutoFillModalOpen(false)}>✕</button>
+            </div>
+
+            <p className="template-delete-copy">
+              Empty shift cells will be filled from the selected weekly template. Existing assignments are kept unless you choose Replace.
+            </p>
+
+            <div className="template-load-options">
+              <label className="inline-check-row">
+                <input type="checkbox" checked={loadWeekOptions.employees} onChange={(event) => setLoadWeekOptions((current) => ({ ...current, employees: event.target.checked }))} />
+                <span>Employees</span>
+              </label>
+              <label className="inline-check-row">
+                <input type="checkbox" checked={loadWeekOptions.positions} onChange={(event) => setLoadWeekOptions((current) => ({ ...current, positions: event.target.checked }))} />
+                <span>Positions</span>
+              </label>
+              <label className="inline-check-row">
+                <input type="checkbox" checked={loadWeekOptions.areas} onChange={(event) => setLoadWeekOptions((current) => ({ ...current, areas: event.target.checked }))} />
+                <span>Areas</span>
+              </label>
+              <label className="inline-check-row">
+                <input type="checkbox" checked={loadWeekOptions.times} onChange={(event) => setLoadWeekOptions((current) => ({ ...current, times: event.target.checked }))} />
+                <span>Start / End Times</span>
+              </label>
+              <label className="inline-check-row">
+                <input type="checkbox" checked={loadWeekOptions.notes} onChange={(event) => setLoadWeekOptions((current) => ({ ...current, notes: event.target.checked }))} />
+                <span>Notes (optional)</span>
+              </label>
+              <label className="inline-check-row">
+                <input type="checkbox" checked={autoFillReplaceExisting} onChange={(event) => setAutoFillReplaceExisting(event.target.checked)} />
+                <span>Replace existing assignments</span>
+              </label>
+            </div>
+
+            {autoFillReplaceExisting ? (
+              <p className="template-delete-copy">
+                Replace will remove all current-week draft assignments before filling from the template.
+              </p>
+            ) : null}
+
+            {assignmentError ? <div className="staff-status-banner">{assignmentError}</div> : null}
+
+            <div className="modal-actions">
+              <button type="button" className="ghost-btn" onClick={() => setIsAutoFillModalOpen(false)}>Cancel</button>
+              <button type="button" className="primary-btn" onClick={handleConfirmAutoFillWeek} disabled={isSaving}>
+                {autoFillReplaceExisting ? 'Replace & Fill' : 'Auto Fill'}
+              </button>
             </div>
           </div>
         </div>
@@ -4921,6 +5403,292 @@ function App() {
     }
   }
 
+  const bulkCreateShiftsFromSource = async (sourceShifts, mapTargetDate) => {
+    const gridShiftOptions = getGridShiftIntegrityOptions(shiftTemplates)
+    const created = []
+    const dedupe = new Set()
+
+    for (const shift of sourceShifts) {
+      const targetDate = mapTargetDate(shift)
+      const startTime = normalizeTimeValue(shift.startTime)
+      const endTime = normalizeTimeValue(shift.endTime)
+
+      if (!targetDate || !startTime || !endTime) continue
+
+      const rawPayload = buildCloneRawPayload({
+        ...shift,
+        startTime,
+        endTime,
+      }, targetDate)
+
+      const prepared = prepareShiftForSave(rawPayload, gridShiftOptions)
+      const dedupeKey = buildShiftDedupeKey(prepared)
+
+      if (dedupe.has(dedupeKey)) continue
+      dedupe.add(dedupeKey)
+
+      const saved = await createShift(prepared, gridShiftOptions)
+      created.push(saved)
+    }
+
+    return created
+  }
+
+  const handleCopyDay = async ({ sourceDate, targetDate, overwrite = false }) => {
+    if (!sourceDate || !targetDate) {
+      throw new Error('Source and target day are required.')
+    }
+
+    if (sourceDate === targetDate) {
+      throw new Error('Source and target day must be different.')
+    }
+
+    const sourceShifts = shifts.filter((shift) => shift.date === sourceDate)
+    if (sourceShifts.length === 0) {
+      throw new Error('No assignments found on the source day.')
+    }
+
+    const targetShifts = shifts.filter((shift) => shift.date === targetDate)
+    if (targetShifts.length > 0 && !overwrite) {
+      throw new Error('Target day has existing assignments. Confirm overwrite to continue.')
+    }
+
+    setIsSavingShift(true)
+    setScheduleNotice('')
+
+    try {
+      if (overwrite) {
+        for (const existingShift of targetShifts) {
+          await deleteShift(existingShift.id)
+        }
+      }
+
+      const created = await bulkCreateShiftsFromSource(sourceShifts, () => targetDate)
+      await refreshScheduleViewData()
+      setScheduleNotice(`Copied ${created.length} assignment${created.length === 1 ? '' : 's'} to the target day.`)
+      return created
+    } catch (error) {
+      const message = getSupabaseErrorMessage(error)
+      setScheduleNotice(message)
+      throw new Error(message)
+    } finally {
+      setIsSavingShift(false)
+    }
+  }
+
+  const handleCopyWeek = async ({ sourceWeekDays, targetWeekStartDate, overwrite = false }) => {
+    if (!Array.isArray(sourceWeekDays) || sourceWeekDays.length !== 7) {
+      throw new Error('Current week is unavailable for copying.')
+    }
+
+    if (!targetWeekStartDate) {
+      throw new Error('Select a target week first.')
+    }
+
+    const targetWeekDays = getWeekDays(targetWeekStartDate)
+    if (targetWeekDays[0]?.key === sourceWeekDays[0]?.key) {
+      throw new Error('Select a different week as the copy target.')
+    }
+
+    const sourceByDate = new Map(sourceWeekDays.map((day, index) => [day.key, index]))
+    const targetDateByIndex = new Map(targetWeekDays.map((day, index) => [index, day.key]))
+    const sourceDates = new Set(sourceWeekDays.map((day) => day.key))
+
+    const sourceWeekShifts = shifts.filter((shift) => sourceDates.has(shift.date))
+    if (sourceWeekShifts.length === 0) {
+      throw new Error('Current week has no assignments to copy.')
+    }
+
+    const targetDateKeys = targetWeekDays.map((day) => day.key).sort()
+    const targetWeekShifts = await getShifts({
+      startDate: targetDateKeys[0],
+      endDate: targetDateKeys[targetDateKeys.length - 1],
+    })
+
+    if (targetWeekShifts.length > 0 && !overwrite) {
+      throw new Error('Target week has existing assignments. Confirm overwrite to continue.')
+    }
+
+    setIsSavingShift(true)
+    setScheduleNotice('')
+
+    try {
+      for (const existingShift of targetWeekShifts) {
+        await deleteShift(existingShift.id)
+      }
+
+      const created = await bulkCreateShiftsFromSource(sourceWeekShifts, (shift) => {
+        const dayIndex = sourceByDate.get(shift.date)
+        return targetDateByIndex.get(dayIndex)
+      })
+
+      await refreshScheduleViewData()
+      setScheduleNotice(`Copied ${created.length} assignment${created.length === 1 ? '' : 's'} to ${formatWeekRange(targetWeekDays)} (draft only).`)
+      return created
+    } catch (error) {
+      const message = getSupabaseErrorMessage(error)
+      setScheduleNotice(message)
+      throw new Error(message)
+    } finally {
+      setIsSavingShift(false)
+    }
+  }
+
+  const handleClearDay = async (dateKey) => {
+    if (!dateKey) {
+      throw new Error('Day is required.')
+    }
+
+    const dayShifts = shifts.filter((shift) => shift.date === dateKey)
+    if (dayShifts.length === 0) {
+      throw new Error('No assignments found on this day.')
+    }
+
+    setIsSavingShift(true)
+    setScheduleNotice('')
+
+    try {
+      for (const shift of dayShifts) {
+        await deleteShift(shift.id)
+      }
+
+      await refreshScheduleViewData()
+      setScheduleNotice(`Cleared ${dayShifts.length} assignment${dayShifts.length === 1 ? '' : 's'} from the day.`)
+    } catch (error) {
+      const message = getSupabaseErrorMessage(error)
+      setScheduleNotice(message)
+      throw new Error(message)
+    } finally {
+      setIsSavingShift(false)
+    }
+  }
+
+  const handleClearWeek = async (weekDays) => {
+    if (!Array.isArray(weekDays) || weekDays.length === 0) {
+      throw new Error('Current week is unavailable for clearing.')
+    }
+
+    const weekDates = new Set(weekDays.map((day) => day.key))
+    const weekShifts = shifts.filter((shift) => weekDates.has(shift.date))
+
+    if (weekShifts.length === 0) {
+      throw new Error('No draft assignments found in this week.')
+    }
+
+    setIsSavingShift(true)
+    setScheduleNotice('')
+
+    try {
+      for (const shift of weekShifts) {
+        await deleteShift(shift.id)
+      }
+
+      await refreshScheduleViewData()
+      setScheduleNotice(`Cleared ${weekShifts.length} draft assignment${weekShifts.length === 1 ? '' : 's'} from the week.`)
+    } catch (error) {
+      const message = getSupabaseErrorMessage(error)
+      setScheduleNotice(message)
+      throw new Error(message)
+    } finally {
+      setIsSavingShift(false)
+    }
+  }
+
+  const handleAutoFillWeekFromTemplate = async ({ templateId, weekDays, options, replaceExisting = false }) => {
+    if (!templateId) {
+      throw new Error('Select a weekly template first.')
+    }
+
+    if (!Array.isArray(weekDays) || weekDays.length === 0) {
+      throw new Error('Current week is not available for auto fill.')
+    }
+
+    const templateShifts = await getWeeklyTemplateShifts(templateId)
+    const weekDateByIndex = new Map(weekDays.map((day, index) => [index, day.key]))
+    const weekDates = new Set(weekDays.map((day) => day.key))
+
+    const targetTemplateShifts = templateShifts
+      .map((shift) => ({
+        ...shift,
+        date: weekDateByIndex.get(shift.dayIndex),
+      }))
+      .filter((shift) => Boolean(shift.date))
+
+    setIsSavingShift(true)
+    setScheduleNotice('')
+
+    const gridShiftOptions = getGridShiftIntegrityOptions(shiftTemplates)
+
+    try {
+      if (replaceExisting) {
+        for (const existingShift of shifts.filter((shift) => weekDates.has(shift.date))) {
+          await deleteShift(existingShift.id)
+        }
+      }
+
+      const occupiedCells = new Set(
+        (replaceExisting ? [] : shifts.filter((shift) => weekDates.has(shift.date)))
+          .map((shift) => buildShiftCellKeyFromRecord(shift))
+          .filter(Boolean),
+      )
+
+      const created = []
+      const createdKeySet = new Set()
+
+      for (const templateShift of targetTemplateShifts) {
+        const normalizedStart = normalizeTimeValue(templateShift.startTime)
+        const normalizedEnd = normalizeTimeValue(templateShift.endTime)
+        if (!normalizedStart || !normalizedEnd) continue
+
+        const cellKey = buildShiftCellKeyFromParts({
+          shiftTemplateId: templateShift.shiftTemplateId,
+          date: templateShift.date,
+        })
+
+        if (!replaceExisting && cellKey && occupiedCells.has(cellKey)) {
+          continue
+        }
+
+        const rawPayload = {
+          employee_id: options?.employees ? templateShift.employeeId : null,
+          date: templateShift.date,
+          startTime: normalizedStart,
+          endTime: normalizedEnd,
+          role: options?.positions ? templateShift.role : '',
+          area: options?.areas ? templateShift.area : '',
+          status: templateShift.status || 'Scheduled',
+          notes: options?.notes ? (templateShift.notes ?? '') : '',
+          shiftTemplateId: templateShift.shiftTemplateId ?? null,
+        }
+
+        const prepared = prepareShiftForSave(rawPayload, gridShiftOptions)
+        const dedupeKey = buildShiftDedupeKey(prepared)
+
+        if (createdKeySet.has(dedupeKey)) {
+          continue
+        }
+        createdKeySet.add(dedupeKey)
+
+        const savedShift = await createShift(prepared, gridShiftOptions)
+        created.push(savedShift)
+
+        if (cellKey) {
+          occupiedCells.add(cellKey)
+        }
+      }
+
+      await refreshScheduleViewData()
+      setScheduleNotice(`Auto filled ${created.length} assignment${created.length === 1 ? '' : 's'} from template.`)
+      return created
+    } catch (error) {
+      const message = error?.message || 'Unable to auto fill week right now.'
+      setScheduleNotice(message)
+      throw new Error(message)
+    } finally {
+      setIsSavingShift(false)
+    }
+  }
+
   const handleOpenAddEmployee = () => {
     setEditingEmployee(null)
     setSaveError('')
@@ -6674,6 +7442,11 @@ function App() {
             onDuplicateShiftTemplate={handleDuplicateShiftTemplate}
             onDeleteShiftTemplate={handleDeleteShiftTemplate}
             onCopyHistoricalWeek={handleCopyHistoricalWeek}
+            onCopyDay={handleCopyDay}
+            onCopyWeek={handleCopyWeek}
+            onClearDay={handleClearDay}
+            onClearWeek={handleClearWeek}
+            onAutoFillWeekFromTemplate={handleAutoFillWeekFromTemplate}
             schedulePublication={schedulePublication}
             publishedShifts={publishedShifts}
             weekStartDate={scheduleWeekStart}

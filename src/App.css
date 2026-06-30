@@ -1318,6 +1318,51 @@ input[type='time']::-webkit-datetime-edit-text {
   display: flex;
   flex-direction: column;
   gap: 2px;
+  position: relative;
+  padding: 0;
+}
+
+.blend-grid-header-day-select {
+  border: 0;
+  background: transparent;
+  color: inherit;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  align-items: flex-start;
+  text-align: left;
+  padding: 12px 34px 12px 12px;
+  width: 100%;
+  cursor: pointer;
+}
+
+.blend-grid-header-day-menu-btn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 24px;
+  height: 24px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(8, 8, 9, 0.55);
+  color: #f2deba;
+  display: grid;
+  place-items: center;
+  font-size: 0.88rem;
+  cursor: pointer;
+  line-height: 1;
+  z-index: 2;
+}
+
+.blend-grid-header-day-menu-btn:hover {
+  border-color: rgba(212, 175, 55, 0.5);
+  background: rgba(212, 175, 55, 0.14);
+}
+
+.blend-day-header-menu {
+  top: 36px;
+  right: 8px;
+  z-index: 4;
 }
 
 .blend-grid-header-day strong {
@@ -1409,6 +1454,23 @@ input[type='time']::-webkit-datetime-edit-text {
 
 .template-card-menu-item:hover {
   background: rgba(212, 175, 55, 0.12);
+}
+
+.template-card-menu-item.danger {
+  color: #ffcdc6;
+}
+
+.template-card-menu-item.danger:hover {
+  background: rgba(244, 67, 54, 0.12);
+}
+
+.ghost-btn.danger-text {
+  color: #ffcdc6;
+}
+
+.ghost-btn.danger-text:hover {
+  border-color: rgba(244, 67, 54, 0.35);
+  background: rgba(244, 67, 54, 0.08);
 }
 
 .template-delete-copy {
