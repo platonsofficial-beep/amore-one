@@ -48,6 +48,7 @@ import {
 } from './lib/timeFormatUtils'
 import {
   buildEmployeeWeeklyHoursMap,
+  calculateShiftDurationHours,
   formatHoursLabel,
   getAssignmentOvertimeHours,
   getEmployeeHoursTrackerState,
@@ -1627,24 +1628,6 @@ function ScheduleView({
     return 'scheduled'
   }
 
-  const getCoverageState = (dayShifts) => {
-    if (!dayShifts.length) {
-      return { icon: '🔴', label: 'Understaffed', className: 'coverage-pill understaffed' }
-    }
-
-    const totalDepartments = new Set(dayShifts.map((shift) => getShiftDepartment(shift))).size
-    const hasEnoughCoverage = dayShifts.length >= 4 && totalDepartments >= 3
-    if (hasEnoughCoverage) {
-      return { icon: '🟢', label: 'Fully Staffed', className: 'coverage-pill staffed' }
-    }
-
-    if (dayShifts.length >= 2 || totalDepartments >= 2) {
-      return { icon: '🟡', label: 'Needs Attention', className: 'coverage-pill attention' }
-    }
-
-    return { icon: '🔴', label: 'Understaffed', className: 'coverage-pill understaffed' }
-  }
-
   const selectedDate = weekDays.find((day) => day.key === selectedDay)?.key ?? null
   const selectedDayShifts = useMemo(() => {
     if (!selectedDate) return []
@@ -1748,33 +1731,6 @@ function ScheduleView({
       .sort((a, b) => a.employeeName.localeCompare(b.employeeName))
   }, [employees, isWeekPublished, publishedShifts])
 
-  const daySummaries = useMemo(() => {
-    return weekDays.map((day) => {
-      const dayShifts = shifts
-        .filter((shift) => shift.date === day.key)
-        .map((shift) => ({
-          ...shift,
-          employeeRecord: employees.find((employee) => employee.id === shift.employeeId) ?? null,
-        }))
-        .sort((left, right) => parseTimeToMinutes(left.startTime) - parseTimeToMinutes(right.startTime))
-
-      const timelineSegments = dayShifts.map((shift) => {
-        const start = parseTimeToMinutes(shift.startTime)
-        const end = parseTimeToMinutes(shift.endTime)
-        const left = Math.max(0, ((start - 8 * 60) / (18 * 60)) * 100)
-        const width = Math.max(8, (((end - start) / (18 * 60)) * 100))
-        return { left, width, className: shift.status === 'Completed' ? 'timeline-segment completed' : 'timeline-segment' }
-      })
-
-      return {
-        ...day,
-        shifts: dayShifts,
-        coverage: getCoverageState(dayShifts),
-        timelineSegments,
-      }
-    })
-  }, [employees, shifts, weekDays])
-
   const blendGridRows = useMemo(() => {
     return shiftTemplates.map((template) => {
       const dayCells = weekDays.map((day) => {
@@ -1817,6 +1773,69 @@ function ScheduleView({
       }
     })
   }, [employees, shiftTemplates, weekDays, capacityLookup, capacityDraftMap, assignmentsByCell])
+
+  const dayHeaderSummariesByKey = useMemo(() => {
+    const summaries = {}
+
+    weekDays.forEach((day) => {
+      const dayKey = day.key
+      const seenShiftIds = new Set()
+      let totalAssignedStaff = 0
+      let totalScheduledHours = 0
+
+      visibleWeekShifts.forEach((shift) => {
+        if (normalizeCellDate(shift.date) !== dayKey) return
+        const shiftId = String(shift.id)
+        if (seenShiftIds.has(shiftId)) return
+        seenShiftIds.add(shiftId)
+        totalAssignedStaff += 1
+        totalScheduledHours += calculateShiftDurationHours(shift.startTime, shift.endTime)
+      })
+
+      let hasOverstaffed = false
+      let hasUnderstaffed = false
+
+      blendGridRows.forEach((row) => {
+        const cell = row.dayCells.find((entry) => entry.day.key === dayKey)
+        if (!cell) return
+        if (cell.assignedCount > cell.requiredCount) hasOverstaffed = true
+        if (cell.assignedCount < cell.requiredCount) hasUnderstaffed = true
+      })
+
+      let status = 'empty'
+      let statusLabel = 'Empty'
+      let statusIcon = '⚪'
+
+      if (totalAssignedStaff === 0) {
+        status = 'empty'
+        statusLabel = 'Empty'
+        statusIcon = '⚪'
+      } else if (hasOverstaffed) {
+        status = 'overstaffed'
+        statusLabel = 'Overstaffed'
+        statusIcon = '🔴'
+      } else if (hasUnderstaffed) {
+        status = 'understaffed'
+        statusLabel = 'Understaffed'
+        statusIcon = '🟡'
+      } else {
+        status = 'covered'
+        statusLabel = 'Fully Covered'
+        statusIcon = '🟢'
+      }
+
+      summaries[dayKey] = {
+        totalAssignedStaff,
+        totalScheduledHours,
+        hoursLabel: formatHoursLabel(totalScheduledHours),
+        status,
+        statusLabel,
+        statusIcon,
+      }
+    })
+
+    return summaries
+  }, [blendGridRows, visibleWeekShifts, weekDays])
 
   const activeStaffMembers = useMemo(() => (
     employees
@@ -2993,7 +3012,9 @@ function ScheduleView({
           <div className="blend-grid-scroll">
             <div className="blend-grid-table" style={{ gridTemplateColumns: `300px repeat(${weekDays.length}, minmax(190px, 1fr))` }}>
               <div className="blend-grid-header blend-grid-header-template">Shift template</div>
-              {weekDays.map((day) => (
+              {weekDays.map((day) => {
+                const daySummary = dayHeaderSummariesByKey[day.key]
+                return (
                 <div
                   key={`head-${day.key}`}
                   className={`blend-grid-header blend-grid-header-day ${selectedDay === day.key ? 'active' : ''}`}
@@ -3004,7 +3025,15 @@ function ScheduleView({
                     onClick={() => setSelectedDay(day.key)}
                   >
                     <strong>{day.label}</strong>
-                    <span>{day.shortDate}</span>
+                    <span className="blend-grid-header-day-date">{day.shortDate}</span>
+                    <div className="blend-grid-header-day-metrics" aria-label={`${daySummary.totalAssignedStaff} staff, ${daySummary.hoursLabel} hours`}>
+                      <span className="blend-grid-header-day-metric">👥 {daySummary.totalAssignedStaff}</span>
+                      <span className="blend-grid-header-day-metric">⏱ {daySummary.hoursLabel}h</span>
+                    </div>
+                    <span className={`day-header-status ${daySummary.status}`}>
+                      <span className="day-header-status-icon" aria-hidden="true">{daySummary.statusIcon}</span>
+                      {daySummary.statusLabel}
+                    </span>
                   </button>
                   <button
                     type="button"
@@ -3039,7 +3068,8 @@ function ScheduleView({
                     </div>
                   ) : null}
                 </div>
-              ))}
+                )
+              })}
 
               {blendGridRows.map((row) => (
                 <Fragment key={`row-${row.template.id}`}>

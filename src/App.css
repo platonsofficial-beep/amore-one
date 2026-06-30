@@ -1396,6 +1396,11 @@ input[type='time']::-webkit-datetime-edit-text {
   min-height: 72px;
 }
 
+.blend-grid-header-day.blend-grid-header {
+  min-height: 0;
+  padding: 0;
+}
+
 .blend-grid-header-template {
   display: flex;
   align-items: center;
@@ -1420,12 +1425,74 @@ input[type='time']::-webkit-datetime-edit-text {
   color: inherit;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 3px;
   align-items: flex-start;
   text-align: left;
-  padding: 12px 34px 12px 12px;
+  padding: 10px 34px 10px 11px;
   width: 100%;
   cursor: pointer;
+}
+
+.blend-grid-header-day-date {
+  font-size: 0.76rem;
+  color: #a79e91;
+  line-height: 1.2;
+}
+
+.blend-grid-header-day-metrics {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 2px;
+}
+
+.blend-grid-header-day-metric {
+  font-size: 0.71rem;
+  font-weight: 500;
+  color: #cfc4b4;
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.day-header-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 5px;
+  font-size: 0.66rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  border-radius: 999px;
+  padding: 2px 7px;
+  width: fit-content;
+  max-width: 100%;
+  line-height: 1.3;
+}
+
+.day-header-status-icon {
+  font-size: 0.58rem;
+  line-height: 1;
+}
+
+.day-header-status.covered {
+  color: #b8e8b0;
+  background: rgba(76, 175, 80, 0.14);
+}
+
+.day-header-status.understaffed {
+  color: #ffd8a8;
+  background: rgba(255, 193, 94, 0.14);
+}
+
+.day-header-status.overstaffed {
+  color: #ffb8b0;
+  background: rgba(244, 67, 54, 0.14);
+}
+
+.day-header-status.empty {
+  color: #b8b0a3;
+  background: rgba(255, 255, 255, 0.06);
 }
 
 .blend-grid-header-day-menu-btn {
@@ -1458,13 +1525,9 @@ input[type='time']::-webkit-datetime-edit-text {
 }
 
 .blend-grid-header-day strong {
-  font-size: 1rem;
+  font-size: 0.95rem;
   color: #fff7e8;
-}
-
-.blend-grid-header-day span {
-  font-size: 0.82rem;
-  color: #bfb39f;
+  line-height: 1.2;
 }
 
 .blend-grid-header-day.active {
