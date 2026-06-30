@@ -2,6 +2,8 @@ import { supabase } from '../lib/supabaseClient'
 
 const EMPLOYEE_POSITIONS_TABLE = 'employee_positions'
 
+const EMPLOYEE_NEW_POSITION_COLUMNS = ['primary_position', 'additional_positions']
+
 function normalizeNumericValue(value) {
   if (value === null || value === undefined || value === '') return null
 
@@ -27,18 +29,49 @@ const mapEmployee = (record) => {
       .filter((position) => position.name)
     : []
 
-  const fallbackPosition = `${record.position ?? ''}`.trim()
-  const effectivePositions = joinedPositions.length > 0
-    ? joinedPositions
-    : fallbackPosition
-      ? [{ id: null, name: fallbackPosition, department: record.department ?? 'Other' }]
+  const normalizedPrimary = `${record.primary_position ?? ''}`.trim()
+  const rawAdditional = record.additional_positions
+  const normalizedAdditional = Array.isArray(rawAdditional)
+    ? rawAdditional.map((item) => `${item ?? ''}`.trim()).filter(Boolean)
+    : typeof rawAdditional === 'string'
+      ? rawAdditional.split(',').map((item) => item.trim()).filter(Boolean)
       : []
+
+  const explicitPositionNames = [normalizedPrimary, ...normalizedAdditional].filter(Boolean)
+  const dedupedExplicitPositionNames = Array.from(new Set(explicitPositionNames.map((name) => `${name}`.trim()).filter(Boolean)))
+
+  const joinedByName = new Map(joinedPositions.map((position) => [position.name.toLowerCase(), position]))
+
+  const fallbackPosition = `${record.position ?? ''}`.trim()
+  const legacyPositionNames = joinedPositions.length > 0
+    ? joinedPositions.map((position) => position.name)
+    : fallbackPosition
+      ? fallbackPosition.split(',').map((name) => name.trim()).filter(Boolean)
+      : []
+
+  const sourcePositionNames = dedupedExplicitPositionNames.length > 0 ? dedupedExplicitPositionNames : legacyPositionNames
+
+  const effectivePositions = sourcePositionNames.map((name) => {
+    const joinedMatch = joinedByName.get(name.toLowerCase())
+    if (joinedMatch) return joinedMatch
+
+    return {
+      id: null,
+      name,
+      department: record.department ?? 'Other',
+    }
+  })
+
+  const primaryPosition = effectivePositions[0]?.name ?? ''
+  const additionalPositions = effectivePositions.slice(1).map((position) => position.name)
 
   return {
     id: record.id,
     name: record.full_name ?? record.name ?? '',
     position: effectivePositions.map((position) => position.name).join(', '),
     positions: effectivePositions,
+    primaryPosition,
+    additionalPositions,
     phone: record.phone ?? '',
     email: record.email ?? '',
     hireDate: record.hire_date ?? record.hireDate ?? '',
@@ -52,20 +85,61 @@ const mapEmployee = (record) => {
   }
 }
 
-const serializeEmployee = (employee) => ({
-  full_name: employee.name ?? employee.fullName ?? '',
-  position: employee.position ?? (employee.positions ?? []).map((position) => position.name).join(', '),
-  phone: employee.phone ?? '',
-  email: employee.email ?? '',
-  hire_date: employee.hireDate ?? employee.hire_date ?? '',
-  salary: normalizeNumericValue(employee.salary),
-  emergency_contact: employee.emergencyContact ?? employee.emergency_contact ?? '',
-  weekly_hours: normalizeNumericValue(employee.weeklyHours ?? employee.weekly_hours),
-  notes: employee.notes ?? '',
-  shift: employee.shift ?? 'Evening',
-  status: employee.status ?? 'Working',
-  department: employee.department ?? 'Service',
-})
+const serializeEmployee = (employee) => {
+  const explicitPrimary = `${employee.primaryPosition ?? employee.primary_position ?? ''}`.trim()
+  const explicitAdditional = Array.isArray(employee.additionalPositions ?? employee.additional_positions)
+    ? (employee.additionalPositions ?? employee.additional_positions)
+      .map((item) => `${item ?? ''}`.trim())
+      .filter(Boolean)
+    : []
+
+  const positionNamesFromObjects = (employee.positions ?? [])
+    .map((position) => `${position?.name ?? ''}`.trim())
+    .filter(Boolean)
+
+  const fallbackPositionNames = `${employee.position ?? ''}`
+    .split(',')
+    .map((name) => name.trim())
+    .filter(Boolean)
+
+  const primaryPosition = explicitPrimary || positionNamesFromObjects[0] || fallbackPositionNames[0] || ''
+  const additionalPositions = Array.from(new Set([
+    ...explicitAdditional,
+    ...positionNamesFromObjects.filter((name) => name.toLowerCase() !== primaryPosition.toLowerCase()),
+    ...fallbackPositionNames.filter((name) => name.toLowerCase() !== primaryPosition.toLowerCase()),
+  ]))
+
+  return {
+    full_name: employee.name ?? employee.fullName ?? '',
+    position: [primaryPosition, ...additionalPositions].filter(Boolean).join(', '),
+    primary_position: primaryPosition,
+    additional_positions: additionalPositions,
+    phone: employee.phone ?? '',
+    email: employee.email ?? '',
+    hire_date: employee.hireDate ?? employee.hire_date ?? '',
+    salary: normalizeNumericValue(employee.salary),
+    emergency_contact: employee.emergencyContact ?? employee.emergency_contact ?? '',
+    weekly_hours: normalizeNumericValue(employee.weeklyHours ?? employee.weekly_hours),
+    notes: employee.notes ?? '',
+    shift: employee.shift ?? 'Evening',
+    status: employee.status ?? 'Working',
+    department: employee.department ?? 'Service',
+  }
+}
+
+const isMissingColumnError = (error, columns) => {
+  const message = `${error?.message ?? ''}`.toLowerCase()
+  if (!message) return false
+  if (!message.includes('column')) return false
+  return (columns ?? []).some((column) => message.includes(`${column}`.toLowerCase()))
+}
+
+function stripUnsupportedPositionColumns(payload) {
+  const cleaned = { ...payload }
+  delete cleaned.primary_position
+  delete cleaned.additional_positions
+  return cleaned
+}
 
 const isTableUnavailableError = (error) => {
   const message = error?.message?.toLowerCase() ?? ''
@@ -145,11 +219,25 @@ export async function getEmployees() {
 }
 
 export async function createEmployee(employee) {
-  const { data, error } = await supabase
+  const serialized = serializeEmployee(employee)
+
+  let { data, error } = await supabase
     .from('employees')
-    .insert([serializeEmployee(employee)])
+    .insert([serialized])
     .select('*')
     .single()
+
+  if (error && isMissingColumnError(error, EMPLOYEE_NEW_POSITION_COLUMNS)) {
+    const legacySerialized = stripUnsupportedPositionColumns(serialized)
+    const retry = await supabase
+      .from('employees')
+      .insert([legacySerialized])
+      .select('*')
+      .single()
+
+    data = retry.data
+    error = retry.error
+  }
 
   if (error) {
     console.error('[staffService] createEmployee error:', error)
@@ -172,12 +260,27 @@ export async function createEmployee(employee) {
 }
 
 export async function updateEmployee(id, employee) {
-  const { data, error } = await supabase
+  const serialized = serializeEmployee(employee)
+
+  let { data, error } = await supabase
     .from('employees')
-    .update(serializeEmployee(employee))
+    .update(serialized)
     .eq('id', id)
     .select('*')
     .single()
+
+  if (error && isMissingColumnError(error, EMPLOYEE_NEW_POSITION_COLUMNS)) {
+    const legacySerialized = stripUnsupportedPositionColumns(serialized)
+    const retry = await supabase
+      .from('employees')
+      .update(legacySerialized)
+      .eq('id', id)
+      .select('*')
+      .single()
+
+    data = retry.data
+    error = retry.error
+  }
 
   if (error) {
     console.error('[staffService] updateEmployee error:', error)

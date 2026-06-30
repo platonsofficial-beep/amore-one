@@ -17,6 +17,7 @@ create table if not exists public.weekly_schedule_template_shifts (
   area text not null default '',
   start_time time not null,
   end_time time not null,
+  shift_template_id uuid null,
   status text not null default 'Scheduled',
   notes text not null default '',
   created_at timestamptz not null default now()

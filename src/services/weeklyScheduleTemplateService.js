@@ -1,4 +1,5 @@
 import { supabase } from '../lib/supabaseClient'
+import { normalizeShiftTemplateId } from '../lib/shiftIntegrity'
 
 const WEEKLY_TEMPLATES_TABLE = 'weekly_schedule_templates'
 const WEEKLY_TEMPLATE_SHIFTS_TABLE = 'weekly_schedule_template_shifts'
@@ -6,6 +7,11 @@ const WEEKLY_TEMPLATE_SHIFTS_TABLE = 'weekly_schedule_template_shifts'
 function isTableUnavailableError(error) {
   const message = error?.message?.toLowerCase() ?? ''
   return message.includes('does not exist') || message.includes('relation') || message.includes('could not find the table')
+}
+
+function isMissingColumnError(error, column) {
+  const message = `${error?.message ?? ''}`.toLowerCase()
+  return message.includes('column') && message.includes(`${column}`.toLowerCase())
 }
 
 function mapTemplate(record) {
@@ -23,6 +29,7 @@ function mapTemplateShift(record) {
     templateId: record.template_id ?? record.templateId,
     dayIndex: Number(record.day_index ?? record.dayIndex ?? 0),
     employeeId: record.employee_id ?? record.employeeId ?? null,
+    shiftTemplateId: record.shift_template_id ?? record.shiftTemplateId ?? null,
     role: record.role ?? '',
     area: record.area ?? '',
     startTime: record.start_time ?? record.startTime ?? '',
@@ -30,6 +37,27 @@ function mapTemplateShift(record) {
     status: record.status ?? 'Scheduled',
     notes: record.notes ?? '',
   }
+}
+
+function serializeTemplateShift(templateId, shift) {
+  const payload = {
+    template_id: templateId,
+    day_index: shift.dayIndex,
+    employee_id: shift.employeeId ?? null,
+    role: shift.role ?? '',
+    area: shift.area ?? '',
+    start_time: shift.startTime ?? '',
+    end_time: shift.endTime ?? '',
+    status: shift.status ?? 'Scheduled',
+    notes: shift.notes ?? '',
+  }
+
+  const shiftTemplateId = normalizeShiftTemplateId(shift.shiftTemplateId ?? shift.shift_template_id)
+  if (shiftTemplateId) {
+    payload.shift_template_id = shiftTemplateId
+  }
+
+  return payload
 }
 
 export async function getWeeklyScheduleTemplates() {
@@ -84,22 +112,24 @@ export async function createWeeklyScheduleTemplate({ name, shifts }) {
   }
 
   const template = mapTemplate(templateData)
-  const normalizedShifts = (shifts ?? []).map((shift) => ({
-    template_id: template.id,
-    day_index: shift.dayIndex,
-    employee_id: shift.employeeId ?? null,
-    role: shift.role ?? '',
-    area: shift.area ?? '',
-    start_time: shift.startTime ?? '',
-    end_time: shift.endTime ?? '',
-    status: shift.status ?? 'Scheduled',
-    notes: shift.notes ?? '',
-  }))
+  const normalizedShifts = (shifts ?? []).map((shift) => serializeTemplateShift(template.id, shift))
 
   if (normalizedShifts.length > 0) {
-    const { error: shiftError } = await supabase
+    let { error: shiftError } = await supabase
       .from(WEEKLY_TEMPLATE_SHIFTS_TABLE)
       .insert(normalizedShifts)
+
+    if (shiftError && isMissingColumnError(shiftError, 'shift_template_id')) {
+      const legacyShifts = normalizedShifts.map((item) => {
+        const cleaned = { ...item }
+        delete cleaned.shift_template_id
+        return cleaned
+      })
+      const retry = await supabase
+        .from(WEEKLY_TEMPLATE_SHIFTS_TABLE)
+        .insert(legacyShifts)
+      shiftError = retry.error
+    }
 
     if (shiftError) {
       console.error('[weeklyScheduleTemplateService] createWeeklyScheduleTemplate shift insert error:', shiftError)
