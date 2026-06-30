@@ -40,6 +40,20 @@ import {
   buildShiftCellKeyFromParts,
   buildShiftDedupeKey,
 } from './lib/scheduleBulkUtils'
+import {
+  formatTime24,
+  formatTimeRange24,
+  normalizeTimeValue,
+  TIME_INPUT_PROPS,
+} from './lib/timeFormatUtils'
+import {
+  buildEmployeeWeeklyHoursMap,
+  formatHoursLabel,
+  getAssignmentOvertimeHours,
+  getEmployeeHoursTrackerState,
+  isAssignmentUsingCustomTime,
+  parseWeeklyHoursTarget,
+} from './lib/shiftHoursUtils'
 
 const navItems = [
   { id: 'dashboard', label: 'Dashboard', icon: '◈' },
@@ -273,7 +287,7 @@ function DashboardView() {
           <ul className="schedule-list">
             {scheduleItems.map((item) => (
               <li key={item.time}>
-                <div className="schedule-time">{item.time}</div>
+                <div className="schedule-time">{formatTime24(item.time)}</div>
                 <div className="schedule-body">
                   <strong>{item.title}</strong>
                   <p>{item.note}</p>
@@ -300,7 +314,7 @@ function DashboardView() {
                   <p>{item.note}</p>
                 </div>
                 <div className="reservation-meta">
-                  <span>{item.time}</span>
+                  <span>{formatTime24(item.time)}</span>
                   <small>{item.guests}</small>
                 </div>
               </li>
@@ -361,26 +375,6 @@ function formatHireDate(value) {
   }
 
   return parsed.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
-}
-
-function normalizeTimeValue(value) {
-  if (!value) return ''
-
-  const raw = `${value}`.trim()
-  const match = raw.match(/^(\d{1,2}):(\d{2})(?::\d{2})?$/)
-  if (!match) return ''
-
-  const hours = Number(match[1])
-  const minutes = Number(match[2])
-  if (!Number.isInteger(hours) || !Number.isInteger(minutes)) return ''
-  if (hours < 0 || hours > 23 || minutes < 0 || minutes > 59) return ''
-
-  return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`
-}
-
-function formatTime24(value, fallback = '—') {
-  const normalized = normalizeTimeValue(value)
-  return normalized || fallback
 }
 
 const APP_NAME = typeof __APP_NAME__ !== 'undefined' ? __APP_NAME__ : 'Amore One'
@@ -735,6 +729,7 @@ function ScheduleView({
   onDeleteShift,
   onCreateGridShift,
   onUpdateGridShift,
+  onUpdateAssignmentTime,
   onMoveGridShift,
   onCopyGridShift,
   onRemoveGridShift,
@@ -755,6 +750,7 @@ function ScheduleView({
   onCopyWeek,
   onClearDay,
   onClearWeek,
+  onClearGridCell,
   onAutoFillWeekFromTemplate,
   schedulePublication,
   publishedShifts,
@@ -831,6 +827,9 @@ function ScheduleView({
   const [copyWeekTargetShiftCount, setCopyWeekTargetShiftCount] = useState(0)
   const [isCopyWeekTargetLoading, setIsCopyWeekTargetLoading] = useState(false)
   const [isClearWeekModalOpen, setIsClearWeekModalOpen] = useState(false)
+  const [cellActionMenuKey, setCellActionMenuKey] = useState('')
+  const [clearCellPending, setClearCellPending] = useState(null)
+  const [assignmentTimeEdit, setAssignmentTimeEdit] = useState(null)
   const [isAutoFillModalOpen, setIsAutoFillModalOpen] = useState(false)
   const [autoFillReplaceExisting, setAutoFillReplaceExisting] = useState(false)
   const [isPublishConfirmOpen, setIsPublishConfirmOpen] = useState(false)
@@ -868,6 +867,7 @@ function ScheduleView({
     setCapacityPickerKey('')
     setSelectedDay(null)
     setDayActionMenuKey(null)
+    setCellActionMenuKey('')
   }, [weekStartDate])
 
   useEffect(() => {
@@ -1126,7 +1126,7 @@ function ScheduleView({
           || employees.find((employee) => Number(employee.id) === Number(shift.employeeId))?.name
           || 'Unassigned'
 
-        return `${shift.date} · ${formatTime24(shift.startTime)}-${formatTime24(shift.endTime)} · ${employeeName}`
+        return `${shift.date} · ${formatTimeRange24(shift.startTime, shift.endTime, '-')} · ${employeeName}`
       })
   }, [browsedWeekShifts, employees])
 
@@ -1365,12 +1365,52 @@ function ScheduleView({
   }
 
   const handleConfirmClearWeek = async () => {
+    if (visibleWeekShifts.length === 0) {
+      setAssignmentError('This week is already empty.')
+      return
+    }
+
     try {
       await onClearWeek(weekDays)
       setIsClearWeekModalOpen(false)
       setAssignmentError('')
     } catch (error) {
       setAssignmentError(error?.message || 'Unable to clear this week right now.')
+    }
+  }
+
+  const buildCellActionMenuKey = (template, dayKey) => `${resolveTemplateCapacityId(template)}|${normalizeCellDate(dayKey)}`
+
+  const handleOpenClearCellModal = (template, cell) => {
+    setCellActionMenuKey('')
+    setClearCellPending({
+      template,
+      day: cell.day,
+      shifts: cell.shifts,
+      templateName: template.name || 'Shift',
+    })
+    setAssignmentError('')
+  }
+
+  const handleConfirmClearCell = async () => {
+    if (!clearCellPending) return
+
+    const shiftIds = (clearCellPending.shifts ?? []).map((shift) => shift.id).filter(Boolean)
+    if (shiftIds.length === 0) {
+      setAssignmentError('No assignments found in this shift cell.')
+      return
+    }
+
+    try {
+      await onClearGridCell({
+        template: clearCellPending.template,
+        shiftDate: clearCellPending.day.key,
+        shiftIds,
+      })
+      setClearCellPending(null)
+      setAssignmentError('')
+    } catch (error) {
+      setAssignmentError(error?.message || 'Unable to clear this shift right now.')
     }
   }
 
@@ -1785,6 +1825,11 @@ function ScheduleView({
         `${left.full_name || left.name || ''}`.localeCompare(`${right.full_name || right.name || ''}`)
       ))
   ), [employees])
+
+  const employeeWeeklyHoursMap = useMemo(
+    () => buildEmployeeWeeklyHoursMap(visibleWeekShifts),
+    [visibleWeekShifts],
+  )
 
   const coverageSummary = useMemo(() => {
     const shortageByRole = new Map()
@@ -2279,9 +2324,82 @@ function ScheduleView({
 
   const handleQuickEditShift = () => {
     if (!editingAssignmentShift) return
+
+    const matchedTemplate = shiftTemplates.find((template) => (
+      resolveShiftTemplateId(template) === resolveShiftTemplateId(editingAssignmentShift)
+    ))
+
+    if (matchedTemplate && editingAssignmentShift.shiftTemplateId) {
+      const usesCustomTime = isAssignmentUsingCustomTime(editingAssignmentShift, matchedTemplate)
+      setAssignmentTimeEdit({
+        shift: editingAssignmentShift,
+        template: matchedTemplate,
+        timeMode: usesCustomTime ? 'custom' : 'template',
+        startTime: normalizeTimeValue(editingAssignmentShift.startTime) || normalizeTimeValue(matchedTemplate.startTime),
+        endTime: normalizeTimeValue(editingAssignmentShift.endTime) || normalizeTimeValue(matchedTemplate.endTime),
+      })
+      setAssignmentError('')
+      handleCloseAssignmentActions()
+      return
+    }
+
     onOpenEditShift(editingAssignmentShift)
     handleCloseAssignmentActions()
   }
+
+  const handleCloseAssignmentTimeEdit = () => {
+    setAssignmentTimeEdit(null)
+    setAssignmentError('')
+  }
+
+  const handleAssignmentTimeModeChange = (timeMode) => {
+    if (!assignmentTimeEdit) return
+
+    if (timeMode === 'template') {
+      setAssignmentTimeEdit((current) => ({
+        ...current,
+        timeMode: 'template',
+        startTime: normalizeTimeValue(current.template.startTime),
+        endTime: normalizeTimeValue(current.template.endTime),
+      }))
+      return
+    }
+
+    setAssignmentTimeEdit((current) => ({
+      ...current,
+      timeMode: 'custom',
+    }))
+  }
+
+  const handleSaveAssignmentTimeEdit = async (event) => {
+    event.preventDefault()
+    if (!assignmentTimeEdit?.shift?.id) return
+
+    const { shift, template, timeMode } = assignmentTimeEdit
+    const startTime = timeMode === 'template'
+      ? normalizeTimeValue(template.startTime)
+      : normalizeTimeValue(assignmentTimeEdit.startTime)
+    const endTime = timeMode === 'template'
+      ? normalizeTimeValue(template.endTime)
+      : normalizeTimeValue(assignmentTimeEdit.endTime)
+
+    if (!startTime || !endTime || startTime === endTime) {
+      setAssignmentError('Please add a valid start and end time.')
+      return
+    }
+
+    try {
+      await onUpdateAssignmentTime(shift.id, { startTime, endTime })
+      setAssignmentTimeEdit(null)
+      setAssignmentError('')
+    } catch (error) {
+      setAssignmentError(error?.message || 'Unable to update assignment time right now.')
+    }
+  }
+
+  const getShiftTemplateForAssignment = (shift) => (
+    shiftTemplates.find((template) => resolveShiftTemplateId(template) === resolveShiftTemplateId(shift)) ?? null
+  )
 
   const handleQuickCopyToNextDay = async () => {
     if (!editingAssignmentShift?.id) return
@@ -2585,7 +2703,7 @@ function ScheduleView({
   }
 
   return (
-    <section className="staff-page" onClick={() => { setCapacityPickerKey(''); setDayActionMenuKey(null) }}>
+    <section className="staff-page" onClick={() => { setCapacityPickerKey(''); setDayActionMenuKey(null); setCellActionMenuKey('') }}>
       <div className="staff-header-card">
         <div>
           <p className="eyebrow">Schedule management</p>
@@ -2630,14 +2748,6 @@ function ScheduleView({
             disabled={isLoading || isSaving || isPublishing || visibleWeekShifts.length === 0}
           >
             Copy Week
-          </button>
-          <button
-            type="button"
-            className="ghost-btn danger-text"
-            onClick={handleOpenClearWeekModal}
-            disabled={isLoading || isSaving || isPublishing || visibleWeekShifts.length === 0}
-          >
-            Clear Week
           </button>
           <button
             type="button"
@@ -2795,6 +2905,14 @@ function ScheduleView({
                 Unpublish
               </button>
             ) : null}
+            <button
+              type="button"
+              className="ghost-btn danger-text"
+              onClick={handleOpenClearWeekModal}
+              disabled={isSaving || isPublishing}
+            >
+              Clear Week
+            </button>
             <button type="button" className="primary-btn" onClick={() => handleOpenAddShiftForDate(selectedDate)} disabled={isSaving}>
               {isSaving ? 'Saving…' : '+ Add Shift'}
             </button>
@@ -2829,6 +2947,9 @@ function ScheduleView({
                   const employeeName = employee.full_name || employee.name || 'Staff'
                   const firstName = getEmployeeFirstName(employee)
                   const positionLabel = getEmployeePrimaryPosition(employee)
+                  const scheduledHours = employeeWeeklyHoursMap.get(String(employee.id)) ?? 0
+                  const weeklyTarget = parseWeeklyHoursTarget(employee.weeklyHours ?? employee.weekly_hours)
+                  const hoursTracker = getEmployeeHoursTrackerState(scheduledHours, weeklyTarget)
 
                   return (
                     <button
@@ -2838,12 +2959,29 @@ function ScheduleView({
                       draggable={!isDragDropDisabled}
                       onDragStart={(event) => handleEmployeeDragStart(event, employee)}
                       onDragEnd={handleDragEnd}
-                      aria-label={`Assign ${employeeName}`}
+                      aria-label={`Assign ${employeeName}, ${hoursTracker.primaryLabel}, ${hoursTracker.secondaryLabel}`}
                     >
-                      <span className="schedule-staff-chip-avatar">{getInitials(employeeName)}</span>
-                      <span className="schedule-staff-chip-copy">
-                        <strong>{firstName}</strong>
-                        <span>{positionLabel}</span>
+                      <span className="schedule-staff-chip-main">
+                        <span className="schedule-staff-chip-avatar">{getInitials(employeeName)}</span>
+                        <span className="schedule-staff-chip-copy">
+                          <strong>{firstName} · {positionLabel}</strong>
+                        </span>
+                      </span>
+                      <span className="schedule-staff-hours-track">
+                        {hoursTracker.hasTarget ? (
+                          <span className="schedule-staff-hours-bar" aria-hidden="true">
+                            <span
+                              className={`schedule-staff-hours-bar-fill ${hoursTracker.status}`}
+                              style={{ width: `${hoursTracker.barWidth}%` }}
+                            />
+                          </span>
+                        ) : null}
+                        <span className="schedule-staff-hours-meta">
+                          <span className="schedule-staff-hours-primary">{hoursTracker.primaryLabel}</span>
+                          <span className={`schedule-staff-hours-secondary ${hoursTracker.status}`}>
+                            {hoursTracker.secondaryLabel}
+                          </span>
+                        </span>
                       </span>
                     </button>
                   )
@@ -2939,7 +3077,7 @@ function ScheduleView({
                     </strong>
                     <p className="blend-grid-template-department">{(row.template.defaultArea || row.template.defaultRole || 'General').toUpperCase()}</p>
                     {row.template.notes ? <p className="blend-grid-template-break">{row.template.notes}</p> : null}
-                    <span>{formatTime24(row.template.startTime)} — {formatTime24(row.template.endTime)}</span>
+                    <span>{formatTimeRange24(row.template.startTime, row.template.endTime)}</span>
                   </aside>
                     )
                   })()}
@@ -3036,28 +3174,60 @@ function ScheduleView({
                             </div>
                           ) : null}
                         </div>
-                        <button
-                          type="button"
-                          className="schedule-week-day-add"
-                          onClick={(event) => {
-                            event.stopPropagation()
-                            handleOpenAssignmentModal(row.template, cell.day)
-                          }}
-                          aria-label={`Assign employee to ${row.template.name} on ${cell.day.label}`}
-                        >
-                          +
-                        </button>
+                        <div className="blend-grid-cell-actions" onClick={(event) => event.stopPropagation()}>
+                          <button
+                            type="button"
+                            className="blend-grid-cell-menu-btn"
+                            onClick={() => {
+                              const menuKey = buildCellActionMenuKey(row.template, cell.day.key)
+                              setCellActionMenuKey((current) => (current === menuKey ? '' : menuKey))
+                            }}
+                            aria-label={`Shift actions for ${row.template.name} on ${cell.day.label}`}
+                            disabled={isSaving}
+                          >
+                            ⋯
+                          </button>
+                          {cellActionMenuKey === buildCellActionMenuKey(row.template, cell.day.key) ? (
+                            <div className="template-card-menu blend-grid-cell-menu">
+                              <button
+                                type="button"
+                                className="template-card-menu-item danger"
+                                onClick={() => handleOpenClearCellModal(row.template, cell)}
+                                disabled={isSaving || cell.assignedCount === 0}
+                              >
+                                Clear shift
+                              </button>
+                            </div>
+                          ) : null}
+                          <button
+                            type="button"
+                            className="schedule-week-day-add"
+                            onClick={(event) => {
+                              event.stopPropagation()
+                              handleOpenAssignmentModal(row.template, cell.day)
+                            }}
+                            aria-label={`Assign employee to ${row.template.name} on ${cell.day.label}`}
+                          >
+                            +
+                          </button>
+                        </div>
                       </div>
 
                       <div className="blend-grid-pill-list">
                         {cell.shifts.map((shift) => {
                           const employeeName = shift.employees?.full_name || shift.employeeName || shift.employeeRecord?.name || 'Unassigned'
                           const shiftPosition = (shift.role || getEmployeePositionNames(shift.employeeRecord).join(' • ') || 'Unassigned position').replace(/,\s*/g, ' • ')
+                          const shiftTemplate = getShiftTemplateForAssignment(shift)
+                          const usesCustomTime = shiftTemplate ? isAssignmentUsingCustomTime(shift, shiftTemplate) : false
+                          const overtimeHours = shiftTemplate ? getAssignmentOvertimeHours(shift, shiftTemplate) : 0
+                          const pillStartTime = normalizeTimeValue(shift.startTime) || normalizeTimeValue(shiftTemplate?.startTime)
+                          const pillEndTime = normalizeTimeValue(shift.endTime) || normalizeTimeValue(shiftTemplate?.endTime)
+
                           return (
                             <button
                               key={`shift-pill-${shift.id}`}
                               type="button"
-                              className={`blend-grid-pill ${dragPayload?.shiftId === shift.id ? 'dragging' : ''}`}
+                              className={`blend-grid-pill ${usesCustomTime ? 'has-custom-time' : ''} ${dragPayload?.shiftId === shift.id ? 'dragging' : ''}`}
                               draggable={!isDragDropDisabled}
                               onDragStart={(event) => handleShiftDragStart(event, shift)}
                               onDragEnd={handleDragEnd}
@@ -3067,13 +3237,19 @@ function ScheduleView({
                               }}
                             >
                               <span className="blend-grid-pill-name">{employeeName} • {shiftPosition}</span>
+                              {usesCustomTime ? (
+                                <span className="blend-grid-pill-time">
+                                  <span>{formatTimeRange24(pillStartTime, pillEndTime, '–')}</span>
+                                  {overtimeHours > 0 ? <span className="blend-grid-pill-overtime">+{formatHoursLabel(overtimeHours)}h</span> : null}
+                                </span>
+                              ) : null}
                             </button>
                           )
                         })}
                       </div>
 
                       <div className="blend-grid-cell-bottom">
-                        <span>{formatTime24(row.template.startTime)} - {formatTime24(row.template.endTime)}</span>
+                        <span>{formatTimeRange24(row.template.startTime, row.template.endTime, ' - ')}</span>
                         {cell.assignedCount > cell.requiredCount ? <small className="capacity-warning">This shift is over capacity.</small> : null}
                       </div>
                     </div>
@@ -3109,7 +3285,7 @@ function ScheduleView({
                   {employeeSchedule.entries.map((entry) => (
                     <div key={`published-entry-${employeeSchedule.employeeId}-${entry.date}-${entry.startTime}-${entry.endTime}`} className="published-week-entry">
                       <strong>{entry.dayLabel}</strong>
-                      <span>{formatTime24(entry.startTime)} — {formatTime24(entry.endTime)}</span>
+                      <span>{formatTimeRange24(entry.startTime, entry.endTime)}</span>
                       <span>{entry.area || '—'}</span>
                       <span>{entry.role || '—'}</span>
                       {entry.notes ? <small>{entry.notes}</small> : null}
@@ -3201,7 +3377,7 @@ function ScheduleView({
                           </div>
                         </div>
                         <div className="roster-shift-meta">
-                          <span>{formatTime24(shift.startTime)} – {formatTime24(shift.endTime)}</span>
+                          <span>{formatTimeRange24(shift.startTime, shift.endTime, ' – ')}</span>
                           <span>{shift.area || 'Guest floor'}</span>
                         </div>
                         <div className="roster-shift-footer">
@@ -3535,20 +3711,56 @@ function ScheduleView({
             <div className="drawer-header">
               <div>
                 <p className="eyebrow">Clear week</p>
-                <h3>Remove all draft assignments?</h3>
+                <h3>Clear entire week?</h3>
               </div>
               <button type="button" className="icon-btn" onClick={() => setIsClearWeekModalOpen(false)}>✕</button>
             </div>
 
-            <p className="template-delete-copy">
-              This will remove {visibleWeekShifts.length} draft assignment{visibleWeekShifts.length === 1 ? '' : 's'} from {weekRangeLabel(weekDays)}. Published schedule remains untouched.
-            </p>
+            {visibleWeekShifts.length === 0 ? (
+              <p className="template-delete-copy">This week is already empty.</p>
+            ) : (
+              <p className="template-delete-copy">
+                This will remove {visibleWeekShifts.length} draft assignment{visibleWeekShifts.length === 1 ? '' : 's'} from this week.
+              </p>
+            )}
 
             {assignmentError ? <div className="staff-status-banner">{assignmentError}</div> : null}
 
             <div className="modal-actions">
               <button type="button" className="ghost-btn" onClick={() => setIsClearWeekModalOpen(false)}>Cancel</button>
-              <button type="button" className="primary-btn" onClick={handleConfirmClearWeek} disabled={isSaving}>Clear Week</button>
+              <button
+                type="button"
+                className="primary-btn"
+                onClick={handleConfirmClearWeek}
+                disabled={isSaving || visibleWeekShifts.length === 0}
+              >
+                Clear Week
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {clearCellPending ? (
+        <div className="employee-modal-backdrop" onClick={() => setClearCellPending(null)}>
+          <div className="employee-modal blend-compact-modal" onClick={(event) => event.stopPropagation()}>
+            <div className="drawer-header">
+              <div>
+                <p className="eyebrow">Clear shift</p>
+                <h3>Clear all assignments from this shift?</h3>
+              </div>
+              <button type="button" className="icon-btn" onClick={() => setClearCellPending(null)}>✕</button>
+            </div>
+
+            <p className="template-delete-copy">
+              This will remove {clearCellPending.shifts.length} assignment{clearCellPending.shifts.length === 1 ? '' : 's'} from {clearCellPending.templateName} on {clearCellPending.day.label}. Other cells and days are not affected. Published schedule remains untouched.
+            </p>
+
+            {assignmentError ? <div className="staff-status-banner">{assignmentError}</div> : null}
+
+            <div className="modal-actions">
+              <button type="button" className="ghost-btn" onClick={() => setClearCellPending(null)}>Cancel</button>
+              <button type="button" className="primary-btn" onClick={handleConfirmClearCell} disabled={isSaving}>Clear Shift</button>
             </div>
           </div>
         </div>
@@ -3630,7 +3842,7 @@ function ScheduleView({
                 <h4>{assignmentContext?.template?.name || 'Unknown shift template'}</h4>
                 <p className={assignmentFieldErrors.shift_date ? 'invalid' : ''}>{assignmentContext?.dayLabel || 'No day selected'}</p>
                 <p className={(assignmentFieldErrors.start_time || assignmentFieldErrors.end_time) ? 'invalid' : ''}>
-                  {formatTime24(assignmentContext?.template?.startTime)} — {formatTime24(assignmentContext?.template?.endTime)}
+                  {formatTimeRange24(assignmentContext?.template?.startTime, assignmentContext?.template?.endTime)}
                 </p>
                 <p className={assignmentFieldErrors.area ? 'invalid' : ''}>Area: {assignmentContext?.template?.defaultArea || 'Not set'}</p>
                 <p>Coverage: {assignmentContext?.cell?.assignedCount ?? 0}/{assignmentContext?.cell?.requiredCount ?? 1}</p>
@@ -3908,6 +4120,94 @@ function ScheduleView({
         </div>
       ) : null}
 
+      {assignmentTimeEdit ? (
+        <div className="employee-modal-backdrop" onClick={handleCloseAssignmentTimeEdit}>
+          <div className="employee-modal blend-compact-modal" onClick={(event) => event.stopPropagation()}>
+            <div className="drawer-header">
+              <div>
+                <p className="eyebrow">Edit assignment</p>
+                <h3>Assignment time</h3>
+              </div>
+              <button type="button" className="icon-btn" onClick={handleCloseAssignmentTimeEdit}>✕</button>
+            </div>
+
+            <form className="employee-form" onSubmit={handleSaveAssignmentTimeEdit}>
+              <div className="assignment-context-card">
+                <h4>{assignmentTimeEdit.shift.employees?.full_name || assignmentTimeEdit.shift.employeeName || 'Employee'}</h4>
+                <p>{assignmentTimeEdit.template.name}</p>
+                <p>Template: {formatTimeRange24(assignmentTimeEdit.template.startTime, assignmentTimeEdit.template.endTime)}</p>
+              </div>
+
+              <div className="assignment-time-mode">
+                <span>Time source</span>
+                <div className="action-group">
+                  <button
+                    type="button"
+                    className={`ghost-btn small ${assignmentTimeEdit.timeMode === 'template' ? 'active' : ''}`}
+                    onClick={() => handleAssignmentTimeModeChange('template')}
+                  >
+                    Use template time
+                  </button>
+                  <button
+                    type="button"
+                    className={`ghost-btn small ${assignmentTimeEdit.timeMode === 'custom' ? 'active' : ''}`}
+                    onClick={() => handleAssignmentTimeModeChange('custom')}
+                  >
+                    Custom time
+                  </button>
+                </div>
+              </div>
+
+              <div className="form-grid">
+                <label className="form-field">
+                  <span>Start Time</span>
+                  <input
+                    {...TIME_INPUT_PROPS}
+                    value={assignmentTimeEdit.startTime}
+                    onChange={(event) => setAssignmentTimeEdit((current) => ({
+                      ...current,
+                      timeMode: 'custom',
+                      startTime: normalizeTimeValue(event.target.value),
+                    }))}
+                    disabled={assignmentTimeEdit.timeMode === 'template' || isSaving}
+                  />
+                </label>
+                <label className="form-field">
+                  <span>End Time</span>
+                  <input
+                    {...TIME_INPUT_PROPS}
+                    value={assignmentTimeEdit.endTime}
+                    onChange={(event) => setAssignmentTimeEdit((current) => ({
+                      ...current,
+                      timeMode: 'custom',
+                      endTime: normalizeTimeValue(event.target.value),
+                    }))}
+                    disabled={assignmentTimeEdit.timeMode === 'template' || isSaving}
+                  />
+                </label>
+              </div>
+
+              {assignmentTimeEdit.timeMode === 'custom' ? (
+                <p className="template-delete-copy">
+                  Custom time applies only to this employee. The shift template time stays unchanged.
+                </p>
+              ) : (
+                <p className="template-delete-copy">
+                  Reset to template time ({formatTimeRange24(assignmentTimeEdit.template.startTime, assignmentTimeEdit.template.endTime)}).
+                </p>
+              )}
+
+              {assignmentError ? <div className="staff-status-banner">{assignmentError}</div> : null}
+
+              <div className="modal-actions">
+                <button type="button" className="ghost-btn" onClick={handleCloseAssignmentTimeEdit}>Cancel</button>
+                <button type="submit" className="primary-btn" disabled={isSaving}>{isSaving ? 'Saving…' : 'Save Time'}</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      ) : null}
+
       {shiftPendingDelete ? (
         <div className="employee-modal-backdrop" onClick={() => setShiftPendingDelete(null)}>
           <div className="employee-modal blend-compact-modal" onClick={(event) => event.stopPropagation()}>
@@ -3953,7 +4253,7 @@ function ScheduleView({
             </div>
 
             <div className="drawer-grid">
-              <div className="drawer-row"><span>Time</span><strong>{formatTime24(selectedShift.startTime)} – {formatTime24(selectedShift.endTime)}</strong></div>
+              <div className="drawer-row"><span>Time</span><strong>{formatTimeRange24(selectedShift.startTime, selectedShift.endTime, ' – ')}</strong></div>
               <div className="drawer-row"><span>Area</span><strong>{selectedShift.area || '—'}</strong></div>
               <div className="drawer-row"><span>Status</span><strong>{selectedShift.status || 'Scheduled'}</strong></div>
               <div className="drawer-row"><span>Date</span><strong>{selectedShift.date || '—'}</strong></div>
@@ -5569,10 +5869,10 @@ function App() {
     }
 
     const weekDates = new Set(weekDays.map((day) => day.key))
-    const weekShifts = shifts.filter((shift) => weekDates.has(shift.date))
+    const weekShifts = shifts.filter((shift) => weekDates.has(normalizeCellDateKey(shift.date)))
 
     if (weekShifts.length === 0) {
-      throw new Error('No draft assignments found in this week.')
+      throw new Error('This week is already empty.')
     }
 
     setIsSavingShift(true)
@@ -5585,6 +5885,44 @@ function App() {
 
       await refreshScheduleViewData()
       setScheduleNotice(`Cleared ${weekShifts.length} draft assignment${weekShifts.length === 1 ? '' : 's'} from the week.`)
+    } catch (error) {
+      const message = getSupabaseErrorMessage(error)
+      setScheduleNotice(message)
+      throw new Error(message)
+    } finally {
+      setIsSavingShift(false)
+    }
+  }
+
+  const handleClearGridCell = async ({ template, shiftDate, shiftIds }) => {
+    if (!template || !shiftDate) {
+      throw new Error('Shift cell could not be identified.')
+    }
+
+    const ids = Array.isArray(shiftIds) ? shiftIds.filter(Boolean) : []
+    const cellKey = buildTemplateCellKey({ template, shiftDate })
+
+    const cellShifts = shifts.filter((shift) => {
+      if (ids.length > 0) {
+        return ids.some((id) => String(id) === String(shift.id))
+      }
+      return buildShiftCellKeyFromRecord(shift) === cellKey
+    })
+
+    if (cellShifts.length === 0) {
+      throw new Error('No assignments found in this shift cell.')
+    }
+
+    setIsSavingShift(true)
+    setScheduleNotice('')
+
+    try {
+      for (const shift of cellShifts) {
+        await deleteShift(shift.id)
+      }
+
+      await refreshScheduleViewData()
+      setScheduleNotice(`Cleared ${cellShifts.length} assignment${cellShifts.length === 1 ? '' : 's'} from this shift.`)
     } catch (error) {
       const message = getSupabaseErrorMessage(error)
       setScheduleNotice(message)
@@ -6317,6 +6655,83 @@ function App() {
     }
   }
 
+  const handleUpdateAssignmentTime = async (shiftId, { startTime, endTime }) => {
+    const targetShift = shifts.find((shift) => String(shift.id) === String(shiftId))
+    if (!targetShift) {
+      throw new Error('Shift assignment could not be found.')
+    }
+
+    const normalizedStartTime = normalizeTimeValue(startTime)
+    const normalizedEndTime = normalizeTimeValue(endTime)
+    const role = `${targetShift.role ?? ''}`.trim()
+    const area = `${targetShift.area ?? ''}`.trim()
+
+    if (!validateShiftRequiredFields({
+      employeeId: targetShift.employeeId,
+      date: targetShift.date,
+      startTime: normalizedStartTime,
+      endTime: normalizedEndTime,
+      role,
+      area,
+    })) {
+      throw new Error('Please complete all required fields before saving.')
+    }
+
+    const startMinutes = parseShiftTimeToMinutes(normalizedStartTime)
+    const endMinutes = parseShiftTimeToMinutes(normalizedEndTime)
+
+    if (startMinutes === null || endMinutes === null || startMinutes === endMinutes) {
+      throw new Error('Please add a valid start and end time.')
+    }
+
+    const conflict = getShiftConflict({
+      employeeId: targetShift.employeeId,
+      date: targetShift.date,
+      startTime: normalizedStartTime,
+      endTime: normalizedEndTime,
+      excludeShiftId: shiftId,
+    })
+
+    if (conflict.type === 'duplicate') {
+      throw new Error('This employee is already scheduled for this shift.')
+    }
+
+    if (conflict.type === 'overlap') {
+      throw new Error('This shift overlaps with another shift for this employee.')
+    }
+
+    setIsSavingShift(true)
+    setScheduleNotice('')
+
+    const gridShiftOptions = getGridShiftIntegrityOptions(shiftTemplates)
+    const rawPayload = {
+      employee_id: targetShift.employeeId,
+      date: targetShift.date,
+      startTime: normalizedStartTime,
+      endTime: normalizedEndTime,
+      role,
+      area,
+      status: targetShift.status ?? 'Scheduled',
+      notes: targetShift.notes ?? '',
+      shiftTemplateId: targetShift.shiftTemplateId ?? null,
+    }
+
+    const payload = prepareShiftForSave(rawPayload, gridShiftOptions)
+
+    try {
+      const savedShift = await updateShift(shiftId, payload, gridShiftOptions)
+      await refreshScheduleViewData()
+      setScheduleNotice('Assignment time updated.')
+      return savedShift
+    } catch (error) {
+      const message = getSupabaseErrorMessage(error)
+      setScheduleNotice(message)
+      throw new Error(message)
+    } finally {
+      setIsSavingShift(false)
+    }
+  }
+
   const handleMoveGridShift = async (shiftId, {
     template,
     shiftDate,
@@ -6343,8 +6758,8 @@ function App() {
 
     const employeeId = targetShift.employeeId
     const positionName = `${targetShift.role ?? ''}`.trim()
-    const startTime = normalizeTimeValue(template?.startTime)
-    const endTime = normalizeTimeValue(template?.endTime)
+    const startTime = normalizeTimeValue(targetShift.startTime) || normalizeTimeValue(template?.startTime)
+    const endTime = normalizeTimeValue(targetShift.endTime) || normalizeTimeValue(template?.endTime)
     const area = `${template?.defaultArea ?? ''}`.trim() || `${targetShift.area ?? ''}`.trim()
 
     if (!employeeId || !positionName) {
@@ -7426,6 +7841,7 @@ function App() {
             onDeleteShift={handleDeleteShift}
             onCreateGridShift={handleCreateGridShift}
             onUpdateGridShift={handleUpdateGridShift}
+            onUpdateAssignmentTime={handleUpdateAssignmentTime}
             onMoveGridShift={handleMoveGridShift}
             onCopyGridShift={handleCopyGridShift}
             onRemoveGridShift={handleRemoveGridShift}
@@ -7446,6 +7862,7 @@ function App() {
             onCopyWeek={handleCopyWeek}
             onClearDay={handleClearDay}
             onClearWeek={handleClearWeek}
+            onClearGridCell={handleClearGridCell}
             onAutoFillWeekFromTemplate={handleAutoFillWeekFromTemplate}
             schedulePublication={schedulePublication}
             publishedShifts={publishedShifts}
@@ -7736,21 +8153,25 @@ function App() {
                   <label className="form-field">
                     <span>Start Time</span>
                     <input
-                      type="time"
-                      lang="en-GB"
-                      step={60}
+                      {...TIME_INPUT_PROPS}
                       value={formData.start_time}
-                      onChange={(event) => setFormData((current) => ({ ...current, shift_template: 'custom', start_time: event.target.value }))}
+                      onChange={(event) => setFormData((current) => ({
+                        ...current,
+                        shift_template: 'custom',
+                        start_time: normalizeTimeValue(event.target.value),
+                      }))}
                     />
                   </label>
                   <label className="form-field">
                     <span>End Time</span>
                     <input
-                      type="time"
-                      lang="en-GB"
-                      step={60}
+                      {...TIME_INPUT_PROPS}
                       value={formData.end_time}
-                      onChange={(event) => setFormData((current) => ({ ...current, shift_template: 'custom', end_time: event.target.value }))}
+                      onChange={(event) => setFormData((current) => ({
+                        ...current,
+                        shift_template: 'custom',
+                        end_time: normalizeTimeValue(event.target.value),
+                      }))}
                     />
                   </label>
                   <label className="form-field">
@@ -7826,7 +8247,7 @@ function App() {
                     <article key={template.id} className="template-item">
                       <div>
                         <strong>{template.name}</strong>
-                        <p>{formatTime24(template.startTime)} - {formatTime24(template.endTime)}</p>
+                        <p>{formatTimeRange24(template.startTime, template.endTime, ' - ')}</p>
                       </div>
                       <div className="action-group">
                         <button type="button" className="ghost-btn small" onClick={() => handleEditTemplate(template)}>Edit</button>
@@ -7847,11 +8268,11 @@ function App() {
                   </label>
                   <label className="form-field">
                     <span>Start Time</span>
-                    <input type="time" lang="en-GB" step={60} value={templateForm.startTime} onChange={(event) => setTemplateForm((current) => ({ ...current, startTime: event.target.value }))} required />
+                    <input {...TIME_INPUT_PROPS} value={templateForm.startTime} onChange={(event) => setTemplateForm((current) => ({ ...current, startTime: normalizeTimeValue(event.target.value) }))} required />
                   </label>
                   <label className="form-field">
                     <span>End Time</span>
-                    <input type="time" lang="en-GB" step={60} value={templateForm.endTime} onChange={(event) => setTemplateForm((current) => ({ ...current, endTime: event.target.value }))} required />
+                    <input {...TIME_INPUT_PROPS} value={templateForm.endTime} onChange={(event) => setTemplateForm((current) => ({ ...current, endTime: normalizeTimeValue(event.target.value) }))} required />
                   </label>
                   <label className="form-field">
                     <span>Default Role</span>
@@ -7910,7 +8331,7 @@ function App() {
                   </label>
                   <label className="form-field">
                     <span>Time</span>
-                    <input type="time" lang="en-GB" step={60} value={reservationForm.time} onChange={(event) => setReservationForm((current) => ({ ...current, time: event.target.value }))} required />
+                    <input {...TIME_INPUT_PROPS} value={reservationForm.time} onChange={(event) => setReservationForm((current) => ({ ...current, time: normalizeTimeValue(event.target.value) }))} required />
                   </label>
                   <label className="form-field">
                     <span>Guests</span>

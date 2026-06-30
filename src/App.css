@@ -830,6 +830,15 @@
 input[type='time'] {
   color: #fff7e8;
   color-scheme: dark;
+  font-variant-numeric: tabular-nums;
+}
+
+input[type='time']::-webkit-datetime-edit-ampm-field {
+  display: none;
+}
+
+input[type='time']::-moz-datetime-edit-ampm-field {
+  display: none;
 }
 
 input[type='time']::-webkit-datetime-edit,
@@ -1173,15 +1182,19 @@ input[type='time']::-webkit-datetime-edit-text {
 .schedule-staff-chip {
   flex: 0 0 auto;
   display: inline-flex;
-  align-items: center;
-  gap: 8px;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 6px;
+  min-width: 148px;
+  max-width: 188px;
   border: 1px solid rgba(212, 175, 55, 0.22);
   background: rgba(212, 175, 55, 0.08);
-  border-radius: 999px;
-  padding: 6px 12px 6px 6px;
+  border-radius: 14px;
+  padding: 8px 10px;
   cursor: grab;
   color: inherit;
   font: inherit;
+  text-align: left;
 }
 
 .schedule-staff-chip:hover {
@@ -1193,9 +1206,17 @@ input[type='time']::-webkit-datetime-edit-text {
   cursor: grabbing;
 }
 
+.schedule-staff-chip-main {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
 .schedule-staff-chip-avatar {
   width: 32px;
   height: 32px;
+  flex: 0 0 auto;
   display: grid;
   place-items: center;
   border-radius: 50%;
@@ -1214,17 +1235,88 @@ input[type='time']::-webkit-datetime-edit-text {
 }
 
 .schedule-staff-chip-copy strong {
-  color: #fff3d5;
-  font-size: 0.8rem;
-  font-weight: 700;
-  line-height: 1.1;
+  color: #fff7e8;
+  font-size: 0.82rem;
+  line-height: 1.25;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 120px;
 }
 
 .schedule-staff-chip-copy span {
-  color: #b9ab97;
-  font-size: 0.7rem;
-  line-height: 1.1;
+  color: #bfb39f;
+  font-size: 0.74rem;
+}
+
+.schedule-staff-hours-track {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+}
+
+.schedule-staff-hours-bar {
+  height: 6px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+}
+
+.schedule-staff-hours-bar-fill {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  width: 0;
+  transition: width 0.35s ease, background 0.25s ease;
+}
+
+.schedule-staff-hours-bar-fill.under {
+  background: linear-gradient(90deg, #c9982d 0%, #f3d28d 100%);
+}
+
+.schedule-staff-hours-bar-fill.complete {
+  background: linear-gradient(90deg, #2f9b62 0%, #5fd38d 100%);
+}
+
+.schedule-staff-hours-bar-fill.over {
+  background: linear-gradient(90deg, #c0392b 0%, #f07167 100%);
+}
+
+.schedule-staff-hours-meta {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 0.72rem;
+  line-height: 1.2;
+}
+
+.schedule-staff-hours-primary {
+  color: #e8dcc8;
+  font-weight: 600;
+}
+
+.schedule-staff-hours-secondary {
+  color: #bfb39f;
   white-space: nowrap;
+}
+
+.schedule-staff-hours-secondary.under {
+  color: #e8d4a8;
+}
+
+.schedule-staff-hours-secondary.complete {
+  color: #7fd9a4;
+}
+
+.schedule-staff-hours-secondary.over {
+  color: #ff9f97;
+}
+
+.schedule-staff-hours-secondary.none {
+  color: #a79e91;
+  font-style: italic;
 }
 
 .weekly-template-panel {
@@ -1699,6 +1791,40 @@ input[type='time']::-webkit-datetime-edit-text {
   gap: 8px;
 }
 
+.blend-grid-cell-actions {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.blend-grid-cell-menu-btn {
+  width: 24px;
+  height: 24px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(8, 8, 9, 0.55);
+  color: #f2deba;
+  display: grid;
+  place-items: center;
+  font-size: 0.88rem;
+  cursor: pointer;
+  line-height: 1;
+}
+
+.blend-grid-cell-menu-btn:hover {
+  border-color: rgba(212, 175, 55, 0.5);
+  background: rgba(212, 175, 55, 0.14);
+}
+
+.blend-grid-cell-menu {
+  top: 28px;
+  right: 0;
+  z-index: 5;
+  min-width: 132px;
+}
+
 .cell-over-badge {
   border: 1px solid rgba(244, 67, 54, 0.5);
   background: rgba(244, 67, 54, 0.16);
@@ -1759,6 +1885,43 @@ input[type='time']::-webkit-datetime-edit-text {
   font-size: 0.76rem;
   font-weight: 700;
   line-height: 1.2;
+}
+
+.blend-grid-pill.has-custom-time {
+  border-color: rgba(212, 175, 55, 0.42);
+  background: rgba(212, 175, 55, 0.16);
+}
+
+.blend-grid-pill-time {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #d8cab2;
+  font-size: 0.68rem;
+  line-height: 1.2;
+}
+
+.blend-grid-pill-overtime {
+  color: #ffb8a9;
+  font-weight: 700;
+}
+
+.assignment-time-mode {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.assignment-time-mode > span {
+  color: #bfb39f;
+  font-size: 0.82rem;
+}
+
+.assignment-time-mode .ghost-btn.small.active {
+  border-color: rgba(212, 175, 55, 0.52);
+  background: rgba(212, 175, 55, 0.16);
+  color: #fff3d5;
 }
 
 .assignment-context-card {
