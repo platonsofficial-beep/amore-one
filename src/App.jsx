@@ -55,6 +55,7 @@ import {
   isAssignmentUsingCustomTime,
   parseWeeklyHoursTarget,
 } from './lib/shiftHoursUtils'
+import { buildEmployeeWeekScheduleView } from './lib/employeeWeekScheduleView'
 import { buildOperationalSnapshot } from './lib/operationalSnapshotUtils'
 import {
   buildBrandDisplay,
@@ -798,6 +799,24 @@ function StaffView({
   )
 }
 
+function ScheduleCollapsibleSection({ eyebrow, title, meta, children, className = '' }) {
+  return (
+    <details className={`schedule-collapsible panel staff-panel ${className}`.trim()}>
+      <summary className="schedule-collapsible-summary">
+        <div className="schedule-collapsible-summary-copy">
+          {eyebrow ? <p className="eyebrow">{eyebrow}</p> : null}
+          <h3>{title}</h3>
+          {meta ? <p className="schedule-collapsible-meta">{meta}</p> : null}
+        </div>
+        <span className="schedule-collapsible-chevron" aria-hidden="true">▾</span>
+      </summary>
+      <div className="schedule-collapsible-body">
+        {children}
+      </div>
+    </details>
+  )
+}
+
 function ScheduleView({
   shifts,
   scheduleCapacities,
@@ -917,6 +936,7 @@ function ScheduleView({
   const [isUnpublishConfirmOpen, setIsUnpublishConfirmOpen] = useState(false)
   const [isPublishing, setIsPublishing] = useState(false)
   const [publishError, setPublishError] = useState('')
+  const [isScheduleMoreMenuOpen, setIsScheduleMoreMenuOpen] = useState(false)
   const [browseWeekShifts, setBrowseWeekShifts] = useState([])
   const [isBrowseWeekLoading, setIsBrowseWeekLoading] = useState(false)
   const [weekPickerValue, setWeekPickerValue] = useState(weekStartDate)
@@ -1137,12 +1157,6 @@ function ScheduleView({
   const isWeekPublished = schedulePublication?.status === 'published'
   const hasUnpublishedChanges = isWeekPublished
     && !draftMatchesPublishedSnapshot(visibleWeekShifts, publishedShifts)
-  const publicationStatusLabel = isWeekPublished
-    ? (hasUnpublishedChanges ? 'Published · Unpublished changes' : 'Published')
-    : 'Draft'
-  const publicationTimestampLabel = schedulePublication?.publishedAt
-    ? new Date(schedulePublication.publishedAt).toLocaleString('en-US')
-    : ''
 
   useEffect(() => {
     console.log("Visible week shifts", visibleWeekShifts)
@@ -1786,40 +1800,14 @@ function ScheduleView({
     }
   }, [employees, shifts, weekDays])
 
-  const employeePublishedWeekSchedule = useMemo(() => {
-    if (!isWeekPublished || !Array.isArray(publishedShifts) || publishedShifts.length === 0) return []
-
-    const grouped = new Map()
-    publishedShifts.forEach((shift) => {
-      const key = String(shift.employeeId ?? '')
-      if (!key) return
-      if (!grouped.has(key)) {
-        const employeeRecord = employees.find((employee) => String(employee.id) === key) ?? null
-        grouped.set(key, {
-          employeeId: key,
-          employeeName: employeeRecord?.name || shift.employeeName || shift.employees?.full_name || `Employee ${key}`,
-          entries: [],
-        })
-      }
-
-      grouped.get(key).entries.push({
-        date: shift.date,
-        dayLabel: new Date(`${shift.date}T00:00:00`).toLocaleDateString('en-US', { weekday: 'long' }),
-        startTime: shift.startTime,
-        endTime: shift.endTime,
-        area: shift.area,
-        role: shift.role,
-        notes: shift.notes,
-      })
-    })
-
-    return Array.from(grouped.values())
-      .map((item) => ({
-        ...item,
-        entries: item.entries.sort((a, b) => `${a.date} ${a.startTime}`.localeCompare(`${b.date} ${b.startTime}`)),
-      }))
-      .sort((a, b) => a.employeeName.localeCompare(b.employeeName))
-  }, [employees, isWeekPublished, publishedShifts])
+  const employeeWeekScheduleView = useMemo(
+    () => buildEmployeeWeekScheduleView({
+      employees,
+      weekDays,
+      weekShifts: visibleWeekShifts,
+    }),
+    [employees, weekDays, visibleWeekShifts],
+  )
 
   const blendGridRows = useMemo(() => {
     return scheduleGridTemplates.map((template) => {
@@ -2812,61 +2800,34 @@ function ScheduleView({
   }
 
   return (
-    <section className="staff-page" onClick={() => { setCapacityPickerKey(''); setDayActionMenuKey(null); setCellActionMenuKey('') }}>
-      <div className="staff-header-card">
-        <div>
-          <p className="eyebrow">Schedule management</p>
-          <h3>Premium weekly roster</h3>
-          <p className="staff-subtitle">Coordinate staffing, assignments, and coverage across the week.</p>
-        </div>
-        <button type="button" className="primary-btn" onClick={() => handleOpenAddShiftForDate(selectedDate)} disabled={isSaving}>
-          {isSaving ? 'Saving…' : '+ Add Shift'}
-        </button>
-      </div>
-
-      <div className="schedule-week-nav">
-        <div className="schedule-week-nav-main">
+    <section className="staff-page schedule-workspace" onClick={() => { setCapacityPickerKey(''); setDayActionMenuKey(null); setCellActionMenuKey(''); setIsScheduleMoreMenuOpen(false) }}>
+      <div className="schedule-toolbar">
+        <div className="schedule-toolbar-nav">
           <button
             type="button"
-            className="ghost-btn schedule-week-nav-btn"
+            className="ghost-btn schedule-toolbar-nav-btn"
             onClick={() => onWeekStartDateChange(addWeeks(weekStartDate, -1))}
             disabled={isLoading || isSaving || isPublishing}
-            aria-label="Previous week"
           >
-            ‹
-          </button>
-          <div className="schedule-week-nav-label">
-            <strong>{weekRangeLabel(weekDays)}</strong>
-            {!isCurrentWeek(weekStartDate) ? <span>Viewing another week</span> : <span>This week</span>}
-          </div>
-          <button
-            type="button"
-            className="ghost-btn schedule-week-nav-btn"
-            onClick={() => onWeekStartDateChange(addWeeks(weekStartDate, 1))}
-            disabled={isLoading || isSaving || isPublishing}
-            aria-label="Next week"
-          >
-            ›
-          </button>
-        </div>
-        <div className="schedule-week-nav-actions">
-          <button
-            type="button"
-            className="ghost-btn"
-            onClick={handleOpenCopyWeekModal}
-            disabled={isLoading || isSaving || isPublishing || visibleWeekShifts.length === 0}
-          >
-            Copy Week
+            ← Previous Week
           </button>
           <button
             type="button"
-            className="ghost-btn schedule-week-nav-today"
+            className="ghost-btn schedule-toolbar-nav-btn"
             onClick={() => onWeekStartDateChange(getCurrentWeekStartDate())}
             disabled={isLoading || isSaving || isPublishing || isCurrentWeek(weekStartDate)}
           >
             Today
           </button>
-          <label className="schedule-week-nav-picker">
+          <button
+            type="button"
+            className="ghost-btn schedule-toolbar-nav-btn"
+            onClick={() => onWeekStartDateChange(addWeeks(weekStartDate, 1))}
+            disabled={isLoading || isSaving || isPublishing}
+          >
+            Next Week →
+          </button>
+          <label className="schedule-toolbar-picker">
             <span className="sr-only">Jump to week</span>
             <input
               type="date"
@@ -2880,162 +2841,82 @@ function ScheduleView({
               disabled={isLoading || isSaving || isPublishing}
             />
           </label>
-        </div>
-      </div>
-
-      <div className="roster-summary-grid roster-summary-bar">
-        <article className="roster-summary-card">
-          <p className="eyebrow">Employees scheduled</p>
-          <h3>{weekSummary.employeesScheduled}</h3>
-        </article>
-        <article className="roster-summary-card">
-          <p className="eyebrow">Total shifts</p>
-          <h3>{weekSummary.totalShifts}</h3>
-        </article>
-        <article className="roster-summary-card">
-          <p className="eyebrow">Total working hours</p>
-          <h3>{weekSummary.totalHours}h</h3>
-        </article>
-        <article className="roster-summary-card">
-          <p className="eyebrow">Employees off</p>
-          <h3>{weekSummary.employeesOff}</h3>
-        </article>
-        <article className="roster-summary-card">
-          <p className="eyebrow">Coverage</p>
-          <h3 className={`coverage-status ${coverageSummary.tone}`}>{coverageSummary.label}</h3>
-          <p className="coverage-detail">{coverageSummary.details.join(' • ')}</p>
-        </article>
-      </div>
-
-      <div className="panel staff-panel weekly-template-panel">
-        <div className="panel-heading">
-          <div>
-            <p className="eyebrow">Saved Weekly Schedules</p>
-            <h3>Reusable week presets</h3>
+          <div className="schedule-toolbar-week-label">
+            <strong>{weekRangeLabel(weekDays)}</strong>
+            <span className={`schedule-publication-badge ${
+              hasUnpublishedChanges ? 'pending' : isWeekPublished ? 'published' : 'draft'
+            }`}>
+              {hasUnpublishedChanges ? 'Unpublished changes' : isWeekPublished ? 'Published' : 'Draft'}
+            </span>
           </div>
         </div>
 
-        <div className="weekly-template-toolbar">
-          <label className="form-field weekly-template-selector">
-            <span>Load Saved Week</span>
-            <select value={selectedWeeklyTemplateId} onChange={(event) => setSelectedWeeklyTemplateId(event.target.value)}>
-              <option value="">Choose a saved weekly schedule</option>
-              {weeklyTemplates.map((template) => (
-                <option key={`weekly-template-${template.id}`} value={String(template.id)}>{template.name}</option>
-              ))}
-            </select>
-          </label>
-
-          <div className="action-group">
-            <button type="button" className="ghost-btn" onClick={handleOpenSaveWeekTemplateModal} disabled={isSaving}>Save Current Week</button>
-            <button type="button" className="ghost-btn" onClick={handleOpenLoadWeekTemplateModal} disabled={isSaving || !selectedWeeklyTemplateId}>Load Saved Week</button>
-            <button type="button" className="ghost-btn" onClick={handleOpenAutoFillModal} disabled={isSaving || !selectedWeeklyTemplateId}>Auto Fill Empty Week</button>
-            <button type="button" className="ghost-btn" onClick={handleStartRenameWeeklyTemplate} disabled={isSaving || !selectedWeeklyTemplateId}>Rename Saved Week</button>
-            <button type="button" className="ghost-btn" onClick={handleDeleteSelectedWeeklyTemplate} disabled={isSaving || !selectedWeeklyTemplateId}>Delete Saved Week</button>
-          </div>
-        </div>
-
-        <div className="weekly-history-panel">
-          <label className="form-field weekly-template-selector">
-            <span>Week Picker</span>
-            <input
-              type="date"
-              value={browseWeekAnchorDate}
-              onChange={(event) => setBrowseWeekAnchorDate(event.target.value)}
-            />
-          </label>
-
-          <div className="weekly-history-meta">
-            <p><strong>Selected Week:</strong> {weekRangeLabel(browseWeekDays)}</p>
-            <p><strong>Shifts Found:</strong> {isBrowseWeekLoading ? 'Loading…' : browsedWeekShifts.length}</p>
-            {browsedWeekPreview.length > 0 ? (
-              <div className="weekly-history-preview">
-                {browsedWeekPreview.map((item) => (
-                  <p key={item}>{item}</p>
-                ))}
-              </div>
-            ) : null}
-          </div>
-
-          <div className="action-group">
+        <div className="schedule-toolbar-actions">
+          {hasUnpublishedChanges || !isWeekPublished ? (
+            <button
+              type="button"
+              className="primary-btn"
+              onClick={() => {
+                setPublishError('')
+                setIsPublishConfirmOpen(true)
+              }}
+              disabled={isSaving || isPublishing}
+            >
+              {hasUnpublishedChanges ? 'Publish changes' : 'Publish'}
+            </button>
+          ) : null}
+          {isWeekPublished ? (
             <button
               type="button"
               className="ghost-btn"
-              onClick={handleOpenCopyThisWeekModal}
-              disabled={isSaving || isBrowseWeekCurrentWeek || isBrowseWeekLoading || browsedWeekShifts.length === 0}
+              onClick={() => {
+                setPublishError('')
+                setIsUnpublishConfirmOpen(true)
+              }}
+              disabled={isSaving || isPublishing}
             >
-              Copy This Week
+              Unpublish
             </button>
+          ) : null}
+          <button type="button" className="primary-btn" onClick={() => handleOpenAddShiftForDate(selectedDate)} disabled={isSaving}>
+            {isSaving ? 'Saving…' : '+ Add Shift'}
+          </button>
+          <div className="schedule-more-menu" onClick={(event) => event.stopPropagation()}>
+            <button
+              type="button"
+              className="ghost-btn schedule-more-menu-btn"
+              onClick={() => setIsScheduleMoreMenuOpen((current) => !current)}
+              aria-expanded={isScheduleMoreMenuOpen}
+              aria-haspopup="menu"
+            >
+              More ▾
+            </button>
+            {isScheduleMoreMenuOpen ? (
+              <div className="template-card-menu schedule-more-menu-dropdown" role="menu">
+                <button type="button" className="template-card-menu-item" role="menuitem" onClick={() => { setIsScheduleMoreMenuOpen(false); handleOpenSaveWeekTemplateModal() }} disabled={isSaving}>Save Week</button>
+                <button type="button" className="template-card-menu-item" role="menuitem" onClick={() => { setIsScheduleMoreMenuOpen(false); handleOpenLoadWeekTemplateModal() }} disabled={isSaving || !selectedWeeklyTemplateId}>Load Week</button>
+                <button type="button" className="template-card-menu-item" role="menuitem" onClick={() => { setIsScheduleMoreMenuOpen(false); handleOpenCopyWeekModal() }} disabled={isLoading || isSaving || isPublishing || visibleWeekShifts.length === 0}>Copy Week</button>
+                <button type="button" className="template-card-menu-item" role="menuitem" onClick={() => { setIsScheduleMoreMenuOpen(false); handleStartRenameWeeklyTemplate() }} disabled={isSaving || !selectedWeeklyTemplateId}>Rename Week</button>
+                <button type="button" className="template-card-menu-item" role="menuitem" onClick={() => { setIsScheduleMoreMenuOpen(false); handleDeleteSelectedWeeklyTemplate() }} disabled={isSaving || !selectedWeeklyTemplateId}>Delete Week</button>
+                <button type="button" className="template-card-menu-item" role="menuitem" onClick={() => { setIsScheduleMoreMenuOpen(false); handleOpenAutoFillModal() }} disabled={isSaving || !selectedWeeklyTemplateId}>Auto Fill</button>
+                <button type="button" className="template-card-menu-item danger" role="menuitem" onClick={() => { setIsScheduleMoreMenuOpen(false); handleOpenClearWeekModal() }} disabled={isSaving || isPublishing}>Clear Week</button>
+              </div>
+            ) : null}
           </div>
         </div>
       </div>
 
-      <div className="panel staff-panel blend-grid-panel">
-        <div className="panel-heading">
-          <div>
-            <p className="eyebrow">Weekly assignment grid</p>
-            <h3>
-              Weekly schedule
-              <span className={`schedule-publication-badge ${
-                hasUnpublishedChanges ? 'pending' : isWeekPublished ? 'published' : 'draft'
-              }`}>
-                {hasUnpublishedChanges ? 'Unpublished changes' : isWeekPublished ? 'Published' : 'Draft'}
-              </span>
-            </h3>
-            <p className="schedule-publication-meta">
-              {publicationStatusLabel}
-              {isWeekPublished && publicationTimestampLabel ? ` · ${publicationTimestampLabel}` : ''}
-            </p>
-          </div>
-          <div className="action-group">
-            {hasUnpublishedChanges || !isWeekPublished ? (
-              <button
-                type="button"
-                className="primary-btn"
-                onClick={() => {
-                  setPublishError('')
-                  setIsPublishConfirmOpen(true)
-                }}
-                disabled={isSaving || isPublishing}
-              >
-                {hasUnpublishedChanges ? 'Publish changes' : 'Publish'}
-              </button>
-            ) : null}
-            {isWeekPublished ? (
-              <button
-                type="button"
-                className="ghost-btn"
-                onClick={() => {
-                  setPublishError('')
-                  setIsUnpublishConfirmOpen(true)
-                }}
-                disabled={isSaving || isPublishing}
-              >
-                Unpublish
-              </button>
-            ) : null}
-            <button
-              type="button"
-              className="ghost-btn danger-text"
-              onClick={handleOpenClearWeekModal}
-              disabled={isSaving || isPublishing}
-            >
-              Clear Week
-            </button>
-            <button type="button" className="primary-btn" onClick={() => handleOpenAddShiftForDate(selectedDate)} disabled={isSaving}>
-              {isSaving ? 'Saving…' : '+ Add Shift'}
-            </button>
-          </div>
+      {hasUnpublishedChanges ? (
+        <div className="staff-status-banner schedule-draft-changes-banner schedule-workspace-banner">
+          Draft has unpublished changes.
         </div>
+      ) : null}
 
-        {hasUnpublishedChanges ? (
-          <div className="staff-status-banner schedule-draft-changes-banner">
-            Draft has unpublished changes.
-          </div>
-        ) : null}
+      {assignmentError ? <div className="staff-status-banner schedule-workspace-banner">{assignmentError}</div> : null}
+      {noticeMessage ? <div className="staff-status-banner schedule-workspace-banner">{noticeMessage}</div> : null}
+      {isLoading ? <div className="staff-status-banner schedule-workspace-banner">Loading schedule…</div> : null}
 
-        {assignmentError ? <div className="staff-status-banner">{assignmentError}</div> : null}
-
+      <div className="panel staff-panel blend-grid-panel schedule-grid-hero">
         {scheduleGridTemplates.length === 0 ? (
           <div className="schedule-empty-state">
             <h4>No shift templates available.</h4>
@@ -3389,49 +3270,154 @@ function ScheduleView({
         )}
       </div>
 
-      {noticeMessage ? <div className="staff-status-banner">{noticeMessage}</div> : null}
-      {isLoading ? <div className="staff-status-banner">Loading schedule…</div> : null}
+      <ScheduleCollapsibleSection
+        eyebrow="Weekly statistics"
+        title="Week at a glance"
+        meta={`${weekSummary.employeesScheduled} scheduled · ${weekSummary.totalShifts} shifts · ${weekSummary.totalHours}h · ${coverageSummary.label}`}
+        className="schedule-stats-collapsible"
+      >
+        <div className="roster-summary-grid roster-summary-bar">
+          <article className="roster-summary-card">
+            <p className="eyebrow">Employees scheduled</p>
+            <h3>{weekSummary.employeesScheduled}</h3>
+          </article>
+          <article className="roster-summary-card">
+            <p className="eyebrow">Total shifts</p>
+            <h3>{weekSummary.totalShifts}</h3>
+          </article>
+          <article className="roster-summary-card">
+            <p className="eyebrow">Total working hours</p>
+            <h3>{weekSummary.totalHours}h</h3>
+          </article>
+          <article className="roster-summary-card">
+            <p className="eyebrow">Employees off</p>
+            <h3>{weekSummary.employeesOff}</h3>
+          </article>
+          <article className="roster-summary-card">
+            <p className="eyebrow">Coverage</p>
+            <h3 className={`coverage-status ${coverageSummary.tone}`}>{coverageSummary.label}</h3>
+            <p className="coverage-detail">{coverageSummary.details.join(' • ')}</p>
+          </article>
+        </div>
+      </ScheduleCollapsibleSection>
 
-      {isWeekPublished ? (
-        <div className="panel staff-panel">
-          <div className="panel-heading">
-            <div>
-              <p className="eyebrow">Employee view</p>
-              <h3>What employees see</h3>
-            </div>
+      <ScheduleCollapsibleSection
+        eyebrow="Saved weeks"
+        title="Reusable week presets"
+        meta={selectedWeeklyTemplateId
+          ? `${weeklyTemplates.find((template) => String(template.id) === String(selectedWeeklyTemplateId))?.name ?? 'Saved week selected'}`
+          : 'Save, load, or copy from another week'}
+        className="weekly-template-panel schedule-saved-weeks-collapsible"
+      >
+        <div className="weekly-template-toolbar">
+          <label className="form-field weekly-template-selector">
+            <span>Load Saved Week</span>
+            <select value={selectedWeeklyTemplateId} onChange={(event) => setSelectedWeeklyTemplateId(event.target.value)}>
+              <option value="">Choose a saved weekly schedule</option>
+              {weeklyTemplates.map((template) => (
+                <option key={`weekly-template-${template.id}`} value={String(template.id)}>{template.name}</option>
+              ))}
+            </select>
+          </label>
+
+          <p className="schedule-saved-weeks-hint">Use More ▾ in the toolbar for Save, Load, Rename, Delete, Auto Fill, and Clear Week actions.</p>
+        </div>
+
+        <div className="weekly-history-panel">
+          <label className="form-field weekly-template-selector">
+            <span>Week Picker</span>
+            <input
+              type="date"
+              value={browseWeekAnchorDate}
+              onChange={(event) => setBrowseWeekAnchorDate(event.target.value)}
+            />
+          </label>
+
+          <div className="weekly-history-meta">
+            <p><strong>Selected Week:</strong> {weekRangeLabel(browseWeekDays)}</p>
+            <p><strong>Shifts Found:</strong> {isBrowseWeekLoading ? 'Loading…' : browsedWeekShifts.length}</p>
+            {browsedWeekPreview.length > 0 ? (
+              <div className="weekly-history-preview">
+                {browsedWeekPreview.map((item) => (
+                  <p key={item}>{item}</p>
+                ))}
+              </div>
+            ) : null}
           </div>
 
-          <div className="published-week-grid">
-            {employeePublishedWeekSchedule.length === 0 ? (
-              <p className="staff-subtitle">No published assignments for this week yet.</p>
-            ) : (
-              employeePublishedWeekSchedule.map((employeeSchedule) => (
-                <article key={`published-employee-${employeeSchedule.employeeId}`} className="published-week-card">
-                  <h4>{employeeSchedule.employeeName}</h4>
-                  {employeeSchedule.entries.map((entry) => (
-                    <div key={`published-entry-${employeeSchedule.employeeId}-${entry.date}-${entry.startTime}-${entry.endTime}`} className="published-week-entry">
-                      <strong>{entry.dayLabel}</strong>
-                      <span>{formatTimeRange24(entry.startTime, entry.endTime)}</span>
-                      <span>{entry.area || '—'}</span>
-                      <span>{entry.role || '—'}</span>
-                      {entry.notes ? <small>{entry.notes}</small> : null}
+          <div className="action-group">
+            <button
+              type="button"
+              className="ghost-btn"
+              onClick={handleOpenCopyThisWeekModal}
+              disabled={isSaving || isBrowseWeekCurrentWeek || isBrowseWeekLoading || browsedWeekShifts.length === 0}
+            >
+              Copy This Week
+            </button>
+          </div>
+        </div>
+      </ScheduleCollapsibleSection>
+
+      <ScheduleCollapsibleSection
+        eyebrow="Employee view"
+        title="Employee week schedule"
+        meta={`${employeeWeekScheduleView.length} employee${employeeWeekScheduleView.length === 1 ? '' : 's'} · ${weekDays.length}-day roster · ${isWeekPublished ? (hasUnpublishedChanges ? 'draft changes pending publish' : 'published') : 'draft preview'}`}
+        className="schedule-employee-view-collapsible"
+      >
+        <div className="employee-week-grid">
+          {employeeWeekScheduleView.length === 0 ? (
+            <p className="staff-subtitle">No employees available for this week.</p>
+          ) : (
+            employeeWeekScheduleView.map((employeeSchedule) => (
+              <article key={`employee-week-${employeeSchedule.employeeId}`} className="employee-week-card">
+                <h4>{employeeSchedule.employeeName}</h4>
+                <div className="employee-week-days">
+                  {employeeSchedule.days.map((day) => (
+                    <div
+                      key={`employee-week-day-${employeeSchedule.employeeId}-${day.date}`}
+                      className={`employee-week-day ${day.isDayOff ? 'is-day-off' : 'has-shifts'}`}
+                    >
+                      <div className="employee-week-day-header">
+                        <strong>{day.dayLabel}</strong>
+                        <span>{day.shortDate}</span>
+                      </div>
+                      {day.isDayOff ? (
+                        <p className="employee-week-day-off">DAY OFF</p>
+                      ) : (
+                        <div className="employee-week-day-shifts">
+                          {day.shifts.map((shift) => (
+                            <div
+                              key={`employee-week-shift-${employeeSchedule.employeeId}-${day.date}-${shift.shiftId ?? shift.startTime}-${shift.endTime}`}
+                              className="employee-week-shift"
+                            >
+                              <span className="employee-week-shift-role">{shift.role}</span>
+                              <span className="employee-week-shift-time">
+                                {shift.startTimeLabel} – {shift.endTimeLabel}
+                              </span>
+                              {shift.notes ? (
+                                <small className="employee-week-shift-notes">{shift.notes}</small>
+                              ) : null}
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   ))}
-                </article>
-              ))
-            )}
-          </div>
+                </div>
+              </article>
+            ))
+          )}
         </div>
-      ) : null}
+      </ScheduleCollapsibleSection>
 
-      <div className="panel staff-panel">
-        <div className="panel-heading">
-          <div>
-            <p className="eyebrow">Weekly roster</p>
-            <h3>{selectedDay ? weekDays.find((day) => day.key === selectedDay)?.label : 'Planning'} coverage</h3>
-          </div>
-        </div>
-
+      <ScheduleCollapsibleSection
+        eyebrow="Weekly roster"
+        title={selectedDay ? `${weekDays.find((day) => day.key === selectedDay)?.label ?? 'Day'} coverage` : 'Weekly coverage'}
+        meta={selectedDay
+          ? `${filteredDayShifts.length} shift${filteredDayShifts.length === 1 ? '' : 's'} in view`
+          : 'Select a day in the grid to focus roster filters'}
+        className="schedule-roster-collapsible"
+      >
         <div className="roster-filters">
           <label className="roster-filter">
             <span>Department</span>
@@ -3518,7 +3504,7 @@ function ScheduleView({
             </section>
           ))}
         </div>
-      </div>
+      </ScheduleCollapsibleSection>
 
       {isSaveWeekTemplateModalOpen ? (
         <div className="employee-modal-backdrop" onClick={() => setIsSaveWeekTemplateModalOpen(false)}>
