@@ -1,5 +1,8 @@
--- Optional schema for scalable multi-position staffing.
--- Run this in Supabase SQL editor only if these tables do not already exist.
+-- Positions schema for scalable multi-position staffing.
+-- Prerequisite: public.employees must already exist with id uuid.
+-- Compatible with the live database where employees.id is uuid
+-- (see public.published_shifts.employee_id and other existing FKs).
+-- Run this in the Supabase SQL editor only if these tables do not already exist.
 
 create table if not exists public.positions (
   id bigint generated always as identity primary key,
@@ -13,7 +16,7 @@ create unique index if not exists positions_name_department_unique
   on public.positions (lower(name), lower(department));
 
 create table if not exists public.employee_positions (
-  employee_id bigint not null references public.employees(id) on delete cascade,
+  employee_id uuid not null references public.employees(id) on delete cascade,
   position_id bigint not null references public.positions(id) on delete restrict,
   created_at timestamptz not null default now(),
   primary key (employee_id, position_id)

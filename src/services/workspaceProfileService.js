@@ -1,0 +1,140 @@
+import { supabase } from '../lib/supabaseClient'
+import {
+  getDefaultWorkspaceCurrency,
+  getDefaultWorkspaceTimezone,
+} from '../lib/workspaceProfileOptions'
+
+const WORKSPACE_PROFILES_TABLE = 'workspace_profiles'
+const WORKSPACE_KEY = 'default'
+
+export const EMPTY_WORKSPACE_PROFILE = {
+  id: null,
+  businessName: '',
+  managerName: '',
+  managerRole: '',
+  timezone: '',
+  currency: '',
+  logoUrl: '',
+}
+
+function isTableUnavailableError(error) {
+  const message = error?.message?.toLowerCase() ?? ''
+  return message.includes('does not exist')
+    || message.includes('relation')
+    || message.includes('could not find the table')
+}
+
+function normalizeProfile(profile = {}) {
+  return {
+    id: profile.id ?? null,
+    businessName: `${profile.businessName ?? ''}`.trim(),
+    managerName: `${profile.managerName ?? ''}`.trim(),
+    managerRole: `${profile.managerRole ?? ''}`.trim(),
+    timezone: `${profile.timezone ?? ''}`.trim(),
+    currency: `${profile.currency ?? ''}`.trim(),
+    logoUrl: `${profile.logoUrl ?? ''}`.trim(),
+  }
+}
+
+function mapWorkspaceProfile(record) {
+  if (!record) return { ...EMPTY_WORKSPACE_PROFILE }
+
+  return normalizeProfile({
+    id: record.id ?? null,
+    businessName: record.business_name ?? record.businessName ?? '',
+    managerName: record.manager_name ?? record.managerName ?? '',
+    managerRole: record.manager_role ?? record.managerRole ?? '',
+    timezone: record.timezone ?? '',
+    currency: record.currency ?? '',
+    logoUrl: record.logo_url ?? record.logoUrl ?? '',
+  })
+}
+
+function serializeWorkspaceProfile(profile) {
+  const normalized = normalizeProfile(profile)
+
+  return {
+    workspace_key: WORKSPACE_KEY,
+    business_name: normalized.businessName,
+    manager_name: normalized.managerName,
+    manager_role: normalized.managerRole,
+    timezone: normalized.timezone,
+    currency: normalized.currency,
+    logo_url: normalized.logoUrl,
+  }
+}
+
+export function buildWorkspaceProfileDraft() {
+  return normalizeProfile({
+    ...EMPTY_WORKSPACE_PROFILE,
+    timezone: getDefaultWorkspaceTimezone(),
+    currency: getDefaultWorkspaceCurrency(),
+  })
+}
+
+export async function getWorkspaceProfile() {
+  const { data, error } = await supabase
+    .from(WORKSPACE_PROFILES_TABLE)
+    .select('*')
+    .eq('workspace_key', WORKSPACE_KEY)
+    .maybeSingle()
+
+  if (error) {
+    console.error('[workspaceProfileService] getWorkspaceProfile error:', error)
+
+    if (isTableUnavailableError(error)) {
+      throw new Error('Workspace profile table is not ready yet.')
+    }
+
+    throw new Error(error.message || 'Unable to load workspace profile right now.')
+  }
+
+  if (data) {
+    return mapWorkspaceProfile(data)
+  }
+
+  return buildWorkspaceProfileDraft()
+}
+
+export async function saveWorkspaceProfile(profile) {
+  const normalized = normalizeProfile(profile)
+  const payload = serializeWorkspaceProfile(normalized)
+
+  const { data: existing, error: existingError } = await supabase
+    .from(WORKSPACE_PROFILES_TABLE)
+    .select('id')
+    .eq('workspace_key', WORKSPACE_KEY)
+    .maybeSingle()
+
+  if (existingError) {
+    console.error('[workspaceProfileService] saveWorkspaceProfile lookup error:', existingError)
+
+    if (isTableUnavailableError(existingError)) {
+      throw new Error('Workspace profile table is not ready yet.')
+    }
+
+    throw new Error(existingError.message || 'Unable to save workspace profile right now.')
+  }
+
+  const request = existing?.id
+    ? supabase
+      .from(WORKSPACE_PROFILES_TABLE)
+      .update(payload)
+      .eq('id', existing.id)
+      .select('*')
+      .single()
+    : supabase
+      .from(WORKSPACE_PROFILES_TABLE)
+      .insert([payload])
+      .select('*')
+      .single()
+
+  const { data, error } = await request
+
+  if (error) {
+    console.error('[workspaceProfileService] saveWorkspaceProfile error:', error)
+    throw new Error(error.message || 'Unable to save workspace profile right now.')
+  }
+
+  return mapWorkspaceProfile(data)
+}

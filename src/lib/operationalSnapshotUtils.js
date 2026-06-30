@@ -120,13 +120,12 @@ function resolveTemplateForShift(shift, shiftTemplates) {
 }
 
 export function resolveWorkspaceBusinessName(name) {
-  const trimmed = `${name ?? ''}`.trim()
-  return trimmed || 'AMORE'
+  return `${name ?? ''}`.trim()
 }
 
 export function resolveUserFirstName(name) {
   const trimmed = `${name ?? ''}`.trim()
-  if (!trimmed) return 'Manager'
+  if (!trimmed) return ''
   return trimmed.split(/\s+/)[0]
 }
 
@@ -222,7 +221,9 @@ export function buildOperationalSnapshot({
 
   const resolvedBusinessName = resolveWorkspaceBusinessName(businessName)
   const resolvedUserName = resolveUserFirstName(userName)
-  const greeting = `${timeGreeting}, ${resolvedUserName}.`
+  const greeting = resolvedUserName
+    ? `${timeGreeting}, ${resolvedUserName}.`
+    : `${timeGreeting}.`
 
   return {
     greeting,

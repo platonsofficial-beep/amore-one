@@ -55,7 +55,22 @@ import {
   isAssignmentUsingCustomTime,
   parseWeeklyHoursTarget,
 } from './lib/shiftHoursUtils'
-import { buildOperationalSnapshot, resolveUserFirstName } from './lib/operationalSnapshotUtils'
+import { buildOperationalSnapshot } from './lib/operationalSnapshotUtils'
+import {
+  buildBrandDisplay,
+  buildDashboardGreeting,
+  buildProfileChipDisplay,
+} from './lib/workspaceProfileUtils'
+import {
+  MAX_WORKSPACE_LOGO_BYTES,
+  WORKSPACE_PROFILE_CURRENCIES,
+  WORKSPACE_PROFILE_TIMEZONES,
+} from './lib/workspaceProfileOptions'
+import {
+  EMPTY_WORKSPACE_PROFILE,
+  getWorkspaceProfile,
+  saveWorkspaceProfile,
+} from './services/workspaceProfileService'
 import {
   buildDashboardStats,
   buildLiveFloorState,
@@ -82,32 +97,19 @@ const navItems = [
   { id: 'tasks', label: 'Tasks', icon: '✓' },
   { id: 'stock', label: 'Stock', icon: '📦' },
   { id: 'reports', label: 'Reports', icon: '📈' },
-  { id: 'settings', label: 'Settings', icon: '⚙️' },
+  { id: 'settings', label: 'Workspace', icon: '⚙️' },
 ]
 
-const APP_WORKSPACE_NAME = 'Amore One'
-const APP_USER_NAME = 'Platon'
+const workspaceSettingsSections = [
+  { id: 'profile', label: 'Workspace Profile' },
+  { id: 'positions', label: 'Positions' },
+]
 
 const quickActions = [
   { label: 'Add Reservation', icon: '+' },
   { label: 'Add Task', icon: '✦' },
   { label: 'Add Staff', icon: '◌' },
   { label: 'Create Order', icon: '↗' },
-]
-
-const initialStaffEmployees = [
-  { id: 1, name: 'Luca Romano', position: 'Head Sommelier', phone: '+1 212 555 0148', email: 'luca@amoreone.com', hireDate: 'Mar 12, 2021', salary: '$84,000', emergencyContact: 'Marta Romano • +1 212 555 0162', weeklyHours: '42 hrs', notes: 'Excellent with VIP guests and wine pairings.', shift: 'Evening', status: 'Working', department: 'Service' },
-  { id: 2, name: 'Sofia Alvarez', position: 'Floor Manager', phone: '+1 212 555 0187', email: 'sofia@amoreone.com', hireDate: 'Jun 08, 2019', salary: '$91,000', emergencyContact: 'Diego Alvarez • +1 212 555 0159', weeklyHours: '40 hrs', notes: 'Leads floor operations and team handoffs.', shift: 'Evening', status: 'Working', department: 'Management' },
-  { id: 3, name: 'Nadia Chen', position: 'Pastry Chef', phone: '+1 212 555 0134', email: 'nadia@amoreone.com', hireDate: 'Nov 22, 2022', salary: '$76,000', emergencyContact: 'Rina Chen • +1 212 555 0170', weeklyHours: '38 hrs', notes: 'Specializes in tasting desserts and custom plated items.', shift: 'Day', status: 'Break', department: 'Kitchen' },
-  { id: 4, name: 'Marco Bellini', position: 'Bartender', phone: '+1 212 555 0113', email: 'marco@amoreone.com', hireDate: 'Feb 03, 2020', salary: '$68,000', emergencyContact: 'Elena Bellini • +1 212 555 0143', weeklyHours: '36 hrs', notes: 'Strong knowledge of Italian aperitifs and premium service.', shift: 'Evening', status: 'Working', department: 'Bar' },
-  { id: 5, name: 'Priya Shah', position: 'Hostess', phone: '+1 212 555 0198', email: 'priya@amoreone.com', hireDate: 'Jul 15, 2023', salary: '$58,000', emergencyContact: 'Arun Shah • +1 212 555 0183', weeklyHours: '32 hrs', notes: 'Fluent in guest greeting and reservation coordination.', shift: 'Day', status: 'Day Off', department: 'Service' },
-  { id: 6, name: 'Elias Foster', position: 'Chef de Partie', phone: '+1 212 555 0174', email: 'elias@amoreone.com', hireDate: 'Aug 18, 2021', salary: '$72,000', emergencyContact: 'Mina Foster • +1 212 555 0126', weeklyHours: '41 hrs', notes: 'Supports the main kitchen station with precise prep.', shift: 'Evening', status: 'Working', department: 'Kitchen' },
-  { id: 7, name: 'Mila Petrov', position: 'Server', phone: '+1 212 555 0157', email: 'mila@amoreone.com', hireDate: 'Sep 06, 2022', salary: '$62,000', emergencyContact: 'Viktor Petrov • +1 212 555 0117', weeklyHours: '34 hrs', notes: 'Known for calm service and polished guest communication.', shift: 'Evening', status: 'Working', department: 'Service' },
-  { id: 8, name: 'Daniel Ortiz', position: 'Supply Coordinator', phone: '+1 212 555 0129', email: 'daniel@amoreone.com', hireDate: 'Jan 19, 2020', salary: '$66,000', emergencyContact: 'Clara Ortiz • +1 212 555 0105', weeklyHours: '39 hrs', notes: 'Manages inventory flow and prep requests efficiently.', shift: 'Day', status: 'Leave', department: 'Management' },
-  { id: 9, name: 'Isabella Cruz', position: 'Restaurant Manager', phone: '+1 212 555 0141', email: 'isabella@amoreone.com', hireDate: 'Apr 30, 2018', salary: '$97,000', emergencyContact: 'Mateo Cruz • +1 212 555 0131', weeklyHours: '45 hrs', notes: 'Oversees premium service standards and guest satisfaction.', shift: 'Evening', status: 'Working', department: 'Management' },
-  { id: 10, name: 'Theo Martin', position: 'Commis Chef', phone: '+1 212 555 0168', email: 'theo@amoreone.com', hireDate: 'May 03, 2024', salary: '$54,000', emergencyContact: 'Leah Martin • +1 212 555 0108', weeklyHours: '30 hrs', notes: 'Fast learner and dependable during high-volume service.', shift: 'Day', status: 'Break', department: 'Kitchen' },
-  { id: 11, name: 'Ava Laurent', position: 'Hostess', phone: '+1 212 555 0189', email: 'ava@amoreone.com', hireDate: 'Dec 11, 2023', salary: '$56,000', emergencyContact: 'Julien Laurent • +1 212 555 0145', weeklyHours: '33 hrs', notes: 'Excellent with reservations and VIP arrivals.', shift: 'Evening', status: 'Working', department: 'Service' },
-  { id: 12, name: 'Jonas Weber', position: 'Barback', phone: '+1 212 555 0150', email: 'jonas@amoreone.com', hireDate: 'Oct 02, 2022', salary: '$59,000', emergencyContact: 'Karin Weber • +1 212 555 0178', weeklyHours: '35 hrs', notes: 'Keeps the bar stocked and service flowing smoothly.', shift: 'Evening', status: 'Working', department: 'Bar' },
 ]
 
 const filters = ['All', 'Bar', 'Service', 'Kitchen', 'Management']
@@ -245,7 +247,9 @@ function OperationalSnapshot({ snapshot, isLoading }) {
       <div className="operational-snapshot-header">
         <div className="operational-snapshot-intro">
           <p className="operational-snapshot-greeting">{snapshot.greeting}</p>
-          <p className="operational-snapshot-business">{snapshot.businessName}</p>
+          {snapshot.businessName ? (
+            <p className="operational-snapshot-business">{snapshot.businessName}</p>
+          ) : null}
         </div>
         <p className="operational-snapshot-today-label">{snapshot.todayLabel}</p>
       </div>
@@ -446,38 +450,16 @@ function formatHireDate(value) {
   return parsed.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
 }
 
-const APP_NAME = typeof __APP_NAME__ !== 'undefined' ? __APP_NAME__ : 'Amore One'
+const APP_NAME = typeof __APP_NAME__ !== 'undefined' ? __APP_NAME__ : 'ONE'
 const APP_VERSION = typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : 'v0.0.0'
-const APP_BUILD_NUMBER = typeof __BUILD_NUMBER__ !== 'undefined' ? __BUILD_NUMBER__ : '0'
-const APP_BUILD_DATE = typeof __BUILD_DATE__ !== 'undefined' ? __BUILD_DATE__ : new Date().toISOString()
-
-function formatBuildDateDisplay(value, withDash = true) {
-  const parsed = new Date(value)
-  if (Number.isNaN(parsed.getTime())) return 'Unknown build time'
-
-  const day = String(parsed.getDate()).padStart(2, '0')
-  const month = parsed.toLocaleDateString('en-GB', { month: 'short' })
-  const year = parsed.getFullYear()
-  const hours = String(parsed.getHours()).padStart(2, '0')
-  const minutes = String(parsed.getMinutes()).padStart(2, '0')
-
-  if (withDash) {
-    return `${day} ${month} ${year} - ${hours}:${minutes}`
-  }
-
-  return `${day} ${month} ${year} ${hours}:${minutes}`
-}
 
 function BuildInfoBadge({ compact = false }) {
   const [copyMessage, setCopyMessage] = useState('')
-  const displayDate = formatBuildDateDisplay(APP_BUILD_DATE)
 
   const handleCopyBuildInfo = async () => {
     const copyText = [
       APP_NAME,
-      `Version: ${APP_VERSION}`,
-      `Build: #${APP_BUILD_NUMBER}`,
-      `Date: ${formatBuildDateDisplay(APP_BUILD_DATE, false)}`,
+      `Version ${APP_VERSION}`,
     ].join('\n')
 
     try {
@@ -504,9 +486,7 @@ function BuildInfoBadge({ compact = false }) {
     <div className={`build-info-badge ${compact ? 'compact' : ''}`}>
       <div>
         <p className="build-info-name">{APP_NAME}</p>
-        <p className="build-info-version">{APP_VERSION}</p>
-        <p className="build-info-build">Build #{APP_BUILD_NUMBER}</p>
-        <p className="build-info-date">{displayDate}</p>
+        <p className="build-info-version">Version {APP_VERSION}</p>
       </div>
       <button type="button" className="ghost-btn small build-copy-btn" onClick={handleCopyBuildInfo}>Copy Build Info</button>
       {copyMessage ? <small className="build-copy-note">{copyMessage}</small> : null}
@@ -612,7 +592,7 @@ function StaffView({
       : []
 
     if (names.length > 0) return names.join(', ')
-    return employee.position || 'Unassigned'
+    return 'No positions assigned'
   }
 
   const overviewCards = [
@@ -1192,7 +1172,7 @@ function ScheduleView({
       .map((shift) => {
         const employeeName = shift.employees?.full_name
           || shift.employeeName
-          || employees.find((employee) => Number(employee.id) === Number(shift.employeeId))?.name
+          || employees.find((employee) => String(employee.id) === String(shift.employeeId))?.name
           || 'Unassigned'
 
         return `${shift.date} · ${formatTimeRange24(shift.startTime, shift.endTime, '-')} · ${employeeName}`
@@ -4784,6 +4764,141 @@ function SuppliersView({ suppliers, onOpenAddSupplier, onOpenEditSupplier, onDel
   )
 }
 
+function WorkspaceProfileSettingsView({
+  workspaceProfile,
+  noticeMessage,
+  isLoading,
+  isSaving,
+  onChange,
+  onSubmit,
+  onLogoFileChange,
+  onClearLogo,
+}) {
+  return (
+    <>
+      <div className="staff-header-card">
+        <div>
+          <p className="eyebrow">Workspace Settings</p>
+          <h3>Workspace Profile</h3>
+          <p className="staff-subtitle">Configure your business identity and manager details for the Operations Dashboard.</p>
+        </div>
+      </div>
+
+      {noticeMessage ? <div className="staff-status-banner">{noticeMessage}</div> : null}
+      {isLoading ? <div className="staff-status-banner">Loading workspace profile…</div> : null}
+
+      <div className="panel staff-panel">
+        <div className="panel-heading">
+          <div>
+            <p className="eyebrow">Business identity</p>
+            <h3>Profile details</h3>
+          </div>
+        </div>
+
+        <form
+          className="employee-form"
+          onSubmit={(event) => {
+            event.preventDefault()
+            onSubmit()
+          }}
+        >
+          <div className="form-grid">
+            <label className="form-field">
+              <span>Business Name</span>
+              <input
+                value={workspaceProfile.businessName}
+                onChange={(event) => onChange({ ...workspaceProfile, businessName: event.target.value })}
+                placeholder="e.g. Amore Nicosia"
+                disabled={isLoading || isSaving}
+              />
+            </label>
+            <label className="form-field">
+              <span>Manager Full Name</span>
+              <input
+                value={workspaceProfile.managerName}
+                onChange={(event) => onChange({ ...workspaceProfile, managerName: event.target.value })}
+                placeholder="Full name"
+                disabled={isLoading || isSaving}
+              />
+            </label>
+            <label className="form-field">
+              <span>Manager Role</span>
+              <input
+                value={workspaceProfile.managerRole}
+                onChange={(event) => onChange({ ...workspaceProfile, managerRole: event.target.value })}
+                placeholder="e.g. General Manager"
+                disabled={isLoading || isSaving}
+              />
+            </label>
+            <label className="form-field">
+              <span>Timezone</span>
+              <select
+                value={workspaceProfile.timezone}
+                onChange={(event) => onChange({ ...workspaceProfile, timezone: event.target.value })}
+                disabled={isLoading || isSaving}
+              >
+                <option value="">Browser default</option>
+                {WORKSPACE_PROFILE_TIMEZONES.map((option) => (
+                  <option key={option.value} value={option.value}>{option.label}</option>
+                ))}
+              </select>
+            </label>
+            <label className="form-field">
+              <span>Currency</span>
+              <select
+                value={workspaceProfile.currency}
+                onChange={(event) => onChange({ ...workspaceProfile, currency: event.target.value })}
+                disabled={isLoading || isSaving}
+              >
+                <option value="">Not set</option>
+                {WORKSPACE_PROFILE_CURRENCIES.map((option) => (
+                  <option key={option.value} value={option.value}>{option.label}</option>
+                ))}
+              </select>
+            </label>
+            <label className="form-field full-width">
+              <span>Logo</span>
+              <div className="workspace-logo-field">
+                {workspaceProfile.logoUrl ? (
+                  <div className="workspace-logo-preview">
+                    <img src={workspaceProfile.logoUrl} alt="Workspace logo preview" />
+                  </div>
+                ) : (
+                  <div className="workspace-logo-placeholder">No logo uploaded</div>
+                )}
+                <div className="workspace-logo-actions">
+                  <label className="ghost-btn small workspace-logo-upload-btn">
+                    Upload logo
+                    <input
+                      type="file"
+                      accept="image/png,image/jpeg,image/webp,image/svg+xml"
+                      onChange={onLogoFileChange}
+                      disabled={isLoading || isSaving}
+                      hidden
+                    />
+                  </label>
+                  {workspaceProfile.logoUrl ? (
+                    <button type="button" className="ghost-btn small" onClick={onClearLogo} disabled={isLoading || isSaving}>
+                      Remove logo
+                    </button>
+                  ) : null}
+                </div>
+                <small className="workspace-logo-hint">PNG, JPG, WEBP, or SVG up to {Math.round(MAX_WORKSPACE_LOGO_BYTES / 1024)} KB.</small>
+              </div>
+            </label>
+          </div>
+
+          <div className="modal-actions">
+            <button type="submit" className="primary-btn" disabled={isLoading || isSaving}>
+              {isSaving ? 'Saving…' : 'Save Profile'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </>
+  )
+}
+
 function PositionsSettingsView({
   positions,
   isLoading,
@@ -4798,13 +4913,12 @@ function PositionsSettingsView({
   onRequestDelete,
   onMovePosition,
   getUsageCount,
-  renderBuildInfo,
 }) {
   return (
-    <section className="staff-page">
+    <>
       <div className="staff-header-card">
         <div>
-          <p className="eyebrow">Settings</p>
+          <p className="eyebrow">Workspace Settings</p>
           <h3>Positions</h3>
           <p className="staff-subtitle">Create and organize custom positions for any hospitality business.</p>
         </div>
@@ -4883,9 +4997,48 @@ function PositionsSettingsView({
           </div>
         )}
       </div>
+    </>
+  )
+}
 
-      <div className="settings-footer">
-        {renderBuildInfo}
+function WorkspaceSettingsView({
+  activeSection,
+  onSectionChange,
+  workspaceProfileProps,
+  positionsProps,
+  renderBuildInfo,
+}) {
+  return (
+    <section className="staff-page settings-page">
+      <div className="settings-layout">
+        <aside className="settings-nav" aria-label="Workspace settings sections">
+          <p className="eyebrow">Workspace Settings</p>
+          <h3>Configuration</h3>
+          <div className="settings-nav-links">
+            {workspaceSettingsSections.map((section) => (
+              <button
+                key={section.id}
+                type="button"
+                className={`settings-nav-link ${activeSection === section.id ? 'active' : ''}`}
+                onClick={() => onSectionChange(section.id)}
+              >
+                {section.label}
+              </button>
+            ))}
+          </div>
+        </aside>
+
+        <div className="settings-content">
+          {activeSection === 'profile' ? (
+            <WorkspaceProfileSettingsView {...workspaceProfileProps} />
+          ) : (
+            <PositionsSettingsView {...positionsProps} />
+          )}
+
+          <div className="settings-footer">
+            {renderBuildInfo}
+          </div>
+        </div>
       </div>
     </section>
   )
@@ -4895,7 +5048,7 @@ function App() {
   const [activeView, setActiveView] = useState('dashboard')
   const [searchTerm, setSearchTerm] = useState('')
   const [activeFilter, setActiveFilter] = useState('All')
-  const [employees, setEmployees] = useState(initialStaffEmployees)
+  const [employees, setEmployees] = useState([])
   const [selectedEmployee, setSelectedEmployee] = useState(null)
   const [shifts, setShifts] = useState([])
   const [scheduleCapacities, setScheduleCapacities] = useState([])
@@ -4908,7 +5061,7 @@ function App() {
   })
   const [publishedShifts, setPublishedShifts] = useState([])
   const [scheduleWeekStart, setScheduleWeekStart] = useState(() => getCurrentWeekStartDate())
-  const [scheduleEmployees, setScheduleEmployees] = useState(initialStaffEmployees)
+  const [scheduleEmployees, setScheduleEmployees] = useState([])
   const [isScheduleLoading, setIsScheduleLoading] = useState(true)
   const [scheduleNotice, setScheduleNotice] = useState('')
   const [isShiftModalOpen, setIsShiftModalOpen] = useState(false)
@@ -5018,16 +5171,33 @@ function App() {
   const [isTodayWeekLoading, setIsTodayWeekLoading] = useState(true)
   const [isReservationsModuleConnected, setIsReservationsModuleConnected] = useState(false)
   const [isInventoryModuleConnected, setIsInventoryModuleConnected] = useState(false)
+  const [settingsSection, setSettingsSection] = useState('profile')
+  const [workspaceProfile, setWorkspaceProfile] = useState(EMPTY_WORKSPACE_PROFILE)
+  const [workspaceProfileDraft, setWorkspaceProfileDraft] = useState(EMPTY_WORKSPACE_PROFILE)
+  const [isWorkspaceProfileLoading, setIsWorkspaceProfileLoading] = useState(true)
+  const [isSavingWorkspaceProfile, setIsSavingWorkspaceProfile] = useState(false)
+  const [workspaceProfileNotice, setWorkspaceProfileNotice] = useState('')
 
-  const currentDateLabel = formatCurrentDateLabel(localNow)
-  const currentDateKey = getCurrentDateKey(localNow)
-  const currentTimeGreeting = getTimeGreeting(localNow)
+  const workspaceTimeZone = workspaceProfile.timezone
+  const currentDateLabel = formatCurrentDateLabel(localNow, workspaceTimeZone)
+  const currentDateKey = getCurrentDateKey(localNow, workspaceTimeZone)
+  const currentTimeGreeting = getTimeGreeting(localNow, workspaceTimeZone)
   const todayWeekStart = useMemo(
     () => getWeekStartDate(parseLocalDate(currentDateKey)),
     [currentDateKey],
   )
 
   const isViewingTodayWeekInScheduler = scheduleWeekStart === todayWeekStart
+
+  const brandDisplay = useMemo(
+    () => buildBrandDisplay(workspaceProfile),
+    [workspaceProfile],
+  )
+
+  const profileChipDisplay = useMemo(
+    () => buildProfileChipDisplay(workspaceProfile),
+    [workspaceProfile],
+  )
 
   const dashboardShifts = useMemo(() => {
     const draftSource = isViewingTodayWeekInScheduler ? shifts : todayWeekShifts
@@ -5137,8 +5307,8 @@ function App() {
     todayKey: currentDateKey,
     todayDateLabel: currentDateLabel,
     timeGreeting: currentTimeGreeting,
-    businessName: APP_WORKSPACE_NAME,
-    userName: APP_USER_NAME,
+    businessName: workspaceProfile.businessName,
+    userName: workspaceProfile.managerName,
   }), [
     dashboardShifts,
     shiftTemplates,
@@ -5147,6 +5317,8 @@ function App() {
     currentDateKey,
     currentDateLabel,
     currentTimeGreeting,
+    workspaceProfile.businessName,
+    workspaceProfile.managerName,
   ])
 
   const timelineEvents = useMemo(() => buildTodayTimeline({
@@ -5173,6 +5345,132 @@ function App() {
     isInventoryModuleConnected,
     inventoryItems,
   ])
+
+  const refreshReservations = useCallback(async () => {
+    try {
+      const remoteReservations = await getReservations()
+      setReservations(remoteReservations)
+      setIsReservationsModuleConnected(true)
+      return remoteReservations
+    } catch (error) {
+      setReservations([])
+      setIsReservationsModuleConnected(!isModuleUnavailableMessage(error.message))
+      throw error
+    }
+  }, [])
+
+  const refreshInventory = useCallback(async () => {
+    try {
+      const remoteInventory = await getInventoryItems()
+      setInventoryItems(remoteInventory)
+      setIsInventoryModuleConnected(true)
+      return remoteInventory
+    } catch (error) {
+      setInventoryItems([])
+      setIsInventoryModuleConnected(!isModuleUnavailableMessage(error.message))
+      throw error
+    }
+  }, [])
+
+  const refreshDashboardModuleData = useCallback(async () => {
+    await Promise.allSettled([
+      refreshReservations(),
+      refreshInventory(),
+    ])
+  }, [refreshInventory, refreshReservations])
+
+  useEffect(() => {
+    if (activeView !== 'dashboard') return undefined
+
+    refreshDashboardModuleData()
+    const intervalId = window.setInterval(refreshDashboardModuleData, 60_000)
+
+    return () => window.clearInterval(intervalId)
+  }, [activeView, refreshDashboardModuleData])
+
+  useEffect(() => {
+    if (activeView === 'settings' && settingsSection === 'profile') {
+      setWorkspaceProfileDraft(workspaceProfile)
+      setWorkspaceProfileNotice('')
+    }
+  }, [activeView, settingsSection, workspaceProfile])
+
+  const handleWorkspaceProfileSubmit = async () => {
+    setIsSavingWorkspaceProfile(true)
+    setWorkspaceProfileNotice('')
+
+    try {
+      const savedProfile = await saveWorkspaceProfile(workspaceProfileDraft)
+      setWorkspaceProfile(savedProfile)
+      setWorkspaceProfileDraft(savedProfile)
+      setWorkspaceProfileNotice('Workspace profile saved.')
+    } catch (error) {
+      setWorkspaceProfileNotice(error.message || 'Unable to save workspace profile right now.')
+    } finally {
+      setIsSavingWorkspaceProfile(false)
+    }
+  }
+
+  const handleWorkspaceLogoFileChange = (event) => {
+    const file = event.target.files?.[0]
+    event.target.value = ''
+
+    if (!file) return
+
+    if (file.size > MAX_WORKSPACE_LOGO_BYTES) {
+      setWorkspaceProfileNotice(`Logo must be smaller than ${Math.round(MAX_WORKSPACE_LOGO_BYTES / 1024)} KB.`)
+      return
+    }
+
+    const reader = new FileReader()
+    reader.onload = () => {
+      setWorkspaceProfileDraft((current) => ({
+        ...current,
+        logoUrl: `${reader.result ?? ''}`.trim(),
+      }))
+      setWorkspaceProfileNotice('')
+    }
+    reader.onerror = () => {
+      setWorkspaceProfileNotice('Unable to read logo file.')
+    }
+    reader.readAsDataURL(file)
+  }
+
+  const handleClearWorkspaceLogo = () => {
+    setWorkspaceProfileDraft((current) => ({ ...current, logoUrl: '' }))
+    setWorkspaceProfileNotice('')
+  }
+
+  useEffect(() => {
+    let isMounted = true
+
+    const loadWorkspaceProfile = async () => {
+      setIsWorkspaceProfileLoading(true)
+      setWorkspaceProfileNotice('')
+
+      try {
+        const remoteProfile = await getWorkspaceProfile()
+        if (!isMounted) return
+        setWorkspaceProfile(remoteProfile)
+        setWorkspaceProfileDraft(remoteProfile)
+      } catch (error) {
+        if (!isMounted) return
+        setWorkspaceProfile(EMPTY_WORKSPACE_PROFILE)
+        setWorkspaceProfileDraft(EMPTY_WORKSPACE_PROFILE)
+        setWorkspaceProfileNotice(error.message || 'Unable to load workspace profile right now.')
+      } finally {
+        if (isMounted) {
+          setIsWorkspaceProfileLoading(false)
+        }
+      }
+    }
+
+    loadWorkspaceProfile()
+
+    return () => {
+      isMounted = false
+    }
+  }, [])
 
   useEffect(() => {
     const intervalId = window.setInterval(() => {
@@ -5270,16 +5568,13 @@ function App() {
       try {
         const remoteEmployees = await getEmployees()
         if (!isMounted) return
-
-        if (remoteEmployees.length > 0) {
-          setEmployees(remoteEmployees)
-        } else {
-          setEmployees(initialStaffEmployees)
-        }
+        setEmployees(remoteEmployees)
+        setScheduleEmployees(remoteEmployees)
       } catch (error) {
         if (!isMounted) return
 
-        setEmployees(initialStaffEmployees)
+        setEmployees([])
+        setScheduleEmployees([])
         setStaffNotice(error.message || 'Unable to load employees right now.')
       } finally {
         if (isMounted) {
@@ -5333,14 +5628,9 @@ function App() {
       setInventoryNotice('')
 
       try {
-        const remoteInventory = await getInventoryItems()
-        if (!isMounted) return
-        setInventoryItems(remoteInventory)
-        setIsInventoryModuleConnected(true)
+        await refreshInventory()
       } catch (error) {
         if (!isMounted) return
-        setInventoryItems([])
-        setIsInventoryModuleConnected(!isModuleUnavailableMessage(error.message))
         setInventoryNotice(error.message || 'Unable to load inventory right now.')
       } finally {
         if (isMounted) {
@@ -5354,7 +5644,7 @@ function App() {
     return () => {
       isMounted = false
     }
-  }, [])
+  }, [refreshInventory])
 
   useEffect(() => {
     let isMounted = true
@@ -5371,21 +5661,16 @@ function App() {
         ])
         if (!isMounted) return
 
-        if (remoteEmployees.length > 0) {
-          setEmployees(remoteEmployees)
-          setScheduleEmployees(remoteEmployees)
-        } else {
-          setEmployees(initialStaffEmployees)
-          setScheduleEmployees(initialStaffEmployees)
-        }
+        setEmployees(remoteEmployees)
+        setScheduleEmployees(remoteEmployees)
 
         setShiftTemplates(composeShiftTemplates(remoteTemplates))
         setWeeklyTemplates(remoteWeeklyTemplates)
       } catch (error) {
         if (!isMounted) return
 
-        setEmployees(initialStaffEmployees)
-        setScheduleEmployees(initialStaffEmployees)
+        setEmployees([])
+        setScheduleEmployees([])
         setShiftTemplates([])
         setWeeklyTemplates([])
         setScheduleNotice(error.message || 'Unable to load schedule templates right now.')
@@ -5468,14 +5753,9 @@ function App() {
       setReservationNotice('')
 
       try {
-        const remoteReservations = await getReservations()
-        if (!isMounted) return
-        setReservations(remoteReservations)
-        setIsReservationsModuleConnected(true)
+        await refreshReservations()
       } catch (error) {
         if (!isMounted) return
-        setReservations([])
-        setIsReservationsModuleConnected(!isModuleUnavailableMessage(error.message))
         setReservationNotice(error.message || 'Unable to load reservations right now.')
       } finally {
         if (isMounted) {
@@ -5489,7 +5769,7 @@ function App() {
     return () => {
       isMounted = false
     }
-  }, [])
+  }, [refreshReservations])
 
   const filteredEmployees = useMemo(() => {
     return employees.filter((employee) => {
@@ -5523,10 +5803,9 @@ function App() {
 
   const refreshStaffEmployees = async () => {
     const remoteEmployees = await getEmployees()
-    const nextEmployees = remoteEmployees.length > 0 ? remoteEmployees : initialStaffEmployees
-    setEmployees(nextEmployees)
-    setScheduleEmployees(nextEmployees)
-    return nextEmployees
+    setEmployees(remoteEmployees)
+    setScheduleEmployees(remoteEmployees)
+    return remoteEmployees
   }
 
   const refreshPositions = async () => {
@@ -5558,17 +5837,22 @@ function App() {
 
     try {
       if (editingPositionId) {
-        await updatePosition(editingPositionId, {
+        const updatedPosition = await updatePosition(editingPositionId, {
           name: positionForm.name.trim(),
           department: positionForm.department,
         })
+        setPositions((current) => current
+          .map((position) => (position.id === updatedPosition.id ? updatedPosition : position))
+          .sort((left, right) => (left.sortOrder - right.sortOrder) || left.name.localeCompare(right.name)))
         setPositionsNotice('Position updated.')
       } else {
-        await createPosition({
+        const createdPosition = await createPosition({
           name: positionForm.name.trim(),
           department: positionForm.department,
           sortOrder: positions.length + 1,
         })
+        setPositions((current) => [...current, createdPosition]
+          .sort((left, right) => (left.sortOrder - right.sortOrder) || left.name.localeCompare(right.name)))
         setPositionsNotice('Position added.')
       }
 
@@ -5631,6 +5915,7 @@ function App() {
 
     try {
       await deletePosition(positionPendingDelete.id)
+      setPositions((current) => current.filter((position) => position.id !== positionPendingDelete.id))
       setPositionsNotice(usage > 0 ? 'Position deleted. Employees will need reassignment.' : 'Position deleted.')
       setPositionPendingDelete(null)
       if (editingPositionId === positionPendingDelete.id) {
@@ -6585,6 +6870,7 @@ function App() {
         ? await updateEmployee(editingEmployee.id, payload)
         : await createEmployee(payload)
 
+      await refreshPositions()
       const refreshedEmployees = await refreshStaffEmployees()
       const nextEmployee = refreshedEmployees.find((employee) => employee.id === savedEmployee.id) ?? {
         ...savedEmployee,
@@ -6704,7 +6990,7 @@ function App() {
 
     const sameDayShifts = shifts.filter((shift) => {
       if (excludeShiftId && String(shift.id) === String(excludeShiftId)) return false
-      return Number(shift.employeeId) === Number(employeeId) && shift.date === date
+      return String(shift.employeeId) === String(employeeId) && shift.date === date
     })
 
     const duplicate = sameDayShifts.find((shift) => (
@@ -7537,8 +7823,8 @@ function App() {
       return
     }
 
-    const employeeId = Number(formData.employee_id)
-    const selectedEmployee = scheduleEmployees.find((employee) => employee.id === employeeId)
+    const employeeId = `${formData.employee_id ?? ''}`.trim()
+    const selectedEmployee = scheduleEmployees.find((employee) => String(employee.id) === employeeId)
 
     if (!selectedEmployee) {
       setScheduleNotice('That employee could not be found in the roster.')
@@ -7847,7 +8133,7 @@ function App() {
   const handleDeleteReservation = async (id) => {
     try {
       await deleteReservation(id)
-      setReservations((current) => current.filter((reservation) => reservation.id !== id))
+      await refreshReservations()
       setReservationNotice('Reservation removed.')
     } catch (error) {
       setReservationNotice(error.message || 'Unable to delete reservation right now.')
@@ -7878,18 +8164,13 @@ function App() {
     }
 
     try {
-      const savedReservation = editingReservation
-        ? await updateReservation(editingReservation.id, payload)
-        : await createReservation(payload)
+      if (editingReservation) {
+        await updateReservation(editingReservation.id, payload)
+      } else {
+        await createReservation(payload)
+      }
 
-      setReservations((current) => {
-        if (editingReservation) {
-          return current.map((reservation) => (reservation.id === editingReservation.id ? savedReservation : reservation))
-        }
-
-        return [savedReservation, ...current]
-      })
-
+      await refreshReservations()
       setReservationNotice(editingReservation ? 'Reservation updated.' : 'Reservation created.')
       handleCloseReservationModal()
     } catch (error) {
@@ -7897,11 +8178,6 @@ function App() {
     } finally {
       setIsSavingReservation(false)
     }
-  }
-
-  const refreshInventory = async () => {
-    const remoteInventory = await getInventoryItems()
-    setInventoryItems(remoteInventory)
   }
 
   const handleOpenAddInventoryItem = () => {
@@ -8106,7 +8382,9 @@ function App() {
   }
 
   const heroTitle = activeView === 'dashboard'
-    ? `${currentTimeGreeting}, ${resolveUserFirstName(APP_USER_NAME)} 👋`
+    ? buildDashboardGreeting(currentTimeGreeting, workspaceProfile.managerName)
+    : activeView === 'settings'
+      ? 'Workspace Settings'
     : activeView === 'staff'
       ? 'Staff management'
       : activeView === 'schedule'
@@ -8120,6 +8398,8 @@ function App() {
             : 'Operations management'
   const heroSubtitle = activeView === 'dashboard'
     ? `${currentDateLabel} · ${operationalSnapshot.statusMessage}`
+    : activeView === 'settings'
+      ? 'Configure your workspace profile and operational defaults.'
     : activeView === 'reservations'
       ? 'Review service flow, seating, and guest arrivals.'
       : activeView === 'suppliers'
@@ -8128,14 +8408,49 @@ function App() {
         ? 'Monitor supply health, costs, and replenishment risk.'
         : 'Search, filter, and review the full team roster.'
 
+  const topbarEyebrow = activeView === 'dashboard'
+    ? 'Operations dashboard'
+    : activeView === 'settings'
+      ? 'Workspace settings'
+      : activeView === 'staff'
+        ? 'Staff management'
+        : activeView === 'schedule'
+          ? 'Schedule management'
+          : activeView === 'reservations'
+            ? 'Reservations management'
+            : activeView === 'suppliers'
+              ? 'Suppliers management'
+              : activeView === 'stock'
+                ? 'Inventory management'
+                : 'Operations management'
+
+  const handleOpenWorkspaceProfile = () => {
+    setActiveView('settings')
+    setSettingsSection('profile')
+  }
+
   return (
     <div className="app-shell">
       <aside className="sidebar">
         <div className="brand-block">
-          <div className="brand-mark">A</div>
-          <div>
-            <p className="eyebrow">Private Dining</p>
-            <h1>Amore One</h1>
+          <div className="brand-avatar" aria-hidden="true">
+            {brandDisplay.logoUrl ? (
+              <img src={brandDisplay.logoUrl} alt="" className="brand-logo" />
+            ) : (
+              <div className="brand-mark">{brandDisplay.mark}</div>
+            )}
+          </div>
+          <div className="brand-copy">
+            <h1
+              className="brand-business-name"
+              title={brandDisplay.businessName || undefined}
+            >
+              {brandDisplay.businessNameLabel}
+            </h1>
+            <p className="brand-powered-by">
+              <span className="brand-powered-mark" aria-hidden="true">O</span>
+              <span>Powered by ONE</span>
+            </p>
           </div>
         </div>
 
@@ -8157,18 +8472,12 @@ function App() {
             </button>
           ))}
         </nav>
-
-        <div className="sidebar-card">
-          <p className="eyebrow">Tonight</p>
-          <h2>92% service readiness</h2>
-          <p>Every detail is aligned for a seamless luxury evening.</p>
-        </div>
       </aside>
 
       <main className="main-panel">
         <header className="topbar">
           <div className="topbar-title-block">
-            <p className="eyebrow">Operations dashboard</p>
+            <p className="eyebrow">{topbarEyebrow}</p>
             <h2>{heroTitle}</h2>
             <p className="welcome-subtitle">{heroSubtitle}</p>
           </div>
@@ -8184,13 +8493,17 @@ function App() {
             </label>
             <button type="button" className="icon-btn">🔔</button>
             <div className="date-pill">{currentDateLabel}</div>
-            <div className="profile-chip">
-              <div className="profile-avatar">H</div>
+            <button
+              type="button"
+              className={`profile-chip${profileChipDisplay.isConfigured ? '' : ' profile-chip-unconfigured'}`}
+              onClick={handleOpenWorkspaceProfile}
+            >
+              <div className="profile-avatar">{profileChipDisplay.initials}</div>
               <div>
-                <strong>Helena Cruz</strong>
-                <p>General Manager</p>
+                <strong>{profileChipDisplay.name}</strong>
+                <p>{profileChipDisplay.role}</p>
               </div>
-            </div>
+            </button>
           </div>
         </header>
 
@@ -8320,20 +8633,34 @@ function App() {
         ) : null}
 
         {activeView === 'settings' ? (
-          <PositionsSettingsView
-            positions={positions}
-            isLoading={isPositionsLoading}
-            noticeMessage={positionsNotice}
-            form={positionForm}
-            isSaving={isSavingPosition}
-            editingPositionId={editingPositionId}
-            onFormChange={setPositionForm}
-            onSubmit={handlePositionSubmit}
-            onStartEdit={handleStartEditPosition}
-            onCancelEdit={handleCancelEditPosition}
-            onRequestDelete={handleRequestDeletePosition}
-            onMovePosition={handleMovePosition}
-            getUsageCount={getPositionUsageCount}
+          <WorkspaceSettingsView
+            activeSection={settingsSection}
+            onSectionChange={setSettingsSection}
+            workspaceProfileProps={{
+              workspaceProfile: workspaceProfileDraft,
+              noticeMessage: workspaceProfileNotice,
+              isLoading: isWorkspaceProfileLoading,
+              isSaving: isSavingWorkspaceProfile,
+              onChange: setWorkspaceProfileDraft,
+              onSubmit: handleWorkspaceProfileSubmit,
+              onLogoFileChange: handleWorkspaceLogoFileChange,
+              onClearLogo: handleClearWorkspaceLogo,
+            }}
+            positionsProps={{
+              positions,
+              isLoading: isPositionsLoading,
+              noticeMessage: positionsNotice,
+              form: positionForm,
+              isSaving: isSavingPosition,
+              editingPositionId,
+              onFormChange: setPositionForm,
+              onSubmit: handlePositionSubmit,
+              onStartEdit: handleStartEditPosition,
+              onCancelEdit: handleCancelEditPosition,
+              onRequestDelete: handleRequestDeletePosition,
+              onMovePosition: handleMovePosition,
+              getUsageCount: getPositionUsageCount,
+            }}
             renderBuildInfo={<BuildInfoBadge />}
           />
         ) : null}

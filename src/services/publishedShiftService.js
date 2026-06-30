@@ -106,13 +106,18 @@ function serializePublishedShift({ publicationId, weekStartDate, shift }, option
   }
 }
 
+const PUBLISHED_SHIFT_SELECT = `
+  *,
+  employees(full_name, name)
+`
+
 export async function getPublishedShifts(weekStartDate) {
   const normalizedWeekStartDate = normalizeShiftDate(weekStartDate)
   if (!normalizedWeekStartDate) return []
 
   const { data, error } = await supabase
     .from(PUBLISHED_SHIFTS_TABLE)
-    .select('*')
+    .select(PUBLISHED_SHIFT_SELECT)
     .eq('week_start_date', normalizedWeekStartDate)
     .order('shift_date', { ascending: true })
     .order('start_time', { ascending: true })
@@ -170,7 +175,7 @@ export async function replacePublishedShifts({ publicationId, weekStartDate, dra
   const { data, error } = await supabase
     .from(PUBLISHED_SHIFTS_TABLE)
     .insert(payload)
-    .select('*')
+    .select(PUBLISHED_SHIFT_SELECT)
 
   if (error) {
     if (isTableUnavailableError(error)) {

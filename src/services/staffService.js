@@ -1,6 +1,14 @@
 import { supabase } from '../lib/supabaseClient'
+import { ensurePositionByName, getPositions } from './positionsService'
 
 const EMPLOYEE_POSITIONS_TABLE = 'employee_positions'
+const EMPLOYEE_SELECT = `
+  *,
+  employee_positions(
+    position_id,
+    positions(id, name, department)
+  )
+`
 
 const EMPLOYEE_NEW_POSITION_COLUMNS = ['primary_position', 'additional_positions']
 
@@ -16,8 +24,8 @@ function normalizeNumericValue(value) {
   return Number.isFinite(parsed) ? parsed : null
 }
 
-const mapEmployee = (record) => {
-  const joinedPositions = Array.isArray(record.employee_positions)
+function mapJoinedPositions(record) {
+  return Array.isArray(record.employee_positions)
     ? record.employee_positions
       .map((link) => link.positions)
       .filter(Boolean)
@@ -28,6 +36,10 @@ const mapEmployee = (record) => {
       }))
       .filter((position) => position.name)
     : []
+}
+
+const mapEmployee = (record) => {
+  const joinedPositions = mapJoinedPositions(record)
 
   const normalizedPrimary = `${record.primary_position ?? ''}`.trim()
   const rawAdditional = record.additional_positions
@@ -44,12 +56,14 @@ const mapEmployee = (record) => {
 
   const fallbackPosition = `${record.position ?? ''}`.trim()
   const legacyPositionNames = joinedPositions.length > 0
-    ? joinedPositions.map((position) => position.name)
+    ? []
     : fallbackPosition
       ? fallbackPosition.split(',').map((name) => name.trim()).filter(Boolean)
-      : []
+      : dedupedExplicitPositionNames
 
-  const sourcePositionNames = dedupedExplicitPositionNames.length > 0 ? dedupedExplicitPositionNames : legacyPositionNames
+  const sourcePositionNames = joinedPositions.length > 0
+    ? joinedPositions.map((position) => position.name)
+    : legacyPositionNames
 
   const effectivePositions = sourcePositionNames.map((name) => {
     const joinedMatch = joinedByName.get(name.toLowerCase())
@@ -146,8 +160,75 @@ const isTableUnavailableError = (error) => {
   return message.includes('does not exist') || message.includes('relation') || message.includes('could not find the table')
 }
 
+async function fetchEmployeeById(employeeId) {
+  const { data, error } = await supabase
+    .from('employees')
+    .select(EMPLOYEE_SELECT)
+    .eq('id', employeeId)
+    .maybeSingle()
+
+  if (error) {
+    console.error('[staffService] fetchEmployeeById error:', error)
+    throw new Error(error.message || 'Unable to load employee right now.')
+  }
+
+  if (!data) {
+    throw new Error('Employee record could not be found after save.')
+  }
+
+  return mapEmployee(data)
+}
+
+async function resolvePositionsForSync(positions = []) {
+  const catalog = await getPositions()
+  const catalogByName = new Map(
+    catalog.map((position) => [`${position.name ?? ''}`.trim().toLowerCase(), position]),
+  )
+
+  const resolved = []
+  const seenIds = new Set()
+
+  for (const position of positions ?? []) {
+    const name = `${position?.name ?? ''}`.trim()
+    if (!name) continue
+
+    let resolvedPosition = null
+
+    if (position?.id != null && Number.isFinite(Number(position.id))) {
+      resolvedPosition = catalog.find((item) => String(item.id) === String(position.id)) ?? {
+        id: Number(position.id),
+        name,
+        department: position.department ?? 'Other',
+      }
+    } else {
+      const existing = catalogByName.get(name.toLowerCase())
+      resolvedPosition = existing ?? await ensurePositionByName(
+        name,
+        position?.department ?? 'Other',
+        catalog.length + resolved.length + 1,
+      )
+
+      if (!existing) {
+        catalog.push(resolvedPosition)
+        catalogByName.set(name.toLowerCase(), resolvedPosition)
+      }
+    }
+
+    const positionId = Number(resolvedPosition.id)
+    if (!Number.isFinite(positionId) || seenIds.has(positionId)) continue
+
+    seenIds.add(positionId)
+    resolved.push(resolvedPosition)
+  }
+
+  return resolved
+}
+
 async function syncEmployeePositions(employeeId, positions) {
-  const positionIds = (positions ?? []).map((position) => Number(position.id)).filter(Number.isFinite)
+  const resolvedPositions = await resolvePositionsForSync(positions)
+  const positionIds = resolvedPositions
+    .map((position) => Number(position.id))
+    .filter(Number.isFinite)
 
   const { error: deleteError } = await supabase
     .from(EMPLOYEE_POSITIONS_TABLE)
@@ -183,14 +264,8 @@ async function syncEmployeePositions(employeeId, positions) {
 export async function getEmployees() {
   const { data, error } = await supabase
     .from('employees')
-    .select(`
-      *,
-      employee_positions(
-        position_id,
-        positions(id, name, department)
-      )
-    `)
-    .order('id', { ascending: true })
+    .select(EMPLOYEE_SELECT)
+    .order('full_name', { ascending: true })
 
   if (error) {
     console.error('[staffService] getEmployees error:', error)
@@ -199,7 +274,7 @@ export async function getEmployees() {
       const fallback = await supabase
         .from('employees')
         .select('*')
-        .order('id', { ascending: true })
+        .order('full_name', { ascending: true })
 
       if (fallback.error) {
         throw new Error(fallback.error.message || 'Unable to load employees right now.')
@@ -256,13 +331,13 @@ export async function createEmployee(employee) {
     throw new Error(syncError.message || 'Employee saved, but positions could not be synchronized.')
   }
 
-  return mapEmployee(data)
+  return fetchEmployeeById(data.id)
 }
 
 export async function updateEmployee(id, employee) {
   const serialized = serializeEmployee(employee)
 
-  let { data, error } = await supabase
+  let { error } = await supabase
     .from('employees')
     .update(serialized)
     .eq('id', id)
@@ -278,7 +353,6 @@ export async function updateEmployee(id, employee) {
       .select('*')
       .single()
 
-    data = retry.data
     error = retry.error
   }
 
@@ -299,7 +373,7 @@ export async function updateEmployee(id, employee) {
     throw new Error(syncError.message || 'Employee updated, but positions could not be synchronized.')
   }
 
-  return mapEmployee(data)
+  return fetchEmployeeById(id)
 }
 
 export async function deleteEmployee(id) {

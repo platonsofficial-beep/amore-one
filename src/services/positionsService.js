@@ -2,30 +2,6 @@ import { supabase } from '../lib/supabaseClient'
 
 const POSITIONS_TABLE = 'positions'
 
-const DEFAULT_POSITIONS = [
-  { name: 'Bar Manager', department: 'Bar' },
-  { name: 'Bartender', department: 'Bar' },
-  { name: 'Barback', department: 'Bar' },
-  { name: 'Head Waiter', department: 'Service' },
-  { name: 'Waiter', department: 'Service' },
-  { name: 'Food Runner', department: 'Service' },
-  { name: 'Drink Runner', department: 'Service' },
-  { name: 'Host', department: 'Service' },
-  { name: 'Hostess', department: 'Service' },
-  { name: 'Head Chef', department: 'Kitchen' },
-  { name: 'Sous Chef', department: 'Kitchen' },
-  { name: 'Line Cook', department: 'Kitchen' },
-  { name: 'Pastry Chef', department: 'Kitchen' },
-  { name: 'Kitchen Porter', department: 'Kitchen' },
-  { name: 'General Manager', department: 'Management' },
-  { name: 'Assistant Manager', department: 'Management' },
-  { name: 'Supervisor', department: 'Management' },
-  { name: 'Cashier', department: 'Other' },
-  { name: 'Reception', department: 'Other' },
-  { name: 'Security', department: 'Other' },
-  { name: 'Cleaner', department: 'Other' },
-]
-
 function isTableUnavailableError(error) {
   const message = error?.message?.toLowerCase() ?? ''
   return message.includes('does not exist') || message.includes('relation') || message.includes('could not find the table')
@@ -48,26 +24,6 @@ function serializePosition(position) {
   }
 }
 
-async function ensureDefaultPositions(positions) {
-  if ((positions ?? []).length > 0) return positions
-
-  const payload = DEFAULT_POSITIONS.map((position, index) => ({
-    ...serializePosition({ ...position, sortOrder: index + 1 }),
-  }))
-
-  const { data, error } = await supabase
-    .from(POSITIONS_TABLE)
-    .insert(payload)
-    .select('*')
-
-  if (error) {
-    console.error('[positionsService] ensureDefaultPositions error:', error)
-    throw new Error(error.message || 'Unable to initialize default positions right now.')
-  }
-
-  return (data ?? []).map(mapPosition)
-}
-
 export async function getPositions() {
   const { data, error } = await supabase
     .from(POSITIONS_TABLE)
@@ -85,9 +41,9 @@ export async function getPositions() {
     throw new Error(error.message || 'Unable to load positions right now.')
   }
 
-  const normalized = (data ?? []).map(mapPosition)
-  const seeded = await ensureDefaultPositions(normalized)
-  return seeded.sort((a, b) => (a.sortOrder - b.sortOrder) || a.name.localeCompare(b.name))
+  return (data ?? [])
+    .map(mapPosition)
+    .sort((a, b) => (a.sortOrder - b.sortOrder) || a.name.localeCompare(b.name))
 }
 
 export async function createPosition(position) {
@@ -150,4 +106,26 @@ export async function reorderPositions(orderedPositions) {
       throw new Error(error.message || 'Unable to reorder positions right now.')
     }
   }
+}
+
+export async function ensurePositionByName(name, department = 'Other', sortOrder = 0) {
+  const trimmedName = `${name ?? ''}`.trim()
+  if (!trimmedName) {
+    throw new Error('Position name is required.')
+  }
+
+  const catalog = await getPositions()
+  const existing = catalog.find(
+    (row) => `${row.name ?? ''}`.trim().toLowerCase() === trimmedName.toLowerCase(),
+  )
+
+  if (existing) {
+    return existing
+  }
+
+  return createPosition({
+    name: trimmedName,
+    department,
+    sortOrder,
+  })
 }

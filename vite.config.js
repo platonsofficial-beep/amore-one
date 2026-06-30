@@ -19,7 +19,7 @@ const buildDate = new Date().toISOString()
 export default defineConfig({
   plugins: [react()],
   define: {
-    __APP_NAME__: JSON.stringify('Amore One'),
+    __APP_NAME__: JSON.stringify('ONE'),
     __APP_VERSION__: JSON.stringify(appVersion),
     __BUILD_NUMBER__: JSON.stringify(derivedBuildNumber),
     __BUILD_DATE__: JSON.stringify(buildDate),

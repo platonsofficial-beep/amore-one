@@ -62,9 +62,19 @@ export function resolveLiveDraftCapacitiesForWeek(
   return (draftCapacities ?? []).filter((item) => weekKeySet.has(normalizeDate(item.shiftDate)))
 }
 
+function resolvePublishedShiftEmployeeName(shift, employee) {
+  const joinedEmployee = Array.isArray(shift.employees) ? shift.employees[0] : shift.employees
+
+  return `${employee?.name
+    ?? joinedEmployee?.full_name
+    ?? joinedEmployee?.name
+    ?? shift.employeeName
+    ?? ''}`.trim()
+}
+
 function resolveEmployeeShiftMember(shift, employeesById) {
   const employee = employeesById.get(String(shift.employeeId))
-  const name = `${employee?.name ?? shift.employeeName ?? ''}`.trim() || 'Staff member'
+  const name = resolvePublishedShiftEmployeeName(shift, employee)
   const position = `${employee?.position ?? shift.role ?? ''}`.trim()
   const startTimeLabel = formatTime24(normalizeTimeValue(shift.startTime))
   const endTimeLabel = formatTime24(normalizeTimeValue(shift.endTime))
