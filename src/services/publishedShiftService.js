@@ -65,14 +65,17 @@ export function draftMatchesPublishedSnapshot(draftShifts = [], publishedShifts 
 
 function mapPublishedShift(record) {
   const relatedEmployee = Array.isArray(record.employees) ? record.employees[0] : record.employees
+  const employeeFullName = `${relatedEmployee?.full_name ?? ''}`.trim()
 
   return {
     id: record.id,
     publicationId: record.publication_id ?? record.publicationId ?? null,
     weekStartDate: normalizeShiftDate(record.week_start_date ?? record.weekStartDate),
     employeeId: record.employee_id ?? record.employeeId ?? null,
-    employeeName: relatedEmployee?.full_name ?? relatedEmployee?.name ?? '',
-    employees: relatedEmployee ? { ...relatedEmployee } : null,
+    employeeName: employeeFullName,
+    employees: relatedEmployee
+      ? { ...relatedEmployee, full_name: employeeFullName, name: employeeFullName }
+      : null,
     shiftTemplateId: record.shift_template_id ?? record.shiftTemplateId ?? null,
     date: normalizeShiftDate(record.shift_date ?? record.date),
     startTime: record.start_time ?? record.startTime ?? '',
@@ -108,7 +111,7 @@ function serializePublishedShift({ publicationId, weekStartDate, shift }, option
 
 const PUBLISHED_SHIFT_SELECT = `
   *,
-  employees(full_name, name)
+  employees(full_name)
 `
 
 export async function getPublishedShifts(weekStartDate) {
