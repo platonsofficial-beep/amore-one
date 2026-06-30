@@ -6,7 +6,7 @@ const EMPLOYEE_SELECT = `
   *,
   employee_positions(
     position_id,
-    positions(id, name, department)
+    positions(id, name)
   )
 `
 

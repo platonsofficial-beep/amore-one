@@ -198,6 +198,38 @@ function composeShiftTemplates(remoteTemplates = []) {
   ]
 }
 
+function buildScheduleGridTemplates(shiftTemplates = [], visibleWeekShifts = []) {
+  if (shiftTemplates.length > 0) {
+    return shiftTemplates
+  }
+
+  const derived = new Map()
+
+  visibleWeekShifts.forEach((shift) => {
+    const templateId = resolveShiftTemplateId(shift)
+    const key = templateId
+      ? `id:${templateId}`
+      : `legacy:${normalizeTimeValue(shift.startTime)}:${normalizeTimeValue(shift.endTime)}:${`${shift.area ?? ''}`.trim().toLowerCase()}:${`${shift.role ?? ''}`.trim().toLowerCase()}`
+
+    if (derived.has(key)) return
+
+    const name = `${shift.role ?? shift.area ?? ''}`.trim() || 'Scheduled shift'
+    derived.set(key, {
+      id: templateId ? `supabase-${templateId}` : `derived-${derived.size + 1}`,
+      templateId: templateId ?? null,
+      name,
+      startTime: shift.startTime ?? '',
+      endTime: shift.endTime ?? '',
+      defaultRole: shift.role ?? '',
+      defaultArea: shift.area ?? '',
+      notes: '',
+      isBuiltIn: false,
+    })
+  })
+
+  return Array.from(derived.values())
+}
+
 function buildTemplateForm(template = null) {
   return {
     name: template?.name ?? '',
@@ -1097,6 +1129,11 @@ function ScheduleView({
     [shifts, weekDateKeys],
   )
 
+  const scheduleGridTemplates = useMemo(
+    () => buildScheduleGridTemplates(shiftTemplates, visibleWeekShifts),
+    [shiftTemplates, visibleWeekShifts],
+  )
+
   const isWeekPublished = schedulePublication?.status === 'published'
   const hasUnpublishedChanges = isWeekPublished
     && !draftMatchesPublishedSnapshot(visibleWeekShifts, publishedShifts)
@@ -1785,7 +1822,7 @@ function ScheduleView({
   }, [employees, isWeekPublished, publishedShifts])
 
   const blendGridRows = useMemo(() => {
-    return shiftTemplates.map((template) => {
+    return scheduleGridTemplates.map((template) => {
       const dayCells = weekDays.map((day) => {
         const requiredCount = getRequiredCountForCell(template, day.key)
         const cellKeys = getTemplateCellKeys(template, day.key)
@@ -1825,7 +1862,7 @@ function ScheduleView({
         dayCells,
       }
     })
-  }, [employees, shiftTemplates, weekDays, capacityLookup, capacityDraftMap, assignmentsByCell])
+  }, [employees, scheduleGridTemplates, weekDays, capacityLookup, capacityDraftMap, assignmentsByCell])
 
   const dayHeaderSummariesByKey = useMemo(() => {
     const summaries = {}
@@ -1938,8 +1975,8 @@ function ScheduleView({
   }, [blendGridRows])
 
   const assignmentTemplate = useMemo(
-    () => shiftTemplates.find((template) => template.id === assignmentDraft.templateId) ?? null,
-    [assignmentDraft.templateId, shiftTemplates],
+    () => scheduleGridTemplates.find((template) => template.id === assignmentDraft.templateId) ?? null,
+    [assignmentDraft.templateId, scheduleGridTemplates],
   )
 
   const compatibleEmployeeIdSet = useMemo(() => {
@@ -2088,7 +2125,7 @@ function ScheduleView({
     }
     console.log('Selected Template:', selectedTemplatePayload)
 
-    const fromCollection = shiftTemplates.find((item) => item.id === template.id || item.templateId === template.templateId)
+    const fromCollection = scheduleGridTemplates.find((item) => item.id === template.id || item.templateId === template.templateId)
     if (fromCollection && `${fromCollection.defaultArea ?? ''}`.trim() && !`${template?.defaultArea ?? ''}`.trim()) {
       console.warn('Template area lost between collection and cell payload', {
         collectionTemplate: fromCollection,
@@ -2206,7 +2243,7 @@ function ScheduleView({
   }
 
   const handleSaveAssignmentAreaToTemplate = async () => {
-    const template = shiftTemplates.find((item) => item.id === assignmentDraft.templateId)
+    const template = scheduleGridTemplates.find((item) => item.id === assignmentDraft.templateId)
     if (!template) {
       setAssignmentError('Shift template could not be found.')
       return
@@ -2235,7 +2272,7 @@ function ScheduleView({
   const handleCreateAssignment = async (event) => {
     event.preventDefault()
 
-    const template = shiftTemplates.find((item) => item.id === assignmentDraft.templateId)
+    const template = scheduleGridTemplates.find((item) => item.id === assignmentDraft.templateId)
     if (!template) {
       setAssignmentFieldErrors({ shift_template_id: 'Shift template is missing.' })
       setAssignmentMissingFields(['shift_template_id'])
@@ -2397,7 +2434,7 @@ function ScheduleView({
   const handleQuickEditShift = () => {
     if (!editingAssignmentShift) return
 
-    const matchedTemplate = shiftTemplates.find((template) => (
+    const matchedTemplate = scheduleGridTemplates.find((template) => (
       resolveShiftTemplateId(template) === resolveShiftTemplateId(editingAssignmentShift)
     ))
 
@@ -2470,7 +2507,7 @@ function ScheduleView({
   }
 
   const getShiftTemplateForAssignment = (shift) => (
-    shiftTemplates.find((template) => resolveShiftTemplateId(template) === resolveShiftTemplateId(shift)) ?? null
+    scheduleGridTemplates.find((template) => resolveShiftTemplateId(template) === resolveShiftTemplateId(shift)) ?? null
   )
 
   const handleQuickCopyToNextDay = async () => {
@@ -2999,7 +3036,7 @@ function ScheduleView({
 
         {assignmentError ? <div className="staff-status-banner">{assignmentError}</div> : null}
 
-        {shiftTemplates.length === 0 ? (
+        {scheduleGridTemplates.length === 0 ? (
           <div className="schedule-empty-state">
             <h4>No shift templates available.</h4>
             <p>Create templates first, then assign employees directly in this grid.</p>
@@ -5654,26 +5691,36 @@ function App() {
       setScheduleNotice('')
 
       try {
-        const [remoteEmployees, remoteTemplates, remoteWeeklyTemplates] = await Promise.all([
-          getEmployees(),
-          getShiftTemplates(),
-          getWeeklyScheduleTemplates(),
-        ])
+        const remoteTemplates = await getShiftTemplates()
         if (!isMounted) return
-
-        setEmployees(remoteEmployees)
-        setScheduleEmployees(remoteEmployees)
-
         setShiftTemplates(composeShiftTemplates(remoteTemplates))
-        setWeeklyTemplates(remoteWeeklyTemplates)
       } catch (error) {
         if (!isMounted) return
+        setShiftTemplates([])
+        setScheduleNotice(error.message || 'Unable to load shift templates right now.')
+      }
 
+      try {
+        const remoteWeeklyTemplates = await getWeeklyScheduleTemplates()
+        if (!isMounted) return
+        setWeeklyTemplates(remoteWeeklyTemplates)
+      } catch (_error) {
+        if (!isMounted) return
+        setWeeklyTemplates([])
+      }
+
+      try {
+        const remoteEmployees = await getEmployees()
+        if (!isMounted) return
+        setEmployees(remoteEmployees)
+        setScheduleEmployees(remoteEmployees)
+      } catch (error) {
+        if (!isMounted) return
         setEmployees([])
         setScheduleEmployees([])
-        setShiftTemplates([])
-        setWeeklyTemplates([])
-        setScheduleNotice(error.message || 'Unable to load schedule templates right now.')
+        setScheduleNotice((current) => (
+          current || error.message || 'Unable to load employees right now.'
+        ))
       } finally {
         if (isMounted) {
           setIsWeeklyTemplatesLoading(false)
