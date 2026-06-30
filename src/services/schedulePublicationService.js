@@ -140,16 +140,28 @@ export async function publishWeekSchedule({ weekStartDate, weekDateKeys = [], dr
     throw new Error('Publication record could not be created.')
   }
 
-  const publishedShifts = await replacePublishedShifts({
-    publicationId: publication.id,
-    weekStartDate: normalizedWeekStartDate,
-    draftShifts: draftWeekShifts,
-    knownTemplateIds,
-  })
+  try {
+    const publishedShifts = await replacePublishedShifts({
+      publicationId: publication.id,
+      weekStartDate: normalizedWeekStartDate,
+      draftShifts: draftWeekShifts,
+      knownTemplateIds,
+    })
 
-  return {
-    publication,
-    publishedShifts,
+    return {
+      publication,
+      publishedShifts,
+    }
+  } catch (error) {
+    try {
+      await upsertSchedulePublicationRecord({
+        weekStartDate: normalizedWeekStartDate,
+        status: 'draft',
+      })
+    } catch (rollbackError) {
+      console.error('[schedulePublicationService] publish rollback failed:', rollbackError)
+    }
+    throw error
   }
 }
 

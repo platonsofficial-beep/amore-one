@@ -19,9 +19,22 @@ function normalizeTimeValue(value) {
   return raw
 }
 
+const PUBLISHED_SHIFTS_SETUP_HINT = 'Run supabase/published_shifts_schema.sql in the Supabase SQL editor, then try publishing again.'
+
 function isTableUnavailableError(error) {
   const message = `${error?.message ?? ''}`.toLowerCase()
-  return message.includes('does not exist') || message.includes('relation') || message.includes('could not find the table')
+  const code = `${error?.code ?? ''}`.toUpperCase()
+  return (
+    code === 'PGRST205'
+    || code === '42P01'
+    || message.includes('does not exist')
+    || message.includes('relation')
+    || message.includes('could not find the table')
+  )
+}
+
+function buildPublishedShiftsUnavailableError() {
+  return new Error(`published_shifts table is not ready yet. ${PUBLISHED_SHIFTS_SETUP_HINT}`)
 }
 
 export function normalizeShiftForComparison(shift) {
@@ -130,7 +143,7 @@ export async function replacePublishedShifts({ publicationId, weekStartDate, dra
 
   if (deleteError) {
     if (isTableUnavailableError(deleteError)) {
-      throw new Error('published_shifts table is not ready yet.')
+      throw buildPublishedShiftsUnavailableError()
     }
     throw new Error(deleteError.message || 'Unable to clear previous published schedule.')
   }
@@ -154,7 +167,7 @@ export async function replacePublishedShifts({ publicationId, weekStartDate, dra
 
   if (error) {
     if (isTableUnavailableError(error)) {
-      throw new Error('published_shifts table is not ready yet.')
+      throw buildPublishedShiftsUnavailableError()
     }
     throw new Error(error.message || 'Unable to save published schedule.')
   }
@@ -173,7 +186,7 @@ export async function deletePublishedShiftsForWeek(weekStartDate) {
 
   if (error) {
     if (isTableUnavailableError(error)) {
-      throw new Error('published_shifts table is not ready yet.')
+      throw buildPublishedShiftsUnavailableError()
     }
     throw new Error(error.message || 'Unable to remove published schedule.')
   }

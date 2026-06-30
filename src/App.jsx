@@ -55,6 +55,13 @@ import {
   isAssignmentUsingCustomTime,
   parseWeeklyHoursTarget,
 } from './lib/shiftHoursUtils'
+import { buildOperationalSnapshot, resolveUserFirstName } from './lib/operationalSnapshotUtils'
+import {
+  formatCurrentDateLabel,
+  getCurrentDateKey,
+  getLocalNow,
+  getTimeGreeting,
+} from './lib/currentDateUtils'
 
 const navItems = [
   { id: 'dashboard', label: 'Dashboard', icon: '◈' },
@@ -67,6 +74,9 @@ const navItems = [
   { id: 'reports', label: 'Reports', icon: '📈' },
   { id: 'settings', label: 'Settings', icon: '⚙️' },
 ]
+
+const APP_WORKSPACE_NAME = 'Amore One'
+const APP_USER_NAME = 'Platon'
 
 const stats = [
   { title: 'Staff on Shift', value: '18', detail: '3 arriving in 30 min', accent: 'gold', icon: '👥' },
@@ -235,6 +245,64 @@ function getInitials(name) {
     .slice(0, 2)
     .map((part) => part[0])
     .join('')
+}
+
+function OperationalSnapshot({ snapshot, isLoading }) {
+  if (isLoading) {
+    return (
+      <section className="operational-snapshot operational-snapshot-loading" aria-label="Operational snapshot" aria-busy="true">
+        <p className="operational-snapshot-loading-text">Loading operational snapshot…</p>
+      </section>
+    )
+  }
+
+  return (
+    <section className="operational-snapshot" aria-label="Operational snapshot">
+      <div className="operational-snapshot-header">
+        <div className="operational-snapshot-intro">
+          <p className="operational-snapshot-greeting">{snapshot.greeting}</p>
+          <p className="operational-snapshot-business">{snapshot.businessName}</p>
+        </div>
+        <p className="operational-snapshot-today-label">{snapshot.todayLabel}</p>
+      </div>
+
+      <div className="operational-snapshot-metrics" aria-label="Today's operational metrics">
+        <article className="operational-snapshot-metric">
+          <span className="operational-snapshot-metric-icon" aria-hidden="true">🍽</span>
+          <div className="operational-snapshot-metric-copy">
+            <p className="operational-snapshot-metric-label">Reservations</p>
+            <p className="operational-snapshot-metric-value">{snapshot.reservations}</p>
+          </div>
+        </article>
+        <article className="operational-snapshot-metric">
+          <span className="operational-snapshot-metric-icon" aria-hidden="true">👥</span>
+          <div className="operational-snapshot-metric-copy">
+            <p className="operational-snapshot-metric-label">Scheduled Staff</p>
+            <p className="operational-snapshot-metric-value">{snapshot.scheduledStaff}</p>
+          </div>
+        </article>
+        <article className="operational-snapshot-metric">
+          <span className="operational-snapshot-metric-icon" aria-hidden="true">⏱</span>
+          <div className="operational-snapshot-metric-copy">
+            <p className="operational-snapshot-metric-label">Labour Hours</p>
+            <p className="operational-snapshot-metric-value">{snapshot.labourHoursLabel}h</p>
+          </div>
+        </article>
+        <article className={`operational-snapshot-metric ${snapshot.issues > 0 ? 'has-issues' : ''}`}>
+          <span className="operational-snapshot-metric-icon" aria-hidden="true">⚠</span>
+          <div className="operational-snapshot-metric-copy">
+            <p className="operational-snapshot-metric-label">Issues</p>
+            <p className="operational-snapshot-metric-value">{snapshot.issues}</p>
+          </div>
+        </article>
+      </div>
+
+      <div className={`operational-snapshot-footer ${snapshot.issues > 0 ? 'needs-attention' : 'ready'}`}>
+        <p className="operational-snapshot-status">{snapshot.statusMessage}</p>
+        {snapshot.closingMessage ? <p className="operational-snapshot-closing">{snapshot.closingMessage}</p> : null}
+      </div>
+    </section>
+  )
 }
 
 function DashboardView() {
@@ -4362,7 +4430,7 @@ function ScheduleView({
 }
 
 function ReservationsView({ reservations, onOpenAddReservation, onOpenEditReservation, onDeleteReservation, isLoading, noticeMessage, isSaving }) {
-  const today = new Date().toISOString().split('T')[0]
+  const today = getCurrentDateKey()
   const todayReservations = reservations.filter((reservation) => reservation.date === today)
   const upcomingReservations = reservations.filter((reservation) => reservation.date !== today)
 
@@ -4925,11 +4993,23 @@ function App() {
   const [employeePendingDelete, setEmployeePendingDelete] = useState(null)
   const [isDeletingEmployee, setIsDeletingEmployee] = useState(false)
 
-  const todayLabel = new Intl.DateTimeFormat('en', {
-    weekday: 'long',
-    month: 'long',
-    day: 'numeric',
-  }).format(new Date())
+  const localNow = getLocalNow()
+  const currentDateLabel = formatCurrentDateLabel(localNow)
+  const currentDateKey = getCurrentDateKey(localNow)
+  const currentTimeGreeting = getTimeGreeting(localNow)
+
+  const operationalSnapshot = useMemo(() => buildOperationalSnapshot({
+    shifts,
+    shiftTemplates,
+    scheduleCapacities,
+    employees: scheduleEmployees,
+    todayKey: currentDateKey,
+    todayDateLabel: currentDateLabel,
+    timeGreeting: currentTimeGreeting,
+    businessName: APP_WORKSPACE_NAME,
+    userName: APP_USER_NAME,
+    reservationsCount: 0,
+  }), [shifts, shiftTemplates, scheduleCapacities, scheduleEmployees, currentDateKey, currentDateLabel, currentTimeGreeting])
 
   useEffect(() => {
     let isMounted = true
@@ -7744,7 +7824,7 @@ function App() {
   }
 
   const heroTitle = activeView === 'dashboard'
-    ? 'Good morning, Platon 👋'
+    ? `${currentTimeGreeting}, ${resolveUserFirstName(APP_USER_NAME)} 👋`
     : activeView === 'staff'
       ? 'Staff management'
       : activeView === 'schedule'
@@ -7757,7 +7837,7 @@ function App() {
             ? 'Inventory management'
             : 'Operations management'
   const heroSubtitle = activeView === 'dashboard'
-    ? 'Monday, June 29 · Everything is running smoothly.'
+    ? `${currentDateLabel} · Everything is running smoothly.`
     : activeView === 'reservations'
       ? 'Review service flow, seating, and guest arrivals.'
       : activeView === 'suppliers'
@@ -7821,7 +7901,7 @@ function App() {
               />
             </label>
             <button type="button" className="icon-btn">🔔</button>
-            <div className="date-pill">{todayLabel}</div>
+            <div className="date-pill">{currentDateLabel}</div>
             <div className="profile-chip">
               <div className="profile-avatar">H</div>
               <div>
@@ -7831,6 +7911,10 @@ function App() {
             </div>
           </div>
         </header>
+
+        {activeView === 'dashboard' || activeView === 'schedule' ? (
+          <OperationalSnapshot snapshot={operationalSnapshot} isLoading={isScheduleLoading} />
+        ) : null}
 
         {activeView === 'dashboard' ? <DashboardView /> : null}
 

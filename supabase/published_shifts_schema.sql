@@ -1,11 +1,12 @@
 -- Published shift snapshots: the employee-visible schedule for a week.
--- Run in Supabase SQL editor after schedule_publications exists.
+-- Prerequisite: public.schedule_publications and public.employees must exist.
+-- Run this entire file in the Supabase SQL editor.
 
 create table if not exists public.published_shifts (
   id uuid primary key default gen_random_uuid(),
   publication_id uuid not null references public.schedule_publications(id) on delete cascade,
   week_start_date date not null,
-  employee_id bigint null references public.employees(id) on delete set null,
+  employee_id uuid null references public.employees(id) on delete set null,
   shift_template_id uuid null,
   shift_date date not null,
   start_time time not null,
