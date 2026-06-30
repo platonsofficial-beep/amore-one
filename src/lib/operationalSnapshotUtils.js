@@ -140,7 +140,6 @@ export function buildOperationalSnapshot({
   timeGreeting = getTimeGreeting(),
   businessName = '',
   userName = '',
-  reservationsCount = 0,
 } = {}) {
   const todayShifts = shifts.filter((shift) => normalizeDate(shift.date) === todayKey)
   const seenShiftIds = new Set()
@@ -229,7 +228,6 @@ export function buildOperationalSnapshot({
     greeting,
     businessName: resolvedBusinessName,
     todayLabel: todayDateLabel,
-    reservations: reservationsCount,
     scheduledStaff: uniqueEmployeeIds.size,
     labourHours,
     labourHoursLabel: formatHoursLabel(labourHours),

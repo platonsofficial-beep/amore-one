@@ -197,9 +197,18 @@
   white-space: nowrap;
 }
 
+.operational-snapshot-section-label {
+  margin: 0 0 10px;
+  color: #a79e91;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
 .operational-snapshot-metrics {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 10px;
 }
 
@@ -404,10 +413,110 @@
   color: #f2cf82;
 }
 
+.stat-card.disconnected h3,
+.stat-disconnected-value {
+  font-size: 1rem;
+  line-height: 1.25;
+  color: #a79e91;
+}
+
+.dashboard-empty-state,
+.dashboard-module-placeholder-copy {
+  margin: 0;
+  color: #a79e91;
+  font-size: 0.92rem;
+}
+
+.dashboard-module-placeholder {
+  padding: 18px 4px 8px;
+}
+
+.dashboard-module-placeholder-title {
+  margin: 0 0 4px;
+  color: #fff7e8;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.timeline-dot.on-shift {
+  background: #7fd47a;
+  box-shadow: 0 0 0 4px rgba(127, 212, 122, 0.18);
+}
+
+.timeline-dot.starting-soon {
+  background: #f0c56d;
+  box-shadow: 0 0 0 4px rgba(240, 197, 109, 0.18);
+}
+
+.dashboard-staff-list li + li {
+  margin-top: 2px;
+}
+
+.live-floor-eyebrow-active {
+  color: #7fd47a;
+}
+
+.live-floor-state {
+  padding: 8px 4px 4px;
+}
+
+.live-floor-unpublished .live-floor-status-icon {
+  margin: 0 0 8px;
+  font-size: 1.1rem;
+  line-height: 1;
+}
+
+.live-floor-status-title {
+  margin: 0 0 6px;
+  color: #fff7e8;
+  font-size: 1.05rem;
+  font-weight: 600;
+}
+
+.live-floor-unpublished .live-floor-status-title {
+  color: #f0c56d;
+}
+
+.live-floor-status-message {
+  margin: 0;
+  color: #a79e91;
+  font-size: 0.92rem;
+  line-height: 1.45;
+}
+
 .stat-card h3 {
   font-size: 2rem;
   margin: 10px 0 6px;
   color: #fff7e8;
+}
+
+.stat-metrics-list {
+  list-style: none;
+  margin: 10px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.stat-metrics-list li {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  color: #fff7e8;
+  font-size: 0.95rem;
+  line-height: 1.35;
+}
+
+.stat-metric-label {
+  color: #a79e91;
+  min-width: 4.8rem;
+}
+
+.stat-metric-value {
+  font-size: 1.15rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
 }
 
 .stat-detail {

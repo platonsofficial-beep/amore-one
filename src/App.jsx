@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useMemo, useRef, useState } from 'react'
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import './App.css'
 import { createEmployee, deleteEmployee, getEmployees, updateEmployee } from './services/staffService'
 import { createShift, deleteShift, getShifts, updateShift } from './services/scheduleService'
@@ -57,6 +57,16 @@ import {
 } from './lib/shiftHoursUtils'
 import { buildOperationalSnapshot, resolveUserFirstName } from './lib/operationalSnapshotUtils'
 import {
+  buildDashboardStats,
+  buildLiveFloorState,
+  buildTodayReservationsSummary,
+  buildTodayTimeline,
+  countLowStockAlerts,
+  isModuleUnavailableMessage,
+  resolveLiveDraftShiftsForWeek,
+  resolveLiveDraftCapacitiesForWeek,
+} from './lib/dashboardUtils'
+import {
   formatCurrentDateLabel,
   getCurrentDateKey,
   getLocalNow,
@@ -77,32 +87,6 @@ const navItems = [
 
 const APP_WORKSPACE_NAME = 'Amore One'
 const APP_USER_NAME = 'Platon'
-
-const stats = [
-  { title: 'Staff on Shift', value: '18', detail: '3 arriving in 30 min', accent: 'gold', icon: '👥' },
-  { title: "Today's Reservations", value: '27', detail: '8 VIP tables tonight', accent: 'rose', icon: '🍽️' },
-  { title: 'Open Tasks', value: '6', detail: '2 high priority', accent: 'blue', icon: '✓' },
-  { title: 'Low Stock Alerts', value: '4', detail: 'Truffle oil running low', accent: 'amber', icon: '⚠️' },
-  { title: "Today's Revenue", value: '$12.4k', detail: '+14% vs yesterday', accent: 'emerald', icon: '💰' },
-]
-
-const activityItems = [
-  { title: 'VIP suite confirmed', time: '12 min ago', note: 'Mr. Laurent requested a corner table in the garden room.' },
-  { title: 'Kitchen prep completed', time: '31 min ago', note: 'Signature tasting set is ready for service.' },
-  { title: 'Stock request approved', time: '1 hr ago', note: 'Champagne replenishment was authorized.' },
-]
-
-const scheduleItems = [
-  { time: '17:00', title: 'Opening briefing', note: 'Service leads and floor team' },
-  { time: '19:30', title: 'Sommelier tasting', note: 'Reserve wine pairings with chef' },
-  { time: '21:00', title: 'Late-night seating', note: 'Bar team on premium service' },
-]
-
-const reservations = [
-  { name: 'Adrian & Elise', time: '19:30', guests: '4 Guests', note: 'Private dining room' },
-  { name: 'Mina Rossi', time: '20:15', guests: '2 Guests', note: 'Anniversary dinner' },
-  { name: 'The Laurent Group', time: '21:00', guests: '8 Guests', note: 'Chef’s tasting menu' },
-]
 
 const quickActions = [
   { label: 'Add Reservation', icon: '+' },
@@ -266,14 +250,9 @@ function OperationalSnapshot({ snapshot, isLoading }) {
         <p className="operational-snapshot-today-label">{snapshot.todayLabel}</p>
       </div>
 
-      <div className="operational-snapshot-metrics" aria-label="Today's operational metrics">
-        <article className="operational-snapshot-metric">
-          <span className="operational-snapshot-metric-icon" aria-hidden="true">🍽</span>
-          <div className="operational-snapshot-metric-copy">
-            <p className="operational-snapshot-metric-label">Reservations</p>
-            <p className="operational-snapshot-metric-value">{snapshot.reservations}</p>
-          </div>
-        </article>
+      <p className="operational-snapshot-section-label">Today&apos;s Schedule</p>
+
+      <div className="operational-snapshot-metrics" aria-label="Today's schedule metrics">
         <article className="operational-snapshot-metric">
           <span className="operational-snapshot-metric-icon" aria-hidden="true">👥</span>
           <div className="operational-snapshot-metric-copy">
@@ -305,18 +284,40 @@ function OperationalSnapshot({ snapshot, isLoading }) {
   )
 }
 
-function DashboardView() {
+function DashboardView({
+  stats,
+  liveFloor,
+  timelineEvents,
+  isLoading,
+  isLiveFloorLoading,
+}) {
   return (
     <>
       <section className="stats-grid" aria-label="Key metrics">
         {stats.map((stat) => (
-          <article key={stat.title} className={`stat-card ${stat.accent}`}>
+          <article
+            key={stat.id}
+            className={`stat-card ${stat.accent}${stat.connected ? '' : ' disconnected'}`}
+          >
             <div className="stat-header">
               <p>{stat.title}</p>
               <span className="stat-icon">{stat.icon}</span>
             </div>
-            <h3>{stat.value}</h3>
-            <p className="stat-detail">{stat.detail}</p>
+            {stat.connected && Array.isArray(stat.metrics) ? (
+              <ul className="stat-metrics-list" aria-label={`${stat.title} breakdown`}>
+                {stat.metrics.map((metric) => (
+                  <li key={metric.label}>
+                    <span className="stat-metric-label">{metric.label}:</span>
+                    <span className="stat-metric-value">{metric.value}</span>
+                  </li>
+                ))}
+              </ul>
+            ) : stat.connected ? (
+              <h3>{stat.value}</h3>
+            ) : (
+              <h3 className="stat-disconnected-value">Not connected yet</h3>
+            )}
+            {stat.detail ? <p className="stat-detail">{stat.detail}</p> : null}
           </article>
         ))}
       </section>
@@ -325,72 +326,71 @@ function DashboardView() {
         <article className="panel panel-large">
           <div className="panel-heading">
             <div>
-              <p className="eyebrow">Recent activity</p>
-              <h3>Tonight's momentum</h3>
+              <p className={`eyebrow${liveFloor.state === 'live' ? ' live-floor-eyebrow-active' : ''}`}>
+                {liveFloor.eyebrow}
+              </p>
+              <h3>{liveFloor.heading}</h3>
             </div>
-            <button type="button" className="ghost-btn">View all</button>
           </div>
-          <ul className="activity-list timeline-list">
-            {activityItems.map((item) => (
-              <li key={item.title}>
-                <span className="timeline-dot" />
-                <div className="timeline-content">
-                  <div className="timeline-top">
-                    <strong>{item.title}</strong>
-                    <span>{item.time}</span>
+          {isLiveFloorLoading ? (
+            <p className="dashboard-empty-state">Loading live floor…</p>
+          ) : liveFloor.state === 'unpublished' ? (
+            <div className="live-floor-state live-floor-unpublished">
+              <p className="live-floor-status-icon" aria-hidden="true">🟡</p>
+              <p className="live-floor-status-title">{liveFloor.title}</p>
+              <p className="live-floor-status-message">{liveFloor.message}</p>
+            </div>
+          ) : liveFloor.state === 'idle' ? (
+            <div className="live-floor-state live-floor-idle">
+              <p className="live-floor-status-title">{liveFloor.title}</p>
+              <p className="live-floor-status-message">{liveFloor.message}</p>
+            </div>
+          ) : (
+            <ul className="activity-list timeline-list dashboard-staff-list">
+              {liveFloor.onShift.map((member) => (
+                <li key={member.shiftId}>
+                  <span className="timeline-dot on-shift" />
+                  <div className="timeline-content">
+                    <div className="timeline-top">
+                      <strong>{member.name}</strong>
+                      <span>{member.startTimeLabel} – {member.endTimeLabel}</span>
+                    </div>
+                    <p>{member.position || 'On shift now'}</p>
                   </div>
-                  <p>{item.note}</p>
-                </div>
-              </li>
-            ))}
-          </ul>
+                </li>
+              ))}
+            </ul>
+          )}
         </article>
 
         <article className="panel">
           <div className="panel-heading">
             <div>
-              <p className="eyebrow">Today's schedule</p>
-              <h3>Service plan</h3>
+              <p className="eyebrow">Today&apos;s timeline</p>
+              <h3>Service milestones</h3>
             </div>
           </div>
-          <ul className="schedule-list">
-            {scheduleItems.map((item) => (
-              <li key={item.time}>
-                <div className="schedule-time">{formatTime24(item.time)}</div>
-                <div className="schedule-body">
-                  <strong>{item.title}</strong>
-                  <p>{item.note}</p>
-                </div>
-              </li>
-            ))}
-          </ul>
+          {isLoading ? (
+            <p className="dashboard-empty-state">Loading today&apos;s timeline…</p>
+          ) : timelineEvents.length === 0 ? (
+            <p className="dashboard-empty-state">No shifts scheduled for today.</p>
+          ) : (
+            <ul className="schedule-list">
+              {timelineEvents.map((item) => (
+                <li key={item.key}>
+                  <div className="schedule-time">{item.timeLabel}</div>
+                  <div className="schedule-body">
+                    <strong>{item.title}</strong>
+                    {item.note ? <p>{item.note}</p> : null}
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
         </article>
       </section>
 
       <section className="content-grid secondary-grid">
-        <article className="panel">
-          <div className="panel-heading">
-            <div>
-              <p className="eyebrow">Upcoming reservations</p>
-              <h3>Arrival flow</h3>
-            </div>
-          </div>
-          <ul className="reservation-list">
-            {reservations.map((item) => (
-              <li key={item.name}>
-                <div>
-                  <strong>{item.name}</strong>
-                  <p>{item.note}</p>
-                </div>
-                <div className="reservation-meta">
-                  <span>{formatTime24(item.time)}</span>
-                  <small>{item.guests}</small>
-                </div>
-              </li>
-            ))}
-          </ul>
-        </article>
-
         <article className="panel">
           <div className="panel-heading">
             <div>
@@ -5004,24 +5004,242 @@ function App() {
   const [isSavingSupplier, setIsSavingSupplier] = useState(false)
   const [employeePendingDelete, setEmployeePendingDelete] = useState(null)
   const [isDeletingEmployee, setIsDeletingEmployee] = useState(false)
+  const [localNow, setLocalNow] = useState(() => getLocalNow())
+  const [todayWeekShifts, setTodayWeekShifts] = useState([])
+  const [todayWeekCapacities, setTodayWeekCapacities] = useState([])
+  const [todayWeekPublishedShifts, setTodayWeekPublishedShifts] = useState([])
+  const [todayWeekPublication, setTodayWeekPublication] = useState({
+    weekStartDate: getCurrentWeekStartDate(),
+    status: 'draft',
+    publishedAt: null,
+    unpublishedAt: null,
+    publishedBy: null,
+  })
+  const [isTodayWeekLoading, setIsTodayWeekLoading] = useState(true)
+  const [isReservationsModuleConnected, setIsReservationsModuleConnected] = useState(false)
+  const [isInventoryModuleConnected, setIsInventoryModuleConnected] = useState(false)
 
-  const localNow = getLocalNow()
   const currentDateLabel = formatCurrentDateLabel(localNow)
   const currentDateKey = getCurrentDateKey(localNow)
   const currentTimeGreeting = getTimeGreeting(localNow)
+  const todayWeekStart = useMemo(
+    () => getWeekStartDate(parseLocalDate(currentDateKey)),
+    [currentDateKey],
+  )
+
+  const isViewingTodayWeekInScheduler = scheduleWeekStart === todayWeekStart
+
+  const dashboardShifts = useMemo(() => {
+    const draftSource = isViewingTodayWeekInScheduler ? shifts : todayWeekShifts
+    return resolveLiveDraftShiftsForWeek(draftSource, todayWeekStart)
+  }, [isViewingTodayWeekInScheduler, shifts, todayWeekShifts, todayWeekStart])
+
+  const dashboardCapacities = useMemo(() => {
+    const capacitySource = isViewingTodayWeekInScheduler ? scheduleCapacities : todayWeekCapacities
+    return resolveLiveDraftCapacitiesForWeek(capacitySource, todayWeekStart, {
+      useSchedulerSource: isViewingTodayWeekInScheduler,
+    })
+  }, [isViewingTodayWeekInScheduler, scheduleCapacities, todayWeekCapacities, todayWeekStart])
+
+  const dashboardPublishedShifts = useMemo(() => (
+    isViewingTodayWeekInScheduler ? publishedShifts : todayWeekPublishedShifts
+  ), [isViewingTodayWeekInScheduler, publishedShifts, todayWeekPublishedShifts])
+
+  const isTodayWeekPublished = useMemo(() => {
+    const publication = isViewingTodayWeekInScheduler ? schedulePublication : todayWeekPublication
+    return publication?.status === 'published'
+  }, [isViewingTodayWeekInScheduler, schedulePublication, todayWeekPublication])
+
+  const liveFloorState = useMemo(() => buildLiveFloorState({
+    publishedShifts: dashboardPublishedShifts,
+    isWeekPublished: isTodayWeekPublished,
+    employees: scheduleEmployees,
+    todayKey: currentDateKey,
+    now: localNow,
+  }), [
+    dashboardPublishedShifts,
+    isTodayWeekPublished,
+    scheduleEmployees,
+    currentDateKey,
+    localNow,
+  ])
+
+  const refreshTodayWeekPublishedData = useCallback(async (weekStartDate = todayWeekStart) => {
+    const normalizedWeekStart = `${weekStartDate ?? ''}`.trim() || todayWeekStart
+    if (!normalizedWeekStart) {
+      return { publication: null, publishedShifts: [] }
+    }
+
+    const state = await getWeekSchedulePublicationState(normalizedWeekStart)
+
+    if (normalizedWeekStart === scheduleWeekStart) {
+      setSchedulePublication(state.publication ?? {
+        weekStartDate: normalizedWeekStart,
+        status: 'draft',
+        publishedAt: null,
+        unpublishedAt: null,
+        publishedBy: null,
+      })
+      setPublishedShifts(Array.isArray(state.publishedShifts) ? state.publishedShifts : [])
+    } else {
+      setTodayWeekPublication(state.publication ?? {
+        weekStartDate: normalizedWeekStart,
+        status: 'draft',
+        publishedAt: null,
+        unpublishedAt: null,
+        publishedBy: null,
+      })
+      setTodayWeekPublishedShifts(Array.isArray(state.publishedShifts) ? state.publishedShifts : [])
+    }
+
+    return state
+  }, [scheduleWeekStart, todayWeekStart])
+
+  const refreshTodayWeekDraftData = useCallback(async (weekStartDate = todayWeekStart) => {
+    const normalizedWeekStart = `${weekStartDate ?? ''}`.trim() || todayWeekStart
+    if (!normalizedWeekStart) {
+      return { shifts: [], capacities: [] }
+    }
+
+    const weekDateKeys = getWeekDateKeys(normalizedWeekStart)
+    const [remoteShifts, remoteCapacities] = await Promise.all([
+      getShifts({
+        startDate: weekDateKeys[0],
+        endDate: weekDateKeys[weekDateKeys.length - 1],
+      }),
+      getScheduleCapacities({ shiftDates: weekDateKeys }),
+    ])
+
+    if (normalizedWeekStart === scheduleWeekStart) {
+      setShifts(remoteShifts)
+      setScheduleCapacities(remoteCapacities)
+    } else {
+      setTodayWeekShifts(remoteShifts)
+      setTodayWeekCapacities(remoteCapacities)
+    }
+
+    return { shifts: remoteShifts, capacities: remoteCapacities }
+  }, [scheduleWeekStart, todayWeekStart])
+
+  const isDashboardScheduleLoading = isViewingTodayWeekInScheduler
+    ? isScheduleLoading
+    : isTodayWeekLoading
+
+  const isLiveFloorLoading = isViewingTodayWeekInScheduler
+    ? isScheduleLoading
+    : isTodayWeekLoading
 
   const operationalSnapshot = useMemo(() => buildOperationalSnapshot({
-    shifts,
+    shifts: dashboardShifts,
     shiftTemplates,
-    scheduleCapacities,
+    scheduleCapacities: dashboardCapacities,
     employees: scheduleEmployees,
     todayKey: currentDateKey,
     todayDateLabel: currentDateLabel,
     timeGreeting: currentTimeGreeting,
     businessName: APP_WORKSPACE_NAME,
     userName: APP_USER_NAME,
-    reservationsCount: 0,
-  }), [shifts, shiftTemplates, scheduleCapacities, scheduleEmployees, currentDateKey, currentDateLabel, currentTimeGreeting])
+  }), [
+    dashboardShifts,
+    shiftTemplates,
+    dashboardCapacities,
+    scheduleEmployees,
+    currentDateKey,
+    currentDateLabel,
+    currentTimeGreeting,
+  ])
+
+  const timelineEvents = useMemo(() => buildTodayTimeline({
+    shifts: dashboardShifts,
+    shiftTemplates,
+    todayKey: currentDateKey,
+  }), [dashboardShifts, shiftTemplates, currentDateKey])
+
+  const todayReservationsSummary = useMemo(
+    () => buildTodayReservationsSummary(reservations, currentDateKey),
+    [reservations, currentDateKey],
+  )
+
+  const dashboardStats = useMemo(() => buildDashboardStats({
+    liveFloorState,
+    reservationsConnected: isReservationsModuleConnected,
+    reservationsSummary: todayReservationsSummary,
+    inventoryConnected: isInventoryModuleConnected,
+    lowStockCount: countLowStockAlerts(inventoryItems),
+  }), [
+    liveFloorState,
+    isReservationsModuleConnected,
+    todayReservationsSummary,
+    isInventoryModuleConnected,
+    inventoryItems,
+  ])
+
+  useEffect(() => {
+    const intervalId = window.setInterval(() => {
+      setLocalNow(getLocalNow())
+    }, 60_000)
+
+    return () => window.clearInterval(intervalId)
+  }, [])
+
+  useEffect(() => {
+    if (scheduleWeekStart === todayWeekStart) {
+      setIsTodayWeekLoading(false)
+      return
+    }
+
+    let isMounted = true
+
+    const loadTodayWeekData = async () => {
+      setIsTodayWeekLoading(true)
+      const weekDateKeys = getWeekDateKeys(todayWeekStart)
+
+      try {
+        const [remoteShifts, remoteCapacities, publicationState] = await Promise.all([
+          getShifts({
+            startDate: weekDateKeys[0],
+            endDate: weekDateKeys[weekDateKeys.length - 1],
+          }),
+          getScheduleCapacities({ shiftDates: weekDateKeys }),
+          getWeekSchedulePublicationState(todayWeekStart),
+        ])
+        if (!isMounted) return
+
+        setTodayWeekShifts(remoteShifts)
+        setTodayWeekCapacities(remoteCapacities)
+        setTodayWeekPublishedShifts(publicationState.publishedShifts ?? [])
+        setTodayWeekPublication(publicationState.publication ?? {
+          weekStartDate: todayWeekStart,
+          status: 'draft',
+          publishedAt: null,
+          unpublishedAt: null,
+          publishedBy: null,
+        })
+      } catch {
+        if (!isMounted) return
+        setTodayWeekShifts([])
+        setTodayWeekCapacities([])
+        setTodayWeekPublishedShifts([])
+        setTodayWeekPublication({
+          weekStartDate: todayWeekStart,
+          status: 'draft',
+          publishedAt: null,
+          unpublishedAt: null,
+          publishedBy: null,
+        })
+      } finally {
+        if (isMounted) {
+          setIsTodayWeekLoading(false)
+        }
+      }
+    }
+
+    loadTodayWeekData()
+
+    return () => {
+      isMounted = false
+    }
+  }, [scheduleWeekStart, todayWeekStart, activeView])
 
   useEffect(() => {
     let isMounted = true
@@ -5118,9 +5336,11 @@ function App() {
         const remoteInventory = await getInventoryItems()
         if (!isMounted) return
         setInventoryItems(remoteInventory)
+        setIsInventoryModuleConnected(true)
       } catch (error) {
         if (!isMounted) return
         setInventoryItems([])
+        setIsInventoryModuleConnected(!isModuleUnavailableMessage(error.message))
         setInventoryNotice(error.message || 'Unable to load inventory right now.')
       } finally {
         if (isMounted) {
@@ -5238,7 +5458,7 @@ function App() {
     return () => {
       isMounted = false
     }
-  }, [scheduleWeekStart])
+  }, [scheduleWeekStart, todayWeekStart])
 
   useEffect(() => {
     let isMounted = true
@@ -5251,9 +5471,11 @@ function App() {
         const remoteReservations = await getReservations()
         if (!isMounted) return
         setReservations(remoteReservations)
+        setIsReservationsModuleConnected(true)
       } catch (error) {
         if (!isMounted) return
         setReservations([])
+        setIsReservationsModuleConnected(!isModuleUnavailableMessage(error.message))
         setReservationNotice(error.message || 'Unable to load reservations right now.')
       } finally {
         if (isMounted) {
@@ -5473,8 +5695,20 @@ function App() {
         throw new Error('Publish did not return a publication record.')
       }
 
-      setSchedulePublication(result.publication)
-      setPublishedShifts(Array.isArray(result.publishedShifts) ? result.publishedShifts : [])
+      if (weekStartDate === scheduleWeekStart) {
+        setSchedulePublication(result.publication)
+        setPublishedShifts(Array.isArray(result.publishedShifts) ? result.publishedShifts : [])
+      }
+
+      if (weekStartDate === todayWeekStart) {
+        await Promise.all([
+          refreshTodayWeekDraftData(weekStartDate),
+          weekStartDate === scheduleWeekStart
+            ? Promise.resolve()
+            : refreshTodayWeekPublishedData(weekStartDate),
+        ])
+      }
+
       setScheduleNotice(result.publication.status === 'published' ? 'Schedule published for employees.' : 'Schedule updated.')
       return result
     } catch (error) {
@@ -5486,8 +5720,21 @@ function App() {
 
   const handleUnpublishWeekSchedule = async (weekStartDate) => {
     const result = await unpublishWeekSchedule({ weekStartDate })
-    setSchedulePublication(result.publication)
-    setPublishedShifts(result.publishedShifts)
+
+    if (weekStartDate === scheduleWeekStart) {
+      setSchedulePublication(result.publication)
+      setPublishedShifts(result.publishedShifts)
+    }
+
+    if (weekStartDate === todayWeekStart) {
+      await Promise.all([
+        refreshTodayWeekDraftData(weekStartDate),
+        weekStartDate === scheduleWeekStart
+          ? Promise.resolve()
+          : refreshTodayWeekPublishedData(weekStartDate),
+      ])
+    }
+
     setScheduleNotice('Schedule returned to draft. Employees can no longer see it.')
     return result
   }
@@ -6505,12 +6752,17 @@ function App() {
   }
 
   const refreshScheduleViewData = async (weekStartDate = scheduleWeekStart) => {
-    const [remoteShifts] = await Promise.all([
+    const [remoteShifts, remoteCapacities] = await Promise.all([
       refreshScheduleShifts(weekStartDate),
       refreshScheduleCapacities(weekStartDate),
     ])
 
     await refreshSchedulePublication(weekStartDate)
+
+    if (weekStartDate === todayWeekStart && weekStartDate !== scheduleWeekStart) {
+      setTodayWeekShifts(remoteShifts)
+      setTodayWeekCapacities(remoteCapacities)
+    }
 
     return remoteShifts
   }
@@ -7867,7 +8119,7 @@ function App() {
             ? 'Inventory management'
             : 'Operations management'
   const heroSubtitle = activeView === 'dashboard'
-    ? `${currentDateLabel} · Everything is running smoothly.`
+    ? `${currentDateLabel} · ${operationalSnapshot.statusMessage}`
     : activeView === 'reservations'
       ? 'Review service flow, seating, and guest arrivals.'
       : activeView === 'suppliers'
@@ -7943,10 +8195,18 @@ function App() {
         </header>
 
         {activeView === 'dashboard' || activeView === 'schedule' ? (
-          <OperationalSnapshot snapshot={operationalSnapshot} isLoading={isScheduleLoading} />
+          <OperationalSnapshot snapshot={operationalSnapshot} isLoading={isDashboardScheduleLoading} />
         ) : null}
 
-        {activeView === 'dashboard' ? <DashboardView /> : null}
+        {activeView === 'dashboard' ? (
+          <DashboardView
+            stats={dashboardStats}
+            liveFloor={liveFloorState}
+            timelineEvents={timelineEvents}
+            isLoading={isDashboardScheduleLoading}
+            isLiveFloorLoading={isLiveFloorLoading}
+          />
+        ) : null}
 
         {activeView === 'dashboard' ? (
           <div className="build-info-floating">
