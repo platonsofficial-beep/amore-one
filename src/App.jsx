@@ -3,7 +3,7 @@ import './App.css'
 import { createEmployee, deleteEmployee, getEmployees, updateEmployee } from './services/staffService'
 import { createShift, deleteShift, getShifts, updateShift } from './services/scheduleService'
 import { createShiftTemplate, deleteShiftTemplate, getShiftTemplates, updateShiftTemplate } from './services/shiftTemplateService'
-import { getScheduleCapacities, upsertScheduleCapacity } from './services/scheduleCapacityService'
+import { getScheduleCapacities, upsertScheduleCapacity, deleteScheduleCapacitiesForDates, copyScheduleCapacitiesForWeek, applyScheduleCapacitiesForWeek, applyMinimumCapacitiesFromShifts } from './services/scheduleCapacityService'
 import { draftMatchesPublishedSnapshot } from './services/publishedShiftService'
 import { getWeekSchedulePublicationState, publishWeekSchedule, unpublishWeekSchedule } from './services/schedulePublicationService'
 import { createPosition, deletePosition, getPositions, reorderPositions, updatePosition } from './services/positionsService'
@@ -56,6 +56,13 @@ import {
   parseWeeklyHoursTarget,
 } from './lib/shiftHoursUtils'
 import { buildEmployeeWeekScheduleView } from './lib/employeeWeekScheduleView'
+import {
+  buildWeeklyTemplateCapacitySnapshot,
+  deleteWeeklyTemplateCapacitySnapshot,
+  getWeeklyTemplateCapacitySnapshot,
+  mapWeeklyTemplateCapacitySnapshotToWeek,
+  saveWeeklyTemplateCapacitySnapshot,
+} from './lib/weeklyTemplateCapacitySnapshots'
 import { buildOperationalSnapshot } from './lib/operationalSnapshotUtils'
 import {
   buildBrandDisplay,
@@ -1577,6 +1584,7 @@ function ScheduleView({
         name: saveWeekTemplateName.trim(),
         weekDays,
         weekShifts: currentWeekShifts,
+        weekCapacities: scheduleCapacities,
       })
       setIsSaveWeekTemplateModalOpen(false)
       setSaveWeekTemplateName('')
@@ -6169,7 +6177,7 @@ function App() {
     return remoteTemplates
   }
 
-  const handleSaveCurrentWeekTemplate = async ({ name, weekDays, weekShifts }) => {
+  const handleSaveCurrentWeekTemplate = async ({ name, weekDays, weekShifts, weekCapacities = [] }) => {
     if (!name?.trim()) {
       throw new Error('Template name is required.')
     }
@@ -6206,10 +6214,17 @@ function App() {
       return true
     })
 
-    await createWeeklyScheduleTemplate({
+    const createdTemplate = await createWeeklyScheduleTemplate({
       name: name.trim(),
       shifts: uniqueTemplateShifts,
     })
+
+    if (createdTemplate?.id) {
+      saveWeeklyTemplateCapacitySnapshot(
+        createdTemplate.id,
+        buildWeeklyTemplateCapacitySnapshot(weekDays, weekCapacities),
+      )
+    }
 
     await refreshWeeklyTemplates()
     setScheduleNotice('Weekly template saved.')
@@ -6246,6 +6261,8 @@ function App() {
       for (const existingShift of existingWeekShifts) {
         await deleteShift(existingShift.id)
       }
+
+      await deleteScheduleCapacitiesForDates(weekDays.map((day) => day.key))
 
       const created = []
       const createdKeySet = new Set()
@@ -6288,6 +6305,20 @@ function App() {
         created.push(savedShift)
       }
 
+      const savedCapacitySnapshot = mapWeeklyTemplateCapacitySnapshotToWeek(
+        getWeeklyTemplateCapacitySnapshot(templateId),
+        weekDays,
+      )
+
+      if (savedCapacitySnapshot.length > 0) {
+        await applyScheduleCapacitiesForWeek({
+          weekDays,
+          capacities: savedCapacitySnapshot,
+        })
+      } else {
+        await applyMinimumCapacitiesFromShifts(created)
+      }
+
       await refreshScheduleViewData()
       setScheduleNotice(`Weekly template loaded (${created.length} shift${created.length === 1 ? '' : 's'} created).`)
     } catch (error) {
@@ -6315,6 +6346,7 @@ function App() {
     }
 
     await deleteWeeklyScheduleTemplate(templateId)
+    deleteWeeklyTemplateCapacitySnapshot(templateId)
     await refreshWeeklyTemplates()
     setScheduleNotice('Weekly template deleted.')
   }
@@ -6351,6 +6383,8 @@ function App() {
       for (const existingShift of shifts.filter((shift) => targetDates.has(shift.date))) {
         await deleteShift(existingShift.id)
       }
+
+      await deleteScheduleCapacitiesForDates(targetWeekDays.map((day) => day.key))
 
       const created = []
       const dedupe = new Set()
@@ -6393,6 +6427,11 @@ function App() {
         const saved = await createShift(prepared, gridShiftOptions)
         created.push(saved)
       }
+
+      await copyScheduleCapacitiesForWeek({
+        sourceDateKeys: sourceWeekDays.map((day) => day.key),
+        targetDateKeys: targetWeekDays.map((day) => day.key),
+      })
 
       await refreshScheduleViewData()
       setScheduleNotice(`Copied ${created.length} shift${created.length === 1 ? '' : 's'} into the current week.`)
@@ -6519,9 +6558,16 @@ function App() {
         await deleteShift(existingShift.id)
       }
 
+      await deleteScheduleCapacitiesForDates(targetDateKeys)
+
       const created = await bulkCreateShiftsFromSource(sourceWeekShifts, (shift) => {
         const dayIndex = sourceByDate.get(shift.date)
         return targetDateByIndex.get(dayIndex)
+      })
+
+      await copyScheduleCapacitiesForWeek({
+        sourceDateKeys: sourceWeekDays.map((day) => day.key),
+        targetDateKeys: targetWeekDays.map((day) => day.key),
       })
 
       await refreshScheduleViewData()

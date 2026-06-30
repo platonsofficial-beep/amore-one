@@ -117,3 +117,102 @@ export async function upsertScheduleCapacity({ shiftTemplateId, shiftDate, requi
   console.log("Capacity save result", result)
   return result
 }
+
+export async function deleteScheduleCapacitiesForDates(shiftDates = []) {
+  const normalizedDates = [...new Set(
+    (shiftDates ?? []).map((item) => normalizeShiftDate(item)).filter(Boolean),
+  )]
+
+  if (normalizedDates.length === 0) {
+    return
+  }
+
+  const { error } = await supabase
+    .from(SCHEDULE_CAPACITY_TABLE)
+    .delete()
+    .in('shift_date', normalizedDates)
+
+  if (error) {
+    if (isTableUnavailableError(error)) {
+      return
+    }
+    throw new Error(error.message || 'Unable to clear schedule capacity right now.')
+  }
+}
+
+export async function copyScheduleCapacitiesForWeek({ sourceDateKeys = [], targetDateKeys = [] }) {
+  const sourceKeys = (sourceDateKeys ?? []).map((item) => normalizeShiftDate(item)).filter(Boolean)
+  const targetKeys = (targetDateKeys ?? []).map((item) => normalizeShiftDate(item)).filter(Boolean)
+
+  if (sourceKeys.length === 0 || targetKeys.length === 0 || sourceKeys.length !== targetKeys.length) {
+    return []
+  }
+
+  const sourceCapacities = await getScheduleCapacities({ shiftDates: sourceKeys })
+  const saved = []
+
+  for (const capacity of sourceCapacities) {
+    const dayIndex = sourceKeys.indexOf(capacity.shiftDate)
+    if (dayIndex < 0 || !targetKeys[dayIndex]) continue
+
+    const result = await upsertScheduleCapacity({
+      shiftTemplateId: capacity.shiftTemplateId,
+      shiftDate: targetKeys[dayIndex],
+      requiredCount: capacity.requiredCount,
+    })
+    saved.push(result)
+  }
+
+  return saved
+}
+
+export async function applyScheduleCapacitiesForWeek({ weekDays = [], capacities = [] }) {
+  const dayKeyToIndex = new Map((weekDays ?? []).map((day, index) => [normalizeShiftDate(day.key), index]))
+  const saved = []
+
+  for (const capacity of capacities ?? []) {
+    const dayIndex = dayKeyToIndex.get(normalizeShiftDate(capacity.shiftDate))
+    const targetDate = dayIndex === undefined ? '' : normalizeShiftDate(weekDays[dayIndex]?.key)
+    const shiftTemplateId = capacity.shiftTemplateId
+
+    if (!targetDate || !shiftTemplateId) continue
+
+    const result = await upsertScheduleCapacity({
+      shiftTemplateId,
+      shiftDate: targetDate,
+      requiredCount: capacity.requiredCount,
+    })
+    saved.push(result)
+  }
+
+  return saved
+}
+
+export async function applyMinimumCapacitiesFromShifts(shifts = []) {
+  const countsByCell = new Map()
+
+  ;(shifts ?? []).forEach((shift) => {
+    const shiftTemplateId = shift?.shiftTemplateId
+    const shiftDate = normalizeShiftDate(shift?.date)
+    if (!shiftTemplateId || !shiftDate) return
+
+    const key = `${String(shiftTemplateId)}|${shiftDate}`
+    countsByCell.set(key, (countsByCell.get(key) ?? 0) + 1)
+  })
+
+  const saved = []
+
+  for (const [key, assignedCount] of countsByCell.entries()) {
+    const [shiftTemplateId, shiftDate] = key.split('|')
+    if (!shiftTemplateId || !shiftDate || assignedCount <= 0) continue
+
+    const result = await upsertScheduleCapacity({
+      shiftTemplateId,
+      shiftDate,
+      requiredCount: assignedCount,
+    })
+    saved.push(result)
+  }
+
+  return saved
+}
