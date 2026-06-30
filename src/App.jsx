@@ -946,7 +946,6 @@ function ScheduleView({
   const [isScheduleMoreMenuOpen, setIsScheduleMoreMenuOpen] = useState(false)
   const [browseWeekShifts, setBrowseWeekShifts] = useState([])
   const [isBrowseWeekLoading, setIsBrowseWeekLoading] = useState(false)
-  const [weekPickerValue, setWeekPickerValue] = useState(weekStartDate)
   const [dragPayload, setDragPayload] = useState(null)
   const [dropTargetKey, setDropTargetKey] = useState('')
   const [pendingShiftDrop, setPendingShiftDrop] = useState(null)
@@ -970,7 +969,6 @@ function ScheduleView({
   )
 
   useEffect(() => {
-    setWeekPickerValue(weekStartDate)
     setCapacityDraftMap({})
     setCapacityPickerKey('')
     setSelectedDay(null)
@@ -2835,27 +2833,8 @@ function ScheduleView({
           >
             Next Week →
           </button>
-          <label className="schedule-toolbar-picker">
-            <span className="sr-only">Jump to week</span>
-            <input
-              type="date"
-              value={weekPickerValue}
-              onChange={(event) => {
-                const nextValue = event.target.value
-                setWeekPickerValue(nextValue)
-                if (!nextValue) return
-                onWeekStartDateChange(getWeekStartDate(parseLocalDate(nextValue)))
-              }}
-              disabled={isLoading || isSaving || isPublishing}
-            />
-          </label>
           <div className="schedule-toolbar-week-label">
             <strong>{weekRangeLabel(weekDays)}</strong>
-            <span className={`schedule-publication-badge ${
-              hasUnpublishedChanges ? 'pending' : isWeekPublished ? 'published' : 'draft'
-            }`}>
-              {hasUnpublishedChanges ? 'Unpublished changes' : isWeekPublished ? 'Published' : 'Draft'}
-            </span>
           </div>
         </div>
 
@@ -2872,8 +2851,7 @@ function ScheduleView({
             >
               {hasUnpublishedChanges ? 'Publish changes' : 'Publish'}
             </button>
-          ) : null}
-          {isWeekPublished ? (
+          ) : (
             <button
               type="button"
               className="ghost-btn"
@@ -2885,9 +2863,9 @@ function ScheduleView({
             >
               Unpublish
             </button>
-          ) : null}
+          )}
           <button type="button" className="primary-btn" onClick={() => handleOpenAddShiftForDate(selectedDate)} disabled={isSaving}>
-            {isSaving ? 'Saving…' : '+ Add Shift'}
+            {isSaving ? 'Saving…' : 'Add Shift'}
           </button>
           <div className="schedule-more-menu" onClick={(event) => event.stopPropagation()}>
             <button
@@ -8552,7 +8530,8 @@ function App() {
         </nav>
       </aside>
 
-      <main className="main-panel">
+      <main className={`main-panel${activeView === 'schedule' ? ' main-panel-schedule' : ''}`}>
+        {activeView !== 'schedule' ? (
         <header className="topbar">
           <div className="topbar-title-block">
             <p className="eyebrow">{topbarEyebrow}</p>
@@ -8584,8 +8563,9 @@ function App() {
             </button>
           </div>
         </header>
+        ) : null}
 
-        {activeView === 'dashboard' || activeView === 'schedule' ? (
+        {activeView === 'dashboard' ? (
           <OperationalSnapshot snapshot={operationalSnapshot} isLoading={isDashboardScheduleLoading} />
         ) : null}
 
