@@ -112,10 +112,7 @@ export async function getPublishedShifts(weekStartDate) {
 
   const { data, error } = await supabase
     .from(PUBLISHED_SHIFTS_TABLE)
-    .select(`
-      *,
-      employees(*)
-    `)
+    .select('*')
     .eq('week_start_date', normalizedWeekStartDate)
     .order('shift_date', { ascending: true })
     .order('start_time', { ascending: true })
@@ -149,9 +146,22 @@ export async function replacePublishedShifts({ publicationId, weekStartDate, dra
   }
 
   const publishOptions = { knownTemplateIds, requireTemplateId: true }
-  const payload = (draftShifts ?? [])
-    .map((shift) => serializePublishedShift({ publicationId, weekStartDate: normalizedWeekStartDate, shift }, publishOptions))
-    .filter((item) => item.shift_date && item.start_time && item.end_time)
+  const payload = []
+
+  for (const shift of draftShifts ?? []) {
+    try {
+      const serialized = serializePublishedShift(
+        { publicationId, weekStartDate: normalizedWeekStartDate, shift },
+        publishOptions,
+      )
+      if (serialized.shift_date && serialized.start_time && serialized.end_time) {
+        payload.push(serialized)
+      }
+    } catch (error) {
+      const shiftDate = normalizeShiftDate(shift?.date ?? shift?.shift_date) || 'unknown date'
+      throw new Error(`Unable to publish shift on ${shiftDate}: ${error?.message || 'Invalid shift data.'}`)
+    }
+  }
 
   if (payload.length === 0) {
     return []
@@ -160,10 +170,7 @@ export async function replacePublishedShifts({ publicationId, weekStartDate, dra
   const { data, error } = await supabase
     .from(PUBLISHED_SHIFTS_TABLE)
     .insert(payload)
-    .select(`
-      *,
-      employees(*)
-    `)
+    .select('*')
 
   if (error) {
     if (isTableUnavailableError(error)) {

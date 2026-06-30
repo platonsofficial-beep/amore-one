@@ -7,6 +7,7 @@ import {
 } from './publishedShiftService'
 
 const SCHEDULE_PUBLICATIONS_TABLE = 'schedule_publications'
+const SCHEDULE_PUBLICATION_COLUMNS = 'id, week_start_date, status, published_at, unpublished_at, created_at'
 
 function normalizeWeekStartDate(value) {
   if (!value) return ''
@@ -48,7 +49,7 @@ export async function getSchedulePublication(weekStartDate) {
 
   const { data, error } = await supabase
     .from(SCHEDULE_PUBLICATIONS_TABLE)
-    .select('id, week_start_date, status, published_at, unpublished_at, published_by, created_at')
+    .select(SCHEDULE_PUBLICATION_COLUMNS)
     .eq('week_start_date', normalizedWeekStartDate)
     .maybeSingle()
 
@@ -64,9 +65,16 @@ export async function getSchedulePublication(weekStartDate) {
 
 export async function getWeekSchedulePublicationState(weekStartDate) {
   const publication = await getSchedulePublication(weekStartDate)
-  const publishedShifts = publication?.status === 'published'
-    ? await getPublishedShifts(weekStartDate)
-    : []
+  let publishedShifts = []
+
+  if (publication?.status === 'published') {
+    try {
+      publishedShifts = await getPublishedShifts(weekStartDate)
+    } catch (error) {
+      console.error('[schedulePublicationService] getPublishedShifts failed:', error)
+      publishedShifts = []
+    }
+  }
 
   return {
     publication: publication ?? {
@@ -99,7 +107,7 @@ async function upsertSchedulePublicationRecord({ weekStartDate, status }) {
   const { data, error } = await supabase
     .from(SCHEDULE_PUBLICATIONS_TABLE)
     .upsert(payload, { onConflict: 'week_start_date' })
-    .select()
+    .select(SCHEDULE_PUBLICATION_COLUMNS)
     .single()
 
   if (error) {

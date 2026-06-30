@@ -1017,16 +1017,6 @@ function ScheduleView({
     }
   }, [copyWeekTargetDate, isCopyWeekModalOpen])
 
-  const isWeekPublished = schedulePublication?.status === 'published'
-  const hasUnpublishedChanges = isWeekPublished
-    && !draftMatchesPublishedSnapshot(visibleWeekShifts, publishedShifts)
-  const publicationStatusLabel = isWeekPublished
-    ? (hasUnpublishedChanges ? 'Published · Unpublished changes' : 'Published')
-    : 'Draft'
-  const publicationTimestampLabel = schedulePublication?.publishedAt
-    ? new Date(schedulePublication.publishedAt).toLocaleString('en-US')
-    : ''
-
   useEffect(() => {
     if (!selectedDay && weekDays.length > 0) {
       setSelectedDay(weekDays[0].key)
@@ -1126,6 +1116,16 @@ function ScheduleView({
     () => shifts.filter((shift) => weekDateKeys.includes(normalizeCellDate(shift.date))),
     [shifts, weekDateKeys],
   )
+
+  const isWeekPublished = schedulePublication?.status === 'published'
+  const hasUnpublishedChanges = isWeekPublished
+    && !draftMatchesPublishedSnapshot(visibleWeekShifts, publishedShifts)
+  const publicationStatusLabel = isWeekPublished
+    ? (hasUnpublishedChanges ? 'Published · Unpublished changes' : 'Published')
+    : 'Draft'
+  const publicationTimestampLabel = schedulePublication?.publishedAt
+    ? new Date(schedulePublication.publishedAt).toLocaleString('en-US')
+    : ''
 
   useEffect(() => {
     console.log("Visible week shifts", visibleWeekShifts)
@@ -1277,23 +1277,28 @@ function ScheduleView({
   }
 
   const handlePublishConfirm = async () => {
-    console.log("Publish clicked")
-    console.log("Publishing week", weekStartDate)
     if (!weekStartDate) {
       setPublishError('Week start date is missing for publish.')
       return
     }
+
     setIsPublishing(true)
     setPublishError('')
+
     try {
       const result = await onPublishWeekSchedule(weekStartDate, weekDateKeys)
-      console.log("Publish result", result)
+      if (!result?.publication || result.publication.status !== 'published') {
+        throw new Error('Publish did not complete. The week is still in draft.')
+      }
+
       setIsPublishConfirmOpen(false)
       setAssignmentError('')
       setPublishError('')
     } catch (error) {
-      setPublishError(error?.message || 'Unable to publish this week right now.')
-      console.error("Publish failed", error)
+      const message = error?.message || 'Unable to publish this week right now.'
+      setPublishError(message)
+      setAssignmentError(message)
+      console.error('[ScheduleView] publish failed:', error)
     } finally {
       setIsPublishing(false)
     }
@@ -1765,7 +1770,7 @@ function ScheduleView({
   }, [employees, shifts, weekDays])
 
   const employeePublishedWeekSchedule = useMemo(() => {
-    if (!isWeekPublished || publishedShifts.length === 0) return []
+    if (!isWeekPublished || !Array.isArray(publishedShifts) || publishedShifts.length === 0) return []
 
     const grouped = new Map()
     publishedShifts.forEach((shift) => {
@@ -3081,7 +3086,13 @@ function ScheduleView({
             <div className="blend-grid-table" style={{ gridTemplateColumns: `300px repeat(${weekDays.length}, minmax(190px, 1fr))` }}>
               <div className="blend-grid-header blend-grid-header-template">Shift template</div>
               {weekDays.map((day) => {
-                const daySummary = dayHeaderSummariesByKey[day.key]
+                const daySummary = dayHeaderSummariesByKey[day.key] ?? {
+                  totalAssignedStaff: 0,
+                  hoursLabel: '0',
+                  status: 'empty',
+                  statusLabel: 'Empty',
+                  statusIcon: '⚪',
+                }
                 return (
                 <div
                   key={`head-${day.key}`}
@@ -4372,6 +4383,7 @@ function ScheduleView({
 
       {isPublishConfirmOpen ? (
         <div className="employee-modal-backdrop" onClick={() => {
+          if (isPublishing) return
           setPublishError('')
           setIsPublishConfirmOpen(false)
         }}>
@@ -5426,16 +5438,22 @@ function App() {
   }
 
   const refreshSchedulePublication = async (weekStartDate = scheduleWeekStart) => {
-    const state = await getWeekSchedulePublicationState(weekStartDate)
-    setSchedulePublication(state.publication ?? {
-      weekStartDate,
-      status: 'draft',
-      publishedAt: null,
-      unpublishedAt: null,
-      publishedBy: null,
-    })
-    setPublishedShifts(state.publishedShifts ?? [])
-    return state
+    try {
+      const state = await getWeekSchedulePublicationState(weekStartDate)
+      setSchedulePublication(state.publication ?? {
+        weekStartDate,
+        status: 'draft',
+        publishedAt: null,
+        unpublishedAt: null,
+        publishedBy: null,
+      })
+      setPublishedShifts(Array.isArray(state.publishedShifts) ? state.publishedShifts : [])
+      return state
+    } catch (error) {
+      console.error('[App] refreshSchedulePublication failed:', error)
+      setScheduleNotice(error?.message || 'Unable to refresh published schedule status.')
+      return null
+    }
   }
 
   const handlePublishWeekSchedule = async (weekStartDate, weekDateKeys = []) => {
@@ -5443,17 +5461,27 @@ function App() {
     const weekDateSet = new Set(normalizedKeys.length > 0 ? normalizedKeys : getWeekDateKeys(weekStartDate))
     const draftWeekShifts = shifts.filter((shift) => weekDateSet.has(`${shift.date ?? ''}`.slice(0, 10)))
 
-    const result = await publishWeekSchedule({
-      weekStartDate,
-      weekDateKeys: Array.from(weekDateSet),
-      draftShifts: draftWeekShifts,
-      knownTemplateIds: buildKnownShiftTemplateIdSet(shiftTemplates),
-    })
+    try {
+      const result = await publishWeekSchedule({
+        weekStartDate,
+        weekDateKeys: Array.from(weekDateSet),
+        draftShifts: draftWeekShifts,
+        knownTemplateIds: buildKnownShiftTemplateIdSet(shiftTemplates),
+      })
 
-    setSchedulePublication(result.publication)
-    setPublishedShifts(result.publishedShifts)
-    setScheduleNotice(result.publication?.status === 'published' ? 'Schedule published for employees.' : 'Schedule updated.')
-    return result
+      if (!result?.publication) {
+        throw new Error('Publish did not return a publication record.')
+      }
+
+      setSchedulePublication(result.publication)
+      setPublishedShifts(Array.isArray(result.publishedShifts) ? result.publishedShifts : [])
+      setScheduleNotice(result.publication.status === 'published' ? 'Schedule published for employees.' : 'Schedule updated.')
+      return result
+    } catch (error) {
+      const message = error?.message || 'Unable to publish this week right now.'
+      setScheduleNotice(message)
+      throw error
+    }
   }
 
   const handleUnpublishWeekSchedule = async (weekStartDate) => {
@@ -6480,8 +6508,10 @@ function App() {
     const [remoteShifts] = await Promise.all([
       refreshScheduleShifts(weekStartDate),
       refreshScheduleCapacities(weekStartDate),
-      refreshSchedulePublication(weekStartDate),
     ])
+
+    await refreshSchedulePublication(weekStartDate)
+
     return remoteShifts
   }
 
