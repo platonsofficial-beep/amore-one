@@ -20,6 +20,7 @@ import {
   getWeekStartDate,
   isCurrentWeek,
   parseLocalDate,
+  formatScheduleDayHeader,
 } from './lib/weekUtils'
 import {
   buildKnownShiftTemplateIdSet,
@@ -1714,22 +1715,6 @@ function ScheduleView({
     return { label: 'Night', className: 'shift-indicator night' }
   }
 
-  const getTemplatePresentation = (template) => {
-    const templateName = `${template?.name ?? ''}`.trim()
-    const normalized = templateName.toLowerCase()
-    const startMinutes = parseTimeToMinutes(template?.startTime)
-
-    if (normalized.includes('morning') || startMinutes < 12 * 60) {
-      return { icon: '☀', label: 'Morning' }
-    }
-
-    if (normalized.includes('evening') || (startMinutes >= 12 * 60 && startMinutes < 20 * 60)) {
-      return { icon: '🌙', label: 'Evening' }
-    }
-
-    return { icon: '🌃', label: 'Night' }
-  }
-
   const getShiftStatusClass = (status) => {
     if (!status) return 'scheduled'
     const normalized = `${status}`.toLowerCase()
@@ -2842,19 +2827,19 @@ function ScheduleView({
           {hasUnpublishedChanges || !isWeekPublished ? (
             <button
               type="button"
-              className="primary-btn"
+              className="primary-btn schedule-publish-btn"
               onClick={() => {
                 setPublishError('')
                 setIsPublishConfirmOpen(true)
               }}
               disabled={isSaving || isPublishing}
             >
-              {hasUnpublishedChanges ? 'Publish changes' : 'Publish'}
+              {hasUnpublishedChanges ? 'Publish changes' : 'Publish Schedule'}
             </button>
           ) : (
             <button
               type="button"
-              className="ghost-btn"
+              className="ghost-btn schedule-unpublish-btn"
               onClick={() => {
                 setPublishError('')
                 setIsUnpublishConfirmOpen(true)
@@ -2864,7 +2849,7 @@ function ScheduleView({
               Unpublish
             </button>
           )}
-          <button type="button" className="primary-btn" onClick={() => handleOpenAddShiftForDate(selectedDate)} disabled={isSaving}>
+          <button type="button" className="ghost-btn schedule-add-shift-btn" onClick={() => handleOpenAddShiftForDate(selectedDate)} disabled={isSaving}>
             {isSaving ? 'Saving…' : 'Add Shift'}
           </button>
           <div className="schedule-more-menu" onClick={(event) => event.stopPropagation()}>
@@ -2911,10 +2896,6 @@ function ScheduleView({
         ) : (
           <>
           <div className="schedule-staff-strip">
-            <div className="schedule-staff-strip-header">
-              <p className="eyebrow">Staff</p>
-              <span className="schedule-staff-strip-hint">Drag staff onto any shift cell</span>
-            </div>
             <div className="schedule-staff-strip-scroll">
               {activeStaffMembers.length === 0 ? (
                 <p className="schedule-staff-strip-empty">No active employees available.</p>
@@ -2935,29 +2916,19 @@ function ScheduleView({
                       draggable={!isDragDropDisabled}
                       onDragStart={(event) => handleEmployeeDragStart(event, employee)}
                       onDragEnd={handleDragEnd}
-                      aria-label={`Assign ${employeeName}, ${hoursTracker.primaryLabel}, ${hoursTracker.secondaryLabel}`}
+                      aria-label={`Assign ${employeeName}, ${hoursTracker.primaryLabel}, ${positionLabel}`}
                     >
-                      <span className="schedule-staff-chip-main">
-                        <span className="schedule-staff-chip-avatar">{getInitials(employeeName)}</span>
-                        <span className="schedule-staff-chip-copy">
-                          <strong>{firstName} · {positionLabel}</strong>
+                      <span className="schedule-staff-chip-avatar">{getInitials(employeeName)}</span>
+                      <span className="schedule-staff-chip-body">
+                        <strong className="schedule-staff-chip-name">{firstName}</strong>
+                        <span className="schedule-staff-chip-role">{positionLabel}</span>
+                        <span className="schedule-staff-hours-bar" aria-hidden="true">
+                          <span
+                            className={`schedule-staff-hours-bar-fill ${hoursTracker.status}`}
+                            style={{ width: `${hoursTracker.barWidth}%` }}
+                          />
                         </span>
-                      </span>
-                      <span className="schedule-staff-hours-track">
-                        {hoursTracker.hasTarget ? (
-                          <span className="schedule-staff-hours-bar" aria-hidden="true">
-                            <span
-                              className={`schedule-staff-hours-bar-fill ${hoursTracker.status}`}
-                              style={{ width: `${hoursTracker.barWidth}%` }}
-                            />
-                          </span>
-                        ) : null}
-                        <span className="schedule-staff-hours-meta">
-                          <span className="schedule-staff-hours-primary">{hoursTracker.primaryLabel}</span>
-                          <span className={`schedule-staff-hours-secondary ${hoursTracker.status}`}>
-                            {hoursTracker.secondaryLabel}
-                          </span>
-                        </span>
+                        <span className="schedule-staff-hours-primary">{hoursTracker.primaryLabel}</span>
                       </span>
                     </button>
                   )
@@ -2977,6 +2948,7 @@ function ScheduleView({
                   statusLabel: 'Empty',
                   statusIcon: '⚪',
                 }
+                const dayHeader = formatScheduleDayHeader(day.key)
                 return (
                 <div
                   key={`head-${day.key}`}
@@ -2987,8 +2959,8 @@ function ScheduleView({
                     className="blend-grid-header-day-select"
                     onClick={() => setSelectedDay(day.key)}
                   >
-                    <strong>{day.label}</strong>
-                    <span className="blend-grid-header-day-date">{day.shortDate}</span>
+                    <strong className="blend-grid-header-day-name">{dayHeader.weekdayLabel}</strong>
+                    <span className="blend-grid-header-day-date">{dayHeader.calendarLabel}</span>
                     <div className="blend-grid-header-day-metrics" aria-label={`${daySummary.totalAssignedStaff} staff, ${daySummary.hoursLabel} hours`}>
                       <span className="blend-grid-header-day-metric">👥 {daySummary.totalAssignedStaff}</span>
                       <span className="blend-grid-header-day-metric">⏱ {daySummary.hoursLabel}h</span>
@@ -3037,9 +3009,18 @@ function ScheduleView({
               {blendGridRows.map((row) => (
                 <Fragment key={`row-${row.template.id}`}>
                   {(() => {
-                    const templatePresentation = getTemplatePresentation(row.template)
+                    const templateDepartment = `${row.template.defaultArea || row.template.defaultRole || 'General'}`.trim().toUpperCase()
+                    const requiredCounts = row.dayCells.map((cell) => cell.requiredCount)
+                    const minRequired = requiredCounts.length > 0 ? Math.min(...requiredCounts) : null
+                    const maxRequired = requiredCounts.length > 0 ? Math.max(...requiredCounts) : null
+                    const requiredLabel = minRequired === null
+                      ? null
+                      : minRequired === maxRequired
+                        ? `Required: ${minRequired}`
+                        : `Required: ${minRequired}–${maxRequired}`
+
                     return (
-                  <aside key={`template-${row.template.id}`} className="blend-grid-template-cell">
+                  <aside key={`template-${row.template.id}`} className="blend-grid-template-cell blend-grid-palette-card">
                     <div className="template-card-actions">
                       <button
                         type="button"
@@ -3065,12 +3046,11 @@ function ScheduleView({
                         </div>
                       ) : null}
                     </div>
-                    <strong>
-                      {templatePresentation.icon} {templatePresentation.label}
-                    </strong>
-                    <p className="blend-grid-template-department">{(row.template.defaultArea || row.template.defaultRole || 'General').toUpperCase()}</p>
-                    {row.template.notes ? <p className="blend-grid-template-break">{row.template.notes}</p> : null}
-                    <span>{formatTimeRange24(row.template.startTime, row.template.endTime)}</span>
+                    <span className="blend-grid-palette-grip" aria-hidden="true">⠿</span>
+                    <p className="blend-grid-palette-department">{templateDepartment}</p>
+                    <p className="blend-grid-palette-time">{formatTimeRange24(row.template.startTime, row.template.endTime, ' – ')}</p>
+                    {requiredLabel ? <p className="blend-grid-palette-required">{requiredLabel}</p> : null}
+                    <p className="blend-grid-palette-name">{row.template.name}</p>
                   </aside>
                     )
                   })()}

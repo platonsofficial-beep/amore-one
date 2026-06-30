@@ -840,6 +840,19 @@
   justify-content: flex-end;
 }
 
+.schedule-publish-btn {
+  min-width: 148px;
+  padding: 11px 18px;
+  font-size: 0.88rem;
+  letter-spacing: 0.01em;
+  box-shadow: 0 8px 22px rgba(212, 175, 55, 0.22);
+}
+
+.schedule-unpublish-btn,
+.schedule-add-shift-btn {
+  padding: 10px 14px;
+}
+
 .schedule-toolbar-nav-btn {
   white-space: nowrap;
 }
@@ -943,19 +956,21 @@
 }
 
 .schedule-grid-hero {
-  flex: 1 1 auto;
-  min-height: min(78vh, 960px);
-  padding: 12px 14px 16px;
+  flex: 0 1 auto;
+  min-height: 0;
+  padding: 12px 14px 10px;
   margin-top: 0;
 }
 
 .schedule-grid-hero .blend-grid-scroll {
-  min-height: min(62vh, 820px);
+  min-height: min(58vh, 720px);
 }
 
 .schedule-grid-hero .schedule-staff-strip {
-  margin-bottom: 10px;
-  padding: 10px 12px;
+  margin-bottom: 8px;
+  padding: 0;
+  border: 0;
+  background: transparent;
 }
 
 .schedule-stats-collapsible,
@@ -963,6 +978,11 @@
 .schedule-employee-view-collapsible,
 .schedule-roster-collapsible {
   opacity: 0.96;
+  margin-top: 6px;
+}
+
+.blend-grid-panel {
+  padding-bottom: 0;
 }
 
 .staff-header-card {
@@ -1751,31 +1771,17 @@ input[type='time']::-webkit-datetime-edit-text {
 }
 
 .schedule-staff-strip {
-  margin-bottom: 14px;
-  padding: 12px 14px;
-  border-radius: 14px;
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  background: rgba(255, 255, 255, 0.025);
-}
-
-.schedule-staff-strip-header {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 10px;
-}
-
-.schedule-staff-strip-hint {
-  color: #a79e91;
-  font-size: 0.78rem;
+  margin-bottom: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
 }
 
 .schedule-staff-strip-scroll {
   display: flex;
-  gap: 8px;
+  gap: 10px;
   overflow-x: auto;
-  padding-bottom: 4px;
+  padding-bottom: 2px;
 }
 
 .schedule-staff-strip-empty {
@@ -1787,23 +1793,24 @@ input[type='time']::-webkit-datetime-edit-text {
 .schedule-staff-chip {
   flex: 0 0 auto;
   display: inline-flex;
-  flex-direction: column;
-  align-items: stretch;
-  gap: 6px;
-  min-width: 148px;
-  max-width: 188px;
-  border: 1px solid rgba(212, 175, 55, 0.22);
-  background: rgba(212, 175, 55, 0.08);
+  align-items: center;
+  gap: 10px;
+  min-width: 156px;
+  max-width: 196px;
+  border: 1px solid rgba(212, 175, 55, 0.24);
+  background: linear-gradient(160deg, rgba(212, 175, 55, 0.12), rgba(12, 12, 13, 0.88));
   border-radius: 14px;
-  padding: 8px 10px;
+  padding: 10px 12px;
   cursor: grab;
   color: inherit;
   font: inherit;
   text-align: left;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.14);
 }
 
 .schedule-staff-chip:hover {
-  background: rgba(212, 175, 55, 0.14);
+  border-color: rgba(212, 175, 55, 0.42);
+  background: linear-gradient(160deg, rgba(212, 175, 55, 0.18), rgba(12, 12, 13, 0.92));
 }
 
 .schedule-staff-chip.dragging {
@@ -1811,16 +1818,9 @@ input[type='time']::-webkit-datetime-edit-text {
   cursor: grabbing;
 }
 
-.schedule-staff-chip-main {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  min-width: 0;
-}
-
 .schedule-staff-chip-avatar {
-  width: 32px;
-  height: 32px;
+  width: 36px;
+  height: 36px;
   flex: 0 0 auto;
   display: grid;
   place-items: center;
@@ -1828,100 +1828,70 @@ input[type='time']::-webkit-datetime-edit-text {
   background: linear-gradient(135deg, #f3d28d 0%, #c9982d 100%);
   color: #170f04;
   font-weight: 700;
-  font-size: 0.72rem;
+  font-size: 0.74rem;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.18);
 }
 
-.schedule-staff-chip-copy {
+.schedule-staff-chip-body {
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
-  gap: 1px;
+  gap: 3px;
   min-width: 0;
+  flex: 1 1 auto;
 }
 
-.schedule-staff-chip-copy strong {
+.schedule-staff-chip-name {
   color: #fff7e8;
-  font-size: 0.82rem;
-  line-height: 1.25;
+  font-size: 0.84rem;
+  line-height: 1.2;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 120px;
 }
 
-.schedule-staff-chip-copy span {
-  color: #bfb39f;
-  font-size: 0.74rem;
-}
-
-.schedule-staff-hours-track {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  width: 100%;
+.schedule-staff-chip-role {
+  color: #b8ad9c;
+  font-size: 0.72rem;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .schedule-staff-hours-bar {
-  height: 6px;
+  width: 100%;
+  height: 4px;
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.08);
   overflow: hidden;
+  margin-top: 2px;
 }
 
 .schedule-staff-hours-bar-fill {
   display: block;
   height: 100%;
-  border-radius: 999px;
-  width: 0;
-  transition: width 0.35s ease, background 0.25s ease;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #d4af37 0%, #f3d28d 100%);
+  transition: width 0.2s ease;
 }
 
 .schedule-staff-hours-bar-fill.under {
-  background: linear-gradient(90deg, #c9982d 0%, #f3d28d 100%);
+  background: linear-gradient(90deg, #8ea6d4 0%, #b8c9ef 100%);
 }
 
 .schedule-staff-hours-bar-fill.complete {
-  background: linear-gradient(90deg, #2f9b62 0%, #5fd38d 100%);
+  background: linear-gradient(90deg, #73b86d 0%, #a8e0a2 100%);
 }
 
 .schedule-staff-hours-bar-fill.over {
-  background: linear-gradient(90deg, #c0392b 0%, #f07167 100%);
-}
-
-.schedule-staff-hours-meta {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 8px;
-  font-size: 0.72rem;
-  line-height: 1.2;
+  background: linear-gradient(90deg, #d47a6a 0%, #f0a89a 100%);
 }
 
 .schedule-staff-hours-primary {
-  color: #e8dcc8;
+  color: #d8c8ad;
+  font-size: 0.68rem;
   font-weight: 600;
-}
-
-.schedule-staff-hours-secondary {
-  color: #bfb39f;
-  white-space: nowrap;
-}
-
-.schedule-staff-hours-secondary.under {
-  color: #e8d4a8;
-}
-
-.schedule-staff-hours-secondary.complete {
-  color: #7fd9a4;
-}
-
-.schedule-staff-hours-secondary.over {
-  color: #ff9f97;
-}
-
-.schedule-staff-hours-secondary.none {
-  color: #a79e91;
-  font-style: italic;
+  letter-spacing: 0.02em;
 }
 
 .weekly-template-panel {
@@ -2039,8 +2009,17 @@ input[type='time']::-webkit-datetime-edit-text {
 }
 
 .blend-grid-header-day-date {
-  font-size: 0.76rem;
-  color: #a79e91;
+  font-size: 0.74rem;
+  color: #d8c8ad;
+  line-height: 1.25;
+  letter-spacing: 0.04em;
+  font-weight: 600;
+}
+
+.blend-grid-header-day-name {
+  font-size: 0.72rem;
+  letter-spacing: 0.12em;
+  color: #f7efe1;
   line-height: 1.2;
 }
 
@@ -2129,12 +2108,6 @@ input[type='time']::-webkit-datetime-edit-text {
   z-index: 4;
 }
 
-.blend-grid-header-day strong {
-  font-size: 0.95rem;
-  color: #fff7e8;
-  line-height: 1.2;
-}
-
 .blend-grid-header-day.active {
   border-color: rgba(212, 175, 55, 0.52);
   box-shadow: inset 0 0 0 1px rgba(212, 175, 55, 0.35);
@@ -2143,13 +2116,65 @@ input[type='time']::-webkit-datetime-edit-text {
 .blend-grid-template-cell {
   position: relative;
   border-radius: 16px;
-  border: 1px solid rgba(212, 175, 55, 0.26);
-  background: linear-gradient(165deg, rgba(212, 175, 55, 0.14), rgba(212, 175, 55, 0.05));
-  padding: 14px 14px 13px;
+  border: 1px solid rgba(212, 175, 55, 0.28);
+  background: linear-gradient(165deg, rgba(212, 175, 55, 0.16), rgba(12, 12, 13, 0.92));
+  padding: 16px 14px 14px;
   display: flex;
   flex-direction: column;
-  gap: 7px;
-  min-height: 176px;
+  gap: 6px;
+  min-height: 148px;
+  cursor: grab;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.16);
+}
+
+.blend-grid-palette-card {
+  justify-content: center;
+}
+
+.blend-grid-palette-grip {
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: rgba(212, 175, 55, 0.45);
+  font-size: 0.9rem;
+  line-height: 1;
+  pointer-events: none;
+}
+
+.blend-grid-palette-department {
+  margin: 0 0 0 18px;
+  color: #f5e2bc !important;
+  letter-spacing: 0.14em;
+  font-weight: 700;
+  font-size: 0.82rem !important;
+  line-height: 1.2;
+}
+
+.blend-grid-palette-time {
+  margin: 0 0 0 18px;
+  color: #e8dcc6 !important;
+  font-size: 0.86rem !important;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.blend-grid-palette-required {
+  margin: 2px 0 0 18px;
+  color: #c4b49a !important;
+  font-size: 0.74rem !important;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.blend-grid-palette-name {
+  margin: 4px 0 0 18px;
+  color: #8f8778 !important;
+  font-size: 0.72rem !important;
+  line-height: 1.3;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .template-card-actions {

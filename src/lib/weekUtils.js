@@ -60,6 +60,14 @@ export function formatWeekRange(days) {
   return `${days[0].shortDate} – ${days[days.length - 1].shortDate}`
 }
 
+export function formatScheduleDayHeader(dateKey) {
+  const date = parseLocalDate(dateKey)
+  return {
+    weekdayLabel: date.toLocaleDateString('en-US', { weekday: 'long' }).toUpperCase(),
+    calendarLabel: `${date.getDate()} ${date.toLocaleDateString('en-US', { month: 'long' }).toUpperCase()}`,
+  }
+}
+
 export function getCurrentWeekStartDate() {
   return getWeekStartDate(new Date())
 }
