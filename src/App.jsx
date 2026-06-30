@@ -1,13 +1,40 @@
-import { Fragment, useEffect, useMemo, useState } from 'react'
+import { Fragment, useEffect, useMemo, useRef, useState } from 'react'
 import './App.css'
 import { createEmployee, deleteEmployee, getEmployees, updateEmployee } from './services/staffService'
 import { createShift, deleteShift, getShifts, updateShift } from './services/scheduleService'
 import { createShiftTemplate, deleteShiftTemplate, getShiftTemplates, updateShiftTemplate } from './services/shiftTemplateService'
+import { getScheduleCapacities, upsertScheduleCapacity } from './services/scheduleCapacityService'
+import { draftMatchesPublishedSnapshot } from './services/publishedShiftService'
+import { getWeekSchedulePublicationState, publishWeekSchedule, unpublishWeekSchedule } from './services/schedulePublicationService'
 import { createPosition, deletePosition, getPositions, reorderPositions, updatePosition } from './services/positionsService'
 import { createWeeklyScheduleTemplate, deleteWeeklyScheduleTemplate, getWeeklyScheduleTemplates, getWeeklyTemplateShifts, renameWeeklyScheduleTemplate } from './services/weeklyScheduleTemplateService'
 import { createReservation, deleteReservation, getReservations, updateReservation } from './services/reservationService'
 import { createInventoryItem, deleteInventoryItem, getInventoryItems, updateInventoryItem } from './services/inventoryService'
 import { createSupplier, deleteSupplier, getSuppliers, updateSupplier } from './services/supplierService'
+import {
+  addWeeks,
+  formatWeekRange,
+  getCurrentWeekStartDate,
+  getWeekDateKeys,
+  getWeekDays,
+  getWeekStartDate,
+  isCurrentWeek,
+  parseLocalDate,
+} from './lib/weekUtils'
+import {
+  buildKnownShiftTemplateIdSet,
+  prepareShiftForSave,
+  resolveShiftTemplateId,
+} from './lib/shiftIntegrity'
+import {
+  getEmployeeFirstName,
+  getEmployeePositionNames,
+  getEmployeePrimaryPosition,
+  inferAreaFromTemplate,
+  isEmployeeAssignedInCell,
+  isEmployeeUnavailable,
+  resolvePositionForDrop,
+} from './lib/scheduleDropUtils'
 
 const navItems = [
   { id: 'dashboard', label: 'Dashboard', icon: '◈' },
@@ -70,9 +97,77 @@ const initialStaffEmployees = [
 ]
 
 const filters = ['All', 'Bar', 'Service', 'Kitchen', 'Management']
+const defaultStaffPositionOptions = [
+  'Bar',
+  'Service',
+  'Food Runner',
+  'Drink Runner',
+  'Host',
+  'Kitchen',
+  'Cashier',
+  'Manager',
+]
 const inventoryCategories = ['Spirits', 'Wines', 'Beers', 'Soft Drinks', 'Coffee', 'Bar Supplies', 'Kitchen', 'Other']
 const inventoryStatuses = ['In Stock', 'Low Stock', 'Out of Stock']
-const scheduleAreaOptions = ['Bar', 'Service', 'Terrace', 'VIP', 'Lounge', 'Garden', 'Kitchen', 'Reception', 'Other']
+const scheduleAreaOptions = ['Bar', 'Service', 'Terrace', 'VIP', 'Lounge', 'Garden', 'Kitchen', 'Reception', 'Host', 'Management', 'Other']
+const areaPositionCatalog = {
+  Bar: ['Bartender', 'Bar Service / PDA', 'Barback', 'Coffee', 'Bar Manager'],
+  Service: ['Waiter', 'Food Runner', 'Drink Runner', 'Head Waiter', 'Host / Hostess'],
+  Terrace: ['Waiter', 'Food Runner', 'Drink Runner'],
+  VIP: ['Head Waiter', 'Host / Hostess', 'Waiter'],
+  Garden: ['Waiter', 'Food Runner', 'Drink Runner'],
+  Kitchen: ['Head Chef', 'Sous Chef', 'Line Cook', 'Pastry Chef', 'Kitchen Porter'],
+}
+
+function inferPositionDepartment(name) {
+  const normalized = `${name ?? ''}`.trim().toLowerCase()
+  if (!normalized) return 'Other'
+
+  if (normalized.includes('bar')) return 'Bar'
+  if (normalized.includes('kitchen') || normalized.includes('chef') || normalized.includes('cook')) return 'Kitchen'
+  if (normalized.includes('manager')) return 'Management'
+  if (normalized.includes('host') || normalized.includes('service') || normalized.includes('runner') || normalized.includes('waiter')) return 'Service'
+  return 'Other'
+}
+
+function buildEmployeePositionOptions(positions = []) {
+  const merged = []
+  const seen = new Set()
+
+  const addPosition = (position) => {
+    const name = `${position?.name ?? ''}`.trim()
+    if (!name) return
+    const key = name.toLowerCase()
+    if (seen.has(key)) return
+
+    seen.add(key)
+    merged.push({
+      id: position?.id ?? null,
+      name,
+      department: position?.department ?? inferPositionDepartment(name),
+      sortOrder: position?.sortOrder ?? Number.MAX_SAFE_INTEGER,
+    })
+  }
+
+  defaultStaffPositionOptions.forEach((name, index) => {
+    const existing = (positions ?? []).find((position) => `${position.name ?? ''}`.trim().toLowerCase() === name.toLowerCase())
+    addPosition(existing ?? {
+      id: null,
+      name,
+      department: inferPositionDepartment(name),
+      sortOrder: index + 1,
+    })
+  })
+
+  ;(positions ?? []).forEach((position) => addPosition(position))
+
+  return merged.sort((a, b) => {
+    const sortA = Number.isFinite(Number(a.sortOrder)) ? Number(a.sortOrder) : Number.MAX_SAFE_INTEGER
+    const sortB = Number.isFinite(Number(b.sortOrder)) ? Number(b.sortOrder) : Number.MAX_SAFE_INTEGER
+    if (sortA !== sortB) return sortA - sortB
+    return a.name.localeCompare(b.name)
+  })
+}
 
 function composeShiftTemplates(remoteTemplates = []) {
   return [
@@ -95,6 +190,22 @@ function buildTemplateForm(template = null) {
     defaultRole: template?.defaultRole ?? '',
     defaultArea: template?.defaultArea ?? '',
     notes: template?.notes ?? '',
+  }
+}
+
+function getGridShiftIntegrityOptions(shiftTemplates) {
+  return {
+    knownTemplateIds: buildKnownShiftTemplateIdSet(shiftTemplates),
+    requireTemplateId: true,
+    shiftTemplatesForInference: shiftTemplates,
+  }
+}
+
+function getLegacyShiftIntegrityOptions(shiftTemplates, { requireTemplateId = false } = {}) {
+  return {
+    knownTemplateIds: buildKnownShiftTemplateIdSet(shiftTemplates),
+    requireTemplateId,
+    shiftTemplatesForInference: shiftTemplates,
   }
 }
 
@@ -267,6 +378,74 @@ function formatTime24(value, fallback = '—') {
   return normalized || fallback
 }
 
+const APP_NAME = typeof __APP_NAME__ !== 'undefined' ? __APP_NAME__ : 'Amore One'
+const APP_VERSION = typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : 'v0.0.0'
+const APP_BUILD_NUMBER = typeof __BUILD_NUMBER__ !== 'undefined' ? __BUILD_NUMBER__ : '0'
+const APP_BUILD_DATE = typeof __BUILD_DATE__ !== 'undefined' ? __BUILD_DATE__ : new Date().toISOString()
+
+function formatBuildDateDisplay(value, withDash = true) {
+  const parsed = new Date(value)
+  if (Number.isNaN(parsed.getTime())) return 'Unknown build time'
+
+  const day = String(parsed.getDate()).padStart(2, '0')
+  const month = parsed.toLocaleDateString('en-GB', { month: 'short' })
+  const year = parsed.getFullYear()
+  const hours = String(parsed.getHours()).padStart(2, '0')
+  const minutes = String(parsed.getMinutes()).padStart(2, '0')
+
+  if (withDash) {
+    return `${day} ${month} ${year} - ${hours}:${minutes}`
+  }
+
+  return `${day} ${month} ${year} ${hours}:${minutes}`
+}
+
+function BuildInfoBadge({ compact = false }) {
+  const [copyMessage, setCopyMessage] = useState('')
+  const displayDate = formatBuildDateDisplay(APP_BUILD_DATE)
+
+  const handleCopyBuildInfo = async () => {
+    const copyText = [
+      APP_NAME,
+      `Version: ${APP_VERSION}`,
+      `Build: #${APP_BUILD_NUMBER}`,
+      `Date: ${formatBuildDateDisplay(APP_BUILD_DATE, false)}`,
+    ].join('\n')
+
+    try {
+      if (navigator?.clipboard?.writeText) {
+        await navigator.clipboard.writeText(copyText)
+      } else {
+        const fallbackTextArea = document.createElement('textarea')
+        fallbackTextArea.value = copyText
+        document.body.appendChild(fallbackTextArea)
+        fallbackTextArea.select()
+        document.execCommand('copy')
+        document.body.removeChild(fallbackTextArea)
+      }
+
+      setCopyMessage('Copied')
+      setTimeout(() => setCopyMessage(''), 1800)
+    } catch (_error) {
+      setCopyMessage('Copy failed')
+      setTimeout(() => setCopyMessage(''), 1800)
+    }
+  }
+
+  return (
+    <div className={`build-info-badge ${compact ? 'compact' : ''}`}>
+      <div>
+        <p className="build-info-name">{APP_NAME}</p>
+        <p className="build-info-version">{APP_VERSION}</p>
+        <p className="build-info-build">Build #{APP_BUILD_NUMBER}</p>
+        <p className="build-info-date">{displayDate}</p>
+      </div>
+      <button type="button" className="ghost-btn small build-copy-btn" onClick={handleCopyBuildInfo}>Copy Build Info</button>
+      {copyMessage ? <small className="build-copy-note">{copyMessage}</small> : null}
+    </div>
+  )
+}
+
 function normalizeNumericValue(value) {
   if (value === null || value === undefined || value === '') return null
 
@@ -312,11 +491,25 @@ function buildEmployeeForm(employee = null) {
     return 'Flexible / Rotating'
   }
 
+  const availablePositionNames = Array.isArray(employee?.positions)
+    ? employee.positions.map((position) => `${position?.name ?? ''}`.trim()).filter(Boolean)
+    : `${employee?.position ?? ''}`
+      .split(',')
+      .map((name) => name.trim())
+      .filter(Boolean)
+
+  const primaryPosition = `${employee?.primaryPosition ?? availablePositionNames[0] ?? ''}`.trim()
+  const additionalPositions = Array.from(new Set(
+    (Array.isArray(employee?.additionalPositions) ? employee.additionalPositions : availablePositionNames.slice(1))
+      .map((name) => `${name ?? ''}`.trim())
+      .filter((name) => name && name.toLowerCase() !== primaryPosition.toLowerCase()),
+  ))
+
   return {
     fullName: employee?.name ?? '',
-    positions: Array.isArray(employee?.positions)
-      ? employee.positions.map((position) => String(position.id ?? position.name)).filter(Boolean)
-      : [],
+    primaryPosition,
+    additionalPositions,
+    customPositionName: '',
     phone: employee?.phone ?? '',
     email: employee?.email ?? '',
     hireDate: toDateInputValue(employee?.hireDate ?? ''),
@@ -525,7 +718,44 @@ function StaffView({
   )
 }
 
-function ScheduleView({ shifts, employees, positions, shiftTemplates, weeklyTemplates, onOpenAddShift, onOpenEditShift, onDeleteShift, onCreateGridShift, onUpdateGridShift, onRemoveGridShift, onCopyShiftToNextDay, onCopyShiftToRestOfWeek, onSaveCurrentWeekTemplate, onLoadWeeklyTemplate, onRenameWeeklyTemplate, onDeleteWeeklyTemplate, isLoading, noticeMessage, isSaving }) {
+function ScheduleView({
+  shifts,
+  scheduleCapacities,
+  employees,
+  positions,
+  shiftTemplates,
+  weeklyTemplates,
+  onOpenAddShift,
+  onOpenEditShift,
+  onDeleteShift,
+  onCreateGridShift,
+  onUpdateGridShift,
+  onMoveGridShift,
+  onCopyGridShift,
+  onRemoveGridShift,
+  onCopyShiftToNextDay,
+  onCopyShiftToRestOfWeek,
+  onSaveCurrentWeekTemplate,
+  onLoadWeeklyTemplate,
+  onRenameWeeklyTemplate,
+  onDeleteWeeklyTemplate,
+  onUpdateCellCapacity,
+  onApplyAreaToTemplate,
+  onRenameShiftTemplate,
+  onEditShiftTemplate,
+  onDuplicateShiftTemplate,
+  onDeleteShiftTemplate,
+  onCopyHistoricalWeek,
+  schedulePublication,
+  publishedShifts,
+  weekStartDate,
+  onWeekStartDateChange,
+  onPublishWeekSchedule,
+  onUnpublishWeekSchedule,
+  isLoading,
+  noticeMessage,
+  isSaving,
+}) {
   const [selectedDay, setSelectedDay] = useState(null)
   const [selectedShift, setSelectedShift] = useState(null)
   const [filters, setFilters] = useState({
@@ -536,14 +766,28 @@ function ScheduleView({ shifts, employees, positions, shiftTemplates, weeklyTemp
   })
   const [isAssignmentModalOpen, setIsAssignmentModalOpen] = useState(false)
   const [assignmentError, setAssignmentError] = useState('')
+  const [assignmentFieldErrors, setAssignmentFieldErrors] = useState({})
+  const [assignmentMissingFields, setAssignmentMissingFields] = useState([])
   const [assignmentDraft, setAssignmentDraft] = useState({
     templateId: '',
+    templateName: '',
     shiftDate: '',
-    employeeId: '',
+    employeeIds: [],
+    area: '',
+    defaultRole: '',
+    startTime: '',
+    endTime: '',
     positionName: '',
+    templateAreaMissing: false,
     notes: '',
-    showAllEmployees: false,
   })
+  const [assignmentEmployeeSearch, setAssignmentEmployeeSearch] = useState('')
+  const [assignmentEmployeeRoleMap, setAssignmentEmployeeRoleMap] = useState({})
+  const [assignmentAreaApplyMode, setAssignmentAreaApplyMode] = useState('once')
+  const [capacityPickerKey, setCapacityPickerKey] = useState('')
+  const [capacitySavingKey, setCapacitySavingKey] = useState('')
+  const [capacityDraftMap, setCapacityDraftMap] = useState({})
+  const [capacityCustomValue, setCapacityCustomValue] = useState('')
   const [editingAssignmentShift, setEditingAssignmentShift] = useState(null)
   const [shiftPendingDelete, setShiftPendingDelete] = useState(null)
   const [isSaveWeekTemplateModalOpen, setIsSaveWeekTemplateModalOpen] = useState(false)
@@ -559,25 +803,97 @@ function ScheduleView({ shifts, employees, positions, shiftTemplates, weeklyTemp
   })
   const [renamingTemplateId, setRenamingTemplateId] = useState(null)
   const [renameTemplateName, setRenameTemplateName] = useState('')
+  const [templateActionMenuId, setTemplateActionMenuId] = useState(null)
+  const [isDeleteShiftTemplateModalOpen, setIsDeleteShiftTemplateModalOpen] = useState(false)
+  const [shiftTemplatePendingDelete, setShiftTemplatePendingDelete] = useState(null)
+  const [shiftTemplatePendingRename, setShiftTemplatePendingRename] = useState(null)
+  const [shiftTemplateRenameName, setShiftTemplateRenameName] = useState('')
+  const [browseWeekAnchorDate, setBrowseWeekAnchorDate] = useState('')
+  const [isCopyThisWeekModalOpen, setIsCopyThisWeekModalOpen] = useState(false)
+  const [isPublishConfirmOpen, setIsPublishConfirmOpen] = useState(false)
+  const [isUnpublishConfirmOpen, setIsUnpublishConfirmOpen] = useState(false)
+  const [isPublishing, setIsPublishing] = useState(false)
+  const [publishError, setPublishError] = useState('')
+  const [browseWeekShifts, setBrowseWeekShifts] = useState([])
+  const [isBrowseWeekLoading, setIsBrowseWeekLoading] = useState(false)
+  const [weekPickerValue, setWeekPickerValue] = useState(weekStartDate)
+  const [dragPayload, setDragPayload] = useState(null)
+  const [dropTargetKey, setDropTargetKey] = useState('')
+  const [pendingShiftDrop, setPendingShiftDrop] = useState(null)
+  const dragSessionRef = useRef(null)
 
-  const weekDays = useMemo(() => {
-    const start = new Date()
-    start.setHours(0, 0, 0, 0)
-    const day = start.getDay()
-    const diff = start.getDate() - day + (day === 0 ? -6 : 1)
-    start.setDate(diff)
+  const isDragDropDisabled = isSaving || isPublishing
 
-    return Array.from({ length: 7 }, (_, index) => {
-      const date = new Date(start)
-      date.setDate(start.getDate() + index)
-      return {
-        key: date.toISOString().split('T')[0],
-        label: date.toLocaleDateString('en-US', { weekday: 'short' }),
-        shortDate: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-        count: shifts.filter((shift) => shift.date === date.toISOString().split('T')[0]).length,
-      }
+  const shiftCountByDate = useMemo(() => {
+    const counts = {}
+    shifts.forEach((shift) => {
+      const key = `${shift.date ?? ''}`.slice(0, 10)
+      if (!key) return
+      counts[key] = (counts[key] ?? 0) + 1
     })
+    return counts
   }, [shifts])
+
+  const weekDays = useMemo(
+    () => getWeekDays(weekStartDate, { shiftCounts: shiftCountByDate }),
+    [shiftCountByDate, weekStartDate],
+  )
+
+  useEffect(() => {
+    setWeekPickerValue(weekStartDate)
+    setCapacityDraftMap({})
+    setCapacityPickerKey('')
+    setSelectedDay(null)
+  }, [weekStartDate])
+
+  useEffect(() => {
+    let isMounted = true
+
+    if (!browseWeekAnchorDate) {
+      setBrowseWeekShifts([])
+      setIsBrowseWeekLoading(false)
+      return () => {
+        isMounted = false
+      }
+    }
+
+    const loadBrowseWeek = async () => {
+      setIsBrowseWeekLoading(true)
+      try {
+        const browseWeekStart = getWeekStartDate(parseLocalDate(browseWeekAnchorDate))
+        const browseKeys = getWeekDateKeys(browseWeekStart)
+        const remoteShifts = await getShifts({
+          startDate: browseKeys[0],
+          endDate: browseKeys[browseKeys.length - 1],
+        })
+        if (!isMounted) return
+        setBrowseWeekShifts(remoteShifts)
+      } catch {
+        if (!isMounted) return
+        setBrowseWeekShifts([])
+      } finally {
+        if (isMounted) {
+          setIsBrowseWeekLoading(false)
+        }
+      }
+    }
+
+    loadBrowseWeek()
+
+    return () => {
+      isMounted = false
+    }
+  }, [browseWeekAnchorDate])
+
+  const isWeekPublished = schedulePublication?.status === 'published'
+  const hasUnpublishedChanges = isWeekPublished
+    && !draftMatchesPublishedSnapshot(visibleWeekShifts, publishedShifts)
+  const publicationStatusLabel = isWeekPublished
+    ? (hasUnpublishedChanges ? 'Published · Unpublished changes' : 'Published')
+    : 'Draft'
+  const publicationTimestampLabel = schedulePublication?.publishedAt
+    ? new Date(schedulePublication.publishedAt).toLocaleString('en-US')
+    : ''
 
   useEffect(() => {
     if (!selectedDay && weekDays.length > 0) {
@@ -592,10 +908,293 @@ function ScheduleView({ shifts, employees, positions, shiftTemplates, weeklyTemp
 
   const weekDateKeys = useMemo(() => weekDays.map((day) => day.key), [weekDays])
 
-  const currentWeekShifts = useMemo(
-    () => shifts.filter((shift) => weekDateKeys.includes(shift.date)),
+  const normalizeShiftDateKey = (value) => {
+    if (!value) return ''
+    const raw = `${value}`.trim()
+    if (!raw) return ''
+    if (raw.includes('T')) return raw.split('T')[0]
+    return raw.slice(0, 10)
+  }
+
+  const resolveTemplateCapacityId = (template) => {
+    const rawId = template?.templateId ?? template?.id
+    if (typeof rawId === 'string' && rawId.startsWith('supabase-')) {
+      return rawId.replace('supabase-', '')
+    }
+    return rawId
+  }
+
+  const buildCapacityKey = (templateId, shiftDate) => `${String(templateId)}:${normalizeShiftDateKey(shiftDate)}`
+
+  const normalizeCellDate = (value) => {
+    if (!value) return ''
+    const raw = `${value}`.trim()
+    if (!raw) return ''
+    if (raw.includes('T')) return raw.split('T')[0]
+    return raw.slice(0, 10)
+  }
+
+  const normalizeCellTime = (value) => normalizeTimeValue(value)
+
+  const normalizeCellArea = (value) => `${value ?? ''}`.trim().toLowerCase()
+
+  const buildLegacyCellKey = ({ shiftDate, startTime, endTime, area }) => {
+    return `${normalizeCellDate(shiftDate)}:${normalizeCellTime(startTime)}:${normalizeCellTime(endTime)}:${normalizeCellArea(area)}`
+  }
+
+  const getPrimaryCellKey = ({ shiftTemplateId, shiftDate }) => {
+    const normalizedDate = normalizeCellDate(shiftDate)
+    if (!shiftTemplateId || !normalizedDate) return ''
+    return `${String(shiftTemplateId)}:${normalizedDate}`
+  }
+
+  const buildCellDropKey = (template, dayKey) => getPrimaryCellKey({
+    shiftTemplateId: resolveTemplateCapacityId(template),
+    shiftDate: dayKey,
+  })
+
+  const getTemplateCellKeys = (template, dayKey) => {
+    const normalizedDay = normalizeCellDate(dayKey)
+    const templateId = resolveTemplateCapacityId(template)
+    const primary = getPrimaryCellKey({ shiftTemplateId: templateId, shiftDate: normalizedDay })
+    if (primary) {
+      return [primary]
+    }
+
+    const legacy = buildLegacyCellKey({
+      shiftDate: normalizedDay,
+      startTime: template?.startTime,
+      endTime: template?.endTime,
+      area: template?.defaultArea,
+    })
+    return legacy ? [legacy] : []
+  }
+
+  const getShiftCellKeys = (shift) => {
+    const primary = getPrimaryCellKey({
+      shiftTemplateId: shift?.shiftTemplateId,
+      shiftDate: shift?.date,
+    })
+
+    if (primary) {
+      return [primary]
+    }
+
+    const legacy = buildLegacyCellKey({
+      shiftDate: shift?.date,
+      startTime: shift?.startTime,
+      endTime: shift?.endTime,
+      area: shift?.area,
+    })
+
+    return legacy ? [legacy] : []
+  }
+
+  const visibleWeekShifts = useMemo(
+    () => shifts.filter((shift) => weekDateKeys.includes(normalizeCellDate(shift.date))),
     [shifts, weekDateKeys],
   )
+
+  useEffect(() => {
+    console.log("Visible week shifts", visibleWeekShifts)
+  }, [visibleWeekShifts])
+
+  const assignmentsByCell = useMemo(() => {
+    const map = {}
+
+    visibleWeekShifts.forEach((shift) => {
+      const keys = getShiftCellKeys(shift)
+      keys.forEach((cellKey) => {
+        if (!cellKey) return
+        console.log("Cell key", cellKey)
+        if (!Array.isArray(map[cellKey])) {
+          map[cellKey] = []
+        }
+        map[cellKey].push(shift)
+      })
+    })
+
+    console.log("Grid assignments map", map)
+    return map
+  }, [visibleWeekShifts])
+
+  const capacityLookup = useMemo(() => {
+    const lookup = {}
+    ;(scheduleCapacities ?? []).forEach((item) => {
+      const key = buildCapacityKey(item.shiftTemplateId, item.shiftDate)
+      console.log("Capacity key loading", key)
+      const parsed = Number(item.requiredCount)
+      if (Number.isFinite(parsed) && parsed >= 0) {
+        lookup[key] = parsed
+      }
+    })
+    console.log("Capacity lookup", lookup)
+    return lookup
+  }, [scheduleCapacities])
+
+  const getRequiredCountForCell = (template, dayKey) => {
+    const key = buildCapacityKey(resolveTemplateCapacityId(template), dayKey)
+    console.log("Capacity key loading", key)
+    if (Object.prototype.hasOwnProperty.call(capacityDraftMap, key)) {
+      const draftValue = Number(capacityDraftMap[key])
+      return Number.isFinite(draftValue) && draftValue >= 0 ? draftValue : 1
+    }
+    return Object.prototype.hasOwnProperty.call(capacityLookup, key) ? capacityLookup[key] : 1
+  }
+
+  const getWeekDaysFromAnchor = (anchorDateInput) => {
+    const weekStart = anchorDateInput
+      ? getWeekStartDate(parseLocalDate(anchorDateInput))
+      : getWeekStartDate(new Date())
+    return getWeekDays(weekStart)
+  }
+
+  const browseWeekDays = useMemo(() => getWeekDaysFromAnchor(browseWeekAnchorDate), [browseWeekAnchorDate])
+
+  const browsedWeekShifts = browseWeekShifts
+
+  const browsedWeekPreview = useMemo(() => {
+    return [...browsedWeekShifts]
+      .sort((left, right) => `${left.date} ${left.startTime}`.localeCompare(`${right.date} ${right.startTime}`))
+      .slice(0, 4)
+      .map((shift) => {
+        const employeeName = shift.employees?.full_name
+          || shift.employeeName
+          || employees.find((employee) => Number(employee.id) === Number(shift.employeeId))?.name
+          || 'Unassigned'
+
+        return `${shift.date} · ${formatTime24(shift.startTime)}-${formatTime24(shift.endTime)} · ${employeeName}`
+      })
+  }, [browsedWeekShifts, employees])
+
+  const weekRangeLabel = (days) => formatWeekRange(days)
+
+  const isBrowseWeekCurrentWeek = useMemo(() => {
+    const browseStart = browseWeekDays[0]?.key
+    const currentStart = weekDays[0]?.key
+    return Boolean(browseStart && currentStart && browseStart === currentStart)
+  }, [browseWeekDays, weekDays])
+
+  const handleOpenDeleteShiftTemplateModal = (template) => {
+    setTemplateActionMenuId(null)
+    setShiftTemplatePendingDelete(template)
+    setIsDeleteShiftTemplateModalOpen(true)
+    setAssignmentError('')
+  }
+
+  const handleConfirmDeleteShiftTemplate = async () => {
+    if (!shiftTemplatePendingDelete) return
+
+    try {
+      await onDeleteShiftTemplate(shiftTemplatePendingDelete)
+      setIsDeleteShiftTemplateModalOpen(false)
+      setShiftTemplatePendingDelete(null)
+      setAssignmentError('')
+    } catch (error) {
+      setAssignmentError(error?.message || 'Unable to delete shift template right now.')
+    }
+  }
+
+  const handleStartRenameShiftTemplate = (template) => {
+    setTemplateActionMenuId(null)
+    setShiftTemplatePendingRename(template)
+    setShiftTemplateRenameName(template?.name ?? '')
+    setAssignmentError('')
+  }
+
+  const handleSubmitRenameShiftTemplate = async (event) => {
+    event.preventDefault()
+    if (!shiftTemplatePendingRename) return
+    if (!shiftTemplateRenameName.trim()) {
+      setAssignmentError('Template name is required.')
+      return
+    }
+
+    try {
+      await onRenameShiftTemplate(shiftTemplatePendingRename, shiftTemplateRenameName.trim())
+      setShiftTemplatePendingRename(null)
+      setShiftTemplateRenameName('')
+      setAssignmentError('')
+    } catch (error) {
+      setAssignmentError(error?.message || 'Unable to rename shift template right now.')
+    }
+  }
+
+  const handleEditShiftTemplateFromCard = (template) => {
+    setTemplateActionMenuId(null)
+    onEditShiftTemplate(template)
+  }
+
+  const handleDuplicateShiftTemplateFromCard = async (template) => {
+    setTemplateActionMenuId(null)
+    try {
+      await onDuplicateShiftTemplate(template)
+      setAssignmentError('')
+    } catch (error) {
+      setAssignmentError(error?.message || 'Unable to duplicate shift template right now.')
+    }
+  }
+
+  const handleOpenCopyThisWeekModal = () => {
+    if (isBrowseWeekCurrentWeek) {
+      setAssignmentError('Select a different week to copy from.')
+      return
+    }
+    setAssignmentError('')
+    setIsCopyThisWeekModalOpen(true)
+  }
+
+  const handlePublishConfirm = async () => {
+    console.log("Publish clicked")
+    console.log("Publishing week", weekStartDate)
+    if (!weekStartDate) {
+      setPublishError('Week start date is missing for publish.')
+      return
+    }
+    setIsPublishing(true)
+    setPublishError('')
+    try {
+      const result = await onPublishWeekSchedule(weekStartDate, weekDateKeys)
+      console.log("Publish result", result)
+      setIsPublishConfirmOpen(false)
+      setAssignmentError('')
+      setPublishError('')
+    } catch (error) {
+      setPublishError(error?.message || 'Unable to publish this week right now.')
+      console.error("Publish failed", error)
+    } finally {
+      setIsPublishing(false)
+    }
+  }
+
+  const handleConfirmUnpublishSchedule = async () => {
+    if (!weekStartDate) return
+    setIsPublishing(true)
+    try {
+      await onUnpublishWeekSchedule(weekStartDate)
+      setIsUnpublishConfirmOpen(false)
+      setAssignmentError('')
+    } catch (error) {
+      setAssignmentError(error?.message || 'Unable to unpublish this week right now.')
+    } finally {
+      setIsPublishing(false)
+    }
+  }
+
+  const handleConfirmCopyThisWeek = async () => {
+    try {
+      await onCopyHistoricalWeek({
+        sourceWeekDays: browseWeekDays,
+        targetWeekDays: weekDays,
+      })
+      setIsCopyThisWeekModalOpen(false)
+      setAssignmentError('')
+    } catch (error) {
+      setAssignmentError(error?.message || 'Unable to copy this week right now.')
+    }
+  }
+
+  const currentWeekShifts = visibleWeekShifts
 
   const handleOpenSaveWeekTemplateModal = () => {
     setAssignmentError('')
@@ -718,18 +1317,6 @@ function ScheduleView({ shifts, employees, positions, shiftTemplates, weeklyTemp
     return (Number.isNaN(hours) ? 0 : hours) * 60 + (Number.isNaN(minutes) ? 0 : minutes)
   }
 
-  const getEmployeePositionNames = (employee) => {
-    if (Array.isArray(employee?.positions) && employee.positions.length > 0) {
-      return employee.positions.map((position) => position.name).filter(Boolean)
-    }
-
-    if (employee?.position) {
-      return `${employee.position}`.split(',').map((item) => item.trim()).filter(Boolean)
-    }
-
-    return []
-  }
-
   const getShiftDepartment = (shift) => {
     const employeeRecord = shift.employeeRecord ?? null
     if (employeeRecord?.department) {
@@ -780,12 +1367,6 @@ function ScheduleView({ shifts, employees, positions, shiftTemplates, weeklyTemp
     if (normalized.includes('confirm')) return 'confirmed'
     if (normalized.includes('complete')) return 'completed'
     return 'scheduled'
-  }
-
-  const isEmployeeUnavailable = (employee) => {
-    if (!employee?.status) return false
-    const normalized = `${employee.status}`.toLowerCase()
-    return normalized.includes('day off') || normalized.includes('vacation') || normalized.includes('sick') || normalized.includes('leave')
   }
 
   const getCoverageState = (dayShifts) => {
@@ -874,6 +1455,41 @@ function ScheduleView({ shifts, employees, positions, shiftTemplates, weeklyTemp
     }
   }, [employees, shifts, weekDays])
 
+  const employeePublishedWeekSchedule = useMemo(() => {
+    if (!isWeekPublished || publishedShifts.length === 0) return []
+
+    const grouped = new Map()
+    publishedShifts.forEach((shift) => {
+      const key = String(shift.employeeId ?? '')
+      if (!key) return
+      if (!grouped.has(key)) {
+        const employeeRecord = employees.find((employee) => String(employee.id) === key) ?? null
+        grouped.set(key, {
+          employeeId: key,
+          employeeName: employeeRecord?.name || shift.employeeName || shift.employees?.full_name || `Employee ${key}`,
+          entries: [],
+        })
+      }
+
+      grouped.get(key).entries.push({
+        date: shift.date,
+        dayLabel: new Date(`${shift.date}T00:00:00`).toLocaleDateString('en-US', { weekday: 'long' }),
+        startTime: shift.startTime,
+        endTime: shift.endTime,
+        area: shift.area,
+        role: shift.role,
+        notes: shift.notes,
+      })
+    })
+
+    return Array.from(grouped.values())
+      .map((item) => ({
+        ...item,
+        entries: item.entries.sort((a, b) => `${a.date} ${a.startTime}`.localeCompare(`${b.date} ${b.startTime}`)),
+      }))
+      .sort((a, b) => a.employeeName.localeCompare(b.employeeName))
+  }, [employees, isWeekPublished, publishedShifts])
+
   const daySummaries = useMemo(() => {
     return weekDays.map((day) => {
       const dayShifts = shifts
@@ -903,39 +1519,54 @@ function ScheduleView({ shifts, employees, positions, shiftTemplates, weeklyTemp
 
   const blendGridRows = useMemo(() => {
     return shiftTemplates.map((template) => {
-      const requiredCount = Number(template.requiredCount) > 0 ? Number(template.requiredCount) : 1
-
       const dayCells = weekDays.map((day) => {
-        const dayShifts = shifts
-          .filter((shift) => shift.date === day.key)
-          .filter((shift) => {
-            const matchesTime = normalizeTimeValue(shift.startTime) === normalizeTimeValue(template.startTime)
-              && normalizeTimeValue(shift.endTime) === normalizeTimeValue(template.endTime)
-            const templateRole = `${template.defaultRole ?? ''}`.trim().toLowerCase()
-            const shiftRole = `${shift.role ?? ''}`.trim().toLowerCase()
-            const matchesRole = !templateRole || !shiftRole || templateRole === shiftRole
-            return matchesTime && matchesRole
+        const requiredCount = getRequiredCountForCell(template, day.key)
+        const cellKeys = getTemplateCellKeys(template, day.key)
+        const seen = new Set()
+        const dayShifts = []
+
+        cellKeys.forEach((cellKey) => {
+          console.log("Cell key", cellKey)
+          ;(assignmentsByCell[cellKey] ?? []).forEach((shift) => {
+            if (seen.has(String(shift.id))) return
+            seen.add(String(shift.id))
+            dayShifts.push({
+              ...shift,
+              employeeRecord: employees.find((employee) => employee.id === shift.employeeId) ?? null,
+            })
           })
-          .map((shift) => ({
-            ...shift,
-            employeeRecord: employees.find((employee) => employee.id === shift.employeeId) ?? null,
-          }))
+        })
 
         return {
           day,
           shifts: dayShifts,
           assignedCount: dayShifts.length,
           requiredCount,
+          staffingState: dayShifts.length > requiredCount
+            ? 'overstaffed'
+            : dayShifts.length === requiredCount
+              ? 'staffed'
+              : dayShifts.length === 0
+                ? 'understaffed'
+                : 'attention',
         }
       })
 
       return {
         template,
-        requiredCount,
+        requiredCount: 1,
         dayCells,
       }
     })
-  }, [employees, shiftTemplates, shifts, weekDays])
+  }, [employees, shiftTemplates, weekDays, capacityLookup, capacityDraftMap, assignmentsByCell])
+
+  const activeStaffMembers = useMemo(() => (
+    employees
+      .filter((employee) => !isEmployeeUnavailable(employee))
+      .sort((left, right) => (
+        `${left.full_name || left.name || ''}`.localeCompare(`${right.full_name || right.name || ''}`)
+      ))
+  ), [employees])
 
   const coverageSummary = useMemo(() => {
     const shortageByRole = new Map()
@@ -976,36 +1607,180 @@ function ScheduleView({ shifts, employees, positions, shiftTemplates, weeklyTemp
     [assignmentDraft.templateId, shiftTemplates],
   )
 
-  const compatibleEmployees = useMemo(() => {
-    if (!assignmentTemplate?.defaultRole) return employees
-    const requiredRole = `${assignmentTemplate.defaultRole}`.trim().toLowerCase()
-    if (!requiredRole) return employees
+  const compatibleEmployeeIdSet = useMemo(() => {
+    const areaOptions = areaPositionCatalog[assignmentDraft.area] ?? []
+    const areaSet = new Set(areaOptions.map((item) => item.toLowerCase()))
+    if (areaSet.size === 0) {
+      return new Set(employees.map((employee) => String(employee.id)))
+    }
 
-    return employees.filter((employee) => getEmployeePositionNames(employee).some((name) => name.toLowerCase() === requiredRole))
-  }, [assignmentTemplate, employees])
+    return new Set(
+      employees
+        .filter((employee) => getEmployeePositionNames(employee).some((name) => areaSet.has(name.toLowerCase())))
+        .map((employee) => String(employee.id)),
+    )
+  }, [assignmentDraft.area, employees])
 
-  const assignmentEmployeeOptions = assignmentDraft.showAllEmployees ? employees : compatibleEmployees
+  const selectedAssignmentEmployees = useMemo(() => {
+    const selectedSet = new Set((assignmentDraft.employeeIds ?? []).map((id) => String(id)))
+    return employees.filter((employee) => selectedSet.has(String(employee.id)))
+  }, [assignmentDraft.employeeIds, employees])
 
-  const selectedAssignmentEmployee = useMemo(
-    () => employees.find((employee) => String(employee.id) === assignmentDraft.employeeId) ?? null,
-    [assignmentDraft.employeeId, employees],
-  )
+  const assignmentEmployeeOptions = useMemo(() => {
+    const needle = assignmentEmployeeSearch.trim().toLowerCase()
+    if (!needle) return employees
+    return employees.filter((employee) => `${employee.full_name || employee.name || ''}`.toLowerCase().includes(needle))
+  }, [assignmentEmployeeSearch, employees])
 
-  const assignmentPositionOptions = useMemo(() => {
-    if (!selectedAssignmentEmployee) return []
-    return getEmployeePositionNames(selectedAssignmentEmployee)
-  }, [selectedAssignmentEmployee])
+  const getEmployeeAdditionalPositions = (employee) => {
+    const names = getEmployeePositionNames(employee)
+    return names.slice(1)
+  }
+
+  const getEmployeeRoleOptions = (employee) => {
+    const employeeRoles = getEmployeePositionNames(employee)
+    const areaRoles = areaPositionCatalog[assignmentDraft.area] ?? []
+    const unique = Array.from(new Set([...employeeRoles, ...areaRoles].filter(Boolean)))
+    return [...unique, 'Custom']
+  }
+
+  const getDefaultRoleForEmployee = (employee) => {
+    const employeeRoles = getEmployeePositionNames(employee)
+    const areaRoles = areaPositionCatalog[assignmentDraft.area] ?? []
+    const areaSet = new Set(areaRoles.map((item) => item.toLowerCase()))
+    const compatibleEmployeeRoles = employeeRoles.filter((role) => areaSet.has(role.toLowerCase()))
+
+    if (compatibleEmployeeRoles.length === 1) return compatibleEmployeeRoles[0]
+    if (compatibleEmployeeRoles.length === 0 && employeeRoles.length === 1) return employeeRoles[0]
+    if (compatibleEmployeeRoles.length === 0 && employeeRoles.length === 0 && areaRoles.length === 1) return areaRoles[0]
+    if (compatibleEmployeeRoles.length === 0 && employeeRoles.length > 0 && areaRoles.length === 0) return employeeRoles[0]
+    return ''
+  }
+
+  useEffect(() => {
+    if (!isAssignmentModalOpen) return
+
+    setAssignmentEmployeeRoleMap((current) => {
+      const next = { ...current }
+      let changed = false
+
+      selectedAssignmentEmployees.forEach((employee) => {
+        const key = String(employee.id)
+        const existing = next[key]
+        if (existing?.role) return
+        const autoRole = getDefaultRoleForEmployee(employee)
+        if (autoRole) {
+          next[key] = { role: autoRole, customRole: '' }
+          changed = true
+        } else if (!existing) {
+          next[key] = { role: '', customRole: '' }
+          changed = true
+        }
+      })
+
+      Object.keys(next).forEach((employeeId) => {
+        if (!(assignmentDraft.employeeIds ?? []).some((id) => String(id) === employeeId)) {
+          delete next[employeeId]
+          changed = true
+        }
+      })
+
+      return changed ? next : current
+    })
+  }, [assignmentDraft.area, assignmentDraft.employeeIds, isAssignmentModalOpen, selectedAssignmentEmployees])
+
+  useEffect(() => {
+    if (!isAssignmentModalOpen) return
+
+    if (!assignmentDraft.positionName.trim()) return
+
+    setAssignmentEmployeeRoleMap((current) => {
+      const next = { ...current }
+      let changed = false
+      selectedAssignmentEmployees.forEach((employee) => {
+        const key = String(employee.id)
+        const currentRole = `${next[key]?.role ?? ''}`.trim()
+        const currentCustom = `${next[key]?.customRole ?? ''}`.trim()
+        if (!currentRole && !currentCustom) {
+          next[key] = { role: assignmentDraft.positionName.trim(), customRole: '' }
+          changed = true
+        }
+      })
+      return changed ? next : current
+    })
+  }, [assignmentDraft.positionName, isAssignmentModalOpen, selectedAssignmentEmployees])
+
+  const assignmentContext = useMemo(() => {
+    if (!assignmentDraft.templateId || !assignmentDraft.shiftDate) return null
+
+    const row = blendGridRows.find((item) => item.template.id === assignmentDraft.templateId)
+    const cell = row?.dayCells.find((item) => item.day.key === assignmentDraft.shiftDate)
+    const selectedDayRecord = weekDays.find((day) => day.key === assignmentDraft.shiftDate)
+
+    const effectiveTemplate = {
+      ...(row?.template ?? assignmentTemplate ?? {}),
+      id: assignmentDraft.templateId,
+      templateId: row?.template?.templateId ?? assignmentTemplate?.templateId ?? assignmentDraft.templateId,
+      name: assignmentDraft.templateName || row?.template?.name || assignmentTemplate?.name || '',
+      defaultArea: `${assignmentDraft.area ?? ''}`.trim() || row?.template?.defaultArea || assignmentTemplate?.defaultArea || '',
+      defaultRole: assignmentDraft.defaultRole || row?.template?.defaultRole || assignmentTemplate?.defaultRole || '',
+      startTime: assignmentDraft.startTime || row?.template?.startTime || assignmentTemplate?.startTime || '',
+      endTime: assignmentDraft.endTime || row?.template?.endTime || assignmentTemplate?.endTime || '',
+    }
+
+    return {
+      template: effectiveTemplate,
+      cell: cell ?? null,
+      selectedDayRecord: selectedDayRecord ?? null,
+      dayLabel: assignmentDraft.shiftDate
+        ? new Date(`${assignmentDraft.shiftDate}T00:00:00`).toLocaleDateString('en-US', {
+          weekday: 'long',
+          month: 'short',
+          day: 'numeric',
+        })
+        : '',
+    }
+  }, [assignmentDraft.shiftDate, assignmentDraft.templateId, assignmentTemplate, blendGridRows, weekDays])
 
   const handleOpenAssignmentModal = (template, day) => {
+    const selectedTemplatePayload = {
+      id: template?.templateId ?? template?.id ?? null,
+      template_name: template?.name ?? '',
+      area: template?.defaultArea ?? null,
+      default_role: template?.defaultRole ?? '',
+      start_time: normalizeTimeValue(template?.startTime),
+      end_time: normalizeTimeValue(template?.endTime),
+    }
+    console.log('Selected Template:', selectedTemplatePayload)
+
+    const fromCollection = shiftTemplates.find((item) => item.id === template.id || item.templateId === template.templateId)
+    if (fromCollection && `${fromCollection.defaultArea ?? ''}`.trim() && !`${template?.defaultArea ?? ''}`.trim()) {
+      console.warn('Template area lost between collection and cell payload', {
+        collectionTemplate: fromCollection,
+        cellTemplate: template,
+      })
+    }
+
     setSelectedDay(day.key)
     setAssignmentError('')
+    setAssignmentFieldErrors({})
+    setAssignmentMissingFields([])
+    setAssignmentAreaApplyMode('once')
+    setAssignmentEmployeeSearch('')
+    setAssignmentEmployeeRoleMap({})
+    const areaInfo = inferAreaFromTemplate(template)
     setAssignmentDraft({
       templateId: template.id,
+      templateName: template.name || '',
       shiftDate: day.key,
-      employeeId: '',
-      positionName: template.defaultRole || '',
+      employeeIds: [],
+      area: areaInfo.area,
+      defaultRole: `${template.defaultRole ?? ''}`.trim(),
+      startTime: normalizeTimeValue(template.startTime),
+      endTime: normalizeTimeValue(template.endTime),
+      positionName: '',
+      templateAreaMissing: !`${template.defaultArea ?? ''}`.trim(),
       notes: '',
-      showAllEmployees: false,
     })
     setIsAssignmentModalOpen(true)
   }
@@ -1013,41 +1788,264 @@ function ScheduleView({ shifts, employees, positions, shiftTemplates, weeklyTemp
   const handleCloseAssignmentModal = () => {
     setIsAssignmentModalOpen(false)
     setAssignmentError('')
+    setAssignmentFieldErrors({})
+    setAssignmentMissingFields([])
+    setAssignmentAreaApplyMode('once')
+    setAssignmentEmployeeSearch('')
+    setAssignmentEmployeeRoleMap({})
     setAssignmentDraft({
       templateId: '',
+      templateName: '',
       shiftDate: '',
-      employeeId: '',
+      employeeIds: [],
+      area: '',
+      defaultRole: '',
+      startTime: '',
+      endTime: '',
       positionName: '',
+      templateAreaMissing: false,
       notes: '',
-      showAllEmployees: false,
     })
+  }
+
+  const handleSelectCellCapacity = async (template, day, nextRequired) => {
+    const currentRequired = getRequiredCountForCell(template, day.key)
+    const normalizedNext = Number(nextRequired)
+    if (!Number.isFinite(normalizedNext) || normalizedNext < 0) {
+      setAssignmentError('Required staffing must be between 0 and 99.')
+      return
+    }
+
+    if (normalizedNext > 99) {
+      setAssignmentError('Required staffing must be between 0 and 99.')
+      return
+    }
+
+    if (normalizedNext === currentRequired) {
+      setCapacityPickerKey('')
+      return
+    }
+
+    const templateId = resolveTemplateCapacityId(template)
+    const normalizedShiftDate = normalizeShiftDateKey(day.key)
+    const key = buildCapacityKey(templateId, normalizedShiftDate)
+    console.log("Capacity key saving", key)
+
+    setCapacityPickerKey('')
+    setCapacityDraftMap((current) => ({
+      ...current,
+      [key]: normalizedNext,
+    }))
+    setCapacitySavingKey(key)
+
+    try {
+      const saved = await onUpdateCellCapacity({
+        shiftTemplateId: templateId,
+        shiftDate: normalizedShiftDate,
+        requiredCount: normalizedNext,
+      })
+      setCapacityDraftMap((current) => ({
+        ...current,
+        [key]: Number(saved.requiredCount),
+      }))
+    } catch (error) {
+      setCapacityDraftMap((current) => ({
+        ...current,
+        [key]: currentRequired,
+      }))
+      setAssignmentError(error?.message || 'Unable to update required staffing right now.')
+    } finally {
+      setCapacitySavingKey('')
+    }
+  }
+
+  const handleSaveCustomCapacity = async (template, day) => {
+    const parsed = Number(capacityCustomValue)
+    if (!Number.isFinite(parsed) || parsed < 0 || parsed > 99) {
+      setAssignmentError('Required staffing must be between 0 and 99.')
+      return
+    }
+
+    await handleSelectCellCapacity(template, day, Math.floor(parsed))
+    setCapacityCustomValue('')
+  }
+
+  const handleSaveAssignmentAreaToTemplate = async () => {
+    const template = shiftTemplates.find((item) => item.id === assignmentDraft.templateId)
+    if (!template) {
+      setAssignmentError('Shift template could not be found.')
+      return
+    }
+
+    const normalizedArea = `${assignmentDraft.area ?? ''}`.trim()
+    if (!normalizedArea) {
+      setAssignmentError('Area is required before saving to template.')
+      return
+    }
+
+    try {
+      await onApplyAreaToTemplate(template, normalizedArea)
+      setAssignmentAreaApplyMode('template')
+      setAssignmentDraft((current) => ({
+        ...current,
+        templateAreaMissing: false,
+        area: normalizedArea,
+      }))
+      setAssignmentError('')
+    } catch (error) {
+      setAssignmentError(error?.message || 'Unable to save area to template right now.')
+    }
   }
 
   const handleCreateAssignment = async (event) => {
     event.preventDefault()
 
-    if (!assignmentDraft.employeeId || !assignmentDraft.templateId || !assignmentDraft.shiftDate || !assignmentDraft.positionName.trim()) {
-      setAssignmentError('Please select an employee and position before saving this assignment.')
-      return
-    }
-
     const template = shiftTemplates.find((item) => item.id === assignmentDraft.templateId)
     if (!template) {
-      setAssignmentError('The selected template is no longer available.')
+      setAssignmentFieldErrors({ shift_template_id: 'Shift template is missing.' })
+      setAssignmentMissingFields(['shift_template_id'])
+      setAssignmentError('Cannot save assignment.')
       return
     }
 
+    const payload = {
+      shift_template_id: template.templateId ?? assignmentDraft.templateId,
+      shift_template_name: assignmentDraft.templateName || template.name || '',
+      shift_date: assignmentDraft.shiftDate,
+      start_time: normalizeTimeValue(assignmentDraft.startTime || template.startTime),
+      end_time: normalizeTimeValue(assignmentDraft.endTime || template.endTime),
+      area: `${assignmentDraft.area ?? template.defaultArea ?? ''}`.trim(),
+      status: 'Scheduled',
+      notes: assignmentDraft.notes,
+    }
+
+    console.log('Schedule assignment payload', payload)
+
+    const nextFieldErrors = {}
+    const missingFields = []
+
+    if (!Array.isArray(assignmentDraft.employeeIds) || assignmentDraft.employeeIds.length === 0) {
+      nextFieldErrors.employee_ids = 'Select at least one employee.'
+      missingFields.push('employee_ids')
+    }
+
+    if (!payload.shift_template_id) {
+      nextFieldErrors.shift_template_id = 'Shift template is missing.'
+      missingFields.push('shift_template_id')
+    }
+
+    if (!payload.shift_date) {
+      nextFieldErrors.shift_date = 'Shift date is missing.'
+      missingFields.push('shift_date')
+    }
+
+    if (!payload.start_time) {
+      nextFieldErrors.start_time = 'Start time is missing.'
+      missingFields.push('start_time')
+    }
+
+    if (!payload.end_time) {
+      nextFieldErrors.end_time = 'End time is missing.'
+      missingFields.push('end_time')
+    }
+
+    if (!payload.area) {
+      nextFieldErrors.area = 'Area is required.'
+      missingFields.push('area')
+    }
+
+    const selectedEmployees = employees.filter((employee) => (
+      (assignmentDraft.employeeIds ?? []).some((id) => String(id) === String(employee.id))
+    ))
+
+    const unresolvedPositionEmployees = selectedEmployees.filter((employee) => {
+      const employeeKey = String(employee.id)
+      const roleState = assignmentEmployeeRoleMap[employeeKey] ?? { role: '', customRole: '' }
+      const resolvedRole = roleState.role === 'Custom' ? `${roleState.customRole ?? ''}`.trim() : `${roleState.role ?? ''}`.trim()
+      return !resolvedRole
+    })
+
+    if (unresolvedPositionEmployees.length > 0) {
+      nextFieldErrors.employee_positions = 'Every selected employee must have a position.'
+      missingFields.push('employee_positions')
+    }
+
+    if (missingFields.length > 0) {
+      setAssignmentFieldErrors(nextFieldErrors)
+      setAssignmentMissingFields(missingFields)
+      setAssignmentError('Cannot save assignment.')
+      return
+    }
+
+    setAssignmentFieldErrors({})
+    setAssignmentMissingFields([])
+    setAssignmentError('')
+
     try {
-      await onCreateGridShift({
-        employeeId: assignmentDraft.employeeId,
-        shiftDate: assignmentDraft.shiftDate,
-        template,
-        positionName: assignmentDraft.positionName,
-        notes: assignmentDraft.notes,
-      })
+      if (assignmentDraft.templateAreaMissing && payload.area && assignmentAreaApplyMode === 'template') {
+        await onApplyAreaToTemplate(template, payload.area)
+      }
+
+      let assignedCount = 0
+      const skippedMessages = []
+
+      for (const employee of selectedEmployees) {
+        try {
+          const employeeKey = String(employee.id)
+          const roleState = assignmentEmployeeRoleMap[employeeKey] ?? { role: '', customRole: '' }
+          const resolvedRole = roleState.role === 'Custom'
+            ? `${roleState.customRole ?? ''}`.trim()
+            : `${roleState.role ?? ''}`.trim()
+
+          if (!resolvedRole) {
+            const name = employee.full_name || employee.name || `Employee ${employee.id}`
+            skippedMessages.push(`Skipped ${name} due to: Position is required.`)
+            continue
+          }
+
+          await onCreateGridShift({
+            employeeId: employee.id,
+            shiftDate: assignmentDraft.shiftDate,
+            template: {
+              ...template,
+              name: payload.shift_template_name,
+              defaultArea: payload.area,
+              defaultRole: assignmentDraft.defaultRole || template.defaultRole || '',
+              startTime: payload.start_time,
+              endTime: payload.end_time,
+            },
+            positionName: resolvedRole,
+            notes: assignmentDraft.notes,
+            requiredCount: assignmentContext?.cell?.requiredCount ?? 1,
+            currentAssignedCount: (assignmentContext?.cell?.assignedCount ?? 0) + assignedCount,
+          })
+          assignedCount += 1
+        } catch (error) {
+          const name = employee.full_name || employee.name || `Employee ${employee.id}`
+          const message = `${error?.message || ''}`.toLowerCase()
+          if (message.includes('already scheduled')) {
+            skippedMessages.push(`Skipped ${name} because he is already scheduled for this shift.`)
+            continue
+          }
+          if (message.includes('overlap')) {
+            skippedMessages.push(`Skipped ${name} because this overlaps with another shift.`)
+            continue
+          }
+          skippedMessages.push(`Skipped ${name} due to: ${error?.message || 'Unknown error.'}`)
+        }
+      }
+
+      const skippedCount = skippedMessages.length
+      const summary = `${assignedCount} employees assigned. ${skippedCount} skipped.`
+
+      if (skippedCount > 0 || assignedCount === 0) {
+        setAssignmentError(`${summary} ${skippedMessages.join(' ')}`.trim())
+        return
+      }
+
       handleCloseAssignmentModal()
     } catch (error) {
-      setAssignmentError(error?.message || 'Unable to save assignment right now.')
+      setAssignmentError(error?.message || 'Unknown error while saving assignment.')
     }
   }
 
@@ -1129,8 +2127,247 @@ function ScheduleView({ shifts, employees, positions, shiftTemplates, weeklyTemp
     onOpenAddShift(date || selectedDate || '')
   }
 
+  const handleShiftDragStart = (event, shift) => {
+    if (isDragDropDisabled) {
+      event.preventDefault()
+      return
+    }
+
+    const mode = event.altKey ? 'copy' : 'prompt'
+    const payload = { type: 'shift', shiftId: shift.id, mode }
+    dragSessionRef.current = payload
+    setDragPayload(payload)
+    event.dataTransfer.setData('application/json', JSON.stringify(payload))
+    event.dataTransfer.effectAllowed = mode === 'copy' ? 'copy' : 'move'
+  }
+
+  const handleEmployeeDragStart = (event, employee) => {
+    if (isDragDropDisabled) {
+      event.preventDefault()
+      return
+    }
+
+    const payload = { type: 'employee', employeeId: employee.id }
+    dragSessionRef.current = payload
+    setDragPayload(payload)
+    event.dataTransfer.setData('application/json', JSON.stringify(payload))
+    event.dataTransfer.effectAllowed = 'copy'
+  }
+
+  const handleDragEnd = () => {
+    dragSessionRef.current = null
+    setDragPayload(null)
+    setDropTargetKey('')
+  }
+
+  const handleCellDragOver = (event, cellDropKey, { canAcceptDrop }) => {
+    if (isDragDropDisabled) return
+    if (!event.dataTransfer.types.includes('application/json')) return
+
+    const session = dragSessionRef.current
+    if (!session) return
+
+    if (!canAcceptDrop) {
+      setDropTargetKey('')
+      return
+    }
+
+    event.preventDefault()
+    event.dataTransfer.dropEffect = session.type === 'employee' || session.mode === 'copy' ? 'copy' : 'move'
+    setDropTargetKey(cellDropKey)
+  }
+
+  const handleCloseShiftDropPrompt = () => {
+    setPendingShiftDrop(null)
+    setAssignmentError('')
+  }
+
+  const isSameShiftCell = (shift, template, dayKey) => {
+    if (!shift) return false
+    return resolveShiftTemplateId(shift) === resolveShiftTemplateId(template)
+      && normalizeCellDate(`${shift.date}`) === normalizeCellDate(dayKey)
+  }
+
+  const handleConfirmShiftDropMove = async () => {
+    if (!pendingShiftDrop) return
+
+    const { shiftId, template, day, cell } = pendingShiftDrop
+
+    try {
+      setAssignmentError('')
+      await onMoveGridShift(shiftId, {
+        template,
+        shiftDate: day.key,
+        requiredCount: cell.requiredCount ?? 1,
+        currentAssignedCount: cell.assignedCount ?? 0,
+      })
+      handleCloseShiftDropPrompt()
+    } catch (error) {
+      setAssignmentError(error?.message || 'Unable to move this shift right now.')
+    }
+  }
+
+  const handleConfirmShiftDropCopy = async () => {
+    if (!pendingShiftDrop) return
+
+    const { shiftId, template, day, cell } = pendingShiftDrop
+    const sourceShift = shifts.find((item) => String(item.id) === String(shiftId))
+
+    if (sourceShift && resolveShiftTemplateId(sourceShift) !== resolveShiftTemplateId(template)) {
+      setAssignmentError('Copy within the same shift template row only.')
+      return
+    }
+
+    if (isEmployeeAssignedInCell(cell, sourceShift?.employeeId)) {
+      setAssignmentError('This employee is already assigned here.')
+      return
+    }
+
+    try {
+      setAssignmentError('')
+      await onCopyGridShift(shiftId, {
+        template,
+        shiftDate: day.key,
+        requiredCount: cell.requiredCount ?? 1,
+        currentAssignedCount: cell.assignedCount ?? 0,
+        cellShifts: cell.shifts ?? [],
+      })
+      handleCloseShiftDropPrompt()
+    } catch (error) {
+      setAssignmentError(error?.message || 'Unable to copy this shift right now.')
+    }
+  }
+
+  const handleCellDrop = async (event, template, day, cell) => {
+    event.preventDefault()
+    event.stopPropagation()
+    setDropTargetKey('')
+
+    if (isDragDropDisabled) return
+
+    let payload = dragSessionRef.current ?? dragPayload
+    try {
+      const raw = event.dataTransfer.getData('application/json')
+      if (raw) {
+        payload = JSON.parse(raw)
+      }
+    } catch {
+      // Fall back to in-memory drag payload.
+    }
+
+    dragSessionRef.current = null
+    setDragPayload(null)
+
+    if (!payload?.type) return
+
+    if (payload.type === 'shift') {
+      if (!payload.shiftId) return
+
+      const sourceShift = shifts.find((item) => String(item.id) === String(payload.shiftId))
+      const dropMode = payload.mode === 'copy' ? 'copy' : 'prompt'
+
+      if (dropMode === 'prompt' && isSameShiftCell(sourceShift, template, day.key)) {
+        return
+      }
+
+      if (dropMode === 'copy') {
+        if (sourceShift && resolveShiftTemplateId(sourceShift) !== resolveShiftTemplateId(template)) {
+          setAssignmentError('Copy within the same shift template row only.')
+          return
+        }
+
+        if (isEmployeeAssignedInCell(cell, sourceShift?.employeeId)) {
+          setAssignmentError('This employee is already assigned here.')
+          return
+        }
+
+        try {
+          setAssignmentError('')
+          await onCopyGridShift(payload.shiftId, {
+            template,
+            shiftDate: day.key,
+            requiredCount: cell.requiredCount ?? 1,
+            currentAssignedCount: cell.assignedCount ?? 0,
+            cellShifts: cell.shifts ?? [],
+          })
+        } catch (error) {
+          setAssignmentError(error?.message || 'Unable to copy this shift right now.')
+        }
+        return
+      }
+
+      setAssignmentError('')
+      setPendingShiftDrop({
+        shiftId: payload.shiftId,
+        template,
+        day,
+        cell,
+      })
+      return
+    }
+
+    if (payload.type === 'employee') {
+      if (!payload.employeeId) return
+
+      if (isEmployeeAssignedInCell(cell, payload.employeeId)) {
+        setAssignmentError('This employee is already assigned here.')
+        return
+      }
+
+      const employee = employees.find((item) => String(item.id) === String(payload.employeeId))
+      if (!employee) {
+        setAssignmentError('Employee could not be found.')
+        return
+      }
+
+      if (isEmployeeUnavailable(employee)) {
+        setAssignmentError('This employee is not available for assignment.')
+        return
+      }
+
+      const areaInfo = inferAreaFromTemplate(template)
+      const area = areaInfo.area
+      if (!area) {
+        setAssignmentError('This shift template needs an area before drag assignment.')
+        return
+      }
+
+      const positionName = resolvePositionForDrop(
+        employee,
+        { area, defaultRole: template?.defaultRole ?? '' },
+        areaPositionCatalog,
+      )
+
+      if (!positionName) {
+        setAssignmentError('Could not determine a position for this employee. Use + to assign manually.')
+        return
+      }
+
+      try {
+        setAssignmentError('')
+        await onCreateGridShift({
+          employeeId: employee.id,
+          shiftDate: day.key,
+          template: {
+            ...template,
+            defaultArea: area,
+            defaultRole: template?.defaultRole || positionName,
+            startTime: template.startTime,
+            endTime: template.endTime,
+          },
+          positionName,
+          notes: '',
+          requiredCount: cell.requiredCount ?? 1,
+          currentAssignedCount: cell.assignedCount ?? 0,
+        })
+      } catch (error) {
+        setAssignmentError(error?.message || 'Unable to assign this employee right now.')
+      }
+    }
+  }
+
   return (
-    <section className="staff-page">
+    <section className="staff-page" onClick={() => setCapacityPickerKey('')}>
       <div className="staff-header-card">
         <div>
           <p className="eyebrow">Schedule management</p>
@@ -1140,6 +2377,57 @@ function ScheduleView({ shifts, employees, positions, shiftTemplates, weeklyTemp
         <button type="button" className="primary-btn" onClick={() => handleOpenAddShiftForDate(selectedDate)} disabled={isSaving}>
           {isSaving ? 'Saving…' : '+ Add Shift'}
         </button>
+      </div>
+
+      <div className="schedule-week-nav">
+        <div className="schedule-week-nav-main">
+          <button
+            type="button"
+            className="ghost-btn schedule-week-nav-btn"
+            onClick={() => onWeekStartDateChange(addWeeks(weekStartDate, -1))}
+            disabled={isLoading || isSaving || isPublishing}
+            aria-label="Previous week"
+          >
+            ‹
+          </button>
+          <div className="schedule-week-nav-label">
+            <strong>{weekRangeLabel(weekDays)}</strong>
+            {!isCurrentWeek(weekStartDate) ? <span>Viewing another week</span> : <span>This week</span>}
+          </div>
+          <button
+            type="button"
+            className="ghost-btn schedule-week-nav-btn"
+            onClick={() => onWeekStartDateChange(addWeeks(weekStartDate, 1))}
+            disabled={isLoading || isSaving || isPublishing}
+            aria-label="Next week"
+          >
+            ›
+          </button>
+        </div>
+        <div className="schedule-week-nav-actions">
+          <button
+            type="button"
+            className="ghost-btn schedule-week-nav-today"
+            onClick={() => onWeekStartDateChange(getCurrentWeekStartDate())}
+            disabled={isLoading || isSaving || isPublishing || isCurrentWeek(weekStartDate)}
+          >
+            Today
+          </button>
+          <label className="schedule-week-nav-picker">
+            <span className="sr-only">Jump to week</span>
+            <input
+              type="date"
+              value={weekPickerValue}
+              onChange={(event) => {
+                const nextValue = event.target.value
+                setWeekPickerValue(nextValue)
+                if (!nextValue) return
+                onWeekStartDateChange(getWeekStartDate(parseLocalDate(nextValue)))
+              }}
+              disabled={isLoading || isSaving || isPublishing}
+            />
+          </label>
+        </div>
       </div>
 
       <div className="roster-summary-grid roster-summary-bar">
@@ -1169,16 +2457,16 @@ function ScheduleView({ shifts, employees, positions, shiftTemplates, weeklyTemp
       <div className="panel staff-panel weekly-template-panel">
         <div className="panel-heading">
           <div>
-            <p className="eyebrow">Weekly templates</p>
+            <p className="eyebrow">Saved Weekly Schedules</p>
             <h3>Reusable week presets</h3>
           </div>
         </div>
 
         <div className="weekly-template-toolbar">
           <label className="form-field weekly-template-selector">
-            <span>Load Template</span>
+            <span>Load Saved Week</span>
             <select value={selectedWeeklyTemplateId} onChange={(event) => setSelectedWeeklyTemplateId(event.target.value)}>
-              <option value="">Select weekly template</option>
+              <option value="">Choose a saved weekly schedule</option>
               {weeklyTemplates.map((template) => (
                 <option key={`weekly-template-${template.id}`} value={String(template.id)}>{template.name}</option>
               ))}
@@ -1187,9 +2475,43 @@ function ScheduleView({ shifts, employees, positions, shiftTemplates, weeklyTemp
 
           <div className="action-group">
             <button type="button" className="ghost-btn" onClick={handleOpenSaveWeekTemplateModal} disabled={isSaving}>Save Current Week</button>
-            <button type="button" className="ghost-btn" onClick={handleOpenLoadWeekTemplateModal} disabled={isSaving || !selectedWeeklyTemplateId}>Load Template</button>
-            <button type="button" className="ghost-btn" onClick={handleStartRenameWeeklyTemplate} disabled={isSaving || !selectedWeeklyTemplateId}>Rename</button>
-            <button type="button" className="ghost-btn" onClick={handleDeleteSelectedWeeklyTemplate} disabled={isSaving || !selectedWeeklyTemplateId}>Delete</button>
+            <button type="button" className="ghost-btn" onClick={handleOpenLoadWeekTemplateModal} disabled={isSaving || !selectedWeeklyTemplateId}>Load Saved Week</button>
+            <button type="button" className="ghost-btn" onClick={handleStartRenameWeeklyTemplate} disabled={isSaving || !selectedWeeklyTemplateId}>Rename Saved Week</button>
+            <button type="button" className="ghost-btn" onClick={handleDeleteSelectedWeeklyTemplate} disabled={isSaving || !selectedWeeklyTemplateId}>Delete Saved Week</button>
+          </div>
+        </div>
+
+        <div className="weekly-history-panel">
+          <label className="form-field weekly-template-selector">
+            <span>Week Picker</span>
+            <input
+              type="date"
+              value={browseWeekAnchorDate}
+              onChange={(event) => setBrowseWeekAnchorDate(event.target.value)}
+            />
+          </label>
+
+          <div className="weekly-history-meta">
+            <p><strong>Selected Week:</strong> {weekRangeLabel(browseWeekDays)}</p>
+            <p><strong>Shifts Found:</strong> {isBrowseWeekLoading ? 'Loading…' : browsedWeekShifts.length}</p>
+            {browsedWeekPreview.length > 0 ? (
+              <div className="weekly-history-preview">
+                {browsedWeekPreview.map((item) => (
+                  <p key={item}>{item}</p>
+                ))}
+              </div>
+            ) : null}
+          </div>
+
+          <div className="action-group">
+            <button
+              type="button"
+              className="ghost-btn"
+              onClick={handleOpenCopyThisWeekModal}
+              disabled={isSaving || isBrowseWeekCurrentWeek || isBrowseWeekLoading || browsedWeekShifts.length === 0}
+            >
+              Copy This Week
+            </button>
           </div>
         </div>
       </div>
@@ -1198,12 +2520,59 @@ function ScheduleView({ shifts, employees, positions, shiftTemplates, weeklyTemp
         <div className="panel-heading">
           <div>
             <p className="eyebrow">Weekly assignment grid</p>
-            <h3>Blend-style roster planner</h3>
+            <h3>
+              Weekly schedule
+              <span className={`schedule-publication-badge ${
+                hasUnpublishedChanges ? 'pending' : isWeekPublished ? 'published' : 'draft'
+              }`}>
+                {hasUnpublishedChanges ? 'Unpublished changes' : isWeekPublished ? 'Published' : 'Draft'}
+              </span>
+            </h3>
+            <p className="schedule-publication-meta">
+              {publicationStatusLabel}
+              {isWeekPublished && publicationTimestampLabel ? ` · ${publicationTimestampLabel}` : ''}
+            </p>
           </div>
-          <button type="button" className="primary-btn" onClick={() => handleOpenAddShiftForDate(selectedDate)} disabled={isSaving}>
-            {isSaving ? 'Saving…' : '+ Add Shift'}
-          </button>
+          <div className="action-group">
+            {hasUnpublishedChanges || !isWeekPublished ? (
+              <button
+                type="button"
+                className="primary-btn"
+                onClick={() => {
+                  setPublishError('')
+                  setIsPublishConfirmOpen(true)
+                }}
+                disabled={isSaving || isPublishing}
+              >
+                {hasUnpublishedChanges ? 'Publish changes' : 'Publish'}
+              </button>
+            ) : null}
+            {isWeekPublished ? (
+              <button
+                type="button"
+                className="ghost-btn"
+                onClick={() => {
+                  setPublishError('')
+                  setIsUnpublishConfirmOpen(true)
+                }}
+                disabled={isSaving || isPublishing}
+              >
+                Unpublish
+              </button>
+            ) : null}
+            <button type="button" className="primary-btn" onClick={() => handleOpenAddShiftForDate(selectedDate)} disabled={isSaving}>
+              {isSaving ? 'Saving…' : '+ Add Shift'}
+            </button>
+          </div>
         </div>
+
+        {hasUnpublishedChanges ? (
+          <div className="staff-status-banner schedule-draft-changes-banner">
+            Draft has unpublished changes.
+          </div>
+        ) : null}
+
+        {assignmentError ? <div className="staff-status-banner">{assignmentError}</div> : null}
 
         {shiftTemplates.length === 0 ? (
           <div className="schedule-empty-state">
@@ -1211,6 +2580,43 @@ function ScheduleView({ shifts, employees, positions, shiftTemplates, weeklyTemp
             <p>Create templates first, then assign employees directly in this grid.</p>
           </div>
         ) : (
+          <>
+          <div className="schedule-staff-strip">
+            <div className="schedule-staff-strip-header">
+              <p className="eyebrow">Staff</p>
+              <span className="schedule-staff-strip-hint">Drag staff onto any shift cell</span>
+            </div>
+            <div className="schedule-staff-strip-scroll">
+              {activeStaffMembers.length === 0 ? (
+                <p className="schedule-staff-strip-empty">No active employees available.</p>
+              ) : (
+                activeStaffMembers.map((employee) => {
+                  const employeeName = employee.full_name || employee.name || 'Staff'
+                  const firstName = getEmployeeFirstName(employee)
+                  const positionLabel = getEmployeePrimaryPosition(employee)
+
+                  return (
+                    <button
+                      key={`staff-chip-${employee.id}`}
+                      type="button"
+                      className={`schedule-staff-chip ${dragPayload?.type === 'employee' && String(dragPayload.employeeId) === String(employee.id) ? 'dragging' : ''}`}
+                      draggable={!isDragDropDisabled}
+                      onDragStart={(event) => handleEmployeeDragStart(event, employee)}
+                      onDragEnd={handleDragEnd}
+                      aria-label={`Assign ${employeeName}`}
+                    >
+                      <span className="schedule-staff-chip-avatar">{getInitials(employeeName)}</span>
+                      <span className="schedule-staff-chip-copy">
+                        <strong>{firstName}</strong>
+                        <span>{positionLabel}</span>
+                      </span>
+                    </button>
+                  )
+                })
+              )}
+            </div>
+          </div>
+
           <div className="blend-grid-scroll">
             <div className="blend-grid-table" style={{ gridTemplateColumns: `300px repeat(${weekDays.length}, minmax(190px, 1fr))` }}>
               <div className="blend-grid-header blend-grid-header-template">Shift template</div>
@@ -1232,6 +2638,31 @@ function ScheduleView({ shifts, employees, positions, shiftTemplates, weeklyTemp
                     const templatePresentation = getTemplatePresentation(row.template)
                     return (
                   <aside key={`template-${row.template.id}`} className="blend-grid-template-cell">
+                    <div className="template-card-actions">
+                      <button
+                        type="button"
+                        className="template-card-delete-btn"
+                        onClick={() => handleOpenDeleteShiftTemplateModal(row.template)}
+                        aria-label={`Delete ${row.template.name} template`}
+                      >
+                        ✕
+                      </button>
+                      <button
+                        type="button"
+                        className="template-card-menu-btn"
+                        onClick={() => setTemplateActionMenuId((current) => (current === row.template.id ? null : row.template.id))}
+                        aria-label={`More actions for ${row.template.name}`}
+                      >
+                        ⋯
+                      </button>
+                      {templateActionMenuId === row.template.id ? (
+                        <div className="template-card-menu" onClick={(event) => event.stopPropagation()}>
+                          <button type="button" className="template-card-menu-item" onClick={() => handleStartRenameShiftTemplate(row.template)}>Rename Template</button>
+                          <button type="button" className="template-card-menu-item" onClick={() => handleEditShiftTemplateFromCard(row.template)}>Edit Template</button>
+                          <button type="button" className="template-card-menu-item" onClick={() => handleDuplicateShiftTemplateFromCard(row.template)}>Duplicate Template</button>
+                        </div>
+                      ) : null}
+                    </div>
                     <strong>
                       {templatePresentation.icon} {templatePresentation.label}
                     </strong>
@@ -1242,19 +2673,98 @@ function ScheduleView({ shifts, employees, positions, shiftTemplates, weeklyTemp
                     )
                   })()}
 
-                  {row.dayCells.map((cell) => (
+                  {row.dayCells.map((cell) => {
+                    const cellDropKey = buildCellDropKey(row.template, cell.day.key)
+                    const draggedShift = dragPayload?.type === 'shift' && dragPayload?.shiftId
+                      ? shifts.find((item) => String(item.id) === String(dragPayload.shiftId))
+                      : null
+                    const isShiftCopyDrag = dragPayload?.type === 'shift' && dragPayload?.mode === 'copy'
+                    const isShiftPromptDrag = dragPayload?.type === 'shift' && dragPayload?.mode !== 'copy'
+                    const isSameTemplateForCopy = !isShiftCopyDrag
+                      || (
+                        draggedShift
+                        && resolveShiftTemplateId(draggedShift) === resolveShiftTemplateId(row.template)
+                      )
+                    const canAcceptEmployeeDrop = dragPayload?.type === 'employee'
+                    const canAcceptShiftCopyDrop = isShiftCopyDrag && isSameTemplateForCopy
+                    const canAcceptShiftMoveDrop = isShiftPromptDrag
+                    const canAcceptDrop = canAcceptEmployeeDrop || canAcceptShiftCopyDrop || canAcceptShiftMoveDrop
+                    const isDropTarget = dropTargetKey === cellDropKey && canAcceptDrop
+
+                    return (
                     <div
                       key={`cell-${row.template.id}-${cell.day.key}`}
-                      className={`blend-grid-assignment-cell ${selectedDay === cell.day.key ? 'active' : ''} ${cell.assignedCount === 0 ? 'empty' : ''}`}
+                      className={`blend-grid-assignment-cell ${selectedDay === cell.day.key ? 'active' : ''} ${cell.assignedCount === 0 ? 'empty' : ''} ${cell.staffingState} ${isDropTarget ? 'drop-target' : ''}`}
                       onClick={() => {
                         setSelectedDay(cell.day.key)
                         if (cell.assignedCount === 0) {
                           handleOpenAssignmentModal(row.template, cell.day)
                         }
                       }}
+                      onDragOver={(event) => handleCellDragOver(event, cellDropKey, { canAcceptDrop })}
+                      onDrop={(event) => handleCellDrop(event, row.template, cell.day, cell)}
                     >
                       <div className="blend-grid-cell-top">
-                        <span>{cell.assignedCount}/{cell.requiredCount}</span>
+                        {cell.staffingState === 'overstaffed' ? (
+                          <span className="cell-over-badge">Over</span>
+                        ) : null}
+                        <div className="cell-capacity-controls" onClick={(event) => event.stopPropagation()}>
+                          <button
+                            type="button"
+                            className="capacity-value-btn"
+                            onClick={() => {
+                              setAssignmentError('')
+                              const key = `${row.template.templateId ?? row.template.id}|${cell.day.key}`
+                              setCapacityPickerKey((current) => (current === key ? '' : key))
+                              setCapacityCustomValue(`${cell.requiredCount}`)
+                            }}
+                            disabled={capacitySavingKey === `${row.template.templateId ?? row.template.id}|${cell.day.key}`}
+                          >
+                            {cell.assignedCount}/{cell.requiredCount}
+                          </button>
+
+                          {capacityPickerKey === `${row.template.templateId ?? row.template.id}|${cell.day.key}` ? (
+                            <div className="capacity-picker-popover">
+                              <p>Required Staff</p>
+                              <div className="capacity-picker-grid">
+                                {Array.from({ length: 11 }, (_, number) => number).map((value) => (
+                                  <button
+                                    key={`capacity-option-${row.template.id}-${cell.day.key}-${value}`}
+                                    type="button"
+                                    className={`capacity-option-btn ${cell.requiredCount === value ? 'active' : ''}`}
+                                    onClick={() => handleSelectCellCapacity(row.template, cell.day, value)}
+                                  >
+                                    {value}
+                                  </button>
+                                ))}
+                              </div>
+                              <div className="capacity-custom-editor">
+                                <span>Custom required staff</span>
+                                <div className="capacity-custom-row">
+                                  <input
+                                    type="number"
+                                    min="0"
+                                    max="99"
+                                    value={capacityCustomValue}
+                                    onChange={(event) => setCapacityCustomValue(event.target.value)}
+                                    onClick={(event) => event.stopPropagation()}
+                                  />
+                                  <button
+                                    type="button"
+                                    className="capacity-custom-save"
+                                    onClick={(event) => {
+                                      event.stopPropagation()
+                                      handleSaveCustomCapacity(row.template, cell.day)
+                                    }}
+                                    disabled={capacitySavingKey === `${row.template.templateId ?? row.template.id}|${cell.day.key}`}
+                                  >
+                                    Save
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                          ) : null}
+                        </div>
                         <button
                           type="button"
                           className="schedule-week-day-add"
@@ -1276,14 +2786,16 @@ function ScheduleView({ shifts, employees, positions, shiftTemplates, weeklyTemp
                             <button
                               key={`shift-pill-${shift.id}`}
                               type="button"
-                              className="blend-grid-pill"
+                              className={`blend-grid-pill ${dragPayload?.shiftId === shift.id ? 'dragging' : ''}`}
+                              draggable={!isDragDropDisabled}
+                              onDragStart={(event) => handleShiftDragStart(event, shift)}
+                              onDragEnd={handleDragEnd}
                               onClick={(event) => {
                                 event.stopPropagation()
                                 handleOpenAssignmentActions(shift)
                               }}
                             >
-                              <span className="blend-grid-pill-name">{employeeName}</span>
-                              <small className="blend-grid-pill-role">{shiftPosition}</small>
+                              <span className="blend-grid-pill-name">{employeeName} • {shiftPosition}</span>
                             </button>
                           )
                         })}
@@ -1291,18 +2803,53 @@ function ScheduleView({ shifts, employees, positions, shiftTemplates, weeklyTemp
 
                       <div className="blend-grid-cell-bottom">
                         <span>{formatTime24(row.template.startTime)} - {formatTime24(row.template.endTime)}</span>
+                        {cell.assignedCount > cell.requiredCount ? <small className="capacity-warning">This shift is over capacity.</small> : null}
                       </div>
                     </div>
-                  ))}
+                    )
+                  })}
                 </Fragment>
               ))}
             </div>
           </div>
+          </>
         )}
       </div>
 
       {noticeMessage ? <div className="staff-status-banner">{noticeMessage}</div> : null}
       {isLoading ? <div className="staff-status-banner">Loading schedule…</div> : null}
+
+      {isWeekPublished ? (
+        <div className="panel staff-panel">
+          <div className="panel-heading">
+            <div>
+              <p className="eyebrow">Employee view</p>
+              <h3>What employees see</h3>
+            </div>
+          </div>
+
+          <div className="published-week-grid">
+            {employeePublishedWeekSchedule.length === 0 ? (
+              <p className="staff-subtitle">No published assignments for this week yet.</p>
+            ) : (
+              employeePublishedWeekSchedule.map((employeeSchedule) => (
+                <article key={`published-employee-${employeeSchedule.employeeId}`} className="published-week-card">
+                  <h4>{employeeSchedule.employeeName}</h4>
+                  {employeeSchedule.entries.map((entry) => (
+                    <div key={`published-entry-${employeeSchedule.employeeId}-${entry.date}-${entry.startTime}-${entry.endTime}`} className="published-week-entry">
+                      <strong>{entry.dayLabel}</strong>
+                      <span>{formatTime24(entry.startTime)} — {formatTime24(entry.endTime)}</span>
+                      <span>{entry.area || '—'}</span>
+                      <span>{entry.role || '—'}</span>
+                      {entry.notes ? <small>{entry.notes}</small> : null}
+                    </div>
+                  ))}
+                </article>
+              ))
+            )}
+          </div>
+        </div>
+      ) : null}
 
       <div className="panel staff-panel">
         <div className="panel-heading">
@@ -1505,6 +3052,86 @@ function ScheduleView({ shifts, employees, positions, shiftTemplates, weeklyTemp
         </div>
       ) : null}
 
+      {isDeleteShiftTemplateModalOpen ? (
+        <div className="employee-modal-backdrop" onClick={() => setIsDeleteShiftTemplateModalOpen(false)}>
+          <div className="employee-modal blend-compact-modal" onClick={(event) => event.stopPropagation()}>
+            <div className="drawer-header">
+              <div>
+                <p className="eyebrow">Template delete</p>
+                <h3>Delete shift template?</h3>
+              </div>
+              <button type="button" className="icon-btn" onClick={() => setIsDeleteShiftTemplateModalOpen(false)}>✕</button>
+            </div>
+
+            <p className="template-delete-copy">Are you sure you want to delete this shift template? Existing scheduled shifts will not be deleted.</p>
+
+            {assignmentError ? <div className="staff-status-banner">{assignmentError}</div> : null}
+
+            <div className="modal-actions">
+              <button type="button" className="ghost-btn" onClick={() => setIsDeleteShiftTemplateModalOpen(false)}>Cancel</button>
+              <button type="button" className="primary-btn" onClick={handleConfirmDeleteShiftTemplate} disabled={isSaving}>Delete Template</button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {shiftTemplatePendingRename ? (
+        <div className="employee-modal-backdrop" onClick={() => setShiftTemplatePendingRename(null)}>
+          <div className="employee-modal blend-compact-modal" onClick={(event) => event.stopPropagation()}>
+            <div className="drawer-header">
+              <div>
+                <p className="eyebrow">Rename template</p>
+                <h3>Update shift template name</h3>
+              </div>
+              <button type="button" className="icon-btn" onClick={() => setShiftTemplatePendingRename(null)}>✕</button>
+            </div>
+
+            <form className="employee-form" onSubmit={handleSubmitRenameShiftTemplate}>
+              <label className="form-field">
+                <span>Template Name</span>
+                <input
+                  value={shiftTemplateRenameName}
+                  onChange={(event) => setShiftTemplateRenameName(event.target.value)}
+                  required
+                />
+              </label>
+
+              {assignmentError ? <div className="staff-status-banner">{assignmentError}</div> : null}
+
+              <div className="modal-actions">
+                <button type="button" className="ghost-btn" onClick={() => setShiftTemplatePendingRename(null)}>Cancel</button>
+                <button type="submit" className="primary-btn" disabled={isSaving}>Rename Template</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      ) : null}
+
+      {isCopyThisWeekModalOpen ? (
+        <div className="employee-modal-backdrop" onClick={() => setIsCopyThisWeekModalOpen(false)}>
+          <div className="employee-modal blend-compact-modal" onClick={(event) => event.stopPropagation()}>
+            <div className="drawer-header">
+              <div>
+                <p className="eyebrow">Copy selected week</p>
+                <h3>This will replace the current week's schedule.</h3>
+              </div>
+              <button type="button" className="icon-btn" onClick={() => setIsCopyThisWeekModalOpen(false)}>✕</button>
+            </div>
+
+            <p className="template-delete-copy">
+              Copy {weekRangeLabel(browseWeekDays)} into {weekRangeLabel(weekDays)}? Existing shifts in the current week will be replaced only after confirmation.
+            </p>
+
+            {assignmentError ? <div className="staff-status-banner">{assignmentError}</div> : null}
+
+            <div className="modal-actions">
+              <button type="button" className="ghost-btn" onClick={() => setIsCopyThisWeekModalOpen(false)}>Cancel</button>
+              <button type="button" className="primary-btn" onClick={handleConfirmCopyThisWeek} disabled={isSaving}>Copy This Week</button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
       {isAssignmentModalOpen ? (
         <div className="employee-modal-backdrop" onClick={handleCloseAssignmentModal}>
           <div className="employee-modal blend-compact-modal" onClick={(event) => event.stopPropagation()}>
@@ -1517,54 +3144,202 @@ function ScheduleView({ shifts, employees, positions, shiftTemplates, weeklyTemp
             </div>
 
             <form className="employee-form" onSubmit={handleCreateAssignment}>
+              <div className="assignment-context-card">
+                <h4>{assignmentContext?.template?.name || 'Unknown shift template'}</h4>
+                <p className={assignmentFieldErrors.shift_date ? 'invalid' : ''}>{assignmentContext?.dayLabel || 'No day selected'}</p>
+                <p className={(assignmentFieldErrors.start_time || assignmentFieldErrors.end_time) ? 'invalid' : ''}>
+                  {formatTime24(assignmentContext?.template?.startTime)} — {formatTime24(assignmentContext?.template?.endTime)}
+                </p>
+                <p className={assignmentFieldErrors.area ? 'invalid' : ''}>Area: {assignmentContext?.template?.defaultArea || 'Not set'}</p>
+                <p>Coverage: {assignmentContext?.cell?.assignedCount ?? 0}/{assignmentContext?.cell?.requiredCount ?? 1}</p>
+                {assignmentFieldErrors.shift_template_id ? <small className="field-helper-error">{assignmentFieldErrors.shift_template_id}</small> : null}
+                {assignmentFieldErrors.shift_date ? <small className="field-helper-error">{assignmentFieldErrors.shift_date}</small> : null}
+                {assignmentFieldErrors.start_time ? <small className="field-helper-error">{assignmentFieldErrors.start_time}</small> : null}
+                {assignmentFieldErrors.end_time ? <small className="field-helper-error">{assignmentFieldErrors.end_time}</small> : null}
+                {assignmentFieldErrors.area ? <small className="field-helper-error">{assignmentFieldErrors.area}</small> : null}
+              </div>
+
+              {assignmentDraft.templateAreaMissing ? (
+                <div className="assignment-area-warning">
+                  <p>
+                    This shift template has no saved Area.
+                    {assignmentDraft.area ? ` Using ${assignmentDraft.area} for this assignment.` : ' Select an Area to continue.'}
+                  </p>
+
+                  <label className="form-field">
+                    <span>Area (required)</span>
+                    <select
+                      className={assignmentFieldErrors.area ? 'field-invalid' : ''}
+                      value={assignmentDraft.area}
+                      onChange={(event) => {
+                        const nextArea = event.target.value
+                        setAssignmentDraft((current) => ({ ...current, area: nextArea }))
+                        if (assignmentFieldErrors.area) {
+                          setAssignmentFieldErrors((current) => ({ ...current, area: undefined }))
+                        }
+                      }}
+                    >
+                      <option value="">Select area</option>
+                      {scheduleAreaOptions.filter((option) => option !== 'Other').map((option) => (
+                        <option key={`assignment-area-${option}`} value={option}>{option}</option>
+                      ))}
+                    </select>
+                    {assignmentFieldErrors.area ? <small className="field-helper-error">Area is required.</small> : null}
+                  </label>
+
+                  <div className="assignment-area-apply">
+                    <span>Apply this Area to the template permanently?</span>
+                    <div className="action-group">
+                      <button
+                        type="button"
+                        className={`ghost-btn small ${assignmentAreaApplyMode === 'once' ? 'active' : ''}`}
+                        onClick={() => setAssignmentAreaApplyMode('once')}
+                      >
+                        Only this assignment
+                      </button>
+                      <button
+                        type="button"
+                        className={`ghost-btn small ${assignmentAreaApplyMode === 'template' ? 'active' : ''}`}
+                        onClick={handleSaveAssignmentAreaToTemplate}
+                      >
+                        Save to template
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ) : null}
+
               <label className="form-field">
-                <span>Employee</span>
-                <select
-                  value={assignmentDraft.employeeId}
-                  onChange={(event) => {
-                    const nextEmployeeId = event.target.value
-                    const nextEmployee = employees.find((employee) => String(employee.id) === nextEmployeeId)
-                    const nextPositions = nextEmployee ? getEmployeePositionNames(nextEmployee) : []
-                    setAssignmentDraft((current) => ({
-                      ...current,
-                      employeeId: nextEmployeeId,
-                      positionName: nextPositions[0] ?? current.positionName,
-                    }))
-                  }}
-                >
-                  <option value="">Select employee</option>
-                  {assignmentEmployeeOptions.map((employee) => (
-                    <option key={`assign-employee-${employee.id}`} value={String(employee.id)}>
-                      {employee.full_name || employee.name}
-                    </option>
-                  ))}
-                </select>
+                <span>Select employees</span>
+                <input
+                  type="search"
+                  value={assignmentEmployeeSearch}
+                  onChange={(event) => setAssignmentEmployeeSearch(event.target.value)}
+                  placeholder="Search employees"
+                />
+                <div className={`assignment-employee-list ${assignmentFieldErrors.employee_ids ? 'field-invalid' : ''}`}>
+                  {assignmentEmployeeOptions.map((employee) => {
+                    const employeeId = String(employee.id)
+                    const checked = (assignmentDraft.employeeIds ?? []).some((id) => String(id) === employeeId)
+                    const primaryPosition = getEmployeePrimaryPosition(employee) || 'Not set'
+                    const additionalPositions = getEmployeeAdditionalPositions(employee)
+                    const isCompatible = compatibleEmployeeIdSet.has(employeeId)
+                    return (
+                      <label key={`assignment-employee-${employee.id}`} className="inline-check-row assignment-employee-item">
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          onChange={(event) => {
+                            const nextChecked = event.target.checked
+                            setAssignmentDraft((current) => {
+                              const currentIds = Array.isArray(current.employeeIds) ? current.employeeIds.map((id) => String(id)) : []
+                              const nextIds = nextChecked
+                                ? Array.from(new Set([...currentIds, employeeId]))
+                                : currentIds.filter((id) => id !== employeeId)
+
+                              return {
+                                ...current,
+                                employeeIds: nextIds,
+                              }
+                            })
+                            if (assignmentFieldErrors.employee_ids) {
+                              setAssignmentFieldErrors((current) => ({
+                                ...current,
+                                employee_ids: undefined,
+                              }))
+                            }
+                          }}
+                        />
+                        <div className="assignment-employee-meta">
+                          <strong>{employee.full_name || employee.name}</strong>
+                          <span>Primary: {primaryPosition}</span>
+                          {additionalPositions.length > 0 ? <span>Also: {additionalPositions.join(', ')}</span> : null}
+                          <small className={isCompatible ? 'compatible' : 'not-compatible'}>
+                            {isCompatible ? 'Compatible with selected area' : 'Outside selected area'}
+                          </small>
+                        </div>
+                      </label>
+                    )
+                  })}
+                </div>
+                <small className="field-helper-note">Selected: {selectedAssignmentEmployees.length}</small>
+                {assignmentFieldErrors.employee_ids ? <small className="field-helper-error">Select at least one employee.</small> : null}
               </label>
 
-              <label className="form-field form-field-inline-toggle">
-                <span>Compatibility</span>
-                <label className="inline-check-row">
-                  <input
-                    type="checkbox"
-                    checked={assignmentDraft.showAllEmployees}
-                    onChange={(event) => setAssignmentDraft((current) => ({ ...current, showAllEmployees: event.target.checked }))}
-                  />
-                  <span>Show all employees</span>
-                </label>
-              </label>
-
               <label className="form-field">
-                <span>Position for this shift</span>
+                <span>Apply same position to all selected (optional)</span>
                 <select
                   value={assignmentDraft.positionName}
-                  onChange={(event) => setAssignmentDraft((current) => ({ ...current, positionName: event.target.value }))}
+                  onChange={(event) => {
+                    const nextPosition = event.target.value
+                    setAssignmentDraft((current) => ({ ...current, positionName: nextPosition }))
+                  }}
                 >
-                  <option value="">Select position</option>
-                  {assignmentPositionOptions.map((name) => (
-                    <option key={`assignment-position-${name}`} value={name}>{name}</option>
+                  <option value="">No shared position</option>
+                  {Array.from(new Set(selectedAssignmentEmployees.flatMap((employee) => getEmployeeRoleOptions(employee).filter((option) => option !== 'Custom')))).map((name) => (
+                    <option key={`assignment-global-position-${name}`} value={name}>{name}</option>
                   ))}
                 </select>
               </label>
+
+              {selectedAssignmentEmployees.length > 0 ? (
+                <div className={`assignment-selected-list ${assignmentFieldErrors.employee_positions ? 'field-invalid' : ''}`}>
+                  {selectedAssignmentEmployees.map((employee) => {
+                    const employeeId = String(employee.id)
+                    const roleState = assignmentEmployeeRoleMap[employeeId] ?? { role: '', customRole: '' }
+                    const options = getEmployeeRoleOptions(employee)
+                    return (
+                      <div className="assignment-selected-item" key={`selected-employee-role-${employee.id}`}>
+                        <p>{employee.full_name || employee.name}</p>
+                        <label className="form-field">
+                          <span>Position for this shift</span>
+                          <select
+                            value={roleState.role}
+                            onChange={(event) => {
+                              const nextRole = event.target.value
+                              setAssignmentEmployeeRoleMap((current) => ({
+                                ...current,
+                                [employeeId]: {
+                                  role: nextRole,
+                                  customRole: nextRole === 'Custom' ? current[employeeId]?.customRole ?? '' : '',
+                                },
+                              }))
+                              if (assignmentFieldErrors.employee_positions) {
+                                setAssignmentFieldErrors((current) => ({ ...current, employee_positions: undefined }))
+                              }
+                            }}
+                          >
+                            <option value="">Select position</option>
+                            {options.map((option) => (
+                              <option key={`employee-role-option-${employee.id}-${option}`} value={option}>{option}</option>
+                            ))}
+                          </select>
+                        </label>
+                        {roleState.role === 'Custom' ? (
+                          <label className="form-field">
+                            <span>Custom position</span>
+                            <input
+                              value={roleState.customRole}
+                              onChange={(event) => {
+                                const nextCustomRole = event.target.value
+                                setAssignmentEmployeeRoleMap((current) => ({
+                                  ...current,
+                                  [employeeId]: {
+                                    role: 'Custom',
+                                    customRole: nextCustomRole,
+                                  },
+                                }))
+                              }}
+                              placeholder="Type custom position"
+                            />
+                          </label>
+                        ) : null}
+                      </div>
+                    )
+                  })}
+                </div>
+              ) : null}
+              {assignmentFieldErrors.employee_positions ? <small className="field-helper-error">Every selected employee must have a position.</small> : null}
 
               <label className="form-field">
                 <span>Notes</span>
@@ -1576,13 +3351,54 @@ function ScheduleView({ shifts, employees, positions, shiftTemplates, weeklyTemp
                 />
               </label>
 
-              {assignmentError ? <div className="staff-status-banner">{assignmentError}</div> : null}
+              {assignmentError ? (
+                <div className="staff-status-banner">
+                  <strong>{assignmentError}</strong>
+                  {assignmentMissingFields.length > 0 ? (
+                    <div className="assignment-missing-list">
+                      <p>Missing:</p>
+                      <ul>
+                        {assignmentMissingFields.map((field) => (
+                          <li key={field}>{field}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  ) : null}
+                </div>
+              ) : null}
 
               <div className="modal-actions">
                 <button type="button" className="ghost-btn" onClick={handleCloseAssignmentModal}>Cancel</button>
                 <button type="submit" className="primary-btn" disabled={isSaving}>{isSaving ? 'Saving…' : 'Save'}</button>
               </div>
             </form>
+          </div>
+        </div>
+      ) : null}
+
+      {pendingShiftDrop ? (
+        <div className="employee-modal-backdrop" onClick={handleCloseShiftDropPrompt}>
+          <div className="employee-modal blend-compact-modal" onClick={(event) => event.stopPropagation()}>
+            <div className="drawer-header">
+              <div>
+                <p className="eyebrow">Shift placement</p>
+                <h3>Move or copy this shift?</h3>
+              </div>
+              <button type="button" className="icon-btn" onClick={handleCloseShiftDropPrompt}>✕</button>
+            </div>
+
+            <p className="staff-subtitle">Choose whether to move the original assignment or keep it and create a copy in the target cell.</p>
+            {assignmentError ? <div className="staff-status-banner">{assignmentError}</div> : null}
+
+            <div className="modal-actions">
+              <button type="button" className="ghost-btn" onClick={handleCloseShiftDropPrompt}>Cancel</button>
+              <button type="button" className="ghost-btn" onClick={handleConfirmShiftDropCopy} disabled={isSaving}>
+                {isSaving ? 'Saving…' : 'Copy'}
+              </button>
+              <button type="button" className="primary-btn" onClick={handleConfirmShiftDropMove} disabled={isSaving}>
+                {isSaving ? 'Saving…' : 'Move'}
+              </button>
+            </div>
           </div>
         </div>
       ) : null}
@@ -1672,6 +3488,62 @@ function ScheduleView({ shifts, employees, positions, shiftTemplates, weeklyTemp
             </div>
           </aside>
         </>
+      ) : null}
+
+      {isPublishConfirmOpen ? (
+        <div className="employee-modal-backdrop" onClick={() => {
+          setPublishError('')
+          setIsPublishConfirmOpen(false)
+        }}>
+          <div className="employee-modal blend-compact-modal" onClick={(event) => event.stopPropagation()}>
+            <div className="drawer-header">
+              <div>
+                <p className="eyebrow">{hasUnpublishedChanges ? 'Publish changes?' : 'Publish schedule?'}</p>
+                <h3>{hasUnpublishedChanges
+                  ? 'Employees will see your latest draft.'
+                  : 'Employees will see this week\'s schedule. You can keep editing the draft afterward.'}</h3>
+              </div>
+              <button type="button" className="icon-btn" onClick={() => {
+                setPublishError('')
+                setIsPublishConfirmOpen(false)
+              }}>✕</button>
+            </div>
+
+            {isPublishing ? <div className="staff-status-banner">Publishing...</div> : null}
+            {publishError ? <div className="staff-status-banner">{publishError}</div> : null}
+
+            <div className="modal-actions">
+              <button type="button" className="ghost-btn" onClick={() => {
+                setPublishError('')
+                setIsPublishConfirmOpen(false)
+              }}>Cancel</button>
+              <button type="button" className="primary-btn" onClick={handlePublishConfirm} disabled={isPublishing}>
+                {isPublishing ? 'Publishing…' : hasUnpublishedChanges ? 'Publish changes' : 'Publish'}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {isUnpublishConfirmOpen ? (
+        <div className="employee-modal-backdrop" onClick={() => setIsUnpublishConfirmOpen(false)}>
+          <div className="employee-modal blend-compact-modal" onClick={(event) => event.stopPropagation()}>
+            <div className="drawer-header">
+              <div>
+                <p className="eyebrow">Unpublish this schedule?</p>
+                <h3>Employees will no longer see this week. Your draft stays editable.</h3>
+              </div>
+              <button type="button" className="icon-btn" onClick={() => setIsUnpublishConfirmOpen(false)}>✕</button>
+            </div>
+
+            <div className="modal-actions">
+              <button type="button" className="ghost-btn" onClick={() => setIsUnpublishConfirmOpen(false)}>Cancel</button>
+              <button type="button" className="primary-btn" onClick={handleConfirmUnpublishSchedule} disabled={isPublishing}>
+                {isPublishing ? 'Unpublishing…' : 'Unpublish'}
+              </button>
+            </div>
+          </div>
+        </div>
       ) : null}
     </section>
   )
@@ -2034,6 +3906,7 @@ function PositionsSettingsView({
   onRequestDelete,
   onMovePosition,
   getUsageCount,
+  renderBuildInfo,
 }) {
   return (
     <section className="staff-page">
@@ -2118,6 +3991,10 @@ function PositionsSettingsView({
           </div>
         )}
       </div>
+
+      <div className="settings-footer">
+        {renderBuildInfo}
+      </div>
     </section>
   )
 }
@@ -2129,6 +4006,16 @@ function App() {
   const [employees, setEmployees] = useState(initialStaffEmployees)
   const [selectedEmployee, setSelectedEmployee] = useState(null)
   const [shifts, setShifts] = useState([])
+  const [scheduleCapacities, setScheduleCapacities] = useState([])
+  const [schedulePublication, setSchedulePublication] = useState({
+    weekStartDate: getCurrentWeekStartDate(),
+    status: 'draft',
+    publishedAt: null,
+    unpublishedAt: null,
+    publishedBy: null,
+  })
+  const [publishedShifts, setPublishedShifts] = useState([])
+  const [scheduleWeekStart, setScheduleWeekStart] = useState(() => getCurrentWeekStartDate())
   const [scheduleEmployees, setScheduleEmployees] = useState(initialStaffEmployees)
   const [isScheduleLoading, setIsScheduleLoading] = useState(true)
   const [scheduleNotice, setScheduleNotice] = useState('')
@@ -2348,13 +4235,16 @@ function App() {
   useEffect(() => {
     let isMounted = true
 
-    const loadScheduleData = async () => {
-      setIsScheduleLoading(true)
+    const loadScheduleBootstrap = async () => {
       setIsWeeklyTemplatesLoading(true)
       setScheduleNotice('')
 
       try {
-        const [remoteEmployees, remoteShifts, remoteTemplates, remoteWeeklyTemplates] = await Promise.all([getEmployees(), getShifts(), getShiftTemplates(), getWeeklyScheduleTemplates()])
+        const [remoteEmployees, remoteTemplates, remoteWeeklyTemplates] = await Promise.all([
+          getEmployees(),
+          getShiftTemplates(),
+          getWeeklyScheduleTemplates(),
+        ])
         if (!isMounted) return
 
         if (remoteEmployees.length > 0) {
@@ -2365,7 +4255,6 @@ function App() {
           setScheduleEmployees(initialStaffEmployees)
         }
 
-        setShifts(remoteShifts)
         setShiftTemplates(composeShiftTemplates(remoteTemplates))
         setWeeklyTemplates(remoteWeeklyTemplates)
       } catch (error) {
@@ -2373,24 +4262,79 @@ function App() {
 
         setEmployees(initialStaffEmployees)
         setScheduleEmployees(initialStaffEmployees)
-        setShifts([])
         setShiftTemplates([])
         setWeeklyTemplates([])
-        setScheduleNotice(error.message || 'Unable to load schedule right now.')
+        setScheduleNotice(error.message || 'Unable to load schedule templates right now.')
       } finally {
         if (isMounted) {
-          setIsScheduleLoading(false)
           setIsWeeklyTemplatesLoading(false)
         }
       }
     }
 
-    loadScheduleData()
+    loadScheduleBootstrap()
 
     return () => {
       isMounted = false
     }
   }, [])
+
+  useEffect(() => {
+    let isMounted = true
+
+    const loadScheduleWeekData = async (weekStartDate) => {
+      setIsScheduleLoading(true)
+      setScheduleNotice('')
+      const weekDateKeys = getWeekDateKeys(weekStartDate)
+
+      try {
+        const [remoteShifts, remoteCapacities, publicationState] = await Promise.all([
+          getShifts({
+            startDate: weekDateKeys[0],
+            endDate: weekDateKeys[weekDateKeys.length - 1],
+          }),
+          getScheduleCapacities({ shiftDates: weekDateKeys }),
+          getWeekSchedulePublicationState(weekStartDate),
+        ])
+        if (!isMounted) return
+
+        setShifts(remoteShifts)
+        setScheduleCapacities(remoteCapacities)
+        setSchedulePublication(publicationState.publication ?? {
+          weekStartDate,
+          status: 'draft',
+          publishedAt: null,
+          unpublishedAt: null,
+          publishedBy: null,
+        })
+        setPublishedShifts(publicationState.publishedShifts ?? [])
+      } catch (error) {
+        if (!isMounted) return
+
+        setShifts([])
+        setScheduleCapacities([])
+        setSchedulePublication({
+          weekStartDate,
+          status: 'draft',
+          publishedAt: null,
+          unpublishedAt: null,
+          publishedBy: null,
+        })
+        setPublishedShifts([])
+        setScheduleNotice(error.message || 'Unable to load schedule right now.')
+      } finally {
+        if (isMounted) {
+          setIsScheduleLoading(false)
+        }
+      }
+    }
+
+    loadScheduleWeekData(scheduleWeekStart)
+
+    return () => {
+      isMounted = false
+    }
+  }, [scheduleWeekStart])
 
   useEffect(() => {
     let isMounted = true
@@ -2434,6 +4378,8 @@ function App() {
       return matchesSearch && matchesFilter
     })
   }, [activeFilter, employees, searchTerm])
+
+  const employeePositionOptions = useMemo(() => buildEmployeePositionOptions(positions), [positions])
 
   const isValidEmail = (value) => {
     if (!value) return true
@@ -2580,6 +4526,159 @@ function App() {
     return mergedTemplates
   }
 
+  const refreshScheduleCapacities = async (weekStartDate = scheduleWeekStart) => {
+    const weekDateKeys = getWeekDateKeys(weekStartDate)
+    const remote = await getScheduleCapacities({ shiftDates: weekDateKeys })
+    setScheduleCapacities(remote)
+    return remote
+  }
+
+  const refreshSchedulePublication = async (weekStartDate = scheduleWeekStart) => {
+    const state = await getWeekSchedulePublicationState(weekStartDate)
+    setSchedulePublication(state.publication ?? {
+      weekStartDate,
+      status: 'draft',
+      publishedAt: null,
+      unpublishedAt: null,
+      publishedBy: null,
+    })
+    setPublishedShifts(state.publishedShifts ?? [])
+    return state
+  }
+
+  const handlePublishWeekSchedule = async (weekStartDate, weekDateKeys = []) => {
+    const normalizedKeys = (weekDateKeys ?? []).map((item) => `${item}`.trim()).filter(Boolean)
+    const weekDateSet = new Set(normalizedKeys.length > 0 ? normalizedKeys : getWeekDateKeys(weekStartDate))
+    const draftWeekShifts = shifts.filter((shift) => weekDateSet.has(`${shift.date ?? ''}`.slice(0, 10)))
+
+    const result = await publishWeekSchedule({
+      weekStartDate,
+      weekDateKeys: Array.from(weekDateSet),
+      draftShifts: draftWeekShifts,
+      knownTemplateIds: buildKnownShiftTemplateIdSet(shiftTemplates),
+    })
+
+    setSchedulePublication(result.publication)
+    setPublishedShifts(result.publishedShifts)
+    setScheduleNotice(result.publication?.status === 'published' ? 'Schedule published for employees.' : 'Schedule updated.')
+    return result
+  }
+
+  const handleUnpublishWeekSchedule = async (weekStartDate) => {
+    const result = await unpublishWeekSchedule({ weekStartDate })
+    setSchedulePublication(result.publication)
+    setPublishedShifts(result.publishedShifts)
+    setScheduleNotice('Schedule returned to draft. Employees can no longer see it.')
+    return result
+  }
+
+  const handleUpdateCellCapacity = async ({ shiftTemplateId, shiftDate, requiredCount }) => {
+    const saved = await upsertScheduleCapacity({ shiftTemplateId, shiftDate, requiredCount })
+    const savedKey = `${String(saved.shiftTemplateId)}:${saved.shiftDate}`
+
+    setScheduleCapacities((current) => {
+      const withoutExisting = current.filter((item) => `${String(item.shiftTemplateId)}:${item.shiftDate}` !== savedKey)
+      return [...withoutExisting, saved]
+    })
+
+    await refreshScheduleViewData()
+
+    setScheduleNotice('Required staffing updated.')
+    return saved
+  }
+
+  const handleRenameShiftTemplate = async (template, nextName) => {
+    if (!template?.templateId) {
+      throw new Error('Template could not be found.')
+    }
+
+    if (!nextName?.trim()) {
+      throw new Error('Template name is required.')
+    }
+
+    const payload = {
+      name: nextName.trim(),
+      startTime: normalizeTimeValue(template.startTime),
+      endTime: normalizeTimeValue(template.endTime),
+      defaultRole: template.defaultRole ?? '',
+      defaultArea: template.defaultArea ?? '',
+      notes: template.notes ?? '',
+    }
+
+    await updateShiftTemplate(template.templateId, payload)
+    await refreshShiftTemplates()
+    setScheduleNotice('Shift template renamed.')
+  }
+
+  const handleEditShiftTemplate = (template) => {
+    setTemplateNotice('')
+    setEditingTemplate(template)
+    setTemplateForm(buildTemplateForm(template))
+    setIsTemplateModalOpen(true)
+  }
+
+  const handleDuplicateShiftTemplate = async (template) => {
+    if (!template?.templateId) {
+      throw new Error('Template could not be found.')
+    }
+
+    const payload = {
+      name: `${template.name} Copy`,
+      startTime: normalizeTimeValue(template.startTime),
+      endTime: normalizeTimeValue(template.endTime),
+      defaultRole: template.defaultRole ?? '',
+      defaultArea: template.defaultArea ?? '',
+      notes: template.notes ?? '',
+    }
+
+    await createShiftTemplate(payload)
+    await refreshShiftTemplates()
+    setScheduleNotice('Shift template duplicated.')
+  }
+
+  const handleDeleteShiftTemplate = async (template) => {
+    if (!template?.templateId) {
+      throw new Error('Template could not be found.')
+    }
+
+    await deleteShiftTemplate(template.templateId)
+    await refreshShiftTemplates()
+
+    if (formData.shift_template === template.id) {
+      setFormData((current) => ({ ...current, shift_template: 'custom' }))
+    }
+
+    if (editingTemplate?.id === template.id) {
+      setEditingTemplate(null)
+      setTemplateForm(buildTemplateForm())
+    }
+
+    setScheduleNotice('Shift template deleted. Existing scheduled shifts were not changed.')
+  }
+
+  const handleApplyAreaToTemplate = async (template, area) => {
+    if (!template?.templateId) {
+      throw new Error('Template could not be found.')
+    }
+
+    const normalizedArea = `${area ?? ''}`.trim()
+    if (!normalizedArea) {
+      throw new Error('Area is required before saving to template.')
+    }
+
+    await updateShiftTemplate(template.templateId, {
+      name: template.name,
+      startTime: normalizeTimeValue(template.startTime),
+      endTime: normalizeTimeValue(template.endTime),
+      defaultRole: template.defaultRole ?? '',
+      defaultArea: normalizedArea,
+      notes: template.notes ?? '',
+    })
+
+    await refreshShiftTemplates()
+    setScheduleNotice('Template area saved.')
+  }
+
   const refreshWeeklyTemplates = async () => {
     const remoteTemplates = await getWeeklyScheduleTemplates()
     setWeeklyTemplates(remoteTemplates)
@@ -2597,6 +4696,7 @@ function App() {
       .map((shift) => ({
         dayIndex: weekKeyByDate.get(shift.date),
         employeeId: shift.employeeId ?? null,
+        shiftTemplateId: shift.shiftTemplateId ?? null,
         role: shift.role ?? '',
         area: shift.area ?? '',
         startTime: normalizeTimeValue(shift.startTime),
@@ -2611,6 +4711,7 @@ function App() {
       const key = [
         shift.dayIndex,
         shift.employeeId ?? 'none',
+        shift.shiftTemplateId ?? 'none',
         shift.startTime,
         shift.endTime,
         `${shift.role}`.trim().toLowerCase(),
@@ -2653,6 +4754,8 @@ function App() {
     setIsSavingShift(true)
     setScheduleNotice('')
 
+    const gridShiftOptions = getGridShiftIntegrityOptions(shiftTemplates)
+
     try {
       const existingWeekShifts = shifts.filter((shift) => weekDates.has(shift.date))
 
@@ -2668,24 +4771,28 @@ function App() {
         const normalizedEnd = normalizeTimeValue(templateShift.endTime)
         if (!normalizedStart || !normalizedEnd) continue
 
-        const payload = {
+        const rawPayload = {
           employee_id: options?.employees ? templateShift.employeeId : null,
           date: templateShift.date,
-          startTime: options?.times ? normalizedStart : normalizedStart,
-          endTime: options?.times ? normalizedEnd : normalizedEnd,
+          startTime: normalizedStart,
+          endTime: normalizedEnd,
           role: options?.positions ? templateShift.role : '',
           area: options?.areas ? templateShift.area : '',
           status: templateShift.status || 'Scheduled',
           notes: options?.notes ? (templateShift.notes ?? '') : '',
+          shiftTemplateId: templateShift.shiftTemplateId ?? null,
         }
 
+        const prepared = prepareShiftForSave(rawPayload, gridShiftOptions)
+
         const dedupeKey = [
-          payload.employee_id ?? 'none',
-          payload.date,
-          payload.startTime,
-          payload.endTime,
-          `${payload.role ?? ''}`.trim().toLowerCase(),
-          `${payload.area ?? ''}`.trim().toLowerCase(),
+          prepared.employee_id ?? 'none',
+          prepared.date,
+          prepared.shiftTemplateId ?? 'none',
+          prepared.startTime,
+          prepared.endTime,
+          `${prepared.role ?? ''}`.trim().toLowerCase(),
+          `${prepared.area ?? ''}`.trim().toLowerCase(),
         ].join('|')
 
         if (createdKeySet.has(dedupeKey)) {
@@ -2693,12 +4800,11 @@ function App() {
         }
         createdKeySet.add(dedupeKey)
 
-        const savedShift = await createShift(payload)
+        const savedShift = await createShift(prepared, gridShiftOptions)
         created.push(savedShift)
       }
 
-      const remainingShifts = shifts.filter((shift) => !weekDates.has(shift.date))
-      setShifts([...created, ...remainingShifts])
+      await refreshScheduleViewData()
       setScheduleNotice(`Weekly template loaded (${created.length} shift${created.length === 1 ? '' : 's'} created).`)
     } catch (error) {
       const message = error?.message || 'Unable to load weekly template right now.'
@@ -2729,6 +4835,92 @@ function App() {
     setScheduleNotice('Weekly template deleted.')
   }
 
+  const handleCopyHistoricalWeek = async ({ sourceWeekDays, targetWeekDays }) => {
+    if (!Array.isArray(sourceWeekDays) || sourceWeekDays.length !== 7) {
+      throw new Error('Select a valid source week first.')
+    }
+
+    if (!Array.isArray(targetWeekDays) || targetWeekDays.length !== 7) {
+      throw new Error('Current week is unavailable for copying.')
+    }
+
+    const sourceByDate = new Map(sourceWeekDays.map((day, index) => [day.key, index]))
+    const targetDateByIndex = new Map(targetWeekDays.map((day, index) => [index, day.key]))
+    const targetDates = new Set(targetWeekDays.map((day) => day.key))
+
+    const sourceDateKeys = sourceWeekDays.map((day) => day.key).sort()
+    const sourceWeekShifts = await getShifts({
+      startDate: sourceDateKeys[0],
+      endDate: sourceDateKeys[sourceDateKeys.length - 1],
+    })
+
+    if (sourceWeekShifts.length === 0) {
+      throw new Error('No shifts found in the selected week.')
+    }
+
+    setIsSavingShift(true)
+    setScheduleNotice('')
+
+    const gridShiftOptions = getGridShiftIntegrityOptions(shiftTemplates)
+
+    try {
+      for (const existingShift of shifts.filter((shift) => targetDates.has(shift.date))) {
+        await deleteShift(existingShift.id)
+      }
+
+      const created = []
+      const dedupe = new Set()
+
+      for (const shift of sourceWeekShifts) {
+        const dayIndex = sourceByDate.get(shift.date)
+        const targetDate = targetDateByIndex.get(dayIndex)
+        const startTime = normalizeTimeValue(shift.startTime)
+        const endTime = normalizeTimeValue(shift.endTime)
+
+        if (dayIndex === undefined || !targetDate || !startTime || !endTime) continue
+
+        const rawPayload = {
+          employee_id: shift.employeeId ?? null,
+          date: targetDate,
+          startTime,
+          endTime,
+          role: shift.role ?? '',
+          area: shift.area ?? '',
+          status: shift.status ?? 'Scheduled',
+          notes: shift.notes ?? '',
+          shiftTemplateId: shift.shiftTemplateId ?? null,
+        }
+
+        const prepared = prepareShiftForSave(rawPayload, gridShiftOptions)
+
+        const dedupeKey = [
+          prepared.employee_id ?? 'none',
+          prepared.date,
+          prepared.shiftTemplateId ?? 'none',
+          prepared.startTime,
+          prepared.endTime,
+          `${prepared.role ?? ''}`.trim().toLowerCase(),
+          `${prepared.area ?? ''}`.trim().toLowerCase(),
+        ].join('|')
+
+        if (dedupe.has(dedupeKey)) continue
+        dedupe.add(dedupeKey)
+
+        const saved = await createShift(prepared, gridShiftOptions)
+        created.push(saved)
+      }
+
+      await refreshScheduleViewData()
+      setScheduleNotice(`Copied ${created.length} shift${created.length === 1 ? '' : 's'} into the current week.`)
+    } catch (error) {
+      const message = getSupabaseErrorMessage(error)
+      setScheduleNotice(message)
+      throw new Error(message)
+    } finally {
+      setIsSavingShift(false)
+    }
+  }
+
   const handleOpenAddEmployee = () => {
     setEditingEmployee(null)
     setSaveError('')
@@ -2737,22 +4929,9 @@ function App() {
   }
 
   const handleOpenEditEmployee = (employee) => {
-    const selectedPositionIds = (employee.positions ?? [])
-      .map((position) => {
-        if (position.id !== null && position.id !== undefined) {
-          return String(position.id)
-        }
-        const match = positions.find((option) => option.name.toLowerCase() === `${position.name ?? ''}`.toLowerCase())
-        return match ? String(match.id) : null
-      })
-      .filter(Boolean)
-
     setEditingEmployee(employee)
     setSaveError('')
-    setEmployeeForm({
-      ...buildEmployeeForm(employee),
-      positions: selectedPositionIds,
-    })
+    setEmployeeForm(buildEmployeeForm(employee))
     setIsEmployeeModalOpen(true)
   }
 
@@ -2761,6 +4940,71 @@ function App() {
     setEditingEmployee(null)
     setSaveError('')
     setEmployeeForm(buildEmployeeForm())
+  }
+
+  const handleAddCustomPositionToEmployee = async () => {
+    const customName = `${employeeForm.customPositionName ?? ''}`.trim()
+    if (!customName) {
+      const message = 'Enter a custom position name before adding.'
+      setSaveError(message)
+      setStaffNotice(message)
+      return
+    }
+
+    const existing = employeePositionOptions.find((position) => position.name.toLowerCase() === customName.toLowerCase())
+
+    setIsSavingEmployee(true)
+    setSaveError('')
+
+    try {
+      if (!existing) {
+        await createPosition({
+          name: customName,
+          department: employeeForm.department || inferPositionDepartment(customName),
+          sortOrder: positions.length + 1,
+        })
+        await refreshPositions()
+      }
+
+      setEmployeeForm((current) => {
+        const normalizedCustom = `${current.customPositionName ?? ''}`.trim()
+        if (!normalizedCustom) return current
+
+        if (!`${current.primaryPosition ?? ''}`.trim()) {
+          return {
+            ...current,
+            primaryPosition: normalizedCustom,
+            customPositionName: '',
+          }
+        }
+
+        if (current.primaryPosition.trim().toLowerCase() === normalizedCustom.toLowerCase()) {
+          return {
+            ...current,
+            customPositionName: '',
+          }
+        }
+
+        const nextAdditional = Array.from(new Set([
+          ...current.additionalPositions,
+          normalizedCustom,
+        ]))
+
+        return {
+          ...current,
+          additionalPositions: nextAdditional,
+          customPositionName: '',
+        }
+      })
+
+      setStaffNotice('Custom position added.')
+    } catch (error) {
+      const message = error?.message || 'Unable to add custom position right now.'
+      setSaveError(message)
+      setStaffNotice(message)
+    } finally {
+      setIsSavingEmployee(false)
+    }
   }
 
   const handleEmployeeSubmit = async (event) => {
@@ -2773,8 +5017,8 @@ function App() {
       return
     }
 
-    if (!Array.isArray(employeeForm.positions) || employeeForm.positions.length === 0) {
-      const message = 'Select at least one position.'
+    if (!`${employeeForm.primaryPosition ?? ''}`.trim()) {
+      const message = 'Primary Position is required.'
       setSaveError(message)
       setStaffNotice(message)
       return
@@ -2804,12 +5048,35 @@ function App() {
     setIsSavingEmployee(true)
     setSaveError('')
 
-    const selectedPositions = positions.filter((position) => employeeForm.positions.includes(String(position.id)))
+    const normalizedPrimary = `${employeeForm.primaryPosition ?? ''}`.trim()
+    const normalizedAdditional = Array.from(new Set((employeeForm.additionalPositions ?? [])
+      .map((name) => `${name ?? ''}`.trim())
+      .filter((name) => name && name.toLowerCase() !== normalizedPrimary.toLowerCase())))
+
+    const allPositionNames = [normalizedPrimary, ...normalizedAdditional]
+    const selectedPositions = allPositionNames.map((name) => {
+      const fromCatalog = employeePositionOptions.find((position) => position.name.toLowerCase() === name.toLowerCase())
+      if (fromCatalog) {
+        return {
+          id: fromCatalog.id,
+          name: fromCatalog.name,
+          department: fromCatalog.department,
+        }
+      }
+
+      return {
+        id: null,
+        name,
+        department: inferPositionDepartment(name),
+      }
+    })
 
     const payload = {
       name: employeeForm.fullName.trim(),
-      position: selectedPositions.map((position) => position.name).join(', '),
+      position: allPositionNames.join(', '),
       positions: selectedPositions,
+      primaryPosition: normalizedPrimary,
+      additionalPositions: normalizedAdditional,
       phone: employeeForm.phone.trim(),
       email: employeeForm.email.trim(),
       hireDate: employeeForm.hireDate,
@@ -2983,10 +5250,63 @@ function App() {
     )
   }
 
-  const refreshScheduleShifts = async () => {
-    const remoteShifts = await getShifts()
+  const refreshScheduleShifts = async (weekStartDate = scheduleWeekStart) => {
+    const weekDateKeys = getWeekDateKeys(weekStartDate)
+    const remoteShifts = await getShifts({
+      startDate: weekDateKeys[0],
+      endDate: weekDateKeys[weekDateKeys.length - 1],
+    })
     setShifts(remoteShifts)
     return remoteShifts
+  }
+
+  const refreshScheduleViewData = async (weekStartDate = scheduleWeekStart) => {
+    const [remoteShifts] = await Promise.all([
+      refreshScheduleShifts(weekStartDate),
+      refreshScheduleCapacities(weekStartDate),
+      refreshSchedulePublication(weekStartDate),
+    ])
+    return remoteShifts
+  }
+
+  const normalizeCellDateKey = (value) => {
+    if (!value) return ''
+    const raw = `${value}`.trim()
+    if (!raw) return ''
+    if (raw.includes('T')) return raw.split('T')[0]
+    return raw.slice(0, 10)
+  }
+
+  const normalizeCellAreaKey = (value) => `${value ?? ''}`.trim().toLowerCase()
+
+  const buildShiftCellKeyFromRecord = (shift) => {
+    const normalizedDate = normalizeCellDateKey(shift?.date)
+    const templateId = shift?.shiftTemplateId
+    if (templateId && normalizedDate) {
+      return `${String(templateId)}:${normalizedDate}`
+    }
+
+    return [
+      normalizedDate,
+      normalizeTimeValue(shift?.startTime),
+      normalizeTimeValue(shift?.endTime),
+      normalizeCellAreaKey(shift?.area),
+    ].join(':')
+  }
+
+  const buildTemplateCellKey = ({ template, shiftDate }) => {
+    const normalizedDate = normalizeCellDateKey(shiftDate)
+    const templateId = template?.templateId ?? template?.id
+    if (templateId && normalizedDate) {
+      return `${String(templateId)}:${normalizedDate}`
+    }
+
+    return [
+      normalizedDate,
+      normalizeTimeValue(template?.startTime),
+      normalizeTimeValue(template?.endTime),
+      normalizeCellAreaKey(template?.defaultArea),
+    ].join(':')
   }
 
   const getShiftAreaFormState = (areaValue) => {
@@ -3029,7 +5349,10 @@ function App() {
   const handleOpenEditShift = (shift) => {
     const areaFormState = getShiftAreaFormState(shift.area)
     const matchedTemplate = shiftTemplates.find((template) => (
-      normalizeTimeValue(template.startTime) === normalizeTimeValue(shift.startTime) && normalizeTimeValue(template.endTime) === normalizeTimeValue(shift.endTime)
+      resolveShiftTemplateId(template) === resolveShiftTemplateId(shift)
+    )) ?? shiftTemplates.find((template) => (
+      normalizeTimeValue(template.startTime) === normalizeTimeValue(shift.startTime)
+      && normalizeTimeValue(template.endTime) === normalizeTimeValue(shift.endTime)
     ))
 
     setEditingShift(shift)
@@ -3068,14 +5391,14 @@ function App() {
   const handleDeleteShift = async (id) => {
     try {
       await deleteShift(id)
-      await refreshScheduleShifts()
+      await refreshScheduleViewData()
       setScheduleNotice('Shift removed.')
     } catch (error) {
       setScheduleNotice(getSupabaseErrorMessage(error))
     }
   }
 
-  const handleCreateGridShift = async ({ employeeId, shiftDate, template, positionName, notes }) => {
+  const handleCreateGridShift = async ({ employeeId, shiftDate, template, positionName, notes, requiredCount = 1, currentAssignedCount = 0 }) => {
     if (!employeeId || !shiftDate) {
       throw new Error('Please complete all required fields before saving.')
     }
@@ -3097,7 +5420,7 @@ function App() {
     })
 
     if (conflict.type === 'duplicate') {
-      throw new Error('This employee is already scheduled for this shift.')
+      throw new Error('This employee is already assigned here.')
     }
 
     if (conflict.type === 'overlap') {
@@ -3107,7 +5430,8 @@ function App() {
     setIsSavingShift(true)
     setScheduleNotice('')
 
-    const payload = {
+    const gridShiftOptions = getGridShiftIntegrityOptions(shiftTemplates)
+    const rawPayload = {
       employee_id: employeeId,
       date: shiftDate,
       startTime,
@@ -3118,11 +5442,31 @@ function App() {
       notes: (notes ?? '').trim(),
     }
 
+    const payload = prepareShiftForSave(rawPayload, {
+      ...gridShiftOptions,
+      template,
+    })
+
     try {
-      const savedShift = await createShift(payload)
-      await refreshScheduleShifts()
-      setScheduleNotice('Shift assignment created.')
-      return savedShift
+      const createdShift = await createShift(payload, gridShiftOptions)
+      console.log("Created shift", createdShift)
+      const refreshedShifts = await refreshScheduleViewData()
+      const targetCellKey = buildTemplateCellKey({ template, shiftDate })
+      const placed = refreshedShifts.some((shift) => {
+        if (String(shift.id) !== String(createdShift.id)) return false
+        return buildShiftCellKeyFromRecord(shift) === targetCellKey
+      })
+      if (!placed) {
+        setScheduleNotice('Shift saved, but could not be placed in the grid. Check shift_template_id or cell key.')
+        return createdShift
+      }
+      const nextAssigned = Number(currentAssignedCount) + 1
+      if (nextAssigned > Number(requiredCount || 1)) {
+        setScheduleNotice('This shift is over capacity.')
+      } else {
+        setScheduleNotice('Employee assigned successfully.')
+      }
+      return createdShift
     } catch (error) {
       const message = getSupabaseErrorMessage(error)
       setScheduleNotice(message)
@@ -3176,7 +5520,8 @@ function App() {
     setIsSavingShift(true)
     setScheduleNotice('')
 
-    const payload = {
+    const gridShiftOptions = getGridShiftIntegrityOptions(shiftTemplates)
+    const rawPayload = {
       employee_id: updates.employeeId,
       date: targetShift.date,
       startTime: targetStart,
@@ -3185,13 +5530,216 @@ function App() {
       area: targetArea,
       status: updates.status || targetShift.status || 'Scheduled',
       notes: updates.notes ?? targetShift.notes ?? '',
+      shiftTemplateId: targetShift.shiftTemplateId ?? null,
     }
 
+    const payload = prepareShiftForSave(rawPayload, gridShiftOptions)
+
     try {
-      const savedShift = await updateShift(shiftId, payload)
-      await refreshScheduleShifts()
+      const savedShift = await updateShift(shiftId, payload, gridShiftOptions)
+      await refreshScheduleViewData()
       setScheduleNotice('Shift assignment updated.')
       return savedShift
+    } catch (error) {
+      const message = getSupabaseErrorMessage(error)
+      setScheduleNotice(message)
+      throw new Error(message)
+    } finally {
+      setIsSavingShift(false)
+    }
+  }
+
+  const handleMoveGridShift = async (shiftId, {
+    template,
+    shiftDate,
+    requiredCount = 1,
+    currentAssignedCount = 0,
+  }) => {
+    const targetShift = shifts.find((shift) => shift.id === shiftId)
+    if (!targetShift) {
+      throw new Error('Shift assignment could not be found.')
+    }
+
+    const normalizedTargetDate = normalizeCellDateKey(shiftDate)
+    const sourceTemplateId = resolveShiftTemplateId(targetShift)
+    const targetTemplateId = resolveShiftTemplateId(template)
+
+    if (
+      normalizedTargetDate === normalizeCellDateKey(targetShift.date)
+      && sourceTemplateId
+      && targetTemplateId
+      && sourceTemplateId === targetTemplateId
+    ) {
+      return targetShift
+    }
+
+    const employeeId = targetShift.employeeId
+    const positionName = `${targetShift.role ?? ''}`.trim()
+    const startTime = normalizeTimeValue(template?.startTime)
+    const endTime = normalizeTimeValue(template?.endTime)
+    const area = `${template?.defaultArea ?? ''}`.trim() || `${targetShift.area ?? ''}`.trim()
+
+    if (!employeeId || !positionName) {
+      throw new Error('Please complete all required fields before saving.')
+    }
+
+    if (!validateShiftRequiredFields({
+      employeeId,
+      date: normalizedTargetDate,
+      startTime,
+      endTime,
+      role: positionName,
+      area,
+    })) {
+      throw new Error('Please complete all required fields before saving.')
+    }
+
+    const conflict = getShiftConflict({
+      employeeId,
+      date: normalizedTargetDate,
+      startTime,
+      endTime,
+      excludeShiftId: shiftId,
+    })
+
+    if (conflict.type === 'duplicate') {
+      throw new Error('This employee is already assigned here.')
+    }
+
+    if (conflict.type === 'overlap') {
+      throw new Error('This shift overlaps with another shift for this employee.')
+    }
+
+    setIsSavingShift(true)
+    setScheduleNotice('')
+
+    const gridShiftOptions = getGridShiftIntegrityOptions(shiftTemplates)
+    const rawPayload = {
+      employee_id: employeeId,
+      date: normalizedTargetDate,
+      startTime,
+      endTime,
+      role: positionName,
+      area,
+      status: targetShift.status || 'Scheduled',
+      notes: targetShift.notes ?? '',
+    }
+
+    const payload = prepareShiftForSave(rawPayload, {
+      ...gridShiftOptions,
+      template,
+    })
+
+    try {
+      const savedShift = await updateShift(shiftId, payload, gridShiftOptions)
+      await refreshScheduleViewData()
+      const nextAssigned = Number(currentAssignedCount) + 1
+      if (nextAssigned > Number(requiredCount || 1)) {
+        setScheduleNotice('This shift is over capacity.')
+      } else {
+        setScheduleNotice('Shift moved successfully.')
+      }
+      return savedShift
+    } catch (error) {
+      const message = getSupabaseErrorMessage(error)
+      setScheduleNotice(message)
+      throw new Error(message)
+    } finally {
+      setIsSavingShift(false)
+    }
+  }
+
+  const handleCopyGridShift = async (shiftId, {
+    template,
+    shiftDate,
+    requiredCount = 1,
+    currentAssignedCount = 0,
+    cellShifts = [],
+  }) => {
+    const sourceShift = shifts.find((shift) => String(shift.id) === String(shiftId))
+    if (!sourceShift) {
+      throw new Error('Shift assignment could not be found.')
+    }
+
+    const sourceTemplateId = resolveShiftTemplateId(sourceShift)
+    const targetTemplateId = resolveShiftTemplateId(template)
+
+    if (sourceTemplateId !== targetTemplateId) {
+      throw new Error('Copy within the same shift template row only.')
+    }
+
+    if ((cellShifts ?? []).some((shift) => String(shift.employeeId) === String(sourceShift.employeeId))) {
+      throw new Error('This employee is already assigned here.')
+    }
+
+    const normalizedTargetDate = normalizeCellDateKey(shiftDate)
+    const employeeId = sourceShift.employeeId
+    const startTime = normalizeTimeValue(sourceShift.startTime)
+    const endTime = normalizeTimeValue(sourceShift.endTime)
+    const role = `${sourceShift.role ?? ''}`.trim()
+    const area = `${sourceShift.area ?? ''}`.trim()
+
+    if (!validateShiftRequiredFields({
+      employeeId,
+      date: normalizedTargetDate,
+      startTime,
+      endTime,
+      role,
+      area,
+    })) {
+      throw new Error('Please complete all required fields before saving.')
+    }
+
+    const conflict = getShiftConflict({
+      employeeId,
+      date: normalizedTargetDate,
+      startTime,
+      endTime,
+    })
+
+    if (conflict.type === 'duplicate') {
+      throw new Error('This employee is already assigned here.')
+    }
+
+    if (conflict.type === 'overlap') {
+      throw new Error('This shift overlaps with another shift for this employee.')
+    }
+
+    const matchedTemplate = shiftTemplates.find((item) => (
+      resolveShiftTemplateId(item) === sourceTemplateId
+    )) ?? template
+
+    setIsSavingShift(true)
+    setScheduleNotice('')
+
+    const gridShiftOptions = getGridShiftIntegrityOptions(shiftTemplates)
+    const rawPayload = {
+      employee_id: employeeId,
+      date: normalizedTargetDate,
+      startTime,
+      endTime,
+      role,
+      area,
+      status: sourceShift.status ?? 'Scheduled',
+      notes: sourceShift.notes ?? '',
+      shiftTemplateId: sourceShift.shiftTemplateId ?? null,
+    }
+
+    const payload = prepareShiftForSave(rawPayload, {
+      ...gridShiftOptions,
+      template: matchedTemplate,
+    })
+
+    try {
+      const createdShift = await createShift(payload, gridShiftOptions)
+      await refreshScheduleViewData()
+      const nextAssigned = Number(currentAssignedCount) + 1
+      if (nextAssigned > Number(requiredCount || 1)) {
+        setScheduleNotice('This shift is over capacity.')
+      } else {
+        setScheduleNotice('Shift copied successfully.')
+      }
+      return createdShift
     } catch (error) {
       const message = getSupabaseErrorMessage(error)
       setScheduleNotice(message)
@@ -3207,7 +5755,7 @@ function App() {
 
     try {
       await deleteShift(shiftId)
-      await refreshScheduleShifts()
+      await refreshScheduleViewData()
       setScheduleNotice('Shift assignment removed.')
     } catch (error) {
       const message = getSupabaseErrorMessage(error)
@@ -3269,8 +5817,10 @@ function App() {
     setIsSavingShift(true)
     setScheduleNotice('')
 
+    const gridShiftOptions = getGridShiftIntegrityOptions(shiftTemplates)
+
     try {
-      const savedShift = await createShift({
+      const rawPayload = {
         employee_id: shift.employeeId,
         date: targetDate,
         startTime,
@@ -3279,9 +5829,14 @@ function App() {
         area,
         status: shift.status ?? 'Scheduled',
         notes: shift.notes ?? '',
-      })
+        shiftTemplateId: shift.shiftTemplateId ?? null,
+      }
 
-      await refreshScheduleShifts()
+      const prepared = prepareShiftForSave(rawPayload, gridShiftOptions)
+
+      await createShift(prepared, gridShiftOptions)
+
+      await refreshScheduleViewData()
       setScheduleNotice('Shift copied to next day.')
     } catch (error) {
       const message = getSupabaseErrorMessage(error)
@@ -3355,10 +5910,12 @@ function App() {
     setIsSavingShift(true)
     setScheduleNotice('')
 
+    const gridShiftOptions = getGridShiftIntegrityOptions(shiftTemplates)
+
     try {
       const created = []
       for (const date of candidateDates) {
-        const savedShift = await createShift({
+        const rawPayload = {
           employee_id: shift.employeeId,
           date,
           startTime,
@@ -3367,11 +5924,15 @@ function App() {
           area,
           status: shift.status ?? 'Scheduled',
           notes: shift.notes ?? '',
-        })
+          shiftTemplateId: shift.shiftTemplateId ?? null,
+        }
+
+        const prepared = prepareShiftForSave(rawPayload, gridShiftOptions)
+        const savedShift = await createShift(prepared, gridShiftOptions)
         created.push(savedShift)
       }
 
-      await refreshScheduleShifts()
+      await refreshScheduleViewData()
       setScheduleNotice(`Copied shift to ${created.length} day${created.length === 1 ? '' : 's'} in the rest of the week.`)
     } catch (error) {
       const message = getSupabaseErrorMessage(error)
@@ -3448,7 +6009,14 @@ function App() {
     setIsSavingShift(true)
     setScheduleNotice('')
 
-    const payload = {
+    const selectedTemplate = formData.shift_template !== 'custom'
+      ? shiftTemplates.find((template) => template.id === formData.shift_template)
+      : null
+    const legacyShiftOptions = getLegacyShiftIntegrityOptions(shiftTemplates, {
+      requireTemplateId: Boolean(selectedTemplate) || Boolean(editingShift?.shiftTemplateId),
+    })
+
+    const rawPayload = {
       employee_id: formData.employee_id,
       role: formData.role,
       area: resolvedArea,
@@ -3457,14 +6025,20 @@ function App() {
       endTime: normalizedEndTime,
       status: formData.status,
       notes: formData.notes,
+      shiftTemplateId: editingShift?.shiftTemplateId ?? resolveShiftTemplateId(selectedTemplate),
     }
+
+    const payload = prepareShiftForSave(rawPayload, {
+      ...legacyShiftOptions,
+      template: selectedTemplate,
+    })
 
     try {
       const savedShift = editingShift
-        ? await updateShift(editingShift.id, payload)
-        : await createShift(payload)
+        ? await updateShift(editingShift.id, payload, legacyShiftOptions)
+        : await createShift(payload, legacyShiftOptions)
 
-      await refreshScheduleShifts()
+      await refreshScheduleViewData()
       setScheduleNotice(editingShift ? 'Shift updated successfully.' : 'Shift created successfully.')
       handleCloseShiftModal()
     } catch (error) {
@@ -3569,6 +6143,11 @@ function App() {
 
     if (!templateForm.startTime || !templateForm.endTime) {
       setTemplateNotice('Start Time and End Time are required.')
+      return
+    }
+
+    if (!templateForm.defaultArea.trim()) {
+      setTemplateNotice('Default Area is required.')
       return
     }
 
@@ -4042,6 +6621,12 @@ function App() {
 
         {activeView === 'dashboard' ? <DashboardView /> : null}
 
+        {activeView === 'dashboard' ? (
+          <div className="build-info-floating">
+            <BuildInfoBadge compact />
+          </div>
+        ) : null}
+
         {activeView === 'staff' ? (
           <StaffView
             employees={filteredEmployees}
@@ -4063,6 +6648,7 @@ function App() {
         {activeView === 'schedule' ? (
           <ScheduleView
             shifts={shifts}
+            scheduleCapacities={scheduleCapacities}
             employees={scheduleEmployees}
             positions={positions}
             shiftTemplates={shiftTemplates}
@@ -4072,6 +6658,8 @@ function App() {
             onDeleteShift={handleDeleteShift}
             onCreateGridShift={handleCreateGridShift}
             onUpdateGridShift={handleUpdateGridShift}
+            onMoveGridShift={handleMoveGridShift}
+            onCopyGridShift={handleCopyGridShift}
             onRemoveGridShift={handleRemoveGridShift}
             onCopyShiftToNextDay={handleCopyShiftToNextDay}
             onCopyShiftToRestOfWeek={handleCopyShiftToRestOfWeek}
@@ -4079,6 +6667,19 @@ function App() {
             onLoadWeeklyTemplate={handleLoadWeeklyTemplate}
             onRenameWeeklyTemplate={handleRenameWeeklyTemplate}
             onDeleteWeeklyTemplate={handleDeleteWeeklyTemplate}
+            onUpdateCellCapacity={handleUpdateCellCapacity}
+            onApplyAreaToTemplate={handleApplyAreaToTemplate}
+            onRenameShiftTemplate={handleRenameShiftTemplate}
+            onEditShiftTemplate={handleEditShiftTemplate}
+            onDuplicateShiftTemplate={handleDuplicateShiftTemplate}
+            onDeleteShiftTemplate={handleDeleteShiftTemplate}
+            onCopyHistoricalWeek={handleCopyHistoricalWeek}
+            schedulePublication={schedulePublication}
+            publishedShifts={publishedShifts}
+            weekStartDate={scheduleWeekStart}
+            onWeekStartDateChange={setScheduleWeekStart}
+            onPublishWeekSchedule={handlePublishWeekSchedule}
+            onUnpublishWeekSchedule={handleUnpublishWeekSchedule}
             isLoading={isScheduleLoading}
             noticeMessage={scheduleNotice}
             isSaving={isSavingShift}
@@ -4139,6 +6740,7 @@ function App() {
             onRequestDelete={handleRequestDeletePosition}
             onMovePosition={handleMovePosition}
             getUsageCount={getPositionUsageCount}
+            renderBuildInfo={<BuildInfoBadge />}
           />
         ) : null}
 
@@ -4160,37 +6762,70 @@ function App() {
                     <input value={employeeForm.fullName} onChange={(event) => setEmployeeForm((current) => ({ ...current, fullName: event.target.value }))} placeholder="Full Name" required />
                   </label>
                   <div className="form-field full-width">
-                    <span>Positions</span>
-                    <div className="positions-checkbox-grid">
-                      {positions.map((position) => {
-                        const checked = employeeForm.positions.includes(String(position.id))
-                        return (
-                          <label key={`employee-position-${position.id}`} className="position-check-item">
-                            <input
-                              type="checkbox"
-                              checked={checked}
-                              onChange={(event) => {
+                    <span>Primary Position (required)</span>
+                    <input
+                      list="employee-primary-position-options"
+                      value={employeeForm.primaryPosition}
+                      onChange={(event) => setEmployeeForm((current) => {
+                        const nextPrimary = event.target.value
+                        return {
+                          ...current,
+                          primaryPosition: nextPrimary,
+                          additionalPositions: current.additionalPositions.filter((name) => name.toLowerCase() !== `${nextPrimary}`.trim().toLowerCase()),
+                        }
+                      })}
+                      placeholder="Search and select primary position"
+                      required
+                    />
+                    <datalist id="employee-primary-position-options">
+                      {employeePositionOptions.map((position) => (
+                        <option key={`primary-position-option-${position.name}`} value={position.name} />
+                      ))}
+                    </datalist>
+                  </div>
+                  <div className="form-field full-width">
+                    <span>Additional Positions (optional)</span>
+                    <div className="positions-chip-grid">
+                      {employeePositionOptions
+                        .filter((position) => position.name.toLowerCase() !== `${employeeForm.primaryPosition ?? ''}`.trim().toLowerCase())
+                        .map((position) => {
+                          const checked = employeeForm.additionalPositions.some((name) => name.toLowerCase() === position.name.toLowerCase())
+
+                          return (
+                            <button
+                              key={`employee-position-chip-${position.name}`}
+                              type="button"
+                              className={`position-chip ${checked ? 'active' : ''}`}
+                              onClick={() => {
                                 setEmployeeForm((current) => {
-                                  const next = new Set(current.positions)
-                                  if (event.target.checked) {
-                                    next.add(String(position.id))
-                                  } else {
-                                    next.delete(String(position.id))
-                                  }
+                                  const alreadySelected = current.additionalPositions.some((name) => name.toLowerCase() === position.name.toLowerCase())
+                                  const nextAdditional = alreadySelected
+                                    ? current.additionalPositions.filter((name) => name.toLowerCase() !== position.name.toLowerCase())
+                                    : [...current.additionalPositions, position.name]
 
                                   return {
                                     ...current,
-                                    positions: Array.from(next),
-                                    department: event.target.checked ? position.department : current.department,
+                                    additionalPositions: nextAdditional,
                                   }
                                 })
                               }}
-                            />
-                            <span>{position.name}</span>
-                            <small>{position.department}</small>
-                          </label>
-                        )
-                      })}
+                            >
+                              <span className="position-chip-check">{checked ? '☑' : '☐'}</span>
+                              <span>{position.name}</span>
+                            </button>
+                          )
+                        })}
+                    </div>
+                  </div>
+                  <div className="form-field full-width">
+                    <span>+ Add Custom Position</span>
+                    <div className="custom-position-row">
+                      <input
+                        value={employeeForm.customPositionName}
+                        onChange={(event) => setEmployeeForm((current) => ({ ...current, customPositionName: event.target.value }))}
+                        placeholder="e.g. Sommelier, VIP Host, Pizza Chef"
+                      />
+                      <button type="button" className="ghost-btn" onClick={handleAddCustomPositionToEmployee} disabled={isSavingEmployee}>+ Add Custom Position</button>
                     </div>
                   </div>
                   <label className="form-field">
