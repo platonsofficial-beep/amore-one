@@ -5716,8 +5716,7 @@ function App() {
         setScheduleEmployees(remoteEmployees)
       } catch (error) {
         if (!isMounted) return
-        setEmployees([])
-        setScheduleEmployees([])
+        setScheduleEmployees((current) => (current.length > 0 ? current : []))
         setScheduleNotice((current) => (
           current || error.message || 'Unable to load employees right now.'
         ))

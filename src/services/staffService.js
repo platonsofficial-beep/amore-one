@@ -94,7 +94,7 @@ const mapEmployee = (record) => {
     weeklyHours: record.weekly_hours ?? record.weeklyHours ?? '',
     notes: record.notes ?? '',
     shift: record.shift ?? 'Evening',
-    status: record.status ?? 'Working',
+    status: `${record.status ?? ''}`.trim() || 'Working',
     department: record.department ?? effectivePositions[0]?.department ?? 'Service',
   }
 }
@@ -262,35 +262,33 @@ async function syncEmployeePositions(employeeId, positions) {
 }
 
 export async function getEmployees() {
-  const { data, error } = await supabase
+  const primary = await supabase
     .from('employees')
     .select(EMPLOYEE_SELECT)
     .order('full_name', { ascending: true })
 
-  if (error) {
-    console.error('[staffService] getEmployees error:', error)
-
-    if (isTableUnavailableError(error) && error.message?.toLowerCase().includes('employee_positions')) {
-      const fallback = await supabase
-        .from('employees')
-        .select('*')
-        .order('full_name', { ascending: true })
-
-      if (fallback.error) {
-        throw new Error(fallback.error.message || 'Unable to load employees right now.')
-      }
-
-      return (fallback.data ?? []).map(mapEmployee)
-    }
-
-    if (isTableUnavailableError(error)) {
-      throw new Error('Employees table is not ready yet.')
-    }
-
-    throw new Error(error.message || 'Unable to load employees right now.')
+  if (!primary.error) {
+    return (primary.data ?? []).map(mapEmployee)
   }
 
-  return (data ?? []).map(mapEmployee)
+  console.warn('[staffService] getEmployees joined select failed, falling back to basic select:', primary.error)
+
+  const fallback = await supabase
+    .from('employees')
+    .select('*')
+    .order('full_name', { ascending: true })
+
+  if (!fallback.error) {
+    return (fallback.data ?? []).map(mapEmployee)
+  }
+
+  console.error('[staffService] getEmployees fallback error:', fallback.error)
+
+  if (isTableUnavailableError(fallback.error)) {
+    throw new Error('Employees table is not ready yet.')
+  }
+
+  throw new Error(fallback.error.message || 'Unable to load employees right now.')
 }
 
 export async function createEmployee(employee) {
