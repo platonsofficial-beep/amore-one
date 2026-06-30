@@ -155,6 +155,18 @@ function inferPositionDepartment(name) {
   return 'Other'
 }
 
+function getScheduleAreaIcon(area) {
+  const normalized = `${area ?? ''}`.trim().toLowerCase()
+  if (normalized.includes('bar')) return '🍸'
+  if (normalized.includes('kitchen')) return '👨‍🍳'
+  if (normalized.includes('service') || normalized.includes('waiter') || normalized.includes('runner')) return '🍽'
+  if (normalized.includes('host') || normalized.includes('reception')) return '🛎'
+  if (normalized.includes('terrace') || normalized.includes('garden')) return '🌿'
+  if (normalized.includes('vip') || normalized.includes('lounge')) return '✨'
+  if (normalized.includes('management')) return '👔'
+  return '📋'
+}
+
 function buildEmployeePositionOptions(positions = []) {
   const merged = []
   const seen = new Set()
@@ -2827,26 +2839,27 @@ function ScheduleView({
           {hasUnpublishedChanges || !isWeekPublished ? (
             <button
               type="button"
-              className="primary-btn schedule-publish-btn"
+              className="primary-btn schedule-publish-btn schedule-publish-btn--draft"
               onClick={() => {
                 setPublishError('')
                 setIsPublishConfirmOpen(true)
               }}
               disabled={isSaving || isPublishing}
             >
-              {hasUnpublishedChanges ? 'Publish changes' : 'Publish Schedule'}
+              {hasUnpublishedChanges ? '🟡 Publish changes' : '🟡 Publish Schedule'}
             </button>
           ) : (
             <button
               type="button"
-              className="ghost-btn schedule-unpublish-btn"
+              className="primary-btn schedule-publish-btn schedule-publish-btn--published"
               onClick={() => {
                 setPublishError('')
                 setIsUnpublishConfirmOpen(true)
               }}
               disabled={isSaving || isPublishing}
             >
-              Unpublish
+              <span className="schedule-published-label">🟢 Published</span>
+              <span className="schedule-unpublish-label">🔴 Unpublish</span>
             </button>
           )}
           <button type="button" className="ghost-btn schedule-add-shift-btn" onClick={() => handleOpenAddShiftForDate(selectedDate)} disabled={isSaving}>
@@ -2938,7 +2951,7 @@ function ScheduleView({
           </div>
 
           <div className="blend-grid-scroll">
-            <div className="blend-grid-table" style={{ gridTemplateColumns: `300px repeat(${weekDays.length}, minmax(190px, 1fr))` }}>
+            <div className="blend-grid-table" style={{ gridTemplateColumns: `310px repeat(${weekDays.length}, minmax(190px, 1fr))` }}>
               <div className="blend-grid-header blend-grid-header-template">Shift template</div>
               {weekDays.map((day) => {
                 const daySummary = dayHeaderSummariesByKey[day.key] ?? {
@@ -2961,9 +2974,9 @@ function ScheduleView({
                   >
                     <strong className="blend-grid-header-day-name">{dayHeader.weekdayLabel}</strong>
                     <span className="blend-grid-header-day-date">{dayHeader.calendarLabel}</span>
-                    <div className="blend-grid-header-day-metrics" aria-label={`${daySummary.totalAssignedStaff} staff, ${daySummary.hoursLabel} hours`}>
-                      <span className="blend-grid-header-day-metric">👥 {daySummary.totalAssignedStaff}</span>
-                      <span className="blend-grid-header-day-metric">⏱ {daySummary.hoursLabel}h</span>
+                    <div className="blend-grid-header-day-metrics" aria-label={`${daySummary.totalAssignedStaff} employees, ${daySummary.hoursLabel} hours`}>
+                      <span className="blend-grid-header-day-metric">👥 {daySummary.totalAssignedStaff} {daySummary.totalAssignedStaff === 1 ? 'Employee' : 'Employees'}</span>
+                      <span className="blend-grid-header-day-metric">⏱ {daySummary.hoursLabel} {Number(daySummary.hoursLabel) === 1 ? 'Hour' : 'Hours'}</span>
                     </div>
                     <span className={`day-header-status ${daySummary.status}`}>
                       <span className="day-header-status-icon" aria-hidden="true">{daySummary.statusIcon}</span>
@@ -3009,15 +3022,17 @@ function ScheduleView({
               {blendGridRows.map((row) => (
                 <Fragment key={`row-${row.template.id}`}>
                   {(() => {
-                    const templateDepartment = `${row.template.defaultArea || row.template.defaultRole || 'General'}`.trim().toUpperCase()
+                    const templateArea = `${row.template.defaultArea || row.template.defaultRole || 'General'}`.trim()
+                    const templateDepartment = templateArea.toUpperCase()
+                    const templateAreaIcon = getScheduleAreaIcon(templateArea)
                     const requiredCounts = row.dayCells.map((cell) => cell.requiredCount)
                     const minRequired = requiredCounts.length > 0 ? Math.min(...requiredCounts) : null
                     const maxRequired = requiredCounts.length > 0 ? Math.max(...requiredCounts) : null
-                    const requiredLabel = minRequired === null
+                    const requiredStaffLabel = minRequired === null
                       ? null
                       : minRequired === maxRequired
-                        ? `Required: ${minRequired}`
-                        : `Required: ${minRequired}–${maxRequired}`
+                        ? `${minRequired} Employee${minRequired === 1 ? '' : 's'}`
+                        : `${minRequired}–${maxRequired} Employees`
 
                     return (
                   <aside key={`template-${row.template.id}`} className="blend-grid-template-cell blend-grid-palette-card">
@@ -3047,10 +3062,20 @@ function ScheduleView({
                       ) : null}
                     </div>
                     <span className="blend-grid-palette-grip" aria-hidden="true">⠿</span>
-                    <p className="blend-grid-palette-department">{templateDepartment}</p>
-                    <p className="blend-grid-palette-time">{formatTimeRange24(row.template.startTime, row.template.endTime, ' – ')}</p>
-                    {requiredLabel ? <p className="blend-grid-palette-required">{requiredLabel}</p> : null}
-                    <p className="blend-grid-palette-name">{row.template.name}</p>
+                    <div className="blend-grid-palette-body">
+                      <div className="blend-grid-palette-head">
+                        <span className="blend-grid-palette-icon" aria-hidden="true">{templateAreaIcon}</span>
+                        <p className="blend-grid-palette-department">{templateDepartment}</p>
+                      </div>
+                      <p className="blend-grid-palette-time">{formatTimeRange24(row.template.startTime, row.template.endTime, ' → ')}</p>
+                      {requiredStaffLabel ? (
+                        <div className="blend-grid-palette-required-block">
+                          <span className="blend-grid-palette-required-label">Required</span>
+                          <span className="blend-grid-palette-required-count">{requiredStaffLabel}</span>
+                        </div>
+                      ) : null}
+                      {row.template.name ? <p className="blend-grid-palette-name">{row.template.name}</p> : null}
+                    </div>
                   </aside>
                     )
                   })()}

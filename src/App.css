@@ -800,22 +800,22 @@
 }
 
 .schedule-workspace {
-  gap: 8px;
+  gap: 6px;
   padding: 0;
 }
 
 .schedule-workspace-banner {
   margin: 0;
-  padding: 8px 12px;
-  font-size: 0.84rem;
+  padding: 7px 12px;
+  font-size: 0.82rem;
 }
 
 .schedule-toolbar {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px 16px;
-  padding: 10px 14px;
+  gap: 10px 14px;
+  padding: 9px 12px;
   border-radius: 14px;
   border: 1px solid rgba(212, 175, 55, 0.14);
   background: rgba(12, 12, 13, 0.92);
@@ -838,19 +838,91 @@
 .schedule-toolbar-actions {
   flex: 0 1 auto;
   justify-content: flex-end;
+  gap: 10px;
 }
 
 .schedule-publish-btn {
-  min-width: 148px;
-  padding: 11px 18px;
-  font-size: 0.88rem;
+  min-width: 168px;
+  padding: 12px 20px;
+  font-size: 0.9rem;
+  font-weight: 700;
   letter-spacing: 0.01em;
-  box-shadow: 0 8px 22px rgba(212, 175, 55, 0.22);
+  transition: background 0.2s ease, box-shadow 0.2s ease, transform 0.18s ease, color 0.2s ease;
 }
 
-.schedule-unpublish-btn,
+.schedule-publish-btn--draft {
+  background: linear-gradient(135deg, #f4d391 0%, #d4a030 100%);
+  color: #1a1207;
+  box-shadow: 0 8px 24px rgba(212, 175, 55, 0.28);
+}
+
+.schedule-publish-btn--draft:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 10px 28px rgba(212, 175, 55, 0.34);
+}
+
+.schedule-publish-btn--published {
+  background: linear-gradient(135deg, #8fd487 0%, #4caf50 100%);
+  color: #0d1f0c;
+  box-shadow: 0 8px 22px rgba(76, 175, 80, 0.24);
+}
+
+.schedule-publish-btn--published:hover:not(:disabled) {
+  background: linear-gradient(135deg, #f08a7e 0%, #e53935 100%);
+  color: #fff8f6;
+  box-shadow: 0 8px 22px rgba(229, 57, 53, 0.28);
+  transform: translateY(-1px);
+}
+
+.schedule-published-label,
+.schedule-unpublish-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.schedule-unpublish-label {
+  display: none;
+}
+
+.schedule-publish-btn--published:hover:not(:disabled) .schedule-published-label {
+  display: none;
+}
+
+.schedule-publish-btn--published:hover:not(:disabled) .schedule-unpublish-label {
+  display: inline-flex;
+}
+
 .schedule-add-shift-btn {
-  padding: 10px 14px;
+  padding: 10px 16px;
+  font-size: 0.86rem;
+  font-weight: 600;
+  border: 1px solid rgba(212, 175, 55, 0.22);
+  background: rgba(212, 175, 55, 0.1);
+  color: #f0d9a8;
+  transition: background 0.18s ease, border-color 0.18s ease, transform 0.18s ease;
+}
+
+.schedule-add-shift-btn:hover:not(:disabled) {
+  border-color: rgba(212, 175, 55, 0.38);
+  background: rgba(212, 175, 55, 0.16);
+  transform: translateY(-1px);
+}
+
+.schedule-more-menu-btn {
+  padding: 9px 14px;
+  font-size: 0.84rem;
+  font-weight: 500;
+  color: #b8ad9c;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  transition: background 0.18s ease, border-color 0.18s ease, color 0.18s ease;
+}
+
+.schedule-more-menu-btn:hover:not(:disabled) {
+  color: #e8dcc6;
+  border-color: rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.07);
 }
 
 .schedule-toolbar-nav-btn {
@@ -958,16 +1030,20 @@
 .schedule-grid-hero {
   flex: 0 1 auto;
   min-height: 0;
-  padding: 12px 14px 10px;
+  padding: 10px 12px 8px;
   margin-top: 0;
 }
 
+.schedule-grid-hero.staff-panel {
+  padding: 10px 12px 8px;
+}
+
 .schedule-grid-hero .blend-grid-scroll {
-  min-height: min(58vh, 720px);
+  min-height: min(56vh, 680px);
 }
 
 .schedule-grid-hero .schedule-staff-strip {
-  margin-bottom: 8px;
+  margin-bottom: 6px;
   padding: 0;
   border: 0;
   background: transparent;
@@ -978,7 +1054,7 @@
 .schedule-employee-view-collapsible,
 .schedule-roster-collapsible {
   opacity: 0.96;
-  margin-top: 6px;
+  margin-top: 4px;
 }
 
 .blend-grid-panel {
@@ -1779,9 +1855,9 @@ input[type='time']::-webkit-datetime-edit-text {
 
 .schedule-staff-strip-scroll {
   display: flex;
-  gap: 10px;
+  gap: 12px;
   overflow-x: auto;
-  padding-bottom: 2px;
+  padding-bottom: 4px;
 }
 
 .schedule-staff-strip-empty {
@@ -1793,24 +1869,27 @@ input[type='time']::-webkit-datetime-edit-text {
 .schedule-staff-chip {
   flex: 0 0 auto;
   display: inline-flex;
-  align-items: center;
-  gap: 10px;
-  min-width: 156px;
-  max-width: 196px;
-  border: 1px solid rgba(212, 175, 55, 0.24);
-  background: linear-gradient(160deg, rgba(212, 175, 55, 0.12), rgba(12, 12, 13, 0.88));
-  border-radius: 14px;
-  padding: 10px 12px;
+  align-items: flex-start;
+  gap: 12px;
+  min-width: 172px;
+  max-width: 210px;
+  border: 1px solid rgba(212, 175, 55, 0.22);
+  background: linear-gradient(165deg, rgba(212, 175, 55, 0.1), rgba(12, 12, 13, 0.9));
+  border-radius: 16px;
+  padding: 12px 14px;
   cursor: grab;
   color: inherit;
   font: inherit;
   text-align: left;
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.14);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.14);
+  transition: border-color 0.18s ease, background 0.18s ease, transform 0.18s ease, box-shadow 0.18s ease;
 }
 
 .schedule-staff-chip:hover {
   border-color: rgba(212, 175, 55, 0.42);
-  background: linear-gradient(160deg, rgba(212, 175, 55, 0.18), rgba(12, 12, 13, 0.92));
+  background: linear-gradient(165deg, rgba(212, 175, 55, 0.16), rgba(12, 12, 13, 0.94));
+  transform: translateY(-1px);
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.18);
 }
 
 .schedule-staff-chip.dragging {
@@ -1819,8 +1898,8 @@ input[type='time']::-webkit-datetime-edit-text {
 }
 
 .schedule-staff-chip-avatar {
-  width: 36px;
-  height: 36px;
+  width: 40px;
+  height: 40px;
   flex: 0 0 auto;
   display: grid;
   place-items: center;
@@ -1828,22 +1907,23 @@ input[type='time']::-webkit-datetime-edit-text {
   background: linear-gradient(135deg, #f3d28d 0%, #c9982d 100%);
   color: #170f04;
   font-weight: 700;
-  font-size: 0.74rem;
+  font-size: 0.78rem;
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.18);
 }
 
 .schedule-staff-chip-body {
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: 5px;
   min-width: 0;
   flex: 1 1 auto;
 }
 
 .schedule-staff-chip-name {
   color: #fff7e8;
-  font-size: 0.84rem;
-  line-height: 1.2;
+  font-size: 0.88rem;
+  font-weight: 600;
+  line-height: 1.25;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1851,8 +1931,8 @@ input[type='time']::-webkit-datetime-edit-text {
 
 .schedule-staff-chip-role {
   color: #b8ad9c;
-  font-size: 0.72rem;
-  line-height: 1.2;
+  font-size: 0.74rem;
+  line-height: 1.25;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1860,11 +1940,11 @@ input[type='time']::-webkit-datetime-edit-text {
 
 .schedule-staff-hours-bar {
   width: 100%;
-  height: 4px;
+  height: 6px;
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.08);
   overflow: hidden;
-  margin-top: 2px;
+  margin-top: 1px;
 }
 
 .schedule-staff-hours-bar-fill {
@@ -1872,7 +1952,7 @@ input[type='time']::-webkit-datetime-edit-text {
   height: 100%;
   border-radius: inherit;
   background: linear-gradient(90deg, #d4af37 0%, #f3d28d 100%);
-  transition: width 0.2s ease;
+  transition: width 0.22s ease;
 }
 
 .schedule-staff-hours-bar-fill.under {
@@ -1889,7 +1969,7 @@ input[type='time']::-webkit-datetime-edit-text {
 
 .schedule-staff-hours-primary {
   color: #d8c8ad;
-  font-size: 0.68rem;
+  font-size: 0.7rem;
   font-weight: 600;
   letter-spacing: 0.02em;
 }
@@ -1951,12 +2031,12 @@ input[type='time']::-webkit-datetime-edit-text {
 
 .blend-grid-scroll {
   overflow-x: auto;
-  padding: 4px 2px 8px;
+  padding: 2px 2px 6px;
 }
 
 .blend-grid-table {
   display: grid;
-  gap: 10px;
+  gap: 8px;
   min-width: 1240px;
 }
 
@@ -1968,7 +2048,7 @@ input[type='time']::-webkit-datetime-edit-text {
   padding: 12px 14px;
   font-size: 0.9rem;
   text-align: left;
-  min-height: 72px;
+  min-height: 68px;
 }
 
 .blend-grid-header-day.blend-grid-header {
@@ -1980,7 +2060,8 @@ input[type='time']::-webkit-datetime-edit-text {
   display: flex;
   align-items: center;
   font-weight: 700;
-  letter-spacing: 0.06em;
+  font-size: 0.78rem;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
   color: #d6b26a;
 }
@@ -1992,6 +2073,7 @@ input[type='time']::-webkit-datetime-edit-text {
   gap: 2px;
   position: relative;
   padding: 0;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease;
 }
 
 .blend-grid-header-day-select {
@@ -2000,55 +2082,58 @@ input[type='time']::-webkit-datetime-edit-text {
   color: inherit;
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: 5px;
   align-items: flex-start;
   text-align: left;
-  padding: 10px 34px 10px 11px;
+  padding: 12px 36px 12px 13px;
   width: 100%;
   cursor: pointer;
 }
 
 .blend-grid-header-day-date {
-  font-size: 0.74rem;
-  color: #d8c8ad;
+  font-size: 0.72rem;
+  color: #9f9485;
   line-height: 1.25;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.06em;
   font-weight: 600;
+  text-transform: uppercase;
 }
 
 .blend-grid-header-day-name {
-  font-size: 0.72rem;
-  letter-spacing: 0.12em;
-  color: #f7efe1;
-  line-height: 1.2;
+  font-size: 0.98rem;
+  letter-spacing: 0.1em;
+  color: #fff7e8;
+  font-weight: 700;
+  line-height: 1.15;
 }
 
 .blend-grid-header-day-metrics {
   display: flex;
-  align-items: center;
-  gap: 10px;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 3px;
   margin-top: 2px;
 }
 
 .blend-grid-header-day-metric {
-  font-size: 0.71rem;
+  font-size: 0.72rem;
   font-weight: 500;
   color: #cfc4b4;
-  letter-spacing: -0.01em;
-  line-height: 1.2;
+  letter-spacing: 0;
+  line-height: 1.3;
   white-space: nowrap;
 }
 
 .day-header-status {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  margin-top: 5px;
-  font-size: 0.66rem;
+  gap: 5px;
+  margin-top: 4px;
+  font-size: 0.68rem;
   font-weight: 600;
   letter-spacing: 0.01em;
   border-radius: 999px;
-  padding: 2px 7px;
+  padding: 3px 8px;
   width: fit-content;
   max-width: 100%;
   line-height: 1.3;
@@ -2116,47 +2201,102 @@ input[type='time']::-webkit-datetime-edit-text {
 .blend-grid-template-cell {
   position: relative;
   border-radius: 16px;
-  border: 1px solid rgba(212, 175, 55, 0.28);
-  background: linear-gradient(165deg, rgba(212, 175, 55, 0.16), rgba(12, 12, 13, 0.92));
-  padding: 16px 14px 14px;
+  border: 1px solid rgba(212, 175, 55, 0.26);
+  background: linear-gradient(168deg, rgba(212, 175, 55, 0.14), rgba(12, 12, 13, 0.94));
+  padding: 18px 16px 16px 20px;
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  min-height: 148px;
+  gap: 0;
+  min-height: 156px;
   cursor: grab;
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.16);
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.16);
+  transition: border-color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease;
+}
+
+.blend-grid-template-cell:hover {
+  border-color: rgba(212, 175, 55, 0.42);
+  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.2);
+  transform: translateY(-1px);
 }
 
 .blend-grid-palette-card {
-  justify-content: center;
+  justify-content: flex-start;
 }
 
 .blend-grid-palette-grip {
   position: absolute;
-  left: 10px;
+  left: 8px;
   top: 50%;
   transform: translateY(-50%);
-  color: rgba(212, 175, 55, 0.45);
-  font-size: 0.9rem;
+  color: rgba(212, 175, 55, 0.38);
+  font-size: 0.95rem;
   line-height: 1;
   pointer-events: none;
 }
 
+.blend-grid-palette-body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-left: 10px;
+  min-width: 0;
+}
+
+.blend-grid-palette-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.blend-grid-palette-icon {
+  flex: 0 0 auto;
+  font-size: 1.05rem;
+  line-height: 1;
+}
+
 .blend-grid-palette-department {
-  margin: 0 0 0 18px;
+  margin: 0;
   color: #f5e2bc !important;
-  letter-spacing: 0.14em;
+  letter-spacing: 0.12em;
   font-weight: 700;
-  font-size: 0.82rem !important;
+  font-size: 0.86rem !important;
   line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .blend-grid-palette-time {
-  margin: 0 0 0 18px;
-  color: #e8dcc6 !important;
-  font-size: 0.86rem !important;
+  margin: 0;
+  color: #ede2cf !important;
+  font-size: 0.92rem !important;
   font-weight: 600;
   letter-spacing: 0.02em;
+  font-variant-numeric: tabular-nums;
+}
+
+.blend-grid-palette-required-block {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.blend-grid-palette-required-label {
+  color: #9f9485;
+  font-size: 0.66rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  line-height: 1.2;
+}
+
+.blend-grid-palette-required-count {
+  color: #d8c8ad;
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  line-height: 1.3;
 }
 
 .blend-grid-palette-required {
@@ -2168,10 +2308,13 @@ input[type='time']::-webkit-datetime-edit-text {
 }
 
 .blend-grid-palette-name {
-  margin: 4px 0 0 18px;
+  margin: 2px 0 0;
+  padding-top: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
   color: #8f8778 !important;
-  font-size: 0.72rem !important;
-  line-height: 1.3;
+  font-size: 0.74rem !important;
+  font-style: italic;
+  line-height: 1.35;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -2192,7 +2335,7 @@ input[type='time']::-webkit-datetime-edit-text {
   width: 26px;
   height: 26px;
   border-radius: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.14);
+  border: 1px solid rgba(255, 255, 255, 0.12);
   background: rgba(8, 8, 9, 0.55);
   color: #f2deba;
   display: grid;
@@ -2200,6 +2343,7 @@ input[type='time']::-webkit-datetime-edit-text {
   font-size: 0.88rem;
   cursor: pointer;
   line-height: 1;
+  transition: border-color 0.16s ease, background 0.16s ease;
 }
 
 .template-card-delete-btn:hover,
@@ -2227,10 +2371,11 @@ input[type='time']::-webkit-datetime-edit-text {
   border-bottom: 1px solid rgba(255, 255, 255, 0.06);
   background: transparent;
   color: #f7efe1;
-  padding: 9px 10px;
+  padding: 9px 12px;
   text-align: left;
   font-size: 0.82rem;
   cursor: pointer;
+  transition: background 0.16s ease;
 }
 
 .template-card-menu-item:last-child {
@@ -2299,13 +2444,14 @@ input[type='time']::-webkit-datetime-edit-text {
   border-radius: 16px;
   border: 1px solid rgba(255, 255, 255, 0.06);
   background: rgba(255, 255, 255, 0.035);
-  padding: 12px;
-  min-height: 176px;
+  padding: 11px 12px;
+  min-height: 156px;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 9px;
   cursor: pointer;
   box-shadow: 0 6px 14px rgba(0, 0, 0, 0.18);
+  transition: border-color 0.18s ease, background 0.18s ease, box-shadow 0.18s ease;
 }
 
 .blend-grid-assignment-cell.active {
