@@ -262,75 +262,41 @@ export function countLowStockAlerts(inventoryItems = []) {
   )).length
 }
 
-export function buildDashboardStats({
-  liveFloorState,
-  reservationsConnected = false,
-  reservationsSummary = { bookings: 0, tables: 0, guests: 0 },
-  inventoryConnected = false,
-  lowStockCount = 0,
-}) {
-  const staffDetail = liveFloorState.state === 'live'
-    ? 'Currently on the floor'
-    : liveFloorState.state === 'idle' && liveFloorState.nextShiftStartLabel
-      ? `Next shift at ${liveFloorState.nextShiftStartLabel}`
-      : liveFloorState.state === 'unpublished'
-        ? 'Publish to monitor live floor'
-        : 'No active shift'
+export function getLowStockAlertItems(inventoryItems = [], limit = 5) {
+  return inventoryItems
+    .filter((item) => item.status === 'Low Stock' || item.status === 'Out of Stock')
+    .sort((left, right) => {
+      if (left.status === right.status) {
+        return `${left.name ?? ''}`.localeCompare(`${right.name ?? ''}`)
+      }
+      return left.status === 'Out of Stock' ? -1 : 1
+    })
+    .slice(0, limit)
+    .map((item) => ({
+      id: String(item.id),
+      name: `${item.name ?? 'Item'}`.trim() || 'Item',
+      status: item.status,
+      quantity: item.quantity,
+      unit: item.unit,
+    }))
+}
 
-  return [
-    {
-      id: 'staff-on-shift',
-      title: 'Staff on Shift',
-      value: String(liveFloorState.onShiftCount),
-      detail: staffDetail,
-      accent: 'gold',
-      icon: '👥',
-      connected: true,
-    },
-    {
-      id: 'reservations',
-      title: 'Reservations',
-      value: null,
-      detail: reservationsConnected ? '' : 'Not connected yet',
-      metrics: reservationsConnected
-        ? [
-            { label: 'Bookings', value: String(reservationsSummary.bookings) },
-            { label: 'Tables', value: String(reservationsSummary.tables) },
-            { label: 'Guests', value: String(reservationsSummary.guests) },
-          ]
-        : null,
-      accent: 'rose',
-      icon: '🍽️',
-      connected: reservationsConnected,
-    },
-    {
-      id: 'tasks',
-      title: 'Tasks',
-      value: null,
-      detail: 'Not connected yet',
-      accent: 'blue',
-      icon: '✓',
-      connected: false,
-    },
-    {
-      id: 'inventory',
-      title: 'Inventory',
-      value: inventoryConnected ? String(lowStockCount) : null,
-      detail: inventoryConnected
-        ? (lowStockCount === 1 ? '1 stock alert' : `${lowStockCount} stock alerts`)
-        : 'Not connected yet',
-      accent: 'amber',
-      icon: '⚠️',
-      connected: inventoryConnected,
-    },
-    {
-      id: 'revenue',
-      title: 'Revenue',
-      value: null,
-      detail: 'Not connected yet',
-      accent: 'emerald',
-      icon: '💰',
-      connected: false,
-    },
-  ]
+export function buildDashboardIssuesSummary(snapshot = {}) {
+  const issueCount = Number(snapshot.issues) || 0
+
+  if (issueCount === 0) {
+    return {
+      count: 0,
+      title: 'All clear',
+      message: snapshot.statusMessage || 'Everything is ready for service.',
+      tone: 'ready',
+    }
+  }
+
+  return {
+    count: issueCount,
+    title: issueCount === 1 ? '1 issue needs attention' : `${issueCount} issues need attention`,
+    message: 'Review today\'s schedule for staffing gaps, overstaffing, and overtime.',
+    tone: 'attention',
+  }
 }

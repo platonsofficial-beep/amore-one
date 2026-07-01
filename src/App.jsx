@@ -67,7 +67,6 @@ import {
 import { buildOperationalSnapshot } from './lib/operationalSnapshotUtils'
 import {
   buildBrandDisplay,
-  buildDashboardGreeting,
   buildProfileChipDisplay,
 } from './lib/workspaceProfileUtils'
 import {
@@ -81,11 +80,10 @@ import {
   saveWorkspaceProfile,
 } from './services/workspaceProfileService'
 import {
-  buildDashboardStats,
+  buildDashboardIssuesSummary,
   buildLiveFloorState,
   buildTodayReservationsSummary,
-  buildTodayTimeline,
-  countLowStockAlerts,
+  getLowStockAlertItems,
   isModuleUnavailableMessage,
   resolveLiveDraftShiftsForWeek,
   resolveLiveDraftCapacitiesForWeek,
@@ -114,11 +112,11 @@ const workspaceSettingsSections = [
   { id: 'positions', label: 'Positions' },
 ]
 
-const quickActions = [
-  { label: 'Add Reservation', icon: '+' },
-  { label: 'Add Task', icon: '✦' },
-  { label: 'Add Staff', icon: '◌' },
-  { label: 'Create Order', icon: '↗' },
+const dashboardQuickActions = [
+  { id: 'add-reservation', label: 'Add Reservation', icon: '🍽', available: true },
+  { id: 'add-staff', label: 'Add Staff', icon: '👥', available: true },
+  { id: 'add-task', label: 'Add Task', icon: '✓', available: false, hint: 'Coming soon' },
+  { id: 'create-order', label: 'Create Order', icon: '↗', available: false, hint: 'Coming soon' },
 ]
 
 const filters = ['All', 'Bar', 'Service', 'Kitchen', 'Management']
@@ -286,186 +284,220 @@ function getInitials(name) {
     .join('')
 }
 
-function OperationalSnapshot({ snapshot, isLoading }) {
-  if (isLoading) {
-    return (
-      <section className="operational-snapshot operational-snapshot-loading" aria-label="Operational snapshot" aria-busy="true">
-        <p className="operational-snapshot-loading-text">Loading operational snapshot…</p>
-      </section>
-    )
-  }
-
-  return (
-    <section className="operational-snapshot" aria-label="Operational snapshot">
-      <div className="operational-snapshot-header">
-        <div className="operational-snapshot-intro">
-          <p className="operational-snapshot-greeting">{snapshot.greeting}</p>
-          {snapshot.businessName ? (
-            <p className="operational-snapshot-business">{snapshot.businessName}</p>
-          ) : null}
-        </div>
-        <p className="operational-snapshot-today-label">{snapshot.todayLabel}</p>
-      </div>
-
-      <p className="operational-snapshot-section-label">Today&apos;s Schedule</p>
-
-      <div className="operational-snapshot-metrics" aria-label="Today's schedule metrics">
-        <article className="operational-snapshot-metric">
-          <span className="operational-snapshot-metric-icon" aria-hidden="true">👥</span>
-          <div className="operational-snapshot-metric-copy">
-            <p className="operational-snapshot-metric-label">Scheduled Staff</p>
-            <p className="operational-snapshot-metric-value">{snapshot.scheduledStaff}</p>
-          </div>
-        </article>
-        <article className="operational-snapshot-metric">
-          <span className="operational-snapshot-metric-icon" aria-hidden="true">⏱</span>
-          <div className="operational-snapshot-metric-copy">
-            <p className="operational-snapshot-metric-label">Labour Hours</p>
-            <p className="operational-snapshot-metric-value">{snapshot.labourHoursLabel}h</p>
-          </div>
-        </article>
-        <article className={`operational-snapshot-metric ${snapshot.issues > 0 ? 'has-issues' : ''}`}>
-          <span className="operational-snapshot-metric-icon" aria-hidden="true">⚠</span>
-          <div className="operational-snapshot-metric-copy">
-            <p className="operational-snapshot-metric-label">Issues</p>
-            <p className="operational-snapshot-metric-value">{snapshot.issues}</p>
-          </div>
-        </article>
-      </div>
-
-      <div className={`operational-snapshot-footer ${snapshot.issues > 0 ? 'needs-attention' : 'ready'}`}>
-        <p className="operational-snapshot-status">{snapshot.statusMessage}</p>
-        {snapshot.closingMessage ? <p className="operational-snapshot-closing">{snapshot.closingMessage}</p> : null}
-      </div>
-    </section>
-  )
-}
-
-function DashboardView({
-  stats,
+function CommandCenterView({
+  snapshot,
   liveFloor,
-  timelineEvents,
-  isLoading,
+  reservationsSummary,
+  reservationsConnected,
+  stockAlerts,
+  inventoryConnected,
+  issuesSummary,
+  isScheduleLoading,
   isLiveFloorLoading,
+  onQuickAction,
 }) {
+  const staffHeadline = liveFloor.state === 'live'
+    ? `${liveFloor.onShiftCount} on the floor now`
+    : liveFloor.state === 'idle' && liveFloor.nextShiftStartLabel
+      ? `Next shift at ${liveFloor.nextShiftStartLabel}`
+      : liveFloor.state === 'unpublished'
+        ? 'Publish schedule to monitor live floor'
+        : 'No active shift right now'
+
   return (
-    <>
-      <section className="stats-grid" aria-label="Key metrics">
-        {stats.map((stat) => (
-          <article
-            key={stat.id}
-            className={`stat-card ${stat.accent}${stat.connected ? '' : ' disconnected'}`}
-          >
-            <div className="stat-header">
-              <p>{stat.title}</p>
-              <span className="stat-icon">{stat.icon}</span>
+    <div className="command-center" aria-label="Operations command center">
+      <section className="command-card command-overview" aria-label="Today overview">
+        {isScheduleLoading ? (
+          <p className="command-empty-state">Loading today&apos;s overview…</p>
+        ) : (
+          <>
+            <div className="command-overview-header">
+              <div className="command-overview-intro">
+                <p className="command-overview-greeting">{snapshot.greeting}</p>
+                {snapshot.businessName ? (
+                  <p className="command-overview-business">{snapshot.businessName}</p>
+                ) : null}
+              </div>
+              <p className="command-overview-date">{snapshot.todayLabel}</p>
             </div>
-            {stat.connected && Array.isArray(stat.metrics) ? (
-              <ul className="stat-metrics-list" aria-label={`${stat.title} breakdown`}>
-                {stat.metrics.map((metric) => (
-                  <li key={metric.label}>
-                    <span className="stat-metric-label">{metric.label}:</span>
-                    <span className="stat-metric-value">{metric.value}</span>
+
+            <div className="command-overview-metrics" aria-label="Today's schedule metrics">
+              <article className="command-metric">
+                <span className="command-metric-icon" aria-hidden="true">👥</span>
+                <div>
+                  <p className="command-metric-label">Scheduled today</p>
+                  <p className="command-metric-value">{snapshot.scheduledStaff}</p>
+                </div>
+              </article>
+              <article className="command-metric">
+                <span className="command-metric-icon" aria-hidden="true">⏱</span>
+                <div>
+                  <p className="command-metric-label">Labour hours</p>
+                  <p className="command-metric-value">{snapshot.labourHoursLabel}h</p>
+                </div>
+              </article>
+              <article className={`command-metric ${snapshot.issues > 0 ? 'has-issues' : ''}`}>
+                <span className="command-metric-icon" aria-hidden="true">⚠</span>
+                <div>
+                  <p className="command-metric-label">Issues</p>
+                  <p className="command-metric-value">{snapshot.issues}</p>
+                </div>
+              </article>
+            </div>
+
+            <p className={`command-overview-status ${snapshot.issues > 0 ? 'needs-attention' : 'ready'}`}>
+              {snapshot.statusMessage}
+            </p>
+          </>
+        )}
+      </section>
+
+      <div className="command-center-grid">
+        <section className="command-card" aria-label="Staff on shift">
+          <header className="command-card-header">
+            <p className="eyebrow">Staff on Shift</p>
+            <h3>Who is working now?</h3>
+          </header>
+          {isLiveFloorLoading ? (
+            <p className="command-empty-state">Loading live floor…</p>
+          ) : liveFloor.state === 'unpublished' ? (
+            <div className="command-status-block unpublished">
+              <p className="command-status-title">🟡 No published schedule</p>
+              <p className="command-status-message">{liveFloor.message}</p>
+            </div>
+          ) : liveFloor.state === 'idle' ? (
+            <div className="command-status-block idle">
+              <p className="command-status-title">{liveFloor.title}</p>
+              <p className="command-status-message">{liveFloor.message}</p>
+            </div>
+          ) : (
+            <>
+              <p className="command-card-lead">{staffHeadline}</p>
+              <ul className="command-staff-list">
+                {liveFloor.onShift.map((member) => (
+                  <li key={member.shiftId} className="command-staff-item">
+                    <span className="command-staff-avatar">{getInitials(member.name || 'Staff')}</span>
+                    <div className="command-staff-copy">
+                      <strong>{member.name}</strong>
+                      <p>{member.position || 'On shift now'}</p>
+                    </div>
+                    <span className="command-staff-time">{member.startTimeLabel} – {member.endTimeLabel}</span>
                   </li>
                 ))}
               </ul>
-            ) : stat.connected ? (
-              <h3>{stat.value}</h3>
-            ) : (
-              <h3 className="stat-disconnected-value">Not connected yet</h3>
-            )}
-            {stat.detail ? <p className="stat-detail">{stat.detail}</p> : null}
-          </article>
-        ))}
-      </section>
+            </>
+          )}
+        </section>
 
-      <section className="content-grid">
-        <article className="panel panel-large">
-          <div className="panel-heading">
-            <div>
-              <p className={`eyebrow${liveFloor.state === 'live' ? ' live-floor-eyebrow-active' : ''}`}>
-                {liveFloor.eyebrow}
+        <section className="command-card" aria-label="Reservations summary">
+          <header className="command-card-header">
+            <p className="eyebrow">Reservations Summary</p>
+            <h3>How busy is today?</h3>
+          </header>
+          {!reservationsConnected ? (
+            <p className="command-empty-state">Not connected yet</p>
+          ) : (
+            <>
+              <div className="command-metric-row">
+                <article className="command-inline-metric">
+                  <span className="command-inline-metric-value">{reservationsSummary.bookings}</span>
+                  <span className="command-inline-metric-label">Bookings</span>
+                </article>
+                <article className="command-inline-metric">
+                  <span className="command-inline-metric-value">{reservationsSummary.tables}</span>
+                  <span className="command-inline-metric-label">Tables</span>
+                </article>
+                <article className="command-inline-metric">
+                  <span className="command-inline-metric-value">{reservationsSummary.guests}</span>
+                  <span className="command-inline-metric-label">Guests</span>
+                </article>
+              </div>
+              {reservationsSummary.bookings === 0 ? (
+                <p className="command-card-footnote">No reservations booked for today.</p>
+              ) : null}
+            </>
+          )}
+        </section>
+
+        <section className={`command-card ${issuesSummary.tone === 'attention' ? 'has-attention' : ''}`} aria-label="Issues and needs attention">
+          <header className="command-card-header">
+            <p className="eyebrow">Issues / Needs Attention</p>
+            <h3>What needs action?</h3>
+          </header>
+          {isScheduleLoading ? (
+            <p className="command-empty-state">Checking today&apos;s schedule…</p>
+          ) : (
+            <div className={`command-status-block ${issuesSummary.tone}`}>
+              <p className="command-status-title">
+                {issuesSummary.tone === 'attention' ? '⚠' : '✓'} {issuesSummary.title}
               </p>
-              <h3>{liveFloor.heading}</h3>
+              <p className="command-status-message">{issuesSummary.message}</p>
             </div>
-          </div>
-          {isLiveFloorLoading ? (
-            <p className="dashboard-empty-state">Loading live floor…</p>
-          ) : liveFloor.state === 'unpublished' ? (
-            <div className="live-floor-state live-floor-unpublished">
-              <p className="live-floor-status-icon" aria-hidden="true">🟡</p>
-              <p className="live-floor-status-title">{liveFloor.title}</p>
-              <p className="live-floor-status-message">{liveFloor.message}</p>
-            </div>
-          ) : liveFloor.state === 'idle' ? (
-            <div className="live-floor-state live-floor-idle">
-              <p className="live-floor-status-title">{liveFloor.title}</p>
-              <p className="live-floor-status-message">{liveFloor.message}</p>
-            </div>
+          )}
+        </section>
+
+        <section className="command-card" aria-label="Stock alerts">
+          <header className="command-card-header">
+            <p className="eyebrow">Stock Alerts</p>
+            <h3>What is running low?</h3>
+          </header>
+          {!inventoryConnected ? (
+            <p className="command-empty-state">Not connected yet</p>
+          ) : stockAlerts.length === 0 ? (
+            <p className="command-empty-state">No stock alerts right now.</p>
           ) : (
-            <ul className="activity-list timeline-list dashboard-staff-list">
-              {liveFloor.onShift.map((member) => (
-                <li key={member.shiftId}>
-                  <span className="timeline-dot on-shift" />
-                  <div className="timeline-content">
-                    <div className="timeline-top">
-                      <strong>{member.name}</strong>
-                      <span>{member.startTimeLabel} – {member.endTimeLabel}</span>
-                    </div>
-                    <p>{member.position || 'On shift now'}</p>
+            <ul className="command-alert-list">
+              {stockAlerts.map((item) => (
+                <li key={item.id} className="command-alert-item">
+                  <span className={`command-alert-badge ${item.status === 'Out of Stock' ? 'critical' : 'warning'}`}>
+                    {item.status}
+                  </span>
+                  <div className="command-alert-copy">
+                    <strong>{item.name}</strong>
+                    {item.quantity !== undefined && item.quantity !== null ? (
+                      <p>{item.quantity}{item.unit ? ` ${item.unit}` : ''} remaining</p>
+                    ) : null}
                   </div>
                 </li>
               ))}
             </ul>
           )}
-        </article>
+        </section>
 
-        <article className="panel">
-          <div className="panel-heading">
-            <div>
-              <p className="eyebrow">Today&apos;s timeline</p>
-              <h3>Service milestones</h3>
-            </div>
-          </div>
-          {isLoading ? (
-            <p className="dashboard-empty-state">Loading today&apos;s timeline…</p>
-          ) : timelineEvents.length === 0 ? (
-            <p className="dashboard-empty-state">No shifts scheduled for today.</p>
-          ) : (
-            <ul className="schedule-list">
-              {timelineEvents.map((item) => (
-                <li key={item.key}>
-                  <div className="schedule-time">{item.timeLabel}</div>
-                  <div className="schedule-body">
-                    <strong>{item.title}</strong>
-                    {item.note ? <p>{item.note}</p> : null}
-                  </div>
-                </li>
-              ))}
-            </ul>
-          )}
-        </article>
-      </section>
+        <section className="command-card" aria-label="Tasks">
+          <header className="command-card-header">
+            <p className="eyebrow">Tasks</p>
+            <h3>What is due today?</h3>
+          </header>
+          <p className="command-empty-state">Not connected yet</p>
+        </section>
 
-      <section className="content-grid secondary-grid">
-        <article className="panel">
-          <div className="panel-heading">
-            <div>
-              <p className="eyebrow">Quick actions</p>
-              <h3>Streamline service</h3>
-            </div>
-          </div>
-          <div className="quick-actions-grid">
-            {quickActions.map((action) => (
-              <button key={action.label} type="button" className="quick-action">
-                <span>{action.icon}</span>
-                {action.label}
+        <section className="command-card command-quick-actions" aria-label="Quick actions">
+          <header className="command-card-header">
+            <p className="eyebrow">Quick Actions</p>
+            <h3>Take action now</h3>
+          </header>
+          <div className="command-quick-actions-grid">
+            {dashboardQuickActions.map((action) => (
+              <button
+                key={action.id}
+                type="button"
+                className={`command-quick-action${action.available ? '' : ' unavailable'}`}
+                onClick={() => action.available && onQuickAction(action.id)}
+                disabled={!action.available}
+                title={action.available ? action.label : action.hint}
+              >
+                <span className="command-quick-action-icon" aria-hidden="true">{action.icon}</span>
+                <span className="command-quick-action-copy">
+                  <strong>{action.label}</strong>
+                  {!action.available ? <small>{action.hint}</small> : null}
+                </span>
               </button>
             ))}
           </div>
-        </article>
-      </section>
-    </>
+        </section>
+      </div>
+    </div>
   )
 }
 
@@ -5335,30 +5367,20 @@ function App() {
     workspaceProfile.managerName,
   ])
 
-  const timelineEvents = useMemo(() => buildTodayTimeline({
-    shifts: dashboardShifts,
-    shiftTemplates,
-    todayKey: currentDateKey,
-  }), [dashboardShifts, shiftTemplates, currentDateKey])
-
   const todayReservationsSummary = useMemo(
     () => buildTodayReservationsSummary(reservations, currentDateKey),
     [reservations, currentDateKey],
   )
 
-  const dashboardStats = useMemo(() => buildDashboardStats({
-    liveFloorState,
-    reservationsConnected: isReservationsModuleConnected,
-    reservationsSummary: todayReservationsSummary,
-    inventoryConnected: isInventoryModuleConnected,
-    lowStockCount: countLowStockAlerts(inventoryItems),
-  }), [
-    liveFloorState,
-    isReservationsModuleConnected,
-    todayReservationsSummary,
-    isInventoryModuleConnected,
-    inventoryItems,
-  ])
+  const dashboardIssuesSummary = useMemo(
+    () => buildDashboardIssuesSummary(operationalSnapshot),
+    [operationalSnapshot],
+  )
+
+  const dashboardStockAlerts = useMemo(
+    () => getLowStockAlertItems(inventoryItems),
+    [inventoryItems],
+  )
 
   const refreshReservations = useCallback(async () => {
     try {
@@ -8159,6 +8181,19 @@ function App() {
     setIsReservationModalOpen(true)
   }
 
+  const handleDashboardQuickAction = (actionId) => {
+    if (actionId === 'add-reservation') {
+      setActiveView('reservations')
+      handleOpenAddReservation()
+      return
+    }
+
+    if (actionId === 'add-staff') {
+      setActiveView('staff')
+      handleOpenAddEmployee()
+    }
+  }
+
   const handleOpenEditReservation = (reservation) => {
     setEditingReservation(reservation)
     setReservationForm({
@@ -8443,7 +8478,7 @@ function App() {
   }
 
   const heroTitle = activeView === 'dashboard'
-    ? buildDashboardGreeting(currentTimeGreeting, workspaceProfile.managerName)
+    ? 'Operations Command Center'
     : activeView === 'settings'
       ? 'Workspace Settings'
     : activeView === 'staff'
@@ -8458,7 +8493,7 @@ function App() {
             ? 'Inventory management'
             : 'Operations management'
   const heroSubtitle = activeView === 'dashboard'
-    ? `${currentDateLabel} · ${operationalSnapshot.statusMessage}`
+    ? `${currentDateLabel} · What is happening in your business today`
     : activeView === 'settings'
       ? 'Configure your workspace profile and operational defaults.'
     : activeView === 'reservations'
@@ -8470,7 +8505,7 @@ function App() {
         : 'Search, filter, and review the full team roster.'
 
   const topbarEyebrow = activeView === 'dashboard'
-    ? 'Operations dashboard'
+    ? 'Command center'
     : activeView === 'settings'
       ? 'Workspace settings'
       : activeView === 'staff'
@@ -8571,16 +8606,17 @@ function App() {
         ) : null}
 
         {activeView === 'dashboard' ? (
-          <OperationalSnapshot snapshot={operationalSnapshot} isLoading={isDashboardScheduleLoading} />
-        ) : null}
-
-        {activeView === 'dashboard' ? (
-          <DashboardView
-            stats={dashboardStats}
+          <CommandCenterView
+            snapshot={operationalSnapshot}
             liveFloor={liveFloorState}
-            timelineEvents={timelineEvents}
-            isLoading={isDashboardScheduleLoading}
+            reservationsSummary={todayReservationsSummary}
+            reservationsConnected={isReservationsModuleConnected}
+            stockAlerts={dashboardStockAlerts}
+            inventoryConnected={isInventoryModuleConnected}
+            issuesSummary={dashboardIssuesSummary}
+            isScheduleLoading={isDashboardScheduleLoading}
             isLiveFloorLoading={isLiveFloorLoading}
+            onQuickAction={handleDashboardQuickAction}
           />
         ) : null}
 
