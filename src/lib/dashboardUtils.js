@@ -353,7 +353,7 @@ export function buildDashboardIssuesSummary(snapshot = {}) {
       count: 0,
       severity: 'info',
       title: 'All clear',
-      message: 'No schedule issues today.',
+      message: '',
       tone: 'ready',
     }
   }
@@ -364,7 +364,7 @@ export function buildDashboardIssuesSummary(snapshot = {}) {
     count: issueCount,
     severity,
     title: issueCount === 1 ? '1 issue needs attention' : `${issueCount} issues need attention`,
-    message: 'Review staffing and overtime.',
+    message: severity === 'critical' ? 'Act now.' : 'Review schedule.',
     tone: 'attention',
   }
 }

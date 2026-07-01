@@ -288,6 +288,20 @@ function getInitials(name) {
     .join('')
 }
 
+function formatTimelineEventDisplay(event) {
+  if (event.type === 'reservation') {
+    return {
+      title: `${event.title.replace(/ reservation$/i, '').trim()}`.toUpperCase() || 'RESERVATION',
+      department: event.note || 'Reservation',
+    }
+  }
+
+  const title = `${event.title.replace(/ starts$/i, '').trim()}`.toUpperCase() || 'SHIFT'
+  const department = `${event.note ?? ''}`.trim() || 'General'
+
+  return { title, department }
+}
+
 function CommandStaffList({ members, statusLabel }) {
   if (!Array.isArray(members) || members.length === 0) return null
 
@@ -372,17 +386,18 @@ function CommandCenterView({
               <p className="command-status-message">{liveFloor.message}</p>
             </div>
           ) : liveFloor.state === 'idle' ? (
-            <div className="command-status-block idle">
-              <p className="command-state-label">
-                {liveFloor.nextShiftStartLabel
-                  ? `Next shift starts at ${liveFloor.nextShiftStartLabel}`
-                  : 'No active shift'}
-              </p>
+            <div className="command-staff-idle">
+              <p className="command-staff-empty-label">No one is currently on shift.</p>
+              {liveFloor.nextShiftStartLabel ? (
+                <p className="command-state-label">
+                  Next shift starts at {liveFloor.nextShiftStartLabel}
+                </p>
+              ) : null}
               {liveFloor.nextShifts?.length > 0 ? (
                 <CommandStaffList members={liveFloor.nextShifts} statusLabel="Up next" />
-              ) : (
+              ) : !liveFloor.nextShiftStartLabel ? (
                 <p className="command-status-message">{liveFloor.message}</p>
-              )}
+              ) : null}
             </div>
           ) : (
             <>
@@ -430,12 +445,14 @@ function CommandCenterView({
           {isScheduleLoading ? (
             <p className="command-empty-state">Checking today&apos;s schedule…</p>
           ) : (
-            <div className={`command-issues-panel ${issuesSummary.tone}`}>
+            <div className={`command-alert-compact severity-${issuesSummary.severity}`}>
               <span className={`command-severity-badge ${issuesSummary.severity}`}>
                 {issuesSummary.severity === 'info' ? 'Info' : issuesSummary.severity === 'critical' ? 'Critical' : 'Warning'}
               </span>
               <p className="command-issues-title">{issuesSummary.title}</p>
-              <p className="command-issues-message">{issuesSummary.message}</p>
+              {issuesSummary.message ? (
+                <p className="command-issues-message">{issuesSummary.message}</p>
+              ) : null}
             </div>
           )}
         </section>
@@ -489,16 +506,21 @@ function CommandCenterView({
             <p className="command-empty-state">No timeline events yet.</p>
           ) : (
             <ul className="command-timeline-list">
-              {timelineEvents.map((event) => (
+              {timelineEvents.map((event) => {
+                const display = formatTimelineEventDisplay(event)
+                return (
                 <li key={event.key} className={`command-timeline-item type-${event.type}`}>
                   <span className="command-timeline-time">{event.timeLabel}</span>
                   <span className="command-timeline-node" aria-hidden="true" />
                   <div className="command-timeline-copy">
-                    <strong className="command-timeline-title">{event.title}</strong>
-                    {event.note ? <p className="command-timeline-department">{event.note}</p> : null}
+                    <strong className="command-timeline-title">{display.title}</strong>
+                    {display.department ? (
+                      <p className="command-timeline-department">{display.department}</p>
+                    ) : null}
                   </div>
                 </li>
-              ))}
+                )
+              })}
             </ul>
           )}
         </section>
@@ -8672,7 +8694,7 @@ function App() {
         </nav>
       </aside>
 
-      <main className={`main-panel${activeView === 'schedule' ? ' main-panel-schedule' : ''}`}>
+      <main className={`main-panel${activeView === 'schedule' ? ' main-panel-schedule' : ''}${activeView === 'dashboard' ? ' main-panel-dashboard' : ''}`}>
         {activeView !== 'schedule' ? (
         activeView === 'dashboard' ? (
         <header className="topbar topbar-command">
@@ -8680,11 +8702,11 @@ function App() {
             <h2 className="command-topbar-greeting">
               {buildDashboardGreeting(currentTimeGreeting, workspaceProfile.managerName)}
             </h2>
-            <p className="command-topbar-context">{dashboardContextMessage}</p>
             {brandDisplay.businessName ? (
               <p className="command-topbar-business">{brandDisplay.businessName}</p>
             ) : null}
             <p className="command-topbar-date">{currentDateLabel}</p>
+            <p className="command-topbar-context">{dashboardContextMessage}</p>
           </div>
           <div className="command-topbar-meta">
             <div className={`command-live-status tone-${dashboardLiveStatus.tone}`} aria-label="Live operations status">
