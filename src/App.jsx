@@ -5653,6 +5653,181 @@ const FLOOR_TABLE_STATUS_META = {
   cleaning: { label: 'Needs Cleaning', tone: 'cleaning' },
 }
 
+const FLOOR_PLAN_VIEW_MODES = [
+  { id: 'normal', label: 'Normal' },
+  { id: 'heatmap', label: 'Heatmap' },
+]
+
+const FLOOR_HEATMAP_PERIODS = [
+  { id: 'today', label: 'Today' },
+  { id: 'yesterday', label: 'Yesterday' },
+  { id: 'last-7-days', label: 'Last 7 Days' },
+  { id: 'last-30-days', label: 'Last 30 Days' },
+  { id: 'custom', label: 'Custom' },
+]
+
+const FLOOR_HEATMAP_TIERS = [
+  { id: 'very-light', label: '0–20%', min: 0, max: 20 },
+  { id: 'light', label: '20–40%', min: 20, max: 40 },
+  { id: 'amber', label: '40–60%', min: 40, max: 60 },
+  { id: 'orange', label: '60–80%', min: 60, max: 80 },
+  { id: 'deep-gold', label: '80–100%', min: 80, max: 100 },
+]
+
+const FLOOR_HEATMAP_TURNS_PER_DAY = 5
+
+function addDaysToDateKey(dateKey, deltaDays) {
+  const date = parseLocalDate(dateKey)
+  date.setDate(date.getDate() + deltaDays)
+  return formatLocalDateKey(date)
+}
+
+function countDaysInclusive(startKey, endKey) {
+  const start = parseLocalDate(startKey)
+  const end = parseLocalDate(endKey)
+  const diffMs = end.getTime() - start.getTime()
+  return Math.max(1, Math.floor(diffMs / 86_400_000) + 1)
+}
+
+function getFloorHeatmapDateRange(periodId, todayKey, customRange = {}) {
+  switch (periodId) {
+    case 'yesterday': {
+      const key = addDaysToDateKey(todayKey, -1)
+      return { startKey: key, endKey: key, dayCount: 1, label: 'Yesterday' }
+    }
+    case 'last-7-days':
+      return {
+        startKey: addDaysToDateKey(todayKey, -6),
+        endKey: todayKey,
+        dayCount: 7,
+        label: 'Last 7 Days',
+      }
+    case 'last-30-days':
+      return {
+        startKey: addDaysToDateKey(todayKey, -29),
+        endKey: todayKey,
+        dayCount: 30,
+        label: 'Last 30 Days',
+      }
+    case 'custom': {
+      const startKey = customRange.startKey || todayKey
+      const endKey = customRange.endKey || todayKey
+      const normalizedStart = startKey <= endKey ? startKey : endKey
+      const normalizedEnd = startKey <= endKey ? endKey : startKey
+      return {
+        startKey: normalizedStart,
+        endKey: normalizedEnd,
+        dayCount: countDaysInclusive(normalizedStart, normalizedEnd),
+        label: 'Custom',
+      }
+    }
+    case 'today':
+    default:
+      return { startKey: todayKey, endKey: todayKey, dayCount: 1, label: 'Today' }
+  }
+}
+
+function isHeatmapCountableReservation(reservation) {
+  const status = normalizeReservationStatus(reservation.status)
+  return !['Cancelled', 'No Show'].includes(status)
+}
+
+function estimateReservationDiningMinutes(reservation) {
+  const status = normalizeReservationStatus(reservation.status)
+
+  if (status === 'Dining') return 105
+  if (status === 'Seated') return 78
+  if (status === 'Completed') return 102
+  if (status === 'Confirmed' || status === 'Arrived') return 68
+  return 58
+}
+
+function getHeatmapUtilizationTier(utilizationPercent) {
+  if (utilizationPercent < 20) return 'very-light'
+  if (utilizationPercent < 40) return 'light'
+  if (utilizationPercent < 60) return 'amber'
+  if (utilizationPercent < 80) return 'orange'
+  return 'deep-gold'
+}
+
+function formatHeatmapDuration(minutes) {
+  const safeMinutes = Math.max(0, Math.round(minutes))
+  const hours = Math.floor(safeMinutes / 60)
+  const remainder = safeMinutes % 60
+
+  if (hours === 0) return `${remainder}m`
+  return `${hours}h ${String(remainder).padStart(2, '0')}m`
+}
+
+function buildFloorHeatmapAnalytics({
+  allReservations,
+  layout = DEFAULT_FLOOR_PLAN_LAYOUT,
+  periodRange,
+  todayKey,
+}) {
+  const { startKey, endKey, dayCount } = periodRange
+  const periodCapacity = Math.max(dayCount * FLOOR_HEATMAP_TURNS_PER_DAY, 1)
+
+  const metricsByTableId = Object.fromEntries(
+    layout.tables.map((table) => [
+      table.id,
+      {
+        tableId: table.id,
+        label: table.label,
+        visits: 0,
+        todaysVisits: 0,
+        guestTotal: 0,
+        diningMinutesTotal: 0,
+        utilizationPercent: 0,
+        tier: 'very-light',
+        avgPartySize: 0,
+        avgDiningMinutes: 0,
+      },
+    ]),
+  )
+
+  allReservations.forEach((reservation) => {
+    if (!isHeatmapCountableReservation(reservation)) return
+
+    const dateKey = `${reservation.date ?? ''}`.slice(0, 10)
+    if (!dateKey || dateKey < startKey || dateKey > endKey) return
+
+    const table = layout.tables.find((entry) => (
+      normalizeTableKey(entry.label) === normalizeTableKey(reservation.tableNumber)
+    ))
+    if (!table) return
+
+    const metric = metricsByTableId[table.id]
+    metric.visits += 1
+    metric.guestTotal += Number(reservation.guests) || 0
+    metric.diningMinutesTotal += estimateReservationDiningMinutes(reservation)
+
+    if (dateKey === todayKey) {
+      metric.todaysVisits += 1
+    }
+  })
+
+  return layout.tables.map((table) => {
+    const metric = metricsByTableId[table.id]
+    const utilizationPercent = Math.min(
+      100,
+      Math.round((metric.visits / periodCapacity) * 100),
+    )
+
+    return {
+      ...metric,
+      utilizationPercent,
+      tier: getHeatmapUtilizationTier(utilizationPercent),
+      avgPartySize: metric.visits > 0
+        ? Math.round((metric.guestTotal / metric.visits) * 10) / 10
+        : 0,
+      avgDiningMinutes: metric.visits > 0
+        ? Math.round(metric.diningMinutesTotal / metric.visits)
+        : 0,
+    }
+  })
+}
+
 const DEFAULT_FLOOR_PLAN_LAYOUT = {
   id: 'main-floor',
   name: 'Main Floor',
@@ -5892,6 +6067,84 @@ function FloorPlanLegend() {
   )
 }
 
+function FloorHeatmapLegend() {
+  return (
+    <div className="floor-plan-legend floor-heatmap-legend" aria-label="Utilization legend">
+      {FLOOR_HEATMAP_TIERS.map((tier) => (
+        <span key={tier.id} className={`floor-plan-legend-item heatmap-tier-${tier.id}`}>
+          <span className="floor-plan-legend-swatch" aria-hidden="true" />
+          {tier.label}
+        </span>
+      ))}
+    </div>
+  )
+}
+
+function FloorPlanViewModeToggle({ value, onChange }) {
+  return (
+    <div className="floor-plan-view-toggle" role="tablist" aria-label="Floor plan view mode">
+      {FLOOR_PLAN_VIEW_MODES.map((mode) => (
+        <button
+          key={mode.id}
+          type="button"
+          role="tab"
+          aria-selected={value === mode.id}
+          className={`floor-plan-view-toggle-btn${value === mode.id ? ' is-active' : ''}`}
+          onClick={() => onChange(mode.id)}
+        >
+          {mode.label}
+        </button>
+      ))}
+    </div>
+  )
+}
+
+function FloorHeatmapPeriodFilter({
+  periodId,
+  customStart,
+  customEnd,
+  onPeriodChange,
+  onCustomStartChange,
+  onCustomEndChange,
+}) {
+  return (
+    <div className="floor-heatmap-period-filter" aria-label="Heatmap time period">
+      <div className="floor-heatmap-period-chips">
+        {FLOOR_HEATMAP_PERIODS.map((period) => (
+          <button
+            key={period.id}
+            type="button"
+            className={`floor-heatmap-period-chip${periodId === period.id ? ' is-active' : ''}`}
+            onClick={() => onPeriodChange(period.id)}
+          >
+            {period.label}
+          </button>
+        ))}
+      </div>
+      {periodId === 'custom' ? (
+        <div className="floor-heatmap-custom-range">
+          <label className="floor-heatmap-date-field">
+            <span>From</span>
+            <input
+              type="date"
+              value={customStart}
+              onChange={(event) => onCustomStartChange(event.target.value)}
+            />
+          </label>
+          <label className="floor-heatmap-date-field">
+            <span>To</span>
+            <input
+              type="date"
+              value={customEnd}
+              onChange={(event) => onCustomEndChange(event.target.value)}
+            />
+          </label>
+        </div>
+      ) : null}
+    </div>
+  )
+}
+
 function FloorPlanLiveStats({ stats }) {
   return (
     <div className="floor-plan-live-stats" aria-label="Live floor statistics">
@@ -5931,7 +6184,8 @@ function TimelineLiveNowRail({ positionPercent, nowMinutes, todayKey }) {
       aria-hidden="true"
     >
       <div className="timeline-live-now-rail-line" />
-      <div className="timeline-live-now-rail-badge">
+      <div className="timeline-live-now-rail-marker">
+        <span className="timeline-live-now-rail-dot" />
         <span className="timeline-live-now-rail-label">NOW</span>
         <time dateTime={`${todayKey}T${formatTimelineSlotLabel(nowMinutes)}`}>
           {formatTimelineSlotLabel(nowMinutes)}
@@ -5972,6 +6226,10 @@ function FloorTableNode({
   allReservations,
   todayKey,
   nowMinutes,
+  viewMode = 'normal',
+  heatmapMetrics = null,
+  isAnalyticsOpen = false,
+  onAnalyticsToggle,
   isMergeSelected,
   isDropTarget,
   isDragging,
@@ -5987,6 +6245,7 @@ function FloorTableNode({
 }) {
   const { isSelected, selectionPulseKey } = useReservationWorkspace()
   const { table, reservation, status } = tableState
+  const isHeatmap = viewMode === 'heatmap'
   const guestName = reservation ? formatReservationGuestName(reservation.guestName) : null
   const guestCount = reservation ? Number(reservation.guests) || 0 : 0
   const arrivalTime = reservation ? formatTime24(reservation.time) || '—' : null
@@ -6000,31 +6259,46 @@ function FloorTableNode({
   const statusLabel = reservation
     ? getReservationStatusBadgeLabel(reservation, nowMinutes, todayKey)
     : FLOOR_TABLE_STATUS_META[status]?.label || status
-  const tableIsSelected = reservation ? isSelected(reservation) : false
+  const tableIsSelected = !isHeatmap && reservation ? isSelected(reservation) : false
+
+  const handleClick = (event) => {
+    if (isHeatmap) {
+      event.stopPropagation()
+      onAnalyticsToggle?.(table.id)
+      return
+    }
+
+    onTableClick(tableState, event)
+  }
 
   return (
     <div
       ref={nodeRef}
-      className={`floor-table-node shape-${table.shape} status-${status}${isMergeSelected ? ' is-merge-selected' : ''}${isDropTarget ? ' is-drop-target' : ''}${isDragging ? ' is-dragging' : ''}${tableIsSelected ? ' is-selected is-synced' : ''}${isStatusPulsing ? ` is-status-pulse status-${status}` : ''}`}
+      className={`floor-table-node shape-${table.shape}${isHeatmap ? ` view-heatmap heatmap-tier-${heatmapMetrics?.tier || 'very-light'}` : ` status-${status}`}${isMergeSelected ? ' is-merge-selected' : ''}${isDropTarget ? ' is-drop-target' : ''}${isDragging ? ' is-dragging' : ''}${tableIsSelected ? ' is-selected is-synced' : ''}${isStatusPulsing ? ` is-status-pulse status-${status}` : ''}${isAnalyticsOpen ? ' is-analytics-open' : ''}`}
       style={{ left: `${table.x}%`, top: `${table.y}%` }}
       data-table-id={table.id}
       data-selection-pulse={tableIsSelected ? selectionPulseKey : undefined}
-      draggable={Boolean(reservation)}
+      draggable={!isHeatmap && Boolean(reservation)}
       onDragStart={(event) => onDragStart(event, tableState)}
       onDragEnd={onDragEnd}
       onDragOver={(event) => onDragOver(event, tableState)}
       onDragLeave={onDragLeave}
       onDrop={(event) => onDrop(event, tableState)}
-      onClick={(event) => onTableClick(tableState, event)}
+      onClick={handleClick}
       onContextMenu={(event) => onTableContextMenu(event, tableState)}
       role="button"
       tabIndex={0}
-      aria-label={`Table ${table.label}${guestName ? `, ${guestName}` : ', available'}`}
+      aria-label={isHeatmap
+        ? `Table ${table.label}, ${heatmapMetrics?.utilizationPercent ?? 0}% utilization`
+        : `Table ${table.label}${guestName ? `, ${guestName}` : ', available'}`}
       aria-current={tableIsSelected ? 'true' : undefined}
+      aria-expanded={isHeatmap ? isAnalyticsOpen : undefined}
     >
       <div className="floor-table-node-surface">
         <span className="floor-table-number">Table {table.label}</span>
-        {guestName ? (
+        {isHeatmap ? (
+          <span className="floor-table-heatmap-value">{heatmapMetrics?.utilizationPercent ?? 0}%</span>
+        ) : guestName ? (
           <>
             <span className="floor-table-guest">{guestName}</span>
             <span className="floor-table-capacity">{guestCount} / {table.seats}</span>
@@ -6035,23 +6309,53 @@ function FloorTableNode({
         )}
       </div>
 
-      <div className="floor-table-tooltip" role="tooltip">
-        {guestName ? (
-          <>
-            <strong>{guestName}</strong>
-            <span>{phone}</span>
-            <span>Visit #{visitNumber}</span>
-            <span>{statusLabel}</span>
-            <span>{arrivalTime}</span>
-            <span className={`floor-table-tooltip-type${guestType === 'VIP' ? ' is-vip' : ''}`}>{guestType}</span>
-          </>
-        ) : (
-          <>
-            <strong>Table {table.label}</strong>
-            <span>Available · {table.seats} seats</span>
-          </>
-        )}
-      </div>
+      {isHeatmap ? (
+        <div
+          className={`floor-table-analytics-tooltip${isAnalyticsOpen ? ' is-pinned' : ''}`}
+          role="tooltip"
+          onClick={(event) => event.stopPropagation()}
+        >
+          <strong>Table {table.label}</strong>
+          <div className="floor-table-analytics-row">
+            <span>Occupancy</span>
+            <strong>{heatmapMetrics?.utilizationPercent ?? 0}%</strong>
+          </div>
+          <div className="floor-table-analytics-row">
+            <span>Today&apos;s visits</span>
+            <strong>{heatmapMetrics?.todaysVisits ?? 0}</strong>
+          </div>
+          <div className="floor-table-analytics-row">
+            <span>Average dining time</span>
+            <strong>{formatHeatmapDuration(heatmapMetrics?.avgDiningMinutes ?? 0)}</strong>
+          </div>
+          <div className="floor-table-analytics-row">
+            <span>Average party size</span>
+            <strong>{heatmapMetrics?.avgPartySize ?? 0}</strong>
+          </div>
+          <div className="floor-table-analytics-row floor-table-analytics-muted">
+            <span>Revenue</span>
+            <strong>Coming later</strong>
+          </div>
+        </div>
+      ) : (
+        <div className="floor-table-tooltip" role="tooltip">
+          {guestName ? (
+            <>
+              <strong>{guestName}</strong>
+              <span>{phone}</span>
+              <span>Visit #{visitNumber}</span>
+              <span>{statusLabel}</span>
+              <span>{arrivalTime}</span>
+              <span className={`floor-table-tooltip-type${guestType === 'VIP' ? ' is-vip' : ''}`}>{guestType}</span>
+            </>
+          ) : (
+            <>
+              <strong>Table {table.label}</strong>
+              <span>Available · {table.seats} seats</span>
+            </>
+          )}
+        </div>
+      )}
     </div>
   )
 }
@@ -6077,7 +6381,40 @@ function FloorPlanView({
   const [cleaningFlags, setCleaningFlags] = useState(() => new Set())
   const [contextMenu, setContextMenu] = useState(null)
   const [statusPulseTableIds, setStatusPulseTableIds] = useState(() => new Set())
+  const [viewMode, setViewMode] = useState('normal')
+  const [heatmapPeriodId, setHeatmapPeriodId] = useState('today')
+  const [heatmapCustomStart, setHeatmapCustomStart] = useState(todayKey)
+  const [heatmapCustomEnd, setHeatmapCustomEnd] = useState(todayKey)
+  const [analyticsTableId, setAnalyticsTableId] = useState(null)
   const previousTableStatusesRef = useRef(new Map())
+
+  const isHeatmap = viewMode === 'heatmap'
+
+  const heatmapPeriodRange = useMemo(() => (
+    getFloorHeatmapDateRange(heatmapPeriodId, todayKey, {
+      startKey: heatmapCustomStart,
+      endKey: heatmapCustomEnd,
+    })
+  ), [heatmapCustomEnd, heatmapCustomStart, heatmapPeriodId, todayKey])
+
+  const heatmapAnalytics = useMemo(() => (
+    buildFloorHeatmapAnalytics({
+      allReservations,
+      layout: DEFAULT_FLOOR_PLAN_LAYOUT,
+      periodRange: heatmapPeriodRange,
+      todayKey,
+    })
+  ), [allReservations, heatmapPeriodRange, todayKey])
+
+  const heatmapMetricsByTableId = useMemo(() => (
+    Object.fromEntries(heatmapAnalytics.map((entry) => [entry.tableId, entry]))
+  ), [heatmapAnalytics])
+
+  useEffect(() => {
+    if (!isHeatmap) {
+      setAnalyticsTableId(null)
+    }
+  }, [isHeatmap])
 
   const floorPlanSnapshot = useMemo(() => (
     buildFloorPlanSnapshot({
@@ -6129,6 +6466,11 @@ function FloorPlanView({
   }, [contextMenu, mergedGroups])
 
   const handleDragStart = (event, tableState) => {
+    if (isHeatmap) {
+      event.preventDefault()
+      return
+    }
+
     if (!tableState.reservation) {
       event.preventDefault()
       return
@@ -6145,7 +6487,7 @@ function FloorPlanView({
   }
 
   const handleDragOver = (event, tableState) => {
-    if (!draggingReservationId) return
+    if (isHeatmap || !draggingReservationId) return
     event.preventDefault()
     event.dataTransfer.dropEffect = 'move'
     setDropTargetTableId(tableState.table.id)
@@ -6157,6 +6499,8 @@ function FloorPlanView({
 
   const handleDrop = async (event, tableState) => {
     event.preventDefault()
+    if (isHeatmap) return
+
     setDropTargetTableId(null)
     setDraggingReservationId(null)
 
@@ -6181,6 +6525,8 @@ function FloorPlanView({
   }
 
   const handleTableClick = (tableState, event) => {
+    if (isHeatmap) return
+
     if (event.shiftKey) {
       setMergeSelection((current) => {
         if (current.includes(tableState.table.id)) {
@@ -6225,19 +6571,44 @@ function FloorPlanView({
     setContextMenu(null)
   }
 
+  const handleAnalyticsToggle = (tableId) => {
+    setAnalyticsTableId((current) => (current === tableId ? null : tableId))
+  }
+
+  const handleCanvasClick = () => {
+    if (isHeatmap) {
+      setAnalyticsTableId(null)
+    }
+  }
+
   return (
-    <div className={`floor-plan-workspace${isCompact ? ' is-compact' : ''}`}>
+    <div className={`floor-plan-workspace${isCompact ? ' is-compact' : ''}${isHeatmap ? ' is-heatmap-mode' : ' is-normal-mode'}`} data-floor-view-mode={viewMode}>
       <div className="floor-plan-toolbar">
         <div>
           <p className="eyebrow">Service layout</p>
           <h3>{floorPlanSnapshot.layout.name}</h3>
         </div>
-        <FloorPlanLiveStats stats={floorPlanSnapshot.stats} />
+        <div className="floor-plan-toolbar-actions">
+          {!isHeatmap ? <FloorPlanLiveStats stats={floorPlanSnapshot.stats} /> : null}
+          <FloorPlanViewModeToggle value={viewMode} onChange={setViewMode} />
+        </div>
       </div>
 
-      {!isCompact ? <FloorPlanLegend /> : null}
+      {isHeatmap ? (
+        <FloorHeatmapPeriodFilter
+          periodId={heatmapPeriodId}
+          customStart={heatmapCustomStart}
+          customEnd={heatmapCustomEnd}
+          onPeriodChange={setHeatmapPeriodId}
+          onCustomStartChange={setHeatmapCustomStart}
+          onCustomEndChange={setHeatmapCustomEnd}
+        />
+      ) : null}
 
-      {mergeSelection.length > 0 ? (
+      {!isCompact && !isHeatmap ? <FloorPlanLegend /> : null}
+      {isHeatmap ? <FloorHeatmapLegend /> : null}
+
+      {mergeSelection.length > 0 && !isHeatmap ? (
         <p className="floor-plan-merge-hint">
           Shift + click another table to merge · {mergeSelection.length}/2 selected
         </p>
@@ -6247,6 +6618,8 @@ function FloorPlanView({
         className="floor-plan-canvas"
         ref={floorCanvasRef}
         data-floor-plan-layout={floorPlanSnapshot.layout.id}
+        data-view-mode={viewMode}
+        onClick={handleCanvasClick}
       >
         {floorPlanSnapshot.layout.zones.map((zone) => (
           <div key={zone.id} className={`floor-plan-zone zone-${zone.id}`} data-zone-id={zone.id}>
@@ -6261,11 +6634,21 @@ function FloorPlanView({
         {floorPlanSnapshot.tableStates.map((tableState) => (
           <FloorTableNode
             key={tableState.table.id}
-            tableState={tableState}
+            tableState={{
+              ...tableState,
+              meta: {
+                ...tableState.meta,
+                heatMap: heatmapMetricsByTableId[tableState.table.id] ?? null,
+              },
+            }}
             allReservations={allReservations}
             todayKey={todayKey}
             nowMinutes={nowMinutes}
-            isStatusPulsing={statusPulseTableIds.has(tableState.table.id)}
+            viewMode={viewMode}
+            heatmapMetrics={heatmapMetricsByTableId[tableState.table.id]}
+            isAnalyticsOpen={analyticsTableId === tableState.table.id}
+            onAnalyticsToggle={handleAnalyticsToggle}
+            isStatusPulsing={!isHeatmap && statusPulseTableIds.has(tableState.table.id)}
             nodeRef={floorTableRefs?.current
               ? (node) => { floorTableRefs.current[tableState.table.id] = node }
               : undefined}
@@ -6287,7 +6670,9 @@ function FloorPlanView({
       </div>
 
       <p className="floor-plan-footnote">
-        Drag reservations between tables to reassign · Shift + click to merge · Right-click to split
+        {isHeatmap
+          ? `${heatmapPeriodRange.label} utilization · Darker gold indicates higher table turnover`
+          : 'Drag reservations between tables to reassign · Shift + click to merge · Right-click to split'}
         {isSaving ? ' · Saving…' : ''}
       </p>
 
@@ -7418,63 +7803,43 @@ function ReservationQuickActions({
     <div className="reservation-quick-actions">
       <button
         type="button"
-        className="reservation-quick-action-icon"
-        onClick={() => onOpenEditReservation(reservation)}
-        disabled={isSaving}
-        title="Edit reservation"
-        aria-label="Edit reservation"
-      >
-        ✏
-      </button>
-      <button
-        type="button"
-        className="reservation-quick-action-icon"
-        onClick={() => onQuickStatusUpdate(reservation, 'Confirmed')}
-        disabled={isSaving || !canMarkArrived}
-        title="Mark arrived"
-        aria-label="Mark arrived"
-      >
-        ✓
-      </button>
-      <button
-        type="button"
-        className="reservation-quick-action-icon"
+        className="reservation-quick-action-btn reservation-quick-action-primary"
         onClick={() => onQuickStatusUpdate(reservation, 'Seated')}
         disabled={isSaving || !canSeat}
         title="Seat guest"
         aria-label="Seat guest"
       >
-        🪑
+        Seat
       </button>
       {phone ? (
         <a
-          className="reservation-quick-action-icon"
+          className="reservation-quick-action-btn reservation-quick-action-primary"
           href={`tel:${phone}`}
           title="Call guest"
           aria-label="Call guest"
         >
-          📞
+          Call
         </a>
       ) : (
         <button
           type="button"
-          className="reservation-quick-action-icon"
+          className="reservation-quick-action-btn reservation-quick-action-primary"
           disabled
           title="No phone on file"
           aria-label="Call guest (no phone on file)"
         >
-          📞
+          Call
         </button>
       )}
       <button
         type="button"
-        className="reservation-quick-action-icon"
-        onClick={() => onOpenAddNote(reservation)}
+        className="reservation-quick-action-btn reservation-quick-action-primary"
+        onClick={() => onOpenEditReservation(reservation)}
         disabled={isSaving}
-        title="Add note"
-        aria-label="Add note"
+        title="Edit reservation"
+        aria-label="Edit reservation"
       >
-        📝
+        Edit
       </button>
       <div className="reservation-quick-action-more">
         <button
@@ -7490,8 +7855,14 @@ function ReservationQuickActions({
         </button>
         {isMoreOpen ? (
           <div className="reservation-quick-action-menu">
+            <button type="button" onClick={() => { onQuickStatusUpdate(reservation, 'Confirmed'); onToggleMore() }} disabled={isSaving || !canMarkArrived}>
+              Mark arrived
+            </button>
+            <button type="button" onClick={() => { onOpenAddNote(reservation); onToggleMore() }} disabled={isSaving}>
+              Add note
+            </button>
             <button type="button" onClick={() => { onQuickStatusUpdate(reservation, 'Dining'); onToggleMore() }} disabled={!['Seated'].includes(status)}>
-              Mark Dining
+              Mark dining
             </button>
             <button type="button" onClick={() => { onQuickStatusUpdate(reservation, 'Completed'); onToggleMore() }} disabled={isTerminal}>
               Complete
