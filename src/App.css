@@ -58,27 +58,14 @@
 }
 
 .brand-powered-by {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  margin: 8px 0 0;
-  color: #8f8679;
-  font-size: 0.72rem;
-  letter-spacing: 0.04em;
-  line-height: 1.2;
-}
-
-.brand-powered-mark {
-  width: 16px;
-  height: 16px;
-  border-radius: 5px;
-  display: grid;
-  place-items: center;
-  font-size: 0.62rem;
-  font-weight: 700;
-  color: #170f04;
-  background: linear-gradient(135deg, #f3d28d 0%, #c9982d 100%);
-  flex-shrink: 0;
+  margin: 3px 0 0;
+  color: #9a9489;
+  font-size: 0.6875rem;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  line-height: 1.25;
+  opacity: 0.6;
+  user-select: none;
 }
 
 .brand-mark {
@@ -2569,24 +2556,121 @@
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 8px;
+}
+
+.schedule-header-eyebrow {
+  margin: 0 0 -4px;
 }
 
 .schedule-header-title {
   margin: 0;
   color: #fff7e8;
-  font-size: 1.28rem;
+  font-size: 1.32rem;
   font-weight: 600;
   letter-spacing: -0.02em;
   line-height: 1.2;
 }
 
 .schedule-header-range {
-  margin: 2px 0 0;
+  margin: 0;
   color: #8f8778;
-  font-size: 0.88rem;
-  line-height: 1.4;
+  font-size: 0.86rem;
+  line-height: 1.35;
   letter-spacing: 0.01em;
+}
+
+.schedule-week-completion {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 0;
+  padding-top: 0;
+  border-top: 0;
+}
+
+.schedule-week-completion-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.schedule-week-completion-label {
+  font-size: 0.62rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #6f675c;
+  line-height: 1.2;
+}
+
+.schedule-week-completion-value {
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: #b8ad9c;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.3;
+}
+
+.schedule-week-completion-progress {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.schedule-week-completion-track {
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 7px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+}
+
+.schedule-week-completion-fill {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #b8892f 0%, #f3d28d 100%);
+  transition: width 220ms ease;
+}
+
+.schedule-week-completion-percent {
+  flex: 0 0 auto;
+  font-size: 0.76rem;
+  font-weight: 700;
+  color: #e8dcc6;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  min-width: 2.75rem;
+  text-align: right;
+}
+
+.schedule-publish-success-banner {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  border-color: rgba(212, 175, 55, 0.16);
+  background: rgba(212, 175, 55, 0.06);
+  color: rgba(232, 220, 198, 0.86);
+}
+
+.schedule-publish-success-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 1px solid rgba(212, 175, 55, 0.24);
+  background: rgba(212, 175, 55, 0.08);
+  color: rgba(212, 175, 55, 0.82);
+  font-size: 0.62rem;
+  font-weight: 700;
+  line-height: 1;
+  flex-shrink: 0;
 }
 
 .schedule-header-actions {
@@ -2710,14 +2794,21 @@
   width: 100%;
   min-width: 148px;
   min-height: 36px;
-  padding: 8px 12px;
+  padding: 0 16px;
   border-radius: 10px;
   border: 1px solid rgba(255, 255, 255, 0.08);
   background: rgba(255, 255, 255, 0.03);
   color: #fff7e8;
   font: inherit;
   font-size: 0.84rem;
+  line-height: 36px;
   box-sizing: border-box;
+}
+
+.schedule-filter-field select {
+  padding-top: 0;
+  padding-bottom: 0;
+  line-height: normal;
 }
 
 .schedule-filter-field input::placeholder {
@@ -2895,6 +2986,10 @@
   margin: 0;
   padding: 7px 12px;
   font-size: 0.82rem;
+}
+
+.schedule-workspace-banner.schedule-publish-success-banner {
+  padding: 6px 12px;
 }
 
 .schedule-toolbar {
@@ -3121,7 +3216,7 @@
 }
 
 .schedule-grid-hero .schedule-roster-bar {
-  margin-bottom: 8px;
+  margin-bottom: 10px;
 }
 
 .schedule-grid-hero .schedule-staff-strip {
@@ -3964,17 +4059,13 @@ input[type='time']::-webkit-datetime-edit-text {
   padding-bottom: 12px;
 }
 
-.schedule-grid-hero .schedule-roster-bar {
-  margin-bottom: 10px;
-}
-
 .schedule-roster-bar {
   border-radius: 12px;
   border: 1px solid rgba(212, 175, 55, 0.14);
   background:
     linear-gradient(180deg, rgba(212, 175, 55, 0.04), rgba(12, 12, 13, 0.96));
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
-  padding: 7px 8px;
+  padding: 8px 10px;
   overflow: hidden;
 }
 
@@ -3987,9 +4078,9 @@ input[type='time']::-webkit-datetime-edit-text {
 
 .schedule-staff-strip-scroll {
   display: flex;
-  gap: 6px;
+  gap: 16px;
   overflow-x: auto;
-  padding: 2px 4px;
+  padding: 4px 8px;
   scrollbar-width: thin;
 }
 
@@ -4007,17 +4098,17 @@ input[type='time']::-webkit-datetime-edit-text {
   gap: 8px;
   min-width: 124px;
   max-width: 168px;
-  min-height: 58px;
-  border: 0;
-  border-radius: 8px;
-  background: transparent;
+  min-height: 64px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 11px;
+  background: rgba(255, 255, 255, 0.015);
   padding: 9px 12px;
   cursor: grab;
   color: inherit;
   font: inherit;
   text-align: left;
   box-shadow: none;
-  transition: background 180ms ease, box-shadow 180ms ease, transform 180ms ease, filter 180ms ease;
+  transition: background 180ms ease, box-shadow 180ms ease, transform 180ms ease, filter 180ms ease, border-color 180ms ease;
 }
 
 .schedule-staff-chip:last-child {
@@ -4026,7 +4117,8 @@ input[type='time']::-webkit-datetime-edit-text {
 
 .schedule-staff-chip:hover {
   background: rgba(212, 175, 55, 0.1);
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.14), inset 0 0 0 1px rgba(212, 175, 55, 0.14);
+  border-color: rgba(212, 175, 55, 0.18);
+  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.16), 0 1px 3px rgba(0, 0, 0, 0.1), inset 0 0 0 1px rgba(212, 175, 55, 0.12);
   filter: brightness(1.02);
   transform: translateY(-1px);
 }
@@ -4034,6 +4126,57 @@ input[type='time']::-webkit-datetime-edit-text {
 .schedule-staff-chip.dragging {
   opacity: 0.45;
   cursor: grabbing;
+}
+
+.schedule-staff-chip.focused {
+  background: rgba(212, 175, 55, 0.14);
+  border-color: rgba(212, 175, 55, 0.38);
+  box-shadow: inset 0 0 0 1px rgba(212, 175, 55, 0.22), 0 2px 12px rgba(212, 175, 55, 0.12);
+  transform: none;
+}
+
+.schedule-staff-chip.visual-faded {
+  opacity: 0.42;
+  filter: saturate(0.65);
+}
+
+.schedule-staff-chip.visual-faded:hover {
+  opacity: 0.62;
+}
+
+.schedule-staff-workload-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 14px;
+  font-size: 0.58rem;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: 0.01em;
+}
+
+.schedule-staff-workload-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 7px;
+  height: 7px;
+  font-size: 0.42rem;
+  line-height: 1;
+  flex-shrink: 0;
+  transform: translateY(0.5px);
+}
+
+.schedule-staff-workload-status.tone-available {
+  color: #8fbf88;
+}
+
+.schedule-staff-workload-status.tone-near-limit {
+  color: #d4a030;
+}
+
+.schedule-staff-workload-status.tone-overtime {
+  color: #d47a6a;
 }
 
 .schedule-staff-chip-avatar {
@@ -4196,7 +4339,7 @@ input[type='time']::-webkit-datetime-edit-text {
 
 .blend-grid-table {
   display: grid;
-  column-gap: 5px;
+  column-gap: 8px;
   row-gap: 10px;
   width: 100%;
   min-width: 0;
@@ -4255,46 +4398,61 @@ input[type='time']::-webkit-datetime-edit-text {
   color: inherit;
   display: flex;
   flex-direction: column;
-  gap: 5px;
+  gap: 8px;
   align-items: flex-start;
   text-align: left;
-  padding: 11px 30px 11px 12px;
+  padding: 12px 30px 12px 12px;
   width: 100%;
   cursor: pointer;
+}
+
+.blend-grid-header-day.is-today {
+  border: 1px solid rgba(212, 175, 55, 0.28);
+  border-radius: 12px;
+  box-shadow: 0 0 18px rgba(212, 175, 55, 0.08), inset 0 0 0 1px rgba(212, 175, 55, 0.1);
+  background: rgba(212, 175, 55, 0.035);
+}
+
+.blend-grid-header-day.is-today .blend-grid-header-day-name {
+  color: #ffe8bd;
+}
+
+.blend-grid-header-day.is-today .blend-grid-header-day-date {
+  color: #8f8778;
 }
 
 .blend-grid-header-day-date {
   font-size: 0.6rem;
   color: #5c554c;
-  line-height: 1.25;
+  line-height: 1.3;
   letter-spacing: 0.04em;
   font-weight: 500;
   text-transform: uppercase;
-  margin-top: 1px;
+  margin-top: 0;
 }
 
 .blend-grid-header-day-name {
-  font-size: 1.2rem;
-  letter-spacing: 0.04em;
+  font-size: 1.24rem;
+  letter-spacing: 0.05em;
   color: #fff7e8;
   font-weight: 800;
-  line-height: 1.06;
+  line-height: 1.08;
   text-transform: uppercase;
-  margin-bottom: 2px;
+  margin-bottom: 0;
 }
 
 .blend-grid-header-day-metrics {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 4px 8px;
-  margin-top: 2px;
+  gap: 4px 10px;
+  margin-top: 0;
 }
 
 .blend-grid-header-day-metric {
-  font-size: 0.6rem;
-  font-weight: 500;
-  color: #5c554c;
+  font-size: 0.62rem;
+  font-weight: 600;
+  color: #6f675c;
   letter-spacing: 0;
   line-height: 1.2;
   white-space: nowrap;
@@ -4360,25 +4518,27 @@ input[type='time']::-webkit-datetime-edit-text {
 .day-header-status {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
+  gap: 6px;
   margin-top: 0;
-  font-size: 0.7rem;
+  font-size: 0.72rem;
   font-weight: 600;
   letter-spacing: 0.01em;
   text-transform: none;
   border-radius: 8px;
-  padding: 4px 10px;
+  padding: 5px 10px;
   width: fit-content;
   max-width: 100%;
-  line-height: 1.25;
+  line-height: 1;
 }
 
 .day-header-coverage-percent {
-  font-size: 0.62rem;
+  font-size: 0.64rem;
   font-weight: 500;
   color: #6f675c;
   letter-spacing: 0.02em;
-  line-height: 1.2;
+  line-height: 1.3;
+  text-transform: lowercase;
+  margin-top: 0;
 }
 
 .day-header-coverage-percent.tone-understaffed {
@@ -4395,6 +4555,9 @@ input[type='time']::-webkit-datetime-edit-text {
 }
 
 .day-header-status-dot {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   font-size: 0.58rem;
   line-height: 1;
   flex-shrink: 0;
@@ -4505,7 +4668,7 @@ input[type='time']::-webkit-datetime-edit-text {
 .blend-grid-palette-body {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 0;
   margin-left: 5px;
   min-width: 0;
 }
@@ -4540,19 +4703,20 @@ input[type='time']::-webkit-datetime-edit-text {
 }
 
 .blend-grid-palette-time {
-  margin: 0;
+  margin: 4px 0 0;
   color: #c9beb0 !important;
   font-size: 0.7rem !important;
   font-weight: 600;
-  letter-spacing: 0.01em;
+  letter-spacing: 0.02em;
   font-variant-numeric: tabular-nums;
+  line-height: 1.25;
 }
 
 .blend-grid-palette-required-block {
   display: flex;
   flex-direction: column;
-  gap: 0;
-  margin-top: 1px;
+  gap: 1px;
+  margin-top: 6px;
 }
 
 .blend-grid-palette-required-label {
@@ -4580,37 +4744,26 @@ input[type='time']::-webkit-datetime-edit-text {
   min-width: 0;
 }
 
-.blend-grid-palette-note {
-  margin: 2px 0 0;
+.blend-grid-palette-display-name {
+  margin: 6px 0 0;
   color: #6f675c !important;
-  font-size: 0.66rem !important;
-  line-height: 1.3;
+  font-size: 0.62rem !important;
+  font-weight: 500;
+  line-height: 1.25;
+  letter-spacing: 0.01em;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.blend-grid-palette-required-block {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.blend-grid-palette-required-label {
-  color: #9f9485;
-  font-size: 0.66rem;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  line-height: 1.2;
-}
-
-.blend-grid-palette-required-count {
-  color: #d8c8ad;
-  font-size: 0.8rem;
-  font-weight: 600;
-  letter-spacing: 0.01em;
-  line-height: 1.3;
+.blend-grid-palette-note {
+  margin: 0;
+  color: #6f675c !important;
+  font-size: 0.62rem !important;
+  line-height: 1.25;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .blend-grid-palette-required {
@@ -4742,6 +4895,28 @@ input[type='time']::-webkit-datetime-edit-text {
   color: #f2dfb8;
   font-weight: 600;
   font-size: 0.88rem;
+}
+
+.blend-grid-assignment-cell.is-today {
+  box-shadow: inset 0 0 0 1px rgba(212, 175, 55, 0.08), 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.blend-grid-assignment-cell.visual-faded {
+  opacity: 0.38;
+  filter: saturate(0.6);
+  transition: opacity 180ms ease, filter 180ms ease;
+}
+
+.schedule-visual-filter-active .blend-grid-pill.visual-faded {
+  opacity: 0.35;
+  filter: saturate(0.6);
+  transition: opacity 180ms ease, filter 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
+}
+
+.schedule-visual-filter-active .blend-grid-pill.visual-emphasis {
+  opacity: 1;
+  border-color: rgba(212, 175, 55, 0.48);
+  box-shadow: 0 0 0 1px rgba(212, 175, 55, 0.22), 0 0 14px rgba(212, 175, 55, 0.12);
 }
 
 .blend-grid-assignment-cell {
@@ -4924,7 +5099,13 @@ input[type='time']::-webkit-datetime-edit-text {
 
 .capacity-value-btn {
   min-width: 54px;
-  padding: 3px 7px;
+  min-height: 24px;
+  padding: 4px 11px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
 }
 
 .capacity-warning {
@@ -5001,7 +5182,7 @@ input[type='time']::-webkit-datetime-edit-text {
 .blend-grid-pill-list {
   display: flex;
   flex-wrap: wrap;
-  gap: 5px;
+  gap: 7px;
   align-content: flex-start;
   min-height: 48px;
 }
@@ -5055,15 +5236,28 @@ input[type='time']::-webkit-datetime-edit-text {
 .blend-grid-pill-copy {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 5px;
   min-width: 0;
+}
+
+.blend-grid-pill-department {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  align-self: flex-start;
+  color: #8f8778;
+  font-size: 0.58rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  line-height: 1.3;
 }
 
 .blend-grid-pill-name {
   color: #fff7e8;
-  font-size: 0.76rem;
-  font-weight: 800;
-  line-height: 1.15;
+  font-size: 0.74rem;
+  font-weight: 700;
+  line-height: 1.3;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -5071,33 +5265,21 @@ input[type='time']::-webkit-datetime-edit-text {
   letter-spacing: 0.01em;
 }
 
-.blend-grid-pill-role {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  align-self: flex-start;
-  color: #6f675c;
-  font-size: 0.56rem;
-  font-weight: 500;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  line-height: 1.15;
-}
-
-.blend-grid-pill.has-custom-time {
-  border-color: rgba(212, 175, 55, 0.42);
-  background: rgba(212, 175, 55, 0.14);
-}
-
 .blend-grid-pill-time {
   display: inline-flex;
   align-items: center;
   gap: 5px;
   color: #a79e91;
-  font-size: 0.62rem;
+  font-size: 0.6rem;
   font-weight: 500;
-  line-height: 1.15;
+  line-height: 1.3;
   font-variant-numeric: tabular-nums;
+  letter-spacing: 0.01em;
+}
+
+.blend-grid-pill.has-custom-time {
+  border-color: rgba(212, 175, 55, 0.42);
+  background: rgba(212, 175, 55, 0.14);
 }
 
 .blend-grid-pill-overtime {
@@ -5565,12 +5747,6 @@ input[type='time']::-webkit-datetime-edit-text {
 .field-helper-note {
   color: #cdbda2;
   font-size: 0.74rem;
-}
-
-.blend-grid-pill-role {
-  color: #dac9a6;
-  font-size: 0.67rem;
-  line-height: 1.2;
 }
 
 .blend-grid-cell-bottom {

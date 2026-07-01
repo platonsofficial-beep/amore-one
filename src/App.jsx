@@ -21,6 +21,7 @@ import {
   isCurrentWeek,
   parseLocalDate,
   formatScheduleDayHeader,
+  formatLocalDateKey,
 } from './lib/weekUtils'
 import {
   buildKnownShiftTemplateIdSet,
@@ -193,6 +194,26 @@ function formatTemplateRequiredCount(minRequired, maxRequired) {
     return `${minRequired} Employee${minRequired === 1 ? '' : 's'}`
   }
   return `${minRequired}–${maxRequired} Employees`
+}
+
+function getEmployeeWorkloadStatus(scheduledHours, weeklyTarget) {
+  const tracker = getEmployeeHoursTrackerState(scheduledHours, weeklyTarget)
+
+  if (tracker.status === 'over') {
+    return { label: 'Overtime', tone: 'overtime', icon: '🔴' }
+  }
+
+  if (tracker.status === 'complete' || (tracker.hasTarget && tracker.barWidth >= 85)) {
+    return { label: 'Near Limit', tone: 'near-limit', icon: '🟡' }
+  }
+
+  return { label: 'Available', tone: 'available', icon: '🟢' }
+}
+
+function doesShiftMatchScheduleVisualFilter(shift, employeeName, { focusedEmployeeId, searchNeedle }) {
+  const matchesFocus = !focusedEmployeeId || String(shift.employeeId ?? '') === focusedEmployeeId
+  const matchesSearch = !searchNeedle || `${employeeName}`.toLowerCase().includes(searchNeedle)
+  return matchesFocus && matchesSearch
 }
 
 function buildEmployeePositionOptions(positions = []) {
@@ -1248,7 +1269,9 @@ function ScheduleView({
   const [dragPayload, setDragPayload] = useState(null)
   const [dropTargetKey, setDropTargetKey] = useState('')
   const [pendingShiftDrop, setPendingShiftDrop] = useState(null)
+  const [focusedEmployeeId, setFocusedEmployeeId] = useState(null)
   const dragSessionRef = useRef(null)
+  const employeeChipClickGuardRef = useRef(false)
 
   const isDragDropDisabled = isSaving || isPublishing
 
@@ -1273,6 +1296,7 @@ function ScheduleView({
     setSelectedDay(null)
     setDayActionMenuKey(null)
     setCellActionMenuKey('')
+    setFocusedEmployeeId(null)
   }, [weekStartDate])
 
   useEffect(() => {
@@ -2253,6 +2277,34 @@ function ScheduleView({
     ).length
   ), [dayHeaderSummariesByKey])
 
+  const todayDateKey = formatLocalDateKey(new Date())
+
+  const weekCompletion = useMemo(() => {
+    let totalRequired = 0
+    let totalAssigned = 0
+
+    blendGridRows.forEach((row) => {
+      row.dayCells.forEach((cell) => {
+        totalRequired += cell.requiredCount
+        totalAssigned += cell.assignedCount
+      })
+    })
+
+    const percent = totalRequired > 0
+      ? Math.round((totalAssigned / totalRequired) * 100)
+      : (totalAssigned > 0 ? 100 : 0)
+
+    return {
+      totalRequired,
+      totalAssigned,
+      percent,
+      barWidth: totalRequired > 0 ? Math.min(100, Math.round((totalAssigned / totalRequired) * 100)) : 0,
+    }
+  }, [blendGridRows])
+
+  const scheduleVisualSearchNeedle = filters.search.trim().toLowerCase()
+  const isScheduleVisualFilterActive = Boolean(focusedEmployeeId) || Boolean(scheduleVisualSearchNeedle)
+
   const activeStaffMembers = useMemo(() => (
     employees
       .filter((employee) => !isEmployeeUnavailable(employee))
@@ -2884,6 +2936,7 @@ function ScheduleView({
       return
     }
 
+    employeeChipClickGuardRef.current = true
     const payload = { type: 'employee', employeeId: employee.id }
     dragSessionRef.current = payload
     setDragPayload(payload)
@@ -2891,10 +2944,20 @@ function ScheduleView({
     event.dataTransfer.effectAllowed = 'copy'
   }
 
+  const handleEmployeeChipFocusToggle = (employeeId) => {
+    if (employeeChipClickGuardRef.current) return
+
+    const employeeKey = String(employeeId)
+    setFocusedEmployeeId((current) => (current === employeeKey ? null : employeeKey))
+  }
+
   const handleDragEnd = () => {
     dragSessionRef.current = null
     setDragPayload(null)
     setDropTargetKey('')
+    window.setTimeout(() => {
+      employeeChipClickGuardRef.current = false
+    }, 0)
   }
 
   const handleCellDragOver = (event, cellDropKey, { canAcceptDrop }) => {
@@ -3107,9 +3170,33 @@ function ScheduleView({
     <section className="staff-page schedule-workspace" onClick={() => { setCapacityPickerKey(''); setDayActionMenuKey(null); setCellActionMenuKey(''); setIsScheduleMoreMenuOpen(false) }}>
       <header className="schedule-header panel">
         <div className="schedule-header-copy">
-          <p className="eyebrow">Schedule</p>
+          <p className="eyebrow schedule-header-eyebrow">Schedule</p>
           <h2 className="schedule-header-title">Current week</h2>
           <p className="schedule-header-range">{formatScheduleHeaderWeekRange(weekDays)}</p>
+          <div className="schedule-week-completion" aria-label="Week completion">
+            <div className="schedule-week-completion-copy">
+              <span className="schedule-week-completion-label">Week completion</span>
+              {weekCompletion.totalRequired > 0 ? (
+                <span className="schedule-week-completion-value">
+                  {weekCompletion.totalAssigned} / {weekCompletion.totalRequired} shifts assigned
+                </span>
+              ) : (
+                <span className="schedule-week-completion-value">
+                  {weekCompletion.totalAssigned > 0
+                    ? `${weekCompletion.totalAssigned} shift${weekCompletion.totalAssigned === 1 ? '' : 's'} assigned`
+                    : 'No shifts assigned'}
+                </span>
+              )}
+            </div>
+            {weekCompletion.totalRequired > 0 ? (
+              <div className="schedule-week-completion-progress">
+                <div className="schedule-week-completion-track" aria-hidden="true">
+                  <span className="schedule-week-completion-fill" style={{ width: `${weekCompletion.barWidth}%` }} />
+                </div>
+                <span className="schedule-week-completion-percent">{weekCompletion.percent}%</span>
+              </div>
+            ) : null}
+          </div>
         </div>
 
         <div className="schedule-header-actions">
@@ -3250,10 +3337,19 @@ function ScheduleView({
       ) : null}
 
       {assignmentError ? <div className="staff-status-banner schedule-workspace-banner">{assignmentError}</div> : null}
-      {noticeMessage ? <div className="staff-status-banner schedule-workspace-banner">{noticeMessage}</div> : null}
+      {noticeMessage ? (
+        <div className={`staff-status-banner schedule-workspace-banner ${noticeMessage === 'Schedule published for employees.' ? 'schedule-publish-success-banner' : ''}`}>
+          {noticeMessage === 'Schedule published for employees.' ? (
+            <>
+              <span className="schedule-publish-success-icon" aria-hidden="true">✓</span>
+              <span>{noticeMessage}</span>
+            </>
+          ) : noticeMessage}
+        </div>
+      ) : null}
       {isLoading ? <div className="staff-status-banner schedule-workspace-banner">Loading schedule…</div> : null}
 
-      <div className="schedule-grid-section panel staff-panel blend-grid-panel schedule-grid-hero">
+      <div className={`schedule-grid-section panel staff-panel blend-grid-panel schedule-grid-hero ${isScheduleVisualFilterActive ? 'schedule-visual-filter-active' : ''}`}>
         {scheduleGridTemplates.length === 0 ? (
           <div className="schedule-empty-state">
             <h4>No shift templates available.</h4>
@@ -3274,24 +3370,38 @@ function ScheduleView({
                   const scheduledHours = employeeWeeklyHoursMap.get(String(employee.id)) ?? 0
                   const weeklyTarget = parseWeeklyHoursTarget(employee.weeklyHours ?? employee.weekly_hours)
                   const hoursTracker = getEmployeeHoursTrackerState(scheduledHours, weeklyTarget)
+                  const workloadStatus = getEmployeeWorkloadStatus(scheduledHours, weeklyTarget)
                   const hoursPercent = hoursTracker.hasTarget && weeklyTarget > 0
                     ? Math.round((scheduledHours / weeklyTarget) * 100)
                     : null
+                  const employeeKey = String(employee.id)
+                  const isEmployeeFocused = focusedEmployeeId === employeeKey
+                  const chipMatchesSearch = !scheduleVisualSearchNeedle
+                    || employeeName.toLowerCase().includes(scheduleVisualSearchNeedle)
 
                   return (
                     <button
                       key={`staff-chip-${employee.id}`}
                       type="button"
-                      className={`schedule-staff-chip ${dragPayload?.type === 'employee' && String(dragPayload.employeeId) === String(employee.id) ? 'dragging' : ''}`}
+                      className={`schedule-staff-chip ${isEmployeeFocused ? 'focused' : ''} ${isScheduleVisualFilterActive && !chipMatchesSearch ? 'visual-faded' : ''} ${dragPayload?.type === 'employee' && String(dragPayload.employeeId) === employeeKey ? 'dragging' : ''}`}
                       draggable={!isDragDropDisabled}
                       onDragStart={(event) => handleEmployeeDragStart(event, employee)}
                       onDragEnd={handleDragEnd}
-                      aria-label={`Assign ${employeeName}, ${hoursTracker.primaryLabel}, ${positionLabel}`}
+                      onClick={(event) => {
+                        event.stopPropagation()
+                        handleEmployeeChipFocusToggle(employee.id)
+                      }}
+                      aria-label={`${isEmployeeFocused ? 'Clear focus for' : 'Focus'} ${employeeName}, ${workloadStatus.label}, ${positionLabel}`}
+                      aria-pressed={isEmployeeFocused}
                     >
                       <span className="schedule-staff-chip-avatar">{getInitials(employeeName)}</span>
                       <span className="schedule-staff-chip-body">
                         <strong className="schedule-staff-chip-name">{firstName}</strong>
                         <span className="schedule-staff-chip-role">{positionLabel}</span>
+                        <span className={`schedule-staff-workload-status tone-${workloadStatus.tone}`}>
+                          <span className="schedule-staff-workload-icon" aria-hidden="true">{workloadStatus.icon}</span>
+                          {workloadStatus.label}
+                        </span>
                         <div className="schedule-staff-hours-row">
                           <span className="schedule-staff-hours-primary">{hoursTracker.primaryLabel}</span>
                           {hoursPercent !== null ? (
@@ -3326,10 +3436,11 @@ function ScheduleView({
                   statusIcon: '⚪',
                 }
                 const dayHeader = formatScheduleDayHeader(day.key)
+                const isTodayColumn = day.key === todayDateKey
                 return (
                 <div
                   key={`head-${day.key}`}
-                  className={`blend-grid-header blend-grid-header-day ${selectedDay === day.key ? 'active' : ''}`}
+                  className={`blend-grid-header blend-grid-header-day ${selectedDay === day.key ? 'active' : ''} ${isTodayColumn ? 'is-today' : ''}`}
                 >
                   <button
                     type="button"
@@ -3342,7 +3453,7 @@ function ScheduleView({
                       {formatDayCoverageBadgeLabel(daySummary.status, daySummary.statusLabel)}
                     </span>
                     {daySummary.coveragePercent !== null ? (
-                      <span className={`day-header-coverage-percent tone-${daySummary.status}`}>{daySummary.coveragePercent}% Covered</span>
+                      <span className={`day-header-coverage-percent tone-${daySummary.status}`}>{daySummary.coveragePercent}% covered</span>
                     ) : null}
                     <span className="blend-grid-header-day-date">{dayHeader.calendarLabel}</span>
                     <div className="blend-grid-header-day-metrics" aria-label={`${daySummary.totalAssignedStaff} employees, ${daySummary.hoursLabel} hours`}>
@@ -3431,7 +3542,7 @@ function ScheduleView({
                         <span className="blend-grid-palette-icon" aria-hidden="true">{getScheduleAreaIcon(templateArea || templateShiftName)}</span>
                         <span className="blend-grid-palette-name">{templateShiftName.toUpperCase()}</span>
                       </p>
-                      <p className="blend-grid-palette-time">{formatTimeRange24(row.template.startTime, row.template.endTime, '–')}</p>
+                      <p className="blend-grid-palette-time">{formatTimeRange24(row.template.startTime, row.template.endTime, ' – ')}</p>
                       {requiredCountLabel ? (
                         <div className="blend-grid-palette-required-block">
                           <p className="blend-grid-palette-required-label">Required</p>
@@ -3439,6 +3550,7 @@ function ScheduleView({
                         </div>
                       ) : null}
                       {templateNote ? <p className="blend-grid-palette-note">{templateNote}</p> : null}
+                      <p className="blend-grid-palette-display-name">{templateShiftName}</p>
                     </div>
                   </aside>
                     )
@@ -3461,11 +3573,19 @@ function ScheduleView({
                     const canAcceptShiftMoveDrop = isShiftPromptDrag
                     const canAcceptDrop = canAcceptEmployeeDrop || canAcceptShiftCopyDrop || canAcceptShiftMoveDrop
                     const isDropTarget = dropTargetKey === cellDropKey && canAcceptDrop
+                    const isTodayColumn = cell.day.key === todayDateKey
+                    const cellHasVisualEmphasis = !isScheduleVisualFilterActive || cell.shifts.some((shift) => {
+                      const shiftEmployeeName = shift.employees?.full_name || shift.employeeName || shift.employeeRecord?.name || 'Unassigned'
+                      return doesShiftMatchScheduleVisualFilter(shift, shiftEmployeeName, {
+                        focusedEmployeeId,
+                        searchNeedle: scheduleVisualSearchNeedle,
+                      })
+                    })
 
                     return (
                     <div
                       key={`cell-${row.template.id}-${cell.day.key}`}
-                      className={`blend-grid-assignment-cell ${selectedDay === cell.day.key ? 'active' : ''} ${cell.assignedCount === 0 ? 'empty' : ''} ${cell.staffingState} ${isDropTarget ? 'drop-target' : ''}`}
+                      className={`blend-grid-assignment-cell ${selectedDay === cell.day.key ? 'active' : ''} ${cell.assignedCount === 0 ? 'empty' : ''} ${cell.staffingState} ${isDropTarget ? 'drop-target' : ''} ${isTodayColumn ? 'is-today' : ''} ${isScheduleVisualFilterActive && !cellHasVisualEmphasis ? 'visual-faded' : ''}`}
                       onClick={() => {
                         setSelectedDay(cell.day.key)
                         if (cell.assignedCount === 0) {
@@ -3579,6 +3699,7 @@ function ScheduleView({
                         {cell.shifts.map((shift) => {
                           const employeeName = shift.employees?.full_name || shift.employeeName || shift.employeeRecord?.name || 'Unassigned'
                           const shiftPosition = (shift.role || getEmployeePositionNames(shift.employeeRecord).join(' • ') || 'Unassigned position').replace(/,\s*/g, ' • ')
+                          const shiftDepartment = getShiftDepartment(shift)
                           const shiftTemplate = getShiftTemplateForAssignment(shift)
                           const usesCustomTime = shiftTemplate ? isAssignmentUsingCustomTime(shift, shiftTemplate) : false
                           const overtimeHours = shiftTemplate ? getAssignmentOvertimeHours(shift, shiftTemplate) : 0
@@ -3586,13 +3707,16 @@ function ScheduleView({
                           const pillEndTime = normalizeTimeValue(shift.endTime) || normalizeTimeValue(shiftTemplate?.endTime)
 
                           const pillTimeLabel = formatTimeRange24(pillStartTime, pillEndTime, '–')
-                          const shiftTypeIcon = getScheduleAreaIcon(shiftPosition || row.template.defaultArea || row.template.defaultRole)
+                          const pillIsEmphasized = doesShiftMatchScheduleVisualFilter(shift, employeeName, {
+                            focusedEmployeeId,
+                            searchNeedle: scheduleVisualSearchNeedle,
+                          })
 
                           return (
                             <button
                               key={`shift-pill-${shift.id}`}
                               type="button"
-                              className={`blend-grid-pill ${usesCustomTime ? 'has-custom-time' : ''} ${dragPayload?.shiftId === shift.id ? 'dragging' : ''}`}
+                              className={`blend-grid-pill ${usesCustomTime ? 'has-custom-time' : ''} ${dragPayload?.shiftId === shift.id ? 'dragging' : ''} ${isScheduleVisualFilterActive ? (pillIsEmphasized ? 'visual-emphasis' : 'visual-faded') : ''}`}
                               draggable={!isDragDropDisabled}
                               onDragStart={(event) => handleShiftDragStart(event, shift)}
                               onDragEnd={handleDragEnd}
@@ -3600,13 +3724,14 @@ function ScheduleView({
                                 event.stopPropagation()
                                 handleOpenAssignmentActions(shift)
                               }}
+                              title={`${employeeName} · ${shiftPosition} · ${pillTimeLabel || 'Time TBD'} · ${shiftDepartment}`}
                             >
                               <span className="blend-grid-pill-avatar">{getInitials(employeeName)}</span>
                               <span className="blend-grid-pill-copy">
                                 <span className="blend-grid-pill-name">{employeeName}</span>
-                                <span className="blend-grid-pill-role">
-                                  <span className="blend-grid-pill-type-icon" aria-hidden="true">{shiftTypeIcon}</span>
-                                  {shiftPosition}
+                                <span className="blend-grid-pill-department">
+                                  <span className="blend-grid-pill-type-icon" aria-hidden="true">{getScheduleAreaIcon(shiftDepartment)}</span>
+                                  {shiftDepartment}
                                 </span>
                                 {pillTimeLabel ? (
                                   <span className="blend-grid-pill-time">
@@ -8965,6 +9090,7 @@ function App() {
             >
               {brandDisplay.businessNameLabel}
             </h1>
+            <p className="brand-powered-by">Powered by ONE</p>
           </div>
         </div>
 
