@@ -383,21 +383,84 @@ export function buildBusinessHealthSummary({
     return {
       tone: 'critical',
       label: 'Critical',
-      message: 'Immediate attention required',
+      message: 'Immediate attention required.',
     }
   }
 
   if (hasScheduleWarning || hasStockAttention) {
     return {
       tone: 'attention',
-      label: 'Attention needed',
-      message: 'Review open issues today',
+      label: 'Attention',
+      message: 'Review open issues today.',
     }
   }
 
   return {
     tone: 'healthy',
-    label: 'Healthy',
-    message: 'No critical issues today',
+    label: 'Excellent',
+    message: 'All systems operating normally.',
   }
+}
+
+function getMinutesUntilTimeLabel(timeLabel, now = new Date()) {
+  const targetMinutes = parseTimeToMinutes(timeLabel)
+  if (targetMinutes === null) return null
+
+  const nowMinutes = now.getHours() * 60 + now.getMinutes()
+  const diff = targetMinutes - nowMinutes
+  return diff > 0 ? diff : null
+}
+
+export function buildDashboardContextMessage({
+  snapshot = {},
+  liveFloor = {},
+  businessHealth = {},
+  now = new Date(),
+} = {}) {
+  const issueCount = Number(snapshot.issues) || 0
+
+  if (businessHealth.tone === 'critical') {
+    return 'Immediate attention required before service.'
+  }
+
+  if (issueCount === 1) {
+    return 'One issue needs your attention.'
+  }
+
+  if (issueCount > 1) {
+    return `${issueCount} issues need your attention.`
+  }
+
+  if (liveFloor.state === 'live' && liveFloor.onShiftCount > 0) {
+    return liveFloor.onShiftCount === 1
+      ? 'One team member is on the floor now.'
+      : `${liveFloor.onShiftCount} team members are on the floor now.`
+  }
+
+  if (liveFloor.nextShiftStartLabel) {
+    const minutesUntil = getMinutesUntilTimeLabel(liveFloor.nextShiftStartLabel, now)
+    const hour = now.getHours()
+    const eveningShift = hour >= 17
+
+    if (minutesUntil !== null) {
+      if (minutesUntil < 60) {
+        return `Next shift starts in ${minutesUntil} minute${minutesUntil === 1 ? '' : 's'}.`
+      }
+
+      const hoursUntil = Math.round(minutesUntil / 60)
+      if (hoursUntil <= 6) {
+        return eveningShift
+          ? `Tonight's shift starts in ${hoursUntil} hour${hoursUntil === 1 ? '' : 's'}.`
+          : `Next shift starts in ${hoursUntil} hour${hoursUntil === 1 ? '' : 's'}.`
+      }
+    }
+
+    return `Next shift starts at ${liveFloor.nextShiftStartLabel}.`
+  }
+
+  if (liveFloor.state === 'unpublished') {
+    return "Publish today's schedule to monitor live operations."
+  }
+
+  return 'Everything is running smoothly today.'
 }

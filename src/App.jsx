@@ -82,6 +82,7 @@ import {
 } from './services/workspaceProfileService'
 import {
   buildBusinessHealthSummary,
+  buildDashboardContextMessage,
   buildDashboardIssuesSummary,
   buildLiveFloorState,
   buildTodayCommandTimeline,
@@ -292,8 +293,11 @@ function CommandStaffList({ members, statusLabel }) {
 
   return (
     <ul className="command-staff-list">
-      {members.map((member) => (
-        <li key={member.shiftId} className="command-staff-item">
+      {members.map((member, index) => (
+        <li
+          key={member.shiftId}
+          className={`command-staff-item${index < members.length - 1 ? ' has-divider' : ''}`}
+        >
           <span className="command-staff-avatar">{getInitials(member.name || 'Staff')}</span>
           <div className="command-staff-copy">
             <strong>{member.name}</strong>
@@ -327,8 +331,7 @@ function CommandCenterView({
         {isScheduleLoading ? (
           <p className="command-empty-state">Loading today&apos;s overview…</p>
         ) : (
-          <div className="command-overview-row">
-            <div className="command-hero-metrics" aria-label="Today's schedule metrics">
+          <div className="command-hero-metrics command-kpi-grid" aria-label="Today's schedule metrics">
               <article className="command-hero-metric">
                 <p className="command-hero-metric-value">{snapshot.scheduledStaff}</p>
                 <p className="command-hero-metric-label">Scheduled Today</p>
@@ -346,14 +349,12 @@ function CommandCenterView({
                   {snapshot.issues > 0 ? 'Review schedule' : 'All clear'}
                 </p>
               </article>
+              <article className={`command-hero-metric health-tone-${businessHealth.tone}`} aria-label="Business health">
+                <p className="command-hero-metric-value command-hero-metric-value-text">{businessHealth.label}</p>
+                <p className="command-hero-metric-label">Business Health</p>
+                <p className="command-hero-metric-hint">{businessHealth.message}</p>
+              </article>
             </div>
-            <article className={`command-health-card tone-${businessHealth.tone}`} aria-label="Business health">
-              <span className="command-health-dot" aria-hidden="true" />
-              <p className="command-health-label">Business Health</p>
-              <p className="command-health-value">{businessHealth.label}</p>
-              <p className="command-health-hint">{businessHealth.message}</p>
-            </article>
-          </div>
         )}
       </section>
 
@@ -400,22 +401,22 @@ function CommandCenterView({
             <p className="command-empty-state">Not connected yet</p>
           ) : (
             <>
-              <div className="command-hero-metrics compact">
-                <article className="command-hero-metric">
-                  <p className="command-hero-metric-value">{reservationsSummary.bookings}</p>
-                  <p className="command-hero-metric-label">Bookings</p>
+              <div className="command-reservation-metrics">
+                <article className="command-reservation-metric">
+                  <p className="command-reservation-metric-value">{reservationsSummary.bookings}</p>
+                  <p className="command-reservation-metric-label">Bookings</p>
                 </article>
-                <article className="command-hero-metric">
-                  <p className="command-hero-metric-value">{reservationsSummary.tables}</p>
-                  <p className="command-hero-metric-label">Tables</p>
+                <article className="command-reservation-metric">
+                  <p className="command-reservation-metric-value">{reservationsSummary.tables}</p>
+                  <p className="command-reservation-metric-label">Tables</p>
                 </article>
-                <article className="command-hero-metric">
-                  <p className="command-hero-metric-value">{reservationsSummary.guests}</p>
-                  <p className="command-hero-metric-label">Guests</p>
+                <article className="command-reservation-metric">
+                  <p className="command-reservation-metric-value">{reservationsSummary.guests}</p>
+                  <p className="command-reservation-metric-label">Guests</p>
                 </article>
               </div>
               {reservationsSummary.bookings === 0 ? (
-                <p className="command-card-footnote">No reservations booked for today.</p>
+                <p className="command-card-footnote">No reservations booked today.</p>
               ) : null}
             </>
           )}
@@ -452,7 +453,7 @@ function CommandCenterView({
           {!inventoryConnected ? (
             <p className="command-empty-state">Not connected yet</p>
           ) : stockAlerts.length === 0 ? (
-            <p className="command-empty-state">No stock alerts right now.</p>
+            <p className="command-empty-state command-empty-state-healthy">Stock levels look healthy.</p>
           ) : (
             <>
               <ul className="command-alert-list">
@@ -493,8 +494,8 @@ function CommandCenterView({
                   <span className="command-timeline-time">{event.timeLabel}</span>
                   <span className="command-timeline-node" aria-hidden="true" />
                   <div className="command-timeline-copy">
-                    <strong>{event.title}</strong>
-                    {event.note ? <p>{event.note}</p> : null}
+                    <strong className="command-timeline-title">{event.title}</strong>
+                    {event.note ? <p className="command-timeline-department">{event.note}</p> : null}
                   </div>
                 </li>
               ))}
@@ -528,7 +529,7 @@ function CommandCenterView({
                 <span className="command-quick-action-icon" aria-hidden="true">{action.icon}</span>
                 <span className="command-quick-action-copy">
                   <strong>{action.label}</strong>
-                  {!action.available ? <small>Coming soon</small> : null}
+                  {!action.available ? <small>Coming Soon</small> : null}
                 </span>
               </button>
             ))}
@@ -5426,6 +5427,13 @@ function App() {
     inventoryConnected: isInventoryModuleConnected,
   }), [dashboardIssuesSummary, dashboardStockAlerts, isInventoryModuleConnected])
 
+  const dashboardContextMessage = useMemo(() => buildDashboardContextMessage({
+    snapshot: operationalSnapshot,
+    liveFloor: liveFloorState,
+    businessHealth: dashboardBusinessHealth,
+    now: localNow,
+  }), [operationalSnapshot, liveFloorState, dashboardBusinessHealth, localNow])
+
   const dashboardTimelineEvents = useMemo(() => buildTodayCommandTimeline({
     shifts: dashboardShifts,
     shiftTemplates,
@@ -8672,6 +8680,7 @@ function App() {
             <h2 className="command-topbar-greeting">
               {buildDashboardGreeting(currentTimeGreeting, workspaceProfile.managerName)}
             </h2>
+            <p className="command-topbar-context">{dashboardContextMessage}</p>
             {brandDisplay.businessName ? (
               <p className="command-topbar-business">{brandDisplay.businessName}</p>
             ) : null}
