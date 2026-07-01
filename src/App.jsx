@@ -67,6 +67,7 @@ import {
 import { buildOperationalSnapshot } from './lib/operationalSnapshotUtils'
 import {
   buildBrandDisplay,
+  buildDashboardGreeting,
   buildProfileChipDisplay,
 } from './lib/workspaceProfileUtils'
 import {
@@ -82,6 +83,7 @@ import {
 import {
   buildDashboardIssuesSummary,
   buildLiveFloorState,
+  buildTodayCommandTimeline,
   buildTodayReservationsSummary,
   getLowStockAlertItems,
   isModuleUnavailableMessage,
@@ -292,63 +294,37 @@ function CommandCenterView({
   stockAlerts,
   inventoryConnected,
   issuesSummary,
+  timelineEvents,
   isScheduleLoading,
   isLiveFloorLoading,
   onQuickAction,
+  onViewStock,
 }) {
-  const staffHeadline = liveFloor.state === 'live'
-    ? `${liveFloor.onShiftCount} on the floor now`
-    : liveFloor.state === 'idle' && liveFloor.nextShiftStartLabel
-      ? `Next shift at ${liveFloor.nextShiftStartLabel}`
-      : liveFloor.state === 'unpublished'
-        ? 'Publish schedule to monitor live floor'
-        : 'No active shift right now'
-
   return (
     <div className="command-center" aria-label="Operations command center">
       <section className="command-card command-overview" aria-label="Today overview">
         {isScheduleLoading ? (
           <p className="command-empty-state">Loading today&apos;s overview…</p>
         ) : (
-          <>
-            <div className="command-overview-header">
-              <div className="command-overview-intro">
-                <p className="command-overview-greeting">{snapshot.greeting}</p>
-                {snapshot.businessName ? (
-                  <p className="command-overview-business">{snapshot.businessName}</p>
-                ) : null}
-              </div>
-              <p className="command-overview-date">{snapshot.todayLabel}</p>
-            </div>
-
-            <div className="command-overview-metrics" aria-label="Today's schedule metrics">
-              <article className="command-metric">
-                <span className="command-metric-icon" aria-hidden="true">👥</span>
-                <div>
-                  <p className="command-metric-label">Scheduled today</p>
-                  <p className="command-metric-value">{snapshot.scheduledStaff}</p>
-                </div>
-              </article>
-              <article className="command-metric">
-                <span className="command-metric-icon" aria-hidden="true">⏱</span>
-                <div>
-                  <p className="command-metric-label">Labour hours</p>
-                  <p className="command-metric-value">{snapshot.labourHoursLabel}h</p>
-                </div>
-              </article>
-              <article className={`command-metric ${snapshot.issues > 0 ? 'has-issues' : ''}`}>
-                <span className="command-metric-icon" aria-hidden="true">⚠</span>
-                <div>
-                  <p className="command-metric-label">Issues</p>
-                  <p className="command-metric-value">{snapshot.issues}</p>
-                </div>
-              </article>
-            </div>
-
-            <p className={`command-overview-status ${snapshot.issues > 0 ? 'needs-attention' : 'ready'}`}>
-              {snapshot.statusMessage}
-            </p>
-          </>
+          <div className="command-hero-metrics" aria-label="Today's schedule metrics">
+            <article className="command-hero-metric">
+              <p className="command-hero-metric-value">{snapshot.scheduledStaff}</p>
+              <p className="command-hero-metric-label">Scheduled Today</p>
+              <p className="command-hero-metric-hint">Staff assigned</p>
+            </article>
+            <article className="command-hero-metric">
+              <p className="command-hero-metric-value">{snapshot.labourHoursLabel}h</p>
+              <p className="command-hero-metric-label">Labour Hours</p>
+              <p className="command-hero-metric-hint">Planned coverage</p>
+            </article>
+            <article className={`command-hero-metric ${snapshot.issues > 0 ? 'has-issues' : ''}`}>
+              <p className="command-hero-metric-value">{snapshot.issues}</p>
+              <p className="command-hero-metric-label">Needs Attention</p>
+              <p className="command-hero-metric-hint">
+                {snapshot.issues > 0 ? 'Review schedule' : 'All clear'}
+              </p>
+            </article>
+          </div>
         )}
       </section>
 
@@ -362,17 +338,21 @@ function CommandCenterView({
             <p className="command-empty-state">Loading live floor…</p>
           ) : liveFloor.state === 'unpublished' ? (
             <div className="command-status-block unpublished">
-              <p className="command-status-title">🟡 No published schedule</p>
+              <p className="command-state-label">No published schedule</p>
               <p className="command-status-message">{liveFloor.message}</p>
             </div>
           ) : liveFloor.state === 'idle' ? (
             <div className="command-status-block idle">
-              <p className="command-status-title">{liveFloor.title}</p>
+              <p className="command-state-label">
+                {liveFloor.nextShiftStartLabel
+                  ? `Next shift starts at ${liveFloor.nextShiftStartLabel}`
+                  : 'No active shift'}
+              </p>
               <p className="command-status-message">{liveFloor.message}</p>
             </div>
           ) : (
             <>
-              <p className="command-card-lead">{staffHeadline}</p>
+              <p className="command-state-label live">On shift now</p>
               <ul className="command-staff-list">
                 {liveFloor.onShift.map((member) => (
                   <li key={member.shiftId} className="command-staff-item">
@@ -398,18 +378,18 @@ function CommandCenterView({
             <p className="command-empty-state">Not connected yet</p>
           ) : (
             <>
-              <div className="command-metric-row">
-                <article className="command-inline-metric">
-                  <span className="command-inline-metric-value">{reservationsSummary.bookings}</span>
-                  <span className="command-inline-metric-label">Bookings</span>
+              <div className="command-hero-metrics compact">
+                <article className="command-hero-metric">
+                  <p className="command-hero-metric-value">{reservationsSummary.bookings}</p>
+                  <p className="command-hero-metric-label">Bookings</p>
                 </article>
-                <article className="command-inline-metric">
-                  <span className="command-inline-metric-value">{reservationsSummary.tables}</span>
-                  <span className="command-inline-metric-label">Tables</span>
+                <article className="command-hero-metric">
+                  <p className="command-hero-metric-value">{reservationsSummary.tables}</p>
+                  <p className="command-hero-metric-label">Tables</p>
                 </article>
-                <article className="command-inline-metric">
-                  <span className="command-inline-metric-value">{reservationsSummary.guests}</span>
-                  <span className="command-inline-metric-label">Guests</span>
+                <article className="command-hero-metric">
+                  <p className="command-hero-metric-value">{reservationsSummary.guests}</p>
+                  <p className="command-hero-metric-label">Guests</p>
                 </article>
               </div>
               {reservationsSummary.bookings === 0 ? (
@@ -419,7 +399,7 @@ function CommandCenterView({
           )}
         </section>
 
-        <section className={`command-card ${issuesSummary.tone === 'attention' ? 'has-attention' : ''}`} aria-label="Issues and needs attention">
+        <section className={`command-card command-issues-card severity-${issuesSummary.severity}`} aria-label="Issues and needs attention">
           <header className="command-card-header">
             <p className="eyebrow">Issues / Needs Attention</p>
             <h3>What needs action?</h3>
@@ -427,36 +407,71 @@ function CommandCenterView({
           {isScheduleLoading ? (
             <p className="command-empty-state">Checking today&apos;s schedule…</p>
           ) : (
-            <div className={`command-status-block ${issuesSummary.tone}`}>
-              <p className="command-status-title">
-                {issuesSummary.tone === 'attention' ? '⚠' : '✓'} {issuesSummary.title}
-              </p>
-              <p className="command-status-message">{issuesSummary.message}</p>
+            <div className={`command-issues-panel ${issuesSummary.tone}`}>
+              <span className={`command-severity-badge ${issuesSummary.severity}`}>
+                {issuesSummary.severity === 'info' ? 'Info' : issuesSummary.severity === 'critical' ? 'Critical' : 'Warning'}
+              </span>
+              <p className="command-issues-title">{issuesSummary.title}</p>
+              <p className="command-issues-message">{issuesSummary.message}</p>
             </div>
           )}
         </section>
 
         <section className="command-card" aria-label="Stock alerts">
-          <header className="command-card-header">
-            <p className="eyebrow">Stock Alerts</p>
-            <h3>What is running low?</h3>
+          <header className="command-card-header command-card-header-row">
+            <div>
+              <p className="eyebrow">Stock Alerts</p>
+              <h3>What is running low?</h3>
+            </div>
+            {inventoryConnected && stockAlerts.length > 0 ? (
+              <span className="command-inline-count">{stockAlerts.length}</span>
+            ) : null}
           </header>
           {!inventoryConnected ? (
             <p className="command-empty-state">Not connected yet</p>
           ) : stockAlerts.length === 0 ? (
             <p className="command-empty-state">No stock alerts right now.</p>
           ) : (
-            <ul className="command-alert-list">
-              {stockAlerts.map((item) => (
-                <li key={item.id} className="command-alert-item">
-                  <span className={`command-alert-badge ${item.status === 'Out of Stock' ? 'critical' : 'warning'}`}>
-                    {item.status}
-                  </span>
-                  <div className="command-alert-copy">
-                    <strong>{item.name}</strong>
-                    {item.quantity !== undefined && item.quantity !== null ? (
-                      <p>{item.quantity}{item.unit ? ` ${item.unit}` : ''} remaining</p>
-                    ) : null}
+            <>
+              <ul className="command-alert-list">
+                {stockAlerts.map((item) => (
+                  <li key={item.id} className="command-alert-item">
+                    <span className={`command-alert-badge ${item.severity}`}>
+                      {item.severity === 'critical' ? 'Critical' : 'Low Stock'}
+                    </span>
+                    <div className="command-alert-copy">
+                      <strong>{item.name}</strong>
+                      {item.quantity !== undefined && item.quantity !== null ? (
+                        <p>{item.quantity}{item.unit ? ` ${item.unit}` : ''} remaining</p>
+                      ) : null}
+                    </div>
+                  </li>
+                ))}
+              </ul>
+              <button type="button" className="command-card-link" onClick={onViewStock}>
+                View Stock
+              </button>
+            </>
+          )}
+        </section>
+
+        <section className="command-card command-timeline-card" aria-label="Today's timeline">
+          <header className="command-card-header">
+            <p className="eyebrow">Today&apos;s Timeline</p>
+            <h3>What happens next?</h3>
+          </header>
+          {isScheduleLoading ? (
+            <p className="command-empty-state">Loading timeline…</p>
+          ) : timelineEvents.length === 0 ? (
+            <p className="command-empty-state">No timeline events yet.</p>
+          ) : (
+            <ul className="command-timeline-list">
+              {timelineEvents.map((event) => (
+                <li key={event.key} className={`command-timeline-item type-${event.type}`}>
+                  <span className="command-timeline-time">{event.timeLabel}</span>
+                  <div className="command-timeline-copy">
+                    <strong>{event.title}</strong>
+                    {event.note ? <p>{event.note}</p> : null}
                   </div>
                 </li>
               ))}
@@ -490,7 +505,7 @@ function CommandCenterView({
                 <span className="command-quick-action-icon" aria-hidden="true">{action.icon}</span>
                 <span className="command-quick-action-copy">
                   <strong>{action.label}</strong>
-                  {!action.available ? <small>{action.hint}</small> : null}
+                  {!action.available ? <small>Coming soon</small> : null}
                 </span>
               </button>
             ))}
@@ -5382,6 +5397,52 @@ function App() {
     [inventoryItems],
   )
 
+  const dashboardTimelineEvents = useMemo(() => buildTodayCommandTimeline({
+    shifts: dashboardShifts,
+    shiftTemplates,
+    reservations,
+    todayKey: currentDateKey,
+    reservationsConnected: isReservationsModuleConnected,
+  }), [
+    dashboardShifts,
+    shiftTemplates,
+    reservations,
+    currentDateKey,
+    isReservationsModuleConnected,
+  ])
+
+  const dashboardLiveStatus = useMemo(() => {
+    if (liveFloorState.state === 'live') {
+      return {
+        label: 'On shift now',
+        detail: `${liveFloorState.onShiftCount} on the floor`,
+        tone: 'live',
+      }
+    }
+
+    if (liveFloorState.state === 'idle' && liveFloorState.nextShiftStartLabel) {
+      return {
+        label: `Next shift ${liveFloorState.nextShiftStartLabel}`,
+        detail: 'Standby',
+        tone: 'standby',
+      }
+    }
+
+    if (liveFloorState.state === 'unpublished') {
+      return {
+        label: 'No published schedule',
+        detail: 'Publish to go live',
+        tone: 'draft',
+      }
+    }
+
+    return {
+      label: 'Standby',
+      detail: 'No active shift',
+      tone: 'standby',
+    }
+  }, [liveFloorState])
+
   const refreshReservations = useCallback(async () => {
     try {
       const remoteReservations = await getReservations()
@@ -8194,6 +8255,10 @@ function App() {
     }
   }
 
+  const handleDashboardViewStock = () => {
+    setActiveView('stock')
+  }
+
   const handleOpenEditReservation = (reservation) => {
     setEditingReservation(reservation)
     setReservationForm({
@@ -8572,6 +8637,39 @@ function App() {
 
       <main className={`main-panel${activeView === 'schedule' ? ' main-panel-schedule' : ''}`}>
         {activeView !== 'schedule' ? (
+        activeView === 'dashboard' ? (
+        <header className="topbar topbar-command">
+          <div className="command-topbar-intro">
+            <h2 className="command-topbar-greeting">
+              {buildDashboardGreeting(currentTimeGreeting, workspaceProfile.managerName)}
+            </h2>
+            {brandDisplay.businessName ? (
+              <p className="command-topbar-business">{brandDisplay.businessName}</p>
+            ) : null}
+            <p className="command-topbar-date">{currentDateLabel}</p>
+          </div>
+          <div className="command-topbar-meta">
+            <div className={`command-live-status tone-${dashboardLiveStatus.tone}`} aria-label="Live operations status">
+              <span className="command-live-status-dot" aria-hidden="true" />
+              <div className="command-live-status-copy">
+                <strong>{dashboardLiveStatus.label}</strong>
+                <p>{dashboardLiveStatus.detail}</p>
+              </div>
+            </div>
+            <button
+              type="button"
+              className={`profile-chip${profileChipDisplay.isConfigured ? '' : ' profile-chip-unconfigured'}`}
+              onClick={handleOpenWorkspaceProfile}
+            >
+              <div className="profile-avatar">{profileChipDisplay.initials}</div>
+              <div>
+                <strong>{profileChipDisplay.name}</strong>
+                <p>{profileChipDisplay.role}</p>
+              </div>
+            </button>
+          </div>
+        </header>
+        ) : (
         <header className="topbar">
           <div className="topbar-title-block">
             <p className="eyebrow">{topbarEyebrow}</p>
@@ -8579,7 +8677,7 @@ function App() {
             <p className="welcome-subtitle">{heroSubtitle}</p>
           </div>
           <div className="topbar-meta">
-            <label className="search-bar" aria-label="Search dashboard">
+            <label className="search-bar" aria-label={`Search ${activeView}`}>
               <span>⌕</span>
               <input
                 type="text"
@@ -8603,6 +8701,7 @@ function App() {
             </button>
           </div>
         </header>
+        )
         ) : null}
 
         {activeView === 'dashboard' ? (
@@ -8614,9 +8713,11 @@ function App() {
             stockAlerts={dashboardStockAlerts}
             inventoryConnected={isInventoryModuleConnected}
             issuesSummary={dashboardIssuesSummary}
+            timelineEvents={dashboardTimelineEvents}
             isScheduleLoading={isDashboardScheduleLoading}
             isLiveFloorLoading={isLiveFloorLoading}
             onQuickAction={handleDashboardQuickAction}
+            onViewStock={handleDashboardViewStock}
           />
         ) : null}
 

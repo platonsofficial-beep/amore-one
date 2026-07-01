@@ -199,7 +199,7 @@ export function buildTodayTimeline({
     const templateId = resolveShiftTemplateId(shift)
     const template = templateId ? templatesById.get(templateId) : null
     const shiftName = `${template?.name ?? shift.area ?? shift.role ?? 'Shift'}`.trim() || 'Shift'
-    const key = `${startTime}:${shiftName.toLowerCase()}`
+    const key = `shift:${startTime}:${shiftName.toLowerCase()}`
     if (seen.has(key)) return
     seen.add(key)
 
@@ -210,6 +210,7 @@ export function buildTodayTimeline({
       timeLabel: formatTime24(startTime),
       title: `${shiftName} starts`,
       note: area,
+      type: 'shift',
     })
   })
 
@@ -218,6 +219,42 @@ export function buildTodayTimeline({
   ))
 
   return events
+}
+
+export function buildTodayCommandTimeline({
+  shifts = [],
+  shiftTemplates = [],
+  reservations = [],
+  todayKey = getCurrentDateKey(),
+  reservationsConnected = false,
+} = {}) {
+  const events = buildTodayTimeline({ shifts, shiftTemplates, todayKey })
+
+  if (reservationsConnected) {
+    getTodayReservations(reservations, todayKey).forEach((reservation) => {
+      const time = normalizeTimeValue(reservation.time)
+      if (!time) return
+
+      const guestName = `${reservation.guestName ?? 'Guest'}`.trim() || 'Guest'
+      const guests = Number(reservation.guests)
+      const guestNote = Number.isFinite(guests) && guests > 0 ? `${guests} guests` : ''
+      const tableNumber = `${reservation.tableNumber ?? ''}`.trim()
+      const tableNote = tableNumber ? `Table ${tableNumber}` : ''
+
+      events.push({
+        key: `reservation:${reservation.id ?? `${guestName}-${time}`}`,
+        time,
+        timeLabel: formatTime24(time),
+        title: `${guestName} reservation`,
+        note: [guestNote, tableNote].filter(Boolean).join(' · '),
+        type: 'reservation',
+      })
+    })
+  }
+
+  return events.sort((left, right) => (
+    (parseTimeToMinutes(left.time) ?? 0) - (parseTimeToMinutes(right.time) ?? 0)
+  ))
 }
 
 export function buildTodayReservationsSummary(reservations = [], todayKey = getCurrentDateKey()) {
@@ -276,6 +313,7 @@ export function getLowStockAlertItems(inventoryItems = [], limit = 5) {
       id: String(item.id),
       name: `${item.name ?? 'Item'}`.trim() || 'Item',
       status: item.status,
+      severity: item.status === 'Out of Stock' ? 'critical' : 'low',
       quantity: item.quantity,
       unit: item.unit,
     }))
@@ -287,16 +325,20 @@ export function buildDashboardIssuesSummary(snapshot = {}) {
   if (issueCount === 0) {
     return {
       count: 0,
+      severity: 'info',
       title: 'All clear',
-      message: snapshot.statusMessage || 'Everything is ready for service.',
+      message: 'No schedule issues today.',
       tone: 'ready',
     }
   }
 
+  const severity = issueCount >= 3 ? 'critical' : 'warning'
+
   return {
     count: issueCount,
+    severity,
     title: issueCount === 1 ? '1 issue needs attention' : `${issueCount} issues need attention`,
-    message: 'Review today\'s schedule for staffing gaps, overstaffing, and overtime.',
+    message: 'Review staffing and overtime.',
     tone: 'attention',
   }
 }
