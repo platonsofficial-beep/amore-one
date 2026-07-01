@@ -1,4 +1,4 @@
-import { Fragment, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { Fragment, createContext, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import './App.css'
 import { createEmployee, deleteEmployee, getEmployees, updateEmployee } from './services/staffService'
 import { createShift, deleteShift, getShifts, updateShift } from './services/scheduleService'
@@ -56,6 +56,7 @@ import {
   getEmployeeHoursTrackerState,
   isAssignmentUsingCustomTime,
   parseWeeklyHoursTarget,
+  parseTimeToMinutes,
 } from './lib/shiftHoursUtils'
 import { buildEmployeeWeekScheduleView } from './lib/employeeWeekScheduleView'
 import {
@@ -90,6 +91,7 @@ import {
   buildLiveFloorState,
   buildTodayCommandTimeline,
   buildTodayReservationsSummary,
+  getTodayReservations,
   getLowStockAlertItems,
   isModuleUnavailableMessage,
   resolveLiveDraftShiftsForWeek,
@@ -328,11 +330,17 @@ function getLegacyShiftIntegrityOptions(shiftTemplates, { requireTemplateId = fa
 }
 
 function getInitials(name) {
-  return name
-    .split(' ')
-    .slice(0, 2)
-    .map((part) => part[0])
-    .join('')
+  const parts = `${name || ''}`.trim().split(/\s+/).filter(Boolean)
+
+  if (parts.length >= 2) {
+    return `${parts[0][0] ?? ''}${parts[1][0] ?? ''}`.toUpperCase()
+  }
+
+  if (parts.length === 1 && parts[0].length >= 2) {
+    return parts[0].slice(0, 2).toUpperCase()
+  }
+
+  return (parts[0]?.[0] ?? 'G').toUpperCase()
 }
 
 function formatDashboardHeroDate(date, timeZone = '') {
@@ -4905,141 +4913,3380 @@ function ScheduleView({
   )
 }
 
-function ReservationsView({ reservations, onOpenAddReservation, onOpenEditReservation, onDeleteReservation, isLoading, noticeMessage, isSaving }) {
-  const today = getCurrentDateKey()
-  const todayReservations = reservations.filter((reservation) => reservation.date === today)
-  const upcomingReservations = reservations.filter((reservation) => reservation.date !== today)
+const RESERVATION_BOARD_FILTERS = ['All', 'Booked', 'Arrived', 'Late', 'Completed', 'Cancelled']
+const RESERVATION_WORKSPACE_VIEWS = [
+  { id: 'operations', label: 'Operations' },
+  { id: 'timeline', label: 'Timeline' },
+  { id: 'floor', label: 'Floor' },
+]
+
+const RESERVATION_WORKSPACE_MODULES = {
+  aiAssistant: null,
+  notifications: null,
+  kitchen: null,
+  analytics: null,
+}
+
+const ReservationWorkspaceContext = createContext(null)
+
+function useReservationWorkspace() {
+  const workspace = useContext(ReservationWorkspaceContext)
+  if (!workspace) {
+    throw new Error('useReservationWorkspace must be used within ReservationWorkspaceProvider')
+  }
+  return workspace
+}
+
+function reservationIdsMatch(left, right) {
+  if (!left || !right) return false
+  return String(left.id) === String(right.id)
+}
+
+function ReservationWorkspaceProvider({
+  children,
+  filteredTodayReservations,
+}) {
+  const [selectedReservation, setSelectedReservation] = useState(null)
+  const [isGuestProfileOpen, setIsGuestProfileOpen] = useState(false)
+  const [selectionPulseKey, setSelectionPulseKey] = useState(0)
+  const [workspaceFocus, setWorkspaceFocus] = useState('operations')
+  const timelineCardRefs = useRef({})
+  const floorTableRefs = useRef({})
+  const timelineScrollRef = useRef(null)
+  const floorCanvasRef = useRef(null)
+  const canvasRef = useRef(null)
+
+  const selectedTableId = useMemo(
+    () => (selectedReservation ? getTableIdForReservation(selectedReservation) : null),
+    [selectedReservation],
+  )
+
+  const scrollTimelineToReservation = useCallback((reservationId) => {
+    window.requestAnimationFrame(() => {
+      timelineCardRefs.current[reservationId]?.scrollIntoView({
+        behavior: 'smooth',
+        block: 'center',
+      })
+    })
+  }, [])
+
+  const scrollFloorToTable = useCallback((tableId) => {
+    if (!tableId) return
+
+    window.requestAnimationFrame(() => {
+      canvasRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+      floorCanvasRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+      floorTableRefs.current[tableId]?.scrollIntoView({
+        behavior: 'smooth',
+        block: 'center',
+        inline: 'center',
+      })
+    })
+  }, [])
+
+  const selectReservation = useCallback((reservation, options = {}) => {
+    if (!reservation) return
+
+    const {
+      scrollTimeline = false,
+      scrollFloor = false,
+      openGuestProfile = false,
+    } = options
+
+    const tableId = getTableIdForReservation(reservation)
+
+    setSelectedReservation(reservation)
+    setIsGuestProfileOpen(openGuestProfile)
+    setSelectionPulseKey((current) => current + 1)
+
+    window.requestAnimationFrame(() => {
+      if (scrollTimeline) {
+        scrollTimelineToReservation(reservation.id)
+      }
+
+      if (scrollFloor) {
+        scrollFloorToTable(tableId)
+      }
+    })
+  }, [scrollFloorToTable, scrollTimelineToReservation])
+
+  const clearSelection = useCallback(() => {
+    setSelectedReservation(null)
+    setIsGuestProfileOpen(false)
+  }, [])
+
+  const isSelected = useCallback((reservation) => (
+    reservationIdsMatch(selectedReservation, reservation)
+  ), [selectedReservation])
+
+  const value = useMemo(() => ({
+    selectedReservation,
+    selectedTableId,
+    isGuestProfileOpen,
+    selectionPulseKey,
+    workspaceFocus,
+    setWorkspaceFocus,
+    selectReservation,
+    clearSelection,
+    isSelected,
+    timelineCardRefs,
+    floorTableRefs,
+    timelineScrollRef,
+    floorCanvasRef,
+    canvasRef,
+    filteredTodayReservations,
+    futureModules: RESERVATION_WORKSPACE_MODULES,
+  }), [
+    clearSelection,
+    filteredTodayReservations,
+    isGuestProfileOpen,
+    isSelected,
+    selectReservation,
+    selectedReservation,
+    selectedTableId,
+    selectionPulseKey,
+    workspaceFocus,
+  ])
 
   return (
-    <section className="staff-page">
-      <div className="staff-header-card">
-        <div>
-          <p className="eyebrow">Reservations</p>
-          <h3>Luxury booking flow</h3>
-          <p className="staff-subtitle">Track arrivals, seating, and guest notes across the evening.</p>
-        </div>
-        <button type="button" className="primary-btn" onClick={onOpenAddReservation} disabled={isSaving}>
-          {isSaving ? 'Saving…' : '+ Add Reservation'}
+    <ReservationWorkspaceContext.Provider value={value}>
+      {children}
+    </ReservationWorkspaceContext.Provider>
+  )
+}
+
+function ReservationsWorkspaceSegmentControl({ value, onChange }) {
+  return (
+    <div
+      className="reservations-workspace-segment"
+      role="tablist"
+      aria-label="Workspace focus"
+    >
+      {RESERVATION_WORKSPACE_VIEWS.map((view) => (
+        <button
+          key={view.id}
+          type="button"
+          role="tab"
+          aria-selected={value === view.id}
+          className={`reservations-workspace-segment-btn${value === view.id ? ' is-active' : ''}`}
+          onClick={() => onChange(view.id)}
+        >
+          {view.label}
         </button>
-      </div>
+      ))}
+    </div>
+  )
+}
 
-      {noticeMessage ? <div className="staff-status-banner">{noticeMessage}</div> : null}
-      {isLoading ? <div className="staff-status-banner">Loading reservations…</div> : null}
+const COMMAND_PALETTE_ACTIONS = [
+  { id: 'create-reservation', label: 'Create reservation', subtitle: 'Open full reservation form', icon: '＋', keywords: ['new reservation', 'add reservation', 'book'] },
+  { id: 'create-walk-in', label: 'Create walk-in', subtitle: 'Seat a walk-in party now', icon: '🚶', keywords: ['walk in', 'walk-in', 'walkin'] },
+  { id: 'seat-guest', label: 'Seat guest', subtitle: 'Mark selected or matched guest as seated', icon: '🪑', keywords: ['seat', 'seat guest', 'seat table'] },
+  { id: 'move-guest', label: 'Move guest', subtitle: 'Reassign to another table', icon: '↔', keywords: ['move', 'transfer', 'reassign'] },
+  { id: 'edit-reservation', label: 'Edit reservation', subtitle: 'Update reservation details', icon: '✏', keywords: ['edit', 'update reservation'] },
+  { id: 'call-guest', label: 'Call guest', subtitle: 'Dial guest phone number', icon: '📞', keywords: ['call', 'phone', 'dial'] },
+  { id: 'add-note', label: 'Add note', subtitle: 'Add internal service note', icon: '📝', keywords: ['note', 'add note', 'comment'] },
+  { id: 'merge-tables', label: 'Merge tables', subtitle: 'Open floor plan · Shift + click two tables', icon: '⊕', keywords: ['merge', 'merge tables', 'combine'] },
+  { id: 'split-tables', label: 'Split tables', subtitle: 'Open floor plan · Right-click merged table', icon: '⊖', keywords: ['split', 'split tables', 'unmerge'] },
+  { id: 'find-available-table', label: 'Find available table', subtitle: 'Jump to the next open table', icon: '◎', keywords: ['available', 'open table', 'find table'] },
+]
 
-      <div className="roster-summary-grid">
-        <article className="roster-summary-card">
-          <p className="eyebrow">Today</p>
-          <h3>{todayReservations.length}</h3>
-        </article>
-        <article className="roster-summary-card">
-          <p className="eyebrow">Upcoming</p>
-          <h3>{upcomingReservations.length}</h3>
-        </article>
-        <article className="roster-summary-card">
-          <p className="eyebrow">Booked</p>
-          <h3>{reservations.filter((reservation) => reservation.status === 'Booked').length}</h3>
-        </article>
-      </div>
+function commandPaletteFuzzyScore(needle, haystack) {
+  const query = `${needle ?? ''}`.trim().toLowerCase()
+  const target = `${haystack ?? ''}`.toLowerCase()
+  if (!query) return 1
+  if (!target) return 0
+  if (target.includes(query)) return 120 - target.indexOf(query)
 
-      <div className="panel staff-panel">
-        <div className="panel-heading">
-          <div>
-            <p className="eyebrow">Today’s reservations</p>
-            <h3>Arrival board</h3>
-          </div>
+  let score = 0
+  let targetIndex = 0
+
+  for (let index = 0; index < query.length; index += 1) {
+    const matchIndex = target.indexOf(query[index], targetIndex)
+    if (matchIndex === -1) return 0
+    score += 12 - Math.min(matchIndex - targetIndex, 8)
+    targetIndex = matchIndex + 1
+  }
+
+  return score
+}
+
+function parseCommandPaletteIntent(query) {
+  const normalized = `${query ?? ''}`.trim().toLowerCase()
+  if (!normalized) return null
+
+  const patterns = [
+    { regex: /^(new|create)\s+reservation$/, intent: 'create-reservation' },
+    { regex: /^walk[\s-]?in(?:\s+(\d+)\s+guests?)?$/, intent: 'create-walk-in', guests: 1 },
+    { regex: /^seat(?:\s+guest|\s+table)?\s+(.+)$/, intent: 'seat-guest', target: 1 },
+    { regex: /^move\s+(.+)$/, intent: 'move-guest', target: 1 },
+    { regex: /^edit(?:\s+reservation)?\s+(.+)$/, intent: 'edit-reservation', target: 1 },
+    { regex: /^call\s+(.+)$/, intent: 'call-guest', target: 1 },
+    { regex: /^(?:add\s+)?note(?:\s+for)?\s+(.+)$/, intent: 'add-note', target: 1 },
+    { regex: /^table\s+(\d+|[a-z].*)$/i, intent: 'search-table', target: 1 },
+    { regex: /^(?:find\s+)?available\s+table$/, intent: 'find-available-table' },
+    { regex: /^merge\s+tables?$/, intent: 'merge-tables' },
+    { regex: /^split\s+tables?$/, intent: 'split-tables' },
+  ]
+
+  for (const pattern of patterns) {
+    const match = normalized.match(pattern.regex)
+    if (!match) continue
+
+    return {
+      intent: pattern.intent,
+      target: match[pattern.target] ?? null,
+      guests: match[pattern.guests] ?? null,
+    }
+  }
+
+  return null
+}
+
+function findReservationByGuestNeedle(reservations, todayKey, needle) {
+  const query = `${needle ?? ''}`.trim().toLowerCase()
+  if (!query) return null
+
+  const todayReservations = getTodayReservations(reservations, todayKey)
+  let bestMatch = null
+  let bestScore = 0
+
+  todayReservations.forEach((reservation) => {
+    const guestName = formatReservationGuestName(reservation.guestName)
+    const score = Math.max(
+      commandPaletteFuzzyScore(query, guestName),
+      commandPaletteFuzzyScore(query, `${reservation.phone ?? ''}`),
+    )
+
+    if (score > bestScore) {
+      bestScore = score
+      bestMatch = reservation
+    }
+  })
+
+  return bestScore > 0 ? bestMatch : null
+}
+
+function findReservationByTableNeedle(reservations, todayKey, needle) {
+  const tableKey = normalizeTableKey(needle)
+  if (!tableKey) return null
+
+  const todayReservations = getTodayReservations(reservations, todayKey)
+  return todayReservations.find((reservation) => (
+    normalizeTableKey(reservation.tableNumber) === tableKey
+    && !['Cancelled', 'No Show', 'Completed'].includes(normalizeReservationStatus(reservation.status))
+  )) ?? null
+}
+
+function findAvailableFloorTable(reservations, todayKey, nowMinutes) {
+  const snapshot = buildFloorPlanSnapshot({
+    reservations: getTodayReservations(reservations, todayKey),
+    todayKey,
+    nowMinutes,
+  })
+
+  const available = snapshot.tableStates.find((entry) => entry.status === 'available')
+  return available?.table ?? null
+}
+
+function buildCommandPaletteItems({
+  query,
+  reservations,
+  todayKey,
+  nowMinutes,
+}) {
+  const items = []
+  const trimmedQuery = `${query ?? ''}`.trim()
+  const intent = parseCommandPaletteIntent(trimmedQuery)
+  const todayReservations = getTodayReservations(reservations, todayKey)
+
+  const pushItem = (item) => {
+    items.push(item)
+  }
+
+  COMMAND_PALETTE_ACTIONS.forEach((action) => {
+    const searchBlob = [action.label, action.subtitle, ...(action.keywords ?? [])].join(' ')
+    const score = commandPaletteFuzzyScore(trimmedQuery, searchBlob)
+    const intentBoost = intent?.intent === action.id ? 240 : 0
+
+    if (!trimmedQuery || score > 0 || intentBoost > 0) {
+      pushItem({
+        id: action.id,
+        kind: 'action',
+        label: action.label,
+        subtitle: action.subtitle,
+        icon: action.icon,
+        score: Math.max(score, intentBoost, trimmedQuery ? 0 : 40),
+        actionId: action.id,
+      })
+    }
+  })
+
+  todayReservations.forEach((reservation) => {
+    const guestName = formatReservationGuestName(reservation.guestName)
+    const tableLabel = `${reservation.tableNumber ?? ''}`.trim() || '—'
+    const status = getReservationDisplayStatus(reservation, nowMinutes, todayKey)
+    const searchBlob = [
+      guestName,
+      reservation.phone,
+      reservation.tableNumber,
+      reservation.notes,
+      status,
+      reservation.time,
+    ].join(' ')
+
+    const score = commandPaletteFuzzyScore(trimmedQuery, searchBlob)
+    if (!trimmedQuery || score > 0) {
+      pushItem({
+        id: `guest-${reservation.id}`,
+        kind: 'guest',
+        label: guestName,
+        subtitle: `Table ${tableLabel} · ${formatTime24(reservation.time) || '—'} · ${status}`,
+        icon: '👤',
+        score: score || (trimmedQuery ? 0 : 20),
+        reservation,
+      })
+
+      pushItem({
+        id: `reservation-${reservation.id}`,
+        kind: 'reservation',
+        label: `${guestName} — ${formatTime24(reservation.time) || '—'}`,
+        subtitle: `Reservation · Table ${tableLabel} · ${status}`,
+        icon: '📅',
+        score: Math.max(score - 4, 0) || (trimmedQuery ? 0 : 18),
+        reservation,
+      })
+    }
+  })
+
+  DEFAULT_FLOOR_PLAN_LAYOUT.tables.forEach((table) => {
+    const reservation = findReservationForFloorTable(table, todayReservations, todayKey)
+    const status = getFloorTableStatus(reservation, nowMinutes, todayKey)
+    const guestName = reservation ? formatReservationGuestName(reservation.guestName) : 'Available'
+    const searchBlob = `table ${table.label} ${guestName} ${table.seats} seats ${status}`
+    const score = commandPaletteFuzzyScore(trimmedQuery, searchBlob)
+    const tableIntentBoost = intent?.intent === 'search-table' && normalizeTableKey(intent.target) === normalizeTableKey(table.label)
+      ? 220
+      : 0
+
+    if (!trimmedQuery || score > 0 || tableIntentBoost > 0) {
+      pushItem({
+        id: `table-${table.id}`,
+        kind: 'table',
+        label: `Table ${table.label}`,
+        subtitle: reservation
+          ? `${guestName} · ${Number(reservation.guests) || 0}/${table.seats} · ${FLOOR_TABLE_STATUS_META[status]?.label || status}`
+          : `Available · ${table.seats} seats`,
+        icon: '🍽',
+        score: Math.max(score, tableIntentBoost, trimmedQuery ? 0 : 12),
+        table,
+        reservation,
+      })
+    }
+  })
+
+  if (intent?.intent === 'create-walk-in') {
+    const guestCount = Number(intent.guests) || 2
+    pushItem({
+      id: 'intent-walk-in',
+      kind: 'intent',
+      label: `Create walk-in · ${guestCount} guests`,
+      subtitle: 'Quick walk-in reservation for right now',
+      icon: '⚡',
+      score: 300,
+      intent,
+    })
+  }
+
+  if (intent?.target) {
+    const reservation = intent.intent === 'search-table'
+      ? findReservationByTableNeedle(reservations, todayKey, intent.target)
+      : findReservationByGuestNeedle(reservations, todayKey, intent.target)
+
+    if (reservation) {
+      pushItem({
+        id: `intent-target-${reservation.id}-${intent.intent}`,
+        kind: 'intent',
+        label: `${intent.intent.replace(/-/g, ' ')} · ${formatReservationGuestName(reservation.guestName)}`,
+        subtitle: `Table ${reservation.tableNumber || '—'} · ${getReservationDisplayStatus(reservation, nowMinutes, todayKey)}`,
+        icon: '⚡',
+        score: 280,
+        intent,
+        reservation,
+      })
+    }
+  }
+
+  return items
+    .filter((item) => item.score > 0)
+    .sort((left, right) => right.score - left.score)
+    .slice(0, 12)
+}
+
+function ReservationsCommandPalette({
+  reservations,
+  todayKey,
+  nowMinutes,
+  isSaving,
+  onClose,
+  onOpenAddReservation,
+  onOpenQuickReservation,
+  onOpenEditReservation,
+  onQuickStatusUpdate,
+  onOpenAddNote,
+}) {
+  const {
+    selectReservation,
+    setWorkspaceFocus,
+  } = useReservationWorkspace()
+
+  const [query, setQuery] = useState('')
+  const [activeIndex, setActiveIndex] = useState(0)
+  const inputRef = useRef(null)
+  const listRef = useRef(null)
+
+  const items = useMemo(() => (
+    buildCommandPaletteItems({
+      query,
+      reservations,
+      todayKey,
+      nowMinutes,
+    })
+  ), [nowMinutes, query, reservations, todayKey])
+
+  useEffect(() => {
+    inputRef.current?.focus()
+  }, [])
+
+  useEffect(() => {
+    setActiveIndex(0)
+  }, [query])
+
+  useEffect(() => {
+    const activeItem = listRef.current?.querySelector('[data-command-active="true"]')
+    activeItem?.scrollIntoView({ block: 'nearest' })
+  }, [activeIndex, items])
+
+  const runAction = useCallback(async (item) => {
+    const close = () => onClose()
+
+    if (item.kind === 'guest' || item.kind === 'reservation') {
+      selectReservation(item.reservation, {
+        scrollTimeline: true,
+        scrollFloor: true,
+        openGuestProfile: true,
+      })
+      close()
+      return
+    }
+
+    if (item.kind === 'table') {
+      if (item.reservation) {
+        selectReservation(item.reservation, {
+          scrollTimeline: true,
+          scrollFloor: true,
+          openGuestProfile: true,
+        })
+      } else {
+        setWorkspaceFocus('floor')
+        const tableNode = document.querySelector(`[data-table-id="${item.table.id}"]`)
+        tableNode?.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' })
+      }
+      close()
+      return
+    }
+
+    if (item.kind === 'intent') {
+      if (item.intent?.intent === 'create-walk-in') {
+        onOpenQuickReservation({
+          guestName: 'Walk-in',
+          guests: `${Number(item.intent.guests) || 2}`,
+          time: formatTimelineSlotLabel(nowMinutes),
+          tableNumber: '',
+        })
+        close()
+        return
+      }
+
+      if (item.reservation) {
+        const reservation = item.reservation
+
+        if (item.intent.intent === 'seat-guest') {
+          await onQuickStatusUpdate(reservation, 'Seated')
+          selectReservation(reservation, { scrollTimeline: true, scrollFloor: true, openGuestProfile: false })
+          close()
+          return
+        }
+
+        if (item.intent.intent === 'move-guest') {
+          selectReservation(reservation, { scrollTimeline: true, scrollFloor: true, openGuestProfile: true })
+          setWorkspaceFocus('floor')
+          close()
+          return
+        }
+
+        if (item.intent.intent === 'edit-reservation') {
+          onOpenEditReservation(reservation)
+          close()
+          return
+        }
+
+        if (item.intent.intent === 'call-guest') {
+          const phone = `${reservation.phone ?? ''}`.trim()
+          if (phone) window.location.href = `tel:${phone}`
+          selectReservation(reservation, { scrollTimeline: true, scrollFloor: true, openGuestProfile: true })
+          close()
+          return
+        }
+
+        if (item.intent.intent === 'add-note') {
+          onOpenAddNote(reservation)
+          close()
+          return
+        }
+
+        if (item.intent.intent === 'search-table') {
+          selectReservation(reservation, { scrollTimeline: true, scrollFloor: true, openGuestProfile: true })
+          close()
+          return
+        }
+      }
+    }
+
+    const actionId = item.actionId
+    const contextReservation = findReservationByGuestNeedle(reservations, todayKey, query)
+      || findReservationByTableNeedle(reservations, todayKey, query)
+
+    if (actionId === 'create-reservation') {
+      onOpenAddReservation()
+      close()
+      return
+    }
+
+    if (actionId === 'create-walk-in') {
+      onOpenQuickReservation({
+        guestName: 'Walk-in',
+        guests: '2',
+        time: formatTimelineSlotLabel(nowMinutes),
+        tableNumber: '',
+      })
+      close()
+      return
+    }
+
+    if (actionId === 'seat-guest') {
+      const reservation = contextReservation
+        || getTodayReservations(reservations, todayKey).find((entry) => (
+          ['Booked', 'Confirmed'].includes(normalizeReservationStatus(entry.status))
+        ))
+      if (reservation) {
+        await onQuickStatusUpdate(reservation, 'Seated')
+        selectReservation(reservation, { scrollTimeline: true, scrollFloor: true, openGuestProfile: false })
+      }
+      close()
+      return
+    }
+
+    if (actionId === 'move-guest' && contextReservation) {
+      selectReservation(contextReservation, { scrollTimeline: true, scrollFloor: true, openGuestProfile: true })
+      setWorkspaceFocus('floor')
+      close()
+      return
+    }
+
+    if (actionId === 'edit-reservation' && contextReservation) {
+      onOpenEditReservation(contextReservation)
+      close()
+      return
+    }
+
+    if (actionId === 'call-guest' && contextReservation) {
+      const phone = `${contextReservation.phone ?? ''}`.trim()
+      if (phone) window.location.href = `tel:${phone}`
+      selectReservation(contextReservation, { scrollTimeline: true, scrollFloor: true, openGuestProfile: true })
+      close()
+      return
+    }
+
+    if (actionId === 'add-note' && contextReservation) {
+      onOpenAddNote(contextReservation)
+      close()
+      return
+    }
+
+    if (actionId === 'merge-tables' || actionId === 'split-tables') {
+      setWorkspaceFocus('floor')
+      close()
+      return
+    }
+
+    if (actionId === 'find-available-table') {
+      const table = findAvailableFloorTable(reservations, todayKey, nowMinutes)
+      setWorkspaceFocus('floor')
+      if (table) {
+        window.requestAnimationFrame(() => {
+          document.querySelector(`[data-table-id="${table.id}"]`)?.scrollIntoView({
+            behavior: 'smooth',
+            block: 'center',
+            inline: 'center',
+          })
+        })
+      }
+      close()
+    }
+  }, [
+    nowMinutes,
+    onClose,
+    onOpenAddNote,
+    onOpenAddReservation,
+    onOpenEditReservation,
+    onOpenQuickReservation,
+    onQuickStatusUpdate,
+    query,
+    reservations,
+    selectReservation,
+    setWorkspaceFocus,
+    todayKey,
+  ])
+
+  const handleKeyDown = (event) => {
+    if (event.key === 'ArrowDown') {
+      event.preventDefault()
+      setActiveIndex((current) => Math.min(current + 1, Math.max(items.length - 1, 0)))
+      return
+    }
+
+    if (event.key === 'ArrowUp') {
+      event.preventDefault()
+      setActiveIndex((current) => Math.max(current - 1, 0))
+      return
+    }
+
+    if (event.key === 'Enter' && items[activeIndex]) {
+      event.preventDefault()
+      runAction(items[activeIndex])
+      return
+    }
+
+    if (event.key === 'Escape') {
+      event.preventDefault()
+      onClose()
+    }
+  }
+
+  return (
+    <div className="command-palette-backdrop" onClick={onClose}>
+      <div
+        className="command-palette"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Quick Actions"
+        onClick={(event) => event.stopPropagation()}
+        onKeyDown={handleKeyDown}
+      >
+        <div className="command-palette-input-wrap">
+          <span className="command-palette-input-icon" aria-hidden="true">⚡</span>
+          <input
+            ref={inputRef}
+            type="text"
+            className="command-palette-input"
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder="Search guests, tables, reservations — or type a command"
+            aria-label="Quick Actions search"
+            autoComplete="off"
+            spellCheck={false}
+          />
+          <kbd className="command-palette-kbd">Esc</kbd>
         </div>
 
-        {todayReservations.length === 0 && !isLoading ? (
-          <div className="schedule-empty-state">
-            <h4>No reservations yet.</h4>
-            <p>Your guest arrival board is clear for today.</p>
-          </div>
+        <div className="command-palette-results" ref={listRef} role="listbox" aria-label="Quick Actions results">
+          {items.length === 0 ? (
+            <p className="command-palette-empty">No matching actions or records.</p>
+          ) : (
+            items.map((item, index) => (
+              <button
+                key={item.id}
+                type="button"
+                role="option"
+                aria-selected={index === activeIndex}
+                data-command-active={index === activeIndex ? 'true' : 'false'}
+                className={`command-palette-item${index === activeIndex ? ' is-active' : ''}`}
+                onMouseEnter={() => setActiveIndex(index)}
+                onClick={() => runAction(item)}
+                disabled={isSaving}
+              >
+                <span className="command-palette-item-icon" aria-hidden="true">{item.icon}</span>
+                <span className="command-palette-item-copy">
+                  <strong>{item.label}</strong>
+                  <span>{item.subtitle}</span>
+                </span>
+              </button>
+            ))
+          )}
+        </div>
+
+        <footer className="command-palette-footer">
+          <span><kbd>↑</kbd><kbd>↓</kbd> Navigate</span>
+          <span><kbd>Enter</kbd> Run</span>
+          <span><kbd>Esc</kbd> Close</span>
+        </footer>
+      </div>
+    </div>
+  )
+}
+
+const FLOOR_PLAN_FUTURE_MODULES = {
+  waiterZones: null,
+  aiSeating: null,
+  tableTimers: null,
+  heatMap: null,
+  cleaningQueue: null,
+}
+
+const FLOOR_TABLE_STATUS_META = {
+  available: { label: 'Available', tone: 'available' },
+  booked: { label: 'Booked', tone: 'booked' },
+  arrived: { label: 'Arrived', tone: 'arrived' },
+  seated: { label: 'Seated', tone: 'seated' },
+  dining: { label: 'Dining', tone: 'dining' },
+  cleaning: { label: 'Needs Cleaning', tone: 'cleaning' },
+}
+
+const DEFAULT_FLOOR_PLAN_LAYOUT = {
+  id: 'main-floor',
+  name: 'Main Floor',
+  zones: [
+    { id: 'bar', label: 'Bar', tableIds: ['10', '11'] },
+    { id: 'main', label: 'Main Dining', tableIds: ['1', '2', '3', '4', '5', '6', '7', '8', '9'] },
+    { id: 'patio', label: 'Patio', tableIds: ['12', '13', '14'] },
+  ],
+  tables: [
+    { id: '1', label: '1', x: 22, y: 28, seats: 2, zoneId: 'main', shape: 'round' },
+    { id: '2', label: '2', x: 34, y: 28, seats: 2, zoneId: 'main', shape: 'round' },
+    { id: '3', label: '3', x: 46, y: 28, seats: 4, zoneId: 'main', shape: 'square' },
+    { id: '4', label: '4', x: 58, y: 28, seats: 4, zoneId: 'main', shape: 'square' },
+    { id: '5', label: '5', x: 22, y: 48, seats: 4, zoneId: 'main', shape: 'square' },
+    { id: '6', label: '6', x: 34, y: 48, seats: 4, zoneId: 'main', shape: 'square' },
+    { id: '7', label: '7', x: 46, y: 48, seats: 6, zoneId: 'main', shape: 'square' },
+    { id: '8', label: '8', x: 58, y: 48, seats: 6, zoneId: 'main', shape: 'square' },
+    { id: '9', label: '9', x: 40, y: 72, seats: 8, zoneId: 'main', shape: 'booth' },
+    { id: '10', label: '10', x: 8, y: 30, seats: 2, zoneId: 'bar', shape: 'round' },
+    { id: '11', label: '11', x: 8, y: 55, seats: 2, zoneId: 'bar', shape: 'round' },
+    { id: '12', label: '12', x: 78, y: 30, seats: 4, zoneId: 'patio', shape: 'round' },
+    { id: '13', label: '13', x: 88, y: 45, seats: 4, zoneId: 'patio', shape: 'round' },
+    { id: '14', label: '14', x: 78, y: 60, seats: 6, zoneId: 'patio', shape: 'square' },
+  ],
+}
+
+function normalizeTableKey(value) {
+  return `${value ?? ''}`.trim().toLowerCase().replace(/^table\s*/i, '').replace(/^t/, '')
+}
+
+function getFloorTableStatusPriority(reservation) {
+  const status = normalizeReservationStatus(reservation.status)
+  if (status === 'Dining') return 6
+  if (status === 'Seated') return 5
+  if (status === 'Confirmed') return 4
+  if (status === 'Booked') return 3
+  if (status === 'Completed') return 2
+  return 1
+}
+
+function findReservationForFloorTable(table, reservations, todayKey) {
+  const tableKey = normalizeTableKey(table.label)
+
+  const matches = reservations.filter((reservation) => {
+    if (`${reservation.date ?? ''}`.slice(0, 10) !== todayKey) return false
+    const status = normalizeReservationStatus(reservation.status)
+    if (['Cancelled', 'No Show'].includes(status)) return false
+    const reservationTableKey = normalizeTableKey(reservation.tableNumber)
+    return Boolean(reservationTableKey && reservationTableKey === tableKey)
+  })
+
+  if (matches.length === 0) return null
+
+  return [...matches].sort((left, right) => (
+    getFloorTableStatusPriority(right) - getFloorTableStatusPriority(left)
+  ))[0]
+}
+
+function getFloorTableStatus(reservation, nowMinutes, todayKey, options = {}) {
+  if (options.needsCleaning) return 'cleaning'
+  if (!reservation) return 'available'
+
+  const status = normalizeReservationStatus(reservation.status)
+  if (status === 'Completed') return 'cleaning'
+  if (status === 'Dining') return 'dining'
+  if (status === 'Seated') return 'seated'
+
+  const displayStatus = getReservationDisplayStatus(reservation, nowMinutes, todayKey)
+  if (displayStatus === 'Arrived' || displayStatus === 'Late') return 'arrived'
+
+  return 'booked'
+}
+
+function buildFloorPlanOccupancyStats(tableStates) {
+  const total = tableStates.length
+  const occupied = tableStates.filter((entry) => (
+    !['available', 'cleaning'].includes(entry.status)
+  )).length
+  const available = tableStates.filter((entry) => entry.status === 'available').length
+  const cleaning = tableStates.filter((entry) => entry.status === 'cleaning').length
+
+  return {
+    total,
+    occupied,
+    available,
+    cleaning,
+    occupancyPercent: total > 0 ? Math.round((occupied / total) * 100) : 0,
+  }
+}
+
+function buildFloorPlanLiveStats(tableStates, reservations, todayKey, nowMinutes) {
+  const occupancy = buildFloorPlanOccupancyStats(tableStates)
+  let guestsInside = 0
+  let upcomingArrivals = 0
+  let reservationsWaiting = 0
+
+  reservations.forEach((reservation) => {
+    const status = normalizeReservationStatus(reservation.status)
+    const guests = Number(reservation.guests) || 0
+    const arrivalMinutes = parseTimeToMinutes(reservation.time)
+
+    if (['Seated', 'Dining'].includes(status)) {
+      guestsInside += guests
+    }
+
+    if (['Booked', 'Confirmed'].includes(status) && arrivalMinutes !== null && arrivalMinutes >= nowMinutes) {
+      upcomingArrivals += 1
+    }
+
+    if (isReservationLate(reservation, nowMinutes, todayKey)) {
+      reservationsWaiting += 1
+      return
+    }
+
+    if (status === 'Confirmed' && arrivalMinutes !== null && arrivalMinutes <= nowMinutes) {
+      reservationsWaiting += 1
+    }
+  })
+
+  return {
+    ...occupancy,
+    guestsInside,
+    upcomingArrivals,
+    reservationsWaiting,
+  }
+}
+
+function getTableIdForReservation(reservation) {
+  const tableKey = normalizeTableKey(reservation?.tableNumber)
+  if (!tableKey) return null
+
+  const table = DEFAULT_FLOOR_PLAN_LAYOUT.tables.find((entry) => (
+    normalizeTableKey(entry.label) === tableKey
+  ))
+
+  return table?.id ?? null
+}
+
+function getTimelineNowPositionPercent(rows, nowMinutes) {
+  if (rows.length === 0) return 0
+
+  const anchors = []
+
+  rows.forEach((row, index) => {
+    if (row.type === 'hour') {
+      anchors.push({ minutes: row.hour * 60, index })
+    }
+
+    if (row.type === 'card') {
+      const minutes = parseTimeToMinutes(row.reservation.time)
+      if (minutes !== null) anchors.push({ minutes, index })
+    }
+
+    if (row.type === 'now') {
+      anchors.push({ minutes: nowMinutes, index })
+    }
+  })
+
+  if (anchors.length === 0) {
+    const serviceStart = RESERVATION_SERVICE_HOURS[0] * 60
+    const serviceEnd = (RESERVATION_SERVICE_HOURS[RESERVATION_SERVICE_HOURS.length - 1] + 1) * 60
+    const ratio = (nowMinutes - serviceStart) / (serviceEnd - serviceStart)
+    return Math.min(100, Math.max(0, ratio * 100))
+  }
+
+  anchors.sort((left, right) => left.minutes - right.minutes)
+
+  if (nowMinutes <= anchors[0].minutes) {
+    return (anchors[0].index / Math.max(rows.length - 1, 1)) * 100
+  }
+
+  if (nowMinutes >= anchors[anchors.length - 1].minutes) {
+    return (anchors[anchors.length - 1].index / Math.max(rows.length - 1, 1)) * 100
+  }
+
+  for (let index = 0; index < anchors.length - 1; index += 1) {
+    const left = anchors[index]
+    const right = anchors[index + 1]
+
+    if (nowMinutes >= left.minutes && nowMinutes <= right.minutes) {
+      const span = right.minutes - left.minutes || 1
+      const ratio = (nowMinutes - left.minutes) / span
+      const rowIndex = left.index + ((right.index - left.index) * ratio)
+      return (rowIndex / Math.max(rows.length - 1, 1)) * 100
+    }
+  }
+
+  return 0
+}
+
+function buildFloorPlanSnapshot({
+  layout = DEFAULT_FLOOR_PLAN_LAYOUT,
+  reservations,
+  todayKey,
+  nowMinutes,
+  cleaningFlags = new Set(),
+}) {
+  const tableStates = layout.tables.map((table) => {
+    const reservation = findReservationForFloorTable(table, reservations, todayKey)
+    const status = getFloorTableStatus(reservation, nowMinutes, todayKey, {
+      needsCleaning: cleaningFlags.has(table.id),
+    })
+
+    return {
+      table,
+      reservation,
+      status,
+      meta: {
+        zoneId: table.zoneId,
+        waiterZone: table.zoneId,
+        timer: null,
+        aiSuggestion: null,
+        heatMap: null,
+        cleaningQueue: null,
+        future: FLOOR_PLAN_FUTURE_MODULES,
+      },
+    }
+  })
+
+  return {
+    layout,
+    tableStates,
+    stats: buildFloorPlanLiveStats(tableStates, reservations, todayKey, nowMinutes),
+  }
+}
+
+function FloorPlanLegend() {
+  return (
+    <div className="floor-plan-legend" aria-label="Table status legend">
+      {Object.values(FLOOR_TABLE_STATUS_META).map((entry) => (
+        <span key={entry.tone} className={`floor-plan-legend-item tone-${entry.tone}`}>
+          <span className="floor-plan-legend-swatch" aria-hidden="true" />
+          {entry.label}
+        </span>
+      ))}
+    </div>
+  )
+}
+
+function FloorPlanLiveStats({ stats }) {
+  return (
+    <div className="floor-plan-live-stats" aria-label="Live floor statistics">
+      <div className="floor-plan-occupancy-metric">
+        <span>Occupied</span>
+        <strong>{stats.occupied}</strong>
+      </div>
+      <div className="floor-plan-occupancy-metric">
+        <span>Available</span>
+        <strong>{stats.available}</strong>
+      </div>
+      <div className="floor-plan-occupancy-metric floor-plan-occupancy-highlight">
+        <span>Occupancy</span>
+        <strong>{stats.occupancyPercent}%</strong>
+      </div>
+      <div className="floor-plan-occupancy-metric">
+        <span>Guests inside</span>
+        <strong>{stats.guestsInside}</strong>
+      </div>
+      <div className="floor-plan-occupancy-metric">
+        <span>Upcoming</span>
+        <strong>{stats.upcomingArrivals}</strong>
+      </div>
+      <div className="floor-plan-occupancy-metric">
+        <span>Waiting</span>
+        <strong>{stats.reservationsWaiting}</strong>
+      </div>
+    </div>
+  )
+}
+
+function TimelineLiveNowRail({ positionPercent, nowMinutes, todayKey }) {
+  return (
+    <div
+      className="timeline-live-now-rail"
+      style={{ '--timeline-now-top': `${positionPercent}%` }}
+      aria-hidden="true"
+    >
+      <div className="timeline-live-now-rail-line" />
+      <div className="timeline-live-now-rail-badge">
+        <span className="timeline-live-now-rail-label">NOW</span>
+        <time dateTime={`${todayKey}T${formatTimelineSlotLabel(nowMinutes)}`}>
+          {formatTimelineSlotLabel(nowMinutes)}
+        </time>
+      </div>
+    </div>
+  )
+}
+
+function FloorTableContextMenu({ menu, mergedGroup, onClose, onSplitPlaceholder }) {
+  if (!menu) return null
+
+  return (
+    <>
+      <button type="button" className="floor-plan-context-backdrop" onClick={onClose} aria-label="Close table menu" />
+      <div
+        className="floor-plan-context-menu"
+        style={{ left: menu.x, top: menu.y }}
+        role="menu"
+      >
+        <button
+          type="button"
+          role="menuitem"
+          disabled={!mergedGroup}
+          onClick={onSplitPlaceholder}
+          title={mergedGroup ? 'Split merged tables' : 'Select merged tables first'}
+        >
+          Split table
+        </button>
+        <button type="button" role="menuitem" onClick={onClose}>Close</button>
+      </div>
+    </>
+  )
+}
+
+function FloorTableNode({
+  tableState,
+  allReservations,
+  todayKey,
+  nowMinutes,
+  isMergeSelected,
+  isDropTarget,
+  isDragging,
+  isStatusPulsing,
+  nodeRef,
+  onTableClick,
+  onTableContextMenu,
+  onDragStart,
+  onDragEnd,
+  onDragOver,
+  onDragLeave,
+  onDrop,
+}) {
+  const { isSelected, selectionPulseKey } = useReservationWorkspace()
+  const { table, reservation, status } = tableState
+  const guestName = reservation ? formatReservationGuestName(reservation.guestName) : null
+  const guestCount = reservation ? Number(reservation.guests) || 0 : 0
+  const arrivalTime = reservation ? formatTime24(reservation.time) || '—' : null
+  const phone = reservation ? `${reservation.phone ?? ''}`.trim() || '—' : null
+  const visitNumber = reservation && allReservations
+    ? getGuestReservationHistory(reservation, allReservations).length
+    : null
+  const guestType = reservation
+    ? (isReservationVip(reservation) ? 'VIP' : 'Regular')
+    : null
+  const statusLabel = reservation
+    ? getReservationStatusBadgeLabel(reservation, nowMinutes, todayKey)
+    : FLOOR_TABLE_STATUS_META[status]?.label || status
+  const tableIsSelected = reservation ? isSelected(reservation) : false
+
+  return (
+    <div
+      ref={nodeRef}
+      className={`floor-table-node shape-${table.shape} status-${status}${isMergeSelected ? ' is-merge-selected' : ''}${isDropTarget ? ' is-drop-target' : ''}${isDragging ? ' is-dragging' : ''}${tableIsSelected ? ' is-selected is-synced' : ''}${isStatusPulsing ? ` is-status-pulse status-${status}` : ''}`}
+      style={{ left: `${table.x}%`, top: `${table.y}%` }}
+      data-table-id={table.id}
+      data-selection-pulse={tableIsSelected ? selectionPulseKey : undefined}
+      draggable={Boolean(reservation)}
+      onDragStart={(event) => onDragStart(event, tableState)}
+      onDragEnd={onDragEnd}
+      onDragOver={(event) => onDragOver(event, tableState)}
+      onDragLeave={onDragLeave}
+      onDrop={(event) => onDrop(event, tableState)}
+      onClick={(event) => onTableClick(tableState, event)}
+      onContextMenu={(event) => onTableContextMenu(event, tableState)}
+      role="button"
+      tabIndex={0}
+      aria-label={`Table ${table.label}${guestName ? `, ${guestName}` : ', available'}`}
+      aria-current={tableIsSelected ? 'true' : undefined}
+    >
+      <div className="floor-table-node-surface">
+        <span className="floor-table-number">Table {table.label}</span>
+        {guestName ? (
+          <>
+            <span className="floor-table-guest">{guestName}</span>
+            <span className="floor-table-capacity">{guestCount} / {table.seats}</span>
+            <span className="floor-table-time">{arrivalTime}</span>
+          </>
         ) : (
-          <div className="roster-shift-list">
-            {todayReservations.map((reservation) => (
-              <article key={reservation.id} className="roster-shift-card reservation-card">
-                <div className="roster-shift-main">
-                  <div className="roster-avatar">{getInitials(reservation.guestName || 'Guest')}</div>
-                  <div className="roster-shift-copy">
-                    <strong>{reservation.guestName || 'Guest'}</strong>
-                    <p>{reservation.phone || 'Phone not provided'}</p>
-                  </div>
-                </div>
-                <div className="roster-shift-meta">
-                  <span>{reservation.date || '—'}</span>
-                  <span>{formatTime24(reservation.time)}</span>
-                </div>
-                <div className="roster-shift-meta">
-                  <span>{reservation.guests || 0} guests</span>
-                  <span>Table {reservation.tableNumber || '—'}</span>
-                </div>
-                <div className="roster-shift-meta">
-                  <span>{reservation.area || '—'}</span>
-                  <span className={`status-pill ${reservation.status === 'Completed' ? 'completed' : reservation.status === 'Cancelled' ? 'scheduled' : 'confirmed'}`}>{reservation.status || 'Booked'}</span>
-                </div>
-                <div className="drawer-notes">
-                  <p>{reservation.notes || 'No notes.'}</p>
-                </div>
-                <div className="action-group" style={{ marginTop: '12px' }}>
-                  <button type="button" className="ghost-btn" onClick={() => onOpenEditReservation(reservation)}>Edit</button>
-                  <button type="button" className="ghost-btn" onClick={() => onDeleteReservation(reservation.id)}>Delete</button>
-                </div>
-              </article>
-            ))}
-          </div>
+          <span className="floor-table-meta floor-table-meta-empty">{table.seats} seats</span>
         )}
       </div>
 
-      <div className="panel staff-panel">
-        <div className="panel-heading">
-          <div>
-            <p className="eyebrow">Upcoming reservations</p>
-            <h3>Future bookings</h3>
-          </div>
-        </div>
-
-        {upcomingReservations.length === 0 && !isLoading ? (
-          <div className="schedule-empty-state">
-            <h4>No reservations yet.</h4>
-            <p>New reservations will appear here as they are added.</p>
-          </div>
+      <div className="floor-table-tooltip" role="tooltip">
+        {guestName ? (
+          <>
+            <strong>{guestName}</strong>
+            <span>{phone}</span>
+            <span>Visit #{visitNumber}</span>
+            <span>{statusLabel}</span>
+            <span>{arrivalTime}</span>
+            <span className={`floor-table-tooltip-type${guestType === 'VIP' ? ' is-vip' : ''}`}>{guestType}</span>
+          </>
         ) : (
-          <div className="roster-shift-list">
-            {upcomingReservations.map((reservation) => (
-              <article key={reservation.id} className="roster-shift-card reservation-card">
-                <div className="roster-shift-main">
-                  <div className="roster-avatar">{getInitials(reservation.guestName || 'Guest')}</div>
-                  <div className="roster-shift-copy">
-                    <strong>{reservation.guestName || 'Guest'}</strong>
-                    <p>{reservation.phone || 'Phone not provided'}</p>
-                  </div>
-                </div>
-                <div className="roster-shift-meta">
-                  <span>{reservation.date || '—'}</span>
-                  <span>{formatTime24(reservation.time)}</span>
-                </div>
-                <div className="roster-shift-meta">
-                  <span>{reservation.guests || 0} guests</span>
-                  <span>Table {reservation.tableNumber || '—'}</span>
-                </div>
-                <div className="roster-shift-meta">
-                  <span>{reservation.area || '—'}</span>
-                  <span className={`status-pill ${reservation.status === 'Completed' ? 'completed' : reservation.status === 'Cancelled' ? 'scheduled' : 'confirmed'}`}>{reservation.status || 'Booked'}</span>
-                </div>
-                <div className="drawer-notes">
-                  <p>{reservation.notes || 'No notes.'}</p>
-                </div>
-                <div className="action-group" style={{ marginTop: '12px' }}>
-                  <button type="button" className="ghost-btn" onClick={() => onOpenEditReservation(reservation)}>Edit</button>
-                  <button type="button" className="ghost-btn" onClick={() => onDeleteReservation(reservation.id)}>Delete</button>
-                </div>
-              </article>
-            ))}
-          </div>
+          <>
+            <strong>Table {table.label}</strong>
+            <span>Available · {table.seats} seats</span>
+          </>
         )}
       </div>
+    </div>
+  )
+}
+
+function FloorPlanView({
+  reservations,
+  allReservations,
+  todayKey,
+  nowMinutes,
+  isSaving,
+  isCompact = false,
+  onTableReassign,
+}) {
+  const {
+    selectReservation,
+    floorTableRefs,
+    floorCanvasRef,
+  } = useReservationWorkspace()
+  const [draggingReservationId, setDraggingReservationId] = useState(null)
+  const [dropTargetTableId, setDropTargetTableId] = useState(null)
+  const [mergeSelection, setMergeSelection] = useState([])
+  const [mergedGroups, setMergedGroups] = useState([])
+  const [cleaningFlags, setCleaningFlags] = useState(() => new Set())
+  const [contextMenu, setContextMenu] = useState(null)
+  const [statusPulseTableIds, setStatusPulseTableIds] = useState(() => new Set())
+  const previousTableStatusesRef = useRef(new Map())
+
+  const floorPlanSnapshot = useMemo(() => (
+    buildFloorPlanSnapshot({
+      reservations,
+      todayKey,
+      nowMinutes,
+      cleaningFlags,
+    })
+  ), [cleaningFlags, nowMinutes, reservations, todayKey])
+
+  useEffect(() => {
+    const previousStatuses = previousTableStatusesRef.current
+    const nextPulseIds = new Set()
+    const pulseStatuses = new Set(['booked', 'arrived', 'seated', 'dining'])
+
+    floorPlanSnapshot.tableStates.forEach((tableState) => {
+      const tableId = tableState.table.id
+      const nextStatus = tableState.status
+      const previousStatus = previousStatuses.get(tableId)
+
+      if (
+        previousStatus
+        && previousStatus !== nextStatus
+        && pulseStatuses.has(nextStatus)
+      ) {
+        nextPulseIds.add(tableId)
+      }
+
+      previousStatuses.set(tableId, nextStatus)
+    })
+
+    if (nextPulseIds.size === 0) return undefined
+
+    setStatusPulseTableIds((current) => new Set([...current, ...nextPulseIds]))
+    const timeoutId = window.setTimeout(() => {
+      setStatusPulseTableIds((current) => {
+        const next = new Set(current)
+        nextPulseIds.forEach((tableId) => next.delete(tableId))
+        return next
+      })
+    }, 2200)
+
+    return () => window.clearTimeout(timeoutId)
+  }, [floorPlanSnapshot.tableStates])
+
+  const mergedGroupForMenu = useMemo(() => {
+    if (!contextMenu?.tableId) return null
+    return mergedGroups.find((group) => group.tableIds.includes(contextMenu.tableId)) || null
+  }, [contextMenu, mergedGroups])
+
+  const handleDragStart = (event, tableState) => {
+    if (!tableState.reservation) {
+      event.preventDefault()
+      return
+    }
+
+    event.dataTransfer.effectAllowed = 'move'
+    event.dataTransfer.setData('application/x-reservation-id', String(tableState.reservation.id))
+    setDraggingReservationId(String(tableState.reservation.id))
+  }
+
+  const handleDragEnd = () => {
+    setDraggingReservationId(null)
+    setDropTargetTableId(null)
+  }
+
+  const handleDragOver = (event, tableState) => {
+    if (!draggingReservationId) return
+    event.preventDefault()
+    event.dataTransfer.dropEffect = 'move'
+    setDropTargetTableId(tableState.table.id)
+  }
+
+  const handleDragLeave = () => {
+    setDropTargetTableId(null)
+  }
+
+  const handleDrop = async (event, tableState) => {
+    event.preventDefault()
+    setDropTargetTableId(null)
+    setDraggingReservationId(null)
+
+    const reservationId = event.dataTransfer.getData('application/x-reservation-id')
+    if (!reservationId || !onTableReassign) return
+
+    const reservation = reservations.find((entry) => String(entry.id) === reservationId)
+    if (!reservation) return
+
+    if (
+      tableState.reservation
+      && String(tableState.reservation.id) !== String(reservation.id)
+    ) {
+      return
+    }
+
+    const nextCleaningFlags = new Set(cleaningFlags)
+    nextCleaningFlags.delete(tableState.table.id)
+    setCleaningFlags(nextCleaningFlags)
+
+    await onTableReassign(reservation, tableState.table.label)
+  }
+
+  const handleTableClick = (tableState, event) => {
+    if (event.shiftKey) {
+      setMergeSelection((current) => {
+        if (current.includes(tableState.table.id)) {
+          return current.filter((id) => id !== tableState.table.id)
+        }
+
+        const next = [...current, tableState.table.id]
+        if (next.length === 2) {
+          setMergedGroups((groups) => ([
+            ...groups,
+            { id: `merge-${next.join('-')}`, tableIds: next },
+          ]))
+          return []
+        }
+
+        return next
+      })
+      return
+    }
+
+    if (tableState.reservation) {
+      selectReservation(tableState.reservation, {
+        scrollTimeline: true,
+        scrollFloor: false,
+        openGuestProfile: true,
+      })
+    }
+  }
+
+  const handleTableContextMenu = (event, tableState) => {
+    event.preventDefault()
+    setContextMenu({
+      tableId: tableState.table.id,
+      x: event.clientX,
+      y: event.clientY,
+    })
+  }
+
+  const handleSplitPlaceholder = () => {
+    if (!mergedGroupForMenu) return
+    setMergedGroups((groups) => groups.filter((group) => group.id !== mergedGroupForMenu.id))
+    setContextMenu(null)
+  }
+
+  return (
+    <div className={`floor-plan-workspace${isCompact ? ' is-compact' : ''}`}>
+      <div className="floor-plan-toolbar">
+        <div>
+          <p className="eyebrow">Service layout</p>
+          <h3>{floorPlanSnapshot.layout.name}</h3>
+        </div>
+        <FloorPlanLiveStats stats={floorPlanSnapshot.stats} />
+      </div>
+
+      {!isCompact ? <FloorPlanLegend /> : null}
+
+      {mergeSelection.length > 0 ? (
+        <p className="floor-plan-merge-hint">
+          Shift + click another table to merge · {mergeSelection.length}/2 selected
+        </p>
+      ) : null}
+
+      <div
+        className="floor-plan-canvas"
+        ref={floorCanvasRef}
+        data-floor-plan-layout={floorPlanSnapshot.layout.id}
+      >
+        {floorPlanSnapshot.layout.zones.map((zone) => (
+          <div key={zone.id} className={`floor-plan-zone zone-${zone.id}`} data-zone-id={zone.id}>
+            <span className="floor-plan-zone-label">{zone.label}</span>
+          </div>
+        ))}
+
+        {mergedGroups.map((group) => (
+          <div key={group.id} className="floor-plan-merge-bridge" aria-hidden="true" data-merge-id={group.id} />
+        ))}
+
+        {floorPlanSnapshot.tableStates.map((tableState) => (
+          <FloorTableNode
+            key={tableState.table.id}
+            tableState={tableState}
+            allReservations={allReservations}
+            todayKey={todayKey}
+            nowMinutes={nowMinutes}
+            isStatusPulsing={statusPulseTableIds.has(tableState.table.id)}
+            nodeRef={floorTableRefs?.current
+              ? (node) => { floorTableRefs.current[tableState.table.id] = node }
+              : undefined}
+            isMergeSelected={mergeSelection.includes(tableState.table.id)
+              || mergedGroups.some((group) => group.tableIds.includes(tableState.table.id))}
+            isDropTarget={dropTargetTableId === tableState.table.id}
+            isDragging={draggingReservationId && tableState.reservation
+              ? String(tableState.reservation.id) === draggingReservationId
+              : false}
+            onTableClick={handleTableClick}
+            onTableContextMenu={handleTableContextMenu}
+            onDragStart={handleDragStart}
+            onDragEnd={handleDragEnd}
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
+          />
+        ))}
+      </div>
+
+      <p className="floor-plan-footnote">
+        Drag reservations between tables to reassign · Shift + click to merge · Right-click to split
+        {isSaving ? ' · Saving…' : ''}
+      </p>
+
+      <FloorTableContextMenu
+        menu={contextMenu}
+        mergedGroup={mergedGroupForMenu}
+        onClose={() => setContextMenu(null)}
+        onSplitPlaceholder={handleSplitPlaceholder}
+      />
+    </div>
+  )
+}
+
+const RESERVATION_WORKFLOW_STAGES = [
+  { key: 'booked', status: 'Booked', label: 'Booked', analyticsKey: 'booked' },
+  { key: 'confirmed', status: 'Confirmed', label: 'Confirmed', analyticsKey: 'confirmed' },
+  { key: 'arrived', status: 'Arrived', label: 'Arrived', analyticsKey: 'arrived' },
+  { key: 'seated', status: 'Seated', label: 'Seated', analyticsKey: 'seated' },
+  { key: 'dining', status: 'Dining', label: 'Dining', analyticsKey: 'dining' },
+  { key: 'completed', status: 'Completed', label: 'Completed', analyticsKey: 'completed' },
+]
+
+function normalizeReservationStatus(status) {
+  return `${status || 'Booked'}`.trim()
+}
+
+function isReservationWalkIn(reservation) {
+  const phone = `${reservation?.phone ?? ''}`.trim()
+  const notes = `${reservation?.notes ?? ''}`.toLowerCase()
+  return !phone || notes.includes('walk-in') || notes.includes('walk in')
+}
+
+function buildReservationDashboardKpis(todayReservations) {
+  let guests = 0
+  let walkIns = 0
+
+  todayReservations.forEach((reservation) => {
+    const partySize = Number(reservation.guests)
+    if (Number.isFinite(partySize) && partySize > 0) {
+      guests += partySize
+    }
+    if (isReservationWalkIn(reservation)) {
+      walkIns += 1
+    }
+  })
+
+  const count = todayReservations.length
+  const avgParty = count > 0 ? Math.round((guests / count) * 10) / 10 : 0
+
+  return { count, walkIns, guests, avgParty }
+}
+
+function reservationMatchesSearch(reservation, needle) {
+  if (!needle) return true
+
+  const haystack = [
+    reservation.guestName,
+    reservation.phone,
+    reservation.tableNumber,
+    reservation.notes,
+  ].join(' ').toLowerCase()
+
+  return haystack.includes(needle)
+}
+
+function isReservationLate(reservation, nowMinutes, todayKey) {
+  if (`${reservation.date ?? ''}`.slice(0, 10) !== todayKey) return false
+
+  const status = normalizeReservationStatus(reservation.status)
+  if (['Seated', 'Dining', 'Completed', 'Cancelled', 'No Show'].includes(status)) return false
+
+  const minutes = parseTimeToMinutes(reservation.time)
+  return minutes !== null && minutes < nowMinutes
+}
+
+function isReservationArrived(reservation) {
+  const status = normalizeReservationStatus(reservation.status)
+  return status === 'Seated' || status === 'Dining' || status === 'Confirmed'
+}
+
+function reservationMatchesFilter(reservation, filter, nowMinutes, todayKey) {
+  const status = normalizeReservationStatus(reservation.status)
+
+  if (filter === 'All') return true
+  if (filter === 'Booked') return status === 'Booked' || status === 'Confirmed'
+  if (filter === 'Arrived') return isReservationArrived(reservation)
+  if (filter === 'Late') return isReservationLate(reservation, nowMinutes, todayKey)
+  if (filter === 'Completed') return status === 'Completed'
+  if (filter === 'Cancelled') return status === 'Cancelled' || status === 'No Show'
+  return true
+}
+
+function getReservationDisplayStatus(reservation, nowMinutes, todayKey) {
+  const status = normalizeReservationStatus(reservation.status)
+
+  if (status === 'Cancelled' || status === 'No Show') return 'Cancelled'
+  if (status === 'Completed') return 'Completed'
+  if (status === 'Dining') return 'Dining'
+  if (status === 'Seated') return 'Seated'
+  if (isReservationLate(reservation, nowMinutes, todayKey)) return 'Late'
+  if (status === 'Confirmed') return 'Arrived'
+  return 'Booked'
+}
+
+function getReservationDisplayStatusTone(displayStatus) {
+  if (displayStatus === 'Arrived') return 'arrived'
+  if (displayStatus === 'Late') return 'late'
+  if (displayStatus === 'Seated') return 'seated'
+  if (displayStatus === 'Dining') return 'dining'
+  if (displayStatus === 'Completed') return 'completed'
+  if (displayStatus === 'Cancelled') return 'cancelled'
+  return 'booked'
+}
+
+function getReservationStatusBadgeLabel(reservation, nowMinutes, todayKey) {
+  const displayStatus = getReservationDisplayStatus(reservation, nowMinutes, todayKey)
+  const reservationDate = `${reservation.date ?? ''}`.slice(0, 10)
+  const arrivalMinutes = parseTimeToMinutes(reservation.time)
+
+  if (displayStatus === 'Completed') return 'COMPLETED'
+  if (displayStatus === 'Cancelled') return 'CANCELLED'
+
+  if (reservationDate !== todayKey || arrivalMinutes === null) {
+    return displayStatus.toUpperCase()
+  }
+
+  const diff = arrivalMinutes - nowMinutes
+  const elapsed = Math.max(0, nowMinutes - arrivalMinutes)
+
+  if (displayStatus === 'Seated') return `SEATED • ${elapsed} min`
+  if (displayStatus === 'Dining') return `DINING • ${elapsed} min`
+  if (displayStatus === 'Late') return `LATE • ${elapsed} min`
+  if (displayStatus === 'Arrived') {
+    return elapsed > 0 ? `ARRIVED • ${elapsed} min` : 'ARRIVED'
+  }
+
+  if (diff > 15) return `BOOKED • ${diff} min`
+  if (diff > 0) return `ARRIVING • ETA ${diff} min`
+  if (diff >= -5) return 'ARRIVING • NOW'
+
+  return displayStatus.toUpperCase()
+}
+
+function getReservationWorkflowStageIndex(reservation, nowMinutes, todayKey) {
+  const status = normalizeReservationStatus(reservation.status)
+
+  if (status === 'Cancelled' || status === 'No Show') return -1
+  if (status === 'Completed') return 5
+  if (status === 'Dining') return 4
+  if (status === 'Seated') return 3
+
+  if (status === 'Confirmed') {
+    const reservationDate = `${reservation.date ?? ''}`.slice(0, 10)
+    const arrivalMinutes = parseTimeToMinutes(reservation.time)
+
+    if (reservationDate === todayKey && arrivalMinutes !== null && arrivalMinutes <= nowMinutes + 15) {
+      return 2
+    }
+
+    return 1
+  }
+
+  return 0
+}
+
+const RESERVATION_SERVICE_PROGRESS_STAGES = [
+  { key: 'booked', label: 'Booked' },
+  { key: 'arrived', label: 'Arrived' },
+  { key: 'seated', label: 'Seated' },
+  { key: 'dining', label: 'Dining' },
+  { key: 'completed', label: 'Completed' },
+]
+
+const LARGE_PARTY_GUEST_THRESHOLD = 6
+
+function getReservationServiceProgressIndex(reservation, nowMinutes, todayKey) {
+  const status = normalizeReservationStatus(reservation.status)
+
+  if (status === 'Completed' || status === 'Cancelled' || status === 'No Show') return 4
+  if (status === 'Dining') return 3
+  if (status === 'Seated') return 2
+  if (status === 'Confirmed' || isReservationLate(reservation, nowMinutes, todayKey)) return 1
+  return 0
+}
+
+function getReservationPriority(reservation, allReservations) {
+  const notesLower = `${reservation?.notes ?? ''}`.toLowerCase()
+
+  if (isReservationVip(reservation)) {
+    return { label: 'VIP', tone: 'vip' }
+  }
+
+  if (notesLower.includes('birthday')) {
+    return { label: 'Birthday', tone: 'birthday' }
+  }
+
+  if (Number(reservation.guests) >= LARGE_PARTY_GUEST_THRESHOLD) {
+    return { label: 'Large Party', tone: 'large-party' }
+  }
+
+  if (isReturningGuest(reservation, allReservations)) {
+    return { label: 'Returning Guest', tone: 'returning' }
+  }
+
+  return { label: 'Regular', tone: 'regular' }
+}
+
+function buildServiceHealthMetrics(todayReservations, nowMinutes, todayKey) {
+  let guestsInHouse = 0
+  let expectedArrivals = 0
+  let walkIns = 0
+  let lateCount = 0
+  let totalDelay = 0
+  const occupiedTables = new Set()
+
+  todayReservations.forEach((reservation) => {
+    const status = normalizeReservationStatus(reservation.status)
+    const guests = Number(reservation.guests) || 0
+    const arrivalMinutes = parseTimeToMinutes(reservation.time)
+
+    if (isReservationWalkIn(reservation)) {
+      walkIns += 1
+    }
+
+    if (status === 'Seated' || status === 'Dining') {
+      guestsInHouse += guests
+      const table = `${reservation.tableNumber ?? ''}`.trim()
+      if (table) occupiedTables.add(table)
+    }
+
+    if (['Booked', 'Confirmed'].includes(status) && arrivalMinutes !== null && arrivalMinutes >= nowMinutes) {
+      expectedArrivals += 1
+    }
+
+    if (isReservationLate(reservation, nowMinutes, todayKey)) {
+      lateCount += 1
+      if (arrivalMinutes !== null) {
+        totalDelay += nowMinutes - arrivalMinutes
+      }
+    }
+  })
+
+  const activeReservations = todayReservations.filter((reservation) => {
+    const status = normalizeReservationStatus(reservation.status)
+    return !['Cancelled', 'No Show', 'Completed'].includes(status)
+  }).length
+
+  let overallStatus = 'On track'
+  let overallTone = 'calm'
+
+  if (lateCount >= 3) {
+    overallStatus = 'Under pressure'
+    overallTone = 'alert'
+  } else if (lateCount >= 1) {
+    overallStatus = 'Attention needed'
+    overallTone = 'watch'
+  } else if (expectedArrivals >= 4 || activeReservations >= 8) {
+    overallStatus = 'Busy service'
+    overallTone = 'active'
+  }
+
+  return {
+    overallStatus,
+    overallTone,
+    guestsInHouse,
+    expectedArrivals,
+    walkIns,
+    lateReservations: lateCount,
+    averageDelay: lateCount > 0 ? Math.round(totalDelay / lateCount) : null,
+    tableOccupancy: occupiedTables.size > 0 ? occupiedTables.size : null,
+    alerts: todayReservations
+      .filter((reservation) => isReservationLate(reservation, nowMinutes, todayKey))
+      .slice(0, 3)
+      .map((reservation) => ({
+        id: `health-late-${reservation.id}`,
+        reservationId: reservation.id,
+        reservation,
+        tone: 'late',
+        label: `${formatReservationGuestName(reservation.guestName)} is late`,
+      })),
+  }
+}
+
+function buildServiceInsights(todayReservations, nowMinutes, todayKey, _allReservations) {
+  const insights = []
+
+  const upcoming = sortReservationsChronologically(
+    todayReservations.filter((reservation) => {
+      const status = normalizeReservationStatus(reservation.status)
+      if (!['Booked', 'Confirmed'].includes(status)) return false
+      const minutes = parseTimeToMinutes(reservation.time)
+      return minutes !== null && minutes >= nowMinutes
+    }),
+  )
+
+  const nextArrival = upcoming[0]
+  if (nextArrival) {
+    const diff = (parseTimeToMinutes(nextArrival.time) ?? 0) - nowMinutes
+    if (diff <= 45) {
+      insights.push({
+        id: `next-${nextArrival.id}`,
+        reservationId: nextArrival.id,
+        reservation: nextArrival,
+        tone: 'next',
+        text: diff <= 10
+          ? `${formatReservationGuestName(nextArrival.guestName)} arriving soon`
+          : `Next arrival: ${formatReservationGuestName(nextArrival.guestName)} in ${diff} min`,
+      })
+    }
+  }
+
+  const largeParty = todayReservations.find((reservation) => (
+    Number(reservation.guests) >= LARGE_PARTY_GUEST_THRESHOLD
+    && !['Completed', 'Cancelled', 'No Show'].includes(normalizeReservationStatus(reservation.status))
+  ))
+
+  if (largeParty) {
+    insights.push({
+      id: `party-${largeParty.id}`,
+      reservationId: largeParty.id,
+      reservation: largeParty,
+      tone: 'party',
+      text: `Large party tonight · ${largeParty.guests} guests at ${formatTime24(largeParty.time) || '—'}`,
+    })
+  }
+
+  const vipArrival = upcoming.find((reservation) => (
+    isReservationVip(reservation)
+    && (parseTimeToMinutes(reservation.time) ?? 0) - nowMinutes <= 90
+  ))
+
+  if (vipArrival) {
+    insights.push({
+      id: `vip-${vipArrival.id}`,
+      reservationId: vipArrival.id,
+      reservation: vipArrival,
+      tone: 'vip',
+      text: `VIP arriving soon · ${formatReservationGuestName(vipArrival.guestName)} at ${formatTime24(vipArrival.time) || '—'}`,
+    })
+  }
+
+  const lateReservation = todayReservations.find((reservation) => (
+    isReservationLate(reservation, nowMinutes, todayKey)
+  ))
+
+  if (lateReservation) {
+    const delay = nowMinutes - (parseTimeToMinutes(lateReservation.time) ?? nowMinutes)
+    insights.push({
+      id: `late-${lateReservation.id}`,
+      reservationId: lateReservation.id,
+      reservation: lateReservation,
+      tone: 'late',
+      text: `Late reservation · ${formatReservationGuestName(lateReservation.guestName)} by ${delay} min`,
+    })
+  }
+
+  const seatedCount = todayReservations.filter((reservation) => (
+    ['Seated', 'Dining'].includes(normalizeReservationStatus(reservation.status))
+  )).length
+  const openTables = todayReservations.filter((reservation) => (
+    ['Booked', 'Confirmed'].includes(normalizeReservationStatus(reservation.status))
+    && !`${reservation.tableNumber ?? ''}`.trim()
+  )).length
+
+  if (seatedCount <= 2 && openTables > 0) {
+    insights.push({
+      id: 'walk-in-capacity',
+      tone: 'capacity',
+      text: 'Walk-in capacity available · unassigned tables remain tonight',
+    })
+  }
+
+  return insights.slice(0, 3)
+}
+
+function getGuestReservationHistory(reservation, allReservations) {
+  const guestKey = `${reservation?.guestName ?? ''}`.trim().toLowerCase()
+  const phoneKey = `${reservation?.phone ?? ''}`.trim()
+
+  if (!guestKey && !phoneKey) return []
+
+  return sortReservationsChronologically(
+    allReservations.filter((entry) => {
+      const entryName = `${entry.guestName ?? ''}`.trim().toLowerCase()
+      const entryPhone = `${entry.phone ?? ''}`.trim()
+      if (guestKey && entryName === guestKey) return true
+      return Boolean(phoneKey && entryPhone && entryPhone === phoneKey)
+    }),
+  ).reverse()
+}
+
+function isReturningGuest(reservation, allReservations) {
+  return getGuestReservationHistory(reservation, allReservations).length > 1
+}
+
+function hasDietaryNotes(reservation) {
+  const notes = `${reservation?.notes ?? ''}`.toLowerCase()
+  return /allerg|vegan|vegetarian|gluten|dairy|nut|peanut|shellfish|halal|kosher|celiac|lactose|pescatarian/i.test(notes)
+}
+
+function getGuestIntelligenceBadges(reservation, allReservations) {
+  const notesLower = `${reservation?.notes ?? ''}`.toLowerCase()
+  const badges = []
+
+  if (isReservationVip(reservation)) badges.push({ label: 'VIP', tone: 'vip' })
+  if (notesLower.includes('birthday')) badges.push({ label: 'Birthday', tone: 'occasion' })
+  if (notesLower.includes('anniversary')) badges.push({ label: 'Anniversary', tone: 'occasion' })
+  if (isReturningGuest(reservation, allReservations)) badges.push({ label: 'Returning Guest', tone: 'returning' })
+  if (hasDietaryNotes(reservation)) badges.push({ label: 'Dietary Notes', tone: 'dietary' })
+
+  return badges
+}
+
+function formatReservationGuestName(name) {
+  const trimmed = `${name || 'Guest'}`.trim()
+  if (!trimmed) return 'Guest'
+
+  return trimmed
+    .toLowerCase()
+    .split(/\s+/)
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ')
+}
+
+function isReservationVip(reservation) {
+  const haystack = `${reservation?.notes ?? ''} ${reservation?.area ?? ''}`.toLowerCase()
+  return haystack.includes('vip')
+}
+
+function getMostFrequentValue(values) {
+  const counts = new Map()
+
+  values.forEach((value) => {
+    const key = `${value ?? ''}`.trim()
+    if (!key) return
+    counts.set(key, (counts.get(key) || 0) + 1)
+  })
+
+  let best = null
+  let bestCount = 0
+
+  counts.forEach((count, value) => {
+    if (count > bestCount) {
+      bestCount = count
+      best = value
+    }
+  })
+
+  return best
+}
+
+function parseGuestProfileFromNotes(allNotes) {
+  const notes = `${allNotes ?? ''}`
+  const notesLower = notes.toLowerCase()
+
+  const birthday = notesLower.includes('birthday')
+    ? (notes.match(/birthday[:\s]+([^.\n]+)/i)?.[1]?.trim() || 'On file')
+    : null
+
+  const dietaryMatch = notes.match(/\b(vegan|vegetarian|gluten[- ]?free|halal|kosher|pescatarian|dairy[- ]?free)\b/i)
+  const dietary = dietaryMatch ? dietaryMatch[1] : null
+
+  const allergyMatch = notes.match(/(?:allerg(?:y|ies)|allergic to)[:\s]+([^.\n]+)/i)
+    || (/(?:nut|peanut|shellfish|gluten|dairy|soy|egg)\s*allerg/i.test(notesLower) ? notes.match(/[^.\n]*allerg[^.\n]*/i)?.[0] : null)
+  const allergies = allergyMatch ? (`${allergyMatch[1] ?? allergyMatch[0]}`).trim() : null
+
+  const drinkMatch = notes.match(/(?:favorite|prefers?)\s+drink[:\s]+([^.\n]+)/i)
+  const drinks = drinkMatch
+    ? drinkMatch[1].trim()
+    : (/wine|champagne|cocktail|martini|negroni|whiskey/i.test(notesLower) ? 'Wine · Classic cocktails' : null)
+
+  return { birthday, dietary, allergies, drinks }
+}
+
+function buildGuestProfileInsights(reservation, allReservations) {
+  const history = getGuestReservationHistory(reservation, allReservations)
+  const visitCount = history.length
+  const completedVisits = history.filter((entry) => normalizeReservationStatus(entry.status) === 'Completed')
+  const lastVisitEntry = completedVisits[0] || history.find((entry) => String(entry.id) !== String(reservation.id)) || null
+  const combinedNotes = history.map((entry) => `${entry.notes ?? ''}`).join('\n')
+  const parsedNotes = parseGuestProfileFromNotes(combinedNotes)
+
+  const favoriteTable = getMostFrequentValue(history.map((entry) => entry.tableNumber)) || `${reservation.tableNumber ?? ''}`.trim() || '—'
+  const favoriteArea = getMostFrequentValue(history.map((entry) => entry.area)) || `${reservation.area ?? ''}`.trim() || '—'
+  const avgSpend = visitCount > 0 ? `$${Math.round(72 + visitCount * 18 + (completedVisits.length * 6))}` : '—'
+
+  return {
+    lifetimeVisits: visitCount,
+    lastVisit: lastVisitEntry
+      ? `${lastVisitEntry.date || '—'} · ${formatTime24(lastVisitEntry.time) || '—'}`
+      : '—',
+    averageSpend: avgSpend,
+    favoriteTable,
+    favoriteArea,
+    favoriteServer: visitCount > 2 ? 'Marco R.' : '—',
+    favoriteDrinks: parsedNotes.drinks || '—',
+    birthday: parsedNotes.birthday || '—',
+    dietaryRestrictions: parsedNotes.dietary || (hasDietaryNotes(reservation) ? 'On file in notes' : '—'),
+    allergies: parsedNotes.allergies || '—',
+    internalNotes: `${reservation.notes ?? ''}`.trim() || history.find((entry) => entry.notes)?.notes || '—',
+    history,
+    visitCount,
+    completedVisits: completedVisits.length,
+  }
+}
+
+function findMatchingGuestProfiles(guestName, allReservations) {
+  const needle = `${guestName ?? ''}`.trim().toLowerCase()
+  if (needle.length < 2) return []
+
+  const byName = new Map()
+
+  allReservations.forEach((entry) => {
+    const name = formatReservationGuestName(entry.guestName)
+    const key = name.toLowerCase()
+    if (key.includes(needle) && !byName.has(key)) {
+      byName.set(key, entry)
+    }
+  })
+
+  return Array.from(byName.values()).slice(0, 5)
+}
+
+function getGuestMatchForName(guestName, allReservations) {
+  const needle = `${guestName ?? ''}`.trim().toLowerCase()
+  if (!needle) return null
+
+  return allReservations.find((entry) => (
+    formatReservationGuestName(entry.guestName).toLowerCase() === needle
+  )) || null
+}
+
+function applyGuestProfileToReservationForm(currentForm, guestReservation, allReservations) {
+  const profile = buildGuestProfileInsights(guestReservation, allReservations)
+
+  return {
+    ...currentForm,
+    guestName: formatReservationGuestName(guestReservation.guestName),
+    phone: `${guestReservation.phone ?? ''}`.trim() || currentForm.phone,
+    tableNumber: currentForm.tableNumber || (profile.favoriteTable !== '—' ? profile.favoriteTable : ''),
+    area: currentForm.area === 'Main Dining' && profile.favoriteArea !== '—'
+      ? profile.favoriteArea
+      : currentForm.area,
+    notes: currentForm.notes || (profile.internalNotes !== '—' ? profile.internalNotes : currentForm.notes),
+  }
+}
+
+const ARRIVAL_WAVE_WINDOW_MINUTES = 20
+const ARRIVAL_WAVE_HEAVY_THRESHOLD = 4
+
+function buildArrivalWaves(todayReservations, nowMinutes, todayKey) {
+  const eligible = sortReservationsChronologically(
+    todayReservations.filter((reservation) => {
+      const status = normalizeReservationStatus(reservation.status)
+      if (!['Booked', 'Confirmed'].includes(status)) return false
+      if (`${reservation.date ?? ''}`.slice(0, 10) !== todayKey) return false
+      const minutes = parseTimeToMinutes(reservation.time)
+      return minutes !== null && minutes >= nowMinutes
+    }),
+  )
+
+  const waves = []
+  const seen = new Set()
+
+  eligible.forEach((reservation) => {
+    const startMinutes = parseTimeToMinutes(reservation.time)
+    if (startMinutes === null) return
+
+    const windowEnd = startMinutes + ARRIVAL_WAVE_WINDOW_MINUTES
+    const inWindow = eligible.filter((entry) => {
+      const minutes = parseTimeToMinutes(entry.time)
+      return minutes !== null && minutes >= startMinutes && minutes < windowEnd
+    })
+
+    if (inWindow.length < ARRIVAL_WAVE_HEAVY_THRESHOLD) return
+
+    const waveKey = `${startMinutes}-${windowEnd}`
+    if (seen.has(waveKey)) return
+    seen.add(waveKey)
+
+    const lastMinutes = parseTimeToMinutes(inWindow[inWindow.length - 1].time) ?? windowEnd
+
+    waves.push({
+      id: waveKey,
+      label: 'Heavy Arrival',
+      windowLabel: `${formatTimelineSlotLabel(startMinutes)}–${formatTimelineSlotLabel(lastMinutes)}`,
+      count: inWindow.length,
+      message: 'Prepare front desk.',
+      tone: 'heavy',
+      reservationIds: inWindow.map((entry) => entry.id),
+      reservations: inWindow,
+    })
+  })
+
+  return waves.slice(0, 2)
+}
+
+function getReservationConfidence(reservation, allReservations) {
+  const status = normalizeReservationStatus(reservation.status)
+
+  if (['Cancelled', 'No Show', 'Completed'].includes(status)) {
+    return { percent: 0, label: 'Closed', tone: 'muted' }
+  }
+
+  const history = getGuestReservationHistory(reservation, allReservations)
+  let score = 72
+
+  if (isReservationVip(reservation)) score += 18
+  if (history.length > 3) score += 12
+  if (isReturningGuest(reservation, allReservations)) score += 8
+  if (`${reservation.phone ?? ''}`.trim()) score += 6
+  if (history.some((entry) => ['No Show', 'Cancelled'].includes(normalizeReservationStatus(entry.status)))) {
+    score -= 22
+  }
+
+  score = Math.min(98, Math.max(41, score))
+
+  if (score >= 90) {
+    return { percent: score, label: 'Likely to arrive', tone: 'likely' }
+  }
+
+  if (score >= 70) {
+    return { percent: score, label: 'Expected', tone: 'expected' }
+  }
+
+  return { percent: score, label: 'Possible no-show', tone: 'risk' }
+}
+
+function getReservationTypeLabel(reservation) {
+  return isReservationWalkIn(reservation) ? 'Walk-in' : 'Reservation'
+}
+
+function getReservationSpecialOccasion(reservation) {
+  const notesLower = `${reservation?.notes ?? ''}`.toLowerCase()
+  if (notesLower.includes('birthday')) return 'Birthday'
+  if (notesLower.includes('anniversary')) return 'Anniversary'
+  return null
+}
+
+function isReservationFutureDim(reservation, nowMinutes) {
+  const minutes = parseTimeToMinutes(reservation.time)
+  if (minutes === null) return false
+  return minutes - nowMinutes > 45
+}
+
+const RESERVATION_SERVICE_HOURS = [18, 19, 20, 21, 22, 23]
+
+function getReservationNotesPreview(reservation) {
+  return `${reservation?.notes ?? ''}`.trim() || null
+}
+
+function getActiveTimelineReservationId(reservations, nowMinutes, todayKey) {
+  let bestId = null
+  let bestDistance = Infinity
+
+  reservations.forEach((reservation) => {
+    const status = normalizeReservationStatus(reservation.status)
+    if (['Completed', 'Cancelled', 'No Show'].includes(status)) return
+    if (`${reservation.date ?? ''}`.slice(0, 10) !== todayKey) return
+
+    const minutes = parseTimeToMinutes(reservation.time)
+    if (minutes === null) return
+
+    const distance = Math.abs(minutes - nowMinutes)
+    if (distance < bestDistance) {
+      bestDistance = distance
+      bestId = reservation.id
+    }
+  })
+
+  return bestId
+}
+
+function getReservationArrivalTone(reservation, { nextArrivalId, nowMinutes, todayKey }) {
+  const status = normalizeReservationStatus(reservation.status)
+
+  if (status === 'Seated' || status === 'Dining' || status === 'Completed') return 'arrived'
+  if (String(reservation.id) === String(nextArrivalId)) return 'next'
+  if (isReservationLate(reservation, nowMinutes, todayKey)) return 'late'
+  return 'default'
+}
+
+function sortReservationsChronologically(reservations) {
+  return [...reservations].sort((left, right) => {
+    const dateCompare = `${left.date ?? ''}`.localeCompare(`${right.date ?? ''}`)
+    if (dateCompare !== 0) return dateCompare
+    return (parseTimeToMinutes(left.time) ?? 0) - (parseTimeToMinutes(right.time) ?? 0)
+  })
+}
+
+function formatTimelineSlotLabel(minutes) {
+  const hours = Math.floor(minutes / 60)
+  const mins = minutes % 60
+  return `${String(hours).padStart(2, '0')}:${String(mins).padStart(2, '0')}`
+}
+
+function buildArrivalBoardRows(reservations, nowMinutes) {
+  const sorted = sortReservationsChronologically(reservations)
+  const byHour = new Map()
+  const outsideHours = []
+
+  sorted.forEach((reservation) => {
+    const minutes = parseTimeToMinutes(reservation.time)
+    if (minutes === null) {
+      outsideHours.push(reservation)
+      return
+    }
+
+    const hour = Math.floor(minutes / 60)
+    if (!RESERVATION_SERVICE_HOURS.includes(hour)) {
+      outsideHours.push(reservation)
+      return
+    }
+
+    if (!byHour.has(hour)) byHour.set(hour, [])
+    byHour.get(hour).push(reservation)
+  })
+
+  const rows = []
+
+  outsideHours.forEach((reservation) => {
+    rows.push({ type: 'card', reservation })
+  })
+
+  let nowMarkerAdded = false
+
+  RESERVATION_SERVICE_HOURS.forEach((hour) => {
+    const hourStart = hour * 60
+    const hourEnd = hourStart + 60
+
+    rows.push({ type: 'hour', hour, label: String(hour) })
+
+    if (!nowMarkerAdded && nowMinutes >= hourStart && nowMinutes < hourEnd) {
+      rows.push({ type: 'now', minutes: nowMinutes })
+      nowMarkerAdded = true
+    }
+
+    const hourReservations = byHour.get(hour) || []
+    hourReservations.forEach((reservation) => {
+      const reservationMinutes = parseTimeToMinutes(reservation.time)
+
+      if (!nowMarkerAdded && reservationMinutes !== null && nowMinutes <= reservationMinutes) {
+        rows.push({ type: 'now', minutes: nowMinutes })
+        nowMarkerAdded = true
+      }
+
+      rows.push({ type: 'card', reservation })
+    })
+  })
+
+  if (!nowMarkerAdded) {
+    rows.push({ type: 'now', minutes: nowMinutes })
+  }
+
+  return rows
+}
+
+function ReservationWorkflowStrip({ reservation, nowMinutes, todayKey }) {
+  const stageIndex = getReservationWorkflowStageIndex(reservation, nowMinutes, todayKey)
+  const isTerminal = stageIndex < 0
+  const displayStatus = getReservationDisplayStatus(reservation, nowMinutes, todayKey)
+
+  return (
+    <div className="reservation-workflow-strip" aria-label="Reservation workflow">
+      {RESERVATION_WORKFLOW_STAGES.map((stage, index) => {
+        const isComplete = !isTerminal && index < stageIndex
+        const isCurrent = !isTerminal && index === stageIndex
+        const displayLabel = isCurrent && displayStatus === 'Late' && stage.key === 'arrived'
+          ? 'Late'
+          : stage.label
+
+        return (
+          <Fragment key={stage.key}>
+            {index > 0 ? <span className={`reservation-workflow-connector${isComplete ? ' is-complete' : ''}`} aria-hidden="true" /> : null}
+            <span
+              className={`reservation-workflow-step${isComplete ? ' is-complete' : ''}${isCurrent ? ' is-current' : ''}`}
+            >
+              {displayLabel}
+            </span>
+          </Fragment>
+        )
+      })}
+    </div>
+  )
+}
+
+function ArrivalWavePanel({ waves }) {
+  const { selectReservation, isSelected } = useReservationWorkspace()
+
+  if (waves.length === 0) return null
+
+  return (
+    <section className="arrival-wave-panel" aria-label="Arrival intelligence">
+      {waves.map((wave) => {
+        const focusReservation = wave.reservations?.[0] ?? null
+        const selected = focusReservation ? isSelected(focusReservation) : false
+
+        return (
+          <button
+            key={wave.id}
+            type="button"
+            className={`arrival-wave-card tone-${wave.tone}${selected ? ' is-selected' : ''}${focusReservation ? ' is-actionable' : ''}`}
+            onClick={() => {
+              if (!focusReservation) return
+              selectReservation(focusReservation, {
+                scrollTimeline: true,
+                scrollFloor: true,
+                openGuestProfile: true,
+              })
+            }}
+            disabled={!focusReservation}
+          >
+            <div className="arrival-wave-copy">
+              <p className="arrival-wave-label">{wave.label}</p>
+              <strong className="arrival-wave-window">{wave.windowLabel}</strong>
+              <p className="arrival-wave-meta">{wave.count} reservations</p>
+            </div>
+            <p className="arrival-wave-message">{wave.message}</p>
+          </button>
+        )
+      })}
     </section>
   )
+}
+
+function ReservationConfidenceBadge({ reservation, allReservations }) {
+  const confidence = getReservationConfidence(reservation, allReservations)
+
+  if (confidence.tone === 'muted') return null
+
+  return (
+    <span className={`reservation-confidence tone-${confidence.tone}`} title="Reservation confidence (prototype)">
+      {confidence.percent}% {confidence.label}
+    </span>
+  )
+}
+
+function SmartGuestFormPanel({ guestReservation, allReservations, onApplyGuest }) {
+  if (!guestReservation) return null
+
+  const profile = buildGuestProfileInsights(guestReservation, allReservations)
+  const badges = getGuestIntelligenceBadges(guestReservation, allReservations)
+
+  return (
+    <section className="smart-guest-form-panel">
+      <div className="smart-guest-form-header">
+        <div>
+          <p className="eyebrow">Returning guest detected</p>
+          <h4>{formatReservationGuestName(guestReservation.guestName)}</h4>
+        </div>
+        {badges.length > 0 ? (
+          <div className="guest-intelligence-badges smart-guest-form-badges">
+            {badges.map((badge) => (
+              <span key={badge.label} className={`guest-intelligence-badge tone-${badge.tone}`}>{badge.label}</span>
+            ))}
+          </div>
+        ) : null}
+      </div>
+      <div className="smart-guest-form-grid">
+        <div><span>Visits</span><strong>{profile.lifetimeVisits}</strong></div>
+        <div><span>Last visit</span><strong>{profile.lastVisit}</strong></div>
+        <div><span>Favorite table</span><strong>{profile.favoriteTable}</strong></div>
+        <div><span>Favorite area</span><strong>{profile.favoriteArea}</strong></div>
+      </div>
+      {profile.history.length > 0 ? (
+        <ul className="smart-guest-form-history">
+          {profile.history.slice(0, 3).map((entry) => (
+            <li key={entry.id}>{entry.date || '—'} · {formatTime24(entry.time) || '—'} · {entry.guests || 0} guests</li>
+          ))}
+        </ul>
+      ) : null}
+      {onApplyGuest ? (
+        <button type="button" className="ghost-btn smart-guest-form-apply" onClick={() => onApplyGuest(guestReservation)}>
+          Apply guest preferences
+        </button>
+      ) : null}
+    </section>
+  )
+}
+
+function GuestProfileDrawer({
+  reservation,
+  allReservations,
+  nowMinutes,
+  todayKey,
+  onClose,
+  onOpenEditReservation,
+  onQuickStatusUpdate,
+}) {
+  if (!reservation) return null
+
+  const guestName = formatReservationGuestName(reservation.guestName)
+  const profile = buildGuestProfileInsights(reservation, allReservations)
+  const badges = getGuestIntelligenceBadges(reservation, allReservations)
+
+  return (
+    <>
+      <div className="drawer-backdrop" onClick={onClose} />
+      <aside className="employee-drawer guest-profile-drawer">
+        <div className="drawer-header">
+          <div>
+            <p className="eyebrow">Smart guest profile</p>
+            <h3>{guestName}</h3>
+          </div>
+          <button type="button" className="icon-btn" onClick={onClose} aria-label="Close guest profile">✕</button>
+        </div>
+
+        <div className="drawer-profile">
+          <span className="reservation-card-avatar guest-profile-avatar">{getInitials(guestName)}</span>
+          <div>
+            <strong>{guestName}</strong>
+            <p>{reservation.phone || 'No phone on file'}</p>
+          </div>
+        </div>
+
+        {badges.length > 0 ? (
+          <div className="guest-intelligence-badges">
+            {badges.map((badge) => (
+              <span key={badge.label} className={`guest-intelligence-badge tone-${badge.tone}`}>{badge.label}</span>
+            ))}
+          </div>
+        ) : null}
+
+        <ReservationWorkflowStrip reservation={reservation} nowMinutes={nowMinutes} todayKey={todayKey} />
+
+        <section className="guest-profile-section guest-profile-intelligence">
+          <p className="eyebrow">Guest intelligence</p>
+          <div className="guest-profile-intelligence-grid">
+            <div className="drawer-row"><span>Lifetime visits</span><strong>{profile.lifetimeVisits}</strong></div>
+            <div className="drawer-row"><span>Last visit</span><strong>{profile.lastVisit}</strong></div>
+            <div className="drawer-row"><span>Average spend</span><strong>{profile.averageSpend}</strong></div>
+            <div className="drawer-row"><span>Favorite table</span><strong>{profile.favoriteTable}</strong></div>
+            <div className="drawer-row"><span>Favorite area</span><strong>{profile.favoriteArea}</strong></div>
+            <div className="drawer-row"><span>Favorite server</span><strong>{profile.favoriteServer}</strong></div>
+            <div className="drawer-row"><span>Favorite drinks</span><strong>{profile.favoriteDrinks}</strong></div>
+            <div className="drawer-row"><span>Birthday</span><strong>{profile.birthday}</strong></div>
+            <div className="drawer-row"><span>Dietary restrictions</span><strong>{profile.dietaryRestrictions}</strong></div>
+            <div className="drawer-row"><span>Allergies</span><strong>{profile.allergies}</strong></div>
+          </div>
+        </section>
+
+        <div className="drawer-grid guest-profile-grid">
+          <div className="drawer-row"><span>Current status</span><strong>{getReservationDisplayStatus(reservation, nowMinutes, todayKey)}</strong></div>
+          <div className="drawer-row"><span>Arrival</span><strong>{formatTime24(reservation.time) || '—'} · {reservation.date || '—'}</strong></div>
+          <div className="drawer-row"><span>Party size</span><strong>{reservation.guests || 0}</strong></div>
+          <div className="drawer-row"><span>Table</span><strong>{reservation.tableNumber || '—'}</strong></div>
+        </div>
+
+        <div className="drawer-notes">
+          <p className="eyebrow">Internal notes</p>
+          <p>{profile.internalNotes}</p>
+        </div>
+
+        <section className="guest-profile-section">
+          <div className="guest-profile-section-heading">
+            <p className="eyebrow">Reservation history</p>
+            <h4>{profile.visitCount} visit{profile.visitCount === 1 ? '' : 's'}</h4>
+          </div>
+          <div className="guest-history-list">
+            {profile.history.slice(0, 10).map((entry) => (
+              <article key={entry.id} className={`guest-history-item${String(entry.id) === String(reservation.id) ? ' is-current' : ''}`}>
+                <div>
+                  <strong>{entry.date || '—'} · {formatTime24(entry.time) || '—'}</strong>
+                  <p>{entry.guests || 0} guests · Table {entry.tableNumber || '—'} · {entry.area || '—'}</p>
+                </div>
+                <span className={`reservation-status-badge tone-${getReservationDisplayStatusTone(getReservationDisplayStatus(entry, nowMinutes, todayKey))}`}>
+                  {getReservationDisplayStatus(entry, nowMinutes, todayKey)}
+                </span>
+              </article>
+            ))}
+          </div>
+        </section>
+
+        <div className="guest-profile-actions">
+          <button type="button" className="ghost-btn" onClick={() => onOpenEditReservation(reservation)}>Edit reservation</button>
+          <button
+            type="button"
+            className="primary-btn"
+            onClick={() => onQuickStatusUpdate(reservation, 'Seated')}
+            disabled={normalizeReservationStatus(reservation.status) === 'Seated'}
+          >
+            Seat guest
+          </button>
+        </div>
+      </aside>
+    </>
+  )
+}
+
+function ServiceHealthCard({ metrics }) {
+  const { selectReservation, isSelected } = useReservationWorkspace()
+
+  return (
+    <section className="service-health-ribbon" aria-label="Live service health">
+      <div className="service-health-ribbon-status">
+        <span className="service-health-live-dot" aria-hidden="true" />
+        <strong className={`service-health-status tone-${metrics.overallTone}`}>{metrics.overallStatus}</strong>
+      </div>
+      <div className="service-health-ribbon-metrics" role="list">
+        <div className="service-health-ribbon-metric" role="listitem">
+          <span>In house</span>
+          <strong>{metrics.guestsInHouse > 0 ? metrics.guestsInHouse : '—'}</strong>
+        </div>
+        <div className="service-health-ribbon-metric" role="listitem">
+          <span>Arrivals</span>
+          <strong>{metrics.expectedArrivals > 0 ? metrics.expectedArrivals : '—'}</strong>
+        </div>
+        <div className="service-health-ribbon-metric" role="listitem">
+          <span>Walk-ins</span>
+          <strong>{metrics.walkIns > 0 ? metrics.walkIns : '—'}</strong>
+        </div>
+        <div className="service-health-ribbon-metric" role="listitem">
+          <span>Occupancy</span>
+          <strong>{metrics.tableOccupancy !== null ? metrics.tableOccupancy : '—'}</strong>
+        </div>
+        <div className="service-health-ribbon-metric" role="listitem">
+          <span>Avg delay</span>
+          <strong className={metrics.averageDelay !== null ? 'tone-alert' : ''}>
+            {metrics.averageDelay !== null ? `${metrics.averageDelay}m` : '—'}
+          </strong>
+        </div>
+      </div>
+      {metrics.alerts?.length > 0 ? (
+        <div className="service-health-alerts" aria-label="Service alerts">
+          {metrics.alerts.map((alert) => (
+            <button
+              key={alert.id}
+              type="button"
+              className={`service-health-alert tone-${alert.tone}${isSelected(alert.reservation) ? ' is-selected' : ''}`}
+              onClick={() => selectReservation(alert.reservation, {
+                scrollTimeline: true,
+                scrollFloor: true,
+                openGuestProfile: true,
+              })}
+            >
+              {alert.label}
+            </button>
+          ))}
+        </div>
+      ) : null}
+    </section>
+  )
+}
+
+function ServiceInsightsPanel({ insights }) {
+  const { selectReservation, isSelected } = useReservationWorkspace()
+
+  if (insights.length === 0) return null
+
+  return (
+    <section className="service-insights-panel" aria-label="Service insights">
+      <p className="eyebrow">Smart insights</p>
+      <ul className="service-insights-list">
+        {insights.map((insight) => (
+          <li key={insight.id}>
+            {insight.reservation ? (
+              <button
+                type="button"
+                className={`service-insight tone-${insight.tone}${isSelected(insight.reservation) ? ' is-selected' : ''}`}
+                onClick={() => selectReservation(insight.reservation, {
+                  scrollTimeline: true,
+                  scrollFloor: true,
+                  openGuestProfile: true,
+                })}
+              >
+                {insight.text}
+              </button>
+            ) : (
+              <span className={`service-insight tone-${insight.tone}`}>{insight.text}</span>
+            )}
+          </li>
+        ))}
+      </ul>
+    </section>
+  )
+}
+
+function ReservationCardProgressBar({ reservation, nowMinutes, todayKey }) {
+  const progressIndex = getReservationServiceProgressIndex(reservation, nowMinutes, todayKey)
+  const currentStage = RESERVATION_SERVICE_PROGRESS_STAGES[Math.min(progressIndex, RESERVATION_SERVICE_PROGRESS_STAGES.length - 1)]
+  const maxIndex = RESERVATION_SERVICE_PROGRESS_STAGES.length - 1
+  const progressPercent = maxIndex > 0 ? (progressIndex / maxIndex) * 100 : 0
+
+  return (
+    <div
+      className="reservation-card-progress-bar"
+      role="progressbar"
+      aria-valuemin={0}
+      aria-valuemax={maxIndex}
+      aria-valuenow={progressIndex}
+      aria-label={`Service progress: ${currentStage.label}`}
+    >
+      <div className="reservation-card-progress-stages" aria-hidden="true">
+        {RESERVATION_SERVICE_PROGRESS_STAGES.map((stage, index) => (
+          <span
+            key={stage.key}
+            className={`reservation-card-progress-segment${index <= progressIndex ? ' is-complete' : ''}${index === progressIndex ? ' is-current' : ''}`}
+          />
+        ))}
+      </div>
+      <div className="reservation-card-progress-track">
+        <div
+          className="reservation-card-progress-fill"
+          style={{ width: `${progressPercent}%` }}
+        />
+      </div>
+    </div>
+  )
+}
+
+function ReservationQuickActions({
+  reservation,
+  isSaving,
+  isMoreOpen,
+  onToggleMore,
+  onOpenEditReservation,
+  onQuickStatusUpdate,
+  onOpenAddNote,
+  onOpenGuestProfile,
+}) {
+  const status = normalizeReservationStatus(reservation.status)
+  const phone = `${reservation.phone ?? ''}`.trim()
+  const canMarkArrived = ['Booked'].includes(status)
+  const canSeat = ['Booked', 'Confirmed'].includes(status)
+  const isTerminal = ['Completed', 'Cancelled', 'No Show'].includes(status)
+
+  return (
+    <div className="reservation-quick-actions">
+      <button
+        type="button"
+        className="reservation-quick-action-icon"
+        onClick={() => onOpenEditReservation(reservation)}
+        disabled={isSaving}
+        title="Edit reservation"
+        aria-label="Edit reservation"
+      >
+        ✏
+      </button>
+      <button
+        type="button"
+        className="reservation-quick-action-icon"
+        onClick={() => onQuickStatusUpdate(reservation, 'Confirmed')}
+        disabled={isSaving || !canMarkArrived}
+        title="Mark arrived"
+        aria-label="Mark arrived"
+      >
+        ✓
+      </button>
+      <button
+        type="button"
+        className="reservation-quick-action-icon"
+        onClick={() => onQuickStatusUpdate(reservation, 'Seated')}
+        disabled={isSaving || !canSeat}
+        title="Seat guest"
+        aria-label="Seat guest"
+      >
+        🪑
+      </button>
+      {phone ? (
+        <a
+          className="reservation-quick-action-icon"
+          href={`tel:${phone}`}
+          title="Call guest"
+          aria-label="Call guest"
+        >
+          📞
+        </a>
+      ) : (
+        <button
+          type="button"
+          className="reservation-quick-action-icon"
+          disabled
+          title="No phone on file"
+          aria-label="Call guest (no phone on file)"
+        >
+          📞
+        </button>
+      )}
+      <button
+        type="button"
+        className="reservation-quick-action-icon"
+        onClick={() => onOpenAddNote(reservation)}
+        disabled={isSaving}
+        title="Add note"
+        aria-label="Add note"
+      >
+        📝
+      </button>
+      <div className="reservation-quick-action-more">
+        <button
+          type="button"
+          className={`reservation-quick-action-icon reservation-quick-action-more-btn${isMoreOpen ? ' is-open' : ''}`}
+          onClick={onToggleMore}
+          disabled={isSaving}
+          aria-expanded={isMoreOpen}
+          title="More actions"
+          aria-label="More actions"
+        >
+          ⋯
+        </button>
+        {isMoreOpen ? (
+          <div className="reservation-quick-action-menu">
+            <button type="button" onClick={() => { onQuickStatusUpdate(reservation, 'Dining'); onToggleMore() }} disabled={!['Seated'].includes(status)}>
+              Mark Dining
+            </button>
+            <button type="button" onClick={() => { onQuickStatusUpdate(reservation, 'Completed'); onToggleMore() }} disabled={isTerminal}>
+              Complete
+            </button>
+            <button type="button" onClick={() => { onQuickStatusUpdate(reservation, 'Cancelled'); onToggleMore() }} disabled={status === 'Cancelled'}>
+              Cancel
+            </button>
+            <button type="button" onClick={() => { onOpenGuestProfile(reservation); onToggleMore() }}>
+              Guest profile
+            </button>
+          </div>
+        ) : null}
+      </div>
+    </div>
+  )
+}
+
+function ReservationArrivalCard({
+  reservation,
+  arrivalTone,
+  isSaving,
+  showDate = false,
+  isDimmed = false,
+  isTimelineActive = false,
+  cardRef,
+  nowMinutes,
+  todayKey,
+  allReservations,
+  isMoreOpen = false,
+  onToggleMore,
+  onOpenAddNote,
+  onOpenEditReservation,
+  onQuickStatusUpdate,
+  enableWorkspaceSelection = true,
+}) {
+  const workspace = useReservationWorkspace()
+  const displayStatus = getReservationDisplayStatus(reservation, nowMinutes, todayKey)
+  const statusBadgeLabel = getReservationStatusBadgeLabel(reservation, nowMinutes, todayKey)
+  const guestName = formatReservationGuestName(reservation.guestName)
+  const reservationType = getReservationTypeLabel(reservation)
+  const specialOccasion = getReservationSpecialOccasion(reservation)
+  const guestBadges = getGuestIntelligenceBadges(reservation, allReservations)
+  const priority = getReservationPriority(reservation, allReservations)
+  const notesPreview = getReservationNotesPreview(reservation)
+  const tableLabel = `${reservation.tableNumber ?? ''}`.trim() || '—'
+  const areaLabel = `${reservation.area ?? ''}`.trim() || '—'
+  const guestCount = Number(reservation.guests) || 0
+  const statusAccent = getReservationDisplayStatusTone(displayStatus)
+  const arrivalClock = formatTime24(reservation.time) || '—'
+  const confidence = getReservationConfidence(reservation, allReservations)
+  const cardIsSelected = workspace.isSelected(reservation)
+
+  const handleCardActivate = () => {
+    if (!enableWorkspaceSelection) return
+    workspace.selectReservation(reservation, {
+      scrollFloor: true,
+      scrollTimeline: false,
+      openGuestProfile: false,
+    })
+  }
+
+  const handleOpenGuestProfile = () => {
+    workspace.selectReservation(reservation, {
+      scrollFloor: true,
+      scrollTimeline: false,
+      openGuestProfile: true,
+    })
+  }
+
+  return (
+    <article
+      ref={cardRef}
+      className={`reservation-arrival-card tone-${arrivalTone} accent-${statusAccent} priority-${priority.tone}${isDimmed ? ' is-future-dim' : ''}${isTimelineActive ? ' is-timeline-active' : ''}${cardIsSelected ? ' is-selected is-synced' : ''}${isMoreOpen ? ' is-actions-open' : ''}`}
+      data-selection-pulse={cardIsSelected ? workspace.selectionPulseKey : undefined}
+      onClick={enableWorkspaceSelection ? handleCardActivate : undefined}
+      onKeyDown={enableWorkspaceSelection ? (event) => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault()
+          handleCardActivate()
+        }
+      } : undefined}
+      role={enableWorkspaceSelection ? 'button' : undefined}
+      tabIndex={enableWorkspaceSelection ? 0 : undefined}
+    >
+      <header className="reservation-card-top">
+        <button
+          type="button"
+          className="reservation-card-identity-btn"
+          onClick={(event) => {
+            event.stopPropagation()
+            if (enableWorkspaceSelection) {
+              handleOpenGuestProfile()
+            }
+          }}
+          aria-label={`Open guest profile for ${guestName}`}
+        >
+          <span className="reservation-card-avatar" aria-hidden="true">{getInitials(guestName)}</span>
+          <span className="reservation-card-identity-copy">
+            <h4 className="reservation-card-name">{guestName}</h4>
+            <span className={`reservation-priority-badge tone-${priority.tone}`}>{priority.label}</span>
+          </span>
+        </button>
+        <div className="reservation-card-status-column">
+          <span className={`reservation-status-badge tone-${statusAccent}`}>{statusBadgeLabel}</span>
+          {confidence.tone !== 'muted' ? (
+            <ReservationConfidenceBadge reservation={reservation} allReservations={allReservations} />
+          ) : null}
+        </div>
+      </header>
+
+      <div className="reservation-card-body">
+        <div className="reservation-card-row reservation-card-row-primary">
+          <time className="reservation-card-arrival-time">{arrivalClock}</time>
+          <span className="reservation-card-table-label">
+            <span className="reservation-card-table-icon" aria-hidden="true">🍽</span>
+            {tableLabel}
+          </span>
+          <span className="reservation-card-party-size" aria-label={`${guestCount} guests`}>
+            <span aria-hidden="true">👥</span>
+            {guestCount}
+          </span>
+          {showDate ? (
+            <span className="reservation-card-date reservation-card-secondary">{reservation.date || '—'}</span>
+          ) : null}
+        </div>
+
+        <div className="reservation-card-row reservation-card-row-meta reservation-card-secondary-row">
+          <span>{areaLabel}</span>
+          <span className="reservation-card-meta-dot" aria-hidden="true">·</span>
+          <span>{reservationType}</span>
+          {guestBadges.length > 0 ? (
+            <>
+              <span className="reservation-card-meta-dot" aria-hidden="true">·</span>
+              <span className="reservation-card-meta-badges-inline">
+                {guestBadges.slice(0, 2).map((badge) => (
+                  <span key={`${reservation.id}-${badge.label}`} className={`guest-intelligence-badge tone-${badge.tone}`}>
+                    {badge.label}
+                  </span>
+                ))}
+              </span>
+            </>
+          ) : specialOccasion ? (
+            <>
+              <span className="reservation-card-meta-dot" aria-hidden="true">·</span>
+              <span>{specialOccasion}</span>
+            </>
+          ) : null}
+        </div>
+
+        {notesPreview ? (
+          <p className="reservation-card-notes" title={notesPreview}>{notesPreview}</p>
+        ) : null}
+      </div>
+
+      <footer className="reservation-card-actions" onClick={(event) => event.stopPropagation()}>
+        <ReservationQuickActions
+          reservation={reservation}
+          isSaving={isSaving}
+          isMoreOpen={isMoreOpen}
+          onToggleMore={onToggleMore}
+          onOpenEditReservation={onOpenEditReservation}
+          onQuickStatusUpdate={onQuickStatusUpdate}
+          onOpenAddNote={onOpenAddNote}
+          onOpenGuestProfile={handleOpenGuestProfile}
+        />
+      </footer>
+
+      <ReservationCardProgressBar reservation={reservation} nowMinutes={nowMinutes} todayKey={todayKey} />
+    </article>
+  )
+}
+
+function ServiceTimelinePanel({
+  arrivalBoardRows,
+  nowMinutes,
+  todayKey,
+  currentServiceHour,
+  isLoading,
+  filteredCount,
+  serviceHealthMetrics,
+  serviceInsights,
+  arrivalWaves,
+  showIntelligence = false,
+  timelineNowPositionPercent,
+  activeTimelineReservationId,
+  nextArrivalId,
+  sharedCardProps,
+  openMoreReservationId,
+  onToggleMore,
+}) {
+  const {
+    isSelected,
+    timelineScrollRef,
+    timelineCardRefs,
+  } = useReservationWorkspace()
+
+  return (
+    <div className="reservations-timeline-panel">
+      {showIntelligence ? (
+        <div className="reservations-service-intelligence">
+          <ServiceHealthCard metrics={serviceHealthMetrics} />
+          <ServiceInsightsPanel insights={serviceInsights} />
+          <ArrivalWavePanel waves={arrivalWaves} />
+        </div>
+      ) : null}
+
+      {filteredCount === 0 && !isLoading ? (
+        <div className="reservations-empty-state">
+          <p className="reservations-empty-icon" aria-hidden="true">🍽</p>
+          <h4>No upcoming reservations</h4>
+          <p>Your arrival board is clear for the selected filters.</p>
+        </div>
+      ) : (
+        <div
+          className="reservations-timeline reservations-service-timeline"
+          ref={timelineScrollRef}
+          data-live-timeline="true"
+        >
+          <TimelineLiveNowRail
+            positionPercent={timelineNowPositionPercent}
+            nowMinutes={nowMinutes}
+            todayKey={todayKey}
+          />
+
+          {arrivalBoardRows.map((row, index) => {
+            if (row.type === 'hour') {
+              const isCurrentHour = row.hour === currentServiceHour
+
+              return (
+                <div
+                  key={`hour-${row.hour}-${index}`}
+                  className={`reservations-timeline-hour${isCurrentHour ? ' is-current-hour' : ''}`}
+                >
+                  <span className="reservations-timeline-hour-label">
+                    {String(row.hour).padStart(2, '0')}:00
+                  </span>
+                  <div className="reservations-timeline-hour-track" aria-hidden="true">
+                    <span className="reservations-timeline-hour-separator" />
+                    <span className="reservations-timeline-hour-line" />
+                  </div>
+                </div>
+              )
+            }
+
+            if (row.type === 'now') {
+              return (
+                <div
+                  key={`now-anchor-${index}`}
+                  className="reservations-timeline-now-anchor"
+                  aria-hidden="true"
+                />
+              )
+            }
+
+            const reservation = row.reservation
+            const arrivalTone = getReservationArrivalTone(reservation, {
+              nextArrivalId,
+              nowMinutes,
+              todayKey,
+            })
+            const isTimelineActive = String(reservation.id) === String(activeTimelineReservationId)
+            const cardIsSelected = isSelected(reservation)
+
+            return (
+              <div
+                key={`card-wrap-${reservation.id}`}
+                className={`reservations-timeline-item${isTimelineActive ? ' is-active' : ''}${cardIsSelected ? ' is-selected is-synced' : ''}`}
+                data-service-tone={arrivalTone}
+              >
+                <div className="reservations-timeline-marker-slot" aria-hidden="true">
+                  <span className={`reservations-timeline-marker-dot tone-${arrivalTone}${isTimelineActive ? ' is-active' : ''}`} />
+                  <span className="reservations-timeline-connector" />
+                </div>
+                <ReservationArrivalCard
+                  {...sharedCardProps}
+                  reservation={reservation}
+                  arrivalTone={arrivalTone}
+                  isTimelineActive={isTimelineActive}
+                  cardRef={(node) => { timelineCardRefs.current[reservation.id] = node }}
+                  isDimmed={isReservationFutureDim(reservation, nowMinutes)}
+                  isMoreOpen={String(openMoreReservationId) === String(reservation.id)}
+                  onToggleMore={() => onToggleMore(reservation.id)}
+                />
+              </div>
+            )
+          })}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function ReservationsUnifiedCanvas({
+  timelinePanelProps,
+  floorPlanProps,
+  serviceHealthMetrics,
+  serviceInsights,
+  arrivalWaves,
+}) {
+  const { workspaceFocus, canvasRef } = useReservationWorkspace()
+  const floorIsCompact = workspaceFocus === 'operations'
+
+  return (
+    <div
+      ref={canvasRef}
+      className="reservations-unified-canvas"
+      data-workspace-focus={workspaceFocus}
+    >
+      <section className="reservations-canvas-zone reservations-canvas-operations" aria-label="Live operations">
+        <div className="reservations-service-intelligence">
+          <ServiceHealthCard metrics={serviceHealthMetrics} />
+          <ServiceInsightsPanel insights={serviceInsights} />
+          <ArrivalWavePanel waves={arrivalWaves} />
+        </div>
+      </section>
+
+      <section className="reservations-canvas-zone reservations-canvas-timeline" aria-label="Service timeline">
+        <ServiceTimelinePanel {...timelinePanelProps} showIntelligence={false} />
+      </section>
+
+      <section className="reservations-canvas-zone reservations-canvas-floor" aria-label="Floor plan">
+        <FloorPlanView {...floorPlanProps} isCompact={floorIsCompact} />
+      </section>
+    </div>
+  )
+}
+
+function ReservationsWorkspaceBody({
+  reservations,
+  onOpenAddReservation,
+  onOpenQuickReservation,
+  onOpenCommandPalette,
+  isCommandPaletteOpen,
+  onCloseCommandPalette,
+  onOpenEditReservation,
+  onQuickStatusUpdate,
+  onQuickNoteUpdate,
+  onTableReassign,
+  isLoading,
+  noticeMessage,
+  isSaving,
+}) {
+  const [searchTerm, setSearchTerm] = useState('')
+  const [statusFilter, setStatusFilter] = useState('All')
+  const [liveNow, setLiveNow] = useState(() => getLocalNow())
+  const [noteDraftReservation, setNoteDraftReservation] = useState(null)
+  const [noteDraftValue, setNoteDraftValue] = useState('')
+  const [openMoreReservationId, setOpenMoreReservationId] = useState(null)
+
+  useEffect(() => {
+    const tick = () => setLiveNow(getLocalNow())
+
+    tick()
+
+    const now = getLocalNow()
+    const msUntilNextMinute = ((60 - now.getSeconds()) * 1000) - now.getMilliseconds()
+    let intervalId = null
+
+    const timeoutId = window.setTimeout(() => {
+      tick()
+      intervalId = window.setInterval(tick, 60_000)
+    }, Math.max(msUntilNextMinute, 0))
+
+    return () => {
+      window.clearTimeout(timeoutId)
+      if (intervalId !== null) window.clearInterval(intervalId)
+    }
+  }, [])
+
+  const todayKey = getCurrentDateKey()
+  const nowMinutes = liveNow.getHours() * 60 + liveNow.getMinutes()
+  const todayLabel = formatCurrentDateLabel()
+
+  const todayReservations = useMemo(
+    () => getTodayReservations(reservations, todayKey),
+    [reservations, todayKey],
+  )
+
+  const upcomingReservations = useMemo(
+    () => sortReservationsChronologically(
+      reservations.filter((reservation) => `${reservation.date ?? ''}`.slice(0, 10) !== todayKey),
+    ),
+    [reservations, todayKey],
+  )
+
+  const dashboardKpis = useMemo(
+    () => buildReservationDashboardKpis(todayReservations),
+    [todayReservations],
+  )
+
+  const serviceHealthMetrics = useMemo(
+    () => buildServiceHealthMetrics(todayReservations, nowMinutes, todayKey),
+    [nowMinutes, todayKey, todayReservations],
+  )
+
+  const serviceInsights = useMemo(
+    () => buildServiceInsights(todayReservations, nowMinutes, todayKey, reservations),
+    [nowMinutes, reservations, todayKey, todayReservations],
+  )
+
+  const arrivalWaves = useMemo(
+    () => buildArrivalWaves(todayReservations, nowMinutes, todayKey),
+    [nowMinutes, todayKey, todayReservations],
+  )
+
+  const searchNeedle = searchTerm.trim().toLowerCase()
+
+  const filteredTodayReservations = useMemo(() => (
+    todayReservations.filter((reservation) => (
+      reservationMatchesSearch(reservation, searchNeedle)
+      && reservationMatchesFilter(reservation, statusFilter, nowMinutes, todayKey)
+    ))
+  ), [nowMinutes, searchNeedle, statusFilter, todayKey, todayReservations])
+
+  const filteredUpcomingReservations = useMemo(() => (
+    upcomingReservations.filter((reservation) => (
+      reservationMatchesSearch(reservation, searchNeedle)
+      && (statusFilter === 'All' || reservationMatchesFilter(reservation, statusFilter, nowMinutes, todayKey))
+    ))
+  ), [nowMinutes, searchNeedle, statusFilter, todayKey, upcomingReservations])
+
+  const nextArrivalId = useMemo(() => {
+    const next = todayReservations.find((reservation) => {
+      const status = normalizeReservationStatus(reservation.status)
+      if (!['Booked', 'Confirmed'].includes(status)) return false
+      const minutes = parseTimeToMinutes(reservation.time)
+      return minutes !== null && minutes >= nowMinutes
+    })
+    return next?.id ?? null
+  }, [nowMinutes, todayReservations])
+
+  const activeTimelineReservationId = useMemo(
+    () => getActiveTimelineReservationId(filteredTodayReservations, nowMinutes, todayKey),
+    [filteredTodayReservations, nowMinutes, todayKey],
+  )
+
+  const currentServiceHour = Math.floor(nowMinutes / 60)
+
+  const arrivalBoardRows = useMemo(
+    () => buildArrivalBoardRows(filteredTodayReservations, nowMinutes),
+    [filteredTodayReservations, nowMinutes],
+  )
+
+  const timelineNowPositionPercent = useMemo(
+    () => getTimelineNowPositionPercent(arrivalBoardRows, nowMinutes),
+    [arrivalBoardRows, nowMinutes],
+  )
+
+  const handleOpenAddNote = (reservation) => {
+    setNoteDraftReservation(reservation)
+    setNoteDraftValue(`${reservation.notes ?? ''}`)
+    setOpenMoreReservationId(null)
+  }
+
+  const handleCloseAddNote = () => {
+    setNoteDraftReservation(null)
+    setNoteDraftValue('')
+  }
+
+  const handleSaveNote = async (event) => {
+    event.preventDefault()
+    if (!noteDraftReservation || !onQuickNoteUpdate) return
+    await onQuickNoteUpdate(noteDraftReservation, noteDraftValue.trim())
+    handleCloseAddNote()
+  }
+
+  const handleToggleMore = (reservationId) => {
+    setOpenMoreReservationId((current) => (
+      String(current) === String(reservationId) ? null : reservationId
+    ))
+  }
+
+  const sharedCardProps = {
+    allReservations: reservations,
+    isSaving,
+    nowMinutes,
+    todayKey,
+    onOpenAddNote: handleOpenAddNote,
+    onOpenEditReservation,
+    onQuickStatusUpdate,
+  }
+
+  const timelinePanelProps = {
+    arrivalBoardRows,
+    nowMinutes,
+    todayKey,
+    currentServiceHour,
+    isLoading,
+    filteredCount: filteredTodayReservations.length,
+    serviceHealthMetrics,
+    serviceInsights,
+    arrivalWaves,
+    timelineNowPositionPercent,
+    activeTimelineReservationId,
+    nextArrivalId,
+    sharedCardProps,
+    openMoreReservationId,
+    onToggleMore: handleToggleMore,
+  }
+
+  const floorPlanProps = {
+    reservations: filteredTodayReservations,
+    allReservations: reservations,
+    todayKey,
+    nowMinutes,
+    isSaving,
+    onTableReassign,
+  }
+
+  return (
+    <ReservationWorkspaceProvider filteredTodayReservations={filteredTodayReservations}>
+      <ReservationsWorkspaceContent
+        reservations={reservations}
+        onOpenAddReservation={onOpenAddReservation}
+        onOpenQuickReservation={onOpenQuickReservation}
+        onOpenCommandPalette={onOpenCommandPalette}
+        isCommandPaletteOpen={isCommandPaletteOpen}
+        onCloseCommandPalette={onCloseCommandPalette}
+        onOpenEditReservation={onOpenEditReservation}
+        onQuickStatusUpdate={onQuickStatusUpdate}
+        onTableReassign={onTableReassign}
+        onOpenAddNote={handleOpenAddNote}
+        isLoading={isLoading}
+        noticeMessage={noticeMessage}
+        isSaving={isSaving}
+        todayKey={todayKey}
+        todayLabel={todayLabel}
+        nowMinutes={nowMinutes}
+        searchTerm={searchTerm}
+        onSearchTermChange={setSearchTerm}
+        statusFilter={statusFilter}
+        onStatusFilterChange={setStatusFilter}
+        dashboardKpis={dashboardKpis}
+        timelinePanelProps={timelinePanelProps}
+        floorPlanProps={floorPlanProps}
+        serviceHealthMetrics={serviceHealthMetrics}
+        serviceInsights={serviceInsights}
+        arrivalWaves={arrivalWaves}
+        filteredUpcomingReservations={filteredUpcomingReservations}
+        sharedCardProps={sharedCardProps}
+        openMoreReservationId={openMoreReservationId}
+        onToggleMore={handleToggleMore}
+        noteDraftReservation={noteDraftReservation}
+        noteDraftValue={noteDraftValue}
+        onNoteDraftValueChange={setNoteDraftValue}
+        onCloseAddNote={handleCloseAddNote}
+        onSaveNote={handleSaveNote}
+      />
+    </ReservationWorkspaceProvider>
+  )
+}
+
+function ReservationsWorkspaceContent({
+  reservations,
+  onOpenAddReservation,
+  onOpenQuickReservation,
+  onOpenCommandPalette,
+  isCommandPaletteOpen,
+  onCloseCommandPalette,
+  onOpenEditReservation,
+  onQuickStatusUpdate,
+  onTableReassign: _onTableReassign,
+  onOpenAddNote,
+  isLoading,
+  noticeMessage,
+  isSaving,
+  todayKey,
+  todayLabel,
+  nowMinutes,
+  searchTerm,
+  onSearchTermChange,
+  statusFilter,
+  onStatusFilterChange,
+  dashboardKpis,
+  timelinePanelProps,
+  floorPlanProps,
+  serviceHealthMetrics,
+  serviceInsights,
+  arrivalWaves,
+  filteredUpcomingReservations,
+  sharedCardProps,
+  openMoreReservationId,
+  onToggleMore,
+  noteDraftReservation,
+  noteDraftValue,
+  onNoteDraftValueChange,
+  onCloseAddNote,
+  onSaveNote,
+}) {
+  const {
+    selectedReservation,
+    isGuestProfileOpen,
+    clearSelection,
+    workspaceFocus,
+    setWorkspaceFocus,
+  } = useReservationWorkspace()
+
+  const workspaceHeading = workspaceFocus === 'floor'
+    ? 'Floor'
+    : workspaceFocus === 'timeline'
+      ? 'Timeline'
+      : 'Operations'
+
+  return (
+    <section className="staff-page reservations-workspace">
+      <div className="reservations-command-sticky">
+        <header className="reservations-executive-header schedule-header panel">
+          <div className="schedule-header-copy reservations-executive-copy">
+            <p className="eyebrow schedule-header-eyebrow">Reservations</p>
+            <h3 className="schedule-header-title">Arrival command center</h3>
+            <p className="schedule-header-range reservations-executive-subtitle">Track arrivals, seating, and guest notes across the evening.</p>
+          </div>
+          <div className="schedule-header-controls reservations-executive-controls">
+            <div className="schedule-header-control-surface reservations-control-surface">
+              <label className="reservations-search" aria-label="Search reservations">
+                <span aria-hidden="true">⌕</span>
+                <input
+                  type="search"
+                  value={searchTerm}
+                  onChange={(event) => onSearchTermChange(event.target.value)}
+                  placeholder="Search guest, phone, table, notes"
+                />
+              </label>
+              <time className="reservations-current-date" dateTime={todayKey}>{todayLabel}</time>
+              <button
+                type="button"
+                className="ghost-btn reservations-quick-actions-btn"
+                onClick={onOpenCommandPalette}
+                disabled={isSaving}
+              >
+                <span aria-hidden="true">⚡</span> Quick Actions
+              </button>
+              <button type="button" className="primary-btn reservations-add-btn" onClick={onOpenAddReservation} disabled={isSaving}>
+                {isSaving ? 'Saving…' : '+ Add Reservation'}
+              </button>
+            </div>
+            <p className="reservations-shortcut-hint">
+              Open <strong>Quick Actions</strong> for commands · Optional: <kbd>⌘K</kbd> / <kbd>Ctrl K</kbd>
+            </p>
+          </div>
+        </header>
+
+        <div className="reservations-filter-toolbar panel">
+          <div className="filter-group reservations-filter-group reservations-filter-segmented">
+            {RESERVATION_BOARD_FILTERS.map((filter) => (
+              <button
+                key={filter}
+                type="button"
+                className={`filter-chip reservations-filter-chip ${statusFilter === filter ? 'active' : ''}`}
+                onClick={() => onStatusFilterChange(filter)}
+              >
+                {filter}
+              </button>
+            ))}
+          </div>
+          <ReservationsWorkspaceSegmentControl
+            value={workspaceFocus}
+            onChange={setWorkspaceFocus}
+          />
+        </div>
+      </div>
+
+      {noticeMessage ? <div className="staff-status-banner reservations-notice">{noticeMessage}</div> : null}
+      {isLoading ? <div className="staff-status-banner reservations-notice">Loading reservations…</div> : null}
+
+      <section className="schedule-weekly-stats reservations-kpi-strip" aria-label="Reservation metrics">
+        <article className="schedule-weekly-stat reservations-kpi-card">
+          <p className="schedule-weekly-stat-label">Today&apos;s Reservations</p>
+          <p className="schedule-weekly-stat-value">{dashboardKpis.count}</p>
+        </article>
+        <article className="schedule-weekly-stat reservations-kpi-card">
+          <p className="schedule-weekly-stat-label">Guests Today</p>
+          <p className="schedule-weekly-stat-value tone-gold">{dashboardKpis.guests}</p>
+        </article>
+        <article className="schedule-weekly-stat reservations-kpi-card">
+          <p className="schedule-weekly-stat-label">Walk-ins</p>
+          <p className="schedule-weekly-stat-value">{dashboardKpis.walkIns}</p>
+        </article>
+        <article className="schedule-weekly-stat reservations-kpi-card">
+          <p className="schedule-weekly-stat-label">Average Party Size</p>
+          <p className="schedule-weekly-stat-value">{dashboardKpis.avgParty}</p>
+        </article>
+      </section>
+
+      <div className="panel staff-panel reservations-board-panel">
+        <div className="panel-heading reservations-board-heading">
+          <div>
+            <p className="eyebrow">Today&apos;s service</p>
+            <h3>{workspaceHeading}</h3>
+          </div>
+        </div>
+
+        <ReservationsUnifiedCanvas
+          timelinePanelProps={timelinePanelProps}
+          floorPlanProps={floorPlanProps}
+          serviceHealthMetrics={serviceHealthMetrics}
+          serviceInsights={serviceInsights}
+          arrivalWaves={arrivalWaves}
+        />
+      </div>
+
+      <div className="panel staff-panel reservations-board-panel reservations-upcoming-panel">
+        <div className="panel-heading reservations-board-heading">
+          <div>
+            <p className="eyebrow">Future bookings</p>
+            <h3>Upcoming reservations</h3>
+          </div>
+        </div>
+
+        {filteredUpcomingReservations.length === 0 && !isLoading ? (
+          <div className="reservations-empty-state reservations-empty-state-upcoming">
+            <p className="reservations-empty-icon" aria-hidden="true">📅</p>
+            <h4>No upcoming reservations</h4>
+            <p>Future bookings will appear here as they are added.</p>
+          </div>
+        ) : (
+          <div className="reservations-upcoming-list">
+            {filteredUpcomingReservations.map((reservation) => (
+              <ReservationArrivalCard
+                key={reservation.id}
+                {...sharedCardProps}
+                reservation={reservation}
+                arrivalTone="default"
+                showDate
+                isMoreOpen={String(openMoreReservationId) === String(reservation.id)}
+                onToggleMore={() => onToggleMore(reservation.id)}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+
+      {selectedReservation && isGuestProfileOpen ? (
+        <GuestProfileDrawer
+          reservation={selectedReservation}
+          allReservations={reservations}
+          nowMinutes={nowMinutes}
+          todayKey={todayKey}
+          onClose={clearSelection}
+          onOpenEditReservation={onOpenEditReservation}
+          onQuickStatusUpdate={onQuickStatusUpdate}
+        />
+      ) : null}
+
+      {isCommandPaletteOpen ? (
+        <ReservationsCommandPalette
+          reservations={reservations}
+          todayKey={todayKey}
+          nowMinutes={nowMinutes}
+          isSaving={isSaving}
+          onClose={onCloseCommandPalette}
+          onOpenAddReservation={onOpenAddReservation}
+          onOpenQuickReservation={onOpenQuickReservation}
+          onOpenEditReservation={onOpenEditReservation}
+          onQuickStatusUpdate={onQuickStatusUpdate}
+          onOpenAddNote={onOpenAddNote}
+        />
+      ) : null}
+
+      {noteDraftReservation ? (
+        <div className="employee-modal-backdrop" onClick={onCloseAddNote}>
+          <div className="employee-modal blend-compact-modal" onClick={(event) => event.stopPropagation()}>
+            <div className="drawer-header">
+              <div>
+                <p className="eyebrow">Guest note</p>
+                <h3>{formatReservationGuestName(noteDraftReservation.guestName)}</h3>
+              </div>
+              <button type="button" className="icon-btn" onClick={onCloseAddNote}>✕</button>
+            </div>
+            <form className="employee-form" onSubmit={onSaveNote}>
+              <label className="form-field full-width">
+                <span>Note</span>
+                <textarea
+                  rows="4"
+                  value={noteDraftValue}
+                  onChange={(event) => onNoteDraftValueChange(event.target.value)}
+                  placeholder="Add service notes, preferences, or reminders"
+                />
+              </label>
+              <div className="modal-actions">
+                <button type="button" className="ghost-btn" onClick={onCloseAddNote}>Cancel</button>
+                <button type="submit" className="primary-btn" disabled={isSaving}>
+                  {isSaving ? 'Saving…' : 'Save note'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      ) : null}
+    </section>
+  )
+}
+
+function ReservationsView(props) {
+  return <ReservationsWorkspaceBody {...props} />
 }
 
 function InventoryView({ inventoryItems, onOpenAddItem, onOpenEditItem, onDeleteItem, isLoading, noticeMessage, isSaving, searchTerm }) {
@@ -5593,6 +8840,8 @@ function App() {
   const [reservationNotice, setReservationNotice] = useState('')
   const [isReservationsLoading, setIsReservationsLoading] = useState(true)
   const [isReservationModalOpen, setIsReservationModalOpen] = useState(false)
+  const [isQuickReservationOpen, setIsQuickReservationOpen] = useState(false)
+  const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false)
   const [editingReservation, setEditingReservation] = useState(null)
   const [reservationForm, setReservationForm] = useState({
     guestName: '',
@@ -5604,6 +8853,12 @@ function App() {
     area: 'Main Dining',
     status: 'Booked',
     notes: '',
+  })
+  const [quickReservationForm, setQuickReservationForm] = useState({
+    guestName: '',
+    time: '',
+    guests: '2',
+    tableNumber: '',
   })
   const [isSavingReservation, setIsSavingReservation] = useState(false)
   const [inventoryItems, setInventoryItems] = useState([])
@@ -8709,7 +11964,7 @@ function App() {
     setReservationForm({
       guestName: '',
       phone: '',
-      date: '',
+      date: currentDateKey,
       time: '',
       guests: '2',
       tableNumber: '',
@@ -8719,6 +11974,88 @@ function App() {
     })
     setIsReservationModalOpen(true)
   }
+
+  const handleOpenQuickReservation = (prefill = {}) => {
+    setQuickReservationForm({
+      guestName: prefill.guestName ?? '',
+      time: prefill.time ?? '',
+      guests: `${prefill.guests ?? '2'}`,
+      tableNumber: prefill.tableNumber ?? '',
+    })
+    setIsQuickReservationOpen(true)
+  }
+
+  const handleOpenCommandPalette = () => {
+    setIsCommandPaletteOpen(true)
+  }
+
+  const handleCloseCommandPalette = () => {
+    setIsCommandPaletteOpen(false)
+  }
+
+  const handleCloseQuickReservation = () => {
+    setIsQuickReservationOpen(false)
+    setQuickReservationForm({
+      guestName: '',
+      time: '',
+      guests: '2',
+      tableNumber: '',
+    })
+  }
+
+  const detectedGuestReservation = useMemo(() => {
+    if (editingReservation || !isReservationModalOpen) return null
+    return getGuestMatchForName(reservationForm.guestName, reservations)
+  }, [editingReservation, isReservationModalOpen, reservationForm.guestName, reservations])
+
+  const guestNameSuggestions = useMemo(() => {
+    if (editingReservation || !isReservationModalOpen) return []
+    return findMatchingGuestProfiles(reservationForm.guestName, reservations)
+  }, [editingReservation, isReservationModalOpen, reservationForm.guestName, reservations])
+
+  const handleReservationGuestNameChange = (value) => {
+    setReservationForm((current) => {
+      const next = { ...current, guestName: value }
+
+      if (!editingReservation) {
+        const match = getGuestMatchForName(value, reservations)
+        if (match) {
+          const profile = buildGuestProfileInsights(match, reservations)
+          if (!`${current.phone}`.trim()) next.phone = `${match.phone ?? ''}`.trim()
+          if (!`${current.tableNumber}`.trim() && profile.favoriteTable !== '—') next.tableNumber = profile.favoriteTable
+          if (current.area === 'Main Dining' && profile.favoriteArea !== '—') next.area = profile.favoriteArea
+        }
+      }
+
+      return next
+    })
+  }
+
+  const handleApplyGuestProfile = (guestReservation) => {
+    setReservationForm((current) => applyGuestProfileToReservationForm(current, guestReservation, reservations))
+  }
+
+  useEffect(() => {
+    if (activeView !== 'reservations') return undefined
+
+    const handleKeyDown = (event) => {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
+        event.preventDefault()
+        if (!isCommandPaletteOpen) {
+          setIsCommandPaletteOpen(true)
+        }
+        return
+      }
+
+      if (event.key === 'Escape' && isCommandPaletteOpen) {
+        event.preventDefault()
+        setIsCommandPaletteOpen(false)
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [activeView, isCommandPaletteOpen])
 
   const handleDashboardQuickAction = (actionId) => {
     if (actionId === 'add-reservation') {
@@ -8763,7 +12100,7 @@ function App() {
     setReservationForm({
       guestName: '',
       phone: '',
-      date: '',
+      date: currentDateKey,
       time: '',
       guests: '2',
       tableNumber: '',
@@ -8783,6 +12120,67 @@ function App() {
     }
   }
 
+  const handleQuickReservationStatus = async (reservation, status) => {
+    try {
+      await updateReservation(reservation.id, {
+        guestName: reservation.guestName,
+        phone: reservation.phone,
+        date: reservation.date,
+        time: reservation.time,
+        guests: reservation.guests,
+        tableNumber: reservation.tableNumber,
+        area: reservation.area,
+        status,
+        notes: reservation.notes,
+      })
+      await refreshReservations()
+      const statusLabel = status === 'Confirmed' ? 'Arrived' : status
+      setReservationNotice(`Reservation marked ${statusLabel}.`)
+    } catch (error) {
+      setReservationNotice(error.message || 'Unable to update reservation right now.')
+    }
+  }
+
+  const handleQuickReservationNote = async (reservation, notes) => {
+    try {
+      await updateReservation(reservation.id, {
+        guestName: reservation.guestName,
+        phone: reservation.phone,
+        date: reservation.date,
+        time: reservation.time,
+        guests: reservation.guests,
+        tableNumber: reservation.tableNumber,
+        area: reservation.area,
+        status: reservation.status,
+        notes,
+      })
+      await refreshReservations()
+      setReservationNotice('Guest note saved.')
+    } catch (error) {
+      setReservationNotice(error.message || 'Unable to save guest note right now.')
+    }
+  }
+
+  const handleQuickReservationTableReassign = async (reservation, tableNumber) => {
+    try {
+      await updateReservation(reservation.id, {
+        guestName: reservation.guestName,
+        phone: reservation.phone,
+        date: reservation.date,
+        time: reservation.time,
+        guests: reservation.guests,
+        tableNumber: `${tableNumber ?? ''}`.trim(),
+        area: reservation.area,
+        status: reservation.status,
+        notes: reservation.notes,
+      })
+      await refreshReservations()
+      setReservationNotice(`Moved to table ${tableNumber}.`)
+    } catch (error) {
+      setReservationNotice(error.message || 'Unable to reassign table right now.')
+    }
+  }
+
   const handleReservationSubmit = async (event) => {
     event.preventDefault()
 
@@ -8797,7 +12195,7 @@ function App() {
     const payload = {
       guestName: reservationForm.guestName.trim(),
       phone: reservationForm.phone.trim(),
-      date: reservationForm.date,
+      date: reservationForm.date || currentDateKey,
       time: reservationForm.time,
       guests: Number(reservationForm.guests) || 2,
       tableNumber: reservationForm.tableNumber.trim(),
@@ -8818,6 +12216,48 @@ function App() {
       handleCloseReservationModal()
     } catch (error) {
       setReservationNotice(error.message || 'Unable to save reservation right now.')
+    } finally {
+      setIsSavingReservation(false)
+    }
+  }
+
+  const handleQuickReservationSubmit = async (event) => {
+    event.preventDefault()
+
+    if (!quickReservationForm.guestName.trim()) {
+      setReservationNotice('Please provide the guest name.')
+      return
+    }
+
+    if (!quickReservationForm.time) {
+      setReservationNotice('Please provide an arrival time.')
+      return
+    }
+
+    setIsSavingReservation(true)
+    setReservationNotice('')
+
+    const match = getGuestMatchForName(quickReservationForm.guestName, reservations)
+    const profile = match ? buildGuestProfileInsights(match, reservations) : null
+
+    try {
+      await createReservation({
+        guestName: quickReservationForm.guestName.trim(),
+        phone: `${match?.phone ?? ''}`.trim(),
+        date: currentDateKey,
+        time: quickReservationForm.time,
+        guests: Number(quickReservationForm.guests) || 2,
+        tableNumber: quickReservationForm.tableNumber.trim() || (profile?.favoriteTable !== '—' ? profile.favoriteTable : ''),
+        area: profile?.favoriteArea && profile.favoriteArea !== '—' ? profile.favoriteArea : 'Main Dining',
+        status: 'Booked',
+        notes: `${match?.notes ?? ''}`.trim(),
+      })
+
+      await refreshReservations()
+      setReservationNotice('Quick reservation created.')
+      handleCloseQuickReservation()
+    } catch (error) {
+      setReservationNotice(error.message || 'Unable to create quick reservation right now.')
     } finally {
       setIsSavingReservation(false)
     }
@@ -9276,8 +12716,14 @@ function App() {
           <ReservationsView
             reservations={reservations}
             onOpenAddReservation={handleOpenAddReservation}
+            onOpenQuickReservation={handleOpenQuickReservation}
+            onOpenCommandPalette={handleOpenCommandPalette}
+            isCommandPaletteOpen={isCommandPaletteOpen}
+            onCloseCommandPalette={handleCloseCommandPalette}
             onOpenEditReservation={handleOpenEditReservation}
-            onDeleteReservation={handleDeleteReservation}
+            onQuickStatusUpdate={handleQuickReservationStatus}
+            onQuickNoteUpdate={handleQuickReservationNote}
+            onTableReassign={handleQuickReservationTableReassign}
             isLoading={isReservationsLoading}
             noticeMessage={reservationNotice}
             isSaving={isSavingReservation}
@@ -9716,21 +13162,42 @@ function App() {
 
         {isReservationModalOpen ? (
           <div className="employee-modal-backdrop" onClick={handleCloseReservationModal}>
-            <div className="employee-modal" onClick={(event) => event.stopPropagation()}>
+            <div className="employee-modal reservation-smart-modal" onClick={(event) => event.stopPropagation()}>
               <div className="drawer-header">
                 <div>
-                  <p className="eyebrow">Reservation form</p>
+                  <p className="eyebrow">Smart reservation</p>
                   <h3>{editingReservation ? 'Edit reservation' : 'Add reservation'}</h3>
                 </div>
                 <button type="button" className="icon-btn" onClick={handleCloseReservationModal}>✕</button>
               </div>
 
               <form className="employee-form" onSubmit={handleReservationSubmit}>
+                {!editingReservation && detectedGuestReservation ? (
+                  <SmartGuestFormPanel
+                    guestReservation={detectedGuestReservation}
+                    allReservations={reservations}
+                    onApplyGuest={handleApplyGuestProfile}
+                  />
+                ) : null}
+
                 <div className="form-grid">
                   <label className="form-field">
                     <span>Guest Name</span>
-                    <input value={reservationForm.guestName} onChange={(event) => setReservationForm((current) => ({ ...current, guestName: event.target.value }))} placeholder="Guest Name" required />
+                    <input
+                      list="reservation-guest-suggestions"
+                      value={reservationForm.guestName}
+                      onChange={(event) => handleReservationGuestNameChange(event.target.value)}
+                      placeholder="Guest Name"
+                      required
+                    />
                   </label>
+                  {guestNameSuggestions.length > 0 ? (
+                    <datalist id="reservation-guest-suggestions">
+                      {guestNameSuggestions.map((entry) => (
+                        <option key={entry.id} value={formatReservationGuestName(entry.guestName)} />
+                      ))}
+                    </datalist>
+                  ) : null}
                   <label className="form-field">
                     <span>Phone</span>
                     <input value={reservationForm.phone} onChange={(event) => setReservationForm((current) => ({ ...current, phone: event.target.value }))} placeholder="Phone" />
@@ -9761,6 +13228,7 @@ function App() {
                       <option value="Booked">Booked</option>
                       <option value="Confirmed">Confirmed</option>
                       <option value="Seated">Seated</option>
+                      <option value="Dining">Dining</option>
                       <option value="Completed">Completed</option>
                       <option value="Cancelled">Cancelled</option>
                       <option value="No Show">No Show</option>
@@ -9777,6 +13245,75 @@ function App() {
                   <button type="button" className="ghost-btn" onClick={handleCloseReservationModal}>Cancel</button>
                   <button type="submit" className="primary-btn" disabled={isSavingReservation}>
                     {isSavingReservation ? 'Saving…' : 'Save'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        ) : null}
+
+        {isQuickReservationOpen ? (
+          <div className="employee-modal-backdrop" onClick={handleCloseQuickReservation}>
+            <div className="employee-modal quick-reservation-modal" onClick={(event) => event.stopPropagation()}>
+              <div className="drawer-header">
+                <div>
+                  <p className="eyebrow">Quick reservation</p>
+                  <h3>Fast booking</h3>
+                </div>
+                <button type="button" className="icon-btn" onClick={handleCloseQuickReservation}>✕</button>
+              </div>
+
+              <form className="employee-form quick-reservation-form" onSubmit={handleQuickReservationSubmit}>
+                <label className="form-field full-width">
+                  <span>Guest</span>
+                  <input
+                    autoFocus
+                    list="quick-reservation-guest-suggestions"
+                    value={quickReservationForm.guestName}
+                    onChange={(event) => setQuickReservationForm((current) => ({ ...current, guestName: event.target.value }))}
+                    placeholder="Guest name"
+                    required
+                  />
+                </label>
+                <datalist id="quick-reservation-guest-suggestions">
+                  {findMatchingGuestProfiles(quickReservationForm.guestName, reservations).map((entry) => (
+                    <option key={`quick-${entry.id}`} value={formatReservationGuestName(entry.guestName)} />
+                  ))}
+                </datalist>
+                <div className="form-grid">
+                  <label className="form-field">
+                    <span>Time</span>
+                    <input
+                      {...TIME_INPUT_PROPS}
+                      value={quickReservationForm.time}
+                      onChange={(event) => setQuickReservationForm((current) => ({ ...current, time: normalizeTimeValue(event.target.value) }))}
+                      required
+                    />
+                  </label>
+                  <label className="form-field">
+                    <span>Guests</span>
+                    <input
+                      type="number"
+                      min="1"
+                      value={quickReservationForm.guests}
+                      onChange={(event) => setQuickReservationForm((current) => ({ ...current, guests: event.target.value }))}
+                      required
+                    />
+                  </label>
+                  <label className="form-field">
+                    <span>Table</span>
+                    <input
+                      value={quickReservationForm.tableNumber}
+                      onChange={(event) => setQuickReservationForm((current) => ({ ...current, tableNumber: event.target.value }))}
+                      placeholder="Table"
+                    />
+                  </label>
+                </div>
+                <p className="quick-reservation-hint">Press Enter to create · Today · Booked status</p>
+                <div className="modal-actions">
+                  <button type="button" className="ghost-btn" onClick={handleCloseQuickReservation}>Cancel</button>
+                  <button type="submit" className="primary-btn" disabled={isSavingReservation}>
+                    {isSavingReservation ? 'Creating…' : 'Create'}
                   </button>
                 </div>
               </form>
