@@ -1,0 +1,155 @@
+export const FLOOR_PLAN_OBJECT_TYPES = {
+  TABLE: 'table',
+  WALL: 'wall',
+  DIVIDER: 'divider',
+  DOOR: 'door',
+  WINDOW: 'window',
+  CHAIR: 'chair',
+  SOFA: 'sofa',
+  BAR_STOOL: 'bar-stool',
+  BAR: 'bar',
+  KITCHEN: 'kitchen',
+  HOST_DESK: 'host-desk',
+  WAITING_AREA: 'waiting-area',
+  PLANT: 'plant',
+  ARTWORK: 'artwork',
+  TEXT: 'text',
+  DJ_BOOTH: 'dj-booth',
+  STAGE: 'stage',
+  EMERGENCY_EXIT: 'emergency-exit',
+  TOILET: 'toilet',
+}
+
+const DEFAULT_SIZES = {
+  [FLOOR_PLAN_OBJECT_TYPES.TABLE]: { width: 96, height: 96 },
+  [FLOOR_PLAN_OBJECT_TYPES.WALL]: { width: 160, height: 12 },
+  [FLOOR_PLAN_OBJECT_TYPES.DIVIDER]: { width: 120, height: 8 },
+  [FLOOR_PLAN_OBJECT_TYPES.DOOR]: { width: 72, height: 16 },
+  [FLOOR_PLAN_OBJECT_TYPES.WINDOW]: { width: 88, height: 12 },
+  [FLOOR_PLAN_OBJECT_TYPES.CHAIR]: { width: 40, height: 40 },
+  [FLOOR_PLAN_OBJECT_TYPES.SOFA]: { width: 120, height: 56 },
+  [FLOOR_PLAN_OBJECT_TYPES.BAR_STOOL]: { width: 36, height: 36 },
+  [FLOOR_PLAN_OBJECT_TYPES.BAR]: { width: 200, height: 64 },
+  [FLOOR_PLAN_OBJECT_TYPES.KITCHEN]: { width: 180, height: 120 },
+  [FLOOR_PLAN_OBJECT_TYPES.HOST_DESK]: { width: 100, height: 48 },
+  [FLOOR_PLAN_OBJECT_TYPES.WAITING_AREA]: { width: 160, height: 100 },
+  [FLOOR_PLAN_OBJECT_TYPES.PLANT]: { width: 48, height: 48 },
+  [FLOOR_PLAN_OBJECT_TYPES.ARTWORK]: { width: 64, height: 48 },
+  [FLOOR_PLAN_OBJECT_TYPES.TEXT]: { width: 120, height: 32 },
+  [FLOOR_PLAN_OBJECT_TYPES.DJ_BOOTH]: { width: 140, height: 80 },
+  [FLOOR_PLAN_OBJECT_TYPES.STAGE]: { width: 240, height: 120 },
+  [FLOOR_PLAN_OBJECT_TYPES.EMERGENCY_EXIT]: { width: 72, height: 72 },
+  [FLOOR_PLAN_OBJECT_TYPES.TOILET]: { width: 80, height: 80 },
+}
+
+export const BUILDER_ARTBOARD = {
+  width: 1600,
+  height: 1100,
+}
+
+export function createFloorPlanObject({
+  id,
+  type,
+  position,
+  rotation = 0,
+  size,
+  properties = {},
+  zIndex = 1,
+  floorId = 'main-dining',
+}) {
+  const defaultSize = DEFAULT_SIZES[type] ?? { width: 80, height: 80 }
+
+  return {
+    id,
+    type,
+    position: {
+      x: position?.x ?? 0,
+      y: position?.y ?? 0,
+    },
+    rotation,
+    size: {
+      width: size?.width ?? defaultSize.width,
+      height: size?.height ?? defaultSize.height,
+    },
+    properties,
+    zIndex,
+    floorId,
+  }
+}
+
+export function createDemoTableObject({
+  id,
+  tableNumber,
+  capacity,
+  shape,
+  position,
+  area = 'Main Dining',
+}) {
+  const shapeSizes = {
+    round: { width: 96, height: 96 },
+    square: { width: 92, height: 92 },
+    rectangle: { width: 120, height: 80 },
+  }
+
+  return createFloorPlanObject({
+    id,
+    type: FLOOR_PLAN_OBJECT_TYPES.TABLE,
+    position,
+    size: shapeSizes[shape] ?? shapeSizes.round,
+    properties: {
+      tableNumber: String(tableNumber),
+      capacity,
+      shape,
+      area,
+      visible: true,
+    },
+  })
+}
+
+export function getDemoFloorPlanObjects() {
+  return [
+    createDemoTableObject({
+      id: 'table-1',
+      tableNumber: '1',
+      capacity: 2,
+      shape: 'round',
+      position: { x: 280, y: 220 },
+    }),
+    createDemoTableObject({
+      id: 'table-2',
+      tableNumber: '2',
+      capacity: 4,
+      shape: 'square',
+      position: { x: 480, y: 220 },
+    }),
+    createDemoTableObject({
+      id: 'table-3',
+      tableNumber: '3',
+      capacity: 6,
+      shape: 'rectangle',
+      position: { x: 680, y: 220 },
+    }),
+    createDemoTableObject({
+      id: 'table-4',
+      tableNumber: '4',
+      capacity: 4,
+      shape: 'round',
+      position: { x: 380, y: 420 },
+    }),
+  ]
+}
+
+export function formatObjectTypeLabel(type) {
+  return `${type ?? 'object'}`
+    .split('-')
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ')
+}
+
+export function getObjectDisplayLabel(object) {
+  if (object.type === FLOOR_PLAN_OBJECT_TYPES.TABLE) {
+    return `Table ${object.properties.tableNumber ?? ''}`.trim()
+  }
+
+  return formatObjectTypeLabel(object.type)
+}

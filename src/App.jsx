@@ -1,5 +1,6 @@
 import { Fragment, createContext, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import './App.css'
+import { FloorPlanBuilderPage } from './floor-plan-builder/FloorPlanBuilderPage'
 import { createEmployee, deleteEmployee, getEmployees, updateEmployee } from './services/staffService'
 import { createShift, deleteShift, getShifts, updateShift } from './services/scheduleService'
 import { createShiftTemplate, deleteShiftTemplate, getShiftTemplates, updateShiftTemplate } from './services/shiftTemplateService'
@@ -109,6 +110,7 @@ const navItems = [
   { id: 'staff', label: 'Staff', icon: '👥' },
   { id: 'schedule', label: 'Schedule', icon: '🕒' },
   { id: 'reservations', label: 'Reservations', icon: '🍽️' },
+  { id: 'floor-plan-builder', label: 'Floor Plan Builder', icon: '⊞' },
   { id: 'suppliers', label: 'Suppliers', icon: '🚚' },
   { id: 'tasks', label: 'Tasks', icon: '✓' },
   { id: 'stock', label: 'Stock', icon: '📦' },
@@ -12925,8 +12927,8 @@ function App() {
         </nav>
       </aside>
 
-      <main className={`main-panel${activeView === 'schedule' ? ' main-panel-schedule' : ''}${activeView === 'dashboard' ? ' main-panel-dashboard' : ''}`}>
-        {activeView !== 'schedule' ? (
+      <main className={`main-panel${activeView === 'schedule' ? ' main-panel-schedule' : ''}${activeView === 'dashboard' ? ' main-panel-dashboard' : ''}${activeView === 'floor-plan-builder' ? ' main-panel-floor-builder' : ''}`}>
+        {activeView !== 'schedule' && activeView !== 'floor-plan-builder' ? (
         activeView === 'dashboard' ? (
         <header className="topbar topbar-command topbar-command-hero">
           <div className="command-topbar-intro">
@@ -13099,6 +13101,10 @@ function App() {
             noticeMessage={reservationNotice}
             isSaving={isSavingReservation}
           />
+        ) : null}
+
+        {activeView === 'floor-plan-builder' ? (
+          <FloorPlanBuilderPage onBack={() => setActiveView('dashboard')} />
         ) : null}
 
         {activeView === 'suppliers' ? (
