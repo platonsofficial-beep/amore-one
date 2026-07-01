@@ -116,12 +116,13 @@
 }
 
 .nav-link {
+  position: relative;
   border: 0;
   background: transparent;
   color: #b8b0a3;
   text-align: left;
   border-radius: 12px;
-  padding: 12px 14px;
+  padding: 12px 14px 12px 16px;
   cursor: pointer;
   transition: all 0.24s ease;
   display: flex;
@@ -134,6 +135,18 @@
   color: #fff7e8;
   background: rgba(212, 175, 55, 0.14);
   box-shadow: inset 0 0 0 1px rgba(212, 175, 55, 0.24);
+}
+
+.nav-link.active::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 10px;
+  bottom: 10px;
+  width: 3px;
+  border-radius: 0 3px 3px 0;
+  background: linear-gradient(180deg, #f3d28d 0%, #c9982d 100%);
+  box-shadow: 0 0 12px rgba(212, 175, 55, 0.45);
 }
 
 .nav-icon {
@@ -170,8 +183,8 @@
 }
 
 .main-panel-dashboard {
-  padding: 28px 28px 32px;
-  gap: 24px;
+  padding: 22px 26px 28px;
+  gap: 20px;
 }
 
 .topbar {
@@ -354,10 +367,10 @@
 
 .command-center {
   --command-card-radius: 20px;
-  --command-card-padding: 24px 26px;
-  --command-card-gap: 20px;
-  --command-header-gap: 8px;
-  --command-section-gap: 24px;
+  --command-card-padding: 22px 24px;
+  --command-card-gap: 18px;
+  --command-header-gap: 6px;
+  --command-section-gap: 20px;
   --command-kpi-height: 148px;
   --command-inner-radius: 16px;
   display: flex;
@@ -373,47 +386,47 @@
 
 .topbar-command {
   align-items: flex-start;
-  padding: 24px 28px;
+  padding: 14px 20px;
   margin-bottom: 0;
 }
 
 .command-topbar-intro {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 3px;
   min-width: 0;
 }
 
 .command-topbar-greeting {
   margin: 0;
   color: #fff7e8;
-  font-size: 1.75rem;
+  font-size: 1.62rem;
   font-weight: 600;
   letter-spacing: -0.03em;
-  line-height: 1.1;
+  line-height: 1.08;
 }
 
 .command-topbar-business {
-  margin: 0;
+  margin: 2px 0 0;
   text-transform: uppercase;
-  letter-spacing: 0.14em;
-  font-size: 0.7rem;
+  letter-spacing: 0.16em;
+  font-size: 0.62rem;
   font-weight: 600;
   color: #d4af37;
 }
 
 .command-topbar-date {
   margin: 0;
-  color: #9f9485;
-  font-size: 0.9rem;
+  color: #7d7468;
+  font-size: 0.8rem;
   letter-spacing: 0.01em;
 }
 
 .command-topbar-context {
-  margin: 4px 0 0;
-  color: #b8ad9c;
-  font-size: 0.92rem;
-  line-height: 1.45;
+  margin: 2px 0 0;
+  color: #8f8778;
+  font-size: 0.78rem;
+  line-height: 1.35;
   max-width: 40rem;
 }
 
@@ -428,12 +441,12 @@
 .command-live-status {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 10px 14px;
-  border-radius: 16px;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 14px;
   border: 1px solid rgba(255, 255, 255, 0.08);
   background: rgba(255, 255, 255, 0.03);
-  min-width: 168px;
+  min-width: 156px;
 }
 
 .command-live-status.tone-live {
@@ -549,7 +562,7 @@
 .command-hero-metric-value {
   margin: 0;
   color: #fff7e8;
-  font-size: 2.5rem;
+  font-size: 2.88rem;
   font-weight: 700;
   line-height: 1;
   letter-spacing: -0.04em;
@@ -557,7 +570,7 @@
 }
 
 .command-hero-metric-value-text {
-  font-size: 1.56rem;
+  font-size: 1.8rem;
   letter-spacing: -0.02em;
 }
 
@@ -567,6 +580,20 @@
   font-size: 0.86rem;
   font-weight: 600;
   letter-spacing: 0.01em;
+}
+
+.command-hero-metric-label-upper {
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: #a79e91;
+}
+
+.command-hero-metric.health-tone-healthy .command-hero-metric-label-upper,
+.command-hero-metric.health-tone-attention .command-hero-metric-label-upper,
+.command-hero-metric.health-tone-critical .command-hero-metric-label-upper {
+  color: #9f9485;
 }
 
 .command-hero-metric-hint {
@@ -788,21 +815,21 @@
   align-self: flex-start;
   border: 0;
   background: transparent;
-  color: #d4af37;
+  color: #c9a84a;
   font: inherit;
-  font-size: 0.84rem;
-  font-weight: 600;
+  font-size: 0.82rem;
+  font-weight: 500;
   cursor: pointer;
-  padding: 0;
-  text-decoration: underline;
-  text-underline-offset: 3px;
-  text-decoration-color: rgba(212, 175, 55, 0.4);
-  transition: color 0.18s ease, text-decoration-color 0.18s ease;
+  padding: 4px 0 0;
+  text-decoration: none;
+  transition: color 0.18s ease;
 }
 
 .command-card-link:hover {
   color: #f3d28d;
-  text-decoration-color: rgba(243, 210, 141, 0.7);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-color: rgba(243, 210, 141, 0.5);
 }
 
 .command-empty-state-healthy {
@@ -820,7 +847,7 @@
 .command-timeline-list {
   list-style: none;
   margin: 0;
-  padding: 6px 0 6px 8px;
+  padding: 4px 0 4px 4px;
   display: flex;
   flex-direction: column;
   gap: 0;
@@ -830,39 +857,39 @@
 .command-timeline-list::before {
   content: '';
   position: absolute;
-  left: 79px;
-  top: 16px;
-  bottom: 16px;
-  width: 2px;
-  background: linear-gradient(180deg, rgba(212, 175, 55, 0.35), rgba(212, 175, 55, 0.08));
-  border-radius: 999px;
+  left: 88px;
+  top: 20px;
+  bottom: 20px;
+  width: 1px;
+  background: linear-gradient(180deg, rgba(212, 175, 55, 0.5), rgba(212, 175, 55, 0.12));
 }
 
 .command-timeline-item {
   display: grid;
-  grid-template-columns: 64px 18px minmax(0, 1fr);
-  gap: 10px;
+  grid-template-columns: 72px 20px minmax(0, 1fr);
+  gap: 12px;
   align-items: start;
-  padding: 12px 0;
+  padding: 16px 0;
 }
 
 .command-timeline-time {
   color: #d4af37;
-  font-size: 0.82rem;
+  font-size: 0.84rem;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
-  padding-top: 2px;
+  padding-top: 3px;
   text-align: right;
+  letter-spacing: 0.02em;
 }
 
 .command-timeline-node {
-  width: 10px;
-  height: 10px;
+  width: 11px;
+  height: 11px;
   border-radius: 50%;
   background: #d4af37;
   border: 2px solid rgba(12, 12, 13, 0.95);
-  box-shadow: 0 0 0 2px rgba(212, 175, 55, 0.22);
-  margin-top: 4px;
+  box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.18);
+  margin-top: 5px;
   justify-self: center;
   position: relative;
   z-index: 1;
@@ -870,22 +897,26 @@
 
 .command-timeline-item.type-reservation .command-timeline-node {
   background: #e8a0a8;
-  box-shadow: 0 0 0 2px rgba(232, 160, 168, 0.22);
+  box-shadow: 0 0 0 3px rgba(232, 160, 168, 0.18);
+}
+
+.command-timeline-copy {
+  padding-top: 1px;
 }
 
 .command-timeline-title {
   display: block;
   color: #fff7e8;
-  font-size: 0.86rem;
-  line-height: 1.3;
-  font-weight: 700;
-  letter-spacing: 0.06em;
+  font-size: 0.88rem;
+  line-height: 1.35;
+  font-weight: 600;
+  letter-spacing: 0.04em;
 }
 
 .command-timeline-department {
-  margin: 4px 0 0;
-  color: #8f8778;
-  font-size: 0.76rem;
+  margin: 5px 0 0;
+  color: #7d7468;
+  font-size: 0.78rem;
   line-height: 1.35;
 }
 
@@ -1022,6 +1053,25 @@
   font-size: 0.82rem;
 }
 
+.command-card-footnote-centered {
+  text-align: center;
+  padding: 8px 0 4px;
+  color: #8f8778;
+  font-size: 0.84rem;
+}
+
+.command-card-staff-featured {
+  grid-column: 1 / -1;
+  border-color: rgba(212, 175, 55, 0.2);
+  box-shadow: 0 14px 36px rgba(0, 0, 0, 0.22);
+  --command-card-padding: 24px 28px;
+  --command-card-gap: 20px;
+}
+
+.command-card-staff-featured .command-card-header h3 {
+  font-size: 1.12rem;
+}
+
 .command-empty-state {
   margin: 0;
   color: #a79e91;
@@ -1080,24 +1130,25 @@
 .command-staff-item {
   display: flex;
   align-items: center;
-  gap: 14px;
-  padding: 14px 0;
+  gap: 16px;
+  padding: 18px 0;
+  min-height: 68px;
 }
 
 .command-staff-item.has-divider {
-  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .command-staff-avatar {
-  width: 38px;
-  height: 38px;
+  width: 44px;
+  height: 44px;
   flex: 0 0 auto;
   display: grid;
   place-items: center;
   border-radius: 50%;
   background: linear-gradient(135deg, #f3d28d 0%, #c9982d 100%);
   color: #170f04;
-  font-size: 0.76rem;
+  font-size: 0.82rem;
   font-weight: 700;
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.18);
 }
@@ -1110,24 +1161,25 @@
 .command-staff-copy strong {
   display: block;
   color: #fff7e8;
-  font-size: 0.92rem;
+  font-size: 0.98rem;
   font-weight: 600;
 }
 
 .command-staff-copy p {
-  margin: 4px 0 0;
+  margin: 5px 0 0;
   color: #a79e91;
-  font-size: 0.8rem;
+  font-size: 0.82rem;
 }
 
 .command-staff-time {
   flex: 0 0 auto;
   color: #d4af37;
-  font-size: 0.78rem;
+  font-size: 0.8rem;
   font-weight: 600;
   white-space: nowrap;
   text-align: right;
   margin-left: auto;
+  letter-spacing: 0.02em;
 }
 
 .command-metric-row {
@@ -1200,13 +1252,13 @@
 }
 
 .command-alert-item.severity-low {
-  border-color: rgba(255, 193, 94, 0.28);
-  background: rgba(255, 193, 94, 0.05);
+  border-color: rgba(255, 193, 94, 0.3);
+  background: rgba(255, 193, 94, 0.06);
 }
 
 .command-alert-item.severity-critical {
-  border-color: rgba(244, 67, 54, 0.32);
-  background: rgba(244, 67, 54, 0.07);
+  border-color: rgba(244, 67, 54, 0.38);
+  background: rgba(244, 67, 54, 0.1);
 }
 
 .command-alert-badge {
@@ -1253,7 +1305,7 @@
 .command-quick-actions-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
+  gap: 12px;
 }
 
 .command-quick-action {
@@ -1261,21 +1313,21 @@
   background: linear-gradient(145deg, rgba(212, 175, 55, 0.14), rgba(12, 12, 13, 0.94));
   color: #f7efe1;
   border-radius: 16px;
-  padding: 14px 16px;
+  padding: 15px 17px;
   text-align: left;
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 14px;
   cursor: pointer;
   font: inherit;
-  transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease, background 180ms ease;
+  transition: transform 200ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 200ms ease, border-color 200ms ease, background 200ms ease;
 }
 
 .command-quick-action:hover:not(:disabled) {
-  transform: scale(1.02);
-  border-color: rgba(212, 175, 55, 0.45);
-  background: linear-gradient(145deg, rgba(212, 175, 55, 0.2), rgba(12, 12, 13, 0.96));
-  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.24);
+  transform: scale(1.02) translateY(-1px);
+  border-color: rgba(212, 175, 55, 0.5);
+  background: linear-gradient(145deg, rgba(212, 175, 55, 0.22), rgba(12, 12, 13, 0.96));
+  box-shadow: 0 14px 32px rgba(0, 0, 0, 0.28), 0 0 0 1px rgba(212, 175, 55, 0.12);
 }
 
 .command-quick-action.unavailable,
@@ -1291,31 +1343,33 @@
 .command-quick-action-icon {
   display: grid;
   place-items: center;
-  width: 38px;
-  height: 38px;
-  border-radius: 12px;
+  width: 42px;
+  height: 42px;
+  border-radius: 13px;
   background: rgba(255, 255, 255, 0.07);
   color: #f2cf82;
   flex: 0 0 auto;
-  font-size: 1.02rem;
+  font-size: 1.18rem;
   line-height: 1;
 }
 
 .command-quick-action-copy {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 3px;
   min-width: 0;
 }
 
 .command-quick-action-copy strong {
-  font-size: 0.84rem;
+  font-size: 0.86rem;
   color: #fff7e8;
 }
 
 .command-quick-action-copy small {
   color: #9f9485;
   font-size: 0.72rem;
+  font-weight: 500;
+  letter-spacing: 0.02em;
 }
 
 .topbar-meta {
@@ -5086,7 +5140,7 @@ input[type='time']::-webkit-datetime-edit-text {
   .topbar-command {
     flex-direction: column;
     align-items: stretch;
-    gap: 18px;
+    gap: 12px;
   }
 
   .command-topbar-meta {
@@ -5112,11 +5166,11 @@ input[type='time']::-webkit-datetime-edit-text {
   }
 
   .topbar-command {
-    padding: 20px 18px;
+    padding: 14px 16px;
   }
 
   .command-topbar-greeting {
-    font-size: 1.48rem;
+    font-size: 1.36rem;
   }
 
   .command-reservation-metric-value {
@@ -5124,7 +5178,7 @@ input[type='time']::-webkit-datetime-edit-text {
   }
 
   .command-hero-metric-value {
-    font-size: 2.15rem;
+    font-size: 2.35rem;
   }
 
   .command-reservation-metrics {

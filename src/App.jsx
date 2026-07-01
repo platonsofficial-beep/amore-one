@@ -364,8 +364,8 @@ function CommandCenterView({
                 </p>
               </article>
               <article className={`command-hero-metric health-tone-${businessHealth.tone}`} aria-label="Business health">
+                <p className="command-hero-metric-label command-hero-metric-label-upper">Business Health</p>
                 <p className="command-hero-metric-value command-hero-metric-value-text">{businessHealth.label}</p>
-                <p className="command-hero-metric-label">Business Health</p>
                 <p className="command-hero-metric-hint">{businessHealth.message}</p>
               </article>
             </div>
@@ -373,7 +373,7 @@ function CommandCenterView({
       </section>
 
       <div className="command-center-grid">
-        <section className="command-card" aria-label="Staff on shift">
+        <section className="command-card command-card-staff-featured" aria-label="Staff on shift">
           <header className="command-card-header">
             <p className="eyebrow">Staff on Shift</p>
             <h3>Who is working now?</h3>
@@ -431,7 +431,7 @@ function CommandCenterView({
                 </article>
               </div>
               {reservationsSummary.bookings === 0 ? (
-                <p className="command-card-footnote">No reservations booked today.</p>
+                <p className="command-card-footnote command-card-footnote-centered">No reservations booked today.</p>
               ) : null}
             </>
           )}
@@ -8667,10 +8667,6 @@ function App() {
             >
               {brandDisplay.businessNameLabel}
             </h1>
-            <p className="brand-powered-by">
-              <span className="brand-powered-mark" aria-hidden="true">O</span>
-              <span>Powered by ONE</span>
-            </p>
           </div>
         </div>
 
