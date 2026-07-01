@@ -1,6 +1,6 @@
 import { resolveShiftTemplateId } from './shiftIntegrity'
 import { formatTime24, normalizeTimeValue } from './timeFormatUtils'
-import { parseTimeToMinutes } from './shiftHoursUtils'
+import { calculateShiftDurationHours, parseTimeToMinutes } from './shiftHoursUtils'
 import { getCurrentDateKey } from './currentDateUtils'
 import { getWeekDateKeys } from './weekUtils'
 
@@ -76,6 +76,7 @@ function resolveEmployeeShiftMember(shift, employeesById) {
   const employee = employeesById.get(String(shift.employeeId))
   const name = resolvePublishedShiftEmployeeName(shift, employee)
   const position = `${employee?.position ?? shift.role ?? ''}`.trim()
+  const department = `${shift.area ?? ''}`.trim()
   const startTimeLabel = formatTime24(normalizeTimeValue(shift.startTime))
   const endTimeLabel = formatTime24(normalizeTimeValue(shift.endTime))
 
@@ -83,6 +84,7 @@ function resolveEmployeeShiftMember(shift, employeesById) {
     shiftId: String(shift.id),
     name,
     position,
+    department,
     startTime: shift.startTime,
     endTime: shift.endTime,
     startTimeLabel,
@@ -337,7 +339,7 @@ export function getLowStockAlertItems(inventoryItems = [], limit = 5) {
     .slice(0, limit)
     .map((item) => ({
       id: String(item.id),
-      name: `${item.name ?? 'Item'}`.trim() || 'Item',
+      name: `${item.itemName ?? item.name ?? item.item_name ?? ''}`.trim() || 'Item',
       status: item.status,
       severity: item.status === 'Out of Stock' ? 'critical' : 'low',
       quantity: item.quantity,
@@ -369,6 +371,103 @@ export function buildDashboardIssuesSummary(snapshot = {}) {
   }
 }
 
+export function buildExecutiveLabourSummary({
+  snapshot = {},
+  todayShifts = [],
+  employees = [],
+} = {}) {
+  const hoursLabel = `${snapshot.labourHoursLabel ?? '0'}`.trim() || '0'
+
+  const hourlyRateByEmployeeId = new Map()
+  employees.forEach((employee) => {
+    const hourlyRate = resolveEmployeeHourlyRate(employee)
+    if (hourlyRate !== null) {
+      hourlyRateByEmployeeId.set(String(employee.id), hourlyRate)
+    }
+  })
+
+  if (hourlyRateByEmployeeId.size === 0) {
+    return {
+      hoursLabel,
+      costConnected: false,
+      costDisplay: null,
+      costHint: 'Labour Cost not connected',
+    }
+  }
+
+  let totalCost = 0
+  let canCalculate = false
+  const seenShiftIds = new Set()
+
+  todayShifts.forEach((shift) => {
+    const shiftId = String(shift.id)
+    if (seenShiftIds.has(shiftId)) return
+    seenShiftIds.add(shiftId)
+
+    if (!shift.employeeId) return
+
+    const hourlyRate = hourlyRateByEmployeeId.get(String(shift.employeeId))
+    if (hourlyRate === undefined) return
+
+    canCalculate = true
+    totalCost += calculateShiftDurationHours(shift.startTime, shift.endTime) * hourlyRate
+  })
+
+  if (!canCalculate || totalCost <= 0) {
+    return {
+      hoursLabel,
+      costConnected: false,
+      costDisplay: null,
+      costHint: 'Labour Cost not connected',
+    }
+  }
+
+  return {
+    hoursLabel,
+    costConnected: true,
+    costDisplay: formatEuroAmount(totalCost),
+    costHint: "Today's Labour Cost",
+  }
+}
+
+function resolveEmployeeHourlyRate(employee) {
+  const candidates = [
+    employee?.hourlyRate,
+    employee?.hourly_rate,
+    employee?.hourlyWage,
+    employee?.hourly_wage,
+  ]
+
+  for (const candidate of candidates) {
+    const parsed = parsePositiveNumber(candidate)
+    if (parsed !== null) return parsed
+  }
+
+  return null
+}
+
+function parsePositiveNumber(value) {
+  if (value === null || value === undefined || value === '') return null
+
+  const trimmed = `${value}`.trim()
+  if (!trimmed) return null
+
+  const cleaned = trimmed.replace(/[€$,\s]/g, '')
+  const parsed = Number(cleaned)
+  if (!Number.isFinite(parsed) || parsed <= 0) return null
+
+  return parsed
+}
+
+function formatEuroAmount(value) {
+  const rounded = Math.round(value)
+  return new Intl.NumberFormat('en-IE', {
+    style: 'currency',
+    currency: 'EUR',
+    maximumFractionDigits: 0,
+  }).format(rounded)
+}
+
 export function buildBusinessHealthSummary({
   issuesSummary = {},
   stockAlerts = [],
@@ -383,6 +482,7 @@ export function buildBusinessHealthSummary({
     return {
       tone: 'critical',
       label: 'Critical',
+      icon: '✕',
       message: 'Immediate attention required.',
     }
   }
@@ -391,13 +491,15 @@ export function buildBusinessHealthSummary({
     return {
       tone: 'attention',
       label: 'Attention',
-      message: 'Review open issues today.',
+      icon: '⚠',
+      message: 'Minor issues detected.',
     }
   }
 
   return {
     tone: 'healthy',
     label: 'Excellent',
+    icon: '✓',
     message: 'All systems operating normally.',
   }
 }
@@ -460,6 +562,117 @@ export function buildDashboardContextMessage({
 
   if (liveFloor.state === 'unpublished') {
     return "Publish today's schedule to monitor live operations."
+  }
+
+  return 'Everything is running smoothly today.'
+}
+
+export function buildReservationsContextLine(
+  reservations = [],
+  todayKey = getCurrentDateKey(),
+  now = new Date(),
+) {
+  const todayReservations = getTodayReservations(reservations, todayKey)
+
+  if (todayReservations.length === 0) {
+    return 'No reservations booked today.'
+  }
+
+  const nowMinutes = now.getHours() * 60 + now.getMinutes()
+  const upcoming = todayReservations.find((reservation) => {
+    const minutes = parseTimeToMinutes(reservation.time)
+    return minutes !== null && minutes >= nowMinutes
+  }) ?? todayReservations[todayReservations.length - 1]
+
+  const timeLabel = formatTime24(normalizeTimeValue(upcoming.time))
+  if (!timeLabel) {
+    return `${todayReservations.length === 1 ? '1 reservation' : `${todayReservations.length} reservations`} booked today.`
+  }
+
+  return `Next reservation at ${timeLabel}.`
+}
+
+export function buildReservationsFooter(
+  reservations = [],
+  todayKey = getCurrentDateKey(),
+  now = new Date(),
+) {
+  const todayReservations = getTodayReservations(reservations, todayKey)
+
+  if (todayReservations.length === 0) {
+    return { type: 'empty', message: 'No upcoming reservations.' }
+  }
+
+  const nowMinutes = now.getHours() * 60 + now.getMinutes()
+  const upcoming = todayReservations.find((reservation) => {
+    const minutes = parseTimeToMinutes(reservation.time)
+    return minutes !== null && minutes >= nowMinutes
+  })
+
+  if (!upcoming) {
+    return { type: 'empty', message: 'No upcoming reservations.' }
+  }
+
+  const timeLabel = formatTime24(normalizeTimeValue(upcoming.time))
+  if (!timeLabel) {
+    return { type: 'empty', message: 'No upcoming reservations.' }
+  }
+
+  return { type: 'next', label: 'Next reservation', time: timeLabel }
+}
+
+export function buildDashboardOperationalSummary({
+  snapshot = {},
+  reservationsSummary = {},
+  reservationsConnected = false,
+  stockAlerts = [],
+  inventoryConnected = false,
+  issuesSummary = {},
+  liveFloor = {},
+  now = new Date(),
+} = {}) {
+  const hour = now.getHours()
+  const isEvening = hour >= 17
+  const dayPart = isEvening ? 'Tonight' : 'Today'
+  const scheduledStaff = Number(snapshot.scheduledStaff) || 0
+  const bookings = reservationsConnected ? Number(reservationsSummary.bookings) || 0 : null
+  const issueCount = Number(issuesSummary.count) || 0
+  const stockCount = inventoryConnected ? stockAlerts.length : 0
+
+  if (stockCount > 0) {
+    return stockCount === 1
+      ? 'One stock item requires attention before service.'
+      : `${stockCount} stock items require attention before service.`
+  }
+
+  if (issueCount > 0) {
+    return issueCount === 1
+      ? 'One issue needs attention before service.'
+      : `${issueCount} issues need attention before service.`
+  }
+
+  if (bookings !== null && scheduledStaff > 0) {
+    const reservationLabel = bookings === 1 ? '1 reservation' : `${bookings} reservations`
+    const staffLabel = scheduledStaff === 1 ? '1 employee scheduled' : `${scheduledStaff} employees scheduled`
+    return `${dayPart} has ${reservationLabel} and ${staffLabel}.`
+  }
+
+  if (bookings !== null && bookings > 0) {
+    const reservationLabel = bookings === 1 ? '1 reservation' : `${bookings} reservations`
+    return `${dayPart} has ${reservationLabel}.`
+  }
+
+  if (scheduledStaff > 0) {
+    const staffLabel = scheduledStaff === 1 ? '1 employee scheduled' : `${scheduledStaff} employees scheduled`
+    return `${dayPart} has ${staffLabel}.`
+  }
+
+  if (liveFloor.state === 'unpublished') {
+    return "Publish today's schedule to prepare for service."
+  }
+
+  if (isEvening) {
+    return "Everything is ready for today's evening shift."
   }
 
   return 'Everything is running smoothly today.'
