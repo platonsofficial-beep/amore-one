@@ -161,14 +161,38 @@ function inferPositionDepartment(name) {
 
 function getScheduleAreaIcon(area) {
   const normalized = `${area ?? ''}`.trim().toLowerCase()
+  if (normalized.includes('coffee') || normalized.includes('morning')) return '☕'
   if (normalized.includes('bar')) return '🍸'
-  if (normalized.includes('kitchen')) return '👨‍🍳'
-  if (normalized.includes('service') || normalized.includes('waiter') || normalized.includes('runner')) return '🍽'
+  if (normalized.includes('kitchen') || normalized.includes('chef') || normalized.includes('cook')) return '👨‍🍳'
+  if (normalized.includes('runner')) return '🏃'
+  if (normalized.includes('service') || normalized.includes('waiter')) return '🍽'
   if (normalized.includes('host') || normalized.includes('reception')) return '🛎'
   if (normalized.includes('terrace') || normalized.includes('garden')) return '🌿'
   if (normalized.includes('vip') || normalized.includes('lounge')) return '✨'
-  if (normalized.includes('management')) return '👔'
+  if (normalized.includes('management') || normalized.includes('manager')) return '👔'
   return '📋'
+}
+
+function formatDayCoverageBadgeIcon(status) {
+  if (status === 'covered') return '🟢'
+  if (status === 'understaffed') return '🟡'
+  if (status === 'overstaffed') return '🔴'
+  return '⚪'
+}
+
+function formatDayCoverageBadgeLabel(status, statusLabel) {
+  if (status === 'covered') return 'Fully Covered'
+  if (status === 'understaffed') return 'Understaffed'
+  if (status === 'overstaffed') return 'Conflict'
+  return statusLabel
+}
+
+function formatTemplateRequiredCount(minRequired, maxRequired) {
+  if (minRequired === null) return null
+  if (minRequired === maxRequired) {
+    return `${minRequired} Employee${minRequired === 1 ? '' : 's'}`
+  }
+  return `${minRequired}–${maxRequired} Employees`
 }
 
 function buildEmployeePositionOptions(positions = []) {
@@ -1068,6 +1092,17 @@ function StaffView({
   )
 }
 
+function formatScheduleHeaderWeekRange(days) {
+  if (!Array.isArray(days) || days.length === 0) return 'No week selected'
+
+  const formatDay = (dateKey) => {
+    const date = parseLocalDate(dateKey)
+    return date.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'short' })
+  }
+
+  return `${formatDay(days[0].key)} – ${formatDay(days[days.length - 1].key)}`
+}
+
 function ScheduleCollapsibleSection({ eyebrow, title, meta, children, className = '' }) {
   return (
     <details className={`schedule-collapsible panel staff-panel ${className}`.trim()}>
@@ -1136,8 +1171,10 @@ function ScheduleView({
   const [filters, setFilters] = useState({
     department: 'All',
     shift: 'All',
+    position: 'All',
     status: 'All',
     search: '',
+    publishedOnly: false,
   })
   const [isAssignmentModalOpen, setIsAssignmentModalOpen] = useState(false)
   const [assignmentError, setAssignmentError] = useState('')
@@ -1999,16 +2036,33 @@ function ScheduleView({
 
   const filteredDayShifts = useMemo(() => {
     const searchTerm = filters.search.trim().toLowerCase()
+    const publishedShiftIds = new Set((publishedShifts ?? []).map((shift) => String(shift.id)))
 
     return selectedDayShifts.filter((shift) => {
       const employeeName = `${shift.employees?.full_name || shift.employeeName || shift.employeeRecord?.name || ''}`.toLowerCase()
+      const shiftPosition = `${shift.role || shift.employeeRecord?.position || ''}`.trim()
       const matchesSearch = !searchTerm || employeeName.includes(searchTerm)
       const matchesDepartment = filters.department === 'All' || getShiftDepartment(shift) === filters.department
       const matchesShift = filters.shift === 'All' || getShiftPeriod(shift) === filters.shift
+      const matchesPosition = filters.position === 'All' || shiftPosition === filters.position
       const matchesStatus = filters.status === 'All' || `${shift.status || 'Scheduled'}`.toLowerCase() === filters.status.toLowerCase()
-      return matchesSearch && matchesDepartment && matchesShift && matchesStatus
+      const matchesPublished = !filters.publishedOnly || publishedShiftIds.has(String(shift.id))
+      return matchesSearch && matchesDepartment && matchesShift && matchesPosition && matchesStatus && matchesPublished
     })
-  }, [filters.department, filters.search, filters.shift, filters.status, selectedDayShifts])
+  }, [filters.department, filters.position, filters.publishedOnly, filters.search, filters.shift, filters.status, publishedShifts, selectedDayShifts])
+
+  const positionFilterOptions = useMemo(() => {
+    const names = new Set()
+    ;(positions ?? []).forEach((position) => {
+      const name = `${position?.name ?? ''}`.trim()
+      if (name) names.add(name)
+    })
+    visibleWeekShifts.forEach((shift) => {
+      const role = `${shift.role ?? ''}`.trim()
+      if (role) names.add(role)
+    })
+    return ['All', ...Array.from(names).sort((left, right) => left.localeCompare(right))]
+  }, [positions, visibleWeekShifts])
 
   const departmentGroups = useMemo(() => {
     const groups = ['Bar', 'Service', 'Host', 'Kitchen', 'Management'].map((department) => ({
@@ -2051,6 +2105,16 @@ function ScheduleView({
       coverage,
     }
   }, [employees, shifts, weekDays])
+
+  const weekLabourSummary = useMemo(() => buildExecutiveLabourSummary({
+    snapshot: { labourHoursLabel: weekSummary.totalHours },
+    todayShifts: visibleWeekShifts,
+    employees,
+  }), [employees, visibleWeekShifts, weekSummary.totalHours])
+
+  const schedulePublicationLabel = isWeekPublished
+    ? (hasUnpublishedChanges ? 'Draft changes' : 'Published')
+    : 'Draft'
 
   const employeeWeekScheduleView = useMemo(
     () => buildEmployeeWeekScheduleView({
@@ -2132,6 +2196,22 @@ function ScheduleView({
         if (cell.assignedCount < cell.requiredCount) hasUnderstaffed = true
       })
 
+      let totalRequired = 0
+      let totalAssignedSlots = 0
+      blendGridRows.forEach((row) => {
+        const cell = row.dayCells.find((entry) => entry.day.key === dayKey)
+        if (!cell) return
+        totalRequired += cell.requiredCount
+        totalAssignedSlots += cell.assignedCount
+      })
+
+      let coveragePercent = null
+      if (totalRequired > 0) {
+        coveragePercent = Math.min(100, Math.round((totalAssignedSlots / totalRequired) * 100))
+      } else if (totalAssignedStaff > 0) {
+        coveragePercent = 100
+      }
+
       let status = 'empty'
       let statusLabel = 'Empty'
       let statusIcon = '⚪'
@@ -2151,13 +2231,13 @@ function ScheduleView({
       } else {
         status = 'covered'
         statusLabel = 'Fully Covered'
-        statusIcon = '🟢'
       }
 
       summaries[dayKey] = {
         totalAssignedStaff,
         totalScheduledHours,
         hoursLabel: formatHoursLabel(totalScheduledHours),
+        coveragePercent,
         status,
         statusLabel,
         statusIcon,
@@ -2166,6 +2246,12 @@ function ScheduleView({
 
     return summaries
   }, [blendGridRows, visibleWeekShifts, weekDays])
+
+  const scheduleWarningCount = useMemo(() => (
+    Object.values(dayHeaderSummariesByKey).filter(
+      (summary) => summary.status === 'understaffed' || summary.status === 'overstaffed',
+    ).length
+  ), [dayHeaderSummariesByKey])
 
   const activeStaffMembers = useMemo(() => (
     employees
@@ -2179,40 +2265,6 @@ function ScheduleView({
     () => buildEmployeeWeeklyHoursMap(visibleWeekShifts),
     [visibleWeekShifts],
   )
-
-  const coverageSummary = useMemo(() => {
-    const shortageByRole = new Map()
-
-    blendGridRows.forEach((row) => {
-      const roleName = `${row.template.defaultRole || row.template.name || 'Staff'}`.trim()
-      row.dayCells.forEach((cell) => {
-        const missing = Math.max(0, cell.requiredCount - cell.assignedCount)
-        if (missing > 0) {
-          shortageByRole.set(roleName, (shortageByRole.get(roleName) ?? 0) + missing)
-        }
-      })
-    })
-
-    const shortages = Array.from(shortageByRole.entries())
-      .sort((a, b) => b[1] - a[1])
-      .map(([role, count]) => ({ role, count }))
-
-    const totalMissing = shortages.reduce((sum, item) => sum + item.count, 0)
-    if (totalMissing === 0) {
-      return {
-        label: 'Fully Staffed',
-        tone: 'staffed',
-        details: ['All scheduled positions are covered'],
-      }
-    }
-
-    const tone = totalMissing <= 2 ? 'attention' : 'understaffed'
-    return {
-      label: tone === 'attention' ? 'Needs Attention' : 'Understaffed',
-      tone,
-      details: shortages.slice(0, 2).map((item) => `Need ${item.count} ${item.role}${item.count === 1 ? '' : 's'}`),
-    }
-  }, [blendGridRows])
 
   const assignmentTemplate = useMemo(
     () => scheduleGridTemplates.find((template) => template.id === assignmentDraft.templateId) ?? null,
@@ -3053,71 +3105,54 @@ function ScheduleView({
 
   return (
     <section className="staff-page schedule-workspace" onClick={() => { setCapacityPickerKey(''); setDayActionMenuKey(null); setCellActionMenuKey(''); setIsScheduleMoreMenuOpen(false) }}>
-      <div className="schedule-toolbar">
-        <div className="schedule-toolbar-nav">
-          <button
-            type="button"
-            className="ghost-btn schedule-toolbar-nav-btn"
-            onClick={() => onWeekStartDateChange(addWeeks(weekStartDate, -1))}
-            disabled={isLoading || isSaving || isPublishing}
-          >
-            ← Previous Week
-          </button>
-          <button
-            type="button"
-            className="ghost-btn schedule-toolbar-nav-btn"
-            onClick={() => onWeekStartDateChange(getCurrentWeekStartDate())}
-            disabled={isLoading || isSaving || isPublishing || isCurrentWeek(weekStartDate)}
-          >
-            Today
-          </button>
-          <button
-            type="button"
-            className="ghost-btn schedule-toolbar-nav-btn"
-            onClick={() => onWeekStartDateChange(addWeeks(weekStartDate, 1))}
-            disabled={isLoading || isSaving || isPublishing}
-          >
-            Next Week →
-          </button>
-          <div className="schedule-toolbar-week-label">
-            <strong>{weekRangeLabel(weekDays)}</strong>
-          </div>
+      <header className="schedule-header panel">
+        <div className="schedule-header-copy">
+          <p className="eyebrow">Schedule</p>
+          <h2 className="schedule-header-title">Current week</h2>
+          <p className="schedule-header-range">{formatScheduleHeaderWeekRange(weekDays)}</p>
         </div>
 
-        <div className="schedule-toolbar-actions">
-          {hasUnpublishedChanges || !isWeekPublished ? (
+        <div className="schedule-header-actions">
+          <div className="schedule-header-nav">
             <button
               type="button"
-              className="primary-btn schedule-publish-btn schedule-publish-btn--draft"
-              onClick={() => {
-                setPublishError('')
-                setIsPublishConfirmOpen(true)
-              }}
-              disabled={isSaving || isPublishing}
+              className="ghost-btn schedule-header-nav-btn"
+              onClick={() => onWeekStartDateChange(addWeeks(weekStartDate, -1))}
+              disabled={isLoading || isSaving || isPublishing}
             >
-              {hasUnpublishedChanges ? '🟡 Publish changes' : '🟡 Publish Schedule'}
+              Previous Week
             </button>
-          ) : (
             <button
               type="button"
-              className="primary-btn schedule-publish-btn schedule-publish-btn--published"
-              onClick={() => {
-                setPublishError('')
-                setIsUnpublishConfirmOpen(true)
-              }}
-              disabled={isSaving || isPublishing}
+              className="ghost-btn schedule-header-nav-btn"
+              onClick={() => onWeekStartDateChange(getCurrentWeekStartDate())}
+              disabled={isLoading || isSaving || isPublishing || isCurrentWeek(weekStartDate)}
             >
-              <span className="schedule-published-label">🟢 Published</span>
-              <span className="schedule-unpublish-label">🔴 Unpublish</span>
+              Today
             </button>
-          )}
-          <button type="button" className="ghost-btn schedule-add-shift-btn" onClick={() => handleOpenAddShiftForDate(selectedDate)} disabled={isSaving}>
+            <button
+              type="button"
+              className="ghost-btn schedule-header-nav-btn"
+              onClick={() => onWeekStartDateChange(addWeeks(weekStartDate, 1))}
+              disabled={isLoading || isSaving || isPublishing}
+            >
+              Next Week
+            </button>
+          </div>
+
+          <div className="schedule-header-controls">
+          <span className={`schedule-status-badge schedule-header-control-surface ${isWeekPublished ? (hasUnpublishedChanges ? 'pending' : 'published') : 'draft'}`}>
+            {schedulePublicationLabel}
+          </span>
+
+          <button type="button" className="ghost-btn schedule-add-shift-btn schedule-header-tertiary-btn schedule-header-control-surface" onClick={() => handleOpenAddShiftForDate(selectedDate)} disabled={isSaving}>
             {isSaving ? 'Saving…' : 'Add Shift'}
           </button>
-          <div className="schedule-more-menu" onClick={(event) => event.stopPropagation()}>
+
+          <div className="schedule-more-menu schedule-header-control-surface" onClick={(event) => event.stopPropagation()}>
             <button
               type="button"
-              className="ghost-btn schedule-more-menu-btn"
+              className="ghost-btn schedule-more-menu-btn schedule-header-tertiary-btn"
               onClick={() => setIsScheduleMoreMenuOpen((current) => !current)}
               aria-expanded={isScheduleMoreMenuOpen}
               aria-haspopup="menu"
@@ -3136,7 +3171,76 @@ function ScheduleView({
               </div>
             ) : null}
           </div>
+
+          {hasUnpublishedChanges || !isWeekPublished ? (
+            <button
+              type="button"
+              className="primary-btn schedule-publish-btn schedule-publish-btn--draft schedule-header-control-surface"
+              onClick={() => {
+                setPublishError('')
+                setIsPublishConfirmOpen(true)
+              }}
+              disabled={isSaving || isPublishing}
+            >
+              {hasUnpublishedChanges ? 'Publish changes' : 'Publish'}
+            </button>
+          ) : (
+            <button
+              type="button"
+              className="primary-btn schedule-publish-btn schedule-publish-btn--published schedule-header-control-surface"
+              onClick={() => {
+                setPublishError('')
+                setIsUnpublishConfirmOpen(true)
+              }}
+              disabled={isSaving || isPublishing}
+            >
+              <span className="schedule-published-label">Published</span>
+              <span className="schedule-unpublish-label">Unpublish</span>
+            </button>
+          )}
+          </div>
         </div>
+      </header>
+
+      <div className="schedule-filters-bar panel">
+        <label className="schedule-filter-field schedule-filter-search">
+          <span className="schedule-filter-label">Search employee</span>
+          <input
+            value={filters.search}
+            onChange={(event) => setFilters((current) => ({ ...current, search: event.target.value }))}
+            placeholder="Search by name"
+          />
+        </label>
+        <label className="schedule-filter-field">
+          <span className="schedule-filter-label">Department</span>
+          <select value={filters.department} onChange={(event) => setFilters((current) => ({ ...current, department: event.target.value }))}>
+            <option value="All">All departments</option>
+            <option value="Bar">Bar</option>
+            <option value="Service">Service</option>
+            <option value="Host">Host</option>
+            <option value="Kitchen">Kitchen</option>
+            <option value="Management">Management</option>
+          </select>
+        </label>
+        <label className="schedule-filter-field">
+          <span className="schedule-filter-label">Position</span>
+          <select value={filters.position} onChange={(event) => setFilters((current) => ({ ...current, position: event.target.value }))}>
+            {positionFilterOptions.map((option) => (
+              <option key={`schedule-position-filter-${option}`} value={option}>
+                {option === 'All' ? 'All positions' : option}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="schedule-filter-toggle">
+          <input
+            type="checkbox"
+            checked={filters.publishedOnly}
+            onChange={(event) => setFilters((current) => ({ ...current, publishedOnly: event.target.checked }))}
+            disabled={!isWeekPublished}
+          />
+          <span>Show Published Only</span>
+        </label>
       </div>
 
       {hasUnpublishedChanges ? (
@@ -3149,7 +3253,7 @@ function ScheduleView({
       {noticeMessage ? <div className="staff-status-banner schedule-workspace-banner">{noticeMessage}</div> : null}
       {isLoading ? <div className="staff-status-banner schedule-workspace-banner">Loading schedule…</div> : null}
 
-      <div className="panel staff-panel blend-grid-panel schedule-grid-hero">
+      <div className="schedule-grid-section panel staff-panel blend-grid-panel schedule-grid-hero">
         {scheduleGridTemplates.length === 0 ? (
           <div className="schedule-empty-state">
             <h4>No shift templates available.</h4>
@@ -3157,6 +3261,7 @@ function ScheduleView({
           </div>
         ) : (
           <>
+          <div className="schedule-roster-bar">
           <div className="schedule-staff-strip">
             <div className="schedule-staff-strip-scroll">
               {activeStaffMembers.length === 0 ? (
@@ -3169,6 +3274,9 @@ function ScheduleView({
                   const scheduledHours = employeeWeeklyHoursMap.get(String(employee.id)) ?? 0
                   const weeklyTarget = parseWeeklyHoursTarget(employee.weeklyHours ?? employee.weekly_hours)
                   const hoursTracker = getEmployeeHoursTrackerState(scheduledHours, weeklyTarget)
+                  const hoursPercent = hoursTracker.hasTarget && weeklyTarget > 0
+                    ? Math.round((scheduledHours / weeklyTarget) * 100)
+                    : null
 
                   return (
                     <button
@@ -3184,13 +3292,18 @@ function ScheduleView({
                       <span className="schedule-staff-chip-body">
                         <strong className="schedule-staff-chip-name">{firstName}</strong>
                         <span className="schedule-staff-chip-role">{positionLabel}</span>
+                        <div className="schedule-staff-hours-row">
+                          <span className="schedule-staff-hours-primary">{hoursTracker.primaryLabel}</span>
+                          {hoursPercent !== null ? (
+                            <span className="schedule-staff-hours-percent">{hoursPercent}%</span>
+                          ) : null}
+                        </div>
                         <span className="schedule-staff-hours-bar" aria-hidden="true">
                           <span
                             className={`schedule-staff-hours-bar-fill ${hoursTracker.status}`}
                             style={{ width: `${hoursTracker.barWidth}%` }}
                           />
                         </span>
-                        <span className="schedule-staff-hours-primary">{hoursTracker.primaryLabel}</span>
                       </span>
                     </button>
                   )
@@ -3198,14 +3311,16 @@ function ScheduleView({
               )}
             </div>
           </div>
+          </div>
 
           <div className="blend-grid-scroll">
-            <div className="blend-grid-table" style={{ gridTemplateColumns: `310px repeat(${weekDays.length}, minmax(190px, 1fr))` }}>
+            <div className="blend-grid-table" style={{ gridTemplateColumns: `228px repeat(${weekDays.length}, minmax(0, 1fr))` }}>
               <div className="blend-grid-header blend-grid-header-template">Shift template</div>
               {weekDays.map((day) => {
                 const daySummary = dayHeaderSummariesByKey[day.key] ?? {
                   totalAssignedStaff: 0,
                   hoursLabel: '0',
+                  coveragePercent: null,
                   status: 'empty',
                   statusLabel: 'Empty',
                   statusIcon: '⚪',
@@ -3222,15 +3337,18 @@ function ScheduleView({
                     onClick={() => setSelectedDay(day.key)}
                   >
                     <strong className="blend-grid-header-day-name">{dayHeader.weekdayLabel}</strong>
+                    <span className={`day-header-status ${daySummary.status}`}>
+                      <span className="day-header-status-dot" aria-hidden="true">{formatDayCoverageBadgeIcon(daySummary.status)}</span>
+                      {formatDayCoverageBadgeLabel(daySummary.status, daySummary.statusLabel)}
+                    </span>
+                    {daySummary.coveragePercent !== null ? (
+                      <span className={`day-header-coverage-percent tone-${daySummary.status}`}>{daySummary.coveragePercent}% Covered</span>
+                    ) : null}
                     <span className="blend-grid-header-day-date">{dayHeader.calendarLabel}</span>
                     <div className="blend-grid-header-day-metrics" aria-label={`${daySummary.totalAssignedStaff} employees, ${daySummary.hoursLabel} hours`}>
-                      <span className="blend-grid-header-day-metric">👥 {daySummary.totalAssignedStaff} {daySummary.totalAssignedStaff === 1 ? 'Employee' : 'Employees'}</span>
-                      <span className="blend-grid-header-day-metric">⏱ {daySummary.hoursLabel} {Number(daySummary.hoursLabel) === 1 ? 'Hour' : 'Hours'}</span>
+                      <span className="blend-grid-header-day-metric">{daySummary.totalAssignedStaff} staff</span>
+                      <span className="blend-grid-header-day-metric">{daySummary.hoursLabel}h scheduled</span>
                     </div>
-                    <span className={`day-header-status ${daySummary.status}`}>
-                      <span className="day-header-status-icon" aria-hidden="true">{daySummary.statusIcon}</span>
-                      {daySummary.statusLabel}
-                    </span>
                   </button>
                   <button
                     type="button"
@@ -3273,15 +3391,12 @@ function ScheduleView({
                   {(() => {
                     const templateArea = `${row.template.defaultArea || row.template.defaultRole || 'General'}`.trim()
                     const templateDepartment = templateArea.toUpperCase()
-                    const templateAreaIcon = getScheduleAreaIcon(templateArea)
                     const requiredCounts = row.dayCells.map((cell) => cell.requiredCount)
                     const minRequired = requiredCounts.length > 0 ? Math.min(...requiredCounts) : null
                     const maxRequired = requiredCounts.length > 0 ? Math.max(...requiredCounts) : null
-                    const requiredStaffLabel = minRequired === null
-                      ? null
-                      : minRequired === maxRequired
-                        ? `${minRequired} Employee${minRequired === 1 ? '' : 's'}`
-                        : `${minRequired}–${maxRequired} Employees`
+                    const requiredCountLabel = formatTemplateRequiredCount(minRequired, maxRequired)
+                    const templateShiftName = `${row.template.name || templateDepartment}`.trim()
+                    const templateNote = `${row.template.notes ?? ''}`.trim()
 
                     return (
                   <aside key={`template-${row.template.id}`} className="blend-grid-template-cell blend-grid-palette-card">
@@ -3312,18 +3427,18 @@ function ScheduleView({
                     </div>
                     <span className="blend-grid-palette-grip" aria-hidden="true">⠿</span>
                     <div className="blend-grid-palette-body">
-                      <div className="blend-grid-palette-head">
-                        <span className="blend-grid-palette-icon" aria-hidden="true">{templateAreaIcon}</span>
-                        <p className="blend-grid-palette-department">{templateDepartment}</p>
-                      </div>
-                      <p className="blend-grid-palette-time">{formatTimeRange24(row.template.startTime, row.template.endTime, ' → ')}</p>
-                      {requiredStaffLabel ? (
+                      <p className="blend-grid-palette-department">
+                        <span className="blend-grid-palette-icon" aria-hidden="true">{getScheduleAreaIcon(templateArea || templateShiftName)}</span>
+                        <span className="blend-grid-palette-name">{templateShiftName.toUpperCase()}</span>
+                      </p>
+                      <p className="blend-grid-palette-time">{formatTimeRange24(row.template.startTime, row.template.endTime, '–')}</p>
+                      {requiredCountLabel ? (
                         <div className="blend-grid-palette-required-block">
-                          <span className="blend-grid-palette-required-label">Required</span>
-                          <span className="blend-grid-palette-required-count">{requiredStaffLabel}</span>
+                          <p className="blend-grid-palette-required-label">Required</p>
+                          <p className="blend-grid-palette-required-count">{requiredCountLabel}</p>
                         </div>
                       ) : null}
-                      {row.template.name ? <p className="blend-grid-palette-name">{row.template.name}</p> : null}
+                      {templateNote ? <p className="blend-grid-palette-note">{templateNote}</p> : null}
                     </div>
                   </aside>
                     )
@@ -3470,6 +3585,9 @@ function ScheduleView({
                           const pillStartTime = normalizeTimeValue(shift.startTime) || normalizeTimeValue(shiftTemplate?.startTime)
                           const pillEndTime = normalizeTimeValue(shift.endTime) || normalizeTimeValue(shiftTemplate?.endTime)
 
+                          const pillTimeLabel = formatTimeRange24(pillStartTime, pillEndTime, '–')
+                          const shiftTypeIcon = getScheduleAreaIcon(shiftPosition || row.template.defaultArea || row.template.defaultRole)
+
                           return (
                             <button
                               key={`shift-pill-${shift.id}`}
@@ -3483,13 +3601,20 @@ function ScheduleView({
                                 handleOpenAssignmentActions(shift)
                               }}
                             >
-                              <span className="blend-grid-pill-name">{employeeName} • {shiftPosition}</span>
-                              {usesCustomTime ? (
-                                <span className="blend-grid-pill-time">
-                                  <span>{formatTimeRange24(pillStartTime, pillEndTime, '–')}</span>
-                                  {overtimeHours > 0 ? <span className="blend-grid-pill-overtime">+{formatHoursLabel(overtimeHours)}h</span> : null}
+                              <span className="blend-grid-pill-avatar">{getInitials(employeeName)}</span>
+                              <span className="blend-grid-pill-copy">
+                                <span className="blend-grid-pill-name">{employeeName}</span>
+                                <span className="blend-grid-pill-role">
+                                  <span className="blend-grid-pill-type-icon" aria-hidden="true">{shiftTypeIcon}</span>
+                                  {shiftPosition}
                                 </span>
-                              ) : null}
+                                {pillTimeLabel ? (
+                                  <span className="blend-grid-pill-time">
+                                    <span>{pillTimeLabel}</span>
+                                    {overtimeHours > 0 ? <span className="blend-grid-pill-overtime">+{formatHoursLabel(overtimeHours)}h</span> : null}
+                                  </span>
+                                ) : null}
+                              </span>
                             </button>
                           )
                         })}
@@ -3510,43 +3635,50 @@ function ScheduleView({
         )}
       </div>
 
-      <ScheduleCollapsibleSection
-        eyebrow="Weekly statistics"
-        title="Week at a glance"
-        meta={`${weekSummary.employeesScheduled} scheduled · ${weekSummary.totalShifts} shifts · ${weekSummary.totalHours}h · ${coverageSummary.label}`}
-        className="schedule-stats-collapsible"
-      >
-        <div className="roster-summary-grid roster-summary-bar">
-          <article className="roster-summary-card">
-            <p className="eyebrow">Employees scheduled</p>
-            <h3>{weekSummary.employeesScheduled}</h3>
-          </article>
-          <article className="roster-summary-card">
-            <p className="eyebrow">Total shifts</p>
-            <h3>{weekSummary.totalShifts}</h3>
-          </article>
-          <article className="roster-summary-card">
-            <p className="eyebrow">Total working hours</p>
-            <h3>{weekSummary.totalHours}h</h3>
-          </article>
-          <article className="roster-summary-card">
-            <p className="eyebrow">Employees off</p>
-            <h3>{weekSummary.employeesOff}</h3>
-          </article>
-          <article className="roster-summary-card">
-            <p className="eyebrow">Coverage</p>
-            <h3 className={`coverage-status ${coverageSummary.tone}`}>{coverageSummary.label}</h3>
-            <p className="coverage-detail">{coverageSummary.details.join(' • ')}</p>
-          </article>
-        </div>
-      </ScheduleCollapsibleSection>
+      {scheduleGridTemplates.length > 0 ? (
+        <ScheduleCollapsibleSection
+          title="Weekly Statistics"
+          meta="Week at a glance"
+          className="schedule-weekly-stats-collapsible"
+        >
+          <section className="schedule-weekly-stats" aria-label="Weekly statistics">
+            <article className="schedule-weekly-stat">
+              <p className="schedule-weekly-stat-label">Employees</p>
+              <p className="schedule-weekly-stat-value">{weekSummary.employeesScheduled}</p>
+            </article>
+            <article className="schedule-weekly-stat">
+              <p className="schedule-weekly-stat-label">Shifts</p>
+              <p className="schedule-weekly-stat-value">{weekSummary.totalShifts}</p>
+            </article>
+            <article className="schedule-weekly-stat">
+              <p className="schedule-weekly-stat-label">Scheduled Hours</p>
+              <p className="schedule-weekly-stat-value">{weekSummary.totalHours}h</p>
+            </article>
+            <article className="schedule-weekly-stat">
+              <p className="schedule-weekly-stat-label">Coverage</p>
+              <p className="schedule-weekly-stat-value">{weekSummary.coverage}%</p>
+            </article>
+            <article className="schedule-weekly-stat">
+              <p className="schedule-weekly-stat-label">Labour Cost</p>
+              <p className={`schedule-weekly-stat-value ${weekLabourSummary.costConnected ? 'tone-gold' : 'tone-muted'}`}>
+                {weekLabourSummary.costConnected ? weekLabourSummary.costDisplay : 'Not Connected'}
+              </p>
+            </article>
+            <article className="schedule-weekly-stat">
+              <p className="schedule-weekly-stat-label">Warnings</p>
+              <p className={`schedule-weekly-stat-value ${scheduleWarningCount > 0 ? 'tone-warning' : 'tone-muted'}`}>
+                {scheduleWarningCount > 0 ? scheduleWarningCount : 'None'}
+              </p>
+            </article>
+          </section>
+        </ScheduleCollapsibleSection>
+      ) : null}
 
       <ScheduleCollapsibleSection
-        eyebrow="Saved weeks"
-        title="Reusable week presets"
+        title="Saved Templates"
         meta={selectedWeeklyTemplateId
           ? `${weeklyTemplates.find((template) => String(template.id) === String(selectedWeeklyTemplateId))?.name ?? 'Saved week selected'}`
-          : 'Save, load, or copy from another week'}
+          : 'Reusable schedule presets'}
         className="weekly-template-panel schedule-saved-weeks-collapsible"
       >
         <div className="weekly-template-toolbar">
@@ -3658,42 +3790,6 @@ function ScheduleView({
           : 'Select a day in the grid to focus roster filters'}
         className="schedule-roster-collapsible"
       >
-        <div className="roster-filters">
-          <label className="roster-filter">
-            <span>Department</span>
-            <select value={filters.department} onChange={(event) => setFilters((current) => ({ ...current, department: event.target.value }))}>
-              <option value="All">All</option>
-              <option value="Bar">Bar</option>
-              <option value="Service">Service</option>
-              <option value="Host">Host</option>
-              <option value="Kitchen">Kitchen</option>
-              <option value="Management">Management</option>
-            </select>
-          </label>
-          <label className="roster-filter">
-            <span>Shift</span>
-            <select value={filters.shift} onChange={(event) => setFilters((current) => ({ ...current, shift: event.target.value }))}>
-              <option value="All">All</option>
-              <option value="Morning">Morning</option>
-              <option value="Evening">Evening</option>
-              <option value="Night">Night</option>
-            </select>
-          </label>
-          <label className="roster-filter">
-            <span>Status</span>
-            <select value={filters.status} onChange={(event) => setFilters((current) => ({ ...current, status: event.target.value }))}>
-              <option value="All">All</option>
-              <option value="Scheduled">Scheduled</option>
-              <option value="Confirmed">Confirmed</option>
-              <option value="Completed">Completed</option>
-            </select>
-          </label>
-          <label className="roster-filter roster-filter-search">
-            <span>Employee</span>
-            <input value={filters.search} onChange={(event) => setFilters((current) => ({ ...current, search: event.target.value }))} placeholder="Search" />
-          </label>
-        </div>
-
         {filteredDayShifts.length === 0 && !isLoading ? (
           <div className="schedule-empty-state">
             <h4>No employees match this view.</h4>
