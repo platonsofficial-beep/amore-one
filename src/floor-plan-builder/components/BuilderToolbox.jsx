@@ -2,17 +2,18 @@ import { useState } from 'react'
 import { useFloorPlanBuilder } from '../hooks/useFloorPlanBuilder'
 import { BUILDER_COMPONENT_CATEGORIES } from '../models/componentCatalog'
 
+function ComponentPreview({ preview }) {
+  return (
+    <span className={`fpb-component-preview preview-${preview}`} aria-hidden="true" />
+  )
+}
+
 export function BuilderToolbox() {
   const { dispatch, state } = useFloorPlanBuilder()
-  const [expandedCategories, setExpandedCategories] = useState(() => (
-    Object.fromEntries(BUILDER_COMPONENT_CATEGORIES.map((category) => [category.id, true]))
-  ))
+  const [expandedCategoryId, setExpandedCategoryId] = useState('tables')
 
   const toggleCategory = (categoryId) => {
-    setExpandedCategories((current) => ({
-      ...current,
-      [categoryId]: !current[categoryId],
-    }))
+    setExpandedCategoryId((current) => (current === categoryId ? null : categoryId))
   }
 
   return (
@@ -24,7 +25,7 @@ export function BuilderToolbox() {
 
       <div className="fpb-toolbox-scroll">
         {BUILDER_COMPONENT_CATEGORIES.map((category) => {
-          const isExpanded = expandedCategories[category.id]
+          const isExpanded = expandedCategoryId === category.id
 
           return (
             <section key={category.id} className="fpb-toolbox-category">
@@ -34,8 +35,10 @@ export function BuilderToolbox() {
                 aria-expanded={isExpanded}
                 onClick={() => toggleCategory(category.id)}
               >
+                <span className="fpb-toolbox-category-chevron" aria-hidden="true">
+                  {isExpanded ? '▼' : '▶'}
+                </span>
                 <span>{category.label}</span>
-                <span aria-hidden="true">{isExpanded ? '−' : '+'}</span>
               </button>
 
               {isExpanded ? (
@@ -53,8 +56,11 @@ export function BuilderToolbox() {
                           payload: { itemId: item.id },
                         })}
                       >
-                        <span className="fpb-toolbox-item-icon" aria-hidden="true">{item.icon}</span>
-                        <span className="fpb-toolbox-item-label">{item.label}</span>
+                        <ComponentPreview preview={item.preview} />
+                        <span className="fpb-toolbox-item-copy">
+                          <span className="fpb-toolbox-item-icon" aria-hidden="true">{item.icon}</span>
+                          <span className="fpb-toolbox-item-label">{item.label}</span>
+                        </span>
                       </button>
                     )
                   })}

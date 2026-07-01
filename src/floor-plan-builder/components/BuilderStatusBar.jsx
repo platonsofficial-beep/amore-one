@@ -9,7 +9,7 @@ export function BuilderStatusBar() {
       <div className="fpb-status-group">
         <span className="fpb-status-item">
           <span className="fpb-status-label">Zoom</span>
-          <strong>{formatZoomPercent(state.viewport.zoom)}</strong>
+          <strong>{formatZoomPercent(state.camera.zoom)}</strong>
         </span>
         <span className="fpb-status-divider" aria-hidden="true" />
         <span className="fpb-status-item">

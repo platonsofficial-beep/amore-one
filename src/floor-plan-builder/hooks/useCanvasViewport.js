@@ -1,40 +1,113 @@
 import { useCallback, useEffect, useRef } from 'react'
+import {
+  clampCameraZoom,
+  createCamera,
+  getCameraAtZoom,
+  getCameraFitToBounds,
+  getResetCameraForWorkspace,
+  screenToWorld,
+} from '../lib/camera'
 
-const MIN_ZOOM = 0.25
-const MAX_ZOOM = 2
 const ZOOM_STEP = 0.08
-
-function clampZoom(value) {
-  return Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, value))
-}
+const SCROLL_INTENSITY = 0.85
+const ZOOM_IDLE_MS = 280
 
 export function useCanvasViewport({
-  viewport,
-  onViewportChange,
+  camera,
+  onCameraChange,
   containerRef,
+  onAnimateCamera,
+  onZoomActivity,
+  floorBounds,
 }) {
   const panSessionRef = useRef(null)
-  const spacePressedRef = useRef(false)
+  const cameraRef = useRef(camera)
+  const zoomIdleTimeoutRef = useRef(null)
+
+  useEffect(() => {
+    cameraRef.current = camera
+  }, [camera])
+
+  const markZoomActivity = useCallback(() => {
+    onZoomActivity?.(true)
+    if (zoomIdleTimeoutRef.current) {
+      window.clearTimeout(zoomIdleTimeoutRef.current)
+    }
+    zoomIdleTimeoutRef.current = window.setTimeout(() => {
+      onZoomActivity?.(false)
+    }, ZOOM_IDLE_MS)
+  }, [onZoomActivity])
+
+  const getViewportSize = useCallback(() => {
+    const container = containerRef.current
+    if (!container) return null
+
+    return {
+      width: container.clientWidth,
+      height: container.clientHeight,
+    }
+  }, [containerRef])
+
+  const getContainerRect = useCallback(() => {
+    const container = containerRef.current
+    if (!container) return null
+    return container.getBoundingClientRect()
+  }, [containerRef])
+
+  const setCamera = useCallback((nextCamera) => {
+    onCameraChange(createCamera(nextCamera))
+  }, [onCameraChange])
+
+  const applyCamera = useCallback((nextCamera) => {
+    onAnimateCamera?.()
+    setCamera(nextCamera)
+  }, [onAnimateCamera, setCamera])
+
+  const resetView = useCallback(() => {
+    const viewport = getViewportSize()
+    if (!viewport || !floorBounds) return
+
+    applyCamera(getResetCameraForWorkspace(
+      floorBounds,
+      viewport.width,
+      viewport.height,
+    ))
+  }, [applyCamera, floorBounds, getViewportSize])
+
+  const fitFloor = useCallback(() => {
+    const viewport = getViewportSize()
+    if (!viewport || !floorBounds) return
+
+    applyCamera(getCameraFitToBounds(
+      floorBounds,
+      viewport.width,
+      viewport.height,
+    ))
+  }, [applyCamera, floorBounds, getViewportSize])
 
   const zoomBy = useCallback((delta, anchorPoint = null) => {
-    const container = containerRef.current
-    if (!container) return
+    const rect = getContainerRect()
+    const viewport = getViewportSize()
+    if (!rect || !viewport) return
 
-    const rect = container.getBoundingClientRect()
+    const current = cameraRef.current
     const anchorX = anchorPoint?.x ?? rect.width / 2
     const anchorY = anchorPoint?.y ?? rect.height / 2
-    const nextZoom = clampZoom(viewport.zoom + delta)
-    if (nextZoom === viewport.zoom) return
+    const nextZoom = clampCameraZoom(current.zoom + delta)
+    if (nextZoom === current.zoom) return
 
-    const worldX = (anchorX - viewport.panX) / viewport.zoom
-    const worldY = (anchorY - viewport.panY) / viewport.zoom
+    markZoomActivity()
 
-    onViewportChange({
+    const anchorWorld = screenToWorld({ x: anchorX, y: anchorY }, current, viewport)
+    const halfW = viewport.width / 2
+    const halfH = viewport.height / 2
+
+    setCamera({
+      x: anchorWorld.x - (anchorX - halfW) / nextZoom,
+      y: anchorWorld.y - (anchorY - halfH) / nextZoom,
       zoom: nextZoom,
-      panX: anchorX - worldX * nextZoom,
-      panY: anchorY - worldY * nextZoom,
     })
-  }, [containerRef, onViewportChange, viewport.panX, viewport.panY, viewport.zoom])
+  }, [getContainerRect, getViewportSize, markZoomActivity, setCamera])
 
   const zoomIn = useCallback(() => {
     zoomBy(ZOOM_STEP * 2)
@@ -44,51 +117,76 @@ export function useCanvasViewport({
     zoomBy(-ZOOM_STEP * 2)
   }, [zoomBy])
 
-  const resetZoom = useCallback(() => {
-    onViewportChange({ zoom: 1, panX: 0, panY: 0 })
-  }, [onViewportChange])
+  const zoomTo100 = useCallback(() => {
+    const viewport = getViewportSize()
+    if (!viewport || !floorBounds) return
+
+    applyCamera(getCameraAtZoom(
+      { x: floorBounds.centerX, y: floorBounds.centerY },
+      viewport.width,
+      viewport.height,
+      1,
+    ))
+  }, [applyCamera, floorBounds, getViewportSize])
 
   const handleWheel = useCallback((event) => {
     event.preventDefault()
-    const container = containerRef.current
-    if (!container) return
+    const current = cameraRef.current
 
-    const rect = container.getBoundingClientRect()
-    const anchorX = event.clientX - rect.left
-    const anchorY = event.clientY - rect.top
-    const direction = event.deltaY < 0 ? 1 : -1
-    const intensity = event.ctrlKey || event.metaKey ? 0.14 : 0.08
-    zoomBy(direction * intensity, { x: anchorX, y: anchorY })
-  }, [containerRef, zoomBy])
+    if (event.ctrlKey) {
+      const rect = getContainerRect()
+      if (!rect) return
+      const anchorX = event.clientX - rect.left
+      const anchorY = event.clientY - rect.top
+      const direction = event.deltaY < 0 ? 1 : -1
+      zoomBy(direction * 0.12, { x: anchorX, y: anchorY })
+      return
+    }
+
+    const deltaX = event.shiftKey ? event.deltaY : event.deltaX
+    const deltaY = event.shiftKey ? 0 : event.deltaY
+
+    setCamera({
+      x: current.x - deltaX * SCROLL_INTENSITY / current.zoom,
+      y: current.y - deltaY * SCROLL_INTENSITY / current.zoom,
+      zoom: current.zoom,
+    })
+  }, [getContainerRect, setCamera, zoomBy])
 
   const startPan = useCallback((clientX, clientY) => {
+    const current = cameraRef.current
     panSessionRef.current = {
       startX: clientX,
       startY: clientY,
-      originPanX: viewport.panX,
-      originPanY: viewport.panY,
+      originX: current.x,
+      originY: current.y,
+      originZoom: current.zoom,
     }
-  }, [viewport.panX, viewport.panY])
+  }, [])
 
   const updatePan = useCallback((clientX, clientY) => {
     const session = panSessionRef.current
     if (!session) return
 
-    onViewportChange({
-      panX: session.originPanX + (clientX - session.startX),
-      panY: session.originPanY + (clientY - session.startY),
+    const deltaX = clientX - session.startX
+    const deltaY = clientY - session.startY
+
+    setCamera({
+      x: session.originX - deltaX / session.originZoom,
+      y: session.originY - deltaY / session.originZoom,
+      zoom: session.originZoom,
     })
-  }, [onViewportChange])
+  }, [setCamera])
 
   const endPan = useCallback(() => {
     panSessionRef.current = null
   }, [])
 
-  const handlePointerDown = useCallback((event) => {
+  const tryStartPan = useCallback((event, activeTool) => {
     const isMiddleButton = event.button === 1
-    const isSpacePan = event.button === 0 && spacePressedRef.current
+    const isPanTool = activeTool === 'pan' && event.button === 0
 
-    if (!isMiddleButton && !isSpacePan) return
+    if (!isMiddleButton && !isPanTool) return false
 
     event.preventDefault()
     startPan(event.clientX, event.clientY)
@@ -97,41 +195,22 @@ export function useCanvasViewport({
       pointerId: event.pointerId,
     }
     event.currentTarget.setPointerCapture(event.pointerId)
+    return true
   }, [startPan])
 
   const handlePointerMove = useCallback((event) => {
     if (!panSessionRef.current) return
+    if (panSessionRef.current.pointerId !== event.pointerId) return
     updatePan(event.clientX, event.clientY)
   }, [updatePan])
 
   const handlePointerUp = useCallback((event) => {
     if (!panSessionRef.current) return
+    if (panSessionRef.current.pointerId !== event.pointerId) return
+
     endPan()
     if (event.currentTarget.hasPointerCapture(event.pointerId)) {
       event.currentTarget.releasePointerCapture(event.pointerId)
-    }
-  }, [endPan])
-
-  useEffect(() => {
-    const handleKeyDown = (event) => {
-      if (event.code === 'Space' && !event.repeat) {
-        spacePressedRef.current = true
-      }
-    }
-
-    const handleKeyUp = (event) => {
-      if (event.code === 'Space') {
-        spacePressedRef.current = false
-        endPan()
-      }
-    }
-
-    window.addEventListener('keydown', handleKeyDown)
-    window.addEventListener('keyup', handleKeyUp)
-
-    return () => {
-      window.removeEventListener('keydown', handleKeyDown)
-      window.removeEventListener('keyup', handleKeyUp)
     }
   }, [endPan])
 
@@ -140,20 +219,29 @@ export function useCanvasViewport({
     if (!container) return undefined
 
     container.addEventListener('wheel', handleWheel, { passive: false })
-    return () => container.removeEventListener('wheel', handleWheel)
+    return () => {
+      container.removeEventListener('wheel', handleWheel)
+      if (zoomIdleTimeoutRef.current) {
+        window.clearTimeout(zoomIdleTimeoutRef.current)
+      }
+    }
   }, [containerRef, handleWheel])
 
   return {
     zoomIn,
     zoomOut,
-    resetZoom,
-    handlePointerDown,
+    zoomTo100,
+    fitFloor,
+    resetView,
+    tryStartPan,
     handlePointerMove,
     handlePointerUp,
-    isSpacePressed: () => spacePressedRef.current,
+    isPanning: () => Boolean(panSessionRef.current),
   }
 }
 
 export function formatZoomPercent(zoom) {
   return `${Math.round(zoom * 100)}%`
 }
+
+export const VIEWPORT_ANIMATION_MS = 250

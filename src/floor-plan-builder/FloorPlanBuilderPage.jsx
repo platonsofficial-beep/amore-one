@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { FloorPlanBuilderProvider } from './context/floorPlanBuilderContextState'
 import { useFloorPlanBuilder } from './hooks/useFloorPlanBuilder'
 import { BuilderToolbar } from './components/BuilderToolbar'
@@ -6,55 +6,106 @@ import { BuilderToolbox } from './components/BuilderToolbox'
 import { BuilderCanvas } from './components/BuilderCanvas'
 import { BuilderInspector } from './components/BuilderInspector'
 import { BuilderStatusBar } from './components/BuilderStatusBar'
+import { useBuilderEditorLayout } from './hooks/useBuilderEditorLayout'
 import { useCanvasViewport } from './hooks/useCanvasViewport'
-import { BUILDER_ARTBOARD } from './models/floorPlanObject'
+import { getResetCameraForWorkspace } from './lib/camera'
 import './floorPlanBuilder.css'
 
 function FloorPlanBuilderShell({ onBack, containerRef }) {
-  const { state, dispatch } = useFloorPlanBuilder()
+  const editorRef = useRef(null)
+  const toolbarRef = useRef(null)
+  const sidebarRef = useRef(null)
+  const inspectorRef = useRef(null)
+  const statusRef = useRef(null)
+  const layout = useBuilderEditorLayout(
+    editorRef,
+    toolbarRef,
+    sidebarRef,
+    inspectorRef,
+    statusRef,
+  )
+  const { state, dispatch, activeWorkspaceBounds } = useFloorPlanBuilder()
+  const [isZooming, setIsZooming] = useState(false)
+  const activeFloorIdRef = useRef(state.activeFloorId)
 
   const viewportControls = useCanvasViewport({
-    viewport: state.viewport,
-    onViewportChange: (patch) => dispatch({ type: 'SET_VIEWPORT', payload: patch }),
+    camera: state.camera,
+    onCameraChange: (patch) => dispatch({ type: 'SET_CAMERA', payload: patch }),
     containerRef,
+    onZoomActivity: setIsZooming,
+    floorBounds: activeWorkspaceBounds,
   })
 
   useEffect(() => {
     const container = containerRef.current
-    if (!container) return
+    if (!container) return undefined
 
-    const centerArtboard = () => {
+    const fitFloorInViewport = () => {
       const rect = container.getBoundingClientRect()
+      if (rect.width < 1 || rect.height < 1) return false
+
       dispatch({
-        type: 'SET_VIEWPORT',
-        payload: {
-          panX: Math.max(24, (rect.width - BUILDER_ARTBOARD.width) / 2),
-          panY: Math.max(24, (rect.height - BUILDER_ARTBOARD.height) / 2),
-        },
+        type: 'SET_CAMERA',
+        payload: getResetCameraForWorkspace(
+          activeWorkspaceBounds,
+          rect.width,
+          rect.height,
+        ),
       })
+      return true
     }
 
-    centerArtboard()
-  }, [containerRef, dispatch])
+    const floorChanged = activeFloorIdRef.current !== state.activeFloorId
+    activeFloorIdRef.current = state.activeFloorId
+
+    if (floorChanged || !fitFloorInViewport()) {
+      const observer = new ResizeObserver(() => {
+        fitFloorInViewport()
+      })
+      observer.observe(container)
+      return () => observer.disconnect()
+    }
+
+    return undefined
+  }, [activeWorkspaceBounds, containerRef, dispatch, layout.workspaceHeight, layout.workspaceWidth, layout.toolbarHeight, layout.statusHeight, state.activeFloorId])
+
+  const workspaceLayoutKey = layout.workspaceWidth + layout.workspaceHeight
 
   return (
     <div className="fpb-page">
-      <BuilderToolbar
-        onBack={onBack}
-        onZoomIn={viewportControls.zoomIn}
-        onZoomOut={viewportControls.zoomOut}
-      />
+      <div
+        ref={editorRef}
+        className="fpb-editor"
+        style={{
+          '--fpb-toolbar-height': `${layout.toolbarHeight}px`,
+          '--fpb-status-height': `${layout.statusHeight}px`,
+        }}
+      >
+        <div ref={toolbarRef} className="fpb-editor-toolbar">
+          <BuilderToolbar onBack={onBack} />
+        </div>
 
-      <div className="fpb-workspace">
-        <BuilderToolbox />
-        <BuilderCanvas
-          containerRef={containerRef}
-          viewportControls={viewportControls}
-        />
-        <BuilderInspector />
+        <div ref={sidebarRef} className="fpb-editor-sidebar">
+          <BuilderToolbox />
+        </div>
+
+        <div className="fpb-editor-canvas">
+          <BuilderCanvas
+            containerRef={containerRef}
+            viewportControls={viewportControls}
+            isZooming={isZooming}
+            workspaceLayoutKey={workspaceLayoutKey}
+          />
+        </div>
+
+        <div ref={inspectorRef} className="fpb-editor-inspector">
+          <BuilderInspector />
+        </div>
+
+        <div ref={statusRef} className="fpb-editor-status">
+          <BuilderStatusBar />
+        </div>
       </div>
-
-      <BuilderStatusBar />
     </div>
   )
 }

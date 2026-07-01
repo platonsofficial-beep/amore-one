@@ -1,5 +1,5 @@
 import { useFloorPlanBuilder } from '../hooks/useFloorPlanBuilder'
-import { formatZoomPercent } from '../hooks/useCanvasViewport'
+import { BUILDER_TOOLS } from '../models/builderTools'
 
 function BuilderToolbarButton({
   children,
@@ -7,11 +7,12 @@ function BuilderToolbarButton({
   disabled = false,
   className = '',
   title,
+  isActive = false,
 }) {
   return (
     <button
       type="button"
-      className={`fpb-toolbar-btn${className ? ` ${className}` : ''}`}
+      className={`fpb-toolbar-btn${isActive ? ' is-active' : ''}${className ? ` ${className}` : ''}`}
       onClick={onClick}
       disabled={disabled}
       title={title}
@@ -21,22 +22,15 @@ function BuilderToolbarButton({
   )
 }
 
-export function BuilderToolbar({
-  onBack,
-  onZoomIn,
-  onZoomOut,
-}) {
+export function BuilderToolbar({ onBack }) {
   const { state, dispatch, activeFloor } = useFloorPlanBuilder()
-  const zoomLabel = formatZoomPercent(state.viewport.zoom)
 
   return (
     <header className="fpb-toolbar" aria-label="Floor plan builder toolbar">
-      <div className="fpb-toolbar-section fpb-toolbar-section-start">
+      <div className="fpb-toolbar-group">
         <BuilderToolbarButton onClick={onBack} title="Back to workspace">
           ← Back
         </BuilderToolbarButton>
-
-        <div className="fpb-toolbar-divider" aria-hidden="true" />
 
         <label className="fpb-floor-select">
           <span className="sr-only">Active floor</span>
@@ -56,9 +50,43 @@ export function BuilderToolbar({
         </label>
       </div>
 
-      <div className="fpb-toolbar-section fpb-toolbar-section-center">
-        <span className="fpb-mode-badge">Editing</span>
-        <BuilderToolbarButton disabled title="Preview — coming soon">
+      <div className="fpb-toolbar-divider" aria-hidden="true" />
+
+      <div className="fpb-toolbar-group fpb-toolbar-tools" role="toolbar" aria-label="Drawing tools">
+        {BUILDER_TOOLS.map((tool) => (
+          <BuilderToolbarButton
+            key={tool.id}
+            title={tool.enabled ? tool.label : `${tool.label} — coming soon`}
+            disabled={!tool.enabled}
+            isActive={tool.enabled && state.activeTool === tool.id}
+            onClick={() => {
+              if (!tool.enabled) return
+              dispatch({ type: 'SET_ACTIVE_TOOL', payload: { toolId: tool.id } })
+            }}
+          >
+            <span className="fpb-toolbar-tool-icon" aria-hidden="true">{tool.icon}</span>
+            <span className="fpb-toolbar-tool-label">{tool.label}</span>
+          </BuilderToolbarButton>
+        ))}
+      </div>
+
+      <div className="fpb-toolbar-divider" aria-hidden="true" />
+
+      <div className="fpb-toolbar-group">
+        <BuilderToolbarButton disabled title="Undo — coming soon">Undo</BuilderToolbarButton>
+        <BuilderToolbarButton disabled title="Redo — coming soon">Redo</BuilderToolbarButton>
+      </div>
+
+      <div className="fpb-toolbar-divider" aria-hidden="true" />
+
+      <div className="fpb-toolbar-group">
+        <span className={`fpb-mode-badge${state.mode === 'editing' ? '' : ' is-preview'}`}>
+          {state.mode === 'editing' ? 'Editing Mode' : 'Preview Mode'}
+        </span>
+        <BuilderToolbarButton
+          disabled
+          title="Preview — coming soon"
+        >
           Preview
         </BuilderToolbarButton>
         <BuilderToolbarButton
@@ -68,19 +96,6 @@ export function BuilderToolbar({
         >
           Publish
         </BuilderToolbarButton>
-      </div>
-
-      <div className="fpb-toolbar-section fpb-toolbar-section-end">
-        <BuilderToolbarButton disabled title="Undo — coming soon">Undo</BuilderToolbarButton>
-        <BuilderToolbarButton disabled title="Redo — coming soon">Redo</BuilderToolbarButton>
-
-        <div className="fpb-toolbar-divider" aria-hidden="true" />
-
-        <div className="fpb-zoom-cluster" aria-label="Zoom controls">
-          <BuilderToolbarButton onClick={onZoomOut} title="Zoom out">−</BuilderToolbarButton>
-          <span className="fpb-zoom-label">{zoomLabel}</span>
-          <BuilderToolbarButton onClick={onZoomIn} title="Zoom in">+</BuilderToolbarButton>
-        </div>
       </div>
 
       <span className="sr-only">Current floor: {activeFloor.label}</span>

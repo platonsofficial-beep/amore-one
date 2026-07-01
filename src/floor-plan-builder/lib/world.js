@@ -1,0 +1,3 @@
+export const WORLD_GRID_EXTENT = 200000
+
+export const WORLD_GRID_ORIGIN = -WORLD_GRID_EXTENT / 2

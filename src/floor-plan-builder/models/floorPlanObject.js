@@ -1,3 +1,5 @@
+import { createDefaultFloor } from './floorWorkspace'
+
 export const FLOOR_PLAN_OBJECT_TYPES = {
   TABLE: 'table',
   WALL: 'wall',
@@ -21,7 +23,7 @@ export const FLOOR_PLAN_OBJECT_TYPES = {
 }
 
 const DEFAULT_SIZES = {
-  [FLOOR_PLAN_OBJECT_TYPES.TABLE]: { width: 96, height: 96 },
+  [FLOOR_PLAN_OBJECT_TYPES.TABLE]: { width: 108, height: 108 },
   [FLOOR_PLAN_OBJECT_TYPES.WALL]: { width: 160, height: 12 },
   [FLOOR_PLAN_OBJECT_TYPES.DIVIDER]: { width: 120, height: 8 },
   [FLOOR_PLAN_OBJECT_TYPES.DOOR]: { width: 72, height: 16 },
@@ -40,11 +42,6 @@ const DEFAULT_SIZES = {
   [FLOOR_PLAN_OBJECT_TYPES.STAGE]: { width: 240, height: 120 },
   [FLOOR_PLAN_OBJECT_TYPES.EMERGENCY_EXIT]: { width: 72, height: 72 },
   [FLOOR_PLAN_OBJECT_TYPES.TOILET]: { width: 80, height: 80 },
-}
-
-export const BUILDER_ARTBOARD = {
-  width: 1600,
-  height: 1100,
 }
 
 export function createFloorPlanObject({
@@ -86,9 +83,9 @@ export function createDemoTableObject({
   area = 'Main Dining',
 }) {
   const shapeSizes = {
-    round: { width: 96, height: 96 },
-    square: { width: 92, height: 92 },
-    rectangle: { width: 120, height: 80 },
+    round: { width: 108, height: 108 },
+    square: { width: 104, height: 104 },
+    rectangle: { width: 136, height: 92 },
   }
 
   return createFloorPlanObject({
@@ -97,44 +94,48 @@ export function createDemoTableObject({
     position,
     size: shapeSizes[shape] ?? shapeSizes.round,
     properties: {
+      name: `Table ${tableNumber}`,
       tableNumber: String(tableNumber),
       capacity,
       shape,
       area,
       visible: true,
+      locked: false,
     },
   })
 }
 
 export function getDemoFloorPlanObjects() {
+  const floor = createDefaultFloor()
+
   return [
     createDemoTableObject({
       id: 'table-1',
       tableNumber: '1',
       capacity: 2,
       shape: 'round',
-      position: { x: 280, y: 220 },
+      position: { x: floor.x + 220, y: floor.y + 200 },
     }),
     createDemoTableObject({
       id: 'table-2',
       tableNumber: '2',
       capacity: 4,
       shape: 'square',
-      position: { x: 480, y: 220 },
+      position: { x: floor.x + 560, y: floor.y + 200 },
     }),
     createDemoTableObject({
       id: 'table-3',
       tableNumber: '3',
       capacity: 6,
       shape: 'rectangle',
-      position: { x: 680, y: 220 },
+      position: { x: floor.x + 920, y: floor.y + 200 },
     }),
     createDemoTableObject({
       id: 'table-4',
       tableNumber: '4',
       capacity: 4,
       shape: 'round',
-      position: { x: 380, y: 420 },
+      position: { x: floor.x + 420, y: floor.y + 520 },
     }),
   ]
 }
