@@ -112,6 +112,7 @@ export function buildLiveFloorState({
       onShift: [],
       onShiftCount: 0,
       nextShiftStartLabel: null,
+      nextShifts: [],
     }
   }
 
@@ -146,6 +147,28 @@ export function buildLiveFloorState({
     (parseTimeToMinutes(left.startTime) ?? 0) - (parseTimeToMinutes(right.startTime) ?? 0)
   ))
 
+  const resolveNextShiftMembers = () => {
+    if (nextStartMinutes === null) return []
+
+    const seen = new Set()
+    const members = []
+
+    todayPublishedShifts.forEach((shift) => {
+      if (!shift.employeeId) return
+      const startMinutes = parseTimeToMinutes(shift.startTime)
+      if (startMinutes !== nextStartMinutes) return
+
+      const shiftId = String(shift.id)
+      if (seen.has(shiftId)) return
+      seen.add(shiftId)
+      members.push(resolveEmployeeShiftMember(shift, employeesById))
+    })
+
+    return members.sort((left, right) => (
+      (parseTimeToMinutes(left.startTime) ?? 0) - (parseTimeToMinutes(right.startTime) ?? 0)
+    ))
+  }
+
   if (onShift.length > 0) {
     return {
       state: 'live',
@@ -156,12 +179,14 @@ export function buildLiveFloorState({
       onShift,
       onShiftCount: onShift.length,
       nextShiftStartLabel: null,
+      nextShifts: [],
     }
   }
 
   const nextShiftStartLabel = nextStartMinutes !== null
     ? formatTime24(`${String(Math.floor(nextStartMinutes / 60)).padStart(2, '0')}:${String(nextStartMinutes % 60).padStart(2, '0')}`)
     : null
+  const nextShifts = resolveNextShiftMembers()
 
   return {
     state: 'idle',
@@ -174,6 +199,7 @@ export function buildLiveFloorState({
     onShift: [],
     onShiftCount: 0,
     nextShiftStartLabel,
+    nextShifts,
   }
 }
 
@@ -340,5 +366,38 @@ export function buildDashboardIssuesSummary(snapshot = {}) {
     title: issueCount === 1 ? '1 issue needs attention' : `${issueCount} issues need attention`,
     message: 'Review staffing and overtime.',
     tone: 'attention',
+  }
+}
+
+export function buildBusinessHealthSummary({
+  issuesSummary = {},
+  stockAlerts = [],
+  inventoryConnected = false,
+} = {}) {
+  const criticalStockCount = stockAlerts.filter((item) => item.severity === 'critical').length
+  const hasScheduleCritical = issuesSummary.severity === 'critical'
+  const hasScheduleWarning = issuesSummary.severity === 'warning'
+  const hasStockAttention = inventoryConnected && stockAlerts.length > 0
+
+  if (hasScheduleCritical || criticalStockCount > 0) {
+    return {
+      tone: 'critical',
+      label: 'Critical',
+      message: 'Immediate attention required',
+    }
+  }
+
+  if (hasScheduleWarning || hasStockAttention) {
+    return {
+      tone: 'attention',
+      label: 'Attention needed',
+      message: 'Review open issues today',
+    }
+  }
+
+  return {
+    tone: 'healthy',
+    label: 'Healthy',
+    message: 'No critical issues today',
   }
 }

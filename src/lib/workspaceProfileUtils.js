@@ -21,8 +21,8 @@ export function getBrandInitial(name) {
 
 export function buildDashboardGreeting(timeGreeting, managerName) {
   const trimmedName = `${managerName ?? ''}`.trim()
-  if (!trimmedName) return `${timeGreeting} 👋`
-  return `${timeGreeting}, ${resolveUserFirstName(trimmedName)} 👋`
+  if (!trimmedName) return `${timeGreeting}`
+  return `${timeGreeting}, ${resolveUserFirstName(trimmedName)}`
 }
 
 export function buildProfileChipDisplay(profile) {

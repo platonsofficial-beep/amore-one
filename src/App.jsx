@@ -81,6 +81,7 @@ import {
   saveWorkspaceProfile,
 } from './services/workspaceProfileService'
 import {
+  buildBusinessHealthSummary,
   buildDashboardIssuesSummary,
   buildLiveFloorState,
   buildTodayCommandTimeline,
@@ -286,6 +287,25 @@ function getInitials(name) {
     .join('')
 }
 
+function CommandStaffList({ members, statusLabel }) {
+  if (!Array.isArray(members) || members.length === 0) return null
+
+  return (
+    <ul className="command-staff-list">
+      {members.map((member) => (
+        <li key={member.shiftId} className="command-staff-item">
+          <span className="command-staff-avatar">{getInitials(member.name || 'Staff')}</span>
+          <div className="command-staff-copy">
+            <strong>{member.name}</strong>
+            <p>{member.position || statusLabel}</p>
+          </div>
+          <span className="command-staff-time">{member.startTimeLabel} – {member.endTimeLabel}</span>
+        </li>
+      ))}
+    </ul>
+  )
+}
+
 function CommandCenterView({
   snapshot,
   liveFloor,
@@ -294,6 +314,7 @@ function CommandCenterView({
   stockAlerts,
   inventoryConnected,
   issuesSummary,
+  businessHealth,
   timelineEvents,
   isScheduleLoading,
   isLiveFloorLoading,
@@ -306,23 +327,31 @@ function CommandCenterView({
         {isScheduleLoading ? (
           <p className="command-empty-state">Loading today&apos;s overview…</p>
         ) : (
-          <div className="command-hero-metrics" aria-label="Today's schedule metrics">
-            <article className="command-hero-metric">
-              <p className="command-hero-metric-value">{snapshot.scheduledStaff}</p>
-              <p className="command-hero-metric-label">Scheduled Today</p>
-              <p className="command-hero-metric-hint">Staff assigned</p>
-            </article>
-            <article className="command-hero-metric">
-              <p className="command-hero-metric-value">{snapshot.labourHoursLabel}h</p>
-              <p className="command-hero-metric-label">Labour Hours</p>
-              <p className="command-hero-metric-hint">Planned coverage</p>
-            </article>
-            <article className={`command-hero-metric ${snapshot.issues > 0 ? 'has-issues' : ''}`}>
-              <p className="command-hero-metric-value">{snapshot.issues}</p>
-              <p className="command-hero-metric-label">Needs Attention</p>
-              <p className="command-hero-metric-hint">
-                {snapshot.issues > 0 ? 'Review schedule' : 'All clear'}
-              </p>
+          <div className="command-overview-row">
+            <div className="command-hero-metrics" aria-label="Today's schedule metrics">
+              <article className="command-hero-metric">
+                <p className="command-hero-metric-value">{snapshot.scheduledStaff}</p>
+                <p className="command-hero-metric-label">Scheduled Today</p>
+                <p className="command-hero-metric-hint">Staff assigned</p>
+              </article>
+              <article className="command-hero-metric">
+                <p className="command-hero-metric-value">{snapshot.labourHoursLabel}h</p>
+                <p className="command-hero-metric-label">Labour Hours</p>
+                <p className="command-hero-metric-hint">Planned coverage</p>
+              </article>
+              <article className={`command-hero-metric ${snapshot.issues > 0 ? 'has-issues' : ''}`}>
+                <p className="command-hero-metric-value">{snapshot.issues}</p>
+                <p className="command-hero-metric-label">Needs Attention</p>
+                <p className="command-hero-metric-hint">
+                  {snapshot.issues > 0 ? 'Review schedule' : 'All clear'}
+                </p>
+              </article>
+            </div>
+            <article className={`command-health-card tone-${businessHealth.tone}`} aria-label="Business health">
+              <span className="command-health-dot" aria-hidden="true" />
+              <p className="command-health-label">Business Health</p>
+              <p className="command-health-value">{businessHealth.label}</p>
+              <p className="command-health-hint">{businessHealth.message}</p>
             </article>
           </div>
         )}
@@ -348,23 +377,16 @@ function CommandCenterView({
                   ? `Next shift starts at ${liveFloor.nextShiftStartLabel}`
                   : 'No active shift'}
               </p>
-              <p className="command-status-message">{liveFloor.message}</p>
+              {liveFloor.nextShifts?.length > 0 ? (
+                <CommandStaffList members={liveFloor.nextShifts} statusLabel="Up next" />
+              ) : (
+                <p className="command-status-message">{liveFloor.message}</p>
+              )}
             </div>
           ) : (
             <>
               <p className="command-state-label live">On shift now</p>
-              <ul className="command-staff-list">
-                {liveFloor.onShift.map((member) => (
-                  <li key={member.shiftId} className="command-staff-item">
-                    <span className="command-staff-avatar">{getInitials(member.name || 'Staff')}</span>
-                    <div className="command-staff-copy">
-                      <strong>{member.name}</strong>
-                      <p>{member.position || 'On shift now'}</p>
-                    </div>
-                    <span className="command-staff-time">{member.startTimeLabel} – {member.endTimeLabel}</span>
-                  </li>
-                ))}
-              </ul>
+              <CommandStaffList members={liveFloor.onShift} statusLabel="On shift now" />
             </>
           )}
         </section>
@@ -435,7 +457,7 @@ function CommandCenterView({
             <>
               <ul className="command-alert-list">
                 {stockAlerts.map((item) => (
-                  <li key={item.id} className="command-alert-item">
+                  <li key={item.id} className={`command-alert-item severity-${item.severity}`}>
                     <span className={`command-alert-badge ${item.severity}`}>
                       {item.severity === 'critical' ? 'Critical' : 'Low Stock'}
                     </span>
@@ -469,6 +491,7 @@ function CommandCenterView({
               {timelineEvents.map((event) => (
                 <li key={event.key} className={`command-timeline-item type-${event.type}`}>
                   <span className="command-timeline-time">{event.timeLabel}</span>
+                  <span className="command-timeline-node" aria-hidden="true" />
                   <div className="command-timeline-copy">
                     <strong>{event.title}</strong>
                     {event.note ? <p>{event.note}</p> : null}
@@ -5397,6 +5420,12 @@ function App() {
     [inventoryItems],
   )
 
+  const dashboardBusinessHealth = useMemo(() => buildBusinessHealthSummary({
+    issuesSummary: dashboardIssuesSummary,
+    stockAlerts: dashboardStockAlerts,
+    inventoryConnected: isInventoryModuleConnected,
+  }), [dashboardIssuesSummary, dashboardStockAlerts, isInventoryModuleConnected])
+
   const dashboardTimelineEvents = useMemo(() => buildTodayCommandTimeline({
     shifts: dashboardShifts,
     shiftTemplates,
@@ -8713,18 +8742,13 @@ function App() {
             stockAlerts={dashboardStockAlerts}
             inventoryConnected={isInventoryModuleConnected}
             issuesSummary={dashboardIssuesSummary}
+            businessHealth={dashboardBusinessHealth}
             timelineEvents={dashboardTimelineEvents}
             isScheduleLoading={isDashboardScheduleLoading}
             isLiveFloorLoading={isLiveFloorLoading}
             onQuickAction={handleDashboardQuickAction}
             onViewStock={handleDashboardViewStock}
           />
-        ) : null}
-
-        {activeView === 'dashboard' ? (
-          <div className="build-info-floating">
-            <BuildInfoBadge compact />
-          </div>
         ) : null}
 
         {activeView === 'staff' ? (
