@@ -65,6 +65,7 @@ function FloorPlanBuilderShell({ onBack, containerRef }) {
       <div
         ref={editorRef}
         className="fpb-editor fpb-editor-simple"
+        data-builder-mode={state.mode}
         style={{ '--fpb-toolbar-height': `${layout.toolbarHeight}px` }}
       >
         <div ref={toolbarRef} className="fpb-editor-toolbar">

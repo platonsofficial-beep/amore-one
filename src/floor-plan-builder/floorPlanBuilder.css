@@ -1310,6 +1310,36 @@
   }
 }
 
+.fpb-toolbox.is-locked {
+  opacity: 0.92;
+}
+
+.fpb-toolbox.is-locked .fpb-toolbox-item:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.fpb-canvas-shell.is-view-mode {
+  cursor: default;
+}
+
+.fpb-inspector.is-readonly .fpb-inspector-field input,
+.fpb-inspector.is-readonly .fpb-inspector-field select,
+.fpb-inspector.is-readonly .fpb-inspector-field textarea,
+.fpb-inspector.is-readonly .fpb-inspector-section-row input,
+.fpb-inspector.is-readonly .fpb-inspector-sections-add,
+.fpb-inspector.is-readonly .fpb-inspector-sections-seed,
+.fpb-inspector.is-readonly .fpb-inspector-section-remove {
+  opacity: 0.72;
+  pointer-events: none;
+}
+
+.fpb-inspector-readonly-note {
+  margin: 6px 0 0;
+  font-size: 0.68rem;
+  color: rgba(232, 215, 168, 0.72);
+}
+
 /* ── Simple restaurant floor plan mode ── */
 
 .fpb-editor-simple {

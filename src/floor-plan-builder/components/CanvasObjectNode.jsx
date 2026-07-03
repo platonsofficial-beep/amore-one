@@ -9,6 +9,7 @@ function CanvasObjectNodeComponent({
   isDragging,
   isTransforming,
   activeTool,
+  isEditable = true,
   onPointerDown,
   onPointerMove,
   onPointerUp,
@@ -57,7 +58,7 @@ function CanvasObjectNodeComponent({
         ) : null}
       </div>
 
-      {isSelected && isTable ? (
+      {isSelected && isTable && isEditable ? (
         <div className="fpb-selection-chrome" aria-hidden="true">
           {CORNER_HANDLES.map((handle) => (
             <button
@@ -91,6 +92,7 @@ function arePropsEqual(previous, next) {
   if (previous.isSelected !== next.isSelected) return false
   if (previous.isDragging !== next.isDragging) return false
   if (previous.isTransforming !== next.isTransforming) return false
+  if (previous.isEditable !== next.isEditable) return false
   if (previous.activeTool !== next.activeTool) return false
   if (previous.object.id !== next.object.id) return false
 

@@ -18,6 +18,7 @@ export function BuilderCanvas({ containerRef, viewportControls, workspaceLayoutK
     activeWorkspaceBounds,
   } = useFloorPlanBuilder()
   const [viewportSize, setViewportSize] = useState({ width: 0, height: 0 })
+  const isEditing = state.mode === 'editing'
 
   const measureViewport = useCallback(() => {
     const container = containerRef.current
@@ -99,6 +100,24 @@ export function BuilderCanvas({ containerRef, viewportControls, workspaceLayoutK
     onClearSelection: handleClearSelection,
   })
 
+  const handleObjectPointerDownWrapped = useCallback((event, object) => {
+    if (!isEditing) {
+      handleSelectObject(object.id)
+      return false
+    }
+    return handleObjectPointerDown(event, object)
+  }, [handleObjectPointerDown, handleSelectObject, isEditing])
+
+  const handleResizePointerDownWrapped = useCallback((event, object, handle) => {
+    if (!isEditing) return false
+    return handleResizePointerDown(event, object, handle)
+  }, [handleResizePointerDown, isEditing])
+
+  const handleRotatePointerDownWrapped = useCallback((event, object) => {
+    if (!isEditing) return false
+    return handleRotatePointerDown(event, object)
+  }, [handleRotatePointerDown, isEditing])
+
   const handleViewportPointerDown = useCallback((event) => {
     const startedPan = viewportControls.tryStartPan(event, 'select')
     if (startedPan) {
@@ -121,6 +140,10 @@ export function BuilderCanvas({ containerRef, viewportControls, workspaceLayoutK
 
   const handleFloorBackgroundPointerUp = useCallback((event) => {
     if (isDragging || isTransforming || viewportControls.isPanning()) return
+    if (!isEditing) {
+      dispatch({ type: 'CLEAR_SELECTION' })
+      return
+    }
 
     const container = containerRef.current
     if (!container) return
@@ -168,6 +191,7 @@ export function BuilderCanvas({ containerRef, viewportControls, workspaceLayoutK
     dispatch,
     isDragging,
     isTransforming,
+    isEditing,
     state.activeFloorId,
     state.camera,
     state.objects,
@@ -179,12 +203,12 @@ export function BuilderCanvas({ containerRef, viewportControls, workspaceLayoutK
     ? 'grabbing'
     : isTransforming
       ? 'grabbing'
-      : state.toolboxSelectionId
+      : isEditing && state.toolboxSelectionId
         ? 'crosshair'
         : 'default'
 
   return (
-    <section className="fpb-canvas-shell fpb-canvas-shell-simple" aria-label="Floor plan canvas">
+    <section className={`fpb-canvas-shell fpb-canvas-shell-simple${isEditing ? '' : ' is-view-mode'}`} aria-label="Floor plan canvas">
       <div
         ref={containerRef}
         className="fpb-canvas-viewport"
@@ -209,12 +233,13 @@ export function BuilderCanvas({ containerRef, viewportControls, workspaceLayoutK
             draggingObjectId={draggingObjectId}
             transformingObjectId={transformingObjectId}
             activeTool="select"
+            isEditable={isEditing}
             onFloorBackgroundPointerUp={handleFloorBackgroundPointerUp}
-            onObjectPointerDown={handleObjectPointerDown}
+            onObjectPointerDown={handleObjectPointerDownWrapped}
             onObjectPointerMove={handlePointerMove}
             onObjectPointerUp={handlePointerUp}
-            onResizePointerDown={handleResizePointerDown}
-            onRotatePointerDown={handleRotatePointerDown}
+            onResizePointerDown={handleResizePointerDownWrapped}
+            onRotatePointerDown={handleRotatePointerDownWrapped}
           />
         </div>
       </div>

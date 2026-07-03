@@ -9,6 +9,7 @@ export function CanvasWorld({
   draggingObjectId,
   transformingObjectId,
   activeTool,
+  isEditable = true,
   onFloorBackgroundPointerUp,
   onObjectPointerDown,
   onObjectPointerMove,
@@ -31,6 +32,7 @@ export function CanvasWorld({
           draggingObjectId={draggingObjectId}
           transformingObjectId={transformingObjectId}
           activeTool={activeTool}
+          isEditable={isEditable}
           onObjectPointerDown={onObjectPointerDown}
           onObjectPointerMove={onObjectPointerMove}
           onObjectPointerUp={onObjectPointerUp}

@@ -50,8 +50,10 @@ export function BuilderToolbox() {
     })
   }
 
+  const isEditing = state.mode === 'editing'
+
   return (
-    <aside className="fpb-toolbox fpb-toolbox-simple" aria-label="Floor plan builder">
+    <aside className={`fpb-toolbox fpb-toolbox-simple${isEditing ? '' : ' is-locked'}`} aria-label="Floor plan builder">
       <div className="fpb-panel-header">
         <p className="fpb-panel-eyebrow">Restaurant</p>
         <h2 className="fpb-panel-title">Areas</h2>
@@ -67,13 +69,14 @@ export function BuilderToolbox() {
             onKeyDown={(event) => {
               if (event.key === 'Enter') handleRenameArea()
             }}
+            disabled={!isEditing}
           />
         </label>
         <button
           type="button"
           className="fpb-area-action-btn"
           onClick={handleRenameArea}
-          disabled={!renameValue.trim() || renameValue.trim() === activeFloor?.label}
+          disabled={!isEditing || !renameValue.trim() || renameValue.trim() === activeFloor?.label}
         >
           Rename area
         </button>
@@ -88,13 +91,14 @@ export function BuilderToolbox() {
             onKeyDown={(event) => {
               if (event.key === 'Enter') handleCreateArea()
             }}
+            disabled={!isEditing}
           />
         </label>
         <button
           type="button"
           className="fpb-area-action-btn"
           onClick={handleCreateArea}
-          disabled={!newAreaName.trim()}
+          disabled={!isEditing || !newAreaName.trim()}
         >
           Create area
         </button>
@@ -103,7 +107,7 @@ export function BuilderToolbox() {
           type="button"
           className="fpb-area-action-btn fpb-area-action-btn-danger"
           onClick={handleDeleteArea}
-          disabled={floors.length <= 1}
+          disabled={!isEditing || floors.length <= 1}
         >
           Delete area
         </button>
@@ -123,10 +127,14 @@ export function BuilderToolbox() {
               key={tableType.id}
               type="button"
               className={`fpb-toolbox-item fpb-table-type-btn${isSelected ? ' is-selected' : ''}`}
-              onClick={() => dispatch({
-                type: 'SELECT_TOOLBOX_ITEM',
-                payload: { itemId: tableType.id },
-              })}
+              disabled={!isEditing}
+              onClick={() => {
+                if (!isEditing) return
+                dispatch({
+                  type: 'SELECT_TOOLBOX_ITEM',
+                  payload: { itemId: tableType.id },
+                })
+              }}
             >
               <TableTypePreview preview={tableType.preview} />
               <span className="fpb-toolbox-item-copy">
@@ -139,7 +147,9 @@ export function BuilderToolbox() {
       </div>
 
       <p className="fpb-toolbox-hint">
-        Select a table type, then click the floor in <strong>{activeFloor?.label}</strong> to place it.
+        {isEditing
+          ? <>Select a table type, then click the floor in <strong>{activeFloor?.label}</strong> to place it.</>
+          : 'Layout is locked in view mode. Click Edit layout to make changes.'}
       </p>
     </aside>
   )

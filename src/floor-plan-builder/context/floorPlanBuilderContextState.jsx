@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useReducer } from 'react'
+import { useMemo, useReducer } from 'react'
 import { createCamera } from '../lib/camera'
 import { loadFloorPlanLayout, saveFloorPlanLayout } from '../lib/floorPlanStorage'
 import {
@@ -25,25 +25,44 @@ function getFloorWorkspaceBounds(floors, floorId) {
   return getWorkspaceBounds(workspace)
 }
 
+function createLayoutSnapshot(state) {
+  return {
+    floors: state.floors,
+    objects: state.objects,
+    activeFloorId: state.activeFloorId,
+  }
+}
+
 function createInitialBuilderState() {
   const persisted = loadFloorPlanLayout()
   const floors = persisted?.floors ?? createInitialFloors()
-
-  return {
+  const objects = persisted?.objects ?? []
+  const activeFloorId = persisted?.activeFloorId ?? floors[0]?.id ?? 'main-dining'
+  const baseState = {
     floors,
-    activeFloorId: persisted?.activeFloorId ?? floors[0]?.id ?? 'main-dining',
-    objects: persisted?.objects ?? [],
+    activeFloorId,
+    objects,
     selectedObjectIds: [],
     toolboxSelectionId: null,
     activeTool: 'select',
-    mode: 'editing',
+    mode: 'viewing',
     hasUnsavedChanges: false,
+    savedSnapshot: null,
     settings: {
       gridEnabled: true,
       snapEnabled: true,
     },
     camera: createCamera(),
   }
+
+  return {
+    ...baseState,
+    savedSnapshot: createLayoutSnapshot(baseState),
+  }
+}
+
+function isBuilderEditing(state) {
+  return state.mode === 'editing'
 }
 
 function floorPlanBuilderReducer(state, action) {
@@ -59,6 +78,7 @@ function floorPlanBuilderReducer(state, action) {
     case 'CLEAR_SELECTION':
       return { ...state, selectedObjectIds: [] }
     case 'SELECT_TOOLBOX_ITEM':
+      if (!isBuilderEditing(state)) return state
       return { ...state, toolboxSelectionId: action.payload.itemId }
     case 'SET_ACTIVE_TOOL':
       return { ...state, activeTool: action.payload.toolId }
@@ -78,7 +98,45 @@ function floorPlanBuilderReducer(state, action) {
       }
     case 'SET_MODE':
       return { ...state, mode: action.payload.mode }
+    case 'START_EDITING':
+      return {
+        ...state,
+        mode: 'editing',
+        savedSnapshot: createLayoutSnapshot(state),
+        toolboxSelectionId: null,
+        selectedObjectIds: [],
+      }
+    case 'SAVE_LAYOUT': {
+      const snapshot = createLayoutSnapshot(state)
+      saveFloorPlanLayout({
+        floors: state.floors,
+        activeFloorId: state.activeFloorId,
+        objects: state.objects,
+      })
+      return {
+        ...state,
+        mode: 'viewing',
+        hasUnsavedChanges: false,
+        savedSnapshot: snapshot,
+        toolboxSelectionId: null,
+        selectedObjectIds: [],
+      }
+    }
+    case 'CANCEL_EDITING': {
+      const snapshot = state.savedSnapshot ?? createLayoutSnapshot(state)
+      return {
+        ...state,
+        floors: snapshot.floors,
+        objects: snapshot.objects,
+        activeFloorId: snapshot.activeFloorId,
+        mode: 'viewing',
+        hasUnsavedChanges: false,
+        toolboxSelectionId: null,
+        selectedObjectIds: [],
+      }
+    }
     case 'MOVE_OBJECT':
+      if (!isBuilderEditing(state)) return state
       return {
         ...state,
         hasUnsavedChanges: true,
@@ -95,6 +153,7 @@ function floorPlanBuilderReducer(state, action) {
         )),
       }
     case 'TRANSFORM_TABLE': {
+      if (!isBuilderEditing(state)) return state
       const { objectId, position, size, rotation } = action.payload
       if (!objectId) return state
 
@@ -124,6 +183,7 @@ function floorPlanBuilderReducer(state, action) {
       }
     }
     case 'ADD_OBJECT':
+      if (!isBuilderEditing(state)) return state
       return {
         ...state,
         hasUnsavedChanges: true,
@@ -132,6 +192,7 @@ function floorPlanBuilderReducer(state, action) {
         toolboxSelectionId: null,
       }
     case 'UPDATE_TABLE': {
+      if (!isBuilderEditing(state)) return state
       const { objectId, patch } = action.payload
       if (!objectId) return state
 
@@ -205,6 +266,7 @@ function floorPlanBuilderReducer(state, action) {
       }
     }
     case 'DELETE_OBJECT': {
+      if (!isBuilderEditing(state)) return state
       const { objectId } = action.payload
       if (!objectId) return state
 
@@ -216,6 +278,7 @@ function floorPlanBuilderReducer(state, action) {
       }
     }
     case 'ADD_FLOOR': {
+      if (!isBuilderEditing(state)) return state
       const label = `${action.payload.label ?? ''}`.trim()
       if (!label) return state
 
@@ -235,6 +298,7 @@ function floorPlanBuilderReducer(state, action) {
       }
     }
     case 'RENAME_FLOOR': {
+      if (!isBuilderEditing(state)) return state
       const label = `${action.payload.label ?? ''}`.trim()
       const { floorId } = action.payload
       if (!label || !floorId) return state
@@ -259,6 +323,7 @@ function floorPlanBuilderReducer(state, action) {
       }
     }
     case 'DELETE_FLOOR': {
+      if (!isBuilderEditing(state)) return state
       const { floorId } = action.payload
       if (!floorId || state.floors.length <= 1) return state
 
@@ -283,14 +348,6 @@ function floorPlanBuilderReducer(state, action) {
 
 export function FloorPlanBuilderProvider({ children }) {
   const [state, dispatch] = useReducer(floorPlanBuilderReducer, undefined, createInitialBuilderState)
-
-  useEffect(() => {
-    saveFloorPlanLayout({
-      floors: state.floors,
-      activeFloorId: state.activeFloorId,
-      objects: state.objects,
-    })
-  }, [state.floors, state.activeFloorId, state.objects])
 
   const visibleObjects = useMemo(() => (
     state.objects.filter((object) => object.floorId === state.activeFloorId)

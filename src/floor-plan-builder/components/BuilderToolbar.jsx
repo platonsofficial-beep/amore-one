@@ -4,6 +4,7 @@ import { getAdjacentAreaId } from '../models/floorPlans'
 export function BuilderToolbar({ onBack }) {
   const { state, dispatch, activeFloor } = useFloorPlanBuilder()
   const { floors } = state
+  const isEditing = state.mode === 'editing'
 
   const switchArea = (direction) => {
     dispatch({
@@ -64,14 +65,35 @@ export function BuilderToolbar({ onBack }) {
       </div>
 
       <div className="fpb-toolbar-group fpb-toolbar-actions-end">
-        <button
-          type="button"
-          className="fpb-toolbar-btn fpb-toolbar-btn-primary"
-          disabled
-          title="Publish to reservations — coming soon"
-        >
-          Publish layout
-        </button>
+        {isEditing ? (
+          <>
+            <button
+              type="button"
+              className="fpb-toolbar-btn"
+              onClick={() => dispatch({ type: 'CANCEL_EDITING' })}
+            >
+              Cancel changes
+            </button>
+            <button
+              type="button"
+              className="fpb-toolbar-btn fpb-toolbar-btn-primary"
+              onClick={() => dispatch({ type: 'SAVE_LAYOUT' })}
+            >
+              Save layout
+            </button>
+          </>
+        ) : (
+          <button
+            type="button"
+            className="fpb-toolbar-btn fpb-toolbar-btn-primary"
+            onClick={() => dispatch({ type: 'START_EDITING' })}
+          >
+            Edit layout
+          </button>
+        )}
+        <span className={`fpb-mode-badge${isEditing ? '' : ' is-preview'}`}>
+          {isEditing ? 'Edit mode' : 'View mode'}
+        </span>
       </div>
     </header>
   )

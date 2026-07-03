@@ -9,9 +9,19 @@ import { draftMatchesPublishedSnapshot } from './services/publishedShiftService'
 import { getWeekSchedulePublicationState, publishWeekSchedule, unpublishWeekSchedule } from './services/schedulePublicationService'
 import { createPosition, deletePosition, getPositions, reorderPositions, updatePosition } from './services/positionsService'
 import { createWeeklyScheduleTemplate, deleteWeeklyScheduleTemplate, getWeeklyScheduleTemplates, getWeeklyTemplateShifts, renameWeeklyScheduleTemplate } from './services/weeklyScheduleTemplateService'
-import { SeatingConfirmPanel } from './components/seating/SeatingConfirmPanel'
-import { DEFAULT_FLOOR_PLAN_LAYOUT } from './lib/hostFloorPlanLayout'
 import {
+  createReservation,
+  buildReservationUpdatePayload,
+  createSeatingAssignmentPayload,
+  deleteReservation,
+  getReservations,
+  updateReservation,
+} from './services/reservationService'
+import { SeatingConfirmPanel } from './components/seating/SeatingConfirmPanel'
+import { HostReservationEditPanel, createHostReservationEditForm } from './components/reservations/HostReservationEditPanel'
+import { DEFAULT_FLOOR_PLAN_LAYOUT, getHostUnitById, toSeatingUnitFromLayoutUnit } from './lib/hostFloorPlanLayout'
+import {
+  buildSeatingAssignment,
   formatSeatingAssignmentSummary,
   normalizeUnitKey,
   reservationUsesSeatingUnit,
@@ -4953,6 +4963,9 @@ function reservationIdsMatch(left, right) {
 function ReservationWorkspaceProvider({
   children,
   filteredTodayReservations,
+  onHostEditSave,
+  onHostEditDelete,
+  isSavingHostEdit = false,
 }) {
   const [selectedReservation, setSelectedReservation] = useState(null)
   const [isGuestProfileOpen, setIsGuestProfileOpen] = useState(false)
@@ -4963,6 +4976,9 @@ function ReservationWorkspaceProvider({
   const [seatingDraftUnitIds, setSeatingDraftUnitIds] = useState([])
   const [seatingExtraChairs, setSeatingExtraChairs] = useState(0)
   const [seatingStandingGuests, setSeatingStandingGuests] = useState(0)
+  const [hostEditingReservation, setHostEditingReservation] = useState(null)
+  const [hostEditForm, setHostEditForm] = useState(null)
+  const [isHostFloorPickActive, setIsHostFloorPickActive] = useState(false)
   const timelineCardRefs = useRef({})
   const floorTableRefs = useRef({})
   const timelineScrollRef = useRef(null)
@@ -5013,6 +5029,60 @@ function ReservationWorkspaceProvider({
     ))
   }, [])
 
+  const hostEditUnitIds = useMemo(
+    () => (hostEditForm?.assignedUnits ?? []).map((unit) => unit.id),
+    [hostEditForm],
+  )
+
+  const closeHostEdit = useCallback(() => {
+    setHostEditingReservation(null)
+    setHostEditForm(null)
+    setIsHostFloorPickActive(false)
+  }, [])
+
+  const openHostEdit = useCallback((reservation) => {
+    if (!reservation) return
+
+    const tableId = getTableIdForReservation(reservation)
+    setHostEditingReservation(reservation)
+    setHostEditForm(createHostReservationEditForm(reservation))
+    setIsHostFloorPickActive(false)
+    setSelectedReservation(reservation)
+    setSelectionPulseKey((current) => current + 1)
+    clearSeatingDraft()
+
+    const zoneId = getFloorZoneIdForReservation(reservation)
+    if (zoneId) {
+      setActiveFloorAreaId(zoneId)
+    }
+
+    window.requestAnimationFrame(() => {
+      scrollFloorToTable(tableId)
+    })
+  }, [clearSeatingDraft, scrollFloorToTable])
+
+  const toggleHostEditUnit = useCallback((unitId) => {
+    const unit = getHostUnitById(unitId)
+    if (!unit) return
+
+    const seatingUnit = toSeatingUnitFromLayoutUnit(unit)
+    setHostEditForm((current) => {
+      if (!current) return current
+
+      const exists = current.assignedUnits.some((entry) => entry.id === unitId)
+      const assignedUnits = exists
+        ? current.assignedUnits.filter((entry) => entry.id !== unitId)
+        : [...current.assignedUnits, seatingUnit]
+
+      return { ...current, assignedUnits }
+    })
+  }, [])
+
+  const startHostFloorPick = useCallback(() => {
+    setIsHostFloorPickActive((current) => !current)
+    clearSeatingDraft()
+  }, [clearSeatingDraft])
+
   const selectReservation = useCallback((reservation, options = {}) => {
     if (!reservation) return
 
@@ -5051,7 +5121,8 @@ function ReservationWorkspaceProvider({
     setSelectedReservation(null)
     setIsGuestProfileOpen(false)
     clearSeatingDraft()
-  }, [clearSeatingDraft])
+    closeHostEdit()
+  }, [clearSeatingDraft, closeHostEdit])
 
   const isSelected = useCallback((reservation) => (
     reservationIdsMatch(selectedReservation, reservation)
@@ -5072,10 +5143,21 @@ function ReservationWorkspaceProvider({
     seatingExtraChairs,
     seatingStandingGuests,
     toggleSeatingUnit,
-    toggleSeatingUnit,
     clearSeatingDraft,
     setSeatingExtraChairs,
     setSeatingStandingGuests,
+    hostEditingReservation,
+    hostEditForm,
+    setHostEditForm,
+    hostEditUnitIds,
+    isHostFloorPickActive,
+    openHostEdit,
+    closeHostEdit,
+    startHostFloorPick,
+    toggleHostEditUnit,
+    onHostEditSave,
+    onHostEditDelete,
+    isSavingHostEdit,
     selectReservation,
     clearSelection,
     isSelected,
@@ -5103,6 +5185,17 @@ function ReservationWorkspaceProvider({
     seatingStandingGuests,
     clearSeatingDraft,
     toggleSeatingUnit,
+    hostEditingReservation,
+    hostEditForm,
+    hostEditUnitIds,
+    isHostFloorPickActive,
+    onHostEditSave,
+    onHostEditDelete,
+    isSavingHostEdit,
+    closeHostEdit,
+    startHostFloorPick,
+    toggleHostEditUnit,
+    openHostEdit,
   ])
 
   return (
@@ -6298,7 +6391,7 @@ function FloorTableNode({
   onDragLeave,
   onDrop,
 }) {
-  const { isSelected, selectionPulseKey, seatingDraftUnitIds } = useReservationWorkspace()
+  const { isSelected, selectionPulseKey, seatingDraftUnitIds, hostEditUnitIds, isHostFloorPickActive } = useReservationWorkspace()
   const { table, reservation, status } = tableState
   const isHeatmap = viewMode === 'heatmap'
   const guestName = reservation ? formatReservationGuestName(reservation.guestName) : null
@@ -6316,6 +6409,7 @@ function FloorTableNode({
     : FLOOR_TABLE_STATUS_META[status]?.label || status
   const tableIsSelected = !isHeatmap && reservation ? isSelected(reservation) : false
   const isPickedForSeating = seatingDraftUnitIds.includes(table.id)
+    || (isHostFloorPickActive && hostEditUnitIds.includes(table.id))
   const isUnavailable = !isHeatmap && status !== 'available' && status !== 'cleaning'
   const unitLabel = table.displayLabel ?? (table.unitType === 'table' ? `Table ${table.label}` : table.label)
   const capacityLabel = table.maxGuestCapacity && table.maxGuestCapacity !== table.seats
@@ -6478,7 +6572,6 @@ function FloorPlanView({
   onSeatGuestAtTable,
 }) {
   const {
-    selectReservation,
     clearSelection,
     selectedReservation,
     floorTableRefs,
@@ -6492,9 +6585,14 @@ function FloorPlanView({
     clearSeatingDraft,
     setSeatingExtraChairs,
     setSeatingStandingGuests,
+    isHostFloorPickActive,
+    toggleHostEditUnit,
+    hostEditingReservation,
+    openHostEdit,
   } = useReservationWorkspace()
   const [draggingReservationId, setDraggingReservationId] = useState(null)
   const [dropTargetTableId, setDropTargetTableId] = useState(null)
+  const [listDropPending, setListDropPending] = useState(null)
   const [mergeSelection, setMergeSelection] = useState([])
   const [mergedGroups, setMergedGroups] = useState([])
   const [cleaningFlags, setCleaningFlags] = useState(() => new Set())
@@ -6635,9 +6733,10 @@ function FloorPlanView({
     setDraggingReservationId(null)
 
     const reservationId = event.dataTransfer.getData('application/x-reservation-id')
-    if (!reservationId || !onTableReassign) return
+    if (!reservationId) return
 
     const reservation = reservations.find((entry) => String(entry.id) === reservationId)
+      ?? allReservations.find((entry) => String(entry.id) === reservationId)
     if (!reservation) return
 
     if (
@@ -6647,11 +6746,46 @@ function FloorPlanView({
       return
     }
 
+    if (!['available', 'cleaning'].includes(tableState.status)) return
+
+    if (hostEditingReservation && String(hostEditingReservation.id) === String(reservation.id)) {
+      toggleHostEditUnit(tableState.table.id)
+      return
+    }
+
+    const seatingUnit = toSeatingUnitFromLayoutUnit(tableState.table)
+    if (!seatingUnit) return
+
+    const assignment = buildSeatingAssignment({
+      assignedUnits: [seatingUnit],
+      extraChairs: 0,
+      standingGuests: 0,
+      partySize: reservation.guests,
+    })
+
+    if (assignment.totalGuestCapacity < Number(reservation.guests)) {
+      setListDropPending({
+        reservation,
+        selectedUnitIds: [tableState.table.id],
+        extraChairs: 0,
+        standingGuests: 0,
+      })
+      return
+    }
+
     const nextCleaningFlags = new Set(cleaningFlags)
     nextCleaningFlags.delete(tableState.table.id)
     setCleaningFlags(nextCleaningFlags)
 
-    await onTableReassign(reservation, tableState.table.label)
+    const reservationStatus = normalizeReservationStatus(reservation.status)
+    if (onSeatGuestAtTable && ['Booked', 'Confirmed'].includes(reservationStatus)) {
+      await onSeatGuestAtTable(reservation, assignment)
+      return
+    }
+
+    if (onTableReassign) {
+      await onTableReassign(reservation, tableState.table.displayLabel ?? tableState.table.label)
+    }
   }
 
   const handleTableClick = (tableState, event) => {
@@ -6677,6 +6811,14 @@ function FloorPlanView({
       return
     }
 
+    if (
+      isHostFloorPickActive
+      && (tableState.status === 'available' || tableState.status === 'cleaning')
+    ) {
+      toggleHostEditUnit(tableState.table.id)
+      return
+    }
+
     if (!tableState.reservation && selectedReservation && tableState.status === 'available') {
       toggleSeatingUnit(tableState.table.id)
       return
@@ -6688,11 +6830,7 @@ function FloorPlanView({
     }
 
     if (tableState.reservation) {
-      selectReservation(tableState.reservation, {
-        scrollTimeline: true,
-        scrollFloor: false,
-        openGuestProfile: !isCompact,
-      })
+      openHostEdit(tableState.reservation)
     }
   }
 
@@ -6727,7 +6865,16 @@ function FloorPlanView({
     clearSelection()
   }
 
-  const isSeatPicking = Boolean(selectedReservation && !isHeatmap && isCompact)
+  const handleConfirmListDrop = async (assignment) => {
+    if (!listDropPending?.reservation || !onSeatGuestAtTable) return
+    await onSeatGuestAtTable(listDropPending.reservation, assignment)
+    setListDropPending(null)
+  }
+
+  const isSeatPicking = Boolean(
+    (selectedReservation && !isHeatmap && isCompact)
+    || isHostFloorPickActive,
+  )
 
   return (
     <div className={`floor-plan-workspace${isCompact ? ' is-compact' : ''}${isHeatmap ? ' is-heatmap-mode' : ' is-normal-mode'}`} data-floor-view-mode={viewMode}>
@@ -6763,6 +6910,24 @@ function FloorPlanView({
           Tap open tables or sections to seat {formatReservationGuestName(selectedReservation.guestName)}
           {seatingDraftUnitIds.length > 0 ? ` · ${seatingDraftUnitIds.length} selected` : ''}
         </p>
+      ) : null}
+
+      {listDropPending ? (
+        <SeatingConfirmPanel
+          reservation={listDropPending.reservation}
+          selectedUnitIds={listDropPending.selectedUnitIds}
+          extraChairs={listDropPending.extraChairs}
+          standingGuests={listDropPending.standingGuests}
+          onExtraChairsChange={(value) => setListDropPending((current) => (
+            current ? { ...current, extraChairs: value } : current
+          ))}
+          onStandingGuestsChange={(value) => setListDropPending((current) => (
+            current ? { ...current, standingGuests: value } : current
+          ))}
+          onConfirm={handleConfirmListDrop}
+          onCancel={() => setListDropPending(null)}
+          isSaving={isSaving}
+        />
       ) : null}
 
       {selectedReservation && seatingDraftUnitIds.length > 0 && !isHeatmap && isCompact ? (
@@ -7298,6 +7463,8 @@ function isReservationVvip(reservation) {
 }
 
 function getGuestCustomerType(reservation) {
+  if (reservation?.customerType === 'VVIP') return 'VVIP'
+  if (reservation?.customerType === 'VIP') return 'VIP'
   if (isReservationVvip(reservation)) return 'VVIP'
   if (isReservationVip(reservation)) return 'VIP'
   return 'Regular'
@@ -8363,6 +8530,7 @@ function HostReservationList({
   isLoading,
 }) {
   const workspace = useReservationWorkspace()
+  const [draggingReservationId, setDraggingReservationId] = useState(null)
 
   if (isLoading) {
     return <p className="host-reservation-list-empty">Loading reservations…</p>
@@ -8400,21 +8568,27 @@ function HostReservationList({
         const displayStatus = getReservationDisplayStatus(reservation, nowMinutes, todayKey)
         const statusTone = getReservationDisplayStatusTone(displayStatus)
         const isSelected = workspace.isSelected(reservation)
+        const isEditing = workspace.hostEditingReservation
+          && String(workspace.hostEditingReservation.id) === String(reservation.id)
 
         return (
           <article
             key={reservation.id}
-            className={`host-reservation-row tone-${statusTone}${isSelected ? ' is-selected' : ''}`}
+            className={`host-reservation-row tone-${statusTone}${isSelected ? ' is-selected' : ''}${isEditing ? ' is-editing' : ''}${draggingReservationId === String(reservation.id) ? ' is-dragging' : ''}`}
             role="listitem"
             tabIndex={0}
-            onClick={() => workspace.selectReservation(reservation, {
-              scrollFloor: true,
-              scrollTimeline: false,
-            })}
+            draggable
+            onDragStart={(event) => {
+              event.dataTransfer.effectAllowed = 'move'
+              event.dataTransfer.setData('application/x-reservation-id', String(reservation.id))
+              setDraggingReservationId(String(reservation.id))
+            }}
+            onDragEnd={() => setDraggingReservationId(null)}
+            onClick={() => workspace.openHostEdit(reservation)}
             onKeyDown={(event) => {
               if (event.key === 'Enter' || event.key === ' ') {
                 event.preventDefault()
-                workspace.selectReservation(reservation, { scrollFloor: true })
+                workspace.openHostEdit(reservation)
               }
             }}
           >
@@ -8441,12 +8615,21 @@ function ReservationsUnifiedCanvas({
     canvasRef,
     isTimelineCollapsed,
     setIsTimelineCollapsed,
+    hostEditingReservation,
+    hostEditForm,
+    setHostEditForm,
+    isHostFloorPickActive,
+    closeHostEdit,
+    startHostFloorPick,
+    onHostEditSave,
+    onHostEditDelete,
+    isSavingHostEdit,
   } = useReservationWorkspace()
 
   return (
     <div
       ref={canvasRef}
-      className="host-operations-canvas"
+      className={`host-operations-canvas${hostEditingReservation ? ' has-edit-panel' : ''}`}
       data-timeline-collapsed={isTimelineCollapsed ? 'true' : 'false'}
     >
       <section className="host-operations-list" aria-label="Reservation list">
@@ -8457,6 +8640,27 @@ function ReservationsUnifiedCanvas({
           </div>
           <span className="host-operations-list-count">{listReservations.length}</span>
         </div>
+        {hostEditingReservation && hostEditForm ? (
+          <HostReservationEditPanel
+            reservation={hostEditingReservation}
+            form={hostEditForm}
+            onChange={setHostEditForm}
+            onSave={async () => {
+              if (!onHostEditSave) return
+              await onHostEditSave(hostEditingReservation, hostEditForm)
+              closeHostEdit()
+            }}
+            onDelete={async (id) => {
+              if (!onHostEditDelete) return
+              await onHostEditDelete(id)
+              closeHostEdit()
+            }}
+            onCancel={closeHostEdit}
+            onStartFloorPick={startHostFloorPick}
+            isFloorPickActive={isHostFloorPickActive}
+            isSaving={isSavingHostEdit}
+          />
+        ) : null}
         <HostReservationList
           reservations={listReservations}
           nowMinutes={floorPlanProps.nowMinutes}
@@ -8501,6 +8705,8 @@ function ReservationsWorkspaceBody({
   onQuickNoteUpdate,
   onTableReassign,
   onSeatGuestAtTable,
+  onHostEditSave,
+  onHostEditDelete,
   isLoading,
   noticeMessage,
   isSaving,
@@ -8669,7 +8875,12 @@ function ReservationsWorkspaceBody({
   }
 
   return (
-    <ReservationWorkspaceProvider filteredTodayReservations={filteredTodayReservations}>
+    <ReservationWorkspaceProvider
+      filteredTodayReservations={filteredTodayReservations}
+      onHostEditSave={onHostEditSave}
+      onHostEditDelete={onHostEditDelete}
+      isSavingHostEdit={isSaving}
+    >
       <ReservationsWorkspaceContent
         reservations={reservations}
         onOpenAddReservation={onOpenAddReservation}
@@ -12721,6 +12932,50 @@ function App() {
     })
   }
 
+  const handleHostEditSave = async (reservation, form) => {
+    if (!form.guestName.trim()) {
+      setReservationNotice('Please provide the guest name.')
+      return
+    }
+
+    setIsSavingReservation(true)
+    setReservationNotice('')
+
+    try {
+      const payload = buildReservationUpdatePayload(reservation, {
+        guestName: form.guestName.trim(),
+        phone: form.phone.trim(),
+        time: form.time,
+        guests: form.guests,
+        customerType: form.customerType,
+        status: form.status,
+        notes: form.notes.trim(),
+        assignedUnits: form.assignedUnits,
+        extraChairs: form.extraChairs,
+        standingGuests: form.standingGuests,
+      })
+      await updateReservation(reservation.id, payload)
+      await refreshReservations()
+      setReservationNotice('Reservation updated.')
+    } catch (error) {
+      setReservationNotice(error.message || 'Unable to update reservation right now.')
+      throw error
+    } finally {
+      setIsSavingReservation(false)
+    }
+  }
+
+  const handleHostEditDelete = async (id) => {
+    try {
+      await deleteReservation(id)
+      await refreshReservations()
+      setReservationNotice('Reservation removed.')
+    } catch (error) {
+      setReservationNotice(error.message || 'Unable to delete reservation right now.')
+      throw error
+    }
+  }
+
   const handleDeleteReservation = async (id) => {
     try {
       await deleteReservation(id)
@@ -13349,6 +13604,8 @@ function App() {
             onQuickNoteUpdate={handleQuickReservationNote}
             onTableReassign={handleQuickReservationTableReassign}
             onSeatGuestAtTable={handleSeatGuestAtTable}
+            onHostEditSave={handleHostEditSave}
+            onHostEditDelete={handleHostEditDelete}
             isLoading={isReservationsLoading}
             noticeMessage={reservationNotice}
             isSaving={isSavingReservation}

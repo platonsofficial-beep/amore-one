@@ -23,6 +23,7 @@ function InspectorEmptyState() {
 export function BuilderInspector() {
   const { state, dispatch, selectedObject } = useFloorPlanBuilder()
   const { floors } = state
+  const isReadOnly = state.mode !== 'editing'
 
   if (!selectedObject || selectedObject.type !== FLOOR_PLAN_OBJECT_TYPES.TABLE) {
     return (
@@ -49,6 +50,7 @@ export function BuilderInspector() {
   const sectionTotals = getTableSectionTotals(sections)
 
   const updateTable = (patch) => {
+    if (isReadOnly) return
     dispatch({
       type: 'UPDATE_TABLE',
       payload: { objectId: selectedObject.id, patch },
@@ -56,6 +58,7 @@ export function BuilderInspector() {
   }
 
   const handleDelete = () => {
+    if (isReadOnly) return
     const confirmed = window.confirm(`Delete table ${tableNumber || ''}?`)
     if (!confirmed) return
 
@@ -66,10 +69,11 @@ export function BuilderInspector() {
   }
 
   return (
-    <aside className="fpb-inspector fpb-inspector-simple" aria-label="Table properties">
+    <aside className={`fpb-inspector fpb-inspector-simple${isReadOnly ? ' is-readonly' : ''}`} aria-label="Table properties">
       <div className="fpb-panel-header">
         <p className="fpb-panel-eyebrow">Properties</p>
         <h2 className="fpb-panel-title">{getObjectDisplayLabel(selectedObject)}</h2>
+        {isReadOnly ? <p className="fpb-inspector-readonly-note">View mode — click Edit layout to change tables.</p> : null}
       </div>
 
       <div className="fpb-inspector-fields">
@@ -80,6 +84,7 @@ export function BuilderInspector() {
             value={tableNumber}
             onChange={(event) => updateTable({ tableNumber: event.target.value })}
             placeholder="e.g. 12"
+            disabled={isReadOnly}
           />
         </label>
 
@@ -91,7 +96,7 @@ export function BuilderInspector() {
             max="24"
             value={showSections ? sectionTotals.stools : capacity}
             onChange={(event) => updateTable({ capacity: event.target.value })}
-            disabled={showSections}
+            disabled={showSections || isReadOnly}
           />
         </label>
 
@@ -199,6 +204,7 @@ export function BuilderInspector() {
             className="fpb-inspector-select"
             value={shape}
             onChange={(event) => updateTable({ shape: event.target.value })}
+            disabled={isReadOnly}
           >
             {TABLE_TYPES.map((tableType) => (
               <option key={tableType.id} value={tableType.shape}>
@@ -258,6 +264,7 @@ export function BuilderInspector() {
           type="button"
           className="fpb-inspector-danger-btn"
           onClick={handleDelete}
+          disabled={isReadOnly}
         >
           Delete table
         </button>
