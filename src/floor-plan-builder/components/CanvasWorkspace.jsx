@@ -1,6 +1,6 @@
 import { createDefaultFloor } from '../models/floorWorkspace'
 
-export function CanvasWorkspace({ workspace, title, onBackgroundClick }) {
+export function CanvasWorkspace({ workspace, title, onBackgroundPointerUp }) {
   const floor = {
     ...createDefaultFloor(),
     ...workspace,
@@ -19,10 +19,10 @@ export function CanvasWorkspace({ workspace, title, onBackgroundClick }) {
     >
       <div
         className="fpb-canvas-workspace-surface"
-        onClick={(event) => {
-          if (event.target === event.currentTarget) {
-            onBackgroundClick?.(event)
-          }
+        onPointerUp={(event) => {
+          if (event.button !== 0) return
+          if (event.target !== event.currentTarget) return
+          onBackgroundPointerUp?.(event)
         }}
       >
         <span className="fpb-canvas-workspace-label">{title}</span>

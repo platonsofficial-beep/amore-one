@@ -35,7 +35,8 @@ export class ObjectDragManager {
 
     const deltaX = position.x - this.session.originPosition.x
     const deltaY = position.y - this.session.originPosition.y
-    this.element.style.transform = `translate3d(${deltaX}px, ${deltaY}px, 0)`
+    const rotation = this.session.rotation ?? 0
+    this.element.style.transform = `translate3d(${deltaX}px, ${deltaY}px, 0) rotate(${rotation}deg)`
   }
 
   clearTransform() {
@@ -73,6 +74,7 @@ export class ObjectDragManager {
       objectId: object.id,
       pointerId: event.pointerId,
       objectSize: { ...object.size },
+      rotation: object.rotation ?? 0,
       offsetX: world.x - object.position.x,
       offsetY: world.y - object.position.y,
       originPosition: { ...object.position },

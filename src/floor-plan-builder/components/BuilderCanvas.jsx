@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useLayoutEffect, useState } from 'react'
 import { useFloorPlanBuilder } from '../hooks/useFloorPlanBuilder'
 import { useObjectDrag } from '../hooks/useObjectDrag'
+import { useTableTransform } from '../hooks/useTableTransform'
 import { getStageTransform, screenToWorld } from '../lib/camera'
 import { TABLE_TYPES } from '../models/componentCatalog'
-import { createTableObjectFromType } from '../models/floorPlanObject'
+import { getTableShapeSize, createTableObjectFromType } from '../models/floorPlanObject'
 import { floorBoundaryService } from '../services/FloorBoundaryService'
 import { CanvasWorld } from './CanvasWorld'
 
@@ -53,6 +54,33 @@ export function BuilderCanvas({ containerRef, viewportControls, workspaceLayoutK
     dispatch({ type: 'CLEAR_SELECTION' })
   }, [dispatch])
 
+  const handleTransformTable = useCallback((objectId, preview) => {
+    dispatch({
+      type: 'TRANSFORM_TABLE',
+      payload: {
+        objectId,
+        position: preview.position,
+        size: preview.size,
+        rotation: preview.rotation,
+      },
+    })
+  }, [dispatch])
+
+  const {
+    transformingObjectId,
+    isTransforming,
+    handleResizePointerDown,
+    handleRotatePointerDown,
+    handleTransformMove,
+    endTransform,
+  } = useTableTransform({
+    containerRef,
+    camera: state.camera,
+    viewportSize,
+    floorBounds: activeWorkspaceBounds,
+    onTransformTable: handleTransformTable,
+  })
+
   const {
     draggingObjectId,
     handleObjectPointerDown,
@@ -79,34 +107,39 @@ export function BuilderCanvas({ containerRef, viewportControls, workspaceLayoutK
   }, [viewportControls])
 
   const handlePointerMove = useCallback((event) => {
+    handleTransformMove(event)
     handleDragMove(event)
     viewportControls.handlePointerMove(event)
-  }, [handleDragMove, viewportControls])
+  }, [handleDragMove, handleTransformMove, viewportControls])
 
   const handlePointerUp = useCallback((event) => {
+    endTransform(event)
     endDrag(event)
     viewportControls.handlePointerUp(event)
     event.currentTarget.classList.remove('is-panning')
-  }, [endDrag, viewportControls])
+  }, [endDrag, endTransform, viewportControls])
 
-  const handleFloorBackgroundClick = useCallback((event) => {
-    if (isDragging) return
+  const handleFloorBackgroundPointerUp = useCallback((event) => {
+    if (isDragging || isTransforming || viewportControls.isPanning()) return
+
+    const container = containerRef.current
+    if (!container) return
+
+    const viewport = {
+      width: container.clientWidth,
+      height: container.clientHeight,
+    }
+    if (viewport.width < 1 || viewport.height < 1) return
 
     const tableType = TABLE_TYPES.find((entry) => entry.id === state.toolboxSelectionId)
-    if (tableType && containerRef.current) {
-      const rect = containerRef.current.getBoundingClientRect()
+    if (tableType) {
+      const rect = container.getBoundingClientRect()
       const screenPoint = {
         x: event.clientX - rect.left,
         y: event.clientY - rect.top,
       }
-      const worldPoint = screenToWorld(screenPoint, state.camera, viewportSize)
-      const shapeSizes = {
-        round: { width: 108, height: 108 },
-        square: { width: 104, height: 104 },
-        rectangle: { width: 136, height: 92 },
-        island: { width: 180, height: 96 },
-      }
-      const size = shapeSizes[tableType.shape] ?? shapeSizes.round
+      const worldPoint = screenToWorld(screenPoint, state.camera, viewport)
+      const size = getTableShapeSize(tableType.shape)
       const centeredPosition = floorBoundaryService.clampToFloor(
         {
           x: worldPoint.x - (size.width / 2),
@@ -134,18 +167,21 @@ export function BuilderCanvas({ containerRef, viewportControls, workspaceLayoutK
     containerRef,
     dispatch,
     isDragging,
+    isTransforming,
     state.activeFloorId,
     state.camera,
     state.objects,
     state.toolboxSelectionId,
-    viewportSize,
+    viewportControls,
   ])
 
   const canvasCursor = isDragging
     ? 'grabbing'
-    : state.toolboxSelectionId
-      ? 'crosshair'
-      : 'default'
+    : isTransforming
+      ? 'grabbing'
+      : state.toolboxSelectionId
+        ? 'crosshair'
+        : 'default'
 
   return (
     <section className="fpb-canvas-shell fpb-canvas-shell-simple" aria-label="Floor plan canvas">
@@ -171,11 +207,14 @@ export function BuilderCanvas({ containerRef, viewportControls, workspaceLayoutK
             objects={visibleObjects}
             selectedObjectIds={state.selectedObjectIds}
             draggingObjectId={draggingObjectId}
+            transformingObjectId={transformingObjectId}
             activeTool="select"
-            onFloorBackgroundClick={handleFloorBackgroundClick}
+            onFloorBackgroundPointerUp={handleFloorBackgroundPointerUp}
             onObjectPointerDown={handleObjectPointerDown}
             onObjectPointerMove={handlePointerMove}
             onObjectPointerUp={handlePointerUp}
+            onResizePointerDown={handleResizePointerDown}
+            onRotatePointerDown={handleRotatePointerDown}
           />
         </div>
       </div>

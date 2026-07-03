@@ -7,29 +7,37 @@ export function CanvasWorld({
   objects,
   selectedObjectIds,
   draggingObjectId,
+  transformingObjectId,
   activeTool,
-  onFloorBackgroundClick,
+  onFloorBackgroundPointerUp,
   onObjectPointerDown,
   onObjectPointerMove,
   onObjectPointerUp,
+  onResizePointerDown,
+  onRotatePointerDown,
 }) {
   return (
     <div className="fpb-world-root" role="presentation">
       <CanvasWorkspace
         workspace={floor}
         title={floorLabel}
-        onBackgroundClick={onFloorBackgroundClick}
+        onBackgroundPointerUp={onFloorBackgroundPointerUp}
       />
 
-      <CanvasObjectsLayer
-        objects={objects}
-        selectedObjectIds={selectedObjectIds}
-        draggingObjectId={draggingObjectId}
-        activeTool={activeTool}
-        onObjectPointerDown={onObjectPointerDown}
-        onObjectPointerMove={onObjectPointerMove}
-        onObjectPointerUp={onObjectPointerUp}
-      />
+      <div className="fpb-objects-layer">
+        <CanvasObjectsLayer
+          objects={objects}
+          selectedObjectIds={selectedObjectIds}
+          draggingObjectId={draggingObjectId}
+          transformingObjectId={transformingObjectId}
+          activeTool={activeTool}
+          onObjectPointerDown={onObjectPointerDown}
+          onObjectPointerMove={onObjectPointerMove}
+          onObjectPointerUp={onObjectPointerUp}
+          onResizePointerDown={onResizePointerDown}
+          onRotatePointerDown={onRotatePointerDown}
+        />
+      </div>
     </div>
   )
 }

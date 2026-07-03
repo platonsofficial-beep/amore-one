@@ -1,126 +1,157 @@
 import { useFloorPlanBuilder } from '../hooks/useFloorPlanBuilder'
-import { getTableInspectorModel } from '../models/inspectorSchema'
+import { TABLE_TYPES } from '../models/componentCatalog'
 import { FLOOR_PLAN_OBJECT_TYPES, getObjectDisplayLabel } from '../models/floorPlanObject'
-
-function InspectorField({ label, value, type = 'text' }) {
-  return (
-    <label className="fpb-inspector-field">
-      <span>{label}</span>
-      {type === 'checkbox' ? (
-        <div className="fpb-inspector-checkbox">
-          <input type="checkbox" checked={Boolean(value)} readOnly disabled tabIndex={-1} />
-          <span>{value ? 'Yes' : 'No'}</span>
-        </div>
-      ) : (
-        <input type="text" value={value} readOnly tabIndex={-1} />
-      )}
-    </label>
-  )
-}
+import { normalizeRotation } from '../lib/tableTransformUtils'
 
 function InspectorEmptyState() {
   return (
     <div className="fpb-inspector-empty">
-      <div className="fpb-inspector-empty-illustration" aria-hidden="true">
-        <svg viewBox="0 0 80 72" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <rect
-            x="8"
-            y="14"
-            width="52"
-            height="40"
-            rx="6"
-            stroke="rgba(212, 175, 55, 0.28)"
-            strokeWidth="1.5"
-            strokeDasharray="4 3"
-          />
-          <rect
-            x="22"
-            y="26"
-            width="24"
-            height="16"
-            rx="4"
-            fill="rgba(242, 235, 224, 0.08)"
-            stroke="rgba(212, 175, 55, 0.45)"
-            strokeWidth="1.5"
-          />
-          <path
-            d="M58 10 L68 20 M68 10 L58 20"
-            stroke="rgba(212, 175, 55, 0.35)"
-            strokeWidth="1.5"
-            strokeLinecap="round"
-          />
-          <circle cx="62" cy="48" r="3" fill="rgba(212, 175, 55, 0.5)" />
-          <path
-            d="M62 51 L62 58 M59 55 L62 58 L65 55"
-            stroke="rgba(212, 175, 55, 0.4)"
-            strokeWidth="1.5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-        </svg>
-      </div>
-      <p className="fpb-inspector-empty-title">Nothing selected yet</p>
+      <p className="fpb-inspector-empty-title">No table selected</p>
       <p className="fpb-inspector-empty-copy">
-        Click a table or object on the floor plan to view and edit its properties here.
+        Click a table on the floor to edit its name, seats, type, and area.
       </p>
     </div>
   )
 }
 
 export function BuilderInspector() {
-  const { selectedObject } = useFloorPlanBuilder()
+  const { state, dispatch, selectedObject } = useFloorPlanBuilder()
+  const { floors } = state
 
-  if (!selectedObject) {
+  if (!selectedObject || selectedObject.type !== FLOOR_PLAN_OBJECT_TYPES.TABLE) {
     return (
-      <aside className="fpb-inspector" aria-label="Inspector">
+      <aside className="fpb-inspector fpb-inspector-simple" aria-label="Table properties">
         <div className="fpb-panel-header">
           <p className="fpb-panel-eyebrow">Properties</p>
-          <h2 className="fpb-panel-title">Inspector</h2>
+          <h2 className="fpb-panel-title">Table</h2>
         </div>
         <InspectorEmptyState />
       </aside>
     )
   }
 
-  const isTable = selectedObject.type === FLOOR_PLAN_OBJECT_TYPES.TABLE
-  const tableModel = isTable ? getTableInspectorModel(selectedObject) : null
+  const { properties } = selectedObject
+  const tableNumber = properties.tableNumber ?? ''
+  const capacity = properties.capacity ?? 4
+  const shape = properties.shape ?? 'round'
+  const floorId = selectedObject.floorId
+  const width = Math.round(selectedObject.size.width)
+  const height = Math.round(selectedObject.size.height)
+  const rotation = Math.round(normalizeRotation(selectedObject.rotation ?? 0))
+
+  const updateTable = (patch) => {
+    dispatch({
+      type: 'UPDATE_TABLE',
+      payload: { objectId: selectedObject.id, patch },
+    })
+  }
+
+  const handleDelete = () => {
+    const confirmed = window.confirm(`Delete table ${tableNumber || ''}?`)
+    if (!confirmed) return
+
+    dispatch({
+      type: 'DELETE_OBJECT',
+      payload: { objectId: selectedObject.id },
+    })
+  }
 
   return (
-    <aside className="fpb-inspector" aria-label="Inspector">
+    <aside className="fpb-inspector fpb-inspector-simple" aria-label="Table properties">
       <div className="fpb-panel-header">
         <p className="fpb-panel-eyebrow">Properties</p>
         <h2 className="fpb-panel-title">{getObjectDisplayLabel(selectedObject)}</h2>
       </div>
 
       <div className="fpb-inspector-fields">
-        {isTable && tableModel ? (
-          <>
-            <InspectorField label="Name" value={tableModel.name} />
-            <InspectorField label="Capacity" value={String(tableModel.capacity)} />
-            <InspectorField label="Shape" value={tableModel.shape} />
-            <InspectorField label="Width" value={`${tableModel.width}px`} />
-            <InspectorField label="Height" value={`${tableModel.height}px`} />
-            <InspectorField label="Rotation" value={`${tableModel.rotation}°`} />
-            <InspectorField label="Locked" value={tableModel.locked} type="checkbox" />
-            <InspectorField label="Visible" value={tableModel.visible} type="checkbox" />
-          </>
-        ) : (
-          <>
-            <InspectorField label="Type" value={selectedObject.type} />
-            <InspectorField label="Width" value={`${Math.round(selectedObject.size.width)}px`} />
-            <InspectorField label="Height" value={`${Math.round(selectedObject.size.height)}px`} />
-            <InspectorField label="Rotation" value={`${selectedObject.rotation}°`} />
-            <InspectorField label="Visible" value={selectedObject.properties.visible !== false} type="checkbox" />
-          </>
-        )}
+        <label className="fpb-inspector-field">
+          <span>Table number</span>
+          <input
+            type="text"
+            value={tableNumber}
+            onChange={(event) => updateTable({ tableNumber: event.target.value })}
+            placeholder="e.g. 12"
+          />
+        </label>
+
+        <label className="fpb-inspector-field">
+          <span>Seats</span>
+          <input
+            type="number"
+            min="1"
+            max="24"
+            value={capacity}
+            onChange={(event) => updateTable({ capacity: event.target.value })}
+          />
+        </label>
+
+        <label className="fpb-inspector-field">
+          <span>Table type</span>
+          <select
+            className="fpb-inspector-select"
+            value={shape}
+            onChange={(event) => updateTable({ shape: event.target.value })}
+          >
+            {TABLE_TYPES.map((tableType) => (
+              <option key={tableType.id} value={tableType.shape}>
+                {tableType.label}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <label className="fpb-inspector-field">
+          <span>Width</span>
+          <input
+            type="number"
+            min="1"
+            value={width}
+            onChange={(event) => updateTable({ width: event.target.value })}
+          />
+        </label>
+
+        <label className="fpb-inspector-field">
+          <span>Height</span>
+          <input
+            type="number"
+            min="1"
+            value={height}
+            onChange={(event) => updateTable({ height: event.target.value })}
+          />
+        </label>
+
+        <label className="fpb-inspector-field">
+          <span>Rotation</span>
+          <input
+            type="number"
+            min="0"
+            max="359"
+            value={rotation}
+            onChange={(event) => updateTable({ rotation: event.target.value })}
+          />
+        </label>
+
+        <label className="fpb-inspector-field">
+          <span>Area</span>
+          <select
+            className="fpb-inspector-select"
+            value={floorId}
+            onChange={(event) => updateTable({ floorId: event.target.value })}
+          >
+            {floors.map((floor) => (
+              <option key={floor.id} value={floor.id}>{floor.label}</option>
+            ))}
+          </select>
+        </label>
       </div>
 
       <div className="fpb-inspector-actions">
-        <button type="button" className="fpb-inspector-secondary-btn" disabled>
-          Duplicate
-        </button>
-        <button type="button" className="fpb-inspector-danger-btn" disabled>
-          Delete
+        <button
+          type="button"
+          className="fpb-inspector-danger-btn"
+          onClick={handleDelete}
+        >
+          Delete table
         </button>
       </div>
     </aside>

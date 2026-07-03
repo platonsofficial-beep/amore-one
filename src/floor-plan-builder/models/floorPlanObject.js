@@ -74,6 +74,23 @@ export function createFloorPlanObject({
   }
 }
 
+export const TABLE_SHAPE_SIZES = {
+  round: { width: 108, height: 108 },
+  square: { width: 104, height: 104 },
+  rectangle: { width: 136, height: 92 },
+  island: { width: 180, height: 96 },
+}
+
+export function getTableShapeSize(shape) {
+  return TABLE_SHAPE_SIZES[shape] ?? TABLE_SHAPE_SIZES.round
+}
+
+export function getDefaultCapacityForShape(shape) {
+  if (shape === 'island') return 6
+  if (shape === 'rectangle') return 6
+  return 4
+}
+
 export function createDemoTableObject({
   id,
   tableNumber,
@@ -82,12 +99,7 @@ export function createDemoTableObject({
   position,
   area = 'Main Dining',
 }) {
-  const shapeSizes = {
-    round: { width: 108, height: 108 },
-    square: { width: 104, height: 104 },
-    rectangle: { width: 136, height: 92 },
-    island: { width: 180, height: 96 },
-  }
+  const shapeSizes = TABLE_SHAPE_SIZES
 
   return createFloorPlanObject({
     id,
@@ -124,17 +136,10 @@ export function createTableObjectFromType({
   tableNumber,
   objects,
 }) {
-  const shapeSizes = {
-    round: { width: 108, height: 108 },
-    square: { width: 104, height: 104 },
-    rectangle: { width: 136, height: 92 },
-    island: { width: 180, height: 96 },
-  }
-
   const shape = tableType.shape ?? 'round'
-  const size = shapeSizes[shape] ?? shapeSizes.round
+  const size = getTableShapeSize(shape)
   const nextNumber = tableNumber ?? getNextTableNumber(objects)
-  const defaultCapacity = shape === 'island' ? 6 : shape === 'rectangle' ? 6 : 4
+  const defaultCapacity = getDefaultCapacityForShape(shape)
 
   return createFloorPlanObject({
     id: `table-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,

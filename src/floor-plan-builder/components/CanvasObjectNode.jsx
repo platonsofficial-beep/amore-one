@@ -1,14 +1,19 @@
 import { memo } from 'react'
 import { FLOOR_PLAN_OBJECT_TYPES, getObjectDisplayLabel } from '../models/floorPlanObject'
 
+const CORNER_HANDLES = ['nw', 'ne', 'se', 'sw']
+
 function CanvasObjectNodeComponent({
   object,
   isSelected,
   isDragging,
+  isTransforming,
   activeTool,
   onPointerDown,
   onPointerMove,
   onPointerUp,
+  onResizePointerDown,
+  onRotatePointerDown,
 }) {
   const shapeClass = object.type === FLOOR_PLAN_OBJECT_TYPES.TABLE
     ? ` shape-${object.properties.shape ?? 'round'}`
@@ -18,18 +23,24 @@ function CanvasObjectNodeComponent({
   const capacity = object.properties.capacity
   const isLocked = object.properties.locked === true
   const { position } = object
+  const rotation = object.rotation ?? 0
 
   return (
     <div
-      className={`fpb-canvas-object type-${object.type}${shapeClass}${isSelected ? ' is-selected' : ''}${isDragging ? ' is-dragging' : ''}${isLocked ? ' is-locked' : ''}`}
+      className={`fpb-canvas-object type-${object.type}${shapeClass}${isSelected ? ' is-selected' : ''}${isDragging ? ' is-dragging' : ''}${isTransforming ? ' is-transforming' : ''}${isLocked ? ' is-locked' : ''}`}
       style={{
         left: position.x,
         top: position.y,
         width: object.size.width,
         height: object.size.height,
-        zIndex: isDragging ? 20 : object.zIndex,
+        transform: `rotate(${rotation}deg)`,
+        transformOrigin: 'center center',
+        zIndex: isDragging || isTransforming ? 20 : object.zIndex,
       }}
-      onPointerDown={(event) => onPointerDown(event, object)}
+      onPointerDown={(event) => {
+        event.stopPropagation()
+        onPointerDown(event, object)
+      }}
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}
       role="button"
@@ -45,6 +56,33 @@ function CanvasObjectNodeComponent({
           <span className="fpb-canvas-object-meta">{capacity} seats</span>
         ) : null}
       </div>
+
+      {isSelected && isTable ? (
+        <div className="fpb-selection-chrome" aria-hidden="true">
+          {CORNER_HANDLES.map((handle) => (
+            <button
+              key={handle}
+              type="button"
+              className={`fpb-handle fpb-handle-${handle}`}
+              tabIndex={-1}
+              aria-label={`Resize ${handle} corner`}
+              onPointerDown={(event) => onResizePointerDown?.(event, object, handle)}
+              onPointerMove={onPointerMove}
+              onPointerUp={onPointerUp}
+            />
+          ))}
+          <span className="fpb-rotate-stem" />
+          <button
+            type="button"
+            className="fpb-handle fpb-handle-rotate"
+            tabIndex={-1}
+            aria-label="Rotate table"
+            onPointerDown={(event) => onRotatePointerDown?.(event, object)}
+            onPointerMove={onPointerMove}
+            onPointerUp={onPointerUp}
+          />
+        </div>
+      ) : null}
     </div>
   )
 }
@@ -52,6 +90,7 @@ function CanvasObjectNodeComponent({
 function arePropsEqual(previous, next) {
   if (previous.isSelected !== next.isSelected) return false
   if (previous.isDragging !== next.isDragging) return false
+  if (previous.isTransforming !== next.isTransforming) return false
   if (previous.activeTool !== next.activeTool) return false
   if (previous.object.id !== next.object.id) return false
 
@@ -63,6 +102,8 @@ function arePropsEqual(previous, next) {
     && previous.object.size.width === next.object.size.width
     && previous.object.size.height === next.object.size.height
     && previous.object.properties.tableNumber === next.object.properties.tableNumber
+    && previous.object.properties.capacity === next.object.properties.capacity
+    && previous.object.properties.shape === next.object.properties.shape
     && previous.object.properties.locked === next.object.properties.locked
 }
 

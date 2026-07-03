@@ -3,6 +3,7 @@ import { FloorPlanBuilderProvider } from './context/floorPlanBuilderContextState
 import { useFloorPlanBuilder } from './hooks/useFloorPlanBuilder'
 import { BuilderToolbar } from './components/BuilderToolbar'
 import { BuilderToolbox } from './components/BuilderToolbox'
+import { BuilderInspector } from './components/BuilderInspector'
 import { BuilderCanvas } from './components/BuilderCanvas'
 import { useBuilderEditorLayout } from './hooks/useBuilderEditorLayout'
 import { useCanvasViewport } from './hooks/useCanvasViewport'
@@ -80,6 +81,10 @@ function FloorPlanBuilderShell({ onBack, containerRef }) {
             viewportControls={viewportControls}
             workspaceLayoutKey={workspaceLayoutKey}
           />
+        </div>
+
+        <div className="fpb-editor-inspector">
+          <BuilderInspector />
         </div>
       </div>
     </div>

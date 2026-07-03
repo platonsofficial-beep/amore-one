@@ -1,27 +1,48 @@
-import { useMemo, useReducer } from 'react'
+import { useEffect, useMemo, useReducer } from 'react'
 import { createCamera } from '../lib/camera'
-import { getDemoFloorPlanObjects } from '../models/floorPlanObject'
+import { loadFloorPlanLayout, saveFloorPlanLayout } from '../lib/floorPlanStorage'
+import {
+  FLOOR_PLAN_OBJECT_TYPES,
+  getTableShapeSize,
+} from '../models/floorPlanObject'
 import { createInitialFloors, createUniqueAreaId } from '../models/floorPlans'
-import { FLOOR_PLAN_OBJECT_TYPES } from '../models/floorPlanObject'
-import { createDefaultFloor, getWorkspaceBounds } from '../models/floorWorkspace'
+import { createDefaultFloor, createDefaultWorkspace, getWorkspaceBounds } from '../models/floorWorkspace'
+import {
+  fitTableRectToFloor,
+  getTableMinSize,
+  keepsTableAspectRatio,
+  normalizeRotation,
+} from '../lib/tableTransformUtils'
 import { FloorPlanBuilderContext } from './floorPlanBuilderContext'
 
-const INITIAL_FLOORS = createInitialFloors()
+function getFloorWorkspaceBounds(floors, floorId) {
+  const floor = floors.find((entry) => entry.id === floorId)
+  const workspace = {
+    ...createDefaultFloor(),
+    ...(floor?.workspace ?? createDefaultWorkspace()),
+  }
+  return getWorkspaceBounds(workspace)
+}
 
-const initialState = {
-  floors: INITIAL_FLOORS,
-  activeFloorId: 'main-dining',
-  objects: getDemoFloorPlanObjects(),
-  selectedObjectIds: [],
-  toolboxSelectionId: null,
-  activeTool: 'select',
-  mode: 'editing',
-  hasUnsavedChanges: false,
-  settings: {
-    gridEnabled: true,
-    snapEnabled: true,
-  },
-  camera: createCamera(),
+function createInitialBuilderState() {
+  const persisted = loadFloorPlanLayout()
+  const floors = persisted?.floors ?? createInitialFloors()
+
+  return {
+    floors,
+    activeFloorId: persisted?.activeFloorId ?? floors[0]?.id ?? 'main-dining',
+    objects: persisted?.objects ?? [],
+    selectedObjectIds: [],
+    toolboxSelectionId: null,
+    activeTool: 'select',
+    mode: 'editing',
+    hasUnsavedChanges: false,
+    settings: {
+      gridEnabled: true,
+      snapEnabled: true,
+    },
+    camera: createCamera(),
+  }
 }
 
 function floorPlanBuilderReducer(state, action) {
@@ -72,13 +93,117 @@ function floorPlanBuilderReducer(state, action) {
             : object
         )),
       }
+    case 'TRANSFORM_TABLE': {
+      const { objectId, position, size, rotation } = action.payload
+      if (!objectId) return state
+
+      return {
+        ...state,
+        hasUnsavedChanges: true,
+        objects: state.objects.map((object) => {
+          if (object.id !== objectId) return object
+          if (object.type !== FLOOR_PLAN_OBJECT_TYPES.TABLE) return object
+
+          const shape = object.properties.shape ?? 'round'
+          const bounds = getFloorWorkspaceBounds(state.floors, object.floorId)
+          const fitted = fitTableRectToFloor(
+            position ?? object.position,
+            size ?? object.size,
+            bounds,
+            shape,
+          )
+
+          return {
+            ...object,
+            position: fitted.position,
+            size: fitted.size,
+            rotation: normalizeRotation(rotation ?? object.rotation ?? 0),
+          }
+        }),
+      }
+    }
     case 'ADD_OBJECT':
       return {
         ...state,
         hasUnsavedChanges: true,
         objects: [...state.objects, action.payload.object],
         selectedObjectIds: [action.payload.object.id],
+        toolboxSelectionId: null,
       }
+    case 'UPDATE_TABLE': {
+      const { objectId, patch } = action.payload
+      if (!objectId) return state
+
+      return {
+        ...state,
+        hasUnsavedChanges: true,
+        objects: state.objects.map((object) => {
+          if (object.id !== objectId) return object
+          if (object.type !== FLOOR_PLAN_OBJECT_TYPES.TABLE) return object
+
+          const nextShape = patch.shape ?? object.properties.shape ?? 'round'
+          const shapeChanged = patch.shape !== undefined && patch.shape !== object.properties.shape
+          const nextFloorId = patch.floorId ?? object.floorId
+          const floor = state.floors.find((entry) => entry.id === nextFloorId)
+          const nextAreaLabel = floor?.label ?? object.properties.area
+          const tableNumber = `${patch.tableNumber ?? object.properties.tableNumber ?? ''}`.trim()
+          const capacity = Math.max(1, Number(patch.capacity ?? object.properties.capacity) || 1)
+
+          let nextSize = { ...object.size }
+          if (shapeChanged) {
+            nextSize = getTableShapeSize(nextShape)
+          } else if (patch.width !== undefined || patch.height !== undefined) {
+            let width = Math.max(getTableMinSize(nextShape).width, Number(patch.width ?? object.size.width) || object.size.width)
+            let height = Math.max(getTableMinSize(nextShape).height, Number(patch.height ?? object.size.height) || object.size.height)
+            if (keepsTableAspectRatio(nextShape)) {
+              const dim = Math.max(width, height)
+              width = dim
+              height = dim
+            }
+            nextSize = { width, height }
+          }
+
+          let nextRotation = object.rotation ?? 0
+          if (patch.rotation !== undefined) {
+            nextRotation = normalizeRotation(patch.rotation)
+          }
+
+          const fitted = fitTableRectToFloor(
+            object.position,
+            nextSize,
+            getFloorWorkspaceBounds(state.floors, nextFloorId),
+            nextShape,
+          )
+
+          return {
+            ...object,
+            floorId: nextFloorId,
+            size: fitted.size,
+            position: fitted.position,
+            rotation: nextRotation,
+            properties: {
+              ...object.properties,
+              tableNumber,
+              name: tableNumber ? `Table ${tableNumber}` : 'Table',
+              capacity,
+              shape: nextShape,
+              area: nextAreaLabel,
+            },
+          }
+        }),
+      }
+    }
+    case 'DELETE_OBJECT': {
+      const { objectId } = action.payload
+      if (!objectId) return state
+
+      return {
+        ...state,
+        hasUnsavedChanges: true,
+        objects: state.objects.filter((object) => object.id !== objectId),
+        selectedObjectIds: state.selectedObjectIds.filter((id) => id !== objectId),
+      }
+    }
     case 'ADD_FLOOR': {
       const label = `${action.payload.label ?? ''}`.trim()
       if (!label) return state
@@ -146,7 +271,15 @@ function floorPlanBuilderReducer(state, action) {
 }
 
 export function FloorPlanBuilderProvider({ children }) {
-  const [state, dispatch] = useReducer(floorPlanBuilderReducer, initialState)
+  const [state, dispatch] = useReducer(floorPlanBuilderReducer, undefined, createInitialBuilderState)
+
+  useEffect(() => {
+    saveFloorPlanLayout({
+      floors: state.floors,
+      activeFloorId: state.activeFloorId,
+      objects: state.objects,
+    })
+  }, [state.floors, state.activeFloorId, state.objects])
 
   const visibleObjects = useMemo(() => (
     state.objects.filter((object) => object.floorId === state.activeFloorId)
@@ -164,7 +297,7 @@ export function FloorPlanBuilderProvider({ children }) {
 
   const activeWorkspace = useMemo(() => ({
     ...createDefaultFloor(),
-    ...(activeFloor?.workspace ?? INITIAL_FLOORS[0].workspace),
+    ...(activeFloor?.workspace ?? createDefaultWorkspace()),
   }), [activeFloor])
 
   const activeWorkspaceBounds = useMemo(() => (

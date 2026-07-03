@@ -62,6 +62,17 @@ export function BuilderToolbar({ onBack }) {
       <div className="fpb-toolbar-group fpb-toolbar-area-label">
         <span className="fpb-area-current-label">{activeFloor.label}</span>
       </div>
+
+      <div className="fpb-toolbar-group fpb-toolbar-actions-end">
+        <button
+          type="button"
+          className="fpb-toolbar-btn fpb-toolbar-btn-primary"
+          disabled
+          title="Publish to reservations — coming soon"
+        >
+          Publish layout
+        </button>
+      </div>
     </header>
   )
 }
