@@ -69,7 +69,10 @@ function FloorPlanBuilderShell({ onBack, containerRef }) {
         style={{ '--fpb-toolbar-height': `${layout.toolbarHeight}px` }}
       >
         <div ref={toolbarRef} className="fpb-editor-toolbar">
-          <BuilderToolbar onBack={onBack} />
+          <BuilderToolbar
+            onBack={onBack}
+            onViewFit={viewportControls.fitFloor}
+          />
         </div>
 
         <div ref={sidebarRef} className="fpb-editor-sidebar">

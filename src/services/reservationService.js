@@ -4,6 +4,7 @@ import {
   encodeSeatingAssignmentInNotes,
   enrichReservationWithSeatingAssignment,
   formatSeatingAssignmentLabels,
+  getReservationSeatingAssignment,
   parseSeatingAssignmentFromNotes,
   stripSeatingAssignmentFromNotes,
 } from '../lib/seatingAssignment'
@@ -14,6 +15,7 @@ import {
 } from '../lib/reservationCustomerType'
 
 function mapReservation(record) {
+  const rawNotes = record.notes ?? ''
   const mapped = {
     id: record.id,
     guestName: record.guest_name ?? record.guestName ?? '',
@@ -24,19 +26,24 @@ function mapReservation(record) {
     tableNumber: record.table_number ?? record.tableNumber ?? '',
     area: record.area ?? '',
     status: record.status ?? 'Booked',
-    notes: record.notes ?? '',
+    notes: rawNotes,
   }
 
   return enrichReservationWithSeatingAssignment({
     ...mapped,
-    customerType: parseCustomerTypeFromNotes(mapped.notes),
-    notes: stripCustomerTypeFromNotes(stripSeatingAssignmentFromNotes(mapped.notes)),
+    customerType: parseCustomerTypeFromNotes(rawNotes),
   })
 }
 
 function serializeReservation(reservation) {
-  const seatingAssignment = reservation.seatingAssignment
-    ?? parseSeatingAssignmentFromNotes(reservation.notes)
+  const seatingAssignment = reservation.seatingAssignment?.assignedUnits?.length > 0
+    ? buildSeatingAssignment({
+      assignedUnits: reservation.seatingAssignment.assignedUnits,
+      extraChairs: reservation.seatingAssignment.extraChairs ?? 0,
+      standingGuests: reservation.seatingAssignment.standingGuests ?? 0,
+      partySize: reservation.guests,
+    })
+    : parseSeatingAssignmentFromNotes(reservation.notes ?? '')
   const tableNumber = seatingAssignment.assignedUnits.length > 0
     ? formatSeatingAssignmentLabels(seatingAssignment)
     : `${reservation.tableNumber ?? ''}`.trim()
@@ -94,10 +101,11 @@ export function createSeatingAssignmentPayload(reservation, assignmentInput) {
 }
 
 export function buildReservationUpdatePayload(reservation, patch) {
+  const existingAssignment = getReservationSeatingAssignment(reservation)
   const seatingAssignment = buildSeatingAssignment({
-    assignedUnits: patch.assignedUnits ?? reservation.seatingAssignment?.assignedUnits ?? [],
-    extraChairs: patch.extraChairs ?? reservation.seatingAssignment?.extraChairs ?? 0,
-    standingGuests: patch.standingGuests ?? reservation.seatingAssignment?.standingGuests ?? 0,
+    assignedUnits: patch.assignedUnits ?? existingAssignment.assignedUnits ?? [],
+    extraChairs: patch.extraChairs ?? existingAssignment.extraChairs ?? 0,
+    standingGuests: patch.standingGuests ?? existingAssignment.standingGuests ?? 0,
     partySize: patch.guests ?? reservation.guests,
   })
 
@@ -115,7 +123,7 @@ export function buildReservationUpdatePayload(reservation, patch) {
     tableNumber: seatingAssignment.assignedUnits.length > 0
       ? formatSeatingAssignmentLabels(seatingAssignment)
       : `${patch.tableNumber ?? reservation.tableNumber ?? ''}`.trim(),
-    area: reservation.area,
+    area: patch.area ?? reservation.area,
     status: patch.status ?? reservation.status,
     customerType,
     notes: encodeSeatingAssignmentInNotes(

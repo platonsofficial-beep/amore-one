@@ -13,6 +13,71 @@ export function normalizeTimeValue(value) {
   return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`
 }
 
+const RESERVATION_QUARTER_MINUTES = [0, 15, 30, 45]
+
+function formatTimeFromMinutes(totalMinutes) {
+  const hours = Math.floor(totalMinutes / 60) % 24
+  const minutes = totalMinutes % 60
+  return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`
+}
+
+export function getReservationTimeServiceOrder(value) {
+  const normalized = normalizeTimeValue(value)
+  if (!normalized) return Number.POSITIVE_INFINITY
+
+  const [hours, minutes] = normalized.split(':').map(Number)
+  const dayMinutes = hours * 60 + minutes
+
+  if (dayMinutes >= 9 * 60) return dayMinutes
+  return dayMinutes + 24 * 60
+}
+
+export function buildReservationTimeOptions() {
+  const options = []
+
+  for (let hour = 9; hour <= 23; hour += 1) {
+    RESERVATION_QUARTER_MINUTES.forEach((minute) => {
+      options.push(formatTimeFromMinutes(hour * 60 + minute))
+    })
+  }
+
+  for (let hour = 0; hour <= 2; hour += 1) {
+    RESERVATION_QUARTER_MINUTES.forEach((minute) => {
+      if (hour === 2 && minute > 0) return
+      options.push(formatTimeFromMinutes(hour * 60 + minute))
+    })
+  }
+
+  return options
+}
+
+export function getReservationTimeSelectOptions(value) {
+  const normalized = normalizeTimeValue(value)
+  const options = buildReservationTimeOptions()
+
+  if (normalized && !options.includes(normalized)) {
+    return [...options, normalized].sort(
+      (left, right) => getReservationTimeServiceOrder(left) - getReservationTimeServiceOrder(right),
+    )
+  }
+
+  return options
+}
+
+export function snapReservationTimeToQuarter(value) {
+  const normalized = normalizeTimeValue(value)
+  if (!normalized) return ''
+
+  const [hours, minutes] = normalized.split(':').map(Number)
+  const totalMinutes = hours * 60 + minutes
+  const snapped = Math.round(totalMinutes / 15) * 15
+  return formatTimeFromMinutes(snapped)
+}
+
+export function normalizeReservationTimeValue(value) {
+  return normalizeTimeValue(value)
+}
+
 export function formatTime24(value, fallback = '—') {
   const normalized = normalizeTimeValue(value)
   return normalized || fallback

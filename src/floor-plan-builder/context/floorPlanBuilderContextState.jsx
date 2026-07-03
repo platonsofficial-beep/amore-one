@@ -1,6 +1,7 @@
 import { useMemo, useReducer } from 'react'
 import { createCamera } from '../lib/camera'
-import { loadFloorPlanLayout, saveFloorPlanLayout } from '../lib/floorPlanStorage'
+import { autoArrangeFloorTables } from '../lib/autoArrangeLayout'
+import { loadDraftFloorPlanLayout, publishFloorPlanLayout, saveDraftFloorPlanLayout } from '../lib/floorPlanStorage'
 import {
   FLOOR_PLAN_OBJECT_TYPES,
   getTableShapeSize,
@@ -34,7 +35,7 @@ function createLayoutSnapshot(state) {
 }
 
 function createInitialBuilderState() {
-  const persisted = loadFloorPlanLayout()
+  const persisted = loadDraftFloorPlanLayout()
   const floors = persisted?.floors ?? createInitialFloors()
   const objects = persisted?.objects ?? []
   const activeFloorId = persisted?.activeFloorId ?? floors[0]?.id ?? 'main-dining'
@@ -108,7 +109,28 @@ function floorPlanBuilderReducer(state, action) {
       }
     case 'SAVE_LAYOUT': {
       const snapshot = createLayoutSnapshot(state)
-      saveFloorPlanLayout({
+      saveDraftFloorPlanLayout({
+        floors: state.floors,
+        activeFloorId: state.activeFloorId,
+        objects: state.objects,
+      })
+      return {
+        ...state,
+        mode: 'viewing',
+        hasUnsavedChanges: false,
+        savedSnapshot: snapshot,
+        toolboxSelectionId: null,
+        selectedObjectIds: [],
+      }
+    }
+    case 'PUBLISH_LAYOUT': {
+      const snapshot = createLayoutSnapshot(state)
+      saveDraftFloorPlanLayout({
+        floors: state.floors,
+        activeFloorId: state.activeFloorId,
+        objects: state.objects,
+      })
+      publishFloorPlanLayout({
         floors: state.floors,
         activeFloorId: state.activeFloorId,
         objects: state.objects,
@@ -320,6 +342,50 @@ function floorPlanBuilderReducer(state, action) {
             }
             : object
         )),
+      }
+    }
+    case 'AUTO_ARRANGE_FLOOR': {
+      if (!isBuilderEditing(state)) return state
+
+      return {
+        ...state,
+        hasUnsavedChanges: true,
+        objects: autoArrangeFloorTables(state.objects, state.activeFloorId, state.floors),
+        selectedObjectIds: [],
+      }
+    }
+    case 'AUTO_ARRANGE_AND_PUBLISH': {
+      if (!isBuilderEditing(state)) return state
+
+      const arrangedObjects = autoArrangeFloorTables(
+        state.objects,
+        state.activeFloorId,
+        state.floors,
+      )
+      const nextState = {
+        ...state,
+        hasUnsavedChanges: false,
+        objects: arrangedObjects,
+        selectedObjectIds: [],
+        toolboxSelectionId: null,
+      }
+      const snapshot = createLayoutSnapshot(nextState)
+
+      saveDraftFloorPlanLayout({
+        floors: nextState.floors,
+        activeFloorId: nextState.activeFloorId,
+        objects: nextState.objects,
+      })
+      publishFloorPlanLayout({
+        floors: nextState.floors,
+        activeFloorId: nextState.activeFloorId,
+        objects: nextState.objects,
+      })
+
+      return {
+        ...nextState,
+        mode: 'viewing',
+        savedSnapshot: snapshot,
       }
     }
     case 'DELETE_FLOOR': {

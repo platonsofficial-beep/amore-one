@@ -1,3 +1,5 @@
+import { stripCustomerTypeFromNotes } from './reservationCustomerType'
+
 export const SEATING_UNIT_TYPES = {
   TABLE: 'table',
   BAR: 'bar',
@@ -77,6 +79,51 @@ export function formatSeatingAssignmentLabels(assignment) {
   return units.map((unit) => unit.label).join(' + ')
 }
 
+export function formatHostListTableLabel(reservation) {
+  const assignment = getReservationSeatingAssignment(reservation)
+  if (assignment?.assignedUnits?.length > 0) {
+    return assignment.assignedUnits
+      .map((unit) => formatHostListUnitLabel(unit.label))
+      .join(' + ')
+  }
+
+  const tableNumber = `${reservation?.tableNumber ?? ''}`.trim()
+  if (!tableNumber) return '—'
+
+  return tableNumber
+    .split('+')
+    .map((part) => formatHostListUnitLabel(part))
+    .join(' + ')
+}
+
+export function formatHostListUnitLabel(label) {
+  const raw = `${label ?? ''}`.trim()
+  if (!raw) return '—'
+
+  const tableMatch = raw.match(/^table\s+(\d+)$/i)
+  if (tableMatch) return `T${tableMatch[1]}`
+  if (/^\d+$/.test(raw)) return `T${raw}`
+
+  return raw
+}
+
+export function formatHostListTableTooltip(reservation) {
+  const assignment = getReservationSeatingAssignment(reservation)
+  if (assignment?.assignedUnits?.length > 0) {
+    return formatSeatingAssignmentSummary(assignment, reservation.guests)
+  }
+
+  const tableNumber = `${reservation?.tableNumber ?? ''}`.trim()
+  return tableNumber || 'No table assigned'
+}
+
+export function formatSeatingAssignmentDrawerLabels(assignment) {
+  const units = assignment?.assignedUnits ?? []
+  if (!units.length) return '—'
+
+  return units.map((unit) => formatHostListUnitLabel(unit.label)).join(' + ')
+}
+
 export function formatSeatingAssignmentSummary(assignment, partySize = 0) {
   const totals = computeSeatingAssignmentTotals(assignment, partySize)
   const labels = formatSeatingAssignmentLabels(assignment)
@@ -151,8 +198,16 @@ export function parseSeatingAssignmentFromNotes(notes) {
 export function enrichReservationWithSeatingAssignment(reservation) {
   if (!reservation) return reservation
 
-  const seatingAssignment = parseSeatingAssignmentFromNotes(reservation.notes)
-  const displayNotes = stripSeatingAssignmentFromNotes(reservation.notes)
+  const rawNotes = reservation.notes ?? ''
+  const seatingAssignment = reservation.seatingAssignment?.assignedUnits?.length > 0
+    ? buildSeatingAssignment({
+      assignedUnits: reservation.seatingAssignment.assignedUnits,
+      extraChairs: reservation.seatingAssignment.extraChairs ?? 0,
+      standingGuests: reservation.seatingAssignment.standingGuests ?? 0,
+      partySize: reservation.guests,
+    })
+    : parseSeatingAssignmentFromNotes(rawNotes)
+  const displayNotes = stripCustomerTypeFromNotes(stripSeatingAssignmentFromNotes(rawNotes))
   const tableNumber = seatingAssignment.assignedUnits.length > 0
     ? formatSeatingAssignmentLabels(seatingAssignment)
     : `${reservation.tableNumber ?? ''}`.trim()
@@ -165,6 +220,16 @@ export function enrichReservationWithSeatingAssignment(reservation) {
   }
 }
 
+export function getReservationSeatingAssignment(reservation) {
+  if (!reservation) return createEmptySeatingAssignment()
+
+  if (reservation.seatingAssignment?.assignedUnits?.length > 0) {
+    return reservation.seatingAssignment
+  }
+
+  return parseSeatingAssignmentFromNotes(reservation.notes)
+}
+
 export function normalizeUnitKey(value) {
   return `${value ?? ''}`.trim().toLowerCase().replace(/^table\s*/i, '').replace(/^bar\s*/i, '').replace(/^t/, '')
 }
@@ -172,7 +237,7 @@ export function normalizeUnitKey(value) {
 export function reservationUsesSeatingUnit(reservation, unit) {
   if (!reservation || !unit) return false
 
-  const assignment = reservation.seatingAssignment ?? parseSeatingAssignmentFromNotes(reservation.notes)
+  const assignment = getReservationSeatingAssignment(reservation)
   if (assignment.assignedUnits.length > 0) {
     return assignment.assignedUnits.some((entry) => entry.id === unit.id)
   }

@@ -1,7 +1,7 @@
 import { useFloorPlanBuilder } from '../hooks/useFloorPlanBuilder'
 import { getAdjacentAreaId } from '../models/floorPlans'
 
-export function BuilderToolbar({ onBack }) {
+export function BuilderToolbar({ onBack, onViewFit }) {
   const { state, dispatch, activeFloor } = useFloorPlanBuilder()
   const { floors } = state
   const isEditing = state.mode === 'editing'
@@ -70,26 +70,63 @@ export function BuilderToolbar({ onBack }) {
             <button
               type="button"
               className="fpb-toolbar-btn"
+              onClick={onViewFit}
+            >
+              View fit
+            </button>
+            <button
+              type="button"
+              className="fpb-toolbar-btn fpb-toolbar-btn-primary"
+              onClick={() => dispatch({ type: 'AUTO_ARRANGE_AND_PUBLISH' })}
+            >
+              Auto arrange layout
+            </button>
+            <button
+              type="button"
+              className="fpb-toolbar-btn"
               onClick={() => dispatch({ type: 'CANCEL_EDITING' })}
             >
               Cancel changes
             </button>
             <button
               type="button"
-              className="fpb-toolbar-btn fpb-toolbar-btn-primary"
+              className="fpb-toolbar-btn"
               onClick={() => dispatch({ type: 'SAVE_LAYOUT' })}
             >
               Save layout
             </button>
+            <button
+              type="button"
+              className="fpb-toolbar-btn"
+              onClick={() => dispatch({ type: 'PUBLISH_LAYOUT' })}
+            >
+              Publish to reservations
+            </button>
           </>
         ) : (
-          <button
-            type="button"
-            className="fpb-toolbar-btn fpb-toolbar-btn-primary"
-            onClick={() => dispatch({ type: 'START_EDITING' })}
-          >
-            Edit layout
-          </button>
+          <>
+            <button
+              type="button"
+              className="fpb-toolbar-btn"
+              onClick={onViewFit}
+            >
+              View fit
+            </button>
+            <button
+              type="button"
+              className="fpb-toolbar-btn fpb-toolbar-btn-primary"
+              onClick={() => dispatch({ type: 'START_EDITING' })}
+            >
+              Edit layout
+            </button>
+            <button
+              type="button"
+              className="fpb-toolbar-btn"
+              onClick={() => dispatch({ type: 'PUBLISH_LAYOUT' })}
+            >
+              Publish to reservations
+            </button>
+          </>
         )}
         <span className={`fpb-mode-badge${isEditing ? '' : ' is-preview'}`}>
           {isEditing ? 'Edit mode' : 'View mode'}
