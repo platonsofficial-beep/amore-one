@@ -3232,6 +3232,150 @@
   box-shadow: 0 0 0 1px rgba(212, 175, 55, 0.28);
 }
 
+.floor-table-node.is-seat-picking.status-available .floor-table-node-surface,
+.floor-table-node.is-seat-picking.status-cleaning .floor-table-node-surface {
+  cursor: pointer;
+}
+
+.floor-table-node.is-seat-selected .floor-table-node-surface {
+  border-color: rgba(212, 175, 55, 0.95);
+  box-shadow:
+    0 0 0 2px rgba(212, 175, 55, 0.72),
+    0 0 24px rgba(212, 175, 55, 0.28);
+}
+
+.floor-table-node.is-seat-unavailable .floor-table-node-surface {
+  opacity: 0.42;
+  filter: grayscale(0.35);
+  cursor: not-allowed;
+}
+
+.floor-table-node.shape-section .floor-table-node-surface,
+.floor-table-node.shape-island .floor-table-node-surface {
+  border-radius: 12px;
+}
+
+.seating-confirm-panel {
+  margin: 0 0 10px;
+  padding: 12px 14px;
+  border: 1px solid rgba(212, 175, 55, 0.28);
+  border-radius: 12px;
+  background: rgba(18, 16, 14, 0.82);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.28);
+}
+
+.seating-confirm-eyebrow {
+  margin: 0;
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(232, 215, 168, 0.72);
+}
+
+.seating-confirm-title {
+  margin: 2px 0 0;
+  font-size: 1rem;
+}
+
+.seating-confirm-units {
+  margin-top: 10px;
+}
+
+.seating-confirm-label {
+  display: block;
+  font-size: 0.68rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.48);
+}
+
+.seating-confirm-unit-list {
+  margin: 4px 0 0;
+  font-size: 0.86rem;
+  color: #f2e6cf;
+}
+
+.seating-confirm-summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin: 12px 0 0;
+}
+
+.seating-confirm-summary dt {
+  margin: 0;
+  font-size: 0.66rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.45);
+}
+
+.seating-confirm-summary dd {
+  margin: 2px 0 0;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #f7efe1;
+}
+
+.seating-confirm-warning {
+  margin: 10px 0 0;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: rgba(176, 74, 52, 0.18);
+  color: #f0b5a4;
+  font-size: 0.8rem;
+}
+
+.seating-confirm-adjustments {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.seating-confirm-field {
+  display: grid;
+  gap: 4px;
+  font-size: 0.74rem;
+  color: rgba(255, 255, 255, 0.62);
+}
+
+.seating-confirm-field input {
+  width: 100%;
+  padding: 7px 8px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.04);
+  color: #f7efe1;
+}
+
+.seating-confirm-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.seating-confirm-btn {
+  flex: 1;
+  padding: 9px 12px;
+  border-radius: 9px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.04);
+  color: #f2e6cf;
+  font-weight: 600;
+}
+
+.seating-confirm-btn-primary {
+  border-color: rgba(212, 175, 55, 0.45);
+  background: linear-gradient(180deg, rgba(212, 175, 55, 0.28), rgba(176, 132, 38, 0.22));
+  color: #fff8ea;
+}
+
+.seating-confirm-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 @media (max-width: 1100px) {
   .host-operations-canvas {
     grid-template-columns: 1fr;

@@ -2,6 +2,12 @@ import { useFloorPlanBuilder } from '../hooks/useFloorPlanBuilder'
 import { TABLE_TYPES } from '../models/componentCatalog'
 import { FLOOR_PLAN_OBJECT_TYPES, getObjectDisplayLabel } from '../models/floorPlanObject'
 import { normalizeRotation } from '../lib/tableTransformUtils'
+import {
+  createDefaultSections,
+  getTableSectionTotals,
+  normalizeTableSection,
+  supportsTableSections,
+} from '../lib/tableSections'
 
 function InspectorEmptyState() {
   return (
@@ -38,6 +44,9 @@ export function BuilderInspector() {
   const width = Math.round(selectedObject.size.width)
   const height = Math.round(selectedObject.size.height)
   const rotation = Math.round(normalizeRotation(selectedObject.rotation ?? 0))
+  const sections = properties.sections ?? []
+  const showSections = supportsTableSections(shape, floorId)
+  const sectionTotals = getTableSectionTotals(sections)
 
   const updateTable = (patch) => {
     dispatch({
@@ -80,10 +89,109 @@ export function BuilderInspector() {
             type="number"
             min="1"
             max="24"
-            value={capacity}
+            value={showSections ? sectionTotals.stools : capacity}
             onChange={(event) => updateTable({ capacity: event.target.value })}
+            disabled={showSections}
           />
         </label>
+
+        {showSections ? (
+          <div className="fpb-inspector-sections">
+            <div className="fpb-inspector-sections-header">
+              <span>Sections</span>
+              <button
+                type="button"
+                className="fpb-inspector-sections-add"
+                onClick={() => {
+                  const nextIndex = sections.length + 1
+                  updateTable({
+                    sections: [
+                      ...sections,
+                      normalizeTableSection({
+                        id: `${nextIndex}`,
+                        label: `${nextIndex}`,
+                        stools: 2,
+                        maxGuests: 4,
+                      }),
+                    ],
+                  })
+                }}
+              >
+                Add section
+              </button>
+            </div>
+
+            {sections.length === 0 ? (
+              <button
+                type="button"
+                className="fpb-inspector-sections-seed"
+                onClick={() => updateTable({ sections: createDefaultSections(shape, floorId) })}
+              >
+                Add default sections
+              </button>
+            ) : null}
+
+            {sections.map((section, index) => (
+              <div key={`${section.id}-${index}`} className="fpb-inspector-section-row">
+                <input
+                  type="text"
+                  value={section.label}
+                  onChange={(event) => {
+                    const nextSections = sections.map((entry, entryIndex) => (
+                      entryIndex === index
+                        ? normalizeTableSection({ ...entry, label: event.target.value })
+                        : entry
+                    ))
+                    updateTable({ sections: nextSections })
+                  }}
+                  placeholder="Label"
+                />
+                <input
+                  type="number"
+                  min="1"
+                  value={section.stools}
+                  onChange={(event) => {
+                    const nextSections = sections.map((entry, entryIndex) => (
+                      entryIndex === index
+                        ? normalizeTableSection({ ...entry, stools: event.target.value })
+                        : entry
+                    ))
+                    updateTable({ sections: nextSections })
+                  }}
+                  aria-label="Stools"
+                />
+                <input
+                  type="number"
+                  min="1"
+                  value={section.maxGuests}
+                  onChange={(event) => {
+                    const nextSections = sections.map((entry, entryIndex) => (
+                      entryIndex === index
+                        ? normalizeTableSection({ ...entry, maxGuests: event.target.value })
+                        : entry
+                    ))
+                    updateTable({ sections: nextSections })
+                  }}
+                  aria-label="Max guests"
+                />
+                <button
+                  type="button"
+                  className="fpb-inspector-section-remove"
+                  onClick={() => updateTable({
+                    sections: sections.filter((_, entryIndex) => entryIndex !== index),
+                  })}
+                  aria-label="Remove section"
+                >
+                  ×
+                </button>
+              </div>
+            ))}
+
+            <p className="fpb-inspector-sections-summary">
+              {sectionTotals.stools} stools · max {sectionTotals.maxGuests} guests
+            </p>
+          </div>
+        ) : null}
 
         <label className="fpb-inspector-field">
           <span>Table type</span>

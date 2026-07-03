@@ -9,7 +9,13 @@ import { draftMatchesPublishedSnapshot } from './services/publishedShiftService'
 import { getWeekSchedulePublicationState, publishWeekSchedule, unpublishWeekSchedule } from './services/schedulePublicationService'
 import { createPosition, deletePosition, getPositions, reorderPositions, updatePosition } from './services/positionsService'
 import { createWeeklyScheduleTemplate, deleteWeeklyScheduleTemplate, getWeeklyScheduleTemplates, getWeeklyTemplateShifts, renameWeeklyScheduleTemplate } from './services/weeklyScheduleTemplateService'
-import { createReservation, deleteReservation, getReservations, updateReservation } from './services/reservationService'
+import { SeatingConfirmPanel } from './components/seating/SeatingConfirmPanel'
+import { DEFAULT_FLOOR_PLAN_LAYOUT } from './lib/hostFloorPlanLayout'
+import {
+  formatSeatingAssignmentSummary,
+  normalizeUnitKey,
+  reservationUsesSeatingUnit,
+} from './lib/seatingAssignment'
 import { createInventoryItem, deleteInventoryItem, getInventoryItems, updateInventoryItem } from './services/inventoryService'
 import { createSupplier, deleteSupplier, getSuppliers, updateSupplier } from './services/supplierService'
 import {
@@ -4954,6 +4960,9 @@ function ReservationWorkspaceProvider({
   const [workspaceFocus, setWorkspaceFocus] = useState('operations')
   const [isTimelineCollapsed, setIsTimelineCollapsed] = useState(true)
   const [activeFloorAreaId, setActiveFloorAreaId] = useState('main')
+  const [seatingDraftUnitIds, setSeatingDraftUnitIds] = useState([])
+  const [seatingExtraChairs, setSeatingExtraChairs] = useState(0)
+  const [seatingStandingGuests, setSeatingStandingGuests] = useState(0)
   const timelineCardRefs = useRef({})
   const floorTableRefs = useRef({})
   const timelineScrollRef = useRef(null)
@@ -4988,6 +4997,22 @@ function ReservationWorkspaceProvider({
     })
   }, [])
 
+  const clearSeatingDraft = useCallback(() => {
+    setSeatingDraftUnitIds([])
+    setSeatingExtraChairs(0)
+    setSeatingStandingGuests(0)
+  }, [])
+
+  const toggleSeatingUnit = useCallback((unitId) => {
+    if (!unitId) return
+
+    setSeatingDraftUnitIds((current) => (
+      current.includes(unitId)
+        ? current.filter((id) => id !== unitId)
+        : [...current, unitId]
+    ))
+  }, [])
+
   const selectReservation = useCallback((reservation, options = {}) => {
     if (!reservation) return
 
@@ -5002,6 +5027,7 @@ function ReservationWorkspaceProvider({
     setSelectedReservation(reservation)
     setIsGuestProfileOpen(openGuestProfile)
     setSelectionPulseKey((current) => current + 1)
+    clearSeatingDraft()
 
     if (scrollFloor) {
       const zoneId = getFloorZoneIdForReservation(reservation)
@@ -5019,12 +5045,13 @@ function ReservationWorkspaceProvider({
         scrollFloorToTable(tableId)
       }
     })
-  }, [scrollFloorToTable, scrollTimelineToReservation])
+  }, [clearSeatingDraft, scrollFloorToTable, scrollTimelineToReservation])
 
   const clearSelection = useCallback(() => {
     setSelectedReservation(null)
     setIsGuestProfileOpen(false)
-  }, [])
+    clearSeatingDraft()
+  }, [clearSeatingDraft])
 
   const isSelected = useCallback((reservation) => (
     reservationIdsMatch(selectedReservation, reservation)
@@ -5041,6 +5068,14 @@ function ReservationWorkspaceProvider({
     setIsTimelineCollapsed,
     activeFloorAreaId,
     setActiveFloorAreaId,
+    seatingDraftUnitIds,
+    seatingExtraChairs,
+    seatingStandingGuests,
+    toggleSeatingUnit,
+    toggleSeatingUnit,
+    clearSeatingDraft,
+    setSeatingExtraChairs,
+    setSeatingStandingGuests,
     selectReservation,
     clearSelection,
     isSelected,
@@ -5063,6 +5098,11 @@ function ReservationWorkspaceProvider({
     workspaceFocus,
     isTimelineCollapsed,
     activeFloorAreaId,
+    seatingDraftUnitIds,
+    seatingExtraChairs,
+    seatingStandingGuests,
+    clearSeatingDraft,
+    toggleSeatingUnit,
   ])
 
   return (
@@ -5845,42 +5885,6 @@ function buildFloorHeatmapAnalytics({
   })
 }
 
-const DEFAULT_FLOOR_PLAN_LAYOUT = {
-  id: 'amore-floor',
-  name: 'AMORE',
-  zones: [
-    { id: 'main', label: 'Main Dining', tableIds: ['1', '2', '3', '4', '5', '6', '7', '8', '9'] },
-    { id: 'bar', label: 'Bar', tableIds: ['10', '11'] },
-    { id: 'patio', label: 'Patio', tableIds: ['12', '13', '14'] },
-    { id: 'rooftop', label: 'Rooftop', tableIds: ['15', '16'] },
-    { id: 'lounge', label: 'Lounge', tableIds: ['17', '18'] },
-  ],
-  tables: [
-    { id: '1', label: '1', x: 22, y: 28, seats: 2, zoneId: 'main', shape: 'round' },
-    { id: '2', label: '2', x: 34, y: 28, seats: 2, zoneId: 'main', shape: 'round' },
-    { id: '3', label: '3', x: 46, y: 28, seats: 4, zoneId: 'main', shape: 'square' },
-    { id: '4', label: '4', x: 58, y: 28, seats: 4, zoneId: 'main', shape: 'square' },
-    { id: '5', label: '5', x: 22, y: 48, seats: 4, zoneId: 'main', shape: 'square' },
-    { id: '6', label: '6', x: 34, y: 48, seats: 4, zoneId: 'main', shape: 'square' },
-    { id: '7', label: '7', x: 46, y: 48, seats: 6, zoneId: 'main', shape: 'square' },
-    { id: '8', label: '8', x: 58, y: 48, seats: 6, zoneId: 'main', shape: 'square' },
-    { id: '9', label: '9', x: 40, y: 72, seats: 8, zoneId: 'main', shape: 'rectangle' },
-    { id: '10', label: '10', x: 20, y: 30, seats: 2, zoneId: 'bar', shape: 'round' },
-    { id: '11', label: '11', x: 20, y: 55, seats: 2, zoneId: 'bar', shape: 'round' },
-    { id: '12', label: '12', x: 30, y: 30, seats: 4, zoneId: 'patio', shape: 'round' },
-    { id: '13', label: '13', x: 50, y: 45, seats: 4, zoneId: 'patio', shape: 'round' },
-    { id: '14', label: '14', x: 30, y: 60, seats: 6, zoneId: 'patio', shape: 'square' },
-    { id: '15', label: '15', x: 28, y: 32, seats: 4, zoneId: 'rooftop', shape: 'round' },
-    { id: '16', label: '16', x: 52, y: 52, seats: 6, zoneId: 'rooftop', shape: 'rectangle' },
-    { id: '17', label: '17', x: 24, y: 38, seats: 6, zoneId: 'lounge', shape: 'island' },
-    { id: '18', label: '18', x: 58, y: 58, seats: 2, zoneId: 'lounge', shape: 'round' },
-  ],
-}
-
-function normalizeTableKey(value) {
-  return `${value ?? ''}`.trim().toLowerCase().replace(/^table\s*/i, '').replace(/^t/, '')
-}
-
 function getFloorTableStatusPriority(reservation) {
   const status = normalizeReservationStatus(reservation.status)
   if (status === 'Dining') return 6
@@ -5891,15 +5895,16 @@ function getFloorTableStatusPriority(reservation) {
   return 1
 }
 
-function findReservationForFloorTable(table, reservations, todayKey) {
-  const tableKey = normalizeTableKey(table.label)
+function normalizeTableKey(value) {
+  return normalizeUnitKey(value)
+}
 
+function findReservationForFloorTable(table, reservations, todayKey) {
   const matches = reservations.filter((reservation) => {
     if (`${reservation.date ?? ''}`.slice(0, 10) !== todayKey) return false
     const status = normalizeReservationStatus(reservation.status)
     if (['Cancelled', 'No Show'].includes(status)) return false
-    const reservationTableKey = normalizeTableKey(reservation.tableNumber)
-    return Boolean(reservationTableKey && reservationTableKey === tableKey)
+    return reservationUsesSeatingUnit(reservation, table)
   })
 
   if (matches.length === 0) return null
@@ -5907,6 +5912,23 @@ function findReservationForFloorTable(table, reservations, todayKey) {
   return [...matches].sort((left, right) => (
     getFloorTableStatusPriority(right) - getFloorTableStatusPriority(left)
   ))[0]
+}
+
+function getTableIdForReservation(reservation) {
+  const assignment = reservation?.seatingAssignment
+  if (assignment?.assignedUnits?.length > 0) {
+    return assignment.assignedUnits[0].id
+  }
+
+  const tableKey = normalizeTableKey(reservation?.tableNumber)
+  if (!tableKey) return null
+
+  const table = DEFAULT_FLOOR_PLAN_LAYOUT.tables.find((entry) => (
+    normalizeTableKey(entry.label) === tableKey
+      || normalizeTableKey(entry.displayLabel) === tableKey
+  ))
+
+  return table?.id ?? null
 }
 
 function getFloorTableStatus(reservation, nowMinutes, todayKey, options = {}) {
@@ -5976,17 +5998,6 @@ function buildFloorPlanLiveStats(tableStates, reservations, todayKey, nowMinutes
     upcomingArrivals,
     reservationsWaiting,
   }
-}
-
-function getTableIdForReservation(reservation) {
-  const tableKey = normalizeTableKey(reservation?.tableNumber)
-  if (!tableKey) return null
-
-  const table = DEFAULT_FLOOR_PLAN_LAYOUT.tables.find((entry) => (
-    normalizeTableKey(entry.label) === tableKey
-  ))
-
-  return table?.id ?? null
 }
 
 function getFloorZoneIdForReservation(reservation) {
@@ -6274,6 +6285,7 @@ function FloorTableNode({
   isAnalyticsOpen = false,
   onAnalyticsToggle,
   isMergeSelected,
+  isSeatPicking = false,
   isDropTarget,
   isDragging,
   isStatusPulsing,
@@ -6286,7 +6298,7 @@ function FloorTableNode({
   onDragLeave,
   onDrop,
 }) {
-  const { isSelected, selectionPulseKey } = useReservationWorkspace()
+  const { isSelected, selectionPulseKey, seatingDraftUnitIds } = useReservationWorkspace()
   const { table, reservation, status } = tableState
   const isHeatmap = viewMode === 'heatmap'
   const guestName = reservation ? formatReservationGuestName(reservation.guestName) : null
@@ -6303,6 +6315,12 @@ function FloorTableNode({
     ? getReservationStatusBadgeLabel(reservation, nowMinutes, todayKey)
     : FLOOR_TABLE_STATUS_META[status]?.label || status
   const tableIsSelected = !isHeatmap && reservation ? isSelected(reservation) : false
+  const isPickedForSeating = seatingDraftUnitIds.includes(table.id)
+  const isUnavailable = !isHeatmap && status !== 'available' && status !== 'cleaning'
+  const unitLabel = table.displayLabel ?? (table.unitType === 'table' ? `Table ${table.label}` : table.label)
+  const capacityLabel = table.maxGuestCapacity && table.maxGuestCapacity !== table.seats
+    ? `${table.seats} stools · max ${table.maxGuestCapacity}`
+    : `${table.seats} seats`
 
   const handleClick = (event) => {
     if (isHeatmap) {
@@ -6317,7 +6335,7 @@ function FloorTableNode({
   return (
     <div
       ref={nodeRef}
-      className={`floor-table-node shape-${table.shape}${isHeatmap ? ` view-heatmap heatmap-tier-${heatmapMetrics?.tier || 'very-light'}` : ` status-${status}`}${isMergeSelected ? ' is-merge-selected' : ''}${isDropTarget ? ' is-drop-target' : ''}${isDragging ? ' is-dragging' : ''}${tableIsSelected ? ' is-selected is-synced' : ''}${isStatusPulsing ? ` is-status-pulse status-${status}` : ''}${isAnalyticsOpen ? ' is-analytics-open' : ''}`}
+      className={`floor-table-node shape-${table.shape}${isHeatmap ? ` view-heatmap heatmap-tier-${heatmapMetrics?.tier || 'very-light'}` : ` status-${status}`}${isMergeSelected ? ' is-merge-selected' : ''}${isSeatPicking ? ' is-seat-picking' : ''}${isPickedForSeating ? ' is-seat-selected' : ''}${isUnavailable && isSeatPicking ? ' is-seat-unavailable' : ''}${isDropTarget ? ' is-drop-target' : ''}${isDragging ? ' is-dragging' : ''}${tableIsSelected ? ' is-selected is-synced' : ''}${isStatusPulsing ? ` is-status-pulse status-${status}` : ''}${isAnalyticsOpen ? ' is-analytics-open' : ''}`}
       style={{ left: `${table.x}%`, top: `${table.y}%` }}
       data-table-id={table.id}
       data-selection-pulse={tableIsSelected ? selectionPulseKey : undefined}
@@ -6332,23 +6350,23 @@ function FloorTableNode({
       role="button"
       tabIndex={0}
       aria-label={isHeatmap
-        ? `Table ${table.label}, ${heatmapMetrics?.utilizationPercent ?? 0}% utilization`
-        : `Table ${table.label}${guestName ? `, ${guestName}` : ', available'}`}
+        ? `${unitLabel}, ${heatmapMetrics?.utilizationPercent ?? 0}% utilization`
+        : `${unitLabel}${guestName ? `, ${guestName}` : ', available'}`}
       aria-current={tableIsSelected ? 'true' : undefined}
       aria-expanded={isHeatmap ? isAnalyticsOpen : undefined}
     >
       <div className="floor-table-node-surface">
-        <span className="floor-table-number">Table {table.label}</span>
+        <span className="floor-table-number">{unitLabel}</span>
         {isHeatmap ? (
           <span className="floor-table-heatmap-value">{heatmapMetrics?.utilizationPercent ?? 0}%</span>
         ) : guestName ? (
           <>
             <span className="floor-table-guest">{guestName}</span>
-            <span className="floor-table-capacity">{guestCount} / {table.seats}</span>
+            <span className="floor-table-capacity">{guestCount} / {table.maxGuestCapacity ?? table.seats}</span>
             <span className="floor-table-time">{arrivalTime}</span>
           </>
         ) : (
-          <span className="floor-table-meta floor-table-meta-empty">{table.seats} seats</span>
+          <span className="floor-table-meta floor-table-meta-empty">{capacityLabel}</span>
         )}
       </div>
 
@@ -6393,8 +6411,8 @@ function FloorTableNode({
             </>
           ) : (
             <>
-              <strong>Table {table.label}</strong>
-              <span>Available · {table.seats} seats</span>
+              <strong>{unitLabel}</strong>
+              <span>Available · {capacityLabel}</span>
             </>
           )}
         </div>
@@ -6467,6 +6485,13 @@ function FloorPlanView({
     floorCanvasRef,
     activeFloorAreaId,
     setActiveFloorAreaId,
+    seatingDraftUnitIds,
+    seatingExtraChairs,
+    seatingStandingGuests,
+    toggleSeatingUnit,
+    clearSeatingDraft,
+    setSeatingExtraChairs,
+    setSeatingStandingGuests,
   } = useReservationWorkspace()
   const [draggingReservationId, setDraggingReservationId] = useState(null)
   const [dropTargetTableId, setDropTargetTableId] = useState(null)
@@ -6653,10 +6678,12 @@ function FloorPlanView({
     }
 
     if (!tableState.reservation && selectedReservation && tableState.status === 'available') {
-      if (onSeatGuestAtTable) {
-        onSeatGuestAtTable(selectedReservation, tableState.table.label)
-      }
-      clearSelection()
+      toggleSeatingUnit(tableState.table.id)
+      return
+    }
+
+    if (!tableState.reservation && selectedReservation && tableState.status === 'cleaning') {
+      toggleSeatingUnit(tableState.table.id)
       return
     }
 
@@ -6694,6 +6721,14 @@ function FloorPlanView({
     }
   }
 
+  const handleConfirmSeating = async (assignment) => {
+    if (!selectedReservation || !onSeatGuestAtTable) return
+    await onSeatGuestAtTable(selectedReservation, assignment)
+    clearSelection()
+  }
+
+  const isSeatPicking = Boolean(selectedReservation && !isHeatmap && isCompact)
+
   return (
     <div className={`floor-plan-workspace${isCompact ? ' is-compact' : ''}${isHeatmap ? ' is-heatmap-mode' : ' is-normal-mode'}`} data-floor-view-mode={viewMode}>
       <div className="floor-plan-toolbar">
@@ -6725,8 +6760,23 @@ function FloorPlanView({
 
       {selectedReservation && !isHeatmap && isCompact ? (
         <p className="floor-plan-seat-hint">
-          Tap an open table to seat {formatReservationGuestName(selectedReservation.guestName)}
+          Tap open tables or sections to seat {formatReservationGuestName(selectedReservation.guestName)}
+          {seatingDraftUnitIds.length > 0 ? ` · ${seatingDraftUnitIds.length} selected` : ''}
         </p>
+      ) : null}
+
+      {selectedReservation && seatingDraftUnitIds.length > 0 && !isHeatmap && isCompact ? (
+        <SeatingConfirmPanel
+          reservation={selectedReservation}
+          selectedUnitIds={seatingDraftUnitIds}
+          extraChairs={seatingExtraChairs}
+          standingGuests={seatingStandingGuests}
+          onExtraChairsChange={setSeatingExtraChairs}
+          onStandingGuestsChange={setSeatingStandingGuests}
+          onConfirm={handleConfirmSeating}
+          onCancel={clearSeatingDraft}
+          isSaving={isSaving}
+        />
       ) : null}
 
       {isHeatmap ? (
@@ -6791,6 +6841,7 @@ function FloorPlanView({
               : undefined}
             isMergeSelected={mergeSelection.includes(tableState.table.id)
               || mergedGroups.some((group) => group.tableIds.includes(tableState.table.id))}
+            isSeatPicking={isSeatPicking}
             isDropTarget={dropTargetTableId === tableState.table.id}
             isDragging={draggingReservationId && tableState.reservation
               ? String(tableState.reservation.id) === draggingReservationId
@@ -6810,7 +6861,7 @@ function FloorPlanView({
         {isHeatmap
           ? `${heatmapPeriodRange.label} utilization · Darker gold indicates higher table turnover`
           : isCompact
-            ? 'Select a guest, then tap an open table to seat.'
+            ? 'Select a guest, tap tables or sections, then confirm seating.'
             : 'Drag reservations between tables to reassign · Shift + click to merge · Right-click to split'}
         {isSaving ? ' · Saving…' : ''}
       </p>
@@ -8341,7 +8392,9 @@ function HostReservationList({
       {reservations.map((reservation) => {
         const guestName = formatReservationGuestName(reservation.guestName)
         const guestCount = Number(reservation.guests) || 0
-        const tableLabel = `${reservation.tableNumber ?? ''}`.trim() || '—'
+        const tableLabel = reservation.seatingAssignment?.assignedUnits?.length > 0
+          ? formatSeatingAssignmentSummary(reservation.seatingAssignment, guestCount)
+          : (`${reservation.tableNumber ?? ''}`.trim() || '—')
         const arrivalClock = formatTime24(reservation.time) || '—'
         const customerType = getGuestCustomerType(reservation)
         const displayStatus = getReservationDisplayStatus(reservation, nowMinutes, todayKey)
@@ -12739,22 +12792,13 @@ function App() {
     }
   }
 
-  const handleSeatGuestAtTable = async (reservation, tableNumber) => {
+  const handleSeatGuestAtTable = async (reservation, assignment) => {
     try {
-      await updateReservation(reservation.id, {
-        guestName: reservation.guestName,
-        phone: reservation.phone,
-        date: reservation.date,
-        time: reservation.time,
-        guests: reservation.guests,
-        tableNumber: `${tableNumber ?? ''}`.trim(),
-        area: reservation.area,
-        status: 'Seated',
-        notes: reservation.notes,
-      })
+      const payload = createSeatingAssignmentPayload(reservation, assignment)
+      await updateReservation(reservation.id, payload)
       await refreshReservations()
       setReservationNotice(
-        `Seated ${formatReservationGuestName(reservation.guestName)} at table ${tableNumber}.`,
+        `Seated ${formatReservationGuestName(reservation.guestName)} at ${formatSeatingAssignmentSummary(payload.seatingAssignment, reservation.guests)}.`,
       )
     } catch (error) {
       setReservationNotice(error.message || 'Unable to seat guest right now.')

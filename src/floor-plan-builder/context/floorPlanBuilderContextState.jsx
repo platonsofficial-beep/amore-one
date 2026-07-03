@@ -13,6 +13,7 @@ import {
   keepsTableAspectRatio,
   normalizeRotation,
 } from '../lib/tableTransformUtils'
+import { getTableSectionTotals, normalizeTableSection } from '../lib/tableSections'
 import { FloorPlanBuilderContext } from './floorPlanBuilderContext'
 
 function getFloorWorkspaceBounds(floors, floorId) {
@@ -148,6 +149,10 @@ function floorPlanBuilderReducer(state, action) {
           const nextAreaLabel = floor?.label ?? object.properties.area
           const tableNumber = `${patch.tableNumber ?? object.properties.tableNumber ?? ''}`.trim()
           const capacity = Math.max(1, Number(patch.capacity ?? object.properties.capacity) || 1)
+          const nextSections = patch.sections !== undefined
+            ? patch.sections.map(normalizeTableSection)
+            : (object.properties.sections ?? [])
+          const sectionTotals = getTableSectionTotals(nextSections)
 
           let nextSize = { ...object.size }
           if (shapeChanged) {
@@ -175,6 +180,11 @@ function floorPlanBuilderReducer(state, action) {
             nextShape,
           )
 
+          let nextCapacity = capacity
+          if (nextSections.length > 0) {
+            nextCapacity = Math.max(1, sectionTotals.stools)
+          }
+
           return {
             ...object,
             floorId: nextFloorId,
@@ -185,9 +195,10 @@ function floorPlanBuilderReducer(state, action) {
               ...object.properties,
               tableNumber,
               name: tableNumber ? `Table ${tableNumber}` : 'Table',
-              capacity,
+              capacity: nextCapacity,
               shape: nextShape,
               area: nextAreaLabel,
+              sections: nextSections,
             },
           }
         }),
