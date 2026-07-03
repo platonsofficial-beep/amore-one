@@ -4952,6 +4952,8 @@ function ReservationWorkspaceProvider({
   const [isGuestProfileOpen, setIsGuestProfileOpen] = useState(false)
   const [selectionPulseKey, setSelectionPulseKey] = useState(0)
   const [workspaceFocus, setWorkspaceFocus] = useState('operations')
+  const [isTimelineCollapsed, setIsTimelineCollapsed] = useState(true)
+  const [activeFloorAreaId, setActiveFloorAreaId] = useState('main')
   const timelineCardRefs = useRef({})
   const floorTableRefs = useRef({})
   const timelineScrollRef = useRef(null)
@@ -5001,6 +5003,13 @@ function ReservationWorkspaceProvider({
     setIsGuestProfileOpen(openGuestProfile)
     setSelectionPulseKey((current) => current + 1)
 
+    if (scrollFloor) {
+      const zoneId = getFloorZoneIdForReservation(reservation)
+      if (zoneId) {
+        setActiveFloorAreaId(zoneId)
+      }
+    }
+
     window.requestAnimationFrame(() => {
       if (scrollTimeline) {
         scrollTimelineToReservation(reservation.id)
@@ -5028,6 +5037,10 @@ function ReservationWorkspaceProvider({
     selectionPulseKey,
     workspaceFocus,
     setWorkspaceFocus,
+    isTimelineCollapsed,
+    setIsTimelineCollapsed,
+    activeFloorAreaId,
+    setActiveFloorAreaId,
     selectReservation,
     clearSelection,
     isSelected,
@@ -5048,6 +5061,8 @@ function ReservationWorkspaceProvider({
     selectedTableId,
     selectionPulseKey,
     workspaceFocus,
+    isTimelineCollapsed,
+    activeFloorAreaId,
   ])
 
   return (
@@ -5831,12 +5846,14 @@ function buildFloorHeatmapAnalytics({
 }
 
 const DEFAULT_FLOOR_PLAN_LAYOUT = {
-  id: 'main-floor',
-  name: 'Main Floor',
+  id: 'amore-floor',
+  name: 'AMORE',
   zones: [
-    { id: 'bar', label: 'Bar', tableIds: ['10', '11'] },
     { id: 'main', label: 'Main Dining', tableIds: ['1', '2', '3', '4', '5', '6', '7', '8', '9'] },
+    { id: 'bar', label: 'Bar', tableIds: ['10', '11'] },
     { id: 'patio', label: 'Patio', tableIds: ['12', '13', '14'] },
+    { id: 'rooftop', label: 'Rooftop', tableIds: ['15', '16'] },
+    { id: 'lounge', label: 'Lounge', tableIds: ['17', '18'] },
   ],
   tables: [
     { id: '1', label: '1', x: 22, y: 28, seats: 2, zoneId: 'main', shape: 'round' },
@@ -5847,12 +5864,16 @@ const DEFAULT_FLOOR_PLAN_LAYOUT = {
     { id: '6', label: '6', x: 34, y: 48, seats: 4, zoneId: 'main', shape: 'square' },
     { id: '7', label: '7', x: 46, y: 48, seats: 6, zoneId: 'main', shape: 'square' },
     { id: '8', label: '8', x: 58, y: 48, seats: 6, zoneId: 'main', shape: 'square' },
-    { id: '9', label: '9', x: 40, y: 72, seats: 8, zoneId: 'main', shape: 'booth' },
-    { id: '10', label: '10', x: 8, y: 30, seats: 2, zoneId: 'bar', shape: 'round' },
-    { id: '11', label: '11', x: 8, y: 55, seats: 2, zoneId: 'bar', shape: 'round' },
-    { id: '12', label: '12', x: 78, y: 30, seats: 4, zoneId: 'patio', shape: 'round' },
-    { id: '13', label: '13', x: 88, y: 45, seats: 4, zoneId: 'patio', shape: 'round' },
-    { id: '14', label: '14', x: 78, y: 60, seats: 6, zoneId: 'patio', shape: 'square' },
+    { id: '9', label: '9', x: 40, y: 72, seats: 8, zoneId: 'main', shape: 'rectangle' },
+    { id: '10', label: '10', x: 20, y: 30, seats: 2, zoneId: 'bar', shape: 'round' },
+    { id: '11', label: '11', x: 20, y: 55, seats: 2, zoneId: 'bar', shape: 'round' },
+    { id: '12', label: '12', x: 30, y: 30, seats: 4, zoneId: 'patio', shape: 'round' },
+    { id: '13', label: '13', x: 50, y: 45, seats: 4, zoneId: 'patio', shape: 'round' },
+    { id: '14', label: '14', x: 30, y: 60, seats: 6, zoneId: 'patio', shape: 'square' },
+    { id: '15', label: '15', x: 28, y: 32, seats: 4, zoneId: 'rooftop', shape: 'round' },
+    { id: '16', label: '16', x: 52, y: 52, seats: 6, zoneId: 'rooftop', shape: 'rectangle' },
+    { id: '17', label: '17', x: 24, y: 38, seats: 6, zoneId: 'lounge', shape: 'island' },
+    { id: '18', label: '18', x: 58, y: 58, seats: 2, zoneId: 'lounge', shape: 'round' },
   ],
 }
 
@@ -5966,6 +5987,26 @@ function getTableIdForReservation(reservation) {
   ))
 
   return table?.id ?? null
+}
+
+function getFloorZoneIdForReservation(reservation) {
+  const tableId = getTableIdForReservation(reservation)
+  if (!tableId) return DEFAULT_FLOOR_PLAN_LAYOUT.zones[0]?.id ?? 'main'
+
+  const table = DEFAULT_FLOOR_PLAN_LAYOUT.tables.find((entry) => entry.id === tableId)
+  return table?.zoneId ?? DEFAULT_FLOOR_PLAN_LAYOUT.zones[0]?.id ?? 'main'
+}
+
+function getAdjacentFloorZoneId(zones, activeZoneId, direction) {
+  if (!zones.length) return activeZoneId
+
+  const currentIndex = zones.findIndex((zone) => zone.id === activeZoneId)
+  const safeIndex = currentIndex < 0 ? 0 : currentIndex
+  const nextIndex = direction === 'next'
+    ? (safeIndex + 1) % zones.length
+    : (safeIndex - 1 + zones.length) % zones.length
+
+  return zones[nextIndex]?.id ?? activeZoneId
 }
 
 function getTimelineNowPositionPercent(rows, nowMinutes) {
@@ -6362,6 +6403,52 @@ function FloorTableNode({
   )
 }
 
+function FloorPlanAreaSwitcher({ zones, activeZoneId, onChange }) {
+  const activeZone = zones.find((zone) => zone.id === activeZoneId) ?? zones[0]
+
+  const switchZone = (direction) => {
+    onChange(getAdjacentFloorZoneId(zones, activeZoneId, direction))
+  }
+
+  return (
+    <div className="floor-plan-area-switcher" aria-label="Restaurant area">
+      <button
+        type="button"
+        className="floor-plan-area-nav-btn"
+        onClick={() => switchZone('prev')}
+        aria-label="Previous area"
+      >
+        ‹
+      </button>
+
+      <label className="floor-plan-area-select">
+        <span className="sr-only">Restaurant area</span>
+        <select
+          className="floor-plan-area-select-input"
+          value={activeZoneId}
+          onChange={(event) => onChange(event.target.value)}
+        >
+          {zones.map((zone) => (
+            <option key={zone.id} value={zone.id}>{zone.label}</option>
+          ))}
+        </select>
+        <span className="floor-plan-area-select-chevron" aria-hidden="true">▾</span>
+      </label>
+
+      <button
+        type="button"
+        className="floor-plan-area-nav-btn"
+        onClick={() => switchZone('next')}
+        aria-label="Next area"
+      >
+        ›
+      </button>
+
+      <span className="floor-plan-area-current">{activeZone?.label}</span>
+    </div>
+  )
+}
+
 function FloorPlanView({
   reservations,
   allReservations,
@@ -6370,11 +6457,16 @@ function FloorPlanView({
   isSaving,
   isCompact = false,
   onTableReassign,
+  onSeatGuestAtTable,
 }) {
   const {
     selectReservation,
+    clearSelection,
+    selectedReservation,
     floorTableRefs,
     floorCanvasRef,
+    activeFloorAreaId,
+    setActiveFloorAreaId,
   } = useReservationWorkspace()
   const [draggingReservationId, setDraggingReservationId] = useState(null)
   const [dropTargetTableId, setDropTargetTableId] = useState(null)
@@ -6426,6 +6518,17 @@ function FloorPlanView({
       cleaningFlags,
     })
   ), [cleaningFlags, nowMinutes, reservations, todayKey])
+
+  const activeZone = useMemo(() => (
+    floorPlanSnapshot.layout.zones.find((zone) => zone.id === activeFloorAreaId)
+      ?? floorPlanSnapshot.layout.zones[0]
+  ), [activeFloorAreaId, floorPlanSnapshot.layout.zones])
+
+  const visibleTableStates = useMemo(() => (
+    floorPlanSnapshot.tableStates.filter((tableState) => (
+      tableState.table.zoneId === activeFloorAreaId
+    ))
+  ), [activeFloorAreaId, floorPlanSnapshot.tableStates])
 
   useEffect(() => {
     const previousStatuses = previousTableStatusesRef.current
@@ -6549,11 +6652,19 @@ function FloorPlanView({
       return
     }
 
+    if (!tableState.reservation && selectedReservation && tableState.status === 'available') {
+      if (onSeatGuestAtTable) {
+        onSeatGuestAtTable(selectedReservation, tableState.table.label)
+      }
+      clearSelection()
+      return
+    }
+
     if (tableState.reservation) {
       selectReservation(tableState.reservation, {
         scrollTimeline: true,
         scrollFloor: false,
-        openGuestProfile: true,
+        openGuestProfile: !isCompact,
       })
     }
   }
@@ -6587,14 +6698,36 @@ function FloorPlanView({
     <div className={`floor-plan-workspace${isCompact ? ' is-compact' : ''}${isHeatmap ? ' is-heatmap-mode' : ' is-normal-mode'}`} data-floor-view-mode={viewMode}>
       <div className="floor-plan-toolbar">
         <div>
-          <p className="eyebrow">Service layout</p>
-          <h3>{floorPlanSnapshot.layout.name}</h3>
+          {!isCompact ? <p className="eyebrow">Service layout</p> : null}
+          {isCompact ? (
+            <FloorPlanAreaSwitcher
+              zones={floorPlanSnapshot.layout.zones}
+              activeZoneId={activeFloorAreaId}
+              onChange={setActiveFloorAreaId}
+            />
+          ) : (
+            <h3>{floorPlanSnapshot.layout.name}</h3>
+          )}
         </div>
         <div className="floor-plan-toolbar-actions">
-          {!isHeatmap ? <FloorPlanLiveStats stats={floorPlanSnapshot.stats} /> : null}
-          <FloorPlanViewModeToggle value={viewMode} onChange={setViewMode} />
+          {!isCompact && !isHeatmap ? <FloorPlanLiveStats stats={floorPlanSnapshot.stats} /> : null}
+          {!isCompact ? <FloorPlanViewModeToggle value={viewMode} onChange={setViewMode} /> : null}
         </div>
       </div>
+
+      {!isCompact ? (
+        <FloorPlanAreaSwitcher
+          zones={floorPlanSnapshot.layout.zones}
+          activeZoneId={activeFloorAreaId}
+          onChange={setActiveFloorAreaId}
+        />
+      ) : null}
+
+      {selectedReservation && !isHeatmap && isCompact ? (
+        <p className="floor-plan-seat-hint">
+          Tap an open table to seat {formatReservationGuestName(selectedReservation.guestName)}
+        </p>
+      ) : null}
 
       {isHeatmap ? (
         <FloorHeatmapPeriodFilter
@@ -6620,20 +6753,22 @@ function FloorPlanView({
         className="floor-plan-canvas"
         ref={floorCanvasRef}
         data-floor-plan-layout={floorPlanSnapshot.layout.id}
+        data-floor-area-id={activeFloorAreaId}
         data-view-mode={viewMode}
+        data-seat-mode={selectedReservation && !isHeatmap && isCompact ? 'true' : 'false'}
         onClick={handleCanvasClick}
       >
-        {floorPlanSnapshot.layout.zones.map((zone) => (
-          <div key={zone.id} className={`floor-plan-zone zone-${zone.id}`} data-zone-id={zone.id}>
-            <span className="floor-plan-zone-label">{zone.label}</span>
+        {!isHeatmap && activeZone ? (
+          <div className={`floor-plan-zone zone-${activeZone.id} is-active-area`}>
+            <span className="floor-plan-zone-label">{activeZone.label}</span>
           </div>
-        ))}
+        ) : null}
 
         {mergedGroups.map((group) => (
           <div key={group.id} className="floor-plan-merge-bridge" aria-hidden="true" data-merge-id={group.id} />
         ))}
 
-        {floorPlanSnapshot.tableStates.map((tableState) => (
+        {visibleTableStates.map((tableState) => (
           <FloorTableNode
             key={tableState.table.id}
             tableState={{
@@ -6674,7 +6809,9 @@ function FloorPlanView({
       <p className="floor-plan-footnote">
         {isHeatmap
           ? `${heatmapPeriodRange.label} utilization · Darker gold indicates higher table turnover`
-          : 'Drag reservations between tables to reassign · Shift + click to merge · Right-click to split'}
+          : isCompact
+            ? 'Select a guest, then tap an open table to seat.'
+            : 'Drag reservations between tables to reassign · Shift + click to merge · Right-click to split'}
         {isSaving ? ' · Saving…' : ''}
       </p>
 
@@ -7101,7 +7238,18 @@ function formatReservationGuestName(name) {
 
 function isReservationVip(reservation) {
   const haystack = `${reservation?.notes ?? ''} ${reservation?.area ?? ''}`.toLowerCase()
-  return haystack.includes('vip')
+  return haystack.includes('vip') && !haystack.includes('vvip')
+}
+
+function isReservationVvip(reservation) {
+  const haystack = `${reservation?.notes ?? ''} ${reservation?.area ?? ''}`.toLowerCase()
+  return haystack.includes('vvip') || haystack.includes('v.v.i.p')
+}
+
+function getGuestCustomerType(reservation) {
+  if (isReservationVvip(reservation)) return 'VVIP'
+  if (isReservationVip(reservation)) return 'VIP'
+  return 'Regular'
 }
 
 function getMostFrequentValue(values) {
@@ -8157,36 +8305,132 @@ function ServiceTimelinePanel({
   )
 }
 
+function HostReservationList({
+  reservations,
+  nowMinutes,
+  todayKey,
+  isLoading,
+}) {
+  const workspace = useReservationWorkspace()
+
+  if (isLoading) {
+    return <p className="host-reservation-list-empty">Loading reservations…</p>
+  }
+
+  if (!reservations.length) {
+    return (
+      <div className="host-reservation-list-empty">
+        <p className="reservations-empty-icon" aria-hidden="true">🍽</p>
+        <h4>No reservations</h4>
+        <p>Today&apos;s guest list will appear here.</p>
+      </div>
+    )
+  }
+
+  return (
+    <div className="host-reservation-list" role="list" aria-label="Tonight's reservations">
+      <div className="host-reservation-list-header" aria-hidden="true">
+        <span>Guest</span>
+        <span>Guests</span>
+        <span>Table</span>
+        <span>Time</span>
+        <span>Type</span>
+        <span>Status</span>
+      </div>
+
+      {reservations.map((reservation) => {
+        const guestName = formatReservationGuestName(reservation.guestName)
+        const guestCount = Number(reservation.guests) || 0
+        const tableLabel = `${reservation.tableNumber ?? ''}`.trim() || '—'
+        const arrivalClock = formatTime24(reservation.time) || '—'
+        const customerType = getGuestCustomerType(reservation)
+        const displayStatus = getReservationDisplayStatus(reservation, nowMinutes, todayKey)
+        const statusTone = getReservationDisplayStatusTone(displayStatus)
+        const isSelected = workspace.isSelected(reservation)
+
+        return (
+          <article
+            key={reservation.id}
+            className={`host-reservation-row tone-${statusTone}${isSelected ? ' is-selected' : ''}`}
+            role="listitem"
+            tabIndex={0}
+            onClick={() => workspace.selectReservation(reservation, {
+              scrollFloor: true,
+              scrollTimeline: false,
+            })}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault()
+                workspace.selectReservation(reservation, { scrollFloor: true })
+              }
+            }}
+          >
+            <span className="host-reservation-guest">{guestName}</span>
+            <span className="host-reservation-guests">{guestCount}</span>
+            <span className="host-reservation-table">{tableLabel}</span>
+            <span className="host-reservation-time">{arrivalClock}</span>
+            <span className={`host-reservation-type type-${customerType.toLowerCase()}`}>{customerType}</span>
+            <span className={`host-reservation-status tone-${statusTone}`}>{displayStatus}</span>
+          </article>
+        )
+      })}
+    </div>
+  )
+}
+
 function ReservationsUnifiedCanvas({
   timelinePanelProps,
   floorPlanProps,
-  serviceHealthMetrics,
-  serviceInsights,
-  arrivalWaves,
+  listReservations,
+  isLoading,
 }) {
-  const { workspaceFocus, canvasRef } = useReservationWorkspace()
-  const floorIsCompact = workspaceFocus === 'operations'
+  const {
+    canvasRef,
+    isTimelineCollapsed,
+    setIsTimelineCollapsed,
+  } = useReservationWorkspace()
 
   return (
     <div
       ref={canvasRef}
-      className="reservations-unified-canvas"
-      data-workspace-focus={workspaceFocus}
+      className="host-operations-canvas"
+      data-timeline-collapsed={isTimelineCollapsed ? 'true' : 'false'}
     >
-      <section className="reservations-canvas-zone reservations-canvas-operations" aria-label="Live operations">
-        <div className="reservations-service-intelligence">
-          <ServiceHealthCard metrics={serviceHealthMetrics} />
-          <ServiceInsightsPanel insights={serviceInsights} />
-          <ArrivalWavePanel waves={arrivalWaves} />
+      <section className="host-operations-list" aria-label="Reservation list">
+        <div className="host-operations-list-header">
+          <div>
+            <p className="eyebrow">Tonight</p>
+            <h4>Reservation list</h4>
+          </div>
+          <span className="host-operations-list-count">{listReservations.length}</span>
         </div>
+        <HostReservationList
+          reservations={listReservations}
+          nowMinutes={floorPlanProps.nowMinutes}
+          todayKey={floorPlanProps.todayKey}
+          isLoading={isLoading}
+        />
       </section>
 
-      <section className="reservations-canvas-zone reservations-canvas-timeline" aria-label="Service timeline">
-        <ServiceTimelinePanel {...timelinePanelProps} showIntelligence={false} />
+      <section className="host-operations-floor" aria-label="Floor plan">
+        <FloorPlanView {...floorPlanProps} isCompact />
       </section>
 
-      <section className="reservations-canvas-zone reservations-canvas-floor" aria-label="Floor plan">
-        <FloorPlanView {...floorPlanProps} isCompact={floorIsCompact} />
+      <section className={`host-operations-timeline${isTimelineCollapsed ? ' is-collapsed' : ''}`} aria-label="Service timeline">
+        <button
+          type="button"
+          className="host-timeline-toggle-bar"
+          onClick={() => setIsTimelineCollapsed((current) => !current)}
+          aria-expanded={!isTimelineCollapsed}
+        >
+          <span className={`host-timeline-chevron${isTimelineCollapsed ? '' : ' is-expanded'}`} aria-hidden="true">
+            {isTimelineCollapsed ? '▲' : '▼'}
+          </span>
+          <span>{isTimelineCollapsed ? 'Open timeline' : 'Close timeline'}</span>
+        </button>
+        {!isTimelineCollapsed ? (
+          <ServiceTimelinePanel {...timelinePanelProps} showIntelligence={false} />
+        ) : null}
       </section>
     </div>
   )
@@ -8203,6 +8447,7 @@ function ReservationsWorkspaceBody({
   onQuickStatusUpdate,
   onQuickNoteUpdate,
   onTableReassign,
+  onSeatGuestAtTable,
   isLoading,
   noticeMessage,
   isSaving,
@@ -8248,11 +8493,6 @@ function ReservationsWorkspaceBody({
       reservations.filter((reservation) => `${reservation.date ?? ''}`.slice(0, 10) !== todayKey),
     ),
     [reservations, todayKey],
-  )
-
-  const dashboardKpis = useMemo(
-    () => buildReservationDashboardKpis(todayReservations),
-    [todayReservations],
   )
 
   const serviceHealthMetrics = useMemo(
@@ -8372,6 +8612,7 @@ function ReservationsWorkspaceBody({
     nowMinutes,
     isSaving,
     onTableReassign,
+    onSeatGuestAtTable,
   }
 
   return (
@@ -8397,12 +8638,8 @@ function ReservationsWorkspaceBody({
         onSearchTermChange={setSearchTerm}
         statusFilter={statusFilter}
         onStatusFilterChange={setStatusFilter}
-        dashboardKpis={dashboardKpis}
         timelinePanelProps={timelinePanelProps}
         floorPlanProps={floorPlanProps}
-        serviceHealthMetrics={serviceHealthMetrics}
-        serviceInsights={serviceInsights}
-        arrivalWaves={arrivalWaves}
         filteredUpcomingReservations={filteredUpcomingReservations}
         sharedCardProps={sharedCardProps}
         openMoreReservationId={openMoreReservationId}
@@ -8421,7 +8658,7 @@ function ReservationsWorkspaceContent({
   reservations,
   onOpenAddReservation,
   onOpenQuickReservation,
-  onOpenCommandPalette,
+  onOpenCommandPalette: _onOpenCommandPalette,
   isCommandPaletteOpen,
   onCloseCommandPalette,
   onOpenEditReservation,
@@ -8438,12 +8675,8 @@ function ReservationsWorkspaceContent({
   onSearchTermChange,
   statusFilter,
   onStatusFilterChange,
-  dashboardKpis,
   timelinePanelProps,
   floorPlanProps,
-  serviceHealthMetrics,
-  serviceInsights,
-  arrivalWaves,
   filteredUpcomingReservations,
   sharedCardProps,
   openMoreReservationId,
@@ -8458,24 +8691,16 @@ function ReservationsWorkspaceContent({
     selectedReservation,
     isGuestProfileOpen,
     clearSelection,
-    workspaceFocus,
-    setWorkspaceFocus,
   } = useReservationWorkspace()
 
-  const workspaceHeading = workspaceFocus === 'floor'
-    ? 'Floor'
-    : workspaceFocus === 'timeline'
-      ? 'Timeline'
-      : 'Operations'
-
   return (
-    <section className="staff-page reservations-workspace">
+    <section className="staff-page reservations-workspace reservations-workspace-host">
       <div className="reservations-command-sticky">
-        <header className="reservations-executive-header schedule-header panel">
+        <header className="reservations-executive-header schedule-header panel reservations-host-header">
           <div className="schedule-header-copy reservations-executive-copy">
-            <p className="eyebrow schedule-header-eyebrow">Reservations</p>
-            <h3 className="schedule-header-title">Arrival command center</h3>
-            <p className="schedule-header-range reservations-executive-subtitle">Track arrivals, seating, and guest notes across the evening.</p>
+            <p className="eyebrow schedule-header-eyebrow">Host view</p>
+            <h3 className="schedule-header-title">Reservations &amp; floor plan</h3>
+            <p className="schedule-header-range reservations-executive-subtitle">See who is arriving, where they are seated, and what the floor looks like right now.</p>
           </div>
           <div className="schedule-header-controls reservations-executive-controls">
             <div className="schedule-header-control-surface reservations-control-surface">
@@ -8485,25 +8710,14 @@ function ReservationsWorkspaceContent({
                   type="search"
                   value={searchTerm}
                   onChange={(event) => onSearchTermChange(event.target.value)}
-                  placeholder="Search guest, phone, table, notes"
+                  placeholder="Search guest, table, or phone"
                 />
               </label>
               <time className="reservations-current-date" dateTime={todayKey}>{todayLabel}</time>
-              <button
-                type="button"
-                className="ghost-btn reservations-quick-actions-btn"
-                onClick={onOpenCommandPalette}
-                disabled={isSaving}
-              >
-                <span aria-hidden="true">⚡</span> Quick Actions
-              </button>
               <button type="button" className="primary-btn reservations-add-btn" onClick={onOpenAddReservation} disabled={isSaving}>
                 {isSaving ? 'Saving…' : '+ Add Reservation'}
               </button>
             </div>
-            <p className="reservations-shortcut-hint">
-              Open <strong>Quick Actions</strong> for commands · Optional: <kbd>⌘K</kbd> / <kbd>Ctrl K</kbd>
-            </p>
           </div>
         </header>
 
@@ -8520,49 +8734,20 @@ function ReservationsWorkspaceContent({
               </button>
             ))}
           </div>
-          <ReservationsWorkspaceSegmentControl
-            value={workspaceFocus}
-            onChange={setWorkspaceFocus}
-          />
         </div>
       </div>
 
       {noticeMessage ? <div className="staff-status-banner reservations-notice">{noticeMessage}</div> : null}
       {isLoading ? <div className="staff-status-banner reservations-notice">Loading reservations…</div> : null}
 
-      <section className="schedule-weekly-stats reservations-kpi-strip" aria-label="Reservation metrics">
-        <article className="schedule-weekly-stat reservations-kpi-card">
-          <p className="schedule-weekly-stat-label">Today&apos;s Reservations</p>
-          <p className="schedule-weekly-stat-value">{dashboardKpis.count}</p>
-        </article>
-        <article className="schedule-weekly-stat reservations-kpi-card">
-          <p className="schedule-weekly-stat-label">Guests Today</p>
-          <p className="schedule-weekly-stat-value tone-gold">{dashboardKpis.guests}</p>
-        </article>
-        <article className="schedule-weekly-stat reservations-kpi-card">
-          <p className="schedule-weekly-stat-label">Walk-ins</p>
-          <p className="schedule-weekly-stat-value">{dashboardKpis.walkIns}</p>
-        </article>
-        <article className="schedule-weekly-stat reservations-kpi-card">
-          <p className="schedule-weekly-stat-label">Average Party Size</p>
-          <p className="schedule-weekly-stat-value">{dashboardKpis.avgParty}</p>
-        </article>
-      </section>
-
-      <div className="panel staff-panel reservations-board-panel">
-        <div className="panel-heading reservations-board-heading">
-          <div>
-            <p className="eyebrow">Today&apos;s service</p>
-            <h3>{workspaceHeading}</h3>
-          </div>
-        </div>
-
+      <div className="panel staff-panel reservations-board-panel reservations-host-panel">
         <ReservationsUnifiedCanvas
           timelinePanelProps={timelinePanelProps}
           floorPlanProps={floorPlanProps}
-          serviceHealthMetrics={serviceHealthMetrics}
-          serviceInsights={serviceInsights}
-          arrivalWaves={arrivalWaves}
+          listReservations={timelinePanelProps.arrivalBoardRows
+            .filter((row) => row.type === 'card')
+            .map((row) => row.reservation)}
+          isLoading={isLoading}
         />
       </div>
 
@@ -12554,6 +12739,28 @@ function App() {
     }
   }
 
+  const handleSeatGuestAtTable = async (reservation, tableNumber) => {
+    try {
+      await updateReservation(reservation.id, {
+        guestName: reservation.guestName,
+        phone: reservation.phone,
+        date: reservation.date,
+        time: reservation.time,
+        guests: reservation.guests,
+        tableNumber: `${tableNumber ?? ''}`.trim(),
+        area: reservation.area,
+        status: 'Seated',
+        notes: reservation.notes,
+      })
+      await refreshReservations()
+      setReservationNotice(
+        `Seated ${formatReservationGuestName(reservation.guestName)} at table ${tableNumber}.`,
+      )
+    } catch (error) {
+      setReservationNotice(error.message || 'Unable to seat guest right now.')
+    }
+  }
+
   const handleReservationSubmit = async (event) => {
     event.preventDefault()
 
@@ -13097,6 +13304,7 @@ function App() {
             onQuickStatusUpdate={handleQuickReservationStatus}
             onQuickNoteUpdate={handleQuickReservationNote}
             onTableReassign={handleQuickReservationTableReassign}
+            onSeatGuestAtTable={handleSeatGuestAtTable}
             isLoading={isReservationsLoading}
             noticeMessage={reservationNotice}
             isSaving={isSavingReservation}

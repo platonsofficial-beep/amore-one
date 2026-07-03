@@ -1,6 +1,6 @@
 /* Floor Plan Builder — Sprint 1.1 UX polish */
 
-.sr-only {
+.fpb-page .sr-only {
   position: absolute;
   width: 1px;
   height: 1px;
@@ -1129,14 +1129,6 @@
   background: rgba(255, 255, 255, 0.07);
 }
 
-.main-panel-floor-builder {
-  padding: 0;
-  gap: 0;
-  height: 100vh;
-  min-height: 0;
-  overflow: hidden;
-}
-
 /* ── Responsive ── */
 
 @media (max-width: 1180px) {
@@ -1145,11 +1137,11 @@
     --fpb-inspector-width: 260px;
   }
 
-  .fpb-toolbar-divider:nth-of-type(2) {
+  .fpb-toolbar .fpb-toolbar-divider:nth-of-type(2) {
     display: none;
   }
 
-  .fpb-toolbar-group:nth-of-type(3) {
+  .fpb-toolbar .fpb-toolbar-group:nth-of-type(3) {
     display: none;
   }
 }
@@ -1177,4 +1169,162 @@
   .fpb-canvas-hint {
     display: none;
   }
+}
+
+/* ── Simple restaurant floor plan mode ── */
+
+.fpb-editor-simple {
+  --fpb-sidebar-width: 200px;
+  --fpb-inspector-width: 0px;
+  --fpb-status-height: 0px;
+}
+
+.fpb-editor-simple .fpb-editor-sidebar,
+.fpb-editor-simple .fpb-editor-canvas {
+  bottom: 0;
+}
+
+.fpb-editor-simple .fpb-editor-canvas {
+  right: 0;
+}
+
+.fpb-toolbar-simple {
+  justify-content: flex-start;
+  gap: 16px;
+}
+
+.fpb-area-switcher {
+  gap: 6px;
+}
+
+.fpb-area-nav-btn {
+  min-width: 32px;
+  min-height: 32px;
+  padding: 0;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.03);
+  color: #cfc4b4;
+  font-size: 1.1rem;
+  line-height: 1;
+}
+
+.fpb-area-nav-btn:hover {
+  color: #fff7e8;
+  border-color: rgba(212, 175, 55, 0.24);
+  background: rgba(212, 175, 55, 0.08);
+}
+
+.fpb-toolbar-area-label {
+  margin-left: auto;
+}
+
+.fpb-area-current-label {
+  color: #8f8778;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.fpb-toolbox-simple .fpb-toolbox-table-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px 10px 12px;
+}
+
+.fpb-table-type-btn {
+  width: 100%;
+}
+
+.fpb-toolbox-hint {
+  margin: 0;
+  padding: 0 12px 12px;
+  color: #635c52;
+  font-size: 0.62rem;
+  line-height: 1.45;
+}
+
+.fpb-panel-header-spaced {
+  margin-top: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  padding-top: 10px;
+}
+
+.fpb-area-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 0 10px 12px;
+}
+
+.fpb-area-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  color: #8f8778;
+  font-size: 0.62rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.fpb-area-field input {
+  height: 32px;
+  padding: 0 10px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.03);
+  color: #f4f0e8;
+  font-size: 0.78rem;
+  text-transform: none;
+  letter-spacing: normal;
+}
+
+.fpb-area-action-btn {
+  min-height: 32px;
+  padding: 0 10px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.03);
+  color: #d8d0c2;
+  font-size: 0.72rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.fpb-area-action-btn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.fpb-area-action-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.fpb-area-action-btn-danger {
+  color: #e8a89a;
+  border-color: rgba(232, 168, 154, 0.18);
+}
+
+.fpb-canvas-shell-simple {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background: #0c0b0a;
+}
+
+.fpb-canvas-shell-simple .fpb-canvas-viewport {
+  position: absolute;
+  inset: 0;
+}
+
+.fpb-canvas-object.shape-island .fpb-canvas-object-surface {
+  border-radius: 18px;
+}
+
+.fpb-component-preview.preview-island {
+  width: 36px;
+  height: 22px;
+  border-radius: 10px;
 }

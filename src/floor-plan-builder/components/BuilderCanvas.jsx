@@ -1,13 +1,13 @@
 import { useCallback, useEffect, useLayoutEffect, useState } from 'react'
 import { useFloorPlanBuilder } from '../hooks/useFloorPlanBuilder'
 import { useObjectDrag } from '../hooks/useObjectDrag'
-import { getStageTransform } from '../lib/camera'
-import { VIEWPORT_ANIMATION_MS } from '../hooks/useCanvasViewport'
-import { CanvasRulers } from './CanvasRulers'
-import { CanvasNavigationWidget } from './CanvasNavigationWidget'
+import { getStageTransform, screenToWorld } from '../lib/camera'
+import { TABLE_TYPES } from '../models/componentCatalog'
+import { createTableObjectFromType } from '../models/floorPlanObject'
+import { floorBoundaryService } from '../services/FloorBoundaryService'
 import { CanvasWorld } from './CanvasWorld'
 
-export function BuilderCanvas({ containerRef, viewportControls, isZooming = false, workspaceLayoutKey = 0 }) {
+export function BuilderCanvas({ containerRef, viewportControls, workspaceLayoutKey = 0 }) {
   const {
     state,
     dispatch,
@@ -17,7 +17,6 @@ export function BuilderCanvas({ containerRef, viewportControls, isZooming = fals
     activeWorkspaceBounds,
   } = useFloorPlanBuilder()
   const [viewportSize, setViewportSize] = useState({ width: 0, height: 0 })
-  const [isViewportAnimating, setIsViewportAnimating] = useState(false)
 
   const measureViewport = useCallback(() => {
     const container = containerRef.current
@@ -42,12 +41,6 @@ export function BuilderCanvas({ containerRef, viewportControls, isZooming = fals
     return () => observer.disconnect()
   }, [containerRef, measureViewport])
 
-  const runAnimatedNavigation = useCallback((action) => {
-    setIsViewportAnimating(true)
-    action()
-    window.setTimeout(() => setIsViewportAnimating(false), VIEWPORT_ANIMATION_MS)
-  }, [])
-
   const handleMoveObject = useCallback((objectId, position) => {
     dispatch({ type: 'MOVE_OBJECT', payload: { objectId, position } })
   }, [dispatch])
@@ -70,7 +63,7 @@ export function BuilderCanvas({ containerRef, viewportControls, isZooming = fals
     containerRef,
     camera: state.camera,
     viewportSize,
-    activeTool: state.activeTool,
+    activeTool: 'select',
     snapEnabled: state.settings.snapEnabled,
     floorBounds: activeWorkspaceBounds,
     onMoveObject: handleMoveObject,
@@ -79,11 +72,11 @@ export function BuilderCanvas({ containerRef, viewportControls, isZooming = fals
   })
 
   const handleViewportPointerDown = useCallback((event) => {
-    const startedPan = viewportControls.tryStartPan(event, state.activeTool)
+    const startedPan = viewportControls.tryStartPan(event, 'select')
     if (startedPan) {
       event.currentTarget.classList.add('is-panning')
     }
-  }, [state.activeTool, viewportControls])
+  }, [viewportControls])
 
   const handlePointerMove = useCallback((event) => {
     handleDragMove(event)
@@ -96,93 +89,94 @@ export function BuilderCanvas({ containerRef, viewportControls, isZooming = fals
     event.currentTarget.classList.remove('is-panning')
   }, [endDrag, viewportControls])
 
-  const handleViewportDoubleClick = (event) => {
-    const isBackground = event.target === event.currentTarget
-      || event.target.classList.contains('fpb-world-root')
-      || event.target.classList.contains('fpb-world-grid')
-      || event.target.classList.contains('fpb-canvas-workspace-surface')
-    if (!isBackground) return
-    runAnimatedNavigation(() => viewportControls.resetView())
-  }
-
-  const handleCanvasBackgroundClick = (event) => {
+  const handleFloorBackgroundClick = useCallback((event) => {
     if (isDragging) return
-    if (event.target === event.currentTarget) {
-      dispatch({ type: 'CLEAR_SELECTION' })
+
+    const tableType = TABLE_TYPES.find((entry) => entry.id === state.toolboxSelectionId)
+    if (tableType && containerRef.current) {
+      const rect = containerRef.current.getBoundingClientRect()
+      const screenPoint = {
+        x: event.clientX - rect.left,
+        y: event.clientY - rect.top,
+      }
+      const worldPoint = screenToWorld(screenPoint, state.camera, viewportSize)
+      const shapeSizes = {
+        round: { width: 108, height: 108 },
+        square: { width: 104, height: 104 },
+        rectangle: { width: 136, height: 92 },
+        island: { width: 180, height: 96 },
+      }
+      const size = shapeSizes[tableType.shape] ?? shapeSizes.round
+      const centeredPosition = floorBoundaryService.clampToFloor(
+        {
+          x: worldPoint.x - (size.width / 2),
+          y: worldPoint.y - (size.height / 2),
+        },
+        size,
+        activeWorkspaceBounds,
+      )
+      const object = createTableObjectFromType({
+        tableType,
+        position: centeredPosition,
+        floorId: state.activeFloorId,
+        areaLabel: activeFloor.label,
+        objects: state.objects,
+      })
+
+      dispatch({ type: 'ADD_OBJECT', payload: { object } })
+      return
     }
-  }
+
+    dispatch({ type: 'CLEAR_SELECTION' })
+  }, [
+    activeFloor.label,
+    activeWorkspaceBounds,
+    containerRef,
+    dispatch,
+    isDragging,
+    state.activeFloorId,
+    state.camera,
+    state.objects,
+    state.toolboxSelectionId,
+    viewportSize,
+  ])
 
   const canvasCursor = isDragging
     ? 'grabbing'
-    : state.activeTool === 'pan'
-      ? 'grab'
+    : state.toolboxSelectionId
+      ? 'crosshair'
       : 'default'
 
   return (
-    <section
-      className="fpb-canvas-shell"
-      aria-label="Layout canvas"
-      data-grid-enabled={state.settings.gridEnabled ? 'true' : 'false'}
-      data-zooming={isZooming ? 'true' : 'false'}
-    >
-      <div className="fpb-canvas-frame">
-        <CanvasRulers
-          camera={state.camera}
-          viewportWidth={viewportSize.width}
-          viewportHeight={viewportSize.height}
-        />
-
-        <div className="fpb-canvas-viewport-wrap">
-          <div
-            ref={containerRef}
-            className="fpb-canvas-viewport"
-            style={{ cursor: canvasCursor }}
-            onPointerDown={handleViewportPointerDown}
-            onPointerMove={handlePointerMove}
-            onPointerUp={handlePointerUp}
-            onPointerLeave={handlePointerUp}
-            onAuxClick={(event) => event.preventDefault()}
-            onDoubleClick={handleViewportDoubleClick}
-            onClick={handleCanvasBackgroundClick}
-          >
-            <div
-              className={`fpb-canvas-stage${isViewportAnimating ? ' is-animating' : ''}`}
-              style={{
-                transform: getStageTransform(state.camera, viewportSize),
-              }}
-            >
-              <CanvasWorld
-                floor={activeWorkspace}
-                floorLabel={activeFloor.label}
-                objects={visibleObjects}
-                selectedObjectIds={state.selectedObjectIds}
-                draggingObjectId={draggingObjectId}
-                activeTool={state.activeTool}
-                gridEnabled={state.settings.gridEnabled}
-                onFloorBackgroundClick={() => {
-                  if (!isDragging) {
-                    dispatch({ type: 'CLEAR_SELECTION' })
-                  }
-                }}
-                onObjectPointerDown={handleObjectPointerDown}
-                onObjectPointerMove={handlePointerMove}
-                onObjectPointerUp={handlePointerUp}
-              />
-            </div>
-          </div>
-
-          <CanvasNavigationWidget
-            zoom={state.camera.zoom}
-            onZoomIn={() => runAnimatedNavigation(viewportControls.zoomIn)}
-            onZoomOut={() => runAnimatedNavigation(viewportControls.zoomOut)}
-            onFitAll={() => runAnimatedNavigation(viewportControls.fitFloor)}
-            onZoomTo100={() => runAnimatedNavigation(viewportControls.zoomTo100)}
-            onResetView={() => runAnimatedNavigation(viewportControls.resetView)}
+    <section className="fpb-canvas-shell fpb-canvas-shell-simple" aria-label="Floor plan canvas">
+      <div
+        ref={containerRef}
+        className="fpb-canvas-viewport"
+        style={{ cursor: canvasCursor }}
+        onPointerDown={handleViewportPointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerUp}
+        onPointerLeave={handlePointerUp}
+        onAuxClick={(event) => event.preventDefault()}
+      >
+        <div
+          className="fpb-canvas-stage"
+          style={{
+            transform: getStageTransform(state.camera, viewportSize),
+          }}
+        >
+          <CanvasWorld
+            floor={activeWorkspace}
+            floorLabel={activeFloor.label}
+            objects={visibleObjects}
+            selectedObjectIds={state.selectedObjectIds}
+            draggingObjectId={draggingObjectId}
+            activeTool="select"
+            onFloorBackgroundClick={handleFloorBackgroundClick}
+            onObjectPointerDown={handleObjectPointerDown}
+            onObjectPointerMove={handlePointerMove}
+            onObjectPointerUp={handlePointerUp}
           />
-
-          <div className="fpb-canvas-hint" aria-hidden="true">
-            Scroll to pan · Shift + scroll horizontal · Ctrl + scroll to zoom · Double-click to reset view
-          </div>
         </div>
       </div>
     </section>

@@ -45,20 +45,6 @@ function CanvasObjectNodeComponent({
           <span className="fpb-canvas-object-meta">{capacity} seats</span>
         ) : null}
       </div>
-
-      {isSelected ? (
-        <div className="fpb-selection-chrome" aria-hidden="true">
-          <span className="fpb-handle fpb-handle-nw" />
-          <span className="fpb-handle fpb-handle-n" />
-          <span className="fpb-handle fpb-handle-ne" />
-          <span className="fpb-handle fpb-handle-e" />
-          <span className="fpb-handle fpb-handle-se" />
-          <span className="fpb-handle fpb-handle-s" />
-          <span className="fpb-handle fpb-handle-sw" />
-          <span className="fpb-handle fpb-handle-w" />
-          <span className="fpb-handle fpb-handle-rotate" />
-        </div>
-      ) : null}
     </div>
   )
 }

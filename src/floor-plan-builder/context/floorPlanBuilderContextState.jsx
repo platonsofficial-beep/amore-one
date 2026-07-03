@@ -1,7 +1,8 @@
 import { useMemo, useReducer } from 'react'
 import { createCamera } from '../lib/camera'
 import { getDemoFloorPlanObjects } from '../models/floorPlanObject'
-import { createInitialFloors } from '../models/floorPlans'
+import { createInitialFloors, createUniqueAreaId } from '../models/floorPlans'
+import { FLOOR_PLAN_OBJECT_TYPES } from '../models/floorPlanObject'
 import { createDefaultFloor, getWorkspaceBounds } from '../models/floorWorkspace'
 import { FloorPlanBuilderContext } from './floorPlanBuilderContext'
 
@@ -71,6 +72,74 @@ function floorPlanBuilderReducer(state, action) {
             : object
         )),
       }
+    case 'ADD_OBJECT':
+      return {
+        ...state,
+        hasUnsavedChanges: true,
+        objects: [...state.objects, action.payload.object],
+        selectedObjectIds: [action.payload.object.id],
+      }
+    case 'ADD_FLOOR': {
+      const label = `${action.payload.label ?? ''}`.trim()
+      if (!label) return state
+
+      const id = createUniqueAreaId(label, state.floors)
+      const nextFloor = {
+        id,
+        label,
+        workspace: { ...createDefaultWorkspace() },
+      }
+
+      return {
+        ...state,
+        hasUnsavedChanges: true,
+        floors: [...state.floors, nextFloor],
+        activeFloorId: id,
+        selectedObjectIds: [],
+      }
+    }
+    case 'RENAME_FLOOR': {
+      const label = `${action.payload.label ?? ''}`.trim()
+      const { floorId } = action.payload
+      if (!label || !floorId) return state
+
+      return {
+        ...state,
+        hasUnsavedChanges: true,
+        floors: state.floors.map((floor) => (
+          floor.id === floorId ? { ...floor, label } : floor
+        )),
+        objects: state.objects.map((object) => (
+          object.floorId === floorId && object.type === FLOOR_PLAN_OBJECT_TYPES.TABLE
+            ? {
+              ...object,
+              properties: {
+                ...object.properties,
+                area: label,
+              },
+            }
+            : object
+        )),
+      }
+    }
+    case 'DELETE_FLOOR': {
+      const { floorId } = action.payload
+      if (!floorId || state.floors.length <= 1) return state
+
+      const nextFloors = state.floors.filter((floor) => floor.id !== floorId)
+      const nextActiveFloorId = state.activeFloorId === floorId
+        ? nextFloors[0].id
+        : state.activeFloorId
+
+      return {
+        ...state,
+        hasUnsavedChanges: true,
+        floors: nextFloors,
+        activeFloorId: nextActiveFloorId,
+        objects: state.objects.filter((object) => object.floorId !== floorId),
+        selectedObjectIds: [],
+      }
+    }
     default:
       return state
   }

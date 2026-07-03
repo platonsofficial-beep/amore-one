@@ -1,39 +1,39 @@
 import { useFloorPlanBuilder } from '../hooks/useFloorPlanBuilder'
-import { BUILDER_TOOLS } from '../models/builderTools'
-
-function BuilderToolbarButton({
-  children,
-  onClick,
-  disabled = false,
-  className = '',
-  title,
-  isActive = false,
-}) {
-  return (
-    <button
-      type="button"
-      className={`fpb-toolbar-btn${isActive ? ' is-active' : ''}${className ? ` ${className}` : ''}`}
-      onClick={onClick}
-      disabled={disabled}
-      title={title}
-    >
-      {children}
-    </button>
-  )
-}
+import { getAdjacentAreaId } from '../models/floorPlans'
 
 export function BuilderToolbar({ onBack }) {
   const { state, dispatch, activeFloor } = useFloorPlanBuilder()
+  const { floors } = state
+
+  const switchArea = (direction) => {
+    dispatch({
+      type: 'SET_ACTIVE_FLOOR',
+      payload: {
+        floorId: getAdjacentAreaId(floors, state.activeFloorId, direction),
+      },
+    })
+  }
 
   return (
-    <header className="fpb-toolbar" aria-label="Floor plan builder toolbar">
+    <header className="fpb-toolbar fpb-toolbar-simple" aria-label="Floor plan builder">
       <div className="fpb-toolbar-group">
-        <BuilderToolbarButton onClick={onBack} title="Back to workspace">
+        <button type="button" className="fpb-toolbar-btn" onClick={onBack}>
           ← Back
-        </BuilderToolbarButton>
+        </button>
+      </div>
+
+      <div className="fpb-toolbar-group fpb-area-switcher">
+        <button
+          type="button"
+          className="fpb-area-nav-btn"
+          onClick={() => switchArea('prev')}
+          aria-label="Previous area"
+        >
+          ‹
+        </button>
 
         <label className="fpb-floor-select">
-          <span className="sr-only">Active floor</span>
+          <span className="sr-only">Restaurant area</span>
           <select
             className="fpb-floor-select-input"
             value={state.activeFloorId}
@@ -42,63 +42,26 @@ export function BuilderToolbar({ onBack }) {
               payload: { floorId: event.target.value },
             })}
           >
-            {state.floors.map((floor) => (
+            {floors.map((floor) => (
               <option key={floor.id} value={floor.id}>{floor.label}</option>
             ))}
           </select>
           <span className="fpb-floor-select-chevron" aria-hidden="true">▾</span>
         </label>
-      </div>
 
-      <div className="fpb-toolbar-divider" aria-hidden="true" />
-
-      <div className="fpb-toolbar-group fpb-toolbar-tools" role="toolbar" aria-label="Drawing tools">
-        {BUILDER_TOOLS.map((tool) => (
-          <BuilderToolbarButton
-            key={tool.id}
-            title={tool.enabled ? tool.label : `${tool.label} — coming soon`}
-            disabled={!tool.enabled}
-            isActive={tool.enabled && state.activeTool === tool.id}
-            onClick={() => {
-              if (!tool.enabled) return
-              dispatch({ type: 'SET_ACTIVE_TOOL', payload: { toolId: tool.id } })
-            }}
-          >
-            <span className="fpb-toolbar-tool-icon" aria-hidden="true">{tool.icon}</span>
-            <span className="fpb-toolbar-tool-label">{tool.label}</span>
-          </BuilderToolbarButton>
-        ))}
-      </div>
-
-      <div className="fpb-toolbar-divider" aria-hidden="true" />
-
-      <div className="fpb-toolbar-group">
-        <BuilderToolbarButton disabled title="Undo — coming soon">Undo</BuilderToolbarButton>
-        <BuilderToolbarButton disabled title="Redo — coming soon">Redo</BuilderToolbarButton>
-      </div>
-
-      <div className="fpb-toolbar-divider" aria-hidden="true" />
-
-      <div className="fpb-toolbar-group">
-        <span className={`fpb-mode-badge${state.mode === 'editing' ? '' : ' is-preview'}`}>
-          {state.mode === 'editing' ? 'Editing Mode' : 'Preview Mode'}
-        </span>
-        <BuilderToolbarButton
-          disabled
-          title="Preview — coming soon"
+        <button
+          type="button"
+          className="fpb-area-nav-btn"
+          onClick={() => switchArea('next')}
+          aria-label="Next area"
         >
-          Preview
-        </BuilderToolbarButton>
-        <BuilderToolbarButton
-          disabled
-          className="fpb-toolbar-btn-primary"
-          title="Publish — coming soon"
-        >
-          Publish
-        </BuilderToolbarButton>
+          ›
+        </button>
       </div>
 
-      <span className="sr-only">Current floor: {activeFloor.label}</span>
+      <div className="fpb-toolbar-group fpb-toolbar-area-label">
+        <span className="fpb-area-current-label">{activeFloor.label}</span>
+      </div>
     </header>
   )
 }

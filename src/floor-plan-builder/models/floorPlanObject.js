@@ -86,6 +86,7 @@ export function createDemoTableObject({
     round: { width: 108, height: 108 },
     square: { width: 104, height: 104 },
     rectangle: { width: 136, height: 92 },
+    island: { width: 180, height: 96 },
   }
 
   return createFloorPlanObject({
@@ -99,6 +100,54 @@ export function createDemoTableObject({
       capacity,
       shape,
       area,
+      visible: true,
+      locked: false,
+    },
+  })
+}
+
+export function getNextTableNumber(objects) {
+  const numbers = objects
+    .filter((object) => object.type === FLOOR_PLAN_OBJECT_TYPES.TABLE)
+    .map((object) => Number.parseInt(object.properties.tableNumber, 10))
+    .filter((value) => Number.isFinite(value))
+
+  if (numbers.length === 0) return 1
+  return Math.max(...numbers) + 1
+}
+
+export function createTableObjectFromType({
+  tableType,
+  position,
+  floorId,
+  areaLabel,
+  tableNumber,
+  objects,
+}) {
+  const shapeSizes = {
+    round: { width: 108, height: 108 },
+    square: { width: 104, height: 104 },
+    rectangle: { width: 136, height: 92 },
+    island: { width: 180, height: 96 },
+  }
+
+  const shape = tableType.shape ?? 'round'
+  const size = shapeSizes[shape] ?? shapeSizes.round
+  const nextNumber = tableNumber ?? getNextTableNumber(objects)
+  const defaultCapacity = shape === 'island' ? 6 : shape === 'rectangle' ? 6 : 4
+
+  return createFloorPlanObject({
+    id: `table-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+    type: FLOOR_PLAN_OBJECT_TYPES.TABLE,
+    position,
+    size,
+    floorId,
+    properties: {
+      name: `Table ${nextNumber}`,
+      tableNumber: String(nextNumber),
+      capacity: defaultCapacity,
+      shape,
+      area: areaLabel,
       visible: true,
       locked: false,
     },

@@ -1,11 +1,9 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef } from 'react'
 import { FloorPlanBuilderProvider } from './context/floorPlanBuilderContextState'
 import { useFloorPlanBuilder } from './hooks/useFloorPlanBuilder'
 import { BuilderToolbar } from './components/BuilderToolbar'
 import { BuilderToolbox } from './components/BuilderToolbox'
 import { BuilderCanvas } from './components/BuilderCanvas'
-import { BuilderInspector } from './components/BuilderInspector'
-import { BuilderStatusBar } from './components/BuilderStatusBar'
 import { useBuilderEditorLayout } from './hooks/useBuilderEditorLayout'
 import { useCanvasViewport } from './hooks/useCanvasViewport'
 import { getResetCameraForWorkspace } from './lib/camera'
@@ -15,24 +13,14 @@ function FloorPlanBuilderShell({ onBack, containerRef }) {
   const editorRef = useRef(null)
   const toolbarRef = useRef(null)
   const sidebarRef = useRef(null)
-  const inspectorRef = useRef(null)
-  const statusRef = useRef(null)
-  const layout = useBuilderEditorLayout(
-    editorRef,
-    toolbarRef,
-    sidebarRef,
-    inspectorRef,
-    statusRef,
-  )
+  const layout = useBuilderEditorLayout(editorRef, toolbarRef, sidebarRef)
   const { state, dispatch, activeWorkspaceBounds } = useFloorPlanBuilder()
-  const [isZooming, setIsZooming] = useState(false)
   const activeFloorIdRef = useRef(state.activeFloorId)
 
   const viewportControls = useCanvasViewport({
     camera: state.camera,
     onCameraChange: (patch) => dispatch({ type: 'SET_CAMERA', payload: patch }),
     containerRef,
-    onZoomActivity: setIsZooming,
     floorBounds: activeWorkspaceBounds,
   })
 
@@ -67,19 +55,16 @@ function FloorPlanBuilderShell({ onBack, containerRef }) {
     }
 
     return undefined
-  }, [activeWorkspaceBounds, containerRef, dispatch, layout.workspaceHeight, layout.workspaceWidth, layout.toolbarHeight, layout.statusHeight, state.activeFloorId])
+  }, [activeWorkspaceBounds, containerRef, dispatch, layout.toolbarHeight, layout.sidebarWidth, state.activeFloorId])
 
-  const workspaceLayoutKey = layout.workspaceWidth + layout.workspaceHeight
+  const workspaceLayoutKey = layout.sidebarWidth + layout.toolbarHeight
 
   return (
     <div className="fpb-page">
       <div
         ref={editorRef}
-        className="fpb-editor"
-        style={{
-          '--fpb-toolbar-height': `${layout.toolbarHeight}px`,
-          '--fpb-status-height': `${layout.statusHeight}px`,
-        }}
+        className="fpb-editor fpb-editor-simple"
+        style={{ '--fpb-toolbar-height': `${layout.toolbarHeight}px` }}
       >
         <div ref={toolbarRef} className="fpb-editor-toolbar">
           <BuilderToolbar onBack={onBack} />
@@ -93,17 +78,8 @@ function FloorPlanBuilderShell({ onBack, containerRef }) {
           <BuilderCanvas
             containerRef={containerRef}
             viewportControls={viewportControls}
-            isZooming={isZooming}
             workspaceLayoutKey={workspaceLayoutKey}
           />
-        </div>
-
-        <div ref={inspectorRef} className="fpb-editor-inspector">
-          <BuilderInspector />
-        </div>
-
-        <div ref={statusRef} className="fpb-editor-status">
-          <BuilderStatusBar />
         </div>
       </div>
     </div>

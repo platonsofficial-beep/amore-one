@@ -1,4 +1,3 @@
-import { WORLD_GRID_EXTENT, WORLD_GRID_ORIGIN } from '../lib/world'
 import { CanvasObjectsLayer } from './CanvasObjectsLayer'
 import { CanvasWorkspace } from './CanvasWorkspace'
 
@@ -9,7 +8,6 @@ export function CanvasWorld({
   selectedObjectIds,
   draggingObjectId,
   activeTool,
-  gridEnabled,
   onFloorBackgroundClick,
   onObjectPointerDown,
   onObjectPointerMove,
@@ -17,19 +15,6 @@ export function CanvasWorld({
 }) {
   return (
     <div className="fpb-world-root" role="presentation">
-      {gridEnabled ? (
-        <div
-          className="fpb-world-grid"
-          style={{
-            left: WORLD_GRID_ORIGIN,
-            top: WORLD_GRID_ORIGIN,
-            width: WORLD_GRID_EXTENT,
-            height: WORLD_GRID_EXTENT,
-          }}
-          aria-hidden="true"
-        />
-      ) : null}
-
       <CanvasWorkspace
         workspace={floor}
         title={floorLabel}
