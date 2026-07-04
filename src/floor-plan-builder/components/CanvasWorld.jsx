@@ -5,7 +5,7 @@ export function CanvasWorld({
   floor,
   floorLabel,
   objects,
-  selectedObjectIds,
+  selectedTableIds,
   draggingObjectId,
   transformingObjectId,
   activeTool,
@@ -28,7 +28,7 @@ export function CanvasWorld({
       <div className="fpb-objects-layer">
         <CanvasObjectsLayer
           objects={objects}
-          selectedObjectIds={selectedObjectIds}
+          selectedTableIds={selectedTableIds}
           draggingObjectId={draggingObjectId}
           transformingObjectId={transformingObjectId}
           activeTool={activeTool}

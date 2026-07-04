@@ -167,7 +167,9 @@ function resolveAssignedTable(unit, tablesById, tablesByLabel) {
 }
 
 function buildLinkPoints(tables) {
-  return buildLinkEdgePoints(tables)
+  return tables
+    .map((table) => getTableLinkCenter(table))
+    .filter((point) => Number.isFinite(point.x) && Number.isFinite(point.y))
 }
 
 export function getTableLinkCenter(table) {
@@ -177,50 +179,6 @@ export function getTableLinkCenter(table) {
   // Host layout stores x/y as table centers in 0–100 canvas space
   // (see objectCenterPercent in builderToHostLayout).
   return { x, y }
-}
-
-export function getTableEdgePointToward(fromTable, toTable) {
-  const from = getTableLinkCenter(fromTable)
-  const to = getTableLinkCenter(toTable)
-  const { halfW, halfH } = getTableHalfExtents(fromTable)
-
-  const dx = to.x - from.x
-  const dy = to.y - from.y
-  const absDx = Math.abs(dx)
-  const absDy = Math.abs(dy)
-
-  if (!Number.isFinite(from.x) || !Number.isFinite(from.y)) {
-    return { x: NaN, y: NaN }
-  }
-
-  if (absDx < 1e-6 && absDy < 1e-6) {
-    return from
-  }
-
-  const scale = Math.min(
-    halfW / (absDx || Number.POSITIVE_INFINITY),
-    halfH / (absDy || Number.POSITIVE_INFINITY),
-  )
-
-  return {
-    x: from.x + dx * scale,
-    y: from.y + dy * scale,
-  }
-}
-
-function buildLinkEdgePoints(orderedTables) {
-  if (orderedTables.length < 2) return []
-
-  const points = []
-
-  for (let index = 0; index < orderedTables.length - 1; index += 1) {
-    const left = orderedTables[index]
-    const right = orderedTables[index + 1]
-    points.push(getTableEdgePointToward(left, right))
-    points.push(getTableEdgePointToward(right, left))
-  }
-
-  return points.filter((point) => Number.isFinite(point.x) && Number.isFinite(point.y))
 }
 
 export function buildReservationLinkGroups(tableStates) {

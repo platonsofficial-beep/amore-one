@@ -1,6 +1,7 @@
 export class ObjectSelectionManager {
-  constructor({ onSelect, onClear }) {
+  constructor({ onSelect, onToggle, onClear }) {
     this.onSelect = onSelect
+    this.onToggle = onToggle
     this.onClear = onClear
   }
 
@@ -25,19 +26,34 @@ export class ObjectSelectionManager {
     this.onSelect(objectId)
   }
 
+  toggleObject(objectId) {
+    if (!objectId) return
+    this.onToggle?.(objectId)
+  }
+
   clearSelection() {
     this.onClear()
   }
 
-  handleObjectPointerDown(object, activeTool) {
+  handleObjectPointerDown(object, activeTool, { additiveSelection = false } = {}) {
     if (!this.canSelectInTool(activeTool) || !this.canSelectObject(object)) {
-      return { selected: false, draggable: false }
+      return { selected: false, draggable: false, toggled: false }
+    }
+
+    if (additiveSelection) {
+      this.toggleObject(object.id)
+      return {
+        selected: true,
+        draggable: false,
+        toggled: true,
+      }
     }
 
     this.selectObject(object.id)
     return {
       selected: true,
       draggable: this.canDragObject(object),
+      toggled: false,
     }
   }
 }

@@ -1,6 +1,5 @@
 import { Fragment, createContext, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import './App.css'
-import { FloorPlanBuilderPage } from './floor-plan-builder/FloorPlanBuilderPage'
 import { createEmployee, deleteEmployee, getEmployees, updateEmployee } from './services/staffService'
 import { createShift, deleteShift, getShifts, updateShift } from './services/scheduleService'
 import { createShiftTemplate, deleteShiftTemplate, getShiftTemplates, updateShiftTemplate } from './services/shiftTemplateService'
@@ -36,11 +35,15 @@ import {
 } from './lib/seatingAssignment'
 import { resolveAreaIdForReservation } from './lib/reservationTableOptions'
 import {
+  buildReservationLinkGroups,
+  buildReservationLinkTableMeta,
   computeHostFloorFit,
   HOST_FLOOR_MAX_ZOOM,
   HOST_FLOOR_MIN_ZOOM,
 } from './lib/hostFloorPlanViewport'
 import { getFloorLayoutSpaceStyle, getPublishedTableLayoutStyle } from './lib/publishedTableLayout'
+import { EmbeddedFloorPlanEditor } from './components/floor/EmbeddedFloorPlanEditor'
+import { FloorPlanReservationLinks } from './components/floor/FloorPlanReservationLinks'
 import { createInventoryItem, deleteInventoryItem, getInventoryItems, updateInventoryItem } from './services/inventoryService'
 import { createSupplier, deleteSupplier, getSuppliers, updateSupplier } from './services/supplierService'
 import {
@@ -142,7 +145,6 @@ const navItems = [
   { id: 'staff', label: 'Staff', icon: '👥' },
   { id: 'schedule', label: 'Schedule', icon: '🕒' },
   { id: 'reservations', label: 'Reservations', icon: '🍽️' },
-  { id: 'floor-plan-builder', label: 'Floor Plan Builder', icon: '⊞' },
   { id: 'suppliers', label: 'Suppliers', icon: '🚚' },
   { id: 'tasks', label: 'Tasks', icon: '✓' },
   { id: 'stock', label: 'Stock', icon: '📦' },
@@ -4965,9 +4967,12 @@ const HOST_LIST_SORTS = [
   { id: 'guest', label: 'Guest name' },
   { id: 'status', label: 'Status' },
   { id: 'party', label: 'Party size' },
+  { id: 'unassigned-first', label: 'Unassigned first' },
+  { id: 'late-first', label: 'Late first' },
 ]
 
 const HOST_SMART_CHIPS = [
+  { id: 'needs-attention', label: 'Needs attention' },
   { id: 'waiting', label: 'Waiting' },
   { id: 'late', label: 'Late' },
   { id: 'in-house', label: 'In house' },
@@ -5023,6 +5028,14 @@ function ReservationWorkspaceProvider({
   const [hostEditingReservation, setHostEditingReservation] = useState(null)
   const [hostEditForm, setHostEditForm] = useState(null)
   const [isHostFloorPickActive, setIsHostFloorPickActive] = useState(false)
+  const [floorPlanMode, setFloorPlanMode] = useState('view')
+
+  useEffect(() => {
+    if (floorPlanMode !== 'edit') return
+    setHostEditingReservation(null)
+    setHostEditForm(null)
+    setIsHostFloorPickActive(false)
+  }, [floorPlanMode])
   const timelineCardRefs = useRef({})
   const floorTableRefs = useRef({})
   const timelineScrollRef = useRef(null)
@@ -5247,6 +5260,8 @@ function ReservationWorkspaceProvider({
     setHostEditForm,
     hostEditUnitIds,
     isHostFloorPickActive,
+    floorPlanMode,
+    setFloorPlanMode,
     openHostEdit,
     closeHostEdit,
     startHostFloorPick,
@@ -5289,6 +5304,7 @@ function ReservationWorkspaceProvider({
     hostEditForm,
     hostEditUnitIds,
     isHostFloorPickActive,
+    floorPlanMode,
     onHostEditSave,
     onHostEditDelete,
     isSavingHostEdit,
@@ -6680,10 +6696,6 @@ function FloorTableNode({
   )
 }
 
-function FloorPlanReservationLinks() {
-  return null
-}
-
 function FloorPlanAreaSwitcher({ zones, activeZoneId, onChange }) {
   const activeZone = zones.find((zone) => zone.id === activeZoneId) ?? zones[0]
 
@@ -6762,6 +6774,8 @@ function FloorPlanView({
     toggleHostEditUnit,
     hostEditingReservation,
     openHostEdit,
+    closeHostEdit,
+    setFloorPlanMode,
   } = useReservationWorkspace()
   const { hasLayout } = usePublishedFloorPlan()
   const [dropTargetTableId, setDropTargetTableId] = useState(null)
@@ -6917,6 +6931,16 @@ function FloorPlanView({
     ))
   ), [activeFloorAreaId, floorPlanSnapshot.tableStates])
 
+  const reservationLinkGroups = useMemo(
+    () => (isCompact && !isHeatmap ? buildReservationLinkGroups(visibleTableStates) : []),
+    [isCompact, isHeatmap, visibleTableStates],
+  )
+
+  const reservationLinkTableMeta = useMemo(
+    () => buildReservationLinkTableMeta(reservationLinkGroups),
+    [reservationLinkGroups],
+  )
+
   const applyHostFloorAutoFit = useCallback(() => {
     const viewport = viewportRef.current
     if (!viewport) return
@@ -6948,7 +6972,7 @@ function FloorPlanView({
 
     isManualFloorZoomRef.current = false
     applyHostFloorAutoFit()
-  }, [activeFloorAreaId, applyHostFloorAutoFit, floorPlanSnapshot.layout.id, isCompact])
+  }, [activeFloorAreaId, applyHostFloorAutoFit, floorPlanSnapshot.layout.id, floorPlanSnapshot.layout.publishedAt, isCompact])
 
   useEffect(() => {
     if (!isCompact) return undefined
@@ -7181,7 +7205,10 @@ function FloorPlanView({
         <div className="floor-plan-empty">
           <p className="eyebrow">Floor plan</p>
           <h3>No published layout</h3>
-          <p>Open Floor Plan Builder, edit your layout, save it, then publish to reservations.</p>
+          <p>Open Reservations, click Edit layout, arrange your tables, then save.</p>
+          <button type="button" className="floor-plan-empty-action" onClick={() => { closeHostEdit(); setFloorPlanMode('edit') }}>
+            Edit layout
+          </button>
         </div>
       </div>
     )
@@ -7208,7 +7235,15 @@ function FloorPlanView({
           {!isCompact && !isHeatmap ? <FloorPlanLiveStats stats={floorPlanSnapshot.stats} /> : null}
           {!isCompact ? <FloorPlanViewModeToggle value={viewMode} onChange={setViewMode} /> : null}
           {isCompact && !isHeatmap ? (
-            <div className="floor-plan-zoom-controls" aria-label="Floor plan zoom">
+            <div className="floor-plan-toolbar-actions-group">
+              <button
+                type="button"
+                className="floor-plan-mode-btn"
+                onClick={() => { closeHostEdit(); setFloorPlanMode('edit') }}
+              >
+                Edit layout
+              </button>
+              <div className="floor-plan-zoom-controls" aria-label="Floor plan zoom">
               <button type="button" className="floor-plan-zoom-btn" onClick={handleFloorZoomOut} aria-label="Zoom out">−</button>
               <span className="floor-plan-zoom-label">{Math.round(floorZoom * 100)}%</span>
               <button type="button" className="floor-plan-zoom-btn" onClick={handleFloorZoomIn} aria-label="Zoom in">+</button>
@@ -7218,6 +7253,7 @@ function FloorPlanView({
               <button type="button" className="floor-plan-zoom-btn floor-plan-zoom-reset" onClick={handleFloorZoomReset}>
                 Reset
               </button>
+              </div>
             </div>
           ) : null}
         </div>
@@ -7298,7 +7334,7 @@ function FloorPlanView({
         ))}
 
         {!isHeatmap ? (
-          <FloorPlanReservationLinks />
+          <FloorPlanReservationLinks linkGroups={reservationLinkGroups} />
         ) : null}
 
         {visibleTableStates.map((tableState) => (
@@ -7326,7 +7362,7 @@ function FloorPlanView({
               || mergedGroups.some((group) => group.tableIds.includes(tableState.table.id))}
             isSeatPicking={isSeatPicking}
             isHostFloor={isCompact}
-            linkMeta={null}
+            linkMeta={reservationLinkTableMeta.get(tableState.table.id)}
             isDropTarget={dropTargetTableId === tableState.table.id}
             isDragging={draggingReservationId && tableState.reservation
               ? String(tableState.reservation.id) === draggingReservationId
@@ -7908,6 +7944,15 @@ function hostListFilterMatch(reservation, filter, nowMinutes, todayKey) {
 
 function hostSmartChipMatch(reservation, chipId, nowMinutes, todayKey) {
   switch (chipId) {
+    case 'needs-attention': {
+      const warnings = getHostReservationWarnings(reservation, nowMinutes, todayKey)
+      const hasNotes = Boolean(`${reservation.notes ?? ''}`.trim())
+      const missingPhone = !`${reservation.phone ?? ''}`.trim()
+      return warnings.length > 0
+        || isReservationLate(reservation, nowMinutes, todayKey)
+        || hasNotes
+        || missingPhone
+    }
     case 'waiting':
       return isReservationWaiting(reservation, todayKey, nowMinutes)
     case 'late':
@@ -7993,6 +8038,24 @@ function sortHostReservations(reservations, sortId, nowMinutes, todayKey) {
     return items.sort((left, right) => (
       (Number(right.guests) || 0) - (Number(left.guests) || 0)
     ))
+  }
+
+  if (sortId === 'unassigned-first') {
+    return items.sort((left, right) => {
+      const leftUnassigned = isReservationUnassigned(left) ? 0 : 1
+      const rightUnassigned = isReservationUnassigned(right) ? 0 : 1
+      if (leftUnassigned !== rightUnassigned) return leftUnassigned - rightUnassigned
+      return (parseTimeToMinutes(left.time) ?? 0) - (parseTimeToMinutes(right.time) ?? 0)
+    })
+  }
+
+  if (sortId === 'late-first') {
+    return items.sort((left, right) => {
+      const leftLate = isReservationLate(left, nowMinutes, todayKey) ? 0 : 1
+      const rightLate = isReservationLate(right, nowMinutes, todayKey) ? 0 : 1
+      if (leftLate !== rightLate) return leftLate - rightLate
+      return (parseTimeToMinutes(left.time) ?? 0) - (parseTimeToMinutes(right.time) ?? 0)
+    })
   }
 
   return items
@@ -9330,21 +9393,27 @@ function ReservationsUnifiedCanvas({
     hostEditForm,
     setHostEditForm,
     isHostFloorPickActive,
+    floorPlanMode,
+    setFloorPlanMode,
     closeHostEdit,
     clearSelection,
     startHostFloorPick,
     onHostEditSave,
     onHostEditDelete,
     isSavingHostEdit,
+    activeFloorAreaId,
+    setActiveFloorAreaId,
   } = useReservationWorkspace()
 
   return (
-    <div className="host-operations-canvas-shell">
+    <div className={`host-operations-canvas-shell${floorPlanMode === 'edit' ? ' is-layout-edit-mode' : ''}`}>
     <div
       ref={canvasRef}
       className="host-operations-canvas"
       data-timeline-collapsed={isTimelineCollapsed ? 'true' : 'false'}
+      data-floor-plan-mode={floorPlanMode}
     >
+      {floorPlanMode !== 'edit' ? (
       <section className="host-operations-list" aria-label="Reservation list">
         <div className="host-operations-list-header">
           <div>
@@ -9373,11 +9442,21 @@ function ReservationsUnifiedCanvas({
           isLoading={isLoading}
         />
       </section>
+      ) : null}
 
       <section className="host-operations-floor" aria-label="Floor plan">
-        <FloorPlanView {...floorPlanProps} isCompact />
+        {floorPlanMode === 'edit' ? (
+          <EmbeddedFloorPlanEditor
+            onExit={() => setFloorPlanMode('view')}
+            initialAreaId={activeFloorAreaId}
+            onActiveAreaChange={setActiveFloorAreaId}
+          />
+        ) : (
+          <FloorPlanView {...floorPlanProps} isCompact />
+        )}
       </section>
 
+      {floorPlanMode !== 'edit' ? (
       <section className={`host-operations-timeline${isTimelineCollapsed ? ' is-collapsed' : ''}`} aria-label="Service timeline">
         <button
           type="button"
@@ -9394,9 +9473,10 @@ function ReservationsUnifiedCanvas({
           <ServiceTimelinePanel {...timelinePanelProps} showIntelligence={false} />
         ) : null}
       </section>
+      ) : null}
     </div>
 
-    {hostEditingReservation ? (
+    {hostEditingReservation && floorPlanMode !== 'edit' ? (
       <div className="host-reservation-edit-overlay" role="presentation">
         <button
           type="button"
@@ -9748,10 +9828,14 @@ function ReservationsWorkspaceContent({
     selectedReservation,
     isGuestProfileOpen,
     clearSelection,
+    floorPlanMode,
   } = useReservationWorkspace()
 
+  const isLayoutEditMode = floorPlanMode === 'edit'
+
   return (
-    <section className="staff-page reservations-workspace reservations-workspace-host">
+    <section className={`staff-page reservations-workspace reservations-workspace-host${isLayoutEditMode ? ' is-layout-edit-mode' : ''}`}>
+      {!isLayoutEditMode ? (
       <div className="reservations-command-sticky">
         <header className="reservations-executive-header schedule-header panel reservations-host-header">
           <div className="schedule-header-copy reservations-executive-copy">
@@ -9778,9 +9862,17 @@ function ReservationsWorkspaceContent({
           </div>
         </header>
       </div>
+      ) : (
+        <header className="reservations-layout-edit-page-header">
+          <div>
+            <p className="eyebrow">Floor plan</p>
+            <h3>Edit layout</h3>
+          </div>
+        </header>
+      )}
 
-      {noticeMessage ? <div className="staff-status-banner reservations-notice">{noticeMessage}</div> : null}
-      {isLoading ? <div className="staff-status-banner reservations-notice">Loading reservations…</div> : null}
+      {!isLayoutEditMode && noticeMessage ? <div className="staff-status-banner reservations-notice">{noticeMessage}</div> : null}
+      {!isLayoutEditMode && isLoading ? <div className="staff-status-banner reservations-notice">Loading reservations…</div> : null}
 
       <div className="reservations-host-panel">
         <ReservationsUnifiedCanvas
@@ -9799,7 +9891,7 @@ function ReservationsWorkspaceContent({
         />
       </div>
 
-      {selectedReservation && isGuestProfileOpen ? (
+      {selectedReservation && isGuestProfileOpen && !isLayoutEditMode ? (
         <GuestProfileDrawer
           reservation={selectedReservation}
           allReservations={reservations}
@@ -14379,7 +14471,12 @@ function App() {
         ) : null}
 
         {activeView === 'floor-plan-builder' ? (
-          <FloorPlanBuilderPage onBack={() => setActiveView('dashboard')} />
+          <div className="floor-plan-deprecated-notice">
+            <p>Floor Plan Builder now lives inside Reservations.</p>
+            <button type="button" className="primary-btn" onClick={() => setActiveView('reservations')}>
+              Open Reservations
+            </button>
+          </div>
         ) : null}
 
         {activeView === 'suppliers' ? (

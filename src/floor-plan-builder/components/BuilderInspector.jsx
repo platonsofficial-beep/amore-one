@@ -14,8 +14,73 @@ function InspectorEmptyState() {
     <div className="fpb-inspector-empty">
       <p className="fpb-inspector-empty-title">No table selected</p>
       <p className="fpb-inspector-empty-copy">
-        Click a table on the floor to edit its name, seats, type, and area.
+        Click tables on the floor to add them to the selection. Click empty space to clear.
       </p>
+    </div>
+  )
+}
+
+function InspectorMultiSelectPanel({ count, isReadOnly, dispatch }) {
+  const handleAlignHorizontal = () => {
+    if (count < 2) return
+    dispatch({ type: 'ALIGN_SELECTED_HORIZONTAL' })
+  }
+
+  const handleAlignVertical = () => {
+    if (count < 2) return
+    dispatch({ type: 'ALIGN_SELECTED_VERTICAL' })
+  }
+
+  const handleMatchSize = () => {
+    if (count < 2) return
+    dispatch({ type: 'MATCH_SELECTED_TABLE_SIZE' })
+  }
+
+  const handleDelete = () => {
+    const confirmed = window.confirm(`Delete ${count} selected tables?`)
+    if (!confirmed) return
+    dispatch({ type: 'DELETE_SELECTED_TABLES' })
+  }
+
+  return (
+    <div className="fpb-inspector-multi-actions">
+      <p className="fpb-inspector-empty-copy">
+        Click another table to add it. Click a selected table again to remove it.
+      </p>
+      <div className="fpb-inspector-actions">
+        <button
+          type="button"
+          className="fpb-inspector-secondary-btn"
+          onClick={handleAlignHorizontal}
+          disabled={isReadOnly || count < 2}
+        >
+          Align horizontal
+        </button>
+        <button
+          type="button"
+          className="fpb-inspector-secondary-btn"
+          onClick={handleAlignVertical}
+          disabled={isReadOnly || count < 2}
+        >
+          Align vertical
+        </button>
+        <button
+          type="button"
+          className="fpb-inspector-secondary-btn"
+          onClick={handleMatchSize}
+          disabled={isReadOnly || count < 2}
+        >
+          Match size
+        </button>
+        <button
+          type="button"
+          className="fpb-inspector-danger-btn"
+          onClick={handleDelete}
+          disabled={isReadOnly}
+        >
+          Delete selected
+        </button>
+      </div>
     </div>
   )
 }
@@ -24,6 +89,19 @@ export function BuilderInspector() {
   const { state, dispatch, selectedObject } = useFloorPlanBuilder()
   const { floors } = state
   const isReadOnly = state.mode !== 'editing'
+  const selectionCount = state.selectedTableIds.length
+
+  if (selectionCount > 1) {
+    return (
+      <aside className="fpb-inspector fpb-inspector-simple" aria-label="Table properties">
+        <div className="fpb-panel-header">
+          <p className="fpb-panel-eyebrow">Properties</p>
+          <h2 className="fpb-panel-title">{selectionCount} tables selected</h2>
+        </div>
+        <InspectorMultiSelectPanel count={selectionCount} isReadOnly={isReadOnly} dispatch={dispatch} />
+      </aside>
+    )
+  }
 
   if (!selectedObject || selectedObject.type !== FLOOR_PLAN_OBJECT_TYPES.TABLE) {
     return (
@@ -221,6 +299,7 @@ export function BuilderInspector() {
             min="1"
             value={width}
             onChange={(event) => updateTable({ width: event.target.value })}
+            disabled={isReadOnly}
           />
         </label>
 
@@ -231,6 +310,7 @@ export function BuilderInspector() {
             min="1"
             value={height}
             onChange={(event) => updateTable({ height: event.target.value })}
+            disabled={isReadOnly}
           />
         </label>
 
@@ -242,6 +322,7 @@ export function BuilderInspector() {
             max="359"
             value={rotation}
             onChange={(event) => updateTable({ rotation: event.target.value })}
+            disabled={isReadOnly}
           />
         </label>
 
@@ -251,6 +332,7 @@ export function BuilderInspector() {
             className="fpb-inspector-select"
             value={floorId}
             onChange={(event) => updateTable({ floorId: event.target.value })}
+            disabled={isReadOnly}
           >
             {floors.map((floor) => (
               <option key={floor.id} value={floor.id}>{floor.label}</option>

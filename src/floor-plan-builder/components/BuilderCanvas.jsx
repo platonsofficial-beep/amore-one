@@ -51,8 +51,12 @@ export function BuilderCanvas({ containerRef, viewportControls, workspaceLayoutK
     dispatch({ type: 'SELECT_OBJECT', payload: { objectId } })
   }, [dispatch])
 
-  const handleClearSelection = useCallback(() => {
-    dispatch({ type: 'CLEAR_SELECTION' })
+  const handleAddToSelection = useCallback((objectId) => {
+    dispatch({ type: 'ADD_TABLE_TO_SELECTION', payload: { objectId } })
+  }, [dispatch])
+
+  const handleRemoveFromSelection = useCallback((objectId) => {
+    dispatch({ type: 'REMOVE_TABLE_FROM_SELECTION', payload: { objectId } })
   }, [dispatch])
 
   const handleTransformTable = useCallback((objectId, preview) => {
@@ -92,12 +96,13 @@ export function BuilderCanvas({ containerRef, viewportControls, workspaceLayoutK
     containerRef,
     camera: state.camera,
     viewportSize,
-    activeTool: 'select',
     snapEnabled: state.settings.snapEnabled,
     floorBounds: activeWorkspaceBounds,
+    isEditing,
+    selectedTableIds: state.selectedTableIds,
     onMoveObject: handleMoveObject,
-    onSelectObject: handleSelectObject,
-    onClearSelection: handleClearSelection,
+    onAddToSelection: handleAddToSelection,
+    onRemoveFromSelection: handleRemoveFromSelection,
   })
 
   const handleObjectPointerDownWrapped = useCallback((event, object) => {
@@ -229,7 +234,7 @@ export function BuilderCanvas({ containerRef, viewportControls, workspaceLayoutK
             floor={activeWorkspace}
             floorLabel={activeFloor.label}
             objects={visibleObjects}
-            selectedObjectIds={state.selectedObjectIds}
+            selectedTableIds={state.selectedTableIds}
             draggingObjectId={draggingObjectId}
             transformingObjectId={transformingObjectId}
             activeTool="select"

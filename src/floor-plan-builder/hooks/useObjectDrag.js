@@ -1,26 +1,27 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { screenToWorld } from '../lib/camera'
 import { floorBoundaryService } from '../services/FloorBoundaryService'
 import { createObjectDragManager } from '../services/ObjectDragManager'
-import { createObjectSelectionManager } from '../services/ObjectSelectionManager'
 import { snapService } from '../services/SnapService'
 
 export function useObjectDrag({
   containerRef,
   camera,
   viewportSize,
-  activeTool,
   snapEnabled,
   floorBounds,
+  isEditing,
+  selectedTableIds,
   onMoveObject,
-  onSelectObject,
-  onClearSelection,
+  onAddToSelection,
+  onRemoveFromSelection,
 }) {
   const cameraRef = useRef(camera)
   const viewportSizeRef = useRef(viewportSize)
   const snapEnabledRef = useRef(snapEnabled)
   const floorBoundsRef = useRef(floorBounds)
-  const activeToolRef = useRef(activeTool)
+  const selectedTableIdsRef = useRef(selectedTableIds)
+  const pendingClickRef = useRef(null)
   const [draggingObjectId, setDraggingObjectId] = useState(null)
 
   useEffect(() => {
@@ -28,8 +29,8 @@ export function useObjectDrag({
     viewportSizeRef.current = viewportSize
     snapEnabledRef.current = snapEnabled
     floorBoundsRef.current = floorBounds
-    activeToolRef.current = activeTool
-  }, [activeTool, camera, floorBounds, snapEnabled, viewportSize])
+    selectedTableIdsRef.current = selectedTableIds
+  }, [camera, floorBounds, selectedTableIds, snapEnabled, viewportSize])
 
   const clientToWorld = useCallback((clientX, clientY) => {
     const container = containerRef.current
@@ -45,11 +46,6 @@ export function useObjectDrag({
       viewport,
     )
   }, [containerRef])
-
-  const selectionManager = useMemo(() => createObjectSelectionManager({
-    onSelect: onSelectObject,
-    onClear: onClearSelection,
-  }), [onClearSelection, onSelectObject])
 
   const dragManagerRef = useRef(null)
 
@@ -69,12 +65,17 @@ export function useObjectDrag({
   const handleObjectPointerDown = useCallback((event, object) => {
     event.stopPropagation()
 
-    const { selected, draggable } = selectionManager.handleObjectPointerDown(
-      object,
-      activeToolRef.current,
-    )
+    if (!isEditing) return false
+    if (object.properties?.locked === true) return false
 
-    if (!selected || !draggable) return false
+    const isSelected = selectedTableIdsRef.current.includes(object.id)
+
+    if (!isSelected) {
+      onAddToSelection(object.id)
+      pendingClickRef.current = null
+    } else {
+      pendingClickRef.current = { objectId: object.id }
+    }
 
     const started = dragManager.start(event, object, {
       snapEnabled: snapEnabledRef.current,
@@ -86,7 +87,7 @@ export function useObjectDrag({
     }
 
     return started
-  }, [dragManager, selectionManager])
+  }, [dragManager, isEditing, onAddToSelection])
 
   const handleDragMove = useCallback((event) => {
     dragManager.move(event)
@@ -94,9 +95,19 @@ export function useObjectDrag({
 
   const endDrag = useCallback((event) => {
     if (!dragManager.isActive()) return
+
+    const moved = dragManager.session?.moved ?? false
+    const pending = pendingClickRef.current
+
     dragManager.end(event)
     setDraggingObjectId(null)
-  }, [dragManager])
+
+    if (pending && !moved) {
+      onRemoveFromSelection(pending.objectId)
+    }
+
+    pendingClickRef.current = null
+  }, [dragManager, onRemoveFromSelection])
 
   useLayoutEffect(() => {
     if (dragManager.isActive() && dragManager.session?.previewPosition) {
@@ -114,6 +125,5 @@ export function useObjectDrag({
     handleDragMove,
     endDrag,
     isDragging: Boolean(draggingObjectId),
-    selectionManager,
   }
 }

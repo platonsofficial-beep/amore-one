@@ -6,6 +6,7 @@ const CORNER_HANDLES = ['nw', 'ne', 'se', 'sw']
 function CanvasObjectNodeComponent({
   object,
   isSelected,
+  showTransformChrome = false,
   isDragging,
   isTransforming,
   activeTool,
@@ -58,7 +59,7 @@ function CanvasObjectNodeComponent({
         ) : null}
       </div>
 
-      {isSelected && isTable && isEditable ? (
+      {showTransformChrome && isTable && isEditable ? (
         <div className="fpb-selection-chrome" aria-hidden="true">
           {CORNER_HANDLES.map((handle) => (
             <button
@@ -90,6 +91,7 @@ function CanvasObjectNodeComponent({
 
 function arePropsEqual(previous, next) {
   if (previous.isSelected !== next.isSelected) return false
+  if (previous.showTransformChrome !== next.showTransformChrome) return false
   if (previous.isDragging !== next.isDragging) return false
   if (previous.isTransforming !== next.isTransforming) return false
   if (previous.isEditable !== next.isEditable) return false

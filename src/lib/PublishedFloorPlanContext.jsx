@@ -1,26 +1,53 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
-import { PUBLISHED_LAYOUT_EVENT } from '../floor-plan-builder/lib/floorPlanStorage'
-import { loadPublishedHostLayout } from './builderToHostLayout'
+import {
+  PUBLISHED_LAYOUT_EVENT,
+  cloneBuilderLayout,
+  loadFloorPlanLayout,
+  saveFloorPlanLayout,
+} from '../floor-plan-builder/lib/floorPlanStorage'
+import { builderLayoutToHostLayout } from './builderToHostLayout'
 
 const PublishedFloorPlanContext = createContext({
+  builderLayout: null,
   layout: null,
   hasLayout: false,
+  saveLayout: () => null,
   reload: () => {},
 })
 
 export function PublishedFloorPlanProvider({ children }) {
-  const [layout, setLayout] = useState(() => loadPublishedHostLayout())
+  const [builderLayout, setBuilderLayout] = useState(() => loadFloorPlanLayout())
 
-  const reload = useCallback(() => {
-    setLayout(loadPublishedHostLayout())
+  const layout = useMemo(
+    () => builderLayoutToHostLayout(builderLayout),
+    [builderLayout],
+  )
+
+  const saveLayout = useCallback(({ floors, activeFloorId, objects }) => {
+    const payload = saveFloorPlanLayout({ floors, activeFloorId, objects })
+    if (payload) {
+      setBuilderLayout(payload)
+    }
+    return payload
+  }, [])
+
+  const reload = useCallback((nextBuilderLayout) => {
+    if (nextBuilderLayout?.floors?.length) {
+      setBuilderLayout(cloneBuilderLayout(nextBuilderLayout))
+      return
+    }
+
+    setBuilderLayout(loadFloorPlanLayout())
   }, [])
 
   useEffect(() => {
-    const handlePublished = () => reload()
+    const handlePublished = (event) => {
+      reload(event.detail ?? null)
+    }
 
     const handleStorage = (event) => {
       if (!event.key || event.key.includes('amore-floor-plan-published')) {
-        reload()
+        reload(null)
       }
     }
 
@@ -34,10 +61,12 @@ export function PublishedFloorPlanProvider({ children }) {
   }, [reload])
 
   const value = useMemo(() => ({
+    builderLayout,
     layout,
     hasLayout: Boolean(layout?.tables?.length),
+    saveLayout,
     reload,
-  }), [layout, reload])
+  }), [builderLayout, layout, reload, saveLayout])
 
   return (
     <PublishedFloorPlanContext.Provider value={value}>

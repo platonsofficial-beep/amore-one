@@ -1,7 +1,12 @@
 import { useMemo, useReducer } from 'react'
 import { createCamera } from '../lib/camera'
+import {
+  alignSelectedTablesHorizontal,
+  alignSelectedTablesVertical,
+  matchSelectedTablesSize,
+} from '../lib/alignSelectedTables'
 import { autoArrangeFloorTables } from '../lib/autoArrangeLayout'
-import { loadDraftFloorPlanLayout, publishFloorPlanLayout, saveDraftFloorPlanLayout } from '../lib/floorPlanStorage'
+import { cloneBuilderLayout, loadFloorPlanLayout, saveFloorPlanLayout } from '../lib/floorPlanStorage'
 import {
   FLOOR_PLAN_OBJECT_TYPES,
   getTableShapeSize,
@@ -26,16 +31,24 @@ function getFloorWorkspaceBounds(floors, floorId) {
   return getWorkspaceBounds(workspace)
 }
 
+function cloneLayoutData({ floors, objects, activeFloorId }) {
+  return JSON.parse(JSON.stringify({
+    floors,
+    objects,
+    activeFloorId,
+  }))
+}
+
 function createLayoutSnapshot(state) {
-  return {
+  return cloneLayoutData({
     floors: state.floors,
     objects: state.objects,
     activeFloorId: state.activeFloorId,
-  }
+  })
 }
 
-function createInitialBuilderState() {
-  const persisted = loadDraftFloorPlanLayout()
+function createInitialBuilderState({ initialEditing = false, initialLayout = null } = {}) {
+  const persisted = initialLayout ?? loadFloorPlanLayout()
   const floors = persisted?.floors ?? createInitialFloors()
   const objects = persisted?.objects ?? []
   const activeFloorId = persisted?.activeFloorId ?? floors[0]?.id ?? 'main-dining'
@@ -43,10 +56,10 @@ function createInitialBuilderState() {
     floors,
     activeFloorId,
     objects,
-    selectedObjectIds: [],
+    selectedTableIds: [],
     toolboxSelectionId: null,
     activeTool: 'select',
-    mode: 'viewing',
+    mode: initialEditing ? 'editing' : 'viewing',
     hasUnsavedChanges: false,
     savedSnapshot: null,
     settings: {
@@ -71,13 +84,43 @@ function floorPlanBuilderReducer(state, action) {
     case 'SELECT_OBJECT': {
       const { objectId } = action.payload
       if (!objectId) {
-        return { ...state, selectedObjectIds: [] }
+        return { ...state, selectedTableIds: [] }
       }
 
-      return { ...state, selectedObjectIds: [objectId] }
+      return { ...state, selectedTableIds: [objectId] }
+    }
+    case 'ADD_TABLE_TO_SELECTION': {
+      const { objectId } = action.payload
+      if (!objectId || state.selectedTableIds.includes(objectId)) return state
+
+      return {
+        ...state,
+        selectedTableIds: [...state.selectedTableIds, objectId],
+      }
+    }
+    case 'REMOVE_TABLE_FROM_SELECTION': {
+      const { objectId } = action.payload
+      if (!objectId) return state
+
+      return {
+        ...state,
+        selectedTableIds: state.selectedTableIds.filter((id) => id !== objectId),
+      }
+    }
+    case 'TOGGLE_OBJECT_SELECTION': {
+      const { objectId } = action.payload
+      if (!objectId) return state
+
+      const isSelected = state.selectedTableIds.includes(objectId)
+      return {
+        ...state,
+        selectedTableIds: isSelected
+          ? state.selectedTableIds.filter((id) => id !== objectId)
+          : [...state.selectedTableIds, objectId],
+      }
     }
     case 'CLEAR_SELECTION':
-      return { ...state, selectedObjectIds: [] }
+      return { ...state, selectedTableIds: [] }
     case 'SELECT_TOOLBOX_ITEM':
       if (!isBuilderEditing(state)) return state
       return { ...state, toolboxSelectionId: action.payload.itemId }
@@ -87,7 +130,7 @@ function floorPlanBuilderReducer(state, action) {
       return {
         ...state,
         activeFloorId: action.payload.floorId,
-        selectedObjectIds: [],
+        selectedTableIds: [],
       }
     case 'SET_CAMERA':
       return {
@@ -105,11 +148,11 @@ function floorPlanBuilderReducer(state, action) {
         mode: 'editing',
         savedSnapshot: createLayoutSnapshot(state),
         toolboxSelectionId: null,
-        selectedObjectIds: [],
+        selectedTableIds: [],
       }
     case 'SAVE_LAYOUT': {
       const snapshot = createLayoutSnapshot(state)
-      saveDraftFloorPlanLayout({
+      saveFloorPlanLayout({
         floors: state.floors,
         activeFloorId: state.activeFloorId,
         objects: state.objects,
@@ -120,17 +163,12 @@ function floorPlanBuilderReducer(state, action) {
         hasUnsavedChanges: false,
         savedSnapshot: snapshot,
         toolboxSelectionId: null,
-        selectedObjectIds: [],
+        selectedTableIds: [],
       }
     }
     case 'PUBLISH_LAYOUT': {
       const snapshot = createLayoutSnapshot(state)
-      saveDraftFloorPlanLayout({
-        floors: state.floors,
-        activeFloorId: state.activeFloorId,
-        objects: state.objects,
-      })
-      publishFloorPlanLayout({
+      saveFloorPlanLayout({
         floors: state.floors,
         activeFloorId: state.activeFloorId,
         objects: state.objects,
@@ -141,20 +179,18 @@ function floorPlanBuilderReducer(state, action) {
         hasUnsavedChanges: false,
         savedSnapshot: snapshot,
         toolboxSelectionId: null,
-        selectedObjectIds: [],
+        selectedTableIds: [],
       }
     }
     case 'CANCEL_EDITING': {
       const snapshot = state.savedSnapshot ?? createLayoutSnapshot(state)
       return {
         ...state,
-        floors: snapshot.floors,
-        objects: snapshot.objects,
-        activeFloorId: snapshot.activeFloorId,
+        ...cloneLayoutData(snapshot),
         mode: 'viewing',
         hasUnsavedChanges: false,
         toolboxSelectionId: null,
-        selectedObjectIds: [],
+        selectedTableIds: [],
       }
     }
     case 'MOVE_OBJECT':
@@ -210,7 +246,7 @@ function floorPlanBuilderReducer(state, action) {
         ...state,
         hasUnsavedChanges: true,
         objects: [...state.objects, action.payload.object],
-        selectedObjectIds: [action.payload.object.id],
+        selectedTableIds: [action.payload.object.id],
         toolboxSelectionId: null,
       }
     case 'UPDATE_TABLE': {
@@ -296,7 +332,19 @@ function floorPlanBuilderReducer(state, action) {
         ...state,
         hasUnsavedChanges: true,
         objects: state.objects.filter((object) => object.id !== objectId),
-        selectedObjectIds: state.selectedObjectIds.filter((id) => id !== objectId),
+        selectedTableIds: state.selectedTableIds.filter((id) => id !== objectId),
+      }
+    }
+    case 'DELETE_SELECTED_TABLES': {
+      if (!isBuilderEditing(state)) return state
+      if (!state.selectedTableIds.length) return state
+
+      const selected = new Set(state.selectedTableIds)
+      return {
+        ...state,
+        hasUnsavedChanges: true,
+        objects: state.objects.filter((object) => !selected.has(object.id)),
+        selectedTableIds: [],
       }
     }
     case 'ADD_FLOOR': {
@@ -316,7 +364,7 @@ function floorPlanBuilderReducer(state, action) {
         hasUnsavedChanges: true,
         floors: [...state.floors, nextFloor],
         activeFloorId: id,
-        selectedObjectIds: [],
+        selectedTableIds: [],
       }
     }
     case 'RENAME_FLOOR': {
@@ -344,6 +392,63 @@ function floorPlanBuilderReducer(state, action) {
         )),
       }
     }
+    case 'MATCH_SELECTED_TABLE_SIZE': {
+      if (!isBuilderEditing(state)) return state
+      if (state.selectedTableIds.length < 2) return state
+
+      const result = matchSelectedTablesSize(
+        state.objects,
+        state.selectedTableIds,
+        state.activeFloorId,
+        state.floors,
+      )
+
+      if (!result.matched) return state
+
+      return {
+        ...state,
+        hasUnsavedChanges: true,
+        objects: result.objects,
+      }
+    }
+    case 'ALIGN_SELECTED_HORIZONTAL': {
+      if (!isBuilderEditing(state)) return state
+      if (state.selectedTableIds.length < 2) return state
+
+      const result = alignSelectedTablesHorizontal(
+        state.objects,
+        state.selectedTableIds,
+        state.activeFloorId,
+        state.floors,
+      )
+
+      if (!result.aligned) return state
+
+      return {
+        ...state,
+        hasUnsavedChanges: true,
+        objects: result.objects,
+      }
+    }
+    case 'ALIGN_SELECTED_VERTICAL': {
+      if (!isBuilderEditing(state)) return state
+      if (state.selectedTableIds.length < 2) return state
+
+      const result = alignSelectedTablesVertical(
+        state.objects,
+        state.selectedTableIds,
+        state.activeFloorId,
+        state.floors,
+      )
+
+      if (!result.aligned) return state
+
+      return {
+        ...state,
+        hasUnsavedChanges: true,
+        objects: result.objects,
+      }
+    }
     case 'AUTO_ARRANGE_FLOOR': {
       if (!isBuilderEditing(state)) return state
 
@@ -351,7 +456,7 @@ function floorPlanBuilderReducer(state, action) {
         ...state,
         hasUnsavedChanges: true,
         objects: autoArrangeFloorTables(state.objects, state.activeFloorId, state.floors),
-        selectedObjectIds: [],
+        selectedTableIds: [],
       }
     }
     case 'AUTO_ARRANGE_AND_PUBLISH': {
@@ -366,17 +471,12 @@ function floorPlanBuilderReducer(state, action) {
         ...state,
         hasUnsavedChanges: false,
         objects: arrangedObjects,
-        selectedObjectIds: [],
+        selectedTableIds: [],
         toolboxSelectionId: null,
       }
       const snapshot = createLayoutSnapshot(nextState)
 
-      saveDraftFloorPlanLayout({
-        floors: nextState.floors,
-        activeFloorId: nextState.activeFloorId,
-        objects: nextState.objects,
-      })
-      publishFloorPlanLayout({
+      saveFloorPlanLayout({
         floors: nextState.floors,
         activeFloorId: nextState.activeFloorId,
         objects: nextState.objects,
@@ -404,7 +504,7 @@ function floorPlanBuilderReducer(state, action) {
         floors: nextFloors,
         activeFloorId: nextActiveFloorId,
         objects: state.objects.filter((object) => object.floorId !== floorId),
-        selectedObjectIds: [],
+        selectedTableIds: [],
       }
     }
     default:
@@ -412,18 +512,32 @@ function floorPlanBuilderReducer(state, action) {
   }
 }
 
-export function FloorPlanBuilderProvider({ children }) {
-  const [state, dispatch] = useReducer(floorPlanBuilderReducer, undefined, createInitialBuilderState)
+export function FloorPlanBuilderProvider({ children, initialEditing = false, initialLayout = null }) {
+  const [state, dispatch] = useReducer(
+    floorPlanBuilderReducer,
+    { initialEditing, initialLayout: initialLayout ? cloneBuilderLayout(initialLayout) : null },
+    createInitialBuilderState,
+  )
 
   const visibleObjects = useMemo(() => (
     state.objects.filter((object) => object.floorId === state.activeFloorId)
   ), [state.activeFloorId, state.objects])
 
   const selectedObject = useMemo(() => {
-    const selectedId = state.selectedObjectIds[0]
+    const selectedId = state.selectedTableIds[0]
     if (!selectedId) return null
     return state.objects.find((object) => object.id === selectedId) ?? null
-  }, [state.objects, state.selectedObjectIds])
+  }, [state.objects, state.selectedTableIds])
+
+  const selectedObjects = useMemo(() => (
+    state.selectedTableIds
+      .map((objectId) => state.objects.find((object) => object.id === objectId))
+      .filter(Boolean)
+  ), [state.objects, state.selectedTableIds])
+
+  const selectedTables = useMemo(() => (
+    selectedObjects.filter((object) => object.type === FLOOR_PLAN_OBJECT_TYPES.TABLE)
+  ), [selectedObjects])
 
   const activeFloor = useMemo(() => (
     state.floors.find((floor) => floor.id === state.activeFloorId) ?? state.floors[0]
@@ -443,11 +557,14 @@ export function FloorPlanBuilderProvider({ children }) {
     dispatch,
     visibleObjects,
     selectedObject,
+    selectedObjects,
+    selectedTables,
+    selectedTableIds: state.selectedTableIds,
     activeFloor,
     activeWorkspace,
     activeWorkspaceBounds,
     objectCount: visibleObjects.length,
-  }), [activeFloor, activeWorkspace, activeWorkspaceBounds, dispatch, selectedObject, state, visibleObjects])
+  }), [activeFloor, activeWorkspace, activeWorkspaceBounds, dispatch, selectedObject, selectedObjects, selectedTables, state, visibleObjects])
 
   return (
     <FloorPlanBuilderContext.Provider value={value}>

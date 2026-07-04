@@ -3,7 +3,7 @@ import { CanvasObjectNode } from './CanvasObjectNode'
 
 function CanvasObjectsLayerComponent({
   objects,
-  selectedObjectIds,
+  selectedTableIds,
   draggingObjectId,
   transformingObjectId,
   activeTool,
@@ -18,7 +18,8 @@ function CanvasObjectsLayerComponent({
     <CanvasObjectNode
       key={object.id}
       object={object}
-      isSelected={selectedObjectIds.includes(object.id)}
+      isSelected={selectedTableIds.includes(object.id)}
+      showTransformChrome={selectedTableIds.length === 1 && selectedTableIds.includes(object.id)}
       isDragging={draggingObjectId === object.id}
       isTransforming={transformingObjectId === object.id}
       activeTool={activeTool}
@@ -38,7 +39,7 @@ function areLayerPropsEqual(previous, next) {
   if (previous.isEditable !== next.isEditable) return false
   if (previous.activeTool !== next.activeTool) return false
   if (previous.objects !== next.objects) return false
-  if (previous.selectedObjectIds !== next.selectedObjectIds) return false
+  if (previous.selectedTableIds !== next.selectedTableIds) return false
   return true
 }
 
