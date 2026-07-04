@@ -4,6 +4,7 @@ import {
   formatHostListTableTooltip,
 } from '../../lib/seatingAssignment'
 import {
+  getHostReservationVisualIndicator,
   getHostStatusMeta,
   getReservationDisplayStatus,
 } from '../../lib/reservationHostStatus'
@@ -50,6 +51,8 @@ function HostReservationListRow({
   )
   const displayStatus = getReservationDisplayStatus(reservation, nowMinutes, todayKey)
   const statusMeta = getHostStatusMeta(displayStatus)
+  const visualIndicator = getHostReservationVisualIndicator(reservation, nowMinutes, todayKey)
+  const showVisualDot = ['confirmed', 'seated', 'finished', 'late'].includes(visualIndicator)
   const typeMeta = getHostListCustomerTypeMeta(reservation, getGuestCustomerType)
   const warnings = getHostReservationWarnings(reservation, nowMinutes, todayKey)
 
@@ -89,7 +92,15 @@ function HostReservationListRow({
 
       <div className="host-reservation-card-main">
         <div className="host-reservation-card-top">
-          <span className="host-reservation-card-guest">{guestName}</span>
+          <span className="host-reservation-card-guest-row">
+            {showVisualDot ? (
+              <span
+                className={`host-reservation-visual-dot is-${visualIndicator}`}
+                aria-hidden="true"
+              />
+            ) : null}
+            <span className="host-reservation-card-guest">{guestName}</span>
+          </span>
           <span className={`host-reservation-card-type ${typeMeta.className}`}>{typeMeta.label}</span>
         </div>
 
@@ -101,7 +112,13 @@ function HostReservationListRow({
             <span className="host-reservation-card-warning" title="No table assigned">!</span>
           ) : null}
           {warnings.includes('capacity') ? (
-            <span className="host-reservation-card-warning is-capacity" title="Over capacity">⚠</span>
+            <span
+              className="host-reservation-card-warning is-capacity"
+              title="Guest count exceeds selected table capacity"
+              aria-label="Guest count exceeds selected table capacity"
+            >
+              !
+            </span>
           ) : null}
         </div>
 

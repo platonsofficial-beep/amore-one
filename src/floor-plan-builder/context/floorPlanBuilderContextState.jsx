@@ -12,7 +12,7 @@ import {
   getTableShapeSize,
 } from '../models/floorPlanObject'
 import { createInitialFloors, createUniqueAreaId } from '../models/floorPlans'
-import { createDefaultFloor, createDefaultWorkspace, getWorkspaceBounds } from '../models/floorWorkspace'
+import { createDefaultFloor, createDefaultWorkspace, expandFloorWorkspace, getWorkspaceBounds, resetFloorWorkspace } from '../models/floorWorkspace'
 import {
   fitTableRectToFloor,
   getTableMinSize,
@@ -390,6 +390,35 @@ function floorPlanBuilderReducer(state, action) {
             }
             : object
         )),
+      }
+    }
+    case 'UPDATE_FLOOR_WORKSPACE': {
+      if (!isBuilderEditing(state)) return state
+
+      const {
+        floorId = state.activeFloorId,
+        widthDelta = 0,
+        heightDelta = 0,
+        reset = false,
+      } = action.payload ?? {}
+
+      if (!floorId) return state
+
+      return {
+        ...state,
+        hasUnsavedChanges: true,
+        floors: state.floors.map((floor) => {
+          if (floor.id !== floorId) return floor
+
+          const nextWorkspace = reset
+            ? resetFloorWorkspace(floor.workspace)
+            : expandFloorWorkspace(floor.workspace, { widthDelta, heightDelta })
+
+          return {
+            ...floor,
+            workspace: nextWorkspace,
+          }
+        }),
       }
     }
     case 'MATCH_SELECTED_TABLE_SIZE': {

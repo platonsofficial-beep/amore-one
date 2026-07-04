@@ -118,14 +118,66 @@ export function createDemoTableObject({
   })
 }
 
-export function getNextTableNumber(objects) {
+export function parseNumericTableNumber(value) {
+  const raw = `${value ?? ''}`.trim()
+  if (!/^\d+$/.test(raw)) return null
+
+  const parsed = Number.parseInt(raw, 10)
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : null
+}
+
+export function getNextTableNumber(objects, floorId = null) {
   const numbers = objects
     .filter((object) => object.type === FLOOR_PLAN_OBJECT_TYPES.TABLE)
-    .map((object) => Number.parseInt(object.properties.tableNumber, 10))
-    .filter((value) => Number.isFinite(value))
+    .filter((object) => !floorId || object.floorId === floorId)
+    .map((object) => parseNumericTableNumber(object.properties?.tableNumber))
+    .filter((value) => value !== null)
 
   if (numbers.length === 0) return 1
   return Math.max(...numbers) + 1
+}
+
+export function findReferenceTableForShape({
+  objects,
+  shape,
+  floorId = null,
+  selectedTableIds = [],
+}) {
+  const isMatch = (object) => (
+    object?.type === FLOOR_PLAN_OBJECT_TYPES.TABLE
+    && (object.properties?.shape ?? 'round') === shape
+    && (!floorId || object.floorId === floorId)
+  )
+
+  for (let index = selectedTableIds.length - 1; index >= 0; index -= 1) {
+    const object = objects.find((entry) => entry.id === selectedTableIds[index])
+    if (isMatch(object)) return object
+  }
+
+  for (let index = objects.length - 1; index >= 0; index -= 1) {
+    if (isMatch(objects[index])) return objects[index]
+  }
+
+  return null
+}
+
+export function resolveTableSizeForNewTable(shape, referenceTable) {
+  const referenceWidth = Number(referenceTable?.size?.width)
+  const referenceHeight = Number(referenceTable?.size?.height)
+
+  if (
+    Number.isFinite(referenceWidth)
+    && referenceWidth > 0
+    && Number.isFinite(referenceHeight)
+    && referenceHeight > 0
+  ) {
+    return {
+      width: referenceWidth,
+      height: referenceHeight,
+    }
+  }
+
+  return getTableShapeSize(shape)
 }
 
 export function createTableObjectFromType({
@@ -135,10 +187,18 @@ export function createTableObjectFromType({
   areaLabel,
   tableNumber,
   objects,
+  selectedTableIds = [],
+  size: sizeOverride,
 }) {
   const shape = tableType.shape ?? 'round'
-  const size = getTableShapeSize(shape)
-  const nextNumber = tableNumber ?? getNextTableNumber(objects)
+  const referenceTable = findReferenceTableForShape({
+    objects,
+    shape,
+    floorId,
+    selectedTableIds,
+  })
+  const size = sizeOverride ?? resolveTableSizeForNewTable(shape, referenceTable)
+  const nextNumber = tableNumber ?? getNextTableNumber(objects, floorId)
   const defaultCapacity = getDefaultCapacityForShape(shape)
 
   return createFloorPlanObject({

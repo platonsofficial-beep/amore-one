@@ -78,6 +78,61 @@ export function normalizeReservationTimeValue(value) {
   return normalizeTimeValue(value)
 }
 
+export function parseReservationTimeToMinutes(value) {
+  if (value == null || value === '') return null
+
+  if (value instanceof Date && Number.isFinite(value.getTime())) {
+    return value.getHours() * 60 + value.getMinutes()
+  }
+
+  const raw = `${value}`.trim()
+  if (!raw) return null
+
+  if (raw.includes('T')) {
+    const parsed = new Date(raw)
+    if (Number.isFinite(parsed.getTime())) {
+      return parsed.getHours() * 60 + parsed.getMinutes()
+    }
+  }
+
+  if (raw.includes(' ')) {
+    const timePart = raw.split(' ').pop()
+    const normalizedFromDateTime = normalizeTimeValue(timePart)
+    if (normalizedFromDateTime) {
+      const [hours, minutes] = normalizedFromDateTime.split(':').map(Number)
+      return hours * 60 + minutes
+    }
+  }
+
+  const normalized = normalizeTimeValue(raw)
+  if (!normalized) return null
+
+  const [hours, minutes] = normalized.split(':').map(Number)
+  return hours * 60 + minutes
+}
+
+export function getReservationServiceHour(value) {
+  const minutes = parseReservationTimeToMinutes(value)
+  if (minutes === null) return null
+  return Math.floor(minutes / 60)
+}
+
+export function formatServiceHourLabel(hour) {
+  if (!Number.isInteger(hour) || hour < 0 || hour > 23) return '—'
+  return `${String(hour).padStart(2, '0')}:00`
+}
+
+export function normalizeReservationDateKey(value) {
+  if (value && typeof value === 'object' && !Array.isArray(value)) {
+    return normalizeReservationDateKey(value.date ?? value.reservation_date ?? '')
+  }
+
+  const raw = `${value ?? ''}`.trim()
+  if (!raw) return ''
+  if (raw.includes('T')) return raw.split('T')[0]
+  return raw.slice(0, 10)
+}
+
 export function formatTime24(value, fallback = '—') {
   const normalized = normalizeTimeValue(value)
   return normalized || fallback

@@ -117,6 +117,14 @@ export function formatHostListTableTooltip(reservation) {
   return tableNumber || 'No table assigned'
 }
 
+export function formatHostFloorReservationTooltipMeta(reservation, { guestType = 'Regular' } = {}) {
+  const tables = formatHostListTableLabel(reservation)
+  const typeLabel = `${guestType ?? 'Regular'}`.trim() || 'Regular'
+
+  if (!tables || tables === '—') return typeLabel
+  return `${tables} · ${typeLabel}`
+}
+
 export function formatSeatingAssignmentDrawerLabels(assignment) {
   const units = assignment?.assignedUnits ?? []
   if (!units.length) return '—'
@@ -223,9 +231,9 @@ export function getReservationSeatingAssignment(reservation) {
     return reservation.seatingAssignment
   }
 
-  const fromNotes = parseSeatingAssignmentFromNotes(reservation.notes)
-  if (fromNotes.assignedUnits.length > 0) {
-    return fromNotes
+  const rawNotes = `${reservation.notes ?? ''}`
+  if (rawNotes.includes(SEATING_ASSIGNMENT_MARKER)) {
+    return parseSeatingAssignmentFromNotes(rawNotes)
   }
 
   const fromTableNumber = parseTableNumberToAssignedUnits(reservation.tableNumber)

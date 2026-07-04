@@ -3,6 +3,9 @@ export const DEFAULT_FLOOR_SIZE = {
   height: 1400,
 }
 
+/** Pixels added per +Width / +Height click in Edit Layout. */
+export const WORKSPACE_EXPAND_STEP = 200
+
 /** @deprecated use DEFAULT_FLOOR_SIZE */
 export const DEFAULT_WORKSPACE_SIZE = DEFAULT_FLOOR_SIZE
 
@@ -18,6 +21,31 @@ export function createDefaultFloor(overrides = {}) {
 /** @deprecated use createDefaultFloor */
 export function createDefaultWorkspace(overrides = {}) {
   return createDefaultFloor(overrides)
+}
+
+export function expandFloorWorkspace(workspace, { widthDelta = 0, heightDelta = 0 } = {}) {
+  const current = {
+    ...createDefaultFloor(),
+    ...(workspace ?? {}),
+  }
+
+  return {
+    ...current,
+    width: Math.max(DEFAULT_FLOOR_SIZE.width, current.width + widthDelta),
+    height: Math.max(DEFAULT_FLOOR_SIZE.height, current.height + heightDelta),
+  }
+}
+
+export function resetFloorWorkspace(workspace) {
+  const current = {
+    ...createDefaultFloor(),
+    ...(workspace ?? {}),
+  }
+
+  return createDefaultFloor({
+    x: current.x ?? 0,
+    y: current.y ?? 0,
+  })
 }
 
 export function getFloorBounds(floor) {

@@ -70,8 +70,8 @@ export function HostReservationEditPanel({
   const zones = activeLayout?.zones ?? []
 
   useEffect(() => {
-    setNotesExpanded(false)
-  }, [reservation?.id])
+    setNotesExpanded(Boolean(`${reservation?.notes ?? ''}`.trim()))
+  }, [reservation?.id, reservation?.notes])
 
   if (!reservation) {
     return (
@@ -121,11 +121,6 @@ export function HostReservationEditPanel({
     partySize: form.guests,
   })
   const hasNotes = Boolean(`${form.notes ?? ''}`.trim())
-  const notesToggleLabel = notesExpanded
-    ? 'Hide notes'
-    : hasNotes
-      ? 'Show notes'
-      : 'Add notes'
 
   const updateField = (patch) => onChange({ ...form, ...patch })
 
@@ -145,7 +140,12 @@ export function HostReservationEditPanel({
     onDelete(reservation.id)
   }
 
-  const formId = isDrawer ? 'host-reservation-edit-drawer-form' : undefined
+  const formId = `host-reservation-edit-form-${reservation.id}`
+
+  const handleSubmit = (event) => {
+    event.preventDefault()
+    onSave()
+  }
 
   return (
     <aside className={`host-reservation-edit-panel${isDrawer ? ' is-drawer' : ''}`} aria-label="Edit reservation">
@@ -155,6 +155,16 @@ export function HostReservationEditPanel({
           <h4>{guestLabel}</h4>
         </div>
         <div className="host-reservation-edit-header-actions">
+          <button
+            type="submit"
+            form={formId}
+            className={`host-reservation-edit-save-icon${isSaving ? ' is-saving' : ''}`}
+            aria-label={isSaving ? 'Saving reservation' : 'Save changes'}
+            title={isSaving ? 'Saving…' : 'Save changes'}
+            disabled={isSaving}
+          >
+            {isSaving ? '…' : '✓'}
+          </button>
           {isDrawer ? (
             <button
               type="button"
@@ -165,7 +175,7 @@ export function HostReservationEditPanel({
               Delete
             </button>
           ) : null}
-          <button type="button" className="icon-btn" onClick={onCancel} aria-label="Close edit panel">
+          <button type="button" className="icon-btn" onClick={onCancel} aria-label="Close edit panel" disabled={isSaving}>
             ✕
           </button>
         </div>
@@ -175,10 +185,7 @@ export function HostReservationEditPanel({
         <form
           id={formId}
           className="host-reservation-edit-form"
-          onSubmit={(event) => {
-            event.preventDefault()
-            onSave()
-          }}
+          onSubmit={handleSubmit}
         >
           <label className="host-reservation-edit-field">
             <span>Guest name</span>
@@ -245,10 +252,21 @@ export function HostReservationEditPanel({
 
           <div className="host-reservation-edit-seating">
             <div className="host-reservation-edit-seating-header">
-              <span>Tables / sections</span>
-              <button type="button" className="host-reservation-edit-link" onClick={handleClearSeating}>
-                Clear
-              </button>
+              <span className="host-reservation-edit-seating-title">Tables / sections</span>
+              <div className="host-reservation-edit-seating-actions">
+                <button
+                  type="button"
+                  className={`host-reservation-edit-floor-pick${isFloorPickActive ? ' is-active' : ''}`}
+                  onClick={onStartFloorPick}
+                  aria-pressed={isFloorPickActive}
+                >
+                  <span className="host-reservation-edit-floor-pick-icon" aria-hidden="true">▦</span>
+                  {isFloorPickActive ? 'Picking…' : 'Pick from floor'}
+                </button>
+                <button type="button" className="host-reservation-edit-link" onClick={handleClearSeating}>
+                  Clear
+                </button>
+              </div>
             </div>
 
             <ReservationTableSelector
@@ -272,35 +290,38 @@ export function HostReservationEditPanel({
               onExtraChairsChange={(extraChairs) => updateField({ extraChairs })}
               onStandingGuestsChange={(standingGuests) => updateField({ standingGuests })}
             />
-
-            <button
-              type="button"
-              className={`host-reservation-edit-pick-btn${isFloorPickActive ? ' is-active' : ''}`}
-              onClick={onStartFloorPick}
-            >
-              {isFloorPickActive ? 'Picking from floor… tap units' : 'Assign from floor plan'}
-            </button>
           </div>
 
-          <div className="host-reservation-edit-notes">
-            <button
-              type="button"
-              className="host-reservation-edit-notes-toggle"
-              onClick={() => setNotesExpanded((current) => !current)}
-              aria-expanded={notesExpanded}
-            >
-              {notesToggleLabel}
-            </button>
+          <div className={`host-reservation-edit-notes${notesExpanded ? ' is-expanded' : ''}`}>
             {notesExpanded ? (
-              <label className="host-reservation-edit-field">
-                <span>Notes</span>
-                <textarea
-                  rows="3"
-                  value={form.notes}
-                  onChange={(event) => updateField({ notes: event.target.value })}
-                />
-              </label>
-            ) : null}
+              <>
+                <button
+                  type="button"
+                  className="host-reservation-edit-notes-toggle"
+                  onClick={() => setNotesExpanded(false)}
+                  aria-expanded={notesExpanded}
+                >
+                  Hide notes
+                </button>
+                <label className="host-reservation-edit-field host-reservation-edit-notes-field">
+                  <span>Notes</span>
+                  <textarea
+                    rows="2"
+                    value={form.notes}
+                    onChange={(event) => updateField({ notes: event.target.value })}
+                  />
+                </label>
+              </>
+            ) : (
+              <button
+                type="button"
+                className="host-reservation-edit-notes-toggle"
+                onClick={() => setNotesExpanded(true)}
+                aria-expanded={notesExpanded}
+              >
+                {hasNotes ? 'Show notes' : '+ Add notes'}
+              </button>
+            )}
           </div>
 
           {form.assignedUnits.length > 0 ? (
@@ -308,35 +329,10 @@ export function HostReservationEditPanel({
               {formatSeatingAssignmentSummary(draftAssignment, form.guests)}
             </p>
           ) : null}
-
-          {!isDrawer ? (
-            <div className="host-reservation-edit-actions">
-              <button type="submit" className="host-reservation-edit-save" disabled={isSaving}>
-                {isSaving ? 'Saving…' : 'Save changes'}
-              </button>
-              <button type="button" className="host-reservation-edit-cancel" onClick={onCancel} disabled={isSaving}>
-                Cancel
-              </button>
-            </div>
-          ) : null}
         </form>
       </div>
 
-      {isDrawer ? (
-        <div className="host-reservation-edit-footer">
-          <button
-            type="submit"
-            form={formId}
-            className="host-reservation-edit-save"
-            disabled={isSaving}
-          >
-            {isSaving ? 'Saving…' : 'Save changes'}
-          </button>
-          <button type="button" className="host-reservation-edit-cancel" onClick={onCancel} disabled={isSaving}>
-            Cancel
-          </button>
-        </div>
-      ) : (
+      {!isDrawer ? (
         <div className="host-reservation-edit-danger-zone">
           <button
             type="button"
@@ -347,7 +343,7 @@ export function HostReservationEditPanel({
             Delete reservation
           </button>
         </div>
-      )}
+      ) : null}
     </aside>
   )
 }

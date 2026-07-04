@@ -10,6 +10,7 @@ import { getResetCameraForWorkspace } from '../../floor-plan-builder/lib/camera'
 import { cloneBuilderLayout } from '../../floor-plan-builder/lib/floorPlanStorage'
 import { getAdjacentAreaId } from '../../floor-plan-builder/models/floorPlans'
 import { usePublishedFloorPlan } from '../../lib/PublishedFloorPlanContext'
+import { DEFAULT_FLOOR_SIZE, WORKSPACE_EXPAND_STEP } from '../../floor-plan-builder/models/floorWorkspace'
 import '../../floor-plan-builder/floorPlanBuilder.css'
 
 function EditorAreaSwitcher({ floors, activeFloorId, onChange }) {
@@ -170,6 +171,43 @@ function EmbeddedFloorPlanEditorShell({
     })
   }
 
+  const handleExpandCanvasWidth = () => {
+    dispatch({
+      type: 'UPDATE_FLOOR_WORKSPACE',
+      payload: {
+        floorId: state.activeFloorId,
+        widthDelta: WORKSPACE_EXPAND_STEP,
+      },
+    })
+  }
+
+  const handleExpandCanvasHeight = () => {
+    dispatch({
+      type: 'UPDATE_FLOOR_WORKSPACE',
+      payload: {
+        floorId: state.activeFloorId,
+        heightDelta: WORKSPACE_EXPAND_STEP,
+      },
+    })
+  }
+
+  const handleResetCanvasSize = () => {
+    dispatch({
+      type: 'UPDATE_FLOOR_WORKSPACE',
+      payload: {
+        floorId: state.activeFloorId,
+        reset: true,
+      },
+    })
+    requestAnimationFrame(() => {
+      viewportControls.fitFloor()
+    })
+  }
+
+  const activeWorkspace = state.floors.find((floor) => floor.id === state.activeFloorId)?.workspace
+  const canvasWidth = activeWorkspace?.width ?? DEFAULT_FLOOR_SIZE.width
+  const canvasHeight = activeWorkspace?.height ?? DEFAULT_FLOOR_SIZE.height
+
   return (
     <div className="unified-floor-editor">
       <div
@@ -188,6 +226,36 @@ function EmbeddedFloorPlanEditorShell({
             />
           </div>
           <div className="unified-floor-editor-toolbar-actions">
+            <div className="unified-floor-editor-canvas-size" aria-label="Canvas size">
+              <span className="unified-floor-editor-canvas-size-label">Canvas</span>
+              <span className="unified-floor-editor-canvas-size-value">
+                {canvasWidth}×{canvasHeight}
+              </span>
+              <button
+                type="button"
+                className="fpb-toolbar-btn unified-floor-editor-canvas-size-btn"
+                onClick={handleExpandCanvasWidth}
+                title={`Add ${WORKSPACE_EXPAND_STEP}px to the right`}
+              >
+                + Width
+              </button>
+              <button
+                type="button"
+                className="fpb-toolbar-btn unified-floor-editor-canvas-size-btn"
+                onClick={handleExpandCanvasHeight}
+                title={`Add ${WORKSPACE_EXPAND_STEP}px to the bottom`}
+              >
+                + Height
+              </button>
+              <button
+                type="button"
+                className="fpb-toolbar-btn unified-floor-editor-canvas-size-btn"
+                onClick={handleResetCanvasSize}
+                title={`Reset to ${DEFAULT_FLOOR_SIZE.width}×${DEFAULT_FLOOR_SIZE.height}`}
+              >
+                Reset size
+              </button>
+            </div>
             {selectionCount >= 2 ? (
               <span className="unified-floor-editor-selection-count" role="status">
                 {selectionCount} tables selected

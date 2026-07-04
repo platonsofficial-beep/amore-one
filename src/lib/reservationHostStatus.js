@@ -263,6 +263,20 @@ export function isReservationWaiting(reservation, todayKey, nowMinutes) {
   return false
 }
 
+export function getHostReservationVisualIndicator(reservation, nowMinutes, todayKey, options = {}) {
+  if (options.needsCleaning) return 'cleaning'
+  if (!reservation) return 'empty'
+
+  const status = normalizeReservationStatus(reservation.status)
+  if (status === 'Checked Out') return 'finished'
+  if (!reservationOccupiesFloorTables(status)) return 'empty'
+
+  if (['Checked In', 'Walk In', 'Checked In (Partial)'].includes(status)) return 'seated'
+  if (status === 'Late Booking' || isReservationLateByTime(reservation, nowMinutes, todayKey)) return 'late'
+
+  return 'confirmed'
+}
+
 export function getFloorTableVisualStatus(reservation, nowMinutes, todayKey, options = {}) {
   if (options.needsCleaning) return 'cleaning'
   if (!reservation) return 'available'

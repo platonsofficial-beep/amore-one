@@ -97,6 +97,8 @@ export function loadFloorPlanLayout() {
 }
 
 export function saveFloorPlanLayout({ floors, activeFloorId, objects }) {
+  // TODO: Persist floor.workspace width/height to the database when backend layout storage exists.
+  // Canvas size is already saved in localStorage via each floor's workspace object.
   const payload = {
     version: 1,
     floors: JSON.parse(JSON.stringify(floors)),

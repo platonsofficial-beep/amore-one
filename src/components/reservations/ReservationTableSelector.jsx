@@ -97,27 +97,29 @@ export function ReservationTableSelector({
         </div>
       ) : null}
 
-      <div className="reservation-table-selector-grid" role="group" aria-label="Available tables and sections">
-        {areaUnits.map((unit) => {
-          const isSelected = selectedUnitIds.some((id) => unitIdsMatch(id, unit.id))
-          const occupied = occupiedUnitIds.get(unit.id)
-          const isUnavailable = !isUnitSelectable(unit.id, occupiedUnitIds, selectedUnitIds)
+      <div className="reservation-table-selector-grid-wrap">
+        <div className="reservation-table-selector-grid" role="group" aria-label="Available tables and sections">
+          {areaUnits.map((unit) => {
+            const isSelected = selectedUnitIds.some((id) => unitIdsMatch(id, unit.id))
+            const occupied = occupiedUnitIds.get(unit.id)
+            const isUnavailable = !isUnitSelectable(unit.id, occupiedUnitIds, selectedUnitIds)
 
-          return (
-            <button
-              key={unit.id}
-              type="button"
-              className={`reservation-table-selector-unit${isSelected ? ' is-selected' : ''}${isUnavailable ? ' is-unavailable' : ''}`}
-              onClick={() => handleToggleUnit(unit)}
-              disabled={isUnavailable}
-              title={isUnavailable ? `Booked${occupied?.guestName ? ` · ${occupied.guestName}` : ''}` : undefined}
-            >
-              <span className="reservation-table-selector-unit-label">{formatHostListUnitLabel(unit.label)}</span>
-              <span className="reservation-table-selector-unit-capacity">{unit.maxGuestCapacity} seats</span>
-              {isUnavailable ? <span className="reservation-table-selector-unit-status">Booked</span> : null}
-            </button>
-          )
-        })}
+            return (
+              <button
+                key={unit.id}
+                type="button"
+                className={`reservation-table-selector-unit${isSelected ? ' is-selected' : ''}${isUnavailable ? ' is-unavailable' : ''}`}
+                onClick={() => handleToggleUnit(unit)}
+                disabled={isUnavailable}
+                title={isUnavailable ? `Booked${occupied?.guestName ? ` · ${occupied.guestName}` : ''}` : undefined}
+              >
+                <span className="reservation-table-selector-unit-label">{formatHostListUnitLabel(unit.label)}</span>
+                <span className="reservation-table-selector-unit-capacity">{unit.maxGuestCapacity} seats</span>
+                {isUnavailable ? <span className="reservation-table-selector-unit-status">Booked</span> : null}
+              </button>
+            )
+          })}
+        </div>
       </div>
 
       <dl className="host-reservation-edit-summary reservation-table-selector-summary">

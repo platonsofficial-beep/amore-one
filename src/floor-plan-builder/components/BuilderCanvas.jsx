@@ -4,7 +4,11 @@ import { useObjectDrag } from '../hooks/useObjectDrag'
 import { useTableTransform } from '../hooks/useTableTransform'
 import { getStageTransform, screenToWorld } from '../lib/camera'
 import { TABLE_TYPES } from '../models/componentCatalog'
-import { getTableShapeSize, createTableObjectFromType } from '../models/floorPlanObject'
+import {
+  createTableObjectFromType,
+  findReferenceTableForShape,
+  resolveTableSizeForNewTable,
+} from '../models/floorPlanObject'
 import { floorBoundaryService } from '../services/FloorBoundaryService'
 import { CanvasWorld } from './CanvasWorld'
 
@@ -167,7 +171,14 @@ export function BuilderCanvas({ containerRef, viewportControls, workspaceLayoutK
         y: event.clientY - rect.top,
       }
       const worldPoint = screenToWorld(screenPoint, state.camera, viewport)
-      const size = getTableShapeSize(tableType.shape)
+      const shape = tableType.shape ?? 'round'
+      const referenceTable = findReferenceTableForShape({
+        objects: state.objects,
+        shape,
+        floorId: state.activeFloorId,
+        selectedTableIds: state.selectedTableIds,
+      })
+      const size = resolveTableSizeForNewTable(shape, referenceTable)
       const centeredPosition = floorBoundaryService.clampToFloor(
         {
           x: worldPoint.x - (size.width / 2),
@@ -182,6 +193,8 @@ export function BuilderCanvas({ containerRef, viewportControls, workspaceLayoutK
         floorId: state.activeFloorId,
         areaLabel: activeFloor.label,
         objects: state.objects,
+        selectedTableIds: state.selectedTableIds,
+        size,
       })
 
       dispatch({ type: 'ADD_OBJECT', payload: { object } })
@@ -200,6 +213,7 @@ export function BuilderCanvas({ containerRef, viewportControls, workspaceLayoutK
     state.activeFloorId,
     state.camera,
     state.objects,
+    state.selectedTableIds,
     state.toolboxSelectionId,
     viewportControls,
   ])

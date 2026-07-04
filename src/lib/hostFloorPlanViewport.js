@@ -1,6 +1,5 @@
 import { getFloorUnitMatchKeys, getReservationSeatingAssignment, normalizeUnitKey, seatingUnitMatchesFloorUnit } from './seatingAssignment'
-
-const LINKABLE_STATUSES = new Set(['booked', 'arrived', 'seated', 'dining'])
+import { reservationOccupiesFloorTables } from './reservationHostStatus'
 
 const DEFAULT_HALF_PERCENT = 5.5
 const FIT_PADDING = 80
@@ -216,8 +215,8 @@ export function buildReservationLinkGroups(tableStates) {
   const { tablesById, tablesByLabel } = buildTableLookup(tableStates)
   const groupsByReservation = new Map()
 
-  tableStates.forEach(({ table, reservation, status }) => {
-    if (!reservation || !LINKABLE_STATUSES.has(status)) return
+  tableStates.forEach(({ table, reservation }) => {
+    if (!reservation || !reservationOccupiesFloorTables(reservation.status)) return
 
     const key = String(reservation.id)
     if (!groupsByReservation.has(key)) {

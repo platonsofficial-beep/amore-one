@@ -1565,6 +1565,43 @@
   flex-wrap: wrap;
 }
 
+.unified-floor-editor-canvas-size {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  border-radius: 10px;
+  border: 1px solid rgba(212, 175, 55, 0.16);
+  background:
+    linear-gradient(135deg, rgba(212, 175, 55, 0.06), rgba(255, 255, 255, 0.02)),
+    rgba(0, 0, 0, 0.24);
+}
+
+.unified-floor-editor-canvas-size-label {
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgba(232, 215, 168, 0.62);
+}
+
+.unified-floor-editor-canvas-size-value {
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: #e8d7a8;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  padding-right: 4px;
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
+  margin-right: 2px;
+}
+
+.unified-floor-editor-canvas-size-btn {
+  padding: 4px 8px;
+  font-size: 0.68rem;
+  min-height: 28px;
+}
+
 .unified-floor-editor-align-hint {
   font-size: 0.72rem;
   color: rgba(232, 196, 110, 0.92);

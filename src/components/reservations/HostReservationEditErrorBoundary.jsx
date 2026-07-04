@@ -43,11 +43,6 @@ export class HostReservationEditErrorBoundary extends Component {
               This reservation could not be loaded safely. Close and try again, or refresh the page.
             </p>
           </div>
-          <div className="host-reservation-edit-footer">
-            <button type="button" className="host-reservation-edit-cancel" onClick={this.props.onClose}>
-              Close
-            </button>
-          </div>
         </aside>
       )
     }
