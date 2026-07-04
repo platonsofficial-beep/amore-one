@@ -25,7 +25,7 @@ function mapReservation(record) {
     guests: record.party_size ?? record.guests ?? 0,
     tableNumber: record.table_number ?? record.tableNumber ?? '',
     area: record.area ?? '',
-    status: record.status ?? 'Booked',
+    status: record.status ?? 'Pending',
     notes: rawNotes,
   }
 
@@ -90,7 +90,7 @@ export function createSeatingAssignmentPayload(reservation, assignmentInput) {
     guests: reservation.guests,
     tableNumber: formatSeatingAssignmentLabels(seatingAssignment),
     area: reservation.area,
-    status: 'Seated',
+    status: 'Checked In',
     customerType: reservation.customerType ?? parseCustomerTypeFromNotes(reservation.notes),
     notes: encodeSeatingAssignmentInNotes(
       encodeCustomerTypeInNotes(userNotes, reservation.customerType ?? 'Regular'),

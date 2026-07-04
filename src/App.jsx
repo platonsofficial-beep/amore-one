@@ -19,6 +19,7 @@ import {
 import { SeatingConfirmPanel } from './components/seating/SeatingConfirmPanel'
 import { HostReservationEditPanel, createHostReservationEditForm } from './components/reservations/HostReservationEditPanel'
 import { HostReservationEditErrorBoundary } from './components/reservations/HostReservationEditErrorBoundary'
+import { HostReservationList } from './components/reservations/HostReservationList'
 import { ReservationTableSelector } from './components/reservations/ReservationTableSelector'
 import { ReservationTimeSelect } from './components/reservations/ReservationTimeSelect'
 import { getHostUnitById, toSeatingUnitFromLayoutUnit } from './lib/hostFloorPlanLayout'
@@ -26,12 +27,14 @@ import { PublishedFloorPlanProvider, usePublishedFloorPlan } from './lib/Publish
 import { loadPublishedHostLayout } from './lib/builderToHostLayout'
 import {
   computeSeatingAssignmentTotals,
+  enrichReservationWithSeatingAssignment,
   formatSeatingAssignmentSummary,
   formatHostListTableLabel,
   formatHostListTableTooltip,
   getReservationSeatingAssignment,
   normalizeUnitKey,
   reservationUsesSeatingUnit,
+  seatingUnitMatchesFloorUnit,
 } from './lib/seatingAssignment'
 import { resolveAreaIdForReservation } from './lib/reservationTableOptions'
 import {
@@ -42,6 +45,27 @@ import {
   HOST_FLOOR_MIN_ZOOM,
 } from './lib/hostFloorPlanViewport'
 import { getFloorLayoutSpaceStyle, getPublishedTableLayoutStyle } from './lib/publishedTableLayout'
+import {
+  buildFloorTableReservationMap,
+  debugFloorAssignmentSnapshot,
+  getReservationDateKey,
+} from './lib/floorAssignmentMapping'
+import {
+  getFloorTableStatusPriority,
+  getFloorTableVisualStatus,
+  getHostListStatusLabel,
+  getHostStatusGroupId,
+  getReservationDisplayStatus,
+  getReservationDisplayStatusTone,
+  isReservationInHouse,
+  isReservationLate,
+  isReservationWaiting,
+  isReservationInHouseStatus,
+  isTerminalReservationStatus,
+  isUpcomingReservationStatus,
+  normalizeReservationStatus,
+  reservationOccupiesFloorTables,
+} from './lib/reservationHostStatus'
 import { EmbeddedFloorPlanEditor } from './components/floor/EmbeddedFloorPlanEditor'
 import { FloorPlanReservationLinks } from './components/floor/FloorPlanReservationLinks'
 import { createInventoryItem, deleteInventoryItem, getInventoryItems, updateInventoryItem } from './services/inventoryService'
@@ -4966,9 +4990,7 @@ const HOST_LIST_SORTS = [
   { id: 'table', label: 'Table' },
   { id: 'guest', label: 'Guest name' },
   { id: 'status', label: 'Status' },
-  { id: 'party', label: 'Party size' },
-  { id: 'unassigned-first', label: 'Unassigned first' },
-  { id: 'late-first', label: 'Late first' },
+  { id: 'party', label: 'Guest count' },
 ]
 
 const HOST_SMART_CHIPS = [
@@ -5440,7 +5462,7 @@ function findReservationByTableNeedle(reservations, todayKey, needle) {
   const todayReservations = getTodayReservations(reservations, todayKey)
   return todayReservations.find((reservation) => (
     normalizeTableKey(reservation.tableNumber) === tableKey
-    && !['Cancelled', 'No Show', 'Completed'].includes(normalizeReservationStatus(reservation.status))
+    && !isTerminalReservationStatus(reservation.status)
   )) ?? null
 }
 
@@ -5684,7 +5706,7 @@ function ReservationsCommandPalette({
         const reservation = item.reservation
 
         if (item.intent.intent === 'seat-guest') {
-          await onQuickStatusUpdate(reservation, 'Seated')
+          await onQuickStatusUpdate(reservation, 'Checked In')
           selectReservation(reservation, { scrollTimeline: true, scrollFloor: true, openGuestProfile: false })
           close()
           return
@@ -5749,10 +5771,10 @@ function ReservationsCommandPalette({
     if (actionId === 'seat-guest') {
       const reservation = contextReservation
         || getTodayReservations(reservations, todayKey).find((entry) => (
-          ['Booked', 'Confirmed'].includes(normalizeReservationStatus(entry.status))
+          isUpcomingReservationStatus(normalizeReservationStatus(entry.status))
         ))
       if (reservation) {
-        await onQuickStatusUpdate(reservation, 'Seated')
+        await onQuickStatusUpdate(reservation, 'Checked In')
         selectReservation(reservation, { scrollTimeline: true, scrollFloor: true, openGuestProfile: false })
       }
       close()
@@ -5920,8 +5942,11 @@ const FLOOR_PLAN_FUTURE_MODULES = {
 const FLOOR_TABLE_STATUS_META = {
   available: { label: 'Available', tone: 'available' },
   booked: { label: 'Booked', tone: 'booked' },
-  arrived: { label: 'Arrived', tone: 'arrived' },
+  confirmed: { label: 'Confirmed', tone: 'confirmed' },
+  arrived: { label: 'Waiting', tone: 'arrived' },
   seated: { label: 'Seated', tone: 'seated' },
+  'checked-in': { label: 'Checked In', tone: 'checked-in' },
+  'checked-in-partial': { label: 'Checked In (Partial)', tone: 'checked-in-partial' },
   dining: { label: 'Dining', tone: 'dining' },
   cleaning: { label: 'Needs Cleaning', tone: 'cleaning' },
 }
@@ -6001,17 +6026,17 @@ function getFloorHeatmapDateRange(periodId, todayKey, customRange = {}) {
 }
 
 function isHeatmapCountableReservation(reservation) {
-  const status = normalizeReservationStatus(reservation.status)
-  return !['Cancelled', 'No Show'].includes(status)
+  return !isTerminalReservationStatus(reservation.status)
+    || normalizeReservationStatus(reservation.status) === 'Checked Out'
 }
 
 function estimateReservationDiningMinutes(reservation) {
   const status = normalizeReservationStatus(reservation.status)
 
-  if (status === 'Dining') return 105
-  if (status === 'Seated') return 78
-  if (status === 'Completed') return 102
-  if (status === 'Confirmed' || status === 'Arrived') return 68
+  if (status === 'Checked In') return 105
+  if (status === 'Checked In (Partial)') return 78
+  if (status === 'Checked Out') return 102
+  if (status === 'Waiting' || status === 'Confirmed') return 68
   return 58
 }
 
@@ -6103,25 +6128,15 @@ function buildFloorHeatmapAnalytics({
   })
 }
 
-function getFloorTableStatusPriority(reservation) {
-  const status = normalizeReservationStatus(reservation.status)
-  if (status === 'Dining') return 6
-  if (status === 'Seated') return 5
-  if (status === 'Confirmed') return 4
-  if (status === 'Booked') return 3
-  if (status === 'Completed') return 2
-  return 1
-}
-
 function normalizeTableKey(value) {
   return normalizeUnitKey(value)
 }
 
-function findReservationForFloorTable(table, reservations, todayKey) {
+function findReservationForFloorTable(table, reservations, todayKey, options = {}) {
+  const { syncWithList = false } = options
   const matches = reservations.filter((reservation) => {
-    if (`${reservation.date ?? ''}`.slice(0, 10) !== todayKey) return false
-    const status = normalizeReservationStatus(reservation.status)
-    if (['Cancelled', 'No Show'].includes(status)) return false
+    if (!syncWithList && getReservationDateKey(reservation) !== todayKey) return false
+    if (!reservationOccupiesFloorTables(reservation.status)) return false
     return reservationUsesSeatingUnit(reservation, table)
   })
 
@@ -6133,9 +6148,12 @@ function findReservationForFloorTable(table, reservations, todayKey) {
 }
 
 function getTableIdForReservation(reservation, layout) {
-  const assignment = reservation?.seatingAssignment
-  if (assignment?.assignedUnits?.length > 0) {
-    return assignment.assignedUnits[0].id
+  const assignment = getReservationSeatingAssignment(reservation)
+  if (assignment?.assignedUnits?.length > 0 && layout?.tables?.length) {
+    const matchedTable = layout.tables.find((entry) => (
+      assignment.assignedUnits.some((unit) => seatingUnitMatchesFloorUnit(unit, entry))
+    ))
+    if (matchedTable) return matchedTable.id
   }
 
   const tableKey = normalizeTableKey(reservation?.tableNumber)
@@ -6150,18 +6168,7 @@ function getTableIdForReservation(reservation, layout) {
 }
 
 function getFloorTableStatus(reservation, nowMinutes, todayKey, options = {}) {
-  if (options.needsCleaning) return 'cleaning'
-  if (!reservation) return 'available'
-
-  const status = normalizeReservationStatus(reservation.status)
-  if (status === 'Completed') return 'cleaning'
-  if (status === 'Dining') return 'dining'
-  if (status === 'Seated') return 'seated'
-
-  const displayStatus = getReservationDisplayStatus(reservation, nowMinutes, todayKey)
-  if (displayStatus === 'Arrived' || displayStatus === 'Late') return 'arrived'
-
-  return 'booked'
+  return getFloorTableVisualStatus(reservation, nowMinutes, todayKey, options)
 }
 
 function buildFloorPlanOccupancyStats(tableStates) {
@@ -6192,11 +6199,11 @@ function buildFloorPlanLiveStats(tableStates, reservations, todayKey, nowMinutes
     const guests = Number(reservation.guests) || 0
     const arrivalMinutes = parseTimeToMinutes(reservation.time)
 
-    if (['Seated', 'Dining'].includes(status)) {
+    if (isReservationInHouseStatus(status)) {
       guestsInside += guests
     }
 
-    if (['Booked', 'Confirmed'].includes(status) && arrivalMinutes !== null && arrivalMinutes >= nowMinutes) {
+    if (isUpcomingReservationStatus(status) && arrivalMinutes !== null && arrivalMinutes >= nowMinutes) {
       upcomingArrivals += 1
     }
 
@@ -6296,6 +6303,8 @@ function buildFloorPlanSnapshot({
   todayKey,
   nowMinutes,
   cleaningFlags = new Set(),
+  syncWithList = false,
+  debugAssignments = false,
 }) {
   if (!layout?.tables?.length) {
     return {
@@ -6305,8 +6314,30 @@ function buildFloorPlanSnapshot({
     }
   }
 
+  const enrichedReservations = reservations.map((reservation) => (
+    enrichReservationWithSeatingAssignment(reservation)
+  ))
+
+  if (debugAssignments) {
+    debugFloorAssignmentSnapshot({
+      layout,
+      reservations: enrichedReservations,
+      todayKey,
+      syncWithList,
+    })
+  }
+
+  const reservationByTableId = buildFloorTableReservationMap({
+    layout,
+    reservations: enrichedReservations,
+    todayKey,
+    syncWithList,
+    debug: debugAssignments,
+  })
+
   const tableStates = layout.tables.map((table) => {
-    const reservation = findReservationForFloorTable(table, reservations, todayKey)
+    const reservation = reservationByTableId.get(table.id)
+      ?? findReservationForFloorTable(table, enrichedReservations, todayKey, { syncWithList })
     const status = getFloorTableStatus(reservation, nowMinutes, todayKey, {
       needsCleaning: cleaningFlags.has(table.id),
     })
@@ -6555,6 +6586,9 @@ function FloorTableNode({
   const seatedDurationLabel = reservation && isHostFloor
     ? getSeatedDurationLabel(reservation, nowMinutes, todayKey)
     : null
+  const assignedTablesLabel = reservation
+    ? formatHostListTableTooltip(reservation)
+    : null
   const showCompactLinkedLabel = Boolean(
     guestName && isHostFloor && linkMeta?.isMultiLinked && !linkMeta?.isLinkPrimary,
   )
@@ -6562,7 +6596,10 @@ function FloorTableNode({
     ? getPublishedTableLayoutStyle(table)
     : { style: {}, hasPublishedSize: false }
   const nodeStyle = isHostFloor
-    ? publishedLayout.style
+    ? {
+      ...publishedLayout.style,
+      ...(linkMeta?.stroke ? { '--table-link-stroke': linkMeta.stroke } : {}),
+    }
     : {
       left: `${table.x}%`,
       top: `${table.y}%`,
@@ -6591,7 +6628,7 @@ function FloorTableNode({
   return (
     <div
       ref={nodeRef}
-      className={`floor-table-node shape-${table.shape}${isHeatmap ? ` view-heatmap heatmap-tier-${heatmapMetrics?.tier || 'very-light'}` : ` status-${status}`}${isMergeSelected ? ' is-merge-selected' : ''}${isSeatPicking ? ' is-seat-picking' : ''}${isPickedForSeating ? ' is-seat-selected' : ''}${isUnavailable && isSeatPicking ? ' is-seat-unavailable' : ''}${isDropTarget ? ' is-drop-target' : ''}${isDragging ? ' is-dragging' : ''}${tableIsSelected ? ' is-selected is-synced' : ''}${isStatusPulsing ? ` is-status-pulse status-${status}` : ''}${isAnalyticsOpen ? ' is-analytics-open' : ''}${usesPublishedSize ? (isHostFloor ? ' has-published-layout' : ' has-custom-size') : ''}`}
+      className={`floor-table-node shape-${table.shape}${isHeatmap ? ` view-heatmap heatmap-tier-${heatmapMetrics?.tier || 'very-light'}` : ` status-${status}`}${isMergeSelected ? ' is-merge-selected' : ''}${isSeatPicking ? ' is-seat-picking' : ''}${isPickedForSeating ? ' is-seat-selected' : ''}${isUnavailable && isSeatPicking ? ' is-seat-unavailable' : ''}${isDropTarget ? ' is-drop-target' : ''}${isDragging ? ' is-dragging' : ''}${tableIsSelected ? ' is-selected is-synced' : ''}${isStatusPulsing ? ` is-status-pulse status-${status}` : ''}${isAnalyticsOpen ? ' is-analytics-open' : ''}${linkMeta?.isMultiLinked ? ' is-multi-linked' : ''}${linkMeta?.isLinkPrimary ? ' is-link-primary' : ''}${usesPublishedSize ? (isHostFloor ? ' has-published-layout' : ' has-custom-size') : ''}`}
       style={nodeStyle}
       data-table-id={table.id}
       data-selection-pulse={tableIsSelected ? selectionPulseKey : undefined}
@@ -6634,8 +6671,6 @@ function FloorTableNode({
               {isHostFloor ? `${guestCount} guests` : `${guestCount} / ${table.maxGuestCapacity ?? table.seats}`}
             </span>
           </div>
-        ) : showCompactLinkedLabel ? (
-          <span className="floor-table-capacity floor-table-linked-capacity">{guestCount} guests</span>
         ) : (
           <span className={`floor-table-meta floor-table-meta-empty${isLargeCapacity ? ' is-large-capacity' : ''}`}>
             {isLargeCapacity ? (
@@ -6678,10 +6713,11 @@ function FloorTableNode({
           {guestName ? (
             <>
               <strong>{guestName}</strong>
+              <span>{arrivalTime} · {guestCount} guests</span>
+              {assignedTablesLabel ? <span>{assignedTablesLabel}</span> : null}
               <span>{phone}</span>
               <span>Visit #{visitNumber}</span>
               <span>{statusLabel}</span>
-              <span>{arrivalTime}</span>
               <span className={`floor-table-tooltip-type${guestType === 'VIP' ? ' is-vip' : ''}`}>{guestType}</span>
             </>
           ) : (
@@ -6745,6 +6781,7 @@ function FloorPlanAreaSwitcher({ zones, activeZoneId, onChange }) {
 function FloorPlanView({
   reservations,
   allReservations,
+  listReservations,
   todayKey,
   nowMinutes,
   isSaving,
@@ -6910,15 +6947,21 @@ function FloorPlanView({
     }
   }, [isHeatmap])
 
+  const assignmentReservations = isCompact && listReservations?.length
+    ? listReservations
+    : allReservations
+
   const floorPlanSnapshot = useMemo(() => (
     buildFloorPlanSnapshot({
       layout,
-      reservations,
+      reservations: assignmentReservations,
       todayKey,
       nowMinutes,
       cleaningFlags,
+      syncWithList: isCompact,
+      debugAssignments: isCompact && import.meta.env.DEV,
     })
-  ), [cleaningFlags, layout, nowMinutes, reservations, todayKey])
+  ), [assignmentReservations, cleaningFlags, isCompact, layout, nowMinutes, todayKey])
 
   const activeZone = useMemo(() => (
     floorPlanSnapshot.layout.zones.find((zone) => zone.id === activeFloorAreaId)
@@ -7431,10 +7474,6 @@ const RESERVATION_WORKFLOW_STAGES = [
   { key: 'completed', status: 'Completed', label: 'Completed', analyticsKey: 'completed' },
 ]
 
-function normalizeReservationStatus(status) {
-  return `${status || 'Booked'}`.trim()
-}
-
 function isReservationWalkIn(reservation) {
   const phone = `${reservation?.phone ?? ''}`.trim()
   const notes = `${reservation?.notes ?? ''}`.toLowerCase()
@@ -7474,81 +7513,54 @@ function reservationMatchesSearch(reservation, needle) {
   return haystack.includes(needle)
 }
 
-function isReservationLate(reservation, nowMinutes, todayKey) {
-  if (`${reservation.date ?? ''}`.slice(0, 10) !== todayKey) return false
-
-  const status = normalizeReservationStatus(reservation.status)
-  if (['Seated', 'Dining', 'Completed', 'Cancelled', 'No Show'].includes(status)) return false
-
-  const minutes = parseTimeToMinutes(reservation.time)
-  return minutes !== null && minutes < nowMinutes
-}
-
 function isReservationArrived(reservation) {
   const status = normalizeReservationStatus(reservation.status)
-  return status === 'Seated' || status === 'Dining' || status === 'Confirmed'
-}
-
-function getReservationDisplayStatus(reservation, nowMinutes, todayKey) {
-  const status = normalizeReservationStatus(reservation.status)
-
-  if (status === 'Cancelled' || status === 'No Show') return 'Cancelled'
-  if (status === 'Completed') return 'Completed'
-  if (status === 'Dining') return 'Dining'
-  if (status === 'Seated') return 'Seated'
-  if (isReservationLate(reservation, nowMinutes, todayKey)) return 'Late'
-  if (status === 'Confirmed') return 'Arrived'
-  return 'Booked'
-}
-
-function getReservationDisplayStatusTone(displayStatus) {
-  if (displayStatus === 'Arrived') return 'arrived'
-  if (displayStatus === 'Late') return 'late'
-  if (displayStatus === 'Seated') return 'seated'
-  if (displayStatus === 'Dining') return 'dining'
-  if (displayStatus === 'Completed') return 'completed'
-  if (displayStatus === 'Cancelled') return 'cancelled'
-  return 'booked'
+  return status === 'Waiting'
+    || status === 'Checked In'
+    || status === 'Checked In (Partial)'
+    || status === 'Walk In'
 }
 
 function getReservationStatusBadgeLabel(reservation, nowMinutes, todayKey) {
   const displayStatus = getReservationDisplayStatus(reservation, nowMinutes, todayKey)
+  const statusLabel = getHostListStatusLabel(displayStatus).toUpperCase()
   const reservationDate = `${reservation.date ?? ''}`.slice(0, 10)
   const arrivalMinutes = parseTimeToMinutes(reservation.time)
 
-  if (displayStatus === 'Completed') return 'COMPLETED'
-  if (displayStatus === 'Cancelled') return 'CANCELLED'
+  if (displayStatus === 'Checked Out') return 'CHECKED OUT'
+  if (['Cancelled', 'Not Shown', 'Rejected'].includes(displayStatus)) return statusLabel
 
   if (reservationDate !== todayKey || arrivalMinutes === null) {
-    return displayStatus.toUpperCase()
+    return statusLabel
   }
 
   const diff = arrivalMinutes - nowMinutes
   const elapsed = Math.max(0, nowMinutes - arrivalMinutes)
 
-  if (displayStatus === 'Seated') return `SEATED • ${elapsed} min`
-  if (displayStatus === 'Dining') return `DINING • ${elapsed} min`
-  if (displayStatus === 'Late') return `LATE • ${elapsed} min`
-  if (displayStatus === 'Arrived') {
-    return elapsed > 0 ? `ARRIVED • ${elapsed} min` : 'ARRIVED'
+  if (['Checked In', 'Walk In'].includes(displayStatus)) return `CHECKED IN • ${elapsed} min`
+  if (displayStatus === 'Checked In (Partial)') return `PARTIAL CHECK-IN • ${elapsed} min`
+  if (displayStatus === 'Late Booking') return `LATE • ${elapsed} min`
+  if (displayStatus === 'Waiting') {
+    return elapsed > 0 ? `WAITING • ${elapsed} min` : 'WAITING'
   }
 
-  if (diff > 15) return `BOOKED • ${diff} min`
+  if (diff > 15) return `${statusLabel} • ${diff} min`
   if (diff > 0) return `ARRIVING • ETA ${diff} min`
   if (diff >= -5) return 'ARRIVING • NOW'
 
-  return displayStatus.toUpperCase()
+  return statusLabel
 }
 
 function getReservationWorkflowStageIndex(reservation, nowMinutes, todayKey) {
   const status = normalizeReservationStatus(reservation.status)
+  const groupId = getHostStatusGroupId(status)
 
-  if (status === 'Cancelled' || status === 'No Show') return -1
-  if (status === 'Completed') return 5
-  if (status === 'Dining') return 4
-  if (status === 'Seated') return 3
+  if (groupId === 'problems') return -1
+  if (groupId === 'completed') return 5
+  if (['Checked In', 'Walk In'].includes(status)) return 4
+  if (status === 'Checked In (Partial)') return 3
 
-  if (status === 'Confirmed') {
+  if (['Confirmed', 'Waiting', 'Late Booking'].includes(status)) {
     const reservationDate = `${reservation.date ?? ''}`.slice(0, 10)
     const arrivalMinutes = parseTimeToMinutes(reservation.time)
 
@@ -7574,11 +7586,12 @@ const LARGE_PARTY_GUEST_THRESHOLD = 6
 
 function getReservationServiceProgressIndex(reservation, nowMinutes, todayKey) {
   const status = normalizeReservationStatus(reservation.status)
+  const groupId = getHostStatusGroupId(status)
 
-  if (status === 'Completed' || status === 'Cancelled' || status === 'No Show') return 4
-  if (status === 'Dining') return 3
-  if (status === 'Seated') return 2
-  if (status === 'Confirmed' || isReservationLate(reservation, nowMinutes, todayKey)) return 1
+  if (groupId === 'completed' || groupId === 'problems') return 4
+  if (['Checked In', 'Walk In'].includes(status)) return 3
+  if (status === 'Checked In (Partial)') return 2
+  if (['Confirmed', 'Waiting', 'Late Booking'].includes(status) || isReservationLate(reservation, nowMinutes, todayKey)) return 1
   return 0
 }
 
@@ -7621,13 +7634,13 @@ function buildServiceHealthMetrics(todayReservations, nowMinutes, todayKey) {
       walkIns += 1
     }
 
-    if (status === 'Seated' || status === 'Dining') {
+    if (isReservationInHouse(reservation)) {
       guestsInHouse += guests
       const table = `${reservation.tableNumber ?? ''}`.trim()
       if (table) occupiedTables.add(table)
     }
 
-    if (['Booked', 'Confirmed'].includes(status) && arrivalMinutes !== null && arrivalMinutes >= nowMinutes) {
+    if (isUpcomingReservationStatus(status) && arrivalMinutes !== null && arrivalMinutes >= nowMinutes) {
       expectedArrivals += 1
     }
 
@@ -7639,10 +7652,9 @@ function buildServiceHealthMetrics(todayReservations, nowMinutes, todayKey) {
     }
   })
 
-  const activeReservations = todayReservations.filter((reservation) => {
-    const status = normalizeReservationStatus(reservation.status)
-    return !['Cancelled', 'No Show', 'Completed'].includes(status)
-  }).length
+  const activeReservations = todayReservations.filter((reservation) => (
+    !isTerminalReservationStatus(reservation.status)
+  )).length
 
   let overallStatus = 'On track'
   let overallTone = 'calm'
@@ -7686,7 +7698,7 @@ function buildServiceInsights(todayReservations, nowMinutes, todayKey, _allReser
   const upcoming = sortReservationsChronologically(
     todayReservations.filter((reservation) => {
       const status = normalizeReservationStatus(reservation.status)
-      if (!['Booked', 'Confirmed'].includes(status)) return false
+      if (!isUpcomingReservationStatus(status)) return false
       const minutes = parseTimeToMinutes(reservation.time)
       return minutes !== null && minutes >= nowMinutes
     }),
@@ -7710,7 +7722,7 @@ function buildServiceInsights(todayReservations, nowMinutes, todayKey, _allReser
 
   const largeParty = todayReservations.find((reservation) => (
     Number(reservation.guests) >= LARGE_PARTY_GUEST_THRESHOLD
-    && !['Completed', 'Cancelled', 'No Show'].includes(normalizeReservationStatus(reservation.status))
+    && !isTerminalReservationStatus(reservation.status)
   ))
 
   if (largeParty) {
@@ -7754,10 +7766,10 @@ function buildServiceInsights(todayReservations, nowMinutes, todayKey, _allReser
   }
 
   const seatedCount = todayReservations.filter((reservation) => (
-    ['Seated', 'Dining'].includes(normalizeReservationStatus(reservation.status))
+    isReservationInHouseStatus(reservation.status)
   )).length
   const openTables = todayReservations.filter((reservation) => (
-    ['Booked', 'Confirmed'].includes(normalizeReservationStatus(reservation.status))
+    isUpcomingReservationStatus(normalizeReservationStatus(reservation.status))
     && !`${reservation.tableNumber ?? ''}`.trim()
   )).length
 
@@ -7844,28 +7856,13 @@ function isReservationUnassigned(reservation) {
   return !(`${reservation.tableNumber ?? ''}`.trim())
 }
 
-function isReservationInHouse(reservation) {
-  const status = normalizeReservationStatus(reservation.status)
-  return status === 'Seated' || status === 'Dining'
-}
-
-function isReservationWaiting(reservation, todayKey, nowMinutes) {
-  const dateKey = `${reservation.date ?? ''}`.slice(0, 10)
-  if (dateKey !== todayKey) return false
-
-  const status = normalizeReservationStatus(reservation.status)
-  if (!['Booked', 'Confirmed'].includes(status)) return false
-  if (isReservationLate(reservation, nowMinutes, todayKey)) return false
-  return true
-}
-
 function isReservationUpcoming(reservation, todayKey, nowMinutes) {
   const dateKey = `${reservation.date ?? ''}`.slice(0, 10)
   if (dateKey > todayKey) return true
   if (dateKey < todayKey) return false
 
   const status = normalizeReservationStatus(reservation.status)
-  if (['Completed', 'Cancelled', 'No Show', 'Seated', 'Dining'].includes(status)) return false
+  if (!isUpcomingReservationStatus(status)) return false
 
   const minutes = parseTimeToMinutes(reservation.time)
   return minutes !== null && minutes > nowMinutes
@@ -7875,8 +7872,7 @@ function isReservationNowActive(reservation, todayKey) {
   const dateKey = `${reservation.date ?? ''}`.slice(0, 10)
   if (dateKey !== todayKey) return false
 
-  const status = normalizeReservationStatus(reservation.status)
-  return !['Completed', 'Cancelled', 'No Show'].includes(status)
+  return !isTerminalReservationStatus(reservation.status)
 }
 
 function isReservationInNext30Min(reservation, todayKey, nowMinutes) {
@@ -7884,7 +7880,7 @@ function isReservationInNext30Min(reservation, todayKey, nowMinutes) {
   if (dateKey !== todayKey) return false
 
   const status = normalizeReservationStatus(reservation.status)
-  if (['Seated', 'Dining', 'Completed', 'Cancelled', 'No Show'].includes(status)) return false
+  if (isReservationInHouse(reservation) || isTerminalReservationStatus(status)) return false
 
   const minutes = parseTimeToMinutes(reservation.time)
   if (minutes === null) return false
@@ -7901,11 +7897,10 @@ function reservationHasCapacityWarning(reservation) {
 
 function getHostReservationWarnings(reservation, nowMinutes, todayKey) {
   const warnings = []
-  const displayStatus = getReservationDisplayStatus(reservation, nowMinutes, todayKey)
 
   if (
     isReservationUnassigned(reservation)
-    && !['Completed', 'Cancelled'].includes(displayStatus)
+    && !isTerminalReservationStatus(reservation.status)
   ) {
     warnings.push('unassigned')
   }
@@ -7928,15 +7923,18 @@ function hostListFilterMatch(reservation, filter, nowMinutes, todayKey) {
     case 'Upcoming':
       return isReservationUpcoming(reservation, todayKey, nowMinutes)
     case 'Arrived':
-      return displayStatus === 'Arrived'
+      return displayStatus === 'Waiting'
+        || (normalizeReservationStatus(reservation.status) === 'Confirmed'
+          && parseTimeToMinutes(reservation.time) !== null
+          && parseTimeToMinutes(reservation.time) <= nowMinutes)
     case 'Seated':
-      return displayStatus === 'Seated' || displayStatus === 'Dining'
+      return isReservationInHouse(reservation)
     case 'Late':
-      return displayStatus === 'Late'
+      return displayStatus === 'Late Booking' || isReservationLate(reservation, nowMinutes, todayKey)
     case 'Completed':
-      return displayStatus === 'Completed'
+      return displayStatus === 'Checked Out'
     case 'Cancelled':
-      return displayStatus === 'Cancelled'
+      return ['Cancelled', 'Not Shown', 'Rejected'].includes(displayStatus)
     default:
       return true
   }
@@ -7972,24 +7970,22 @@ function getServiceOrderRank(reservation, nowMinutes, todayKey) {
   const displayStatus = getReservationDisplayStatus(reservation, nowMinutes, todayKey)
   const status = normalizeReservationStatus(reservation.status)
   const dateKey = `${reservation.date ?? ''}`.slice(0, 10)
+  const groupId = getHostStatusGroupId(status)
 
-  if (displayStatus === 'Late') return 0
-  if (displayStatus === 'Arrived') return 1
-  if (status === 'Booked' || displayStatus === 'Booked') {
-    return dateKey > todayKey ? 2.5 : 2
-  }
-  if (displayStatus === 'Seated') return 3
-  if (displayStatus === 'Dining') return 4
-  if (displayStatus === 'Completed') return 5
-  if (displayStatus === 'Cancelled') return 6
+  if (displayStatus === 'Late Booking') return 0
+  if (status === 'Waiting') return 1
+  if (groupId === 'upcoming') return dateKey > todayKey ? 2.5 : 2
+  if (groupId === 'in-house') return 3
+  if (groupId === 'completed') return 5
+  if (groupId === 'problems') return 6
   return 3
 }
 
 function shouldHideInDefaultHostView(reservation, listFilter, listSort, nowMinutes, todayKey) {
   if (listFilter !== 'All' || listSort !== 'service') return false
 
-  const displayStatus = getReservationDisplayStatus(reservation, nowMinutes, todayKey)
-  return displayStatus === 'Completed' || displayStatus === 'Cancelled'
+  const groupId = getHostStatusGroupId(normalizeReservationStatus(reservation.status))
+  return groupId === 'completed' || groupId === 'problems'
 }
 
 function sortHostReservations(reservations, sortId, nowMinutes, todayKey) {
@@ -8014,8 +8010,8 @@ function sortHostReservations(reservations, sortId, nowMinutes, todayKey) {
 
   if (sortId === 'table') {
     return items.sort((left, right) => {
-      const leftTable = `${left.tableNumber ?? left.seatingAssignment?.assignedUnits?.[0]?.label ?? ''}`.trim()
-      const rightTable = `${right.tableNumber ?? right.seatingAssignment?.assignedUnits?.[0]?.label ?? ''}`.trim()
+      const leftTable = formatHostListTableLabel(left)
+      const rightTable = formatHostListTableLabel(right)
       return leftTable.localeCompare(rightTable, undefined, { numeric: true })
     })
   }
@@ -8130,7 +8126,7 @@ function parseGuestProfileFromNotes(allNotes) {
 function buildGuestProfileInsights(reservation, allReservations) {
   const history = getGuestReservationHistory(reservation, allReservations)
   const visitCount = history.length
-  const completedVisits = history.filter((entry) => normalizeReservationStatus(entry.status) === 'Completed')
+  const completedVisits = history.filter((entry) => normalizeReservationStatus(entry.status) === 'Checked Out')
   const lastVisitEntry = completedVisits[0] || history.find((entry) => String(entry.id) !== String(reservation.id)) || null
   const combinedNotes = history.map((entry) => `${entry.notes ?? ''}`).join('\n')
   const parsedNotes = parseGuestProfileFromNotes(combinedNotes)
@@ -8207,7 +8203,7 @@ function buildArrivalWaves(todayReservations, nowMinutes, todayKey) {
   const eligible = sortReservationsChronologically(
     todayReservations.filter((reservation) => {
       const status = normalizeReservationStatus(reservation.status)
-      if (!['Booked', 'Confirmed'].includes(status)) return false
+      if (!isUpcomingReservationStatus(status)) return false
       if (`${reservation.date ?? ''}`.slice(0, 10) !== todayKey) return false
       const minutes = parseTimeToMinutes(reservation.time)
       return minutes !== null && minutes >= nowMinutes
@@ -8253,7 +8249,7 @@ function buildArrivalWaves(todayReservations, nowMinutes, todayKey) {
 function getReservationConfidence(reservation, allReservations) {
   const status = normalizeReservationStatus(reservation.status)
 
-  if (['Cancelled', 'No Show', 'Completed'].includes(status)) {
+  if (isTerminalReservationStatus(status)) {
     return { percent: 0, label: 'Closed', tone: 'muted' }
   }
 
@@ -8264,7 +8260,7 @@ function getReservationConfidence(reservation, allReservations) {
   if (history.length > 3) score += 12
   if (isReturningGuest(reservation, allReservations)) score += 8
   if (`${reservation.phone ?? ''}`.trim()) score += 6
-  if (history.some((entry) => ['No Show', 'Cancelled'].includes(normalizeReservationStatus(entry.status)))) {
+  if (history.some((entry) => ['Cancelled', 'Not Shown', 'Rejected'].includes(normalizeReservationStatus(entry.status)))) {
     score -= 22
   }
 
@@ -8307,7 +8303,7 @@ function buildHostServicePressureSlots(todayReservations, todayKey) {
     if (`${reservation.date ?? ''}`.slice(0, 10) !== todayKey) return
 
     const status = normalizeReservationStatus(reservation.status)
-    if (['Cancelled', 'No Show', 'Completed'].includes(status)) return
+    if (isTerminalReservationStatus(status)) return
 
     const minutes = parseTimeToMinutes(reservation.time)
     if (minutes === null) return
@@ -8324,8 +8320,7 @@ function buildHostServicePressureSlots(todayReservations, todayKey) {
 }
 
 function getSeatedDurationLabel(reservation, nowMinutes, todayKey) {
-  const status = normalizeReservationStatus(reservation?.status)
-  if (!['Seated', 'Dining'].includes(status)) return null
+  if (!isReservationInHouse(reservation)) return null
   if (`${reservation.date ?? ''}`.slice(0, 10) !== todayKey) return null
 
   const arrivalMinutes = parseTimeToMinutes(reservation.time)
@@ -8340,15 +8335,18 @@ function getSeatedDurationLabel(reservation, nowMinutes, todayKey) {
   return remainder > 0 ? `${hours}h ${remainder}m seated` : `${hours}h seated`
 }
 
-function getHostListStatusLabel(displayStatus) {
-  if (displayStatus === 'Dining') return 'Dining'
-  return displayStatus
-}
-
-function getHostListTypeBadge(customerType) {
-  if (customerType === 'VVIP') return 'VVIP'
-  if (customerType === 'VIP') return 'VIP'
-  return 'REG'
+const HOST_LIST_HELPERS = {
+  formatReservationGuestName,
+  formatHostReservationListTime,
+  getReservationDisplayStatus,
+  getReservationDisplayStatusTone,
+  getHostListStatusLabel,
+  getHostReservationWarnings,
+  getGuestCustomerType,
+  normalizeReservationStatus,
+  isReservationWaiting,
+  isReservationInHouse,
+  isReservationLate,
 }
 
 function HostServicePressureBar({ slots, nowMinutes }) {
@@ -8402,7 +8400,7 @@ function getActiveTimelineReservationId(reservations, nowMinutes, todayKey) {
 function getReservationArrivalTone(reservation, { nextArrivalId, nowMinutes, todayKey }) {
   const status = normalizeReservationStatus(reservation.status)
 
-  if (status === 'Seated' || status === 'Dining' || status === 'Completed') return 'arrived'
+  if (isReservationInHouseStatus(status) || status === 'Checked Out') return 'arrived'
   if (String(reservation.id) === String(nextArrivalId)) return 'next'
   if (isReservationLate(reservation, nowMinutes, todayKey)) return 'late'
   return 'default'
@@ -8704,8 +8702,8 @@ function GuestProfileDrawer({
           <button
             type="button"
             className="primary-btn"
-            onClick={() => onQuickStatusUpdate(reservation, 'Seated')}
-            disabled={normalizeReservationStatus(reservation.status) === 'Seated'}
+            onClick={() => onQuickStatusUpdate(reservation, 'Checked In')}
+            disabled={normalizeReservationStatus(reservation.status) === 'Checked In'}
           >
             Seat guest
           </button>
@@ -8848,17 +8846,17 @@ function ReservationQuickActions({
 }) {
   const status = normalizeReservationStatus(reservation.status)
   const phone = `${reservation.phone ?? ''}`.trim()
-  const canMarkArrived = ['Booked'].includes(status)
-  const canSeat = ['Booked', 'Confirmed'].includes(status)
-  const isTerminal = ['Completed', 'Cancelled', 'No Show'].includes(status)
+  const canMarkArrived = ['Pending', 'Not Confirmed'].includes(status)
+  const canSeat = ['Pending', 'Waiting', 'Not Confirmed', 'Confirmed', 'Late Booking'].includes(status)
+  const isTerminal = isTerminalReservationStatus(status)
 
   return (
     <div className="reservation-quick-actions">
       <button
         type="button"
         className="reservation-quick-action-btn reservation-quick-action-primary"
-        onClick={() => onQuickStatusUpdate(reservation, 'Seated')}
-        disabled={isSaving || !canSeat}
+        onClick={() => onQuickStatusUpdate(reservation, 'Checked In')}
+        disabled={isSaving || !canSeat || isReservationInHouse(reservation)}
         title="Seat guest"
         aria-label="Seat guest"
       >
@@ -8908,16 +8906,16 @@ function ReservationQuickActions({
         </button>
         {isMoreOpen ? (
           <div className="reservation-quick-action-menu">
-            <button type="button" onClick={() => { onQuickStatusUpdate(reservation, 'Confirmed'); onToggleMore() }} disabled={isSaving || !canMarkArrived}>
+            <button type="button" onClick={() => { onQuickStatusUpdate(reservation, 'Waiting'); onToggleMore() }} disabled={isSaving || !canMarkArrived}>
               Mark arrived
             </button>
             <button type="button" onClick={() => { onOpenAddNote(reservation); onToggleMore() }} disabled={isSaving}>
               Add note
             </button>
-            <button type="button" onClick={() => { onQuickStatusUpdate(reservation, 'Dining'); onToggleMore() }} disabled={!['Seated'].includes(status)}>
-              Mark dining
+            <button type="button" onClick={() => { onQuickStatusUpdate(reservation, 'Checked In (Partial)'); onToggleMore() }} disabled={!isReservationInHouse(reservation) && status !== 'Waiting'}>
+              Partial check-in
             </button>
-            <button type="button" onClick={() => { onQuickStatusUpdate(reservation, 'Completed'); onToggleMore() }} disabled={isTerminal}>
+            <button type="button" onClick={() => { onQuickStatusUpdate(reservation, 'Checked Out'); onToggleMore() }} disabled={isTerminal}>
               Complete
             </button>
             <button type="button" onClick={() => { onQuickStatusUpdate(reservation, 'Cancelled'); onToggleMore() }} disabled={status === 'Cancelled'}>
@@ -9264,112 +9262,6 @@ function HostReservationListControls({
   )
 }
 
-function HostReservationList({
-  reservations,
-  nowMinutes,
-  todayKey,
-  isLoading,
-}) {
-  const workspace = useReservationWorkspace()
-
-  if (isLoading) {
-    return <p className="host-reservation-list-empty">Loading reservations…</p>
-  }
-
-  if (!reservations.length) {
-    return (
-      <div className="host-reservation-list-empty">
-        <p className="reservations-empty-icon" aria-hidden="true">🍽</p>
-        <h4>No reservations</h4>
-        <p>Matching reservations will appear here.</p>
-      </div>
-    )
-  }
-
-  return (
-    <div className="host-reservation-list" role="list" aria-label="Reservations">
-      <div className="host-reservation-list-header" aria-hidden="true">
-        <span>Guest</span>
-        <span>Time</span>
-        <span>#</span>
-        <span>Table</span>
-        <span>Type</span>
-        <span>Status</span>
-        <span aria-label="Alerts" />
-      </div>
-
-      {reservations.map((reservation) => {
-        const guestName = formatReservationGuestName(reservation.guestName)
-        const guestCount = Number(reservation.guests) || 0
-        const tableLabel = formatHostListTableLabel(reservation)
-        const tableTooltip = formatHostListTableTooltip(reservation)
-        const arrivalClock = formatHostReservationListTime(reservation, todayKey)
-        const displayStatus = getReservationDisplayStatus(reservation, nowMinutes, todayKey)
-        const statusTone = getReservationDisplayStatusTone(displayStatus)
-        const customerType = getGuestCustomerType(reservation)
-        const statusLabel = getHostListStatusLabel(displayStatus)
-        const typeBadge = getHostListTypeBadge(customerType)
-        const customerTypeClass = customerType === 'VVIP'
-          ? 'type-vvip'
-          : customerType === 'VIP'
-            ? 'type-vip'
-            : 'type-regular'
-        const warnings = getHostReservationWarnings(reservation, nowMinutes, todayKey)
-        const isSelected = workspace.isSelected(reservation)
-        const isEditing = workspace.hostEditingReservation
-          && String(workspace.hostEditingReservation.id) === String(reservation.id)
-
-        return (
-          <article
-            key={reservation.id}
-            className={`host-reservation-row tone-${statusTone}${isSelected ? ' is-selected' : ''}${isEditing ? ' is-editing' : ''}${workspace.draggingReservationId === String(reservation.id) ? ' is-dragging' : ''}`}
-            role="listitem"
-            tabIndex={0}
-            draggable
-            onDragStart={(event) => {
-              event.dataTransfer.effectAllowed = 'move'
-              event.dataTransfer.setData('application/x-reservation-id', String(reservation.id))
-              event.dataTransfer.setData('text/plain', String(reservation.id))
-              workspace.setDraggingReservationId(String(reservation.id))
-            }}
-            onDragEnd={() => workspace.clearDragState()}
-            onClick={() => workspace.openHostEdit(reservation)}
-            onKeyDown={(event) => {
-              if (event.key === 'Enter' || event.key === ' ') {
-                event.preventDefault()
-                workspace.openHostEdit(reservation)
-              }
-            }}
-          >
-            <span className="host-reservation-guest">{guestName}</span>
-            <span className="host-reservation-time">{arrivalClock}</span>
-            <span className="host-reservation-guests">{guestCount}</span>
-            <span
-              className="host-reservation-table"
-              title={tableTooltip !== tableLabel ? tableTooltip : undefined}
-            >
-              {tableLabel}
-            </span>
-            <span className={`host-reservation-type-badge ${customerTypeClass}`}>{typeBadge}</span>
-            <span className={`host-reservation-status-pill tone-${statusTone}`}>
-              <span className="host-reservation-status-dot" aria-hidden="true" />
-              <span className="host-reservation-status-label">{statusLabel}</span>
-            </span>
-            <span className="host-reservation-warnings" aria-label={warnings.length ? warnings.join(', ') : undefined}>
-              {warnings.includes('unassigned') ? (
-                <span className="host-reservation-warning" title="No table assigned">!</span>
-              ) : null}
-              {warnings.includes('capacity') ? (
-                <span className="host-reservation-warning is-capacity" title="Over capacity">⚠</span>
-              ) : null}
-            </span>
-          </article>
-        )
-      })}
-    </div>
-  )
-}
-
 function ReservationsUnifiedCanvas({
   timelinePanelProps,
   floorPlanProps,
@@ -9383,6 +9275,8 @@ function ReservationsUnifiedCanvas({
   onActiveChipChange,
   hostServicePressureSlots,
   isLoading,
+  onQuickStatusUpdate,
+  isSavingStatus,
 }) {
   const { layout } = usePublishedFloorPlan()
   const {
@@ -9403,7 +9297,25 @@ function ReservationsUnifiedCanvas({
     isSavingHostEdit,
     activeFloorAreaId,
     setActiveFloorAreaId,
+    selectReservation,
+    openHostEdit,
+    isSelected,
+    draggingReservationId,
+    setDraggingReservationId,
+    clearDragState,
   } = useReservationWorkspace()
+  const [isSavingListStatus, setIsSavingListStatus] = useState(false)
+
+  const handleStatusChange = async (reservation, status) => {
+    if (!onQuickStatusUpdate) return
+
+    setIsSavingListStatus(true)
+    try {
+      await onQuickStatusUpdate(reservation, status)
+    } finally {
+      setIsSavingListStatus(false)
+    }
+  }
 
   return (
     <div className={`host-operations-canvas-shell${floorPlanMode === 'edit' ? ' is-layout-edit-mode' : ''}`}>
@@ -9440,6 +9352,23 @@ function ReservationsUnifiedCanvas({
           nowMinutes={floorPlanProps.nowMinutes}
           todayKey={floorPlanProps.todayKey}
           isLoading={isLoading}
+          isSelected={isSelected}
+          hostEditingReservation={hostEditingReservation}
+          draggingReservationId={draggingReservationId}
+          onSelectReservation={(reservation) => {
+            selectReservation(reservation, { scrollFloor: true })
+          }}
+          onOpenEdit={openHostEdit}
+          onDragStart={(event, reservation) => {
+            event.dataTransfer.effectAllowed = 'move'
+            event.dataTransfer.setData('application/x-reservation-id', String(reservation.id))
+            event.dataTransfer.setData('text/plain', String(reservation.id))
+            setDraggingReservationId(String(reservation.id))
+          }}
+          onDragEnd={clearDragState}
+          isSavingStatus={isSavingListStatus || isSavingStatus}
+          onStatusChange={handleStatusChange}
+          helpers={HOST_LIST_HELPERS}
         />
       </section>
       ) : null}
@@ -9647,7 +9576,7 @@ function ReservationsWorkspaceBody({
   const nextArrivalId = useMemo(() => {
     const next = todayReservations.find((reservation) => {
       const status = normalizeReservationStatus(reservation.status)
-      if (!['Booked', 'Confirmed'].includes(status)) return false
+      if (!isUpcomingReservationStatus(status)) return false
       const minutes = parseTimeToMinutes(reservation.time)
       return minutes !== null && minutes >= nowMinutes
     })
@@ -9726,6 +9655,7 @@ function ReservationsWorkspaceBody({
   const floorPlanProps = {
     reservations: filteredTodayReservations,
     allReservations: reservations,
+    listReservations: hostListReservations,
     todayKey,
     nowMinutes,
     isSaving,
@@ -9888,6 +9818,8 @@ function ReservationsWorkspaceContent({
           onActiveChipChange={onActiveChipChange}
           hostServicePressureSlots={hostServicePressureSlots}
           isLoading={isLoading}
+          onQuickStatusUpdate={onQuickStatusUpdate}
+          isSavingStatus={isSaving}
         />
       </div>
 
@@ -10519,7 +10451,7 @@ function App() {
     tableNumber: '',
     area: 'Main Dining',
     seatingAreaId: '',
-    status: 'Booked',
+    status: 'Pending',
     notes: '',
     assignedUnits: [],
     extraChairs: 0,
@@ -13644,7 +13576,7 @@ function App() {
       tableNumber: '',
       area: defaultZone?.label ?? 'Main Dining',
       seatingAreaId: defaultZone?.id ?? '',
-      status: 'Booked',
+      status: 'Pending',
       notes: '',
       assignedUnits: [],
       extraChairs: 0,
@@ -13770,7 +13702,7 @@ function App() {
       tableNumber: reservation.tableNumber ?? '',
       area: reservation.area ?? 'Main Dining',
       seatingAreaId: resolveAreaIdForReservation(layout, reservation, assignment.assignedUnits),
-      status: reservation.status ?? 'Booked',
+      status: reservation.status ?? 'Pending',
       notes: reservation.notes ?? '',
       assignedUnits: assignment.assignedUnits ?? [],
       extraChairs: assignment.extraChairs ?? 0,
@@ -13791,7 +13723,7 @@ function App() {
       tableNumber: '',
       area: 'Main Dining',
       seatingAreaId: '',
-      status: 'Booked',
+      status: 'Pending',
       notes: '',
       assignedUnits: [],
       extraChairs: 0,
@@ -13858,8 +13790,7 @@ function App() {
     try {
       await updateReservation(reservation.id, buildReservationUpdatePayload(reservation, { status }))
       await refreshReservations()
-      const statusLabel = status === 'Confirmed' ? 'Arrived' : status
-      setReservationNotice(`Reservation marked ${statusLabel}.`)
+      setReservationNotice(`Reservation marked ${getHostListStatusLabel(status)}.`)
     } catch (error) {
       setReservationNotice(error.message || 'Unable to update reservation right now.')
     }
@@ -13986,7 +13917,7 @@ function App() {
         guests: Number(quickReservationForm.guests) || 2,
         tableNumber: quickReservationForm.tableNumber.trim() || (profile?.favoriteTable !== '—' ? profile.favoriteTable : ''),
         area: profile?.favoriteArea && profile.favoriteArea !== '—' ? profile.favoriteArea : 'Main Dining',
-        status: 'Booked',
+        status: 'Pending',
         notes: `${match?.notes ?? ''}`.trim(),
       })
 

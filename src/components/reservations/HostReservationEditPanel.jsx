@@ -11,15 +11,9 @@ import { usePublishedFloorPlan } from '../../lib/PublishedFloorPlanContext'
 import { ReservationTableSelector } from './ReservationTableSelector'
 import { ReservationTimeSelect } from './ReservationTimeSelect'
 
-const RESERVATION_STATUSES = [
-  'Booked',
-  'Confirmed',
-  'Seated',
-  'Dining',
-  'Completed',
-  'Cancelled',
-  'No Show',
-]
+import { HOST_RESERVATION_STATUSES } from '../../lib/reservationHostStatus'
+
+const RESERVATION_STATUSES = HOST_RESERVATION_STATUSES.map((entry) => entry.id)
 
 export function createHostReservationEditForm(reservation, layout) {
   if (!reservation) return null
@@ -29,7 +23,7 @@ export function createHostReservationEditForm(reservation, layout) {
     guestName: reservation.guestName ?? reservation.name ?? '',
     notes: reservation.notes ?? '',
     tables: reservation.tables ?? [],
-    status: reservation.status ?? 'Booked',
+    status: reservation.status ?? 'Pending',
     guests: reservation.guests ?? 2,
     time: reservation.time ?? '',
     phone: reservation.phone ?? '',

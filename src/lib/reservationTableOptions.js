@@ -2,6 +2,7 @@ import { toSeatingUnitFromLayoutUnit } from './hostFloorPlanLayout'
 import {
   formatHostListUnitLabel,
   getReservationSeatingAssignment,
+  seatingUnitMatchesFloorUnit,
 } from './seatingAssignment'
 
 function normalizeReservationStatus(status) {
@@ -22,8 +23,9 @@ export function getLayoutUnitsForArea(layout, areaId) {
     })
 }
 
-export function getOccupiedUnitIds(reservations, todayKey, excludeReservationId = null) {
+export function getOccupiedUnitIds(reservations, todayKey, excludeReservationId = null, layout = null) {
   const occupied = new Map()
+  const layoutUnits = layout ? (layout.units ?? layout.tables ?? []) : []
 
   reservations.forEach((reservation) => {
     if (`${reservation.date ?? ''}`.slice(0, 10) !== todayKey) return
@@ -34,7 +36,11 @@ export function getOccupiedUnitIds(reservations, todayKey, excludeReservationId 
 
     const assignment = getReservationSeatingAssignment(reservation)
     assignment.assignedUnits.forEach((unit) => {
-      occupied.set(unit.id, {
+      const layoutUnit = layoutUnits.find((entry) => seatingUnitMatchesFloorUnit(unit, entry))
+      const unitId = layoutUnit?.id ?? unit.id
+      if (!unitId) return
+
+      occupied.set(unitId, {
         reservationId: reservation.id,
         guestName: reservation.guestName,
       })

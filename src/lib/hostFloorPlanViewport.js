@@ -1,4 +1,4 @@
-import { getReservationSeatingAssignment, normalizeUnitKey } from './seatingAssignment'
+import { getFloorUnitMatchKeys, getReservationSeatingAssignment, normalizeUnitKey, seatingUnitMatchesFloorUnit } from './seatingAssignment'
 
 const LINKABLE_STATUSES = new Set(['booked', 'arrived', 'seated', 'dining'])
 
@@ -8,11 +8,13 @@ const FIT_ZOOM_SAFETY = 0.94
 export const HOST_FLOOR_MIN_ZOOM = 0.65
 export const HOST_FLOOR_MAX_ZOOM = 2.4
 
+export const RESERVATION_LINK_STROKE = 'rgba(232, 196, 110, 0.88)'
+
 export const RESERVATION_LINK_PALETTE = [
   {
     id: 'gold',
     colorClass: 'link-tone-gold',
-    stroke: 'rgba(232, 196, 110, 0.9)',
+    stroke: RESERVATION_LINK_STROKE,
     glow: 'rgba(212, 175, 55, 0.42)',
   },
   {
@@ -113,16 +115,22 @@ export function computeHostFloorFit({
   }
 }
 
+export function orderTablesForReservationLink(tables) {
+  if (!tables?.length) return []
+
+  return [...tables].sort((left, right) => {
+    const yDiff = Number(left.y) - Number(right.y)
+    if (Math.abs(yDiff) > 0.01) return yDiff
+    return Number(left.x) - Number(right.x)
+  })
+}
+
 export function orderPointsForReservationLink(points) {
   if (points.length <= 2) return points
 
-  const centerX = points.reduce((sum, point) => sum + point.x, 0) / points.length
-  const centerY = points.reduce((sum, point) => sum + point.y, 0) / points.length
-
-  return [...points].sort((left, right) => (
-    Math.atan2(left.y - centerY, left.x - centerX)
-    - Math.atan2(right.y - centerY, right.x - centerX)
-  ))
+  return orderTablesForReservationLink(
+    points.map((point, index) => ({ id: index, x: point.x, y: point.y })),
+  ).map((entry) => ({ x: entry.x, y: entry.y }))
 }
 
 function buildTableLookup(tableStates) {
@@ -134,36 +142,31 @@ function buildTableLookup(tableStates) {
 
     tablesById.set(String(table.id), table)
 
-    const labelKey = normalizeUnitKey(table.label)
-    const displayKey = normalizeUnitKey(table.displayLabel)
-    if (labelKey) tablesByLabel.set(labelKey, table)
-    if (displayKey) tablesByLabel.set(displayKey, table)
+    getFloorUnitMatchKeys(table).forEach((key) => {
+      tablesByLabel.set(key, table)
+    })
   })
 
   return { tablesById, tablesByLabel }
 }
 
 function assignedUnitMatchesTable(unit, table) {
-  if (!unit || !table) return false
-  if (String(unit.id) === String(table.id)) return true
-
-  const unitLabel = normalizeUnitKey(unit.label)
-  if (!unitLabel) return false
-
-  return unitLabel === normalizeUnitKey(table.label)
-    || unitLabel === normalizeUnitKey(table.displayLabel)
+  return seatingUnitMatchesFloorUnit(unit, table)
 }
 
-function resolveAssignedTable(unit, tablesById, tablesByLabel) {
+function resolveAssignedTable(unit, tablesById, tablesByLabel, tablesOnFloor = []) {
   if (!unit) return null
 
   const byId = tablesById.get(String(unit.id ?? ''))
   if (byId) return byId
 
   const labelKey = normalizeUnitKey(unit.label)
-  if (!labelKey) return null
+  if (labelKey) {
+    const byLabel = tablesByLabel.get(labelKey)
+    if (byLabel) return byLabel
+  }
 
-  return tablesByLabel.get(labelKey) ?? null
+  return tablesOnFloor.find((table) => seatingUnitMatchesFloorUnit(unit, table)) ?? null
 }
 
 function buildLinkPoints(tables) {
@@ -181,15 +184,40 @@ export function getTableLinkCenter(table) {
   return { x, y }
 }
 
+function resolveOrderedTablesForGroup(group, tablesById, tablesByLabel) {
+  const assignedUnits = getReservationSeatingAssignment(group.reservation).assignedUnits ?? []
+  const seenTableIds = new Set()
+  let resolved = []
+
+  if (assignedUnits.length >= 2) {
+    resolved = assignedUnits
+      .map((unit) => (
+        resolveAssignedTable(unit, tablesById, tablesByLabel, group.tablesOnFloor)
+        ?? group.tablesOnFloor.find((table) => assignedUnitMatchesTable(unit, table))
+        ?? null
+      ))
+      .filter((table) => {
+        if (!table || seenTableIds.has(table.id)) return false
+        seenTableIds.add(table.id)
+        return true
+      })
+  }
+
+  group.tablesOnFloor.forEach((table) => {
+    if (seenTableIds.has(table.id)) return
+    seenTableIds.add(table.id)
+    resolved.push(table)
+  })
+
+  return orderTablesForReservationLink(resolved)
+}
+
 export function buildReservationLinkGroups(tableStates) {
   const { tablesById, tablesByLabel } = buildTableLookup(tableStates)
   const groupsByReservation = new Map()
 
   tableStates.forEach(({ table, reservation, status }) => {
     if (!reservation || !LINKABLE_STATUSES.has(status)) return
-
-    const assignedUnits = getReservationSeatingAssignment(reservation).assignedUnits ?? []
-    if (assignedUnits.length < 2) return
 
     const key = String(reservation.id)
     if (!groupsByReservation.has(key)) {
@@ -207,49 +235,20 @@ export function buildReservationLinkGroups(tableStates) {
   })
 
   return [...groupsByReservation.values()]
-    .map((group, index) => {
-      const assignedUnits = getReservationSeatingAssignment(group.reservation).assignedUnits ?? []
-      const seenTableIds = new Set()
-      let orderedTables = assignedUnits
-        .map((unit) => (
-          resolveAssignedTable(unit, tablesById, tablesByLabel)
-          ?? group.tablesOnFloor.find((table) => assignedUnitMatchesTable(unit, table))
-          ?? null
-        ))
-        .filter((table) => {
-          if (!table || seenTableIds.has(table.id)) return false
-          seenTableIds.add(table.id)
-          return true
-        })
-
-      if (orderedTables.length < 2) {
-        orderedTables = [...group.tablesOnFloor]
-          .sort((left, right) => {
-            if (left.y !== right.y) return left.y - right.y
-            return left.x - right.x
-          })
-      } else {
-        group.tablesOnFloor.forEach((table) => {
-          if (seenTableIds.has(table.id)) return
-          seenTableIds.add(table.id)
-          orderedTables.push(table)
-        })
-      }
-
+    .filter((group) => group.tablesOnFloor.length >= 2)
+    .map((group) => {
+      const orderedTables = resolveOrderedTablesForGroup(group, tablesById, tablesByLabel)
       if (orderedTables.length < 2) return null
 
       const points = buildLinkPoints(orderedTables)
       if (points.length < 2) return null
 
-      const palette = RESERVATION_LINK_PALETTE[index % RESERVATION_LINK_PALETTE.length]
-
       return {
         reservationId: group.reservationId,
-        assignedUnitIds: assignedUnits.map((unit) => unit.id),
         tableIds: orderedTables.map((entry) => entry.id),
         points,
-        colorClass: palette.colorClass,
-        stroke: palette.stroke,
+        colorClass: 'link-tone-gold',
+        stroke: RESERVATION_LINK_STROKE,
       }
     })
     .filter(Boolean)
@@ -262,18 +261,18 @@ export function getReservationLinkDebugInfo(tableStates, reservation) {
     .filter((entry) => entry.reservation && String(entry.reservation.id) === String(reservation.id))
     .map((entry) => entry.table)
 
-  const resolvedTables = assignedUnits.map((unit) => (
-    resolveAssignedTable(unit, tablesById, tablesByLabel)
-    ?? tablesOnFloor.find((table) => assignedUnitMatchesTable(unit, table))
-    ?? null
-  ))
+  const resolvedTables = resolveOrderedTablesForGroup(
+    { reservation, tablesOnFloor },
+    tablesById,
+    tablesByLabel,
+  )
 
   return {
     reservationId: reservation?.id,
     assignedUnitIds: assignedUnits.map((unit) => unit.id),
     tablesOnFloorIds: tablesOnFloor.map((table) => table.id),
     resolvedTableIds: resolvedTables.map((table) => table?.id ?? null),
-    computedPoints: buildLinkPoints(resolvedTables.filter(Boolean)),
+    computedPoints: buildLinkPoints(resolvedTables),
   }
 }
 
