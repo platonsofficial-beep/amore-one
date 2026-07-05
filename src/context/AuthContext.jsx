@@ -57,6 +57,21 @@ function buildDevMembership(displayName = '') {
   }
 }
 
+function normalizeMembershipForContext(membership) {
+  if (!membership) return null
+
+  const employeeId = `${membership.employeeId ?? membership.employee_id ?? ''}`.trim() || null
+
+  if (employeeId === membership.employeeId) {
+    return membership
+  }
+
+  return {
+    ...membership,
+    employeeId,
+  }
+}
+
 const AuthContext = createContext(null)
 
 export function AuthProvider({ children }) {
@@ -124,7 +139,7 @@ export function AuthProvider({ children }) {
 
     if (loadSeq !== authLoadSeqRef.current) return
 
-    setMembership(resolvedMembership)
+    setMembership(normalizeMembershipForContext(resolvedMembership))
 
     let resolvedWorkspace = normalizeAuthWorkspace({
       membership: resolvedMembership,

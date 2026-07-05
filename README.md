@@ -22,6 +22,7 @@ Run these in the Supabase SQL editor (in order):
 
 1. `supabase/workspaces_schema.sql`
 2. `supabase/workspace_members_schema.sql`
+3. `supabase/workspace_members_rls_policies.sql`
 
 On first authenticated sign-in, the app creates a workspace membership automatically. The first member becomes **Owner**; later members default to **Staff**.
 

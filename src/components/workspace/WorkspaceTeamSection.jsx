@@ -4,6 +4,7 @@ import { getWorkspaceRoleLabel } from '../../lib/membershipRoles'
 import {
   getCurrentMembership,
   linkMembershipEmployee,
+  resolveMembershipEmployeeId,
 } from '../../services/membershipService'
 import {
   EMPTY_WORKSPACE_PROFILE,
@@ -44,15 +45,43 @@ export function WorkspaceTeamSection({
   const [workspaceProfile, setWorkspaceProfile] = useState(
     workspaceProfileProp ?? EMPTY_WORKSPACE_PROFILE,
   )
-  const [linkedEmployeeId, setLinkedEmployeeId] = useState(membership?.employeeId ?? null)
+  const [linkedEmployeeId, setLinkedEmployeeId] = useState(
+    () => resolveMembershipEmployeeId(membership),
+  )
   const [isLinkModalOpen, setIsLinkModalOpen] = useState(false)
   const [selectedEmployeeId, setSelectedEmployeeId] = useState('')
   const [isSavingEmployeeLink, setIsSavingEmployeeLink] = useState(false)
   const [linkEmployeeError, setLinkEmployeeError] = useState('')
 
+  const membershipEmployeeId = resolveMembershipEmployeeId(membership)
+  const effectiveLinkedEmployeeId = membershipEmployeeId ?? linkedEmployeeId
+
   useEffect(() => {
-    setLinkedEmployeeId(membership?.employeeId ?? null)
-  }, [membership?.employeeId])
+    const nextEmployeeId = resolveMembershipEmployeeId(membership)
+    setLinkedEmployeeId(nextEmployeeId)
+  }, [membership, membership?.employeeId, membership?.employee_id])
+
+  useEffect(() => {
+    if (membershipEmployeeId || !user?.id || !membership?.id) {
+      return undefined
+    }
+
+    let isMounted = true
+
+    getCurrentMembership(user.id)
+      .then((freshMembership) => {
+        if (!isMounted) return
+        const freshEmployeeId = resolveMembershipEmployeeId(freshMembership)
+        if (freshEmployeeId) {
+          setLinkedEmployeeId(freshEmployeeId)
+        }
+      })
+      .catch(() => {})
+
+    return () => {
+      isMounted = false
+    }
+  }, [membership?.id, membershipEmployeeId, user?.id])
 
   useEffect(() => {
     if (workspaceProfileProp) {
@@ -85,7 +114,7 @@ export function WorkspaceTeamSection({
   const memberDisplayName = `${membership?.displayName ?? ''}`.trim() || trimmedManager || 'Not set'
   const resolvedRoleLabel = roleLabel || getWorkspaceRoleLabel(role)
   const memberEmail = `${membership?.email ?? user?.email ?? ''}`.trim()
-  const linkedEmployeeName = resolveLinkedEmployeeName(employees, linkedEmployeeId)
+  const linkedEmployeeName = resolveLinkedEmployeeName(employees, effectiveLinkedEmployeeId)
   const resolvedWorkspace = workspace ?? authWorkspace
   const workspaceDisplayName =
     `${resolvedWorkspace?.name ?? ''}`.trim()
@@ -93,7 +122,7 @@ export function WorkspaceTeamSection({
     || '—'
 
   const handleOpenLinkModal = () => {
-    setSelectedEmployeeId(linkedEmployeeId ? String(linkedEmployeeId) : '')
+    setSelectedEmployeeId(effectiveLinkedEmployeeId ? String(effectiveLinkedEmployeeId) : '')
     setLinkEmployeeError('')
     setIsLinkModalOpen(true)
   }
@@ -105,11 +134,11 @@ export function WorkspaceTeamSection({
   }
 
   const handleSaveEmployeeLink = async () => {
-    const membershipId = `${membership?.id ?? ''}`.trim()
+    const authUserId = `${membership?.authUserId ?? membership?.auth_user_id ?? user?.id ?? ''}`.trim()
     const employeeId = `${selectedEmployeeId ?? ''}`.trim()
 
-    if (!membershipId) {
-      setLinkEmployeeError('Workspace membership is not available.')
+    if (!authUserId) {
+      setLinkEmployeeError('Authenticated user is not available.')
       return
     }
 
@@ -122,10 +151,10 @@ export function WorkspaceTeamSection({
     setLinkEmployeeError('')
 
     try {
-      await linkMembershipEmployee(membershipId, employeeId)
+      await linkMembershipEmployee(authUserId, employeeId)
 
       const refreshedMembership = await getCurrentMembership(user?.id)
-      const nextEmployeeId = refreshedMembership?.employeeId ?? employeeId
+      const nextEmployeeId = resolveMembershipEmployeeId(refreshedMembership) ?? employeeId
       setLinkedEmployeeId(nextEmployeeId)
       setIsLinkModalOpen(false)
     } catch (error) {

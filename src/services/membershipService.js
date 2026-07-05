@@ -5,25 +5,6 @@ import { getDefaultWorkspace, mapWorkspace } from './workspaceService'
 
 const WORKSPACE_MEMBERS_TABLE = 'workspace_members'
 
-const MEMBERSHIP_SELECT = `
-  id,
-  workspace_id,
-  auth_user_id,
-  employee_id,
-  display_name,
-  email,
-  role,
-  created_at,
-  last_seen_at,
-  workspaces (
-    id,
-    name,
-    slug,
-    created_at,
-    updated_at
-  )
-`.replace(/\s+/g, ' ').trim()
-
 const MEMBERSHIP_ROW_SELECT = [
   'id',
   'workspace_id',
@@ -57,6 +38,12 @@ function pickPreferredMembershipRow(rows = []) {
       return leftPriority - rightPriority
     }
 
+    const leftHasEmployee = Boolean(`${left?.employee_id ?? left?.employeeId ?? ''}`.trim())
+    const rightHasEmployee = Boolean(`${right?.employee_id ?? right?.employeeId ?? ''}`.trim())
+    if (leftHasEmployee !== rightHasEmployee) {
+      return leftHasEmployee ? -1 : 1
+    }
+
     const leftCreatedAt = Date.parse(left?.created_at ?? '') || 0
     const rightCreatedAt = Date.parse(right?.created_at ?? '') || 0
     return rightCreatedAt - leftCreatedAt
@@ -70,6 +57,16 @@ function isTableUnavailableError(error) {
     || message.includes('could not find the table')
 }
 
+function normalizeOptionalId(value) {
+  const normalized = `${value ?? ''}`.trim()
+  return normalized || null
+}
+
+function resolveRecordEmployeeId(record) {
+  if (!record) return null
+  return normalizeOptionalId(record.employee_id ?? record.employeeId)
+}
+
 function mapMembership(record) {
   if (!record) return null
 
@@ -79,7 +76,7 @@ function mapMembership(record) {
     id: record.id,
     workspaceId: record.workspace_id ?? record.workspaceId ?? null,
     authUserId: record.auth_user_id ?? record.authUserId ?? null,
-    employeeId: record.employee_id ?? record.employeeId ?? null,
+    employeeId: resolveRecordEmployeeId(record),
     displayName: `${record.display_name ?? record.displayName ?? ''}`.trim(),
     email: `${record.email ?? ''}`.trim(),
     role: rawRole,
@@ -94,31 +91,6 @@ function mapMembershipWorkspace(record) {
 
   const workspaceRecord = Array.isArray(rawWorkspace) ? rawWorkspace[0] : rawWorkspace
   return mapWorkspace(workspaceRecord)
-}
-
-function pickFirstMembershipRow(data) {
-  if (Array.isArray(data)) return data[0] ?? null
-  return data ?? null
-}
-
-async function fetchMembershipRowById(membershipId) {
-  const { data, error } = await supabase
-    .from(WORKSPACE_MEMBERS_TABLE)
-    .select(MEMBERSHIP_ROW_SELECT)
-    .eq('id', membershipId)
-    .limit(1)
-
-  if (error) {
-    console.error('[membershipService] fetchMembershipRowById error:', error)
-
-    if (isTableUnavailableError(error)) {
-      throw new Error('Workspace members table is not ready yet.')
-    }
-
-    throw new Error(error.message || 'Unable to load workspace membership right now.')
-  }
-
-  return pickFirstMembershipRow(data)
 }
 
 function serializeMembershipPayload({
@@ -178,7 +150,7 @@ async function fetchMembershipContext(authUserId) {
 
   const { data, error } = await supabase
     .from(WORKSPACE_MEMBERS_TABLE)
-    .select(MEMBERSHIP_SELECT)
+    .select(MEMBERSHIP_ROW_SELECT)
     .eq('auth_user_id', normalizedUserId)
 
   if (error) {
@@ -192,15 +164,43 @@ async function fetchMembershipContext(authUserId) {
   }
 
   const rows = Array.isArray(data) ? data : (data ? [data] : [])
-  const selectedRow = pickPreferredMembershipRow(rows)
+  let selectedRow = pickPreferredMembershipRow(rows)
 
-  const joinedWorkspaceRecord = selectedRow?.workspaces ?? null
+  if (selectedRow && !resolveRecordEmployeeId(selectedRow)) {
+    const rowWithEmployee = rows.find((row) => resolveRecordEmployeeId(row))
+    if (rowWithEmployee) {
+      selectedRow = {
+        ...selectedRow,
+        employee_id: rowWithEmployee.employee_id ?? rowWithEmployee.employeeId ?? null,
+      }
+    }
+  }
+
+  let joinedWorkspaceRecord = null
+  const workspaceId = `${selectedRow?.workspace_id ?? selectedRow?.workspaceId ?? ''}`.trim()
+
+  if (workspaceId) {
+    const { data: workspaceData, error: workspaceError } = await supabase
+      .from('workspaces')
+      .select('id, name, slug, created_at, updated_at')
+      .eq('id', workspaceId)
+      .maybeSingle()
+
+    if (!workspaceError && workspaceData) {
+      joinedWorkspaceRecord = workspaceData
+    }
+  }
 
   return {
     membership: mapMembership(selectedRow),
-    workspace: mapMembershipWorkspace(selectedRow),
+    workspace: mapMembershipWorkspace({ workspaces: joinedWorkspaceRecord }),
     joinedWorkspaceRecord,
   }
+}
+
+export function resolveMembershipEmployeeId(membership) {
+  if (!membership) return null
+  return normalizeOptionalId(membership.employeeId ?? membership.employee_id)
 }
 
 export async function getCurrentMembership(authUserId) {
@@ -271,43 +271,31 @@ export async function createOwnerMembershipIfMissing(user) {
   return mapMembership(data)
 }
 
-export async function linkMembershipEmployee(membershipId, employeeId) {
-  const normalizedMembershipId = `${membershipId ?? ''}`.trim()
-  if (!normalizedMembershipId) {
-    throw new Error('Membership is required to link an employee.')
+export async function linkMembershipEmployee(authUserId, employeeId) {
+  authUserId = `${authUserId ?? ''}`.trim()
+  employeeId = employeeId ? `${employeeId}`.trim() : null
+
+  if (!authUserId) {
+    throw new Error('Authenticated user is required to link an employee.')
   }
 
-  const normalizedEmployeeId = employeeId ? `${employeeId}`.trim() : null
+  if (!employeeId) {
+    throw new Error('Employee is required to link.')
+  }
 
   const { data, error } = await supabase
-    .from(WORKSPACE_MEMBERS_TABLE)
-    .update({
-      employee_id: normalizedEmployeeId,
-      last_seen_at: new Date().toISOString(),
-    })
-    .eq('id', normalizedMembershipId)
-    .select(MEMBERSHIP_ROW_SELECT)
-    .maybeSingle()
+    .from('workspace_members')
+    .update({ employee_id: employeeId })
+    .eq('auth_user_id', authUserId)
+    .select('id, workspace_id, auth_user_id, employee_id, display_name, email, role')
 
   if (error) {
-    console.error('[membershipService] linkMembershipEmployee error:', error)
-
-    if (isTableUnavailableError(error)) {
-      throw new Error('Workspace members table is not ready yet.')
-    }
-
-    throw new Error(error.message || 'Unable to link employee to workspace membership right now.')
+    throw error
   }
 
-  let updatedRow = pickFirstMembershipRow(data)
-
-  if (!updatedRow) {
-    updatedRow = await fetchMembershipRowById(normalizedMembershipId)
+  if (!data || data.length === 0) {
+    throw new Error('Membership update returned no rows')
   }
 
-  if (!updatedRow) {
-    throw new Error('Employee link saved but membership could not be reloaded.')
-  }
-
-  return mapMembership(updatedRow)
+  return mapMembership(data[0])
 }

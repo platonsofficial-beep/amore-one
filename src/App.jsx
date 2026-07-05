@@ -264,6 +264,10 @@ import {
 import { calculateTaskOverview, matchesCustomDepartmentName, resolveCurrentEmployeeId } from './lib/taskUtils'
 import ReportsView from './components/reports/ReportsView'
 import { UNASSIGNED_CUSTOM_DEPARTMENT_NAME } from './lib/taskDepartments'
+import {
+  persistNavigation,
+  readPersistedNavigation,
+} from './lib/navigationPersistence'
 
 const navItems = [
   { id: 'dashboard', label: 'Dashboard', icon: '◈' },
@@ -12001,7 +12005,8 @@ function SuppliersView({
 }
 
 function App() {
-  const [activeView, setActiveView] = useState('dashboard')
+  const [activeView, setActiveView] = useState(() => readPersistedNavigation().activeView)
+  const [settingsSection, setSettingsSection] = useState(() => readPersistedNavigation().settingsSection)
   const [searchTerm, setSearchTerm] = useState('')
   const [activeFilter, setActiveFilter] = useState('All')
   const [employees, setEmployees] = useState([])
@@ -12158,7 +12163,6 @@ function App() {
   const [isReservationsModuleConnected, setIsReservationsModuleConnected] = useState(false)
   const [isInventoryModuleConnected, setIsInventoryModuleConnected] = useState(false)
   const [isTasksModuleConnected, setIsTasksModuleConnected] = useState(false)
-  const [settingsSection, setSettingsSection] = useState('profile')
   const [workspaceProfile, setWorkspaceProfile] = useState(EMPTY_WORKSPACE_PROFILE)
   const [workspaceProfileDraft, setWorkspaceProfileDraft] = useState(EMPTY_WORKSPACE_PROFILE)
   const [isWorkspaceProfileLoading, setIsWorkspaceProfileLoading] = useState(true)
@@ -12170,6 +12174,20 @@ function App() {
     isAuthDisabled,
     workspace,
   } = useAuth()
+
+  useEffect(() => {
+    persistNavigation({ activeView, settingsSection })
+  }, [activeView, settingsSection])
+
+  const handleActiveViewChange = useCallback((nextView) => {
+    setActiveView(nextView)
+    persistNavigation({ activeView: nextView, settingsSection })
+  }, [settingsSection])
+
+  const handleSettingsSectionChange = useCallback((nextSection) => {
+    setSettingsSection(nextSection)
+    persistNavigation({ activeView, settingsSection: nextSection })
+  }, [activeView])
 
   const workspaceTimeZone = workspaceProfile.timezone
   const currentDateLabel = formatCurrentDateLabel(localNow, workspaceTimeZone)
@@ -16580,8 +16598,8 @@ function App() {
   )
 
   const handleOpenWorkspaceProfile = () => {
-    setActiveView('settings')
-    setSettingsSection('profile')
+    handleActiveViewChange('settings')
+    handleSettingsSectionChange('profile')
   }
 
   return (
@@ -16613,7 +16631,7 @@ function App() {
               type="button"
               className={`nav-link ${activeView === item.id ? 'active' : ''}`}
               onClick={() => {
-                setActiveView(item.id)
+                handleActiveViewChange(item.id)
                 if (item.id !== 'staff') {
                   setSelectedEmployee(null)
                 }
@@ -16905,7 +16923,7 @@ function App() {
         {activeView === 'settings' ? (
           <WorkspaceView
             activeSection={settingsSection}
-            onSectionChange={setSettingsSection}
+            onSectionChange={handleSettingsSectionChange}
             workspace={workspace}
             businessProfileProps={{
               workspaceProfile: workspaceProfileDraft,

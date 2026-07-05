@@ -1,7 +1,7 @@
 -- Workspace membership linking Supabase Auth users to ONE workspaces.
 -- Prerequisite: public.workspaces and public.employees should exist.
 -- Run in Supabase SQL editor if this table does not already exist.
--- RLS is intentionally not enabled here — dev access matches existing module tables.
+-- After creating the table, run workspace_members_rls_policies.sql.
 
 create table if not exists public.workspace_members (
   id uuid primary key default gen_random_uuid(),
