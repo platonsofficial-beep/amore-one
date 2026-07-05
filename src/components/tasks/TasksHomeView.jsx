@@ -1,13 +1,22 @@
 import { TASK_DEPARTMENTS } from '../../lib/taskDepartments'
 import { calculateDepartmentStats } from '../../lib/taskUtils'
+import DepartmentPerformanceSummary from './DepartmentPerformanceSummary'
+import TaskAlertsSection from './TaskAlertsSection'
 
 export default function TasksHomeView({
   tasks = [],
+  taskAlerts,
+  departmentPerformance = [],
   onSelectDepartment,
   isLoading = false,
+  todayKey,
 }) {
   return (
     <section className="tasks-home">
+      <TaskAlertsSection alerts={taskAlerts} />
+
+      <DepartmentPerformanceSummary summaries={departmentPerformance} />
+
       <header className="tasks-home-header">
         <div>
           <p className="eyebrow">Departments</p>
@@ -28,7 +37,7 @@ export default function TasksHomeView({
             `${task?.department ?? ''}`.trim().toLowerCase() === department.key
           ))
           const hasTasks = departmentTasks.length > 0
-          const stats = calculateDepartmentStats(tasks, department.key)
+          const stats = calculateDepartmentStats(tasks, department.key, todayKey)
 
           return (
             <button

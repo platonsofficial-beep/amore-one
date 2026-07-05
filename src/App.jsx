@@ -215,7 +215,7 @@ import {
   getLocalNow,
   getTimeGreeting,
 } from './lib/currentDateUtils'
-import { calculateTaskOverview } from './lib/taskUtils'
+import { calculateTaskOverview, resolveCurrentEmployeeId } from './lib/taskUtils'
 
 const navItems = [
   { id: 'dashboard', label: 'Dashboard', icon: '◈' },
@@ -11108,6 +11108,11 @@ function App() {
     [tasks, currentDateKey],
   )
 
+  const currentTaskEmployeeId = useMemo(
+    () => resolveCurrentEmployeeId(workspaceProfile.managerName, scheduleEmployees),
+    [workspaceProfile.managerName, scheduleEmployees],
+  )
+
   const dashboardBusinessHealth = useMemo(() => buildBusinessHealthSummary({
     issuesSummary: dashboardIssuesSummary,
     stockAlerts: dashboardStockAlerts,
@@ -15257,6 +15262,9 @@ function App() {
             onDeleteTemplate={handleDeleteTaskTemplate}
             onGenerateToday={handleGenerateTasksFromTemplates}
             onToggleChecklistItem={handleToggleChecklistItem}
+            currentEmployeeId={currentTaskEmployeeId}
+            currentEmployeeName={workspaceProfile.managerName}
+            todayKey={currentDateKey}
             openCreateOnMount={openTasksCreateModal}
             onOpenCreateHandled={() => setOpenTasksCreateModal(false)}
           />

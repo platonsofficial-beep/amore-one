@@ -1,4 +1,4 @@
-import { getTaskDepartmentByKey } from './taskDepartments'
+import { getTaskDepartmentByKey, TASK_DEPARTMENTS } from './taskDepartments'
 import { formatLocalDateKey } from './weekUtils'
 
 export function getTodayKey(date = new Date()) {
@@ -127,6 +127,7 @@ export function calculateDepartmentStats(tasks = [], departmentKey, todayKey = g
     active: activeTasks.length,
     overdue,
     completedToday,
+    totalToday: todayWorkload.length,
     completionPercent,
   }
 }
@@ -189,4 +190,109 @@ export function calculateTaskOverview(tasks = [], todayKey = getTodayKey()) {
     statusMessage,
     showEmptyToday,
   }
+}
+
+function normalizePersonName(value) {
+  return `${value ?? ''}`.trim().toLowerCase().replace(/\s+/g, ' ')
+}
+
+export function resolveCurrentEmployeeId(managerName, employees = []) {
+  const normalizedManagerName = normalizePersonName(managerName)
+  if (!normalizedManagerName) return null
+
+  const employeeList = employees ?? []
+
+  const exactMatch = employeeList.find((employee) => (
+    normalizePersonName(employee.full_name ?? employee.name) === normalizedManagerName
+  ))
+  if (exactMatch?.id) return exactMatch.id
+
+  const partialMatches = employeeList.filter((employee) => {
+    const employeeName = normalizePersonName(employee.full_name ?? employee.name)
+    if (!employeeName) return false
+    return employeeName.includes(normalizedManagerName)
+      || normalizedManagerName.includes(employeeName)
+  })
+
+  if (partialMatches.length === 1) {
+    return partialMatches[0].id
+  }
+
+  const managerFirstName = normalizedManagerName.split(' ')[0]
+  if (!managerFirstName) return null
+
+  const firstNameMatches = employeeList.filter((employee) => {
+    const employeeFirstName = normalizePersonName(employee.full_name ?? employee.name).split(' ')[0]
+    return employeeFirstName === managerFirstName
+  })
+
+  return firstNameMatches.length === 1 ? firstNameMatches[0].id : null
+}
+
+export function filterTasksByAssignment(tasks = [], { mode = 'all', currentEmployeeId = null } = {}) {
+  if (mode !== 'mine') {
+    return tasks ?? []
+  }
+
+  if (!currentEmployeeId) {
+    return []
+  }
+
+  const employeeId = String(currentEmployeeId)
+  return (tasks ?? []).filter((task) => String(task?.assignedEmployeeId ?? '') === employeeId)
+}
+
+export function buildTaskAlerts(tasks = [], todayKey = getTodayKey()) {
+  const overdue = []
+  const urgent = []
+  const dueToday = []
+
+  ;(tasks ?? []).forEach((task) => {
+    if (normalizeTaskStatus(task?.status) !== 'active') return
+
+    const dueDate = normalizeTaskDateKey(task?.dueDate ?? task?.due_date)
+    const priority = `${task?.priority ?? ''}`.trim().toLowerCase()
+
+    if (isTaskOverdue(task, todayKey)) {
+      overdue.push(task)
+    }
+
+    if (priority === 'urgent') {
+      urgent.push(task)
+    }
+
+    if (dueDate === todayKey) {
+      dueToday.push(task)
+    }
+  })
+
+  overdue.sort(compareTasksByDueDate)
+  urgent.sort(compareTasksByDueDate)
+  dueToday.sort(compareTasksByDueDate)
+
+  const hasAlerts = overdue.length > 0 || urgent.length > 0 || dueToday.length > 0
+
+  return {
+    overdue,
+    urgent,
+    dueToday,
+    hasAlerts,
+  }
+}
+
+export function calculateDepartmentPerformanceSummaries(tasks = [], todayKey = getTodayKey()) {
+  return TASK_DEPARTMENTS
+    .map((department) => {
+      const stats = calculateDepartmentStats(tasks, department.key, todayKey)
+
+      return {
+        departmentKey: department.key,
+        departmentLabel: department.label,
+        departmentIcon: department.icon,
+        totalToday: stats.totalToday,
+        completedToday: stats.completedToday,
+        completionPercent: stats.completionPercent,
+      }
+    })
+    .filter((summary) => summary.totalToday > 0)
 }

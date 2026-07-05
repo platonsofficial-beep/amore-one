@@ -1,9 +1,15 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import DepartmentBoardView from './DepartmentBoardView'
 import TaskFormModal from './TaskFormModal'
 import TaskTemplateModal from './TaskTemplateModal'
 import TaskTemplatesView from './TaskTemplatesView'
+import TasksAssignmentFilter from './TasksAssignmentFilter'
 import TasksHomeView from './TasksHomeView'
+import {
+  buildTaskAlerts,
+  calculateDepartmentPerformanceSummaries,
+  filterTasksByAssignment,
+} from '../../lib/taskUtils'
 
 export default function TasksView({
   tasks = [],
@@ -30,6 +36,9 @@ export default function TasksView({
   onDeleteTemplate,
   onGenerateToday,
   onToggleChecklistItem,
+  currentEmployeeId = null,
+  currentEmployeeName = '',
+  todayKey,
   openCreateOnMount = false,
   onOpenCreateHandled,
 }) {
@@ -41,6 +50,27 @@ export default function TasksView({
   const [editingTemplate, setEditingTemplate] = useState(null)
   const [formError, setFormError] = useState('')
   const [templateFormError, setTemplateFormError] = useState('')
+  const [assignmentFilter, setAssignmentFilter] = useState('all')
+
+  const filteredTasks = useMemo(
+    () => filterTasksByAssignment(tasks, {
+      mode: assignmentFilter,
+      currentEmployeeId,
+    }),
+    [tasks, assignmentFilter, currentEmployeeId],
+  )
+
+  const taskAlerts = useMemo(
+    () => buildTaskAlerts(filteredTasks, todayKey),
+    [filteredTasks, todayKey],
+  )
+
+  const departmentPerformance = useMemo(
+    () => calculateDepartmentPerformanceSummaries(filteredTasks, todayKey),
+    [filteredTasks, todayKey],
+  )
+
+  const hasCurrentEmployee = Boolean(currentEmployeeId)
 
   useEffect(() => {
     if (!openCreateOnMount) return
@@ -198,6 +228,15 @@ export default function TasksView({
         <div className="staff-status-banner tasks-status-notice">{noticeMessage}</div>
       ) : null}
 
+      {tasksScreen === 'boards' && !selectedDepartmentKey ? (
+        <TasksAssignmentFilter
+          value={assignmentFilter}
+          onChange={setAssignmentFilter}
+          currentEmployeeName={currentEmployeeName}
+          hasCurrentEmployee={hasCurrentEmployee}
+        />
+      ) : null}
+
       {tasksScreen === 'templates' ? (
         <TaskTemplatesView
           templates={taskTemplates}
@@ -216,7 +255,7 @@ export default function TasksView({
       ) : selectedDepartmentKey ? (
         <DepartmentBoardView
           departmentKey={selectedDepartmentKey}
-          tasks={tasks}
+          tasks={filteredTasks}
           checklistItemsByTaskId={checklistItemsByTaskId}
           employees={employees}
           onBack={handleBackToHome}
@@ -231,9 +270,12 @@ export default function TasksView({
         />
       ) : (
         <TasksHomeView
-          tasks={tasks}
+          tasks={filteredTasks}
+          taskAlerts={taskAlerts}
+          departmentPerformance={departmentPerformance}
           onSelectDepartment={handleSelectDepartment}
           isLoading={isLoading}
+          todayKey={todayKey}
         />
       )}
 
