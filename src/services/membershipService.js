@@ -24,6 +24,18 @@ const MEMBERSHIP_SELECT = `
   )
 `.replace(/\s+/g, ' ').trim()
 
+const MEMBERSHIP_ROW_SELECT = [
+  'id',
+  'workspace_id',
+  'auth_user_id',
+  'employee_id',
+  'display_name',
+  'email',
+  'role',
+  'created_at',
+  'last_seen_at',
+].join(', ')
+
 const ROLE_PRIORITY = {
   owner: 0,
   general_manager: 1,
@@ -82,6 +94,31 @@ function mapMembershipWorkspace(record) {
 
   const workspaceRecord = Array.isArray(rawWorkspace) ? rawWorkspace[0] : rawWorkspace
   return mapWorkspace(workspaceRecord)
+}
+
+function pickFirstMembershipRow(data) {
+  if (Array.isArray(data)) return data[0] ?? null
+  return data ?? null
+}
+
+async function fetchMembershipRowById(membershipId) {
+  const { data, error } = await supabase
+    .from(WORKSPACE_MEMBERS_TABLE)
+    .select(MEMBERSHIP_ROW_SELECT)
+    .eq('id', membershipId)
+    .limit(1)
+
+  if (error) {
+    console.error('[membershipService] fetchMembershipRowById error:', error)
+
+    if (isTableUnavailableError(error)) {
+      throw new Error('Workspace members table is not ready yet.')
+    }
+
+    throw new Error(error.message || 'Unable to load workspace membership right now.')
+  }
+
+  return pickFirstMembershipRow(data)
 }
 
 function serializeMembershipPayload({
@@ -232,4 +269,45 @@ export async function createOwnerMembershipIfMissing(user) {
   }
 
   return mapMembership(data)
+}
+
+export async function linkMembershipEmployee(membershipId, employeeId) {
+  const normalizedMembershipId = `${membershipId ?? ''}`.trim()
+  if (!normalizedMembershipId) {
+    throw new Error('Membership is required to link an employee.')
+  }
+
+  const normalizedEmployeeId = employeeId ? `${employeeId}`.trim() : null
+
+  const { data, error } = await supabase
+    .from(WORKSPACE_MEMBERS_TABLE)
+    .update({
+      employee_id: normalizedEmployeeId,
+      last_seen_at: new Date().toISOString(),
+    })
+    .eq('id', normalizedMembershipId)
+    .select(MEMBERSHIP_ROW_SELECT)
+    .maybeSingle()
+
+  if (error) {
+    console.error('[membershipService] linkMembershipEmployee error:', error)
+
+    if (isTableUnavailableError(error)) {
+      throw new Error('Workspace members table is not ready yet.')
+    }
+
+    throw new Error(error.message || 'Unable to link employee to workspace membership right now.')
+  }
+
+  let updatedRow = pickFirstMembershipRow(data)
+
+  if (!updatedRow) {
+    updatedRow = await fetchMembershipRowById(normalizedMembershipId)
+  }
+
+  if (!updatedRow) {
+    throw new Error('Employee link saved but membership could not be reloaded.')
+  }
+
+  return mapMembership(updatedRow)
 }
