@@ -293,13 +293,36 @@ function parseTableNumberToAssignedUnits(tableNumber) {
     .filter((unit) => unit?.label)
 }
 
+export function getReservationAssignedUnitsForMatching(reservation) {
+  const assignment = getReservationSeatingAssignment(reservation)
+  const fromAssignment = assignment.assignedUnits ?? []
+  const tableNumber = `${reservation?.tableNumber ?? ''}`.trim()
+  const fromTableNumber = tableNumber ? parseTableNumberToAssignedUnits(tableNumber) : []
+
+  const seen = new Set()
+  const units = []
+
+  ;[...fromAssignment, ...fromTableNumber].forEach((unit) => {
+    const normalized = normalizeSeatingUnit(unit)
+    if (!normalized) return
+
+    const matchKey = normalized.id
+      ? String(normalized.id)
+      : normalizeUnitKey(normalized.label)
+    if (!matchKey || seen.has(matchKey)) return
+
+    seen.add(matchKey)
+    units.push(normalized)
+  })
+
+  return units
+}
+
 export function reservationUsesSeatingUnit(reservation, unit) {
   if (!reservation || !unit) return false
 
-  const assignment = getReservationSeatingAssignment(reservation)
-  if (assignment.assignedUnits.length > 0) {
-    return assignment.assignedUnits.some((entry) => seatingUnitMatchesFloorUnit(entry, unit))
-  }
+  const assignedUnits = getReservationAssignedUnitsForMatching(reservation)
+  if (assignedUnits.length === 0) return false
 
-  return false
+  return assignedUnits.some((entry) => seatingUnitMatchesFloorUnit(entry, unit))
 }

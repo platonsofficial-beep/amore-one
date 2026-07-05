@@ -7,8 +7,8 @@ import {
   formatHostListUnitLabel,
 } from '../../lib/seatingAssignment'
 import {
+  getConflictingUnitIds,
   getLayoutUnitsForArea,
-  getOccupiedUnitIds,
   isUnitSelectable,
   toggleAssignedUnit,
   unitIdsMatch,
@@ -18,6 +18,7 @@ export function ReservationTableSelector({
   layout: layoutProp,
   reservations = [],
   todayKey,
+  reservationTime = '',
   reservationId = null,
   selectedAreaId,
   assignedUnits = [],
@@ -33,9 +34,12 @@ export function ReservationTableSelector({
   const layout = layoutProp ?? contextLayout
   const zones = layout?.zones ?? []
 
-  const occupiedUnitIds = useMemo(
-    () => getOccupiedUnitIds(reservations, todayKey, reservationId),
-    [reservationId, reservations, todayKey],
+  const conflictingUnitIds = useMemo(
+    () => getConflictingUnitIds(reservations, todayKey, reservationTime, {
+      excludeReservationId: reservationId,
+      layout,
+    }),
+    [layout, reservationId, reservationTime, reservations, todayKey],
   )
 
   const areaUnits = useMemo(
@@ -63,7 +67,7 @@ export function ReservationTableSelector({
   const canUseStanding = assignmentAllowsStanding(draftAssignment)
 
   const handleToggleUnit = (unit) => {
-    if (!isUnitSelectable(unit.id, occupiedUnitIds, selectedUnitIds)) return
+    if (!isUnitSelectable(unit.id, conflictingUnitIds, selectedUnitIds)) return
     onAssignedUnitsChange(toggleAssignedUnit(assignedUnits, unit))
   }
 
@@ -101,8 +105,8 @@ export function ReservationTableSelector({
         <div className="reservation-table-selector-grid" role="group" aria-label="Available tables and sections">
           {areaUnits.map((unit) => {
             const isSelected = selectedUnitIds.some((id) => unitIdsMatch(id, unit.id))
-            const occupied = occupiedUnitIds.get(unit.id)
-            const isUnavailable = !isUnitSelectable(unit.id, occupiedUnitIds, selectedUnitIds)
+            const conflict = conflictingUnitIds.get(unit.id)
+            const isUnavailable = !isUnitSelectable(unit.id, conflictingUnitIds, selectedUnitIds)
 
             return (
               <button
@@ -111,11 +115,13 @@ export function ReservationTableSelector({
                 className={`reservation-table-selector-unit${isSelected ? ' is-selected' : ''}${isUnavailable ? ' is-unavailable' : ''}`}
                 onClick={() => handleToggleUnit(unit)}
                 disabled={isUnavailable}
-                title={isUnavailable ? `Booked${occupied?.guestName ? ` · ${occupied.guestName}` : ''}` : undefined}
+                title={isUnavailable
+                  ? `Busy${conflict?.guestName ? ` · ${conflict.guestName}` : ''}${conflict?.time ? ` · ${conflict.time}` : ''}`
+                  : undefined}
               >
                 <span className="reservation-table-selector-unit-label">{formatHostListUnitLabel(unit.label)}</span>
                 <span className="reservation-table-selector-unit-capacity">{unit.maxGuestCapacity} seats</span>
-                {isUnavailable ? <span className="reservation-table-selector-unit-status">Booked</span> : null}
+                {isUnavailable ? <span className="reservation-table-selector-unit-status">Busy</span> : null}
               </button>
             )
           })}

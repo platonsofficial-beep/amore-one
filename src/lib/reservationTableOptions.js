@@ -1,13 +1,19 @@
+import { getReservationDateKey } from './floorAssignmentMapping'
 import { toSeatingUnitFromLayoutUnit } from './hostFloorPlanLayout'
 import {
+  normalizeReservationStatus,
+  isTerminalReservationStatus,
+} from './reservationHostStatus'
+import { parseTimeToMinutes } from './shiftHoursUtils'
+import {
   formatHostListUnitLabel,
-  getReservationSeatingAssignment,
+  getReservationAssignedUnitsForMatching,
   seatingUnitMatchesFloorUnit,
 } from './seatingAssignment'
 
-function normalizeReservationStatus(status) {
-  return `${status ?? ''}`.trim().toLowerCase()
-}
+export const DEFAULT_RESERVATION_DURATION_MINUTES = 120
+export const RESERVATION_TURNOVER_BUFFER_MINUTES = 15
+const SERVICE_DAY_EARLY_MORNING_CUTOFF = 360
 
 export function getLayoutUnitsForArea(layout, areaId) {
   if (!layout || !areaId) return []
@@ -23,36 +29,101 @@ export function getLayoutUnitsForArea(layout, areaId) {
     })
 }
 
-export function getOccupiedUnitIds(reservations, todayKey, excludeReservationId = null, layout = null) {
-  const occupied = new Map()
+function toServiceDayMinutes(timeValue) {
+  const minutes = parseTimeToMinutes(timeValue)
+  if (minutes === null) return null
+  return minutes < SERVICE_DAY_EARLY_MORNING_CUTOFF ? minutes + 1440 : minutes
+}
+
+export function buildReservationBlockedInterval(
+  timeValue,
+  durationMinutes = DEFAULT_RESERVATION_DURATION_MINUTES,
+  bufferMinutes = RESERVATION_TURNOVER_BUFFER_MINUTES,
+) {
+  const start = toServiceDayMinutes(timeValue)
+  if (start === null) return null
+
+  return {
+    start,
+    end: start + durationMinutes + bufferMinutes,
+  }
+}
+
+export function reservationBlockedIntervalsOverlap(leftInterval, rightInterval) {
+  if (!leftInterval || !rightInterval) return false
+  return leftInterval.start < rightInterval.end && rightInterval.start < leftInterval.end
+}
+
+function reservationBlocksTableAvailability(reservation) {
+  return !isTerminalReservationStatus(reservation?.status)
+}
+
+function resolveOccupiedUnitId(unit, layoutUnits) {
+  const layoutUnit = layoutUnits.find((entry) => seatingUnitMatchesFloorUnit(unit, entry))
+  return layoutUnit?.id ?? unit.id
+}
+
+export function getConflictingUnitIds(
+  reservations,
+  dateKey,
+  timeValue,
+  {
+    excludeReservationId = null,
+    layout = null,
+    durationMinutes = DEFAULT_RESERVATION_DURATION_MINUTES,
+    bufferMinutes = RESERVATION_TURNOVER_BUFFER_MINUTES,
+  } = {},
+) {
+  const conflicts = new Map()
+  const normalizedDateKey = `${dateKey ?? ''}`.slice(0, 10)
+  if (!normalizedDateKey) return conflicts
+
+  const candidateInterval = buildReservationBlockedInterval(timeValue, durationMinutes, bufferMinutes)
+  if (!candidateInterval) return conflicts
+
   const layoutUnits = layout ? (layout.units ?? layout.tables ?? []) : []
 
   reservations.forEach((reservation) => {
-    if (`${reservation.date ?? ''}`.slice(0, 10) !== todayKey) return
+    if (getReservationDateKey(reservation) !== normalizedDateKey) return
     if (excludeReservationId && String(reservation.id) === String(excludeReservationId)) return
+    if (!reservationBlocksTableAvailability(reservation)) return
 
-    const status = normalizeReservationStatus(reservation.status)
-    if (status === 'cancelled' || status === 'no show' || status === 'completed') return
+    const existingInterval = buildReservationBlockedInterval(
+      reservation.time,
+      durationMinutes,
+      bufferMinutes,
+    )
+    if (!reservationBlockedIntervalsOverlap(candidateInterval, existingInterval)) return
 
-    const assignment = getReservationSeatingAssignment(reservation)
-    assignment.assignedUnits.forEach((unit) => {
-      const layoutUnit = layoutUnits.find((entry) => seatingUnitMatchesFloorUnit(unit, entry))
-      const unitId = layoutUnit?.id ?? unit.id
+    getReservationAssignedUnitsForMatching(reservation).forEach((unit) => {
+      const unitId = resolveOccupiedUnitId(unit, layoutUnits)
       if (!unitId) return
 
-      occupied.set(unitId, {
+      conflicts.set(unitId, {
         reservationId: reservation.id,
         guestName: reservation.guestName,
+        time: reservation.time,
+        status: normalizeReservationStatus(reservation.status),
       })
     })
   })
 
-  return occupied
+  return conflicts
 }
 
-export function isUnitSelectable(unitId, occupiedUnitIds, selectedUnitIds) {
-  if (selectedUnitIds.includes(unitId)) return true
-  return !occupiedUnitIds.has(unitId)
+/** @deprecated Use getConflictingUnitIds with reservation time instead. */
+export function getOccupiedUnitIds(reservations, todayKey, excludeReservationId = null, layout = null) {
+  return getConflictingUnitIds(reservations, todayKey, '00:00', {
+    excludeReservationId,
+    layout,
+    durationMinutes: 1440,
+    bufferMinutes: 0,
+  })
+}
+
+export function isUnitSelectable(unitId, conflictingUnitIds, selectedUnitIds) {
+  if (selectedUnitIds.some((id) => unitIdsMatch(id, unitId))) return true
+  return !conflictingUnitIds.has(unitId)
 }
 
 export function resolveAreaIdForReservation(layout, reservation, assignedUnits = []) {

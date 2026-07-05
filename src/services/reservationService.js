@@ -147,7 +147,7 @@ export function buildReservationUpdatePayload(reservation, patch) {
   return {
     guestName: patch.guestName ?? reservation.guestName,
     phone: patch.phone ?? reservation.phone,
-    date: reservation.date,
+    date: patch.date ?? reservation.date,
     time: patch.time ?? reservation.time,
     guests: Number(patch.guests ?? reservation.guests) || reservation.guests,
     tableNumber,

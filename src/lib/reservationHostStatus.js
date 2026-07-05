@@ -23,7 +23,7 @@ export const HOST_RESERVATION_STATUSES = [
   {
     id: 'Confirmed',
     label: 'Confirmed',
-    icon: '✓',
+    icon: '●',
     tone: 'confirmed',
     groupId: 'upcoming',
   },
@@ -36,14 +36,14 @@ export const HOST_RESERVATION_STATUSES = [
   },
   {
     id: 'Checked In (Partial)',
-    label: 'Checked In (Partial)',
+    label: 'In House (Partial)',
     icon: '✓',
     tone: 'checked-in-partial',
     groupId: 'in-house',
   },
   {
     id: 'Checked In',
-    label: 'Checked In',
+    label: 'In House',
     icon: '🍽',
     tone: 'checked-in',
     groupId: 'in-house',
@@ -57,8 +57,8 @@ export const HOST_RESERVATION_STATUSES = [
   },
   {
     id: 'Checked Out',
-    label: 'Checked Out',
-    icon: '↪',
+    label: 'Completed',
+    icon: '✓',
     tone: 'checked-out',
     groupId: 'completed',
   },
@@ -116,8 +116,15 @@ const LEGACY_STATUS_ALIASES = {
   Booked: 'Pending',
   Arrived: 'Waiting',
   Seated: 'Checked In',
+  seated: 'Checked In',
+  in_house: 'Checked In',
+  checked_in: 'Checked In',
   Dining: 'Checked In',
   Completed: 'Checked Out',
+  completed: 'Checked Out',
+  finished: 'Checked Out',
+  departed: 'Checked Out',
+  closed: 'Checked Out',
   'No Show': 'Not Shown',
 }
 
@@ -164,6 +171,10 @@ export function getHostStatusGroupId(status) {
 
 export function getHostListGroupId(reservation) {
   return getHostStatusGroupId(reservation?.status)
+}
+
+export function isReservationCompletedStatus(status) {
+  return getHostStatusGroupId(status) === 'completed'
 }
 
 export function groupHostListReservations(reservations) {

@@ -1,9 +1,12 @@
 import { getFloorUnitMatchKeys, getReservationSeatingAssignment, normalizeUnitKey, seatingUnitMatchesFloorUnit } from './seatingAssignment'
 import { reservationOccupiesFloorTables } from './reservationHostStatus'
 
-const DEFAULT_HALF_PERCENT = 5.5
-const FIT_PADDING = 80
-const FIT_ZOOM_SAFETY = 0.94
+const DEFAULT_HALF_PERCENT = 6.5
+const FIT_PADDING = 96
+const FIT_ZOOM_SAFETY = 0.88
+const FIT_BOUNDS_INSET_X = 3.5
+const FIT_BOUNDS_INSET_Y_TOP = 3.5
+const FIT_BOUNDS_INSET_Y_BOTTOM = 6.5
 export const HOST_FLOOR_MIN_ZOOM = 0.65
 export const HOST_FLOOR_MAX_ZOOM = 2.4
 
@@ -63,18 +66,22 @@ export function getTablesBoundingBox(tables, halfPercent = DEFAULT_HALF_PERCENT)
     maxY = Math.max(maxY, table.y + halfH)
   })
 
-  const width = Math.max(maxX - minX, 8)
-  const height = Math.max(maxY - minY, 8)
+  const safeMinX = Math.max(minX, FIT_BOUNDS_INSET_X)
+  const safeMinY = Math.max(minY, FIT_BOUNDS_INSET_Y_TOP)
+  const safeMaxX = Math.min(maxX, 100 - FIT_BOUNDS_INSET_X)
+  const safeMaxY = Math.min(maxY, 100 - FIT_BOUNDS_INSET_Y_BOTTOM)
+  const safeWidth = Math.max(safeMaxX - safeMinX, 8)
+  const safeHeight = Math.max(safeMaxY - safeMinY, 8)
 
   return {
-    minX,
-    minY,
-    maxX,
-    maxY,
-    width,
-    height,
-    centerX: (minX + maxX) / 2,
-    centerY: (minY + maxY) / 2,
+    minX: safeMinX,
+    minY: safeMinY,
+    maxX: safeMaxX,
+    maxY: safeMaxY,
+    width: safeWidth,
+    height: safeHeight,
+    centerX: (safeMinX + safeMaxX) / 2,
+    centerY: (safeMinY + safeMaxY) / 2,
   }
 }
 
@@ -211,6 +218,23 @@ function resolveOrderedTablesForGroup(group, tablesById, tablesByLabel) {
   return orderTablesForReservationLink(resolved)
 }
 
+function resolveLinkVisualTone(tableStates, reservationId) {
+  const phases = tableStates
+    .filter((entry) => entry.reservation && String(entry.reservation.id) === String(reservationId))
+    .map((entry) => entry.operational?.phase)
+    .filter(Boolean)
+
+  if (phases.some((phase) => phase === 'seated' || phase === 'waiting')) {
+    return 'link-tone-in-house'
+  }
+
+  if (phases.some((phase) => phase === 'upcoming')) {
+    return 'link-tone-upcoming'
+  }
+
+  return 'link-tone-default'
+}
+
 export function buildReservationLinkGroups(tableStates) {
   const { tablesById, tablesByLabel } = buildTableLookup(tableStates)
   const groupsByReservation = new Map()
@@ -246,8 +270,7 @@ export function buildReservationLinkGroups(tableStates) {
         reservationId: group.reservationId,
         tableIds: orderedTables.map((entry) => entry.id),
         points,
-        colorClass: 'link-tone-gold',
-        stroke: RESERVATION_LINK_STROKE,
+        colorClass: resolveLinkVisualTone(tableStates, group.reservationId),
       }
     })
     .filter(Boolean)
@@ -282,7 +305,6 @@ export function buildReservationLinkTableMeta(linkGroups) {
     group.tableIds.forEach((tableId, index) => {
       meta.set(tableId, {
         colorClass: group.colorClass,
-        stroke: group.stroke,
         isMultiLinked: group.tableIds.length > 1,
         isLinkPrimary: index === 0,
       })

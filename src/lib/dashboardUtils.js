@@ -315,9 +315,13 @@ export function countTodayReservations(reservations = [], todayKey = getCurrentD
 
 export function getTodayReservations(reservations = [], todayKey = getCurrentDateKey()) {
   return reservations
-    .filter((reservation) => normalizeDate(reservation.date) === todayKey)
+    .filter((reservation) => {
+      const raw = reservation?.date ?? reservation?.reservation_date ?? ''
+      return normalizeDate(raw) === todayKey
+    })
     .sort((left, right) => (
-      (parseTimeToMinutes(left.time) ?? 0) - (parseTimeToMinutes(right.time) ?? 0)
+      (parseTimeToMinutes(left.time ?? left.reservation_time) ?? 0)
+        - (parseTimeToMinutes(right.time ?? right.reservation_time) ?? 0)
     ))
 }
 

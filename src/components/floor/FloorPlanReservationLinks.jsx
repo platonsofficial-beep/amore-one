@@ -1,5 +1,3 @@
-import { RESERVATION_LINK_STROKE } from '../../lib/hostFloorPlanViewport'
-
 export function FloorPlanReservationLinks({ linkGroups }) {
   if (!linkGroups?.length) return null
 
@@ -17,9 +15,8 @@ export function FloorPlanReservationLinks({ linkGroups }) {
         return (
           <polyline
             key={group.reservationId}
-            className="floor-plan-reservation-link"
+            className={`floor-plan-reservation-link ${group.colorClass ?? 'link-tone-default'}`}
             fill="none"
-            stroke={group.stroke ?? RESERVATION_LINK_STROKE}
             points={group.points.map((point) => `${point.x},${point.y}`).join(' ')}
           />
         )

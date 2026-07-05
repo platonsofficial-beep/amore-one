@@ -3,21 +3,24 @@ import {
   formatHostListTableLabel,
   getReservationSeatingAssignment,
   normalizeUnitKey,
+  reservationUsesSeatingUnit,
   seatingUnitMatchesFloorUnit,
 } from './seatingAssignment'
 import {
   getFloorAssignmentPriority,
+  isReservationInHouse,
+  isReservationWaiting,
   reservationOccupiesFloorTables,
 } from './reservationHostStatus'
+import { DEFAULT_RESERVATION_DURATION_MINUTES } from './reservationTableOptions'
+import { parseTimeToMinutes } from './shiftHoursUtils'
+import { normalizeReservationDateKey } from './timeFormatUtils'
 
 const DEBUG_PREFIX = '[floor-assignment]'
+const SERVICE_DAY_EARLY_MORNING_CUTOFF = 360
 
 export function getReservationDateKey(reservation) {
-  const raw = reservation?.date ?? reservation?.reservation_date ?? ''
-  const value = `${raw}`.trim()
-  if (!value) return ''
-  if (value.includes('T')) return value.split('T')[0]
-  return value.slice(0, 10)
+  return normalizeReservationDateKey(reservation)
 }
 
 export function getAssignedUnitsForReservation(reservation) {
@@ -48,6 +51,102 @@ function chooseHigherPriorityReservation(next, current) {
   if (!next) return current
 
   return getFloorAssignmentPriority(next) >= getFloorAssignmentPriority(current) ? next : current
+}
+
+function toServiceDayMinutes(timeValue) {
+  const minutes = parseTimeToMinutes(timeValue)
+  if (minutes === null) return null
+  return minutes < SERVICE_DAY_EARLY_MORNING_CUTOFF ? minutes + 1440 : minutes
+}
+
+function toServiceDayNowMinutes(nowMinutes) {
+  if (nowMinutes === null || nowMinutes === undefined) return null
+  return nowMinutes < SERVICE_DAY_EARLY_MORNING_CUTOFF
+    ? nowMinutes + 1440
+    : nowMinutes
+}
+
+function compareReservationsByTime(left, right) {
+  const leftMinutes = toServiceDayMinutes(left?.time) ?? 99999
+  const rightMinutes = toServiceDayMinutes(right?.time) ?? 99999
+  return leftMinutes - rightMinutes
+}
+
+function dedupeReservationsById(reservations) {
+  const seen = new Set()
+
+  return reservations.filter((reservation) => {
+    if (!reservation || reservation.id === undefined || reservation.id === null) return false
+    const reservationId = String(reservation.id)
+    if (seen.has(reservationId)) return false
+    seen.add(reservationId)
+    return true
+  })
+}
+
+export function getReservationsForFloorTable(
+  table,
+  reservations,
+  todayKey,
+  { syncWithList = false, floorUnits = [] } = {},
+) {
+  if (!table?.id) return []
+
+  const tableId = String(table.id)
+  const enrichedReservations = (reservations ?? []).map((reservation) => (
+    enrichReservationWithSeatingAssignment(reservation)
+  ))
+
+  const matched = enrichedReservations.filter((reservation) => {
+    if (!isReservationEligibleForFloor(reservation, todayKey, { syncWithList })) return false
+    if (!reservationHasAssignedTables(reservation)) return false
+
+    const assignedUnits = getAssignedUnitsForReservation(reservation)
+    const matchesViaFloorMap = assignedUnits.some((unit) => {
+      const floorUnit = findFloorUnitForAssignedUnit(unit, floorUnits)
+      return floorUnit && String(floorUnit.id) === tableId
+    })
+
+    if (matchesViaFloorMap) return true
+
+    return reservationUsesSeatingUnit(reservation, table)
+  })
+
+  return dedupeReservationsById(matched.sort(compareReservationsByTime))
+}
+
+export function pickHighlightedFloorTableReservation(reservations, nowMinutes, todayKey) {
+  if (!reservations?.length) return null
+
+  const inHouse = reservations.find((reservation) => (
+    isReservationInHouse(reservation)
+    || isReservationWaiting(reservation, todayKey, nowMinutes)
+  ))
+  if (inHouse) return inHouse
+
+  const nowKey = toServiceDayNowMinutes(nowMinutes)
+  if (nowKey === null) return reservations[0]
+
+  const activeByWindow = reservations.find((reservation) => {
+    const start = toServiceDayMinutes(reservation.time)
+    if (start === null) return false
+    const end = start + DEFAULT_RESERVATION_DURATION_MINUTES
+    return nowKey >= start && nowKey < end
+  })
+  if (activeByWindow) return activeByWindow
+
+  const upcoming = reservations
+    .map((reservation) => ({ reservation, start: toServiceDayMinutes(reservation.time) }))
+    .filter(({ start }) => start !== null && start >= nowKey)
+    .sort((left, right) => left.start - right.start)
+  if (upcoming.length > 0) return upcoming[0].reservation
+
+  const past = reservations
+    .map((reservation) => ({ reservation, start: toServiceDayMinutes(reservation.time) }))
+    .filter(({ start }) => start !== null && start < nowKey)
+    .sort((left, right) => right.start - left.start)
+
+  return past[0]?.reservation ?? reservations[0]
 }
 
 export function buildFloorTableReservationMap({

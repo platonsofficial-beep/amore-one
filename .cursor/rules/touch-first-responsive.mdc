@@ -1,0 +1,33 @@
+---
+description: Touch-first responsive design for all ONE features
+alwaysApply: true
+---
+
+# Touch-first responsive design
+
+All ONE features must work on desktop, tablet, and mobile.
+
+## Core rules
+
+- Do not build core functionality that depends only on hover.
+- Every important interaction must work with click/tap.
+- Hover is optional enhancement only.
+- Panels, popovers, cards, and menus must be responsive.
+- Touch targets for core actions: minimum 44×44px.
+- Avoid tiny controls for primary actions.
+- Avoid UI clipped inside overflow-hidden containers (prefer fixed overlays when needed).
+
+## Layout by breakpoint
+
+- **Desktop**: floating cards and side panels are fine.
+- **Tablet/mobile**: prefer drawers, bottom sheets, or full-width panels.
+
+## Before adding UI
+
+Consider behavior on desktop, tablet, and mobile. Do not duplicate the same edit flow on two entry points.
+
+## Reservations (reference)
+
+- Reservation card arrow → Edit Reservation panel.
+- Table click/tap → Table Schedule Card (all reservations for that table/date).
+- Edit inside Table Schedule Card → Edit Reservation panel.

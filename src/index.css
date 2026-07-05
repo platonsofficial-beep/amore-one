@@ -8,10 +8,44 @@
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  --one-scrollbar-size: 6px;
+  --one-scrollbar-track: transparent;
+  --one-scrollbar-thumb: rgba(68, 64, 58, 0.92);
+  --one-scrollbar-thumb-hover: rgba(212, 175, 55, 0.52);
 }
 
 * {
   box-sizing: border-box;
+  scrollbar-width: thin;
+  scrollbar-color: var(--one-scrollbar-thumb) var(--one-scrollbar-track);
+}
+
+*::-webkit-scrollbar {
+  width: var(--one-scrollbar-size);
+  height: var(--one-scrollbar-size);
+}
+
+*::-webkit-scrollbar-track {
+  background: var(--one-scrollbar-track);
+}
+
+*::-webkit-scrollbar-thumb {
+  background-color: var(--one-scrollbar-thumb);
+  border-radius: 999px;
+  border: 1px solid transparent;
+  background-clip: padding-box;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background-color: var(--one-scrollbar-thumb-hover);
+}
+
+*::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+html {
+  color-scheme: dark;
 }
 
 html,

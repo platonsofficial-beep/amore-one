@@ -2,11 +2,12 @@ import { useEffect, useState } from 'react'
 import {
   buildSeatingAssignment,
   formatSeatingAssignmentSummary,
+  getReservationAssignedUnitsForMatching,
   getReservationSeatingAssignment,
 } from '../../lib/seatingAssignment'
 import { CUSTOMER_TYPES } from '../../lib/reservationCustomerType'
 import { resolveAreaIdForReservation } from '../../lib/reservationTableOptions'
-import { normalizeReservationTimeValue } from '../../lib/timeFormatUtils'
+import { normalizeReservationTimeValue, normalizeReservationDateKey } from '../../lib/timeFormatUtils'
 import { usePublishedFloorPlan } from '../../lib/PublishedFloorPlanContext'
 import { ReservationTableSelector } from './ReservationTableSelector'
 import { ReservationTimeSelect } from './ReservationTimeSelect'
@@ -31,20 +32,22 @@ export function createHostReservationEditForm(reservation, layout) {
     area: reservation.area ?? '',
   }
   const assignment = getReservationSeatingAssignment(safeReservation)
+  const assignedUnits = getReservationAssignedUnitsForMatching(safeReservation)
 
   return {
     guestName: safeReservation.guestName,
     phone: safeReservation.phone,
+    date: normalizeReservationDateKey(safeReservation),
     time: normalizeReservationTimeValue(safeReservation.time),
     guests: `${safeReservation.guests ?? 2}`,
     customerType: safeReservation.customerType,
     status: safeReservation.status,
     notes: safeReservation.notes,
     area: safeReservation.area,
-    assignedUnits: assignment.assignedUnits ?? [],
+    assignedUnits,
     extraChairs: assignment.extraChairs ?? 0,
     standingGuests: assignment.standingGuests ?? 0,
-    seatingAreaId: resolveAreaIdForReservation(layout, safeReservation, assignment.assignedUnits),
+    seatingAreaId: resolveAreaIdForReservation(layout, safeReservation, assignedUnits),
   }
 }
 
@@ -144,6 +147,7 @@ export function HostReservationEditPanel({
 
   const handleSubmit = (event) => {
     event.preventDefault()
+    if (!normalizeReservationDateKey(form.date)) return
     onSave()
   }
 
@@ -204,14 +208,24 @@ export function HostReservationEditPanel({
             />
           </label>
 
+          <label className="host-reservation-edit-field">
+            <span>Guests</span>
+            <input
+              type="number"
+              min="1"
+              value={form.guests}
+              onChange={(event) => updateField({ guests: event.target.value })}
+              required
+            />
+          </label>
+
           <div className="host-reservation-edit-grid">
             <label className="host-reservation-edit-field">
-              <span>Guests</span>
+              <span>Date</span>
               <input
-                type="number"
-                min="1"
-                value={form.guests}
-                onChange={(event) => updateField({ guests: event.target.value })}
+                type="date"
+                value={form.date}
+                onChange={(event) => updateField({ date: event.target.value })}
                 required
               />
             </label>
@@ -272,7 +286,8 @@ export function HostReservationEditPanel({
             <ReservationTableSelector
               layout={activeLayout}
               reservations={reservations}
-              todayKey={todayKey}
+              todayKey={form.date || todayKey}
+              reservationTime={form.time}
               reservationId={reservation.id}
               selectedAreaId={form.seatingAreaId}
               assignedUnits={form.assignedUnits}

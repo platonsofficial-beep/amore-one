@@ -26,7 +26,6 @@ function HostReservationListRow({
   isEditing,
   isDragging,
   isStatusPickerOpen,
-  onSelect,
   onOpenEdit,
   onOpenStatusPicker,
   onDragStart,
@@ -56,6 +55,10 @@ function HostReservationListRow({
   const typeMeta = getHostListCustomerTypeMeta(reservation, getGuestCustomerType)
   const warnings = getHostReservationWarnings(reservation, nowMinutes, todayKey)
 
+  const handleCardActivate = () => {
+    onOpenEdit(reservation)
+  }
+
   const handleOpenStatusPicker = (event) => {
     event.stopPropagation()
     onOpenStatusPicker(reservation, event)
@@ -69,11 +72,11 @@ function HostReservationListRow({
       draggable
       onDragStart={onDragStart}
       onDragEnd={onDragEnd}
-      onClick={() => onSelect(reservation)}
+      onClick={handleCardActivate}
       onKeyDown={(event) => {
         if (event.key === 'Enter' || event.key === ' ') {
           event.preventDefault()
-          onSelect(reservation)
+          handleCardActivate()
         }
       }}
     >
@@ -101,13 +104,29 @@ function HostReservationListRow({
             ) : null}
             <span className="host-reservation-card-guest">{guestName}</span>
           </span>
+          <span className="host-reservation-card-schedule">{scheduleLabel}</span>
           <span className={`host-reservation-card-type ${typeMeta.className}`}>{typeMeta.label}</span>
+          <button
+            type="button"
+            className={`host-reservation-card-status-pill tone-${statusMeta.tone}`}
+            aria-label={`Status: ${statusMeta.label}. Change status.`}
+            aria-expanded={isStatusPickerOpen}
+            aria-haspopup="dialog"
+            onClick={handleOpenStatusPicker}
+          >
+            {statusMeta.label}
+          </button>
         </div>
 
         <div className="host-reservation-card-meta">
-          <span className="host-reservation-card-schedule">{scheduleLabel}</span>
-          <span className="host-reservation-card-dot" aria-hidden="true">·</span>
           <span className="host-reservation-card-guests">{guestCount} guests</span>
+          <span className="host-reservation-card-dot" aria-hidden="true">·</span>
+          <span
+            className="host-reservation-card-tables"
+            title={tableTooltip !== tableLabel ? tableTooltip : undefined}
+          >
+            {tableLabel}
+          </span>
           {warnings.includes('unassigned') ? (
             <span className="host-reservation-card-warning" title="No table assigned">!</span>
           ) : null}
@@ -121,37 +140,9 @@ function HostReservationListRow({
             </span>
           ) : null}
         </div>
-
-        <div
-          className="host-reservation-card-tables"
-          title={tableTooltip !== tableLabel ? tableTooltip : undefined}
-        >
-          {tableLabel}
-        </div>
-
-        <button
-          type="button"
-          className={`host-reservation-card-status-pill tone-${statusMeta.tone}`}
-          aria-label={`Status: ${statusMeta.label}. Change status.`}
-          aria-expanded={isStatusPickerOpen}
-          aria-haspopup="dialog"
-          onClick={handleOpenStatusPicker}
-        >
-          {statusMeta.label}
-        </button>
       </div>
 
-      <button
-        type="button"
-        className="host-reservation-card-action"
-        aria-label={`Edit reservation for ${guestName}`}
-        onClick={(event) => {
-          event.stopPropagation()
-          onOpenEdit(reservation)
-        }}
-      >
-        ›
-      </button>
+      <span className="host-reservation-card-chevron" aria-hidden="true">›</span>
     </article>
   )
 }
@@ -165,7 +156,6 @@ export function HostReservationList({
   hostEditingReservation,
   draggingReservationId,
   isSavingStatus,
-  onSelectReservation,
   onOpenEdit,
   onStatusChange,
   onDragStart,
@@ -177,7 +167,7 @@ export function HostReservationList({
     [reservations],
   )
 
-  const [collapsedGroups, setCollapsedGroups] = useState(() => new Set())
+  const [collapsedGroups, setCollapsedGroups] = useState(() => new Set(['completed']))
   const [statusPicker, setStatusPicker] = useState(null)
 
   const toggleGroup = (groupId) => {
@@ -264,7 +254,6 @@ export function HostReservationList({
                         && String(hostEditingReservation.id) === String(reservation.id)}
                       isDragging={draggingReservationId === String(reservation.id)}
                       isStatusPickerOpen={String(statusPicker?.reservation?.id) === String(reservation.id)}
-                      onSelect={onSelectReservation}
                       onOpenEdit={onOpenEdit}
                       onOpenStatusPicker={handleOpenStatusPicker}
                       onDragStart={(event) => onDragStart(event, reservation)}
