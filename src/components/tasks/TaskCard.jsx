@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { getTaskDepartmentByKey } from '../../lib/taskDepartments'
+import { getTaskDepartmentBoardKey, resolveDepartmentBoardDisplay } from '../../lib/taskDepartments'
 import { getTaskDepartmentLabel, getTodayKey, isTaskOverdue } from '../../lib/taskUtils'
 import { formatTime24 } from '../../lib/timeFormatUtils'
 import { formatLocalDateKey, parseLocalDate } from '../../lib/weekUtils'
@@ -149,13 +149,16 @@ export default function TaskCard({
   onEdit,
   onDelete,
   onToggleChecklistItem,
+  customDepartmentIcons = {},
   isSaving = false,
 }) {
   const isCompleted = task?.status === 'completed'
   const overdue = !isCompleted && isTaskOverdue(task)
   const priority = `${task?.priority ?? 'normal'}`.trim().toLowerCase()
-  const departmentKey = `${task?.department ?? ''}`.trim().toLowerCase()
-  const department = getTaskDepartmentByKey(departmentKey)
+  const departmentBoard = resolveDepartmentBoardDisplay(
+    getTaskDepartmentBoardKey(task),
+    customDepartmentIcons,
+  )
   const departmentLabel = getTaskDepartmentLabel(task)
   const hasAssignee = Boolean(`${assigneeName ?? ''}`.trim())
   const dueLabel = formatTaskDueLabel(task)
@@ -185,7 +188,7 @@ export default function TaskCard({
 
         <div className="task-card-metadata">
           <span className="task-card-metadata-item task-card-department">
-            <span className="task-card-metadata-icon" aria-hidden="true">{department?.icon ?? '📋'}</span>
+            <span className="task-card-metadata-icon" aria-hidden="true">{departmentBoard.icon ?? '📋'}</span>
             <span>{departmentLabel}</span>
           </span>
 

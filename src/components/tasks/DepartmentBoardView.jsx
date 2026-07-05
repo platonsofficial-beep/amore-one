@@ -1,5 +1,5 @@
-import { getTaskDepartmentByKey } from '../../lib/taskDepartments'
-import { groupTasksBySection } from '../../lib/taskUtils'
+import { resolveDepartmentBoardDisplay } from '../../lib/taskDepartments'
+import { groupTasksBySection, taskMatchesDepartmentBoard } from '../../lib/taskUtils'
 import TaskCard from './TaskCard'
 
 function TaskSection({
@@ -13,6 +13,7 @@ function TaskSection({
   onEdit,
   onDelete,
   onToggleChecklistItem,
+  customDepartmentIcons = {},
   isSaving,
 }) {
   return (
@@ -37,6 +38,7 @@ function TaskSection({
               onEdit={onEdit}
               onDelete={onDelete}
               onToggleChecklistItem={onToggleChecklistItem}
+              customDepartmentIcons={customDepartmentIcons}
               isSaving={isSaving}
             />
           ))}
@@ -49,6 +51,7 @@ function TaskSection({
 export default function DepartmentBoardView({
   departmentKey,
   tasks = [],
+  customDepartmentIcons = {},
   checklistItemsByTaskId = {},
   employees = [],
   onBack,
@@ -61,8 +64,8 @@ export default function DepartmentBoardView({
   isSaving = false,
   isLoading = false,
 }) {
-  const department = getTaskDepartmentByKey(departmentKey)
-  const departmentTasks = tasks.filter((task) => `${task.department ?? ''}`.trim().toLowerCase() === departmentKey)
+  const departmentDisplay = resolveDepartmentBoardDisplay(departmentKey, customDepartmentIcons)
+  const departmentTasks = tasks.filter((task) => taskMatchesDepartmentBoard(task, departmentKey))
   const sections = groupTasksBySection(departmentTasks)
 
   const employeeNameById = new Map(
@@ -86,8 +89,8 @@ export default function DepartmentBoardView({
         </button>
         <div className="tasks-board-header-row">
           <div className="tasks-board-title-block">
-            <span className="tasks-board-icon" aria-hidden="true">{department?.icon ?? '📋'}</span>
-            <h3>{department?.label ?? 'Department'}</h3>
+            <span className="tasks-board-icon" aria-hidden="true">{departmentDisplay.icon}</span>
+            <h3>{departmentDisplay.label}</h3>
           </div>
           <button type="button" className="primary-btn tasks-new-btn" onClick={onNewTask} disabled={isSaving}>
             + New Task
@@ -109,6 +112,7 @@ export default function DepartmentBoardView({
           onEdit={onEditTask}
           onDelete={onDeleteTask}
           onToggleChecklistItem={onToggleChecklistItem}
+          customDepartmentIcons={customDepartmentIcons}
           isSaving={isSaving}
         />
         <TaskSection
@@ -122,6 +126,7 @@ export default function DepartmentBoardView({
           onEdit={onEditTask}
           onDelete={onDeleteTask}
           onToggleChecklistItem={onToggleChecklistItem}
+          customDepartmentIcons={customDepartmentIcons}
           isSaving={isSaving}
         />
         <TaskSection
@@ -135,6 +140,7 @@ export default function DepartmentBoardView({
           onEdit={onEditTask}
           onDelete={onDeleteTask}
           onToggleChecklistItem={onToggleChecklistItem}
+          customDepartmentIcons={customDepartmentIcons}
           isSaving={isSaving}
         />
       </div>

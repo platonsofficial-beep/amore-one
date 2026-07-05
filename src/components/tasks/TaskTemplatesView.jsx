@@ -1,4 +1,4 @@
-import { getTaskDepartmentByKey, TASK_DEPARTMENTS } from '../../lib/taskDepartments'
+import { getTaskDepartmentBoardKey, resolveDepartmentBoardDisplay } from '../../lib/taskDepartments'
 import { getTaskDepartmentLabel, groupTaskTemplatesByDepartment } from '../../lib/taskUtils'
 import { formatTime24 } from '../../lib/timeFormatUtils'
 
@@ -24,11 +24,15 @@ function truncateNotes(notes, maxLength = 120) {
 function TemplateCard({
   template,
   checklistItems = [],
+  customDepartmentIcons = {},
   onEdit,
   onDelete,
   isSaving,
 }) {
-  const department = getTaskDepartmentByKey(template.department)
+  const department = resolveDepartmentBoardDisplay(
+    getTaskDepartmentBoardKey(template),
+    customDepartmentIcons,
+  )
   const departmentLabel = getTaskDepartmentLabel(template)
   const notesPreview = truncateNotes(template.notes)
   const defaultTimeLabel = formatTime24(template.defaultTime, '')
@@ -96,6 +100,7 @@ function TemplateCard({
 export default function TaskTemplatesView({
   templates = [],
   templateChecklistItemsByTemplateId = {},
+  customDepartmentIcons = {},
   isLoading = false,
   isSaving = false,
   isGenerating = false,
@@ -112,12 +117,13 @@ export default function TaskTemplatesView({
   const tableUnavailable = `${errorMessage}`.toLowerCase().includes('not ready yet')
   const activeTemplateCount = templates.filter((template) => template.isActive !== false).length
 
-  const departmentSections = TASK_DEPARTMENTS
-    .map((department) => ({
-      department,
-      templates: groupedTemplates.get(department.key) ?? [],
+  const departmentSections = Array.from(groupedTemplates.entries())
+    .map(([boardKey, departmentTemplates]) => ({
+      department: resolveDepartmentBoardDisplay(boardKey, customDepartmentIcons),
+      templates: departmentTemplates,
     }))
     .filter((section) => section.templates.length > 0)
+    .sort((left, right) => left.department.label.localeCompare(right.department.label))
 
   return (
     <section className="tasks-templates">
@@ -185,6 +191,7 @@ export default function TaskTemplatesView({
                     key={template.id}
                     template={template}
                     checklistItems={templateChecklistItemsByTemplateId[String(template.id)] ?? []}
+                    customDepartmentIcons={customDepartmentIcons}
                     onEdit={onEditTemplate}
                     onDelete={onDeleteTemplate}
                     isSaving={isSaving}

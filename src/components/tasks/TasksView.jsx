@@ -1,15 +1,20 @@
 import { useEffect, useMemo, useState } from 'react'
+import { buildCustomDepartmentBoardKey, loadCustomDepartmentIcons, persistCustomDepartmentIcons, TASK_PRESET_DEPARTMENTS, UNASSIGNED_CUSTOM_DEPARTMENT_NAME } from '../../lib/taskDepartments'
+import {
+  buildTaskAlerts,
+  buildVisibleDepartmentBoards,
+  calculateDepartmentPerformanceSummaries,
+  collectCustomDepartmentNames,
+  filterTasksByAssignment,
+} from '../../lib/taskUtils'
+import CreateDepartmentModal from './CreateDepartmentModal'
+import DeleteDepartmentModal from './DeleteDepartmentModal'
 import DepartmentBoardView from './DepartmentBoardView'
 import TaskFormModal from './TaskFormModal'
 import TaskTemplateModal from './TaskTemplateModal'
 import TaskTemplatesView from './TaskTemplatesView'
 import TasksAssignmentFilter from './TasksAssignmentFilter'
 import TasksHomeView from './TasksHomeView'
-import {
-  buildTaskAlerts,
-  calculateDepartmentPerformanceSummaries,
-  filterTasksByAssignment,
-} from '../../lib/taskUtils'
 
 export default function TasksView({
   tasks = [],
@@ -36,16 +41,32 @@ export default function TasksView({
   onDeleteTemplate,
   onGenerateToday,
   onToggleChecklistItem,
+  onDeleteCustomDepartment,
   currentEmployeeId = null,
   currentEmployeeName = '',
   todayKey,
   openCreateOnMount = false,
   onOpenCreateHandled,
 }) {
+  const CUSTOM_DEPARTMENTS_STORAGE_KEY = 'amore-task-custom-departments'
+
   const [tasksScreen, setTasksScreen] = useState('boards')
   const [selectedDepartmentKey, setSelectedDepartmentKey] = useState(null)
   const [isTaskModalOpen, setIsTaskModalOpen] = useState(false)
   const [isTemplateModalOpen, setIsTemplateModalOpen] = useState(false)
+  const [isCreateDepartmentModalOpen, setIsCreateDepartmentModalOpen] = useState(false)
+  const [departmentPendingDelete, setDepartmentPendingDelete] = useState(null)
+  const [isDeletingDepartment, setIsDeletingDepartment] = useState(false)
+  const [savedCustomDepartments, setSavedCustomDepartments] = useState(() => {
+    try {
+      const stored = window.localStorage.getItem(CUSTOM_DEPARTMENTS_STORAGE_KEY)
+      const parsed = stored ? JSON.parse(stored) : []
+      return Array.isArray(parsed) ? parsed.filter(Boolean) : []
+    } catch {
+      return []
+    }
+  })
+  const [customDepartmentIcons, setCustomDepartmentIcons] = useState(() => loadCustomDepartmentIcons())
   const [editingTask, setEditingTask] = useState(null)
   const [editingTemplate, setEditingTemplate] = useState(null)
   const [formError, setFormError] = useState('')
@@ -66,11 +87,121 @@ export default function TasksView({
   )
 
   const departmentPerformance = useMemo(
-    () => calculateDepartmentPerformanceSummaries(filteredTasks, todayKey),
-    [filteredTasks, todayKey],
+    () => calculateDepartmentPerformanceSummaries(filteredTasks, todayKey, customDepartmentIcons),
+    [filteredTasks, todayKey, customDepartmentIcons],
   )
 
   const hasCurrentEmployee = Boolean(currentEmployeeId)
+
+  const customDepartments = useMemo(() => {
+    const merged = new Set([
+      ...savedCustomDepartments,
+      ...collectCustomDepartmentNames(tasks, taskTemplates),
+    ])
+    return Array.from(merged).sort((left, right) => left.localeCompare(right))
+  }, [savedCustomDepartments, tasks, taskTemplates])
+
+  const departmentBoards = useMemo(
+    () => buildVisibleDepartmentBoards(
+      tasks,
+      taskTemplates,
+      savedCustomDepartments,
+      customDepartmentIcons,
+    ),
+    [tasks, taskTemplates, savedCustomDepartments, customDepartmentIcons],
+  )
+
+  const persistCustomDepartments = (names) => {
+    setSavedCustomDepartments(names)
+    try {
+      window.localStorage.setItem(CUSTOM_DEPARTMENTS_STORAGE_KEY, JSON.stringify(names))
+    } catch {
+      // Ignore storage failures in private browsing.
+    }
+  }
+
+  const saveCustomDepartmentIcon = (departmentName, icon) => {
+    setCustomDepartmentIcons((current) => {
+      const next = {
+        ...current,
+        [departmentName]: icon,
+      }
+      persistCustomDepartmentIcons(next)
+      return next
+    })
+  }
+
+  const handleCreateDepartment = ({ name, icon }) => {
+    const trimmed = `${name ?? ''}`.trim()
+    if (!trimmed) return
+
+    const nextNames = Array.from(new Set([...savedCustomDepartments, trimmed]))
+      .sort((left, right) => left.localeCompare(right))
+    persistCustomDepartments(nextNames)
+    saveCustomDepartmentIcon(trimmed, icon)
+    setIsCreateDepartmentModalOpen(false)
+    setSelectedDepartmentKey(buildCustomDepartmentBoardKey(trimmed))
+  }
+
+  const handleOpenCreateDepartment = () => {
+    setIsCreateDepartmentModalOpen(true)
+  }
+
+  const removeCustomDepartmentLocal = (departmentName) => {
+    const trimmed = `${departmentName ?? ''}`.trim()
+    if (!trimmed) return
+
+    setSavedCustomDepartments((current) => {
+      const next = current.filter((name) => name !== trimmed)
+      try {
+        window.localStorage.setItem(CUSTOM_DEPARTMENTS_STORAGE_KEY, JSON.stringify(next))
+      } catch {
+        // Ignore storage failures in private browsing.
+      }
+      return next
+    })
+
+    setCustomDepartmentIcons((current) => {
+      const next = { ...current }
+      delete next[trimmed]
+      persistCustomDepartmentIcons(next)
+      return next
+    })
+  }
+
+  const handleRequestDeleteDepartment = (board) => {
+    if (!board?.isCustomBoard || !board?.label) return
+    setDepartmentPendingDelete(board)
+  }
+
+  const handleCloseDeleteDepartmentModal = () => {
+    if (isDeletingDepartment) return
+    setDepartmentPendingDelete(null)
+  }
+
+  const handleConfirmDeleteDepartment = async () => {
+    if (!departmentPendingDelete?.label) return
+
+    const departmentName = departmentPendingDelete.label
+    const deletedBoardKey = departmentPendingDelete.boardKey
+
+    setIsDeletingDepartment(true)
+
+    try {
+      await onDeleteCustomDepartment?.(departmentName)
+      removeCustomDepartmentLocal(departmentName)
+
+      if (selectedDepartmentKey === deletedBoardKey) {
+        setSelectedDepartmentKey(null)
+      }
+
+      setDepartmentPendingDelete(null)
+    } catch {
+      // Parent surfaces the error notice.
+    } finally {
+      setIsDeletingDepartment(false)
+    }
+  }
 
   useEffect(() => {
     if (!openCreateOnMount) return
@@ -241,6 +372,7 @@ export default function TasksView({
         <TaskTemplatesView
           templates={taskTemplates}
           templateChecklistItemsByTemplateId={templateChecklistItemsByTemplateId}
+          customDepartmentIcons={customDepartmentIcons}
           isLoading={isTemplatesLoading}
           isSaving={isSavingTemplate}
           isGenerating={isGeneratingTasks}
@@ -256,6 +388,7 @@ export default function TasksView({
         <DepartmentBoardView
           departmentKey={selectedDepartmentKey}
           tasks={filteredTasks}
+          customDepartmentIcons={customDepartmentIcons}
           checklistItemsByTaskId={checklistItemsByTaskId}
           employees={employees}
           onBack={handleBackToHome}
@@ -271,9 +404,13 @@ export default function TasksView({
       ) : (
         <TasksHomeView
           tasks={filteredTasks}
+          departmentBoards={departmentBoards}
           taskAlerts={taskAlerts}
           departmentPerformance={departmentPerformance}
           onSelectDepartment={handleSelectDepartment}
+          onCreateDepartment={handleOpenCreateDepartment}
+          onDeleteDepartment={handleRequestDeleteDepartment}
+          isDeletingDepartment={isDeletingDepartment}
           isLoading={isLoading}
           todayKey={todayKey}
         />
@@ -283,6 +420,8 @@ export default function TasksView({
         isOpen={isTaskModalOpen}
         editingTask={editingTask}
         defaultDepartment={selectedDepartmentKey ?? 'service'}
+        customDepartments={customDepartments}
+        customDepartmentIcons={customDepartmentIcons}
         employees={employees}
         onClose={handleCloseTaskModal}
         onSubmit={handleSubmitTask}
@@ -293,6 +432,8 @@ export default function TasksView({
       <TaskTemplateModal
         isOpen={isTemplateModalOpen}
         editingTemplate={editingTemplate}
+        customDepartments={customDepartments}
+        customDepartmentIcons={customDepartmentIcons}
         initialChecklistItems={
           editingTemplate?.id
             ? (templateChecklistItemsByTemplateId[String(editingTemplate.id)] ?? [])
@@ -302,6 +443,25 @@ export default function TasksView({
         onSubmit={handleSubmitTemplate}
         isSaving={isSavingTemplate}
         errorMessage={templateFormError}
+      />
+
+      <CreateDepartmentModal
+        isOpen={isCreateDepartmentModalOpen}
+        onClose={() => setIsCreateDepartmentModalOpen(false)}
+        onSubmit={handleCreateDepartment}
+        existingNames={[
+          ...customDepartments,
+          UNASSIGNED_CUSTOM_DEPARTMENT_NAME,
+          ...TASK_PRESET_DEPARTMENTS.map((department) => department.label),
+        ]}
+      />
+
+      <DeleteDepartmentModal
+        isOpen={Boolean(departmentPendingDelete)}
+        departmentName={departmentPendingDelete?.label ?? ''}
+        onClose={handleCloseDeleteDepartmentModal}
+        onConfirm={handleConfirmDeleteDepartment}
+        isDeleting={isDeletingDepartment}
       />
     </section>
   )

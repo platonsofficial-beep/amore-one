@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { buildTaskTemplateForm } from '../../lib/taskFormUtils'
-import { TASK_DEPARTMENTS } from '../../lib/taskDepartments'
+import TaskDepartmentFields from './TaskDepartmentFields'
 
 const PRIORITY_OPTIONS = [
   { value: 'normal', label: 'Normal' },
@@ -32,6 +32,8 @@ export default function TaskTemplateModal({
   isOpen,
   editingTemplate = null,
   initialChecklistItems = [],
+  customDepartments = [],
+  customDepartmentIcons = {},
   onClose,
   onSubmit,
   isSaving = false,
@@ -91,7 +93,6 @@ export default function TaskTemplateModal({
     })
   }
 
-  const showCustomDepartment = form.department === 'custom'
 
   return (
     <div className="employee-modal-backdrop task-modal-backdrop" onClick={onClose}>
@@ -129,36 +130,17 @@ export default function TaskTemplateModal({
               />
             </label>
 
-            <label className="form-field">
-              <span>Department</span>
-              <select
-                value={form.department}
-                onChange={(event) => setForm((current) => ({
-                  ...current,
-                  department: event.target.value,
-                  departmentCustom: event.target.value === 'custom' ? current.departmentCustom : '',
-                }))}
-              >
-                {TASK_DEPARTMENTS.map((department) => (
-                  <option key={department.key} value={department.key}>
-                    {department.label}
-                  </option>
-                ))}
-              </select>
-            </label>
-
-            {showCustomDepartment ? (
-              <label className="form-field">
-                <span>Custom department name</span>
-                <input
-                  type="text"
-                  value={form.departmentCustom}
-                  onChange={(event) => setForm((current) => ({ ...current, departmentCustom: event.target.value }))}
-                  placeholder="Department name"
-                  required
-                />
-              </label>
-            ) : null}
+            <TaskDepartmentFields
+              department={form.department}
+              departmentCustom={form.departmentCustom}
+              customDepartments={customDepartments}
+              customDepartmentIcons={customDepartmentIcons}
+              onChange={({ department, departmentCustom }) => setForm((current) => ({
+                ...current,
+                department,
+                departmentCustom,
+              }))}
+            />
 
             <label className="form-field">
               <span>Default time (optional)</span>

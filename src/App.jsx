@@ -215,7 +215,8 @@ import {
   getLocalNow,
   getTimeGreeting,
 } from './lib/currentDateUtils'
-import { calculateTaskOverview, resolveCurrentEmployeeId } from './lib/taskUtils'
+import { calculateTaskOverview, matchesCustomDepartmentName, resolveCurrentEmployeeId } from './lib/taskUtils'
+import { UNASSIGNED_CUSTOM_DEPARTMENT_NAME } from './lib/taskDepartments'
 
 const navItems = [
   { id: 'dashboard', label: 'Dashboard', icon: '◈' },
@@ -14814,6 +14815,44 @@ function App() {
     }
   }
 
+  const handleDeleteCustomDepartment = async (departmentName) => {
+    const trimmed = `${departmentName ?? ''}`.trim()
+    if (!trimmed) return
+
+    setIsSavingTask(true)
+    setTasksNotice('')
+    setTaskTemplatesNotice('')
+
+    try {
+      const matchingTasks = tasks.filter((task) => matchesCustomDepartmentName(task, trimmed))
+      const matchingTemplates = taskTemplates.filter((template) => matchesCustomDepartmentName(template, trimmed))
+      const reassignment = {
+        department: 'custom',
+        departmentCustom: UNASSIGNED_CUSTOM_DEPARTMENT_NAME,
+      }
+
+      await Promise.all([
+        ...matchingTasks.map((task) => updateTask(task.id, reassignment)),
+        ...matchingTemplates.map((template) => updateTaskTemplate(template.id, reassignment)),
+      ])
+
+      await refreshTasks()
+      await refreshTaskTemplates()
+
+      const movedCount = matchingTasks.length + matchingTemplates.length
+      setTasksNotice(
+        movedCount > 0
+          ? `Department "${trimmed}" deleted. ${movedCount} item${movedCount === 1 ? '' : 's'} moved to Unassigned Department.`
+          : `Department "${trimmed}" deleted.`,
+      )
+    } catch (error) {
+      setTasksNotice(error?.message || 'Unable to delete department right now.')
+      throw error
+    } finally {
+      setIsSavingTask(false)
+    }
+  }
+
   const handleCreateTaskTemplate = async (payload) => {
     setIsSavingTaskTemplate(true)
     setTaskTemplatesNotice('')
@@ -15262,6 +15301,7 @@ function App() {
             onDeleteTemplate={handleDeleteTaskTemplate}
             onGenerateToday={handleGenerateTasksFromTemplates}
             onToggleChecklistItem={handleToggleChecklistItem}
+            onDeleteCustomDepartment={handleDeleteCustomDepartment}
             currentEmployeeId={currentTaskEmployeeId}
             currentEmployeeName={workspaceProfile.managerName}
             todayKey={currentDateKey}

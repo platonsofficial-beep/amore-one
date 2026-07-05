@@ -1,4 +1,13 @@
-import { getTaskDepartmentByKey, TASK_DEPARTMENTS } from './taskDepartments'
+import {
+  CUSTOM_DEPARTMENT_TYPE,
+  TASK_PRESET_DEPARTMENTS,
+  UNASSIGNED_CUSTOM_DEPARTMENT_NAME,
+  buildCustomDepartmentBoardKey,
+  getCustomDepartmentIcon,
+  getTaskDepartmentBoardKey,
+  isHiddenTaskDepartmentKey,
+  resolveDepartmentBoardDisplay,
+} from './taskDepartments'
 import { formatLocalDateKey } from './weekUtils'
 
 export function getTodayKey(date = new Date()) {
@@ -38,14 +47,74 @@ export function isTaskOverdue(task, todayKey = getTodayKey()) {
 
 export function getTaskDepartmentLabel(task) {
   const departmentKey = normalizeDepartmentKey(task?.department)
-  const preset = getTaskDepartmentByKey(departmentKey)
 
-  if (departmentKey === 'custom') {
+  if (departmentKey === CUSTOM_DEPARTMENT_TYPE) {
     const customLabel = `${task?.departmentCustom ?? task?.department_custom ?? ''}`.trim()
-    return customLabel || preset?.label || 'Custom'
+    return customLabel || 'Custom'
   }
 
-  return preset?.label || departmentKey || 'Unknown'
+  const display = resolveDepartmentBoardDisplay(departmentKey)
+  return display.label || departmentKey || 'Unknown'
+}
+
+export function collectCustomDepartmentNames(tasks = [], templates = []) {
+  const names = new Set()
+
+  ;[...(tasks ?? []), ...(templates ?? [])].forEach((item) => {
+    if (normalizeDepartmentKey(item?.department) !== CUSTOM_DEPARTMENT_TYPE) return
+    const customName = `${item?.departmentCustom ?? item?.department_custom ?? ''}`.trim()
+    if (customName) names.add(customName)
+  })
+
+  return Array.from(names).sort((left, right) => left.localeCompare(right))
+}
+
+export function matchesCustomDepartmentName(item, departmentName) {
+  const department = `${item?.department ?? ''}`.trim().toLowerCase()
+  if (department !== CUSTOM_DEPARTMENT_TYPE) return false
+  const itemName = `${item?.departmentCustom ?? item?.department_custom ?? ''}`.trim()
+  return itemName.toLowerCase() === `${departmentName ?? ''}`.trim().toLowerCase()
+}
+
+export function taskMatchesDepartmentBoard(task, boardKey) {
+  return getTaskDepartmentBoardKey(task) === `${boardKey ?? ''}`.trim()
+}
+
+export function buildVisibleDepartmentBoards(
+  tasks = [],
+  templates = [],
+  savedCustomNames = [],
+  iconMap = {},
+) {
+  const boards = []
+
+  TASK_PRESET_DEPARTMENTS.forEach((department) => {
+    boards.push({
+      boardKey: department.key,
+      label: department.label,
+      icon: department.icon,
+      isCustomBoard: false,
+    })
+  })
+
+  const customNames = new Set([
+    ...collectCustomDepartmentNames(tasks, templates),
+    ...(savedCustomNames ?? [])
+      .map((name) => `${name ?? ''}`.trim())
+      .filter(Boolean)
+      .filter((name) => name.toLowerCase() !== UNASSIGNED_CUSTOM_DEPARTMENT_NAME.toLowerCase()),
+  ])
+
+  customNames.forEach((name) => {
+    boards.push({
+      boardKey: buildCustomDepartmentBoardKey(name),
+      label: name,
+      icon: getCustomDepartmentIcon(name, iconMap),
+      isCustomBoard: true,
+    })
+  })
+
+  return boards
 }
 
 function compareTasksByDueDate(a, b) {
@@ -97,11 +166,8 @@ export function groupTasksBySection(tasks = [], todayKey = getTodayKey()) {
   return { today, upcoming, completed }
 }
 
-export function calculateDepartmentStats(tasks = [], departmentKey, todayKey = getTodayKey()) {
-  const normalizedDepartmentKey = normalizeDepartmentKey(departmentKey)
-  const departmentTasks = (tasks ?? []).filter((task) => (
-    normalizeDepartmentKey(task?.department) === normalizedDepartmentKey
-  ))
+export function calculateDepartmentStats(tasks = [], boardKey, todayKey = getTodayKey()) {
+  const departmentTasks = (tasks ?? []).filter((task) => taskMatchesDepartmentBoard(task, boardKey))
 
   const activeTasks = departmentTasks.filter((task) => normalizeTaskStatus(task?.status) === 'active')
   const overdue = activeTasks.filter((task) => isTaskOverdue(task, todayKey)).length
@@ -136,11 +202,11 @@ export function groupTaskTemplatesByDepartment(templates = []) {
   const grouped = new Map()
 
   ;(templates ?? []).forEach((template) => {
-    const departmentKey = normalizeDepartmentKey(template?.department)
-    if (!grouped.has(departmentKey)) {
-      grouped.set(departmentKey, [])
+    const boardKey = getTaskDepartmentBoardKey(template)
+    if (!grouped.has(boardKey)) {
+      grouped.set(boardKey, [])
     }
-    grouped.get(departmentKey).push(template)
+    grouped.get(boardKey).push(template)
   })
 
   grouped.forEach((departmentTemplates) => {
@@ -280,19 +346,30 @@ export function buildTaskAlerts(tasks = [], todayKey = getTodayKey()) {
   }
 }
 
-export function calculateDepartmentPerformanceSummaries(tasks = [], todayKey = getTodayKey()) {
-  return TASK_DEPARTMENTS
-    .map((department) => {
-      const stats = calculateDepartmentStats(tasks, department.key, todayKey)
+export function calculateDepartmentPerformanceSummaries(
+  tasks = [],
+  todayKey = getTodayKey(),
+  iconMap = {},
+) {
+  const boardKeys = new Set(
+    (tasks ?? []).map((task) => getTaskDepartmentBoardKey(task)),
+  )
+
+  return Array.from(boardKeys)
+    .filter((boardKey) => !isHiddenTaskDepartmentKey(boardKey))
+    .map((boardKey) => {
+      const display = resolveDepartmentBoardDisplay(boardKey, iconMap)
+      const stats = calculateDepartmentStats(tasks, boardKey, todayKey)
 
       return {
-        departmentKey: department.key,
-        departmentLabel: department.label,
-        departmentIcon: department.icon,
+        departmentKey: boardKey,
+        departmentLabel: display.label,
+        departmentIcon: display.icon,
         totalToday: stats.totalToday,
         completedToday: stats.completedToday,
         completionPercent: stats.completionPercent,
       }
     })
     .filter((summary) => summary.totalToday > 0)
+    .sort((left, right) => left.departmentLabel.localeCompare(right.departmentLabel))
 }

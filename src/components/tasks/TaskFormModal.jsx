@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { buildTaskForm } from '../../lib/taskFormUtils'
-import { TASK_DEPARTMENTS } from '../../lib/taskDepartments'
+import { parseDepartmentBoardKey } from '../../lib/taskDepartments'
+import TaskDepartmentFields from './TaskDepartmentFields'
 
 const PRIORITY_OPTIONS = [
   { value: 'normal', label: 'Normal' },
@@ -19,17 +20,34 @@ export default function TaskFormModal({
   isOpen,
   editingTask = null,
   defaultDepartment = 'service',
+  customDepartments = [],
+  customDepartmentIcons = {},
   employees = [],
   onClose,
   onSubmit,
   isSaving = false,
   errorMessage = '',
 }) {
-  const [form, setForm] = useState(() => buildTaskForm(editingTask, defaultDepartment))
+  const buildInitialForm = () => {
+    if (editingTask) return buildTaskForm(editingTask, 'service')
+
+    const parsed = parseDepartmentBoardKey(defaultDepartment)
+    if (parsed.department === 'custom') {
+      return {
+        ...buildTaskForm(null, 'service'),
+        department: 'custom',
+        departmentCustom: parsed.departmentCustom,
+      }
+    }
+
+    return buildTaskForm(null, defaultDepartment)
+  }
+
+  const [form, setForm] = useState(buildInitialForm)
 
   useEffect(() => {
     if (!isOpen) return
-    setForm(buildTaskForm(editingTask, defaultDepartment))
+    setForm(buildInitialForm())
   }, [isOpen, editingTask, defaultDepartment])
 
   if (!isOpen) return null
@@ -43,7 +61,6 @@ export default function TaskFormModal({
     })
   }
 
-  const showCustomDepartment = form.department === 'custom'
 
   return (
     <div className="employee-modal-backdrop task-modal-backdrop" onClick={onClose}>
@@ -79,36 +96,17 @@ export default function TaskFormModal({
               />
             </label>
 
-            <label className="form-field">
-              <span>Department</span>
-              <select
-                value={form.department}
-                onChange={(event) => setForm((current) => ({
-                  ...current,
-                  department: event.target.value,
-                  departmentCustom: event.target.value === 'custom' ? current.departmentCustom : '',
-                }))}
-              >
-                {TASK_DEPARTMENTS.map((department) => (
-                  <option key={department.key} value={department.key}>
-                    {department.label}
-                  </option>
-                ))}
-              </select>
-            </label>
-
-            {showCustomDepartment ? (
-              <label className="form-field">
-                <span>Custom department name</span>
-                <input
-                  type="text"
-                  value={form.departmentCustom}
-                  onChange={(event) => setForm((current) => ({ ...current, departmentCustom: event.target.value }))}
-                  placeholder="Department name"
-                  required
-                />
-              </label>
-            ) : null}
+            <TaskDepartmentFields
+              department={form.department}
+              departmentCustom={form.departmentCustom}
+              customDepartments={customDepartments}
+              customDepartmentIcons={customDepartmentIcons}
+              onChange={({ department, departmentCustom }) => setForm((current) => ({
+                ...current,
+                department,
+                departmentCustom,
+              }))}
+            />
 
             <label className="form-field">
               <span>Owner</span>
