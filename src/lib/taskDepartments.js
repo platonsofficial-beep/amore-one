@@ -18,9 +18,15 @@ export const TASK_DEPARTMENTS = [
     description: 'Bar leadership, standards, and shift oversight.',
   },
   {
+    key: 'floor_manager',
+    label: 'Floor Manager',
+    icon: '🧭',
+    description: 'Floor flow, section coverage, and service coordination.',
+  },
+  {
     key: 'fb',
     label: 'F&B',
-    icon: '👨‍🍳',
+    icon: '🏢',
     description: 'Food and beverage coordination across service and kitchen.',
   },
   {
@@ -32,7 +38,7 @@ export const TASK_DEPARTMENTS = [
   {
     key: 'customers',
     label: 'Customers',
-    icon: '🛎️',
+    icon: '💬',
     description: 'Guest follow-ups, VIP care, and customer-facing actions.',
   },
   {

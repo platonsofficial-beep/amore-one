@@ -18,7 +18,16 @@ create table if not exists public.tasks (
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   constraint tasks_department_check check (
-    department in ('service', 'bar', 'bar_manager', 'fb', 'logistics', 'customers', 'custom')
+    department in (
+      'service',
+      'bar',
+      'bar_manager',
+      'floor_manager',
+      'fb',
+      'logistics',
+      'customers',
+      'custom'
+    )
   ),
   constraint tasks_priority_check check (
     priority in ('normal', 'important', 'urgent')

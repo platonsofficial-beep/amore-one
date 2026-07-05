@@ -17,6 +17,7 @@ import {
   updateReservation,
 } from './services/reservationService'
 import { SeatingConfirmPanel } from './components/seating/SeatingConfirmPanel'
+import TasksView from './components/tasks/TasksView'
 import { HostReservationEditPanel, createHostReservationEditForm } from './components/reservations/HostReservationEditPanel'
 import { HostReservationEditErrorBoundary } from './components/reservations/HostReservationEditErrorBoundary'
 import { HostReservationList } from './components/reservations/HostReservationList'
@@ -88,6 +89,14 @@ import { FloorTableReservationTooltip } from './components/floor/FloorTableReser
 import { FloorTableScheduleCard } from './components/floor/FloorTableScheduleCard'
 import { createInventoryItem, deleteInventoryItem, getInventoryItems, updateInventoryItem } from './services/inventoryService'
 import { createSupplier, deleteSupplier, getSuppliers, updateSupplier } from './services/supplierService'
+import {
+  completeTask,
+  createTask,
+  deleteTask,
+  getTasks,
+  reopenTask,
+  updateTask,
+} from './services/taskService'
 import {
   addWeeks,
   formatWeekRange,
@@ -10839,6 +10848,11 @@ function App() {
     notes: '',
   })
   const [isSavingSupplier, setIsSavingSupplier] = useState(false)
+  const [tasks, setTasks] = useState([])
+  const [tasksNotice, setTasksNotice] = useState('')
+  const [tasksError, setTasksError] = useState('')
+  const [isTasksLoading, setIsTasksLoading] = useState(false)
+  const [isSavingTask, setIsSavingTask] = useState(false)
   const [employeePendingDelete, setEmployeePendingDelete] = useState(null)
   const [isDeletingEmployee, setIsDeletingEmployee] = useState(false)
   const [localNow, setLocalNow] = useState(() => getLocalNow())
@@ -11394,6 +11408,27 @@ function App() {
       isMounted = false
     }
   }, [])
+
+  const refreshTasks = useCallback(async () => {
+    setIsTasksLoading(true)
+    setTasksError('')
+
+    try {
+      const remoteTasks = await getTasks()
+      setTasks(remoteTasks)
+    } catch (error) {
+      setTasks([])
+      setTasksError(error?.message || 'Unable to load tasks right now.')
+    } finally {
+      setIsTasksLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (activeView !== 'tasks') return undefined
+    refreshTasks()
+    return undefined
+  }, [activeView, refreshTasks])
 
   useEffect(() => {
     let isMounted = true
@@ -14552,6 +14587,83 @@ function App() {
     }
   }
 
+  const handleCreateTask = async (payload) => {
+    setIsSavingTask(true)
+    setTasksNotice('')
+
+    try {
+      await createTask(payload)
+      await refreshTasks()
+      setTasksNotice('Task created successfully.')
+    } catch (error) {
+      setTasksNotice(error?.message || 'Unable to create task right now.')
+      throw error
+    } finally {
+      setIsSavingTask(false)
+    }
+  }
+
+  const handleUpdateTask = async (taskId, payload) => {
+    setIsSavingTask(true)
+    setTasksNotice('')
+
+    try {
+      await updateTask(taskId, payload)
+      await refreshTasks()
+      setTasksNotice('Task updated successfully.')
+    } catch (error) {
+      setTasksNotice(error?.message || 'Unable to update task right now.')
+      throw error
+    } finally {
+      setIsSavingTask(false)
+    }
+  }
+
+  const handleDeleteTask = async (taskId) => {
+    setIsSavingTask(true)
+    setTasksNotice('')
+
+    try {
+      await deleteTask(taskId)
+      await refreshTasks()
+      setTasksNotice('Task deleted.')
+    } catch (error) {
+      setTasksNotice(error?.message || 'Unable to delete task right now.')
+    } finally {
+      setIsSavingTask(false)
+    }
+  }
+
+  const handleCompleteTask = async (taskId) => {
+    setIsSavingTask(true)
+    setTasksNotice('')
+
+    try {
+      await completeTask(taskId)
+      await refreshTasks()
+      setTasksNotice('Task marked complete.')
+    } catch (error) {
+      setTasksNotice(error?.message || 'Unable to complete this task right now.')
+    } finally {
+      setIsSavingTask(false)
+    }
+  }
+
+  const handleReopenTask = async (taskId) => {
+    setIsSavingTask(true)
+    setTasksNotice('')
+
+    try {
+      await reopenTask(taskId)
+      await refreshTasks()
+      setTasksNotice('Task reopened.')
+    } catch (error) {
+      setTasksNotice(error?.message || 'Unable to reopen this task right now.')
+    } finally {
+      setIsSavingTask(false)
+    }
+  }
+
   const heroTitle = activeView === 'dashboard'
     ? 'Operations Command Center'
     : activeView === 'settings'
@@ -14566,6 +14678,8 @@ function App() {
             ? 'Suppliers management'
           : activeView === 'stock'
             ? 'Inventory management'
+            : activeView === 'tasks'
+              ? 'Tasks management'
             : 'Operations management'
   const heroSubtitle = activeView === 'dashboard'
     ? `${currentDateLabel} · What is happening in your business today`
@@ -14577,6 +14691,8 @@ function App() {
         ? 'Review supplier contacts, terms, and delivery cadence.'
       : activeView === 'stock'
         ? 'Monitor supply health, costs, and replenishment risk.'
+        : activeView === 'tasks'
+          ? 'Track department work, due dates, and daily completion progress.'
         : 'Search, filter, and review the full team roster.'
 
   const topbarEyebrow = activeView === 'dashboard'
@@ -14593,6 +14709,8 @@ function App() {
               ? 'Suppliers management'
               : activeView === 'stock'
                 ? 'Inventory management'
+                : activeView === 'tasks'
+                  ? 'Tasks management'
                 : 'Operations management'
 
   const handleOpenWorkspaceProfile = () => {
@@ -14690,7 +14808,7 @@ function App() {
               <span>⌕</span>
               <input
                 type="text"
-                placeholder={activeView === 'staff' ? 'Search employee' : activeView === 'stock' ? 'Search inventory item' : activeView === 'suppliers' ? 'Search supplier' : 'Search'}
+                placeholder={activeView === 'staff' ? 'Search employee' : activeView === 'stock' ? 'Search inventory item' : activeView === 'suppliers' ? 'Search supplier' : activeView === 'tasks' ? 'Search tasks' : 'Search'}
                 value={searchTerm}
                 onChange={(event) => setSearchTerm(event.target.value)}
               />
@@ -14854,6 +14972,22 @@ function App() {
             noticeMessage={inventoryNotice}
             isSaving={isSavingInventoryItem}
             searchTerm={searchTerm}
+          />
+        ) : null}
+
+        {activeView === 'tasks' ? (
+          <TasksView
+            tasks={tasks}
+            employees={scheduleEmployees}
+            isLoading={isTasksLoading}
+            isSaving={isSavingTask}
+            errorMessage={tasksError}
+            noticeMessage={tasksNotice}
+            onCreateTask={handleCreateTask}
+            onUpdateTask={handleUpdateTask}
+            onDeleteTask={handleDeleteTask}
+            onCompleteTask={handleCompleteTask}
+            onReopenTask={handleReopenTask}
           />
         ) : null}
 
