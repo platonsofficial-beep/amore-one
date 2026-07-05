@@ -11212,6 +11212,25 @@ function App() {
     }
   }, [])
 
+  const refreshTasks = useCallback(async () => {
+    setIsTasksLoading(true)
+    setTasksError('')
+
+    try {
+      const remoteTasks = await getTasks()
+      setTasks(remoteTasks)
+      setIsTasksModuleConnected(true)
+      return remoteTasks
+    } catch (error) {
+      setTasks([])
+      setTasksError(error?.message || 'Unable to load tasks right now.')
+      setIsTasksModuleConnected(!isModuleUnavailableMessage(error?.message))
+      throw error
+    } finally {
+      setIsTasksLoading(false)
+    }
+  }, [])
+
   const refreshDashboardModuleData = useCallback(async () => {
     await Promise.allSettled([
       refreshReservations(),
@@ -11458,25 +11477,6 @@ function App() {
 
     return () => {
       isMounted = false
-    }
-  }, [])
-
-  const refreshTasks = useCallback(async () => {
-    setIsTasksLoading(true)
-    setTasksError('')
-
-    try {
-      const remoteTasks = await getTasks()
-      setTasks(remoteTasks)
-      setIsTasksModuleConnected(true)
-      return remoteTasks
-    } catch (error) {
-      setTasks([])
-      setTasksError(error?.message || 'Unable to load tasks right now.')
-      setIsTasksModuleConnected(!isModuleUnavailableMessage(error?.message))
-      throw error
-    } finally {
-      setIsTasksLoading(false)
     }
   }, [])
 
