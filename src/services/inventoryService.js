@@ -26,6 +26,8 @@ function mapInventoryItem(record) {
     cost: Number(record.cost ?? 0),
     status: resolveInventoryStatus(quantity, minimumQuantity, record.status),
     notes: record.notes ?? '',
+    createdAt: record.created_at ?? record.createdAt ?? null,
+    updatedAt: record.updated_at ?? record.updatedAt ?? null,
   }
 }
 

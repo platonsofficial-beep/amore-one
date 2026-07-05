@@ -254,7 +254,6 @@ const defaultStaffPositionOptions = [
   'Manager',
 ]
 const inventoryCategories = ['Spirits', 'Wines', 'Beers', 'Soft Drinks', 'Coffee', 'Bar Supplies', 'Kitchen', 'Other']
-const inventoryStatuses = ['In Stock', 'Low Stock', 'Out of Stock']
 const scheduleAreaOptions = ['Bar', 'Service', 'Terrace', 'VIP', 'Lounge', 'Garden', 'Kitchen', 'Reception', 'Host', 'Management', 'Other']
 const areaPositionCatalog = {
   Bar: ['Bartender', 'Bar Service / PDA', 'Barback', 'Coffee', 'Bar Manager'],
@@ -10297,15 +10296,147 @@ function ReservationsView(props) {
   return <ReservationsWorkspaceBody {...props} />
 }
 
-function InventoryView({ inventoryItems, onOpenAddItem, onOpenEditItem, onDeleteItem, isLoading, noticeMessage, isSaving, searchTerm }) {
+function getInventoryStatusClass(status) {
+  if (status === 'Out of Stock') return 'inventory-out'
+  if (status === 'Low Stock') return 'inventory-low'
+  return 'inventory-in'
+}
+
+function getInventoryItemValue(item) {
+  return (Number(item?.quantity) || 0) * (Number(item?.cost) || 0)
+}
+
+function InventoryItemCard({
+  item,
+  onOpenEditItem,
+  onRequestDeleteItem,
+}) {
+  const hasUnit = hasSupplierField(item.unit)
+  const hasSupplier = hasSupplierField(item.supplier)
+  const hasNotes = hasSupplierField(item.notes)
+  const hasStockSection = true
+  const hasProcurementSection = hasSupplier || (Number(item.cost) || 0) > 0
+  const itemValue = getInventoryItemValue(item)
+  const statusClass = getInventoryStatusClass(item.status)
+  const categoryLabel = `${item.category ?? ''}`.trim() || 'Uncategorized'
+  const subtitleParts = [categoryLabel]
+  if (hasSupplier) subtitleParts.push(item.supplier)
+
+  return (
+    <article className="inventory-item-card">
+      <header className="inventory-item-card-header">
+        <div className="inventory-item-card-identity">
+          <div className="roster-avatar">{getInitials(item.itemName || 'Item')}</div>
+          <div className="inventory-item-card-title-block">
+            <strong className="inventory-item-card-name">{item.itemName || 'Unnamed item'}</strong>
+            <p className="inventory-item-card-subtitle">{subtitleParts.join(' • ')}</p>
+          </div>
+        </div>
+
+        <div className="inventory-item-card-header-aside">
+          <span className={`status-pill inventory-item-status-pill ${statusClass}`}>{item.status}</span>
+          <div className="inventory-item-card-metrics">
+            <span className="inventory-item-card-metric">
+              Qty: {item.quantity}{hasUnit ? ` ${item.unit}` : ''}
+            </span>
+            <span className="inventory-item-card-metric">
+              Value: {formatCurrency(itemValue)}
+            </span>
+          </div>
+          <div className="inventory-item-card-header-actions">
+            <button
+              type="button"
+              className="ghost-btn inventory-item-card-action-btn"
+              onClick={() => onOpenEditItem?.(item)}
+            >
+              Edit
+            </button>
+            <button
+              type="button"
+              className="ghost-btn inventory-item-card-action-btn inventory-item-card-delete-btn"
+              onClick={() => onRequestDeleteItem?.(item)}
+            >
+              Delete
+            </button>
+          </div>
+        </div>
+      </header>
+
+      {hasStockSection ? (
+        <section className="inventory-item-card-section">
+          <p className="inventory-item-card-section-label">Stock</p>
+          <ul className="inventory-item-card-detail-list">
+            <li>
+              <span className="inventory-item-card-detail-name">Current Quantity</span>
+              <span className="inventory-item-card-detail-value">{item.quantity}</span>
+            </li>
+            <li>
+              <span className="inventory-item-card-detail-name">Par Level</span>
+              <span className="inventory-item-card-detail-value">{item.minimumQuantity}</span>
+            </li>
+            {hasUnit ? (
+              <li>
+                <span className="inventory-item-card-detail-name">Unit</span>
+                <span className="inventory-item-card-detail-value">{item.unit}</span>
+              </li>
+            ) : null}
+          </ul>
+        </section>
+      ) : null}
+
+      {hasProcurementSection ? (
+        <section className="inventory-item-card-section">
+          <p className="inventory-item-card-section-label">Procurement</p>
+          <ul className="inventory-item-card-detail-list">
+            {hasSupplier ? (
+              <li>
+                <span className="inventory-item-card-detail-name">Supplier</span>
+                <span className="inventory-item-card-detail-value">{item.supplier}</span>
+              </li>
+            ) : null}
+            {(Number(item.cost) || 0) > 0 ? (
+              <li>
+                <span className="inventory-item-card-detail-name">Unit Cost</span>
+                <span className="inventory-item-card-detail-value">{formatCurrency(item.cost)}</span>
+              </li>
+            ) : null}
+          </ul>
+        </section>
+      ) : null}
+
+      {hasNotes ? (
+        <section className="inventory-item-card-section">
+          <p className="inventory-item-card-section-label">Notes</p>
+          <p className="inventory-item-card-notes">{item.notes}</p>
+        </section>
+      ) : null}
+    </article>
+  )
+}
+
+function InventoryView({
+  inventoryItems,
+  onOpenAddItem,
+  onOpenEditItem,
+  onRequestDeleteItem,
+  isLoading,
+  noticeMessage,
+  isSaving,
+  searchTerm,
+}) {
+  const [categoryFilter, setCategoryFilter] = useState('All')
+
   const filteredItems = useMemo(() => {
     const needle = `${searchTerm}`.trim().toLowerCase()
-    if (!needle) return inventoryItems
 
-    return inventoryItems.filter((item) => (
-      `${item.itemName} ${item.category} ${item.supplier} ${item.area ?? ''}`.toLowerCase().includes(needle)
-    ))
-  }, [inventoryItems, searchTerm])
+    return inventoryItems.filter((item) => {
+      const matchesCategory = categoryFilter === 'All' || item.category === categoryFilter
+      if (!matchesCategory) return false
+      if (!needle) return true
+
+      return `${item.itemName} ${item.category} ${item.supplier}`.toLowerCase().includes(needle)
+    })
+  }, [inventoryItems, searchTerm, categoryFilter])
 
   const overview = useMemo(() => {
     const totalItems = inventoryItems.length
@@ -10356,6 +10487,26 @@ function InventoryView({ inventoryItems, onOpenAddItem, onOpenEditItem, onDelete
       {noticeMessage ? <div className="staff-status-banner">{noticeMessage}</div> : null}
       {isLoading ? <div className="staff-status-banner">Loading inventory…</div> : null}
 
+      <div className="inventory-category-filters" role="group" aria-label="Filter by category">
+        <button
+          type="button"
+          className={`filter-chip${categoryFilter === 'All' ? ' active' : ''}`}
+          onClick={() => setCategoryFilter('All')}
+        >
+          All Categories
+        </button>
+        {inventoryCategories.map((category) => (
+          <button
+            key={category}
+            type="button"
+            className={`filter-chip${categoryFilter === category ? ' active' : ''}`}
+            onClick={() => setCategoryFilter(category)}
+          >
+            {category}
+          </button>
+        ))}
+      </div>
+
       <div className="panel staff-panel">
         <div className="panel-heading">
           <div>
@@ -10366,39 +10517,18 @@ function InventoryView({ inventoryItems, onOpenAddItem, onOpenEditItem, onDelete
 
         {filteredItems.length === 0 && !isLoading ? (
           <div className="schedule-empty-state">
-            <h4>No inventory items yet.</h4>
-            <p>Add your first item to begin inventory tracking.</p>
+            <h4>{inventoryItems.length === 0 ? 'No inventory items yet.' : 'No items match this filter.'}</h4>
+            <p>{inventoryItems.length === 0 ? 'Add your first item to begin inventory tracking.' : 'Try another category or search term.'}</p>
           </div>
         ) : (
-          <div className="roster-shift-list">
+          <div className="inventory-item-card-list">
             {filteredItems.map((item) => (
-              <article key={item.id} className="roster-shift-card inventory-item-card">
-                <div className="roster-shift-main">
-                  <div className="roster-avatar">{getInitials(item.itemName || 'Item')}</div>
-                  <div className="roster-shift-copy">
-                    <strong>{item.itemName || 'Unnamed item'}</strong>
-                    <p>{item.category} • {item.supplier || 'No supplier'}</p>
-                  </div>
-                </div>
-
-                <div className="roster-shift-meta">
-                  <span>Unit: {item.unit || '—'}</span>
-                  <span>Qty: {item.quantity}</span>
-                </div>
-                <div className="roster-shift-meta">
-                  <span>Minimum: {item.minimumQuantity}</span>
-                  <span>Cost: {formatCurrency(item.cost)}</span>
-                </div>
-                <div className="roster-shift-meta">
-                  <span>Notes: {item.notes || 'No notes'}</span>
-                  <span className={`status-pill ${item.status === 'Out of Stock' ? 'inventory-out' : item.status === 'Low Stock' ? 'inventory-low' : 'inventory-in'}`}>{item.status}</span>
-                </div>
-
-                <div className="action-group" style={{ marginTop: '12px' }}>
-                  <button type="button" className="ghost-btn" onClick={() => onOpenEditItem(item)}>Edit</button>
-                  <button type="button" className="ghost-btn" onClick={() => onDeleteItem(item.id)}>Delete</button>
-                </div>
-              </article>
+              <InventoryItemCard
+                key={item.id}
+                item={item}
+                onOpenEditItem={onOpenEditItem}
+                onRequestDeleteItem={onRequestDeleteItem}
+              />
             ))}
           </div>
         )}
@@ -11085,10 +11215,11 @@ function App() {
     quantity: '0',
     minimumQuantity: '0',
     cost: '0',
-    status: 'In Stock',
     notes: '',
   })
   const [isSavingInventoryItem, setIsSavingInventoryItem] = useState(false)
+  const [inventoryPendingDelete, setInventoryPendingDelete] = useState(null)
+  const [isDeletingInventoryItem, setIsDeletingInventoryItem] = useState(false)
   const [suppliers, setSuppliers] = useState([])
   const [suppliersNotice, setSuppliersNotice] = useState('')
   const [isSuppliersLoading, setIsSuppliersLoading] = useState(true)
@@ -14748,7 +14879,6 @@ function App() {
       quantity: '0',
       minimumQuantity: '0',
       cost: '0',
-      status: 'In Stock',
       notes: '',
     })
     setIsInventoryModalOpen(true)
@@ -14764,7 +14894,6 @@ function App() {
       quantity: `${item.quantity ?? 0}`,
       minimumQuantity: `${item.minimumQuantity ?? 0}`,
       cost: `${item.cost ?? 0}`,
-      status: item.status ?? 'In Stock',
       notes: item.notes ?? '',
     })
     setIsInventoryModalOpen(true)
@@ -14781,18 +14910,35 @@ function App() {
       quantity: '0',
       minimumQuantity: '0',
       cost: '0',
-      status: 'In Stock',
       notes: '',
     })
   }
 
-  const handleDeleteInventoryItem = async (id) => {
+  const handleRequestDeleteInventoryItem = (item) => {
+    if (!item?.id) return
+    setInventoryPendingDelete(item)
+  }
+
+  const handleCloseDeleteInventoryModal = () => {
+    if (isDeletingInventoryItem) return
+    setInventoryPendingDelete(null)
+  }
+
+  const handleConfirmDeleteInventoryItem = async () => {
+    if (!inventoryPendingDelete?.id) return
+
+    setIsDeletingInventoryItem(true)
+    setInventoryNotice('')
+
     try {
-      await deleteInventoryItem(id)
+      await deleteInventoryItem(inventoryPendingDelete.id)
       await refreshInventory()
       setInventoryNotice('Inventory item removed.')
+      setInventoryPendingDelete(null)
     } catch (error) {
       setInventoryNotice(error.message || 'Unable to delete inventory item right now.')
+    } finally {
+      setIsDeletingInventoryItem(false)
     }
   }
 
@@ -14809,7 +14955,7 @@ function App() {
 
     const quantity = Number(inventoryForm.quantity) || 0
     const minimumQuantity = Number(inventoryForm.minimumQuantity) || 0
-    const resolvedStatus = getInventoryStatus(quantity, minimumQuantity, inventoryForm.status)
+    const resolvedStatus = getInventoryStatus(quantity, minimumQuantity)
 
     const payload = {
       itemName: inventoryForm.itemName.trim(),
@@ -15280,6 +15426,14 @@ function App() {
     [suppliers, inventoryForm.supplier],
   )
 
+  const inventoryFormStatus = useMemo(
+    () => getInventoryStatus(
+      Number(inventoryForm.quantity) || 0,
+      Number(inventoryForm.minimumQuantity) || 0,
+    ),
+    [inventoryForm.quantity, inventoryForm.minimumQuantity],
+  )
+
   const handleOpenWorkspaceProfile = () => {
     setActiveView('settings')
     setSettingsSection('profile')
@@ -15539,7 +15693,7 @@ function App() {
             inventoryItems={inventoryItems}
             onOpenAddItem={handleOpenAddInventoryItem}
             onOpenEditItem={handleOpenEditInventoryItem}
-            onDeleteItem={handleDeleteInventoryItem}
+            onRequestDeleteItem={handleRequestDeleteInventoryItem}
             isLoading={isInventoryLoading}
             noticeMessage={inventoryNotice}
             isSaving={isSavingInventoryItem}
@@ -16188,8 +16342,8 @@ function App() {
         ) : null}
 
         {isInventoryModalOpen ? (
-          <div className="employee-modal-backdrop" onClick={handleCloseInventoryModal}>
-            <div className="employee-modal" onClick={(event) => event.stopPropagation()}>
+          <div className="employee-modal-backdrop task-modal-backdrop" onClick={handleCloseInventoryModal}>
+            <div className="employee-modal task-form-modal is-responsive-sheet" onClick={(event) => event.stopPropagation()}>
               <div className="drawer-header">
                 <div>
                   <p className="eyebrow">Inventory form</p>
@@ -16245,21 +16399,20 @@ function App() {
                     <input type="number" min="0" value={inventoryForm.quantity} onChange={(event) => setInventoryForm((current) => ({ ...current, quantity: event.target.value }))} required />
                   </label>
                   <label className="form-field">
-                    <span>Minimum Quantity</span>
+                    <span>Par Level</span>
                     <input type="number" min="0" value={inventoryForm.minimumQuantity} onChange={(event) => setInventoryForm((current) => ({ ...current, minimumQuantity: event.target.value }))} required />
                   </label>
                   <label className="form-field">
-                    <span>Cost</span>
+                    <span>Unit Cost</span>
                     <input type="number" min="0" step="0.01" value={inventoryForm.cost} onChange={(event) => setInventoryForm((current) => ({ ...current, cost: event.target.value }))} required />
                   </label>
-                  <label className="form-field">
+                  <div className="form-field inventory-status-preview">
                     <span>Status</span>
-                    <select value={inventoryForm.status} onChange={(event) => setInventoryForm((current) => ({ ...current, status: event.target.value }))}>
-                      {inventoryStatuses.map((status) => (
-                        <option key={status} value={status}>{status}</option>
-                      ))}
-                    </select>
-                  </label>
+                    <p className={`inventory-status-preview-value status-pill ${getInventoryStatusClass(inventoryFormStatus)}`}>
+                      {inventoryFormStatus}
+                    </p>
+                    <p className="inventory-status-preview-hint">Computed from quantity and par level.</p>
+                  </div>
                 </div>
 
                 <label className="form-field full-width">
@@ -16268,12 +16421,52 @@ function App() {
                 </label>
 
                 <div className="modal-actions">
-                  <button type="button" className="ghost-btn" onClick={handleCloseInventoryModal}>Cancel</button>
-                  <button type="submit" className="primary-btn" disabled={isSavingInventoryItem}>
+                  <button type="button" className="ghost-btn inventory-modal-action-btn" onClick={handleCloseInventoryModal}>Cancel</button>
+                  <button type="submit" className="primary-btn inventory-modal-action-btn" disabled={isSavingInventoryItem}>
                     {isSavingInventoryItem ? 'Saving…' : 'Save'}
                   </button>
                 </div>
               </form>
+            </div>
+          </div>
+        ) : null}
+
+        {inventoryPendingDelete ? (
+          <div className="employee-modal-backdrop task-modal-backdrop" onClick={handleCloseDeleteInventoryModal}>
+            <div
+              className="employee-modal task-form-modal is-responsive-sheet"
+              onClick={(event) => event.stopPropagation()}
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="delete-inventory-title"
+            >
+              <div className="drawer-header">
+                <div>
+                  <p className="eyebrow">Delete confirmation</p>
+                  <h3 id="delete-inventory-title">Delete stock item?</h3>
+                </div>
+                <button type="button" className="icon-btn" onClick={handleCloseDeleteInventoryModal} aria-label="Close delete stock item dialog">
+                  ✕
+                </button>
+              </div>
+
+              <div className="inventory-delete-modal-body">
+                <p>This cannot be undone.</p>
+                {inventoryPendingDelete.itemName ? (
+                  <p className="inventory-delete-item-name">
+                    <strong>{inventoryPendingDelete.itemName}</strong>
+                  </p>
+                ) : null}
+              </div>
+
+              <div className="modal-actions">
+                <button type="button" className="ghost-btn inventory-modal-action-btn" onClick={handleCloseDeleteInventoryModal} disabled={isDeletingInventoryItem}>
+                  Cancel
+                </button>
+                <button type="button" className="primary-btn inventory-delete-confirm-btn inventory-modal-action-btn" onClick={handleConfirmDeleteInventoryItem} disabled={isDeletingInventoryItem}>
+                  {isDeletingInventoryItem ? 'Deleting…' : 'Delete Item'}
+                </button>
+              </div>
             </div>
           </div>
         ) : null}
