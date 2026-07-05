@@ -88,6 +88,51 @@ import { FloorPlanReservationLinks } from './components/floor/FloorPlanReservati
 import { FloorTableReservationTooltip } from './components/floor/FloorTableReservationTooltip'
 import { FloorTableScheduleCard } from './components/floor/FloorTableScheduleCard'
 import { createInventoryItem, deleteInventoryItem, getInventoryItems, updateInventoryItem } from './services/inventoryService'
+import {
+  completeBarRefill,
+  createBarRefill,
+  getBarRefills,
+  updateBarRefill,
+  updateBarRefillItem,
+} from './services/barRefillService'
+import {
+  buildInventoryReorderCopyText,
+  buildInventoryReorderSummary,
+  formatInventoryOrderQtyDetail,
+  getInventoryOrderNeeded,
+  getInventoryStockHealthPercent,
+  getInventoryStockHealthTone,
+  getInventoryUnitSelectValue,
+  isInventoryParConfigured,
+  INVENTORY_TARGET_STOCK_LABEL,
+  INVENTORY_UNIT_CUSTOM_VALUE,
+  INVENTORY_UNIT_PRESETS,
+  isInventoryUnitPreset,
+  needsOrder,
+} from './lib/inventoryUtils'
+import {
+  filterInventoryItemsBySubcategory,
+  filterInventoryItemsForBarRefill,
+  formatInventoryBarRefillOptionLabel,
+  formatInventoryCategoryPath,
+  getInventoryBarRefillCategoryOptions,
+  getInventoryCategoryFilters,
+  getInventorySubcategories,
+  getInventorySubcategoryFilters,
+  getInventorySubcategoryLabel,
+  getInventorySubcategoryOptionsForCategory,
+  groupInventoryItemsByCategoryAndSubcategory,
+  groupInventoryItemsBySubcategory,
+  INVENTORY_CATEGORIES,
+  INVENTORY_CUSTOM_CATEGORY_VALUE,
+  INVENTORY_CUSTOM_SUBCATEGORY_VALUE,
+  INVENTORY_NO_SUBCATEGORY_VALUE,
+  resolveInventoryCategoryForForm,
+  resolveInventoryCategoryForSave,
+  resolveInventorySubcategoryForForm,
+  resolveInventorySubcategoryForSave,
+  sortInventoryItemsForBarRefill,
+} from './lib/inventoryCategories'
 import { createSupplier, deleteSupplier, getSuppliers, updateSupplier } from './services/supplierService'
 import {
   completeTask,
@@ -253,7 +298,6 @@ const defaultStaffPositionOptions = [
   'Cashier',
   'Manager',
 ]
-const inventoryCategories = ['Spirits', 'Wines', 'Beers', 'Soft Drinks', 'Coffee', 'Bar Supplies', 'Kitchen', 'Other']
 const scheduleAreaOptions = ['Bar', 'Service', 'Terrace', 'VIP', 'Lounge', 'Garden', 'Kitchen', 'Reception', 'Host', 'Management', 'Other']
 const areaPositionCatalog = {
   Bar: ['Bartender', 'Bar Service / PDA', 'Barback', 'Coffee', 'Bar Manager'],
@@ -10306,6 +10350,879 @@ function getInventoryItemValue(item) {
   return (Number(item?.quantity) || 0) * (Number(item?.cost) || 0)
 }
 
+function formatInventoryOrderNeed(orderNeeded, unit) {
+  const trimmedUnit = `${unit ?? ''}`.trim()
+  return trimmedUnit ? `${orderNeeded} ${trimmedUnit}` : `${orderNeeded}`
+}
+
+function InventoryUnitField({ value, onChange, disabled = false }) {
+  const selectValue = getInventoryUnitSelectValue(value)
+  const showCustomInput = selectValue === INVENTORY_UNIT_CUSTOM_VALUE
+
+  return (
+    <div className="inventory-unit-field">
+      <select
+        className="inventory-unit-select"
+        value={selectValue}
+        disabled={disabled}
+        onChange={(event) => {
+          const nextValue = event.target.value
+          if (nextValue === INVENTORY_UNIT_CUSTOM_VALUE) {
+            onChange(isInventoryUnitPreset(value) ? '' : `${value ?? ''}`.trim())
+            return
+          }
+          onChange(nextValue)
+        }}
+      >
+        <option value="">Select unit</option>
+        {INVENTORY_UNIT_PRESETS.map((preset) => (
+          <option key={preset} value={preset}>{preset}</option>
+        ))}
+        <option value={INVENTORY_UNIT_CUSTOM_VALUE}>Custom</option>
+      </select>
+      {showCustomInput ? (
+        <input
+          className="inventory-unit-custom-input"
+          value={value ?? ''}
+          disabled={disabled}
+          onChange={(event) => onChange(event.target.value)}
+          placeholder="Enter custom unit"
+        />
+      ) : null}
+    </div>
+  )
+}
+
+function InventoryReorderContent({
+  items,
+  onOpenEditItem,
+  copyNotice,
+  onCopyNotice,
+  showActions = true,
+  onClose,
+}) {
+  const summary = useMemo(() => buildInventoryReorderSummary(items), [items])
+
+  const handleCopyOrder = async () => {
+    if (summary.reorderCount === 0) return
+
+    const text = buildInventoryReorderCopyText(summary)
+
+    try {
+      if (!navigator?.clipboard?.writeText) {
+        throw new Error('Clipboard unavailable')
+      }
+      await navigator.clipboard.writeText(text)
+      onCopyNotice?.('Order copied to clipboard.')
+    } catch {
+      onCopyNotice?.('Unable to copy reorder list. Please try again or copy manually.')
+    }
+  }
+
+  return (
+    <>
+      {copyNotice ? (
+        <div className="staff-status-banner inventory-reorder-copy-notice">{copyNotice}</div>
+      ) : null}
+
+      {summary.reorderCount === 0 ? (
+        <div className="schedule-empty-state inventory-reorder-empty">
+          <h4>All stock is at or above target.</h4>
+          <p>No reorder quantities are needed right now.</p>
+        </div>
+      ) : (
+        <>
+          <div className="inventory-reorder-groups">
+            {summary.groups.map((group) => (
+              <section key={group.supplier} className="inventory-reorder-group">
+                <header className="inventory-reorder-group-header">
+                  <h4>{group.supplier}</h4>
+                  <span className="inventory-reorder-group-total">
+                    Est. supplier total: {formatCurrency(group.supplierTotal)}
+                  </span>
+                </header>
+                <ul className="inventory-reorder-item-list">
+                  {group.rows.map((row) => (
+                    <li key={row.item.id} className="inventory-reorder-item">
+                      <article className="inventory-reorder-row">
+                        <div className="inventory-reorder-row-main">
+                          <strong>{row.item.itemName || 'Unnamed item'}</strong>
+                          <dl className="inventory-reorder-row-details">
+                            <div>
+                              <dt>Current</dt>
+                              <dd>{row.item.quantity}</dd>
+                            </div>
+                            <div>
+                              <dt>Target</dt>
+                              <dd>{row.item.minimumQuantity}</dd>
+                            </div>
+                            <div>
+                              <dt>Order Qty</dt>
+                              <dd>{formatInventoryOrderQtyDetail(row.orderNeeded, row.item.unit)}</dd>
+                            </div>
+                            <div>
+                              <dt>Unit Cost</dt>
+                              <dd>{formatCurrency(row.unitCost)}</dd>
+                            </div>
+                            <div>
+                              <dt>Estimated Cost</dt>
+                              <dd>{formatCurrency(row.estimatedCost)}</dd>
+                            </div>
+                          </dl>
+                        </div>
+                        <button
+                          type="button"
+                          className="ghost-btn inventory-reorder-row-edit"
+                          onClick={() => onOpenEditItem?.(row.item)}
+                        >
+                          Edit
+                        </button>
+                      </article>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            ))}
+          </div>
+
+          <div className="inventory-reorder-overall-total">
+            <span>Estimated order total</span>
+            <strong>{formatCurrency(summary.overallTotal)}</strong>
+          </div>
+        </>
+      )}
+
+      {showActions ? (
+        <div className="modal-actions inventory-reorder-modal-actions">
+          {onClose ? (
+            <button type="button" className="ghost-btn inventory-modal-action-btn" onClick={onClose}>
+              Close
+            </button>
+          ) : null}
+          <button
+            type="button"
+            className="primary-btn inventory-modal-action-btn"
+            onClick={handleCopyOrder}
+            disabled={summary.reorderCount === 0}
+          >
+            Copy Order
+          </button>
+        </div>
+      ) : null}
+    </>
+  )
+}
+
+function buildBarRefillFormRow() {
+  return {
+    rowKey: `bar-refill-row-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    category: '',
+    subcategory: '',
+    inventoryItemId: '',
+    itemName: '',
+    requestedQuantity: '1',
+    unit: '',
+    notes: '',
+  }
+}
+
+function normalizeBarRefillInventoryItemId(value) {
+  const trimmed = `${value ?? ''}`.trim()
+  if (!trimmed || trimmed.toLowerCase() === 'nan') return null
+  return trimmed
+}
+
+function formatBarRefillStatusLabel(status) {
+  if (status === 'picked') return 'Picked'
+  if (status === 'cancelled') return 'Cancelled'
+  return 'Draft'
+}
+
+function formatBarRefillHistoryStatusLabel(status) {
+  if (status === 'picked') return 'Completed'
+  if (status === 'cancelled') return 'Cancelled'
+  return formatBarRefillStatusLabel(status)
+}
+
+function formatBarRefillDisplayDate(value) {
+  if (!value) return '—'
+  const parsed = new Date(`${value}T00:00:00`)
+  if (Number.isNaN(parsed.getTime())) return `${value}`
+  return parsed.toLocaleDateString('en-GB', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+  })
+}
+
+function formatBarRefillDisplayNumber(refill) {
+  const id = Number(refill?.id)
+  if (Number.isFinite(id) && id > 0) return `#${id}`
+  return ''
+}
+
+function matchesStockStatusFilter(item, statusFilter) {
+  if (statusFilter === 'need-order') return needsOrder(item)
+  if (statusFilter === 'low-stock') return item.status === 'Low Stock'
+  if (statusFilter === 'out-of-stock') return item.status === 'Out of Stock'
+  return true
+}
+
+function formatBarRefillQuantityLine(quantity, unit) {
+  const trimmedUnit = `${unit ?? ''}`.trim()
+  return trimmedUnit ? `${quantity} ${trimmedUnit}` : `${quantity}`
+}
+
+function BarRefillNewModal({
+  isOpen,
+  onClose,
+  inventoryItems,
+  defaultRefillDate,
+  defaultCreatedBy,
+  isSaving,
+  onSaveDraft,
+}) {
+  const [form, setForm] = useState({
+    refillDate: defaultRefillDate,
+    createdBy: defaultCreatedBy,
+    notes: '',
+    rows: [buildBarRefillFormRow()],
+  })
+
+  useEffect(() => {
+    if (!isOpen) return
+    setForm({
+      refillDate: defaultRefillDate,
+      createdBy: defaultCreatedBy,
+      notes: '',
+      rows: [buildBarRefillFormRow()],
+    })
+  }, [isOpen, defaultRefillDate, defaultCreatedBy])
+
+  const inventoryOptions = useMemo(
+    () => sortInventoryItemsForBarRefill(inventoryItems ?? []).map((item) => ({
+      value: `${item.id}`,
+      label: formatInventoryBarRefillOptionLabel(item),
+      unit: item.unit ?? '',
+      itemName: item.itemName || 'Unnamed item',
+      category: item.category ?? 'Other',
+      subcategory: getInventorySubcategoryLabel(item),
+    })),
+    [inventoryItems],
+  )
+
+  const barRefillCategoryOptions = useMemo(
+    () => getInventoryBarRefillCategoryOptions(inventoryItems),
+    [inventoryItems],
+  )
+
+  const handleCategoryChange = (rowKey, category) => {
+    const nextSubcategory = getInventorySubcategoryOptionsForCategory(category, inventoryItems)[0] ?? ''
+    setForm((current) => ({
+      ...current,
+      rows: current.rows.map((row) => (
+        row.rowKey === rowKey
+          ? {
+              ...row,
+              category,
+              subcategory: nextSubcategory,
+              inventoryItemId: '',
+              itemName: '',
+              unit: '',
+            }
+          : row
+      )),
+    }))
+  }
+
+  const handleSubcategoryChange = (rowKey, subcategory) => {
+    setForm((current) => ({
+      ...current,
+      rows: current.rows.map((row) => (
+        row.rowKey === rowKey
+          ? {
+              ...row,
+              subcategory,
+              inventoryItemId: '',
+              itemName: '',
+              unit: '',
+            }
+          : row
+      )),
+    }))
+  }
+
+  const handleInventoryChange = (rowKey, inventoryItemId) => {
+    const selected = inventoryOptions.find((option) => option.value === inventoryItemId)
+    setForm((current) => ({
+      ...current,
+      rows: current.rows.map((row) => (
+        row.rowKey === rowKey
+          ? {
+              ...row,
+              inventoryItemId,
+              itemName: selected?.itemName ?? '',
+              unit: selected?.unit ?? '',
+            }
+          : row
+      )),
+    }))
+  }
+
+  const handleSubmit = async (event) => {
+    event.preventDefault()
+    const validRows = form.rows.filter((row) => `${row.itemName ?? ''}`.trim())
+
+    if (validRows.length === 0) {
+      return
+    }
+
+    await onSaveDraft?.({
+      refillDate: form.refillDate,
+      createdBy: form.createdBy.trim(),
+      notes: form.notes.trim(),
+      items: validRows.map((row) => ({
+        inventoryItemId: normalizeBarRefillInventoryItemId(row.inventoryItemId),
+        itemName: row.itemName.trim(),
+        requestedQuantity: Number(row.requestedQuantity) || 0,
+        unit: row.unit.trim(),
+        notes: row.notes.trim(),
+      })),
+    })
+  }
+
+  if (!isOpen) return null
+
+  return (
+    <div className="employee-modal-backdrop task-modal-backdrop" onClick={onClose}>
+      <div
+        className="employee-modal task-form-modal is-responsive-sheet bar-refill-modal"
+        onClick={(event) => event.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="bar-refill-new-title"
+      >
+        <div className="drawer-header">
+          <div>
+            <p className="eyebrow">Bar refill</p>
+            <h3 id="bar-refill-new-title">New Bar Refill</h3>
+            <p className="staff-subtitle">Record what the bar needs from warehouse storage.</p>
+          </div>
+          <button type="button" className="icon-btn" onClick={onClose} aria-label="Close new bar refill form">
+            ✕
+          </button>
+        </div>
+
+        <form className="employee-form" onSubmit={handleSubmit}>
+          <div className="form-grid">
+            <label className="form-field">
+              <span>Date</span>
+              <input
+                type="date"
+                value={form.refillDate}
+                onChange={(event) => setForm((current) => ({ ...current, refillDate: event.target.value }))}
+                required
+              />
+            </label>
+            <label className="form-field">
+              <span>Created by</span>
+              <input
+                value={form.createdBy}
+                onChange={(event) => setForm((current) => ({ ...current, createdBy: event.target.value }))}
+                placeholder="Bar staff name"
+              />
+            </label>
+          </div>
+
+          <label className="form-field full-width">
+            <span>Notes</span>
+            <textarea
+              rows="3"
+              value={form.notes}
+              onChange={(event) => setForm((current) => ({ ...current, notes: event.target.value }))}
+              placeholder="Shift notes or pickup context"
+            />
+          </label>
+
+          <div className="bar-refill-form-rows">
+            <div className="bar-refill-form-rows-header">
+              <p className="eyebrow">Requested items</p>
+              <button
+                type="button"
+                className="ghost-btn bar-refill-add-row-btn"
+                onClick={() => setForm((current) => ({
+                  ...current,
+                  rows: [...current.rows, buildBarRefillFormRow()],
+                }))}
+              >
+                + Add row
+              </button>
+            </div>
+
+            {form.rows.map((row) => {
+              const subcategoryOptions = row.category
+                ? getInventorySubcategoryOptionsForCategory(row.category, inventoryItems)
+                : []
+              const productOptions = filterInventoryItemsForBarRefill(
+                inventoryItems,
+                row.category,
+                row.subcategory,
+              )
+
+              return (
+              <article key={row.rowKey} className="bar-refill-form-row">
+                <label className="form-field">
+                  <span>Category</span>
+                  <select
+                    value={row.category}
+                    onChange={(event) => handleCategoryChange(row.rowKey, event.target.value)}
+                    required
+                  >
+                    <option value="">Select category</option>
+                    {barRefillCategoryOptions.map((category) => (
+                      <option key={category} value={category}>{category}</option>
+                    ))}
+                  </select>
+                </label>
+                <label className="form-field">
+                  <span>Subcategory</span>
+                  <select
+                    value={row.subcategory}
+                    onChange={(event) => handleSubcategoryChange(row.rowKey, event.target.value)}
+                    required
+                    disabled={!row.category}
+                  >
+                    <option value="">Select subcategory</option>
+                    {subcategoryOptions.map((subcategory) => (
+                      <option key={subcategory} value={subcategory}>{subcategory}</option>
+                    ))}
+                  </select>
+                </label>
+                <label className="form-field">
+                  <span>Product</span>
+                  <select
+                    value={row.inventoryItemId}
+                    onChange={(event) => handleInventoryChange(row.rowKey, event.target.value)}
+                    required
+                    disabled={!row.category || !row.subcategory}
+                  >
+                    <option value="">Select product</option>
+                    {productOptions.map((item) => (
+                      <option key={item.id} value={`${item.id}`}>{formatInventoryBarRefillOptionLabel(item)}</option>
+                    ))}
+                  </select>
+                </label>
+                <label className="form-field">
+                  <span>Requested quantity</span>
+                  <input
+                    type="number"
+                    min="0"
+                    step="any"
+                    value={row.requestedQuantity}
+                    onChange={(event) => setForm((current) => ({
+                      ...current,
+                      rows: current.rows.map((entry) => (
+                        entry.rowKey === row.rowKey
+                          ? { ...entry, requestedQuantity: event.target.value }
+                          : entry
+                      )),
+                    }))}
+                    required
+                  />
+                </label>
+                <label className="form-field">
+                  <span>Unit</span>
+                  <input value={row.unit} readOnly placeholder="Auto-filled" />
+                </label>
+                <label className="form-field">
+                  <span>Notes</span>
+                  <input
+                    value={row.notes}
+                    onChange={(event) => setForm((current) => ({
+                      ...current,
+                      rows: current.rows.map((entry) => (
+                        entry.rowKey === row.rowKey
+                          ? { ...entry, notes: event.target.value }
+                          : entry
+                      )),
+                    }))}
+                    placeholder="Optional"
+                  />
+                </label>
+                {form.rows.length > 1 ? (
+                  <button
+                    type="button"
+                    className="ghost-btn bar-refill-remove-row-btn"
+                    onClick={() => setForm((current) => ({
+                      ...current,
+                      rows: current.rows.filter((entry) => entry.rowKey !== row.rowKey),
+                    }))}
+                  >
+                    Remove
+                  </button>
+                ) : null}
+              </article>
+              )
+            })}
+          </div>
+
+          <div className="modal-actions">
+            <button type="button" className="ghost-btn inventory-modal-action-btn" onClick={onClose} disabled={isSaving}>
+              Cancel
+            </button>
+            <button type="submit" className="primary-btn inventory-modal-action-btn" disabled={isSaving}>
+              {isSaving ? 'Saving…' : 'Save Draft'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  )
+}
+
+function BarRefillCard({
+  refill,
+  isSaving,
+  onSaveChanges,
+  onCompletePickup,
+  onCancelRefill,
+}) {
+  const isReadOnly = refill.status !== 'draft'
+  const [notes, setNotes] = useState(refill.notes ?? '')
+  const [itemEdits, setItemEdits] = useState(() => (
+    (refill.items ?? []).map((item) => ({
+      id: item.id,
+      pickedQuantity: `${item.pickedQuantity ?? ''}`,
+      isPicked: Boolean(item.isPicked),
+      requestedQuantity: item.requestedQuantity,
+      unit: item.unit,
+      itemName: item.itemName,
+    }))
+  ))
+
+  useEffect(() => {
+    setNotes(refill.notes ?? '')
+    setItemEdits((refill.items ?? []).map((item) => ({
+      id: item.id,
+      pickedQuantity: `${item.pickedQuantity ?? ''}`,
+      isPicked: Boolean(item.isPicked),
+      requestedQuantity: item.requestedQuantity,
+      unit: item.unit,
+      itemName: item.itemName,
+    })))
+  }, [refill])
+
+  const handleUseRequested = (itemId) => {
+    setItemEdits((current) => current.map((item) => (
+      item.id === itemId
+        ? { ...item, pickedQuantity: `${item.requestedQuantity ?? 0}` }
+        : item
+    )))
+  }
+
+  const handleSaveChanges = () => {
+    onSaveChanges?.(refill.id, {
+      notes: notes.trim(),
+      items: itemEdits.map((item) => ({
+        id: item.id,
+        pickedQuantity: Number(item.pickedQuantity) || 0,
+        isPicked: item.isPicked,
+      })),
+    })
+  }
+
+  return (
+    <article className={`bar-refill-card${isReadOnly ? ' bar-refill-card-readonly bar-refill-history-card' : ''}`}>
+      {isReadOnly ? (
+        <>
+          <header className="bar-refill-history-header">
+            <h4 className="bar-refill-history-title">
+              BAR REFILL {formatBarRefillDisplayNumber(refill)}
+            </h4>
+            <span className={`status-pill bar-refill-status-pill bar-refill-status-${refill.status}`}>
+              {formatBarRefillHistoryStatusLabel(refill.status)}
+            </span>
+          </header>
+
+          <dl className="bar-refill-history-meta">
+            <div className="bar-refill-history-meta-row">
+              <dt>Date</dt>
+              <dd>{formatBarRefillDisplayDate(refill.refillDate)}</dd>
+            </div>
+            <div className="bar-refill-history-meta-row">
+              <dt>Created by</dt>
+              <dd>{refill.createdBy?.trim() || '—'}</dd>
+            </div>
+            <div className="bar-refill-history-meta-row">
+              <dt>Status</dt>
+              <dd>{formatBarRefillHistoryStatusLabel(refill.status)}</dd>
+            </div>
+          </dl>
+
+          {refill.notes ? (
+            <div className="bar-refill-card-notes bar-refill-history-notes">
+              <span className="inventory-item-card-section-label">Notes</span>
+              <p>{refill.notes}</p>
+            </div>
+          ) : null}
+
+          <div className="bar-refill-items bar-refill-history-items">
+            <p className="inventory-item-card-section-label">Items</p>
+            <ul className="bar-refill-item-list bar-refill-history-item-list">
+              {itemEdits.map((item) => (
+                <li key={item.id} className="bar-refill-history-item">
+                  <strong className="bar-refill-history-item-name">{item.itemName || 'Unnamed item'}</strong>
+                  <p className="bar-refill-history-item-line">
+                    Requested: {formatBarRefillQuantityLine(item.requestedQuantity, item.unit)}
+                  </p>
+                  <p className="bar-refill-history-item-line">
+                    Picked: {formatBarRefillQuantityLine(Number(item.pickedQuantity) || 0, item.unit)}
+                  </p>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </>
+      ) : (
+        <>
+          <header className="bar-refill-card-header">
+            <div>
+              <p className="eyebrow">Bar Refill</p>
+              <h4>{refill.refillDate || '—'}</h4>
+              <p className="bar-refill-card-meta">
+                {refill.createdBy ? `Created by ${refill.createdBy}` : 'Created by —'}
+              </p>
+            </div>
+            <span className={`status-pill bar-refill-status-pill bar-refill-status-${refill.status}`}>
+              {formatBarRefillStatusLabel(refill.status)}
+            </span>
+          </header>
+
+          <div className="bar-refill-card-notes">
+            <span className="inventory-item-card-section-label">Notes</span>
+            <textarea
+              rows="2"
+              value={notes}
+              onChange={(event) => setNotes(event.target.value)}
+              placeholder="Pickup notes"
+            />
+          </div>
+
+          <div className="bar-refill-items">
+            <p className="inventory-item-card-section-label">Items</p>
+            <ul className="bar-refill-item-list">
+              {itemEdits.map((item) => (
+                <li key={item.id} className="bar-refill-item-row">
+                  <div className="bar-refill-item-main">
+                    <strong>{item.itemName || 'Unnamed item'}</strong>
+                    <p className="bar-refill-item-requested">
+                      Requested: {formatBarRefillQuantityLine(item.requestedQuantity, item.unit)}
+                    </p>
+                  </div>
+
+                  <div className="bar-refill-item-pickup">
+                    <label className="form-field bar-refill-picked-field">
+                      <span>Picked</span>
+                      <input
+                        type="number"
+                        min="0"
+                        step="any"
+                        value={item.pickedQuantity}
+                        onChange={(event) => setItemEdits((current) => current.map((entry) => (
+                          entry.id === item.id
+                            ? { ...entry, pickedQuantity: event.target.value }
+                            : entry
+                        )))}
+                        placeholder="0"
+                      />
+                    </label>
+
+                    <label className="bar-refill-picked-checkbox">
+                      <input
+                        type="checkbox"
+                        checked={item.isPicked}
+                        onChange={(event) => setItemEdits((current) => current.map((entry) => (
+                          entry.id === item.id
+                            ? { ...entry, isPicked: event.target.checked }
+                            : entry
+                        )))}
+                      />
+                      <span>Picked</span>
+                    </label>
+
+                    <button
+                      type="button"
+                      className="ghost-btn bar-refill-use-requested-btn"
+                      onClick={() => handleUseRequested(item.id)}
+                    >
+                      Use requested
+                    </button>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          <div className="bar-refill-card-actions">
+            <button
+              type="button"
+              className="ghost-btn inventory-modal-action-btn"
+              onClick={handleSaveChanges}
+              disabled={isSaving}
+            >
+              Save Changes
+            </button>
+            <button
+              type="button"
+              className="primary-btn inventory-modal-action-btn"
+              onClick={() => onCompletePickup?.(refill.id, {
+                notes: notes.trim(),
+                items: itemEdits.map((item) => ({
+                  id: item.id,
+                  pickedQuantity: Number(item.pickedQuantity) || 0,
+                  isPicked: item.isPicked,
+                })),
+              })}
+              disabled={isSaving}
+            >
+              Complete Pickup
+            </button>
+            <button
+              type="button"
+              className="ghost-btn inventory-modal-action-btn bar-refill-cancel-btn"
+              onClick={() => onCancelRefill?.(refill.id)}
+              disabled={isSaving}
+            >
+              Cancel Refill
+            </button>
+          </div>
+        </>
+      )}
+    </article>
+  )
+}
+
+function BarRefillView({
+  barRefills,
+  inventoryItems,
+  isLoading,
+  noticeMessage,
+  isSaving,
+  defaultRefillDate,
+  defaultCreatedBy,
+  onCreateRefill,
+  onSaveRefillChanges,
+  onRequestCompleteRefill,
+  onCancelRefill,
+}) {
+  const [isNewModalOpen, setIsNewModalOpen] = useState(false)
+  const activeDraft = useMemo(
+    () => (barRefills ?? []).find((refill) => refill.status === 'draft') ?? null,
+    [barRefills],
+  )
+  const previousRefills = useMemo(
+    () => (barRefills ?? []).filter((refill) => refill.status !== 'draft'),
+    [barRefills],
+  )
+
+  return (
+    <>
+      <div className="bar-refill-toolbar">
+        <div>
+          <p className="eyebrow">Internal transfer</p>
+          <h3>Bar Refill</h3>
+          <p className="staff-subtitle">Warehouse / storage → bar pickup workflow.</p>
+        </div>
+        <button
+          type="button"
+          className="primary-btn"
+          onClick={() => setIsNewModalOpen(true)}
+          disabled={isSaving || Boolean(activeDraft)}
+        >
+          + New Bar Refill
+        </button>
+      </div>
+
+      {noticeMessage ? <div className="staff-status-banner">{noticeMessage}</div> : null}
+      {isLoading ? <div className="staff-status-banner">Loading bar refills…</div> : null}
+
+      {activeDraft ? (
+        <section className="panel staff-panel bar-refill-active-panel">
+          <div className="panel-heading">
+            <div>
+              <p className="eyebrow">Active draft</p>
+              <h3>Current pickup</h3>
+            </div>
+          </div>
+          <BarRefillCard
+            refill={activeDraft}
+            isSaving={isSaving}
+            onSaveChanges={onSaveRefillChanges}
+            onCompletePickup={onRequestCompleteRefill}
+            onCancelRefill={onCancelRefill}
+          />
+        </section>
+      ) : (
+        <div className="schedule-empty-state bar-refill-empty-draft">
+          <h4>No active bar refill draft.</h4>
+          <p>Start a new refill after shift to record what the bar needs from storage.</p>
+        </div>
+      )}
+
+      <section className="panel staff-panel">
+        <div className="panel-heading">
+          <div>
+            <p className="eyebrow">History</p>
+            <h3>Previous refills</h3>
+          </div>
+        </div>
+
+        {previousRefills.length === 0 && !isLoading ? (
+          <div className="schedule-empty-state">
+            <h4>No completed refills yet.</h4>
+            <p>Finished pickups will appear here as read-only records.</p>
+          </div>
+        ) : (
+          <div className="bar-refill-history-list">
+            {previousRefills.map((refill) => (
+              <BarRefillCard key={refill.id} refill={refill} isSaving={isSaving} />
+            ))}
+          </div>
+        )}
+      </section>
+
+      <BarRefillNewModal
+        isOpen={isNewModalOpen}
+        onClose={() => setIsNewModalOpen(false)}
+        inventoryItems={inventoryItems}
+        defaultRefillDate={defaultRefillDate}
+        defaultCreatedBy={defaultCreatedBy}
+        isSaving={isSaving}
+        onSaveDraft={async (payload) => {
+          await onCreateRefill?.(payload)
+          setIsNewModalOpen(false)
+        }}
+      />
+    </>
+  )
+}
+
+function buildDefaultInventoryForm() {
+  return {
+    itemName: '',
+    categoryPreset: 'Other',
+    customCategory: '',
+    subcategoryPreset: 'Misc',
+    customSubcategory: '',
+    supplier: '',
+    unit: '',
+    quantity: '0',
+    minimumQuantity: '0',
+    cost: '0',
+    notes: '',
+  }
+}
+
 function InventoryItemCard({
   item,
   onOpenEditItem,
@@ -10314,35 +11231,42 @@ function InventoryItemCard({
   const hasUnit = hasSupplierField(item.unit)
   const hasSupplier = hasSupplierField(item.supplier)
   const hasNotes = hasSupplierField(item.notes)
-  const hasStockSection = true
-  const hasProcurementSection = hasSupplier || (Number(item.cost) || 0) > 0
+  const hasUnitCost = (Number(item.cost) || 0) > 0
   const itemValue = getInventoryItemValue(item)
+  const showProcurementPanel = hasUnitCost || itemValue > 0
+  const parConfigured = isInventoryParConfigured(item)
+  const itemNeedsOrder = needsOrder(item)
+  const orderNeeded = getInventoryOrderNeeded(item)
+  const healthPercent = getInventoryStockHealthPercent(item.quantity, item.minimumQuantity)
+  const healthTone = getInventoryStockHealthTone(healthPercent, item.status)
   const statusClass = getInventoryStatusClass(item.status)
-  const categoryLabel = `${item.category ?? ''}`.trim() || 'Uncategorized'
-  const subtitleParts = [categoryLabel]
-  if (hasSupplier) subtitleParts.push(item.supplier)
+  const categoryLabel = formatInventoryCategoryPath(item)
 
   return (
-    <article className="inventory-item-card">
-      <header className="inventory-item-card-header">
+    <article className="inventory-item-card inventory-item-card-compact">
+      <div className="inventory-item-card-header-row">
         <div className="inventory-item-card-identity">
-          <div className="roster-avatar">{getInitials(item.itemName || 'Item')}</div>
+          <div className="roster-avatar inventory-item-card-avatar">{getInitials(item.itemName || 'Item')}</div>
           <div className="inventory-item-card-title-block">
             <strong className="inventory-item-card-name">{item.itemName || 'Unnamed item'}</strong>
-            <p className="inventory-item-card-subtitle">{subtitleParts.join(' • ')}</p>
+            <p className="inventory-item-card-meta">{categoryLabel}</p>
+            {hasSupplier ? (
+              <p className="inventory-item-card-meta">{item.supplier}</p>
+            ) : null}
           </div>
         </div>
 
         <div className="inventory-item-card-header-aside">
+          {itemNeedsOrder ? (
+            <div className="inventory-need-order-badge" aria-label={`Need order: ${formatInventoryOrderNeed(orderNeeded, item.unit)}`}>
+              <span className="inventory-need-order-badge-label">
+                <span aria-hidden="true">🚚 </span>
+                NEED ORDER
+              </span>
+              <span className="inventory-need-order-badge-qty">{formatInventoryOrderNeed(orderNeeded, item.unit)}</span>
+            </div>
+          ) : null}
           <span className={`status-pill inventory-item-status-pill ${statusClass}`}>{item.status}</span>
-          <div className="inventory-item-card-metrics">
-            <span className="inventory-item-card-metric">
-              Qty: {item.quantity}{hasUnit ? ` ${item.unit}` : ''}
-            </span>
-            <span className="inventory-item-card-metric">
-              Value: {formatCurrency(itemValue)}
-            </span>
-          </div>
           <div className="inventory-item-card-header-actions">
             <button
               type="button"
@@ -10360,55 +11284,80 @@ function InventoryItemCard({
             </button>
           </div>
         </div>
-      </header>
+      </div>
 
-      {hasStockSection ? (
-        <section className="inventory-item-card-section">
+      <section className={`inventory-item-card-health${parConfigured ? '' : ' inventory-item-card-health-unset'}`}>
+        {parConfigured ? (
+          <>
+            <div className="inventory-item-card-health-header">
+              <span className="inventory-item-card-section-label">Stock Health</span>
+              <span className="inventory-item-card-health-meta">
+                Current {item.quantity} / Target {item.minimumQuantity}
+              </span>
+            </div>
+            <div
+              className="inventory-item-card-health-track"
+              role="progressbar"
+              aria-valuenow={Math.round(healthPercent ?? 0)}
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-label={`Stock health ${Math.round(healthPercent ?? 0)} percent`}
+            >
+              <div
+                className={`inventory-item-card-health-fill tone-${healthTone}`}
+                style={{ width: `${healthPercent ?? 0}%` }}
+              />
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="inventory-item-card-health-header">
+              <span className="inventory-item-card-par-unset-label">
+                <span aria-hidden="true">⚪ </span>
+                PAR NOT SET
+              </span>
+            </div>
+            <p className="inventory-item-card-par-hint">Set target stock to enable alerts</p>
+            <div
+              className="inventory-item-card-health-track inventory-item-card-health-track-unset"
+              role="img"
+              aria-label="Target stock not configured"
+            >
+              <div className="inventory-item-card-health-fill tone-unset" />
+            </div>
+          </>
+        )}
+      </section>
+
+      <div className={`inventory-item-card-body-grid${showProcurementPanel ? '' : ' inventory-item-card-body-grid-single'}`}>
+        <section className="inventory-item-card-panel">
           <p className="inventory-item-card-section-label">Stock</p>
-          <ul className="inventory-item-card-detail-list">
-            <li>
-              <span className="inventory-item-card-detail-name">Current Quantity</span>
-              <span className="inventory-item-card-detail-value">{item.quantity}</span>
-            </li>
-            <li>
-              <span className="inventory-item-card-detail-name">Par Level</span>
-              <span className="inventory-item-card-detail-value">{item.minimumQuantity}</span>
-            </li>
+          <div className="inventory-item-card-panel-lines">
+            <p className="inventory-item-card-panel-line">Current: {item.quantity}</p>
+            <p className="inventory-item-card-panel-line">{INVENTORY_TARGET_STOCK_LABEL}: {item.minimumQuantity}</p>
             {hasUnit ? (
-              <li>
-                <span className="inventory-item-card-detail-name">Unit</span>
-                <span className="inventory-item-card-detail-value">{item.unit}</span>
-              </li>
+              <p className="inventory-item-card-panel-line">Unit: {item.unit}</p>
             ) : null}
-          </ul>
+          </div>
         </section>
-      ) : null}
 
-      {hasProcurementSection ? (
-        <section className="inventory-item-card-section">
-          <p className="inventory-item-card-section-label">Procurement</p>
-          <ul className="inventory-item-card-detail-list">
-            {hasSupplier ? (
-              <li>
-                <span className="inventory-item-card-detail-name">Supplier</span>
-                <span className="inventory-item-card-detail-value">{item.supplier}</span>
-              </li>
-            ) : null}
-            {(Number(item.cost) || 0) > 0 ? (
-              <li>
-                <span className="inventory-item-card-detail-name">Unit Cost</span>
-                <span className="inventory-item-card-detail-value">{formatCurrency(item.cost)}</span>
-              </li>
-            ) : null}
-          </ul>
-        </section>
-      ) : null}
+        {showProcurementPanel ? (
+          <section className="inventory-item-card-panel">
+            <p className="inventory-item-card-section-label">Procurement</p>
+            <div className="inventory-item-card-panel-lines">
+              {hasUnitCost ? (
+                <p className="inventory-item-card-panel-line">Unit Cost: {formatCurrency(item.cost)}</p>
+              ) : null}
+              {itemValue > 0 ? (
+                <p className="inventory-item-card-panel-line">Total Value: {formatCurrency(itemValue)}</p>
+              ) : null}
+            </div>
+          </section>
+        ) : null}
+      </div>
 
       {hasNotes ? (
-        <section className="inventory-item-card-section">
-          <p className="inventory-item-card-section-label">Notes</p>
-          <p className="inventory-item-card-notes">{item.notes}</p>
-        </section>
+        <p className="inventory-item-card-notes-compact">{item.notes}</p>
       ) : null}
     </article>
   )
@@ -10416,6 +11365,7 @@ function InventoryItemCard({
 
 function InventoryView({
   inventoryItems,
+  barRefills,
   onOpenAddItem,
   onOpenEditItem,
   onRequestDeleteItem,
@@ -10423,32 +11373,75 @@ function InventoryView({
   noticeMessage,
   isSaving,
   searchTerm,
+  barRefillsLoading,
+  barRefillsNotice,
+  isSavingBarRefill,
+  defaultRefillDate,
+  defaultCreatedBy,
+  onCreateBarRefill,
+  onSaveBarRefillChanges,
+  onRequestCompleteBarRefill,
+  onCancelBarRefill,
 }) {
+  const [stockTab, setStockTab] = useState('inventory')
   const [categoryFilter, setCategoryFilter] = useState('All')
+  const [subcategoryFilter, setSubcategoryFilter] = useState('All')
+  const [statusFilter, setStatusFilter] = useState('all')
+  const [reorderCopyNotice, setReorderCopyNotice] = useState('')
+  const [barRefillPendingComplete, setBarRefillPendingComplete] = useState(null)
+
+  const categoryFilters = useMemo(
+    () => getInventoryCategoryFilters(inventoryItems),
+    [inventoryItems],
+  )
 
   const filteredItems = useMemo(() => {
     const needle = `${searchTerm}`.trim().toLowerCase()
 
     return inventoryItems.filter((item) => {
+      if (!matchesStockStatusFilter(item, statusFilter)) return false
+
       const matchesCategory = categoryFilter === 'All' || item.category === categoryFilter
       if (!matchesCategory) return false
       if (!needle) return true
 
-      return `${item.itemName} ${item.category} ${item.supplier}`.toLowerCase().includes(needle)
+      return `${item.itemName} ${item.category} ${getInventorySubcategoryLabel(item)} ${item.supplier}`.toLowerCase().includes(needle)
     })
-  }, [inventoryItems, searchTerm, categoryFilter])
+  }, [inventoryItems, searchTerm, categoryFilter, statusFilter])
+
+  const subcategoryFilters = useMemo(
+    () => getInventorySubcategoryFilters(inventoryItems, categoryFilter),
+    [inventoryItems, categoryFilter],
+  )
+
+  const visibleItems = useMemo(
+    () => filterInventoryItemsBySubcategory(filteredItems, subcategoryFilter),
+    [filteredItems, subcategoryFilter],
+  )
+
+  const groupedBySubcategory = useMemo(
+    () => groupInventoryItemsBySubcategory(visibleItems),
+    [visibleItems],
+  )
+
+  const groupedByCategory = useMemo(
+    () => groupInventoryItemsByCategoryAndSubcategory(visibleItems),
+    [visibleItems],
+  )
 
   const overview = useMemo(() => {
     const totalItems = inventoryItems.length
     const lowStockAlerts = inventoryItems.filter((item) => item.status === 'Low Stock').length
     const outOfStock = inventoryItems.filter((item) => item.status === 'Out of Stock').length
     const totalInventoryValue = inventoryItems.reduce((sum, item) => sum + ((Number(item.quantity) || 0) * (Number(item.cost) || 0)), 0)
+    const itemsToOrderCount = inventoryItems.filter(needsOrder).length
 
     return {
       totalItems,
       lowStockAlerts,
       outOfStock,
       totalInventoryValue,
+      itemsToOrderCount,
     }
   }, [inventoryItems])
 
@@ -10456,15 +11449,56 @@ function InventoryView({
     <section className="staff-page">
       <div className="staff-header-card">
         <div>
-          <p className="eyebrow">Stock & inventory</p>
-          <h3>Inventory command center</h3>
+          <p className="eyebrow">Stock management</p>
+          <h3>Stock Control Center</h3>
           <p className="staff-subtitle">Track quantity, suppliers, and purchasing risk in real time.</p>
         </div>
-        <button type="button" className="primary-btn" onClick={onOpenAddItem} disabled={isSaving}>
-          {isSaving ? 'Saving…' : '+ Add Item'}
+        <div className="inventory-header-actions">
+          {stockTab === 'inventory' ? (
+            <button type="button" className="primary-btn" onClick={onOpenAddItem} disabled={isSaving}>
+              {isSaving ? 'Saving…' : '+ Add Item'}
+            </button>
+          ) : null}
+        </div>
+      </div>
+
+      <div className="inventory-workspace-tabs" role="tablist" aria-label="Stock sections">
+        <button
+          type="button"
+          role="tab"
+          aria-selected={stockTab === 'inventory'}
+          className={`filter-chip inventory-workspace-tab${stockTab === 'inventory' ? ' active' : ''}`}
+          onClick={() => setStockTab('inventory')}
+        >
+          Stock
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={stockTab === 'reorder'}
+          className={`filter-chip inventory-workspace-tab${stockTab === 'reorder' ? ' active' : ''}`}
+          onClick={() => {
+            setReorderCopyNotice('')
+            setStockTab('reorder')
+          }}
+        >
+          {overview.itemsToOrderCount > 0
+            ? `🚚 Reorder List (${overview.itemsToOrderCount})`
+            : 'Reorder List'}
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={stockTab === 'bar-refill'}
+          className={`filter-chip inventory-workspace-tab${stockTab === 'bar-refill' ? ' active' : ''}`}
+          onClick={() => setStockTab('bar-refill')}
+        >
+          Bar Refill
         </button>
       </div>
 
+      {stockTab === 'inventory' ? (
+        <>
       <div className="roster-summary-grid inventory-summary-grid">
         <article className="roster-summary-card">
           <p className="eyebrow">Total items</p>
@@ -10479,60 +11513,243 @@ function InventoryView({
           <h3>{overview.outOfStock}</h3>
         </article>
         <article className="roster-summary-card">
-          <p className="eyebrow">Total inventory value</p>
+          <p className="eyebrow">🚚 Items to order</p>
+          <h3>{overview.itemsToOrderCount}</h3>
+        </article>
+        <article className="roster-summary-card">
+          <p className="eyebrow">Total stock value</p>
           <h3>{formatCurrency(overview.totalInventoryValue)}</h3>
         </article>
       </div>
 
       {noticeMessage ? <div className="staff-status-banner">{noticeMessage}</div> : null}
-      {isLoading ? <div className="staff-status-banner">Loading inventory…</div> : null}
+      {isLoading ? <div className="staff-status-banner">Loading stock…</div> : null}
+
+      <div className="inventory-status-filters" role="group" aria-label="Filter by stock status">
+        <button
+          type="button"
+          className={`filter-chip${statusFilter === 'all' ? ' active' : ''}`}
+          onClick={() => setStatusFilter('all')}
+        >
+          All
+        </button>
+        <button
+          type="button"
+          className={`filter-chip${statusFilter === 'need-order' ? ' active' : ''}`}
+          onClick={() => setStatusFilter('need-order')}
+        >
+          Need Order
+        </button>
+        <button
+          type="button"
+          className={`filter-chip${statusFilter === 'low-stock' ? ' active' : ''}`}
+          onClick={() => setStatusFilter('low-stock')}
+        >
+          Low Stock
+        </button>
+        <button
+          type="button"
+          className={`filter-chip${statusFilter === 'out-of-stock' ? ' active' : ''}`}
+          onClick={() => setStatusFilter('out-of-stock')}
+        >
+          Out of Stock
+        </button>
+      </div>
 
       <div className="inventory-category-filters" role="group" aria-label="Filter by category">
         <button
           type="button"
           className={`filter-chip${categoryFilter === 'All' ? ' active' : ''}`}
-          onClick={() => setCategoryFilter('All')}
+          onClick={() => {
+            setCategoryFilter('All')
+            setSubcategoryFilter('All')
+          }}
         >
           All Categories
         </button>
-        {inventoryCategories.map((category) => (
+        {categoryFilters.map((category) => (
           <button
             key={category}
             type="button"
             className={`filter-chip${categoryFilter === category ? ' active' : ''}`}
-            onClick={() => setCategoryFilter(category)}
+            onClick={() => {
+              setCategoryFilter(category)
+              setSubcategoryFilter('All')
+            }}
           >
             {category}
           </button>
         ))}
       </div>
 
+      {categoryFilter !== 'All' && subcategoryFilters.length > 0 ? (
+        <div className="inventory-subcategory-filters" role="group" aria-label="Filter by subcategory">
+          <button
+            type="button"
+            className={`filter-chip${subcategoryFilter === 'All' ? ' active' : ''}`}
+            onClick={() => setSubcategoryFilter('All')}
+          >
+            {`All ${categoryFilter}`}
+          </button>
+          {subcategoryFilters.map((subcategory) => (
+            <button
+              key={subcategory}
+              type="button"
+              className={`filter-chip${subcategoryFilter === subcategory ? ' active' : ''}`}
+              onClick={() => setSubcategoryFilter(subcategory)}
+            >
+              {subcategory}
+            </button>
+          ))}
+        </div>
+      ) : null}
+
       <div className="panel staff-panel">
         <div className="panel-heading">
           <div>
-            <p className="eyebrow">Inventory list</p>
+            <p className="eyebrow">Stock list</p>
             <h3>Current stock</h3>
           </div>
         </div>
 
-        {filteredItems.length === 0 && !isLoading ? (
+        {visibleItems.length === 0 && !isLoading ? (
           <div className="schedule-empty-state">
-            <h4>{inventoryItems.length === 0 ? 'No inventory items yet.' : 'No items match this filter.'}</h4>
-            <p>{inventoryItems.length === 0 ? 'Add your first item to begin inventory tracking.' : 'Try another category or search term.'}</p>
+            <h4>{inventoryItems.length === 0 ? 'No stock items yet.' : 'No items match this filter.'}</h4>
+            <p>{inventoryItems.length === 0 ? 'Add your first item to begin stock tracking.' : 'Try another status, category, or search term.'}</p>
           </div>
         ) : (
-          <div className="inventory-item-card-list">
-            {filteredItems.map((item) => (
-              <InventoryItemCard
-                key={item.id}
-                item={item}
-                onOpenEditItem={onOpenEditItem}
-                onRequestDeleteItem={onRequestDeleteItem}
-              />
-            ))}
+          <div className="inventory-grouped-list">
+            {categoryFilter === 'All' ? (
+              groupedByCategory.map((categoryGroup) => (
+                <section key={categoryGroup.category} className="inventory-category-group">
+                  <h3 className="inventory-category-heading">{categoryGroup.category}</h3>
+                  {categoryGroup.subcategories.map((group) => (
+                    <section key={`${categoryGroup.category}-${group.subcategory}`} className="inventory-subcategory-group">
+                      <h4 className="inventory-subcategory-heading">{group.subcategory}</h4>
+                      <div className="inventory-item-card-list">
+                        {group.items.map((item) => (
+                          <InventoryItemCard
+                            key={item.id}
+                            item={item}
+                            onOpenEditItem={onOpenEditItem}
+                            onRequestDeleteItem={onRequestDeleteItem}
+                          />
+                        ))}
+                      </div>
+                    </section>
+                  ))}
+                </section>
+              ))
+            ) : (
+              groupedBySubcategory.map((group) => (
+                <section key={group.subcategory} className="inventory-subcategory-group">
+                  <h4 className="inventory-subcategory-heading">{group.subcategory}</h4>
+                  <div className="inventory-item-card-list">
+                    {group.items.map((item) => (
+                      <InventoryItemCard
+                        key={item.id}
+                        item={item}
+                        onOpenEditItem={onOpenEditItem}
+                        onRequestDeleteItem={onRequestDeleteItem}
+                      />
+                    ))}
+                  </div>
+                </section>
+              ))
+            )}
           </div>
         )}
       </div>
+        </>
+      ) : null}
+
+      {stockTab === 'reorder' ? (
+        <div className="panel staff-panel inventory-reorder-panel">
+          <div className="panel-heading">
+            <div>
+              <p className="eyebrow">Reorder center</p>
+              <h3>Reorder List</h3>
+              <p className="staff-subtitle">Items below target stock, grouped by supplier.</p>
+            </div>
+          </div>
+          <InventoryReorderContent
+            items={inventoryItems}
+            onOpenEditItem={onOpenEditItem}
+            copyNotice={reorderCopyNotice}
+            onCopyNotice={setReorderCopyNotice}
+            showActions
+          />
+        </div>
+      ) : null}
+
+      {stockTab === 'bar-refill' ? (
+        <BarRefillView
+          barRefills={barRefills}
+          inventoryItems={inventoryItems}
+          isLoading={barRefillsLoading}
+          noticeMessage={barRefillsNotice}
+          isSaving={isSavingBarRefill}
+          defaultRefillDate={defaultRefillDate}
+          defaultCreatedBy={defaultCreatedBy}
+          onCreateRefill={onCreateBarRefill}
+          onSaveRefillChanges={onSaveBarRefillChanges}
+          onRequestCompleteRefill={(refillId, payload) => setBarRefillPendingComplete({ refillId, payload })}
+          onCancelRefill={onCancelBarRefill}
+        />
+      ) : null}
+
+      {barRefillPendingComplete ? (
+        <div className="employee-modal-backdrop task-modal-backdrop" onClick={() => !isSavingBarRefill && setBarRefillPendingComplete(null)}>
+          <div
+            className="employee-modal task-form-modal is-responsive-sheet bar-refill-confirm-modal"
+            onClick={(event) => event.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="bar-refill-complete-title"
+          >
+            <div className="drawer-header">
+              <div>
+                <p className="eyebrow">Complete pickup</p>
+                <h3 id="bar-refill-complete-title">Complete pickup?</h3>
+                <p className="staff-subtitle">Picked quantities will be added to stock.</p>
+              </div>
+              <button
+                type="button"
+                className="icon-btn"
+                onClick={() => setBarRefillPendingComplete(null)}
+                disabled={isSavingBarRefill}
+                aria-label="Close complete pickup confirmation"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="modal-actions">
+              <button
+                type="button"
+                className="ghost-btn inventory-modal-action-btn"
+                onClick={() => setBarRefillPendingComplete(null)}
+                disabled={isSavingBarRefill}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="primary-btn inventory-modal-action-btn"
+                disabled={isSavingBarRefill}
+                onClick={async () => {
+                  await onRequestCompleteBarRefill?.(
+                    barRefillPendingComplete.refillId,
+                    barRefillPendingComplete.payload,
+                  )
+                  setBarRefillPendingComplete(null)
+                }}
+              >
+                {isSavingBarRefill ? 'Completing…' : 'Complete Pickup'}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </section>
   )
 }
@@ -11207,19 +12424,14 @@ function App() {
   const [isInventoryLoading, setIsInventoryLoading] = useState(true)
   const [isInventoryModalOpen, setIsInventoryModalOpen] = useState(false)
   const [editingInventoryItem, setEditingInventoryItem] = useState(null)
-  const [inventoryForm, setInventoryForm] = useState({
-    itemName: '',
-    category: 'Other',
-    supplier: '',
-    unit: '',
-    quantity: '0',
-    minimumQuantity: '0',
-    cost: '0',
-    notes: '',
-  })
+  const [inventoryForm, setInventoryForm] = useState(buildDefaultInventoryForm)
   const [isSavingInventoryItem, setIsSavingInventoryItem] = useState(false)
   const [inventoryPendingDelete, setInventoryPendingDelete] = useState(null)
   const [isDeletingInventoryItem, setIsDeletingInventoryItem] = useState(false)
+  const [barRefills, setBarRefills] = useState([])
+  const [barRefillsNotice, setBarRefillsNotice] = useState('')
+  const [isBarRefillsLoading, setIsBarRefillsLoading] = useState(true)
+  const [isSavingBarRefill, setIsSavingBarRefill] = useState(false)
   const [suppliers, setSuppliers] = useState([])
   const [suppliersNotice, setSuppliersNotice] = useState('')
   const [isSuppliersLoading, setIsSuppliersLoading] = useState(true)
@@ -11573,6 +12785,12 @@ function App() {
     }
   }, [])
 
+  const refreshBarRefills = useCallback(async () => {
+    const remoteRefills = await getBarRefills()
+    setBarRefills(remoteRefills)
+    return remoteRefills
+  }, [])
+
   const refreshTaskChecklists = useCallback(async (remoteTasks = []) => {
     const taskIds = (remoteTasks ?? []).map((task) => task.id).filter(Boolean)
     if (taskIds.length === 0) {
@@ -11914,7 +13132,7 @@ function App() {
         await refreshInventory()
       } catch (error) {
         if (!isMounted) return
-        setInventoryNotice(error.message || 'Unable to load inventory right now.')
+        setInventoryNotice(error.message || 'Unable to load stock right now.')
       } finally {
         if (isMounted) {
           setIsInventoryLoading(false)
@@ -11928,6 +13146,35 @@ function App() {
       isMounted = false
     }
   }, [refreshInventory])
+
+  useEffect(() => {
+    if (activeView !== 'stock') return undefined
+
+    let isMounted = true
+
+    const loadBarRefills = async () => {
+      setIsBarRefillsLoading(true)
+      setBarRefillsNotice('')
+
+      try {
+        await refreshBarRefills()
+      } catch (error) {
+        if (!isMounted) return
+        setBarRefills([])
+        setBarRefillsNotice(error.message || 'Unable to load bar refills right now.')
+      } finally {
+        if (isMounted) {
+          setIsBarRefillsLoading(false)
+        }
+      }
+    }
+
+    loadBarRefills()
+
+    return () => {
+      isMounted = false
+    }
+  }, [activeView, refreshBarRefills])
 
   useEffect(() => {
     let isMounted = true
@@ -14871,24 +16118,22 @@ function App() {
 
   const handleOpenAddInventoryItem = () => {
     setEditingInventoryItem(null)
-    setInventoryForm({
-      itemName: '',
-      category: 'Other',
-      supplier: '',
-      unit: '',
-      quantity: '0',
-      minimumQuantity: '0',
-      cost: '0',
-      notes: '',
-    })
+    setInventoryForm(buildDefaultInventoryForm())
     setIsInventoryModalOpen(true)
   }
 
   const handleOpenEditInventoryItem = (item) => {
+    const categoryFields = resolveInventoryCategoryForForm(item.category ?? 'Other')
+    const subcategoryFields = resolveInventorySubcategoryForForm(
+      item.category ?? 'Other',
+      item.subcategory,
+    )
+
     setEditingInventoryItem(item)
     setInventoryForm({
       itemName: item.itemName ?? '',
-      category: item.category ?? 'Other',
+      ...categoryFields,
+      ...subcategoryFields,
       supplier: item.supplier ?? '',
       unit: item.unit ?? '',
       quantity: `${item.quantity ?? 0}`,
@@ -14902,16 +16147,7 @@ function App() {
   const handleCloseInventoryModal = () => {
     setIsInventoryModalOpen(false)
     setEditingInventoryItem(null)
-    setInventoryForm({
-      itemName: '',
-      category: 'Other',
-      supplier: '',
-      unit: '',
-      quantity: '0',
-      minimumQuantity: '0',
-      cost: '0',
-      notes: '',
-    })
+    setInventoryForm(buildDefaultInventoryForm())
   }
 
   const handleRequestDeleteInventoryItem = (item) => {
@@ -14933,10 +16169,10 @@ function App() {
     try {
       await deleteInventoryItem(inventoryPendingDelete.id)
       await refreshInventory()
-      setInventoryNotice('Inventory item removed.')
+      setInventoryNotice('Stock item removed.')
       setInventoryPendingDelete(null)
     } catch (error) {
-      setInventoryNotice(error.message || 'Unable to delete inventory item right now.')
+      setInventoryNotice(error.message || 'Unable to delete stock item right now.')
     } finally {
       setIsDeletingInventoryItem(false)
     }
@@ -14950,6 +16186,24 @@ function App() {
       return
     }
 
+    const category = resolveInventoryCategoryForSave(
+      inventoryForm.categoryPreset,
+      inventoryForm.customCategory,
+    )
+
+    if (!category) {
+      setInventoryNotice('Please provide a category name.')
+      return
+    }
+
+    if (
+      inventoryForm.subcategoryPreset === INVENTORY_CUSTOM_SUBCATEGORY_VALUE
+      && !inventoryForm.customSubcategory.trim()
+    ) {
+      setInventoryNotice('Please provide a subcategory name.')
+      return
+    }
+
     setIsSavingInventoryItem(true)
     setInventoryNotice('')
 
@@ -14959,7 +16213,11 @@ function App() {
 
     const payload = {
       itemName: inventoryForm.itemName.trim(),
-      category: inventoryForm.category,
+      category,
+      subcategory: resolveInventorySubcategoryForSave(
+        inventoryForm.subcategoryPreset,
+        inventoryForm.customSubcategory,
+      ),
       supplier: inventoryForm.supplier.trim(),
       unit: inventoryForm.unit.trim(),
       quantity,
@@ -14977,12 +16235,84 @@ function App() {
       }
 
       await refreshInventory()
-      setInventoryNotice(editingInventoryItem ? 'Inventory item updated.' : 'Inventory item created.')
+      setInventoryNotice(editingInventoryItem ? 'Stock item updated.' : 'Stock item created.')
       handleCloseInventoryModal()
     } catch (error) {
-      setInventoryNotice(error.message || 'Unable to save inventory item right now.')
+      setInventoryNotice(error.message || 'Unable to save stock item right now.')
     } finally {
       setIsSavingInventoryItem(false)
+    }
+  }
+
+  const persistBarRefillDraftChanges = async (refillId, { notes, items = [] }) => {
+    if (notes !== undefined) {
+      await updateBarRefill(refillId, { notes })
+    }
+
+    await Promise.all(items.map((item) => updateBarRefillItem(item.id, {
+      pickedQuantity: item.pickedQuantity,
+      isPicked: item.isPicked,
+    })))
+  }
+
+  const handleCreateBarRefill = async (payload) => {
+    setIsSavingBarRefill(true)
+    setBarRefillsNotice('')
+
+    try {
+      await createBarRefill(payload)
+      await refreshBarRefills()
+      setBarRefillsNotice('Bar refill draft saved.')
+    } catch (error) {
+      setBarRefillsNotice(error.message || 'Unable to create bar refill right now.')
+    } finally {
+      setIsSavingBarRefill(false)
+    }
+  }
+
+  const handleSaveBarRefillChanges = async (refillId, payload) => {
+    setIsSavingBarRefill(true)
+    setBarRefillsNotice('')
+
+    try {
+      await persistBarRefillDraftChanges(refillId, payload)
+      await refreshBarRefills()
+      setBarRefillsNotice('Bar refill updated.')
+    } catch (error) {
+      setBarRefillsNotice(error.message || 'Unable to save bar refill right now.')
+    } finally {
+      setIsSavingBarRefill(false)
+    }
+  }
+
+  const handleCompleteBarRefill = async (refillId, payload) => {
+    setIsSavingBarRefill(true)
+    setBarRefillsNotice('')
+
+    try {
+      await persistBarRefillDraftChanges(refillId, payload)
+      await completeBarRefill(refillId)
+      await Promise.all([refreshBarRefills(), refreshInventory()])
+      setBarRefillsNotice('Bar refill completed. Stock updated.')
+    } catch (error) {
+      setBarRefillsNotice(error.message || 'Unable to complete bar refill right now.')
+    } finally {
+      setIsSavingBarRefill(false)
+    }
+  }
+
+  const handleCancelBarRefill = async (refillId) => {
+    setIsSavingBarRefill(true)
+    setBarRefillsNotice('')
+
+    try {
+      await updateBarRefill(refillId, { status: 'cancelled' })
+      await refreshBarRefills()
+      setBarRefillsNotice('Bar refill cancelled.')
+    } catch (error) {
+      setBarRefillsNotice(error.message || 'Unable to cancel bar refill right now.')
+    } finally {
+      setIsSavingBarRefill(false)
     }
   }
 
@@ -15381,7 +16711,7 @@ function App() {
           : activeView === 'suppliers'
             ? 'Suppliers management'
           : activeView === 'stock'
-            ? 'Inventory management'
+            ? 'Stock management'
             : activeView === 'tasks'
               ? 'Tasks management'
             : 'Operations management'
@@ -15412,7 +16742,7 @@ function App() {
             : activeView === 'suppliers'
               ? 'Suppliers management'
               : activeView === 'stock'
-                ? 'Inventory management'
+                ? 'Stock control'
                 : activeView === 'tasks'
                   ? 'Tasks management'
                 : 'Operations management'
@@ -15420,6 +16750,29 @@ function App() {
   const supplierDeleteLinkedCount = supplierPendingDelete
     ? countInventoryItemsForSupplier(inventoryItems, supplierPendingDelete.companyName)
     : 0
+
+  const inventoryFormCategoryOptions = useMemo(
+    () => getInventoryCategoryFilters(inventoryItems),
+    [inventoryItems],
+  )
+
+  const resolvedInventoryFormCategory = useMemo(
+    () => resolveInventoryCategoryForSave(
+      inventoryForm.categoryPreset,
+      inventoryForm.customCategory,
+    ) || 'Other',
+    [inventoryForm.categoryPreset, inventoryForm.customCategory],
+  )
+
+  const inventoryFormSubcategoryOptions = useMemo(
+    () => getInventorySubcategoryOptionsForCategory(resolvedInventoryFormCategory, inventoryItems),
+    [resolvedInventoryFormCategory, inventoryItems],
+  )
+
+  const inventoryFormCustomCategories = useMemo(
+    () => inventoryFormCategoryOptions.filter((category) => !INVENTORY_CATEGORIES.includes(category)),
+    [inventoryFormCategoryOptions],
+  )
 
   const inventorySupplierOptions = useMemo(
     () => buildInventorySupplierOptions(suppliers, inventoryForm.supplier),
@@ -15529,7 +16882,7 @@ function App() {
               <span>⌕</span>
               <input
                 type="text"
-                placeholder={activeView === 'staff' ? 'Search employee' : activeView === 'stock' ? 'Search inventory item' : activeView === 'suppliers' ? 'Search supplier' : activeView === 'tasks' ? 'Search tasks' : 'Search'}
+                placeholder={activeView === 'staff' ? 'Search employee' : activeView === 'stock' ? 'Search stock item' : activeView === 'suppliers' ? 'Search supplier' : activeView === 'tasks' ? 'Search tasks' : 'Search'}
                 value={searchTerm}
                 onChange={(event) => setSearchTerm(event.target.value)}
               />
@@ -15691,6 +17044,7 @@ function App() {
         {activeView === 'stock' ? (
           <InventoryView
             inventoryItems={inventoryItems}
+            barRefills={barRefills}
             onOpenAddItem={handleOpenAddInventoryItem}
             onOpenEditItem={handleOpenEditInventoryItem}
             onRequestDeleteItem={handleRequestDeleteInventoryItem}
@@ -15698,6 +17052,15 @@ function App() {
             noticeMessage={inventoryNotice}
             isSaving={isSavingInventoryItem}
             searchTerm={searchTerm}
+            barRefillsLoading={isBarRefillsLoading}
+            barRefillsNotice={barRefillsNotice}
+            isSavingBarRefill={isSavingBarRefill}
+            defaultRefillDate={currentDateKey}
+            defaultCreatedBy={workspaceProfile.managerName}
+            onCreateBarRefill={handleCreateBarRefill}
+            onSaveBarRefillChanges={handleSaveBarRefillChanges}
+            onRequestCompleteBarRefill={handleCompleteBarRefill}
+            onCancelBarRefill={handleCancelBarRefill}
           />
         ) : null}
 
@@ -16346,7 +17709,7 @@ function App() {
             <div className="employee-modal task-form-modal is-responsive-sheet" onClick={(event) => event.stopPropagation()}>
               <div className="drawer-header">
                 <div>
-                  <p className="eyebrow">Inventory form</p>
+                  <p className="eyebrow">Stock form</p>
                   <h3>{editingInventoryItem ? 'Edit item' : 'Add item'}</h3>
                 </div>
                 <button type="button" className="icon-btn" onClick={handleCloseInventoryModal}>✕</button>
@@ -16360,12 +17723,84 @@ function App() {
                   </label>
                   <label className="form-field">
                     <span>Category</span>
-                    <select value={inventoryForm.category} onChange={(event) => setInventoryForm((current) => ({ ...current, category: event.target.value }))}>
-                      {inventoryCategories.map((category) => (
+                    <select
+                      value={inventoryForm.categoryPreset}
+                      onChange={(event) => {
+                        const categoryPreset = event.target.value
+                        const nextCategory = categoryPreset === INVENTORY_CUSTOM_CATEGORY_VALUE
+                          ? ''
+                          : categoryPreset
+                        const firstSubcategory = nextCategory
+                          ? getInventorySubcategories(nextCategory)[0] ?? INVENTORY_NO_SUBCATEGORY_VALUE
+                          : INVENTORY_NO_SUBCATEGORY_VALUE
+
+                        setInventoryForm((current) => ({
+                          ...current,
+                          categoryPreset,
+                          customCategory: categoryPreset === INVENTORY_CUSTOM_CATEGORY_VALUE
+                            ? current.customCategory
+                            : '',
+                          subcategoryPreset: firstSubcategory,
+                          customSubcategory: '',
+                        }))
+                      }}
+                    >
+                      {INVENTORY_CATEGORIES.map((category) => (
                         <option key={category} value={category}>{category}</option>
                       ))}
+                      {inventoryFormCustomCategories.map((category) => (
+                        <option key={category} value={category}>{category}</option>
+                      ))}
+                      <option value={INVENTORY_CUSTOM_CATEGORY_VALUE}>Custom Category</option>
                     </select>
                   </label>
+                  {inventoryForm.categoryPreset === INVENTORY_CUSTOM_CATEGORY_VALUE ? (
+                    <label className="form-field">
+                      <span>Custom Category Name</span>
+                      <input
+                        value={inventoryForm.customCategory}
+                        onChange={(event) => setInventoryForm((current) => ({
+                          ...current,
+                          customCategory: event.target.value,
+                        }))}
+                        placeholder="Enter category name"
+                        required
+                      />
+                    </label>
+                  ) : null}
+                  <label className="form-field">
+                    <span>Subcategory</span>
+                    <select
+                      value={inventoryForm.subcategoryPreset}
+                      onChange={(event) => setInventoryForm((current) => ({
+                        ...current,
+                        subcategoryPreset: event.target.value,
+                        customSubcategory: event.target.value === INVENTORY_CUSTOM_SUBCATEGORY_VALUE
+                          ? current.customSubcategory
+                          : '',
+                      }))}
+                    >
+                      {inventoryFormSubcategoryOptions.map((subcategory) => (
+                        <option key={subcategory} value={subcategory}>{subcategory}</option>
+                      ))}
+                      <option value={INVENTORY_CUSTOM_SUBCATEGORY_VALUE}>Custom Subcategory</option>
+                      <option value={INVENTORY_NO_SUBCATEGORY_VALUE}>Uncategorized</option>
+                    </select>
+                  </label>
+                  {inventoryForm.subcategoryPreset === INVENTORY_CUSTOM_SUBCATEGORY_VALUE ? (
+                    <label className="form-field">
+                      <span>Custom Subcategory Name</span>
+                      <input
+                        value={inventoryForm.customSubcategory}
+                        onChange={(event) => setInventoryForm((current) => ({
+                          ...current,
+                          customSubcategory: event.target.value,
+                        }))}
+                        placeholder="Enter subcategory name"
+                        required
+                      />
+                    </label>
+                  ) : null}
                   <label className="form-field inventory-supplier-field">
                     <span>Supplier</span>
                     <div className="inventory-supplier-field-row">
@@ -16392,14 +17827,18 @@ function App() {
                   </label>
                   <label className="form-field">
                     <span>Unit</span>
-                    <input value={inventoryForm.unit} onChange={(event) => setInventoryForm((current) => ({ ...current, unit: event.target.value }))} placeholder="Unit" />
+                    <InventoryUnitField
+                      value={inventoryForm.unit}
+                      disabled={isSavingInventoryItem}
+                      onChange={(nextUnit) => setInventoryForm((current) => ({ ...current, unit: nextUnit }))}
+                    />
                   </label>
                   <label className="form-field">
                     <span>Quantity</span>
                     <input type="number" min="0" value={inventoryForm.quantity} onChange={(event) => setInventoryForm((current) => ({ ...current, quantity: event.target.value }))} required />
                   </label>
                   <label className="form-field">
-                    <span>Par Level</span>
+                    <span>{INVENTORY_TARGET_STOCK_LABEL}</span>
                     <input type="number" min="0" value={inventoryForm.minimumQuantity} onChange={(event) => setInventoryForm((current) => ({ ...current, minimumQuantity: event.target.value }))} required />
                   </label>
                   <label className="form-field">
@@ -16411,7 +17850,7 @@ function App() {
                     <p className={`inventory-status-preview-value status-pill ${getInventoryStatusClass(inventoryFormStatus)}`}>
                       {inventoryFormStatus}
                     </p>
-                    <p className="inventory-status-preview-hint">Computed from quantity and par level.</p>
+                    <p className="inventory-status-preview-hint">Computed from quantity and target stock (PAR).</p>
                   </div>
                 </div>
 

@@ -1,3 +1,4 @@
+import { serializeInventorySubcategoryForSave } from '../lib/inventoryCategories'
 import { supabase } from '../lib/supabaseClient'
 
 function resolveInventoryStatus(quantity, minimumQuantity, fallbackStatus = 'In Stock') {
@@ -19,6 +20,7 @@ function mapInventoryItem(record) {
     id: record.id,
     itemName: record.item_name ?? record.itemName ?? '',
     category: record.category ?? 'Other',
+    subcategory: record.subcategory ?? '',
     supplier: record.supplier ?? '',
     unit: record.unit ?? '',
     quantity,
@@ -39,6 +41,7 @@ function serializeInventoryItem(item) {
   return {
     item_name: item.itemName ?? item.item_name ?? '',
     category: item.category ?? 'Other',
+    subcategory: serializeInventorySubcategoryForSave(item.subcategory ?? ''),
     supplier: item.supplier ?? '',
     unit: item.unit ?? '',
     quantity,
