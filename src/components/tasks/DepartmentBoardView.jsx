@@ -5,12 +5,14 @@ import TaskCard from './TaskCard'
 function TaskSection({
   title,
   tasks,
+  checklistItemsByTaskId = {},
   emptyMessage,
   resolveAssigneeName,
   onComplete,
   onReopen,
   onEdit,
   onDelete,
+  onToggleChecklistItem,
   isSaving,
 }) {
   return (
@@ -29,10 +31,12 @@ function TaskSection({
               key={task.id}
               task={task}
               assigneeName={resolveAssigneeName(task)}
+              checklistItems={checklistItemsByTaskId[String(task.id)] ?? []}
               onComplete={onComplete}
               onReopen={onReopen}
               onEdit={onEdit}
               onDelete={onDelete}
+              onToggleChecklistItem={onToggleChecklistItem}
               isSaving={isSaving}
             />
           ))}
@@ -45,6 +49,7 @@ function TaskSection({
 export default function DepartmentBoardView({
   departmentKey,
   tasks = [],
+  checklistItemsByTaskId = {},
   employees = [],
   onBack,
   onNewTask,
@@ -52,6 +57,7 @@ export default function DepartmentBoardView({
   onReopenTask,
   onEditTask,
   onDeleteTask,
+  onToggleChecklistItem,
   isSaving = false,
   isLoading = false,
 }) {
@@ -95,34 +101,40 @@ export default function DepartmentBoardView({
         <TaskSection
           title="Today"
           tasks={sections.today}
+          checklistItemsByTaskId={checklistItemsByTaskId}
           emptyMessage="No tasks due today for this department."
           resolveAssigneeName={resolveAssigneeName}
           onComplete={onCompleteTask}
           onReopen={onReopenTask}
           onEdit={onEditTask}
           onDelete={onDeleteTask}
+          onToggleChecklistItem={onToggleChecklistItem}
           isSaving={isSaving}
         />
         <TaskSection
           title="Upcoming"
           tasks={sections.upcoming}
+          checklistItemsByTaskId={checklistItemsByTaskId}
           emptyMessage="No upcoming tasks scheduled for this department."
           resolveAssigneeName={resolveAssigneeName}
           onComplete={onCompleteTask}
           onReopen={onReopenTask}
           onEdit={onEditTask}
           onDelete={onDeleteTask}
+          onToggleChecklistItem={onToggleChecklistItem}
           isSaving={isSaving}
         />
         <TaskSection
           title="Completed"
           tasks={sections.completed}
+          checklistItemsByTaskId={checklistItemsByTaskId}
           emptyMessage="No completed tasks yet for this department."
           resolveAssigneeName={resolveAssigneeName}
           onComplete={onCompleteTask}
           onReopen={onReopenTask}
           onEdit={onEditTask}
           onDelete={onDeleteTask}
+          onToggleChecklistItem={onToggleChecklistItem}
           isSaving={isSaving}
         />
       </div>

@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { getTaskDepartmentByKey } from '../../lib/taskDepartments'
 import { getTaskDepartmentLabel, getTodayKey, isTaskOverdue } from '../../lib/taskUtils'
 import { formatTime24 } from '../../lib/timeFormatUtils'
@@ -80,13 +81,74 @@ function getRecurrenceLabel(recurrence) {
   return null
 }
 
+function TaskChecklist({
+  items = [],
+  isTaskCompleted = false,
+  onToggleItem,
+  isSaving = false,
+}) {
+  const [showAll, setShowAll] = useState(false)
+  const completedCount = items.filter((item) => item.isCompleted).length
+  const totalCount = items.length
+  const progressPercent = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0
+  const visibleItems = showAll ? items : items.slice(0, 5)
+  const hiddenCount = Math.max(totalCount - 5, 0)
+  const allComplete = totalCount > 0 && completedCount === totalCount
+
+  return (
+    <div className="task-card-checklist">
+      <div className="task-card-checklist-summary">
+        <span className="task-card-checklist-count">{completedCount}/{totalCount} completed</span>
+        <div className="task-checklist-progress" aria-hidden="true">
+          <span className="task-checklist-progress-fill" style={{ width: `${progressPercent}%` }} />
+        </div>
+      </div>
+
+      {allComplete && !isTaskCompleted ? (
+        <p className="task-checklist-all-complete">All checklist items complete</p>
+      ) : null}
+
+      <ul className="task-checklist-items">
+        {visibleItems.map((item) => (
+          <li key={item.id} className={`task-checklist-item${item.isCompleted ? ' is-completed' : ''}`}>
+            <button
+              type="button"
+              className="task-checklist-item-btn"
+              onClick={() => onToggleItem?.(item.id, !item.isCompleted)}
+              disabled={isSaving}
+              aria-pressed={item.isCompleted}
+            >
+              <span className="task-checklist-item-icon" aria-hidden="true">
+                {item.isCompleted ? '☑' : '☐'}
+              </span>
+              <span className="task-checklist-item-title">{item.title}</span>
+            </button>
+          </li>
+        ))}
+      </ul>
+
+      {hiddenCount > 0 && !showAll ? (
+        <button
+          type="button"
+          className="ghost-btn task-checklist-show-all-btn"
+          onClick={() => setShowAll(true)}
+        >
+          Show all ({totalCount})
+        </button>
+      ) : null}
+    </div>
+  )
+}
+
 export default function TaskCard({
   task,
   assigneeName = '',
+  checklistItems = [],
   onComplete,
   onReopen,
   onEdit,
   onDelete,
+  onToggleChecklistItem,
   isSaving = false,
 }) {
   const isCompleted = task?.status === 'completed'
@@ -144,6 +206,15 @@ export default function TaskCard({
             </span>
           ) : null}
         </div>
+
+        {checklistItems.length > 0 ? (
+          <TaskChecklist
+            items={checklistItems}
+            isTaskCompleted={isCompleted}
+            onToggleItem={onToggleChecklistItem}
+            isSaving={isSaving}
+          />
+        ) : null}
       </div>
 
       <div className="task-card-actions">

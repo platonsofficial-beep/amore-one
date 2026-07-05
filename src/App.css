@@ -15518,3 +15518,188 @@ input[type='time']::-webkit-datetime-edit-text {
 .task-template-delete-btn {
   margin-left: auto;
 }
+
+.task-template-checklist-preview {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.task-template-checklist-preview li {
+  color: #b8afa3;
+  font-size: 0.84rem;
+  line-height: 1.35;
+}
+
+.task-template-checklist-preview li::before {
+  content: '•';
+  margin-right: 8px;
+  color: #8f8778;
+}
+
+.task-template-checklist-more {
+  color: #8f8778 !important;
+  font-style: italic;
+}
+
+.task-checklist-builder {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 4px;
+}
+
+.task-checklist-builder-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.task-checklist-builder-label {
+  font-size: 0.82rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #c8bdb0;
+}
+
+.task-checklist-add-btn,
+.task-checklist-move-btn,
+.task-checklist-delete-btn,
+.task-checklist-show-all-btn {
+  min-height: 44px;
+  min-width: 44px;
+}
+
+.task-checklist-builder-empty {
+  margin: 0;
+  color: #8f8778;
+  font-size: 0.88rem;
+}
+
+.task-checklist-builder-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.task-checklist-builder-row {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+@media (min-width: 640px) {
+  .task-checklist-builder-row {
+    flex-direction: row;
+    align-items: center;
+  }
+}
+
+.task-checklist-builder-input {
+  flex: 1;
+  min-height: 44px;
+  width: 100%;
+}
+
+.task-checklist-builder-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 0 0 auto;
+}
+
+.task-card-checklist {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 4px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.task-card-checklist-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.task-card-checklist-count {
+  font-size: 0.82rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #c8bdb0;
+}
+
+.task-checklist-progress {
+  height: 4px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+}
+
+.task-checklist-progress-fill {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, rgba(212, 175, 55, 0.55), rgba(212, 175, 55, 0.95));
+  transition: width 160ms ease;
+}
+
+.task-checklist-all-complete {
+  margin: 0;
+  color: #b8ebc4;
+  font-size: 0.84rem;
+  letter-spacing: 0.02em;
+}
+
+.task-checklist-items {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.task-checklist-item-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 44px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.02);
+  color: #d8cdbf;
+  text-align: left;
+  cursor: pointer;
+}
+
+.task-checklist-item.is-completed .task-checklist-item-btn {
+  color: #8f8778;
+}
+
+.task-checklist-item-icon {
+  flex: 0 0 auto;
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.task-checklist-item-title {
+  flex: 1;
+  min-width: 0;
+  line-height: 1.35;
+}
+
+.task-checklist-item.is-completed .task-checklist-item-title {
+  text-decoration: line-through;
+}
+
+.task-checklist-show-all-btn {
+  align-self: flex-start;
+}

@@ -14,28 +14,80 @@ const RECURRENCE_OPTIONS = [
   { value: 'monthly', label: 'Monthly' },
 ]
 
+function createChecklistDraftItem(title = '') {
+  return {
+    clientKey: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    title,
+  }
+}
+
+function buildChecklistDraftItems(items = []) {
+  return (items ?? []).map((item) => ({
+    clientKey: item.id ? `existing-${item.id}` : createChecklistDraftItem().clientKey,
+    title: item.title ?? '',
+  }))
+}
+
 export default function TaskTemplateModal({
   isOpen,
   editingTemplate = null,
+  initialChecklistItems = [],
   onClose,
   onSubmit,
   isSaving = false,
   errorMessage = '',
 }) {
   const [form, setForm] = useState(() => buildTaskTemplateForm(editingTemplate))
+  const [checklistItems, setChecklistItems] = useState(() => buildChecklistDraftItems(initialChecklistItems))
 
   useEffect(() => {
     if (!isOpen) return
     setForm(buildTaskTemplateForm(editingTemplate))
-  }, [isOpen, editingTemplate])
+    setChecklistItems(buildChecklistDraftItems(initialChecklistItems))
+  }, [isOpen, editingTemplate, initialChecklistItems])
 
   if (!isOpen) return null
 
   const handleSubmit = async (event) => {
     event.preventDefault()
+
+    const normalizedChecklistItems = checklistItems
+      .map((item) => ({ title: `${item.title ?? ''}`.trim() }))
+      .filter((item) => item.title)
+
     await onSubmit?.({
       ...form,
       defaultTime: form.defaultTime?.trim() || null,
+      checklistItems: normalizedChecklistItems,
+    })
+  }
+
+  const handleAddChecklistItem = () => {
+    setChecklistItems((current) => [...current, createChecklistDraftItem()])
+  }
+
+  const handleUpdateChecklistItem = (clientKey, title) => {
+    setChecklistItems((current) => current.map((item) => (
+      item.clientKey === clientKey ? { ...item, title } : item
+    )))
+  }
+
+  const handleDeleteChecklistItem = (clientKey) => {
+    setChecklistItems((current) => current.filter((item) => item.clientKey !== clientKey))
+  }
+
+  const handleMoveChecklistItem = (clientKey, direction) => {
+    setChecklistItems((current) => {
+      const index = current.findIndex((item) => item.clientKey === clientKey)
+      if (index < 0) return current
+
+      const targetIndex = direction === 'up' ? index - 1 : index + 1
+      if (targetIndex < 0 || targetIndex >= current.length) return current
+
+      const next = [...current]
+      const [movedItem] = next.splice(index, 1)
+      next.splice(targetIndex, 0, movedItem)
+      return next
     })
   }
 
@@ -72,7 +124,7 @@ export default function TaskTemplateModal({
                 type="text"
                 value={form.title}
                 onChange={(event) => setForm((current) => ({ ...current, title: event.target.value }))}
-                placeholder="e.g. Service opening"
+                placeholder="e.g. Bar closing"
                 required
               />
             </label>
@@ -144,12 +196,74 @@ export default function TaskTemplateModal({
             <label className="form-field task-form-field-full">
               <span>Notes</span>
               <textarea
-                rows={4}
+                rows={3}
                 value={form.notes}
                 onChange={(event) => setForm((current) => ({ ...current, notes: event.target.value }))}
-                placeholder="Optional checklist or context"
+                placeholder="Optional context for the team"
               />
             </label>
+          </div>
+
+          <div className="task-checklist-builder task-form-field-full">
+            <div className="task-checklist-builder-header">
+              <span className="task-checklist-builder-label">Checklist items</span>
+              <button
+                type="button"
+                className="ghost-btn task-checklist-add-btn"
+                onClick={handleAddChecklistItem}
+                disabled={isSaving}
+              >
+                + Add item
+              </button>
+            </div>
+
+            {checklistItems.length === 0 ? (
+              <p className="task-checklist-builder-empty">No checklist items yet.</p>
+            ) : (
+              <div className="task-checklist-builder-list">
+                {checklistItems.map((item, index) => (
+                  <div key={item.clientKey} className="task-checklist-builder-row">
+                    <input
+                      type="text"
+                      className="task-checklist-builder-input"
+                      value={item.title}
+                      onChange={(event) => handleUpdateChecklistItem(item.clientKey, event.target.value)}
+                      placeholder={`Checklist item ${index + 1}`}
+                      aria-label={`Checklist item ${index + 1}`}
+                    />
+                    <div className="task-checklist-builder-actions">
+                      <button
+                        type="button"
+                        className="ghost-btn task-checklist-move-btn"
+                        onClick={() => handleMoveChecklistItem(item.clientKey, 'up')}
+                        disabled={isSaving || index === 0}
+                        aria-label="Move item up"
+                      >
+                        ↑
+                      </button>
+                      <button
+                        type="button"
+                        className="ghost-btn task-checklist-move-btn"
+                        onClick={() => handleMoveChecklistItem(item.clientKey, 'down')}
+                        disabled={isSaving || index === checklistItems.length - 1}
+                        aria-label="Move item down"
+                      >
+                        ↓
+                      </button>
+                      <button
+                        type="button"
+                        className="ghost-btn task-checklist-delete-btn"
+                        onClick={() => handleDeleteChecklistItem(item.clientKey)}
+                        disabled={isSaving}
+                        aria-label="Delete checklist item"
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           <div className="modal-actions">

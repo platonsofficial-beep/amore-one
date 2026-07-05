@@ -1,6 +1,8 @@
 import { supabase } from '../lib/supabaseClient'
 import { isTaskDepartmentKey, normalizeTaskDepartmentKey } from '../lib/taskDepartments'
 import { normalizeTimeValue } from '../lib/timeFormatUtils'
+import { replaceTaskChecklist } from './taskChecklistService'
+import { getTemplateChecklistItems } from './taskTemplateChecklistService'
 import { createTask, getTasks } from './taskService'
 
 const TASK_TEMPLATES_TABLE = 'task_templates'
@@ -203,6 +205,10 @@ export async function generateTasksFromTemplates({ templates, selectedDate }) {
     existingTasks.map((task) => buildTaskDuplicateKey(task.title, task.department, task.dueDate)),
   )
 
+  const templateChecklistsById = await getTemplateChecklistItems(
+    activeTemplates.map((template) => template.id),
+  ).catch(() => ({}))
+
   let createdCount = 0
   let skippedCount = 0
 
@@ -213,7 +219,7 @@ export async function generateTasksFromTemplates({ templates, selectedDate }) {
       continue
     }
 
-    await createTask({
+    const createdTask = await createTask({
       title: template.title,
       department: template.department,
       departmentCustom: template.departmentCustom,
@@ -224,6 +230,18 @@ export async function generateTasksFromTemplates({ templates, selectedDate }) {
       notes: template.notes,
       status: 'active',
     })
+
+    const templateChecklistItems = templateChecklistsById[String(template.id)] ?? []
+    if (templateChecklistItems.length > 0) {
+      try {
+        await replaceTaskChecklist(
+          createdTask.id,
+          templateChecklistItems.map((item) => ({ title: item.title })),
+        )
+      } catch (checklistError) {
+        console.error('[taskTemplateService] copy template checklist error:', checklistError)
+      }
+    }
 
     existingKeys.add(duplicateKey)
     createdCount += 1

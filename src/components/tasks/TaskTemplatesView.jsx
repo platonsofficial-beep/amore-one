@@ -23,6 +23,7 @@ function truncateNotes(notes, maxLength = 120) {
 
 function TemplateCard({
   template,
+  checklistItems = [],
   onEdit,
   onDelete,
   isSaving,
@@ -32,6 +33,8 @@ function TemplateCard({
   const notesPreview = truncateNotes(template.notes)
   const defaultTimeLabel = formatTime24(template.defaultTime, '')
   const isInactive = template.isActive === false
+  const previewItems = checklistItems.slice(0, 3)
+  const remainingChecklistCount = Math.max(checklistItems.length - previewItems.length, 0)
 
   return (
     <article className={`task-template-card${isInactive ? ' is-inactive' : ''}`}>
@@ -55,6 +58,17 @@ function TemplateCard({
 
       {notesPreview ? (
         <p className="task-template-notes-preview">{notesPreview}</p>
+      ) : null}
+
+      {previewItems.length > 0 ? (
+        <ul className="task-template-checklist-preview">
+          {previewItems.map((item) => (
+            <li key={item.id ?? item.title}>{item.title}</li>
+          ))}
+          {remainingChecklistCount > 0 ? (
+            <li className="task-template-checklist-more">+ {remainingChecklistCount} more</li>
+          ) : null}
+        </ul>
       ) : null}
 
       <div className="task-template-card-actions">
@@ -81,6 +95,7 @@ function TemplateCard({
 
 export default function TaskTemplatesView({
   templates = [],
+  templateChecklistItemsByTemplateId = {},
   isLoading = false,
   isSaving = false,
   isGenerating = false,
@@ -169,6 +184,7 @@ export default function TaskTemplatesView({
                   <TemplateCard
                     key={template.id}
                     template={template}
+                    checklistItems={templateChecklistItemsByTemplateId[String(template.id)] ?? []}
                     onEdit={onEditTemplate}
                     onDelete={onDeleteTemplate}
                     isSaving={isSaving}

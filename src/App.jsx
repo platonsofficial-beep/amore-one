@@ -105,6 +105,14 @@ import {
   updateTaskTemplate,
 } from './services/taskTemplateService'
 import {
+  getChecklistItemsForTasks,
+  toggleChecklistItem,
+} from './services/taskChecklistService'
+import {
+  getTemplateChecklistItems,
+  replaceTemplateChecklist,
+} from './services/taskTemplateChecklistService'
+import {
   addWeeks,
   formatWeekRange,
   getCurrentWeekStartDate,
@@ -10911,6 +10919,8 @@ function App() {
   const [isTaskTemplatesLoading, setIsTaskTemplatesLoading] = useState(false)
   const [isSavingTaskTemplate, setIsSavingTaskTemplate] = useState(false)
   const [isGeneratingTasksFromTemplates, setIsGeneratingTasksFromTemplates] = useState(false)
+  const [checklistItemsByTaskId, setChecklistItemsByTaskId] = useState({})
+  const [templateChecklistItemsByTemplateId, setTemplateChecklistItemsByTemplateId] = useState({})
   const [employeePendingDelete, setEmployeePendingDelete] = useState(null)
   const [isDeletingEmployee, setIsDeletingEmployee] = useState(false)
   const [localNow, setLocalNow] = useState(() => getLocalNow())
@@ -11225,6 +11235,40 @@ function App() {
     }
   }, [])
 
+  const refreshTaskChecklists = useCallback(async (remoteTasks = []) => {
+    const taskIds = (remoteTasks ?? []).map((task) => task.id).filter(Boolean)
+    if (taskIds.length === 0) {
+      setChecklistItemsByTaskId({})
+      return {}
+    }
+
+    try {
+      const grouped = await getChecklistItemsForTasks(taskIds)
+      setChecklistItemsByTaskId(grouped)
+      return grouped
+    } catch {
+      setChecklistItemsByTaskId({})
+      return {}
+    }
+  }, [])
+
+  const refreshTemplateChecklists = useCallback(async (remoteTemplates = []) => {
+    const templateIds = (remoteTemplates ?? []).map((template) => template.id).filter(Boolean)
+    if (templateIds.length === 0) {
+      setTemplateChecklistItemsByTemplateId({})
+      return {}
+    }
+
+    try {
+      const grouped = await getTemplateChecklistItems(templateIds)
+      setTemplateChecklistItemsByTemplateId(grouped)
+      return grouped
+    } catch {
+      setTemplateChecklistItemsByTemplateId({})
+      return {}
+    }
+  }, [])
+
   const refreshTasks = useCallback(async () => {
     setIsTasksLoading(true)
     setTasksError('')
@@ -11233,16 +11277,18 @@ function App() {
       const remoteTasks = await getTasks()
       setTasks(remoteTasks)
       setIsTasksModuleConnected(true)
+      await refreshTaskChecklists(remoteTasks)
       return remoteTasks
     } catch (error) {
       setTasks([])
+      setChecklistItemsByTaskId({})
       setTasksError(error?.message || 'Unable to load tasks right now.')
       setIsTasksModuleConnected(!isModuleUnavailableMessage(error?.message))
       throw error
     } finally {
       setIsTasksLoading(false)
     }
-  }, [])
+  }, [refreshTaskChecklists])
 
   const refreshTaskTemplates = useCallback(async () => {
     setIsTaskTemplatesLoading(true)
@@ -11251,15 +11297,17 @@ function App() {
     try {
       const remoteTemplates = await getTaskTemplates()
       setTaskTemplates(remoteTemplates)
+      await refreshTemplateChecklists(remoteTemplates)
       return remoteTemplates
     } catch (error) {
       setTaskTemplates([])
+      setTemplateChecklistItemsByTemplateId({})
       setTaskTemplatesError(error?.message || 'Unable to load task templates right now.')
       throw error
     } finally {
       setIsTaskTemplatesLoading(false)
     }
-  }, [])
+  }, [refreshTemplateChecklists])
 
   const refreshDashboardModuleData = useCallback(async () => {
     await Promise.allSettled([
@@ -14766,7 +14814,9 @@ function App() {
     setTaskTemplatesNotice('')
 
     try {
-      await createTaskTemplate(payload)
+      const { checklistItems = [], ...templatePayload } = payload
+      const createdTemplate = await createTaskTemplate(templatePayload)
+      await replaceTemplateChecklist(createdTemplate.id, checklistItems)
       await refreshTaskTemplates()
       setTaskTemplatesNotice('Template created successfully.')
     } catch (error) {
@@ -14782,7 +14832,9 @@ function App() {
     setTaskTemplatesNotice('')
 
     try {
-      await updateTaskTemplate(templateId, payload)
+      const { checklistItems = [], ...templatePayload } = payload
+      await updateTaskTemplate(templateId, templatePayload)
+      await replaceTemplateChecklist(templateId, checklistItems)
       await refreshTaskTemplates()
       setTaskTemplatesNotice('Template updated successfully.')
     } catch (error) {
@@ -14834,6 +14886,33 @@ function App() {
       setTaskTemplatesNotice(error?.message || 'Unable to generate tasks right now.')
     } finally {
       setIsGeneratingTasksFromTemplates(false)
+    }
+  }
+
+  const handleToggleChecklistItem = async (itemId, isCompleted) => {
+    setChecklistItemsByTaskId((current) => {
+      const next = {}
+
+      Object.entries(current).forEach(([taskId, items]) => {
+        next[taskId] = items.map((item) => (
+          item.id === itemId
+            ? {
+              ...item,
+              isCompleted: Boolean(isCompleted),
+              completedAt: isCompleted ? new Date().toISOString() : null,
+            }
+            : item
+        ))
+      })
+
+      return next
+    })
+
+    try {
+      await toggleChecklistItem(itemId, isCompleted)
+    } catch (error) {
+      await refreshTasks()
+      setTasksNotice(error?.message || 'Unable to update checklist item right now.')
     }
   }
 
@@ -15156,6 +15235,8 @@ function App() {
           <TasksView
             tasks={tasks}
             taskTemplates={taskTemplates}
+            templateChecklistItemsByTemplateId={templateChecklistItemsByTemplateId}
+            checklistItemsByTaskId={checklistItemsByTaskId}
             employees={scheduleEmployees}
             isLoading={isTasksLoading}
             isTemplatesLoading={isTaskTemplatesLoading}
@@ -15175,6 +15256,7 @@ function App() {
             onUpdateTemplate={handleUpdateTaskTemplate}
             onDeleteTemplate={handleDeleteTaskTemplate}
             onGenerateToday={handleGenerateTasksFromTemplates}
+            onToggleChecklistItem={handleToggleChecklistItem}
             openCreateOnMount={openTasksCreateModal}
             onOpenCreateHandled={() => setOpenTasksCreateModal(false)}
           />

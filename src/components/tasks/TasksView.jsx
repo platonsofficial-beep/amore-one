@@ -8,6 +8,8 @@ import TasksHomeView from './TasksHomeView'
 export default function TasksView({
   tasks = [],
   taskTemplates = [],
+  templateChecklistItemsByTemplateId = {},
+  checklistItemsByTaskId = {},
   employees = [],
   isLoading = false,
   isTemplatesLoading = false,
@@ -27,6 +29,7 @@ export default function TasksView({
   onUpdateTemplate,
   onDeleteTemplate,
   onGenerateToday,
+  onToggleChecklistItem,
   openCreateOnMount = false,
   onOpenCreateHandled,
 }) {
@@ -198,6 +201,7 @@ export default function TasksView({
       {tasksScreen === 'templates' ? (
         <TaskTemplatesView
           templates={taskTemplates}
+          templateChecklistItemsByTemplateId={templateChecklistItemsByTemplateId}
           isLoading={isTemplatesLoading}
           isSaving={isSavingTemplate}
           isGenerating={isGeneratingTasks}
@@ -213,6 +217,7 @@ export default function TasksView({
         <DepartmentBoardView
           departmentKey={selectedDepartmentKey}
           tasks={tasks}
+          checklistItemsByTaskId={checklistItemsByTaskId}
           employees={employees}
           onBack={handleBackToHome}
           onNewTask={handleOpenNewTask}
@@ -220,6 +225,7 @@ export default function TasksView({
           onReopenTask={handleReopenTask}
           onEditTask={handleOpenEditTask}
           onDeleteTask={handleDeleteTask}
+          onToggleChecklistItem={onToggleChecklistItem}
           isSaving={isSaving}
           isLoading={isLoading}
         />
@@ -245,6 +251,11 @@ export default function TasksView({
       <TaskTemplateModal
         isOpen={isTemplateModalOpen}
         editingTemplate={editingTemplate}
+        initialChecklistItems={
+          editingTemplate?.id
+            ? (templateChecklistItemsByTemplateId[String(editingTemplate.id)] ?? [])
+            : []
+        }
         onClose={handleCloseTemplateModal}
         onSubmit={handleSubmitTemplate}
         isSaving={isSavingTemplate}
