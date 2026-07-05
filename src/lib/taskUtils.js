@@ -130,3 +130,45 @@ export function calculateDepartmentStats(tasks = [], departmentKey, todayKey = g
     completionPercent,
   }
 }
+
+export function calculateTaskOverview(tasks = [], todayKey = getTodayKey()) {
+  const allTasks = tasks ?? []
+  const activeTasks = allTasks.filter((task) => normalizeTaskStatus(task?.status) === 'active')
+  const active = activeTasks.length
+  const overdue = activeTasks.filter((task) => isTaskOverdue(task, todayKey)).length
+  const completedToday = allTasks.filter((task) => isCompletedToday(task, todayKey)).length
+
+  const todayWorkload = allTasks.filter((task) => {
+    const status = normalizeTaskStatus(task?.status)
+    const dueDate = normalizeTaskDateKey(task?.dueDate ?? task?.due_date)
+
+    if (status === 'completed') {
+      return isCompletedToday(task, todayKey)
+    }
+
+    return Boolean(dueDate) && dueDate <= todayKey
+  })
+
+  const completedInTodayWorkload = todayWorkload.filter((task) => isCompletedToday(task, todayKey)).length
+  const completionPercent = todayWorkload.length > 0
+    ? Math.round((completedInTodayWorkload / todayWorkload.length) * 100)
+    : 0
+
+  let statusMessage = ''
+  if (overdue > 0) {
+    statusMessage = 'Needs attention'
+  } else if (active === 0 && overdue === 0) {
+    statusMessage = 'Operations clear'
+  }
+
+  const showEmptyToday = active === 0 && overdue === 0 && completedToday === 0
+
+  return {
+    active,
+    overdue,
+    completedToday,
+    completionPercent,
+    statusMessage,
+    showEmptyToday,
+  }
+}

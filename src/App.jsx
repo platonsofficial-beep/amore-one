@@ -200,6 +200,7 @@ import {
   getLocalNow,
   getTimeGreeting,
 } from './lib/currentDateUtils'
+import { calculateTaskOverview } from './lib/taskUtils'
 
 const navItems = [
   { id: 'dashboard', label: 'Dashboard', icon: '◈' },
@@ -221,7 +222,7 @@ const workspaceSettingsSections = [
 const dashboardQuickActions = [
   { id: 'add-reservation', label: 'Add Reservation', icon: '➕', available: true, tier: 'primary' },
   { id: 'add-staff', label: 'Add Staff', icon: '👤', available: true, tier: 'primary' },
-  { id: 'add-task', label: 'Add Task', icon: '✓', available: false, hint: 'Coming soon', tier: 'secondary' },
+  { id: 'add-task', label: 'Add Task', icon: '✓', available: true, tier: 'secondary' },
   { id: 'create-order', label: 'Create Order', icon: '📦', available: false, hint: 'Coming soon', tier: 'secondary' },
 ]
 
@@ -631,6 +632,9 @@ function CommandCenterView({
   reservationsConnected,
   stockAlerts,
   inventoryConnected,
+  tasksOverview,
+  tasksConnected,
+  isTasksLoading,
   issuesSummary,
   businessHealth,
   executiveLabour,
@@ -641,6 +645,7 @@ function CommandCenterView({
   onQuickAction,
   onViewStock,
   onViewSchedule,
+  onViewTasks,
 }) {
   return (
     <div className="command-center command-workspace" aria-label="Operations command center">
@@ -738,10 +743,49 @@ function CommandCenterView({
           </section>
 
           <section className="command-card command-card-widget command-card-tasks" aria-label="Tasks">
-            <p className="command-widget-line">
-              <span className="command-widget-line-label">Tasks</span>
-              <span className="command-widget-line-value">Not connected yet</span>
-            </p>
+            <header className="command-card-header command-card-header-minimal">
+              <p className="eyebrow">Today Tasks</p>
+              {tasksConnected ? (
+                <button type="button" className="command-card-link command-card-link-inline" onClick={onViewTasks}>
+                  View Tasks →
+                </button>
+              ) : null}
+            </header>
+            {!tasksConnected ? (
+              <p className="command-empty-state command-empty-state-tight">Not connected yet</p>
+            ) : isTasksLoading ? (
+              <p className="command-empty-state command-empty-state-tight">Loading tasks…</p>
+            ) : tasksOverview.showEmptyToday ? (
+              <p className="command-empty-state command-empty-state-tight">No active tasks today</p>
+            ) : (
+              <>
+                <div className="command-task-metrics">
+                  <article className="command-task-metric">
+                    <p className="command-task-metric-value">{tasksOverview.active}</p>
+                    <p className="command-task-metric-label">Active</p>
+                  </article>
+                  <article className={`command-task-metric${tasksOverview.overdue > 0 ? ' has-alert' : ''}`}>
+                    <p className="command-task-metric-value">{tasksOverview.overdue}</p>
+                    <p className="command-task-metric-label">Overdue</p>
+                  </article>
+                  <article className="command-task-metric">
+                    <p className="command-task-metric-value">{tasksOverview.completedToday}</p>
+                    <p className="command-task-metric-label">Completed today</p>
+                  </article>
+                  <article className="command-task-metric">
+                    <p className="command-task-metric-value">{tasksOverview.completionPercent}%</p>
+                    <p className="command-task-metric-label">Complete</p>
+                  </article>
+                </div>
+                {tasksOverview.statusMessage ? (
+                  <footer className="command-task-footer">
+                    <p className={`command-task-footer-message${tasksOverview.overdue > 0 ? ' is-alert' : ' is-clear'}`}>
+                      {tasksOverview.statusMessage}
+                    </p>
+                  </footer>
+                ) : null}
+              </>
+            )}
           </section>
         </div>
 
@@ -10853,6 +10897,7 @@ function App() {
   const [tasksError, setTasksError] = useState('')
   const [isTasksLoading, setIsTasksLoading] = useState(false)
   const [isSavingTask, setIsSavingTask] = useState(false)
+  const [openTasksCreateModal, setOpenTasksCreateModal] = useState(false)
   const [employeePendingDelete, setEmployeePendingDelete] = useState(null)
   const [isDeletingEmployee, setIsDeletingEmployee] = useState(false)
   const [localNow, setLocalNow] = useState(() => getLocalNow())
@@ -10869,6 +10914,7 @@ function App() {
   const [isTodayWeekLoading, setIsTodayWeekLoading] = useState(true)
   const [isReservationsModuleConnected, setIsReservationsModuleConnected] = useState(false)
   const [isInventoryModuleConnected, setIsInventoryModuleConnected] = useState(false)
+  const [isTasksModuleConnected, setIsTasksModuleConnected] = useState(false)
   const [settingsSection, setSettingsSection] = useState('profile')
   const [workspaceProfile, setWorkspaceProfile] = useState(EMPTY_WORKSPACE_PROFILE)
   const [workspaceProfileDraft, setWorkspaceProfileDraft] = useState(EMPTY_WORKSPACE_PROFILE)
@@ -11034,6 +11080,11 @@ function App() {
     [inventoryItems],
   )
 
+  const dashboardTaskOverview = useMemo(
+    () => calculateTaskOverview(tasks, currentDateKey),
+    [tasks, currentDateKey],
+  )
+
   const dashboardBusinessHealth = useMemo(() => buildBusinessHealthSummary({
     issuesSummary: dashboardIssuesSummary,
     stockAlerts: dashboardStockAlerts,
@@ -11165,8 +11216,9 @@ function App() {
     await Promise.allSettled([
       refreshReservations(),
       refreshInventory(),
+      refreshTasks(),
     ])
-  }, [refreshInventory, refreshReservations])
+  }, [refreshInventory, refreshReservations, refreshTasks])
 
   useEffect(() => {
     if (activeView !== 'dashboard') return undefined
@@ -11416,9 +11468,13 @@ function App() {
     try {
       const remoteTasks = await getTasks()
       setTasks(remoteTasks)
+      setIsTasksModuleConnected(true)
+      return remoteTasks
     } catch (error) {
       setTasks([])
       setTasksError(error?.message || 'Unable to load tasks right now.')
+      setIsTasksModuleConnected(!isModuleUnavailableMessage(error?.message))
+      throw error
     } finally {
       setIsTasksLoading(false)
     }
@@ -14117,7 +14173,17 @@ function App() {
     if (actionId === 'add-staff') {
       setActiveView('staff')
       handleOpenAddEmployee()
+      return
     }
+
+    if (actionId === 'add-task') {
+      setActiveView('tasks')
+      setOpenTasksCreateModal(true)
+    }
+  }
+
+  const handleDashboardViewTasks = () => {
+    setActiveView('tasks')
   }
 
   const handleDashboardViewStock = () => {
@@ -14839,6 +14905,9 @@ function App() {
             reservationsConnected={isReservationsModuleConnected}
             stockAlerts={dashboardStockAlerts}
             inventoryConnected={isInventoryModuleConnected}
+            tasksOverview={dashboardTaskOverview}
+            tasksConnected={isTasksModuleConnected}
+            isTasksLoading={isTasksLoading}
             issuesSummary={dashboardIssuesSummary}
             businessHealth={dashboardBusinessHealth}
             executiveLabour={dashboardExecutiveLabour}
@@ -14849,6 +14918,7 @@ function App() {
             onQuickAction={handleDashboardQuickAction}
             onViewStock={handleDashboardViewStock}
             onViewSchedule={handleDashboardViewSchedule}
+            onViewTasks={handleDashboardViewTasks}
           />
         ) : null}
 
@@ -14988,6 +15058,8 @@ function App() {
             onDeleteTask={handleDeleteTask}
             onCompleteTask={handleCompleteTask}
             onReopenTask={handleReopenTask}
+            openCreateOnMount={openTasksCreateModal}
+            onOpenCreateHandled={() => setOpenTasksCreateModal(false)}
           />
         ) : null}
 

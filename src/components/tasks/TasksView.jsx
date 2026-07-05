@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import DepartmentBoardView from './DepartmentBoardView'
 import TaskFormModal from './TaskFormModal'
 import TasksHomeView from './TasksHomeView'
@@ -15,11 +15,21 @@ export default function TasksView({
   onDeleteTask,
   onCompleteTask,
   onReopenTask,
+  openCreateOnMount = false,
+  onOpenCreateHandled,
 }) {
   const [selectedDepartmentKey, setSelectedDepartmentKey] = useState(null)
   const [isTaskModalOpen, setIsTaskModalOpen] = useState(false)
   const [editingTask, setEditingTask] = useState(null)
   const [formError, setFormError] = useState('')
+
+  useEffect(() => {
+    if (!openCreateOnMount) return
+    setEditingTask(null)
+    setFormError('')
+    setIsTaskModalOpen(true)
+    onOpenCreateHandled?.()
+  }, [openCreateOnMount, onOpenCreateHandled])
 
   const handleSelectDepartment = (departmentKey) => {
     setSelectedDepartmentKey(departmentKey)
