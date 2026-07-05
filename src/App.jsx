@@ -10407,7 +10407,25 @@ function InventoryView({ inventoryItems, onOpenAddItem, onOpenEditItem, onDelete
   )
 }
 
-function SuppliersView({ suppliers, onOpenAddSupplier, onOpenEditSupplier, onDeleteSupplier, isLoading, noticeMessage, isSaving, searchTerm, onSearchTermChange }) {
+function countInventoryItemsForSupplier(inventoryItems, companyName) {
+  const trimmed = `${companyName ?? ''}`.trim()
+  if (!trimmed) return 0
+
+  return (inventoryItems ?? []).filter((item) => `${item?.supplier ?? ''}`.trim() === trimmed).length
+}
+
+function SuppliersView({
+  suppliers,
+  inventoryItems = [],
+  onOpenAddSupplier,
+  onOpenEditSupplier,
+  onRequestDeleteSupplier,
+  isLoading,
+  noticeMessage,
+  isSaving,
+  searchTerm,
+  onSearchTermChange,
+}) {
   const filteredSuppliers = useMemo(() => {
     const needle = `${searchTerm}`.trim().toLowerCase()
     if (!needle) return suppliers
@@ -10416,6 +10434,16 @@ function SuppliersView({ suppliers, onOpenAddSupplier, onOpenEditSupplier, onDel
       `${supplier.companyName} ${supplier.contactPerson} ${supplier.phone} ${supplier.email} ${supplier.address}`.toLowerCase().includes(needle)
     ))
   }, [suppliers, searchTerm])
+
+  const linkedCountBySupplierId = useMemo(() => {
+    const counts = new Map()
+
+    suppliers.forEach((supplier) => {
+      counts.set(supplier.id, countInventoryItemsForSupplier(inventoryItems, supplier.companyName))
+    })
+
+    return counts
+  }, [suppliers, inventoryItems])
 
   return (
     <section className="staff-page">
@@ -10467,7 +10495,10 @@ function SuppliersView({ suppliers, onOpenAddSupplier, onOpenEditSupplier, onDel
           </div>
         ) : (
           <div className="roster-shift-list">
-            {filteredSuppliers.map((supplier) => (
+            {filteredSuppliers.map((supplier) => {
+              const linkedCount = linkedCountBySupplierId.get(supplier.id) ?? 0
+
+              return (
               <article key={supplier.id} className="roster-shift-card supplier-card">
                 <div className="roster-shift-main">
                   <div className="roster-avatar">{getInitials(supplier.companyName || 'Supplier')}</div>
@@ -10487,15 +10518,23 @@ function SuppliersView({ suppliers, onOpenAddSupplier, onOpenEditSupplier, onDel
                 <div className="roster-shift-meta">
                   <span>{supplier.address || 'No address'}</span>
                 </div>
+                {linkedCount > 0 ? (
+                  <div className="roster-shift-meta">
+                    <span className="supplier-linked-count">
+                      {linkedCount} linked stock item{linkedCount === 1 ? '' : 's'}
+                    </span>
+                  </div>
+                ) : null}
                 <div className="drawer-notes">
                   <p>{supplier.notes || 'No notes.'}</p>
                 </div>
-                <div className="action-group" style={{ marginTop: '12px' }}>
-                  <button type="button" className="ghost-btn" onClick={() => onOpenEditSupplier(supplier)}>Edit</button>
-                  <button type="button" className="ghost-btn" onClick={() => onDeleteSupplier(supplier.id)}>Delete</button>
+                <div className="action-group supplier-card-actions">
+                  <button type="button" className="ghost-btn supplier-card-action-btn" onClick={() => onOpenEditSupplier(supplier)}>Edit</button>
+                  <button type="button" className="ghost-btn supplier-card-action-btn" onClick={() => onRequestDeleteSupplier(supplier)}>Delete</button>
                 </div>
               </article>
-            ))}
+              )
+            })}
           </div>
         )}
       </div>
@@ -10908,6 +10947,8 @@ function App() {
     notes: '',
   })
   const [isSavingSupplier, setIsSavingSupplier] = useState(false)
+  const [supplierPendingDelete, setSupplierPendingDelete] = useState(null)
+  const [isDeletingSupplier, setIsDeletingSupplier] = useState(false)
   const [tasks, setTasks] = useState([])
   const [tasksNotice, setTasksNotice] = useState('')
   const [tasksError, setTasksError] = useState('')
@@ -14689,13 +14730,34 @@ function App() {
     })
   }
 
-  const handleDeleteSupplier = async (id) => {
+  const handleRequestDeleteSupplier = (supplier) => {
+    if (!supplier?.id) return
+    setSupplierPendingDelete(supplier)
+  }
+
+  const handleCloseDeleteSupplierModal = () => {
+    if (isDeletingSupplier) return
+    setSupplierPendingDelete(null)
+  }
+
+  const handleConfirmDeleteSupplier = async () => {
+    if (!supplierPendingDelete?.id) return
+
+    const linkedCount = countInventoryItemsForSupplier(inventoryItems, supplierPendingDelete.companyName)
+    if (linkedCount > 0) return
+
+    setIsDeletingSupplier(true)
+    setSuppliersNotice('')
+
     try {
-      await deleteSupplier(id)
+      await deleteSupplier(supplierPendingDelete.id)
       await refreshSuppliers()
       setSuppliersNotice('Supplier removed.')
+      setSupplierPendingDelete(null)
     } catch (error) {
       setSuppliersNotice(error.message || 'Unable to delete supplier right now.')
+    } finally {
+      setIsDeletingSupplier(false)
     }
   }
 
@@ -15009,6 +15071,10 @@ function App() {
                   ? 'Tasks management'
                 : 'Operations management'
 
+  const supplierDeleteLinkedCount = supplierPendingDelete
+    ? countInventoryItemsForSupplier(inventoryItems, supplierPendingDelete.companyName)
+    : 0
+
   const handleOpenWorkspaceProfile = () => {
     setActiveView('settings')
     setSettingsSection('profile')
@@ -15251,9 +15317,10 @@ function App() {
         {activeView === 'suppliers' ? (
           <SuppliersView
             suppliers={suppliers}
+            inventoryItems={inventoryItems}
             onOpenAddSupplier={handleOpenAddSupplier}
             onOpenEditSupplier={handleOpenEditSupplier}
-            onDeleteSupplier={handleDeleteSupplier}
+            onRequestDeleteSupplier={handleRequestDeleteSupplier}
             isLoading={isSuppliersLoading}
             noticeMessage={suppliersNotice}
             isSaving={isSavingSupplier}
@@ -15987,8 +16054,8 @@ function App() {
         ) : null}
 
         {isSupplierModalOpen ? (
-          <div className="employee-modal-backdrop" onClick={handleCloseSupplierModal}>
-            <div className="employee-modal" onClick={(event) => event.stopPropagation()}>
+          <div className="employee-modal-backdrop task-modal-backdrop" onClick={handleCloseSupplierModal}>
+            <div className="employee-modal task-form-modal is-responsive-sheet" onClick={(event) => event.stopPropagation()}>
               <div className="drawer-header">
                 <div>
                   <p className="eyebrow">Supplier form</p>
@@ -16035,12 +16102,57 @@ function App() {
                 </label>
 
                 <div className="modal-actions">
-                  <button type="button" className="ghost-btn" onClick={handleCloseSupplierModal}>Cancel</button>
-                  <button type="submit" className="primary-btn" disabled={isSavingSupplier}>
+                  <button type="button" className="ghost-btn supplier-modal-action-btn" onClick={handleCloseSupplierModal}>Cancel</button>
+                  <button type="submit" className="primary-btn supplier-modal-action-btn" disabled={isSavingSupplier}>
                     {isSavingSupplier ? 'Saving…' : 'Save'}
                   </button>
                 </div>
               </form>
+            </div>
+          </div>
+        ) : null}
+
+        {supplierPendingDelete ? (
+          <div className="employee-modal-backdrop task-modal-backdrop" onClick={handleCloseDeleteSupplierModal}>
+            <div
+              className="employee-modal task-form-modal is-responsive-sheet"
+              onClick={(event) => event.stopPropagation()}
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="delete-supplier-title"
+            >
+              <div className="drawer-header">
+                <div>
+                  <p className="eyebrow">Delete confirmation</p>
+                  <h3 id="delete-supplier-title">Delete supplier?</h3>
+                </div>
+                <button type="button" className="icon-btn" onClick={handleCloseDeleteSupplierModal} aria-label="Close delete supplier dialog">
+                  ✕
+                </button>
+              </div>
+
+              <div className="supplier-delete-modal-body">
+                <p>This cannot be undone.</p>
+                {supplierDeleteLinkedCount > 0 ? (
+                  <>
+                    <p className="supplier-delete-linked-warning">
+                      This supplier is linked to {supplierDeleteLinkedCount} stock item{supplierDeleteLinkedCount === 1 ? '' : 's'}.
+                    </p>
+                    <p>Remove or reassign stock items before deleting this supplier.</p>
+                  </>
+                ) : null}
+              </div>
+
+              <div className="modal-actions">
+                <button type="button" className="ghost-btn supplier-modal-action-btn" onClick={handleCloseDeleteSupplierModal} disabled={isDeletingSupplier}>
+                  Cancel
+                </button>
+                {supplierDeleteLinkedCount === 0 ? (
+                  <button type="button" className="primary-btn supplier-delete-confirm-btn supplier-modal-action-btn" onClick={handleConfirmDeleteSupplier} disabled={isDeletingSupplier}>
+                    {isDeletingSupplier ? 'Deleting…' : 'Delete Supplier'}
+                  </button>
+                ) : null}
+              </div>
             </div>
           </div>
         ) : null}

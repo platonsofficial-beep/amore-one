@@ -11,6 +11,8 @@ function mapSupplier(record) {
     paymentTerms: record.payment_terms ?? record.paymentTerms ?? '',
     deliveryDays: record.delivery_days ?? record.deliveryDays ?? '',
     notes: record.notes ?? '',
+    createdAt: record.created_at ?? record.createdAt ?? null,
+    updatedAt: record.updated_at ?? record.updatedAt ?? null,
   }
 }
 
