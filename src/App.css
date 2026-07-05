@@ -14301,6 +14301,28 @@ input[type='time']::-webkit-datetime-edit-text {
   border-color: rgba(235, 110, 110, 0.55);
 }
 
+.inventory-supplier-field-row {
+  display: flex;
+  gap: 8px;
+  align-items: stretch;
+}
+
+.inventory-supplier-select,
+.inventory-add-supplier-btn {
+  min-height: 44px;
+}
+
+.inventory-supplier-select {
+  flex: 1;
+  min-width: 0;
+}
+
+.inventory-add-supplier-btn {
+  flex-shrink: 0;
+  white-space: nowrap;
+  padding-inline: 14px;
+}
+
 .schedule-empty-state {
   padding: 24px;
   border-radius: 20px;
@@ -14430,6 +14452,14 @@ input[type='time']::-webkit-datetime-edit-text {
 
   .suppliers-summary-grid {
     grid-template-columns: repeat(1, minmax(0, 1fr));
+  }
+
+  .inventory-supplier-field-row {
+    flex-direction: column;
+  }
+
+  .inventory-add-supplier-btn {
+    width: 100%;
   }
 
   .schedule-week-grid {
@@ -15454,6 +15484,12 @@ input[type='time']::-webkit-datetime-edit-text {
   color: #8f8778;
   font-size: 0.82rem;
   line-height: 1.45;
+}
+
+.task-form-modal .form-field input,
+.task-form-modal .form-field select,
+.task-form-modal .form-field textarea {
+  min-height: 44px;
 }
 
 .task-modal-backdrop {

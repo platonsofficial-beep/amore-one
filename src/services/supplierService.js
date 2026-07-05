@@ -11,6 +11,7 @@ function mapSupplier(record) {
     paymentTerms: record.payment_terms ?? record.paymentTerms ?? '',
     deliveryDays: record.delivery_days ?? record.deliveryDays ?? '',
     notes: record.notes ?? '',
+    taxId: record.tax_id ?? record.taxId ?? '',
     createdAt: record.created_at ?? record.createdAt ?? null,
     updatedAt: record.updated_at ?? record.updatedAt ?? null,
   }
@@ -26,6 +27,7 @@ function serializeSupplier(supplier) {
     payment_terms: supplier.paymentTerms ?? supplier.payment_terms ?? '',
     delivery_days: supplier.deliveryDays ?? supplier.delivery_days ?? '',
     notes: supplier.notes ?? '',
+    tax_id: supplier.taxId ?? supplier.tax_id ?? '',
   }
 }
 

@@ -10414,6 +10414,29 @@ function countInventoryItemsForSupplier(inventoryItems, companyName) {
   return (inventoryItems ?? []).filter((item) => `${item?.supplier ?? ''}`.trim() === trimmed).length
 }
 
+function buildInventorySupplierOptions(suppliers, selectedSupplier = '') {
+  const trimmedSelected = `${selectedSupplier ?? ''}`.trim()
+  const supplierNames = new Set(
+    (suppliers ?? [])
+      .map((supplier) => `${supplier.companyName ?? ''}`.trim())
+      .filter(Boolean),
+  )
+
+  const options = [{ value: '', label: 'No supplier' }]
+
+  ;(suppliers ?? []).forEach((supplier) => {
+    const name = `${supplier.companyName ?? ''}`.trim()
+    if (!name) return
+    options.push({ value: name, label: name })
+  })
+
+  if (trimmedSelected && !supplierNames.has(trimmedSelected)) {
+    options.push({ value: trimmedSelected, label: `Legacy: ${trimmedSelected}` })
+  }
+
+  return options
+}
+
 function SuppliersView({
   suppliers,
   inventoryItems = [],
@@ -10431,7 +10454,7 @@ function SuppliersView({
     if (!needle) return suppliers
 
     return suppliers.filter((supplier) => (
-      `${supplier.companyName} ${supplier.contactPerson} ${supplier.phone} ${supplier.email} ${supplier.address}`.toLowerCase().includes(needle)
+      `${supplier.companyName} ${supplier.contactPerson} ${supplier.phone} ${supplier.email} ${supplier.address} ${supplier.taxId ?? ''}`.toLowerCase().includes(needle)
     ))
   }, [suppliers, searchTerm])
 
@@ -10518,6 +10541,11 @@ function SuppliersView({
                 <div className="roster-shift-meta">
                   <span>{supplier.address || 'No address'}</span>
                 </div>
+                {`${supplier.taxId ?? ''}`.trim() ? (
+                  <div className="roster-shift-meta">
+                    <span>VAT / Tax ID: {supplier.taxId}</span>
+                  </div>
+                ) : null}
                 {linkedCount > 0 ? (
                   <div className="roster-shift-meta">
                     <span className="supplier-linked-count">
@@ -10935,6 +10963,7 @@ function App() {
   const [suppliersNotice, setSuppliersNotice] = useState('')
   const [isSuppliersLoading, setIsSuppliersLoading] = useState(true)
   const [isSupplierModalOpen, setIsSupplierModalOpen] = useState(false)
+  const [supplierModalOrigin, setSupplierModalOrigin] = useState(null)
   const [editingSupplier, setEditingSupplier] = useState(null)
   const [supplierForm, setSupplierForm] = useState({
     companyName: '',
@@ -10942,6 +10971,7 @@ function App() {
     phone: '',
     email: '',
     address: '',
+    taxId: '',
     paymentTerms: '',
     deliveryDays: '',
     notes: '',
@@ -14686,6 +14716,7 @@ function App() {
   }
 
   const handleOpenAddSupplier = () => {
+    setSupplierModalOrigin(null)
     setEditingSupplier(null)
     setSupplierForm({
       companyName: '',
@@ -14693,6 +14724,7 @@ function App() {
       phone: '',
       email: '',
       address: '',
+      taxId: '',
       paymentTerms: '',
       deliveryDays: '',
       notes: '',
@@ -14700,7 +14732,42 @@ function App() {
     setIsSupplierModalOpen(true)
   }
 
+  const handleOpenAddSupplierFromInventory = () => {
+    setSupplierModalOrigin('inventory')
+    setEditingSupplier(null)
+    setSupplierForm({
+      companyName: '',
+      contactPerson: '',
+      phone: '',
+      email: '',
+      address: '',
+      taxId: '',
+      paymentTerms: '',
+      deliveryDays: '',
+      notes: '',
+    })
+    setIsSupplierModalOpen(true)
+  }
+
+  const handleCloseSupplierModal = () => {
+    setIsSupplierModalOpen(false)
+    setSupplierModalOrigin(null)
+    setEditingSupplier(null)
+    setSupplierForm({
+      companyName: '',
+      contactPerson: '',
+      phone: '',
+      email: '',
+      address: '',
+      taxId: '',
+      paymentTerms: '',
+      deliveryDays: '',
+      notes: '',
+    })
+  }
+
   const handleOpenEditSupplier = (supplier) => {
+    setSupplierModalOrigin(null)
     setEditingSupplier(supplier)
     setSupplierForm({
       companyName: supplier.companyName ?? '',
@@ -14708,26 +14775,12 @@ function App() {
       phone: supplier.phone ?? '',
       email: supplier.email ?? '',
       address: supplier.address ?? '',
+      taxId: supplier.taxId ?? '',
       paymentTerms: supplier.paymentTerms ?? '',
       deliveryDays: supplier.deliveryDays ?? '',
       notes: supplier.notes ?? '',
     })
     setIsSupplierModalOpen(true)
-  }
-
-  const handleCloseSupplierModal = () => {
-    setIsSupplierModalOpen(false)
-    setEditingSupplier(null)
-    setSupplierForm({
-      companyName: '',
-      contactPerson: '',
-      phone: '',
-      email: '',
-      address: '',
-      paymentTerms: '',
-      deliveryDays: '',
-      notes: '',
-    })
   }
 
   const handleRequestDeleteSupplier = (supplier) => {
@@ -14778,20 +14831,37 @@ function App() {
       phone: supplierForm.phone.trim(),
       email: supplierForm.email.trim(),
       address: supplierForm.address.trim(),
+      taxId: supplierForm.taxId.trim(),
       paymentTerms: supplierForm.paymentTerms.trim(),
       deliveryDays: supplierForm.deliveryDays.trim(),
       notes: supplierForm.notes.trim(),
     }
 
     try {
+      const savedCompanyName = payload.companyName
+      const inventoryOrigin = supplierModalOrigin === 'inventory'
+
       if (editingSupplier) {
         await updateSupplier(editingSupplier.id, payload)
       } else {
-        await createSupplier(payload)
+        const createdSupplier = await createSupplier(payload)
+        await refreshSuppliers()
+        handleCloseSupplierModal()
+
+        if (inventoryOrigin && isInventoryModalOpen) {
+          setInventoryForm((current) => ({
+            ...current,
+            supplier: `${createdSupplier?.companyName ?? savedCompanyName}`.trim(),
+          }))
+          setInventoryNotice('Supplier created and selected.')
+        } else {
+          setSuppliersNotice('Supplier created.')
+        }
+        return
       }
 
       await refreshSuppliers()
-      setSuppliersNotice(editingSupplier ? 'Supplier updated.' : 'Supplier created.')
+      setSuppliersNotice('Supplier updated.')
       handleCloseSupplierModal()
     } catch (error) {
       setSuppliersNotice(error.message || 'Unable to save supplier right now.')
@@ -15074,6 +15144,11 @@ function App() {
   const supplierDeleteLinkedCount = supplierPendingDelete
     ? countInventoryItemsForSupplier(inventoryItems, supplierPendingDelete.companyName)
     : 0
+
+  const inventorySupplierOptions = useMemo(
+    () => buildInventorySupplierOptions(suppliers, inventoryForm.supplier),
+    [suppliers, inventoryForm.supplier],
+  )
 
   const handleOpenWorkspaceProfile = () => {
     setActiveView('settings')
@@ -16007,9 +16082,29 @@ function App() {
                       ))}
                     </select>
                   </label>
-                  <label className="form-field">
+                  <label className="form-field inventory-supplier-field">
                     <span>Supplier</span>
-                    <input value={inventoryForm.supplier} onChange={(event) => setInventoryForm((current) => ({ ...current, supplier: event.target.value }))} placeholder="Supplier" />
+                    <div className="inventory-supplier-field-row">
+                      <select
+                        className="inventory-supplier-select"
+                        value={inventoryForm.supplier}
+                        onChange={(event) => setInventoryForm((current) => ({ ...current, supplier: event.target.value }))}
+                      >
+                        {inventorySupplierOptions.map((option) => (
+                          <option key={option.value || 'no-supplier'} value={option.value}>
+                            {option.label}
+                          </option>
+                        ))}
+                      </select>
+                      <button
+                        type="button"
+                        className="ghost-btn inventory-add-supplier-btn"
+                        onClick={handleOpenAddSupplierFromInventory}
+                        disabled={isSavingInventoryItem || isSavingSupplier}
+                      >
+                        + Supplier
+                      </button>
+                    </div>
                   </label>
                   <label className="form-field">
                     <span>Unit</span>
@@ -16069,6 +16164,10 @@ function App() {
                   <label className="form-field">
                     <span>Company Name</span>
                     <input value={supplierForm.companyName} onChange={(event) => setSupplierForm((current) => ({ ...current, companyName: event.target.value }))} placeholder="Company Name" required />
+                  </label>
+                  <label className="form-field">
+                    <span>VAT / Tax ID</span>
+                    <input value={supplierForm.taxId} onChange={(event) => setSupplierForm((current) => ({ ...current, taxId: event.target.value }))} placeholder="VAT / Tax ID" />
                   </label>
                   <label className="form-field">
                     <span>Contact Person</span>
