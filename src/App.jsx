@@ -261,6 +261,7 @@ import {
   getTimeGreeting,
 } from './lib/currentDateUtils'
 import { calculateTaskOverview, matchesCustomDepartmentName, resolveCurrentEmployeeId } from './lib/taskUtils'
+import ReportsView from './components/reports/ReportsView'
 import { UNASSIGNED_CUSTOM_DEPARTMENT_NAME } from './lib/taskDepartments'
 
 const navItems = [
@@ -12431,7 +12432,9 @@ function App() {
   const [barRefills, setBarRefills] = useState([])
   const [barRefillsNotice, setBarRefillsNotice] = useState('')
   const [isBarRefillsLoading, setIsBarRefillsLoading] = useState(true)
+  const [isBarRefillsModuleConnected, setIsBarRefillsModuleConnected] = useState(false)
   const [isSavingBarRefill, setIsSavingBarRefill] = useState(false)
+  const [isReportsLoading, setIsReportsLoading] = useState(false)
   const [suppliers, setSuppliers] = useState([])
   const [suppliersNotice, setSuppliersNotice] = useState('')
   const [isSuppliersLoading, setIsSuppliersLoading] = useState(true)
@@ -12786,9 +12789,16 @@ function App() {
   }, [])
 
   const refreshBarRefills = useCallback(async () => {
-    const remoteRefills = await getBarRefills()
-    setBarRefills(remoteRefills)
-    return remoteRefills
+    try {
+      const remoteRefills = await getBarRefills()
+      setBarRefills(remoteRefills)
+      setIsBarRefillsModuleConnected(true)
+      return remoteRefills
+    } catch (error) {
+      setBarRefills([])
+      setIsBarRefillsModuleConnected(!isModuleUnavailableMessage(error?.message))
+      throw error
+    }
   }, [])
 
   const refreshTaskChecklists = useCallback(async (remoteTasks = []) => {
@@ -12873,6 +12883,46 @@ function App() {
     ])
   }, [refreshInventory, refreshReservations, refreshTasks])
 
+  const refreshReportsData = useCallback(async () => {
+    await Promise.allSettled([
+      refreshReservations(),
+      refreshInventory(),
+      refreshTasks(),
+      refreshBarRefills(),
+      refreshTodayWeekDraftData(todayWeekStart),
+    ])
+  }, [
+    refreshBarRefills,
+    refreshInventory,
+    refreshReservations,
+    refreshTasks,
+    refreshTodayWeekDraftData,
+    todayWeekStart,
+  ])
+
+  const reportsScheduleData = useMemo(() => ({
+    shifts: dashboardShifts,
+    shiftTemplates,
+    scheduleCapacities: dashboardCapacities,
+    employees: scheduleEmployees,
+  }), [dashboardShifts, shiftTemplates, dashboardCapacities, scheduleEmployees])
+
+  const reportsConnections = useMemo(() => ({
+    reservationsConnected: isReservationsModuleConnected,
+    tasksConnected: isTasksModuleConnected,
+    inventoryConnected: isInventoryModuleConnected,
+    barRefillsConnected: isBarRefillsModuleConnected,
+    scheduleConnected: !`${scheduleNotice}`.toLowerCase().includes('not ready'),
+    suppliersConnected: !`${suppliersNotice}`.toLowerCase().includes('not ready'),
+  }), [
+    isReservationsModuleConnected,
+    isTasksModuleConnected,
+    isInventoryModuleConnected,
+    isBarRefillsModuleConnected,
+    scheduleNotice,
+    suppliersNotice,
+  ])
+
   useEffect(() => {
     if (activeView !== 'dashboard') return undefined
 
@@ -12881,6 +12931,25 @@ function App() {
 
     return () => window.clearInterval(intervalId)
   }, [activeView, refreshDashboardModuleData])
+
+  useEffect(() => {
+    if (activeView !== 'reports') return undefined
+
+    let isMounted = true
+    setIsReportsLoading(true)
+
+    refreshReportsData()
+      .catch(() => {})
+      .finally(() => {
+        if (isMounted) {
+          setIsReportsLoading(false)
+        }
+      })
+
+    return () => {
+      isMounted = false
+    }
+  }, [activeView, refreshReportsData])
 
   useEffect(() => {
     if (activeView === 'settings' && settingsSection === 'profile') {
@@ -15858,6 +15927,10 @@ function App() {
     setActiveView('schedule')
   }
 
+  const handleReportsViewModule = (moduleId) => {
+    setActiveView(moduleId)
+  }
+
   const handleOpenEditReservation = (reservation) => {
     const layout = loadPublishedHostLayout()
     const assignment = getReservationSeatingAssignment(reservation)
@@ -16712,6 +16785,8 @@ function App() {
             ? 'Suppliers management'
           : activeView === 'stock'
             ? 'Stock management'
+            : activeView === 'reports'
+              ? 'Reports'
             : activeView === 'tasks'
               ? 'Tasks management'
             : 'Operations management'
@@ -16725,6 +16800,8 @@ function App() {
         ? 'Review supplier contacts, terms, and delivery cadence.'
       : activeView === 'stock'
         ? 'Monitor supply health, costs, and replenishment risk.'
+        : activeView === 'reports'
+          ? 'Operational summaries from your connected modules.'
         : activeView === 'tasks'
           ? 'Track department work, due dates, and daily completion progress.'
         : 'Search, filter, and review the full team roster.'
@@ -16743,6 +16820,8 @@ function App() {
               ? 'Suppliers management'
               : activeView === 'stock'
                 ? 'Stock control'
+                : activeView === 'reports'
+                  ? 'Reports'
                 : activeView === 'tasks'
                   ? 'Tasks management'
                 : 'Operations management'
@@ -16882,7 +16961,7 @@ function App() {
               <span>⌕</span>
               <input
                 type="text"
-                placeholder={activeView === 'staff' ? 'Search employee' : activeView === 'stock' ? 'Search stock item' : activeView === 'suppliers' ? 'Search supplier' : activeView === 'tasks' ? 'Search tasks' : 'Search'}
+                placeholder={activeView === 'staff' ? 'Search employee' : activeView === 'stock' ? 'Search stock item' : activeView === 'suppliers' ? 'Search supplier' : activeView === 'tasks' ? 'Search tasks' : activeView === 'reports' ? 'Search reports' : 'Search'}
                 value={searchTerm}
                 onChange={(event) => setSearchTerm(event.target.value)}
               />
@@ -17061,6 +17140,30 @@ function App() {
             onSaveBarRefillChanges={handleSaveBarRefillChanges}
             onRequestCompleteBarRefill={handleCompleteBarRefill}
             onCancelBarRefill={handleCancelBarRefill}
+          />
+        ) : null}
+
+        {activeView === 'reports' ? (
+          <ReportsView
+            todayKey={currentDateKey}
+            weekStartDate={todayWeekStart}
+            reservations={reservations}
+            tasks={tasks}
+            inventoryItems={inventoryItems}
+            barRefills={barRefills}
+            suppliers={suppliers}
+            schedule={reportsScheduleData}
+            connections={reportsConnections}
+            isLoading={
+              isReportsLoading
+              || isReservationsLoading
+              || isTasksLoading
+              || isInventoryLoading
+              || isBarRefillsLoading
+              || isDashboardScheduleLoading
+              || isSuppliersLoading
+            }
+            onViewModule={handleReportsViewModule}
           />
         ) : null}
 
