@@ -8,6 +8,9 @@ import {
   formatReportPercent,
 } from '../../lib/reportsUtils'
 
+const EXECUTIVE_OVERVIEW_CARD_COUNT = 6
+const MODULE_FOOTER = 'Powered by live ONE data'
+
 function ReportMetric({ label, value, emphasize = false }) {
   return (
     <article className={`reports-metric${emphasize ? ' reports-metric-emphasis' : ''}`}>
@@ -17,8 +20,27 @@ function ReportMetric({ label, value, emphasize = false }) {
   )
 }
 
+function ReportsLoadingState({ variant = 'overview' }) {
+  const placeholderCount = variant === 'overview' ? EXECUTIVE_OVERVIEW_CARD_COUNT : 3
+
+  return (
+    <div className={`reports-loading${variant === 'section' ? ' reports-loading-section' : ''}`} aria-busy="true">
+      <p className="reports-loading-text">Preparing insights…</p>
+      <div className={`reports-loading-grid${variant === 'overview' ? ' reports-overview-grid' : ' reports-section-metrics'}`}>
+        {Array.from({ length: placeholderCount }, (_, index) => (
+          <div key={index} className="reports-metric reports-metric-skeleton" aria-hidden="true">
+            <span className="reports-skeleton-line reports-skeleton-line-label" />
+            <span className="reports-skeleton-line reports-skeleton-line-value" />
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 function ReportSection({
   title,
+  icon,
   note,
   metrics,
   emptyMessage,
@@ -31,7 +53,10 @@ function ReportSection({
       <header className="reports-section-header">
         <div>
           <p className="eyebrow">Module summary</p>
-          <h3>{title}</h3>
+          <h3 className="reports-section-heading">
+            {icon ? <span className="reports-section-icon" aria-hidden="true">{icon}</span> : null}
+            {title}
+          </h3>
           {note ? <p className="reports-section-note">{note}</p> : null}
         </div>
         <button type="button" className="ghost-btn reports-view-module-btn" onClick={onViewModule}>
@@ -40,7 +65,7 @@ function ReportSection({
       </header>
 
       {isLoading ? (
-        <p className="staff-status-banner">Loading report data…</p>
+        <ReportsLoadingState variant="section" />
       ) : emptyMessage ? (
         <div className="schedule-empty-state reports-section-empty">
           <p>{emptyMessage}</p>
@@ -56,6 +81,8 @@ function ReportSection({
           ))}
         </div>
       )}
+
+      <p className="reports-section-footer">{MODULE_FOOTER}</p>
     </section>
   )
 }
@@ -67,6 +94,65 @@ function formatSectionMetric(value, { connected = true, format = 'count' } = {})
   if (format === 'percent') return formatReportPercent(value)
   if (format === 'hours') return `${value}h`
   return `${value}`
+}
+
+function buildExecutiveOverviewCards(reports, period) {
+  const { reservationsReport, tasksReport, stockReport, scheduleReport } = reports
+
+  const taskMetric = period === REPORT_PERIOD_TODAY
+    ? {
+      key: 'open-tasks',
+      label: 'Open Tasks',
+      value: tasksReport.metrics.overdue,
+      connected: tasksReport.connected,
+      format: 'count',
+    }
+    : {
+      key: 'completed-tasks',
+      label: 'Completed Tasks',
+      value: tasksReport.metrics.completed,
+      connected: tasksReport.connected,
+      format: 'count',
+    }
+
+  return [
+    {
+      key: 'reservations',
+      label: 'Reservations',
+      value: reservationsReport.metrics.bookings,
+      connected: reservationsReport.connected,
+      format: 'count',
+    },
+    {
+      key: 'guests',
+      label: 'Guests',
+      value: reservationsReport.metrics.guests,
+      connected: reservationsReport.connected,
+      format: 'count',
+    },
+    taskMetric,
+    {
+      key: 'need-order',
+      label: 'Need Order',
+      value: stockReport.metrics.itemsToOrder,
+      connected: stockReport.inventoryConnected,
+      format: 'count',
+    },
+    {
+      key: 'schedule-issues',
+      label: 'Schedule Issues',
+      value: scheduleReport.metrics.issues,
+      connected: scheduleReport.connected,
+      format: 'count',
+    },
+    {
+      key: 'stock-value',
+      label: 'Stock Value',
+      value: stockReport.metrics.totalStockValue,
+      connected: stockReport.inventoryConnected,
+      format: 'currency',
+    },
+  ]
 }
 
 export default function ReportsView({
@@ -108,6 +194,11 @@ export default function ReportsView({
     connections,
   ])
 
+  const executiveOverview = useMemo(
+    () => buildExecutiveOverviewCards(reports, period),
+    [reports, period],
+  )
+
   const reservationsEmpty = reports.reservationsReport.connected
     && reports.reservationsReport.empty
     ? 'No reservations for this period.'
@@ -127,14 +218,6 @@ export default function ReportsView({
 
   return (
     <section className="staff-page reports-page">
-      <div className="staff-header-card reports-header-card">
-        <div>
-          <p className="eyebrow">Operational reporting</p>
-          <h3>Reports</h3>
-          <p className="staff-subtitle">Operational summaries from your connected modules.</p>
-        </div>
-      </div>
-
       <div className="reports-period-filters" role="group" aria-label="Report period">
         <button
           type="button"
@@ -152,19 +235,23 @@ export default function ReportsView({
         </button>
       </div>
 
-      <section className="reports-overview panel staff-panel" aria-label="Overview KPIs">
-        <header className="reports-section-header">
+      <section className="reports-overview panel staff-panel" aria-label="Manager Brief">
+        <header className="reports-overview-header">
           <div>
-            <p className="eyebrow">Overview</p>
-            <h3>{period === REPORT_PERIOD_TODAY ? 'Today at a glance' : 'This week at a glance'}</h3>
+            <p className="eyebrow">Executive summary</p>
+            <h3 className="reports-section-heading">
+              <span className="reports-section-icon" aria-hidden="true">⚡</span>
+              Manager Brief
+            </h3>
+            <p className="reports-overview-subtitle">Live operational overview from connected modules</p>
           </div>
         </header>
 
         {isLoading ? (
-          <p className="staff-status-banner">Loading report data…</p>
+          <ReportsLoadingState variant="overview" />
         ) : (
           <div className="reports-overview-grid">
-            {reports.overview.map((metric) => (
+            {executiveOverview.map((metric) => (
               <ReportMetric
                 key={metric.key}
                 label={metric.label}
@@ -177,11 +264,14 @@ export default function ReportsView({
             ))}
           </div>
         )}
+
+        <p className="reports-section-footer">{MODULE_FOOTER}</p>
       </section>
 
       <div className="reports-sections">
         <ReportSection
           title="Reservations"
+          icon="📅"
           metrics={[
             {
               key: 'bookings',
@@ -189,7 +279,6 @@ export default function ReportsView({
               value: formatSectionMetric(reports.reservationsReport.metrics.bookings, {
                 connected: reports.reservationsReport.connected,
               }),
-              connected: reports.reservationsReport.connected,
             },
             {
               key: 'guests',
@@ -197,7 +286,6 @@ export default function ReportsView({
               value: formatSectionMetric(reports.reservationsReport.metrics.guests, {
                 connected: reports.reservationsReport.connected,
               }),
-              connected: reports.reservationsReport.connected,
             },
             {
               key: 'in-house',
@@ -205,7 +293,6 @@ export default function ReportsView({
               value: formatSectionMetric(reports.reservationsReport.metrics.inHouse, {
                 connected: reports.reservationsReport.connected,
               }),
-              connected: reports.reservationsReport.connected,
             },
             {
               key: 'completed',
@@ -213,7 +300,6 @@ export default function ReportsView({
               value: formatSectionMetric(reports.reservationsReport.metrics.completed, {
                 connected: reports.reservationsReport.connected,
               }),
-              connected: reports.reservationsReport.connected,
             },
             {
               key: 'cancelled',
@@ -221,7 +307,6 @@ export default function ReportsView({
               value: formatSectionMetric(reports.reservationsReport.metrics.cancelled, {
                 connected: reports.reservationsReport.connected,
               }),
-              connected: reports.reservationsReport.connected,
             },
             {
               key: 'no-show',
@@ -229,7 +314,6 @@ export default function ReportsView({
               value: formatSectionMetric(reports.reservationsReport.metrics.noShow, {
                 connected: reports.reservationsReport.connected,
               }),
-              connected: reports.reservationsReport.connected,
             },
           ]}
           emptyMessage={!reports.reservationsReport.connected
@@ -242,6 +326,7 @@ export default function ReportsView({
 
         <ReportSection
           title="Tasks"
+          icon="✓"
           metrics={[
             {
               key: 'active',
@@ -249,7 +334,6 @@ export default function ReportsView({
               value: formatSectionMetric(reports.tasksReport.metrics.active, {
                 connected: reports.tasksReport.connected,
               }),
-              connected: reports.tasksReport.connected,
             },
             {
               key: 'overdue',
@@ -257,7 +341,6 @@ export default function ReportsView({
               value: formatSectionMetric(reports.tasksReport.metrics.overdue, {
                 connected: reports.tasksReport.connected,
               }),
-              connected: reports.tasksReport.connected,
             },
             {
               key: 'urgent',
@@ -265,7 +348,6 @@ export default function ReportsView({
               value: formatSectionMetric(reports.tasksReport.metrics.urgent, {
                 connected: reports.tasksReport.connected,
               }),
-              connected: reports.tasksReport.connected,
             },
             {
               key: 'completed',
@@ -273,7 +355,6 @@ export default function ReportsView({
               value: formatSectionMetric(reports.tasksReport.metrics.completed, {
                 connected: reports.tasksReport.connected,
               }),
-              connected: reports.tasksReport.connected,
             },
             {
               key: 'completion',
@@ -284,7 +365,6 @@ export default function ReportsView({
                   format: 'percent',
                 })
                 : '—',
-              connected: reports.tasksReport.connected,
             },
           ]}
           emptyMessage={!reports.tasksReport.connected
@@ -297,6 +377,7 @@ export default function ReportsView({
 
         <ReportSection
           title="Stock"
+          icon="📦"
           metrics={[
             {
               key: 'items-to-order',
@@ -304,7 +385,6 @@ export default function ReportsView({
               value: formatSectionMetric(reports.stockReport.metrics.itemsToOrder, {
                 connected: reports.stockReport.inventoryConnected,
               }),
-              connected: reports.stockReport.inventoryConnected,
             },
             {
               key: 'low-stock',
@@ -312,7 +392,6 @@ export default function ReportsView({
               value: formatSectionMetric(reports.stockReport.metrics.lowStock, {
                 connected: reports.stockReport.inventoryConnected,
               }),
-              connected: reports.stockReport.inventoryConnected,
             },
             {
               key: 'out-of-stock',
@@ -320,7 +399,6 @@ export default function ReportsView({
               value: formatSectionMetric(reports.stockReport.metrics.outOfStock, {
                 connected: reports.stockReport.inventoryConnected,
               }),
-              connected: reports.stockReport.inventoryConnected,
             },
             {
               key: 'stock-value',
@@ -329,7 +407,6 @@ export default function ReportsView({
                 connected: reports.stockReport.inventoryConnected,
                 format: 'currency',
               }),
-              connected: reports.stockReport.inventoryConnected,
             },
             {
               key: 'bar-refills',
@@ -337,7 +414,6 @@ export default function ReportsView({
               value: formatSectionMetric(reports.stockReport.metrics.barRefillsCompleted, {
                 connected: reports.stockReport.barRefillsConnected,
               }),
-              connected: reports.stockReport.barRefillsConnected,
             },
           ]}
           emptyMessage={!reports.stockReport.inventoryConnected
@@ -350,6 +426,7 @@ export default function ReportsView({
 
         <ReportSection
           title="Schedule"
+          icon="🕒"
           note={reports.scheduleReport.usesDraftSchedule ? 'Draft schedule data' : null}
           metrics={[
             {
@@ -358,7 +435,6 @@ export default function ReportsView({
               value: formatSectionMetric(reports.scheduleReport.metrics.scheduledStaff, {
                 connected: reports.scheduleReport.connected,
               }),
-              connected: reports.scheduleReport.connected,
             },
             {
               key: 'scheduled-hours',
@@ -366,7 +442,6 @@ export default function ReportsView({
               value: reports.scheduleReport.connected
                 ? `${reports.scheduleReport.metrics.scheduledHoursLabel ?? '—'}h`
                 : 'Not connected',
-              connected: reports.scheduleReport.connected,
             },
             {
               key: 'issues',
@@ -376,7 +451,6 @@ export default function ReportsView({
                   connected: reports.scheduleReport.connected,
                 })
                 : '—',
-              connected: reports.scheduleReport.connected,
             },
           ]}
           emptyMessage={!reports.scheduleReport.connected
@@ -389,6 +463,7 @@ export default function ReportsView({
 
         <ReportSection
           title="Suppliers"
+          icon="🚚"
           metrics={[
             {
               key: 'total',
@@ -396,7 +471,6 @@ export default function ReportsView({
               value: formatSectionMetric(reports.suppliersReport.metrics.totalSuppliers, {
                 connected: reports.suppliersReport.connected,
               }),
-              connected: reports.suppliersReport.connected,
             },
             {
               key: 'linked',
@@ -404,7 +478,6 @@ export default function ReportsView({
               value: formatSectionMetric(reports.suppliersReport.metrics.linkedToStock, {
                 connected: reports.suppliersReport.connected && reports.suppliersReport.inventoryConnected,
               }),
-              connected: reports.suppliersReport.connected && reports.suppliersReport.inventoryConnected,
             },
             {
               key: 'unlinked',
@@ -412,7 +485,6 @@ export default function ReportsView({
               value: formatSectionMetric(reports.suppliersReport.metrics.withoutStockItems, {
                 connected: reports.suppliersReport.connected && reports.suppliersReport.inventoryConnected,
               }),
-              connected: reports.suppliersReport.connected && reports.suppliersReport.inventoryConnected,
             },
           ]}
           emptyMessage={!reports.suppliersReport.connected
@@ -426,4 +498,3 @@ export default function ReportsView({
     </section>
   )
 }
-
