@@ -10437,6 +10437,144 @@ function buildInventorySupplierOptions(suppliers, selectedSupplier = '') {
   return options
 }
 
+function hasSupplierField(value) {
+  return `${value ?? ''}`.trim().length > 0
+}
+
+function SupplierCard({
+  supplier,
+  linkedCount = 0,
+  onOpenEditSupplier,
+  onRequestDeleteSupplier,
+}) {
+  const hasPhone = hasSupplierField(supplier.phone)
+  const hasEmail = hasSupplierField(supplier.email)
+  const hasAddress = hasSupplierField(supplier.address)
+  const hasTaxId = hasSupplierField(supplier.taxId)
+  const hasPaymentTerms = hasSupplierField(supplier.paymentTerms)
+  const hasDeliveryDays = hasSupplierField(supplier.deliveryDays)
+  const hasNotes = hasSupplierField(supplier.notes)
+  const hasContactPerson = hasSupplierField(supplier.contactPerson)
+  const hasContactSection = hasPhone || hasEmail || hasAddress
+  const hasBusinessSection = hasTaxId || hasPaymentTerms || hasDeliveryDays
+  const hasAdditionalInfo = hasContactSection || hasBusinessSection || hasNotes
+
+  return (
+    <article className="supplier-card">
+      <header className="supplier-card-header">
+        <div className="supplier-card-identity">
+          <div className="roster-avatar">{getInitials(supplier.companyName || 'Supplier')}</div>
+          <div className="supplier-card-title-block">
+            <strong className="supplier-card-company">{supplier.companyName || 'Unnamed supplier'}</strong>
+            {hasContactPerson ? (
+              <p className="supplier-card-contact-person">
+                <span aria-hidden="true">👤 </span>
+                {supplier.contactPerson}
+              </p>
+            ) : null}
+          </div>
+        </div>
+
+        <div className="supplier-card-header-aside">
+          {linkedCount > 0 ? (
+            <span className="supplier-stock-badge">
+              📦 {linkedCount} Stock Item{linkedCount === 1 ? '' : 's'}
+            </span>
+          ) : null}
+          <div className="supplier-card-header-actions">
+            <button
+              type="button"
+              className="ghost-btn supplier-card-action-btn"
+              onClick={() => onOpenEditSupplier?.(supplier)}
+            >
+              Edit
+            </button>
+            <button
+              type="button"
+              className="ghost-btn supplier-card-action-btn supplier-card-delete-btn"
+              onClick={() => onRequestDeleteSupplier?.(supplier)}
+            >
+              Delete
+            </button>
+          </div>
+        </div>
+      </header>
+
+      {!hasAdditionalInfo ? (
+        <p className="supplier-card-empty-info">No additional supplier information.</p>
+      ) : null}
+
+      {hasContactSection ? (
+        <section className="supplier-card-section">
+          <p className="supplier-card-section-label">Contact</p>
+          <ul className="supplier-card-detail-list">
+            {hasPhone ? (
+              <li>
+                <span className="supplier-card-detail-icon" aria-hidden="true">☎</span>
+                <span>{supplier.phone}</span>
+              </li>
+            ) : null}
+            {hasEmail ? (
+              <li>
+                <span className="supplier-card-detail-icon" aria-hidden="true">✉</span>
+                <span>{supplier.email}</span>
+              </li>
+            ) : null}
+            {hasAddress ? (
+              <li>
+                <span className="supplier-card-detail-icon" aria-hidden="true">📍</span>
+                <span>{supplier.address}</span>
+              </li>
+            ) : null}
+          </ul>
+        </section>
+      ) : null}
+
+      {hasBusinessSection ? (
+        <section className="supplier-card-section">
+          <p className="supplier-card-section-label">Business info</p>
+          <ul className="supplier-card-detail-list supplier-card-detail-list-labeled">
+            {hasTaxId ? (
+              <li className="supplier-card-detail-item-labeled">
+                <div className="supplier-card-detail-heading">
+                  <span className="supplier-card-detail-icon" aria-hidden="true">🧾</span>
+                  <span className="supplier-card-detail-name">VAT / Tax ID</span>
+                </div>
+                <span className="supplier-card-detail-value">{supplier.taxId}</span>
+              </li>
+            ) : null}
+            {hasPaymentTerms ? (
+              <li className="supplier-card-detail-item-labeled">
+                <div className="supplier-card-detail-heading">
+                  <span className="supplier-card-detail-icon" aria-hidden="true">💳</span>
+                  <span className="supplier-card-detail-name">Payment Terms</span>
+                </div>
+                <span className="supplier-card-detail-value">{supplier.paymentTerms}</span>
+              </li>
+            ) : null}
+            {hasDeliveryDays ? (
+              <li className="supplier-card-detail-item-labeled">
+                <div className="supplier-card-detail-heading">
+                  <span className="supplier-card-detail-icon" aria-hidden="true">🚚</span>
+                  <span className="supplier-card-detail-name">Delivery Days</span>
+                </div>
+                <span className="supplier-card-detail-value">{supplier.deliveryDays}</span>
+              </li>
+            ) : null}
+          </ul>
+        </section>
+      ) : null}
+
+      {hasNotes ? (
+        <section className="supplier-card-section">
+          <p className="supplier-card-section-label">Notes</p>
+          <p className="supplier-card-notes">{supplier.notes}</p>
+        </section>
+      ) : null}
+    </article>
+  )
+}
+
 function SuppliersView({
   suppliers,
   inventoryItems = [],
@@ -10468,6 +10606,26 @@ function SuppliersView({
     return counts
   }, [suppliers, inventoryItems])
 
+  const supplierSummary = useMemo(() => {
+    let connectedToStock = 0
+    let withoutStockItems = 0
+
+    suppliers.forEach((supplier) => {
+      const linkedCount = linkedCountBySupplierId.get(supplier.id) ?? 0
+      if (linkedCount > 0) {
+        connectedToStock += 1
+      } else {
+        withoutStockItems += 1
+      }
+    })
+
+    return {
+      total: suppliers.length,
+      connectedToStock,
+      withoutStockItems,
+    }
+  }, [suppliers, linkedCountBySupplierId])
+
   return (
     <section className="staff-page">
       <div className="staff-header-card">
@@ -10484,7 +10642,15 @@ function SuppliersView({
       <div className="roster-summary-grid suppliers-summary-grid">
         <article className="roster-summary-card">
           <p className="eyebrow">Total suppliers</p>
-          <h3>{suppliers.length}</h3>
+          <h3>{supplierSummary.total}</h3>
+        </article>
+        <article className="roster-summary-card">
+          <p className="eyebrow">Connected to stock</p>
+          <h3>{supplierSummary.connectedToStock}</h3>
+        </article>
+        <article className="roster-summary-card">
+          <p className="eyebrow">Without stock items</p>
+          <h3>{supplierSummary.withoutStockItems}</h3>
         </article>
       </div>
 
@@ -10517,52 +10683,16 @@ function SuppliersView({
             <p>Add your first supplier to start building a trusted network.</p>
           </div>
         ) : (
-          <div className="roster-shift-list">
-            {filteredSuppliers.map((supplier) => {
-              const linkedCount = linkedCountBySupplierId.get(supplier.id) ?? 0
-
-              return (
-              <article key={supplier.id} className="roster-shift-card supplier-card">
-                <div className="roster-shift-main">
-                  <div className="roster-avatar">{getInitials(supplier.companyName || 'Supplier')}</div>
-                  <div className="roster-shift-copy">
-                    <strong>{supplier.companyName || 'Unnamed supplier'}</strong>
-                    <p>{supplier.contactPerson || 'No contact person'}</p>
-                  </div>
-                </div>
-                <div className="roster-shift-meta">
-                  <span>{supplier.phone || 'No phone'}</span>
-                  <span>{supplier.email || 'No email'}</span>
-                </div>
-                <div className="roster-shift-meta">
-                  <span>{supplier.paymentTerms || 'No payment terms'}</span>
-                  <span>{supplier.deliveryDays || 'No delivery days'}</span>
-                </div>
-                <div className="roster-shift-meta">
-                  <span>{supplier.address || 'No address'}</span>
-                </div>
-                {`${supplier.taxId ?? ''}`.trim() ? (
-                  <div className="roster-shift-meta">
-                    <span>VAT / Tax ID: {supplier.taxId}</span>
-                  </div>
-                ) : null}
-                {linkedCount > 0 ? (
-                  <div className="roster-shift-meta">
-                    <span className="supplier-linked-count">
-                      {linkedCount} linked stock item{linkedCount === 1 ? '' : 's'}
-                    </span>
-                  </div>
-                ) : null}
-                <div className="drawer-notes">
-                  <p>{supplier.notes || 'No notes.'}</p>
-                </div>
-                <div className="action-group supplier-card-actions">
-                  <button type="button" className="ghost-btn supplier-card-action-btn" onClick={() => onOpenEditSupplier(supplier)}>Edit</button>
-                  <button type="button" className="ghost-btn supplier-card-action-btn" onClick={() => onRequestDeleteSupplier(supplier)}>Delete</button>
-                </div>
-              </article>
-              )
-            })}
+          <div className="supplier-card-list">
+            {filteredSuppliers.map((supplier) => (
+              <SupplierCard
+                key={supplier.id}
+                supplier={supplier}
+                linkedCount={linkedCountBySupplierId.get(supplier.id) ?? 0}
+                onOpenEditSupplier={onOpenEditSupplier}
+                onRequestDeleteSupplier={onRequestDeleteSupplier}
+              />
+            ))}
           </div>
         )}
       </div>
