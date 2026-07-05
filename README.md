@@ -16,6 +16,15 @@ When enabled, the app skips the login screen and uses a mock development session
 
 Remove the variable or set it to `false` to require Supabase email/password sign-in.
 
+### Workspace membership (Phase 1)
+
+Run these in the Supabase SQL editor (in order):
+
+1. `supabase/workspaces_schema.sql`
+2. `supabase/workspace_members_schema.sql`
+
+On first authenticated sign-in, the app creates a workspace membership automatically. The first member becomes **Owner**; later members default to **Staff**.
+
 Required Supabase env vars (unchanged):
 
 ```env

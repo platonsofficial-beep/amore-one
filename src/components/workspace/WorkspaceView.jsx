@@ -15,6 +15,7 @@ export const WORKSPACE_SECTIONS = [
 export function WorkspaceView({
   activeSection,
   onSectionChange,
+  workspace,
   businessProfileProps,
   positionsProps,
   venueSetupProps,
@@ -53,7 +54,7 @@ export function WorkspaceView({
             <WorkspaceVenueSetupSection {...venueSetupProps} />
           ) : null}
           {activeSection === 'team' ? (
-            <WorkspaceTeamSection {...teamProps} />
+            <WorkspaceTeamSection {...teamProps} workspace={workspace} />
           ) : null}
           {activeSection === 'system' ? (
             <WorkspaceSystemSection {...systemProps} />

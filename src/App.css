@@ -18010,6 +18010,40 @@ input[type='time']::-webkit-datetime-edit-text {
   box-shadow: 0 16px 40px rgba(0, 0, 0, 0.35);
 }
 
+.user-menu-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 4px;
+  padding: 0 8px;
+}
+
+.user-menu-name {
+  margin: 0;
+  color: #e8dcc8;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.user-menu-role-badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(212, 175, 55, 0.24);
+  background: rgba(212, 175, 55, 0.1);
+  color: #d4c49a;
+  font-size: 0.72rem;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+.user-menu-role-badge-panel {
+  flex-shrink: 0;
+}
+
 .user-menu-email {
   margin: 0 0 8px;
   padding: 0 8px 8px;
@@ -18018,6 +18052,58 @@ input[type='time']::-webkit-datetime-edit-text {
   font-size: 0.78rem;
   line-height: 1.4;
   word-break: break-word;
+}
+
+.user-menu-chip-meta {
+  margin: 2px 0 0;
+}
+
+.workspace-member-panel {
+  margin-bottom: 4px;
+}
+
+.workspace-member-details {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+}
+
+.workspace-member-row {
+  display: grid;
+  grid-template-columns: minmax(120px, 160px) minmax(0, 1fr);
+  gap: 12px;
+  align-items: center;
+  min-height: 44px;
+  padding: 4px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.workspace-member-row:last-child {
+  border-bottom: none;
+}
+
+.workspace-member-row dt {
+  margin: 0;
+  color: #8f8679;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.workspace-member-row dd {
+  margin: 0;
+  color: #e8dcc8;
+  font-size: 0.92rem;
+  line-height: 1.4;
+  word-break: break-word;
+}
+
+@media (max-width: 640px) {
+  .workspace-member-row {
+    grid-template-columns: 1fr;
+    gap: 4px;
+    align-items: start;
+  }
 }
 
 .user-menu-item {

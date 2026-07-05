@@ -230,6 +230,7 @@ import { TASK_PRESET_DEPARTMENTS } from './lib/taskDepartments'
 import { DEFAULT_RESTAURANT_AREAS } from './floor-plan-builder/models/floorPlans'
 import { WorkspaceView } from './components/workspace/WorkspaceView'
 import { UserMenu } from './components/auth/UserMenu'
+import { useAuth } from './context/AuthContext'
 import {
   EMPTY_WORKSPACE_PROFILE,
   getWorkspaceProfile,
@@ -12164,6 +12165,12 @@ function App() {
   const [isSavingWorkspaceProfile, setIsSavingWorkspaceProfile] = useState(false)
   const [workspaceProfileNotice, setWorkspaceProfileNotice] = useState('')
 
+  const {
+    syncDevMembershipProfile,
+    isAuthDisabled,
+    workspace,
+  } = useAuth()
+
   const workspaceTimeZone = workspaceProfile.timezone
   const currentDateLabel = formatCurrentDateLabel(localNow, workspaceTimeZone)
   const currentDateKey = getCurrentDateKey(localNow, workspaceTimeZone)
@@ -12735,6 +12742,11 @@ function App() {
       isMounted = false
     }
   }, [])
+
+  useEffect(() => {
+    if (!isAuthDisabled) return
+    syncDevMembershipProfile({ displayName: workspaceProfile.managerName })
+  }, [isAuthDisabled, workspaceProfile.managerName, syncDevMembershipProfile])
 
   useEffect(() => {
     const intervalId = window.setInterval(() => {
@@ -16894,6 +16906,7 @@ function App() {
           <WorkspaceView
             activeSection={settingsSection}
             onSectionChange={setSettingsSection}
+            workspace={workspace}
             businessProfileProps={{
               workspaceProfile: workspaceProfileDraft,
               noticeMessage: workspaceProfileNotice,

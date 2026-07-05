@@ -1,12 +1,21 @@
 import { useEffect, useRef, useState } from 'react'
 import { useAuth } from '../../context/AuthContext'
+import { getProfileInitials } from '../../lib/workspaceProfileUtils'
+import { getWorkspaceRoleLabel } from '../../lib/membershipRoles'
 
 export function UserMenu({
   profileChipDisplay,
   onOpenWorkspaceProfile,
   variant = 'default',
 }) {
-  const { user, isAuthDisabled, signOut } = useAuth()
+  const {
+    user,
+    membership,
+    role,
+    roleLabel,
+    isAuthDisabled,
+    signOut,
+  } = useAuth()
   const [isOpen, setIsOpen] = useState(false)
   const [isSigningOut, setIsSigningOut] = useState(false)
   const containerRef = useRef(null)
@@ -35,9 +44,16 @@ export function UserMenu({
     }
   }, [isOpen])
 
+  const memberDisplayName = `${membership?.displayName ?? ''}`.trim()
+    || `${profileChipDisplay?.name ?? ''}`.trim()
+    || 'Profile not set'
+  const memberEmail = `${membership?.email ?? user?.email ?? ''}`.trim()
+    || (isAuthDisabled ? 'Development mode' : 'Signed in')
+  const chipInitials = getProfileInitials(memberDisplayName)
+
   const chipClassName = variant === 'command'
-    ? `profile-chip profile-chip-command user-menu-trigger${profileChipDisplay.isConfigured ? '' : ' profile-chip-unconfigured'}`
-    : `profile-chip user-menu-trigger${profileChipDisplay.isConfigured ? '' : ' profile-chip-unconfigured'}`
+    ? `profile-chip profile-chip-command user-menu-trigger${profileChipDisplay.isConfigured || memberDisplayName ? '' : ' profile-chip-unconfigured'}`
+    : `profile-chip user-menu-trigger${profileChipDisplay.isConfigured || memberDisplayName ? '' : ' profile-chip-unconfigured'}`
 
   const handleOpenWorkspaceProfile = () => {
     setIsOpen(false)
@@ -54,9 +70,7 @@ export function UserMenu({
     }
   }
 
-  const accountLabel = isAuthDisabled
-    ? 'Development mode'
-    : `${user?.email ?? ''}`.trim() || 'Signed in'
+  const resolvedRoleLabel = roleLabel || getWorkspaceRoleLabel(membership?.role ?? role)
 
   return (
     <div className="user-menu" ref={containerRef}>
@@ -67,23 +81,31 @@ export function UserMenu({
         aria-expanded={isOpen}
         onClick={() => setIsOpen((current) => !current)}
       >
-        <div className="profile-avatar">{profileChipDisplay.initials}</div>
+        <div className="profile-avatar">{chipInitials}</div>
         {variant === 'command' ? (
           <div className="profile-chip-copy">
-            <strong>{profileChipDisplay.name}</strong>
-            <p>{profileChipDisplay.role}</p>
+            <strong>{memberDisplayName}</strong>
+            <p className="user-menu-chip-meta">
+              <span className="user-menu-role-badge">{resolvedRoleLabel}</span>
+            </p>
           </div>
         ) : (
           <div>
-            <strong>{profileChipDisplay.name}</strong>
-            <p>{profileChipDisplay.role}</p>
+            <strong>{memberDisplayName}</strong>
+            <p className="user-menu-chip-meta">
+              <span className="user-menu-role-badge">{resolvedRoleLabel}</span>
+            </p>
           </div>
         )}
       </button>
 
       {isOpen ? (
         <div className="user-menu-panel" role="menu" aria-label="User menu">
-          <p className="user-menu-email">{accountLabel}</p>
+          <div className="user-menu-panel-header">
+            <p className="user-menu-name">{memberDisplayName}</p>
+            <span className="user-menu-role-badge user-menu-role-badge-panel">{resolvedRoleLabel}</span>
+          </div>
+          <p className="user-menu-email">{memberEmail}</p>
           <button
             type="button"
             className="user-menu-item"
