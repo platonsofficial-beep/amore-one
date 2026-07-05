@@ -139,6 +139,11 @@ import {
 } from './lib/shiftHoursUtils'
 import { buildEmployeeWeekScheduleView } from './lib/employeeWeekScheduleView'
 import {
+  getRestOfWeekDateKeys,
+  getShiftSchedulingConflictType,
+  shiftHasSchedulingConflict,
+} from './lib/scheduleConflictUtils'
+import {
   buildWeeklyTemplateCapacitySnapshot,
   deleteWeeklyTemplateCapacitySnapshot,
   getWeeklyTemplateCapacitySnapshot,
@@ -261,15 +266,17 @@ function getScheduleAreaIcon(area) {
 
 function formatDayCoverageBadgeIcon(status) {
   if (status === 'covered') return '🟢'
-  if (status === 'understaffed') return '🟡'
-  if (status === 'overstaffed') return '🔴'
+  if (status === 'conflict') return '⛔'
+  if (status === 'understaffed') return '⚠️'
+  if (status === 'overstaffed') return '🟡'
   return '⚪'
 }
 
 function formatDayCoverageBadgeLabel(status, statusLabel) {
   if (status === 'covered') return 'Fully Covered'
+  if (status === 'conflict') return 'Conflict'
   if (status === 'understaffed') return 'Understaffed'
-  if (status === 'overstaffed') return 'Conflict'
+  if (status === 'overstaffed') return 'Overstaffed'
   return statusLabel
 }
 
@@ -1577,10 +1584,6 @@ function ScheduleView({
   const hasUnpublishedChanges = isWeekPublished
     && !draftMatchesPublishedSnapshot(visibleWeekShifts, publishedShifts)
 
-  useEffect(() => {
-    console.log("Visible week shifts", visibleWeekShifts)
-  }, [visibleWeekShifts])
-
   const assignmentsByCell = useMemo(() => {
     const map = {}
 
@@ -1588,7 +1591,6 @@ function ScheduleView({
       const keys = getShiftCellKeys(shift)
       keys.forEach((cellKey) => {
         if (!cellKey) return
-        console.log("Cell key", cellKey)
         if (!Array.isArray(map[cellKey])) {
           map[cellKey] = []
         }
@@ -1596,7 +1598,6 @@ function ScheduleView({
       })
     })
 
-    console.log("Grid assignments map", map)
     return map
   }, [visibleWeekShifts])
 
@@ -1604,19 +1605,16 @@ function ScheduleView({
     const lookup = {}
     ;(scheduleCapacities ?? []).forEach((item) => {
       const key = buildCapacityKey(item.shiftTemplateId, item.shiftDate)
-      console.log("Capacity key loading", key)
       const parsed = Number(item.requiredCount)
       if (Number.isFinite(parsed) && parsed >= 0) {
         lookup[key] = parsed
       }
     })
-    console.log("Capacity lookup", lookup)
     return lookup
   }, [scheduleCapacities])
 
   const getRequiredCountForCell = (template, dayKey) => {
     const key = buildCapacityKey(resolveTemplateCapacityId(template), dayKey)
-    console.log("Capacity key loading", key)
     if (Object.prototype.hasOwnProperty.call(capacityDraftMap, key)) {
       const draftValue = Number(capacityDraftMap[key])
       return Number.isFinite(draftValue) && draftValue >= 0 ? draftValue : 1
@@ -2210,14 +2208,12 @@ function ScheduleView({
     }, 0)
 
     const employeesOff = employees.filter((employee) => isEmployeeUnavailable(employee)).length
-    const coverage = weekShifts.length ? Math.min(100, Math.round((weekShifts.length / Math.max(1, weekDays.length * 4)) * 100)) : 0
 
     return {
       employeesScheduled: workingEmployees.size,
       totalShifts: weekShifts.length,
       totalHours: totalHours.toFixed(1),
       employeesOff,
-      coverage,
     }
   }, [employees, shifts, weekDays])
 
@@ -2241,15 +2237,26 @@ function ScheduleView({
   )
 
   const blendGridRows = useMemo(() => {
+    const shiftsByDayKey = {}
+
+    visibleWeekShifts.forEach((shift) => {
+      const dayKey = normalizeCellDate(shift.date)
+      if (!dayKey) return
+      if (!shiftsByDayKey[dayKey]) {
+        shiftsByDayKey[dayKey] = []
+      }
+      shiftsByDayKey[dayKey].push(shift)
+    })
+
     return scheduleGridTemplates.map((template) => {
       const dayCells = weekDays.map((day) => {
         const requiredCount = getRequiredCountForCell(template, day.key)
         const cellKeys = getTemplateCellKeys(template, day.key)
         const seen = new Set()
         const dayShifts = []
+        const dayShiftsOnDate = shiftsByDayKey[day.key] ?? []
 
         cellKeys.forEach((cellKey) => {
-          console.log("Cell key", cellKey)
           ;(assignmentsByCell[cellKey] ?? []).forEach((shift) => {
             if (seen.has(String(shift.id))) return
             seen.add(String(shift.id))
@@ -2260,11 +2267,19 @@ function ScheduleView({
           })
         })
 
+        const hasRealConflict = dayShifts.some((shift) => (
+          shiftHasSchedulingConflict(shift, {
+            employees,
+            dayShifts: dayShiftsOnDate,
+          })
+        ))
+
         return {
           day,
           shifts: dayShifts,
           assignedCount: dayShifts.length,
           requiredCount,
+          hasRealConflict,
           staffingState: dayShifts.length > requiredCount
             ? 'overstaffed'
             : dayShifts.length === requiredCount
@@ -2281,7 +2296,7 @@ function ScheduleView({
         dayCells,
       }
     })
-  }, [employees, scheduleGridTemplates, weekDays, capacityLookup, capacityDraftMap, assignmentsByCell])
+  }, [employees, scheduleGridTemplates, weekDays, capacityLookup, capacityDraftMap, assignmentsByCell, visibleWeekShifts])
 
   const dayHeaderSummariesByKey = useMemo(() => {
     const summaries = {}
@@ -2303,6 +2318,17 @@ function ScheduleView({
 
       let hasOverstaffed = false
       let hasUnderstaffed = false
+      let hasRealConflict = false
+      const dayShiftsOnDate = visibleWeekShifts.filter((shift) => normalizeCellDate(shift.date) === dayKey)
+
+      dayShiftsOnDate.forEach((shift) => {
+        if (getShiftSchedulingConflictType(shift, {
+          employees,
+          dayShifts: dayShiftsOnDate,
+        })) {
+          hasRealConflict = true
+        }
+      })
 
       blendGridRows.forEach((row) => {
         const cell = row.dayCells.find((entry) => entry.day.key === dayKey)
@@ -2335,13 +2361,17 @@ function ScheduleView({
         status = 'empty'
         statusLabel = 'Empty'
         statusIcon = '⚪'
-      } else if (hasOverstaffed) {
-        status = 'overstaffed'
-        statusLabel = 'Overstaffed'
-        statusIcon = '🔴'
+      } else if (hasRealConflict) {
+        status = 'conflict'
+        statusLabel = 'Conflict'
+        statusIcon = '⛔'
       } else if (hasUnderstaffed) {
         status = 'understaffed'
         statusLabel = 'Understaffed'
+        statusIcon = '⚠️'
+      } else if (hasOverstaffed) {
+        status = 'overstaffed'
+        statusLabel = 'Overstaffed'
         statusIcon = '🟡'
       } else {
         status = 'covered'
@@ -2360,11 +2390,13 @@ function ScheduleView({
     })
 
     return summaries
-  }, [blendGridRows, visibleWeekShifts, weekDays])
+  }, [blendGridRows, employees, visibleWeekShifts, weekDays])
 
   const scheduleWarningCount = useMemo(() => (
     Object.values(dayHeaderSummariesByKey).filter(
-      (summary) => summary.status === 'understaffed' || summary.status === 'overstaffed',
+      (summary) => summary.status === 'understaffed'
+        || summary.status === 'overstaffed'
+        || summary.status === 'conflict',
     ).length
   ), [dayHeaderSummariesByKey])
 
@@ -2550,16 +2582,6 @@ function ScheduleView({
   }, [assignmentDraft.shiftDate, assignmentDraft.templateId, assignmentTemplate, blendGridRows, weekDays])
 
   const handleOpenAssignmentModal = (template, day) => {
-    const selectedTemplatePayload = {
-      id: template?.templateId ?? template?.id ?? null,
-      template_name: template?.name ?? '',
-      area: template?.defaultArea ?? null,
-      default_role: template?.defaultRole ?? '',
-      start_time: normalizeTimeValue(template?.startTime),
-      end_time: normalizeTimeValue(template?.endTime),
-    }
-    console.log('Selected Template:', selectedTemplatePayload)
-
     const fromCollection = scheduleGridTemplates.find((item) => item.id === template.id || item.templateId === template.templateId)
     if (fromCollection && `${fromCollection.defaultArea ?? ''}`.trim() && !`${template?.defaultArea ?? ''}`.trim()) {
       console.warn('Template area lost between collection and cell payload', {
@@ -2636,7 +2658,6 @@ function ScheduleView({
     const templateId = resolveTemplateCapacityId(template)
     const normalizedShiftDate = normalizeShiftDateKey(day.key)
     const key = buildCapacityKey(templateId, normalizedShiftDate)
-    console.log("Capacity key saving", key)
 
     setCapacityPickerKey('')
     setCapacityDraftMap((current) => ({
@@ -2725,8 +2746,6 @@ function ScheduleView({
       status: 'Scheduled',
       notes: assignmentDraft.notes,
     }
-
-    console.log('Schedule assignment payload', payload)
 
     const nextFieldErrors = {}
     const missingFields = []
@@ -2832,6 +2851,10 @@ function ScheduleView({
           const message = `${error?.message || ''}`.toLowerCase()
           if (message.includes('already scheduled')) {
             skippedMessages.push(`Skipped ${name} because he is already scheduled for this shift.`)
+            continue
+          }
+          if (message.includes('cancelled')) {
+            skippedMessages.push(`Skipped ${name}; overlap not confirmed.`)
             continue
           }
           if (message.includes('overlap')) {
@@ -3104,11 +3127,6 @@ function ScheduleView({
     const { shiftId, template, day, cell } = pendingShiftDrop
     const sourceShift = shifts.find((item) => String(item.id) === String(shiftId))
 
-    if (sourceShift && resolveShiftTemplateId(sourceShift) !== resolveShiftTemplateId(template)) {
-      setAssignmentError('Copy within the same shift template row only.')
-      return
-    }
-
     if (isEmployeeAssignedInCell(cell, sourceShift?.employeeId)) {
       setAssignmentError('This employee is already assigned here.')
       return
@@ -3162,11 +3180,6 @@ function ScheduleView({
       }
 
       if (dropMode === 'copy') {
-        if (sourceShift && resolveShiftTemplateId(sourceShift) !== resolveShiftTemplateId(template)) {
-          setAssignmentError('Copy within the same shift template row only.')
-          return
-        }
-
         if (isEmployeeAssignedInCell(cell, sourceShift?.employeeId)) {
           setAssignmentError('This employee is already assigned here.')
           return
@@ -3365,15 +3378,14 @@ function ScheduleView({
           ) : (
             <button
               type="button"
-              className="primary-btn schedule-publish-btn schedule-publish-btn--published schedule-header-control-surface"
+              className="ghost-btn schedule-unpublish-btn schedule-header-control-surface"
               onClick={() => {
                 setPublishError('')
                 setIsUnpublishConfirmOpen(true)
               }}
               disabled={isSaving || isPublishing}
             >
-              <span className="schedule-published-label">Published</span>
-              <span className="schedule-unpublish-label">Unpublish</span>
+              Unpublish
             </button>
           )}
           </div>
@@ -3602,37 +3614,39 @@ function ScheduleView({
 
                     return (
                   <aside key={`template-${row.template.id}`} className="blend-grid-template-cell blend-grid-palette-card">
-                    <div className="template-card-actions">
-                      <button
-                        type="button"
-                        className="template-card-delete-btn"
-                        onClick={() => handleOpenDeleteShiftTemplateModal(row.template)}
-                        aria-label={`Delete ${row.template.name} template`}
-                      >
-                        ✕
-                      </button>
-                      <button
-                        type="button"
-                        className="template-card-menu-btn"
-                        onClick={() => setTemplateActionMenuId((current) => (current === row.template.id ? null : row.template.id))}
-                        aria-label={`More actions for ${row.template.name}`}
-                      >
-                        ⋯
-                      </button>
-                      {templateActionMenuId === row.template.id ? (
-                        <div className="template-card-menu" onClick={(event) => event.stopPropagation()}>
-                          <button type="button" className="template-card-menu-item" onClick={() => handleStartRenameShiftTemplate(row.template)}>Rename Template</button>
-                          <button type="button" className="template-card-menu-item" onClick={() => handleEditShiftTemplateFromCard(row.template)}>Edit Template</button>
-                          <button type="button" className="template-card-menu-item" onClick={() => handleDuplicateShiftTemplateFromCard(row.template)}>Duplicate Template</button>
-                        </div>
-                      ) : null}
-                    </div>
                     <span className="blend-grid-palette-grip" aria-hidden="true">⠿</span>
-                    <div className="blend-grid-palette-body">
+                    <div className="blend-grid-palette-header">
                       <p className="blend-grid-palette-department">
                         <span className="blend-grid-palette-icon" aria-hidden="true">{getScheduleAreaIcon(templateArea || templateShiftName)}</span>
                         <span className="blend-grid-palette-name">{templateShiftName.toUpperCase()}</span>
                       </p>
+                      <div className="template-card-actions">
+                        <button
+                          type="button"
+                          className="template-card-delete-btn"
+                          onClick={() => handleOpenDeleteShiftTemplateModal(row.template)}
+                          aria-label={`Delete ${row.template.name} template`}
+                        >
+                          ✕
+                        </button>
+                        <button
+                          type="button"
+                          className="template-card-menu-btn"
+                          onClick={() => setTemplateActionMenuId((current) => (current === row.template.id ? null : row.template.id))}
+                          aria-label={`More actions for ${row.template.name}`}
+                        >
+                          ⋯
+                        </button>
+                        {templateActionMenuId === row.template.id ? (
+                          <div className="template-card-menu" onClick={(event) => event.stopPropagation()}>
+                            <button type="button" className="template-card-menu-item" onClick={() => handleStartRenameShiftTemplate(row.template)}>Rename Template</button>
+                            <button type="button" className="template-card-menu-item" onClick={() => handleEditShiftTemplateFromCard(row.template)}>Edit Template</button>
+                            <button type="button" className="template-card-menu-item" onClick={() => handleDuplicateShiftTemplateFromCard(row.template)}>Duplicate Template</button>
+                          </div>
+                        ) : null}
+                      </div>
+                    </div>
+                    <div className="blend-grid-palette-body">
                       <p className="blend-grid-palette-time">{formatTimeRange24(row.template.startTime, row.template.endTime, ' – ')}</p>
                       {requiredCountLabel ? (
                         <div className="blend-grid-palette-required-block">
@@ -3676,7 +3690,7 @@ function ScheduleView({
                     return (
                     <div
                       key={`cell-${row.template.id}-${cell.day.key}`}
-                      className={`blend-grid-assignment-cell ${selectedDay === cell.day.key ? 'active' : ''} ${cell.assignedCount === 0 ? 'empty' : ''} ${cell.staffingState} ${isDropTarget ? 'drop-target' : ''} ${isTodayColumn ? 'is-today' : ''} ${isScheduleVisualFilterActive && !cellHasVisualEmphasis ? 'visual-faded' : ''}`}
+                      className={`blend-grid-assignment-cell ${selectedDay === cell.day.key ? 'active' : ''} ${cell.assignedCount === 0 ? 'empty' : ''} ${cell.hasRealConflict ? 'has-conflict' : cell.staffingState} ${isDropTarget ? 'drop-target' : ''} ${isTodayColumn ? 'is-today' : ''} ${isScheduleVisualFilterActive && !cellHasVisualEmphasis ? 'visual-faded' : ''}`}
                       onClick={() => {
                         setSelectedDay(cell.day.key)
                         if (cell.assignedCount === 0) {
@@ -3687,9 +3701,18 @@ function ScheduleView({
                       onDrop={(event) => handleCellDrop(event, row.template, cell.day, cell)}
                     >
                       <div className="blend-grid-cell-top">
-                        {cell.staffingState === 'overstaffed' ? (
-                          <span className="cell-over-badge">Over</span>
-                        ) : null}
+                        <div className="blend-grid-cell-top-start">
+                          {cell.hasRealConflict ? (
+                            <span className="cell-status-badge cell-conflict-badge">Conflict</span>
+                          ) : null}
+                          {!cell.hasRealConflict && cell.staffingState === 'overstaffed' ? (
+                            <span className="cell-status-badge cell-over-badge">Overstaffed</span>
+                          ) : null}
+                          {!cell.hasRealConflict && (cell.staffingState === 'understaffed' || cell.staffingState === 'attention') ? (
+                            <span className="cell-status-badge cell-under-badge">Understaffed</span>
+                          ) : null}
+                        </div>
+                        <div className="blend-grid-cell-top-end">
                         <div className="cell-capacity-controls" onClick={(event) => event.stopPropagation()}>
                           <button
                             type="button"
@@ -3784,6 +3807,7 @@ function ScheduleView({
                             +
                           </button>
                         </div>
+                        </div>
                       </div>
 
                       <div className="blend-grid-pill-list">
@@ -3838,7 +3862,6 @@ function ScheduleView({
 
                       <div className="blend-grid-cell-bottom">
                         <span>{formatTimeRange24(row.template.startTime, row.template.endTime, ' - ')}</span>
-                        {cell.assignedCount > cell.requiredCount ? <small className="capacity-warning">This shift is over capacity.</small> : null}
                       </div>
                     </div>
                     )
@@ -3872,7 +3895,7 @@ function ScheduleView({
             </article>
             <article className="schedule-weekly-stat">
               <p className="schedule-weekly-stat-label">Coverage</p>
-              <p className="schedule-weekly-stat-value">{weekSummary.coverage}%</p>
+              <p className="schedule-weekly-stat-value">{weekCompletion.percent}%</p>
             </article>
             <article className="schedule-weekly-stat">
               <p className="schedule-weekly-stat-label">Labour Cost</p>
@@ -10735,6 +10758,8 @@ function App() {
     notes: '',
   })
   const [isSavingShift, setIsSavingShift] = useState(false)
+  const [isShiftOverlapConfirmOpen, setIsShiftOverlapConfirmOpen] = useState(false)
+  const shiftOverlapConfirmResolverRef = useRef(null)
   const [isEmployeeModalOpen, setIsEmployeeModalOpen] = useState(false)
   const [editingEmployee, setEditingEmployee] = useState(null)
   const [employeeForm, setEmployeeForm] = useState(() => buildEmployeeForm())
@@ -12785,7 +12810,7 @@ function App() {
     ))
   }
 
-  const getShiftConflict = ({ employeeId, date, startTime, endTime, excludeShiftId = null }) => {
+  const getShiftConflict = ({ employeeId, date, startTime, endTime, excludeShiftId = null, shiftTemplateId = null }) => {
     const normalizedStart = normalizeTimeValue(startTime)
     const normalizedEnd = normalizeTimeValue(endTime)
     const startMinutes = parseShiftTimeToMinutes(normalizedStart)
@@ -12795,21 +12820,32 @@ function App() {
       return { type: null }
     }
 
+    const normalizedDate = normalizeCellDateKey(date)
+    const targetCellKey = shiftTemplateId && normalizedDate
+      ? `${String(shiftTemplateId)}:${normalizedDate}`
+      : null
+
     const sameDayShifts = shifts.filter((shift) => {
       if (excludeShiftId && String(shift.id) === String(excludeShiftId)) return false
-      return String(shift.employeeId) === String(employeeId) && shift.date === date
+      return String(shift.employeeId) === String(employeeId) && normalizeCellDateKey(shift.date) === normalizedDate
     })
 
-    const duplicate = sameDayShifts.find((shift) => (
-      normalizeTimeValue(shift.startTime) === normalizedStart
-      && normalizeTimeValue(shift.endTime) === normalizedEnd
-    ))
+    const duplicate = targetCellKey
+      ? sameDayShifts.find((shift) => buildShiftCellKeyFromRecord(shift) === targetCellKey)
+      : sameDayShifts.find((shift) => (
+        normalizeTimeValue(shift.startTime) === normalizedStart
+        && normalizeTimeValue(shift.endTime) === normalizedEnd
+      ))
 
     if (duplicate) {
       return { type: 'duplicate', shift: duplicate }
     }
 
     const overlap = sameDayShifts.find((shift) => {
+      if (targetCellKey && buildShiftCellKeyFromRecord(shift) === targetCellKey) {
+        return false
+      }
+
       const existingStartMinutes = parseShiftTimeToMinutes(normalizeTimeValue(shift.startTime))
       const existingEndMinutes = parseShiftTimeToMinutes(normalizeTimeValue(shift.endTime))
       if (existingStartMinutes === null || existingEndMinutes === null) return false
@@ -12821,6 +12857,25 @@ function App() {
     }
 
     return { type: null }
+  }
+
+  const requestShiftOverlapConfirmation = () => new Promise((resolve) => {
+    shiftOverlapConfirmResolverRef.current = resolve
+    setIsShiftOverlapConfirmOpen(true)
+  })
+
+  const resolveShiftOverlapConfirmation = (confirmed) => {
+    setIsShiftOverlapConfirmOpen(false)
+    const resolve = shiftOverlapConfirmResolverRef.current
+    shiftOverlapConfirmResolverRef.current = null
+    resolve?.(confirmed)
+  }
+
+  const ensureShiftOverlapAllowed = async (conflict) => {
+    if (conflict?.type !== 'overlap') {
+      return true
+    }
+    return requestShiftOverlapConfirmation()
   }
 
   const validateShiftRequiredFields = ({ employeeId, date, startTime, endTime, role, area }) => {
@@ -12914,12 +12969,6 @@ function App() {
     return { area_option: 'Other', area_custom: normalized }
   }
 
-  const isUnavailableEmployee = (employee) => {
-    if (!employee?.status) return false
-    const normalized = `${employee.status}`.toLowerCase()
-    return normalized.includes('day off') || normalized.includes('vacation') || normalized.includes('sick') || normalized.includes('leave')
-  }
-
   const handleOpenAddShift = (defaultDate = '') => {
     setEditingShift(null)
     setFormData({
@@ -13008,14 +13057,15 @@ function App() {
       date: shiftDate,
       startTime,
       endTime,
+      shiftTemplateId: resolveShiftTemplateId(template),
     })
 
     if (conflict.type === 'duplicate') {
       throw new Error('This employee is already assigned here.')
     }
 
-    if (conflict.type === 'overlap') {
-      throw new Error('This shift overlaps with another shift for this employee.')
+    if (!(await ensureShiftOverlapAllowed(conflict))) {
+      throw new Error('Assignment cancelled.')
     }
 
     setIsSavingShift(true)
@@ -13098,14 +13148,15 @@ function App() {
       startTime: targetStart,
       endTime: targetEnd,
       excludeShiftId: shiftId,
+      shiftTemplateId: targetShift.shiftTemplateId ?? null,
     })
 
     if (conflict.type === 'duplicate') {
-      throw new Error('This employee is already scheduled for this shift.')
+      throw new Error('This employee is already assigned here.')
     }
 
-    if (conflict.type === 'overlap') {
-      throw new Error('This shift overlaps with another shift for this employee.')
+    if (!(await ensureShiftOverlapAllowed(conflict))) {
+      throw new Error('Assignment cancelled.')
     }
 
     setIsSavingShift(true)
@@ -13175,14 +13226,15 @@ function App() {
       startTime: normalizedStartTime,
       endTime: normalizedEndTime,
       excludeShiftId: shiftId,
+      shiftTemplateId: targetShift.shiftTemplateId ?? null,
     })
 
     if (conflict.type === 'duplicate') {
-      throw new Error('This employee is already scheduled for this shift.')
+      throw new Error('This employee is already assigned here.')
     }
 
-    if (conflict.type === 'overlap') {
-      throw new Error('This shift overlaps with another shift for this employee.')
+    if (!(await ensureShiftOverlapAllowed(conflict))) {
+      throw new Error('Assignment cancelled.')
     }
 
     setIsSavingShift(true)
@@ -13268,14 +13320,15 @@ function App() {
       startTime,
       endTime,
       excludeShiftId: shiftId,
+      shiftTemplateId: targetTemplateId ?? null,
     })
 
     if (conflict.type === 'duplicate') {
       throw new Error('This employee is already assigned here.')
     }
 
-    if (conflict.type === 'overlap') {
-      throw new Error('This shift overlaps with another shift for this employee.')
+    if (!(await ensureShiftOverlapAllowed(conflict))) {
+      throw new Error('Assignment cancelled.')
     }
 
     setIsSavingShift(true)
@@ -13331,21 +13384,26 @@ function App() {
 
     const sourceTemplateId = resolveShiftTemplateId(sourceShift)
     const targetTemplateId = resolveShiftTemplateId(template)
+    const normalizedTargetDate = normalizeCellDateKey(shiftDate)
 
-    if (sourceTemplateId !== targetTemplateId) {
-      throw new Error('Copy within the same shift template row only.')
+    if (
+      normalizedTargetDate === normalizeCellDateKey(sourceShift.date)
+      && sourceTemplateId
+      && targetTemplateId
+      && sourceTemplateId === targetTemplateId
+    ) {
+      throw new Error('This employee is already assigned here.')
     }
 
     if ((cellShifts ?? []).some((shift) => String(shift.employeeId) === String(sourceShift.employeeId))) {
       throw new Error('This employee is already assigned here.')
     }
 
-    const normalizedTargetDate = normalizeCellDateKey(shiftDate)
     const employeeId = sourceShift.employeeId
-    const startTime = normalizeTimeValue(sourceShift.startTime)
-    const endTime = normalizeTimeValue(sourceShift.endTime)
+    const startTime = normalizeTimeValue(sourceShift.startTime) || normalizeTimeValue(template?.startTime)
+    const endTime = normalizeTimeValue(sourceShift.endTime) || normalizeTimeValue(template?.endTime)
     const role = `${sourceShift.role ?? ''}`.trim()
-    const area = `${sourceShift.area ?? ''}`.trim()
+    const area = `${template?.defaultArea ?? ''}`.trim() || `${sourceShift.area ?? ''}`.trim()
 
     if (!validateShiftRequiredFields({
       employeeId,
@@ -13363,18 +13421,19 @@ function App() {
       date: normalizedTargetDate,
       startTime,
       endTime,
+      shiftTemplateId: targetTemplateId ?? null,
     })
 
     if (conflict.type === 'duplicate') {
       throw new Error('This employee is already assigned here.')
     }
 
-    if (conflict.type === 'overlap') {
-      throw new Error('This shift overlaps with another shift for this employee.')
+    if (!(await ensureShiftOverlapAllowed(conflict))) {
+      throw new Error('Assignment cancelled.')
     }
 
     const matchedTemplate = shiftTemplates.find((item) => (
-      resolveShiftTemplateId(item) === sourceTemplateId
+      resolveShiftTemplateId(item) === targetTemplateId
     )) ?? template
 
     setIsSavingShift(true)
@@ -13390,7 +13449,6 @@ function App() {
       area,
       status: sourceShift.status ?? 'Scheduled',
       notes: sourceShift.notes ?? '',
-      shiftTemplateId: sourceShift.shiftTemplateId ?? null,
     }
 
     const payload = prepareShiftForSave(rawPayload, {
@@ -13470,15 +13528,15 @@ function App() {
       date: targetDate,
       startTime,
       endTime,
+      shiftTemplateId: shift.shiftTemplateId ?? null,
     })
 
     if (conflict.type === 'duplicate') {
-      setScheduleNotice('This employee is already scheduled for this shift.')
+      setScheduleNotice('This employee is already assigned here.')
       return
     }
 
-    if (conflict.type === 'overlap') {
-      setScheduleNotice('This shift overlaps with another shift for this employee.')
+    if (!(await ensureShiftOverlapAllowed(conflict))) {
       return
     }
 
@@ -13520,23 +13578,14 @@ function App() {
       throw new Error('Shift could not be found for copying.')
     }
 
-    const baseDate = new Date(`${shift.date}T00:00:00`)
-    if (Number.isNaN(baseDate.getTime())) {
+    const shiftDateKey = `${shift.date ?? ''}`.slice(0, 10)
+    if (!shiftDateKey) {
       throw new Error('Shift date is invalid and cannot be copied.')
     }
 
-    const dayOfWeek = baseDate.getDay()
-    const daysUntilSunday = (7 - dayOfWeek) % 7
-    const endOfWeek = new Date(baseDate)
-    endOfWeek.setDate(baseDate.getDate() + daysUntilSunday)
-
-    const targetDates = []
-    const cursor = new Date(baseDate)
-    cursor.setDate(baseDate.getDate() + 1)
-    while (cursor <= endOfWeek) {
-      targetDates.push(cursor.toISOString().split('T')[0])
-      cursor.setDate(cursor.getDate() + 1)
-    }
+    const weekStart = getWeekStartDate(parseLocalDate(shiftDateKey))
+    const weekKeys = getWeekDateKeys(weekStart)
+    const targetDates = getRestOfWeekDateKeys(shiftDateKey, weekKeys)
 
     if (targetDates.length === 0) {
       setScheduleNotice('No remaining days in this week to copy.')
@@ -13560,18 +13609,21 @@ function App() {
       return
     }
 
+    const sourceTemplateId = shift.shiftTemplateId ?? resolveShiftTemplateId(shift)
+
     const candidateDates = targetDates.filter((date) => {
       const conflict = getShiftConflict({
         employeeId: shift.employeeId,
         date,
         startTime,
         endTime,
+        shiftTemplateId: sourceTemplateId ?? null,
       })
-      return !conflict.type
+      return conflict.type !== 'duplicate'
     })
 
     if (candidateDates.length === 0) {
-      setScheduleNotice('No new shifts were created because each target day already has a duplicate or overlapping shift for this employee.')
+      setScheduleNotice('No new shifts were created because this employee is already assigned on each remaining day.')
       return
     }
 
@@ -13583,6 +13635,18 @@ function App() {
     try {
       const created = []
       for (const date of candidateDates) {
+        const conflict = getShiftConflict({
+          employeeId: shift.employeeId,
+          date,
+          startTime,
+          endTime,
+          shiftTemplateId: sourceTemplateId ?? null,
+        })
+
+        if (conflict.type === 'overlap' && !(await ensureShiftOverlapAllowed(conflict))) {
+          continue
+        }
+
         const rawPayload = {
           employee_id: shift.employeeId,
           date,
@@ -13638,7 +13702,7 @@ function App() {
       return
     }
 
-    if (isUnavailableEmployee(selectedEmployee)) {
+    if (isEmployeeUnavailable(selectedEmployee)) {
       setScheduleNotice('That employee is currently unavailable and cannot be assigned to a shift.')
       return
     }
@@ -13656,30 +13720,32 @@ function App() {
       return
     }
 
+    const selectedTemplate = formData.shift_template !== 'custom'
+      ? shiftTemplates.find((template) => template.id === formData.shift_template)
+      : null
+    const resolvedTemplateId = editingShift?.shiftTemplateId ?? resolveShiftTemplateId(selectedTemplate)
+
     const conflict = getShiftConflict({
       employeeId,
       date: formData.shift_date,
       startTime: normalizedStartTime,
       endTime: normalizedEndTime,
       excludeShiftId: editingShift?.id ?? null,
+      shiftTemplateId: resolvedTemplateId ?? null,
     })
 
     if (conflict.type === 'duplicate') {
-      setScheduleNotice('This employee is already scheduled for this shift.')
+      setScheduleNotice('This employee is already assigned here.')
       return
     }
 
-    if (conflict.type === 'overlap') {
-      setScheduleNotice('This shift overlaps with another shift for this employee.')
+    if (!(await ensureShiftOverlapAllowed(conflict))) {
       return
     }
 
     setIsSavingShift(true)
     setScheduleNotice('')
 
-    const selectedTemplate = formData.shift_template !== 'custom'
-      ? shiftTemplates.find((template) => template.id === formData.shift_template)
-      : null
     const legacyShiftOptions = getLegacyShiftIntegrityOptions(shiftTemplates, {
       requireTemplateId: Boolean(selectedTemplate) || Boolean(editingShift?.shiftTemplateId),
     })
@@ -13693,7 +13759,7 @@ function App() {
       endTime: normalizedEndTime,
       status: formData.status,
       notes: formData.notes,
-      shiftTemplateId: editingShift?.shiftTemplateId ?? resolveShiftTemplateId(selectedTemplate),
+      shiftTemplateId: resolvedTemplateId,
     }
 
     const payload = prepareShiftForSave(rawPayload, {
@@ -13868,7 +13934,7 @@ function App() {
   }
 
   const employeeOptions = useMemo(() => {
-    return scheduleEmployees.filter((employee) => !isUnavailableEmployee(employee) || String(employee.id) === formData.employee_id)
+    return scheduleEmployees.filter((employee) => !isEmployeeUnavailable(employee) || String(employee.id) === formData.employee_id)
   }, [formData.employee_id, scheduleEmployees])
 
   const selectedShiftEmployee = useMemo(
@@ -14975,6 +15041,27 @@ function App() {
                   </button>
                 </div>
               </form>
+            </div>
+          </div>
+        ) : null}
+
+        {isShiftOverlapConfirmOpen ? (
+          <div className="employee-modal-backdrop" onClick={() => resolveShiftOverlapConfirmation(false)}>
+            <div className="employee-modal blend-compact-modal" onClick={(event) => event.stopPropagation()}>
+              <div className="drawer-header">
+                <div>
+                  <p className="eyebrow">Schedule overlap</p>
+                  <h3>Employee already works another shift at this time</h3>
+                </div>
+                <button type="button" className="icon-btn" onClick={() => resolveShiftOverlapConfirmation(false)}>✕</button>
+              </div>
+
+              <p className="staff-subtitle">Add anyway?</p>
+
+              <div className="modal-actions">
+                <button type="button" className="ghost-btn" onClick={() => resolveShiftOverlapConfirmation(false)}>Cancel</button>
+                <button type="button" className="primary-btn" onClick={() => resolveShiftOverlapConfirmation(true)}>Add Anyway</button>
+              </div>
             </div>
           </div>
         ) : null}
