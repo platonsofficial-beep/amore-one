@@ -7,7 +7,7 @@ import { resolve } from 'node:path'
 const packageJsonPath = resolve(process.cwd(), 'package.json')
 const packageJson = JSON.parse(readFileSync(packageJsonPath, 'utf8'))
 
-const appVersion = `v${packageJson.version ?? '0.0.0'}`
+const appVersion = `v${packageJson.version ?? '1.0.0'}-${packageJson.release ?? 'core'}`
 const derivedBuildNumber = process.env.VERCEL_GIT_COMMIT_SHA
   ? process.env.VERCEL_GIT_COMMIT_SHA.slice(0, 7)
   : process.env.GITHUB_RUN_NUMBER

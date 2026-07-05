@@ -229,6 +229,7 @@ import { MAX_WORKSPACE_LOGO_BYTES } from './lib/workspaceProfileOptions'
 import { TASK_PRESET_DEPARTMENTS } from './lib/taskDepartments'
 import { DEFAULT_RESTAURANT_AREAS } from './floor-plan-builder/models/floorPlans'
 import { WorkspaceView } from './components/workspace/WorkspaceView'
+import { UserMenu } from './components/auth/UserMenu'
 import {
   EMPTY_WORKSPACE_PROFILE,
   getWorkspaceProfile,
@@ -16636,17 +16637,11 @@ function App() {
                 <p className="command-status-chip-status">{dashboardLiveStatus.chipStatus}</p>
               </div>
             </div>
-            <button
-              type="button"
-              className={`profile-chip profile-chip-command${profileChipDisplay.isConfigured ? '' : ' profile-chip-unconfigured'}`}
-              onClick={handleOpenWorkspaceProfile}
-            >
-              <div className="profile-avatar">{profileChipDisplay.initials}</div>
-              <div className="profile-chip-copy">
-                <strong>{profileChipDisplay.name}</strong>
-                <p>{profileChipDisplay.role}</p>
-              </div>
-            </button>
+            <UserMenu
+              profileChipDisplay={profileChipDisplay}
+              onOpenWorkspaceProfile={handleOpenWorkspaceProfile}
+              variant="command"
+            />
           </div>
         </header>
         ) : (
@@ -16668,17 +16663,10 @@ function App() {
             </label>
             <button type="button" className="icon-btn">🔔</button>
             <div className="date-pill">{currentDateLabel}</div>
-            <button
-              type="button"
-              className={`profile-chip${profileChipDisplay.isConfigured ? '' : ' profile-chip-unconfigured'}`}
-              onClick={handleOpenWorkspaceProfile}
-            >
-              <div className="profile-avatar">{profileChipDisplay.initials}</div>
-              <div>
-                <strong>{profileChipDisplay.name}</strong>
-                <p>{profileChipDisplay.role}</p>
-              </div>
-            </button>
+            <UserMenu
+              profileChipDisplay={profileChipDisplay}
+              onOpenWorkspaceProfile={handleOpenWorkspaceProfile}
+            />
           </div>
         </header>
         )

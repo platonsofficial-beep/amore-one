@@ -1,7 +1,7 @@
 import { useState } from 'react'
 
 const APP_NAME = typeof __APP_NAME__ !== 'undefined' ? __APP_NAME__ : 'ONE'
-const APP_VERSION = typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : 'v0.0.0'
+const APP_VERSION = typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : 'v1.0.0-core'
 
 const MODULE_ROWS = [
   { key: 'reservations', label: 'Reservations' },
