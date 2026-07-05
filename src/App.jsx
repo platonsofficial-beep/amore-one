@@ -225,11 +225,10 @@ import {
   buildDashboardGreeting,
   buildProfileChipDisplay,
 } from './lib/workspaceProfileUtils'
-import {
-  MAX_WORKSPACE_LOGO_BYTES,
-  WORKSPACE_PROFILE_CURRENCIES,
-  WORKSPACE_PROFILE_TIMEZONES,
-} from './lib/workspaceProfileOptions'
+import { MAX_WORKSPACE_LOGO_BYTES } from './lib/workspaceProfileOptions'
+import { TASK_PRESET_DEPARTMENTS } from './lib/taskDepartments'
+import { DEFAULT_RESTAURANT_AREAS } from './floor-plan-builder/models/floorPlans'
+import { WorkspaceView } from './components/workspace/WorkspaceView'
 import {
   EMPTY_WORKSPACE_PROFILE,
   getWorkspaceProfile,
@@ -274,11 +273,6 @@ const navItems = [
   { id: 'stock', label: 'Stock', icon: '📦' },
   { id: 'reports', label: 'Reports', icon: '📈' },
   { id: 'settings', label: 'Workspace', icon: '⚙️' },
-]
-
-const workspaceSettingsSections = [
-  { id: 'profile', label: 'Workspace Profile' },
-  { id: 'positions', label: 'Positions' },
 ]
 
 const dashboardQuickActions = [
@@ -1006,50 +1000,6 @@ function formatHireDate(value) {
   }
 
   return parsed.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
-}
-
-const APP_NAME = typeof __APP_NAME__ !== 'undefined' ? __APP_NAME__ : 'ONE'
-const APP_VERSION = typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : 'v0.0.0'
-
-function BuildInfoBadge({ compact = false }) {
-  const [copyMessage, setCopyMessage] = useState('')
-
-  const handleCopyBuildInfo = async () => {
-    const copyText = [
-      APP_NAME,
-      `Version ${APP_VERSION}`,
-    ].join('\n')
-
-    try {
-      if (navigator?.clipboard?.writeText) {
-        await navigator.clipboard.writeText(copyText)
-      } else {
-        const fallbackTextArea = document.createElement('textarea')
-        fallbackTextArea.value = copyText
-        document.body.appendChild(fallbackTextArea)
-        fallbackTextArea.select()
-        document.execCommand('copy')
-        document.body.removeChild(fallbackTextArea)
-      }
-
-      setCopyMessage('Copied')
-      setTimeout(() => setCopyMessage(''), 1800)
-    } catch (_error) {
-      setCopyMessage('Copy failed')
-      setTimeout(() => setCopyMessage(''), 1800)
-    }
-  }
-
-  return (
-    <div className={`build-info-badge ${compact ? 'compact' : ''}`}>
-      <div>
-        <p className="build-info-name">{APP_NAME}</p>
-        <p className="build-info-version">Version {APP_VERSION}</p>
-      </div>
-      <button type="button" className="ghost-btn small build-copy-btn" onClick={handleCopyBuildInfo}>Copy Build Info</button>
-      {copyMessage ? <small className="build-copy-note">{copyMessage}</small> : null}
-    </div>
-  )
 }
 
 function normalizeNumericValue(value) {
@@ -12048,286 +11998,6 @@ function SuppliersView({
   )
 }
 
-function WorkspaceProfileSettingsView({
-  workspaceProfile,
-  noticeMessage,
-  isLoading,
-  isSaving,
-  onChange,
-  onSubmit,
-  onLogoFileChange,
-  onClearLogo,
-}) {
-  return (
-    <>
-      <div className="staff-header-card">
-        <div>
-          <p className="eyebrow">Workspace Settings</p>
-          <h3>Workspace Profile</h3>
-          <p className="staff-subtitle">Configure your business identity and manager details for the Operations Dashboard.</p>
-        </div>
-      </div>
-
-      {noticeMessage ? <div className="staff-status-banner">{noticeMessage}</div> : null}
-      {isLoading ? <div className="staff-status-banner">Loading workspace profile…</div> : null}
-
-      <div className="panel staff-panel">
-        <div className="panel-heading">
-          <div>
-            <p className="eyebrow">Business identity</p>
-            <h3>Profile details</h3>
-          </div>
-        </div>
-
-        <form
-          className="employee-form"
-          onSubmit={(event) => {
-            event.preventDefault()
-            onSubmit()
-          }}
-        >
-          <div className="form-grid">
-            <label className="form-field">
-              <span>Business Name</span>
-              <input
-                value={workspaceProfile.businessName}
-                onChange={(event) => onChange({ ...workspaceProfile, businessName: event.target.value })}
-                placeholder="e.g. Amore Nicosia"
-                disabled={isLoading || isSaving}
-              />
-            </label>
-            <label className="form-field">
-              <span>Manager Full Name</span>
-              <input
-                value={workspaceProfile.managerName}
-                onChange={(event) => onChange({ ...workspaceProfile, managerName: event.target.value })}
-                placeholder="Full name"
-                disabled={isLoading || isSaving}
-              />
-            </label>
-            <label className="form-field">
-              <span>Manager Role</span>
-              <input
-                value={workspaceProfile.managerRole}
-                onChange={(event) => onChange({ ...workspaceProfile, managerRole: event.target.value })}
-                placeholder="e.g. General Manager"
-                disabled={isLoading || isSaving}
-              />
-            </label>
-            <label className="form-field">
-              <span>Timezone</span>
-              <select
-                value={workspaceProfile.timezone}
-                onChange={(event) => onChange({ ...workspaceProfile, timezone: event.target.value })}
-                disabled={isLoading || isSaving}
-              >
-                <option value="">Browser default</option>
-                {WORKSPACE_PROFILE_TIMEZONES.map((option) => (
-                  <option key={option.value} value={option.value}>{option.label}</option>
-                ))}
-              </select>
-            </label>
-            <label className="form-field">
-              <span>Currency</span>
-              <select
-                value={workspaceProfile.currency}
-                onChange={(event) => onChange({ ...workspaceProfile, currency: event.target.value })}
-                disabled={isLoading || isSaving}
-              >
-                <option value="">Not set</option>
-                {WORKSPACE_PROFILE_CURRENCIES.map((option) => (
-                  <option key={option.value} value={option.value}>{option.label}</option>
-                ))}
-              </select>
-            </label>
-            <label className="form-field full-width">
-              <span>Logo</span>
-              <div className="workspace-logo-field">
-                {workspaceProfile.logoUrl ? (
-                  <div className="workspace-logo-preview">
-                    <img src={workspaceProfile.logoUrl} alt="Workspace logo preview" />
-                  </div>
-                ) : (
-                  <div className="workspace-logo-placeholder">No logo uploaded</div>
-                )}
-                <div className="workspace-logo-actions">
-                  <label className="ghost-btn small workspace-logo-upload-btn">
-                    Upload logo
-                    <input
-                      type="file"
-                      accept="image/png,image/jpeg,image/webp,image/svg+xml"
-                      onChange={onLogoFileChange}
-                      disabled={isLoading || isSaving}
-                      hidden
-                    />
-                  </label>
-                  {workspaceProfile.logoUrl ? (
-                    <button type="button" className="ghost-btn small" onClick={onClearLogo} disabled={isLoading || isSaving}>
-                      Remove logo
-                    </button>
-                  ) : null}
-                </div>
-                <small className="workspace-logo-hint">PNG, JPG, WEBP, or SVG up to {Math.round(MAX_WORKSPACE_LOGO_BYTES / 1024)} KB.</small>
-              </div>
-            </label>
-          </div>
-
-          <div className="modal-actions">
-            <button type="submit" className="primary-btn" disabled={isLoading || isSaving}>
-              {isSaving ? 'Saving…' : 'Save Profile'}
-            </button>
-          </div>
-        </form>
-      </div>
-    </>
-  )
-}
-
-function PositionsSettingsView({
-  positions,
-  isLoading,
-  noticeMessage,
-  form,
-  isSaving,
-  editingPositionId,
-  onFormChange,
-  onSubmit,
-  onStartEdit,
-  onCancelEdit,
-  onRequestDelete,
-  onMovePosition,
-  getUsageCount,
-}) {
-  return (
-    <>
-      <div className="staff-header-card">
-        <div>
-          <p className="eyebrow">Workspace Settings</p>
-          <h3>Positions</h3>
-          <p className="staff-subtitle">Create and organize custom positions for any hospitality business.</p>
-        </div>
-      </div>
-
-      {noticeMessage ? <div className="staff-status-banner">{noticeMessage}</div> : null}
-      {isLoading ? <div className="staff-status-banner">Loading positions…</div> : null}
-
-      <div className="panel staff-panel">
-        <div className="panel-heading">
-          <div>
-            <p className="eyebrow">Manage positions</p>
-            <h3>{editingPositionId ? 'Edit position' : 'Add position'}</h3>
-          </div>
-        </div>
-
-        <form className="employee-form" onSubmit={onSubmit}>
-          <div className="form-grid">
-            <label className="form-field">
-              <span>Position Name</span>
-              <input value={form.name} onChange={(event) => onFormChange({ ...form, name: event.target.value })} placeholder="e.g. Mixologist" required />
-            </label>
-            <label className="form-field">
-              <span>Department</span>
-              <select value={form.department} onChange={(event) => onFormChange({ ...form, department: event.target.value })}>
-                <option value="Bar">Bar</option>
-                <option value="Service">Service</option>
-                <option value="Kitchen">Kitchen</option>
-                <option value="Management">Management</option>
-                <option value="Other">Other</option>
-              </select>
-            </label>
-          </div>
-
-          <div className="modal-actions">
-            {editingPositionId ? <button type="button" className="ghost-btn" onClick={onCancelEdit}>Cancel edit</button> : null}
-            <button type="submit" className="primary-btn" disabled={isSaving}>{isSaving ? 'Saving…' : editingPositionId ? 'Update Position' : 'Add Position'}</button>
-          </div>
-        </form>
-      </div>
-
-      <div className="panel staff-panel">
-        <div className="panel-heading">
-          <div>
-            <p className="eyebrow">Position list</p>
-            <h3>{positions.length} positions</h3>
-          </div>
-        </div>
-
-        {positions.length === 0 && !isLoading ? (
-          <div className="schedule-empty-state">
-            <h4>No positions found.</h4>
-            <p>Add your first custom position.</p>
-          </div>
-        ) : (
-          <div className="positions-list">
-            {positions.map((position, index) => {
-              const usage = getUsageCount(position)
-
-              return (
-                <article key={position.id} className="position-row">
-                  <div>
-                    <strong>{position.name}</strong>
-                    <p>{position.department}</p>
-                    {usage > 0 ? <small>Used by {usage} employee{usage === 1 ? '' : 's'}</small> : null}
-                  </div>
-                  <div className="action-group">
-                    <button type="button" className="ghost-btn small" onClick={() => onMovePosition(position, 'up')} disabled={index === 0}>↑</button>
-                    <button type="button" className="ghost-btn small" onClick={() => onMovePosition(position, 'down')} disabled={index === positions.length - 1}>↓</button>
-                    <button type="button" className="ghost-btn small" onClick={() => onStartEdit(position)}>Rename</button>
-                    <button type="button" className="ghost-btn small" onClick={() => onRequestDelete(position)}>Delete</button>
-                  </div>
-                </article>
-              )
-            })}
-          </div>
-        )}
-      </div>
-    </>
-  )
-}
-
-function WorkspaceSettingsView({
-  activeSection,
-  onSectionChange,
-  workspaceProfileProps,
-  positionsProps,
-  renderBuildInfo,
-}) {
-  return (
-    <section className="staff-page settings-page">
-      <div className="settings-layout">
-        <aside className="settings-nav" aria-label="Workspace settings sections">
-          <p className="eyebrow">Workspace Settings</p>
-          <h3>Configuration</h3>
-          <div className="settings-nav-links">
-            {workspaceSettingsSections.map((section) => (
-              <button
-                key={section.id}
-                type="button"
-                className={`settings-nav-link ${activeSection === section.id ? 'active' : ''}`}
-                onClick={() => onSectionChange(section.id)}
-              >
-                {section.label}
-              </button>
-            ))}
-          </div>
-        </aside>
-
-        <div className="settings-content">
-          {activeSection === 'profile' ? (
-            <WorkspaceProfileSettingsView {...workspaceProfileProps} />
-          ) : (
-            <PositionsSettingsView {...positionsProps} />
-          )}
-
-          <div className="settings-footer">
-            {renderBuildInfo}
-          </div>
-        </div>
-      </div>
-    </section>
-  )
-}
-
 function App() {
   const [activeView, setActiveView] = useState('dashboard')
   const [searchTerm, setSearchTerm] = useState('')
@@ -12922,6 +12592,36 @@ function App() {
     scheduleNotice,
     suppliersNotice,
   ])
+
+  const workspaceModuleConnections = useMemo(() => ({
+    reservations: isReservationsModuleConnected,
+    schedule: !`${scheduleNotice}`.toLowerCase().includes('not ready'),
+    tasks: isTasksModuleConnected,
+    suppliers: !`${suppliersNotice}`.toLowerCase().includes('not ready'),
+    stock: isInventoryModuleConnected,
+    reports: null,
+  }), [
+    isReservationsModuleConnected,
+    isTasksModuleConnected,
+    isInventoryModuleConnected,
+    scheduleNotice,
+    suppliersNotice,
+  ])
+
+  const workspaceVenueSetupProps = useMemo(() => {
+    const positionDepartments = Array.from(new Set(
+      positions.map((position) => `${position.department ?? ''}`.trim()).filter(Boolean),
+    )).sort((left, right) => left.localeCompare(right))
+
+    return {
+      staffDepartments: positionDepartments.length > 0
+        ? positionDepartments
+        : filters.filter((item) => item !== 'All'),
+      scheduleAreas: scheduleAreaOptions,
+      reservationAreas: DEFAULT_RESTAURANT_AREAS.map((area) => area.label),
+      taskBoards: TASK_PRESET_DEPARTMENTS.map((department) => department.label),
+    }
+  }, [positions])
 
   useEffect(() => {
     if (activeView !== 'dashboard') return undefined
@@ -16793,7 +16493,7 @@ function App() {
   const heroSubtitle = activeView === 'dashboard'
     ? `${currentDateLabel} · What is happening in your business today`
     : activeView === 'settings'
-      ? 'Configure your workspace profile and operational defaults.'
+      ? 'Configure your ONE workspace, team structure, and operational defaults.'
     : activeView === 'reservations'
       ? 'Review service flow, seating, and guest arrivals.'
       : activeView === 'suppliers'
@@ -17203,10 +16903,10 @@ function App() {
         ) : null}
 
         {activeView === 'settings' ? (
-          <WorkspaceSettingsView
+          <WorkspaceView
             activeSection={settingsSection}
             onSectionChange={setSettingsSection}
-            workspaceProfileProps={{
+            businessProfileProps={{
               workspaceProfile: workspaceProfileDraft,
               noticeMessage: workspaceProfileNotice,
               isLoading: isWorkspaceProfileLoading,
@@ -17231,7 +16931,15 @@ function App() {
               onMovePosition: handleMovePosition,
               getUsageCount: getPositionUsageCount,
             }}
-            renderBuildInfo={<BuildInfoBadge />}
+            venueSetupProps={workspaceVenueSetupProps}
+            teamProps={{
+              employees,
+              managerName: workspaceProfile.managerName,
+              onManageStaff: () => setActiveView('staff'),
+            }}
+            systemProps={{
+              moduleConnections: workspaceModuleConnections,
+            }}
           />
         ) : null}
 
