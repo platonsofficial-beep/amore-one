@@ -131,6 +131,24 @@ export function calculateDepartmentStats(tasks = [], departmentKey, todayKey = g
   }
 }
 
+export function groupTaskTemplatesByDepartment(templates = []) {
+  const grouped = new Map()
+
+  ;(templates ?? []).forEach((template) => {
+    const departmentKey = normalizeDepartmentKey(template?.department)
+    if (!grouped.has(departmentKey)) {
+      grouped.set(departmentKey, [])
+    }
+    grouped.get(departmentKey).push(template)
+  })
+
+  grouped.forEach((departmentTemplates) => {
+    departmentTemplates.sort((a, b) => `${a?.title ?? ''}`.localeCompare(`${b?.title ?? ''}`))
+  })
+
+  return grouped
+}
+
 export function calculateTaskOverview(tasks = [], todayKey = getTodayKey()) {
   const allTasks = tasks ?? []
   const activeTasks = allTasks.filter((task) => normalizeTaskStatus(task?.status) === 'active')

@@ -13,3 +13,15 @@ export function buildTaskForm(task = null, defaultDepartment = 'service') {
     notes: task?.notes ?? '',
   }
 }
+
+export function buildTaskTemplateForm(template = null) {
+  return {
+    title: template?.title ?? '',
+    department: template?.department ?? 'service',
+    departmentCustom: template?.departmentCustom ?? '',
+    priority: template?.priority ?? 'normal',
+    defaultTime: template?.defaultTime ?? '',
+    recurrence: template?.recurrence ?? 'daily',
+    notes: template?.notes ?? '',
+  }
+}

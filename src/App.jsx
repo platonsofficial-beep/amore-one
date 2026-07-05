@@ -98,6 +98,13 @@ import {
   updateTask,
 } from './services/taskService'
 import {
+  createTaskTemplate,
+  deleteTaskTemplate,
+  generateTasksFromTemplates,
+  getTaskTemplates,
+  updateTaskTemplate,
+} from './services/taskTemplateService'
+import {
   addWeeks,
   formatWeekRange,
   getCurrentWeekStartDate,
@@ -10898,6 +10905,12 @@ function App() {
   const [isTasksLoading, setIsTasksLoading] = useState(false)
   const [isSavingTask, setIsSavingTask] = useState(false)
   const [openTasksCreateModal, setOpenTasksCreateModal] = useState(false)
+  const [taskTemplates, setTaskTemplates] = useState([])
+  const [taskTemplatesError, setTaskTemplatesError] = useState('')
+  const [taskTemplatesNotice, setTaskTemplatesNotice] = useState('')
+  const [isTaskTemplatesLoading, setIsTaskTemplatesLoading] = useState(false)
+  const [isSavingTaskTemplate, setIsSavingTaskTemplate] = useState(false)
+  const [isGeneratingTasksFromTemplates, setIsGeneratingTasksFromTemplates] = useState(false)
   const [employeePendingDelete, setEmployeePendingDelete] = useState(null)
   const [isDeletingEmployee, setIsDeletingEmployee] = useState(false)
   const [localNow, setLocalNow] = useState(() => getLocalNow())
@@ -11231,6 +11244,23 @@ function App() {
     }
   }, [])
 
+  const refreshTaskTemplates = useCallback(async () => {
+    setIsTaskTemplatesLoading(true)
+    setTaskTemplatesError('')
+
+    try {
+      const remoteTemplates = await getTaskTemplates()
+      setTaskTemplates(remoteTemplates)
+      return remoteTemplates
+    } catch (error) {
+      setTaskTemplates([])
+      setTaskTemplatesError(error?.message || 'Unable to load task templates right now.')
+      throw error
+    } finally {
+      setIsTaskTemplatesLoading(false)
+    }
+  }, [])
+
   const refreshDashboardModuleData = useCallback(async () => {
     await Promise.allSettled([
       refreshReservations(),
@@ -11483,8 +11513,9 @@ function App() {
   useEffect(() => {
     if (activeView !== 'tasks') return undefined
     refreshTasks()
+    refreshTaskTemplates()
     return undefined
-  }, [activeView, refreshTasks])
+  }, [activeView, refreshTasks, refreshTaskTemplates])
 
   useEffect(() => {
     let isMounted = true
@@ -14730,6 +14761,82 @@ function App() {
     }
   }
 
+  const handleCreateTaskTemplate = async (payload) => {
+    setIsSavingTaskTemplate(true)
+    setTaskTemplatesNotice('')
+
+    try {
+      await createTaskTemplate(payload)
+      await refreshTaskTemplates()
+      setTaskTemplatesNotice('Template created successfully.')
+    } catch (error) {
+      setTaskTemplatesNotice(error?.message || 'Unable to create template right now.')
+      throw error
+    } finally {
+      setIsSavingTaskTemplate(false)
+    }
+  }
+
+  const handleUpdateTaskTemplate = async (templateId, payload) => {
+    setIsSavingTaskTemplate(true)
+    setTaskTemplatesNotice('')
+
+    try {
+      await updateTaskTemplate(templateId, payload)
+      await refreshTaskTemplates()
+      setTaskTemplatesNotice('Template updated successfully.')
+    } catch (error) {
+      setTaskTemplatesNotice(error?.message || 'Unable to update template right now.')
+      throw error
+    } finally {
+      setIsSavingTaskTemplate(false)
+    }
+  }
+
+  const handleDeleteTaskTemplate = async (templateId) => {
+    setIsSavingTaskTemplate(true)
+    setTaskTemplatesNotice('')
+
+    try {
+      await deleteTaskTemplate(templateId)
+      await refreshTaskTemplates()
+      setTaskTemplatesNotice('Template deleted.')
+    } catch (error) {
+      setTaskTemplatesNotice(error?.message || 'Unable to delete template right now.')
+    } finally {
+      setIsSavingTaskTemplate(false)
+    }
+  }
+
+  const handleGenerateTasksFromTemplates = async () => {
+    setIsGeneratingTasksFromTemplates(true)
+    setTaskTemplatesNotice('')
+
+    try {
+      const { createdCount, skippedCount } = await generateTasksFromTemplates({
+        templates: taskTemplates,
+        selectedDate: currentDateKey,
+      })
+
+      await refreshTasks()
+
+      const createdLabel = createdCount === 1 ? '1 task generated' : `${createdCount} tasks generated`
+      const skippedLabel = skippedCount === 1 ? '1 already existed' : `${skippedCount} already existed`
+
+      if (createdCount === 0 && skippedCount === 0) {
+        setTaskTemplatesNotice('No active templates to generate.')
+      } else if (skippedCount === 0) {
+        setTaskTemplatesNotice(`${createdLabel}.`)
+      } else {
+        setTaskTemplatesNotice(`${createdLabel}. ${skippedLabel}.`)
+      }
+    } catch (error) {
+      setTaskTemplatesNotice(error?.message || 'Unable to generate tasks right now.')
+    } finally {
+      setIsGeneratingTasksFromTemplates(false)
+    }
+  }
+
   const heroTitle = activeView === 'dashboard'
     ? 'Operations Command Center'
     : activeView === 'settings'
@@ -15048,16 +15155,26 @@ function App() {
         {activeView === 'tasks' ? (
           <TasksView
             tasks={tasks}
+            taskTemplates={taskTemplates}
             employees={scheduleEmployees}
             isLoading={isTasksLoading}
+            isTemplatesLoading={isTaskTemplatesLoading}
             isSaving={isSavingTask}
+            isSavingTemplate={isSavingTaskTemplate}
+            isGeneratingTasks={isGeneratingTasksFromTemplates}
             errorMessage={tasksError}
+            templatesErrorMessage={taskTemplatesError}
             noticeMessage={tasksNotice}
+            templatesNoticeMessage={taskTemplatesNotice}
             onCreateTask={handleCreateTask}
             onUpdateTask={handleUpdateTask}
             onDeleteTask={handleDeleteTask}
             onCompleteTask={handleCompleteTask}
             onReopenTask={handleReopenTask}
+            onCreateTemplate={handleCreateTaskTemplate}
+            onUpdateTemplate={handleUpdateTaskTemplate}
+            onDeleteTemplate={handleDeleteTaskTemplate}
+            onGenerateToday={handleGenerateTasksFromTemplates}
             openCreateOnMount={openTasksCreateModal}
             onOpenCreateHandled={() => setOpenTasksCreateModal(false)}
           />
