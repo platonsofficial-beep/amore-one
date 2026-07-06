@@ -409,7 +409,7 @@ function formatScheduleCellCoverageDetail(cell) {
   }
 
   if (assigned < needed) {
-    return { label: `Missing ${needed - assigned}`, tone: 'understaffed', show: true }
+    return { label: `⚠ Missing ${needed - assigned}`, tone: 'understaffed', show: true }
   }
 
   if (assigned > needed) {
@@ -423,9 +423,9 @@ function formatScheduleCellCoverageDetail(cell) {
   return { label: '', tone: 'empty', show: false }
 }
 
-function formatDayCoverageBadgeLabel(status) {
-  if (status === 'covered' || status === 'overstaffed') return 'Covered'
-  if (status === 'understaffed' || status === 'conflict') return 'Missing'
+function formatDayCoverageBadgeLabel(summary) {
+  if (summary?.statusLabel) return summary.statusLabel
+  if (summary?.status === 'covered' || summary?.status === 'overstaffed') return 'Covered'
   return 'Empty'
 }
 
@@ -1088,6 +1088,12 @@ function ScheduleView({
   const [renamingTemplateId, setRenamingTemplateId] = useState(null)
   const [renameTemplateName, setRenameTemplateName] = useState('')
   const [templateActionMenuId, setTemplateActionMenuId] = useState(null)
+  const templateActionMenuRef = useRef(null)
+
+  useEffect(() => {
+    if (!templateActionMenuId) return
+    templateActionMenuRef.current?.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+  }, [templateActionMenuId])
   const [isDeleteShiftTemplateModalOpen, setIsDeleteShiftTemplateModalOpen] = useState(false)
   const [shiftTemplatePendingDelete, setShiftTemplatePendingDelete] = useState(null)
   const [shiftTemplatePendingRename, setShiftTemplatePendingRename] = useState(null)
@@ -2253,24 +2259,15 @@ function ScheduleView({
       })
 
       let hasOverstaffed = false
-      let hasUnderstaffed = false
-      let hasRealConflict = false
-      const dayShiftsOnDate = visibleWeekShifts.filter((shift) => normalizeCellDate(shift.date) === dayKey)
-
-      dayShiftsOnDate.forEach((shift) => {
-        if (getShiftSchedulingConflictType(shift, {
-          employees,
-          dayShifts: dayShiftsOnDate,
-        })) {
-          hasRealConflict = true
-        }
-      })
+      let issueCount = 0
 
       blendGridRows.forEach((row) => {
         const cell = row.dayCells.find((entry) => entry.day.key === dayKey)
         if (!cell) return
         if (cell.assignedCount > cell.requiredCount) hasOverstaffed = true
-        if (cell.assignedCount < cell.requiredCount) hasUnderstaffed = true
+        if (cell.hasRealConflict || cell.assignedCount < cell.requiredCount) {
+          issueCount += 1
+        }
       })
 
       let totalRequired = 0
@@ -2289,29 +2286,26 @@ function ScheduleView({
         coveragePercent = 100
       }
 
-      let status = 'empty'
-      let statusLabel = 'Empty'
-      let statusIcon = '⚪'
+      let status = 'covered'
+      let statusLabel = 'Covered'
+      let statusIcon = '🟢'
 
-      if (totalAssignedStaff === 0) {
+      if (totalRequired === 0 && totalAssignedStaff === 0) {
         status = 'empty'
         statusLabel = 'Empty'
         statusIcon = '⚪'
-      } else if (hasRealConflict) {
-        status = 'conflict'
-        statusLabel = 'Conflict'
-        statusIcon = '⛔'
-      } else if (hasUnderstaffed) {
+      } else if (issueCount > 0) {
         status = 'understaffed'
-        statusLabel = 'Understaffed'
+        statusLabel = issueCount === 1 ? '1 issue' : `${issueCount} issues`
         statusIcon = '⚠️'
       } else if (hasOverstaffed) {
         status = 'overstaffed'
-        statusLabel = 'Overstaffed'
+        statusLabel = 'Covered'
         statusIcon = '🟡'
       } else {
         status = 'covered'
-        statusLabel = 'Fully Covered'
+        statusLabel = 'Covered'
+        statusIcon = '🟢'
       }
 
       summaries[dayKey] = {
@@ -2319,6 +2313,7 @@ function ScheduleView({
         totalScheduledHours,
         hoursLabel: formatHoursLabel(totalScheduledHours),
         coveragePercent,
+        issueCount,
         status,
         statusLabel,
         statusIcon,
@@ -3223,7 +3218,7 @@ function ScheduleView({
   }
 
   return (
-    <section className="staff-page schedule-workspace" onClick={() => { setCapacityPickerKey(''); setDayActionMenuKey(null); setCellActionMenuKey(''); setIsScheduleMoreMenuOpen(false) }}>
+    <section className="staff-page schedule-workspace" onClick={() => { setCapacityPickerKey(''); setDayActionMenuKey(null); setCellActionMenuKey(''); setIsScheduleMoreMenuOpen(false); setTemplateActionMenuId(null) }}>
       <header className="schedule-header panel">
         <div className="schedule-header-copy">
           <p className="eyebrow schedule-header-eyebrow">Schedule</p>
@@ -3484,7 +3479,7 @@ function ScheduleView({
                     <strong className="blend-grid-header-day-name">{dayHeader.weekdayLabel}</strong>
                     <span className="blend-grid-header-day-date">{dayHeader.calendarLabel}</span>
                     <span className={`schedule-day-status-label tone-${daySummary.status}`}>
-                      {formatDayCoverageBadgeLabel(daySummary.status)}
+                      {formatDayCoverageBadgeLabel(daySummary)}
                     </span>
                   </button>
                   <button
@@ -3646,15 +3641,15 @@ function ScheduleView({
                         </div>
                       </header>
 
-                      <p className="schedule-shift-staff-ratio" aria-label={`${cell.assignedCount} assigned of ${cell.requiredCount} required`}>
+                      <p className="schedule-shift-staff-ratio" aria-label={`${cell.assignedCount} of ${cell.requiredCount} staff scheduled`}>
                         <span className="schedule-shift-needed-icon" aria-hidden="true">👥</span>
-                        {cell.assignedCount} / {isCapacitySaving ? '…' : cell.requiredCount}
+                        <span className="schedule-shift-staff-ratio-value">
+                          {cell.assignedCount} / {isCapacitySaving ? '…' : cell.requiredCount} scheduled
+                        </span>
                       </p>
 
                       <div className="schedule-shift-assigned-block">
-                        {cell.shifts.length === 0 ? (
-                          <p className="schedule-shift-assigned-empty">No staff assigned</p>
-                        ) : (
+                        {cell.shifts.length > 0 ? (
                           <ul className="schedule-shift-assigned-list">
                             {cell.shifts.map((shift) => {
                               const employeeName = shift.employees?.full_name || shift.employeeName || shift.employeeRecord?.name || 'Unassigned'
@@ -3682,7 +3677,7 @@ function ScheduleView({
                               )
                             })}
                           </ul>
-                        )}
+                        ) : null}
                         <button
                           type="button"
                           className="schedule-assign-btn"
@@ -3692,7 +3687,7 @@ function ScheduleView({
                           }}
                           disabled={isSaving}
                         >
-                          {cell.shifts.length === 0 ? '+ Assign' : '+ Add'}
+                          {cell.shifts.length === 0 ? '+ Add employee' : '+ Add'}
                         </button>
                       </div>
 
@@ -3724,40 +3719,80 @@ function ScheduleView({
               {blendGridRows.map((row) => {
                 const templateArea = `${row.template.defaultArea || row.template.defaultRole || 'General'}`.trim()
                 const templateDefaultRequired = getTemplateDefaultRequiredCount(row.template)
-                const requiredCountLabel = `Default required staff: ${templateDefaultRequired}`
-                const templateShiftName = `${row.template.name || templateArea || 'Shift'}`.trim()
+                const templateName = `${row.template.name || ''}`.trim()
+                const templateDepartmentLabel = templateArea.toUpperCase()
+                const templateShiftLabel = templateName
+                  ? formatScheduleShiftDisplayName(templateName, templateArea)
+                  : 'Shift'
                 const templateNote = `${row.template.notes ?? ''}`.trim()
+                const templateStaffLabel = templateDefaultRequired === 1
+                  ? '1 employee'
+                  : `${templateDefaultRequired} employees`
+                const isTemplateActionsOpen = templateActionMenuId === row.template.id
 
                 return (
-                  <article key={`template-panel-${row.template.id}`} className="blend-grid-palette-card schedule-template-card">
-                    <div className="blend-grid-palette-header">
-                      <p className="blend-grid-palette-department">
-                        <span className="blend-grid-palette-name">{templateShiftName}</span>
-                      </p>
-                      <div className="template-card-actions">
+                  <article
+                    key={`template-panel-${row.template.id}`}
+                    className={`blend-grid-palette-card schedule-template-card${isTemplateActionsOpen ? ' is-actions-open' : ''}`}
+                  >
+                    <div className="schedule-template-card-heading-row">
+                      <div className="schedule-template-card-heading">
+                        <p className="schedule-template-card-department">{templateDepartmentLabel}</p>
+                        <p className="schedule-template-card-name">{templateShiftLabel}</p>
+                      </div>
+                      <div className="template-card-actions schedule-template-card-actions">
                         <button
                           type="button"
-                          className="template-card-menu-btn"
-                          onClick={() => setTemplateActionMenuId((current) => (current === row.template.id ? null : row.template.id))}
+                          className={`template-card-menu-btn schedule-template-menu-btn${isTemplateActionsOpen ? ' is-active' : ''}`}
+                          onClick={(event) => {
+                            event.stopPropagation()
+                            setTemplateActionMenuId((current) => (current === row.template.id ? null : row.template.id))
+                          }}
                           aria-label={`More actions for ${row.template.name}`}
+                          aria-expanded={isTemplateActionsOpen}
+                          aria-haspopup="true"
                         >
                           ⋯
                         </button>
-                        {templateActionMenuId === row.template.id ? (
-                          <div className="template-card-menu" onClick={(event) => event.stopPropagation()}>
-                            <button type="button" className="template-card-menu-item" onClick={() => handleStartRenameShiftTemplate(row.template)}>Rename</button>
-                            <button type="button" className="template-card-menu-item" onClick={() => handleEditShiftTemplateFromCard(row.template)}>Edit</button>
-                            <button type="button" className="template-card-menu-item" onClick={() => handleDuplicateShiftTemplateFromCard(row.template)}>Duplicate</button>
-                            <button type="button" className="template-card-menu-item danger" onClick={() => handleOpenDeleteShiftTemplateModal(row.template)}>Delete</button>
-                          </div>
-                        ) : null}
                       </div>
                     </div>
-                    <div className="blend-grid-palette-body">
-                      <p className="blend-grid-palette-time">{formatTimeRange24(row.template.startTime, row.template.endTime, ' - ')}</p>
-                      {requiredCountLabel ? <p className="blend-grid-palette-required-count">{requiredCountLabel}</p> : null}
-                      {templateNote ? <p className="blend-grid-palette-note">{templateNote}</p> : null}
+
+                    <div className="schedule-template-card-meta">
+                      <p className="schedule-template-card-time">
+                        <span className="schedule-template-card-meta-icon" aria-hidden="true">🕓</span>
+                        <span>{formatTimeRange24(row.template.startTime, row.template.endTime, ' - ')}</span>
+                      </p>
+                      <div className="schedule-template-card-staff">
+                        <p className="schedule-template-card-staff-label">
+                          <span className="schedule-template-card-meta-icon" aria-hidden="true">👥</span>
+                          <span>Required staff</span>
+                        </p>
+                        <p className="schedule-template-card-staff-value">{templateStaffLabel}</p>
+                      </div>
                     </div>
+
+                    {isTemplateActionsOpen ? (
+                      <div
+                        ref={templateActionMenuRef}
+                        className="schedule-template-inline-actions"
+                        onClick={(event) => event.stopPropagation()}
+                      >
+                        <div className="schedule-template-inline-actions-primary" role="group" aria-label="Template actions">
+                          <div className="schedule-template-inline-actions-row schedule-template-inline-actions-row-split">
+                            <button type="button" className="schedule-template-inline-action" onClick={() => handleStartRenameShiftTemplate(row.template)}>Rename</button>
+                            <button type="button" className="schedule-template-inline-action" onClick={() => handleEditShiftTemplateFromCard(row.template)}>Edit</button>
+                          </div>
+                          <div className="schedule-template-inline-actions-row">
+                            <button type="button" className="schedule-template-inline-action" onClick={() => handleDuplicateShiftTemplateFromCard(row.template)}>Duplicate</button>
+                          </div>
+                        </div>
+                        <div className="schedule-template-inline-actions-danger">
+                          <button type="button" className="schedule-template-inline-action danger" onClick={() => handleOpenDeleteShiftTemplateModal(row.template)}>Delete template</button>
+                        </div>
+                      </div>
+                    ) : null}
+
+                    {templateNote ? <p className="schedule-template-card-note">{templateNote}</p> : null}
                   </article>
                 )
               })}
