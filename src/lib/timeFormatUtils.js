@@ -133,6 +133,29 @@ export function normalizeReservationDateKey(value) {
   return raw.slice(0, 10)
 }
 
+export function formatEuropeanDayMonth(dateKey, fallback = '') {
+  const normalized = normalizeReservationDateKey(dateKey)
+  if (!normalized) return fallback
+
+  const [, month, day] = normalized.split('-').map(Number)
+  if (!Number.isFinite(month) || !Number.isFinite(day)) return fallback
+
+  return `${day}/${month}`
+}
+
+export function formatHostReservationListTime(reservation, todayKey) {
+  const dateKey = normalizeReservationDateKey(reservation?.date ?? reservation?.reservation_date)
+  const clock = formatTime24(reservation?.time ?? reservation?.reservation_time) || '—'
+  const normalizedToday = normalizeReservationDateKey(todayKey)
+
+  if (dateKey && dateKey !== normalizedToday) {
+    const dayMonth = formatEuropeanDayMonth(dateKey)
+    return dayMonth ? `${dayMonth} ${clock}` : clock
+  }
+
+  return clock
+}
+
 export function formatTime24(value, fallback = '—') {
   const normalized = normalizeTimeValue(value)
   return normalized || fallback

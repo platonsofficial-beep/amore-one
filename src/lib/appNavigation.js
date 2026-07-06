@@ -1,0 +1,160 @@
+export const NAV_ITEMS = [
+  { id: 'today', label: 'Today', icon: '◈' },
+  { id: 'reservations', label: 'Reservations', icon: '🍽️' },
+  { id: 'team', label: 'Team', icon: '👥' },
+  { id: 'stock', label: 'Stock', icon: '📦' },
+  { id: 'operations', label: 'Operations', icon: '✓' },
+  { id: 'insights', label: 'Insights', icon: '📈' },
+  { id: 'settings', label: 'Settings', icon: '⚙️' },
+]
+
+export const TEAM_SECTIONS = [
+  { id: 'members', label: 'Team Members' },
+  { id: 'schedule', label: 'Schedule' },
+]
+
+export const STOCK_SECTIONS = [
+  { id: 'inventory', label: 'Inventory' },
+  { id: 'suppliers', label: 'Suppliers' },
+]
+
+export const OPERATIONS_SECTIONS = [
+  { id: 'tasks', label: 'Tasks' },
+]
+
+export const MODULE_LABELS = {
+  today: 'Today',
+  reservations: 'Reservations',
+  team: 'Team',
+  stock: 'Stock',
+  operations: 'Operations',
+  insights: 'Insights',
+  settings: 'Settings',
+  'floor-plan-builder': 'Floor Plan Builder',
+}
+
+const LEGACY_ACTIVE_VIEW_MAP = {
+  dashboard: { activeView: 'today' },
+  staff: { activeView: 'team', teamSection: 'members' },
+  schedule: { activeView: 'team', teamSection: 'schedule' },
+  reservations: { activeView: 'reservations' },
+  suppliers: { activeView: 'stock', stockSection: 'suppliers' },
+  stock: { activeView: 'stock', stockSection: 'inventory' },
+  tasks: { activeView: 'operations', operationsSection: 'tasks' },
+  reports: { activeView: 'insights' },
+  settings: { activeView: 'settings' },
+  'floor-plan-builder': { activeView: 'reservations' },
+}
+
+const INSIGHTS_MODULE_LINKS = {
+  tasks: { activeView: 'operations', operationsSection: 'tasks' },
+  schedule: { activeView: 'team', teamSection: 'schedule' },
+  suppliers: { activeView: 'stock', stockSection: 'suppliers' },
+  stock: { activeView: 'stock', stockSection: 'inventory' },
+  reservations: { activeView: 'reservations' },
+  reports: { activeView: 'insights' },
+  insights: { activeView: 'insights' },
+  operations: { activeView: 'operations', operationsSection: 'tasks' },
+  team: { activeView: 'team', teamSection: 'members' },
+  today: { activeView: 'today' },
+}
+
+export function migrateLegacyActiveView(value) {
+  const normalized = `${value ?? ''}`.trim()
+  return LEGACY_ACTIVE_VIEW_MAP[normalized] ?? null
+}
+
+export function resolveInsightsModuleLink(moduleId) {
+  const normalized = `${moduleId ?? ''}`.trim()
+  return INSIGHTS_MODULE_LINKS[normalized] ?? migrateLegacyActiveView(normalized) ?? { activeView: 'today' }
+}
+
+export function getModuleLabel(moduleId) {
+  return MODULE_LABELS[moduleId] || 'This module'
+}
+
+export function isTodayView(activeView) {
+  return activeView === 'today'
+}
+
+export function isTeamScheduleView(activeView, teamSection) {
+  return activeView === 'team' && teamSection === 'schedule'
+}
+
+export function shouldHideStandardTopbar(activeView, teamSection) {
+  return isTeamScheduleView(activeView, teamSection)
+    || activeView === 'floor-plan-builder'
+    || activeView === 'reservations'
+}
+
+export function shouldUseCommandTopbar(activeView) {
+  return isTodayView(activeView)
+}
+
+export function getModuleTitle(activeView, {
+  teamSection = 'members',
+  stockSection = 'inventory',
+  operationsSection = 'tasks',
+} = {}) {
+  if (activeView === 'today') return 'Today'
+  if (activeView === 'reservations') return 'Reservations'
+  if (activeView === 'team') {
+    if (teamSection === 'schedule') return 'Schedule'
+    return 'Team'
+  }
+  if (activeView === 'stock') {
+    if (stockSection === 'suppliers') return 'Suppliers'
+    return 'Stock'
+  }
+  if (activeView === 'operations') {
+    if (operationsSection === 'tasks') return 'Operations'
+    return 'Operations'
+  }
+  if (activeView === 'insights') return 'Insights'
+  if (activeView === 'settings') return 'Settings'
+  return getModuleLabel(activeView)
+}
+
+export function getModuleSubtitle(activeView, currentDateLabel, {
+  teamSection = 'members',
+  stockSection = 'inventory',
+} = {}) {
+  if (activeView === 'today') {
+    return `${currentDateLabel} · Your daily command center`
+  }
+  if (activeView === 'reservations') return 'Guest flow and service.'
+  if (activeView === 'team' && teamSection === 'members') return 'People, roles, and roster.'
+  if (activeView === 'team' && teamSection === 'schedule') return ''
+  if (activeView === 'stock' && stockSection === 'inventory') return 'Inventory levels and replenishment.'
+  if (activeView === 'stock' && stockSection === 'suppliers') return 'Supplier contacts and delivery.'
+  if (activeView === 'operations') return 'Tasks and daily execution.'
+  if (activeView === 'insights') return 'Business intelligence from live data.'
+  if (activeView === 'settings') return 'Workspace and account configuration.'
+  return ''
+}
+
+export function getSearchPlaceholder(activeView, {
+  teamSection = 'members',
+  stockSection = 'inventory',
+  operationsSection = 'tasks',
+} = {}) {
+  if (activeView === 'team' && teamSection === 'members') return 'Search team member'
+  if (activeView === 'stock' && stockSection === 'inventory') return 'Search stock item'
+  if (activeView === 'stock' && stockSection === 'suppliers') return 'Search supplier'
+  if (activeView === 'operations' && operationsSection === 'tasks') return 'Search tasks'
+  if (activeView === 'insights') return 'Search insights'
+  return 'Search'
+}
+
+export function shouldShowModuleSearch(activeView, teamSection) {
+  if (isTodayView(activeView)) return false
+  if (isTeamScheduleView(activeView, teamSection)) return false
+  if (activeView === 'settings') return false
+  return true
+}
+
+export function getDefaultTeamSection(role, canAccessTeamSection) {
+  if (canAccessTeamSection(role, 'members')) return 'members'
+  if (canAccessTeamSection(role, 'schedule')) return 'schedule'
+  return 'members'
+}

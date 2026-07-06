@@ -2817,6 +2817,275 @@
     linear-gradient(180deg, rgba(6, 6, 6, 0.98) 0%, rgba(6, 6, 6, 0.94) 82%, rgba(6, 6, 6, 0) 100%);
 }
 
+.reservations-host-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 18px;
+  border-radius: 18px;
+  border: 1px solid rgba(212, 175, 55, 0.16);
+  background: rgba(12, 12, 13, 0.92);
+}
+
+.reservations-host-header-main {
+  min-width: 0;
+}
+
+.reservations-host-header-main h2 {
+  margin: 0;
+  color: #fff7e8;
+  font-size: 1.35rem;
+  font-weight: 600;
+}
+
+.reservations-host-header-date {
+  display: block;
+  margin-top: 4px;
+  color: #c89d42;
+  font-size: 0.88rem;
+  font-weight: 500;
+}
+
+.host-workspace-date-nav {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.host-workspace-date-nav-main {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+
+.host-workspace-date-nav-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.03);
+  color: #c8bfb0;
+  font-size: 1.1rem;
+  line-height: 1;
+  cursor: pointer;
+  transition: background 160ms ease, border-color 160ms ease, color 160ms ease;
+}
+
+.host-workspace-date-nav-btn:hover {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(212, 175, 55, 0.22);
+  color: #f0dfb0;
+}
+
+.host-workspace-date-nav-label {
+  display: block;
+  min-width: 0;
+  padding: 0 4px;
+  color: #c89d42;
+  font-size: 0.88rem;
+  font-weight: 500;
+  line-height: 1.3;
+  text-align: center;
+}
+
+.host-workspace-date-nav-picker-anchor {
+  position: relative;
+  min-width: 0;
+}
+
+.host-workspace-date-nav-label-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 0 8px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  transition: background 160ms ease, border-color 160ms ease;
+}
+
+.host-workspace-date-nav-label-btn:hover,
+.host-workspace-date-nav-label-btn[aria-expanded='true'] {
+  background: rgba(212, 175, 55, 0.08);
+  border-color: rgba(212, 175, 55, 0.2);
+}
+
+.host-workspace-date-nav-calendar-icon {
+  flex-shrink: 0;
+  color: #a89f92;
+}
+
+.host-workspace-date-nav-label-btn:hover .host-workspace-date-nav-calendar-icon,
+.host-workspace-date-nav-label-btn[aria-expanded='true'] .host-workspace-date-nav-calendar-icon {
+  color: #d4af37;
+}
+
+.host-workspace-date-picker {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 50%;
+  z-index: 24;
+  width: min(300px, calc(100vw - 32px));
+  transform: translateX(-50%);
+  border-radius: 14px;
+  border: 1px solid rgba(212, 175, 55, 0.28);
+  background: rgba(10, 10, 11, 0.98);
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.42);
+  padding: 10px;
+}
+
+.host-workspace-date-picker-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.host-workspace-date-picker-month-label {
+  color: #f0dfb0;
+  font-size: 0.86rem;
+  font-weight: 600;
+  text-align: center;
+}
+
+.host-workspace-date-picker-month-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 40px;
+  min-height: 40px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.03);
+  color: #c8bfb0;
+  font-size: 1rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.host-workspace-date-picker-month-btn:hover {
+  border-color: rgba(212, 175, 55, 0.24);
+  color: #f0dfb0;
+}
+
+.host-workspace-date-picker-weekdays,
+.host-workspace-date-picker-row {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 4px;
+}
+
+.host-workspace-date-picker-weekdays {
+  margin-bottom: 4px;
+}
+
+.host-workspace-date-picker-weekday {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 28px;
+  color: #7f776c;
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.host-workspace-date-picker-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.host-workspace-date-picker-day {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  min-height: 40px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.02);
+  color: #ddd3c4;
+  font-size: 0.82rem;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.host-workspace-date-picker-day:hover {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+.host-workspace-date-picker-day.is-outside {
+  color: #6d655b;
+  background: transparent;
+}
+
+.host-workspace-date-picker-day.is-today {
+  border-color: rgba(212, 175, 55, 0.35);
+  color: #f0dfb0;
+}
+
+.host-workspace-date-picker-day.is-selected {
+  border-color: rgba(212, 175, 55, 0.5);
+  background: rgba(212, 175, 55, 0.18);
+  color: #fff3d4;
+  font-weight: 600;
+}
+
+.host-workspace-date-nav-today {
+  min-height: 44px;
+  padding: 0 14px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.03);
+  color: #a89f92;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 160ms ease, border-color 160ms ease, color 160ms ease;
+}
+
+.host-workspace-date-nav-today:hover:not(:disabled) {
+  background: rgba(212, 175, 55, 0.1);
+  border-color: rgba(212, 175, 55, 0.28);
+  color: #f0dfb0;
+}
+
+.host-workspace-date-nav-today:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.reservations-host-header-stats {
+  margin: 6px 0 0;
+  color: #a89f92;
+  font-size: 0.95rem;
+}
+
+.reservations-host-header-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
 .reservations-executive-header {
   display: flex;
   align-items: flex-start;
@@ -2858,8 +3127,8 @@
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  min-width: min(280px, 100%);
-  height: 36px;
+  min-width: min(240px, 100%);
+  min-height: 44px;
   box-sizing: border-box;
   padding: 0 14px;
   border-radius: 10px;
@@ -2901,11 +3170,10 @@
 }
 
 .reservations-add-btn {
-  height: 36px;
-  min-height: 36px;
+  min-height: 44px;
   box-sizing: border-box;
-  padding: 0 14px;
-  border-radius: 10px;
+  padding: 0 16px;
+  border-radius: 12px;
 }
 
 .reservations-filter-toolbar {
@@ -3287,12 +3555,12 @@
 
 .host-operations-canvas {
   display: grid;
-  grid-template-columns: 360px minmax(0, 1fr);
+  grid-template-columns: minmax(320px, 380px) minmax(0, 1fr);
   grid-template-rows: minmax(0, 1fr);
   grid-template-areas: 'list floor';
   gap: 0;
   flex: 1;
-  min-height: 480px;
+  min-height: 520px;
   max-width: 100%;
   border-radius: 12px;
   border: 1px solid rgba(255, 255, 255, 0.08);
@@ -3674,15 +3942,12 @@
 .host-manager-summary-bar {
   display: flex;
   align-items: stretch;
-  gap: 4px;
-  margin: 0 10px 8px;
-  padding: 6px 8px;
-  border-radius: 10px;
+  gap: 6px;
+  margin: 0 12px 10px;
+  padding: 10px 12px;
+  border-radius: 12px;
   border: 1px solid rgba(212, 175, 55, 0.14);
-  background:
-    linear-gradient(135deg, rgba(212, 175, 55, 0.07), rgba(255, 255, 255, 0.02)),
-    rgba(0, 0, 0, 0.28);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  background: rgba(0, 0, 0, 0.22);
   overflow-x: auto;
   scrollbar-width: thin;
 }
@@ -3690,12 +3955,12 @@
 .host-manager-summary-item {
   display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
-  gap: 1px;
+  gap: 2px;
   flex: 1 1 0;
-  min-width: 58px;
-  padding: 2px 4px;
+  min-width: 72px;
+  padding: 2px 6px;
   border-right: 1px solid rgba(255, 255, 255, 0.06);
 }
 
@@ -3704,9 +3969,9 @@
 }
 
 .host-manager-summary-value {
-  font-size: 0.82rem;
-  font-weight: 800;
-  color: #f0e4c8;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #f7efe1;
   font-variant-numeric: tabular-nums;
   line-height: 1.1;
 }
@@ -3751,9 +4016,10 @@
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.03);
   color: rgba(255, 255, 255, 0.68);
-  font-size: 0.68rem;
+  font-size: 0.82rem;
   font-weight: 600;
-  padding: 4px 8px;
+  min-height: 44px;
+  padding: 0 14px;
   cursor: pointer;
   white-space: nowrap;
   transition: background 160ms ease, border-color 160ms ease, color 160ms ease;
@@ -3972,13 +4238,13 @@
 
 .host-reservation-card {
   display: grid;
-  grid-template-columns: 36px minmax(0, 1fr) 14px;
-  gap: 6px;
+  grid-template-columns: 68px minmax(0, 1fr) auto;
+  gap: 10px;
   align-items: center;
-  min-height: 44px;
-  padding: 4px 6px 4px 4px;
-  border-radius: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  min-height: 56px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
   background: rgba(10, 10, 11, 0.72);
   cursor: pointer;
   overflow: hidden;
@@ -3988,6 +4254,61 @@
     border-color 160ms ease,
     box-shadow 160ms ease,
     opacity 160ms ease;
+}
+
+.host-reservation-card-time {
+  color: #c89d42;
+  font-size: 0.95rem;
+  font-weight: 700;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.host-reservation-card-body {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.host-reservation-card-title-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.host-reservation-card-details {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  color: #a89f92;
+  font-size: 0.86rem;
+}
+
+.host-reservation-card-guests,
+.host-reservation-card-tables {
+  white-space: nowrap;
+}
+
+.host-hour-filter-toggle {
+  min-height: 44px;
+  min-width: 44px;
+  padding: 0 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.02);
+  color: #a89f92;
+  font-size: 0.78rem;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.host-hour-filter-toggle.active {
+  color: #d8ceb8;
+  border-color: rgba(212, 175, 55, 0.22);
+  background: rgba(212, 175, 55, 0.08);
 }
 
 .host-reservation-card:hover,
@@ -4144,24 +4465,24 @@
 .host-reservation-card-status-pill {
   align-self: center;
   margin-top: 0;
-  padding: 1px 5px;
+  min-height: 44px;
+  padding: 8px 12px;
   border-radius: 999px;
   border: 1px solid transparent;
-  font-size: 0.5rem;
-  font-weight: 800;
-  letter-spacing: 0.06em;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
   line-height: 1.1;
   text-transform: uppercase;
   cursor: pointer;
   white-space: nowrap;
-  max-width: 72px;
+  max-width: 108px;
   overflow: hidden;
   text-overflow: ellipsis;
   transition:
     background 160ms ease,
     border-color 160ms ease,
-    box-shadow 160ms ease,
-    transform 160ms ease;
+    box-shadow 160ms ease;
 }
 
 .host-reservation-card-status-pill:hover,
@@ -9749,9 +10070,24 @@
 
 .floor-plan-empty-state {
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: 10px;
   min-height: 280px;
+}
+
+.floor-plan-persistence-notice {
+  width: min(100%, 36rem);
+  margin: 0 auto 8px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(212, 175, 55, 0.28);
+  background: rgba(212, 175, 55, 0.1);
+  color: #f0dfb0;
+  font-size: 0.84rem;
+  line-height: 1.4;
+  text-align: center;
 }
 
 .floor-plan-empty {

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { FloorPlanBuilderProvider } from '../../floor-plan-builder/context/floorPlanBuilderContextState'
 import { useFloorPlanBuilder } from '../../floor-plan-builder/hooks/useFloorPlanBuilder'
 import { BuilderToolbox } from '../../floor-plan-builder/components/BuilderToolbox'
@@ -142,14 +142,20 @@ function EmbeddedFloorPlanEditorShell({
   }, [onExit])
 
   const selectionCount = state.selectedTableIds.length
+  const [isSavingLayout, setIsSavingLayout] = useState(false)
 
-  const handleSave = () => {
-    onSaveLayout({
-      floors: state.floors,
-      activeFloorId: state.activeFloorId,
-      objects: state.objects,
-    })
-    exitEditMode()
+  const handleSave = async () => {
+    setIsSavingLayout(true)
+    try {
+      await onSaveLayout({
+        floors: state.floors,
+        activeFloorId: state.activeFloorId,
+        objects: state.objects,
+      })
+      exitEditMode()
+    } finally {
+      setIsSavingLayout(false)
+    }
   }
 
   const handleCancel = () => {
@@ -267,8 +273,8 @@ function EmbeddedFloorPlanEditorShell({
             <button type="button" className="fpb-toolbar-btn" onClick={handleCancel}>
               Cancel
             </button>
-            <button type="button" className="fpb-toolbar-btn fpb-toolbar-btn-primary" onClick={handleSave}>
-              Save layout
+            <button type="button" className="fpb-toolbar-btn fpb-toolbar-btn-primary" onClick={handleSave} disabled={isSavingLayout}>
+              {isSavingLayout ? 'Saving…' : 'Save layout'}
             </button>
             <button type="button" className="fpb-toolbar-btn" onClick={handleExit}>
               Exit edit
@@ -298,7 +304,7 @@ function EmbeddedFloorPlanEditorShell({
 
 export function EmbeddedFloorPlanEditor({ onExit, initialAreaId, onActiveAreaChange }) {
   const containerRef = useRef(null)
-  const { builderLayout, saveLayout } = usePublishedFloorPlan()
+  const { builderLayout, saveLayout, saveError } = usePublishedFloorPlan()
   const initialLayoutRef = useRef(undefined)
 
   if (initialLayoutRef.current === undefined) {
@@ -311,6 +317,9 @@ export function EmbeddedFloorPlanEditor({ onExit, initialAreaId, onActiveAreaCha
 
   return (
     <FloorPlanBuilderProvider initialEditing initialLayout={initialLayoutRef.current}>
+      {saveError ? (
+        <div className="floor-plan-persistence-notice" role="status">{saveError}</div>
+      ) : null}
       <EmbeddedFloorPlanEditorShell
         containerRef={containerRef}
         onExit={onExit}

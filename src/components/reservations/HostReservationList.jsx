@@ -1,5 +1,8 @@
 import { useMemo, useState } from 'react'
 import {
+  formatHostReservationListTime,
+} from '../../lib/timeFormatUtils'
+import {
   formatHostListTableLabel,
   formatHostListTableTooltip,
 } from '../../lib/seatingAssignment'
@@ -9,12 +12,11 @@ import {
   getReservationDisplayStatus,
 } from '../../lib/reservationHostStatus'
 import {
-  getHostListCustomerTypeMeta,
   groupHostListReservations,
 } from './hostReservationListUtils'
 import { HostReservationStatusPicker } from './HostReservationStatusPicker'
 
-function formatHostListScheduleLabel(reservation, todayKey, formatHostReservationListTime) {
+function formatHostListScheduleLabel(reservation, todayKey) {
   return formatHostReservationListTime(reservation, todayKey)
 }
 
@@ -34,9 +36,7 @@ function HostReservationListRow({
 }) {
   const {
     formatReservationGuestName,
-    formatHostReservationListTime,
     getHostReservationWarnings,
-    getGuestCustomerType,
   } = helpers
 
   const guestName = formatReservationGuestName(reservation.guestName)
@@ -46,13 +46,10 @@ function HostReservationListRow({
   const scheduleLabel = formatHostListScheduleLabel(
     reservation,
     todayKey,
-    formatHostReservationListTime,
   )
   const displayStatus = getReservationDisplayStatus(reservation, nowMinutes, todayKey)
   const statusMeta = getHostStatusMeta(displayStatus)
   const visualIndicator = getHostReservationVisualIndicator(reservation, nowMinutes, todayKey)
-  const showVisualDot = ['confirmed', 'seated', 'finished', 'late'].includes(visualIndicator)
-  const typeMeta = getHostListCustomerTypeMeta(reservation, getGuestCustomerType)
   const warnings = getHostReservationWarnings(reservation, nowMinutes, todayKey)
 
   const handleCardActivate = () => {
@@ -80,69 +77,46 @@ function HostReservationListRow({
         }
       }}
     >
-      <button
-        type="button"
-        className={`host-reservation-card-status tone-${statusMeta.tone}`}
-        aria-label={`Status: ${statusMeta.label}. Change status.`}
-        aria-expanded={isStatusPickerOpen}
-        aria-haspopup="dialog"
-        onClick={handleOpenStatusPicker}
-      >
-        <span className="host-reservation-card-status-icon" aria-hidden="true">
-          {statusMeta.icon}
-        </span>
-      </button>
+      <span className="host-reservation-card-time">{scheduleLabel}</span>
 
-      <div className="host-reservation-card-main">
-        <div className="host-reservation-card-top">
-          <span className="host-reservation-card-guest-row">
-            {showVisualDot ? (
-              <span
-                className={`host-reservation-visual-dot is-${visualIndicator}`}
-                aria-hidden="true"
-              />
-            ) : null}
-            <span className="host-reservation-card-guest">{guestName}</span>
-          </span>
-          <span className="host-reservation-card-schedule">{scheduleLabel}</span>
-          <span className={`host-reservation-card-type ${typeMeta.className}`}>{typeMeta.label}</span>
-          <button
-            type="button"
-            className={`host-reservation-card-status-pill tone-${statusMeta.tone}`}
-            aria-label={`Status: ${statusMeta.label}. Change status.`}
-            aria-expanded={isStatusPickerOpen}
-            aria-haspopup="dialog"
-            onClick={handleOpenStatusPicker}
-          >
-            {statusMeta.label}
-          </button>
+      <div className="host-reservation-card-body">
+        <div className="host-reservation-card-title-row">
+          {['confirmed', 'seated', 'finished', 'late'].includes(visualIndicator) ? (
+            <span
+              className={`host-reservation-visual-dot is-${visualIndicator}`}
+              aria-hidden="true"
+            />
+          ) : null}
+          <strong className="host-reservation-card-guest">{guestName}</strong>
+          {warnings.length > 0 ? (
+            <span className="host-reservation-card-warning" title="Needs attention" aria-label="Needs attention">
+              !
+            </span>
+          ) : null}
         </div>
-
-        <div className="host-reservation-card-meta">
-          <span className="host-reservation-card-guests">{guestCount} guests</span>
-          <span className="host-reservation-card-dot" aria-hidden="true">·</span>
+        <div className="host-reservation-card-details">
+          <span className="host-reservation-card-guests">
+            {guestCount} {guestCount === 1 ? 'guest' : 'guests'}
+          </span>
           <span
             className="host-reservation-card-tables"
             title={tableTooltip !== tableLabel ? tableTooltip : undefined}
           >
             {tableLabel}
           </span>
-          {warnings.includes('unassigned') ? (
-            <span className="host-reservation-card-warning" title="No table assigned">!</span>
-          ) : null}
-          {warnings.includes('capacity') ? (
-            <span
-              className="host-reservation-card-warning is-capacity"
-              title="Guest count exceeds selected table capacity"
-              aria-label="Guest count exceeds selected table capacity"
-            >
-              !
-            </span>
-          ) : null}
         </div>
       </div>
 
-      <span className="host-reservation-card-chevron" aria-hidden="true">›</span>
+      <button
+        type="button"
+        className={`host-reservation-card-status-pill tone-${statusMeta.tone}`}
+        aria-label={`Status: ${statusMeta.label}. Change status.`}
+        aria-expanded={isStatusPickerOpen}
+        aria-haspopup="dialog"
+        onClick={handleOpenStatusPicker}
+      >
+        {statusMeta.label}
+      </button>
     </article>
   )
 }
@@ -230,10 +204,6 @@ export function HostReservationList({
                 aria-expanded={!isCollapsed}
                 onClick={() => toggleGroup(group.id)}
               >
-                <span className="host-reservation-group-leading" aria-hidden="true">
-                  <span className="host-reservation-group-icon">{group.icon}</span>
-                  <span className={`host-reservation-group-accent tone-${group.tone}`} />
-                </span>
                 <span className="host-reservation-group-label">{group.label}</span>
                 <span className="host-reservation-group-count">{group.reservations.length}</span>
                 <span className={`host-reservation-group-chevron${isCollapsed ? ' is-collapsed' : ''}`} aria-hidden="true">

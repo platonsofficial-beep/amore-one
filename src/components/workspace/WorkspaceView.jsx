@@ -25,9 +25,7 @@ export function WorkspaceView({
   return (
     <section className="staff-page workspace-page">
       <div className="workspace-layout">
-        <aside className="workspace-nav" aria-label="Workspace sections">
-          <p className="eyebrow">ONE Workspace</p>
-          <h3 className="workspace-nav-title">Configuration</h3>
+        <aside className="workspace-nav" aria-label="Settings sections">
           <div className="workspace-nav-links">
             {WORKSPACE_SECTIONS.map((section) => (
               <button

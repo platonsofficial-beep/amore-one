@@ -1,0 +1,90 @@
+import { normalizeWorkspaceRole } from './membershipRoles'
+
+export const APP_MODULES = [
+  'today',
+  'reservations',
+  'team',
+  'stock',
+  'operations',
+  'insights',
+  'settings',
+  'floor-plan-builder',
+]
+
+export const DEFAULT_FALLBACK_MODULE = 'today'
+
+const FULL_ACCESS_ROLES = new Set(['owner', 'general_manager'])
+
+const ROLE_MODULE_ACCESS = {
+  manager: [
+    'today',
+    'reservations',
+    'team',
+    'stock',
+    'operations',
+    'insights',
+    'floor-plan-builder',
+  ],
+  staff: [
+    'today',
+    'team',
+    'stock',
+    'operations',
+  ],
+}
+
+const TEAM_SECTION_ACCESS = {
+  owner: ['members', 'schedule'],
+  general_manager: ['members', 'schedule'],
+  manager: ['members', 'schedule'],
+  staff: ['schedule'],
+}
+
+function normalizeModuleId(moduleId) {
+  return `${moduleId ?? ''}`.trim()
+}
+
+function getAllowedModulesForRole(role) {
+  const normalizedRole = normalizeWorkspaceRole(role, '')
+
+  if (!normalizedRole) {
+    return new Set([DEFAULT_FALLBACK_MODULE])
+  }
+
+  if (FULL_ACCESS_ROLES.has(normalizedRole)) {
+    return new Set(APP_MODULES)
+  }
+
+  return new Set(ROLE_MODULE_ACCESS[normalizedRole] ?? [DEFAULT_FALLBACK_MODULE])
+}
+
+export function canAccessModule(role, moduleId) {
+  const normalizedModule = normalizeModuleId(moduleId)
+  if (!normalizedModule) return false
+  return getAllowedModulesForRole(role).has(normalizedModule)
+}
+
+export function canAccessTeamSection(role, sectionId) {
+  const normalizedRole = normalizeWorkspaceRole(role, 'staff')
+  const normalizedSection = `${sectionId ?? ''}`.trim()
+  const allowedSections = TEAM_SECTION_ACCESS[normalizedRole] ?? TEAM_SECTION_ACCESS.staff
+  return allowedSections.includes(normalizedSection)
+}
+
+export function getAccessibleModules(role) {
+  return APP_MODULES.filter((moduleId) => canAccessModule(role, moduleId))
+}
+
+export function filterNavItemsByRole(navItems, role) {
+  return navItems.filter((item) => canAccessModule(role, item.id))
+}
+
+export function resolvePermittedActiveView(role, requestedView) {
+  const normalizedView = normalizeModuleId(requestedView) || DEFAULT_FALLBACK_MODULE
+  return canAccessModule(role, normalizedView) ? normalizedView : DEFAULT_FALLBACK_MODULE
+}
+
+export function resolvePermittedTeamSection(role, requestedSection) {
+  const normalizedSection = `${requestedSection ?? ''}`.trim() || 'schedule'
+  return canAccessTeamSection(role, normalizedSection) ? normalizedSection : 'schedule'
+}

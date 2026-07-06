@@ -1,19 +1,27 @@
-const NAVIGATION_STORAGE_KEY = 'one.navigation.v1'
-const DEFAULT_ACTIVE_VIEW = 'dashboard'
+import { migrateLegacyActiveView } from './appNavigation'
+
+const NAVIGATION_STORAGE_KEY = 'one.navigation.v2'
+const LEGACY_NAVIGATION_STORAGE_KEY = 'one.navigation.v1'
+const DEFAULT_ACTIVE_VIEW = 'today'
 const DEFAULT_SETTINGS_SECTION = 'profile'
+const DEFAULT_TEAM_SECTION = 'members'
+const DEFAULT_STOCK_SECTION = 'inventory'
+const DEFAULT_OPERATIONS_SECTION = 'tasks'
 
 const VALID_ACTIVE_VIEWS = new Set([
-  'dashboard',
-  'staff',
-  'schedule',
+  'today',
   'reservations',
-  'suppliers',
-  'tasks',
+  'team',
   'stock',
-  'reports',
+  'operations',
+  'insights',
   'settings',
   'floor-plan-builder',
 ])
+
+const VALID_TEAM_SECTIONS = new Set(['members', 'schedule'])
+const VALID_STOCK_SECTIONS = new Set(['inventory', 'suppliers'])
+const VALID_OPERATIONS_SECTIONS = new Set(['tasks'])
 
 const VALID_SETTINGS_SECTIONS = new Set([
   'profile',
@@ -23,9 +31,33 @@ const VALID_SETTINGS_SECTIONS = new Set([
   'system',
 ])
 
+function normalizeTeamSection(value) {
+  const normalized = `${value ?? ''}`.trim()
+  return VALID_TEAM_SECTIONS.has(normalized) ? normalized : DEFAULT_TEAM_SECTION
+}
+
+function normalizeStockSection(value) {
+  const normalized = `${value ?? ''}`.trim()
+  return VALID_STOCK_SECTIONS.has(normalized) ? normalized : DEFAULT_STOCK_SECTION
+}
+
+function normalizeOperationsSection(value) {
+  const normalized = `${value ?? ''}`.trim()
+  return VALID_OPERATIONS_SECTIONS.has(normalized) ? normalized : DEFAULT_OPERATIONS_SECTION
+}
+
 export function normalizeActiveView(value) {
   const normalized = `${value ?? ''}`.trim()
-  return VALID_ACTIVE_VIEWS.has(normalized) ? normalized : DEFAULT_ACTIVE_VIEW
+  if (VALID_ACTIVE_VIEWS.has(normalized)) {
+    return normalized
+  }
+
+  const migrated = migrateLegacyActiveView(normalized)
+  if (migrated?.activeView && VALID_ACTIVE_VIEWS.has(migrated.activeView)) {
+    return migrated.activeView
+  }
+
+  return DEFAULT_ACTIVE_VIEW
 }
 
 export function normalizeSettingsSection(value) {
@@ -37,11 +69,32 @@ function readStoredNavigationRaw() {
   if (typeof window === 'undefined') return null
 
   try {
-    const raw = window.localStorage.getItem(NAVIGATION_STORAGE_KEY)
-    if (!raw) return null
-    return JSON.parse(raw)
+    const current = window.localStorage.getItem(NAVIGATION_STORAGE_KEY)
+    if (current) return JSON.parse(current)
+
+    const legacy = window.localStorage.getItem(LEGACY_NAVIGATION_STORAGE_KEY)
+    if (!legacy) return null
+
+    const legacyStored = JSON.parse(legacy)
+    const migrated = applyLegacyMigration(legacyStored)
+    persistNavigation(migrated)
+    window.localStorage.removeItem(LEGACY_NAVIGATION_STORAGE_KEY)
+    return migrated
   } catch {
     return null
+  }
+}
+
+function applyLegacyMigration(stored) {
+  const legacyView = `${stored?.activeView ?? ''}`.trim()
+  const migrated = migrateLegacyActiveView(legacyView)
+
+  return {
+    activeView: migrated?.activeView ?? normalizeActiveView(legacyView),
+    settingsSection: normalizeSettingsSection(stored?.settingsSection),
+    teamSection: normalizeTeamSection(migrated?.teamSection ?? stored?.teamSection),
+    stockSection: normalizeStockSection(migrated?.stockSection ?? stored?.stockSection),
+    operationsSection: normalizeOperationsSection(migrated?.operationsSection ?? stored?.operationsSection),
   }
 }
 
@@ -51,24 +104,41 @@ export function readPersistedNavigation() {
     return {
       activeView: DEFAULT_ACTIVE_VIEW,
       settingsSection: DEFAULT_SETTINGS_SECTION,
+      teamSection: DEFAULT_TEAM_SECTION,
+      stockSection: DEFAULT_STOCK_SECTION,
+      operationsSection: DEFAULT_OPERATIONS_SECTION,
     }
   }
 
-  const activeView = normalizeActiveView(stored.activeView)
-  const settingsSection = normalizeSettingsSection(stored.settingsSection)
+  const legacyView = `${stored.activeView ?? ''}`.trim()
+  const migrated = migrateLegacyActiveView(legacyView)
 
-  return { activeView, settingsSection }
+  return {
+    activeView: normalizeActiveView(migrated?.activeView ?? legacyView),
+    settingsSection: normalizeSettingsSection(stored.settingsSection),
+    teamSection: normalizeTeamSection(migrated?.teamSection ?? stored.teamSection),
+    stockSection: normalizeStockSection(migrated?.stockSection ?? stored.stockSection),
+    operationsSection: normalizeOperationsSection(migrated?.operationsSection ?? stored.operationsSection),
+  }
 }
 
-export function persistNavigation({ activeView, settingsSection }) {
+export function persistNavigation({
+  activeView,
+  settingsSection,
+  teamSection,
+  stockSection,
+  operationsSection,
+}) {
   if (typeof window === 'undefined') return
 
-  const normalizedActiveView = normalizeActiveView(activeView)
-  const normalizedSettingsSection = normalizeSettingsSection(settingsSection)
+  const current = readPersistedNavigation()
 
   window.localStorage.setItem(NAVIGATION_STORAGE_KEY, JSON.stringify({
-    activeView: normalizedActiveView,
-    settingsSection: normalizedSettingsSection,
+    activeView: normalizeActiveView(activeView ?? current.activeView),
+    settingsSection: normalizeSettingsSection(settingsSection ?? current.settingsSection),
+    teamSection: normalizeTeamSection(teamSection ?? current.teamSection),
+    stockSection: normalizeStockSection(stockSection ?? current.stockSection),
+    operationsSection: normalizeOperationsSection(operationsSection ?? current.operationsSection),
   }))
 }
 

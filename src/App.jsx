@@ -22,9 +22,13 @@ import { HostReservationEditPanel, createHostReservationEditForm } from './compo
 import { HostReservationEditErrorBoundary } from './components/reservations/HostReservationEditErrorBoundary'
 import { HostReservationList } from './components/reservations/HostReservationList'
 import { HostManagerSummaryBar } from './components/reservations/HostManagerSummaryBar'
+import { HostWorkspaceDateNav } from './components/reservations/HostWorkspaceDateNav'
 import {
   buildHostManagerSummary,
-  getSelectedDateReservations,
+  formatHostWorkspaceDateNavLabel,
+  getHostWorkspaceReservations,
+  resolveHostWorkspaceDateKey,
+  shiftHostWorkspaceDateKey,
 } from './components/reservations/hostReservationListUtils'
 import { ReservationTableSelector } from './components/reservations/ReservationTableSelector'
 import { ReservationTimeSelect } from './components/reservations/ReservationTimeSelect'
@@ -194,6 +198,8 @@ import {
   normalizeTimeValue,
   normalizeReservationTimeValue,
   normalizeReservationDateKey,
+  formatEuropeanDayMonth,
+  formatHostReservationListTime,
   TIME_INPUT_PROPS,
 } from './lib/timeFormatUtils'
 import {
@@ -4843,13 +4849,9 @@ function ScheduleView({
 
 const HOST_LIST_FILTERS = [
   'All',
-  'Now / Active',
   'Upcoming',
-  'Arrived',
-  'Seated',
-  'Late',
+  'In House',
   'Completed',
-  'Cancelled',
 ]
 
 const HOST_LIST_SORTS = [
@@ -4859,15 +4861,6 @@ const HOST_LIST_SORTS = [
   { id: 'guest', label: 'Guest name' },
   { id: 'status', label: 'Status' },
   { id: 'party', label: 'Guest count' },
-]
-
-const HOST_SMART_CHIPS = [
-  { id: 'needs-attention', label: 'Needs attention' },
-  { id: 'waiting', label: 'Waiting' },
-  { id: 'late', label: 'Late' },
-  { id: 'in-house', label: 'In house' },
-  { id: 'next-30', label: 'Next 30 min' },
-  { id: 'unassigned', label: 'Unassigned' },
 ]
 const RESERVATION_WORKSPACE_VIEWS = [
   { id: 'operations', label: 'Operations' },
@@ -6837,7 +6830,7 @@ function FloorPlanView({
     setFloorPlanMode,
     floorPlanMode,
   } = useReservationWorkspace()
-  const { hasLayout } = usePublishedFloorPlan()
+  const { hasLayout, loadError, saveError } = usePublishedFloorPlan()
   const [dropTargetTableId, setDropTargetTableId] = useState(null)
   const [mergeSelection, setMergeSelection] = useState([])
   const [mergedGroups, setMergedGroups] = useState([])
@@ -7346,6 +7339,12 @@ function FloorPlanView({
   if (!hasLayout) {
     return (
       <div className={`floor-plan-workspace${isCompact ? ' is-compact' : ''} floor-plan-empty-state`}>
+        {loadError ? (
+          <div className="floor-plan-persistence-notice" role="status">{loadError}</div>
+        ) : null}
+        {saveError ? (
+          <div className="floor-plan-persistence-notice" role="status">{saveError}</div>
+        ) : null}
         <div className="floor-plan-empty">
           <p className="eyebrow">Floor plan</p>
           <h3>No published layout</h3>
@@ -7360,6 +7359,12 @@ function FloorPlanView({
 
   return (
     <div className={`floor-plan-workspace${isCompact ? ' is-compact is-host-floor' : ''}${showHostSeatingBar && isCompact ? ' has-seating-drawer' : ''}${isHeatmap ? ' is-heatmap-mode' : ' is-normal-mode'}`} data-floor-view-mode={viewMode}>
+      {loadError ? (
+        <div className="floor-plan-persistence-notice" role="status">{loadError}</div>
+      ) : null}
+      {saveError ? (
+        <div className="floor-plan-persistence-notice" role="status">{saveError}</div>
+      ) : null}
       <div className="floor-plan-host-shell">
         <div className="floor-plan-host-main">
       <div className="floor-plan-toolbar">
@@ -8029,54 +8034,17 @@ function getHostReservationWarnings(reservation, nowMinutes, todayKey) {
 }
 
 function hostListFilterMatch(reservation, filter, nowMinutes, todayKey) {
-  const displayStatus = getReservationDisplayStatus(reservation, nowMinutes, todayKey)
+  const groupId = getHostListGroupId(reservation)
 
   switch (filter) {
     case 'All':
       return true
-    case 'Now / Active':
-      return isReservationNowActive(reservation, todayKey)
     case 'Upcoming':
-      return isReservationUpcoming(reservation, todayKey, nowMinutes)
-    case 'Arrived':
-      return displayStatus === 'Waiting'
-        || (normalizeReservationStatus(reservation.status) === 'Confirmed'
-          && parseTimeToMinutes(reservation.time) !== null
-          && parseTimeToMinutes(reservation.time) <= nowMinutes)
-    case 'Seated':
-      return isReservationInHouse(reservation)
-    case 'Late':
-      return displayStatus === 'Late Booking' || isReservationLate(reservation, nowMinutes, todayKey)
+      return groupId === 'upcoming' || isReservationUpcoming(reservation, todayKey, nowMinutes)
+    case 'In House':
+      return groupId === 'in-house' || isReservationInHouse(reservation)
     case 'Completed':
-      return getHostListGroupId(reservation) === 'completed'
-    case 'Cancelled':
-      return ['Cancelled', 'Not Shown', 'Rejected'].includes(displayStatus)
-    default:
-      return true
-  }
-}
-
-function hostSmartChipMatch(reservation, chipId, nowMinutes, todayKey) {
-  switch (chipId) {
-    case 'needs-attention': {
-      const warnings = getHostReservationWarnings(reservation, nowMinutes, todayKey)
-      const hasNotes = Boolean(`${reservation.notes ?? ''}`.trim())
-      const missingPhone = !`${reservation.phone ?? ''}`.trim()
-      return warnings.length > 0
-        || isReservationLate(reservation, nowMinutes, todayKey)
-        || hasNotes
-        || missingPhone
-    }
-    case 'waiting':
-      return isReservationWaiting(reservation, todayKey, nowMinutes)
-    case 'late':
-      return isReservationLate(reservation, nowMinutes, todayKey)
-    case 'in-house':
-      return isReservationInHouse(reservation)
-    case 'next-30':
-      return isReservationInNext30Min(reservation, todayKey, nowMinutes)
-    case 'unassigned':
-      return isReservationUnassigned(reservation)
+      return groupId === 'completed'
     default:
       return true
   }
@@ -8171,27 +8139,6 @@ function sortHostReservations(reservations, sortId, nowMinutes, todayKey) {
   }
 
   return items
-}
-
-function buildHostSmartChipCounts(reservations, nowMinutes, todayKey) {
-  return HOST_SMART_CHIPS.map((chip) => ({
-    ...chip,
-    count: reservations.filter((reservation) => (
-      hostSmartChipMatch(reservation, chip.id, nowMinutes, todayKey)
-    )).length,
-  }))
-}
-
-function formatHostReservationListTime(reservation, todayKey) {
-  const dateKey = `${reservation.date ?? ''}`.slice(0, 10)
-  const clock = formatTime24(reservation.time) || '—'
-
-  if (dateKey && dateKey !== todayKey) {
-    const [, month, day] = dateKey.split('-')
-    return `${Number(month)}/${Number(day)} ${clock}`
-  }
-
-  return clock
 }
 
 function getMostFrequentValue(values) {
@@ -8763,7 +8710,7 @@ function GuestProfileDrawer({
 
         <div className="drawer-grid guest-profile-grid">
           <div className="drawer-row"><span>Current status</span><strong>{getReservationDisplayStatus(reservation, nowMinutes, todayKey)}</strong></div>
-          <div className="drawer-row"><span>Arrival</span><strong>{formatTime24(reservation.time) || '—'} · {reservation.date || '—'}</strong></div>
+          <div className="drawer-row"><span>Arrival</span><strong>{formatTime24(reservation.time) || '—'} · {formatEuropeanDayMonth(reservation.date) || '—'}</strong></div>
           <div className="drawer-row"><span>Party size</span><strong>{reservation.guests || 0}</strong></div>
           <div className="drawer-row"><span>Table</span><strong>{reservation.tableNumber || '—'}</strong></div>
         </div>
@@ -8782,7 +8729,7 @@ function GuestProfileDrawer({
             {profile.history.slice(0, 10).map((entry) => (
               <article key={entry.id} className={`guest-history-item${String(entry.id) === String(reservation.id) ? ' is-current' : ''}`}>
                 <div>
-                  <strong>{entry.date || '—'} · {formatTime24(entry.time) || '—'}</strong>
+                  <strong>{formatEuropeanDayMonth(entry.date) || '—'} · {formatTime24(entry.time) || '—'}</strong>
                   <p>{entry.guests || 0} guests · Table {entry.tableNumber || '—'} · {entry.area || '—'}</p>
                 </div>
                 <span className={`reservation-status-badge tone-${getReservationDisplayStatusTone(getReservationDisplayStatus(entry, nowMinutes, todayKey))}`}>
@@ -9132,7 +9079,7 @@ function ReservationArrivalCard({
             {guestCount}
           </span>
           {showDate ? (
-            <span className="reservation-card-date reservation-card-secondary">{reservation.date || '—'}</span>
+            <span className="reservation-card-date reservation-card-secondary">{formatEuropeanDayMonth(reservation.date) || '—'}</span>
           ) : null}
         </div>
 
@@ -9305,11 +9252,11 @@ function ServiceTimelinePanel({
 function HostReservationListControls({
   listFilter,
   listSort,
-  activeChip,
-  chipCounts,
   onListFilterChange,
   onListSortChange,
-  onActiveChipChange,
+  showHourFilter,
+  onToggleHourFilter,
+  hasHourSlots,
 }) {
   return (
     <div className="host-reservation-list-controls">
@@ -9339,20 +9286,16 @@ function HostReservationListControls({
             ))}
           </select>
         </label>
-
-        <div className="host-reservation-smart-chips" role="toolbar" aria-label="Quick filters">
-          {chipCounts.map((chip) => (
-            <button
-              key={chip.id}
-              type="button"
-              className={`host-smart-chip${activeChip === chip.id ? ' active' : ''}`}
-              onClick={() => onActiveChipChange(activeChip === chip.id ? null : chip.id)}
-            >
-              <span>{chip.label}</span>
-              <span className="host-smart-chip-count">{chip.count}</span>
-            </button>
-          ))}
-        </div>
+        {hasHourSlots ? (
+          <button
+            type="button"
+            className={`host-hour-filter-toggle${showHourFilter ? ' active' : ''}`}
+            onClick={onToggleHourFilter}
+            aria-pressed={showHourFilter}
+          >
+            By hour
+          </button>
+        ) : null}
       </div>
     </div>
   )
@@ -9364,11 +9307,8 @@ function ReservationsUnifiedCanvas({
   listReservations,
   listFilter,
   listSort,
-  activeChip,
-  chipCounts,
   onListFilterChange,
   onListSortChange,
-  onActiveChipChange,
   hostServicePressureSlots,
   serviceHourFilter,
   onServiceHourFilterChange,
@@ -9402,6 +9342,7 @@ function ReservationsUnifiedCanvas({
     clearDragState,
   } = useReservationWorkspace()
   const [isSavingListStatus, setIsSavingListStatus] = useState(false)
+  const [showHourFilter, setShowHourFilter] = useState(false)
 
   const hostManagerSummary = useMemo(
     () => buildHostManagerSummary(
@@ -9434,28 +9375,23 @@ function ReservationsUnifiedCanvas({
       {floorPlanMode !== 'edit' ? (
       <section className="host-operations-list" aria-label="Reservation list">
         <div className="host-operations-list-sticky">
-          <div className="host-operations-list-header">
-            <div>
-              <p className="eyebrow">Service</p>
-              <h4>Reservation list</h4>
-            </div>
-            <span className="host-operations-list-count">{listReservations.length}</span>
-          </div>
           <HostManagerSummaryBar summary={hostManagerSummary} />
-          <HostServicePressureBar
-            slots={hostServicePressureSlots}
-            nowMinutes={floorPlanProps.nowMinutes}
-            selectedHour={serviceHourFilter}
-            onHourSelect={onServiceHourFilterChange}
-          />
+          {showHourFilter ? (
+            <HostServicePressureBar
+              slots={hostServicePressureSlots}
+              nowMinutes={floorPlanProps.nowMinutes}
+              selectedHour={serviceHourFilter}
+              onHourSelect={onServiceHourFilterChange}
+            />
+          ) : null}
           <HostReservationListControls
             listFilter={listFilter}
             listSort={listSort}
-            activeChip={activeChip}
-            chipCounts={chipCounts}
             onListFilterChange={onListFilterChange}
             onListSortChange={onListSortChange}
-            onActiveChipChange={onActiveChipChange}
+            showHourFilter={showHourFilter}
+            onToggleHourFilter={() => setShowHourFilter((current) => !current)}
+            hasHourSlots={hostServicePressureSlots.length > 0}
           />
         </div>
         <div className="host-operations-list-scroll">
@@ -9577,11 +9513,11 @@ function ReservationsWorkspaceBody({
   isLoading,
   noticeMessage,
   isSaving,
+  workspaceTimeZone = '',
 }) {
   const [searchTerm, setSearchTerm] = useState('')
   const [listFilter, setListFilter] = useState('All')
   const [listSort, setListSort] = useState('service')
-  const [activeChip, setActiveChip] = useState(null)
   const [serviceHourFilter, setServiceHourFilter] = useState(null)
   const [liveNow, setLiveNow] = useState(() => getLocalNow())
   const [noteDraftReservation, setNoteDraftReservation] = useState(null)
@@ -9608,75 +9544,88 @@ function ReservationsWorkspaceBody({
     }
   }, [])
 
-  const todayKey = getCurrentDateKey()
+  const workspaceTodayKey = useMemo(
+    () => resolveHostWorkspaceDateKey(liveNow, workspaceTimeZone),
+    [liveNow, workspaceTimeZone],
+  )
+  const workspaceTodayRef = useRef(workspaceTodayKey)
+  const [selectedDateKey, setSelectedDateKey] = useState(workspaceTodayKey)
   const nowMinutes = liveNow.getHours() * 60 + liveNow.getMinutes()
-  const todayLabel = formatCurrentDateLabel()
-
-  const selectedDateReservations = useMemo(
-    () => getSelectedDateReservations(reservations, todayKey),
-    [reservations, todayKey],
+  const selectedDateLabel = useMemo(
+    () => formatHostWorkspaceDateNavLabel(selectedDateKey, workspaceTodayKey),
+    [selectedDateKey, workspaceTodayKey],
   )
+  const isViewingToday = selectedDateKey === workspaceTodayKey
 
-  const todayReservations = useMemo(
-    () => selectedDateReservations,
-    [selectedDateReservations],
-  )
+  useEffect(() => {
+    const previousToday = workspaceTodayRef.current
+    if (previousToday !== workspaceTodayKey) {
+      setSelectedDateKey((current) => (
+        current === previousToday ? workspaceTodayKey : current
+      ))
+      workspaceTodayRef.current = workspaceTodayKey
+    }
+  }, [workspaceTodayKey])
 
-  const upcomingReservations = useMemo(
-    () => sortReservationsChronologically(
-      reservations.filter((reservation) => getReservationDateKey(reservation) !== todayKey),
-    ),
-    [reservations, todayKey],
+  const handlePreviousDay = useCallback(() => {
+    setServiceHourFilter(null)
+    setSelectedDateKey((current) => shiftHostWorkspaceDateKey(current, -1))
+  }, [])
+
+  const handleNextDay = useCallback(() => {
+    setServiceHourFilter(null)
+    setSelectedDateKey((current) => shiftHostWorkspaceDateKey(current, 1))
+  }, [])
+
+  const handleGoToToday = useCallback(() => {
+    setServiceHourFilter(null)
+    setSelectedDateKey(workspaceTodayKey)
+  }, [workspaceTodayKey])
+
+  const handleSelectDate = useCallback((dateKey) => {
+    setServiceHourFilter(null)
+    setSelectedDateKey(normalizeReservationDateKey(dateKey))
+  }, [])
+
+  const workspaceReservations = useMemo(
+    () => getHostWorkspaceReservations(reservations, selectedDateKey, workspaceTimeZone),
+    [reservations, selectedDateKey, workspaceTimeZone],
   )
 
   const serviceHealthMetrics = useMemo(
-    () => buildServiceHealthMetrics(todayReservations, nowMinutes, todayKey),
-    [nowMinutes, todayKey, todayReservations],
+    () => buildServiceHealthMetrics(workspaceReservations, nowMinutes, selectedDateKey),
+    [nowMinutes, selectedDateKey, workspaceReservations],
   )
 
   const serviceInsights = useMemo(
-    () => buildServiceInsights(todayReservations, nowMinutes, todayKey, reservations),
-    [nowMinutes, reservations, todayKey, todayReservations],
+    () => buildServiceInsights(workspaceReservations, nowMinutes, selectedDateKey, reservations),
+    [nowMinutes, reservations, selectedDateKey, workspaceReservations],
   )
 
   const arrivalWaves = useMemo(
-    () => buildArrivalWaves(todayReservations, nowMinutes, todayKey),
-    [nowMinutes, todayKey, todayReservations],
+    () => buildArrivalWaves(workspaceReservations, nowMinutes, selectedDateKey),
+    [nowMinutes, selectedDateKey, workspaceReservations],
   )
 
   const searchNeedle = searchTerm.trim().toLowerCase()
 
-  const filteredTodayReservations = useMemo(() => (
-    todayReservations.filter((reservation) => (
+  const filteredWorkspaceReservations = useMemo(() => (
+    workspaceReservations.filter((reservation) => (
       reservationMatchesSearch(reservation, searchNeedle)
     ))
-  ), [searchNeedle, todayReservations])
-
-  const allHostReservations = useMemo(
-    () => sortReservationsChronologically([...todayReservations, ...upcomingReservations]),
-    [todayReservations, upcomingReservations],
-  )
-
-  const hostSmartChipCounts = useMemo(
-    () => buildHostSmartChipCounts(allHostReservations, nowMinutes, todayKey),
-    [allHostReservations, nowMinutes, todayKey],
-  )
+  ), [searchNeedle, workspaceReservations])
 
   const hostListWithoutHourFilter = useMemo(() => (
-    allHostReservations.filter((reservation) => (
-      reservationMatchesSearch(reservation, searchNeedle)
-      && hostListFilterMatch(reservation, listFilter, nowMinutes, todayKey)
-      && (!activeChip || hostSmartChipMatch(reservation, activeChip, nowMinutes, todayKey))
-      && !shouldHideInDefaultHostView(reservation, listFilter, listSort, nowMinutes, todayKey)
+    filteredWorkspaceReservations.filter((reservation) => (
+      hostListFilterMatch(reservation, listFilter, nowMinutes, selectedDateKey)
+      && !shouldHideInDefaultHostView(reservation, listFilter, listSort, nowMinutes, selectedDateKey)
     ))
   ), [
-    activeChip,
-    allHostReservations,
+    filteredWorkspaceReservations,
     listFilter,
     listSort,
     nowMinutes,
-    searchNeedle,
-    todayKey,
+    selectedDateKey,
   ])
 
   const hostServicePressureSlots = useMemo(
@@ -9691,23 +9640,22 @@ function ReservationsWorkspaceBody({
       ))
       : hostListWithoutHourFilter
 
-    return sortHostReservations(filtered, listSort, nowMinutes, todayKey)
+    return sortHostReservations(filtered, listSort, nowMinutes, selectedDateKey)
   }, [
     hostListWithoutHourFilter,
     listSort,
     nowMinutes,
     serviceHourFilter,
-    todayKey,
+    selectedDateKey,
   ])
+
+  const hostHeaderStats = useMemo(
+    () => buildHostManagerSummary(hostListReservations, nowMinutes, selectedDateKey),
+    [hostListReservations, nowMinutes, selectedDateKey],
+  )
 
   const handleListFilterChange = (filter) => {
     setListFilter(filter)
-    setActiveChip(null)
-    setServiceHourFilter(null)
-  }
-
-  const handleActiveChipChange = (chip) => {
-    setActiveChip(chip)
     setServiceHourFilter(null)
   }
 
@@ -9716,25 +9664,25 @@ function ReservationsWorkspaceBody({
   }
 
   const nextArrivalId = useMemo(() => {
-    const next = todayReservations.find((reservation) => {
+    const next = workspaceReservations.find((reservation) => {
       const status = normalizeReservationStatus(reservation.status)
       if (!isUpcomingReservationStatus(status)) return false
       const minutes = parseTimeToMinutes(reservation.time)
       return minutes !== null && minutes >= nowMinutes
     })
     return next?.id ?? null
-  }, [nowMinutes, todayReservations])
+  }, [nowMinutes, workspaceReservations])
 
   const activeTimelineReservationId = useMemo(
-    () => getActiveTimelineReservationId(filteredTodayReservations, nowMinutes, todayKey),
-    [filteredTodayReservations, nowMinutes, todayKey],
+    () => getActiveTimelineReservationId(filteredWorkspaceReservations, nowMinutes, selectedDateKey),
+    [filteredWorkspaceReservations, nowMinutes, selectedDateKey],
   )
 
   const currentServiceHour = Math.floor(nowMinutes / 60)
 
   const arrivalBoardRows = useMemo(
-    () => buildArrivalBoardRows(filteredTodayReservations, nowMinutes),
-    [filteredTodayReservations, nowMinutes],
+    () => buildArrivalBoardRows(filteredWorkspaceReservations, nowMinutes),
+    [filteredWorkspaceReservations, nowMinutes],
   )
 
   const timelineNowPositionPercent = useMemo(
@@ -9770,15 +9718,15 @@ function ReservationsWorkspaceBody({
     const safePrefill = prefill?.nativeEvent || prefill?.target ? {} : (prefill ?? {})
     onOpenAddReservation({
       ...safePrefill,
-      date: normalizeReservationDateKey(safePrefill.date ?? todayKey),
+      date: normalizeReservationDateKey(safePrefill.date ?? selectedDateKey),
     })
-  }, [onOpenAddReservation, todayKey])
+  }, [onOpenAddReservation, selectedDateKey])
 
   const sharedCardProps = {
     allReservations: reservations,
     isSaving,
     nowMinutes,
-    todayKey,
+    todayKey: selectedDateKey,
     onOpenAddNote: handleOpenAddNote,
     onOpenEditReservation,
     onQuickStatusUpdate,
@@ -9787,10 +9735,10 @@ function ReservationsWorkspaceBody({
   const timelinePanelProps = {
     arrivalBoardRows,
     nowMinutes,
-    todayKey,
+    todayKey: selectedDateKey,
     currentServiceHour,
     isLoading,
-    filteredCount: filteredTodayReservations.length,
+    filteredCount: filteredWorkspaceReservations.length,
     serviceHealthMetrics,
     serviceInsights,
     arrivalWaves,
@@ -9803,10 +9751,10 @@ function ReservationsWorkspaceBody({
   }
 
   const floorPlanProps = {
-    reservations: filteredTodayReservations,
+    reservations: filteredWorkspaceReservations,
     allReservations: reservations,
     listReservations: hostListReservations,
-    todayKey,
+    todayKey: selectedDateKey,
     nowMinutes,
     isSaving,
     onTableReassign,
@@ -9816,9 +9764,8 @@ function ReservationsWorkspaceBody({
   }
 
   return (
-    <PublishedFloorPlanProvider>
       <ReservationWorkspaceProvider
-        filteredTodayReservations={filteredTodayReservations}
+        filteredTodayReservations={filteredWorkspaceReservations}
         onHostEditSave={onHostEditSave}
         onHostEditDelete={onHostEditDelete}
         isSavingHostEdit={isSaving}
@@ -9837,18 +9784,22 @@ function ReservationsWorkspaceBody({
         isLoading={isLoading}
         noticeMessage={noticeMessage}
         isSaving={isSaving}
-        todayKey={todayKey}
-        todayLabel={todayLabel}
+        todayKey={selectedDateKey}
+        todayLabel={selectedDateLabel}
+        isViewingToday={isViewingToday}
+        workspaceTodayKey={workspaceTodayKey}
+        onPreviousDay={handlePreviousDay}
+        onNextDay={handleNextDay}
+        onGoToToday={handleGoToToday}
+        onSelectDate={handleSelectDate}
         nowMinutes={nowMinutes}
         searchTerm={searchTerm}
         onSearchTermChange={setSearchTerm}
         listFilter={listFilter}
         listSort={listSort}
-        activeChip={activeChip}
-        chipCounts={hostSmartChipCounts}
         onListFilterChange={handleListFilterChange}
         onListSortChange={setListSort}
-        onActiveChipChange={handleActiveChipChange}
+        hostHeaderStats={hostHeaderStats}
         hostListReservations={hostListReservations}
         hostServicePressureSlots={hostServicePressureSlots}
         serviceHourFilter={serviceHourFilter}
@@ -9865,7 +9816,6 @@ function ReservationsWorkspaceBody({
         onSaveNote={handleSaveNote}
       />
       </ReservationWorkspaceProvider>
-    </PublishedFloorPlanProvider>
   )
 }
 
@@ -9885,16 +9835,20 @@ function ReservationsWorkspaceContent({
   isSaving,
   todayKey,
   todayLabel,
+  isViewingToday,
+  workspaceTodayKey,
+  onPreviousDay,
+  onNextDay,
+  onGoToToday,
+  onSelectDate,
   nowMinutes,
   searchTerm,
   onSearchTermChange,
   listFilter,
   listSort,
-  activeChip,
-  chipCounts,
   onListFilterChange,
   onListSortChange,
-  onActiveChipChange,
+  hostHeaderStats,
   hostListReservations,
   hostServicePressureSlots,
   serviceHourFilter,
@@ -9923,28 +9877,38 @@ function ReservationsWorkspaceContent({
     <section className={`staff-page reservations-workspace reservations-workspace-host${isLayoutEditMode ? ' is-layout-edit-mode' : ''}`}>
       {!isLayoutEditMode ? (
       <div className="reservations-command-sticky">
-        <header className="reservations-executive-header schedule-header panel reservations-host-header">
-          <div className="schedule-header-copy reservations-executive-copy">
-            <p className="eyebrow schedule-header-eyebrow">Host view</p>
-            <h3 className="schedule-header-title">Reservations &amp; floor plan</h3>
-            <p className="schedule-header-range reservations-executive-subtitle">See who is arriving, where they are seated, and what the floor looks like right now.</p>
+        <header className="reservations-host-header">
+          <div className="reservations-host-header-main">
+            <h2>Reservations</h2>
+            <HostWorkspaceDateNav
+              dateTime={todayKey}
+              label={todayLabel}
+              workspaceTodayKey={workspaceTodayKey}
+              isViewingToday={isViewingToday}
+              onPreviousDay={onPreviousDay}
+              onNextDay={onNextDay}
+              onGoToToday={onGoToToday}
+              onSelectDate={onSelectDate}
+            />
+            <p className="reservations-host-header-stats">
+              {hostHeaderStats?.totalReservations ?? 0} reservations
+              {' · '}
+              {hostHeaderStats?.totalGuests ?? 0} guests
+            </p>
           </div>
-          <div className="schedule-header-controls reservations-executive-controls">
-            <div className="schedule-header-control-surface reservations-control-surface">
-              <label className="reservations-search" aria-label="Search reservations">
-                <span aria-hidden="true">⌕</span>
-                <input
-                  type="search"
-                  value={searchTerm}
-                  onChange={(event) => onSearchTermChange(event.target.value)}
-                  placeholder="Search guest, table, or phone"
-                />
-              </label>
-              <time className="reservations-current-date" dateTime={todayKey}>{todayLabel}</time>
-              <button type="button" className="primary-btn reservations-add-btn" onClick={onOpenAddReservation} disabled={isSaving}>
-                {isSaving ? 'Saving…' : '+ Add Reservation'}
-              </button>
-            </div>
+          <div className="reservations-host-header-actions">
+            <label className="reservations-search" aria-label="Search reservations">
+              <span aria-hidden="true">⌕</span>
+              <input
+                type="search"
+                value={searchTerm}
+                onChange={(event) => onSearchTermChange(event.target.value)}
+                placeholder="Search guest or table"
+              />
+            </label>
+            <button type="button" className="primary-btn reservations-add-btn" onClick={onOpenAddReservation} disabled={isSaving}>
+              {isSaving ? 'Saving…' : '+ Reservation'}
+            </button>
           </div>
         </header>
       </div>
@@ -9971,11 +9935,8 @@ function ReservationsWorkspaceContent({
           listReservations={hostListReservations}
           listFilter={listFilter}
           listSort={listSort}
-          activeChip={activeChip}
-          chipCounts={chipCounts}
           onListFilterChange={onListFilterChange}
           onListSortChange={onListSortChange}
-          onActiveChipChange={onActiveChipChange}
           hostServicePressureSlots={hostServicePressureSlots}
           serviceHourFilter={serviceHourFilter}
           onServiceHourFilterChange={onServiceHourFilterChange}
@@ -15386,7 +15347,7 @@ function App() {
   const handleOpenAddReservation = (options) => {
     const prefill = options?.nativeEvent || options?.target ? {} : (options ?? {})
     const table = prefill.table ?? null
-    const layout = loadPublishedHostLayout()
+    const layout = loadPublishedHostLayout(workspace?.id ?? '')
     const defaultZone = layout?.zones?.[0]
     let assignedUnits = []
     let seatingAreaId = defaultZone?.id ?? ''
@@ -15538,7 +15499,7 @@ function App() {
   }
 
   const handleOpenEditReservation = (reservation) => {
-    const layout = loadPublishedHostLayout()
+    const layout = loadPublishedHostLayout(workspace?.id ?? '')
     const assignment = getReservationSeatingAssignment(reservation)
 
     setEditingReservation(reservation)
@@ -16430,6 +16391,7 @@ function App() {
   }
 
   return (
+    <PublishedFloorPlanProvider workspaceId={workspace?.id ?? ''}>
     <div className="app-shell">
       <aside className="sidebar">
         <div className="brand-block">
@@ -16645,6 +16607,7 @@ function App() {
         {isActiveViewAllowed && activeView === 'reservations' ? (
           <ReservationsView
             reservations={reservations}
+            workspaceTimeZone={workspaceTimeZone}
             onOpenAddReservation={handleOpenAddReservation}
             onOpenQuickReservation={handleOpenQuickReservation}
             onOpenCommandPalette={handleOpenCommandPalette}
@@ -17278,7 +17241,7 @@ function App() {
                 </div>
 
                 <ReservationTableSelector
-                  layout={loadPublishedHostLayout()}
+                  layout={loadPublishedHostLayout(workspace?.id ?? '')}
                   reservations={reservations}
                   todayKey={reservationForm.date || currentDateKey}
                   reservationTime={reservationForm.time}
@@ -17289,7 +17252,7 @@ function App() {
                   extraChairs={reservationForm.extraChairs}
                   standingGuests={reservationForm.standingGuests}
                   onAreaChange={(seatingAreaId) => {
-                    const hostLayout = loadPublishedHostLayout()
+                    const hostLayout = loadPublishedHostLayout(workspace?.id ?? '')
                     const zone = hostLayout?.zones?.find((entry) => entry.id === seatingAreaId)
                     setReservationForm((current) => ({
                       ...current,
@@ -17756,6 +17719,7 @@ function App() {
         ) : null}
       </main>
     </div>
+    </PublishedFloorPlanProvider>
   )
 }
 
