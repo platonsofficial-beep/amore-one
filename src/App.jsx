@@ -138,6 +138,8 @@ import {
   sortInventoryItemsForBarRefill,
 } from './lib/inventoryCategories'
 import { createSupplier, deleteSupplier, getSuppliers, updateSupplier } from './services/supplierService'
+import { createStockItem, updateStockItem } from './services/stockItemService'
+import { getStockItemsWithLastMovement, recordStockMovement } from './services/stockMovementService'
 import {
   completeTask,
   createTask,
@@ -236,6 +238,7 @@ import {
 import { buildEmployeeTodayShiftLookup, buildTeamTodayStatus } from './lib/teamViewUtils'
 import { TeamTodayView } from './components/team/TeamTodayView'
 import { TeamPeopleView } from './components/team/TeamPeopleView'
+import { StockDashboardView } from './components/stock/StockDashboardView'
 import {
   buildBrandDisplay,
   buildDashboardGreeting,
@@ -275,6 +278,7 @@ import {
   getWorkspaceProfile,
   saveWorkspaceProfile,
 } from './services/workspaceProfileService'
+import { resolveActiveWorkspaceId } from './services/workspaceService'
 import {
   buildExecutiveLabourSummary,
   buildReservationsFooter,
@@ -11939,6 +11943,10 @@ function App() {
   const [isSavingInventoryItem, setIsSavingInventoryItem] = useState(false)
   const [inventoryPendingDelete, setInventoryPendingDelete] = useState(null)
   const [isDeletingInventoryItem, setIsDeletingInventoryItem] = useState(false)
+  const [stockItems, setStockItems] = useState([])
+  const [stockItemsNotice, setStockItemsNotice] = useState('')
+  const [isStockItemsLoading, setIsStockItemsLoading] = useState(false)
+  const [isSavingStockItem, setIsSavingStockItem] = useState(false)
   const [barRefills, setBarRefills] = useState([])
   const [barRefillsNotice, setBarRefillsNotice] = useState('')
   const [isBarRefillsLoading, setIsBarRefillsLoading] = useState(true)
@@ -12006,10 +12014,35 @@ function App() {
     syncDevMembershipProfile,
     isAuthDisabled,
     isLoading: isAuthLoading,
+    isBootstrapping: isAuthBootstrapping,
     role,
     roleLabel,
+    user,
     workspace,
+    membership,
+    workspaceLoadError,
   } = useAuth()
+
+  const activeWorkspaceId = useMemo(
+    () => resolveActiveWorkspaceId({ workspace, membership }),
+    [workspace, membership],
+  )
+
+  const isStockWorkspaceReady = Boolean(activeWorkspaceId) && !isAuthLoading && !isAuthBootstrapping
+
+  const stockWorkspaceSetupMessage = useMemo(() => {
+    if (isStockWorkspaceReady) return ''
+    if (isAuthLoading || isAuthBootstrapping) {
+      return 'Loading workspace…'
+    }
+    if (workspaceLoadError) return workspaceLoadError
+    return 'Workspace is not ready yet. Finish workspace setup, then try again.'
+  }, [isStockWorkspaceReady, isAuthLoading, isAuthBootstrapping, workspaceLoadError])
+
+  const canManageStock = useMemo(
+    () => ['owner', 'general_manager', 'manager'].includes(role),
+    [role],
+  )
 
   const visibleNavItems = useMemo(
     () => filterNavItemsByRole(NAV_ITEMS, role),
@@ -12463,6 +12496,22 @@ function App() {
       throw error
     }
   }, [])
+
+  const refreshStockItems = useCallback(async () => {
+    if (!activeWorkspaceId) {
+      setStockItems([])
+      return []
+    }
+
+    try {
+      const remoteStockItems = await getStockItemsWithLastMovement(activeWorkspaceId)
+      setStockItems(remoteStockItems)
+      return remoteStockItems
+    } catch (error) {
+      setStockItems([])
+      throw error
+    }
+  }, [activeWorkspaceId])
 
   const refreshBarRefills = useCallback(async () => {
     try {
@@ -12926,6 +12975,34 @@ function App() {
       isMounted = false
     }
   }, [refreshInventory])
+
+  useEffect(() => {
+    if (activeView !== 'stock' || stockSection !== 'dashboard') return undefined
+
+    let isMounted = true
+
+    const loadStockItems = async () => {
+      setIsStockItemsLoading(true)
+      setStockItemsNotice('')
+
+      try {
+        await refreshStockItems()
+      } catch (error) {
+        if (!isMounted) return
+        setStockItemsNotice(error.message || 'Unable to load stock right now.')
+      } finally {
+        if (isMounted) {
+          setIsStockItemsLoading(false)
+        }
+      }
+    }
+
+    loadStockItems()
+
+    return () => {
+      isMounted = false
+    }
+  }, [activeView, stockSection, refreshStockItems])
 
   useEffect(() => {
     if (activeView !== 'stock') return undefined
@@ -15893,7 +15970,7 @@ function App() {
 
   const handleDashboardViewStock = () => {
     handleActiveViewChange('stock')
-    handleStockSectionChange('inventory')
+    handleStockSectionChange('dashboard')
   }
 
   const handleDashboardViewSchedule = () => {
@@ -16292,6 +16369,132 @@ function App() {
       setInventoryNotice(error.message || 'Unable to save stock item right now.')
     } finally {
       setIsSavingInventoryItem(false)
+    }
+  }
+
+  const handleCreateStockItem = async (payload) => {
+    if (!activeWorkspaceId) {
+      throw new Error(stockWorkspaceSetupMessage || 'Workspace is required to add stock items.')
+    }
+
+    setIsSavingStockItem(true)
+    setStockItemsNotice('')
+
+    try {
+      await createStockItem(activeWorkspaceId, payload)
+      await refreshStockItems()
+      setStockItemsNotice('Stock item added.')
+    } catch (error) {
+      setStockItemsNotice(error.message || 'Unable to add stock item right now.')
+      throw error
+    } finally {
+      setIsSavingStockItem(false)
+    }
+  }
+
+  const handleUpdateStockItem = async (itemId, payload) => {
+    if (!activeWorkspaceId) {
+      throw new Error(stockWorkspaceSetupMessage || 'Workspace is required to update stock items.')
+    }
+
+    setIsSavingStockItem(true)
+    setStockItemsNotice('')
+
+    try {
+      await updateStockItem(itemId, payload, activeWorkspaceId)
+      await refreshStockItems()
+      setStockItemsNotice('Stock item updated.')
+    } catch (error) {
+      setStockItemsNotice(error.message || 'Unable to update stock item right now.')
+      throw error
+    } finally {
+      setIsSavingStockItem(false)
+    }
+  }
+
+  const handleBulkUpdateStockItems = async (updates = []) => {
+    if (!activeWorkspaceId) {
+      throw new Error(stockWorkspaceSetupMessage || 'Workspace is required to update stock items.')
+    }
+
+    if (!updates.length) return
+
+    setIsSavingStockItem(true)
+    setStockItemsNotice('')
+
+    try {
+      for (const update of updates) {
+        await updateStockItem(update.id, update.payload, activeWorkspaceId)
+      }
+      await refreshStockItems()
+      setStockItemsNotice(`${updates.length} product${updates.length === 1 ? '' : 's'} updated.`)
+    } catch (error) {
+      setStockItemsNotice(error.message || 'Unable to update products right now.')
+      throw error
+    } finally {
+      setIsSavingStockItem(false)
+    }
+  }
+
+  const handleImportStockItems = async (plan) => {
+    if (!activeWorkspaceId) {
+      throw new Error(stockWorkspaceSetupMessage || 'Workspace is required to import stock items.')
+    }
+
+    setIsSavingStockItem(true)
+    setStockItemsNotice('')
+
+    try {
+      let created = 0
+      let updated = 0
+
+      for (const entry of plan.creates ?? []) {
+        await createStockItem(activeWorkspaceId, entry.payload)
+        created += 1
+      }
+
+      for (const entry of plan.updates ?? []) {
+        await updateStockItem(entry.id, entry.payload, activeWorkspaceId)
+        updated += 1
+      }
+
+      await refreshStockItems()
+      const skipped = plan.skipped?.length ?? 0
+      setStockItemsNotice(`Import complete: ${created} created, ${updated} updated, ${skipped} skipped.`)
+      return { created, updated, skipped }
+    } catch (error) {
+      setStockItemsNotice(error.message || 'Unable to import products right now.')
+      throw error
+    } finally {
+      setIsSavingStockItem(false)
+    }
+  }
+
+  const handleRecordStockMovement = async ({ item, type, quantity, note }) => {
+    if (!activeWorkspaceId || !item?.id) {
+      throw new Error(stockWorkspaceSetupMessage || 'Workspace and item are required for stock movements.')
+    }
+
+    setIsSavingStockItem(true)
+    setStockItemsNotice('')
+
+    try {
+      await recordStockMovement({
+        workspaceId: activeWorkspaceId,
+        itemId: item.id,
+        type,
+        quantity,
+        note,
+        createdBy: user?.id ?? null,
+        currentQuantity: item.currentQuantity,
+      })
+      await refreshStockItems()
+      setStockItemsNotice('Stock movement recorded.')
+    } catch (error) {
+      setStockItemsNotice(error.message || 'Unable to record stock movement right now.')
+      throw error
+    } finally {
+      setIsSavingStockItem(false)
     }
   }
 
@@ -17059,6 +17262,25 @@ function App() {
               Open Reservations
             </button>
           </div>
+        ) : null}
+
+        {isActiveViewAllowed && activeView === 'stock' && stockSection === 'dashboard' ? (
+          <StockDashboardView
+            stockItems={stockItems}
+            isLoading={isStockItemsLoading}
+            noticeMessage={stockItemsNotice}
+            isSaving={isSavingStockItem}
+            canManage={canManageStock}
+            searchTerm={searchTerm}
+            workspaceId={activeWorkspaceId}
+            isWorkspaceReady={isStockWorkspaceReady}
+            workspaceSetupMessage={stockWorkspaceSetupMessage}
+            onCreateItem={handleCreateStockItem}
+            onUpdateItem={handleUpdateStockItem}
+            onBulkUpdateItems={handleBulkUpdateStockItems}
+            onImportStockItems={handleImportStockItems}
+            onRecordMovement={handleRecordStockMovement}
+          />
         ) : null}
 
         {isActiveViewAllowed && activeView === 'stock' && stockSection === 'suppliers' ? (

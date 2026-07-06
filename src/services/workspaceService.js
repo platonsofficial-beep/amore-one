@@ -43,6 +43,13 @@ export function isCompleteWorkspace(workspace) {
   )
 }
 
+export function resolveActiveWorkspaceId({ workspace = null, membership = null } = {}) {
+  const workspaceId = `${workspace?.id ?? ''}`.trim()
+  if (workspaceId) return workspaceId
+
+  return `${membership?.workspaceId ?? membership?.workspace_id ?? ''}`.trim()
+}
+
 export function normalizeAuthWorkspace({
   membership = null,
   joinedWorkspace = null,

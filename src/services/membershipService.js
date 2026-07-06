@@ -299,3 +299,32 @@ export async function linkMembershipEmployee(authUserId, employeeId) {
 
   return mapMembership(data[0])
 }
+
+export async function getMemberDisplayNamesByAuthUserIds(workspaceId, authUserIds = []) {
+  const normalizedWorkspaceId = `${workspaceId ?? ''}`.trim()
+  const ids = [...new Set((authUserIds ?? []).filter(Boolean))]
+  if (!normalizedWorkspaceId || ids.length === 0) return {}
+
+  const { data, error } = await supabase
+    .from(WORKSPACE_MEMBERS_TABLE)
+    .select('auth_user_id, display_name, email')
+    .eq('workspace_id', normalizedWorkspaceId)
+    .in('auth_user_id', ids)
+
+  if (error) {
+    console.warn('[membershipService] getMemberDisplayNamesByAuthUserIds error:', error)
+    return {}
+  }
+
+  const namesByAuthUserId = {}
+
+  ;(data ?? []).forEach((record) => {
+    const authUserId = record.auth_user_id ?? record.authUserId
+    if (!authUserId) return
+    const displayName = `${record.display_name ?? record.displayName ?? ''}`.trim()
+    const email = `${record.email ?? ''}`.trim()
+    namesByAuthUserId[authUserId] = displayName || email.split('@')[0] || 'Unknown'
+  })
+
+  return namesByAuthUserId
+}

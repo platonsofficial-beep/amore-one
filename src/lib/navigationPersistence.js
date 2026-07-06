@@ -5,7 +5,7 @@ const LEGACY_NAVIGATION_STORAGE_KEY = 'one.navigation.v1'
 const DEFAULT_ACTIVE_VIEW = 'today'
 const DEFAULT_SETTINGS_SECTION = 'profile'
 const DEFAULT_TEAM_SECTION = 'today'
-const DEFAULT_STOCK_SECTION = 'inventory'
+const DEFAULT_STOCK_SECTION = 'dashboard'
 const DEFAULT_OPERATIONS_SECTION = 'tasks'
 
 const VALID_ACTIVE_VIEWS = new Set([
@@ -20,7 +20,7 @@ const VALID_ACTIVE_VIEWS = new Set([
 ])
 
 const VALID_TEAM_SECTIONS = new Set(['today', 'members', 'schedule'])
-const VALID_STOCK_SECTIONS = new Set(['inventory', 'suppliers'])
+const VALID_STOCK_SECTIONS = new Set(['dashboard', 'inventory', 'suppliers'])
 const VALID_OPERATIONS_SECTIONS = new Set(['tasks'])
 
 const VALID_SETTINGS_SECTIONS = new Set([
