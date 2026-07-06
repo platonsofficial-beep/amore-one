@@ -11,7 +11,11 @@ function isTableUnavailableError(error) {
 
 function isMissingColumnError(error, column) {
   const message = `${error?.message ?? ''}`.toLowerCase()
-  return message.includes('column') && message.includes(`${column}`.toLowerCase())
+  const normalizedColumn = `${column ?? ''}`.toLowerCase()
+  if (!normalizedColumn) return false
+  return message.includes(normalizedColumn)
+    || (message.includes('column') && message.includes('does not exist'))
+    || (message.includes('could not find') && message.includes(normalizedColumn))
 }
 
 function mapTemplate(record) {
@@ -67,11 +71,8 @@ export async function getWeeklyScheduleTemplates() {
     .order('updated_at', { ascending: false })
 
   if (error) {
-    console.error('[weeklyScheduleTemplateService] getWeeklyScheduleTemplates error:', error)
-    if (isTableUnavailableError(error)) {
-      return []
-    }
-    throw new Error(error.message || 'Unable to load weekly templates right now.')
+    console.warn('[weeklyScheduleTemplateService] getWeeklyScheduleTemplates error:', error)
+    return []
   }
 
   return (data ?? []).map(mapTemplate)

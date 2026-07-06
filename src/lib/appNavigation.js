@@ -9,7 +9,8 @@ export const NAV_ITEMS = [
 ]
 
 export const TEAM_SECTIONS = [
-  { id: 'members', label: 'Team Members' },
+  { id: 'today', label: 'Today' },
+  { id: 'members', label: 'People' },
   { id: 'schedule', label: 'Schedule' },
 ]
 
@@ -35,7 +36,7 @@ export const MODULE_LABELS = {
 
 const LEGACY_ACTIVE_VIEW_MAP = {
   dashboard: { activeView: 'today' },
-  staff: { activeView: 'team', teamSection: 'members' },
+  staff: { activeView: 'team', teamSection: 'schedule' },
   schedule: { activeView: 'team', teamSection: 'schedule' },
   reservations: { activeView: 'reservations' },
   suppliers: { activeView: 'stock', stockSection: 'suppliers' },
@@ -55,7 +56,7 @@ const INSIGHTS_MODULE_LINKS = {
   reports: { activeView: 'insights' },
   insights: { activeView: 'insights' },
   operations: { activeView: 'operations', operationsSection: 'tasks' },
-  team: { activeView: 'team', teamSection: 'members' },
+  team: { activeView: 'team', teamSection: 'today' },
   today: { activeView: 'today' },
 }
 
@@ -92,7 +93,7 @@ export function shouldUseCommandTopbar(activeView) {
 }
 
 export function getModuleTitle(activeView, {
-  teamSection = 'members',
+  teamSection = 'today',
   stockSection = 'inventory',
   operationsSection = 'tasks',
 } = {}) {
@@ -100,6 +101,7 @@ export function getModuleTitle(activeView, {
   if (activeView === 'reservations') return 'Reservations'
   if (activeView === 'team') {
     if (teamSection === 'schedule') return 'Schedule'
+    if (teamSection === 'members') return 'People'
     return 'Team'
   }
   if (activeView === 'stock') {
@@ -116,14 +118,15 @@ export function getModuleTitle(activeView, {
 }
 
 export function getModuleSubtitle(activeView, currentDateLabel, {
-  teamSection = 'members',
+  teamSection = 'today',
   stockSection = 'inventory',
 } = {}) {
   if (activeView === 'today') {
     return `${currentDateLabel} · Your daily command center`
   }
   if (activeView === 'reservations') return 'Guest flow and service.'
-  if (activeView === 'team' && teamSection === 'members') return 'People, roles, and roster.'
+  if (activeView === 'team' && teamSection === 'today') return "Who's working today."
+  if (activeView === 'team' && teamSection === 'members') return 'Manage your team.'
   if (activeView === 'team' && teamSection === 'schedule') return ''
   if (activeView === 'stock' && stockSection === 'inventory') return 'Inventory levels and replenishment.'
   if (activeView === 'stock' && stockSection === 'suppliers') return 'Supplier contacts and delivery.'
@@ -134,11 +137,11 @@ export function getModuleSubtitle(activeView, currentDateLabel, {
 }
 
 export function getSearchPlaceholder(activeView, {
-  teamSection = 'members',
+  teamSection = 'today',
   stockSection = 'inventory',
   operationsSection = 'tasks',
 } = {}) {
-  if (activeView === 'team' && teamSection === 'members') return 'Search team member'
+  if (activeView === 'team' && teamSection === 'members') return 'Search employee'
   if (activeView === 'stock' && stockSection === 'inventory') return 'Search stock item'
   if (activeView === 'stock' && stockSection === 'suppliers') return 'Search supplier'
   if (activeView === 'operations' && operationsSection === 'tasks') return 'Search tasks'
@@ -149,12 +152,14 @@ export function getSearchPlaceholder(activeView, {
 export function shouldShowModuleSearch(activeView, teamSection) {
   if (isTodayView(activeView)) return false
   if (isTeamScheduleView(activeView, teamSection)) return false
+  if (activeView === 'team' && teamSection === 'today') return false
   if (activeView === 'settings') return false
   return true
 }
 
 export function getDefaultTeamSection(role, canAccessTeamSection) {
+  if (canAccessTeamSection(role, 'today')) return 'today'
   if (canAccessTeamSection(role, 'members')) return 'members'
   if (canAccessTeamSection(role, 'schedule')) return 'schedule'
-  return 'members'
+  return 'schedule'
 }

@@ -84,10 +84,36 @@ export function AuthProvider({ children }) {
   const [workspaceLoadError, setWorkspaceLoadError] = useState(null)
   const [devProfileDisplayName, setDevProfileDisplayName] = useState('')
   const [isLoading, setIsLoading] = useState(!isAuthDisabled)
+  const [isBootstrapping, setIsBootstrapping] = useState(!isAuthDisabled)
   const authLoadSeqRef = useRef(0)
+  const hasBootstrappedRef = useRef(isAuthDisabled)
+  const activeUserIdRef = useRef(isAuthDisabled ? DEV_MOCK_USER.id : '')
 
   const syncDevMembershipProfile = useCallback(({ displayName = '' } = {}) => {
     setDevProfileDisplayName(`${displayName ?? ''}`.trim())
+  }, [])
+
+  const finishBootstrapping = useCallback(() => {
+    hasBootstrappedRef.current = true
+    setIsBootstrapping(false)
+    setIsLoading(false)
+  }, [])
+
+  const syncSessionOnly = useCallback((nextSession) => {
+    const nextUser = nextSession?.user ?? null
+    setSession(nextSession)
+    setUser(nextUser)
+    activeUserIdRef.current = `${nextUser?.id ?? ''}`.trim()
+  }, [])
+
+  const clearAuthenticatedState = useCallback(() => {
+    activeUserIdRef.current = ''
+    setSession(null)
+    setUser(null)
+    setWorkspace(null)
+    setMembership(null)
+    setMembershipLoadError(null)
+    setWorkspaceLoadError(null)
   }, [])
 
   const loadWorkspaceContext = useCallback(async (nextUser) => {
@@ -178,24 +204,35 @@ export function AuthProvider({ children }) {
       setWorkspace(DEV_MOCK_WORKSPACE)
       setMembershipLoadError(null)
       setWorkspaceLoadError(null)
+      hasBootstrappedRef.current = true
+      activeUserIdRef.current = DEV_MOCK_USER.id
+      setIsBootstrapping(false)
       setIsLoading(false)
+    }
+  }, [isAuthDisabled, devProfileDisplayName])
+
+  useEffect(() => {
+    if (isAuthDisabled) {
       return undefined
     }
 
     let isMounted = true
 
-    const syncAuthState = async (nextSession) => {
+    const hydrateAuthenticatedSession = async (nextSession, { blockUi = false } = {}) => {
       const nextUser = nextSession?.user ?? null
+      const nextUserId = `${nextUser?.id ?? ''}`.trim()
 
-      setSession(nextSession)
-      setUser(nextUser)
+      syncSessionOnly(nextSession)
 
-      if (!nextUser?.id) {
+      if (!nextUserId) {
         if (!isMounted) return
-        setWorkspace(null)
-        setMembership(null)
-        setIsLoading(false)
+        clearAuthenticatedState()
+        finishBootstrapping()
         return
+      }
+
+      if (blockUi) {
+        setIsLoading(true)
       }
 
       try {
@@ -204,38 +241,74 @@ export function AuthProvider({ children }) {
         console.error('[AuthContext] loadWorkspaceContext error:', error)
       } finally {
         if (isMounted) {
-          setIsLoading(false)
+          finishBootstrapping()
         }
       }
     }
 
-    setIsLoading(true)
-
-    getSession()
-      .then((nextSession) => {
-        if (!isMounted) return
-        return syncAuthState(nextSession)
-      })
-      .catch(() => {
-        if (!isMounted) return
-        setSession(null)
-        setUser(null)
-        setWorkspace(null)
-        setMembership(null)
-        setIsLoading(false)
-      })
-
-    const unsubscribe = onAuthStateChange((nextSession) => {
-      if (!isMounted) return
+    const bootstrapAuth = async () => {
+      setIsBootstrapping(true)
       setIsLoading(true)
-      syncAuthState(nextSession)
+
+      try {
+        const nextSession = await getSession()
+        if (!isMounted) return
+        await hydrateAuthenticatedSession(nextSession, { blockUi: false })
+      } catch (error) {
+        console.error('[AuthContext] bootstrapAuth error:', error)
+        if (!isMounted) return
+        clearAuthenticatedState()
+        finishBootstrapping()
+      }
+    }
+
+    bootstrapAuth()
+
+    const unsubscribe = onAuthStateChange((event, nextSession) => {
+      if (!isMounted) return
+
+      const nextUserId = `${nextSession?.user?.id ?? ''}`.trim()
+      const currentUserId = activeUserIdRef.current
+
+      if (event === 'INITIAL_SESSION' && hasBootstrappedRef.current) {
+        return
+      }
+
+      if (event === 'TOKEN_REFRESHED') {
+        if (!nextUserId) return
+        syncSessionOnly(nextSession)
+        return
+      }
+
+      if (event === 'SIGNED_OUT' || !nextUserId) {
+        clearAuthenticatedState()
+        finishBootstrapping()
+        return
+      }
+
+      const isSameUser = Boolean(nextUserId && currentUserId && nextUserId === currentUserId)
+
+      if (hasBootstrappedRef.current && isSameUser) {
+        syncSessionOnly(nextSession)
+        loadWorkspaceContext(nextSession.user).catch((error) => {
+          console.error('[AuthContext] background workspace refresh error:', error)
+        })
+        return
+      }
+
+      if (hasBootstrappedRef.current) {
+        hydrateAuthenticatedSession(nextSession, { blockUi: true })
+        return
+      }
+
+      hydrateAuthenticatedSession(nextSession, { blockUi: false })
     })
 
     return () => {
       isMounted = false
       unsubscribe()
     }
-  }, [isAuthDisabled, devProfileDisplayName, loadWorkspaceContext])
+  }, [isAuthDisabled, clearAuthenticatedState, finishBootstrapping, loadWorkspaceContext, syncSessionOnly])
 
   const signIn = useCallback(async (email, password) => {
     const data = await signInWithPassword(email, password)
@@ -246,9 +319,11 @@ export function AuthProvider({ children }) {
 
     try {
       if (nextUser) {
+        activeUserIdRef.current = `${nextUser.id ?? ''}`.trim()
         await loadWorkspaceContext(nextUser)
       }
     } finally {
+      hasBootstrappedRef.current = true
       setIsLoading(false)
     }
 
@@ -265,8 +340,10 @@ export function AuthProvider({ children }) {
       setIsLoading(true)
 
       try {
+        activeUserIdRef.current = `${nextUser.id ?? ''}`.trim()
         await loadWorkspaceContext(nextUser)
       } finally {
+        hasBootstrappedRef.current = true
         setIsLoading(false)
       }
     }
@@ -276,13 +353,10 @@ export function AuthProvider({ children }) {
 
   const signOut = useCallback(async () => {
     await authSignOut()
-    setSession(null)
-    setUser(null)
-    setWorkspace(null)
-    setMembership(null)
-    setMembershipLoadError(null)
-    setWorkspaceLoadError(null)
-  }, [])
+    hasBootstrappedRef.current = true
+    clearAuthenticatedState()
+    setIsLoading(false)
+  }, [clearAuthenticatedState])
 
   const resetPassword = useCallback(async (email) => {
     return resetPasswordForEmail(email)
@@ -325,6 +399,7 @@ export function AuthProvider({ children }) {
     roleLabel,
     isOwner,
     isLoading,
+    isBootstrapping,
     isAuthDisabled,
     membershipLoadError,
     workspaceLoadError,
@@ -342,6 +417,7 @@ export function AuthProvider({ children }) {
     roleLabel,
     isOwner,
     isLoading,
+    isBootstrapping,
     isAuthDisabled,
     membershipLoadError,
     workspaceLoadError,

@@ -11,10 +11,10 @@ export async function getSession() {
 }
 
 export function onAuthStateChange(callback) {
-  const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+  const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
     // Defer async membership work to avoid Supabase auth deadlocks.
     setTimeout(() => {
-      callback(session)
+      callback(event, session)
     }, 0)
   })
 

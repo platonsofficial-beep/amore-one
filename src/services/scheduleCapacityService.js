@@ -53,10 +53,8 @@ export async function getScheduleCapacities(options = {}) {
   const { data, error } = await query
 
   if (error) {
-    if (isTableUnavailableError(error)) {
-      return []
-    }
-    throw new Error(error.message || 'Unable to load schedule capacity right now.')
+    console.warn('[scheduleCapacityService] getScheduleCapacities error:', error)
+    return []
   }
 
   const capacities = (data ?? [])

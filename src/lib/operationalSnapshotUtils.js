@@ -27,6 +27,12 @@ function resolveTemplateCapacityId(template) {
   return rawId
 }
 
+function getTemplateDefaultRequiredCount(template) {
+  const parsed = Number(template?.defaultRequiredCount ?? template?.default_required_count)
+  if (!Number.isFinite(parsed) || parsed < 0) return 1
+  return Math.min(99, Math.floor(parsed))
+}
+
 function buildCapacityKey(templateId, shiftDate) {
   return `${String(templateId)}:${normalizeDate(shiftDate)}`
 }
@@ -94,7 +100,10 @@ function buildCapacityLookup(scheduleCapacities = []) {
 
 function getRequiredCountForCell(template, dayKey, capacityLookup) {
   const key = buildCapacityKey(resolveTemplateCapacityId(template), dayKey)
-  return Object.prototype.hasOwnProperty.call(capacityLookup, key) ? capacityLookup[key] : 1
+  if (Object.prototype.hasOwnProperty.call(capacityLookup, key)) {
+    return capacityLookup[key]
+  }
+  return getTemplateDefaultRequiredCount(template)
 }
 
 function buildAssignmentsByCell(shifts = []) {

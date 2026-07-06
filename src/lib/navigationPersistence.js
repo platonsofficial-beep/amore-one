@@ -4,7 +4,7 @@ const NAVIGATION_STORAGE_KEY = 'one.navigation.v2'
 const LEGACY_NAVIGATION_STORAGE_KEY = 'one.navigation.v1'
 const DEFAULT_ACTIVE_VIEW = 'today'
 const DEFAULT_SETTINGS_SECTION = 'profile'
-const DEFAULT_TEAM_SECTION = 'members'
+const DEFAULT_TEAM_SECTION = 'today'
 const DEFAULT_STOCK_SECTION = 'inventory'
 const DEFAULT_OPERATIONS_SECTION = 'tasks'
 
@@ -19,7 +19,7 @@ const VALID_ACTIVE_VIEWS = new Set([
   'floor-plan-builder',
 ])
 
-const VALID_TEAM_SECTIONS = new Set(['members', 'schedule'])
+const VALID_TEAM_SECTIONS = new Set(['today', 'members', 'schedule'])
 const VALID_STOCK_SECTIONS = new Set(['inventory', 'suppliers'])
 const VALID_OPERATIONS_SECTIONS = new Set(['tasks'])
 
@@ -44,6 +44,12 @@ function normalizeStockSection(value) {
 function normalizeOperationsSection(value) {
   const normalized = `${value ?? ''}`.trim()
   return VALID_OPERATIONS_SECTIONS.has(normalized) ? normalized : DEFAULT_OPERATIONS_SECTION
+}
+
+function normalizeScheduleWeekStart(value) {
+  const normalized = `${value ?? ''}`.trim()
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(normalized)) return null
+  return normalized
 }
 
 export function normalizeActiveView(value) {
@@ -107,6 +113,7 @@ export function readPersistedNavigation() {
       teamSection: DEFAULT_TEAM_SECTION,
       stockSection: DEFAULT_STOCK_SECTION,
       operationsSection: DEFAULT_OPERATIONS_SECTION,
+      scheduleWeekStart: null,
     }
   }
 
@@ -119,6 +126,7 @@ export function readPersistedNavigation() {
     teamSection: normalizeTeamSection(migrated?.teamSection ?? stored.teamSection),
     stockSection: normalizeStockSection(migrated?.stockSection ?? stored.stockSection),
     operationsSection: normalizeOperationsSection(migrated?.operationsSection ?? stored.operationsSection),
+    scheduleWeekStart: normalizeScheduleWeekStart(stored.scheduleWeekStart),
   }
 }
 
@@ -128,10 +136,14 @@ export function persistNavigation({
   teamSection,
   stockSection,
   operationsSection,
+  scheduleWeekStart,
 }) {
   if (typeof window === 'undefined') return
 
   const current = readPersistedNavigation()
+  const nextScheduleWeekStart = scheduleWeekStart === undefined
+    ? current.scheduleWeekStart
+    : normalizeScheduleWeekStart(scheduleWeekStart)
 
   window.localStorage.setItem(NAVIGATION_STORAGE_KEY, JSON.stringify({
     activeView: normalizeActiveView(activeView ?? current.activeView),
@@ -139,6 +151,7 @@ export function persistNavigation({
     teamSection: normalizeTeamSection(teamSection ?? current.teamSection),
     stockSection: normalizeStockSection(stockSection ?? current.stockSection),
     operationsSection: normalizeOperationsSection(operationsSection ?? current.operationsSection),
+    ...(nextScheduleWeekStart ? { scheduleWeekStart: nextScheduleWeekStart } : {}),
   }))
 }
 

@@ -34,9 +34,9 @@ const ROLE_MODULE_ACCESS = {
 }
 
 const TEAM_SECTION_ACCESS = {
-  owner: ['members', 'schedule'],
-  general_manager: ['members', 'schedule'],
-  manager: ['members', 'schedule'],
+  owner: ['today', 'members', 'schedule'],
+  general_manager: ['today', 'members', 'schedule'],
+  manager: ['today', 'members', 'schedule'],
   staff: ['schedule'],
 }
 
@@ -85,6 +85,12 @@ export function resolvePermittedActiveView(role, requestedView) {
 }
 
 export function resolvePermittedTeamSection(role, requestedSection) {
-  const normalizedSection = `${requestedSection ?? ''}`.trim() || 'schedule'
-  return canAccessTeamSection(role, normalizedSection) ? normalizedSection : 'schedule'
+  const normalizedSection = `${requestedSection ?? ''}`.trim()
+  if (normalizedSection && canAccessTeamSection(role, normalizedSection)) {
+    return normalizedSection
+  }
+
+  const fallbackOrder = ['today', 'members', 'schedule']
+  const resolved = fallbackOrder.find((sectionId) => canAccessTeamSection(role, sectionId))
+  return resolved ?? 'schedule'
 }

@@ -51,6 +51,12 @@ export function addWeeks(weekStartDate, weeks) {
   return getWeekStartDate(date)
 }
 
+export function addCalendarDays(dateKey, days) {
+  const date = parseLocalDate(dateKey)
+  date.setDate(date.getDate() + days)
+  return formatLocalDateKey(date)
+}
+
 export function isCurrentWeek(weekStartDate) {
   return weekStartDate === getWeekStartDate(new Date())
 }
@@ -64,7 +70,7 @@ export function formatScheduleDayHeader(dateKey) {
   const date = parseLocalDate(dateKey)
   return {
     weekdayLabel: date.toLocaleDateString('en-US', { weekday: 'long' }).toUpperCase(),
-    calendarLabel: `${date.getDate()} ${date.toLocaleDateString('en-US', { month: 'long' }).toUpperCase()}`,
+    calendarLabel: `${date.getDate()} ${date.toLocaleDateString('en-US', { month: 'short' }).toUpperCase()}`,
   }
 }
 

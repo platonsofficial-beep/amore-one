@@ -32,13 +32,13 @@ export async function getPositions() {
     .order('name', { ascending: true })
 
   if (error) {
-    console.error('[positionsService] getPositions error:', error)
+    console.warn('[positionsService] getPositions error:', error)
 
     if (isTableUnavailableError(error)) {
-      throw new Error('Positions table is not ready yet.')
+      return []
     }
 
-    throw new Error(error.message || 'Unable to load positions right now.')
+    return []
   }
 
   return (data ?? [])

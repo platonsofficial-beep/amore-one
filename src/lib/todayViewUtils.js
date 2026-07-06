@@ -24,6 +24,19 @@ function normalizeTaskDateKey(value) {
   return raw.slice(0, 10)
 }
 
+function resolveEmployeeRoleLabel(employee, shift) {
+  const shiftRole = `${shift.role ?? ''}`.trim()
+  if (shiftRole) return shiftRole
+
+  const positionNames = Array.isArray(employee?.positions)
+    ? employee.positions.map((position) => position.name).filter(Boolean)
+    : []
+
+  if (positionNames.length > 0) return positionNames.join(' · ')
+  if (employee?.position) return `${employee.position}`.trim()
+  return ''
+}
+
 function resolveShiftMember(shift, employeesById) {
   const employee = employeesById.get(String(shift.employeeId))
   const joinedEmployee = Array.isArray(shift.employees) ? shift.employees[0] : shift.employees
@@ -31,12 +44,14 @@ function resolveShiftMember(shift, employeesById) {
   const startTimeLabel = formatTime24(normalizeTimeValue(shift.startTime))
   const endTimeLabel = formatTime24(normalizeTimeValue(shift.endTime))
   const department = `${shift.area ?? employee?.department ?? employee?.position ?? 'Other'}`.trim() || 'Other'
+  const roleLabel = resolveEmployeeRoleLabel(employee, shift)
 
   return {
     shiftId: String(shift.id),
     name: name || 'Unassigned',
     department,
-    shiftLabel: startTimeLabel && endTimeLabel ? `${startTimeLabel} – ${endTimeLabel}` : startTimeLabel || 'Scheduled',
+    roleLabel,
+    shiftLabel: startTimeLabel && endTimeLabel ? `${startTimeLabel} - ${endTimeLabel}` : startTimeLabel || 'Scheduled',
     startMinutes: parseTimeToMinutes(shift.startTime) ?? 0,
   }
 }

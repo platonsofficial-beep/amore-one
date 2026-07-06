@@ -2,13 +2,13 @@ import { useAuth } from '../../context/AuthContext'
 import { LoginView } from './LoginView'
 
 export function AuthGate({ children }) {
-  const { session, isLoading, isAuthDisabled } = useAuth()
+  const { session, isBootstrapping, isAuthDisabled } = useAuth()
 
   if (isAuthDisabled) {
     return children
   }
 
-  if (isLoading) {
+  if (isBootstrapping) {
     return (
       <div className="auth-page auth-loading-page" aria-busy="true" aria-live="polite">
         <div className="auth-loading-card panel staff-panel">
