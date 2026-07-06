@@ -1,4 +1,4 @@
-import { Fragment, createContext, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { Fragment, createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import './App.css'
 import { createEmployee, deleteEmployee, getEmployees, updateEmployee } from './services/staffService'
 import { createShift, deleteShift, getShifts, updateShift } from './services/scheduleService'
@@ -221,6 +221,12 @@ import {
 } from './lib/weeklyTemplateCapacitySnapshots'
 import { buildOperationalSnapshot } from './lib/operationalSnapshotUtils'
 import {
+  buildTodayAttentionItems,
+  buildTodayServiceTimeline,
+  buildTodayStatusSummary,
+  buildTeamTodayGroups,
+} from './lib/todayViewUtils'
+import {
   buildBrandDisplay,
   buildDashboardGreeting,
   buildProfileChipDisplay,
@@ -229,16 +235,37 @@ import { MAX_WORKSPACE_LOGO_BYTES } from './lib/workspaceProfileOptions'
 import { TASK_PRESET_DEPARTMENTS } from './lib/taskDepartments'
 import { DEFAULT_RESTAURANT_AREAS } from './floor-plan-builder/models/floorPlans'
 import { WorkspaceView } from './components/workspace/WorkspaceView'
+import { AccessRestrictedView } from './components/auth/AccessRestrictedView'
+import { ModuleSectionTabs } from './components/shell/ModuleSectionTabs'
 import { UserMenu } from './components/auth/UserMenu'
 import { useAuth } from './context/AuthContext'
+import {
+  NAV_ITEMS,
+  OPERATIONS_SECTIONS,
+  STOCK_SECTIONS,
+  TEAM_SECTIONS,
+  getDefaultTeamSection,
+  getModuleSubtitle,
+  getModuleTitle,
+  getSearchPlaceholder,
+  resolveInsightsModuleLink,
+  shouldHideStandardTopbar,
+  shouldShowModuleSearch,
+  shouldUseCommandTopbar,
+} from './lib/appNavigation'
+import {
+  canAccessModule,
+  canAccessTeamSection,
+  filterNavItemsByRole,
+  resolvePermittedActiveView,
+  resolvePermittedTeamSection,
+} from './lib/permissions'
 import {
   EMPTY_WORKSPACE_PROFILE,
   getWorkspaceProfile,
   saveWorkspaceProfile,
 } from './services/workspaceProfileService'
 import {
-  buildBusinessHealthSummary,
-  buildDashboardOperationalSummary,
   buildExecutiveLabourSummary,
   buildReservationsFooter,
   buildDashboardIssuesSummary,
@@ -269,23 +296,10 @@ import {
   readPersistedNavigation,
 } from './lib/navigationPersistence'
 
-const navItems = [
-  { id: 'dashboard', label: 'Dashboard', icon: '◈' },
-  { id: 'staff', label: 'Staff', icon: '👥' },
-  { id: 'schedule', label: 'Schedule', icon: '🕒' },
-  { id: 'reservations', label: 'Reservations', icon: '🍽️' },
-  { id: 'suppliers', label: 'Suppliers', icon: '🚚' },
-  { id: 'tasks', label: 'Tasks', icon: '✓' },
-  { id: 'stock', label: 'Stock', icon: '📦' },
-  { id: 'reports', label: 'Reports', icon: '📈' },
-  { id: 'settings', label: 'Workspace', icon: '⚙️' },
-]
-
-const dashboardQuickActions = [
-  { id: 'add-reservation', label: 'Add Reservation', icon: '➕', available: true, tier: 'primary' },
-  { id: 'add-staff', label: 'Add Staff', icon: '👤', available: true, tier: 'primary' },
-  { id: 'add-task', label: 'Add Task', icon: '✓', available: true, tier: 'secondary' },
-  { id: 'create-order', label: 'Create Order', icon: '📦', available: false, hint: 'Coming soon', tier: 'secondary' },
+const todayQuickActions = [
+  { id: 'add-reservation', label: 'Reservation', icon: '➕', available: true },
+  { id: 'add-task', label: 'Task', icon: '✓', available: true },
+  { id: 'create-order', label: 'Order', icon: '📦', available: false, hint: 'Coming soon' },
 ]
 
 const filters = ['All', 'Bar', 'Service', 'Kitchen', 'Management']
@@ -516,459 +530,198 @@ function formatDashboardHeroDate(date, timeZone = '') {
 function formatTimelineEventDisplay(event) {
   if (event.type === 'reservation') {
     return {
-      title: `${event.title.replace(/ reservation$/i, '').trim()}`.toUpperCase() || 'RESERVATION',
-      department: event.note || 'Reservation',
+      title: `${event.title.replace(/ reservation$/i, '').trim()}` || 'Reservation',
+      department: event.note || '',
     }
   }
 
-  const title = `${event.title.replace(/ starts$/i, '').trim()}`.toUpperCase() || 'SHIFT'
-  const department = `${event.note ?? ''}`.trim() || 'General'
+  if (event.type === 'task') {
+    return {
+      title: event.title,
+      department: event.note || 'Task',
+    }
+  }
+
+  const title = `${event.title.replace(/ starts$/i, '').trim()}` || 'Shift'
+  const department = `${event.note ?? ''}`.trim()
 
   return { title, department }
 }
 
-const TIMELINE_PREVIEW_LIMIT = 5
+const TIMELINE_PREVIEW_LIMIT = 8
 
-function CommandTimeline({ events, isLoading }) {
+function TodayTimeline({ events, isLoading }) {
   const totalEvents = events.length
-  const isCollapsible = totalEvents > TIMELINE_PREVIEW_LIMIT
   const [isExpanded, setIsExpanded] = useState(() => totalEvents <= TIMELINE_PREVIEW_LIMIT)
-  const contentRef = useRef(null)
-  const [contentHeight, setContentHeight] = useState(null)
+  const visibleEvents = isExpanded ? events : events.slice(0, TIMELINE_PREVIEW_LIMIT)
 
   useEffect(() => {
     setIsExpanded(totalEvents <= TIMELINE_PREVIEW_LIMIT)
   }, [totalEvents])
 
-  const visibleEvents = isCollapsible && !isExpanded
-    ? events.slice(0, TIMELINE_PREVIEW_LIMIT)
-    : events
-  const visibleCount = visibleEvents.length
-
-  const measureHeight = useCallback(() => {
-    if (contentRef.current) {
-      setContentHeight(contentRef.current.scrollHeight)
-    }
-  }, [])
-
-  useLayoutEffect(() => {
-    measureHeight()
-  }, [events, isExpanded, measureHeight])
-
-  useEffect(() => {
-    if (!contentRef.current || typeof ResizeObserver === 'undefined') {
-      return undefined
-    }
-
-    const observer = new ResizeObserver(() => {
-      measureHeight()
-    })
-    observer.observe(contentRef.current)
-    return () => observer.disconnect()
-  }, [measureHeight, visibleCount])
-
   if (isLoading) {
-    return (
-      <>
-        <header className="command-card-header">
-          <p className="eyebrow">Today&apos;s Timeline</p>
-          <h3>What happens next?</h3>
-        </header>
-        <p className="command-empty-state">Loading timeline…</p>
-      </>
-    )
+    return <p className="today-empty-note">Loading timeline…</p>
   }
 
   if (totalEvents === 0) {
-    return (
-      <>
-        <header className="command-card-header">
-          <p className="eyebrow">Today&apos;s Timeline</p>
-          <h3>What happens next?</h3>
-        </header>
-        <p className="command-empty-state">No timeline events yet.</p>
-      </>
-    )
+    return <p className="today-empty-note">No upcoming events for today.</p>
   }
 
   return (
     <>
-      <header className="command-card-header command-timeline-header">
-        <p className="eyebrow">Today&apos;s Timeline</p>
-        <div className="command-timeline-header-row">
-          <h3>What happens next?</h3>
-          {isCollapsible ? (
-            <div className="command-timeline-header-meta">
-              <span className="command-timeline-counter">
-                Showing {visibleCount} of {totalEvents} events
-              </span>
-              <button
-                type="button"
-                className="command-timeline-toggle"
-                onClick={() => setIsExpanded((prev) => !prev)}
-                aria-expanded={isExpanded}
-              >
-                <span
-                  className={`command-timeline-chevron${isExpanded ? ' is-expanded' : ''}`}
-                  aria-hidden="true"
-                >
-                  ▼
-                </span>
-                <span>{isExpanded ? 'Collapse' : 'Show all'}</span>
-              </button>
-            </div>
-          ) : null}
-        </div>
-      </header>
-      <div
-        className={`command-timeline-viewport${isCollapsible ? ' is-animated' : ''}`}
-        style={
-          isCollapsible && contentHeight != null
-            ? { maxHeight: `${contentHeight}px` }
-            : undefined
-        }
-      >
-        <div ref={contentRef} className="command-timeline-content">
-          <ul className="command-timeline-list">
-            {visibleEvents.map((event) => {
-              const display = formatTimelineEventDisplay(event)
-              return (
-                <li key={event.key} className={`command-timeline-item type-${event.type}`}>
-                  <span className="command-timeline-time">{event.timeLabel}</span>
-                  <span className="command-timeline-node" aria-hidden="true" />
-                  <div className="command-timeline-copy">
-                    <strong className="command-timeline-title">{display.title}</strong>
-                    {display.department ? (
-                      <p className="command-timeline-department">{display.department}</p>
-                    ) : null}
-                  </div>
-                </li>
-              )
-            })}
-          </ul>
-        </div>
-      </div>
+      <ul className="today-timeline-list">
+        {visibleEvents.map((event) => {
+          const display = formatTimelineEventDisplay(event)
+          return (
+            <li key={event.key} className={`today-timeline-item type-${event.type}`}>
+              <span className="today-timeline-time">{event.timeLabel}</span>
+              <div className="today-timeline-copy">
+                <strong>{display.title}</strong>
+                {display.department ? <span>{display.department}</span> : null}
+              </div>
+            </li>
+          )
+        })}
+      </ul>
+      {totalEvents > TIMELINE_PREVIEW_LIMIT ? (
+        <button
+          type="button"
+          className="today-text-btn"
+          onClick={() => setIsExpanded((prev) => !prev)}
+          aria-expanded={isExpanded}
+        >
+          {isExpanded ? 'Show less' : `Show all ${totalEvents} events`}
+        </button>
+      ) : null}
     </>
   )
 }
 
-function CommandStaffList({ members, statusLabel }) {
-  if (!Array.isArray(members) || members.length === 0) return null
-
-  return (
-    <ul className="command-staff-list">
-      {members.map((member, index) => (
-        <li
-          key={member.shiftId}
-          className={`command-staff-item${index < members.length - 1 ? ' has-divider' : ''}`}
-        >
-          <span className="command-staff-avatar">{getInitials(member.name || 'Staff')}</span>
-          <div className="command-staff-copy">
-            <strong>{member.name}</strong>
-            <div className="command-staff-meta">
-              {member.position ? (
-                <span className="command-staff-role">{member.position}</span>
-              ) : (
-                <span className="command-staff-role">{statusLabel}</span>
-              )}
-              {member.department ? (
-                <span className="command-staff-department">{member.department}</span>
-              ) : null}
-            </div>
-          </div>
-          <span className="command-staff-time command-staff-shift-badge">
-            {member.startTimeLabel} – {member.endTimeLabel}
-          </span>
-        </li>
-      ))}
-    </ul>
-  )
-}
-
 function CommandCenterView({
-  snapshot,
-  liveFloor,
-  reservationsSummary,
-  reservationsConnected,
-  stockAlerts,
-  inventoryConnected,
-  tasksOverview,
-  tasksConnected,
-  isTasksLoading,
-  issuesSummary,
-  businessHealth,
-  executiveLabour,
-  reservationsFooter,
+  statusSummary,
   timelineEvents,
+  teamTodayGroups,
+  attentionItems,
   isScheduleLoading,
-  isLiveFloorLoading,
   onQuickAction,
   onViewStock,
   onViewSchedule,
   onViewTasks,
 }) {
   return (
-    <div className="command-center command-workspace" aria-label="Operations command center">
-      <section className="command-kpi-strip" aria-label="Today overview">
-        {isScheduleLoading ? (
-          <p className="command-empty-state">Loading today&apos;s overview…</p>
-        ) : (
-          <div className="command-hero-metrics command-kpi-grid" aria-label="Today's schedule metrics">
-            <article className="command-hero-metric">
-              <div className="command-kpi-icon-slot" aria-hidden="true">
-                <span className="command-kpi-icon">👥</span>
-              </div>
-              <p className="command-hero-metric-value">{snapshot.scheduledStaff}</p>
-              <p className="command-hero-metric-label">Scheduled Today</p>
-              <p className="command-hero-metric-hint">Staff assigned</p>
-            </article>
-            <article className="command-hero-metric command-hero-metric-executive">
-              <div className="command-kpi-icon-slot" aria-hidden="true">
-                <span className="command-kpi-icon">🕒</span>
-              </div>
-              <p className="command-hero-metric-value">{executiveLabour.hoursLabel}h</p>
-              <p className="command-hero-metric-label">Today&apos;s Coverage</p>
-              <div className="command-hero-metric-cost" aria-label="Today's labour cost">
-                <p className="command-hero-metric-cost-label">Labour Cost</p>
-                {executiveLabour.costConnected ? (
-                  <p className="command-hero-metric-cost-value">{executiveLabour.costDisplay}</p>
-                ) : (
-                  <p className="command-hero-metric-cost-value command-hero-metric-cost-value-empty">Not Connected</p>
-                )}
-              </div>
-            </article>
-            <article className={`command-hero-metric ${snapshot.issues > 0 ? 'has-issues' : ''}`}>
-              <div className="command-kpi-icon-slot" aria-hidden="true">
-                <span className="command-kpi-icon">⚠</span>
-              </div>
-              <p className="command-hero-metric-value">{snapshot.issues}</p>
-              <p className="command-hero-metric-label">Needs Attention</p>
-              <p className="command-hero-metric-hint">
-                {snapshot.issues > 0 ? 'Review schedule' : 'All clear'}
-              </p>
-            </article>
-            <article className={`command-hero-metric command-hero-metric-health health-tone-${businessHealth.tone}`} aria-label="Business health">
-              <div className="command-kpi-icon-slot" aria-hidden="true">
-                <span className={`command-health-icon tone-${businessHealth.tone}`}>
-                  {businessHealth.icon}
-                </span>
-              </div>
-              <p className="command-hero-metric-label command-hero-metric-label-health">Business Health</p>
-              <p className="command-hero-metric-value command-hero-metric-value-text">{businessHealth.label}</p>
-              <p className="command-hero-metric-hint">{businessHealth.message}</p>
-              <div className="command-health-score-slot" aria-hidden="true" />
-            </article>
-          </div>
-        )}
+    <div className="today-page" aria-label="Today">
+      <section className="today-status-card" aria-label="Today status">
+        <div className="today-status-row">
+          <span className="today-status-label">Service</span>
+          <span className="today-status-value">{statusSummary.serviceStatus}</span>
+        </div>
+        <div className="today-status-row">
+          <span className="today-status-label">Team</span>
+          <span className="today-status-value">{statusSummary.teamSummary}</span>
+        </div>
+        <div className="today-status-row">
+          <span className="today-status-label">Reservations</span>
+          <span className="today-status-value">{statusSummary.reservationsSummaryLine}</span>
+        </div>
+        <div className="today-status-row">
+          <span className="today-status-label">Tasks</span>
+          <span className="today-status-value">{statusSummary.tasksSummary}</span>
+        </div>
       </section>
 
-      <div className="command-operations-grid">
-        <div className="command-column command-column-primary">
-          <section className="command-card command-card-primary command-card-staff" aria-label="Staff on shift">
-            <header className="command-card-header">
-              <p className="eyebrow">Staff on Shift</p>
-              <h3>Who is working now?</h3>
+      <div className="today-layout">
+        <div className="today-main">
+          <section className="today-panel" aria-label="Service timeline">
+            <header className="today-panel-header">
+              <h3>Service Timeline</h3>
             </header>
-            {isLiveFloorLoading ? (
-              <p className="command-empty-state">Loading live floor…</p>
-            ) : liveFloor.state === 'unpublished' ? (
-              <div className="command-status-block unpublished">
-                <p className="command-state-label">No published schedule</p>
-                <p className="command-status-message">{liveFloor.message}</p>
-              </div>
-            ) : liveFloor.state === 'idle' ? (
-              <div className="command-staff-idle">
-                <p className="command-staff-empty-label">No one is currently on shift.</p>
-                {liveFloor.nextShiftStartLabel ? (
-                  <p className="command-state-label">
-                    Next shift starts at {liveFloor.nextShiftStartLabel}
-                  </p>
-                ) : null}
-                {liveFloor.nextShifts?.length > 0 ? (
-                  <CommandStaffList members={liveFloor.nextShifts} statusLabel="Up next" />
-                ) : !liveFloor.nextShiftStartLabel ? (
-                  <p className="command-status-message">{liveFloor.message}</p>
-                ) : null}
-              </div>
-            ) : (
-              <>
-                <p className="command-state-label live">On shift now</p>
-                <CommandStaffList members={liveFloor.onShift} statusLabel="On shift now" />
-              </>
-            )}
+            <TodayTimeline events={timelineEvents} isLoading={isScheduleLoading} />
           </section>
 
-          <section className="command-card command-card-primary command-card-timeline" aria-label="Today's timeline">
-            <CommandTimeline events={timelineEvents} isLoading={isScheduleLoading} />
-          </section>
-
-          <section className="command-card command-card-widget command-card-tasks" aria-label="Tasks">
-            <header className="command-card-header command-card-header-minimal">
-              <p className="eyebrow">Today Tasks</p>
-              {tasksConnected ? (
-                <button type="button" className="command-card-link command-card-link-inline" onClick={onViewTasks}>
-                  View Tasks →
-                </button>
-              ) : null}
+          <section className="today-panel" aria-label="Team today">
+            <header className="today-panel-header">
+              <h3>Team Today</h3>
             </header>
-            {!tasksConnected ? (
-              <p className="command-empty-state command-empty-state-tight">Not connected yet</p>
-            ) : isTasksLoading ? (
-              <p className="command-empty-state command-empty-state-tight">Loading tasks…</p>
-            ) : tasksOverview.showEmptyToday ? (
-              <p className="command-empty-state command-empty-state-tight">No active tasks today</p>
+            {isScheduleLoading ? (
+              <p className="today-empty-note">Loading team schedule…</p>
+            ) : teamTodayGroups.length === 0 ? (
+              <p className="today-empty-note">No shifts scheduled today.</p>
             ) : (
-              <>
-                <div className="command-task-metrics">
-                  <article className="command-task-metric">
-                    <p className="command-task-metric-value">{tasksOverview.active}</p>
-                    <p className="command-task-metric-label">Active</p>
-                  </article>
-                  <article className={`command-task-metric${tasksOverview.overdue > 0 ? ' has-alert' : ''}`}>
-                    <p className="command-task-metric-value">{tasksOverview.overdue}</p>
-                    <p className="command-task-metric-label">Overdue</p>
-                  </article>
-                  <article className="command-task-metric">
-                    <p className="command-task-metric-value">{tasksOverview.completedToday}</p>
-                    <p className="command-task-metric-label">Completed today</p>
-                  </article>
-                  <article className="command-task-metric">
-                    <p className="command-task-metric-value">{tasksOverview.completionPercent}%</p>
-                    <p className="command-task-metric-label">Complete</p>
-                  </article>
-                </div>
-                {tasksOverview.statusMessage ? (
-                  <footer className="command-task-footer">
-                    <p className={`command-task-footer-message${tasksOverview.overdue > 0 ? ' is-alert' : ' is-clear'}`}>
-                      {tasksOverview.statusMessage}
-                    </p>
-                  </footer>
-                ) : null}
-              </>
-            )}
-          </section>
-        </div>
-
-        <div className="command-column command-column-secondary">
-          <section className="command-card command-card-widget command-card-reservations" aria-label="Reservations summary">
-            <header className="command-card-header command-card-header-minimal">
-              <p className="eyebrow">Reservations</p>
-            </header>
-            {!reservationsConnected ? (
-              <p className="command-empty-state command-empty-state-tight">Not connected yet</p>
-            ) : (
-              <>
-                <div className="command-reservation-metrics">
-                  <article className="command-reservation-metric">
-                    <p className="command-reservation-metric-value">{reservationsSummary.bookings}</p>
-                    <p className="command-reservation-metric-label">Bookings</p>
-                  </article>
-                  <article className="command-reservation-metric">
-                    <p className="command-reservation-metric-value">{reservationsSummary.tables}</p>
-                    <p className="command-reservation-metric-label">Tables</p>
-                  </article>
-                  <article className="command-reservation-metric">
-                    <p className="command-reservation-metric-value">{reservationsSummary.guests}</p>
-                    <p className="command-reservation-metric-label">Guests</p>
-                  </article>
-                </div>
-                <footer className="command-reservation-footer">
-                  {reservationsFooter.type === 'next' ? (
-                    <>
-                      <p className="command-reservation-footer-label">{reservationsFooter.label}</p>
-                      <p className="command-reservation-footer-value">{reservationsFooter.time}</p>
-                    </>
-                  ) : (
-                    <p className="command-reservation-footer-empty">{reservationsFooter.message}</p>
-                  )}
-                </footer>
-              </>
-            )}
-          </section>
-
-          <div className="command-ops-widgets">
-            <section className="command-card command-card-widget command-card-stock" aria-label="Stock alerts">
-              <header className="command-card-header command-card-header-inline">
-                <p className="eyebrow">Stock Alerts</p>
-                {inventoryConnected && stockAlerts.length > 0 ? (
-                  <button type="button" className="command-card-link command-card-link-inline" onClick={onViewStock}>
-                    View Stock →
-                  </button>
-                ) : null}
-              </header>
-              {!inventoryConnected ? (
-                <p className="command-empty-state command-empty-state-tight">Not connected yet</p>
-              ) : stockAlerts.length === 0 ? (
-                <p className="command-empty-state command-empty-state-healthy command-empty-state-tight">Stock levels look healthy.</p>
-              ) : (
-                <ul className="command-stock-list">
-                  {stockAlerts.map((item) => (
-                    <li key={item.id} className={`command-stock-item severity-${item.severity}`}>
-                      <span className={`command-alert-badge ${item.severity}`}>
-                        {item.severity === 'critical' ? 'Critical' : 'Low'}
-                      </span>
-                      <div className="command-stock-copy">
-                        <strong>{item.name}</strong>
-                        {item.quantity !== undefined && item.quantity !== null ? (
-                          <span className="command-stock-qty">
-                            {item.quantity}{item.unit ? ` ${item.unit}` : ''} remaining
-                          </span>
-                        ) : null}
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </section>
-
-            <section className="command-card command-card-widget command-quick-actions" aria-label="Quick actions">
-              <header className="command-card-header command-card-header-minimal">
-                <p className="eyebrow">Quick Actions</p>
-              </header>
-              <div className="command-quick-actions-grid">
-                {dashboardQuickActions.map((action) => (
-                  <button
-                    key={action.id}
-                    type="button"
-                    className={`command-quick-action command-quick-action-${action.tier}${action.available ? '' : ' unavailable'}`}
-                    onClick={() => action.available && onQuickAction(action.id)}
-                    disabled={!action.available}
-                    title={action.available ? action.label : action.hint}
-                  >
-                    <span className="command-quick-action-icon" aria-hidden="true">{action.icon}</span>
-                    <span className="command-quick-action-copy">
-                      <strong>{action.label}</strong>
-                      {!action.available ? <small>Coming Soon</small> : null}
-                    </span>
-                  </button>
+              <div className="today-team-groups">
+                {teamTodayGroups.map((group) => (
+                  <div key={group.department} className="today-team-group">
+                    <p className="today-team-department">{group.department}</p>
+                    <ul className="today-team-list">
+                      {group.members.map((member) => (
+                        <li key={member.shiftId} className="today-team-member">
+                          <span className="today-team-name">{member.name}</span>
+                          <span className="today-team-shift">{member.shiftLabel}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
                 ))}
               </div>
-            </section>
-          </div>
-
-          <section className={`command-card command-card-widget command-issues-card severity-${issuesSummary.severity}`} aria-label="Issues and needs attention">
-            {isScheduleLoading ? (
-              <p className="command-empty-state command-empty-state-tight">Checking today&apos;s schedule…</p>
-            ) : (
-              <div className={`command-issue-panel severity-${issuesSummary.severity}`}>
-                <span className={`command-severity-badge ${issuesSummary.severity}`}>
-                  {issuesSummary.severity === 'info' ? 'Clear' : issuesSummary.severity === 'critical' ? 'Critical' : 'Warning'}
-                </span>
-                <p className="command-issues-title">
-                  {issuesSummary.count > 0 ? issuesSummary.count : '0'}
-                </p>
-                <p className="command-issues-message">
-                  {issuesSummary.count > 0 ? issuesSummary.message || issuesSummary.title : 'All systems clear'}
-                </p>
-                {issuesSummary.count > 0 ? (
-                  <button type="button" className="command-card-link command-card-link-action" onClick={onViewSchedule}>
-                    View →
-                  </button>
-                ) : null}
-              </div>
             )}
           </section>
         </div>
+
+        <aside className="today-aside">
+          <section className="today-panel" aria-label="Attention">
+            <header className="today-panel-header">
+              <h3>Attention</h3>
+            </header>
+            {attentionItems.length === 0 ? (
+              <p className="today-empty-note today-empty-note-clear">All clear for now.</p>
+            ) : (
+              <ul className="today-attention-list">
+                {attentionItems.map((item) => (
+                  <li key={item.key} className={`today-attention-item tone-${item.tone}`}>
+                    <strong>{item.label}</strong>
+                    <span>{item.detail}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+            {attentionItems.some((item) => item.key.startsWith('stock:')) ? (
+              <button type="button" className="today-text-btn" onClick={onViewStock}>
+                Open Stock
+              </button>
+            ) : null}
+            {attentionItems.some((item) => item.key.startsWith('task:')) ? (
+              <button type="button" className="today-text-btn" onClick={onViewTasks}>
+                Open Tasks
+              </button>
+            ) : null}
+            {attentionItems.some((item) => item.key === 'schedule-issues') ? (
+              <button type="button" className="today-text-btn" onClick={onViewSchedule}>
+                Open Schedule
+              </button>
+            ) : null}
+          </section>
+
+          <section className="today-panel today-quick-actions" aria-label="Quick actions">
+            <header className="today-panel-header">
+              <h3>Quick Actions</h3>
+            </header>
+            <div className="today-quick-actions-grid">
+              {todayQuickActions.map((action) => (
+                <button
+                  key={action.id}
+                  type="button"
+                  className={`today-quick-action${action.available ? '' : ' is-disabled'}`}
+                  onClick={() => action.available && onQuickAction(action.id)}
+                  disabled={!action.available}
+                  title={action.available ? action.label : action.hint}
+                >
+                  <span className="today-quick-action-icon" aria-hidden="true">{action.icon}</span>
+                  <span>{action.label}</span>
+                  {!action.available ? <small>{action.hint}</small> : null}
+                </button>
+              ))}
+            </div>
+          </section>
+        </aside>
       </div>
     </div>
   )
@@ -12005,8 +11758,12 @@ function SuppliersView({
 }
 
 function App() {
-  const [activeView, setActiveView] = useState(() => readPersistedNavigation().activeView)
-  const [settingsSection, setSettingsSection] = useState(() => readPersistedNavigation().settingsSection)
+  const persistedNavigation = readPersistedNavigation()
+  const [activeView, setActiveView] = useState(() => persistedNavigation.activeView)
+  const [teamSection, setTeamSection] = useState(() => persistedNavigation.teamSection)
+  const [stockSection, setStockSection] = useState(() => persistedNavigation.stockSection)
+  const [operationsSection, setOperationsSection] = useState(() => persistedNavigation.operationsSection)
+  const [settingsSection, setSettingsSection] = useState(() => persistedNavigation.settingsSection)
   const [searchTerm, setSearchTerm] = useState('')
   const [activeFilter, setActiveFilter] = useState('All')
   const [employees, setEmployees] = useState([])
@@ -12172,22 +11929,135 @@ function App() {
   const {
     syncDevMembershipProfile,
     isAuthDisabled,
+    isLoading: isAuthLoading,
+    role,
+    roleLabel,
     workspace,
   } = useAuth()
 
+  const visibleNavItems = useMemo(
+    () => filterNavItemsByRole(NAV_ITEMS, role),
+    [role],
+  )
+
+  const visibleTeamSections = useMemo(
+    () => TEAM_SECTIONS.filter((section) => canAccessTeamSection(role, section.id)),
+    [role],
+  )
+
+  const isActiveViewAllowed = isAuthLoading || canAccessModule(role, activeView)
+
+  const persistCurrentNavigation = useCallback((overrides = {}) => {
+    persistNavigation({
+      activeView,
+      settingsSection,
+      teamSection,
+      stockSection,
+      operationsSection,
+      ...overrides,
+    })
+  }, [activeView, settingsSection, teamSection, stockSection, operationsSection])
+
   useEffect(() => {
-    persistNavigation({ activeView, settingsSection })
-  }, [activeView, settingsSection])
+    persistCurrentNavigation()
+  }, [persistCurrentNavigation])
+
+  useEffect(() => {
+    if (isAuthLoading) return
+
+    const permittedView = resolvePermittedActiveView(role, activeView)
+    const permittedTeamSection = resolvePermittedTeamSection(role, teamSection)
+    const shouldUpdateView = permittedView !== activeView
+    const shouldUpdateTeamSection = activeView === 'team' && permittedTeamSection !== teamSection
+
+    if (!shouldUpdateView && !shouldUpdateTeamSection) return
+
+    if (shouldUpdateView) {
+      setActiveView(permittedView)
+    }
+    if (shouldUpdateTeamSection) {
+      setTeamSection(permittedTeamSection)
+    }
+
+    persistNavigation({
+      activeView: permittedView,
+      settingsSection,
+      teamSection: permittedTeamSection,
+      stockSection,
+      operationsSection,
+    })
+  }, [isAuthLoading, role, activeView, teamSection, settingsSection, stockSection, operationsSection])
 
   const handleActiveViewChange = useCallback((nextView) => {
-    setActiveView(nextView)
-    persistNavigation({ activeView: nextView, settingsSection })
-  }, [settingsSection])
+    const permittedView = resolvePermittedActiveView(role, nextView)
+    const nextTeamSection = permittedView === 'team'
+      ? resolvePermittedTeamSection(role, teamSection || getDefaultTeamSection(role, canAccessTeamSection))
+      : teamSection
+
+    setActiveView(permittedView)
+    if (permittedView === 'team') {
+      setTeamSection(nextTeamSection)
+    }
+    if (permittedView !== 'team' || nextTeamSection !== 'members') {
+      setSelectedEmployee(null)
+    }
+
+    persistNavigation({
+      activeView: permittedView,
+      settingsSection,
+      teamSection: nextTeamSection,
+      stockSection,
+      operationsSection,
+    })
+  }, [role, settingsSection, teamSection, stockSection, operationsSection])
+
+  const handleTeamSectionChange = useCallback((nextSection) => {
+    const permittedSection = resolvePermittedTeamSection(role, nextSection)
+    setTeamSection(permittedSection)
+    if (permittedSection !== 'members') {
+      setSelectedEmployee(null)
+    }
+    persistNavigation({
+      activeView,
+      settingsSection,
+      teamSection: permittedSection,
+      stockSection,
+      operationsSection,
+    })
+  }, [role, activeView, settingsSection, stockSection, operationsSection])
+
+  const handleStockSectionChange = useCallback((nextSection) => {
+    setStockSection(nextSection)
+    persistNavigation({
+      activeView,
+      settingsSection,
+      teamSection,
+      stockSection: nextSection,
+      operationsSection,
+    })
+  }, [activeView, settingsSection, teamSection, operationsSection])
+
+  const handleOperationsSectionChange = useCallback((nextSection) => {
+    setOperationsSection(nextSection)
+    persistNavigation({
+      activeView,
+      settingsSection,
+      teamSection,
+      stockSection,
+      operationsSection: nextSection,
+    })
+  }, [activeView, settingsSection, teamSection, stockSection])
 
   const handleSettingsSectionChange = useCallback((nextSection) => {
     setSettingsSection(nextSection)
-    persistNavigation({ activeView, settingsSection: nextSection })
-  }, [activeView])
+    persistNavigation({
+      activeView,
+      settingsSection: nextSection,
+      teamSection,
+      stockSection,
+      operationsSection,
+    })
+  }, [activeView, teamSection, stockSection, operationsSection])
 
   const workspaceTimeZone = workspaceProfile.timezone
   const currentDateLabel = formatCurrentDateLabel(localNow, workspaceTimeZone)
@@ -12306,10 +12176,6 @@ function App() {
     ? isScheduleLoading
     : isTodayWeekLoading
 
-  const isLiveFloorLoading = isViewingTodayWeekInScheduler
-    ? isScheduleLoading
-    : isTodayWeekLoading
-
   const operationalSnapshot = useMemo(() => buildOperationalSnapshot({
     shifts: dashboardShifts,
     shiftTemplates,
@@ -12357,63 +12223,70 @@ function App() {
     [workspaceProfile.managerName, scheduleEmployees],
   )
 
-  const dashboardBusinessHealth = useMemo(() => buildBusinessHealthSummary({
-    issuesSummary: dashboardIssuesSummary,
-    stockAlerts: dashboardStockAlerts,
-    inventoryConnected: isInventoryModuleConnected,
-  }), [dashboardIssuesSummary, dashboardStockAlerts, isInventoryModuleConnected])
-
-  const dashboardExecutiveLabour = useMemo(() => {
-    const todayShifts = dashboardShifts.filter((shift) => {
-      const raw = `${shift.date ?? ''}`.trim()
-      const normalized = raw.includes('T') ? raw.split('T')[0] : raw.slice(0, 10)
-      return normalized === currentDateKey
-    })
-
-    return buildExecutiveLabourSummary({
-      snapshot: operationalSnapshot,
-      todayShifts,
-      employees: scheduleEmployees,
-    })
-  }, [dashboardShifts, operationalSnapshot, scheduleEmployees, currentDateKey])
-
-  const dashboardOperationalSummary = useMemo(() => buildDashboardOperationalSummary({
-    snapshot: operationalSnapshot,
-    reservationsSummary: todayReservationsSummary,
-    reservationsConnected: isReservationsModuleConnected,
-    stockAlerts: dashboardStockAlerts,
-    inventoryConnected: isInventoryModuleConnected,
-    issuesSummary: dashboardIssuesSummary,
-    liveFloor: liveFloorState,
-    now: localNow,
-  }), [
-    operationalSnapshot,
-    todayReservationsSummary,
-    isReservationsModuleConnected,
-    dashboardStockAlerts,
-    isInventoryModuleConnected,
-    dashboardIssuesSummary,
-    liveFloorState,
-    localNow,
-  ])
-
   const dashboardReservationsFooter = useMemo(
     () => buildReservationsFooter(reservations, currentDateKey, localNow),
     [reservations, currentDateKey, localNow],
   )
 
-  const dashboardTimelineEvents = useMemo(() => buildTodayCommandTimeline({
-    shifts: dashboardShifts,
-    shiftTemplates,
-    reservations,
-    todayKey: currentDateKey,
+  const todayStatusSummary = useMemo(() => buildTodayStatusSummary({
+    liveFloor: liveFloorState,
+    snapshot: operationalSnapshot,
+    reservationsSummary: todayReservationsSummary,
     reservationsConnected: isReservationsModuleConnected,
+    reservationsFooter: dashboardReservationsFooter,
+    tasksOverview: dashboardTaskOverview,
+    tasksConnected: isTasksModuleConnected,
+  }), [
+    liveFloorState,
+    operationalSnapshot,
+    todayReservationsSummary,
+    isReservationsModuleConnected,
+    dashboardReservationsFooter,
+    dashboardTaskOverview,
+    isTasksModuleConnected,
+  ])
+
+  const teamTodayGroups = useMemo(() => buildTeamTodayGroups({
+    shifts: dashboardShifts,
+    employees: scheduleEmployees,
+    todayKey: currentDateKey,
+  }), [dashboardShifts, scheduleEmployees, currentDateKey])
+
+  const todayAttentionItems = useMemo(() => buildTodayAttentionItems({
+    stockAlerts: dashboardStockAlerts,
+    inventoryConnected: isInventoryModuleConnected,
+    tasks,
+    todayKey: currentDateKey,
+    issuesSummary: dashboardIssuesSummary,
+    snapshot: operationalSnapshot,
+  }), [
+    dashboardStockAlerts,
+    isInventoryModuleConnected,
+    tasks,
+    currentDateKey,
+    dashboardIssuesSummary,
+    operationalSnapshot,
+  ])
+
+  const dashboardTimelineEvents = useMemo(() => buildTodayServiceTimeline({
+    timelineEvents: buildTodayCommandTimeline({
+      shifts: dashboardShifts,
+      shiftTemplates,
+      reservations,
+      todayKey: currentDateKey,
+      reservationsConnected: isReservationsModuleConnected,
+    }),
+    tasks,
+    todayKey: currentDateKey,
+    tasksConnected: isTasksModuleConnected,
   }), [
     dashboardShifts,
     shiftTemplates,
     reservations,
     currentDateKey,
     isReservationsModuleConnected,
+    tasks,
+    isTasksModuleConnected,
   ])
 
   const dashboardHeroDateLabel = useMemo(
@@ -12650,7 +12523,7 @@ function App() {
   }, [positions])
 
   useEffect(() => {
-    if (activeView !== 'dashboard') return undefined
+    if (activeView !== 'today') return undefined
 
     refreshDashboardModuleData()
     const intervalId = window.setInterval(refreshDashboardModuleData, 60_000)
@@ -12659,7 +12532,7 @@ function App() {
   }, [activeView, refreshDashboardModuleData])
 
   useEffect(() => {
-    if (activeView !== 'reports') return undefined
+    if (activeView !== 'insights') return undefined
 
     let isMounted = true
     setIsReportsLoading(true)
@@ -12915,7 +12788,7 @@ function App() {
   }, [])
 
   useEffect(() => {
-    if (activeView !== 'tasks') return undefined
+    if (activeView !== 'operations') return undefined
     refreshTasks()
     refreshTaskTemplates()
     return undefined
@@ -15629,37 +15502,39 @@ function App() {
 
   const handleDashboardQuickAction = (actionId) => {
     if (actionId === 'add-reservation') {
-      setActiveView('reservations')
+      handleActiveViewChange('reservations')
       handleOpenAddReservation()
       return
     }
 
-    if (actionId === 'add-staff') {
-      setActiveView('staff')
-      handleOpenAddEmployee()
-      return
-    }
-
     if (actionId === 'add-task') {
-      setActiveView('tasks')
+      handleActiveViewChange('operations')
+      handleOperationsSectionChange('tasks')
       setOpenTasksCreateModal(true)
     }
   }
 
   const handleDashboardViewTasks = () => {
-    setActiveView('tasks')
+    handleActiveViewChange('operations')
+    handleOperationsSectionChange('tasks')
   }
 
   const handleDashboardViewStock = () => {
-    setActiveView('stock')
+    handleActiveViewChange('stock')
+    handleStockSectionChange('inventory')
   }
 
   const handleDashboardViewSchedule = () => {
-    setActiveView('schedule')
+    handleActiveViewChange('team')
+    handleTeamSectionChange('schedule')
   }
 
-  const handleReportsViewModule = (moduleId) => {
-    setActiveView(moduleId)
+  const handleInsightsViewModule = (moduleId) => {
+    const route = resolveInsightsModuleLink(moduleId)
+    handleActiveViewChange(route.activeView)
+    if (route.teamSection) handleTeamSectionChange(route.teamSection)
+    if (route.stockSection) handleStockSectionChange(route.stockSection)
+    if (route.operationsSection) handleOperationsSectionChange(route.operationsSection)
   }
 
   const handleOpenEditReservation = (reservation) => {
@@ -16502,60 +16377,12 @@ function App() {
     }
   }
 
-  const heroTitle = activeView === 'dashboard'
-    ? 'Operations Command Center'
-    : activeView === 'settings'
-      ? 'Workspace Settings'
-    : activeView === 'staff'
-      ? 'Staff management'
-      : activeView === 'schedule'
-        ? 'Schedule management'
-        : activeView === 'reservations'
-          ? 'Reservations management'
-          : activeView === 'suppliers'
-            ? 'Suppliers management'
-          : activeView === 'stock'
-            ? 'Stock management'
-            : activeView === 'reports'
-              ? 'Reports'
-            : activeView === 'tasks'
-              ? 'Tasks management'
-            : 'Operations management'
-  const heroSubtitle = activeView === 'dashboard'
-    ? `${currentDateLabel} · What is happening in your business today`
-    : activeView === 'settings'
-      ? 'Configure your ONE workspace, team structure, and operational defaults.'
-    : activeView === 'reservations'
-      ? 'Review service flow, seating, and guest arrivals.'
-      : activeView === 'suppliers'
-        ? 'Review supplier contacts, terms, and delivery cadence.'
-      : activeView === 'stock'
-        ? 'Monitor supply health, costs, and replenishment risk.'
-        : activeView === 'reports'
-          ? 'Operational summaries from your connected modules.'
-        : activeView === 'tasks'
-          ? 'Track department work, due dates, and daily completion progress.'
-        : 'Search, filter, and review the full team roster.'
-
-  const topbarEyebrow = activeView === 'dashboard'
-    ? 'Command center'
-    : activeView === 'settings'
-      ? 'Workspace settings'
-      : activeView === 'staff'
-        ? 'Staff management'
-        : activeView === 'schedule'
-          ? 'Schedule management'
-          : activeView === 'reservations'
-            ? 'Reservations management'
-            : activeView === 'suppliers'
-              ? 'Suppliers management'
-              : activeView === 'stock'
-                ? 'Stock control'
-                : activeView === 'reports'
-                  ? 'Reports'
-                : activeView === 'tasks'
-                  ? 'Tasks management'
-                : 'Operations management'
+  const moduleTitle = getModuleTitle(activeView, { teamSection, stockSection, operationsSection })
+  const moduleSubtitle = getModuleSubtitle(activeView, currentDateLabel, { teamSection, stockSection })
+  const moduleSearchPlaceholder = getSearchPlaceholder(activeView, { teamSection, stockSection, operationsSection })
+  const hideStandardTopbar = shouldHideStandardTopbar(activeView, teamSection)
+  const useCommandTopbar = shouldUseCommandTopbar(activeView)
+  const showModuleSearch = shouldShowModuleSearch(activeView, teamSection)
 
   const supplierDeleteLinkedCount = supplierPendingDelete
     ? countInventoryItemsForSupplier(inventoryItems, supplierPendingDelete.companyName)
@@ -16625,17 +16452,12 @@ function App() {
         </div>
 
         <nav className="nav-links" aria-label="Sidebar navigation">
-          {navItems.map((item) => (
+          {visibleNavItems.map((item) => (
             <button
               key={item.id}
               type="button"
               className={`nav-link ${activeView === item.id ? 'active' : ''}`}
-              onClick={() => {
-                handleActiveViewChange(item.id)
-                if (item.id !== 'staff') {
-                  setSelectedEmployee(null)
-                }
-              }}
+              onClick={() => handleActiveViewChange(item.id)}
             >
               <span className="nav-icon">{item.icon}</span>
               <span>{item.label}</span>
@@ -16644,9 +16466,9 @@ function App() {
         </nav>
       </aside>
 
-      <main className={`main-panel${activeView === 'schedule' ? ' main-panel-schedule' : ''}${activeView === 'dashboard' ? ' main-panel-dashboard' : ''}${activeView === 'floor-plan-builder' ? ' main-panel-floor-builder' : ''}${activeView === 'reservations' ? ' main-panel-reservations' : ''}`}>
-        {activeView !== 'schedule' && activeView !== 'floor-plan-builder' ? (
-        activeView === 'dashboard' ? (
+      <main className={`main-panel${activeView === 'team' && teamSection === 'schedule' ? ' main-panel-schedule' : ''}${activeView === 'today' ? ' main-panel-dashboard' : ''}${activeView === 'floor-plan-builder' ? ' main-panel-floor-builder' : ''}${activeView === 'reservations' ? ' main-panel-reservations' : ''}`}>
+        {!hideStandardTopbar ? (
+        useCommandTopbar ? (
         <header className="topbar topbar-command topbar-command-hero">
           <div className="command-topbar-intro">
             <h2 className="command-topbar-greeting">
@@ -16656,7 +16478,6 @@ function App() {
               <p className="command-topbar-business">{brandDisplay.businessName}</p>
             ) : null}
             <p className="command-topbar-date">{dashboardHeroDateLabel}</p>
-            <p className="command-topbar-context">{dashboardOperationalSummary}</p>
           </div>
           <div className="command-topbar-meta">
             <div className={`command-status-chip tone-${dashboardLiveStatus.tone}`} aria-label="Live operations status">
@@ -16677,21 +16498,24 @@ function App() {
         ) : (
         <header className="topbar">
           <div className="topbar-title-block">
-            <p className="eyebrow">{topbarEyebrow}</p>
-            <h2>{heroTitle}</h2>
-            <p className="welcome-subtitle">{heroSubtitle}</p>
+            <h2>{moduleTitle}</h2>
+            {moduleSubtitle ? (
+              <p className="welcome-subtitle">{moduleSubtitle}</p>
+            ) : null}
           </div>
           <div className="topbar-meta">
-            <label className="search-bar" aria-label={`Search ${activeView}`}>
+            {showModuleSearch ? (
+            <label className="search-bar" aria-label={`Search ${moduleTitle}`}>
               <span>⌕</span>
               <input
                 type="text"
-                placeholder={activeView === 'staff' ? 'Search employee' : activeView === 'stock' ? 'Search stock item' : activeView === 'suppliers' ? 'Search supplier' : activeView === 'tasks' ? 'Search tasks' : activeView === 'reports' ? 'Search reports' : 'Search'}
+                placeholder={moduleSearchPlaceholder}
                 value={searchTerm}
                 onChange={(event) => setSearchTerm(event.target.value)}
               />
             </label>
-            <button type="button" className="icon-btn">🔔</button>
+            ) : null}
+            <button type="button" className="icon-btn" aria-label="Notifications">🔔</button>
             <div className="date-pill">{currentDateLabel}</div>
             <UserMenu
               profileChipDisplay={profileChipDisplay}
@@ -16702,24 +16526,49 @@ function App() {
         )
         ) : null}
 
-        {activeView === 'dashboard' ? (
+        {activeView === 'team' && isActiveViewAllowed ? (
+          <ModuleSectionTabs
+            sections={visibleTeamSections}
+            activeSection={teamSection}
+            onSectionChange={handleTeamSectionChange}
+            ariaLabel="Team sections"
+          />
+        ) : null}
+
+        {activeView === 'stock' && isActiveViewAllowed ? (
+          <ModuleSectionTabs
+            sections={STOCK_SECTIONS}
+            activeSection={stockSection}
+            onSectionChange={handleStockSectionChange}
+            ariaLabel="Stock sections"
+          />
+        ) : null}
+
+        {activeView === 'operations' && isActiveViewAllowed ? (
+          <ModuleSectionTabs
+            sections={OPERATIONS_SECTIONS}
+            activeSection={operationsSection}
+            onSectionChange={handleOperationsSectionChange}
+            ariaLabel="Operations sections"
+          />
+        ) : null}
+
+        {!isActiveViewAllowed ? (
+          <AccessRestrictedView
+            moduleId={activeView}
+            role={role}
+            roleLabel={roleLabel}
+            onGoDashboard={() => handleActiveViewChange('today')}
+          />
+        ) : null}
+
+        {isActiveViewAllowed && activeView === 'today' ? (
           <CommandCenterView
-            snapshot={operationalSnapshot}
-            liveFloor={liveFloorState}
-            reservationsSummary={todayReservationsSummary}
-            reservationsConnected={isReservationsModuleConnected}
-            stockAlerts={dashboardStockAlerts}
-            inventoryConnected={isInventoryModuleConnected}
-            tasksOverview={dashboardTaskOverview}
-            tasksConnected={isTasksModuleConnected}
-            isTasksLoading={isTasksLoading}
-            issuesSummary={dashboardIssuesSummary}
-            businessHealth={dashboardBusinessHealth}
-            executiveLabour={dashboardExecutiveLabour}
-            reservationsFooter={dashboardReservationsFooter}
+            statusSummary={todayStatusSummary}
             timelineEvents={dashboardTimelineEvents}
+            teamTodayGroups={teamTodayGroups}
+            attentionItems={todayAttentionItems}
             isScheduleLoading={isDashboardScheduleLoading}
-            isLiveFloorLoading={isLiveFloorLoading}
             onQuickAction={handleDashboardQuickAction}
             onViewStock={handleDashboardViewStock}
             onViewSchedule={handleDashboardViewSchedule}
@@ -16727,7 +16576,7 @@ function App() {
           />
         ) : null}
 
-        {activeView === 'staff' ? (
+        {isActiveViewAllowed && activeView === 'team' && teamSection === 'members' ? (
           <StaffView
             employees={filteredEmployees}
             selectedEmployee={selectedEmployee}
@@ -16745,7 +16594,7 @@ function App() {
           />
         ) : null}
 
-        {activeView === 'schedule' ? (
+        {isActiveViewAllowed && activeView === 'team' && teamSection === 'schedule' ? (
           <ScheduleView
             shifts={shifts}
             scheduleCapacities={scheduleCapacities}
@@ -16793,7 +16642,7 @@ function App() {
           />
         ) : null}
 
-        {activeView === 'reservations' ? (
+        {isActiveViewAllowed && activeView === 'reservations' ? (
           <ReservationsView
             reservations={reservations}
             onOpenAddReservation={handleOpenAddReservation}
@@ -16814,16 +16663,16 @@ function App() {
           />
         ) : null}
 
-        {activeView === 'floor-plan-builder' ? (
+        {isActiveViewAllowed && activeView === 'floor-plan-builder' ? (
           <div className="floor-plan-deprecated-notice">
             <p>Floor Plan Builder now lives inside Reservations.</p>
-            <button type="button" className="primary-btn" onClick={() => setActiveView('reservations')}>
+            <button type="button" className="primary-btn" onClick={() => handleActiveViewChange('reservations')}>
               Open Reservations
             </button>
           </div>
         ) : null}
 
-        {activeView === 'suppliers' ? (
+        {isActiveViewAllowed && activeView === 'stock' && stockSection === 'suppliers' ? (
           <SuppliersView
             suppliers={suppliers}
             inventoryItems={inventoryItems}
@@ -16838,7 +16687,7 @@ function App() {
           />
         ) : null}
 
-        {activeView === 'stock' ? (
+        {isActiveViewAllowed && activeView === 'stock' && stockSection === 'inventory' ? (
           <InventoryView
             inventoryItems={inventoryItems}
             barRefills={barRefills}
@@ -16861,7 +16710,7 @@ function App() {
           />
         ) : null}
 
-        {activeView === 'reports' ? (
+        {isActiveViewAllowed && activeView === 'insights' ? (
           <ReportsView
             todayKey={currentDateKey}
             weekStartDate={todayWeekStart}
@@ -16881,11 +16730,11 @@ function App() {
               || isDashboardScheduleLoading
               || isSuppliersLoading
             }
-            onViewModule={handleReportsViewModule}
+            onViewModule={handleInsightsViewModule}
           />
         ) : null}
 
-        {activeView === 'tasks' ? (
+        {isActiveViewAllowed && activeView === 'operations' && operationsSection === 'tasks' ? (
           <TasksView
             tasks={tasks}
             taskTemplates={taskTemplates}
@@ -16920,7 +16769,7 @@ function App() {
           />
         ) : null}
 
-        {activeView === 'settings' ? (
+        {isActiveViewAllowed && activeView === 'settings' ? (
           <WorkspaceView
             activeSection={settingsSection}
             onSectionChange={handleSettingsSectionChange}
@@ -16954,7 +16803,10 @@ function App() {
             teamProps={{
               employees,
               managerName: workspaceProfile.managerName,
-              onManageStaff: () => setActiveView('staff'),
+              onManageStaff: () => {
+                handleActiveViewChange('team')
+                handleTeamSectionChange('members')
+              },
             }}
             systemProps={{
               moduleConnections: workspaceModuleConnections,
