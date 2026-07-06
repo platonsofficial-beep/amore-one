@@ -232,6 +232,9 @@ import {
   buildTodayStatusSummary,
   buildTeamTodayGroups,
 } from './lib/todayViewUtils'
+import { buildEmployeeTodayShiftLookup, buildTeamTodayStatus } from './lib/teamViewUtils'
+import { TeamTodayView } from './components/team/TeamTodayView'
+import { TeamPeopleView } from './components/team/TeamPeopleView'
 import {
   buildBrandDisplay,
   buildDashboardGreeting,
@@ -308,7 +311,6 @@ const todayQuickActions = [
   { id: 'create-order', label: 'Order', icon: '📦', available: false, hint: 'Coming soon' },
 ]
 
-const filters = ['All', 'Bar', 'Service', 'Kitchen', 'Management']
 const defaultStaffPositionOptions = [
   'Bar',
   'Service',
@@ -842,201 +844,6 @@ function buildEmployeeForm(employee = null) {
     emergencyContact: employee?.emergencyContact ?? '',
     notes: employee?.notes ?? '',
   }
-}
-
-function StaffView({
-  employees,
-  selectedEmployee,
-  onSelectEmployee,
-  searchTerm,
-  onSearchChange,
-  activeFilter,
-  onFilterChange,
-  onOpenAddEmployee,
-  onOpenEditEmployee,
-  onRequestDeleteEmployee,
-  isLoading,
-  noticeMessage,
-  isSaving,
-}) {
-  const getEmployeePositionsLabel = (employee) => {
-    const names = Array.isArray(employee.positions)
-      ? employee.positions.map((position) => position.name).filter(Boolean)
-      : []
-
-    if (names.length > 0) return names.join(', ')
-    return 'No positions assigned'
-  }
-
-  const overviewCards = [
-    { label: 'Total Employees', value: employees.length, detail: 'Across all departments' },
-    { label: 'On Shift', value: employees.filter((employee) => employee.status === 'Working').length, detail: 'Active service team' },
-    { label: 'Off Today', value: employees.filter((employee) => employee.status === 'Day Off').length, detail: 'Scheduled breaks' },
-    { label: 'On Leave', value: employees.filter((employee) => employee.status === 'Leave').length, detail: 'Out of service' },
-  ]
-
-  return (
-    <section className="staff-page">
-      <div className="staff-header-card">
-        <div>
-          <p className="eyebrow">Staff management</p>
-          <h3>Team overview</h3>
-          <p className="staff-subtitle">Monitor service coverage, shifts, and employee details from one place.</p>
-        </div>
-        <button type="button" className="primary-btn" onClick={onOpenAddEmployee} disabled={isSaving}>
-          {isSaving ? 'Saving…' : '+ Add Employee'}
-        </button>
-      </div>
-
-      <div className="staff-overview-grid">
-        {overviewCards.map((card) => (
-          <article key={card.label} className="staff-overview-card">
-            <p>{card.label}</p>
-            <h4>{card.value}</h4>
-            <span>{card.detail}</span>
-          </article>
-        ))}
-      </div>
-
-      <div className="staff-toolbar">
-        <label className="staff-search" aria-label="Search employee">
-          <span>⌕</span>
-          <input type="text" value={searchTerm} onChange={onSearchChange} placeholder="Search employee" />
-        </label>
-
-        <div className="filter-group">
-          {filters.map((filter) => (
-            <button
-              key={filter}
-              type="button"
-              className={`filter-chip ${activeFilter === filter ? 'active' : ''}`}
-              onClick={() => onFilterChange(filter)}
-            >
-              {filter}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {noticeMessage ? <div className="staff-status-banner">{noticeMessage}</div> : null}
-      {isLoading ? <div className="staff-status-banner">Loading staff roster…</div> : null}
-
-      <div className="panel staff-panel">
-        <div className="panel-heading">
-          <div>
-            <p className="eyebrow">Employee roster</p>
-            <h3>Active team members</h3>
-          </div>
-        </div>
-
-        <div className="table-shell">
-          <table className="staff-table">
-            <thead>
-              <tr>
-                <th>Photo</th>
-                <th>Name</th>
-                <th>Position</th>
-                <th>Phone</th>
-                <th>Shift</th>
-                <th>Status</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {employees.map((employee) => (
-                <tr key={employee.id} onClick={() => onSelectEmployee(employee)}>
-                  <td>
-                    <div className="employee-photo">{getInitials(employee.name)}</div>
-                  </td>
-                  <td>
-                    <div className="employee-name-block">
-                      <strong>{employee.name}</strong>
-                      <p>{employee.department}</p>
-                    </div>
-                  </td>
-                  <td>{getEmployeePositionsLabel(employee)}</td>
-                  <td>{employee.phone}</td>
-                  <td>{employee.shift}</td>
-                  <td>
-                    <span className={`status-pill ${employee.status.toLowerCase().replace(/\s+/g, '-')}`}>
-                      {employee.status}
-                    </span>
-                  </td>
-                  <td>
-                    <div className="action-group">
-                      <button type="button" className="ghost-btn small" onClick={(event) => {
-                        event.stopPropagation()
-                        onSelectEmployee(employee)
-                      }}>
-                        View
-                      </button>
-                      <button type="button" className="ghost-btn small" onClick={(event) => {
-                        event.stopPropagation()
-                        onOpenEditEmployee(employee)
-                      }}>
-                        Edit
-                      </button>
-                      <button type="button" className="ghost-btn small" onClick={(event) => {
-                        event.stopPropagation()
-                        onRequestDeleteEmployee(employee)
-                      }}>
-                        Delete
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      {selectedEmployee ? (
-        <div className="drawer-backdrop" onClick={() => onSelectEmployee(null)} />
-      ) : null}
-
-      {selectedEmployee ? (
-        <aside className="employee-drawer">
-          <div className="drawer-header">
-            <div>
-              <p className="eyebrow">Employee details</p>
-              <h3>{selectedEmployee.name}</h3>
-            </div>
-            <button type="button" className="icon-btn" onClick={() => onSelectEmployee(null)}>✕</button>
-          </div>
-
-          <div className="drawer-profile">
-            <div className="employee-photo large">{getInitials(selectedEmployee.name)}</div>
-            <div>
-              <strong>{getEmployeePositionsLabel(selectedEmployee)}</strong>
-              <p>{selectedEmployee.department}</p>
-            </div>
-          </div>
-
-          <div className="drawer-grid">
-            <div className="drawer-row"><span>Full Name</span><strong>{selectedEmployee.name}</strong></div>
-            <div className="drawer-row"><span>Positions</span><strong>{getEmployeePositionsLabel(selectedEmployee)}</strong></div>
-            <div className="drawer-row"><span>Phone</span><strong>{selectedEmployee.phone}</strong></div>
-            <div className="drawer-row"><span>Email</span><strong>{selectedEmployee.email}</strong></div>
-            <div className="drawer-row"><span>Hire Date</span><strong>{selectedEmployee.hireDate}</strong></div>
-            <div className="drawer-row"><span>Salary</span><strong>{selectedEmployee.salary}</strong></div>
-            <div className="drawer-row"><span>Emergency Contact</span><strong>{selectedEmployee.emergencyContact}</strong></div>
-            <div className="drawer-row"><span>Weekly Hours</span><strong>{selectedEmployee.weeklyHours}</strong></div>
-          </div>
-
-          <div className="drawer-notes">
-            <p className="eyebrow">Notes</p>
-            <p>{selectedEmployee.notes}</p>
-          </div>
-
-          <div className="action-group" style={{ marginTop: '16px' }}>
-            <button type="button" className="ghost-btn" onClick={() => onOpenEditEmployee(selectedEmployee)}>Edit</button>
-            <button type="button" className="ghost-btn" onClick={() => onRequestDeleteEmployee(selectedEmployee)}>Delete</button>
-          </div>
-        </aside>
-      ) : null}
-    </section>
-  )
 }
 
 function formatScheduleHeaderWeekRange(days) {
@@ -12213,6 +12020,18 @@ function App() {
     todayKey: currentDateKey,
   }), [dashboardShifts, scheduleEmployees, currentDateKey])
 
+  const teamTodayStatus = useMemo(() => buildTeamTodayStatus({
+    liveFloor: liveFloorState,
+    snapshot: operationalSnapshot,
+  }), [liveFloorState, operationalSnapshot])
+
+  const employeeTodayShifts = useMemo(() => (
+    Object.fromEntries(buildEmployeeTodayShiftLookup({
+      shifts: dashboardShifts,
+      todayKey: currentDateKey,
+    }))
+  ), [dashboardShifts, currentDateKey])
+
   const todayAttentionItems = useMemo(() => buildTodayAttentionItems({
     stockAlerts: dashboardStockAlerts,
     inventoryConnected: isInventoryModuleConnected,
@@ -12476,7 +12295,7 @@ function App() {
     return {
       staffDepartments: positionDepartments.length > 0
         ? positionDepartments
-        : filters.filter((item) => item !== 'All'),
+        : ['Bar', 'Service', 'Kitchen', 'Management'],
       scheduleAreas: scheduleAreaOptions,
       reservationAreas: DEFAULT_RESTAURANT_AREAS.map((area) => area.label),
       taskBoards: TASK_PRESET_DEPARTMENTS.map((department) => department.label),
@@ -16538,13 +16357,21 @@ function App() {
           />
         ) : null}
 
+        {isActiveViewAllowed && activeView === 'team' && teamSection === 'today' ? (
+          <TeamTodayView
+            teamStatus={teamTodayStatus}
+            teamTodayGroups={teamTodayGroups}
+            isLoading={isDashboardScheduleLoading}
+            noticeMessage={staffNotice}
+          />
+        ) : null}
+
         {isActiveViewAllowed && activeView === 'team' && teamSection === 'members' ? (
-          <StaffView
+          <TeamPeopleView
             employees={filteredEmployees}
+            employeeTodayShifts={employeeTodayShifts}
             selectedEmployee={selectedEmployee}
             onSelectEmployee={setSelectedEmployee}
-            searchTerm={searchTerm}
-            onSearchChange={(event) => setSearchTerm(event.target.value)}
             activeFilter={activeFilter}
             onFilterChange={setActiveFilter}
             onOpenAddEmployee={handleOpenAddEmployee}
