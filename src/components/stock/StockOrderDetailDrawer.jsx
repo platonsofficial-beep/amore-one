@@ -325,6 +325,7 @@ export function StockOrderDetailDrawer({
     const handleKeyDown = (event) => {
       if (event.key === 'Escape') {
         event.preventDefault()
+        if (isSaving) return
         if (isReceiveConfirmOpen) {
           setIsReceiveConfirmOpen(false)
           return
@@ -341,7 +342,7 @@ export function StockOrderDetailDrawer({
       document.body.style.overflow = previousOverflow
       document.removeEventListener('keydown', handleKeyDown)
     }
-  }, [onClose, isReceiveConfirmOpen])
+  }, [onClose, isReceiveConfirmOpen, isSaving])
 
   const statusTone = getStockOrderStatusTone(order.status)
   const deliveryLabel = formatStockOrderDeliveryDate(order.expectedDeliveryDate)
@@ -379,7 +380,13 @@ export function StockOrderDetailDrawer({
     }))
   }
 
+  const handleDismiss = () => {
+    if (isSaving) return
+    onClose()
+  }
+
   const handleSaveDraft = async () => {
+    if (isSaving) return
     setError('')
     const validItems = draftItems.filter((item) => item.quantity > 0)
 
@@ -417,6 +424,7 @@ export function StockOrderDetailDrawer({
   }
 
   const handleConfirmReceive = async () => {
+    if (isSaving) return
     setError('')
 
     const receiveItems = (order.items ?? []).map((item) => ({
@@ -437,6 +445,7 @@ export function StockOrderDetailDrawer({
   }
 
   const handleStatusAction = async (action) => {
+    if (isSaving) return
     setError('')
     try {
       if (action === 'sent') {
@@ -468,13 +477,14 @@ export function StockOrderDetailDrawer({
 
   return (
     <>
-      <div className="stock-product-history-backdrop" onClick={onClose}>
+      <div className="stock-product-history-backdrop" onClick={handleDismiss}>
         <aside
           className="stock-product-history-drawer stock-order-detail-drawer"
           onClick={(event) => event.stopPropagation()}
           role="dialog"
           aria-modal="true"
           aria-labelledby="stock-order-detail-title"
+          aria-busy={isSaving}
         >
           <header className="stock-order-detail-header">
             <div className="stock-order-detail-header-copy">
@@ -495,7 +505,8 @@ export function StockOrderDetailDrawer({
             <button
               type="button"
               className="icon-btn stock-product-history-close"
-              onClick={onClose}
+              onClick={handleDismiss}
+              disabled={isSaving}
               aria-label="Close order details"
             >
               ✕
@@ -683,7 +694,7 @@ export function StockOrderDetailDrawer({
                     onClick={() => handleStatusAction('cancel')}
                     disabled={isSaving || !canCancelStockOrder(order)}
                   >
-                    Cancel order
+                    {isSaving ? 'Saving…' : 'Cancel order'}
                   </button>
                   <button
                     type="button"
@@ -691,7 +702,7 @@ export function StockOrderDetailDrawer({
                     onClick={handleSaveDraft}
                     disabled={isSaving}
                   >
-                    Save draft
+                    {isSaving ? 'Saving…' : 'Save draft'}
                   </button>
                   <button
                     type="button"
@@ -699,7 +710,7 @@ export function StockOrderDetailDrawer({
                     onClick={() => handleStatusAction('sent')}
                     disabled={isSaving || !canMarkStockOrderSent(order) || displayItems.length === 0}
                   >
-                    Mark sent
+                    {isSaving ? 'Saving…' : 'Mark sent'}
                   </button>
                 </>
               ) : null}

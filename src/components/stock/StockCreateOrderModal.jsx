@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import {
   buildSupplierOrderGroups,
   computeOrderLineTotal,
@@ -14,30 +14,37 @@ function SupplierOrderGroup({
   onUpdateExpectedDeliveryDate,
   onRemoveGroup,
 }) {
+  const supplier = `${group?.supplier ?? ''}`.trim() || UNASSIGNED_SUPPLIER
+  const items = Array.isArray(group?.items) ? group.items : []
+
   const groupTotal = useMemo(() => {
-    return group.items.reduce((sum, item) => sum + computeOrderLineTotal(item.quantity, item.costPrice), 0)
-  }, [group.items])
+    return items.reduce((sum, item) => sum + computeOrderLineTotal(item.quantity, item.costPrice), 0)
+  }, [items])
+
+  if (items.length === 0) {
+    return null
+  }
 
   return (
     <section className="stock-create-order-group panel staff-panel">
       <header className="stock-create-order-group-header">
         <div>
-          <h4 className="stock-create-order-group-title">{group.supplier}</h4>
+          <h4 className="stock-create-order-group-title">{supplier}</h4>
           <p className="stock-create-order-group-meta">
-            {group.items.length} product{group.items.length === 1 ? '' : 's'} · {formatStockPurchasePrice(groupTotal)}
+            {items.length} product{items.length === 1 ? '' : 's'} · {formatStockPurchasePrice(groupTotal)}
           </p>
         </div>
         <button
           type="button"
           className="ghost-btn stock-create-order-remove-group"
-          onClick={() => onRemoveGroup(group.supplier)}
+          onClick={() => onRemoveGroup(supplier)}
         >
           Remove supplier
         </button>
       </header>
 
       <ul className="stock-create-order-items">
-        {group.items.map((item) => (
+        {items.map((item) => (
           <li key={item.stockItemId} className="stock-create-order-item">
             <div className="stock-create-order-item-copy">
               <strong>{item.itemName}</strong>
@@ -53,7 +60,7 @@ function SupplierOrderGroup({
                   className="stock-create-order-qty-input"
                   value={item.quantity}
                   onChange={(event) => onUpdateItemQuantity(
-                    group.supplier,
+                    supplier,
                     item.stockItemId,
                     event.target.value,
                   )}
@@ -63,7 +70,7 @@ function SupplierOrderGroup({
               <button
                 type="button"
                 className="icon-btn stock-create-order-remove-item"
-                onClick={() => onRemoveItem(group.supplier, item.stockItemId)}
+                onClick={() => onRemoveItem(supplier, item.stockItemId)}
                 aria-label={`Remove ${item.itemName}`}
               >
                 ✕
@@ -78,8 +85,8 @@ function SupplierOrderGroup({
         <input
           type="date"
           className="stock-order-date-input"
-          value={group.expectedDeliveryDate ?? ''}
-          onChange={(event) => onUpdateExpectedDeliveryDate(group.supplier, event.target.value)}
+          value={group?.expectedDeliveryDate ?? ''}
+          onChange={(event) => onUpdateExpectedDeliveryDate(supplier, event.target.value)}
         />
       </label>
 
@@ -87,9 +94,9 @@ function SupplierOrderGroup({
         <span>Notes</span>
         <textarea
           rows={2}
-          value={group.notes ?? ''}
+          value={group?.notes ?? ''}
           placeholder="Delivery notes, reference, or instructions"
-          onChange={(event) => onUpdateNotes(group.supplier, event.target.value)}
+          onChange={(event) => onUpdateNotes(supplier, event.target.value)}
         />
       </label>
     </section>
@@ -103,17 +110,21 @@ export function StockCreateOrderModal({
   isSaving = false,
 }) {
   const [groups, setGroups] = useState(() => (
-    buildSupplierOrderGroups(stockItems).map((group) => ({
-      ...group,
-      notes: '',
-      expectedDeliveryDate: '',
-    }))
+    buildSupplierOrderGroups(stockItems ?? [])
+      .filter((group) => Array.isArray(group?.items) && group.items.length > 0)
+      .map((group) => ({
+        ...group,
+        notes: '',
+        expectedDeliveryDate: '',
+      }))
   ))
   const [error, setError] = useState('')
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const isBusy = isSaving || isSubmitting
 
   useEffect(() => {
     const handleKeyDown = (event) => {
-      if (event.key === 'Escape') {
+      if (event.key === 'Escape' && !isBusy) {
         event.preventDefault()
         onClose()
       }
@@ -121,7 +132,12 @@ export function StockCreateOrderModal({
 
     document.addEventListener('keydown', handleKeyDown)
     return () => document.removeEventListener('keydown', handleKeyDown)
-  }, [onClose])
+  }, [onClose, isBusy])
+
+  const handleDismiss = () => {
+    if (isBusy) return
+    onClose()
+  }
 
   const updateGroup = (supplier, updater) => {
     setGroups((current) => current.map((group) => (
@@ -169,6 +185,7 @@ export function StockCreateOrderModal({
 
   const handleSubmit = async (event) => {
     event.preventDefault()
+    if (isBusy) return
     setError('')
 
     const validGroups = groups
@@ -183,25 +200,30 @@ export function StockCreateOrderModal({
       return
     }
 
+    setIsSubmitting(true)
+
     try {
       await onSubmit(validGroups)
       onClose()
     } catch (submitError) {
       setError(submitError?.message || 'Unable to create orders right now.')
+    } finally {
+      setIsSubmitting(false)
     }
   }
 
   const orderCount = groups.filter((group) => group.items.some((item) => item.quantity > 0)).length
 
   return (
-    <div className="employee-modal-backdrop" onClick={onClose}>
+    <div className="employee-modal-backdrop task-modal-backdrop" onClick={handleDismiss}>
       <form
-        className="employee-modal stock-create-order-modal"
+        className="employee-modal stock-create-order-modal task-form-modal is-responsive-sheet"
         onClick={(event) => event.stopPropagation()}
         onSubmit={handleSubmit}
         role="dialog"
         aria-modal="true"
         aria-labelledby="stock-create-order-title"
+        aria-busy={isBusy}
       >
         <header className="stock-create-order-header">
           <div>
@@ -214,7 +236,8 @@ export function StockCreateOrderModal({
           <button
             type="button"
             className="icon-btn stock-create-order-close"
-            onClick={onClose}
+            onClick={handleDismiss}
+            disabled={isBusy}
             aria-label="Close create order"
           >
             ✕
@@ -232,7 +255,7 @@ export function StockCreateOrderModal({
           ) : (
             groups.map((group) => (
               <SupplierOrderGroup
-                key={group.supplier}
+                key={`${group?.supplier ?? UNASSIGNED_SUPPLIER}-${group?.items?.[0]?.stockItemId ?? 'group'}`}
                 group={group}
                 onUpdateItemQuantity={handleUpdateItemQuantity}
                 onRemoveItem={handleRemoveItem}
@@ -251,15 +274,15 @@ export function StockCreateOrderModal({
         </div>
 
         <footer className="stock-create-order-footer">
-          <button type="button" className="ghost-btn" onClick={onClose}>
+          <button type="button" className="ghost-btn" onClick={handleDismiss} disabled={isBusy}>
             Cancel
           </button>
           <button
             type="submit"
             className="primary-btn"
-            disabled={isSaving || orderCount === 0}
+            disabled={isBusy || orderCount === 0}
           >
-            {isSaving
+            {isBusy
               ? 'Creating…'
               : `Create ${orderCount} draft order${orderCount === 1 ? '' : 's'}`}
           </button>

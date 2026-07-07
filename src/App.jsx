@@ -12128,6 +12128,7 @@ function App() {
   const [stockOrdersNotice, setStockOrdersNotice] = useState('')
   const [isStockOrdersLoading, setIsStockOrdersLoading] = useState(false)
   const [isSavingStockOrder, setIsSavingStockOrder] = useState(false)
+  const isCreatingStockOrdersRef = useRef(false)
   const [barRefills, setBarRefills] = useState([])
   const [barRefillsNotice, setBarRefillsNotice] = useState('')
   const [isBarRefillsLoading, setIsBarRefillsLoading] = useState(true)
@@ -17515,7 +17516,9 @@ function App() {
     if (!activeWorkspaceId) {
       throw new Error(stockWorkspaceSetupMessage || 'Workspace is required to create orders.')
     }
+    if (isCreatingStockOrdersRef.current) return
 
+    isCreatingStockOrdersRef.current = true
     setIsSavingStockOrder(true)
     setStockOrdersNotice('')
     setStockItemsNotice('')
@@ -17531,6 +17534,7 @@ function App() {
       setStockOrdersNotice(error.message || 'Unable to create orders right now.')
       throw error
     } finally {
+      isCreatingStockOrdersRef.current = false
       setIsSavingStockOrder(false)
     }
   }

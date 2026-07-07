@@ -49,6 +49,7 @@ export function StockImportModal({
   }
 
   const handleImport = async () => {
+    if (isSaving) return
     if (!importPlan) {
       setError('Choose a CSV file with product rows first.')
       return
@@ -74,23 +75,29 @@ export function StockImportModal({
     }
   }
 
+  const handleDismiss = () => {
+    if (isSaving) return
+    onClose()
+  }
+
   const templateHeaders = getStockImportTemplateHeaders().join(',')
 
   return (
-    <div className="employee-modal-backdrop" onClick={onClose}>
+    <div className="employee-modal-backdrop task-modal-backdrop" onClick={handleDismiss}>
       <div
-        className="employee-modal stock-dashboard-modal stock-import-modal"
+        className="employee-modal stock-dashboard-modal stock-import-modal task-form-modal is-responsive-sheet"
         onClick={(event) => event.stopPropagation()}
         role="dialog"
         aria-modal="true"
         aria-labelledby="stock-import-title"
+        aria-busy={isSaving}
       >
         <div className="drawer-header">
           <div>
             <h3 id="stock-import-title">Import products</h3>
             <p className="stock-modal-subtitle">Upload a CSV to create or update stock products.</p>
           </div>
-          <button type="button" className="icon-btn" onClick={onClose} aria-label="Close">✕</button>
+          <button type="button" className="icon-btn" onClick={handleDismiss} disabled={isSaving} aria-label="Close">✕</button>
         </div>
 
         <div className="stock-import-body">
@@ -161,7 +168,7 @@ export function StockImportModal({
           {error ? <div className="staff-status-banner">{error}</div> : null}
 
           <div className="modal-actions">
-            <button type="button" className="ghost-btn" onClick={onClose}>Close</button>
+            <button type="button" className="ghost-btn" onClick={handleDismiss} disabled={isSaving}>Close</button>
             <button
               type="button"
               className="primary-btn"

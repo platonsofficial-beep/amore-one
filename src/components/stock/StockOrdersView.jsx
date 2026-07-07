@@ -178,9 +178,12 @@ export function StockOrdersView({
   }, [statusFilter, orders.length])
 
   const handleCreateOrders = async (groups) => {
+    if (isSaving) return
     await onCreateOrders(groups)
     setIsCreateModalOpen(false)
   }
+
+  const isActionBusy = isSaving || isLoading
 
   return (
     <section className="stock-orders-page" aria-label="Stock orders">
@@ -196,9 +199,9 @@ export function StockOrdersView({
             type="button"
             className="primary-btn stock-create-order-btn"
             onClick={() => setIsCreateModalOpen(true)}
-            disabled={!isWorkspaceReady}
+            disabled={!isWorkspaceReady || isActionBusy}
           >
-            Create order
+            {isSaving ? 'Creating…' : 'Create order'}
           </button>
         ) : null}
       </div>
@@ -260,9 +263,9 @@ export function StockOrdersView({
               type="button"
               className="primary-btn"
               onClick={() => setIsCreateModalOpen(true)}
-              disabled={!isWorkspaceReady}
+              disabled={!isWorkspaceReady || isActionBusy}
             >
-              Create order
+              {isSaving ? 'Creating…' : 'Create order'}
             </button>
           ) : null}
         </div>

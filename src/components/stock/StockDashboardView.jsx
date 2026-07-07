@@ -731,6 +731,8 @@ function StockMovementModal({
   )
   const [note, setNote] = useState('')
   const [error, setError] = useState('')
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const isBusy = isSaving || isSubmitting
 
   useEffect(() => {
     if (isStockCount) {
@@ -742,6 +744,11 @@ function StockMovementModal({
     setError('')
   }, [item, movementType, isStockCount])
 
+  const handleDismiss = () => {
+    if (isBusy) return
+    onClose()
+  }
+
   const title = movementType === 'receive'
     ? 'Receive stock'
     : movementType === 'usage'
@@ -752,6 +759,7 @@ function StockMovementModal({
 
   const handleSubmit = async (event) => {
     event.preventDefault()
+    if (isBusy) return
     const parsed = Number(quantity)
 
     if (isStockCount) {
@@ -781,6 +789,7 @@ function StockMovementModal({
 
     try {
       setError('')
+      setIsSubmitting(true)
       await onSubmit({
         item,
         type: movementType,
@@ -790,18 +799,20 @@ function StockMovementModal({
       onClose()
     } catch (submitError) {
       setError(submitError?.message || 'Unable to save movement right now.')
+    } finally {
+      setIsSubmitting(false)
     }
   }
 
   return (
-    <div className="employee-modal-backdrop" onClick={onClose}>
-      <div className="employee-modal stock-dashboard-modal" onClick={(event) => event.stopPropagation()}>
+    <div className="employee-modal-backdrop task-modal-backdrop" onClick={handleDismiss}>
+      <div className="employee-modal stock-dashboard-modal task-form-modal is-responsive-sheet" onClick={(event) => event.stopPropagation()}>
         <div className="drawer-header">
           <div>
             <h3>{title}</h3>
             <p className="stock-modal-subtitle">{item.name}</p>
           </div>
-          <button type="button" className="icon-btn" onClick={onClose} aria-label="Close">✕</button>
+          <button type="button" className="icon-btn" onClick={handleDismiss} disabled={isBusy} aria-label="Close">✕</button>
         </div>
 
         <form className="employee-form" onSubmit={handleSubmit}>
@@ -815,6 +826,7 @@ function StockMovementModal({
               onChange={(event) => setQuantity(event.target.value)}
               placeholder={isStockCount ? `${item.currentQuantity ?? 0}` : movementType === 'adjustment' ? 'Use negative to reduce' : '0'}
               required
+              disabled={isBusy}
             />
           </label>
           <label>
@@ -824,15 +836,16 @@ function StockMovementModal({
               value={note}
               onChange={(event) => setNote(event.target.value)}
               placeholder={isStockCount ? 'e.g. Monday bar count' : 'Optional'}
+              disabled={isBusy}
             />
           </label>
 
           {error ? <div className="staff-status-banner">{error}</div> : null}
 
           <div className="modal-actions">
-            <button type="button" className="ghost-btn" onClick={onClose}>Cancel</button>
-            <button type="submit" className="primary-btn" disabled={isSaving}>
-              {isSaving ? 'Saving…' : isStockCount ? 'Save stock count' : 'Save'}
+            <button type="button" className="ghost-btn" onClick={handleDismiss} disabled={isBusy}>Cancel</button>
+            <button type="submit" className="primary-btn" disabled={isBusy}>
+              {isBusy ? 'Saving…' : isStockCount ? 'Save stock count' : 'Save'}
             </button>
           </div>
         </form>
@@ -850,6 +863,8 @@ function StockBulkFieldModal({
 }) {
   const [value, setValue] = useState('')
   const [error, setError] = useState('')
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const isBusy = isSaving || isSubmitting
 
   const title = field === 'supplier'
     ? 'Change supplier'
@@ -868,6 +883,7 @@ function StockBulkFieldModal({
 
   const handleSubmit = async (event) => {
     event.preventDefault()
+    if (isBusy) return
     const trimmed = `${value ?? ''}`.trim()
 
     if (!trimmed) {
@@ -877,22 +893,30 @@ function StockBulkFieldModal({
 
     try {
       setError('')
+      setIsSubmitting(true)
       await onSubmit(field, trimmed)
       onClose()
     } catch (submitError) {
       setError(submitError?.message || 'Unable to update products right now.')
+    } finally {
+      setIsSubmitting(false)
     }
   }
 
+  const handleDismiss = () => {
+    if (isBusy) return
+    onClose()
+  }
+
   return (
-    <div className="employee-modal-backdrop" onClick={onClose}>
-      <div className="employee-modal stock-dashboard-modal" onClick={(event) => event.stopPropagation()}>
+    <div className="employee-modal-backdrop task-modal-backdrop" onClick={handleDismiss}>
+      <div className="employee-modal stock-dashboard-modal task-form-modal is-responsive-sheet" onClick={(event) => event.stopPropagation()}>
         <div className="drawer-header">
           <div>
             <h3>{title}</h3>
             <p className="stock-modal-subtitle">{selectedItems.length} selected product{selectedItems.length === 1 ? '' : 's'}</p>
           </div>
-          <button type="button" className="icon-btn" onClick={onClose} aria-label="Close">✕</button>
+          <button type="button" className="icon-btn" onClick={handleDismiss} disabled={isBusy} aria-label="Close">✕</button>
         </div>
 
         <form className="employee-form" onSubmit={handleSubmit}>
@@ -948,9 +972,9 @@ function StockBulkFieldModal({
           {error ? <div className="staff-status-banner">{error}</div> : null}
 
           <div className="modal-actions">
-            <button type="button" className="ghost-btn" onClick={onClose}>Cancel</button>
-            <button type="submit" className="primary-btn" disabled={isSaving}>
-              {isSaving ? 'Saving…' : 'Apply to selected'}
+            <button type="button" className="ghost-btn" onClick={handleDismiss} disabled={isBusy}>Cancel</button>
+            <button type="submit" className="primary-btn" disabled={isBusy}>
+              {isBusy ? 'Saving…' : 'Apply to selected'}
             </button>
           </div>
         </form>
@@ -1244,6 +1268,7 @@ export function StockDashboardView({
   }
 
   const allVisibleSelected = visibleItems.length > 0 && visibleItems.every((item) => selectedIds.has(item.id))
+  const isStockActionBusy = isSaving || isSavingOrders
 
   return (
     <section className="stock-dashboard-page" aria-label="Stock dashboard">
@@ -1384,15 +1409,15 @@ export function StockDashboardView({
               type="button"
               className="ghost-btn stock-create-order-btn"
               onClick={() => setIsCreateOrderModalOpen(true)}
-              disabled={!isWorkspaceReady}
+              disabled={!isWorkspaceReady || isStockActionBusy}
             >
-              Create order
+              {isSavingOrders ? 'Creating…' : 'Create order'}
             </button>
             <button
               type="button"
               className="ghost-btn stock-import-btn"
               onClick={() => setIsImportModalOpen(true)}
-              disabled={!isWorkspaceReady}
+              disabled={!isWorkspaceReady || isStockActionBusy}
             >
               Import CSV
             </button>
@@ -1400,6 +1425,7 @@ export function StockDashboardView({
               type="button"
               className={`ghost-btn stock-select-mode-btn${selectionMode ? ' active' : ''}`}
               onClick={toggleSelectionMode}
+              disabled={isStockActionBusy}
             >
               {selectionMode ? 'Done' : 'Select'}
             </button>
@@ -1407,7 +1433,7 @@ export function StockDashboardView({
               type="button"
               className="primary-btn stock-add-item-btn"
               onClick={openCreateItem}
-              disabled={!isWorkspaceReady}
+              disabled={!isWorkspaceReady || isStockActionBusy}
             >
               + Add item
             </button>
@@ -1484,22 +1510,22 @@ export function StockDashboardView({
             Selected: <strong>{selectedItems.length}</strong> product{selectedItems.length === 1 ? '' : 's'}
           </p>
           <div className="stock-bulk-toolbar-actions">
-            <button type="button" className="ghost-btn stock-bulk-action-btn" onClick={() => setBulkModalField('supplier')}>
+            <button type="button" className="ghost-btn stock-bulk-action-btn" onClick={() => setBulkModalField('supplier')} disabled={isStockActionBusy}>
               Change supplier
             </button>
-            <button type="button" className="ghost-btn stock-bulk-action-btn" onClick={() => setBulkModalField('storageLocation')}>
+            <button type="button" className="ghost-btn stock-bulk-action-btn" onClick={() => setBulkModalField('storageLocation')} disabled={isStockActionBusy}>
               Change location
             </button>
-            <button type="button" className="ghost-btn stock-bulk-action-btn" onClick={() => setBulkModalField('category')}>
+            <button type="button" className="ghost-btn stock-bulk-action-btn" onClick={() => setBulkModalField('category')} disabled={isStockActionBusy}>
               Change category
             </button>
-            <button type="button" className="ghost-btn stock-bulk-action-btn" onClick={() => setBulkModalField('itemType')}>
+            <button type="button" className="ghost-btn stock-bulk-action-btn" onClick={() => setBulkModalField('itemType')} disabled={isStockActionBusy}>
               Change type
             </button>
-            <button type="button" className="ghost-btn stock-bulk-action-btn" onClick={handleExportSelected}>
+            <button type="button" className="ghost-btn stock-bulk-action-btn" onClick={handleExportSelected} disabled={isStockActionBusy}>
               Export selected
             </button>
-            <button type="button" className="ghost-btn stock-bulk-action-btn" onClick={() => setSelectedIds(new Set())}>
+            <button type="button" className="ghost-btn stock-bulk-action-btn" onClick={() => setSelectedIds(new Set())} disabled={isStockActionBusy}>
               Clear
             </button>
           </div>

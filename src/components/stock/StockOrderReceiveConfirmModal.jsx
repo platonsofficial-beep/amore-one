@@ -15,14 +15,25 @@ export function StockOrderReceiveConfirmModal({
   const pendingLines = buildPendingReceiveLines(order, receiveNowByItemId)
   const willComplete = willCompleteOrderAfterReceive(order, receiveNowByItemId)
 
+  const handleDismiss = () => {
+    if (isSaving) return
+    onClose()
+  }
+
+  const handleConfirm = () => {
+    if (isSaving) return
+    onConfirm()
+  }
+
   return (
-    <div className="employee-modal-backdrop stock-order-receive-confirm-backdrop" onClick={onClose}>
+    <div className="employee-modal-backdrop stock-order-receive-confirm-backdrop task-modal-backdrop" onClick={handleDismiss}>
       <div
-        className="employee-modal stock-order-receive-confirm-modal"
+        className="employee-modal stock-order-receive-confirm-modal task-form-modal is-responsive-sheet"
         onClick={(event) => event.stopPropagation()}
         role="dialog"
         aria-modal="true"
         aria-labelledby="stock-order-receive-confirm-title"
+        aria-busy={isSaving}
       >
         <header className="stock-create-order-header">
           <div>
@@ -35,7 +46,8 @@ export function StockOrderReceiveConfirmModal({
           <button
             type="button"
             className="icon-btn stock-create-order-close"
-            onClick={onClose}
+            onClick={handleDismiss}
+            disabled={isSaving}
             aria-label="Close receive confirmation"
           >
             ✕
@@ -78,13 +90,13 @@ export function StockOrderReceiveConfirmModal({
         </div>
 
         <footer className="stock-create-order-footer">
-          <button type="button" className="ghost-btn" onClick={onClose} disabled={isSaving}>
+          <button type="button" className="ghost-btn" onClick={handleDismiss} disabled={isSaving}>
             Cancel
           </button>
           <button
             type="button"
             className="primary-btn"
-            onClick={onConfirm}
+            onClick={handleConfirm}
             disabled={isSaving || pendingLines.length === 0}
           >
             {isSaving ? 'Receiving…' : 'Confirm receive'}
