@@ -333,6 +333,13 @@ import { WorkspaceView } from './components/workspace/WorkspaceView'
 import { AccessRestrictedView } from './components/auth/AccessRestrictedView'
 import { ModuleSectionTabs } from './components/shell/ModuleSectionTabs'
 import { UserMenu } from './components/auth/UserMenu'
+import { MobileStaffApp } from './components/mobile/MobileStaffApp'
+import { useMobileViewport } from './hooks/useMobileViewport'
+import {
+  buildMobileEmployeeShiftSummary,
+  buildMobileEmployeeWeekSchedule,
+  partitionMobileTasks,
+} from './lib/mobileStaffUtils'
 import { useAuth } from './context/AuthContext'
 import {
   NAV_ITEMS,
@@ -385,13 +392,19 @@ import {
   getLocalNow,
   getTimeGreeting,
 } from './lib/currentDateUtils'
-import { calculateTaskOverview, matchesCustomDepartmentName, resolveCurrentEmployeeId } from './lib/taskUtils'
+import {
+  calculateTaskOverview,
+  filterTasksByAssignment,
+  matchesCustomDepartmentName,
+  resolveCurrentEmployeeId,
+} from './lib/taskUtils'
 import ReportsView from './components/reports/ReportsView'
 import { UNASSIGNED_CUSTOM_DEPARTMENT_NAME } from './lib/taskDepartments'
 import {
   persistNavigation,
   readPersistedNavigation,
 } from './lib/navigationPersistence'
+import { persistMobileTab, readPersistedMobileTab } from './lib/mobileNavigationPersistence'
 
 const HOST_RESERVATION_STATUS_OPTIONS = getHostReservationStatusOptions()
 
@@ -12188,7 +12201,22 @@ function App() {
     workspace,
     membership,
     workspaceLoadError,
+    signOut,
   } = useAuth()
+
+  const isMobileViewport = useMobileViewport()
+  const [mobileTab, setMobileTab] = useState(() => readPersistedMobileTab())
+  const [mobileExpandedView, setMobileExpandedView] = useState(null)
+  const [mobileWeekStart, setMobileWeekStart] = useState(() => getCurrentWeekStartDate())
+  const [mobileWeekPublishedShifts, setMobileWeekPublishedShifts] = useState([])
+  const [mobileWeekPublication, setMobileWeekPublication] = useState({
+    weekStartDate: getCurrentWeekStartDate(),
+    status: 'draft',
+    publishedAt: null,
+    unpublishedAt: null,
+    publishedBy: null,
+  })
+  const [isMobileWeekLoading, setIsMobileWeekLoading] = useState(false)
 
   const activeWorkspaceId = useMemo(
     () => resolveActiveWorkspaceId({ workspace, membership }),
@@ -12567,6 +12595,91 @@ function App() {
     const employee = scheduleEmployees.find((item) => `${item.id}` === `${employeeId}`)
     return `${employee?.position ?? ''}`.trim()
   }, [membership?.employeeId, scheduleEmployees])
+
+  const mobileEmployeeId = membership?.employeeId ?? currentTaskEmployeeId
+
+  const mobileWeekDays = useMemo(
+    () => getWeekDays(mobileWeekStart),
+    [mobileWeekStart],
+  )
+
+  const mobileWeekPublishedShiftSource = useMemo(() => {
+    if (mobileWeekStart === scheduleWeekStart) return publishedShifts
+    if (mobileWeekStart === todayWeekStart) return todayWeekPublishedShifts
+    return mobileWeekPublishedShifts
+  }, [
+    mobileWeekStart,
+    scheduleWeekStart,
+    todayWeekStart,
+    publishedShifts,
+    todayWeekPublishedShifts,
+    mobileWeekPublishedShifts,
+  ])
+
+  const isMobileWeekPublished = useMemo(() => {
+    if (mobileWeekStart === scheduleWeekStart) {
+      return schedulePublication?.status === 'published'
+    }
+    if (mobileWeekStart === todayWeekStart) {
+      return todayWeekPublication?.status === 'published'
+    }
+    return mobileWeekPublication?.status === 'published'
+  }, [
+    mobileWeekStart,
+    scheduleWeekStart,
+    todayWeekStart,
+    schedulePublication?.status,
+    todayWeekPublication?.status,
+    mobileWeekPublication?.status,
+  ])
+
+  const mobileAssignedTasks = useMemo(
+    () => filterTasksByAssignment(todayActionableTasks, {
+      mode: 'mine',
+      currentEmployeeId: mobileEmployeeId,
+    }),
+    [todayActionableTasks, mobileEmployeeId],
+  )
+
+  const mobileTaskOverview = useMemo(
+    () => calculateTaskOverview(mobileAssignedTasks, currentDateKey),
+    [mobileAssignedTasks, currentDateKey],
+  )
+
+  const mobileEmployeeWeekSchedule = useMemo(() => {
+    if (!mobileEmployeeId) return null
+
+    return buildMobileEmployeeWeekSchedule({
+      employeeId: mobileEmployeeId,
+      employees: scheduleEmployees,
+      weekDays: mobileWeekDays,
+      publishedShifts: mobileWeekPublishedShiftSource,
+    })
+  }, [mobileEmployeeId, scheduleEmployees, mobileWeekDays, mobileWeekPublishedShiftSource])
+
+  const mobileShiftSummary = useMemo(
+    () => buildMobileEmployeeShiftSummary({
+      employeeId: mobileEmployeeId,
+      publishedShifts: dashboardPublishedShifts,
+      isWeekPublished: isTodayWeekPublished,
+      todayKey: currentDateKey,
+      now: localNow,
+      liveFloor: liveFloorState,
+    }),
+    [
+      mobileEmployeeId,
+      dashboardPublishedShifts,
+      isTodayWeekPublished,
+      currentDateKey,
+      localNow,
+      liveFloorState,
+    ],
+  )
+
+  const mobileTaskGroups = useMemo(
+    () => partitionMobileTasks(mobileAssignedTasks, currentDateKey),
+    [mobileAssignedTasks, currentDateKey],
+  )
 
   const dashboardReservationsFooter = useMemo(
     () => buildReservationsFooter(reservations, currentDateKey, localNow),
@@ -13023,6 +13136,72 @@ function App() {
 
     return () => window.clearInterval(intervalId)
   }, [activeView, refreshDashboardModuleData])
+
+  useEffect(() => {
+    if (!isMobileViewport) return undefined
+
+    refreshDashboardModuleData()
+    refreshOperationsAnnouncements()
+    refreshTodayWeekPublishedData(mobileWeekStart)
+
+    const intervalId = window.setInterval(() => {
+      refreshDashboardModuleData()
+      refreshOperationsAnnouncements()
+    }, 60_000)
+
+    return () => window.clearInterval(intervalId)
+  }, [
+    isMobileViewport,
+    mobileWeekStart,
+    refreshDashboardModuleData,
+    refreshOperationsAnnouncements,
+    refreshTodayWeekPublishedData,
+  ])
+
+  useEffect(() => {
+    if (!isMobileViewport) return undefined
+
+    if (mobileWeekStart === scheduleWeekStart || mobileWeekStart === todayWeekStart) {
+      setIsMobileWeekLoading(false)
+      return undefined
+    }
+
+    let isMounted = true
+    setIsMobileWeekLoading(true)
+
+    getWeekSchedulePublicationState(mobileWeekStart)
+      .then((state) => {
+        if (!isMounted) return
+        setMobileWeekPublishedShifts(Array.isArray(state.publishedShifts) ? state.publishedShifts : [])
+        setMobileWeekPublication(state.publication ?? {
+          weekStartDate: mobileWeekStart,
+          status: 'draft',
+          publishedAt: null,
+          unpublishedAt: null,
+          publishedBy: null,
+        })
+      })
+      .catch(() => {
+        if (!isMounted) return
+        setMobileWeekPublishedShifts([])
+        setMobileWeekPublication({
+          weekStartDate: mobileWeekStart,
+          status: 'draft',
+          publishedAt: null,
+          unpublishedAt: null,
+          publishedBy: null,
+        })
+      })
+      .finally(() => {
+        if (isMounted) {
+          setIsMobileWeekLoading(false)
+        }
+      })
+
+    return () => {
+      isMounted = false
+    }
+  }, [isMobileViewport, mobileWeekStart, scheduleWeekStart, todayWeekStart])
 
   useEffect(() => {
     if (activeView !== 'insights') return undefined
@@ -18333,6 +18512,12 @@ function App() {
   const useCommandTopbar = shouldUseCommandTopbar(activeView)
   const showModuleSearch = shouldShowModuleSearch(activeView, teamSection)
 
+  const mobileExpandedTitle = useMemo(() => {
+    if (mobileExpandedView === 'full-schedule') return 'Team schedule'
+    if (mobileExpandedView === 'workspace') return moduleTitle
+    return ''
+  }, [mobileExpandedView, moduleTitle])
+
   const supplierDeleteHasHistory = supplierPendingDelete
     ? supplierHasHistory(supplierPendingDelete, { stockItems, stockOrders, inventoryItems })
     : false
@@ -18378,9 +18563,62 @@ function App() {
     handleSettingsSectionChange('profile')
   }
 
+  const handleMobileBack = () => {
+    setMobileExpandedView(null)
+  }
+
+  const handleMobileTabChange = useCallback((tab) => {
+    setMobileExpandedView(null)
+    setMobileTab(tab)
+    persistMobileTab(tab)
+  }, [])
+
+  const handleMobileOpenFullSchedule = () => {
+    handleActiveViewChange('team')
+    handleTeamSectionChange('schedule')
+    setMobileExpandedView('full-schedule')
+  }
+
+  const handleMobileNavigateModule = (moduleId) => {
+    handleActiveViewChange(moduleId)
+    if (moduleId === 'team') {
+      handleTeamSectionChange(canEditScheduleRole ? 'schedule' : 'today')
+    }
+    setMobileExpandedView('workspace')
+  }
+
+  const handleMobileOpenSettings = () => {
+    handleActiveViewChange('settings')
+    handleSettingsSectionChange('profile')
+    setMobileExpandedView('workspace')
+  }
+
+  const handleMobileOpenTasksWorkspace = () => {
+    handleActiveViewChange('operations')
+    handleOperationsSectionChange('tasks')
+    setMobileExpandedView('workspace')
+  }
+
+  const handleMobilePreviousWeek = () => {
+    setMobileWeekStart((current) => addWeeks(current, -1))
+  }
+
+  const handleMobileNextWeek = () => {
+    setMobileWeekStart((current) => addWeeks(current, 1))
+  }
+
+  const handleMobileSignOut = async () => {
+    try {
+      await signOut()
+    } catch (error) {
+      console.warn('[App] mobile signOut error:', error)
+    }
+  }
+
   return (
     <PublishedFloorPlanProvider workspaceId={workspace?.id ?? ''}>
-    <div className="app-shell">
+    <div className={`app-shell${isMobileViewport ? ' is-mobile-shell' : ''}${isMobileViewport && mobileExpandedView ? ' is-mobile-expanded' : ''}`}>
+      {!isMobileViewport ? (
       <aside className="sidebar">
         <div className="brand-block">
           <div className="brand-avatar" aria-hidden="true">
@@ -18415,67 +18653,12 @@ function App() {
           ))}
         </nav>
       </aside>
+      ) : null}
 
       <main className={`main-panel${activeView === 'team' && teamSection === 'schedule' ? ' main-panel-schedule' : ''}${activeView === 'today' ? ' main-panel-dashboard' : ''}${activeView === 'floor-plan-builder' ? ' main-panel-floor-builder' : ''}${activeView === 'reservations' ? ' main-panel-reservations' : ''}`}>
-        {!hideStandardTopbar ? (
-        useCommandTopbar ? (
-        <header className="topbar topbar-command topbar-command-hero">
-          <div className="command-topbar-intro">
-            <h2 className="command-topbar-greeting">
-              {buildDashboardGreeting(currentTimeGreeting, workspaceProfile.managerName)}
-            </h2>
-            {brandDisplay.businessName ? (
-              <p className="command-topbar-business">{brandDisplay.businessName}</p>
-            ) : null}
-            <p className="command-topbar-date">{dashboardHeroDateLabel}</p>
-          </div>
-          <div className="command-topbar-meta">
-            <div className={`command-status-chip tone-${dashboardLiveStatus.tone}`} aria-label="Live operations status">
-              <span className="command-status-chip-dot" aria-hidden="true" />
-              <div className="command-status-chip-copy">
-                <p className="command-status-chip-label">{dashboardLiveStatus.chipLabel}</p>
-                <p className="command-status-chip-value">{dashboardLiveStatus.chipValue}</p>
-                <p className="command-status-chip-status">{dashboardLiveStatus.chipStatus}</p>
-              </div>
-            </div>
-            <UserMenu
-              profileChipDisplay={profileChipDisplay}
-              onOpenWorkspaceProfile={handleOpenWorkspaceProfile}
-              variant="command"
-            />
-          </div>
-        </header>
-        ) : (
-        <header className="topbar">
-          <div className="topbar-title-block">
-            <h2>{moduleTitle}</h2>
-            {moduleSubtitle ? (
-              <p className="welcome-subtitle">{moduleSubtitle}</p>
-            ) : null}
-          </div>
-          <div className="topbar-meta">
-            {showModuleSearch ? (
-            <label className="search-bar" aria-label={`Search ${moduleTitle}`}>
-              <span>⌕</span>
-              <input
-                type="text"
-                placeholder={moduleSearchPlaceholder}
-                value={searchTerm}
-                onChange={(event) => setSearchTerm(event.target.value)}
-              />
-            </label>
-            ) : null}
-            <button type="button" className="icon-btn" aria-label="Notifications">🔔</button>
-            <div className="date-pill">{currentDateLabel}</div>
-            <UserMenu
-              profileChipDisplay={profileChipDisplay}
-              onOpenWorkspaceProfile={handleOpenWorkspaceProfile}
-            />
-          </div>
-        </header>
-        )
-        ) : null}
-
+        {(() => {
+          const workspaceModules = (
+            <>
         {activeView === 'team' && isActiveViewAllowed ? (
           <ModuleSectionTabs
             sections={visibleTeamSections}
@@ -18902,6 +19085,126 @@ function App() {
             }}
           />
         ) : null}
+            </>
+          )
+
+          return (
+            <>
+              {isMobileViewport ? (
+                <MobileStaffApp
+                  activeTab={mobileTab}
+                  onTabChange={handleMobileTabChange}
+                  homeProps={{
+                    venueName: workspaceProfile.businessName,
+                    greeting: buildDashboardGreeting(currentTimeGreeting, workspaceProfile.managerName),
+                    dateLabel: currentDateLabel,
+                    shiftSummary: mobileShiftSummary,
+                    tasksSummary: mobileTaskOverview,
+                    announcements: operationsAnnouncements,
+                    announcementRole: role,
+                    announcementEmployeeDepartment: currentEmployeeDepartment,
+                    isAnnouncementsSaving: isSavingOperations,
+                    onMarkAnnouncementSeen: handleMarkOperationsAnnouncementSeen,
+                  }}
+                  scheduleProps={{
+                    weekLabel: formatWeekRange(mobileWeekDays),
+                    employeeName: mobileEmployeeWeekSchedule?.employeeName ?? 'Your week',
+                    days: mobileEmployeeWeekSchedule?.days ?? [],
+                    needsEmployeeLink: !mobileEmployeeId,
+                    isWeekPublished: isMobileWeekPublished,
+                    isLoading: isMobileWeekLoading || isDashboardScheduleLoading,
+                    canOpenFullSchedule: canEditScheduleRole,
+                    onOpenFullSchedule: handleMobileOpenFullSchedule,
+                    onPreviousWeek: handleMobilePreviousWeek,
+                    onNextWeek: handleMobileNextWeek,
+                  }}
+                  tasksProps={{
+                    taskGroups: mobileTaskGroups,
+                    isLoading: isTasksLoading,
+                    onOpenTasksWorkspace: handleMobileOpenTasksWorkspace,
+                  }}
+                  menuProps={{
+                    role,
+                    roleLabel,
+                    profileName: workspaceProfile.managerName,
+                    venueName: workspaceProfile.businessName,
+                    onNavigateModule: handleMobileNavigateModule,
+                    onOpenFullSchedule: handleMobileOpenFullSchedule,
+                    onOpenSettings: handleMobileOpenSettings,
+                    onSignOut: handleMobileSignOut,
+                  }}
+                  expandedView={mobileExpandedView}
+                  expandedTitle={mobileExpandedTitle}
+                  onBackFromExpanded={handleMobileBack}
+                  expandedModuleContent={mobileExpandedView ? workspaceModules : null}
+                />
+              ) : null}
+              {!isMobileViewport ? (
+                <>
+                  {!hideStandardTopbar ? (
+                  useCommandTopbar ? (
+                  <header className="topbar topbar-command topbar-command-hero">
+                    <div className="command-topbar-intro">
+                      <h2 className="command-topbar-greeting">
+                        {buildDashboardGreeting(currentTimeGreeting, workspaceProfile.managerName)}
+                      </h2>
+                      {brandDisplay.businessName ? (
+                        <p className="command-topbar-business">{brandDisplay.businessName}</p>
+                      ) : null}
+                      <p className="command-topbar-date">{dashboardHeroDateLabel}</p>
+                    </div>
+                    <div className="command-topbar-meta">
+                      <div className={`command-status-chip tone-${dashboardLiveStatus.tone}`} aria-label="Live operations status">
+                        <span className="command-status-chip-dot" aria-hidden="true" />
+                        <div className="command-status-chip-copy">
+                          <p className="command-status-chip-label">{dashboardLiveStatus.chipLabel}</p>
+                          <p className="command-status-chip-value">{dashboardLiveStatus.chipValue}</p>
+                          <p className="command-status-chip-status">{dashboardLiveStatus.chipStatus}</p>
+                        </div>
+                      </div>
+                      <UserMenu
+                        profileChipDisplay={profileChipDisplay}
+                        onOpenWorkspaceProfile={handleOpenWorkspaceProfile}
+                        variant="command"
+                      />
+                    </div>
+                  </header>
+                  ) : (
+                  <header className="topbar">
+                    <div className="topbar-title-block">
+                      <h2>{moduleTitle}</h2>
+                      {moduleSubtitle ? (
+                        <p className="welcome-subtitle">{moduleSubtitle}</p>
+                      ) : null}
+                    </div>
+                    <div className="topbar-meta">
+                      {showModuleSearch ? (
+                      <label className="search-bar" aria-label={`Search ${moduleTitle}`}>
+                        <span>⌕</span>
+                        <input
+                          type="text"
+                          placeholder={moduleSearchPlaceholder}
+                          value={searchTerm}
+                          onChange={(event) => setSearchTerm(event.target.value)}
+                        />
+                      </label>
+                      ) : null}
+                      <button type="button" className="icon-btn" aria-label="Notifications">🔔</button>
+                      <div className="date-pill">{currentDateLabel}</div>
+                      <UserMenu
+                        profileChipDisplay={profileChipDisplay}
+                        onOpenWorkspaceProfile={handleOpenWorkspaceProfile}
+                      />
+                    </div>
+                  </header>
+                  )
+                  ) : null}
+                  {workspaceModules}
+                </>
+              ) : null}
+            </>
+          )
+        })()}
 
         {isEmployeeModalOpen ? (
           <div className="employee-modal-backdrop" onClick={handleCloseEmployeeModal}>
