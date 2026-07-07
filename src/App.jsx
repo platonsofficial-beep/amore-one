@@ -9518,16 +9518,16 @@ function ReservationQuickActions({
             <button type="button" onClick={() => { onOpenAddNote(reservation); onToggleMore() }} disabled={isSaving}>
               Add note
             </button>
-            <button type="button" onClick={() => { onQuickStatusUpdate(reservation, 'Checked In (Partial)'); onToggleMore() }} disabled={!isReservationInHouse(reservation) && status !== 'Waiting'}>
+            <button type="button" onClick={() => { onQuickStatusUpdate(reservation, 'Checked In (Partial)'); onToggleMore() }} disabled={isSaving || (!isReservationInHouse(reservation) && status !== 'Waiting')}>
               Partial check-in
             </button>
-            <button type="button" onClick={() => { onQuickStatusUpdate(reservation, 'Checked Out'); onToggleMore() }} disabled={isTerminal}>
+            <button type="button" onClick={() => { onQuickStatusUpdate(reservation, 'Checked Out'); onToggleMore() }} disabled={isSaving || isTerminal}>
               Complete
             </button>
-            <button type="button" onClick={() => { onQuickStatusUpdate(reservation, 'Cancelled'); onToggleMore() }} disabled={status === 'Cancelled'}>
+            <button type="button" onClick={() => { onQuickStatusUpdate(reservation, 'Cancelled'); onToggleMore() }} disabled={isSaving || status === 'Cancelled'}>
               Cancel
             </button>
-            <button type="button" onClick={() => { onOpenGuestProfile(reservation); onToggleMore() }}>
+            <button type="button" onClick={() => { onOpenGuestProfile(reservation); onToggleMore() }} disabled={isSaving}>
               Guest profile
             </button>
           </div>
@@ -12121,6 +12121,7 @@ function App() {
     tableNumber: '',
   })
   const [isSavingReservation, setIsSavingReservation] = useState(false)
+  const isSavingReservationRef = useRef(false)
   const [inventoryItems, setInventoryItems] = useState([])
   const [inventoryNotice, setInventoryNotice] = useState('')
   const [isInventoryLoading, setIsInventoryLoading] = useState(true)
@@ -17128,6 +17129,9 @@ function App() {
       return { saved: false }
     }
 
+    if (isSavingReservationRef.current) return { saved: false }
+
+    isSavingReservationRef.current = true
     setIsSavingReservation(true)
     setReservationNotice('')
 
@@ -17160,6 +17164,7 @@ function App() {
       setReservationNotice(error.message || 'Unable to update reservation right now.')
       throw error
     } finally {
+      isSavingReservationRef.current = false
       setIsSavingReservation(false)
     }
   }
@@ -17188,6 +17193,11 @@ function App() {
   }
 
   const handleQuickReservationStatus = async (reservation, status) => {
+    if (isSavingReservationRef.current) return
+
+    isSavingReservationRef.current = true
+    setIsSavingReservation(true)
+
     try {
       const updated = await updateReservation(
         activeWorkspaceId,
@@ -17199,10 +17209,18 @@ function App() {
       setReservationNotice(`Reservation marked ${getHostListStatusLabel(status)}.`)
     } catch (error) {
       setReservationNotice(error.message || 'Unable to update reservation right now.')
+    } finally {
+      isSavingReservationRef.current = false
+      setIsSavingReservation(false)
     }
   }
 
   const handleQuickReservationNote = async (reservation, notes) => {
+    if (isSavingReservationRef.current) return
+
+    isSavingReservationRef.current = true
+    setIsSavingReservation(true)
+
     try {
       const updated = await updateReservation(
         activeWorkspaceId,
@@ -17214,10 +17232,18 @@ function App() {
       setReservationNotice('Guest note saved.')
     } catch (error) {
       setReservationNotice(error.message || 'Unable to save guest note right now.')
+    } finally {
+      isSavingReservationRef.current = false
+      setIsSavingReservation(false)
     }
   }
 
   const handleQuickReservationTableReassign = async (reservation, tableNumber) => {
+    if (isSavingReservationRef.current) return
+
+    isSavingReservationRef.current = true
+    setIsSavingReservation(true)
+
     try {
       const updated = await updateReservation(activeWorkspaceId, reservation.id, {
         guestName: reservation.guestName,
@@ -17235,10 +17261,18 @@ function App() {
       setReservationNotice(`Moved to table ${tableNumber}.`)
     } catch (error) {
       setReservationNotice(error.message || 'Unable to reassign table right now.')
+    } finally {
+      isSavingReservationRef.current = false
+      setIsSavingReservation(false)
     }
   }
 
   const handleSeatGuestAtTable = async (reservation, assignment) => {
+    if (isSavingReservationRef.current) return
+
+    isSavingReservationRef.current = true
+    setIsSavingReservation(true)
+
     try {
       const payload = createSeatingAssignmentPayload(reservation, assignment)
       const updated = await updateReservation(activeWorkspaceId, reservation.id, payload)
@@ -17249,6 +17283,9 @@ function App() {
       )
     } catch (error) {
       setReservationNotice(error.message || 'Unable to seat guest right now.')
+    } finally {
+      isSavingReservationRef.current = false
+      setIsSavingReservation(false)
     }
   }
 
@@ -17260,6 +17297,9 @@ function App() {
       return
     }
 
+    if (isSavingReservationRef.current) return
+
+    isSavingReservationRef.current = true
     setIsSavingReservation(true)
     setReservationNotice('')
 
@@ -17302,6 +17342,7 @@ function App() {
     } catch (error) {
       setReservationNotice(error.message || 'Unable to save reservation right now.')
     } finally {
+      isSavingReservationRef.current = false
       setIsSavingReservation(false)
     }
   }
@@ -17319,6 +17360,9 @@ function App() {
       return
     }
 
+    if (isSavingReservationRef.current) return
+
+    isSavingReservationRef.current = true
     setIsSavingReservation(true)
     setReservationNotice('')
 
@@ -17345,6 +17389,7 @@ function App() {
     } catch (error) {
       setReservationNotice(error.message || 'Unable to create quick reservation right now.')
     } finally {
+      isSavingReservationRef.current = false
       setIsSavingReservation(false)
     }
   }
