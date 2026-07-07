@@ -1135,6 +1135,168 @@
   border-color: rgba(212, 175, 55, 0.18);
 }
 
+.mobile-manager-status-section,
+.mobile-manager-attention-section,
+.mobile-manager-actions-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.mobile-manager-status-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.mobile-manager-status-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  padding: 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.mobile-manager-status-card.tone-warning {
+  border-color: rgba(255, 152, 0, 0.2);
+  background: rgba(255, 152, 0, 0.06);
+}
+
+.mobile-manager-status-card.tone-critical {
+  border-color: rgba(244, 67, 54, 0.22);
+  background: rgba(244, 67, 54, 0.06);
+}
+
+.mobile-manager-status-label {
+  color: #8f8778;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.mobile-manager-status-value {
+  color: #f7efe1;
+  font-size: 0.92rem;
+  font-weight: 600;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.mobile-manager-status-card.tone-warning .mobile-manager-status-value {
+  color: #ffd8a8;
+}
+
+.mobile-manager-status-card.tone-critical .mobile-manager-status-value {
+  color: #ffb4b4;
+}
+
+.mobile-manager-attention-empty {
+  margin: 0;
+  color: #b8f0c8;
+  font-size: 0.92rem;
+  line-height: 1.45;
+}
+
+.mobile-manager-attention-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.mobile-manager-attention-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.mobile-manager-attention-item strong {
+  color: #f7efe1;
+  font-size: 0.92rem;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.mobile-manager-attention-item span {
+  color: #a89f92;
+  font-size: 0.84rem;
+  line-height: 1.35;
+}
+
+.mobile-manager-attention-item.tone-critical {
+  border-color: rgba(244, 67, 54, 0.2);
+}
+
+.mobile-manager-attention-item.tone-critical strong {
+  color: #ffb4b4;
+}
+
+.mobile-manager-attention-item.tone-warning {
+  border-color: rgba(255, 152, 0, 0.18);
+}
+
+.mobile-manager-attention-item.tone-warning strong {
+  color: #ffd8a8;
+}
+
+.mobile-manager-attention-item.tone-info {
+  border-color: rgba(96, 165, 250, 0.2);
+}
+
+.mobile-manager-attention-item.tone-info strong {
+  color: #b8d4ff;
+}
+
+.mobile-manager-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.mobile-manager-action-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  width: 100%;
+  padding: 0 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.04);
+  color: #f7efe1;
+  font-size: 0.92rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.mobile-manager-action-btn-primary {
+  border-color: rgba(212, 175, 55, 0.28);
+  background: rgba(212, 175, 55, 0.12);
+  color: #f6dca2;
+}
+
+.mobile-manager-home {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.mobile-manager-home .today-announcements {
+  margin-top: 0;
+}
+
 .mobile-workspace-module {
   min-width: 0;
   max-width: 100%;

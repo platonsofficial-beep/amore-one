@@ -277,6 +277,8 @@ import {
   buildTodayStatusSummary,
   buildTeamTodayGroups,
 } from './lib/todayViewUtils'
+import { buildStockOrdersOperationsSummary } from './lib/stockOrderUtils'
+import { buildStockDashboardSummary } from './lib/stockUtils'
 import { canManageAnnouncements, filterTasksExcludingAnnouncementDuplicates } from './lib/operationsAnnouncementUtils'
 import {
   countShiftsCoveringTemplateCell,
@@ -12889,6 +12891,16 @@ function App() {
     operationalSnapshot,
   ])
 
+  const managerMobileStockSummary = useMemo(
+    () => buildStockDashboardSummary(stockItems),
+    [stockItems],
+  )
+
+  const managerMobileOrdersSummary = useMemo(
+    () => buildStockOrdersOperationsSummary(stockOrders),
+    [stockOrders],
+  )
+
   const dashboardTimelineEvents = useMemo(() => buildTodayServiceTimeline({
     // Service timeline uses actionable tasks only, not announcements or operations tasks.
     timelineEvents: buildTodayCommandTimeline({
@@ -13311,20 +13323,33 @@ function App() {
     refreshMobileOperationsTasks()
     refreshTodayWeekPublishedData(mobileWeekStart)
 
+    if (isManagementMobileRole(role)) {
+      refreshStockItems()
+      refreshStockOrders()
+    }
+
     const intervalId = window.setInterval(() => {
       refreshDashboardModuleData()
       refreshOperationsAnnouncements()
       refreshMobileOperationsTasks()
+
+      if (isManagementMobileRole(role)) {
+        refreshStockItems()
+        refreshStockOrders()
+      }
     }, 60_000)
 
     return () => window.clearInterval(intervalId)
   }, [
     isMobileViewport,
+    role,
     mobileWeekStart,
     refreshDashboardModuleData,
     refreshOperationsAnnouncements,
     refreshMobileOperationsTasks,
     refreshTodayWeekPublishedData,
+    refreshStockItems,
+    refreshStockOrders,
   ])
 
   useEffect(() => {
@@ -18791,6 +18816,46 @@ function App() {
     setMobileExpandedView('workspace')
   }
 
+  const handleMobileManagerOpenStock = useCallback(() => {
+    if (!canAccessMobileExpandedModule(role, 'stock')) return
+
+    handleActiveViewChange('stock')
+    handleStockSectionChange('dashboard')
+    setMobileExpandedView('workspace')
+  }, [role, handleActiveViewChange, handleStockSectionChange])
+
+  const handleMobileManagerReceiveDeliveries = useCallback(() => {
+    if (!canAccessMobileExpandedModule(role, 'stock')) return
+
+    handleActiveViewChange('stock')
+    handleStockSectionChange('orders')
+    setStockOrdersFilterHint('sent')
+    setMobileExpandedView('workspace')
+  }, [role, handleActiveViewChange, handleStockSectionChange])
+
+  const handleMobileManagerOpenTasks = useCallback(() => {
+    if (!canAccessMobileExpandedModule(role, 'operations')) return
+
+    handleActiveViewChange('operations')
+    handleOperationsSectionChange('dashboard')
+    setMobileExpandedView('workspace')
+  }, [role, handleActiveViewChange, handleOperationsSectionChange])
+
+  const handleMobileManagerOpenTeamToday = useCallback(() => {
+    if (!canAccessMobileExpandedModule(role, 'team')) return
+
+    handleActiveViewChange('team')
+    handleTeamSectionChange('today')
+    setMobileExpandedView('workspace')
+  }, [role, handleActiveViewChange, handleTeamSectionChange])
+
+  const handleMobileManagerOpenReservations = useCallback(() => {
+    if (!canAccessMobileExpandedModule(role, 'reservations')) return
+
+    handleActiveViewChange('reservations')
+    setMobileExpandedView('workspace')
+  }, [role, handleActiveViewChange])
+
   const handleMobileGoToCurrentWeek = () => {
     setMobileWeekStart(todayWeekStart)
     persistMobileWeekStart(todayWeekStart)
@@ -19359,11 +19424,28 @@ function App() {
                       greeting: mobileGreeting,
                       dateLabel: currentDateLabel,
                       roleLabel,
+                      statusSummary: todayStatusSummary,
+                      attentionItems: todayAttentionItems,
+                      stockSummary: managerMobileStockSummary,
+                      stockOrdersSummary: managerMobileOrdersSummary,
+                      hasStockModuleData: stockItems.length > 0,
+                      isReservationsConnected: isReservationsModuleConnected,
+                      isTasksConnected: isTasksModuleConnected,
+                      canOpenStock: canAccessMobileExpandedModule(role, 'stock'),
+                      canReceiveDeliveries: canAccessMobileExpandedModule(role, 'stock'),
+                      canOpenTasks: canAccessMobileExpandedModule(role, 'operations'),
+                      canOpenTeam: canAccessMobileExpandedModule(role, 'team'),
+                      canOpenReservations: canAccessMobileExpandedModule(role, 'reservations'),
                       announcements: operationsAnnouncements,
                       announcementRole: role,
                       announcementEmployeeDepartment: currentEmployeeDepartment,
                       isAnnouncementsSaving: isSavingOperations,
                       onMarkAnnouncementSeen: handleMarkOperationsAnnouncementSeen,
+                      onOpenStock: handleMobileManagerOpenStock,
+                      onReceiveDeliveries: handleMobileManagerReceiveDeliveries,
+                      onOpenTasks: handleMobileManagerOpenTasks,
+                      onOpenTeamToday: handleMobileManagerOpenTeamToday,
+                      onOpenReservations: handleMobileManagerOpenReservations,
                     }
                     : {
                       venueName: workspaceProfile.businessName,
