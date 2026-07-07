@@ -10,9 +10,11 @@ import {
   formatStockOrderDate,
   formatStockOrderDeliveryDate,
   formatStockOrderNumber,
+  getStockOrderNextAction,
   getStockOrderStatusLabel,
   getStockOrderStatusTone,
   isOrderPartiallyReceived,
+  normalizeStockOrderStatus,
 } from '../../lib/stockOrderUtils'
 import { formatStockPurchasePrice } from '../../lib/stockUtils'
 import { StockCreateOrderModal } from './StockCreateOrderModal'
@@ -77,15 +79,18 @@ function StockOrderSortDropdown({ value, options, onChange }) {
 }
 
 function StockOrderCard({ order, onOpen }) {
+  const status = normalizeStockOrderStatus(order.status)
   const statusTone = getStockOrderStatusTone(order.status)
+  const nextAction = getStockOrderNextAction(order)
   const itemCount = order.items?.length ?? 0
   const deliveryLabel = formatStockOrderDeliveryDate(order.expectedDeliveryDate)
   const showPartialBadge = isOrderPartiallyReceived(order)
+  const isActionable = status === 'draft' || status === 'sent'
 
   return (
     <button
       type="button"
-      className="stock-order-card panel staff-panel"
+      className={`stock-order-card panel staff-panel${isActionable ? ' is-actionable' : ''}${status === 'sent' ? ' is-awaiting-delivery' : ''}`}
       onClick={() => onOpen(order)}
     >
       <div className="stock-order-card-top">
@@ -104,6 +109,13 @@ function StockOrderCard({ order, onOpen }) {
           </span>
         </div>
       </div>
+
+      {nextAction?.hint && isActionable ? (
+        <p className={`stock-order-card-next-action tone-${nextAction.tone}`}>
+          <span className="stock-order-card-next-action-label">Next:</span>
+          {nextAction.hint}
+        </p>
+      ) : null}
 
       <div className="stock-order-card-stats">
         <div className="stock-order-card-stat">
@@ -143,6 +155,8 @@ export function StockOrdersView({
   canManage = false,
   isSaving = false,
   isWorkspaceReady = false,
+  initialStatusFilter = null,
+  onStatusFilterApplied,
   onCreateOrders,
   onSaveDraft,
   onMarkSent,
@@ -154,6 +168,12 @@ export function StockOrdersView({
   const [statusFilter, setStatusFilter] = useState('all')
   const [sortKey, setSortKey] = useState('newest')
   const [localSearchTerm, setLocalSearchTerm] = useState('')
+
+  useEffect(() => {
+    if (!initialStatusFilter) return
+    setStatusFilter(initialStatusFilter)
+    onStatusFilterApplied?.()
+  }, [initialStatusFilter, onStatusFilterApplied])
 
   const effectiveSearchTerm = `${searchTerm || localSearchTerm}`.trim()
 
@@ -176,6 +196,19 @@ export function StockOrdersView({
   const emptyState = useMemo(() => {
     return getStockOrdersEmptyState(statusFilter, orders.length > 0)
   }, [statusFilter, orders.length])
+
+  const statusFilterCounts = useMemo(() => {
+    const counts = { all: orders.length }
+
+    STOCK_ORDER_STATUS_FILTERS.forEach((filter) => {
+      if (filter.id === 'all') return
+      counts[filter.id] = orders.filter(
+        (order) => normalizeStockOrderStatus(order.status) === filter.id,
+      ).length
+    })
+
+    return counts
+  }, [orders])
 
   const handleCreateOrders = async (groups) => {
     if (isSaving) return
@@ -220,6 +253,9 @@ export function StockOrdersView({
                 onClick={() => setStatusFilter(filter.id)}
               >
                 {filter.label}
+                {statusFilterCounts[filter.id] > 0 ? (
+                  <span className="stock-status-filter-count">{statusFilterCounts[filter.id]}</span>
+                ) : null}
               </button>
             ))}
           </div>

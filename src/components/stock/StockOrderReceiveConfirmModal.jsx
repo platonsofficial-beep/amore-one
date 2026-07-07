@@ -14,6 +14,7 @@ export function StockOrderReceiveConfirmModal({
 }) {
   const pendingLines = buildPendingReceiveLines(order, receiveNowByItemId)
   const willComplete = willCompleteOrderAfterReceive(order, receiveNowByItemId)
+  const totalUnitsReceiving = pendingLines.reduce((sum, line) => sum + line.receiveNow, 0)
 
   const handleDismiss = () => {
     if (isSaving) return
@@ -67,7 +68,12 @@ export function StockOrderReceiveConfirmModal({
           </dl>
 
           <section className="stock-order-receive-confirm-products" aria-label="Products being received">
-            <h4 className="stock-order-receive-confirm-products-title">Products being received</h4>
+            <div className="stock-order-receive-confirm-products-head">
+              <h4 className="stock-order-receive-confirm-products-title">Products being received</h4>
+              <p className="stock-order-receive-confirm-total">
+                {pendingLines.length} product{pendingLines.length === 1 ? '' : 's'} · {totalUnitsReceiving} unit{totalUnitsReceiving === 1 ? '' : 's'} total
+              </p>
+            </div>
             <ul className="stock-order-receive-confirm-list">
               {pendingLines.map(({ item, receiveNow }) => (
                 <li key={item.id} className="stock-order-receive-confirm-item">

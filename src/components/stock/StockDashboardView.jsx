@@ -36,9 +36,11 @@ import {
   formatStockQuantity,
   getStockCategoryFilters,
   getStockMovementLabel,
+  getStockStatusLabel,
   getStockStatusShortLabel,
   STOCK_MOVEMENT_TYPES,
 } from '../../lib/stockUtils'
+import { buildStockOrdersOperationsSummary } from '../../lib/stockOrderUtils'
 import { StockCreateOrderModal } from './StockCreateOrderModal'
 import { StockItemFormModal } from './StockItemFormModal'
 import { StockImportModal } from './StockImportModal'
@@ -209,7 +211,15 @@ function StockItemCard({
 
       <div className="stock-item-hero">
         <span className="stock-item-hero-label">On hand</span>
-        <p className="stock-item-hero-qty">{formatStockQuantity(item.currentQuantity, item.unit)}</p>
+        <p className={`stock-item-hero-qty${item.status === 'out' || item.status === 'low' ? ` tone-${item.status}` : ''}`}>
+          {formatStockQuantity(item.currentQuantity, item.unit)}
+        </p>
+        {item.status === 'low' || item.status === 'out' ? (
+          <p className="stock-item-qty-context">
+            Min {formatStockQuantity(item.minimumQuantity, item.unit)}
+            {item.status === 'out' ? ' · needs restock' : ' · below minimum'}
+          </p>
+        ) : null}
       </div>
 
       <div className="stock-item-secondary">
@@ -353,10 +363,10 @@ function StockListRow({
       <td className="stock-list-cell">{formatStockCategoryTypeLine(item.category, itemType)}</td>
       <td className="stock-list-cell">{supplierLabel}</td>
       <td className="stock-list-cell">{location}</td>
-      <td className="stock-list-cell stock-list-cell-qty">
-        {formatStockQuantity(item.currentQuantity, item.unit)}
+      <td className={`stock-list-cell stock-list-cell-qty${item.status === 'out' || item.status === 'low' ? ` is-${item.status}` : ''}`}>
+        <strong>{formatStockQuantity(item.currentQuantity, item.unit)}</strong>
       </td>
-      <td className="stock-list-cell stock-list-cell-qty">
+      <td className="stock-list-cell stock-list-cell-qty stock-list-cell-min">
         {formatStockQuantity(item.minimumQuantity, item.unit)}
       </td>
       <td className="stock-list-cell">
@@ -431,13 +441,15 @@ function StockListMobileCard({
           <dt>Location</dt>
           <dd>{location}</dd>
         </div>
-        <div className="stock-list-mobile-meta-row">
-          <dt>Current stock</dt>
-          <dd>{formatStockQuantity(item.currentQuantity, item.unit)}</dd>
-        </div>
-        <div className="stock-list-mobile-meta-row">
-          <dt>Minimum</dt>
-          <dd>{formatStockQuantity(item.minimumQuantity, item.unit)}</dd>
+        <div className="stock-list-mobile-meta-row stock-list-mobile-meta-row-qty">
+          <dt>On hand / Min</dt>
+          <dd>
+            <span className={`stock-list-mobile-qty-current${item.status === 'out' || item.status === 'low' ? ` tone-${item.status}` : ''}`}>
+              {formatStockQuantity(item.currentQuantity, item.unit)}
+            </span>
+            <span className="stock-list-mobile-qty-separator" aria-hidden="true">/</span>
+            <span>{formatStockQuantity(item.minimumQuantity, item.unit)}</span>
+          </dd>
         </div>
         <div className="stock-list-mobile-meta-row">
           <dt>Last movement</dt>
@@ -543,6 +555,7 @@ function StockCompactRow({
   onOpenHistory,
 }) {
   const location = resolveStockStorageLocation(item)
+  const supplierLabel = `${item.supplier ?? ''}`.trim() || '—'
 
   return (
     <article
@@ -560,9 +573,20 @@ function StockCompactRow({
         </button>
       ) : null}
       <div className="stock-compact-copy">
-        <h3 className="stock-compact-name">{item.name}</h3>
-        <p className="stock-compact-location">{location}</p>
-        <p className="stock-compact-qty">{formatStockQuantity(item.currentQuantity, item.unit)}</p>
+        <div className="stock-compact-title-row">
+          <h3 className="stock-compact-name">{item.name}</h3>
+          <span className={`stock-item-status-badge tone-${item.status}`}>
+            {getStockStatusShortLabel(item.status)}
+          </span>
+        </div>
+        <p className="stock-compact-meta">{supplierLabel} · {location}</p>
+        <p className="stock-compact-qty">
+          <span className={item.status === 'out' || item.status === 'low' ? `tone-${item.status}` : ''}>
+            {formatStockQuantity(item.currentQuantity, item.unit)}
+          </span>
+          <span className="stock-compact-qty-separator" aria-hidden="true">/</span>
+          <span className="stock-compact-qty-min">min {formatStockQuantity(item.minimumQuantity, item.unit)}</span>
+        </p>
       </div>
       {canManage ? (
         <button type="button" className="ghost-btn stock-compact-count-btn" onClick={onCount}>
@@ -635,17 +659,37 @@ function StockAttentionRow({
   const showReceive = groupId === 'out' || groupId === 'low'
   const showCount = groupId === 'out' || groupId === 'low' || groupId === 'count'
   const showEdit = groupId === 'data'
+  const showStockLevels = groupId === 'out' || groupId === 'low'
 
   return (
     <li className={`stock-attention-row tone-${item.status}`}>
       <div className="stock-attention-copy">
-        <p className="stock-attention-name">{item.name}</p>
+        <div className="stock-attention-title-row">
+          <p className="stock-attention-name">{item.name}</p>
+          {showStockLevels ? (
+            <span className={`stock-item-status-badge tone-${item.status}`}>
+              {getStockStatusLabel(item.status)}
+            </span>
+          ) : null}
+        </div>
         <p className="stock-attention-meta">
           {formatStockCategoryTypeLine(item.category, itemType)} · {location}
         </p>
-        <p className="stock-attention-qty">
-          {formatStockQuantity(item.currentQuantity, item.unit)}
-        </p>
+        {showStockLevels ? (
+          <p className="stock-attention-qty">
+            <span className={`stock-attention-qty-current tone-${item.status}`}>
+              {formatStockQuantity(item.currentQuantity, item.unit)}
+            </span>
+            <span className="stock-attention-qty-separator" aria-hidden="true">/</span>
+            <span className="stock-attention-qty-min">
+              min {formatStockQuantity(item.minimumQuantity, item.unit)}
+            </span>
+          </p>
+        ) : (
+          <p className="stock-attention-qty">
+            {formatStockQuantity(item.currentQuantity, item.unit)}
+          </p>
+        )}
       </div>
 
       {canManage ? (
@@ -668,6 +712,72 @@ function StockAttentionRow({
         </div>
       ) : null}
     </li>
+  )
+}
+
+function StockOperationsBanner({
+  ordersSummary,
+  criticalStockCount,
+  onOpenOrders,
+}) {
+  const { draftCount, awaitingDeliveryCount, partialCount, pendingCount } = ordersSummary
+  const hasCriticalStock = criticalStockCount > 0
+  const hasPendingOrders = pendingCount > 0
+
+  if (!hasCriticalStock && !hasPendingOrders) return null
+
+  return (
+    <section className="stock-operations-banner panel staff-panel" aria-label="Today's stock actions">
+      <header className="stock-operations-banner-header">
+        <h3 className="stock-operations-banner-title">Today&apos;s stock actions</h3>
+        <p className="stock-operations-banner-subtitle">
+          {hasCriticalStock && hasPendingOrders
+            ? `${criticalStockCount} critical item${criticalStockCount === 1 ? '' : 's'} · ${pendingCount} open order${pendingCount === 1 ? '' : 's'}`
+            : hasCriticalStock
+              ? `${criticalStockCount} item${criticalStockCount === 1 ? '' : 's'} need restocking`
+              : `${pendingCount} supplier order${pendingCount === 1 ? '' : 's'} need attention`}
+        </p>
+      </header>
+
+      <div className="stock-operations-banner-actions">
+        {awaitingDeliveryCount > 0 ? (
+          <button
+            type="button"
+            className="primary-btn stock-operations-action-btn"
+            onClick={() => onOpenOrders?.('sent')}
+          >
+            Receive {awaitingDeliveryCount} deliver{awaitingDeliveryCount === 1 ? 'y' : 'ies'}
+          </button>
+        ) : null}
+        {partialCount > 0 ? (
+          <button
+            type="button"
+            className="primary-btn stock-operations-action-btn"
+            onClick={() => onOpenOrders?.('sent')}
+          >
+            Continue {partialCount} partial order{partialCount === 1 ? '' : 's'}
+          </button>
+        ) : null}
+        {draftCount > 0 ? (
+          <button
+            type="button"
+            className="ghost-btn stock-operations-action-btn"
+            onClick={() => onOpenOrders?.('draft')}
+          >
+            Review {draftCount} draft{draftCount === 1 ? '' : 's'}
+          </button>
+        ) : null}
+        {hasPendingOrders ? (
+          <button
+            type="button"
+            className="ghost-btn stock-operations-action-btn"
+            onClick={() => onOpenOrders?.('all')}
+          >
+            View all orders
+          </button>
+        ) : null}
+      </div>
+    </section>
   )
 }
 
@@ -985,6 +1095,7 @@ function StockBulkFieldModal({
 
 export function StockDashboardView({
   stockItems = [],
+  stockOrders = [],
   isLoading = false,
   noticeMessage = '',
   isSaving = false,
@@ -1004,6 +1115,7 @@ export function StockDashboardView({
   onImportStockItems,
   onRecordMovement,
   onCreateOrders,
+  onOpenOrders,
   isSavingOrders = false,
 }) {
   const [categoryFilter, setCategoryFilter] = useState('All')
@@ -1033,6 +1145,8 @@ export function StockDashboardView({
   }, [isItemModalOpen, onItemModalOpenChange])
 
   const summary = useMemo(() => buildStockDashboardSummary(stockItems), [stockItems])
+  const ordersSummary = useMemo(() => buildStockOrdersOperationsSummary(stockOrders), [stockOrders])
+  const criticalStockCount = summary.lowStock + summary.outOfStock
   const categoryFilters = useMemo(() => getStockCategoryFilters(stockItems), [stockItems])
 
   const visibleItems = useMemo(() => {
@@ -1331,6 +1445,14 @@ export function StockDashboardView({
           />
         ) : null}
       </section>
+
+      {!isLoading && (criticalStockCount > 0 || ordersSummary.pendingCount > 0) ? (
+        <StockOperationsBanner
+          ordersSummary={ordersSummary}
+          criticalStockCount={criticalStockCount}
+          onOpenOrders={onOpenOrders}
+        />
+      ) : null}
 
       {hasNeedsAttention && !isLoading ? (
         <StockNeedsAttentionSection

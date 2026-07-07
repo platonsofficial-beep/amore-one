@@ -225,6 +225,82 @@ export function formatStockOrderLineSummary(item) {
   }
 }
 
+export function getStockOrderNextAction(order) {
+  const status = normalizeStockOrderStatus(order?.status)
+
+  if (status === 'draft') {
+    return {
+      label: 'Mark sent',
+      hint: 'Review products and send to supplier',
+      tone: 'warning',
+    }
+  }
+
+  if (status === 'sent') {
+    if (isOrderPartiallyReceived(order)) {
+      return {
+        label: 'Continue receiving',
+        hint: 'Enter quantities for products still waiting',
+        tone: 'info',
+      }
+    }
+
+    return {
+      label: 'Receive delivery',
+      hint: 'Enter quantities as the delivery arrives',
+      tone: 'info',
+    }
+  }
+
+  if (status === 'received') {
+    return {
+      label: 'Completed',
+      hint: 'All products received',
+      tone: 'success',
+    }
+  }
+
+  if (status === 'cancelled') {
+    return {
+      label: 'Cancelled',
+      hint: null,
+      tone: 'muted',
+    }
+  }
+
+  return null
+}
+
+export function buildStockOrdersOperationsSummary(orders = []) {
+  let draftCount = 0
+  let awaitingDeliveryCount = 0
+  let partialCount = 0
+
+  ;(orders ?? []).forEach((order) => {
+    const status = normalizeStockOrderStatus(order.status)
+
+    if (status === 'draft') {
+      draftCount += 1
+      return
+    }
+
+    if (status === 'sent') {
+      if (isOrderPartiallyReceived(order)) {
+        partialCount += 1
+      } else {
+        awaitingDeliveryCount += 1
+      }
+    }
+  })
+
+  return {
+    draftCount,
+    awaitingDeliveryCount,
+    partialCount,
+    pendingCount: draftCount + awaitingDeliveryCount + partialCount,
+  }
+}
+
 export function buildStockOrderTimeline(order) {
   const status = normalizeStockOrderStatus(order?.status)
   const partiallyReceived = isOrderPartiallyReceived(order)

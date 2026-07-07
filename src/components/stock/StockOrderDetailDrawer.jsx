@@ -14,6 +14,7 @@ import {
   getOrderLineReceivedQuantity,
   getOrderLineRemainingQuantity,
   getOrderReceivedSummary,
+  getStockOrderNextAction,
   getStockOrderStatusLabel,
   getStockOrderStatusTone,
   isOrderPartiallyReceived,
@@ -127,6 +128,7 @@ function ReceivingOrderItem({
   item,
   receiveNow,
   onReceiveNowChange,
+  onReceiveAllRemaining,
 }) {
   const ordered = Number(item.quantity) || 0
   const received = getOrderLineReceivedQuantity(item)
@@ -158,20 +160,29 @@ function ReceivingOrderItem({
       </dl>
 
       {remaining > 0 ? (
-        <label className="stock-order-receive-now">
-          <span>Receive now</span>
-          <input
-            type="number"
-            min="0"
-            max={remaining}
-            step="any"
-            className="stock-create-order-qty-input"
-            value={receiveNow}
-            onChange={(event) => onReceiveNowChange(item.id, event.target.value, remaining)}
-            aria-label={`Receive now for ${item.itemName}`}
-          />
-          <span>{item.unit || 'units'}</span>
-        </label>
+        <div className="stock-order-receive-now-wrap">
+          <label className="stock-order-receive-now">
+            <span>Receive now</span>
+            <input
+              type="number"
+              min="0"
+              max={remaining}
+              step="any"
+              className="stock-create-order-qty-input"
+              value={receiveNow}
+              onChange={(event) => onReceiveNowChange(item.id, event.target.value, remaining)}
+              aria-label={`Receive now for ${item.itemName}`}
+            />
+            <span>{item.unit || 'units'}</span>
+          </label>
+          <button
+            type="button"
+            className="ghost-btn stock-order-receive-all-btn"
+            onClick={() => onReceiveAllRemaining(item.id, remaining)}
+          >
+            Receive all ({formatStockQuantity(remaining, item.unit)})
+          </button>
+        </div>
       ) : (
         <p className="stock-order-receive-complete">Fully received</p>
       )}
@@ -345,6 +356,7 @@ export function StockOrderDetailDrawer({
   }, [onClose, isReceiveConfirmOpen, isSaving])
 
   const statusTone = getStockOrderStatusTone(order.status)
+  const nextAction = getStockOrderNextAction(order)
   const deliveryLabel = formatStockOrderDeliveryDate(order.expectedDeliveryDate)
   const receiveSummary = useMemo(() => getOrderReceivedSummary(order), [order])
   const partiallyReceived = isOrderPartiallyReceived(order)
@@ -377,6 +389,13 @@ export function StockOrderDetailDrawer({
     setReceiveNowByItemId((current) => ({
       ...current,
       [itemId]: rawValue === '' ? '' : capped,
+    }))
+  }
+
+  const handleReceiveAllRemaining = (itemId, remaining) => {
+    setReceiveNowByItemId((current) => ({
+      ...current,
+      [itemId]: remaining,
     }))
   }
 
@@ -516,6 +535,30 @@ export function StockOrderDetailDrawer({
           <div className="stock-product-history-scroll">
             {error ? <div className="staff-status-banner">{error}</div> : null}
 
+            {canManage && nextAction?.hint && !isReceived && normalizeStockOrderStatus(order.status) !== 'cancelled' ? (
+              <div className={`stock-order-next-step panel staff-panel tone-${nextAction.tone}`} aria-label="Next step">
+                <p className="stock-order-next-step-label">Next step</p>
+                <p className="stock-order-next-step-copy">{nextAction.hint}</p>
+              </div>
+            ) : null}
+
+            {showReceivingMode ? (
+              <div className="stock-order-receiving-guide panel staff-panel" aria-label="Receiving instructions">
+                <h4>Receiving this delivery</h4>
+                <p>
+                  Check each product against the delivery note. Enter the quantity arriving now — use
+                  {' '}
+                  <strong>Receive all</strong>
+                  {' '}
+                  when the full remaining amount arrived.
+                </p>
+                <p>
+                  {receiveSummary.remainingTotal} unit{receiveSummary.remainingTotal === 1 ? '' : 's'} still
+                  outstanding across {displayItems.length} product{displayItems.length === 1 ? '' : 's'}.
+                </p>
+              </div>
+            ) : null}
+
             {isReceived ? (
               <div className="stock-order-completion-banner panel staff-panel" aria-label="Order completed">
                 <h4>Order completed</h4>
@@ -641,6 +684,7 @@ export function StockOrderDetailDrawer({
                     item={item}
                     receiveNow={receiveNowByItemId[item.id] ?? ''}
                     onReceiveNowChange={handleReceiveNowChange}
+                    onReceiveAllRemaining={handleReceiveAllRemaining}
                   />
                 )) : null}
 
@@ -722,7 +766,7 @@ export function StockOrderDetailDrawer({
                   onClick={openReceiveConfirm}
                   disabled={isSaving || !hasReceiveInput}
                 >
-                  {isSaving ? 'Receiving…' : 'Receive stock'}
+                  {isSaving ? 'Receiving…' : `Review receive${hasReceiveInput ? '' : ' — enter quantities'}`}
                 </button>
               ) : null}
               </footer>

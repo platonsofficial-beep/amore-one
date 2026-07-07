@@ -12126,6 +12126,7 @@ function App() {
   const [stockSupplierPrefill, setStockSupplierPrefill] = useState('')
   const [stockOrders, setStockOrders] = useState([])
   const [stockOrdersNotice, setStockOrdersNotice] = useState('')
+  const [stockOrdersFilterHint, setStockOrdersFilterHint] = useState(null)
   const [isStockOrdersLoading, setIsStockOrdersLoading] = useState(false)
   const [isSavingStockOrder, setIsSavingStockOrder] = useState(false)
   const isCreatingStockOrdersRef = useRef(false)
@@ -12432,6 +12433,13 @@ function App() {
       operationsSection,
     })
   }, [activeView, settingsSection, teamSection, operationsSection])
+
+  const handleOpenStockOrders = useCallback((statusFilter = 'all') => {
+    if (statusFilter && statusFilter !== 'all') {
+      setStockOrdersFilterHint(statusFilter)
+    }
+    handleStockSectionChange('orders')
+  }, [handleStockSectionChange])
 
   const handleOperationsSectionChange = useCallback((nextSection) => {
     setOperationsSection(nextSection)
@@ -13704,7 +13712,7 @@ function App() {
   }, [activeView, stockSection, refreshStockItems])
 
   useEffect(() => {
-    if (activeView !== 'stock' || (stockSection !== 'orders' && stockSection !== 'suppliers')) return undefined
+    if (activeView !== 'stock' || (stockSection !== 'orders' && stockSection !== 'suppliers' && stockSection !== 'dashboard')) return undefined
 
     let isMounted = true
 
@@ -19078,6 +19086,7 @@ function App() {
         {isActiveViewAllowed && activeView === 'stock' && stockSection === 'dashboard' ? (
           <StockDashboardView
             stockItems={stockItems}
+            stockOrders={stockOrders}
             isLoading={isStockItemsLoading}
             noticeMessage={stockItemsNotice}
             isSaving={isSavingStockItem}
@@ -19097,6 +19106,7 @@ function App() {
             onImportStockItems={handleImportStockItems}
             onRecordMovement={handleRecordStockMovement}
             onCreateOrders={handleCreateStockOrders}
+            onOpenOrders={handleOpenStockOrders}
             isSavingOrders={isSavingStockOrder}
           />
         ) : null}
@@ -19111,6 +19121,8 @@ function App() {
             canManage={canManageStock}
             isSaving={isSavingStockOrder}
             isWorkspaceReady={isStockWorkspaceReady}
+            initialStatusFilter={stockOrdersFilterHint}
+            onStatusFilterApplied={() => setStockOrdersFilterHint(null)}
             onCreateOrders={handleCreateStockOrders}
             onSaveDraft={handleSaveStockOrderDraft}
             onMarkSent={handleMarkStockOrderSent}
