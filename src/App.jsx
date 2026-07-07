@@ -335,6 +335,7 @@ import { WorkspaceView } from './components/workspace/WorkspaceView'
 import { AccessRestrictedView } from './components/auth/AccessRestrictedView'
 import { ModuleSectionTabs } from './components/shell/ModuleSectionTabs'
 import { UserMenu } from './components/auth/UserMenu'
+import { MobileManagerApp } from './components/mobile/MobileManagerApp'
 import { MobileStaffApp } from './components/mobile/MobileStaffApp'
 import { useMobileViewport } from './hooks/useMobileViewport'
 import { filterStandaloneOperationsTasks } from './lib/operationsChecklistUtils'
@@ -370,6 +371,7 @@ import {
   canOpenMobileFullSchedule,
   canOpenMobileTasksWorkspace,
   filterNavItemsByRole,
+  isManagementMobileRole,
   resolvePermittedActiveView,
   resolvePermittedTeamSection,
 } from './lib/permissions'
@@ -19348,81 +19350,101 @@ function App() {
           return (
             <>
               {isMobileViewport ? (
-                <MobileStaffApp
-                  activeTab={mobileTab}
-                  onTabChange={handleMobileTabChange}
-                  noticeMessage={mobileNotice}
-                  onDismissNotice={() => setMobileNotice('')}
-                  homeProps={{
-                    venueName: workspaceProfile.businessName,
-                    greeting: mobileGreeting,
-                    dateLabel: currentDateLabel,
-                    shiftSummary: mobileShiftSummary,
-                    tasksSummary: mobileTaskOverview,
-                    needsEmployeeLink: mobileNeedsEmployeeLink,
-                    announcements: operationsAnnouncements,
-                    announcementRole: role,
-                    announcementEmployeeDepartment: currentEmployeeDepartment,
-                    isAnnouncementsSaving: isSavingOperations,
-                    onMarkAnnouncementSeen: handleMarkOperationsAnnouncementSeen,
-                  }}
-                  scheduleProps={{
-                    weekLabel: mobileScheduleWeekLabel,
-                    employeeName: mobileScheduleDisplay.employeeName,
-                    days: mobileScheduleDisplay.days,
-                    needsEmployeeLink: mobileNeedsEmployeeLink,
-                    isWeekPublished: mobileScheduleDisplay.isWeekPublished,
-                    isWeekUpdating: isMobileWeekLoading,
-                    isViewingCurrentWeek: mobileWeekStart === todayWeekStart,
-                    canOpenFullSchedule: canOpenMobileFullSchedule(role),
-                    onOpenFullSchedule: handleMobileOpenFullSchedule,
-                    onPreviousWeek: handleMobilePreviousWeek,
-                    onGoToCurrentWeek: handleMobileGoToCurrentWeek,
-                    onNextWeek: handleMobileNextWeek,
-                  }}
-                  tasksProps={{
-                    taskGroups: mobileTaskGroups,
-                    employees: scheduleEmployees,
-                    currentEmployeeId: mobileEmployeeId,
-                    todayKey: currentDateKey,
-                    needsEmployeeLink: mobileNeedsEmployeeLink,
-                    isLoading: isMobileOperationsTasksLoading,
-                    isSaving: isSavingOperations,
-                    onCompleteTask: handleCompleteOperationsTask,
-                    onOpenTasksWorkspace: canOpenMobileTasksWorkspace(role)
-                      ? handleMobileOpenTasksWorkspace
-                      : undefined,
-                  }}
-                  menuProps={{
-                    role,
-                    roleLabel,
-                    profileName: resolvedUserDisplayName,
-                    venueName: workspaceProfile.businessName,
-                    screen: mobileMenuScreen,
-                    onOpenProfile: handleMobileOpenProfile,
-                    onBackFromProfile: handleMobileBackFromProfile,
-                    profileProps: {
-                      displayName: `${membership?.displayName ?? ''}`.trim() || resolvedUserDisplayName,
-                      email: `${membership?.email ?? user?.email ?? ''}`.trim(),
-                      phone: mobileProfilePhone,
+                (() => {
+                  const isManagerMobileShell = isManagementMobileRole(role)
+                  const MobileShell = isManagerMobileShell ? MobileManagerApp : MobileStaffApp
+                  const mobileHomeProps = isManagerMobileShell
+                    ? {
+                      venueName: workspaceProfile.businessName,
+                      greeting: mobileGreeting,
+                      dateLabel: currentDateLabel,
                       roleLabel,
-                      venueName: `${workspace?.name ?? workspaceProfile.businessName ?? ''}`.trim(),
-                      linkedEmployeeName: `${mobileLinkedEmployee?.name ?? ''}`.trim(),
-                      canEditPhone: Boolean(membership?.employeeId),
-                      isSaving: isSavingMobileProfile,
-                      errorMessage: mobileProfileError,
-                      onSave: handleMobileProfileSave,
-                    },
-                    onNavigateModule: handleMobileNavigateModule,
-                    onOpenFullSchedule: handleMobileOpenFullSchedule,
-                    onOpenSettings: handleMobileOpenSettings,
-                    onSignOut: handleMobileSignOut,
-                  }}
-                  expandedView={mobileExpandedView}
-                  expandedTitle={mobileExpandedTitle}
-                  onBackFromExpanded={handleMobileBack}
-                  expandedModuleContent={mobileExpandedView ? workspaceModules : null}
-                />
+                      announcements: operationsAnnouncements,
+                      announcementRole: role,
+                      announcementEmployeeDepartment: currentEmployeeDepartment,
+                      isAnnouncementsSaving: isSavingOperations,
+                      onMarkAnnouncementSeen: handleMarkOperationsAnnouncementSeen,
+                    }
+                    : {
+                      venueName: workspaceProfile.businessName,
+                      greeting: mobileGreeting,
+                      dateLabel: currentDateLabel,
+                      shiftSummary: mobileShiftSummary,
+                      tasksSummary: mobileTaskOverview,
+                      needsEmployeeLink: mobileNeedsEmployeeLink,
+                      announcements: operationsAnnouncements,
+                      announcementRole: role,
+                      announcementEmployeeDepartment: currentEmployeeDepartment,
+                      isAnnouncementsSaving: isSavingOperations,
+                      onMarkAnnouncementSeen: handleMarkOperationsAnnouncementSeen,
+                    }
+
+                  return (
+                    <MobileShell
+                      activeTab={mobileTab}
+                      onTabChange={handleMobileTabChange}
+                      noticeMessage={mobileNotice}
+                      onDismissNotice={() => setMobileNotice('')}
+                      homeProps={mobileHomeProps}
+                      scheduleProps={{
+                        weekLabel: mobileScheduleWeekLabel,
+                        employeeName: mobileScheduleDisplay.employeeName,
+                        days: mobileScheduleDisplay.days,
+                        needsEmployeeLink: mobileNeedsEmployeeLink,
+                        isWeekPublished: mobileScheduleDisplay.isWeekPublished,
+                        isWeekUpdating: isMobileWeekLoading,
+                        isViewingCurrentWeek: mobileWeekStart === todayWeekStart,
+                        canOpenFullSchedule: canOpenMobileFullSchedule(role),
+                        onOpenFullSchedule: handleMobileOpenFullSchedule,
+                        onPreviousWeek: handleMobilePreviousWeek,
+                        onGoToCurrentWeek: handleMobileGoToCurrentWeek,
+                        onNextWeek: handleMobileNextWeek,
+                      }}
+                      tasksProps={{
+                        taskGroups: mobileTaskGroups,
+                        employees: scheduleEmployees,
+                        currentEmployeeId: mobileEmployeeId,
+                        todayKey: currentDateKey,
+                        needsEmployeeLink: mobileNeedsEmployeeLink,
+                        isLoading: isMobileOperationsTasksLoading,
+                        isSaving: isSavingOperations,
+                        onCompleteTask: handleCompleteOperationsTask,
+                        onOpenTasksWorkspace: canOpenMobileTasksWorkspace(role)
+                          ? handleMobileOpenTasksWorkspace
+                          : undefined,
+                      }}
+                      menuProps={{
+                        role,
+                        roleLabel,
+                        profileName: resolvedUserDisplayName,
+                        venueName: workspaceProfile.businessName,
+                        screen: mobileMenuScreen,
+                        onOpenProfile: handleMobileOpenProfile,
+                        onBackFromProfile: handleMobileBackFromProfile,
+                        profileProps: {
+                          displayName: `${membership?.displayName ?? ''}`.trim() || resolvedUserDisplayName,
+                          email: `${membership?.email ?? user?.email ?? ''}`.trim(),
+                          phone: mobileProfilePhone,
+                          roleLabel,
+                          venueName: `${workspace?.name ?? workspaceProfile.businessName ?? ''}`.trim(),
+                          linkedEmployeeName: `${mobileLinkedEmployee?.name ?? ''}`.trim(),
+                          canEditPhone: Boolean(membership?.employeeId),
+                          isSaving: isSavingMobileProfile,
+                          errorMessage: mobileProfileError,
+                          onSave: handleMobileProfileSave,
+                        },
+                        onNavigateModule: handleMobileNavigateModule,
+                        onOpenFullSchedule: handleMobileOpenFullSchedule,
+                        onOpenSettings: handleMobileOpenSettings,
+                        onSignOut: handleMobileSignOut,
+                      }}
+                      expandedView={mobileExpandedView}
+                      expandedTitle={mobileExpandedTitle}
+                      onBackFromExpanded={handleMobileBack}
+                      expandedModuleContent={mobileExpandedView ? workspaceModules : null}
+                    />
+                  )
+                })()
               ) : null}
               {!isMobileViewport ? (
                 <>

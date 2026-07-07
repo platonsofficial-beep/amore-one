@@ -1112,6 +1112,29 @@
   min-height: 100dvh;
 }
 
+.mobile-manager-preview-label {
+  margin: 0;
+  padding: 6px 16px;
+  color: #d6b26a;
+  background: rgba(212, 175, 55, 0.1);
+  border-bottom: 1px solid rgba(212, 175, 55, 0.18);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.mobile-manager-role-label {
+  margin: 6px 0 0;
+  color: #9f9588;
+  font-size: 0.82rem;
+}
+
+.mobile-manager-today-placeholder {
+  border-color: rgba(212, 175, 55, 0.18);
+}
+
 .mobile-workspace-module {
   min-width: 0;
   max-width: 100%;

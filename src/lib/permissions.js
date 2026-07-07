@@ -100,6 +100,10 @@ export function canAssignManagerInviteRole(role) {
 
 const MOBILE_MANAGEMENT_ROLES = new Set(['owner', 'general_manager', 'manager'])
 
+export function isManagementMobileRole(role) {
+  return MOBILE_MANAGEMENT_ROLES.has(normalizeWorkspaceRole(role, 'staff'))
+}
+
 export function canAccessMobileExpandedModule(role, moduleId) {
   const normalizedRole = normalizeWorkspaceRole(role, 'staff')
   if (!MOBILE_MANAGEMENT_ROLES.has(normalizedRole)) {
