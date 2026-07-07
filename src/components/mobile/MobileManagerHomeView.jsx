@@ -64,7 +64,9 @@ export function MobileManagerHomeView({
   )
 
   const showStockStatus = canOpenStock && (hasStockModuleData || stockOrdersSummary?.pendingCount > 0)
-  const hasQuickActions = canOpenStock || canReceiveDeliveries || canOpenTasks || canOpenTeam || canOpenReservations
+  const pendingDeliveries = (Number(stockOrdersSummary?.awaitingDeliveryCount) || 0)
+    + (Number(stockOrdersSummary?.partialCount) || 0)
+  const hasQuickActions = canOpenStock || (canReceiveDeliveries && pendingDeliveries > 0) || canOpenTasks || canOpenTeam || canOpenReservations
 
   return (
     <div className="mobile-screen mobile-home mobile-manager-home">
@@ -136,7 +138,7 @@ export function MobileManagerHomeView({
                 Open stock
               </button>
             ) : null}
-            {canReceiveDeliveries ? (
+            {canReceiveDeliveries && pendingDeliveries > 0 ? (
               <button
                 type="button"
                 className="mobile-manager-action-btn mobile-manager-action-btn-primary"

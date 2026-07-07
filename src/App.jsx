@@ -12239,6 +12239,7 @@ function App() {
   const [mobileProfileError, setMobileProfileError] = useState('')
   const [mobileNotice, setMobileNotice] = useState('')
   const [isSavingMobileProfile, setIsSavingMobileProfile] = useState(false)
+  const [isManagerMobileBootstrapLoading, setIsManagerMobileBootstrapLoading] = useState(false)
   const [mobileExpandedView, setMobileExpandedView] = useState(null)
   const [mobileWeekStart, setMobileWeekStart] = useState(() => readPersistedMobileWeekStart(getCurrentWeekStartDate()))
   const [mobileWeekPublishedShifts, setMobileWeekPublishedShifts] = useState([])
@@ -12930,7 +12931,8 @@ function App() {
 
   const isManagerMobileShell = isManagementMobileRole(role)
   const activeMobileTab = isManagerMobileShell ? mobileManagerTab : mobileStaffTab
-  const isManagerMobileStockLoading = isStockItemsLoading || isStockOrdersLoading
+  const isManagerMobileStockLoading = isManagerMobileBootstrapLoading || isStockItemsLoading || isStockOrdersLoading
+  const isManagerMobileTasksLoading = isManagerMobileBootstrapLoading || isOperationsLoading
 
   const dashboardTimelineEvents = useMemo(() => buildTodayServiceTimeline({
     // Service timeline uses actionable tasks only, not announcements or operations tasks.
@@ -13354,11 +13356,28 @@ function App() {
     refreshMobileOperationsTasks()
     refreshTodayWeekPublishedData(mobileWeekStart)
 
-    if (isManagementMobileRole(role)) {
-      refreshStockItems()
-      refreshStockOrders()
-      refreshOperationsTasks()
+    let isMounted = true
+
+    const loadManagerMobileData = async () => {
+      if (!isManagementMobileRole(role)) return
+
+      setIsManagerMobileBootstrapLoading(true)
+      try {
+        await Promise.all([
+          refreshStockItems(),
+          refreshStockOrders(),
+          refreshOperationsTasks(),
+        ])
+      } catch (error) {
+        console.warn('[App] loadManagerMobileData error:', error)
+      } finally {
+        if (isMounted) {
+          setIsManagerMobileBootstrapLoading(false)
+        }
+      }
     }
+
+    loadManagerMobileData()
 
     const intervalId = window.setInterval(() => {
       refreshDashboardModuleData()
@@ -13372,7 +13391,10 @@ function App() {
       }
     }, 60_000)
 
-    return () => window.clearInterval(intervalId)
+    return () => {
+      isMounted = false
+      window.clearInterval(intervalId)
+    }
   }, [
     isMobileViewport,
     role,
@@ -19560,7 +19582,7 @@ function App() {
                           openTodayTasks: managerMobileTaskPreviewLists.openToday,
                           employees: scheduleEmployees,
                           todayKey: currentDateKey,
-                          isLoading: isOperationsLoading,
+                          isLoading: isManagerMobileTasksLoading,
                           onOpenOperationsDashboard: handleMobileManagerOpenTasks,
                           onOpenTaskWorkspace: canOpenMobileTasksWorkspace(role)
                             ? handleMobileOpenTasksWorkspace
