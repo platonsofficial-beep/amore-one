@@ -126,14 +126,17 @@ export function MobileScheduleView({
         </section>
       ) : (
         <div className="mobile-schedule-days">
-          {days.map((day) => (
+          {(days.length > 0 ? days : []).map((day) => (
             <article
               key={day.date}
-              className={`mobile-schedule-day${day.isDayOff ? ' is-off' : ' has-shifts'}`}
+              className={`mobile-schedule-day${day.isDayOff ? ' is-off' : ' has-shifts'}${day.isToday ? ' is-today' : ''}`}
             >
               <div className="mobile-schedule-day-head">
                 <div>
-                  <p className="mobile-schedule-day-label">{day.dayLabel}</p>
+                  <div className="mobile-schedule-day-title-row">
+                    <p className="mobile-schedule-day-label">{day.dayLabel}</p>
+                    {day.isToday ? <span className="mobile-schedule-today-badge">Today</span> : null}
+                  </div>
                   <p className="mobile-schedule-day-date">{day.shortDate}</p>
                 </div>
                 <span className="mobile-schedule-day-status">
@@ -147,7 +150,7 @@ export function MobileScheduleView({
                   {day.shifts.map((shift) => (
                     <li key={shift.shiftId ?? `${day.date}-${shift.startTime}`} className="mobile-schedule-shift-item">
                       <strong>{shift.startTimeLabel} - {shift.endTimeLabel}</strong>
-                      <span>{shift.role}</span>
+                      <span>{shift.positionAreaLabel ?? shift.position ?? shift.role ?? '—'}</span>
                     </li>
                   ))}
                 </ul>

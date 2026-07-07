@@ -24,3 +24,64 @@ export function persistMobileTab(tab) {
   if (typeof window === 'undefined') return
   window.localStorage.setItem(MOBILE_TAB_STORAGE_KEY, normalizeMobileTab(tab))
 }
+
+const MOBILE_WEEK_START_STORAGE_KEY = 'one.mobileWeekStart.v1'
+
+function normalizeWeekStartDate(value) {
+  const normalized = `${value ?? ''}`.trim()
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(normalized)) return ''
+  return normalized
+}
+
+export function readPersistedMobileWeekStart(fallbackWeekStart = '') {
+  if (typeof window === 'undefined') {
+    return normalizeWeekStartDate(fallbackWeekStart)
+  }
+
+  try {
+    const stored = normalizeWeekStartDate(window.sessionStorage.getItem(MOBILE_WEEK_START_STORAGE_KEY))
+    return stored || normalizeWeekStartDate(fallbackWeekStart)
+  } catch {
+    return normalizeWeekStartDate(fallbackWeekStart)
+  }
+}
+
+export function persistMobileWeekStart(weekStart) {
+  if (typeof window === 'undefined') return
+
+  const normalized = normalizeWeekStartDate(weekStart)
+  if (!normalized) return
+
+  try {
+    window.sessionStorage.setItem(MOBILE_WEEK_START_STORAGE_KEY, normalized)
+  } catch {
+    // Ignore storage failures.
+  }
+}
+
+export function clearMobileSessionState() {
+  if (typeof window === 'undefined') return
+
+  try {
+    window.localStorage.removeItem(MOBILE_TAB_STORAGE_KEY)
+  } catch {
+    // Ignore storage failures.
+  }
+
+  try {
+    const sessionKeysToRemove = []
+    for (let index = 0; index < window.sessionStorage.length; index += 1) {
+      const key = window.sessionStorage.key(index)
+      if (!key) continue
+      if (key === MOBILE_WEEK_START_STORAGE_KEY || key.startsWith('one.mobile')) {
+        sessionKeysToRemove.push(key)
+      }
+    }
+
+    sessionKeysToRemove.forEach((key) => {
+      window.sessionStorage.removeItem(key)
+    })
+  } catch {
+    // Ignore storage failures.
+  }
+}

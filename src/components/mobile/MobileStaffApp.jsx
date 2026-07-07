@@ -8,6 +8,8 @@ import { MobileTasksView } from './MobileTasksView'
 export function MobileStaffApp({
   activeTab,
   onTabChange,
+  noticeMessage = '',
+  onDismissNotice,
   homeProps,
   scheduleProps,
   tasksProps,
@@ -17,9 +19,21 @@ export function MobileStaffApp({
   onBackFromExpanded,
   expandedModuleContent = null,
 }) {
+  const noticeBanner = noticeMessage ? (
+    <div className="mobile-notice-banner auth-banner auth-banner-error" role="alert">
+      <p>{noticeMessage}</p>
+      {onDismissNotice ? (
+        <button type="button" className="mobile-notice-dismiss" onClick={onDismissNotice} aria-label="Dismiss">
+          ✕
+        </button>
+      ) : null}
+    </div>
+  ) : null
+
   if (expandedView) {
     return (
       <div className="mobile-app mobile-app-expanded">
+        {noticeBanner}
         <div className="mobile-expanded-scroll">
           <header className="mobile-expanded-header">
             <button type="button" className="mobile-back-btn" onClick={onBackFromExpanded}>
@@ -40,6 +54,7 @@ export function MobileStaffApp({
 
   return (
     <div className="mobile-app">
+      {noticeBanner}
       <div className="mobile-app-content">
         {activeTab === 'home' ? <MobileHomeView {...homeProps} /> : null}
         {activeTab === 'schedule' ? <MobileScheduleView {...scheduleProps} /> : null}

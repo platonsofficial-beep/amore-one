@@ -36,6 +36,34 @@ create policy employees_delete_managers
   to authenticated
   using (public.can_manage_workspace_stock(workspace_id));
 
+drop policy if exists employees_update_self_linked on public.employees;
+create policy employees_update_self_linked
+  on public.employees
+  for update
+  to authenticated
+  using (
+    public.is_workspace_member(workspace_id)
+    and not public.can_manage_workspace_stock(workspace_id)
+    and id = (
+      select wm.employee_id
+      from public.workspace_members wm
+      where wm.workspace_id = employees.workspace_id
+        and wm.auth_user_id = auth.uid()
+      limit 1
+    )
+  )
+  with check (
+    public.is_workspace_member(workspace_id)
+    and not public.can_manage_workspace_stock(workspace_id)
+    and id = (
+      select wm.employee_id
+      from public.workspace_members wm
+      where wm.workspace_id = employees.workspace_id
+        and wm.auth_user_id = auth.uid()
+      limit 1
+    )
+  );
+
 drop policy if exists employee_positions_select_members on public.employee_positions;
 create policy employee_positions_select_members
   on public.employee_positions

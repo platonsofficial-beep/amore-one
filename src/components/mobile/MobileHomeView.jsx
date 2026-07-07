@@ -6,6 +6,7 @@ export function MobileHomeView({
   dateLabel = '',
   shiftSummary = {},
   tasksSummary = {},
+  needsEmployeeLink = false,
   announcements = [],
   announcementRole = '',
   announcementEmployeeDepartment = '',
@@ -18,7 +19,11 @@ export function MobileHomeView({
     completedToday = 0,
     completionPercent = 0,
     showEmptyToday = true,
+    needsEmployeeLink: tasksNeedEmployeeLink = false,
   } = tasksSummary
+
+  const shiftNeedsLink = needsEmployeeLink || shiftSummary?.needsEmployeeLink
+  const tasksNeedsLink = needsEmployeeLink || tasksNeedEmployeeLink
 
   return (
     <div className="mobile-screen mobile-home">
@@ -30,13 +35,24 @@ export function MobileHomeView({
 
       <section className={`mobile-card mobile-shift-card tone-${shiftSummary.tone ?? 'neutral'}`} aria-label="Today shift status">
         <p className="mobile-card-label">Today shift</p>
-        <h2 className="mobile-card-headline">{shiftSummary.headline ?? 'Checking schedule…'}</h2>
-        <p className="mobile-card-detail">{shiftSummary.detail ?? ''}</p>
+        {shiftNeedsLink ? (
+          <>
+            <h2 className="mobile-card-headline">Employee profile required</h2>
+            <p className="mobile-card-detail">Link your employee profile to view your shift.</p>
+          </>
+        ) : (
+          <>
+            <h2 className="mobile-card-headline">{shiftSummary.headline ?? 'Checking schedule…'}</h2>
+            <p className="mobile-card-detail">{shiftSummary.detail ?? ''}</p>
+          </>
+        )}
       </section>
 
       <section className="mobile-card" aria-label="Today tasks summary">
         <p className="mobile-card-label">Tasks today</p>
-        {showEmptyToday ? (
+        {tasksNeedsLink ? (
+          <p className="mobile-card-detail">Link your employee profile to view your tasks.</p>
+        ) : showEmptyToday ? (
           <p className="mobile-card-detail">No tasks due today.</p>
         ) : (
           <div className="mobile-task-summary-grid">

@@ -337,10 +337,13 @@ import { ModuleSectionTabs } from './components/shell/ModuleSectionTabs'
 import { UserMenu } from './components/auth/UserMenu'
 import { MobileStaffApp } from './components/mobile/MobileStaffApp'
 import { useMobileViewport } from './hooks/useMobileViewport'
+import { filterStandaloneOperationsTasks } from './lib/operationsChecklistUtils'
 import {
   buildMobileEmployeeShiftSummary,
   buildMobileEmployeeWeekSchedule,
-  partitionMobileTasks,
+  calculateMobileOperationsTaskOverview,
+  filterMobileStaffOperationsTasks,
+  partitionMobileOperationsTasks,
 } from './lib/mobileStaffUtils'
 import { useAuth } from './context/AuthContext'
 import {
@@ -401,7 +404,6 @@ import {
 } from './lib/currentDateUtils'
 import {
   calculateTaskOverview,
-  filterTasksByAssignment,
   matchesCustomDepartmentName,
   resolveCurrentEmployeeId,
 } from './lib/taskUtils'
@@ -411,7 +413,7 @@ import {
   persistNavigation,
   readPersistedNavigation,
 } from './lib/navigationPersistence'
-import { persistMobileTab, readPersistedMobileTab } from './lib/mobileNavigationPersistence'
+import { persistMobileTab, persistMobileWeekStart, readPersistedMobileTab, readPersistedMobileWeekStart } from './lib/mobileNavigationPersistence'
 
 const HOST_RESERVATION_STATUS_OPTIONS = getHostReservationStatusOptions()
 
@@ -12155,6 +12157,8 @@ function App() {
   const [tasks, setTasks] = useState([])
   const [tasksNotice, setTasksNotice] = useState('')
   const [operationsTasks, setOperationsTasks] = useState([])
+  const [mobileOperationsTasks, setMobileOperationsTasks] = useState([])
+  const [isMobileOperationsTasksLoading, setIsMobileOperationsTasksLoading] = useState(false)
   const [operationsLogs, setOperationsLogs] = useState([])
   const [operationsAnnouncements, setOperationsAnnouncements] = useState([])
   const [operationsChecklistTemplates, setOperationsChecklistTemplates] = useState([])
@@ -12207,6 +12211,7 @@ function App() {
     user,
     workspace,
     membership,
+    membershipLoadError,
     workspaceLoadError,
     signOut,
     refreshMembership,
@@ -12216,9 +12221,11 @@ function App() {
   const [mobileTab, setMobileTab] = useState(() => readPersistedMobileTab())
   const [mobileMenuScreen, setMobileMenuScreen] = useState('main')
   const [mobileProfilePhone, setMobileProfilePhone] = useState('')
+  const [mobileProfileError, setMobileProfileError] = useState('')
+  const [mobileNotice, setMobileNotice] = useState('')
   const [isSavingMobileProfile, setIsSavingMobileProfile] = useState(false)
   const [mobileExpandedView, setMobileExpandedView] = useState(null)
-  const [mobileWeekStart, setMobileWeekStart] = useState(() => getCurrentWeekStartDate())
+  const [mobileWeekStart, setMobileWeekStart] = useState(() => readPersistedMobileWeekStart(getCurrentWeekStartDate()))
   const [mobileWeekPublishedShifts, setMobileWeekPublishedShifts] = useState([])
   const [mobileWeekPublication, setMobileWeekPublication] = useState({
     weekStartDate: getCurrentWeekStartDate(),
@@ -12228,6 +12235,12 @@ function App() {
     publishedBy: null,
   })
   const [isMobileWeekLoading, setIsMobileWeekLoading] = useState(false)
+  const [displayedMobileSchedule, setDisplayedMobileSchedule] = useState({
+    weekStart: '',
+    days: [],
+    employeeName: 'Your week',
+    isWeekPublished: false,
+  })
 
   const activeWorkspaceId = useMemo(
     () => resolveActiveWorkspaceId({ workspace, membership }),
@@ -12631,7 +12644,12 @@ function App() {
     return `${employee?.position ?? ''}`.trim()
   }, [membership?.employeeId, scheduleEmployees])
 
-  const mobileEmployeeId = membership?.employeeId ?? currentTaskEmployeeId
+  const mobileEmployeeId = useMemo(() => {
+    const employeeId = `${membership?.employeeId ?? ''}`.trim()
+    return employeeId || null
+  }, [membership?.employeeId])
+
+  const mobileNeedsEmployeeLink = !mobileEmployeeId
 
   const mobileLinkedEmployee = useMemo(() => {
     const employeeId = `${membership?.employeeId ?? ''}`.trim()
@@ -12641,6 +12659,24 @@ function App() {
       ?? employees.find((employee) => `${employee.id}` === employeeId)
       ?? null
   }, [membership?.employeeId, scheduleEmployees, employees])
+
+  useEffect(() => {
+    if (isAuthDisabled || isAuthBootstrapping) return
+    if (user) return
+
+    setMobileTab('home')
+    setMobileMenuScreen('main')
+    setMobileExpandedView(null)
+    setMobileWeekStart(getCurrentWeekStartDate())
+    setMobileNotice('')
+    setMobileProfileError('')
+  }, [user, isAuthDisabled, isAuthBootstrapping])
+
+  useEffect(() => {
+    if (!membershipLoadError) return
+    if (!isMobileViewport) return
+    setMobileNotice(membershipLoadError)
+  }, [membershipLoadError, isMobileViewport])
 
   useEffect(() => {
     setMobileProfilePhone(`${mobileLinkedEmployee?.phone ?? ''}`.trim())
@@ -12654,7 +12690,6 @@ function App() {
   const mobileWeekPublishedShiftSource = useMemo(() => {
     if (mobileWeekStart === scheduleWeekStart) return publishedShifts
     if (mobileWeekStart === todayWeekStart) return todayWeekPublishedShifts
-    if (isMobileWeekLoading) return []
     return mobileWeekPublishedShifts
   }, [
     mobileWeekStart,
@@ -12663,7 +12698,6 @@ function App() {
     publishedShifts,
     todayWeekPublishedShifts,
     mobileWeekPublishedShifts,
-    isMobileWeekLoading,
   ])
 
   const isMobileWeekPublished = useMemo(() => {
@@ -12683,18 +12717,32 @@ function App() {
     mobileWeekPublication?.status,
   ])
 
-  const mobileAssignedTasks = useMemo(
-    () => filterTasksByAssignment(todayActionableTasks, {
-      mode: 'mine',
-      currentEmployeeId: mobileEmployeeId,
-    }),
-    [todayActionableTasks, mobileEmployeeId],
-  )
+  const mobileStaffOperationsTasks = useMemo(() => (
+    filterTasksExcludingAnnouncementDuplicates(
+      filterStandaloneOperationsTasks(mobileOperationsTasks),
+      operationsAnnouncements,
+    )
+  ), [mobileOperationsTasks, operationsAnnouncements])
 
-  const mobileTaskOverview = useMemo(
-    () => calculateTaskOverview(mobileAssignedTasks, currentDateKey),
-    [mobileAssignedTasks, currentDateKey],
-  )
+  const mobileAssignedTasks = useMemo(() => {
+    if (!mobileEmployeeId) return []
+    return filterMobileStaffOperationsTasks(mobileStaffOperationsTasks, mobileEmployeeId)
+  }, [mobileStaffOperationsTasks, mobileEmployeeId])
+
+  const mobileTaskOverview = useMemo(() => {
+    if (!mobileEmployeeId) {
+      return {
+        active: 0,
+        overdue: 0,
+        completedToday: 0,
+        completionPercent: 0,
+        showEmptyToday: true,
+        needsEmployeeLink: true,
+      }
+    }
+
+    return calculateMobileOperationsTaskOverview(mobileAssignedTasks, currentDateKey)
+  }, [mobileEmployeeId, mobileAssignedTasks, currentDateKey])
 
   const mobileEmployeeWeekSchedule = useMemo(() => {
     if (!mobileEmployeeId) return null
@@ -12704,30 +12752,67 @@ function App() {
       employees: scheduleEmployees,
       weekDays: mobileWeekDays,
       publishedShifts: mobileWeekPublishedShiftSource,
+      todayKey: currentDateKey,
     })
-  }, [mobileEmployeeId, scheduleEmployees, mobileWeekDays, mobileWeekPublishedShiftSource])
+  }, [mobileEmployeeId, scheduleEmployees, mobileWeekDays, mobileWeekPublishedShiftSource, currentDateKey])
 
-  const mobileShiftSummary = useMemo(
-    () => buildMobileEmployeeShiftSummary({
+  useEffect(() => {
+    if (isMobileWeekLoading) return
+
+    setDisplayedMobileSchedule({
+      weekStart: mobileWeekStart,
+      days: mobileEmployeeWeekSchedule?.days ?? [],
+      employeeName: mobileEmployeeWeekSchedule?.employeeName ?? 'Your week',
+      isWeekPublished: isMobileWeekPublished,
+    })
+  }, [
+    isMobileWeekLoading,
+    mobileWeekStart,
+    mobileEmployeeWeekSchedule,
+    isMobileWeekPublished,
+  ])
+
+  const mobileScheduleDisplay = isMobileWeekLoading ? displayedMobileSchedule : {
+    weekStart: mobileWeekStart,
+    days: mobileEmployeeWeekSchedule?.days ?? [],
+    employeeName: mobileEmployeeWeekSchedule?.employeeName ?? 'Your week',
+    isWeekPublished: isMobileWeekPublished,
+  }
+
+  const mobileScheduleWeekLabel = useMemo(() => {
+    const weekStart = `${mobileScheduleDisplay.weekStart || mobileWeekStart}`.trim() || mobileWeekStart
+    return formatWeekRange(getWeekDays(weekStart))
+  }, [mobileScheduleDisplay.weekStart, mobileWeekStart])
+
+  const mobileShiftSummary = useMemo(() => {
+    if (!mobileEmployeeId) {
+      return {
+        tone: 'neutral',
+        headline: 'Employee profile required',
+        detail: 'Link your employee profile to view your shift.',
+        needsEmployeeLink: true,
+      }
+    }
+
+    return buildMobileEmployeeShiftSummary({
       employeeId: mobileEmployeeId,
       publishedShifts: dashboardPublishedShifts,
       isWeekPublished: isTodayWeekPublished,
       todayKey: currentDateKey,
       now: localNow,
       liveFloor: liveFloorState,
-    }),
-    [
-      mobileEmployeeId,
-      dashboardPublishedShifts,
-      isTodayWeekPublished,
-      currentDateKey,
-      localNow,
-      liveFloorState,
-    ],
-  )
+    })
+  }, [
+    mobileEmployeeId,
+    dashboardPublishedShifts,
+    isTodayWeekPublished,
+    currentDateKey,
+    localNow,
+    liveFloorState,
+  ])
 
   const mobileTaskGroups = useMemo(
-    () => partitionMobileTasks(mobileAssignedTasks, currentDateKey),
+    () => partitionMobileOperationsTasks(mobileAssignedTasks, currentDateKey),
     [mobileAssignedTasks, currentDateKey],
   )
 
@@ -12977,6 +13062,26 @@ function App() {
     }
   }, [activeWorkspaceId, currentDateKey])
 
+  const refreshMobileOperationsTasks = useCallback(async () => {
+    if (!activeWorkspaceId) {
+      setMobileOperationsTasks([])
+      return []
+    }
+
+    setIsMobileOperationsTasksLoading(true)
+
+    try {
+      const remoteTasks = await getOperationsTasks(activeWorkspaceId)
+      setMobileOperationsTasks(remoteTasks)
+      return remoteTasks
+    } catch (error) {
+      setMobileOperationsTasks([])
+      throw error
+    } finally {
+      setIsMobileOperationsTasksLoading(false)
+    }
+  }, [activeWorkspaceId])
+
   const refreshOperationsLogs = useCallback(async () => {
     if (!activeWorkspaceId) {
       setOperationsLogs([])
@@ -13192,11 +13297,13 @@ function App() {
 
     refreshDashboardModuleData()
     refreshOperationsAnnouncements()
+    refreshMobileOperationsTasks()
     refreshTodayWeekPublishedData(mobileWeekStart)
 
     const intervalId = window.setInterval(() => {
       refreshDashboardModuleData()
       refreshOperationsAnnouncements()
+      refreshMobileOperationsTasks()
     }, 60_000)
 
     return () => window.clearInterval(intervalId)
@@ -13205,6 +13312,7 @@ function App() {
     mobileWeekStart,
     refreshDashboardModuleData,
     refreshOperationsAnnouncements,
+    refreshMobileOperationsTasks,
     refreshTodayWeekPublishedData,
   ])
 
@@ -17574,10 +17682,21 @@ function App() {
         completedBy: user?.id ?? null,
         completionNote,
       })
-      await refreshOperationsTasks()
-      setOperationsNotice('Task completed.')
+      await Promise.all([
+        refreshOperationsTasks(),
+        isMobileViewport ? refreshMobileOperationsTasks() : Promise.resolve(),
+      ])
+      const successMessage = 'Task completed.'
+      setOperationsNotice(successMessage)
+      if (isMobileViewport) {
+        setMobileNotice(successMessage)
+      }
     } catch (error) {
-      setOperationsNotice(error.message || 'Unable to complete task right now.')
+      const errorMessage = error.message || 'Unable to complete task right now.'
+      setOperationsNotice(errorMessage)
+      if (isMobileViewport) {
+        setMobileNotice(errorMessage)
+      }
       throw error
     } finally {
       setIsSavingOperations(false)
@@ -18660,21 +18779,37 @@ function App() {
 
   const handleMobileGoToCurrentWeek = () => {
     setMobileWeekStart(todayWeekStart)
+    persistMobileWeekStart(todayWeekStart)
   }
 
   const handleMobilePreviousWeek = () => {
-    setMobileWeekStart((current) => addWeeks(current, -1))
+    setMobileWeekStart((current) => {
+      const nextWeekStart = addWeeks(current, -1)
+      persistMobileWeekStart(nextWeekStart)
+      return nextWeekStart
+    })
   }
 
   const handleMobileNextWeek = () => {
-    setMobileWeekStart((current) => addWeeks(current, 1))
+    setMobileWeekStart((current) => {
+      const nextWeekStart = addWeeks(current, 1)
+      persistMobileWeekStart(nextWeekStart)
+      return nextWeekStart
+    })
   }
 
   const handleMobileSignOut = async () => {
+    setMobileTab('home')
+    setMobileMenuScreen('main')
+    setMobileExpandedView(null)
+    setMobileNotice('')
+    setMobileProfileError('')
+
     try {
       await signOut()
     } catch (error) {
       console.warn('[App] mobile signOut error:', error)
+      setMobileNotice(error?.message || 'Unable to sign out right now.')
     }
   }
 
@@ -18693,6 +18828,7 @@ function App() {
     }
 
     setIsSavingMobileProfile(true)
+    setMobileProfileError('')
 
     try {
       await updateMembershipDisplayName(userId, displayName)
@@ -18703,10 +18839,19 @@ function App() {
         const updatedEmployee = await updateLinkedEmployeePhone(activeWorkspaceId, linkedEmployeeId, phone)
         setMobileProfilePhone(`${updatedEmployee?.phone ?? phone ?? ''}`.trim())
       }
+
+      setMobileNotice('Profile updated.')
+    } catch (error) {
+      const errorMessage = error?.message || 'Unable to save profile right now.'
+      setMobileProfileError(errorMessage)
+      if (isMobileViewport) {
+        setMobileNotice(errorMessage)
+      }
+      throw error
     } finally {
       setIsSavingMobileProfile(false)
     }
-  }, [activeWorkspaceId, membership?.employeeId, refreshMembership, user?.id])
+  }, [activeWorkspaceId, isMobileViewport, membership?.employeeId, refreshMembership, user?.id])
 
   return (
     <PublishedFloorPlanProvider workspaceId={workspace?.id ?? ''}>
@@ -19190,12 +19335,15 @@ function App() {
                 <MobileStaffApp
                   activeTab={mobileTab}
                   onTabChange={handleMobileTabChange}
+                  noticeMessage={mobileNotice}
+                  onDismissNotice={() => setMobileNotice('')}
                   homeProps={{
                     venueName: workspaceProfile.businessName,
                     greeting: mobileGreeting,
                     dateLabel: currentDateLabel,
                     shiftSummary: mobileShiftSummary,
                     tasksSummary: mobileTaskOverview,
+                    needsEmployeeLink: mobileNeedsEmployeeLink,
                     announcements: operationsAnnouncements,
                     announcementRole: role,
                     announcementEmployeeDepartment: currentEmployeeDepartment,
@@ -19203,11 +19351,11 @@ function App() {
                     onMarkAnnouncementSeen: handleMarkOperationsAnnouncementSeen,
                   }}
                   scheduleProps={{
-                    weekLabel: formatWeekRange(mobileWeekDays),
-                    employeeName: mobileEmployeeWeekSchedule?.employeeName ?? 'Your week',
-                    days: mobileEmployeeWeekSchedule?.days ?? [],
-                    needsEmployeeLink: !mobileEmployeeId,
-                    isWeekPublished: isMobileWeekPublished,
+                    weekLabel: mobileScheduleWeekLabel,
+                    employeeName: mobileScheduleDisplay.employeeName,
+                    days: mobileScheduleDisplay.days,
+                    needsEmployeeLink: mobileNeedsEmployeeLink,
+                    isWeekPublished: mobileScheduleDisplay.isWeekPublished,
                     isWeekUpdating: isMobileWeekLoading,
                     isViewingCurrentWeek: mobileWeekStart === todayWeekStart,
                     canOpenFullSchedule: canOpenMobileFullSchedule(role),
@@ -19218,7 +19366,13 @@ function App() {
                   }}
                   tasksProps={{
                     taskGroups: mobileTaskGroups,
-                    isLoading: isTasksLoading,
+                    employees: scheduleEmployees,
+                    currentEmployeeId: mobileEmployeeId,
+                    todayKey: currentDateKey,
+                    needsEmployeeLink: mobileNeedsEmployeeLink,
+                    isLoading: isMobileOperationsTasksLoading,
+                    isSaving: isSavingOperations,
+                    onCompleteTask: handleCompleteOperationsTask,
                     onOpenTasksWorkspace: canOpenMobileTasksWorkspace(role)
                       ? handleMobileOpenTasksWorkspace
                       : undefined,
@@ -19240,6 +19394,7 @@ function App() {
                       linkedEmployeeName: `${mobileLinkedEmployee?.name ?? ''}`.trim(),
                       canEditPhone: Boolean(membership?.employeeId),
                       isSaving: isSavingMobileProfile,
+                      errorMessage: mobileProfileError,
                       onSave: handleMobileProfileSave,
                     },
                     onNavigateModule: handleMobileNavigateModule,

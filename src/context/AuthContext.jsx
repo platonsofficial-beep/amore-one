@@ -15,6 +15,7 @@ import {
   clearPendingInviteToken,
   readPendingInviteToken,
 } from '../lib/inviteTokenStorage'
+import { clearMobileSessionState } from '../lib/mobileNavigationPersistence'
 import {
   isCompleteWorkspace,
   normalizeAuthWorkspace,
@@ -76,6 +77,10 @@ function normalizeMembershipForContext(membership) {
     ...membership,
     employeeId,
   }
+}
+
+function isFatalInviteError(message = '') {
+  return /not found|expired|revoked|already been accepted/i.test(`${message ?? ''}`)
 }
 
 const AuthContext = createContext(null)
@@ -153,8 +158,10 @@ export function AuthProvider({ children }) {
         const message = inviteError?.message || 'Unable to accept workspace invite.'
         console.error('[AuthContext] acceptInvite error:', inviteError)
 
-        if (/not found|expired|revoked|already been accepted/i.test(message)) {
+        if (isFatalInviteError(message)) {
           clearPendingInviteToken()
+        } else {
+          skipDefaultBootstrap = true
         }
 
         setMembershipLoadError(message)
@@ -395,6 +402,8 @@ export function AuthProvider({ children }) {
 
   const signOut = useCallback(async () => {
     await authSignOut()
+    clearPendingInviteToken()
+    clearMobileSessionState()
     hasBootstrappedRef.current = true
     clearAuthenticatedState()
     setIsLoading(false)
