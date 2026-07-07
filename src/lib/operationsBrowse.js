@@ -50,9 +50,9 @@ export function filterOperationsLogs(logs = [], { searchTerm = '', typeFilter = 
 
 export const OPERATIONS_LOG_FILTERS = [
   { id: 'all', label: 'All' },
-  { id: 'handover', label: 'Handovers' },
-  { id: 'incident', label: 'Incidents' },
-  { id: 'note', label: 'Notes' },
+  { id: 'note', label: 'Note' },
+  { id: 'incident', label: 'Issue' },
+  { id: 'handover', label: 'Handover' },
 ]
 
 export const OPERATIONS_TASK_STATUS_FILTERS = [

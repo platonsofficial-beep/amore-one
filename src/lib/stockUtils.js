@@ -1,4 +1,5 @@
 import { computeSuggestedOrder, itemNeedsOrder } from './stockCatalog'
+import { formatTimestampTime24 } from './timeFormatUtils'
 
 export const STOCK_MOVEMENT_TYPES = ['receive', 'usage', 'adjustment', 'stock_count']
 
@@ -128,10 +129,7 @@ export function formatStockMovementRelativeTime(value, now = new Date()) {
   const date = new Date(value)
   if (Number.isNaN(date.getTime())) return ''
 
-  const time = new Intl.DateTimeFormat('en-GB', {
-    hour: '2-digit',
-    minute: '2-digit',
-  }).format(date)
+  const time = formatTimestampTime24(date, '')
 
   const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate())
   const startOfDate = new Date(date.getFullYear(), date.getMonth(), date.getDate())

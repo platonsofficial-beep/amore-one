@@ -1,4 +1,5 @@
 import { normalizeOperationsStatus, normalizeOperationsTaskDate } from './operationsUtils'
+import { formatTimestampTime24 } from './timeFormatUtils'
 
 export const CHECKLIST_DEPARTMENTS = ['bar', 'service', 'kitchen', 'management']
 
@@ -163,12 +164,8 @@ export function formatChecklistProgressLabel(row) {
 export function formatChecklistCompletionMeta(task) {
   if (!task?.completedAt) return null
   const completedBy = `${task.completedByName ?? ''}`.trim() || 'Team member'
-  const timeLabel = new Intl.DateTimeFormat('en-GB', {
-    hour: '2-digit',
-    minute: '2-digit',
-  }).format(new Date(task.completedAt))
-
-  return `${completedBy} · ${timeLabel}`
+  const timeLabel = formatTimestampTime24(task.completedAt, '')
+  return timeLabel ? `${completedBy} · ${timeLabel}` : completedBy
 }
 
 export function getChecklistTasksForTemplate(tasks = [], templateId, todayKey = '') {

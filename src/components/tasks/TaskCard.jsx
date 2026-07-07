@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { getTaskDepartmentBoardKey, resolveDepartmentBoardDisplay } from '../../lib/taskDepartments'
 import { getTaskDepartmentLabel, getTodayKey, isTaskOverdue } from '../../lib/taskUtils'
-import { formatTime24 } from '../../lib/timeFormatUtils'
+import { formatTime24, formatTimestampDayAndTime24 } from '../../lib/timeFormatUtils'
 import { formatLocalDateKey, parseLocalDate } from '../../lib/weekUtils'
 
 const PRIORITY_LABELS = {
@@ -52,12 +52,7 @@ function formatCompletedTimestamp(value) {
 
   const parsed = new Date(value)
   if (!Number.isNaN(parsed.getTime())) {
-    return new Intl.DateTimeFormat('en-US', {
-      month: 'short',
-      day: 'numeric',
-      hour: 'numeric',
-      minute: '2-digit',
-    }).format(parsed)
+    return formatTimestampDayAndTime24(parsed)
   }
 
   const dateKey = normalizeTaskDateKey(value)

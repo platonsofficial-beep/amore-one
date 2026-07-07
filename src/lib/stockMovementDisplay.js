@@ -1,20 +1,8 @@
+import { formatTimestampDayAndTime24 } from './timeFormatUtils'
 import { getStockMovementLabel, formatStockQuantity } from './stockUtils'
 
 export function formatStockHistoryTimestamp(value) {
-  if (!value) return ''
-  const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return ''
-
-  const day = new Intl.DateTimeFormat('en-GB', {
-    day: 'numeric',
-    month: 'short',
-  }).format(date)
-  const time = new Intl.DateTimeFormat('en-GB', {
-    hour: '2-digit',
-    minute: '2-digit',
-  }).format(date)
-
-  return `${day} ${time}`
+  return formatTimestampDayAndTime24(value)
 }
 
 export function formatStockMovementQuantityLine(movement, unit = '') {

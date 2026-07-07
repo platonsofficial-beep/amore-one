@@ -5,6 +5,9 @@ import {
   formatChecklistProgressLabel,
 } from '../../lib/operationsChecklistUtils'
 import {
+  filterTasksExcludingAnnouncementDuplicates,
+} from '../../lib/operationsAnnouncementUtils'
+import {
   filterOperationsLogs,
   filterOperationsTasks,
   OPERATIONS_LOG_FILTERS,
@@ -14,15 +17,19 @@ import {
   buildOperationsDashboardSummary,
   canStaffCompleteTask,
   formatOperationsDueTime,
-  formatOperationsLogTimestamp,
+  formatOperationsLogCardTime,
   getOperationsCategoryLabel,
-  getOperationsLogTypeLabel,
+  getOperationsLogTypeBadgeLabel,
+  getOperationsLogTypeIcon,
   getOperationsLogTypeTone,
+  getOperationsShiftNoteDetail,
+  getOperationsShiftNoteHeadline,
   getOperationsPriorityLabel,
   getOperationsPriorityTone,
   normalizeOperationsStatus,
   resolveEmployeeName,
 } from '../../lib/operationsUtils'
+import { OperationsAnnouncementsSection } from './OperationsAnnouncementsSection'
 import { OperationsLogFormModal } from './OperationsLogFormModal'
 import { OperationsStartChecklistModal } from './OperationsStartChecklistModal'
 import { OperationsTaskCompleteModal } from './OperationsTaskCompleteModal'
@@ -122,18 +129,27 @@ function OperationsTaskRow({
 
 function OperationsLogItem({ log, canManage, onEdit, onDelete }) {
   const tone = getOperationsLogTypeTone(log.type)
+  const headline = getOperationsShiftNoteHeadline(log)
+  const detail = getOperationsShiftNoteDetail(log)
+  const authorName = `${log.createdByName ?? ''}`.trim()
+  const authorLabel = authorName && authorName !== 'System' ? authorName : 'Team member'
 
   return (
-    <article className="operations-log-item panel staff-panel">
-      <div className="operations-log-item-top">
-        <span className={`operations-log-type-badge tone-${tone}`}>
-          {getOperationsLogTypeLabel(log.type)}
+    <article className="operations-shift-note-card panel staff-panel">
+      <span className={`operations-shift-note-badge tone-${tone}`}>
+        <span className="operations-shift-note-badge-icon" aria-hidden="true">
+          {getOperationsLogTypeIcon(log.type)}
         </span>
-        <time className="operations-log-time">{formatOperationsLogTimestamp(log.createdAt)}</time>
-      </div>
-      <h4 className="operations-log-title">{log.title}</h4>
-      <p className="operations-log-message">{log.message}</p>
-      <p className="operations-log-author">{log.createdByName || 'System'}</p>
+        {getOperationsLogTypeBadgeLabel(log.type)}
+      </span>
+
+      <p className="operations-shift-note-headline">{headline}</p>
+      {detail ? <p className="operations-shift-note-detail">{detail}</p> : null}
+
+      <p className="operations-shift-note-meta">
+        {authorLabel} · {formatOperationsLogCardTime(log.createdAt)}
+      </p>
+
       {canManage ? (
         <div className="operations-log-actions">
           <button type="button" className="ghost-btn operations-log-action" onClick={() => onEdit(log)}>
@@ -151,6 +167,7 @@ function OperationsLogItem({ log, canManage, onEdit, onDelete }) {
 export function OperationsDashboardView({
   tasks = [],
   logs = [],
+  announcements = [],
   checklistTemplates = [],
   employees = [],
   todayKey = '',
@@ -162,6 +179,8 @@ export function OperationsDashboardView({
   workspaceSetupMessage = '',
   searchTerm = '',
   currentEmployeeId = null,
+  role = '',
+  employeeDepartment = '',
   onCreateTask,
   onUpdateTask,
   onCompleteTask,
@@ -170,6 +189,11 @@ export function OperationsDashboardView({
   onCreateLog,
   onUpdateLog,
   onDeleteLog,
+  onCreateAnnouncement,
+  onUpdateAnnouncement,
+  onHideAnnouncement,
+  onPublishAnnouncement,
+  canManageAnnouncements = false,
   onStartChecklist,
   onOpenChecklistRun,
 }) {
@@ -186,8 +210,11 @@ export function OperationsDashboardView({
   ), [employees])
 
   const standaloneTasks = useMemo(
-    () => filterStandaloneOperationsTasks(tasks),
-    [tasks],
+    () => filterTasksExcludingAnnouncementDuplicates(
+      filterStandaloneOperationsTasks(tasks),
+      announcements,
+    ),
+    [tasks, announcements],
   )
 
   const summary = useMemo(
@@ -306,7 +333,7 @@ export function OperationsDashboardView({
               }}
               disabled={!isWorkspaceReady || isSaving}
             >
-              Add log entry
+              Add note
             </button>
             <button
               type="button"
@@ -323,12 +350,26 @@ export function OperationsDashboardView({
         ) : null}
       </div>
 
-      <div className="operations-summary-grid">
+      <div className="operations-summary-grid" aria-label="Today at a glance">
         <OperationsSummaryCard label="Open tasks" value={summary.openTasks} tone="warning" />
         <OperationsSummaryCard label="Completed today" value={summary.completedToday} tone="success" />
         <OperationsSummaryCard label="Urgent issues" value={summary.urgentIssues} tone="danger" />
         <OperationsSummaryCard label="Team notes" value={summary.teamNotes} tone="gold" />
       </div>
+
+      <div className="operations-dashboard-sections">
+      <OperationsAnnouncementsSection
+        announcements={announcements}
+        canManageAnnouncements={canManageAnnouncements}
+        isSaving={isSaving}
+        isLoading={isLoading}
+        role={role}
+        employeeDepartment={employeeDepartment}
+        onCreate={onCreateAnnouncement}
+        onUpdate={onUpdateAnnouncement}
+        onHide={onHideAnnouncement}
+        onPublish={onPublishAnnouncement}
+      />
 
       {checklistProgressRows.length > 0 ? (
         <section className="operations-section panel staff-panel" aria-label="Checklist progress">
@@ -386,16 +427,15 @@ export function OperationsDashboardView({
         )}
       </section>
 
-      <section className="operations-section panel staff-panel" aria-label="Manager logbook">
+      <section className="operations-section panel staff-panel" aria-label="Shift Notes">
         <header className="operations-section-header">
           <div>
-            <p className="eyebrow">Logbook</p>
-            <h3>Shift communication</h3>
-            <p className="operations-section-subtitle">Daily notes, incidents, and handovers.</p>
+            <p className="eyebrow">Shift Notes</p>
+            <h3>Team communication</h3>
           </div>
         </header>
 
-        <div className="operations-log-filters" role="tablist" aria-label="Log types">
+        <div className="operations-log-filters" role="tablist" aria-label="Note types">
           {OPERATIONS_LOG_FILTERS.map((filter) => (
             <button
               key={filter.id}
@@ -412,8 +452,8 @@ export function OperationsDashboardView({
 
         {visibleLogs.length === 0 && !isLoading ? (
           <div className="operations-empty-state">
-            <h4>No log entries yet</h4>
-            <p>{canManage ? 'Add handovers, incidents, and team notes for the shift.' : 'Manager notes will appear here.'}</p>
+            <h4>No notes yet</h4>
+            <p>Leave updates for the next shift.</p>
           </div>
         ) : (
           <div className="operations-log-list">
@@ -432,6 +472,7 @@ export function OperationsDashboardView({
           </div>
         )}
       </section>
+      </div>
 
       {isTaskFormOpen ? (
         <OperationsTaskFormModal

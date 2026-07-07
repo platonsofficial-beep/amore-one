@@ -1,4 +1,8 @@
-import { formatTime24 } from './timeFormatUtils'
+import {
+  formatTime24,
+  formatTimestampDayAndTime24,
+  formatTimestampTime24,
+} from './timeFormatUtils'
 
 export const OPERATIONS_CATEGORIES = [
   'opening',
@@ -41,8 +45,20 @@ const STATUS_LABELS = {
 
 const LOG_TYPE_LABELS = {
   handover: 'Handover',
-  incident: 'Incident',
-  note: 'Team note',
+  incident: 'Issue',
+  note: 'Note',
+}
+
+const LOG_TYPE_BADGE_LABELS = {
+  handover: 'HANDOVER',
+  incident: 'ISSUE',
+  note: 'NOTE',
+}
+
+const LOG_TYPE_ICONS = {
+  handover: '🔁',
+  incident: '⚠️',
+  note: '📝',
 }
 
 const PRIORITY_TONES = {
@@ -102,6 +118,32 @@ export function getOperationsLogTypeLabel(type) {
   return LOG_TYPE_LABELS[normalizeOperationsLogType(type)] ?? 'Note'
 }
 
+export function getOperationsLogTypeBadgeLabel(type) {
+  return LOG_TYPE_BADGE_LABELS[normalizeOperationsLogType(type)] ?? 'NOTE'
+}
+
+export function getOperationsLogTypeIcon(type) {
+  return LOG_TYPE_ICONS[normalizeOperationsLogType(type)] ?? '📝'
+}
+
+export function formatOperationsLogCardTime(value) {
+  return formatTimestampTime24(value)
+}
+
+export function getOperationsShiftNoteHeadline(log) {
+  const title = `${log?.title ?? ''}`.trim()
+  const message = `${log?.message ?? ''}`.trim()
+  if (title) return title
+  return message
+}
+
+export function getOperationsShiftNoteDetail(log) {
+  const title = `${log?.title ?? ''}`.trim()
+  const message = `${log?.message ?? ''}`.trim()
+  if (!message || message === title) return ''
+  return message
+}
+
 export function getOperationsPriorityTone(priority) {
   return PRIORITY_TONES[normalizeOperationsPriority(priority)] ?? 'default'
 }
@@ -149,16 +191,7 @@ export function formatOperationsDueTime(dueTime) {
 }
 
 export function formatOperationsLogTimestamp(value) {
-  if (!value) return '—'
-  const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return '—'
-
-  return new Intl.DateTimeFormat('en-GB', {
-    day: 'numeric',
-    month: 'short',
-    hour: '2-digit',
-    minute: '2-digit',
-  }).format(date)
+  return formatTimestampDayAndTime24(value, '—')
 }
 
 export function resolveEmployeeName(employeeId, employees = []) {
@@ -181,11 +214,8 @@ export function validateOperationsTaskForm(form) {
 }
 
 export function validateOperationsLogForm(form) {
-  if (!`${form.title ?? ''}`.trim()) {
-    return 'Please enter a title.'
-  }
   if (!`${form.message ?? ''}`.trim()) {
-    return 'Please enter a message.'
+    return 'Please share what happened.'
   }
   return ''
 }

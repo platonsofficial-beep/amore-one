@@ -7,7 +7,7 @@ import {
   operationsTaskToForm,
   validateOperationsTaskForm,
 } from '../../lib/operationsUtils'
-import { TIME_INPUT_PROPS } from '../../lib/timeFormatUtils'
+import { TimeSelect } from '../TimeSelect'
 
 export function OperationsTaskFormModal({
   isOpen,
@@ -143,10 +143,10 @@ export function OperationsTaskFormModal({
 
             <label className="form-field">
               <span>Due time</span>
-              <input
-                {...TIME_INPUT_PROPS}
+              <TimeSelect
                 value={form.dueTime}
-                onChange={(event) => setForm((current) => ({ ...current, dueTime: event.target.value }))}
+                onChange={(time) => setForm((current) => ({ ...current, dueTime: time }))}
+                placeholder="Optional"
               />
             </label>
           </div>

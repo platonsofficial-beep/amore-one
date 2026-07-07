@@ -211,6 +211,7 @@ export function buildTodayServiceTimeline({
   todayKey = getCurrentDateKey(),
   tasksConnected = false,
 } = {}) {
+  // Actionable tasks only. Team updates and meetings belong in announcements.
   const events = [...(timelineEvents ?? [])]
 
   if (tasksConnected) {
@@ -223,13 +224,14 @@ export function buildTodayServiceTimeline({
       const dueTime = normalizeTimeValue(task?.dueTime ?? task?.due_time)
       const title = `${task?.title ?? task?.name ?? 'Task'}`.trim() || 'Task'
       const isOverdue = isTaskOverdue(task, todayKey)
+      const department = `${task?.department ?? 'Task'}`.trim() || 'Task'
 
       events.push({
         key: `task:${task.id}`,
         time: dueTime || '23:59',
         timeLabel: dueTime ? formatTime24(dueTime) : 'Today',
-        title: isOverdue ? `${title} · overdue` : title,
-        note: `${task?.department ?? 'Task'}`.trim() || 'Task',
+        title,
+        note: isOverdue ? 'Overdue task' : department,
         type: 'task',
       })
     })

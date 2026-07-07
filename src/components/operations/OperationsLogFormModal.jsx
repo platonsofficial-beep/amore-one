@@ -1,14 +1,33 @@
 import { useState } from 'react'
 import {
   getOperationsLogTypeLabel,
-  OPERATIONS_LOG_TYPES,
   validateOperationsLogForm,
 } from '../../lib/operationsUtils'
 
+const LOG_TYPE_OPTIONS = [
+  { id: 'note', label: 'Note' },
+  { id: 'incident', label: 'Issue' },
+  { id: 'handover', label: 'Handover' },
+]
+
 const EMPTY_FORM = {
   type: 'note',
-  title: '',
   message: '',
+}
+
+function buildMessageFromLog(log) {
+  if (!log) return ''
+  const title = `${log.title ?? ''}`.trim()
+  const message = `${log.message ?? ''}`.trim()
+  if (message && message !== title) return message
+  return title || message
+}
+
+function buildTitleFromMessage(message) {
+  const trimmed = `${message ?? ''}`.trim()
+  if (!trimmed) return ''
+  const firstLine = trimmed.split('\n')[0]?.trim() ?? ''
+  return (firstLine || trimmed).slice(0, 120)
 }
 
 export function OperationsLogFormModal({
@@ -20,7 +39,7 @@ export function OperationsLogFormModal({
 }) {
   const [form, setForm] = useState(() => (
     log
-      ? { type: log.type, title: log.title ?? '', message: log.message ?? '' }
+      ? { type: log.type, message: buildMessageFromLog(log) }
       : EMPTY_FORM
   ))
   const [error, setError] = useState('')
@@ -29,7 +48,9 @@ export function OperationsLogFormModal({
 
   const handleSubmit = async (event) => {
     event.preventDefault()
-    const validationError = validateOperationsLogForm(form)
+    const message = form.message.trim()
+    const title = buildTitleFromMessage(message)
+    const validationError = validateOperationsLogForm({ ...form, title, message })
     if (validationError) {
       setError(validationError)
       return
@@ -39,12 +60,12 @@ export function OperationsLogFormModal({
       setError('')
       await onSubmit({
         type: form.type,
-        title: form.title.trim(),
-        message: form.message.trim(),
+        title,
+        message,
       })
       onClose()
     } catch (submitError) {
-      setError(submitError?.message || 'Unable to save log entry right now.')
+      setError(submitError?.message || 'Unable to save note right now.')
     }
   }
 
@@ -59,8 +80,8 @@ export function OperationsLogFormModal({
       >
         <div className="drawer-header">
           <div>
-            <p className="eyebrow">Manager logbook</p>
-            <h3 id="operations-log-form-title">{log ? 'Edit entry' : 'Add log entry'}</h3>
+            <p className="eyebrow">Shift Notes</p>
+            <h3 id="operations-log-form-title">{log ? 'Edit note' : 'Add note'}</h3>
           </div>
           <button type="button" className="icon-btn operations-form-close" onClick={onClose} aria-label="Close">
             ✕
@@ -69,38 +90,33 @@ export function OperationsLogFormModal({
 
         <form className="employee-form operations-form" onSubmit={handleSubmit}>
           <label className="form-field full-width">
-            <span>Type</span>
-            <select
-              value={form.type}
-              onChange={(event) => setForm((current) => ({ ...current, type: event.target.value }))}
-            >
-              {OPERATIONS_LOG_TYPES.map((type) => (
-                <option key={type} value={type}>{getOperationsLogTypeLabel(type)}</option>
-              ))}
-            </select>
-          </label>
-
-          <label className="form-field full-width">
-            <span>Title</span>
-            <input
-              value={form.title}
-              onChange={(event) => setForm((current) => ({ ...current, title: event.target.value }))}
-              placeholder="e.g. Bar fridge temperature issue"
+            <span>What happened?</span>
+            <textarea
+              rows={5}
+              value={form.message}
+              onChange={(event) => setForm((current) => ({ ...current, message: event.target.value }))}
+              placeholder="Share an update for the next shift"
               required
               autoFocus
             />
           </label>
 
-          <label className="form-field full-width">
-            <span>Message</span>
-            <textarea
-              rows={5}
-              value={form.message}
-              onChange={(event) => setForm((current) => ({ ...current, message: event.target.value }))}
-              placeholder="Share handover details, incidents, or team notes"
-              required
-            />
-          </label>
+          <fieldset className="operations-shift-note-type-fieldset">
+            <legend className="operations-shift-note-type-legend">Type</legend>
+            <div className="operations-shift-note-type-options" role="group" aria-label="Note type">
+              {LOG_TYPE_OPTIONS.map((option) => (
+                <button
+                  key={option.id}
+                  type="button"
+                  className={`operations-shift-note-type-option${form.type === option.id ? ' active' : ''}`}
+                  aria-pressed={form.type === option.id}
+                  onClick={() => setForm((current) => ({ ...current, type: option.id }))}
+                >
+                  {getOperationsLogTypeLabel(option.id)}
+                </button>
+              ))}
+            </div>
+          </fieldset>
 
           {error ? <div className="staff-status-banner">{error}</div> : null}
 
@@ -109,7 +125,7 @@ export function OperationsLogFormModal({
               Cancel
             </button>
             <button type="submit" className="primary-btn operations-form-action" disabled={isSaving}>
-              {isSaving ? 'Saving…' : log ? 'Save entry' : 'Add entry'}
+              {isSaving ? 'Saving…' : log ? 'Save note' : 'Add note'}
             </button>
           </div>
         </form>

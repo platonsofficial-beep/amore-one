@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { buildTaskForm } from '../../lib/taskFormUtils'
 import { parseDepartmentBoardKey } from '../../lib/taskDepartments'
+import { TimeSelect } from '../TimeSelect'
 import TaskDepartmentFields from './TaskDepartmentFields'
 
 const PRIORITY_OPTIONS = [
@@ -147,10 +148,10 @@ export default function TaskFormModal({
 
             <label className="form-field">
               <span>Due time (optional)</span>
-              <input
-                type="time"
+              <TimeSelect
                 value={form.dueTime}
-                onChange={(event) => setForm((current) => ({ ...current, dueTime: event.target.value }))}
+                onChange={(time) => setForm((current) => ({ ...current, dueTime: time }))}
+                placeholder="Optional"
               />
             </label>
 

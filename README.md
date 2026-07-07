@@ -38,3 +38,9 @@ VITE_SUPABASE_PUBLISHABLE_KEY=...
 - `npm run dev` — start dev server
 - `npm run build` — production build
 - `npm run lint` — oxlint
+
+## Module status
+
+### Operations V1 — complete
+
+Operations V1 is complete and locked. Scope includes announcements, checklists, tasks, and shift notes on the Operations dashboard. Announcements: owners and managers manage; staff read on Today and mark seen only. Do not extend without a new phase. Bug fixes and copy-only polish are allowed if they do not change permissions, database schema, or service contracts.

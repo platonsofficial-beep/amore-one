@@ -32,6 +32,7 @@ import {
 } from './components/reservations/hostReservationListUtils'
 import { ReservationTableSelector } from './components/reservations/ReservationTableSelector'
 import { ReservationTimeSelect } from './components/reservations/ReservationTimeSelect'
+import { TimeSelect } from './components/TimeSelect'
 import { getHostUnitById, toSeatingUnitFromLayoutUnit } from './lib/hostFloorPlanLayout'
 import { PublishedFloorPlanProvider, usePublishedFloorPlan } from './lib/PublishedFloorPlanContext'
 import { loadPublishedHostLayout } from './lib/builderToHostLayout'
@@ -162,6 +163,13 @@ import {
   updateOperationsLog,
 } from './services/operationsLogService'
 import {
+  createOperationsAnnouncement,
+  deactivateOperationsAnnouncement,
+  getOperationsAnnouncements,
+  markOperationsAnnouncementRead,
+  updateOperationsAnnouncement,
+} from './services/operationsAnnouncementService'
+import {
   createOperationsChecklistItem,
   createOperationsChecklistTemplate,
   deleteOperationsChecklistItem,
@@ -235,7 +243,6 @@ import {
   normalizeReservationDateKey,
   formatEuropeanDayMonth,
   formatHostReservationListTime,
-  TIME_INPUT_PROPS,
 } from './lib/timeFormatUtils'
 import {
   buildEmployeeWeeklyHoursMap,
@@ -267,6 +274,7 @@ import {
   buildTodayStatusSummary,
   buildTeamTodayGroups,
 } from './lib/todayViewUtils'
+import { canManageAnnouncements, filterTasksExcludingAnnouncementDuplicates } from './lib/operationsAnnouncementUtils'
 import { buildEmployeeTodayShiftLookup, buildTeamTodayStatus } from './lib/teamViewUtils'
 import { TeamTodayView } from './components/team/TeamTodayView'
 import { TeamPeopleView } from './components/team/TeamPeopleView'
@@ -276,6 +284,7 @@ import { StockSuppliersView } from './components/stock/StockSuppliersView'
 import { OperationsDashboardView } from './components/operations/OperationsDashboardView'
 import { OperationsChecklistsView } from './components/operations/OperationsChecklistsView'
 import { OperationsChecklistExecutionView } from './components/operations/OperationsChecklistExecutionView'
+import { TodayAnnouncementsPanel } from './components/today/TodayAnnouncementsPanel'
 import {
   supplierHasHistory,
 } from './lib/stockSupplierUtils'
@@ -767,14 +776,27 @@ function CommandCenterView({
   timelineEvents,
   teamTodayGroups,
   attentionItems,
+  announcements = [],
+  announcementRole = '',
+  announcementEmployeeDepartment = '',
+  isAnnouncementsSaving = false,
   isScheduleLoading,
   onQuickAction,
   onViewStock,
   onViewSchedule,
   onViewTasks,
+  onMarkAnnouncementSeen,
 }) {
   return (
     <div className="today-page" aria-label="Today">
+      <TodayAnnouncementsPanel
+        announcements={announcements}
+        role={announcementRole}
+        employeeDepartment={announcementEmployeeDepartment}
+        isSaving={isAnnouncementsSaving}
+        onMarkSeen={onMarkAnnouncementSeen}
+      />
+
       <section className="today-status-card" aria-label="Today status">
         <div className="today-status-row">
           <span className="today-status-label">Service</span>
@@ -848,20 +870,28 @@ function CommandCenterView({
                 ))}
               </ul>
             )}
-            {attentionItems.some((item) => item.key.startsWith('stock:')) ? (
-              <button type="button" className="today-text-btn" onClick={onViewStock}>
-                Open Stock
-              </button>
-            ) : null}
-            {attentionItems.some((item) => item.key.startsWith('task:')) ? (
-              <button type="button" className="today-text-btn" onClick={onViewTasks}>
-                Open Tasks
-              </button>
-            ) : null}
-            {attentionItems.some((item) => item.key === 'schedule-issues') ? (
-              <button type="button" className="today-text-btn" onClick={onViewSchedule}>
-                Open Schedule
-              </button>
+            {attentionItems.some((item) => (
+              item.key.startsWith('stock:')
+              || item.key.startsWith('task:')
+              || item.key === 'schedule-issues'
+            )) ? (
+              <div className="today-attention-actions">
+                {attentionItems.some((item) => item.key.startsWith('stock:')) ? (
+                  <button type="button" className="today-attention-pill" onClick={onViewStock}>
+                    Stock
+                  </button>
+                ) : null}
+                {attentionItems.some((item) => item.key.startsWith('task:')) ? (
+                  <button type="button" className="today-attention-pill" onClick={onViewTasks}>
+                    Tasks
+                  </button>
+                ) : null}
+                {attentionItems.some((item) => item.key === 'schedule-issues') ? (
+                  <button type="button" className="today-attention-pill" onClick={onViewSchedule}>
+                    Schedule
+                  </button>
+                ) : null}
+              </div>
             ) : null}
           </section>
 
@@ -4831,28 +4861,28 @@ function ScheduleView({
               <div className="form-grid">
                 <label className="form-field">
                   <span>Start Time</span>
-                  <input
-                    {...TIME_INPUT_PROPS}
+                  <TimeSelect
                     value={assignmentTimeEdit.startTime}
-                    onChange={(event) => setAssignmentTimeEdit((current) => ({
+                    onChange={(time) => setAssignmentTimeEdit((current) => ({
                       ...current,
                       timeMode: 'custom',
-                      startTime: normalizeTimeValue(event.target.value),
+                      startTime: time,
                     }))}
                     disabled={assignmentTimeEdit.timeMode === 'template' || isSaving}
+                    required
                   />
                 </label>
                 <label className="form-field">
                   <span>End Time</span>
-                  <input
-                    {...TIME_INPUT_PROPS}
+                  <TimeSelect
                     value={assignmentTimeEdit.endTime}
-                    onChange={(event) => setAssignmentTimeEdit((current) => ({
+                    onChange={(time) => setAssignmentTimeEdit((current) => ({
                       ...current,
                       timeMode: 'custom',
-                      endTime: normalizeTimeValue(event.target.value),
+                      endTime: time,
                     }))}
                     disabled={assignmentTimeEdit.timeMode === 'template' || isSaving}
+                    required
                   />
                 </label>
               </div>
@@ -11759,6 +11789,7 @@ function App() {
   const [tasksNotice, setTasksNotice] = useState('')
   const [operationsTasks, setOperationsTasks] = useState([])
   const [operationsLogs, setOperationsLogs] = useState([])
+  const [operationsAnnouncements, setOperationsAnnouncements] = useState([])
   const [operationsChecklistTemplates, setOperationsChecklistTemplates] = useState([])
   const [activeChecklistRunTemplateId, setActiveChecklistRunTemplateId] = useState(null)
   const [operationsNotice, setOperationsNotice] = useState('')
@@ -11835,6 +11866,11 @@ function App() {
 
   const canManageOperations = useMemo(
     () => ['owner', 'general_manager', 'manager'].includes(role),
+    [role],
+  )
+
+  const canManageAnnouncementsRole = useMemo(
+    () => canManageAnnouncements(role),
     [role],
   )
 
@@ -12160,15 +12196,27 @@ function App() {
     [inventoryItems],
   )
 
+  const todayActionableTasks = useMemo(
+    () => filterTasksExcludingAnnouncementDuplicates(tasks, operationsAnnouncements),
+    [tasks, operationsAnnouncements],
+  )
+
   const dashboardTaskOverview = useMemo(
-    () => calculateTaskOverview(tasks, currentDateKey),
-    [tasks, currentDateKey],
+    () => calculateTaskOverview(todayActionableTasks, currentDateKey),
+    [todayActionableTasks, currentDateKey],
   )
 
   const currentTaskEmployeeId = useMemo(
     () => resolveCurrentEmployeeId(workspaceProfile.managerName, scheduleEmployees),
     [workspaceProfile.managerName, scheduleEmployees],
   )
+
+  const currentEmployeeDepartment = useMemo(() => {
+    const employeeId = membership?.employeeId
+    if (!employeeId) return ''
+    const employee = scheduleEmployees.find((item) => `${item.id}` === `${employeeId}`)
+    return `${employee?.position ?? ''}`.trim()
+  }, [membership?.employeeId, scheduleEmployees])
 
   const dashboardReservationsFooter = useMemo(
     () => buildReservationsFooter(reservations, currentDateKey, localNow),
@@ -12212,22 +12260,24 @@ function App() {
   ), [dashboardShifts, currentDateKey])
 
   const todayAttentionItems = useMemo(() => buildTodayAttentionItems({
+    // Actionable tasks only — announcements stay in TodayAnnouncementsPanel.
     stockAlerts: dashboardStockAlerts,
     inventoryConnected: isInventoryModuleConnected,
-    tasks,
+    tasks: todayActionableTasks,
     todayKey: currentDateKey,
     issuesSummary: dashboardIssuesSummary,
     snapshot: operationalSnapshot,
   }), [
     dashboardStockAlerts,
     isInventoryModuleConnected,
-    tasks,
+    todayActionableTasks,
     currentDateKey,
     dashboardIssuesSummary,
     operationalSnapshot,
   ])
 
   const dashboardTimelineEvents = useMemo(() => buildTodayServiceTimeline({
+    // Service timeline uses actionable tasks only, not announcements or operations tasks.
     timelineEvents: buildTodayCommandTimeline({
       shifts: dashboardShifts,
       shiftTemplates,
@@ -12235,7 +12285,7 @@ function App() {
       todayKey: currentDateKey,
       reservationsConnected: isReservationsModuleConnected,
     }),
-    tasks,
+    tasks: todayActionableTasks,
     todayKey: currentDateKey,
     tasksConnected: isTasksModuleConnected,
   }), [
@@ -12244,7 +12294,7 @@ function App() {
     reservations,
     currentDateKey,
     isReservationsModuleConnected,
-    tasks,
+    todayActionableTasks,
     isTasksModuleConnected,
   ])
 
@@ -12395,6 +12445,26 @@ function App() {
       throw error
     }
   }, [activeWorkspaceId])
+
+  const refreshOperationsAnnouncements = useCallback(async () => {
+    if (!activeWorkspaceId) {
+      setOperationsAnnouncements([])
+      return []
+    }
+
+    try {
+      const remoteAnnouncements = await getOperationsAnnouncements(activeWorkspaceId, {
+        currentUserId: user?.id ?? null,
+        employees: scheduleEmployees,
+      })
+      setOperationsAnnouncements(remoteAnnouncements)
+      return remoteAnnouncements
+    } catch (error) {
+      console.warn('[App] refreshOperationsAnnouncements error:', error)
+      setOperationsAnnouncements([])
+      return []
+    }
+  }, [activeWorkspaceId, user?.id, scheduleEmployees])
 
   const refreshBarRefills = useCallback(async () => {
     try {
@@ -12928,6 +12998,7 @@ function App() {
         await Promise.all([
           refreshOperationsTasks(),
           refreshOperationsLogs(),
+          refreshOperationsAnnouncements(),
           refreshOperationsChecklistTemplates(),
         ])
       } catch (error) {
@@ -12945,7 +13016,34 @@ function App() {
     return () => {
       isMounted = false
     }
-  }, [activeView, refreshOperationsTasks, refreshOperationsLogs, refreshOperationsChecklistTemplates])
+  }, [
+    activeView,
+    refreshOperationsTasks,
+    refreshOperationsLogs,
+    refreshOperationsAnnouncements,
+    refreshOperationsChecklistTemplates,
+  ])
+
+  useEffect(() => {
+    if (activeView !== 'today') return undefined
+
+    let isMounted = true
+
+    const loadTodayAnnouncements = async () => {
+      try {
+        await refreshOperationsAnnouncements()
+      } catch (error) {
+        if (!isMounted) return
+        console.warn('[App] loadTodayAnnouncements error:', error)
+      }
+    }
+
+    loadTodayAnnouncements()
+
+    return () => {
+      isMounted = false
+    }
+  }, [activeView, refreshOperationsAnnouncements])
 
   useEffect(() => {
     if (activeView !== 'operations') {
@@ -16685,9 +16783,9 @@ function App() {
     try {
       await createOperationsLog(activeWorkspaceId, payload, user?.id ?? null)
       await refreshOperationsLogs()
-      setOperationsNotice('Log entry added.')
+      setOperationsNotice('Note added.')
     } catch (error) {
-      setOperationsNotice(error.message || 'Unable to add log entry right now.')
+      setOperationsNotice(error.message || 'Unable to add note right now.')
       throw error
     } finally {
       setIsSavingOperations(false)
@@ -16705,9 +16803,9 @@ function App() {
     try {
       await updateOperationsLog(activeWorkspaceId, logId, payload)
       await refreshOperationsLogs()
-      setOperationsNotice('Log entry updated.')
+      setOperationsNotice('Note updated.')
     } catch (error) {
-      setOperationsNotice(error.message || 'Unable to update log entry right now.')
+      setOperationsNotice(error.message || 'Unable to update note right now.')
       throw error
     } finally {
       setIsSavingOperations(false)
@@ -16725,9 +16823,129 @@ function App() {
     try {
       await deleteOperationsLog(activeWorkspaceId, log.id)
       await refreshOperationsLogs()
-      setOperationsNotice('Log entry deleted.')
+      setOperationsNotice('Note deleted.')
     } catch (error) {
-      setOperationsNotice(error.message || 'Unable to delete log entry right now.')
+      setOperationsNotice(error.message || 'Unable to delete note right now.')
+      throw error
+    } finally {
+      setIsSavingOperations(false)
+    }
+  }
+
+  const handleCreateOperationsAnnouncement = async (payload) => {
+    if (!canManageAnnouncementsRole) {
+      throw new Error('Only owners and managers can create announcements.')
+    }
+    if (!activeWorkspaceId) {
+      throw new Error(operationsWorkspaceSetupMessage || 'Workspace is required to publish announcements.')
+    }
+
+    setIsSavingOperations(true)
+    setOperationsNotice('')
+
+    try {
+      await createOperationsAnnouncement(activeWorkspaceId, payload, user?.id ?? null)
+      await refreshOperationsAnnouncements()
+      setOperationsNotice('Announcement published.')
+    } catch (error) {
+      setOperationsNotice(error.message || 'Unable to publish right now.')
+      throw error
+    } finally {
+      setIsSavingOperations(false)
+    }
+  }
+
+  const handleUpdateOperationsAnnouncement = async (announcementId, payload) => {
+    if (!canManageAnnouncementsRole) {
+      throw new Error('Only owners and managers can edit announcements.')
+    }
+    if (!activeWorkspaceId) {
+      throw new Error(operationsWorkspaceSetupMessage || 'Workspace is required to update announcements.')
+    }
+
+    setIsSavingOperations(true)
+    setOperationsNotice('')
+
+    try {
+      await updateOperationsAnnouncement(activeWorkspaceId, announcementId, payload)
+      await refreshOperationsAnnouncements()
+      setOperationsNotice('Announcement updated.')
+    } catch (error) {
+      setOperationsNotice(error.message || 'Unable to update announcement right now.')
+      throw error
+    } finally {
+      setIsSavingOperations(false)
+    }
+  }
+
+  const handleHideOperationsAnnouncement = async (announcement) => {
+    if (!canManageAnnouncementsRole) {
+      throw new Error('Only owners and managers can hide announcements.')
+    }
+    if (!activeWorkspaceId || !announcement?.id) {
+      throw new Error(operationsWorkspaceSetupMessage || 'Workspace and announcement are required.')
+    }
+
+    setIsSavingOperations(true)
+    setOperationsNotice('')
+
+    try {
+      await deactivateOperationsAnnouncement(activeWorkspaceId, announcement.id)
+      await refreshOperationsAnnouncements()
+      setOperationsNotice('Announcement hidden.')
+    } catch (error) {
+      setOperationsNotice(error.message || 'Unable to hide announcement right now.')
+      throw error
+    } finally {
+      setIsSavingOperations(false)
+    }
+  }
+
+  const handlePublishOperationsAnnouncement = async (announcement) => {
+    if (!canManageAnnouncementsRole) {
+      throw new Error('Only owners and managers can publish announcements.')
+    }
+    if (!activeWorkspaceId || !announcement?.id) {
+      throw new Error(operationsWorkspaceSetupMessage || 'Workspace and announcement are required.')
+    }
+
+    setIsSavingOperations(true)
+    setOperationsNotice('')
+
+    try {
+      await updateOperationsAnnouncement(activeWorkspaceId, announcement.id, {
+        title: announcement.title,
+        message: announcement.message,
+        priority: announcement.priority,
+        audience: announcement.audience,
+        active: true,
+        startsAt: announcement.startsAt,
+        endsAt: announcement.endsAt,
+      })
+      await refreshOperationsAnnouncements()
+      setOperationsNotice('Announcement published.')
+    } catch (error) {
+      setOperationsNotice(error.message || 'Unable to publish announcement right now.')
+      throw error
+    } finally {
+      setIsSavingOperations(false)
+    }
+  }
+
+  const handleMarkOperationsAnnouncementSeen = async (announcement) => {
+    if (!announcement?.id || !user?.id) {
+      throw new Error('Announcement and user are required.')
+    }
+
+    setIsSavingOperations(true)
+
+    try {
+      await markOperationsAnnouncementRead(announcement.id, user.id)
+      await refreshOperationsAnnouncements()
+    } catch (error) {
+      if (activeView === 'operations') {
+        setOperationsNotice(error.message || 'Unable to mark announcement as seen right now.')
+      }
       throw error
     } finally {
       setIsSavingOperations(false)
@@ -17677,11 +17895,16 @@ function App() {
             timelineEvents={dashboardTimelineEvents}
             teamTodayGroups={teamTodayGroups}
             attentionItems={todayAttentionItems}
+            announcements={operationsAnnouncements}
+            announcementRole={role}
+            announcementEmployeeDepartment={currentEmployeeDepartment}
+            isAnnouncementsSaving={isSavingOperations}
             isScheduleLoading={isDashboardScheduleLoading}
             onQuickAction={handleDashboardQuickAction}
             onViewStock={handleDashboardViewStock}
             onViewSchedule={handleDashboardViewSchedule}
             onViewTasks={handleDashboardViewTasks}
+            onMarkAnnouncementSeen={handleMarkOperationsAnnouncementSeen}
           />
         ) : null}
 
@@ -17922,17 +18145,21 @@ function App() {
           <OperationsDashboardView
             tasks={operationsTasks}
             logs={operationsLogs}
+            announcements={operationsAnnouncements}
             checklistTemplates={operationsChecklistTemplates}
             employees={scheduleEmployees}
             todayKey={currentDateKey}
             isLoading={isOperationsLoading}
             noticeMessage={operationsNotice}
             canManage={canManageOperations}
+            canManageAnnouncements={canManageAnnouncementsRole}
             isSaving={isSavingOperations}
             isWorkspaceReady={isOperationsWorkspaceReady}
             workspaceSetupMessage={operationsWorkspaceSetupMessage}
             searchTerm={searchTerm}
             currentEmployeeId={currentTaskEmployeeId}
+            role={role}
+            employeeDepartment={currentEmployeeDepartment}
             onCreateTask={handleCreateOperationsTask}
             onUpdateTask={handleUpdateOperationsTask}
             onCompleteTask={handleCompleteOperationsTask}
@@ -17941,6 +18168,10 @@ function App() {
             onCreateLog={handleCreateOperationsLog}
             onUpdateLog={handleUpdateOperationsLog}
             onDeleteLog={handleDeleteOperationsLog}
+            onCreateAnnouncement={handleCreateOperationsAnnouncement}
+            onUpdateAnnouncement={handleUpdateOperationsAnnouncement}
+            onHideAnnouncement={handleHideOperationsAnnouncement}
+            onPublishAnnouncement={handlePublishOperationsAnnouncement}
             onStartChecklist={handleStartOperationsChecklist}
             onOpenChecklistRun={setActiveChecklistRunTemplateId}
           />
@@ -17967,7 +18198,7 @@ function App() {
 
         {isActiveViewAllowed && activeView === 'operations' && operationsSection === 'tasks' ? (
           <TasksView
-            tasks={tasks}
+            tasks={todayActionableTasks}
             taskTemplates={taskTemplates}
             templateChecklistItemsByTemplateId={templateChecklistItemsByTemplateId}
             checklistItemsByTaskId={checklistItemsByTaskId}
@@ -18284,26 +18515,26 @@ function App() {
                   </div>
                   <label className="form-field">
                     <span>Start Time</span>
-                    <input
-                      {...TIME_INPUT_PROPS}
+                    <TimeSelect
                       value={formData.start_time}
-                      onChange={(event) => setFormData((current) => ({
+                      onChange={(time) => setFormData((current) => ({
                         ...current,
                         shift_template: 'custom',
-                        start_time: normalizeTimeValue(event.target.value),
+                        start_time: time,
                       }))}
+                      required
                     />
                   </label>
                   <label className="form-field">
                     <span>End Time</span>
-                    <input
-                      {...TIME_INPUT_PROPS}
+                    <TimeSelect
                       value={formData.end_time}
-                      onChange={(event) => setFormData((current) => ({
+                      onChange={(time) => setFormData((current) => ({
                         ...current,
                         shift_template: 'custom',
-                        end_time: normalizeTimeValue(event.target.value),
+                        end_time: time,
                       }))}
+                      required
                     />
                   </label>
                   <label className="form-field">
@@ -18400,11 +18631,19 @@ function App() {
                   </label>
                   <label className="form-field">
                     <span>Start Time</span>
-                    <input {...TIME_INPUT_PROPS} value={templateForm.startTime} onChange={(event) => setTemplateForm((current) => ({ ...current, startTime: normalizeTimeValue(event.target.value) }))} required />
+                    <TimeSelect
+                      value={templateForm.startTime}
+                      onChange={(time) => setTemplateForm((current) => ({ ...current, startTime: time }))}
+                      required
+                    />
                   </label>
                   <label className="form-field">
                     <span>End Time</span>
-                    <input {...TIME_INPUT_PROPS} value={templateForm.endTime} onChange={(event) => setTemplateForm((current) => ({ ...current, endTime: normalizeTimeValue(event.target.value) }))} required />
+                    <TimeSelect
+                      value={templateForm.endTime}
+                      onChange={(time) => setTemplateForm((current) => ({ ...current, endTime: time }))}
+                      required
+                    />
                   </label>
                   <label className="form-field">
                     <span>Default Role</span>
