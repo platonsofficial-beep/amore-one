@@ -1,3 +1,5 @@
+import { EmployeeAccountConnectionSection } from './EmployeeAccountConnectionSection'
+
 const DEPARTMENT_FILTERS = ['All', 'Bar', 'Service', 'Kitchen', 'Management']
 
 function getInitials(name) {
@@ -42,6 +44,9 @@ export function TeamPeopleView({
   isLoading,
   noticeMessage,
   isSaving,
+  workspaceId = '',
+  canManageInvites = false,
+  canAssignManagerInviteRole = false,
 }) {
   return (
     <section className="team-people-page" aria-label="Team people">
@@ -155,6 +160,13 @@ export function TeamPeopleView({
             <p className="eyebrow">Notes</p>
             <p>{selectedEmployee.notes}</p>
           </div>
+
+          <EmployeeAccountConnectionSection
+            employee={selectedEmployee}
+            workspaceId={workspaceId}
+            canManageInvites={canManageInvites}
+            canAssignManagerRole={canAssignManagerInviteRole}
+          />
 
           <div className="action-group" style={{ marginTop: '16px' }}>
             <button type="button" className="ghost-btn" onClick={() => onOpenEditEmployee(selectedEmployee)}>Edit</button>

@@ -89,6 +89,41 @@ export function canEditSchedule(role) {
   return ['owner', 'general_manager', 'manager'].includes(normalizedRole)
 }
 
+export function canManageEmployeeInvites(role) {
+  return canEditSchedule(role)
+}
+
+export function canAssignManagerInviteRole(role) {
+  const normalizedRole = normalizeWorkspaceRole(role, 'staff')
+  return ['owner', 'general_manager'].includes(normalizedRole)
+}
+
+const MOBILE_MANAGEMENT_ROLES = new Set(['owner', 'general_manager', 'manager'])
+
+export function canAccessMobileExpandedModule(role, moduleId) {
+  const normalizedRole = normalizeWorkspaceRole(role, 'staff')
+  if (!MOBILE_MANAGEMENT_ROLES.has(normalizedRole)) {
+    return false
+  }
+
+  return canAccessModule(role, moduleId)
+}
+
+export function filterMobileMenuNavItems(navItems, role) {
+  return (navItems ?? []).filter((item) => {
+    if (item.id === 'today') return false
+    return canAccessMobileExpandedModule(role, item.id)
+  })
+}
+
+export function canOpenMobileFullSchedule(role) {
+  return canEditSchedule(role)
+}
+
+export function canOpenMobileTasksWorkspace(role) {
+  return canAccessMobileExpandedModule(role, 'operations')
+}
+
 export function resolvePermittedTeamSection(role, requestedSection) {
   const normalizedSection = `${requestedSection ?? ''}`.trim()
   if (normalizedSection && canAccessTeamSection(role, normalizedSection)) {

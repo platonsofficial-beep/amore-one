@@ -1,21 +1,96 @@
+@media (max-width: 760px) {
+  html,
+  body,
+  #root,
+  .app-shell,
+  .mobile-app {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: hidden;
+  }
+
+  html,
+  body,
+  #root {
+    min-height: 100%;
+    height: auto;
+    overflow-y: auto;
+  }
+
+  .app-shell,
+  .app-shell.is-mobile-shell {
+    display: block;
+    height: auto;
+    min-height: 100dvh;
+    max-height: none;
+    overflow: visible;
+    overflow-x: hidden;
+  }
+
+  .app-shell.is-mobile-shell .main-panel {
+    min-height: 0;
+    height: auto;
+    max-height: none;
+    overflow: visible;
+    overflow-x: hidden;
+    padding: 0;
+    display: block;
+  }
+
+  .mobile-app,
+  .mobile-app.mobile-app-expanded {
+    display: flex;
+    flex-direction: column;
+    min-height: 100dvh;
+    height: auto;
+    max-width: 100%;
+    overflow: visible;
+    overflow-x: hidden;
+    touch-action: pan-y;
+  }
+
+  .mobile-app-content,
+  .mobile-expanded-scroll {
+    flex: 1 0 auto;
+    min-width: 0;
+    max-width: 100%;
+    min-height: 100dvh;
+    overflow-x: hidden;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-y;
+    overscroll-behavior-y: auto;
+  }
+
+  .mobile-app-content {
+    padding: calc(12px + env(safe-area-inset-top, 0px)) 16px calc(96px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .mobile-expanded-scroll {
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: calc(96px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .mobile-workspace-module {
+    padding-bottom: calc(96px + env(safe-area-inset-bottom, 0px));
+  }
+}
+
 .mobile-app {
   display: flex;
   flex-direction: column;
   min-height: 100dvh;
-  min-height: 100vh;
   max-width: 100%;
   background: #0a0a0b;
   overflow-x: hidden;
 }
 
 .mobile-app-content {
-  flex: 1 1 auto;
+  flex: 1 0 auto;
   min-width: 0;
   max-width: 100%;
   overflow-x: hidden;
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  padding: calc(12px + env(safe-area-inset-top, 0px)) 16px calc(88px + env(safe-area-inset-bottom, 0px));
+  padding: calc(12px + env(safe-area-inset-top, 0px)) 16px calc(96px + env(safe-area-inset-bottom, 0px));
 }
 
 .mobile-screen {
@@ -175,36 +250,65 @@
 }
 
 .mobile-schedule-header {
-  flex-direction: row;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 12px;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0;
 }
 
-.mobile-schedule-header > div:first-child {
+.mobile-schedule-title-block {
   min-width: 0;
-  flex: 1 1 auto;
+  max-width: 100%;
+}
+
+.mobile-week-updating {
+  margin: 6px 0 0;
+  color: #c89d42;
+  font-size: 0.82rem;
+  font-weight: 600;
 }
 
 .mobile-week-nav {
-  display: inline-flex;
-  flex-shrink: 0;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  width: 100%;
+  max-width: 100%;
   gap: 8px;
+  margin-bottom: 4px;
 }
 
 .mobile-week-nav-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 44px;
-  height: 44px;
+  min-width: 0;
+  width: 100%;
+  min-height: 44px;
+  height: auto;
+  padding: 8px 10px;
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 12px;
   background: rgba(255, 255, 255, 0.03);
   color: #f7efe1;
-  font-size: 1.4rem;
-  line-height: 1;
+  font-size: 0.82rem;
+  font-weight: 600;
+  line-height: 1.2;
   cursor: pointer;
+  white-space: nowrap;
+}
+
+.mobile-week-nav-btn-text {
+  font-size: 0.8rem;
+}
+
+.mobile-week-nav-btn.is-active {
+  border-color: rgba(214, 178, 106, 0.28);
+  background: rgba(214, 178, 106, 0.1);
+  color: #f7efe1;
+}
+
+.mobile-week-nav-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .mobile-schedule-days {
@@ -505,6 +609,69 @@
   border-color: rgba(224, 108, 108, 0.2);
 }
 
+.mobile-profile-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 4px;
+}
+
+.mobile-profile-header h1 {
+  margin: 0;
+  color: #f7efe1;
+  font-size: 1.2rem;
+  font-weight: 600;
+}
+
+.mobile-profile-details {
+  margin: 0;
+  display: grid;
+  gap: 10px;
+}
+
+.mobile-profile-detail-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.mobile-profile-detail-row dt {
+  margin: 0;
+  color: #8f8778;
+  font-size: 0.88rem;
+}
+
+.mobile-profile-detail-row dd {
+  margin: 0;
+  color: #f7efe1;
+  text-align: right;
+  font-size: 0.92rem;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.mobile-profile-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.mobile-profile-readonly {
+  margin-bottom: 2px;
+}
+
+.mobile-profile-error {
+  margin: 0;
+  color: #f2a3a3;
+  font-size: 0.92rem;
+}
+
+.mobile-profile-notice {
+  margin: 0;
+  color: #8fd6a8;
+  font-size: 0.92rem;
+}
+
 .mobile-bottom-nav {
   position: fixed;
   left: 0;
@@ -556,13 +723,10 @@
 }
 
 .mobile-expanded-scroll {
-  flex: 1 1 auto;
-  min-height: 0;
+  flex: 1 0 auto;
   min-width: 0;
   max-width: 100%;
   overflow-x: hidden;
-  overflow-y: auto;
-  overscroll-behavior: contain;
   padding-top: env(safe-area-inset-top, 0px);
 }
 
@@ -608,28 +772,27 @@
 
 .mobile-app-expanded {
   min-height: 100dvh;
-  min-height: 100vh;
 }
 
 .mobile-workspace-module {
   min-width: 0;
   max-width: 100%;
   overflow-x: hidden;
-  padding: 12px 16px calc(88px + env(safe-area-inset-bottom, 0px));
+  padding: 12px 16px calc(96px + env(safe-area-inset-bottom, 0px));
 }
 
 .mobile-app-expanded .mobile-workspace-module {
   padding-top: 8px;
-  padding-bottom: calc(88px + env(safe-area-inset-bottom, 0px));
 }
 
 .app-shell.is-mobile-shell {
   display: block;
   min-height: 100dvh;
-  min-height: 100vh;
   height: auto;
+  max-height: none;
   max-width: 100%;
   overflow-x: hidden;
+  overflow-y: visible;
 }
 
 .app-shell.is-mobile-shell .sidebar {
@@ -637,15 +800,14 @@
 }
 
 .app-shell.is-mobile-shell .main-panel {
-  min-height: 100dvh;
-  min-height: 100vh;
+  min-height: 0;
   height: auto;
+  max-height: none;
   max-width: 100%;
   overflow-x: hidden;
   overflow-y: visible;
   padding: 0;
-  display: flex;
-  flex-direction: column;
+  display: block;
 }
 
 .app-shell.is-mobile-expanded .module-section-tabs {

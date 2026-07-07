@@ -1,41 +1,103 @@
+function ScheduleWeekNav({
+  isWeekUpdating = false,
+  isViewingCurrentWeek = false,
+  onPreviousWeek,
+  onGoToCurrentWeek,
+  onNextWeek,
+}) {
+  return (
+    <div className="mobile-week-nav" role="group" aria-label="Week navigation">
+      <button
+        type="button"
+        className="mobile-week-nav-btn mobile-week-nav-btn-text"
+        onClick={onPreviousWeek}
+        disabled={isWeekUpdating}
+      >
+        ‹ Prev
+      </button>
+      <button
+        type="button"
+        className={`mobile-week-nav-btn mobile-week-nav-btn-text${isViewingCurrentWeek ? ' is-active' : ''}`}
+        onClick={onGoToCurrentWeek}
+        disabled={isWeekUpdating || isViewingCurrentWeek}
+      >
+        This week
+      </button>
+      <button
+        type="button"
+        className="mobile-week-nav-btn mobile-week-nav-btn-text"
+        onClick={onNextWeek}
+        disabled={isWeekUpdating}
+      >
+        Next ›
+      </button>
+    </div>
+  )
+}
+
+function ScheduleWeekHeader({
+  employeeName = '',
+  weekLabel = '',
+  isWeekUpdating = false,
+  isWeekNavigationDisabled = false,
+  isViewingCurrentWeek = false,
+  onPreviousWeek,
+  onGoToCurrentWeek,
+  onNextWeek,
+}) {
+  return (
+    <>
+      <header className="mobile-screen-header mobile-schedule-header">
+        <div className="mobile-schedule-title-block">
+          <p className="mobile-screen-eyebrow">My schedule</p>
+          <h1 className="mobile-screen-title">{employeeName || 'Your week'}</h1>
+          {weekLabel ? <p className="mobile-screen-subtitle">{weekLabel}</p> : null}
+          {isWeekUpdating ? (
+            <p className="mobile-week-updating" aria-live="polite">Updating…</p>
+          ) : null}
+        </div>
+      </header>
+
+      <ScheduleWeekNav
+        isWeekUpdating={isWeekNavigationDisabled}
+        isViewingCurrentWeek={isViewingCurrentWeek}
+        onPreviousWeek={onPreviousWeek}
+        onGoToCurrentWeek={onGoToCurrentWeek}
+        onNextWeek={onNextWeek}
+      />
+    </>
+  )
+}
+
 export function MobileScheduleView({
   weekLabel = '',
   employeeName = '',
   days = [],
   needsEmployeeLink = false,
   isWeekPublished = false,
-  isLoading = false,
+  isWeekUpdating = false,
+  isViewingCurrentWeek = false,
   canOpenFullSchedule = false,
   onOpenFullSchedule,
   onPreviousWeek,
+  onGoToCurrentWeek,
   onNextWeek,
 }) {
-  if (isLoading) {
-    return (
-      <div className="mobile-screen mobile-schedule">
-        <p className="mobile-empty-note">Loading schedule…</p>
-      </div>
-    )
-  }
+  const showUnpublishedMessage = !isWeekUpdating && !isWeekPublished
 
   if (needsEmployeeLink) {
     return (
       <div className="mobile-screen mobile-schedule">
-        <header className="mobile-screen-header mobile-schedule-header">
-          <div>
-            <p className="mobile-screen-eyebrow">My schedule</p>
-            <h1 className="mobile-screen-title">Your week</h1>
-            {weekLabel ? <p className="mobile-screen-subtitle">{weekLabel}</p> : null}
-          </div>
-          <div className="mobile-week-nav" aria-label="Week navigation">
-            <button type="button" className="mobile-week-nav-btn" onClick={onPreviousWeek} aria-label="Previous week">
-              ‹
-            </button>
-            <button type="button" className="mobile-week-nav-btn" onClick={onNextWeek} aria-label="Next week">
-              ›
-            </button>
-          </div>
-        </header>
+        <ScheduleWeekHeader
+          employeeName="Your week"
+          weekLabel={weekLabel}
+          isWeekUpdating={isWeekUpdating}
+          isWeekNavigationDisabled={isWeekUpdating}
+          isViewingCurrentWeek={isViewingCurrentWeek}
+          onPreviousWeek={onPreviousWeek}
+          onGoToCurrentWeek={onGoToCurrentWeek}
+          onNextWeek={onNextWeek}
+        />
 
         <section className="mobile-card tone-neutral">
           <p className="mobile-card-detail">Link your employee profile to view your schedule</p>
@@ -46,23 +108,18 @@ export function MobileScheduleView({
 
   return (
     <div className="mobile-screen mobile-schedule">
-      <header className="mobile-screen-header mobile-schedule-header">
-        <div>
-          <p className="mobile-screen-eyebrow">My schedule</p>
-          <h1 className="mobile-screen-title">{employeeName || 'Your week'}</h1>
-          {weekLabel ? <p className="mobile-screen-subtitle">{weekLabel}</p> : null}
-        </div>
-        <div className="mobile-week-nav" aria-label="Week navigation">
-          <button type="button" className="mobile-week-nav-btn" onClick={onPreviousWeek} aria-label="Previous week">
-            ‹
-          </button>
-          <button type="button" className="mobile-week-nav-btn" onClick={onNextWeek} aria-label="Next week">
-            ›
-          </button>
-        </div>
-      </header>
+      <ScheduleWeekHeader
+        employeeName={employeeName}
+        weekLabel={weekLabel}
+        isWeekUpdating={isWeekUpdating}
+        isWeekNavigationDisabled={isWeekUpdating}
+        isViewingCurrentWeek={isViewingCurrentWeek}
+        onPreviousWeek={onPreviousWeek}
+        onGoToCurrentWeek={onGoToCurrentWeek}
+        onNextWeek={onNextWeek}
+      />
 
-      {!isWeekPublished ? (
+      {showUnpublishedMessage ? (
         <section className="mobile-card tone-neutral">
           <h2 className="mobile-card-headline">Schedule not published</h2>
           <p className="mobile-card-detail">Published shifts will appear here when your manager releases the schedule.</p>

@@ -398,6 +398,36 @@ export async function updateEmployee(workspaceId, id, employee) {
   return fetchEmployeeById(normalizedWorkspaceId, id)
 }
 
+export async function updateLinkedEmployeePhone(workspaceId, employeeId, phone) {
+  const normalizedWorkspaceId = requireWorkspaceId(workspaceId)
+  const normalizedEmployeeId = `${employeeId ?? ''}`.trim()
+  const normalizedPhone = `${phone ?? ''}`.trim()
+
+  if (!normalizedEmployeeId) {
+    throw new Error('Linked employee is required to update phone.')
+  }
+
+  const { data, error } = await supabase
+    .from('employees')
+    .update({ phone: normalizedPhone })
+    .eq('id', normalizedEmployeeId)
+    .eq('workspace_id', normalizedWorkspaceId)
+    .select('*')
+    .single()
+
+  if (error) {
+    console.error('[staffService] updateLinkedEmployeePhone error:', error)
+
+    if (isTableUnavailableError(error)) {
+      throw new Error('Employees table is not ready yet.')
+    }
+
+    throw new Error(error.message || 'Unable to update phone right now.')
+  }
+
+  return mapEmployee(data)
+}
+
 export async function deleteEmployee(workspaceId, id) {
   const normalizedWorkspaceId = requireWorkspaceId(workspaceId)
 

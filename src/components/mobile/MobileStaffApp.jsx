@@ -1,6 +1,7 @@
 import { MobileBottomNav } from './MobileBottomNav'
 import { MobileHomeView } from './MobileHomeView'
 import { MobileMenuView } from './MobileMenuView'
+import { MobileProfileView } from './MobileProfileView'
 import { MobileScheduleView } from './MobileScheduleView'
 import { MobileTasksView } from './MobileTasksView'
 
@@ -43,7 +44,13 @@ export function MobileStaffApp({
         {activeTab === 'home' ? <MobileHomeView {...homeProps} /> : null}
         {activeTab === 'schedule' ? <MobileScheduleView {...scheduleProps} /> : null}
         {activeTab === 'tasks' ? <MobileTasksView {...tasksProps} /> : null}
-        {activeTab === 'menu' ? <MobileMenuView {...menuProps} /> : null}
+        {activeTab === 'menu' ? (
+          menuProps?.screen === 'profile' ? (
+            <MobileProfileView {...(menuProps.profileProps ?? {})} onBack={menuProps.onBackFromProfile} />
+          ) : (
+            <MobileMenuView {...menuProps} />
+          )
+        ) : null}
       </div>
       <MobileBottomNav activeTab={activeTab} onTabChange={onTabChange} />
     </div>

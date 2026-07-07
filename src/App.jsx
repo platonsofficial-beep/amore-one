@@ -1,6 +1,7 @@
 import { Fragment, createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import './App.css'
-import { createEmployee, deleteEmployee, getEmployees, updateEmployee } from './services/staffService'
+import { createEmployee, deleteEmployee, getEmployees, updateEmployee, updateLinkedEmployeePhone } from './services/staffService'
+import { updateMembershipDisplayName } from './services/membershipService'
 import { createShift, deleteShift, getShifts, updateShift } from './services/scheduleService'
 import { createShiftTemplate, deleteShiftTemplate, getShiftTemplates, moveShiftTemplatesByDrag, reorderShiftTemplates, sortShiftTemplates, updateShiftTemplate, archiveShiftTemplate, getShiftCountForTemplate, didUseLegacyShiftTemplateSchema } from './services/shiftTemplateService'
 import { getScheduleCapacities, upsertScheduleCapacity, deleteScheduleCapacitiesForDates, copyScheduleCapacitiesForWeek, applyScheduleCapacitiesForWeek, applyMinimumCapacitiesFromShifts } from './services/scheduleCapacityService'
@@ -326,6 +327,7 @@ import {
   buildDashboardGreeting,
   buildProfileChipDisplay,
 } from './lib/workspaceProfileUtils'
+import { resolveUserDisplayName } from './lib/userDisplayName'
 import { MAX_WORKSPACE_LOGO_BYTES } from './lib/workspaceProfileOptions'
 import { TASK_PRESET_DEPARTMENTS } from './lib/taskDepartments'
 import { DEFAULT_RESTAURANT_AREAS } from './floor-plan-builder/models/floorPlans'
@@ -358,7 +360,12 @@ import {
 import {
   canAccessModule,
   canAccessTeamSection,
+  canAssignManagerInviteRole,
+  canAccessMobileExpandedModule,
   canEditSchedule,
+  canManageEmployeeInvites,
+  canOpenMobileFullSchedule,
+  canOpenMobileTasksWorkspace,
   filterNavItemsByRole,
   resolvePermittedActiveView,
   resolvePermittedTeamSection,
@@ -12202,10 +12209,14 @@ function App() {
     membership,
     workspaceLoadError,
     signOut,
+    refreshMembership,
   } = useAuth()
 
   const isMobileViewport = useMobileViewport()
   const [mobileTab, setMobileTab] = useState(() => readPersistedMobileTab())
+  const [mobileMenuScreen, setMobileMenuScreen] = useState('main')
+  const [mobileProfilePhone, setMobileProfilePhone] = useState('')
+  const [isSavingMobileProfile, setIsSavingMobileProfile] = useState(false)
   const [mobileExpandedView, setMobileExpandedView] = useState(null)
   const [mobileWeekStart, setMobileWeekStart] = useState(() => getCurrentWeekStartDate())
   const [mobileWeekPublishedShifts, setMobileWeekPublishedShifts] = useState([])
@@ -12251,6 +12262,16 @@ function App() {
 
   const canEditScheduleRole = useMemo(
     () => canEditSchedule(role),
+    [role],
+  )
+
+  const canManageEmployeeInvitesRole = useMemo(
+    () => canManageEmployeeInvites(role),
+    [role],
+  )
+
+  const canAssignManagerInviteRoleFlag = useMemo(
+    () => canAssignManagerInviteRole(role),
     [role],
   )
 
@@ -12441,6 +12462,20 @@ function App() {
     [workspaceProfile],
   )
 
+  const resolvedUserDisplayName = useMemo(
+    () => resolveUserDisplayName({
+      membership,
+      employees: scheduleEmployees,
+      user,
+    }),
+    [membership, scheduleEmployees, user],
+  )
+
+  const mobileGreeting = useMemo(
+    () => buildDashboardGreeting(currentTimeGreeting, resolvedUserDisplayName),
+    [currentTimeGreeting, resolvedUserDisplayName],
+  )
+
   const dashboardShifts = useMemo(() => {
     const draftSource = isViewingTodayWeekInScheduler ? shifts : todayWeekShifts
     return resolveLiveDraftShiftsForWeek(draftSource, todayWeekStart)
@@ -12598,6 +12633,19 @@ function App() {
 
   const mobileEmployeeId = membership?.employeeId ?? currentTaskEmployeeId
 
+  const mobileLinkedEmployee = useMemo(() => {
+    const employeeId = `${membership?.employeeId ?? ''}`.trim()
+    if (!employeeId) return null
+
+    return scheduleEmployees.find((employee) => `${employee.id}` === employeeId)
+      ?? employees.find((employee) => `${employee.id}` === employeeId)
+      ?? null
+  }, [membership?.employeeId, scheduleEmployees, employees])
+
+  useEffect(() => {
+    setMobileProfilePhone(`${mobileLinkedEmployee?.phone ?? ''}`.trim())
+  }, [mobileLinkedEmployee?.id, mobileLinkedEmployee?.phone])
+
   const mobileWeekDays = useMemo(
     () => getWeekDays(mobileWeekStart),
     [mobileWeekStart],
@@ -12606,6 +12654,7 @@ function App() {
   const mobileWeekPublishedShiftSource = useMemo(() => {
     if (mobileWeekStart === scheduleWeekStart) return publishedShifts
     if (mobileWeekStart === todayWeekStart) return todayWeekPublishedShifts
+    if (isMobileWeekLoading) return []
     return mobileWeekPublishedShifts
   }, [
     mobileWeekStart,
@@ -12614,6 +12663,7 @@ function App() {
     publishedShifts,
     todayWeekPublishedShifts,
     mobileWeekPublishedShifts,
+    isMobileWeekLoading,
   ])
 
   const isMobileWeekPublished = useMemo(() => {
@@ -18569,34 +18619,47 @@ function App() {
 
   const handleMobileTabChange = useCallback((tab) => {
     setMobileExpandedView(null)
+    setMobileMenuScreen('main')
     setMobileTab(tab)
     persistMobileTab(tab)
   }, [])
 
   const handleMobileOpenFullSchedule = () => {
+    if (!canOpenMobileFullSchedule(role)) return
+
     handleActiveViewChange('team')
     handleTeamSectionChange('schedule')
     setMobileExpandedView('full-schedule')
   }
 
   const handleMobileNavigateModule = (moduleId) => {
+    if (!canAccessMobileExpandedModule(role, moduleId)) return
+
     handleActiveViewChange(moduleId)
     if (moduleId === 'team') {
-      handleTeamSectionChange(canEditScheduleRole ? 'schedule' : 'today')
+      handleTeamSectionChange('schedule')
     }
     setMobileExpandedView('workspace')
   }
 
   const handleMobileOpenSettings = () => {
+    if (!canAccessMobileExpandedModule(role, 'settings')) return
+
     handleActiveViewChange('settings')
     handleSettingsSectionChange('profile')
     setMobileExpandedView('workspace')
   }
 
   const handleMobileOpenTasksWorkspace = () => {
+    if (!canOpenMobileTasksWorkspace(role)) return
+
     handleActiveViewChange('operations')
     handleOperationsSectionChange('tasks')
     setMobileExpandedView('workspace')
+  }
+
+  const handleMobileGoToCurrentWeek = () => {
+    setMobileWeekStart(todayWeekStart)
   }
 
   const handleMobilePreviousWeek = () => {
@@ -18614,6 +18677,36 @@ function App() {
       console.warn('[App] mobile signOut error:', error)
     }
   }
+
+  const handleMobileOpenProfile = () => {
+    setMobileMenuScreen('profile')
+  }
+
+  const handleMobileBackFromProfile = () => {
+    setMobileMenuScreen('main')
+  }
+
+  const handleMobileProfileSave = useCallback(async ({ displayName, phone }) => {
+    const userId = `${user?.id ?? ''}`.trim()
+    if (!userId) {
+      throw new Error('Signed-in user is not available.')
+    }
+
+    setIsSavingMobileProfile(true)
+
+    try {
+      await updateMembershipDisplayName(userId, displayName)
+      await refreshMembership()
+
+      const linkedEmployeeId = `${membership?.employeeId ?? ''}`.trim()
+      if (linkedEmployeeId && activeWorkspaceId && phone !== undefined) {
+        const updatedEmployee = await updateLinkedEmployeePhone(activeWorkspaceId, linkedEmployeeId, phone)
+        setMobileProfilePhone(`${updatedEmployee?.phone ?? phone ?? ''}`.trim())
+      }
+    } finally {
+      setIsSavingMobileProfile(false)
+    }
+  }, [activeWorkspaceId, membership?.employeeId, refreshMembership, user?.id])
 
   return (
     <PublishedFloorPlanProvider workspaceId={workspace?.id ?? ''}>
@@ -18740,6 +18833,9 @@ function App() {
             isLoading={isLoadingStaff}
             noticeMessage={staffNotice}
             isSaving={isSavingEmployee}
+            workspaceId={activeWorkspaceId}
+            canManageInvites={canManageEmployeeInvitesRole}
+            canAssignManagerInviteRole={canAssignManagerInviteRoleFlag}
           />
         ) : null}
 
@@ -19096,7 +19192,7 @@ function App() {
                   onTabChange={handleMobileTabChange}
                   homeProps={{
                     venueName: workspaceProfile.businessName,
-                    greeting: buildDashboardGreeting(currentTimeGreeting, workspaceProfile.managerName),
+                    greeting: mobileGreeting,
                     dateLabel: currentDateLabel,
                     shiftSummary: mobileShiftSummary,
                     tasksSummary: mobileTaskOverview,
@@ -19112,22 +19208,40 @@ function App() {
                     days: mobileEmployeeWeekSchedule?.days ?? [],
                     needsEmployeeLink: !mobileEmployeeId,
                     isWeekPublished: isMobileWeekPublished,
-                    isLoading: isMobileWeekLoading || isDashboardScheduleLoading,
-                    canOpenFullSchedule: canEditScheduleRole,
+                    isWeekUpdating: isMobileWeekLoading,
+                    isViewingCurrentWeek: mobileWeekStart === todayWeekStart,
+                    canOpenFullSchedule: canOpenMobileFullSchedule(role),
                     onOpenFullSchedule: handleMobileOpenFullSchedule,
                     onPreviousWeek: handleMobilePreviousWeek,
+                    onGoToCurrentWeek: handleMobileGoToCurrentWeek,
                     onNextWeek: handleMobileNextWeek,
                   }}
                   tasksProps={{
                     taskGroups: mobileTaskGroups,
                     isLoading: isTasksLoading,
-                    onOpenTasksWorkspace: handleMobileOpenTasksWorkspace,
+                    onOpenTasksWorkspace: canOpenMobileTasksWorkspace(role)
+                      ? handleMobileOpenTasksWorkspace
+                      : undefined,
                   }}
                   menuProps={{
                     role,
                     roleLabel,
-                    profileName: workspaceProfile.managerName,
+                    profileName: resolvedUserDisplayName,
                     venueName: workspaceProfile.businessName,
+                    screen: mobileMenuScreen,
+                    onOpenProfile: handleMobileOpenProfile,
+                    onBackFromProfile: handleMobileBackFromProfile,
+                    profileProps: {
+                      displayName: `${membership?.displayName ?? ''}`.trim() || resolvedUserDisplayName,
+                      email: `${membership?.email ?? user?.email ?? ''}`.trim(),
+                      phone: mobileProfilePhone,
+                      roleLabel,
+                      venueName: `${workspace?.name ?? workspaceProfile.businessName ?? ''}`.trim(),
+                      linkedEmployeeName: `${mobileLinkedEmployee?.name ?? ''}`.trim(),
+                      canEditPhone: Boolean(membership?.employeeId),
+                      isSaving: isSavingMobileProfile,
+                      onSave: handleMobileProfileSave,
+                    },
                     onNavigateModule: handleMobileNavigateModule,
                     onOpenFullSchedule: handleMobileOpenFullSchedule,
                     onOpenSettings: handleMobileOpenSettings,
@@ -19164,6 +19278,7 @@ function App() {
                       </div>
                       <UserMenu
                         profileChipDisplay={profileChipDisplay}
+                        employees={scheduleEmployees}
                         onOpenWorkspaceProfile={handleOpenWorkspaceProfile}
                         variant="command"
                       />
@@ -19193,6 +19308,7 @@ function App() {
                       <div className="date-pill">{currentDateLabel}</div>
                       <UserMenu
                         profileChipDisplay={profileChipDisplay}
+                        employees={scheduleEmployees}
                         onOpenWorkspaceProfile={handleOpenWorkspaceProfile}
                       />
                     </div>

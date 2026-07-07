@@ -300,6 +300,38 @@ export async function linkMembershipEmployee(authUserId, employeeId) {
   return mapMembership(data[0])
 }
 
+export async function updateMembershipDisplayName(authUserId, displayName) {
+  const normalizedUserId = `${authUserId ?? ''}`.trim()
+  const normalizedDisplayName = `${displayName ?? ''}`.trim()
+
+  if (!normalizedUserId) {
+    throw new Error('Authenticated user is required to update display name.')
+  }
+
+  if (!normalizedDisplayName) {
+    throw new Error('Display name is required.')
+  }
+
+  const { data, error } = await supabase
+    .from(WORKSPACE_MEMBERS_TABLE)
+    .update({ display_name: normalizedDisplayName })
+    .eq('auth_user_id', normalizedUserId)
+    .select(MEMBERSHIP_ROW_SELECT)
+    .single()
+
+  if (error) {
+    console.error('[membershipService] updateMembershipDisplayName error:', error)
+
+    if (isTableUnavailableError(error)) {
+      throw new Error('Workspace members table is not ready yet.')
+    }
+
+    throw new Error(error.message || 'Unable to update display name right now.')
+  }
+
+  return mapMembership(data)
+}
+
 export async function getMemberDisplayNamesByAuthUserIds(workspaceId, authUserIds = []) {
   const normalizedWorkspaceId = `${workspaceId ?? ''}`.trim()
   const ids = [...new Set((authUserIds ?? []).filter(Boolean))]

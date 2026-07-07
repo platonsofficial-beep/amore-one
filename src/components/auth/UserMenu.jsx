@@ -2,9 +2,11 @@ import { useEffect, useRef, useState } from 'react'
 import { useAuth } from '../../context/AuthContext'
 import { getProfileInitials } from '../../lib/workspaceProfileUtils'
 import { getWorkspaceRoleLabel } from '../../lib/membershipRoles'
+import { resolveUserDisplayName } from '../../lib/userDisplayName'
 
 export function UserMenu({
   profileChipDisplay,
+  employees = [],
   onOpenWorkspaceProfile,
   variant = 'default',
 }) {
@@ -44,7 +46,7 @@ export function UserMenu({
     }
   }, [isOpen])
 
-  const memberDisplayName = `${membership?.displayName ?? ''}`.trim()
+  const memberDisplayName = resolveUserDisplayName({ membership, employees, user })
     || `${profileChipDisplay?.name ?? ''}`.trim()
     || 'Profile not set'
   const memberEmail = `${membership?.email ?? user?.email ?? ''}`.trim()

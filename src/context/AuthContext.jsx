@@ -7,8 +7,14 @@ import {
   signOut as authSignOut,
   signUp as authSignUp,
 } from '../services/authService'
+import { acceptInvite } from '../services/inviteService'
 import { createOwnerMembershipIfMissing, getCurrentMembershipContext } from '../services/membershipService'
 import { getWorkspaceRoleLabel, isOwnerRole, normalizeWorkspaceRole } from '../lib/membershipRoles'
+import {
+  captureInviteTokenFromLocation,
+  clearPendingInviteToken,
+  readPendingInviteToken,
+} from '../lib/inviteTokenStorage'
 import {
   isCompleteWorkspace,
   normalizeAuthWorkspace,
@@ -135,6 +141,25 @@ export function AuthProvider({ children }) {
 
     let resolvedMembership = null
     let joinedWorkspaceRecord = null
+    let skipDefaultBootstrap = false
+
+    const pendingInviteToken = readPendingInviteToken()
+    if (pendingInviteToken) {
+      try {
+        await acceptInvite(pendingInviteToken)
+        clearPendingInviteToken()
+        skipDefaultBootstrap = true
+      } catch (inviteError) {
+        const message = inviteError?.message || 'Unable to accept workspace invite.'
+        console.error('[AuthContext] acceptInvite error:', inviteError)
+
+        if (/not found|expired|revoked|already been accepted/i.test(message)) {
+          clearPendingInviteToken()
+        }
+
+        setMembershipLoadError(message)
+      }
+    }
 
     try {
       const membershipContext = await getCurrentMembershipContext(membershipUserId)
@@ -148,7 +173,7 @@ export function AuthProvider({ children }) {
       setMembershipLoadError(message)
     }
 
-    if (!resolvedMembership) {
+    if (!resolvedMembership && !skipDefaultBootstrap) {
       try {
         const createdMembership = await createOwnerMembershipIfMissing(activeSession?.user ?? nextUser)
         if (loadSeq !== authLoadSeqRef.current) return
@@ -198,6 +223,21 @@ export function AuthProvider({ children }) {
     setWorkspace(isCompleteWorkspace(resolvedWorkspace) ? resolvedWorkspace : null)
   }, [])
 
+  const refreshMembership = useCallback(async () => {
+    const userId = `${user?.id ?? activeUserIdRef.current ?? ''}`.trim()
+    if (!userId) return null
+
+    try {
+      const membershipContext = await getCurrentMembershipContext(userId)
+      const nextMembership = normalizeMembershipForContext(membershipContext.membership)
+      setMembership(nextMembership)
+      return nextMembership
+    } catch (error) {
+      console.error('[AuthContext] refreshMembership error:', error)
+      throw error
+    }
+  }, [user?.id])
+
   useEffect(() => {
     if (isAuthDisabled) {
       setMembership(buildDevMembership(devProfileDisplayName))
@@ -215,6 +255,8 @@ export function AuthProvider({ children }) {
     if (isAuthDisabled) {
       return undefined
     }
+
+    captureInviteTokenFromLocation()
 
     let isMounted = true
 
@@ -408,6 +450,7 @@ export function AuthProvider({ children }) {
     signOut,
     resetPassword,
     syncDevMembershipProfile,
+    refreshMembership,
   }), [
     user,
     session,
@@ -426,6 +469,7 @@ export function AuthProvider({ children }) {
     signOut,
     resetPassword,
     syncDevMembershipProfile,
+    refreshMembership,
   ])
 
   return (
