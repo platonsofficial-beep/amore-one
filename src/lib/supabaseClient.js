@@ -1,20 +1,18 @@
 import { createClient } from '@supabase/supabase-js'
+import { getSupabaseSetupError, readSupabaseEnv } from './supabaseEnv'
 
-function normalizeSupabaseUrl(url) {
-  if (!url) return ''
+export { getSupabaseSetupError, readSupabaseEnv } from './supabaseEnv'
 
-  return url
-    .replace(/\/rest\/v1\/?$/i, '')
-    .replace(/\/rest\/v1\//i, '/')
-    .replace(/\/$/, '')
+const { url: supabaseUrl, anonKey: supabaseAnonKey, isConfigured: isSupabaseConfigured } = readSupabaseEnv()
+
+export const supabaseConfigError = getSupabaseSetupError()
+
+if (!isSupabaseConfigured) {
+  console.error(`[supabase] ${supabaseConfigError}`)
 }
 
-const supabaseUrl = normalizeSupabaseUrl(import.meta.env?.VITE_SUPABASE_URL ?? process.env.VITE_SUPABASE_URL)
-const supabaseAnonKey = import.meta.env?.VITE_SUPABASE_PUBLISHABLE_KEY ?? process.env.VITE_SUPABASE_PUBLISHABLE_KEY
+export const supabase = isSupabaseConfigured
+  ? createClient(supabaseUrl, supabaseAnonKey)
+  : null
 
-if (!supabaseUrl || !supabaseAnonKey) {
-  throw new Error('Missing Supabase environment variables. Set VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY.')
-}
-
-export const supabase = createClient(supabaseUrl, supabaseAnonKey)
 export default supabase

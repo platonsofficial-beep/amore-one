@@ -2,17 +2,18 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'
 import './App.css'
-import './mobileShell.css'
-import { AuthProvider } from './context/AuthContext'
-import { AuthGate } from './components/auth/AuthGate'
-import App from './App.jsx'
+import { DeploySetupError } from './components/DeploySetupError.jsx'
+import { getSupabaseSetupError } from './lib/supabaseEnv.js'
 
-createRoot(document.getElementById('root')).render(
-  <StrictMode>
-    <AuthProvider>
-      <AuthGate>
-        <App />
-      </AuthGate>
-    </AuthProvider>
-  </StrictMode>,
-)
+const isAuthDisabled = import.meta.env.VITE_AUTH_DISABLED === 'true'
+const supabaseSetupError = getSupabaseSetupError()
+
+if (supabaseSetupError && !isAuthDisabled) {
+  createRoot(document.getElementById('root')).render(
+    <StrictMode>
+      <DeploySetupError message={supabaseSetupError} />
+    </StrictMode>,
+  )
+} else {
+  import('./appEntry.jsx')
+}
