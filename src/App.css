@@ -3917,8 +3917,10 @@
 }
 
 .host-reservation-edit-save-icon {
-  width: 28px;
-  height: 28px;
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  min-height: 44px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -3955,8 +3957,19 @@
   letter-spacing: 0.08em;
 }
 
+.host-reservation-edit-header .icon-btn {
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  min-height: 44px;
+}
+
 .host-reservation-edit-delete-inline {
-  padding: 5px 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0 12px;
   border-radius: 7px;
   border: 1px solid rgba(212, 92, 92, 0.42);
   background: rgba(212, 92, 92, 0.12);
@@ -3980,7 +3993,7 @@
   flex: 1;
   min-height: 0;
   overflow: auto;
-  padding: 8px 12px 10px;
+  padding: 8px 12px calc(10px + env(safe-area-inset-bottom, 0px));
 }
 
 .host-reservation-edit-panel.is-drawer .host-reservation-edit-form {
@@ -4024,7 +4037,8 @@
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  padding: 0;
+  min-height: 44px;
+  padding: 0 4px;
   border: 0;
   background: transparent;
   color: rgba(232, 196, 110, 0.9);
@@ -4124,8 +4138,11 @@
 }
 
 .host-reservation-edit-notes-toggle {
+  display: inline-flex;
+  align-items: center;
   justify-self: start;
-  padding: 0;
+  min-height: 44px;
+  padding: 0 4px;
   border: 0;
   background: transparent;
   color: rgba(232, 215, 168, 0.78);
@@ -5057,8 +5074,14 @@
 }
 
 .host-status-picker-close {
-  width: 28px;
-  height: 28px;
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.05);
@@ -7358,7 +7381,10 @@
 }
 
 .host-reservation-edit-link {
-  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 4px;
   border: 0;
   border-radius: 0;
   background: transparent;
@@ -7452,6 +7478,7 @@
 
 .host-reservation-edit-delete {
   width: 100%;
+  min-height: 44px;
   padding: 10px 12px;
   border-radius: 9px;
   border: 1px solid rgba(212, 92, 92, 0.45);
@@ -7517,16 +7544,14 @@
   }
 
   .host-reservation-card {
-    grid-template-columns: 32px minmax(0, 1fr) 12px;
+    grid-template-columns: minmax(52px, 68px) minmax(0, 1fr) minmax(44px, auto);
     padding: 4px 5px 4px 3px;
     min-height: 44px;
   }
 
-  .host-reservation-card-status {
-    width: 28px;
-    height: 28px;
-    min-width: 28px;
-    min-height: 28px;
+  .host-reservation-card-status-pill {
+    min-height: 44px;
+    min-width: 44px;
   }
 
   .host-reservation-list-header,
@@ -9738,6 +9763,52 @@
 .reservation-quick-action-menu button:disabled {
   opacity: 0.35;
   cursor: not-allowed;
+}
+
+@media (max-width: 1024px) {
+  .reservations-quick-actions-btn {
+    min-height: 44px;
+  }
+
+  .reservation-quick-action-btn,
+  .reservation-quick-action-menu button {
+    min-height: 44px;
+  }
+
+  .reservation-quick-action-icon {
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  .host-timeline-toggle {
+    min-height: 44px;
+  }
+
+  .host-reservation-list-sort select {
+    min-height: 44px;
+    padding: 8px 10px;
+  }
+
+  .host-reservation-group-header {
+    min-height: 44px;
+    padding-block: 10px;
+  }
+
+  .host-smart-chip {
+    min-height: 44px;
+    padding: 0 12px;
+  }
+
+  .host-seating-drawer-actions .seating-confirm-btn {
+    min-height: 44px;
+  }
+
+  .host-reservation-edit-pick-btn {
+    min-height: 44px;
+    padding: 8px 12px;
+  }
 }
 
 .reservation-workflow-strip {
