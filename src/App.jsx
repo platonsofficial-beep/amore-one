@@ -148,6 +148,31 @@ import {
   updateStockOrderStatus,
 } from './services/stockOrderService'
 import {
+  completeOperationsTask,
+  createOperationsTask,
+  deleteOperationsTask,
+  getOperationsTasks,
+  reopenOperationsTask,
+  updateOperationsTask,
+} from './services/operationsTaskService'
+import {
+  createOperationsLog,
+  deleteOperationsLog,
+  getOperationsLogs,
+  updateOperationsLog,
+} from './services/operationsLogService'
+import {
+  createOperationsChecklistItem,
+  createOperationsChecklistTemplate,
+  deleteOperationsChecklistItem,
+  deleteOperationsChecklistTemplate,
+  generateDailyChecklistTasks,
+  getOperationsChecklistTemplates,
+  saveOperationsChecklistItemOrder,
+  updateOperationsChecklistItem,
+  updateOperationsChecklistTemplate,
+} from './services/operationsChecklistService'
+import {
   completeTask,
   createTask,
   deleteTask,
@@ -248,6 +273,9 @@ import { TeamPeopleView } from './components/team/TeamPeopleView'
 import { StockDashboardView } from './components/stock/StockDashboardView'
 import { StockOrdersView } from './components/stock/StockOrdersView'
 import { StockSuppliersView } from './components/stock/StockSuppliersView'
+import { OperationsDashboardView } from './components/operations/OperationsDashboardView'
+import { OperationsChecklistsView } from './components/operations/OperationsChecklistsView'
+import { OperationsChecklistExecutionView } from './components/operations/OperationsChecklistExecutionView'
 import {
   supplierHasHistory,
 } from './lib/stockSupplierUtils'
@@ -11729,6 +11757,13 @@ function App() {
   const [isDeletingSupplier, setIsDeletingSupplier] = useState(false)
   const [tasks, setTasks] = useState([])
   const [tasksNotice, setTasksNotice] = useState('')
+  const [operationsTasks, setOperationsTasks] = useState([])
+  const [operationsLogs, setOperationsLogs] = useState([])
+  const [operationsChecklistTemplates, setOperationsChecklistTemplates] = useState([])
+  const [activeChecklistRunTemplateId, setActiveChecklistRunTemplateId] = useState(null)
+  const [operationsNotice, setOperationsNotice] = useState('')
+  const [isOperationsLoading, setIsOperationsLoading] = useState(false)
+  const [isSavingOperations, setIsSavingOperations] = useState(false)
   const [tasksError, setTasksError] = useState('')
   const [isTasksLoading, setIsTasksLoading] = useState(false)
   const [isSavingTask, setIsSavingTask] = useState(false)
@@ -11798,6 +11833,22 @@ function App() {
     [role],
   )
 
+  const canManageOperations = useMemo(
+    () => ['owner', 'general_manager', 'manager'].includes(role),
+    [role],
+  )
+
+  const isOperationsWorkspaceReady = Boolean(activeWorkspaceId) && !isAuthLoading && !isAuthBootstrapping
+
+  const operationsWorkspaceSetupMessage = useMemo(() => {
+    if (isOperationsWorkspaceReady) return ''
+    if (isAuthLoading || isAuthBootstrapping) {
+      return 'Loading workspace…'
+    }
+    if (workspaceLoadError) return workspaceLoadError
+    return 'Workspace is not ready yet. Finish workspace setup, then try again.'
+  }, [isOperationsWorkspaceReady, isAuthLoading, isAuthBootstrapping, workspaceLoadError])
+
   const visibleNavItems = useMemo(
     () => filterNavItemsByRole(NAV_ITEMS, role),
     [role],
@@ -11806,6 +11857,20 @@ function App() {
   const visibleTeamSections = useMemo(
     () => TEAM_SECTIONS.filter((section) => canAccessTeamSection(role, section.id)),
     [role],
+  )
+
+  const visibleOperationsSections = useMemo(
+    () => OPERATIONS_SECTIONS.filter((section) => (
+      section.id !== 'checklists' || canManageOperations
+    )),
+    [canManageOperations],
+  )
+
+  const activeChecklistRunTemplate = useMemo(
+    () => operationsChecklistTemplates.find(
+      (template) => `${template.id}` === `${activeChecklistRunTemplateId}`,
+    ) ?? null,
+    [operationsChecklistTemplates, activeChecklistRunTemplateId],
   )
 
   const isActiveViewAllowed = isAuthLoading || canAccessModule(role, activeView)
@@ -12279,6 +12344,54 @@ function App() {
       return remoteOrders
     } catch (error) {
       setStockOrders([])
+      throw error
+    }
+  }, [activeWorkspaceId])
+
+  const refreshOperationsChecklistTemplates = useCallback(async () => {
+    if (!activeWorkspaceId) {
+      setOperationsChecklistTemplates([])
+      return []
+    }
+
+    try {
+      const remoteTemplates = await getOperationsChecklistTemplates(activeWorkspaceId)
+      setOperationsChecklistTemplates(remoteTemplates)
+      return remoteTemplates
+    } catch (error) {
+      setOperationsChecklistTemplates([])
+      throw error
+    }
+  }, [activeWorkspaceId])
+
+  const refreshOperationsTasks = useCallback(async () => {
+    if (!activeWorkspaceId) {
+      setOperationsTasks([])
+      return []
+    }
+
+    try {
+      const remoteTasks = await getOperationsTasks(activeWorkspaceId, { dueDate: currentDateKey })
+      setOperationsTasks(remoteTasks)
+      return remoteTasks
+    } catch (error) {
+      setOperationsTasks([])
+      throw error
+    }
+  }, [activeWorkspaceId, currentDateKey])
+
+  const refreshOperationsLogs = useCallback(async () => {
+    if (!activeWorkspaceId) {
+      setOperationsLogs([])
+      return []
+    }
+
+    try {
+      const remoteLogs = await getOperationsLogs(activeWorkspaceId)
+      setOperationsLogs(remoteLogs)
+      return remoteLogs
+    } catch (error) {
+      setOperationsLogs([])
       throw error
     }
   }, [activeWorkspaceId])
@@ -12801,6 +12914,50 @@ function App() {
       isMounted = false
     }
   }, [activeView, stockSection, refreshStockOrders])
+
+  useEffect(() => {
+    if (activeView !== 'operations') return undefined
+
+    let isMounted = true
+
+    const loadOperations = async () => {
+      setIsOperationsLoading(true)
+      setOperationsNotice('')
+
+      try {
+        await Promise.all([
+          refreshOperationsTasks(),
+          refreshOperationsLogs(),
+          refreshOperationsChecklistTemplates(),
+        ])
+      } catch (error) {
+        if (!isMounted) return
+        setOperationsNotice(error.message || 'Unable to load operations right now.')
+      } finally {
+        if (isMounted) {
+          setIsOperationsLoading(false)
+        }
+      }
+    }
+
+    loadOperations()
+
+    return () => {
+      isMounted = false
+    }
+  }, [activeView, refreshOperationsTasks, refreshOperationsLogs, refreshOperationsChecklistTemplates])
+
+  useEffect(() => {
+    if (activeView !== 'operations') {
+      setActiveChecklistRunTemplateId(null)
+    }
+  }, [activeView])
+
+  useEffect(() => {
+    if (activeView === 'operations' && operationsSection === 'checklists' && !canManageOperations) {
+      handleOperationsSectionChange('dashboard')
+    }
+  }, [activeView, operationsSection, canManageOperations, handleOperationsSectionChange])
 
   useEffect(() => {
     if (activeView !== 'stock') return undefined
@@ -16414,6 +16571,332 @@ function App() {
     }
   }
 
+  const handleCreateOperationsTask = async (payload) => {
+    if (!activeWorkspaceId) {
+      throw new Error(operationsWorkspaceSetupMessage || 'Workspace is required to create tasks.')
+    }
+
+    setIsSavingOperations(true)
+    setOperationsNotice('')
+
+    try {
+      await createOperationsTask(activeWorkspaceId, payload, user?.id ?? null)
+      await refreshOperationsTasks()
+      setOperationsNotice('Task created.')
+    } catch (error) {
+      setOperationsNotice(error.message || 'Unable to create task right now.')
+      throw error
+    } finally {
+      setIsSavingOperations(false)
+    }
+  }
+
+  const handleUpdateOperationsTask = async (taskId, payload) => {
+    if (!activeWorkspaceId) {
+      throw new Error(operationsWorkspaceSetupMessage || 'Workspace is required to update tasks.')
+    }
+
+    setIsSavingOperations(true)
+    setOperationsNotice('')
+
+    try {
+      await updateOperationsTask(activeWorkspaceId, taskId, payload)
+      await refreshOperationsTasks()
+      setOperationsNotice('Task updated.')
+    } catch (error) {
+      setOperationsNotice(error.message || 'Unable to update task right now.')
+      throw error
+    } finally {
+      setIsSavingOperations(false)
+    }
+  }
+
+  const handleCompleteOperationsTask = async (task, { completionNote = '' } = {}) => {
+    if (!activeWorkspaceId || !task?.id) {
+      throw new Error(operationsWorkspaceSetupMessage || 'Workspace and task are required.')
+    }
+
+    setIsSavingOperations(true)
+    setOperationsNotice('')
+
+    try {
+      await completeOperationsTask(activeWorkspaceId, task.id, {
+        completedBy: user?.id ?? null,
+        completionNote,
+      })
+      await refreshOperationsTasks()
+      setOperationsNotice('Task completed.')
+    } catch (error) {
+      setOperationsNotice(error.message || 'Unable to complete task right now.')
+      throw error
+    } finally {
+      setIsSavingOperations(false)
+    }
+  }
+
+  const handleReopenOperationsTask = async (task) => {
+    if (!activeWorkspaceId || !task?.id) {
+      throw new Error(operationsWorkspaceSetupMessage || 'Workspace and task are required.')
+    }
+
+    setIsSavingOperations(true)
+    setOperationsNotice('')
+
+    try {
+      await reopenOperationsTask(activeWorkspaceId, task.id)
+      await refreshOperationsTasks()
+      setOperationsNotice('Task reopened.')
+    } catch (error) {
+      setOperationsNotice(error.message || 'Unable to reopen task right now.')
+      throw error
+    } finally {
+      setIsSavingOperations(false)
+    }
+  }
+
+  const handleDeleteOperationsTask = async (task) => {
+    if (!activeWorkspaceId || !task?.id) {
+      throw new Error(operationsWorkspaceSetupMessage || 'Workspace and task are required.')
+    }
+
+    setIsSavingOperations(true)
+    setOperationsNotice('')
+
+    try {
+      await deleteOperationsTask(activeWorkspaceId, task.id)
+      await refreshOperationsTasks()
+      setOperationsNotice('Task deleted.')
+    } catch (error) {
+      setOperationsNotice(error.message || 'Unable to delete task right now.')
+      throw error
+    } finally {
+      setIsSavingOperations(false)
+    }
+  }
+
+  const handleCreateOperationsLog = async (payload) => {
+    if (!activeWorkspaceId) {
+      throw new Error(operationsWorkspaceSetupMessage || 'Workspace is required to add log entries.')
+    }
+
+    setIsSavingOperations(true)
+    setOperationsNotice('')
+
+    try {
+      await createOperationsLog(activeWorkspaceId, payload, user?.id ?? null)
+      await refreshOperationsLogs()
+      setOperationsNotice('Log entry added.')
+    } catch (error) {
+      setOperationsNotice(error.message || 'Unable to add log entry right now.')
+      throw error
+    } finally {
+      setIsSavingOperations(false)
+    }
+  }
+
+  const handleUpdateOperationsLog = async (logId, payload) => {
+    if (!activeWorkspaceId) {
+      throw new Error(operationsWorkspaceSetupMessage || 'Workspace is required to update log entries.')
+    }
+
+    setIsSavingOperations(true)
+    setOperationsNotice('')
+
+    try {
+      await updateOperationsLog(activeWorkspaceId, logId, payload)
+      await refreshOperationsLogs()
+      setOperationsNotice('Log entry updated.')
+    } catch (error) {
+      setOperationsNotice(error.message || 'Unable to update log entry right now.')
+      throw error
+    } finally {
+      setIsSavingOperations(false)
+    }
+  }
+
+  const handleDeleteOperationsLog = async (log) => {
+    if (!activeWorkspaceId || !log?.id) {
+      throw new Error(operationsWorkspaceSetupMessage || 'Workspace and log entry are required.')
+    }
+
+    setIsSavingOperations(true)
+    setOperationsNotice('')
+
+    try {
+      await deleteOperationsLog(activeWorkspaceId, log.id)
+      await refreshOperationsLogs()
+      setOperationsNotice('Log entry deleted.')
+    } catch (error) {
+      setOperationsNotice(error.message || 'Unable to delete log entry right now.')
+      throw error
+    } finally {
+      setIsSavingOperations(false)
+    }
+  }
+
+  const handleCreateOperationsChecklistTemplate = async (payload) => {
+    if (!activeWorkspaceId) {
+      throw new Error(operationsWorkspaceSetupMessage || 'Workspace is required to create checklists.')
+    }
+
+    setIsSavingOperations(true)
+    setOperationsNotice('')
+
+    try {
+      const created = await createOperationsChecklistTemplate(activeWorkspaceId, payload, user?.id ?? null)
+      await refreshOperationsChecklistTemplates()
+      setOperationsNotice('Checklist template created.')
+      return created
+    } catch (error) {
+      setOperationsNotice(error.message || 'Unable to create checklist template right now.')
+      throw error
+    } finally {
+      setIsSavingOperations(false)
+    }
+  }
+
+  const handleUpdateOperationsChecklistTemplate = async (templateId, payload) => {
+    if (!activeWorkspaceId) {
+      throw new Error(operationsWorkspaceSetupMessage || 'Workspace is required to update checklists.')
+    }
+
+    setIsSavingOperations(true)
+    setOperationsNotice('')
+
+    try {
+      const updated = await updateOperationsChecklistTemplate(activeWorkspaceId, templateId, payload)
+      await refreshOperationsChecklistTemplates()
+      setOperationsNotice('Checklist template updated.')
+      return updated
+    } catch (error) {
+      setOperationsNotice(error.message || 'Unable to update checklist template right now.')
+      throw error
+    } finally {
+      setIsSavingOperations(false)
+    }
+  }
+
+  const handleDeleteOperationsChecklistTemplate = async (template) => {
+    if (!activeWorkspaceId || !template?.id) {
+      throw new Error(operationsWorkspaceSetupMessage || 'Workspace and checklist are required.')
+    }
+
+    setIsSavingOperations(true)
+    setOperationsNotice('')
+
+    try {
+      await deleteOperationsChecklistTemplate(activeWorkspaceId, template.id)
+      await refreshOperationsChecklistTemplates()
+      setOperationsNotice('Checklist template deleted.')
+    } catch (error) {
+      setOperationsNotice(error.message || 'Unable to delete checklist template right now.')
+      throw error
+    } finally {
+      setIsSavingOperations(false)
+    }
+  }
+
+  const handleCreateOperationsChecklistItem = async (templateId, payload) => {
+    setIsSavingOperations(true)
+    setOperationsNotice('')
+
+    try {
+      const created = await createOperationsChecklistItem(templateId, payload)
+      await refreshOperationsChecklistTemplates()
+      return created
+    } catch (error) {
+      setOperationsNotice(error.message || 'Unable to add checklist item right now.')
+      throw error
+    } finally {
+      setIsSavingOperations(false)
+    }
+  }
+
+  const handleUpdateOperationsChecklistItem = async (itemId, payload) => {
+    setIsSavingOperations(true)
+    setOperationsNotice('')
+
+    try {
+      const updated = await updateOperationsChecklistItem(itemId, payload)
+      await refreshOperationsChecklistTemplates()
+      return updated
+    } catch (error) {
+      setOperationsNotice(error.message || 'Unable to update checklist item right now.')
+      throw error
+    } finally {
+      setIsSavingOperations(false)
+    }
+  }
+
+  const handleDeleteOperationsChecklistItem = async (itemId) => {
+    setIsSavingOperations(true)
+    setOperationsNotice('')
+
+    try {
+      await deleteOperationsChecklistItem(itemId)
+      await refreshOperationsChecklistTemplates()
+    } catch (error) {
+      setOperationsNotice(error.message || 'Unable to delete checklist item right now.')
+      throw error
+    } finally {
+      setIsSavingOperations(false)
+    }
+  }
+
+  const handleSaveOperationsChecklistItemOrder = async (items = []) => {
+    setIsSavingOperations(true)
+    setOperationsNotice('')
+
+    try {
+      await saveOperationsChecklistItemOrder(items)
+      await refreshOperationsChecklistTemplates()
+    } catch (error) {
+      setOperationsNotice(error.message || 'Unable to reorder checklist items right now.')
+      throw error
+    } finally {
+      setIsSavingOperations(false)
+    }
+  }
+
+  const handleStartOperationsChecklist = async (template) => {
+    if (!activeWorkspaceId || !template?.id) {
+      throw new Error(operationsWorkspaceSetupMessage || 'Workspace and checklist are required.')
+    }
+
+    setIsSavingOperations(true)
+    setOperationsNotice('')
+
+    try {
+      const result = await generateDailyChecklistTasks(
+        activeWorkspaceId,
+        template.id,
+        currentDateKey,
+        user?.id ?? null,
+      )
+      await refreshOperationsTasks()
+      setActiveChecklistRunTemplateId(template.id)
+      setOperationsNotice(
+        result.alreadyExists
+          ? `${template.name} is already running for today.`
+          : `${template.name} started for today.`,
+      )
+    } catch (error) {
+      setOperationsNotice(error.message || 'Unable to start checklist right now.')
+      throw error
+    } finally {
+      setIsSavingOperations(false)
+    }
+  }
+
+  const handleToggleChecklistExecutionTask = async (task) => {
+    const isDone = `${task.status ?? ''}`.toLowerCase() === 'completed'
+    if (isDone) {
+      await handleReopenOperationsTask(task)
+      return
+    }
+    await handleCompleteOperationsTask(task, { completionNote: '' })
+  }
+
   const persistBarRefillDraftChanges = async (refillId, { notes, items = [] }) => {
     if (notes !== undefined) {
       await updateBarRefill(refillId, { notes })
@@ -17003,7 +17486,7 @@ function App() {
   }
 
   const moduleTitle = getModuleTitle(activeView, { teamSection, stockSection, operationsSection })
-  const moduleSubtitle = getModuleSubtitle(activeView, currentDateLabel, { teamSection, stockSection })
+  const moduleSubtitle = getModuleSubtitle(activeView, currentDateLabel, { teamSection, stockSection, operationsSection })
   const moduleSearchPlaceholder = getSearchPlaceholder(activeView, { teamSection, stockSection, operationsSection })
   const hideStandardTopbar = shouldHideStandardTopbar(activeView, teamSection)
   const useCommandTopbar = shouldUseCommandTopbar(activeView)
@@ -17170,9 +17653,9 @@ function App() {
           />
         ) : null}
 
-        {activeView === 'operations' && isActiveViewAllowed ? (
+        {activeView === 'operations' && isActiveViewAllowed && !activeChecklistRunTemplateId ? (
           <ModuleSectionTabs
-            sections={OPERATIONS_SECTIONS}
+            sections={visibleOperationsSections}
             activeSection={operationsSection}
             onSectionChange={handleOperationsSectionChange}
             ariaLabel="Operations sections"
@@ -17420,6 +17903,65 @@ function App() {
               || isSuppliersLoading
             }
             onViewModule={handleInsightsViewModule}
+          />
+        ) : null}
+
+        {isActiveViewAllowed && activeView === 'operations' && activeChecklistRunTemplateId ? (
+          <OperationsChecklistExecutionView
+            template={activeChecklistRunTemplate}
+            tasks={operationsTasks}
+            todayKey={currentDateKey}
+            canComplete
+            isSaving={isSavingOperations}
+            onBack={() => setActiveChecklistRunTemplateId(null)}
+            onToggleComplete={handleToggleChecklistExecutionTask}
+          />
+        ) : null}
+
+        {isActiveViewAllowed && activeView === 'operations' && operationsSection === 'dashboard' && !activeChecklistRunTemplateId ? (
+          <OperationsDashboardView
+            tasks={operationsTasks}
+            logs={operationsLogs}
+            checklistTemplates={operationsChecklistTemplates}
+            employees={scheduleEmployees}
+            todayKey={currentDateKey}
+            isLoading={isOperationsLoading}
+            noticeMessage={operationsNotice}
+            canManage={canManageOperations}
+            isSaving={isSavingOperations}
+            isWorkspaceReady={isOperationsWorkspaceReady}
+            workspaceSetupMessage={operationsWorkspaceSetupMessage}
+            searchTerm={searchTerm}
+            currentEmployeeId={currentTaskEmployeeId}
+            onCreateTask={handleCreateOperationsTask}
+            onUpdateTask={handleUpdateOperationsTask}
+            onCompleteTask={handleCompleteOperationsTask}
+            onReopenTask={handleReopenOperationsTask}
+            onDeleteTask={handleDeleteOperationsTask}
+            onCreateLog={handleCreateOperationsLog}
+            onUpdateLog={handleUpdateOperationsLog}
+            onDeleteLog={handleDeleteOperationsLog}
+            onStartChecklist={handleStartOperationsChecklist}
+            onOpenChecklistRun={setActiveChecklistRunTemplateId}
+          />
+        ) : null}
+
+        {isActiveViewAllowed && activeView === 'operations' && operationsSection === 'checklists' && !activeChecklistRunTemplateId ? (
+          <OperationsChecklistsView
+            templates={operationsChecklistTemplates}
+            isLoading={isOperationsLoading}
+            noticeMessage={operationsNotice}
+            isSaving={isSavingOperations}
+            isWorkspaceReady={isOperationsWorkspaceReady}
+            workspaceSetupMessage={operationsWorkspaceSetupMessage}
+            searchTerm={searchTerm}
+            onCreateTemplate={handleCreateOperationsChecklistTemplate}
+            onUpdateTemplate={handleUpdateOperationsChecklistTemplate}
+            onDeleteTemplate={handleDeleteOperationsChecklistTemplate}
+            onCreateItem={handleCreateOperationsChecklistItem}
+            onUpdateItem={handleUpdateOperationsChecklistItem}
+            onDeleteItem={handleDeleteOperationsChecklistItem}
+            onSaveItemOrder={handleSaveOperationsChecklistItemOrder}
           />
         ) : null}
 

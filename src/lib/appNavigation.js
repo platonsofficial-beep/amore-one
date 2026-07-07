@@ -22,7 +22,8 @@ export const STOCK_SECTIONS = [
 ]
 
 export const OPERATIONS_SECTIONS = [
-  { id: 'tasks', label: 'Tasks' },
+  { id: 'dashboard', label: 'Dashboard' },
+  { id: 'checklists', label: 'Checklists' },
 ]
 
 export const MODULE_LABELS = {
@@ -43,21 +44,21 @@ const LEGACY_ACTIVE_VIEW_MAP = {
   reservations: { activeView: 'reservations' },
   suppliers: { activeView: 'stock', stockSection: 'suppliers' },
   stock: { activeView: 'stock', stockSection: 'dashboard' },
-  tasks: { activeView: 'operations', operationsSection: 'tasks' },
+  tasks: { activeView: 'operations', operationsSection: 'dashboard' },
   reports: { activeView: 'insights' },
   settings: { activeView: 'settings' },
   'floor-plan-builder': { activeView: 'reservations' },
 }
 
 const INSIGHTS_MODULE_LINKS = {
-  tasks: { activeView: 'operations', operationsSection: 'tasks' },
+  tasks: { activeView: 'operations', operationsSection: 'dashboard' },
   schedule: { activeView: 'team', teamSection: 'schedule' },
   suppliers: { activeView: 'stock', stockSection: 'suppliers' },
   stock: { activeView: 'stock', stockSection: 'dashboard' },
   reservations: { activeView: 'reservations' },
   reports: { activeView: 'insights' },
   insights: { activeView: 'insights' },
-  operations: { activeView: 'operations', operationsSection: 'tasks' },
+  operations: { activeView: 'operations', operationsSection: 'dashboard' },
   team: { activeView: 'team', teamSection: 'today' },
   today: { activeView: 'today' },
 }
@@ -97,7 +98,7 @@ export function shouldUseCommandTopbar(activeView) {
 export function getModuleTitle(activeView, {
   teamSection = 'today',
   stockSection = 'dashboard',
-  operationsSection = 'tasks',
+  operationsSection = 'dashboard',
 } = {}) {
   if (activeView === 'today') return 'Today'
   if (activeView === 'reservations') return 'Reservations'
@@ -113,7 +114,7 @@ export function getModuleTitle(activeView, {
     return 'Stock'
   }
   if (activeView === 'operations') {
-    if (operationsSection === 'tasks') return 'Operations'
+    if (operationsSection === 'checklists') return 'Checklists'
     return 'Operations'
   }
   if (activeView === 'insights') return 'Insights'
@@ -124,6 +125,7 @@ export function getModuleTitle(activeView, {
 export function getModuleSubtitle(activeView, currentDateLabel, {
   teamSection = 'today',
   stockSection = 'dashboard',
+  operationsSection = 'dashboard',
 } = {}) {
   if (activeView === 'today') {
     return `${currentDateLabel} · Your daily command center`
@@ -136,7 +138,8 @@ export function getModuleSubtitle(activeView, currentDateLabel, {
   if (activeView === 'stock' && stockSection === 'inventory') return 'Inventory levels and replenishment.'
   if (activeView === 'stock' && stockSection === 'suppliers') return 'Supplier contacts, products, and purchase history.'
   if (activeView === 'stock' && stockSection === 'orders') return 'Supplier purchase orders and receiving.'
-  if (activeView === 'operations') return 'Tasks and daily execution.'
+  if (activeView === 'operations' && operationsSection === 'checklists') return 'Build reusable opening, closing, and prep procedures.'
+  if (activeView === 'operations') return 'Daily tasks, issues, and shift communication.'
   if (activeView === 'insights') return 'Business intelligence from live data.'
   if (activeView === 'settings') return 'Workspace and account configuration.'
   return ''
@@ -145,13 +148,14 @@ export function getModuleSubtitle(activeView, currentDateLabel, {
 export function getSearchPlaceholder(activeView, {
   teamSection = 'today',
   stockSection = 'dashboard',
-  operationsSection = 'tasks',
+  operationsSection = 'dashboard',
 } = {}) {
   if (activeView === 'team' && teamSection === 'members') return 'Search employee'
   if (activeView === 'stock' && stockSection === 'orders') return 'Search order #, supplier, product'
   if (activeView === 'stock' && (stockSection === 'dashboard' || stockSection === 'inventory')) return 'Search stock item'
   if (activeView === 'stock' && stockSection === 'suppliers') return 'Search supplier'
-  if (activeView === 'operations' && operationsSection === 'tasks') return 'Search tasks'
+  if (activeView === 'operations' && operationsSection === 'checklists') return 'Search checklists'
+  if (activeView === 'operations' && operationsSection === 'dashboard') return 'Search tasks and logs'
   if (activeView === 'insights') return 'Search insights'
   return 'Search'
 }
