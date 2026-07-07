@@ -120,6 +120,15 @@ export function filterMobileMenuNavItems(navItems, role) {
   })
 }
 
+const MANAGER_MOBILE_TAB_MODULE_IDS = new Set(['today', 'stock', 'tasks'])
+
+export function filterManagerMobileMenuNavItems(navItems, role) {
+  return (navItems ?? []).filter((item) => {
+    if (MANAGER_MOBILE_TAB_MODULE_IDS.has(item.id)) return false
+    return canAccessMobileExpandedModule(role, item.id)
+  })
+}
+
 export function canOpenMobileFullSchedule(role) {
   return canEditSchedule(role)
 }

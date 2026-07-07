@@ -2,6 +2,7 @@ import { NAV_ITEMS } from '../../lib/appNavigation'
 import {
   canAccessMobileExpandedModule,
   canOpenMobileFullSchedule,
+  filterManagerMobileMenuNavItems,
   filterMobileMenuNavItems,
 } from '../../lib/permissions'
 
@@ -10,13 +11,16 @@ export function MobileMenuView({
   roleLabel = '',
   profileName = '',
   venueName = '',
+  menuVariant = 'staff',
   onOpenProfile,
   onNavigateModule,
   onOpenFullSchedule,
   onOpenSettings,
   onSignOut,
 }) {
-  const visibleModules = filterMobileMenuNavItems(NAV_ITEMS, role)
+  const visibleModules = menuVariant === 'manager'
+    ? filterManagerMobileMenuNavItems(NAV_ITEMS, role)
+    : filterMobileMenuNavItems(NAV_ITEMS, role)
   const showFullSchedule = canOpenMobileFullSchedule(role)
   const showSettings = canAccessMobileExpandedModule(role, 'settings')
   const showWorkspaceSection = showFullSchedule || visibleModules.length > 0 || showSettings

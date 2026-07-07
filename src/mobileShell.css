@@ -1287,6 +1287,138 @@
   color: #f6dca2;
 }
 
+.mobile-manager-metric-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.mobile-manager-metric-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-height: 72px;
+  padding: 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.mobile-manager-metric-card.tone-warning {
+  border-color: rgba(245, 158, 11, 0.24);
+  background: rgba(245, 158, 11, 0.08);
+}
+
+.mobile-manager-metric-card.tone-critical {
+  border-color: rgba(239, 68, 68, 0.24);
+  background: rgba(239, 68, 68, 0.08);
+}
+
+.mobile-manager-metric-card.tone-info {
+  border-color: rgba(59, 130, 246, 0.24);
+  background: rgba(59, 130, 246, 0.08);
+}
+
+.mobile-manager-metric-label {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.62);
+}
+
+.mobile-manager-metric-value {
+  font-size: 22px;
+  line-height: 1.1;
+  font-weight: 700;
+}
+
+.mobile-manager-stock-summary,
+.mobile-manager-stock-orders,
+.mobile-manager-task-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.mobile-manager-stock-order-list,
+.mobile-manager-task-preview-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.mobile-manager-stock-order-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.mobile-manager-stock-order-item strong {
+  font-size: 14px;
+}
+
+.mobile-manager-stock-order-item span {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.62);
+}
+
+.mobile-manager-stock-order-item.tone-info {
+  border-color: rgba(59, 130, 246, 0.24);
+}
+
+.mobile-manager-stock-order-item.tone-warning {
+  border-color: rgba(245, 158, 11, 0.24);
+}
+
+.mobile-manager-task-preview-item {
+  list-style: none;
+}
+
+.mobile-manager-task-preview-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.mobile-manager-task-preview-card.is-urgent {
+  border-color: rgba(239, 68, 68, 0.28);
+  background: rgba(239, 68, 68, 0.08);
+}
+
+.mobile-manager-task-preview-title-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.mobile-manager-task-preview-title-row strong {
+  font-size: 14px;
+  line-height: 1.35;
+}
+
+.mobile-manager-task-preview-due,
+.mobile-manager-task-preview-meta {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.62);
+}
+
+.mobile-manager-stock,
+.mobile-manager-tasks {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
 .mobile-manager-home {
   display: flex;
   flex-direction: column;

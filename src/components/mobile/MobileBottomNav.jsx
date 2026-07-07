@@ -1,14 +1,23 @@
-const MOBILE_TABS = [
+const STAFF_TABS = [
   { id: 'home', label: 'Home', icon: '◈' },
   { id: 'schedule', label: 'Schedule', icon: '◷' },
   { id: 'tasks', label: 'Tasks', icon: '✓' },
   { id: 'menu', label: 'Menu', icon: '≡' },
 ]
 
-export function MobileBottomNav({ activeTab, onTabChange }) {
+const MANAGER_TABS = [
+  { id: 'today', label: 'Today', icon: '◈' },
+  { id: 'stock', label: 'Stock', icon: '📦' },
+  { id: 'tasks', label: 'Tasks', icon: '✓' },
+  { id: 'menu', label: 'Menu', icon: '≡' },
+]
+
+export function MobileBottomNav({ activeTab, onTabChange, variant = 'staff' }) {
+  const tabs = variant === 'manager' ? MANAGER_TABS : STAFF_TABS
+
   return (
     <nav className="mobile-bottom-nav" aria-label="Mobile navigation">
-      {MOBILE_TABS.map((tab) => (
+      {tabs.map((tab) => (
         <button
           key={tab.id}
           type="button"

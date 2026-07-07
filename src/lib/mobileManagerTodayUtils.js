@@ -92,3 +92,49 @@ export function buildManagerMobileStockStatusLine(stockSummary = null, stockOrde
 
   return 'Stock levels OK'
 }
+
+function normalizeManagerTaskDateKey(value) {
+  if (!value) return ''
+  const raw = `${value}`.trim()
+  if (!raw) return ''
+  if (raw.includes('T')) return raw.split('T')[0]
+  return raw.slice(0, 10)
+}
+
+function isManagerMobileTaskDone(task) {
+  const status = `${task?.status ?? ''}`.trim().toLowerCase()
+  return status === 'completed' || status === 'skipped'
+}
+
+function sortManagerMobileTasks(left, right) {
+  const leftDate = normalizeManagerTaskDateKey(left?.dueDate ?? left?.due_date) || '9999-12-31'
+  const rightDate = normalizeManagerTaskDateKey(right?.dueDate ?? right?.due_date) || '9999-12-31'
+  if (leftDate !== rightDate) return leftDate.localeCompare(rightDate)
+  return `${left?.title ?? ''}`.localeCompare(`${right?.title ?? ''}`)
+}
+
+export function pickManagerMobileTaskPreviewLists(tasks = [], todayKey = '', limit = 8) {
+  const activeTasks = (tasks ?? []).filter((task) => !isManagerMobileTaskDone(task))
+  const overdue = []
+  const openToday = []
+
+  activeTasks.forEach((task) => {
+    const dueDate = normalizeManagerTaskDateKey(task?.dueDate ?? task?.due_date)
+    if (dueDate && dueDate < todayKey) {
+      overdue.push(task)
+      return
+    }
+
+    if (!dueDate || dueDate <= todayKey) {
+      openToday.push(task)
+    }
+  })
+
+  overdue.sort(sortManagerMobileTasks)
+  openToday.sort(sortManagerMobileTasks)
+
+  return {
+    overdue: overdue.slice(0, limit),
+    openToday: openToday.slice(0, limit),
+  }
+}

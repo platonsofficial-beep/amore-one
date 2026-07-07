@@ -278,6 +278,7 @@ import {
   buildTeamTodayGroups,
 } from './lib/todayViewUtils'
 import { buildStockOrdersOperationsSummary } from './lib/stockOrderUtils'
+import { pickManagerMobileTaskPreviewLists } from './lib/mobileManagerTodayUtils'
 import { buildStockDashboardSummary } from './lib/stockUtils'
 import { canManageAnnouncements, filterTasksExcludingAnnouncementDuplicates } from './lib/operationsAnnouncementUtils'
 import {
@@ -417,7 +418,14 @@ import {
   persistNavigation,
   readPersistedNavigation,
 } from './lib/navigationPersistence'
-import { persistMobileTab, persistMobileWeekStart, readPersistedMobileTab, readPersistedMobileWeekStart } from './lib/mobileNavigationPersistence'
+import {
+  persistManagerMobileTab,
+  persistMobileTab,
+  persistMobileWeekStart,
+  readPersistedManagerMobileTab,
+  readPersistedMobileTab,
+  readPersistedMobileWeekStart,
+} from './lib/mobileNavigationPersistence'
 
 const HOST_RESERVATION_STATUS_OPTIONS = getHostReservationStatusOptions()
 
@@ -12224,7 +12232,8 @@ function App() {
   } = useAuth()
 
   const isMobileViewport = useMobileViewport()
-  const [mobileTab, setMobileTab] = useState(() => readPersistedMobileTab())
+  const [mobileStaffTab, setMobileStaffTab] = useState(() => readPersistedMobileTab())
+  const [mobileManagerTab, setMobileManagerTab] = useState(() => readPersistedManagerMobileTab())
   const [mobileMenuScreen, setMobileMenuScreen] = useState('main')
   const [mobileProfilePhone, setMobileProfilePhone] = useState('')
   const [mobileProfileError, setMobileProfileError] = useState('')
@@ -12677,7 +12686,8 @@ function App() {
     if (isAuthDisabled || isAuthBootstrapping) return
     if (user) return
 
-    setMobileTab('home')
+    setMobileStaffTab('home')
+    setMobileManagerTab('today')
     setMobileMenuScreen('main')
     setMobileExpandedView(null)
     setMobileWeekStart(getCurrentWeekStartDate())
@@ -12900,6 +12910,27 @@ function App() {
     () => buildStockOrdersOperationsSummary(stockOrders),
     [stockOrders],
   )
+
+  const managerMobileOperationsTasks = useMemo(() => (
+    filterTasksExcludingAnnouncementDuplicates(
+      filterStandaloneOperationsTasks(operationsTasks),
+      operationsAnnouncements,
+    )
+  ), [operationsTasks, operationsAnnouncements])
+
+  const managerMobileTaskOverview = useMemo(
+    () => calculateMobileOperationsTaskOverview(managerMobileOperationsTasks, currentDateKey),
+    [managerMobileOperationsTasks, currentDateKey],
+  )
+
+  const managerMobileTaskPreviewLists = useMemo(
+    () => pickManagerMobileTaskPreviewLists(managerMobileOperationsTasks, currentDateKey),
+    [managerMobileOperationsTasks, currentDateKey],
+  )
+
+  const isManagerMobileShell = isManagementMobileRole(role)
+  const activeMobileTab = isManagerMobileShell ? mobileManagerTab : mobileStaffTab
+  const isManagerMobileStockLoading = isStockItemsLoading || isStockOrdersLoading
 
   const dashboardTimelineEvents = useMemo(() => buildTodayServiceTimeline({
     // Service timeline uses actionable tasks only, not announcements or operations tasks.
@@ -13326,6 +13357,7 @@ function App() {
     if (isManagementMobileRole(role)) {
       refreshStockItems()
       refreshStockOrders()
+      refreshOperationsTasks()
     }
 
     const intervalId = window.setInterval(() => {
@@ -13336,6 +13368,7 @@ function App() {
       if (isManagementMobileRole(role)) {
         refreshStockItems()
         refreshStockOrders()
+        refreshOperationsTasks()
       }
     }, 60_000)
 
@@ -13350,6 +13383,7 @@ function App() {
     refreshTodayWeekPublishedData,
     refreshStockItems,
     refreshStockOrders,
+    refreshOperationsTasks,
   ])
 
   useEffect(() => {
@@ -18778,9 +18812,14 @@ function App() {
   const handleMobileTabChange = useCallback((tab) => {
     setMobileExpandedView(null)
     setMobileMenuScreen('main')
-    setMobileTab(tab)
+    if (isManagementMobileRole(role)) {
+      setMobileManagerTab(tab)
+      persistManagerMobileTab(tab)
+      return
+    }
+    setMobileStaffTab(tab)
     persistMobileTab(tab)
-  }, [])
+  }, [role])
 
   const handleMobileOpenFullSchedule = () => {
     if (!canOpenMobileFullSchedule(role)) return
@@ -18856,6 +18895,14 @@ function App() {
     setMobileExpandedView('workspace')
   }, [role, handleActiveViewChange])
 
+  const handleMobileManagerCreateOrder = useCallback(() => {
+    if (!canAccessMobileExpandedModule(role, 'stock')) return
+
+    handleActiveViewChange('stock')
+    handleStockSectionChange('orders')
+    setMobileExpandedView('workspace')
+  }, [role, handleActiveViewChange, handleStockSectionChange])
+
   const handleMobileGoToCurrentWeek = () => {
     setMobileWeekStart(todayWeekStart)
     persistMobileWeekStart(todayWeekStart)
@@ -18878,7 +18925,8 @@ function App() {
   }
 
   const handleMobileSignOut = async () => {
-    setMobileTab('home')
+    setMobileStaffTab('home')
+    setMobileManagerTab('today')
     setMobileMenuScreen('main')
     setMobileExpandedView(null)
     setMobileNotice('')
@@ -19417,7 +19465,6 @@ function App() {
               {isMobileViewport ? (
                 (() => {
                   const isManagerMobileShell = isManagementMobileRole(role)
-                  const MobileShell = isManagerMobileShell ? MobileManagerApp : MobileStaffApp
                   const mobileHomeProps = isManagerMobileShell
                     ? {
                       venueName: workspaceProfile.businessName,
@@ -19461,9 +19508,76 @@ function App() {
                       onMarkAnnouncementSeen: handleMarkOperationsAnnouncementSeen,
                     }
 
+                  const sharedMenuProps = {
+                    role,
+                    roleLabel,
+                    profileName: resolvedUserDisplayName,
+                    venueName: workspaceProfile.businessName,
+                    screen: mobileMenuScreen,
+                    onOpenProfile: handleMobileOpenProfile,
+                    onBackFromProfile: handleMobileBackFromProfile,
+                    profileProps: {
+                      displayName: `${membership?.displayName ?? ''}`.trim() || resolvedUserDisplayName,
+                      email: `${membership?.email ?? user?.email ?? ''}`.trim(),
+                      phone: mobileProfilePhone,
+                      roleLabel,
+                      venueName: `${workspace?.name ?? workspaceProfile.businessName ?? ''}`.trim(),
+                      linkedEmployeeName: `${mobileLinkedEmployee?.name ?? ''}`.trim(),
+                      canEditPhone: Boolean(membership?.employeeId),
+                      isSaving: isSavingMobileProfile,
+                      errorMessage: mobileProfileError,
+                      onSave: handleMobileProfileSave,
+                    },
+                    onNavigateModule: handleMobileNavigateModule,
+                    onOpenFullSchedule: handleMobileOpenFullSchedule,
+                    onOpenSettings: handleMobileOpenSettings,
+                    onSignOut: handleMobileSignOut,
+                    menuVariant: isManagerMobileShell ? 'manager' : 'staff',
+                  }
+
+                  if (isManagerMobileShell) {
+                    return (
+                      <MobileManagerApp
+                        activeTab={activeMobileTab}
+                        onTabChange={handleMobileTabChange}
+                        noticeMessage={mobileNotice}
+                        onDismissNotice={() => setMobileNotice('')}
+                        homeProps={mobileHomeProps}
+                        stockProps={{
+                          stockSummary: managerMobileStockSummary,
+                          stockOrdersSummary: managerMobileOrdersSummary,
+                          hasStockModuleData: stockItems.length > 0,
+                          isLoading: isManagerMobileStockLoading,
+                          canManageStock,
+                          isWorkspaceReady: isStockWorkspaceReady,
+                          onReceiveDeliveries: handleMobileManagerReceiveDeliveries,
+                          onOpenAllStock: handleMobileManagerOpenStock,
+                          onCreateOrder: handleMobileManagerCreateOrder,
+                        }}
+                        managerTasksProps={{
+                          taskOverview: managerMobileTaskOverview,
+                          overdueTasks: managerMobileTaskPreviewLists.overdue,
+                          openTodayTasks: managerMobileTaskPreviewLists.openToday,
+                          employees: scheduleEmployees,
+                          todayKey: currentDateKey,
+                          isLoading: isOperationsLoading,
+                          onOpenOperationsDashboard: handleMobileManagerOpenTasks,
+                          onOpenTaskWorkspace: canOpenMobileTasksWorkspace(role)
+                            ? handleMobileOpenTasksWorkspace
+                            : undefined,
+                        }}
+                        menuProps={sharedMenuProps}
+                        expandedView={mobileExpandedView}
+                        expandedTitle={mobileExpandedTitle}
+                        onBackFromExpanded={handleMobileBack}
+                        expandedModuleContent={mobileExpandedView ? workspaceModules : null}
+                      />
+                    )
+                  }
+
                   return (
-                    <MobileShell
-                      activeTab={mobileTab}
+                    <MobileStaffApp
+                      activeTab={activeMobileTab}
                       onTabChange={handleMobileTabChange}
                       noticeMessage={mobileNotice}
                       onDismissNotice={() => setMobileNotice('')}
@@ -19495,31 +19609,7 @@ function App() {
                           ? handleMobileOpenTasksWorkspace
                           : undefined,
                       }}
-                      menuProps={{
-                        role,
-                        roleLabel,
-                        profileName: resolvedUserDisplayName,
-                        venueName: workspaceProfile.businessName,
-                        screen: mobileMenuScreen,
-                        onOpenProfile: handleMobileOpenProfile,
-                        onBackFromProfile: handleMobileBackFromProfile,
-                        profileProps: {
-                          displayName: `${membership?.displayName ?? ''}`.trim() || resolvedUserDisplayName,
-                          email: `${membership?.email ?? user?.email ?? ''}`.trim(),
-                          phone: mobileProfilePhone,
-                          roleLabel,
-                          venueName: `${workspace?.name ?? workspaceProfile.businessName ?? ''}`.trim(),
-                          linkedEmployeeName: `${mobileLinkedEmployee?.name ?? ''}`.trim(),
-                          canEditPhone: Boolean(membership?.employeeId),
-                          isSaving: isSavingMobileProfile,
-                          errorMessage: mobileProfileError,
-                          onSave: handleMobileProfileSave,
-                        },
-                        onNavigateModule: handleMobileNavigateModule,
-                        onOpenFullSchedule: handleMobileOpenFullSchedule,
-                        onOpenSettings: handleMobileOpenSettings,
-                        onSignOut: handleMobileSignOut,
-                      }}
+                      menuProps={sharedMenuProps}
                       expandedView={mobileExpandedView}
                       expandedTitle={mobileExpandedTitle}
                       onBackFromExpanded={handleMobileBack}
