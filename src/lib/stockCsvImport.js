@@ -1,6 +1,7 @@
 import {
   STOCK_CATEGORIES,
   STOCK_LOCATIONS,
+  getDefaultLocationForCategory,
   getStockTypeOptionsForCategory,
   normalizeStockCategory,
   normalizeStockItemType,
@@ -13,11 +14,22 @@ const IMPORT_HEADERS = [
   'type',
   'supplier',
   'unit',
-  'current quantity',
-  'minimum',
-  'target',
-  'cost',
-  'location',
+  'quantity',
+  'minimum alert',
+  'cost price',
+  'storage location',
+]
+
+const TEMPLATE_EXAMPLE_ROW = [
+  'Ketel One',
+  'Spirits',
+  'Vodka',
+  'Malakakos AE',
+  'bottle',
+  '12',
+  '6',
+  '24.50',
+  'Bar',
 ]
 
 const HEADER_ALIASES = {
@@ -183,7 +195,7 @@ export function validateStockImportRow(row) {
     issues.push('Cost must be zero or greater when provided.')
   }
 
-  const storageLocation = `${row.storageLocation ?? ''}`.trim() || 'Main Storage'
+  const storageLocation = `${row.storageLocation ?? ''}`.trim() || getDefaultLocationForCategory(category)
   if (!STOCK_LOCATIONS.includes(storageLocation)) {
     issues.push(`Invalid location "${row.storageLocation || ''}".`)
   }
@@ -211,8 +223,23 @@ export function validateStockImportRow(row) {
   }
 }
 
+export function mergeStockImportUpdate(existingItem, importPayload, rawRow = {}) {
+  const supplierProvided = `${rawRow.supplier ?? ''}`.trim().length > 0
+  const costProvided = `${rawRow.costPrice ?? ''}`.trim().length > 0
+  const targetProvided = `${rawRow.targetQuantity ?? ''}`.trim().length > 0
+
+  return {
+    ...importPayload,
+    supplier: supplierProvided ? importPayload.supplier : (existingItem.supplier ?? ''),
+    costPrice: costProvided ? importPayload.costPrice : (existingItem.costPrice ?? 0),
+    targetQuantity: targetProvided ? importPayload.targetQuantity : existingItem.targetQuantity,
+    orderQuantity: existingItem.orderQuantity ?? null,
+  }
+}
+
 export function buildStockImportPlan(rows = [], existingItems = []) {
   const existingByKey = new Map()
+  const plannedKeys = new Set()
 
   existingItems.forEach((item) => {
     const key = `${`${item.name ?? ''}`.trim().toLowerCase()}::${resolveStockStorageLocation(item).toLowerCase()}`
@@ -239,12 +266,23 @@ export function buildStockImportPlan(rows = [], existingItems = []) {
       return
     }
 
+    if (plannedKeys.has(validation.matchKey)) {
+      plan.skipped.push({
+        rowNumber: row.rowNumber,
+        name: row.name,
+        reason: 'Duplicate product in import file (same name and location).',
+      })
+      return
+    }
+
+    plannedKeys.add(validation.matchKey)
+
     const existing = existingByKey.get(validation.matchKey)
     if (existing?.id) {
       plan.updates.push({
         id: existing.id,
         rowNumber: row.rowNumber,
-        payload: validation.payload,
+        payload: mergeStockImportUpdate(existing, validation.payload, row),
       })
       return
     }
@@ -260,4 +298,31 @@ export function buildStockImportPlan(rows = [], existingItems = []) {
 
 export function getStockImportTemplateHeaders() {
   return IMPORT_HEADERS.map((header) => header.replace(/\b\w/g, (char) => char.toUpperCase()))
+}
+
+function escapeCsvCell(value) {
+  const text = `${value ?? ''}`
+  if (/[",\n]/.test(text)) {
+    return `"${text.replace(/"/g, '""')}"`
+  }
+  return text
+}
+
+export function buildStockImportTemplateCsv() {
+  const headers = getStockImportTemplateHeaders()
+  return [
+    headers.map(escapeCsvCell).join(','),
+    TEMPLATE_EXAMPLE_ROW.map(escapeCsvCell).join(','),
+  ].join('\n')
+}
+
+export function downloadStockImportTemplate() {
+  const csv = buildStockImportTemplateCsv()
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = url
+  link.download = 'one-stock-import-template.csv'
+  link.click()
+  URL.revokeObjectURL(url)
 }

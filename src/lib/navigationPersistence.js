@@ -20,7 +20,7 @@ const VALID_ACTIVE_VIEWS = new Set([
 ])
 
 const VALID_TEAM_SECTIONS = new Set(['today', 'members', 'schedule'])
-const VALID_STOCK_SECTIONS = new Set(['dashboard', 'inventory', 'suppliers'])
+const VALID_STOCK_SECTIONS = new Set(['dashboard', 'inventory', 'suppliers', 'orders'])
 const VALID_OPERATIONS_SECTIONS = new Set(['tasks'])
 
 const VALID_SETTINGS_SECTIONS = new Set([

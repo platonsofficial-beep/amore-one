@@ -1,6 +1,7 @@
 import { useMemo, useRef, useState } from 'react'
 import {
   buildStockImportPlan,
+  downloadStockImportTemplate,
   getStockImportTemplateHeaders,
   parseStockImportCsv,
 } from '../../lib/stockCsvImport'
@@ -96,6 +97,16 @@ export function StockImportModal({
           <p className="stock-import-template">
             Columns: {templateHeaders}
           </p>
+
+          <div className="stock-import-actions">
+            <button
+              type="button"
+              className="ghost-btn stock-import-template-btn"
+              onClick={downloadStockImportTemplate}
+            >
+              Download CSV template
+            </button>
+          </div>
 
           <input
             ref={fileInputRef}

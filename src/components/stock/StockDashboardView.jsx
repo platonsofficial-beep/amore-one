@@ -1,10 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import {
-  computeSuggestedOrder,
   formatStockCategoryTypeLine,
   resolveStockItemType,
   resolveStockStorageLocation,
-  resolveStockTargetQuantity,
+  stockItemToDuplicateForm,
   STOCK_CATEGORIES,
   STOCK_LOCATIONS,
 } from '../../lib/stockCatalog'
@@ -22,6 +21,11 @@ import {
   STOCK_SORT_OPTIONS,
 } from '../../lib/stockDashboardBrowse'
 import {
+  persistStockBrowsePreferences,
+  readStockBrowsePreferences,
+} from '../../lib/stockBrowsePersistence'
+import {
+  buildStockNeedsAttentionGroups,
   getStockDashboardEmptyState,
   getStockItemInsights,
 } from '../../lib/stockInsights'
@@ -29,32 +33,46 @@ import {
   buildStockDashboardSummary,
   formatStockInventoryValue,
   formatStockMovementRelativeTime,
-  formatStockPurchasePrice,
   formatStockQuantity,
   getStockCategoryFilters,
   getStockMovementLabel,
   getStockStatusShortLabel,
   STOCK_MOVEMENT_TYPES,
 } from '../../lib/stockUtils'
+import { StockCreateOrderModal } from './StockCreateOrderModal'
 import { StockItemFormModal } from './StockItemFormModal'
 import { StockImportModal } from './StockImportModal'
-import { StockMovementHistoryModal } from './StockMovementHistoryModal'
+import { StockItemMoreMenu } from './StockItemMoreMenu'
+import { StockProductHistoryDrawer } from './StockProductHistoryDrawer'
 
-function formatItemCostDisplay(costPrice) {
-  const amount = Number(costPrice)
-  if (!Number.isFinite(amount) || amount <= 0) {
-    return { isSet: false, value: 'Cost not set' }
+function StockLayoutModeIcon({ icon }) {
+  if (icon === 'grid') {
+    return (
+      <svg className="stock-layout-mode-icon" viewBox="0 0 16 16" aria-hidden="true">
+        <rect x="1.5" y="1.5" width="5.5" height="5.5" rx="1" />
+        <rect x="9" y="1.5" width="5.5" height="5.5" rx="1" />
+        <rect x="1.5" y="9" width="5.5" height="5.5" rx="1" />
+        <rect x="9" y="9" width="5.5" height="5.5" rx="1" />
+      </svg>
+    )
   }
-  return { isSet: true, value: `${formatStockPurchasePrice(amount)} / unit` }
-}
 
-function formatOrderSuggestionNeeded(quantity, unit) {
-  const qty = Number(quantity)
-  const formatted = Number.isFinite(qty)
-    ? (Number.isInteger(qty) ? String(qty) : qty.toFixed(2).replace(/\.?0+$/, ''))
-    : '0'
-  const normalizedUnit = `${unit ?? ''}`.trim()
-  return normalizedUnit ? `+${formatted} ${normalizedUnit} needed` : `+${formatted} units needed`
+  if (icon === 'list') {
+    return (
+      <svg className="stock-layout-mode-icon" viewBox="0 0 16 16" aria-hidden="true">
+        <rect x="1.5" y="2.5" width="13" height="2" rx="1" />
+        <rect x="1.5" y="7" width="13" height="2" rx="1" />
+        <rect x="1.5" y="11.5" width="13" height="2" rx="1" />
+      </svg>
+    )
+  }
+
+  return (
+    <svg className="stock-layout-mode-icon" viewBox="0 0 16 16" aria-hidden="true">
+      <path d="M3.5 8.5 6.5 11.5 12.5 4.5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+      <rect x="1.5" y="1.5" width="13" height="13" rx="2" fill="none" stroke="currentColor" strokeWidth="1.4" />
+    </svg>
+  )
 }
 
 function StockSortDropdown({ value, options, onChange }) {
@@ -125,29 +143,11 @@ function StockItemCard({
   onToggleMenu,
   onReceive,
   onCount,
-  onUsage,
-  onAdjust,
-  onEdit,
-  onHistory,
+  onOpenHistory,
 }) {
   const itemType = resolveStockItemType(item)
   const location = resolveStockStorageLocation(item)
-  const suggestedOrder = computeSuggestedOrder(item)
-  const targetQuantity = resolveStockTargetQuantity(item)
-  const lastMovement = item.lastMovement
-  const lastCount = item.lastCount
-  const lastMovementType = lastMovement?.type ? getStockMovementLabel(lastMovement.type) : ''
-  const lastMovementWhen = lastMovement?.createdAt
-    ? formatStockMovementRelativeTime(lastMovement.createdAt)
-    : ''
-  const lastCountWhen = lastCount?.createdAt
-    ? formatStockMovementRelativeTime(lastCount.createdAt)
-    : ''
-  const lastCountQuantity = lastCount?.type === 'stock_count'
-    ? formatStockQuantity(lastCount.quantity, item.unit)
-    : ''
   const supplierLabel = `${item.supplier ?? ''}`.trim()
-  const costDisplay = formatItemCostDisplay(item.costPrice)
   const insights = getStockItemInsights(item, { canManage })
 
   const handleCardClick = () => {
@@ -158,7 +158,7 @@ function StockItemCard({
 
   return (
     <article
-      className={`stock-item-card panel staff-panel tone-${item.status}${item.status === 'low' || item.status === 'out' ? ' is-alert' : ''}${selectionMode ? ' is-selectable' : ''}${isSelected ? ' is-selected' : ''}`}
+      className={`stock-item-card panel staff-panel tone-${item.status}${item.status === 'low' || item.status === 'out' ? ' is-alert' : ''}${selectionMode ? ' is-selectable' : ''}${isSelected ? ' is-selected' : ''}${isMenuOpen ? ' is-menu-open' : ''}`}
       onClick={selectionMode ? handleCardClick : undefined}
     >
       <header className="stock-item-card-header">
@@ -186,15 +186,16 @@ function StockItemCard({
         {formatStockCategoryTypeLine(item.category, itemType)}
       </p>
 
-      <p className="stock-item-context">
-        <span>{location}</span>
-        {supplierLabel ? (
-          <>
-            <span className="stock-item-context-separator" aria-hidden="true">·</span>
-            <span>{supplierLabel}</span>
-          </>
-        ) : null}
-      </p>
+      <div className="stock-item-meta-lines">
+        <p className="stock-item-meta-line">
+          <span className="stock-item-meta-label">Supplier</span>
+          <span>{supplierLabel || '—'}</span>
+        </p>
+        <p className="stock-item-meta-line">
+          <span className="stock-item-meta-label">Location</span>
+          <span>{location}</span>
+        </p>
+      </div>
 
       {insights.length > 0 ? (
         <div className="stock-item-insights" aria-label="Stock insights">
@@ -218,67 +219,22 @@ function StockItemCard({
             {formatStockQuantity(item.minimumQuantity, item.unit)}
           </strong>
         </div>
-        {targetQuantity !== null ? (
-          <div className="stock-item-target">
-            <span className="stock-item-target-label">TARGET</span>
-            <strong className="stock-item-target-value">
-              {formatStockQuantity(targetQuantity, item.unit)}
-            </strong>
-          </div>
-        ) : null}
-        {suggestedOrder > 0 ? (
-          <p className="stock-item-detail-line stock-item-order-suggestion">
-            Order suggestion: <strong>{formatOrderSuggestionNeeded(suggestedOrder, item.unit)}</strong>
-          </p>
-        ) : null}
-        {canManage ? (
-          <div className="stock-item-cost">
-            <span className="stock-item-cost-label">Cost</span>
-            <strong className={`stock-item-cost-value${costDisplay.isSet ? '' : ' is-unset'}`}>
-              {costDisplay.value}
-            </strong>
-          </div>
-        ) : null}
       </div>
-
-      {(lastMovementType || lastCountWhen) ? (
-        <div className="stock-item-activity">
-          {lastMovementType ? (
-            <div className="stock-item-last-movement">
-              <span className="stock-item-last-movement-label">LAST MOVEMENT</span>
-              <span className="stock-item-last-movement-type">{lastMovementType}</span>
-              {lastMovementWhen ? (
-                <span className="stock-item-last-movement-when">{lastMovementWhen}</span>
-              ) : null}
-            </div>
-          ) : null}
-
-          {lastCountWhen ? (
-            <div className="stock-item-last-count">
-              <span className="stock-item-last-count-label">LAST COUNT</span>
-              {lastCountQuantity ? (
-                <span className="stock-item-last-count-value">{lastCountQuantity}</span>
-              ) : null}
-              <span className="stock-item-last-count-when">{lastCountWhen}</span>
-            </div>
-          ) : null}
-        </div>
-      ) : null}
 
       {canManage ? (
         <div className="stock-item-card-footer">
-          <div className="stock-item-actions-wrap">
+          <div className={`stock-item-actions-wrap${isMenuOpen ? ' is-menu-open' : ''}`}>
           <div className="stock-item-actions">
             <button type="button" className="ghost-btn stock-item-action-primary" onClick={(event) => { event.stopPropagation(); onReceive() }}>
               Receive
             </button>
             <button type="button" className="ghost-btn stock-item-action-primary" onClick={(event) => { event.stopPropagation(); onCount() }}>
-              Count
+              Stock count
             </button>
             <button
               type="button"
               className={`ghost-btn stock-item-more-btn${isMenuOpen ? ' is-open' : ''}`}
-              onClick={(event) => { event.stopPropagation(); onToggleMenu() }}
+              onClick={(event) => { event.stopPropagation(); onToggleMenu(event) }}
               aria-expanded={isMenuOpen}
               aria-haspopup="menu"
               aria-label="More stock actions"
@@ -286,26 +242,22 @@ function StockItemCard({
               ⋯
             </button>
           </div>
-
-          {isMenuOpen ? (
-            <div className="stock-item-more-menu" role="menu">
-              <button type="button" className="stock-item-more-menu-btn" role="menuitem" onClick={(event) => { event.stopPropagation(); onUsage() }}>
-                Usage
-              </button>
-              <button type="button" className="stock-item-more-menu-btn" role="menuitem" onClick={(event) => { event.stopPropagation(); onAdjust() }}>
-                Adjust
-              </button>
-              <button type="button" className="stock-item-more-menu-btn" role="menuitem" onClick={(event) => { event.stopPropagation(); onEdit() }}>
-                Edit
-              </button>
-              <button type="button" className="stock-item-more-menu-btn" role="menuitem" onClick={(event) => { event.stopPropagation(); onHistory() }}>
-                History
-              </button>
-            </div>
-          ) : null}
           </div>
         </div>
-      ) : null}
+      ) : (
+        <div className="stock-item-card-footer">
+          <button
+            type="button"
+            className="ghost-btn stock-item-action-primary"
+            onClick={(event) => {
+              event.stopPropagation()
+              onOpenHistory?.()
+            }}
+          >
+            Details
+          </button>
+        </div>
+      )}
     </article>
   )
 }
@@ -324,17 +276,20 @@ function StockItemRowActions({
   isMenuOpen,
   onReceive,
   onCount,
-  onUsage,
-  onAdjust,
-  onEdit,
-  onHistory,
   onToggleMenu,
+  onOpenHistory,
   compact = false,
 }) {
-  if (!canManage) return null
+  if (!canManage) {
+    return (
+      <button type="button" className="ghost-btn stock-row-action-btn" onClick={onOpenHistory}>
+        Details
+      </button>
+    )
+  }
 
   return (
-    <div className={`stock-row-actions-wrap${compact ? ' is-compact' : ''}`}>
+    <div className={`stock-row-actions-wrap${isMenuOpen ? ' is-menu-open' : ''}${compact ? ' is-compact' : ''}`}>
       <div className={`stock-row-actions${compact ? ' is-compact' : ''}`}>
         {!compact ? (
           <button type="button" className="ghost-btn stock-row-action-btn" onClick={onReceive}>
@@ -342,7 +297,7 @@ function StockItemRowActions({
           </button>
         ) : null}
         <button type="button" className="ghost-btn stock-row-action-btn" onClick={onCount}>
-          Count
+          Stock count
         </button>
         {!compact ? (
           <button
@@ -357,23 +312,6 @@ function StockItemRowActions({
           </button>
         ) : null}
       </div>
-
-      {isMenuOpen && !compact ? (
-        <div className="stock-item-more-menu stock-row-more-menu" role="menu">
-          <button type="button" className="stock-item-more-menu-btn" role="menuitem" onClick={onUsage}>
-            Usage
-          </button>
-          <button type="button" className="stock-item-more-menu-btn" role="menuitem" onClick={onAdjust}>
-            Adjust
-          </button>
-          <button type="button" className="stock-item-more-menu-btn" role="menuitem" onClick={onEdit}>
-            Edit
-          </button>
-          <button type="button" className="stock-item-more-menu-btn" role="menuitem" onClick={onHistory}>
-            History
-          </button>
-        </div>
-      ) : null}
     </div>
   )
 }
@@ -388,17 +326,14 @@ function StockListRow({
   onToggleMenu,
   onReceive,
   onCount,
-  onUsage,
-  onAdjust,
-  onEdit,
-  onHistory,
+  onOpenHistory,
 }) {
   const itemType = resolveStockItemType(item)
   const location = resolveStockStorageLocation(item)
   const supplierLabel = `${item.supplier ?? ''}`.trim() || '—'
 
   return (
-    <tr className={`stock-list-row tone-${item.status}${isSelected ? ' is-selected' : ''}`}>
+    <tr className={`stock-list-row tone-${item.status}${isSelected ? ' is-selected' : ''}${isMenuOpen ? ' is-menu-open' : ''}`}>
       {selectionMode && canManage ? (
         <td className="stock-list-cell stock-list-cell-select">
           <button
@@ -437,14 +372,91 @@ function StockListRow({
           isMenuOpen={isMenuOpen}
           onReceive={onReceive}
           onCount={onCount}
-          onUsage={onUsage}
-          onAdjust={onAdjust}
-          onEdit={onEdit}
-          onHistory={onHistory}
-          onToggleMenu={onToggleMenu}
+          onToggleMenu={(event) => onToggleMenu(item.id, event.currentTarget)}
+          onOpenHistory={onOpenHistory}
         />
       </td>
     </tr>
+  )
+}
+
+function StockListMobileCard({
+  item,
+  canManage,
+  selectionMode,
+  isSelected,
+  isMenuOpen,
+  onToggleSelect,
+  onToggleMenu,
+  onReceive,
+  onCount,
+  onOpenHistory,
+}) {
+  const itemType = resolveStockItemType(item)
+  const location = resolveStockStorageLocation(item)
+  const supplierLabel = `${item.supplier ?? ''}`.trim() || '—'
+
+  return (
+    <article className={`stock-list-mobile-card panel staff-panel tone-${item.status}${isSelected ? ' is-selected' : ''}`}>
+      <header className="stock-list-mobile-header">
+        {selectionMode && canManage ? (
+          <button
+            type="button"
+            className={`stock-item-select-btn${isSelected ? ' is-selected' : ''}`}
+            onClick={onToggleSelect}
+            aria-pressed={isSelected}
+            aria-label={isSelected ? `Deselect ${item.name}` : `Select ${item.name}`}
+          >
+            {isSelected ? '✓' : ''}
+          </button>
+        ) : null}
+        <div className="stock-list-mobile-title-wrap">
+          <h3 className="stock-list-mobile-name">{item.name}</h3>
+          <span className={`stock-item-status-badge tone-${item.status}`}>
+            {getStockStatusShortLabel(item.status)}
+          </span>
+        </div>
+      </header>
+
+      <dl className="stock-list-mobile-meta">
+        <div className="stock-list-mobile-meta-row">
+          <dt>Category / Type</dt>
+          <dd>{formatStockCategoryTypeLine(item.category, itemType)}</dd>
+        </div>
+        <div className="stock-list-mobile-meta-row">
+          <dt>Supplier</dt>
+          <dd>{supplierLabel}</dd>
+        </div>
+        <div className="stock-list-mobile-meta-row">
+          <dt>Location</dt>
+          <dd>{location}</dd>
+        </div>
+        <div className="stock-list-mobile-meta-row">
+          <dt>Current stock</dt>
+          <dd>{formatStockQuantity(item.currentQuantity, item.unit)}</dd>
+        </div>
+        <div className="stock-list-mobile-meta-row">
+          <dt>Minimum</dt>
+          <dd>{formatStockQuantity(item.minimumQuantity, item.unit)}</dd>
+        </div>
+        <div className="stock-list-mobile-meta-row">
+          <dt>Last movement</dt>
+          <dd>{formatLastMovementCell(item)}</dd>
+        </div>
+      </dl>
+
+      <div className="stock-list-mobile-actions">
+        <StockItemRowActions
+          item={item}
+          canManage={canManage}
+          isMenuOpen={isMenuOpen}
+          onReceive={onReceive}
+          onCount={onCount}
+          onToggleMenu={(event) => onToggleMenu(item.id, event.currentTarget)}
+          onOpenHistory={onOpenHistory}
+        />
+      </div>
+    </article>
   )
 }
 
@@ -458,52 +470,66 @@ function StockListTable({
   onToggleMenu,
   onReceive,
   onCount,
-  onUsage,
-  onAdjust,
-  onEdit,
-  onHistory,
+  onOpenHistory,
 }) {
   return (
-    <div className="stock-list-table-wrap">
-      <table className="stock-list-table">
-        <thead>
-          <tr>
-            {selectionMode && canManage ? (
-              <th scope="col" className="stock-list-head-select"><span className="sr-only">Select</span></th>
-            ) : null}
-            <th scope="col">Product</th>
-            <th scope="col">Category / Type</th>
-            <th scope="col">Supplier</th>
-            <th scope="col">Location</th>
-            <th scope="col">Current stock</th>
-            <th scope="col">Minimum</th>
-            <th scope="col">Status</th>
-            <th scope="col">Last movement</th>
-            {canManage ? <th scope="col" className="stock-list-head-actions">Actions</th> : null}
-          </tr>
-        </thead>
-        <tbody>
-          {items.map((item) => (
-            <StockListRow
-              key={item.id}
-              item={item}
-              canManage={canManage}
-              selectionMode={selectionMode}
-              isSelected={selectedIds.has(item.id)}
-              isMenuOpen={openCardMenuId === item.id}
-              onToggleSelect={() => onToggleSelect(item.id)}
-              onToggleMenu={() => onToggleMenu(item.id)}
-              onReceive={() => onReceive(item)}
-              onCount={() => onCount(item)}
-              onUsage={() => onUsage(item)}
-              onAdjust={() => onAdjust(item)}
-              onEdit={() => onEdit(item)}
-              onHistory={() => onHistory(item)}
-            />
-          ))}
-        </tbody>
-      </table>
-    </div>
+    <>
+      <div className="stock-list-table-wrap stock-list-desktop">
+        <table className="stock-list-table">
+          <thead>
+            <tr>
+              {selectionMode && canManage ? (
+                <th scope="col" className="stock-list-head-select"><span className="sr-only">Select</span></th>
+              ) : null}
+              <th scope="col">Product</th>
+              <th scope="col">Category / Type</th>
+              <th scope="col">Supplier</th>
+              <th scope="col">Location</th>
+              <th scope="col">Current stock</th>
+              <th scope="col">Minimum</th>
+              <th scope="col">Status</th>
+              <th scope="col">Last movement</th>
+              <th scope="col" className="stock-list-head-actions">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {items.map((item) => (
+              <StockListRow
+                key={item.id}
+                item={item}
+                canManage={canManage}
+                selectionMode={selectionMode}
+                isSelected={selectedIds.has(item.id)}
+                isMenuOpen={openCardMenuId === item.id}
+                onToggleSelect={() => onToggleSelect(item.id)}
+                onToggleMenu={onToggleMenu}
+                onReceive={() => onReceive(item)}
+                onCount={() => onCount(item)}
+                onOpenHistory={() => onOpenHistory(item)}
+              />
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <div className="stock-list-mobile-wrap">
+        {items.map((item) => (
+          <StockListMobileCard
+            key={item.id}
+            item={item}
+            canManage={canManage}
+            selectionMode={selectionMode}
+            isSelected={selectedIds.has(item.id)}
+            isMenuOpen={openCardMenuId === item.id}
+            onToggleSelect={() => onToggleSelect(item.id)}
+            onToggleMenu={onToggleMenu}
+            onReceive={() => onReceive(item)}
+            onCount={() => onCount(item)}
+            onOpenHistory={() => onOpenHistory(item)}
+          />
+        ))}
+      </div>
+    </>
   )
 }
 
@@ -514,7 +540,10 @@ function StockCompactRow({
   isSelected,
   onToggleSelect,
   onCount,
+  onOpenHistory,
 }) {
+  const location = resolveStockStorageLocation(item)
+
   return (
     <article
       className={`stock-compact-row panel staff-panel tone-${item.status}${isSelected ? ' is-selected' : ''}`}
@@ -532,13 +561,18 @@ function StockCompactRow({
       ) : null}
       <div className="stock-compact-copy">
         <h3 className="stock-compact-name">{item.name}</h3>
+        <p className="stock-compact-location">{location}</p>
         <p className="stock-compact-qty">{formatStockQuantity(item.currentQuantity, item.unit)}</p>
       </div>
       {canManage ? (
         <button type="button" className="ghost-btn stock-compact-count-btn" onClick={onCount}>
-          Count
+          Quick stock count
         </button>
-      ) : null}
+      ) : (
+        <button type="button" className="ghost-btn stock-compact-count-btn" onClick={onOpenHistory}>
+          Details
+        </button>
+      )}
     </article>
   )
 }
@@ -549,23 +583,138 @@ function StockSummaryCard({
   subtitle,
   tone = 'default',
   layout = 'default',
+  isInteractive = false,
+  isSelected = false,
+  onClick,
 }) {
   const isValueFirst = layout === 'value-first'
+  const className = `stock-summary-card tone-${tone}${isValueFirst ? ' layout-value-first' : ''}${isInteractive ? ' is-interactive' : ''}${isSelected ? ' is-selected' : ''}`
+
+  const content = isValueFirst ? (
+    <>
+      <p className="stock-summary-value">{value}</p>
+      <p className="stock-summary-label">{subtitle || label}</p>
+    </>
+  ) : (
+    <>
+      <p className="stock-summary-label">{label}</p>
+      <p className="stock-summary-value">{value}</p>
+    </>
+  )
+
+  if (isInteractive) {
+    return (
+      <button
+        type="button"
+        className={className}
+        onClick={onClick}
+        aria-pressed={isSelected}
+      >
+        {content}
+      </button>
+    )
+  }
 
   return (
-    <article className={`stock-summary-card tone-${tone}${isValueFirst ? ' layout-value-first' : ''}`}>
-      {isValueFirst ? (
-        <>
-          <p className="stock-summary-value">{value}</p>
-          <p className="stock-summary-label">{subtitle || label}</p>
-        </>
-      ) : (
-        <>
-          <p className="stock-summary-label">{label}</p>
-          <p className="stock-summary-value">{value}</p>
-        </>
-      )}
+    <article className={className}>
+      {content}
     </article>
+  )
+}
+
+function StockAttentionRow({
+  item,
+  groupId,
+  canManage,
+  onReceive,
+  onCount,
+  onEdit,
+}) {
+  const itemType = resolveStockItemType(item)
+  const location = resolveStockStorageLocation(item)
+  const showReceive = groupId === 'out' || groupId === 'low'
+  const showCount = groupId === 'out' || groupId === 'low' || groupId === 'count'
+  const showEdit = groupId === 'data'
+
+  return (
+    <li className={`stock-attention-row tone-${item.status}`}>
+      <div className="stock-attention-copy">
+        <p className="stock-attention-name">{item.name}</p>
+        <p className="stock-attention-meta">
+          {formatStockCategoryTypeLine(item.category, itemType)} · {location}
+        </p>
+        <p className="stock-attention-qty">
+          {formatStockQuantity(item.currentQuantity, item.unit)}
+        </p>
+      </div>
+
+      {canManage ? (
+        <div className="stock-attention-actions">
+          {showReceive ? (
+            <button type="button" className="ghost-btn stock-attention-action-btn" onClick={onReceive}>
+              Receive
+            </button>
+          ) : null}
+          {showCount ? (
+            <button type="button" className="ghost-btn stock-attention-action-btn" onClick={onCount}>
+              Stock count
+            </button>
+          ) : null}
+          {showEdit ? (
+            <button type="button" className="ghost-btn stock-attention-action-btn" onClick={onEdit}>
+              Edit
+            </button>
+          ) : null}
+        </div>
+      ) : null}
+    </li>
+  )
+}
+
+function StockNeedsAttentionSection({
+  groups,
+  canManage,
+  onReceive,
+  onCount,
+  onEdit,
+}) {
+  const totalCount = groups.reduce((sum, group) => sum + group.items.length, 0)
+
+  return (
+    <section className="stock-needs-attention panel staff-panel" aria-label="Needs attention">
+      <header className="stock-needs-attention-header">
+        <div>
+          <h3 className="stock-needs-attention-title">Needs attention</h3>
+          <p className="stock-needs-attention-subtitle">
+            {totalCount} product{totalCount === 1 ? '' : 's'} may need attention.
+          </p>
+        </div>
+      </header>
+
+      <div className="stock-attention-groups">
+        {groups.map((group) => (
+          <section key={group.id} className={`stock-attention-group tone-${group.tone}`} aria-label={group.label}>
+            <h4 className="stock-attention-group-title">
+              {group.label}
+              <span className="stock-attention-group-count">({group.items.length})</span>
+            </h4>
+            <ul className="stock-attention-list">
+              {group.items.map((item) => (
+                <StockAttentionRow
+                  key={item.id}
+                  item={item}
+                  groupId={group.id}
+                  canManage={canManage}
+                  onReceive={() => onReceive(item)}
+                  onCount={() => onCount(item)}
+                  onEdit={() => onEdit(item)}
+                />
+              ))}
+            </ul>
+          </section>
+        ))}
+      </div>
+    </section>
   )
 }
 
@@ -608,6 +757,21 @@ function StockMovementModal({
     if (isStockCount) {
       if (!Number.isFinite(parsed) || parsed < 0) {
         setError('Enter the counted quantity (zero or greater).')
+        return
+      }
+    } else if (movementType === 'receive') {
+      if (!Number.isFinite(parsed) || parsed <= 0) {
+        setError('Enter a positive quantity to receive.')
+        return
+      }
+    } else if (movementType === 'usage') {
+      if (!Number.isFinite(parsed) || parsed <= 0) {
+        setError('Enter a positive usage quantity.')
+        return
+      }
+      const onHand = Number(item.currentQuantity) || 0
+      if (parsed > onHand) {
+        setError(`Usage cannot exceed on-hand quantity (${formatStockQuantity(onHand, item.unit)}).`)
         return
       }
     } else if (!Number.isFinite(parsed) || parsed === 0) {
@@ -668,7 +832,7 @@ function StockMovementModal({
           <div className="modal-actions">
             <button type="button" className="ghost-btn" onClick={onClose}>Cancel</button>
             <button type="submit" className="primary-btn" disabled={isSaving}>
-              {isSaving ? 'Saving…' : isStockCount ? 'Save count' : 'Save'}
+              {isSaving ? 'Saving…' : isStockCount ? 'Save stock count' : 'Save'}
             </button>
           </div>
         </form>
@@ -805,32 +969,47 @@ export function StockDashboardView({
   workspaceId = '',
   isWorkspaceReady = false,
   workspaceSetupMessage = '',
+  suppliers = [],
+  supplierPrefill = '',
+  onSupplierPrefillApplied,
+  onOpenAddSupplier,
+  onItemModalOpenChange,
   onCreateItem,
   onUpdateItem,
   onBulkUpdateItems,
   onImportStockItems,
   onRecordMovement,
+  onCreateOrders,
+  isSavingOrders = false,
 }) {
   const [categoryFilter, setCategoryFilter] = useState('All')
   const [statusFilter, setStatusFilter] = useState('all')
-  const [sortKey, setSortKey] = useState('name-asc')
-  const [layoutMode, setLayoutMode] = useState('cards')
-  const [groupBy, setGroupBy] = useState('none')
+  const [sortKey, setSortKey] = useState(() => readStockBrowsePreferences().sortKey)
+  const [layoutMode, setLayoutMode] = useState(() => readStockBrowsePreferences().layoutMode)
+  const [groupBy, setGroupBy] = useState(() => readStockBrowsePreferences().groupBy)
   const [selectionMode, setSelectionMode] = useState(false)
   const [selectedIds, setSelectedIds] = useState(() => new Set())
   const [bulkModalField, setBulkModalField] = useState(null)
   const [movementModal, setMovementModal] = useState(null)
   const [historyItem, setHistoryItem] = useState(null)
   const [isImportModalOpen, setIsImportModalOpen] = useState(false)
+  const [isCreateOrderModalOpen, setIsCreateOrderModalOpen] = useState(false)
   const [isItemModalOpen, setIsItemModalOpen] = useState(false)
   const [editingItem, setEditingItem] = useState(null)
+  const [duplicateForm, setDuplicateForm] = useState(null)
   const [openCardMenuId, setOpenCardMenuId] = useState(null)
+  const [menuAnchorEl, setMenuAnchorEl] = useState(null)
+
+  useEffect(() => {
+    persistStockBrowsePreferences({ layoutMode, groupBy, sortKey })
+  }, [layoutMode, groupBy, sortKey])
+
+  useEffect(() => {
+    onItemModalOpenChange?.(isItemModalOpen)
+  }, [isItemModalOpen, onItemModalOpenChange])
 
   const summary = useMemo(() => buildStockDashboardSummary(stockItems), [stockItems])
   const categoryFilters = useMemo(() => getStockCategoryFilters(stockItems), [stockItems])
-  const totalBrowsableCount = useMemo(() => {
-    return (stockItems ?? []).filter((item) => item.active !== false).length
-  }, [stockItems])
 
   const visibleItems = useMemo(() => {
     const filtered = filterStockDashboardItems(stockItems, {
@@ -841,9 +1020,28 @@ export function StockDashboardView({
     return sortStockDashboardItems(filtered, sortKey)
   }, [stockItems, categoryFilter, statusFilter, searchTerm, sortKey])
 
+  const browseMatchCount = useMemo(() => {
+    return filterStockDashboardItems(stockItems, {
+      categoryFilter,
+      statusFilter: 'all',
+      searchTerm,
+    }).length
+  }, [stockItems, categoryFilter, searchTerm])
+
   const itemGroups = useMemo(() => {
     return groupStockDashboardItems(visibleItems, groupBy)
   }, [visibleItems, groupBy])
+
+  const needsAttentionGroups = useMemo(() => {
+    return buildStockNeedsAttentionGroups(stockItems, { canManage, searchTerm })
+  }, [stockItems, canManage, searchTerm])
+
+  const hasNeedsAttention = needsAttentionGroups.length > 0
+
+  const activeMenuItem = useMemo(() => {
+    if (!openCardMenuId) return null
+    return stockItems.find((item) => item.id === openCardMenuId) ?? null
+  }, [openCardMenuId, stockItems])
 
   const hasNoItems = stockItems.length === 0
   const hasNoMatches = !hasNoItems && visibleItems.length === 0
@@ -851,6 +1049,11 @@ export function StockDashboardView({
   const selectedItems = useMemo(() => {
     return visibleItems.filter((item) => selectedIds.has(item.id))
   }, [visibleItems, selectedIds])
+
+  const activeHistoryItem = useMemo(() => {
+    if (!historyItem?.id) return null
+    return stockItems.find((item) => item.id === historyItem.id) ?? historyItem
+  }, [historyItem, stockItems])
 
   const emptyState = useMemo(() => getStockDashboardEmptyState({
     hasNoItems,
@@ -870,6 +1073,7 @@ export function StockDashboardView({
       return
     }
     setOpenCardMenuId(null)
+    setMenuAnchorEl(null)
     setSelectionMode(true)
   }
 
@@ -917,23 +1121,47 @@ export function StockDashboardView({
 
   const openCreateItem = () => {
     setEditingItem(null)
+    setDuplicateForm(null)
     setIsItemModalOpen(true)
   }
 
   const openEditItem = (item) => {
-    setOpenCardMenuId(null)
+    closeStockItemMenu()
     setEditingItem(item)
+    setDuplicateForm(null)
+    setIsItemModalOpen(true)
+  }
+
+  const openDuplicateItem = (item) => {
+    closeStockItemMenu()
+    setEditingItem(null)
+    setDuplicateForm(stockItemToDuplicateForm(item))
     setIsItemModalOpen(true)
   }
 
   const openHistory = (item) => {
-    setOpenCardMenuId(null)
+    closeStockItemMenu()
     setHistoryItem(item)
   }
 
   const openMovement = (item, type) => {
-    setOpenCardMenuId(null)
+    closeStockItemMenu()
     setMovementModal({ item, type })
+  }
+
+  const closeStockItemMenu = () => {
+    setOpenCardMenuId(null)
+    setMenuAnchorEl(null)
+  }
+
+  const toggleStockItemMenu = (itemId, anchorEl) => {
+    if (openCardMenuId === itemId) {
+      closeStockItemMenu()
+      return
+    }
+
+    setMenuAnchorEl(anchorEl ?? null)
+    setOpenCardMenuId(itemId)
   }
 
   const renderItemCard = (item) => (
@@ -945,13 +1173,10 @@ export function StockDashboardView({
       isSelected={selectedIds.has(item.id)}
       onToggleSelect={() => toggleItemSelection(item.id)}
       isMenuOpen={openCardMenuId === item.id}
-      onToggleMenu={() => setOpenCardMenuId((current) => (current === item.id ? null : item.id))}
+      onToggleMenu={(event) => toggleStockItemMenu(item.id, event.currentTarget)}
       onReceive={() => openMovement(item, 'receive')}
       onCount={() => openMovement(item, 'stock_count')}
-      onUsage={() => openMovement(item, 'usage')}
-      onAdjust={() => openMovement(item, 'adjustment')}
-      onEdit={() => openEditItem(item)}
-      onHistory={() => openHistory(item)}
+      onOpenHistory={() => openHistory(item)}
     />
   )
 
@@ -989,13 +1214,10 @@ export function StockDashboardView({
                 selectedIds={selectedIds}
                 openCardMenuId={openCardMenuId}
                 onToggleSelect={toggleItemSelection}
-                onToggleMenu={(itemId) => setOpenCardMenuId((current) => (current === itemId ? null : itemId))}
+                onToggleMenu={toggleStockItemMenu}
                 onReceive={(item) => openMovement(item, 'receive')}
                 onCount={(item) => openMovement(item, 'stock_count')}
-                onUsage={(item) => openMovement(item, 'usage')}
-                onAdjust={(item) => openMovement(item, 'adjustment')}
-                onEdit={openEditItem}
-                onHistory={openHistory}
+                onOpenHistory={openHistory}
               />
             ) : null}
 
@@ -1010,6 +1232,7 @@ export function StockDashboardView({
                     isSelected={selectedIds.has(item.id)}
                     onToggleSelect={() => toggleItemSelection(item.id)}
                     onCount={() => openMovement(item, 'stock_count')}
+                    onOpenHistory={() => openHistory(item)}
                   />
                 ))}
               </div>
@@ -1030,97 +1253,171 @@ export function StockDashboardView({
       ) : null}
       {isLoading ? <div className="staff-status-banner">Loading stock…</div> : null}
 
-      <section className="stock-summary-grid stock-summary-grid-five" aria-label="Stock summary">
-        <StockSummaryCard label="Total items" value={summary.totalItems} />
-        <StockSummaryCard label="Low stock" value={summary.lowStock} tone={summary.lowStock > 0 ? 'warning' : 'default'} />
-        <StockSummaryCard label="Out of stock" value={summary.outOfStock} tone={summary.outOfStock > 0 ? 'danger' : 'default'} />
-        <StockSummaryCard label="To order" value={summary.toOrder} tone={summary.toOrder > 0 ? 'warning' : 'default'} />
+      <section className={`stock-summary-grid${canManage ? ' stock-summary-grid-five' : ''}`} aria-label="Stock summary">
         <StockSummaryCard
-          layout="value-first"
-          value={formatStockInventoryValue(summary.totalValue)}
-          subtitle="Inventory cost"
-          tone="gold"
+          label="Total items"
+          value={summary.totalItems}
+          isInteractive
+          isSelected={categoryFilter === 'All' && statusFilter === 'all'}
+          onClick={() => {
+            setCategoryFilter('All')
+            setStatusFilter('all')
+          }}
         />
+        <StockSummaryCard
+          label="Low stock"
+          value={summary.lowStock}
+          tone={summary.lowStock > 0 ? 'warning' : 'default'}
+          isInteractive
+          isSelected={statusFilter === 'low'}
+          onClick={() => {
+            setCategoryFilter('All')
+            setStatusFilter('low')
+          }}
+        />
+        <StockSummaryCard
+          label="Out of stock"
+          value={summary.outOfStock}
+          tone={summary.outOfStock > 0 ? 'danger' : 'default'}
+          isInteractive
+          isSelected={statusFilter === 'out'}
+          onClick={() => {
+            setCategoryFilter('All')
+            setStatusFilter('out')
+          }}
+        />
+        <StockSummaryCard
+          label="To order"
+          value={summary.toOrder}
+          tone={summary.toOrder > 0 ? 'warning' : 'default'}
+          isInteractive
+          isSelected={statusFilter === 'order'}
+          onClick={() => {
+            setCategoryFilter('All')
+            setStatusFilter('order')
+          }}
+        />
+        {canManage ? (
+          <StockSummaryCard
+            layout="value-first"
+            value={formatStockInventoryValue(summary.totalValue)}
+            subtitle="Inventory cost"
+            tone="gold"
+          />
+        ) : null}
       </section>
 
+      {hasNeedsAttention && !isLoading ? (
+        <StockNeedsAttentionSection
+          groups={needsAttentionGroups}
+          canManage={canManage}
+          onReceive={(item) => openMovement(item, 'receive')}
+          onCount={(item) => openMovement(item, 'stock_count')}
+          onEdit={openEditItem}
+        />
+      ) : null}
+
       <div className="stock-dashboard-toolbar">
-        <div className="stock-category-filters" role="tablist" aria-label="Stock categories">
-          {categoryFilters.map((category) => (
-            <button
-              key={category}
-              type="button"
-              role="tab"
-              aria-selected={categoryFilter === category}
-              className={`stock-category-filter${categoryFilter === category ? ' active' : ''}`}
-              onClick={() => setCategoryFilter(category)}
-            >
-              {category}
-            </button>
-          ))}
+        <div className="stock-filter-group stock-filter-group-category">
+          <span className="stock-filter-group-label">Category</span>
+          <div className="stock-category-filters" role="tablist" aria-label="Stock categories">
+            {categoryFilters.map((category) => (
+              <button
+                key={category}
+                type="button"
+                role="tab"
+                aria-selected={categoryFilter === category}
+                className={`stock-category-filter${categoryFilter === category ? ' active' : ''}`}
+                onClick={() => setCategoryFilter(category)}
+              >
+                {category}
+              </button>
+            ))}
+          </div>
         </div>
 
-        <div className="stock-dashboard-quick-actions">
-          <button
-            type="button"
-            className={`stock-status-filter${statusFilter === 'all' ? ' active' : ''}`}
-            onClick={() => setStatusFilter('all')}
-          >
-            All
-          </button>
-          <button
-            type="button"
-            className={`stock-status-filter${statusFilter === 'low' ? ' active' : ''}`}
-            onClick={() => setStatusFilter('low')}
-          >
-            Low
-          </button>
-          <button
-            type="button"
-            className={`stock-status-filter${statusFilter === 'out' ? ' active' : ''}`}
-            onClick={() => setStatusFilter('out')}
-          >
-            Out
-          </button>
-          <button
-            type="button"
-            className={`stock-status-filter${statusFilter === 'order' ? ' active' : ''}`}
-            onClick={() => setStatusFilter('order')}
-          >
-            To order
-          </button>
-          {canManage ? (
-            <>
-              <button
-                type="button"
-                className="ghost-btn stock-import-btn"
-                onClick={() => setIsImportModalOpen(true)}
-                disabled={!isWorkspaceReady}
-              >
-                Import CSV
-              </button>
-              <button
-                type="button"
-                className={`ghost-btn stock-select-mode-btn${selectionMode ? ' active' : ''}`}
-                onClick={toggleSelectionMode}
-              >
-                {selectionMode ? 'Done' : 'Select'}
-              </button>
-              <button
-                type="button"
-                className="primary-btn stock-add-item-btn"
-                onClick={openCreateItem}
-                disabled={!isWorkspaceReady}
-              >
-                + Add item
-              </button>
-            </>
-          ) : null}
+        <div className="stock-filter-group stock-filter-group-status">
+          <span className="stock-filter-group-label">Status</span>
+          <div className="stock-status-filters" role="tablist" aria-label="Stock status">
+            <button
+              type="button"
+              role="tab"
+              aria-selected={statusFilter === 'all'}
+              className={`stock-status-filter${statusFilter === 'all' ? ' active' : ''}`}
+              onClick={() => setStatusFilter('all')}
+            >
+              All
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={statusFilter === 'low'}
+              className={`stock-status-filter${statusFilter === 'low' ? ' active' : ''}`}
+              onClick={() => setStatusFilter('low')}
+            >
+              Low
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={statusFilter === 'out'}
+              className={`stock-status-filter${statusFilter === 'out' ? ' active' : ''}`}
+              onClick={() => setStatusFilter('out')}
+            >
+              Out
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={statusFilter === 'order'}
+              className={`stock-status-filter${statusFilter === 'order' ? ' active' : ''}`}
+              onClick={() => setStatusFilter('order')}
+            >
+              To order
+            </button>
+          </div>
         </div>
+
+        {canManage ? (
+          <div className="stock-toolbar-actions">
+            <button
+              type="button"
+              className="ghost-btn stock-create-order-btn"
+              onClick={() => setIsCreateOrderModalOpen(true)}
+              disabled={!isWorkspaceReady}
+            >
+              Create order
+            </button>
+            <button
+              type="button"
+              className="ghost-btn stock-import-btn"
+              onClick={() => setIsImportModalOpen(true)}
+              disabled={!isWorkspaceReady}
+            >
+              Import CSV
+            </button>
+            <button
+              type="button"
+              className={`ghost-btn stock-select-mode-btn${selectionMode ? ' active' : ''}`}
+              onClick={toggleSelectionMode}
+            >
+              {selectionMode ? 'Done' : 'Select'}
+            </button>
+            <button
+              type="button"
+              className="primary-btn stock-add-item-btn"
+              onClick={openCreateItem}
+              disabled={!isWorkspaceReady}
+            >
+              + Add item
+            </button>
+          </div>
+        ) : null}
       </div>
 
       <div className="stock-browse-controls">
         <div className="stock-browse-control stock-browse-layout">
-          <span className="stock-browse-control-label" id="stock-layout-label">View</span>
+          <span className="stock-browse-control-label" id="stock-layout-label">View mode</span>
           <div
             className="stock-layout-mode-control"
             role="group"
@@ -1134,7 +1431,8 @@ export function StockDashboardView({
                 aria-pressed={layoutMode === mode.id}
                 onClick={() => setLayoutMode(mode.id)}
               >
-                {mode.label}
+                <StockLayoutModeIcon icon={mode.icon} />
+                <span>{mode.label}</span>
               </button>
             ))}
           </div>
@@ -1158,9 +1456,9 @@ export function StockDashboardView({
           />
         </div>
 
-        {!isLoading && totalBrowsableCount > 0 ? (
+        {!isLoading && browseMatchCount > 0 ? (
           <p className="stock-browse-result-count" aria-live="polite">
-            Showing {visibleItems.length} of {totalBrowsableCount} product{totalBrowsableCount === 1 ? '' : 's'}
+            Showing {visibleItems.length} of {browseMatchCount} product{browseMatchCount === 1 ? '' : 's'}
           </p>
         ) : null}
       </div>
@@ -1175,15 +1473,15 @@ export function StockDashboardView({
             {allVisibleSelected ? 'Deselect all' : 'Select all visible'}
           </button>
           <span className="stock-selection-bar-count">
-            {selectedIds.size} selected
+            {selectedItems.length} selected
           </span>
         </div>
       ) : null}
 
-      {selectionMode && canManage && selectedIds.size > 0 ? (
+      {selectionMode && canManage && selectedItems.length > 0 ? (
         <div className="stock-bulk-toolbar" aria-label="Bulk actions">
           <p className="stock-bulk-toolbar-label">
-            Selected: <strong>{selectedIds.size}</strong> product{selectedIds.size === 1 ? '' : 's'}
+            Selected: <strong>{selectedItems.length}</strong> product{selectedItems.length === 1 ? '' : 's'}
           </p>
           <div className="stock-bulk-toolbar-actions">
             <button type="button" className="ghost-btn stock-bulk-action-btn" onClick={() => setBulkModalField('supplier')}>
@@ -1225,6 +1523,12 @@ export function StockDashboardView({
         </div>
       ) : null}
 
+      {!emptyState && visibleItems.length > 0 && !isLoading ? (
+        <header className="stock-all-products-header">
+          <h3 className="stock-all-products-title">All products</h3>
+        </header>
+      ) : null}
+
       {renderGroupedItems()}
 
       {bulkModalField ? (
@@ -1237,11 +1541,27 @@ export function StockDashboardView({
         />
       ) : null}
 
-      {historyItem ? (
-        <StockMovementHistoryModal
-          item={historyItem}
+      {activeHistoryItem ? (
+        <StockProductHistoryDrawer
+          item={activeHistoryItem}
           workspaceId={workspaceId}
+          canManage={canManage}
           onClose={() => setHistoryItem(null)}
+          onReceive={() => {
+            const item = activeHistoryItem
+            setHistoryItem(null)
+            openMovement(item, 'receive')
+          }}
+          onStockCount={() => {
+            const item = activeHistoryItem
+            setHistoryItem(null)
+            openMovement(item, 'stock_count')
+          }}
+          onEdit={() => {
+            const item = activeHistoryItem
+            setHistoryItem(null)
+            openEditItem(item)
+          }}
         />
       ) : null}
 
@@ -1264,17 +1584,47 @@ export function StockDashboardView({
         />
       ) : null}
 
+      {activeMenuItem && menuAnchorEl ? (
+        <StockItemMoreMenu
+          isOpen
+          anchorEl={menuAnchorEl}
+          onClose={closeStockItemMenu}
+          itemName={activeMenuItem.name}
+          onUsage={() => openMovement(activeMenuItem, 'usage')}
+          onAdjust={() => openMovement(activeMenuItem, 'adjustment')}
+          onEdit={() => openEditItem(activeMenuItem)}
+          onDuplicate={() => openDuplicateItem(activeMenuItem)}
+          onHistory={() => openHistory(activeMenuItem)}
+        />
+      ) : null}
+
+      {isCreateOrderModalOpen && onCreateOrders ? (
+        <StockCreateOrderModal
+          stockItems={stockItems}
+          onClose={() => setIsCreateOrderModalOpen(false)}
+          onSubmit={onCreateOrders}
+          isSaving={isSavingOrders}
+        />
+      ) : null}
+
       {isItemModalOpen ? (
         <StockItemFormModal
           initialItem={editingItem}
+          initialForm={duplicateForm}
           onClose={() => {
             setIsItemModalOpen(false)
             setEditingItem(null)
+            setDuplicateForm(null)
           }}
           isSaving={isSaving}
           workspaceId={workspaceId}
           isWorkspaceReady={isWorkspaceReady}
           workspaceSetupMessage={workspaceSetupMessage}
+          suppliers={suppliers}
+          canManage={canManage}
+          onOpenAddSupplier={onOpenAddSupplier}
+          supplierPrefill={supplierPrefill}
+          onSupplierPrefillApplied={onSupplierPrefillApplied}
           onSubmit={async (payload) => {
             if (editingItem?.id) {
               await onUpdateItem(editingItem.id, payload)

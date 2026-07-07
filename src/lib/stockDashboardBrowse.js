@@ -5,9 +5,9 @@ import {
 } from './stockCatalog'
 
 export const STOCK_LAYOUT_MODES = [
-  { id: 'cards', label: 'Cards' },
-  { id: 'list', label: 'List' },
-  { id: 'compact', label: 'Compact' },
+  { id: 'cards', label: 'Cards', icon: 'grid' },
+  { id: 'list', label: 'List', icon: 'list' },
+  { id: 'compact', label: 'Count', icon: 'count' },
 ]
 
 export const STOCK_GROUP_BY_OPTIONS = [

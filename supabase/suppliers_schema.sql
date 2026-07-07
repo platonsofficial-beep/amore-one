@@ -12,12 +12,16 @@ create table if not exists public.suppliers (
   payment_terms text not null default '',
   delivery_days text not null default '',
   notes text not null default '',
+  active boolean not null default true,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
 
 create index if not exists suppliers_company_name_idx
   on public.suppliers (company_name);
+
+create index if not exists suppliers_active_idx
+  on public.suppliers (active);
 
 create or replace function public.set_suppliers_updated_at()
 returns trigger

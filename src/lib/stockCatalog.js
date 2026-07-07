@@ -332,6 +332,16 @@ export function buildEmptyStockItemForm(category = 'Spirits') {
   }
 }
 
+export function stockItemToDuplicateForm(item) {
+  const form = stockItemToForm(item)
+
+  return {
+    ...form,
+    name: '',
+    currentQuantity: '',
+  }
+}
+
 export function stockItemToForm(item) {
   const category = normalizeStockCategory(item?.category)
   const itemType = normalizeStockItemType(category, resolveStockItemType(item))

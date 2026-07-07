@@ -18,6 +18,7 @@ export const STOCK_SECTIONS = [
   { id: 'dashboard', label: 'Dashboard' },
   { id: 'inventory', label: 'Inventory' },
   { id: 'suppliers', label: 'Suppliers' },
+  { id: 'orders', label: 'Orders' },
 ]
 
 export const OPERATIONS_SECTIONS = [
@@ -108,6 +109,7 @@ export function getModuleTitle(activeView, {
   if (activeView === 'stock') {
     if (stockSection === 'suppliers') return 'Suppliers'
     if (stockSection === 'inventory') return 'Inventory'
+    if (stockSection === 'orders') return 'Orders'
     return 'Stock'
   }
   if (activeView === 'operations') {
@@ -132,7 +134,8 @@ export function getModuleSubtitle(activeView, currentDateLabel, {
   if (activeView === 'team' && teamSection === 'schedule') return ''
   if (activeView === 'stock' && stockSection === 'dashboard') return 'Stock levels, movements, and alerts.'
   if (activeView === 'stock' && stockSection === 'inventory') return 'Inventory levels and replenishment.'
-  if (activeView === 'stock' && stockSection === 'suppliers') return 'Supplier contacts and delivery.'
+  if (activeView === 'stock' && stockSection === 'suppliers') return 'Supplier contacts, products, and purchase history.'
+  if (activeView === 'stock' && stockSection === 'orders') return 'Supplier purchase orders and receiving.'
   if (activeView === 'operations') return 'Tasks and daily execution.'
   if (activeView === 'insights') return 'Business intelligence from live data.'
   if (activeView === 'settings') return 'Workspace and account configuration.'
@@ -145,6 +148,7 @@ export function getSearchPlaceholder(activeView, {
   operationsSection = 'tasks',
 } = {}) {
   if (activeView === 'team' && teamSection === 'members') return 'Search employee'
+  if (activeView === 'stock' && stockSection === 'orders') return 'Search order #, supplier, product'
   if (activeView === 'stock' && (stockSection === 'dashboard' || stockSection === 'inventory')) return 'Search stock item'
   if (activeView === 'stock' && stockSection === 'suppliers') return 'Search supplier'
   if (activeView === 'operations' && operationsSection === 'tasks') return 'Search tasks'

@@ -141,6 +141,13 @@ import { createSupplier, deleteSupplier, getSuppliers, updateSupplier } from './
 import { createStockItem, updateStockItem } from './services/stockItemService'
 import { getStockItemsWithLastMovement, recordStockMovement } from './services/stockMovementService'
 import {
+  createStockOrdersFromGroups,
+  getStockOrdersWithAuthors,
+  receiveStockOrderPartial,
+  updateStockOrderDraft,
+  updateStockOrderStatus,
+} from './services/stockOrderService'
+import {
   completeTask,
   createTask,
   deleteTask,
@@ -239,6 +246,11 @@ import { buildEmployeeTodayShiftLookup, buildTeamTodayStatus } from './lib/teamV
 import { TeamTodayView } from './components/team/TeamTodayView'
 import { TeamPeopleView } from './components/team/TeamPeopleView'
 import { StockDashboardView } from './components/stock/StockDashboardView'
+import { StockOrdersView } from './components/stock/StockOrdersView'
+import { StockSuppliersView } from './components/stock/StockSuppliersView'
+import {
+  supplierHasHistory,
+} from './lib/stockSupplierUtils'
 import {
   buildBrandDisplay,
   buildDashboardGreeting,
@@ -11540,17 +11552,11 @@ function InventoryView({
   )
 }
 
-function countInventoryItemsForSupplier(inventoryItems, companyName) {
-  const trimmed = `${companyName ?? ''}`.trim()
-  if (!trimmed) return 0
-
-  return (inventoryItems ?? []).filter((item) => `${item?.supplier ?? ''}`.trim() === trimmed).length
-}
-
 function buildInventorySupplierOptions(suppliers, selectedSupplier = '') {
   const trimmedSelected = `${selectedSupplier ?? ''}`.trim()
   const supplierNames = new Set(
     (suppliers ?? [])
+      .filter((supplier) => supplier.active !== false)
       .map((supplier) => `${supplier.companyName ?? ''}`.trim())
       .filter(Boolean),
   )
@@ -11558,6 +11564,7 @@ function buildInventorySupplierOptions(suppliers, selectedSupplier = '') {
   const options = [{ value: '', label: 'No supplier' }]
 
   ;(suppliers ?? []).forEach((supplier) => {
+    if (supplier.active === false) return
     const name = `${supplier.companyName ?? ''}`.trim()
     if (!name) return
     options.push({ value: name, label: name })
@@ -11572,265 +11579,6 @@ function buildInventorySupplierOptions(suppliers, selectedSupplier = '') {
 
 function hasSupplierField(value) {
   return `${value ?? ''}`.trim().length > 0
-}
-
-function SupplierCard({
-  supplier,
-  linkedCount = 0,
-  onOpenEditSupplier,
-  onRequestDeleteSupplier,
-}) {
-  const hasPhone = hasSupplierField(supplier.phone)
-  const hasEmail = hasSupplierField(supplier.email)
-  const hasAddress = hasSupplierField(supplier.address)
-  const hasTaxId = hasSupplierField(supplier.taxId)
-  const hasPaymentTerms = hasSupplierField(supplier.paymentTerms)
-  const hasDeliveryDays = hasSupplierField(supplier.deliveryDays)
-  const hasNotes = hasSupplierField(supplier.notes)
-  const hasContactPerson = hasSupplierField(supplier.contactPerson)
-  const hasContactSection = hasPhone || hasEmail || hasAddress
-  const hasBusinessSection = hasTaxId || hasPaymentTerms || hasDeliveryDays
-  const hasAdditionalInfo = hasContactSection || hasBusinessSection || hasNotes
-
-  return (
-    <article className="supplier-card">
-      <header className="supplier-card-header">
-        <div className="supplier-card-identity">
-          <div className="roster-avatar">{getInitials(supplier.companyName || 'Supplier')}</div>
-          <div className="supplier-card-title-block">
-            <strong className="supplier-card-company">{supplier.companyName || 'Unnamed supplier'}</strong>
-            {hasContactPerson ? (
-              <p className="supplier-card-contact-person">
-                <span aria-hidden="true">👤 </span>
-                {supplier.contactPerson}
-              </p>
-            ) : null}
-          </div>
-        </div>
-
-        <div className="supplier-card-header-aside">
-          {linkedCount > 0 ? (
-            <span className="supplier-stock-badge">
-              📦 {linkedCount} Stock Item{linkedCount === 1 ? '' : 's'}
-            </span>
-          ) : null}
-          <div className="supplier-card-header-actions">
-            <button
-              type="button"
-              className="ghost-btn supplier-card-action-btn"
-              onClick={() => onOpenEditSupplier?.(supplier)}
-            >
-              Edit
-            </button>
-            <button
-              type="button"
-              className="ghost-btn supplier-card-action-btn supplier-card-delete-btn"
-              onClick={() => onRequestDeleteSupplier?.(supplier)}
-            >
-              Delete
-            </button>
-          </div>
-        </div>
-      </header>
-
-      {!hasAdditionalInfo ? (
-        <p className="supplier-card-empty-info">No additional supplier information.</p>
-      ) : null}
-
-      {hasContactSection ? (
-        <section className="supplier-card-section">
-          <p className="supplier-card-section-label">Contact</p>
-          <ul className="supplier-card-detail-list">
-            {hasPhone ? (
-              <li>
-                <span className="supplier-card-detail-icon" aria-hidden="true">☎</span>
-                <span>{supplier.phone}</span>
-              </li>
-            ) : null}
-            {hasEmail ? (
-              <li>
-                <span className="supplier-card-detail-icon" aria-hidden="true">✉</span>
-                <span>{supplier.email}</span>
-              </li>
-            ) : null}
-            {hasAddress ? (
-              <li>
-                <span className="supplier-card-detail-icon" aria-hidden="true">📍</span>
-                <span>{supplier.address}</span>
-              </li>
-            ) : null}
-          </ul>
-        </section>
-      ) : null}
-
-      {hasBusinessSection ? (
-        <section className="supplier-card-section">
-          <p className="supplier-card-section-label">Business info</p>
-          <ul className="supplier-card-detail-list supplier-card-detail-list-labeled">
-            {hasTaxId ? (
-              <li className="supplier-card-detail-item-labeled">
-                <div className="supplier-card-detail-heading">
-                  <span className="supplier-card-detail-icon" aria-hidden="true">🧾</span>
-                  <span className="supplier-card-detail-name">VAT / Tax ID</span>
-                </div>
-                <span className="supplier-card-detail-value">{supplier.taxId}</span>
-              </li>
-            ) : null}
-            {hasPaymentTerms ? (
-              <li className="supplier-card-detail-item-labeled">
-                <div className="supplier-card-detail-heading">
-                  <span className="supplier-card-detail-icon" aria-hidden="true">💳</span>
-                  <span className="supplier-card-detail-name">Payment Terms</span>
-                </div>
-                <span className="supplier-card-detail-value">{supplier.paymentTerms}</span>
-              </li>
-            ) : null}
-            {hasDeliveryDays ? (
-              <li className="supplier-card-detail-item-labeled">
-                <div className="supplier-card-detail-heading">
-                  <span className="supplier-card-detail-icon" aria-hidden="true">🚚</span>
-                  <span className="supplier-card-detail-name">Delivery Days</span>
-                </div>
-                <span className="supplier-card-detail-value">{supplier.deliveryDays}</span>
-              </li>
-            ) : null}
-          </ul>
-        </section>
-      ) : null}
-
-      {hasNotes ? (
-        <section className="supplier-card-section">
-          <p className="supplier-card-section-label">Notes</p>
-          <p className="supplier-card-notes">{supplier.notes}</p>
-        </section>
-      ) : null}
-    </article>
-  )
-}
-
-function SuppliersView({
-  suppliers,
-  inventoryItems = [],
-  onOpenAddSupplier,
-  onOpenEditSupplier,
-  onRequestDeleteSupplier,
-  isLoading,
-  noticeMessage,
-  isSaving,
-  searchTerm,
-  onSearchTermChange,
-}) {
-  const filteredSuppliers = useMemo(() => {
-    const needle = `${searchTerm}`.trim().toLowerCase()
-    if (!needle) return suppliers
-
-    return suppliers.filter((supplier) => (
-      `${supplier.companyName} ${supplier.contactPerson} ${supplier.phone} ${supplier.email} ${supplier.address} ${supplier.taxId ?? ''}`.toLowerCase().includes(needle)
-    ))
-  }, [suppliers, searchTerm])
-
-  const linkedCountBySupplierId = useMemo(() => {
-    const counts = new Map()
-
-    suppliers.forEach((supplier) => {
-      counts.set(supplier.id, countInventoryItemsForSupplier(inventoryItems, supplier.companyName))
-    })
-
-    return counts
-  }, [suppliers, inventoryItems])
-
-  const supplierSummary = useMemo(() => {
-    let connectedToStock = 0
-    let withoutStockItems = 0
-
-    suppliers.forEach((supplier) => {
-      const linkedCount = linkedCountBySupplierId.get(supplier.id) ?? 0
-      if (linkedCount > 0) {
-        connectedToStock += 1
-      } else {
-        withoutStockItems += 1
-      }
-    })
-
-    return {
-      total: suppliers.length,
-      connectedToStock,
-      withoutStockItems,
-    }
-  }, [suppliers, linkedCountBySupplierId])
-
-  return (
-    <section className="staff-page">
-      <div className="staff-header-card">
-        <div>
-          <p className="eyebrow">Suppliers</p>
-          <h3>Supplier dashboard</h3>
-          <p className="staff-subtitle">Manage partners, delivery commitments, and payment terms for procurement.</p>
-        </div>
-        <button type="button" className="primary-btn" onClick={onOpenAddSupplier} disabled={isSaving}>
-          {isSaving ? 'Saving…' : '+ Add Supplier'}
-        </button>
-      </div>
-
-      <div className="roster-summary-grid suppliers-summary-grid">
-        <article className="roster-summary-card">
-          <p className="eyebrow">Total suppliers</p>
-          <h3>{supplierSummary.total}</h3>
-        </article>
-        <article className="roster-summary-card">
-          <p className="eyebrow">Connected to stock</p>
-          <h3>{supplierSummary.connectedToStock}</h3>
-        </article>
-        <article className="roster-summary-card">
-          <p className="eyebrow">Without stock items</p>
-          <h3>{supplierSummary.withoutStockItems}</h3>
-        </article>
-      </div>
-
-      <div className="suppliers-search-bar">
-        <label className="staff-search" aria-label="Search suppliers">
-          <span>⌕</span>
-          <input
-            type="text"
-            placeholder="Search suppliers"
-            value={searchTerm}
-            onChange={(event) => onSearchTermChange(event.target.value)}
-          />
-        </label>
-      </div>
-
-      {noticeMessage ? <div className="staff-status-banner">{noticeMessage}</div> : null}
-      {isLoading ? <div className="staff-status-banner">Loading suppliers…</div> : null}
-
-      <div className="panel staff-panel">
-        <div className="panel-heading">
-          <div>
-            <p className="eyebrow">Supplier list</p>
-            <h3>Partner directory</h3>
-          </div>
-        </div>
-
-        {filteredSuppliers.length === 0 && !isLoading ? (
-          <div className="schedule-empty-state">
-            <h4>No suppliers yet.</h4>
-            <p>Add your first supplier to start building a trusted network.</p>
-          </div>
-        ) : (
-          <div className="supplier-card-list">
-            {filteredSuppliers.map((supplier) => (
-              <SupplierCard
-                key={supplier.id}
-                supplier={supplier}
-                linkedCount={linkedCountBySupplierId.get(supplier.id) ?? 0}
-                onOpenEditSupplier={onOpenEditSupplier}
-                onRequestDeleteSupplier={onRequestDeleteSupplier}
-              />
-            ))}
-          </div>
-        )}
-      </div>
-    </section>
-  )
 }
 
 function App() {
@@ -11947,6 +11695,12 @@ function App() {
   const [stockItemsNotice, setStockItemsNotice] = useState('')
   const [isStockItemsLoading, setIsStockItemsLoading] = useState(false)
   const [isSavingStockItem, setIsSavingStockItem] = useState(false)
+  const [isStockItemModalOpen, setIsStockItemModalOpen] = useState(false)
+  const [stockSupplierPrefill, setStockSupplierPrefill] = useState('')
+  const [stockOrders, setStockOrders] = useState([])
+  const [stockOrdersNotice, setStockOrdersNotice] = useState('')
+  const [isStockOrdersLoading, setIsStockOrdersLoading] = useState(false)
+  const [isSavingStockOrder, setIsSavingStockOrder] = useState(false)
   const [barRefills, setBarRefills] = useState([])
   const [barRefillsNotice, setBarRefillsNotice] = useState('')
   const [isBarRefillsLoading, setIsBarRefillsLoading] = useState(true)
@@ -12513,6 +12267,22 @@ function App() {
     }
   }, [activeWorkspaceId])
 
+  const refreshStockOrders = useCallback(async () => {
+    if (!activeWorkspaceId) {
+      setStockOrders([])
+      return []
+    }
+
+    try {
+      const remoteOrders = await getStockOrdersWithAuthors(activeWorkspaceId)
+      setStockOrders(remoteOrders)
+      return remoteOrders
+    } catch (error) {
+      setStockOrders([])
+      throw error
+    }
+  }, [activeWorkspaceId])
+
   const refreshBarRefills = useCallback(async () => {
     try {
       const remoteRefills = await getBarRefills()
@@ -12977,7 +12747,7 @@ function App() {
   }, [refreshInventory])
 
   useEffect(() => {
-    if (activeView !== 'stock' || stockSection !== 'dashboard') return undefined
+    if (activeView !== 'stock' || (stockSection !== 'dashboard' && stockSection !== 'orders' && stockSection !== 'suppliers')) return undefined
 
     let isMounted = true
 
@@ -13003,6 +12773,34 @@ function App() {
       isMounted = false
     }
   }, [activeView, stockSection, refreshStockItems])
+
+  useEffect(() => {
+    if (activeView !== 'stock' || (stockSection !== 'orders' && stockSection !== 'suppliers')) return undefined
+
+    let isMounted = true
+
+    const loadStockOrders = async () => {
+      setIsStockOrdersLoading(true)
+      setStockOrdersNotice('')
+
+      try {
+        await refreshStockOrders()
+      } catch (error) {
+        if (!isMounted) return
+        setStockOrdersNotice(error.message || 'Unable to load orders right now.')
+      } finally {
+        if (isMounted) {
+          setIsStockOrdersLoading(false)
+        }
+      }
+    }
+
+    loadStockOrders()
+
+    return () => {
+      isMounted = false
+    }
+  }, [activeView, stockSection, refreshStockOrders])
 
   useEffect(() => {
     if (activeView !== 'stock') return undefined
@@ -16498,6 +16296,124 @@ function App() {
     }
   }
 
+  const handleCreateStockOrders = async (groups) => {
+    if (!activeWorkspaceId) {
+      throw new Error(stockWorkspaceSetupMessage || 'Workspace is required to create orders.')
+    }
+
+    setIsSavingStockOrder(true)
+    setStockOrdersNotice('')
+    setStockItemsNotice('')
+
+    try {
+      const createdOrders = await createStockOrdersFromGroups(activeWorkspaceId, groups, {
+        createdBy: user?.id ?? null,
+      })
+      await refreshStockOrders()
+      handleStockSectionChange('orders')
+      setStockOrdersNotice(`Created ${createdOrders.length} draft order${createdOrders.length === 1 ? '' : 's'}.`)
+    } catch (error) {
+      setStockOrdersNotice(error.message || 'Unable to create orders right now.')
+      throw error
+    } finally {
+      setIsSavingStockOrder(false)
+    }
+  }
+
+  const handleSaveStockOrderDraft = async (orderId, payload) => {
+    if (!activeWorkspaceId) {
+      throw new Error(stockWorkspaceSetupMessage || 'Workspace is required to update orders.')
+    }
+
+    setIsSavingStockOrder(true)
+    setStockOrdersNotice('')
+
+    try {
+      await updateStockOrderDraft(activeWorkspaceId, orderId, payload)
+      await refreshStockOrders()
+      setStockOrdersNotice('Order draft saved.')
+    } catch (error) {
+      setStockOrdersNotice(error.message || 'Unable to save order right now.')
+      throw error
+    } finally {
+      setIsSavingStockOrder(false)
+    }
+  }
+
+  const handleMarkStockOrderSent = async (orderId) => {
+    if (!activeWorkspaceId) {
+      throw new Error(stockWorkspaceSetupMessage || 'Workspace is required to update orders.')
+    }
+
+    setIsSavingStockOrder(true)
+    setStockOrdersNotice('')
+
+    try {
+      await updateStockOrderStatus(activeWorkspaceId, orderId, 'sent', {
+        createdBy: user?.id ?? null,
+      })
+      await refreshStockOrders()
+      setStockOrdersNotice('Order marked as sent.')
+    } catch (error) {
+      setStockOrdersNotice(error.message || 'Unable to update order right now.')
+      throw error
+    } finally {
+      setIsSavingStockOrder(false)
+    }
+  }
+
+  const handleReceiveStockOrder = async (orderId, { receiveItems, orderNumber }) => {
+    if (!activeWorkspaceId) {
+      const message = stockWorkspaceSetupMessage || 'Workspace is required to receive orders.'
+      throw new Error(message)
+    }
+
+    setIsSavingStockOrder(true)
+    setStockOrdersNotice('')
+
+    try {
+      const updatedOrder = await receiveStockOrderPartial(activeWorkspaceId, orderId, {
+        receiveItems,
+        createdBy: user?.id ?? null,
+        orderNumber,
+      })
+      await refreshStockOrders()
+      await refreshStockItems()
+      setStockOrdersNotice(
+        updatedOrder?.status === 'received'
+          ? 'Order completed and stock updated.'
+          : 'Partial delivery recorded and stock updated.',
+      )
+      return updatedOrder
+    } catch (error) {
+      console.error('[App] Receive failed:', error)
+      setStockOrdersNotice(error.message || 'Unable to receive order right now.')
+      throw error
+    } finally {
+      setIsSavingStockOrder(false)
+    }
+  }
+
+  const handleCancelStockOrder = async (orderId) => {
+    if (!activeWorkspaceId) {
+      throw new Error(stockWorkspaceSetupMessage || 'Workspace is required to update orders.')
+    }
+
+    setIsSavingStockOrder(true)
+    setStockOrdersNotice('')
+
+    try {
+      await updateStockOrderStatus(activeWorkspaceId, orderId, 'cancelled')
+      await refreshStockOrders()
+      setStockOrdersNotice('Order cancelled.')
+    } catch (error) {
+      setStockOrdersNotice(error.message || 'Unable to cancel order right now.')
+      throw error
+    } finally {
+      setIsSavingStockOrder(false)
+    }
+  }
+
   const persistBarRefillDraftChanges = async (refillId, { notes, items = [] }) => {
     if (notes !== undefined) {
       await updateBarRefill(refillId, { notes })
@@ -16609,6 +16525,23 @@ function App() {
     setIsSupplierModalOpen(true)
   }
 
+  const handleOpenAddSupplierFromStock = () => {
+    setSupplierModalOrigin('stock')
+    setEditingSupplier(null)
+    setSupplierForm({
+      companyName: '',
+      contactPerson: '',
+      phone: '',
+      email: '',
+      address: '',
+      taxId: '',
+      paymentTerms: '',
+      deliveryDays: '',
+      notes: '',
+    })
+    setIsSupplierModalOpen(true)
+  }
+
   const handleCloseSupplierModal = () => {
     setIsSupplierModalOpen(false)
     setSupplierModalOrigin(null)
@@ -16656,8 +16589,12 @@ function App() {
   const handleConfirmDeleteSupplier = async () => {
     if (!supplierPendingDelete?.id) return
 
-    const linkedCount = countInventoryItemsForSupplier(inventoryItems, supplierPendingDelete.companyName)
-    if (linkedCount > 0) return
+    const hasHistory = supplierHasHistory(supplierPendingDelete, {
+      stockItems,
+      stockOrders,
+      inventoryItems,
+    })
+    if (hasHistory) return
 
     setIsDeletingSupplier(true)
     setSuppliersNotice('')
@@ -16671,6 +16608,115 @@ function App() {
       setSuppliersNotice(error.message || 'Unable to delete supplier right now.')
     } finally {
       setIsDeletingSupplier(false)
+    }
+  }
+
+  const handleStockCreateSupplier = async (payload) => {
+    if (!payload.companyName?.trim()) {
+      setSuppliersNotice('Please provide the supplier name.')
+      return
+    }
+
+    setIsSavingSupplier(true)
+    setSuppliersNotice('')
+
+    try {
+      await createSupplier(payload)
+      await refreshSuppliers()
+      setSuppliersNotice('Supplier created.')
+    } catch (error) {
+      setSuppliersNotice(error.message || 'Unable to create supplier right now.')
+      throw error
+    } finally {
+      setIsSavingSupplier(false)
+    }
+  }
+
+  const handleStockUpdateSupplier = async (supplierId, payload) => {
+    if (!payload.companyName?.trim()) {
+      setSuppliersNotice('Please provide the supplier name.')
+      return
+    }
+
+    const existingSupplier = suppliers.find((supplier) => supplier.id === supplierId)
+
+    setIsSavingSupplier(true)
+    setSuppliersNotice('')
+
+    try {
+      await updateSupplier(supplierId, {
+        companyName: payload.companyName,
+        contactPerson: payload.contactPerson,
+        phone: payload.phone,
+        email: payload.email,
+        address: payload.address,
+        notes: payload.notes,
+        active: payload.active,
+        taxId: existingSupplier?.taxId ?? '',
+        paymentTerms: existingSupplier?.paymentTerms ?? '',
+        deliveryDays: existingSupplier?.deliveryDays ?? '',
+      })
+      await refreshSuppliers()
+      setSuppliersNotice('Supplier updated.')
+    } catch (error) {
+      setSuppliersNotice(error.message || 'Unable to update supplier right now.')
+      throw error
+    } finally {
+      setIsSavingSupplier(false)
+    }
+  }
+
+  const handleStockDeleteSupplier = async (supplier) => {
+    if (!supplier?.id) return
+
+    const hasHistory = supplierHasHistory(supplier, {
+      stockItems,
+      stockOrders,
+      inventoryItems,
+    })
+    if (hasHistory) return
+
+    setIsSavingSupplier(true)
+    setSuppliersNotice('')
+
+    try {
+      await deleteSupplier(supplier.id)
+      await refreshSuppliers()
+      setSuppliersNotice('Supplier removed.')
+    } catch (error) {
+      setSuppliersNotice(error.message || 'Unable to delete supplier right now.')
+      throw error
+    } finally {
+      setIsSavingSupplier(false)
+    }
+  }
+
+  const handleStockDeactivateSupplier = async (supplier, nextActive) => {
+    if (!supplier?.id) return
+
+    setIsSavingSupplier(true)
+    setSuppliersNotice('')
+
+    try {
+      await updateSupplier(supplier.id, {
+        companyName: supplier.companyName,
+        contactPerson: supplier.contactPerson,
+        phone: supplier.phone,
+        email: supplier.email,
+        address: supplier.address,
+        taxId: supplier.taxId,
+        paymentTerms: supplier.paymentTerms,
+        deliveryDays: supplier.deliveryDays,
+        notes: supplier.notes,
+        active: nextActive,
+      })
+      await refreshSuppliers()
+      setSuppliersNotice(nextActive ? 'Supplier activated.' : 'Supplier deactivated.')
+    } catch (error) {
+      setSuppliersNotice(error.message || 'Unable to update supplier right now.')
+      throw error
+    } finally {
+      setIsSavingSupplier(false)
     }
   }
 
@@ -16700,6 +16746,7 @@ function App() {
     try {
       const savedCompanyName = payload.companyName
       const inventoryOrigin = supplierModalOrigin === 'inventory'
+      const stockOrigin = supplierModalOrigin === 'stock'
 
       if (editingSupplier) {
         await updateSupplier(editingSupplier.id, payload)
@@ -16714,6 +16761,9 @@ function App() {
             supplier: `${createdSupplier?.companyName ?? savedCompanyName}`.trim(),
           }))
           setInventoryNotice('Supplier created and selected.')
+        } else if (stockOrigin && isStockItemModalOpen) {
+          setStockSupplierPrefill(`${createdSupplier?.companyName ?? savedCompanyName}`.trim())
+          setStockItemsNotice('Supplier created and selected.')
         } else {
           setSuppliersNotice('Supplier created.')
         }
@@ -16959,9 +17009,9 @@ function App() {
   const useCommandTopbar = shouldUseCommandTopbar(activeView)
   const showModuleSearch = shouldShowModuleSearch(activeView, teamSection)
 
-  const supplierDeleteLinkedCount = supplierPendingDelete
-    ? countInventoryItemsForSupplier(inventoryItems, supplierPendingDelete.companyName)
-    : 0
+  const supplierDeleteHasHistory = supplierPendingDelete
+    ? supplierHasHistory(supplierPendingDelete, { stockItems, stockOrders, inventoryItems })
+    : false
 
   const inventoryFormCategoryOptions = useMemo(
     () => getInventoryCategoryFilters(inventoryItems),
@@ -17275,26 +17325,54 @@ function App() {
             workspaceId={activeWorkspaceId}
             isWorkspaceReady={isStockWorkspaceReady}
             workspaceSetupMessage={stockWorkspaceSetupMessage}
+            suppliers={suppliers}
+            supplierPrefill={stockSupplierPrefill}
+            onSupplierPrefillApplied={() => setStockSupplierPrefill('')}
+            onOpenAddSupplier={handleOpenAddSupplierFromStock}
+            onItemModalOpenChange={setIsStockItemModalOpen}
             onCreateItem={handleCreateStockItem}
             onUpdateItem={handleUpdateStockItem}
             onBulkUpdateItems={handleBulkUpdateStockItems}
             onImportStockItems={handleImportStockItems}
             onRecordMovement={handleRecordStockMovement}
+            onCreateOrders={handleCreateStockOrders}
+            isSavingOrders={isSavingStockOrder}
+          />
+        ) : null}
+
+        {isActiveViewAllowed && activeView === 'stock' && stockSection === 'orders' ? (
+          <StockOrdersView
+            orders={stockOrders}
+            stockItems={stockItems}
+            isLoading={isStockOrdersLoading}
+            noticeMessage={stockOrdersNotice}
+            searchTerm={searchTerm}
+            canManage={canManageStock}
+            isSaving={isSavingStockOrder}
+            isWorkspaceReady={isStockWorkspaceReady}
+            onCreateOrders={handleCreateStockOrders}
+            onSaveDraft={handleSaveStockOrderDraft}
+            onMarkSent={handleMarkStockOrderSent}
+            onReceiveOrder={handleReceiveStockOrder}
+            onCancelOrder={handleCancelStockOrder}
           />
         ) : null}
 
         {isActiveViewAllowed && activeView === 'stock' && stockSection === 'suppliers' ? (
-          <SuppliersView
+          <StockSuppliersView
             suppliers={suppliers}
+            stockItems={stockItems}
+            stockOrders={stockOrders}
             inventoryItems={inventoryItems}
-            onOpenAddSupplier={handleOpenAddSupplier}
-            onOpenEditSupplier={handleOpenEditSupplier}
-            onRequestDeleteSupplier={handleRequestDeleteSupplier}
-            isLoading={isSuppliersLoading}
+            isLoading={isSuppliersLoading || isStockItemsLoading || isStockOrdersLoading}
             noticeMessage={suppliersNotice}
-            isSaving={isSavingSupplier}
             searchTerm={searchTerm}
-            onSearchTermChange={setSearchTerm}
+            canManage={canManageStock}
+            isSaving={isSavingSupplier}
+            onCreateSupplier={handleStockCreateSupplier}
+            onUpdateSupplier={handleStockUpdateSupplier}
+            onDeleteSupplier={handleStockDeleteSupplier}
+            onDeactivateSupplier={handleStockDeactivateSupplier}
           />
         ) : null}
 
@@ -18299,22 +18377,23 @@ function App() {
               </div>
 
               <div className="supplier-delete-modal-body">
-                <p>This cannot be undone.</p>
-                {supplierDeleteLinkedCount > 0 ? (
+                {supplierDeleteHasHistory ? (
                   <>
-                    <p className="supplier-delete-linked-warning">
-                      This supplier is linked to {supplierDeleteLinkedCount} stock item{supplierDeleteLinkedCount === 1 ? '' : 's'}.
+                    <p>
+                      <strong>{supplierPendingDelete.companyName}</strong> has linked products or purchase orders.
                     </p>
-                    <p>Remove or reassign stock items before deleting this supplier.</p>
+                    <p>Suppliers with history cannot be deleted. Deactivate them from the Suppliers tab instead.</p>
                   </>
-                ) : null}
+                ) : (
+                  <p>This cannot be undone.</p>
+                )}
               </div>
 
               <div className="modal-actions">
                 <button type="button" className="ghost-btn supplier-modal-action-btn" onClick={handleCloseDeleteSupplierModal} disabled={isDeletingSupplier}>
                   Cancel
                 </button>
-                {supplierDeleteLinkedCount === 0 ? (
+                {!supplierDeleteHasHistory ? (
                   <button type="button" className="primary-btn supplier-delete-confirm-btn supplier-modal-action-btn" onClick={handleConfirmDeleteSupplier} disabled={isDeletingSupplier}>
                     {isDeletingSupplier ? 'Deleting…' : 'Delete Supplier'}
                   </button>

@@ -12,13 +12,14 @@ function mapSupplier(record) {
     deliveryDays: record.delivery_days ?? record.deliveryDays ?? '',
     notes: record.notes ?? '',
     taxId: record.tax_id ?? record.taxId ?? '',
+    active: record.active !== false,
     createdAt: record.created_at ?? record.createdAt ?? null,
     updatedAt: record.updated_at ?? record.updatedAt ?? null,
   }
 }
 
 function serializeSupplier(supplier) {
-  return {
+  const payload = {
     company_name: supplier.companyName ?? supplier.company_name ?? '',
     contact_person: supplier.contactPerson ?? supplier.contact_person ?? '',
     phone: supplier.phone ?? '',
@@ -29,6 +30,12 @@ function serializeSupplier(supplier) {
     notes: supplier.notes ?? '',
     tax_id: supplier.taxId ?? supplier.tax_id ?? '',
   }
+
+  if (typeof supplier.active === 'boolean') {
+    payload.active = supplier.active
+  }
+
+  return payload
 }
 
 function isTableUnavailableError(error) {

@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import {
   STOCK_CATEGORIES,
   STOCK_LOCATIONS,
@@ -14,6 +14,7 @@ import {
   stockItemToForm,
   validateStockItemForm,
 } from '../../lib/stockCatalog'
+import { buildStockItemSupplierOptions, normalizeSupplierName } from '../../lib/stockSupplierUtils'
 
 function StockFormSection({ title, children }) {
   return (
@@ -26,18 +27,45 @@ function StockFormSection({ title, children }) {
 
 export function StockItemFormModal({
   initialItem,
+  initialForm = null,
   onClose,
   onSubmit,
   isSaving,
   workspaceId = '',
   isWorkspaceReady = false,
   workspaceSetupMessage = '',
+  suppliers = [],
+  canManage = false,
+  onOpenAddSupplier,
+  supplierPrefill = '',
+  onSupplierPrefillApplied,
 }) {
   const isEditing = Boolean(initialItem?.id)
-  const [form, setForm] = useState(() => (
-    initialItem?.id ? stockItemToForm(initialItem) : buildEmptyStockItemForm()
-  ))
+  const isDuplicating = Boolean(initialForm && !initialItem?.id)
+  const [form, setForm] = useState(() => {
+    if (initialItem?.id) return stockItemToForm(initialItem)
+    if (initialForm) return initialForm
+    return buildEmptyStockItemForm()
+  })
   const [error, setError] = useState('')
+
+  useEffect(() => {
+    if (!supplierPrefill) return
+    const nextSupplier = normalizeSupplierName(supplierPrefill)
+    if (!nextSupplier) return
+    setForm((current) => ({ ...current, supplier: nextSupplier }))
+    onSupplierPrefillApplied?.()
+  }, [supplierPrefill, onSupplierPrefillApplied])
+
+  const supplierOptions = useMemo(
+    () => buildStockItemSupplierOptions(suppliers, form.supplier),
+    [suppliers, form.supplier],
+  )
+
+  const hasInactiveSupplierSelected = useMemo(
+    () => supplierOptions.some((option) => option.disabled && option.value === form.supplier),
+    [supplierOptions, form.supplier],
+  )
 
   const typeOptions = useMemo(
     () => getStockTypeOptionsForCategory(form.category),
@@ -77,6 +105,14 @@ export function StockItemFormModal({
       return
     }
 
+    const inactiveSupplierSelected = supplierOptions.some(
+      (option) => option.disabled && option.value === normalizeSupplierName(form.supplier),
+    )
+    if (inactiveSupplierSelected) {
+      setError('Select an active supplier before saving.')
+      return
+    }
+
     try {
       setError('')
       await onSubmit(stockFormToPayload(form))
@@ -100,9 +136,15 @@ export function StockItemFormModal({
         <div className="stock-item-form-header">
           <div>
             <p className="eyebrow">Stock</p>
-            <h3 id="stock-item-form-title">{isEditing ? 'Edit Stock Item' : 'New Stock Item'}</h3>
+            <h3 id="stock-item-form-title">
+              {isEditing ? 'Edit Stock Item' : isDuplicating ? 'Duplicate Stock Item' : 'New Stock Item'}
+            </h3>
             <p className="stock-item-form-subtitle">
-              {isEditing ? 'Update product details and stock levels.' : 'Add a product to your inventory.'}
+              {isEditing
+                ? 'Update product details and stock levels.'
+                : isDuplicating
+                  ? 'Create a similar product. Update the name and starting quantity.'
+                  : 'Add a product to your inventory.'}
             </p>
           </div>
           <button type="button" className="icon-btn" onClick={onClose} aria-label="Close">✕</button>
@@ -153,15 +195,45 @@ export function StockItemFormModal({
               </label>
             </div>
 
-            <label className="stock-form-field stock-form-field-full">
+            <div className="stock-form-field stock-form-field-full stock-supplier-field">
               <span>Supplier</span>
-              <input
-                type="text"
-                value={form.supplier}
-                onChange={(event) => setForm((current) => ({ ...current, supplier: event.target.value }))}
-                placeholder="e.g. Malakakos AE"
-              />
-            </label>
+              <div className="stock-supplier-field-row">
+                <select
+                  className="stock-supplier-select"
+                  value={form.supplier}
+                  onChange={(event) => setForm((current) => ({
+                    ...current,
+                    supplier: normalizeSupplierName(event.target.value),
+                  }))}
+                  aria-describedby={hasInactiveSupplierSelected ? 'stock-supplier-inactive-note' : undefined}
+                >
+                  {supplierOptions.map((option) => (
+                    <option
+                      key={option.value || 'no-supplier'}
+                      value={option.value}
+                      disabled={option.disabled}
+                    >
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+                {canManage ? (
+                  <button
+                    type="button"
+                    className="ghost-btn stock-add-supplier-btn"
+                    onClick={onOpenAddSupplier}
+                    disabled={isSaving}
+                  >
+                    + Add supplier
+                  </button>
+                ) : null}
+              </div>
+              {hasInactiveSupplierSelected ? (
+                <p id="stock-supplier-inactive-note" className="stock-supplier-field-note">
+                  Current supplier is inactive or not in the directory. Select an active supplier to update.
+                </p>
+              ) : null}
+            </div>
           </StockFormSection>
 
           <StockFormSection title="Stock control">
@@ -286,7 +358,7 @@ export function StockItemFormModal({
               Cancel
             </button>
             <button type="submit" className="primary-btn stock-item-form-submit" disabled={isSaving || !isWorkspaceReady}>
-              {isSaving ? 'Saving…' : isEditing ? 'Save changes' : '+ Create stock item'}
+              {isSaving ? 'Saving…' : isEditing ? 'Save changes' : isDuplicating ? 'Create duplicate' : '+ Create stock item'}
             </button>
           </div>
         </form>
