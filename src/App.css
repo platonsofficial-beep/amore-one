@@ -4290,6 +4290,149 @@
   color: rgba(240, 196, 184, 0.78);
 }
 
+.host-manager-summary-item.is-problems .host-manager-summary-value {
+  color: #d4b8b0;
+}
+
+.host-manager-summary-item.is-problems .host-manager-summary-label {
+  color: rgba(212, 184, 176, 0.78);
+}
+
+.host-service-health-strip {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0 12px 10px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(212, 175, 55, 0.14);
+  background:
+    linear-gradient(90deg, rgba(212, 175, 55, 0.05), transparent 42%),
+    rgba(0, 0, 0, 0.22);
+}
+
+.host-service-health-strip.is-loading {
+  min-height: 44px;
+  justify-content: center;
+}
+
+.host-service-health-loading {
+  margin: 0;
+  font-size: 0.82rem;
+  color: rgba(232, 215, 168, 0.72);
+}
+
+.host-service-health-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.host-service-health-status-label {
+  margin: 0;
+  font-size: 0.88rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  line-height: 1.2;
+}
+
+.host-service-health-metrics {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 14px;
+}
+
+.host-service-health-metric {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 5px;
+  min-height: 24px;
+}
+
+.host-service-health-metric span {
+  color: rgba(232, 215, 168, 0.58);
+  font-size: 0.62rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.host-service-health-metric strong {
+  color: #f7efe1;
+  font-size: 0.88rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.host-service-health-metric strong.tone-alert {
+  color: #e8a89a;
+}
+
+.host-service-health-next,
+.host-service-health-alert {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.04);
+  color: #e8dcc6;
+  font-size: 0.82rem;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+  width: 100%;
+}
+
+.host-service-health-next:hover,
+.host-service-health-alert:hover {
+  background: rgba(255, 255, 255, 0.07);
+  border-color: rgba(212, 175, 55, 0.24);
+}
+
+.host-service-health-next.is-selected,
+.host-service-health-alert.is-selected {
+  border-color: rgba(212, 175, 55, 0.42);
+  background: rgba(212, 175, 55, 0.12);
+}
+
+.host-service-health-wave {
+  margin: 0;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: rgba(232, 168, 154, 0.1);
+  border: 1px solid rgba(232, 168, 154, 0.22);
+  color: #f0c4b8;
+  font-size: 0.78rem;
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.host-service-health-alerts {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.host-list-filter-chip.has-count:not(.active) {
+  border-color: rgba(212, 184, 176, 0.28);
+  color: #d4b8b0;
+}
+
+.host-timeline-next-hint {
+  margin-left: auto;
+  padding-left: 12px;
+  color: rgba(232, 215, 168, 0.78);
+  font-size: 0.78rem;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: min(52vw, 320px);
+}
+
 .host-reservation-list-controls {
   display: flex;
   flex-direction: column;
@@ -5773,11 +5916,11 @@
 .host-timeline-toggle-bar {
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
   gap: 8px;
   width: 100%;
-  min-height: 34px;
-  padding: 6px 12px;
+  min-height: 44px;
+  padding: 8px 12px;
   border: 0;
   background: transparent;
   color: rgba(255, 255, 255, 0.58);

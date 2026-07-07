@@ -23,6 +23,7 @@ import { HostReservationEditPanel, createHostReservationEditForm } from './compo
 import { HostReservationEditErrorBoundary } from './components/reservations/HostReservationEditErrorBoundary'
 import { HostReservationList } from './components/reservations/HostReservationList'
 import { HostManagerSummaryBar } from './components/reservations/HostManagerSummaryBar'
+import { HostServiceHealthStrip, formatHostNextArrivalHint } from './components/reservations/HostServiceHealthStrip'
 import { HostWorkspaceDateNav } from './components/reservations/HostWorkspaceDateNav'
 import {
   buildHostManagerSummary,
@@ -5345,6 +5346,7 @@ const HOST_LIST_FILTERS = [
   'Upcoming',
   'In House',
   'Completed',
+  'Problems',
 ]
 
 const HOST_LIST_SORTS = [
@@ -8608,6 +8610,8 @@ function hostListFilterMatch(reservation, filter, nowMinutes, todayKey) {
       return groupId === 'in-house' || isReservationInHouse(reservation)
     case 'Completed':
       return groupId === 'completed'
+    case 'Problems':
+      return groupId === 'problems'
     default:
       return true
   }
@@ -9820,20 +9824,27 @@ function HostReservationListControls({
   showHourFilter,
   onToggleHourFilter,
   hasHourSlots,
+  problemsCount = 0,
 }) {
   return (
     <div className="host-reservation-list-controls">
       <div className="host-reservation-list-filters" role="toolbar" aria-label="Reservation filters">
-        {HOST_LIST_FILTERS.map((filter) => (
-          <button
-            key={filter}
-            type="button"
-            className={`host-list-filter-chip${listFilter === filter ? ' active' : ''}`}
-            onClick={() => onListFilterChange(filter)}
-          >
-            {filter}
-          </button>
-        ))}
+        {HOST_LIST_FILTERS.map((filter) => {
+          const isProblems = filter === 'Problems'
+          const problems = Number(problemsCount) || 0
+          const label = isProblems && problems > 0 ? `Problems (${problems})` : filter
+
+          return (
+            <button
+              key={filter}
+              type="button"
+              className={`host-list-filter-chip${listFilter === filter ? ' active' : ''}${isProblems && problems > 0 ? ' has-count' : ''}`}
+              onClick={() => onListFilterChange(filter)}
+            >
+              {label}
+            </button>
+          )
+        })}
       </div>
 
       <div className="host-reservation-list-toolbar">
@@ -9875,6 +9886,11 @@ function ReservationsUnifiedCanvas({
   hostServicePressureSlots,
   serviceHourFilter,
   onServiceHourFilterChange,
+  serviceHealthMetrics,
+  serviceInsights,
+  arrivalWaves,
+  problemsCount = 0,
+  nextArrivalHint = '',
   isLoading,
   onQuickStatusUpdate,
   isSavingStatus,
@@ -9900,6 +9916,7 @@ function ReservationsUnifiedCanvas({
     setActiveFloorAreaId,
     openHostEdit,
     isSelected,
+    selectReservation,
     draggingReservationId,
     setDraggingReservationId,
     clearDragState,
@@ -9938,7 +9955,15 @@ function ReservationsUnifiedCanvas({
       {floorPlanMode !== 'edit' ? (
       <section className="host-operations-list" aria-label="Reservation list">
         <div className="host-operations-list-sticky">
-          <HostManagerSummaryBar summary={hostManagerSummary} />
+          <HostManagerSummaryBar summary={hostManagerSummary} problemsCount={problemsCount} />
+          <HostServiceHealthStrip
+            metrics={serviceHealthMetrics}
+            insights={serviceInsights}
+            arrivalWaves={arrivalWaves}
+            isLoading={isLoading}
+            onSelectReservation={selectReservation}
+            isReservationSelected={isSelected}
+          />
           {showHourFilter ? (
             <HostServicePressureBar
               slots={hostServicePressureSlots}
@@ -9955,6 +9980,7 @@ function ReservationsUnifiedCanvas({
             showHourFilter={showHourFilter}
             onToggleHourFilter={() => setShowHourFilter((current) => !current)}
             hasHourSlots={hostServicePressureSlots.length > 0}
+            problemsCount={problemsCount}
           />
         </div>
         <div className="host-operations-list-scroll">
@@ -10006,6 +10032,9 @@ function ReservationsUnifiedCanvas({
             {isTimelineCollapsed ? '▲' : '▼'}
           </span>
           <span>{isTimelineCollapsed ? 'Open timeline' : 'Close timeline'}</span>
+          {isTimelineCollapsed && nextArrivalHint ? (
+            <span className="host-timeline-next-hint">{nextArrivalHint}</span>
+          ) : null}
         </button>
         {!isTimelineCollapsed ? (
           <ServiceTimelinePanel {...timelinePanelProps} showIntelligence={false} />
@@ -10236,6 +10265,25 @@ function ReservationsWorkspaceBody({
     return next?.id ?? null
   }, [nowMinutes, workspaceReservations])
 
+  const nextArrival = useMemo(() => {
+    if (!nextArrivalId) return null
+    return workspaceReservations.find(
+      (reservation) => String(reservation.id) === String(nextArrivalId),
+    ) ?? null
+  }, [nextArrivalId, workspaceReservations])
+
+  const nextArrivalHint = useMemo(
+    () => formatHostNextArrivalHint(nextArrival, nowMinutes),
+    [nextArrival, nowMinutes],
+  )
+
+  const hostProblemsCount = useMemo(
+    () => workspaceReservations.filter(
+      (reservation) => getHostListGroupId(reservation) === 'problems',
+    ).length,
+    [workspaceReservations],
+  )
+
   const activeTimelineReservationId = useMemo(
     () => getActiveTimelineReservationId(filteredWorkspaceReservations, nowMinutes, selectedDateKey),
     [filteredWorkspaceReservations, nowMinutes, selectedDateKey],
@@ -10367,6 +10415,11 @@ function ReservationsWorkspaceBody({
         hostServicePressureSlots={hostServicePressureSlots}
         serviceHourFilter={serviceHourFilter}
         onServiceHourFilterChange={handleServiceHourFilterChange}
+        serviceHealthMetrics={serviceHealthMetrics}
+        serviceInsights={serviceInsights}
+        arrivalWaves={arrivalWaves}
+        problemsCount={hostProblemsCount}
+        nextArrivalHint={nextArrivalHint}
         timelinePanelProps={timelinePanelProps}
         floorPlanProps={floorPlanProps}
         sharedCardProps={sharedCardProps}
@@ -10416,6 +10469,11 @@ function ReservationsWorkspaceContent({
   hostServicePressureSlots,
   serviceHourFilter,
   onServiceHourFilterChange,
+  serviceHealthMetrics,
+  serviceInsights,
+  arrivalWaves,
+  problemsCount = 0,
+  nextArrivalHint = '',
   timelinePanelProps,
   floorPlanProps,
   sharedCardProps: _sharedCardProps,
@@ -10503,6 +10561,11 @@ function ReservationsWorkspaceContent({
           hostServicePressureSlots={hostServicePressureSlots}
           serviceHourFilter={serviceHourFilter}
           onServiceHourFilterChange={onServiceHourFilterChange}
+          serviceHealthMetrics={serviceHealthMetrics}
+          serviceInsights={serviceInsights}
+          arrivalWaves={arrivalWaves}
+          problemsCount={problemsCount}
+          nextArrivalHint={nextArrivalHint}
           isLoading={isLoading}
           onQuickStatusUpdate={onQuickStatusUpdate}
           isSavingStatus={isSaving}
