@@ -5,6 +5,7 @@ export function AuthGate({ children }) {
   const {
     session,
     isBootstrapping,
+    isLoading,
     isAuthDisabled,
     membership,
     membershipLoadError,
@@ -30,20 +31,33 @@ export function AuthGate({ children }) {
     return <LoginView />
   }
 
-  if (!membership && membershipLoadError) {
+  if (!membership && (membershipLoadError || !isLoading)) {
     return (
       <div className="auth-page">
         <div className="auth-card panel staff-panel">
           <header className="auth-header">
             <p className="auth-brand">ONE</p>
-            <h1 className="auth-title">Unable to join workspace</h1>
+            <h1 className="auth-title">
+              {membershipLoadError ? 'Unable to join workspace' : 'Workspace unavailable'}
+            </h1>
           </header>
           <div className="auth-banner auth-banner-error" role="alert">
-            {membershipLoadError}
+            {membershipLoadError || 'No workspace membership was found for this account.'}
           </div>
           <button type="button" className="primary-btn auth-submit-btn" onClick={() => signOut()}>
             Sign out
           </button>
+        </div>
+      </div>
+    )
+  }
+
+  if (!membership && isLoading) {
+    return (
+      <div className="auth-page auth-loading-page" aria-busy="true" aria-live="polite">
+        <div className="auth-loading-card panel staff-panel">
+          <p className="auth-brand">ONE</p>
+          <p className="auth-loading-text">Loading workspace…</p>
         </div>
       </div>
     )

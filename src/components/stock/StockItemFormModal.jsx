@@ -94,6 +94,8 @@ export function StockItemFormModal({
   const handleSubmit = async (event) => {
     event.preventDefault()
 
+    if (isSaving) return
+
     if (!isWorkspaceReady || !`${workspaceId ?? ''}`.trim()) {
       setError(workspaceSetupMessage || 'Workspace is still loading. Please wait a moment and try again.')
       return

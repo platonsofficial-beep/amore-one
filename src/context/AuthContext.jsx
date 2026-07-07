@@ -330,6 +330,8 @@ export function AuthProvider({ children }) {
       }
 
       if (event === 'SIGNED_OUT' || !nextUserId) {
+        clearPendingInviteToken()
+        clearMobileSessionState()
         clearAuthenticatedState()
         finishBootstrapping()
         return
@@ -401,12 +403,15 @@ export function AuthProvider({ children }) {
   }, [loadWorkspaceContext])
 
   const signOut = useCallback(async () => {
-    await authSignOut()
-    clearPendingInviteToken()
-    clearMobileSessionState()
-    hasBootstrappedRef.current = true
-    clearAuthenticatedState()
-    setIsLoading(false)
+    try {
+      await authSignOut()
+    } finally {
+      clearPendingInviteToken()
+      clearMobileSessionState()
+      hasBootstrappedRef.current = true
+      clearAuthenticatedState()
+      setIsLoading(false)
+    }
   }, [clearAuthenticatedState])
 
   const resetPassword = useCallback(async (email) => {

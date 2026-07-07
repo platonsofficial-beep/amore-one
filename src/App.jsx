@@ -10072,7 +10072,8 @@ function ReservationsUnifiedCanvas({
             }}
             onDelete={async (id) => {
               if (!onHostEditDelete) return
-              await onHostEditDelete(id)
+              const deleted = await onHostEditDelete(id)
+              if (!deleted) return
               clearSelection()
               closeHostEdit()
             }}
@@ -12206,6 +12207,8 @@ function App() {
   const [isStockOrdersLoading, setIsStockOrdersLoading] = useState(false)
   const [isSavingStockOrder, setIsSavingStockOrder] = useState(false)
   const isCreatingStockOrdersRef = useRef(false)
+  const isReceivingStockOrderRef = useRef(false)
+  const isSavingStockItemRef = useRef(false)
   const [barRefills, setBarRefills] = useState([])
   const [barRefillsNotice, setBarRefillsNotice] = useState('')
   const [isBarRefillsLoading, setIsBarRefillsLoading] = useState(true)
@@ -12993,7 +12996,7 @@ function App() {
     [managerMobileOperationsTasks, currentDateKey],
   )
 
-  const isManagerMobileShell = isManagementMobileRole(role)
+  const isManagerMobileShell = !isAuthLoading && isManagementMobileRole(role)
   const activeMobileTab = isManagerMobileShell ? mobileManagerTab : mobileStaffTab
   const isManagerMobileStockLoading = isManagerMobileBootstrapLoading || isStockItemsLoading || isStockOrdersLoading
   const isManagerMobileTasksLoading = isManagerMobileBootstrapLoading || isOperationsLoading
@@ -13417,7 +13420,9 @@ function App() {
 
     refreshDashboardModuleData()
     refreshOperationsAnnouncements()
-    refreshMobileOperationsTasks()
+    refreshMobileOperationsTasks().catch((error) => {
+      console.warn('[App] refreshMobileOperationsTasks error:', error)
+    })
     refreshTodayWeekPublishedData(mobileWeekStart)
 
     let isMounted = true
@@ -13446,7 +13451,9 @@ function App() {
     const intervalId = window.setInterval(() => {
       refreshDashboardModuleData()
       refreshOperationsAnnouncements()
-      refreshMobileOperationsTasks()
+      refreshMobileOperationsTasks().catch((error) => {
+        console.warn('[App] refreshMobileOperationsTasks error:', error)
+      })
 
       if (isManagementMobileRole(role)) {
         refreshStockItems()
@@ -17225,7 +17232,7 @@ function App() {
       }
     } catch (error) {
       setReservationNotice(error.message || 'Unable to update reservation right now.')
-      throw error
+      return { saved: false }
     } finally {
       isSavingReservationRef.current = false
       setIsSavingReservation(false)
@@ -17233,14 +17240,24 @@ function App() {
   }
 
   const handleHostEditDelete = async (id) => {
+    if (isSavingReservationRef.current) return false
+
+    isSavingReservationRef.current = true
+    setIsSavingReservation(true)
+    setReservationNotice('')
+
     try {
       await deleteReservation(activeWorkspaceId, id)
       removeReservationFromState(id)
       await reloadTodayReservations()
       setReservationNotice('Reservation removed.')
+      return true
     } catch (error) {
       setReservationNotice(error.message || 'Unable to delete reservation right now.')
-      throw error
+      return false
+    } finally {
+      isSavingReservationRef.current = false
+      setIsSavingReservation(false)
     }
   }
 
@@ -17439,7 +17456,8 @@ function App() {
         date: currentDateKey,
         time: quickReservationForm.time,
         guests: Number(quickReservationForm.guests) || 2,
-        tableNumber: quickReservationForm.tableNumber.trim() || (profile?.favoriteTable !== '—' ? profile.favoriteTable : ''),
+        tableNumber: quickReservationForm.tableNumber.trim()
+          || (profile?.favoriteTable && profile.favoriteTable !== '—' ? profile.favoriteTable : ''),
         area: profile?.favoriteArea && profile.favoriteArea !== '—' ? profile.favoriteArea : 'Main Dining',
         status: 'Pending',
         notes: `${match?.notes ?? ''}`.trim(),
@@ -17589,7 +17607,9 @@ function App() {
     if (!activeWorkspaceId) {
       throw new Error(stockWorkspaceSetupMessage || 'Workspace is required to add stock items.')
     }
+    if (isSavingStockItemRef.current) return
 
+    isSavingStockItemRef.current = true
     setIsSavingStockItem(true)
     setStockItemsNotice('')
 
@@ -17601,6 +17621,7 @@ function App() {
       setStockItemsNotice(error.message || 'Unable to add stock item right now.')
       throw error
     } finally {
+      isSavingStockItemRef.current = false
       setIsSavingStockItem(false)
     }
   }
@@ -17609,7 +17630,9 @@ function App() {
     if (!activeWorkspaceId) {
       throw new Error(stockWorkspaceSetupMessage || 'Workspace is required to update stock items.')
     }
+    if (isSavingStockItemRef.current) return
 
+    isSavingStockItemRef.current = true
     setIsSavingStockItem(true)
     setStockItemsNotice('')
 
@@ -17621,6 +17644,7 @@ function App() {
       setStockItemsNotice(error.message || 'Unable to update stock item right now.')
       throw error
     } finally {
+      isSavingStockItemRef.current = false
       setIsSavingStockItem(false)
     }
   }
@@ -17631,7 +17655,9 @@ function App() {
     }
 
     if (!updates.length) return
+    if (isSavingStockItemRef.current) return
 
+    isSavingStockItemRef.current = true
     setIsSavingStockItem(true)
     setStockItemsNotice('')
 
@@ -17645,6 +17671,7 @@ function App() {
       setStockItemsNotice(error.message || 'Unable to update products right now.')
       throw error
     } finally {
+      isSavingStockItemRef.current = false
       setIsSavingStockItem(false)
     }
   }
@@ -17653,7 +17680,9 @@ function App() {
     if (!activeWorkspaceId) {
       throw new Error(stockWorkspaceSetupMessage || 'Workspace is required to import stock items.')
     }
+    if (isSavingStockItemRef.current) return
 
+    isSavingStockItemRef.current = true
     setIsSavingStockItem(true)
     setStockItemsNotice('')
 
@@ -17679,6 +17708,7 @@ function App() {
       setStockItemsNotice(error.message || 'Unable to import products right now.')
       throw error
     } finally {
+      isSavingStockItemRef.current = false
       setIsSavingStockItem(false)
     }
   }
@@ -17687,7 +17717,9 @@ function App() {
     if (!activeWorkspaceId || !item?.id) {
       throw new Error(stockWorkspaceSetupMessage || 'Workspace and item are required for stock movements.')
     }
+    if (isSavingStockItemRef.current) return
 
+    isSavingStockItemRef.current = true
     setIsSavingStockItem(true)
     setStockItemsNotice('')
 
@@ -17707,6 +17739,7 @@ function App() {
       setStockItemsNotice(error.message || 'Unable to record stock movement right now.')
       throw error
     } finally {
+      isSavingStockItemRef.current = false
       setIsSavingStockItem(false)
     }
   }
@@ -17785,7 +17818,9 @@ function App() {
       const message = stockWorkspaceSetupMessage || 'Workspace is required to receive orders.'
       throw new Error(message)
     }
+    if (isReceivingStockOrderRef.current) return
 
+    isReceivingStockOrderRef.current = true
     setIsSavingStockOrder(true)
     setStockOrdersNotice('')
 
@@ -17808,6 +17843,7 @@ function App() {
       setStockOrdersNotice(error.message || 'Unable to receive order right now.')
       throw error
     } finally {
+      isReceivingStockOrderRef.current = false
       setIsSavingStockOrder(false)
     }
   }
@@ -18965,6 +19001,12 @@ function App() {
     handleActiveViewChange(moduleId)
     if (moduleId === 'team') {
       handleTeamSectionChange('schedule')
+    } else if (moduleId === 'stock') {
+      handleStockSectionChange('dashboard')
+    } else if (moduleId === 'operations') {
+      handleOperationsSectionChange('dashboard')
+    } else if (moduleId === 'settings') {
+      handleSettingsSectionChange('profile')
     }
     setMobileExpandedView('workspace')
   }
@@ -19594,7 +19636,18 @@ function App() {
             <>
               {isMobileViewport ? (
                 (() => {
-                  const isManagerMobileShell = isManagementMobileRole(role)
+                  if (isAuthLoading) {
+                    return (
+                      <div className="auth-page auth-loading-page mobile-auth-loading" aria-busy="true" aria-live="polite">
+                        <div className="auth-loading-card panel staff-panel">
+                          <p className="auth-brand">ONE</p>
+                          <p className="auth-loading-text">Loading workspace…</p>
+                        </div>
+                      </div>
+                    )
+                  }
+
+                  const isManagerMobileShell = !isAuthLoading && isManagementMobileRole(role)
                   const mobileHomeProps = isManagerMobileShell
                     ? {
                       venueName: workspaceProfile.businessName,

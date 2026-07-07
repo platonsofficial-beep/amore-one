@@ -40,6 +40,7 @@ export function WorkspaceTeamSection({
     user,
     workspace: authWorkspace,
     isOwner,
+    refreshMembership,
   } = useAuth()
 
   const [workspaceProfile, setWorkspaceProfile] = useState(
@@ -153,7 +154,7 @@ export function WorkspaceTeamSection({
     try {
       await linkMembershipEmployee(authUserId, employeeId)
 
-      const refreshedMembership = await getCurrentMembership(user?.id)
+      const refreshedMembership = await refreshMembership().catch(() => getCurrentMembership(user?.id))
       const nextEmployeeId = resolveMembershipEmployeeId(refreshedMembership) ?? employeeId
       setLinkedEmployeeId(nextEmployeeId)
       setIsLinkModalOpen(false)

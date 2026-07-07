@@ -25,7 +25,11 @@ export function readPersistedMobileTab() {
 
 export function persistMobileTab(tab) {
   if (typeof window === 'undefined') return
-  window.localStorage.setItem(MOBILE_TAB_STORAGE_KEY, normalizeMobileTab(tab))
+  try {
+    window.localStorage.setItem(MOBILE_TAB_STORAGE_KEY, normalizeMobileTab(tab))
+  } catch {
+    // Ignore storage failures.
+  }
 }
 
 export function normalizeManagerMobileTab(value) {
@@ -47,7 +51,11 @@ export function readPersistedManagerMobileTab() {
 
 export function persistManagerMobileTab(tab) {
   if (typeof window === 'undefined') return
-  window.localStorage.setItem(MOBILE_MANAGER_TAB_STORAGE_KEY, normalizeManagerMobileTab(tab))
+  try {
+    window.localStorage.setItem(MOBILE_MANAGER_TAB_STORAGE_KEY, normalizeManagerMobileTab(tab))
+  } catch {
+    // Ignore storage failures.
+  }
 }
 
 const MOBILE_WEEK_START_STORAGE_KEY = 'one.mobileWeekStart.v1'

@@ -135,12 +135,12 @@ export function HostReservationEditPanel({
     })
   }
 
-  const handleDelete = () => {
+  const handleDelete = async () => {
     const confirmed = window.confirm(
       `Delete reservation for ${guestLabel}? This will remove the booking and clear any table assignments.`,
     )
-    if (!confirmed) return
-    onDelete(reservation.id)
+    if (!confirmed || isSaving) return
+    await onDelete(reservation.id)
   }
 
   const formId = `host-reservation-edit-form-${reservation.id}`
