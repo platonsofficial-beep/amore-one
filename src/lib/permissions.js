@@ -84,6 +84,11 @@ export function resolvePermittedActiveView(role, requestedView) {
   return canAccessModule(role, normalizedView) ? normalizedView : DEFAULT_FALLBACK_MODULE
 }
 
+export function canEditSchedule(role) {
+  const normalizedRole = normalizeWorkspaceRole(role, 'staff')
+  return ['owner', 'general_manager', 'manager'].includes(normalizedRole)
+}
+
 export function resolvePermittedTeamSection(role, requestedSection) {
   const normalizedSection = `${requestedSection ?? ''}`.trim()
   if (normalizedSection && canAccessTeamSection(role, normalizedSection)) {

@@ -126,6 +126,9 @@ const LEGACY_STATUS_ALIASES = {
   departed: 'Checked Out',
   closed: 'Checked Out',
   'No Show': 'Not Shown',
+  pending: 'Pending',
+  confirmed: 'Confirmed',
+  cancelled: 'Cancelled',
 }
 
 const STATUS_BY_ID = Object.fromEntries(
@@ -141,6 +144,13 @@ const IN_HOUSE_STATUS_IDS = new Set(
 )
 
 const TERMINAL_STATUS_IDS = new Set(['Checked Out', 'Cancelled', 'Not Shown', 'Rejected'])
+
+const TODAY_OPERATIONAL_EXCLUDED_STATUS_IDS = new Set([
+  'Checked Out',
+  'Cancelled',
+  'Not Shown',
+  'Rejected',
+])
 
 const FLOOR_OCCUPYING_STATUS_IDS = new Set([
   'Pending',
@@ -201,6 +211,14 @@ export function reservationOccupiesFloorTables(status) {
 
 export function isTerminalReservationStatus(status) {
   return TERMINAL_STATUS_IDS.has(normalizeReservationStatus(status))
+}
+
+export function isOperationalReservationStatus(status) {
+  return !TODAY_OPERATIONAL_EXCLUDED_STATUS_IDS.has(normalizeReservationStatus(status))
+}
+
+export function isOperationalReservation(reservation) {
+  return isOperationalReservationStatus(reservation?.status)
 }
 
 export function isReservationInHouseStatus(status) {

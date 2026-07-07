@@ -1,8 +1,8 @@
-import { resolveShiftTemplateId } from './shiftIntegrity'
-import { formatTime24, normalizeTimeValue } from './timeFormatUtils'
+import { formatTime24, formatTimeRange24, normalizeTimeValue } from './timeFormatUtils'
 import { calculateShiftDurationHours, parseTimeToMinutes } from './shiftHoursUtils'
 import { getCurrentDateKey } from './currentDateUtils'
 import { getWeekDateKeys } from './weekUtils'
+import { isOperationalReservation } from './reservationHostStatus'
 
 function normalizeDate(value) {
   if (!value) return ''
@@ -207,37 +207,51 @@ export function buildLiveFloorState({
 
 export function buildTodayTimeline({
   shifts = [],
-  shiftTemplates = [],
+  employees = [],
   todayKey = getCurrentDateKey(),
 } = {}) {
   const todayShifts = shifts.filter((shift) => normalizeDate(shift.date) === todayKey)
-  const templatesById = new Map(
-    shiftTemplates
-      .map((template) => [resolveShiftTemplateId(template), template])
-      .filter(([templateId]) => Boolean(templateId)),
+  const employeesById = new Map(
+    (employees ?? []).map((employee) => [String(employee.id), employee]),
   )
 
-  const seen = new Set()
   const events = []
 
   todayShifts.forEach((shift) => {
     const startTime = normalizeTimeValue(shift.startTime)
+    const endTime = normalizeTimeValue(shift.endTime)
     if (!startTime) return
 
-    const templateId = resolveShiftTemplateId(shift)
-    const template = templateId ? templatesById.get(templateId) : null
-    const shiftName = `${template?.name ?? shift.area ?? shift.role ?? 'Shift'}`.trim() || 'Shift'
-    const key = `shift:${startTime}:${shiftName.toLowerCase()}`
-    if (seen.has(key)) return
-    seen.add(key)
+    const member = resolveEmployeeShiftMember(shift, employeesById)
+    const employeeName = member.name
+    const role = `${shift.role ?? member.position ?? ''}`.trim()
+    const area = `${shift.area ?? member.department ?? ''}`.trim()
+    const timeRange = formatTimeRange24(startTime, endTime, '-')
 
-    const area = `${shift.area ?? template?.defaultArea ?? ''}`.trim()
+    let title = 'Shift'
+    let note = ''
+
+    if (employeeName) {
+      title = employeeName
+      note = role || area
+    } else if (role) {
+      title = role
+      note = area
+    } else if (area) {
+      title = area
+    }
+
     events.push({
-      key,
+      key: `shift:${shift.id ?? `${startTime}:${shift.employeeId ?? 'open'}`}`,
       time: startTime,
       timeLabel: formatTime24(startTime),
-      title: `${shiftName} starts`,
-      note: area,
+      title,
+      note,
+      timeRange,
+      endTime,
+      endTimeLabel: formatTime24(endTime),
+      area,
+      role,
       type: 'shift',
     })
   })
@@ -251,15 +265,15 @@ export function buildTodayTimeline({
 
 export function buildTodayCommandTimeline({
   shifts = [],
-  shiftTemplates = [],
+  employees = [],
   reservations = [],
   todayKey = getCurrentDateKey(),
   reservationsConnected = false,
 } = {}) {
-  const events = buildTodayTimeline({ shifts, shiftTemplates, todayKey })
+  const events = buildTodayTimeline({ shifts, employees, todayKey })
 
   if (reservationsConnected) {
-    getTodayReservations(reservations, todayKey).forEach((reservation) => {
+    getOperationalTodayReservations(reservations, todayKey).forEach((reservation) => {
       const time = normalizeTimeValue(reservation.time)
       if (!time) return
 
@@ -273,7 +287,11 @@ export function buildTodayCommandTimeline({
         key: `reservation:${reservation.id ?? `${guestName}-${time}`}`,
         time,
         timeLabel: formatTime24(time),
-        title: `${guestName} reservation`,
+        title: guestName,
+        guestName,
+        guests: Number.isFinite(guests) ? guests : null,
+        tableNumber,
+        reservationStatus: reservation.status ?? '',
         note: [guestNote, tableNote].filter(Boolean).join(' · '),
         type: 'reservation',
       })
@@ -286,7 +304,7 @@ export function buildTodayCommandTimeline({
 }
 
 export function buildTodayReservationsSummary(reservations = [], todayKey = getCurrentDateKey()) {
-  const todayReservations = getTodayReservations(reservations, todayKey)
+  const todayReservations = getOperationalTodayReservations(reservations, todayKey)
   const tableNumbers = new Set()
   let guests = 0
 
@@ -323,6 +341,10 @@ export function getTodayReservations(reservations = [], todayKey = getCurrentDat
       (parseTimeToMinutes(left.time ?? left.reservation_time) ?? 0)
         - (parseTimeToMinutes(right.time ?? right.reservation_time) ?? 0)
     ))
+}
+
+export function getOperationalTodayReservations(reservations = [], todayKey = getCurrentDateKey()) {
+  return getTodayReservations(reservations, todayKey).filter(isOperationalReservation)
 }
 
 export function countLowStockAlerts(inventoryItems = []) {
@@ -576,7 +598,7 @@ export function buildReservationsContextLine(
   todayKey = getCurrentDateKey(),
   now = new Date(),
 ) {
-  const todayReservations = getTodayReservations(reservations, todayKey)
+  const todayReservations = getOperationalTodayReservations(reservations, todayKey)
 
   if (todayReservations.length === 0) {
     return 'No reservations booked today.'
@@ -601,7 +623,7 @@ export function buildReservationsFooter(
   todayKey = getCurrentDateKey(),
   now = new Date(),
 ) {
-  const todayReservations = getTodayReservations(reservations, todayKey)
+  const todayReservations = getOperationalTodayReservations(reservations, todayKey)
 
   if (todayReservations.length === 0) {
     return { type: 'empty', message: 'No upcoming reservations.' }

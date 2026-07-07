@@ -1,8 +1,9 @@
 import { supabase } from '../lib/supabaseClient'
+import { normalizeShiftTemplateId } from '../lib/shiftIntegrity'
 
 const SHIFT_TEMPLATES_TABLE = 'shift_templates'
 
-export const SHIFT_TEMPLATE_LEGACY_SETUP_MESSAGE = 'Run supabase/shift_templates_default_required_staff.sql in Supabase to enable per-template default required staff and template archive.'
+export const SHIFT_TEMPLATE_SORT_ORDER_SETUP_MESSAGE = 'Run supabase/shift_templates_sort_order.sql in Supabase to enable manual shift template ordering.'
 
 function isMissingColumnError(error, columnName) {
   const message = `${error?.message ?? ''}`.toLowerCase()
@@ -18,6 +19,10 @@ function isExtendedSchemaError(error) {
     || isMissingColumnError(error, 'is_active')
 }
 
+function isSortOrderColumnError(error) {
+  return isMissingColumnError(error, 'sort_order')
+}
+
 function isForeignKeyError(error) {
   const message = `${error?.message ?? ''}`.toLowerCase()
   const code = `${error?.code ?? ''}`
@@ -28,6 +33,55 @@ function normalizeDefaultRequiredCount(value) {
   const parsed = Number(value)
   if (!Number.isFinite(parsed) || parsed < 0) return 1
   return Math.min(99, Math.floor(parsed))
+}
+
+function normalizeSortOrder(value) {
+  const parsed = Number(value)
+  if (!Number.isFinite(parsed) || parsed < 0) return 0
+  return Math.floor(parsed)
+}
+
+function resolveTemplateName(template) {
+  return `${template?.name ?? template?.template_name ?? ''}`.trim()
+}
+
+export function compareShiftTemplatesByOrder(left, right) {
+  const sortA = Number.isFinite(Number(left?.sortOrder ?? left?.sort_order))
+    ? Number(left?.sortOrder ?? left?.sort_order)
+    : Number.MAX_SAFE_INTEGER
+  const sortB = Number.isFinite(Number(right?.sortOrder ?? right?.sort_order))
+    ? Number(right?.sortOrder ?? right?.sort_order)
+    : Number.MAX_SAFE_INTEGER
+
+  if (sortA !== sortB) return sortA - sortB
+
+  return resolveTemplateName(left).localeCompare(resolveTemplateName(right))
+}
+
+export function sortShiftTemplates(templates = []) {
+  return [...templates].sort(compareShiftTemplatesByOrder)
+}
+
+export function moveShiftTemplatesByDrag(templates = [], draggedId, targetId) {
+  const draggedKey = String(resolveTemplateRecordId(draggedId) ?? draggedId ?? '')
+  const targetKey = String(resolveTemplateRecordId(targetId) ?? targetId ?? '')
+  if (!draggedKey || !targetKey || draggedKey === targetKey) {
+    return sortShiftTemplates(templates)
+  }
+
+  const sorted = sortShiftTemplates(templates)
+  const draggedIndex = sorted.findIndex((template) => (
+    String(resolveTemplateRecordId(template)) === draggedKey
+  ))
+  const targetIndex = sorted.findIndex((template) => (
+    String(resolveTemplateRecordId(template)) === targetKey
+  ))
+  if (draggedIndex < 0 || targetIndex < 0) return sorted
+
+  const next = [...sorted]
+  const [moved] = next.splice(draggedIndex, 1)
+  next.splice(targetIndex, 0, moved)
+  return next
 }
 
 function mapShiftTemplate(record) {
@@ -42,11 +96,12 @@ function mapShiftTemplate(record) {
       record.default_required_count ?? record.defaultRequiredCount ?? 1,
     ),
     isActive: record.is_active ?? record.isActive ?? true,
+    sortOrder: normalizeSortOrder(record.sort_order ?? record.sortOrder ?? 0),
     notes: record.notes ?? '',
   }
 }
 
-function serializeShiftTemplate(template, { includeExtended = true } = {}) {
+function serializeShiftTemplate(template, { includeExtended = true, includeSortOrder = true } = {}) {
   const payload = {
     template_name: template.name ?? template.template_name ?? '',
     start_time: template.startTime ?? template.start_time ?? '',
@@ -54,6 +109,10 @@ function serializeShiftTemplate(template, { includeExtended = true } = {}) {
     default_role: template.defaultRole ?? template.default_role ?? '',
     default_area: template.defaultArea ?? template.default_area ?? '',
     notes: template.notes ?? '',
+  }
+
+  if (includeSortOrder && (template.sortOrder !== undefined || template.sort_order !== undefined)) {
+    payload.sort_order = normalizeSortOrder(template.sortOrder ?? template.sort_order)
   }
 
   if (includeExtended) {
@@ -78,33 +137,90 @@ function omitExtendedTemplateFields(payload) {
   return next
 }
 
-const TEMPLATE_SELECT = 'id, template_name, start_time, end_time, default_role, default_area, default_required_count, is_active, notes, created_at'
+function omitSortOrderField(payload) {
+  const next = { ...payload }
+  delete next.sort_order
+  return next
+}
+
+const TEMPLATE_SELECT = 'id, template_name, start_time, end_time, default_role, default_area, default_required_count, is_active, sort_order, notes, created_at'
 const TEMPLATE_SELECT_LEGACY = 'id, template_name, start_time, end_time, default_role, default_area, notes, created_at'
+const TEMPLATE_SELECT_WITHOUT_SORT = 'id, template_name, start_time, end_time, default_role, default_area, default_required_count, is_active, notes, created_at'
 
 let usedLegacyShiftTemplateSchema = false
+let usedLegacyShiftTemplateSortOrder = false
 
 function markLegacyShiftTemplateSchema() {
   if (usedLegacyShiftTemplateSchema) return
   usedLegacyShiftTemplateSchema = true
-  console.warn(`[shiftTemplateService] Using legacy shift_templates schema. ${SHIFT_TEMPLATE_LEGACY_SETUP_MESSAGE}`)
+  console.warn('[shiftTemplateService] Using legacy shift_templates schema.')
+}
+
+function markLegacyShiftTemplateSortOrder() {
+  if (usedLegacyShiftTemplateSortOrder) return
+  usedLegacyShiftTemplateSortOrder = true
+  console.warn(`[shiftTemplateService] sort_order unavailable. ${SHIFT_TEMPLATE_SORT_ORDER_SETUP_MESSAGE}`)
 }
 
 export function didUseLegacyShiftTemplateSchema() {
   return usedLegacyShiftTemplateSchema
 }
 
+function resolveTemplateRecordId(template) {
+  return normalizeShiftTemplateId(template?.id ?? template?.templateId ?? template)
+}
+
+async function resolveCreateSortOrder(template) {
+  if (Number.isFinite(Number(template?.sortOrder ?? template?.sort_order))) {
+    return normalizeSortOrder(template.sortOrder ?? template.sort_order)
+  }
+
+  if (usedLegacyShiftTemplateSortOrder) {
+    return 0
+  }
+
+  const { data, error } = await supabase
+    .from(SHIFT_TEMPLATES_TABLE)
+    .select('sort_order')
+    .order('sort_order', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  if (error) {
+    if (isSortOrderColumnError(error)) {
+      markLegacyShiftTemplateSortOrder()
+      return 0
+    }
+    console.warn('[shiftTemplateService] resolveCreateSortOrder error:', error)
+    return 0
+  }
+
+  return normalizeSortOrder(data?.sort_order) + 1
+}
+
 async function writeShiftTemplate({ id, template }) {
   const includeExtended = !usedLegacyShiftTemplateSchema
-  const payload = serializeShiftTemplate(template, { includeExtended })
+  const includeSortOrder = !usedLegacyShiftTemplateSortOrder
+  const payload = serializeShiftTemplate(template, { includeExtended, includeSortOrder })
   const query = id
     ? supabase.from(SHIFT_TEMPLATES_TABLE).update(payload).eq('id', id)
     : supabase.from(SHIFT_TEMPLATES_TABLE).insert([payload])
 
   let { data, error } = await query.select(TEMPLATE_SELECT_LEGACY).single()
 
-  if (error && isExtendedSchemaError(error)) {
-    markLegacyShiftTemplateSchema()
-    const legacyPayload = omitExtendedTemplateFields(serializeShiftTemplate(template, { includeExtended: true }))
+  if (error && (isExtendedSchemaError(error) || isSortOrderColumnError(error))) {
+    if (isExtendedSchemaError(error)) {
+      markLegacyShiftTemplateSchema()
+    }
+    if (isSortOrderColumnError(error)) {
+      markLegacyShiftTemplateSortOrder()
+    }
+
+    const legacyPayload = omitSortOrderField(
+      omitExtendedTemplateFields(
+        serializeShiftTemplate(template, { includeExtended: true, includeSortOrder: true }),
+      ),
+    )
     const retryQuery = id
       ? supabase.from(SHIFT_TEMPLATES_TABLE).update(legacyPayload).eq('id', id)
       : supabase.from(SHIFT_TEMPLATES_TABLE).insert([legacyPayload])
@@ -121,6 +237,7 @@ export async function getShiftTemplates({ includeInactive = false } = {}) {
   let query = supabase
     .from(SHIFT_TEMPLATES_TABLE)
     .select(TEMPLATE_SELECT)
+    .order('sort_order', { ascending: true })
     .order('template_name', { ascending: true })
 
   if (!includeInactive) {
@@ -129,16 +246,34 @@ export async function getShiftTemplates({ includeInactive = false } = {}) {
 
   let { data, error } = await query
 
-  if (error && isExtendedSchemaError(error)) {
-    const legacy = await supabase
-      .from(SHIFT_TEMPLATES_TABLE)
-      .select(TEMPLATE_SELECT_LEGACY)
-      .order('template_name', { ascending: true })
+  if (error) {
+    const sortMissing = isSortOrderColumnError(error)
+    const extendedMissing = isExtendedSchemaError(error)
 
-    data = legacy.data
-    error = legacy.error
-    if (!error) {
-      markLegacyShiftTemplateSchema()
+    if (sortMissing || extendedMissing) {
+      if (sortMissing) {
+        markLegacyShiftTemplateSortOrder()
+      }
+      if (extendedMissing) {
+        markLegacyShiftTemplateSchema()
+      }
+
+      const legacySelect = extendedMissing
+        ? TEMPLATE_SELECT_LEGACY
+        : TEMPLATE_SELECT_WITHOUT_SORT
+
+      let legacyQuery = supabase
+        .from(SHIFT_TEMPLATES_TABLE)
+        .select(legacySelect)
+        .order('template_name', { ascending: true })
+
+      if (!includeInactive && !extendedMissing) {
+        legacyQuery = legacyQuery.eq('is_active', true)
+      }
+
+      const legacy = await legacyQuery
+      data = legacy.data
+      error = legacy.error
     }
   }
 
@@ -147,7 +282,7 @@ export async function getShiftTemplates({ includeInactive = false } = {}) {
     return []
   }
 
-  return (data ?? []).map(mapShiftTemplate)
+  return sortShiftTemplates((data ?? []).map(mapShiftTemplate))
 }
 
 export async function getShiftCountForTemplate(templateId) {
@@ -170,7 +305,13 @@ export async function getShiftCountForTemplate(templateId) {
 }
 
 export async function createShiftTemplate(template) {
-  const { data, error } = await writeShiftTemplate({ template })
+  const sortOrder = await resolveCreateSortOrder(template)
+  const { data, error } = await writeShiftTemplate({
+    template: {
+      ...template,
+      sortOrder,
+    },
+  })
 
   if (error) {
     console.error('[shiftTemplateService] createShiftTemplate error:', error)
@@ -191,9 +332,36 @@ export async function updateShiftTemplate(id, template) {
   return mapShiftTemplate(data)
 }
 
+export async function reorderShiftTemplates(orderedTemplates) {
+  if (usedLegacyShiftTemplateSortOrder) {
+    throw new Error(`Template ordering is not available yet. ${SHIFT_TEMPLATE_SORT_ORDER_SETUP_MESSAGE}`)
+  }
+
+  const updates = orderedTemplates.map((template, index) => ({
+    id: resolveTemplateRecordId(template),
+    sort_order: index + 1,
+  })).filter((item) => item.id)
+
+  for (const item of updates) {
+    const { error } = await supabase
+      .from(SHIFT_TEMPLATES_TABLE)
+      .update({ sort_order: item.sort_order })
+      .eq('id', item.id)
+
+    if (error) {
+      if (isSortOrderColumnError(error)) {
+        markLegacyShiftTemplateSortOrder()
+        throw new Error(`Template ordering is not available yet. ${SHIFT_TEMPLATE_SORT_ORDER_SETUP_MESSAGE}`)
+      }
+      console.error('[shiftTemplateService] reorderShiftTemplates error:', error)
+      throw new Error(error.message || 'Unable to reorder shift templates right now.')
+    }
+  }
+}
+
 export async function archiveShiftTemplate(id) {
   if (usedLegacyShiftTemplateSchema) {
-    throw new Error('Template archive is not available yet. Run shift_templates_default_required_staff.sql in Supabase.')
+    throw new Error('Template archive is not available with the current schema.')
   }
 
   const { data, error } = await supabase
@@ -206,7 +374,7 @@ export async function archiveShiftTemplate(id) {
   if (error) {
     if (isExtendedSchemaError(error)) {
       markLegacyShiftTemplateSchema()
-      throw new Error('Template archive is not available yet. Run shift_templates_default_required_staff.sql in Supabase.')
+      throw new Error('Template archive is not available with the current schema.')
     }
     console.error('[shiftTemplateService] archiveShiftTemplate error:', error)
     throw new Error(error.message || 'Unable to archive shift template right now.')

@@ -108,11 +108,12 @@ export function prepareShiftForSave(shift, options = {}) {
     knownTemplateIds = null,
     requireTemplateId = false,
     shiftTemplatesForInference = [],
+    inferTemplateId = true,
   } = options
 
   const resolvedTemplateId = resolveShiftTemplateId(template)
     ?? resolveShiftTemplateId(shift)
-    ?? inferShiftTemplateId(shift, shiftTemplatesForInference)
+    ?? (inferTemplateId ? inferShiftTemplateId(shift, shiftTemplatesForInference) : null)
 
   const shiftTemplateId = validateShiftTemplateReference({
     shiftTemplateId: resolvedTemplateId,

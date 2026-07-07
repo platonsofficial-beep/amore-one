@@ -6,6 +6,7 @@ function mapShift(record) {
 
   return {
     id: record.id,
+    workspaceId: record.workspace_id ?? record.workspaceId ?? '',
     employeeId: record.employee_id ?? record.employeeId ?? null,
     employeeName: relatedEmployee?.full_name ?? relatedEmployee?.name ?? record.employee_name ?? record.employeeName ?? '',
     employees: relatedEmployee ? { ...relatedEmployee } : null,
@@ -53,7 +54,16 @@ function normalizeShiftDate(value) {
   return raw.slice(0, 10)
 }
 
-export async function getShifts(options = {}) {
+function requireWorkspaceId(workspaceId) {
+  const normalizedWorkspaceId = `${workspaceId ?? ''}`.trim()
+  if (!normalizedWorkspaceId) {
+    throw new Error('Workspace is required for shifts.')
+  }
+  return normalizedWorkspaceId
+}
+
+export async function getShifts(workspaceId, options = {}) {
+  const normalizedWorkspaceId = requireWorkspaceId(workspaceId)
   const startDate = normalizeShiftDate(options.startDate)
   const endDate = normalizeShiftDate(options.endDate)
 
@@ -63,6 +73,7 @@ export async function getShifts(options = {}) {
       *,
       employees(*)
     `)
+    .eq('workspace_id', normalizedWorkspaceId)
     .order('shift_date', { ascending: true })
     .order('start_time', { ascending: true })
 
@@ -87,8 +98,12 @@ export async function getShifts(options = {}) {
   return (data ?? []).map(mapShift)
 }
 
-export async function createShift(shift, options = {}) {
-  const payload = serializeShift(shift, options)
+export async function createShift(workspaceId, shift, options = {}) {
+  const normalizedWorkspaceId = requireWorkspaceId(workspaceId)
+  const payload = {
+    ...serializeShift(shift, options),
+    workspace_id: normalizedWorkspaceId,
+  }
 
   const { data, error } = await supabase
     .from('shifts')
@@ -112,13 +127,15 @@ export async function createShift(shift, options = {}) {
   return mapShift(data)
 }
 
-export async function updateShift(id, shift, options = {}) {
+export async function updateShift(workspaceId, id, shift, options = {}) {
+  const normalizedWorkspaceId = requireWorkspaceId(workspaceId)
   const payload = serializeShift(shift, options)
 
   const { data, error } = await supabase
     .from('shifts')
     .update(payload)
     .eq('id', id)
+    .eq('workspace_id', normalizedWorkspaceId)
     .select(`
       *,
       employees(*)
@@ -138,11 +155,14 @@ export async function updateShift(id, shift, options = {}) {
   return mapShift(data)
 }
 
-export async function deleteShift(id) {
+export async function deleteShift(workspaceId, id) {
+  const normalizedWorkspaceId = requireWorkspaceId(workspaceId)
+
   const { error } = await supabase
     .from('shifts')
     .delete()
     .eq('id', id)
+    .eq('workspace_id', normalizedWorkspaceId)
 
   if (error) {
     console.error('[scheduleService] deleteShift error:', error)

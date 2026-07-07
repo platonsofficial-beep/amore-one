@@ -30,7 +30,7 @@ export function buildTeamTodayStatus({
 
   if (liveFloor.state === 'live') {
     const count = Number(liveFloor.onShiftCount) || 0
-    workingNow = count === 1 ? '1 person working' : `${count} people working`
+    workingNow = count === 1 ? '1 team member on shift' : `${count} team members on shift`
   }
 
   let nextShift = 'No more shifts today'
@@ -41,7 +41,7 @@ export function buildTeamTodayStatus({
     nextShift = liveFloor.nextShiftStartLabel
   }
 
-  const issues = Number(snapshot.issues) || 0
+  const coverageGaps = Number(snapshot.coverageGaps) || 0
 
   return {
     scheduleLabel: 'Working now',
@@ -49,8 +49,8 @@ export function buildTeamTodayStatus({
     nextShiftLabel: 'Next shift',
     nextShiftValue: nextShift,
     coverageLabel: 'Coverage',
-    coverageValue: issues === 0 ? 'All covered' : 'Missing coverage',
-    coverageTone: issues === 0 ? 'ok' : 'warn',
+    coverageValue: coverageGaps === 0 ? 'All covered' : 'Missing coverage',
+    coverageTone: coverageGaps === 0 ? 'ok' : 'warn',
   }
 }
 

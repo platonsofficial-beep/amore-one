@@ -96,24 +96,22 @@ export function buildTodayStatusSummary({
   tasksOverview = {},
   tasksConnected = false,
 } = {}) {
-  let serviceStatus = 'Preparing for service'
-  if (liveFloor.state === 'live') {
-    const count = Number(liveFloor.onShiftCount) || 0
-    serviceStatus = count === 1 ? 'Service live · 1 on shift' : `Service live · ${count} on shift`
-  } else if (liveFloor.state === 'unpublished') {
-    serviceStatus = 'Schedule not published'
-  } else if (liveFloor.state === 'idle' && liveFloor.nextShiftStartLabel) {
-    serviceStatus = `Next shift at ${liveFloor.nextShiftStartLabel}`
-  } else if (liveFloor.state === 'idle') {
-    serviceStatus = 'Between shifts'
+  const workingCount = liveFloor.state === 'live' ? Number(liveFloor.onShiftCount) || 0 : 0
+  let onShiftSummary = 'No one working now'
+  if (liveFloor.state === 'unpublished') {
+    onShiftSummary = 'Schedule not published'
+  } else if (workingCount === 1) {
+    onShiftSummary = '1 working now'
+  } else if (workingCount > 1) {
+    onShiftSummary = `${workingCount} working now`
   }
 
   const scheduledStaff = Number(snapshot.scheduledStaff) || 0
-  let teamSummary = 'No one scheduled today'
-  if (scheduledStaff > 0) {
-    teamSummary = scheduledStaff === 1
-      ? '1 team member scheduled'
-      : `${scheduledStaff} team members scheduled`
+  let teamScheduledSummary = 'No shifts scheduled today'
+  if (scheduledStaff === 1) {
+    teamScheduledSummary = '1 scheduled today'
+  } else if (scheduledStaff > 0) {
+    teamScheduledSummary = `${scheduledStaff} scheduled today`
   }
 
   let reservationsSummaryLine = reservationsConnected ? 'No reservations today' : 'Reservations not connected'
@@ -146,8 +144,8 @@ export function buildTodayStatusSummary({
   }
 
   return {
-    serviceStatus,
-    teamSummary,
+    onShiftSummary,
+    teamScheduledSummary,
     reservationsSummaryLine,
     tasksSummary,
   }
@@ -168,6 +166,7 @@ export function buildTodayAttentionItems({
       items.push({
         key: `stock:${item.id}`,
         tone: item.severity === 'critical' ? 'critical' : 'warning',
+        priority: item.severity === 'critical' ? 'urgent' : 'reminder',
         label: item.name,
         detail: item.severity === 'critical' ? 'Out of stock' : 'Low stock',
       })
@@ -181,6 +180,7 @@ export function buildTodayAttentionItems({
     items.push({
       key: `task:${task.id}`,
       tone: 'warning',
+      priority: 'urgent',
       label: title,
       detail: 'Overdue task',
     })
@@ -197,6 +197,7 @@ export function buildTodayAttentionItems({
     items.push({
       key: 'schedule-issues',
       tone: issueCount >= 3 ? 'critical' : 'warning',
+      priority: issueCount >= 3 ? 'urgent' : 'reminder',
       label: issueCount === 1 ? 'Schedule issue' : `${issueCount} schedule issues`,
       detail: issuesSummary.message || 'Review today\'s schedule',
     })
@@ -232,6 +233,8 @@ export function buildTodayServiceTimeline({
         timeLabel: dueTime ? formatTime24(dueTime) : 'Today',
         title,
         note: isOverdue ? 'Overdue task' : department,
+        isOverdue,
+        taskStatus: isOverdue ? 'overdue' : 'pending',
         type: 'task',
       })
     })

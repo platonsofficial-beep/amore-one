@@ -1,5 +1,5 @@
 import { resolveShiftTemplateId } from './shiftIntegrity'
-import { normalizeTimeValue } from './timeFormatUtils'
+import { countShiftsCoveringTemplateCell } from './scheduleCoverageUtils'
 import {
   calculateShiftDurationHours,
   formatHoursLabel,
@@ -37,55 +37,6 @@ function buildCapacityKey(templateId, shiftDate) {
   return `${String(templateId)}:${normalizeDate(shiftDate)}`
 }
 
-function getPrimaryCellKey({ shiftTemplateId, shiftDate }) {
-  const normalizedDate = normalizeDate(shiftDate)
-  if (!shiftTemplateId || !normalizedDate) return ''
-  return `${String(shiftTemplateId)}:${normalizedDate}`
-}
-
-function buildLegacyCellKey({ shiftDate, startTime, endTime, area }) {
-  return [
-    normalizeDate(shiftDate),
-    normalizeTimeValue(startTime),
-    normalizeTimeValue(endTime),
-    `${area ?? ''}`.trim().toLowerCase(),
-  ].join(':')
-}
-
-function getShiftCellKeys(shift) {
-  const primary = getPrimaryCellKey({
-    shiftTemplateId: shift?.shiftTemplateId,
-    shiftDate: shift?.date,
-  })
-
-  if (primary) return [primary]
-
-  const legacy = buildLegacyCellKey({
-    shiftDate: shift?.date,
-    startTime: shift?.startTime,
-    endTime: shift?.endTime,
-    area: shift?.area,
-  })
-
-  return legacy ? [legacy] : []
-}
-
-function getTemplateCellKeys(template, dayKey) {
-  const normalizedDay = normalizeDate(dayKey)
-  const templateId = resolveTemplateCapacityId(template)
-  const primary = getPrimaryCellKey({ shiftTemplateId: templateId, shiftDate: normalizedDay })
-  if (primary) return [primary]
-
-  const legacy = buildLegacyCellKey({
-    shiftDate: normalizedDay,
-    startTime: template?.startTime,
-    endTime: template?.endTime,
-    area: template?.defaultArea,
-  })
-
-  return legacy ? [legacy] : []
-}
-
 function buildCapacityLookup(scheduleCapacities = []) {
   const lookup = {}
   scheduleCapacities.forEach((item) => {
@@ -104,22 +55,6 @@ function getRequiredCountForCell(template, dayKey, capacityLookup) {
     return capacityLookup[key]
   }
   return getTemplateDefaultRequiredCount(template)
-}
-
-function buildAssignmentsByCell(shifts = []) {
-  const map = {}
-
-  shifts.forEach((shift) => {
-    getShiftCellKeys(shift).forEach((cellKey) => {
-      if (!cellKey) return
-      if (!Array.isArray(map[cellKey])) {
-        map[cellKey] = []
-      }
-      map[cellKey].push(shift)
-    })
-  })
-
-  return map
 }
 
 function resolveTemplateForShift(shift, shiftTemplates) {
@@ -167,25 +102,18 @@ export function buildOperationalSnapshot({
   })
 
   const capacityLookup = buildCapacityLookup(scheduleCapacities)
-  const assignmentsByCell = buildAssignmentsByCell(todayShifts)
 
   let issues = 0
+  let coverageGaps = 0
   const countedOvertimeShiftIds = new Set()
 
   shiftTemplates.forEach((template) => {
     const requiredCount = getRequiredCountForCell(template, todayKey, capacityLookup)
-    const cellKeys = getTemplateCellKeys(template, todayKey)
-    const seen = new Set()
-    let assignedCount = 0
+    const assignedCount = countShiftsCoveringTemplateCell(template, todayKey, todayShifts)
 
-    cellKeys.forEach((cellKey) => {
-      ;(assignmentsByCell[cellKey] ?? []).forEach((shift) => {
-        const shiftId = String(shift.id)
-        if (seen.has(shiftId)) return
-        seen.add(shiftId)
-        assignedCount += 1
-      })
-    })
+    if (requiredCount > assignedCount) {
+      coverageGaps += 1
+    }
 
     if (requiredCount > 0 && assignedCount === 0) {
       issues += 1
@@ -242,6 +170,7 @@ export function buildOperationalSnapshot({
     labourHours,
     labourHoursLabel: formatHoursLabel(labourHours),
     issues,
+    coverageGaps,
     statusMessage: issues === 0 ? 'Everything is ready.' : 'Needs attention.',
     closingMessage: issues === 0 ? 'Have a great service!' : '',
   }

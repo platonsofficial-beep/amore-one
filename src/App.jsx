@@ -2,7 +2,7 @@ import { Fragment, createContext, useCallback, useContext, useEffect, useMemo, u
 import './App.css'
 import { createEmployee, deleteEmployee, getEmployees, updateEmployee } from './services/staffService'
 import { createShift, deleteShift, getShifts, updateShift } from './services/scheduleService'
-import { createShiftTemplate, deleteShiftTemplate, getShiftTemplates, updateShiftTemplate, archiveShiftTemplate, getShiftCountForTemplate, didUseLegacyShiftTemplateSchema, SHIFT_TEMPLATE_LEGACY_SETUP_MESSAGE } from './services/shiftTemplateService'
+import { createShiftTemplate, deleteShiftTemplate, getShiftTemplates, moveShiftTemplatesByDrag, reorderShiftTemplates, sortShiftTemplates, updateShiftTemplate, archiveShiftTemplate, getShiftCountForTemplate, didUseLegacyShiftTemplateSchema } from './services/shiftTemplateService'
 import { getScheduleCapacities, upsertScheduleCapacity, deleteScheduleCapacitiesForDates, copyScheduleCapacitiesForWeek, applyScheduleCapacitiesForWeek, applyMinimumCapacitiesFromShifts } from './services/scheduleCapacityService'
 import { draftMatchesPublishedSnapshot } from './services/publishedShiftService'
 import { getWeekSchedulePublicationState, publishWeekSchedule, unpublishWeekSchedule } from './services/schedulePublicationService'
@@ -277,7 +277,38 @@ import {
   buildTeamTodayGroups,
 } from './lib/todayViewUtils'
 import { canManageAnnouncements, filterTasksExcludingAnnouncementDuplicates } from './lib/operationsAnnouncementUtils'
+import {
+  countShiftsCoveringTemplateCell,
+  formatScheduleCoverageStatusLabel,
+  getShiftsCoveringTemplateCell,
+} from './lib/scheduleCoverageUtils'
+import {
+  buildTimelineEventRows,
+  formatAttentionCollapsedSummary,
+  formatQuickActionsCollapsedSummary,
+  formatTeamTodayCollapsedSummary,
+  formatTimelineEventRow,
+  formatTodayTimelineCollapsedSummary,
+  hasUrgentAttentionItems,
+  partitionTimelineEvents,
+  shouldShowTimelineNowMarker,
+  TIMELINE_LEGEND_ITEMS,
+  TIMELINE_PREVIEW_LIMIT,
+  TIMELINE_SCROLL_LIMIT,
+} from './lib/todayDashboardUtils'
+import {
+  getDefaultTodayPanelExpanded,
+  hasTodayPanelStoredPreference,
+  readTodayPanelExpanded,
+  TODAY_PANEL_IDS,
+  writeTodayPanelExpanded,
+} from './lib/todayPanelCollapse'
 import { buildEmployeeTodayShiftLookup, buildTeamTodayStatus } from './lib/teamViewUtils'
+import {
+  groupScheduleGridRowsByArea,
+  readCollapsedScheduleAreaKeys,
+  writeCollapsedScheduleAreaKeys,
+} from './lib/scheduleAreaCollapseUtils'
 import { TeamTodayView } from './components/team/TeamTodayView'
 import { TeamPeopleView } from './components/team/TeamPeopleView'
 import { StockDashboardView } from './components/stock/StockDashboardView'
@@ -320,6 +351,7 @@ import {
 import {
   canAccessModule,
   canAccessTeamSection,
+  canEditSchedule,
   filterNavItemsByRole,
   resolvePermittedActiveView,
   resolvePermittedTeamSection,
@@ -458,26 +490,11 @@ function formatScheduleShiftDisplayName(templateName, department) {
 }
 
 function formatScheduleCellCoverageDetail(cell) {
-  const needed = Number(cell.requiredCount) || 0
-  const assigned = Number(cell.assignedCount) || 0
-
-  if (cell.hasRealConflict) {
-    return { label: 'Conflict', tone: 'conflict', show: true }
-  }
-
-  if (assigned < needed) {
-    return { label: `⚠ Missing ${needed - assigned}`, tone: 'understaffed', show: true }
-  }
-
-  if (assigned > needed) {
-    return { label: `Covered +${assigned - needed}`, tone: 'covered', show: true }
-  }
-
-  if (needed > 0 && assigned === needed) {
-    return { label: 'Covered', tone: 'covered', show: true }
-  }
-
-  return { label: '', tone: 'empty', show: false }
+  return formatScheduleCoverageStatusLabel({
+    requiredCount: cell.requiredCount,
+    assignedCount: cell.assignedCount,
+    hasConflict: cell.hasRealConflict,
+  })
 }
 
 function formatDayCoverageBadgeLabel(summary) {
@@ -554,8 +571,8 @@ function buildEmployeePositionOptions(positions = []) {
 }
 
 function composeShiftTemplates(remoteTemplates = []) {
-  return [
-    ...remoteTemplates
+  return sortShiftTemplates(
+    remoteTemplates
       .filter((template) => (template.name || '').trim())
       .map((template) => ({
         ...template,
@@ -563,7 +580,7 @@ function composeShiftTemplates(remoteTemplates = []) {
         templateId: template.id,
         isBuiltIn: false,
       })),
-  ]
+  )
 }
 
 function buildScheduleGridTemplates(shiftTemplates = [], visibleWeekShifts = []) {
@@ -581,7 +598,7 @@ function buildScheduleGridTemplates(shiftTemplates = [], visibleWeekShifts = [])
   })
 
   if (eligibleTemplates.length > 0) {
-    return eligibleTemplates
+    return sortShiftTemplates(eligibleTemplates)
   }
 
   const derived = new Map()
@@ -645,21 +662,68 @@ function formatStaffingNotice(requiredCount, assignedCount) {
   const required = Number(requiredCount) || 0
   const assigned = Number(assignedCount) || 0
   if (assigned > required) {
-    return `Assigned successfully. Covered +${assigned - required}.`
+    return `Assigned successfully. ✓ Covered +${assigned - required} extra.`
   }
   if (assigned < required) {
     return `Assigned successfully. Missing ${required - assigned}.`
   }
-  return 'Assigned successfully.'
+  return 'Assigned successfully. ✓ Covered.'
 }
 
-function buildTemplateForm(template = null) {
+function getUniqueTemplateAreas(shiftTemplates = []) {
+  return [...new Set(
+    shiftTemplates
+      .map((template) => `${template?.defaultArea ?? ''}`.trim())
+      .filter(Boolean),
+  )]
+}
+
+function getTemplateAreaFormState(areaValue) {
+  const normalized = `${areaValue ?? ''}`.trim()
+  if (!normalized) {
+    return { defaultAreaOption: '', defaultAreaCustom: '' }
+  }
+
+  const preset = scheduleAreaOptions.find(
+    (option) => option !== 'Other' && option.toLowerCase() === normalized.toLowerCase(),
+  )
+  if (preset) {
+    return { defaultAreaOption: preset, defaultAreaCustom: '' }
+  }
+
+  return { defaultAreaOption: 'Other', defaultAreaCustom: normalized }
+}
+
+function resolveTemplateDefaultArea(templateForm, shiftTemplates = []) {
+  if (templateForm.defaultAreaOption === 'Other') {
+    const custom = `${templateForm.defaultAreaCustom ?? ''}`.trim()
+    if (custom) return custom
+  } else if (`${templateForm.defaultAreaOption ?? ''}`.trim()) {
+    return `${templateForm.defaultAreaOption}`.trim()
+  }
+
+  const legacy = `${templateForm.defaultArea ?? ''}`.trim()
+  if (legacy) return legacy
+
+  const uniqueAreas = getUniqueTemplateAreas(shiftTemplates)
+  if (uniqueAreas.length === 1) return uniqueAreas[0]
+
+  return ''
+}
+
+function buildTemplateForm(template = null, shiftTemplates = []) {
+  const uniqueAreas = getUniqueTemplateAreas(shiftTemplates)
+  const rawArea = template?.defaultArea ?? (uniqueAreas.length === 1 ? uniqueAreas[0] : '')
+  const areaState = getTemplateAreaFormState(rawArea)
+  const defaultAreaOption = areaState.defaultAreaOption || (uniqueAreas.length === 0 ? 'Service' : '')
+
   return {
     name: template?.name ?? '',
     startTime: normalizeTimeValue(template?.startTime),
     endTime: normalizeTimeValue(template?.endTime),
     defaultRole: template?.defaultRole ?? '',
-    defaultArea: template?.defaultArea ?? '',
+    defaultAreaOption,
+    defaultAreaCustom: areaState.defaultAreaCustom,
     defaultRequiredCount: getTemplateDefaultRequiredCount(template),
     notes: template?.notes ?? '',
   }
@@ -705,73 +769,166 @@ function formatDashboardHeroDate(date, timeZone = '') {
   return `${weekday} • ${monthDay}`
 }
 
-function formatTimelineEventDisplay(event) {
-  if (event.type === 'reservation') {
-    return {
-      title: `${event.title.replace(/ reservation$/i, '').trim()}` || 'Reservation',
-      department: event.note || '',
-    }
+function renderTodayTimelineRow(row, nowMinutes) {
+  if (row.kind === 'now') {
+    return (
+      <li key={row.key} className="today-timeline-now-row" aria-label={`Current time ${row.label}`}>
+        <div className="today-timeline-now">
+          <span>Now {row.label}</span>
+        </div>
+      </li>
+    )
   }
 
-  if (event.type === 'task') {
-    return {
-      title: event.title,
-      department: event.note || 'Task',
-    }
-  }
+  const eventRow = formatTimelineEventRow(row.event, nowMinutes)
+  const itemClassName = [
+    'today-timeline-item',
+    `type-${eventRow.type}`,
+    eventRow.isFinishedShift ? 'is-finished-shift' : '',
+    eventRow.isCompletedItem ? 'is-completed-item' : '',
+    eventRow.status?.state === 'working' ? 'is-working-shift' : '',
+    eventRow.isCompactRow ? 'is-compact-row' : '',
+  ].filter(Boolean).join(' ')
 
-  const title = `${event.title.replace(/ starts$/i, '').trim()}` || 'Shift'
-  const department = `${event.note ?? ''}`.trim()
-
-  return { title, department }
+  return (
+    <li key={row.key} className={itemClassName}>
+      <span className="today-timeline-status" aria-hidden="true">{eventRow.status.icon}</span>
+      {eventRow.timeLabel ? (
+        <span className="today-timeline-time">{eventRow.timeLabel}</span>
+      ) : (
+        <span className="today-timeline-time is-empty" aria-hidden="true" />
+      )}
+      <div className="today-timeline-copy">
+        <strong>{eventRow.title}</strong>
+        {eventRow.detail ? <span className="today-timeline-detail">{eventRow.detail}</span> : null}
+        {eventRow.meta ? <span className="today-timeline-meta">{eventRow.meta}</span> : null}
+        {!eventRow.detail && !eventRow.meta && eventRow.subtitle ? (
+          <span>{eventRow.subtitle}</span>
+        ) : null}
+      </div>
+    </li>
+  )
 }
 
-const TIMELINE_PREVIEW_LIMIT = 8
-
-function TodayTimeline({ events, isLoading }) {
-  const totalEvents = events.length
-  const [isExpanded, setIsExpanded] = useState(() => totalEvents <= TIMELINE_PREVIEW_LIMIT)
-  const visibleEvents = isExpanded ? events : events.slice(0, TIMELINE_PREVIEW_LIMIT)
-
-  useEffect(() => {
-    setIsExpanded(totalEvents <= TIMELINE_PREVIEW_LIMIT)
-  }, [totalEvents])
+function TodayTimeline({ events, isLoading, now = new Date(), todayKey = '' }) {
+  const [showAll, setShowAll] = useState(false)
+  const [showCompleted, setShowCompleted] = useState(false)
+  const { activeAndUpcoming, completed } = partitionTimelineEvents(events, now)
+  const totalActiveCount = activeAndUpcoming.length
+  const completedCount = completed.length
+  const nowMinutes = now.getHours() * 60 + now.getMinutes()
+  const visibleActiveEvents = showAll
+    ? activeAndUpcoming
+    : activeAndUpcoming.slice(0, TIMELINE_PREVIEW_LIMIT)
+  const showNowMarker = shouldShowTimelineNowMarker({ todayKey, currentDateKey: todayKey })
+  const activeRows = buildTimelineEventRows(visibleActiveEvents, { now, showNow: showNowMarker })
+  const completedRows = showCompleted
+    ? buildTimelineEventRows(completed, { now, showNow: false })
+    : []
+  const isScrollable = showAll && totalActiveCount > TIMELINE_SCROLL_LIMIT
 
   if (isLoading) {
     return <p className="today-empty-note">Loading timeline…</p>
   }
 
-  if (totalEvents === 0) {
+  if (totalActiveCount === 0 && completedCount === 0) {
     return <p className="today-empty-note">No upcoming events for today.</p>
   }
 
+  const hasActiveRows = activeRows.length > 0
+
   return (
-    <>
-      <ul className="today-timeline-list">
-        {visibleEvents.map((event) => {
-          const display = formatTimelineEventDisplay(event)
-          return (
-            <li key={event.key} className={`today-timeline-item type-${event.type}`}>
-              <span className="today-timeline-time">{event.timeLabel}</span>
-              <div className="today-timeline-copy">
-                <strong>{display.title}</strong>
-                {display.department ? <span>{display.department}</span> : null}
-              </div>
-            </li>
-          )
-        })}
-      </ul>
-      {totalEvents > TIMELINE_PREVIEW_LIMIT ? (
+    <div className={`today-timeline-scroll${isScrollable ? ' is-scrollable' : ''}`}>
+      {hasActiveRows ? (
+        <ul className="today-timeline-list today-timeline-flow">
+          {activeRows.map((row) => renderTodayTimelineRow(row, nowMinutes))}
+        </ul>
+      ) : (
+        <p className="today-empty-note">Nothing active right now.</p>
+      )}
+      {completedCount > 0 ? (
         <button
           type="button"
-          className="today-text-btn"
-          onClick={() => setIsExpanded((prev) => !prev)}
-          aria-expanded={isExpanded}
+          className="today-timeline-completed-toggle"
+          onClick={() => setShowCompleted((current) => !current)}
+          aria-expanded={showCompleted}
         >
-          {isExpanded ? 'Show less' : `Show all ${totalEvents} events`}
+          {showCompleted ? 'Hide completed' : `Show completed (${completedCount})`}
         </button>
       ) : null}
-    </>
+      {showCompleted && completedRows.length > 0 ? (
+        <ul className="today-timeline-list today-timeline-flow today-timeline-completed-list">
+          {completedRows.map((row) => renderTodayTimelineRow(row, nowMinutes))}
+        </ul>
+      ) : null}
+      {totalActiveCount > TIMELINE_PREVIEW_LIMIT && !showAll ? (
+        <button
+          type="button"
+          className="today-timeline-show-all"
+          onClick={() => setShowAll(true)}
+        >
+          Show all ({totalActiveCount})
+        </button>
+      ) : null}
+      <div className="today-timeline-legend" aria-label="Timeline legend">
+        {TIMELINE_LEGEND_ITEMS.map((item) => (
+          <span key={item.key} className="today-timeline-legend-item">
+            <span className="today-timeline-legend-icon" aria-hidden="true">{item.icon}</span>
+            {item.label}
+          </span>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function TodayCollapsiblePanel({
+  panelId,
+  defaultExpanded = true,
+  title,
+  ariaLabel,
+  summary = '',
+  className = '',
+  children,
+}) {
+  const [isExpanded, setIsExpanded] = useState(() => readTodayPanelExpanded(panelId, defaultExpanded))
+
+  useEffect(() => {
+    if (hasTodayPanelStoredPreference(panelId)) return
+    setIsExpanded(defaultExpanded)
+  }, [panelId, defaultExpanded])
+
+  const handleToggle = () => {
+    setIsExpanded((current) => {
+      const next = !current
+      writeTodayPanelExpanded(panelId, next)
+      return next
+    })
+  }
+
+  return (
+    <section
+      className={`today-panel today-collapsible-panel ${isExpanded ? 'is-expanded' : 'is-collapsed'} ${className}`.trim()}
+      aria-label={ariaLabel}
+    >
+      <button
+        type="button"
+        className="today-collapsible-header"
+        onClick={handleToggle}
+        aria-expanded={isExpanded}
+      >
+        <div className="today-collapsible-header-copy">
+          <h3>{title}</h3>
+          {!isExpanded && summary ? (
+            <p className="today-collapsible-summary">{summary}</p>
+          ) : null}
+        </div>
+        <span className={`today-collapsible-chevron${isExpanded ? ' is-expanded' : ''}`} aria-hidden="true">▾</span>
+      </button>
+      <div className="today-collapsible-body">
+        {children}
+      </div>
+    </section>
   )
 }
 
@@ -779,18 +936,23 @@ function CommandCenterView({
   statusSummary,
   timelineEvents,
   teamTodayGroups,
+  teamTodayStatus,
   attentionItems,
   announcements = [],
   announcementRole = '',
   announcementEmployeeDepartment = '',
   isAnnouncementsSaving = false,
   isScheduleLoading,
+  now = new Date(),
+  todayKey = '',
   onQuickAction,
   onViewStock,
   onViewSchedule,
   onViewTasks,
   onMarkAnnouncementSeen,
 }) {
+  const attentionHasUrgent = hasUrgentAttentionItems(attentionItems)
+
   return (
     <div className="today-page" aria-label="Today">
       <TodayAnnouncementsPanel
@@ -803,12 +965,12 @@ function CommandCenterView({
 
       <section className="today-status-card" aria-label="Today status">
         <div className="today-status-row">
-          <span className="today-status-label">Service</span>
-          <span className="today-status-value">{statusSummary.serviceStatus}</span>
+          <span className="today-status-label">On shift</span>
+          <span className="today-status-value">{statusSummary.onShiftSummary}</span>
         </div>
         <div className="today-status-row">
           <span className="today-status-label">Team</span>
-          <span className="today-status-value">{statusSummary.teamSummary}</span>
+          <span className="today-status-value">{statusSummary.teamScheduledSummary}</span>
         </div>
         <div className="today-status-row">
           <span className="today-status-label">Reservations</span>
@@ -822,17 +984,32 @@ function CommandCenterView({
 
       <div className="today-layout">
         <div className="today-main">
-          <section className="today-panel" aria-label="Service timeline">
-            <header className="today-panel-header">
-              <h3>Service Timeline</h3>
-            </header>
-            <TodayTimeline events={timelineEvents} isLoading={isScheduleLoading} />
-          </section>
+          <TodayCollapsiblePanel
+            panelId={TODAY_PANEL_IDS.SERVICE_TIMELINE}
+            defaultExpanded={getDefaultTodayPanelExpanded(TODAY_PANEL_IDS.SERVICE_TIMELINE)}
+            title="Service Timeline"
+            ariaLabel="Service timeline"
+            summary={formatTodayTimelineCollapsedSummary(timelineEvents, { isLoading: isScheduleLoading, now })}
+          >
+            <TodayTimeline
+              events={timelineEvents}
+              isLoading={isScheduleLoading}
+              now={now}
+              todayKey={todayKey}
+            />
+          </TodayCollapsiblePanel>
 
-          <section className="today-panel" aria-label="Team today">
-            <header className="today-panel-header">
-              <h3>Team Today</h3>
-            </header>
+          <TodayCollapsiblePanel
+            panelId={TODAY_PANEL_IDS.TEAM_TODAY}
+            defaultExpanded={getDefaultTodayPanelExpanded(TODAY_PANEL_IDS.TEAM_TODAY)}
+            title="Team Today"
+            ariaLabel="Team today"
+            summary={formatTeamTodayCollapsedSummary({
+              groups: teamTodayGroups,
+              teamStatus: teamTodayStatus,
+              isLoading: isScheduleLoading,
+            })}
+          >
             {isScheduleLoading ? (
               <p className="today-empty-note">Loading team schedule…</p>
             ) : teamTodayGroups.length === 0 ? (
@@ -854,14 +1031,17 @@ function CommandCenterView({
                 ))}
               </div>
             )}
-          </section>
+          </TodayCollapsiblePanel>
         </div>
 
         <aside className="today-aside">
-          <section className="today-panel" aria-label="Attention">
-            <header className="today-panel-header">
-              <h3>Attention</h3>
-            </header>
+          <TodayCollapsiblePanel
+            panelId={TODAY_PANEL_IDS.ATTENTION}
+            defaultExpanded={getDefaultTodayPanelExpanded(TODAY_PANEL_IDS.ATTENTION, { hasUrgentAttention: attentionHasUrgent })}
+            title="Attention"
+            ariaLabel="Attention"
+            summary={formatAttentionCollapsedSummary(attentionItems)}
+          >
             {attentionItems.length === 0 ? (
               <p className="today-empty-note today-empty-note-clear">All clear for now.</p>
             ) : (
@@ -897,12 +1077,16 @@ function CommandCenterView({
                 ) : null}
               </div>
             ) : null}
-          </section>
+          </TodayCollapsiblePanel>
 
-          <section className="today-panel today-quick-actions" aria-label="Quick actions">
-            <header className="today-panel-header">
-              <h3>Quick Actions</h3>
-            </header>
+          <TodayCollapsiblePanel
+            panelId={TODAY_PANEL_IDS.QUICK_ACTIONS}
+            defaultExpanded={getDefaultTodayPanelExpanded(TODAY_PANEL_IDS.QUICK_ACTIONS)}
+            title="Quick Actions"
+            ariaLabel="Quick actions"
+            summary={formatQuickActionsCollapsedSummary(todayQuickActions)}
+            className="today-quick-actions"
+          >
             <div className="today-quick-actions-grid">
               {todayQuickActions.map((action) => (
                 <button
@@ -919,7 +1103,7 @@ function CommandCenterView({
                 </button>
               ))}
             </div>
-          </section>
+          </TodayCollapsiblePanel>
         </aside>
       </div>
     </div>
@@ -1112,9 +1296,10 @@ function ScheduleView({
   onUnpublishWeekSchedule,
   isLoading,
   noticeMessage,
-  setupWarning = '',
   canSaveTemplateDefault = true,
   isSaving,
+  workspaceId = '',
+  canEditSchedule = true,
 }) {
   const [selectedDay, setSelectedDay] = useState(null)
   const [selectedShift, setSelectedShift] = useState(null)
@@ -1209,8 +1394,9 @@ function ScheduleView({
   const [focusedEmployeeId, setFocusedEmployeeId] = useState(null)
   const dragSessionRef = useRef(null)
   const employeeChipClickGuardRef = useRef(false)
+  const [collapsedScheduleAreaKeys, setCollapsedScheduleAreaKeys] = useState(() => readCollapsedScheduleAreaKeys())
 
-  const isDragDropDisabled = isSaving || isPublishing
+  const isDragDropDisabled = isSaving || isPublishing || !canEditSchedule
 
   const shiftCountByDate = useMemo(() => {
     const counts = {}
@@ -1249,10 +1435,15 @@ function ScheduleView({
 
     const loadBrowseWeek = async () => {
       setIsBrowseWeekLoading(true)
+      if (!workspaceId) {
+        setBrowseWeekShifts([])
+        setIsBrowseWeekLoading(false)
+        return
+      }
       try {
         const browseWeekStart = getWeekStartDate(parseLocalDate(browseWeekAnchorDate))
         const browseKeys = getWeekDateKeys(browseWeekStart)
-        const remoteShifts = await getShifts({
+        const remoteShifts = await getShifts(workspaceId, {
           startDate: browseKeys[0],
           endDate: browseKeys[browseKeys.length - 1],
         })
@@ -1273,7 +1464,7 @@ function ScheduleView({
     return () => {
       isMounted = false
     }
-  }, [browseWeekAnchorDate])
+  }, [browseWeekAnchorDate, workspaceId])
 
   useEffect(() => {
     let isMounted = true
@@ -1288,10 +1479,15 @@ function ScheduleView({
 
     const loadTargetWeekCount = async () => {
       setIsCopyWeekTargetLoading(true)
+      if (!workspaceId) {
+        setCopyWeekTargetShiftCount(0)
+        setIsCopyWeekTargetLoading(false)
+        return
+      }
       try {
         const targetWeekStart = getWeekStartDate(parseLocalDate(copyWeekTargetDate))
         const targetKeys = getWeekDateKeys(targetWeekStart)
-        const remoteShifts = await getShifts({
+        const remoteShifts = await getShifts(workspaceId, {
           startDate: targetKeys[0],
           endDate: targetKeys[targetKeys.length - 1],
         })
@@ -1312,7 +1508,7 @@ function ScheduleView({
     return () => {
       isMounted = false
     }
-  }, [copyWeekTargetDate, isCopyWeekModalOpen])
+  }, [copyWeekTargetDate, isCopyWeekModalOpen, workspaceId])
 
   useEffect(() => {
     if (!selectedDay && weekDays.length > 0) {
@@ -1746,6 +1942,7 @@ function ScheduleView({
   const buildCellActionMenuKey = (template, dayKey) => `${resolveTemplateCapacityId(template)}|${normalizeCellDate(dayKey)}`
 
   const handleOpenClearCellModal = (template, cell) => {
+    if (!canEditSchedule) return
     setCellActionMenuKey('')
     setClearCellPending({
       template,
@@ -1757,6 +1954,7 @@ function ScheduleView({
   }
 
   const handleOpenCapacityEditModal = (template, day, cell) => {
+    if (!canEditSchedule) return
     setCellActionMenuKey('')
     setCapacityEditPending({
       template,
@@ -1957,6 +2155,7 @@ function ScheduleView({
   }
 
   const handleOpenAutoFillModal = () => {
+    if (!canEditSchedule) return
     if (!selectedWeeklyTemplateId) {
       setAssignmentError('Select a weekly template first.')
       return
@@ -2287,6 +2486,17 @@ function ScheduleView({
           })
         })
 
+        getShiftsCoveringTemplateCell(template, day.key, dayShiftsOnDate).forEach((shift) => {
+          if (seen.has(String(shift.id))) return
+          seen.add(String(shift.id))
+          dayShifts.push({
+            ...shift,
+            employeeRecord: employees.find((employee) => employee.id === shift.employeeId) ?? null,
+          })
+        })
+
+        const assignedCount = countShiftsCoveringTemplateCell(template, day.key, dayShiftsOnDate)
+
         const hasRealConflict = dayShifts.some((shift) => (
           shiftHasSchedulingConflict(shift, {
             employees,
@@ -2297,7 +2507,7 @@ function ScheduleView({
         return {
           day,
           shifts: dayShifts,
-          assignedCount: dayShifts.length,
+          assignedCount,
           requiredCount,
           hasRealConflict,
           staffingState: dayShifts.length > requiredCount
@@ -2317,6 +2527,24 @@ function ScheduleView({
       }
     })
   }, [employees, scheduleGridTemplates, weekDays, capacityLookup, capacityDraftMap, assignmentsByCell, visibleWeekShifts])
+
+  const blendGridAreaGroups = useMemo(
+    () => groupScheduleGridRowsByArea(blendGridRows),
+    [blendGridRows],
+  )
+
+  const toggleScheduleAreaGroup = useCallback((areaKey) => {
+    setCollapsedScheduleAreaKeys((current) => {
+      const next = new Set(current)
+      if (next.has(areaKey)) {
+        next.delete(areaKey)
+      } else {
+        next.add(areaKey)
+      }
+      writeCollapsedScheduleAreaKeys(next)
+      return next
+    })
+  }, [])
 
   const dayHeaderSummariesByKey = useMemo(() => {
     const summaries = {}
@@ -2596,6 +2824,7 @@ function ScheduleView({
   )
 
   const handleOpenAssignmentModal = (template, day) => {
+    if (!canEditSchedule) return
     const fromCollection = scheduleGridTemplates.find((item) => item.id === template.id || item.templateId === template.templateId)
     if (fromCollection && `${fromCollection.defaultArea ?? ''}`.trim() && !`${template?.defaultArea ?? ''}`.trim()) {
       console.warn('Template area lost between collection and cell payload', {
@@ -2905,6 +3134,7 @@ function ScheduleView({
   }
 
   const handleOpenAssignmentActions = (shift) => {
+    if (!canEditSchedule) return
     setAssignmentError('')
     setEditingAssignmentShift(shift)
   }
@@ -3336,6 +3566,7 @@ function ScheduleView({
             {schedulePublicationLabel}
           </span>
 
+          {canEditSchedule ? (
           <div className="schedule-more-menu schedule-header-control-surface" onClick={(event) => event.stopPropagation()}>
             <button
               type="button"
@@ -3350,17 +3581,24 @@ function ScheduleView({
               <div className="template-card-menu schedule-more-menu-dropdown" role="menu">
                 <button type="button" className="template-card-menu-item" role="menuitem" onClick={() => { setIsScheduleMoreMenuOpen(false); handleOpenAddShiftForDate(selectedDate) }} disabled={isSaving}>Add Shift</button>
                 <button type="button" className="template-card-menu-item" role="menuitem" onClick={() => { setIsScheduleMoreMenuOpen(false); handleOpenSaveWeekTemplateModal() }} disabled={isSaving}>Save Week</button>
-                <button type="button" className="template-card-menu-item" role="menuitem" onClick={() => { setIsScheduleMoreMenuOpen(false); handleOpenLoadWeekTemplateModal() }} disabled={isSaving || !selectedWeeklyTemplateId}>Load Week</button>
-                <button type="button" className="template-card-menu-item" role="menuitem" onClick={() => { setIsScheduleMoreMenuOpen(false); handleOpenCopyWeekModal() }} disabled={isLoading || isSaving || isPublishing || visibleWeekShifts.length === 0}>Copy Week</button>
-                <button type="button" className="template-card-menu-item" role="menuitem" onClick={() => { setIsScheduleMoreMenuOpen(false); handleStartRenameWeeklyTemplate() }} disabled={isSaving || !selectedWeeklyTemplateId}>Rename Week</button>
-                <button type="button" className="template-card-menu-item" role="menuitem" onClick={() => { setIsScheduleMoreMenuOpen(false); handleDeleteSelectedWeeklyTemplate() }} disabled={isSaving || !selectedWeeklyTemplateId}>Delete Week</button>
-                <button type="button" className="template-card-menu-item" role="menuitem" onClick={() => { setIsScheduleMoreMenuOpen(false); handleOpenAutoFillModal() }} disabled={isSaving || !selectedWeeklyTemplateId}>Auto Fill</button>
+                {selectedWeeklyTemplateId ? (
+                  <>
+                    <button type="button" className="template-card-menu-item" role="menuitem" onClick={() => { setIsScheduleMoreMenuOpen(false); handleOpenLoadWeekTemplateModal() }} disabled={isSaving}>Load Week</button>
+                    <button type="button" className="template-card-menu-item" role="menuitem" onClick={() => { setIsScheduleMoreMenuOpen(false); handleStartRenameWeeklyTemplate() }} disabled={isSaving}>Rename Week</button>
+                    <button type="button" className="template-card-menu-item" role="menuitem" onClick={() => { setIsScheduleMoreMenuOpen(false); handleDeleteSelectedWeeklyTemplate() }} disabled={isSaving}>Delete Week</button>
+                    <button type="button" className="template-card-menu-item" role="menuitem" onClick={() => { setIsScheduleMoreMenuOpen(false); handleOpenAutoFillModal() }} disabled={isSaving}>Auto Fill</button>
+                  </>
+                ) : null}
+                {visibleWeekShifts.length > 0 ? (
+                  <button type="button" className="template-card-menu-item" role="menuitem" onClick={() => { setIsScheduleMoreMenuOpen(false); handleOpenCopyWeekModal() }} disabled={isLoading || isSaving || isPublishing}>Copy Week</button>
+                ) : null}
                 <button type="button" className="template-card-menu-item danger" role="menuitem" onClick={() => { setIsScheduleMoreMenuOpen(false); handleOpenClearWeekModal() }} disabled={isSaving || isPublishing}>Clear Week</button>
               </div>
             ) : null}
           </div>
+          ) : null}
 
-          {hasUnpublishedChanges || !isWeekPublished ? (
+          {canEditSchedule && (hasUnpublishedChanges || !isWeekPublished) ? (
             <button
               type="button"
               className="primary-btn schedule-publish-btn schedule-publish-btn--draft schedule-header-control-surface"
@@ -3372,7 +3610,7 @@ function ScheduleView({
             >
               {hasUnpublishedChanges ? 'Publish changes' : 'Publish'}
             </button>
-          ) : (
+          ) : canEditSchedule ? (
             <button
               type="button"
               className="ghost-btn schedule-unpublish-btn schedule-header-control-surface"
@@ -3384,7 +3622,7 @@ function ScheduleView({
             >
               Unpublish
             </button>
-          )}
+          ) : null}
           </div>
         </div>
       </header>
@@ -3403,11 +3641,6 @@ function ScheduleView({
       ) : null}
 
       {assignmentError ? <div className="staff-status-banner schedule-workspace-banner">{assignmentError}</div> : null}
-      {setupWarning ? (
-        <div className="staff-status-banner schedule-setup-warning-banner schedule-workspace-banner">
-          {setupWarning}
-        </div>
-      ) : null}
       {noticeMessage ? (
         <div className={`staff-status-banner schedule-workspace-banner ${noticeMessage === 'Schedule published for employees.' ? 'schedule-publish-success-banner' : ''}`}>
           {noticeMessage === 'Schedule published for employees.' ? (
@@ -3596,7 +3829,24 @@ function ScheduleView({
                 )
               })}
 
-              {blendGridRows.map((row) => {
+              {blendGridAreaGroups.map((group) => {
+                const isAreaExpanded = !collapsedScheduleAreaKeys.has(group.areaKey)
+
+                return (
+                <Fragment key={`area-group-${group.areaKey}`}>
+                  <button
+                    type="button"
+                    className="schedule-grid-area-group-header"
+                    style={{ gridColumn: '1 / -1' }}
+                    onClick={() => toggleScheduleAreaGroup(group.areaKey)}
+                    aria-expanded={isAreaExpanded}
+                  >
+                    <span className={`schedule-grid-area-chevron${isAreaExpanded ? ' is-expanded' : ''}`} aria-hidden="true">▾</span>
+                    <span className="schedule-grid-area-label">{group.areaLabel.toUpperCase()}</span>
+                    <span className="schedule-grid-area-count">{group.rows.length}</span>
+                  </button>
+
+                  {isAreaExpanded ? group.rows.map((row) => {
                 const templateShiftName = `${row.template.name || row.template.defaultArea || 'Shift'}`.trim()
                 const templateDepartment = `${row.template.defaultArea || row.template.defaultRole || 'General'}`.trim()
                 const templateShiftDisplayName = formatScheduleShiftDisplayName(templateShiftName, templateDepartment)
@@ -3779,6 +4029,9 @@ function ScheduleView({
                   })}
                 </Fragment>
                 )
+              }) : null}
+                </Fragment>
+                )
               })}
             </div>
           </div>
@@ -3794,14 +4047,27 @@ function ScheduleView({
               <p className="schedule-templates-panel-note">Assign employees to day cells in the week grid.</p>
             </header>
             <div className="schedule-templates-list">
-              {blendGridRows.map((row) => {
-                const templateArea = `${row.template.defaultArea || row.template.defaultRole || 'General'}`.trim()
+              {blendGridAreaGroups.map((group) => {
+                const isAreaExpanded = !collapsedScheduleAreaKeys.has(group.areaKey)
+
+                return (
+                  <section key={`template-area-${group.areaKey}`} className="schedule-template-area-group">
+                    <button
+                      type="button"
+                      className="schedule-template-area-group-header"
+                      onClick={() => toggleScheduleAreaGroup(group.areaKey)}
+                      aria-expanded={isAreaExpanded}
+                    >
+                      <span className={`schedule-grid-area-chevron${isAreaExpanded ? ' is-expanded' : ''}`} aria-hidden="true">▾</span>
+                      <span className="schedule-template-area-group-label">{group.areaLabel.toUpperCase()}</span>
+                      <span className="schedule-grid-area-count">{group.rows.length}</span>
+                    </button>
+
+                    {isAreaExpanded ? (
+                      <div className="schedule-template-area-group-list">
+                        {group.rows.map((row) => {
                 const templateDefaultRequired = getTemplateDefaultRequiredCount(row.template)
-                const templateName = `${row.template.name || ''}`.trim()
-                const templateDepartmentLabel = templateArea.toUpperCase()
-                const templateShiftLabel = templateName
-                  ? formatScheduleShiftDisplayName(templateName, templateArea)
-                  : 'Shift'
+                const templateName = `${row.template.name || 'Shift'}`.trim()
                 const templateNote = `${row.template.notes ?? ''}`.trim()
                 const templateStaffLabel = templateDefaultRequired === 1
                   ? '1 employee'
@@ -3815,8 +4081,7 @@ function ScheduleView({
                   >
                     <div className="schedule-template-card-heading-row">
                       <div className="schedule-template-card-heading">
-                        <p className="schedule-template-card-department">{templateDepartmentLabel}</p>
-                        <p className="schedule-template-card-name">{templateShiftLabel}</p>
+                        <p className="schedule-template-card-name">{templateName}</p>
                       </div>
                       <div className="template-card-actions schedule-template-card-actions">
                         <button
@@ -3872,6 +4137,11 @@ function ScheduleView({
 
                     {templateNote ? <p className="schedule-template-card-note">{templateNote}</p> : null}
                   </article>
+                )
+                        })}
+                      </div>
+                    ) : null}
+                  </section>
                 )
               })}
             </div>
@@ -4499,7 +4769,7 @@ function ScheduleView({
 
             <div className="modal-actions schedule-capacity-edit-actions">
               <button type="button" className="ghost-btn" onClick={() => setCapacityEditPending(null)}>Cancel</button>
-              {canSaveTemplateDefault ? (
+              {canSaveTemplateDefault && canEditSchedule ? (
                 <button type="button" className="ghost-btn" onClick={() => handleSaveCapacityEdit({ saveAsTemplateDefault: true })} disabled={isSaving}>
                   Save as template default
                 </button>
@@ -11740,7 +12010,6 @@ function App() {
   const [scheduleEmployees, setScheduleEmployees] = useState([])
   const [isScheduleLoading, setIsScheduleLoading] = useState(true)
   const [scheduleNotice, setScheduleNotice] = useState('')
-  const [scheduleSetupWarning, setScheduleSetupWarning] = useState('')
   const [scheduleLegacyTemplateSchema, setScheduleLegacyTemplateSchema] = useState(false)
   const [isShiftModalOpen, setIsShiftModalOpen] = useState(false)
   const [editingShift, setEditingShift] = useState(null)
@@ -11750,6 +12019,10 @@ function App() {
   const [templateForm, setTemplateForm] = useState(() => buildTemplateForm())
   const [isSavingTemplate, setIsSavingTemplate] = useState(false)
   const [isDeletingTemplate, setIsDeletingTemplate] = useState(false)
+  const [isReorderingTemplates, setIsReorderingTemplates] = useState(false)
+  const [draggedShiftTemplateId, setDraggedShiftTemplateId] = useState(null)
+  const templateReorderPointerRef = useRef(null)
+  const templateReorderInitialOrderRef = useRef(null)
   const [templateNotice, setTemplateNotice] = useState('')
   const [weeklyTemplates, setWeeklyTemplates] = useState([])
   const [isWeeklyTemplatesLoading, setIsWeeklyTemplatesLoading] = useState(true)
@@ -11948,6 +12221,11 @@ function App() {
     [role],
   )
 
+  const canEditScheduleRole = useMemo(
+    () => canEditSchedule(role),
+    [role],
+  )
+
   const isOperationsWorkspaceReady = Boolean(activeWorkspaceId) && !isAuthLoading && !isAuthBootstrapping
 
   const operationsWorkspaceSetupMessage = useMemo(() => {
@@ -11998,9 +12276,7 @@ function App() {
   }, [activeView, settingsSection, teamSection, stockSection, operationsSection, scheduleWeekStart])
 
   const syncScheduleTemplateSetupState = useCallback(() => {
-    const isLegacy = didUseLegacyShiftTemplateSchema()
-    setScheduleLegacyTemplateSchema(isLegacy)
-    setScheduleSetupWarning(isLegacy ? SHIFT_TEMPLATE_LEGACY_SETUP_MESSAGE : '')
+    setScheduleLegacyTemplateSchema(didUseLegacyShiftTemplateSchema())
   }, [])
 
   const handleScheduleWeekStartChange = useCallback((nextWeekStart) => {
@@ -12201,17 +12477,17 @@ function App() {
     }
 
     return state
-  }, [scheduleWeekStart, todayWeekStart])
+  }, [activeWorkspaceId, scheduleWeekStart, todayWeekStart])
 
   const refreshTodayWeekDraftData = useCallback(async (weekStartDate = todayWeekStart) => {
     const normalizedWeekStart = `${weekStartDate ?? ''}`.trim() || todayWeekStart
-    if (!normalizedWeekStart) {
+    if (!normalizedWeekStart || !activeWorkspaceId) {
       return { shifts: [], capacities: [] }
     }
 
     const weekDateKeys = getWeekDateKeys(normalizedWeekStart)
     const [remoteShifts, remoteCapacities] = await Promise.all([
-      getShifts({
+      getShifts(activeWorkspaceId, {
         startDate: weekDateKeys[0],
         endDate: weekDateKeys[weekDateKeys.length - 1],
       }),
@@ -12227,7 +12503,7 @@ function App() {
     }
 
     return { shifts: remoteShifts, capacities: remoteCapacities }
-  }, [scheduleWeekStart, todayWeekStart])
+  }, [activeWorkspaceId, scheduleWeekStart, todayWeekStart])
 
   const isDashboardScheduleLoading = isViewingTodayWeekInScheduler
     ? isScheduleLoading
@@ -12315,11 +12591,15 @@ function App() {
     isTasksModuleConnected,
   ])
 
+  const teamTodayShiftSource = useMemo(() => (
+    isTodayWeekPublished ? dashboardPublishedShifts : dashboardShifts
+  ), [isTodayWeekPublished, dashboardPublishedShifts, dashboardShifts])
+
   const teamTodayGroups = useMemo(() => buildTeamTodayGroups({
-    shifts: dashboardShifts,
+    shifts: teamTodayShiftSource,
     employees: scheduleEmployees,
     todayKey: currentDateKey,
-  }), [dashboardShifts, scheduleEmployees, currentDateKey])
+  }), [teamTodayShiftSource, scheduleEmployees, currentDateKey])
 
   const teamTodayStatus = useMemo(() => buildTeamTodayStatus({
     liveFloor: liveFloorState,
@@ -12354,7 +12634,7 @@ function App() {
     // Service timeline uses actionable tasks only, not announcements or operations tasks.
     timelineEvents: buildTodayCommandTimeline({
       shifts: dashboardShifts,
-      shiftTemplates,
+      employees: scheduleEmployees,
       reservations,
       todayKey: currentDateKey,
       reservationsConnected: isReservationsModuleConnected,
@@ -12364,7 +12644,7 @@ function App() {
     tasksConnected: isTasksModuleConnected,
   }), [
     dashboardShifts,
-    shiftTemplates,
+    scheduleEmployees,
     reservations,
     currentDateKey,
     isReservationsModuleConnected,
@@ -12432,6 +12712,30 @@ function App() {
       throw error
     }
   }, [activeWorkspaceId])
+
+  const upsertReservationInState = useCallback((reservation) => {
+    if (!reservation?.id) return
+    const reservationId = `${reservation.id}`
+    setReservations((current) => {
+      const existingIndex = current.findIndex((entry) => `${entry.id}` === reservationId)
+      if (existingIndex === -1) {
+        return [...current, reservation]
+      }
+      const next = [...current]
+      next[existingIndex] = reservation
+      return next
+    })
+  }, [])
+
+  const removeReservationFromState = useCallback((reservationId) => {
+    const id = `${reservationId ?? ''}`.trim()
+    if (!id) return
+    setReservations((current) => current.filter((entry) => `${entry.id}` !== id))
+  }, [])
+
+  const reloadTodayReservations = useCallback(async () => {
+    await refreshReservations()
+  }, [refreshReservations])
 
   const refreshInventory = useCallback(async () => {
     try {
@@ -12845,12 +13149,27 @@ function App() {
     let isMounted = true
 
     const loadTodayWeekData = async () => {
+      if (!activeWorkspaceId) {
+        setTodayWeekShifts([])
+        setTodayWeekCapacities([])
+        setTodayWeekPublishedShifts([])
+        setTodayWeekPublication({
+          weekStartDate: todayWeekStart,
+          status: 'draft',
+          publishedAt: null,
+          unpublishedAt: null,
+          publishedBy: null,
+        })
+        setIsTodayWeekLoading(false)
+        return
+      }
+
       setIsTodayWeekLoading(true)
       const weekDateKeys = getWeekDateKeys(todayWeekStart)
 
       try {
         const [remoteShifts, remoteCapacities, publicationState] = await Promise.all([
-          getShifts({
+          getShifts(activeWorkspaceId, {
             startDate: weekDateKeys[0],
             endDate: weekDateKeys[weekDateKeys.length - 1],
           }),
@@ -12893,17 +13212,26 @@ function App() {
     return () => {
       isMounted = false
     }
-  }, [scheduleWeekStart, todayWeekStart])
+  }, [activeWorkspaceId, scheduleWeekStart, todayWeekStart])
 
   useEffect(() => {
     let isMounted = true
 
     const loadPositions = async () => {
+      if (!activeWorkspaceId) {
+        setPositions([])
+        setEmployees([])
+        setScheduleEmployees([])
+        setIsPositionsLoading(false)
+        setIsLoadingStaff(false)
+        return
+      }
+
       setIsPositionsLoading(true)
       setPositionsNotice('')
 
       try {
-        const remotePositions = await getPositions()
+        const remotePositions = await getPositions(activeWorkspaceId)
         if (!isMounted) return
         setPositions(remotePositions)
       } catch (error) {
@@ -12922,7 +13250,7 @@ function App() {
       setStaffNotice('')
 
       try {
-        const remoteEmployees = await getEmployees()
+        const remoteEmployees = await getEmployees(activeWorkspaceId)
         if (!isMounted) return
         setEmployees(remoteEmployees)
         setScheduleEmployees(remoteEmployees)
@@ -12945,7 +13273,7 @@ function App() {
     return () => {
       isMounted = false
     }
-  }, [])
+  }, [activeWorkspaceId])
 
   useEffect(() => {
     let isMounted = true
@@ -13181,7 +13509,6 @@ function App() {
       } catch (error) {
         if (!isMounted) return
         setShiftTemplates([])
-        setScheduleSetupWarning('')
         setScheduleNotice(error.message || 'Unable to load shift templates right now.')
       }
 
@@ -13195,7 +13522,7 @@ function App() {
       }
 
       try {
-        const remoteEmployees = await getEmployees()
+        const remoteEmployees = await getEmployees(activeWorkspaceId)
         if (!isMounted) return
         setEmployees(remoteEmployees)
         setScheduleEmployees(remoteEmployees)
@@ -13217,19 +13544,34 @@ function App() {
     return () => {
       isMounted = false
     }
-  }, [syncScheduleTemplateSetupState])
+  }, [activeWorkspaceId, syncScheduleTemplateSetupState])
 
   useEffect(() => {
     let isMounted = true
 
     const loadScheduleWeekData = async (weekStartDate) => {
+      if (!activeWorkspaceId) {
+        setShifts([])
+        setScheduleCapacities([])
+        setPublishedShifts([])
+        setSchedulePublication({
+          weekStartDate,
+          status: 'draft',
+          publishedAt: null,
+          unpublishedAt: null,
+          publishedBy: null,
+        })
+        setIsScheduleLoading(false)
+        return
+      }
+
       setIsScheduleLoading(true)
       setScheduleNotice('')
       const weekDateKeys = getWeekDateKeys(weekStartDate)
 
       try {
         const [remoteShifts, remoteCapacities, publicationState] = await Promise.all([
-          getShifts({
+          getShifts(activeWorkspaceId, {
             startDate: weekDateKeys[0],
             endDate: weekDateKeys[weekDateKeys.length - 1],
           }),
@@ -13274,7 +13616,7 @@ function App() {
     return () => {
       isMounted = false
     }
-  }, [scheduleWeekStart, todayWeekStart])
+  }, [activeWorkspaceId, scheduleWeekStart, todayWeekStart])
 
   useEffect(() => {
     let isMounted = true
@@ -13343,14 +13685,25 @@ function App() {
   }
 
   const refreshStaffEmployees = async () => {
-    const remoteEmployees = await getEmployees()
+    if (!activeWorkspaceId) {
+      setEmployees([])
+      setScheduleEmployees([])
+      return []
+    }
+
+    const remoteEmployees = await getEmployees(activeWorkspaceId)
     setEmployees(remoteEmployees)
     setScheduleEmployees(remoteEmployees)
     return remoteEmployees
   }
 
   const refreshPositions = async () => {
-    const remotePositions = await getPositions()
+    if (!activeWorkspaceId) {
+      setPositions([])
+      return []
+    }
+
+    const remotePositions = await getPositions(activeWorkspaceId)
     setPositions(remotePositions)
     return remotePositions
   }
@@ -13368,6 +13721,11 @@ function App() {
   const handlePositionSubmit = async (event) => {
     event.preventDefault()
 
+    if (!activeWorkspaceId) {
+      setPositionsNotice('Workspace is not ready yet.')
+      return
+    }
+
     if (!positionForm.name.trim()) {
       setPositionsNotice('Position name is required.')
       return
@@ -13378,7 +13736,7 @@ function App() {
 
     try {
       if (editingPositionId) {
-        const updatedPosition = await updatePosition(editingPositionId, {
+        const updatedPosition = await updatePosition(activeWorkspaceId, editingPositionId, {
           name: positionForm.name.trim(),
           department: positionForm.department,
         })
@@ -13387,7 +13745,7 @@ function App() {
           .sort((left, right) => (left.sortOrder - right.sortOrder) || left.name.localeCompare(right.name)))
         setPositionsNotice('Position updated.')
       } else {
-        const createdPosition = await createPosition({
+        const createdPosition = await createPosition(activeWorkspaceId, {
           name: positionForm.name.trim(),
           department: positionForm.department,
           sortOrder: positions.length + 1,
@@ -13435,7 +13793,7 @@ function App() {
     setPositions(reordered)
 
     try {
-      await reorderPositions(reordered)
+      await reorderPositions(activeWorkspaceId, reordered)
       setPositionsNotice('Position order updated.')
       await refreshPositions()
     } catch (error) {
@@ -13455,7 +13813,7 @@ function App() {
     setIsSavingPosition(true)
 
     try {
-      await deletePosition(positionPendingDelete.id)
+      await deletePosition(activeWorkspaceId, positionPendingDelete.id)
       setPositions((current) => current.filter((position) => position.id !== positionPendingDelete.id))
       setPositionsNotice(usage > 0 ? 'Position deleted. Employees will need reassignment.' : 'Position deleted.')
       setPositionPendingDelete(null)
@@ -13506,6 +13864,7 @@ function App() {
   }
 
   const handlePublishWeekSchedule = async (weekStartDate, weekDateKeys = []) => {
+    if (!canEditScheduleRole || !activeWorkspaceId) return
     const normalizedKeys = (weekDateKeys ?? []).map((item) => `${item}`.trim()).filter(Boolean)
     const weekDateSet = new Set(normalizedKeys.length > 0 ? normalizedKeys : getWeekDateKeys(weekStartDate))
     const draftWeekShifts = shifts.filter((shift) => weekDateSet.has(`${shift.date ?? ''}`.slice(0, 10)))
@@ -13546,6 +13905,7 @@ function App() {
   }
 
   const handleUnpublishWeekSchedule = async (weekStartDate) => {
+    if (!canEditScheduleRole || !activeWorkspaceId) return
     const result = await unpublishWeekSchedule({ weekStartDate })
 
     if (weekStartDate === scheduleWeekStart) {
@@ -13587,7 +13947,7 @@ function App() {
     }
 
     if (scheduleLegacyTemplateSchema || didUseLegacyShiftTemplateSchema()) {
-      throw new Error('Template default staff is unavailable until the shift_templates migration is run in Supabase.')
+      throw new Error('Template default staff is unavailable with the current schema.')
     }
 
     const normalizedCount = Math.max(0, Math.min(99, Math.floor(Number(requiredCount) || 0)))
@@ -13633,7 +13993,7 @@ function App() {
   const handleEditShiftTemplate = (template) => {
     setTemplateNotice('')
     setEditingTemplate(template)
-    setTemplateForm(buildTemplateForm(template))
+    setTemplateForm(buildTemplateForm(template, shiftTemplates))
     setIsTemplateModalOpen(true)
   }
 
@@ -13689,7 +14049,7 @@ function App() {
 
     if (editingTemplate?.id === template.id) {
       setEditingTemplate(null)
-      setTemplateForm(buildTemplateForm())
+      setTemplateForm(buildTemplateForm(null, shiftTemplates))
     }
 
     setScheduleNotice('Shift template deleted.')
@@ -13807,7 +14167,7 @@ function App() {
       const existingWeekShifts = shifts.filter((shift) => weekDates.has(shift.date))
 
       for (const existingShift of existingWeekShifts) {
-        await deleteShift(existingShift.id)
+        await deleteShift(activeWorkspaceId, existingShift.id)
       }
 
       await deleteScheduleCapacitiesForDates(weekDays.map((day) => day.key))
@@ -13849,7 +14209,7 @@ function App() {
         }
         createdKeySet.add(dedupeKey)
 
-        const savedShift = await createShift(prepared, gridShiftOptions)
+        const savedShift = await createShift(activeWorkspaceId, prepared, gridShiftOptions)
         created.push(savedShift)
       }
 
@@ -13913,7 +14273,7 @@ function App() {
     const targetDates = new Set(targetWeekDays.map((day) => day.key))
 
     const sourceDateKeys = sourceWeekDays.map((day) => day.key).sort()
-    const sourceWeekShifts = await getShifts({
+    const sourceWeekShifts = await getShifts(activeWorkspaceId, {
       startDate: sourceDateKeys[0],
       endDate: sourceDateKeys[sourceDateKeys.length - 1],
     })
@@ -13929,7 +14289,7 @@ function App() {
 
     try {
       for (const existingShift of shifts.filter((shift) => targetDates.has(shift.date))) {
-        await deleteShift(existingShift.id)
+        await deleteShift(activeWorkspaceId, existingShift.id)
       }
 
       await deleteScheduleCapacitiesForDates(targetWeekDays.map((day) => day.key))
@@ -13972,7 +14332,7 @@ function App() {
         if (dedupe.has(dedupeKey)) continue
         dedupe.add(dedupeKey)
 
-        const saved = await createShift(prepared, gridShiftOptions)
+        const saved = await createShift(activeWorkspaceId, prepared, gridShiftOptions)
         created.push(saved)
       }
 
@@ -14016,7 +14376,7 @@ function App() {
       if (dedupe.has(dedupeKey)) continue
       dedupe.add(dedupeKey)
 
-      const saved = await createShift(prepared, gridShiftOptions)
+      const saved = await createShift(activeWorkspaceId, prepared, gridShiftOptions)
       created.push(saved)
     }
 
@@ -14048,7 +14408,7 @@ function App() {
     try {
       if (overwrite) {
         for (const existingShift of targetShifts) {
-          await deleteShift(existingShift.id)
+          await deleteShift(activeWorkspaceId, existingShift.id)
         }
       }
 
@@ -14089,7 +14449,7 @@ function App() {
     }
 
     const targetDateKeys = targetWeekDays.map((day) => day.key).sort()
-    const targetWeekShifts = await getShifts({
+    const targetWeekShifts = await getShifts(activeWorkspaceId, {
       startDate: targetDateKeys[0],
       endDate: targetDateKeys[targetDateKeys.length - 1],
     })
@@ -14103,7 +14463,7 @@ function App() {
 
     try {
       for (const existingShift of targetWeekShifts) {
-        await deleteShift(existingShift.id)
+        await deleteShift(activeWorkspaceId, existingShift.id)
       }
 
       await deleteScheduleCapacitiesForDates(targetDateKeys)
@@ -14145,7 +14505,7 @@ function App() {
 
     try {
       for (const shift of dayShifts) {
-        await deleteShift(shift.id)
+        await deleteShift(activeWorkspaceId, shift.id)
       }
 
       await refreshScheduleViewData()
@@ -14176,7 +14536,7 @@ function App() {
 
     try {
       for (const shift of weekShifts) {
-        await deleteShift(shift.id)
+        await deleteShift(activeWorkspaceId, shift.id)
       }
 
       await refreshScheduleViewData()
@@ -14214,7 +14574,7 @@ function App() {
 
     try {
       for (const shift of cellShifts) {
-        await deleteShift(shift.id)
+        await deleteShift(activeWorkspaceId, shift.id)
       }
 
       await refreshScheduleViewData()
@@ -14256,7 +14616,7 @@ function App() {
     try {
       if (replaceExisting) {
         for (const existingShift of shifts.filter((shift) => weekDates.has(shift.date))) {
-          await deleteShift(existingShift.id)
+          await deleteShift(activeWorkspaceId, existingShift.id)
         }
       }
 
@@ -14303,7 +14663,7 @@ function App() {
         }
         createdKeySet.add(dedupeKey)
 
-        const savedShift = await createShift(prepared, gridShiftOptions)
+        const savedShift = await createShift(activeWorkspaceId, prepared, gridShiftOptions)
         created.push(savedShift)
 
         if (cellKey) {
@@ -14360,7 +14720,7 @@ function App() {
 
     try {
       if (!existing) {
-        await createPosition({
+        await createPosition(activeWorkspaceId, {
           name: customName,
           department: employeeForm.department || inferPositionDepartment(customName),
           sortOrder: positions.length + 1,
@@ -14411,6 +14771,11 @@ function App() {
 
   const handleEmployeeSubmit = async (event) => {
     event.preventDefault()
+
+    if (!activeWorkspaceId) {
+      setSaveError('Workspace is not ready yet.')
+      return
+    }
 
     if (!employeeForm.fullName.trim()) {
       const message = 'Full Name is required.'
@@ -14493,8 +14858,8 @@ function App() {
 
     try {
       const savedEmployee = editingEmployee
-        ? await updateEmployee(editingEmployee.id, payload)
-        : await createEmployee(payload)
+        ? await updateEmployee(activeWorkspaceId, editingEmployee.id, payload)
+        : await createEmployee(activeWorkspaceId, payload)
 
       await refreshPositions()
       const refreshedEmployees = await refreshStaffEmployees()
@@ -14525,12 +14890,16 @@ function App() {
 
   const handleDeleteEmployee = async () => {
     if (!employeePendingDelete?.id) return
+    if (!activeWorkspaceId) {
+      setSaveError('Workspace is not ready yet.')
+      return
+    }
 
     setSaveError('')
     setIsDeletingEmployee(true)
 
     try {
-      await deleteEmployee(employeePendingDelete.id)
+      await deleteEmployee(activeWorkspaceId, employeePendingDelete.id)
       const refreshedEmployees = await refreshStaffEmployees()
 
       if (selectedEmployee?.id === employeePendingDelete.id) {
@@ -14684,8 +15053,13 @@ function App() {
   }
 
   const refreshScheduleShifts = async (weekStartDate = scheduleWeekStart) => {
+    if (!activeWorkspaceId) {
+      setShifts([])
+      return []
+    }
+
     const weekDateKeys = getWeekDateKeys(weekStartDate)
-    const remoteShifts = await getShifts({
+    const remoteShifts = await getShifts(activeWorkspaceId, {
       startDate: weekDateKeys[0],
       endDate: weekDateKeys[weekDateKeys.length - 1],
     })
@@ -14782,12 +15156,10 @@ function App() {
 
   const handleOpenEditShift = (shift) => {
     const areaFormState = getShiftAreaFormState(shift.area)
-    const matchedTemplate = shiftTemplates.find((template) => (
-      resolveShiftTemplateId(template) === resolveShiftTemplateId(shift)
-    )) ?? shiftTemplates.find((template) => (
-      normalizeTimeValue(template.startTime) === normalizeTimeValue(shift.startTime)
-      && normalizeTimeValue(template.endTime) === normalizeTimeValue(shift.endTime)
-    ))
+    const shiftTemplateId = resolveShiftTemplateId(shift)
+    const matchedTemplate = shiftTemplateId
+      ? shiftTemplates.find((template) => resolveShiftTemplateId(template) === shiftTemplateId)
+      : null
 
     setEditingShift(shift)
     setFormData({
@@ -14823,8 +15195,9 @@ function App() {
   }
 
   const handleDeleteShift = async (id) => {
+    if (!canEditScheduleRole || !activeWorkspaceId) return
     try {
-      await deleteShift(id)
+      await deleteShift(activeWorkspaceId, id)
       await refreshScheduleViewData()
       setScheduleNotice('Shift removed.')
     } catch (error) {
@@ -14833,6 +15206,9 @@ function App() {
   }
 
   const handleCreateGridShift = async ({ employeeId, shiftDate, template, positionName, notes, requiredCount = 1, currentAssignedCount = 0 }) => {
+    if (!canEditScheduleRole || !activeWorkspaceId) {
+      throw new Error('You do not have permission to edit the schedule.')
+    }
     if (!employeeId || !shiftDate) {
       throw new Error('Please complete all required fields before saving.')
     }
@@ -14883,7 +15259,7 @@ function App() {
     })
 
     try {
-      const createdShift = await createShift(payload, gridShiftOptions)
+      const createdShift = await createShift(activeWorkspaceId, payload, gridShiftOptions)
       console.log("Created shift", createdShift)
       const refreshedShifts = await refreshScheduleViewData()
       const targetCellKey = buildTemplateCellKey({ template, shiftDate })
@@ -14968,7 +15344,7 @@ function App() {
     const payload = prepareShiftForSave(rawPayload, gridShiftOptions)
 
     try {
-      const savedShift = await updateShift(shiftId, payload, gridShiftOptions)
+      const savedShift = await updateShift(activeWorkspaceId, shiftId, payload, gridShiftOptions)
       await refreshScheduleViewData()
       setScheduleNotice('Shift assignment updated.')
       return savedShift
@@ -15046,7 +15422,7 @@ function App() {
     const payload = prepareShiftForSave(rawPayload, gridShiftOptions)
 
     try {
-      const savedShift = await updateShift(shiftId, payload, gridShiftOptions)
+      const savedShift = await updateShift(activeWorkspaceId, shiftId, payload, gridShiftOptions)
       await refreshScheduleViewData()
       setScheduleNotice('Assignment time updated.')
       return savedShift
@@ -15142,12 +15518,12 @@ function App() {
     })
 
     try {
-      const savedShift = await updateShift(shiftId, payload, gridShiftOptions)
+      const savedShift = await updateShift(activeWorkspaceId, shiftId, payload, gridShiftOptions)
       await refreshScheduleViewData()
       const nextAssigned = Number(currentAssignedCount) + 1
       setScheduleNotice(nextAssigned > Number(requiredCount || 1)
-        ? `Shift moved. Covered +${nextAssigned - Number(requiredCount || 1)}.`
-        : 'Shift moved successfully.')
+        ? `Shift moved. ✓ Covered +${nextAssigned - Number(requiredCount || 1)} extra.`
+        : 'Shift moved successfully. ✓ Covered.')
       return savedShift
     } catch (error) {
       const message = getSupabaseErrorMessage(error)
@@ -15245,12 +15621,12 @@ function App() {
     })
 
     try {
-      const createdShift = await createShift(payload, gridShiftOptions)
+      const createdShift = await createShift(activeWorkspaceId, payload, gridShiftOptions)
       await refreshScheduleViewData()
       const nextAssigned = Number(currentAssignedCount) + 1
       setScheduleNotice(nextAssigned > Number(requiredCount || 1)
-        ? `Shift copied. Covered +${nextAssigned - Number(requiredCount || 1)}.`
-        : 'Shift copied successfully.')
+        ? `Shift copied. ✓ Covered +${nextAssigned - Number(requiredCount || 1)} extra.`
+        : 'Shift copied successfully. ✓ Covered.')
       return createdShift
     } catch (error) {
       const message = getSupabaseErrorMessage(error)
@@ -15266,7 +15642,7 @@ function App() {
     setScheduleNotice('')
 
     try {
-      await deleteShift(shiftId)
+      await deleteShift(activeWorkspaceId, shiftId)
       await refreshScheduleViewData()
       setScheduleNotice('Shift assignment removed.')
     } catch (error) {
@@ -15358,7 +15734,7 @@ function App() {
 
       const prepared = prepareShiftForSave(rawPayload, gridShiftOptions)
 
-      await createShift(prepared, gridShiftOptions)
+      await createShift(activeWorkspaceId, prepared, gridShiftOptions)
 
       await refreshScheduleViewData()
       setScheduleNotice('Shift copied to next day.')
@@ -15460,7 +15836,7 @@ function App() {
       }
 
       const prepared = prepareShiftForSave(rawPayload, gridShiftOptions)
-      await createShift(prepared, gridShiftOptions)
+      await createShift(activeWorkspaceId, prepared, gridShiftOptions)
       copied += 1
     }
 
@@ -15657,7 +16033,7 @@ function App() {
         }
 
         const prepared = prepareShiftForSave(rawPayload, gridShiftOptions)
-        const savedShift = await createShift(prepared, gridShiftOptions)
+        const savedShift = await createShift(activeWorkspaceId, prepared, gridShiftOptions)
         created.push(savedShift)
       }
 
@@ -15719,10 +16095,13 @@ function App() {
       return
     }
 
-    const selectedTemplate = formData.shift_template !== 'custom'
+    const isCustomShift = formData.shift_template === 'custom'
+    const selectedTemplate = !isCustomShift
       ? shiftTemplates.find((template) => template.id === formData.shift_template)
       : null
-    const resolvedTemplateId = editingShift?.shiftTemplateId ?? resolveShiftTemplateId(selectedTemplate)
+    const resolvedTemplateId = isCustomShift
+      ? null
+      : (resolveShiftTemplateId(selectedTemplate) ?? resolveShiftTemplateId(editingShift) ?? null)
 
     const conflict = getShiftConflict({
       employeeId,
@@ -15730,7 +16109,7 @@ function App() {
       startTime: normalizedStartTime,
       endTime: normalizedEndTime,
       excludeShiftId: editingShift?.id ?? null,
-      shiftTemplateId: resolvedTemplateId ?? null,
+      shiftTemplateId: resolvedTemplateId,
     })
 
     if (conflict.type === 'duplicate') {
@@ -15746,7 +16125,7 @@ function App() {
     setScheduleNotice('')
 
     const legacyShiftOptions = getLegacyShiftIntegrityOptions(shiftTemplates, {
-      requireTemplateId: Boolean(selectedTemplate) || Boolean(editingShift?.shiftTemplateId),
+      requireTemplateId: !isCustomShift && (Boolean(selectedTemplate) || Boolean(resolveShiftTemplateId(editingShift))),
     })
 
     const rawPayload = {
@@ -15764,12 +16143,13 @@ function App() {
     const payload = prepareShiftForSave(rawPayload, {
       ...legacyShiftOptions,
       template: selectedTemplate,
+      inferTemplateId: !isCustomShift,
     })
 
     try {
       const savedShift = editingShift
-        ? await updateShift(editingShift.id, payload, legacyShiftOptions)
-        : await createShift(payload, legacyShiftOptions)
+        ? await updateShift(activeWorkspaceId, editingShift.id, payload, legacyShiftOptions)
+        : await createShift(activeWorkspaceId, payload, legacyShiftOptions)
 
       await refreshScheduleViewData()
       setScheduleNotice(editingShift ? 'Shift updated successfully.' : 'Shift created successfully.')
@@ -15815,28 +16195,172 @@ function App() {
   }
 
   const customShiftTemplates = useMemo(
-    () => shiftTemplates.filter((template) => !template.isBuiltIn),
+    () => sortShiftTemplates(shiftTemplates.filter((template) => !template.isBuiltIn)),
     [shiftTemplates],
   )
+  const customShiftTemplatesRef = useRef(customShiftTemplates)
+
+  useEffect(() => {
+    customShiftTemplatesRef.current = customShiftTemplates
+  }, [customShiftTemplates])
+
+  const shiftFormDurationLabel = useMemo(() => {
+    const hours = calculateShiftDurationHours(formData.start_time, formData.end_time)
+    if (hours <= 0) return ''
+    return `${formatHoursLabel(hours)}h`
+  }, [formData.start_time, formData.end_time])
+
+  const shiftFormIsOvernight = useMemo(() => {
+    const startMinutes = parseShiftTimeToMinutes(normalizeTimeValue(formData.start_time))
+    const endMinutes = parseShiftTimeToMinutes(normalizeTimeValue(formData.end_time))
+    return startMinutes !== null && endMinutes !== null && endMinutes < startMinutes
+  }, [formData.start_time, formData.end_time])
+
+  const applyShiftTemplateOrder = (reordered) => {
+    const orderMap = new Map(reordered.map((template, index) => [
+      String(resolveShiftTemplateId(template)),
+      index + 1,
+    ]))
+
+    setShiftTemplates((current) => sortShiftTemplates(current.map((template) => {
+      const nextSortOrder = orderMap.get(String(resolveShiftTemplateId(template)))
+      return nextSortOrder === undefined
+        ? template
+        : { ...template, sortOrder: nextSortOrder }
+    })))
+  }
+
+  const hasSameShiftTemplateOrder = (left = [], right = []) => (
+    left.length === right.length
+    && left.every((template, index) => (
+      String(resolveShiftTemplateId(template)) === String(resolveShiftTemplateId(right[index]))
+    ))
+  )
+
+  const persistShiftTemplateOrder = async (reordered) => {
+    setIsReorderingTemplates(true)
+    setTemplateNotice('')
+
+    try {
+      await reorderShiftTemplates(reordered)
+      await refreshShiftTemplates()
+      setTemplateNotice('Template order updated.')
+    } catch (error) {
+      setTemplateNotice(error.message || 'Unable to reorder templates right now.')
+    } finally {
+      setIsReorderingTemplates(false)
+    }
+  }
+
+  const handleShiftTemplateDragStart = (event, templateId) => {
+    if (isReorderingTemplates || isSavingTemplate || isDeletingTemplate) {
+      event.preventDefault()
+      return
+    }
+
+    setDraggedShiftTemplateId(String(templateId))
+    event.dataTransfer.effectAllowed = 'move'
+    event.dataTransfer.setData('text/plain', String(templateId))
+  }
+
+  const handleShiftTemplateDragEnd = () => {
+    setDraggedShiftTemplateId(null)
+    templateReorderPointerRef.current = null
+    templateReorderInitialOrderRef.current = null
+  }
+
+  const handleShiftTemplateDragOver = (event) => {
+    event.preventDefault()
+    event.dataTransfer.dropEffect = 'move'
+  }
+
+  const handleShiftTemplateDrop = async (event, targetTemplate) => {
+    event.preventDefault()
+
+    const draggedId = draggedShiftTemplateId || event.dataTransfer.getData('text/plain')
+    setDraggedShiftTemplateId(null)
+    if (!draggedId || isReorderingTemplates || isSavingTemplate || isDeletingTemplate) return
+
+    const reordered = moveShiftTemplatesByDrag(customShiftTemplates, draggedId, targetTemplate.id)
+    if (hasSameShiftTemplateOrder(reordered, customShiftTemplates)) return
+
+    applyShiftTemplateOrder(reordered)
+    customShiftTemplatesRef.current = reordered
+    await persistShiftTemplateOrder(reordered)
+  }
+
+  const handleShiftTemplateReorderPointerDown = (event, template) => {
+    if (isReorderingTemplates || isSavingTemplate || isDeletingTemplate) return
+    if (event.pointerType === 'mouse') return
+
+    templateReorderInitialOrderRef.current = customShiftTemplatesRef.current.map((item) => (
+      String(resolveShiftTemplateId(item))
+    ))
+    templateReorderPointerRef.current = {
+      templateId: String(template.id),
+      pointerId: event.pointerId,
+      lastTargetId: String(template.id),
+    }
+    event.currentTarget.setPointerCapture(event.pointerId)
+  }
+
+  const handleShiftTemplateReorderPointerMove = (event) => {
+    const session = templateReorderPointerRef.current
+    if (!session || event.pointerId !== session.pointerId || event.pointerType === 'mouse') return
+
+    const targetElement = document.elementFromPoint(event.clientX, event.clientY)
+    const row = targetElement?.closest('[data-shift-template-row]')
+    const targetId = row?.getAttribute('data-shift-template-row')
+    if (!targetId || targetId === session.lastTargetId) return
+
+    const currentTemplates = customShiftTemplatesRef.current
+    session.lastTargetId = targetId
+    const reordered = moveShiftTemplatesByDrag(currentTemplates, session.templateId, targetId)
+    if (hasSameShiftTemplateOrder(reordered, currentTemplates)) return
+
+    applyShiftTemplateOrder(reordered)
+    customShiftTemplatesRef.current = reordered
+  }
+
+  const handleShiftTemplateReorderPointerUp = async (event) => {
+    const session = templateReorderPointerRef.current
+    if (!session || event.pointerId !== session.pointerId || event.pointerType === 'mouse') return
+
+    templateReorderPointerRef.current = null
+    event.currentTarget.releasePointerCapture?.(event.pointerId)
+
+    const initialOrder = templateReorderInitialOrderRef.current
+    templateReorderInitialOrderRef.current = null
+    const finalTemplates = customShiftTemplatesRef.current
+    const finalOrder = finalTemplates.map((item) => String(resolveShiftTemplateId(item)))
+    if (
+      !initialOrder
+      || (initialOrder.length === finalOrder.length && initialOrder.every((id, index) => id === finalOrder[index]))
+    ) {
+      return
+    }
+
+    await persistShiftTemplateOrder(finalTemplates)
+  }
 
   const handleOpenTemplateModal = () => {
     setTemplateNotice('')
     setEditingTemplate(null)
-    setTemplateForm(buildTemplateForm())
+    setTemplateForm(buildTemplateForm(null, shiftTemplates))
     setIsTemplateModalOpen(true)
   }
 
   const handleCloseTemplateModal = () => {
     setTemplateNotice('')
     setEditingTemplate(null)
-    setTemplateForm(buildTemplateForm())
+    setTemplateForm(buildTemplateForm(null, shiftTemplates))
     setIsTemplateModalOpen(false)
   }
 
   const handleEditTemplate = (template) => {
     setTemplateNotice('')
     setEditingTemplate(template)
-    setTemplateForm(buildTemplateForm(template))
+    setTemplateForm(buildTemplateForm(template, shiftTemplates))
   }
 
   const handleDeleteTemplate = async (template) => {
@@ -15864,7 +16388,7 @@ function App() {
 
       if (editingTemplate?.id === template.id) {
         setEditingTemplate(null)
-        setTemplateForm(buildTemplateForm())
+        setTemplateForm(buildTemplateForm(null, shiftTemplates))
       }
 
     } catch (error) {
@@ -15889,7 +16413,8 @@ function App() {
 
     const defaultRequiredCount = Math.max(0, Math.min(99, Math.floor(Number(templateForm.defaultRequiredCount) || 1)))
 
-    if (!templateForm.defaultArea.trim()) {
+    const resolvedDefaultArea = resolveTemplateDefaultArea(templateForm, shiftTemplates)
+    if (!resolvedDefaultArea) {
       setTemplateNotice('Default Area is required.')
       return
     }
@@ -15902,7 +16427,7 @@ function App() {
       startTime: templateForm.startTime,
       endTime: templateForm.endTime,
       defaultRole: templateForm.defaultRole.trim(),
-      defaultArea: templateForm.defaultArea.trim(),
+      defaultArea: resolvedDefaultArea,
       defaultRequiredCount,
       notes: templateForm.notes.trim(),
     }
@@ -15935,7 +16460,7 @@ function App() {
 
       setTemplateNotice(editingTemplate ? 'Template updated.' : 'Template created.')
       setEditingTemplate(null)
-      setTemplateForm(buildTemplateForm())
+      setTemplateForm(buildTemplateForm(null, shiftTemplates))
     } catch (error) {
       setTemplateNotice(error.message || 'Unable to save template right now.')
     } finally {
@@ -16192,8 +16717,9 @@ function App() {
         extraChairs: form.extraChairs,
         standingGuests: form.standingGuests,
       })
-      await updateReservation(activeWorkspaceId, reservation.id, payload)
-      await refreshReservations()
+      const updated = await updateReservation(activeWorkspaceId, reservation.id, payload)
+      upsertReservationInState(updated)
+      await reloadTodayReservations()
       setReservationNotice('Reservation updated.')
       return {
         saved: true,
@@ -16212,7 +16738,8 @@ function App() {
   const handleHostEditDelete = async (id) => {
     try {
       await deleteReservation(activeWorkspaceId, id)
-      await refreshReservations()
+      removeReservationFromState(id)
+      await reloadTodayReservations()
       setReservationNotice('Reservation removed.')
     } catch (error) {
       setReservationNotice(error.message || 'Unable to delete reservation right now.')
@@ -16223,7 +16750,8 @@ function App() {
   const handleDeleteReservation = async (id) => {
     try {
       await deleteReservation(activeWorkspaceId, id)
-      await refreshReservations()
+      removeReservationFromState(id)
+      await reloadTodayReservations()
       setReservationNotice('Reservation removed.')
     } catch (error) {
       setReservationNotice(error.message || 'Unable to delete reservation right now.')
@@ -16232,8 +16760,13 @@ function App() {
 
   const handleQuickReservationStatus = async (reservation, status) => {
     try {
-      await updateReservation(activeWorkspaceId, reservation.id, buildReservationUpdatePayload(reservation, { status }))
-      await refreshReservations()
+      const updated = await updateReservation(
+        activeWorkspaceId,
+        reservation.id,
+        buildReservationUpdatePayload(reservation, { status }),
+      )
+      upsertReservationInState(updated)
+      await reloadTodayReservations()
       setReservationNotice(`Reservation marked ${getHostListStatusLabel(status)}.`)
     } catch (error) {
       setReservationNotice(error.message || 'Unable to update reservation right now.')
@@ -16242,8 +16775,13 @@ function App() {
 
   const handleQuickReservationNote = async (reservation, notes) => {
     try {
-      await updateReservation(activeWorkspaceId, reservation.id, buildReservationUpdatePayload(reservation, { notes }))
-      await refreshReservations()
+      const updated = await updateReservation(
+        activeWorkspaceId,
+        reservation.id,
+        buildReservationUpdatePayload(reservation, { notes }),
+      )
+      upsertReservationInState(updated)
+      await reloadTodayReservations()
       setReservationNotice('Guest note saved.')
     } catch (error) {
       setReservationNotice(error.message || 'Unable to save guest note right now.')
@@ -16252,7 +16790,7 @@ function App() {
 
   const handleQuickReservationTableReassign = async (reservation, tableNumber) => {
     try {
-      await updateReservation(activeWorkspaceId, reservation.id, {
+      const updated = await updateReservation(activeWorkspaceId, reservation.id, {
         guestName: reservation.guestName,
         phone: reservation.phone,
         date: reservation.date,
@@ -16263,7 +16801,8 @@ function App() {
         status: reservation.status,
         notes: reservation.notes,
       })
-      await refreshReservations()
+      upsertReservationInState(updated)
+      await reloadTodayReservations()
       setReservationNotice(`Moved to table ${tableNumber}.`)
     } catch (error) {
       setReservationNotice(error.message || 'Unable to reassign table right now.')
@@ -16273,8 +16812,9 @@ function App() {
   const handleSeatGuestAtTable = async (reservation, assignment) => {
     try {
       const payload = createSeatingAssignmentPayload(reservation, assignment)
-      await updateReservation(activeWorkspaceId, reservation.id, payload)
-      await refreshReservations()
+      const updated = await updateReservation(activeWorkspaceId, reservation.id, payload)
+      upsertReservationInState(updated)
+      await reloadTodayReservations()
       setReservationNotice(
         `Seated ${formatReservationGuestName(reservation.guestName)} at ${formatSeatingAssignmentSummary(payload.seatingAssignment, reservation.guests)}.`,
       )
@@ -16316,16 +16856,18 @@ function App() {
     })
 
     try {
+      let savedReservation
       if (editingReservation) {
-        await updateReservation(activeWorkspaceId, editingReservation.id, payload)
+        savedReservation = await updateReservation(activeWorkspaceId, editingReservation.id, payload)
       } else {
-        await createReservation(activeWorkspaceId, {
+        savedReservation = await createReservation(activeWorkspaceId, {
           ...payload,
           date: reservationDate,
         }, user?.id ?? null)
       }
 
-      await refreshReservations()
+      upsertReservationInState(savedReservation)
+      await reloadTodayReservations()
       setReservationNotice(editingReservation ? 'Reservation updated.' : 'Reservation created.')
       handleCloseReservationModal()
     } catch (error) {
@@ -16355,7 +16897,7 @@ function App() {
     const profile = match ? buildGuestProfileInsights(match, reservations) : null
 
     try {
-      await createReservation(activeWorkspaceId, {
+      const created = await createReservation(activeWorkspaceId, {
         guestName: quickReservationForm.guestName.trim(),
         phone: `${match?.phone ?? ''}`.trim(),
         date: currentDateKey,
@@ -16367,7 +16909,8 @@ function App() {
         notes: `${match?.notes ?? ''}`.trim(),
       }, user?.id ?? null)
 
-      await refreshReservations()
+      upsertReservationInState(created)
+      await reloadTodayReservations()
       setReservationNotice('Quick reservation created.')
       handleCloseQuickReservation()
     } catch (error) {
@@ -17974,12 +18517,15 @@ function App() {
             statusSummary={todayStatusSummary}
             timelineEvents={dashboardTimelineEvents}
             teamTodayGroups={teamTodayGroups}
+            teamTodayStatus={teamTodayStatus}
             attentionItems={todayAttentionItems}
             announcements={operationsAnnouncements}
             announcementRole={role}
             announcementEmployeeDepartment={currentEmployeeDepartment}
             isAnnouncementsSaving={isSavingOperations}
             isScheduleLoading={isDashboardScheduleLoading}
+            now={localNow}
+            todayKey={currentDateKey}
             onQuickAction={handleDashboardQuickAction}
             onViewStock={handleDashboardViewStock}
             onViewSchedule={handleDashboardViewSchedule}
@@ -18062,9 +18608,10 @@ function App() {
               onUnpublishWeekSchedule={handleUnpublishWeekSchedule}
               isLoading={isScheduleLoading}
               noticeMessage={scheduleNotice}
-              setupWarning={scheduleSetupWarning}
               canSaveTemplateDefault={!scheduleLegacyTemplateSchema}
               isSaving={isSavingShift}
+              workspaceId={activeWorkspaceId}
+              canEditSchedule={canEditScheduleRole}
             />
           </div>
         ) : null}
@@ -18534,17 +19081,14 @@ function App() {
 
         {isShiftModalOpen ? (
           <div className="employee-modal-backdrop" onClick={handleCloseShiftModal}>
-            <div className="employee-modal" onClick={(event) => event.stopPropagation()}>
-              <div className="drawer-header">
-                <div>
-                  <p className="eyebrow">Shift form</p>
-                  <h3>{editingShift ? 'Edit shift' : 'Add shift'}</h3>
-                </div>
-                <button type="button" className="icon-btn" onClick={handleCloseShiftModal}>✕</button>
+            <div className="employee-modal schedule-compact-modal" onClick={(event) => event.stopPropagation()}>
+              <div className="drawer-header schedule-compact-modal-header">
+                <h3>{editingShift ? 'Edit shift' : 'Add shift'}</h3>
+                <button type="button" className="icon-btn" onClick={handleCloseShiftModal} aria-label="Close">✕</button>
               </div>
 
-              <form className="employee-form" onSubmit={handleShiftSubmit}>
-                <div className="form-grid">
+              <form className="employee-form schedule-shift-form" onSubmit={handleShiftSubmit}>
+                <div className="form-grid schedule-shift-form-grid">
                   <label className="form-field">
                     <span>Employee</span>
                     <select
@@ -18578,9 +19122,9 @@ function App() {
                     <span>Date</span>
                     <input type="date" value={formData.shift_date} onChange={(event) => setFormData((current) => ({ ...current, shift_date: event.target.value }))} />
                   </label>
-                  <div className="form-field template-field-row">
+                  <div className="template-field-row schedule-shift-template-row">
                     <label className="form-field">
-                      <span>Shift Template</span>
+                      <span>Template</span>
                       <select value={formData.shift_template} onChange={(event) => handleSelectShiftTemplate(event.target.value)}>
                         <option value="custom">Custom</option>
                         {shiftTemplates.length === 0 ? (
@@ -18591,32 +19135,38 @@ function App() {
                         ))}
                       </select>
                     </label>
-                    <button type="button" className="ghost-btn" onClick={handleOpenTemplateModal}>Manage Templates</button>
+                    <button type="button" className="ghost-btn schedule-shift-manage-templates-btn" onClick={handleOpenTemplateModal}>Templates</button>
                   </div>
-                  <label className="form-field">
-                    <span>Start Time</span>
-                    <TimeSelect
-                      value={formData.start_time}
-                      onChange={(time) => setFormData((current) => ({
-                        ...current,
-                        shift_template: 'custom',
-                        start_time: time,
-                      }))}
-                      required
-                    />
-                  </label>
-                  <label className="form-field">
-                    <span>End Time</span>
-                    <TimeSelect
-                      value={formData.end_time}
-                      onChange={(time) => setFormData((current) => ({
-                        ...current,
-                        shift_template: 'custom',
-                        end_time: time,
-                      }))}
-                      required
-                    />
-                  </label>
+                  <div className="form-field schedule-shift-time-row full-width">
+                    <span>Time</span>
+                    <div className="schedule-shift-time-fields">
+                      <TimeSelect
+                        value={formData.start_time}
+                        onChange={(time) => setFormData((current) => ({
+                          ...current,
+                          shift_template: 'custom',
+                          start_time: time,
+                        }))}
+                        required
+                      />
+                      <span className="schedule-shift-time-separator" aria-hidden="true">–</span>
+                      <TimeSelect
+                        value={formData.end_time}
+                        onChange={(time) => setFormData((current) => ({
+                          ...current,
+                          shift_template: 'custom',
+                          end_time: time,
+                        }))}
+                        required
+                      />
+                    </div>
+                    {shiftFormDurationLabel ? (
+                      <span className="schedule-shift-duration-hint">
+                        {shiftFormDurationLabel}
+                        {shiftFormIsOvernight ? ' · overnight' : ''}
+                      </span>
+                    ) : null}
+                  </div>
                   <label className="form-field">
                     <span>Position</span>
                     <select value={formData.role} onChange={(event) => setFormData((current) => ({ ...current, role: event.target.value }))}>
@@ -18635,8 +19185,8 @@ function App() {
                     </select>
                   </label>
                   {formData.area_option === 'Other' ? (
-                    <label className="form-field">
-                      <span>Custom Area</span>
+                    <label className="form-field full-width">
+                      <span>Custom area</span>
                       <input
                         value={formData.area_custom}
                         onChange={(event) => setFormData((current) => ({ ...current, area_custom: event.target.value }))}
@@ -18644,7 +19194,7 @@ function App() {
                       />
                     </label>
                   ) : null}
-                  <label className="form-field">
+                  <label className="form-field full-width">
                     <span>Status</span>
                     <select value={formData.status} onChange={(event) => setFormData((current) => ({ ...current, status: event.target.value }))}>
                       <option value="Scheduled">Scheduled</option>
@@ -18655,12 +19205,14 @@ function App() {
                   </label>
                 </div>
 
-                <label className="form-field full-width">
-                  <span>Notes</span>
-                  <textarea rows="4" value={formData.notes} onChange={(event) => setFormData((current) => ({ ...current, notes: event.target.value }))} placeholder="Notes" />
-                </label>
+                <details className="schedule-shift-notes-details">
+                  <summary>Notes (optional)</summary>
+                  <label className="form-field full-width">
+                    <textarea rows="2" value={formData.notes} onChange={(event) => setFormData((current) => ({ ...current, notes: event.target.value }))} placeholder="Add notes" />
+                  </label>
+                </details>
 
-                <div className="modal-actions">
+                <div className="modal-actions schedule-compact-modal-actions">
                   <button type="button" className="ghost-btn" onClick={handleCloseShiftModal}>Cancel</button>
                   <button type="submit" className="primary-btn" disabled={isSavingShift}>
                     {isSavingShift ? 'Saving…' : 'Save'}
@@ -18673,44 +19225,67 @@ function App() {
 
         {isTemplateModalOpen ? (
           <div className="employee-modal-backdrop" onClick={handleCloseTemplateModal}>
-            <div className="employee-modal" onClick={(event) => event.stopPropagation()}>
-              <div className="drawer-header">
-                <div>
-                  <p className="eyebrow">Shift templates</p>
-                  <h3>Manage templates</h3>
-                </div>
-                <button type="button" className="icon-btn" onClick={handleCloseTemplateModal}>✕</button>
+            <div className="employee-modal schedule-compact-modal schedule-template-modal" onClick={(event) => event.stopPropagation()}>
+              <div className="drawer-header schedule-compact-modal-header">
+                <h3>Manage templates</h3>
+                <button type="button" className="icon-btn" onClick={handleCloseTemplateModal} aria-label="Close">✕</button>
               </div>
 
-              <div className="template-list">
+              <div className="template-list schedule-template-list">
                 {customShiftTemplates.length === 0 ? (
                   <p className="roster-empty-department">No custom templates yet.</p>
                 ) : (
-                  customShiftTemplates.map((template) => (
-                    <article key={template.id} className="template-item">
-                      <div>
+                  customShiftTemplates.map((template) => {
+                    const isTemplateRowDragging = draggedShiftTemplateId === String(template.id)
+                    const isTemplateReorderDisabled = isReorderingTemplates || isSavingTemplate || isDeletingTemplate
+
+                    return (
+                    <article
+                      key={template.id}
+                      data-shift-template-row={template.id}
+                      className={`template-item schedule-template-list-item${isTemplateRowDragging ? ' is-dragging' : ''}`}
+                      onDragOver={handleShiftTemplateDragOver}
+                      onDrop={(event) => handleShiftTemplateDrop(event, template)}
+                    >
+                      <button
+                        type="button"
+                        className="schedule-template-drag-handle"
+                        draggable={!isTemplateReorderDisabled}
+                        onDragStart={(event) => handleShiftTemplateDragStart(event, template.id)}
+                        onDragEnd={handleShiftTemplateDragEnd}
+                        onPointerDown={(event) => handleShiftTemplateReorderPointerDown(event, template)}
+                        onPointerMove={handleShiftTemplateReorderPointerMove}
+                        onPointerUp={handleShiftTemplateReorderPointerUp}
+                        onPointerCancel={handleShiftTemplateReorderPointerUp}
+                        aria-label={`Reorder ${template.name}`}
+                        disabled={isTemplateReorderDisabled}
+                      >
+                        ☰
+                      </button>
+                      <div className="schedule-template-list-main">
                         <strong>{template.name}</strong>
-                        <p>{formatTimeRange24(template.startTime, template.endTime, ' - ')} · Default staff: {getTemplateDefaultRequiredCount(template)}</p>
+                        <p>{formatTimeRange24(template.startTime, template.endTime, ' - ')} · {template.defaultArea || 'No area'} · Staff {getTemplateDefaultRequiredCount(template)}</p>
                       </div>
-                      <div className="action-group">
-                        <button type="button" className="ghost-btn small" onClick={() => handleEditTemplate(template)}>Edit</button>
-                        <button type="button" className="ghost-btn small" onClick={() => handleDeleteTemplate(template)} disabled={isDeletingTemplate}>
+                      <div className="action-group schedule-template-list-actions">
+                        <button type="button" className="ghost-btn small" onClick={() => handleEditTemplate(template)} disabled={isReorderingTemplates}>Edit</button>
+                        <button type="button" className="ghost-btn small" onClick={() => handleDeleteTemplate(template)} disabled={isDeletingTemplate || isReorderingTemplates}>
                           {isDeletingTemplate ? 'Deleting…' : 'Delete'}
                         </button>
                       </div>
                     </article>
-                  ))
+                    )
+                  })
                 )}
               </div>
 
-              <form className="employee-form" onSubmit={handleTemplateSubmit}>
-                <div className="form-grid">
-                  <label className="form-field">
-                    <span>Template Name</span>
-                    <input value={templateForm.name} onChange={(event) => setTemplateForm((current) => ({ ...current, name: event.target.value }))} placeholder="Template Name" required />
+              <form className="employee-form schedule-template-form" onSubmit={handleTemplateSubmit}>
+                <div className="form-grid schedule-template-form-grid">
+                  <label className="form-field full-width">
+                    <span>Template name</span>
+                    <input value={templateForm.name} onChange={(event) => setTemplateForm((current) => ({ ...current, name: event.target.value }))} placeholder="e.g. Dinner service" required />
                   </label>
                   <label className="form-field">
-                    <span>Start Time</span>
+                    <span>Start</span>
                     <TimeSelect
                       value={templateForm.startTime}
                       onChange={(time) => setTemplateForm((current) => ({ ...current, startTime: time }))}
@@ -18718,7 +19293,7 @@ function App() {
                     />
                   </label>
                   <label className="form-field">
-                    <span>End Time</span>
+                    <span>End</span>
                     <TimeSelect
                       value={templateForm.endTime}
                       onChange={(time) => setTemplateForm((current) => ({ ...current, endTime: time }))}
@@ -18726,15 +19301,33 @@ function App() {
                     />
                   </label>
                   <label className="form-field">
-                    <span>Default Role</span>
-                    <input value={templateForm.defaultRole} onChange={(event) => setTemplateForm((current) => ({ ...current, defaultRole: event.target.value }))} placeholder="Default Role" />
+                    <span>Default role</span>
+                    <input value={templateForm.defaultRole} onChange={(event) => setTemplateForm((current) => ({ ...current, defaultRole: event.target.value }))} placeholder="Optional" />
                   </label>
                   <label className="form-field">
-                    <span>Default Area</span>
-                    <input value={templateForm.defaultArea} onChange={(event) => setTemplateForm((current) => ({ ...current, defaultArea: event.target.value }))} placeholder="Default Area" />
+                    <span>Default area</span>
+                    <select
+                      value={templateForm.defaultAreaOption}
+                      onChange={(event) => setTemplateForm((current) => ({ ...current, defaultAreaOption: event.target.value }))}
+                    >
+                      <option value="">Select area</option>
+                      {scheduleAreaOptions.map((option) => (
+                        <option key={`template-area-${option}`} value={option}>{option}</option>
+                      ))}
+                    </select>
                   </label>
+                  {templateForm.defaultAreaOption === 'Other' ? (
+                    <label className="form-field full-width">
+                      <span>Custom area</span>
+                      <input
+                        value={templateForm.defaultAreaCustom}
+                        onChange={(event) => setTemplateForm((current) => ({ ...current, defaultAreaCustom: event.target.value }))}
+                        placeholder="Enter custom area"
+                      />
+                    </label>
+                  ) : null}
                   <label className="form-field">
-                    <span>Default required staff</span>
+                    <span>Required staff</span>
                     <input
                       type="number"
                       min="0"
@@ -18748,19 +19341,21 @@ function App() {
                   </label>
                 </div>
 
-                <label className="form-field full-width">
-                  <span>Notes</span>
-                  <textarea rows="3" value={templateForm.notes} onChange={(event) => setTemplateForm((current) => ({ ...current, notes: event.target.value }))} placeholder="Notes" />
-                </label>
+                <details className="schedule-shift-notes-details">
+                  <summary>Notes (optional)</summary>
+                  <label className="form-field full-width">
+                    <textarea rows="2" value={templateForm.notes} onChange={(event) => setTemplateForm((current) => ({ ...current, notes: event.target.value }))} placeholder="Add notes" />
+                  </label>
+                </details>
 
                 {templateNotice ? <div className="staff-status-banner">{templateNotice}</div> : null}
 
-                <div className="modal-actions">
-                  <button type="button" className="ghost-btn" onClick={() => { setEditingTemplate(null); setTemplateForm(buildTemplateForm()) }}>
-                    + New Template
+                <div className="modal-actions schedule-compact-modal-actions">
+                  <button type="button" className="ghost-btn" onClick={() => { setEditingTemplate(null); setTemplateForm(buildTemplateForm(null, shiftTemplates)) }}>
+                    + New template
                   </button>
                   <button type="submit" className="primary-btn" disabled={isSavingTemplate}>
-                    {isSavingTemplate ? 'Saving…' : editingTemplate ? 'Update Template' : 'Save Template'}
+                    {isSavingTemplate ? 'Saving…' : editingTemplate ? 'Update' : 'Save'}
                   </button>
                 </div>
               </form>
