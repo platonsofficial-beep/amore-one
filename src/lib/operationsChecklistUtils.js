@@ -157,7 +157,18 @@ export function buildChecklistProgressRows(templates = [], tasks = [], todayKey 
 export function formatChecklistProgressLabel(row) {
   if (!row?.started) return 'Not started'
   if (row.status === 'complete') return 'Complete'
-  return `${row.percent}%`
+  return `${row.completed}/${row.total} done`
+}
+
+export function formatChecklistCompletionMeta(task) {
+  if (!task?.completedAt) return null
+  const completedBy = `${task.completedByName ?? ''}`.trim() || 'Team member'
+  const timeLabel = new Intl.DateTimeFormat('en-GB', {
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(new Date(task.completedAt))
+
+  return `${completedBy} · ${timeLabel}`
 }
 
 export function getChecklistTasksForTemplate(tasks = [], templateId, todayKey = '') {
@@ -177,15 +188,4 @@ export function getChecklistTasksForTemplate(tasks = [], templateId, todayKey = 
 
 export function filterStandaloneOperationsTasks(tasks = []) {
   return (tasks ?? []).filter((task) => !task.checklistTemplateId)
-}
-
-export function formatChecklistCompletionMeta(task) {
-  if (!task?.completedAt) return null
-  const completedBy = task.completedByName || 'Team member'
-  const timeLabel = new Intl.DateTimeFormat('en-GB', {
-    hour: '2-digit',
-    minute: '2-digit',
-  }).format(new Date(task.completedAt))
-
-  return `${completedBy} · ${timeLabel}`
 }

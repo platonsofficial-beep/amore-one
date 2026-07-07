@@ -115,12 +115,20 @@ async function enrichOperationsTasks(tasks = []) {
     if (task.completedBy) authUserIds.add(task.completedBy)
   })
 
-  const nameByAuthUserId = await getMemberDisplayNamesByAuthUserIds(Array.from(authUserIds))
+  const workspaceId = `${tasks[0]?.workspaceId ?? ''}`.trim()
+  const nameByAuthUserId = await getMemberDisplayNamesByAuthUserIds(workspaceId, Array.from(authUserIds))
+
+  const resolveActorName = (authUserId) => {
+    if (!authUserId) return null
+    const name = `${nameByAuthUserId[authUserId] ?? ''}`.trim()
+    if (name && name !== 'Unknown') return name
+    return 'Team member'
+  }
 
   return tasks.map((task) => ({
     ...task,
-    createdByName: task.createdBy ? (nameByAuthUserId[task.createdBy] ?? 'System') : 'System',
-    completedByName: task.completedBy ? (nameByAuthUserId[task.completedBy] ?? 'System') : null,
+    createdByName: task.createdBy ? resolveActorName(task.createdBy) : 'Team member',
+    completedByName: task.completedBy ? resolveActorName(task.completedBy) : null,
   }))
 }
 

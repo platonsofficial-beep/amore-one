@@ -46,11 +46,6 @@ function OperationsChecklistProgressCard({ row, canManage, onOpen }) {
     >
       <span className="operations-checklist-progress-name">{row.templateName}</span>
       <span className="operations-checklist-progress-value">{formatChecklistProgressLabel(row)}</span>
-      {row.started ? (
-        <span className="operations-checklist-progress-bar-mini" aria-hidden="true">
-          <span className="operations-checklist-progress-bar-mini-fill" style={{ width: `${row.percent}%` }} />
-        </span>
-      ) : null}
     </button>
   )
 }
@@ -190,19 +185,19 @@ export function OperationsDashboardView({
     resolveEmployeeName(employeeId, employees)
   ), [employees])
 
+  const standaloneTasks = useMemo(
+    () => filterStandaloneOperationsTasks(tasks),
+    [tasks],
+  )
+
   const summary = useMemo(
-    () => buildOperationsDashboardSummary(tasks, logs, todayKey),
-    [tasks, logs, todayKey],
+    () => buildOperationsDashboardSummary(standaloneTasks, logs, todayKey),
+    [standaloneTasks, logs, todayKey],
   )
 
   const checklistProgressRows = useMemo(
     () => buildChecklistProgressRows(checklistTemplates, tasks, todayKey),
     [checklistTemplates, tasks, todayKey],
-  )
-
-  const standaloneTasks = useMemo(
-    () => filterStandaloneOperationsTasks(tasks),
-    [tasks],
   )
 
   const visibleTasks = useMemo(() => {
