@@ -6103,6 +6103,7 @@
   background:
     linear-gradient(180deg, rgba(8, 8, 9, 0.42), rgba(6, 6, 7, 0.58));
   overflow: hidden;
+  isolation: isolate;
 }
 
 .floor-plan-workspace.is-host-floor .floor-table-node:not(.has-published-layout) .floor-table-node-surface {
@@ -6128,12 +6129,15 @@
   height: 100%;
   min-width: 0;
   min-height: 0;
-  padding: clamp(4px, 8%, 8px) clamp(4px, 6%, 6px);
-  gap: clamp(1px, 2%, 3px);
+  padding: clamp(4px, 7%, 6px) clamp(4px, 6%, 6px);
+  gap: 0;
   overflow: hidden;
   box-sizing: border-box;
   container-type: size;
   container-name: floor-table;
+  justify-content: center;
+  align-items: stretch;
+  isolation: isolate;
 }
 
 .floor-plan-workspace.is-host-floor .floor-table-node:not(.has-published-layout) .floor-table-node-surface {
@@ -6145,6 +6149,126 @@
 .floor-plan-workspace.is-host-floor .floor-table-node.shape-round:not(.has-published-layout) .floor-table-node-surface {
   min-width: 112px;
   min-height: 112px;
+}
+
+.floor-plan-workspace.is-host-floor .floor-table-content .floor-table-time,
+.floor-plan-workspace.is-host-floor .floor-table-content .floor-table-reservation-time {
+  font-size: clamp(0.42rem, 6.5cqb, 0.58rem);
+  font-weight: 600;
+  color: rgba(232, 215, 168, 0.82);
+  line-height: 1.1;
+  flex-shrink: 0;
+}
+
+.floor-plan-workspace.is-host-floor .floor-table-content .floor-table-guest {
+  font-size: clamp(0.5rem, 10cqb, 0.78rem);
+  font-weight: 700;
+  color: #fff8ee;
+  line-height: 1.15;
+}
+
+.floor-plan-workspace.is-host-floor .floor-table-chrome {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 3px;
+  width: 100%;
+  flex: 0 0 auto;
+  min-height: 0;
+  padding: 0 1px 2px;
+  position: relative;
+  z-index: 2;
+}
+
+.floor-plan-workspace.is-host-floor .floor-table-content {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(2px, 4%, 4px);
+  width: 100%;
+  min-width: 0;
+  min-height: 0;
+  padding: 0 2px;
+  text-align: center;
+}
+
+.floor-plan-workspace.is-host-floor .floor-table-status-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  max-width: 100%;
+  padding: 1px 5px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(10, 10, 11, 0.88);
+  color: #f0e8d8;
+  font-size: clamp(0.38rem, 5.5cqb, 0.5rem);
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  line-height: 1.2;
+  text-transform: uppercase;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.floor-plan-workspace.is-host-floor .floor-table-status-badge.is-confirmed {
+  border-color: rgba(196, 165, 116, 0.34);
+  color: rgba(232, 215, 168, 0.92);
+  background: rgba(28, 24, 16, 0.92);
+}
+
+.floor-plan-workspace.is-host-floor .floor-table-status-badge.is-waiting {
+  border-color: rgba(224, 158, 88, 0.42);
+  color: #ffd2a8;
+  background: rgba(42, 24, 10, 0.92);
+}
+
+.floor-plan-workspace.is-host-floor .floor-table-status-badge.is-seated {
+  border-color: rgba(255, 224, 150, 0.48);
+  color: #fff3cf;
+  background: rgba(58, 46, 14, 0.94);
+  font-size: clamp(0.34rem, 5cqb, 0.46rem);
+  letter-spacing: 0.04em;
+  padding: 1px 4px;
+}
+
+.floor-plan-workspace.is-host-floor .floor-table-status-badge.is-finished {
+  border-color: rgba(127, 154, 134, 0.34);
+  color: rgba(196, 224, 202, 0.9);
+  background: rgba(16, 24, 18, 0.92);
+}
+
+.floor-plan-workspace.is-host-floor .floor-table-status-badge.is-late {
+  border-color: rgba(184, 122, 122, 0.38);
+  color: #f0c0c0;
+  background: rgba(34, 16, 16, 0.92);
+}
+
+.floor-plan-workspace.is-host-floor .floor-table-linked-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 11px;
+  height: 11px;
+  flex-shrink: 0;
+  color: rgba(232, 196, 110, 0.88);
+  font-size: 0.48rem;
+  line-height: 1;
+  opacity: 0.92;
+}
+
+.floor-plan-workspace.is-host-floor .floor-table-linked-badge::before {
+  content: '⛓';
+}
+
+.floor-plan-workspace.is-host-floor .floor-table-content .floor-table-multi-bookings,
+.floor-plan-workspace.is-host-floor .floor-table-content .floor-table-next-booking {
+  width: 100%;
 }
 
 .floor-plan-workspace.is-host-floor .floor-table-assignment-copy {
@@ -6506,6 +6630,10 @@
   pointer-events: none;
 }
 
+.floor-plan-workspace.is-host-floor .floor-table-status-dot {
+  display: none;
+}
+
 .floor-table-status-dot.is-seated {
   width: 8px;
   height: 8px;
@@ -6548,7 +6676,7 @@
 .floor-plan-workspace.is-host-floor .floor-table-node.host-indicator-seated .floor-table-node-surface {
   border-color: rgba(255, 224, 150, 0.92);
   background:
-    linear-gradient(180deg, rgba(212, 175, 55, 0.4), rgba(212, 175, 55, 0.2));
+    linear-gradient(180deg, rgba(72, 58, 18, 0.98), rgba(42, 34, 12, 0.98));
   box-shadow:
     0 0 0 2px rgba(212, 175, 55, 0.43),
     0 10px 32px rgba(0, 0, 0, 0.38),
@@ -9719,7 +9847,7 @@
   inset: 0;
   width: 100%;
   height: 100%;
-  z-index: 1;
+  z-index: 0;
   pointer-events: none;
   overflow: visible;
 }
@@ -9778,13 +9906,13 @@
   --table-link-stroke: rgba(248, 216, 138, 0.78);
 }
 
-.floor-table-node.is-multi-linked.link-tone-in-house .floor-table-linked-indicator {
-  border-color: rgba(248, 216, 138, 0.72);
-  color: #fff3cf;
+.floor-table-node.is-multi-linked.link-tone-in-house .floor-table-linked-indicator,
+.floor-table-node.is-multi-linked.link-tone-in-house .floor-table-linked-badge {
+  color: rgba(248, 216, 138, 0.92);
 }
 
 .floor-table-node.is-multi-linked:not(.is-link-primary) .floor-table-node-surface {
-  background: rgba(12, 12, 13, 0.9);
+  background: rgba(12, 12, 13, 0.96);
 }
 
 .floor-table-linked-capacity {
@@ -9809,6 +9937,10 @@
   font-size: 0.48rem;
   line-height: 1;
   pointer-events: none;
+}
+
+.floor-plan-workspace.is-host-floor .floor-table-linked-indicator {
+  display: none;
 }
 
 .floor-table-node-surface {
@@ -10034,6 +10166,10 @@
   min-height: 0;
 }
 
+.host-operations-floor .floor-table-node-surface:has(.floor-table-content) {
+  justify-content: center;
+}
+
 .floor-plan-zone {
   position: absolute;
   border: 1px dashed rgba(255, 255, 255, 0.06);
@@ -10175,6 +10311,7 @@
   position: absolute;
   transform: translate(-50%, -50%);
   z-index: 2;
+  isolation: isolate;
   cursor: pointer;
   transition:
     transform 180ms ease,

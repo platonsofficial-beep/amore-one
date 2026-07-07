@@ -219,6 +219,13 @@ export function getHostListStatusLabel(status) {
   return getHostStatusMeta(status).label
 }
 
+export function getHostReservationStatusOptions() {
+  return HOST_RESERVATION_STATUSES.map((entry) => ({
+    value: entry.id,
+    label: entry.label,
+  }))
+}
+
 export function isReservationLateByTime(reservation, nowMinutes, todayKey) {
   if (`${reservation?.date ?? ''}`.slice(0, 10) !== todayKey) return false
 

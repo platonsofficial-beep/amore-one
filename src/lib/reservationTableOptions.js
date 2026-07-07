@@ -6,6 +6,7 @@ import {
 } from './reservationHostStatus'
 import { parseTimeToMinutes } from './shiftHoursUtils'
 import {
+  dedupeAssignedUnits,
   formatHostListUnitLabel,
   getReservationAssignedUnitsForMatching,
   seatingUnitMatchesFloorUnit,
@@ -152,20 +153,31 @@ export function findLayoutUnit(layout, unitId) {
 }
 
 export function syncAssignedUnitsWithLayout(layout, assignedUnits = []) {
-  return assignedUnits
-    .map((unit) => {
-      const layoutUnit = findLayoutUnit(layout, unit.id)
-      return layoutUnit ? toSeatingUnitFromLayoutUnit(layoutUnit) : unit
-    })
-    .filter(Boolean)
+  return dedupeAssignedUnits(
+    assignedUnits
+      .map((unit) => {
+        const layoutUnit = findLayoutUnit(layout, unit.id)
+        return layoutUnit ? toSeatingUnitFromLayoutUnit(layoutUnit) : unit
+      })
+      .filter(Boolean),
+  )
 }
 
 export function toggleAssignedUnit(assignedUnits, unit) {
-  const exists = assignedUnits.some((entry) => unitIdsMatch(entry.id, unit.id))
+  const normalizedUnits = dedupeAssignedUnits(assignedUnits)
+  const exists = normalizedUnits.some((entry) => (
+    unitIdsMatch(entry.id, unit.id)
+    || seatingUnitMatchesFloorUnit(entry, unit)
+  ))
+
   if (exists) {
-    return assignedUnits.filter((entry) => !unitIdsMatch(entry.id, unit.id))
+    return normalizedUnits.filter((entry) => (
+      !unitIdsMatch(entry.id, unit.id)
+      && !seatingUnitMatchesFloorUnit(entry, unit)
+    ))
   }
-  return [...assignedUnits, unit]
+
+  return dedupeAssignedUnits([...normalizedUnits, unit])
 }
 
 export function matchUnitLabelToId(layout, label) {

@@ -38,8 +38,42 @@ export function normalizeSeatingUnit(unit) {
   }
 }
 
+function collectAssignedUnitKeys(unit) {
+  const normalized = normalizeSeatingUnit(unit)
+  if (!normalized) return []
+
+  const keys = new Set()
+  const idKey = normalized.id ? normalizeUnitKey(normalized.id) : ''
+  const labelKey = normalizeUnitKey(normalized.label)
+
+  if (idKey) keys.add(idKey)
+  if (labelKey) keys.add(labelKey)
+
+  return [...keys]
+}
+
+export function dedupeAssignedUnits(assignedUnits = []) {
+  const seen = new Set()
+  const units = []
+
+  assignedUnits.forEach((unit) => {
+    const normalized = normalizeSeatingUnit(unit)
+    if (!normalized) return
+
+    const keys = collectAssignedUnitKeys(normalized)
+    if (!keys.length) return
+
+    if (keys.some((key) => seen.has(key))) return
+
+    keys.forEach((key) => seen.add(key))
+    units.push(normalized)
+  })
+
+  return units
+}
+
 export function computeSeatingAssignmentTotals(assignment, partySize = 0) {
-  const assignedUnits = (assignment?.assignedUnits ?? []).map(normalizeSeatingUnit).filter(Boolean)
+  const assignedUnits = dedupeAssignedUnits(assignment?.assignedUnits ?? [])
   const extraChairs = Math.max(0, Number(assignment?.extraChairs) || 0)
   const standingGuests = Math.max(0, Number(assignment?.standingGuests) || 0)
   const totalSeatedCapacity = assignedUnits.reduce((sum, unit) => sum + unit.seatedCapacity, 0) + extraChairs
@@ -73,7 +107,7 @@ export function buildSeatingAssignment({ assignedUnits = [], extraChairs = 0, st
 }
 
 export function formatSeatingAssignmentLabels(assignment) {
-  const units = assignment?.assignedUnits ?? []
+  const units = dedupeAssignedUnits(assignment?.assignedUnits ?? [])
   if (!units.length) return ''
 
   return units.map((unit) => unit.label).join(' + ')
@@ -228,7 +262,12 @@ export function getReservationSeatingAssignment(reservation) {
   if (!reservation) return createEmptySeatingAssignment()
 
   if (reservation.seatingAssignment?.assignedUnits?.length > 0) {
-    return reservation.seatingAssignment
+    return buildSeatingAssignment({
+      assignedUnits: reservation.seatingAssignment.assignedUnits,
+      extraChairs: reservation.seatingAssignment.extraChairs ?? 0,
+      standingGuests: reservation.seatingAssignment.standingGuests ?? 0,
+      partySize: reservation.guests,
+    })
   }
 
   const rawNotes = `${reservation.notes ?? ''}`
@@ -295,27 +334,41 @@ function parseTableNumberToAssignedUnits(tableNumber) {
 
 export function getReservationAssignedUnitsForMatching(reservation) {
   const assignment = getReservationSeatingAssignment(reservation)
-  const fromAssignment = assignment.assignedUnits ?? []
-  const tableNumber = `${reservation?.tableNumber ?? ''}`.trim()
-  const fromTableNumber = tableNumber ? parseTableNumberToAssignedUnits(tableNumber) : []
+  return dedupeAssignedUnits(assignment.assignedUnits ?? [])
+}
 
+export function resolveSeatingDraftUnitIdsForReservation(reservation, layout) {
+  const floorUnits = layout?.tables ?? layout?.units ?? []
+  if (!reservation || !floorUnits.length) return []
+
+  const assignedUnits = getReservationAssignedUnitsForMatching(reservation)
+  if (!assignedUnits.length) return []
+
+  const ids = []
   const seen = new Set()
-  const units = []
 
-  ;[...fromAssignment, ...fromTableNumber].forEach((unit) => {
-    const normalized = normalizeSeatingUnit(unit)
-    if (!normalized) return
+  assignedUnits.forEach((assignedUnit) => {
+    const floorUnit = floorUnits.find((unit) => seatingUnitMatchesFloorUnit(assignedUnit, unit))
+    if (!floorUnit?.id) return
 
-    const matchKey = normalized.id
-      ? String(normalized.id)
-      : normalizeUnitKey(normalized.label)
-    if (!matchKey || seen.has(matchKey)) return
+    const unitId = String(floorUnit.id)
+    if (seen.has(unitId)) return
 
-    seen.add(matchKey)
-    units.push(normalized)
+    seen.add(unitId)
+    ids.push(floorUnit.id)
   })
 
-  return units
+  return ids
+}
+
+export function resolveSeatingDraftFromReservation(reservation, layout) {
+  const assignment = getReservationSeatingAssignment(reservation)
+
+  return {
+    unitIds: resolveSeatingDraftUnitIdsForReservation(reservation, layout),
+    extraChairs: assignment.extraChairs ?? 0,
+    standingGuests: assignment.standingGuests ?? 0,
+  }
 }
 
 export function reservationUsesSeatingUnit(reservation, unit) {

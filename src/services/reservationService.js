@@ -1,3 +1,4 @@
+import { normalizeReservationStatus } from '../lib/reservationHostStatus'
 import { supabase } from '../lib/supabaseClient'
 import {
   buildSeatingAssignment,
@@ -18,6 +19,7 @@ function mapReservation(record) {
   const rawNotes = record.notes ?? ''
   const mapped = {
     id: record.id,
+    workspaceId: record.workspace_id ?? record.workspaceId ?? '',
     guestName: record.guest_name ?? record.guestName ?? '',
     phone: record.phone ?? '',
     date: record.reservation_date ?? record.date ?? '',
@@ -25,7 +27,7 @@ function mapReservation(record) {
     guests: record.party_size ?? record.guests ?? 0,
     tableNumber: record.table_number ?? record.tableNumber ?? '',
     area: record.area ?? '',
-    status: record.status ?? 'Pending',
+    status: normalizeReservationStatus(record.status ?? 'Pending'),
     notes: rawNotes,
   }
 
@@ -76,21 +78,23 @@ function serializeReservation(reservation) {
   )
 
   return {
-    guest_name: reservation.guestName ?? reservation.guest_name ?? '',
-    phone: reservation.phone ?? '',
+    guest_name: `${reservation.guestName ?? reservation.guest_name ?? ''}`.trim(),
+    phone: `${reservation.phone ?? ''}`.trim(),
     reservation_date: reservation.date ?? reservation.reservation_date ?? '',
     reservation_time: reservation.time ?? reservation.reservation_time ?? '',
-    party_size: reservation.guests ?? reservation.party_size ?? 0,
+    party_size: Number(reservation.guests ?? reservation.party_size) || 2,
     table_number: tableNumber,
-    area: reservation.area ?? '',
-    status: reservation.status ?? 'Booked',
+    area: `${reservation.area ?? ''}`.trim(),
+    status: normalizeReservationStatus(reservation.status ?? 'Pending'),
     notes,
   }
 }
 
 export function createSeatingAssignmentPayload(reservation, assignmentInput) {
   const seatingAssignment = buildSeatingAssignment({
-    ...assignmentInput,
+    assignedUnits: assignmentInput?.assignedUnits ?? [],
+    extraChairs: assignmentInput?.extraChairs ?? 0,
+    standingGuests: assignmentInput?.standingGuests ?? 0,
     partySize: reservation.guests,
   })
 
@@ -152,7 +156,7 @@ export function buildReservationUpdatePayload(reservation, patch) {
     guests: Number(patch.guests ?? reservation.guests) || reservation.guests,
     tableNumber,
     area: patch.area ?? reservation.area,
-    status: patch.status ?? reservation.status,
+    status: normalizeReservationStatus(patch.status ?? reservation.status ?? 'Pending'),
     customerType,
     notes: encodeSeatingAssignmentInNotes(
       encodeCustomerTypeInNotes(userNotes, customerType),
@@ -167,10 +171,21 @@ function isTableUnavailableError(error) {
   return message.includes('does not exist') || message.includes('relation') || message.includes('could not find the table')
 }
 
-export async function getReservations() {
+function requireWorkspaceId(workspaceId) {
+  const normalizedWorkspaceId = `${workspaceId ?? ''}`.trim()
+  if (!normalizedWorkspaceId) {
+    throw new Error('Workspace is required for reservations.')
+  }
+  return normalizedWorkspaceId
+}
+
+export async function getReservations(workspaceId) {
+  const normalizedWorkspaceId = requireWorkspaceId(workspaceId)
+
   const { data, error } = await supabase
     .from('reservations')
     .select('*')
+    .eq('workspace_id', normalizedWorkspaceId)
     .order('reservation_date', { ascending: true })
     .order('reservation_time', { ascending: true })
 
@@ -187,8 +202,13 @@ export async function getReservations() {
   return (data ?? []).map(mapReservation)
 }
 
-export async function createReservation(reservation) {
-  const payload = serializeReservation(reservation)
+export async function createReservation(workspaceId, reservation, createdBy = null) {
+  const normalizedWorkspaceId = requireWorkspaceId(workspaceId)
+  const payload = {
+    ...serializeReservation(reservation),
+    workspace_id: normalizedWorkspaceId,
+    created_by: createdBy ?? reservation.createdBy ?? reservation.created_by ?? null,
+  }
 
   const { data, error } = await supabase
     .from('reservations')
@@ -209,11 +229,18 @@ export async function createReservation(reservation) {
   return mapReservation(data)
 }
 
-export async function updateReservation(id, reservation) {
+export async function updateReservation(workspaceId, id, reservation) {
+  const normalizedWorkspaceId = requireWorkspaceId(workspaceId)
+  const normalizedId = `${id ?? ''}`.trim()
+  if (!normalizedId) {
+    throw new Error('Reservation is required.')
+  }
+
   const { data, error } = await supabase
     .from('reservations')
     .update(serializeReservation(reservation))
-    .eq('id', id)
+    .eq('workspace_id', normalizedWorkspaceId)
+    .eq('id', normalizedId)
     .select('*')
     .single()
 
@@ -230,11 +257,18 @@ export async function updateReservation(id, reservation) {
   return mapReservation(data)
 }
 
-export async function deleteReservation(id) {
+export async function deleteReservation(workspaceId, id) {
+  const normalizedWorkspaceId = requireWorkspaceId(workspaceId)
+  const normalizedId = `${id ?? ''}`.trim()
+  if (!normalizedId) {
+    throw new Error('Reservation is required.')
+  }
+
   const { error } = await supabase
     .from('reservations')
     .delete()
-    .eq('id', id)
+    .eq('workspace_id', normalizedWorkspaceId)
+    .eq('id', normalizedId)
 
   if (error) {
     console.error('[reservationService] deleteReservation error:', error)
