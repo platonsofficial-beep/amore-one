@@ -1546,6 +1546,78 @@
   padding-bottom: 0;
 }
 
+.app-shell.is-mobile-shell .mobile-workspace-module.is-mobile-expanded {
+  flex: none;
+  min-height: auto;
+  height: auto;
+  max-height: none;
+  overflow-x: hidden;
+  overflow-y: visible;
+  padding-bottom: 0;
+}
+
+.app-shell.is-mobile-shell .mobile-workspace-module.is-mobile-expanded .reservations-workspace,
+.app-shell.is-mobile-shell .mobile-workspace-module.is-mobile-expanded .reservations-workspace-host,
+.app-shell.is-mobile-shell .mobile-workspace-module.is-mobile-expanded .reservations-unified-canvas,
+.app-shell.is-mobile-shell .mobile-workspace-module.is-mobile-expanded .reservations-workspace-host .reservations-host-panel,
+.app-shell.is-mobile-shell .mobile-workspace-module.is-mobile-expanded .host-operations-canvas-shell,
+.app-shell.is-mobile-shell .mobile-workspace-module.is-mobile-expanded .host-operations-canvas,
+.app-shell.is-mobile-shell .mobile-workspace-module.is-mobile-expanded .host-operations-list,
+.app-shell.is-mobile-shell .mobile-workspace-module.is-mobile-expanded .host-operations-list-scroll {
+  height: auto;
+  max-height: none;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: visible;
+}
+
+.app-shell.is-mobile-shell .mobile-workspace-module.is-mobile-expanded .host-operations-floor {
+  height: auto;
+  max-height: none;
+  min-height: 280px;
+  overflow-x: hidden;
+  overflow-y: visible;
+}
+
+.app-shell.is-mobile-shell .mobile-workspace-module.is-mobile-expanded .reservations-unified-canvas[data-workspace-focus='operations'],
+.app-shell.is-mobile-shell .mobile-workspace-module.is-mobile-expanded .reservations-unified-canvas[data-workspace-focus='timeline'],
+.app-shell.is-mobile-shell .mobile-workspace-module.is-mobile-expanded .reservations-unified-canvas[data-workspace-focus='floor'] {
+  height: auto;
+  max-height: none;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: visible;
+}
+
+.app-shell.is-mobile-shell .mobile-workspace-module.is-mobile-expanded .reservations-unified-canvas[data-workspace-focus='operations'] .reservations-canvas-timeline,
+.app-shell.is-mobile-shell .mobile-workspace-module.is-mobile-expanded .reservations-unified-canvas[data-workspace-focus='operations'] .reservations-canvas-floor,
+.app-shell.is-mobile-shell .mobile-workspace-module.is-mobile-expanded .reservations-unified-canvas[data-workspace-focus='timeline'] .reservations-canvas-timeline,
+.app-shell.is-mobile-shell .mobile-workspace-module.is-mobile-expanded .reservations-unified-canvas[data-workspace-focus='floor'] .reservations-canvas-floor {
+  max-height: none;
+  overflow-x: hidden;
+  overflow-y: visible;
+}
+
+@media (max-width: 760px) {
+  .app-shell.is-mobile-shell .mobile-workspace-module.is-mobile-expanded .host-operations-list {
+    max-height: none;
+  }
+
+  .app-shell.is-mobile-shell .mobile-workspace-module.is-mobile-expanded .host-operations-canvas {
+    min-height: 0;
+  }
+
+  .app-shell.is-mobile-shell .mobile-workspace-module.is-mobile-expanded .host-operations-floor {
+    min-height: 280px;
+  }
+}
+
+@media (max-width: 900px) {
+  .app-shell.is-mobile-shell .mobile-workspace-module.is-mobile-expanded .host-operations-list {
+    max-height: none;
+  }
+}
+
 .app-shell.is-mobile-expanded .module-section-tabs {
   margin: 0 0 10px;
   padding: 4px;
