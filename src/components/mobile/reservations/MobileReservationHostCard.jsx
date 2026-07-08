@@ -2,6 +2,7 @@ import {
   formatHostListTableLabel,
 } from '../../../lib/seatingAssignment'
 import {
+  getHostReservationQuickActions,
   getHostStatusMeta,
   getReservationDisplayStatus,
 } from '../../../lib/reservationHostStatus'
@@ -9,34 +10,16 @@ import { formatHostReservationListTime } from '../../../lib/timeFormatUtils'
 
 function getActionClassName(action) {
   if (action.id === 'edit') return 'mobile-host-reservation-action is-ghost'
-  if (action.id === 'arrived' || action.id === 'seat' || action.id === 'complete') {
+  if (action.variant === 'danger') return 'mobile-host-reservation-action is-danger'
+  if (action.variant === 'primary' || action.id === 'arrived' || action.id === 'seat' || action.id === 'complete') {
     return 'mobile-host-reservation-action is-service-primary'
   }
   return 'mobile-host-reservation-action'
 }
 
-function getQuickActionsForGroup(groupId) {
-  if (groupId === 'upcoming') {
-    return [
-      { id: 'arrived', label: 'Arrived', status: 'Waiting' },
-      { id: 'seat', label: 'Seat', status: 'Checked In' },
-      { id: 'edit', label: 'Edit' },
-    ]
-  }
-
-  if (groupId === 'in-house') {
-    return [
-      { id: 'complete', label: 'Complete', status: 'Checked Out' },
-      { id: 'edit', label: 'Edit' },
-    ]
-  }
-
-  return [{ id: 'edit', label: 'Edit' }]
-}
-
 export function MobileReservationHostCard({
   reservation,
-  groupId,
+  groupId: _groupId,
   todayKey = '',
   nowMinutes = 0,
   isSelected = false,
@@ -57,7 +40,10 @@ export function MobileReservationHostCard({
   const timeLabel = formatHostReservationListTime(reservation, todayKey)
   const displayStatus = getReservationDisplayStatus(reservation, nowMinutes, todayKey)
   const statusMeta = getHostStatusMeta(displayStatus)
-  const quickActions = getQuickActionsForGroup(groupId)
+  const quickActions = [
+    ...getHostReservationQuickActions(reservation, { nowMinutes, todayKey }),
+    { id: 'edit', label: 'Edit' },
+  ]
 
   const handleAction = (event, action) => {
     event.stopPropagation()

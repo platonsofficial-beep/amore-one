@@ -91,6 +91,10 @@ import {
   normalizeReservationStatus,
   getHostReservationStatusOptions,
   reservationOccupiesFloorTables,
+  canMarkReservationArrived,
+  canSeatReservation,
+  canMarkReservationNoShow,
+  canCompleteReservation,
 } from './lib/reservationHostStatus'
 import { EmbeddedFloorPlanEditor } from './components/floor/EmbeddedFloorPlanEditor'
 import { FloorPlanReservationLinks } from './components/floor/FloorPlanReservationLinks'
@@ -9188,8 +9192,7 @@ function getActiveTimelineReservationId(reservations, nowMinutes, todayKey) {
   let bestDistance = Infinity
 
   reservations.forEach((reservation) => {
-    const status = normalizeReservationStatus(reservation.status)
-    if (['Completed', 'Cancelled', 'No Show'].includes(status)) return
+    if (isTerminalReservationStatus(reservation.status)) return
     if (`${reservation.date ?? ''}`.slice(0, 10) !== todayKey) return
 
     const minutes = parseTimeToMinutes(reservation.time)
@@ -9646,6 +9649,8 @@ function ReservationCardProgressBar({ reservation, nowMinutes, todayKey }) {
 
 function ReservationQuickActions({
   reservation,
+  nowMinutes,
+  todayKey,
   isSaving,
   isMoreOpen,
   onToggleMore,
@@ -9656,17 +9661,30 @@ function ReservationQuickActions({
 }) {
   const status = normalizeReservationStatus(reservation.status)
   const phone = `${reservation.phone ?? ''}`.trim()
-  const canMarkArrived = ['Pending', 'Not Confirmed'].includes(status)
-  const canSeat = ['Pending', 'Waiting', 'Not Confirmed', 'Confirmed', 'Late Booking'].includes(status)
-  const isTerminal = isTerminalReservationStatus(status)
+  const canMarkArrived = canMarkReservationArrived(reservation, nowMinutes, todayKey)
+  const canSeat = canSeatReservation(reservation)
+  const canMarkNoShow = canMarkReservationNoShow(reservation)
+  const canComplete = canCompleteReservation(reservation)
 
   return (
     <div className="reservation-quick-actions">
+      {canMarkArrived ? (
+        <button
+          type="button"
+          className="reservation-quick-action-btn reservation-quick-action-primary"
+          onClick={() => onQuickStatusUpdate(reservation, 'Waiting')}
+          disabled={isSaving}
+          title="Mark arrived"
+          aria-label="Mark arrived"
+        >
+          Arrived
+        </button>
+      ) : null}
       <button
         type="button"
         className="reservation-quick-action-btn reservation-quick-action-primary"
         onClick={() => onQuickStatusUpdate(reservation, 'Checked In')}
-        disabled={isSaving || !canSeat || isReservationInHouse(reservation)}
+        disabled={isSaving || !canSeat}
         title="Seat guest"
         aria-label="Seat guest"
       >
@@ -9716,8 +9734,8 @@ function ReservationQuickActions({
         </button>
         {isMoreOpen ? (
           <div className="reservation-quick-action-menu">
-            <button type="button" onClick={() => { onQuickStatusUpdate(reservation, 'Waiting'); onToggleMore() }} disabled={isSaving || !canMarkArrived}>
-              Mark arrived
+            <button type="button" onClick={() => { onQuickStatusUpdate(reservation, 'Not Shown'); onToggleMore() }} disabled={isSaving || !canMarkNoShow}>
+              Mark no-show
             </button>
             <button type="button" onClick={() => { onOpenAddNote(reservation); onToggleMore() }} disabled={isSaving}>
               Add note
@@ -9725,7 +9743,7 @@ function ReservationQuickActions({
             <button type="button" onClick={() => { onQuickStatusUpdate(reservation, 'Checked In (Partial)'); onToggleMore() }} disabled={isSaving || (!isReservationInHouse(reservation) && status !== 'Waiting')}>
               Partial check-in
             </button>
-            <button type="button" onClick={() => { onQuickStatusUpdate(reservation, 'Checked Out'); onToggleMore() }} disabled={isSaving || isTerminal}>
+            <button type="button" onClick={() => { onQuickStatusUpdate(reservation, 'Checked Out'); onToggleMore() }} disabled={isSaving || !canComplete}>
               Complete
             </button>
             <button type="button" onClick={() => { onQuickStatusUpdate(reservation, 'Cancelled'); onToggleMore() }} disabled={isSaving || status === 'Cancelled'}>
@@ -9881,6 +9899,8 @@ function ReservationArrivalCard({
       <footer className="reservation-card-actions" onClick={(event) => event.stopPropagation()}>
         <ReservationQuickActions
           reservation={reservation}
+          nowMinutes={nowMinutes}
+          todayKey={todayKey}
           isSaving={isSaving}
           isMoreOpen={isMoreOpen}
           onToggleMore={onToggleMore}
@@ -10091,6 +10111,7 @@ function ReservationsUnifiedCanvas({
   arrivalWaves,
   problemsCount = 0,
   nextArrivalHint = '',
+  nextArrivalId = null,
   isLoading,
   onQuickStatusUpdate,
   isSavingStatus,
@@ -10202,6 +10223,7 @@ function ReservationsUnifiedCanvas({
             }}
             onDragEnd={clearDragState}
             isSavingStatus={isSavingListStatus || isSavingStatus}
+            nextArrivalId={nextArrivalId}
             onStatusChange={handleStatusChange}
             helpers={HOST_LIST_HELPERS}
           />
@@ -10460,14 +10482,28 @@ function ReservationsWorkspaceBody({
   }
 
   const nextArrivalId = useMemo(() => {
-    const next = workspaceReservations.find((reservation) => {
+    const sorted = [...workspaceReservations].sort(
+      (left, right) => (parseTimeToMinutes(left.time) ?? 0) - (parseTimeToMinutes(right.time) ?? 0),
+    )
+
+    const upcoming = sorted.find((reservation) => {
       const status = normalizeReservationStatus(reservation.status)
-      if (!isUpcomingReservationStatus(status)) return false
+      if (isTerminalReservationStatus(status) || isReservationInHouseStatus(status)) return false
       const minutes = parseTimeToMinutes(reservation.time)
-      return minutes !== null && minutes >= nowMinutes
+      return minutes !== null
+        && minutes >= nowMinutes
+        && (isUpcomingReservationStatus(status) || status === 'Waiting')
     })
-    return next?.id ?? null
-  }, [nowMinutes, workspaceReservations])
+    if (upcoming) return upcoming.id
+
+    const needsAttention = sorted.find((reservation) => {
+      const status = normalizeReservationStatus(reservation.status)
+      if (isTerminalReservationStatus(status) || isReservationInHouseStatus(status)) return false
+      const displayStatus = getReservationDisplayStatus(reservation, nowMinutes, selectedDateKey)
+      return displayStatus === 'Late Booking' || status === 'Waiting'
+    })
+    return needsAttention?.id ?? null
+  }, [nowMinutes, workspaceReservations, selectedDateKey])
 
   const nextArrival = useMemo(() => {
     if (!nextArrivalId) return null
@@ -10784,6 +10820,7 @@ function ReservationsWorkspaceContent({
           arrivalWaves={arrivalWaves}
           problemsCount={problemsCount}
           nextArrivalHint={nextArrivalHint}
+          nextArrivalId={nextArrivalId}
           isLoading={isLoading}
           onQuickStatusUpdate={onQuickStatusUpdate}
           isSavingStatus={isSaving}

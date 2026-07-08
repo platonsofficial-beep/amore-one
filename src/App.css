@@ -4693,10 +4693,9 @@
 }
 
 .host-reservation-card {
-  display: grid;
-  grid-template-columns: 68px minmax(0, 1fr) auto;
-  gap: 10px;
-  align-items: center;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
   min-height: 56px;
   padding: 10px 12px;
   border-radius: 12px;
@@ -4710,6 +4709,73 @@
     border-color 160ms ease,
     box-shadow 160ms ease,
     opacity 160ms ease;
+}
+
+.host-reservation-card-main {
+  display: grid;
+  grid-template-columns: 68px minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+}
+
+.host-reservation-card.is-next-arrival {
+  border-color: rgba(212, 175, 55, 0.38);
+  box-shadow: 0 0 0 1px rgba(212, 175, 55, 0.14);
+}
+
+.host-reservation-card-quick-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 0 2px;
+}
+
+.host-reservation-card-quick-action {
+  min-width: 44px;
+  min-height: 36px;
+  padding: 0 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.04);
+  color: rgba(255, 255, 255, 0.86);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  touch-action: manipulation;
+  transition:
+    background 160ms ease,
+    border-color 160ms ease,
+    color 160ms ease;
+}
+
+.host-reservation-card-quick-action.is-primary {
+  border-color: rgba(212, 175, 55, 0.35);
+  background: rgba(212, 175, 55, 0.12);
+  color: #f0dfb0;
+}
+
+.host-reservation-card-quick-action.is-danger {
+  border-color: rgba(212, 120, 120, 0.28);
+  background: rgba(212, 120, 120, 0.1);
+  color: #e8b0a8;
+}
+
+.host-reservation-card-quick-action:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .host-reservation-card-quick-action.is-primary:hover:not(:disabled) {
+    background: rgba(212, 175, 55, 0.2);
+    border-color: rgba(212, 175, 55, 0.48);
+  }
+
+  .host-reservation-card-quick-action.is-danger:hover:not(:disabled) {
+    background: rgba(212, 120, 120, 0.16);
+    border-color: rgba(212, 120, 120, 0.42);
+  }
 }
 
 .host-reservation-card-time {
@@ -7625,8 +7691,12 @@
     width: 18px;
   }
 
-  .host-reservation-card {
+  .host-reservation-card-main {
     grid-template-columns: minmax(52px, 68px) minmax(0, 1fr) minmax(44px, auto);
+    padding: 0;
+  }
+
+  .host-reservation-card {
     padding: 4px 5px 4px 3px;
     min-height: 44px;
   }
@@ -8183,11 +8253,21 @@
 
 .reservations-service-timeline .reservation-arrival-card:hover .reservation-card-actions,
 .reservations-service-timeline .reservation-arrival-card:focus-within .reservation-card-actions,
-.reservations-service-timeline .reservation-arrival-card.is-actions-open .reservation-card-actions {
+.reservations-service-timeline .reservation-arrival-card.is-actions-open .reservation-card-actions,
+.reservations-service-timeline .reservation-arrival-card.is-timeline-active .reservation-card-actions {
   opacity: 1;
   max-height: 40px;
   padding: 2px 0 6px;
   pointer-events: auto;
+}
+
+@media (hover: none), (pointer: coarse) {
+  .reservations-service-timeline .reservation-arrival-card .reservation-card-actions {
+    opacity: 1;
+    max-height: 40px;
+    padding: 2px 0 6px;
+    pointer-events: auto;
+  }
 }
 
 .reservations-service-timeline .reservation-arrival-card.is-timeline-active {

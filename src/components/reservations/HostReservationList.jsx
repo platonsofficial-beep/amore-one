@@ -7,6 +7,7 @@ import {
   formatHostListTableTooltip,
 } from '../../lib/seatingAssignment'
 import {
+  getHostReservationQuickActions,
   getHostReservationVisualIndicator,
   getHostStatusMeta,
   getReservationDisplayStatus,
@@ -20,6 +21,12 @@ function formatHostListScheduleLabel(reservation, todayKey) {
   return formatHostReservationListTime(reservation, todayKey)
 }
 
+function getQuickActionClassName(action) {
+  if (action.variant === 'danger') return 'host-reservation-card-quick-action is-danger'
+  if (action.variant === 'primary') return 'host-reservation-card-quick-action is-primary'
+  return 'host-reservation-card-quick-action'
+}
+
 function HostReservationListRow({
   reservation,
   nowMinutes,
@@ -28,8 +35,11 @@ function HostReservationListRow({
   isEditing,
   isDragging,
   isStatusPickerOpen,
+  isNextArrival,
+  isSavingStatus,
   onOpenEdit,
   onOpenStatusPicker,
+  onQuickStatusUpdate,
   onDragStart,
   onDragEnd,
   helpers,
@@ -51,6 +61,7 @@ function HostReservationListRow({
   const statusMeta = getHostStatusMeta(displayStatus)
   const visualIndicator = getHostReservationVisualIndicator(reservation, nowMinutes, todayKey)
   const warnings = getHostReservationWarnings(reservation, nowMinutes, todayKey)
+  const quickActions = getHostReservationQuickActions(reservation, { nowMinutes, todayKey })
 
   const handleCardActivate = () => {
     onOpenEdit(reservation)
@@ -61,9 +72,15 @@ function HostReservationListRow({
     onOpenStatusPicker(reservation, event)
   }
 
+  const handleQuickAction = (event, action) => {
+    event.stopPropagation()
+    if (isSavingStatus || !action.status) return
+    onQuickStatusUpdate?.(reservation, action.status)
+  }
+
   return (
     <article
-      className={`host-reservation-card tone-${statusMeta.tone}${isSelected ? ' is-selected' : ''}${isEditing ? ' is-editing' : ''}${isDragging ? ' is-dragging' : ''}${isStatusPickerOpen ? ' is-status-picker-open' : ''}`}
+      className={`host-reservation-card tone-${statusMeta.tone}${isSelected ? ' is-selected' : ''}${isEditing ? ' is-editing' : ''}${isDragging ? ' is-dragging' : ''}${isStatusPickerOpen ? ' is-status-picker-open' : ''}${isNextArrival ? ' is-next-arrival' : ''}`}
       role="listitem"
       tabIndex={0}
       draggable
@@ -77,10 +94,11 @@ function HostReservationListRow({
         }
       }}
     >
-      <span className="host-reservation-card-time">{scheduleLabel}</span>
+      <div className="host-reservation-card-main">
+        <span className="host-reservation-card-time">{scheduleLabel}</span>
 
-      <div className="host-reservation-card-body">
-        <div className="host-reservation-card-title-row">
+        <div className="host-reservation-card-body">
+          <div className="host-reservation-card-title-row">
           {['confirmed', 'seated', 'finished', 'late'].includes(visualIndicator) ? (
             <span
               className={`host-reservation-visual-dot is-${visualIndicator}`}
@@ -93,21 +111,21 @@ function HostReservationListRow({
               !
             </span>
           ) : null}
+          </div>
+          <div className="host-reservation-card-details">
+            <span className="host-reservation-card-guests">
+              {guestCount} {guestCount === 1 ? 'guest' : 'guests'}
+            </span>
+            <span
+              className="host-reservation-card-tables"
+              title={tableTooltip !== tableLabel ? tableTooltip : undefined}
+            >
+              {tableLabel}
+            </span>
+          </div>
         </div>
-        <div className="host-reservation-card-details">
-          <span className="host-reservation-card-guests">
-            {guestCount} {guestCount === 1 ? 'guest' : 'guests'}
-          </span>
-          <span
-            className="host-reservation-card-tables"
-            title={tableTooltip !== tableLabel ? tableTooltip : undefined}
-          >
-            {tableLabel}
-          </span>
-        </div>
-      </div>
 
-      <button
+        <button
         type="button"
         className={`host-reservation-card-status-pill tone-${statusMeta.tone}`}
         aria-label={`Status: ${statusMeta.label}. Change status.`}
@@ -117,6 +135,23 @@ function HostReservationListRow({
       >
         {statusMeta.label}
       </button>
+      </div>
+
+      {quickActions.length > 0 ? (
+        <div className="host-reservation-card-quick-actions" role="group" aria-label="Quick actions">
+          {quickActions.map((action) => (
+            <button
+              key={action.id}
+              type="button"
+              className={getQuickActionClassName(action)}
+              onClick={(event) => handleQuickAction(event, action)}
+              disabled={isSavingStatus}
+            >
+              {action.label}
+            </button>
+          ))}
+        </div>
+      ) : null}
     </article>
   )
 }
@@ -130,6 +165,7 @@ export function HostReservationList({
   hostEditingReservation,
   draggingReservationId,
   isSavingStatus,
+  nextArrivalId = null,
   onOpenEdit,
   onStatusChange,
   onDragStart,
@@ -224,8 +260,12 @@ export function HostReservationList({
                         && String(hostEditingReservation.id) === String(reservation.id)}
                       isDragging={draggingReservationId === String(reservation.id)}
                       isStatusPickerOpen={String(statusPicker?.reservation?.id) === String(reservation.id)}
+                      isNextArrival={nextArrivalId !== null
+                        && String(nextArrivalId) === String(reservation.id)}
+                      isSavingStatus={isSavingStatus}
                       onOpenEdit={onOpenEdit}
                       onOpenStatusPicker={handleOpenStatusPicker}
+                      onQuickStatusUpdate={onStatusChange}
                       onDragStart={(event) => onDragStart(event, reservation)}
                       onDragEnd={onDragEnd}
                       helpers={helpers}

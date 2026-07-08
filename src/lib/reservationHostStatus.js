@@ -346,3 +346,52 @@ export function getFloorTableStatusPriority(reservation) {
 export function getFloorAssignmentPriority(reservation) {
   return getFloorTableStatusPriority(reservation)
 }
+
+export function canMarkReservationArrived(reservation, nowMinutes, todayKey) {
+  const status = normalizeReservationStatus(reservation?.status)
+  if (status === 'Waiting') return false
+  if (isReservationInHouseStatus(status)) return false
+  if (TERMINAL_STATUS_IDS.has(status)) return false
+  if (!isUpcomingReservationStatus(status) && status !== 'Late Booking') return false
+  if (status === 'Late Booking' || isReservationLate(reservation, nowMinutes, todayKey)) return true
+  return ['Pending', 'Not Confirmed', 'Confirmed'].includes(status)
+}
+
+export function canSeatReservation(reservation) {
+  const status = normalizeReservationStatus(reservation?.status)
+  if (isReservationInHouseStatus(status)) return false
+  if (TERMINAL_STATUS_IDS.has(status)) return false
+  return isUpcomingReservationStatus(status) || status === 'Late Booking' || status === 'Waiting'
+}
+
+export function canMarkReservationNoShow(reservation) {
+  const status = normalizeReservationStatus(reservation?.status)
+  if (TERMINAL_STATUS_IDS.has(status)) return false
+  if (isReservationInHouseStatus(status)) return false
+  return isUpcomingReservationStatus(status) || status === 'Late Booking' || status === 'Waiting'
+}
+
+export function canCompleteReservation(reservation) {
+  return isReservationInHouseStatus(reservation?.status)
+}
+
+export function getHostReservationQuickActions(reservation, { nowMinutes = 0, todayKey = '' } = {}) {
+  const groupId = getHostListGroupId(reservation)
+  const actions = []
+
+  if (groupId === 'upcoming') {
+    if (canMarkReservationArrived(reservation, nowMinutes, todayKey)) {
+      actions.push({ id: 'arrived', label: 'Arrived', status: 'Waiting', variant: 'primary' })
+    }
+    if (canSeatReservation(reservation)) {
+      actions.push({ id: 'seat', label: 'Seat', status: 'Checked In', variant: 'primary' })
+    }
+    if (canMarkReservationNoShow(reservation)) {
+      actions.push({ id: 'no-show', label: 'No-show', status: 'Not Shown', variant: 'danger' })
+    }
+  } else if (groupId === 'in-house' && canCompleteReservation(reservation)) {
+    actions.push({ id: 'complete', label: 'Complete', status: 'Checked Out', variant: 'primary' })
+  }
+
+  return actions
+}
