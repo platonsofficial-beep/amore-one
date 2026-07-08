@@ -6,6 +6,7 @@ import {
   formatTodayStockActivityLine,
   getStockModuleAlertItems,
   isStockMovementOnDate,
+  resolveDashboardStockAlerts,
   resolveStockItemStatus,
 } from './stockUtils'
 
@@ -63,6 +64,24 @@ describe('stockUtils', () => {
       severity: 'low',
       status: 'Low Stock',
     })
+  })
+
+  it('prefers stock module alerts and falls back to inventory alerts', () => {
+    const inventoryAlerts = [
+      { id: 'legacy-1', name: 'Legacy item', severity: 'low' },
+    ]
+
+    expect(resolveDashboardStockAlerts([], inventoryAlerts)).toEqual(inventoryAlerts)
+
+    expect(resolveDashboardStockAlerts(
+      [makeItem({ id: '1', currentQuantity: 12, minimumQuantity: 5 })],
+      inventoryAlerts,
+    )).toEqual(inventoryAlerts)
+
+    expect(resolveDashboardStockAlerts(
+      [makeItem({ id: '1', currentQuantity: 0, minimumQuantity: 5 })],
+      inventoryAlerts,
+    )).toEqual([expect.objectContaining({ id: '1', severity: 'critical' })])
   })
 
   it('detects stock movements on a given date key', () => {

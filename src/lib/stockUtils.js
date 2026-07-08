@@ -69,6 +69,15 @@ export function getStockModuleAlertItems(stockItems = [], limit = 5) {
     }))
 }
 
+export function resolveDashboardStockAlerts(stockItems = [], inventoryAlerts = []) {
+  if (stockItems.length > 0) {
+    const stockAlerts = getStockModuleAlertItems(stockItems)
+    if (stockAlerts.length > 0) return stockAlerts
+  }
+
+  return inventoryAlerts
+}
+
 export function buildTodayStockActivitySummary(stockItems = [], todayKey = getCurrentDateKey()) {
   const normalizedTodayKey = `${todayKey ?? ''}`.trim() || getCurrentDateKey()
   let received = 0

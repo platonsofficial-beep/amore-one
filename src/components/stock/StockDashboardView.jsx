@@ -734,6 +734,7 @@ function StockTodayActivitySection({ activityLine }) {
 function StockOperationsBanner({
   ordersSummary,
   criticalStockCount,
+  canManage = false,
   onOpenOrders,
 }) {
   const { draftCount, awaitingDeliveryCount, partialCount, pendingCount } = ordersSummary
@@ -756,7 +757,7 @@ function StockOperationsBanner({
       </header>
 
       <div className="stock-operations-banner-actions">
-        {awaitingDeliveryCount > 0 ? (
+        {canManage && awaitingDeliveryCount > 0 ? (
           <button
             type="button"
             className="primary-btn stock-operations-action-btn"
@@ -765,7 +766,7 @@ function StockOperationsBanner({
             Receive {awaitingDeliveryCount} deliver{awaitingDeliveryCount === 1 ? 'y' : 'ies'}
           </button>
         ) : null}
-        {partialCount > 0 ? (
+        {canManage && partialCount > 0 ? (
           <button
             type="button"
             className="primary-btn stock-operations-action-btn"
@@ -774,7 +775,7 @@ function StockOperationsBanner({
             Continue {partialCount} partial order{partialCount === 1 ? '' : 's'}
           </button>
         ) : null}
-        {draftCount > 0 ? (
+        {canManage && draftCount > 0 ? (
           <button
             type="button"
             className="ghost-btn stock-operations-action-btn"
@@ -1471,6 +1472,7 @@ export function StockDashboardView({
         <StockOperationsBanner
           ordersSummary={ordersSummary}
           criticalStockCount={criticalStockCount}
+          canManage={canManage}
           onOpenOrders={onOpenOrders}
         />
       ) : null}

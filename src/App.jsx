@@ -294,7 +294,7 @@ import {
 } from './lib/todayAttentionNavigation'
 import { TodayAttentionListItem } from './components/today/TodayAttentionListItem'
 import { buildStockOrdersOperationsSummary } from './lib/stockOrderUtils'
-import { buildStockDashboardSummary, getStockModuleAlertItems } from './lib/stockUtils'
+import { buildStockDashboardSummary, resolveDashboardStockAlerts } from './lib/stockUtils'
 import { filterTasksExcludingAnnouncementDuplicates } from './lib/operationsAnnouncementUtils'
 import {
   countShiftsCoveringTemplateCell,
@@ -13157,12 +13157,12 @@ function App() {
     [operationalSnapshot],
   )
 
-  const dashboardStockAlerts = useMemo(() => {
-    if (stockItems.length > 0) {
-      return getStockModuleAlertItems(stockItems)
-    }
-    return getLowStockAlertItems(inventoryItems)
-  }, [stockItems, inventoryItems])
+  const dashboardStockAlerts = useMemo(() => (
+    resolveDashboardStockAlerts(
+      stockItems,
+      getLowStockAlertItems(inventoryItems),
+    )
+  ), [stockItems, inventoryItems])
 
   const todayActionableTasks = useMemo(
     () => filterTasksExcludingAnnouncementDuplicates(tasks, operationsAnnouncements),
@@ -17748,8 +17748,12 @@ function App() {
       handleTeamSectionChange(destination.section)
     }
 
-    if (useMobileExperience && isManagementMobileRole(role)) {
-      setMobileExpandedView('workspace')
+    if (useMobileExperience) {
+      if (isManagementMobileRole(role)) {
+        setMobileExpandedView('workspace')
+      } else if (destination.view === 'stock' && todayAttentionPermissions.canViewStock) {
+        setMobileExpandedView('workspace')
+      }
     }
   }, [
     todayAttentionPermissions,
