@@ -2038,13 +2038,14 @@
 
 .mobile-manager-stock-inventory {
   gap: 0;
+  padding-bottom: calc(68px + env(safe-area-inset-bottom, 0px));
 }
 
 .mobile-manager-stock-command {
   display: flex;
   flex-direction: column;
   gap: 3px;
-  padding: 0 0 8px;
+  padding: 0 0 6px;
 }
 
 .mobile-manager-stock-command-title {
@@ -2076,21 +2077,37 @@
   color: #f0d4a8;
 }
 
+.mobile-manager-stock-sticky-tools {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  margin: 0 -16px 6px;
+  padding: 0 16px 8px;
+  background: rgba(10, 10, 11, 0.96);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+.mobile-manager-stock-scroll-body {
+  min-width: 0;
+}
+
 .mobile-manager-stock-search {
   display: block;
-  margin-bottom: 8px;
+  margin-bottom: 6px;
 }
 
 .mobile-manager-stock-search input {
   width: 100%;
-  min-height: 40px;
+  min-height: 38px;
   padding: 0 12px;
   border: 0;
   border-radius: 12px;
   background: rgba(255, 255, 255, 0.06);
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
   color: #fff7e8;
-  font-size: 0.95rem;
+  font-size: 0.92rem;
   line-height: 1.2;
 }
 
@@ -2099,15 +2116,12 @@
 }
 
 .mobile-manager-stock-filters {
-  position: sticky;
-  top: calc(-1 * env(safe-area-inset-top, 0px));
-  z-index: 4;
-  margin: 0 -16px 8px;
-  padding: 0 16px 8px;
-  background: rgba(10, 10, 11, 0.94);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.04);
+  margin: 0;
+  padding: 0;
+  background: transparent;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  box-shadow: none;
 }
 
 .mobile-manager-stock-chip-scroll {
@@ -2125,14 +2139,14 @@
 
 .mobile-manager-stock-chip {
   flex: 0 0 auto;
-  min-height: 32px;
-  padding: 0 12px;
+  min-height: 30px;
+  padding: 0 11px;
   border: 0;
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.04);
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
   color: #c9bfb0;
-  font-size: 0.84rem;
+  font-size: 0.82rem;
   font-weight: 600;
   white-space: nowrap;
   cursor: pointer;
@@ -2144,28 +2158,24 @@
   box-shadow: none;
 }
 
-.mobile-manager-stock-quick-bar {
+.mobile-manager-app .mobile-manager-stock-action-bar {
+  position: fixed;
+  left: 14px;
+  right: 14px;
+  bottom: calc(66px + env(safe-area-inset-bottom, 0px));
+  z-index: 6;
   display: grid;
-  grid-template-columns: 1fr;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px;
-  margin-top: 12px;
-  padding-top: 4px;
-}
-
-.mobile-manager-stock-create-dock {
-  position: sticky;
-  bottom: 0;
-  z-index: 5;
-  margin: 8px -16px 0;
-  padding: 10px 16px calc(8px + env(safe-area-inset-bottom, 0px));
-  background:
-    linear-gradient(180deg, rgba(10, 10, 11, 0) 0%, rgba(10, 10, 11, 0.88) 28%, rgba(10, 10, 11, 0.96) 100%);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-}
-
-.mobile-manager-stock-create-btn {
-  width: 100%;
+  padding: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 18px;
+  background: rgba(16, 16, 18, 0.94);
+  box-shadow:
+    0 8px 28px rgba(0, 0, 0, 0.38),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(18px) saturate(160%);
+  -webkit-backdrop-filter: blur(18px) saturate(160%);
 }
 
 .mobile-manager-stock-quick-btn {
@@ -2179,7 +2189,7 @@
   background: rgba(255, 255, 255, 0.05);
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
   color: #f7efe1;
-  font-size: 0.86rem;
+  font-size: 0.84rem;
   font-weight: 600;
   line-height: 1.2;
   text-align: center;
@@ -2203,26 +2213,26 @@
 }
 
 .mobile-manager-stock-loading {
-  margin: 8px 0 0;
+  margin: 6px 0 0;
   color: #9f9588;
-  font-size: 0.92rem;
+  font-size: 0.9rem;
 }
 
 .mobile-manager-stock-list {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 5px;
   margin: 0;
-  padding: 0 0 8px;
+  padding: 0 0 12px;
   list-style: none;
 }
 
 .mobile-manager-stock-card {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  padding: 11px 12px;
-  border-radius: 14px;
+  gap: 6px;
+  padding: 9px 10px;
+  border-radius: 13px;
   background: rgba(255, 255, 255, 0.03);
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
 }
@@ -2231,7 +2241,7 @@
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 8px;
+  gap: 6px;
 }
 
 .mobile-manager-stock-card-title-wrap {
@@ -2241,28 +2251,28 @@
 .mobile-manager-stock-card-name {
   margin: 0;
   color: #fff7e8;
-  font-size: 1rem;
+  font-size: 0.96rem;
   font-weight: 700;
-  line-height: 1.25;
+  line-height: 1.22;
   overflow-wrap: anywhere;
 }
 
 .mobile-manager-stock-card-category {
-  margin: 2px 0 0;
+  margin: 1px 0 0;
   color: #8f8778;
-  font-size: 0.8rem;
-  line-height: 1.3;
+  font-size: 0.78rem;
+  line-height: 1.25;
 }
 
 .mobile-manager-stock-status-pill {
   flex-shrink: 0;
-  min-height: 26px;
-  padding: 0 9px;
+  min-height: 24px;
+  padding: 0 8px;
   border-radius: 999px;
-  font-size: 0.68rem;
+  font-size: 0.66rem;
   font-weight: 700;
   letter-spacing: 0.06em;
-  line-height: 26px;
+  line-height: 24px;
 }
 
 .mobile-manager-stock-status-pill.tone-ok {
@@ -2286,21 +2296,21 @@
 .mobile-manager-stock-card-qty-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
+  gap: 7px;
 }
 
 .mobile-manager-stock-card-qty-block {
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: 2px;
   min-width: 0;
 }
 
 .mobile-manager-stock-card-qty-label {
   color: #7f776c;
-  font-size: 0.68rem;
+  font-size: 0.66rem;
   font-weight: 600;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.04em;
   text-transform: none;
 }
 
@@ -2308,13 +2318,13 @@
   display: flex;
   align-items: baseline;
   flex-wrap: wrap;
-  gap: 5px;
+  gap: 4px;
   margin: 0;
 }
 
 .mobile-manager-stock-card-qty-value {
   color: #fff7e8;
-  font-size: 1.42rem;
+  font-size: 1.28rem;
   font-weight: 700;
   line-height: 1;
   letter-spacing: -0.02em;
@@ -2330,35 +2340,37 @@
 
 .mobile-manager-stock-card-qty-unit {
   color: #a89f92;
-  font-size: 0.9rem;
+  font-size: 0.86rem;
   font-weight: 500;
 }
 
 .mobile-manager-stock-card-supplier {
   display: flex;
   flex-direction: column;
-  gap: 2px;
-  padding-top: 2px;
+  gap: 1px;
+  margin: 0;
+  padding: 0;
 }
 
 .mobile-manager-stock-card-supplier-label {
   color: #6f675c;
-  font-size: 0.72rem;
+  font-size: 0.68rem;
   font-weight: 500;
   letter-spacing: 0;
   text-transform: none;
 }
 
 .mobile-manager-stock-card-supplier-name {
-  color: #a89f92;
-  font-size: 0.86rem;
-  line-height: 1.35;
+  color: #9f9588;
+  font-size: 0.82rem;
+  line-height: 1.3;
 }
 
 .mobile-manager-stock-card-order-btn {
   align-self: flex-start;
-  min-height: 36px;
-  padding: 0 12px;
+  min-height: 32px;
+  margin-top: 1px;
+  padding: 0 11px;
   border: 0;
   border-radius: 10px;
   background: rgba(212, 175, 55, 0.12);

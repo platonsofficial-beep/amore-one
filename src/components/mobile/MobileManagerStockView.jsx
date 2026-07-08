@@ -251,20 +251,21 @@ export function MobileManagerStockView({
         </p>
       </header>
 
-      <label className="mobile-manager-stock-search">
-        <span className="sr-only">Search stock items</span>
-        <input
-          type="search"
-          value={searchTerm}
-          onChange={(event) => setSearchTerm(event.target.value)}
-          placeholder="Search stock item..."
-          autoComplete="off"
-          enterKeyHint="search"
-        />
-      </label>
+      <div className="mobile-manager-stock-sticky-tools">
+        <label className="mobile-manager-stock-search">
+          <span className="sr-only">Search stock items</span>
+          <input
+            type="search"
+            value={searchTerm}
+            onChange={(event) => setSearchTerm(event.target.value)}
+            placeholder="Search stock item..."
+            autoComplete="off"
+            enterKeyHint="search"
+          />
+        </label>
 
-      <div className="mobile-manager-stock-filters">
-        <div className="mobile-manager-stock-chip-scroll" role="tablist" aria-label="Stock filters">
+        <div className="mobile-manager-stock-filters">
+          <div className="mobile-manager-stock-chip-scroll" role="tablist" aria-label="Stock filters">
           <button
             type="button"
             role="tab"
@@ -311,7 +312,9 @@ export function MobileManagerStockView({
             ))}
         </div>
       </div>
+      </div>
 
+      <div className="mobile-manager-stock-scroll-body">
       {isLoading ? (
         <p className="mobile-manager-stock-loading">Loading stock…</p>
       ) : emptyState ? (
@@ -330,8 +333,9 @@ export function MobileManagerStockView({
           ))}
         </ul>
       )}
+      </div>
 
-      <section className="mobile-manager-stock-quick-bar" aria-label="Stock quick actions">
+      <section className="mobile-manager-stock-action-bar" aria-label="Stock quick actions">
         <button
           type="button"
           className="mobile-manager-stock-quick-btn"
@@ -340,18 +344,15 @@ export function MobileManagerStockView({
         >
           Count stock
         </button>
-      </section>
-
-      <div className="mobile-manager-stock-create-dock">
         <button
           type="button"
-          className="mobile-manager-stock-quick-btn mobile-manager-stock-quick-btn-primary mobile-manager-stock-create-btn"
+          className="mobile-manager-stock-quick-btn mobile-manager-stock-quick-btn-primary"
           onClick={openCreateOrderModal}
           disabled={!canManageStock || !isWorkspaceReady}
         >
           Create order
         </button>
-      </div>
+      </section>
 
       {orderModalGroups ? (
         <StockCreateOrderModal
