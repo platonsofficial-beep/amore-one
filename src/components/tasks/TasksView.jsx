@@ -4,6 +4,7 @@ import {
   buildTaskAlerts,
   buildVisibleDepartmentBoards,
   calculateDepartmentPerformanceSummaries,
+  calculateTaskOverview,
   collectCustomDepartmentNames,
   filterTasksByAssignment,
 } from '../../lib/taskUtils'
@@ -47,6 +48,7 @@ export default function TasksView({
   todayKey,
   openCreateOnMount = false,
   onOpenCreateHandled,
+  isMobileLayout = false,
 }) {
   const CUSTOM_DEPARTMENTS_STORAGE_KEY = 'amore-task-custom-departments'
 
@@ -83,6 +85,11 @@ export default function TasksView({
 
   const taskAlerts = useMemo(
     () => buildTaskAlerts(filteredTasks, todayKey),
+    [filteredTasks, todayKey],
+  )
+
+  const taskOverview = useMemo(
+    () => calculateTaskOverview(filteredTasks, todayKey),
     [filteredTasks, todayKey],
   )
 
@@ -331,23 +338,45 @@ export default function TasksView({
   const tableUnavailable = `${errorMessage}`.toLowerCase().includes('not ready yet')
 
   return (
-    <section className="staff-page tasks-page">
+    <section className={`staff-page tasks-page${isMobileLayout ? ' is-mobile-layout' : ''}`}>
       <div className="tasks-page-header">
         <div>
           <p className="eyebrow">Tasks</p>
-          <h3>{tasksScreen === 'templates' ? 'Daily templates' : 'Department operations'}</h3>
-          <p className="staff-subtitle">
-            {tasksScreen === 'templates'
-              ? 'Build reusable opening, closing, and department routines.'
-              : 'Track daily work by department with clear ownership and due dates.'}
-          </p>
+          <h3>{tasksScreen === 'templates' ? 'Daily templates' : 'Operations'}</h3>
+          {!isMobileLayout ? (
+            <p className="staff-subtitle">
+              {tasksScreen === 'templates'
+                ? 'Build reusable opening, closing, and department routines.'
+                : 'Track daily work by department with clear ownership and due dates.'}
+            </p>
+          ) : null}
         </div>
-        {tasksScreen === 'boards' && !selectedDepartmentKey ? (
+        {tasksScreen === 'boards' && !selectedDepartmentKey && !isMobileLayout ? (
           <button type="button" className="ghost-btn tasks-templates-nav-btn" onClick={handleOpenTemplates}>
             Daily Templates
           </button>
         ) : null}
       </div>
+
+      {isMobileLayout && tasksScreen === 'boards' && !selectedDepartmentKey ? (
+        <section className="tasks-mobile-command-metrics" aria-label="Today task metrics">
+          <p className="tasks-mobile-metrics-label">Today</p>
+          <div className="tasks-mobile-metrics-grid">
+            <article className="tasks-mobile-metric">
+              <strong>{taskOverview.active}</strong>
+              <span>Active tasks</span>
+            </article>
+            <article className={`tasks-mobile-metric${taskOverview.overdue > 0 ? ' is-alert' : ''}`}>
+              <strong>{taskOverview.overdue}</strong>
+              <span>Overdue</span>
+            </article>
+            <article className="tasks-mobile-metric">
+              <strong>{taskOverview.completionPercent}%</strong>
+              <span>Completed</span>
+            </article>
+          </div>
+        </section>
+      ) : null}
 
       {tasksScreen === 'boards' && errorMessage ? (
         <div className={`staff-status-banner${tableUnavailable ? ' tasks-status-unavailable' : ''}`}>
@@ -407,12 +436,16 @@ export default function TasksView({
           departmentBoards={departmentBoards}
           taskAlerts={taskAlerts}
           departmentPerformance={departmentPerformance}
+          employees={employees}
           onSelectDepartment={handleSelectDepartment}
           onCreateDepartment={handleOpenCreateDepartment}
           onDeleteDepartment={handleRequestDeleteDepartment}
           isDeletingDepartment={isDeletingDepartment}
           isLoading={isLoading}
           todayKey={todayKey}
+          isMobileLayout={isMobileLayout}
+          onOpenTemplates={handleOpenTemplates}
+          templateCount={taskTemplates.length}
         />
       )}
 

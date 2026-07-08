@@ -19204,14 +19204,6 @@ function App() {
     setMobileExpandedView('workspace')
   }, [role, handleActiveViewChange, handleOperationsSectionChange])
 
-  const handleMobileManagerAssignTask = useCallback(() => {
-    if (!canOpenMobileTasksWorkspace(role)) return
-
-    handleActiveViewChange('operations')
-    handleOperationsSectionChange('tasks')
-    setMobileExpandedView('workspace')
-  }, [role, handleActiveViewChange, handleOperationsSectionChange])
-
   const handleMobileGoToCurrentWeek = () => {
     setMobileWeekStart(todayWeekStart)
     persistMobileWeekStart(todayWeekStart)
@@ -19720,6 +19712,7 @@ function App() {
             todayKey={currentDateKey}
             openCreateOnMount={openTasksCreateModal}
             onOpenCreateHandled={() => setOpenTasksCreateModal(false)}
+            isMobileLayout={useMobileExperience}
           />
         ) : null}
 
@@ -19883,9 +19876,6 @@ function App() {
                           isLoading: isManagerMobileTasksLoading,
                           onNewTask: canAccessMobileExpandedModule(role, 'operations')
                             ? handleMobileManagerNewTask
-                            : undefined,
-                          onAssignTask: canOpenMobileTasksWorkspace(role)
-                            ? handleMobileManagerAssignTask
                             : undefined,
                         }}
                         menuProps={sharedMenuProps}

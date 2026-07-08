@@ -2210,18 +2210,20 @@
 }
 
 .mobile-manager-task-attention-due,
-.mobile-manager-task-attention-assignee {
+.mobile-manager-task-attention-assignee,
+.mobile-manager-task-attention-owner {
   margin: 0;
   font-size: 0.82rem;
   line-height: 1.35;
 }
 
-.mobile-manager-task-attention-due {
-  color: #a89f92;
+.mobile-manager-task-attention-owner {
+  color: #c9bfb0;
+  font-weight: 600;
 }
 
-.mobile-manager-task-attention-assignee {
-  color: #8f8778;
+.mobile-manager-task-attention-due {
+  color: #a89f92;
 }
 
 .mobile-manager-team-progress-row {
@@ -2289,12 +2291,25 @@
   color: #8f8778;
 }
 
+.mobile-manager-tasks-empty.is-hero {
+  padding: 10px;
+  margin-bottom: 2px;
+}
+
 .mobile-manager-tasks-quick-bar {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px;
   margin-top: 4px;
   padding-top: 2px;
+}
+
+.mobile-manager-tasks-quick-bar.is-single {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.mobile-manager-tasks-quick-bar.is-single .mobile-manager-tasks-quick-btn {
+  width: 100%;
 }
 
 .mobile-manager-tasks-quick-btn {
