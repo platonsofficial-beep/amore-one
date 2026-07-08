@@ -29,6 +29,8 @@ function mapReservation(record) {
     area: record.area ?? '',
     status: normalizeReservationStatus(record.status ?? 'Pending'),
     notes: rawNotes,
+    updatedAt: record.updated_at ?? record.updatedAt ?? null,
+    createdAt: record.created_at ?? record.createdAt ?? null,
   }
 
   return enrichReservationWithSeatingAssignment({

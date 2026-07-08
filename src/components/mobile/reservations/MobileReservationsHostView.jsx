@@ -4,6 +4,7 @@ import {
   formatHostWorkspaceDateNavLabel,
   getHostWorkspaceReservations,
 } from '../../reservations/hostReservationListUtils'
+import { getHostListEmptyState } from '../../../lib/reservationServiceIntelligence'
 import {
   countMobileHostReservationsByTab,
   filterMobileHostReservations,
@@ -154,14 +155,25 @@ export function MobileReservationsHostView({
   const reservationList = isLoading ? (
     <p className="mobile-host-reservations-loading">Loading reservations…</p>
   ) : visibleReservations.length === 0 ? (
-    <div className="mobile-host-reservations-empty" role="status">
-      <p className="mobile-host-reservations-empty-title">No reservations in this list</p>
-      <p className="mobile-host-reservations-empty-copy">
-        {searchTerm
-          ? 'Try another search or switch tabs.'
-          : 'Add a reservation to start service.'}
-      </p>
-    </div>
+    (() => {
+      const emptyState = getHostListEmptyState({
+        filter: activeTab === 'upcoming' ? 'Upcoming'
+          : activeTab === 'in-house' ? 'In House'
+            : activeTab === 'completed' ? 'Completed'
+              : activeTab === 'problems' ? 'Problems'
+                : 'All',
+        searchTerm,
+        snapshot: summary,
+        isViewingToday: true,
+      })
+
+      return (
+        <div className="mobile-host-reservations-empty" role="status">
+          <p className="mobile-host-reservations-empty-title">{emptyState.title}</p>
+          <p className="mobile-host-reservations-empty-copy">{emptyState.copy}</p>
+        </div>
+      )
+    })()
   ) : (
     <ul className="mobile-host-reservation-list" role="list">
       {visibleReservations.map((reservation) => (
@@ -211,8 +223,9 @@ export function MobileReservationsHostView({
           <p className="mobile-host-sticky-date">{dateLabel}</p>
         </div>
         <div className="mobile-host-sticky-center" aria-label="Service totals">
-          <span><strong>{summary.totalReservations}</strong> reservations</span>
-          <span><strong>{summary.totalGuests}</strong> guests</span>
+          <span><strong>{summary.totalCovers ?? summary.totalGuests}</strong> covers</span>
+          <span><strong>{summary.upcomingArrivals ?? 0}</strong> upcoming</span>
+          <span><strong>{summary.seatedGuests ?? summary.inHouse}</strong> seated</span>
         </div>
         {onExitHostMode ? (
           <button

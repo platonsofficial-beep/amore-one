@@ -14,6 +14,10 @@ import {
   isReservationWaiting,
   isTerminalReservationStatus,
 } from '../../lib/reservationHostStatus'
+import {
+  buildDailyServiceSnapshot,
+  getHostReservationAlertReasons,
+} from '../../lib/reservationServiceIntelligence'
 
 export {
   HOST_LIST_GROUP_DEFS,
@@ -219,6 +223,12 @@ function isActiveServiceReservation(reservation) {
 function reservationNeedsHostAttention(reservation, nowMinutes, todayKey) {
   if (!isActiveServiceReservation(reservation)) return false
 
+  const reasons = getHostReservationAlertReasons(reservation, nowMinutes, todayKey, new Date(), {
+    includeUnassigned: false,
+    includeCapacity: false,
+  })
+  if (reasons.length > 0) return true
+
   if (
     isReservationUnassignedForCounter(reservation)
     && !isTerminalReservationStatus(reservation?.status)
@@ -252,36 +262,23 @@ export function isReservationUnassignedForCounter(reservation) {
 }
 
 export function buildHostManagerSummary(visibleReservations = [], nowMinutes, todayKey) {
-  let totalGuests = 0
-  let seated = 0
-  let unassigned = 0
+  const snapshot = buildDailyServiceSnapshot(visibleReservations, nowMinutes, todayKey)
   let needsAttention = 0
 
   visibleReservations.forEach((entry) => {
     const reservation = enrichReservationWithSeatingAssignment(entry)
-    totalGuests += Number(
-      reservation.guests ?? reservation.party_size ?? reservation.guest_count,
-    ) || 0
-
-    if (isReservationSeatedForCounter(reservation)) {
-      seated += 1
-    }
-
-    if (isReservationUnassignedForCounter(reservation)) {
-      unassigned += 1
-    }
-
     if (reservationNeedsHostAttention(reservation, nowMinutes, todayKey)) {
       needsAttention += 1
     }
   })
 
   return {
-    totalReservations: visibleReservations.length,
-    totalGuests,
-    seated,
-    inHouse: seated,
-    unassigned,
+    ...snapshot,
+    totalReservations: snapshot.activeReservations,
+    totalGuests: snapshot.totalCovers,
+    inHouse: snapshot.seatedTables,
+    seated: snapshot.seatedTables,
+    unassigned: snapshot.unassignedTables,
     needsAttention,
   }
 }

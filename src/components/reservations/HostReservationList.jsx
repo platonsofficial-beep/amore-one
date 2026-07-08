@@ -15,6 +15,7 @@ import {
 import {
   groupHostListReservations,
 } from './hostReservationListUtils'
+import { getHostListEmptyState } from '../../lib/reservationServiceIntelligence'
 import { HostReservationStatusPicker } from './HostReservationStatusPicker'
 
 function formatHostListScheduleLabel(reservation, todayKey) {
@@ -166,6 +167,10 @@ export function HostReservationList({
   draggingReservationId,
   isSavingStatus,
   nextArrivalId = null,
+  listFilter = 'All',
+  searchTerm = '',
+  dailySnapshot = null,
+  isViewingToday = true,
   onOpenEdit,
   onStatusChange,
   onDragStart,
@@ -217,11 +222,18 @@ export function HostReservationList({
   }
 
   if (!reservations.length) {
+    const emptyState = getHostListEmptyState({
+      filter: listFilter,
+      searchTerm,
+      snapshot: dailySnapshot,
+      isViewingToday,
+    })
+
     return (
       <div className="host-reservation-list-empty">
         <p className="reservations-empty-icon" aria-hidden="true">🍽</p>
-        <h4>No reservations</h4>
-        <p>Matching reservations will appear here.</p>
+        <h4>{emptyState.title}</h4>
+        <p>{emptyState.copy}</p>
       </div>
     )
   }

@@ -26,9 +26,11 @@ export function HostServiceHealthStrip({
 
   const nextInsight = insights.find((insight) => insight.tone === 'next') ?? null
   const arrivalWave = arrivalWaves[0] ?? null
-  const lateCount = Number(metrics.lateReservations) || 0
-  const expectedArrivals = Number(metrics.expectedArrivals) || 0
-  const guestsInHouse = Number(metrics.guestsInHouse) || 0
+  const lateCount = Number(metrics.lateCount ?? metrics.lateReservations) || 0
+  const waitingCount = Number(metrics.waitingCount) || 0
+  const expectedArrivals = Number(metrics.upcomingArrivals ?? metrics.expectedArrivals) || 0
+  const guestsInHouse = Number(metrics.seatedGuests ?? metrics.guestsInHouse) || 0
+  const completedTables = Number(metrics.completedTables) || 0
   const isSelected = isReservationSelected ?? (() => false)
 
   const handleSelect = (reservation) => {
@@ -54,12 +56,20 @@ export function HostServiceHealthStrip({
           <strong className={lateCount > 0 ? 'tone-alert' : ''}>{lateCount}</strong>
         </div>
         <div className="host-service-health-metric" role="listitem">
-          <span>Arrivals</span>
+          <span>Waiting</span>
+          <strong className={waitingCount > 0 ? 'tone-alert' : ''}>{waitingCount}</strong>
+        </div>
+        <div className="host-service-health-metric" role="listitem">
+          <span>Upcoming</span>
           <strong>{expectedArrivals}</strong>
         </div>
         <div className="host-service-health-metric" role="listitem">
-          <span>In house</span>
+          <span>Seated</span>
           <strong>{guestsInHouse > 0 ? guestsInHouse : '—'}</strong>
+        </div>
+        <div className="host-service-health-metric" role="listitem">
+          <span>Done</span>
+          <strong>{completedTables > 0 ? completedTables : '—'}</strong>
         </div>
       </div>
 

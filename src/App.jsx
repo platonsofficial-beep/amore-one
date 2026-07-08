@@ -96,6 +96,13 @@ import {
   canMarkReservationNoShow,
   canCompleteReservation,
 } from './lib/reservationHostStatus'
+import {
+  buildDailyServiceSnapshot,
+  buildHostReservationAlerts,
+  getHostReservationAlertReasons,
+  getServiceOrderRank,
+  getTimelineEmptyState,
+} from './lib/reservationServiceIntelligence'
 import { EmbeddedFloorPlanEditor } from './components/floor/EmbeddedFloorPlanEditor'
 import { FloorPlanReservationLinks } from './components/floor/FloorPlanReservationLinks'
 import { FloorTableReservationTooltip } from './components/floor/FloorTableReservationTooltip'
@@ -8508,78 +8515,54 @@ function getReservationPriority(reservation, allReservations) {
   return { label: 'Regular', tone: 'regular' }
 }
 
-function buildServiceHealthMetrics(todayReservations, nowMinutes, todayKey) {
-  let guestsInHouse = 0
-  let expectedArrivals = 0
-  let walkIns = 0
-  let lateCount = 0
+function buildServiceHealthMetrics(todayReservations, nowMinutes, todayKey, referenceDate = new Date()) {
+  const snapshot = buildDailyServiceSnapshot(
+    todayReservations,
+    nowMinutes,
+    todayKey,
+    referenceDate,
+  )
+  const alerts = buildHostReservationAlerts(
+    todayReservations,
+    nowMinutes,
+    todayKey,
+    referenceDate,
+    {
+      isUnassigned: isReservationUnassigned,
+      hasCapacityWarning: reservationHasCapacityWarning,
+    },
+  )
+
   let totalDelay = 0
-  const occupiedTables = new Set()
-
   todayReservations.forEach((reservation) => {
-    const status = normalizeReservationStatus(reservation.status)
-    const guests = Number(reservation.guests) || 0
+    if (!isReservationLate(reservation, nowMinutes, todayKey)) return
     const arrivalMinutes = parseTimeToMinutes(reservation.time)
-
-    if (isReservationWalkIn(reservation)) {
-      walkIns += 1
-    }
-
-    if (isReservationInHouse(reservation)) {
-      guestsInHouse += guests
-      const table = `${reservation.tableNumber ?? ''}`.trim()
-      if (table) occupiedTables.add(table)
-    }
-
-    if (isUpcomingReservationStatus(status) && arrivalMinutes !== null && arrivalMinutes >= nowMinutes) {
-      expectedArrivals += 1
-    }
-
-    if (isReservationLate(reservation, nowMinutes, todayKey)) {
-      lateCount += 1
-      if (arrivalMinutes !== null) {
-        totalDelay += nowMinutes - arrivalMinutes
-      }
+    if (arrivalMinutes !== null) {
+      totalDelay += nowMinutes - arrivalMinutes
     }
   })
 
-  const activeReservations = todayReservations.filter((reservation) => (
-    !isTerminalReservationStatus(reservation.status)
-  )).length
-
-  let overallStatus = 'On track'
-  let overallTone = 'calm'
-
-  if (lateCount >= 3) {
-    overallStatus = 'Under pressure'
-    overallTone = 'alert'
-  } else if (lateCount >= 1) {
-    overallStatus = 'Attention needed'
-    overallTone = 'watch'
-  } else if (expectedArrivals >= 4 || activeReservations >= 8) {
-    overallStatus = 'Busy service'
-    overallTone = 'active'
-  }
-
   return {
-    overallStatus,
-    overallTone,
-    guestsInHouse,
-    expectedArrivals,
-    walkIns,
-    lateReservations: lateCount,
-    averageDelay: lateCount > 0 ? Math.round(totalDelay / lateCount) : null,
-    tableOccupancy: occupiedTables.size > 0 ? occupiedTables.size : null,
-    alerts: todayReservations
-      .filter((reservation) => isReservationLate(reservation, nowMinutes, todayKey))
-      .slice(0, 3)
-      .map((reservation) => ({
-        id: `health-late-${reservation.id}`,
-        reservationId: reservation.id,
-        reservation,
-        tone: 'late',
-        label: `${formatReservationGuestName(reservation.guestName)} is late`,
-      })),
+    overallStatus: snapshot.overallStatus,
+    overallTone: snapshot.overallTone,
+    guestsInHouse: snapshot.seatedGuests,
+    seatedGuests: snapshot.seatedGuests,
+    expectedArrivals: snapshot.upcomingArrivals,
+    upcomingArrivals: snapshot.upcomingArrivals,
+    waitingCount: snapshot.waitingCount,
+    lateCount: snapshot.lateCount,
+    completedTables: snapshot.completedTables,
+    walkIns: snapshot.walkIns,
+    lateReservations: snapshot.lateCount,
+    averageDelay: snapshot.lateCount > 0 ? Math.round(totalDelay / snapshot.lateCount) : null,
+    tableOccupancy: snapshot.tableOccupancy,
+    alerts: alerts.slice(0, 3).map((alert) => ({
+      id: alert.id,
+      reservationId: alert.reservationId,
+      reservation: alert.reservation,
+      tone: alert.tone,
+      label: alert.label,
+    })),
   }
 }
 
@@ -8788,6 +8771,15 @@ function reservationHasCapacityWarning(reservation) {
 function getHostReservationWarnings(reservation, nowMinutes, todayKey) {
   const warnings = []
 
+  getHostReservationAlertReasons(reservation, nowMinutes, todayKey, new Date(), {
+    includeUnassigned: false,
+    includeCapacity: false,
+  }).forEach((reason) => {
+    if (reason.type === 'late') warnings.push('late')
+    if (reason.type === 'waiting-long') warnings.push('waiting')
+    if (reason.type === 'occupied-long') warnings.push('occupied')
+  })
+
   if (
     isReservationUnassigned(reservation)
     && !isTerminalReservationStatus(reservation.status)
@@ -8819,21 +8811,6 @@ function hostListFilterMatch(reservation, filter, nowMinutes, todayKey) {
     default:
       return true
   }
-}
-
-function getServiceOrderRank(reservation, nowMinutes, todayKey) {
-  const displayStatus = getReservationDisplayStatus(reservation, nowMinutes, todayKey)
-  const status = normalizeReservationStatus(reservation.status)
-  const dateKey = `${reservation.date ?? ''}`.slice(0, 10)
-  const groupId = getHostStatusGroupId(status)
-
-  if (displayStatus === 'Late Booking') return 0
-  if (status === 'Waiting') return 1
-  if (groupId === 'upcoming') return dateKey > todayKey ? 2.5 : 2
-  if (groupId === 'in-house') return 3
-  if (groupId === 'completed') return 5
-  if (groupId === 'problems') return 6
-  return 3
 }
 
 function shouldHideInDefaultHostView(reservation, listFilter, listSort, nowMinutes, todayKey) {
@@ -9926,6 +9903,7 @@ function ServiceTimelinePanel({
   serviceHealthMetrics,
   serviceInsights,
   arrivalWaves,
+  timelineEmptyState = null,
   showIntelligence = false,
   timelineNowPositionPercent,
   activeTimelineReservationId,
@@ -9951,10 +9929,10 @@ function ServiceTimelinePanel({
       ) : null}
 
       {filteredCount === 0 && !isLoading ? (
-        <div className="reservations-empty-state">
+        <div className={`reservations-empty-state${timelineEmptyState?.className ? ` ${timelineEmptyState.className}` : ''}`}>
           <p className="reservations-empty-icon" aria-hidden="true">🍽</p>
-          <h4>No upcoming reservations</h4>
-          <p>Your arrival board is clear for the selected filters.</p>
+          <h4>{timelineEmptyState?.title ?? 'No upcoming reservations'}</h4>
+          <p>{timelineEmptyState?.copy ?? 'Your arrival board is clear for the selected filters.'}</p>
         </div>
       ) : (
         <div
@@ -10113,6 +10091,9 @@ function ReservationsUnifiedCanvas({
   nextArrivalHint = '',
   nextArrivalId = null,
   isLoading,
+  searchTerm = '',
+  dailySnapshot = null,
+  isViewingToday = true,
   onQuickStatusUpdate,
   isSavingStatus,
 }) {
@@ -10146,14 +10127,21 @@ function ReservationsUnifiedCanvas({
   const [isSavingListStatus, setIsSavingListStatus] = useState(false)
   const [showHourFilter, setShowHourFilter] = useState(false)
 
-  const hostManagerSummary = useMemo(
-    () => buildHostManagerSummary(
+  const hostManagerSummary = useMemo(() => {
+    const filteredSummary = buildHostManagerSummary(
       listReservations,
       floorPlanProps.nowMinutes,
       floorPlanProps.todayKey,
-    ),
-    [listReservations, floorPlanProps.nowMinutes, floorPlanProps.todayKey],
-  )
+    )
+
+    if (!dailySnapshot) return filteredSummary
+
+    return {
+      ...dailySnapshot,
+      needsAttention: filteredSummary.needsAttention,
+      unassigned: dailySnapshot.unassignedTables,
+    }
+  }, [dailySnapshot, listReservations, floorPlanProps.nowMinutes, floorPlanProps.todayKey])
 
   const handleStatusChange = async (reservation, status) => {
     if (!onQuickStatusUpdate) return
@@ -10224,6 +10212,10 @@ function ReservationsUnifiedCanvas({
             onDragEnd={clearDragState}
             isSavingStatus={isSavingListStatus || isSavingStatus}
             nextArrivalId={nextArrivalId}
+            listFilter={listFilter}
+            searchTerm={searchTerm}
+            dailySnapshot={dailySnapshot}
+            isViewingToday={isViewingToday}
             onStatusChange={handleStatusChange}
             helpers={HOST_LIST_HELPERS}
           />
@@ -10410,9 +10402,22 @@ function ReservationsWorkspaceBody({
     [reservations, selectedDateKey, workspaceTimeZone],
   )
 
+  const dailySnapshot = useMemo(
+    () => buildDailyServiceSnapshot(workspaceReservations, nowMinutes, selectedDateKey, liveNow),
+    [liveNow, nowMinutes, selectedDateKey, workspaceReservations],
+  )
+
+  const timelineEmptyState = useMemo(
+    () => getTimelineEmptyState({
+      snapshot: dailySnapshot,
+      isViewingToday,
+    }),
+    [dailySnapshot, isViewingToday],
+  )
+
   const serviceHealthMetrics = useMemo(
-    () => buildServiceHealthMetrics(workspaceReservations, nowMinutes, selectedDateKey),
-    [nowMinutes, selectedDateKey, workspaceReservations],
+    () => buildServiceHealthMetrics(workspaceReservations, nowMinutes, selectedDateKey, liveNow),
+    [liveNow, nowMinutes, selectedDateKey, workspaceReservations],
   )
 
   const serviceInsights = useMemo(
@@ -10468,8 +10473,8 @@ function ReservationsWorkspaceBody({
   ])
 
   const hostHeaderStats = useMemo(
-    () => buildHostManagerSummary(hostListReservations, nowMinutes, selectedDateKey),
-    [hostListReservations, nowMinutes, selectedDateKey],
+    () => buildHostManagerSummary(workspaceReservations, nowMinutes, selectedDateKey),
+    [nowMinutes, selectedDateKey, workspaceReservations],
   )
 
   const handleListFilterChange = (filter) => {
@@ -10593,6 +10598,7 @@ function ReservationsWorkspaceBody({
     serviceHealthMetrics,
     serviceInsights,
     arrivalWaves,
+    timelineEmptyState,
     timelineNowPositionPercent,
     activeTimelineReservationId,
     nextArrivalId,
@@ -10661,6 +10667,7 @@ function ReservationsWorkspaceBody({
         arrivalWaves={arrivalWaves}
         problemsCount={hostProblemsCount}
         nextArrivalHint={nextArrivalHint}
+        dailySnapshot={dailySnapshot}
         timelinePanelProps={timelinePanelProps}
         floorPlanProps={floorPlanProps}
         sharedCardProps={sharedCardProps}
@@ -10717,6 +10724,7 @@ function ReservationsWorkspaceContent({
   arrivalWaves,
   problemsCount = 0,
   nextArrivalHint = '',
+  dailySnapshot = null,
   timelinePanelProps,
   floorPlanProps,
   sharedCardProps: _sharedCardProps,
@@ -10757,9 +10765,11 @@ function ReservationsWorkspaceContent({
               onSelectDate={onSelectDate}
             />
             <p className="reservations-host-header-stats">
-              {hostHeaderStats?.totalReservations ?? 0} reservations
+              {hostHeaderStats?.totalCovers ?? 0} covers
               {' · '}
-              {hostHeaderStats?.totalGuests ?? 0} guests
+              {hostHeaderStats?.upcomingArrivals ?? 0} upcoming
+              {' · '}
+              {hostHeaderStats?.seatedGuests ?? 0} seated
             </p>
             {onOpenHostMode ? (
               <button
@@ -10821,6 +10831,9 @@ function ReservationsWorkspaceContent({
           problemsCount={problemsCount}
           nextArrivalHint={nextArrivalHint}
           nextArrivalId={nextArrivalId}
+          searchTerm={searchTerm}
+          dailySnapshot={dailySnapshot}
+          isViewingToday={isViewingToday}
           isLoading={isLoading}
           onQuickStatusUpdate={onQuickStatusUpdate}
           isSavingStatus={isSaving}
