@@ -1,4 +1,4 @@
-import { useMemo, useReducer } from 'react'
+import { useEffect, useMemo, useReducer } from 'react'
 import { createCamera } from '../lib/camera'
 import {
   alignSelectedTablesHorizontal,
@@ -10,6 +10,8 @@ import { cloneBuilderLayout, loadFloorPlanLayout, saveFloorPlanLayout } from '..
 import {
   FLOOR_PLAN_OBJECT_TYPES,
   getTableShapeSize,
+  normalizeFloorPlanTableObject,
+  normalizeLayoutObjects,
 } from '../models/floorPlanObject'
 import { createInitialFloors, createUniqueAreaId } from '../models/floorPlans'
 import { createDefaultFloor, createDefaultWorkspace, expandFloorWorkspace, getWorkspaceBounds, resetFloorWorkspace } from '../models/floorWorkspace'
@@ -50,8 +52,8 @@ function createLayoutSnapshot(state) {
 function createInitialBuilderState({ initialEditing = false, initialLayout = null } = {}) {
   const persisted = initialLayout ?? loadFloorPlanLayout()
   const floors = persisted?.floors ?? createInitialFloors()
-  const objects = persisted?.objects ?? []
   const activeFloorId = persisted?.activeFloorId ?? floors[0]?.id ?? 'main-dining'
+  const objects = normalizeLayoutObjects(persisted?.objects ?? [], floors, activeFloorId)
   const baseState = {
     floors,
     activeFloorId,
@@ -84,6 +86,10 @@ function floorPlanBuilderReducer(state, action) {
     case 'SELECT_OBJECT': {
       const { objectId } = action.payload
       if (!objectId) {
+        return { ...state, selectedTableIds: [] }
+      }
+
+      if (!state.objects.some((object) => object.id === objectId)) {
         return { ...state, selectedTableIds: [] }
       }
 
@@ -248,15 +254,29 @@ function floorPlanBuilderReducer(state, action) {
         }),
       }
     }
-    case 'ADD_OBJECT':
+    case 'SYNC_SELECTION': {
+      const validIds = state.selectedTableIds.filter((id) => (
+        state.objects.some((object) => object.id === id)
+      ))
+      if (validIds.length === state.selectedTableIds.length) return state
+      return { ...state, selectedTableIds: validIds }
+    }
+    case 'ADD_OBJECT': {
       if (!isBuilderEditing(state)) return state
+      const object = normalizeFloorPlanTableObject(action.payload.object, {
+        floors: state.floors,
+        defaultFloorId: state.activeFloorId,
+      })
+      if (!object?.id) return state
+
       return {
         ...state,
         hasUnsavedChanges: true,
-        objects: [...state.objects, action.payload.object],
-        selectedTableIds: [action.payload.object.id],
+        objects: [...state.objects, object],
+        selectedTableIds: [object.id],
         toolboxSelectionId: null,
       }
+    }
     case 'UPDATE_TABLE': {
       if (!isBuilderEditing(state)) return state
       const { objectId, patch } = action.payload
@@ -555,6 +575,16 @@ export function FloorPlanBuilderProvider({ children, initialEditing = false, ini
     { initialEditing, initialLayout: initialLayout ? cloneBuilderLayout(initialLayout) : null },
     createInitialBuilderState,
   )
+
+  useEffect(() => {
+    if (!state.selectedTableIds.length) return
+    const hasMissingSelection = state.selectedTableIds.some((id) => (
+      !state.objects.some((object) => object.id === id)
+    ))
+    if (hasMissingSelection) {
+      dispatch({ type: 'SYNC_SELECTION' })
+    }
+  }, [state.objects, state.selectedTableIds])
 
   const visibleObjects = useMemo(() => (
     state.objects.filter((object) => object.floorId === state.activeFloorId)

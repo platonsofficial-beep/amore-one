@@ -195,6 +195,7 @@ export function BuilderCanvas({ containerRef, viewportControls, workspaceLayoutK
         objects: state.objects,
         selectedTableIds: state.selectedTableIds,
         size,
+        floors: state.floors,
       })
 
       dispatch({ type: 'ADD_OBJECT', payload: { object } })
@@ -210,6 +211,7 @@ export function BuilderCanvas({ containerRef, viewportControls, workspaceLayoutK
     isDragging,
     isTransforming,
     isEditing,
+    state.floors,
     state.activeFloorId,
     state.camera,
     state.objects,

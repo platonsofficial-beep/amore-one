@@ -188,6 +188,7 @@ export function createTableObjectFromType({
   objects,
   selectedTableIds = [],
   size: sizeOverride,
+  floors = [],
 }) {
   const shape = tableType.shape ?? 'round'
   const referenceTable = findReferenceTableForShape({
@@ -201,22 +202,93 @@ export function createTableObjectFromType({
   const defaultCapacity = getDefaultCapacityForShape(shape)
   const tableLabel = `T${nextNumber}`
 
-  return createFloorPlanObject({
-    id: `table-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+  return normalizeFloorPlanTableObject(
+    createFloorPlanObject({
+      id: `table-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+      type: FLOOR_PLAN_OBJECT_TYPES.TABLE,
+      position,
+      size,
+      floorId,
+      properties: {
+        name: tableLabel,
+        tableNumber: String(nextNumber),
+        capacity: defaultCapacity,
+        shape,
+        area: areaLabel,
+        visible: true,
+        locked: false,
+        sections: [],
+      },
+    }),
+    { floors, defaultFloorId: floorId },
+  )
+}
+
+const TABLE_SHAPES = new Set(['round', 'square', 'rectangle', 'island'])
+
+function normalizeTableRotation(degrees) {
+  const value = Number(degrees) || 0
+  return ((value % 360) + 360) % 360
+}
+
+export function normalizeFloorPlanTableObject(
+  object,
+  { floors = [], defaultFloorId = 'main-dining' } = {},
+) {
+  if (!object || object.type !== FLOOR_PLAN_OBJECT_TYPES.TABLE) {
+    return object
+  }
+
+  const shape = TABLE_SHAPES.has(object.properties?.shape)
+    ? object.properties.shape
+    : 'round'
+  const shapeSize = getTableShapeSize(shape)
+  const rawNumber = `${object.properties?.tableNumber ?? object.properties?.name ?? ''}`.trim()
+  const numericNumber = parseNumericTableNumber(rawNumber) ?? 1
+  const tableNumber = rawNumber || String(numericNumber)
+  const tableLabel = formatBuilderTableLabel({
     type: FLOOR_PLAN_OBJECT_TYPES.TABLE,
-    position,
-    size,
-    floorId,
-    properties: {
-      name: tableLabel,
-      tableNumber: String(nextNumber),
-      capacity: defaultCapacity,
-      shape,
-      area: areaLabel,
-      visible: true,
-      locked: false,
-    },
+    properties: { tableNumber },
   })
+  const resolvedFloorId = floors.some((floor) => floor.id === object.floorId)
+    ? object.floorId
+    : (defaultFloorId || floors[0]?.id || 'main-dining')
+  const floor = floors.find((entry) => entry.id === resolvedFloorId)
+
+  return {
+    ...object,
+    id: `${object.id ?? `table-${Date.now()}`}`.trim() || `table-${Date.now()}`,
+    type: FLOOR_PLAN_OBJECT_TYPES.TABLE,
+    floorId: resolvedFloorId,
+    rotation: normalizeTableRotation(object.rotation),
+    position: {
+      x: Number(object.position?.x) || 0,
+      y: Number(object.position?.y) || 0,
+    },
+    size: {
+      width: Math.max(1, Number(object.size?.width) || shapeSize.width),
+      height: Math.max(1, Number(object.size?.height) || shapeSize.height),
+    },
+    properties: {
+      ...(object.properties ?? {}),
+      name: object.properties?.name ?? tableLabel,
+      tableNumber,
+      capacity: Math.max(1, Number(object.properties?.capacity) || getDefaultCapacityForShape(shape)),
+      shape,
+      area: object.properties?.area ?? floor?.label ?? 'Main Dining',
+      visible: object.properties?.visible !== false,
+      locked: object.properties?.locked === true,
+      sections: Array.isArray(object.properties?.sections) ? object.properties.sections : [],
+    },
+  }
+}
+
+export function normalizeLayoutObjects(objects = [], floors = [], defaultFloorId = 'main-dining') {
+  return (objects ?? []).map((object) => (
+    object?.type === FLOOR_PLAN_OBJECT_TYPES.TABLE
+      ? normalizeFloorPlanTableObject(object, { floors, defaultFloorId })
+      : object
+  ))
 }
 
 export function getDemoFloorPlanObjects() {

@@ -1,5 +1,10 @@
 import { useFloorPlanBuilder } from '../hooks/useFloorPlanBuilder'
 import { TABLE_TYPES } from '../models/componentCatalog'
+import {
+  FLOOR_PLAN_OBJECT_TYPES,
+  formatBuilderTableLabel,
+  getObjectDisplayLabel,
+} from '../models/floorPlanObject'
 import { normalizeRotation } from '../lib/tableTransformUtils'
 import {
   createDefaultSections,
@@ -114,23 +119,27 @@ export function BuilderInspector() {
     )
   }
 
-  const { properties } = selectedObject
-  const tableNumber = properties.tableNumber ?? ''
-  const capacity = properties.capacity ?? 4
+  const properties = selectedObject.properties ?? {}
+  const tableNumber = properties.tableNumber ?? properties.name ?? ''
+  const capacity = Math.max(1, Number(properties.capacity) || 2)
   const shape = properties.shape ?? 'round'
-  const floorId = selectedObject.floorId
-  const width = Math.round(selectedObject.size.width)
-  const height = Math.round(selectedObject.size.height)
+  const floorId = selectedObject.floorId ?? state.activeFloorId
+  const objectSize = selectedObject.size ?? {}
+  const width = Math.max(1, Math.round(Number(objectSize.width) || 1))
+  const height = Math.max(1, Math.round(Number(objectSize.height) || 1))
   const rotation = Math.round(normalizeRotation(selectedObject.rotation ?? 0))
-  const sections = properties.sections ?? []
+  const sections = Array.isArray(properties.sections) ? properties.sections : []
   const showSections = supportsTableSections(shape, floorId)
   const sectionTotals = getTableSectionTotals(sections)
   const basicTableTypes = TABLE_TYPES.filter((tableType) => (
     ['round', 'square', 'rectangle'].includes(tableType.shape)
   ))
+  const displayLabel = getObjectDisplayLabel(selectedObject)
+    || formatBuilderTableLabel(selectedObject)
+    || 'Table'
 
   const updateTable = (patch) => {
-    if (isReadOnly) return
+    if (isReadOnly || !selectedObject?.id) return
     dispatch({
       type: 'UPDATE_TABLE',
       payload: { objectId: selectedObject.id, patch },
@@ -152,7 +161,7 @@ export function BuilderInspector() {
     <aside className={`fpb-inspector fpb-inspector-simple${isReadOnly ? ' is-readonly' : ''}`} aria-label="Table properties">
       <div className="fpb-panel-header">
         <p className="fpb-panel-eyebrow">Properties</p>
-        <h2 className="fpb-panel-title">{getObjectDisplayLabel(selectedObject)}</h2>
+        <h2 className="fpb-panel-title">{displayLabel}</h2>
         {isReadOnly ? <p className="fpb-inspector-readonly-note">View mode — click Edit layout to change tables.</p> : null}
       </div>
 

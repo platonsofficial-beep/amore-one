@@ -17,14 +17,18 @@ function CanvasObjectNodeComponent({
   onResizePointerDown,
   onRotatePointerDown,
 }) {
+  if (!object?.id) return null
+
+  const properties = object.properties ?? {}
+  const position = object.position ?? { x: 0, y: 0 }
+  const size = object.size ?? { width: 80, height: 80 }
   const shapeClass = object.type === FLOOR_PLAN_OBJECT_TYPES.TABLE
-    ? ` shape-${object.properties.shape ?? 'round'}`
+    ? ` shape-${properties.shape ?? 'round'}`
     : ''
   const label = formatBuilderTableLabel(object)
   const isTable = object.type === FLOOR_PLAN_OBJECT_TYPES.TABLE
-  const capacity = Number(object.properties.capacity) || 0
-  const isLocked = object.properties.locked === true
-  const { position } = object
+  const capacity = Math.max(0, Number(properties.capacity) || 0)
+  const isLocked = properties.locked === true
   const rotation = object.rotation ?? 0
 
   return (
@@ -33,8 +37,8 @@ function CanvasObjectNodeComponent({
       style={{
         left: position.x,
         top: position.y,
-        width: object.size.width,
-        height: object.size.height,
+        width: size.width,
+        height: size.height,
         transform: `rotate(${rotation}deg)`,
         transformOrigin: 'center center',
         zIndex: isDragging || isTransforming ? 20 : object.zIndex,
@@ -100,15 +104,20 @@ function arePropsEqual(previous, next) {
 
   const { position } = next.object
   const { position: previousPosition } = previous.object
+  const nextSize = next.object.size ?? {}
+  const previousSize = previous.object.size ?? {}
+  const nextProperties = next.object.properties ?? {}
+  const previousProperties = previous.object.properties ?? {}
+  if (!previousPosition || !position) return false
   if (previousPosition.x !== position.x || previousPosition.y !== position.y) return false
 
   return previous.object.rotation === next.object.rotation
-    && previous.object.size.width === next.object.size.width
-    && previous.object.size.height === next.object.size.height
-    && previous.object.properties.tableNumber === next.object.properties.tableNumber
-    && previous.object.properties.capacity === next.object.properties.capacity
-    && previous.object.properties.shape === next.object.properties.shape
-    && previous.object.properties.locked === next.object.properties.locked
+    && previousSize.width === nextSize.width
+    && previousSize.height === nextSize.height
+    && previousProperties.tableNumber === nextProperties.tableNumber
+    && previousProperties.capacity === nextProperties.capacity
+    && previousProperties.shape === nextProperties.shape
+    && previousProperties.locked === nextProperties.locked
 }
 
 export const CanvasObjectNode = memo(CanvasObjectNodeComponent, arePropsEqual)

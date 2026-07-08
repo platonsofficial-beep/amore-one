@@ -92,6 +92,7 @@ export function BuilderToolbox() {
       objects: state.objects,
       selectedTableIds: state.selectedTableIds,
       size,
+      floors,
     })
 
     dispatch({ type: 'ADD_OBJECT', payload: { object } })
