@@ -68,6 +68,61 @@ export function buildManagerMobileAttentionItems({
   return items
 }
 
+const MANAGER_ATTENTION_TONE_RANK = {
+  critical: 0,
+  warning: 1,
+  info: 2,
+  default: 3,
+}
+
+const MANAGER_ATTENTION_PRIORITY_RANK = {
+  urgent: 0,
+  reminder: 1,
+}
+
+function getManagerAttentionFeedBucket(item) {
+  const key = `${item?.key ?? ''}`
+
+  if (key === 'schedule-issues' || key.startsWith('schedule')) {
+    return 0
+  }
+
+  if (key.startsWith('task:')) {
+    return 1
+  }
+
+  if (
+    key.startsWith('stock:')
+    || key.startsWith('stock-module:')
+    || key.startsWith('orders:')
+  ) {
+    return 2
+  }
+
+  return 3
+}
+
+export function sortManagerMobileAttentionFeed(items = []) {
+  return [...items].sort((left, right) => {
+    const bucketDiff = getManagerAttentionFeedBucket(left) - getManagerAttentionFeedBucket(right)
+    if (bucketDiff !== 0) return bucketDiff
+
+    const toneDiff = (
+      (MANAGER_ATTENTION_TONE_RANK[left.tone] ?? 3)
+      - (MANAGER_ATTENTION_TONE_RANK[right.tone] ?? 3)
+    )
+    if (toneDiff !== 0) return toneDiff
+
+    const priorityDiff = (
+      (MANAGER_ATTENTION_PRIORITY_RANK[left.priority] ?? 2)
+      - (MANAGER_ATTENTION_PRIORITY_RANK[right.priority] ?? 2)
+    )
+    if (priorityDiff !== 0) return priorityDiff
+
+    return 0
+  })
+}
+
 export function buildManagerMobileStockStatusLine(stockSummary = null, stockOrdersSummary = null) {
   const outCount = Number(stockSummary?.outOfStock) || 0
   const lowCount = Number(stockSummary?.lowStock) || 0
