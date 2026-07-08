@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { sortManagerMobileAttentionFeed } from '../../lib/mobileManagerTodayUtils'
-import { isTodayAttentionItemActionable } from '../../lib/todayAttentionNavigation'
+import { TodayAttentionListItem } from '../today/TodayAttentionListItem'
 import { TodayAnnouncementsPanel } from '../today/TodayAnnouncementsPanel'
 
 const ATTENTION_PREVIEW_LIMIT = 3
@@ -36,25 +36,6 @@ function MobileManagerStatusCard({ label, value, tone = 'default', onClick }) {
       <span className="mobile-manager-status-label">{label}</span>
       <strong className="mobile-manager-status-value">{value}</strong>
       {isInteractive ? <span className="mobile-manager-status-chevron" aria-hidden="true">›</span> : null}
-    </Tag>
-  )
-}
-
-function MobileManagerAttentionItem({ item, isActionable, onClick }) {
-  const category = getAttentionCategory(item)
-  const Tag = isActionable ? 'button' : 'li'
-
-  return (
-    <Tag
-      type={isActionable ? 'button' : undefined}
-      className={`mobile-manager-attention-item mobile-manager-priority-item tone-${item.tone} category-${category}${isActionable ? ' is-tappable' : ''}`}
-      onClick={isActionable ? onClick : undefined}
-    >
-      <span className="mobile-manager-priority-dot" aria-hidden="true" />
-      <div className="mobile-manager-attention-copy">
-        <strong>{item.label}</strong>
-        <span>{item.detail}</span>
-      </div>
     </Tag>
   )
 }
@@ -249,13 +230,15 @@ export function MobileManagerHomeView({
             <p className="mobile-manager-attention-empty">Everything looks under control today.</p>
           ) : (
             <>
-              <ul className="mobile-manager-attention-list mobile-manager-attention-feed mobile-manager-priority-feed">
+              <ul className="mobile-manager-attention-list mobile-manager-attention-feed mobile-manager-priority-feed" aria-label="Attention items">
                 {visibleAttentionItems.map((item) => (
-                  <MobileManagerAttentionItem
+                  <TodayAttentionListItem
                     key={item.key}
                     item={item}
-                    isActionable={isTodayAttentionItemActionable(item, attentionPermissions)}
-                    onClick={() => onAttentionItemClick?.(item)}
+                    variant="mobile"
+                    category={getAttentionCategory(item)}
+                    attentionPermissions={attentionPermissions}
+                    onAttentionItemClick={onAttentionItemClick}
                   />
                 ))}
               </ul>

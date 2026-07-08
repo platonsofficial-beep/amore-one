@@ -699,22 +699,49 @@
   border-bottom: 1px solid rgba(255, 255, 255, 0.06);
 }
 
-button.today-attention-item {
+.today-attention-item.is-actionable {
+  padding: 0;
+}
+
+.today-attention-item.is-static {
+  cursor: default;
+}
+
+.today-attention-trigger {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
   width: 100%;
   min-height: 44px;
+  padding: 12px 0;
   border: 0;
   background: transparent;
   text-align: left;
   cursor: pointer;
+  color: inherit;
+  font: inherit;
+  transition: background-color 0.15s ease;
 }
 
-.today-attention-item.is-actionable:hover strong {
+.today-attention-trigger:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.today-attention-trigger:focus-visible {
+  outline: 2px solid rgba(212, 175, 55, 0.55);
+  outline-offset: 2px;
+  background: rgba(212, 175, 55, 0.06);
+}
+
+.today-attention-item.is-actionable:hover .today-attention-copy strong,
+.today-attention-trigger:hover .today-attention-copy strong {
   color: #f0d39a;
 }
 
-.today-attention-item.is-actionable:focus-visible {
-  outline: 2px solid rgba(212, 175, 55, 0.45);
-  outline-offset: 2px;
+.today-attention-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 }
 
 .today-attention-item:last-child {

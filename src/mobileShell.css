@@ -1730,6 +1730,20 @@
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04);
 }
 
+.mobile-manager-command-center .mobile-manager-priority-feed .mobile-manager-priority-item.is-actionable {
+  padding: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.mobile-manager-command-center .mobile-manager-priority-feed .mobile-manager-attention-trigger {
+  gap: 8px;
+  padding: 8px 9px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.02);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+}
+
 .mobile-manager-command-center .mobile-manager-priority-dot {
   width: 5px;
   height: 5px;
@@ -1755,12 +1769,24 @@
   background: rgba(255, 255, 255, 0.025);
 }
 
+.mobile-manager-command-center .mobile-manager-priority-item.is-actionable.tone-critical .mobile-manager-attention-trigger,
+.mobile-manager-command-center .mobile-manager-priority-item.tone-critical .mobile-manager-attention-trigger {
+  box-shadow: inset 2px 0 0 rgba(201, 160, 102, 0.7), inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+  background: rgba(255, 255, 255, 0.025);
+}
+
 .mobile-manager-command-center .mobile-manager-priority-item.tone-critical strong {
   color: #f7efe1;
 }
 
 .mobile-manager-command-center .mobile-manager-priority-item.tone-warning {
   box-shadow: inset 2px 0 0 rgba(201, 160, 102, 0.45);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.mobile-manager-command-center .mobile-manager-priority-item.is-actionable.tone-warning .mobile-manager-attention-trigger,
+.mobile-manager-command-center .mobile-manager-priority-item.tone-warning .mobile-manager-attention-trigger {
+  box-shadow: inset 2px 0 0 rgba(201, 160, 102, 0.45), inset 0 0 0 1px rgba(255, 255, 255, 0.04);
   background: rgba(255, 255, 255, 0.02);
 }
 
@@ -1932,6 +1958,16 @@
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.05);
 }
 
+.mobile-manager-attention-feed .mobile-manager-attention-item.is-actionable {
+  padding: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.mobile-manager-attention-feed .mobile-manager-attention-trigger {
+  gap: 10px;
+}
+
 .mobile-manager-attention-rank,
 .mobile-manager-priority-dot {
   flex-shrink: 0;
@@ -1977,14 +2013,46 @@
   background: rgba(255, 255, 255, 0.02);
 }
 
-button.mobile-manager-attention-item {
-  width: 100%;
-  min-height: 44px;
-  text-align: left;
-  cursor: pointer;
+.mobile-manager-attention-item.is-actionable {
+  padding: 0;
+  border: 0;
+  background: transparent;
 }
 
-button.mobile-manager-attention-item.is-tappable:active {
+.mobile-manager-attention-item.is-static {
+  cursor: default;
+}
+
+.mobile-manager-attention-trigger {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 12px;
+  border: 0;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.025);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+  text-align: left;
+  cursor: pointer;
+  color: inherit;
+  font: inherit;
+  transition: background-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.mobile-manager-attention-trigger:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.mobile-manager-attention-trigger:focus-visible {
+  outline: 2px solid rgba(212, 175, 55, 0.55);
+  outline-offset: 2px;
+  background: rgba(212, 175, 55, 0.06);
+  box-shadow: inset 0 0 0 1px rgba(212, 175, 55, 0.28);
+}
+
+.mobile-manager-attention-trigger.is-tappable:active {
   transform: scale(0.99);
 }
 

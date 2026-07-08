@@ -71,3 +71,50 @@ export function resolveTodayAttentionDestination(item, permissions = {}) {
 export function isTodayAttentionItemActionable(item, permissions = {}) {
   return resolveTodayAttentionDestination(item, permissions) !== null
 }
+
+function formatDestinationAction(destination) {
+  if (!destination) return 'Open'
+
+  if (destination.view === 'stock') {
+    if (destination.action === 'receive-deliveries') return 'Receive deliveries'
+    if (destination.section === 'orders') return 'Open stock orders'
+    return 'Open stock'
+  }
+
+  if (destination.view === 'operations' && destination.section === 'tasks') {
+    return 'Open task'
+  }
+
+  if (destination.view === 'team' && destination.section === 'schedule') {
+    return 'Open schedule'
+  }
+
+  if (destination.view === 'reservations') {
+    return destination.action === 'host' ? 'Open reservation in host view' : 'Open reservations'
+  }
+
+  if (destination.view === 'today' && destination.action === 'announcements') {
+    return 'View announcement'
+  }
+
+  return 'Open'
+}
+
+export function formatTodayAttentionActionLabel(item, destination = null) {
+  const label = `${item?.label ?? 'Attention item'}`.trim() || 'Attention item'
+  const detail = `${item?.detail ?? ''}`.trim()
+  const action = formatDestinationAction(destination)
+
+  return detail ? `${action}: ${label}. ${detail}` : `${action}: ${label}`
+}
+
+export function getTodayAttentionItemA11y(item, permissions = {}) {
+  const destination = resolveTodayAttentionDestination(item, permissions)
+  const isActionable = destination !== null
+
+  return {
+    destination,
+    isActionable,
+    actionLabel: isActionable ? formatTodayAttentionActionLabel(item, destination) : '',
+  }
+}

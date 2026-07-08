@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
+  formatTodayAttentionActionLabel,
+  getTodayAttentionItemA11y,
   isTodayAttentionItemActionable,
   resolveTodayAttentionDestination,
 } from './todayAttentionNavigation'
@@ -103,5 +105,33 @@ describe('todayAttentionNavigation', () => {
     expect(isTodayAttentionItemActionable({ key: 'task:1' }, noPermissions)).toBe(false)
     expect(isTodayAttentionItemActionable({ key: 'announcement:a1' }, noPermissions)).toBe(true)
     expect(isTodayAttentionItemActionable({ key: 'unknown' }, fullPermissions)).toBe(false)
+  })
+
+  it('formats descriptive action labels for screen readers', () => {
+    expect(formatTodayAttentionActionLabel(
+      { label: 'Olive oil', detail: 'Out of stock' },
+      { view: 'stock', section: 'dashboard' },
+    )).toBe('Open stock: Olive oil. Out of stock')
+
+    expect(formatTodayAttentionActionLabel(
+      { label: '2 deliveries to receive', detail: 'Sent supplier orders waiting' },
+      { view: 'stock', section: 'orders', action: 'receive-deliveries' },
+    )).toBe('Receive deliveries: 2 deliveries to receive. Sent supplier orders waiting')
+
+    expect(formatTodayAttentionActionLabel(
+      { label: 'Close checklist', detail: 'Overdue task' },
+      { view: 'operations', section: 'tasks', taskId: '7' },
+    )).toBe('Open task: Close checklist. Overdue task')
+  })
+
+  it('builds a11y metadata from item and permissions', () => {
+    const metadata = getTodayAttentionItemA11y(
+      { key: 'schedule-issues', label: '2 schedule issues', detail: 'Review coverage' },
+      fullPermissions,
+    )
+
+    expect(metadata.isActionable).toBe(true)
+    expect(metadata.destination).toEqual({ view: 'team', section: 'schedule' })
+    expect(metadata.actionLabel).toBe('Open schedule: 2 schedule issues. Review coverage')
   })
 })

@@ -290,9 +290,9 @@ import {
 } from './lib/todayViewUtils'
 import { buildTodayCommandCenterAttentionItems } from './lib/mobileManagerTodayUtils'
 import {
-  isTodayAttentionItemActionable,
   resolveTodayAttentionDestination,
 } from './lib/todayAttentionNavigation'
+import { TodayAttentionListItem } from './components/today/TodayAttentionListItem'
 import { buildStockOrdersOperationsSummary } from './lib/stockOrderUtils'
 import { buildStockDashboardSummary } from './lib/stockUtils'
 import { filterTasksExcludingAnnouncementDuplicates } from './lib/operationsAnnouncementUtils'
@@ -1127,23 +1127,15 @@ function CommandCenterView({
             {attentionItems.length === 0 ? (
               <p className="today-empty-note today-empty-note-clear">Nothing needs your attention right now.</p>
             ) : (
-              <ul className="today-attention-list">
-                {attentionItems.map((item) => {
-                  const isActionable = isTodayAttentionItemActionable(item, attentionPermissions)
-                  const Tag = isActionable ? 'button' : 'li'
-
-                  return (
-                    <Tag
-                      key={item.key}
-                      type={isActionable ? 'button' : undefined}
-                      className={`today-attention-item tone-${item.tone}${isActionable ? ' is-actionable' : ''}`}
-                      onClick={isActionable ? () => onAttentionItemClick?.(item) : undefined}
-                    >
-                      <strong>{item.label}</strong>
-                      <span>{item.detail}</span>
-                    </Tag>
-                  )
-                })}
+              <ul className="today-attention-list" aria-label="Attention items">
+                {attentionItems.map((item) => (
+                  <TodayAttentionListItem
+                    key={item.key}
+                    item={item}
+                    attentionPermissions={attentionPermissions}
+                    onAttentionItemClick={onAttentionItemClick}
+                  />
+                ))}
               </ul>
             )}
             {showAttentionActions ? (
