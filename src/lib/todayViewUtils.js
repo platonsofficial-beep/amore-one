@@ -372,6 +372,7 @@ export function buildAnnouncementAttentionItems({
 export function buildTodayAttentionItems({
   stockAlerts = [],
   inventoryConnected = false,
+  hasStockModuleData = false,
   tasks = [],
   todayKey = getCurrentDateKey(),
   issuesSummary = {},
@@ -379,8 +380,9 @@ export function buildTodayAttentionItems({
 } = {}) {
   const items = []
   let dueTodayCount = 0
+  const showStockAlerts = hasStockModuleData || inventoryConnected
 
-  if (inventoryConnected) {
+  if (showStockAlerts) {
     stockAlerts.forEach((item) => {
       items.push({
         key: `stock:${item.id}`,

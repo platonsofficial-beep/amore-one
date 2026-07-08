@@ -1,4 +1,5 @@
 import { computeSuggestedOrder, itemNeedsOrder } from './stockCatalog'
+import { getCurrentDateKey } from './currentDateUtils'
 import { formatTimestampTime24 } from './timeFormatUtils'
 
 export const STOCK_MOVEMENT_TYPES = ['receive', 'usage', 'adjustment', 'stock_count']
@@ -25,6 +26,144 @@ export function getStockStatusShortLabel(status) {
   if (status === 'low') return 'Low'
   if (status === 'inactive') return 'Inactive'
   return 'OK'
+}
+
+function normalizeStockAlertDateKey(value) {
+  if (!value) return ''
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return ''
+  const year = date.getFullYear()
+  const month = `${date.getMonth() + 1}`.padStart(2, '0')
+  const day = `${date.getDate()}`.padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
+export function isStockMovementOnDate(movement, dateKey) {
+  const normalizedDateKey = `${dateKey ?? ''}`.trim()
+  if (!normalizedDateKey || !movement?.createdAt) return false
+  return normalizeStockAlertDateKey(movement.createdAt) === normalizedDateKey
+}
+
+export function getStockModuleAlertItems(stockItems = [], limit = 5) {
+  return (stockItems ?? [])
+    .filter((item) => item.active !== false)
+    .map((item) => ({
+      item,
+      status: resolveStockItemStatus(item),
+    }))
+    .filter(({ status }) => status === 'out' || status === 'low')
+    .sort((left, right) => {
+      if (left.status === right.status) {
+        return `${left.item.name ?? ''}`.localeCompare(`${right.item.name ?? ''}`)
+      }
+      return left.status === 'out' ? -1 : 1
+    })
+    .slice(0, limit)
+    .map(({ item, status }) => ({
+      id: String(item.id),
+      name: `${item.name ?? ''}`.trim() || 'Item',
+      status: status === 'out' ? 'Out of Stock' : 'Low Stock',
+      severity: status === 'out' ? 'critical' : 'low',
+      quantity: item.currentQuantity,
+      unit: item.unit,
+    }))
+}
+
+export function buildTodayStockActivitySummary(stockItems = [], todayKey = getCurrentDateKey()) {
+  const normalizedTodayKey = `${todayKey ?? ''}`.trim() || getCurrentDateKey()
+  let received = 0
+  let usage = 0
+  let adjustments = 0
+  let counts = 0
+  const touchedItemIds = new Set()
+
+  ;(stockItems ?? []).forEach((item) => {
+    if (item.active === false) return
+
+    const movement = item.lastMovement
+    if (!movement || !isStockMovementOnDate(movement, normalizedTodayKey)) return
+
+    touchedItemIds.add(item.id)
+    const quantity = Math.abs(Number(movement.quantity) || 0)
+
+    if (movement.type === 'receive') {
+      received += quantity
+      return
+    }
+
+    if (movement.type === 'usage') {
+      usage += quantity
+      return
+    }
+
+    if (movement.type === 'adjustment') {
+      adjustments += 1
+      return
+    }
+
+    if (movement.type === 'stock_count') {
+      counts += 1
+    }
+  })
+
+  return {
+    itemsTouched: touchedItemIds.size,
+    received,
+    usage,
+    adjustments,
+    counts,
+    hasActivity: touchedItemIds.size > 0,
+  }
+}
+
+export function formatTodayStockActivityLine(summary) {
+  if (!summary?.hasActivity) {
+    return 'No stock updates today'
+  }
+
+  const parts = []
+
+  if (summary.counts > 0) {
+    parts.push(`${summary.counts} count${summary.counts === 1 ? '' : 's'}`)
+  }
+
+  if (summary.received > 0) {
+    parts.push(`${summary.received} received`)
+  }
+
+  if (summary.usage > 0) {
+    parts.push(`${summary.usage} used`)
+  }
+
+  if (summary.adjustments > 0) {
+    parts.push(`${summary.adjustments} adjustment${summary.adjustments === 1 ? '' : 's'}`)
+  }
+
+  if (parts.length === 0) {
+    const count = Number(summary.itemsTouched) || 0
+    return count === 1 ? '1 item updated today' : `${count} items updated today`
+  }
+
+  return parts.join(' · ')
+}
+
+export function buildStockManagerDailySnapshot(
+  stockItems = [],
+  ordersSummary = {},
+  todayKey = getCurrentDateKey(),
+) {
+  const summary = buildStockDashboardSummary(stockItems)
+  const activity = buildTodayStockActivitySummary(stockItems, todayKey)
+
+  return {
+    ...summary,
+    pendingDeliveries: (Number(ordersSummary.awaitingDeliveryCount) || 0)
+      + (Number(ordersSummary.partialCount) || 0),
+    draftOrders: Number(ordersSummary.draftCount) || 0,
+    pendingOrders: Number(ordersSummary.pendingCount) || 0,
+    activityLine: formatTodayStockActivityLine(activity),
+    activity,
+  }
 }
 
 export function buildStockDashboardSummary(items = []) {

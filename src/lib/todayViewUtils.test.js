@@ -61,6 +61,28 @@ describe('todayViewUtils', () => {
     })).toBe(0)
   })
 
+  it('includes stock module alerts when stock data is available', () => {
+    const items = buildTodayAttentionItems({
+      hasStockModuleData: true,
+      stockAlerts: [
+        { id: 's1', name: 'Olive oil', severity: 'critical' },
+        { id: 's2', name: 'Flour', severity: 'low' },
+      ],
+      todayKey: TODAY,
+    })
+
+    expect(items).toHaveLength(2)
+    expect(items[0]).toMatchObject({
+      key: 'stock:s1',
+      label: 'Olive oil',
+      detail: 'Out of stock',
+    })
+    expect(items[1]).toMatchObject({
+      key: 'stock:s2',
+      detail: 'Low stock',
+    })
+  })
+
   it('adds due-today tasks without duplicating overdue tasks', () => {
     const items = buildTodayAttentionItems({
       tasks: [

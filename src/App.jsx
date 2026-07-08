@@ -294,7 +294,7 @@ import {
 } from './lib/todayAttentionNavigation'
 import { TodayAttentionListItem } from './components/today/TodayAttentionListItem'
 import { buildStockOrdersOperationsSummary } from './lib/stockOrderUtils'
-import { buildStockDashboardSummary } from './lib/stockUtils'
+import { buildStockDashboardSummary, getStockModuleAlertItems } from './lib/stockUtils'
 import { filterTasksExcludingAnnouncementDuplicates } from './lib/operationsAnnouncementUtils'
 import {
   countShiftsCoveringTemplateCell,
@@ -13157,10 +13157,12 @@ function App() {
     [operationalSnapshot],
   )
 
-  const dashboardStockAlerts = useMemo(
-    () => getLowStockAlertItems(inventoryItems),
-    [inventoryItems],
-  )
+  const dashboardStockAlerts = useMemo(() => {
+    if (stockItems.length > 0) {
+      return getStockModuleAlertItems(stockItems)
+    }
+    return getLowStockAlertItems(inventoryItems)
+  }, [stockItems, inventoryItems])
 
   const todayActionableTasks = useMemo(
     () => filterTasksExcludingAnnouncementDuplicates(tasks, operationsAnnouncements),
@@ -14365,8 +14367,11 @@ function App() {
     const isManagerMobileStockTab = isManagerMobileShell
       && mobileManagerTab === 'stock'
       && !mobileExpandedView
+    const isMobileStockWorkspace = useMobileExperience
+      && mobileExpandedView === 'workspace'
+      && activeView === 'stock'
 
-    if (!isDesktopStockCatalogView && !isManagerMobileStockTab) return undefined
+    if (!isDesktopStockCatalogView && !isManagerMobileStockTab && !isMobileStockWorkspace) return undefined
 
     let isMounted = true
 
@@ -14391,7 +14396,7 @@ function App() {
     return () => {
       isMounted = false
     }
-  }, [activeView, stockSection, refreshStockItems, isManagerMobileShell, mobileManagerTab, mobileExpandedView])
+  }, [activeView, stockSection, refreshStockItems, isManagerMobileShell, mobileManagerTab, mobileExpandedView, useMobileExperience])
 
   useEffect(() => {
     const isDesktopStockOrdersView = activeView === 'stock'
@@ -14399,8 +14404,11 @@ function App() {
     const isManagerMobileStockTab = isManagerMobileShell
       && mobileManagerTab === 'stock'
       && !mobileExpandedView
+    const isMobileStockWorkspace = useMobileExperience
+      && mobileExpandedView === 'workspace'
+      && activeView === 'stock'
 
-    if (!isDesktopStockOrdersView && !isManagerMobileStockTab) return undefined
+    if (!isDesktopStockOrdersView && !isManagerMobileStockTab && !isMobileStockWorkspace) return undefined
 
     let isMounted = true
 
@@ -14425,7 +14433,7 @@ function App() {
     return () => {
       isMounted = false
     }
-  }, [activeView, stockSection, refreshStockOrders, isManagerMobileShell, mobileManagerTab, mobileExpandedView])
+  }, [activeView, stockSection, refreshStockOrders, isManagerMobileShell, mobileManagerTab, mobileExpandedView, useMobileExperience])
 
   useEffect(() => {
     if (activeView !== 'operations') return undefined
@@ -19688,6 +19696,14 @@ function App() {
     setMobileExpandedView('workspace')
   }, [role, handleActiveViewChange, handleStockSectionChange])
 
+  const handleMobileManagerOpenStockOrders = useCallback(() => {
+    if (!canAccessMobileExpandedModule(role, 'stock')) return
+
+    handleActiveViewChange('stock')
+    handleStockSectionChange('orders')
+    setMobileExpandedView('workspace')
+  }, [role, handleActiveViewChange, handleStockSectionChange])
+
   const handleMobileManagerOpenTasks = useCallback(() => {
     if (!canAccessMobileExpandedModule(role, 'operations')) return
 
@@ -20489,6 +20505,8 @@ function App() {
                           isSavingOrders: isSavingStockOrder,
                           onCreateOrders: handleCreateStockOrders,
                           onCountStock: handleMobileManagerCountStock,
+                          onOpenOrders: handleMobileManagerOpenStockOrders,
+                          onReceiveDeliveries: handleMobileManagerReceiveDeliveries,
                         }}
                         managerTasksProps={{
                           tasks: managerMobileOperationsTasks,

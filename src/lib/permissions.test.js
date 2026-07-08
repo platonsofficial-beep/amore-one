@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   APP_MODULES,
   MOBILE_STAFF_BOTTOM_TABS,
+  canAccessMobileExpandedModule,
   canAccessModule,
   canManageAnnouncements,
   canManageOperations,
@@ -56,6 +57,8 @@ describe('permissions', () => {
       expect(canAccessModule('staff', 'reservations')).toBe(false)
       expect(canAccessModule('staff', 'settings')).toBe(false)
       expect(canAccessModule('staff', 'insights')).toBe(false)
+      expect(canAccessMobileExpandedModule('staff', 'stock')).toBe(true)
+      expect(canAccessMobileExpandedModule('staff', 'operations')).toBe(false)
     })
   })
 

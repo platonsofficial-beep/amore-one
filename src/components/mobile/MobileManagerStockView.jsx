@@ -132,6 +132,58 @@ function MobileManagerStockEmptyState({ title, message }) {
   )
 }
 
+function MobileStockPendingOrdersBanner({
+  stockOrdersSummary = null,
+  canManageStock = false,
+  onReceiveDeliveries,
+  onOpenOrders,
+}) {
+  const pendingCount = Number(stockOrdersSummary?.pendingCount) || 0
+  const awaitingCount = Number(stockOrdersSummary?.awaitingDeliveryCount) || 0
+  const partialCount = Number(stockOrdersSummary?.partialCount) || 0
+  const draftCount = Number(stockOrdersSummary?.draftCount) || 0
+
+  if (pendingCount === 0) return null
+
+  let message = ''
+  if (awaitingCount > 0 && partialCount > 0) {
+    message = `${awaitingCount} awaiting delivery · ${partialCount} partial`
+  } else if (awaitingCount > 0) {
+    message = awaitingCount === 1 ? '1 delivery awaiting receipt' : `${awaitingCount} deliveries awaiting receipt`
+  } else if (partialCount > 0) {
+    message = partialCount === 1 ? '1 partial order open' : `${partialCount} partial orders open`
+  } else if (draftCount > 0) {
+    message = draftCount === 1 ? '1 draft order to review' : `${draftCount} draft orders to review`
+  }
+
+  return (
+    <section className="mobile-manager-stock-pending-banner" aria-label="Pending orders">
+      <div className="mobile-manager-stock-pending-copy">
+        <p className="mobile-manager-stock-pending-title">Orders need attention</p>
+        {message ? <p className="mobile-manager-stock-pending-message">{message}</p> : null}
+      </div>
+      <div className="mobile-manager-stock-pending-actions">
+        {canManageStock && awaitingCount > 0 ? (
+          <button
+            type="button"
+            className="mobile-manager-stock-pending-btn mobile-manager-stock-pending-btn-primary"
+            onClick={onReceiveDeliveries}
+          >
+            Receive
+          </button>
+        ) : null}
+        <button
+          type="button"
+          className="mobile-manager-stock-pending-btn"
+          onClick={onOpenOrders}
+        >
+          View orders
+        </button>
+      </div>
+    </section>
+  )
+}
+
 export function MobileManagerStockView({
   stockItems = [],
   stockSummary = null,
@@ -142,6 +194,8 @@ export function MobileManagerStockView({
   isSavingOrders = false,
   onCreateOrders,
   onCountStock,
+  onOpenOrders,
+  onReceiveDeliveries,
 }) {
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
@@ -150,7 +204,9 @@ export function MobileManagerStockView({
 
   const totalItems = Number(stockSummary?.totalItems) || 0
   const lowCount = Number(stockSummary?.lowStock) || 0
-  const draftCount = Number(stockOrdersSummary?.draftCount) || 0
+  const outCount = Number(stockSummary?.outOfStock) || 0
+  const toOrderCount = Number(stockSummary?.toOrder) || 0
+  const pendingOrders = Number(stockOrdersSummary?.pendingCount) || 0
 
   const categoryFilters = useMemo(() => getStockCategoryFilters(stockItems), [stockItems])
 
@@ -171,6 +227,7 @@ export function MobileManagerStockView({
       hasNoItems,
       hasNoMatches,
       statusFilter,
+      canManage: canManageStock,
     })
 
     if (!base) return null
@@ -190,7 +247,7 @@ export function MobileManagerStockView({
     }
 
     return base
-  }, [hasNoItems, hasNoMatches, statusFilter])
+  }, [hasNoItems, hasNoMatches, statusFilter, canManageStock])
 
   const handleStatusChip = (nextStatus) => {
     setStatusFilter(nextStatus)
@@ -241,15 +298,36 @@ export function MobileManagerStockView({
             <strong>{isLoading ? '—' : totalItems}</strong> items
           </span>
           <span aria-hidden="true">·</span>
-          <span>
+          <span className={lowCount > 0 ? 'tone-warning' : ''}>
             <strong>{isLoading ? '—' : lowCount}</strong> low
           </span>
           <span aria-hidden="true">·</span>
-          <span className={draftCount > 0 ? 'tone-warning' : ''}>
-            <strong>{isLoading ? '—' : draftCount}</strong> draft{draftCount === 1 ? '' : 's'}
+          <span className={outCount > 0 ? 'tone-danger' : ''}>
+            <strong>{isLoading ? '—' : outCount}</strong> out
           </span>
+          <span aria-hidden="true">·</span>
+          <span className={toOrderCount > 0 ? 'tone-warning' : ''}>
+            <strong>{isLoading ? '—' : toOrderCount}</strong> to order
+          </span>
+          {pendingOrders > 0 ? (
+            <>
+              <span aria-hidden="true">·</span>
+              <span className="tone-info">
+                <strong>{isLoading ? '—' : pendingOrders}</strong> pending
+              </span>
+            </>
+          ) : null}
         </p>
       </header>
+
+      {!isLoading && pendingOrders > 0 ? (
+        <MobileStockPendingOrdersBanner
+          stockOrdersSummary={stockOrdersSummary}
+          canManageStock={canManageStock}
+          onReceiveDeliveries={onReceiveDeliveries}
+          onOpenOrders={onOpenOrders}
+        />
+      ) : null}
 
       <div className="mobile-manager-stock-sticky-tools">
         <label className="mobile-manager-stock-search">
@@ -296,6 +374,15 @@ export function MobileManagerStockView({
           >
             Out
           </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={statusFilter === 'order'}
+            className={`mobile-manager-stock-chip${statusFilter === 'order' ? ' is-active' : ''}`}
+            onClick={() => handleStatusChip('order')}
+          >
+            To order
+          </button>
           {categoryFilters
             .filter((category) => category !== 'All')
             .map((category) => (
@@ -335,24 +422,26 @@ export function MobileManagerStockView({
       )}
       </div>
 
-      <section className="mobile-manager-stock-action-bar" aria-label="Stock quick actions">
-        <button
-          type="button"
-          className="mobile-manager-stock-quick-btn"
-          onClick={onCountStock}
-          disabled={!canManageStock || !isWorkspaceReady}
-        >
-          Count stock
-        </button>
-        <button
-          type="button"
-          className="mobile-manager-stock-quick-btn mobile-manager-stock-quick-btn-primary"
-          onClick={openCreateOrderModal}
-          disabled={!canManageStock || !isWorkspaceReady}
-        >
-          Create order
-        </button>
-      </section>
+      {canManageStock ? (
+        <section className="mobile-manager-stock-action-bar" aria-label="Stock quick actions">
+          <button
+            type="button"
+            className="mobile-manager-stock-quick-btn"
+            onClick={onCountStock}
+            disabled={!isWorkspaceReady}
+          >
+            Count stock
+          </button>
+          <button
+            type="button"
+            className="mobile-manager-stock-quick-btn mobile-manager-stock-quick-btn-primary"
+            onClick={openCreateOrderModal}
+            disabled={!isWorkspaceReady}
+          >
+            Create order
+          </button>
+        </section>
+      ) : null}
 
       {orderModalGroups ? (
         <StockCreateOrderModal

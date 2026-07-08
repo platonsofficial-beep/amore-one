@@ -23155,6 +23155,31 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   min-height: 44px;
 }
 
+.stock-today-activity {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 14px 18px;
+  margin-bottom: 4px;
+  border-color: rgba(148, 163, 184, 0.16);
+  background: rgba(18, 16, 12, 0.72);
+}
+
+.stock-today-activity-title {
+  margin: 0;
+  color: #d4c4a8;
+  font-size: 0.82rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.stock-today-activity-line {
+  margin: 0;
+  color: #fff7e8;
+  font-size: 0.95rem;
+}
+
 .stock-attention-title-row {
   display: flex;
   align-items: center;

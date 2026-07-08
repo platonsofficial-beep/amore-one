@@ -103,6 +103,7 @@ export function buildTodayCommandCenterAttentionItems({
   const baseItems = buildTodayAttentionItems({
     stockAlerts,
     inventoryConnected,
+    hasStockModuleData,
     tasks,
     todayKey,
     issuesSummary,

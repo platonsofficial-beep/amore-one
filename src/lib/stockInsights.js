@@ -117,12 +117,15 @@ export function getStockDashboardEmptyState({
   hasNoItems = false,
   hasNoMatches = false,
   statusFilter = 'all',
+  canManage = false,
 } = {}) {
   if (hasNoItems) {
     return {
-      title: 'No products yet',
-      message: 'Add your first product to start workspace stock tracking.',
-      showAddButton: true,
+      title: canManage ? 'No products yet' : 'No stock items',
+      message: canManage
+        ? 'Add your first product to start workspace stock tracking.'
+        : 'Stock levels will appear here once products are added.',
+      showAddButton: canManage,
     }
   }
 

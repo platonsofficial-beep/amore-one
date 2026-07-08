@@ -140,6 +140,11 @@ export function isManagementMobileRole(role) {
 }
 
 export function canAccessMobileExpandedModule(role, moduleId) {
+  const normalizedModuleId = `${moduleId ?? ''}`.trim()
+  if (normalizedModuleId === 'stock' && canAccessModule(role, 'stock')) {
+    return true
+  }
+
   if (!isManagementMobileRole(role)) {
     return false
   }

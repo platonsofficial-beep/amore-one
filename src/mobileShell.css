@@ -3027,6 +3027,64 @@
   color: #f0d4a8;
 }
 
+.mobile-manager-stock-command-stats .tone-danger strong {
+  color: #f08a8a;
+}
+
+.mobile-manager-stock-command-stats .tone-info strong {
+  color: #8ec5ff;
+}
+
+.mobile-manager-stock-pending-banner {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0 16px 12px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  border: 1px solid rgba(142, 197, 255, 0.24);
+  background: rgba(20, 28, 40, 0.88);
+}
+
+.mobile-manager-stock-pending-title {
+  margin: 0;
+  color: #f5f8ff;
+  font-size: 0.92rem;
+  font-weight: 600;
+}
+
+.mobile-manager-stock-pending-message {
+  margin: 4px 0 0;
+  color: #b8c7dc;
+  font-size: 0.82rem;
+}
+
+.mobile-manager-stock-pending-actions {
+  display: flex;
+  flex-shrink: 0;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.mobile-manager-stock-pending-btn {
+  min-height: 44px;
+  min-width: 44px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.04);
+  color: #f5f8ff;
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.mobile-manager-stock-pending-btn-primary {
+  border-color: rgba(212, 175, 55, 0.4);
+  background: rgba(212, 175, 55, 0.16);
+  color: #fff7e8;
+}
+
 .mobile-manager-stock-sticky-tools {
   position: sticky;
   top: 0;

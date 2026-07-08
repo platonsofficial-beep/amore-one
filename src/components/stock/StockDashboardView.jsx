@@ -31,15 +31,18 @@ import {
 } from '../../lib/stockInsights'
 import {
   buildStockDashboardSummary,
+  buildTodayStockActivitySummary,
   formatStockInventoryValue,
   formatStockMovementRelativeTime,
   formatStockQuantity,
+  formatTodayStockActivityLine,
   getStockCategoryFilters,
   getStockMovementLabel,
   getStockStatusLabel,
   getStockStatusShortLabel,
   STOCK_MOVEMENT_TYPES,
 } from '../../lib/stockUtils'
+import { getCurrentDateKey } from '../../lib/currentDateUtils'
 import { buildStockOrdersOperationsSummary } from '../../lib/stockOrderUtils'
 import { StockCreateOrderModal } from './StockCreateOrderModal'
 import { StockItemFormModal } from './StockItemFormModal'
@@ -715,6 +718,19 @@ function StockAttentionRow({
   )
 }
 
+function StockTodayActivitySection({ activityLine }) {
+  if (!activityLine) return null
+
+  return (
+    <section className="stock-today-activity panel staff-panel" aria-label="Today's stock activity">
+      <header className="stock-today-activity-header">
+        <h3 className="stock-today-activity-title">What changed today</h3>
+        <p className="stock-today-activity-line">{activityLine}</p>
+      </header>
+    </section>
+  )
+}
+
 function StockOperationsBanner({
   ordersSummary,
   criticalStockCount,
@@ -1146,6 +1162,10 @@ export function StockDashboardView({
 
   const summary = useMemo(() => buildStockDashboardSummary(stockItems), [stockItems])
   const ordersSummary = useMemo(() => buildStockOrdersOperationsSummary(stockOrders), [stockOrders])
+  const todayActivityLine = useMemo(() => {
+    const activity = buildTodayStockActivitySummary(stockItems, getCurrentDateKey())
+    return formatTodayStockActivityLine(activity)
+  }, [stockItems])
   const criticalStockCount = summary.lowStock + summary.outOfStock
   const categoryFilters = useMemo(() => getStockCategoryFilters(stockItems), [stockItems])
 
@@ -1197,7 +1217,8 @@ export function StockDashboardView({
     hasNoItems,
     hasNoMatches,
     statusFilter,
-  }), [hasNoItems, hasNoMatches, statusFilter])
+    canManage,
+  }), [hasNoItems, hasNoMatches, statusFilter, canManage])
 
   const exitSelectionMode = () => {
     setSelectionMode(false)
@@ -1452,6 +1473,10 @@ export function StockDashboardView({
           criticalStockCount={criticalStockCount}
           onOpenOrders={onOpenOrders}
         />
+      ) : null}
+
+      {!isLoading && stockItems.length > 0 ? (
+        <StockTodayActivitySection activityLine={todayActivityLine} />
       ) : null}
 
       {hasNeedsAttention && !isLoading ? (
