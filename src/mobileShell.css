@@ -1633,7 +1633,7 @@
   height: auto;
 }
 
-@media (orientation: landscape) and (max-height: 480px) and (pointer: coarse) {
+@media (max-height: 480px) and (orientation: landscape) and (pointer: coarse) {
   html,
   body,
   #root {
@@ -1650,19 +1650,44 @@
     overflow-x: hidden;
   }
 
+  .mobile-app-expanded,
   .mobile-app.mobile-app-expanded {
     height: 100dvh;
     max-height: 100dvh;
     min-height: 0;
+    overflow: hidden;
   }
 
-  .mobile-app-expanded .mobile-expanded-scroll {
+  .mobile-app-expanded .mobile-expanded-scroll,
+  .mobile-expanded-scroll {
     flex: 1 1 auto;
     min-height: 0;
     max-height: none;
+    overflow-x: hidden;
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
+    touch-action: pan-y;
     padding-bottom: calc(72px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .mobile-workspace-module.is-mobile-expanded .reservations-workspace-host,
+  .mobile-workspace-module.is-mobile-expanded .host-operations-canvas,
+  .mobile-workspace-module.is-mobile-expanded .host-operations-list,
+  .app-shell.is-mobile-expanded .reservations-workspace-host,
+  .app-shell.is-mobile-expanded .host-operations-canvas,
+  .app-shell.is-mobile-expanded .host-operations-list {
+    height: auto;
+    max-height: none;
+    min-height: 0;
+    overflow-x: hidden;
+    overflow-y: visible;
+  }
+
+  .mobile-workspace-module.is-mobile-expanded .host-operations-list-scroll,
+  .app-shell.is-mobile-expanded .host-operations-list-scroll {
+    height: auto;
+    max-height: none;
+    overflow-y: visible;
   }
 
   .app-shell.is-mobile-expanded .host-operations-floor {

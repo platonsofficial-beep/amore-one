@@ -42,7 +42,7 @@ export function MobileStaffApp({
             <h1>{expandedTitle}</h1>
           </header>
           {expandedModuleContent ? (
-            <div className="mobile-workspace-module">
+            <div className="mobile-workspace-module is-mobile-expanded">
               {expandedModuleContent}
             </div>
           ) : null}
