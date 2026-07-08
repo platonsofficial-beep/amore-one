@@ -1,5 +1,7 @@
 let lockedMobileShell = false
 
+const MOBILE_SHELL_MAX_WIDTH = 760
+
 function readPersistedMobileShellLock() {
   if (lockedMobileShell) {
     return true
@@ -31,39 +33,63 @@ function persistMobileShellLock() {
   }
 }
 
-export function isIPhoneLikeDevice() {
-  if (readPersistedMobileShellLock()) {
-    return true
-  }
+function isDirectIPhoneUA(userAgent = '') {
+  return /iPhone|iPod/i.test(userAgent)
+}
 
+function isDesktopClassViewport(width = 0) {
+  return width > MOBILE_SHELL_MAX_WIDTH
+}
+
+export function isIPhoneLikeDevice() {
   if (typeof window === 'undefined' || typeof navigator === 'undefined') {
     return false
   }
 
   const ua = navigator.userAgent || ''
+  if (isDirectIPhoneUA(ua)) {
+    if (!readPersistedMobileShellLock()) {
+      persistMobileShellLock()
+    }
+    return true
+  }
+
+  const width = window.innerWidth || 0
+  if (isDesktopClassViewport(width)) {
+    return false
+  }
+
+  if (readPersistedMobileShellLock()) {
+    return true
+  }
+
   const platform = navigator.platform || ''
   const maxTouchPoints = navigator.maxTouchPoints || 0
-  const minSide = Math.min(window.innerWidth || 0, window.innerHeight || 0)
-  const maxSide = Math.max(window.innerWidth || 0, window.innerHeight || 0)
+  const minSide = Math.min(width, window.innerHeight || 0)
+  const maxSide = Math.max(width, window.innerHeight || 0)
 
-  const isDirectIPhone = /iPhone|iPod/i.test(ua)
-  const isPhoneLikeTouchMac = (
+  return (
     platform === 'MacIntel'
     && maxTouchPoints > 1
     && minSide <= 480
     && maxSide <= 950
   )
-
-  if (isDirectIPhone || isPhoneLikeTouchMac) {
-    persistMobileShellLock()
-    return true
-  }
-
-  return false
 }
 
 export function shouldUseMobileShell() {
   if (typeof window === 'undefined') {
+    return false
+  }
+
+  const ua = navigator.userAgent || ''
+  if (isDirectIPhoneUA(ua)) {
+    return true
+  }
+
+  const width = window.innerWidth || 0
+  const height = window.innerHeight || 0
+
+  if (isDesktopClassViewport(width)) {
     return false
   }
 
@@ -75,13 +101,11 @@ export function shouldUseMobileShell() {
     return true
   }
 
-  const width = window.innerWidth || 0
-  const height = window.innerHeight || 0
   const isCoarsePointer =
     window.matchMedia?.('(pointer: coarse)')?.matches ?? false
 
   return (
-    width <= 760
+    width <= MOBILE_SHELL_MAX_WIDTH
     || (
       isCoarsePointer
       && Math.min(width, height) <= 480
