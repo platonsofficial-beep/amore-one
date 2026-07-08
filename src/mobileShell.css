@@ -49,6 +49,12 @@
     touch-action: pan-y;
   }
 
+  .mobile-app.mobile-app-expanded {
+    height: 100dvh;
+    max-height: 100dvh;
+    overflow: hidden;
+  }
+
   .mobile-app-content,
   .mobile-expanded-scroll {
     flex: 1 0 auto;
@@ -62,6 +68,12 @@
     overscroll-behavior-y: auto;
   }
 
+  .mobile-app-expanded .mobile-expanded-scroll {
+    flex: 1 1 auto;
+    min-height: 0;
+    max-height: none;
+  }
+
   .mobile-app-content {
     padding: calc(12px + env(safe-area-inset-top, 0px)) 16px calc(96px + env(safe-area-inset-bottom, 0px));
   }
@@ -72,7 +84,9 @@
   }
 
   .mobile-workspace-module {
-    padding-bottom: calc(96px + env(safe-area-inset-bottom, 0px));
+    overflow-x: hidden;
+    overflow-y: visible;
+    padding-bottom: 0;
   }
 }
 
@@ -1065,6 +1079,9 @@
   min-width: 0;
   max-width: 100%;
   overflow-x: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
   padding-top: env(safe-area-inset-top, 0px);
 }
 
@@ -1110,6 +1127,10 @@
 
 .mobile-app-expanded {
   min-height: 100dvh;
+}
+
+.mobile-app-expanded .mobile-expanded-scroll {
+  padding-bottom: calc(96px + env(safe-area-inset-bottom, 0px));
 }
 
 .mobile-manager-preview-label {
@@ -1502,6 +1523,67 @@
 .app-shell.is-mobile-expanded .schedule-grid-scroll,
 .app-shell.is-mobile-expanded .schedule-grid-wrap {
   max-width: 100%;
+}
+
+@media (max-width: 760px) {
+  .app-shell.is-mobile-expanded .main-panel-reservations {
+    height: auto;
+    max-height: none;
+    overflow-x: hidden;
+    overflow-y: visible;
+  }
+
+  .app-shell.is-mobile-expanded .reservations-workspace,
+  .app-shell.is-mobile-expanded .reservations-workspace-host {
+    flex: none;
+    min-height: 0;
+    height: auto;
+    max-height: none;
+    overflow-x: hidden;
+    overflow-y: visible;
+  }
+
+  .app-shell.is-mobile-expanded .reservations-workspace-host .reservations-host-panel {
+    flex: none;
+    min-height: 0;
+    height: auto;
+    max-height: none;
+    overflow-x: hidden;
+    overflow-y: visible;
+  }
+
+  .app-shell.is-mobile-expanded .host-operations-canvas-shell {
+    flex: none;
+    min-height: 0;
+    height: auto;
+  }
+
+  .app-shell.is-mobile-expanded .host-operations-canvas {
+    flex: none;
+    min-height: 0;
+    height: auto;
+    max-height: none;
+    overflow-x: hidden;
+    overflow-y: visible;
+  }
+
+  .app-shell.is-mobile-expanded .host-operations-list {
+    height: auto;
+    max-height: none;
+    overflow: visible;
+  }
+
+  .app-shell.is-mobile-expanded .host-operations-list-scroll {
+    flex: none;
+    max-height: none;
+    overflow-x: hidden;
+    overflow-y: visible;
+  }
+
+  .app-shell.is-mobile-expanded .host-operations-floor {
+    min-height: 360px;
+    height: auto;
+  }
 }
 
 @media (min-width: 761px) {
