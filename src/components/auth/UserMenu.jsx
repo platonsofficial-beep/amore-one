@@ -8,6 +8,7 @@ export function UserMenu({
   profileChipDisplay,
   employees = [],
   onOpenWorkspaceProfile,
+  canOpenWorkspaceProfile = true,
   variant = 'default',
 }) {
   const {
@@ -108,14 +109,16 @@ export function UserMenu({
             <span className="user-menu-role-badge user-menu-role-badge-panel">{resolvedRoleLabel}</span>
           </div>
           <p className="user-menu-email">{memberEmail}</p>
-          <button
-            type="button"
-            className="user-menu-item"
-            role="menuitem"
-            onClick={handleOpenWorkspaceProfile}
-          >
-            Open Workspace Profile
-          </button>
+          {canOpenWorkspaceProfile ? (
+            <button
+              type="button"
+              className="user-menu-item"
+              role="menuitem"
+              onClick={handleOpenWorkspaceProfile}
+            >
+              Open Workspace Profile
+            </button>
+          ) : null}
           {!isAuthDisabled ? (
             <button
               type="button"

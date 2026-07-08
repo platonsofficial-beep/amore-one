@@ -280,7 +280,7 @@ import {
 } from './lib/todayViewUtils'
 import { buildStockOrdersOperationsSummary } from './lib/stockOrderUtils'
 import { buildStockDashboardSummary } from './lib/stockUtils'
-import { canManageAnnouncements, filterTasksExcludingAnnouncementDuplicates } from './lib/operationsAnnouncementUtils'
+import { filterTasksExcludingAnnouncementDuplicates } from './lib/operationsAnnouncementUtils'
 import {
   countShiftsCoveringTemplateCell,
   formatScheduleCoverageStatusLabel,
@@ -378,12 +378,19 @@ import {
   canAssignManagerInviteRole,
   canAccessMobileExpandedModule,
   canEditSchedule,
+  canManageAnnouncements,
   canManageEmployeeInvites,
+  canManageOperations,
+  canManageStock,
   canOpenMobileFullSchedule,
   canOpenMobileTasksWorkspace,
   filterNavItemsByRole,
+  filterOperationsSections,
+  getMobileBottomTabs,
+  getTodayQuickActions,
   isManagementMobileRole,
   resolvePermittedActiveView,
+  resolvePermittedOperationsSection,
   resolvePermittedTeamSection,
 } from './lib/permissions'
 import {
@@ -437,12 +444,6 @@ import {
 } from './lib/mobileNavigationPersistence'
 
 const HOST_RESERVATION_STATUS_OPTIONS = getHostReservationStatusOptions()
-
-const todayQuickActions = [
-  { id: 'add-reservation', label: 'Reservation', icon: '➕', available: true },
-  { id: 'add-task', label: 'Task', icon: '✓', available: true },
-  { id: 'create-order', label: 'Order', icon: '📦', available: false, hint: 'Coming soon' },
-]
 
 const defaultStaffPositionOptions = [
   'Bar',
@@ -989,12 +990,17 @@ function CommandCenterView({
   now = new Date(),
   todayKey = '',
   onQuickAction,
+  quickActions = [],
   onViewStock,
   onViewSchedule,
   onViewTasks,
   onMarkAnnouncementSeen,
 }) {
   const attentionHasUrgent = hasUrgentAttentionItems(attentionItems)
+  const showStockAttention = Boolean(onViewStock) && attentionItems.some((item) => item.key.startsWith('stock:'))
+  const showTasksAttention = Boolean(onViewTasks) && attentionItems.some((item) => item.key.startsWith('task:'))
+  const showScheduleAttention = Boolean(onViewSchedule) && attentionItems.some((item) => item.key === 'schedule-issues')
+  const showAttentionActions = showStockAttention || showTasksAttention || showScheduleAttention
 
   return (
     <div className="today-page" aria-label="Today">
@@ -1097,23 +1103,19 @@ function CommandCenterView({
                 ))}
               </ul>
             )}
-            {attentionItems.some((item) => (
-              item.key.startsWith('stock:')
-              || item.key.startsWith('task:')
-              || item.key === 'schedule-issues'
-            )) ? (
+            {showAttentionActions ? (
               <div className="today-attention-actions">
-                {attentionItems.some((item) => item.key.startsWith('stock:')) ? (
+                {showStockAttention ? (
                   <button type="button" className="today-attention-pill" onClick={onViewStock}>
                     Stock
                   </button>
                 ) : null}
-                {attentionItems.some((item) => item.key.startsWith('task:')) ? (
+                {showTasksAttention ? (
                   <button type="button" className="today-attention-pill" onClick={onViewTasks}>
                     Tasks
                   </button>
                 ) : null}
-                {attentionItems.some((item) => item.key === 'schedule-issues') ? (
+                {showScheduleAttention ? (
                   <button type="button" className="today-attention-pill" onClick={onViewSchedule}>
                     Schedule
                   </button>
@@ -1122,16 +1124,17 @@ function CommandCenterView({
             ) : null}
           </TodayCollapsiblePanel>
 
+          {quickActions.some((action) => action.available) ? (
           <TodayCollapsiblePanel
             panelId={TODAY_PANEL_IDS.QUICK_ACTIONS}
             defaultExpanded={getDefaultTodayPanelExpanded(TODAY_PANEL_IDS.QUICK_ACTIONS)}
             title="Quick Actions"
             ariaLabel="Quick actions"
-            summary={formatQuickActionsCollapsedSummary(todayQuickActions)}
+            summary={formatQuickActionsCollapsedSummary(quickActions)}
             className="today-quick-actions"
           >
             <div className="today-quick-actions-grid">
-              {todayQuickActions.map((action) => (
+              {quickActions.map((action) => (
                 <button
                   key={action.id}
                   type="button"
@@ -1147,6 +1150,7 @@ function CommandCenterView({
               ))}
             </div>
           </TodayCollapsiblePanel>
+          ) : null}
         </aside>
       </div>
     </div>
@@ -12663,13 +12667,13 @@ function App() {
     return 'Workspace is not ready yet. Finish workspace setup, then try again.'
   }, [isStockWorkspaceReady, isAuthLoading, isAuthBootstrapping, workspaceLoadError])
 
-  const canManageStock = useMemo(
-    () => ['owner', 'general_manager', 'manager'].includes(role),
+  const canManageStockRole = useMemo(
+    () => canManageStock(role),
     [role],
   )
 
-  const canManageOperations = useMemo(
-    () => ['owner', 'general_manager', 'manager'].includes(role),
+  const canManageOperationsRole = useMemo(
+    () => canManageOperations(role),
     [role],
   )
 
@@ -12715,12 +12719,23 @@ function App() {
   )
 
   const visibleOperationsSections = useMemo(
-    () => OPERATIONS_SECTIONS.filter((section) => {
-      if (section.id === 'checklists' && !canManageOperations) return false
-      if (section.id === 'tasks' && useMobileExperience) return false
-      return true
-    }),
-    [canManageOperations, useMobileExperience],
+    () => filterOperationsSections(OPERATIONS_SECTIONS, role, { hideMobileTasks: useMobileExperience }),
+    [role, useMobileExperience],
+  )
+
+  const permittedTodayQuickActions = useMemo(
+    () => getTodayQuickActions(role),
+    [role],
+  )
+
+  const canOpenWorkspaceProfile = useMemo(
+    () => canAccessModule(role, 'settings'),
+    [role],
+  )
+
+  const mobileBottomTabs = useMemo(
+    () => getMobileBottomTabs(role, isManagementMobileRole(role) ? 'manager' : 'staff'),
+    [role],
   )
 
   const activeChecklistRunTemplate = useMemo(
@@ -12769,10 +12784,12 @@ function App() {
 
     const permittedView = resolvePermittedActiveView(role, activeView)
     const permittedTeamSection = resolvePermittedTeamSection(role, teamSection)
+    const permittedOperationsSection = resolvePermittedOperationsSection(role, operationsSection)
     const shouldUpdateView = permittedView !== activeView
     const shouldUpdateTeamSection = activeView === 'team' && permittedTeamSection !== teamSection
+    const shouldUpdateOperationsSection = activeView === 'operations' && permittedOperationsSection !== operationsSection
 
-    if (!shouldUpdateView && !shouldUpdateTeamSection) return
+    if (!shouldUpdateView && !shouldUpdateTeamSection && !shouldUpdateOperationsSection) return
 
     if (shouldUpdateView) {
       setActiveView(permittedView)
@@ -12780,13 +12797,16 @@ function App() {
     if (shouldUpdateTeamSection) {
       setTeamSection(permittedTeamSection)
     }
+    if (shouldUpdateOperationsSection) {
+      setOperationsSection(permittedOperationsSection)
+    }
 
     persistNavigation({
       activeView: permittedView,
       settingsSection,
       teamSection: permittedTeamSection,
       stockSection,
-      operationsSection,
+      operationsSection: permittedOperationsSection,
     })
   }, [isAuthLoading, role, activeView, teamSection, settingsSection, stockSection, operationsSection])
 
@@ -12847,15 +12867,16 @@ function App() {
   }, [handleStockSectionChange])
 
   const handleOperationsSectionChange = useCallback((nextSection) => {
-    setOperationsSection(nextSection)
+    const permittedSection = resolvePermittedOperationsSection(role, nextSection)
+    setOperationsSection(permittedSection)
     persistNavigation({
       activeView,
       settingsSection,
       teamSection,
       stockSection,
-      operationsSection: nextSection,
+      operationsSection: permittedSection,
     })
-  }, [activeView, settingsSection, teamSection, stockSection])
+  }, [role, activeView, settingsSection, teamSection, stockSection])
 
   const handleSettingsSectionChange = useCallback((nextSection) => {
     setSettingsSection(nextSection)
@@ -13325,6 +13346,33 @@ function App() {
   const activeMobileTab = isManagerMobileShell ? mobileManagerTab : mobileStaffTab
   const isManagerMobileStockLoading = isManagerMobileBootstrapLoading || isStockItemsLoading || isStockOrdersLoading
   const isManagerMobileTasksLoading = isManagerMobileBootstrapLoading || isOperationsLoading
+
+  useEffect(() => {
+    if (!useMobileExperience || isAuthLoading) return
+
+    const variant = isManagerMobileShell ? 'manager' : 'staff'
+    const allowedTabs = getMobileBottomTabs(role, variant)
+    if (allowedTabs.length === 0) return
+
+    const isActiveTabAllowed = allowedTabs.some((tab) => tab.id === activeMobileTab)
+    if (isActiveTabAllowed) return
+
+    const fallbackTab = allowedTabs[0].id
+    if (variant === 'manager') {
+      setMobileManagerTab(fallbackTab)
+      persistManagerMobileTab(fallbackTab)
+      return
+    }
+
+    setMobileStaffTab(fallbackTab)
+    persistMobileTab(fallbackTab)
+  }, [
+    useMobileExperience,
+    isAuthLoading,
+    isManagerMobileShell,
+    role,
+    activeMobileTab,
+  ])
 
   const dashboardTimelineEvents = useMemo(() => buildTodayServiceTimeline({
     // Service timeline uses actionable tasks only, not announcements or operations tasks.
@@ -14297,10 +14345,10 @@ function App() {
   }, [activeView])
 
   useEffect(() => {
-    if (activeView === 'operations' && operationsSection === 'checklists' && !canManageOperations) {
+    if (activeView === 'operations' && operationsSection === 'checklists' && !canManageOperationsRole) {
       handleOperationsSectionChange('dashboard')
     }
-  }, [activeView, operationsSection, canManageOperations, handleOperationsSectionChange])
+  }, [activeView, operationsSection, canManageOperationsRole, handleOperationsSectionChange])
 
   useEffect(() => {
     if (!useMobileExperience || activeView !== 'operations' || operationsSection !== 'tasks') return
@@ -17451,12 +17499,14 @@ function App() {
 
   const handleDashboardQuickAction = (actionId) => {
     if (actionId === 'add-reservation') {
+      if (!canAccessModule(role, 'reservations')) return
       handleActiveViewChange('reservations')
       handleOpenAddReservation()
       return
     }
 
     if (actionId === 'add-task') {
+      if (!canManageOperationsRole) return
       handleActiveViewChange('operations')
       handleOperationsSectionChange('tasks')
       setOpenTasksCreateModal(true)
@@ -17464,26 +17514,36 @@ function App() {
   }
 
   const handleDashboardViewTasks = () => {
+    if (!canAccessModule(role, 'operations')) return
     handleActiveViewChange('operations')
     handleOperationsSectionChange('tasks')
   }
 
   const handleDashboardViewStock = () => {
+    if (!canAccessModule(role, 'stock')) return
     handleActiveViewChange('stock')
     handleStockSectionChange('dashboard')
   }
 
   const handleDashboardViewSchedule = () => {
+    if (!canAccessTeamSection(role, 'schedule')) return
     handleActiveViewChange('team')
     handleTeamSectionChange('schedule')
   }
 
   const handleInsightsViewModule = (moduleId) => {
     const route = resolveInsightsModuleLink(moduleId)
-    handleActiveViewChange(route.activeView)
-    if (route.teamSection) handleTeamSectionChange(route.teamSection)
-    if (route.stockSection) handleStockSectionChange(route.stockSection)
-    if (route.operationsSection) handleOperationsSectionChange(route.operationsSection)
+    const permittedView = resolvePermittedActiveView(role, route.activeView)
+    handleActiveViewChange(permittedView)
+    if (route.teamSection && permittedView === 'team') {
+      handleTeamSectionChange(resolvePermittedTeamSection(role, route.teamSection))
+    }
+    if (route.stockSection && permittedView === 'stock') {
+      handleStockSectionChange(route.stockSection)
+    }
+    if (route.operationsSection && permittedView === 'operations') {
+      handleOperationsSectionChange(resolvePermittedOperationsSection(role, route.operationsSection))
+    }
   }
 
   const handleOpenEditReservation = (reservation) => {
@@ -19309,6 +19369,8 @@ function App() {
   )
 
   const handleOpenWorkspaceProfile = () => {
+    if (!canOpenWorkspaceProfile) return
+
     handleActiveViewChange('settings')
     handleSettingsSectionChange('profile')
   }
@@ -19658,9 +19720,10 @@ function App() {
             now={localNow}
             todayKey={currentDateKey}
             onQuickAction={handleDashboardQuickAction}
-            onViewStock={handleDashboardViewStock}
-            onViewSchedule={handleDashboardViewSchedule}
-            onViewTasks={handleDashboardViewTasks}
+            quickActions={permittedTodayQuickActions}
+            onViewStock={canAccessModule(role, 'stock') ? handleDashboardViewStock : undefined}
+            onViewSchedule={canAccessTeamSection(role, 'schedule') ? handleDashboardViewSchedule : undefined}
+            onViewTasks={canAccessModule(role, 'operations') ? handleDashboardViewTasks : undefined}
             onMarkAnnouncementSeen={handleMarkOperationsAnnouncementSeen}
           />
         ) : null}
@@ -19812,7 +19875,7 @@ function App() {
             isLoading={isStockItemsLoading}
             noticeMessage={stockItemsNotice}
             isSaving={isSavingStockItem}
-            canManage={canManageStock}
+            canManage={canManageStockRole}
             searchTerm={searchTerm}
             workspaceId={activeWorkspaceId}
             isWorkspaceReady={isStockWorkspaceReady}
@@ -19840,7 +19903,7 @@ function App() {
             isLoading={isStockOrdersLoading}
             noticeMessage={stockOrdersNotice}
             searchTerm={searchTerm}
-            canManage={canManageStock}
+            canManage={canManageStockRole}
             isSaving={isSavingStockOrder}
             isWorkspaceReady={isStockWorkspaceReady}
             initialStatusFilter={stockOrdersFilterHint}
@@ -19862,7 +19925,7 @@ function App() {
             isLoading={isSuppliersLoading || isStockItemsLoading || isStockOrdersLoading}
             noticeMessage={suppliersNotice}
             searchTerm={searchTerm}
-            canManage={canManageStock}
+            canManage={canManageStockRole}
             isSaving={isSavingSupplier}
             onCreateSupplier={handleStockCreateSupplier}
             onUpdateSupplier={handleStockUpdateSupplier}
@@ -19941,7 +20004,7 @@ function App() {
             todayKey={currentDateKey}
             isLoading={isOperationsLoading}
             noticeMessage={operationsNotice}
-            canManage={canManageOperations}
+            canManage={canManageOperationsRole}
             canManageAnnouncements={canManageAnnouncementsRole}
             isSaving={isSavingOperations}
             isWorkspaceReady={isOperationsWorkspaceReady}
@@ -20169,7 +20232,7 @@ function App() {
                           stockSummary: managerMobileStockSummary,
                           stockOrdersSummary: managerMobileOrdersSummary,
                           isLoading: isManagerMobileStockLoading,
-                          canManageStock,
+                          canManageStock: canManageStockRole,
                           isWorkspaceReady: isStockWorkspaceReady,
                           isSavingOrders: isSavingStockOrder,
                           onCreateOrders: handleCreateStockOrders,
@@ -20184,8 +20247,8 @@ function App() {
                           todayKey: currentDateKey,
                           isLoading: isManagerMobileTasksLoading,
                           isSaving: isSavingOperations,
-                          onCreateTask: canManageOperations ? handleCreateOperationsTask : undefined,
-                          onCompleteTask: canManageOperations ? handleCompleteOperationsTask : undefined,
+                          onCreateTask: canManageOperationsRole ? handleCreateOperationsTask : undefined,
+                          onCompleteTask: canManageOperationsRole ? handleCompleteOperationsTask : undefined,
                           onOpenChecklist: canAccessMobileExpandedModule(role, 'operations')
                             ? handleMobileManagerOpenChecklist
                             : undefined,
@@ -20198,6 +20261,7 @@ function App() {
                         isReservationsHostMode={
                           mobileReservationsHostMode && activeView === 'reservations'
                         }
+                        bottomTabs={mobileBottomTabs}
                       />
                     )
                   }
@@ -20241,6 +20305,7 @@ function App() {
                       expandedTitle={mobileExpandedTitle}
                       onBackFromExpanded={handleMobileBack}
                       expandedModuleContent={mobileExpandedView ? workspaceModules : null}
+                      bottomTabs={mobileBottomTabs}
                     />
                   )
                 })()
@@ -20272,6 +20337,7 @@ function App() {
                         profileChipDisplay={profileChipDisplay}
                         employees={scheduleEmployees}
                         onOpenWorkspaceProfile={handleOpenWorkspaceProfile}
+                        canOpenWorkspaceProfile={canOpenWorkspaceProfile}
                         variant="command"
                       />
                     </div>
@@ -20302,6 +20368,7 @@ function App() {
                         profileChipDisplay={profileChipDisplay}
                         employees={scheduleEmployees}
                         onOpenWorkspaceProfile={handleOpenWorkspaceProfile}
+                        canOpenWorkspaceProfile={canOpenWorkspaceProfile}
                       />
                     </div>
                   </header>

@@ -1,23 +1,19 @@
-const STAFF_TABS = [
-  { id: 'home', label: 'Home', icon: '◈' },
-  { id: 'schedule', label: 'Schedule', icon: '◷' },
-  { id: 'tasks', label: 'Tasks', icon: '✓' },
-  { id: 'menu', label: 'Menu', icon: '≡' },
-]
+import {
+  MOBILE_MANAGER_BOTTOM_TABS,
+  MOBILE_STAFF_BOTTOM_TABS,
+} from '../../lib/permissions'
 
-const MANAGER_TABS = [
-  { id: 'today', label: 'Today', icon: '◈' },
-  { id: 'stock', label: 'Stock', icon: '📦' },
-  { id: 'tasks', label: 'Tasks', icon: '✓' },
-  { id: 'menu', label: 'Menu', icon: '≡' },
-]
-
-export function MobileBottomNav({ activeTab, onTabChange, variant = 'staff' }) {
-  const tabs = variant === 'manager' ? MANAGER_TABS : STAFF_TABS
+export function MobileBottomNav({
+  activeTab,
+  onTabChange,
+  variant = 'staff',
+  tabs,
+}) {
+  const resolvedTabs = tabs ?? (variant === 'manager' ? MOBILE_MANAGER_BOTTOM_TABS : MOBILE_STAFF_BOTTOM_TABS)
 
   return (
     <nav className="mobile-bottom-nav" aria-label="Mobile navigation">
-      {tabs.map((tab) => (
+      {resolvedTabs.map((tab) => (
         <button
           key={tab.id}
           type="button"

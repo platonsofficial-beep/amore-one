@@ -15,6 +15,22 @@ export const DEFAULT_FALLBACK_MODULE = 'today'
 
 const FULL_ACCESS_ROLES = new Set(['owner', 'general_manager'])
 
+const MANAGEMENT_ROLES = new Set(['owner', 'general_manager', 'manager'])
+
+export const MOBILE_STAFF_BOTTOM_TABS = [
+  { id: 'home', label: 'Home', icon: '◈' },
+  { id: 'schedule', label: 'Schedule', icon: '◷' },
+  { id: 'tasks', label: 'Tasks', icon: '✓' },
+  { id: 'menu', label: 'Menu', icon: '≡' },
+]
+
+export const MOBILE_MANAGER_BOTTOM_TABS = [
+  { id: 'today', label: 'Today', icon: '◈' },
+  { id: 'stock', label: 'Stock', icon: '📦' },
+  { id: 'tasks', label: 'Tasks', icon: '✓' },
+  { id: 'menu', label: 'Menu', icon: '≡' },
+]
+
 const ROLE_MODULE_ACCESS = {
   manager: [
     'today',
@@ -84,9 +100,24 @@ export function resolvePermittedActiveView(role, requestedView) {
   return canAccessModule(role, normalizedView) ? normalizedView : DEFAULT_FALLBACK_MODULE
 }
 
+export function isManagerRole(role) {
+  return MANAGEMENT_ROLES.has(normalizeWorkspaceRole(role, 'staff'))
+}
+
+export function canManageStock(role) {
+  return isManagerRole(role)
+}
+
+export function canManageOperations(role) {
+  return isManagerRole(role)
+}
+
+export function canManageAnnouncements(role) {
+  return isManagerRole(role)
+}
+
 export function canEditSchedule(role) {
-  const normalizedRole = normalizeWorkspaceRole(role, 'staff')
-  return ['owner', 'general_manager', 'manager'].includes(normalizedRole)
+  return isManagerRole(role)
 }
 
 export function canManageEmployeeInvites(role) {
@@ -98,15 +129,12 @@ export function canAssignManagerInviteRole(role) {
   return ['owner', 'general_manager'].includes(normalizedRole)
 }
 
-const MOBILE_MANAGEMENT_ROLES = new Set(['owner', 'general_manager', 'manager'])
-
 export function isManagementMobileRole(role) {
-  return MOBILE_MANAGEMENT_ROLES.has(normalizeWorkspaceRole(role, 'staff'))
+  return isManagerRole(role)
 }
 
 export function canAccessMobileExpandedModule(role, moduleId) {
-  const normalizedRole = normalizeWorkspaceRole(role, 'staff')
-  if (!MOBILE_MANAGEMENT_ROLES.has(normalizedRole)) {
+  if (!isManagementMobileRole(role)) {
     return false
   }
 
@@ -146,4 +174,65 @@ export function resolvePermittedTeamSection(role, requestedSection) {
   const fallbackOrder = ['today', 'members', 'schedule']
   const resolved = fallbackOrder.find((sectionId) => canAccessTeamSection(role, sectionId))
   return resolved ?? 'schedule'
+}
+
+export function canAccessOperationsSection(role, sectionId) {
+  const normalizedSection = `${sectionId ?? ''}`.trim() || 'dashboard'
+  if (!canAccessModule(role, 'operations')) return false
+  if (normalizedSection === 'checklists') return canManageOperations(role)
+  return true
+}
+
+export function filterOperationsSections(sections, role, { hideMobileTasks = false } = {}) {
+  return (sections ?? []).filter((section) => {
+    if (section.id === 'tasks' && hideMobileTasks) return false
+    return canAccessOperationsSection(role, section.id)
+  })
+}
+
+export function resolvePermittedOperationsSection(role, requestedSection) {
+  const normalizedSection = `${requestedSection ?? ''}`.trim() || 'dashboard'
+  if (canAccessOperationsSection(role, normalizedSection)) {
+    return normalizedSection
+  }
+
+  const fallbackOrder = ['dashboard', 'tasks', 'checklists']
+  const resolved = fallbackOrder.find((sectionId) => canAccessOperationsSection(role, sectionId))
+  return resolved ?? 'dashboard'
+}
+
+export function getTodayQuickActions(role) {
+  return [
+    {
+      id: 'add-reservation',
+      label: 'Reservation',
+      icon: '➕',
+      available: canAccessModule(role, 'reservations'),
+    },
+    {
+      id: 'add-task',
+      label: 'Task',
+      icon: '✓',
+      available: canAccessModule(role, 'operations') && canManageOperations(role),
+    },
+    {
+      id: 'create-order',
+      label: 'Order',
+      icon: '📦',
+      available: false,
+      hint: 'Coming soon',
+    },
+  ]
+}
+
+export function getMobileBottomTabs(role, variant = 'staff') {
+  if (variant === 'manager') {
+    return MOBILE_MANAGER_BOTTOM_TABS.filter((tab) => {
+      if (tab.id === 'stock') return canAccessModule(role, 'stock')
+      if (tab.id === 'tasks') return canAccessModule(role, 'operations')
+      return true
+    })
+  }
+
+  return MOBILE_STAFF_BOTTOM_TABS
 }

@@ -18,6 +18,7 @@ export function MobileStaffApp({
   expandedTitle = '',
   onBackFromExpanded,
   expandedModuleContent = null,
+  bottomTabs,
 }) {
   const noticeBanner = noticeMessage ? (
     <div className="mobile-notice-banner auth-banner auth-banner-error" role="alert">
@@ -47,7 +48,7 @@ export function MobileStaffApp({
             </div>
           ) : null}
         </div>
-        <MobileBottomNav activeTab={activeTab} onTabChange={onTabChange} />
+        <MobileBottomNav activeTab={activeTab} onTabChange={onTabChange} tabs={bottomTabs} />
       </div>
     )
   }
@@ -67,7 +68,7 @@ export function MobileStaffApp({
           )
         ) : null}
       </div>
-      <MobileBottomNav activeTab={activeTab} onTabChange={onTabChange} />
+      <MobileBottomNav activeTab={activeTab} onTabChange={onTabChange} tabs={bottomTabs} />
     </div>
   )
 }

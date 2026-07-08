@@ -5,6 +5,9 @@ import {
   toDateTimeLocalValue,
 } from './timeFormatUtils'
 import { getCurrentDateKey } from './currentDateUtils'
+import { canManageAnnouncements, isManagerRole } from './permissions'
+
+export { canManageAnnouncements, isManagerRole }
 
 export const ANNOUNCEMENT_PRIORITIES = ['normal', 'important', 'urgent']
 export const ANNOUNCEMENT_AUDIENCES = ['all', 'bar', 'service', 'kitchen', 'managers']
@@ -35,8 +38,6 @@ const AUDIENCE_LABELS = {
   managers: 'Managers',
 }
 
-const MANAGER_ROLES = new Set(['owner', 'general_manager', 'manager'])
-
 export function normalizeAnnouncementPriority(value) {
   const normalized = `${value ?? ''}`.trim().toLowerCase()
   return ANNOUNCEMENT_PRIORITIES.includes(normalized) ? normalized : 'normal'
@@ -57,14 +58,6 @@ export function getAnnouncementPriorityTone(priority) {
 
 export function getAnnouncementAudienceLabel(audience) {
   return AUDIENCE_LABELS[normalizeAnnouncementAudience(audience)] ?? 'All staff'
-}
-
-export function isManagerRole(role) {
-  return MANAGER_ROLES.has(`${role ?? ''}`.trim())
-}
-
-export function canManageAnnouncements(role) {
-  return isManagerRole(role)
 }
 
 export function matchesAnnouncementAudience(audience, { role = '', employeeDepartment = '' } = {}) {

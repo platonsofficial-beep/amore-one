@@ -19,6 +19,7 @@ export function MobileManagerApp({
   onBackFromExpanded,
   expandedModuleContent = null,
   isReservationsHostMode = false,
+  bottomTabs,
 }) {
   const noticeBanner = noticeMessage ? (
     <div className="mobile-notice-banner auth-banner auth-banner-error" role="alert">
@@ -63,7 +64,7 @@ export function MobileManagerApp({
             </div>
           ) : null}
         </div>
-        <MobileBottomNav activeTab={activeTab} onTabChange={onTabChange} variant="manager" />
+        <MobileBottomNav activeTab={activeTab} onTabChange={onTabChange} variant="manager" tabs={bottomTabs} />
       </div>
     )
   }
@@ -83,7 +84,7 @@ export function MobileManagerApp({
           )
         ) : null}
       </div>
-      <MobileBottomNav activeTab={activeTab} onTabChange={onTabChange} variant="manager" />
+      <MobileBottomNav activeTab={activeTab} onTabChange={onTabChange} variant="manager" tabs={bottomTabs} />
     </div>
   )
 }
