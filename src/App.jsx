@@ -343,6 +343,11 @@ import { MobileManagerApp } from './components/mobile/MobileManagerApp'
 import { MobileStaffApp } from './components/mobile/MobileStaffApp'
 import { ViewportDebugOverlay } from './components/shell/ViewportDebugOverlay'
 import { shouldUseMobileShell } from './lib/viewportUtils'
+import {
+  isMobileScrollDebugEnabled,
+  scheduleMobileReservationsScrollDebug,
+  setMobileScrollDebugAttribute,
+} from './lib/mobileScrollDebug'
 import { filterStandaloneOperationsTasks } from './lib/operationsChecklistUtils'
 import {
   buildMobileEmployeeShiftSummary,
@@ -12382,6 +12387,10 @@ function App() {
     }
   }, [forceMobileDevice, isMobileViewport, useMobileExperience])
 
+  useEffect(() => {
+    setMobileScrollDebugAttribute()
+  }, [])
+
   const [mobileExpandedView, setMobileExpandedView] = useState(null)
   const [mobileWeekStart, setMobileWeekStart] = useState(() => readPersistedMobileWeekStart(getCurrentWeekStartDate()))
   const [mobileWeekPublishedShifts, setMobileWeekPublishedShifts] = useState([])
@@ -12399,6 +12408,36 @@ function App() {
     employeeName: 'Your week',
     isWeekPublished: false,
   })
+
+  useEffect(() => {
+    if (!useMobileExperience || !mobileExpandedView || activeView !== 'reservations') {
+      return undefined
+    }
+
+    scheduleMobileReservationsScrollDebug(
+      `mobile-reservations:${window.innerWidth}x${window.innerHeight}`,
+    )
+
+    if (!isMobileScrollDebugEnabled()) {
+      return undefined
+    }
+
+    const handleResize = () => {
+      scheduleMobileReservationsScrollDebug(
+        `mobile-reservations-resize:${window.innerWidth}x${window.innerHeight}`,
+      )
+    }
+
+    window.addEventListener('resize', handleResize)
+    window.addEventListener('orientationchange', handleResize)
+    window.visualViewport?.addEventListener('resize', handleResize)
+
+    return () => {
+      window.removeEventListener('resize', handleResize)
+      window.removeEventListener('orientationchange', handleResize)
+      window.visualViewport?.removeEventListener('resize', handleResize)
+    }
+  }, [useMobileExperience, mobileExpandedView, activeView])
 
   const activeWorkspaceId = useMemo(
     () => resolveActiveWorkspaceId({ workspace, membership }),
