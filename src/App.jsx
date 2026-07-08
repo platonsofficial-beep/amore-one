@@ -414,6 +414,7 @@ import {
   getTimeGreeting,
 } from './lib/currentDateUtils'
 import {
+  calculateDepartmentPerformanceSummaries,
   calculateTaskOverview,
   matchesCustomDepartmentName,
   resolveCurrentEmployeeId,
@@ -12506,10 +12507,12 @@ function App() {
   )
 
   const visibleOperationsSections = useMemo(
-    () => OPERATIONS_SECTIONS.filter((section) => (
-      section.id !== 'checklists' || canManageOperations
-    )),
-    [canManageOperations],
+    () => OPERATIONS_SECTIONS.filter((section) => {
+      if (section.id === 'checklists' && !canManageOperations) return false
+      if (section.id === 'tasks' && useMobileExperience) return false
+      return true
+    }),
+    [canManageOperations, useMobileExperience],
   )
 
   const activeChecklistRunTemplate = useMemo(
@@ -13102,6 +13105,11 @@ function App() {
   const managerMobileTaskOverview = useMemo(
     () => calculateMobileOperationsTaskOverview(managerMobileOperationsTasks, currentDateKey),
     [managerMobileOperationsTasks, currentDateKey],
+  )
+
+  const managerMobileDepartmentPerformance = useMemo(
+    () => calculateDepartmentPerformanceSummaries(todayActionableTasks, currentDateKey),
+    [todayActionableTasks, currentDateKey],
   )
 
   const isManagerMobileShell = !isAuthLoading && isManagementMobileRole(role)
@@ -14084,6 +14092,11 @@ function App() {
       handleOperationsSectionChange('dashboard')
     }
   }, [activeView, operationsSection, canManageOperations, handleOperationsSectionChange])
+
+  useEffect(() => {
+    if (!useMobileExperience || activeView !== 'operations' || operationsSection !== 'tasks') return
+    handleOperationsSectionChange('dashboard')
+  }, [useMobileExperience, activeView, operationsSection, handleOperationsSectionChange])
 
   useEffect(() => {
     if (activeView !== 'stock') return undefined
@@ -19195,13 +19208,16 @@ function App() {
     setMobileExpandedView('workspace')
   }, [role, handleActiveViewChange, handleStockSectionChange])
 
-  const handleMobileManagerNewTask = useCallback(() => {
+  const handleMobileManagerOpenChecklist = useCallback((row) => {
     if (!canAccessMobileExpandedModule(role, 'operations')) return
 
     handleActiveViewChange('operations')
-    handleOperationsSectionChange('tasks')
-    setOpenTasksCreateModal(true)
+    handleOperationsSectionChange('dashboard')
     setMobileExpandedView('workspace')
+
+    if (row?.started && row?.templateId) {
+      setActiveChecklistRunTemplateId(row.templateId)
+    }
   }, [role, handleActiveViewChange, handleOperationsSectionChange])
 
   const handleMobileGoToCurrentWeek = () => {
@@ -19344,7 +19360,7 @@ function App() {
           />
         ) : null}
 
-        {activeView === 'operations' && isActiveViewAllowed && !activeChecklistRunTemplateId ? (
+        {activeView === 'operations' && isActiveViewAllowed && !activeChecklistRunTemplateId && !useMobileExperience ? (
           <ModuleSectionTabs
             sections={visibleOperationsSections}
             activeSection={operationsSection}
@@ -19632,6 +19648,7 @@ function App() {
             announcements={operationsAnnouncements}
             checklistTemplates={operationsChecklistTemplates}
             employees={scheduleEmployees}
+            departmentPerformance={managerMobileDepartmentPerformance}
             todayKey={currentDateKey}
             isLoading={isOperationsLoading}
             noticeMessage={operationsNotice}
@@ -19644,6 +19661,7 @@ function App() {
             currentEmployeeId={currentTaskEmployeeId}
             role={role}
             employeeDepartment={currentEmployeeDepartment}
+            isMobileLayout={useMobileExperience}
             onCreateTask={handleCreateOperationsTask}
             onUpdateTask={handleUpdateOperationsTask}
             onCompleteTask={handleCompleteOperationsTask}
@@ -19872,10 +19890,14 @@ function App() {
                           tasks: managerMobileOperationsTasks,
                           taskOverview: managerMobileTaskOverview,
                           employees: scheduleEmployees,
+                          checklistTemplates: operationsChecklistTemplates,
+                          operationsLogs,
                           todayKey: currentDateKey,
                           isLoading: isManagerMobileTasksLoading,
-                          onNewTask: canAccessMobileExpandedModule(role, 'operations')
-                            ? handleMobileManagerNewTask
+                          isSaving: isSavingOperations,
+                          onCreateTask: canManageOperations ? handleCreateOperationsTask : undefined,
+                          onOpenChecklist: canAccessMobileExpandedModule(role, 'operations')
+                            ? handleMobileManagerOpenChecklist
                             : undefined,
                         }}
                         menuProps={sharedMenuProps}

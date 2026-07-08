@@ -25146,6 +25146,142 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   background: rgba(244, 67, 54, 0.06);
 }
 
+.operations-dashboard-page.is-mobile-layout {
+  gap: 8px;
+  padding-bottom: 4px;
+}
+
+.operations-mobile-command-header {
+  padding: 0 0 2px;
+}
+
+.operations-mobile-command-title {
+  margin: 0;
+  color: #fff7e8;
+  font-size: 1.15rem;
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+.operations-dashboard-page.is-mobile-layout .operations-summary-grid.operations-mobile-metrics {
+  gap: 6px;
+}
+
+.operations-dashboard-page.is-mobile-layout .operations-summary-card {
+  padding: 8px 9px;
+  border-radius: 10px;
+}
+
+.operations-dashboard-page.is-mobile-layout .operations-summary-label {
+  font-size: 0.68rem;
+}
+
+.operations-dashboard-page.is-mobile-layout .operations-summary-value {
+  font-size: 1rem;
+}
+
+.operations-mobile-actions {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.operations-mobile-action {
+  min-height: 44px;
+  padding: 0 8px;
+  font-size: 0.78rem;
+}
+
+.operations-mobile-section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.operations-mobile-section-header h4 {
+  margin: 0;
+  color: #f3ead8;
+  font-size: 0.92rem;
+  font-weight: 700;
+}
+
+.operations-mobile-inline-empty {
+  margin: 0;
+  padding: 8px 10px;
+  border-radius: 10px;
+  color: #8f8778;
+  font-size: 0.82rem;
+  line-height: 1.35;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.operations-mobile-comm-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.operations-mobile-comm-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.operations-mobile-comm-card.is-announcement {
+  border-color: rgba(212, 175, 55, 0.18);
+}
+
+.operations-mobile-comm-badge {
+  align-self: flex-start;
+  min-height: 20px;
+  padding: 0 7px;
+  border-radius: 999px;
+  color: #e8d4a8;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  line-height: 20px;
+  text-transform: uppercase;
+  background: rgba(212, 175, 55, 0.12);
+}
+
+.operations-mobile-comm-title {
+  margin: 0;
+  color: #f7efe1;
+  font-size: 0.9rem;
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.operations-mobile-comm-body {
+  margin: 0;
+  color: #a89f92;
+  font-size: 0.8rem;
+  line-height: 1.35;
+}
+
+.operations-dashboard-page.is-mobile-layout .operations-shift-note-card {
+  padding: 8px 10px;
+  gap: 4px;
+}
+
+.operations-dashboard-page.is-mobile-layout .tasks-dept-performance.is-compact {
+  margin-top: 0;
+}
+
+.mobile-workspace-module.is-mobile-expanded .operations-dashboard-page.is-mobile-layout {
+  gap: 8px;
+}
+
+.mobile-workspace-module.is-mobile-expanded .staff-page.tasks-page.is-mobile-layout {
+  gap: 8px;
+}
+
 .operations-summary-card.tone-gold {
   border-color: rgba(212, 175, 55, 0.32);
   background: rgba(212, 175, 55, 0.08);

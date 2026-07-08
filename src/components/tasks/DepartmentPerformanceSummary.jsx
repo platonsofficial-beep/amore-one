@@ -1,10 +1,14 @@
-export default function DepartmentPerformanceSummary({ summaries = [], compact = false }) {
+export default function DepartmentPerformanceSummary({
+  summaries = [],
+  compact = false,
+  title = 'Department performance',
+}) {
   if (summaries.length === 0) {
     return (
-      <section className={`tasks-dept-performance${compact ? ' is-compact' : ''}`} aria-label="Department performance">
+      <section className={`tasks-dept-performance${compact ? ' is-compact' : ''}`} aria-label={title}>
         <header className="tasks-dept-performance-header">
           {!compact ? <p className="eyebrow">Manager view</p> : null}
-          <h3>Department performance</h3>
+          <h3>{title}</h3>
         </header>
         <div className="tasks-dept-performance-empty">
           No department workload scheduled for today yet.
@@ -14,10 +18,10 @@ export default function DepartmentPerformanceSummary({ summaries = [], compact =
   }
 
   return (
-    <section className={`tasks-dept-performance${compact ? ' is-compact' : ''}`} aria-label="Department performance">
+    <section className={`tasks-dept-performance${compact ? ' is-compact' : ''}`} aria-label={title}>
       <header className="tasks-dept-performance-header">
         {!compact ? <p className="eyebrow">Manager view</p> : null}
-        <h3>Department performance</h3>
+        <h3>{title}</h3>
         {!compact ? (
           <p className="staff-subtitle">Today&apos;s completion by department.</p>
         ) : null}

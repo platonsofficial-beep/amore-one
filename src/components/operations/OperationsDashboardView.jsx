@@ -5,7 +5,9 @@ import {
   formatChecklistProgressLabel,
 } from '../../lib/operationsChecklistUtils'
 import {
+  filterAnnouncementsForUser,
   filterTasksExcludingAnnouncementDuplicates,
+  truncateAnnouncementMessage,
 } from '../../lib/operationsAnnouncementUtils'
 import {
   filterOperationsLogs,
@@ -22,18 +24,21 @@ import {
   getOperationsLogTypeBadgeLabel,
   getOperationsLogTypeIcon,
   getOperationsLogTypeTone,
-  getOperationsShiftNoteDetail,
-  getOperationsShiftNoteHeadline,
   getOperationsPriorityLabel,
   getOperationsPriorityTone,
+  getOperationsShiftNoteDetail,
+  getOperationsShiftNoteHeadline,
   normalizeOperationsStatus,
   resolveEmployeeName,
 } from '../../lib/operationsUtils'
+import DepartmentPerformanceSummary from '../tasks/DepartmentPerformanceSummary'
 import { OperationsAnnouncementsSection } from './OperationsAnnouncementsSection'
 import { OperationsLogFormModal } from './OperationsLogFormModal'
 import { OperationsStartChecklistModal } from './OperationsStartChecklistModal'
 import { OperationsTaskCompleteModal } from './OperationsTaskCompleteModal'
 import { OperationsTaskFormModal } from './OperationsTaskFormModal'
+
+const MOBILE_COMMUNICATION_LIMIT = 4
 
 function OperationsChecklistProgressCard({ row, canManage, onOpen }) {
   const tone = row.status === 'complete'
@@ -127,19 +132,21 @@ function OperationsTaskRow({
   )
 }
 
-function OperationsLogItem({ log, canManage, onEdit, onDelete }) {
+function OperationsLogItem({ log, canManage, onEdit, onDelete, compact = false }) {
   const tone = getOperationsLogTypeTone(log.type)
   const headline = getOperationsShiftNoteHeadline(log)
-  const detail = getOperationsShiftNoteDetail(log)
+  const detail = compact ? '' : getOperationsShiftNoteDetail(log)
   const authorName = `${log.createdByName ?? ''}`.trim()
   const authorLabel = authorName && authorName !== 'System' ? authorName : 'Team member'
 
   return (
-    <article className="operations-shift-note-card panel staff-panel">
+    <article className={`operations-shift-note-card panel staff-panel${compact ? ' is-compact' : ''}`}>
       <span className={`operations-shift-note-badge tone-${tone}`}>
-        <span className="operations-shift-note-badge-icon" aria-hidden="true">
-          {getOperationsLogTypeIcon(log.type)}
-        </span>
+        {!compact ? (
+          <span className="operations-shift-note-badge-icon" aria-hidden="true">
+            {getOperationsLogTypeIcon(log.type)}
+          </span>
+        ) : null}
         {getOperationsLogTypeBadgeLabel(log.type)}
       </span>
 
@@ -164,12 +171,38 @@ function OperationsLogItem({ log, canManage, onEdit, onDelete }) {
   )
 }
 
+function OperationsMobileCommunicationItem({ item, canManage, onEditLog, onDeleteLog }) {
+  if (item.kind === 'announcement') {
+    const announcement = item.data
+    return (
+      <article className="operations-mobile-comm-card is-announcement">
+        <span className="operations-mobile-comm-badge">Announcement</span>
+        <p className="operations-mobile-comm-title">{announcement.title}</p>
+        <p className="operations-mobile-comm-body">
+          {truncateAnnouncementMessage(announcement.message, 90)}
+        </p>
+      </article>
+    )
+  }
+
+  return (
+    <OperationsLogItem
+      log={item.data}
+      canManage={canManage}
+      compact
+      onEdit={onEditLog}
+      onDelete={onDeleteLog}
+    />
+  )
+}
+
 export function OperationsDashboardView({
   tasks = [],
   logs = [],
   announcements = [],
   checklistTemplates = [],
   employees = [],
+  departmentPerformance = [],
   todayKey = '',
   isLoading = false,
   noticeMessage = '',
@@ -181,6 +214,7 @@ export function OperationsDashboardView({
   currentEmployeeId = null,
   role = '',
   employeeDepartment = '',
+  isMobileLayout = false,
   onCreateTask,
   onUpdateTask,
   onCompleteTask,
@@ -227,6 +261,13 @@ export function OperationsDashboardView({
     [checklistTemplates, tasks, todayKey],
   )
 
+  const mobileMetrics = useMemo(() => ({
+    openTasks: summary.openTasks,
+    issues: summary.urgentIssues,
+    notes: logs.length,
+    checklists: checklistTemplates.filter((template) => template.active !== false).length,
+  }), [summary.openTasks, summary.urgentIssues, logs.length, checklistTemplates])
+
   const visibleTasks = useMemo(() => {
     const filtered = filterOperationsTasks(standaloneTasks, {
       searchTerm,
@@ -238,6 +279,30 @@ export function OperationsDashboardView({
   const visibleLogs = useMemo(() => {
     return filterOperationsLogs(logs, { searchTerm, typeFilter: logTypeFilter })
   }, [logs, searchTerm, logTypeFilter])
+
+  const mobileCommunicationItems = useMemo(() => {
+    const visibleAnnouncements = filterAnnouncementsForUser(announcements, {
+      role,
+      employeeDepartment,
+      includeInactive: canManageAnnouncements,
+    })
+
+    const announcementItems = visibleAnnouncements.map((announcement) => ({
+      kind: 'announcement',
+      data: announcement,
+      createdAt: announcement.createdAt ?? announcement.updatedAt ?? '',
+    }))
+
+    const logItems = (logs ?? []).map((log) => ({
+      kind: 'log',
+      data: log,
+      createdAt: log.createdAt ?? '',
+    }))
+
+    return [...announcementItems, ...logItems]
+      .sort((left, right) => new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime())
+      .slice(0, MOBILE_COMMUNICATION_LIMIT)
+  }, [announcements, logs, role, employeeDepartment, canManageAnnouncements])
 
   const handleToggleComplete = (task) => {
     const isDone = normalizeOperationsStatus(task.status) !== 'pending'
@@ -298,6 +363,157 @@ export function OperationsDashboardView({
     }
   }
 
+  const openCreateTask = () => {
+    setEditingTask(null)
+    setIsTaskFormOpen(true)
+  }
+
+  const openCreateLog = () => {
+    setEditingLog(null)
+    setIsLogFormOpen(true)
+  }
+
+  if (isMobileLayout) {
+    return (
+      <section className="operations-dashboard-page is-mobile-layout" aria-label="Operational control">
+        {noticeMessage ? <div className="staff-status-banner">{noticeMessage}</div> : null}
+        {!isWorkspaceReady && workspaceSetupMessage ? (
+          <div className="staff-status-banner">{workspaceSetupMessage}</div>
+        ) : null}
+        {isLoading ? <div className="staff-status-banner">Loading operations…</div> : null}
+
+        <header className="operations-mobile-command-header">
+          <h3 className="operations-mobile-command-title">Operational control</h3>
+        </header>
+
+        <div className="operations-summary-grid operations-mobile-metrics" aria-label="Operations metrics">
+          <OperationsSummaryCard label="Open tasks" value={mobileMetrics.openTasks} tone="warning" />
+          <OperationsSummaryCard label="Issues" value={mobileMetrics.issues} tone="danger" />
+          <OperationsSummaryCard label="Notes" value={mobileMetrics.notes} tone="gold" />
+          <OperationsSummaryCard label="Checklists" value={mobileMetrics.checklists} />
+        </div>
+
+        {canManage ? (
+          <div className="operations-mobile-actions" aria-label="Operations actions">
+            <button
+              type="button"
+              className="primary-btn operations-mobile-action"
+              onClick={openCreateTask}
+              disabled={!isWorkspaceReady || isSaving}
+            >
+              Create task
+            </button>
+            <button
+              type="button"
+              className="ghost-btn operations-mobile-action"
+              onClick={openCreateLog}
+              disabled={!isWorkspaceReady || isSaving}
+            >
+              Add note
+            </button>
+            <button
+              type="button"
+              className="ghost-btn operations-mobile-action"
+              onClick={() => setIsStartChecklistOpen(true)}
+              disabled={!isWorkspaceReady || isSaving}
+            >
+              Start checklist
+            </button>
+          </div>
+        ) : null}
+
+        <section className="operations-mobile-section" aria-label="Team communication">
+          <header className="operations-mobile-section-header">
+            <h4>Team communication</h4>
+          </header>
+          {mobileCommunicationItems.length === 0 && !isLoading ? (
+            <p className="operations-mobile-inline-empty">No announcements or notes yet</p>
+          ) : (
+            <div className="operations-mobile-comm-list">
+              {mobileCommunicationItems.map((item) => (
+                <OperationsMobileCommunicationItem
+                  key={`${item.kind}-${item.data.id}`}
+                  item={item}
+                  canManage={canManage}
+                  onEditLog={(logItem) => {
+                    setEditingLog(logItem)
+                    setIsLogFormOpen(true)
+                  }}
+                  onDeleteLog={onDeleteLog}
+                />
+              ))}
+            </div>
+          )}
+        </section>
+
+        <section className="operations-mobile-section" aria-label="Department overview">
+          <DepartmentPerformanceSummary
+            summaries={departmentPerformance}
+            compact
+            title="Department overview"
+          />
+        </section>
+
+        {isTaskFormOpen ? (
+          <OperationsTaskFormModal
+            key={editingTask?.id ?? 'new'}
+            isOpen={isTaskFormOpen}
+            task={editingTask}
+            todayKey={todayKey}
+            employees={employees}
+            isSaving={isSaving}
+            onClose={() => {
+              if (isSaving) return
+              setIsTaskFormOpen(false)
+              setEditingTask(null)
+            }}
+            onSubmit={handleTaskSubmit}
+          />
+        ) : null}
+
+        {completingTask ? (
+          <OperationsTaskCompleteModal
+            task={completingTask}
+            isSaving={isSaving}
+            onClose={() => {
+              if (isSaving) return
+              setCompletingTask(null)
+            }}
+            onSubmit={handleCompleteSubmit}
+          />
+        ) : null}
+
+        {isLogFormOpen ? (
+          <OperationsLogFormModal
+            key={editingLog?.id ?? 'new'}
+            isOpen={isLogFormOpen}
+            log={editingLog}
+            isSaving={isSaving}
+            onClose={() => {
+              if (isSaving) return
+              setIsLogFormOpen(false)
+              setEditingLog(null)
+            }}
+            onSubmit={handleLogSubmit}
+          />
+        ) : null}
+
+        {isStartChecklistOpen ? (
+          <OperationsStartChecklistModal
+            isOpen={isStartChecklistOpen}
+            templates={checklistTemplates}
+            isSaving={isSaving}
+            onClose={() => {
+              if (isSaving) return
+              setIsStartChecklistOpen(false)
+            }}
+            onStart={handleStartChecklist}
+          />
+        ) : null}
+      </section>
+    )
+  }
+
   return (
     <section className="operations-dashboard-page" aria-label="Operations dashboard">
       {noticeMessage ? <div className="staff-status-banner">{noticeMessage}</div> : null}
@@ -327,10 +543,7 @@ export function OperationsDashboardView({
             <button
               type="button"
               className="ghost-btn operations-dashboard-action"
-              onClick={() => {
-                setEditingLog(null)
-                setIsLogFormOpen(true)
-              }}
+              onClick={openCreateLog}
               disabled={!isWorkspaceReady || isSaving}
             >
               Add note
@@ -338,10 +551,7 @@ export function OperationsDashboardView({
             <button
               type="button"
               className="primary-btn operations-dashboard-action"
-              onClick={() => {
-                setEditingTask(null)
-                setIsTaskFormOpen(true)
-              }}
+              onClick={openCreateTask}
               disabled={!isWorkspaceReady || isSaving}
             >
               Create task
