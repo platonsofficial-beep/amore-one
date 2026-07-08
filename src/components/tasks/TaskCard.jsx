@@ -81,6 +81,7 @@ function TaskChecklist({
   isTaskCompleted = false,
   onToggleItem,
   isSaving = false,
+  canToggleItems = true,
 }) {
   const [showAll, setShowAll] = useState(false)
   const completedCount = items.filter((item) => item.isCompleted).length
@@ -110,7 +111,7 @@ function TaskChecklist({
               type="button"
               className="task-checklist-item-btn"
               onClick={() => onToggleItem?.(item.id, !item.isCompleted)}
-              disabled={isSaving}
+              disabled={isSaving || !canToggleItems}
               aria-pressed={item.isCompleted}
             >
               <span className="task-checklist-item-icon" aria-hidden="true">
@@ -147,8 +148,10 @@ export default function TaskCard({
   customDepartmentIcons = {},
   isSaving = false,
   canManage = false,
+  canComplete = false,
 }) {
   const isCompleted = task?.status === 'completed'
+  const canInteract = canManage || canComplete
   const overdue = !isCompleted && isTaskOverdue(task)
   const priority = `${task?.priority ?? 'normal'}`.trim().toLowerCase()
   const departmentBoard = resolveDepartmentBoardDisplay(
@@ -212,6 +215,7 @@ export default function TaskCard({
             isTaskCompleted={isCompleted}
             onToggleItem={onToggleChecklistItem}
             isSaving={isSaving}
+            canToggleItems={canInteract}
           />
         ) : null}
       </div>
@@ -250,7 +254,7 @@ export default function TaskCard({
                 Reopen
               </button>
             ) : null
-          ) : (
+          ) : canInteract ? (
             <button
               type="button"
               className="primary-btn task-card-action-btn"
@@ -259,7 +263,7 @@ export default function TaskCard({
             >
               ✓ Complete
             </button>
-          )}
+          ) : null}
         </div>
       </div>
     </article>

@@ -200,10 +200,22 @@ export function resolveEmployeeName(employeeId, employees = []) {
   return match?.full_name ?? match?.name ?? 'Unassigned'
 }
 
+export function getTaskAssigneeId(task) {
+  const assigneeId = task?.assignedTo
+    ?? task?.assigned_to
+    ?? task?.assignedEmployeeId
+    ?? task?.assigned_employee_id
+    ?? null
+
+  const normalized = `${assigneeId ?? ''}`.trim()
+  return normalized || null
+}
+
 export function canStaffCompleteTask(task, currentEmployeeId) {
-  if (!task?.assignedTo) return true
+  const assigneeId = getTaskAssigneeId(task)
+  if (!assigneeId) return true
   if (!currentEmployeeId) return false
-  return `${task.assignedTo}` === `${currentEmployeeId}`
+  return `${assigneeId}` === `${currentEmployeeId}`
 }
 
 export function validateOperationsTaskForm(form) {

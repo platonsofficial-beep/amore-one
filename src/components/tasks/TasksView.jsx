@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { buildCustomDepartmentBoardKey, loadCustomDepartmentIcons, persistCustomDepartmentIcons, TASK_PRESET_DEPARTMENTS, UNASSIGNED_CUSTOM_DEPARTMENT_NAME } from '../../lib/taskDepartments'
+import { canStaffCompleteTask } from '../../lib/operationsUtils'
 import {
   buildTaskAlerts,
   buildVisibleDepartmentBoards,
@@ -265,16 +266,17 @@ export default function TasksView({
 
   const handleCompleteTask = async (task) => {
     if (!task?.id) return
+    if (!canManage && !canStaffCompleteTask(task, currentEmployeeId)) return
     await onCompleteTask?.(task.id)
   }
 
   const handleReopenTask = async (task) => {
-    if (!task?.id) return
+    if (!task?.id || !canManage) return
     await onReopenTask?.(task.id)
   }
 
   const handleDeleteTask = async (task) => {
-    if (!task?.id) return
+    if (!task?.id || !canManage) return
 
     const confirmed = window.confirm(`Delete "${task.title || 'this task'}"?`)
     if (!confirmed) return
@@ -427,10 +429,17 @@ export default function TasksView({
           onReopenTask={handleReopenTask}
           onEditTask={handleOpenEditTask}
           onDeleteTask={handleDeleteTask}
-          onToggleChecklistItem={onToggleChecklistItem}
+          onToggleChecklistItem={canManage ? onToggleChecklistItem : (itemId, isCompleted) => {
+            const parentTask = filteredTasks.find((task) => (
+              (checklistItemsByTaskId[String(task.id)] ?? []).some((item) => `${item.id}` === `${itemId}`)
+            ))
+            if (!parentTask || !canStaffCompleteTask(parentTask, currentEmployeeId)) return
+            return onToggleChecklistItem?.(itemId, isCompleted)
+          }}
           isSaving={isSaving}
           isLoading={isLoading}
           canManage={canManage}
+          currentEmployeeId={currentEmployeeId}
         />
       ) : (
         <TasksHomeView

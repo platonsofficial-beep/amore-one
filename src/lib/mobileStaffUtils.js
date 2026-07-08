@@ -1,7 +1,7 @@
 import { formatTime24, normalizeTimeValue } from './timeFormatUtils'
 import { parseTimeToMinutes } from './shiftHoursUtils'
 import { isTaskOverdue } from './taskUtils'
-import { normalizeOperationsStatus } from './operationsUtils'
+import { canStaffCompleteTask, normalizeOperationsStatus } from './operationsUtils'
 
 function normalizeShiftDate(value) {
   if (!value) return ''
@@ -269,14 +269,7 @@ function isMobileOperationsTaskCompletedToday(task, todayKey) {
 }
 
 export function filterMobileStaffOperationsTasks(tasks = [], employeeId = null) {
-  const employeeKey = employeeId ? `${employeeId}` : ''
-
-  return (tasks ?? []).filter((task) => {
-    const assignedTo = `${task?.assignedTo ?? task?.assigned_to ?? ''}`.trim()
-    if (!assignedTo) return true
-    if (!employeeKey) return false
-    return assignedTo === employeeKey
-  })
+  return (tasks ?? []).filter((task) => canStaffCompleteTask(task, employeeId))
 }
 
 export function partitionMobileOperationsTasks(tasks = [], todayKey = '') {

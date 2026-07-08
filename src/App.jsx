@@ -13086,10 +13086,11 @@ function App() {
     [todayActionableTasks, currentDateKey],
   )
 
-  const currentTaskEmployeeId = useMemo(
-    () => resolveCurrentEmployeeId(workspaceProfile.managerName, scheduleEmployees),
-    [workspaceProfile.managerName, scheduleEmployees],
-  )
+  const currentTaskEmployeeId = useMemo(() => {
+    const linkedEmployeeId = `${membership?.employeeId ?? ''}`.trim()
+    if (linkedEmployeeId) return linkedEmployeeId
+    return resolveCurrentEmployeeId(workspaceProfile.managerName, scheduleEmployees)
+  }, [membership?.employeeId, workspaceProfile.managerName, scheduleEmployees])
 
   const currentEmployeeDepartment = useMemo(() => {
     const employeeId = membership?.employeeId

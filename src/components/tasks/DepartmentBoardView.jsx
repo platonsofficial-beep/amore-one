@@ -1,5 +1,6 @@
 import { resolveDepartmentBoardDisplay } from '../../lib/taskDepartments'
 import { groupTasksBySection, taskMatchesDepartmentBoard } from '../../lib/taskUtils'
+import { canStaffCompleteTask, getTaskAssigneeId } from '../../lib/operationsUtils'
 import TaskCard from './TaskCard'
 
 function TaskSection({
@@ -16,6 +17,7 @@ function TaskSection({
   customDepartmentIcons = {},
   isSaving,
   canManage = false,
+  currentEmployeeId = null,
 }) {
   return (
     <section className="tasks-board-section">
@@ -42,6 +44,7 @@ function TaskSection({
               customDepartmentIcons={customDepartmentIcons}
               isSaving={isSaving}
               canManage={canManage}
+              canComplete={canManage || canStaffCompleteTask(task, currentEmployeeId)}
             />
           ))}
         </div>
@@ -66,6 +69,7 @@ export default function DepartmentBoardView({
   isSaving = false,
   isLoading = false,
   canManage = false,
+  currentEmployeeId = null,
 }) {
   const departmentDisplay = resolveDepartmentBoardDisplay(departmentKey, customDepartmentIcons)
   const departmentTasks = tasks.filter((task) => taskMatchesDepartmentBoard(task, departmentKey))
@@ -79,7 +83,7 @@ export default function DepartmentBoardView({
   )
 
   const resolveAssigneeName = (task) => {
-    const employeeId = task?.assignedEmployeeId
+    const employeeId = getTaskAssigneeId(task)
     if (!employeeId) return ''
     return employeeNameById.get(String(employeeId)) ?? 'Unknown employee'
   }
@@ -120,6 +124,7 @@ export default function DepartmentBoardView({
           customDepartmentIcons={customDepartmentIcons}
           isSaving={isSaving}
           canManage={canManage}
+          currentEmployeeId={currentEmployeeId}
         />
         <TaskSection
           title="Upcoming"
@@ -135,6 +140,7 @@ export default function DepartmentBoardView({
           customDepartmentIcons={customDepartmentIcons}
           isSaving={isSaving}
           canManage={canManage}
+          currentEmployeeId={currentEmployeeId}
         />
         <TaskSection
           title="Completed"
@@ -150,6 +156,7 @@ export default function DepartmentBoardView({
           customDepartmentIcons={customDepartmentIcons}
           isSaving={isSaving}
           canManage={canManage}
+          currentEmployeeId={currentEmployeeId}
         />
       </div>
     </section>
