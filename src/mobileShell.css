@@ -1501,6 +1501,40 @@
   display: block;
 }
 
+.app-shell.is-mobile-shell .mobile-app,
+.app-shell.is-mobile-shell .mobile-app.mobile-app-expanded {
+  display: flex;
+  flex-direction: column;
+  min-height: 100dvh;
+  height: auto;
+  max-width: 100%;
+  overflow-x: hidden;
+  touch-action: pan-y;
+}
+
+.app-shell.is-mobile-shell .mobile-app-content,
+.app-shell.is-mobile-shell .mobile-expanded-scroll {
+  flex: 1 0 auto;
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
+}
+
+.app-shell.is-mobile-shell .mobile-app-expanded .mobile-expanded-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  max-height: none;
+}
+
+.app-shell.is-mobile-shell .mobile-workspace-module {
+  overflow-x: hidden;
+  overflow-y: visible;
+  padding-bottom: 0;
+}
+
 .app-shell.is-mobile-expanded .module-section-tabs {
   margin: 0 0 10px;
   padding: 4px;
@@ -1599,7 +1633,7 @@
   height: auto;
 }
 
-@media (orientation: landscape) and (max-height: 760px) {
+@media (orientation: landscape) and (max-height: 480px) and (pointer: coarse) {
   html,
   body,
   #root {
