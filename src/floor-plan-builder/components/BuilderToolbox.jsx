@@ -8,12 +8,12 @@ import {
 } from '../models/floorPlanObject'
 import { floorBoundaryService } from '../services/FloorBoundaryService'
 
-const BASIC_TABLE_SHAPES = new Set(['round', 'square', 'rectangle'])
+const BASIC_TABLE_SHAPES = ['round', 'square', 'rectangle']
 
-function TableTypePreview({ preview }) {
-  return (
-    <span className={`fpb-component-preview preview-${preview}`} aria-hidden="true" />
-  )
+const SHAPE_ADD_LABELS = {
+  round: '+ Round table',
+  square: '+ Square table',
+  rectangle: '+ Rectangle table',
 }
 
 export function BuilderToolbox() {
@@ -26,7 +26,6 @@ export function BuilderToolbox() {
   const { floors } = state
   const [newAreaName, setNewAreaName] = useState('')
   const [renameValue, setRenameValue] = useState(activeFloor?.label ?? '')
-  const [preferredShape, setPreferredShape] = useState('round')
 
   useEffect(() => {
     setRenameValue(activeFloor?.label ?? '')
@@ -64,7 +63,7 @@ export function BuilderToolbox() {
     })
   }
 
-  const placeTable = (tableType, position) => {
+  const placeTable = (tableType) => {
     const shape = tableType.shape ?? 'round'
     const referenceTable = findReferenceTableForShape({
       objects: state.objects,
@@ -73,10 +72,14 @@ export function BuilderToolbox() {
       selectedTableIds: state.selectedTableIds,
     })
     const size = resolveTableSizeForNewTable(shape, referenceTable)
-    const centeredPosition = position ?? floorBoundaryService.clampToFloor(
+    const tablesOnFloor = state.objects.filter((object) => (
+      object.floorId === state.activeFloorId && object.type === 'table'
+    )).length
+    const stackOffset = tablesOnFloor * 28
+    const centeredPosition = floorBoundaryService.clampToFloor(
       {
-        x: activeWorkspaceBounds.x + (activeWorkspaceBounds.width / 2) - (size.width / 2),
-        y: activeWorkspaceBounds.y + (activeWorkspaceBounds.height / 2) - (size.height / 2),
+        x: activeWorkspaceBounds.centerX - (size.width / 2) + stackOffset,
+        y: activeWorkspaceBounds.centerY - (size.height / 2) + stackOffset,
       },
       size,
       activeWorkspaceBounds,
@@ -94,139 +97,98 @@ export function BuilderToolbox() {
     dispatch({ type: 'ADD_OBJECT', payload: { object } })
   }
 
-  const handleQuickAddTable = () => {
-    const tableType = TABLE_TYPES.find((entry) => entry.shape === preferredShape)
-      ?? TABLE_TYPES.find((entry) => entry.shape === 'round')
-      ?? TABLE_TYPES[0]
-    placeTable(tableType)
-  }
-
   const isEditing = state.mode === 'editing'
-  const basicTableTypes = TABLE_TYPES.filter((tableType) => BASIC_TABLE_SHAPES.has(tableType.shape))
+  const basicTableTypes = TABLE_TYPES.filter((tableType) => (
+    BASIC_TABLE_SHAPES.includes(tableType.shape)
+  ))
 
   return (
     <aside className={`fpb-toolbox fpb-toolbox-simple${isEditing ? '' : ' is-locked'}`} aria-label="Floor plan builder">
-      <div className="fpb-panel-header">
-        <p className="fpb-panel-eyebrow">Restaurant</p>
-        <h2 className="fpb-panel-title">Areas</h2>
-      </div>
+      <div className="fpb-toolbox-scroll">
+        <div className="fpb-panel-header">
+          <p className="fpb-panel-eyebrow">Restaurant</p>
+          <h2 className="fpb-panel-title">Areas</h2>
+        </div>
 
-      <div className="fpb-area-panel">
-        <label className="fpb-area-field">
-          <span>Rename area</span>
-          <input
-            type="text"
-            value={renameValue}
-            onChange={(event) => setRenameValue(event.target.value)}
-            onKeyDown={(event) => {
-              if (event.key === 'Enter') handleRenameArea()
-            }}
-            disabled={!isEditing}
-          />
-        </label>
-        <button
-          type="button"
-          className="fpb-area-action-btn"
-          onClick={handleRenameArea}
-          disabled={!isEditing || !renameValue.trim() || renameValue.trim() === activeFloor?.label}
-        >
-          Rename area
-        </button>
-
-        <label className="fpb-area-field">
-          <span>New area</span>
-          <input
-            type="text"
-            value={newAreaName}
-            onChange={(event) => setNewAreaName(event.target.value)}
-            placeholder="e.g. Patio"
-            onKeyDown={(event) => {
-              if (event.key === 'Enter') handleCreateArea()
-            }}
-            disabled={!isEditing}
-          />
-        </label>
-        <button
-          type="button"
-          className="fpb-area-action-btn"
-          onClick={handleCreateArea}
-          disabled={!isEditing || !newAreaName.trim()}
-        >
-          Create area
-        </button>
-
-        <button
-          type="button"
-          className="fpb-area-action-btn fpb-area-action-btn-danger"
-          onClick={handleDeleteArea}
-          disabled={!isEditing || floors.length <= 1}
-        >
-          Delete area
-        </button>
-      </div>
-
-      <div className="fpb-panel-header fpb-panel-header-spaced">
-        <p className="fpb-panel-eyebrow">Tables</p>
-        <h2 className="fpb-panel-title">Add tables</h2>
-      </div>
-
-      <div className="fpb-toolbox-quick-add">
-        <label className="fpb-area-field">
-          <span>Default shape</span>
-          <select
-            className="fpb-inspector-select"
-            value={preferredShape}
-            onChange={(event) => setPreferredShape(event.target.value)}
-            disabled={!isEditing}
+        <div className="fpb-area-panel">
+          <label className="fpb-area-field">
+            <span>Rename area</span>
+            <input
+              type="text"
+              value={renameValue}
+              onChange={(event) => setRenameValue(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter') handleRenameArea()
+              }}
+              disabled={!isEditing}
+            />
+          </label>
+          <button
+            type="button"
+            className="fpb-area-action-btn"
+            onClick={handleRenameArea}
+            disabled={!isEditing || !renameValue.trim() || renameValue.trim() === activeFloor?.label}
           >
-            {basicTableTypes.map((tableType) => (
-              <option key={tableType.id} value={tableType.shape}>{tableType.label}</option>
-            ))}
-          </select>
-        </label>
-        <button
-          type="button"
-          className="fpb-toolbox-add-table-btn"
-          onClick={handleQuickAddTable}
-          disabled={!isEditing}
-        >
-          + Add table
-        </button>
-      </div>
+            Rename area
+          </button>
 
-      <div className="fpb-toolbox-table-list">
-        {TABLE_TYPES.map((tableType) => {
-          const isSelected = state.toolboxSelectionId === tableType.id
+          <label className="fpb-area-field">
+            <span>New area</span>
+            <input
+              type="text"
+              value={newAreaName}
+              onChange={(event) => setNewAreaName(event.target.value)}
+              placeholder="e.g. Patio"
+              onKeyDown={(event) => {
+                if (event.key === 'Enter') handleCreateArea()
+              }}
+              disabled={!isEditing}
+            />
+          </label>
+          <button
+            type="button"
+            className="fpb-area-action-btn"
+            onClick={handleCreateArea}
+            disabled={!isEditing || !newAreaName.trim()}
+          >
+            Create area
+          </button>
 
-          return (
+          <button
+            type="button"
+            className="fpb-area-action-btn fpb-area-action-btn-danger"
+            onClick={handleDeleteArea}
+            disabled={!isEditing || floors.length <= 1}
+          >
+            Delete area
+          </button>
+        </div>
+
+        <div className="fpb-panel-header fpb-panel-header-spaced">
+          <p className="fpb-panel-eyebrow">Floor plan</p>
+          <h2 className="fpb-panel-title">Tables</h2>
+        </div>
+
+        <div className="fpb-toolbox-table-actions" aria-label="Add tables">
+          {basicTableTypes.map((tableType) => (
             <button
               key={tableType.id}
               type="button"
-              className={`fpb-toolbox-item fpb-table-type-btn${isSelected ? ' is-selected' : ''}`}
+              className="fpb-toolbox-add-shape-btn"
               disabled={!isEditing}
-              onClick={() => {
-                if (!isEditing) return
-                dispatch({
-                  type: 'SELECT_TOOLBOX_ITEM',
-                  payload: { itemId: tableType.id },
-                })
-              }}
+              onClick={() => placeTable(tableType)}
             >
-              <TableTypePreview preview={tableType.preview} />
-              <span className="fpb-toolbox-item-copy">
-                <span className="fpb-toolbox-item-icon" aria-hidden="true">{tableType.icon}</span>
-                <span className="fpb-toolbox-item-label">{tableType.label}</span>
-              </span>
+              {SHAPE_ADD_LABELS[tableType.shape] ?? `+ ${tableType.label}`}
             </button>
-          )
-        })}
-      </div>
+          ))}
+        </div>
 
-      <p className="fpb-toolbox-hint">
-        {isEditing
-          ? <>Tap <strong>Add table</strong> or pick a shape, then tap the floor in <strong>{activeFloor?.label}</strong>.</>
-          : 'Layout is locked in view mode. Click Edit layout to make changes.'}
-      </p>
+        <p className="fpb-toolbox-hint">
+          {isEditing
+            ? <>Adds a table to the center of <strong>{activeFloor?.label}</strong>. Drag to move, tap to edit properties.</>
+            : 'Layout is locked in view mode. Click Edit layout to make changes.'}
+        </p>
+      </div>
     </aside>
   )
 }

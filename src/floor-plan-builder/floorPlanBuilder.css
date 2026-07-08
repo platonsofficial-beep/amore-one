@@ -1450,6 +1450,20 @@
   letter-spacing: 0.02em;
 }
 
+.fpb-toolbox-simple {
+  overflow: hidden;
+}
+
+.fpb-toolbox-simple .fpb-toolbox-scroll {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  height: 100%;
+  overflow-x: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
 .fpb-toolbox-simple .fpb-toolbox-table-list {
   display: flex;
   flex-direction: column;
@@ -1457,32 +1471,26 @@
   padding: 8px 10px 12px;
 }
 
-.fpb-table-type-btn {
-  width: 100%;
-  min-height: 44px;
-}
-
-.fpb-toolbox-quick-add {
+.fpb-toolbox-table-actions {
   display: flex;
   flex-direction: column;
   gap: 8px;
   padding: 8px 10px 4px;
 }
 
-.fpb-toolbox-add-table-btn {
+.fpb-toolbox-add-shape-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   min-height: 44px;
   width: 100%;
   border-radius: 12px;
-  border: 1px solid rgba(212, 175, 55, 0.55);
-  background: linear-gradient(180deg, rgba(212, 175, 55, 0.24), rgba(120, 96, 28, 0.34));
+  border: 1px solid rgba(212, 175, 55, 0.42);
+  background: linear-gradient(180deg, rgba(212, 175, 55, 0.16), rgba(28, 24, 18, 0.92));
   color: #fff8e8;
-  font-size: 0.82rem;
-  font-weight: 800;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
   cursor: pointer;
   transition:
     border-color 180ms ease,
@@ -1490,15 +1498,20 @@
     transform 180ms ease;
 }
 
-.fpb-toolbox-add-table-btn:hover:not(:disabled),
-.fpb-toolbox-add-table-btn:active:not(:disabled) {
+.fpb-toolbox-add-shape-btn:hover:not(:disabled),
+.fpb-toolbox-add-shape-btn:active:not(:disabled) {
   border-color: rgba(255, 224, 150, 0.88);
-  background: linear-gradient(180deg, rgba(212, 175, 55, 0.34), rgba(120, 96, 28, 0.44));
+  background: linear-gradient(180deg, rgba(212, 175, 55, 0.28), rgba(42, 34, 20, 0.96));
 }
 
-.fpb-toolbox-add-table-btn:disabled {
+.fpb-toolbox-add-shape-btn:disabled {
   opacity: 0.45;
   cursor: not-allowed;
+}
+
+.fpb-table-type-btn {
+  width: 100%;
+  min-height: 44px;
 }
 
 .fpb-toolbox-hint {

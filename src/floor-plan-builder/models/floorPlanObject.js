@@ -87,8 +87,7 @@ export function getTableShapeSize(shape) {
 
 export function getDefaultCapacityForShape(shape) {
   if (shape === 'island') return 6
-  if (shape === 'rectangle') return 6
-  return 4
+  return 2
 }
 
 export function createDemoTableObject({
@@ -198,8 +197,9 @@ export function createTableObjectFromType({
     selectedTableIds,
   })
   const size = sizeOverride ?? resolveTableSizeForNewTable(shape, referenceTable)
-  const nextNumber = tableNumber ?? getNextTableNumber(objects, floorId)
+  const nextNumber = tableNumber ?? getNextTableNumber(objects)
   const defaultCapacity = getDefaultCapacityForShape(shape)
+  const tableLabel = `T${nextNumber}`
 
   return createFloorPlanObject({
     id: `table-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
@@ -208,7 +208,7 @@ export function createTableObjectFromType({
     size,
     floorId,
     properties: {
-      name: `Table ${nextNumber}`,
+      name: tableLabel,
       tableNumber: String(nextNumber),
       capacity: defaultCapacity,
       shape,
