@@ -1,6 +1,5 @@
 import { useFloorPlanBuilder } from '../hooks/useFloorPlanBuilder'
 import { TABLE_TYPES } from '../models/componentCatalog'
-import { FLOOR_PLAN_OBJECT_TYPES, getObjectDisplayLabel } from '../models/floorPlanObject'
 import { normalizeRotation } from '../lib/tableTransformUtils'
 import {
   createDefaultSections,
@@ -126,6 +125,9 @@ export function BuilderInspector() {
   const sections = properties.sections ?? []
   const showSections = supportsTableSections(shape, floorId)
   const sectionTotals = getTableSectionTotals(sections)
+  const basicTableTypes = TABLE_TYPES.filter((tableType) => (
+    ['round', 'square', 'rectangle'].includes(tableType.shape)
+  ))
 
   const updateTable = (patch) => {
     if (isReadOnly) return
@@ -156,18 +158,18 @@ export function BuilderInspector() {
 
       <div className="fpb-inspector-fields">
         <label className="fpb-inspector-field">
-          <span>Table number</span>
+          <span>Table name</span>
           <input
             type="text"
             value={tableNumber}
             onChange={(event) => updateTable({ tableNumber: event.target.value })}
-            placeholder="e.g. 12"
+            placeholder="e.g. T1"
             disabled={isReadOnly}
           />
         </label>
 
         <label className="fpb-inspector-field">
-          <span>Seats</span>
+          <span>Guest capacity</span>
           <input
             type="number"
             min="1"
@@ -277,16 +279,16 @@ export function BuilderInspector() {
         ) : null}
 
         <label className="fpb-inspector-field">
-          <span>Table type</span>
+          <span>Shape</span>
           <select
             className="fpb-inspector-select"
             value={shape}
             onChange={(event) => updateTable({ shape: event.target.value })}
             disabled={isReadOnly}
           >
-            {TABLE_TYPES.map((tableType) => (
+            {basicTableTypes.map((tableType) => (
               <option key={tableType.id} value={tableType.shape}>
-                {tableType.label}
+                {tableType.label.replace(' Table', '')}
               </option>
             ))}
           </select>

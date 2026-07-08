@@ -1,5 +1,5 @@
 import { memo } from 'react'
-import { FLOOR_PLAN_OBJECT_TYPES, getObjectDisplayLabel } from '../models/floorPlanObject'
+import { FLOOR_PLAN_OBJECT_TYPES, formatBuilderTableLabel } from '../models/floorPlanObject'
 
 const CORNER_HANDLES = ['nw', 'ne', 'se', 'sw']
 
@@ -20,9 +20,9 @@ function CanvasObjectNodeComponent({
   const shapeClass = object.type === FLOOR_PLAN_OBJECT_TYPES.TABLE
     ? ` shape-${object.properties.shape ?? 'round'}`
     : ''
-  const label = getObjectDisplayLabel(object)
+  const label = formatBuilderTableLabel(object)
   const isTable = object.type === FLOOR_PLAN_OBJECT_TYPES.TABLE
-  const capacity = object.properties.capacity
+  const capacity = Number(object.properties.capacity) || 0
   const isLocked = object.properties.locked === true
   const { position } = object
   const rotation = object.rotation ?? 0
@@ -54,8 +54,8 @@ function CanvasObjectNodeComponent({
     >
       <div className="fpb-canvas-object-surface">
         <span className="fpb-canvas-object-label">{label}</span>
-        {isTable && capacity ? (
-          <span className="fpb-canvas-object-meta">{capacity} seats</span>
+        {isTable ? (
+          <span className="fpb-canvas-object-meta">{capacity} guests</span>
         ) : null}
       </div>
 

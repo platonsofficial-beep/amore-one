@@ -1,6 +1,14 @@
 import { useEffect, useState } from 'react'
 import { useFloorPlanBuilder } from '../hooks/useFloorPlanBuilder'
 import { TABLE_TYPES } from '../models/componentCatalog'
+import {
+  createTableObjectFromType,
+  findReferenceTableForShape,
+  resolveTableSizeForNewTable,
+} from '../models/floorPlanObject'
+import { floorBoundaryService } from '../services/FloorBoundaryService'
+
+const BASIC_TABLE_SHAPES = new Set(['round', 'square', 'rectangle'])
 
 function TableTypePreview({ preview }) {
   return (
@@ -9,10 +17,16 @@ function TableTypePreview({ preview }) {
 }
 
 export function BuilderToolbox() {
-  const { dispatch, state, activeFloor } = useFloorPlanBuilder()
+  const {
+    dispatch,
+    state,
+    activeFloor,
+    activeWorkspaceBounds,
+  } = useFloorPlanBuilder()
   const { floors } = state
   const [newAreaName, setNewAreaName] = useState('')
   const [renameValue, setRenameValue] = useState(activeFloor?.label ?? '')
+  const [preferredShape, setPreferredShape] = useState('round')
 
   useEffect(() => {
     setRenameValue(activeFloor?.label ?? '')
@@ -50,7 +64,45 @@ export function BuilderToolbox() {
     })
   }
 
+  const placeTable = (tableType, position) => {
+    const shape = tableType.shape ?? 'round'
+    const referenceTable = findReferenceTableForShape({
+      objects: state.objects,
+      shape,
+      floorId: state.activeFloorId,
+      selectedTableIds: state.selectedTableIds,
+    })
+    const size = resolveTableSizeForNewTable(shape, referenceTable)
+    const centeredPosition = position ?? floorBoundaryService.clampToFloor(
+      {
+        x: activeWorkspaceBounds.x + (activeWorkspaceBounds.width / 2) - (size.width / 2),
+        y: activeWorkspaceBounds.y + (activeWorkspaceBounds.height / 2) - (size.height / 2),
+      },
+      size,
+      activeWorkspaceBounds,
+    )
+    const object = createTableObjectFromType({
+      tableType,
+      position: centeredPosition,
+      floorId: state.activeFloorId,
+      areaLabel: activeFloor.label,
+      objects: state.objects,
+      selectedTableIds: state.selectedTableIds,
+      size,
+    })
+
+    dispatch({ type: 'ADD_OBJECT', payload: { object } })
+  }
+
+  const handleQuickAddTable = () => {
+    const tableType = TABLE_TYPES.find((entry) => entry.shape === preferredShape)
+      ?? TABLE_TYPES.find((entry) => entry.shape === 'round')
+      ?? TABLE_TYPES[0]
+    placeTable(tableType)
+  }
+
   const isEditing = state.mode === 'editing'
+  const basicTableTypes = TABLE_TYPES.filter((tableType) => BASIC_TABLE_SHAPES.has(tableType.shape))
 
   return (
     <aside className={`fpb-toolbox fpb-toolbox-simple${isEditing ? '' : ' is-locked'}`} aria-label="Floor plan builder">
@@ -115,7 +167,31 @@ export function BuilderToolbox() {
 
       <div className="fpb-panel-header fpb-panel-header-spaced">
         <p className="fpb-panel-eyebrow">Tables</p>
-        <h2 className="fpb-panel-title">Add a table</h2>
+        <h2 className="fpb-panel-title">Add tables</h2>
+      </div>
+
+      <div className="fpb-toolbox-quick-add">
+        <label className="fpb-area-field">
+          <span>Default shape</span>
+          <select
+            className="fpb-inspector-select"
+            value={preferredShape}
+            onChange={(event) => setPreferredShape(event.target.value)}
+            disabled={!isEditing}
+          >
+            {basicTableTypes.map((tableType) => (
+              <option key={tableType.id} value={tableType.shape}>{tableType.label}</option>
+            ))}
+          </select>
+        </label>
+        <button
+          type="button"
+          className="fpb-toolbox-add-table-btn"
+          onClick={handleQuickAddTable}
+          disabled={!isEditing}
+        >
+          + Add table
+        </button>
       </div>
 
       <div className="fpb-toolbox-table-list">
@@ -148,7 +224,7 @@ export function BuilderToolbox() {
 
       <p className="fpb-toolbox-hint">
         {isEditing
-          ? <>Select a table type, then click the floor in <strong>{activeFloor?.label}</strong> to place it.</>
+          ? <>Tap <strong>Add table</strong> or pick a shape, then tap the floor in <strong>{activeFloor?.label}</strong>.</>
           : 'Layout is locked in view mode. Click Edit layout to make changes.'}
       </p>
     </aside>

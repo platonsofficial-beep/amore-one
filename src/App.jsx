@@ -6985,7 +6985,7 @@ function FloorTableNode({
   onDragLeave,
   onDrop,
 }) {
-  const { isSelected, selectionPulseKey, seatingDraftUnitIds, hostEditUnitIds, isHostFloorPickActive } = useReservationWorkspace()
+  const { isSelected, selectionPulseKey, seatingDraftUnitIds, hostEditUnitIds, isHostFloorPickActive, selectedReservation } = useReservationWorkspace()
   const { table, reservation, status, operational } = tableState
   const isHeatmap = viewMode === 'heatmap'
 
@@ -7021,14 +7021,25 @@ function FloorTableNode({
     || (isHostFloorPickActive && hostEditUnitIds.includes(table.id))
   const isUnavailable = !isHeatmap && (
     isHostFloor
-      ? isFloorTablePhysicallyOccupied(hostOperational) || status === 'cleaning'
+      ? (
+        isFloorTablePhysicallyOccupied(hostOperational)
+        || status === 'cleaning'
+        || (
+          hostOperational?.phase === 'upcoming'
+          && displayReservation
+          && selectedReservation
+          && String(displayReservation.id) !== String(selectedReservation.id)
+        )
+      )
       : status !== 'available' && status !== 'cleaning'
   )
   const unitLabel = table.displayLabel ?? (table.unitType === 'table' ? `Table ${table.label}` : table.label)
   const seatCapacity = Number(table.maxGuestCapacity ?? table.seats) || 0
   const capacityLabel = table.maxGuestCapacity && table.maxGuestCapacity !== table.seats
     ? `${table.seats} stools · max ${table.maxGuestCapacity}`
-    : `${table.seats} seats`
+    : isHostFloor
+      ? `${seatCapacity} guests`
+      : `${table.seats} seats`
   const isLargeCapacity = !guestName && seatCapacity > 20
   const seatedDurationLabel = displayReservation && isHostFloor
     && hostOperational?.phase === 'seated'
@@ -7113,10 +7124,12 @@ function FloorTableNode({
   }, [nodeRef])
 
   const handlePointerEnter = () => {
+    if (isHostFloor) return
     setIsTooltipVisible(true)
   }
 
   const handlePointerLeave = () => {
+    if (isHostFloor) return
     setIsTooltipVisible(false)
   }
 
@@ -7139,7 +7152,7 @@ function FloorTableNode({
   return (
     <div
       ref={assignNodeRef}
-      className={`floor-table-node shape-${table.shape}${isHeatmap ? ` view-heatmap heatmap-tier-${heatmapMetrics?.tier || 'very-light'}` : ` ${tableStatusClass}`}${isMergeSelected ? ' is-merge-selected' : ''}${isSeatPicking ? ' is-seat-picking' : ''}${isPickedForSeating ? ' is-seat-selected' : ''}${isUnavailable && isSeatPicking ? ' is-seat-unavailable' : ''}${isDropTarget ? ' is-drop-target' : ''}${isDragging ? ' is-dragging' : ''}${tableIsSelected ? ' is-selected is-synced' : ''}${isStatusPulsing ? ` is-status-pulse ${tableStatusClass}` : ''}${isAnalyticsOpen ? ' is-analytics-open' : ''}${linkMeta?.isMultiLinked ? ' is-multi-linked' : ''}${linkMeta?.colorClass ? ` ${linkMeta.colorClass}` : ''}${linkMeta?.isLinkPrimary ? ' is-link-primary' : ''}${usesPublishedSize ? (isHostFloor ? ' has-published-layout' : ' has-custom-size') : ''}`}
+      className={`floor-table-node shape-${table.shape}${isHeatmap ? ` view-heatmap heatmap-tier-${heatmapMetrics?.tier || 'very-light'}` : ` ${tableStatusClass}`}${isMergeSelected ? ' is-merge-selected' : ''}${isSeatPicking ? ' is-seat-picking' : ''}${isPickedForSeating ? ' is-seat-selected' : ''}${isUnavailable && isSeatPicking ? ' is-seat-unavailable' : ''}${isDropTarget ? ' is-drop-target' : ''}${isDragging ? ' is-dragging' : ''}${tableIsSelected ? ' is-selected is-synced' : ''}${isStatusPulsing ? ` is-status-pulse ${tableStatusClass}` : ''}${isAnalyticsOpen ? ' is-analytics-open' : ''}${linkMeta?.isMultiLinked ? ' is-multi-linked' : ''}${linkMeta?.colorClass ? ` ${linkMeta.colorClass}` : ''}${linkMeta?.isLinkPrimary ? ' is-link-primary' : ''}${usesPublishedSize ? (isHostFloor ? ' has-published-layout' : ' has-custom-size') : ''}${isHostFloor ? ' is-host-touch' : ''}`}
       style={nodeStyle}
       data-table-id={table.id}
       data-selection-pulse={tableIsSelected ? selectionPulseKey : undefined}
@@ -7820,6 +7833,37 @@ function FloorPlanView({
     startSeatingDraft(reservation, tableState.table.id)
   }
 
+  const canAssignSelectedReservationToTable = (tableState) => {
+    if (!selectedReservation) return false
+
+    if (
+      tableState.reservation
+      && String(tableState.reservation.id) === String(selectedReservation.id)
+    ) {
+      return true
+    }
+
+    if (isFloorTablePhysicallyOccupied(tableState.operational)) return false
+
+    if (
+      tableState.operational?.phase === 'upcoming'
+      && tableState.reservation
+      && String(tableState.reservation.id) !== String(selectedReservation.id)
+    ) {
+      return false
+    }
+
+    if (tableState.reservation) return false
+
+    return (
+      tableState.operational?.phase === 'available'
+      || tableState.operational?.hostIndicator === 'empty'
+      || tableState.status === 'available'
+      || tableState.status === 'cleaning'
+      || tableState.operational?.phase === 'cleaning'
+    )
+  }
+
   const handleTableClick = (tableState, event) => {
     if (isHeatmap) return
 
@@ -7851,21 +7895,7 @@ function FloorPlanView({
       return
     }
 
-    if (
-      selectedReservation
-      && tableState.reservation
-      && String(tableState.reservation.id) === String(selectedReservation.id)
-    ) {
-      toggleSeatingUnit(tableState.table.id)
-      return
-    }
-
-    if (!tableState.reservation && selectedReservation && tableState.status === 'available') {
-      toggleSeatingUnit(tableState.table.id)
-      return
-    }
-
-    if (!tableState.reservation && selectedReservation && tableState.status === 'cleaning') {
+    if (canAssignSelectedReservationToTable(tableState)) {
       toggleSeatingUnit(tableState.table.id)
       return
     }

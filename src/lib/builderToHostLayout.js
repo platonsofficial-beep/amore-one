@@ -1,4 +1,4 @@
-import { FLOOR_PLAN_OBJECT_TYPES } from '../floor-plan-builder/models/floorPlanObject'
+import { FLOOR_PLAN_OBJECT_TYPES, formatBuilderTableLabel } from '../floor-plan-builder/models/floorPlanObject'
 import { createDefaultFloor, createDefaultWorkspace, getFloorBounds } from '../floor-plan-builder/models/floorWorkspace'
 import { normalizeTableSection } from '../floor-plan-builder/lib/tableSections'
 import { loadLocalFloorPlanLayout } from '../floor-plan-builder/lib/floorPlanStorage'
@@ -82,11 +82,12 @@ function tableToUnits(object, floor, floors) {
 
   const capacity = Math.max(1, Number(properties.capacity) || 1)
   const tableNumber = `${properties.tableNumber ?? ''}`.trim()
+  const displayLabel = formatBuilderTableLabel(object)
 
   return [{
     id: object.id,
     label: tableNumber || properties.name || object.id,
-    displayLabel: tableNumber ? `Table ${tableNumber}` : (properties.name ?? 'Table'),
+    displayLabel,
     x,
     y,
     seats: capacity,

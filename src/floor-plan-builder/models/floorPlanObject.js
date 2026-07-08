@@ -261,9 +261,21 @@ export function formatObjectTypeLabel(type) {
     .join(' ')
 }
 
+export function formatBuilderTableLabel(object) {
+  if (!object || object.type !== FLOOR_PLAN_OBJECT_TYPES.TABLE) {
+    return formatObjectTypeLabel(object?.type)
+  }
+
+  const raw = `${object.properties?.tableNumber ?? object.properties?.name ?? ''}`.trim()
+  if (!raw) return 'Table'
+  if (/^T\d+/i.test(raw)) return raw.toUpperCase()
+  if (/^\d+$/.test(raw)) return `T${raw}`
+  return raw
+}
+
 export function getObjectDisplayLabel(object) {
   if (object.type === FLOOR_PLAN_OBJECT_TYPES.TABLE) {
-    return `Table ${object.properties.tableNumber ?? ''}`.trim()
+    return formatBuilderTableLabel(object)
   }
 
   return formatObjectTypeLabel(object.type)
