@@ -53,6 +53,56 @@ function MobileManagerAttentionItem({ item }) {
   )
 }
 
+function MobileManagerQuickActions({
+  canOpenReservations,
+  canOpenTasks,
+  canOpenStock,
+  canOpenTeam,
+  canReceiveDeliveries,
+  pendingDeliveries,
+  onOpenReservations,
+  onOpenTasks,
+  onOpenStock,
+  onOpenTeamToday,
+  onReceiveDeliveries,
+}) {
+  return (
+    <div className="mobile-manager-quick-actions">
+      {canReceiveDeliveries && pendingDeliveries > 0 ? (
+        <button
+          type="button"
+          className="mobile-manager-action-btn mobile-manager-action-btn-primary mobile-manager-action-btn-featured"
+          onClick={onReceiveDeliveries}
+        >
+          Receive deliveries
+        </button>
+      ) : null}
+      <div className="mobile-manager-actions-grid">
+        {canOpenReservations ? (
+          <button type="button" className="mobile-manager-action-btn" onClick={onOpenReservations}>
+            Reservations
+          </button>
+        ) : null}
+        {canOpenTasks ? (
+          <button type="button" className="mobile-manager-action-btn" onClick={onOpenTasks}>
+            Tasks
+          </button>
+        ) : null}
+        {canOpenStock ? (
+          <button type="button" className="mobile-manager-action-btn" onClick={onOpenStock}>
+            Stock
+          </button>
+        ) : null}
+        {canOpenTeam ? (
+          <button type="button" className="mobile-manager-action-btn" onClick={onOpenTeamToday}>
+            Team today
+          </button>
+        ) : null}
+      </div>
+    </div>
+  )
+}
+
 export function MobileManagerHomeView({
   venueName = '',
   greeting = '',
@@ -104,142 +154,123 @@ export function MobileManagerHomeView({
     + (Number(stockOrdersSummary?.partialCount) || 0)
   const hasQuickActions = canOpenStock || (canReceiveDeliveries && pendingDeliveries > 0) || canOpenTasks || canOpenTeam || canOpenReservations
 
-  const visibleAttentionItems = showAllAttention
-    ? mergedAttentionItems
-    : mergedAttentionItems.slice(0, ATTENTION_PREVIEW_LIMIT)
-  const hiddenAttentionCount = Math.max(0, mergedAttentionItems.length - ATTENTION_PREVIEW_LIMIT)
+  const previewAttentionItems = mergedAttentionItems.slice(0, ATTENTION_PREVIEW_LIMIT)
+  const visibleAttentionItems = showAllAttention ? mergedAttentionItems : previewAttentionItems
+  const hasMoreAttention = mergedAttentionItems.length > ATTENTION_PREVIEW_LIMIT
   const workspaceContext = [venueName, roleLabel].filter(Boolean).join(' · ')
 
   return (
-    <div className="mobile-screen mobile-home mobile-manager-home">
-      <header className="mobile-manager-home-header">
-        <p className="mobile-manager-home-date">{dateLabel}</p>
-        <h1 className="mobile-manager-home-greeting">{greeting || 'Welcome'}</h1>
-        {workspaceContext ? (
-          <p className="mobile-manager-home-context">{workspaceContext}</p>
-        ) : null}
+    <div className="mobile-screen mobile-home mobile-manager-home mobile-manager-command-center">
+      <header className="mobile-manager-command-header">
+        <h1 className="mobile-manager-command-greeting">{greeting || 'Welcome'}</h1>
+        <p className="mobile-manager-command-meta">
+          <span className="mobile-manager-command-date">{dateLabel}</span>
+          {workspaceContext ? (
+            <span className="mobile-manager-command-workspace">{workspaceContext}</span>
+          ) : null}
+        </p>
       </header>
 
-      <section className="mobile-manager-panel mobile-manager-overview-section" aria-label="Today overview">
-        <div className="mobile-manager-section-heading">
-          <p className="mobile-manager-section-title">Today overview</p>
+      <section className="mobile-manager-command-primary" aria-label="Today overview and quick actions">
+        <div className="mobile-manager-command-block">
+          <h2 className="mobile-manager-block-title">Today overview</h2>
+          <div className="mobile-manager-status-grid">
+            <MobileManagerStatusCard
+              label="On shift"
+              value={statusSummary.onShiftSummary || '—'}
+            />
+            <MobileManagerStatusCard
+              label="Team"
+              value={statusSummary.teamScheduledSummary || '—'}
+              onClick={canOpenTeam ? onOpenTeamToday : undefined}
+            />
+            {isReservationsConnected ? (
+              <MobileManagerStatusCard
+                label="Reservations"
+                value={statusSummary.reservationsSummaryLine || '—'}
+                onClick={canOpenReservations ? onOpenReservations : undefined}
+              />
+            ) : null}
+            {isTasksConnected ? (
+              <MobileManagerStatusCard
+                label="Tasks"
+                value={statusSummary.tasksSummary || '—'}
+                onClick={canOpenTasks ? onOpenTasks : undefined}
+              />
+            ) : null}
+            {showStockStatus ? (
+              <MobileManagerStatusCard
+                label="Stock"
+                value={stockStatusLine}
+                tone={
+                  (stockSummary?.outOfStock ?? 0) > 0
+                    ? 'critical'
+                    : (stockSummary?.lowStock ?? 0) > 0 || (stockOrdersSummary?.pendingCount ?? 0) > 0
+                      ? 'warning'
+                      : 'default'
+                }
+                onClick={canOpenStock ? onOpenStock : undefined}
+              />
+            ) : null}
+          </div>
         </div>
-        <div className="mobile-manager-status-grid">
-          <MobileManagerStatusCard
-            label="On shift"
-            value={statusSummary.onShiftSummary || '—'}
-          />
-          <MobileManagerStatusCard
-            label="Team"
-            value={statusSummary.teamScheduledSummary || '—'}
-            onClick={canOpenTeam ? onOpenTeamToday : undefined}
-          />
-          {isReservationsConnected ? (
-            <MobileManagerStatusCard
-              label="Reservations"
-              value={statusSummary.reservationsSummaryLine || '—'}
-              onClick={canOpenReservations ? onOpenReservations : undefined}
-            />
-          ) : null}
-          {isTasksConnected ? (
-            <MobileManagerStatusCard
-              label="Tasks"
-              value={statusSummary.tasksSummary || '—'}
-              onClick={canOpenTasks ? onOpenTasks : undefined}
-            />
-          ) : null}
-          {showStockStatus ? (
-            <MobileManagerStatusCard
-              label="Stock"
-              value={stockStatusLine}
-              tone={
-                (stockSummary?.outOfStock ?? 0) > 0
-                  ? 'critical'
-                  : (stockSummary?.lowStock ?? 0) > 0 || (stockOrdersSummary?.pendingCount ?? 0) > 0
-                    ? 'warning'
-                    : 'default'
-              }
-              onClick={canOpenStock ? onOpenStock : undefined}
-            />
-          ) : null}
-        </div>
+
+        {hasQuickActions ? (
+          <>
+            <div className="mobile-manager-command-divider" aria-hidden="true" />
+            <div className="mobile-manager-command-block mobile-manager-command-actions-block">
+              <h2 className="mobile-manager-block-title">Quick actions</h2>
+              <MobileManagerQuickActions
+                canOpenReservations={canOpenReservations}
+                canOpenTasks={canOpenTasks}
+                canOpenStock={canOpenStock}
+                canOpenTeam={canOpenTeam}
+                canReceiveDeliveries={canReceiveDeliveries}
+                pendingDeliveries={pendingDeliveries}
+                onOpenReservations={onOpenReservations}
+                onOpenTasks={onOpenTasks}
+                onOpenStock={onOpenStock}
+                onOpenTeamToday={onOpenTeamToday}
+                onReceiveDeliveries={onReceiveDeliveries}
+              />
+            </div>
+          </>
+        ) : null}
       </section>
 
-      {hasQuickActions ? (
-        <section className="mobile-manager-panel mobile-manager-actions-section" aria-label="Quick actions">
-          <div className="mobile-manager-section-heading">
-            <p className="mobile-manager-section-title">Quick actions</p>
-          </div>
-          <div className="mobile-manager-actions">
-            {canReceiveDeliveries && pendingDeliveries > 0 ? (
-              <button
-                type="button"
-                className="mobile-manager-action-btn mobile-manager-action-btn-primary mobile-manager-action-btn-featured"
-                onClick={onReceiveDeliveries}
-              >
-                Receive deliveries
-              </button>
-            ) : null}
-            <div className="mobile-manager-actions-grid">
-              {canOpenReservations ? (
-                <button type="button" className="mobile-manager-action-btn" onClick={onOpenReservations}>
-                  Reservations
-                </button>
-              ) : null}
-              {canOpenTasks ? (
-                <button type="button" className="mobile-manager-action-btn" onClick={onOpenTasks}>
-                  Tasks
-                </button>
-              ) : null}
-              {canOpenStock ? (
-                <button type="button" className="mobile-manager-action-btn" onClick={onOpenStock}>
-                  Stock
-                </button>
-              ) : null}
-              {canOpenTeam ? (
-                <button type="button" className="mobile-manager-action-btn" onClick={onOpenTeamToday}>
-                  Team today
-                </button>
-              ) : null}
-            </div>
-          </div>
-        </section>
-      ) : null}
-
-      <section className="mobile-manager-panel mobile-manager-attention-section" aria-label="Priority attention">
-        <div className="mobile-manager-section-heading">
-          <p className="mobile-manager-section-title">
-            Priority
+      <section className="mobile-manager-command-secondary" aria-label="Attention">
+        <div className="mobile-manager-command-block">
+          <h2 className="mobile-manager-block-title">
+            Attention
             {mergedAttentionItems.length > 0 ? (
               <span className="mobile-manager-section-count">{mergedAttentionItems.length}</span>
             ) : null}
-          </p>
-          <p className="mobile-manager-section-subtitle">What needs you now</p>
+          </h2>
+          {mergedAttentionItems.length === 0 ? (
+            <p className="mobile-manager-attention-empty">Everything looks under control today.</p>
+          ) : (
+            <>
+              <ul className="mobile-manager-attention-list mobile-manager-attention-feed">
+                {visibleAttentionItems.map((item) => (
+                  <MobileManagerAttentionItem key={item.key} item={item} />
+                ))}
+              </ul>
+              {hasMoreAttention ? (
+                <button
+                  type="button"
+                  className="mobile-manager-attention-more"
+                  onClick={() => setShowAllAttention((current) => !current)}
+                  aria-expanded={showAllAttention}
+                >
+                  {showAllAttention ? 'Show less' : 'View all attention'}
+                </button>
+              ) : null}
+            </>
+          )}
         </div>
-        {mergedAttentionItems.length === 0 ? (
-          <p className="mobile-manager-attention-empty">Everything looks under control today.</p>
-        ) : (
-          <>
-            <ul className="mobile-manager-attention-list mobile-manager-attention-feed">
-              {visibleAttentionItems.map((item) => (
-                <MobileManagerAttentionItem key={item.key} item={item} />
-              ))}
-            </ul>
-            {hiddenAttentionCount > 0 ? (
-              <button
-                type="button"
-                className="mobile-manager-attention-more"
-                onClick={() => setShowAllAttention((current) => !current)}
-                aria-expanded={showAllAttention}
-              >
-                {showAllAttention ? 'Show less' : 'View all attention'}
-              </button>
-            ) : null}
-          </>
-        )}
       </section>
 
-      <div className="mobile-manager-announcements-wrap">
+      <section className="mobile-manager-command-announcements" aria-label="Announcements">
         <TodayAnnouncementsPanel
           announcements={announcements}
           role={announcementRole}
@@ -247,7 +278,7 @@ export function MobileManagerHomeView({
           isSaving={isAnnouncementsSaving}
           onMarkSeen={onMarkAnnouncementSeen}
         />
-      </div>
+      </section>
     </div>
   )
 }
