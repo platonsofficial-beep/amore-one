@@ -332,6 +332,7 @@ export function buildReservationAttentionItems({
       priority: alert.type === HOST_ALERT_TYPES.LATE ? 'urgent' : 'reminder',
       label: alert.label,
       detail: 'Reservation service',
+      reservationId: alert.reservationId ?? alert.reservation?.id ?? null,
     })
   })
 

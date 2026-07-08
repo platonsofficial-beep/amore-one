@@ -20,7 +20,7 @@ export function TodayAnnouncementsPanel({
   if (activeAnnouncements.length === 0) return null
 
   return (
-    <section className="today-announcements" aria-label="Announcements">
+    <section className="today-announcements" id="today-announcements" aria-label="Announcements">
       <header className="today-announcements-header">
         <h3>Announcements</h3>
       </header>

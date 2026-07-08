@@ -699,6 +699,24 @@
   border-bottom: 1px solid rgba(255, 255, 255, 0.06);
 }
 
+button.today-attention-item {
+  width: 100%;
+  min-height: 44px;
+  border: 0;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+}
+
+.today-attention-item.is-actionable:hover strong {
+  color: #f0d39a;
+}
+
+.today-attention-item.is-actionable:focus-visible {
+  outline: 2px solid rgba(212, 175, 55, 0.45);
+  outline-offset: 2px;
+}
+
 .today-attention-item:last-child {
   border-bottom: 0;
 }

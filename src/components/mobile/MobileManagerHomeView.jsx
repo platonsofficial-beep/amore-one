@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import { sortManagerMobileAttentionFeed } from '../../lib/mobileManagerTodayUtils'
+import { isTodayAttentionItemActionable } from '../../lib/todayAttentionNavigation'
 import { TodayAnnouncementsPanel } from '../today/TodayAnnouncementsPanel'
 
 const ATTENTION_PREVIEW_LIMIT = 3
@@ -11,8 +12,12 @@ function getAttentionCategory(item) {
     return 'schedule'
   }
 
-  if (key.startsWith('task:')) {
+  if (key.startsWith('task:') || key.startsWith('task-due:')) {
     return 'task'
+  }
+
+  if (key.startsWith('reservation:')) {
+    return 'reservation'
   }
 
   return 'stock'
@@ -35,17 +40,22 @@ function MobileManagerStatusCard({ label, value, tone = 'default', onClick }) {
   )
 }
 
-function MobileManagerAttentionItem({ item }) {
+function MobileManagerAttentionItem({ item, isActionable, onClick }) {
   const category = getAttentionCategory(item)
+  const Tag = isActionable ? 'button' : 'li'
 
   return (
-    <li className={`mobile-manager-attention-item mobile-manager-priority-item tone-${item.tone} category-${category}`}>
+    <Tag
+      type={isActionable ? 'button' : undefined}
+      className={`mobile-manager-attention-item mobile-manager-priority-item tone-${item.tone} category-${category}${isActionable ? ' is-tappable' : ''}`}
+      onClick={isActionable ? onClick : undefined}
+    >
       <span className="mobile-manager-priority-dot" aria-hidden="true" />
       <div className="mobile-manager-attention-copy">
         <strong>{item.label}</strong>
         <span>{item.detail}</span>
       </div>
-    </li>
+    </Tag>
   )
 }
 
@@ -126,6 +136,8 @@ export function MobileManagerHomeView({
   onOpenTasks,
   onOpenTeamToday,
   onOpenReservations,
+  onAttentionItemClick,
+  attentionPermissions = {},
 }) {
   const [showAllAttention, setShowAllAttention] = useState(false)
 
@@ -239,7 +251,12 @@ export function MobileManagerHomeView({
             <>
               <ul className="mobile-manager-attention-list mobile-manager-attention-feed mobile-manager-priority-feed">
                 {visibleAttentionItems.map((item) => (
-                  <MobileManagerAttentionItem key={item.key} item={item} />
+                  <MobileManagerAttentionItem
+                    key={item.key}
+                    item={item}
+                    isActionable={isTodayAttentionItemActionable(item, attentionPermissions)}
+                    onClick={() => onAttentionItemClick?.(item)}
+                  />
                 ))}
               </ul>
               {hasMoreAttention ? (

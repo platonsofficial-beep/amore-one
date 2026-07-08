@@ -289,6 +289,10 @@ import {
   buildTeamTodayGroups,
 } from './lib/todayViewUtils'
 import { buildTodayCommandCenterAttentionItems } from './lib/mobileManagerTodayUtils'
+import {
+  isTodayAttentionItemActionable,
+  resolveTodayAttentionDestination,
+} from './lib/todayAttentionNavigation'
 import { buildStockOrdersOperationsSummary } from './lib/stockOrderUtils'
 import { buildStockDashboardSummary } from './lib/stockUtils'
 import { filterTasksExcludingAnnouncementDuplicates } from './lib/operationsAnnouncementUtils'
@@ -1007,6 +1011,8 @@ function CommandCenterView({
   onViewSchedule,
   onViewTasks,
   onViewReservations,
+  onAttentionItemClick,
+  attentionPermissions = {},
   onMarkAnnouncementSeen,
 }) {
   const attentionHasUrgent = hasUrgentAttentionItems(attentionItems)
@@ -1122,12 +1128,22 @@ function CommandCenterView({
               <p className="today-empty-note today-empty-note-clear">Nothing needs your attention right now.</p>
             ) : (
               <ul className="today-attention-list">
-                {attentionItems.map((item) => (
-                  <li key={item.key} className={`today-attention-item tone-${item.tone}`}>
-                    <strong>{item.label}</strong>
-                    <span>{item.detail}</span>
-                  </li>
-                ))}
+                {attentionItems.map((item) => {
+                  const isActionable = isTodayAttentionItemActionable(item, attentionPermissions)
+                  const Tag = isActionable ? 'button' : 'li'
+
+                  return (
+                    <Tag
+                      key={item.key}
+                      type={isActionable ? 'button' : undefined}
+                      className={`today-attention-item tone-${item.tone}${isActionable ? ' is-actionable' : ''}`}
+                      onClick={isActionable ? () => onAttentionItemClick?.(item) : undefined}
+                    >
+                      <strong>{item.label}</strong>
+                      <span>{item.detail}</span>
+                    </Tag>
+                  )
+                })}
               </ul>
             )}
             {showAttentionActions ? (
@@ -17681,6 +17697,70 @@ function App() {
     handleActiveViewChange('reservations')
   }
 
+  const todayAttentionPermissions = useMemo(() => ({
+    canViewStock: useMobileExperience
+      ? canAccessMobileExpandedModule(role, 'stock')
+      : canAccessModule(role, 'stock'),
+    canViewTasks: useMobileExperience
+      ? canAccessMobileExpandedModule(role, 'operations')
+      : canAccessModule(role, 'operations'),
+    canViewSchedule: canAccessTeamSection(role, 'schedule'),
+    canViewReservations: useMobileExperience
+      ? canAccessMobileExpandedModule(role, 'reservations')
+      : canAccessModule(role, 'reservations'),
+  }), [role, useMobileExperience])
+
+  const handleTodayAttentionItemClick = useCallback((item) => {
+    const destination = resolveTodayAttentionDestination(item, todayAttentionPermissions)
+    if (!destination) return
+
+    if (destination.view === 'today' && destination.action === 'announcements') {
+      const announcementsSection = document.getElementById('today-announcements')
+      if (announcementsSection) {
+        announcementsSection.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      }
+      return
+    }
+
+    if (destination.view === 'reservations') {
+      if (useMobileExperience && isManagementMobileRole(role)) {
+        setMobileReservationsHostMode(destination.action === 'host')
+        setMobileExpandedView('workspace')
+      }
+      handleActiveViewChange('reservations')
+      return
+    }
+
+    handleActiveViewChange(destination.view)
+
+    if (destination.view === 'stock' && destination.section) {
+      handleStockSectionChange(destination.section)
+      if (destination.action === 'receive-deliveries') {
+        setStockOrdersFilterHint('sent')
+      }
+    }
+
+    if (destination.view === 'operations' && destination.section) {
+      handleOperationsSectionChange(destination.section)
+    }
+
+    if (destination.view === 'team' && destination.section) {
+      handleTeamSectionChange(destination.section)
+    }
+
+    if (useMobileExperience && isManagementMobileRole(role)) {
+      setMobileExpandedView('workspace')
+    }
+  }, [
+    todayAttentionPermissions,
+    useMobileExperience,
+    role,
+    handleActiveViewChange,
+    handleStockSectionChange,
+    handleOperationsSectionChange,
+    handleTeamSectionChange,
+  ])
+
   const handleInsightsViewModule = (moduleId) => {
     const route = resolveInsightsModuleLink(moduleId)
     const permittedView = resolvePermittedActiveView(role, route.activeView)
@@ -19898,6 +19978,8 @@ function App() {
             onViewSchedule={canAccessTeamSection(role, 'schedule') ? handleDashboardViewSchedule : undefined}
             onViewTasks={canAccessModule(role, 'operations') ? handleDashboardViewTasks : undefined}
             onViewReservations={canAccessModule(role, 'reservations') ? handleDashboardViewReservations : undefined}
+            onAttentionItemClick={handleTodayAttentionItemClick}
+            attentionPermissions={todayAttentionPermissions}
             onMarkAnnouncementSeen={handleMarkOperationsAnnouncementSeen}
           />
         ) : null}
@@ -20353,6 +20435,8 @@ function App() {
                       onOpenTasks: handleMobileManagerOpenTasks,
                       onOpenTeamToday: handleMobileManagerOpenTeamToday,
                       onOpenReservations: handleMobileManagerOpenReservations,
+                      onAttentionItemClick: handleTodayAttentionItemClick,
+                      attentionPermissions: todayAttentionPermissions,
                     }
                     : {
                       venueName: workspaceProfile.businessName,
