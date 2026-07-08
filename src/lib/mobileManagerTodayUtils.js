@@ -96,6 +96,7 @@ export function buildTodayCommandCenterAttentionItems({
   stockOrdersSummary = null,
   stockSummary = null,
   hasStockModuleData = false,
+  coverageBreakdown = null,
   announcements = [],
   announcementRole = '',
   announcementEmployeeDepartment = '',
@@ -108,6 +109,7 @@ export function buildTodayCommandCenterAttentionItems({
     todayKey,
     issuesSummary,
     snapshot,
+    coverageBreakdown,
   })
 
   const reservationItems = buildReservationAttentionItems({

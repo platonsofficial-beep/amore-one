@@ -12,6 +12,23 @@ import { buildTodayCommandCenterAttentionItems } from './mobileManagerTodayUtils
 const TODAY = '2026-07-08'
 
 describe('todayViewUtils', () => {
+  it('includes schedule issue detail with coverage gaps', () => {
+    const items = buildTodayAttentionItems({
+      todayKey: TODAY,
+      snapshot: { issues: 1, coverageGaps: 1 },
+      coverageBreakdown: {
+        gapCount: 1,
+        summaryLine: '1 gap · Kitchen missing 1',
+      },
+    })
+
+    expect(items).toHaveLength(1)
+    expect(items[0]).toMatchObject({
+      key: 'schedule-issues',
+      detail: '1 gap · Kitchen missing 1',
+    })
+  })
+
   it('builds a richer status summary with covers, open tasks, and stock', () => {
     const summary = buildTodayStatusSummary({
       liveFloor: { state: 'live', onShiftCount: 3 },
@@ -33,6 +50,15 @@ describe('todayViewUtils', () => {
     expect(summary.tasksSummary).toContain('5 open tasks')
     expect(summary.tasksSummary).toContain('2 overdue')
     expect(summary.stockSummaryLine).toBe('1 out · 2 low')
+  })
+
+  it('includes coverage gaps in team scheduled summary', () => {
+    const summary = buildTodayStatusSummary({
+      liveFloor: { state: 'live', onShiftCount: 2 },
+      snapshot: { scheduledStaff: 5, coverageGaps: 2 },
+    })
+
+    expect(summary.teamScheduledSummary).toBe('5 scheduled · 2 gaps')
   })
 
   it('prioritizes urgent issues before service actions and information', () => {

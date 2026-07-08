@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
+  buildMobileEmployeeShiftSummary,
   calculateMobileOperationsTaskOverview,
   getMobileOperationsStaffOwnershipLabel,
   getMobileOperationsTaskStatusLabel,
@@ -77,5 +78,57 @@ describe('mobileStaffUtils task workflow', () => {
   it('returns contextual empty states', () => {
     expect(getMobileStaffTaskTabEmptyState('pending').title).toBe('You are caught up')
     expect(getMobileStaffTaskTabEmptyState('upcoming').title).toBe('No upcoming tasks')
+  })
+})
+
+describe('mobileStaffUtils shift summary', () => {
+  it('shows unpublished schedule state', () => {
+    expect(buildMobileEmployeeShiftSummary({
+      isWeekPublished: false,
+      todayKey: TODAY,
+    })).toMatchObject({
+      headline: 'Schedule not published',
+    })
+  })
+
+  it('shows on-shift and next-shift states for linked employees', () => {
+    const onShift = buildMobileEmployeeShiftSummary({
+      employeeId: EMPLOYEE_ID,
+      isWeekPublished: true,
+      todayKey: TODAY,
+      now: new Date('2026-07-08T10:00:00'),
+      publishedShifts: [{
+        id: 's1',
+        employeeId: EMPLOYEE_ID,
+        date: TODAY,
+        startTime: '09:00',
+        endTime: '17:00',
+      }],
+    })
+
+    expect(onShift).toMatchObject({
+      tone: 'live',
+      headline: 'On shift now',
+    })
+
+    const upcoming = buildMobileEmployeeShiftSummary({
+      employeeId: EMPLOYEE_ID,
+      isWeekPublished: true,
+      todayKey: TODAY,
+      now: new Date('2026-07-08T08:00:00'),
+      publishedShifts: [{
+        id: 's1',
+        employeeId: EMPLOYEE_ID,
+        date: TODAY,
+        startTime: '12:00',
+        endTime: '20:00',
+      }],
+    })
+
+    expect(upcoming).toMatchObject({
+      tone: 'upcoming',
+      headline: 'Next shift today',
+      detail: '12:00 - 20:00',
+    })
   })
 })

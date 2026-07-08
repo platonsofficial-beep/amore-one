@@ -176,6 +176,96 @@ export function buildOperationalSnapshot({
   }
 }
 
+function formatTemplateAreaLabel(template) {
+  return `${template?.defaultArea ?? template?.default_area ?? template?.name ?? 'Shift'}`.trim() || 'Shift'
+}
+
+export function formatTeamCoverageSummaryLine(gaps = [], { limit = 3 } = {}) {
+  if (!gaps.length) return ''
+
+  const gapCount = gaps.length
+  const areaLabels = gaps
+    .map((gap) => `${gap.area ?? ''}`.trim())
+    .filter(Boolean)
+    .slice(0, limit)
+
+  const areasText = areaLabels.join(', ')
+  const overflow = gapCount > areaLabels.length
+    ? ` +${gapCount - areaLabels.length} more`
+    : ''
+
+  if (gapCount === 1) {
+    const missing = Number(gaps[0]?.missing) || 0
+    return missing > 0
+      ? `1 gap · ${areasText} missing ${missing}`
+      : `1 gap · ${areasText}`
+  }
+
+  return areasText
+    ? `${gapCount} gaps · ${areasText}${overflow}`
+    : `${gapCount} coverage gaps`
+}
+
+export function buildTeamTodayCoverageBreakdown({
+  shifts = [],
+  shiftTemplates = [],
+  scheduleCapacities = [],
+  todayKey = getCurrentDateKey(),
+} = {}) {
+  const todayShifts = (shifts ?? []).filter((shift) => normalizeDate(shift.date) === todayKey)
+  const capacityLookup = buildCapacityLookup(scheduleCapacities)
+  const gaps = []
+
+  ;(shiftTemplates ?? []).forEach((template) => {
+    const requiredCount = getRequiredCountForCell(template, todayKey, capacityLookup)
+    const assignedCount = countShiftsCoveringTemplateCell(template, todayKey, todayShifts)
+
+    if (requiredCount > assignedCount) {
+      gaps.push({
+        area: formatTemplateAreaLabel(template),
+        requiredCount,
+        assignedCount,
+        missing: requiredCount - assignedCount,
+      })
+    }
+  })
+
+  gaps.sort((left, right) => {
+    if (right.missing !== left.missing) return right.missing - left.missing
+    return `${left.area ?? ''}`.localeCompare(`${right.area ?? ''}`)
+  })
+
+  const understaffedDepartments = Array.from(
+    new Set(gaps.map((gap) => gap.area).filter(Boolean)),
+  ).sort((left, right) => left.localeCompare(right))
+
+  return {
+    gapCount: gaps.length,
+    gaps,
+    understaffedDepartments,
+    summaryLine: formatTeamCoverageSummaryLine(gaps),
+  }
+}
+
+export function buildScheduleAttentionDetail(snapshot = {}, coverageBreakdown = {}) {
+  const parts = []
+  const gapCount = Number(coverageBreakdown?.gapCount ?? snapshot.coverageGaps) || 0
+  const issueCount = Number(snapshot.issues) || 0
+
+  if (gapCount > 0) {
+    parts.push(coverageBreakdown?.summaryLine || `${gapCount} coverage gap${gapCount === 1 ? '' : 's'}`)
+  }
+
+  if (issueCount > gapCount) {
+    const otherIssues = issueCount - gapCount
+    if (otherIssues > 0) {
+      parts.push(otherIssues === 1 ? '1 other issue' : `${otherIssues} other issues`)
+    }
+  }
+
+  return parts.join(' · ')
+}
+
 function parseLocalDateFromKey(dateKey) {
   const [year, month, day] = `${dateKey ?? ''}`.split('-').map(Number)
   if (!Number.isFinite(year) || !Number.isFinite(month) || !Number.isFinite(day)) {

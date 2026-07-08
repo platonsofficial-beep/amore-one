@@ -162,6 +162,7 @@ export function MobileManagerHomeView({
             <MobileManagerStatusCard
               label="Team"
               value={statusSummary.teamScheduledSummary || '—'}
+              tone={/gap/i.test(`${statusSummary.teamScheduledSummary ?? ''}`) ? 'warning' : 'default'}
               onClick={canOpenTeam ? onOpenTeamToday : undefined}
             />
             {isReservationsConnected ? (

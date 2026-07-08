@@ -1,3 +1,5 @@
+import { TeamTodayGroupsList } from './TeamTodayGroupsList'
+
 export function TeamTodayView({
   teamStatus,
   teamTodayGroups,
@@ -12,6 +14,7 @@ export function TeamTodayView({
     coverageLabel: 'Coverage',
     coverageValue: 'All covered',
     coverageTone: 'ok',
+    coverageDetail: '',
   }
 
   return (
@@ -34,31 +37,15 @@ export function TeamTodayView({
             {status.coverageValue}
           </span>
         </div>
+        {status.coverageDetail && status.coverageTone !== 'ok' ? (
+          <p className="team-today-status-detail">{status.coverageDetail}</p>
+        ) : null}
       </section>
 
       {isLoading ? null : (teamTodayGroups ?? []).length === 0 ? (
         <p className="team-today-empty">No shifts scheduled today.</p>
       ) : (
-        <div className="team-today-groups">
-          {(teamTodayGroups ?? []).map((group) => (
-            <section key={group.department} className="team-today-group" aria-label={group.department}>
-              <h3 className="team-today-department">{group.department}</h3>
-              <ul className="team-today-member-list">
-                {group.members.map((member) => (
-                  <li key={member.shiftId} className="team-today-member">
-                    <div className="team-today-member-main">
-                      <span className="team-today-member-name">{member.name}</span>
-                      <span className="team-today-member-shift">{member.shiftLabel}</span>
-                    </div>
-                    {member.roleLabel ? (
-                      <span className="team-today-member-role">{member.roleLabel}</span>
-                    ) : null}
-                  </li>
-                ))}
-              </ul>
-            </section>
-          ))}
-        </div>
+        <TeamTodayGroupsList groups={teamTodayGroups} />
       )}
     </section>
   )

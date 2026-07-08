@@ -282,7 +282,7 @@ import {
   mapWeeklyTemplateCapacitySnapshotToWeek,
   saveWeeklyTemplateCapacitySnapshot,
 } from './lib/weeklyTemplateCapacitySnapshots'
-import { buildOperationalSnapshot } from './lib/operationalSnapshotUtils'
+import { buildOperationalSnapshot, buildTeamTodayCoverageBreakdown } from './lib/operationalSnapshotUtils'
 import {
   buildTodayServiceTimeline,
   buildTodayStatusSummary,
@@ -322,13 +322,14 @@ import {
   TODAY_PANEL_IDS,
   writeTodayPanelExpanded,
 } from './lib/todayPanelCollapse'
-import { buildEmployeeTodayShiftLookup, buildTeamTodayStatus } from './lib/teamViewUtils'
+import { buildEmployeeTodayShiftLookup, applyCoverageHintsToGroups, buildTeamTodayStatus, enrichTeamTodayGroups } from './lib/teamViewUtils'
 import {
   groupScheduleGridRowsByArea,
   readCollapsedScheduleAreaKeys,
   writeCollapsedScheduleAreaKeys,
 } from './lib/scheduleAreaCollapseUtils'
 import { TeamTodayView } from './components/team/TeamTodayView'
+import { TeamTodayGroupsList } from './components/team/TeamTodayGroupsList'
 import { TeamPeopleView } from './components/team/TeamPeopleView'
 import { StockDashboardView } from './components/stock/StockDashboardView'
 import { StockOrdersView } from './components/stock/StockOrdersView'
@@ -1097,21 +1098,12 @@ function CommandCenterView({
             ) : teamTodayGroups.length === 0 ? (
               <p className="today-empty-note">No shifts scheduled today.</p>
             ) : (
-              <div className="today-team-groups">
-                {teamTodayGroups.map((group) => (
-                  <div key={group.department} className="today-team-group">
-                    <p className="today-team-department">{group.department}</p>
-                    <ul className="today-team-list">
-                      {group.members.map((member) => (
-                        <li key={member.shiftId} className="today-team-member">
-                          <span className="today-team-name">{member.name}</span>
-                          <span className="today-team-shift">{member.shiftLabel}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                ))}
-              </div>
+              <TeamTodayGroupsList
+                groups={teamTodayGroups}
+                groupClassName="today-team-group"
+                departmentClassName="today-team-department"
+                listClassName="today-team-list"
+              />
             )}
           </TodayCollapsiblePanel>
         </div>
@@ -13420,16 +13412,32 @@ function App() {
     isTodayWeekPublished ? dashboardPublishedShifts : dashboardShifts
   ), [isTodayWeekPublished, dashboardPublishedShifts, dashboardShifts])
 
+  const teamTodayCoverageBreakdown = useMemo(() => buildTeamTodayCoverageBreakdown({
+    shifts: dashboardShifts,
+    shiftTemplates,
+    scheduleCapacities: dashboardCapacities,
+    todayKey: currentDateKey,
+  }), [dashboardShifts, shiftTemplates, dashboardCapacities, currentDateKey])
+
   const teamTodayGroups = useMemo(() => buildTeamTodayGroups({
     shifts: teamTodayShiftSource,
     employees: scheduleEmployees,
     todayKey: currentDateKey,
   }), [teamTodayShiftSource, scheduleEmployees, currentDateKey])
 
+  const enrichedTeamTodayGroups = useMemo(() => {
+    const enriched = enrichTeamTodayGroups(teamTodayGroups, {
+      liveFloor: liveFloorState,
+      now: localNow,
+    })
+    return applyCoverageHintsToGroups(enriched, teamTodayCoverageBreakdown)
+  }, [teamTodayGroups, liveFloorState, localNow, teamTodayCoverageBreakdown])
+
   const teamTodayStatus = useMemo(() => buildTeamTodayStatus({
     liveFloor: liveFloorState,
     snapshot: operationalSnapshot,
-  }), [liveFloorState, operationalSnapshot])
+    coverageBreakdown: teamTodayCoverageBreakdown,
+  }), [liveFloorState, operationalSnapshot, teamTodayCoverageBreakdown])
 
   const employeeTodayShifts = useMemo(() => (
     Object.fromEntries(buildEmployeeTodayShiftLookup({
@@ -13445,6 +13453,7 @@ function App() {
     todayKey: currentDateKey,
     issuesSummary: dashboardIssuesSummary,
     snapshot: operationalSnapshot,
+    coverageBreakdown: teamTodayCoverageBreakdown,
     reservations,
     reservationsConnected: isReservationsModuleConnected,
     nowMinutes: dashboardNowMinutes,
@@ -13463,6 +13472,7 @@ function App() {
     currentDateKey,
     dashboardIssuesSummary,
     operationalSnapshot,
+    teamTodayCoverageBreakdown,
     reservations,
     isReservationsModuleConnected,
     dashboardNowMinutes,
@@ -19974,7 +19984,7 @@ function App() {
           <CommandCenterView
             statusSummary={todayStatusSummary}
             timelineEvents={dashboardTimelineEvents}
-            teamTodayGroups={teamTodayGroups}
+            teamTodayGroups={enrichedTeamTodayGroups}
             teamTodayStatus={teamTodayStatus}
             attentionItems={todayAttentionItems}
             announcements={operationsAnnouncements}
@@ -19999,7 +20009,7 @@ function App() {
         {isActiveViewAllowed && activeView === 'team' && teamSection === 'today' ? (
           <TeamTodayView
             teamStatus={teamTodayStatus}
-            teamTodayGroups={teamTodayGroups}
+            teamTodayGroups={enrichedTeamTodayGroups}
             isLoading={isDashboardScheduleLoading}
             noticeMessage={staffNotice}
           />

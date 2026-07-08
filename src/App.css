@@ -11681,6 +11681,103 @@
   color: #a89f92;
 }
 
+.team-today-status-detail {
+  grid-column: 1 / -1;
+  margin: 0;
+  color: #d4c4a8;
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+
+.team-today-department-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.team-today-department-row .team-today-department {
+  margin: 0;
+}
+
+.team-today-department-hint {
+  flex-shrink: 0;
+  padding: 4px 8px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.team-today-department-hint.tone-warn {
+  color: #f2cf82;
+  background: rgba(242, 207, 130, 0.12);
+}
+
+.team-today-member-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.team-today-member-state {
+  flex-shrink: 0;
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.team-today-member-state.tone-working {
+  color: #9fd4a8;
+  background: rgba(159, 212, 168, 0.12);
+}
+
+.team-today-member-state.tone-upcoming {
+  color: #f2cf82;
+  background: rgba(242, 207, 130, 0.12);
+}
+
+.team-today-member-state.tone-finished {
+  color: #a89f92;
+  background: rgba(168, 159, 146, 0.12);
+}
+
+.team-today-member-state.tone-scheduled {
+  color: #b8afa2;
+  background: rgba(184, 175, 162, 0.1);
+}
+
+.today-team-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.today-team-group .team-today-department-row {
+  margin-bottom: 8px;
+}
+
+.today-team-group .team-today-department {
+  color: #c89d42;
+  font-size: 0.78rem;
+  letter-spacing: 0.16em;
+}
+
+.today-team-group .team-today-member {
+  padding: 10px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.today-team-group .team-today-member:last-child {
+  border-bottom: 0;
+}
+
 .team-today-empty,
 .team-people-empty {
   margin: 0;
@@ -11723,8 +11820,9 @@
 
 .team-today-member {
   display: flex;
-  flex-direction: column;
-  gap: 4px;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
   padding: 12px 0;
   border-bottom: 1px solid rgba(255, 255, 255, 0.06);
 }
@@ -11736,10 +11834,10 @@
 
 .team-today-member-main {
   display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 12px;
-  flex-wrap: wrap;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+  min-width: 0;
 }
 
 .team-today-member-name {

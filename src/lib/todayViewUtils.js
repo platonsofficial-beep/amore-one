@@ -1,6 +1,7 @@
 import { formatTime24, normalizeTimeValue } from './timeFormatUtils'
 import { parseTimeToMinutes } from './shiftHoursUtils'
 import { getCurrentDateKey } from './currentDateUtils'
+import { buildScheduleAttentionDetail } from './operationalSnapshotUtils'
 import { isTaskOverdue } from './taskUtils'
 import {
   buildHostReservationAlerts,
@@ -140,11 +141,13 @@ function resolveShiftMember(shift, employeesById) {
 
   return {
     shiftId: String(shift.id),
+    employeeId: String(shift.employeeId),
     name: name || 'Unassigned',
     department,
     roleLabel,
     shiftLabel: startTimeLabel && endTimeLabel ? `${startTimeLabel} - ${endTimeLabel}` : startTimeLabel || 'Scheduled',
     startMinutes: parseTimeToMinutes(shift.startTime) ?? 0,
+    endMinutes: parseTimeToMinutes(shift.endTime) ?? 0,
   }
 }
 
@@ -204,11 +207,16 @@ export function buildTodayStatusSummary({
   }
 
   const scheduledStaff = Number(snapshot.scheduledStaff) || 0
+  const coverageGaps = Number(snapshot.coverageGaps) || 0
   let teamScheduledSummary = 'No shifts scheduled today'
   if (scheduledStaff === 1) {
-    teamScheduledSummary = '1 scheduled today'
+    teamScheduledSummary = coverageGaps > 0
+      ? `1 scheduled · ${coverageGaps} gap${coverageGaps === 1 ? '' : 's'}`
+      : '1 scheduled today'
   } else if (scheduledStaff > 0) {
-    teamScheduledSummary = `${scheduledStaff} scheduled today`
+    teamScheduledSummary = coverageGaps > 0
+      ? `${scheduledStaff} scheduled · ${coverageGaps} gap${coverageGaps === 1 ? '' : 's'}`
+      : `${scheduledStaff} scheduled today`
   }
 
   let reservationsSummaryLine = reservationsConnected ? 'No reservations today' : 'Reservations not connected'
@@ -377,6 +385,7 @@ export function buildTodayAttentionItems({
   todayKey = getCurrentDateKey(),
   issuesSummary = {},
   snapshot = {},
+  coverageBreakdown = null,
 } = {}) {
   const items = []
   let dueTodayCount = 0
@@ -439,13 +448,17 @@ export function buildTodayAttentionItems({
 
   const issueCount = Number(issuesSummary.count ?? snapshot.issues) || 0
   if (issueCount > 0) {
+    const scheduleDetail = buildScheduleAttentionDetail(snapshot, coverageBreakdown)
+      || issuesSummary.message
+      || 'Review today\'s schedule'
+
     items.push({
       key: 'schedule-issues',
       category: 'schedule',
       tone: issueCount >= 3 ? 'critical' : 'warning',
       priority: issueCount >= 3 ? 'urgent' : 'reminder',
       label: issueCount === 1 ? 'Schedule issue' : `${issueCount} schedule issues`,
-      detail: issuesSummary.message || 'Review today\'s schedule',
+      detail: scheduleDetail,
     })
   }
 

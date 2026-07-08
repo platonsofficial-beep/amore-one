@@ -288,7 +288,7 @@ export function formatTeamTodayCollapsedSummary({
 
   const coverageLabel = teamStatus.coverageTone === 'ok'
     ? 'Service covered'
-    : (teamStatus.coverageValue || 'Review coverage')
+    : (teamStatus.coverageDetail || teamStatus.coverageValue || 'Review coverage')
 
   return `${workingLabel} · ${coverageLabel}`
 }
