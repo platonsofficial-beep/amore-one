@@ -1,7 +1,8 @@
 import { formatTime24, normalizeTimeValue } from './timeFormatUtils'
 import { parseTimeToMinutes } from './shiftHoursUtils'
 import { isTaskOverdue } from './taskUtils'
-import { canStaffCompleteTask, normalizeOperationsStatus } from './operationsUtils'
+import { compareOperationsTasksByWorkflow, isOperationsTaskOverdue } from './operationsBrowse'
+import { canStaffCompleteTask, getTaskAssigneeId, normalizeOperationsStatus } from './operationsUtils'
 
 function normalizeShiftDate(value) {
   if (!value) return ''
@@ -246,10 +247,66 @@ function isMobileOperationsTaskDone(task) {
 }
 
 function isMobileOperationsTaskOverdue(task, todayKey) {
-  if (isMobileOperationsTaskDone(task)) return false
-  const dueDate = normalizeMobileTaskDateKey(task?.dueDate ?? task?.due_date)
-  if (!dueDate) return false
-  return dueDate < todayKey
+  return isOperationsTaskOverdue(task, todayKey)
+}
+
+export function getMobileOperationsTaskStatusLabel(task, todayKey = '') {
+  if (isMobileOperationsTaskDone(task)) return 'Completed'
+
+  if (isMobileOperationsTaskOverdue(task, todayKey)) return 'Overdue'
+  return 'Pending'
+}
+
+export function getMobileOperationsStaffOwnershipLabel(task, currentEmployeeId = null) {
+  const assigneeId = getTaskAssigneeId(task)
+  if (!assigneeId) return 'Team task'
+  if (currentEmployeeId && `${assigneeId}` === `${currentEmployeeId}`) return 'Assigned to you'
+  return 'Assigned'
+}
+
+export function groupMobileStaffPendingTasks(pendingTasks = [], todayKey = '') {
+  const overdue = []
+  const dueToday = []
+
+  ;(pendingTasks ?? []).forEach((task) => {
+    if (isMobileOperationsTaskOverdue(task, todayKey)) {
+      overdue.push(task)
+      return
+    }
+    dueToday.push(task)
+  })
+
+  return { overdue, dueToday }
+}
+
+export function getMobileStaffTaskTabEmptyState(tabId, taskGroups = {}, todayKey = '') {
+  const pending = taskGroups.pending ?? []
+  const overdueCount = pending.filter((task) => isMobileOperationsTaskOverdue(task, todayKey)).length
+
+  if (tabId === 'pending') {
+    if (overdueCount > 0) {
+      return {
+        title: 'Nothing else due right now',
+        message: `${overdueCount} overdue ${overdueCount === 1 ? 'task remains' : 'tasks remain'} in Pending.`,
+      }
+    }
+    return {
+      title: 'You are caught up',
+      message: 'No tasks need action today.',
+    }
+  }
+
+  if (tabId === 'upcoming') {
+    return {
+      title: 'No upcoming tasks',
+      message: 'Future work will appear here when it is scheduled.',
+    }
+  }
+
+  return {
+    title: 'No completed tasks yet',
+    message: 'Finished work will show up in this list.',
+  }
 }
 
 function isMobileOperationsTaskCompletedToday(task, todayKey) {
@@ -292,20 +349,8 @@ export function partitionMobileOperationsTasks(tasks = [], todayKey = '') {
     pending.push(task)
   })
 
-  const sortByDue = (left, right) => {
-    const leftDate = normalizeMobileTaskDateKey(left?.dueDate ?? left?.due_date) || '9999-12-31'
-    const rightDate = normalizeMobileTaskDateKey(right?.dueDate ?? right?.due_date) || '9999-12-31'
-    if (leftDate !== rightDate) return leftDate.localeCompare(rightDate)
-    return `${left?.title ?? ''}`.localeCompare(`${right?.title ?? ''}`)
-  }
-
-  upcoming.sort(sortByDue)
-  pending.sort((left, right) => {
-    const leftOverdue = isMobileOperationsTaskOverdue(left, todayKey) ? 0 : 1
-    const rightOverdue = isMobileOperationsTaskOverdue(right, todayKey) ? 0 : 1
-    if (leftOverdue !== rightOverdue) return leftOverdue - rightOverdue
-    return sortByDue(left, right)
-  })
+  upcoming.sort((left, right) => compareOperationsTasksByWorkflow(left, right, todayKey))
+  pending.sort((left, right) => compareOperationsTasksByWorkflow(left, right, todayKey))
   completed.sort((left, right) => {
     const leftCompleted = normalizeMobileTaskDateKey(left?.completedAt ?? left?.completed_at) || ''
     const rightCompleted = normalizeMobileTaskDateKey(right?.completedAt ?? right?.completed_at) || ''
@@ -341,6 +386,15 @@ export function calculateMobileOperationsTaskOverview(tasks = [], todayKey = '')
 
   const showEmptyToday = active === 0 && overdue === 0 && completedToday === 0
 
+  let statusMessage = ''
+  if (overdue > 0) {
+    statusMessage = `${overdue} overdue`
+  } else if (active === 0 && completedToday > 0) {
+    statusMessage = 'All caught up today'
+  } else if (active > 0) {
+    statusMessage = `${active} open`
+  }
+
   return {
     active,
     overdue,
@@ -349,5 +403,6 @@ export function calculateMobileOperationsTaskOverview(tasks = [], todayKey = '')
     showEmptyToday,
     todayTotal: todayWorkload.length,
     todayCompleted: completedInTodayWorkload,
+    statusMessage,
   }
 }

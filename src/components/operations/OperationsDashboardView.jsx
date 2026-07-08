@@ -263,10 +263,11 @@ export function OperationsDashboardView({
 
   const mobileMetrics = useMemo(() => ({
     openTasks: summary.openTasks,
+    overdueTasks: summary.overdueTasks,
     issues: summary.urgentIssues,
     notes: logs.length,
     checklists: checklistTemplates.filter((template) => template.active !== false).length,
-  }), [summary.openTasks, summary.urgentIssues, logs.length, checklistTemplates])
+  }), [summary.openTasks, summary.overdueTasks, summary.urgentIssues, logs.length, checklistTemplates])
 
   const visibleTasks = useMemo(() => {
     const filtered = filterOperationsTasks(standaloneTasks, {
@@ -388,9 +389,13 @@ export function OperationsDashboardView({
 
         <div className="operations-summary-grid operations-mobile-metrics" aria-label="Operations metrics">
           <OperationsSummaryCard label="Open tasks" value={mobileMetrics.openTasks} tone="warning" />
+          <OperationsSummaryCard
+            label="Overdue"
+            value={mobileMetrics.overdueTasks}
+            tone={mobileMetrics.overdueTasks > 0 ? 'danger' : 'default'}
+          />
           <OperationsSummaryCard label="Issues" value={mobileMetrics.issues} tone="danger" />
           <OperationsSummaryCard label="Notes" value={mobileMetrics.notes} tone="gold" />
-          <OperationsSummaryCard label="Checklists" value={mobileMetrics.checklists} />
         </div>
 
         {canManage ? (
@@ -562,6 +567,11 @@ export function OperationsDashboardView({
 
       <div className="operations-summary-grid" aria-label="Today at a glance">
         <OperationsSummaryCard label="Open tasks" value={summary.openTasks} tone="warning" />
+        <OperationsSummaryCard
+          label="Overdue"
+          value={summary.overdueTasks}
+          tone={summary.overdueTasks > 0 ? 'danger' : 'default'}
+        />
         <OperationsSummaryCard label="Completed today" value={summary.completedToday} tone="success" />
         <OperationsSummaryCard label="Urgent issues" value={summary.urgentIssues} tone="danger" />
         <OperationsSummaryCard label="Team notes" value={summary.teamNotes} tone="gold" />

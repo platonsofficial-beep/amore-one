@@ -4,6 +4,7 @@ import {
   buildTodayAttentionItems,
   sortTodayAttentionItems,
 } from './todayViewUtils'
+import { compareOperationsTasksByWorkflow } from './operationsBrowse'
 
 export function buildManagerMobileAttentionItems({
   attentionItems = [],
@@ -229,14 +230,7 @@ export function buildManagerMobileTodayTaskList(tasks = [], todayKey = '') {
     }
   })
 
-  active.sort((left, right) => {
-    const leftDate = normalizeManagerTaskDateKey(left?.dueDate ?? left?.due_date)
-    const rightDate = normalizeManagerTaskDateKey(right?.dueDate ?? right?.due_date)
-    const leftOverdue = leftDate && leftDate < todayKey ? 0 : 1
-    const rightOverdue = rightDate && rightDate < todayKey ? 0 : 1
-    if (leftOverdue !== rightOverdue) return leftOverdue - rightOverdue
-    return compareManagerTaskDueTime(left, right)
-  })
+  active.sort((left, right) => compareOperationsTasksByWorkflow(left, right, todayKey))
 
   completed.sort((left, right) => {
     const leftAt = `${left?.completedAt ?? left?.completed_at ?? ''}`

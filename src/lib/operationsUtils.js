@@ -168,9 +168,14 @@ export function buildEmptyOperationsTaskForm(todayKey = '') {
 export function buildOperationsDashboardSummary(tasks = [], logs = [], todayKey = '') {
   const normalizedToday = normalizeOperationsTaskDate(todayKey)
   const todayTasks = tasks.filter((task) => normalizeOperationsTaskDate(task.dueDate) === normalizedToday)
+  const pendingTasks = (tasks ?? []).filter((task) => normalizeOperationsStatus(task.status) === 'pending')
 
   const openTasks = todayTasks.filter((task) => normalizeOperationsStatus(task.status) === 'pending').length
   const completedToday = todayTasks.filter((task) => normalizeOperationsStatus(task.status) === 'completed').length
+  const overdueTasks = pendingTasks.filter((task) => {
+    const dueDate = normalizeOperationsTaskDate(task.dueDate ?? task?.due_date)
+    return dueDate && todayKey && dueDate < normalizedToday
+  }).length
   const urgentIssues = todayTasks.filter(
     (task) => normalizeOperationsPriority(task.priority) === 'urgent'
       && normalizeOperationsStatus(task.status) === 'pending',
@@ -180,6 +185,7 @@ export function buildOperationsDashboardSummary(tasks = [], logs = [], todayKey 
   return {
     openTasks,
     completedToday,
+    overdueTasks,
     urgentIssues,
     teamNotes,
   }

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import {
   canStaffCompleteTask,
   getOperationsCategoryLabel,
@@ -6,6 +6,12 @@ import {
   normalizeOperationsStatus,
   resolveEmployeeName,
 } from '../../lib/operationsUtils'
+import {
+  getMobileOperationsStaffOwnershipLabel,
+  getMobileOperationsTaskStatusLabel,
+  getMobileStaffTaskTabEmptyState,
+  groupMobileStaffPendingTasks,
+} from '../../lib/mobileStaffUtils'
 import { formatTime24 } from '../../lib/timeFormatUtils'
 import { parseLocalDate } from '../../lib/weekUtils'
 import { MobileTaskDetailSheet } from './MobileTaskDetailSheet'
@@ -72,6 +78,130 @@ function getAssignmentLabel(task, employees = []) {
   return resolveEmployeeName(assignedTo, employees)
 }
 
+function MobileTaskCard({
+  task,
+  activeTab,
+  todayKey,
+  currentEmployeeId,
+  employees,
+  onSelect,
+}) {
+  const priority = `${task?.priority ?? 'normal'}`.trim().toLowerCase()
+  const isDone = normalizeOperationsStatus(task?.status) !== 'pending'
+  const statusLabel = getMobileOperationsTaskStatusLabel(task, todayKey)
+  const isOverdue = statusLabel === 'Overdue'
+  const ownershipLabel = getMobileOperationsStaffOwnershipLabel(task, currentEmployeeId)
+  const assignmentLabel = getAssignmentLabel(task, employees)
+
+  return (
+    <li>
+      <button
+        type="button"
+        className={`mobile-task-card${priority === 'urgent' || isOverdue ? ' is-urgent' : ''}${isOverdue ? ' is-overdue' : ''}`}
+        onClick={() => onSelect(task)}
+      >
+        <div className="mobile-task-card-copy">
+          <div className="mobile-task-card-title-row">
+            <strong>{task.title ?? 'Task'}</strong>
+            <span className={`mobile-task-priority-badge priority-${priority}`}>
+              {getOperationsPriorityLabel(task.priority)}
+            </span>
+          </div>
+          {activeTab === 'completed' ? (
+            <>
+              <span>{formatCompletedCardMeta(task)}</span>
+              {task.completionNote ? (
+                <span className="mobile-task-completion-preview">Note: {task.completionNote}</span>
+              ) : null}
+            </>
+          ) : (
+            <>
+              <span>{formatTaskDueLabel(task, todayKey)}</span>
+              <span className="mobile-task-meta-row">
+                <span className={`mobile-task-ownership${ownershipLabel === 'Team task' ? ' is-team' : ' is-mine'}`}>
+                  {ownershipLabel}
+                </span>
+                <span aria-hidden="true">·</span>
+                <span className="mobile-task-category">{getOperationsCategoryLabel(task.category)}</span>
+                {assignmentLabel !== 'Unassigned' && ownershipLabel === 'Team task' ? (
+                  <>
+                    <span aria-hidden="true">·</span>
+                    <span className="mobile-task-assignment">{assignmentLabel}</span>
+                  </>
+                ) : null}
+              </span>
+            </>
+          )}
+          {activeTab !== 'completed' ? (
+            <span className={`mobile-task-status-chip${isOverdue ? ' is-overdue' : ''}${isDone ? ' is-done' : ''}`}>
+              {statusLabel}
+            </span>
+          ) : null}
+        </div>
+      </button>
+    </li>
+  )
+}
+
+function PendingTaskSections({
+  pendingTasks,
+  todayKey,
+  currentEmployeeId,
+  employees,
+  onSelect,
+}) {
+  const { overdue, dueToday } = useMemo(
+    () => groupMobileStaffPendingTasks(pendingTasks, todayKey),
+    [pendingTasks, todayKey],
+  )
+
+  const sections = [
+    overdue.length > 0 ? { key: 'overdue', label: 'Overdue', tasks: overdue } : null,
+    dueToday.length > 0 ? { key: 'due-today', label: 'Due today', tasks: dueToday } : null,
+  ].filter(Boolean)
+
+  if (sections.length <= 1) {
+    return (
+      <ul className="mobile-task-list">
+        {pendingTasks.map((task) => (
+          <MobileTaskCard
+            key={task.id}
+            task={task}
+            activeTab="pending"
+            todayKey={todayKey}
+            currentEmployeeId={currentEmployeeId}
+            employees={employees}
+            onSelect={onSelect}
+          />
+        ))}
+      </ul>
+    )
+  }
+
+  return (
+    <div className="mobile-task-sections">
+      {sections.map((section) => (
+        <section key={section.key} className="mobile-task-section" aria-label={section.label}>
+          <h2 className="mobile-task-section-label">{section.label}</h2>
+          <ul className="mobile-task-list">
+            {section.tasks.map((task) => (
+              <MobileTaskCard
+                key={task.id}
+                task={task}
+                activeTab="pending"
+                todayKey={todayKey}
+                currentEmployeeId={currentEmployeeId}
+                employees={employees}
+                onSelect={onSelect}
+              />
+            ))}
+          </ul>
+        </section>
+      ))}
+    </div>
+  )
+}
+
 export function MobileTasksView({
   taskGroups = { upcoming: [], pending: [], completed: [] },
   employees = [],
@@ -86,6 +216,11 @@ export function MobileTasksView({
   const [activeTab, setActiveTab] = useState('pending')
   const [selectedTask, setSelectedTask] = useState(null)
   const visibleTasks = taskGroups[activeTab] ?? []
+  const pendingGroups = useMemo(
+    () => groupMobileStaffPendingTasks(taskGroups.pending ?? [], todayKey),
+    [taskGroups.pending, todayKey],
+  )
+  const emptyState = getMobileStaffTaskTabEmptyState(activeTab, taskGroups, todayKey)
 
   const handleCompleteTask = async ({ completionNote = '' } = {}) => {
     if (!selectedTask) return
@@ -131,7 +266,7 @@ export function MobileTasksView({
             type="button"
             role="tab"
             aria-selected={activeTab === tab.id}
-            className={`mobile-segmented-btn${activeTab === tab.id ? ' is-active' : ''}`}
+            className={`mobile-segmented-btn${activeTab === tab.id ? ' is-active' : ''}${tab.id === 'pending' && pendingGroups.overdue.length > 0 ? ' has-alert' : ''}`}
             onClick={() => setActiveTab(tab.id)}
           >
             {tab.label}
@@ -140,71 +275,52 @@ export function MobileTasksView({
         ))}
       </div>
 
+      {activeTab === 'pending' && pendingGroups.overdue.length > 0 ? (
+        <p className="mobile-task-workflow-note" role="status">
+          {pendingGroups.overdue.length} overdue {pendingGroups.overdue.length === 1 ? 'task needs' : 'tasks need'} attention
+        </p>
+      ) : null}
+
       {isLoading ? (
         <p className="mobile-empty-note">Loading tasks…</p>
       ) : visibleTasks.length === 0 ? (
         <section className="mobile-empty-state">
           <p className="mobile-empty-icon" aria-hidden="true">✓</p>
-          <h2>No {activeTab} tasks</h2>
-          <p>You are clear in this list for now.</p>
+          <h2>{emptyState.title}</h2>
+          <p>{emptyState.message}</p>
           {onOpenTasksWorkspace ? (
             <button type="button" className="mobile-primary-btn" onClick={onOpenTasksWorkspace}>
-              Open tasks workspace
+              Open operations dashboard
             </button>
           ) : null}
         </section>
+      ) : activeTab === 'pending' ? (
+        <PendingTaskSections
+          pendingTasks={visibleTasks}
+          todayKey={todayKey}
+          currentEmployeeId={currentEmployeeId}
+          employees={employees}
+          onSelect={setSelectedTask}
+        />
       ) : (
         <ul className="mobile-task-list">
-          {visibleTasks.map((task) => {
-            const priority = `${task?.priority ?? 'normal'}`.trim().toLowerCase()
-            const isDone = normalizeOperationsStatus(task?.status) !== 'pending'
-            const assignmentLabel = getAssignmentLabel(task, employees)
-
-            return (
-              <li key={task.id}>
-                <button
-                  type="button"
-                  className={`mobile-task-card${priority === 'urgent' ? ' is-urgent' : ''}`}
-                  onClick={() => setSelectedTask(task)}
-                >
-                  <div className="mobile-task-card-copy">
-                    <div className="mobile-task-card-title-row">
-                      <strong>{task.title ?? 'Task'}</strong>
-                      <span className={`mobile-task-priority-badge priority-${priority}`}>
-                        {getOperationsPriorityLabel(task.priority)}
-                      </span>
-                    </div>
-                    {activeTab === 'completed' ? (
-                      <>
-                        <span>{formatCompletedCardMeta(task)}</span>
-                        {task.completionNote ? (
-                          <span className="mobile-task-completion-preview">Note: {task.completionNote}</span>
-                        ) : null}
-                      </>
-                    ) : (
-                      <>
-                        <span>{formatTaskDueLabel(task, todayKey)}</span>
-                        <span className="mobile-task-meta-row">
-                          <span className="mobile-task-category">{getOperationsCategoryLabel(task.category)}</span>
-                          <span aria-hidden="true">·</span>
-                          <span className="mobile-task-assignment">{assignmentLabel}</span>
-                        </span>
-                      </>
-                    )}
-                    {isDone && activeTab !== 'completed' ? (
-                      <span className="mobile-task-status-chip">Done</span>
-                    ) : null}
-                  </div>
-                </button>
-              </li>
-            )
-          })}
+          {visibleTasks.map((task) => (
+            <MobileTaskCard
+              key={task.id}
+              task={task}
+              activeTab={activeTab}
+              todayKey={todayKey}
+              currentEmployeeId={currentEmployeeId}
+              employees={employees}
+              onSelect={setSelectedTask}
+            />
+          ))}
         </ul>
       )}
 
       {!isLoading && visibleTasks.length > 0 && onOpenTasksWorkspace ? (
         <button type="button" className="mobile-secondary-btn" onClick={onOpenTasksWorkspace}>
-          Open full tasks board
+          Open operations dashboard
         </button>
       ) : null}
 

@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { buildManagerMobileTodayTaskList } from '../../lib/mobileManagerTodayUtils'
+import { buildManagerMobileTeamProgress, buildManagerMobileTodayTaskList } from '../../lib/mobileManagerTodayUtils'
 import {
   buildChecklistProgressRows,
   formatChecklistProgressLabel,
@@ -76,6 +76,29 @@ function ChecklistRow({ row, onOpen }) {
           {formatChecklistProgressLabel(row)}
         </span>
       </button>
+    </li>
+  )
+}
+
+function TeamProgressRow({ entry }) {
+  const percent = entry.total > 0 ? Math.round((entry.done / entry.total) * 100) : 100
+
+  return (
+    <li className="mobile-manager-team-progress-item">
+      <div className="mobile-manager-team-progress-copy">
+        <strong>{entry.name}</strong>
+        <span>{entry.done} of {entry.total} done</span>
+      </div>
+      <div
+        className="mobile-manager-team-progress-track"
+        role="progressbar"
+        aria-valuenow={percent}
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-label={`${entry.name}: ${percent}% complete`}
+      >
+        <span className="mobile-manager-team-progress-fill" style={{ width: `${percent}%` }} />
+      </div>
     </li>
   )
 }
@@ -163,6 +186,8 @@ export function MobileManagerTasksView({
     completionPercent = 0,
     todayTotal = 0,
     todayCompleted = 0,
+    overdue = 0,
+    completedToday = 0,
   } = taskOverview
 
   const hasTodayWork = todayTotal > 0
@@ -170,6 +195,20 @@ export function MobileManagerTasksView({
   const todayTasks = useMemo(
     () => buildManagerMobileTodayTaskList(tasks, todayKey),
     [tasks, todayKey],
+  )
+
+  const teamProgress = useMemo(
+    () => buildManagerMobileTeamProgress(tasks, employees, todayKey),
+    [tasks, employees, todayKey],
+  )
+
+  const activeTodayTasks = useMemo(
+    () => todayTasks.filter((task) => normalizeOperationsStatus(task?.status) === 'pending'),
+    [todayTasks],
+  )
+  const overdueTodayCount = useMemo(
+    () => activeTodayTasks.filter((task) => getTaskStatusLabel(task, todayKey) === 'Overdue').length,
+    [activeTodayTasks, todayKey],
   )
 
   const checklistRows = useMemo(
@@ -222,6 +261,13 @@ export function MobileManagerTasksView({
                 </p>
                 <span className="mobile-manager-tasks-command-percent">{completionPercent}%</span>
               </div>
+              {overdueTodayCount > 0 || overdue > 0 ? (
+                <p className="mobile-manager-tasks-command-alert" role="status">
+                  {overdueTodayCount > 0
+                    ? `${overdueTodayCount} overdue today`
+                    : `${overdue} overdue`}
+                </p>
+              ) : null}
               <div
                 className="mobile-manager-tasks-progress-track"
                 role="progressbar"
@@ -265,10 +311,25 @@ export function MobileManagerTasksView({
             ) : (
               <div className="mobile-manager-tasks-empty is-hero" role="status">
                 <p className="mobile-manager-tasks-empty-title">Everything is on track</p>
-                <p className="mobile-manager-tasks-empty-message">No pending tasks today</p>
+                <p className="mobile-manager-tasks-empty-message">
+                  {completedToday > 0
+                    ? `${completedToday} completed today. No open tasks right now.`
+                    : 'No pending tasks today'}
+                </p>
               </div>
             )}
           </section>
+
+          {teamProgress.length > 0 ? (
+            <section className="mobile-manager-tasks-section" aria-label="Team progress">
+              <p className="mobile-manager-tasks-block-label">Who owns what</p>
+              <ul className="mobile-manager-team-progress-list">
+                {teamProgress.map((entry) => (
+                  <TeamProgressRow key={entry.employeeId} entry={entry} />
+                ))}
+              </ul>
+            </section>
+          ) : null}
 
           <section className="mobile-manager-tasks-section" aria-label="Today's checklist">
             <p className="mobile-manager-tasks-block-label">Today&apos;s checklist</p>

@@ -19667,7 +19667,7 @@ function App() {
     if (!canOpenMobileTasksWorkspace(role)) return
 
     handleActiveViewChange('operations')
-    handleOperationsSectionChange('tasks')
+    handleOperationsSectionChange('dashboard')
     setMobileExpandedView('workspace')
   }
 
