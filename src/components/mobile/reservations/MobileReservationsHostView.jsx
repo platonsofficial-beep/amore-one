@@ -7,7 +7,7 @@ import {
 import {
   countMobileHostReservationsByTab,
   filterMobileHostReservations,
-  isMobileHostLandscapeViewport,
+  isMobileHostSplitViewport,
   MOBILE_HOST_TABS,
 } from '../../../lib/mobileHostReservationUtils'
 import { MobileReservationHostCard } from './MobileReservationHostCard'
@@ -26,17 +26,21 @@ export function MobileReservationsHostView({
   onHostEditSave,
   onHostEditDelete,
   onCreateReservation,
-  onOpenFullWorkspace,
+  onExitHostMode,
+  renderRightPane,
+  selectedReservationId: controlledSelectedReservationId = null,
+  onSelectReservation,
 }) {
   const [activeTab, setActiveTab] = useState('upcoming')
   const [searchTerm, setSearchTerm] = useState('')
   const [isCreateOpen, setIsCreateOpen] = useState(false)
   const [editingReservation, setEditingReservation] = useState(null)
-  const [selectedReservationId, setSelectedReservationId] = useState(null)
-  const [isLandscape, setIsLandscape] = useState(() => isMobileHostLandscapeViewport())
+  const [localSelectedReservationId, setLocalSelectedReservationId] = useState(null)
+  const [isSplitLayout, setIsSplitLayout] = useState(() => isMobileHostSplitViewport())
+  const [isFloorPlanOpen, setIsFloorPlanOpen] = useState(false)
 
   useEffect(() => {
-    const updateOrientation = () => setIsLandscape(isMobileHostLandscapeViewport())
+    const updateOrientation = () => setIsSplitLayout(isMobileHostSplitViewport())
     window.addEventListener('resize', updateOrientation)
     window.addEventListener('orientationchange', updateOrientation)
     return () => {
@@ -73,14 +77,9 @@ export function MobileReservationsHostView({
     [todayKey],
   )
 
-  const selectedReservation = useMemo(
-    () => workspaceReservations.find(
-      (reservation) => `${reservation.id}` === `${selectedReservationId}`,
-    ) ?? null,
-    [workspaceReservations, selectedReservationId],
-  )
-
-  const landscapeDetailReservation = editingReservation ?? selectedReservation
+  const effectiveSelectedReservationId = isSplitLayout && controlledSelectedReservationId != null
+    ? controlledSelectedReservationId
+    : localSelectedReservationId
 
   const handleCreateSubmit = async (form) => {
     const created = await onCreateReservation?.(form)
@@ -90,152 +89,157 @@ export function MobileReservationsHostView({
   }
 
   const handleSelectReservation = (reservation) => {
-    setSelectedReservationId(reservation.id)
-    if (isLandscape) {
+    if (isSplitLayout && onSelectReservation) {
+      onSelectReservation(reservation)
       setEditingReservation(null)
+      return
     }
+
+    setLocalSelectedReservationId(reservation.id)
   }
 
   const handleEditReservation = (reservation) => {
     setEditingReservation(reservation)
-    setSelectedReservationId(reservation.id)
+    if (isSplitLayout && onSelectReservation) {
+      onSelectReservation(reservation)
+      return
+    }
+    setLocalSelectedReservationId(reservation.id)
   }
 
+  const rightPaneContent = renderRightPane
+    ? renderRightPane({ onEditReservation: handleEditReservation })
+    : null
+
   const listPanel = (
-  <>
-    <header className="mobile-host-reservations-header" aria-label="Host reservations header">
-      <div className="mobile-host-reservations-heading">
-        <h1 className="mobile-host-reservations-title">Reservations</h1>
-        <p className="mobile-host-reservations-date">{dateLabel}</p>
-      </div>
-      <p className="mobile-host-reservations-stats">
-        <strong>{summary.totalReservations}</strong> reservations
-        <span aria-hidden="true"> · </span>
-        <strong>{summary.totalGuests}</strong> guests
-      </p>
-
-      <div className="mobile-host-reservations-toolbar">
-        <label className="mobile-host-reservations-search">
-          <span className="sr-only">Search reservations</span>
-          <input
-            type="search"
-            value={searchTerm}
-            onChange={(event) => setSearchTerm(event.target.value)}
-            placeholder="Search guest, phone, table"
-          />
-        </label>
-        <button
-          type="button"
-          className="mobile-host-reservations-add-btn"
-          onClick={() => setIsCreateOpen(true)}
-          disabled={isSaving}
-        >
-          + Reservation
-        </button>
-      </div>
-    </header>
-
-    {noticeMessage ? (
-      <div className="mobile-host-reservations-notice" role="status">{noticeMessage}</div>
-    ) : null}
-
-    <div className="mobile-host-reservations-tabs" role="tablist" aria-label="Service tabs">
-      {MOBILE_HOST_TABS.map((tab) => (
-        <button
-          key={tab.id}
-          type="button"
-          role="tab"
-          aria-selected={activeTab === tab.id}
-          className={`mobile-host-reservations-tab${activeTab === tab.id ? ' is-active' : ''}`}
-          onClick={() => setActiveTab(tab.id)}
-        >
-          <span>{tab.label}</span>
-          <span className="mobile-host-reservations-tab-count">{tabCounts[tab.id] ?? 0}</span>
-        </button>
-      ))}
-    </div>
-
-    {isLoading ? (
-      <p className="mobile-host-reservations-loading">Loading reservations…</p>
-    ) : visibleReservations.length === 0 ? (
-      <div className="mobile-host-reservations-empty" role="status">
-        <p className="mobile-host-reservations-empty-title">No reservations in this list</p>
-        <p className="mobile-host-reservations-empty-copy">
-          {searchTerm
-            ? 'Try another search or switch tabs.'
-            : 'Add a reservation to start service.'}
+    <>
+      <header className="mobile-host-reservations-header mobile-host-mode-header" aria-label="Host mode header">
+        <div className="mobile-host-mode-header-top">
+          <div className="mobile-host-reservations-heading">
+            <h1 className="mobile-host-reservations-title">Reservations Host Mode</h1>
+            <p className="mobile-host-reservations-date">{dateLabel}</p>
+          </div>
+          {onExitHostMode ? (
+            <button
+              type="button"
+              className="mobile-host-mode-exit-btn"
+              onClick={onExitHostMode}
+              aria-label="Exit Host Mode"
+            >
+              Exit Host Mode
+            </button>
+          ) : null}
+        </div>
+        <p className="mobile-host-reservations-stats">
+          <strong>{summary.totalReservations}</strong> reservations
+          <span aria-hidden="true"> · </span>
+          <strong>{summary.totalGuests}</strong> guests
         </p>
-      </div>
-    ) : (
-      <ul className="mobile-host-reservation-list" role="list">
-        {visibleReservations.map((reservation) => (
-          <MobileReservationHostCard
-            key={reservation.id}
-            reservation={reservation}
-            groupId={activeTab}
-            todayKey={todayKey}
-            nowMinutes={nowMinutes}
-            isSelected={`${selectedReservationId}` === `${reservation.id}`}
-            onSelect={handleSelectReservation}
-            onQuickStatusUpdate={onQuickStatusUpdate}
-            onEdit={handleEditReservation}
-            isSaving={isSaving}
-          />
-        ))}
-      </ul>
-    )}
 
-    {onOpenFullWorkspace ? (
-      <button
-        type="button"
-        className="mobile-host-reservations-full-btn"
-        onClick={onOpenFullWorkspace}
-      >
-        Open full reservations workspace
-      </button>
-    ) : null}
-  </>
+        <div className="mobile-host-reservations-toolbar">
+          <label className="mobile-host-reservations-search">
+            <span className="sr-only">Search reservations</span>
+            <input
+              type="search"
+              value={searchTerm}
+              onChange={(event) => setSearchTerm(event.target.value)}
+              placeholder="Search guest, phone, table"
+            />
+          </label>
+          <button
+            type="button"
+            className="mobile-host-reservations-add-btn"
+            onClick={() => setIsCreateOpen(true)}
+            disabled={isSaving}
+          >
+            + Reservation
+          </button>
+        </div>
+      </header>
+
+      {noticeMessage ? (
+        <div className="mobile-host-reservations-notice" role="status">{noticeMessage}</div>
+      ) : null}
+
+      <div className="mobile-host-reservations-tabs" role="tablist" aria-label="Service tabs">
+        {MOBILE_HOST_TABS.map((tab) => (
+          <button
+            key={tab.id}
+            type="button"
+            role="tab"
+            aria-selected={activeTab === tab.id}
+            className={`mobile-host-reservations-tab${activeTab === tab.id ? ' is-active' : ''}`}
+            onClick={() => setActiveTab(tab.id)}
+          >
+            <span>{tab.label}</span>
+            <span className="mobile-host-reservations-tab-count">{tabCounts[tab.id] ?? 0}</span>
+          </button>
+        ))}
+      </div>
+
+      {isLoading ? (
+        <p className="mobile-host-reservations-loading">Loading reservations…</p>
+      ) : visibleReservations.length === 0 ? (
+        <div className="mobile-host-reservations-empty" role="status">
+          <p className="mobile-host-reservations-empty-title">No reservations in this list</p>
+          <p className="mobile-host-reservations-empty-copy">
+            {searchTerm
+              ? 'Try another search or switch tabs.'
+              : 'Add a reservation to start service.'}
+          </p>
+        </div>
+      ) : (
+        <ul className="mobile-host-reservation-list" role="list">
+          {visibleReservations.map((reservation) => (
+            <MobileReservationHostCard
+              key={reservation.id}
+              reservation={reservation}
+              groupId={activeTab}
+              todayKey={todayKey}
+              nowMinutes={nowMinutes}
+              isSelected={`${effectiveSelectedReservationId}` === `${reservation.id}`}
+              isLandscapeLayout={isSplitLayout}
+              onSelect={handleSelectReservation}
+              onQuickStatusUpdate={onQuickStatusUpdate}
+              onEdit={handleEditReservation}
+              isSaving={isSaving}
+            />
+          ))}
+        </ul>
+      )}
+
+      {!isSplitLayout && rightPaneContent ? (
+        <div className="mobile-host-floor-collapsible">
+          <button
+            type="button"
+            className="mobile-host-floor-toggle"
+            onClick={() => setIsFloorPlanOpen((current) => !current)}
+            aria-expanded={isFloorPlanOpen}
+          >
+            <span>Floor plan</span>
+            <span className="mobile-host-floor-toggle-icon" aria-hidden="true">
+              {isFloorPlanOpen ? '▲' : '▼'}
+            </span>
+          </button>
+          {isFloorPlanOpen ? (
+            <div className="mobile-host-floor-collapsible-body">
+              {rightPaneContent}
+            </div>
+          ) : null}
+        </div>
+      ) : null}
+    </>
   )
 
   return (
-    <div className={`mobile-screen mobile-host-reservations${isLandscape ? ' is-landscape' : ''}`}>
-      {isLandscape ? (
+    <div className={`mobile-screen mobile-host-reservations is-host-mode${isSplitLayout ? ' is-landscape' : ''}`}>
+      {isSplitLayout && rightPaneContent ? (
         <div className="mobile-host-reservations-landscape">
           <section className="mobile-host-reservations-list-pane" aria-label="Reservation list">
             {listPanel}
           </section>
-          <section className="mobile-host-reservations-detail-pane" aria-label="Reservation details">
-            {landscapeDetailReservation ? (
-              <div className="mobile-host-reservations-detail-card">
-                <header className="mobile-host-reservations-detail-header">
-                  <h2>{landscapeDetailReservation.guestName || 'Reservation'}</h2>
-                  <button
-                    type="button"
-                    className="mobile-host-reservations-detail-edit-btn"
-                    onClick={() => handleEditReservation(landscapeDetailReservation)}
-                  >
-                    Edit
-                  </button>
-                </header>
-                <div className="mobile-host-reservations-detail-body">
-                  <HostReservationDetailSummary
-                    reservation={landscapeDetailReservation}
-                    todayKey={todayKey}
-                    nowMinutes={nowMinutes}
-                  />
-                  <p className="mobile-host-reservations-detail-hint">
-                    Tap Edit for table assignment, notes, and full guest details.
-                  </p>
-                </div>
-              </div>
-            ) : (
-              <div className="mobile-host-reservations-detail-empty">
-                <p>Select a reservation to review details.</p>
-                <p className="mobile-host-reservations-detail-hint">
-                  Floor plan and advanced seating tools are available in the full workspace.
-                </p>
-              </div>
-            )}
+          <section className="mobile-host-reservations-detail-pane" aria-label="Floor plan and details">
+            {rightPaneContent}
           </section>
         </div>
       ) : (
@@ -260,46 +264,5 @@ export function MobileReservationsHostView({
         onDelete={onHostEditDelete}
       />
     </div>
-  )
-}
-
-function HostReservationDetailSummary({ reservation, todayKey, nowMinutes }) {
-  const partySize = Number(reservation?.guests) || 0
-  const phone = `${reservation?.phone ?? ''}`.trim()
-  const notes = `${reservation?.notes ?? ''}`.trim()
-
-  return (
-    <dl className="mobile-host-reservation-detail-grid">
-      <div>
-        <dt>Time</dt>
-        <dd>{reservation?.time || '—'}</dd>
-      </div>
-      <div>
-        <dt>Party</dt>
-        <dd>{partySize}</dd>
-      </div>
-      <div>
-        <dt>Phone</dt>
-        <dd>{phone || '—'}</dd>
-      </div>
-      <div>
-        <dt>Table</dt>
-        <dd>{reservation?.tableNumber || 'Unassigned'}</dd>
-      </div>
-      <div>
-        <dt>Area</dt>
-        <dd>{reservation?.area || '—'}</dd>
-      </div>
-      <div>
-        <dt>Status</dt>
-        <dd>{reservation?.status || '—'}</dd>
-      </div>
-      {notes ? (
-        <div className="is-full">
-          <dt>Notes</dt>
-          <dd>{notes}</dd>
-        </div>
-      ) : null}
-    </dl>
   )
 }

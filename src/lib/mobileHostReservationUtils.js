@@ -75,3 +75,15 @@ export function isMobileHostLandscapeViewport() {
   return window.matchMedia?.('(orientation: landscape)')?.matches
     ?? window.innerWidth > window.innerHeight
 }
+
+export function isMobileHostTabletViewport() {
+  if (typeof window === 'undefined') return false
+  return window.matchMedia?.('(min-width: 700px)')?.matches
+    ?? window.innerWidth >= 700
+}
+
+export function isMobileHostSplitViewport() {
+  if (typeof window === 'undefined') return false
+  if (isMobileHostLandscapeViewport()) return true
+  return isMobileHostTabletViewport() && window.innerWidth > window.innerHeight
+}

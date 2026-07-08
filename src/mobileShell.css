@@ -3707,6 +3707,835 @@
   }
 }
 
+.mobile-host-reservations {
+  gap: 8px;
+  padding-bottom: 4px;
+}
+
+.mobile-app-host-mode {
+  height: 100dvh;
+  max-height: 100dvh;
+  overflow: hidden;
+}
+
+.mobile-app-host-mode .mobile-host-mode-screen {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  height: 100%;
+  overflow: hidden;
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+.mobile-app-host-mode .mobile-workspace-module.is-host-mode-module {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+  padding: 8px 10px 10px;
+}
+
+.mobile-app-host-mode .mobile-host-reservations.is-host-mode {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.mobile-reservations-open-host-btn {
+  width: 100%;
+  min-height: 44px;
+  margin-top: 8px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 12px;
+  background: linear-gradient(165deg, rgba(212, 175, 55, 0.22), rgba(212, 175, 55, 0.1));
+  box-shadow: inset 0 0 0 1px rgba(212, 175, 55, 0.34);
+  color: #f0dca2;
+  font-size: 0.88rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.mobile-host-mode-header-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.mobile-host-mode-exit-btn {
+  flex-shrink: 0;
+  min-height: 44px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.06);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.1);
+  color: #e8dcc8;
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.mobile-host-floor-collapsible {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.mobile-host-floor-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  min-height: 44px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.04);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+  color: #d6b26a;
+  font-size: 0.86rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.mobile-host-floor-toggle-icon {
+  color: #a89f92;
+  font-size: 0.72rem;
+}
+
+.mobile-host-floor-collapsible-body {
+  min-height: 220px;
+  max-height: min(42vh, 360px);
+  overflow: hidden;
+  border-radius: 14px;
+}
+
+.mobile-host-floor-collapsible-body .mobile-host-reservations-right-pane {
+  height: 100%;
+}
+
+.mobile-host-floor-collapsible-body .mobile-host-floor-stage {
+  min-height: 200px;
+}
+
+.mobile-manager-app.is-reservations-host-mode .mobile-bottom-nav {
+  display: none;
+}
+
+.mobile-manager-app.is-reservations-host-mode .mobile-expanded-scroll {
+  overflow: hidden;
+}
+
+.mobile-host-reservations-header {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.mobile-host-reservations-heading {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.mobile-host-reservations-title {
+  margin: 0;
+  color: #fff7e8;
+  font-size: 1.28rem;
+  font-weight: 700;
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+}
+
+.mobile-host-reservations-date {
+  margin: 0;
+  color: #a89f92;
+  font-size: 0.84rem;
+  line-height: 1.35;
+}
+
+.mobile-host-reservations-stats {
+  margin: 0;
+  color: #c9bfb0;
+  font-size: 0.84rem;
+}
+
+.mobile-host-reservations-stats strong {
+  color: #f7efe1;
+  font-weight: 700;
+}
+
+.mobile-host-reservations-toolbar {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+}
+
+.mobile-host-reservations-search input {
+  width: 100%;
+  min-height: 44px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.05);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+  color: #f7efe1;
+  font-size: 0.9rem;
+}
+
+.mobile-host-reservations-add-btn {
+  min-height: 44px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 12px;
+  background: linear-gradient(165deg, #e8c97a, #d4af37);
+  color: #1a1408;
+  font-size: 0.82rem;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.mobile-host-reservations-notice {
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: rgba(212, 175, 55, 0.1);
+  color: #f0dca2;
+  font-size: 0.84rem;
+  line-height: 1.35;
+}
+
+.mobile-host-reservations-tabs {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.mobile-host-reservations-tab {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 44px;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.03);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+  color: #c9bfb0;
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+
+.mobile-host-reservations-tab.is-active {
+  color: #f7efe1;
+  background: rgba(212, 175, 55, 0.12);
+  box-shadow: inset 0 0 0 1px rgba(212, 175, 55, 0.28);
+}
+
+.mobile-host-reservations-tab-count {
+  min-width: 22px;
+  min-height: 22px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.06);
+  color: #f0e4cc;
+  font-size: 0.72rem;
+  line-height: 22px;
+  text-align: center;
+}
+
+.mobile-host-reservation-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.mobile-host-reservation-item {
+  list-style: none;
+}
+
+.mobile-host-reservation-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.03);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+  overflow: hidden;
+}
+
+.mobile-host-reservation-card.is-selected {
+  box-shadow: inset 0 0 0 1px rgba(212, 175, 55, 0.34);
+}
+
+.mobile-host-reservation-card-main {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+  padding: 10px 10px 8px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+}
+
+.mobile-host-reservation-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.mobile-host-reservation-time {
+  color: #f0dca2;
+  font-size: 0.92rem;
+  font-weight: 700;
+}
+
+.mobile-host-reservation-status {
+  flex-shrink: 0;
+  min-height: 22px;
+  padding: 0 8px;
+  border-radius: 999px;
+  font-size: 0.64rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  line-height: 22px;
+  text-transform: uppercase;
+  background: rgba(255, 255, 255, 0.06);
+  color: #d8cdbf;
+}
+
+.mobile-host-reservation-guest {
+  margin: 0;
+  color: #fff7e8;
+  font-size: 1rem;
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.mobile-host-reservation-meta,
+.mobile-host-reservation-table {
+  margin: 0;
+  color: #a89f92;
+  font-size: 0.82rem;
+  line-height: 1.35;
+}
+
+.mobile-host-reservation-actions {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+  padding: 0 8px 8px;
+}
+
+.mobile-host-reservation-action {
+  min-height: 44px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: 10px;
+  background: rgba(212, 175, 55, 0.14);
+  color: #f0dca2;
+  font-size: 0.76rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.mobile-host-reservation-action.is-ghost {
+  background: rgba(255, 255, 255, 0.04);
+  color: #d8cdbf;
+}
+
+.mobile-host-reservation-action:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.mobile-host-reservations-empty,
+.mobile-host-reservations-loading {
+  padding: 12px 10px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.02);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+  color: #8f8778;
+  font-size: 0.86rem;
+}
+
+.mobile-host-reservations-empty-title {
+  margin: 0 0 4px;
+  color: #e8dcc8;
+  font-weight: 700;
+}
+
+.mobile-host-reservations-empty-copy {
+  margin: 0;
+}
+
+.mobile-host-reservations-full-btn {
+  width: 100%;
+  min-height: 44px;
+  margin-top: 2px;
+  border: 0;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.04);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+  color: #d6b26a;
+  font-size: 0.84rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.mobile-host-reservations-full-btn.is-compact {
+  margin-top: 8px;
+  font-size: 0.78rem;
+}
+
+.mobile-host-reservations.is-landscape {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+  padding-bottom: 0;
+}
+
+.mobile-host-reservations-landscape {
+  display: grid;
+  grid-template-columns: 45% 55%;
+  gap: 10px;
+  flex: 1 1 auto;
+  min-height: 0;
+  height: 100%;
+  overflow: hidden;
+}
+
+.mobile-host-reservations-list-pane,
+.mobile-host-reservations-detail-pane {
+  min-width: 0;
+  min-height: 0;
+}
+
+.mobile-host-reservations-list-pane {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding-right: 2px;
+}
+
+.mobile-host-reservations-detail-pane {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.mobile-host-reservations-right-pane {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.mobile-host-floor-stage {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.02);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+}
+
+.mobile-host-floor-stage .floor-plan-workspace.is-host-floor {
+  height: 100%;
+  min-height: 0;
+  max-height: none;
+  display: flex;
+  flex-direction: column;
+}
+
+.mobile-host-floor-stage .floor-plan-host-shell,
+.mobile-host-floor-stage .floor-plan-host-main {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.mobile-host-floor-stage .floor-plan-viewport.is-host-viewport {
+  flex: 1 1 auto;
+  min-height: 180px;
+  height: 100%;
+  max-height: none;
+  overflow: hidden;
+  touch-action: none;
+}
+
+.mobile-host-floor-stage .floor-plan-canvas-stage,
+.mobile-host-floor-stage .floor-plan-layout-space.is-published-layout {
+  min-height: 0;
+}
+
+.mobile-host-floor-empty {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 8px;
+  flex: 1 1 auto;
+  min-height: 220px;
+  padding: 16px 14px;
+  border-radius: 14px;
+  border-left: 3px solid rgba(212, 175, 55, 0.35);
+  background:
+    linear-gradient(165deg, rgba(212, 175, 55, 0.06), rgba(255, 255, 255, 0.02)),
+    rgba(10, 10, 11, 0.94);
+  text-align: left;
+}
+
+.mobile-host-floor-empty-eyebrow {
+  margin: 0;
+  color: #d6b26a;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.mobile-host-floor-empty h2 {
+  margin: 0;
+  color: #fff7e8;
+  font-size: 1.05rem;
+  font-weight: 700;
+}
+
+.mobile-host-floor-empty p {
+  margin: 0;
+  color: #a89f92;
+  font-size: 0.84rem;
+  line-height: 1.4;
+}
+
+.mobile-host-floor-empty-hint {
+  color: #8f8778 !important;
+  font-size: 0.8rem !important;
+}
+
+.mobile-host-floor-selection {
+  flex-shrink: 0;
+}
+
+.mobile-host-floor-selection-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+  padding: 10px 11px;
+  border-radius: 12px;
+  background: rgba(212, 175, 55, 0.08);
+  box-shadow: inset 0 0 0 1px rgba(212, 175, 55, 0.2);
+}
+
+.mobile-host-floor-selection-main {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+  min-width: 0;
+}
+
+.mobile-host-floor-selection-time {
+  margin: 0;
+  color: #f0dca2;
+  font-size: 1rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.mobile-host-floor-selection-copy {
+  min-width: 0;
+}
+
+.mobile-host-floor-selection-copy h3 {
+  margin: 0;
+  color: #fff7e8;
+  font-size: 0.92rem;
+  font-weight: 700;
+  line-height: 1.2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mobile-host-floor-selection-copy p {
+  margin: 2px 0 0;
+  color: #a89f92;
+  font-size: 0.78rem;
+  line-height: 1.3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mobile-host-floor-selection-edit-btn {
+  min-height: 44px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 10px;
+  background: rgba(212, 175, 55, 0.16);
+  color: #f0dca2;
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.mobile-host-reservation-card.is-landscape-layout .mobile-host-reservation-card-main {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+  padding: 12px 12px 8px;
+}
+
+.mobile-host-reservation-card.is-landscape-layout .mobile-host-reservation-time.is-large {
+  min-width: 64px;
+  color: #f0dca2;
+  font-size: 1.12rem;
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+.mobile-host-reservation-card.is-landscape-layout .mobile-host-reservation-service-copy {
+  min-width: 0;
+}
+
+.mobile-host-reservation-card.is-landscape-layout .mobile-host-reservation-guest {
+  font-size: 1.02rem;
+}
+
+.mobile-host-reservation-card.is-landscape-layout .mobile-host-reservation-meta,
+.mobile-host-reservation-card.is-landscape-layout .mobile-host-reservation-table {
+  font-size: 0.8rem;
+}
+
+.mobile-host-reservation-card.is-landscape-layout .mobile-host-reservation-status {
+  align-self: start;
+}
+
+.mobile-host-reservation-card.is-landscape-layout .mobile-host-reservation-actions {
+  grid-template-columns: repeat(auto-fit, minmax(72px, 1fr));
+  padding: 0 10px 10px;
+}
+
+.mobile-manager-app:has(.mobile-host-reservations.is-landscape) .mobile-bottom-nav,
+.mobile-manager-app.is-reservations-host-mode:has(.mobile-host-reservations.is-landscape) .mobile-bottom-nav {
+  display: none;
+}
+
+.mobile-manager-app.is-reservations-host-mode:has(.mobile-host-reservations.is-landscape) .mobile-host-mode-screen,
+.mobile-manager-app:has(.mobile-host-reservations.is-landscape) .mobile-expanded-scroll {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  height: calc(100dvh - 52px);
+  max-height: calc(100dvh - 52px);
+  overflow: hidden;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+.mobile-manager-app.is-reservations-host-mode:has(.mobile-host-reservations.is-landscape) .mobile-host-mode-screen {
+  height: 100%;
+  max-height: 100%;
+}
+
+.mobile-manager-app:has(.mobile-host-reservations.is-landscape) .mobile-workspace-module.is-mobile-expanded,
+.mobile-manager-app.is-reservations-host-mode:has(.mobile-host-reservations.is-landscape) .mobile-workspace-module.is-host-mode-module {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.mobile-manager-app:has(.mobile-host-reservations.is-landscape) .mobile-host-reservations,
+.mobile-manager-app.is-reservations-host-mode:has(.mobile-host-reservations.is-landscape) .mobile-host-reservations {
+  flex: 1 1 auto;
+}
+
+.mobile-host-reservations-detail-card,
+.mobile-host-reservations-detail-empty {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 220px;
+  padding: 10px 11px;
+  border-radius: 14px;
+  border-left: 3px solid rgba(212, 175, 55, 0.55);
+  background:
+    linear-gradient(165deg, rgba(212, 175, 55, 0.07), rgba(255, 255, 255, 0.02)),
+    rgba(10, 10, 11, 0.94);
+}
+
+.mobile-host-reservations-detail-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.mobile-host-reservations-detail-header h2 {
+  margin: 0;
+  color: #fff7e8;
+  font-size: 1.02rem;
+}
+
+.mobile-host-reservations-detail-edit-btn {
+  min-height: 44px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 10px;
+  background: rgba(212, 175, 55, 0.14);
+  color: #f0dca2;
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.mobile-host-reservation-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0;
+}
+
+.mobile-host-reservation-detail-grid div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.mobile-host-reservation-detail-grid div.is-full {
+  grid-column: 1 / -1;
+}
+
+.mobile-host-reservation-detail-grid dt {
+  color: #8f8778;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.mobile-host-reservation-detail-grid dd {
+  margin: 0;
+  color: #f7efe1;
+  font-size: 0.88rem;
+}
+
+.mobile-host-reservations-detail-hint {
+  margin: 0;
+  color: #8f8778;
+  font-size: 0.8rem;
+  line-height: 1.35;
+}
+
+.mobile-host-reservation-sheet .mobile-sheet-body {
+  max-height: min(78vh, 720px);
+  overflow-y: auto;
+}
+
+.mobile-host-reservation-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.mobile-host-form-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.mobile-host-form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  color: #c9bfb0;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.mobile-host-form-field input,
+.mobile-host-form-field textarea,
+.mobile-host-form-field select {
+  min-height: 44px;
+  padding: 10px 12px;
+  border: 0;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.05);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+  color: #f7efe1;
+  font: inherit;
+}
+
+.mobile-host-form-field textarea {
+  min-height: 88px;
+  resize: vertical;
+}
+
+.mobile-host-form-hint {
+  margin: 0;
+  color: #8f8778;
+  font-size: 0.78rem;
+}
+
+.mobile-host-reservation-edit-body .host-reservation-edit-panel {
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  padding: 0;
+}
+
+@media (min-width: 700px) {
+  .mobile-host-reservations-tabs {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .mobile-host-reservations.is-landscape .mobile-host-reservation-card.is-landscape-layout .mobile-host-reservation-time.is-large {
+    font-size: 1.2rem;
+  }
+}
+
+@media (orientation: landscape) {
+  .mobile-host-reservations.is-landscape .mobile-host-reservations-header {
+    gap: 4px;
+  }
+
+  .mobile-host-reservations.is-landscape .mobile-host-reservations-title {
+    font-size: 1.12rem;
+  }
+}
+
 @media (min-width: 761px) {
   .app-shell:not(.is-mobile-shell) .mobile-app,
   .app-shell:not(.is-mobile-shell) .mobile-bottom-nav {

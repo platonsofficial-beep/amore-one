@@ -32,6 +32,7 @@ export function MobileReservationHostCard({
   todayKey = '',
   nowMinutes = 0,
   isSelected = false,
+  isLandscapeLayout = false,
   onSelect,
   onQuickStatusUpdate,
   onEdit,
@@ -62,6 +63,46 @@ export function MobileReservationHostCard({
     if (action.status) {
       onQuickStatusUpdate?.(reservation, action.status)
     }
+  }
+
+  if (isLandscapeLayout) {
+    return (
+      <li className="mobile-host-reservation-item">
+        <article className={`mobile-host-reservation-card is-landscape-layout${isSelected ? ' is-selected' : ''}`}>
+          <button
+            type="button"
+            className="mobile-host-reservation-card-main"
+            onClick={() => onSelect?.(reservation)}
+          >
+            <span className="mobile-host-reservation-time is-large">{timeLabel}</span>
+            <div className="mobile-host-reservation-service-copy">
+              <h3 className="mobile-host-reservation-guest">{guestName}</h3>
+              <p className="mobile-host-reservation-meta">
+                {partySize} {partySize === 1 ? 'guest' : 'guests'}
+              </p>
+              <p className="mobile-host-reservation-table">{tableSection}</p>
+            </div>
+            <span className={`mobile-host-reservation-status tone-${statusMeta.tone}`}>
+              {statusMeta.label}
+            </span>
+          </button>
+
+          <div className="mobile-host-reservation-actions" role="group" aria-label="Quick actions">
+            {quickActions.map((action) => (
+              <button
+                key={action.id}
+                type="button"
+                className={`mobile-host-reservation-action${action.id === 'edit' ? ' is-ghost' : ''}`}
+                onClick={(event) => handleAction(event, action)}
+                disabled={isSaving}
+              >
+                {action.label}
+              </button>
+            ))}
+          </div>
+        </article>
+      </li>
+    )
   }
 
   return (

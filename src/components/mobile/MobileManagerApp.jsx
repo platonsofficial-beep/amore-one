@@ -18,6 +18,7 @@ export function MobileManagerApp({
   expandedTitle = '',
   onBackFromExpanded,
   expandedModuleContent = null,
+  isReservationsHostMode = false,
 }) {
   const noticeBanner = noticeMessage ? (
     <div className="mobile-notice-banner auth-banner auth-banner-error" role="alert">
@@ -29,6 +30,21 @@ export function MobileManagerApp({
       ) : null}
     </div>
   ) : null
+
+  if (expandedView && isReservationsHostMode) {
+    return (
+      <div className="mobile-app mobile-app-expanded mobile-app-host-mode mobile-manager-app is-reservations-host-mode">
+        {noticeBanner}
+        <div className="mobile-host-mode-screen">
+          {expandedModuleContent ? (
+            <div className="mobile-workspace-module is-mobile-expanded is-host-mode-module">
+              {expandedModuleContent}
+            </div>
+          ) : null}
+        </div>
+      </div>
+    )
+  }
 
   if (expandedView) {
     return (

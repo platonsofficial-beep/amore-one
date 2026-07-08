@@ -341,6 +341,7 @@ import { UserMenu } from './components/auth/UserMenu'
 import { MobileManagerApp } from './components/mobile/MobileManagerApp'
 import { MobileStaffApp } from './components/mobile/MobileStaffApp'
 import { MobileReservationsHostView } from './components/mobile/reservations/MobileReservationsHostView'
+import { MobileReservationsHostRightPane } from './components/mobile/reservations/MobileReservationsHostRightPane'
 import { ViewportDebugOverlay } from './components/shell/ViewportDebugOverlay'
 import { shouldUseMobileShell } from './lib/viewportUtils'
 import {
@@ -8159,6 +8160,119 @@ function FloorPlanView({
   )
 }
 
+function MobileReservationsHostShell({
+  reservations,
+  workspaceTimeZone,
+  todayKey,
+  nowMinutes,
+  isLoading,
+  isSaving,
+  noticeMessage,
+  onQuickStatusUpdate,
+  onHostEditSave,
+  onHostEditDelete,
+  onCreateReservation,
+  onExitHostMode,
+  onSeatGuestAtTable,
+}) {
+  const workspaceReservations = useMemo(
+    () => getHostWorkspaceReservations(reservations, todayKey, workspaceTimeZone),
+    [reservations, todayKey, workspaceTimeZone],
+  )
+
+  return (
+    <ReservationWorkspaceProvider
+      filteredTodayReservations={workspaceReservations}
+      onHostEditSave={onHostEditSave}
+      onHostEditDelete={onHostEditDelete}
+      isSavingHostEdit={isSaving}
+    >
+      <MobileReservationsHostShellBody
+        reservations={reservations}
+        workspaceReservations={workspaceReservations}
+        workspaceTimeZone={workspaceTimeZone}
+        todayKey={todayKey}
+        nowMinutes={nowMinutes}
+        isLoading={isLoading}
+        isSaving={isSaving}
+        noticeMessage={noticeMessage}
+        onQuickStatusUpdate={onQuickStatusUpdate}
+        onHostEditSave={onHostEditSave}
+        onHostEditDelete={onHostEditDelete}
+        onCreateReservation={onCreateReservation}
+        onExitHostMode={onExitHostMode}
+        onSeatGuestAtTable={onSeatGuestAtTable}
+      />
+    </ReservationWorkspaceProvider>
+  )
+}
+
+function MobileReservationsHostShellBody({
+  reservations,
+  workspaceReservations,
+  workspaceTimeZone,
+  todayKey,
+  nowMinutes,
+  isLoading,
+  isSaving,
+  noticeMessage,
+  onQuickStatusUpdate,
+  onHostEditSave,
+  onHostEditDelete,
+  onCreateReservation,
+  onExitHostMode,
+  onSeatGuestAtTable,
+}) {
+  const { selectedReservation, selectReservation } = useReservationWorkspace()
+  const { hasLayout } = usePublishedFloorPlan()
+
+  const floorPlanContent = hasLayout ? (
+    <FloorPlanView
+      reservations={workspaceReservations}
+      allReservations={reservations}
+      listReservations={workspaceReservations}
+      todayKey={todayKey}
+      nowMinutes={nowMinutes}
+      isSaving={isSaving}
+      isCompact
+      onSeatGuestAtTable={onSeatGuestAtTable}
+      onQuickStatusUpdate={onQuickStatusUpdate}
+      onOpenAddReservation={() => {}}
+    />
+  ) : null
+
+  const rightPane = ({ onEditReservation }) => (
+    <MobileReservationsHostRightPane
+      hasLayout={hasLayout}
+      floorPlanContent={floorPlanContent}
+      selectedReservation={selectedReservation}
+      todayKey={todayKey}
+      nowMinutes={nowMinutes}
+      onEditReservation={onEditReservation}
+    />
+  )
+
+  return (
+    <MobileReservationsHostView
+      reservations={reservations}
+      workspaceTimeZone={workspaceTimeZone}
+      todayKey={todayKey}
+      nowMinutes={nowMinutes}
+      isLoading={isLoading}
+      isSaving={isSaving}
+      noticeMessage={noticeMessage}
+      onQuickStatusUpdate={onQuickStatusUpdate}
+      onHostEditSave={onHostEditSave}
+      onHostEditDelete={onHostEditDelete}
+      onCreateReservation={onCreateReservation}
+      onExitHostMode={onExitHostMode}
+      renderRightPane={rightPane}
+      selectedReservationId={selectedReservation?.id ?? null}
+      onSelectReservation={(reservation) => selectReservation(reservation, { scrollFloor: true })}
+    />
+  )
+}
+
 const RESERVATION_WORKFLOW_STAGES = [
   { key: 'booked', status: 'Booked', label: 'Booked', analyticsKey: 'booked' },
   { key: 'confirmed', status: 'Confirmed', label: 'Confirmed', analyticsKey: 'confirmed' },
@@ -10114,6 +10228,7 @@ function ReservationsWorkspaceBody({
   noticeMessage,
   isSaving,
   workspaceTimeZone = '',
+  onOpenHostMode,
 }) {
   const [searchTerm, setSearchTerm] = useState('')
   const [listFilter, setListFilter] = useState('All')
@@ -10438,6 +10553,7 @@ function ReservationsWorkspaceBody({
         onNoteDraftValueChange={setNoteDraftValue}
         onCloseAddNote={handleCloseAddNote}
         onSaveNote={handleSaveNote}
+        onOpenHostMode={onOpenHostMode}
       />
       </ReservationWorkspaceProvider>
   )
@@ -10492,6 +10608,7 @@ function ReservationsWorkspaceContent({
   onNoteDraftValueChange,
   onCloseAddNote,
   onSaveNote,
+  onOpenHostMode,
 }) {
   const {
     selectedReservation,
@@ -10524,6 +10641,15 @@ function ReservationsWorkspaceContent({
               {' · '}
               {hostHeaderStats?.totalGuests ?? 0} guests
             </p>
+            {onOpenHostMode ? (
+              <button
+                type="button"
+                className="mobile-reservations-open-host-btn"
+                onClick={onOpenHostMode}
+              >
+                Open Host Mode
+              </button>
+            ) : null}
           </div>
           <div className="reservations-host-header-actions">
             <label className="reservations-search" aria-label="Search reservations">
@@ -12393,7 +12519,7 @@ function App() {
   }, [])
 
   const [mobileExpandedView, setMobileExpandedView] = useState(null)
-  const [mobileReservationsHostMode, setMobileReservationsHostMode] = useState(true)
+  const [mobileReservationsHostMode, setMobileReservationsHostMode] = useState(false)
   const [mobileWeekStart, setMobileWeekStart] = useState(() => readPersistedMobileWeekStart(getCurrentWeekStartDate()))
   const [mobileWeekPublishedShifts, setMobileWeekPublishedShifts] = useState([])
   const [mobileWeekPublication, setMobileWeekPublication] = useState({
@@ -19108,10 +19234,12 @@ function App() {
   }
 
   const handleMobileBack = () => {
+    setMobileReservationsHostMode(false)
     setMobileExpandedView(null)
   }
 
   const handleMobileTabChange = useCallback((tab) => {
+    setMobileReservationsHostMode(false)
     setMobileExpandedView(null)
     setMobileMenuScreen('main')
     if (isManagementMobileRole(role)) {
@@ -19141,8 +19269,6 @@ function App() {
       handleStockSectionChange('dashboard')
     } else if (moduleId === 'operations') {
       handleOperationsSectionChange('dashboard')
-    } else if (moduleId === 'reservations') {
-      setMobileReservationsHostMode(true)
     } else if (moduleId === 'settings') {
       handleSettingsSectionChange('profile')
     }
@@ -19201,12 +19327,18 @@ function App() {
   const handleMobileManagerOpenReservations = useCallback(() => {
     if (!canAccessMobileExpandedModule(role, 'reservations')) return
 
-    setMobileReservationsHostMode(true)
+    setMobileReservationsHostMode(false)
     handleActiveViewChange('reservations')
     setMobileExpandedView('workspace')
   }, [role, handleActiveViewChange])
 
-  const handleMobileOpenFullReservationsWorkspace = useCallback(() => {
+  const handleMobileOpenReservationsHostMode = useCallback(() => {
+    if (!canAccessMobileExpandedModule(role, 'reservations')) return
+
+    setMobileReservationsHostMode(true)
+  }, [role])
+
+  const handleMobileExitReservationsHostMode = useCallback(() => {
     setMobileReservationsHostMode(false)
   }, [])
 
@@ -19540,7 +19672,7 @@ function App() {
 
         {isActiveViewAllowed && activeView === 'reservations' ? (
           useMobileExperience && mobileReservationsHostMode ? (
-            <MobileReservationsHostView
+            <MobileReservationsHostShell
               reservations={reservations}
               workspaceTimeZone={workspaceTimeZone}
               todayKey={currentDateKey}
@@ -19552,7 +19684,8 @@ function App() {
               onHostEditSave={handleHostEditSave}
               onHostEditDelete={handleHostEditDelete}
               onCreateReservation={handleMobileHostReservationCreate}
-              onOpenFullWorkspace={handleMobileOpenFullReservationsWorkspace}
+              onExitHostMode={handleMobileExitReservationsHostMode}
+              onSeatGuestAtTable={handleSeatGuestAtTable}
             />
           ) : (
             <ReservationsView
@@ -19573,6 +19706,11 @@ function App() {
               isLoading={isReservationsLoading}
               noticeMessage={reservationNotice}
               isSaving={isSavingReservation}
+              onOpenHostMode={
+                canAccessMobileExpandedModule(role, 'reservations')
+                  ? handleMobileOpenReservationsHostMode
+                  : undefined
+              }
             />
           )
         ) : null}
@@ -19976,6 +20114,9 @@ function App() {
                         expandedTitle={mobileExpandedTitle}
                         onBackFromExpanded={handleMobileBack}
                         expandedModuleContent={mobileExpandedView ? workspaceModules : null}
+                        isReservationsHostMode={
+                          mobileReservationsHostMode && activeView === 'reservations'
+                        }
                       />
                     )
                   }
