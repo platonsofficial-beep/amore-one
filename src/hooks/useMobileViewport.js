@@ -2,13 +2,14 @@ import { useEffect, useState } from 'react'
 import {
   MOBILE_SHELL_MAX_WIDTH,
   MOBILE_VIEWPORT_MAX_WIDTH,
-  shouldUseMobileShellViewport,
+  logMobileViewportChange,
+  shouldUseMobileViewport,
 } from '../lib/mobileShellDetection'
 
 export { MOBILE_SHELL_MAX_WIDTH, MOBILE_VIEWPORT_MAX_WIDTH }
 
 export function useMobileViewport() {
-  const [isMobile, setIsMobile] = useState(() => shouldUseMobileShellViewport())
+  const [isMobile, setIsMobile] = useState(() => shouldUseMobileViewport())
 
   useEffect(() => {
     if (typeof window === 'undefined') return undefined
@@ -20,13 +21,9 @@ export function useMobileViewport() {
       window.cancelAnimationFrame(frameId)
       frameId = window.requestAnimationFrame(() => {
         setIsMobile((previous) => {
-          const next = shouldUseMobileShellViewport()
-          if (import.meta.env.DEV && previous !== next) {
-            console.debug('[mobile-shell] viewport changed', {
-              isMobile: next,
-              width: window.innerWidth,
-              height: window.innerHeight,
-            })
+          const next = shouldUseMobileViewport()
+          if (previous !== next) {
+            logMobileViewportChange(next)
           }
           return next
         })
@@ -40,13 +37,11 @@ export function useMobileViewport() {
     }
 
     update()
+    logMobileViewportChange(shouldUseMobileViewport())
 
     window.addEventListener('resize', update)
     window.addEventListener('orientationchange', handleOrientationChange)
-
-    const visualViewport = window.visualViewport
-    visualViewport?.addEventListener('resize', update)
-    visualViewport?.addEventListener('scroll', update)
+    window.visualViewport?.addEventListener('resize', update)
 
     const coarsePointerQuery = window.matchMedia('(pointer: coarse)')
     coarsePointerQuery.addEventListener('change', update)
@@ -56,8 +51,7 @@ export function useMobileViewport() {
       window.clearTimeout(orientationTimerId)
       window.removeEventListener('resize', update)
       window.removeEventListener('orientationchange', handleOrientationChange)
-      visualViewport?.removeEventListener('resize', update)
-      visualViewport?.removeEventListener('scroll', update)
+      window.visualViewport?.removeEventListener('resize', update)
       coarsePointerQuery.removeEventListener('change', update)
     }
   }, [])
