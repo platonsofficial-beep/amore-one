@@ -19896,6 +19896,7 @@ function App() {
                           isLoading: isManagerMobileTasksLoading,
                           isSaving: isSavingOperations,
                           onCreateTask: canManageOperations ? handleCreateOperationsTask : undefined,
+                          onCompleteTask: canManageOperations ? handleCompleteOperationsTask : undefined,
                           onOpenChecklist: canAccessMobileExpandedModule(role, 'operations')
                             ? handleMobileManagerOpenChecklist
                             : undefined,

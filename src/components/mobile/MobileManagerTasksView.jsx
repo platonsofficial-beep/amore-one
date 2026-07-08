@@ -1,15 +1,23 @@
 import { useMemo, useState } from 'react'
+import { buildManagerMobileTodayTaskList } from '../../lib/mobileManagerTodayUtils'
 import {
   buildChecklistProgressRows,
   formatChecklistProgressLabel,
 } from '../../lib/operationsChecklistUtils'
 import {
   formatOperationsLogCardTime,
+  getOperationsCategoryLabel,
   getOperationsLogTypeBadgeLabel,
   getOperationsLogTypeTone,
+  getOperationsPriorityLabel,
   getOperationsShiftNoteHeadline,
+  normalizeOperationsStatus,
+  resolveEmployeeName,
 } from '../../lib/operationsUtils'
+import { formatTime24 } from '../../lib/timeFormatUtils'
+import { parseLocalDate } from '../../lib/weekUtils'
 import { OperationsTaskFormModal } from '../operations/OperationsTaskFormModal'
+import { MobileTaskDetailSheet } from './MobileTaskDetailSheet'
 
 const RECENT_NOTES_LIMIT = 2
 
@@ -19,6 +27,55 @@ function sortLogsNewestFirst(logs = []) {
     const rightTime = new Date(right?.createdAt ?? 0).getTime()
     return rightTime - leftTime
   })
+}
+
+function normalizeTaskDateKey(value) {
+  if (!value) return ''
+  const raw = `${value}`.trim()
+  if (!raw) return ''
+  if (raw.includes('T')) return raw.split('T')[0]
+  return raw.slice(0, 10)
+}
+
+function formatTaskDueLabel(task, todayKey = '') {
+  const dueDate = normalizeTaskDateKey(task?.dueDate ?? task?.due_date)
+  const dueTime = formatTime24(task?.dueTime ?? task?.due_time, '')
+
+  let dateLabel = 'No due date'
+  if (dueDate) {
+    if (dueDate === todayKey) {
+      dateLabel = 'Today'
+    } else if (dueDate < todayKey) {
+      dateLabel = 'Overdue'
+    } else {
+      const parsed = parseLocalDate(dueDate)
+      dateLabel = Number.isNaN(parsed.getTime())
+        ? dueDate
+        : new Intl.DateTimeFormat('en-US', {
+          weekday: 'short',
+          month: 'short',
+          day: 'numeric',
+        }).format(parsed)
+    }
+  }
+
+  if (dueTime) return `${dateLabel} · ${dueTime}`
+  return dateLabel
+}
+
+function getTaskStatusLabel(task, todayKey = '') {
+  const isDone = normalizeOperationsStatus(task?.status) !== 'pending'
+  if (isDone) return 'Completed'
+
+  const dueDate = normalizeTaskDateKey(task?.dueDate ?? task?.due_date)
+  if (dueDate && dueDate < todayKey) return 'Overdue'
+  return 'Pending'
+}
+
+function getAssignmentLabel(task, employees = []) {
+  const assignedTo = task?.assignedTo ?? task?.assigned_to ?? null
+  if (!assignedTo) return ''
+  return resolveEmployeeName(assignedTo, employees)
 }
 
 function ChecklistRow({ row, onOpen }) {
@@ -40,6 +97,43 @@ function ChecklistRow({ row, onOpen }) {
         <span className="mobile-manager-tasks-checklist-status">
           {formatChecklistProgressLabel(row)}
         </span>
+      </button>
+    </li>
+  )
+}
+
+function ManagerTodayTaskCard({ task, employees = [], todayKey = '', onSelect }) {
+  const priority = `${task?.priority ?? 'normal'}`.trim().toLowerCase()
+  const isDone = normalizeOperationsStatus(task?.status) !== 'pending'
+  const assigneeName = getAssignmentLabel(task, employees)
+  const statusLabel = getTaskStatusLabel(task, todayKey)
+  const isOverdue = statusLabel === 'Overdue'
+
+  return (
+    <li className="mobile-manager-today-task-item">
+      <button
+        type="button"
+        className={`mobile-manager-today-task-card${isOverdue ? ' is-overdue' : ''}${isDone ? ' is-done' : ''}`}
+        onClick={() => onSelect?.(task)}
+      >
+        <div className="mobile-manager-today-task-header">
+          <h3 className="mobile-manager-today-task-title">{task.title ?? 'Task'}</h3>
+          <span className={`mobile-manager-today-task-priority priority-${priority}`}>
+            {getOperationsPriorityLabel(task.priority)}
+          </span>
+        </div>
+        <p className="mobile-manager-today-task-department">
+          {getOperationsCategoryLabel(task.category)}
+        </p>
+        {assigneeName ? (
+          <p className="mobile-manager-today-task-owner">{assigneeName}</p>
+        ) : null}
+        <div className="mobile-manager-today-task-footer">
+          <span className="mobile-manager-today-task-due">{formatTaskDueLabel(task, todayKey)}</span>
+          <span className={`mobile-manager-today-task-status${isDone ? ' is-done' : ''}${isOverdue ? ' is-overdue' : ''}`}>
+            {statusLabel}
+          </span>
+        </div>
       </button>
     </li>
   )
@@ -76,9 +170,11 @@ export function MobileManagerTasksView({
   isLoading = false,
   isSaving = false,
   onCreateTask,
+  onCompleteTask,
   onOpenChecklist,
 }) {
   const [isTaskFormOpen, setIsTaskFormOpen] = useState(false)
+  const [selectedTask, setSelectedTask] = useState(null)
 
   const {
     completionPercent = 0,
@@ -87,6 +183,11 @@ export function MobileManagerTasksView({
   } = taskOverview
 
   const hasTodayWork = todayTotal > 0
+
+  const todayTasks = useMemo(
+    () => buildManagerMobileTodayTaskList(tasks, todayKey),
+    [tasks, todayKey],
+  )
 
   const checklistRows = useMemo(
     () => buildChecklistProgressRows(checklistTemplates, tasks, todayKey),
@@ -98,16 +199,25 @@ export function MobileManagerTasksView({
     [operationsLogs],
   )
 
+  const selectedAssigneeName = selectedTask
+    ? getAssignmentLabel(selectedTask, employees) || 'Unassigned'
+    : 'Unassigned'
+
   const handleOpenNewTask = () => {
     if (onCreateTask) {
       setIsTaskFormOpen(true)
-      return
     }
   }
 
   const handleTaskSubmit = async (payload) => {
     await onCreateTask?.(payload)
     setIsTaskFormOpen(false)
+  }
+
+  const handleCompleteTask = async ({ completionNote = '' } = {}) => {
+    if (!selectedTask) return
+    await onCompleteTask?.(selectedTask, { completionNote })
+    setSelectedTask(null)
   }
 
   return (
@@ -143,12 +253,7 @@ export function MobileManagerTasksView({
                 />
               </div>
             </section>
-          ) : (
-            <div className="mobile-manager-tasks-empty is-hero" role="status">
-              <p className="mobile-manager-tasks-empty-title">Everything is on track</p>
-              <p className="mobile-manager-tasks-empty-message">No pending tasks today</p>
-            </div>
-          )}
+          ) : null}
 
           <section className="mobile-manager-tasks-quick-bar is-single" aria-label="Task quick actions">
             <button
@@ -159,6 +264,28 @@ export function MobileManagerTasksView({
             >
               + New task
             </button>
+          </section>
+
+          <section className="mobile-manager-tasks-section" aria-label="Today's tasks">
+            <p className="mobile-manager-tasks-block-label">Today&apos;s tasks</p>
+            {hasTodayWork ? (
+              <ul className="mobile-manager-today-task-list">
+                {todayTasks.map((task) => (
+                  <ManagerTodayTaskCard
+                    key={task.id}
+                    task={task}
+                    employees={employees}
+                    todayKey={todayKey}
+                    onSelect={setSelectedTask}
+                  />
+                ))}
+              </ul>
+            ) : (
+              <div className="mobile-manager-tasks-empty is-hero" role="status">
+                <p className="mobile-manager-tasks-empty-title">Everything is on track</p>
+                <p className="mobile-manager-tasks-empty-message">No pending tasks today</p>
+              </div>
+            )}
           </section>
 
           <section className="mobile-manager-tasks-section" aria-label="Today's checklist">
@@ -203,6 +330,16 @@ export function MobileManagerTasksView({
           onSubmit={handleTaskSubmit}
         />
       ) : null}
+
+      <MobileTaskDetailSheet
+        task={selectedTask}
+        assigneeName={selectedAssigneeName}
+        todayKey={todayKey}
+        canComplete={Boolean(onCompleteTask)}
+        isSaving={isSaving}
+        onClose={() => setSelectedTask(null)}
+        onComplete={handleCompleteTask}
+      />
     </div>
   )
 }

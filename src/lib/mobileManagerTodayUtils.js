@@ -201,6 +201,37 @@ function compareManagerTaskDueTime(left, right) {
   return sortManagerMobileTasks(left, right)
 }
 
+export function buildManagerMobileTodayTaskList(tasks = [], todayKey = '') {
+  const todayTasks = (tasks ?? []).filter((task) => isManagerMobileTaskInTodayWorkload(task, todayKey))
+  const active = []
+  const completed = []
+
+  todayTasks.forEach((task) => {
+    if (isManagerMobileTaskDone(task)) {
+      completed.push(task)
+    } else {
+      active.push(task)
+    }
+  })
+
+  active.sort((left, right) => {
+    const leftDate = normalizeManagerTaskDateKey(left?.dueDate ?? left?.due_date)
+    const rightDate = normalizeManagerTaskDateKey(right?.dueDate ?? right?.due_date)
+    const leftOverdue = leftDate && leftDate < todayKey ? 0 : 1
+    const rightOverdue = rightDate && rightDate < todayKey ? 0 : 1
+    if (leftOverdue !== rightOverdue) return leftOverdue - rightOverdue
+    return compareManagerTaskDueTime(left, right)
+  })
+
+  completed.sort((left, right) => {
+    const leftAt = `${left?.completedAt ?? left?.completed_at ?? ''}`
+    const rightAt = `${right?.completedAt ?? right?.completed_at ?? ''}`
+    return rightAt.localeCompare(leftAt)
+  })
+
+  return [...active, ...completed]
+}
+
 export function pickManagerMobileAttentionTasks(tasks = [], todayKey = '', limit = 3) {
   const activeTasks = (tasks ?? []).filter((task) => !isManagerMobileTaskDone(task))
   const overdue = []
