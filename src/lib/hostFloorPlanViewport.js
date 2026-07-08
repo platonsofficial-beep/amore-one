@@ -2,11 +2,11 @@ import { getFloorUnitMatchKeys, getReservationSeatingAssignment, normalizeUnitKe
 import { reservationOccupiesFloorTables } from './reservationHostStatus'
 
 const DEFAULT_HALF_PERCENT = 6.5
-const FIT_PADDING = 96
-const FIT_ZOOM_SAFETY = 0.88
-const FIT_BOUNDS_INSET_X = 3.5
-const FIT_BOUNDS_INSET_Y_TOP = 3.5
-const FIT_BOUNDS_INSET_Y_BOTTOM = 6.5
+const FIT_PADDING = 40
+const FIT_ZOOM_SAFETY = 0.94
+const FIT_BOUNDS_INSET_X = 2.5
+const FIT_BOUNDS_INSET_Y_TOP = 2.5
+const FIT_BOUNDS_INSET_Y_BOTTOM = 4
 export const HOST_FLOOR_MIN_ZOOM = 0.65
 export const HOST_FLOOR_MAX_ZOOM = 2.4
 

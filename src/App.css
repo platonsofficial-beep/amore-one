@@ -6543,10 +6543,11 @@
 .floor-plan-layout-space.is-published-layout {
   position: relative;
   width: 100%;
+  max-width: 100%;
   max-height: 100%;
   aspect-ratio: var(--floor-aspect-ratio, 2200 / 1400);
   margin: 0 auto;
-  padding: clamp(20px, 2.8%, 30px) clamp(20px, 2.8%, 30px) clamp(34px, 4.8%, 46px);
+  padding: clamp(10px, 1.4%, 16px);
   box-sizing: border-box;
   border: 1px solid rgba(212, 175, 55, 0.16);
   border-radius: 10px;
@@ -6556,9 +6557,45 @@
   isolation: isolate;
 }
 
+.host-operations-floor .floor-plan-workspace.is-host-floor .floor-plan-viewport.is-host-viewport {
+  flex: 1 1 auto;
+  min-height: 260px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.host-operations-floor .floor-plan-workspace.is-host-floor .floor-plan-canvas {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+}
+
+.host-operations-floor .floor-plan-workspace.is-host-floor .floor-plan-canvas-stage {
+  width: 100%;
+  height: 100%;
+  transform-origin: center center;
+}
+
+.floor-plan-workspace.is-host-floor .floor-table-node.is-host-touch {
+  min-width: 118px;
+  min-height: 118px;
+}
+
+.floor-plan-workspace.is-host-floor .floor-table-node.is-host-touch.has-published-layout {
+  min-width: 118px;
+  min-height: 118px;
+}
+
+.floor-plan-workspace.is-host-floor .floor-table-node.is-host-touch .floor-table-node-surface {
+  min-width: 118px;
+  min-height: 118px;
+  padding: 10px 8px;
+}
+
 .floor-plan-workspace.is-host-floor .floor-table-node:not(.has-published-layout) .floor-table-node-surface {
-  min-width: 108px;
-  min-height: 108px;
+  min-width: 118px;
+  min-height: 118px;
   padding: 11px 10px;
   gap: 4px;
   box-sizing: border-box;
@@ -6597,8 +6634,8 @@
 }
 
 .floor-plan-workspace.is-host-floor .floor-table-node.shape-round:not(.has-published-layout) .floor-table-node-surface {
-  min-width: 112px;
-  min-height: 112px;
+  min-width: 122px;
+  min-height: 122px;
 }
 
 .floor-plan-workspace.is-host-floor .floor-table-content .floor-table-time,
@@ -6756,16 +6793,38 @@
 }
 
 .floor-plan-workspace.is-host-floor .floor-table-number {
-  font-size: clamp(0.5rem, 9cqb, 0.72rem);
-  font-weight: 800;
-  letter-spacing: 0.06em;
-  color: #f0e4c8;
+  font-size: clamp(0.62rem, 11cqb, 0.88rem);
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  color: #f8edd0;
   max-width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   line-height: 1.1;
   flex-shrink: 0;
+}
+
+.floor-plan-workspace.is-host-floor .floor-table-party,
+.floor-plan-workspace.is-host-floor .floor-table-seats {
+  font-size: clamp(0.46rem, 7.5cqb, 0.62rem);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  line-height: 1.15;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.floor-plan-workspace.is-host-floor .floor-table-party {
+  color: rgba(232, 215, 168, 0.9);
+}
+
+.floor-plan-workspace.is-host-floor .floor-table-seats {
+  color: rgba(196, 165, 116, 0.82);
+  text-transform: lowercase;
 }
 
 .floor-plan-workspace.is-host-floor .floor-table-guest {
@@ -7090,28 +7149,32 @@
 }
 
 .floor-plan-workspace.is-host-floor .floor-table-node.host-indicator-empty .floor-table-node-surface {
-  border-color: rgba(120, 118, 114, 0.32);
+  border-color: rgba(212, 175, 55, 0.34);
   background:
-    radial-gradient(circle at 50% 18%, rgba(255, 255, 255, 0.03), transparent 60%),
-    rgba(8, 8, 9, 0.9);
-  box-shadow: inset 0 0 0 1px rgba(120, 118, 114, 0.1);
-  opacity: 0.96;
+    radial-gradient(circle at 50% 18%, rgba(255, 236, 190, 0.04), transparent 60%),
+    rgba(8, 8, 9, 0.92);
+  box-shadow:
+    inset 0 0 0 1px rgba(212, 175, 55, 0.08),
+    0 2px 10px rgba(0, 0, 0, 0.22);
+  opacity: 0.98;
 }
 
-.floor-plan-workspace.is-host-floor .floor-table-node.host-indicator-confirmed .floor-table-node-surface {
-  border-color: rgba(212, 175, 55, 0.72);
+.floor-plan-workspace.is-host-floor .floor-table-node.host-indicator-confirmed .floor-table-node-surface,
+.floor-plan-workspace.is-host-floor .floor-table-node.host-indicator-waiting .floor-table-node-surface {
+  border-color: rgba(255, 224, 150, 0.78);
   background:
-    radial-gradient(circle at 50% 20%, rgba(212, 175, 55, 0.18), transparent 62%),
-    linear-gradient(180deg, rgba(42, 34, 16, 0.98), rgba(14, 12, 10, 0.98));
+    radial-gradient(circle at 50% 20%, rgba(212, 175, 55, 0.24), transparent 62%),
+    linear-gradient(180deg, rgba(48, 38, 18, 0.98), rgba(14, 12, 10, 0.98));
   box-shadow:
-    0 0 0 1px rgba(212, 175, 55, 0.24),
-    0 0 20px rgba(212, 175, 55, 0.16),
-    inset 0 0 0 1px rgba(255, 224, 150, 0.08);
+    0 0 0 1px rgba(212, 175, 55, 0.32),
+    0 0 24px rgba(212, 175, 55, 0.28),
+    inset 0 0 0 1px rgba(255, 224, 150, 0.12);
   opacity: 1;
 }
 
-.floor-plan-workspace.is-host-floor .floor-table-node.host-indicator-confirmed .floor-table-number {
-  color: #f0d78a;
+.floor-plan-workspace.is-host-floor .floor-table-node.host-indicator-confirmed .floor-table-number,
+.floor-plan-workspace.is-host-floor .floor-table-node.host-indicator-waiting .floor-table-number {
+  color: #ffe7a8;
   font-weight: 900;
 }
 
@@ -7122,24 +7185,25 @@
 }
 
 .floor-plan-workspace.is-host-floor .floor-table-node.host-indicator-waiting .floor-table-node-surface {
-  border-color: rgba(224, 158, 88, 0.56);
+  border-color: rgba(255, 210, 140, 0.82);
   background:
-    linear-gradient(180deg, rgba(212, 146, 90, 0.1), rgba(12, 11, 10, 0.96));
+    radial-gradient(circle at 50% 20%, rgba(224, 158, 88, 0.2), transparent 62%),
+    linear-gradient(180deg, rgba(52, 34, 16, 0.98), rgba(14, 12, 10, 0.98));
   box-shadow:
-    0 4px 16px rgba(0, 0, 0, 0.22),
-    inset 0 0 0 1px rgba(224, 158, 88, 0.16),
-    0 0 12px rgba(212, 146, 90, 0.14);
+    0 0 0 1px rgba(224, 158, 88, 0.28),
+    0 0 22px rgba(212, 146, 90, 0.24),
+    inset 0 0 0 1px rgba(255, 210, 140, 0.1);
   opacity: 1;
 }
 
 .floor-plan-workspace.is-host-floor .floor-table-node.host-indicator-seated .floor-table-node-surface {
-  border-color: rgba(110, 92, 48, 0.88);
+  border-color: rgba(82, 68, 36, 0.95);
   background:
-    linear-gradient(180deg, rgba(18, 15, 10, 0.98), rgba(8, 7, 6, 0.99));
+    linear-gradient(180deg, rgba(14, 12, 8, 0.99), rgba(4, 4, 4, 0.99));
   box-shadow:
-    0 0 0 1px rgba(72, 58, 24, 0.72),
-    0 10px 28px rgba(0, 0, 0, 0.48),
-    inset 0 0 0 1px rgba(72, 58, 24, 0.28);
+    0 0 0 1px rgba(58, 46, 20, 0.88),
+    0 10px 28px rgba(0, 0, 0, 0.52),
+    inset 0 0 0 1px rgba(48, 38, 18, 0.42);
   opacity: 1;
 }
 
@@ -10828,8 +10892,8 @@
 }
 
 .floor-table-node.is-host-touch {
-  min-width: 44px;
-  min-height: 44px;
+  min-width: 118px;
+  min-height: 118px;
 }
 
 .floor-table-node-surface {

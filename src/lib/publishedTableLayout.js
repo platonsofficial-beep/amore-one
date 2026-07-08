@@ -1,9 +1,9 @@
 import { getTableHalfExtents } from './hostFloorPlanViewport'
 
 const SAFE_LAYOUT_INSET = {
-  x: 3.5,
-  yTop: 3.5,
-  yBottom: 6.5,
+  x: 2.5,
+  yTop: 2.5,
+  yBottom: 4,
 }
 
 function clampPercent(value, min, max) {

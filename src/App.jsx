@@ -6957,6 +6957,15 @@ function FloorTableContextMenu({ menu, mergedGroup, onClose, onSplitPlaceholder 
   )
 }
 
+function formatHostFloorTableLabel(table) {
+  const raw = `${table?.displayLabel ?? table?.label ?? ''}`.trim()
+  if (!raw) return 'T?'
+  if (/^T\d+/i.test(raw)) return raw.toUpperCase()
+  if (/^table\s+/i.test(raw)) return raw.replace(/^table\s+/i, 'T').toUpperCase()
+  if (/^\d+$/.test(raw)) return `T${raw}`
+  return raw.toUpperCase()
+}
+
 function FloorTableNode({
   tableState,
   allReservations = [],
@@ -7034,6 +7043,7 @@ function FloorTableNode({
       : status !== 'available' && status !== 'cleaning'
   )
   const unitLabel = table.displayLabel ?? (table.unitType === 'table' ? `Table ${table.label}` : table.label)
+  const hostTableLabel = formatHostFloorTableLabel(table)
   const seatCapacity = Number(table.maxGuestCapacity ?? table.seats) || 0
   const capacityLabel = table.maxGuestCapacity && table.maxGuestCapacity !== table.seats
     ? `${table.seats} stools · max ${table.maxGuestCapacity}`
@@ -7097,6 +7107,11 @@ function FloorTableNode({
     && displayReservation
     && !hasMultipleTableBookings,
   )
+  const hostStatusBadge = hostVisualIndicator === 'seated'
+    ? 'Occupied'
+    : (hostVisualIndicator === 'confirmed' || hostVisualIndicator === 'waiting')
+      ? 'Reserved'
+      : null
   const showUpcomingLabel = Boolean(
     isHostFloor
     && isHeatmap
@@ -7171,49 +7186,60 @@ function FloorTableNode({
       aria-label={isHeatmap
         ? `${unitLabel}, ${heatmapMetrics?.utilizationPercent ?? 0}% utilization`
         : hasMultipleTableBookings
-          ? `${unitLabel}, ${tableSchedule.length} bookings, ${tableBookingTimesLabel}`
+          ? `${hostTableLabel}, ${tableSchedule.length} bookings, ${tableBookingTimesLabel}`
           : showHostFloorGuestInfo
-            ? `${unitLabel}, ${guestName}, ${arrivalTime || '—'}`
-            : `${unitLabel}, available`}
+            ? `${hostTableLabel}, ${guestName}, ${arrivalTime || seatedDurationLabel || '—'}, ${guestCount} guests`
+            : `${hostTableLabel}, ${seatCapacity} seats, available`}
       aria-current={tableIsSelected ? 'true' : undefined}
       aria-expanded={isHeatmap ? isAnalyticsOpen : undefined}
     >
       <div className="floor-table-node-surface">
         {isHostFloor && !isHeatmap ? (
-          <div className="floor-table-content">
-            <span className="floor-table-number">{unitLabel.toUpperCase()}</span>
-            {hasMultipleTableBookings ? (
-              <div className="floor-table-multi-bookings">
-                <span className="floor-table-booking-count">{tableSchedule.length} BOOKINGS</span>
-                <span className="floor-table-booking-entries">
-                  {tableBookingEntries.map((entry) => (
-                    <span key={entry.id} className="floor-table-booking-entry">
-                      <span className="floor-table-booking-time">{entry.time}</span>
-                      <span className="floor-table-booking-guest">{entry.guestName}</span>
-                    </span>
-                  ))}
-                  {tableSchedule.length > 3 ? (
-                    <span className="floor-table-booking-entry is-more">
-                      +{tableSchedule.length - 3} more
-                    </span>
-                  ) : null}
+          <>
+            <div className="floor-table-chrome">
+              {linkMeta?.isMultiLinked ? (
+                <span className="floor-table-linked-badge" aria-hidden="true" />
+              ) : null}
+              {hostStatusBadge ? (
+                <span className={`floor-table-status-badge is-${hostVisualIndicator === 'seated' ? 'seated' : 'confirmed'}`}>
+                  {hostStatusBadge}
                 </span>
-              </div>
-            ) : showHostFloorGuestInfo ? (
-              <>
-                <span className="floor-table-guest">{guestName}</span>
-                {arrivalTime && arrivalTime !== '—' ? (
-                  <span className="floor-table-time floor-table-reservation-time">{arrivalTime}</span>
-                ) : null}
-              </>
-            ) : (
-              <span className={`floor-table-meta floor-table-meta-empty${isLargeCapacity ? ' is-large-capacity' : ''}`}>
-                {isLargeCapacity ? (
-                  <span className="floor-table-capacity-compact">{seatCapacity} 👥</span>
-                ) : capacityLabel}
-              </span>
-            )}
-          </div>
+              ) : null}
+            </div>
+            <div className="floor-table-content">
+              <span className="floor-table-number">{hostTableLabel}</span>
+              {hasMultipleTableBookings ? (
+                <div className="floor-table-multi-bookings">
+                  <span className="floor-table-booking-count">{tableSchedule.length} BOOKINGS</span>
+                  <span className="floor-table-booking-entries">
+                    {tableBookingEntries.map((entry) => (
+                      <span key={entry.id} className="floor-table-booking-entry">
+                        <span className="floor-table-booking-time">{entry.time}</span>
+                        <span className="floor-table-booking-guest">{entry.guestName}</span>
+                      </span>
+                    ))}
+                    {tableSchedule.length > 3 ? (
+                      <span className="floor-table-booking-entry is-more">
+                        +{tableSchedule.length - 3} more
+                      </span>
+                    ) : null}
+                  </span>
+                </div>
+              ) : showHostFloorGuestInfo ? (
+                <>
+                  <span className="floor-table-guest">{guestName}</span>
+                  {arrivalTime && arrivalTime !== '—' ? (
+                    <span className="floor-table-time floor-table-reservation-time">{arrivalTime}</span>
+                  ) : seatedDurationLabel ? (
+                    <span className="floor-table-time floor-table-reservation-time">{seatedDurationLabel}</span>
+                  ) : null}
+                  <span className="floor-table-party">{guestCount} guests</span>
+                </>
+              ) : (
+                <span className="floor-table-seats">{seatCapacity} seats</span>
+              )}
+            </div>
+          </>
         ) : (
           <>
             {showHostVisualDot ? (

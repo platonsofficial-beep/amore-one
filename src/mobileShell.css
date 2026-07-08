@@ -4411,8 +4411,9 @@
 .mobile-host-floor-stage {
   flex: 1 1 auto;
   min-height: 240px;
-  overflow-y: auto;
-  overflow-x: hidden;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
   -webkit-overflow-scrolling: touch;
   border-radius: 0;
   background: transparent;
@@ -4421,11 +4422,13 @@
 
 .mobile-host-reservations.is-landscape .mobile-host-floor-stage {
   min-height: 0;
+  height: 100%;
 }
 
 .mobile-host-floor-stage .floor-plan-workspace.is-host-floor {
-  height: auto;
+  flex: 1 1 auto;
   min-height: 240px;
+  height: 100%;
   max-height: none;
   display: flex;
   flex-direction: column;
@@ -4442,10 +4445,14 @@
 .mobile-host-floor-stage .floor-plan-viewport.is-host-viewport {
   flex: 1 1 auto;
   min-height: 200px;
-  height: auto;
+  height: 100%;
   max-height: none;
-  overflow: visible;
+  overflow: hidden;
   touch-action: manipulation;
+}
+
+.mobile-host-reservations.is-landscape .mobile-host-floor-stage .floor-plan-viewport.is-host-viewport {
+  min-height: 0;
 }
 
 .mobile-host-floor-stage .floor-plan-canvas-stage,
