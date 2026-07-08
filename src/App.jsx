@@ -12300,6 +12300,10 @@ function App() {
   } = useAuth()
 
   const [isMobileViewport, setIsMobileViewport] = useState(() => shouldUseMobileShell())
+  const forceMobileDevice =
+    typeof navigator !== 'undefined'
+    && /iPhone|iPod/i.test(navigator.userAgent)
+  const useMobileExperience = forceMobileDevice || isMobileViewport
   const [mobileStaffTab, setMobileStaffTab] = useState(() => readPersistedMobileTab())
   const [mobileManagerTab, setMobileManagerTab] = useState(() => readPersistedManagerMobileTab())
   const [mobileMenuScreen, setMobileMenuScreen] = useState('main')
@@ -12348,6 +12352,36 @@ function App() {
       coarsePointerQuery.removeEventListener('change', updateMobileViewport)
     }
   }, [])
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || typeof navigator === 'undefined') {
+      return undefined
+    }
+
+    const logViewport = () => {
+      console.log('ONE viewport', {
+        userAgent: navigator.userAgent,
+        width: window.innerWidth,
+        height: window.innerHeight,
+        isMobileViewport,
+        forceMobileDevice,
+        useMobileExperience,
+      })
+    }
+
+    logViewport()
+
+    window.addEventListener('resize', logViewport)
+    window.addEventListener('orientationchange', logViewport)
+    window.visualViewport?.addEventListener('resize', logViewport)
+
+    return () => {
+      window.removeEventListener('resize', logViewport)
+      window.removeEventListener('orientationchange', logViewport)
+      window.visualViewport?.removeEventListener('resize', logViewport)
+    }
+  }, [forceMobileDevice, isMobileViewport, useMobileExperience])
+
   const [mobileExpandedView, setMobileExpandedView] = useState(null)
   const [mobileWeekStart, setMobileWeekStart] = useState(() => readPersistedMobileWeekStart(getCurrentWeekStartDate()))
   const [mobileWeekPublishedShifts, setMobileWeekPublishedShifts] = useState([])
@@ -19195,9 +19229,9 @@ function App() {
 
   return (
     <PublishedFloorPlanProvider workspaceId={workspace?.id ?? ''}>
-    <div className={`app-shell${isMobileViewport ? ' is-mobile-shell' : ''}${isMobileViewport && mobileExpandedView ? ' is-mobile-expanded' : ''}`}>
-      <ViewportDebugOverlay isMobileViewport={isMobileViewport} />
-      {!isMobileViewport ? (
+    <div className={`app-shell${useMobileExperience ? ' is-mobile-shell' : ''}${useMobileExperience && mobileExpandedView ? ' is-mobile-expanded' : ''}`}>
+      <ViewportDebugOverlay isMobileViewport={useMobileExperience} />
+      {!useMobileExperience ? (
       <aside className="sidebar">
         <div className="brand-block">
           <div className="brand-avatar" aria-hidden="true">
@@ -19676,7 +19710,7 @@ function App() {
 
           return (
             <>
-              {isMobileViewport ? (
+              {useMobileExperience ? (
                 (() => {
                   if (isAuthLoading) {
                     return (
@@ -19843,7 +19877,7 @@ function App() {
                   )
                 })()
               ) : null}
-              {!isMobileViewport ? (
+              {!useMobileExperience ? (
                 <>
                   {!hideStandardTopbar ? (
                   useCommandTopbar ? (
