@@ -1545,6 +1545,19 @@
   padding-bottom: calc(96px + env(safe-area-inset-bottom, 0px));
 }
 
+.app-shell.is-mobile-shell.is-mobile-expanded .mobile-expanded-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  height: calc(100dvh - 88px) !important;
+  max-height: calc(100dvh - 88px) !important;
+  overflow-x: hidden !important;
+  overflow-y: scroll !important;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
+  overscroll-behavior-y: contain;
+  padding-bottom: calc(120px + env(safe-area-inset-bottom, 0px));
+}
+
 .app-shell.is-mobile-shell .mobile-workspace-module {
   flex: 1 1 auto;
   min-height: 0;
@@ -1554,7 +1567,7 @@
 }
 
 .app-shell.is-mobile-shell .mobile-workspace-module.is-mobile-expanded {
-  flex: 1 1 auto;
+  flex: 0 0 auto;
   min-height: 0;
   height: auto;
   max-height: none;
@@ -1566,8 +1579,62 @@
 .app-shell.is-mobile-shell .mobile-workspace-module.is-mobile-expanded .reservations-workspace-host {
   display: flex;
   flex-direction: column;
-  min-height: 100%;
+  align-items: stretch;
+  min-height: 0;
   height: auto;
+}
+
+.app-shell.is-mobile-shell .mobile-workspace-module.is-mobile-expanded .reservations-command-sticky {
+  position: static;
+  top: auto;
+  z-index: auto;
+  flex-shrink: 0;
+}
+
+.app-shell.is-mobile-shell .mobile-workspace-module.is-mobile-expanded .reservations-host-header {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 12px;
+}
+
+.app-shell.is-mobile-shell .mobile-workspace-module.is-mobile-expanded .reservations-host-header-main,
+.app-shell.is-mobile-shell .mobile-workspace-module.is-mobile-expanded .reservations-host-header-actions {
+  width: 100%;
+  max-width: none;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 12px;
+}
+
+.app-shell.is-mobile-shell .mobile-workspace-module.is-mobile-expanded .reservations-host-header-main h2 {
+  display: none;
+}
+
+.app-shell.is-mobile-shell .mobile-workspace-module.is-mobile-expanded .host-workspace-date-nav,
+.app-shell.is-mobile-shell .mobile-workspace-module.is-mobile-expanded .host-workspace-date-nav-main {
+  width: 100%;
+  max-width: none;
+}
+
+.app-shell.is-mobile-shell .mobile-workspace-module.is-mobile-expanded .reservations-search {
+  width: 100%;
+  max-width: none;
+  min-width: 0;
+  position: static;
+}
+
+.app-shell.is-mobile-shell .mobile-workspace-module.is-mobile-expanded .reservations-search input {
+  width: 100%;
+  max-width: none;
+}
+
+.app-shell.is-mobile-shell .mobile-workspace-module.is-mobile-expanded .reservations-add-btn {
+  width: 100%;
+  align-self: stretch;
+  min-height: 44px;
 }
 
 .app-shell.is-mobile-shell .mobile-workspace-module.is-mobile-expanded .reservations-workspace,
@@ -1575,12 +1642,27 @@
 .app-shell.is-mobile-shell .mobile-workspace-module.is-mobile-expanded .reservations-unified-canvas,
 .app-shell.is-mobile-shell .mobile-workspace-module.is-mobile-expanded .reservations-workspace-host .reservations-host-panel,
 .app-shell.is-mobile-shell .mobile-workspace-module.is-mobile-expanded .host-operations-canvas-shell,
-.app-shell.is-mobile-shell .mobile-workspace-module.is-mobile-expanded .host-operations-canvas,
-.app-shell.is-mobile-shell .mobile-workspace-module.is-mobile-expanded .host-operations-list,
-.app-shell.is-mobile-shell .mobile-workspace-module.is-mobile-expanded .host-operations-list-scroll {
+.app-shell.is-mobile-shell .mobile-workspace-module.is-mobile-expanded .host-operations-canvas {
+  display: flex;
+  flex-direction: column;
   height: auto;
   max-height: none;
   min-height: 0;
+  overflow: visible;
+}
+
+.app-shell.is-mobile-shell .mobile-workspace-module.is-mobile-expanded .host-operations-list,
+.app-shell.is-mobile-shell .mobile-workspace-module.is-mobile-expanded .host-operations-list-scroll {
+  max-height: none;
+  height: auto;
+  overflow: visible;
+}
+
+.app-shell.is-mobile-shell .mobile-workspace-module.is-mobile-expanded .reservations-workspace-host,
+.app-shell.is-mobile-shell .mobile-workspace-module.is-mobile-expanded .reservations-unified-canvas,
+.app-shell.is-mobile-shell .mobile-workspace-module.is-mobile-expanded .host-operations-canvas,
+.app-shell.is-mobile-shell .mobile-workspace-module.is-mobile-expanded .host-operations-list,
+.app-shell.is-mobile-shell .mobile-workspace-module.is-mobile-expanded .host-operations-list-scroll {
   overflow-x: hidden;
   overflow-y: visible;
 }
@@ -1654,6 +1736,17 @@
 }
 
 @media (max-width: 760px) {
+  .app-shell.is-mobile-shell.is-mobile-expanded .mobile-expanded-scroll {
+    flex: 1 1 auto;
+    min-height: 0;
+    height: calc(100dvh - 88px) !important;
+    max-height: calc(100dvh - 88px) !important;
+    overflow-y: scroll !important;
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-y;
+    padding-bottom: calc(120px + env(safe-area-inset-bottom, 0px));
+  }
+
   .app-shell.is-mobile-shell .mobile-workspace-module.is-mobile-expanded .host-operations-list {
     max-height: none;
   }
