@@ -279,7 +279,6 @@ import {
   buildTeamTodayGroups,
 } from './lib/todayViewUtils'
 import { buildStockOrdersOperationsSummary } from './lib/stockOrderUtils'
-import { pickManagerMobileTaskPreviewLists } from './lib/mobileManagerTodayUtils'
 import { buildStockDashboardSummary } from './lib/stockUtils'
 import { canManageAnnouncements, filterTasksExcludingAnnouncementDuplicates } from './lib/operationsAnnouncementUtils'
 import {
@@ -13105,11 +13104,6 @@ function App() {
     [managerMobileOperationsTasks, currentDateKey],
   )
 
-  const managerMobileTaskPreviewLists = useMemo(
-    () => pickManagerMobileTaskPreviewLists(managerMobileOperationsTasks, currentDateKey),
-    [managerMobileOperationsTasks, currentDateKey],
-  )
-
   const isManagerMobileShell = !isAuthLoading && isManagementMobileRole(role)
   const activeMobileTab = isManagerMobileShell ? mobileManagerTab : mobileStaffTab
   const isManagerMobileStockLoading = isManagerMobileBootstrapLoading || isStockItemsLoading || isStockOrdersLoading
@@ -19201,6 +19195,23 @@ function App() {
     setMobileExpandedView('workspace')
   }, [role, handleActiveViewChange, handleStockSectionChange])
 
+  const handleMobileManagerNewTask = useCallback(() => {
+    if (!canAccessMobileExpandedModule(role, 'operations')) return
+
+    handleActiveViewChange('operations')
+    handleOperationsSectionChange('tasks')
+    setOpenTasksCreateModal(true)
+    setMobileExpandedView('workspace')
+  }, [role, handleActiveViewChange, handleOperationsSectionChange])
+
+  const handleMobileManagerAssignTask = useCallback(() => {
+    if (!canOpenMobileTasksWorkspace(role)) return
+
+    handleActiveViewChange('operations')
+    handleOperationsSectionChange('tasks')
+    setMobileExpandedView('workspace')
+  }, [role, handleActiveViewChange, handleOperationsSectionChange])
+
   const handleMobileGoToCurrentWeek = () => {
     setMobileWeekStart(todayWeekStart)
     persistMobileWeekStart(todayWeekStart)
@@ -19865,15 +19876,16 @@ function App() {
                           onCountStock: handleMobileManagerCountStock,
                         }}
                         managerTasksProps={{
+                          tasks: managerMobileOperationsTasks,
                           taskOverview: managerMobileTaskOverview,
-                          overdueTasks: managerMobileTaskPreviewLists.overdue,
-                          openTodayTasks: managerMobileTaskPreviewLists.openToday,
                           employees: scheduleEmployees,
                           todayKey: currentDateKey,
                           isLoading: isManagerMobileTasksLoading,
-                          onOpenOperationsDashboard: handleMobileManagerOpenTasks,
-                          onOpenTaskWorkspace: canOpenMobileTasksWorkspace(role)
-                            ? handleMobileOpenTasksWorkspace
+                          onNewTask: canAccessMobileExpandedModule(role, 'operations')
+                            ? handleMobileManagerNewTask
+                            : undefined,
+                          onAssignTask: canOpenMobileTasksWorkspace(role)
+                            ? handleMobileManagerAssignTask
                             : undefined,
                         }}
                         menuProps={sharedMenuProps}

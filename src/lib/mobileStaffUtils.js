@@ -354,5 +354,7 @@ export function calculateMobileOperationsTaskOverview(tasks = [], todayKey = '')
     completedToday,
     completionPercent,
     showEmptyToday,
+    todayTotal: todayWorkload.length,
+    todayCompleted: completedInTodayWorkload,
   }
 }

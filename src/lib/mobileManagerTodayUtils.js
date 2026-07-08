@@ -168,6 +168,98 @@ function sortManagerMobileTasks(left, right) {
   return `${left?.title ?? ''}`.localeCompare(`${right?.title ?? ''}`)
 }
 
+function isManagerMobileTaskCompletedToday(task, todayKey) {
+  if (!isManagerMobileTaskDone(task)) return false
+  const completedAt = task?.completedAt ?? task?.completed_at ?? null
+  if (!completedAt) return false
+
+  const parsed = new Date(completedAt)
+  if (!Number.isNaN(parsed.getTime())) {
+    const year = parsed.getFullYear()
+    const month = `${parsed.getMonth() + 1}`.padStart(2, '0')
+    const day = `${parsed.getDate()}`.padStart(2, '0')
+    return `${year}-${month}-${day}` === todayKey
+  }
+
+  return normalizeManagerTaskDateKey(completedAt) === todayKey
+}
+
+function isManagerMobileTaskInTodayWorkload(task, todayKey) {
+  const dueDate = normalizeManagerTaskDateKey(task?.dueDate ?? task?.due_date)
+
+  if (isManagerMobileTaskDone(task)) {
+    return isManagerMobileTaskCompletedToday(task, todayKey)
+  }
+
+  return Boolean(dueDate) && dueDate <= todayKey
+}
+
+function compareManagerTaskDueTime(left, right) {
+  const leftTime = `${left?.dueTime ?? left?.due_time ?? ''}`.trim()
+  const rightTime = `${right?.dueTime ?? right?.due_time ?? ''}`.trim()
+  if (leftTime !== rightTime) return leftTime.localeCompare(rightTime)
+  return sortManagerMobileTasks(left, right)
+}
+
+export function pickManagerMobileAttentionTasks(tasks = [], todayKey = '', limit = 3) {
+  const activeTasks = (tasks ?? []).filter((task) => !isManagerMobileTaskDone(task))
+  const overdue = []
+  const dueSoon = []
+
+  activeTasks.forEach((task) => {
+    const dueDate = normalizeManagerTaskDateKey(task?.dueDate ?? task?.due_date)
+    if (dueDate && dueDate < todayKey) {
+      overdue.push({ task, attentionKind: 'overdue' })
+      return
+    }
+
+    if (!dueDate || dueDate <= todayKey) {
+      dueSoon.push({
+        task,
+        attentionKind: dueDate === todayKey ? 'due-soon' : 'open',
+      })
+    }
+  })
+
+  overdue.sort((left, right) => sortManagerMobileTasks(left.task, right.task))
+  dueSoon.sort((left, right) => compareManagerTaskDueTime(left.task, right.task))
+
+  return [...overdue, ...dueSoon].slice(0, limit)
+}
+
+export function buildManagerMobileTeamProgress(tasks = [], employees = [], todayKey = '') {
+  const buckets = new Map()
+
+  ;(tasks ?? []).forEach((task) => {
+    if (!isManagerMobileTaskInTodayWorkload(task, todayKey)) return
+
+    const employeeId = `${task?.assignedTo ?? task?.assigned_to ?? ''}`.trim()
+    if (!employeeId) return
+
+    const bucket = buckets.get(employeeId) ?? { employeeId, done: 0, total: 0 }
+    bucket.total += 1
+    if (isManagerMobileTaskDone(task)) {
+      bucket.done += 1
+    }
+    buckets.set(employeeId, bucket)
+  })
+
+  return Array.from(buckets.values())
+    .map((entry) => ({
+      employeeId: entry.employeeId,
+      name: `${employees.find((employee) => `${employee.id}` === entry.employeeId)?.name ?? ''}`.trim()
+        || 'Team member',
+      done: entry.done,
+      total: entry.total,
+    }))
+    .sort((left, right) => {
+      const leftRate = left.total > 0 ? left.done / left.total : 1
+      const rightRate = right.total > 0 ? right.done / right.total : 1
+      if (leftRate !== rightRate) return leftRate - rightRate
+      return left.name.localeCompare(right.name)
+    })
+}
+
 export function pickManagerMobileTaskPreviewLists(tasks = [], todayKey = '', limit = 8) {
   const activeTasks = (tasks ?? []).filter((task) => !isManagerMobileTaskDone(task))
   const overdue = []
