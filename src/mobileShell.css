@@ -60,13 +60,13 @@
 
   .mobile-app-content,
   .mobile-expanded-scroll {
-    flex: 1 1 0;
-    height: 0;
+    flex: 1 1 auto;
     min-width: 0;
     min-height: 0;
+    height: auto;
     max-width: 100%;
     overflow-x: hidden;
-    overflow-y: scroll;
+    overflow-y: auto;
     -webkit-overflow-scrolling: touch;
     touch-action: pan-y;
     overscroll-behavior-y: contain;
@@ -1131,25 +1131,27 @@
 .mobile-app-expanded {
   display: flex;
   flex-direction: column;
-  height: 100dvh;
-  max-height: 100dvh;
+  height: 100%;
+  max-height: 100%;
   min-height: 0;
   overflow: hidden;
 }
 
 .mobile-app-expanded .mobile-expanded-scroll {
-  flex: 1 1 0;
-  height: 0;
+  flex: 1 1 auto;
   min-height: 0;
+  height: auto;
   max-height: none;
   overflow-x: hidden;
-  overflow-y: scroll;
+  overflow-y: auto;
   -webkit-overflow-scrolling: touch;
   touch-action: pan-y;
   padding-bottom: calc(96px + env(safe-area-inset-bottom, 0px));
 }
 
 .mobile-app-expanded .mobile-workspace-module {
+  flex: 1 1 auto;
+  min-height: 0;
   padding-top: 8px;
   padding-bottom: 0;
   overflow-x: hidden;
@@ -1522,13 +1524,13 @@
 
 .app-shell.is-mobile-shell .mobile-app-content,
 .app-shell.is-mobile-shell .mobile-expanded-scroll {
-  flex: 1 1 0;
-  height: 0;
+  flex: 1 1 auto;
   min-height: 0;
+  height: auto;
   min-width: 0;
   max-width: 100%;
   overflow-x: hidden;
-  overflow-y: scroll;
+  overflow-y: auto;
   -webkit-overflow-scrolling: touch;
   touch-action: pan-y;
   overscroll-behavior-y: contain;
@@ -1544,19 +1546,28 @@
 }
 
 .app-shell.is-mobile-shell .mobile-workspace-module {
+  flex: 1 1 auto;
+  min-height: 0;
   overflow-x: hidden;
   overflow-y: visible;
   padding-bottom: 0;
 }
 
 .app-shell.is-mobile-shell .mobile-workspace-module.is-mobile-expanded {
-  flex: none;
-  min-height: auto;
+  flex: 1 1 auto;
+  min-height: 0;
   height: auto;
   max-height: none;
   overflow-x: hidden;
   overflow-y: visible;
   padding-bottom: 0;
+}
+
+.app-shell.is-mobile-shell .mobile-workspace-module.is-mobile-expanded .reservations-workspace-host {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+  height: auto;
 }
 
 .app-shell.is-mobile-shell .mobile-workspace-module.is-mobile-expanded .reservations-workspace,
@@ -1643,15 +1654,6 @@
 }
 
 @media (max-width: 760px) {
-  .app-shell.is-mobile-shell.is-mobile-expanded .mobile-expanded-scroll {
-    flex: 1 1 0;
-    height: 0;
-    min-height: 0;
-    overflow-y: scroll;
-    touch-action: pan-y;
-    overscroll-behavior-y: contain;
-  }
-
   .app-shell.is-mobile-shell .mobile-workspace-module.is-mobile-expanded .host-operations-list {
     max-height: none;
   }
@@ -1815,12 +1817,12 @@
   .mobile-app-content,
   .mobile-app-expanded .mobile-expanded-scroll,
   .mobile-expanded-scroll {
-    flex: 1 1 0;
-    height: 0;
+    flex: 1 1 auto;
     min-height: 0;
+    height: auto;
     max-height: none;
     overflow-x: hidden;
-    overflow-y: scroll;
+    overflow-y: auto;
     -webkit-overflow-scrolling: touch;
     touch-action: pan-y;
     overscroll-behavior-y: contain;
