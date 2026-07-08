@@ -1,9 +1,5 @@
 import { useMemo, useState } from 'react'
-import {
-  buildManagerMobileAttentionItems,
-  buildManagerMobileStockStatusLine,
-  sortManagerMobileAttentionFeed,
-} from '../../lib/mobileManagerTodayUtils'
+import { sortManagerMobileAttentionFeed } from '../../lib/mobileManagerTodayUtils'
 import { TodayAnnouncementsPanel } from '../today/TodayAnnouncementsPanel'
 
 const ATTENTION_PREVIEW_LIMIT = 3
@@ -133,21 +129,12 @@ export function MobileManagerHomeView({
 }) {
   const [showAllAttention, setShowAllAttention] = useState(false)
 
-  const mergedAttentionItems = useMemo(() => {
-    const merged = buildManagerMobileAttentionItems({
-      attentionItems,
-      stockOrdersSummary,
-      stockSummary,
-      hasStockModuleData,
-    })
-
-    return sortManagerMobileAttentionFeed(merged)
-  }, [attentionItems, stockOrdersSummary, stockSummary, hasStockModuleData])
-
-  const stockStatusLine = useMemo(
-    () => buildManagerMobileStockStatusLine(stockSummary, stockOrdersSummary),
-    [stockSummary, stockOrdersSummary],
+  const mergedAttentionItems = useMemo(
+    () => sortManagerMobileAttentionFeed(attentionItems),
+    [attentionItems],
   )
+
+  const stockStatusLine = statusSummary.stockSummaryLine || '—'
 
   const showStockStatus = canOpenStock && (hasStockModuleData || stockOrdersSummary?.pendingCount > 0)
   const pendingDeliveries = (Number(stockOrdersSummary?.awaitingDeliveryCount) || 0)

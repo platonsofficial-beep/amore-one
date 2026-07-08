@@ -1,3 +1,10 @@
+import {
+  buildAnnouncementAttentionItems,
+  buildReservationAttentionItems,
+  buildTodayAttentionItems,
+  sortTodayAttentionItems,
+} from './todayViewUtils'
+
 export function buildManagerMobileAttentionItems({
   attentionItems = [],
   stockOrdersSummary = null,
@@ -14,6 +21,7 @@ export function buildManagerMobileAttentionItems({
   if (awaiting > 0 && !existingKeys.has('orders:awaiting')) {
     items.unshift({
       key: 'orders:awaiting',
+      category: 'stock',
       tone: 'info',
       priority: 'urgent',
       label: awaiting === 1 ? '1 delivery to receive' : `${awaiting} deliveries to receive`,
@@ -24,6 +32,7 @@ export function buildManagerMobileAttentionItems({
   if (partial > 0 && !existingKeys.has('orders:partial')) {
     items.unshift({
       key: 'orders:partial',
+      category: 'stock',
       tone: 'info',
       priority: 'urgent',
       label: partial === 1 ? '1 partial order open' : `${partial} partial orders open`,
@@ -34,6 +43,7 @@ export function buildManagerMobileAttentionItems({
   if (drafts > 0 && !existingKeys.has('orders:draft')) {
     items.push({
       key: 'orders:draft',
+      category: 'stock',
       tone: 'warning',
       priority: 'reminder',
       label: drafts === 1 ? '1 draft order' : `${drafts} draft orders`,
@@ -49,6 +59,7 @@ export function buildManagerMobileAttentionItems({
     if (outCount > 0 && !hasStockAttention && !existingKeys.has('stock-module:out')) {
       items.unshift({
         key: 'stock-module:out',
+        category: 'stock',
         tone: 'critical',
         priority: 'urgent',
         label: outCount === 1 ? '1 item out of stock' : `${outCount} items out of stock`,
@@ -57,6 +68,7 @@ export function buildManagerMobileAttentionItems({
     } else if (lowCount > 0 && !hasStockAttention && !existingKeys.has('stock-module:low')) {
       items.unshift({
         key: 'stock-module:low',
+        category: 'stock',
         tone: 'warning',
         priority: 'reminder',
         label: lowCount === 1 ? '1 low stock item' : `${lowCount} low stock items`,
@@ -68,59 +80,62 @@ export function buildManagerMobileAttentionItems({
   return items
 }
 
-const MANAGER_ATTENTION_TONE_RANK = {
-  critical: 0,
-  warning: 1,
-  info: 2,
-  default: 3,
-}
+export function buildTodayCommandCenterAttentionItems({
+  stockAlerts = [],
+  inventoryConnected = false,
+  tasks = [],
+  todayKey = '',
+  issuesSummary = {},
+  snapshot = {},
+  reservations = [],
+  reservationsConnected = false,
+  nowMinutes = 0,
+  now = new Date(),
+  serviceSnapshot = null,
+  stockOrdersSummary = null,
+  stockSummary = null,
+  hasStockModuleData = false,
+  announcements = [],
+  announcementRole = '',
+  announcementEmployeeDepartment = '',
+} = {}) {
+  const baseItems = buildTodayAttentionItems({
+    stockAlerts,
+    inventoryConnected,
+    tasks,
+    todayKey,
+    issuesSummary,
+    snapshot,
+  })
 
-const MANAGER_ATTENTION_PRIORITY_RANK = {
-  urgent: 0,
-  reminder: 1,
-}
+  const reservationItems = buildReservationAttentionItems({
+    reservations,
+    reservationsConnected,
+    nowMinutes,
+    todayKey,
+    now,
+    serviceSnapshot,
+  })
 
-function getManagerAttentionFeedBucket(item) {
-  const key = `${item?.key ?? ''}`
+  const announcementItems = buildAnnouncementAttentionItems({
+    announcements,
+    role: announcementRole,
+    employeeDepartment: announcementEmployeeDepartment,
+    now,
+  })
 
-  if (key === 'schedule-issues' || key.startsWith('schedule')) {
-    return 0
-  }
+  const merged = buildManagerMobileAttentionItems({
+    attentionItems: [...reservationItems, ...baseItems, ...announcementItems],
+    stockOrdersSummary,
+    stockSummary,
+    hasStockModuleData,
+  })
 
-  if (key.startsWith('task:')) {
-    return 1
-  }
-
-  if (
-    key.startsWith('stock:')
-    || key.startsWith('stock-module:')
-    || key.startsWith('orders:')
-  ) {
-    return 2
-  }
-
-  return 3
+  return sortTodayAttentionItems(merged)
 }
 
 export function sortManagerMobileAttentionFeed(items = []) {
-  return [...items].sort((left, right) => {
-    const bucketDiff = getManagerAttentionFeedBucket(left) - getManagerAttentionFeedBucket(right)
-    if (bucketDiff !== 0) return bucketDiff
-
-    const toneDiff = (
-      (MANAGER_ATTENTION_TONE_RANK[left.tone] ?? 3)
-      - (MANAGER_ATTENTION_TONE_RANK[right.tone] ?? 3)
-    )
-    if (toneDiff !== 0) return toneDiff
-
-    const priorityDiff = (
-      (MANAGER_ATTENTION_PRIORITY_RANK[left.priority] ?? 2)
-      - (MANAGER_ATTENTION_PRIORITY_RANK[right.priority] ?? 2)
-    )
-    if (priorityDiff !== 0) return priorityDiff
-
-    return 0
-  })
+  return sortTodayAttentionItems(items)
 }
 
 export function buildManagerMobileStockStatusLine(stockSummary = null, stockOrdersSummary = null) {

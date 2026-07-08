@@ -284,11 +284,11 @@ import {
 } from './lib/weeklyTemplateCapacitySnapshots'
 import { buildOperationalSnapshot } from './lib/operationalSnapshotUtils'
 import {
-  buildTodayAttentionItems,
   buildTodayServiceTimeline,
   buildTodayStatusSummary,
   buildTeamTodayGroups,
 } from './lib/todayViewUtils'
+import { buildTodayCommandCenterAttentionItems } from './lib/mobileManagerTodayUtils'
 import { buildStockOrdersOperationsSummary } from './lib/stockOrderUtils'
 import { buildStockDashboardSummary } from './lib/stockUtils'
 import { filterTasksExcludingAnnouncementDuplicates } from './lib/operationsAnnouncementUtils'
@@ -1006,13 +1006,22 @@ function CommandCenterView({
   onViewStock,
   onViewSchedule,
   onViewTasks,
+  onViewReservations,
   onMarkAnnouncementSeen,
 }) {
   const attentionHasUrgent = hasUrgentAttentionItems(attentionItems)
-  const showStockAttention = Boolean(onViewStock) && attentionItems.some((item) => item.key.startsWith('stock:'))
-  const showTasksAttention = Boolean(onViewTasks) && attentionItems.some((item) => item.key.startsWith('task:'))
+  const showStockAttention = Boolean(onViewStock) && attentionItems.some((item) => (
+    item.key.startsWith('stock:')
+    || item.key.startsWith('stock-module:')
+    || item.key.startsWith('orders:')
+  ))
+  const showTasksAttention = Boolean(onViewTasks) && attentionItems.some((item) => (
+    item.key.startsWith('task:') || item.key.startsWith('task-due:')
+  ))
   const showScheduleAttention = Boolean(onViewSchedule) && attentionItems.some((item) => item.key === 'schedule-issues')
-  const showAttentionActions = showStockAttention || showTasksAttention || showScheduleAttention
+  const showReservationAttention = Boolean(onViewReservations) && attentionItems.some((item) => item.key.startsWith('reservation:'))
+  const showAttentionActions = showStockAttention || showTasksAttention || showScheduleAttention || showReservationAttention
+  const showStockStatus = Boolean(statusSummary.stockSummaryLine)
 
   return (
     <div className="today-page" aria-label="Today">
@@ -1041,6 +1050,12 @@ function CommandCenterView({
           <span className="today-status-label">Tasks</span>
           <span className="today-status-value">{statusSummary.tasksSummary}</span>
         </div>
+        {showStockStatus ? (
+          <div className="today-status-row">
+            <span className="today-status-label">Stock</span>
+            <span className="today-status-value">{statusSummary.stockSummaryLine}</span>
+          </div>
+        ) : null}
       </section>
 
       <div className="today-layout">
@@ -1104,7 +1119,7 @@ function CommandCenterView({
             summary={formatAttentionCollapsedSummary(attentionItems)}
           >
             {attentionItems.length === 0 ? (
-              <p className="today-empty-note today-empty-note-clear">All clear for now.</p>
+              <p className="today-empty-note today-empty-note-clear">Nothing needs your attention right now.</p>
             ) : (
               <ul className="today-attention-list">
                 {attentionItems.map((item) => (
@@ -1117,6 +1132,11 @@ function CommandCenterView({
             )}
             {showAttentionActions ? (
               <div className="today-attention-actions">
+                {showReservationAttention ? (
+                  <button type="button" className="today-attention-pill" onClick={onViewReservations}>
+                    Reservations
+                  </button>
+                ) : null}
                 {showStockAttention ? (
                   <button type="button" className="today-attention-pill" onClick={onViewStock}>
                     Stock
@@ -13335,22 +13355,55 @@ function App() {
     [reservations, currentDateKey, localNow],
   )
 
+  const managerMobileStockSummary = useMemo(
+    () => buildStockDashboardSummary(stockItems),
+    [stockItems],
+  )
+
+  const managerMobileOrdersSummary = useMemo(
+    () => buildStockOrdersOperationsSummary(stockOrders),
+    [stockOrders],
+  )
+
+  const dashboardNowMinutes = localNow.getHours() * 60 + localNow.getMinutes()
+
+  const dashboardServiceSnapshot = useMemo(
+    () => (
+      isReservationsModuleConnected
+        ? buildDailyServiceSnapshot(reservations, dashboardNowMinutes, currentDateKey, localNow)
+        : null
+    ),
+    [isReservationsModuleConnected, reservations, dashboardNowMinutes, currentDateKey, localNow],
+  )
+
+  const canAccessStockModule = canAccessModule(role, 'stock')
+
   const todayStatusSummary = useMemo(() => buildTodayStatusSummary({
     liveFloor: liveFloorState,
     snapshot: operationalSnapshot,
     reservationsSummary: todayReservationsSummary,
     reservationsConnected: isReservationsModuleConnected,
     reservationsFooter: dashboardReservationsFooter,
+    serviceSnapshot: dashboardServiceSnapshot,
     tasksOverview: dashboardTaskOverview,
     tasksConnected: isTasksModuleConnected,
+    stockSummary: managerMobileStockSummary,
+    stockOrdersSummary: managerMobileOrdersSummary,
+    stockConnected: canAccessStockModule,
+    hasStockModuleData: stockItems.length > 0,
   }), [
     liveFloorState,
     operationalSnapshot,
     todayReservationsSummary,
     isReservationsModuleConnected,
     dashboardReservationsFooter,
+    dashboardServiceSnapshot,
     dashboardTaskOverview,
     isTasksModuleConnected,
+    managerMobileStockSummary,
+    managerMobileOrdersSummary,
+    canAccessStockModule,
+    stockItems.length,
   ])
 
   const teamTodayShiftSource = useMemo(() => (
@@ -13375,14 +13428,24 @@ function App() {
     }))
   ), [dashboardShifts, currentDateKey])
 
-  const todayAttentionItems = useMemo(() => buildTodayAttentionItems({
-    // Actionable tasks only — announcements stay in TodayAnnouncementsPanel.
+  const todayAttentionItems = useMemo(() => buildTodayCommandCenterAttentionItems({
     stockAlerts: dashboardStockAlerts,
     inventoryConnected: isInventoryModuleConnected,
     tasks: todayActionableTasks,
     todayKey: currentDateKey,
     issuesSummary: dashboardIssuesSummary,
     snapshot: operationalSnapshot,
+    reservations,
+    reservationsConnected: isReservationsModuleConnected,
+    nowMinutes: dashboardNowMinutes,
+    now: localNow,
+    serviceSnapshot: dashboardServiceSnapshot,
+    stockOrdersSummary: managerMobileOrdersSummary,
+    stockSummary: managerMobileStockSummary,
+    hasStockModuleData: stockItems.length > 0,
+    announcements: operationsAnnouncements,
+    announcementRole: role,
+    announcementEmployeeDepartment: currentEmployeeDepartment,
   }), [
     dashboardStockAlerts,
     isInventoryModuleConnected,
@@ -13390,17 +13453,18 @@ function App() {
     currentDateKey,
     dashboardIssuesSummary,
     operationalSnapshot,
+    reservations,
+    isReservationsModuleConnected,
+    dashboardNowMinutes,
+    localNow,
+    dashboardServiceSnapshot,
+    managerMobileOrdersSummary,
+    managerMobileStockSummary,
+    stockItems.length,
+    operationsAnnouncements,
+    role,
+    currentEmployeeDepartment,
   ])
-
-  const managerMobileStockSummary = useMemo(
-    () => buildStockDashboardSummary(stockItems),
-    [stockItems],
-  )
-
-  const managerMobileOrdersSummary = useMemo(
-    () => buildStockOrdersOperationsSummary(stockOrders),
-    [stockOrders],
-  )
 
   const managerMobileOperationsTasks = useMemo(() => (
     filterTasksExcludingAnnouncementDuplicates(
@@ -17612,6 +17676,11 @@ function App() {
     handleTeamSectionChange('schedule')
   }
 
+  const handleDashboardViewReservations = () => {
+    if (!canAccessModule(role, 'reservations')) return
+    handleActiveViewChange('reservations')
+  }
+
   const handleInsightsViewModule = (moduleId) => {
     const route = resolveInsightsModuleLink(moduleId)
     const permittedView = resolvePermittedActiveView(role, route.activeView)
@@ -19828,6 +19897,7 @@ function App() {
             onViewStock={canAccessModule(role, 'stock') ? handleDashboardViewStock : undefined}
             onViewSchedule={canAccessTeamSection(role, 'schedule') ? handleDashboardViewSchedule : undefined}
             onViewTasks={canAccessModule(role, 'operations') ? handleDashboardViewTasks : undefined}
+            onViewReservations={canAccessModule(role, 'reservations') ? handleDashboardViewReservations : undefined}
             onMarkAnnouncementSeen={handleMarkOperationsAnnouncementSeen}
           />
         ) : null}
