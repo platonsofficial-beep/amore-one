@@ -15,7 +15,6 @@ import {
   resolveEmployeeName,
 } from '../../lib/operationsUtils'
 import { formatTime24 } from '../../lib/timeFormatUtils'
-import { parseLocalDate } from '../../lib/weekUtils'
 import { OperationsTaskFormModal } from '../operations/OperationsTaskFormModal'
 import { MobileTaskDetailSheet } from './MobileTaskDetailSheet'
 
@@ -37,30 +36,9 @@ function normalizeTaskDateKey(value) {
   return raw.slice(0, 10)
 }
 
-function formatTaskDueLabel(task, todayKey = '') {
-  const dueDate = normalizeTaskDateKey(task?.dueDate ?? task?.due_date)
+function formatTaskDueTimeLabel(task) {
   const dueTime = formatTime24(task?.dueTime ?? task?.due_time, '')
-
-  let dateLabel = 'No due date'
-  if (dueDate) {
-    if (dueDate === todayKey) {
-      dateLabel = 'Today'
-    } else if (dueDate < todayKey) {
-      dateLabel = 'Overdue'
-    } else {
-      const parsed = parseLocalDate(dueDate)
-      dateLabel = Number.isNaN(parsed.getTime())
-        ? dueDate
-        : new Intl.DateTimeFormat('en-US', {
-          weekday: 'short',
-          month: 'short',
-          day: 'numeric',
-        }).format(parsed)
-    }
-  }
-
-  if (dueTime) return `${dateLabel} · ${dueTime}`
-  return dateLabel
+  return dueTime ? `Due ${dueTime}` : ''
 }
 
 function getTaskStatusLabel(task, todayKey = '') {
@@ -108,6 +86,7 @@ function ManagerTodayTaskCard({ task, employees = [], todayKey = '', onSelect })
   const assigneeName = getAssignmentLabel(task, employees)
   const statusLabel = getTaskStatusLabel(task, todayKey)
   const isOverdue = statusLabel === 'Overdue'
+  const dueTimeLabel = formatTaskDueTimeLabel(task)
 
   return (
     <li className="mobile-manager-today-task-item">
@@ -129,7 +108,11 @@ function ManagerTodayTaskCard({ task, employees = [], todayKey = '', onSelect })
           <p className="mobile-manager-today-task-owner">{assigneeName}</p>
         ) : null}
         <div className="mobile-manager-today-task-footer">
-          <span className="mobile-manager-today-task-due">{formatTaskDueLabel(task, todayKey)}</span>
+          {dueTimeLabel ? (
+            <span className="mobile-manager-today-task-due">{dueTimeLabel}</span>
+          ) : (
+            <span className="mobile-manager-today-task-due" aria-hidden="true" />
+          )}
           <span className={`mobile-manager-today-task-status${isDone ? ' is-done' : ''}${isOverdue ? ' is-overdue' : ''}`}>
             {statusLabel}
           </span>
@@ -255,19 +238,18 @@ export function MobileManagerTasksView({
             </section>
           ) : null}
 
-          <section className="mobile-manager-tasks-quick-bar is-single" aria-label="Task quick actions">
-            <button
-              type="button"
-              className="mobile-manager-tasks-quick-btn mobile-manager-tasks-quick-btn-primary"
-              onClick={handleOpenNewTask}
-              disabled={!onCreateTask || isSaving}
-            >
-              + New task
-            </button>
-          </section>
-
           <section className="mobile-manager-tasks-section" aria-label="Today's tasks">
-            <p className="mobile-manager-tasks-block-label">Today&apos;s tasks</p>
+            <div className="mobile-manager-tasks-section-header">
+              <p className="mobile-manager-tasks-block-label">Today&apos;s tasks</p>
+              <button
+                type="button"
+                className="mobile-manager-tasks-inline-new-btn"
+                onClick={handleOpenNewTask}
+                disabled={!onCreateTask || isSaving}
+              >
+                + New
+              </button>
+            </div>
             {hasTodayWork ? (
               <ul className="mobile-manager-today-task-list">
                 {todayTasks.map((task) => (
