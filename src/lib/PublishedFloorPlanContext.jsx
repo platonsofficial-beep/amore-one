@@ -3,72 +3,98 @@ import {
   PUBLISHED_LAYOUT_EVENT,
   cloneBuilderLayout,
   isFloorPlanStorageKey,
+  loadLocalDraftFloorPlanLayout,
   loadLocalFloorPlanLayout,
+  saveLocalDraftFloorPlanLayout,
   saveLocalFloorPlanLayout,
 } from '../floor-plan-builder/lib/floorPlanStorage'
 import {
-  loadPublishedFloorPlan,
-  savePublishedFloorPlan,
+  loadFloorPlanWorkspace,
+  publishFloorPlan,
+  saveDraftFloorPlan,
   setActiveBuilderLayoutCache,
+  setActivePublishedLayoutCache,
 } from '../services/floorPlanService'
 import { builderLayoutToHostLayout } from './builderToHostLayout'
 
 const PublishedFloorPlanContext = createContext({
   builderLayout: null,
+  publishedBuilderLayout: null,
   layout: null,
   hasLayout: false,
+  hasUnpublishedDraft: false,
+  publishedAt: null,
   isLoading: false,
   loadError: null,
   saveError: null,
+  saveDraftLayout: async () => null,
+  publishLayout: async () => null,
   saveLayout: async () => null,
   reload: () => {},
 })
 
 export function PublishedFloorPlanProvider({ children, workspaceId = '' }) {
-  const [builderLayout, setBuilderLayout] = useState(null)
+  const [publishedBuilderLayout, setPublishedBuilderLayout] = useState(null)
+  const [draftBuilderLayout, setDraftBuilderLayout] = useState(null)
+  const [publishedAt, setPublishedAt] = useState(null)
   const [isLoading, setIsLoading] = useState(false)
   const [loadError, setLoadError] = useState(null)
   const [saveError, setSaveError] = useState(null)
 
-  const applyBuilderLayout = useCallback((nextLayout) => {
-    const normalized = nextLayout ? cloneBuilderLayout(nextLayout) : null
-    setBuilderLayout(normalized)
-    setActiveBuilderLayoutCache(normalized)
+  const applyWorkspaceLayouts = useCallback(({ publishedLayout, draftLayout, publishedAt: nextPublishedAt }) => {
+    const normalizedPublished = publishedLayout ? cloneBuilderLayout(publishedLayout) : null
+    const normalizedDraft = draftLayout ? cloneBuilderLayout(draftLayout) : normalizedPublished
+
+    setPublishedBuilderLayout(normalizedPublished)
+    setDraftBuilderLayout(normalizedDraft)
+    setPublishedAt(nextPublishedAt ?? normalizedPublished?.publishedAt ?? null)
+    setActivePublishedLayoutCache(normalizedPublished)
+    setActiveBuilderLayoutCache(normalizedDraft)
   }, [])
 
-  const readStoredLayout = useCallback(async () => {
+  const readStoredLayouts = useCallback(async () => {
     const normalizedWorkspaceId = `${workspaceId ?? ''}`.trim()
 
     if (!normalizedWorkspaceId) {
+      const publishedLayout = loadLocalFloorPlanLayout('')
+      const draftLayout = loadLocalDraftFloorPlanLayout('') ?? publishedLayout
       return {
-        layout: loadLocalFloorPlanLayout(''),
+        publishedLayout,
+        draftLayout,
+        publishedAt: publishedLayout?.publishedAt ?? null,
         error: null,
       }
     }
 
-    const result = await loadPublishedFloorPlan(normalizedWorkspaceId)
+    const result = await loadFloorPlanWorkspace(normalizedWorkspaceId)
     return {
-      layout: result.layout,
+      publishedLayout: result.publishedLayout,
+      draftLayout: result.draftLayout,
+      publishedAt: result.publishedAt,
       error: result.error,
     }
   }, [workspaceId])
 
   const reload = useCallback(async (nextBuilderLayout) => {
     if (nextBuilderLayout?.floors?.length) {
-      applyBuilderLayout(nextBuilderLayout)
+      applyWorkspaceLayouts({
+        publishedLayout: nextBuilderLayout,
+        draftLayout: nextBuilderLayout,
+        publishedAt: nextBuilderLayout.publishedAt ?? new Date().toISOString(),
+      })
       setLoadError(null)
       return
     }
 
     setIsLoading(true)
     try {
-      const result = await readStoredLayout()
-      applyBuilderLayout(result.layout)
+      const result = await readStoredLayouts()
+      applyWorkspaceLayouts(result)
       setLoadError(result.error)
     } finally {
       setIsLoading(false)
     }
-  }, [applyBuilderLayout, readStoredLayout])
+  }, [applyWorkspaceLayouts, readStoredLayouts])
 
   useEffect(() => {
     let cancelled = false
@@ -78,9 +104,9 @@ export function PublishedFloorPlanProvider({ children, workspaceId = '' }) {
       setLoadError(null)
 
       try {
-        const result = await readStoredLayout()
+        const result = await readStoredLayouts()
         if (cancelled) return
-        applyBuilderLayout(result.layout)
+        applyWorkspaceLayouts(result)
         setLoadError(result.error)
       } finally {
         if (!cancelled) setIsLoading(false)
@@ -92,15 +118,15 @@ export function PublishedFloorPlanProvider({ children, workspaceId = '' }) {
     return () => {
       cancelled = true
     }
-  }, [applyBuilderLayout, readStoredLayout])
+  }, [applyWorkspaceLayouts, readStoredLayouts])
 
-  const saveLayout = useCallback(async ({ floors, activeFloorId, objects }) => {
+  const saveDraftLayout = useCallback(async ({ floors, activeFloorId, objects }) => {
     const payload = {
       version: 1,
       floors,
       activeFloorId,
       objects,
-      publishedAt: new Date().toISOString(),
+      publishedAt: null,
     }
 
     setSaveError(null)
@@ -108,28 +134,78 @@ export function PublishedFloorPlanProvider({ children, workspaceId = '' }) {
 
     try {
       const saved = normalizedWorkspaceId
-        ? await savePublishedFloorPlan(normalizedWorkspaceId, payload)
+        ? await saveDraftFloorPlan(normalizedWorkspaceId, payload)
+        : saveLocalDraftFloorPlanLayout(payload, normalizedWorkspaceId)
+
+      if (saved) {
+        setDraftBuilderLayout(cloneBuilderLayout(saved))
+        setActiveBuilderLayoutCache(saved)
+      }
+
+      return saved
+    } catch (error) {
+      const message = error?.message || 'Unable to save floor plan draft right now.'
+      setSaveError(message)
+
+      const localSaved = saveLocalDraftFloorPlanLayout(payload, normalizedWorkspaceId)
+      if (localSaved) {
+        setDraftBuilderLayout(cloneBuilderLayout(localSaved))
+        setActiveBuilderLayoutCache(localSaved)
+      }
+
+      return localSaved
+    }
+  }, [workspaceId])
+
+  const publishLayout = useCallback(async ({ floors, activeFloorId, objects }) => {
+    const payload = {
+      version: 1,
+      floors,
+      activeFloorId,
+      objects,
+    }
+
+    setSaveError(null)
+    const normalizedWorkspaceId = `${workspaceId ?? ''}`.trim()
+
+    try {
+      const saved = normalizedWorkspaceId
+        ? await publishFloorPlan(normalizedWorkspaceId, payload)
         : saveLocalFloorPlanLayout(payload, normalizedWorkspaceId)
 
       if (saved) {
-        applyBuilderLayout(saved)
+        const cloned = cloneBuilderLayout(saved)
+        setPublishedBuilderLayout(cloned)
+        setDraftBuilderLayout(cloned)
+        setPublishedAt(saved.publishedAt ?? new Date().toISOString())
+        setActivePublishedLayoutCache(cloned)
+        setActiveBuilderLayoutCache(cloned)
         window.dispatchEvent(new CustomEvent(PUBLISHED_LAYOUT_EVENT, { detail: saved }))
       }
 
       return saved
     } catch (error) {
-      const message = error?.message || 'Unable to save floor plan right now.'
+      const message = error?.message || 'Unable to publish floor plan right now.'
       setSaveError(message)
 
-      const localSaved = saveLocalFloorPlanLayout(payload, normalizedWorkspaceId)
+      const localSaved = saveLocalFloorPlanLayout({
+        ...payload,
+        publishedAt: new Date().toISOString(),
+      }, normalizedWorkspaceId)
+
       if (localSaved) {
-        applyBuilderLayout(localSaved)
+        const cloned = cloneBuilderLayout(localSaved)
+        setPublishedBuilderLayout(cloned)
+        setDraftBuilderLayout(cloned)
+        setPublishedAt(localSaved.publishedAt ?? null)
+        setActivePublishedLayoutCache(cloned)
+        setActiveBuilderLayoutCache(cloned)
         window.dispatchEvent(new CustomEvent(PUBLISHED_LAYOUT_EVENT, { detail: localSaved }))
       }
 
       return localSaved
     }
-  }, [applyBuilderLayout, workspaceId])
+  }, [workspaceId])
 
   useEffect(() => {
     const handlePublished = (event) => {
@@ -151,20 +227,43 @@ export function PublishedFloorPlanProvider({ children, workspaceId = '' }) {
   }, [reload])
 
   const layout = useMemo(
-    () => builderLayoutToHostLayout(builderLayout),
-    [builderLayout],
+    () => builderLayoutToHostLayout(publishedBuilderLayout),
+    [publishedBuilderLayout],
   )
 
+  const hasUnpublishedDraft = useMemo(() => {
+    if (!draftBuilderLayout) return false
+    if (!publishedBuilderLayout) return true
+    return JSON.stringify(draftBuilderLayout) !== JSON.stringify(publishedBuilderLayout)
+  }, [draftBuilderLayout, publishedBuilderLayout])
+
   const value = useMemo(() => ({
-    builderLayout,
+    builderLayout: draftBuilderLayout,
+    publishedBuilderLayout,
     layout,
     hasLayout: Boolean(layout?.tables?.length),
+    hasUnpublishedDraft,
+    publishedAt,
     isLoading,
     loadError,
     saveError,
-    saveLayout,
+    saveDraftLayout,
+    publishLayout,
+    saveLayout: publishLayout,
     reload,
-  }), [builderLayout, isLoading, layout, loadError, reload, saveError, saveLayout])
+  }), [
+    draftBuilderLayout,
+    hasUnpublishedDraft,
+    isLoading,
+    layout,
+    loadError,
+    publishLayout,
+    publishedAt,
+    publishedBuilderLayout,
+    reload,
+    saveDraftLayout,
+    saveError,
+  ])
 
   return (
     <PublishedFloorPlanContext.Provider value={value}>

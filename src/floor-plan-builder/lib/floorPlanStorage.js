@@ -17,12 +17,20 @@ export function getFloorPlanStorageKey(workspaceId = '') {
     : PUBLISHED_STORAGE_KEY
 }
 
+export function getDraftStorageKey(workspaceId = '') {
+  const normalizedId = `${workspaceId ?? ''}`.trim()
+  return normalizedId
+    ? `${DRAFT_STORAGE_KEY}--${normalizedId}`
+    : DRAFT_STORAGE_KEY
+}
+
 export function isFloorPlanStorageKey(key = '') {
   const normalizedKey = `${key ?? ''}`.trim()
   if (!normalizedKey) return false
 
   return FLOOR_PLAN_STORAGE_KEYS.includes(normalizedKey)
     || normalizedKey.startsWith(`${PUBLISHED_STORAGE_KEY}--`)
+    || normalizedKey.startsWith(`${DRAFT_STORAGE_KEY}--`)
 }
 
 function parseStoredLayout(raw) {
@@ -139,6 +147,33 @@ export function saveLocalFloorPlanLayout({ floors, activeFloorId, objects }, wor
   }
 
   return writeStorageLayout(payload, workspaceId)
+}
+
+export function loadLocalDraftFloorPlanLayout(workspaceId = '') {
+  if (typeof window === 'undefined') return null
+
+  const scopedKey = getDraftStorageKey(workspaceId)
+  return readStorageKey(scopedKey)
+    ?? loadLocalFloorPlanLayout(workspaceId)
+}
+
+export function saveLocalDraftFloorPlanLayout({ floors, activeFloorId, objects }, workspaceId = '') {
+  if (typeof window === 'undefined') return null
+
+  const payload = {
+    version: 1,
+    floors: JSON.parse(JSON.stringify(floors)),
+    activeFloorId,
+    objects: JSON.parse(JSON.stringify(objects)),
+    publishedAt: null,
+  }
+
+  try {
+    window.localStorage.setItem(getDraftStorageKey(workspaceId), JSON.stringify(payload))
+    return payload
+  } catch {
+    return null
+  }
 }
 
 /** @deprecated Use saveLocalFloorPlanLayout or floorPlanService.savePublishedFloorPlan */

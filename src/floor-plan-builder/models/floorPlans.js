@@ -2,10 +2,9 @@ import { createDefaultWorkspace } from './floorWorkspace'
 
 export const DEFAULT_RESTAURANT_AREAS = [
   { id: 'main-dining', label: 'Main Dining' },
+  { id: 'terrace', label: 'Terrace' },
   { id: 'bar', label: 'Bar' },
-  { id: 'patio', label: 'Patio' },
-  { id: 'rooftop', label: 'Rooftop' },
-  { id: 'lounge', label: 'Lounge' },
+  { id: 'private', label: 'Private' },
 ]
 
 /** @deprecated Use DEFAULT_RESTAURANT_AREAS */
