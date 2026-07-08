@@ -10668,6 +10668,7 @@ function ReservationsWorkspaceBody({
         arrivalWaves={arrivalWaves}
         problemsCount={hostProblemsCount}
         nextArrivalHint={nextArrivalHint}
+        nextArrivalId={nextArrivalId}
         dailySnapshot={dailySnapshot}
         timelinePanelProps={timelinePanelProps}
         floorPlanProps={floorPlanProps}
@@ -10725,6 +10726,7 @@ function ReservationsWorkspaceContent({
   arrivalWaves,
   problemsCount = 0,
   nextArrivalHint = '',
+  nextArrivalId,
   dailySnapshot = null,
   timelinePanelProps,
   floorPlanProps,
