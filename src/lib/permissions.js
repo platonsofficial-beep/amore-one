@@ -56,6 +56,8 @@ const TEAM_SECTION_ACCESS = {
   staff: ['schedule'],
 }
 
+const OPERATIONS_SECTION_IDS = new Set(['dashboard', 'tasks', 'checklists'])
+
 function normalizeModuleId(moduleId) {
   return `${moduleId ?? ''}`.trim()
 }
@@ -179,6 +181,7 @@ export function resolvePermittedTeamSection(role, requestedSection) {
 export function canAccessOperationsSection(role, sectionId) {
   const normalizedSection = `${sectionId ?? ''}`.trim() || 'dashboard'
   if (!canAccessModule(role, 'operations')) return false
+  if (!OPERATIONS_SECTION_IDS.has(normalizedSection)) return false
   if (normalizedSection === 'checklists') return canManageOperations(role)
   return true
 }
