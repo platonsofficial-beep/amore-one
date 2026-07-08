@@ -341,7 +341,8 @@ import { ModuleSectionTabs } from './components/shell/ModuleSectionTabs'
 import { UserMenu } from './components/auth/UserMenu'
 import { MobileManagerApp } from './components/mobile/MobileManagerApp'
 import { MobileStaffApp } from './components/mobile/MobileStaffApp'
-import { useMobileViewport } from './hooks/useMobileViewport'
+import { ViewportDebugOverlay } from './components/shell/ViewportDebugOverlay'
+import { shouldUseMobileShell } from './lib/viewportUtils'
 import { filterStandaloneOperationsTasks } from './lib/operationsChecklistUtils'
 import {
   buildMobileEmployeeShiftSummary,
@@ -12298,7 +12299,7 @@ function App() {
     refreshMembership,
   } = useAuth()
 
-  const isMobileViewport = useMobileViewport()
+  const [isMobileViewport, setIsMobileViewport] = useState(() => shouldUseMobileShell())
   const [mobileStaffTab, setMobileStaffTab] = useState(() => readPersistedMobileTab())
   const [mobileManagerTab, setMobileManagerTab] = useState(() => readPersistedManagerMobileTab())
   const [mobileMenuScreen, setMobileMenuScreen] = useState('main')
@@ -12307,6 +12308,46 @@ function App() {
   const [mobileNotice, setMobileNotice] = useState('')
   const [isSavingMobileProfile, setIsSavingMobileProfile] = useState(false)
   const [isManagerMobileBootstrapLoading, setIsManagerMobileBootstrapLoading] = useState(false)
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return undefined
+    }
+
+    let frameId = 0
+    let orientationTimerId = 0
+
+    const updateMobileViewport = () => {
+      window.cancelAnimationFrame(frameId)
+      frameId = window.requestAnimationFrame(() => {
+        setIsMobileViewport(shouldUseMobileShell())
+      })
+    }
+
+    const handleOrientationChange = () => {
+      window.clearTimeout(orientationTimerId)
+      updateMobileViewport()
+      orientationTimerId = window.setTimeout(updateMobileViewport, 320)
+    }
+
+    updateMobileViewport()
+
+    window.addEventListener('resize', updateMobileViewport)
+    window.addEventListener('orientationchange', handleOrientationChange)
+    window.visualViewport?.addEventListener('resize', updateMobileViewport)
+
+    const coarsePointerQuery = window.matchMedia('(pointer: coarse)')
+    coarsePointerQuery.addEventListener('change', updateMobileViewport)
+
+    return () => {
+      window.cancelAnimationFrame(frameId)
+      window.clearTimeout(orientationTimerId)
+      window.removeEventListener('resize', updateMobileViewport)
+      window.removeEventListener('orientationchange', handleOrientationChange)
+      window.visualViewport?.removeEventListener('resize', updateMobileViewport)
+      coarsePointerQuery.removeEventListener('change', updateMobileViewport)
+    }
+  }, [])
   const [mobileExpandedView, setMobileExpandedView] = useState(null)
   const [mobileWeekStart, setMobileWeekStart] = useState(() => readPersistedMobileWeekStart(getCurrentWeekStartDate()))
   const [mobileWeekPublishedShifts, setMobileWeekPublishedShifts] = useState([])
@@ -19155,6 +19196,7 @@ function App() {
   return (
     <PublishedFloorPlanProvider workspaceId={workspace?.id ?? ''}>
     <div className={`app-shell${isMobileViewport ? ' is-mobile-shell' : ''}${isMobileViewport && mobileExpandedView ? ' is-mobile-expanded' : ''}`}>
+      <ViewportDebugOverlay isMobileViewport={isMobileViewport} />
       {!isMobileViewport ? (
       <aside className="sidebar">
         <div className="brand-block">

@@ -1,18 +1,19 @@
 import { useEffect, useState } from 'react'
-import {
-  MOBILE_SHELL_MAX_WIDTH,
-  MOBILE_VIEWPORT_MAX_WIDTH,
-  logMobileViewportChange,
-  shouldUseMobileViewport,
-} from '../lib/mobileShellDetection'
+import { shouldUseMobileShell } from '../lib/viewportUtils'
 
-export { MOBILE_SHELL_MAX_WIDTH, MOBILE_VIEWPORT_MAX_WIDTH }
+/** @deprecated Use MOBILE_SHELL_MAX_WIDTH from viewportUtils consumers directly */
+export const MOBILE_SHELL_MAX_WIDTH = 760
+
+/** @deprecated Use MOBILE_SHELL_MAX_WIDTH */
+export const MOBILE_VIEWPORT_MAX_WIDTH = MOBILE_SHELL_MAX_WIDTH
 
 export function useMobileViewport() {
-  const [isMobile, setIsMobile] = useState(() => shouldUseMobileViewport())
+  const [isMobile, setIsMobile] = useState(() => shouldUseMobileShell())
 
   useEffect(() => {
-    if (typeof window === 'undefined') return undefined
+    if (typeof window === 'undefined') {
+      return undefined
+    }
 
     let frameId = 0
     let orientationTimerId = 0
@@ -20,13 +21,7 @@ export function useMobileViewport() {
     const update = () => {
       window.cancelAnimationFrame(frameId)
       frameId = window.requestAnimationFrame(() => {
-        setIsMobile((previous) => {
-          const next = shouldUseMobileViewport()
-          if (previous !== next) {
-            logMobileViewportChange(next)
-          }
-          return next
-        })
+        setIsMobile(shouldUseMobileShell())
       })
     }
 
@@ -37,7 +32,6 @@ export function useMobileViewport() {
     }
 
     update()
-    logMobileViewportChange(shouldUseMobileViewport())
 
     window.addEventListener('resize', update)
     window.addEventListener('orientationchange', handleOrientationChange)
