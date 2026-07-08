@@ -122,6 +122,10 @@ export function canEditSchedule(role) {
   return isManagerRole(role)
 }
 
+export function canManageReservations(role) {
+  return canAccessModule(role, 'reservations')
+}
+
 export function canManageEmployeeInvites(role) {
   return canEditSchedule(role)
 }

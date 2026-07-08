@@ -392,6 +392,7 @@ import {
   canManageAnnouncements,
   canManageEmployeeInvites,
   canManageOperations,
+  canManageReservations,
   canManageStock,
   canOpenMobileFullSchedule,
   canOpenMobileTasksWorkspace,
@@ -12755,6 +12756,11 @@ function App() {
     [role],
   )
 
+  const canManageReservationsRole = useMemo(
+    () => canManageReservations(role),
+    [role],
+  )
+
   const canManageEmployeeInvitesRole = useMemo(
     () => canManageEmployeeInvites(role),
     [role],
@@ -12813,7 +12819,7 @@ function App() {
     [operationsChecklistTemplates, activeChecklistRunTemplateId],
   )
 
-  const isActiveViewAllowed = isAuthLoading || canAccessModule(role, activeView)
+  const isActiveViewAllowed = !isAuthLoading && canAccessModule(role, activeView)
 
   const persistCurrentNavigation = useCallback((overrides = {}) => {
     persistNavigation({
@@ -17450,6 +17456,8 @@ function App() {
   }, [selectedShiftEmployee])
 
   const handleOpenAddReservation = (options) => {
+    if (!canManageReservationsRole) return
+
     const prefill = options?.nativeEvent || options?.target ? {} : (options ?? {})
     const table = prefill.table ?? null
     const layout = loadPublishedHostLayout(workspace?.id ?? '')
@@ -17485,6 +17493,8 @@ function App() {
   }
 
   const handleOpenQuickReservation = (prefill = {}) => {
+    if (!canManageReservationsRole) return
+
     setQuickReservationForm({
       guestName: prefill.guestName ?? '',
       time: prefill.time ?? '',
@@ -17616,6 +17626,8 @@ function App() {
   }
 
   const handleOpenEditReservation = (reservation) => {
+    if (!canManageReservationsRole) return
+
     const layout = loadPublishedHostLayout(workspace?.id ?? '')
     const assignment = getReservationSeatingAssignment(reservation)
 
@@ -17659,6 +17671,8 @@ function App() {
   }
 
   const handleHostEditSave = async (reservation, form, selectedDateKey) => {
+    if (!canManageReservationsRole) return { saved: false }
+
     if (!form.guestName.trim()) {
       setReservationNotice('Please provide the guest name.')
       return { saved: false }
@@ -17711,6 +17725,8 @@ function App() {
   }
 
   const handleHostEditDelete = async (id) => {
+    if (!canManageReservationsRole) return
+
     if (isSavingReservationRef.current) return false
 
     isSavingReservationRef.current = true
@@ -17744,6 +17760,8 @@ function App() {
   }
 
   const handleQuickReservationStatus = async (reservation, status) => {
+    if (!canManageReservationsRole) return
+
     if (isSavingReservationRef.current) return
 
     isSavingReservationRef.current = true
@@ -17767,6 +17785,8 @@ function App() {
   }
 
   const handleQuickReservationNote = async (reservation, notes) => {
+    if (!canManageReservationsRole) return
+
     if (isSavingReservationRef.current) return
 
     isSavingReservationRef.current = true
@@ -17790,6 +17810,8 @@ function App() {
   }
 
   const handleQuickReservationTableReassign = async (reservation, tableNumber) => {
+    if (!canManageReservationsRole) return
+
     if (isSavingReservationRef.current) return
 
     isSavingReservationRef.current = true
@@ -17819,6 +17841,8 @@ function App() {
   }
 
   const handleSeatGuestAtTable = async (reservation, assignment) => {
+    if (!canManageReservationsRole) return
+
     if (isSavingReservationRef.current) return
 
     isSavingReservationRef.current = true
@@ -17842,6 +17866,7 @@ function App() {
 
   const handleReservationSubmit = async (event) => {
     event.preventDefault()
+    if (!canManageReservationsRole) return
 
     if (!reservationForm.guestName.trim()) {
       setReservationNotice('Please provide the guest name.')
@@ -17900,6 +17925,7 @@ function App() {
 
   const handleQuickReservationSubmit = async (event) => {
     event.preventDefault()
+    if (!canManageReservationsRole) return
 
     if (!quickReservationForm.guestName.trim()) {
       setReservationNotice('Please provide the guest name.')
@@ -19554,6 +19580,8 @@ function App() {
   }, [])
 
   const handleMobileHostReservationCreate = async (form) => {
+    if (!canManageReservationsRole) return false
+
     if (!`${form?.guestName ?? ''}`.trim()) {
       setReservationNotice('Please provide the guest name.')
       return false
@@ -19738,6 +19766,11 @@ function App() {
         {(() => {
           const workspaceModules = (
             <>
+        {isAuthLoading ? (
+          <div className="staff-status-banner" role="status" aria-live="polite">
+            Loading workspace…
+          </div>
+        ) : null}
         {activeView === 'team' && isActiveViewAllowed ? (
           <ModuleSectionTabs
             sections={visibleTeamSections}
@@ -20912,7 +20945,7 @@ function App() {
           </div>
         ) : null}
 
-        {isReservationModalOpen ? (
+        {isReservationModalOpen && canManageReservationsRole ? (
           <div className="employee-modal-backdrop reservation-modal-backdrop" onClick={handleCloseReservationModal}>
             <div className="employee-modal reservation-smart-modal is-responsive-sheet" onClick={(event) => event.stopPropagation()}>
               <div className="drawer-header">
@@ -21021,7 +21054,7 @@ function App() {
           </div>
         ) : null}
 
-        {isQuickReservationOpen ? (
+        {isQuickReservationOpen && canManageReservationsRole ? (
           <div className="employee-modal-backdrop" onClick={handleCloseQuickReservation}>
             <div className="employee-modal quick-reservation-modal" onClick={(event) => event.stopPropagation()}>
               <div className="drawer-header">

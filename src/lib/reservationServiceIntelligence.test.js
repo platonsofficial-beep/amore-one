@@ -103,6 +103,17 @@ describe('reservationServiceIntelligence', () => {
     expect(upcoming).toBeLessThan(completed)
   })
 
+  it('does not double-count waiting guests who are also late', () => {
+    const snapshot = buildDailyServiceSnapshot([
+      reservation({ id: 'late-wait', time: '19:00', status: 'Waiting', guests: 2 }),
+    ], 19 * 60 + 30, TODAY, REFERENCE_DATE)
+
+    expect(snapshot.waitingCount).toBe(1)
+    expect(snapshot.lateCount).toBe(1)
+    expect(snapshot.waitingLateCount).toBe(1)
+    expect(snapshot.waitingLateGuests).toBe(2)
+  })
+
   it('returns context-aware empty states for quiet service', () => {
     const quiet = getHostListEmptyState({
       filter: 'All',

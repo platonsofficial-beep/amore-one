@@ -4042,8 +4042,11 @@
 
   .mobile-host-sticky-center {
     flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: center;
     gap: 10px;
     font-size: 0.74rem;
+    max-width: 100%;
   }
 
   .mobile-host-reservations.is-landscape .mobile-host-reservation-card.is-landscape-layout .mobile-host-reservation-time.is-large {

@@ -5,6 +5,7 @@ import {
   canAccessModule,
   canManageAnnouncements,
   canManageOperations,
+  canManageReservations,
   canManageStock,
   filterOperationsSections,
   getAccessibleModules,
@@ -55,6 +56,15 @@ describe('permissions', () => {
       expect(canAccessModule('staff', 'reservations')).toBe(false)
       expect(canAccessModule('staff', 'settings')).toBe(false)
       expect(canAccessModule('staff', 'insights')).toBe(false)
+    })
+  })
+
+  describe('management helpers', () => {
+    it('allows manager roles to manage reservations', () => {
+      expect(canManageReservations('owner')).toBe(true)
+      expect(canManageReservations('general_manager')).toBe(true)
+      expect(canManageReservations('manager')).toBe(true)
+      expect(canManageReservations('staff')).toBe(false)
     })
   })
 

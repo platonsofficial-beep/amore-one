@@ -201,6 +201,8 @@ export function buildDailyServiceSnapshot(
   let waitingCount = 0
   let lateCount = 0
   let lateGuests = 0
+  let waitingLateCount = 0
+  let waitingLateGuests = 0
   let completedTables = 0
   let completedCovers = 0
   let activeReservations = 0
@@ -249,9 +251,15 @@ export function buildDailyServiceSnapshot(
       waitingGuests += guests
     }
 
-    if (isReservationLate(reservation, nowMinutes, todayKey)) {
+    const isLate = isReservationLate(reservation, nowMinutes, todayKey)
+    if (isLate) {
       lateCount += 1
       lateGuests += guests
+    }
+
+    if (status === 'Waiting' || isLate) {
+      waitingLateCount += 1
+      waitingLateGuests += guests
     }
 
     if (status === 'Checked Out') {
@@ -267,9 +275,6 @@ export function buildDailyServiceSnapshot(
       unassignedTables += 1
     }
   })
-
-  const waitingLateCount = waitingCount + lateCount
-  const waitingLateGuests = waitingGuests + lateGuests
 
   let overallStatus = 'On track'
   let overallTone = 'calm'
