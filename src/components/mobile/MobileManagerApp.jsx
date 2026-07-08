@@ -33,11 +33,11 @@ export function MobileManagerApp({
 
   if (expandedView && isReservationsHostMode) {
     return (
-      <div className="mobile-app mobile-app-expanded mobile-app-host-mode mobile-manager-app is-reservations-host-mode">
+      <div className="mobile-app mobile-app-host-mode mobile-manager-app is-reservations-host-mode">
         {noticeBanner}
         <div className="mobile-host-mode-screen">
           {expandedModuleContent ? (
-            <div className="mobile-workspace-module is-mobile-expanded is-host-mode-module">
+            <div className="mobile-workspace-module is-host-mode-module">
               {expandedModuleContent}
             </div>
           ) : null}

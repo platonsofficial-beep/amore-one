@@ -7,6 +7,14 @@ import {
 } from '../../../lib/reservationHostStatus'
 import { formatHostReservationListTime } from '../../../lib/timeFormatUtils'
 
+function getActionClassName(action) {
+  if (action.id === 'edit') return 'mobile-host-reservation-action is-ghost'
+  if (action.id === 'arrived' || action.id === 'seat' || action.id === 'complete') {
+    return 'mobile-host-reservation-action is-service-primary'
+  }
+  return 'mobile-host-reservation-action'
+}
+
 function getQuickActionsForGroup(groupId) {
   if (groupId === 'upcoming') {
     return [
@@ -92,7 +100,7 @@ export function MobileReservationHostCard({
               <button
                 key={action.id}
                 type="button"
-                className={`mobile-host-reservation-action${action.id === 'edit' ? ' is-ghost' : ''}`}
+                className={getActionClassName(action)}
                 onClick={(event) => handleAction(event, action)}
                 disabled={isSaving}
               >

@@ -19484,7 +19484,7 @@ function App() {
 
   return (
     <PublishedFloorPlanProvider workspaceId={workspace?.id ?? ''}>
-    <div className={`app-shell${useMobileExperience ? ' is-mobile-shell' : ''}${useMobileExperience && mobileExpandedView ? ' is-mobile-expanded' : ''}`}>
+    <div className={`app-shell${useMobileExperience ? ' is-mobile-shell' : ''}${useMobileExperience && mobileExpandedView ? ' is-mobile-expanded' : ''}${useMobileExperience && mobileReservationsHostMode ? ' is-reservations-host-mode' : ''}`}>
       <ViewportDebugOverlay isMobileViewport={useMobileExperience} />
       {!useMobileExperience ? (
       <aside className="sidebar">
