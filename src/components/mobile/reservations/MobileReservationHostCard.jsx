@@ -143,7 +143,7 @@ export function MobileReservationHostCard({
             <button
               key={action.id}
               type="button"
-              className={`mobile-host-reservation-action${action.id === 'edit' ? ' is-ghost' : ''}`}
+              className={getActionClassName(action)}
               onClick={(event) => handleAction(event, action)}
               disabled={isSaving}
             >
