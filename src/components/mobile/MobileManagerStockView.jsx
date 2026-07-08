@@ -5,29 +5,65 @@ import {
 } from '../../lib/stockDashboardBrowse'
 import { getStockDashboardEmptyState } from '../../lib/stockInsights'
 import {
-  formatStockQuantity,
+  buildSupplierOrderGroups,
+  buildSuggestedOrderLine,
+  computeOrderLineTotal,
+} from '../../lib/stockOrderUtils'
+import {
   getStockCategoryFilters,
   getStockStatusShortLabel,
 } from '../../lib/stockUtils'
+import { StockCreateOrderModal } from '../stock/StockCreateOrderModal'
 
-function formatQuantityParts(value, unit = '') {
-  const formatted = formatStockQuantity(value, unit)
-  const normalizedUnit = `${unit ?? ''}`.trim()
-
-  if (!normalizedUnit) {
-    return { amount: formatted, unit: '' }
-  }
-
-  const amount = formatted.replace(new RegExp(`\\s*${normalizedUnit}$`), '')
-  return { amount, unit: normalizedUnit }
+function formatHumanQuantityValue(value) {
+  const quantity = Number(value)
+  if (!Number.isFinite(quantity)) return '0'
+  return Number.isInteger(quantity)
+    ? String(quantity)
+    : quantity.toFixed(2).replace(/\.?0+$/, '')
 }
 
-function MobileManagerStockItemCard({ item }) {
+function formatHumanUnitLabel(unit, quantity) {
+  const normalized = `${unit ?? ''}`.trim().toLowerCase()
+  if (!normalized) {
+    return quantity === 1 ? 'unit' : 'units'
+  }
+
+  const base = normalized.split(/\s+/)[0]
+  if (quantity === 1) return base
+  if (base.endsWith('s')) return base
+  return `${base}s`
+}
+
+function buildMobileOrderGroupsForItem(item) {
+  const line = buildSuggestedOrderLine(item)
+  const quantity = line.quantity > 0 ? line.quantity : 1
+  const supplier = `${item.supplier ?? ''}`.trim() || 'Unassigned supplier'
+
+  return [{
+    supplier,
+    items: [{
+      ...line,
+      quantity,
+      totalPrice: computeOrderLineTotal(quantity, line.costPrice),
+    }],
+    notes: '',
+    expectedDeliveryDate: '',
+  }]
+}
+
+function MobileManagerStockItemCard({
+  item,
+  canManageStock,
+  isWorkspaceReady,
+  onAddToOrder,
+}) {
   const supplierLabel = `${item.supplier ?? ''}`.trim()
   const categoryLabel = `${item.category ?? ''}`.trim() || 'Uncategorized'
-  const current = formatQuantityParts(item.currentQuantity, item.unit)
-  const minimum = formatQuantityParts(item.minimumQuantity, item.unit)
+  const currentQuantity = Number(item.currentQuantity) || 0
+  const minimumQuantity = Number(item.minimumQuantity) || 0
   const statusLabel = getStockStatusShortLabel(item.status).toUpperCase()
+  const showAddToOrder = (item.status === 'low' || item.status === 'out') && canManageStock
 
   return (
     <article className={`mobile-manager-stock-card tone-${item.status}`}>
@@ -41,25 +77,47 @@ function MobileManagerStockItemCard({ item }) {
         </span>
       </header>
 
-      <div className="mobile-manager-stock-card-qty-row">
-        <div className="mobile-manager-stock-card-qty">
-          <span className="mobile-manager-stock-card-qty-value">{current.amount}</span>
-          {current.unit ? <span className="mobile-manager-stock-card-qty-unit">{current.unit}</span> : null}
+      <div className="mobile-manager-stock-card-qty-grid">
+        <div className="mobile-manager-stock-card-qty-block">
+          <span className="mobile-manager-stock-card-qty-label">Current</span>
+          <p className={`mobile-manager-stock-card-qty-line tone-${item.status}`}>
+            <span className="mobile-manager-stock-card-qty-value">
+              {formatHumanQuantityValue(currentQuantity)}
+            </span>
+            <span className="mobile-manager-stock-card-qty-unit">
+              {formatHumanUnitLabel(item.unit, currentQuantity)}
+            </span>
+          </p>
         </div>
-        <div className="mobile-manager-stock-card-min">
-          <span className="mobile-manager-stock-card-min-label">Min</span>
-          <span className="mobile-manager-stock-card-min-value">
-            {minimum.amount}
-            {minimum.unit ? ` ${minimum.unit}` : ''}
-          </span>
+        <div className="mobile-manager-stock-card-qty-block">
+          <span className="mobile-manager-stock-card-qty-label">Minimum</span>
+          <p className="mobile-manager-stock-card-qty-line">
+            <span className="mobile-manager-stock-card-qty-value">
+              {formatHumanQuantityValue(minimumQuantity)}
+            </span>
+            <span className="mobile-manager-stock-card-qty-unit">
+              {formatHumanUnitLabel(item.unit, minimumQuantity)}
+            </span>
+          </p>
         </div>
       </div>
 
       {supplierLabel ? (
-        <p className="mobile-manager-stock-card-supplier">
+        <div className="mobile-manager-stock-card-supplier">
           <span className="mobile-manager-stock-card-supplier-label">Supplier</span>
-          <span>{supplierLabel}</span>
-        </p>
+          <span className="mobile-manager-stock-card-supplier-name">{supplierLabel}</span>
+        </div>
+      ) : null}
+
+      {showAddToOrder ? (
+        <button
+          type="button"
+          className="mobile-manager-stock-card-order-btn"
+          onClick={() => onAddToOrder?.(item)}
+          disabled={!isWorkspaceReady}
+        >
+          Add to order
+        </button>
       ) : null}
     </article>
   )
@@ -81,12 +139,14 @@ export function MobileManagerStockView({
   isLoading = false,
   canManageStock = false,
   isWorkspaceReady = false,
-  onCreateOrder,
+  isSavingOrders = false,
+  onCreateOrders,
   onCountStock,
 }) {
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
   const [categoryFilter, setCategoryFilter] = useState('All')
+  const [orderModalGroups, setOrderModalGroups] = useState(null)
 
   const totalItems = Number(stockSummary?.totalItems) || 0
   const lowCount = Number(stockSummary?.lowStock) || 0
@@ -144,6 +204,32 @@ export function MobileManagerStockView({
     if (nextCategory !== 'All') {
       setStatusFilter('all')
     }
+  }
+
+  const openCreateOrderModal = () => {
+    const groups = buildSupplierOrderGroups(stockItems)
+      .filter((group) => Array.isArray(group?.items) && group.items.length > 0)
+      .map((group) => ({
+        ...group,
+        notes: '',
+        expectedDeliveryDate: '',
+      }))
+
+    setOrderModalGroups(groups)
+  }
+
+  const handleAddItemToOrder = (item) => {
+    setOrderModalGroups(buildMobileOrderGroupsForItem(item))
+  }
+
+  const handleCloseOrderModal = () => {
+    if (isSavingOrders) return
+    setOrderModalGroups(null)
+  }
+
+  const handleSubmitOrderModal = async (groups) => {
+    await onCreateOrders?.(groups)
+    setOrderModalGroups(null)
   }
 
   return (
@@ -234,7 +320,12 @@ export function MobileManagerStockView({
         <ul className="mobile-manager-stock-list">
           {visibleItems.map((item) => (
             <li key={item.id}>
-              <MobileManagerStockItemCard item={item} />
+              <MobileManagerStockItemCard
+                item={item}
+                canManageStock={canManageStock}
+                isWorkspaceReady={isWorkspaceReady}
+                onAddToOrder={handleAddItemToOrder}
+              />
             </li>
           ))}
         </ul>
@@ -249,15 +340,28 @@ export function MobileManagerStockView({
         >
           Count stock
         </button>
+      </section>
+
+      <div className="mobile-manager-stock-create-dock">
         <button
           type="button"
-          className="mobile-manager-stock-quick-btn mobile-manager-stock-quick-btn-primary"
-          onClick={onCreateOrder}
+          className="mobile-manager-stock-quick-btn mobile-manager-stock-quick-btn-primary mobile-manager-stock-create-btn"
+          onClick={openCreateOrderModal}
           disabled={!canManageStock || !isWorkspaceReady}
         >
           Create order
         </button>
-      </section>
+      </div>
+
+      {orderModalGroups ? (
+        <StockCreateOrderModal
+          stockItems={stockItems}
+          initialGroups={orderModalGroups}
+          onClose={handleCloseOrderModal}
+          onSubmit={handleSubmitOrderModal}
+          isSaving={isSavingOrders}
+        />
+      ) : null}
     </div>
   )
 }

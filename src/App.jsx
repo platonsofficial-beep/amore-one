@@ -19193,14 +19193,6 @@ function App() {
     setMobileExpandedView('workspace')
   }, [role, handleActiveViewChange])
 
-  const handleMobileManagerCreateOrder = useCallback(() => {
-    if (!canAccessMobileExpandedModule(role, 'stock')) return
-
-    handleActiveViewChange('stock')
-    handleStockSectionChange('orders')
-    setMobileExpandedView('workspace')
-  }, [role, handleActiveViewChange, handleStockSectionChange])
-
   const handleMobileManagerCountStock = useCallback(() => {
     if (!canAccessMobileExpandedModule(role, 'stock')) return
 
@@ -19868,7 +19860,8 @@ function App() {
                           isLoading: isManagerMobileStockLoading,
                           canManageStock,
                           isWorkspaceReady: isStockWorkspaceReady,
-                          onCreateOrder: handleMobileManagerCreateOrder,
+                          isSavingOrders: isSavingStockOrder,
+                          onCreateOrders: handleCreateStockOrders,
                           onCountStock: handleMobileManagerCountStock,
                         }}
                         managerTasksProps={{

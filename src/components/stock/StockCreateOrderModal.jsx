@@ -105,19 +105,24 @@ function SupplierOrderGroup({
 
 export function StockCreateOrderModal({
   stockItems,
+  initialGroups = null,
   onClose,
   onSubmit,
   isSaving = false,
 }) {
-  const [groups, setGroups] = useState(() => (
-    buildSupplierOrderGroups(stockItems ?? [])
+  const [groups, setGroups] = useState(() => {
+    if (Array.isArray(initialGroups) && initialGroups.length > 0) {
+      return initialGroups
+    }
+
+    return buildSupplierOrderGroups(stockItems ?? [])
       .filter((group) => Array.isArray(group?.items) && group.items.length > 0)
       .map((group) => ({
         ...group,
         notes: '',
         expectedDeliveryDate: '',
       }))
-  ))
+  })
   const [error, setError] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const isBusy = isSaving || isSubmitting
