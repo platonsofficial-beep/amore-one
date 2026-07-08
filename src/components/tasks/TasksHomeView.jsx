@@ -11,11 +11,12 @@ function DepartmentBoardCard({
   onDeleteDepartment,
   isDeletingDepartment = false,
   compact = false,
+  canManage = false,
 }) {
   const departmentTasks = (tasks ?? []).filter((task) => taskMatchesDepartmentBoard(task, board.boardKey))
   const hasTasks = departmentTasks.length > 0
   const stats = calculateDepartmentStats(tasks, board.boardKey, todayKey)
-  const canDelete = board.isCustomBoard && isDeletableCustomDepartmentName(board.label)
+  const canDelete = canManage && board.isCustomBoard && isDeletableCustomDepartmentName(board.label)
 
   return (
     <article className={`tasks-department-card${hasTasks ? '' : ' is-empty'}${board.isCustomBoard ? ' is-custom' : ''}${compact ? ' is-compact' : ''}`}>
@@ -94,6 +95,7 @@ export default function TasksHomeView({
   isMobileLayout = false,
   onOpenTemplates,
   templateCount = 0,
+  canManage = false,
 }) {
   return (
     <section className={`tasks-home${isMobileLayout ? ' is-mobile-layout' : ''}`}>
@@ -110,7 +112,7 @@ export default function TasksHomeView({
         compact={isMobileLayout}
       />
 
-      {isMobileLayout ? (
+      {isMobileLayout && canManage ? (
         <section className="tasks-mobile-templates-section" aria-label="Daily templates">
           <header className="tasks-mobile-templates-header">
             <h3>Daily templates</h3>
@@ -155,9 +157,11 @@ export default function TasksHomeView({
             onDeleteDepartment={onDeleteDepartment}
             isDeletingDepartment={isDeletingDepartment}
             compact={isMobileLayout}
+            canManage={canManage}
           />
         ))}
 
+        {canManage ? (
         <button
           type="button"
           className={`tasks-department-card is-create-action${isMobileLayout ? ' is-compact' : ''}`}
@@ -174,6 +178,7 @@ export default function TasksHomeView({
             </div>
           ) : null}
         </button>
+        ) : null}
       </div>
     </section>
   )

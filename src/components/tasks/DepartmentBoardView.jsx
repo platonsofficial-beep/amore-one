@@ -15,6 +15,7 @@ function TaskSection({
   onToggleChecklistItem,
   customDepartmentIcons = {},
   isSaving,
+  canManage = false,
 }) {
   return (
     <section className="tasks-board-section">
@@ -40,6 +41,7 @@ function TaskSection({
               onToggleChecklistItem={onToggleChecklistItem}
               customDepartmentIcons={customDepartmentIcons}
               isSaving={isSaving}
+              canManage={canManage}
             />
           ))}
         </div>
@@ -63,6 +65,7 @@ export default function DepartmentBoardView({
   onToggleChecklistItem,
   isSaving = false,
   isLoading = false,
+  canManage = false,
 }) {
   const departmentDisplay = resolveDepartmentBoardDisplay(departmentKey, customDepartmentIcons)
   const departmentTasks = tasks.filter((task) => taskMatchesDepartmentBoard(task, departmentKey))
@@ -92,9 +95,11 @@ export default function DepartmentBoardView({
             <span className="tasks-board-icon" aria-hidden="true">{departmentDisplay.icon}</span>
             <h3>{departmentDisplay.label}</h3>
           </div>
-          <button type="button" className="primary-btn tasks-new-btn" onClick={onNewTask} disabled={isSaving}>
-            + New Task
-          </button>
+          {canManage ? (
+            <button type="button" className="primary-btn tasks-new-btn" onClick={onNewTask} disabled={isSaving}>
+              + New Task
+            </button>
+          ) : null}
         </div>
       </header>
 
@@ -114,6 +119,7 @@ export default function DepartmentBoardView({
           onToggleChecklistItem={onToggleChecklistItem}
           customDepartmentIcons={customDepartmentIcons}
           isSaving={isSaving}
+          canManage={canManage}
         />
         <TaskSection
           title="Upcoming"
@@ -128,6 +134,7 @@ export default function DepartmentBoardView({
           onToggleChecklistItem={onToggleChecklistItem}
           customDepartmentIcons={customDepartmentIcons}
           isSaving={isSaving}
+          canManage={canManage}
         />
         <TaskSection
           title="Completed"
@@ -142,6 +149,7 @@ export default function DepartmentBoardView({
           onToggleChecklistItem={onToggleChecklistItem}
           customDepartmentIcons={customDepartmentIcons}
           isSaving={isSaving}
+          canManage={canManage}
         />
       </div>
     </section>

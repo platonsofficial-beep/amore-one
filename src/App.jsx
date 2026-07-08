@@ -10914,6 +10914,7 @@ function InventoryReorderContent({
   copyNotice,
   onCopyNotice,
   showActions = true,
+  canManage = false,
   onClose,
 }) {
   const summary = useMemo(() => buildInventoryReorderSummary(items), [items])
@@ -10985,13 +10986,15 @@ function InventoryReorderContent({
                             </div>
                           </dl>
                         </div>
-                        <button
-                          type="button"
-                          className="ghost-btn inventory-reorder-row-edit"
-                          onClick={() => onOpenEditItem?.(row.item)}
-                        >
-                          Edit
-                        </button>
+                        {canManage ? (
+                          <button
+                            type="button"
+                            className="ghost-btn inventory-reorder-row-edit"
+                            onClick={() => onOpenEditItem?.(row.item)}
+                          >
+                            Edit
+                          </button>
+                        ) : null}
                       </article>
                     </li>
                   ))}
@@ -11401,8 +11404,9 @@ function BarRefillCard({
   onSaveChanges,
   onCompletePickup,
   onCancelRefill,
+  canManage = false,
 }) {
-  const isReadOnly = refill.status !== 'draft'
+  const isReadOnly = refill.status !== 'draft' || !canManage
   const [notes, setNotes] = useState(refill.notes ?? '')
   const [itemEdits, setItemEdits] = useState(() => (
     (refill.items ?? []).map((item) => ({
@@ -11629,6 +11633,7 @@ function BarRefillView({
   onSaveRefillChanges,
   onRequestCompleteRefill,
   onCancelRefill,
+  canManage = false,
 }) {
   const [isNewModalOpen, setIsNewModalOpen] = useState(false)
   const activeDraft = useMemo(
@@ -11648,14 +11653,16 @@ function BarRefillView({
           <h3>Bar Refill</h3>
           <p className="staff-subtitle">Warehouse / storage → bar pickup workflow.</p>
         </div>
-        <button
-          type="button"
-          className="primary-btn"
-          onClick={() => setIsNewModalOpen(true)}
-          disabled={isSaving || Boolean(activeDraft)}
-        >
-          + New Bar Refill
-        </button>
+        {canManage ? (
+          <button
+            type="button"
+            className="primary-btn"
+            onClick={() => setIsNewModalOpen(true)}
+            disabled={isSaving || Boolean(activeDraft)}
+          >
+            + New Bar Refill
+          </button>
+        ) : null}
       </div>
 
       {noticeMessage ? <div className="staff-status-banner">{noticeMessage}</div> : null}
@@ -11675,6 +11682,7 @@ function BarRefillView({
             onSaveChanges={onSaveRefillChanges}
             onCompletePickup={onRequestCompleteRefill}
             onCancelRefill={onCancelRefill}
+            canManage={canManage}
           />
         </section>
       ) : (
@@ -11706,18 +11714,20 @@ function BarRefillView({
         )}
       </section>
 
-      <BarRefillNewModal
-        isOpen={isNewModalOpen}
-        onClose={() => setIsNewModalOpen(false)}
-        inventoryItems={inventoryItems}
-        defaultRefillDate={defaultRefillDate}
-        defaultCreatedBy={defaultCreatedBy}
-        isSaving={isSaving}
-        onSaveDraft={async (payload) => {
-          await onCreateRefill?.(payload)
-          setIsNewModalOpen(false)
-        }}
-      />
+      {canManage ? (
+        <BarRefillNewModal
+          isOpen={isNewModalOpen}
+          onClose={() => setIsNewModalOpen(false)}
+          inventoryItems={inventoryItems}
+          defaultRefillDate={defaultRefillDate}
+          defaultCreatedBy={defaultCreatedBy}
+          isSaving={isSaving}
+          onSaveDraft={async (payload) => {
+            await onCreateRefill?.(payload)
+            setIsNewModalOpen(false)
+          }}
+        />
+      ) : null}
     </>
   )
 }
@@ -11742,6 +11752,7 @@ function InventoryItemCard({
   item,
   onOpenEditItem,
   onRequestDeleteItem,
+  canManage = false,
 }) {
   const hasUnit = hasSupplierField(item.unit)
   const hasSupplier = hasSupplierField(item.supplier)
@@ -11782,6 +11793,7 @@ function InventoryItemCard({
             </div>
           ) : null}
           <span className={`status-pill inventory-item-status-pill ${statusClass}`}>{item.status}</span>
+          {canManage ? (
           <div className="inventory-item-card-header-actions">
             <button
               type="button"
@@ -11798,6 +11810,7 @@ function InventoryItemCard({
               Delete
             </button>
           </div>
+          ) : null}
         </div>
       </div>
 
@@ -11897,6 +11910,7 @@ function InventoryView({
   onSaveBarRefillChanges,
   onRequestCompleteBarRefill,
   onCancelBarRefill,
+  canManage = false,
 }) {
   const [stockTab, setStockTab] = useState('inventory')
   const [categoryFilter, setCategoryFilter] = useState('All')
@@ -11969,7 +11983,7 @@ function InventoryView({
           <p className="staff-subtitle">Track quantity, suppliers, and purchasing risk in real time.</p>
         </div>
         <div className="inventory-header-actions">
-          {stockTab === 'inventory' ? (
+          {stockTab === 'inventory' && canManage ? (
             <button type="button" className="primary-btn" onClick={onOpenAddItem} disabled={isSaving}>
               {isSaving ? 'Saving…' : '+ Add Item'}
             </button>
@@ -12148,6 +12162,7 @@ function InventoryView({
                             item={item}
                             onOpenEditItem={onOpenEditItem}
                             onRequestDeleteItem={onRequestDeleteItem}
+                            canManage={canManage}
                           />
                         ))}
                       </div>
@@ -12166,6 +12181,7 @@ function InventoryView({
                         item={item}
                         onOpenEditItem={onOpenEditItem}
                         onRequestDeleteItem={onRequestDeleteItem}
+                        canManage={canManage}
                       />
                     ))}
                   </div>
@@ -12193,6 +12209,7 @@ function InventoryView({
             copyNotice={reorderCopyNotice}
             onCopyNotice={setReorderCopyNotice}
             showActions
+            canManage={canManage}
           />
         </div>
       ) : null}
@@ -12210,6 +12227,7 @@ function InventoryView({
           onSaveRefillChanges={onSaveBarRefillChanges}
           onRequestCompleteRefill={(refillId, payload) => setBarRefillPendingComplete({ refillId, payload })}
           onCancelRefill={onCancelBarRefill}
+          canManage={canManage}
         />
       ) : null}
 
@@ -19954,6 +19972,7 @@ function App() {
             onSaveBarRefillChanges={handleSaveBarRefillChanges}
             onRequestCompleteBarRefill={handleCompleteBarRefill}
             onCancelBarRefill={handleCancelBarRefill}
+            canManage={canManageStockRole}
           />
         ) : null}
 
@@ -20083,6 +20102,7 @@ function App() {
             openCreateOnMount={openTasksCreateModal}
             onOpenCreateHandled={() => setOpenTasksCreateModal(false)}
             isMobileLayout={useMobileExperience}
+            canManage={canManageOperationsRole}
           />
         ) : null}
 

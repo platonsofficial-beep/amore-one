@@ -146,6 +146,7 @@ export default function TaskCard({
   onToggleChecklistItem,
   customDepartmentIcons = {},
   isSaving = false,
+  canManage = false,
 }) {
   const isCompleted = task?.status === 'completed'
   const overdue = !isCompleted && isTaskOverdue(task)
@@ -216,35 +217,39 @@ export default function TaskCard({
       </div>
 
       <div className="task-card-actions">
-        <div className="task-card-actions-left">
-          <button
-            type="button"
-            className="ghost-btn task-card-action-btn"
-            onClick={() => onEdit?.(task)}
-            disabled={isSaving}
-          >
-            Edit
-          </button>
-          <button
-            type="button"
-            className="ghost-btn task-card-action-btn task-card-delete-btn"
-            onClick={() => onDelete?.(task)}
-            disabled={isSaving}
-          >
-            Delete
-          </button>
-        </div>
-
-        <div className="task-card-actions-right">
-          {isCompleted ? (
+        {canManage ? (
+          <div className="task-card-actions-left">
             <button
               type="button"
               className="ghost-btn task-card-action-btn"
-              onClick={() => onReopen?.(task)}
+              onClick={() => onEdit?.(task)}
               disabled={isSaving}
             >
-              Reopen
+              Edit
             </button>
+            <button
+              type="button"
+              className="ghost-btn task-card-action-btn task-card-delete-btn"
+              onClick={() => onDelete?.(task)}
+              disabled={isSaving}
+            >
+              Delete
+            </button>
+          </div>
+        ) : null}
+
+        <div className={`task-card-actions-right${canManage ? '' : ' is-staff-only'}`}>
+          {isCompleted ? (
+            canManage ? (
+              <button
+                type="button"
+                className="ghost-btn task-card-action-btn"
+                onClick={() => onReopen?.(task)}
+                disabled={isSaving}
+              >
+                Reopen
+              </button>
+            ) : null
           ) : (
             <button
               type="button"

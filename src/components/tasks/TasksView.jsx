@@ -49,6 +49,7 @@ export default function TasksView({
   openCreateOnMount = false,
   onOpenCreateHandled,
   isMobileLayout = false,
+  canManage = false,
 }) {
   const CUSTOM_DEPARTMENTS_STORAGE_KEY = 'amore-task-custom-departments'
 
@@ -211,12 +212,12 @@ export default function TasksView({
   }
 
   useEffect(() => {
-    if (!openCreateOnMount) return
+    if (!openCreateOnMount || !canManage) return
     setEditingTask(null)
     setFormError('')
     setIsTaskModalOpen(true)
     onOpenCreateHandled?.()
-  }, [openCreateOnMount, onOpenCreateHandled])
+  }, [openCreateOnMount, onOpenCreateHandled, canManage])
 
   const handleSelectDepartment = (departmentKey) => {
     setSelectedDepartmentKey(departmentKey)
@@ -351,7 +352,7 @@ export default function TasksView({
             </p>
           ) : null}
         </div>
-        {tasksScreen === 'boards' && !selectedDepartmentKey && !isMobileLayout ? (
+        {tasksScreen === 'boards' && !selectedDepartmentKey && !isMobileLayout && canManage ? (
           <button type="button" className="ghost-btn tasks-templates-nav-btn" onClick={handleOpenTemplates}>
             Daily Templates
           </button>
@@ -397,7 +398,7 @@ export default function TasksView({
         />
       ) : null}
 
-      {tasksScreen === 'templates' ? (
+      {tasksScreen === 'templates' && canManage ? (
         <TaskTemplatesView
           templates={taskTemplates}
           templateChecklistItemsByTemplateId={templateChecklistItemsByTemplateId}
@@ -429,6 +430,7 @@ export default function TasksView({
           onToggleChecklistItem={onToggleChecklistItem}
           isSaving={isSaving}
           isLoading={isLoading}
+          canManage={canManage}
         />
       ) : (
         <TasksHomeView
@@ -446,56 +448,65 @@ export default function TasksView({
           isMobileLayout={isMobileLayout}
           onOpenTemplates={handleOpenTemplates}
           templateCount={taskTemplates.length}
+          canManage={canManage}
         />
       )}
 
-      <TaskFormModal
-        isOpen={isTaskModalOpen}
-        editingTask={editingTask}
-        defaultDepartment={selectedDepartmentKey ?? 'service'}
-        customDepartments={customDepartments}
-        customDepartmentIcons={customDepartmentIcons}
-        employees={employees}
-        onClose={handleCloseTaskModal}
-        onSubmit={handleSubmitTask}
-        isSaving={isSaving}
-        errorMessage={formError}
-      />
+      {canManage && isTaskModalOpen ? (
+        <TaskFormModal
+          isOpen={isTaskModalOpen}
+          editingTask={editingTask}
+          defaultDepartment={selectedDepartmentKey ?? 'service'}
+          customDepartments={customDepartments}
+          customDepartmentIcons={customDepartmentIcons}
+          employees={employees}
+          onClose={handleCloseTaskModal}
+          onSubmit={handleSubmitTask}
+          isSaving={isSaving}
+          errorMessage={formError}
+        />
+      ) : null}
 
-      <TaskTemplateModal
-        isOpen={isTemplateModalOpen}
-        editingTemplate={editingTemplate}
-        customDepartments={customDepartments}
-        customDepartmentIcons={customDepartmentIcons}
-        initialChecklistItems={
-          editingTemplate?.id
-            ? (templateChecklistItemsByTemplateId[String(editingTemplate.id)] ?? [])
-            : []
-        }
-        onClose={handleCloseTemplateModal}
-        onSubmit={handleSubmitTemplate}
-        isSaving={isSavingTemplate}
-        errorMessage={templateFormError}
-      />
+      {canManage && isTemplateModalOpen ? (
+        <TaskTemplateModal
+          isOpen={isTemplateModalOpen}
+          editingTemplate={editingTemplate}
+          customDepartments={customDepartments}
+          customDepartmentIcons={customDepartmentIcons}
+          initialChecklistItems={
+            editingTemplate?.id
+              ? (templateChecklistItemsByTemplateId[String(editingTemplate.id)] ?? [])
+              : []
+          }
+          onClose={handleCloseTemplateModal}
+          onSubmit={handleSubmitTemplate}
+          isSaving={isSavingTemplate}
+          errorMessage={templateFormError}
+        />
+      ) : null}
 
-      <CreateDepartmentModal
-        isOpen={isCreateDepartmentModalOpen}
-        onClose={() => setIsCreateDepartmentModalOpen(false)}
-        onSubmit={handleCreateDepartment}
-        existingNames={[
-          ...customDepartments,
-          UNASSIGNED_CUSTOM_DEPARTMENT_NAME,
-          ...TASK_PRESET_DEPARTMENTS.map((department) => department.label),
-        ]}
-      />
+      {canManage ? (
+        <>
+          <CreateDepartmentModal
+            isOpen={isCreateDepartmentModalOpen}
+            onClose={() => setIsCreateDepartmentModalOpen(false)}
+            onSubmit={handleCreateDepartment}
+            existingNames={[
+              ...customDepartments,
+              UNASSIGNED_CUSTOM_DEPARTMENT_NAME,
+              ...TASK_PRESET_DEPARTMENTS.map((department) => department.label),
+            ]}
+          />
 
-      <DeleteDepartmentModal
-        isOpen={Boolean(departmentPendingDelete)}
-        departmentName={departmentPendingDelete?.label ?? ''}
-        onClose={handleCloseDeleteDepartmentModal}
-        onConfirm={handleConfirmDeleteDepartment}
-        isDeleting={isDeletingDepartment}
-      />
+          <DeleteDepartmentModal
+            isOpen={Boolean(departmentPendingDelete)}
+            departmentName={departmentPendingDelete?.label ?? ''}
+            onClose={handleCloseDeleteDepartmentModal}
+            onConfirm={handleConfirmDeleteDepartment}
+            isDeleting={isDeletingDepartment}
+          />
+        </>
+      ) : null}
     </section>
   )
 }
