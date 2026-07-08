@@ -43,8 +43,8 @@ function MobileManagerAttentionItem({ item }) {
   const category = getAttentionCategory(item)
 
   return (
-    <li className={`mobile-manager-attention-item tone-${item.tone} category-${category}`}>
-      <span className="mobile-manager-attention-rank" aria-hidden="true" />
+    <li className={`mobile-manager-attention-item mobile-manager-priority-item tone-${item.tone} category-${category}`}>
+      <span className="mobile-manager-priority-dot" aria-hidden="true" />
       <div className="mobile-manager-attention-copy">
         <strong>{item.label}</strong>
         <span>{item.detail}</span>
@@ -67,7 +67,7 @@ function MobileManagerQuickActions({
   onReceiveDeliveries,
 }) {
   return (
-    <div className="mobile-manager-quick-actions">
+    <div className="mobile-manager-quick-actions is-dense">
       {canReceiveDeliveries && pendingDeliveries > 0 ? (
         <button
           type="button"
@@ -238,7 +238,7 @@ export function MobileManagerHomeView({
         ) : null}
       </section>
 
-      <section className="mobile-manager-command-secondary" aria-label="Attention">
+      <section className="mobile-manager-command-secondary mobile-manager-priority-panel" aria-label="Attention">
         <div className="mobile-manager-command-block">
           <h2 className="mobile-manager-block-title">
             Attention
@@ -250,7 +250,7 @@ export function MobileManagerHomeView({
             <p className="mobile-manager-attention-empty">Everything looks under control today.</p>
           ) : (
             <>
-              <ul className="mobile-manager-attention-list mobile-manager-attention-feed">
+              <ul className="mobile-manager-attention-list mobile-manager-attention-feed mobile-manager-priority-feed">
                 {visibleAttentionItems.map((item) => (
                   <MobileManagerAttentionItem key={item.key} item={item} />
                 ))}
