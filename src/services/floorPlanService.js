@@ -186,6 +186,16 @@ async function upsertFloorPlanRecord(workspaceId, fields, authUserId) {
     ...fields,
   }
 
+  if (!existing?.id && !record.layout_json) {
+    record.layout_json = {
+      version: 1,
+      floors: [],
+      objects: [],
+      activeFloorId: null,
+      publishedAt: null,
+    }
+  }
+
   const mutation = existing?.id
     ? supabase
       .from('floor_plans')

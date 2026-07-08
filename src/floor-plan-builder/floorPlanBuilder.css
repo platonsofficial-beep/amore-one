@@ -1553,6 +1553,20 @@
   color: #e8d7a8;
 }
 
+.unified-floor-editor-draft-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #f5d98b;
+  background: rgba(212, 184, 122, 0.14);
+  border: 1px solid rgba(212, 184, 122, 0.35);
+}
+
 .unified-floor-editor-area {
   font-size: 0.82rem;
   color: rgba(255, 255, 255, 0.62);

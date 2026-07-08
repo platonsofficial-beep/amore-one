@@ -150,6 +150,14 @@ function floorPlanBuilderReducer(state, action) {
         toolboxSelectionId: null,
         selectedTableIds: [],
       }
+    case 'MARK_DRAFT_SAVED': {
+      const snapshot = createLayoutSnapshot(state)
+      return {
+        ...state,
+        hasUnsavedChanges: false,
+        savedSnapshot: snapshot,
+      }
+    }
     case 'SAVE_LAYOUT': {
       const snapshot = createLayoutSnapshot(state)
       saveFloorPlanLayout({

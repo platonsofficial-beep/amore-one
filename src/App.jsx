@@ -7372,6 +7372,7 @@ function FloorPlanView({
   nowMinutes,
   isSaving,
   isCompact = false,
+  canEditFloorPlan = true,
   onSeatGuestAtTable,
   onQuickStatusUpdate,
   onOpenAddReservation,
@@ -7850,6 +7851,15 @@ function FloorPlanView({
       return
     }
 
+    if (
+      selectedReservation
+      && tableState.reservation
+      && String(tableState.reservation.id) === String(selectedReservation.id)
+    ) {
+      toggleSeatingUnit(tableState.table.id)
+      return
+    }
+
     if (!tableState.reservation && selectedReservation && tableState.status === 'available') {
       toggleSeatingUnit(tableState.table.id)
       return
@@ -7921,10 +7931,16 @@ function FloorPlanView({
         <div className="floor-plan-empty">
           <p className="eyebrow">Floor plan</p>
           <h3>No published layout</h3>
-          <p>Open Reservations, click Edit layout, arrange your tables, then save.</p>
-          <button type="button" className="floor-plan-empty-action" onClick={() => { closeHostEdit(); setFloorPlanMode('edit') }}>
-            Edit layout
-          </button>
+          {canEditFloorPlan ? (
+            <>
+              <p>Open Reservations, click Edit layout, arrange your tables, then publish.</p>
+              <button type="button" className="floor-plan-empty-action" onClick={() => { closeHostEdit(); setFloorPlanMode('edit') }}>
+                Edit layout
+              </button>
+            </>
+          ) : (
+            <p>Ask a manager to publish the floor plan before seating guests.</p>
+          )}
         </div>
       </div>
     )
@@ -7958,13 +7974,15 @@ function FloorPlanView({
           {!isCompact ? <FloorPlanViewModeToggle value={viewMode} onChange={setViewMode} /> : null}
           {isCompact && !isHeatmap ? (
             <div className="floor-plan-toolbar-actions-group">
-              <button
-                type="button"
-                className="floor-plan-mode-btn"
-                onClick={() => { closeHostEdit(); setFloorPlanMode('edit') }}
-              >
-                Edit layout
-              </button>
+              {canEditFloorPlan ? (
+                <button
+                  type="button"
+                  className="floor-plan-mode-btn"
+                  onClick={() => { closeHostEdit(); setFloorPlanMode('edit') }}
+                >
+                  Edit layout
+                </button>
+              ) : null}
               <div className="floor-plan-zoom-controls" aria-label="Floor plan zoom">
               <button type="button" className="floor-plan-zoom-btn" onClick={handleFloorZoomOut} aria-label="Zoom out">−</button>
               <span className="floor-plan-zoom-label">{Math.round(floorZoom * 100)}%</span>
@@ -8235,6 +8253,7 @@ function MobileReservationsHostShellBody({
       nowMinutes={nowMinutes}
       isSaving={isSaving}
       isCompact
+      canEditFloorPlan={false}
       onSeatGuestAtTable={onSeatGuestAtTable}
       onQuickStatusUpdate={onQuickStatusUpdate}
       onOpenAddReservation={() => {}}
@@ -10017,6 +10036,7 @@ function ReservationsUnifiedCanvas({
   isSavingStatus,
 }) {
   const { layout } = usePublishedFloorPlan()
+  const canEditFloorPlan = floorPlanProps.canEditFloorPlan !== false
   const {
     canvasRef,
     isTimelineCollapsed,
@@ -10130,7 +10150,7 @@ function ReservationsUnifiedCanvas({
       ) : null}
 
       <section className="host-operations-floor" aria-label="Floor plan">
-        {floorPlanMode === 'edit' ? (
+        {floorPlanMode === 'edit' && canEditFloorPlan ? (
           <EmbeddedFloorPlanEditor
             onExit={() => setFloorPlanMode('view')}
             initialAreaId={activeFloorAreaId}
@@ -10229,6 +10249,7 @@ function ReservationsWorkspaceBody({
   isSaving,
   workspaceTimeZone = '',
   onOpenHostMode,
+  canEditFloorPlan = true,
 }) {
   const [searchTerm, setSearchTerm] = useState('')
   const [listFilter, setListFilter] = useState('All')
@@ -10491,6 +10512,7 @@ function ReservationsWorkspaceBody({
     todayKey: selectedDateKey,
     nowMinutes,
     isSaving,
+    canEditFloorPlan,
     onTableReassign,
     onSeatGuestAtTable,
     onQuickStatusUpdate,
@@ -10554,6 +10576,7 @@ function ReservationsWorkspaceBody({
         onCloseAddNote={handleCloseAddNote}
         onSaveNote={handleSaveNote}
         onOpenHostMode={onOpenHostMode}
+        canEditFloorPlan={canEditFloorPlan}
       />
       </ReservationWorkspaceProvider>
   )
@@ -10609,6 +10632,7 @@ function ReservationsWorkspaceContent({
   onCloseAddNote,
   onSaveNote,
   onOpenHostMode,
+  canEditFloorPlan: _canEditFloorPlan = true,
 }) {
   const {
     selectedReservation,
@@ -19686,6 +19710,7 @@ function App() {
               onCreateReservation={handleMobileHostReservationCreate}
               onExitHostMode={handleMobileExitReservationsHostMode}
               onSeatGuestAtTable={handleSeatGuestAtTable}
+              canEditFloorPlan={canEditScheduleRole}
             />
           ) : (
             <ReservationsView

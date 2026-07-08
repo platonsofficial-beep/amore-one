@@ -62,7 +62,9 @@ function EditorAreaSwitcher({ floors, activeFloorId, onChange }) {
 function EmbeddedFloorPlanEditorShell({
   containerRef,
   onExit,
-  onSaveLayout,
+  onSaveDraft,
+  onPublishLayout,
+  hasUnpublishedDraft,
   initialAreaId,
   onActiveAreaChange,
 }) {
@@ -142,19 +144,33 @@ function EmbeddedFloorPlanEditorShell({
   }, [onExit])
 
   const selectionCount = state.selectedTableIds.length
-  const [isSavingLayout, setIsSavingLayout] = useState(false)
+  const [isSavingDraft, setIsSavingDraft] = useState(false)
+  const [isPublishingLayout, setIsPublishingLayout] = useState(false)
 
-  const handleSave = async () => {
-    setIsSavingLayout(true)
+  const buildLayoutPayload = () => ({
+    floors: state.floors,
+    activeFloorId: state.activeFloorId,
+    objects: state.objects,
+  })
+
+  const handleSaveDraft = async () => {
+    setIsSavingDraft(true)
     try {
-      await onSaveLayout({
-        floors: state.floors,
-        activeFloorId: state.activeFloorId,
-        objects: state.objects,
-      })
+      await onSaveDraft(buildLayoutPayload())
+      dispatch({ type: 'MARK_DRAFT_SAVED' })
+    } finally {
+      setIsSavingDraft(false)
+    }
+  }
+
+  const handlePublish = async () => {
+    setIsPublishingLayout(true)
+    try {
+      await onPublishLayout(buildLayoutPayload())
+      dispatch({ type: 'MARK_DRAFT_SAVED' })
       exitEditMode()
     } finally {
-      setIsSavingLayout(false)
+      setIsPublishingLayout(false)
     }
   }
 
@@ -213,6 +229,7 @@ function EmbeddedFloorPlanEditorShell({
   const activeWorkspace = state.floors.find((floor) => floor.id === state.activeFloorId)?.workspace
   const canvasWidth = activeWorkspace?.width ?? DEFAULT_FLOOR_SIZE.width
   const canvasHeight = activeWorkspace?.height ?? DEFAULT_FLOOR_SIZE.height
+  const isBusy = isSavingDraft || isPublishingLayout
 
   return (
     <div className="unified-floor-editor">
@@ -230,6 +247,9 @@ function EmbeddedFloorPlanEditorShell({
               activeFloorId={state.activeFloorId}
               onChange={handleAreaChange}
             />
+            {hasUnpublishedDraft ? (
+              <span className="unified-floor-editor-draft-badge" role="status">Unpublished draft</span>
+            ) : null}
           </div>
           <div className="unified-floor-editor-toolbar-actions">
             <div className="unified-floor-editor-canvas-size" aria-label="Canvas size">
@@ -273,8 +293,21 @@ function EmbeddedFloorPlanEditorShell({
             <button type="button" className="fpb-toolbar-btn" onClick={handleCancel}>
               Cancel
             </button>
-            <button type="button" className="fpb-toolbar-btn fpb-toolbar-btn-primary" onClick={handleSave} disabled={isSavingLayout}>
-              {isSavingLayout ? 'Saving…' : 'Save layout'}
+            <button
+              type="button"
+              className="fpb-toolbar-btn"
+              onClick={handleSaveDraft}
+              disabled={isBusy}
+            >
+              {isSavingDraft ? 'Saving…' : 'Save draft'}
+            </button>
+            <button
+              type="button"
+              className="fpb-toolbar-btn fpb-toolbar-btn-primary"
+              onClick={handlePublish}
+              disabled={isBusy}
+            >
+              {isPublishingLayout ? 'Publishing…' : 'Publish layout'}
             </button>
             <button type="button" className="fpb-toolbar-btn" onClick={handleExit}>
               Exit edit
@@ -304,16 +337,26 @@ function EmbeddedFloorPlanEditorShell({
 
 export function EmbeddedFloorPlanEditor({ onExit, initialAreaId, onActiveAreaChange }) {
   const containerRef = useRef(null)
-  const { builderLayout, saveLayout, saveError } = usePublishedFloorPlan()
+  const {
+    builderLayout,
+    saveDraftLayout,
+    publishLayout,
+    saveError,
+    hasUnpublishedDraft,
+  } = usePublishedFloorPlan()
   const initialLayoutRef = useRef(undefined)
 
   if (initialLayoutRef.current === undefined) {
     initialLayoutRef.current = cloneBuilderLayout(builderLayout)
   }
 
-  const handleSaveLayout = useCallback((layoutPayload) => {
-    saveLayout(layoutPayload)
-  }, [saveLayout])
+  const handleSaveDraft = useCallback((layoutPayload) => (
+    saveDraftLayout(layoutPayload)
+  ), [saveDraftLayout])
+
+  const handlePublishLayout = useCallback((layoutPayload) => (
+    publishLayout(layoutPayload)
+  ), [publishLayout])
 
   return (
     <FloorPlanBuilderProvider initialEditing initialLayout={initialLayoutRef.current}>
@@ -323,7 +366,9 @@ export function EmbeddedFloorPlanEditor({ onExit, initialAreaId, onActiveAreaCha
       <EmbeddedFloorPlanEditorShell
         containerRef={containerRef}
         onExit={onExit}
-        onSaveLayout={handleSaveLayout}
+        onSaveDraft={handleSaveDraft}
+        onPublishLayout={handlePublishLayout}
+        hasUnpublishedDraft={hasUnpublishedDraft}
         initialAreaId={initialAreaId}
         onActiveAreaChange={onActiveAreaChange}
       />
