@@ -220,7 +220,7 @@ export function MobileTasksView({
     () => groupMobileStaffPendingTasks(taskGroups.pending ?? [], todayKey),
     [taskGroups.pending, todayKey],
   )
-  const emptyState = getMobileStaffTaskTabEmptyState(activeTab, taskGroups, todayKey)
+  const emptyState = getMobileStaffTaskTabEmptyState(activeTab)
 
   const handleCompleteTask = async ({ completionNote = '' } = {}) => {
     if (!selectedTask) return

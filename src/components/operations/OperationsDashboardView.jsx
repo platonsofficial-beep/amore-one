@@ -29,6 +29,7 @@ import {
   getOperationsShiftNoteDetail,
   getOperationsShiftNoteHeadline,
   normalizeOperationsStatus,
+  normalizeOperationsTaskDate,
   resolveEmployeeName,
 } from '../../lib/operationsUtils'
 import DepartmentPerformanceSummary from '../tasks/DepartmentPerformanceSummary'
@@ -251,6 +252,13 @@ export function OperationsDashboardView({
     [tasks, announcements],
   )
 
+  const todayStandaloneTasks = useMemo(() => {
+    const normalizedToday = normalizeOperationsTaskDate(todayKey)
+    return standaloneTasks.filter(
+      (task) => normalizeOperationsTaskDate(task.dueDate) === normalizedToday,
+    )
+  }, [standaloneTasks, todayKey])
+
   const summary = useMemo(
     () => buildOperationsDashboardSummary(standaloneTasks, logs, todayKey),
     [standaloneTasks, logs, todayKey],
@@ -270,12 +278,12 @@ export function OperationsDashboardView({
   }), [summary.openTasks, summary.overdueTasks, summary.urgentIssues, logs.length, checklistTemplates])
 
   const visibleTasks = useMemo(() => {
-    const filtered = filterOperationsTasks(standaloneTasks, {
+    const filtered = filterOperationsTasks(todayStandaloneTasks, {
       searchTerm,
       assigneeNameById,
     })
     return sortOperationsTasks(filtered)
-  }, [standaloneTasks, searchTerm, assigneeNameById])
+  }, [todayStandaloneTasks, searchTerm, assigneeNameById])
 
   const visibleLogs = useMemo(() => {
     return filterOperationsLogs(logs, { searchTerm, typeFilter: logTypeFilter })
@@ -396,6 +404,7 @@ export function OperationsDashboardView({
           />
           <OperationsSummaryCard label="Issues" value={mobileMetrics.issues} tone="danger" />
           <OperationsSummaryCard label="Notes" value={mobileMetrics.notes} tone="gold" />
+          <OperationsSummaryCard label="Checklists" value={mobileMetrics.checklists} />
         </div>
 
         {canManage ? (

@@ -13698,14 +13698,14 @@ function App() {
     }
 
     try {
-      const remoteTasks = await getOperationsTasks(activeWorkspaceId, { dueDate: currentDateKey })
+      const remoteTasks = await getOperationsTasks(activeWorkspaceId)
       setOperationsTasks(remoteTasks)
       return remoteTasks
     } catch (error) {
       setOperationsTasks([])
       throw error
     }
-  }, [activeWorkspaceId, currentDateKey])
+  }, [activeWorkspaceId])
 
   const refreshMobileOperationsTasks = useCallback(async () => {
     if (!activeWorkspaceId) {

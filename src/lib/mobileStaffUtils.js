@@ -279,17 +279,8 @@ export function groupMobileStaffPendingTasks(pendingTasks = [], todayKey = '') {
   return { overdue, dueToday }
 }
 
-export function getMobileStaffTaskTabEmptyState(tabId, taskGroups = {}, todayKey = '') {
-  const pending = taskGroups.pending ?? []
-  const overdueCount = pending.filter((task) => isMobileOperationsTaskOverdue(task, todayKey)).length
-
+export function getMobileStaffTaskTabEmptyState(tabId) {
   if (tabId === 'pending') {
-    if (overdueCount > 0) {
-      return {
-        title: 'Nothing else due right now',
-        message: `${overdueCount} overdue ${overdueCount === 1 ? 'task remains' : 'tasks remain'} in Pending.`,
-      }
-    }
     return {
       title: 'You are caught up',
       message: 'No tasks need action today.',

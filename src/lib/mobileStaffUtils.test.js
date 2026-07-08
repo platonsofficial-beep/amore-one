@@ -75,7 +75,7 @@ describe('mobileStaffUtils task workflow', () => {
   })
 
   it('returns contextual empty states', () => {
-    expect(getMobileStaffTaskTabEmptyState('pending', { pending: [] }, TODAY).title).toBe('You are caught up')
-    expect(getMobileStaffTaskTabEmptyState('upcoming', {}, TODAY).title).toBe('No upcoming tasks')
+    expect(getMobileStaffTaskTabEmptyState('pending').title).toBe('You are caught up')
+    expect(getMobileStaffTaskTabEmptyState('upcoming').title).toBe('No upcoming tasks')
   })
 })
