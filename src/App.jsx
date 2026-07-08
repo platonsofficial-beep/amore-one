@@ -13952,7 +13952,13 @@ function App() {
   }, [refreshInventory])
 
   useEffect(() => {
-    if (activeView !== 'stock' || (stockSection !== 'dashboard' && stockSection !== 'orders' && stockSection !== 'suppliers')) return undefined
+    const isDesktopStockCatalogView = activeView === 'stock'
+      && (stockSection === 'dashboard' || stockSection === 'orders' || stockSection === 'suppliers')
+    const isManagerMobileStockTab = isManagerMobileShell
+      && mobileManagerTab === 'stock'
+      && !mobileExpandedView
+
+    if (!isDesktopStockCatalogView && !isManagerMobileStockTab) return undefined
 
     let isMounted = true
 
@@ -13977,10 +13983,16 @@ function App() {
     return () => {
       isMounted = false
     }
-  }, [activeView, stockSection, refreshStockItems])
+  }, [activeView, stockSection, refreshStockItems, isManagerMobileShell, mobileManagerTab, mobileExpandedView])
 
   useEffect(() => {
-    if (activeView !== 'stock' || (stockSection !== 'orders' && stockSection !== 'suppliers' && stockSection !== 'dashboard')) return undefined
+    const isDesktopStockOrdersView = activeView === 'stock'
+      && (stockSection === 'orders' || stockSection === 'suppliers' || stockSection === 'dashboard')
+    const isManagerMobileStockTab = isManagerMobileShell
+      && mobileManagerTab === 'stock'
+      && !mobileExpandedView
+
+    if (!isDesktopStockOrdersView && !isManagerMobileStockTab) return undefined
 
     let isMounted = true
 
@@ -14005,7 +14017,7 @@ function App() {
     return () => {
       isMounted = false
     }
-  }, [activeView, stockSection, refreshStockOrders])
+  }, [activeView, stockSection, refreshStockOrders, isManagerMobileShell, mobileManagerTab, mobileExpandedView])
 
   useEffect(() => {
     if (activeView !== 'operations') return undefined
@@ -19189,6 +19201,14 @@ function App() {
     setMobileExpandedView('workspace')
   }, [role, handleActiveViewChange, handleStockSectionChange])
 
+  const handleMobileManagerCountStock = useCallback(() => {
+    if (!canAccessMobileExpandedModule(role, 'stock')) return
+
+    handleActiveViewChange('stock')
+    handleStockSectionChange('dashboard')
+    setMobileExpandedView('workspace')
+  }, [role, handleActiveViewChange, handleStockSectionChange])
+
   const handleMobileGoToCurrentWeek = () => {
     setMobileWeekStart(todayWeekStart)
     persistMobileWeekStart(todayWeekStart)
@@ -19842,15 +19862,14 @@ function App() {
                         onDismissNotice={() => setMobileNotice('')}
                         homeProps={mobileHomeProps}
                         stockProps={{
+                          stockItems,
                           stockSummary: managerMobileStockSummary,
                           stockOrdersSummary: managerMobileOrdersSummary,
-                          hasStockModuleData: stockItems.length > 0,
                           isLoading: isManagerMobileStockLoading,
                           canManageStock,
                           isWorkspaceReady: isStockWorkspaceReady,
-                          onReceiveDeliveries: handleMobileManagerReceiveDeliveries,
-                          onOpenAllStock: handleMobileManagerOpenStock,
                           onCreateOrder: handleMobileManagerCreateOrder,
+                          onCountStock: handleMobileManagerCountStock,
                         }}
                         managerTasksProps={{
                           taskOverview: managerMobileTaskOverview,
