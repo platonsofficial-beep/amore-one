@@ -21250,6 +21250,8 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   display: flex;
   flex-direction: column;
   gap: 14px;
+  min-width: 0;
+  overflow-x: hidden;
 }
 
 .reports-period-filters {
@@ -21277,6 +21279,8 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   color: #a79e91;
   font-size: 0.88rem;
   line-height: 1.45;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .reports-overview-grid,
@@ -21295,6 +21299,7 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   border: 1px solid rgba(255, 255, 255, 0.06);
   background: rgba(255, 255, 255, 0.02);
   min-height: 72px;
+  min-width: 0;
 }
 
 .reports-metric-emphasis {
@@ -21310,14 +21315,20 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   font-size: 0.78rem;
   letter-spacing: 0.06em;
   text-transform: uppercase;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .reports-metric-value {
   margin: 0;
   color: #f3ead8;
-  font-size: 1.15rem;
+  font-size: clamp(0.95rem, 2.4vw + 0.45rem, 1.15rem);
   font-weight: 600;
   line-height: 1.2;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .reports-loading {
@@ -21401,6 +21412,9 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   margin: 4px 0 0;
   color: #bfb5a6;
   font-size: 0.82rem;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .reports-section-footer {
@@ -21416,6 +21430,8 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   display: flex;
   align-items: center;
   gap: 8px;
+  min-width: 0;
+  flex-wrap: wrap;
 }
 
 .reports-section-icon {
@@ -21435,17 +21451,38 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 
 .reports-section-empty-guidance {
   margin: 8px 0 0;
-  color: var(--text-muted, #6b7280);
+  color: #8f8778;
   font-size: 0.875rem;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.schedule-empty-state.reports-section-empty {
+  padding: 16px 18px;
+  text-align: left;
+  border-radius: 14px;
+}
+
+.schedule-empty-state.reports-section-empty p {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  line-height: 1.45;
 }
 
 .reports-attention {
-  margin-bottom: 16px;
+  margin-bottom: 0;
 }
 
 .reports-attention-list {
   margin: 0;
   padding: 0;
+  min-width: 0;
+}
+
+.reports-attention-list .today-attention-item,
+.reports-attention-list .today-attention-trigger {
+  min-width: 0;
 }
 
 @media (max-width: 960px) {
@@ -27786,7 +27823,7 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 
 .blend-grid-assignment-cell.schedule-shift-instance-card {
   min-width: 0;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .schedule-template-card-name,
@@ -27908,5 +27945,119 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
     width: 44px;
     height: 44px;
   }
+}
+
+/* Phase 12.5.7 — Insights fit & finish */
+.reports-overview-header > div,
+.reports-section-header > div:first-child {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.reports-section-footer,
+.reports-loading-text {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.reports-period-filters .filter-chip {
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.reports-attention-list .today-attention-trigger,
+.reports-attention-list .today-attention-item.is-static {
+  padding-left: 4px;
+  padding-right: 4px;
+}
+
+@media (max-width: 900px) {
+  .reports-overview-grid,
+  .reports-section-metrics {
+    gap: 8px;
+  }
+
+  .reports-metric {
+    padding: 11px 12px;
+    min-height: 64px;
+  }
+}
+
+@media (max-width: 640px) {
+  .reports-period-filters .filter-chip {
+    flex: 1 1 calc(50% - 4px);
+    justify-content: center;
+  }
+
+  .reports-loading {
+    min-height: 280px;
+  }
+
+  .reports-loading-section {
+    min-height: 200px;
+  }
+
+  .reports-attention .reports-loading,
+  .reports-attention .reports-loading-section {
+    min-height: 160px;
+  }
+
+  .schedule-empty-state.reports-section-empty {
+    padding: 14px 16px;
+  }
+}
+
+@media (max-width: 560px) {
+  .reports-period-filters .filter-chip {
+    flex: 1 1 100%;
+  }
+}
+
+@media (orientation: landscape) and (max-height: 500px) {
+  .reports-overview-grid,
+  .reports-section-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .reports-metric {
+    min-height: 56px;
+    padding: 8px 10px;
+  }
+
+  .reports-loading {
+    min-height: 200px;
+  }
+
+  .reports-loading-section {
+    min-height: 160px;
+  }
+}
+
+.schedule-card-action-menu-backdrop {
+  position: fixed;
+  inset: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: default;
+}
+
+.schedule-card-action-menu-portal.template-card-menu {
+  max-height: min(
+    70dvh,
+    calc(100dvh - 72px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px))
+  );
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  box-shadow: 0 14px 32px rgba(0, 0, 0, 0.42);
+}
+
+.schedule-card-action-menu-portal .template-card-menu-item {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
 }
 

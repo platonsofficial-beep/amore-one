@@ -114,7 +114,23 @@ function InsightsAttentionPanel({
   onAttentionItemClick,
   isLoading,
 }) {
-  if (isLoading) return null
+  if (isLoading) {
+    return (
+      <section className="reports-attention panel staff-panel" aria-label="Needs attention" aria-busy="true">
+        <header className="reports-overview-header">
+          <div>
+            <p className="eyebrow">Actionable insights</p>
+            <h3 className="reports-section-heading">
+              <span className="reports-section-icon" aria-hidden="true">⚠️</span>
+              Needs attention
+            </h3>
+          </div>
+        </header>
+        <ReportsLoadingState variant="section" />
+        <p className="reports-section-footer">{MODULE_FOOTER}</p>
+      </section>
+    )
+  }
 
   return (
     <section className="reports-attention panel staff-panel" aria-label="Needs attention">

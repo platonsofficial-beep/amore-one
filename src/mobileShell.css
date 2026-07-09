@@ -5423,3 +5423,40 @@ html[data-one-debug-scroll='1'] .floor-plan-viewport.is-host-viewport {
   overscroll-behavior: contain;
   -webkit-overflow-scrolling: touch;
 }
+
+/* Phase 12.5.7 — Insights mobile shell fit & finish */
+.app-shell.is-mobile-shell .reports-page {
+  gap: 12px;
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+.app-shell.is-mobile-shell .staff-panel.reports-overview,
+.app-shell.is-mobile-shell .staff-panel.reports-section,
+.app-shell.is-mobile-shell .staff-panel.reports-attention {
+  padding: 14px 16px;
+}
+
+.app-shell.is-mobile-shell .reports-period-filters {
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.app-shell.is-mobile-expanded .mobile-expanded-scroll .reports-page {
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+@media (orientation: landscape) and (max-height: 500px) {
+  .app-shell.is-mobile-shell .reports-metric {
+    min-height: 56px;
+    padding: 8px 10px;
+  }
+
+  .app-shell.is-mobile-shell .reports-overview-grid,
+  .app-shell.is-mobile-shell .reports-section-metrics {
+    gap: 8px;
+  }
+}

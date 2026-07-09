@@ -454,6 +454,7 @@ import {
   resolveCurrentEmployeeId,
 } from './lib/taskUtils'
 import ReportsView from './components/reports/ReportsView'
+import { ScheduleCardActionMenu } from './components/schedule/ScheduleCardActionMenu'
 import { UNASSIGNED_CUSTOM_DEPARTMENT_NAME } from './lib/taskDepartments'
 import {
   persistNavigation,
@@ -1451,6 +1452,7 @@ function ScheduleView({
   const [browseWeekAnchorDate, setBrowseWeekAnchorDate] = useState('')
   const [isCopyThisWeekModalOpen, setIsCopyThisWeekModalOpen] = useState(false)
   const [dayActionMenuKey, setDayActionMenuKey] = useState(null)
+  const dayActionMenuAnchorRef = useRef(null)
   const [isCopyDayModalOpen, setIsCopyDayModalOpen] = useState(false)
   const [copyDaySourceDay, setCopyDaySourceDay] = useState(null)
   const [copyDayTargetKey, setCopyDayTargetKey] = useState('')
@@ -1462,6 +1464,7 @@ function ScheduleView({
   const [isCopyWeekTargetLoading, setIsCopyWeekTargetLoading] = useState(false)
   const [isClearWeekModalOpen, setIsClearWeekModalOpen] = useState(false)
   const [cellActionMenuKey, setCellActionMenuKey] = useState('')
+  const cellActionMenuAnchorRef = useRef(null)
   const [clearCellPending, setClearCellPending] = useState(null)
   const [capacityEditPending, setCapacityEditPending] = useState(null)
   const [cellCopyPending, setCellCopyPending] = useState(null)
@@ -3964,33 +3967,45 @@ function ScheduleView({
                     className="blend-grid-header-day-menu-btn"
                     onClick={(event) => {
                       event.stopPropagation()
-                      setDayActionMenuKey((current) => (current === day.key ? null : day.key))
+                      if (dayActionMenuKey === day.key) {
+                        setDayActionMenuKey(null)
+                        dayActionMenuAnchorRef.current = null
+                      } else {
+                        dayActionMenuAnchorRef.current = event.currentTarget
+                        setDayActionMenuKey(day.key)
+                      }
                     }}
                     aria-label={`Day actions for ${day.label}`}
                     disabled={isSaving}
                   >
                     ⋯
                   </button>
-                  {dayActionMenuKey === day.key ? (
-                    <div className="template-card-menu blend-day-header-menu" onClick={(event) => event.stopPropagation()}>
-                      <button
-                        type="button"
-                        className="template-card-menu-item"
-                        onClick={() => handleOpenCopyDayModal(day)}
-                        disabled={isSaving || (shiftCountByDate[day.key] ?? 0) === 0}
-                      >
-                        Copy Day
-                      </button>
-                      <button
-                        type="button"
-                        className="template-card-menu-item danger"
-                        onClick={() => handleOpenClearDayModal(day)}
-                        disabled={isSaving || (shiftCountByDate[day.key] ?? 0) === 0}
-                      >
-                        Clear Day
-                      </button>
-                    </div>
-                  ) : null}
+                  <ScheduleCardActionMenu
+                    isOpen={dayActionMenuKey === day.key}
+                    onClose={() => {
+                      setDayActionMenuKey(null)
+                      dayActionMenuAnchorRef.current = null
+                    }}
+                    anchorEl={dayActionMenuAnchorRef.current}
+                    className="template-card-menu blend-day-header-menu"
+                  >
+                    <button
+                      type="button"
+                      className="template-card-menu-item"
+                      onClick={() => handleOpenCopyDayModal(day)}
+                      disabled={isSaving || (shiftCountByDate[day.key] ?? 0) === 0}
+                    >
+                      Copy Day
+                    </button>
+                    <button
+                      type="button"
+                      className="template-card-menu-item danger"
+                      onClick={() => handleOpenClearDayModal(day)}
+                      disabled={isSaving || (shiftCountByDate[day.key] ?? 0) === 0}
+                    >
+                      Clear Day
+                    </button>
+                  </ScheduleCardActionMenu>
                 </div>
                 )
               })}
@@ -4071,67 +4086,80 @@ function ScheduleView({
                           <button
                             type="button"
                             className="blend-grid-cell-menu-btn"
-                            onClick={() => {
+                            onClick={(event) => {
+                              event.stopPropagation()
                               const menuKey = buildCellActionMenuKey(row.template, cell.day.key)
-                              setCellActionMenuKey((current) => (current === menuKey ? '' : menuKey))
+                              if (cellActionMenuKey === menuKey) {
+                                setCellActionMenuKey('')
+                                cellActionMenuAnchorRef.current = null
+                              } else {
+                                cellActionMenuAnchorRef.current = event.currentTarget
+                                setCellActionMenuKey(menuKey)
+                              }
                             }}
                             aria-label={`Shift actions for ${row.template.name} on ${cell.day.label}`}
                             disabled={isSaving}
                           >
                             ⋯
                           </button>
-                          {cellActionMenuKey === buildCellActionMenuKey(row.template, cell.day.key) ? (
-                            <div className="template-card-menu blend-grid-cell-menu" onClick={(event) => event.stopPropagation()}>
-                              <button
-                                type="button"
-                                className="template-card-menu-item"
-                                onClick={() => handleOpenCapacityEditModal(row.template, cell.day, cell)}
-                                disabled={isSaving}
-                              >
-                                Change required staff
-                              </button>
-                              <button
-                                type="button"
-                                className="template-card-menu-item"
-                                onClick={() => handleEditCellShift(row.template, cell.day)}
-                                disabled={isSaving}
-                              >
-                                Assign employees
-                              </button>
-                              <button
-                                type="button"
-                                className="template-card-menu-item"
-                                onClick={() => handleRequestCopyCellToNextDay(row.template, cell.day, cell)}
-                                disabled={isSaving}
-                              >
-                                Copy to next day
-                              </button>
-                              <button
-                                type="button"
-                                className="template-card-menu-item"
-                                onClick={() => handleRequestCopyCellToRestOfWeek(row.template, cell.day, cell)}
-                                disabled={isSaving}
-                              >
-                                Copy to rest of week
-                              </button>
-                              <button
-                                type="button"
-                                className="template-card-menu-item"
-                                onClick={() => handleDuplicateCellShifts(row.template, cell.day, cell)}
-                                disabled={isSaving || cell.shifts.length === 0}
-                              >
-                                Duplicate shift
-                              </button>
-                              <button
-                                type="button"
-                                className="template-card-menu-item danger"
-                                onClick={() => handleOpenClearCellModal(row.template, cell)}
-                                disabled={isSaving || cell.assignedCount === 0}
-                              >
-                                Remove shift
-                              </button>
-                            </div>
-                          ) : null}
+                          <ScheduleCardActionMenu
+                            isOpen={cellActionMenuKey === buildCellActionMenuKey(row.template, cell.day.key)}
+                            onClose={() => {
+                              setCellActionMenuKey('')
+                              cellActionMenuAnchorRef.current = null
+                            }}
+                            anchorEl={cellActionMenuAnchorRef.current}
+                            className="template-card-menu blend-grid-cell-menu"
+                          >
+                            <button
+                              type="button"
+                              className="template-card-menu-item"
+                              onClick={() => handleOpenCapacityEditModal(row.template, cell.day, cell)}
+                              disabled={isSaving}
+                            >
+                              Change required staff
+                            </button>
+                            <button
+                              type="button"
+                              className="template-card-menu-item"
+                              onClick={() => handleEditCellShift(row.template, cell.day)}
+                              disabled={isSaving}
+                            >
+                              Assign employees
+                            </button>
+                            <button
+                              type="button"
+                              className="template-card-menu-item"
+                              onClick={() => handleRequestCopyCellToNextDay(row.template, cell.day, cell)}
+                              disabled={isSaving}
+                            >
+                              Copy to next day
+                            </button>
+                            <button
+                              type="button"
+                              className="template-card-menu-item"
+                              onClick={() => handleRequestCopyCellToRestOfWeek(row.template, cell.day, cell)}
+                              disabled={isSaving}
+                            >
+                              Copy to rest of week
+                            </button>
+                            <button
+                              type="button"
+                              className="template-card-menu-item"
+                              onClick={() => handleDuplicateCellShifts(row.template, cell.day, cell)}
+                              disabled={isSaving || cell.shifts.length === 0}
+                            >
+                              Duplicate shift
+                            </button>
+                            <button
+                              type="button"
+                              className="template-card-menu-item danger"
+                              onClick={() => handleOpenClearCellModal(row.template, cell)}
+                              disabled={isSaving || cell.assignedCount === 0}
+                            >
+                              Remove shift
+                            </button>
+                          </ScheduleCardActionMenu>
                         </div>
                       </header>
 
