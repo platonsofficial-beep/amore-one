@@ -12951,6 +12951,10 @@ function App() {
   )
 
   const isActiveViewAllowed = !isAuthLoading && canAccessModule(role, activeView)
+  const isActiveViewPendingPermissionRedirect = useMemo(() => {
+    if (isAuthLoading) return false
+    return resolvePermittedActiveView(role, activeView) !== activeView
+  }, [isAuthLoading, role, activeView])
 
   const persistCurrentNavigation = useCallback((overrides = {}) => {
     persistNavigation({
@@ -20134,7 +20138,7 @@ function App() {
           />
         ) : null}
 
-        {!isActiveViewAllowed ? (
+        {!isAuthLoading && !isActiveViewAllowed && !isActiveViewPendingPermissionRedirect ? (
           <AccessRestrictedView
             moduleId={activeView}
             role={role}
