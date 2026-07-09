@@ -142,11 +142,19 @@ export function sortManagerMobileAttentionFeed(items = []) {
   return sortTodayAttentionItems(items)
 }
 
-export function buildManagerMobileStockStatusLine(stockSummary = null, stockOrdersSummary = null) {
+export function buildManagerMobileStockStatusLine(
+  stockSummary = null,
+  stockOrdersSummary = null,
+  hasStockModuleData = false,
+) {
   const outCount = Number(stockSummary?.outOfStock) || 0
   const lowCount = Number(stockSummary?.lowStock) || 0
   const pendingDeliveries = (Number(stockOrdersSummary?.awaitingDeliveryCount) || 0)
     + (Number(stockOrdersSummary?.partialCount) || 0)
+
+  if (!hasStockModuleData && pendingDeliveries === 0) {
+    return 'No products yet'
+  }
 
   if (outCount > 0 && lowCount > 0) {
     return `${outCount} out · ${lowCount} low`

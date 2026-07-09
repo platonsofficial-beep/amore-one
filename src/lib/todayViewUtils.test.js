@@ -52,6 +52,16 @@ describe('todayViewUtils', () => {
     expect(summary.stockSummaryLine).toBe('1 out · 2 low')
   })
 
+  it('shows no products copy when stock module has no inventory yet', () => {
+    const summary = buildTodayStatusSummary({
+      liveFloor: { state: 'idle', onShiftCount: 0 },
+      stockConnected: true,
+      hasStockModuleData: false,
+    })
+
+    expect(summary.stockSummaryLine).toBe('No products yet')
+  })
+
   it('includes coverage gaps in team scheduled summary', () => {
     const summary = buildTodayStatusSummary({
       liveFloor: { state: 'live', onShiftCount: 2 },

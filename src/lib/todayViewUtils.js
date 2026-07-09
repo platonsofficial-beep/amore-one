@@ -281,7 +281,7 @@ export function buildTodayStatusSummary({
         stockSummaryLine = 'Stock levels OK'
       }
     } else {
-      stockSummaryLine = 'Stock levels OK'
+      stockSummaryLine = 'No products yet'
     }
   }
 

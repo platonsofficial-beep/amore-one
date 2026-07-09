@@ -1,5 +1,10 @@
 import { useEffect, useState } from 'react'
 import { useAuth } from '../../context/AuthContext'
+import {
+  clearSessionEndedNotice,
+  formatAuthErrorMessage,
+  readSessionEndedNotice,
+} from '../../lib/authMessageUtils'
 import { buildInvitePreviewSummary } from '../../lib/inviteFlowUtils'
 import {
   captureInviteTokenFromLocation,
@@ -23,6 +28,13 @@ export function LoginView() {
   const [successMessage, setSuccessMessage] = useState('')
   const [inviteBanner, setInviteBanner] = useState(null)
   const [isInvitePreviewLoading, setIsInvitePreviewLoading] = useState(false)
+  const [sessionEndedNotice] = useState(() => readSessionEndedNotice())
+
+  useEffect(() => {
+    if (!sessionEndedNotice) return undefined
+    clearSessionEndedNotice()
+    return undefined
+  }, [sessionEndedNotice])
 
   useEffect(() => {
     captureInviteTokenFromLocation()
@@ -96,7 +108,7 @@ export function LoginView() {
       setMode(MODES.SIGN_IN)
       setPassword('')
     } catch (error) {
-      setErrorMessage(error?.message || 'Unable to complete this request right now.')
+      setErrorMessage(formatAuthErrorMessage(error?.message))
     } finally {
       setIsSubmitting(false)
     }
@@ -116,6 +128,12 @@ export function LoginView() {
           <h1 className="auth-title">{title}</h1>
           <p className="auth-subtitle">Operations platform for hospitality teams.</p>
         </header>
+
+        {sessionEndedNotice ? (
+          <div className="auth-banner auth-banner-info" role="status">
+            Your session ended. Sign in again to continue.
+          </div>
+        ) : null}
 
         {isInvitePreviewLoading ? (
           <div className="auth-banner auth-banner-info" role="status">Checking invite…</div>

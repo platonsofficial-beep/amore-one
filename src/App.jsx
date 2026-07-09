@@ -20135,6 +20135,11 @@ function App() {
             Loading workspace…
           </div>
         ) : null}
+        {!isAuthLoading && workspaceLoadError ? (
+          <div className="staff-status-banner auth-banner-error" role="alert">
+            {workspaceLoadError}
+          </div>
+        ) : null}
         {inviteAcceptedNotice ? (
           <div className="staff-status-banner auth-banner-success workspace-invite-notice" role="status">
             {inviteAcceptedNotice}
@@ -20221,6 +20226,7 @@ function App() {
         {isActiveViewAllowed && activeView === 'team' && teamSection === 'members' ? (
           <TeamPeopleView
             employees={filteredEmployees}
+            totalEmployeeCount={employees.length}
             employeeTodayShifts={employeeTodayShifts}
             selectedEmployee={selectedEmployee}
             onSelectEmployee={setSelectedEmployee}

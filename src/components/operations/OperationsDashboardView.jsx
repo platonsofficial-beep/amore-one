@@ -401,9 +401,9 @@ export function OperationsDashboardView({
         </header>
 
         <div className="operations-summary-grid operations-mobile-metrics" aria-label="Operations metrics">
-          <OperationsSummaryCard label="Open tasks" value={mobileMetrics.openTasks} tone="warning" />
+          <OperationsSummaryCard label="Open tasks (today)" value={mobileMetrics.openTasks} tone="warning" />
           <OperationsSummaryCard
-            label="Overdue"
+            label="Past due"
             value={mobileMetrics.overdueTasks}
             tone={mobileMetrics.overdueTasks > 0 ? 'danger' : 'default'}
           />
@@ -580,9 +580,9 @@ export function OperationsDashboardView({
       </div>
 
       <div className="operations-summary-grid" aria-label="Today at a glance">
-        <OperationsSummaryCard label="Open tasks" value={summary.openTasks} tone="warning" />
+        <OperationsSummaryCard label="Open tasks (today)" value={summary.openTasks} tone="warning" />
         <OperationsSummaryCard
-          label="Overdue"
+          label="Past due"
           value={summary.overdueTasks}
           tone={summary.overdueTasks > 0 ? 'danger' : 'default'}
         />

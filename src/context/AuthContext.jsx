@@ -16,6 +16,7 @@ import {
   isFatalInviteError,
   shouldSkipMembershipBootstrapAfterInviteAttempt,
 } from '../lib/inviteFlowUtils'
+import { markSessionEnded } from '../lib/authMessageUtils'
 import { writeInviteAcceptedNotice } from '../lib/inviteNoticeStorage'
 import {
   captureInviteTokenFromLocation,
@@ -340,6 +341,9 @@ export function AuthProvider({ children }) {
       }
 
       if (event === 'SIGNED_OUT' || !nextUserId) {
+        if (hasBootstrappedRef.current && currentUserId) {
+          markSessionEnded()
+        }
         clearPendingInviteToken()
         clearMobileSessionState()
         clearAuthenticatedState()

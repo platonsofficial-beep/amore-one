@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import {
   canShowInstallPrompt,
   canShowIosInstallHint,
@@ -9,13 +9,25 @@ import {
   readNetworkStatus,
 } from '../../lib/pwaUtils.js'
 
-function OfflineStatusBanner({ isOnline }) {
-  if (isOnline) return null
+const ONLINE_BANNER_MS = 3200
+
+function NetworkStatusBanner({ isOnline, showBackOnline }) {
+  if (!isOnline) {
+    return (
+      <div className="pwa-offline-banner" role="status" aria-live="polite">
+        <p className="pwa-offline-banner-copy">
+          <strong>You're offline.</strong> ONE will open, but live data and saves need a connection. Changes won't sync until you're back online.
+        </p>
+      </div>
+    )
+  }
+
+  if (!showBackOnline) return null
 
   return (
-    <div className="pwa-offline-banner" role="status" aria-live="polite">
+    <div className="pwa-offline-banner pwa-online-banner" role="status" aria-live="polite">
       <p className="pwa-offline-banner-copy">
-        <strong>You're offline.</strong> ONE will open, but live data and saves need a connection. Changes won't sync until you're back online.
+        <strong>Back online.</strong> Live data and saves are available again.
       </p>
     </div>
   )
@@ -60,13 +72,31 @@ function PwaInstallBanner({
 
 export function PwaShell({ children }) {
   const [isOnline, setIsOnline] = useState(() => readNetworkStatus())
+  const [showBackOnline, setShowBackOnline] = useState(false)
   const [deferredPrompt, setDeferredPrompt] = useState(null)
   const [showIosHint, setShowIosHint] = useState(() => canShowIosInstallHint())
   const [installDismissed, setInstallDismissed] = useState(() => isInstallPromptDismissed())
+  const wasOfflineRef = useRef(!readNetworkStatus())
+  const onlineBannerTimerRef = useRef(null)
 
   useEffect(() => {
-    const handleOnline = () => setIsOnline(true)
-    const handleOffline = () => setIsOnline(false)
+    const handleOnline = () => {
+      setIsOnline(true)
+      if (wasOfflineRef.current) {
+        setShowBackOnline(true)
+        window.clearTimeout(onlineBannerTimerRef.current)
+        onlineBannerTimerRef.current = window.setTimeout(() => {
+          setShowBackOnline(false)
+        }, ONLINE_BANNER_MS)
+      }
+      wasOfflineRef.current = false
+    }
+    const handleOffline = () => {
+      window.clearTimeout(onlineBannerTimerRef.current)
+      setShowBackOnline(false)
+      setIsOnline(false)
+      wasOfflineRef.current = true
+    }
 
     window.addEventListener('online', handleOnline)
     window.addEventListener('offline', handleOffline)
@@ -74,6 +104,7 @@ export function PwaShell({ children }) {
     return () => {
       window.removeEventListener('online', handleOnline)
       window.removeEventListener('offline', handleOffline)
+      window.clearTimeout(onlineBannerTimerRef.current)
     }
   }, [])
 
@@ -136,7 +167,7 @@ export function PwaShell({ children }) {
 
   return (
     <>
-      <OfflineStatusBanner isOnline={isOnline} />
+      <NetworkStatusBanner isOnline={isOnline} showBackOnline={showBackOnline} />
       {shouldShowInstall ? (
         <PwaInstallBanner
           deferredPrompt={deferredPrompt}

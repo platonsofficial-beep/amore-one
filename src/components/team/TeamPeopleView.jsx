@@ -33,6 +33,7 @@ function formatEmployeeTodayShift(employee, employeeTodayShifts = {}) {
 
 export function TeamPeopleView({
   employees,
+  totalEmployeeCount = 0,
   employeeTodayShifts = {},
   selectedEmployee,
   onSelectEmployee,
@@ -48,6 +49,9 @@ export function TeamPeopleView({
   canManageInvites = false,
   canAssignManagerInviteRole = false,
 }) {
+  const hasActiveFilter = activeFilter !== 'All'
+  const isRosterEmpty = !isLoading && totalEmployeeCount === 0
+  const isFilteredEmpty = !isLoading && totalEmployeeCount > 0 && employees.length === 0
   return (
     <section className="team-people-page" aria-label="Team people">
       <div className="team-people-header">
@@ -79,8 +83,17 @@ export function TeamPeopleView({
       {noticeMessage ? <div className="staff-status-banner">{noticeMessage}</div> : null}
       {isLoading ? <div className="staff-status-banner">Loading staff roster…</div> : null}
 
-      {!isLoading && employees.length === 0 ? (
-        <p className="team-people-empty">No team members match your filters.</p>
+      {isRosterEmpty ? (
+        <div className="team-people-empty">
+          <p>No employees yet.</p>
+          <p className="team-people-empty-hint">Add your first team member, then assign a department and position.</p>
+        </div>
+      ) : isFilteredEmpty ? (
+        <p className="team-people-empty">
+          {hasActiveFilter
+            ? 'No team members in this department. Try another filter or add someone new.'
+            : 'No team members match your search.'}
+        </p>
       ) : (
         <div className="team-people-grid">
           {employees.map((employee) => (

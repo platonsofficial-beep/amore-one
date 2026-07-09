@@ -28489,6 +28489,15 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   color: #ffc8c2;
 }
 
+.pwa-online-banner {
+  border-bottom-color: rgba(120, 196, 142, 0.32);
+  background: rgba(16, 36, 24, 0.96);
+}
+
+.pwa-online-banner .pwa-offline-banner-copy strong {
+  color: #b8f0c8;
+}
+
 .pwa-install-banner {
   position: fixed;
   left: 50%;

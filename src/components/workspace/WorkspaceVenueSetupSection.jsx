@@ -48,25 +48,25 @@ export function WorkspaceVenueSetupSection({
           title="Departments"
           icon="🏷️"
           items={staffDepartments}
-          fallbackNote="Configured in module"
+          fallbackNote="Add departments in Team → People when creating employees."
         />
         <WorkspaceVenueCard
           title="Schedule Areas"
           icon="🕒"
           items={scheduleAreas}
-          fallbackNote="Configured in module"
+          fallbackNote="Set schedule areas in Team → Schedule."
         />
         <WorkspaceVenueCard
           title="Reservation Areas"
           icon="🍽️"
           items={reservationAreas}
-          fallbackNote="Configured in module"
+          fallbackNote="Configure dining areas in Reservations → Settings."
         />
         <WorkspaceVenueCard
           title="Task Boards"
           icon="✓"
           items={taskBoards}
-          fallbackNote="Configured in module"
+          fallbackNote="Create task boards in Operations → Tasks."
         />
       </div>
     </>

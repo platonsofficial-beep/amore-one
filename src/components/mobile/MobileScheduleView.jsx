@@ -124,9 +124,14 @@ export function MobileScheduleView({
           <h2 className="mobile-card-headline">Schedule not published</h2>
           <p className="mobile-card-detail">Published shifts will appear here when your manager releases the schedule.</p>
         </section>
+      ) : days.length === 0 ? (
+        <section className="mobile-card tone-neutral">
+          <h2 className="mobile-card-headline">No shifts this week</h2>
+          <p className="mobile-card-detail">You have no published shifts for this week. Check another week or ask your manager if something looks wrong.</p>
+        </section>
       ) : (
         <div className="mobile-schedule-days">
-          {(days.length > 0 ? days : []).map((day) => (
+          {days.map((day) => (
             <article
               key={day.date}
               className={`mobile-schedule-day${day.isDayOff ? ' is-off' : ' has-shifts'}${day.isToday ? ' is-today' : ''}`}
