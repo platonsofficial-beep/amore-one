@@ -27,13 +27,23 @@ export function getActivePublishedLayoutCache() {
 }
 
 function isTableUnavailableError(error) {
-  const message = error?.message?.toLowerCase() ?? ''
+  const message = `${error?.message ?? ''}`.toLowerCase()
   const code = `${error?.code ?? ''}`.trim()
-  return code === '42P01'
-    || message.includes('does not exist')
-    || message.includes('relation')
-    || message.includes('could not find the table')
-    || message.includes('draft_layout_json')
+
+  if (code === '42P01') return true
+  if (message.includes('could not find the table') && message.includes('floor_plans')) return true
+  if (message.includes('schema cache') && message.includes('floor_plans')) return true
+  return false
+}
+
+function isFloorPlanPermissionError(error) {
+  const message = `${error?.message ?? ''}`.toLowerCase()
+  const code = `${error?.code ?? ''}`.trim()
+
+  return code === '42501'
+    || message.includes('row-level security')
+    || message.includes('permission denied')
+    || message.includes('not authorized')
 }
 
 function mapLayoutFromRecord(record, field = 'layout_json') {
@@ -170,12 +180,15 @@ async function upsertFloorPlanRecord(workspaceId, fields, authUserId) {
     .eq('is_active', true)
     .maybeSingle()
 
-  if (existingError && !isTableUnavailableError(existingError)) {
-    throw new Error(existingError.message || 'Unable to save floor plan right now.')
-  }
-
   if (existingError && isTableUnavailableError(existingError)) {
     throw new Error('Floor plans table is not ready yet.')
+  }
+
+  if (existingError) {
+    if (isFloorPlanPermissionError(existingError)) {
+      throw new Error('You do not have permission to save floor plans for this workspace.')
+    }
+    throw new Error(existingError.message || 'Unable to save floor plan right now.')
   }
 
   const record = {
@@ -214,6 +227,12 @@ async function upsertFloorPlanRecord(workspaceId, fields, authUserId) {
 
   const { data, error } = await mutation
   if (error) {
+    if (isFloorPlanPermissionError(error)) {
+      throw new Error('You do not have permission to save floor plans for this workspace.')
+    }
+    if (isTableUnavailableError(error)) {
+      throw new Error('Floor plans table is not ready yet.')
+    }
     throw new Error(error.message || 'Unable to save floor plan right now.')
   }
 

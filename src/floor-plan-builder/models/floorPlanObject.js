@@ -23,7 +23,7 @@ export const FLOOR_PLAN_OBJECT_TYPES = {
 }
 
 const DEFAULT_SIZES = {
-  [FLOOR_PLAN_OBJECT_TYPES.TABLE]: { width: 108, height: 108 },
+  [FLOOR_PLAN_OBJECT_TYPES.TABLE]: { width: 144, height: 144 },
   [FLOOR_PLAN_OBJECT_TYPES.WALL]: { width: 160, height: 12 },
   [FLOOR_PLAN_OBJECT_TYPES.DIVIDER]: { width: 120, height: 8 },
   [FLOOR_PLAN_OBJECT_TYPES.DOOR]: { width: 72, height: 16 },
@@ -75,14 +75,35 @@ export function createFloorPlanObject({
 }
 
 export const TABLE_SHAPE_SIZES = {
-  round: { width: 108, height: 108 },
-  square: { width: 104, height: 104 },
-  rectangle: { width: 136, height: 92 },
-  island: { width: 180, height: 96 },
+  round: { width: 144, height: 144 },
+  square: { width: 140, height: 140 },
+  rectangle: { width: 184, height: 124 },
+  island: { width: 240, height: 128 },
+}
+
+export const TABLE_SIZE_PRESET_SCALES = {
+  small: 0.78,
+  medium: 1,
+  large: 1.38,
 }
 
 export function getTableShapeSize(shape) {
   return TABLE_SHAPE_SIZES[shape] ?? TABLE_SHAPE_SIZES.round
+}
+
+export function getTableSizeForPreset(shape, preset = 'medium') {
+  const base = getTableShapeSize(shape)
+  const scale = TABLE_SIZE_PRESET_SCALES[preset] ?? TABLE_SIZE_PRESET_SCALES.medium
+
+  return {
+    width: Math.max(44, Math.round(base.width * scale)),
+    height: Math.max(44, Math.round(base.height * scale)),
+  }
+}
+
+export function adjustTableDimension(value, delta, minimum = 44) {
+  const current = Math.max(minimum, Math.round(Number(value) || minimum))
+  return Math.max(minimum, current + delta)
 }
 
 export function getDefaultCapacityForShape(shape) {

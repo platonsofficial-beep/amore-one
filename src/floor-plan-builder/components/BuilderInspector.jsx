@@ -2,8 +2,10 @@ import { useFloorPlanBuilder } from '../hooks/useFloorPlanBuilder'
 import { TABLE_TYPES } from '../models/componentCatalog'
 import {
   FLOOR_PLAN_OBJECT_TYPES,
+  adjustTableDimension,
   formatBuilderTableLabel,
   getObjectDisplayLabel,
+  getTableSizeForPreset,
 } from '../models/floorPlanObject'
 import { normalizeRotation } from '../lib/tableTransformUtils'
 import {
@@ -303,27 +305,89 @@ export function BuilderInspector() {
           </select>
         </label>
 
-        <label className="fpb-inspector-field">
-          <span>Width</span>
-          <input
-            type="number"
-            min="1"
-            value={width}
-            onChange={(event) => updateTable({ width: event.target.value })}
-            disabled={isReadOnly}
-          />
-        </label>
+        <div className="fpb-inspector-size-presets" aria-label="Table size presets">
+          <span className="fpb-inspector-size-presets-label">Quick size</span>
+          <div className="fpb-inspector-size-presets-row">
+            {['small', 'medium', 'large'].map((preset) => (
+              <button
+                key={preset}
+                type="button"
+                className="fpb-inspector-size-preset-btn"
+                onClick={() => {
+                  const nextSize = getTableSizeForPreset(shape, preset)
+                  updateTable(nextSize)
+                }}
+                disabled={isReadOnly}
+              >
+                {preset.charAt(0).toUpperCase() + preset.slice(1)}
+              </button>
+            ))}
+          </div>
+        </div>
 
-        <label className="fpb-inspector-field">
-          <span>Height</span>
-          <input
-            type="number"
-            min="1"
-            value={height}
-            onChange={(event) => updateTable({ height: event.target.value })}
-            disabled={isReadOnly}
-          />
-        </label>
+        <div className="fpb-inspector-dimension-controls">
+          <label className="fpb-inspector-field">
+            <span>Width</span>
+            <div className="fpb-inspector-stepper">
+              <button
+                type="button"
+                className="fpb-inspector-stepper-btn"
+                onClick={() => updateTable({ width: adjustTableDimension(width, -8) })}
+                disabled={isReadOnly}
+                aria-label="Decrease width"
+              >
+                −
+              </button>
+              <input
+                type="number"
+                min="1"
+                value={width}
+                onChange={(event) => updateTable({ width: event.target.value })}
+                disabled={isReadOnly}
+              />
+              <button
+                type="button"
+                className="fpb-inspector-stepper-btn"
+                onClick={() => updateTable({ width: adjustTableDimension(width, 8) })}
+                disabled={isReadOnly}
+                aria-label="Increase width"
+              >
+                +
+              </button>
+            </div>
+          </label>
+
+          <label className="fpb-inspector-field">
+            <span>Height</span>
+            <div className="fpb-inspector-stepper">
+              <button
+                type="button"
+                className="fpb-inspector-stepper-btn"
+                onClick={() => updateTable({ height: adjustTableDimension(height, -8) })}
+                disabled={isReadOnly}
+                aria-label="Decrease height"
+              >
+                −
+              </button>
+              <input
+                type="number"
+                min="1"
+                value={height}
+                onChange={(event) => updateTable({ height: event.target.value })}
+                disabled={isReadOnly}
+              />
+              <button
+                type="button"
+                className="fpb-inspector-stepper-btn"
+                onClick={() => updateTable({ height: adjustTableDimension(height, 8) })}
+                disabled={isReadOnly}
+                aria-label="Increase height"
+              >
+                +
+              </button>
+            </div>
+          </label>
+        </div>
 
         <label className="fpb-inspector-field">
           <span>Rotation</span>

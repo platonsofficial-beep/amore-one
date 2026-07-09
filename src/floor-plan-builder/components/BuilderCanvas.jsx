@@ -240,6 +240,13 @@ export function BuilderCanvas({ containerRef, viewportControls, workspaceLayoutK
         onPointerLeave={handlePointerUp}
         onAuxClick={(event) => event.preventDefault()}
       >
+        {isEditing && visibleObjects.length === 0 ? (
+          <div className="fpb-canvas-empty-guide" role="status">
+            <p className="fpb-canvas-empty-guide-eyebrow">Start your layout</p>
+            <h3>Add your first table</h3>
+            <p>Choose a table shape in Tools, then tap the floor to place it.</p>
+          </div>
+        ) : null}
         <div
           className="fpb-canvas-stage"
           style={{

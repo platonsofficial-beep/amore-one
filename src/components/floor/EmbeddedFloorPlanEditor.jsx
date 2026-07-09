@@ -6,7 +6,7 @@ import { BuilderInspector } from '../../floor-plan-builder/components/BuilderIns
 import { BuilderCanvas } from '../../floor-plan-builder/components/BuilderCanvas'
 import { useBuilderEditorLayout } from '../../floor-plan-builder/hooks/useBuilderEditorLayout'
 import { useCanvasViewport } from '../../floor-plan-builder/hooks/useCanvasViewport'
-import { getResetCameraForWorkspace } from '../../floor-plan-builder/lib/camera'
+import { getResetCameraForEditorContent } from '../../floor-plan-builder/lib/editorViewport'
 import { cloneBuilderLayout } from '../../floor-plan-builder/lib/floorPlanStorage'
 import { getAdjacentAreaId } from '../../floor-plan-builder/models/floorPlans'
 import { usePublishedFloorPlan } from '../../lib/PublishedFloorPlanContext'
@@ -72,15 +72,26 @@ function EmbeddedFloorPlanEditorShell({
   const toolbarRef = useRef(null)
   const sidebarRef = useRef(null)
   const layout = useBuilderEditorLayout(editorRef, toolbarRef, sidebarRef)
-  const { state, dispatch, activeWorkspaceBounds } = useFloorPlanBuilder()
+  const { state, dispatch, activeWorkspaceBounds, visibleObjects } = useFloorPlanBuilder()
   const activeFloorIdRef = useRef(state.activeFloorId)
   const didApplyInitialAreaRef = useRef(false)
+  const objectFitSignatureRef = useRef('')
+  const [toolsPanelOpen, setToolsPanelOpen] = useState(() => (
+    typeof window !== 'undefined' ? window.innerWidth > 1180 : true
+  ))
+  const [inspectorPanelOpen, setInspectorPanelOpen] = useState(false)
 
   const viewportControls = useCanvasViewport({
     camera: state.camera,
     onCameraChange: (patch) => dispatch({ type: 'SET_CAMERA', payload: patch }),
     containerRef,
     floorBounds: activeWorkspaceBounds,
+    getFitCamera: (viewportWidth, viewportHeight) => getResetCameraForEditorContent(
+      visibleObjects,
+      activeWorkspaceBounds,
+      viewportWidth,
+      viewportHeight,
+    ),
   })
 
   useEffect(() => {
@@ -108,13 +119,14 @@ function EmbeddedFloorPlanEditorShell({
     const container = containerRef.current
     if (!container) return undefined
 
-    const fitFloorInViewport = () => {
+    const fitContentInViewport = () => {
       const rect = container.getBoundingClientRect()
       if (rect.width < 1 || rect.height < 1) return false
 
       dispatch({
         type: 'SET_CAMERA',
-        payload: getResetCameraForWorkspace(
+        payload: getResetCameraForEditorContent(
+          visibleObjects,
           activeWorkspaceBounds,
           rect.width,
           rect.height,
@@ -126,16 +138,36 @@ function EmbeddedFloorPlanEditorShell({
     const floorChanged = activeFloorIdRef.current !== state.activeFloorId
     activeFloorIdRef.current = state.activeFloorId
 
-    if (floorChanged || !fitFloorInViewport()) {
-      const observer = new ResizeObserver(() => {
-        fitFloorInViewport()
-      })
-      observer.observe(container)
-      return () => observer.disconnect()
+    const nextSignature = `${state.activeFloorId}:${visibleObjects.length}:${visibleObjects.map((object) => object.id).join('|')}`
+    const objectsChanged = objectFitSignatureRef.current !== nextSignature
+    objectFitSignatureRef.current = nextSignature
+
+    if (floorChanged || objectsChanged) {
+      fitContentInViewport()
     }
 
-    return undefined
-  }, [activeWorkspaceBounds, containerRef, dispatch, layout.toolbarHeight, layout.sidebarWidth, state.activeFloorId])
+    const observer = new ResizeObserver(() => {
+      fitContentInViewport()
+    })
+    observer.observe(container)
+    return () => observer.disconnect()
+  }, [
+    activeWorkspaceBounds,
+    containerRef,
+    dispatch,
+    layout.toolbarHeight,
+    layout.sidebarWidth,
+    state.activeFloorId,
+    visibleObjects,
+  ])
+
+  const selectionCount = state.selectedTableIds.length
+
+  useEffect(() => {
+    if (selectionCount > 0) {
+      setInspectorPanelOpen(true)
+    }
+  }, [selectionCount])
 
   const workspaceLayoutKey = layout.sidebarWidth + layout.toolbarHeight
 
@@ -143,7 +175,6 @@ function EmbeddedFloorPlanEditorShell({
     onExit?.()
   }, [onExit])
 
-  const selectionCount = state.selectedTableIds.length
   const [isSavingDraft, setIsSavingDraft] = useState(false)
   const [isPublishingLayout, setIsPublishingLayout] = useState(false)
 
@@ -235,7 +266,7 @@ function EmbeddedFloorPlanEditorShell({
     <div className="unified-floor-editor">
       <div
         ref={editorRef}
-        className="fpb-editor fpb-editor-simple fpb-editor-embedded"
+        className={`fpb-editor fpb-editor-simple fpb-editor-embedded${toolsPanelOpen ? ' is-tools-open' : ''}${inspectorPanelOpen ? ' is-inspector-open' : ''}`}
         data-builder-mode={state.mode}
         style={{ '--fpb-toolbar-height': `${layout.toolbarHeight}px` }}
       >
@@ -252,6 +283,22 @@ function EmbeddedFloorPlanEditorShell({
             ) : null}
           </div>
           <div className="unified-floor-editor-toolbar-actions">
+            <button
+              type="button"
+              className={`fpb-toolbar-btn unified-floor-editor-panel-toggle${toolsPanelOpen ? ' is-active' : ''}`}
+              onClick={() => setToolsPanelOpen((current) => !current)}
+              aria-pressed={toolsPanelOpen}
+            >
+              Tools
+            </button>
+            <button
+              type="button"
+              className={`fpb-toolbar-btn unified-floor-editor-panel-toggle${inspectorPanelOpen ? ' is-active' : ''}`}
+              onClick={() => setInspectorPanelOpen((current) => !current)}
+              aria-pressed={inspectorPanelOpen}
+            >
+              Properties
+            </button>
             <div className="unified-floor-editor-canvas-size" aria-label="Canvas size">
               <span className="unified-floor-editor-canvas-size-label">Canvas</span>
               <span className="unified-floor-editor-canvas-size-value">

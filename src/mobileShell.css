@@ -4618,6 +4618,13 @@
   min-height: 0;
   height: 100%;
   overflow: hidden;
+  background: #060606;
+}
+
+.mobile-host-floor-plan-editor .unified-floor-editor,
+.mobile-host-floor-plan-editor .fpb-editor-embedded {
+  flex: 1 1 auto;
+  min-height: 0;
 }
 
 .app-shell.is-host-station-shell.is-host-only-station,

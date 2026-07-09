@@ -19,6 +19,7 @@ export function useCanvasViewport({
   onAnimateCamera,
   onZoomActivity,
   floorBounds,
+  getFitCamera,
 }) {
   const panSessionRef = useRef(null)
   const cameraRef = useRef(camera)
@@ -67,23 +68,33 @@ export function useCanvasViewport({
     const viewport = getViewportSize()
     if (!viewport || !floorBounds) return
 
+    if (getFitCamera) {
+      applyCamera(getFitCamera(viewport.width, viewport.height))
+      return
+    }
+
     applyCamera(getResetCameraForWorkspace(
       floorBounds,
       viewport.width,
       viewport.height,
     ))
-  }, [applyCamera, floorBounds, getViewportSize])
+  }, [applyCamera, floorBounds, getFitCamera, getViewportSize])
 
   const fitFloor = useCallback(() => {
     const viewport = getViewportSize()
     if (!viewport || !floorBounds) return
+
+    if (getFitCamera) {
+      applyCamera(getFitCamera(viewport.width, viewport.height))
+      return
+    }
 
     applyCamera(getCameraFitToBounds(
       floorBounds,
       viewport.width,
       viewport.height,
     ))
-  }, [applyCamera, floorBounds, getViewportSize])
+  }, [applyCamera, floorBounds, getFitCamera, getViewportSize])
 
   const zoomBy = useCallback((delta, anchorPoint = null) => {
     const rect = getContainerRect()
