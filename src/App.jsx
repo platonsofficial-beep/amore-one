@@ -12783,11 +12783,6 @@ function App() {
     [role],
   )
 
-  const scheduleDisplayShifts = useMemo(() => {
-    if (canEditScheduleRole) return shifts
-    return publishedShifts ?? []
-  }, [canEditScheduleRole, shifts, publishedShifts])
-
   const canManageReservationsRole = useMemo(
     () => canManageReservations(role),
     [role],
@@ -20102,7 +20097,7 @@ function App() {
         {isActiveViewAllowed && activeView === 'team' ? (
           <div hidden={teamSection !== 'schedule'}>
             <ScheduleView
-              shifts={scheduleDisplayShifts}
+              shifts={canEditScheduleRole ? shifts : (publishedShifts ?? [])}
               scheduleCapacities={scheduleCapacities}
               employees={scheduleEmployees}
               positions={positions}

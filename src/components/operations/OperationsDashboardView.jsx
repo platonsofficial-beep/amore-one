@@ -32,7 +32,6 @@ import {
   normalizeOperationsTaskDate,
   resolveEmployeeName,
 } from '../../lib/operationsUtils'
-import { filterMobileStaffOperationsTasks } from '../../lib/mobileStaffUtils'
 import DepartmentPerformanceSummary from '../tasks/DepartmentPerformanceSummary'
 import { OperationsAnnouncementsSection } from './OperationsAnnouncementsSection'
 import { OperationsLogFormModal } from './OperationsLogFormModal'
@@ -255,7 +254,7 @@ export function OperationsDashboardView({
 
   const staffScopedStandaloneTasks = useMemo(() => {
     if (canManage) return standaloneTasks
-    return filterMobileStaffOperationsTasks(standaloneTasks, currentEmployeeId)
+    return standaloneTasks.filter((task) => canStaffCompleteTask(task, currentEmployeeId))
   }, [canManage, standaloneTasks, currentEmployeeId])
 
   const todayStandaloneTasks = useMemo(() => {

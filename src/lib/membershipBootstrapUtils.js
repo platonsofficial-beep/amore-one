@@ -1,7 +1,7 @@
-export function resolveBootstrapMembershipRole(memberCount) {
-  return Number(memberCount) === 0 ? 'owner' : null
-}
+export {
+  resolveBootstrapMembershipRole,
+} from '../services/membershipService'
 
 export function canBootstrapOwnerMembership(memberCount) {
-  return resolveBootstrapMembershipRole(memberCount) === 'owner'
+  return Number(memberCount) === 0
 }

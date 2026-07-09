@@ -1,5 +1,4 @@
 import { supabase } from '../lib/supabaseClient'
-import { resolveBootstrapMembershipRole } from '../lib/membershipBootstrapUtils'
 import { normalizeWorkspaceRole } from '../lib/membershipRoles'
 import { getSession } from './authService'
 import { getDefaultWorkspace, mapWorkspace } from './workspaceService'
@@ -120,6 +119,12 @@ function resolveUserIdentity(user = {}) {
 
   return { email, displayName }
 }
+
+function resolveBootstrapMembershipRole(memberCount) {
+  return Number(memberCount) === 0 ? 'owner' : null
+}
+
+export { resolveBootstrapMembershipRole }
 
 async function countWorkspaceMembers(workspaceId) {
   const { count, error } = await supabase
