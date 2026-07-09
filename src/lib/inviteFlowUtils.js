@@ -32,9 +32,9 @@ export function isFatalInviteError(message = '') {
 }
 
 export function shouldSkipMembershipBootstrapAfterInviteAttempt({
-  inviteAttempted = false,
+  inviteSucceeded = false,
 } = {}) {
-  return inviteAttempted
+  return inviteSucceeded
 }
 
 export function buildInvitePreviewSummary(preview = {}) {

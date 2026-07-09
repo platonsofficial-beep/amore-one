@@ -1,5 +1,5 @@
--- RLS policies for published_shifts (authenticated users, own snapshots only).
--- Prerequisite: public.published_shifts and public.schedule_publications exist.
+-- RLS policies for published_shifts (authenticated users).
+-- Prerequisite: public.published_shifts, public.schedule_publications, workspace_members_rls_policies.sql.
 -- Run in the Supabase SQL editor after published_shifts_schema.sql.
 --
 -- Ownership model:
@@ -52,11 +52,11 @@ grant execute on function public.is_own_schedule_publication(uuid) to authentica
 alter table public.published_shifts enable row level security;
 
 drop policy if exists published_shifts_select_own on public.published_shifts;
-create policy published_shifts_select_own
+create policy published_shifts_select_members
   on public.published_shifts
   for select
   to authenticated
-  using (public.is_own_schedule_publication(publication_id));
+  using (public.has_any_workspace_membership());
 
 drop policy if exists published_shifts_insert_own on public.published_shifts;
 create policy published_shifts_insert_own

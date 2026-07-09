@@ -32,6 +32,7 @@ import {
   normalizeOperationsTaskDate,
   resolveEmployeeName,
 } from '../../lib/operationsUtils'
+import { filterMobileStaffOperationsTasks } from '../../lib/mobileStaffUtils'
 import DepartmentPerformanceSummary from '../tasks/DepartmentPerformanceSummary'
 import { OperationsAnnouncementsSection } from './OperationsAnnouncementsSection'
 import { OperationsLogFormModal } from './OperationsLogFormModal'
@@ -252,16 +253,21 @@ export function OperationsDashboardView({
     [tasks, announcements],
   )
 
+  const staffScopedStandaloneTasks = useMemo(() => {
+    if (canManage) return standaloneTasks
+    return filterMobileStaffOperationsTasks(standaloneTasks, currentEmployeeId)
+  }, [canManage, standaloneTasks, currentEmployeeId])
+
   const todayStandaloneTasks = useMemo(() => {
     const normalizedToday = normalizeOperationsTaskDate(todayKey)
-    return standaloneTasks.filter(
+    return staffScopedStandaloneTasks.filter(
       (task) => normalizeOperationsTaskDate(task.dueDate) === normalizedToday,
     )
-  }, [standaloneTasks, todayKey])
+  }, [staffScopedStandaloneTasks, todayKey])
 
   const summary = useMemo(
-    () => buildOperationsDashboardSummary(standaloneTasks, logs, todayKey),
-    [standaloneTasks, logs, todayKey],
+    () => buildOperationsDashboardSummary(staffScopedStandaloneTasks, logs, todayKey),
+    [staffScopedStandaloneTasks, logs, todayKey],
   )
 
   const checklistProgressRows = useMemo(

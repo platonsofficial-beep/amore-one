@@ -151,13 +151,13 @@ export function AuthProvider({ children }) {
     let joinedWorkspaceRecord = null
 
     const pendingInviteToken = readPendingInviteToken()
-    let inviteAttempted = false
+    let inviteSucceeded = false
 
     if (pendingInviteToken) {
-      inviteAttempted = true
       try {
         const invitePreview = await getInvitePreview(pendingInviteToken).catch(() => null)
         await acceptInvite(pendingInviteToken)
+        inviteSucceeded = true
         clearPendingInviteToken()
         writeInviteAcceptedNotice(
           buildInviteAcceptedNotice(invitePreview?.workspaceName ?? ''),
@@ -175,7 +175,7 @@ export function AuthProvider({ children }) {
     }
 
     const skipDefaultBootstrap = shouldSkipMembershipBootstrapAfterInviteAttempt({
-      inviteAttempted,
+      inviteSucceeded,
     })
 
     try {

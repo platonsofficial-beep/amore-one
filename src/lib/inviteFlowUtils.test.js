@@ -56,11 +56,11 @@ describe('inviteFlowUtils', () => {
     expect(isFatalInviteError('Network timeout')).toBe(false)
 
     expect(shouldSkipMembershipBootstrapAfterInviteAttempt({
-      inviteAttempted: false,
+      inviteSucceeded: false,
     })).toBe(false)
 
     expect(shouldSkipMembershipBootstrapAfterInviteAttempt({
-      inviteAttempted: true,
+      inviteSucceeded: true,
     })).toBe(true)
   })
 })

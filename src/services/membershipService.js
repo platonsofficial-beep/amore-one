@@ -1,4 +1,5 @@
 import { supabase } from '../lib/supabaseClient'
+import { resolveBootstrapMembershipRole } from '../lib/membershipBootstrapUtils'
 import { normalizeWorkspaceRole } from '../lib/membershipRoles'
 import { getSession } from './authService'
 import { getDefaultWorkspace, mapWorkspace } from './workspaceService'
@@ -230,7 +231,10 @@ export async function createOwnerMembershipIfMissing(user) {
   }
 
   const memberCount = await countWorkspaceMembers(workspace.id)
-  const role = memberCount === 0 ? 'owner' : 'staff'
+  const role = resolveBootstrapMembershipRole(memberCount)
+  if (!role) {
+    return null
+  }
   const { email, displayName } = resolveUserIdentity(user)
   const payload = serializeMembershipPayload({
     workspaceId: workspace.id,

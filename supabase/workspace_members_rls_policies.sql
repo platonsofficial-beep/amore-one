@@ -27,6 +27,40 @@ $$;
 revoke all on function public.is_workspace_owner(uuid) from public;
 grant execute on function public.is_workspace_owner(uuid) to authenticated;
 
+create or replace function public.can_bootstrap_workspace_owner(target_workspace_id uuid)
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select not exists (
+    select 1
+    from public.workspace_members wm
+    where wm.workspace_id = target_workspace_id
+  );
+$$;
+
+revoke all on function public.can_bootstrap_workspace_owner(uuid) from public;
+grant execute on function public.can_bootstrap_workspace_owner(uuid) to authenticated;
+
+create or replace function public.has_any_workspace_membership()
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select exists (
+    select 1
+    from public.workspace_members wm
+    where wm.auth_user_id = auth.uid()
+  );
+$$;
+
+revoke all on function public.has_any_workspace_membership() from public;
+grant execute on function public.has_any_workspace_membership() to authenticated;
+
 grant usage on schema public to authenticated;
 grant select, insert, update, delete on table public.workspace_members to authenticated;
 
@@ -50,8 +84,12 @@ create policy workspace_members_insert
   for insert
   to authenticated
   with check (
-    auth.uid() = auth_user_id
-    or public.is_workspace_owner(workspace_id)
+    public.is_workspace_owner(workspace_id)
+    or (
+      auth.uid() = auth_user_id
+      and role = 'owner'
+      and public.can_bootstrap_workspace_owner(workspace_id)
+    )
   );
 
 drop policy if exists workspace_members_update on public.workspace_members;
