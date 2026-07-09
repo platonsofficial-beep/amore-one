@@ -128,6 +128,82 @@ export function useCanvasViewport({
     zoomBy(-ZOOM_STEP * 2)
   }, [zoomBy])
 
+  const setZoomAtAnchor = useCallback((targetZoom, anchorPoint = null) => {
+    const rect = getContainerRect()
+    const viewport = getViewportSize()
+    if (!rect || !viewport) return
+
+    const current = cameraRef.current
+    const anchorX = anchorPoint?.x ?? rect.width / 2
+    const anchorY = anchorPoint?.y ?? rect.height / 2
+    const nextZoom = clampCameraZoom(targetZoom)
+    if (nextZoom === current.zoom) return
+
+    markZoomActivity()
+
+    const anchorWorld = screenToWorld({ x: anchorX, y: anchorY }, current, viewport)
+    const halfW = viewport.width / 2
+    const halfH = viewport.height / 2
+
+    setCamera({
+      x: anchorWorld.x - (anchorX - halfW) / nextZoom,
+      y: anchorWorld.y - (anchorY - halfH) / nextZoom,
+      zoom: nextZoom,
+    })
+  }, [getContainerRect, getViewportSize, markZoomActivity, setCamera])
+
+  const pinchSessionRef = useRef(null)
+
+  const tryStartPinch = useCallback((event) => {
+    if (event.touches?.length !== 2) return false
+
+    const rect = getContainerRect()
+    if (!rect) return false
+
+    const [touchA, touchB] = event.touches
+    const distance = Math.hypot(
+      touchA.clientX - touchB.clientX,
+      touchA.clientY - touchB.clientY,
+    )
+    if (distance < 1) return false
+
+    const centerX = ((touchA.clientX + touchB.clientX) / 2) - rect.left
+    const centerY = ((touchA.clientY + touchB.clientY) / 2) - rect.top
+
+    pinchSessionRef.current = {
+      startDistance: distance,
+      startZoom: cameraRef.current.zoom,
+      anchorX: centerX,
+      anchorY: centerY,
+    }
+    return true
+  }, [getContainerRect])
+
+  const handlePinchMove = useCallback((event) => {
+    const session = pinchSessionRef.current
+    if (!session || event.touches?.length !== 2) return false
+
+    const [touchA, touchB] = event.touches
+    const distance = Math.hypot(
+      touchA.clientX - touchB.clientX,
+      touchA.clientY - touchB.clientY,
+    )
+    if (distance < 1 || session.startDistance < 1) return false
+
+    const scale = distance / session.startDistance
+    setZoomAtAnchor(session.startZoom * scale, {
+      x: session.anchorX,
+      y: session.anchorY,
+    })
+    return true
+  }, [setZoomAtAnchor])
+
+  const endPinch = useCallback(() => {
+    pinchSessionRef.current = null
+  }, [])
+
+  const isPinching = useCallback(() => Boolean(pinchSessionRef.current), [])
+
   const zoomTo100 = useCallback(() => {
     const viewport = getViewportSize()
     if (!viewport || !floorBounds) return
@@ -248,6 +324,10 @@ export function useCanvasViewport({
     handlePointerMove,
     handlePointerUp,
     isPanning: () => Boolean(panSessionRef.current),
+    tryStartPinch,
+    handlePinchMove,
+    endPinch,
+    isPinching,
   }
 }
 

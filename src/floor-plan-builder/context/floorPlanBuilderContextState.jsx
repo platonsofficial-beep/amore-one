@@ -375,6 +375,25 @@ function floorPlanBuilderReducer(state, action) {
         selectedTableIds: [],
       }
     }
+    case 'CLEAR_ACTIVE_FLOOR_LAYOUT': {
+      if (!isBuilderEditing(state)) return state
+
+      const floorId = action.payload?.floorId ?? state.activeFloorId
+      if (!floorId) return state
+
+      const nextObjects = state.objects.filter((object) => (
+        object.floorId !== floorId || object.type !== FLOOR_PLAN_OBJECT_TYPES.TABLE
+      ))
+
+      if (nextObjects.length === state.objects.length) return state
+
+      return {
+        ...state,
+        hasUnsavedChanges: true,
+        objects: nextObjects,
+        selectedTableIds: [],
+      }
+    }
     case 'ADD_FLOOR': {
       if (!isBuilderEditing(state)) return state
       const label = `${action.payload.label ?? ''}`.trim()
@@ -568,6 +587,8 @@ function floorPlanBuilderReducer(state, action) {
       return state
   }
 }
+
+export { createInitialBuilderState, floorPlanBuilderReducer }
 
 export function FloorPlanBuilderProvider({ children, initialEditing = false, initialLayout = null }) {
   const [state, dispatch] = useReducer(

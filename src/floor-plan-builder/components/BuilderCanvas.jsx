@@ -225,6 +225,40 @@ export function BuilderCanvas({ containerRef, viewportControls, workspaceLayoutK
     viewportControls,
   ])
 
+  useEffect(() => {
+    const container = containerRef.current
+    if (!container || !isEditing) return undefined
+
+    const onTouchStart = (event) => {
+      if (event.touches.length === 2) {
+        viewportControls.tryStartPinch?.(event)
+      }
+    }
+
+    const onTouchMove = (event) => {
+      if (viewportControls.isPinching?.()) {
+        viewportControls.handlePinchMove?.(event)
+        event.preventDefault()
+      }
+    }
+
+    const onTouchEnd = () => {
+      viewportControls.endPinch?.()
+    }
+
+    container.addEventListener('touchstart', onTouchStart, { passive: true })
+    container.addEventListener('touchmove', onTouchMove, { passive: false })
+    container.addEventListener('touchend', onTouchEnd, { passive: true })
+    container.addEventListener('touchcancel', onTouchEnd, { passive: true })
+
+    return () => {
+      container.removeEventListener('touchstart', onTouchStart)
+      container.removeEventListener('touchmove', onTouchMove)
+      container.removeEventListener('touchend', onTouchEnd)
+      container.removeEventListener('touchcancel', onTouchEnd)
+    }
+  }, [containerRef, isEditing, viewportControls])
+
   const canvasCursor = isDragging
     ? 'grabbing'
     : isTransforming

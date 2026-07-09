@@ -6,11 +6,13 @@ import { BuilderInspector } from '../../floor-plan-builder/components/BuilderIns
 import { BuilderCanvas } from '../../floor-plan-builder/components/BuilderCanvas'
 import { useBuilderEditorLayout } from '../../floor-plan-builder/hooks/useBuilderEditorLayout'
 import { useCanvasViewport } from '../../floor-plan-builder/hooks/useCanvasViewport'
+import { EditorZoomControls } from '../../floor-plan-builder/components/EditorZoomControls'
 import { getResetCameraForEditorWorkspace } from '../../floor-plan-builder/lib/editorViewport'
 import { cloneBuilderLayout } from '../../floor-plan-builder/lib/floorPlanStorage'
 import { getAdjacentAreaId } from '../../floor-plan-builder/models/floorPlans'
 import { usePublishedFloorPlan } from '../../lib/PublishedFloorPlanContext'
 import { DEFAULT_FLOOR_SIZE, WORKSPACE_EXPAND_STEP } from '../../floor-plan-builder/models/floorWorkspace'
+import { FLOOR_PLAN_OBJECT_TYPES } from '../../floor-plan-builder/models/floorPlanObject'
 import '../../floor-plan-builder/floorPlanBuilder.css'
 
 const TABLET_EDITOR_BREAKPOINT = 1180
@@ -268,7 +270,21 @@ function EmbeddedFloorPlanEditorShell({
   const activeWorkspace = state.floors.find((floor) => floor.id === state.activeFloorId)?.workspace
   const canvasWidth = activeWorkspace?.width ?? DEFAULT_FLOOR_SIZE.width
   const canvasHeight = activeWorkspace?.height ?? DEFAULT_FLOOR_SIZE.height
+  const activeFloorTableCount = state.objects.filter((object) => (
+    object.floorId === state.activeFloorId && object.type === FLOOR_PLAN_OBJECT_TYPES.TABLE
+  )).length
   const isBusy = isSavingDraft || isPublishingLayout
+
+  const handleClearLayout = () => {
+    if (activeFloorTableCount === 0) return
+
+    const confirmed = window.confirm(
+      'Are you sure you want to delete this layout? This will remove all tables from this area.',
+    )
+    if (!confirmed) return
+
+    dispatch({ type: 'CLEAR_ACTIVE_FLOOR_LAYOUT' })
+  }
 
   return (
     <div className="unified-floor-editor">
@@ -342,8 +358,19 @@ function EmbeddedFloorPlanEditorShell({
                 {selectionCount} tables selected
               </span>
             ) : null}
-            <button type="button" className="fpb-toolbar-btn" onClick={viewportControls.fitFloor}>
-              View fit
+            <EditorZoomControls
+              zoom={state.camera.zoom}
+              onZoomIn={viewportControls.zoomIn}
+              onZoomOut={viewportControls.zoomOut}
+              onViewFit={viewportControls.fitFloor}
+            />
+            <button
+              type="button"
+              className="fpb-toolbar-btn fpb-toolbar-btn-danger unified-floor-editor-clear-layout-btn"
+              onClick={handleClearLayout}
+              disabled={activeFloorTableCount === 0 || isBusy}
+            >
+              Clear layout
             </button>
             <button type="button" className="fpb-toolbar-btn" onClick={handleCancel}>
               Cancel

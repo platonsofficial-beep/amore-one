@@ -23,7 +23,7 @@ export const FLOOR_PLAN_OBJECT_TYPES = {
 }
 
 const DEFAULT_SIZES = {
-  [FLOOR_PLAN_OBJECT_TYPES.TABLE]: { width: 144, height: 144 },
+  [FLOOR_PLAN_OBJECT_TYPES.TABLE]: { width: 200, height: 200 },
   [FLOOR_PLAN_OBJECT_TYPES.WALL]: { width: 160, height: 12 },
   [FLOOR_PLAN_OBJECT_TYPES.DIVIDER]: { width: 120, height: 8 },
   [FLOOR_PLAN_OBJECT_TYPES.DOOR]: { width: 72, height: 16 },
@@ -75,10 +75,10 @@ export function createFloorPlanObject({
 }
 
 export const TABLE_SHAPE_SIZES = {
-  round: { width: 144, height: 144 },
-  square: { width: 140, height: 140 },
-  rectangle: { width: 184, height: 124 },
-  island: { width: 240, height: 128 },
+  round: { width: 200, height: 200 },
+  square: { width: 196, height: 196 },
+  rectangle: { width: 260, height: 168 },
+  island: { width: 320, height: 176 },
 }
 
 export const TABLE_SIZE_PRESET_SCALES = {
