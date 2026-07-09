@@ -28344,3 +28344,113 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   }
 }
 
+/* Phase 13 — PWA production package */
+.pwa-offline-banner {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1400;
+  padding:
+    calc(10px + env(safe-area-inset-top, 0px))
+    16px
+    10px;
+  border-bottom: 1px solid rgba(224, 113, 104, 0.32);
+  background: rgba(42, 18, 16, 0.96);
+  backdrop-filter: blur(12px);
+}
+
+.pwa-offline-banner-copy {
+  margin: 0 auto;
+  max-width: 960px;
+  color: #f7efe1;
+  font-size: 0.88rem;
+  line-height: 1.45;
+  text-align: center;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.pwa-offline-banner-copy strong {
+  color: #ffc8c2;
+}
+
+.pwa-install-banner {
+  position: fixed;
+  left: 50%;
+  bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+  z-index: 1350;
+  transform: translateX(-50%);
+  width: min(92vw, 520px);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px;
+  border-radius: 16px;
+  border: 1px solid rgba(212, 175, 55, 0.22);
+  background: rgba(10, 10, 11, 0.97);
+  backdrop-filter: blur(18px);
+  box-shadow:
+    0 16px 44px rgba(0, 0, 0, 0.48),
+    0 0 0 1px rgba(255, 255, 255, 0.05);
+}
+
+.pwa-install-banner-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  flex: 1 1 220px;
+}
+
+.pwa-install-banner-copy strong {
+  color: #fff7e8;
+  font-size: 0.95rem;
+}
+
+.pwa-install-banner-copy span {
+  color: #a79e91;
+  font-size: 0.84rem;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.pwa-install-banner-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.pwa-install-btn,
+.pwa-install-dismiss-btn {
+  min-height: 44px;
+  min-width: 44px;
+}
+
+.app-shell.is-mobile-shell .pwa-install-banner {
+  bottom: calc(78px + env(safe-area-inset-bottom, 0px));
+}
+
+@media (max-width: 640px) {
+  .pwa-install-banner {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .pwa-install-banner-actions {
+    width: 100%;
+    flex-direction: column;
+  }
+
+  .pwa-install-btn,
+  .pwa-install-dismiss-btn {
+    width: 100%;
+  }
+}
+
