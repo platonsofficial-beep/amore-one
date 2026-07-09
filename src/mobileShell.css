@@ -4358,6 +4358,34 @@
   display: none;
 }
 
+.mobile-app-host-station.mobile-app-host-mode {
+  display: flex;
+  flex-direction: column;
+  height: 100dvh;
+  max-height: 100dvh;
+  min-height: 0;
+  overflow: hidden;
+  overflow-x: hidden;
+  background: #0a0a0b;
+}
+
+.mobile-app-host-station.mobile-app-host-mode .mobile-host-mode-screen {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
+  overflow: hidden;
+}
+
+.mobile-app-host-station.mobile-app-host-mode .mobile-workspace-module.is-host-mode-module {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+}
+
 .mobile-app.mobile-app-host-mode {
   display: flex;
   flex-direction: column;

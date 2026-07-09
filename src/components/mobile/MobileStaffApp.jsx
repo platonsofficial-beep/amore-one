@@ -55,11 +55,26 @@ export function MobileStaffApp({
     )
   }
 
+  if (shellVariant === 'host' && activeTab === 'host') {
+    return (
+      <div className="mobile-app mobile-app-host-mode mobile-app-host-station is-reservations-host-mode">
+        {noticeBanner}
+        <div className="mobile-host-mode-screen">
+          {hostStationContent ? (
+            <div className="mobile-workspace-module is-host-mode-module">
+              {hostStationContent}
+            </div>
+          ) : null}
+        </div>
+        <MobileBottomNav activeTab={activeTab} onTabChange={onTabChange} tabs={bottomTabs} />
+      </div>
+    )
+  }
+
   return (
-    <div className={`mobile-app${shellVariant === 'host' ? ' mobile-app-host-station' : ''}`}>
+      <div className={`mobile-app${shellVariant === 'host' ? ' mobile-app-host-station' : ''}`}>
       {noticeBanner}
       <div className="mobile-app-content">
-        {shellVariant === 'host' && activeTab === 'host' ? hostStationContent : null}
         {shellVariant !== 'host' && activeTab === 'home' ? <MobileHomeView {...homeProps} /> : null}
         {activeTab === 'schedule' ? <MobileScheduleView {...scheduleProps} /> : null}
         {activeTab === 'tasks' ? <MobileTasksView {...tasksProps} /> : null}

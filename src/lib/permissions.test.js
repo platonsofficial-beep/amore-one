@@ -17,16 +17,19 @@ import {
   canManageStock,
   canOpenMobileFullSchedule,
   canOpenMobileTasksWorkspace,
+  canOpenReservationsHostMode,
   filterOperationsSections,
   getAccessibleModules,
   getMobileBottomTabs,
   getTodayQuickActions,
   isHostMobileRole,
   resolveDefaultModuleForRole,
+  resolveHostMobileTabChange,
   resolveMobileShellVariant,
   resolvePermittedActiveView,
   resolvePermittedOperationsSection,
   resolvePermittedTeamSection,
+  shouldShowReservationsHostView,
 } from './permissions'
 
 const OPERATIONS_SECTIONS = [
@@ -106,6 +109,53 @@ describe('permissions', () => {
       expect(canManageReservations('manager')).toBe(true)
       expect(canManageReservations('host')).toBe(true)
       expect(canManageReservations('staff')).toBe(false)
+    })
+  })
+
+  describe('reservations host mode', () => {
+    it('always renders host view for host role, including tablet/desktop shells', () => {
+      expect(shouldShowReservationsHostView({
+        role: 'host',
+        useMobileExperience: false,
+        mobileReservationsHostMode: false,
+      })).toBe(true)
+      expect(shouldShowReservationsHostView({
+        role: 'host',
+        useMobileExperience: true,
+        mobileReservationsHostMode: true,
+      })).toBe(true)
+    })
+
+    it('keeps manager host mode mobile-only', () => {
+      expect(shouldShowReservationsHostView({
+        role: 'manager',
+        useMobileExperience: false,
+        mobileReservationsHostMode: true,
+      })).toBe(false)
+      expect(shouldShowReservationsHostView({
+        role: 'manager',
+        useMobileExperience: true,
+        mobileReservationsHostMode: true,
+      })).toBe(true)
+    })
+
+    it('opens host mode when host mobile tab is selected', () => {
+      expect(resolveHostMobileTabChange('host', 'host')).toEqual({
+        tab: 'host',
+        openHostMode: true,
+        activeView: 'reservations',
+      })
+      expect(resolveHostMobileTabChange('schedule', 'host')).toEqual({
+        tab: 'schedule',
+        openHostMode: false,
+        activeView: null,
+      })
+    })
+
+    it('allows host and managers to open host mode but not staff', () => {
+      expect(canOpenReservationsHostMode('host')).toBe(true)
+      expect(canOpenReservationsHostMode('manager')).toBe(true)
+      expect(canOpenReservationsHostMode('staff')).toBe(false)
     })
   })
 

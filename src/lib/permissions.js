@@ -154,6 +154,52 @@ export function canManageReservations(role) {
   return canAccessModule(role, 'reservations')
 }
 
+export function canOpenReservationsHostMode(role) {
+  if (!canAccessModule(role, 'reservations')) return false
+  if (isHostRole(role)) return true
+  return isManagerRole(role)
+}
+
+export function shouldShowReservationsHostView({
+  role,
+  useMobileExperience = false,
+  mobileReservationsHostMode = false,
+} = {}) {
+  if (!canAccessModule(role, 'reservations')) return false
+  if (isHostRole(role)) return true
+  return Boolean(useMobileExperience && mobileReservationsHostMode)
+}
+
+export function resolveHostMobileTabChange(tab, role) {
+  const normalizedTab = `${tab ?? ''}`.trim()
+
+  if (!isHostRole(role)) {
+    return {
+      tab: normalizedTab,
+      openHostMode: false,
+      activeView: null,
+    }
+  }
+
+  if (normalizedTab === 'host') {
+    return {
+      tab: 'host',
+      openHostMode: true,
+      activeView: 'reservations',
+    }
+  }
+
+  return {
+    tab: normalizedTab,
+    openHostMode: false,
+    activeView: null,
+  }
+}
+
+export function shouldUseHostMobileLanding(role, useMobileExperience = false) {
+  return isHostRole(role) && Boolean(useMobileExperience)
+}
+
 export function canManageEmployeeInvites(role) {
   return canEditSchedule(role)
 }

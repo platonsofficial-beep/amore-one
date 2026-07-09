@@ -417,14 +417,18 @@ import {
   canManageStock,
   canOpenMobileFullSchedule,
   canOpenMobileTasksWorkspace,
+  canOpenReservationsHostMode,
   filterNavItemsByRole,
   filterOperationsSections,
   getMobileBottomTabs,
   getTodayQuickActions,
   isHostMobileRole,
   isManagementMobileRole,
+  resolveHostMobileTabChange,
   resolveMobileShellVariant,
   resolvePermittedActiveView,
+  shouldShowReservationsHostView,
+  shouldUseHostMobileLanding,
   resolvePermittedOperationsSection,
   resolvePermittedTeamSection,
 } from './lib/permissions'
@@ -13080,6 +13084,14 @@ function App() {
   )
 
   const isActiveViewAllowed = !isAuthLoading && canAccessModule(role, activeView)
+  const shouldRenderReservationsHostView = useMemo(
+    () => shouldShowReservationsHostView({
+      role,
+      useMobileExperience,
+      mobileReservationsHostMode,
+    }),
+    [role, useMobileExperience, mobileReservationsHostMode],
+  )
   const isActiveViewPendingPermissionRedirect = useMemo(() => {
     if (isAuthLoading) return false
     return resolvePermittedActiveView(role, activeView) !== activeView
@@ -13787,21 +13799,28 @@ function App() {
   ])
 
   useEffect(() => {
-    if (!useMobileExperience || isAuthLoading || !isHostMobileShell) return
+    if (isAuthLoading || !isHostMobileShell) return
 
     if (activeView !== 'reservations') {
       handleActiveViewChange('reservations')
     }
 
-    if (activeMobileTab === 'host') {
+    if (!mobileReservationsHostMode) {
       setMobileReservationsHostMode(true)
     }
+
+    if (shouldUseHostMobileLanding(role, useMobileExperience) && activeMobileTab !== 'host') {
+      setMobileStaffTab('host')
+      persistMobileTab('host', 'host')
+    }
   }, [
-    useMobileExperience,
     isAuthLoading,
     isHostMobileShell,
+    role,
+    useMobileExperience,
     activeView,
     activeMobileTab,
+    mobileReservationsHostMode,
     handleActiveViewChange,
   ])
 
@@ -19939,20 +19958,22 @@ function App() {
   }
 
   const handleMobileTabChange = useCallback((tab) => {
-    setMobileReservationsHostMode(false)
     setMobileExpandedView(null)
     setMobileMenuScreen('main')
     if (isManagementMobileRole(role)) {
+      setMobileReservationsHostMode(false)
       setMobileManagerTab(tab)
       persistManagerMobileTab(tab)
       return
     }
-    if (isHostMobileRole(role) && tab === 'host') {
-      setMobileReservationsHostMode(true)
-      handleActiveViewChange('reservations')
+
+    const hostTabState = resolveHostMobileTabChange(tab, role)
+    setMobileStaffTab(hostTabState.tab)
+    persistMobileTab(hostTabState.tab, isHostMobileRole(role) ? 'host' : 'staff')
+    setMobileReservationsHostMode(hostTabState.openHostMode)
+    if (hostTabState.activeView) {
+      handleActiveViewChange(hostTabState.activeView)
     }
-    setMobileStaffTab(tab)
-    persistMobileTab(tab, isHostMobileRole(role) ? 'host' : 'staff')
   }, [role, handleActiveViewChange])
 
   const handleMobileOpenFullSchedule = () => {
@@ -20045,10 +20066,22 @@ function App() {
   }, [role, handleActiveViewChange])
 
   const handleMobileOpenReservationsHostMode = useCallback(() => {
-    if (!canAccessMobileExpandedModule(role, 'reservations')) return
+    if (!canOpenReservationsHostMode(role)) return
 
+    handleActiveViewChange('reservations')
     setMobileReservationsHostMode(true)
-  }, [role])
+
+    if (isHostMobileRole(role) && useMobileExperience) {
+      setMobileExpandedView(null)
+      setMobileStaffTab('host')
+      persistMobileTab('host', 'host')
+      return
+    }
+
+    if (useMobileExperience && isManagementMobileRole(role)) {
+      setMobileExpandedView('workspace')
+    }
+  }, [role, useMobileExperience, handleActiveViewChange])
 
   const handleMobileExitReservationsHostMode = useCallback(() => {
     setMobileReservationsHostMode(false)
@@ -20194,7 +20227,7 @@ function App() {
 
   return (
     <PublishedFloorPlanProvider workspaceId={workspace?.id ?? ''}>
-    <div className={`app-shell${useMobileExperience ? ' is-mobile-shell' : ''}${useMobileExperience && mobileExpandedView ? ' is-mobile-expanded' : ''}${useMobileExperience && mobileReservationsHostMode ? ' is-reservations-host-mode' : ''}`}>
+    <div className={`app-shell${useMobileExperience ? ' is-mobile-shell' : ''}${useMobileExperience && mobileExpandedView ? ' is-mobile-expanded' : ''}${(useMobileExperience && mobileReservationsHostMode) || (isHostMobileShell && activeMobileTab === 'host') ? ' is-reservations-host-mode' : ''}`}>
       <ViewportDebugOverlay isMobileViewport={useMobileExperience} />
       {!useMobileExperience ? (
       <aside className="sidebar">
@@ -20414,7 +20447,7 @@ function App() {
         ) : null}
 
         {isActiveViewAllowed && activeView === 'reservations' ? (
-          useMobileExperience && mobileReservationsHostMode ? (
+          shouldRenderReservationsHostView ? (
             <MobileReservationsHostShell
               reservations={reservations}
               workspaceTimeZone={workspaceTimeZone}
@@ -20453,7 +20486,7 @@ function App() {
               noticeMessage={reservationNotice}
               isSaving={isSavingReservation}
               onOpenHostMode={
-                canAccessMobileExpandedModule(role, 'reservations')
+                !isHostMobileRole(role) && useMobileExperience && canOpenReservationsHostMode(role)
                   ? handleMobileOpenReservationsHostMode
                   : undefined
               }
