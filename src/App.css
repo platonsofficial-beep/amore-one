@@ -28044,20 +28044,97 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   cursor: default;
 }
 
-.schedule-card-action-menu-portal.template-card-menu {
-  max-height: min(
-    70dvh,
-    calc(100dvh - 72px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px))
+.schedule-card-action-menu-backdrop.is-sheet {
+  background: rgba(0, 0, 0, 0.52);
+  backdrop-filter: blur(2px);
+}
+
+.schedule-card-action-menu-sheet {
+  position: fixed;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: calc(68px + env(safe-area-inset-bottom, 0px));
+  width: min(92vw, 420px);
+  max-height: calc(
+    100dvh - 88px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px)
   );
+  display: flex;
+  flex-direction: column;
+  border-radius: 16px;
+  border: 1px solid rgba(212, 175, 55, 0.18);
+  background: rgba(8, 8, 9, 0.97);
+  backdrop-filter: blur(18px);
+  box-shadow:
+    0 16px 44px rgba(0, 0, 0, 0.52),
+    0 0 0 1px rgba(255, 255, 255, 0.05);
+  overflow: hidden;
+}
+
+.schedule-card-action-menu-sheet-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px;
   overflow-y: auto;
   overscroll-behavior: contain;
   -webkit-overflow-scrolling: touch;
-  box-shadow: 0 14px 32px rgba(0, 0, 0, 0.42);
 }
 
-.schedule-card-action-menu-portal .template-card-menu-item {
+.schedule-card-action-menu-sheet .template-card-menu-item {
   min-height: 44px;
   display: flex;
   align-items: center;
+  margin: 0;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: #f7efe1;
+  font-size: 0.86rem;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.16s ease;
+}
+
+.schedule-card-action-menu-sheet .template-card-menu-item:hover,
+.schedule-card-action-menu-sheet .template-card-menu-item:focus-visible {
+  background: rgba(212, 175, 55, 0.12);
+  outline: none;
+}
+
+.schedule-card-action-menu-sheet .template-card-menu-item:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.schedule-card-action-menu-sheet .template-card-menu-item.danger {
+  color: #ffcdc6;
+}
+
+.schedule-card-action-menu-sheet .template-card-menu-item.danger:hover:not(:disabled),
+.schedule-card-action-menu-sheet .template-card-menu-item.danger:focus-visible {
+  background: rgba(244, 67, 54, 0.12);
+}
+
+@media (orientation: landscape) and (max-height: 500px) {
+  .schedule-card-action-menu-sheet {
+    bottom: calc(58px + env(safe-area-inset-bottom, 0px));
+    max-height: calc(
+      100dvh - 72px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px)
+    );
+    border-radius: 14px;
+  }
+
+  .schedule-card-action-menu-sheet-list {
+    gap: 1px;
+    padding: 4px;
+  }
+
+  .schedule-card-action-menu-sheet .template-card-menu-item {
+    min-height: 44px;
+    padding: 0 12px;
+    font-size: 0.8rem;
+    border-radius: 8px;
+  }
 }
 
