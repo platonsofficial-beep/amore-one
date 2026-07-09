@@ -1,10 +1,10 @@
 import { useEffect, useId, useState } from 'react'
 import {
-  DEFAULT_RESERVATION_PHONE_COUNTRY_CODE,
   formatReservationPhone,
+  getDefaultReservationPhoneCountryCode,
   parseReservationPhone,
-  RESERVATION_PHONE_COUNTRIES,
 } from '../../lib/reservationPhoneUtils'
+import { PhoneCountryPicker } from './PhoneCountryPicker'
 
 export function ReservationPhoneField({
   value = '',
@@ -12,20 +12,19 @@ export function ReservationPhoneField({
   disabled = false,
   className = 'reservation-phone-field',
   inputClassName = '',
-  selectClassName = '',
   id,
   placeholder = 'Local number',
   autoComplete = 'tel-national',
 }) {
   const generatedId = useId()
   const fieldId = id ?? generatedId
-  const parsed = parseReservationPhone(value)
-  const [countryCode, setCountryCode] = useState(parsed.countryCode || DEFAULT_RESERVATION_PHONE_COUNTRY_CODE)
+  const parsed = parseReservationPhone(value, { fallbackCode: getDefaultReservationPhoneCountryCode() })
+  const [countryCode, setCountryCode] = useState(parsed.countryCode)
   const [localNumber, setLocalNumber] = useState(parsed.localNumber)
 
   useEffect(() => {
-    const next = parseReservationPhone(value)
-    setCountryCode(next.countryCode || DEFAULT_RESERVATION_PHONE_COUNTRY_CODE)
+    const next = parseReservationPhone(value, { fallbackCode: getDefaultReservationPhoneCountryCode() })
+    setCountryCode(next.countryCode)
     setLocalNumber(next.localNumber)
   }, [value])
 
@@ -33,8 +32,7 @@ export function ReservationPhoneField({
     onChange?.(formatReservationPhone(nextCode, nextLocal))
   }
 
-  const handleCountryChange = (event) => {
-    const nextCode = event.target.value
+  const handleCountryChange = (nextCode) => {
     setCountryCode(nextCode)
     emitChange(nextCode, localNumber)
   }
@@ -47,19 +45,12 @@ export function ReservationPhoneField({
 
   return (
     <div className={className}>
-      <select
-        className={`${className}-country ${selectClassName}`.trim()}
+      <PhoneCountryPicker
+        className={`${className}-country-picker`}
         value={countryCode}
         onChange={handleCountryChange}
         disabled={disabled}
-        aria-label="Phone country code"
-      >
-        {RESERVATION_PHONE_COUNTRIES.map((country) => (
-          <option key={country.code} value={country.code}>
-            {country.shortLabel} {country.code}
-          </option>
-        ))}
-      </select>
+      />
       <input
         id={fieldId}
         type="tel"

@@ -7,8 +7,8 @@ import {
 } from './reservationPhoneUtils'
 
 describe('parseReservationPhone', () => {
-  it('returns Cyprus default for empty phone', () => {
-    expect(parseReservationPhone('')).toEqual({
+  it('returns default country for empty phone', () => {
+    expect(parseReservationPhone('', { fallbackCode: DEFAULT_RESERVATION_PHONE_COUNTRY_CODE })).toEqual({
       countryCode: DEFAULT_RESERVATION_PHONE_COUNTRY_CODE,
       localNumber: '',
       fullPhone: '',
@@ -27,20 +27,26 @@ describe('parseReservationPhone', () => {
       localNumber: '9876543210',
       fullPhone: '+449876543210',
     })
+
+    expect(parseReservationPhone('+18765551234')).toEqual({
+      countryCode: '+1876',
+      localNumber: '5551234',
+      fullPhone: '+18765551234',
+    })
   })
 
-  it('defaults to Cyprus when no prefix is present', () => {
-    expect(parseReservationPhone('99887766')).toEqual({
+  it('defaults to fallback when no prefix is present', () => {
+    expect(parseReservationPhone('99887766', { fallbackCode: DEFAULT_RESERVATION_PHONE_COUNTRY_CODE })).toEqual({
       countryCode: DEFAULT_RESERVATION_PHONE_COUNTRY_CODE,
       localNumber: '99887766',
       fullPhone: '+35799887766',
     })
   })
 
-  it('lists common countries with Cyprus first', () => {
-    expect(RESERVATION_PHONE_COUNTRIES[0]).toMatchObject({ code: '+357', shortLabel: 'CY' })
+  it('exposes priority countries with Cyprus first', () => {
+    expect(RESERVATION_PHONE_COUNTRIES[0]).toMatchObject({ code: '+357', iso2: 'CY' })
     expect(RESERVATION_PHONE_COUNTRIES.map((entry) => entry.code)).toEqual([
-      '+357', '+30', '+44', '+49', '+33', '+39', '+1',
+      '+357', '+30', '+44', '+49', '+33', '+39', '+1', '+971', '+7', '+90', '+972', '+961',
     ])
   })
 })

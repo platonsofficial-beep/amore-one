@@ -1,35 +1,43 @@
-export const DEFAULT_RESERVATION_PHONE_COUNTRY_CODE = '+357'
+import {
+  DEFAULT_PHONE_COUNTRY_CODE,
+  PHONE_COUNTRY_CODES_BY_LENGTH,
+  PRIORITY_PHONE_COUNTRIES,
+  detectDefaultPhoneCountryCode,
+  findPhoneCountryByCode,
+} from './phoneCountries'
 
-export const RESERVATION_PHONE_COUNTRIES = [
-  { code: '+357', shortLabel: 'CY', name: 'Cyprus' },
-  { code: '+30', shortLabel: 'GR', name: 'Greece' },
-  { code: '+44', shortLabel: 'UK', name: 'United Kingdom' },
-  { code: '+49', shortLabel: 'DE', name: 'Germany' },
-  { code: '+33', shortLabel: 'FR', name: 'France' },
-  { code: '+39', shortLabel: 'IT', name: 'Italy' },
-  { code: '+1', shortLabel: 'US', name: 'United States' },
-]
-
-const COUNTRY_CODES_BY_LENGTH = [...RESERVATION_PHONE_COUNTRIES]
-  .map((entry) => entry.code)
-  .sort((left, right) => right.length - left.length)
+export { DEFAULT_PHONE_COUNTRY_CODE as DEFAULT_RESERVATION_PHONE_COUNTRY_CODE }
+export { PRIORITY_PHONE_COUNTRIES as RESERVATION_PHONE_COUNTRIES }
+export {
+  detectDefaultPhoneCountryCode,
+  findPhoneCountryByCode,
+  filterPhoneCountries,
+  findPhoneCountryByIso2,
+  isoToFlagEmoji,
+  PHONE_COUNTRIES,
+} from './phoneCountries'
 
 function normalizeLocalDigits(value = '') {
   return `${value ?? ''}`.replace(/\D/g, '')
 }
 
-export function parseReservationPhone(phone = '') {
+export function getDefaultReservationPhoneCountryCode() {
+  return detectDefaultPhoneCountryCode({ fallbackCode: DEFAULT_PHONE_COUNTRY_CODE })
+}
+
+export function parseReservationPhone(phone = '', options = {}) {
+  const fallbackCode = options.fallbackCode ?? getDefaultReservationPhoneCountryCode()
   const normalized = `${phone ?? ''}`.trim()
 
   if (!normalized) {
     return {
-      countryCode: DEFAULT_RESERVATION_PHONE_COUNTRY_CODE,
+      countryCode: fallbackCode,
       localNumber: '',
       fullPhone: '',
     }
   }
 
-  for (const countryCode of COUNTRY_CODES_BY_LENGTH) {
+  for (const countryCode of PHONE_COUNTRY_CODES_BY_LENGTH) {
     if (normalized.startsWith(countryCode)) {
       const localNumber = normalizeLocalDigits(normalized.slice(countryCode.length))
       return {
@@ -42,17 +50,27 @@ export function parseReservationPhone(phone = '') {
 
   const localNumber = normalizeLocalDigits(normalized)
   return {
-    countryCode: DEFAULT_RESERVATION_PHONE_COUNTRY_CODE,
+    countryCode: fallbackCode,
     localNumber,
-    fullPhone: localNumber
-      ? `${DEFAULT_RESERVATION_PHONE_COUNTRY_CODE}${localNumber}`
-      : '',
+    fullPhone: localNumber ? `${fallbackCode}${localNumber}` : '',
   }
 }
 
 export function formatReservationPhone(countryCode, localNumber) {
-  const code = `${countryCode ?? DEFAULT_RESERVATION_PHONE_COUNTRY_CODE}`.trim()
+  const code = `${countryCode ?? DEFAULT_PHONE_COUNTRY_CODE}`.trim()
   const local = normalizeLocalDigits(localNumber)
   if (!local) return ''
   return `${code}${local}`
+}
+
+export function resolvePhoneCountryFromStoredValue(phone = '') {
+  const normalized = `${phone ?? ''}`.trim()
+  if (!normalized) return findPhoneCountryByCode(getDefaultReservationPhoneCountryCode())
+
+  const parsed = parseReservationPhone(normalized, {
+    fallbackCode: DEFAULT_PHONE_COUNTRY_CODE,
+  })
+
+  return findPhoneCountryByCode(parsed.countryCode)
+    ?? findPhoneCountryByCode(DEFAULT_PHONE_COUNTRY_CODE)
 }

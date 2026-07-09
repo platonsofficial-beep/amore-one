@@ -5484,11 +5484,13 @@
   width: 100%;
 }
 
-.mobile-host-form-field .reservation-phone-field-country {
+.mobile-host-form-field .reservation-phone-field-country-picker {
   flex: 0 0 auto;
-  min-width: 6.5rem;
+  min-width: 6.75rem;
+}
+
+.mobile-host-form-field .reservation-phone-field-country-picker .phone-country-picker-trigger {
   min-height: 44px;
-  padding-right: 24px;
 }
 
 .mobile-host-form-field .reservation-phone-field-input {
