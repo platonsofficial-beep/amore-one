@@ -363,6 +363,7 @@ import { MobileManagerApp } from './components/mobile/MobileManagerApp'
 import { MobileStaffApp } from './components/mobile/MobileStaffApp'
 import { MobileReservationsHostView } from './components/mobile/reservations/MobileReservationsHostView'
 import { MobileReservationsHostRightPane } from './components/mobile/reservations/MobileReservationsHostRightPane'
+import { ScheduleWeekNav } from './components/schedule/ScheduleWeekNav'
 import { ViewportDebugOverlay } from './components/shell/ViewportDebugOverlay'
 import { shouldUseMobileShell } from './lib/viewportUtils'
 import {
@@ -1390,6 +1391,7 @@ function ScheduleView({
   isSaving,
   workspaceId = '',
   canEditSchedule = true,
+  isMobileScheduleShell = false,
 }) {
   const [selectedDay, setSelectedDay] = useState(null)
   const [selectedShift, setSelectedShift] = useState(null)
@@ -3672,100 +3674,55 @@ function ScheduleView({
   const scheduleWorkspaceClassName = [
     'staff-page',
     'schedule-workspace',
+    isMobileScheduleShell ? 'is-mobile-schedule-shell' : '',
     isScheduleCompactLandscape ? 'is-compact-landscape' : '',
     isScheduleCompactLandscape && !isTemplatesPanelOpen ? 'is-templates-collapsed' : '',
     isScheduleCompactLandscape && isTemplatesPanelOpen ? 'is-templates-open' : '',
   ].filter(Boolean).join(' ')
 
-  return (
-    <section className={scheduleWorkspaceClassName} onClick={() => { setCapacityPickerKey(''); setDayActionMenuKey(null); setCellActionMenuKey(''); setIsScheduleMoreMenuOpen(false); setTemplateActionMenuId(null) }}>
-      <header className="schedule-header panel">
-        <div className="schedule-header-copy">
-          <p className="eyebrow schedule-header-eyebrow">Schedule</p>
-          <h2 className="schedule-header-title">{formatScheduleHeaderWeekRange(weekDays)}</h2>
+  const isScheduleWeekNavigationDisabled = isLoading || isSaving || isPublishing
+  const isViewingCurrentScheduleWeek = isCurrentWeek(weekStartDate)
+
+  const scheduleHeader = isMobileScheduleShell ? (
+    <header className="mobile-manager-schedule-toolbar panel" aria-label="Schedule controls">
+      <div className="mobile-manager-schedule-toolbar-top">
+        <div className="mobile-manager-schedule-toolbar-copy">
+          <p className="eyebrow">Schedule</p>
+          <h2 className="mobile-manager-schedule-week-label">{formatScheduleHeaderWeekRange(weekDays)}</h2>
         </div>
+        <span
+          className={`schedule-status-badge mobile-manager-schedule-status ${isWeekPublished ? (hasUnpublishedChanges ? 'pending' : 'published') : 'draft'}`}
+        >
+          {schedulePublicationLabel}
+        </span>
+      </div>
 
-        <div className="schedule-header-actions">
-          <div className="schedule-header-nav">
-            <button
-              type="button"
-              className="ghost-btn schedule-header-nav-btn"
-              onClick={() => onWeekStartDateChange(addWeeks(weekStartDate, -1))}
-              disabled={isLoading || isSaving || isPublishing}
-            >
-              ‹ Previous
-            </button>
-            <button
-              type="button"
-              className="ghost-btn schedule-header-nav-btn"
-              onClick={() => onWeekStartDateChange(getCurrentWeekStartDate())}
-              disabled={isLoading || isSaving || isPublishing || isCurrentWeek(weekStartDate)}
-            >
-              This week
-            </button>
-            <button
-              type="button"
-              className="ghost-btn schedule-header-nav-btn"
-              onClick={() => onWeekStartDateChange(addWeeks(weekStartDate, 1))}
-              disabled={isLoading || isSaving || isPublishing}
-            >
-              Next ›
-            </button>
-          </div>
+      <ScheduleWeekNav
+        isWeekUpdating={isScheduleWeekNavigationDisabled}
+        isViewingCurrentWeek={isViewingCurrentScheduleWeek}
+        onPreviousWeek={() => onWeekStartDateChange(addWeeks(weekStartDate, -1))}
+        onGoToCurrentWeek={() => onWeekStartDateChange(getCurrentWeekStartDate())}
+        onNextWeek={() => onWeekStartDateChange(addWeeks(weekStartDate, 1))}
+      />
 
-          <div className="schedule-header-controls">
-          <span className={`schedule-status-badge schedule-header-control-surface ${isWeekPublished ? (hasUnpublishedChanges ? 'pending' : 'published') : 'draft'}`}>
-            {schedulePublicationLabel}
-          </span>
-
-          {canEditSchedule ? (
-          <div className="schedule-more-menu schedule-header-control-surface" onClick={(event) => event.stopPropagation()}>
+      {canEditSchedule ? (
+        <div className="mobile-manager-schedule-actions">
+          {(hasUnpublishedChanges || !isWeekPublished) ? (
             <button
               type="button"
-              className="ghost-btn schedule-more-menu-btn schedule-header-tertiary-btn"
-              onClick={() => setIsScheduleMoreMenuOpen((current) => !current)}
-              aria-expanded={isScheduleMoreMenuOpen}
-              aria-haspopup="menu"
-            >
-              More ▾
-            </button>
-            {isScheduleMoreMenuOpen ? (
-              <div className="template-card-menu schedule-more-menu-dropdown" role="menu">
-                <button type="button" className="template-card-menu-item" role="menuitem" onClick={() => { setIsScheduleMoreMenuOpen(false); handleOpenAddShiftForDate(selectedDate) }} disabled={isSaving}>Add Shift</button>
-                <button type="button" className="template-card-menu-item" role="menuitem" onClick={() => { setIsScheduleMoreMenuOpen(false); handleOpenSaveWeekTemplateModal() }} disabled={isSaving}>Save Week</button>
-                {selectedWeeklyTemplateId ? (
-                  <>
-                    <button type="button" className="template-card-menu-item" role="menuitem" onClick={() => { setIsScheduleMoreMenuOpen(false); handleOpenLoadWeekTemplateModal() }} disabled={isSaving}>Load Week</button>
-                    <button type="button" className="template-card-menu-item" role="menuitem" onClick={() => { setIsScheduleMoreMenuOpen(false); handleStartRenameWeeklyTemplate() }} disabled={isSaving}>Rename Week</button>
-                    <button type="button" className="template-card-menu-item" role="menuitem" onClick={() => { setIsScheduleMoreMenuOpen(false); handleDeleteSelectedWeeklyTemplate() }} disabled={isSaving}>Delete Week</button>
-                    <button type="button" className="template-card-menu-item" role="menuitem" onClick={() => { setIsScheduleMoreMenuOpen(false); handleOpenAutoFillModal() }} disabled={isSaving}>Auto Fill</button>
-                  </>
-                ) : null}
-                {visibleWeekShifts.length > 0 ? (
-                  <button type="button" className="template-card-menu-item" role="menuitem" onClick={() => { setIsScheduleMoreMenuOpen(false); handleOpenCopyWeekModal() }} disabled={isLoading || isSaving || isPublishing}>Copy Week</button>
-                ) : null}
-                <button type="button" className="template-card-menu-item danger" role="menuitem" onClick={() => { setIsScheduleMoreMenuOpen(false); handleOpenClearWeekModal() }} disabled={isSaving || isPublishing}>Clear Week</button>
-              </div>
-            ) : null}
-          </div>
-          ) : null}
-
-          {canEditSchedule && (hasUnpublishedChanges || !isWeekPublished) ? (
-            <button
-              type="button"
-              className="primary-btn schedule-publish-btn schedule-publish-btn--draft schedule-header-control-surface"
+              className="primary-btn mobile-manager-schedule-publish-btn"
               onClick={() => {
                 setPublishError('')
                 setIsPublishConfirmOpen(true)
               }}
               disabled={isSaving || isPublishing}
             >
-              {hasUnpublishedChanges ? 'Publish changes' : 'Publish'}
+              {hasUnpublishedChanges ? 'Publish changes' : 'Publish schedule'}
             </button>
-          ) : canEditSchedule ? (
+          ) : (
             <button
               type="button"
-              className="ghost-btn schedule-unpublish-btn schedule-header-control-surface"
+              className="ghost-btn mobile-manager-schedule-unpublish-btn"
               onClick={() => {
                 setPublishError('')
                 setIsUnpublishConfirmOpen(true)
@@ -3774,10 +3731,115 @@ function ScheduleView({
             >
               Unpublish
             </button>
-          ) : null}
-          </div>
+          )}
         </div>
-      </header>
+      ) : null}
+    </header>
+  ) : (
+    <header className="schedule-header panel">
+      <div className="schedule-header-copy">
+        <p className="eyebrow schedule-header-eyebrow">Schedule</p>
+        <h2 className="schedule-header-title">{formatScheduleHeaderWeekRange(weekDays)}</h2>
+      </div>
+
+      <div className="schedule-header-actions">
+        <div className="schedule-header-nav">
+          <button
+            type="button"
+            className="ghost-btn schedule-header-nav-btn"
+            onClick={() => onWeekStartDateChange(addWeeks(weekStartDate, -1))}
+            disabled={isScheduleWeekNavigationDisabled}
+          >
+            ‹ Previous
+          </button>
+          <button
+            type="button"
+            className="ghost-btn schedule-header-nav-btn"
+            onClick={() => onWeekStartDateChange(getCurrentWeekStartDate())}
+            disabled={isScheduleWeekNavigationDisabled || isViewingCurrentScheduleWeek}
+          >
+            This week
+          </button>
+          <button
+            type="button"
+            className="ghost-btn schedule-header-nav-btn"
+            onClick={() => onWeekStartDateChange(addWeeks(weekStartDate, 1))}
+            disabled={isScheduleWeekNavigationDisabled}
+          >
+            Next ›
+          </button>
+        </div>
+
+        <div className="schedule-header-controls">
+        <span className={`schedule-status-badge schedule-header-control-surface ${isWeekPublished ? (hasUnpublishedChanges ? 'pending' : 'published') : 'draft'}`}>
+          {schedulePublicationLabel}
+        </span>
+
+        {canEditSchedule ? (
+        <div className="schedule-more-menu schedule-header-control-surface" onClick={(event) => event.stopPropagation()}>
+          <button
+            type="button"
+            className="ghost-btn schedule-more-menu-btn schedule-header-tertiary-btn"
+            onClick={() => setIsScheduleMoreMenuOpen((current) => !current)}
+            aria-expanded={isScheduleMoreMenuOpen}
+            aria-haspopup="menu"
+          >
+            More ▾
+          </button>
+          {isScheduleMoreMenuOpen ? (
+            <div className="template-card-menu schedule-more-menu-dropdown" role="menu">
+              <button type="button" className="template-card-menu-item" role="menuitem" onClick={() => { setIsScheduleMoreMenuOpen(false); handleOpenAddShiftForDate(selectedDate) }} disabled={isSaving}>Add Shift</button>
+              <button type="button" className="template-card-menu-item" role="menuitem" onClick={() => { setIsScheduleMoreMenuOpen(false); handleOpenSaveWeekTemplateModal() }} disabled={isSaving}>Save Week</button>
+              {selectedWeeklyTemplateId ? (
+                <>
+                  <button type="button" className="template-card-menu-item" role="menuitem" onClick={() => { setIsScheduleMoreMenuOpen(false); handleOpenLoadWeekTemplateModal() }} disabled={isSaving}>Load Week</button>
+                  <button type="button" className="template-card-menu-item" role="menuitem" onClick={() => { setIsScheduleMoreMenuOpen(false); handleStartRenameWeeklyTemplate() }} disabled={isSaving}>Rename Week</button>
+                  <button type="button" className="template-card-menu-item" role="menuitem" onClick={() => { setIsScheduleMoreMenuOpen(false); handleDeleteSelectedWeeklyTemplate() }} disabled={isSaving}>Delete Week</button>
+                  <button type="button" className="template-card-menu-item" role="menuitem" onClick={() => { setIsScheduleMoreMenuOpen(false); handleOpenAutoFillModal() }} disabled={isSaving}>Auto Fill</button>
+                </>
+              ) : null}
+              {visibleWeekShifts.length > 0 ? (
+                <button type="button" className="template-card-menu-item" role="menuitem" onClick={() => { setIsScheduleMoreMenuOpen(false); handleOpenCopyWeekModal() }} disabled={isLoading || isSaving || isPublishing}>Copy Week</button>
+              ) : null}
+              <button type="button" className="template-card-menu-item danger" role="menuitem" onClick={() => { setIsScheduleMoreMenuOpen(false); handleOpenClearWeekModal() }} disabled={isSaving || isPublishing}>Clear Week</button>
+            </div>
+          ) : null}
+        </div>
+        ) : null}
+
+        {canEditSchedule && (hasUnpublishedChanges || !isWeekPublished) ? (
+          <button
+            type="button"
+            className="primary-btn schedule-publish-btn schedule-publish-btn--draft schedule-header-control-surface"
+            onClick={() => {
+              setPublishError('')
+              setIsPublishConfirmOpen(true)
+            }}
+            disabled={isSaving || isPublishing}
+          >
+            {hasUnpublishedChanges ? 'Publish changes' : 'Publish'}
+          </button>
+        ) : canEditSchedule ? (
+          <button
+            type="button"
+            className="ghost-btn schedule-unpublish-btn schedule-header-control-surface"
+            onClick={() => {
+              setPublishError('')
+              setIsUnpublishConfirmOpen(true)
+            }}
+            disabled={isSaving || isPublishing}
+          >
+            Unpublish
+          </button>
+        ) : null}
+        </div>
+      </div>
+    </header>
+  )
+
+  return (
+    <section className={scheduleWorkspaceClassName} onClick={() => { setCapacityPickerKey(''); setDayActionMenuKey(null); setCellActionMenuKey(''); setIsScheduleMoreMenuOpen(false); setTemplateActionMenuId(null) }}>
+      {scheduleHeader}
 
       {hasUnpublishedChanges && isWeekPublished ? (
         <div className="staff-status-banner schedule-draft-changes-banner schedule-workspace-banner">
@@ -20296,6 +20358,12 @@ function App() {
               isSaving={isSavingShift}
               workspaceId={activeWorkspaceId}
               canEditSchedule={canEditScheduleRole}
+              isMobileScheduleShell={
+                useMobileExperience
+                && Boolean(mobileExpandedView)
+                && activeView === 'team'
+                && teamSection === 'schedule'
+              }
             />
           </div>
         ) : null}
