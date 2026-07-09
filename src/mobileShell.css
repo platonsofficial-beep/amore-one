@@ -4080,6 +4080,22 @@
     gap: 4px;
   }
 
+  .mobile-host-reservations-landscape {
+    grid-template-columns: 42fr 58fr;
+  }
+
+  .mobile-host-reservation-card.is-landscape-layout .mobile-host-reservation-actions {
+    grid-template-columns: repeat(auto-fit, minmax(64px, 1fr));
+    gap: 4px;
+    padding: 0 8px 8px;
+  }
+
+  .mobile-host-reservation-action {
+    min-height: 44px;
+    font-size: 0.72rem;
+    padding: 0 6px;
+  }
+
   .mobile-workspace-module.is-mobile-expanded .reservations-workspace-host,
   .mobile-workspace-module.is-mobile-expanded .host-operations-canvas,
   .mobile-workspace-module.is-mobile-expanded .host-operations-list,
@@ -4268,6 +4284,10 @@
   font-weight: 700;
   line-height: 1.1;
   letter-spacing: -0.02em;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .mobile-host-sticky-date {
@@ -4575,6 +4595,7 @@
   justify-content: space-between;
   gap: 8px;
   min-height: 44px;
+  min-width: 0;
   padding: 8px 10px;
   border: 0;
   border-radius: 12px;
@@ -4585,6 +4606,18 @@
   font-weight: 600;
   text-align: left;
   cursor: pointer;
+}
+
+.mobile-host-reservations-tab > span:first-child {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mobile-host-reservations-tab:focus-visible {
+  outline: 2px solid rgba(212, 175, 55, 0.55);
+  outline-offset: 2px;
 }
 
 .mobile-host-reservations-tab.is-active {
@@ -4651,26 +4684,32 @@
   align-items: center;
   justify-content: space-between;
   gap: 8px;
+  min-width: 0;
 }
 
 .mobile-host-reservation-time {
   color: #f0dca2;
   font-size: 0.92rem;
   font-weight: 700;
+  flex-shrink: 0;
 }
 
 .mobile-host-reservation-status {
   flex-shrink: 0;
-  min-height: 22px;
+  min-height: 24px;
   padding: 0 8px;
   border-radius: 999px;
   font-size: 0.64rem;
   font-weight: 700;
   letter-spacing: 0.04em;
-  line-height: 22px;
+  line-height: 24px;
   text-transform: uppercase;
   background: rgba(255, 255, 255, 0.06);
   color: #d8cdbf;
+  max-width: 46%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .mobile-host-reservation-guest {
@@ -4679,6 +4718,10 @@
   font-size: 1rem;
   font-weight: 700;
   line-height: 1.25;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .mobile-host-reservation-meta,
@@ -4687,11 +4730,13 @@
   color: #a89f92;
   font-size: 0.82rem;
   line-height: 1.35;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .mobile-host-reservation-actions {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(88px, 1fr));
   gap: 6px;
   padding: 0 8px 8px;
 }
@@ -4706,6 +4751,14 @@
   font-size: 0.76rem;
   font-weight: 700;
   cursor: pointer;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mobile-host-reservation-action:focus-visible {
+  outline: 2px solid rgba(212, 175, 55, 0.55);
+  outline-offset: 2px;
 }
 
 .mobile-host-reservation-action.is-ghost {
@@ -4776,11 +4829,11 @@
 }
 
 .mobile-host-reservation-actions:has(.is-service-primary) {
-  grid-template-columns: 1.15fr 1.15fr 0.75fr;
+  grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
 }
 
 .mobile-host-reservation-card.is-landscape-layout .mobile-host-reservation-actions:has(.is-service-primary) {
-  grid-template-columns: 1.2fr 1.2fr 0.7fr;
+  grid-template-columns: repeat(auto-fit, minmax(72px, 1fr));
 }
 
 .mobile-host-reservations.is-landscape {
@@ -5036,6 +5089,9 @@
 
 .mobile-host-reservation-card.is-landscape-layout .mobile-host-reservation-guest {
   font-size: 1.02rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .mobile-host-reservation-card.is-landscape-layout .mobile-host-reservation-meta,
@@ -5077,6 +5133,10 @@
   margin: 0;
   color: #fff7e8;
   font-size: 1.02rem;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .mobile-host-reservations-detail-edit-btn {

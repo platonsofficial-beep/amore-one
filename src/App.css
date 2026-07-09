@@ -4775,6 +4775,8 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
+  min-width: 0;
+  flex: 1 1 auto;
 }
 
 .host-reservation-group-icon {
@@ -4802,6 +4804,15 @@
   font-weight: 800;
   letter-spacing: 0.04em;
   text-transform: uppercase;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.host-reservation-group-header:focus-visible {
+  outline: 2px solid rgba(212, 175, 55, 0.55);
+  outline-offset: -2px;
 }
 
 .host-reservation-group-count {
@@ -4904,7 +4915,7 @@
 
 .host-reservation-card-quick-action {
   min-width: 44px;
-  min-height: 36px;
+  min-height: 44px;
   padding: 0 12px;
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 10px;
@@ -4919,6 +4930,11 @@
     background 160ms ease,
     border-color 160ms ease,
     color 160ms ease;
+}
+
+.host-reservation-card-quick-action:focus-visible {
+  outline: 2px solid rgba(212, 175, 55, 0.55);
+  outline-offset: 2px;
 }
 
 .host-reservation-card-quick-action.is-primary {
@@ -5170,9 +5186,10 @@
   text-transform: uppercase;
   cursor: pointer;
   white-space: nowrap;
-  max-width: 108px;
+  max-width: min(132px, 34vw);
   overflow: hidden;
   text-overflow: ellipsis;
+  flex-shrink: 0;
   transition:
     background 160ms ease,
     border-color 160ms ease,
@@ -5890,6 +5907,8 @@
   padding: 24px;
   text-align: center;
   color: rgba(255, 255, 255, 0.62);
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .host-operations-floor {
@@ -6213,7 +6232,7 @@
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  min-height: 34px;
+  min-height: 44px;
   padding: 0 12px;
   border-radius: 8px;
   border: 1px solid rgba(255, 255, 255, 0.08);
@@ -6225,6 +6244,11 @@
   transition:
     background 180ms ease,
     border-color 180ms ease;
+}
+
+.host-timeline-toggle:focus-visible {
+  outline: 2px solid rgba(212, 175, 55, 0.55);
+  outline-offset: 2px;
 }
 
 .host-timeline-toggle:hover {
@@ -6259,8 +6283,10 @@
 }
 
 .floor-plan-area-nav-btn {
-  width: 30px;
-  height: 30px;
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  min-height: 44px;
   border-radius: 8px;
   border: 1px solid rgba(255, 255, 255, 0.08);
   background: rgba(255, 255, 255, 0.03);
@@ -7770,6 +7796,8 @@
   margin: 8px 0 0;
   font-size: 0.78rem;
   color: #f0b5a4;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .host-reservation-edit-actions {
@@ -7780,6 +7808,7 @@
 
 .host-reservation-edit-save {
   grid-column: 1 / -1;
+  min-height: 44px;
   padding: 9px 12px;
   border-radius: 9px;
   border: 1px solid rgba(212, 175, 55, 0.45);
@@ -7789,6 +7818,7 @@
 }
 
 .host-reservation-edit-cancel {
+  min-height: 44px;
   padding: 8px 10px;
   border-radius: 8px;
   border: 1px solid rgba(255, 255, 255, 0.12);
@@ -8911,12 +8941,16 @@
   display: inline-flex;
   align-items: center;
   gap: 4px;
+  min-width: 0;
   color: #fff7e8;
   font-size: 1rem;
   font-weight: 700;
   letter-spacing: -0.01em;
   line-height: 1;
   font-variant-numeric: tabular-nums;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .reservation-card-table-icon {
@@ -9121,11 +9155,16 @@
   display: inline-flex;
   align-items: center;
   gap: 4px;
+  min-width: 0;
+  max-width: 100%;
   color: #9a9185;
   font-size: 0.76rem;
   font-weight: 600;
   line-height: 1.2;
   font-variant-numeric: tabular-nums;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .reservation-card-icon {
@@ -9239,9 +9278,13 @@
   font-size: 0.62rem;
   font-weight: 500;
   line-height: 1.25;
-  white-space: nowrap;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
   overflow: hidden;
   text-overflow: ellipsis;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .reservation-card-actions {
@@ -9490,7 +9533,7 @@
 .reservation-smart-modal.is-responsive-sheet {
   display: flex;
   flex-direction: column;
-  max-height: 90vh;
+  max-height: min(90dvh, 90vh);
   overflow: hidden;
 }
 
@@ -9890,6 +9933,7 @@
   display: inline-flex;
   align-items: center;
   min-height: 18px;
+  max-width: 100%;
   padding: 1px 7px;
   border-radius: 999px;
   border: 1px solid rgba(212, 175, 55, 0.14);
@@ -9899,6 +9943,9 @@
   font-weight: 600;
   letter-spacing: 0.03em;
   line-height: 1.1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .guest-intelligence-badge.tone-vip {
@@ -27481,6 +27528,48 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 
   .today-panel {
     padding: 16px;
+  }
+}
+
+/* Phase 12.5.3 — Reservations fit & finish */
+@media (max-width: 1280px) {
+  .host-reservation-card-main {
+    grid-template-columns: 60px minmax(0, 1fr) auto;
+    gap: 8px;
+  }
+
+  .host-reservation-card-status-pill {
+    max-width: min(120px, 28vw);
+    font-size: 0.68rem;
+    padding: 8px 10px;
+  }
+
+  .host-operations-canvas:not([data-timeline-collapsed='true']) .host-operations-timeline .reservations-timeline-panel {
+    max-height: min(240px, 32dvh);
+  }
+}
+
+@media (max-width: 760px) {
+  .host-reservation-edit-panel.is-drawer {
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .host-reservation-list-empty {
+    min-height: 160px;
+    padding: 18px 16px;
+  }
+
+  .reservation-card-row-details {
+    grid-template-columns: 1fr;
+  }
+
+  .reservation-card-row-primary {
+    flex-wrap: wrap;
+  }
+
+  .reservation-card-party-size {
+    margin-left: 0;
   }
 }
 
