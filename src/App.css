@@ -20981,6 +20981,21 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   min-height: 72px;
 }
 
+.reports-section-empty-guidance {
+  margin: 8px 0 0;
+  color: var(--text-muted, #6b7280);
+  font-size: 0.875rem;
+}
+
+.reports-attention {
+  margin-bottom: 16px;
+}
+
+.reports-attention-list {
+  margin: 0;
+  padding: 0;
+}
+
 @media (max-width: 960px) {
   .reports-overview-grid,
   .reports-section-metrics {

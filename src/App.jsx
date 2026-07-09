@@ -13883,12 +13883,18 @@ function App() {
       refreshInventory(),
       refreshTasks(),
       refreshBarRefills(),
+      refreshStockItems(),
+      refreshStockOrders(),
+      refreshSuppliers(),
       refreshTodayWeekDraftData(todayWeekStart),
     ])
   }, [
     refreshBarRefills,
     refreshInventory,
     refreshReservations,
+    refreshStockItems,
+    refreshStockOrders,
+    refreshSuppliers,
     refreshTasks,
     refreshTodayWeekDraftData,
     todayWeekStart,
@@ -13905,6 +13911,7 @@ function App() {
     reservationsConnected: isReservationsModuleConnected,
     tasksConnected: isTasksModuleConnected,
     inventoryConnected: isInventoryModuleConnected,
+    stockModuleConnected: canAccessStockModule && stockItems.length > 0,
     barRefillsConnected: isBarRefillsModuleConnected,
     scheduleConnected: !`${scheduleNotice}`.toLowerCase().includes('not ready'),
     suppliersConnected: !`${suppliersNotice}`.toLowerCase().includes('not ready'),
@@ -13912,6 +13919,8 @@ function App() {
     isReservationsModuleConnected,
     isTasksModuleConnected,
     isInventoryModuleConnected,
+    canAccessStockModule,
+    stockItems.length,
     isBarRefillsModuleConnected,
     scheduleNotice,
     suppliersNotice,
@@ -20250,20 +20259,29 @@ function App() {
             reservations={reservations}
             tasks={tasks}
             inventoryItems={inventoryItems}
+            stockItems={stockItems}
+            stockOrders={stockOrders}
             barRefills={barRefills}
             suppliers={suppliers}
             schedule={reportsScheduleData}
             connections={reportsConnections}
+            serviceSnapshot={dashboardServiceSnapshot}
+            coverageBreakdown={scheduleAttentionCoverageBreakdown}
+            attentionItems={todayAttentionItems}
+            attentionPermissions={todayAttentionPermissions}
             isLoading={
               isReportsLoading
               || isReservationsLoading
               || isTasksLoading
               || isInventoryLoading
               || isBarRefillsLoading
+              || isStockItemsLoading
+              || isStockOrdersLoading
               || isDashboardScheduleLoading
               || isSuppliersLoading
             }
             onViewModule={handleInsightsViewModule}
+            onAttentionItemClick={handleTodayAttentionItemClick}
           />
         ) : null}
 

@@ -1,10 +1,13 @@
-import { buildOperationalSnapshot } from './operationalSnapshotUtils'
+import { buildOperationalSnapshot, buildScheduleAttentionDetail } from './operationalSnapshotUtils'
 import {
   getHostStatusGroupId,
   isReservationInHouseStatus,
   normalizeReservationStatus,
 } from './reservationHostStatus'
 import { needsOrder } from './inventoryUtils'
+import { getStockItemsForSupplier } from './stockSupplierUtils'
+import { buildStockDashboardSummary } from './stockUtils'
+import { buildStockOrdersOperationsSummary } from './stockOrderUtils'
 import { calculateTaskOverview, buildTaskAlerts } from './taskUtils'
 import {
   calculateShiftDurationHours,
@@ -86,6 +89,7 @@ export function buildReservationsReport(
     todayKey = '',
     weekStartDate = '',
     connected = true,
+    serviceSnapshot = null,
   } = {},
 ) {
   const weekDateKeys = getWeekDateKeys(weekStartDate || todayKey)
@@ -112,17 +116,30 @@ export function buildReservationsReport(
     if (status === 'Not Shown') noShow += 1
   })
 
+  const metrics = {
+    bookings: scoped.length,
+    guests,
+    inHouse,
+    completed,
+    cancelled,
+    noShow,
+  }
+
+  if (period === REPORT_PERIOD_TODAY && serviceSnapshot) {
+    metrics.covers = Number(serviceSnapshot.totalCovers) || 0
+    metrics.seatedGuests = Number(serviceSnapshot.seatedGuests) || 0
+    metrics.waiting = Number(serviceSnapshot.waitingCount) || 0
+    metrics.late = Number(serviceSnapshot.lateCount) || 0
+    metrics.serviceStatus = serviceSnapshot.overallStatus ?? null
+  }
+
   return {
     connected,
     empty: connected && scoped.length === 0,
-    metrics: {
-      bookings: scoped.length,
-      guests,
-      inHouse,
-      completed,
-      cancelled,
-      noShow,
-    },
+    metrics,
+    servicePressure: period === REPORT_PERIOD_TODAY && serviceSnapshot
+      ? serviceSnapshot.overallTone ?? null
+      : null,
   }
 }
 
@@ -169,6 +186,16 @@ export function buildTasksReport(
   }
 }
 
+function buildBarRefillsCompletedCount(barRefills, period, todayKey, weekStartDate, barRefillsConnected) {
+  if (!barRefillsConnected) return null
+
+  const weekDateKeys = getWeekDateKeys(weekStartDate || todayKey)
+  return barRefills.filter((refill) => (
+    refill.status === 'picked'
+    && barRefillMatchesPeriod(refill, period, todayKey, weekDateKeys)
+  )).length
+}
+
 export function buildStockReport(
   inventoryItems = [],
   barRefills = [],
@@ -180,8 +207,6 @@ export function buildStockReport(
     barRefillsConnected = true,
   } = {},
 ) {
-  const weekDateKeys = getWeekDateKeys(weekStartDate || todayKey)
-
   const itemsToOrder = inventoryConnected
     ? inventoryItems.filter(needsOrder).length
     : null
@@ -198,16 +223,18 @@ export function buildStockReport(
     )
     : null
 
-  const completedRefills = barRefillsConnected
-    ? barRefills.filter((refill) => (
-      refill.status === 'picked'
-      && barRefillMatchesPeriod(refill, period, todayKey, weekDateKeys)
-    )).length
-    : null
+  const completedRefills = buildBarRefillsCompletedCount(
+    barRefills,
+    period,
+    todayKey,
+    weekStartDate,
+    barRefillsConnected,
+  )
 
   return {
     inventoryConnected,
     barRefillsConnected,
+    stockModuleConnected: false,
     connected: inventoryConnected,
     empty: inventoryConnected && inventoryItems.length === 0,
     metrics: {
@@ -216,8 +243,64 @@ export function buildStockReport(
       outOfStock,
       totalStockValue,
       barRefillsCompleted: completedRefills,
+      pendingOrders: null,
+      awaitingDelivery: null,
     },
   }
+}
+
+export function buildInsightsStockReport({
+  stockItems = [],
+  stockOrders = [],
+  inventoryItems = [],
+  barRefills = [],
+  period = REPORT_PERIOD_TODAY,
+  todayKey = '',
+  weekStartDate = '',
+  stockModuleConnected = false,
+  inventoryConnected = true,
+  barRefillsConnected = true,
+} = {}) {
+  const hasStockModuleData = (stockItems ?? []).length > 0
+  const completedRefills = buildBarRefillsCompletedCount(
+    barRefills,
+    period,
+    todayKey,
+    weekStartDate,
+    barRefillsConnected,
+  )
+
+  if (stockModuleConnected && hasStockModuleData) {
+    const summary = buildStockDashboardSummary(stockItems)
+    const ordersSummary = buildStockOrdersOperationsSummary(stockOrders)
+
+    return {
+      inventoryConnected: true,
+      barRefillsConnected,
+      stockModuleConnected: true,
+      connected: true,
+      empty: summary.totalItems === 0,
+      metrics: {
+        itemsToOrder: summary.toOrder,
+        lowStock: summary.lowStock,
+        outOfStock: summary.outOfStock,
+        totalStockValue: summary.totalValue,
+        barRefillsCompleted: completedRefills,
+        pendingOrders: ordersSummary.pendingCount,
+        awaitingDelivery: ordersSummary.awaitingDeliveryCount + ordersSummary.partialCount,
+      },
+    }
+  }
+
+  const legacyReport = buildStockReport(inventoryItems, barRefills, {
+    period,
+    todayKey,
+    weekStartDate,
+    inventoryConnected,
+    barRefillsConnected,
+  })
+
+  return legacyReport
 }
 
 export function buildScheduleReport(
@@ -230,6 +313,7 @@ export function buildScheduleReport(
     todayKey = '',
     weekStartDate = '',
     connected = true,
+    coverageBreakdown = null,
   } = {},
 ) {
   if (!connected) {
@@ -237,6 +321,7 @@ export function buildScheduleReport(
       connected: false,
       empty: true,
       usesDraftSchedule: true,
+      coverageDetail: null,
       metrics: {
         scheduledStaff: null,
         scheduledHours: null,
@@ -257,6 +342,7 @@ export function buildScheduleReport(
   })
 
   let issues = null
+  let coverageDetail = null
   if (period === REPORT_PERIOD_TODAY) {
     const snapshot = buildOperationalSnapshot({
       shifts: periodShifts,
@@ -266,12 +352,16 @@ export function buildScheduleReport(
       todayKey,
     })
     issues = snapshot.issues
+    if (issues > 0) {
+      coverageDetail = buildScheduleAttentionDetail(snapshot, coverageBreakdown ?? {})
+    }
   }
 
   return {
     connected: true,
     empty: periodShifts.length === 0,
     usesDraftSchedule: true,
+    coverageDetail,
     metrics: {
       scheduledStaff: uniqueEmployees.size,
       scheduledHours,
@@ -287,6 +377,7 @@ export function buildSuppliersReport(
   {
     suppliersConnected = true,
     inventoryConnected = true,
+    stockItems = [],
   } = {},
 ) {
   if (!suppliersConnected) {
@@ -304,28 +395,91 @@ export function buildSuppliersReport(
   const totalSuppliers = suppliers.length
   let linkedToStock = 0
 
-  if (inventoryConnected) {
+  const hasStockModuleData = (stockItems ?? []).length > 0
+  const canLinkStock = inventoryConnected || hasStockModuleData
+
+  if (canLinkStock) {
     suppliers.forEach((supplier) => {
       const companyName = `${supplier?.companyName ?? ''}`.trim()
       if (!companyName) return
 
-      const hasLinkedItem = inventoryItems.some(
-        (item) => `${item?.supplier ?? ''}`.trim() === companyName,
-      )
+      const hasLinkedItem = hasStockModuleData
+        ? getStockItemsForSupplier(stockItems, companyName).length > 0
+        : inventoryItems.some(
+          (item) => `${item?.supplier ?? ''}`.trim() === companyName,
+        )
       if (hasLinkedItem) linkedToStock += 1
     })
   }
 
   return {
     connected: true,
-    inventoryConnected,
+    inventoryConnected: canLinkStock,
     empty: totalSuppliers === 0,
     metrics: {
       totalSuppliers,
-      linkedToStock: inventoryConnected ? linkedToStock : null,
-      withoutStockItems: inventoryConnected ? Math.max(totalSuppliers - linkedToStock, 0) : null,
+      linkedToStock: canLinkStock ? linkedToStock : null,
+      withoutStockItems: canLinkStock ? Math.max(totalSuppliers - linkedToStock, 0) : null,
     },
   }
+}
+
+export function buildInsightsAttentionItems(attentionItems = [], { limit = 6 } = {}) {
+  return (attentionItems ?? []).slice(0, limit)
+}
+
+export function buildInsightsHealthSummary({
+  period = REPORT_PERIOD_TODAY,
+  attentionItems = [],
+  reservationsReport,
+  tasksReport,
+  stockReport,
+  scheduleReport,
+  serviceSnapshot = null,
+} = {}) {
+  if (period === REPORT_PERIOD_WEEK) {
+    const parts = []
+
+    if (tasksReport?.connected && Number(tasksReport.metrics.completed) > 0) {
+      parts.push(`${tasksReport.metrics.completed} tasks completed this week`)
+    }
+
+    if (scheduleReport?.connected && scheduleReport.metrics.scheduledHoursLabel) {
+      parts.push(`${scheduleReport.metrics.scheduledHoursLabel}h scheduled`)
+    }
+
+    if (reservationsReport?.connected && Number(reservationsReport.metrics.bookings) > 0) {
+      parts.push(`${reservationsReport.metrics.bookings} bookings`)
+    }
+
+    return parts.length > 0
+      ? parts.join(' · ')
+      : 'Weekly overview from connected modules.'
+  }
+
+  const attentionCount = (attentionItems ?? []).length
+  if (attentionCount > 0) {
+    return `${attentionCount} area${attentionCount === 1 ? '' : 's'} need attention today`
+  }
+
+  if (serviceSnapshot?.overallStatus) {
+    return `Service: ${serviceSnapshot.overallStatus}`
+  }
+
+  const issues = []
+  if (tasksReport?.connected && Number(tasksReport.metrics.overdue) > 0) {
+    issues.push(`${tasksReport.metrics.overdue} overdue task${tasksReport.metrics.overdue === 1 ? '' : 's'}`)
+  }
+  if (stockReport?.connected && Number(stockReport.metrics.outOfStock) > 0) {
+    issues.push(`${stockReport.metrics.outOfStock} out of stock`)
+  }
+  if (scheduleReport?.connected && Number(scheduleReport.metrics.issues) > 0) {
+    issues.push(`${scheduleReport.metrics.issues} schedule issue${scheduleReport.metrics.issues === 1 ? '' : 's'}`)
+  }
+
+  if (issues.length > 0) return issues.join(' · ')
+
+  return 'Operations look stable for today.'
 }
 
 export function buildReportsOverview({
@@ -336,6 +490,10 @@ export function buildReportsOverview({
   scheduleReport,
 }) {
   if (period === REPORT_PERIOD_TODAY) {
+    const hasCovers = reservationsReport?.metrics?.covers != null
+    const hasPendingOrders = stockReport?.stockModuleConnected
+      && stockReport.metrics.pendingOrders != null
+
     return [
       {
         key: 'bookings',
@@ -345,9 +503,11 @@ export function buildReportsOverview({
         format: 'count',
       },
       {
-        key: 'guests',
-        label: 'Guests',
-        value: reservationsReport?.connected ? reservationsReport.metrics.guests : null,
+        key: hasCovers ? 'covers' : 'guests',
+        label: hasCovers ? 'Covers' : 'Guests',
+        value: reservationsReport?.connected
+          ? (hasCovers ? reservationsReport.metrics.covers : reservationsReport.metrics.guests)
+          : null,
         connected: reservationsReport?.connected,
         format: 'count',
       },
@@ -359,10 +519,14 @@ export function buildReportsOverview({
         format: 'count',
       },
       {
-        key: 'items-to-order',
-        label: 'Items to order',
-        value: stockReport?.inventoryConnected ? stockReport.metrics.itemsToOrder : null,
-        connected: stockReport?.inventoryConnected,
+        key: hasPendingOrders ? 'pending-orders' : 'items-to-order',
+        label: hasPendingOrders ? 'Pending orders' : 'Items to order',
+        value: stockReport?.connected
+          ? (hasPendingOrders
+            ? stockReport.metrics.pendingOrders
+            : stockReport.metrics.itemsToOrder)
+          : null,
+        connected: stockReport?.connected,
         format: 'count',
       },
       {
@@ -375,8 +539,8 @@ export function buildReportsOverview({
       {
         key: 'stock-value',
         label: 'Stock value',
-        value: stockReport?.inventoryConnected ? stockReport.metrics.totalStockValue : null,
-        connected: stockReport?.inventoryConnected,
+        value: stockReport?.connected ? stockReport.metrics.totalStockValue : null,
+        connected: stockReport?.connected,
         format: 'currency',
       },
     ]
@@ -421,8 +585,8 @@ export function buildReportsOverview({
     {
       key: 'stock-value',
       label: 'Stock value',
-      value: stockReport?.inventoryConnected ? stockReport.metrics.totalStockValue : null,
-      connected: stockReport?.inventoryConnected,
+      value: stockReport?.connected ? stockReport.metrics.totalStockValue : null,
+      connected: stockReport?.connected,
       format: 'currency',
     },
   ]
@@ -446,16 +610,22 @@ export function buildReportsBundle({
   reservations,
   tasks,
   inventoryItems,
+  stockItems = [],
+  stockOrders = [],
   barRefills,
   suppliers,
   schedule,
   connections = {},
+  serviceSnapshot = null,
+  coverageBreakdown = null,
+  attentionItems = [],
 }) {
   const reservationsReport = buildReservationsReport(reservations, {
     period,
     todayKey,
     weekStartDate,
     connected: connections.reservationsConnected,
+    serviceSnapshot: period === REPORT_PERIOD_TODAY ? serviceSnapshot : null,
   })
   const tasksReport = buildTasksReport(tasks, {
     period,
@@ -463,10 +633,15 @@ export function buildReportsBundle({
     weekStartDate,
     connected: connections.tasksConnected,
   })
-  const stockReport = buildStockReport(inventoryItems, barRefills, {
+  const stockReport = buildInsightsStockReport({
+    stockItems,
+    stockOrders,
+    inventoryItems,
+    barRefills,
     period,
     todayKey,
     weekStartDate,
+    stockModuleConnected: connections.stockModuleConnected,
     inventoryConnected: connections.inventoryConnected,
     barRefillsConnected: connections.barRefillsConnected,
   })
@@ -476,10 +651,12 @@ export function buildReportsBundle({
     todayKey,
     weekStartDate,
     connected: connections.scheduleConnected,
+    coverageBreakdown: period === REPORT_PERIOD_TODAY ? coverageBreakdown : null,
   })
   const suppliersReport = buildSuppliersReport(suppliers, inventoryItems, {
     suppliersConnected: connections.suppliersConnected,
-    inventoryConnected: connections.inventoryConnected,
+    inventoryConnected: connections.inventoryConnected || connections.stockModuleConnected,
+    stockItems,
   })
   const overview = buildReportsOverview({
     period,
@@ -488,9 +665,21 @@ export function buildReportsBundle({
     stockReport,
     scheduleReport,
   })
+  const insightsAttention = buildInsightsAttentionItems(attentionItems)
+  const healthSummary = buildInsightsHealthSummary({
+    period,
+    attentionItems: insightsAttention,
+    reservationsReport,
+    tasksReport,
+    stockReport,
+    scheduleReport,
+    serviceSnapshot: period === REPORT_PERIOD_TODAY ? serviceSnapshot : null,
+  })
 
   return {
     overview,
+    healthSummary,
+    insightsAttention,
     reservationsReport,
     tasksReport,
     stockReport,
