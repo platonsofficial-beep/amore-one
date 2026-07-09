@@ -200,7 +200,7 @@ export function MobileReservationQuickCreateSheet({
 
   if (variant === 'inline') {
     return (
-      <div className="mobile-host-reservation-inline-panel" role="region" aria-label="Create reservation">
+      <div className="mobile-host-reservation-inline-panel host-station-form-surface" role="region" aria-label="Create reservation">
         {header}
         <div className="mobile-host-reservation-inline-body">
           {fields}
@@ -213,7 +213,7 @@ export function MobileReservationQuickCreateSheet({
     return (
       <div className="mobile-host-panel-backdrop" onClick={handleClose}>
         <div
-          className="mobile-host-panel-dialog mobile-host-reservation-panel"
+          className="mobile-host-panel-dialog mobile-host-reservation-panel host-station-form-surface"
           onClick={(event) => event.stopPropagation()}
           role="dialog"
           aria-modal="true"

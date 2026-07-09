@@ -75,7 +75,7 @@ export function MobileReservationHostEditSheet({
 
   if (variant === 'inline') {
     return (
-      <div className="mobile-host-reservation-inline-panel is-edit" role="region" aria-label="Edit reservation">
+      <div className="mobile-host-reservation-inline-panel host-station-form-surface is-edit" role="region" aria-label="Edit reservation">
         {header}
         <div className="mobile-host-reservation-inline-body mobile-host-reservation-edit-body">
           {panelBody}
@@ -88,7 +88,7 @@ export function MobileReservationHostEditSheet({
     return (
       <div className="mobile-host-panel-backdrop" onClick={onClose}>
         <div
-          className="mobile-host-panel-dialog mobile-host-reservation-panel is-edit"
+          className="mobile-host-panel-dialog mobile-host-reservation-panel host-station-form-surface is-edit"
           onClick={(event) => event.stopPropagation()}
           role="dialog"
           aria-modal="true"

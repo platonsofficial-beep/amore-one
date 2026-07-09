@@ -290,7 +290,7 @@ export function MobileReservationsHostView({
               {reservationList}
             </div>
           </section>
-          <section className="mobile-host-reservations-detail-pane" aria-label="Reservation details">
+          <section className="mobile-host-reservations-detail-pane host-station-form-pane" aria-label="Reservation details">
             {detailPaneContent ?? splitDetailFallback}
           </section>
         </div>
