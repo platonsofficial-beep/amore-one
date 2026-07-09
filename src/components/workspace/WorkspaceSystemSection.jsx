@@ -9,7 +9,7 @@ const MODULE_ROWS = [
   { key: 'tasks', label: 'Tasks' },
   { key: 'suppliers', label: 'Suppliers' },
   { key: 'stock', label: 'Stock / F&B' },
-  { key: 'reports', label: 'Reports' },
+  { key: 'reports', label: 'Insights' },
 ]
 
 function resolveModuleStatus(connected) {
@@ -109,10 +109,6 @@ export function WorkspaceSystemSection({ moduleConnections = {} }) {
           })}
         </ul>
       </div>
-
-      <p className="workspace-dev-note">
-        Development mode — auth and permissions are not configured yet.
-      </p>
     </>
   )
 }

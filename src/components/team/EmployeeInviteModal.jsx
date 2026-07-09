@@ -186,6 +186,9 @@ export function EmployeeInviteModal({
                   </option>
                 ))}
               </select>
+              <small className="employee-invite-role-hint">
+                Staff can access assigned modules. Managers can invite staff but cannot open workspace settings.
+              </small>
             </label>
 
             <div className="modal-actions employee-invite-actions">

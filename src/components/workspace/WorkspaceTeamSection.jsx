@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import { useAuth } from '../../context/AuthContext'
+import { canLinkMembershipEmployee } from '../../lib/permissions'
 import { getWorkspaceRoleLabel } from '../../lib/membershipRoles'
+import { buildWorkspaceIdentityLines } from '../../lib/workspaceProfileUtils'
 import {
   getCurrentMembership,
   linkMembershipEmployee,
@@ -39,7 +41,6 @@ export function WorkspaceTeamSection({
     roleLabel,
     user,
     workspace: authWorkspace,
-    isOwner,
     refreshMembership,
   } = useAuth()
 
@@ -117,10 +118,11 @@ export function WorkspaceTeamSection({
   const memberEmail = `${membership?.email ?? user?.email ?? ''}`.trim()
   const linkedEmployeeName = resolveLinkedEmployeeName(employees, effectiveLinkedEmployeeId)
   const resolvedWorkspace = workspace ?? authWorkspace
-  const workspaceDisplayName =
-    `${resolvedWorkspace?.name ?? ''}`.trim()
-    || `${workspaceProfile?.businessName ?? ''}`.trim()
-    || '—'
+  const workspaceIdentity = buildWorkspaceIdentityLines({
+    workspaceName: resolvedWorkspace?.name,
+    businessName: workspaceProfile?.businessName,
+  })
+  const canLinkEmployee = canLinkMembershipEmployee(role)
 
   const handleOpenLinkModal = () => {
     setSelectedEmployeeId(effectiveLinkedEmployeeId ? String(effectiveLinkedEmployeeId) : '')
@@ -208,13 +210,13 @@ export function WorkspaceTeamSection({
             <dd>
               <div className="workspace-member-linked-value">
                 <span>{linkedEmployeeName || 'Not linked'}</span>
-                {isOwner ? (
+                {canLinkEmployee ? (
                   <button
                     type="button"
                     className="ghost-btn workspace-link-employee-btn"
                     onClick={handleOpenLinkModal}
                   >
-                    Link employee
+                    {linkedEmployeeName ? 'Change link' : 'Link employee'}
                   </button>
                 ) : null}
               </div>
@@ -222,10 +224,26 @@ export function WorkspaceTeamSection({
           </div>
           <div className="workspace-member-row">
             <dt>Workspace</dt>
-            <dd>{workspaceDisplayName}</dd>
+            <dd>
+              <div className="workspace-member-linked-value">
+                <span>{workspaceIdentity.primary}</span>
+                {workspaceIdentity.technicalName ? (
+                  <span className="workspace-member-meta">Account: {workspaceIdentity.technicalName}</span>
+                ) : null}
+                {workspaceIdentity.hint ? (
+                  <span className="workspace-member-meta">{workspaceIdentity.hint}</span>
+                ) : null}
+              </div>
+            </dd>
           </div>
         </dl>
       </div>
+
+      {totalStaff === 0 ? (
+        <div className="staff-status-banner">
+          No staff records yet. Use Manage Staff to add people, then invite them to ONE.
+        </div>
+      ) : null}
 
       <div className="workspace-team-grid">
         <article className="workspace-stat-card panel staff-panel">

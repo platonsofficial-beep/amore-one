@@ -3,17 +3,23 @@ import {
   WORKSPACE_PROFILE_CURRENCIES,
   WORKSPACE_PROFILE_TIMEZONES,
 } from '../../lib/workspaceProfileOptions'
+import { isWorkspaceProfileConfigured } from '../../lib/workspaceProfileUtils'
 
 export function WorkspaceBusinessProfileSection({
   workspaceProfile,
   noticeMessage,
   isLoading,
   isSaving,
+  isDirty = true,
   onChange,
   onSubmit,
   onLogoFileChange,
   onClearLogo,
 }) {
+  const noticeIsError = Boolean(
+    noticeMessage && !/saved|updated|success/i.test(noticeMessage),
+  )
+
   return (
     <>
       <div className="workspace-section-header">
@@ -29,8 +35,17 @@ export function WorkspaceBusinessProfileSection({
         </div>
       </div>
 
-      {noticeMessage ? <div className="staff-status-banner">{noticeMessage}</div> : null}
+      {noticeMessage ? (
+        <div className={`staff-status-banner${noticeIsError ? ' auth-banner-error' : ' auth-banner-success'}`} role="status">
+          {noticeMessage}
+        </div>
+      ) : null}
       {isLoading ? <div className="staff-status-banner">Loading workspace profile…</div> : null}
+      {!isLoading && !isWorkspaceProfileConfigured(workspaceProfile) ? (
+        <div className="staff-status-banner">
+          Set your business name and manager details so ONE can personalize dashboards and reports.
+        </div>
+      ) : null}
 
       <div className="panel staff-panel workspace-panel">
         <div className="panel-heading">
@@ -134,7 +149,11 @@ export function WorkspaceBusinessProfileSection({
           </div>
 
           <div className="modal-actions">
-            <button type="submit" className="primary-btn workspace-action-btn" disabled={isLoading || isSaving}>
+            <button
+              type="submit"
+              className="primary-btn workspace-action-btn"
+              disabled={isLoading || isSaving || !isDirty}
+            >
               {isSaving ? 'Saving…' : 'Save Profile'}
             </button>
           </div>

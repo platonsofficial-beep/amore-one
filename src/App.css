@@ -21434,6 +21434,28 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   border: 1px solid rgba(72, 160, 104, 0.28);
 }
 
+.auth-banner-info {
+  color: #d7e6ff;
+  background: rgba(88, 132, 196, 0.14);
+  border: 1px solid rgba(88, 132, 196, 0.28);
+}
+
+.auth-invite-banner-copy {
+  margin: 6px 0 0;
+}
+
+.workspace-invite-notice {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.workspace-invite-notice-dismiss {
+  flex-shrink: 0;
+  min-height: 32px;
+}
+
 .auth-loading-text {
   margin: 10px 0 0;
   color: #c7bbab;
@@ -21554,6 +21576,21 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   flex-wrap: wrap;
   align-items: center;
   gap: 10px;
+}
+
+.workspace-member-meta {
+  flex-basis: 100%;
+  color: #b9aa96;
+  font-size: 0.82rem;
+  line-height: 1.45;
+}
+
+.employee-invite-role-hint {
+  display: block;
+  margin-top: 6px;
+  color: #b9aa96;
+  font-size: 0.82rem;
+  line-height: 1.45;
 }
 
 .workspace-link-employee-btn {

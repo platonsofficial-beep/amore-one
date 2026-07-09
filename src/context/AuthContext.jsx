@@ -7,9 +7,14 @@ import {
   signOut as authSignOut,
   signUp as authSignUp,
 } from '../services/authService'
-import { acceptInvite } from '../services/inviteService'
+import { acceptInvite, getInvitePreview } from '../services/inviteService'
 import { createOwnerMembershipIfMissing, getCurrentMembershipContext } from '../services/membershipService'
 import { getWorkspaceRoleLabel, isOwnerRole, normalizeWorkspaceRole } from '../lib/membershipRoles'
+import {
+  buildInviteAcceptedNotice,
+  formatInviteErrorMessage,
+} from '../lib/inviteFlowUtils'
+import { writeInviteAcceptedNotice } from '../lib/inviteNoticeStorage'
 import {
   captureInviteTokenFromLocation,
   clearPendingInviteToken,
@@ -151,8 +156,12 @@ export function AuthProvider({ children }) {
     const pendingInviteToken = readPendingInviteToken()
     if (pendingInviteToken) {
       try {
+        const invitePreview = await getInvitePreview(pendingInviteToken).catch(() => null)
         await acceptInvite(pendingInviteToken)
         clearPendingInviteToken()
+        writeInviteAcceptedNotice(
+          buildInviteAcceptedNotice(invitePreview?.workspaceName ?? ''),
+        )
         skipDefaultBootstrap = true
       } catch (inviteError) {
         const message = inviteError?.message || 'Unable to accept workspace invite.'
@@ -164,7 +173,7 @@ export function AuthProvider({ children }) {
           skipDefaultBootstrap = true
         }
 
-        setMembershipLoadError(message)
+        setMembershipLoadError(formatInviteErrorMessage(message))
       }
     }
 

@@ -69,3 +69,53 @@ export function buildBrandDisplay(profile) {
     mark: logoUrl ? '' : (businessName ? getBrandInitial(businessName) : '?'),
   }
 }
+
+const WORKSPACE_PROFILE_FIELDS = [
+  'businessName',
+  'managerName',
+  'managerRole',
+  'timezone',
+  'currency',
+  'logoUrl',
+]
+
+function normalizeProfileField(value) {
+  return `${value ?? ''}`.trim()
+}
+
+export function areWorkspaceProfilesEqual(left = {}, right = {}) {
+  return WORKSPACE_PROFILE_FIELDS.every((field) => (
+    normalizeProfileField(left?.[field]) === normalizeProfileField(right?.[field])
+  ))
+}
+
+export function isWorkspaceProfileConfigured(profile = {}) {
+  return Boolean(
+    normalizeProfileField(profile.businessName)
+    || normalizeProfileField(profile.managerName),
+  )
+}
+
+export function buildWorkspaceIdentityLines({
+  workspaceName = '',
+  businessName = '',
+} = {}) {
+  const technicalName = normalizeProfileField(workspaceName)
+  const displayBusinessName = normalizeProfileField(businessName)
+  const primary = displayBusinessName || technicalName || '—'
+  const showTechnicalName = Boolean(
+    technicalName
+    && displayBusinessName
+    && technicalName !== displayBusinessName,
+  )
+
+  return {
+    primary,
+    technicalName: showTechnicalName ? technicalName : '',
+    hint: showTechnicalName
+      ? 'Business name is shown across ONE. Update it in Business Profile.'
+      : (!displayBusinessName && technicalName
+        ? 'Set a business name in Business Profile for a clearer workspace label.'
+        : ''),
+  }
+}

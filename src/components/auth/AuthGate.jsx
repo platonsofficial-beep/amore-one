@@ -1,4 +1,5 @@
 import { useAuth } from '../../context/AuthContext'
+import { formatInviteErrorMessage } from '../../lib/inviteFlowUtils'
 import { LoginView } from './LoginView'
 
 export function AuthGate({ children }) {
@@ -32,6 +33,10 @@ export function AuthGate({ children }) {
   }
 
   if (!membership && (membershipLoadError || !isLoading)) {
+    const inviteErrorMessage = membershipLoadError
+      ? formatInviteErrorMessage(membershipLoadError)
+      : 'No workspace membership was found for this account.'
+
     return (
       <div className="auth-page">
         <div className="auth-card panel staff-panel">
@@ -42,7 +47,7 @@ export function AuthGate({ children }) {
             </h1>
           </header>
           <div className="auth-banner auth-banner-error" role="alert">
-            {membershipLoadError || 'No workspace membership was found for this account.'}
+            {inviteErrorMessage}
           </div>
           <button type="button" className="primary-btn auth-submit-btn" onClick={() => signOut()}>
             Sign out

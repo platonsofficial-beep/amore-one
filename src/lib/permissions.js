@@ -135,6 +135,11 @@ export function canAssignManagerInviteRole(role) {
   return ['owner', 'general_manager'].includes(normalizedRole)
 }
 
+export function canLinkMembershipEmployee(role) {
+  const normalizedRole = normalizeWorkspaceRole(role, 'staff')
+  return ['owner', 'general_manager'].includes(normalizedRole)
+}
+
 export function isManagementMobileRole(role) {
   return isManagerRole(role)
 }

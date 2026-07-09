@@ -342,10 +342,12 @@ import {
   supplierHasHistory,
 } from './lib/stockSupplierUtils'
 import {
+  areWorkspaceProfilesEqual,
   buildBrandDisplay,
   buildDashboardGreeting,
   buildProfileChipDisplay,
 } from './lib/workspaceProfileUtils'
+import { readAndClearInviteAcceptedNotice } from './lib/inviteNoticeStorage'
 import { resolveUserDisplayName } from './lib/userDisplayName'
 import { MAX_WORKSPACE_LOGO_BYTES } from './lib/workspaceProfileOptions'
 import { TASK_PRESET_DEPARTMENTS } from './lib/taskDepartments'
@@ -12589,6 +12591,7 @@ function App() {
   const [isWorkspaceProfileLoading, setIsWorkspaceProfileLoading] = useState(true)
   const [isSavingWorkspaceProfile, setIsSavingWorkspaceProfile] = useState(false)
   const [workspaceProfileNotice, setWorkspaceProfileNotice] = useState('')
+  const [inviteAcceptedNotice, setInviteAcceptedNotice] = useState('')
 
   const {
     syncDevMembershipProfile,
@@ -14092,6 +14095,19 @@ function App() {
       isMounted = false
     }
   }, [activeView, refreshReportsData])
+
+  const isWorkspaceProfileDirty = useMemo(
+    () => !areWorkspaceProfilesEqual(workspaceProfile, workspaceProfileDraft),
+    [workspaceProfile, workspaceProfileDraft],
+  )
+
+  useEffect(() => {
+    if (isAuthLoading) return
+    const notice = readAndClearInviteAcceptedNotice()
+    if (notice) {
+      setInviteAcceptedNotice(notice)
+    }
+  }, [isAuthLoading])
 
   useEffect(() => {
     if (activeView === 'settings' && settingsSection === 'profile') {
@@ -19960,6 +19976,18 @@ function App() {
             Loading workspace…
           </div>
         ) : null}
+        {inviteAcceptedNotice ? (
+          <div className="staff-status-banner auth-banner-success workspace-invite-notice" role="status">
+            {inviteAcceptedNotice}
+            <button
+              type="button"
+              className="ghost-btn small workspace-invite-notice-dismiss"
+              onClick={() => setInviteAcceptedNotice('')}
+            >
+              Dismiss
+            </button>
+          </div>
+        ) : null}
         {activeView === 'team' && isActiveViewAllowed ? (
           <ModuleSectionTabs
             sections={visibleTeamSections}
@@ -20401,6 +20429,7 @@ function App() {
               noticeMessage: workspaceProfileNotice,
               isLoading: isWorkspaceProfileLoading,
               isSaving: isSavingWorkspaceProfile,
+              isDirty: isWorkspaceProfileDirty,
               onChange: setWorkspaceProfileDraft,
               onSubmit: handleWorkspaceProfileSubmit,
               onLogoFileChange: handleWorkspaceLogoFileChange,

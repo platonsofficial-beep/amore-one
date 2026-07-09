@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
+import { getWorkspaceRoleLabel } from '../../lib/membershipRoles'
 import {
   buildInviteUrl,
   getEmployeeAccountConnectionStatus,
@@ -167,6 +168,11 @@ export function EmployeeAccountConnectionSection({
             {connectedEmail ? (
               <p className="employee-account-connection-meta">{connectedEmail}</p>
             ) : null}
+            {linkedMembership?.role ? (
+              <p className="employee-account-connection-meta">
+                Role: {getWorkspaceRoleLabel(linkedMembership.role)}
+              </p>
+            ) : null}
           </div>
         ) : null}
 
@@ -177,6 +183,10 @@ export function EmployeeAccountConnectionSection({
               <div className="employee-account-connection-detail-row">
                 <dt>Invited email</dt>
                 <dd>{pendingInvite.email || '—'}</dd>
+              </div>
+              <div className="employee-account-connection-detail-row">
+                <dt>Role</dt>
+                <dd>{getWorkspaceRoleLabel(pendingInvite.role)}</dd>
               </div>
               <div className="employee-account-connection-detail-row">
                 <dt>Expires</dt>

@@ -38,6 +38,29 @@ export function clearPendingInviteToken() {
   }
 }
 
+export function stripInviteTokenFromLocation(location = typeof window !== 'undefined' ? window.location : null) {
+  if (!location || typeof window === 'undefined') return false
+
+  const url = new URL(location.href)
+  let changed = false
+
+  if (url.searchParams.has('invite')) {
+    url.searchParams.delete('invite')
+    changed = true
+  }
+
+  if (/^\/invite\/[^/]+\/?$/i.test(url.pathname)) {
+    url.pathname = '/'
+    changed = true
+  }
+
+  if (!changed) return false
+
+  const nextUrl = `${url.pathname}${url.search}${url.hash}`
+  window.history.replaceState(window.history.state, '', nextUrl)
+  return true
+}
+
 export function captureInviteTokenFromLocation(location = typeof window !== 'undefined' ? window.location : null) {
   if (!location) return null
 
@@ -45,6 +68,7 @@ export function captureInviteTokenFromLocation(location = typeof window !== 'und
   const queryToken = normalizeToken(params.get('invite'))
   if (queryToken) {
     writePendingInviteToken(queryToken)
+    stripInviteTokenFromLocation(location)
     return queryToken
   }
 
@@ -52,6 +76,7 @@ export function captureInviteTokenFromLocation(location = typeof window !== 'und
   const pathToken = normalizeToken(match?.[1])
   if (pathToken) {
     writePendingInviteToken(pathToken)
+    stripInviteTokenFromLocation(location)
     return pathToken
   }
 

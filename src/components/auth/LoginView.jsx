@@ -1,5 +1,11 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useAuth } from '../../context/AuthContext'
+import { buildInvitePreviewSummary } from '../../lib/inviteFlowUtils'
+import {
+  captureInviteTokenFromLocation,
+  readPendingInviteToken,
+} from '../../lib/inviteTokenStorage'
+import { getInvitePreview } from '../../services/inviteService'
 
 const MODES = {
   SIGN_IN: 'sign-in',
@@ -15,6 +21,40 @@ export function LoginView() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [errorMessage, setErrorMessage] = useState('')
   const [successMessage, setSuccessMessage] = useState('')
+  const [inviteBanner, setInviteBanner] = useState(null)
+  const [isInvitePreviewLoading, setIsInvitePreviewLoading] = useState(false)
+
+  useEffect(() => {
+    captureInviteTokenFromLocation()
+
+    const token = readPendingInviteToken()
+    if (!token) {
+      setInviteBanner(null)
+      return undefined
+    }
+
+    let isMounted = true
+    setIsInvitePreviewLoading(true)
+
+    getInvitePreview(token)
+      .then((preview) => {
+        if (!isMounted) return
+        setInviteBanner(buildInvitePreviewSummary(preview))
+      })
+      .catch(() => {
+        if (!isMounted) return
+        setInviteBanner(buildInvitePreviewSummary({ found: false }))
+      })
+      .finally(() => {
+        if (isMounted) {
+          setIsInvitePreviewLoading(false)
+        }
+      })
+
+    return () => {
+      isMounted = false
+    }
+  }, [])
 
   const handleSubmit = async (event) => {
     event.preventDefault()
@@ -76,6 +116,20 @@ export function LoginView() {
           <h1 className="auth-title">{title}</h1>
           <p className="auth-subtitle">Operations platform for hospitality teams.</p>
         </header>
+
+        {isInvitePreviewLoading ? (
+          <div className="auth-banner auth-banner-info" role="status">Checking invite…</div>
+        ) : null}
+
+        {!isInvitePreviewLoading && inviteBanner ? (
+          <div
+            className={`auth-banner auth-banner-${inviteBanner.tone === 'error' ? 'error' : 'info'}`}
+            role="status"
+          >
+            <strong>{inviteBanner.title}</strong>
+            <p className="auth-invite-banner-copy">{inviteBanner.message}</p>
+          </div>
+        ) : null}
 
         {errorMessage ? <div className="auth-banner auth-banner-error">{errorMessage}</div> : null}
         {successMessage ? <div className="auth-banner auth-banner-success">{successMessage}</div> : null}

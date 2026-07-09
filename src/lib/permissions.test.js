@@ -4,7 +4,10 @@ import {
   MOBILE_STAFF_BOTTOM_TABS,
   canAccessMobileExpandedModule,
   canAccessModule,
+  canAssignManagerInviteRole,
+  canLinkMembershipEmployee,
   canManageAnnouncements,
+  canManageEmployeeInvites,
   canManageOperations,
   canManageReservations,
   canManageStock,
@@ -140,6 +143,28 @@ describe('permissions', () => {
       expect(canManageStock('staff')).toBe(false)
       expect(canManageOperations('staff')).toBe(false)
       expect(canManageAnnouncements('staff')).toBe(false)
+    })
+  })
+
+  describe('workspace access and invites', () => {
+    it.each(['owner', 'general_manager'])('allows %s to manage invites and link employees', (role) => {
+      expect(canManageEmployeeInvites(role)).toBe(true)
+      expect(canAssignManagerInviteRole(role)).toBe(true)
+      expect(canLinkMembershipEmployee(role)).toBe(true)
+    })
+
+    it('allows managers to invite staff but not assign manager invites or open settings', () => {
+      expect(canManageEmployeeInvites('manager')).toBe(true)
+      expect(canAssignManagerInviteRole('manager')).toBe(false)
+      expect(canLinkMembershipEmployee('manager')).toBe(false)
+      expect(canAccessModule('manager', 'settings')).toBe(false)
+    })
+
+    it('blocks staff from workspace settings and invite management', () => {
+      expect(canManageEmployeeInvites('staff')).toBe(false)
+      expect(canAssignManagerInviteRole('staff')).toBe(false)
+      expect(canLinkMembershipEmployee('staff')).toBe(false)
+      expect(canAccessModule('staff', 'settings')).toBe(false)
     })
   })
 })
