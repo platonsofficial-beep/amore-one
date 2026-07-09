@@ -116,6 +116,8 @@
   border-radius: 12px;
   padding: 12px 14px 12px 16px;
   min-height: 44px;
+  min-width: 0;
+  width: 100%;
   cursor: pointer;
   font-size: 0.9rem;
   font-weight: 500;
@@ -123,6 +125,14 @@
   display: flex;
   align-items: center;
   gap: 12px;
+}
+
+.nav-link > span:last-child {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .nav-link:hover {
@@ -288,6 +298,8 @@
   font-size: 1.05rem;
   line-height: 1.45;
   font-weight: 500;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .today-layout {
@@ -363,6 +375,18 @@
   color: #a89f92;
   font-size: 0.88rem;
   line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  overflow-wrap: anywhere;
+}
+
+.today-collapsible-header:focus-visible {
+  outline: 2px solid rgba(212, 175, 55, 0.55);
+  outline-offset: 2px;
+  border-radius: 12px;
 }
 
 .today-collapsible-chevron {
@@ -411,6 +435,8 @@
   color: #a89f92;
   font-size: 0.95rem;
   line-height: 1.5;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .today-empty-note-clear {
@@ -497,12 +523,16 @@
   font-size: 0.94rem;
   font-weight: 600;
   line-height: 1.25;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .today-timeline-copy span {
   color: #a89f92;
   font-size: 0.84rem;
   line-height: 1.3;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .today-timeline-detail {
@@ -673,6 +703,7 @@
   align-items: center;
   padding: 10px 0;
   border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  min-width: 0;
 }
 
 .today-team-member:last-child {
@@ -683,12 +714,17 @@
   color: #f7efe1;
   font-size: 1rem;
   font-weight: 500;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .today-team-shift {
   color: #b8afa2;
   font-size: 0.92rem;
   white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .today-attention-item {
@@ -705,6 +741,7 @@
 
 .today-attention-item.is-static {
   cursor: default;
+  padding: 12px 0;
 }
 
 .today-attention-trigger {
@@ -715,6 +752,7 @@
   min-height: 44px;
   padding: 12px 0;
   border: 0;
+  border-radius: 10px;
   background: transparent;
   text-align: left;
   cursor: pointer;
@@ -725,6 +763,10 @@
 
 .today-attention-trigger:hover {
   background: rgba(255, 255, 255, 0.03);
+}
+
+.today-attention-trigger:active {
+  background: rgba(212, 175, 55, 0.08);
 }
 
 .today-attention-trigger:focus-visible {
@@ -742,6 +784,8 @@
   display: flex;
   flex-direction: column;
   gap: 2px;
+  min-width: 0;
+  width: 100%;
 }
 
 .today-attention-item:last-child {
@@ -751,11 +795,15 @@
 .today-attention-item strong {
   color: #fff2df;
   font-size: 0.98rem;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .today-attention-item span {
   color: #b8afa2;
   font-size: 0.88rem;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .today-attention-item.tone-critical strong {
@@ -789,6 +837,11 @@
   background: rgba(212, 175, 55, 0.14);
 }
 
+.today-attention-pill:focus-visible {
+  outline: 2px solid rgba(212, 175, 55, 0.55);
+  outline-offset: 2px;
+}
+
 .today-text-btn {
   margin-top: 12px;
   border: 0;
@@ -800,6 +853,12 @@
   padding: 0;
   cursor: pointer;
   text-align: left;
+}
+
+.today-text-btn:focus-visible {
+  outline: 2px solid rgba(212, 175, 55, 0.55);
+  outline-offset: 2px;
+  border-radius: 8px;
 }
 
 .today-quick-actions-grid {
@@ -814,6 +873,7 @@
   align-items: center;
   justify-content: center;
   gap: 6px;
+  min-width: 0;
   min-height: 88px;
   padding: 12px 10px;
   border-radius: 16px;
@@ -823,10 +883,22 @@
   cursor: pointer;
   font-size: 0.95rem;
   font-weight: 600;
+  text-align: center;
+  transition: background 180ms ease, border-color 180ms ease;
 }
 
-.today-quick-action:active {
+.today-quick-action:hover:not(:disabled) {
+  background: rgba(212, 175, 55, 0.1);
+  border-color: rgba(212, 175, 55, 0.32);
+}
+
+.today-quick-action:active:not(:disabled) {
   background: rgba(212, 175, 55, 0.12);
+}
+
+.today-quick-action:focus-visible:not(:disabled) {
+  outline: 2px solid rgba(212, 175, 55, 0.55);
+  outline-offset: 2px;
 }
 
 .today-quick-action.is-disabled {
@@ -834,20 +906,38 @@
   cursor: not-allowed;
 }
 
+.today-quick-action > span:not(.today-quick-action-icon) {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .today-quick-action-icon {
   font-size: 1.2rem;
+  flex-shrink: 0;
 }
 
 .today-quick-action small {
   color: #9f9485;
   font-size: 0.72rem;
   font-weight: 500;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  line-height: 1.3;
 }
 
 .topbar {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  min-width: 0;
+  overflow: visible;
+  position: relative;
+  z-index: 5;
   padding: 18px 22px;
   border-radius: 24px;
   background: rgba(12, 12, 13, 0.9);
@@ -861,6 +951,16 @@
   display: flex;
   flex-direction: column;
   gap: 4px;
+  min-width: 0;
+  flex: 1 1 200px;
+}
+
+.topbar-title-block h2 {
+  margin: 0;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .welcome-subtitle {
@@ -1182,6 +1282,9 @@
   font-weight: 600;
   letter-spacing: -0.034em;
   line-height: 1.08;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .command-topbar-business {
@@ -1191,6 +1294,10 @@
   font-size: 0.62rem;
   font-weight: 600;
   color: #d4af37;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .command-topbar-date {
@@ -1316,6 +1423,10 @@
   color: #fff7e8;
   font-size: 0.86rem;
   line-height: 1.2;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .profile-chip-command p {
@@ -2740,6 +2851,8 @@
   align-items: center;
   gap: 12px;
   flex-wrap: wrap;
+  min-width: 0;
+  flex-shrink: 0;
 }
 
 .search-bar {
@@ -2761,13 +2874,16 @@
 }
 
 .icon-btn {
-  width: 38px;
-  height: 38px;
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  min-height: 44px;
   border: 0;
   border-radius: 50%;
   background: rgba(255, 255, 255, 0.04);
   color: #f7efe1;
   cursor: pointer;
+  flex-shrink: 0;
 }
 
 .date-pill {
@@ -2782,6 +2898,7 @@
   display: flex;
   align-items: center;
   gap: 10px;
+  min-height: 44px;
   padding: 10px 12px;
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.04);
@@ -2789,6 +2906,16 @@
   color: inherit;
   cursor: pointer;
   text-align: left;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.profile-chip strong {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .profile-chip p {
@@ -9394,7 +9521,7 @@
   .employee-modal.reservation-smart-modal.is-responsive-sheet {
     width: 100%;
     max-width: none;
-    max-height: min(92vh, 820px);
+    max-height: min(92dvh, 92vh, 820px);
     margin: 0;
     border-radius: 20px 20px 0 0;
     border-bottom: 0;
@@ -14418,8 +14545,8 @@
   top: 0;
   right: 0;
   width: min(420px, 100%);
-  height: 100vh;
-  padding: 24px;
+  height: 100dvh;
+  padding: calc(24px + env(safe-area-inset-top, 0px)) 24px calc(24px + env(safe-area-inset-bottom, 0px));
   background: rgba(8, 8, 9, 0.98);
   border-left: 1px solid rgba(212, 175, 55, 0.16);
   box-shadow: -12px 0 40px rgba(0, 0, 0, 0.3);
@@ -14505,7 +14632,7 @@
 
 .employee-modal {
   width: min(720px, 100%);
-  max-height: 90vh;
+  max-height: min(90dvh, 90vh);
   overflow-y: auto;
   padding: 24px;
   border-radius: 24px;
@@ -15181,6 +15308,8 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   background: rgba(212, 175, 55, 0.12);
   color: #f6dca2;
   border: 1px solid rgba(212, 175, 55, 0.2);
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .schedule-week-scroll {
@@ -21716,7 +21845,8 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 
 .workspace-invite-notice-dismiss {
   flex-shrink: 0;
-  min-height: 32px;
+  min-width: 44px;
+  min-height: 44px;
 }
 
 .auth-loading-text {
@@ -21733,12 +21863,17 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   cursor: pointer;
 }
 
+.user-menu:has(.user-menu-panel) {
+  z-index: 200;
+}
+
 .user-menu-panel {
   position: absolute;
   top: calc(100% + 8px);
   right: 0;
-  z-index: 40;
+  z-index: 200;
   min-width: 220px;
+  max-width: min(320px, calc(100vw - 32px));
   padding: 10px;
   border-radius: 14px;
   border: 1px solid rgba(255, 255, 255, 0.08);
@@ -21760,6 +21895,11 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   color: #e8dcc8;
   font-size: 0.9rem;
   font-weight: 600;
+  min-width: 0;
+  flex: 1 1 auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .user-menu-role-badge {
@@ -27264,6 +27404,83 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 
   .operations-checklist-add-item {
     grid-template-columns: 1fr;
+  }
+}
+
+/* Phase 12.5.1 — global shell fit & finish (mobile) */
+@media (max-width: 760px) {
+  .access-restricted-view {
+    margin: 16px;
+    max-width: none;
+    padding: 22px 18px;
+  }
+
+  .employee-modal-backdrop {
+    align-items: flex-end;
+    padding:
+      max(12px, env(safe-area-inset-top, 0px))
+      12px
+      max(12px, env(safe-area-inset-bottom, 0px));
+  }
+
+  .employee-modal {
+    max-height: min(92dvh, 92vh);
+    padding-bottom: calc(24px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .employee-drawer {
+    width: 100%;
+    border-left: 0;
+  }
+
+  .topbar-title-block h2 {
+    white-space: normal;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+  }
+}
+
+/* Phase 12.5.2 — Today Command Center fit & finish */
+@media (max-width: 900px) {
+  .today-quick-actions-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .today-status-card {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 560px) {
+  .today-quick-actions-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .today-quick-action {
+    min-height: 56px;
+    flex-direction: row;
+    justify-content: flex-start;
+    padding: 12px 14px;
+    text-align: left;
+  }
+
+  .today-quick-action > span:not(.today-quick-action-icon) {
+    flex: 1 1 auto;
+    min-width: 0;
+    white-space: normal;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+  }
+
+  .today-status-card {
+    grid-template-columns: 1fr;
+    padding: 16px 18px;
+  }
+
+  .today-panel {
+    padding: 16px;
   }
 }
 

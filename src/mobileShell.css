@@ -1325,7 +1325,7 @@
   bottom: 0;
   z-index: 40;
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
   gap: 4px;
   padding: 8px 8px calc(8px + env(safe-area-inset-bottom, 0px));
   border-top: 1px solid rgba(255, 255, 255, 0.08);
@@ -1446,8 +1446,10 @@
   font-size: 1.1rem;
   font-weight: 600;
   min-width: 0;
-  overflow-wrap: anywhere;
-  word-break: break-word;
+  flex: 1 1 auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .mobile-back-btn {
@@ -1544,6 +1546,10 @@
   font-weight: 600;
   line-height: 1.08;
   letter-spacing: -0.02em;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .mobile-manager-command-meta {
@@ -1555,6 +1561,14 @@
   color: #9f9588;
   font-size: 0.76rem;
   line-height: 1.2;
+  min-width: 0;
+}
+
+.mobile-manager-command-workspace {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .mobile-manager-command-date {
@@ -1774,8 +1788,13 @@
 }
 
 .mobile-manager-command-center .mobile-manager-status-card.is-tappable {
-  min-height: 51px;
+  min-height: 44px;
   padding-right: 22px;
+}
+
+.mobile-manager-command-center .mobile-manager-status-card.is-tappable:focus-visible {
+  outline: 2px solid rgba(212, 175, 55, 0.55);
+  outline-offset: 2px;
 }
 
 .mobile-manager-command-center .mobile-manager-status-value {
@@ -1812,13 +1831,18 @@
 }
 
 .mobile-manager-command-center .mobile-manager-action-btn {
-  min-height: 40px;
+  min-height: 44px;
   border-radius: 12px;
   font-size: 0.86rem;
 }
 
+.mobile-manager-command-center .mobile-manager-action-btn:focus-visible {
+  outline: 2px solid rgba(212, 175, 55, 0.55);
+  outline-offset: 2px;
+}
+
 .mobile-manager-command-center .mobile-manager-action-btn-featured {
-  min-height: 42px;
+  min-height: 44px;
   font-size: 0.9rem;
 }
 
@@ -1920,17 +1944,27 @@
 .mobile-manager-command-center .mobile-manager-priority-item strong {
   font-size: 0.86rem;
   font-weight: 600;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .mobile-manager-command-center .mobile-manager-priority-item span {
   font-size: 0.78rem;
   color: #8f8778;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .mobile-manager-command-center .mobile-manager-attention-more {
-  min-height: 40px;
+  min-height: 44px;
   margin-top: 0;
   font-size: 0.82rem;
+}
+
+.mobile-manager-command-center .mobile-manager-attention-more:focus-visible {
+  outline: 2px solid rgba(212, 175, 55, 0.55);
+  outline-offset: 2px;
 }
 
 .mobile-manager-status-section,
@@ -2115,6 +2149,7 @@
   flex-direction: column;
   gap: 2px;
   min-width: 0;
+  flex: 1 1 auto;
 }
 
 .mobile-manager-attention-item {
@@ -2174,6 +2209,7 @@
   color: #f7efe1;
   font-size: 0.9rem;
   font-weight: 600;
+  min-width: 0;
   overflow-wrap: anywhere;
   word-break: break-word;
 }
@@ -2182,6 +2218,8 @@
   color: #a89f92;
   font-size: 0.82rem;
   line-height: 1.35;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .mobile-manager-attention-item.tone-critical {
@@ -2257,6 +2295,11 @@
   font-weight: 600;
   cursor: pointer;
   transition: box-shadow 140ms ease, background 140ms ease, transform 140ms ease;
+}
+
+.mobile-manager-action-btn:focus-visible {
+  outline: 2px solid rgba(212, 175, 55, 0.55);
+  outline-offset: 2px;
 }
 
 .mobile-manager-action-btn:active {
@@ -3549,14 +3592,14 @@
 .app-shell.is-mobile-shell.is-mobile-expanded .mobile-expanded-scroll {
   flex: 1 1 auto;
   min-height: 0;
-  height: calc(100dvh - 88px) !important;
-  max-height: calc(100dvh - 88px) !important;
+  height: auto !important;
+  max-height: none !important;
   overflow-x: hidden !important;
-  overflow-y: scroll !important;
+  overflow-y: auto !important;
   -webkit-overflow-scrolling: touch;
   touch-action: pan-y;
   overscroll-behavior-y: contain;
-  padding-bottom: calc(120px + env(safe-area-inset-bottom, 0px));
+  padding-bottom: calc(96px + env(safe-area-inset-bottom, 0px));
 }
 
 .app-shell.is-mobile-shell .mobile-workspace-module {
@@ -3740,12 +3783,12 @@
   .app-shell.is-mobile-shell.is-mobile-expanded .mobile-expanded-scroll {
     flex: 1 1 auto;
     min-height: 0;
-    height: calc(100dvh - 88px) !important;
-    max-height: calc(100dvh - 88px) !important;
-    overflow-y: scroll !important;
+    height: auto !important;
+    max-height: none !important;
+    overflow-y: auto !important;
     -webkit-overflow-scrolling: touch;
     touch-action: pan-y;
-    padding-bottom: calc(120px + env(safe-area-inset-bottom, 0px));
+    padding-bottom: calc(96px + env(safe-area-inset-bottom, 0px));
   }
 
   .app-shell.is-mobile-shell .mobile-workspace-module.is-mobile-expanded .host-operations-list {
@@ -4007,6 +4050,34 @@
     min-height: 44px;
     padding: 2px 2px;
     border-radius: 14px;
+  }
+
+  .mobile-manager-command-center .mobile-manager-command-header {
+    gap: 0;
+  }
+
+  .mobile-manager-command-center .mobile-manager-command-greeting {
+    font-size: 1.05rem;
+  }
+
+  .mobile-manager-command-center .mobile-manager-status-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 4px;
+  }
+
+  .mobile-manager-command-center .mobile-manager-status-card {
+    min-height: 44px;
+    padding: 6px 8px;
+  }
+
+  .mobile-manager-command-center .mobile-manager-status-value {
+    font-size: 0.86rem;
+    line-height: 1.15;
+  }
+
+  .mobile-manager-command-center .mobile-manager-actions-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 4px;
   }
 
   .mobile-workspace-module.is-mobile-expanded .reservations-workspace-host,
