@@ -13412,12 +13412,19 @@ function App() {
     isTodayWeekPublished ? dashboardPublishedShifts : dashboardShifts
   ), [isTodayWeekPublished, dashboardPublishedShifts, dashboardShifts])
 
-  const teamTodayCoverageBreakdown = useMemo(() => buildTeamTodayCoverageBreakdown({
+  const scheduleAttentionCoverageBreakdown = useMemo(() => buildTeamTodayCoverageBreakdown({
     shifts: dashboardShifts,
     shiftTemplates,
     scheduleCapacities: dashboardCapacities,
     todayKey: currentDateKey,
   }), [dashboardShifts, shiftTemplates, dashboardCapacities, currentDateKey])
+
+  const teamTodayDisplayCoverageBreakdown = useMemo(() => buildTeamTodayCoverageBreakdown({
+    shifts: teamTodayShiftSource,
+    shiftTemplates,
+    scheduleCapacities: dashboardCapacities,
+    todayKey: currentDateKey,
+  }), [teamTodayShiftSource, shiftTemplates, dashboardCapacities, currentDateKey])
 
   const teamTodayGroups = useMemo(() => buildTeamTodayGroups({
     shifts: teamTodayShiftSource,
@@ -13430,14 +13437,14 @@ function App() {
       liveFloor: liveFloorState,
       now: localNow,
     })
-    return applyCoverageHintsToGroups(enriched, teamTodayCoverageBreakdown)
-  }, [teamTodayGroups, liveFloorState, localNow, teamTodayCoverageBreakdown])
+    return applyCoverageHintsToGroups(enriched, teamTodayDisplayCoverageBreakdown)
+  }, [teamTodayGroups, liveFloorState, localNow, teamTodayDisplayCoverageBreakdown])
 
   const teamTodayStatus = useMemo(() => buildTeamTodayStatus({
     liveFloor: liveFloorState,
     snapshot: operationalSnapshot,
-    coverageBreakdown: teamTodayCoverageBreakdown,
-  }), [liveFloorState, operationalSnapshot, teamTodayCoverageBreakdown])
+    coverageBreakdown: teamTodayDisplayCoverageBreakdown,
+  }), [liveFloorState, operationalSnapshot, teamTodayDisplayCoverageBreakdown])
 
   const employeeTodayShifts = useMemo(() => (
     Object.fromEntries(buildEmployeeTodayShiftLookup({
@@ -13453,7 +13460,7 @@ function App() {
     todayKey: currentDateKey,
     issuesSummary: dashboardIssuesSummary,
     snapshot: operationalSnapshot,
-    coverageBreakdown: teamTodayCoverageBreakdown,
+    coverageBreakdown: scheduleAttentionCoverageBreakdown,
     reservations,
     reservationsConnected: isReservationsModuleConnected,
     nowMinutes: dashboardNowMinutes,
@@ -13472,7 +13479,7 @@ function App() {
     currentDateKey,
     dashboardIssuesSummary,
     operationalSnapshot,
-    teamTodayCoverageBreakdown,
+    scheduleAttentionCoverageBreakdown,
     reservations,
     isReservationsModuleConnected,
     dashboardNowMinutes,

@@ -13,6 +13,17 @@ import {
 const TODAY = '2026-07-08'
 
 describe('teamViewUtils', () => {
+  it('treats invalid shift times as scheduled instead of midnight', () => {
+    expect(resolveTeamMemberShiftState({
+      startMinutes: null,
+      endMinutes: null,
+      nowMinutes: 10 * 60,
+    })).toMatchObject({
+      shiftState: 'scheduled',
+      shiftStateLabel: 'Scheduled',
+    })
+  })
+
   it('labels working, upcoming, and finished member states', () => {
     expect(resolveTeamMemberShiftState({
       startMinutes: 9 * 60,

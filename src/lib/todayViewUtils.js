@@ -146,8 +146,8 @@ function resolveShiftMember(shift, employeesById) {
     department,
     roleLabel,
     shiftLabel: startTimeLabel && endTimeLabel ? `${startTimeLabel} - ${endTimeLabel}` : startTimeLabel || 'Scheduled',
-    startMinutes: parseTimeToMinutes(shift.startTime) ?? 0,
-    endMinutes: parseTimeToMinutes(shift.endTime) ?? 0,
+    startMinutes: parseTimeToMinutes(shift.startTime),
+    endMinutes: parseTimeToMinutes(shift.endTime),
   }
 }
 
@@ -174,8 +174,10 @@ export function buildTeamTodayGroups({
     .map(([department, members]) => ({
       department,
       members: members.sort((left, right) => {
-        if (left.startMinutes !== right.startMinutes) {
-          return left.startMinutes - right.startMinutes
+        const leftStart = left.startMinutes ?? Number.POSITIVE_INFINITY
+        const rightStart = right.startMinutes ?? Number.POSITIVE_INFINITY
+        if (leftStart !== rightStart) {
+          return leftStart - rightStart
         }
         return left.name.localeCompare(right.name)
       }),
