@@ -5292,6 +5292,57 @@
   resize: vertical;
 }
 
+.mobile-host-form-field .reservation-date-field {
+  width: 100%;
+}
+
+.mobile-host-form-field .reservation-date-field-input {
+  width: auto;
+  flex: 1;
+  min-width: 0;
+  min-height: 44px;
+  padding: 10px 12px;
+  border: 0;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.05);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+  color: #f7efe1;
+  font: inherit;
+}
+
+.mobile-host-form-field .reservation-date-field-calendar-btn {
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0;
+  border-radius: 12px;
+  border: 0;
+  background: rgba(255, 255, 255, 0.05);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+  color: #a89f92;
+}
+
+.mobile-host-form-field .reservation-date-field-calendar-btn[aria-expanded='true'],
+.mobile-host-form-field .reservation-date-field-calendar-btn:hover {
+  color: #d4af37;
+  box-shadow: inset 0 0 0 1px rgba(212, 175, 55, 0.35);
+}
+
+.mobile-host-reservation-edit-body .host-reservation-edit-field .reservation-date-field {
+  width: 100%;
+}
+
+.mobile-host-reservation-edit-body .host-reservation-edit-field .reservation-date-field-input {
+  width: auto;
+  flex: 1;
+  min-width: 0;
+}
+
+.mobile-host-reservation-edit-body .host-reservation-edit-field .reservation-date-field-calendar-btn {
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0;
+}
+
 .mobile-host-form-hint {
   margin: 0;
   color: #8f8778;

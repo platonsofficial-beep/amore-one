@@ -12624,6 +12624,7 @@ function App() {
   })
   const [quickReservationForm, setQuickReservationForm] = useState({
     guestName: '',
+    date: '',
     time: '',
     guests: '2',
     tableNumber: '',
@@ -17778,6 +17779,7 @@ function App() {
 
     setQuickReservationForm({
       guestName: prefill.guestName ?? '',
+      date: normalizeReservationDateKey(prefill.date ?? currentDateKey),
       time: prefill.time ?? '',
       guests: `${prefill.guests ?? '2'}`,
       tableNumber: prefill.tableNumber ?? '',
@@ -17797,6 +17799,7 @@ function App() {
     setIsQuickReservationOpen(false)
     setQuickReservationForm({
       guestName: '',
+      date: '',
       time: '',
       guests: '2',
       tableNumber: '',
@@ -18304,7 +18307,7 @@ function App() {
       const created = await createReservation(activeWorkspaceId, {
         guestName: quickReservationForm.guestName.trim(),
         phone: `${match?.phone ?? ''}`.trim(),
-        date: currentDateKey,
+        date: normalizeReservationDateKey(quickReservationForm.date) || currentDateKey,
         time: quickReservationForm.time,
         guests: Number(quickReservationForm.guests) || 2,
         tableNumber: quickReservationForm.tableNumber.trim()
@@ -19959,7 +19962,7 @@ function App() {
       const created = await createReservation(activeWorkspaceId, {
         guestName: `${form.guestName}`.trim(),
         phone: `${form.phone ?? ''}`.trim(),
-        date: currentDateKey,
+        date: normalizeReservationDateKey(form.date) || currentDateKey,
         time: form.time,
         guests: Number(form.guests) || 2,
         tableNumber: `${form.tableNumber ?? ''}`.trim(),
@@ -21473,6 +21476,15 @@ function App() {
                     <option key={`quick-${entry.id}`} value={formatReservationGuestName(entry.guestName)} />
                   ))}
                 </datalist>
+                <label className="form-field full-width">
+                  <span>Date</span>
+                  <ReservationDateField
+                    value={quickReservationForm.date}
+                    onChange={(date) => setQuickReservationForm((current) => ({ ...current, date }))}
+                    todayKey={currentDateKey}
+                    required
+                  />
+                </label>
                 <div className="form-grid">
                   <label className="form-field">
                     <span>Time</span>
@@ -21501,7 +21513,7 @@ function App() {
                     />
                   </label>
                 </div>
-                <p className="quick-reservation-hint">Press Enter to create · Today · Pending status</p>
+                <p className="quick-reservation-hint">Press Enter to create · Pending status</p>
                 <div className="modal-actions">
                   <button type="button" className="ghost-btn" onClick={handleCloseQuickReservation}>Cancel</button>
                   <button type="submit" className="primary-btn" disabled={isSavingReservation}>

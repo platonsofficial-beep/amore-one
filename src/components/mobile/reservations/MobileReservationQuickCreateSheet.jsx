@@ -1,9 +1,12 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { ReservationDateField } from '../../reservations/ReservationDateField'
 import { ReservationTimeSelect } from '../../reservations/ReservationTimeSelect'
+import { normalizeReservationDateKey } from '../../../lib/timeFormatUtils'
 
 const EMPTY_FORM = {
   guestName: '',
   phone: '',
+  date: '',
   time: '',
   guests: '2',
   notes: '',
@@ -18,6 +21,14 @@ export function MobileReservationQuickCreateSheet({
   onSubmit,
 }) {
   const [form, setForm] = useState(EMPTY_FORM)
+
+  useEffect(() => {
+    if (!isOpen) return
+    setForm({
+      ...EMPTY_FORM,
+      date: normalizeReservationDateKey(todayKey),
+    })
+  }, [isOpen, todayKey])
 
   if (!isOpen) return null
 
@@ -91,6 +102,16 @@ export function MobileReservationQuickCreateSheet({
             />
           </label>
 
+          <label className="mobile-host-form-field">
+            <span>Date</span>
+            <ReservationDateField
+              value={form.date}
+              onChange={(date) => setForm((current) => ({ ...current, date }))}
+              todayKey={todayKey}
+              required
+            />
+          </label>
+
           <div className="mobile-host-form-row">
             <label className="mobile-host-form-field">
               <span>Time</span>
@@ -142,7 +163,7 @@ export function MobileReservationQuickCreateSheet({
           </label>
 
           <p className="mobile-host-form-hint">
-            Service date: {todayKey || 'Today'}
+            Pending status · tap date or calendar to change service day
           </p>
 
           <div className="mobile-sheet-actions">

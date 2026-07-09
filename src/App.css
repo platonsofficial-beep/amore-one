@@ -4266,6 +4266,19 @@
   padding: 5px 7px;
 }
 
+.host-reservation-edit-panel.is-drawer .host-reservation-edit-field .reservation-date-field-input {
+  width: auto;
+  flex: 1;
+  min-width: 0;
+  padding: 5px 7px;
+}
+
+.host-reservation-edit-panel.is-drawer .host-reservation-edit-field .reservation-date-field-calendar-btn {
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0;
+}
+
 .host-reservation-edit-panel.is-drawer .host-reservation-edit-warning {
   margin: 4px 0 0;
 }
@@ -7707,6 +7720,22 @@
   border: 1px solid rgba(255, 255, 255, 0.1);
   background: rgba(255, 255, 255, 0.04);
   color: #f7efe1;
+}
+
+.host-reservation-edit-field .reservation-date-field {
+  width: 100%;
+}
+
+.host-reservation-edit-field .reservation-date-field-input {
+  width: auto;
+  flex: 1;
+  min-width: 0;
+}
+
+.host-reservation-edit-field .reservation-date-field-calendar-btn {
+  width: auto;
+  flex-shrink: 0;
+  padding: 0;
 }
 
 .host-reservation-edit-field input[type="date"],
