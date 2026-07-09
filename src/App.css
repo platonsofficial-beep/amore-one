@@ -21938,6 +21938,7 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
+  flex-wrap: wrap;
 }
 
 .workspace-invite-notice-dismiss {
@@ -22094,8 +22095,9 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 }
 
 .workspace-link-employee-btn {
-  min-height: 32px;
-  padding: 0 10px;
+  min-height: 44px;
+  min-width: 44px;
+  padding: 0 12px;
   font-size: 0.78rem;
 }
 
@@ -28147,6 +28149,198 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
     padding: 0 12px;
     font-size: 0.8rem;
     border-radius: 8px;
+  }
+}
+
+/* Phase 12.5.8 — Settings / Workspace / Invites fit & finish */
+.workspace-section-header > div:first-child {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.workspace-section-heading,
+.workspace-section-subtitle {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.workspace-section-heading {
+  min-width: 0;
+  flex-wrap: wrap;
+}
+
+.workspace-nav-link {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.workspace-member-row dd,
+.workspace-member-linked-value > span:first-child {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  min-width: 0;
+}
+
+.workspace-member-meta {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.workspace-stat-value,
+.workspace-stat-value-text {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.workspace-module-row {
+  flex-wrap: wrap;
+  align-items: flex-start;
+}
+
+.workspace-module-label {
+  min-width: 0;
+  flex: 1 1 auto;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.position-row {
+  flex-wrap: wrap;
+  align-items: flex-start;
+  min-width: 0;
+}
+
+.position-row > div:first-child {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.position-row strong {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.employee-account-connection-detail-row dt {
+  min-width: 0;
+  flex: 0 1 auto;
+}
+
+.employee-invite-success-copy,
+.employee-invite-error,
+.employee-invite-copy-notice,
+.workspace-link-employee-copy,
+.workspace-link-employee-error {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.employee-invite-success input {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.auth-banner,
+.workspace-invite-notice {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.user-menu-email {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.workspace-logo-actions {
+  flex-wrap: wrap;
+}
+
+.workspace-logo-upload-btn {
+  min-height: 44px;
+}
+
+@media (max-width: 960px) {
+  .workspace-nav-links {
+    flex-direction: row;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    -webkit-overflow-scrolling: touch;
+    gap: 8px;
+    padding-bottom: 4px;
+    scrollbar-width: thin;
+  }
+
+  .workspace-nav-link {
+    flex: 0 0 auto;
+    width: auto;
+    white-space: nowrap;
+  }
+}
+
+@media (max-width: 760px) {
+  .workspace-page .form-grid,
+  .workspace-panel .form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .workspace-link-employee-footer {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .workspace-link-employee-footer .primary-btn,
+  .workspace-link-employee-footer .ghost-btn {
+    width: 100%;
+    min-height: 44px;
+  }
+
+  .employee-modal-backdrop:has(.workspace-link-employee-modal.is-responsive-sheet) {
+    align-items: flex-end;
+    padding:
+      max(12px, env(safe-area-inset-top, 0px))
+      12px
+      max(12px, env(safe-area-inset-bottom, 0px));
+  }
+
+  .workspace-link-employee-modal.is-responsive-sheet {
+    width: 100%;
+    max-height: min(92dvh, 92vh);
+    border-radius: 24px 24px 0 0;
+    margin-top: auto;
+    padding-bottom: calc(24px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .workspace-link-employee-body {
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .position-row .workspace-action-btn {
+    min-height: 44px;
+  }
+}
+
+@media (max-width: 640px) {
+  .user-menu-panel {
+    right: 0;
+    left: auto;
+    max-width: min(calc(100vw - 24px), 300px);
+  }
+
+  .workspace-invite-notice {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .workspace-invite-notice-dismiss {
+    align-self: flex-end;
+  }
+
+  .workspace-logo-preview,
+  .workspace-logo-placeholder {
+    max-width: 100%;
   }
 }
 

@@ -24,7 +24,7 @@ export function WorkspaceLinkEmployeeModal({
 
   return (
     <div className="employee-modal-backdrop" onClick={onClose}>
-      <div className="employee-modal blend-compact-modal workspace-link-employee-modal" onClick={(event) => event.stopPropagation()}>
+      <div className="employee-modal blend-compact-modal workspace-link-employee-modal is-responsive-sheet" onClick={(event) => event.stopPropagation()}>
         <div className="drawer-header">
           <div>
             <p className="eyebrow">Workspace member</p>

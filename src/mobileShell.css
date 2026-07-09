@@ -1324,6 +1324,17 @@
   font-size: 0.92rem;
   overflow-wrap: anywhere;
   word-break: break-word;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.mobile-profile-detail-row {
+  align-items: flex-start;
+  min-width: 0;
+}
+
+.mobile-profile-detail-row dt {
+  flex-shrink: 0;
 }
 
 .mobile-profile-form {
@@ -5467,5 +5478,41 @@ html[data-one-debug-scroll='1'] .floor-plan-viewport.is-host-viewport {
     max-height: calc(
       100dvh - 76px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px)
     );
+  }
+}
+
+/* Phase 12.5.8 — Settings mobile shell fit & finish */
+.app-shell.is-mobile-shell .workspace-page,
+.app-shell.is-mobile-expanded .mobile-expanded-scroll .workspace-page {
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+.app-shell.is-mobile-shell .workspace-nav {
+  padding: 12px 14px;
+}
+
+.app-shell.is-mobile-shell .workspace-section-header,
+.app-shell.is-mobile-shell .workspace-panel.staff-panel {
+  padding: 14px 16px;
+}
+
+.app-shell.is-mobile-shell .workspace-nav-links {
+  gap: 6px;
+}
+
+@media (orientation: landscape) and (max-height: 500px) {
+  .app-shell.is-mobile-shell .workspace-nav-links {
+    flex-wrap: wrap;
+    overflow-x: visible;
+  }
+
+  .app-shell.is-mobile-shell .workspace-nav-link {
+    flex: 1 1 calc(50% - 6px);
+    white-space: normal;
+    min-height: 40px;
+    padding: 8px 10px;
+    font-size: 0.82rem;
   }
 }
