@@ -5461,15 +5461,11 @@ html[data-one-debug-scroll='1'] .floor-plan-viewport.is-host-viewport {
   }
 }
 
-.app-shell.is-mobile-shell .schedule-card-action-menu-sheet {
-  bottom: calc(78px + env(safe-area-inset-bottom, 0px));
-}
-
-@media (orientation: landscape) and (max-height: 500px) {
+@media (orientation: portrait) {
   .app-shell.is-mobile-shell .schedule-card-action-menu-sheet {
-    bottom: calc(68px + env(safe-area-inset-bottom, 0px));
+    bottom: calc(70px + env(safe-area-inset-bottom, 0px));
     max-height: calc(
-      100dvh - 80px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px)
+      100dvh - 76px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px)
     );
   }
 }

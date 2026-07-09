@@ -28051,15 +28051,9 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 
 .schedule-card-action-menu-sheet {
   position: fixed;
-  left: 50%;
-  transform: translateX(-50%);
-  bottom: calc(68px + env(safe-area-inset-bottom, 0px));
-  width: min(92vw, 420px);
-  max-height: calc(
-    100dvh - 88px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px)
-  );
   display: flex;
   flex-direction: column;
+  width: min(92vw, 420px);
   border-radius: 16px;
   border: 1px solid rgba(212, 175, 55, 0.18);
   background: rgba(8, 8, 9, 0.97);
@@ -28068,6 +28062,19 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
     0 16px 44px rgba(0, 0, 0, 0.52),
     0 0 0 1px rgba(255, 255, 255, 0.05);
   overflow: hidden;
+}
+
+@media (orientation: portrait) {
+  .schedule-card-action-menu-sheet {
+    left: 50%;
+    right: auto;
+    top: auto;
+    transform: translateX(-50%);
+    bottom: calc(62px + env(safe-area-inset-bottom, 0px));
+    max-height: calc(
+      100dvh - 70px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px)
+    );
+  }
 }
 
 .schedule-card-action-menu-sheet-list {
@@ -28118,9 +28125,14 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 
 @media (orientation: landscape) and (max-height: 500px) {
   .schedule-card-action-menu-sheet {
-    bottom: calc(58px + env(safe-area-inset-bottom, 0px));
-    max-height: calc(
-      100dvh - 72px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px)
+    top: 50%;
+    left: 50%;
+    right: auto;
+    bottom: auto;
+    transform: translate(-50%, -50%);
+    max-height: min(
+      72dvh,
+      calc(100dvh - 24px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px))
     );
     border-radius: 14px;
   }
