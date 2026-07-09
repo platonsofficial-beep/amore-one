@@ -24,6 +24,7 @@ export function TimeSelect({
   }, [optionsProp, normalizedValue])
   const [isOpen, setIsOpen] = useState(false)
   const rootRef = useRef(null)
+  const suppressToggleRef = useRef(false)
 
   useEffect(() => {
     const handlePointerDown = (event) => {
@@ -32,8 +33,16 @@ export function TimeSelect({
       }
     }
 
-    document.addEventListener('mousedown', handlePointerDown)
-    return () => document.removeEventListener('mousedown', handlePointerDown)
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') setIsOpen(false)
+    }
+
+    document.addEventListener('pointerdown', handlePointerDown)
+    document.addEventListener('keydown', handleKeyDown)
+    return () => {
+      document.removeEventListener('pointerdown', handlePointerDown)
+      document.removeEventListener('keydown', handleKeyDown)
+    }
   }, [])
 
   useEffect(() => {
@@ -44,7 +53,11 @@ export function TimeSelect({
 
   const handleSelect = (time) => {
     onChange(snapTimeToQuarter(normalizeTimeValue(time)))
+    suppressToggleRef.current = true
     setIsOpen(false)
+    window.requestAnimationFrame(() => {
+      suppressToggleRef.current = false
+    })
   }
 
   const prefix = className
@@ -56,7 +69,7 @@ export function TimeSelect({
         type="button"
         className={`${prefix}-trigger`}
         onClick={() => {
-          if (disabled) return
+          if (disabled || suppressToggleRef.current) return
           setIsOpen((current) => !current)
         }}
         aria-haspopup="listbox"
@@ -70,13 +83,21 @@ export function TimeSelect({
       </button>
 
       {isOpen ? (
-        <ul className={`${prefix}-menu`} role="listbox" aria-labelledby={fieldId}>
+        <ul
+          className={`${prefix}-menu`}
+          role="listbox"
+          aria-labelledby={fieldId}
+          onPointerDown={(event) => event.stopPropagation()}
+        >
           {!required ? (
             <li role="presentation">
               <button
                 type="button"
                 className={`${prefix}-option is-placeholder${!normalizedValue ? ' is-selected' : ''}`}
-                onClick={() => handleSelect('')}
+                onPointerDown={(event) => {
+                  event.preventDefault()
+                  handleSelect('')
+                }}
               >
                 {placeholder}
               </button>
@@ -89,7 +110,10 @@ export function TimeSelect({
                 role="option"
                 className={`${prefix}-option${time === normalizedValue ? ' is-selected' : ''}`}
                 aria-selected={time === normalizedValue}
-                onClick={() => handleSelect(time)}
+                onPointerDown={(event) => {
+                  event.preventDefault()
+                  handleSelect(time)
+                }}
               >
                 {time}
               </button>

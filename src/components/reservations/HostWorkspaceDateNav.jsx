@@ -1,21 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { HostWorkspaceDatePicker } from './HostWorkspaceDatePicker'
-
-function CalendarIcon() {
-  return (
-    <svg
-      className="host-workspace-date-nav-calendar-icon"
-      width="14"
-      height="14"
-      viewBox="0 0 16 16"
-      aria-hidden="true"
-    >
-      <rect x="2" y="3" width="12" height="11" rx="1.5" fill="none" stroke="currentColor" strokeWidth="1.2" />
-      <path d="M2 6h12" stroke="currentColor" strokeWidth="1.2" />
-      <path d="M5 2v2M11 2v2" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
-    </svg>
-  )
-}
+import { ReservationCalendarIcon } from './ReservationCalendarIcon'
 
 export function HostWorkspaceDateNav({
   dateTime,
@@ -78,7 +63,7 @@ export function HostWorkspaceDateNav({
             <time className="host-workspace-date-nav-label" dateTime={dateTime}>
               {label}
             </time>
-            <CalendarIcon />
+            <ReservationCalendarIcon className="host-workspace-date-nav-calendar-icon" />
           </button>
 
           {isPickerOpen ? (

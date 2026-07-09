@@ -7709,8 +7709,91 @@
   color: #f7efe1;
 }
 
-.host-reservation-edit-field input[type="date"] {
+.host-reservation-edit-field input[type="date"],
+.host-reservation-edit-field .reservation-date-field-input {
   color-scheme: dark;
+}
+
+.reservation-date-field {
+  display: flex;
+  align-items: stretch;
+  gap: 6px;
+  width: 100%;
+}
+
+.reservation-date-field-input {
+  flex: 1;
+  min-width: 0;
+  cursor: pointer;
+}
+
+.reservation-date-field-picker-anchor {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.reservation-date-field-calendar-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.06);
+  color: #a89f92;
+  cursor: pointer;
+}
+
+.reservation-date-field-calendar-btn:hover,
+.reservation-date-field-calendar-btn[aria-expanded='true'] {
+  border-color: rgba(212, 175, 55, 0.35);
+  background: rgba(212, 175, 55, 0.12);
+  color: #d4af37;
+}
+
+.reservation-date-field-calendar-icon {
+  flex-shrink: 0;
+}
+
+.reservation-date-field-picker-anchor .host-workspace-date-picker {
+  right: 0;
+  left: auto;
+  transform: none;
+  top: calc(100% + 6px);
+  z-index: 40;
+}
+
+.reservation-date-field-picker-portal .host-workspace-date-picker {
+  position: static;
+  width: 100%;
+  transform: none;
+  top: auto;
+  left: auto;
+  right: auto;
+}
+
+.form-field .reservation-date-field-input,
+.host-reservation-edit-field .reservation-date-field-input {
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.04);
+  color: #f7efe1;
+  outline: 0;
+}
+
+.host-reservation-edit-field .reservation-date-field-input,
+.host-reservation-edit-field .reservation-date-field-calendar-btn {
+  padding: 6px 8px;
+  border-radius: 8px;
+}
+
+.host-reservation-edit-field .reservation-date-field-calendar-btn {
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0;
 }
 
 .host-reservation-edit-grid {

@@ -33,6 +33,7 @@ import {
   shiftHostWorkspaceDateKey,
 } from './components/reservations/hostReservationListUtils'
 import { ReservationTableSelector } from './components/reservations/ReservationTableSelector'
+import { ReservationDateField } from './components/reservations/ReservationDateField'
 import { ReservationTimeSelect } from './components/reservations/ReservationTimeSelect'
 import { TimeSelect } from './components/TimeSelect'
 import { getHostUnitById, toSeatingUnitFromLayoutUnit } from './lib/hostFloorPlanLayout'
@@ -21374,7 +21375,12 @@ function App() {
                   </label>
                   <label className="form-field">
                     <span>Date</span>
-                    <input type="date" value={reservationForm.date} onChange={(event) => setReservationForm((current) => ({ ...current, date: event.target.value }))} required />
+                    <ReservationDateField
+                      value={reservationForm.date}
+                      onChange={(date) => setReservationForm((current) => ({ ...current, date }))}
+                      todayKey={currentDateKey}
+                      required
+                    />
                   </label>
                   <label className="form-field">
                     <span>Time</span>

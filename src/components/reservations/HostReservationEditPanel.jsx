@@ -10,6 +10,7 @@ import { resolveAreaIdForReservation } from '../../lib/reservationTableOptions'
 import { normalizeReservationTimeValue, normalizeReservationDateKey } from '../../lib/timeFormatUtils'
 import { usePublishedFloorPlan } from '../../lib/PublishedFloorPlanContext'
 import { ReservationTableSelector } from './ReservationTableSelector'
+import { ReservationDateField } from './ReservationDateField'
 import { ReservationTimeSelect } from './ReservationTimeSelect'
 
 import { HOST_RESERVATION_STATUSES } from '../../lib/reservationHostStatus'
@@ -222,10 +223,10 @@ export function HostReservationEditPanel({
           <div className="host-reservation-edit-grid">
             <label className="host-reservation-edit-field">
               <span>Date</span>
-              <input
-                type="date"
+              <ReservationDateField
                 value={form.date}
-                onChange={(event) => updateField({ date: event.target.value })}
+                onChange={(date) => updateField({ date })}
+                todayKey={todayKey}
                 required
               />
             </label>
