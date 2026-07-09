@@ -20257,7 +20257,7 @@ function App() {
             todayKey={currentDateKey}
             weekStartDate={todayWeekStart}
             reservations={reservations}
-            tasks={tasks}
+            tasks={todayActionableTasks}
             inventoryItems={inventoryItems}
             stockItems={stockItems}
             stockOrders={stockOrders}

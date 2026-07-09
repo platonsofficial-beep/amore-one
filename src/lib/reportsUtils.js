@@ -125,7 +125,7 @@ export function buildReservationsReport(
     noShow,
   }
 
-  if (period === REPORT_PERIOD_TODAY && serviceSnapshot) {
+  if (connected && period === REPORT_PERIOD_TODAY && serviceSnapshot) {
     metrics.covers = Number(serviceSnapshot.totalCovers) || 0
     metrics.seatedGuests = Number(serviceSnapshot.seatedGuests) || 0
     metrics.waiting = Number(serviceSnapshot.waitingCount) || 0
@@ -137,7 +137,7 @@ export function buildReservationsReport(
     connected,
     empty: connected && scoped.length === 0,
     metrics,
-    servicePressure: period === REPORT_PERIOD_TODAY && serviceSnapshot
+    servicePressure: connected && period === REPORT_PERIOD_TODAY && serviceSnapshot
       ? serviceSnapshot.overallTone ?? null
       : null,
   }
@@ -457,12 +457,19 @@ export function buildInsightsHealthSummary({
       : 'Weekly overview from connected modules.'
   }
 
+  const moduleReports = [reservationsReport, tasksReport, stockReport, scheduleReport]
+  const connectedCount = moduleReports.filter((report) => report?.connected).length
+
+  if (connectedCount === 0) {
+    return 'Connect modules to see operational insights.'
+  }
+
   const attentionCount = (attentionItems ?? []).length
   if (attentionCount > 0) {
     return `${attentionCount} area${attentionCount === 1 ? '' : 's'} need attention today`
   }
 
-  if (serviceSnapshot?.overallStatus) {
+  if (reservationsReport?.connected && serviceSnapshot?.overallStatus) {
     return `Service: ${serviceSnapshot.overallStatus}`
   }
 
@@ -492,7 +499,7 @@ export function buildReportsOverview({
   if (period === REPORT_PERIOD_TODAY) {
     const hasCovers = reservationsReport?.metrics?.covers != null
     const hasPendingOrders = stockReport?.stockModuleConnected
-      && stockReport.metrics.pendingOrders != null
+      && Number(stockReport.metrics.pendingOrders) > 0
 
     return [
       {

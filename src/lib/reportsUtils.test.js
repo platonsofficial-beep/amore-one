@@ -161,6 +161,47 @@ describe('reportsUtils', () => {
     }
   })
 
+  it('shows items to order in overview when pending orders are zero', () => {
+    const overview = buildReportsOverview({
+      period: REPORT_PERIOD_TODAY,
+      reservationsReport: { connected: true, metrics: { bookings: 1, guests: 4 } },
+      tasksReport: { connected: true, metrics: { overdue: 0 } },
+      stockReport: {
+        connected: true,
+        stockModuleConnected: true,
+        metrics: { itemsToOrder: 3, pendingOrders: 0, totalStockValue: 100 },
+      },
+      scheduleReport: { connected: true, metrics: { issues: 0 } },
+    })
+
+    expect(overview.find((card) => card.key === 'items-to-order')?.value).toBe(3)
+    expect(overview.find((card) => card.key === 'pending-orders')).toBeUndefined()
+  })
+
+  it('does not attach service metrics when reservations are disconnected', () => {
+    const report = buildReservationsReport([makeReservation()], {
+      connected: false,
+      serviceSnapshot: { totalCovers: 12, overallStatus: 'Busy service' },
+      todayKey: TODAY,
+    })
+
+    expect(report.metrics.covers).toBeUndefined()
+    expect(report.servicePressure).toBeNull()
+  })
+
+  it('reports disconnected modules in the health summary', () => {
+    const summary = buildInsightsHealthSummary({
+      period: REPORT_PERIOD_TODAY,
+      attentionItems: [],
+      reservationsReport: { connected: false },
+      tasksReport: { connected: false },
+      stockReport: { connected: false },
+      scheduleReport: { connected: false },
+    })
+
+    expect(summary).toBe('Connect modules to see operational insights.')
+  })
+
   it('builds today overview with covers and pending orders when available', () => {
     const overview = buildReportsOverview({
       period: REPORT_PERIOD_TODAY,
@@ -206,6 +247,7 @@ describe('reportsUtils', () => {
     const stable = buildInsightsHealthSummary({
       period: REPORT_PERIOD_TODAY,
       attentionItems: [],
+      reservationsReport: { connected: true },
       tasksReport: { connected: true, metrics: { overdue: 0 } },
       stockReport: { connected: true, metrics: { outOfStock: 0 } },
       scheduleReport: { connected: true, metrics: { issues: 0 } },
@@ -215,6 +257,7 @@ describe('reportsUtils', () => {
     const urgent = buildInsightsHealthSummary({
       period: REPORT_PERIOD_TODAY,
       attentionItems: [{ key: 'task:1' }, { key: 'stock:1' }],
+      reservationsReport: { connected: true },
       tasksReport: { connected: true, metrics: { overdue: 0 } },
       stockReport: { connected: true, metrics: { outOfStock: 0 } },
       scheduleReport: { connected: true, metrics: { issues: 0 } },
