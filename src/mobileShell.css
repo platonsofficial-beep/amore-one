@@ -3816,6 +3816,15 @@
   max-width: 100%;
 }
 
+.app-shell.is-mobile-expanded .schedule-workspace.is-compact-landscape .schedule-workspace-layout {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.app-shell.is-mobile-expanded .schedule-workspace.is-compact-landscape .schedule-grid-section {
+  position: relative;
+  min-width: 0;
+}
+
 .app-shell.is-mobile-expanded .main-panel-reservations {
   height: auto;
   max-height: none;
@@ -3955,6 +3964,28 @@
 
   .app-shell.is-mobile-expanded .host-operations-floor {
     min-height: 220px;
+  }
+
+  .app-shell.is-mobile-expanded .schedule-workspace.is-compact-landscape {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .app-shell.is-mobile-expanded .schedule-workspace.is-compact-landscape .schedule-workspace-layout,
+  .app-shell.is-mobile-expanded .schedule-workspace.is-compact-landscape .schedule-workspace-main,
+  .app-shell.is-mobile-expanded .schedule-workspace.is-compact-landscape .schedule-grid-section,
+  .app-shell.is-mobile-expanded .schedule-workspace.is-compact-landscape .blend-grid-scroll,
+  .app-shell.is-mobile-expanded .schedule-workspace.is-compact-landscape .blend-grid-table {
+    max-width: 100%;
+  }
+
+  .app-shell.is-mobile-expanded .schedule-workspace.is-compact-landscape.is-templates-collapsed .schedule-grid-hero {
+    padding-right: 40px;
+  }
+
+  .app-shell.is-mobile-expanded .schedule-workspace.is-compact-landscape .schedule-grid-hero .blend-grid-scroll {
+    min-height: calc(100dvh - 148px);
+    max-height: calc(100dvh - 148px);
   }
 }
 

@@ -364,6 +364,11 @@ import { MobileReservationsHostRightPane } from './components/mobile/reservation
 import { ViewportDebugOverlay } from './components/shell/ViewportDebugOverlay'
 import { shouldUseMobileShell } from './lib/viewportUtils'
 import {
+  getScheduleGridDayColumnWidth,
+  getScheduleGridTableMinWidth,
+  isMobileScheduleCompactLandscape,
+} from './lib/mobileScheduleUtils'
+import {
   isMobileScrollDebugEnabled,
   scheduleMobileReservationsScrollDebug,
   setMobileScrollDebugAttribute,
@@ -1477,6 +1482,12 @@ function ScheduleView({
   const dragSessionRef = useRef(null)
   const employeeChipClickGuardRef = useRef(false)
   const [collapsedScheduleAreaKeys, setCollapsedScheduleAreaKeys] = useState(() => readCollapsedScheduleAreaKeys())
+  const [isScheduleCompactLandscape, setIsScheduleCompactLandscape] = useState(() => isMobileScheduleCompactLandscape())
+  const [isTemplatesPanelOpen, setIsTemplatesPanelOpen] = useState(() => !isMobileScheduleCompactLandscape())
+  const [scheduleViewportWidth, setScheduleViewportWidth] = useState(() => (
+    typeof window !== 'undefined' ? window.innerWidth : 0
+  ))
+  const wasScheduleCompactLandscapeRef = useRef(isMobileScheduleCompactLandscape())
 
   const isDragDropDisabled = isSaving || isPublishing || !canEditSchedule
 
@@ -1494,6 +1505,52 @@ function ScheduleView({
     () => getWeekDays(weekStartDate, { shiftCounts: shiftCountByDate }),
     [shiftCountByDate, weekStartDate],
   )
+
+  const scheduleDayColumnWidth = useMemo(
+    () => getScheduleGridDayColumnWidth({
+      dayCount: weekDays.length,
+      viewportWidth: scheduleViewportWidth,
+      isCompactLandscape: isScheduleCompactLandscape,
+      isTemplatesPanelOpen,
+    }),
+    [weekDays.length, scheduleViewportWidth, isScheduleCompactLandscape, isTemplatesPanelOpen],
+  )
+
+  const scheduleGridTableMinWidth = useMemo(
+    () => getScheduleGridTableMinWidth(weekDays.length, scheduleDayColumnWidth),
+    [weekDays.length, scheduleDayColumnWidth],
+  )
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return undefined
+
+    const updateScheduleViewport = () => {
+      const compact = isMobileScheduleCompactLandscape()
+      const wasCompact = wasScheduleCompactLandscapeRef.current
+      wasScheduleCompactLandscapeRef.current = compact
+      setIsScheduleCompactLandscape(compact)
+      setScheduleViewportWidth(window.innerWidth)
+      if (compact && !wasCompact) {
+        setIsTemplatesPanelOpen(false)
+      }
+    }
+
+    updateScheduleViewport()
+
+    window.addEventListener('resize', updateScheduleViewport)
+    window.addEventListener('orientationchange', updateScheduleViewport)
+    window.visualViewport?.addEventListener('resize', updateScheduleViewport)
+
+    const landscapeQuery = window.matchMedia?.('(orientation: landscape)')
+    landscapeQuery?.addEventListener?.('change', updateScheduleViewport)
+
+    return () => {
+      window.removeEventListener('resize', updateScheduleViewport)
+      window.removeEventListener('orientationchange', updateScheduleViewport)
+      window.visualViewport?.removeEventListener('resize', updateScheduleViewport)
+      landscapeQuery?.removeEventListener?.('change', updateScheduleViewport)
+    }
+  }, [])
 
   useEffect(() => {
     setCapacityDraftMap({})
@@ -3607,8 +3664,16 @@ function ScheduleView({
     }
   }
 
+  const scheduleWorkspaceClassName = [
+    'staff-page',
+    'schedule-workspace',
+    isScheduleCompactLandscape ? 'is-compact-landscape' : '',
+    isScheduleCompactLandscape && !isTemplatesPanelOpen ? 'is-templates-collapsed' : '',
+    isScheduleCompactLandscape && isTemplatesPanelOpen ? 'is-templates-open' : '',
+  ].filter(Boolean).join(' ')
+
   return (
-    <section className="staff-page schedule-workspace" onClick={() => { setCapacityPickerKey(''); setDayActionMenuKey(null); setCellActionMenuKey(''); setIsScheduleMoreMenuOpen(false); setTemplateActionMenuId(null) }}>
+    <section className={scheduleWorkspaceClassName} onClick={() => { setCapacityPickerKey(''); setDayActionMenuKey(null); setCellActionMenuKey(''); setIsScheduleMoreMenuOpen(false); setTemplateActionMenuId(null) }}>
       <header className="schedule-header panel">
         <div className="schedule-header-copy">
           <p className="eyebrow schedule-header-eyebrow">Schedule</p>
@@ -3838,6 +3903,25 @@ function ScheduleView({
           </details>
 
       <div className={`schedule-grid-section panel staff-panel blend-grid-panel schedule-grid-hero ${isScheduleVisualFilterActive ? 'schedule-visual-filter-active' : ''}`}>
+        {isScheduleCompactLandscape && scheduleGridTemplates.length > 0 ? (
+          <button
+            type="button"
+            className="schedule-templates-toggle"
+            onClick={(event) => {
+              event.stopPropagation()
+              setIsTemplatesPanelOpen((current) => !current)
+            }}
+            aria-expanded={isTemplatesPanelOpen}
+            aria-controls="schedule-templates-panel"
+          >
+            <span className="schedule-templates-toggle-chevron" aria-hidden="true">
+              {isTemplatesPanelOpen ? '›' : '‹'}
+            </span>
+            <span className="schedule-templates-toggle-label">
+              {isTemplatesPanelOpen ? 'Hide' : 'Templates'}
+            </span>
+          </button>
+        ) : null}
         {scheduleGridTemplates.length === 0 ? (
           <div className="schedule-empty-state">
             <h4>No shift templates available.</h4>
@@ -3848,8 +3932,8 @@ function ScheduleView({
             <div
               className="blend-grid-table schedule-day-grid"
               style={{
-                gridTemplateColumns: `repeat(${weekDays.length}, 156px)`,
-                minWidth: `${weekDays.length * 156 + Math.max(0, weekDays.length - 1) * 6}px`,
+                gridTemplateColumns: `repeat(${weekDays.length}, ${scheduleDayColumnWidth}px)`,
+                minWidth: `${scheduleGridTableMinWidth}px`,
               }}
             >
               {weekDays.map((day) => {
@@ -4122,11 +4206,31 @@ function ScheduleView({
         </div>
 
         {scheduleGridTemplates.length > 0 ? (
-          <aside className="schedule-templates-panel panel staff-panel" aria-label="Shift templates">
+          <aside
+            id="schedule-templates-panel"
+            className={`schedule-templates-panel panel staff-panel${isScheduleCompactLandscape && isTemplatesPanelOpen ? ' is-overlay-open' : ''}`}
+            aria-label="Shift templates"
+            aria-hidden={isScheduleCompactLandscape && !isTemplatesPanelOpen}
+          >
             <header className="schedule-templates-panel-header">
-              <p className="eyebrow">Tools</p>
-              <h3>Shift templates</h3>
-              <p className="schedule-templates-panel-note">Assign employees to day cells in the week grid.</p>
+              <div className="schedule-templates-panel-header-copy">
+                <p className="eyebrow">Tools</p>
+                <h3>Shift templates</h3>
+                <p className="schedule-templates-panel-note">Assign employees to day cells in the week grid.</p>
+              </div>
+              {isScheduleCompactLandscape ? (
+                <button
+                  type="button"
+                  className="schedule-templates-panel-close"
+                  onClick={(event) => {
+                    event.stopPropagation()
+                    setIsTemplatesPanelOpen(false)
+                  }}
+                  aria-label="Hide shift templates"
+                >
+                  ›
+                </button>
+              ) : null}
             </header>
             <div className="schedule-templates-list">
               {blendGridAreaGroups.map((group) => {
