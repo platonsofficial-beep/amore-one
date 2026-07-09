@@ -62,6 +62,26 @@ export class ObjectDragManager {
     })
   }
 
+  attachWindowListeners() {
+    if (this.boundMove) return
+
+    this.boundMove = (event) => this.move(event)
+    this.boundEnd = (event) => this.end(event)
+    window.addEventListener('pointermove', this.boundMove)
+    window.addEventListener('pointerup', this.boundEnd)
+    window.addEventListener('pointercancel', this.boundEnd)
+  }
+
+  detachWindowListeners() {
+    if (!this.boundMove) return
+
+    window.removeEventListener('pointermove', this.boundMove)
+    window.removeEventListener('pointerup', this.boundEnd)
+    window.removeEventListener('pointercancel', this.boundEnd)
+    this.boundMove = null
+    this.boundEnd = null
+  }
+
   start(event, object, { snapEnabled, floorBounds }) {
     const world = this.getClientToWorld(event.clientX, event.clientY)
 
@@ -84,7 +104,10 @@ export class ObjectDragManager {
       moved: false,
     }
 
-    event.currentTarget.setPointerCapture(event.pointerId)
+    if (typeof this.element.setPointerCapture === 'function') {
+      this.element.setPointerCapture(event.pointerId)
+    }
+    this.attachWindowListeners()
     this.applyTransform(this.session.previewPosition)
     return true
   }
@@ -126,15 +149,17 @@ export class ObjectDragManager {
       this.onMoveObject(session.objectId, finalPosition)
     }
 
-    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
-      event.currentTarget.releasePointerCapture(event.pointerId)
+    if (this.element?.hasPointerCapture?.(event.pointerId)) {
+      this.element.releasePointerCapture(event.pointerId)
     }
 
+    this.detachWindowListeners()
     this.clearTransform()
     this.cancel()
   }
 
   cancel() {
+    this.detachWindowListeners()
     this.session = null
     this.element = null
 
@@ -145,6 +170,7 @@ export class ObjectDragManager {
   }
 
   dispose() {
+    this.detachWindowListeners()
     this.clearTransform()
     this.cancel()
   }

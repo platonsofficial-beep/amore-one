@@ -30,10 +30,16 @@ function CanvasObjectNodeComponent({
   const capacity = Math.max(0, Number(properties.capacity) || 0)
   const isLocked = properties.locked === true
   const rotation = object.rotation ?? 0
+  const minDimension = Math.min(size.width, size.height)
+  const labelDensity = minDimension < 96
+    ? 'compact'
+    : minDimension < 128
+      ? 'cozy'
+      : 'normal'
 
   return (
     <div
-      className={`fpb-canvas-object type-${object.type}${shapeClass}${isSelected ? ' is-selected' : ''}${isDragging ? ' is-dragging' : ''}${isTransforming ? ' is-transforming' : ''}${isLocked ? ' is-locked' : ''}`}
+      className={`fpb-canvas-object type-${object.type}${shapeClass}${isSelected ? ' is-selected' : ''}${isDragging ? ' is-dragging' : ''}${isTransforming ? ' is-transforming' : ''}${isLocked ? ' is-locked' : ''}${labelDensity !== 'normal' ? ` is-label-${labelDensity}` : ''}`}
       style={{
         left: position.x,
         top: position.y,
@@ -57,8 +63,8 @@ function CanvasObjectNodeComponent({
       data-object-id={object.id}
     >
       <div className="fpb-canvas-object-surface">
-        <span className="fpb-canvas-object-label">{label}</span>
-        {isTable ? (
+        <span className="fpb-canvas-object-label" title={label}>{label}</span>
+        {isTable && labelDensity === 'normal' ? (
           <span className="fpb-canvas-object-meta">{capacity} guests</span>
         ) : null}
       </div>

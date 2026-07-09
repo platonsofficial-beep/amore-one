@@ -25,6 +25,7 @@ export function CanvasWorkspace({ workspace, title, onBackgroundPointerUp }) {
           onBackgroundPointerUp?.(event)
         }}
       >
+        <div className="fpb-canvas-workspace-grid" aria-hidden="true" />
         <span className="fpb-canvas-workspace-label">{title}</span>
       </div>
     </div>

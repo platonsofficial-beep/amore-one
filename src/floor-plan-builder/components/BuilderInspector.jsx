@@ -7,13 +7,16 @@ import {
   getObjectDisplayLabel,
   getTableSizeForPreset,
 } from '../models/floorPlanObject'
-import { normalizeRotation } from '../lib/tableTransformUtils'
+import { normalizeRotation, stepRotation } from '../lib/tableTransformUtils'
 import {
   createDefaultSections,
   getTableSectionTotals,
   normalizeTableSection,
   supportsTableSections,
 } from '../lib/tableSections'
+import { PanelHeader } from './PanelHeader'
+
+const TABLE_ROTATION_STEP = 45
 
 function InspectorEmptyState() {
   return (
@@ -91,7 +94,7 @@ function InspectorMultiSelectPanel({ count, isReadOnly, dispatch }) {
   )
 }
 
-export function BuilderInspector() {
+export function BuilderInspector({ onClose, showCloseButton = false }) {
   const { state, dispatch, selectedObject } = useFloorPlanBuilder()
   const { floors } = state
   const isReadOnly = state.mode !== 'editing'
@@ -100,10 +103,12 @@ export function BuilderInspector() {
   if (selectionCount > 1) {
     return (
       <aside className="fpb-inspector fpb-inspector-simple" aria-label="Table properties">
-        <div className="fpb-panel-header">
-          <p className="fpb-panel-eyebrow">Properties</p>
-          <h2 className="fpb-panel-title">{selectionCount} tables selected</h2>
-        </div>
+        <PanelHeader
+          eyebrow="Properties"
+          title={`${selectionCount} tables selected`}
+          onClose={onClose}
+          showClose={showCloseButton}
+        />
         <InspectorMultiSelectPanel count={selectionCount} isReadOnly={isReadOnly} dispatch={dispatch} />
       </aside>
     )
@@ -112,10 +117,12 @@ export function BuilderInspector() {
   if (!selectedObject || selectedObject.type !== FLOOR_PLAN_OBJECT_TYPES.TABLE) {
     return (
       <aside className="fpb-inspector fpb-inspector-simple" aria-label="Table properties">
-        <div className="fpb-panel-header">
-          <p className="fpb-panel-eyebrow">Properties</p>
-          <h2 className="fpb-panel-title">Table</h2>
-        </div>
+        <PanelHeader
+          eyebrow="Properties"
+          title="Table"
+          onClose={onClose}
+          showClose={showCloseButton}
+        />
         <InspectorEmptyState />
       </aside>
     )
@@ -161,11 +168,14 @@ export function BuilderInspector() {
 
   return (
     <aside className={`fpb-inspector fpb-inspector-simple${isReadOnly ? ' is-readonly' : ''}`} aria-label="Table properties">
-      <div className="fpb-panel-header">
-        <p className="fpb-panel-eyebrow">Properties</p>
-        <h2 className="fpb-panel-title">{displayLabel}</h2>
+      <PanelHeader
+        eyebrow="Properties"
+        title={displayLabel}
+        onClose={onClose}
+        showClose={showCloseButton}
+      >
         {isReadOnly ? <p className="fpb-inspector-readonly-note">View mode — click Edit layout to change tables.</p> : null}
-      </div>
+      </PanelHeader>
 
       <div className="fpb-inspector-fields">
         <label className="fpb-inspector-field">
@@ -389,17 +399,39 @@ export function BuilderInspector() {
           </label>
         </div>
 
-        <label className="fpb-inspector-field">
+        <div className="fpb-inspector-field">
           <span>Rotation</span>
-          <input
-            type="number"
-            min="0"
-            max="359"
-            value={rotation}
-            onChange={(event) => updateTable({ rotation: event.target.value })}
-            disabled={isReadOnly}
-          />
-        </label>
+          <div className="fpb-inspector-rotation-controls">
+            <button
+              type="button"
+              className="fpb-inspector-rotation-btn"
+              onClick={() => updateTable({ rotation: stepRotation(rotation, -TABLE_ROTATION_STEP) })}
+              disabled={isReadOnly}
+              aria-label="Rotate left 45 degrees"
+            >
+              ↺ Left
+            </button>
+            <input
+              type="number"
+              className="fpb-inspector-rotation-input"
+              min="0"
+              max="359"
+              value={rotation}
+              onChange={(event) => updateTable({ rotation: event.target.value })}
+              disabled={isReadOnly}
+              aria-label="Rotation degrees"
+            />
+            <button
+              type="button"
+              className="fpb-inspector-rotation-btn"
+              onClick={() => updateTable({ rotation: stepRotation(rotation, TABLE_ROTATION_STEP) })}
+              disabled={isReadOnly}
+              aria-label="Rotate right 45 degrees"
+            >
+              Right ↻
+            </button>
+          </div>
+        </div>
 
         <label className="fpb-inspector-field">
           <span>Area</span>

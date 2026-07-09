@@ -7,6 +7,7 @@ import {
   resolveTableSizeForNewTable,
 } from '../models/floorPlanObject'
 import { floorBoundaryService } from '../services/FloorBoundaryService'
+import { PanelHeader } from './PanelHeader'
 
 const BASIC_TABLE_SHAPES = ['round', 'square', 'rectangle']
 
@@ -16,7 +17,7 @@ const SHAPE_ADD_LABELS = {
   rectangle: '+ Rectangle table',
 }
 
-export function BuilderToolbox() {
+export function BuilderToolbox({ onClose, showCloseButton = false }) {
   const {
     dispatch,
     state,
@@ -106,10 +107,12 @@ export function BuilderToolbox() {
   return (
     <aside className={`fpb-toolbox fpb-toolbox-simple${isEditing ? '' : ' is-locked'}`} aria-label="Floor plan builder">
       <div className="fpb-toolbox-scroll">
-        <div className="fpb-panel-header">
-          <p className="fpb-panel-eyebrow">Restaurant</p>
-          <h2 className="fpb-panel-title">Areas</h2>
-        </div>
+        <PanelHeader
+          eyebrow="Restaurant"
+          title="Areas"
+          onClose={onClose}
+          showClose={showCloseButton}
+        />
 
         <div className="fpb-area-panel">
           <label className="fpb-area-field">

@@ -229,11 +229,15 @@ export function BuilderCanvas({ containerRef, viewportControls, workspaceLayoutK
         : 'default'
 
   return (
-    <section className={`fpb-canvas-shell fpb-canvas-shell-simple${isEditing ? '' : ' is-view-mode'}`} aria-label="Floor plan canvas">
+    <section
+      className={`fpb-canvas-shell fpb-canvas-shell-simple${isEditing ? ' is-editing' : ''}${isEditing ? '' : ' is-view-mode'}`}
+      data-grid-enabled={state.settings.gridEnabled ? 'true' : 'false'}
+      aria-label="Floor plan canvas"
+    >
       <div
         ref={containerRef}
         className="fpb-canvas-viewport"
-        style={{ cursor: canvasCursor }}
+        style={{ cursor: canvasCursor, touchAction: isEditing ? 'none' : 'auto' }}
         onPointerDown={handleViewportPointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}

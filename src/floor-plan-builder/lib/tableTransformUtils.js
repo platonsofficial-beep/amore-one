@@ -22,6 +22,10 @@ export function snapRotation(degrees, shiftKey) {
   return normalizeRotation(Math.round(normalized / 15) * 15)
 }
 
+export function stepRotation(degrees, delta) {
+  return normalizeRotation((Number(degrees) || 0) + delta)
+}
+
 export function getTableMinSize(shape) {
   return TABLE_MIN_SIZES[shape] ?? TABLE_MIN_SIZES.round
 }

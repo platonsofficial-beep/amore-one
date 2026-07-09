@@ -13,6 +13,26 @@ import { usePublishedFloorPlan } from '../../lib/PublishedFloorPlanContext'
 import { DEFAULT_FLOOR_SIZE, WORKSPACE_EXPAND_STEP } from '../../floor-plan-builder/models/floorWorkspace'
 import '../../floor-plan-builder/floorPlanBuilder.css'
 
+const TABLET_EDITOR_BREAKPOINT = 1180
+
+function useEditorTabletLayout() {
+  const [isTablet, setIsTablet] = useState(() => (
+    typeof window !== 'undefined' ? window.innerWidth <= TABLET_EDITOR_BREAKPOINT : false
+  ))
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return undefined
+
+    const mediaQuery = window.matchMedia(`(max-width: ${TABLET_EDITOR_BREAKPOINT}px)`)
+    const update = () => setIsTablet(mediaQuery.matches)
+    update()
+    mediaQuery.addEventListener('change', update)
+    return () => mediaQuery.removeEventListener('change', update)
+  }, [])
+
+  return isTablet
+}
+
 function EditorAreaSwitcher({ floors, activeFloorId, onChange }) {
   const activeFloor = floors.find((floor) => floor.id === activeFloorId) ?? floors[0]
 
@@ -77,9 +97,12 @@ function EmbeddedFloorPlanEditorShell({
   const didApplyInitialAreaRef = useRef(false)
   const objectFitSignatureRef = useRef('')
   const [toolsPanelOpen, setToolsPanelOpen] = useState(() => (
-    typeof window !== 'undefined' ? window.innerWidth > 1180 : true
+    typeof window !== 'undefined' ? window.innerWidth > TABLET_EDITOR_BREAKPOINT : true
   ))
-  const [inspectorPanelOpen, setInspectorPanelOpen] = useState(false)
+  const [inspectorPanelOpen, setInspectorPanelOpen] = useState(() => (
+    typeof window !== 'undefined' ? window.innerWidth > TABLET_EDITOR_BREAKPOINT : true
+  ))
+  const isTabletLayout = useEditorTabletLayout()
 
   const viewportControls = useCanvasViewport({
     camera: state.camera,
@@ -164,10 +187,10 @@ function EmbeddedFloorPlanEditorShell({
   const selectionCount = state.selectedTableIds.length
 
   useEffect(() => {
-    if (selectionCount > 0) {
+    if (selectionCount > 0 && !isTabletLayout) {
       setInspectorPanelOpen(true)
     }
-  }, [selectionCount])
+  }, [isTabletLayout, selectionCount])
 
   const workspaceLayoutKey = layout.sidebarWidth + layout.toolbarHeight
 
@@ -266,7 +289,7 @@ function EmbeddedFloorPlanEditorShell({
     <div className="unified-floor-editor">
       <div
         ref={editorRef}
-        className={`fpb-editor fpb-editor-simple fpb-editor-embedded${toolsPanelOpen ? ' is-tools-open' : ''}${inspectorPanelOpen ? ' is-inspector-open' : ''}`}
+        className={`fpb-editor fpb-editor-simple fpb-editor-embedded${toolsPanelOpen ? ' is-tools-open' : ''}${inspectorPanelOpen ? ' is-inspector-open' : ''}${isTabletLayout ? ' is-tablet-layout' : ''}`}
         data-builder-mode={state.mode}
         style={{ '--fpb-toolbar-height': `${layout.toolbarHeight}px` }}
       >
@@ -363,7 +386,10 @@ function EmbeddedFloorPlanEditorShell({
         </div>
 
         <div ref={sidebarRef} className="fpb-editor-sidebar">
-          <BuilderToolbox />
+          <BuilderToolbox
+            onClose={() => setToolsPanelOpen(false)}
+            showCloseButton={isTabletLayout}
+          />
         </div>
 
         <div className="fpb-editor-canvas">
@@ -375,7 +401,10 @@ function EmbeddedFloorPlanEditorShell({
         </div>
 
         <div className="fpb-editor-inspector">
-          <BuilderInspector />
+          <BuilderInspector
+            onClose={() => setInspectorPanelOpen(false)}
+            showCloseButton={isTabletLayout}
+          />
         </div>
       </div>
     </div>
