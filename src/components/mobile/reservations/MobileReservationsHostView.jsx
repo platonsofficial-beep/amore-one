@@ -30,6 +30,8 @@ export function MobileReservationsHostView({
   onReservationNotice,
   onCreateReservation,
   onExitHostMode,
+  canEditFloorPlan = false,
+  onOpenFloorPlanLayout,
   renderRightPane,
   selectedReservationId: controlledSelectedReservationId = null,
   onSelectReservation,
@@ -92,6 +94,7 @@ export function MobileReservationsHostView({
     if (created !== false) {
       setIsCreateOpen(false)
     }
+    return created
   }
 
   const handleSelectReservation = (reservation) => {
@@ -266,16 +269,28 @@ export function MobileReservationsHostView({
           <span><strong>{summary.upcomingArrivals ?? 0}</strong> upcoming</span>
           <span><strong>{summary.seatedGuests ?? summary.inHouse}</strong> seated</span>
         </div>
-        {onExitHostMode ? (
-          <button
-            type="button"
-            className="mobile-host-mode-exit-btn"
-            onClick={onExitHostMode}
-            aria-label="Exit Host Mode"
-          >
-            Exit Host Mode
-          </button>
-        ) : null}
+        <div className="mobile-host-sticky-actions">
+          {canEditFloorPlan ? (
+            <button
+              type="button"
+              className="mobile-host-layout-btn"
+              onClick={onOpenFloorPlanLayout}
+              aria-label="Edit floor plan layout"
+            >
+              Layout
+            </button>
+          ) : null}
+          {onExitHostMode ? (
+            <button
+              type="button"
+              className="mobile-host-mode-exit-btn"
+              onClick={onExitHostMode}
+              aria-label="Exit Host Mode"
+            >
+              Exit Host Mode
+            </button>
+          ) : null}
+        </div>
       </header>
 
       {noticeMessage ? (

@@ -5,7 +5,7 @@ const DEFAULT_HOST_MOBILE_TAB = 'host'
 const DEFAULT_MANAGER_MOBILE_TAB = 'today'
 
 const VALID_MOBILE_TABS = new Set(['home', 'schedule', 'tasks', 'menu'])
-const VALID_HOST_MOBILE_TABS = new Set(['host', 'schedule', 'tasks', 'menu'])
+const VALID_HOST_MOBILE_TABS = new Set(['host'])
 const VALID_MANAGER_MOBILE_TABS = new Set(['today', 'stock', 'tasks', 'menu'])
 
 export function normalizeMobileTab(value, { variant = 'staff' } = {}) {
@@ -13,7 +13,6 @@ export function normalizeMobileTab(value, { variant = 'staff' } = {}) {
 
   if (variant === 'host') {
     if (VALID_HOST_MOBILE_TABS.has(normalized)) return normalized
-    if (normalized === 'home') return DEFAULT_HOST_MOBILE_TAB
     return DEFAULT_HOST_MOBILE_TAB
   }
 

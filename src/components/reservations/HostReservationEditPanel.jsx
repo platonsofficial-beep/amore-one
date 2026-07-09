@@ -9,6 +9,11 @@ import { CUSTOMER_TYPES } from '../../lib/reservationCustomerType'
 import { resolveAreaIdForReservation } from '../../lib/reservationTableOptions'
 import { normalizeReservationTimeValue, normalizeReservationDateKey } from '../../lib/timeFormatUtils'
 import { validateReservationFormFields } from '../../lib/reservationFormValidation'
+import {
+  handleReservationFormEnterKey,
+  preventReservationFormSubmit,
+} from '../../lib/reservationFormNavigation'
+import { ReservationPhoneField } from './ReservationPhoneField'
 import { usePublishedFloorPlan } from '../../lib/PublishedFloorPlanContext'
 import { ReservationTableSelector } from './ReservationTableSelector'
 import { ReservationDateField } from './ReservationDateField'
@@ -148,9 +153,7 @@ export function HostReservationEditPanel({
 
   const formId = `host-reservation-edit-form-${reservation.id}`
 
-  const handleSubmit = async (event) => {
-    event.preventDefault()
-
+  const handleSave = async () => {
     const validation = validateReservationFormFields(form, { dateFallback: todayKey })
     if (!validation.ok) {
       onValidationError?.(validation.error)
@@ -173,12 +176,12 @@ export function HostReservationEditPanel({
         </div>
         <div className="host-reservation-edit-header-actions">
           <button
-            type="submit"
-            form={formId}
+            type="button"
             className={`host-reservation-edit-save-icon${isSaving ? ' is-saving' : ''}`}
             aria-label={isSaving ? 'Saving reservation' : 'Save changes'}
             title={isSaving ? 'Saving…' : 'Save changes'}
             disabled={isSaving}
+            onClick={handleSave}
           >
             {isSaving ? '…' : '✓'}
           </button>
@@ -202,7 +205,8 @@ export function HostReservationEditPanel({
         <form
           id={formId}
           className="host-reservation-edit-form"
-          onSubmit={handleSubmit}
+          onSubmit={preventReservationFormSubmit}
+          onKeyDownCapture={handleReservationFormEnterKey}
         >
           <label className="host-reservation-edit-field">
             <span>Guest name</span>
@@ -215,9 +219,9 @@ export function HostReservationEditPanel({
 
           <label className="host-reservation-edit-field">
             <span>Phone</span>
-            <input
+            <ReservationPhoneField
               value={form.phone}
-              onChange={(event) => updateField({ phone: event.target.value })}
+              onChange={(phone) => updateField({ phone })}
             />
           </label>
 

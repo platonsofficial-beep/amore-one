@@ -8,6 +8,7 @@ import {
   canAccessMobileExpandedModule,
   canAccessModule,
   canAssignManagerInviteRole,
+  canEditFloorPlan,
   canEditSchedule,
   canLinkMembershipEmployee,
   canManageAnnouncements,
@@ -79,24 +80,25 @@ describe('permissions', () => {
       expect(canAccessMobileExpandedModule('staff', 'operations')).toBe(false)
     })
 
-    it('limits host to reservations and read-only schedule context', () => {
+    it('limits host to reservations-only reception station access', () => {
       const modules = getAccessibleModules('host')
 
-      expect(modules).toEqual(['reservations', 'team'])
+      expect(modules).toEqual(['reservations'])
       expect(canAccessModule('host', 'stock')).toBe(false)
       expect(canAccessModule('host', 'operations')).toBe(false)
       expect(canAccessModule('host', 'today')).toBe(false)
       expect(canAccessModule('host', 'settings')).toBe(false)
       expect(canAccessModule('host', 'insights')).toBe(false)
+      expect(canAccessModule('host', 'team')).toBe(false)
       expect(canAccessModule('host', 'reservations')).toBe(true)
       expect(canAccessMobileExpandedModule('host', 'reservations')).toBe(true)
       expect(canAccessMobileExpandedModule('host', 'stock')).toBe(false)
       expect(canAccessMobileExpandedModule('host', 'operations')).toBe(false)
       expect(canAccessMobileExpandedModule('host', 'team')).toBe(false)
-      expect(resolvePermittedTeamSection('host', 'members')).toBe('schedule')
       expect(canOpenMobileFullSchedule('host')).toBe(false)
       expect(canOpenMobileTasksWorkspace('host')).toBe(false)
-      expect(canAccessHostMobileTasksTab('host')).toBe(true)
+      expect(canAccessHostMobileTasksTab('host')).toBe(false)
+      expect(canEditFloorPlan('host')).toBe(true)
       expect(resolveDefaultModuleForRole('host')).toBe(HOST_FALLBACK_MODULE)
       expect(resolvePermittedActiveView('host', 'stock')).toBe(HOST_FALLBACK_MODULE)
       expect(isHostMobileRole('host')).toBe(true)
@@ -141,16 +143,21 @@ describe('permissions', () => {
       })).toBe(true)
     })
 
-    it('opens host mode when host mobile tab is selected', () => {
+    it('keeps host role locked in reservations host mode', () => {
       expect(resolveHostMobileTabChange('host', 'host')).toEqual({
         tab: 'host',
         openHostMode: true,
         activeView: 'reservations',
       })
       expect(resolveHostMobileTabChange('schedule', 'host')).toEqual({
-        tab: 'schedule',
-        openHostMode: false,
-        activeView: null,
+        tab: 'host',
+        openHostMode: true,
+        activeView: 'reservations',
+      })
+      expect(resolveHostMobileTabChange('menu', 'host')).toEqual({
+        tab: 'host',
+        openHostMode: true,
+        activeView: 'reservations',
       })
     })
 
@@ -175,9 +182,9 @@ describe('permissions', () => {
       expect(tabIds(getMobileBottomTabs('staff', 'staff'))).toEqual(['home', 'schedule', 'tasks', 'menu'])
     })
 
-    it('returns host-station tabs for the host shell', () => {
+    it('returns no bottom tabs for the dedicated host station shell', () => {
       expect(getMobileBottomTabs('host', 'host')).toEqual(MOBILE_HOST_BOTTOM_TABS)
-      expect(tabIds(getMobileBottomTabs('host', 'host'))).toEqual(['host', 'schedule', 'tasks', 'menu'])
+      expect(tabIds(getMobileBottomTabs('host', 'host'))).toEqual([])
     })
 
     it('includes stock and tasks for manager roles with module access', () => {
@@ -252,16 +259,18 @@ describe('permissions', () => {
       expect(canEditSchedule(role)).toBe(true)
     })
 
-    it('denies staff and host management capabilities', () => {
+    it('denies staff and host management capabilities except floor plan for host', () => {
       expect(canManageStock('staff')).toBe(false)
       expect(canManageOperations('staff')).toBe(false)
       expect(canManageAnnouncements('staff')).toBe(false)
       expect(canEditSchedule('staff')).toBe(false)
+      expect(canEditFloorPlan('staff')).toBe(false)
 
       expect(canManageStock('host')).toBe(false)
       expect(canManageOperations('host')).toBe(false)
       expect(canManageAnnouncements('host')).toBe(false)
       expect(canEditSchedule('host')).toBe(false)
+      expect(canEditFloorPlan('host')).toBe(true)
     })
   })
 

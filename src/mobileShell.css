@@ -4577,10 +4577,19 @@
   gap: 10px;
 }
 
+.mobile-host-sticky-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.mobile-host-layout-btn,
 .mobile-host-mode-exit-btn {
   flex-shrink: 0;
   min-height: 44px;
-  padding: 0 10px;
+  min-width: 44px;
+  padding: 0 12px;
   border: 0;
   border-radius: 10px;
   background: rgba(255, 255, 255, 0.06);
@@ -4590,6 +4599,35 @@
   font-weight: 700;
   cursor: pointer;
   white-space: nowrap;
+}
+
+.mobile-host-layout-btn {
+  color: #d6b26a;
+  background: rgba(214, 178, 106, 0.1);
+  box-shadow: inset 0 0 0 1px rgba(214, 178, 106, 0.24);
+}
+
+.mobile-host-floor-empty-action {
+  margin-top: 12px;
+}
+
+.mobile-host-floor-plan-editor {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  height: 100%;
+  overflow: hidden;
+}
+
+.app-shell.is-host-station-shell.is-host-only-station,
+.app-shell.is-host-station-shell .mobile-app.is-host-only-station {
+  --one-mobile-bottom-nav-height: 0px;
+  --one-mobile-nav-float-gap: 0px;
+  --one-mobile-nav-content-spacing: 16px;
+  --one-mobile-bottom-inset: calc(
+    var(--one-mobile-nav-content-spacing) + env(safe-area-inset-bottom, 0px)
+  );
 }
 
 .mobile-host-floor-collapsible {
@@ -5430,6 +5468,26 @@
   color: #f7efe1;
   font: inherit;
   font-size: 0.92rem;
+}
+
+.mobile-host-form-field .reservation-phone-field {
+  display: flex;
+  gap: 8px;
+  align-items: stretch;
+  width: 100%;
+}
+
+.mobile-host-form-field .reservation-phone-field-country {
+  flex: 0 0 auto;
+  min-width: 6.5rem;
+  min-height: 44px;
+  padding-right: 24px;
+}
+
+.mobile-host-form-field .reservation-phone-field-input {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 44px;
 }
 
 .mobile-host-form-field textarea {

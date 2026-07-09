@@ -34,6 +34,7 @@ import {
 } from './components/reservations/hostReservationListUtils'
 import { ReservationTableSelector } from './components/reservations/ReservationTableSelector'
 import { ReservationDateField } from './components/reservations/ReservationDateField'
+import { ReservationPhoneField } from './components/reservations/ReservationPhoneField'
 import { ReservationTimeSelect } from './components/reservations/ReservationTimeSelect'
 import { TimeSelect } from './components/TimeSelect'
 import { getHostUnitById, toSeatingUnitFromLayoutUnit } from './lib/hostFloorPlanLayout'
@@ -262,6 +263,10 @@ import {
 } from './lib/timeFormatUtils'
 import { validateReservationFormFields } from './lib/reservationFormValidation'
 import {
+  handleReservationFormEnterKey,
+  preventReservationFormSubmit,
+} from './lib/reservationFormNavigation'
+import {
   buildEmployeeWeeklyHoursMap,
   calculateShiftDurationHours,
   formatHoursLabel,
@@ -410,6 +415,7 @@ import {
   canAssignManagerInviteRole,
   canAccessMobileExpandedModule,
   canEditSchedule,
+  canEditFloorPlan,
   canManageAnnouncements,
   canManageEmployeeInvites,
   canManageOperations,
@@ -8498,6 +8504,7 @@ function MobileReservationsHostShell({
   onCreateReservation,
   onExitHostMode,
   onSeatGuestAtTable,
+  canEditFloorPlan = false,
 }) {
   const workspaceReservations = useMemo(
     () => getHostWorkspaceReservations(reservations, todayKey, workspaceTimeZone),
@@ -8528,6 +8535,7 @@ function MobileReservationsHostShell({
         onCreateReservation={onCreateReservation}
         onExitHostMode={onExitHostMode}
         onSeatGuestAtTable={onSeatGuestAtTable}
+        canEditFloorPlan={canEditFloorPlan}
       />
     </ReservationWorkspaceProvider>
   )
@@ -8549,9 +8557,29 @@ function MobileReservationsHostShellBody({
   onCreateReservation,
   onExitHostMode,
   onSeatGuestAtTable,
+  canEditFloorPlan = false,
 }) {
-  const { selectedReservation, selectReservation } = useReservationWorkspace()
+  const {
+    selectedReservation,
+    selectReservation,
+    floorPlanMode,
+    setFloorPlanMode,
+    activeFloorAreaId,
+    setActiveFloorAreaId,
+  } = useReservationWorkspace()
   const { hasLayout } = usePublishedFloorPlan()
+
+  if (floorPlanMode === 'edit' && canEditFloorPlan) {
+    return (
+      <div className="mobile-host-floor-plan-editor">
+        <EmbeddedFloorPlanEditor
+          onExit={() => setFloorPlanMode('view')}
+          initialAreaId={activeFloorAreaId}
+          onActiveAreaChange={setActiveFloorAreaId}
+        />
+      </div>
+    )
+  }
 
   const floorPlanContent = hasLayout ? (
     <FloorPlanView
@@ -8562,7 +8590,7 @@ function MobileReservationsHostShellBody({
       nowMinutes={nowMinutes}
       isSaving={isSaving}
       isCompact
-      canEditFloorPlan={false}
+      canEditFloorPlan={canEditFloorPlan}
       onSeatGuestAtTable={onSeatGuestAtTable}
       onQuickStatusUpdate={onQuickStatusUpdate}
       onOpenAddReservation={() => {}}
@@ -8576,7 +8604,9 @@ function MobileReservationsHostShellBody({
       selectedReservation={selectedReservation}
       todayKey={todayKey}
       nowMinutes={nowMinutes}
+      canEditFloorPlan={canEditFloorPlan}
       onEditReservation={onEditReservation}
+      onOpenFloorPlanLayout={() => setFloorPlanMode('edit')}
     />
   )
 
@@ -8595,6 +8625,8 @@ function MobileReservationsHostShellBody({
       onReservationNotice={onReservationNotice}
       onCreateReservation={onCreateReservation}
       onExitHostMode={onExitHostMode}
+      canEditFloorPlan={canEditFloorPlan}
+      onOpenFloorPlanLayout={() => setFloorPlanMode('edit')}
       renderRightPane={rightPane}
       selectedReservationId={selectedReservation?.id ?? null}
       onSelectReservation={(reservation) => selectReservation(reservation, { scrollFloor: true })}
@@ -13017,6 +13049,11 @@ function App() {
 
   const canEditScheduleRole = useMemo(
     () => canEditSchedule(role),
+    [role],
+  )
+
+  const canEditFloorPlanRole = useMemo(
+    () => canEditFloorPlan(role),
     [role],
   )
 
@@ -18357,7 +18394,7 @@ function App() {
   }
 
   const handleReservationSubmit = async (event) => {
-    event.preventDefault()
+    event?.preventDefault?.()
     if (!canManageReservationsRole) return
 
     const validation = validateReservationFormFields(reservationForm, { dateFallback: currentDateKey })
@@ -18416,7 +18453,7 @@ function App() {
   }
 
   const handleQuickReservationSubmit = async (event) => {
-    event.preventDefault()
+    event?.preventDefault?.()
     if (!canManageReservationsRole) return
 
     const validation = validateReservationFormFields(quickReservationForm, { dateFallback: currentDateKey })
@@ -19954,11 +19991,18 @@ function App() {
   }
 
   const handleMobileBack = () => {
+    if (isHostMobileRole(role)) {
+      setMobileExpandedView(null)
+      return
+    }
+
     setMobileReservationsHostMode(false)
     setMobileExpandedView(null)
   }
 
   const handleMobileTabChange = useCallback((tab) => {
+    if (isHostMobileRole(role)) return
+
     setMobileExpandedView(null)
     setMobileMenuScreen('main')
     if (isManagementMobileRole(role)) {
@@ -20228,7 +20272,7 @@ function App() {
 
   return (
     <PublishedFloorPlanProvider workspaceId={workspace?.id ?? ''}>
-    <div className={`app-shell${useDedicatedShell ? ' is-mobile-shell' : ''}${useHostStationShell ? ' is-host-station-shell' : ''}${useDedicatedShell && mobileExpandedView ? ' is-mobile-expanded' : ''}${(useDedicatedShell && mobileReservationsHostMode) || (useHostStationShell && activeMobileTab === 'host') ? ' is-reservations-host-mode' : ''}`}>
+    <div className={`app-shell${useDedicatedShell ? ' is-mobile-shell' : ''}${useHostStationShell ? ' is-host-station-shell is-host-only-station' : ''}${useDedicatedShell && mobileExpandedView ? ' is-mobile-expanded' : ''}${(useDedicatedShell && mobileReservationsHostMode) || useHostStationShell ? ' is-reservations-host-mode' : ''}`}>
       <ViewportDebugOverlay isMobileViewport={useDedicatedShell} />
       {!useDedicatedShell ? (
       <aside className="sidebar">
@@ -20464,7 +20508,7 @@ function App() {
               onCreateReservation={handleMobileHostReservationCreate}
               onExitHostMode={handleMobileExitReservationsHostMode}
               onSeatGuestAtTable={handleSeatGuestAtTable}
-              canEditFloorPlan={canEditScheduleRole}
+              canEditFloorPlan={canEditFloorPlanRole}
             />
           ) : (
             <ReservationsView
@@ -20886,6 +20930,7 @@ function App() {
                       onCreateReservation={handleMobileHostReservationCreate}
                       onExitHostMode={undefined}
                       onSeatGuestAtTable={handleSeatGuestAtTable}
+                      canEditFloorPlan={canEditFloorPlanRole}
                     />
                   )
 
@@ -21568,7 +21613,11 @@ function App() {
                 <button type="button" className="icon-btn" onClick={handleCloseReservationModal}>✕</button>
               </div>
 
-              <form className="employee-form" onSubmit={handleReservationSubmit}>
+              <form
+                className="employee-form"
+                onSubmit={preventReservationFormSubmit}
+                onKeyDownCapture={handleReservationFormEnterKey}
+              >
                 {!editingReservation && detectedGuestReservation ? (
                   <SmartGuestFormPanel
                     guestReservation={detectedGuestReservation}
@@ -21597,7 +21646,10 @@ function App() {
                   ) : null}
                   <label className="form-field">
                     <span>Phone</span>
-                    <input value={reservationForm.phone} onChange={(event) => setReservationForm((current) => ({ ...current, phone: event.target.value }))} placeholder="Phone" />
+                    <ReservationPhoneField
+                      value={reservationForm.phone}
+                      onChange={(phone) => setReservationForm((current) => ({ ...current, phone }))}
+                    />
                   </label>
                   <label className="form-field">
                     <span>Date</span>
@@ -21662,7 +21714,7 @@ function App() {
 
                 <div className="modal-actions">
                   <button type="button" className="ghost-btn" onClick={handleCloseReservationModal}>Cancel</button>
-                  <button type="submit" className="primary-btn" disabled={isSavingReservation}>
+                  <button type="button" className="primary-btn" disabled={isSavingReservation} onClick={handleReservationSubmit}>
                     {isSavingReservation ? 'Saving…' : 'Save'}
                   </button>
                 </div>
@@ -21682,7 +21734,11 @@ function App() {
                 <button type="button" className="icon-btn" onClick={handleCloseQuickReservation}>✕</button>
               </div>
 
-              <form className="employee-form quick-reservation-form" onSubmit={handleQuickReservationSubmit}>
+              <form
+                className="employee-form quick-reservation-form"
+                onSubmit={preventReservationFormSubmit}
+                onKeyDownCapture={handleReservationFormEnterKey}
+              >
                 <label className="form-field full-width">
                   <span>Guest</span>
                   <input
@@ -21736,10 +21792,10 @@ function App() {
                     />
                   </label>
                 </div>
-                <p className="quick-reservation-hint">Press Enter to create · Pending status</p>
+                <p className="quick-reservation-hint">Tap Create to save · Pending status</p>
                 <div className="modal-actions">
                   <button type="button" className="ghost-btn" onClick={handleCloseQuickReservation}>Cancel</button>
-                  <button type="submit" className="primary-btn" disabled={isSavingReservation}>
+                  <button type="button" className="primary-btn" disabled={isSavingReservation} onClick={handleQuickReservationSubmit}>
                     {isSavingReservation ? 'Creating…' : 'Create'}
                   </button>
                 </div>

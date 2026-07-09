@@ -25,12 +25,7 @@ export const MOBILE_STAFF_BOTTOM_TABS = [
   { id: 'menu', label: 'Menu', icon: '≡' },
 ]
 
-export const MOBILE_HOST_BOTTOM_TABS = [
-  { id: 'host', label: 'Host', icon: '🍽️' },
-  { id: 'schedule', label: 'Schedule', icon: '◷' },
-  { id: 'tasks', label: 'Tasks', icon: '✓' },
-  { id: 'menu', label: 'Menu', icon: '≡' },
-]
+export const MOBILE_HOST_BOTTOM_TABS = []
 
 export const MOBILE_MANAGER_BOTTOM_TABS = [
   { id: 'today', label: 'Today', icon: '◈' },
@@ -51,7 +46,6 @@ const ROLE_MODULE_ACCESS = {
   ],
   host: [
     'reservations',
-    'team',
   ],
   staff: [
     'today',
@@ -65,7 +59,7 @@ const TEAM_SECTION_ACCESS = {
   owner: ['today', 'members', 'schedule'],
   general_manager: ['today', 'members', 'schedule'],
   manager: ['today', 'members', 'schedule'],
-  host: ['schedule'],
+  host: [],
   staff: ['schedule'],
 }
 
@@ -150,6 +144,11 @@ export function canEditSchedule(role) {
   return isManagerRole(role)
 }
 
+export function canEditFloorPlan(role) {
+  if (isHostRole(role)) return true
+  return isManagerRole(role)
+}
+
 export function canManageReservations(role) {
   return canAccessModule(role, 'reservations')
 }
@@ -171,28 +170,18 @@ export function shouldShowReservationsHostView({
 }
 
 export function resolveHostMobileTabChange(tab, role) {
-  const normalizedTab = `${tab ?? ''}`.trim()
-
   if (!isHostRole(role)) {
     return {
-      tab: normalizedTab,
+      tab: `${tab ?? ''}`.trim(),
       openHostMode: false,
       activeView: null,
     }
   }
 
-  if (normalizedTab === 'host') {
-    return {
-      tab: 'host',
-      openHostMode: true,
-      activeView: 'reservations',
-    }
-  }
-
   return {
-    tab: normalizedTab,
-    openHostMode: false,
-    activeView: null,
+    tab: 'host',
+    openHostMode: true,
+    activeView: 'reservations',
   }
 }
 
@@ -270,7 +259,7 @@ export function canOpenMobileTasksWorkspace(role) {
 }
 
 export function canAccessHostMobileTasksTab(role) {
-  return isHostRole(role) || normalizeWorkspaceRole(role, 'staff') === 'staff'
+  return normalizeWorkspaceRole(role, 'staff') === 'staff'
 }
 
 export function resolvePermittedTeamSection(role, requestedSection) {

@@ -1,6 +1,11 @@
 import { useEffect, useState } from 'react'
 import { ReservationDateField } from '../../reservations/ReservationDateField'
+import { ReservationPhoneField } from '../../reservations/ReservationPhoneField'
 import { ReservationTimeSelect } from '../../reservations/ReservationTimeSelect'
+import {
+  handleReservationFormEnterKey,
+  preventReservationFormSubmit,
+} from '../../../lib/reservationFormNavigation'
 import { normalizeReservationDateKey } from '../../../lib/timeFormatUtils'
 
 const EMPTY_FORM = {
@@ -21,14 +26,16 @@ function HostReservationQuickCreateFields({
   onClose,
   onSubmit,
 }) {
-  const handleSubmit = async (event) => {
-    event.preventDefault()
+  const handleSave = async () => {
     await onSubmit?.(form)
-    setForm(EMPTY_FORM)
   }
 
   return (
-    <form className="mobile-host-reservation-form" onSubmit={handleSubmit}>
+    <form
+      className="mobile-host-reservation-form"
+      onSubmit={preventReservationFormSubmit}
+      onKeyDownCapture={handleReservationFormEnterKey}
+    >
       <label className="mobile-host-form-field">
         <span>Guest name</span>
         <input
@@ -46,15 +53,10 @@ function HostReservationQuickCreateFields({
 
       <label className="mobile-host-form-field">
         <span>Phone</span>
-        <input
-          type="tel"
+        <ReservationPhoneField
           value={form.phone}
-          onChange={(event) => setForm((current) => ({
-            ...current,
-            phone: event.target.value,
-          }))}
+          onChange={(phone) => setForm((current) => ({ ...current, phone }))}
           placeholder="Optional"
-          autoComplete="tel"
         />
       </label>
 
@@ -131,7 +133,7 @@ function HostReservationQuickCreateFields({
         >
           Cancel
         </button>
-        <button type="submit" className="mobile-primary-btn" disabled={isSaving}>
+        <button type="button" className="mobile-primary-btn" onClick={handleSave} disabled={isSaving}>
           {isSaving ? 'Saving…' : 'Save reservation'}
         </button>
       </div>
@@ -166,8 +168,11 @@ export function MobileReservationQuickCreateSheet({
   }
 
   const handleSubmit = async (nextForm) => {
-    await onSubmit?.(nextForm)
-    setForm(EMPTY_FORM)
+    const saved = await onSubmit?.(nextForm)
+    if (saved !== false) {
+      setForm(EMPTY_FORM)
+    }
+    return saved
   }
 
   const header = (

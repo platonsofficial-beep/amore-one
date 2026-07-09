@@ -13,7 +13,9 @@ export function MobileReservationsHostRightPane({
   selectedReservation = null,
   todayKey = '',
   nowMinutes = 0,
+  canEditFloorPlan = false,
   onEditReservation,
+  onOpenFloorPlanLayout,
 }) {
   if (!hasLayout) {
     return (
@@ -22,9 +24,19 @@ export function MobileReservationsHostRightPane({
           <p className="mobile-host-floor-empty-eyebrow">Floor plan</p>
           <h2>No published layout</h2>
           <p>Publish a floor plan to seat guests and view table status here.</p>
-          <p className="mobile-host-floor-empty-hint">
-            Reservations stay on the left. Open the full workspace to build your layout.
-          </p>
+          {canEditFloorPlan ? (
+            <button
+              type="button"
+              className="mobile-host-layout-btn mobile-host-floor-empty-action"
+              onClick={onOpenFloorPlanLayout}
+            >
+              Open layout editor
+            </button>
+          ) : (
+            <p className="mobile-host-floor-empty-hint">
+              Ask a manager to publish the floor plan before seating guests.
+            </p>
+          )}
         </div>
       </div>
     )

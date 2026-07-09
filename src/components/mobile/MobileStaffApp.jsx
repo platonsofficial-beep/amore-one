@@ -33,9 +33,26 @@ export function MobileStaffApp({
     </div>
   ) : null
 
+  const showBottomNav = Array.isArray(bottomTabs) && bottomTabs.length > 0
+
+  if (shellVariant === 'host') {
+    return (
+      <div className="mobile-app mobile-app-host-mode mobile-app-host-station is-reservations-host-mode is-host-only-station">
+        {noticeBanner}
+        <div className="mobile-host-mode-screen">
+          {hostStationContent ? (
+            <div className="mobile-workspace-module is-host-mode-module">
+              {hostStationContent}
+            </div>
+          ) : null}
+        </div>
+      </div>
+    )
+  }
+
   if (expandedView) {
     return (
-      <div className={`mobile-app mobile-app-expanded${shellVariant === 'host' ? ' mobile-app-host-station' : ''}`}>
+      <div className="mobile-app mobile-app-expanded">
         {noticeBanner}
         <div className="mobile-expanded-scroll">
           <header className="mobile-expanded-header">
@@ -50,32 +67,18 @@ export function MobileStaffApp({
             </div>
           ) : null}
         </div>
-        <MobileBottomNav activeTab={activeTab} onTabChange={onTabChange} tabs={bottomTabs} />
-      </div>
-    )
-  }
-
-  if (shellVariant === 'host' && activeTab === 'host') {
-    return (
-      <div className="mobile-app mobile-app-host-mode mobile-app-host-station is-reservations-host-mode">
-        {noticeBanner}
-        <div className="mobile-host-mode-screen">
-          {hostStationContent ? (
-            <div className="mobile-workspace-module is-host-mode-module">
-              {hostStationContent}
-            </div>
-          ) : null}
-        </div>
-        <MobileBottomNav activeTab={activeTab} onTabChange={onTabChange} tabs={bottomTabs} />
+        {showBottomNav ? (
+          <MobileBottomNav activeTab={activeTab} onTabChange={onTabChange} tabs={bottomTabs} />
+        ) : null}
       </div>
     )
   }
 
   return (
-      <div className={`mobile-app${shellVariant === 'host' ? ' mobile-app-host-station' : ''}`}>
+    <div className="mobile-app">
       {noticeBanner}
       <div className="mobile-app-content">
-        {shellVariant !== 'host' && activeTab === 'home' ? <MobileHomeView {...homeProps} /> : null}
+        {activeTab === 'home' ? <MobileHomeView {...homeProps} /> : null}
         {activeTab === 'schedule' ? <MobileScheduleView {...scheduleProps} /> : null}
         {activeTab === 'tasks' ? <MobileTasksView {...tasksProps} /> : null}
         {activeTab === 'menu' ? (
@@ -86,7 +89,9 @@ export function MobileStaffApp({
           )
         ) : null}
       </div>
-      <MobileBottomNav activeTab={activeTab} onTabChange={onTabChange} tabs={bottomTabs} />
+      {showBottomNav ? (
+        <MobileBottomNav activeTab={activeTab} onTabChange={onTabChange} tabs={bottomTabs} />
+      ) : null}
     </div>
   )
 }

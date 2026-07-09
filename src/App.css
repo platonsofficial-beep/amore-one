@@ -7722,6 +7722,28 @@
   color: #f7efe1;
 }
 
+.host-reservation-edit-field .reservation-phone-field {
+  display: flex;
+  gap: 8px;
+  align-items: stretch;
+  width: 100%;
+}
+
+.host-reservation-edit-field .reservation-phone-field-country {
+  flex: 0 0 auto;
+  min-width: 6.5rem;
+  min-height: 44px;
+  width: auto;
+  padding-right: 24px;
+}
+
+.host-reservation-edit-field .reservation-phone-field-input {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 44px;
+  width: auto;
+}
+
 .host-reservation-edit-field .reservation-date-field {
   width: 100%;
 }
@@ -14834,6 +14856,28 @@
   background: rgba(255, 255, 255, 0.04);
   color: #f7efe1;
   outline: 0;
+}
+
+.form-field .reservation-phone-field {
+  display: flex;
+  gap: 8px;
+  align-items: stretch;
+  width: 100%;
+}
+
+.form-field .reservation-phone-field-country {
+  flex: 0 0 auto;
+  min-width: 6.5rem;
+  min-height: 44px;
+  width: auto;
+  padding-right: 28px;
+}
+
+.form-field .reservation-phone-field-input {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 44px;
+  width: auto;
 }
 
 .reservation-time-select-root,
