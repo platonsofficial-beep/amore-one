@@ -74,31 +74,64 @@ export function createFloorPlanObject({
   }
 }
 
-export const TABLE_SHAPE_SIZES = {
-  round: { width: 200, height: 200 },
-  square: { width: 196, height: 196 },
-  rectangle: { width: 260, height: 168 },
-  island: { width: 320, height: 176 },
+export const TABLE_SIZE_PRESETS = {
+  square: {
+    small: { width: 120, height: 120, capacity: 2 },
+    medium: { width: 200, height: 200, capacity: 4 },
+    large: { width: 320, height: 320, capacity: 6 },
+  },
+  round: {
+    small: { width: 140, height: 140, capacity: 2 },
+    medium: { width: 220, height: 220, capacity: 4 },
+    large: { width: 340, height: 340, capacity: 6 },
+  },
+  rectangle: {
+    small: { width: 220, height: 120, capacity: 4 },
+    medium: { width: 320, height: 180, capacity: 6 },
+    large: { width: 480, height: 220, capacity: 8 },
+  },
+  island: {
+    small: { width: 220, height: 120, capacity: 4 },
+    medium: { width: 320, height: 180, capacity: 6 },
+    large: { width: 480, height: 220, capacity: 8 },
+  },
 }
 
-export const TABLE_SIZE_PRESET_SCALES = {
-  small: 0.78,
-  medium: 1,
-  large: 1.38,
-}
+export const TABLE_SHAPE_SIZES = Object.fromEntries(
+  Object.entries(TABLE_SIZE_PRESETS).map(([shape, presets]) => [
+    shape,
+    { width: presets.medium.width, height: presets.medium.height },
+  ]),
+)
 
 export function getTableShapeSize(shape) {
   return TABLE_SHAPE_SIZES[shape] ?? TABLE_SHAPE_SIZES.round
 }
 
-export function getTableSizeForPreset(shape, preset = 'medium') {
-  const base = getTableShapeSize(shape)
-  const scale = TABLE_SIZE_PRESET_SCALES[preset] ?? TABLE_SIZE_PRESET_SCALES.medium
+export function getTablePresetDetails(shape, preset = 'medium') {
+  const shapePresets = TABLE_SIZE_PRESETS[shape] ?? TABLE_SIZE_PRESETS.round
+  return shapePresets[preset] ?? shapePresets.medium
+}
 
-  return {
-    width: Math.max(44, Math.round(base.width * scale)),
-    height: Math.max(44, Math.round(base.height * scale)),
-  }
+export function getTablePresetCapacity(shape, preset = 'medium') {
+  return getTablePresetDetails(shape, preset).capacity
+}
+
+export function getTableSizeForPreset(shape, preset = 'medium') {
+  const { width, height } = getTablePresetDetails(shape, preset)
+  return { width, height }
+}
+
+export const TABLE_CAPACITY_MIN = 1
+export const TABLE_CAPACITY_MAX = 20
+
+export function clampTableCapacity(value, {
+  min = TABLE_CAPACITY_MIN,
+  max = TABLE_CAPACITY_MAX,
+} = {}) {
+  const parsed = Math.round(Number(value))
+  if (!Number.isFinite(parsed)) return min
+  return Math.min(max, Math.max(min, parsed))
 }
 
 export function adjustTableDimension(value, delta, minimum = 44) {
@@ -107,8 +140,7 @@ export function adjustTableDimension(value, delta, minimum = 44) {
 }
 
 export function getDefaultCapacityForShape(shape) {
-  if (shape === 'island') return 6
-  return 2
+  return getTablePresetCapacity(shape, 'medium')
 }
 
 export function createDemoTableObject({

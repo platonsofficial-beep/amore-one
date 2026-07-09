@@ -69,6 +69,17 @@ export function BuilderToolbar({ onBack, onViewFit }) {
           <>
             <button
               type="button"
+              className={`fpb-toolbar-btn fpb-toolbar-btn-touch${state.multiSelectEnabled ? ' is-active' : ''}`}
+              onClick={() => dispatch({
+                type: 'SET_MULTI_SELECT_ENABLED',
+                payload: { enabled: !state.multiSelectEnabled },
+              })}
+              aria-pressed={state.multiSelectEnabled}
+            >
+              Select multiple
+            </button>
+            <button
+              type="button"
               className="fpb-toolbar-btn"
               onClick={onViewFit}
             >

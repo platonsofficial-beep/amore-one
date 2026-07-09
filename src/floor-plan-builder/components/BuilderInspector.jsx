@@ -3,9 +3,12 @@ import { TABLE_TYPES } from '../models/componentCatalog'
 import {
   FLOOR_PLAN_OBJECT_TYPES,
   adjustTableDimension,
+  clampTableCapacity,
   formatBuilderTableLabel,
   getObjectDisplayLabel,
-  getTableSizeForPreset,
+  getTablePresetDetails,
+  TABLE_CAPACITY_MAX,
+  TABLE_CAPACITY_MIN,
 } from '../models/floorPlanObject'
 import { normalizeRotation, stepRotation } from '../lib/tableTransformUtils'
 import {
@@ -23,7 +26,7 @@ function InspectorEmptyState() {
     <div className="fpb-inspector-empty">
       <p className="fpb-inspector-empty-title">No table selected</p>
       <p className="fpb-inspector-empty-copy">
-        Click tables on the floor to add them to the selection. Click empty space to clear.
+        Tap a table to edit its properties. Tap empty space to clear selection.
       </p>
     </div>
   )
@@ -99,8 +102,9 @@ export function BuilderInspector({ onClose, showCloseButton = false }) {
   const { floors } = state
   const isReadOnly = state.mode !== 'editing'
   const selectionCount = state.selectedTableIds.length
+  const showMultiSelectPanel = state.multiSelectEnabled && selectionCount > 1
 
-  if (selectionCount > 1) {
+  if (showMultiSelectPanel) {
     return (
       <aside className="fpb-inspector fpb-inspector-simple" aria-label="Table properties">
         <PanelHeader
@@ -130,7 +134,7 @@ export function BuilderInspector({ onClose, showCloseButton = false }) {
 
   const properties = selectedObject.properties ?? {}
   const tableNumber = properties.tableNumber ?? properties.name ?? ''
-  const capacity = Math.max(1, Number(properties.capacity) || 2)
+  const capacity = clampTableCapacity(properties.capacity ?? 2)
   const shape = properties.shape ?? 'round'
   const floorId = selectedObject.floorId ?? state.activeFloorId
   const objectSize = selectedObject.size ?? {}
@@ -191,14 +195,35 @@ export function BuilderInspector({ onClose, showCloseButton = false }) {
 
         <label className="fpb-inspector-field">
           <span>Guest capacity</span>
-          <input
-            type="number"
-            min="1"
-            max="24"
-            value={showSections ? sectionTotals.stools : capacity}
-            onChange={(event) => updateTable({ capacity: event.target.value })}
-            disabled={showSections || isReadOnly}
-          />
+          <div className="fpb-inspector-stepper">
+            <button
+              type="button"
+              className="fpb-inspector-stepper-btn"
+              onClick={() => updateTable({ capacity: clampTableCapacity(capacity - 1) })}
+              disabled={showSections || isReadOnly || capacity <= TABLE_CAPACITY_MIN}
+              aria-label="Decrease guest capacity"
+            >
+              −
+            </button>
+            <input
+              type="number"
+              min={TABLE_CAPACITY_MIN}
+              max={TABLE_CAPACITY_MAX}
+              value={showSections ? sectionTotals.stools : capacity}
+              onChange={(event) => updateTable({ capacity: clampTableCapacity(event.target.value) })}
+              disabled={showSections || isReadOnly}
+              aria-label="Guest capacity"
+            />
+            <button
+              type="button"
+              className="fpb-inspector-stepper-btn"
+              onClick={() => updateTable({ capacity: clampTableCapacity(capacity + 1) })}
+              disabled={showSections || isReadOnly || capacity >= TABLE_CAPACITY_MAX}
+              aria-label="Increase guest capacity"
+            >
+              +
+            </button>
+          </div>
         </label>
 
         {showSections ? (
@@ -324,8 +349,12 @@ export function BuilderInspector({ onClose, showCloseButton = false }) {
                 type="button"
                 className="fpb-inspector-size-preset-btn"
                 onClick={() => {
-                  const nextSize = getTableSizeForPreset(shape, preset)
-                  updateTable(nextSize)
+                  const presetDetails = getTablePresetDetails(shape, preset)
+                  updateTable({
+                    width: presetDetails.width,
+                    height: presetDetails.height,
+                    capacity: presetDetails.capacity,
+                  })
                 }}
                 disabled={isReadOnly}
               >

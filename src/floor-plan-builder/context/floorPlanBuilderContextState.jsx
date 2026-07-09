@@ -59,6 +59,7 @@ function createInitialBuilderState({ initialEditing = false, initialLayout = nul
     activeFloorId,
     objects,
     selectedTableIds: [],
+    multiSelectEnabled: false,
     toolboxSelectionId: null,
     activeTool: 'select',
     mode: initialEditing ? 'editing' : 'viewing',
@@ -123,6 +124,24 @@ function floorPlanBuilderReducer(state, action) {
         selectedTableIds: isSelected
           ? state.selectedTableIds.filter((id) => id !== objectId)
           : [...state.selectedTableIds, objectId],
+      }
+    }
+    case 'SET_MULTI_SELECT_ENABLED': {
+      const enabled = Boolean(action.payload?.enabled)
+      if (enabled === state.multiSelectEnabled) return state
+
+      if (!enabled && state.selectedTableIds.length > 1) {
+        const lastSelectedId = state.selectedTableIds[state.selectedTableIds.length - 1]
+        return {
+          ...state,
+          multiSelectEnabled: false,
+          selectedTableIds: [lastSelectedId],
+        }
+      }
+
+      return {
+        ...state,
+        multiSelectEnabled: enabled,
       }
     }
     case 'CLEAR_SELECTION':

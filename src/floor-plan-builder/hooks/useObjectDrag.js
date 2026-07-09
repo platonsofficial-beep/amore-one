@@ -11,16 +11,18 @@ export function useObjectDrag({
   snapEnabled,
   floorBounds,
   isEditing,
+  multiSelectEnabled,
   selectedTableIds,
   onMoveObject,
-  onAddToSelection,
-  onRemoveFromSelection,
+  onSelectObject,
+  onToggleSelection,
 }) {
   const cameraRef = useRef(camera)
   const viewportSizeRef = useRef(viewportSize)
   const snapEnabledRef = useRef(snapEnabled)
   const floorBoundsRef = useRef(floorBounds)
   const selectedTableIdsRef = useRef(selectedTableIds)
+  const multiSelectEnabledRef = useRef(multiSelectEnabled)
   const pendingClickRef = useRef(null)
   const [draggingObjectId, setDraggingObjectId] = useState(null)
 
@@ -30,7 +32,8 @@ export function useObjectDrag({
     snapEnabledRef.current = snapEnabled
     floorBoundsRef.current = floorBounds
     selectedTableIdsRef.current = selectedTableIds
-  }, [camera, floorBounds, selectedTableIds, snapEnabled, viewportSize])
+    multiSelectEnabledRef.current = multiSelectEnabled
+  }, [camera, floorBounds, multiSelectEnabled, selectedTableIds, snapEnabled, viewportSize])
 
   const clientToWorld = useCallback((clientX, clientY) => {
     const container = containerRef.current
@@ -70,9 +73,15 @@ export function useObjectDrag({
     if (event.isPrimary === false) return false
 
     const isSelected = selectedTableIdsRef.current.includes(object.id)
+    const isMultiSelect = multiSelectEnabledRef.current
 
-    if (!isSelected) {
-      onAddToSelection(object.id)
+    if (!isMultiSelect) {
+      if (!isSelected) {
+        onSelectObject(object.id)
+      }
+      pendingClickRef.current = null
+    } else if (!isSelected) {
+      onToggleSelection(object.id)
       pendingClickRef.current = null
     } else {
       pendingClickRef.current = { objectId: object.id }
@@ -88,13 +97,13 @@ export function useObjectDrag({
     }
 
     return started
-  }, [dragManager, isEditing, onAddToSelection])
+  }, [dragManager, isEditing, onSelectObject, onToggleSelection])
 
   const handleDragMove = useCallback((event) => {
     dragManager.move(event)
   }, [dragManager])
 
-  const   endDrag = useCallback((event) => {
+  const endDrag = useCallback((event) => {
     if (!dragManager.isActive()) return
 
     const pending = pendingClickRef.current
@@ -103,11 +112,11 @@ export function useObjectDrag({
     setDraggingObjectId(null)
 
     if (pending && !moved) {
-      onRemoveFromSelection(pending.objectId)
+      onToggleSelection(pending.objectId)
     }
 
     pendingClickRef.current = null
-  }, [dragManager, onRemoveFromSelection])
+  }, [dragManager, onToggleSelection])
 
   useLayoutEffect(() => {
     if (dragManager.isActive() && dragManager.session?.previewPosition) {

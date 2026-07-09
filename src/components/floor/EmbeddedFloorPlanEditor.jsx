@@ -309,6 +309,17 @@ function EmbeddedFloorPlanEditorShell({
           <div className="unified-floor-editor-toolbar-actions">
             <button
               type="button"
+              className={`fpb-toolbar-btn fpb-toolbar-btn-touch unified-floor-editor-multi-select-toggle${state.multiSelectEnabled ? ' is-active' : ''}`}
+              onClick={() => dispatch({
+                type: 'SET_MULTI_SELECT_ENABLED',
+                payload: { enabled: !state.multiSelectEnabled },
+              })}
+              aria-pressed={state.multiSelectEnabled}
+            >
+              Select multiple
+            </button>
+            <button
+              type="button"
               className={`fpb-toolbar-btn unified-floor-editor-panel-toggle${toolsPanelOpen ? ' is-active' : ''}`}
               onClick={() => setToolsPanelOpen((current) => !current)}
               aria-pressed={toolsPanelOpen}
@@ -353,7 +364,7 @@ function EmbeddedFloorPlanEditorShell({
                 Reset size
               </button>
             </div>
-            {selectionCount >= 2 ? (
+            {state.multiSelectEnabled && selectionCount >= 2 ? (
               <span className="unified-floor-editor-selection-count" role="status">
                 {selectionCount} tables selected
               </span>

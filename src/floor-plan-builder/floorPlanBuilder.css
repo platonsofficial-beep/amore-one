@@ -57,6 +57,12 @@
   flex-shrink: 0;
 }
 
+.fpb-toolbar-btn-touch {
+  min-height: 44px;
+  min-width: 44px;
+  padding: 0 14px;
+}
+
 .fpb-toolbar-btn {
   min-height: 30px;
   padding: 0 11px;

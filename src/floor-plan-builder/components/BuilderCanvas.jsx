@@ -55,12 +55,8 @@ export function BuilderCanvas({ containerRef, viewportControls, workspaceLayoutK
     dispatch({ type: 'SELECT_OBJECT', payload: { objectId } })
   }, [dispatch])
 
-  const handleAddToSelection = useCallback((objectId) => {
-    dispatch({ type: 'ADD_TABLE_TO_SELECTION', payload: { objectId } })
-  }, [dispatch])
-
-  const handleRemoveFromSelection = useCallback((objectId) => {
-    dispatch({ type: 'REMOVE_TABLE_FROM_SELECTION', payload: { objectId } })
+  const handleToggleSelection = useCallback((objectId) => {
+    dispatch({ type: 'TOGGLE_OBJECT_SELECTION', payload: { objectId } })
   }, [dispatch])
 
   const handleTransformTable = useCallback((objectId, preview) => {
@@ -103,10 +99,11 @@ export function BuilderCanvas({ containerRef, viewportControls, workspaceLayoutK
     snapEnabled: state.settings.snapEnabled,
     floorBounds: activeWorkspaceBounds,
     isEditing,
+    multiSelectEnabled: state.multiSelectEnabled,
     selectedTableIds: state.selectedTableIds,
     onMoveObject: handleMoveObject,
-    onAddToSelection: handleAddToSelection,
-    onRemoveFromSelection: handleRemoveFromSelection,
+    onSelectObject: handleSelectObject,
+    onToggleSelection: handleToggleSelection,
   })
 
   const handleObjectPointerDownWrapped = useCallback((event, object) => {
