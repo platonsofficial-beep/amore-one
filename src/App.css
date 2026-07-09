@@ -27658,3 +27658,255 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   }
 }
 
+/* Phase 12.5.6 — Team / Schedule fit & finish */
+.team-today-status-value,
+.team-today-status-detail,
+.team-today-empty,
+.team-people-empty,
+.team-today-department,
+.team-today-member-name,
+.team-today-member-role {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.team-today-member-title-row {
+  min-width: 0;
+  flex-wrap: wrap;
+}
+
+.team-today-member-name {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.team-today-department-row {
+  flex-wrap: wrap;
+  align-items: flex-start;
+  min-width: 0;
+}
+
+.team-today-department-row .team-today-department {
+  flex: 1 1 auto;
+  min-width: 0;
+  margin-bottom: 0;
+}
+
+.team-today-member {
+  flex-wrap: wrap;
+}
+
+.team-today-member-role {
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 100%;
+  text-align: right;
+}
+
+.team-people-card-name,
+.team-people-card-role,
+.team-people-card-department {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.team-people-card-meta-row {
+  align-items: flex-start;
+  min-width: 0;
+}
+
+.team-people-card-meta-row dd {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.staff-table td {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  max-width: 220px;
+}
+
+.drawer-profile {
+  min-width: 0;
+}
+
+.drawer-profile > div:last-child {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.drawer-profile strong,
+.drawer-row strong {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  min-width: 0;
+}
+
+.drawer-row {
+  flex-wrap: wrap;
+  align-items: flex-start;
+}
+
+.employee-account-connection-status,
+.employee-account-connection-meta,
+.employee-account-connection-notice,
+.employee-account-connection-label {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.employee-account-connection-detail-row {
+  flex-wrap: wrap;
+  align-items: flex-start;
+}
+
+.employee-account-connection-detail-row dd {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.schedule-header-title,
+.schedule-header-range {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.schedule-shift-instance-name,
+.schedule-shift-instance-time,
+.schedule-shift-instance-dept {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.schedule-shift-instance-name {
+  min-width: 0;
+}
+
+.blend-grid-assignment-cell.schedule-shift-instance-card {
+  min-width: 0;
+  overflow: hidden;
+}
+
+.schedule-template-card-name,
+.schedule-template-card-note,
+.schedule-template-card-staff-value {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.schedule-template-card-name {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+}
+
+.schedule-templates-panel-header h3,
+.schedule-templates-panel-note {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.template-item strong,
+.template-item p,
+.schedule-template-list-item strong {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  min-width: 0;
+}
+
+.schedule-compact-modal {
+  max-height: min(88dvh, 88vh);
+}
+
+.schedule-compact-modal-header h3 {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.schedule-compact-modal .modal-actions .primary-btn,
+.schedule-compact-modal .modal-actions .ghost-btn,
+.schedule-compact-modal-actions .primary-btn,
+.schedule-compact-modal-actions .ghost-btn {
+  min-height: 44px;
+  min-width: 44px;
+}
+
+.schedule-publish-btn,
+.schedule-unpublish-btn,
+.schedule-header-nav-btn {
+  min-height: 44px;
+}
+
+@media (max-width: 900px) {
+  .team-today-status-card {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 560px) {
+  .team-today-status-card {
+    grid-template-columns: 1fr;
+  }
+
+  .team-today-member-shift {
+    white-space: normal;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+
+  .team-today-member-role {
+    flex-basis: 100%;
+    text-align: left;
+    margin-top: 2px;
+  }
+
+  .team-people-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .team-people-header {
+    flex-direction: column;
+  }
+}
+
+@media (max-width: 760px) {
+  .employee-modal.schedule-compact-modal {
+    max-height: min(92dvh, 92vh);
+    padding-bottom: calc(18px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .schedule-compact-modal-actions,
+  .schedule-compact-modal .modal-actions {
+    position: sticky;
+    bottom: 0;
+    z-index: 2;
+    margin-top: 8px;
+    padding-top: 12px;
+    background: linear-gradient(180deg, transparent, rgba(8, 8, 9, 0.98) 24%);
+  }
+}
+
+@media (pointer: coarse) {
+  .template-card-delete-btn,
+  .template-card-menu-btn {
+    width: 44px;
+    height: 44px;
+  }
+
+  .schedule-workspace.is-compact-landscape.is-templates-collapsed .schedule-templates-toggle {
+    min-width: 44px;
+    width: 44px;
+    min-height: 64px;
+  }
+
+  .blend-grid-header-day-menu-btn {
+    width: 44px;
+    height: 44px;
+  }
+}
+

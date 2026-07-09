@@ -5372,3 +5372,54 @@ html[data-one-debug-scroll='1'] .floor-plan-viewport.is-host-viewport {
   outline: 2px solid #d65757;
   outline-offset: -2px;
 }
+
+/* Phase 12.5.6 — Team / Schedule mobile fit & finish */
+.mobile-schedule-day-label,
+.mobile-schedule-day-date {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.mobile-schedule-day-head {
+  flex-wrap: wrap;
+}
+
+.mobile-schedule-day-status {
+  white-space: normal;
+  text-align: right;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  max-width: 100%;
+}
+
+.mobile-shift-card {
+  min-width: 0;
+}
+
+@media (max-width: 560px) {
+  .mobile-schedule-day-status {
+    flex-basis: 100%;
+    text-align: left;
+  }
+}
+
+@media (orientation: landscape) and (max-height: 500px) {
+  .mobile-schedule {
+    gap: 10px;
+  }
+
+  .mobile-schedule-day {
+    padding: 12px 14px;
+  }
+
+  .mobile-shift-card {
+    padding: 12px 14px;
+  }
+}
+
+.app-shell.is-mobile-expanded .schedule-workspace.is-compact-landscape.is-templates-open .schedule-templates-list {
+  max-height: calc(100dvh - 120px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
