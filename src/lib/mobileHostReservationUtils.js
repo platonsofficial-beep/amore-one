@@ -82,8 +82,18 @@ export function isMobileHostTabletViewport() {
     ?? window.innerWidth >= 700
 }
 
+export function isHostTabletPanelViewport() {
+  return isMobileHostTabletViewport()
+}
+
 export function isMobileHostSplitViewport() {
   if (typeof window === 'undefined') return false
   if (isMobileHostLandscapeViewport()) return true
   return isMobileHostTabletViewport() && window.innerWidth > window.innerHeight
+}
+
+export function resolveHostReservationFormVariant({ isSplitLayout = false } = {}) {
+  if (isSplitLayout) return 'inline'
+  if (isHostTabletPanelViewport()) return 'panel'
+  return 'sheet'
 }

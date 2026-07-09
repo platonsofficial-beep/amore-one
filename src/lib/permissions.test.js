@@ -30,6 +30,8 @@ import {
   resolvePermittedOperationsSection,
   resolvePermittedTeamSection,
   shouldShowReservationsHostView,
+  shouldUseHostStationLanding,
+  shouldUseHostStationShell,
 } from './permissions'
 
 const OPERATIONS_SECTIONS = [
@@ -156,6 +158,14 @@ describe('permissions', () => {
       expect(canOpenReservationsHostMode('host')).toBe(true)
       expect(canOpenReservationsHostMode('manager')).toBe(true)
       expect(canOpenReservationsHostMode('staff')).toBe(false)
+    })
+  })
+
+  describe('host station shell', () => {
+    it('uses dedicated host station for host role on all viewports', () => {
+      expect(shouldUseHostStationShell('host')).toBe(true)
+      expect(shouldUseHostStationShell('owner')).toBe(false)
+      expect(shouldUseHostStationLanding('host')).toBe(true)
     })
   })
 

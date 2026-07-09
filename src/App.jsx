@@ -428,7 +428,7 @@ import {
   resolveMobileShellVariant,
   resolvePermittedActiveView,
   shouldShowReservationsHostView,
-  shouldUseHostMobileLanding,
+  shouldUseHostStationLanding,
   resolvePermittedOperationsSection,
   resolvePermittedTeamSection,
 } from './lib/permissions'
@@ -13766,12 +13766,14 @@ function App() {
 
   const isManagerMobileShell = !isAuthLoading && isManagementMobileRole(role)
   const isHostMobileShell = !isAuthLoading && isHostMobileRole(role)
+  const useHostStationShell = isHostMobileShell
+  const useDedicatedShell = useMobileExperience || useHostStationShell
   const activeMobileTab = isManagerMobileShell ? mobileManagerTab : mobileStaffTab
   const isManagerMobileStockLoading = isManagerMobileBootstrapLoading || isStockItemsLoading || isStockOrdersLoading
   const isManagerMobileTasksLoading = isManagerMobileBootstrapLoading || isOperationsLoading
 
   useEffect(() => {
-    if (!useMobileExperience || isAuthLoading) return
+    if (!useDedicatedShell || isAuthLoading) return
 
     const variant = resolveMobileShellVariant(role)
     const allowedTabs = getMobileBottomTabs(role, variant)
@@ -13790,7 +13792,7 @@ function App() {
     setMobileStaffTab(fallbackTab)
     persistMobileTab(fallbackTab, variant)
   }, [
-    useMobileExperience,
+    useDedicatedShell,
     isAuthLoading,
     isManagerMobileShell,
     isHostMobileShell,
@@ -13809,7 +13811,7 @@ function App() {
       setMobileReservationsHostMode(true)
     }
 
-    if (shouldUseHostMobileLanding(role, useMobileExperience) && activeMobileTab !== 'host') {
+    if (shouldUseHostStationLanding(role) && activeMobileTab !== 'host') {
       setMobileStaffTab('host')
       persistMobileTab('host', 'host')
     }
@@ -13817,7 +13819,6 @@ function App() {
     isAuthLoading,
     isHostMobileShell,
     role,
-    useMobileExperience,
     activeView,
     activeMobileTab,
     mobileReservationsHostMode,
@@ -20071,7 +20072,7 @@ function App() {
     handleActiveViewChange('reservations')
     setMobileReservationsHostMode(true)
 
-    if (isHostMobileRole(role) && useMobileExperience) {
+    if (isHostMobileRole(role)) {
       setMobileExpandedView(null)
       setMobileStaffTab('host')
       persistMobileTab('host', 'host')
@@ -20227,9 +20228,9 @@ function App() {
 
   return (
     <PublishedFloorPlanProvider workspaceId={workspace?.id ?? ''}>
-    <div className={`app-shell${useMobileExperience ? ' is-mobile-shell' : ''}${useMobileExperience && mobileExpandedView ? ' is-mobile-expanded' : ''}${(useMobileExperience && mobileReservationsHostMode) || (isHostMobileShell && activeMobileTab === 'host') ? ' is-reservations-host-mode' : ''}`}>
-      <ViewportDebugOverlay isMobileViewport={useMobileExperience} />
-      {!useMobileExperience ? (
+    <div className={`app-shell${useDedicatedShell ? ' is-mobile-shell' : ''}${useHostStationShell ? ' is-host-station-shell' : ''}${useDedicatedShell && mobileExpandedView ? ' is-mobile-expanded' : ''}${(useDedicatedShell && mobileReservationsHostMode) || (useHostStationShell && activeMobileTab === 'host') ? ' is-reservations-host-mode' : ''}`}>
+      <ViewportDebugOverlay isMobileViewport={useDedicatedShell} />
+      {!useDedicatedShell ? (
       <aside className="sidebar">
         <div className="brand-block">
           <div className="brand-avatar" aria-hidden="true">
@@ -20782,7 +20783,7 @@ function App() {
 
           return (
             <>
-              {useMobileExperience ? (
+              {useDedicatedShell ? (
                 (() => {
                   if (isAuthLoading) {
                     return (
@@ -21025,7 +21026,7 @@ function App() {
                   )
                 })()
               ) : null}
-              {!useMobileExperience ? (
+              {!useDedicatedShell ? (
                 <>
                   {!hideStandardTopbar ? (
                   useCommandTopbar ? (

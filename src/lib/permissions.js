@@ -200,6 +200,14 @@ export function shouldUseHostMobileLanding(role, useMobileExperience = false) {
   return isHostRole(role) && Boolean(useMobileExperience)
 }
 
+export function shouldUseHostStationShell(role) {
+  return isHostRole(role)
+}
+
+export function shouldUseHostStationLanding(role) {
+  return isHostRole(role)
+}
+
 export function canManageEmployeeInvites(role) {
   return canEditSchedule(role)
 }

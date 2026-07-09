@@ -10,6 +10,7 @@ import {
   filterMobileHostReservations,
   isMobileHostSplitViewport,
   MOBILE_HOST_TABS,
+  resolveHostReservationFormVariant,
 } from '../../../lib/mobileHostReservationUtils'
 import { MobileReservationHostCard } from './MobileReservationHostCard'
 import { MobileReservationHostEditSheet } from './MobileReservationHostEditSheet'
@@ -82,6 +83,9 @@ export function MobileReservationsHostView({
   const effectiveSelectedReservationId = isSplitLayout && controlledSelectedReservationId != null
     ? controlledSelectedReservationId
     : localSelectedReservationId
+
+  const formVariant = resolveHostReservationFormVariant({ isSplitLayout })
+  const useInlineDetailPane = isSplitLayout && (isCreateOpen || editingReservation)
 
   const handleCreateSubmit = async (form) => {
     const created = await onCreateReservation?.(form)
@@ -216,6 +220,40 @@ export function MobileReservationsHostView({
     </div>
   ) : null
 
+  const detailPaneContent = useInlineDetailPane ? (
+    isCreateOpen ? (
+      <MobileReservationQuickCreateSheet
+        isOpen
+        variant="inline"
+        todayKey={todayKey}
+        isSaving={isSaving}
+        onClose={() => setIsCreateOpen(false)}
+        onSubmit={handleCreateSubmit}
+      />
+    ) : (
+      <MobileReservationHostEditSheet
+        reservation={editingReservation}
+        variant="inline"
+        todayKey={todayKey}
+        reservations={reservations}
+        isSaving={isSaving}
+        onClose={() => setEditingReservation(null)}
+        onSave={onHostEditSave}
+        onDelete={onHostEditDelete}
+        onValidationError={onReservationNotice}
+      />
+    )
+  ) : rightPaneContent
+
+  const splitDetailFallback = (
+    <div className="mobile-host-reservations-detail-empty" role="status">
+      <p className="mobile-host-reservations-detail-empty-title">Select a reservation</p>
+      <p className="mobile-host-reservations-detail-empty-copy">
+        Choose a guest from the list or tap + Reservation to create one.
+      </p>
+    </div>
+  )
+
   return (
     <div className={`mobile-host-reservations is-host-mode${isSplitLayout ? ' is-landscape' : ' is-portrait'}`}>
       <header className="mobile-host-sticky-bar" aria-label="Host mode header">
@@ -244,7 +282,7 @@ export function MobileReservationsHostView({
         <div className="mobile-host-reservations-notice" role="status">{noticeMessage}</div>
       ) : null}
 
-      {isSplitLayout && rightPaneContent ? (
+      {isSplitLayout ? (
         <div className="mobile-host-reservations-landscape">
           <section className="mobile-host-reservations-list-pane" aria-label="Reservation timeline">
             {listControls}
@@ -252,8 +290,8 @@ export function MobileReservationsHostView({
               {reservationList}
             </div>
           </section>
-          <section className="mobile-host-reservations-detail-pane" aria-label="Floor plan and details">
-            {rightPaneContent}
+          <section className="mobile-host-reservations-detail-pane" aria-label="Reservation details">
+            {detailPaneContent ?? splitDetailFallback}
           </section>
         </div>
       ) : (
@@ -266,24 +304,30 @@ export function MobileReservationsHostView({
         </div>
       )}
 
-      <MobileReservationQuickCreateSheet
-        isOpen={isCreateOpen}
-        todayKey={todayKey}
-        isSaving={isSaving}
-        onClose={() => setIsCreateOpen(false)}
-        onSubmit={handleCreateSubmit}
-      />
+      {!useInlineDetailPane ? (
+        <>
+          <MobileReservationQuickCreateSheet
+            isOpen={isCreateOpen}
+            variant={formVariant === 'inline' ? 'panel' : formVariant}
+            todayKey={todayKey}
+            isSaving={isSaving}
+            onClose={() => setIsCreateOpen(false)}
+            onSubmit={handleCreateSubmit}
+          />
 
-      <MobileReservationHostEditSheet
-        reservation={editingReservation}
-        todayKey={todayKey}
-        reservations={reservations}
-        isSaving={isSaving}
-        onClose={() => setEditingReservation(null)}
-        onSave={onHostEditSave}
-        onDelete={onHostEditDelete}
-        onValidationError={onReservationNotice}
-      />
+          <MobileReservationHostEditSheet
+            reservation={editingReservation}
+            variant={formVariant === 'inline' ? 'panel' : formVariant}
+            todayKey={todayKey}
+            reservations={reservations}
+            isSaving={isSaving}
+            onClose={() => setEditingReservation(null)}
+            onSave={onHostEditSave}
+            onDelete={onHostEditDelete}
+            onValidationError={onReservationNotice}
+          />
+        </>
+      ) : null}
     </div>
   )
 }
