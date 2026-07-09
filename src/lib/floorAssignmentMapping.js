@@ -12,7 +12,7 @@ import {
   isReservationWaiting,
   reservationOccupiesFloorTables,
 } from './reservationHostStatus'
-import { DEFAULT_RESERVATION_DURATION_MINUTES } from './reservationTableOptions'
+import { DEFAULT_RESERVATION_DURATION_MINUTES } from './reservationConstants'
 import { parseTimeToMinutes } from './shiftHoursUtils'
 import { normalizeReservationDateKey } from './timeFormatUtils'
 

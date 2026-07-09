@@ -13800,6 +13800,11 @@ function App() {
     }
   }, [])
 
+  const refreshSuppliers = useCallback(async () => {
+    const remoteSuppliers = await getSuppliers()
+    setSuppliers(remoteSuppliers)
+  }, [])
+
   const refreshTaskChecklists = useCallback(async (remoteTasks = []) => {
     const taskIds = (remoteTasks ?? []).map((task) => task.id).filter(Boolean)
     if (taskIds.length === 0) {
@@ -19104,11 +19109,6 @@ function App() {
     } finally {
       setIsSavingBarRefill(false)
     }
-  }
-
-  const refreshSuppliers = async () => {
-    const remoteSuppliers = await getSuppliers()
-    setSuppliers(remoteSuppliers)
   }
 
   const handleOpenAddSupplier = () => {

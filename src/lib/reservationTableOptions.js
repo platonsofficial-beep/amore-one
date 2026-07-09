@@ -1,10 +1,14 @@
-import { getReservationDateKey } from './floorAssignmentMapping'
 import { toSeatingUnitFromLayoutUnit } from './hostFloorPlanLayout'
+import {
+  DEFAULT_RESERVATION_DURATION_MINUTES,
+  RESERVATION_TURNOVER_BUFFER_MINUTES,
+} from './reservationConstants'
 import {
   normalizeReservationStatus,
   isTerminalReservationStatus,
 } from './reservationHostStatus'
 import { parseTimeToMinutes } from './shiftHoursUtils'
+import { normalizeReservationDateKey } from './timeFormatUtils'
 import {
   dedupeAssignedUnits,
   formatHostListUnitLabel,
@@ -12,8 +16,7 @@ import {
   seatingUnitMatchesFloorUnit,
 } from './seatingAssignment'
 
-export const DEFAULT_RESERVATION_DURATION_MINUTES = 120
-export const RESERVATION_TURNOVER_BUFFER_MINUTES = 15
+export { DEFAULT_RESERVATION_DURATION_MINUTES, RESERVATION_TURNOVER_BUFFER_MINUTES } from './reservationConstants'
 const SERVICE_DAY_EARLY_MORNING_CUTOFF = 360
 
 export function getLayoutUnitsForArea(layout, areaId) {
@@ -85,7 +88,7 @@ export function getConflictingUnitIds(
   const layoutUnits = layout ? (layout.units ?? layout.tables ?? []) : []
 
   reservations.forEach((reservation) => {
-    if (getReservationDateKey(reservation) !== normalizedDateKey) return
+    if (normalizeReservationDateKey(reservation) !== normalizedDateKey) return
     if (excludeReservationId && String(reservation.id) === String(excludeReservationId)) return
     if (!reservationBlocksTableAvailability(reservation)) return
 
