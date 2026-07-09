@@ -5249,28 +5249,41 @@
 }
 
 .mobile-host-reservation-sheet .mobile-sheet-body {
-  max-height: min(78vh, 720px);
+  max-height: min(68vh, 600px);
   overflow-y: auto;
+  padding-top: 4px;
+}
+
+.mobile-host-reservation-sheet .mobile-sheet-header {
+  margin-bottom: 8px;
+}
+
+.mobile-host-reservation-sheet .mobile-sheet-title {
+  font-size: 1.02rem;
+}
+
+.mobile-host-reservation-sheet .mobile-sheet-handle {
+  margin-bottom: 8px;
 }
 
 .mobile-host-reservation-form {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
 }
 
 .mobile-host-form-row {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8px;
+  gap: 6px;
 }
 
 .mobile-host-form-field {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 4px;
   color: #c9bfb0;
-  font-size: 0.8rem;
+  font-size: 0.74rem;
   font-weight: 600;
 }
 
@@ -5278,17 +5291,18 @@
 .mobile-host-form-field textarea,
 .mobile-host-form-field select {
   min-height: 44px;
-  padding: 10px 12px;
+  padding: 8px 10px;
   border: 0;
-  border-radius: 12px;
+  border-radius: 10px;
   background: rgba(255, 255, 255, 0.05);
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
   color: #f7efe1;
   font: inherit;
+  font-size: 0.92rem;
 }
 
 .mobile-host-form-field textarea {
-  min-height: 88px;
+  min-height: 72px;
   resize: vertical;
 }
 
@@ -5301,20 +5315,21 @@
   flex: 1;
   min-width: 0;
   min-height: 44px;
-  padding: 10px 12px;
+  padding: 8px 10px;
   border: 0;
-  border-radius: 12px;
+  border-radius: 10px;
   background: rgba(255, 255, 255, 0.05);
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
   color: #f7efe1;
   font: inherit;
+  font-size: 0.92rem;
 }
 
 .mobile-host-form-field .reservation-date-field-calendar-btn {
   min-width: 44px;
   min-height: 44px;
   padding: 0;
-  border-radius: 12px;
+  border-radius: 10px;
   border: 0;
   background: rgba(255, 255, 255, 0.05);
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
@@ -5346,7 +5361,7 @@
 .mobile-host-form-hint {
   margin: 0;
   color: #8f8778;
-  font-size: 0.78rem;
+  font-size: 0.74rem;
 }
 
 .mobile-host-reservation-edit-body .host-reservation-edit-panel {
@@ -5354,6 +5369,58 @@
   background: transparent;
   box-shadow: none;
   padding: 0;
+}
+
+.mobile-host-reservation-edit-body .host-reservation-edit-header {
+  margin-bottom: 4px;
+}
+
+.mobile-host-reservation-edit-body .host-reservation-edit-eyebrow {
+  display: none;
+}
+
+.mobile-host-reservation-edit-body .host-reservation-edit-header h4 {
+  margin: 0;
+  font-size: 0.98rem;
+}
+
+.mobile-host-reservation-edit-body .host-reservation-edit-form {
+  gap: 6px;
+  margin-top: 0;
+}
+
+.mobile-host-reservation-edit-body .host-reservation-edit-field {
+  gap: 2px;
+  font-size: 0.7rem;
+}
+
+.mobile-host-reservation-edit-body .host-reservation-edit-field input,
+.mobile-host-reservation-edit-body .host-reservation-edit-field select,
+.mobile-host-reservation-edit-body .host-reservation-edit-field textarea,
+.mobile-host-reservation-edit-body .host-reservation-edit-field .reservation-time-select-trigger {
+  min-height: 44px;
+  padding: 8px 10px;
+  font-size: 0.92rem;
+}
+
+.mobile-host-reservation-edit-body .host-reservation-edit-grid {
+  gap: 6px;
+}
+
+.mobile-host-reservation-edit-body .host-reservation-edit-seating {
+  padding: 6px;
+}
+
+.mobile-host-reservation-sheet .reservation-time-select-option,
+.mobile-host-reservation-edit-body .reservation-time-select-option {
+  min-height: 44px;
+  padding: 8px 10px;
+  font-size: 0.82rem;
+}
+
+.mobile-host-reservation-sheet .mobile-sheet-actions {
+  gap: 8px;
+  padding-top: 4px;
 }
 
 @media (min-width: 700px) {

@@ -26,6 +26,7 @@ export function MobileReservationsHostView({
   onQuickStatusUpdate,
   onHostEditSave,
   onHostEditDelete,
+  onReservationNotice,
   onCreateReservation,
   onExitHostMode,
   renderRightPane,
@@ -281,6 +282,7 @@ export function MobileReservationsHostView({
         onClose={() => setEditingReservation(null)}
         onSave={onHostEditSave}
         onDelete={onHostEditDelete}
+        onValidationError={onReservationNotice}
       />
     </div>
   )

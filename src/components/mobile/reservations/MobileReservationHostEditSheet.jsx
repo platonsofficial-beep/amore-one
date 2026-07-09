@@ -13,6 +13,7 @@ export function MobileReservationHostEditSheet({
   onClose,
   onSave,
   onDelete,
+  onValidationError,
 }) {
   const { layout } = usePublishedFloorPlan()
   const [form, setForm] = useState(null)
@@ -71,6 +72,7 @@ export function MobileReservationHostEditSheet({
             onSave={handleSave}
             onDelete={handleDelete}
             onCancel={onClose}
+            onValidationError={onValidationError}
             isSaving={isSaving}
             variant="inline"
             reservations={reservations}

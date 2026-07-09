@@ -5,6 +5,8 @@ import {
   snapTimeToQuarter,
 } from '../lib/timeFormatUtils'
 
+const SCROLL_GESTURE_THRESHOLD_PX = 8
+
 export function TimeSelect({
   value,
   onChange,
@@ -24,7 +26,9 @@ export function TimeSelect({
   }, [optionsProp, normalizedValue])
   const [isOpen, setIsOpen] = useState(false)
   const rootRef = useRef(null)
+  const menuRef = useRef(null)
   const suppressToggleRef = useRef(false)
+  const pointerGestureRef = useRef({ active: false, moved: false, x: 0, y: 0 })
 
   useEffect(() => {
     const handlePointerDown = (event) => {
@@ -60,6 +64,46 @@ export function TimeSelect({
     })
   }
 
+  const resetPointerGesture = () => {
+    pointerGestureRef.current = {
+      active: false,
+      moved: false,
+      x: 0,
+      y: 0,
+    }
+  }
+
+  const handleMenuPointerDown = (event) => {
+    pointerGestureRef.current = {
+      active: true,
+      moved: false,
+      x: event.clientX,
+      y: event.clientY,
+    }
+  }
+
+  const handleMenuPointerMove = (event) => {
+    const gesture = pointerGestureRef.current
+    if (!gesture.active) return
+
+    const deltaX = Math.abs(event.clientX - gesture.x)
+    const deltaY = Math.abs(event.clientY - gesture.y)
+    if (deltaX > SCROLL_GESTURE_THRESHOLD_PX || deltaY > SCROLL_GESTURE_THRESHOLD_PX) {
+      gesture.moved = true
+    }
+  }
+
+  const handleOptionClick = (event, time) => {
+    if (pointerGestureRef.current.moved) {
+      resetPointerGesture()
+      return
+    }
+
+    event.stopPropagation()
+    resetPointerGesture()
+    handleSelect(time)
+  }
+
   const prefix = className
 
   return (
@@ -84,20 +128,21 @@ export function TimeSelect({
 
       {isOpen ? (
         <ul
+          ref={menuRef}
           className={`${prefix}-menu`}
           role="listbox"
           aria-labelledby={fieldId}
-          onPointerDown={(event) => event.stopPropagation()}
+          onPointerDown={handleMenuPointerDown}
+          onPointerMove={handleMenuPointerMove}
+          onPointerUp={resetPointerGesture}
+          onPointerCancel={resetPointerGesture}
         >
           {!required ? (
             <li role="presentation">
               <button
                 type="button"
                 className={`${prefix}-option is-placeholder${!normalizedValue ? ' is-selected' : ''}`}
-                onPointerDown={(event) => {
-                  event.preventDefault()
-                  handleSelect('')
-                }}
+                onClick={(event) => handleOptionClick(event, '')}
               >
                 {placeholder}
               </button>
@@ -110,10 +155,7 @@ export function TimeSelect({
                 role="option"
                 className={`${prefix}-option${time === normalizedValue ? ' is-selected' : ''}`}
                 aria-selected={time === normalizedValue}
-                onPointerDown={(event) => {
-                  event.preventDefault()
-                  handleSelect(time)
-                }}
+                onClick={(event) => handleOptionClick(event, time)}
               >
                 {time}
               </button>

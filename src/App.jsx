@@ -260,6 +260,7 @@ import {
   formatEuropeanDayMonth,
   formatHostReservationListTime,
 } from './lib/timeFormatUtils'
+import { validateReservationFormFields } from './lib/reservationFormValidation'
 import {
   buildEmployeeWeeklyHoursMap,
   calculateShiftDurationHours,
@@ -5570,6 +5571,7 @@ function ReservationWorkspaceProvider({
   filteredTodayReservations,
   onHostEditSave,
   onHostEditDelete,
+  onReservationNotice,
   isSavingHostEdit = false,
 }) {
   const { layout } = usePublishedFloorPlan()
@@ -5869,6 +5871,7 @@ function ReservationWorkspaceProvider({
     toggleHostEditUnit,
     onHostEditSave,
     onHostEditDelete,
+    onReservationNotice,
     isSavingHostEdit,
     selectReservation,
     clearSelection,
@@ -5908,6 +5911,7 @@ function ReservationWorkspaceProvider({
     floorPlanMode,
     onHostEditSave,
     onHostEditDelete,
+    onReservationNotice,
     isSavingHostEdit,
     closeHostEdit,
     startHostFloorPick,
@@ -8417,6 +8421,7 @@ function MobileReservationsHostShell({
   onQuickStatusUpdate,
   onHostEditSave,
   onHostEditDelete,
+  onReservationNotice,
   onCreateReservation,
   onExitHostMode,
   onSeatGuestAtTable,
@@ -8431,6 +8436,7 @@ function MobileReservationsHostShell({
       filteredTodayReservations={workspaceReservations}
       onHostEditSave={onHostEditSave}
       onHostEditDelete={onHostEditDelete}
+      onReservationNotice={onReservationNotice}
       isSavingHostEdit={isSaving}
     >
       <MobileReservationsHostShellBody
@@ -8445,6 +8451,7 @@ function MobileReservationsHostShell({
         onQuickStatusUpdate={onQuickStatusUpdate}
         onHostEditSave={onHostEditSave}
         onHostEditDelete={onHostEditDelete}
+        onReservationNotice={onReservationNotice}
         onCreateReservation={onCreateReservation}
         onExitHostMode={onExitHostMode}
         onSeatGuestAtTable={onSeatGuestAtTable}
@@ -8465,6 +8472,7 @@ function MobileReservationsHostShellBody({
   onQuickStatusUpdate,
   onHostEditSave,
   onHostEditDelete,
+  onReservationNotice,
   onCreateReservation,
   onExitHostMode,
   onSeatGuestAtTable,
@@ -8511,6 +8519,7 @@ function MobileReservationsHostShellBody({
       onQuickStatusUpdate={onQuickStatusUpdate}
       onHostEditSave={onHostEditSave}
       onHostEditDelete={onHostEditDelete}
+      onReservationNotice={onReservationNotice}
       onCreateReservation={onCreateReservation}
       onExitHostMode={onExitHostMode}
       renderRightPane={rightPane}
@@ -10271,6 +10280,7 @@ function ReservationsUnifiedCanvas({
     startHostFloorPick,
     onHostEditSave,
     onHostEditDelete,
+    onReservationNotice,
     isSavingHostEdit,
     activeFloorAreaId,
     setActiveFloorAreaId,
@@ -10430,7 +10440,11 @@ function ReservationsUnifiedCanvas({
             todayKey={floorPlanProps.todayKey}
             onChange={setHostEditForm}
             onSave={async () => {
-              if (!onHostEditSave || !hostEditForm) return
+              if (!onHostEditSave) return
+              if (!hostEditForm) {
+                onReservationNotice?.('Reservation form is not ready. Please try again.')
+                return
+              }
               const result = await onHostEditSave(
                 hostEditingReservation,
                 hostEditForm,
@@ -10442,6 +10456,7 @@ function ReservationsUnifiedCanvas({
                 clearSelection()
               }
             }}
+            onValidationError={onReservationNotice}
             onDelete={async (id) => {
               if (!onHostEditDelete) return
               const deleted = await onHostEditDelete(id)
@@ -10477,6 +10492,7 @@ function ReservationsWorkspaceBody({
   onHostEditDelete,
   isLoading,
   noticeMessage,
+  onReservationNotice,
   isSaving,
   workspaceTimeZone = '',
   onOpenHostMode,
@@ -10783,6 +10799,7 @@ function ReservationsWorkspaceBody({
         filteredTodayReservations={filteredWorkspaceReservations}
         onHostEditSave={onHostEditSave}
         onHostEditDelete={onHostEditDelete}
+        onReservationNotice={onReservationNotice}
         isSavingHostEdit={isSaving}
       >
         <ReservationsWorkspaceContent
@@ -18030,14 +18047,9 @@ function App() {
   const handleHostEditSave = async (reservation, form, selectedDateKey) => {
     if (!canManageReservationsRole) return { saved: false }
 
-    if (!form.guestName.trim()) {
-      setReservationNotice('Please provide the guest name.')
-      return { saved: false }
-    }
-
-    const nextDate = normalizeReservationDateKey(form.date)
-    if (!nextDate) {
-      setReservationNotice('Please select a reservation date.')
+    const validation = validateReservationFormFields(form, { dateFallback: selectedDateKey })
+    if (!validation.ok) {
+      setReservationNotice(validation.error)
       return { saved: false }
     }
 
@@ -18049,10 +18061,10 @@ function App() {
 
     try {
       const payload = buildReservationUpdatePayload(reservation, {
-        guestName: form.guestName.trim(),
+        guestName: validation.guestName,
         phone: form.phone.trim(),
-        date: nextDate,
-        time: form.time,
+        date: validation.date,
+        time: validation.time,
         guests: form.guests,
         customerType: form.customerType,
         status: form.status,
@@ -18069,7 +18081,7 @@ function App() {
       return {
         saved: true,
         movedOffSelectedDate: selectedDateKey
-          ? nextDate !== normalizeReservationDateKey(selectedDateKey)
+          ? validation.date !== normalizeReservationDateKey(selectedDateKey)
           : false,
       }
     } catch (error) {
@@ -18225,8 +18237,9 @@ function App() {
     event.preventDefault()
     if (!canManageReservationsRole) return
 
-    if (!reservationForm.guestName.trim()) {
-      setReservationNotice('Please provide the guest name.')
+    const validation = validateReservationFormFields(reservationForm, { dateFallback: currentDateKey })
+    if (!validation.ok) {
+      setReservationNotice(validation.error)
       return
     }
 
@@ -18236,18 +18249,17 @@ function App() {
     setIsSavingReservation(true)
     setReservationNotice('')
 
-    const reservationDate = normalizeReservationDateKey(reservationForm.date) || currentDateKey
     const payload = buildReservationUpdatePayload(editingReservation ?? {
-      date: reservationDate,
+      date: validation.date,
       guests: Number(reservationForm.guests) || 2,
       area: reservationForm.area,
       notes: '',
       seatingAssignment: { assignedUnits: [], extraChairs: 0, standingGuests: 0 },
     }, {
-      guestName: reservationForm.guestName.trim(),
+      guestName: validation.guestName,
       phone: reservationForm.phone.trim(),
-      date: reservationDate,
-      time: reservationForm.time,
+      date: validation.date,
+      time: validation.time,
       guests: reservationForm.guests,
       status: reservationForm.status,
       notes: reservationForm.notes.trim(),
@@ -18264,7 +18276,7 @@ function App() {
       } else {
         savedReservation = await createReservation(activeWorkspaceId, {
           ...payload,
-          date: reservationDate,
+          date: validation.date,
         }, user?.id ?? null)
       }
 
@@ -18284,13 +18296,9 @@ function App() {
     event.preventDefault()
     if (!canManageReservationsRole) return
 
-    if (!quickReservationForm.guestName.trim()) {
-      setReservationNotice('Please provide the guest name.')
-      return
-    }
-
-    if (!quickReservationForm.time) {
-      setReservationNotice('Please provide an arrival time.')
+    const validation = validateReservationFormFields(quickReservationForm, { dateFallback: currentDateKey })
+    if (!validation.ok) {
+      setReservationNotice(validation.error)
       return
     }
 
@@ -18305,10 +18313,10 @@ function App() {
 
     try {
       const created = await createReservation(activeWorkspaceId, {
-        guestName: quickReservationForm.guestName.trim(),
+        guestName: validation.guestName,
         phone: `${match?.phone ?? ''}`.trim(),
-        date: normalizeReservationDateKey(quickReservationForm.date) || currentDateKey,
-        time: quickReservationForm.time,
+        date: validation.date,
+        time: validation.time,
         guests: Number(quickReservationForm.guests) || 2,
         tableNumber: quickReservationForm.tableNumber.trim()
           || (profile?.favoriteTable && profile.favoriteTable !== '—' ? profile.favoriteTable : ''),
@@ -19942,13 +19950,9 @@ function App() {
   const handleMobileHostReservationCreate = async (form) => {
     if (!canManageReservationsRole) return false
 
-    if (!`${form?.guestName ?? ''}`.trim()) {
-      setReservationNotice('Please provide the guest name.')
-      return false
-    }
-
-    if (!form?.time) {
-      setReservationNotice('Please provide an arrival time.')
+    const validation = validateReservationFormFields(form, { dateFallback: currentDateKey })
+    if (!validation.ok) {
+      setReservationNotice(validation.error)
       return false
     }
 
@@ -19960,10 +19964,10 @@ function App() {
 
     try {
       const created = await createReservation(activeWorkspaceId, {
-        guestName: `${form.guestName}`.trim(),
+        guestName: validation.guestName,
         phone: `${form.phone ?? ''}`.trim(),
-        date: normalizeReservationDateKey(form.date) || currentDateKey,
-        time: form.time,
+        date: validation.date,
+        time: validation.time,
         guests: Number(form.guests) || 2,
         tableNumber: `${form.tableNumber ?? ''}`.trim(),
         area: 'Main Dining',
@@ -20303,6 +20307,7 @@ function App() {
               onQuickStatusUpdate={handleQuickReservationStatus}
               onHostEditSave={handleHostEditSave}
               onHostEditDelete={handleHostEditDelete}
+              onReservationNotice={setReservationNotice}
               onCreateReservation={handleMobileHostReservationCreate}
               onExitHostMode={handleMobileExitReservationsHostMode}
               onSeatGuestAtTable={handleSeatGuestAtTable}
@@ -20324,6 +20329,7 @@ function App() {
               onSeatGuestAtTable={handleSeatGuestAtTable}
               onHostEditSave={handleHostEditSave}
               onHostEditDelete={handleHostEditDelete}
+              onReservationNotice={setReservationNotice}
               isLoading={isReservationsLoading}
               noticeMessage={reservationNotice}
               isSaving={isSavingReservation}

@@ -8,6 +8,7 @@ import {
 import { CUSTOMER_TYPES } from '../../lib/reservationCustomerType'
 import { resolveAreaIdForReservation } from '../../lib/reservationTableOptions'
 import { normalizeReservationTimeValue, normalizeReservationDateKey } from '../../lib/timeFormatUtils'
+import { validateReservationFormFields } from '../../lib/reservationFormValidation'
 import { usePublishedFloorPlan } from '../../lib/PublishedFloorPlanContext'
 import { ReservationTableSelector } from './ReservationTableSelector'
 import { ReservationDateField } from './ReservationDateField'
@@ -62,6 +63,7 @@ export function HostReservationEditPanel({
   onStartFloorPick,
   isFloorPickActive = false,
   isSaving = false,
+  onValidationError,
   variant = 'inline',
   reservations = [],
   todayKey,
@@ -146,10 +148,20 @@ export function HostReservationEditPanel({
 
   const formId = `host-reservation-edit-form-${reservation.id}`
 
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault()
-    if (!normalizeReservationDateKey(form.date)) return
-    onSave()
+
+    const validation = validateReservationFormFields(form, { dateFallback: todayKey })
+    if (!validation.ok) {
+      onValidationError?.(validation.error)
+      return
+    }
+
+    try {
+      await onSave?.()
+    } catch (error) {
+      onValidationError?.(error?.message || 'Unable to save reservation right now.')
+    }
   }
 
   return (
