@@ -45,15 +45,14 @@ export function getPublishedTableLayoutStyle(table) {
   const style = {
     left: `${x}%`,
     top: `${y}%`,
+    transform: rotation
+      ? `translate(-50%, -50%) rotate(${rotation}deg)`
+      : 'translate(-50%, -50%)',
   }
 
   if (hasPublishedSize) {
     style['--floor-table-width'] = `${widthPercent}%`
     style['--floor-table-height'] = `${heightPercent}%`
-  }
-
-  if (rotation) {
-    style.transform = `translate(-50%, -50%) rotate(${rotation}deg)`
   }
 
   return {

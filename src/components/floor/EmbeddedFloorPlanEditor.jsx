@@ -6,7 +6,7 @@ import { BuilderInspector } from '../../floor-plan-builder/components/BuilderIns
 import { BuilderCanvas } from '../../floor-plan-builder/components/BuilderCanvas'
 import { useBuilderEditorLayout } from '../../floor-plan-builder/hooks/useBuilderEditorLayout'
 import { useCanvasViewport } from '../../floor-plan-builder/hooks/useCanvasViewport'
-import { getResetCameraForEditorContent } from '../../floor-plan-builder/lib/editorViewport'
+import { getResetCameraForEditorWorkspace } from '../../floor-plan-builder/lib/editorViewport'
 import { cloneBuilderLayout } from '../../floor-plan-builder/lib/floorPlanStorage'
 import { getAdjacentAreaId } from '../../floor-plan-builder/models/floorPlans'
 import { usePublishedFloorPlan } from '../../lib/PublishedFloorPlanContext'
@@ -92,10 +92,10 @@ function EmbeddedFloorPlanEditorShell({
   const toolbarRef = useRef(null)
   const sidebarRef = useRef(null)
   const layout = useBuilderEditorLayout(editorRef, toolbarRef, sidebarRef)
-  const { state, dispatch, activeWorkspaceBounds, visibleObjects } = useFloorPlanBuilder()
-  const activeFloorIdRef = useRef(state.activeFloorId)
+  const { state, dispatch, activeWorkspaceBounds } = useFloorPlanBuilder()
   const didApplyInitialAreaRef = useRef(false)
-  const objectFitSignatureRef = useRef('')
+  const didInitialFitRef = useRef(false)
+  const lastFittedFloorRef = useRef('')
   const [toolsPanelOpen, setToolsPanelOpen] = useState(() => (
     typeof window !== 'undefined' ? window.innerWidth > TABLET_EDITOR_BREAKPOINT : true
   ))
@@ -109,12 +109,6 @@ function EmbeddedFloorPlanEditorShell({
     onCameraChange: (patch) => dispatch({ type: 'SET_CAMERA', payload: patch }),
     containerRef,
     floorBounds: activeWorkspaceBounds,
-    getFitCamera: (viewportWidth, viewportHeight) => getResetCameraForEditorContent(
-      visibleObjects,
-      activeWorkspaceBounds,
-      viewportWidth,
-      viewportHeight,
-    ),
   })
 
   useEffect(() => {
@@ -142,14 +136,13 @@ function EmbeddedFloorPlanEditorShell({
     const container = containerRef.current
     if (!container) return undefined
 
-    const fitContentInViewport = () => {
+    const fitWorkspaceInViewport = () => {
       const rect = container.getBoundingClientRect()
       if (rect.width < 1 || rect.height < 1) return false
 
       dispatch({
         type: 'SET_CAMERA',
-        payload: getResetCameraForEditorContent(
-          visibleObjects,
+        payload: getResetCameraForEditorWorkspace(
           activeWorkspaceBounds,
           rect.width,
           rect.height,
@@ -158,30 +151,22 @@ function EmbeddedFloorPlanEditorShell({
       return true
     }
 
-    const floorChanged = activeFloorIdRef.current !== state.activeFloorId
-    activeFloorIdRef.current = state.activeFloorId
+    const floorChanged = lastFittedFloorRef.current !== state.activeFloorId
+    const needsInitialFit = !didInitialFitRef.current
 
-    const nextSignature = `${state.activeFloorId}:${visibleObjects.length}:${visibleObjects.map((object) => object.id).join('|')}`
-    const objectsChanged = objectFitSignatureRef.current !== nextSignature
-    objectFitSignatureRef.current = nextSignature
-
-    if (floorChanged || objectsChanged) {
-      fitContentInViewport()
+    if (needsInitialFit || floorChanged) {
+      if (fitWorkspaceInViewport()) {
+        didInitialFitRef.current = true
+        lastFittedFloorRef.current = state.activeFloorId
+      }
     }
 
-    const observer = new ResizeObserver(() => {
-      fitContentInViewport()
-    })
-    observer.observe(container)
-    return () => observer.disconnect()
+    return undefined
   }, [
     activeWorkspaceBounds,
     containerRef,
     dispatch,
-    layout.toolbarHeight,
-    layout.sidebarWidth,
     state.activeFloorId,
-    visibleObjects,
   ])
 
   const selectionCount = state.selectedTableIds.length

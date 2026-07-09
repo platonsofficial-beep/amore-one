@@ -7,7 +7,7 @@ import { BuilderInspector } from './components/BuilderInspector'
 import { BuilderCanvas } from './components/BuilderCanvas'
 import { useBuilderEditorLayout } from './hooks/useBuilderEditorLayout'
 import { useCanvasViewport } from './hooks/useCanvasViewport'
-import { getResetCameraForEditorContent } from './lib/editorViewport'
+import { getResetCameraForEditorWorkspace } from './lib/editorViewport'
 import './floorPlanBuilder.css'
 
 function FloorPlanBuilderShell({ onBack, containerRef }) {
@@ -15,35 +15,28 @@ function FloorPlanBuilderShell({ onBack, containerRef }) {
   const toolbarRef = useRef(null)
   const sidebarRef = useRef(null)
   const layout = useBuilderEditorLayout(editorRef, toolbarRef, sidebarRef)
-  const { state, dispatch, activeWorkspaceBounds, visibleObjects } = useFloorPlanBuilder()
-  const activeFloorIdRef = useRef(state.activeFloorId)
-  const objectFitSignatureRef = useRef('')
+  const { state, dispatch, activeWorkspaceBounds } = useFloorPlanBuilder()
+  const didInitialFitRef = useRef(false)
+  const lastFittedFloorRef = useRef('')
 
   const viewportControls = useCanvasViewport({
     camera: state.camera,
     onCameraChange: (patch) => dispatch({ type: 'SET_CAMERA', payload: patch }),
     containerRef,
     floorBounds: activeWorkspaceBounds,
-    getFitCamera: (viewportWidth, viewportHeight) => getResetCameraForEditorContent(
-      visibleObjects,
-      activeWorkspaceBounds,
-      viewportWidth,
-      viewportHeight,
-    ),
   })
 
   useEffect(() => {
     const container = containerRef.current
     if (!container) return undefined
 
-    const fitContentInViewport = () => {
+    const fitWorkspaceInViewport = () => {
       const rect = container.getBoundingClientRect()
       if (rect.width < 1 || rect.height < 1) return false
 
       dispatch({
         type: 'SET_CAMERA',
-        payload: getResetCameraForEditorContent(
-          visibleObjects,
+        payload: getResetCameraForEditorWorkspace(
           activeWorkspaceBounds,
           rect.width,
           rect.height,
@@ -52,30 +45,22 @@ function FloorPlanBuilderShell({ onBack, containerRef }) {
       return true
     }
 
-    const floorChanged = activeFloorIdRef.current !== state.activeFloorId
-    activeFloorIdRef.current = state.activeFloorId
+    const floorChanged = lastFittedFloorRef.current !== state.activeFloorId
+    const needsInitialFit = !didInitialFitRef.current
 
-    const nextSignature = `${state.activeFloorId}:${visibleObjects.length}:${visibleObjects.map((object) => object.id).join('|')}`
-    const objectsChanged = objectFitSignatureRef.current !== nextSignature
-    objectFitSignatureRef.current = nextSignature
-
-    if (floorChanged || objectsChanged) {
-      fitContentInViewport()
+    if (needsInitialFit || floorChanged) {
+      if (fitWorkspaceInViewport()) {
+        didInitialFitRef.current = true
+        lastFittedFloorRef.current = state.activeFloorId
+      }
     }
 
-    const observer = new ResizeObserver(() => {
-      fitContentInViewport()
-    })
-    observer.observe(container)
-    return () => observer.disconnect()
+    return undefined
   }, [
     activeWorkspaceBounds,
     containerRef,
     dispatch,
-    layout.toolbarHeight,
-    layout.sidebarWidth,
     state.activeFloorId,
-    visibleObjects,
   ])
 
   const workspaceLayoutKey = layout.sidebarWidth + layout.toolbarHeight

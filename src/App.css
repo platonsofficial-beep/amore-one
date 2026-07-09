@@ -6854,17 +6854,12 @@
   transform-origin: center center;
 }
 
-.floor-plan-workspace.is-host-floor .floor-table-node.is-host-touch {
+.floor-plan-workspace.is-host-floor .floor-table-node.is-host-touch:not(.has-published-layout) {
   min-width: 118px;
   min-height: 118px;
 }
 
-.floor-plan-workspace.is-host-floor .floor-table-node.is-host-touch.has-published-layout {
-  min-width: 118px;
-  min-height: 118px;
-}
-
-.floor-plan-workspace.is-host-floor .floor-table-node.is-host-touch .floor-table-node-surface {
+.floor-plan-workspace.is-host-floor .floor-table-node.is-host-touch:not(.has-published-layout) .floor-table-node-surface {
   min-width: 118px;
   min-height: 118px;
   padding: 10px 8px;

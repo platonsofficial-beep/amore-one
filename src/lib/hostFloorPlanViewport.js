@@ -2,8 +2,6 @@ import { getFloorUnitMatchKeys, getReservationSeatingAssignment, normalizeUnitKe
 import { reservationOccupiesFloorTables } from './reservationHostStatus'
 
 const DEFAULT_HALF_PERCENT = 6.5
-const FIT_PADDING = 40
-const FIT_ZOOM_SAFETY = 0.94
 const FIT_BOUNDS_INSET_X = 2.5
 const FIT_BOUNDS_INSET_Y_TOP = 2.5
 const FIT_BOUNDS_INSET_Y_BOTTOM = 4
@@ -86,39 +84,16 @@ export function getTablesBoundingBox(tables, halfPercent = DEFAULT_HALF_PERCENT)
 }
 
 export function computeHostFloorFit({
-  tables,
   viewportWidth,
   viewportHeight,
-  minZoom = HOST_FLOOR_MIN_ZOOM,
-  maxZoom = HOST_FLOOR_MAX_ZOOM,
 }) {
   if (!viewportWidth || !viewportHeight) {
     return { zoom: 1, pan: { x: 0, y: 0 } }
   }
 
-  const bounds = getTablesBoundingBox(tables)
-  if (!bounds) {
-    return { zoom: 1, pan: { x: 0, y: 0 } }
-  }
-
-  const contentPxW = (bounds.width / 100) * viewportWidth
-  const contentPxH = (bounds.height / 100) * viewportHeight
-  const availableW = Math.max(viewportWidth - FIT_PADDING * 2, 1)
-  const availableH = Math.max(viewportHeight - FIT_PADDING * 2, 1)
-
-  let zoom = Math.min(availableW / contentPxW, availableH / contentPxH) * FIT_ZOOM_SAFETY
-  zoom = Math.min(maxZoom, Math.max(minZoom, zoom))
-
-  const centerPxX = (bounds.centerX / 100) * viewportWidth
-  const centerPxY = (bounds.centerY / 100) * viewportHeight
-
-  return {
-    zoom,
-    pan: {
-      x: (viewportWidth / 2 - centerPxX) * zoom,
-      y: (viewportHeight / 2 - centerPxY) * zoom,
-    },
-  }
+  // Published layout space is already sized via CSS aspect-ratio.
+  // Do not apply a second fit-to-table-bounds zoom layer.
+  return { zoom: 1, pan: { x: 0, y: 0 } }
 }
 
 export function orderTablesForReservationLink(tables) {

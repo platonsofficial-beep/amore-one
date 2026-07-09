@@ -54,26 +54,52 @@ export function getEditorContentBounds({
   }
 }
 
-export function getResetCameraForEditorContent(
-  objects,
+export function getEditorWorkspaceFitBounds(workspaceBounds) {
+  if (!workspaceBounds) return null
+
+  return {
+    minX: workspaceBounds.minX,
+    minY: workspaceBounds.minY,
+    maxX: workspaceBounds.maxX,
+    maxY: workspaceBounds.maxY,
+    width: workspaceBounds.width,
+    height: workspaceBounds.height,
+    centerX: workspaceBounds.centerX,
+    centerY: workspaceBounds.centerY,
+  }
+}
+
+export function getResetCameraForEditorWorkspace(
   workspaceBounds,
   viewportWidth,
   viewportHeight,
   { margin = EDITOR_EMBEDDED_FIT_MARGIN } = {},
 ) {
-  const bounds = getEditorContentBounds({ objects, workspaceBounds })
+  const bounds = getEditorWorkspaceFitBounds(workspaceBounds)
   if (!bounds || viewportWidth < 1 || viewportHeight < 1) {
     return createCamera()
   }
 
-  const hasObjects = Array.isArray(objects) && objects.length > 0
-  const minZoom = hasObjects ? EDITOR_MIN_USABLE_ZOOM : EDITOR_EMPTY_MIN_ZOOM
   const camera = getCameraFitToBounds(bounds, viewportWidth, viewportHeight, margin)
-  const zoomSafety = hasObjects ? 0.9 : 0.96
 
   return createCamera({
     x: bounds.centerX,
     y: bounds.centerY,
-    zoom: clampCameraZoom(Math.max(camera.zoom * zoomSafety, minZoom)),
+    zoom: clampCameraZoom(camera.zoom * 0.96),
   })
+}
+
+export function getResetCameraForEditorContent(
+  _objects,
+  workspaceBounds,
+  viewportWidth,
+  viewportHeight,
+  options = {},
+) {
+  return getResetCameraForEditorWorkspace(
+    workspaceBounds,
+    viewportWidth,
+    viewportHeight,
+    options,
+  )
 }
