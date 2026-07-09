@@ -22,8 +22,8 @@ export function getScheduleGridDayColumnWidth({
   viewportWidth = 0,
   isCompactLandscape = false,
   isTemplatesPanelOpen = false,
-  horizontalPadding = 36,
-  toggleReserve = 48,
+  horizontalPadding = 28,
+  toggleReserve = 30,
 } = {}) {
   if (!isCompactLandscape || isTemplatesPanelOpen) {
     return SCHEDULE_GRID_DEFAULT_DAY_COLUMN_WIDTH

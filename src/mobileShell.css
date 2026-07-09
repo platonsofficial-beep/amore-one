@@ -3884,7 +3884,7 @@
   height: auto;
 }
 
-@media (max-height: 480px) and (orientation: landscape) and (pointer: coarse) {
+@media (max-height: 500px) and (min-width: 600px) and (orientation: landscape) and (pointer: coarse) {
   html,
   body,
   #root {
@@ -3933,13 +3933,80 @@
 
   .app-shell.is-mobile-shell .mobile-app-content,
   .mobile-app-content {
-    padding-bottom: calc(72px + env(safe-area-inset-bottom, 0px));
+    padding-bottom: calc(54px + env(safe-area-inset-bottom, 0px));
   }
 
   .mobile-app-expanded .mobile-expanded-scroll,
   .app-shell.is-mobile-shell .mobile-expanded-scroll,
   .mobile-expanded-scroll {
-    padding-bottom: calc(72px + env(safe-area-inset-bottom, 0px));
+    padding-bottom: calc(54px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .mobile-expanded-header {
+    padding: 4px 10px;
+    gap: 8px;
+  }
+
+  .mobile-expanded-header h1 {
+    font-size: 0.92rem;
+    line-height: 1.15;
+  }
+
+  .mobile-back-btn {
+    min-width: 44px;
+    min-height: 44px;
+    padding: 0 8px;
+    border-radius: 10px;
+    font-size: 0.82rem;
+  }
+
+  .mobile-app-expanded .mobile-workspace-module {
+    padding-top: 4px;
+  }
+
+  .app-shell.is-mobile-expanded .module-section-tabs {
+    margin: 0 0 4px;
+    padding: 2px;
+    gap: 4px;
+  }
+
+  .app-shell.is-mobile-expanded .module-section-tab {
+    min-height: 44px;
+    padding: 0 12px;
+    font-size: 0.78rem;
+  }
+
+  .mobile-bottom-nav {
+    gap: 2px;
+    padding: 4px 6px calc(4px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .mobile-bottom-nav-item {
+    min-height: 44px;
+    padding: 2px 2px;
+    gap: 2px;
+  }
+
+  .mobile-bottom-nav-icon {
+    font-size: 0.92rem;
+  }
+
+  .mobile-bottom-nav-label {
+    font-size: 0.64rem;
+  }
+
+  .mobile-manager-app .mobile-bottom-nav {
+    left: 10px;
+    right: 10px;
+    bottom: calc(6px + env(safe-area-inset-bottom, 0px));
+    padding: 4px 6px;
+    border-radius: 20px;
+  }
+
+  .mobile-manager-app .mobile-bottom-nav-item {
+    min-height: 44px;
+    padding: 2px 2px;
+    border-radius: 14px;
   }
 
   .mobile-workspace-module.is-mobile-expanded .reservations-workspace-host,
@@ -3969,6 +4036,7 @@
   .app-shell.is-mobile-expanded .schedule-workspace.is-compact-landscape {
     min-width: 0;
     max-width: 100%;
+    gap: 6px;
   }
 
   .app-shell.is-mobile-expanded .schedule-workspace.is-compact-landscape .schedule-workspace-layout,
@@ -3980,12 +4048,20 @@
   }
 
   .app-shell.is-mobile-expanded .schedule-workspace.is-compact-landscape.is-templates-collapsed .schedule-grid-hero {
-    padding-right: 40px;
+    padding-right: 22px;
   }
 
   .app-shell.is-mobile-expanded .schedule-workspace.is-compact-landscape .schedule-grid-hero .blend-grid-scroll {
-    min-height: calc(100dvh - 148px);
-    max-height: calc(100dvh - 148px);
+    min-height: calc(100dvh - 100px);
+    max-height: calc(100dvh - 100px);
+  }
+
+  .app-shell.is-mobile-expanded .schedule-workspace.is-compact-landscape .schedule-staff-availability {
+    display: none;
+  }
+
+  .app-shell.is-mobile-expanded .schedule-workspace.is-compact-landscape .schedule-insights-collapsible {
+    display: none;
   }
 }
 

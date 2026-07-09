@@ -13199,6 +13199,25 @@
   transform: translateY(-50%);
 }
 
+.schedule-workspace.is-compact-landscape.is-templates-collapsed .schedule-templates-toggle {
+  min-width: 28px;
+  width: 28px;
+  min-height: 56px;
+  max-height: 64px;
+  padding: 4px 2px;
+  gap: 0;
+  border-radius: 10px 0 0 10px;
+  box-shadow: -2px 0 10px rgba(0, 0, 0, 0.16);
+}
+
+.schedule-workspace.is-compact-landscape.is-templates-collapsed .schedule-templates-toggle-label {
+  display: none;
+}
+
+.schedule-workspace.is-compact-landscape.is-templates-open .schedule-templates-toggle {
+  display: none;
+}
+
 .schedule-templates-toggle:hover,
 .schedule-templates-toggle:focus-visible {
   border-color: rgba(212, 175, 55, 0.34);
@@ -13222,6 +13241,15 @@
 
 .schedule-workspace.is-compact-landscape .schedule-workspace-layout {
   grid-template-columns: minmax(0, 1fr);
+  gap: 8px;
+}
+
+.schedule-workspace.is-compact-landscape {
+  gap: 8px;
+}
+
+.schedule-workspace.is-compact-landscape .schedule-workspace-main {
+  gap: 8px;
 }
 
 .schedule-workspace.is-compact-landscape .schedule-workspace-main,
@@ -13233,35 +13261,150 @@
   position: relative;
 }
 
+.schedule-workspace.is-compact-landscape .schedule-staff-availability-summary {
+  min-height: 40px;
+  padding: 8px 12px;
+}
+
+.schedule-workspace.is-compact-landscape .schedule-staff-availability-body {
+  gap: 8px;
+  padding: 0 12px 12px;
+}
+
+.schedule-workspace.is-compact-landscape .schedule-grid-hero {
+  padding: 8px 8px 6px;
+}
+
+.schedule-workspace.is-compact-landscape .schedule-grid-hero .blend-grid-scroll {
+  min-height: min(58vh, 520px);
+  max-height: calc(100dvh - 108px);
+  padding-bottom: 2px;
+}
+
+.schedule-workspace.is-compact-landscape.is-templates-collapsed .schedule-grid-hero {
+  padding-right: 24px;
+}
+
+.schedule-workspace.is-compact-landscape.is-templates-collapsed .schedule-grid-hero .blend-grid-scroll {
+  min-height: calc(100dvh - 108px);
+  max-height: calc(100dvh - 108px);
+}
+
+.schedule-workspace.is-compact-landscape .schedule-day-grid {
+  column-gap: 4px;
+  row-gap: 4px;
+}
+
+.schedule-workspace.is-compact-landscape .schedule-day-grid .blend-grid-header-day {
+  min-height: 48px;
+}
+
+.schedule-workspace.is-compact-landscape .blend-grid-header-day-select {
+  padding: 6px 24px 6px 8px;
+  gap: 2px;
+}
+
+.schedule-workspace.is-compact-landscape .blend-grid-header-day-name {
+  font-size: 0.78rem;
+}
+
+.schedule-workspace.is-compact-landscape .blend-grid-header-day-date,
+.schedule-workspace.is-compact-landscape .schedule-day-status-label {
+  font-size: 0.62rem;
+}
+
+.schedule-workspace.is-compact-landscape .schedule-grid-area-group-header {
+  min-height: 36px;
+  padding: 6px 10px;
+}
+
+.schedule-workspace.is-compact-landscape .blend-grid-assignment-cell {
+  min-height: 68px;
+  padding: 5px 6px;
+  gap: 4px;
+  border-radius: 8px;
+}
+
+.schedule-workspace.is-compact-landscape .blend-grid-assignment-cell.schedule-shift-instance-card {
+  padding: 4px 5px;
+  gap: 3px;
+}
+
+.schedule-workspace.is-compact-landscape .schedule-shift-instance-name {
+  font-size: 0.74rem;
+}
+
+.schedule-workspace.is-compact-landscape .schedule-shift-instance-dept {
+  font-size: 0.58rem;
+}
+
+.schedule-workspace.is-compact-landscape .schedule-shift-instance-time,
+.schedule-workspace.is-compact-landscape .schedule-shift-staff-ratio {
+  font-size: 0.66rem;
+  gap: 4px;
+}
+
+.schedule-workspace.is-compact-landscape .schedule-shift-assigned-list {
+  gap: 3px;
+}
+
+.schedule-workspace.is-compact-landscape .schedule-shift-assigned-item {
+  min-height: 28px;
+  padding: 4px 6px;
+  font-size: 0.68rem;
+}
+
+.schedule-workspace.is-compact-landscape .schedule-assign-btn {
+  min-height: 36px;
+  padding: 4px 8px;
+  font-size: 0.68rem;
+  border-radius: 6px;
+}
+
+.schedule-workspace.is-compact-landscape .schedule-shift-coverage-status {
+  font-size: 0.62rem;
+  line-height: 1.2;
+}
+
 .schedule-workspace.is-compact-landscape.is-templates-collapsed .schedule-templates-panel {
   display: none;
 }
 
 .schedule-workspace.is-compact-landscape.is-templates-open .schedule-templates-panel.is-overlay-open {
   position: fixed;
-  top: max(8px, env(safe-area-inset-top, 0px));
+  top: max(4px, env(safe-area-inset-top, 0px));
   right: 0;
-  bottom: calc(72px + env(safe-area-inset-bottom, 0px));
-  width: min(320px, 78vw);
+  bottom: calc(52px + env(safe-area-inset-bottom, 0px));
+  width: min(300px, 72vw);
   min-width: 0;
   max-height: none;
-  z-index: 40;
-  border-radius: 16px 0 0 16px;
-  box-shadow: -10px 0 28px rgba(0, 0, 0, 0.34);
+  z-index: 45;
+  border-radius: 14px 0 0 14px;
+  box-shadow: -12px 0 32px rgba(0, 0, 0, 0.42);
 }
 
 .schedule-workspace.is-compact-landscape.is-templates-open .schedule-templates-list {
   max-height: none;
   flex: 1 1 auto;
   min-height: 0;
+  gap: 6px;
 }
 
-.schedule-workspace.is-compact-landscape .schedule-grid-hero .blend-grid-scroll {
-  min-height: min(58vh, 520px);
+.schedule-workspace.is-compact-landscape.is-templates-open .schedule-templates-panel-header {
+  padding-bottom: 2px;
 }
 
-.schedule-workspace.is-compact-landscape.is-templates-collapsed .schedule-grid-hero .blend-grid-scroll {
-  min-height: min(72vh, 560px);
+.schedule-workspace.is-compact-landscape.is-templates-open .schedule-templates-panel-header h3 {
+  font-size: 0.84rem;
+}
+
+.schedule-workspace.is-compact-landscape.is-templates-open .schedule-templates-panel-note {
+  font-size: 0.68rem;
+}
+
+.schedule-workspace.is-compact-landscape.is-templates-open .schedule-template-card {
+  padding: 6px 8px 5px;
+  border-radius: 10px;
 }
 
 .schedule-template-card {
