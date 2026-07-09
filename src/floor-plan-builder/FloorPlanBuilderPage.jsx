@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useCallback, useEffect, useRef } from 'react'
 import { FloorPlanBuilderProvider } from './context/floorPlanBuilderContextState'
 import { useFloorPlanBuilder } from './hooks/useFloorPlanBuilder'
 import { BuilderToolbar } from './components/BuilderToolbar'
@@ -19,11 +19,16 @@ function FloorPlanBuilderShell({ onBack, containerRef }) {
   const didInitialFitRef = useRef(false)
   const lastFittedFloorRef = useRef('')
 
+  const getFitCamera = useCallback((width, height) => (
+    getResetCameraForEditorWorkspace(activeWorkspaceBounds, width, height)
+  ), [activeWorkspaceBounds])
+
   const viewportControls = useCanvasViewport({
     camera: state.camera,
     onCameraChange: (patch) => dispatch({ type: 'SET_CAMERA', payload: patch }),
     containerRef,
     floorBounds: activeWorkspaceBounds,
+    getFitCamera,
   })
 
   useEffect(() => {

@@ -6,13 +6,15 @@ import {
 } from './camera'
 
 export const EDITOR_EMPTY_VIEW_SIZE = {
-  width: 960,
-  height: 720,
+  width: 900,
+  height: 630,
 }
 
 export const EDITOR_OBJECT_FIT_PADDING = 140
-export const EDITOR_MIN_USABLE_ZOOM = 0.42
-export const EDITOR_EMPTY_MIN_ZOOM = 0.62
+/** Minimum zoom for editor view-fit — keeps tablet editing at restaurant scale. */
+export const EDITOR_TARGET_MIN_ZOOM = 0.7
+export const EDITOR_TARGET_MAX_ZOOM = 1
+export const EDITOR_FIT_ZOOM_PADDING = 0.96
 export const EDITOR_EMBEDDED_FIT_MARGIN = 28
 
 export function getEditorContentBounds({
@@ -69,6 +71,26 @@ export function getEditorWorkspaceFitBounds(workspaceBounds) {
   }
 }
 
+export function getEditorFitZoom(
+  bounds,
+  viewportWidth,
+  viewportHeight,
+  margin = EDITOR_EMBEDDED_FIT_MARGIN,
+) {
+  const fitZoom = getCameraFitToBounds(bounds, viewportWidth, viewportHeight, margin).zoom
+  let zoom = clampCameraZoom(fitZoom * EDITOR_FIT_ZOOM_PADDING)
+
+  if (zoom < EDITOR_TARGET_MIN_ZOOM) {
+    zoom = EDITOR_TARGET_MIN_ZOOM
+  }
+
+  if (zoom > EDITOR_TARGET_MAX_ZOOM) {
+    zoom = EDITOR_TARGET_MAX_ZOOM
+  }
+
+  return zoom
+}
+
 export function getResetCameraForEditorWorkspace(
   workspaceBounds,
   viewportWidth,
@@ -80,12 +102,10 @@ export function getResetCameraForEditorWorkspace(
     return createCamera()
   }
 
-  const camera = getCameraFitToBounds(bounds, viewportWidth, viewportHeight, margin)
-
   return createCamera({
     x: bounds.centerX,
     y: bounds.centerY,
-    zoom: clampCameraZoom(camera.zoom * 0.96),
+    zoom: getEditorFitZoom(bounds, viewportWidth, viewportHeight, margin),
   })
 }
 

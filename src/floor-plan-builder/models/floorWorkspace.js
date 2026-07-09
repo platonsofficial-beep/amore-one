@@ -1,6 +1,6 @@
 export const DEFAULT_FLOOR_SIZE = {
-  width: 2200,
-  height: 1400,
+  width: 1000,
+  height: 700,
 }
 
 /** Pixels added per +Width / +Height click in Edit Layout. */

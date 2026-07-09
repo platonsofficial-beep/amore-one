@@ -23,7 +23,7 @@ export const FLOOR_PLAN_OBJECT_TYPES = {
 }
 
 const DEFAULT_SIZES = {
-  [FLOOR_PLAN_OBJECT_TYPES.TABLE]: { width: 200, height: 200 },
+  [FLOOR_PLAN_OBJECT_TYPES.TABLE]: { width: 140, height: 140 },
   [FLOOR_PLAN_OBJECT_TYPES.WALL]: { width: 160, height: 12 },
   [FLOOR_PLAN_OBJECT_TYPES.DIVIDER]: { width: 120, height: 8 },
   [FLOOR_PLAN_OBJECT_TYPES.DOOR]: { width: 72, height: 16 },
@@ -76,24 +76,24 @@ export function createFloorPlanObject({
 
 export const TABLE_SIZE_PRESETS = {
   square: {
-    small: { width: 120, height: 120, capacity: 2 },
-    medium: { width: 200, height: 200, capacity: 4 },
-    large: { width: 320, height: 320, capacity: 6 },
+    small: { width: 90, height: 90, capacity: 2 },
+    medium: { width: 140, height: 140, capacity: 4 },
+    large: { width: 200, height: 200, capacity: 6 },
   },
   round: {
-    small: { width: 140, height: 140, capacity: 2 },
-    medium: { width: 220, height: 220, capacity: 4 },
-    large: { width: 340, height: 340, capacity: 6 },
+    small: { width: 90, height: 90, capacity: 2 },
+    medium: { width: 140, height: 140, capacity: 4 },
+    large: { width: 200, height: 200, capacity: 6 },
   },
   rectangle: {
-    small: { width: 220, height: 120, capacity: 4 },
-    medium: { width: 320, height: 180, capacity: 6 },
-    large: { width: 480, height: 220, capacity: 8 },
+    small: { width: 140, height: 90, capacity: 4 },
+    medium: { width: 200, height: 120, capacity: 6 },
+    large: { width: 280, height: 150, capacity: 8 },
   },
   island: {
-    small: { width: 220, height: 120, capacity: 4 },
-    medium: { width: 320, height: 180, capacity: 6 },
-    large: { width: 480, height: 220, capacity: 8 },
+    small: { width: 140, height: 90, capacity: 4 },
+    medium: { width: 200, height: 120, capacity: 6 },
+    large: { width: 280, height: 150, capacity: 8 },
   },
 }
 

@@ -62,8 +62,8 @@ export function getPublishedTableLayoutStyle(table) {
 }
 
 export function getFloorLayoutSpaceStyle(zone) {
-  const width = Number(zone?.workspaceWidth) || 2200
-  const height = Number(zone?.workspaceHeight) || 1400
+  const width = Number(zone?.workspaceWidth) || 1000
+  const height = Number(zone?.workspaceHeight) || 700
 
   return {
     '--floor-aspect-ratio': `${width} / ${height}`,

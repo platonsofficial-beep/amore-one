@@ -106,11 +106,16 @@ function EmbeddedFloorPlanEditorShell({
   ))
   const isTabletLayout = useEditorTabletLayout()
 
+  const getFitCamera = useCallback((width, height) => (
+    getResetCameraForEditorWorkspace(activeWorkspaceBounds, width, height)
+  ), [activeWorkspaceBounds])
+
   const viewportControls = useCanvasViewport({
     camera: state.camera,
     onCameraChange: (patch) => dispatch({ type: 'SET_CAMERA', payload: patch }),
     containerRef,
     floorBounds: activeWorkspaceBounds,
+    getFitCamera,
   })
 
   useEffect(() => {
