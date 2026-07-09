@@ -17,7 +17,7 @@ create table if not exists public.workspace_invites (
   revoked_at timestamptz null,
   constraint workspace_invites_token_unique unique (token),
   constraint workspace_invites_role_check check (
-    role in ('owner', 'general_manager', 'manager', 'staff')
+    role in ('owner', 'general_manager', 'manager', 'host', 'staff')
   )
 );
 
@@ -158,7 +158,7 @@ begin
   where u.id = v_uid;
 
   v_role := case
-    when v_invite.role in ('owner', 'general_manager', 'manager', 'staff') then v_invite.role
+    when v_invite.role in ('owner', 'general_manager', 'manager', 'host', 'staff') then v_invite.role
     else 'staff'
   end;
 

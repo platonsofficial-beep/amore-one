@@ -26,6 +26,12 @@ describe('navigationPersistence', () => {
     expect(resolvePermittedActiveView('staff', normalizeActiveView('reservations'))).toBe('today')
   })
 
+  it('redirects host away from persisted manager-only views', () => {
+    expect(resolvePermittedActiveView('host', normalizeActiveView('settings'))).toBe('reservations')
+    expect(resolvePermittedActiveView('host', normalizeActiveView('stock'))).toBe('reservations')
+    expect(resolvePermittedActiveView('host', normalizeActiveView('reservations'))).toBe('reservations')
+  })
+
   it('redirects managers away from persisted settings', () => {
     expect(resolvePermittedActiveView('manager', normalizeActiveView('settings'))).toBe('today')
     expect(resolvePermittedActiveView('manager', normalizeActiveView('reservations'))).toBe('reservations')

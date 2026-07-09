@@ -19,6 +19,8 @@ export function MobileStaffApp({
   onBackFromExpanded,
   expandedModuleContent = null,
   bottomTabs,
+  shellVariant = 'staff',
+  hostStationContent = null,
 }) {
   const noticeBanner = noticeMessage ? (
     <div className="mobile-notice-banner auth-banner auth-banner-error" role="alert">
@@ -33,7 +35,7 @@ export function MobileStaffApp({
 
   if (expandedView) {
     return (
-      <div className="mobile-app mobile-app-expanded">
+      <div className={`mobile-app mobile-app-expanded${shellVariant === 'host' ? ' mobile-app-host-station' : ''}`}>
         {noticeBanner}
         <div className="mobile-expanded-scroll">
           <header className="mobile-expanded-header">
@@ -54,10 +56,11 @@ export function MobileStaffApp({
   }
 
   return (
-    <div className="mobile-app">
+    <div className={`mobile-app${shellVariant === 'host' ? ' mobile-app-host-station' : ''}`}>
       {noticeBanner}
       <div className="mobile-app-content">
-        {activeTab === 'home' ? <MobileHomeView {...homeProps} /> : null}
+        {shellVariant === 'host' && activeTab === 'host' ? hostStationContent : null}
+        {shellVariant !== 'host' && activeTab === 'home' ? <MobileHomeView {...homeProps} /> : null}
         {activeTab === 'schedule' ? <MobileScheduleView {...scheduleProps} /> : null}
         {activeTab === 'tasks' ? <MobileTasksView {...tasksProps} /> : null}
         {activeTab === 'menu' ? (

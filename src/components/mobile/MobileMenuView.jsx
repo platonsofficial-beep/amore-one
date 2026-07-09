@@ -66,6 +66,7 @@ export function MobileMenuView({
     : filterMobileMenuNavItems(NAV_ITEMS, role)
   const showFullSchedule = canOpenMobileFullSchedule(role)
   const showSettings = canAccessMobileExpandedModule(role, 'settings')
+  const isHostMenu = menuVariant === 'host'
   const allowedModuleIds = useMemo(
     () => new Set(visibleModules.map((item) => item.id)),
     [visibleModules],
@@ -89,6 +90,30 @@ export function MobileMenuView({
         }
       })
   ), [allowedModuleIds, showSettings, onOpenSettings, onNavigateModule])
+
+  if (isHostMenu) {
+    return (
+      <div className="mobile-screen mobile-menu mobile-host-menu">
+        <header className="mobile-screen-header">
+          <p className="mobile-screen-eyebrow">{roleLabel || 'Host station'}</p>
+          <h1 className="mobile-screen-title">{profileName || 'Account'}</h1>
+          {venueName ? <p className="mobile-screen-subtitle">{venueName}</p> : null}
+        </header>
+
+        <section className="mobile-menu-section" aria-label="Account">
+          <h2 className="mobile-menu-section-title">Account</h2>
+          <div className="mobile-menu-actions">
+            <button type="button" className="mobile-menu-btn" onClick={onOpenProfile}>
+              Profile
+            </button>
+            <button type="button" className="mobile-menu-btn is-danger" onClick={onSignOut}>
+              Sign out
+            </button>
+          </div>
+        </section>
+      </div>
+    )
+  }
 
   const showWorkspaceSection = showFullSchedule
     || (menuVariant === 'manager' ? managerWorkspaceItems.length > 0 : visibleModules.length > 0 || showSettings)

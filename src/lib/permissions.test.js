@@ -1,20 +1,30 @@
 import { describe, expect, it } from 'vitest'
 import {
   APP_MODULES,
+  HOST_FALLBACK_MODULE,
+  MOBILE_HOST_BOTTOM_TABS,
   MOBILE_STAFF_BOTTOM_TABS,
+  canAccessHostMobileTasksTab,
   canAccessMobileExpandedModule,
   canAccessModule,
   canAssignManagerInviteRole,
+  canEditSchedule,
   canLinkMembershipEmployee,
   canManageAnnouncements,
   canManageEmployeeInvites,
   canManageOperations,
   canManageReservations,
   canManageStock,
+  canOpenMobileFullSchedule,
+  canOpenMobileTasksWorkspace,
   filterOperationsSections,
   getAccessibleModules,
   getMobileBottomTabs,
   getTodayQuickActions,
+  isHostMobileRole,
+  resolveDefaultModuleForRole,
+  resolveMobileShellVariant,
+  resolvePermittedActiveView,
   resolvePermittedOperationsSection,
   resolvePermittedTeamSection,
 } from './permissions'
@@ -63,6 +73,30 @@ describe('permissions', () => {
       expect(canAccessMobileExpandedModule('staff', 'stock')).toBe(true)
       expect(canAccessMobileExpandedModule('staff', 'operations')).toBe(false)
     })
+
+    it('limits host to reservations and read-only schedule context', () => {
+      const modules = getAccessibleModules('host')
+
+      expect(modules).toEqual(['reservations', 'team'])
+      expect(canAccessModule('host', 'stock')).toBe(false)
+      expect(canAccessModule('host', 'operations')).toBe(false)
+      expect(canAccessModule('host', 'today')).toBe(false)
+      expect(canAccessModule('host', 'settings')).toBe(false)
+      expect(canAccessModule('host', 'insights')).toBe(false)
+      expect(canAccessModule('host', 'reservations')).toBe(true)
+      expect(canAccessMobileExpandedModule('host', 'reservations')).toBe(true)
+      expect(canAccessMobileExpandedModule('host', 'stock')).toBe(false)
+      expect(canAccessMobileExpandedModule('host', 'operations')).toBe(false)
+      expect(canAccessMobileExpandedModule('host', 'team')).toBe(false)
+      expect(resolvePermittedTeamSection('host', 'members')).toBe('schedule')
+      expect(canOpenMobileFullSchedule('host')).toBe(false)
+      expect(canOpenMobileTasksWorkspace('host')).toBe(false)
+      expect(canAccessHostMobileTasksTab('host')).toBe(true)
+      expect(resolveDefaultModuleForRole('host')).toBe(HOST_FALLBACK_MODULE)
+      expect(resolvePermittedActiveView('host', 'stock')).toBe(HOST_FALLBACK_MODULE)
+      expect(isHostMobileRole('host')).toBe(true)
+      expect(resolveMobileShellVariant('host')).toBe('host')
+    })
   })
 
   describe('management helpers', () => {
@@ -70,6 +104,7 @@ describe('permissions', () => {
       expect(canManageReservations('owner')).toBe(true)
       expect(canManageReservations('general_manager')).toBe(true)
       expect(canManageReservations('manager')).toBe(true)
+      expect(canManageReservations('host')).toBe(true)
       expect(canManageReservations('staff')).toBe(false)
     })
   })
@@ -78,6 +113,11 @@ describe('permissions', () => {
     it('returns staff-safe tabs for the staff shell', () => {
       expect(getMobileBottomTabs('staff', 'staff')).toEqual(MOBILE_STAFF_BOTTOM_TABS)
       expect(tabIds(getMobileBottomTabs('staff', 'staff'))).toEqual(['home', 'schedule', 'tasks', 'menu'])
+    })
+
+    it('returns host-station tabs for the host shell', () => {
+      expect(getMobileBottomTabs('host', 'host')).toEqual(MOBILE_HOST_BOTTOM_TABS)
+      expect(tabIds(getMobileBottomTabs('host', 'host'))).toEqual(['host', 'schedule', 'tasks', 'menu'])
     })
 
     it('includes stock and tasks for manager roles with module access', () => {
@@ -99,6 +139,14 @@ describe('permissions', () => {
       })
     })
 
+    it('enables reservation quick action for host without operations actions', () => {
+      expect(quickActionAvailability('host')).toEqual({
+        'add-reservation': true,
+        'add-task': false,
+        'create-order': false,
+      })
+    })
+
     it.each(['owner', 'general_manager', 'manager'])('enables manager quick actions for %s', (role) => {
       expect(quickActionAvailability(role)).toEqual({
         'add-reservation': true,
@@ -114,12 +162,15 @@ describe('permissions', () => {
         .toEqual(['dashboard', 'tasks'])
       expect(filterOperationsSections(OPERATIONS_SECTIONS, 'manager').map((section) => section.id))
         .toEqual(['dashboard', 'checklists', 'tasks'])
+      expect(filterOperationsSections(OPERATIONS_SECTIONS, 'host').map((section) => section.id))
+        .toEqual([])
     })
 
     it('resolves invalid sections to the first permitted section', () => {
       expect(resolvePermittedOperationsSection('staff', 'checklists')).toBe('dashboard')
       expect(resolvePermittedOperationsSection('manager', 'unknown')).toBe('dashboard')
       expect(resolvePermittedOperationsSection('owner', 'checklists')).toBe('checklists')
+      expect(resolvePermittedOperationsSection('host', 'dashboard')).toBe('dashboard')
     })
   })
 
@@ -127,6 +178,7 @@ describe('permissions', () => {
     it('returns a permitted team section for each role', () => {
       expect(resolvePermittedTeamSection('staff', 'members')).toBe('schedule')
       expect(resolvePermittedTeamSection('staff', '')).toBe('schedule')
+      expect(resolvePermittedTeamSection('host', 'members')).toBe('schedule')
       expect(resolvePermittedTeamSection('manager', 'members')).toBe('members')
       expect(resolvePermittedTeamSection('owner', 'schedule')).toBe('schedule')
     })
@@ -137,12 +189,19 @@ describe('permissions', () => {
       expect(canManageStock(role)).toBe(true)
       expect(canManageOperations(role)).toBe(true)
       expect(canManageAnnouncements(role)).toBe(true)
+      expect(canEditSchedule(role)).toBe(true)
     })
 
-    it('denies staff management capabilities', () => {
+    it('denies staff and host management capabilities', () => {
       expect(canManageStock('staff')).toBe(false)
       expect(canManageOperations('staff')).toBe(false)
       expect(canManageAnnouncements('staff')).toBe(false)
+      expect(canEditSchedule('staff')).toBe(false)
+
+      expect(canManageStock('host')).toBe(false)
+      expect(canManageOperations('host')).toBe(false)
+      expect(canManageAnnouncements('host')).toBe(false)
+      expect(canEditSchedule('host')).toBe(false)
     })
   })
 
@@ -160,11 +219,16 @@ describe('permissions', () => {
       expect(canAccessModule('manager', 'settings')).toBe(false)
     })
 
-    it('blocks staff from workspace settings and invite management', () => {
+    it('blocks staff and host from workspace settings and invite management', () => {
       expect(canManageEmployeeInvites('staff')).toBe(false)
       expect(canAssignManagerInviteRole('staff')).toBe(false)
       expect(canLinkMembershipEmployee('staff')).toBe(false)
       expect(canAccessModule('staff', 'settings')).toBe(false)
+
+      expect(canManageEmployeeInvites('host')).toBe(false)
+      expect(canAssignManagerInviteRole('host')).toBe(false)
+      expect(canLinkMembershipEmployee('host')).toBe(false)
+      expect(canAccessModule('host', 'settings')).toBe(false)
     })
   })
 })

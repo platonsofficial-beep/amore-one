@@ -26,6 +26,10 @@ import {
   normalizeAuthWorkspace,
   resolveWorkspaceForMembership,
 } from '../services/workspaceService'
+import {
+  coerceHydratedWorkspace,
+  resolveWorkspaceLoadError,
+} from '../lib/workspaceLoadUtils'
 
 const DEV_MOCK_USER = {
   id: 'dev-local-user',
@@ -218,6 +222,8 @@ export function AuthProvider({ children }) {
       joinedWorkspace: joinedWorkspaceRecord,
     })
 
+    let workspaceFetchErrorMessage = ''
+
     if (!isCompleteWorkspace(resolvedWorkspace)) {
       try {
         const fetchedWorkspace = await resolveWorkspaceForMembership(resolvedMembership?.workspaceId)
@@ -231,17 +237,21 @@ export function AuthProvider({ children }) {
       } catch (workspaceError) {
         const message = workspaceError?.message || 'Unable to load workspace.'
         console.error('[AuthContext] workspace load error:', workspaceError)
-        setWorkspaceLoadError(message)
+        workspaceFetchErrorMessage = message
       }
     }
 
-    if (!isCompleteWorkspace(resolvedWorkspace)) {
-      setWorkspaceLoadError('No workspace found in public.workspaces. Add a workspace row to continue.')
-    }
+    const hydratedWorkspace = coerceHydratedWorkspace(resolvedWorkspace, resolvedMembership)
+    const nextWorkspaceLoadError = resolveWorkspaceLoadError({
+      membership: resolvedMembership,
+      resolvedWorkspace: hydratedWorkspace,
+      fetchErrorMessage: workspaceFetchErrorMessage,
+    })
 
     if (loadSeq !== authLoadSeqRef.current) return
 
-    setWorkspace(isCompleteWorkspace(resolvedWorkspace) ? resolvedWorkspace : null)
+    setWorkspaceLoadError(nextWorkspaceLoadError)
+    setWorkspace(hydratedWorkspace)
     } finally {
       if (loadSeq === authLoadSeqRef.current) {
         setIsJoiningWorkspace(false)

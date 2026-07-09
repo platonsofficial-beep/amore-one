@@ -1,4 +1,4 @@
-import { normalizeWorkspaceRole } from './membershipRoles'
+import { isHostRole, normalizeWorkspaceRole } from './membershipRoles'
 
 export const APP_MODULES = [
   'today',
@@ -12,6 +12,7 @@ export const APP_MODULES = [
 ]
 
 export const DEFAULT_FALLBACK_MODULE = 'today'
+export const HOST_FALLBACK_MODULE = 'reservations'
 
 const FULL_ACCESS_ROLES = new Set(['owner', 'general_manager'])
 
@@ -19,6 +20,13 @@ const MANAGEMENT_ROLES = new Set(['owner', 'general_manager', 'manager'])
 
 export const MOBILE_STAFF_BOTTOM_TABS = [
   { id: 'home', label: 'Home', icon: '◈' },
+  { id: 'schedule', label: 'Schedule', icon: '◷' },
+  { id: 'tasks', label: 'Tasks', icon: '✓' },
+  { id: 'menu', label: 'Menu', icon: '≡' },
+]
+
+export const MOBILE_HOST_BOTTOM_TABS = [
+  { id: 'host', label: 'Host', icon: '🍽️' },
   { id: 'schedule', label: 'Schedule', icon: '◷' },
   { id: 'tasks', label: 'Tasks', icon: '✓' },
   { id: 'menu', label: 'Menu', icon: '≡' },
@@ -41,6 +49,10 @@ const ROLE_MODULE_ACCESS = {
     'insights',
     'floor-plan-builder',
   ],
+  host: [
+    'reservations',
+    'team',
+  ],
   staff: [
     'today',
     'team',
@@ -53,6 +65,7 @@ const TEAM_SECTION_ACCESS = {
   owner: ['today', 'members', 'schedule'],
   general_manager: ['today', 'members', 'schedule'],
   manager: ['today', 'members', 'schedule'],
+  host: ['schedule'],
   staff: ['schedule'],
 }
 
@@ -74,6 +87,10 @@ function getAllowedModulesForRole(role) {
   }
 
   return new Set(ROLE_MODULE_ACCESS[normalizedRole] ?? [DEFAULT_FALLBACK_MODULE])
+}
+
+export function resolveDefaultModuleForRole(role) {
+  return isHostRole(role) ? HOST_FALLBACK_MODULE : DEFAULT_FALLBACK_MODULE
 }
 
 export function canAccessModule(role, moduleId) {
@@ -98,12 +115,23 @@ export function filterNavItemsByRole(navItems, role) {
 }
 
 export function resolvePermittedActiveView(role, requestedView) {
-  const normalizedView = normalizeModuleId(requestedView) || DEFAULT_FALLBACK_MODULE
-  return canAccessModule(role, normalizedView) ? normalizedView : DEFAULT_FALLBACK_MODULE
+  const fallbackModule = resolveDefaultModuleForRole(role)
+  const normalizedView = normalizeModuleId(requestedView) || fallbackModule
+  return canAccessModule(role, normalizedView) ? normalizedView : fallbackModule
 }
 
 export function isManagerRole(role) {
   return MANAGEMENT_ROLES.has(normalizeWorkspaceRole(role, 'staff'))
+}
+
+export function isHostMobileRole(role) {
+  return isHostRole(role)
+}
+
+export function resolveMobileShellVariant(role) {
+  if (isManagementMobileRole(role)) return 'manager'
+  if (isHostMobileRole(role)) return 'host'
+  return 'staff'
 }
 
 export function canManageStock(role) {
@@ -146,6 +174,11 @@ export function isManagementMobileRole(role) {
 
 export function canAccessMobileExpandedModule(role, moduleId) {
   const normalizedModuleId = `${moduleId ?? ''}`.trim()
+
+  if (isHostRole(role)) {
+    return normalizedModuleId === 'reservations'
+  }
+
   if (normalizedModuleId === 'stock' && canAccessModule(role, 'stock')) {
     return true
   }
@@ -178,7 +211,12 @@ export function canOpenMobileFullSchedule(role) {
 }
 
 export function canOpenMobileTasksWorkspace(role) {
+  if (isHostRole(role)) return false
   return canAccessMobileExpandedModule(role, 'operations')
+}
+
+export function canAccessHostMobileTasksTab(role) {
+  return isHostRole(role) || normalizeWorkspaceRole(role, 'staff') === 'staff'
 }
 
 export function resolvePermittedTeamSection(role, requestedSection) {
@@ -224,7 +262,7 @@ export function getTodayQuickActions(role) {
       id: 'add-reservation',
       label: 'Reservation',
       icon: '➕',
-      available: canAccessModule(role, 'reservations'),
+      available: canManageReservations(role),
     },
     {
       id: 'add-task',
@@ -243,6 +281,10 @@ export function getTodayQuickActions(role) {
 }
 
 export function getMobileBottomTabs(role, variant = 'staff') {
+  if (variant === 'host') {
+    return MOBILE_HOST_BOTTOM_TABS
+  }
+
   if (variant === 'manager') {
     return MOBILE_MANAGER_BOTTOM_TABS.filter((tab) => {
       if (tab.id === 'stock') return canAccessModule(role, 'stock')

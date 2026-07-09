@@ -351,6 +351,11 @@ import {
   shouldInitializeWorkspaceProfileDraft,
 } from './lib/workspaceProfileUtils'
 import { readAndClearInviteAcceptedNotice } from './lib/inviteNoticeStorage'
+import {
+  formatWorkspaceLoadErrorForUser,
+  shouldShowWorkspaceLoadError,
+  USER_WORKSPACE_LOADING_MESSAGE,
+} from './lib/workspaceLoadUtils'
 import { resolveUserDisplayName } from './lib/userDisplayName'
 import { MAX_WORKSPACE_LOGO_BYTES } from './lib/workspaceProfileOptions'
 import { TASK_PRESET_DEPARTMENTS } from './lib/taskDepartments'
@@ -416,7 +421,9 @@ import {
   filterOperationsSections,
   getMobileBottomTabs,
   getTodayQuickActions,
+  isHostMobileRole,
   isManagementMobileRole,
+  resolveMobileShellVariant,
   resolvePermittedActiveView,
   resolvePermittedOperationsSection,
   resolvePermittedTeamSection,
@@ -12965,6 +12972,19 @@ function App() {
     [workspace, membership],
   )
 
+  const visibleWorkspaceLoadError = useMemo(() => {
+    if (!shouldShowWorkspaceLoadError({
+      workspaceLoadError,
+      workspace,
+      membership,
+      isAuthLoading,
+    })) {
+      return ''
+    }
+
+    return formatWorkspaceLoadErrorForUser(workspaceLoadError)
+  }, [workspaceLoadError, workspace, membership, isAuthLoading])
+
   const isStockWorkspaceReady = Boolean(activeWorkspaceId) && !isAuthLoading && !isAuthBootstrapping
 
   const stockWorkspaceSetupMessage = useMemo(() => {
@@ -12972,9 +12992,9 @@ function App() {
     if (isAuthLoading || isAuthBootstrapping) {
       return 'Loading workspace…'
     }
-    if (workspaceLoadError) return workspaceLoadError
-    return 'Workspace is not ready yet. Finish workspace setup, then try again.'
-  }, [isStockWorkspaceReady, isAuthLoading, isAuthBootstrapping, workspaceLoadError])
+    if (visibleWorkspaceLoadError) return visibleWorkspaceLoadError
+    return USER_WORKSPACE_LOADING_MESSAGE
+  }, [isStockWorkspaceReady, isAuthLoading, isAuthBootstrapping, visibleWorkspaceLoadError])
 
   const canManageStockRole = useMemo(
     () => canManageStock(role),
@@ -13018,9 +13038,9 @@ function App() {
     if (isAuthLoading || isAuthBootstrapping) {
       return 'Loading workspace…'
     }
-    if (workspaceLoadError) return workspaceLoadError
-    return 'Workspace is not ready yet. Finish workspace setup, then try again.'
-  }, [isOperationsWorkspaceReady, isAuthLoading, isAuthBootstrapping, workspaceLoadError])
+    if (visibleWorkspaceLoadError) return visibleWorkspaceLoadError
+    return USER_WORKSPACE_LOADING_MESSAGE
+  }, [isOperationsWorkspaceReady, isAuthLoading, isAuthBootstrapping, visibleWorkspaceLoadError])
 
   const visibleNavItems = useMemo(
     () => filterNavItemsByRole(NAV_ITEMS, role),
@@ -13048,7 +13068,7 @@ function App() {
   )
 
   const mobileBottomTabs = useMemo(
-    () => getMobileBottomTabs(role, isManagementMobileRole(role) ? 'manager' : 'staff'),
+    () => getMobileBottomTabs(role, resolveMobileShellVariant(role)),
     [role],
   )
 
@@ -13733,6 +13753,7 @@ function App() {
   )
 
   const isManagerMobileShell = !isAuthLoading && isManagementMobileRole(role)
+  const isHostMobileShell = !isAuthLoading && isHostMobileRole(role)
   const activeMobileTab = isManagerMobileShell ? mobileManagerTab : mobileStaffTab
   const isManagerMobileStockLoading = isManagerMobileBootstrapLoading || isStockItemsLoading || isStockOrdersLoading
   const isManagerMobileTasksLoading = isManagerMobileBootstrapLoading || isOperationsLoading
@@ -13740,7 +13761,7 @@ function App() {
   useEffect(() => {
     if (!useMobileExperience || isAuthLoading) return
 
-    const variant = isManagerMobileShell ? 'manager' : 'staff'
+    const variant = resolveMobileShellVariant(role)
     const allowedTabs = getMobileBottomTabs(role, variant)
     if (allowedTabs.length === 0) return
 
@@ -13755,13 +13776,33 @@ function App() {
     }
 
     setMobileStaffTab(fallbackTab)
-    persistMobileTab(fallbackTab)
+    persistMobileTab(fallbackTab, variant)
   }, [
     useMobileExperience,
     isAuthLoading,
     isManagerMobileShell,
+    isHostMobileShell,
     role,
     activeMobileTab,
+  ])
+
+  useEffect(() => {
+    if (!useMobileExperience || isAuthLoading || !isHostMobileShell) return
+
+    if (activeView !== 'reservations') {
+      handleActiveViewChange('reservations')
+    }
+
+    if (activeMobileTab === 'host') {
+      setMobileReservationsHostMode(true)
+    }
+  }, [
+    useMobileExperience,
+    isAuthLoading,
+    isHostMobileShell,
+    activeView,
+    activeMobileTab,
+    handleActiveViewChange,
   ])
 
   const dashboardTimelineEvents = useMemo(() => buildTodayServiceTimeline({
@@ -18004,7 +18045,7 @@ function App() {
     }
 
     if (destination.view === 'reservations') {
-      if (useMobileExperience && isManagementMobileRole(role)) {
+      if (useMobileExperience && (isManagementMobileRole(role) || isHostMobileRole(role))) {
         setMobileReservationsHostMode(destination.action === 'host')
         setMobileExpandedView('workspace')
       }
@@ -19906,9 +19947,13 @@ function App() {
       persistManagerMobileTab(tab)
       return
     }
+    if (isHostMobileRole(role) && tab === 'host') {
+      setMobileReservationsHostMode(true)
+      handleActiveViewChange('reservations')
+    }
     setMobileStaffTab(tab)
-    persistMobileTab(tab)
-  }, [role])
+    persistMobileTab(tab, isHostMobileRole(role) ? 'host' : 'staff')
+  }, [role, handleActiveViewChange])
 
   const handleMobileOpenFullSchedule = () => {
     if (!canOpenMobileFullSchedule(role)) return
@@ -20197,9 +20242,9 @@ function App() {
             Loading workspace…
           </div>
         ) : null}
-        {!isAuthLoading && workspaceLoadError ? (
+        {!isAuthLoading && visibleWorkspaceLoadError ? (
           <div className="staff-status-banner auth-banner-error" role="alert">
-            {workspaceLoadError}
+            {visibleWorkspaceLoadError}
           </div>
         ) : null}
         {inviteAcceptedNotice ? (
@@ -20718,6 +20763,7 @@ function App() {
                   }
 
                   const isManagerMobileShell = !isAuthLoading && isManagementMobileRole(role)
+                  const isHostMobileShellLocal = !isAuthLoading && isHostMobileRole(role)
                   const mobileHomeProps = isManagerMobileShell
                     ? {
                       venueName: workspaceProfile.businessName,
@@ -20787,8 +20833,27 @@ function App() {
                     onOpenFullSchedule: handleMobileOpenFullSchedule,
                     onOpenSettings: handleMobileOpenSettings,
                     onSignOut: handleMobileSignOut,
-                    menuVariant: isManagerMobileShell ? 'manager' : 'staff',
+                    menuVariant: isManagerMobileShell ? 'manager' : isHostMobileShellLocal ? 'host' : 'staff',
                   }
+
+                  const hostStationContent = (
+                    <MobileReservationsHostShell
+                      reservations={reservations}
+                      workspaceTimeZone={workspaceTimeZone}
+                      todayKey={currentDateKey}
+                      nowMinutes={hostNowMinutes}
+                      isLoading={isReservationsLoading}
+                      isSaving={isSavingReservation}
+                      noticeMessage={reservationNotice}
+                      onQuickStatusUpdate={handleQuickReservationStatus}
+                      onHostEditSave={handleHostEditSave}
+                      onHostEditDelete={handleHostEditDelete}
+                      onReservationNotice={setReservationNotice}
+                      onCreateReservation={handleMobileHostReservationCreate}
+                      onExitHostMode={undefined}
+                      onSeatGuestAtTable={handleSeatGuestAtTable}
+                    />
+                  )
 
                   if (isManagerMobileShell) {
                     return (
@@ -20834,6 +20899,50 @@ function App() {
                         isReservationsHostMode={
                           mobileReservationsHostMode && activeView === 'reservations'
                         }
+                        bottomTabs={mobileBottomTabs}
+                      />
+                    )
+                  }
+
+                  if (isHostMobileShellLocal) {
+                    return (
+                      <MobileStaffApp
+                        shellVariant="host"
+                        hostStationContent={hostStationContent}
+                        activeTab={activeMobileTab}
+                        onTabChange={handleMobileTabChange}
+                        noticeMessage={mobileNotice}
+                        onDismissNotice={() => setMobileNotice('')}
+                        scheduleProps={{
+                          weekLabel: mobileScheduleWeekLabel,
+                          employeeName: mobileScheduleDisplay.employeeName,
+                          days: mobileScheduleDisplay.days,
+                          needsEmployeeLink: mobileNeedsEmployeeLink,
+                          isWeekPublished: mobileScheduleDisplay.isWeekPublished,
+                          isWeekUpdating: isMobileWeekLoading,
+                          isViewingCurrentWeek: mobileWeekStart === todayWeekStart,
+                          canOpenFullSchedule: canOpenMobileFullSchedule(role),
+                          onOpenFullSchedule: handleMobileOpenFullSchedule,
+                          onPreviousWeek: handleMobilePreviousWeek,
+                          onGoToCurrentWeek: handleMobileGoToCurrentWeek,
+                          onNextWeek: handleMobileNextWeek,
+                        }}
+                        tasksProps={{
+                          taskGroups: mobileTaskGroups,
+                          employees: scheduleEmployees,
+                          currentEmployeeId: mobileEmployeeId,
+                          todayKey: currentDateKey,
+                          needsEmployeeLink: mobileNeedsEmployeeLink,
+                          isLoading: isMobileOperationsTasksLoading,
+                          isSaving: isSavingOperations,
+                          onCompleteTask: handleCompleteOperationsTask,
+                          onOpenTasksWorkspace: undefined,
+                        }}
+                        menuProps={sharedMenuProps}
+                        expandedView={mobileExpandedView}
+                        expandedTitle={mobileExpandedTitle}
+                        onBackFromExpanded={handleMobileBack}
+                        expandedModuleContent={mobileExpandedView ? workspaceModules : null}
                         bottomTabs={mobileBottomTabs}
                       />
                     )

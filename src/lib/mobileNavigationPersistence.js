@@ -1,32 +1,45 @@
 const MOBILE_TAB_STORAGE_KEY = 'one.mobileTab.v1'
 const MOBILE_MANAGER_TAB_STORAGE_KEY = 'one.mobileManagerTab.v1'
 const DEFAULT_MOBILE_TAB = 'home'
+const DEFAULT_HOST_MOBILE_TAB = 'host'
 const DEFAULT_MANAGER_MOBILE_TAB = 'today'
 
 const VALID_MOBILE_TABS = new Set(['home', 'schedule', 'tasks', 'menu'])
+const VALID_HOST_MOBILE_TABS = new Set(['host', 'schedule', 'tasks', 'menu'])
 const VALID_MANAGER_MOBILE_TABS = new Set(['today', 'stock', 'tasks', 'menu'])
 
-export function normalizeMobileTab(value) {
+export function normalizeMobileTab(value, { variant = 'staff' } = {}) {
   const normalized = `${value ?? ''}`.trim().toLowerCase()
+
+  if (variant === 'host') {
+    if (VALID_HOST_MOBILE_TABS.has(normalized)) return normalized
+    if (normalized === 'home') return DEFAULT_HOST_MOBILE_TAB
+    return DEFAULT_HOST_MOBILE_TAB
+  }
+
   return VALID_MOBILE_TABS.has(normalized) ? normalized : DEFAULT_MOBILE_TAB
 }
 
-export function readPersistedMobileTab() {
-  if (typeof window === 'undefined') return DEFAULT_MOBILE_TAB
+export function readPersistedMobileTab(variant = 'staff') {
+  if (typeof window === 'undefined') {
+    return variant === 'host' ? DEFAULT_HOST_MOBILE_TAB : DEFAULT_MOBILE_TAB
+  }
 
   try {
     const stored = window.localStorage.getItem(MOBILE_TAB_STORAGE_KEY)
-    if (!stored) return DEFAULT_MOBILE_TAB
-    return normalizeMobileTab(stored)
+    if (!stored) {
+      return variant === 'host' ? DEFAULT_HOST_MOBILE_TAB : DEFAULT_MOBILE_TAB
+    }
+    return normalizeMobileTab(stored, { variant })
   } catch {
-    return DEFAULT_MOBILE_TAB
+    return variant === 'host' ? DEFAULT_HOST_MOBILE_TAB : DEFAULT_MOBILE_TAB
   }
 }
 
-export function persistMobileTab(tab) {
+export function persistMobileTab(tab, variant = 'staff') {
   if (typeof window === 'undefined') return
   try {
-    window.localStorage.setItem(MOBILE_TAB_STORAGE_KEY, normalizeMobileTab(tab))
+    window.localStorage.setItem(MOBILE_TAB_STORAGE_KEY, normalizeMobileTab(tab, { variant }))
   } catch {
     // Ignore storage failures.
   }

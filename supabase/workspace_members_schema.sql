@@ -14,7 +14,7 @@ create table if not exists public.workspace_members (
   created_at timestamptz not null default now(),
   last_seen_at timestamptz null,
   constraint workspace_members_role_check check (
-    role in ('owner', 'general_manager', 'manager', 'staff')
+    role in ('owner', 'general_manager', 'manager', 'host', 'staff')
   ),
   constraint workspace_members_workspace_auth_user_unique unique (workspace_id, auth_user_id)
 );

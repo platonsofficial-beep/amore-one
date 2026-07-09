@@ -22,7 +22,8 @@ const ROLE_PRIORITY = {
   owner: 0,
   general_manager: 1,
   manager: 2,
-  staff: 3,
+  host: 3,
+  staff: 4,
 }
 
 function pickPreferredMembershipRow(rows = []) {

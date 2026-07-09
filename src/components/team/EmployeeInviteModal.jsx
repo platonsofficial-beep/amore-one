@@ -4,6 +4,7 @@ import { buildInviteUrl, createEmployeeInvite } from '../../services/inviteServi
 
 const INVITE_ROLE_OPTIONS = [
   { value: 'staff', label: 'Staff' },
+  { value: 'host', label: 'Host' },
   { value: 'manager', label: 'Manager' },
 ]
 
@@ -69,7 +70,7 @@ export function EmployeeInviteModal({
   const inviteLink = createdInvite?.token ? buildInviteUrl(createdInvite.token) : ''
   const roleOptions = canAssignManagerRole
     ? INVITE_ROLE_OPTIONS
-    : INVITE_ROLE_OPTIONS.filter((option) => option.value === 'staff')
+    : INVITE_ROLE_OPTIONS.filter((option) => option.value !== 'manager')
 
   const handleClose = () => {
     if (isSaving) return
