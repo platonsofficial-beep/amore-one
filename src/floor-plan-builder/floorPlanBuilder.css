@@ -664,6 +664,19 @@
     #121110;
 }
 
+.fpb-canvas-shell.is-editing .fpb-canvas-viewport,
+.fpb-canvas-shell.is-editing .fpb-canvas-stage,
+.fpb-canvas-shell.is-editing .fpb-world-root,
+.fpb-canvas-shell.is-editing .fpb-objects-layer,
+.fpb-canvas-shell.is-editing .fpb-canvas-object.is-editable {
+  touch-action: none;
+}
+
+.fpb-canvas-object.is-editable {
+  -webkit-user-select: none;
+  user-select: none;
+}
+
 .fpb-canvas-viewport.is-panning {
   cursor: grab;
 }

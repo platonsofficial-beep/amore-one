@@ -67,22 +67,37 @@ export class ObjectDragManager {
 
     this.boundMove = (event) => this.move(event)
     this.boundEnd = (event) => this.end(event)
-    window.addEventListener('pointermove', this.boundMove)
-    window.addEventListener('pointerup', this.boundEnd)
-    window.addEventListener('pointercancel', this.boundEnd)
+    this.boundTouchMove = (event) => {
+      if (!this.session) return
+      event.preventDefault()
+    }
+
+    const captureOptions = { capture: true }
+    window.addEventListener('pointermove', this.boundMove, captureOptions)
+    window.addEventListener('pointerup', this.boundEnd, captureOptions)
+    window.addEventListener('pointercancel', this.boundEnd, captureOptions)
+    window.addEventListener('touchmove', this.boundTouchMove, { capture: true, passive: false })
   }
 
   detachWindowListeners() {
     if (!this.boundMove) return
 
-    window.removeEventListener('pointermove', this.boundMove)
-    window.removeEventListener('pointerup', this.boundEnd)
-    window.removeEventListener('pointercancel', this.boundEnd)
+    window.removeEventListener('pointermove', this.boundMove, true)
+    window.removeEventListener('pointerup', this.boundEnd, true)
+    window.removeEventListener('pointercancel', this.boundEnd, true)
+    window.removeEventListener('touchmove', this.boundTouchMove, true)
     this.boundMove = null
     this.boundEnd = null
+    this.boundTouchMove = null
   }
 
   start(event, object, { snapEnabled, floorBounds }) {
+    if (event.pointerType === 'mouse' && event.button !== 0) return false
+
+    if (event.cancelable) {
+      event.preventDefault()
+    }
+
     const world = this.getClientToWorld(event.clientX, event.clientY)
 
     this.element = event.currentTarget
@@ -104,9 +119,12 @@ export class ObjectDragManager {
       moved: false,
     }
 
-    if (typeof this.element.setPointerCapture === 'function') {
-      this.element.setPointerCapture(event.pointerId)
+    try {
+      this.element.setPointerCapture?.(event.pointerId)
+    } catch {
+      // iPad Safari may reject capture; window listeners handle the drag.
     }
+
     this.attachWindowListeners()
     this.applyTransform(this.session.previewPosition)
     return true
@@ -115,6 +133,10 @@ export class ObjectDragManager {
   move(event) {
     const session = this.session
     if (!session || event.pointerId !== session.pointerId) return
+
+    if (event.cancelable) {
+      event.preventDefault()
+    }
 
     const world = this.getClientToWorld(event.clientX, event.clientY)
     const nextPosition = this.resolvePosition(
@@ -145,17 +167,31 @@ export class ObjectDragManager {
       session.objectSize,
     )
 
-    if (session.moved) {
+    const moved = session.moved
+
+    if (moved) {
       this.onMoveObject(session.objectId, finalPosition)
     }
 
-    if (this.element?.hasPointerCapture?.(event.pointerId)) {
-      this.element.releasePointerCapture(event.pointerId)
+    try {
+      if (this.element?.hasPointerCapture?.(event.pointerId)) {
+        this.element.releasePointerCapture(event.pointerId)
+      }
+    } catch {
+      // Ignore capture release failures on touch browsers.
     }
 
     this.detachWindowListeners()
     this.clearTransform()
-    this.cancel()
+    this.session = null
+    this.element = null
+
+    if (this.rafId !== null) {
+      window.cancelAnimationFrame(this.rafId)
+      this.rafId = null
+    }
+
+    return moved
   }
 
   cancel() {

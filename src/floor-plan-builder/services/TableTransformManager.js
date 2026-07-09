@@ -59,14 +59,63 @@ export class TableTransformManager {
     })
   }
 
+  attachWindowListeners() {
+    if (this.boundMove) return
+
+    this.boundMove = (event) => this.move(event)
+    this.boundEnd = (event) => this.end(event)
+    this.boundTouchMove = (event) => {
+      if (!this.session) return
+      event.preventDefault()
+    }
+
+    const captureOptions = { capture: true }
+    window.addEventListener('pointermove', this.boundMove, captureOptions)
+    window.addEventListener('pointerup', this.boundEnd, captureOptions)
+    window.addEventListener('pointercancel', this.boundEnd, captureOptions)
+    window.addEventListener('touchmove', this.boundTouchMove, { capture: true, passive: false })
+  }
+
+  detachWindowListeners() {
+    if (!this.boundMove) return
+
+    window.removeEventListener('pointermove', this.boundMove, true)
+    window.removeEventListener('pointerup', this.boundEnd, true)
+    window.removeEventListener('pointercancel', this.boundEnd, true)
+    window.removeEventListener('touchmove', this.boundTouchMove, true)
+    this.boundMove = null
+    this.boundEnd = null
+    this.boundTouchMove = null
+  }
+
+  beginSession(event, element, session) {
+    if (event.pointerType === 'mouse' && event.button !== 0) return false
+
+    if (event.cancelable) {
+      event.preventDefault()
+    }
+
+    this.element = element
+    this.session = session
+
+    try {
+      event.currentTarget.setPointerCapture?.(event.pointerId)
+    } catch {
+      // Window listeners handle touch sessions when capture fails.
+    }
+
+    this.attachWindowListeners()
+    return true
+  }
+
   startResize(event, object, handle, { floorBounds }) {
-    this.element = event.currentTarget.closest('.fpb-canvas-object')
-    if (!this.element) return false
+    const element = event.currentTarget.closest('.fpb-canvas-object')
+    if (!element) return false
 
-    this.element.classList.add('is-transforming')
-    this.element.style.willChange = 'left, top, width, height, transform'
+    element.classList.add('is-transforming')
+    element.style.willChange = 'left, top, width, height, transform'
 
-    this.session = {
+    const started = this.beginSession(event, element, {
       mode: 'resize',
       objectId: object.id,
       pointerId: event.pointerId,
@@ -84,15 +133,21 @@ export class TableTransformManager {
         size: { ...object.size },
         rotation: object.rotation ?? 0,
       },
+    })
+
+    if (!started) {
+      element.classList.remove('is-transforming')
+      element.style.willChange = ''
+      this.element = null
+      this.session = null
     }
 
-    event.currentTarget.setPointerCapture(event.pointerId)
-    return true
+    return started
   }
 
   startRotate(event, object) {
-    this.element = event.currentTarget.closest('.fpb-canvas-object')
-    if (!this.element) return false
+    const element = event.currentTarget.closest('.fpb-canvas-object')
+    if (!element) return false
 
     const pointerWorld = this.getClientToWorld(event.clientX, event.clientY)
     const center = {
@@ -101,10 +156,10 @@ export class TableTransformManager {
     }
     const startPointerAngle = Math.atan2(pointerWorld.y - center.y, pointerWorld.x - center.x)
 
-    this.element.classList.add('is-transforming')
-    this.element.style.willChange = 'transform'
+    element.classList.add('is-transforming')
+    element.style.willChange = 'transform'
 
-    this.session = {
+    const started = this.beginSession(event, element, {
       mode: 'rotate',
       objectId: object.id,
       pointerId: event.pointerId,
@@ -117,15 +172,25 @@ export class TableTransformManager {
         size: { ...object.size },
         rotation: normalizeRotation(object.rotation ?? 0),
       },
+    })
+
+    if (!started) {
+      element.classList.remove('is-transforming')
+      element.style.willChange = ''
+      this.element = null
+      this.session = null
     }
 
-    event.currentTarget.setPointerCapture(event.pointerId)
-    return true
+    return started
   }
 
   move(event) {
     const session = this.session
     if (!session || event.pointerId !== session.pointerId) return
+
+    if (event.cancelable) {
+      event.preventDefault()
+    }
 
     const pointerWorld = this.getClientToWorld(event.clientX, event.clientY)
 
@@ -172,15 +237,23 @@ export class TableTransformManager {
       this.onTransformTable(session.objectId, preview)
     }
 
-    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
-      event.currentTarget.releasePointerCapture(event.pointerId)
+    try {
+      if (event.currentTarget?.hasPointerCapture?.(event.pointerId)) {
+        event.currentTarget.releasePointerCapture(event.pointerId)
+      } else if (this.element?.hasPointerCapture?.(event.pointerId)) {
+        this.element.releasePointerCapture(event.pointerId)
+      }
+    } catch {
+      // Ignore capture release failures on touch browsers.
     }
 
+    this.detachWindowListeners()
     this.clearPreview()
     this.cancel()
   }
 
   cancel() {
+    this.detachWindowListeners()
     this.session = null
     this.element = null
 
@@ -191,6 +264,7 @@ export class TableTransformManager {
   }
 
   dispose() {
+    this.detachWindowListeners()
     this.clearPreview()
     this.cancel()
   }

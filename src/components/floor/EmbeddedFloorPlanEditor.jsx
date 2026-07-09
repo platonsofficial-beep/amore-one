@@ -187,10 +187,10 @@ function EmbeddedFloorPlanEditorShell({
   const selectionCount = state.selectedTableIds.length
 
   useEffect(() => {
-    if (selectionCount > 0 && !isTabletLayout) {
+    if (selectionCount > 0) {
       setInspectorPanelOpen(true)
     }
-  }, [isTabletLayout, selectionCount])
+  }, [selectionCount])
 
   const workspaceLayoutKey = layout.sidebarWidth + layout.toolbarHeight
 

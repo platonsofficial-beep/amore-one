@@ -67,6 +67,7 @@ export function useObjectDrag({
 
     if (!isEditing) return false
     if (object.properties?.locked === true) return false
+    if (event.isPrimary === false) return false
 
     const isSelected = selectedTableIdsRef.current.includes(object.id)
 
@@ -93,13 +94,12 @@ export function useObjectDrag({
     dragManager.move(event)
   }, [dragManager])
 
-  const endDrag = useCallback((event) => {
+  const   endDrag = useCallback((event) => {
     if (!dragManager.isActive()) return
 
-    const moved = dragManager.session?.moved ?? false
     const pending = pendingClickRef.current
+    const moved = dragManager.end(event) ?? false
 
-    dragManager.end(event)
     setDraggingObjectId(null)
 
     if (pending && !moved) {

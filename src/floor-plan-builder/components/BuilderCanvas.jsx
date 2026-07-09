@@ -147,6 +147,11 @@ export function BuilderCanvas({ containerRef, viewportControls, workspaceLayoutK
     event.currentTarget.classList.remove('is-panning')
   }, [endDrag, endTransform, viewportControls])
 
+  const handlePointerLeave = useCallback((event) => {
+    if (isDragging || isTransforming || viewportControls.isPanning()) return
+    handlePointerUp(event)
+  }, [handlePointerUp, isDragging, isTransforming, viewportControls])
+
   const handleFloorBackgroundPointerUp = useCallback((event) => {
     if (isDragging || isTransforming || viewportControls.isPanning()) return
     if (!isEditing) {
@@ -241,7 +246,7 @@ export function BuilderCanvas({ containerRef, viewportControls, workspaceLayoutK
         onPointerDown={handleViewportPointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
-        onPointerLeave={handlePointerUp}
+        onPointerLeave={handlePointerLeave}
         onAuxClick={(event) => event.preventDefault()}
       >
         {isEditing && visibleObjects.length === 0 ? (
