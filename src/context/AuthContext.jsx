@@ -13,6 +13,8 @@ import { getWorkspaceRoleLabel, isOwnerRole, normalizeWorkspaceRole } from '../l
 import {
   buildInviteAcceptedNotice,
   formatInviteErrorMessage,
+  isFatalInviteError,
+  shouldSkipMembershipBootstrapAfterInviteAttempt,
 } from '../lib/inviteFlowUtils'
 import { writeInviteAcceptedNotice } from '../lib/inviteNoticeStorage'
 import {
@@ -84,10 +86,6 @@ function normalizeMembershipForContext(membership) {
   }
 }
 
-function isFatalInviteError(message = '') {
-  return /not found|expired|revoked|already been accepted/i.test(`${message ?? ''}`)
-}
-
 const AuthContext = createContext(null)
 
 export function AuthProvider({ children }) {
@@ -151,10 +149,12 @@ export function AuthProvider({ children }) {
 
     let resolvedMembership = null
     let joinedWorkspaceRecord = null
-    let skipDefaultBootstrap = false
 
     const pendingInviteToken = readPendingInviteToken()
+    let inviteAttempted = false
+
     if (pendingInviteToken) {
+      inviteAttempted = true
       try {
         const invitePreview = await getInvitePreview(pendingInviteToken).catch(() => null)
         await acceptInvite(pendingInviteToken)
@@ -162,20 +162,21 @@ export function AuthProvider({ children }) {
         writeInviteAcceptedNotice(
           buildInviteAcceptedNotice(invitePreview?.workspaceName ?? ''),
         )
-        skipDefaultBootstrap = true
       } catch (inviteError) {
         const message = inviteError?.message || 'Unable to accept workspace invite.'
         console.error('[AuthContext] acceptInvite error:', inviteError)
 
         if (isFatalInviteError(message)) {
           clearPendingInviteToken()
-        } else {
-          skipDefaultBootstrap = true
         }
 
         setMembershipLoadError(formatInviteErrorMessage(message))
       }
     }
+
+    const skipDefaultBootstrap = shouldSkipMembershipBootstrapAfterInviteAttempt({
+      inviteAttempted,
+    })
 
     try {
       const membershipContext = await getCurrentMembershipContext(membershipUserId)

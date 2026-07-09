@@ -346,6 +346,7 @@ import {
   buildBrandDisplay,
   buildDashboardGreeting,
   buildProfileChipDisplay,
+  shouldInitializeWorkspaceProfileDraft,
 } from './lib/workspaceProfileUtils'
 import { readAndClearInviteAcceptedNotice } from './lib/inviteNoticeStorage'
 import { resolveUserDisplayName } from './lib/userDisplayName'
@@ -12592,6 +12593,7 @@ function App() {
   const [isSavingWorkspaceProfile, setIsSavingWorkspaceProfile] = useState(false)
   const [workspaceProfileNotice, setWorkspaceProfileNotice] = useState('')
   const [inviteAcceptedNotice, setInviteAcceptedNotice] = useState('')
+  const previousActiveViewRef = useRef(activeView)
 
   const {
     syncDevMembershipProfile,
@@ -14110,11 +14112,24 @@ function App() {
   }, [isAuthLoading])
 
   useEffect(() => {
-    if (activeView === 'settings' && settingsSection === 'profile') {
+    const enteredSettings = shouldInitializeWorkspaceProfileDraft(
+      previousActiveViewRef.current,
+      activeView,
+    )
+    previousActiveViewRef.current = activeView
+
+    if (enteredSettings) {
       setWorkspaceProfileDraft(workspaceProfile)
       setWorkspaceProfileNotice('')
+      return
     }
-  }, [activeView, settingsSection, workspaceProfile])
+
+    if (activeView !== 'settings') return
+
+    setWorkspaceProfileDraft((current) => (
+      areWorkspaceProfilesEqual(current, workspaceProfile) ? current : workspaceProfile
+    ))
+  }, [activeView, workspaceProfile])
 
   const handleWorkspaceProfileSubmit = async () => {
     setIsSavingWorkspaceProfile(true)

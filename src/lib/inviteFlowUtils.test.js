@@ -3,6 +3,8 @@ import {
   buildInviteAcceptedNotice,
   buildInvitePreviewSummary,
   formatInviteErrorMessage,
+  isFatalInviteError,
+  shouldSkipMembershipBootstrapAfterInviteAttempt,
 } from './inviteFlowUtils'
 
 describe('inviteFlowUtils', () => {
@@ -46,5 +48,19 @@ describe('inviteFlowUtils', () => {
   it('builds an accepted notice with workspace name', () => {
     expect(buildInviteAcceptedNotice('Amore Nicosia')).toContain('Amore Nicosia')
     expect(buildInviteAcceptedNotice('')).toContain('Welcome to ONE')
+  })
+
+  it('detects fatal invite errors and bootstrap skip rules', () => {
+    expect(isFatalInviteError('Invite has expired')).toBe(true)
+    expect(isFatalInviteError('Invite already accepted')).toBe(true)
+    expect(isFatalInviteError('Network timeout')).toBe(false)
+
+    expect(shouldSkipMembershipBootstrapAfterInviteAttempt({
+      inviteAttempted: false,
+    })).toBe(false)
+
+    expect(shouldSkipMembershipBootstrapAfterInviteAttempt({
+      inviteAttempted: true,
+    })).toBe(true)
   })
 })

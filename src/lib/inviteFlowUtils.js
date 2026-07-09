@@ -27,6 +27,16 @@ export function formatInviteErrorMessage(message = '') {
   return normalized
 }
 
+export function isFatalInviteError(message = '') {
+  return /not found|expired|revoked|already been accepted|already accepted/i.test(`${message ?? ''}`)
+}
+
+export function shouldSkipMembershipBootstrapAfterInviteAttempt({
+  inviteAttempted = false,
+} = {}) {
+  return inviteAttempted
+}
+
 export function buildInvitePreviewSummary(preview = {}) {
   if (!preview?.found) {
     return {

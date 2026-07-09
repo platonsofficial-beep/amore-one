@@ -3,6 +3,7 @@ import {
   areWorkspaceProfilesEqual,
   buildWorkspaceIdentityLines,
   isWorkspaceProfileConfigured,
+  shouldInitializeWorkspaceProfileDraft,
 } from './workspaceProfileUtils'
 
 describe('workspaceProfileUtils', () => {
@@ -35,5 +36,11 @@ describe('workspaceProfileUtils', () => {
     expect(identity.primary).toBe('Amore Nicosia')
     expect(identity.technicalName).toBe('amore-nicosia')
     expect(identity.hint).toContain('Business Profile')
+  })
+
+  it('only initializes the profile draft when entering settings', () => {
+    expect(shouldInitializeWorkspaceProfileDraft('today', 'settings')).toBe(true)
+    expect(shouldInitializeWorkspaceProfileDraft('settings', 'settings')).toBe(false)
+    expect(shouldInitializeWorkspaceProfileDraft('settings', 'team')).toBe(false)
   })
 })

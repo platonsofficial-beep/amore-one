@@ -119,3 +119,7 @@ export function buildWorkspaceIdentityLines({
         : ''),
   }
 }
+
+export function shouldInitializeWorkspaceProfileDraft(previousActiveView, nextActiveView) {
+  return nextActiveView === 'settings' && previousActiveView !== 'settings'
+}
