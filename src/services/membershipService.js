@@ -213,6 +213,25 @@ export async function getCurrentMembershipContext(authUserId) {
   return fetchMembershipContext(authUserId)
 }
 
+export async function getCurrentMembershipContextWithRetry(authUserId, { attempts = 3 } = {}) {
+  const maxAttempts = Math.max(1, Number(attempts) || 1)
+
+  for (let index = 0; index < maxAttempts; index += 1) {
+    const context = await fetchMembershipContext(authUserId)
+    if (context.membership) {
+      return context
+    }
+
+    if (index < maxAttempts - 1) {
+      await new Promise((resolve) => {
+        setTimeout(resolve, 150 * (index + 1))
+      })
+    }
+  }
+
+  return fetchMembershipContext(authUserId)
+}
+
 export async function createOwnerMembershipIfMissing(user) {
   const authUserId = `${user?.id ?? ''}`.trim()
   if (!authUserId) {

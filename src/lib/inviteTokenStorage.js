@@ -1,4 +1,5 @@
 const PENDING_INVITE_TOKEN_KEY = 'one.pendingInviteToken'
+const PENDING_INVITE_TOKEN_LOCAL_KEY = 'one.pendingInviteToken.local'
 
 function normalizeToken(value) {
   const token = `${value ?? ''}`.trim()
@@ -10,6 +11,7 @@ export function readPendingInviteToken() {
 
   try {
     return normalizeToken(window.sessionStorage.getItem(PENDING_INVITE_TOKEN_KEY))
+      || normalizeToken(window.localStorage.getItem(PENDING_INVITE_TOKEN_LOCAL_KEY))
   } catch {
     return null
   }
@@ -23,6 +25,7 @@ export function writePendingInviteToken(token) {
 
   try {
     window.sessionStorage.setItem(PENDING_INVITE_TOKEN_KEY, normalized)
+    window.localStorage.setItem(PENDING_INVITE_TOKEN_LOCAL_KEY, normalized)
   } catch {
     // Ignore storage failures; invite acceptance becomes a no-op.
   }
@@ -33,6 +36,7 @@ export function clearPendingInviteToken() {
 
   try {
     window.sessionStorage.removeItem(PENDING_INVITE_TOKEN_KEY)
+    window.localStorage.removeItem(PENDING_INVITE_TOKEN_LOCAL_KEY)
   } catch {
     // Ignore storage failures.
   }

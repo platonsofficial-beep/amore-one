@@ -21,6 +21,18 @@ describe('inviteTokenStorage', () => {
           this.store.delete(key)
         },
       },
+      localStorage: {
+        store: new Map(),
+        getItem(key) {
+          return this.store.get(key) ?? null
+        },
+        setItem(key, value) {
+          this.store.set(key, value)
+        },
+        removeItem(key) {
+          this.store.delete(key)
+        },
+      },
       history: {
         state: null,
         replaceState(_state, _title, url) {
@@ -65,5 +77,11 @@ describe('inviteTokenStorage', () => {
   it('persists manually written invite tokens', () => {
     writePendingInviteToken('manual-token')
     expect(readPendingInviteToken()).toBe('manual-token')
+  })
+
+  it('reads invite tokens from localStorage when session storage is empty', () => {
+    window.sessionStorage.store.delete('one.pendingInviteToken')
+    window.localStorage.setItem('one.pendingInviteToken.local', 'stored-token')
+    expect(readPendingInviteToken()).toBe('stored-token')
   })
 })

@@ -7,21 +7,18 @@ import {
   signOut as authSignOut,
   signUp as authSignUp,
 } from '../services/authService'
-import { acceptInvite, getInvitePreview } from '../services/inviteService'
-import { createOwnerMembershipIfMissing, getCurrentMembershipContext } from '../services/membershipService'
-import { getWorkspaceRoleLabel, isOwnerRole, normalizeWorkspaceRole } from '../lib/membershipRoles'
+import { resolveWorkspaceInviteOnBootstrap } from '../services/inviteBootstrapService'
 import {
-  buildInviteAcceptedNotice,
-  formatInviteErrorMessage,
-  isFatalInviteError,
-  shouldSkipMembershipBootstrapAfterInviteAttempt,
-} from '../lib/inviteFlowUtils'
+  createOwnerMembershipIfMissing,
+  getCurrentMembership,
+  getCurrentMembershipContextWithRetry,
+} from '../services/membershipService'
+import { getWorkspaceRoleLabel, isOwnerRole, normalizeWorkspaceRole } from '../lib/membershipRoles'
 import { markSessionEnded } from '../lib/authMessageUtils'
-import { writeInviteAcceptedNotice } from '../lib/inviteNoticeStorage'
+import { shouldSkipOwnerMembershipBootstrap } from '../lib/inviteFlowUtils'
 import {
   captureInviteTokenFromLocation,
   clearPendingInviteToken,
-  readPendingInviteToken,
 } from '../lib/inviteTokenStorage'
 import { clearMobileSessionState } from '../lib/mobileNavigationPersistence'
 import {
@@ -97,6 +94,7 @@ export function AuthProvider({ children }) {
   const [membership, setMembership] = useState(isAuthDisabled ? buildDevMembership() : null)
   const [membershipLoadError, setMembershipLoadError] = useState(null)
   const [workspaceLoadError, setWorkspaceLoadError] = useState(null)
+  const [isJoiningWorkspace, setIsJoiningWorkspace] = useState(false)
   const [devProfileDisplayName, setDevProfileDisplayName] = useState('')
   const [isLoading, setIsLoading] = useState(!isAuthDisabled)
   const [isBootstrapping, setIsBootstrapping] = useState(!isAuthDisabled)
@@ -138,9 +136,13 @@ export function AuthProvider({ children }) {
       setWorkspace(null)
       setMembership(null)
       setMembershipLoadError(null)
+      setIsJoiningWorkspace(false)
       return
     }
 
+    setIsJoiningWorkspace(true)
+
+    try {
     setMembershipLoadError(null)
     setWorkspaceLoadError(null)
 
@@ -151,47 +153,48 @@ export function AuthProvider({ children }) {
     let resolvedMembership = null
     let joinedWorkspaceRecord = null
 
-    const pendingInviteToken = readPendingInviteToken()
     let inviteSucceeded = false
 
-    if (pendingInviteToken) {
-      try {
-        const invitePreview = await getInvitePreview(pendingInviteToken).catch(() => null)
-        await acceptInvite(pendingInviteToken)
-        inviteSucceeded = true
-        clearPendingInviteToken()
-        writeInviteAcceptedNotice(
-          buildInviteAcceptedNotice(invitePreview?.workspaceName ?? ''),
-        )
-      } catch (inviteError) {
-        const message = inviteError?.message || 'Unable to accept workspace invite.'
-        console.error('[AuthContext] acceptInvite error:', inviteError)
+    try {
+      const inviteResult = await resolveWorkspaceInviteOnBootstrap({
+        user: activeSession?.user ?? nextUser,
+        fetchMembership: () => getCurrentMembership(membershipUserId),
+      })
+      if (loadSeq !== authLoadSeqRef.current) return
 
-        if (isFatalInviteError(message)) {
-          clearPendingInviteToken()
-        }
-
-        setMembershipLoadError(formatInviteErrorMessage(message))
+      inviteSucceeded = inviteResult.inviteSucceeded
+      if (inviteResult.inviteErrorMessage) {
+        setMembershipLoadError(inviteResult.inviteErrorMessage)
       }
+    } catch (inviteBootstrapError) {
+      console.error('[AuthContext] resolveWorkspaceInviteOnBootstrap error:', inviteBootstrapError)
+      setMembershipLoadError((current) => current || inviteBootstrapError?.message || 'Unable to accept workspace invite.')
     }
 
-    const skipDefaultBootstrap = shouldSkipMembershipBootstrapAfterInviteAttempt({
-      inviteSucceeded,
-    })
-
     try {
-      const membershipContext = await getCurrentMembershipContext(membershipUserId)
+      const membershipContext = await getCurrentMembershipContextWithRetry(membershipUserId, {
+        attempts: inviteSucceeded ? 4 : 1,
+      })
       if (loadSeq !== authLoadSeqRef.current) return
 
       resolvedMembership = membershipContext.membership
       joinedWorkspaceRecord = membershipContext.joinedWorkspaceRecord ?? membershipContext.workspace
+
+      if (resolvedMembership) {
+        setMembershipLoadError(null)
+      }
     } catch (membershipQueryError) {
       const message = membershipQueryError?.message || 'Unable to load workspace membership.'
       console.error('[AuthContext] membership query error:', membershipQueryError)
-      setMembershipLoadError(message)
+      setMembershipLoadError((current) => current || message)
     }
 
-    if (!resolvedMembership && !skipDefaultBootstrap) {
+    const skipOwnerBootstrap = shouldSkipOwnerMembershipBootstrap({
+      inviteSucceeded,
+      resolvedMembership,
+    })
+
+    if (!resolvedMembership && !skipOwnerBootstrap) {
       try {
         const createdMembership = await createOwnerMembershipIfMissing(activeSession?.user ?? nextUser)
         if (loadSeq !== authLoadSeqRef.current) return
@@ -239,6 +242,11 @@ export function AuthProvider({ children }) {
     if (loadSeq !== authLoadSeqRef.current) return
 
     setWorkspace(isCompleteWorkspace(resolvedWorkspace) ? resolvedWorkspace : null)
+    } finally {
+      if (loadSeq === authLoadSeqRef.current) {
+        setIsJoiningWorkspace(false)
+      }
+    }
   }, [])
 
   const refreshMembership = useCallback(async () => {
@@ -471,6 +479,7 @@ export function AuthProvider({ children }) {
     isLoading,
     isBootstrapping,
     isAuthDisabled,
+    isJoiningWorkspace,
     membershipLoadError,
     workspaceLoadError,
     signIn,
@@ -490,6 +499,7 @@ export function AuthProvider({ children }) {
     isLoading,
     isBootstrapping,
     isAuthDisabled,
+    isJoiningWorkspace,
     membershipLoadError,
     workspaceLoadError,
     signIn,

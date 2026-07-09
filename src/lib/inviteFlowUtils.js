@@ -1,3 +1,5 @@
+import { shouldSkipOwnerMembershipBootstrap } from './inviteBootstrapUtils'
+
 export function formatInviteErrorMessage(message = '') {
   const normalized = `${message ?? ''}`.trim()
   if (!normalized) {
@@ -33,8 +35,21 @@ export function isFatalInviteError(message = '') {
 
 export function shouldSkipMembershipBootstrapAfterInviteAttempt({
   inviteSucceeded = false,
+  resolvedMembership = null,
 } = {}) {
-  return inviteSucceeded
+  return shouldSkipOwnerMembershipBootstrap({ inviteSucceeded, resolvedMembership })
+}
+
+export { shouldSkipOwnerMembershipBootstrap } from './inviteBootstrapUtils'
+
+export function shouldShowJoiningWorkspaceMessage({
+  isLoading = false,
+  isJoiningWorkspace = false,
+  hasPendingInviteToken = false,
+  membershipLoadError = null,
+} = {}) {
+  if (membershipLoadError) return false
+  return isLoading || isJoiningWorkspace || hasPendingInviteToken
 }
 
 export function buildInvitePreviewSummary(preview = {}) {

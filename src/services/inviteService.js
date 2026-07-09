@@ -218,6 +218,27 @@ export async function acceptInvite(token) {
   return data
 }
 
+export async function acceptPendingInviteForAuthenticatedUser() {
+  const session = await getSession()
+  if (!session?.user?.id) {
+    throw new Error('Authentication required to accept an invite.')
+  }
+
+  const { data, error } = await supabase.rpc('accept_pending_workspace_invite_for_authenticated_user')
+
+  if (error) {
+    console.error('[inviteService] acceptPendingInviteForAuthenticatedUser error:', error)
+
+    if (isTableUnavailableError(error)) {
+      throw new Error('Workspace invites are not ready yet.')
+    }
+
+    throw new Error(error.message || 'Unable to accept pending invite right now.')
+  }
+
+  return data ?? null
+}
+
 export function buildInviteUrl(token) {
   const normalizedToken = `${token ?? ''}`.trim()
   if (!normalizedToken) return ''

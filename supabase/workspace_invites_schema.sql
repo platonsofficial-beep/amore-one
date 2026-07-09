@@ -216,3 +216,61 @@ $$;
 
 revoke all on function public.accept_workspace_invite(text) from public;
 grant execute on function public.accept_workspace_invite(text) to authenticated;
+
+create or replace function public.accept_pending_workspace_invite_for_authenticated_user()
+returns json
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_uid uuid;
+  v_email text;
+  v_invite public.workspace_invites%rowtype;
+  v_member public.workspace_members%rowtype;
+begin
+  v_uid := auth.uid();
+  if v_uid is null then
+    raise exception 'Authentication required to accept an invite.';
+  end if;
+
+  select *
+  into v_member
+  from public.workspace_members wm
+  where wm.auth_user_id = v_uid
+  order by wm.created_at desc
+  limit 1;
+
+  if v_member.id is not null then
+    return row_to_json(v_member);
+  end if;
+
+  select lower(trim(coalesce(u.email::text, '')))
+  into v_email
+  from auth.users u
+  where u.id = v_uid;
+
+  if v_email = '' then
+    return null;
+  end if;
+
+  select *
+  into v_invite
+  from public.workspace_invites wi
+  where lower(trim(wi.email)) = v_email
+    and wi.accepted_at is null
+    and wi.revoked_at is null
+    and wi.expires_at > now()
+  order by wi.created_at desc
+  limit 1;
+
+  if v_invite.id is null then
+    return null;
+  end if;
+
+  return public.accept_workspace_invite(v_invite.token);
+end;
+$$;
+
+revoke all on function public.accept_pending_workspace_invite_for_authenticated_user() from public;
+grant execute on function public.accept_pending_workspace_invite_for_authenticated_user() to authenticated;

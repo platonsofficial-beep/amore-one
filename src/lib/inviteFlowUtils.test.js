@@ -57,10 +57,17 @@ describe('inviteFlowUtils', () => {
 
     expect(shouldSkipMembershipBootstrapAfterInviteAttempt({
       inviteSucceeded: false,
+      resolvedMembership: null,
     })).toBe(false)
 
     expect(shouldSkipMembershipBootstrapAfterInviteAttempt({
       inviteSucceeded: true,
+      resolvedMembership: null,
+    })).toBe(true)
+
+    expect(shouldSkipMembershipBootstrapAfterInviteAttempt({
+      inviteSucceeded: false,
+      resolvedMembership: { id: 'm1' },
     })).toBe(true)
   })
 })
