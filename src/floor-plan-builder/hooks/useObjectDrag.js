@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { screenToWorld } from '../lib/camera'
 import { floorBoundaryService } from '../services/FloorBoundaryService'
 import { createObjectDragManager } from '../services/ObjectDragManager'
@@ -58,12 +58,18 @@ export function useObjectDrag({
       boundaryService: floorBoundaryService,
       getClientToWorld: (clientX, clientY) => clientToWorld(clientX, clientY),
       onMoveObject,
+      onDragComplete: () => {
+        setDraggingObjectId(null)
+      },
     })
   }
 
   const dragManager = dragManagerRef.current
   dragManager.getClientToWorld = clientToWorld
   dragManager.onMoveObject = onMoveObject
+  dragManager.onDragComplete = () => {
+    setDraggingObjectId(null)
+  }
 
   const handleObjectPointerDown = useCallback((event, object) => {
     event.stopPropagation()
@@ -109,20 +115,12 @@ export function useObjectDrag({
     const pending = pendingClickRef.current
     const moved = dragManager.end(event) ?? false
 
-    setDraggingObjectId(null)
-
     if (pending && !moved) {
       onToggleSelection(pending.objectId)
     }
 
     pendingClickRef.current = null
   }, [dragManager, onToggleSelection])
-
-  useLayoutEffect(() => {
-    if (dragManager.isActive() && dragManager.session?.previewPosition) {
-      dragManager.applyTransform(dragManager.session.previewPosition)
-    }
-  })
 
   useEffect(() => () => {
     dragManager.dispose()

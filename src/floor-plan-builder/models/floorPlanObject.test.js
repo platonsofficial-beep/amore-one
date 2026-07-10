@@ -5,6 +5,8 @@ import {
   getTablePresetDetails,
   getTableShapeSize,
   getTableSizeForPreset,
+  normalizeTableGuestRange,
+  resolveTableGuestRange,
   resolveTableSizeForNewTable,
   TABLE_SHAPE_SIZES,
   TABLE_SIZE_PRESETS,
@@ -14,7 +16,7 @@ describe('resolveTableSizeForNewTable', () => {
   it('uses medium preset sizes for new tables without a reference', () => {
     expect(resolveTableSizeForNewTable('round', null)).toEqual(TABLE_SHAPE_SIZES.round)
     expect(resolveTableSizeForNewTable('rectangle', null)).toEqual(TABLE_SHAPE_SIZES.rectangle)
-    expect(TABLE_SHAPE_SIZES.round).toEqual({ width: 140, height: 140 })
+    expect(TABLE_SHAPE_SIZES.round).toEqual({ width: 160, height: 160 })
   })
 
   it('preserves saved dimensions from an existing reference table', () => {
@@ -31,7 +33,7 @@ describe('resolveTableSizeForNewTable', () => {
 
 describe('getTableShapeSize', () => {
   it('returns medium preset defaults for each supported shape', () => {
-    expect(getTableShapeSize('round')).toEqual({ width: 140, height: 140 })
+    expect(getTableShapeSize('round')).toEqual({ width: 160, height: 160 })
     expect(getTableShapeSize('square')).toEqual({ width: 140, height: 140 })
     expect(getTableShapeSize('rectangle').width).toBeGreaterThan(getTableShapeSize('rectangle').height)
   })
@@ -41,16 +43,17 @@ describe('table size presets', () => {
   it('returns explicit restaurant-sized dimensions per shape and preset', () => {
     expect(getTableSizeForPreset('square', 'small')).toEqual({ width: 90, height: 90 })
     expect(getTableSizeForPreset('square', 'large')).toEqual({ width: 200, height: 200 })
-    expect(getTableSizeForPreset('round', 'medium')).toEqual({ width: 140, height: 140 })
+    expect(getTableSizeForPreset('round', 'medium')).toEqual({ width: 160, height: 160 })
     expect(getTableSizeForPreset('rectangle', 'large')).toEqual({ width: 280, height: 150 })
   })
 
-  it('includes capacity suggestions that can be applied independently from shape', () => {
+  it('includes min/max guest suggestions that can be overridden later', () => {
     expect(getTablePresetCapacity('square', 'medium')).toBe(4)
     expect(getTablePresetDetails('rectangle', 'small')).toEqual({
       width: 140,
       height: 90,
-      capacity: 4,
+      minGuests: 2,
+      maxGuests: 4,
     })
   })
 
@@ -61,6 +64,28 @@ describe('table size presets', () => {
 
     expect(medium - small).toBeGreaterThanOrEqual(40)
     expect(large - medium).toBeGreaterThanOrEqual(50)
+  })
+})
+
+describe('resolveTableGuestRange', () => {
+  it('migrates legacy single capacity values to matching min/max guests', () => {
+    expect(resolveTableGuestRange({ capacity: 4 }, 'square')).toEqual({
+      minGuests: 4,
+      maxGuests: 4,
+    })
+  })
+
+  it('uses stored min/max guests when present', () => {
+    expect(resolveTableGuestRange({ minGuests: 2, maxGuests: 6 }, 'rectangle')).toEqual({
+      minGuests: 2,
+      maxGuests: 6,
+    })
+  })
+})
+
+describe('normalizeTableGuestRange', () => {
+  it('keeps max greater than or equal to min', () => {
+    expect(normalizeTableGuestRange(6, 3)).toEqual({ minGuests: 6, maxGuests: 6 })
   })
 })
 

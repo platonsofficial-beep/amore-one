@@ -3,10 +3,11 @@ import { TABLE_TYPES } from '../models/componentCatalog'
 import {
   FLOOR_PLAN_OBJECT_TYPES,
   adjustTableDimension,
-  clampTableCapacity,
   formatBuilderTableLabel,
   getObjectDisplayLabel,
   getTablePresetDetails,
+  normalizeTableGuestRange,
+  resolveTableGuestRange,
   TABLE_CAPACITY_MAX,
   TABLE_CAPACITY_MIN,
 } from '../models/floorPlanObject'
@@ -134,7 +135,9 @@ export function BuilderInspector({ onClose, showCloseButton = false }) {
 
   const properties = selectedObject.properties ?? {}
   const tableNumber = properties.tableNumber ?? properties.name ?? ''
-  const capacity = clampTableCapacity(properties.capacity ?? 2)
+  const guestRange = resolveTableGuestRange(properties, properties.shape ?? 'round')
+  const minGuests = guestRange.minGuests
+  const maxGuests = guestRange.maxGuests
   const shape = properties.shape ?? 'round'
   const floorId = selectedObject.floorId ?? state.activeFloorId
   const objectSize = selectedObject.size ?? {}
@@ -194,14 +197,17 @@ export function BuilderInspector({ onClose, showCloseButton = false }) {
         </label>
 
         <label className="fpb-inspector-field">
-          <span>Guest capacity</span>
+          <span>Minimum guests</span>
           <div className="fpb-inspector-stepper">
             <button
               type="button"
               className="fpb-inspector-stepper-btn"
-              onClick={() => updateTable({ capacity: clampTableCapacity(capacity - 1) })}
-              disabled={showSections || isReadOnly || capacity <= TABLE_CAPACITY_MIN}
-              aria-label="Decrease guest capacity"
+              onClick={() => {
+                const next = normalizeTableGuestRange(minGuests - 1, maxGuests)
+                updateTable({ minGuests: next.minGuests, maxGuests: next.maxGuests })
+              }}
+              disabled={showSections || isReadOnly || minGuests <= TABLE_CAPACITY_MIN}
+              aria-label="Decrease minimum guests"
             >
               −
             </button>
@@ -209,17 +215,65 @@ export function BuilderInspector({ onClose, showCloseButton = false }) {
               type="number"
               min={TABLE_CAPACITY_MIN}
               max={TABLE_CAPACITY_MAX}
-              value={showSections ? sectionTotals.stools : capacity}
-              onChange={(event) => updateTable({ capacity: clampTableCapacity(event.target.value) })}
+              value={showSections ? sectionTotals.stools : minGuests}
+              onChange={(event) => {
+                const next = normalizeTableGuestRange(event.target.value, maxGuests)
+                updateTable({ minGuests: next.minGuests, maxGuests: next.maxGuests })
+              }}
               disabled={showSections || isReadOnly}
-              aria-label="Guest capacity"
+              aria-label="Minimum guests"
             />
             <button
               type="button"
               className="fpb-inspector-stepper-btn"
-              onClick={() => updateTable({ capacity: clampTableCapacity(capacity + 1) })}
-              disabled={showSections || isReadOnly || capacity >= TABLE_CAPACITY_MAX}
-              aria-label="Increase guest capacity"
+              onClick={() => {
+                const next = normalizeTableGuestRange(minGuests + 1, maxGuests)
+                updateTable({ minGuests: next.minGuests, maxGuests: next.maxGuests })
+              }}
+              disabled={showSections || isReadOnly || minGuests >= maxGuests || minGuests >= TABLE_CAPACITY_MAX}
+              aria-label="Increase minimum guests"
+            >
+              +
+            </button>
+          </div>
+        </label>
+
+        <label className="fpb-inspector-field">
+          <span>Maximum guests</span>
+          <div className="fpb-inspector-stepper">
+            <button
+              type="button"
+              className="fpb-inspector-stepper-btn"
+              onClick={() => {
+                const next = normalizeTableGuestRange(minGuests, maxGuests - 1)
+                updateTable({ minGuests: next.minGuests, maxGuests: next.maxGuests })
+              }}
+              disabled={showSections || isReadOnly || maxGuests <= minGuests || maxGuests <= TABLE_CAPACITY_MIN}
+              aria-label="Decrease maximum guests"
+            >
+              −
+            </button>
+            <input
+              type="number"
+              min={TABLE_CAPACITY_MIN}
+              max={TABLE_CAPACITY_MAX}
+              value={showSections ? sectionTotals.maxGuests : maxGuests}
+              onChange={(event) => {
+                const next = normalizeTableGuestRange(minGuests, event.target.value)
+                updateTable({ minGuests: next.minGuests, maxGuests: next.maxGuests })
+              }}
+              disabled={showSections || isReadOnly}
+              aria-label="Maximum guests"
+            />
+            <button
+              type="button"
+              className="fpb-inspector-stepper-btn"
+              onClick={() => {
+                const next = normalizeTableGuestRange(minGuests, maxGuests + 1)
+                updateTable({ minGuests: next.minGuests, maxGuests: next.maxGuests })
+              }}
+              disabled={showSections || isReadOnly || maxGuests >= TABLE_CAPACITY_MAX}
+              aria-label="Increase maximum guests"
             >
               +
             </button>
@@ -353,7 +407,8 @@ export function BuilderInspector({ onClose, showCloseButton = false }) {
                   updateTable({
                     width: presetDetails.width,
                     height: presetDetails.height,
-                    capacity: presetDetails.capacity,
+                    minGuests: presetDetails.minGuests,
+                    maxGuests: presetDetails.maxGuests,
                   })
                 }}
                 disabled={isReadOnly}

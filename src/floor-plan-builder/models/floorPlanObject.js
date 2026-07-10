@@ -76,24 +76,24 @@ export function createFloorPlanObject({
 
 export const TABLE_SIZE_PRESETS = {
   square: {
-    small: { width: 90, height: 90, capacity: 2 },
-    medium: { width: 140, height: 140, capacity: 4 },
-    large: { width: 200, height: 200, capacity: 6 },
+    small: { width: 90, height: 90, minGuests: 1, maxGuests: 2 },
+    medium: { width: 140, height: 140, minGuests: 2, maxGuests: 4 },
+    large: { width: 200, height: 200, minGuests: 4, maxGuests: 6 },
   },
   round: {
-    small: { width: 90, height: 90, capacity: 2 },
-    medium: { width: 140, height: 140, capacity: 4 },
-    large: { width: 200, height: 200, capacity: 6 },
+    small: { width: 100, height: 100, minGuests: 1, maxGuests: 2 },
+    medium: { width: 160, height: 160, minGuests: 2, maxGuests: 4 },
+    large: { width: 220, height: 220, minGuests: 4, maxGuests: 6 },
   },
   rectangle: {
-    small: { width: 140, height: 90, capacity: 4 },
-    medium: { width: 200, height: 120, capacity: 6 },
-    large: { width: 280, height: 150, capacity: 8 },
+    small: { width: 140, height: 90, minGuests: 2, maxGuests: 4 },
+    medium: { width: 200, height: 120, minGuests: 4, maxGuests: 6 },
+    large: { width: 280, height: 150, minGuests: 6, maxGuests: 8 },
   },
   island: {
-    small: { width: 140, height: 90, capacity: 4 },
-    medium: { width: 200, height: 120, capacity: 6 },
-    large: { width: 280, height: 150, capacity: 8 },
+    small: { width: 140, height: 90, minGuests: 2, maxGuests: 4 },
+    medium: { width: 200, height: 120, minGuests: 4, maxGuests: 6 },
+    large: { width: 280, height: 150, minGuests: 6, maxGuests: 8 },
   },
 }
 
@@ -114,7 +114,7 @@ export function getTablePresetDetails(shape, preset = 'medium') {
 }
 
 export function getTablePresetCapacity(shape, preset = 'medium') {
-  return getTablePresetDetails(shape, preset).capacity
+  return getTablePresetDetails(shape, preset).maxGuests
 }
 
 export function getTableSizeForPreset(shape, preset = 'medium') {
@@ -134,13 +134,49 @@ export function clampTableCapacity(value, {
   return Math.min(max, Math.max(min, parsed))
 }
 
+export function normalizeTableGuestRange(minGuests, maxGuests) {
+  let min = clampTableCapacity(minGuests)
+  let max = clampTableCapacity(maxGuests)
+  if (max < min) {
+    max = min
+  }
+  return { minGuests: min, maxGuests: max }
+}
+
+export function resolveTableGuestRange(properties = {}, shape = 'round') {
+  const hasMin = Number.isFinite(Number(properties?.minGuests))
+  const hasMax = Number.isFinite(Number(properties?.maxGuests))
+
+  if (hasMin || hasMax) {
+    const fallback = getTablePresetDetails(shape, 'medium')
+    return normalizeTableGuestRange(
+      hasMin ? properties.minGuests : (properties.maxGuests ?? fallback.minGuests),
+      hasMax ? properties.maxGuests : (properties.minGuests ?? fallback.maxGuests),
+    )
+  }
+
+  const legacyCapacity = Math.max(0, Number(properties?.capacity) || 0)
+  if (legacyCapacity > 0) {
+    return normalizeTableGuestRange(legacyCapacity, legacyCapacity)
+  }
+
+  const preset = getTablePresetDetails(shape, 'medium')
+  return normalizeTableGuestRange(preset.minGuests, preset.maxGuests)
+}
+
+export function formatTableGuestRangeLabel(properties = {}, shape = 'round') {
+  const { minGuests, maxGuests } = resolveTableGuestRange(properties, shape)
+  if (minGuests === maxGuests) return `${maxGuests} guests`
+  return `${minGuests}–${maxGuests} guests`
+}
+
 export function adjustTableDimension(value, delta, minimum = 44) {
   const current = Math.max(minimum, Math.round(Number(value) || minimum))
   return Math.max(minimum, current + delta)
 }
 
 export function getDefaultCapacityForShape(shape) {
-  return getTablePresetCapacity(shape, 'medium')
+  return getTablePresetDetails(shape, 'medium').maxGuests
 }
 
 export function createDemoTableObject({
@@ -252,7 +288,7 @@ export function createTableObjectFromType({
   })
   const size = sizeOverride ?? resolveTableSizeForNewTable(shape, referenceTable)
   const nextNumber = tableNumber ?? getNextTableNumber(objects)
-  const defaultCapacity = getDefaultCapacityForShape(shape)
+  const defaultPreset = getTablePresetDetails(shape, 'medium')
   const tableLabel = `T${nextNumber}`
 
   return normalizeFloorPlanTableObject(
@@ -265,7 +301,9 @@ export function createTableObjectFromType({
       properties: {
         name: tableLabel,
         tableNumber: String(nextNumber),
-        capacity: defaultCapacity,
+        minGuests: defaultPreset.minGuests,
+        maxGuests: defaultPreset.maxGuests,
+        capacity: defaultPreset.maxGuests,
         shape,
         area: areaLabel,
         visible: true,
@@ -307,6 +345,7 @@ export function normalizeFloorPlanTableObject(
     ? object.floorId
     : (defaultFloorId || floors[0]?.id || 'main-dining')
   const floor = floors.find((entry) => entry.id === resolvedFloorId)
+  const guestRange = resolveTableGuestRange(object.properties, shape)
 
   return {
     ...object,
@@ -326,7 +365,9 @@ export function normalizeFloorPlanTableObject(
       ...(object.properties ?? {}),
       name: object.properties?.name ?? tableLabel,
       tableNumber,
-      capacity: Math.max(1, Number(object.properties?.capacity) || getDefaultCapacityForShape(shape)),
+      minGuests: guestRange.minGuests,
+      maxGuests: guestRange.maxGuests,
+      capacity: guestRange.maxGuests,
       shape,
       area: object.properties?.area ?? floor?.label ?? 'Main Dining',
       visible: object.properties?.visible !== false,

@@ -1,5 +1,5 @@
 import { memo } from 'react'
-import { FLOOR_PLAN_OBJECT_TYPES, formatBuilderTableLabel } from '../models/floorPlanObject'
+import { FLOOR_PLAN_OBJECT_TYPES, formatBuilderTableLabel, formatTableGuestRangeLabel } from '../models/floorPlanObject'
 
 const CORNER_HANDLES = ['nw', 'ne', 'se', 'sw']
 
@@ -27,7 +27,9 @@ function CanvasObjectNodeComponent({
     : ''
   const label = formatBuilderTableLabel(object)
   const isTable = object.type === FLOOR_PLAN_OBJECT_TYPES.TABLE
-  const capacity = Math.max(0, Number(properties.capacity) || 0)
+  const guestLabel = isTable
+    ? formatTableGuestRangeLabel(properties, properties.shape ?? 'round')
+    : ''
   const isLocked = properties.locked === true
   const rotation = object.rotation ?? 0
   const minDimension = Math.min(size.width, size.height)
@@ -71,7 +73,7 @@ function CanvasObjectNodeComponent({
       <div className="fpb-canvas-object-surface">
         <span className="fpb-canvas-object-label" title={label}>{label}</span>
         {isTable && labelDensity === 'normal' ? (
-          <span className="fpb-canvas-object-meta">{capacity} guests</span>
+          <span className="fpb-canvas-object-meta">{guestLabel}</span>
         ) : null}
       </div>
 
@@ -127,6 +129,8 @@ function arePropsEqual(previous, next) {
     && previousSize.width === nextSize.width
     && previousSize.height === nextSize.height
     && previousProperties.tableNumber === nextProperties.tableNumber
+    && previousProperties.minGuests === nextProperties.minGuests
+    && previousProperties.maxGuests === nextProperties.maxGuests
     && previousProperties.capacity === nextProperties.capacity
     && previousProperties.shape === nextProperties.shape
     && previousProperties.locked === nextProperties.locked

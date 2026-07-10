@@ -1,4 +1,4 @@
-import { FLOOR_PLAN_OBJECT_TYPES, formatBuilderTableLabel } from '../floor-plan-builder/models/floorPlanObject'
+import { FLOOR_PLAN_OBJECT_TYPES, formatBuilderTableLabel, resolveTableGuestRange } from '../floor-plan-builder/models/floorPlanObject'
 import { createDefaultFloor, createDefaultWorkspace, getFloorBounds } from '../floor-plan-builder/models/floorWorkspace'
 import { normalizeTableSection } from '../floor-plan-builder/lib/tableSections'
 import { loadLocalFloorPlanLayout } from '../floor-plan-builder/lib/floorPlanStorage'
@@ -80,7 +80,7 @@ function tableToUnits(object, floor, floors) {
     })
   }
 
-  const capacity = Math.max(1, Number(properties.capacity) || 1)
+  const { minGuests, maxGuests } = resolveTableGuestRange(properties, shape)
   const tableNumber = `${properties.tableNumber ?? ''}`.trim()
   const displayLabel = formatBuilderTableLabel(object)
 
@@ -90,9 +90,10 @@ function tableToUnits(object, floor, floors) {
     displayLabel,
     x,
     y,
-    seats: capacity,
-    seatedCapacity: capacity,
-    maxGuestCapacity: capacity,
+    seats: maxGuests,
+    seatedCapacity: maxGuests,
+    maxGuestCapacity: maxGuests,
+    minGuestCapacity: minGuests,
     unitType: SEATING_UNIT_TYPES.TABLE,
     zoneId: floor.id,
     shape,

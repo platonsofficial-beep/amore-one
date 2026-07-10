@@ -6,14 +6,15 @@ export class ObjectDragManager {
     boundaryService,
     getClientToWorld,
     onMoveObject,
+    onDragComplete,
   }) {
     this.snapService = snapService
     this.boundaryService = boundaryService
     this.getClientToWorld = getClientToWorld
     this.onMoveObject = onMoveObject
+    this.onDragComplete = onDragComplete
 
     this.session = null
-    this.rafId = null
     this.element = null
   }
 
@@ -30,36 +31,19 @@ export class ObjectDragManager {
     return this.boundaryService.clampToFloor(snapped, objectSize, floorBounds)
   }
 
-  applyTransform(position) {
-    if (!this.element || !this.session) return
-
-    const deltaX = position.x - this.session.originPosition.x
-    const deltaY = position.y - this.session.originPosition.y
-    const rotation = this.session.rotation ?? 0
-    this.element.style.transform = `translate3d(${deltaX}px, ${deltaY}px, 0) rotate(${rotation}deg)`
+  hasPositionChanged(from, to) {
+    if (!from || !to) return false
+    return Math.abs(to.x - from.x) > DRAG_COMMIT_THRESHOLD
+      || Math.abs(to.y - from.y) > DRAG_COMMIT_THRESHOLD
   }
 
-  clearTransform() {
+  clearDragSurface() {
     if (!this.element) return
 
     this.element.style.transform = ''
     this.element.style.willChange = ''
     this.element.style.zIndex = ''
     this.element.classList.remove('is-dragging')
-  }
-
-  schedulePreview(position) {
-    if (!this.session) return
-
-    this.session.previewPosition = position
-    if (this.rafId !== null) return
-
-    this.rafId = window.requestAnimationFrame(() => {
-      this.rafId = null
-      if (this.session?.previewPosition) {
-        this.applyTransform(this.session.previewPosition)
-      }
-    })
   }
 
   attachWindowListeners() {
@@ -126,7 +110,6 @@ export class ObjectDragManager {
     }
 
     this.attachWindowListeners()
-    this.applyTransform(this.session.previewPosition)
     return true
   }
 
@@ -149,16 +132,16 @@ export class ObjectDragManager {
       session.objectSize,
     )
 
+    session.previewPosition = nextPosition
     session.moved = session.moved
-      || Math.abs(nextPosition.x - session.originPosition.x) > DRAG_COMMIT_THRESHOLD
-      || Math.abs(nextPosition.y - session.originPosition.y) > DRAG_COMMIT_THRESHOLD
+      || this.hasPositionChanged(session.originPosition, nextPosition)
 
-    this.schedulePreview(nextPosition)
+    this.onMoveObject?.(session.objectId, nextPosition)
   }
 
   end(event) {
     const session = this.session
-    if (!session || event.pointerId !== session.pointerId) return
+    if (!session || event.pointerId !== session.pointerId) return false
 
     const finalPosition = this.resolvePosition(
       session.previewPosition ?? session.originPosition,
@@ -168,9 +151,10 @@ export class ObjectDragManager {
     )
 
     const moved = session.moved
+      || this.hasPositionChanged(session.originPosition, finalPosition)
 
     if (moved) {
-      this.onMoveObject(session.objectId, finalPosition)
+      this.onMoveObject?.(session.objectId, finalPosition)
     }
 
     try {
@@ -182,32 +166,27 @@ export class ObjectDragManager {
     }
 
     this.detachWindowListeners()
-    this.clearTransform()
+    this.clearDragSurface()
+
+    const objectId = session.objectId
     this.session = null
     this.element = null
 
-    if (this.rafId !== null) {
-      window.cancelAnimationFrame(this.rafId)
-      this.rafId = null
-    }
+    this.onDragComplete?.({ objectId, moved })
 
     return moved
   }
 
   cancel() {
     this.detachWindowListeners()
+    this.clearDragSurface()
     this.session = null
     this.element = null
-
-    if (this.rafId !== null) {
-      window.cancelAnimationFrame(this.rafId)
-      this.rafId = null
-    }
   }
 
   dispose() {
     this.detachWindowListeners()
-    this.clearTransform()
+    this.clearDragSurface()
     this.cancel()
   }
 }

@@ -73,6 +73,62 @@ describe('selection behavior', () => {
   })
 })
 
+describe('MOVE_OBJECT', () => {
+  it('persists the final dragged position in builder state', () => {
+    const initialState = {
+      ...createInitialBuilderState({ initialEditing: true }),
+      objects: [createTable('table-1')],
+    }
+
+    const nextState = floorPlanBuilderReducer(initialState, {
+      type: 'MOVE_OBJECT',
+      payload: {
+        objectId: 'table-1',
+        position: { x: 280, y: 320 },
+      },
+    })
+
+    expect(nextState.objects[0].position).toEqual({ x: 280, y: 320 })
+    expect(nextState.hasUnsavedChanges).toBe(true)
+  })
+})
+
+describe('UPDATE_TABLE', () => {
+  it('applies quick size preset width, height, and guest range together', () => {
+    const initialState = {
+      ...createInitialBuilderState({ initialEditing: true }),
+      objects: [{
+        ...createTable('table-1'),
+        size: { width: 200, height: 200 },
+        properties: {
+          shape: 'square',
+          capacity: 6,
+          minGuests: 4,
+          maxGuests: 6,
+        },
+      }],
+    }
+
+    const nextState = floorPlanBuilderReducer(initialState, {
+      type: 'UPDATE_TABLE',
+      payload: {
+        objectId: 'table-1',
+        patch: {
+          width: 90,
+          height: 90,
+          minGuests: 1,
+          maxGuests: 2,
+        },
+      },
+    })
+
+    expect(nextState.objects[0].size).toEqual({ width: 90, height: 90 })
+    expect(nextState.objects[0].properties.minGuests).toBe(1)
+    expect(nextState.objects[0].properties.maxGuests).toBe(2)
+    expect(nextState.objects[0].properties.capacity).toBe(2)
+  })
+})
+
 describe('CLEAR_ACTIVE_FLOOR_LAYOUT', () => {
   it('removes tables from the active floor and marks the draft dirty', () => {
     const initialState = createInitialBuilderState({

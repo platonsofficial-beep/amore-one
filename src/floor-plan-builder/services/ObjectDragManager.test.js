@@ -6,6 +6,7 @@ import { ObjectDragManager } from './ObjectDragManager'
 
 function createDragManager() {
   const onMoveObject = vi.fn()
+  const onDragComplete = vi.fn()
   const manager = new ObjectDragManager({
     snapService: {
       applyIfEnabled: (position) => position,
@@ -15,9 +16,10 @@ function createDragManager() {
     },
     getClientToWorld: (clientX, clientY) => ({ x: clientX, y: clientY }),
     onMoveObject,
+    onDragComplete,
   })
 
-  return { manager, onMoveObject }
+  return { manager, onMoveObject, onDragComplete }
 }
 
 function createPointerEvent(type, { pointerId = 1, clientX = 0, clientY = 0, pointerType = 'touch' } = {}) {
@@ -41,8 +43,8 @@ function createPointerEvent(type, { pointerId = 1, clientX = 0, clientY = 0, poi
 }
 
 describe('ObjectDragManager', () => {
-  it('tracks pointer movement from window listeners outside the table node', () => {
-    const { manager, onMoveObject } = createDragManager()
+  it('commits table position during move and on release', () => {
+    const { manager, onMoveObject, onDragComplete } = createDragManager()
     const object = {
       id: 'table-1',
       position: { x: 100, y: 120 },
@@ -56,16 +58,19 @@ describe('ObjectDragManager', () => {
     const move = createPointerEvent('pointermove', { clientX: 160, clientY: 180 })
     manager.move(move)
 
+    expect(onMoveObject).toHaveBeenCalledWith('table-1', { x: 150, y: 170 })
+
     const up = createPointerEvent('pointerup', { clientX: 160, clientY: 180 })
     manager.end(up)
 
-    expect(onMoveObject).toHaveBeenCalledWith('table-1', { x: 150, y: 170 })
+    expect(onMoveObject).toHaveBeenLastCalledWith('table-1', { x: 150, y: 170 })
+    expect(onDragComplete).toHaveBeenCalledWith({ objectId: 'table-1', moved: true })
     expect(down.preventDefault).toHaveBeenCalled()
     expect(move.preventDefault).toHaveBeenCalled()
   })
 
   it('does not commit a move when the pointer is released without movement', () => {
-    const { manager, onMoveObject } = createDragManager()
+    const { manager, onMoveObject, onDragComplete } = createDragManager()
     const object = {
       id: 'table-2',
       position: { x: 40, y: 40 },
@@ -81,5 +86,6 @@ describe('ObjectDragManager', () => {
 
     expect(moved).toBe(false)
     expect(onMoveObject).not.toHaveBeenCalled()
+    expect(onDragComplete).toHaveBeenCalledWith({ objectId: 'table-2', moved: false })
   })
 })

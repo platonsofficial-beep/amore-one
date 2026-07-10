@@ -9,9 +9,12 @@ import { autoArrangeFloorTables } from '../lib/autoArrangeLayout'
 import { cloneBuilderLayout, loadFloorPlanLayout, saveFloorPlanLayout } from '../lib/floorPlanStorage'
 import {
   FLOOR_PLAN_OBJECT_TYPES,
+  clampTableCapacity,
   getTableShapeSize,
   normalizeFloorPlanTableObject,
   normalizeLayoutObjects,
+  normalizeTableGuestRange,
+  resolveTableGuestRange,
 } from '../models/floorPlanObject'
 import { createInitialFloors, createUniqueAreaId } from '../models/floorPlans'
 import { createDefaultFloor, createDefaultWorkspace, expandFloorWorkspace, getWorkspaceBounds, resetFloorWorkspace } from '../models/floorWorkspace'
@@ -314,18 +317,26 @@ function floorPlanBuilderReducer(state, action) {
           const floor = state.floors.find((entry) => entry.id === nextFloorId)
           const nextAreaLabel = floor?.label ?? object.properties.area
           const tableNumber = `${patch.tableNumber ?? object.properties.tableNumber ?? ''}`.trim()
-          const capacity = Math.max(1, Number(patch.capacity ?? object.properties.capacity) || 1)
           const nextSections = patch.sections !== undefined
             ? patch.sections.map(normalizeTableSection)
             : (object.properties.sections ?? [])
           const sectionTotals = getTableSectionTotals(nextSections)
 
           let nextSize = { ...object.size }
+          const explicitWidth = patch.width ?? patch.size?.width
+          const explicitHeight = patch.height ?? patch.size?.height
+
           if (shapeChanged) {
             nextSize = getTableShapeSize(nextShape)
-          } else if (patch.width !== undefined || patch.height !== undefined) {
-            let width = Math.max(getTableMinSize(nextShape).width, Number(patch.width ?? object.size.width) || object.size.width)
-            let height = Math.max(getTableMinSize(nextShape).height, Number(patch.height ?? object.size.height) || object.size.height)
+          } else if (explicitWidth !== undefined || explicitHeight !== undefined) {
+            let width = Math.max(
+              getTableMinSize(nextShape).width,
+              Math.round(Number(explicitWidth ?? object.size.width) || object.size.width),
+            )
+            let height = Math.max(
+              getTableMinSize(nextShape).height,
+              Math.round(Number(explicitHeight ?? object.size.height) || object.size.height),
+            )
             if (keepsTableAspectRatio(nextShape)) {
               const dim = Math.max(width, height)
               width = dim
@@ -346,9 +357,20 @@ function floorPlanBuilderReducer(state, action) {
             nextShape,
           )
 
-          let nextCapacity = capacity
+          let guestRange = resolveTableGuestRange(object.properties, nextShape)
+          if (patch.minGuests !== undefined || patch.maxGuests !== undefined) {
+            guestRange = normalizeTableGuestRange(
+              patch.minGuests ?? guestRange.minGuests,
+              patch.maxGuests ?? guestRange.maxGuests,
+            )
+          } else if (patch.capacity !== undefined) {
+            const capacity = clampTableCapacity(patch.capacity)
+            guestRange = normalizeTableGuestRange(capacity, capacity)
+          }
+
           if (nextSections.length > 0) {
-            nextCapacity = Math.max(1, sectionTotals.stools)
+            const sectionCapacity = Math.max(1, sectionTotals.stools)
+            guestRange = normalizeTableGuestRange(sectionCapacity, sectionCapacity)
           }
 
           return {
@@ -361,7 +383,9 @@ function floorPlanBuilderReducer(state, action) {
               ...object.properties,
               tableNumber,
               name: tableNumber ? `Table ${tableNumber}` : 'Table',
-              capacity: nextCapacity,
+              minGuests: guestRange.minGuests,
+              maxGuests: guestRange.maxGuests,
+              capacity: guestRange.maxGuests,
               shape: nextShape,
               area: nextAreaLabel,
               sections: nextSections,
