@@ -74,27 +74,77 @@ export function createFloorPlanObject({
   }
 }
 
+export const TABLE_SIZE_PRESET_ORDER = [
+  'tiny',
+  'xs',
+  'small',
+  'medium',
+  'standard',
+  'large',
+  'xl',
+  'xxl',
+]
+
+const ROUND_SQUARE_SIZE_PRESETS = {
+  tiny: { width: 70, height: 70 },
+  xs: { width: 90, height: 90 },
+  small: { width: 110, height: 110 },
+  medium: { width: 140, height: 140 },
+  standard: { width: 170, height: 170 },
+  large: { width: 200, height: 200 },
+  xl: { width: 240, height: 240 },
+  xxl: { width: 300, height: 300 },
+}
+
 export const TABLE_SIZE_PRESETS = {
-  square: {
-    small: { width: 90, height: 90, minGuests: 1, maxGuests: 2 },
-    medium: { width: 140, height: 140, minGuests: 2, maxGuests: 4 },
-    large: { width: 200, height: 200, minGuests: 4, maxGuests: 6 },
-  },
-  round: {
-    small: { width: 100, height: 100, minGuests: 1, maxGuests: 2 },
-    medium: { width: 160, height: 160, minGuests: 2, maxGuests: 4 },
-    large: { width: 220, height: 220, minGuests: 4, maxGuests: 6 },
-  },
+  square: { ...ROUND_SQUARE_SIZE_PRESETS },
+  round: { ...ROUND_SQUARE_SIZE_PRESETS },
   rectangle: {
-    small: { width: 140, height: 90, minGuests: 2, maxGuests: 4 },
-    medium: { width: 200, height: 120, minGuests: 4, maxGuests: 6 },
-    large: { width: 280, height: 150, minGuests: 6, maxGuests: 8 },
+    tiny: { width: 100, height: 70 },
+    xs: { width: 130, height: 80 },
+    small: { width: 160, height: 90 },
+    medium: { width: 210, height: 120 },
+    standard: { width: 260, height: 140 },
+    large: { width: 320, height: 160 },
+    xl: { width: 400, height: 190 },
+    xxl: { width: 500, height: 220 },
   },
   island: {
-    small: { width: 140, height: 90, minGuests: 2, maxGuests: 4 },
-    medium: { width: 200, height: 120, minGuests: 4, maxGuests: 6 },
-    large: { width: 280, height: 150, minGuests: 6, maxGuests: 8 },
+    tiny: { width: 140, height: 80 },
+    xs: { width: 180, height: 90 },
+    small: { width: 220, height: 110 },
+    medium: { width: 300, height: 140 },
+    standard: { width: 360, height: 160 },
+    large: { width: 440, height: 190 },
+    xl: { width: 540, height: 220 },
+    xxl: { width: 650, height: 260 },
   },
+}
+
+export const TABLE_SIZE_PRESET_ROWS = [
+  ['tiny', 'xs'],
+  ['small', 'medium'],
+  ['standard', 'large'],
+  ['xl', 'xxl'],
+]
+
+export const TABLE_SIZE_PRESET_LABELS = {
+  tiny: 'Tiny',
+  xs: 'XS',
+  small: 'Small',
+  medium: 'Medium',
+  standard: 'Standard',
+  large: 'Large',
+  xl: 'XL',
+  xxl: 'XXL',
+}
+
+/** Default guest range for new tables and legacy migration — not tied to size presets. */
+export const TABLE_GUEST_DEFAULTS = {
+  round: { minGuests: 2, maxGuests: 4 },
+  square: { minGuests: 2, maxGuests: 4 },
+  rectangle: { minGuests: 4, maxGuests: 6 },
+  island: { minGuests: 4, maxGuests: 6 },
 }
 
 export const TABLE_SHAPE_SIZES = Object.fromEntries(
@@ -113,13 +163,32 @@ export function getTablePresetDetails(shape, preset = 'medium') {
   return shapePresets[preset] ?? shapePresets.medium
 }
 
-export function getTablePresetCapacity(shape, preset = 'medium') {
-  return getTablePresetDetails(shape, preset).maxGuests
+export function getDefaultGuestRangeForShape(shape = 'round') {
+  return TABLE_GUEST_DEFAULTS[shape] ?? TABLE_GUEST_DEFAULTS.round
+}
+
+export function getTablePresetCapacity(shape) {
+  return getDefaultGuestRangeForShape(shape).maxGuests
 }
 
 export function getTableSizeForPreset(shape, preset = 'medium') {
   const { width, height } = getTablePresetDetails(shape, preset)
   return { width, height }
+}
+
+export function matchTableSizePreset(shape, size = {}) {
+  const width = Math.round(Number(size.width))
+  const height = Math.round(Number(size.height))
+  if (!Number.isFinite(width) || !Number.isFinite(height)) return null
+
+  for (const preset of TABLE_SIZE_PRESET_ORDER) {
+    const details = getTablePresetDetails(shape, preset)
+    if (details.width === width && details.height === height) {
+      return preset
+    }
+  }
+
+  return null
 }
 
 export function buildTableSizePresetPatch(shape, preset = 'medium') {
@@ -132,8 +201,6 @@ export function buildTableSizePresetPatch(shape, preset = 'medium') {
     },
     width: details.width,
     height: details.height,
-    minGuests: details.minGuests,
-    maxGuests: details.maxGuests,
   }
 }
 
@@ -163,7 +230,7 @@ export function resolveTableGuestRange(properties = {}, shape = 'round') {
   const hasMax = Number.isFinite(Number(properties?.maxGuests))
 
   if (hasMin || hasMax) {
-    const fallback = getTablePresetDetails(shape, 'medium')
+    const fallback = getDefaultGuestRangeForShape(shape)
     return normalizeTableGuestRange(
       hasMin ? properties.minGuests : (properties.maxGuests ?? fallback.minGuests),
       hasMax ? properties.maxGuests : (properties.minGuests ?? fallback.maxGuests),
@@ -175,8 +242,8 @@ export function resolveTableGuestRange(properties = {}, shape = 'round') {
     return normalizeTableGuestRange(legacyCapacity, legacyCapacity)
   }
 
-  const preset = getTablePresetDetails(shape, 'medium')
-  return normalizeTableGuestRange(preset.minGuests, preset.maxGuests)
+  const defaults = getDefaultGuestRangeForShape(shape)
+  return normalizeTableGuestRange(defaults.minGuests, defaults.maxGuests)
 }
 
 export function formatTableGuestRangeLabel(properties = {}, shape = 'round') {
@@ -191,7 +258,7 @@ export function adjustTableDimension(value, delta, minimum = 64) {
 }
 
 export function getDefaultCapacityForShape(shape) {
-  return getTablePresetDetails(shape, 'medium').maxGuests
+  return getDefaultGuestRangeForShape(shape).maxGuests
 }
 
 export function createDemoTableObject({
@@ -303,7 +370,7 @@ export function createTableObjectFromType({
   })
   const size = sizeOverride ?? resolveTableSizeForNewTable(shape, referenceTable)
   const nextNumber = tableNumber ?? getNextTableNumber(objects)
-  const defaultPreset = getTablePresetDetails(shape, 'medium')
+  const defaultGuests = getDefaultGuestRangeForShape(shape)
   const tableLabel = `T${nextNumber}`
 
   return normalizeFloorPlanTableObject(
@@ -316,9 +383,9 @@ export function createTableObjectFromType({
       properties: {
         name: tableLabel,
         tableNumber: String(nextNumber),
-        minGuests: defaultPreset.minGuests,
-        maxGuests: defaultPreset.maxGuests,
-        capacity: defaultPreset.maxGuests,
+        minGuests: defaultGuests.minGuests,
+        maxGuests: defaultGuests.maxGuests,
+        capacity: defaultGuests.maxGuests,
         shape,
         area: areaLabel,
         visible: true,

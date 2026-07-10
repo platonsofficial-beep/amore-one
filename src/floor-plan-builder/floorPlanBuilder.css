@@ -2005,8 +2005,15 @@
 .fpb-inspector-size-presets {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 10px;
   padding: 0 16px;
+}
+
+.fpb-inspector-size-presets-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
 }
 
 .fpb-inspector-size-presets-label,
@@ -2018,13 +2025,31 @@
   text-transform: uppercase;
 }
 
+.fpb-inspector-size-presets-status {
+  color: rgba(245, 230, 196, 0.82);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.fpb-inspector-size-presets-status.is-custom {
+  color: rgba(212, 175, 55, 0.92);
+}
+
+.fpb-inspector-size-presets-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
 .fpb-inspector-size-presets-row {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px;
 }
 
 .fpb-inspector-size-preset-btn,
+.fpb-inspector-size-reset-btn,
 .fpb-inspector-stepper-btn {
   min-height: 44px;
   min-width: 44px;
@@ -2035,6 +2060,18 @@
   font-size: 0.78rem;
   font-weight: 700;
   cursor: pointer;
+}
+
+.fpb-inspector-size-preset-btn.is-active,
+.fpb-inspector-size-preset-btn[aria-pressed='true'] {
+  color: #fff8e8;
+  border-color: rgba(212, 175, 55, 0.62);
+  background: rgba(212, 175, 55, 0.22);
+  box-shadow: inset 0 0 0 1px rgba(212, 175, 55, 0.18);
+}
+
+.fpb-inspector-size-reset-btn {
+  width: 100%;
 }
 
 .fpb-inspector-dimension-controls {
@@ -2143,19 +2180,17 @@
     display: flex;
   }
 
-  .fpb-editor-embedded.is-tablet-layout .fpb-handle {
-    width: var(--fpb-handle-size, 44px);
-    height: var(--fpb-handle-size, 44px);
-    min-width: var(--fpb-handle-size, 44px);
-    min-height: var(--fpb-handle-size, 44px);
-    border-radius: 999px;
-    border-width: 2px;
-    background:
-      radial-gradient(circle at 50% 50%, #fff9ef 0 36%, transparent 37%),
-      rgba(9, 9, 10, 0.18);
-    box-shadow:
-      0 0 0 1px rgba(212, 175, 55, 0.55),
-      0 2px 8px rgba(0, 0, 0, 0.28);
+  .fpb-editor-embedded.is-tablet-layout .fpb-handle-nw,
+  .fpb-editor-embedded.is-tablet-layout .fpb-handle-ne,
+  .fpb-editor-embedded.is-tablet-layout .fpb-handle-se,
+  .fpb-editor-embedded.is-tablet-layout .fpb-handle-sw,
+  .fpb-editor-embedded.is-tablet-layout .fpb-rotate-stem,
+  .fpb-editor-embedded.is-tablet-layout .fpb-handle-rotate {
+    display: none;
+  }
+
+  .fpb-editor-embedded.is-tablet-layout .fpb-inspector-dimension-controls {
+    display: none;
   }
 }
 

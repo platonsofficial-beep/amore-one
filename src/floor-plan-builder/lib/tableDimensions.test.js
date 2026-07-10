@@ -81,6 +81,7 @@ describe('canDecreaseTableDimension', () => {
 describe('buildTableSizeResetPatch', () => {
   it('returns medium preset dimensions without guest fields', () => {
     expect(buildTableSizeResetPatch('square')).toEqual({
+      sizePreset: 'medium',
       size: { width: 140, height: 140 },
       width: 140,
       height: 140,

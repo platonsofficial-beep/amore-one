@@ -432,6 +432,7 @@ function EmbeddedFloorPlanEditorShell({
           <BuilderInspector
             onClose={() => setInspectorPanelOpen(false)}
             showCloseButton={isTabletLayout}
+            isTabletLayout={isTabletLayout}
           />
         </div>
       </div>

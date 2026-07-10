@@ -77,6 +77,7 @@ export function resolveTableSizeFromPatch({
 export function buildTableSizeResetPatch(shape = 'round') {
   const { width, height } = getTableSizeForPreset(shape, 'medium')
   return {
+    sizePreset: 'medium',
     size: { width, height },
     width,
     height,
@@ -90,8 +91,6 @@ export function getTablePresetSizePatch(shape, preset = 'medium') {
     size: { width: details.width, height: details.height },
     width: details.width,
     height: details.height,
-    minGuests: details.minGuests,
-    maxGuests: details.maxGuests,
   }
 }
 

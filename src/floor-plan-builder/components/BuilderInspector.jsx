@@ -5,10 +5,13 @@ import {
   buildTableSizePresetPatch,
   formatBuilderTableLabel,
   getObjectDisplayLabel,
+  matchTableSizePreset,
   normalizeTableGuestRange,
   resolveTableGuestRange,
   TABLE_CAPACITY_MAX,
   TABLE_CAPACITY_MIN,
+  TABLE_SIZE_PRESET_LABELS,
+  TABLE_SIZE_PRESET_ROWS,
 } from '../models/floorPlanObject'
 import {
   buildTableSizeResetPatch,
@@ -102,7 +105,7 @@ function InspectorMultiSelectPanel({ count, isReadOnly, dispatch }) {
   )
 }
 
-export function BuilderInspector({ onClose, showCloseButton = false }) {
+export function BuilderInspector({ onClose, showCloseButton = false, isTabletLayout = false }) {
   const { state, dispatch, selectedObject } = useFloorPlanBuilder()
   const { floors } = state
   const isReadOnly = state.mode !== 'editing'
@@ -158,6 +161,7 @@ export function BuilderInspector({ onClose, showCloseButton = false }) {
   const displayLabel = getObjectDisplayLabel(selectedObject)
     || formatBuilderTableLabel(selectedObject)
     || 'Table'
+  const activeSizePreset = matchTableSizePreset(shape, { width, height })
 
   const updateTable = (patch) => {
     if (isReadOnly || !selectedObject?.id) return
@@ -400,32 +404,46 @@ export function BuilderInspector({ onClose, showCloseButton = false }) {
         </label>
 
         <div className="fpb-inspector-size-presets" aria-label="Table size presets">
-          <span className="fpb-inspector-size-presets-label">Quick size</span>
-          <div className="fpb-inspector-size-presets-row">
-            {['small', 'medium', 'large'].map((preset) => (
-              <button
-                key={preset}
-                type="button"
-                className="fpb-inspector-size-preset-btn"
-                onClick={() => {
-                  updateTable(buildTableSizePresetPatch(shape, preset))
-                }}
-                disabled={isReadOnly}
-              >
-                {preset.charAt(0).toUpperCase() + preset.slice(1)}
-              </button>
-            ))}
-            <button
-              type="button"
-              className="fpb-inspector-size-preset-btn"
-              onClick={() => updateTable(buildTableSizeResetPatch(shape))}
-              disabled={isReadOnly}
+          <div className="fpb-inspector-size-presets-header">
+            <span className="fpb-inspector-size-presets-label">Quick size</span>
+            <span
+              className={`fpb-inspector-size-presets-status${activeSizePreset ? '' : ' is-custom'}`}
+              aria-live="polite"
             >
-              Reset size
-            </button>
+              {activeSizePreset ? TABLE_SIZE_PRESET_LABELS[activeSizePreset] : 'Custom'}
+            </span>
           </div>
+          <div className="fpb-inspector-size-presets-grid">
+            {TABLE_SIZE_PRESET_ROWS.map((row, rowIndex) => (
+              <div key={`preset-row-${rowIndex}`} className="fpb-inspector-size-presets-row">
+                {row.map((preset) => (
+                  <button
+                    key={preset}
+                    type="button"
+                    className={`fpb-inspector-size-preset-btn${activeSizePreset === preset ? ' is-active' : ''}`}
+                    onClick={() => {
+                      updateTable(buildTableSizePresetPatch(shape, preset))
+                    }}
+                    disabled={isReadOnly}
+                    aria-pressed={activeSizePreset === preset}
+                  >
+                    {TABLE_SIZE_PRESET_LABELS[preset]}
+                  </button>
+                ))}
+              </div>
+            ))}
+          </div>
+          <button
+            type="button"
+            className="fpb-inspector-size-reset-btn"
+            onClick={() => updateTable(buildTableSizeResetPatch(shape))}
+            disabled={isReadOnly}
+          >
+            Reset size
+          </button>
         </div>
 
+        {!isTabletLayout ? (
         <div className="fpb-inspector-dimension-controls">
           <label className="fpb-inspector-field">
             <span>Width</span>
@@ -489,6 +507,7 @@ export function BuilderInspector({ onClose, showCloseButton = false }) {
             </div>
           </label>
         </div>
+        ) : null}
 
         <div className="fpb-inspector-field">
           <span>Rotation</span>

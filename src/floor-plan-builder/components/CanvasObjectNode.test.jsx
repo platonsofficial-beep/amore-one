@@ -165,10 +165,10 @@ describe('CanvasObjectNode preset dimensions', () => {
     })
 
     const root = container.querySelector('.fpb-canvas-object')
-    expect(root.style.width).toBe('90px')
-    expect(root.style.height).toBe('90px')
-    expect(table.properties.minGuests).toBe(1)
-    expect(table.properties.maxGuests).toBe(2)
+    expect(root.style.width).toBe('110px')
+    expect(root.style.height).toBe('110px')
+    expect(table.properties.minGuests).toBe(4)
+    expect(table.properties.maxGuests).toBe(6)
 
     unmount()
   })
