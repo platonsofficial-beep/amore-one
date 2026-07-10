@@ -20,6 +20,10 @@ import {
   buildPublishTransitionResult,
   isValidPublishedBuilderLayout,
 } from './publishFloorPlanTransition'
+import {
+  logPublishBreadcrumbsOnError,
+  recordPublishBreadcrumb,
+} from './publishFloorPlanDiagnostics'
 
 const PublishedFloorPlanContext = createContext({
   builderLayout: null,
@@ -184,6 +188,7 @@ export function PublishedFloorPlanProvider({ children, workspaceId = '' }) {
   }, [workspaceId])
 
   const publishLayout = useCallback(async ({ floors, activeFloorId, objects }) => {
+    recordPublishBreadcrumb('publish-start', { activeFloorId })
     const payload = {
       version: 1,
       floors,
@@ -215,8 +220,17 @@ export function PublishedFloorPlanProvider({ children, workspaceId = '' }) {
         ? await publishFloorPlan(normalizedWorkspaceId, payload)
         : saveLocalFloorPlanLayout(payload, normalizedWorkspaceId)
 
-      return finalizePublish(saved)
+      recordPublishBreadcrumb('db-save-success', {
+        workspaceId: normalizedWorkspaceId || 'local',
+      })
+
+      const transition = finalizePublish(saved)
+      recordPublishBreadcrumb('context-hydrated', {
+        activeFloorAreaId: transition.activeFloorAreaId,
+      })
+      return transition
     } catch (error) {
+      logPublishBreadcrumbsOnError(error, { stage: 'publish-layout' })
       const message = error?.message || 'Unable to publish floor plan right now.'
       setSaveError(message)
 
@@ -226,7 +240,13 @@ export function PublishedFloorPlanProvider({ children, workspaceId = '' }) {
       }, normalizedWorkspaceId)
 
       if (localSaved) {
-        return finalizePublish(localSaved, { usedFallback: true })
+        recordPublishBreadcrumb('db-save-success', { workspaceId: normalizedWorkspaceId || 'local', usedFallback: true })
+        const transition = finalizePublish(localSaved, { usedFallback: true })
+        recordPublishBreadcrumb('context-hydrated', {
+          activeFloorAreaId: transition.activeFloorAreaId,
+          usedFallback: true,
+        })
+        return transition
       }
 
       throw new Error(message)

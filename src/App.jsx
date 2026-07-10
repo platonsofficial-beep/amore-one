@@ -48,6 +48,8 @@ import { TimeSelect } from './components/TimeSelect'
 import { getHostUnitById, toSeatingUnitFromLayoutUnit } from './lib/hostFloorPlanLayout'
 import { PublishedFloorPlanProvider, usePublishedFloorPlan } from './lib/PublishedFloorPlanContext'
 import { loadPublishedHostLayout } from './lib/builderToHostLayout'
+import { prepareReturnToHost } from './lib/publishReturnToHost'
+import { recordPublishBreadcrumb } from './lib/publishFloorPlanDiagnostics'
 import { resolveActiveFloorAreaId } from './lib/publishFloorPlanTransition'
 import {
   computeSeatingAssignmentTotals,
@@ -8764,6 +8766,7 @@ function MobileReservationsHostShellBody({
   const {
     hasLayout,
     hasDisplayableLayout,
+    layout,
     publishNotice,
     clearPublishNotice,
     isRefreshingPublishedLayout,
@@ -8776,11 +8779,25 @@ function MobileReservationsHostShellBody({
     clearPublishNotice()
   }, [clearPublishNotice, onReservationNotice, publishNotice])
 
-  const handlePublishComplete = useCallback((transition) => {
-    if (transition?.activeFloorAreaId) {
-      setActiveFloorAreaId(transition.activeFloorAreaId)
+  const handleReturnToHost = useCallback(async (transition) => {
+    const readiness = await prepareReturnToHost({
+      transition,
+      hasDisplayableLayout,
+      layout,
+      activeFloorAreaId,
+      reload,
+    })
+
+    if (!readiness.ok) {
+      return readiness
     }
-  }, [setActiveFloorAreaId])
+
+    setActiveFloorAreaId(readiness.activeFloorAreaId)
+    recordPublishBreadcrumb('host-floor-rendered', {
+      activeFloorAreaId: readiness.activeFloorAreaId,
+    })
+    return { ok: true }
+  }, [activeFloorAreaId, hasDisplayableLayout, layout, reload, setActiveFloorAreaId])
 
   if (floorPlanMode === 'edit' && canEditFloorPlan) {
     return (
@@ -8789,7 +8806,7 @@ function MobileReservationsHostShellBody({
           onExit={() => setFloorPlanMode('view')}
           initialAreaId={activeFloorAreaId}
           onActiveAreaChange={setActiveFloorAreaId}
-          onPublishComplete={handlePublishComplete}
+          onReturnToHost={handleReturnToHost}
         />
       </div>
     )
@@ -8807,7 +8824,10 @@ function MobileReservationsHostShellBody({
   }
 
   const floorPlanContent = hasDisplayableLayout ? (
-    <HostStationErrorBoundary onRetry={() => reload()}>
+    <HostStationErrorBoundary
+      onRetry={() => reload()}
+      onReturnToEditor={() => setFloorPlanMode('edit')}
+    >
       <FloorPlanView
       reservations={workspaceReservations}
       allReservations={reservations}
@@ -10589,7 +10609,7 @@ function ReservationsUnifiedCanvas({
   isSavingStatus,
   hostFilterCounts = {},
 }) {
-  const { layout } = usePublishedFloorPlan()
+  const { layout, hasDisplayableLayout, reload } = usePublishedFloorPlan()
   const canEditFloorPlan = floorPlanProps.canEditFloorPlan !== false
   const {
     canvasRef,
@@ -10658,6 +10678,26 @@ function ReservationsUnifiedCanvas({
       setIsSavingListStatus(false)
     }
   }
+
+  const handleReturnToHost = useCallback(async (transition) => {
+    const readiness = await prepareReturnToHost({
+      transition,
+      hasDisplayableLayout,
+      layout,
+      activeFloorAreaId,
+      reload,
+    })
+
+    if (!readiness.ok) {
+      return readiness
+    }
+
+    setActiveFloorAreaId(readiness.activeFloorAreaId)
+    recordPublishBreadcrumb('host-floor-rendered', {
+      activeFloorAreaId: readiness.activeFloorAreaId,
+    })
+    return { ok: true }
+  }, [activeFloorAreaId, hasDisplayableLayout, layout, reload, setActiveFloorAreaId])
 
   return (
     <div className={`host-operations-canvas-shell${floorPlanMode === 'edit' ? ' is-layout-edit-mode' : ''}`}>
@@ -10735,11 +10775,7 @@ function ReservationsUnifiedCanvas({
             onExit={() => setFloorPlanMode('view')}
             initialAreaId={activeFloorAreaId}
             onActiveAreaChange={setActiveFloorAreaId}
-            onPublishComplete={(transition) => {
-              if (transition?.activeFloorAreaId) {
-                setActiveFloorAreaId(transition.activeFloorAreaId)
-              }
-            }}
+            onReturnToHost={handleReturnToHost}
           />
         ) : (
           <FloorPlanView {...floorPlanProps} isCompact />

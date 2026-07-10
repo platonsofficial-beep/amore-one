@@ -11,6 +11,8 @@ import { getResetCameraForEditorWorkspace } from '../../floor-plan-builder/lib/e
 import { cloneBuilderLayout } from '../../floor-plan-builder/lib/floorPlanStorage'
 import { getAdjacentAreaId } from '../../floor-plan-builder/models/floorPlans'
 import { usePublishedFloorPlan } from '../../lib/PublishedFloorPlanContext'
+import { recordPublishBreadcrumb } from '../../lib/publishFloorPlanDiagnostics'
+import { validatePublishReturnToHostReadiness } from '../../lib/publishReturnToHost'
 import { DEFAULT_FLOOR_SIZE, WORKSPACE_EXPAND_STEP } from '../../floor-plan-builder/models/floorWorkspace'
 import { FLOOR_PLAN_OBJECT_TYPES } from '../../floor-plan-builder/models/floorPlanObject'
 import '../../floor-plan-builder/floorPlanBuilder.css'
@@ -86,7 +88,9 @@ function EmbeddedFloorPlanEditorShell({
   onExit,
   onSaveDraft,
   onPublishLayout,
-  onPublishComplete,
+  onReturnToHost,
+  hasDisplayableLayout = false,
+  hostLayout = null,
   hasUnpublishedDraft,
   initialAreaId,
   onActiveAreaChange,
@@ -194,6 +198,10 @@ function EmbeddedFloorPlanEditorShell({
   const [isSavingDraft, setIsSavingDraft] = useState(false)
   const [isPublishingLayout, setIsPublishingLayout] = useState(false)
   const [publishError, setPublishError] = useState(null)
+  const [publishSuccess, setPublishSuccess] = useState(false)
+  const [publishedTransition, setPublishedTransition] = useState(null)
+  const [isReturningToHost, setIsReturningToHost] = useState(false)
+  const [returnPrepareMessage, setReturnPrepareMessage] = useState('')
 
   const buildLayoutPayload = () => ({
     floors: state.floors,
@@ -214,19 +222,56 @@ function EmbeddedFloorPlanEditorShell({
   const handlePublish = async () => {
     setIsPublishingLayout(true)
     setPublishError(null)
+    setPublishSuccess(false)
+    setPublishedTransition(null)
+    setReturnPrepareMessage('')
     try {
       const transition = await onPublishLayout(buildLayoutPayload())
       if (!transition?.ok) {
         throw new Error('Published layout is missing floor areas. Stay in the editor and try again.')
       }
       dispatch({ type: 'MARK_DRAFT_SAVED' })
-      onPublishComplete?.(transition)
-      exitEditMode()
+      setPublishedTransition(transition)
+      setPublishSuccess(true)
     } catch (error) {
       setPublishError(error?.message || 'Unable to publish the floor plan right now.')
     } finally {
       setIsPublishingLayout(false)
     }
+  }
+
+  const returnReadiness = validatePublishReturnToHostReadiness({
+    transition: publishedTransition,
+    hasDisplayableLayout,
+    layout: hostLayout,
+  })
+
+  const handleReturnToHost = async () => {
+    if (!publishedTransition || isReturningToHost) return
+
+    setIsReturningToHost(true)
+    setReturnPrepareMessage('Preparing published layout…')
+    setPublishError(null)
+
+    try {
+      const result = await onReturnToHost?.(publishedTransition)
+      if (!result?.ok) {
+        setReturnPrepareMessage(result?.message || 'Preparing published layout…')
+        return
+      }
+
+      recordPublishBreadcrumb('editor-unmounted')
+      exitEditMode()
+    } catch (error) {
+      setPublishError(error?.message || 'Unable to return to Host Station right now.')
+      setReturnPrepareMessage('')
+    } finally {
+      setIsReturningToHost(false)
+    }
+  }
+
+  const handleRetryReturn = async () => {
+    await handleReturnToHost()
   }
 
   const handleCancel = () => {
@@ -302,6 +347,36 @@ function EmbeddedFloorPlanEditorShell({
 
   return (
     <div className="unified-floor-editor">
+      {publishSuccess ? (
+        <div className="unified-floor-editor-publish-success" role="status">
+          <div className="unified-floor-editor-publish-success-copy">
+            <strong>Layout published successfully.</strong>
+            {returnPrepareMessage && !returnReadiness.ok ? (
+              <p>{returnPrepareMessage}</p>
+            ) : null}
+          </div>
+          <div className="unified-floor-editor-publish-success-actions">
+            <button
+              type="button"
+              className="fpb-toolbar-btn fpb-toolbar-btn-primary unified-floor-editor-return-host-btn"
+              onClick={handleReturnToHost}
+              disabled={isReturningToHost || isPublishingLayout || !returnReadiness.ok}
+            >
+              {isReturningToHost ? 'Preparing…' : 'Return to Host'}
+            </button>
+            {returnPrepareMessage && !returnReadiness.ok ? (
+              <button
+                type="button"
+                className="fpb-toolbar-btn"
+                onClick={handleRetryReturn}
+                disabled={isReturningToHost}
+              >
+                Retry
+              </button>
+            ) : null}
+          </div>
+        </div>
+      ) : null}
       <div
         ref={editorRef}
         className={`fpb-editor fpb-editor-simple fpb-editor-embedded${toolsPanelOpen ? ' is-tools-open' : ''}${inspectorPanelOpen ? ' is-inspector-open' : ''}${isTabletLayout ? ' is-tablet-layout' : ''}`}
@@ -454,7 +529,12 @@ function EmbeddedFloorPlanEditorShell({
   )
 }
 
-export function EmbeddedFloorPlanEditor({ onExit, initialAreaId, onActiveAreaChange, onPublishComplete }) {
+export function EmbeddedFloorPlanEditor({
+  onExit,
+  initialAreaId,
+  onActiveAreaChange,
+  onReturnToHost,
+}) {
   const containerRef = useRef(null)
   const {
     builderLayout,
@@ -462,6 +542,8 @@ export function EmbeddedFloorPlanEditor({ onExit, initialAreaId, onActiveAreaCha
     publishLayout,
     saveError,
     hasUnpublishedDraft,
+    layout,
+    hasDisplayableLayout,
   } = usePublishedFloorPlan()
   const initialLayoutRef = useRef(undefined)
 
@@ -487,7 +569,9 @@ export function EmbeddedFloorPlanEditor({ onExit, initialAreaId, onActiveAreaCha
         onExit={onExit}
         onSaveDraft={handleSaveDraft}
         onPublishLayout={handlePublishLayout}
-        onPublishComplete={onPublishComplete}
+        onReturnToHost={onReturnToHost}
+        hasDisplayableLayout={hasDisplayableLayout}
+        hostLayout={layout}
         hasUnpublishedDraft={hasUnpublishedDraft}
         initialAreaId={initialAreaId}
         onActiveAreaChange={onActiveAreaChange}
