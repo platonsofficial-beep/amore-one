@@ -6920,7 +6920,7 @@
   border: 0;
   margin: 0;
   padding: 0;
-  background: rgba(0, 0, 0, 0.28);
+  background: rgba(0, 0, 0, 0.32);
   pointer-events: auto;
   cursor: pointer;
   touch-action: manipulation;
@@ -6934,21 +6934,20 @@
   width: min(100%, 340px);
   max-height: min(68vh, 420px);
   border-radius: 16px 16px 0 0;
-  border: 1px solid rgba(212, 175, 55, 0.24);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   border-bottom: 0;
-  background: rgba(8, 8, 10, 0.98);
-  box-shadow:
-    0 -8px 28px rgba(0, 0, 0, 0.4),
-    0 0 0 1px rgba(212, 175, 55, 0.06);
+  background:
+    linear-gradient(180deg, rgba(16, 16, 18, 0.97) 0%, rgba(8, 8, 10, 0.98) 100%);
+  box-shadow: 0 -10px 36px rgba(0, 0, 0, 0.42);
   overflow: hidden;
   pointer-events: auto;
 }
 
 .floor-table-seating-dialog-overlay.is-tablet .floor-table-seating-dialog {
-  width: min(100%, 580px);
-  max-height: min(calc(var(--visual-viewport-height, 100dvh) - 32px), 620px);
-  border-radius: 14px;
-  border-bottom: 1px solid rgba(212, 175, 55, 0.24);
+  width: min(100%, 640px);
+  max-height: min(calc(var(--visual-viewport-height, 100dvh) - 32px), 640px);
+  border-radius: 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 @media (min-width: 721px) and (orientation: landscape) {
@@ -6956,94 +6955,169 @@
     align-items: center;
     justify-content: center;
     padding:
-      max(16px, env(safe-area-inset-top, 0px))
-      24px
-      max(16px, env(safe-area-inset-bottom, 0px));
+      max(20px, env(safe-area-inset-top, 0px))
+      max(28px, env(safe-area-inset-right, 0px))
+      max(20px, env(safe-area-inset-bottom, 0px))
+      max(28px, env(safe-area-inset-left, 0px));
   }
 
   .floor-table-seating-dialog-overlay.is-tablet .floor-table-seating-dialog {
-    width: min(92vw, 600px);
-    max-height: min(calc(var(--visual-viewport-height, 100dvh) - 40px), 580px);
+    width: min(92vw, 660px);
+    max-height: min(calc(var(--visual-viewport-height, 100dvh) - 48px), 620px);
   }
 
   .floor-table-seating-dialog-header {
-    padding: 18px 18px 14px;
+    padding: 20px 22px 16px;
   }
 
   .floor-table-seating-dialog-heading h3 {
-    font-size: 1.08rem;
-    letter-spacing: 0.06em;
+    font-size: 1.65rem;
+    letter-spacing: 0.08em;
+  }
+
+  .floor-table-seating-dialog-subtitle {
+    font-size: 0.9rem;
   }
 
   .floor-table-seating-dialog-date {
-    font-size: 0.86rem;
-    color: rgba(255, 236, 190, 0.88);
+    font-size: 0.8rem;
   }
 
   .floor-table-seating-dialog-list.floor-table-day-list {
-    padding: 10px 14px 16px;
+    padding: 12px 18px 22px;
   }
 
   .floor-table-day-row {
-    padding: 14px 12px;
-    margin-bottom: 10px;
-  }
-
-  .floor-table-day-row-head strong {
-    font-size: 0.96rem;
+    padding: 18px 16px;
+    margin-bottom: 14px;
   }
 }
 
+.floor-table-seating-dialog-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 18px 18px 14px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.floor-table-seating-dialog-heading {
+  min-width: 0;
+  flex: 1;
+}
+
+.floor-table-seating-dialog-heading h3 {
+  margin: 0;
+  font-size: 1.35rem;
+  font-weight: 800;
+  letter-spacing: 0.07em;
+  line-height: 1.1;
+  color: #f8edd0;
+}
+
+.floor-table-seating-dialog-subtitle,
+.floor-table-seating-dialog-capacity {
+  margin: 6px 0 0;
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 0.84rem;
+  line-height: 1.35;
+}
+
+.floor-table-seating-dialog-date {
+  margin: 4px 0 0;
+  color: rgba(255, 255, 255, 0.46);
+  font-size: 0.76rem;
+  line-height: 1.3;
+}
+
 .floor-table-seating-dialog-close {
+  width: 44px;
+  height: 44px;
   min-width: 44px;
   min-height: 44px;
   flex-shrink: 0;
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  padding: 0;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.04);
+  color: rgba(255, 255, 255, 0.82);
+  font-size: 1rem;
+  line-height: 1;
+  cursor: pointer;
+  touch-action: manipulation;
 }
 
-.floor-table-seating-dialog-date {
-  margin: 6px 0 0;
-  color: rgba(255, 255, 255, 0.82);
-  font-size: 0.82rem;
+.floor-table-seating-dialog-close:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.floor-table-seating-dialog-list {
+  list-style: none;
+  margin: 0;
+  padding: 10px 14px 18px;
+  overflow: auto;
 }
 
 .floor-table-day-list {
   flex: 1;
   min-height: 0;
   overflow: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.18) transparent;
+}
+
+.floor-table-day-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.floor-table-day-list::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.16);
+}
+
+.floor-table-day-list::-webkit-scrollbar-track {
+  background: transparent;
 }
 
 .floor-table-day-row {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 12px;
   min-height: 44px;
-  padding: 12px 10px;
-  margin-bottom: 8px;
-  border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(255, 255, 255, 0.03);
+  padding: 16px 14px;
+  margin-bottom: 12px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  background: rgba(255, 255, 255, 0.025);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+}
+
+.floor-table-day-row:last-child {
+  margin-bottom: 0;
 }
 
 .floor-table-day-row.is-available {
-  border-color: rgba(143, 214, 168, 0.18);
+  border-color: rgba(143, 214, 168, 0.14);
+  background: rgba(143, 214, 168, 0.04);
 }
 
 .floor-table-day-row.is-reserved {
-  border-color: rgba(212, 175, 55, 0.28);
-  background: rgba(212, 175, 55, 0.06);
+  border-color: rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.03);
 }
 
 .floor-table-day-row.is-arrived {
-  border-color: rgba(96, 165, 250, 0.28);
-  background: rgba(96, 165, 250, 0.08);
+  border-color: rgba(96, 165, 250, 0.16);
+  background: rgba(96, 165, 250, 0.05);
 }
 
 .floor-table-day-row.is-seated {
-  border-color: rgba(143, 214, 168, 0.32);
-  background: rgba(143, 214, 168, 0.08);
+  border-color: rgba(143, 214, 168, 0.18);
+  background: rgba(143, 214, 168, 0.05);
 }
 
 .floor-table-day-row.is-completed {
@@ -7051,82 +7125,204 @@
 }
 
 .floor-table-day-row.is-problem {
-  border-color: rgba(248, 113, 113, 0.42);
-  background: rgba(248, 113, 113, 0.1);
+  border-color: rgba(248, 113, 113, 0.22);
+  background: rgba(248, 113, 113, 0.06);
 }
 
 .floor-table-day-row-head {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  gap: 12px;
+  gap: 16px;
 }
 
-.floor-table-day-row-head strong {
-  font-size: 0.92rem;
+.floor-table-day-seating-name {
+  font-size: 0.98rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: #f5f0e6;
 }
 
-.floor-table-day-row-head time {
-  color: rgba(255, 255, 255, 0.62);
+.floor-table-day-seating-time {
+  color: rgba(255, 255, 255, 0.52);
   font-size: 0.78rem;
   white-space: nowrap;
 }
 
-.floor-table-day-row-status,
-.floor-table-day-row-tables,
+.floor-table-day-status-badge {
+  align-self: flex-start;
+  padding: 3px 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.05);
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.floor-table-day-status-badge.is-available {
+  border-color: rgba(143, 214, 168, 0.22);
+  color: #b9e8c8;
+  background: rgba(143, 214, 168, 0.08);
+}
+
+.floor-table-day-status-badge.is-reserved {
+  border-color: rgba(212, 175, 55, 0.2);
+  color: rgba(248, 237, 208, 0.88);
+  background: rgba(212, 175, 55, 0.08);
+}
+
+.floor-table-day-status-badge.is-arrived {
+  border-color: rgba(96, 165, 250, 0.22);
+  color: #bfdbfe;
+  background: rgba(96, 165, 250, 0.1);
+}
+
+.floor-table-day-status-badge.is-seated {
+  border-color: rgba(143, 214, 168, 0.22);
+  color: #b9e8c8;
+  background: rgba(143, 214, 168, 0.1);
+}
+
+.floor-table-day-status-badge.is-completed {
+  border-color: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.5);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.floor-table-day-status-badge.is-problem {
+  border-color: rgba(248, 113, 113, 0.24);
+  color: #fecaca;
+  background: rgba(248, 113, 113, 0.1);
+}
+
+.floor-table-day-guest-name {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 800;
+  line-height: 1.25;
+  color: #fff9ef;
+}
+
+.floor-table-day-guest-meta {
+  margin: -4px 0 0;
+  color: rgba(255, 255, 255, 0.62);
+  font-size: 0.82rem;
+  line-height: 1.35;
+}
+
+.floor-table-day-row-lead,
 .floor-table-day-row-notes {
   margin: 0;
-  color: rgba(255, 255, 255, 0.78);
+  color: rgba(255, 255, 255, 0.62);
   font-size: 0.8rem;
   line-height: 1.35;
 }
 
 .floor-table-day-row-notes {
-  color: #d4af37;
+  color: rgba(212, 175, 55, 0.82);
+}
+
+.floor-table-day-table-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  align-self: flex-start;
+  padding: 5px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(0, 0, 0, 0.18);
+}
+
+.floor-table-day-table-chip-label {
+  color: rgba(255, 255, 255, 0.48);
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.floor-table-day-table-chip-value {
+  color: rgba(255, 255, 255, 0.86);
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.floor-table-day-row-footer {
+  display: flex;
+  justify-content: flex-start;
+  padding-top: 2px;
 }
 
 .floor-table-day-row-actions {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
+  padding-top: 4px;
 }
 
 .floor-table-day-action,
 .floor-table-day-quick-action,
 .floor-table-day-conflict-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   min-height: 44px;
-  padding: 0 14px;
-  border-radius: 10px;
+  padding: 0 16px;
+  border-radius: 11px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  line-height: 1.2;
   cursor: pointer;
   touch-action: manipulation;
 }
 
+.floor-table-day-action.is-compact {
+  min-height: 40px;
+  padding: 0 14px;
+  font-size: 0.8rem;
+}
+
 .floor-table-day-action.is-primary {
-  border: 1px solid rgba(212, 175, 55, 0.34);
+  border: 1px solid rgba(212, 175, 55, 0.32);
   background: rgba(212, 175, 55, 0.14);
-  color: #f7efe1;
+  color: #f8edd0;
+}
+
+.floor-table-day-action.is-primary:hover {
+  background: rgba(212, 175, 55, 0.2);
+}
+
+.floor-table-day-quick-action.is-secondary {
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.04);
+  color: rgba(255, 255, 255, 0.88);
+}
+
+.floor-table-day-quick-action.is-danger {
+  border: 1px solid rgba(248, 113, 113, 0.22);
+  background: rgba(248, 113, 113, 0.08);
+  color: #fecaca;
 }
 
 .floor-table-day-action.is-release {
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  background: rgba(255, 255, 255, 0.04);
-  color: rgba(255, 255, 255, 0.82);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: transparent;
+  color: rgba(255, 255, 255, 0.48);
+  font-weight: 500;
 }
 
-.floor-table-day-quick-action {
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  background: rgba(255, 255, 255, 0.05);
-  color: #f0f0f0;
-}
-
-.floor-table-day-quick-action.is-primary {
-  border-color: rgba(212, 175, 55, 0.34);
-  color: #f7efe1;
+.floor-table-day-action.is-release:hover {
+  color: rgba(254, 202, 202, 0.92);
+  border-color: rgba(248, 113, 113, 0.18);
+  background: rgba(248, 113, 113, 0.06);
 }
 
 .floor-table-day-conflict-list {
   list-style: none;
-  margin: 8px 0 0;
+  margin: 0;
   padding: 0;
   display: flex;
   flex-direction: column;
@@ -7135,39 +7331,10 @@
 
 .floor-table-day-conflict-btn {
   width: 100%;
-  border: 1px solid rgba(248, 113, 113, 0.28);
-  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(248, 113, 113, 0.2);
+  background: rgba(0, 0, 0, 0.16);
   color: #fecaca;
   text-align: left;
-}
-
-.floor-table-seating-dialog-header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 16px 16px 12px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-}
-
-.floor-table-seating-dialog-heading h3 {
-  margin: 0;
-  font-size: 1rem;
-  letter-spacing: 0.04em;
-}
-
-.floor-table-seating-dialog-subtitle,
-.floor-table-seating-dialog-capacity {
-  margin: 4px 0 0;
-  color: rgba(255, 255, 255, 0.68);
-  font-size: 0.78rem;
-}
-
-.floor-table-seating-dialog-list {
-  list-style: none;
-  margin: 0;
-  padding: 8px 12px 12px;
-  overflow: auto;
 }
 
 .floor-table-seating-dialog-item {
@@ -7220,8 +7387,11 @@
 }
 
 .floor-table-seating-dialog-empty {
-  padding: 20px 16px;
-  color: rgba(255, 255, 255, 0.68);
+  margin: 0;
+  padding: 28px 20px 32px;
+  color: rgba(255, 255, 255, 0.52);
+  font-size: 0.86rem;
+  line-height: 1.45;
   text-align: center;
 }
 
