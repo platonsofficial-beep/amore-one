@@ -5471,15 +5471,56 @@
   flex: 0 0 auto;
   width: 100%;
   max-width: none;
-  min-height: 220px;
-  max-height: min(44vh, 380px);
+  min-height: 0;
   border-left: 0;
   border-top: 1px solid rgba(212, 175, 55, 0.22);
   overflow: hidden;
 }
 
+.mobile-host-reservations.is-landscape .mobile-host-floor-stage .floor-plan-workspace.has-seating-drawer .host-seating-drawer {
+  max-height: none;
+  height: auto;
+}
+
 .mobile-host-reservations.is-portrait .mobile-host-floor-stage .floor-plan-workspace.has-seating-drawer .host-seating-drawer {
+  min-height: 220px;
   max-height: min(52vh, 420px);
+}
+
+.mobile-host-reservations.is-landscape .mobile-host-floor-stage .seating-confirm-panel.is-host-drawer {
+  height: auto;
+  min-height: 0;
+}
+
+.mobile-host-reservations.is-landscape .host-seating-drawer-scroll.is-content-fit {
+  flex: 0 0 auto;
+  overflow: hidden;
+}
+
+.mobile-host-reservations.is-landscape .host-seating-drawer-scroll.is-scrollable {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  touch-action: pan-y;
+  -webkit-overflow-scrolling: touch;
+}
+
+.mobile-host-reservations.is-portrait .host-seating-drawer-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  touch-action: pan-y;
+  -webkit-overflow-scrolling: touch;
+}
+
+.mobile-host-reservations.is-landscape .host-seating-drawer-actions {
+  padding: 8px 16px calc(8px + env(safe-area-inset-bottom, 0px));
+}
+
+.mobile-host-reservations.is-landscape .host-seating-drawer-actions .seating-confirm-btn {
+  min-height: 48px;
 }
 
 .mobile-host-reservations.is-portrait .mobile-host-floor-collapsible-body .mobile-host-reservations-right-pane.is-assignment-mode {

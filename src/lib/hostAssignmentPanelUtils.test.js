@@ -1,7 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import {
   getHostSeatingAssignmentAdvisory,
+  getHostAssignmentScrollPolicy,
+  HOST_ASSIGNMENT_STANDARD_LANDSCAPE_HEIGHT_BUDGET,
   isHostAssignmentModeActive,
+  shouldHostAssignmentEnableScroll,
 } from './hostAssignmentPanelUtils'
 import { computeSeatingAssignmentTotals } from './seatingAssignment'
 
@@ -41,6 +44,37 @@ describe('host assignment panel utils', () => {
 
     expect(getHostSeatingAssignmentAdvisory({ hasSelection: true, totals: fittingTotals }).message)
       .toBe('Capacity fits this party.')
+  })
+
+  it('uses content-fit scroll policy on landscape when content fits', () => {
+    expect(getHostAssignmentScrollPolicy({ needsScroll: false, isPortrait: false }))
+      .toBe('content-fit')
+  })
+
+  it('uses overflow scroll policy on portrait or when content exceeds space', () => {
+    expect(getHostAssignmentScrollPolicy({ needsScroll: false, isPortrait: true }))
+      .toBe('overflow')
+    expect(getHostAssignmentScrollPolicy({ needsScroll: true, isPortrait: false }))
+      .toBe('overflow')
+  })
+
+  it('defines a standard iPad landscape height budget for assignment content', () => {
+    expect(HOST_ASSIGNMENT_STANDARD_LANDSCAPE_HEIGHT_BUDGET).toBeGreaterThanOrEqual(300)
+    expect(HOST_ASSIGNMENT_STANDARD_LANDSCAPE_HEIGHT_BUDGET).toBeLessThanOrEqual(380)
+  })
+
+  it('enables scroll fallback only when portrait or body content exceeds available height', () => {
+    expect(shouldHostAssignmentEnableScroll({ isPortrait: true })).toBe(true)
+    expect(shouldHostAssignmentEnableScroll({
+      bodyScrollHeight: 360,
+      availableBodyHeight: 340,
+      isPortrait: false,
+    })).toBe(true)
+    expect(shouldHostAssignmentEnableScroll({
+      bodyScrollHeight: 300,
+      availableBodyHeight: 340,
+      isPortrait: false,
+    })).toBe(false)
   })
 })
 

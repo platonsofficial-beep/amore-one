@@ -1,7 +1,7 @@
 /**
  * @vitest-environment jsdom
  */
-import { describe, expect, it, vi } from 'vitest'
+import { describe, expect, it, vi, beforeEach } from 'vitest'
 import { createElement } from 'react'
 import { createRoot } from 'react-dom/client'
 import { act } from 'react'
@@ -33,6 +33,16 @@ const baseReservation = {
   guests: 2,
   time: '17:00',
 }
+
+beforeEach(() => {
+  global.ResizeObserver = class {
+    observe() {}
+
+    disconnect() {}
+
+    unobserve() {}
+  }
+})
 
 function renderPanel(props = {}) {
   const container = document.createElement('div')
@@ -73,6 +83,7 @@ describe('SeatingConfirmPanel host drawer', () => {
     expect(container.textContent).toContain('Xrisanthimos')
     expect(container.textContent).toContain('17:00')
     expect(container.textContent).toContain('Dinner 1')
+    expect(container.textContent).toContain('2 guests')
     expect(container.querySelector('[data-testid="host-assignment-close"]')).toBeTruthy()
 
     unmount()
@@ -126,6 +137,43 @@ describe('SeatingConfirmPanel host drawer', () => {
     const scroll = container.querySelector('[data-testid="host-assignment-scroll"]')
     expect(scroll).toBeTruthy()
     expect(scroll.className).toContain('host-seating-drawer-scroll')
+
+    unmount()
+  })
+
+  it('uses content-fit scroll policy for standard assignment content', () => {
+    const { container, unmount } = renderPanel({ selectedUnitIds: ['table-10'] })
+
+    const scroll = container.querySelector('[data-testid="host-assignment-scroll"]')
+    expect(scroll?.getAttribute('data-scroll-policy')).toBe('content-fit')
+    expect(scroll?.classList.contains('is-content-fit')).toBe(true)
+
+    unmount()
+  })
+
+  it('keeps Guests, Capacity, and Extra chairs on one metrics row', () => {
+    const { container, unmount } = renderPanel({ selectedUnitIds: ['table-10'], extraChairs: 1 })
+
+    const metrics = container.querySelector('[data-testid="host-assignment-metrics"]')
+    expect(metrics?.children.length).toBe(3)
+    expect(metrics?.textContent).toContain('Guests')
+    expect(metrics?.textContent).toContain('Capacity')
+    expect(metrics?.textContent).toContain('Extra chairs')
+    expect(container.querySelector('[data-testid="host-assignment-extra-chairs"]')).toBeTruthy()
+
+    unmount()
+  })
+
+  it('keeps cancel and confirm visible without relying on scroll for standard content', () => {
+    const { container, unmount } = renderPanel({ selectedUnitIds: ['table-10'] })
+
+    const actions = container.querySelector('[data-testid="host-assignment-actions"]')
+    const scroll = container.querySelector('[data-testid="host-assignment-scroll"]')
+
+    expect(actions?.querySelector('[data-testid="host-assignment-cancel"]')).toBeTruthy()
+    expect(actions?.querySelector('[data-testid="host-assignment-confirm"]')).toBeTruthy()
+    expect(scroll?.getAttribute('data-scroll-policy')).toBe('content-fit')
+    expect(container.querySelector('[data-layout-density="tablet"]')).toBeTruthy()
 
     unmount()
   })

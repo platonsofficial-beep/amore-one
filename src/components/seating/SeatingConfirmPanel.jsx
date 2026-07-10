@@ -10,6 +10,7 @@ import { normalizeReservationSeating, normalizeReservationSeatingInput } from '.
 import { formatTime24 } from '../../lib/timeFormatUtils'
 import { usePublishedFloorPlan } from '../../lib/PublishedFloorPlanContext'
 import { getHostSeatingAssignmentAdvisory } from '../../lib/hostAssignmentPanelUtils'
+import { useHostAssignmentScrollPolicy } from '../../lib/useHostAssignmentScrollPolicy'
 
 export function SeatingConfirmPanel({
   reservation,
@@ -53,26 +54,36 @@ export function SeatingConfirmPanel({
   const seatingName = normalizedSeating?.name ?? ''
   const advisory = getHostSeatingAssignmentAdvisory({ hasSelection, totals })
   const reservationMeta = [timeLabel, seatingName].filter(Boolean).join(' · ')
+  const partyLabel = `${totals.guests} ${totals.guests === 1 ? 'guest' : 'guests'}`
+  const headerMeta = [reservationMeta, partyLabel].filter(Boolean).join(' · ')
+  const { scrollRef, needsScroll } = useHostAssignmentScrollPolicy([
+    hasSelection,
+    totals.guests,
+    totals.extraChairs,
+    totals.totalGuestCapacity,
+    canUseStanding,
+    standingGuests,
+    totals.isOverCapacity,
+    drawerLabels,
+  ])
 
   if (isHostDrawer) {
     return (
       <div
-        className="seating-confirm-panel is-host-drawer"
+        className="seating-confirm-panel is-host-drawer is-tablet-density"
         role="region"
         aria-label="Assign seating"
         data-testid="host-assignment-panel"
         data-assignment-mode="true"
+        data-layout-density="tablet"
       >
         <header className="host-seating-drawer-header">
           <div className="host-seating-drawer-heading">
             <p className="host-seating-drawer-eyebrow">Assign seating</p>
             <h4 className="host-seating-drawer-title">{reservation.guestName}</h4>
-            {reservationMeta ? (
-              <p className="host-seating-drawer-subtitle">{reservationMeta}</p>
+            {headerMeta ? (
+              <p className="host-seating-drawer-subtitle">{headerMeta}</p>
             ) : null}
-            <p className="host-seating-drawer-meta">
-              {totals.guests} {totals.guests === 1 ? 'guest' : 'guests'}
-            </p>
           </div>
           <button
             type="button"
@@ -86,8 +97,10 @@ export function SeatingConfirmPanel({
         </header>
 
         <div
-          className="host-seating-drawer-scroll"
+          ref={scrollRef}
+          className={`host-seating-drawer-scroll${needsScroll ? ' is-scrollable' : ' is-content-fit'}`}
           data-testid="host-assignment-scroll"
+          data-scroll-policy={needsScroll ? 'overflow' : 'content-fit'}
         >
           <div className="host-seating-drawer-section">
             <span className="host-seating-drawer-label">Selected tables</span>
@@ -96,7 +109,7 @@ export function SeatingConfirmPanel({
             </p>
           </div>
 
-          <dl className="host-seating-drawer-capacity">
+          <dl className="host-seating-drawer-capacity" data-testid="host-assignment-metrics">
             <div>
               <dt>Guests</dt>
               <dd>{totals.guests}</dd>
@@ -105,9 +118,20 @@ export function SeatingConfirmPanel({
               <dt>Capacity</dt>
               <dd>{totals.totalGuestCapacity}</dd>
             </div>
-            <div>
+            <div className="host-seating-drawer-capacity-adjust">
               <dt>Extra chairs</dt>
-              <dd>{totals.extraChairs}</dd>
+              <dd>
+                <input
+                  type="number"
+                  className="host-seating-drawer-metric-input"
+                  min="0"
+                  max="12"
+                  value={extraChairs}
+                  aria-label="Extra chairs"
+                  data-testid="host-assignment-extra-chairs"
+                  onChange={(event) => onExtraChairsChange(Math.max(0, Number(event.target.value) || 0))}
+                />
+              </dd>
             </div>
           </dl>
 
@@ -125,25 +149,15 @@ export function SeatingConfirmPanel({
             </p>
           ) : null}
 
-          <label className="host-seating-drawer-field">
-            <span>Extra chairs</span>
-            <input
-              type="number"
-              min="0"
-              max="12"
-              value={extraChairs}
-              onChange={(event) => onExtraChairsChange(Math.max(0, Number(event.target.value) || 0))}
-            />
-          </label>
-
           {canUseStanding ? (
-            <label className="host-seating-drawer-field">
+            <label className="host-seating-drawer-field host-seating-drawer-field-compact">
               <span>Standing guests</span>
               <input
                 type="number"
                 min="0"
                 max="12"
                 value={standingGuests}
+                data-testid="host-assignment-standing-guests"
                 onChange={(event) => onStandingGuestsChange(Math.max(0, Number(event.target.value) || 0))}
               />
             </label>
