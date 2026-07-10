@@ -77,10 +77,14 @@ import {
   HOST_FLOOR_MIN_ZOOM,
 } from './lib/hostFloorPlanViewport'
 import {
-  getHostFloorPointerDistance,
-  isHostFloorTapGesture,
+  advanceHostFloorPointerInteraction,
+  beginHostFloorPointerInteraction,
+  completeHostFloorPointerInteraction,
+  getHostFloorPanOffset,
+  HOST_FLOOR_POINTER_MODE,
   isInteractiveHostFloorTarget,
-  shouldStartHostFloorPan,
+  resolveHostFloorTableState,
+  shouldCaptureHostFloorPointer,
 } from './lib/hostFloorPointerInteraction'
 import {
   formatHostFloorCapacityLabel,
@@ -7379,6 +7383,7 @@ function FloorTableNode({
   linkMeta = null,
   nodeRef,
   tooltipDismissVersion = 0,
+  activateTableViaViewport = false,
   onTableClick,
   onTableContextMenu,
   onDragStart,
@@ -7480,8 +7485,6 @@ function FloorTableNode({
     : Boolean(table.widthPercent)
 
   const tableNodeRef = useRef(null)
-  const hostPointerStartRef = useRef(null)
-  const hostClickFromPointerRef = useRef(false)
   const [isTooltipVisible, setIsTooltipVisible] = useState(false)
 
   const tableBookingEntries = useMemo(() => (
@@ -7554,7 +7557,7 @@ function FloorTableNode({
   }
 
   const handleClick = (event) => {
-    if (hostClickFromPointerRef.current) return
+    if (activateTableViaViewport) return
     setIsTooltipVisible(false)
     if (isHeatmap) {
       event.stopPropagation()
@@ -7563,39 +7566,6 @@ function FloorTableNode({
     }
 
     onTableClick(tableState, event)
-  }
-
-  const handleHostPointerDown = (event) => {
-    if (!isHostFloor || isHeatmap) return
-    if (event.pointerType === 'mouse' && event.button !== 0) return
-
-    hostPointerStartRef.current = {
-      clientX: event.clientX,
-      clientY: event.clientY,
-      pointerId: event.pointerId,
-    }
-  }
-
-  const handleHostPointerUp = (event) => {
-    if (!isHostFloor || isHeatmap) return
-
-    const start = hostPointerStartRef.current
-    hostPointerStartRef.current = null
-    if (!start || start.pointerId !== event.pointerId) return
-    if (!isHostFloorTapGesture(start, event)) return
-
-    hostClickFromPointerRef.current = true
-    setIsTooltipVisible(false)
-    event.preventDefault()
-    event.stopPropagation()
-    onTableClick(tableState, event)
-    window.requestAnimationFrame(() => {
-      hostClickFromPointerRef.current = false
-    })
-  }
-
-  const handleHostPointerCancel = () => {
-    hostPointerStartRef.current = null
   }
 
   const handleTableKeyDown = (event) => {
@@ -7610,6 +7580,7 @@ function FloorTableNode({
       className={`floor-table-node shape-${table.shape}${isHeatmap ? ` view-heatmap heatmap-tier-${heatmapMetrics?.tier || 'very-light'}` : ` ${tableStatusClass}`}${isMergeSelected ? ' is-merge-selected' : ''}${isSeatPicking ? ' is-seat-picking' : ''}${isPickedForSeating ? ' is-seat-selected' : ''}${isUnavailable && isSeatPicking ? ' is-seat-unavailable' : ''}${isDropTarget ? ' is-drop-target' : ''}${isDragging ? ' is-dragging' : ''}${tableIsSelected ? ' is-selected is-synced' : ''}${isStatusPulsing ? ` is-status-pulse ${tableStatusClass}` : ''}${isAnalyticsOpen ? ' is-analytics-open' : ''}${linkMeta?.isMultiLinked ? ' is-multi-linked' : ''}${linkMeta?.colorClass ? ` ${linkMeta.colorClass}` : ''}${linkMeta?.isLinkPrimary ? ' is-link-primary' : ''}${usesPublishedSize ? (isHostFloor ? ' has-published-layout' : ' has-custom-size') : ''}${isHostFloor ? ' is-host-touch' : ''}`}
       style={nodeStyle}
       data-table-id={table.id}
+      data-floor-table-id={table.id}
       data-selection-pulse={tableIsSelected ? selectionPulseKey : undefined}
       draggable={!isHeatmap && Boolean(draggableReservation)}
       onDragStart={handleDragStartWrapped}
@@ -7617,10 +7588,7 @@ function FloorTableNode({
       onDragOver={(event) => onDragOver(event, tableState)}
       onDragLeave={onDragLeave}
       onDrop={(event) => onDrop(event, tableState)}
-      onClick={handleClick}
-      onPointerDown={isHostFloor ? handleHostPointerDown : undefined}
-      onPointerUp={isHostFloor ? handleHostPointerUp : undefined}
-      onPointerCancel={isHostFloor ? handleHostPointerCancel : undefined}
+      onClick={activateTableViaViewport ? undefined : handleClick}
       onKeyDown={isHostFloor ? handleTableKeyDown : undefined}
       onContextMenu={(event) => onTableContextMenu(event, tableState)}
       onPointerEnter={handlePointerEnter}
@@ -7961,72 +7929,9 @@ function FloorPlanView({
   }, [clampFloorZoom, dismissFloorTooltips, isCompact])
 
   const resetFloorPointerState = useCallback(() => {
-    floorPointerRef.current = { mode: 'idle' }
+    floorPointerRef.current = { mode: HOST_FLOOR_POINTER_MODE.IDLE }
     viewportRef.current?.classList.remove('is-panning')
   }, [])
-
-  const handleViewportPointerDown = useCallback((event) => {
-    if (!isCompact) return
-    if (event.pointerType === 'mouse' && event.button !== 0) return
-    if (isInteractiveHostFloorTarget(event.target)) return
-
-    const pan = floorPanStateRef.current
-    floorPointerRef.current = {
-      mode: 'pending',
-      pointerId: event.pointerId,
-      startX: event.clientX,
-      startY: event.clientY,
-      originX: pan.x,
-      originY: pan.y,
-    }
-
-    event.currentTarget.setPointerCapture?.(event.pointerId)
-  }, [isCompact])
-
-  const handleViewportPointerMove = useCallback((event) => {
-    if (!isCompact) return
-
-    const state = floorPointerRef.current
-    if (state.mode === 'idle' || state.pointerId !== event.pointerId) return
-
-    const distance = getHostFloorPointerDistance(
-      { clientX: state.startX, clientY: state.startY },
-      event,
-    )
-
-    if (state.mode === 'pending') {
-      if (!shouldStartHostFloorPan(distance)) return
-      state.mode = 'panning'
-      dismissFloorTooltips()
-      viewportRef.current?.classList.add('is-panning')
-      isManualFloorZoomRef.current = true
-    }
-
-    if (state.mode === 'panning') {
-      event.preventDefault()
-      setFloorPan({
-        x: state.originX + (event.clientX - state.startX),
-        y: state.originY + (event.clientY - state.startY),
-      })
-    }
-  }, [dismissFloorTooltips, isCompact])
-
-  const handleViewportPointerUp = useCallback((event) => {
-    if (!isCompact) return
-
-    const state = floorPointerRef.current
-    if (state.pointerId !== event.pointerId) return
-
-    resetFloorPointerState()
-    event.currentTarget.releasePointerCapture?.(event.pointerId)
-  }, [isCompact, resetFloorPointerState])
-
-  const handleViewportPointerCancel = useCallback((event) => {
-    if (!isCompact) return
-    if (floorPointerRef.current.pointerId !== event.pointerId) return
-    resetFloorPointerState()
-    event.currentTarget.releasePointerCapture?.(event.pointerId)
-  }, [isCompact, resetFloorPointerState])
 
   const isHeatmap = viewMode === 'heatmap'
   const showHostSeatingBar = Boolean(
@@ -8530,6 +8435,89 @@ function FloorPlanView({
     }
   }
 
+  const visibleTableStatesRef = useRef([])
+  visibleTableStatesRef.current = visibleTableStates
+
+  const suppressTableClickRef = useRef(false)
+  const handleTableClickRef = useRef(() => {})
+  handleTableClickRef.current = handleTableClick
+
+  const handleViewportPointerDown = useCallback((event) => {
+    if (!isCompact || isHeatmap) return
+    if (event.pointerType === 'mouse' && event.button !== 0) return
+
+    const pan = floorPanStateRef.current
+    const nextState = beginHostFloorPointerInteraction(event, event.target, {
+      originX: pan.x,
+      originY: pan.y,
+    })
+    floorPointerRef.current = nextState
+
+    if (shouldCaptureHostFloorPointer(nextState)) {
+      event.currentTarget.setPointerCapture?.(event.pointerId)
+    }
+  }, [isCompact, isHeatmap])
+
+  const handleViewportPointerMove = useCallback((event) => {
+    if (!isCompact || isHeatmap) return
+
+    const previousState = floorPointerRef.current
+    const nextState = advanceHostFloorPointerInteraction(previousState, event)
+    floorPointerRef.current = nextState
+
+    if (
+      previousState.mode === HOST_FLOOR_POINTER_MODE.PAN_PENDING
+      && nextState.mode === HOST_FLOOR_POINTER_MODE.PANNING
+    ) {
+      dismissFloorTooltips()
+      viewportRef.current?.classList.add('is-panning')
+      isManualFloorZoomRef.current = true
+    }
+
+    const panOffset = getHostFloorPanOffset(nextState, event)
+    if (panOffset) {
+      event.preventDefault()
+      setFloorPan(panOffset)
+    }
+  }, [dismissFloorTooltips, isCompact, isHeatmap])
+
+  const handleViewportPointerUp = useCallback((event) => {
+    if (!isCompact || isHeatmap) return
+
+    const previousState = floorPointerRef.current
+    const { nextState, tableTap } = completeHostFloorPointerInteraction(previousState, event)
+    floorPointerRef.current = nextState
+
+    if (shouldCaptureHostFloorPointer(previousState)) {
+      event.currentTarget.releasePointerCapture?.(event.pointerId)
+    }
+    resetFloorPointerState()
+
+    if (!tableTap?.tableId) return
+
+    const tableState = resolveHostFloorTableState(
+      visibleTableStatesRef.current,
+      tableTap.tableId,
+    )
+    if (!tableState) return
+
+    suppressTableClickRef.current = true
+    handleTableClickRef.current(tableState, event)
+    window.requestAnimationFrame(() => {
+      suppressTableClickRef.current = false
+    })
+  }, [isCompact, isHeatmap, resetFloorPointerState])
+
+  const handleViewportPointerCancel = useCallback((event) => {
+    if (!isCompact || isHeatmap) return
+    if (floorPointerRef.current.pointerId !== event.pointerId) return
+
+    if (shouldCaptureHostFloorPointer(floorPointerRef.current)) {
+      event.currentTarget.releasePointerCapture?.(event.pointerId)
+    }
+    resetFloorPointerState()
+  }, [isCompact, isHeatmap, resetFloorPointerState])
+
   const handleConfirmSeating = async (assignment) => {
     if (!selectedReservation || !onSeatGuestAtTable) return
     await onSeatGuestAtTable(selectedReservation, assignment)
@@ -8770,6 +8758,7 @@ function FloorPlanView({
               || mergedGroups.some((group) => group.tableIds.includes(tableState.table.id))}
             isSeatPicking={isSeatPicking}
             isHostFloor={isCompact}
+            activateTableViaViewport={isCompact}
             linkMeta={reservationLinkTableMeta.get(tableState.table.id)}
             isDropTarget={dropTargetTableId === tableState.table.id}
             isDragging={draggingReservationId && tableState.reservation

@@ -7639,6 +7639,11 @@
   cursor: pointer;
 }
 
+.floor-plan-workspace.is-host-floor .floor-table-node.is-host-touch .floor-table-node-surface,
+.floor-plan-workspace.is-host-floor .floor-table-node.is-host-touch .floor-table-node-surface * {
+  pointer-events: none;
+}
+
 .floor-plan-workspace.is-host-floor .floor-table-pax,
 .floor-plan-workspace.is-host-floor .floor-table-capacity-label {
   font-size: clamp(0.5rem, 8cqb, 0.72rem);
