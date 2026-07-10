@@ -1,7 +1,5 @@
 export function isHostFloorDebugEnabled() {
-  if (typeof window === 'undefined') return false
-  if (import.meta.env?.DEV) return true
-  return window.__ONE_HOST_FLOOR_DEBUG__ === true
+  return Boolean(import.meta.env?.DEV)
 }
 
 export function createEmptyHostFloorDebugTrace() {

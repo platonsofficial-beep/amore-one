@@ -6900,6 +6900,7 @@
 .floor-table-seating-dialog-overlay {
   position: fixed;
   inset: 0;
+  /* Above mobile host shell (z-index: 1200). */
   z-index: 1500;
   display: flex;
   align-items: flex-end;
@@ -6937,23 +6938,69 @@
   border-bottom: 0;
   background: rgba(8, 8, 10, 0.98);
   box-shadow:
-    0 -8px 32px rgba(0, 0, 0, 0.42),
-    0 0 20px rgba(212, 175, 55, 0.08);
+    0 -8px 28px rgba(0, 0, 0, 0.4),
+    0 0 0 1px rgba(212, 175, 55, 0.06);
   overflow: hidden;
   pointer-events: auto;
 }
 
 .floor-table-seating-dialog-overlay.is-tablet .floor-table-seating-dialog {
   width: min(100%, 580px);
-  max-height: min(calc(var(--visual-viewport-height, 100vh) - 32px), 620px);
+  max-height: min(calc(var(--visual-viewport-height, 100dvh) - 32px), 620px);
   border-radius: 14px;
   border-bottom: 1px solid rgba(212, 175, 55, 0.24);
+}
+
+@media (min-width: 721px) and (orientation: landscape) {
+  .floor-table-seating-dialog-overlay.is-tablet {
+    align-items: center;
+    justify-content: center;
+    padding:
+      max(16px, env(safe-area-inset-top, 0px))
+      24px
+      max(16px, env(safe-area-inset-bottom, 0px));
+  }
+
+  .floor-table-seating-dialog-overlay.is-tablet .floor-table-seating-dialog {
+    width: min(92vw, 600px);
+    max-height: min(calc(var(--visual-viewport-height, 100dvh) - 40px), 580px);
+  }
+
+  .floor-table-seating-dialog-header {
+    padding: 18px 18px 14px;
+  }
+
+  .floor-table-seating-dialog-heading h3 {
+    font-size: 1.08rem;
+    letter-spacing: 0.06em;
+  }
+
+  .floor-table-seating-dialog-date {
+    font-size: 0.86rem;
+    color: rgba(255, 236, 190, 0.88);
+  }
+
+  .floor-table-seating-dialog-list.floor-table-day-list {
+    padding: 10px 14px 16px;
+  }
+
+  .floor-table-day-row {
+    padding: 14px 12px;
+    margin-bottom: 10px;
+  }
+
+  .floor-table-day-row-head strong {
+    font-size: 0.96rem;
+  }
 }
 
 .floor-table-seating-dialog-close {
   min-width: 44px;
   min-height: 44px;
   flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .floor-table-seating-dialog-date {
@@ -7658,23 +7705,6 @@
   display: block;
   margin-bottom: 4px;
   font-size: 12px;
-}
-
-.host-table-tap-direct-marker {
-  position: absolute;
-  top: 8px;
-  right: 8px;
-  z-index: 60;
-  padding: 4px 8px;
-  border-radius: 6px;
-  border: 1px solid rgba(212, 175, 55, 0.45);
-  background: rgba(8, 8, 10, 0.88);
-  color: #ffe7a8;
-  font-size: 10px;
-  font-weight: 700;
-  line-height: 1.35;
-  letter-spacing: 0.02em;
-  pointer-events: none;
 }
 
 .floor-plan-workspace.is-host-floor .floor-table-node.is-host-touch .floor-table-node-surface,

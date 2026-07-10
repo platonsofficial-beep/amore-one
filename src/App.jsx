@@ -152,7 +152,6 @@ import { FloorSeatingSelector } from './components/floor/FloorSeatingSelector'
 import { FloorTableSeatingIndicators } from './components/floor/FloorTableSeatingIndicators'
 import { FloorTableReservationTooltip } from './components/floor/FloorTableReservationTooltip'
 import { HostFloorDebugOverlay } from './components/floor/HostFloorDebugOverlay'
-import { HostTableTapDirectMarker } from './components/floor/HostTableTapDirectMarker'
 import { HostStationErrorBoundary } from './components/host/HostStationErrorBoundary'
 import {
   FloorTableSeatingDialog,
@@ -174,13 +173,14 @@ import {
 import {
   buildHostFloorContextSnapshot,
   createHostScheduleCardLifecycleState,
-  getScheduleCardOpenDurationMs,
   recordScheduleCardDismiss,
   recordScheduleCardOpen,
   resolveScheduleCardTableById,
   shouldCloseScheduleCardForFloorContextChange,
   shouldIgnoreCanvasDismissForScheduleCard,
 } from './lib/hostScheduleCardLifecycle'
+import {
+  buildHostServiceDashboard,
   countHostListFilterMatches,
   hostListFilterMatch as matchHostReservationListFilter,
 } from './lib/hostServiceDashboard'
@@ -7986,9 +7986,7 @@ function FloorPlanView({
   const [floorPan, setFloorPan] = useState({ x: 0, y: 0 })
   const [tooltipDismissVersion, setTooltipDismissVersion] = useState(0)
   const [scheduleCardTableId, setScheduleCardTableId] = useState(null)
-  const [scheduleCardLifecycle, setScheduleCardLifecycle] = useState(createHostScheduleCardLifecycleState)
-  const [scheduleCardMarkerNow, setScheduleCardMarkerNow] = useState(() => Date.now())
-  const [lastHostTableTapLabel, setLastHostTableTapLabel] = useState('none')
+  const scheduleCardLifecycleRef = useRef(createHostScheduleCardLifecycleState())
   const hostTableTapRegistryRef = useRef(createHostFloorTableTapRegistry())
   const scheduleCardTableIdRef = useRef(null)
   const visibleTableStatesRef = useRef([])
@@ -8001,16 +7999,22 @@ function FloorPlanView({
 
   const closeScheduleCardTable = useCallback((source) => {
     setScheduleCardTableId(null)
-    setScheduleCardLifecycle((current) => recordScheduleCardDismiss(current, source))
+    scheduleCardLifecycleRef.current = recordScheduleCardDismiss(
+      scheduleCardLifecycleRef.current,
+      source,
+    )
   }, [])
 
   const openScheduleCardTable = useCallback((table, source = 'table-tap') => {
     if (!table?.id) return
     setScheduleCardTableId(String(table.id))
-    setScheduleCardLifecycle((current) => recordScheduleCardOpen(current, {
-      tableId: table.id,
-      tableLabel: table.label ?? table.displayLabel,
-    }))
+    scheduleCardLifecycleRef.current = recordScheduleCardOpen(
+      scheduleCardLifecycleRef.current,
+      {
+        tableId: table.id,
+        tableLabel: table.label ?? table.displayLabel,
+      },
+    )
   }, [])
 
   useEffect(() => {
@@ -8020,14 +8024,6 @@ function FloorPlanView({
       lastEvent: scheduleCardTableId ? 'schedule-card-open' : 'schedule-card-closed',
     })
   }, [isCompact, scheduleCardTableId])
-
-  useEffect(() => {
-    if (!isCompact || !scheduleCardLifecycle.openedAt) return undefined
-    const timerId = window.setInterval(() => {
-      setScheduleCardMarkerNow(Date.now())
-    }, 250)
-    return () => window.clearInterval(timerId)
-  }, [isCompact, scheduleCardLifecycle.openedAt])
 
   const dismissFloorTooltips = useCallback(() => {
     setTooltipDismissVersion((current) => current + 1)
@@ -8652,8 +8648,7 @@ function FloorPlanView({
     }, 450)
   }, [])
 
-  const handleHostTableDirectTap = useCallback((tableState, event, meta = {}) => {
-    setLastHostTableTapLabel(meta.tableLabel || tableState.table?.label || 'unknown')
+  const handleHostTableDirectTap = useCallback((tableState, event) => {
     markTableTapSuppressClick()
     event?.preventDefault?.()
     event?.stopPropagation?.()
@@ -8945,14 +8940,6 @@ function FloorPlanView({
 
   return (
     <div className={`floor-plan-workspace${isCompact ? ' is-compact is-host-floor' : ''}${selectedSeating ? ' has-active-seating' : ''}${showHostSeatingBar && isCompact ? ' has-seating-drawer' : ''}${isHeatmap ? ' is-heatmap-mode' : ' is-normal-mode'}`} data-floor-view-mode={viewMode}>
-      {isCompact ? (
-        <HostTableTapDirectMarker
-          lastTableTap={lastHostTableTapLabel}
-          openedTable={scheduleCardLifecycle.openedTableLabel || (scheduleCardTableId ? scheduleCardTableId : 'none')}
-          lastDismissSource={scheduleCardLifecycle.lastDismissSource}
-          openDurationMs={getScheduleCardOpenDurationMs(scheduleCardLifecycle, scheduleCardMarkerNow)}
-        />
-      ) : null}
       {loadError ? (
         <div className="floor-plan-persistence-notice" role="status">{loadError}</div>
       ) : null}
