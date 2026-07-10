@@ -80,12 +80,19 @@ import {
   advanceHostFloorPointerInteraction,
   beginHostFloorPointerInteraction,
   completeHostFloorPointerInteraction,
+  findHostFloorTableFromEvent,
   getHostFloorPanOffset,
   HOST_FLOOR_POINTER_MODE,
   isInteractiveHostFloorTarget,
   resolveHostFloorTableState,
   shouldCaptureHostFloorPointer,
+  toHostFloorPointerLikeEvent,
 } from './lib/hostFloorPointerInteraction'
+import {
+  describeHostFloorDebugTarget,
+  isHostFloorDebugEnabled,
+  patchHostFloorDebugTrace,
+} from './lib/hostFloorDebugTrace'
 import {
   formatHostFloorCapacityLabel,
   formatHostFloorPartyLabel,
@@ -136,6 +143,7 @@ import { FloorPlanReservationLinks } from './components/floor/FloorPlanReservati
 import { FloorSeatingSelector } from './components/floor/FloorSeatingSelector'
 import { FloorTableSeatingIndicators } from './components/floor/FloorTableSeatingIndicators'
 import { FloorTableReservationTooltip } from './components/floor/FloorTableReservationTooltip'
+import { HostFloorDebugOverlay } from './components/floor/HostFloorDebugOverlay'
 import { HostStationErrorBoundary } from './components/host/HostStationErrorBoundary'
 import {
   FloorTableSeatingDialog,
@@ -7581,6 +7589,7 @@ function FloorTableNode({
       style={nodeStyle}
       data-table-id={table.id}
       data-floor-table-id={table.id}
+      data-floor-table-label={hostTableLabel}
       data-selection-pulse={tableIsSelected ? selectionPulseKey : undefined}
       draggable={!isHeatmap && Boolean(draggableReservation)}
       onDragStart={handleDragStartWrapped}
@@ -7884,6 +7893,14 @@ function FloorPlanView({
   const [floorPan, setFloorPan] = useState({ x: 0, y: 0 })
   const [tooltipDismissVersion, setTooltipDismissVersion] = useState(0)
   const [scheduleCardTable, setScheduleCardTable] = useState(null)
+
+  useEffect(() => {
+    if (!isHostFloorDebugEnabled() || !isCompact) return
+    patchHostFloorDebugTrace({
+      dayViewState: scheduleCardTable ? 'open' : 'closed',
+      lastEvent: scheduleCardTable ? 'schedule-card-open' : 'schedule-card-closed',
+    })
+  }, [isCompact, scheduleCardTable])
 
   const dismissFloorTooltips = useCallback(() => {
     setTooltipDismissVersion((current) => current + 1)
@@ -8351,7 +8368,7 @@ function FloorPlanView({
   const handleTableClick = (tableState, event) => {
     if (isHeatmap) return
 
-    if (event.shiftKey) {
+    if (event?.shiftKey) {
       setMergeSelection((current) => {
         if (current.includes(tableState.table.id)) {
           return current.filter((id) => id !== tableState.table.id)
@@ -8398,9 +8415,16 @@ function FloorPlanView({
         isAssignmentSelection: false,
       })
     ) {
-      event.stopPropagation()
+      event?.stopPropagation?.()
       setTooltipDismissVersion((current) => current + 1)
       setScheduleCardTable(tableState.table)
+      if (isHostFloorDebugEnabled()) {
+        patchHostFloorDebugTrace({
+          callbackFired: true,
+          dayViewState: 'open',
+          lastEvent: 'handleTableClick-setScheduleCardTable',
+        })
+      }
       return
     }
 
@@ -8429,6 +8453,7 @@ function FloorPlanView({
   }
 
   const handleCanvasClick = () => {
+    if (suppressTableClickRef.current) return
     dismissFloorTooltips()
     if (isHeatmap) {
       setAnalyticsTableId(null)
@@ -8439,19 +8464,93 @@ function FloorPlanView({
   visibleTableStatesRef.current = visibleTableStates
 
   const suppressTableClickRef = useRef(false)
+  const suppressTableClickTimerRef = useRef(null)
+  const lastViewportActivationRef = useRef({ tableId: '', at: 0 })
   const handleTableClickRef = useRef(() => {})
   handleTableClickRef.current = handleTableClick
+
+  const markTableTapSuppressClick = useCallback(() => {
+    suppressTableClickRef.current = true
+    if (suppressTableClickTimerRef.current) {
+      window.clearTimeout(suppressTableClickTimerRef.current)
+    }
+    suppressTableClickTimerRef.current = window.setTimeout(() => {
+      suppressTableClickRef.current = false
+      suppressTableClickTimerRef.current = null
+    }, 450)
+  }, [])
+
+  const activateTableFromViewport = useCallback((tableState, event, debugMeta = {}) => {
+    if (!tableState) {
+      if (isHostFloorDebugEnabled()) {
+        patchHostFloorDebugTrace({
+          resolved: false,
+          callbackFired: false,
+          lastEvent: 'activate-no-table-state',
+          ...debugMeta,
+        })
+      }
+      return
+    }
+
+    const tableId = String(tableState.table.id)
+    const now = Date.now()
+    if (
+      lastViewportActivationRef.current.tableId === tableId
+      && now - lastViewportActivationRef.current.at < 500
+    ) {
+      return
+    }
+    lastViewportActivationRef.current = { tableId, at: now }
+
+    if (isHostFloorDebugEnabled()) {
+      patchHostFloorDebugTrace({
+        resolved: true,
+        lastEvent: `activate-${tableState.table?.label ?? tableState.table?.id}`,
+        ...debugMeta,
+      })
+    }
+
+    markTableTapSuppressClick()
+    event?.preventDefault?.()
+    event?.stopPropagation?.()
+    handleTableClickRef.current(tableState, event)
+
+    if (isHostFloorDebugEnabled()) {
+      patchHostFloorDebugTrace({
+        callbackFired: true,
+        lastEvent: 'callback-invoked',
+      })
+    }
+  }, [markTableTapSuppressClick])
 
   const handleViewportPointerDown = useCallback((event) => {
     if (!isCompact || isHeatmap) return
     if (event.pointerType === 'mouse' && event.button !== 0) return
 
+    const tableTarget = findHostFloorTableFromEvent(event)
     const pan = floorPanStateRef.current
-    const nextState = beginHostFloorPointerInteraction(event, event.target, {
+    const nextState = beginHostFloorPointerInteraction(event, {
       originX: pan.x,
       originY: pan.y,
     })
     floorPointerRef.current = nextState
+
+    if (isHostFloorDebugEnabled()) {
+      patchHostFloorDebugTrace({
+        down: true,
+        up: false,
+        targetElement: describeHostFloorDebugTarget(event.target),
+        tableNodeFound: tableTarget?.tableLabel || tableTarget?.node?.dataset?.floorTableLabel || 'no',
+        tableId: tableTarget?.tableId || nextState.tableId || '—',
+        mode: nextState.mode,
+        distance: '—',
+        isTap: false,
+        resolved: false,
+        callbackFired: false,
+        lastEvent: 'pointerdown',
+      })
+    }
 
     if (shouldCaptureHostFloorPointer(nextState)) {
       event.currentTarget.setPointerCapture?.(event.pointerId)
@@ -8485,8 +8584,19 @@ function FloorPlanView({
     if (!isCompact || isHeatmap) return
 
     const previousState = floorPointerRef.current
-    const { nextState, tableTap } = completeHostFloorPointerInteraction(previousState, event)
+    const { nextState, tableTap, distance, isTap } = completeHostFloorPointerInteraction(previousState, event)
     floorPointerRef.current = nextState
+
+    if (isHostFloorDebugEnabled()) {
+      patchHostFloorDebugTrace({
+        up: true,
+        distance: `${Math.round(distance)}px`,
+        isTap,
+        mode: previousState.mode,
+        tableId: tableTap?.tableId || previousState.tableId || '—',
+        lastEvent: 'pointerup',
+      })
+    }
 
     if (shouldCaptureHostFloorPointer(previousState)) {
       event.currentTarget.releasePointerCapture?.(event.pointerId)
@@ -8499,14 +8609,73 @@ function FloorPlanView({
       visibleTableStatesRef.current,
       tableTap.tableId,
     )
-    if (!tableState) return
-
-    suppressTableClickRef.current = true
-    handleTableClickRef.current(tableState, event)
-    window.requestAnimationFrame(() => {
-      suppressTableClickRef.current = false
+    activateTableFromViewport(tableState, event, {
+      resolved: Boolean(tableState),
+      callbackFired: false,
     })
-  }, [isCompact, isHeatmap, resetFloorPointerState])
+  }, [activateTableFromViewport, isCompact, isHeatmap, resetFloorPointerState])
+
+  const handleViewportTouchStart = useCallback((event) => {
+    if (!isCompact || isHeatmap) return
+    if (event.touches.length !== 1) return
+
+    const touch = event.touches[0]
+    const pointerLike = toHostFloorPointerLikeEvent(event, touch)
+    const pan = floorPanStateRef.current
+    const nextState = beginHostFloorPointerInteraction(pointerLike, {
+      originX: pan.x,
+      originY: pan.y,
+    })
+    floorPointerRef.current = nextState
+
+    if (isHostFloorDebugEnabled()) {
+      const tableTarget = findHostFloorTableFromEvent(pointerLike)
+      patchHostFloorDebugTrace({
+        down: true,
+        up: false,
+        targetElement: describeHostFloorDebugTarget(event.target),
+        tableNodeFound: tableTarget?.tableLabel || 'no',
+        tableId: tableTarget?.tableId || nextState.tableId || '—',
+        mode: nextState.mode,
+        lastEvent: 'touchstart',
+      })
+    }
+  }, [isCompact, isHeatmap])
+
+  const handleViewportTouchEnd = useCallback((event) => {
+    if (!isCompact || isHeatmap) return
+
+    const touch = event.changedTouches[0]
+    if (!touch) return
+
+    const pointerLike = toHostFloorPointerLikeEvent(event, touch)
+    const previousState = floorPointerRef.current
+    const { nextState, tableTap, distance, isTap } = completeHostFloorPointerInteraction(previousState, pointerLike)
+    floorPointerRef.current = nextState
+    resetFloorPointerState()
+
+    if (isHostFloorDebugEnabled()) {
+      patchHostFloorDebugTrace({
+        up: true,
+        distance: `${Math.round(distance)}px`,
+        isTap,
+        mode: previousState.mode,
+        tableId: tableTap?.tableId || previousState.tableId || '—',
+        lastEvent: 'touchend',
+      })
+    }
+
+    if (!tableTap?.tableId) return
+
+    const tableState = resolveHostFloorTableState(
+      visibleTableStatesRef.current,
+      tableTap.tableId,
+    )
+    activateTableFromViewport(tableState, pointerLike, {
+      resolved: Boolean(tableState),
+      callbackFired: false,
+    })
+  }, [activateTableFromViewport, isCompact, isHeatmap, resetFloorPointerState])
 
   const handleViewportPointerCancel = useCallback((event) => {
     if (!isCompact || isHeatmap) return
@@ -8684,7 +8853,10 @@ function FloorPlanView({
         onPointerMove={isCompact ? handleViewportPointerMove : undefined}
         onPointerUp={isCompact ? handleViewportPointerUp : undefined}
         onPointerCancel={isCompact ? handleViewportPointerCancel : undefined}
+        onTouchStart={isCompact ? handleViewportTouchStart : undefined}
+        onTouchEnd={isCompact ? handleViewportTouchEnd : undefined}
       >
+        {isCompact && isHostFloorDebugEnabled() ? <HostFloorDebugOverlay /> : null}
         {isCompact ? (
           <div className="floor-plan-canvas-area-title" aria-label={`Area: ${activeZone?.label ?? 'Floor'}`}>
             {activeZone?.label}

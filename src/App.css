@@ -7639,9 +7639,25 @@
   cursor: pointer;
 }
 
-.floor-plan-workspace.is-host-floor .floor-table-node.is-host-touch .floor-table-node-surface,
-.floor-plan-workspace.is-host-floor .floor-table-node.is-host-touch .floor-table-node-surface * {
+.host-floor-debug-overlay {
+  position: fixed;
+  right: 8px;
+  bottom: 8px;
+  z-index: 99999;
+  max-width: min(280px, 42vw);
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: rgba(12, 12, 16, 0.92);
+  color: #f5f5f5;
+  font: 11px/1.35 ui-monospace, SFMono-Regular, Menlo, monospace;
   pointer-events: none;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+}
+
+.host-floor-debug-overlay strong {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 12px;
 }
 
 .floor-plan-workspace.is-host-floor .floor-table-pax,

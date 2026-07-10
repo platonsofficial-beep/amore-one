@@ -9,20 +9,25 @@ import {
   beginHostFloorPointerInteraction,
   completeHostFloorPointerInteraction,
   createIdleHostFloorPointerState,
+  findHostFloorTableAtPoint,
+  findHostFloorTableFromEvent,
+  findHostFloorTableInComposedPath,
   getHostFloorPointerDistance,
   isHostFloorTapGesture,
   isInteractiveHostFloorTarget,
+  readFloorTableIdFromNode,
   resolveHostFloorTableState,
   resolveHostFloorTableTarget,
   shouldCaptureHostFloorPointer,
   shouldStartHostFloorPan,
 } from './hostFloorPointerInteraction'
 
-function buildTableDom(tableId = 't14') {
+function buildTableDom(tableId = 't14', label = 'T10') {
   const node = document.createElement('div')
   node.className = 'floor-table-node'
   node.dataset.tableId = tableId
   node.dataset.floorTableId = tableId
+  node.dataset.floorTableLabel = label
 
   const surface = document.createElement('div')
   surface.className = 'floor-table-node-surface'
@@ -35,7 +40,7 @@ function buildTableDom(tableId = 't14') {
   node.appendChild(surface)
   document.body.appendChild(node)
 
-  return { node, pax }
+  return { node, surface, pax }
 }
 
 describe('hostFloorPointerInteraction', () => {
@@ -55,11 +60,17 @@ describe('hostFloorPointerInteraction', () => {
     expect(shouldStartHostFloorPan(getHostFloorPointerDistance(start, end))).toBe(true)
   })
 
+  it('reads stable table ids from data-floor-table-id', () => {
+    const { node } = buildTableDom('uuid-14', 'T10')
+    expect(readFloorTableIdFromNode(node)).toBe('uuid-14')
+    node.remove()
+  })
+
   it('stores table identity from pointerdown on the table wrapper', () => {
     const { node } = buildTableDom('t14')
-    const event = { pointerId: 7, clientX: 40, clientY: 50 }
+    const event = { pointerId: 7, clientX: 40, clientY: 50, target: node }
 
-    const state = beginHostFloorPointerInteraction(event, node)
+    const state = beginHostFloorPointerInteraction(event)
 
     expect(state.mode).toBe(HOST_FLOOR_POINTER_MODE.TABLE_PENDING)
     expect(state.tableId).toBe('t14')
@@ -69,19 +80,65 @@ describe('hostFloorPointerInteraction', () => {
 
   it('stores table identity when pointerdown starts on a child pax label', () => {
     const { pax } = buildTableDom('t22')
-    const event = { pointerId: 3, clientX: 12, clientY: 18 }
+    const event = { pointerId: 3, clientX: 12, clientY: 18, target: pax }
 
-    const state = beginHostFloorPointerInteraction(event, pax)
+    const state = beginHostFloorPointerInteraction(event)
 
     expect(state.mode).toBe(HOST_FLOOR_POINTER_MODE.TABLE_PENDING)
     expect(state.tableId).toBe('t22')
     pax.closest('.floor-table-node')?.remove()
   })
 
+  it('resolves table from composedPath when the target is a canvas child', () => {
+    const { node, surface } = buildTableDom('t33', 'T10')
+    const canvas = document.createElement('div')
+    canvas.className = 'floor-plan-canvas'
+    document.body.appendChild(canvas)
+
+    const event = {
+      target: canvas,
+      composedPath: () => [surface, node, canvas],
+    }
+
+    expect(findHostFloorTableInComposedPath(event)?.tableId).toBe('t33')
+    expect(findHostFloorTableFromEvent(event)?.tableId).toBe('t33')
+
+    node.remove()
+    canvas.remove()
+  })
+
+  it('resolves table from elementsFromPoint when the target misses the table node', () => {
+    const { node } = buildTableDom('t44', 'T10')
+    node.getBoundingClientRect = () => ({
+      left: 10,
+      top: 20,
+      right: 110,
+      bottom: 120,
+      width: 100,
+      height: 100,
+      x: 10,
+      y: 20,
+      toJSON: () => ({}),
+    })
+
+    const canvas = document.createElement('div')
+    canvas.className = 'floor-plan-canvas'
+    document.body.appendChild(canvas)
+
+    document.elementsFromPoint = vi.fn(() => [canvas, node])
+
+    const result = findHostFloorTableAtPoint(60, 70)
+    expect(result?.tableId).toBe('t44')
+
+    node.remove()
+    canvas.remove()
+    delete document.elementsFromPoint
+  })
+
   it('completes table tap from pointerup even when the target is a child label', () => {
     const { pax } = buildTableDom('t22')
     const down = { pointerId: 3, clientX: 12, clientY: 18, target: pax }
-    const pending = beginHostFloorPointerInteraction(down, pax)
+    const pending = beginHostFloorPointerInteraction(down)
     const up = { pointerId: 3, clientX: 14, clientY: 19 }
 
     const { tableTap } = completeHostFloorPointerInteraction(pending, up)
@@ -92,8 +149,8 @@ describe('hostFloorPointerInteraction', () => {
 
   it('cancels table activation when movement exceeds the threshold', () => {
     const { node } = buildTableDom('t14')
-    const down = { pointerId: 2, clientX: 10, clientY: 10 }
-    let state = beginHostFloorPointerInteraction(down, node)
+    const down = { pointerId: 2, clientX: 10, clientY: 10, target: node }
+    let state = beginHostFloorPointerInteraction(down)
     state = advanceHostFloorPointerInteraction(state, {
       pointerId: 2,
       clientX: 10 + HOST_FLOOR_TAP_MOVE_THRESHOLD_PX + 4,
@@ -103,7 +160,7 @@ describe('hostFloorPointerInteraction', () => {
     expect(state.mode).toBe(HOST_FLOOR_POINTER_MODE.IDLE)
 
     const { tableTap } = completeHostFloorPointerInteraction(
-      beginHostFloorPointerInteraction(down, node),
+      beginHostFloorPointerInteraction(down),
       {
         pointerId: 2,
         clientX: 10 + HOST_FLOOR_TAP_MOVE_THRESHOLD_PX + 4,
@@ -116,8 +173,8 @@ describe('hostFloorPointerInteraction', () => {
 
   it('starts empty-canvas pan only after the drag threshold', () => {
     const canvas = document.createElement('div')
-    const down = { pointerId: 5, clientX: 100, clientY: 100 }
-    let state = beginHostFloorPointerInteraction(down, canvas, { originX: 4, originY: 8 })
+    const down = { pointerId: 5, clientX: 100, clientY: 100, target: canvas }
+    let state = beginHostFloorPointerInteraction(down, { originX: 4, originY: 8 })
 
     expect(state.mode).toBe(HOST_FLOOR_POINTER_MODE.PAN_PENDING)
     expect(shouldCaptureHostFloorPointer(state)).toBe(true)
@@ -143,8 +200,7 @@ describe('hostFloorPointerInteraction', () => {
     const { pax } = buildTableDom('t14')
 
     const pending = beginHostFloorPointerInteraction(
-      { pointerId: 1, clientX: 20, clientY: 30 },
-      pax,
+      { pointerId: 1, clientX: 20, clientY: 30, target: pax },
     )
     const { tableTap } = completeHostFloorPointerInteraction(
       pending,
@@ -159,6 +215,11 @@ describe('hostFloorPointerInteraction', () => {
     pax.closest('.floor-table-node')?.remove()
   })
 
+  it('resolves captured table ids with string normalization', () => {
+    const tableStates = [{ table: { id: 14 }, reservation: null }]
+    expect(resolveHostFloorTableState(tableStates, '14')?.table.id).toBe(14)
+  })
+
   it('detects non-table interactive targets without treating tables as blockers', () => {
     const seating = document.createElement('button')
     seating.className = 'floor-seating-selector-chip'
@@ -167,12 +228,16 @@ describe('hostFloorPointerInteraction', () => {
     expect(isInteractiveHostFloorTarget(seating)).toBe(true)
     expect(isInteractiveHostFloorTarget(canvas)).toBe(false)
     expect(beginHostFloorPointerInteraction(
-      { pointerId: 1, clientX: 0, clientY: 0 },
-      canvas,
+      { pointerId: 1, clientX: 0, clientY: 0, target: canvas },
     ).mode).toBe(HOST_FLOOR_POINTER_MODE.PAN_PENDING)
     expect(beginHostFloorPointerInteraction(
-      { pointerId: 1, clientX: 0, clientY: 0 },
-      seating,
+      { pointerId: 1, clientX: 0, clientY: 0, target: seating },
     )).toEqual(createIdleHostFloorPointerState())
+  })
+
+  it('still resolves child targets through closest fallback', () => {
+    const { pax } = buildTableDom('child-id')
+    expect(resolveHostFloorTableTarget(pax)?.tableId).toBe('child-id')
+    pax.closest('.floor-table-node')?.remove()
   })
 })

@@ -11,6 +11,88 @@ export function createIdleHostFloorPointerState() {
   return { mode: HOST_FLOOR_POINTER_MODE.IDLE }
 }
 
+export function readFloorTableIdFromNode(node) {
+  if (!node) return ''
+  return `${node.dataset?.floorTableId ?? node.dataset?.tableId ?? ''}`.trim()
+}
+
+export function readFloorTableLabelFromNode(node) {
+  if (!node) return ''
+  const label = `${node.dataset?.floorTableLabel ?? ''}`.trim()
+  if (label) return label
+  const number = node.querySelector?.('.floor-table-number')
+  return `${number?.textContent ?? ''}`.trim()
+}
+
+export function resolveHostFloorTableTarget(target) {
+  const node = target?.closest?.('.floor-table-node')
+  if (!node) return null
+
+  const tableId = readFloorTableIdFromNode(node)
+  if (!tableId) return null
+
+  return { node, tableId, tableLabel: readFloorTableLabelFromNode(node) }
+}
+
+export function findHostFloorTableInComposedPath(event) {
+  const path = typeof event.composedPath === 'function' ? event.composedPath() : []
+  for (const entry of path) {
+    if (!(entry instanceof Element)) continue
+
+    if (entry.classList?.contains('floor-table-node')) {
+      const tableId = readFloorTableIdFromNode(entry)
+      if (tableId) {
+        return { node: entry, tableId, tableLabel: readFloorTableLabelFromNode(entry) }
+      }
+    }
+
+    const nested = entry.closest?.('.floor-table-node')
+    if (nested) {
+      const tableId = readFloorTableIdFromNode(nested)
+      if (tableId) {
+        return { node: nested, tableId, tableLabel: readFloorTableLabelFromNode(nested) }
+      }
+    }
+  }
+
+  return null
+}
+
+export function findHostFloorTableAtPoint(clientX, clientY, root = typeof document !== 'undefined' ? document : null) {
+  if (!root?.elementsFromPoint) return null
+  if (!Number.isFinite(clientX) || !Number.isFinite(clientY)) return null
+
+  const stack = root.elementsFromPoint(clientX, clientY)
+  for (const entry of stack) {
+    if (!(entry instanceof Element)) continue
+    if (!entry.classList?.contains('floor-table-node')) continue
+
+    const tableId = readFloorTableIdFromNode(entry)
+    if (tableId) {
+      return { node: entry, tableId, tableLabel: readFloorTableLabelFromNode(entry) }
+    }
+  }
+
+  for (const entry of stack) {
+    if (!(entry instanceof Element)) continue
+    const nested = entry.closest?.('.floor-table-node')
+    if (!nested) continue
+
+    const tableId = readFloorTableIdFromNode(nested)
+    if (tableId) {
+      return { node: nested, tableId, tableLabel: readFloorTableLabelFromNode(nested) }
+    }
+  }
+
+  return null
+}
+
+export function findHostFloorTableFromEvent(event) {
+  return findHostFloorTableInComposedPath(event)
+    ?? findHostFloorTableAtPoint(event.clientX, event.clientY)
+    ?? resolveHostFloorTableTarget(event.target)
+}
+
 export function getHostFloorPointerDistance(start, end) {
   if (!start || !end) return 0
   const startX = start.clientX ?? start.startX ?? 0
@@ -32,16 +114,6 @@ export function shouldStartHostFloorPan(distance, threshold = HOST_FLOOR_TAP_MOV
   return distance > threshold
 }
 
-export function resolveHostFloorTableTarget(target) {
-  const node = target?.closest?.('.floor-table-node')
-  if (!node) return null
-
-  const tableId = `${node.dataset?.floorTableId ?? node.dataset?.tableId ?? ''}`.trim()
-  if (!tableId) return null
-
-  return { node, tableId }
-}
-
 export function isInteractiveHostFloorTarget(target) {
   if (!target?.closest) return false
   return Boolean(
@@ -51,8 +123,8 @@ export function isInteractiveHostFloorTarget(target) {
   )
 }
 
-export function beginHostFloorPointerInteraction(event, target, { originX = 0, originY = 0 } = {}) {
-  const tableTarget = resolveHostFloorTableTarget(target)
+export function beginHostFloorPointerInteraction(event, { originX = 0, originY = 0 } = {}) {
+  const tableTarget = findHostFloorTableFromEvent(event)
   if (tableTarget) {
     return {
       mode: HOST_FLOOR_POINTER_MODE.TABLE_PENDING,
@@ -60,10 +132,11 @@ export function beginHostFloorPointerInteraction(event, target, { originX = 0, o
       startX: event.clientX,
       startY: event.clientY,
       tableId: tableTarget.tableId,
+      tableLabel: tableTarget.tableLabel,
     }
   }
 
-  if (isInteractiveHostFloorTarget(target)) {
+  if (isInteractiveHostFloorTarget(event.target)) {
     return createIdleHostFloorPointerState()
   }
 
@@ -111,21 +184,26 @@ export function getHostFloorPanOffset(state, event) {
 
 export function completeHostFloorPointerInteraction(state, event) {
   if (!state || state.mode === HOST_FLOOR_POINTER_MODE.IDLE) {
-    return { nextState: createIdleHostFloorPointerState(), tableTap: null }
+    return { nextState: createIdleHostFloorPointerState(), tableTap: null, distance: 0, isTap: false }
   }
 
   if (state.pointerId !== event.pointerId) {
-    return { nextState: createIdleHostFloorPointerState(), tableTap: null }
+    return { nextState: createIdleHostFloorPointerState(), tableTap: null, distance: 0, isTap: false }
   }
+
+  const distance = getHostFloorPointerDistance(state, event)
+  const isTap = isHostFloorTapGesture(state, event)
 
   if (state.mode === HOST_FLOOR_POINTER_MODE.TABLE_PENDING) {
     return {
       nextState: createIdleHostFloorPointerState(),
-      tableTap: isHostFloorTapGesture(state, event) ? { tableId: state.tableId } : null,
+      tableTap: isTap ? { tableId: state.tableId } : null,
+      distance,
+      isTap,
     }
   }
 
-  return { nextState: createIdleHostFloorPointerState(), tableTap: null }
+  return { nextState: createIdleHostFloorPointerState(), tableTap: null, distance, isTap: false }
 }
 
 export function shouldCaptureHostFloorPointer(state) {
@@ -136,4 +214,18 @@ export function shouldCaptureHostFloorPointer(state) {
 export function resolveHostFloorTableState(tableStates, tableId) {
   if (!tableId || !Array.isArray(tableStates)) return null
   return tableStates.find((entry) => String(entry.table.id) === String(tableId)) ?? null
+}
+
+export function toHostFloorPointerLikeEvent(nativeEvent, touch) {
+  return {
+    pointerId: touch?.identifier ?? nativeEvent.pointerId ?? 0,
+    clientX: touch?.clientX ?? nativeEvent.clientX ?? 0,
+    clientY: touch?.clientY ?? nativeEvent.clientY ?? 0,
+    target: nativeEvent.target,
+    composedPath: () => (
+      typeof nativeEvent.composedPath === 'function' ? nativeEvent.composedPath() : []
+    ),
+    stopPropagation: () => nativeEvent.stopPropagation?.(),
+    preventDefault: () => nativeEvent.preventDefault?.(),
+  }
 }
