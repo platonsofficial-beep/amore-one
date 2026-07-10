@@ -63,6 +63,9 @@ describe('hostFloorPointerInteraction', () => {
   it('reads stable table ids from data-floor-table-id', () => {
     const { node } = buildTableDom('uuid-14', 'T10')
     expect(readFloorTableIdFromNode(node)).toBe('uuid-14')
+    expect(node.classList.contains('floor-table-node')).toBe(true)
+    expect(node.dataset.floorTableId).toBe('uuid-14')
+    expect(node.dataset.floorTableLabel).toBe('T10')
     node.remove()
   })
 

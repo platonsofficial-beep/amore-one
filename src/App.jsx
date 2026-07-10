@@ -94,6 +94,14 @@ import {
   patchHostFloorDebugTrace,
 } from './lib/hostFloorDebugTrace'
 import {
+  beginHostFloorDirectTableTap,
+  cancelHostFloorDirectTableTap,
+  completeHostFloorDirectTableTap,
+  createHostFloorTableTapRegistry,
+  isHostFloorTableTapConsumedForTable,
+  shouldSkipViewportTableTap,
+} from './lib/hostFloorTableTapSession'
+import {
   formatHostFloorCapacityLabel,
   formatHostFloorPartyLabel,
 } from './lib/hostFloorTableLabels'
@@ -144,6 +152,7 @@ import { FloorSeatingSelector } from './components/floor/FloorSeatingSelector'
 import { FloorTableSeatingIndicators } from './components/floor/FloorTableSeatingIndicators'
 import { FloorTableReservationTooltip } from './components/floor/FloorTableReservationTooltip'
 import { HostFloorDebugOverlay } from './components/floor/HostFloorDebugOverlay'
+import { HostTableTapDirectMarker } from './components/floor/HostTableTapDirectMarker'
 import { HostStationErrorBoundary } from './components/host/HostStationErrorBoundary'
 import {
   FloorTableSeatingDialog,
@@ -7392,6 +7401,8 @@ function FloorTableNode({
   nodeRef,
   tooltipDismissVersion = 0,
   activateTableViaViewport = false,
+  hostTableTapRegistry = null,
+  onHostTableDirectTap,
   onTableClick,
   onTableContextMenu,
   onDragStart,
@@ -7494,6 +7505,74 @@ function FloorTableNode({
 
   const tableNodeRef = useRef(null)
   const [isTooltipVisible, setIsTooltipVisible] = useState(false)
+  const useHostDirectTableTap = Boolean(isHostFloor && !isHeatmap && hostTableTapRegistry)
+
+  const handleHostDirectPointerDown = (event) => {
+    if (!useHostDirectTableTap) return
+    if (event.pointerType === 'mouse' && event.button !== 0) return
+
+    beginHostFloorDirectTableTap(hostTableTapRegistry.current, {
+      pointerId: event.pointerId,
+      tableId: table.id,
+      clientX: event.clientX,
+      clientY: event.clientY,
+    })
+    event.stopPropagation()
+  }
+
+  const handleHostDirectPointerUp = (event) => {
+    if (!useHostDirectTableTap) return
+    if (isHostFloorTableTapConsumedForTable(hostTableTapRegistry.current, table.id)) return
+
+    const result = completeHostFloorDirectTableTap(hostTableTapRegistry.current, {
+      pointerId: event.pointerId,
+      clientX: event.clientX,
+      clientY: event.clientY,
+    })
+    if (!result.activated) return
+
+    event.preventDefault()
+    event.stopPropagation()
+    onHostTableDirectTap?.(tableState, event, { tableLabel: hostTableLabel })
+  }
+
+  const handleHostDirectPointerCancel = (event) => {
+    if (!useHostDirectTableTap) return
+    cancelHostFloorDirectTableTap(hostTableTapRegistry.current, event.pointerId)
+  }
+
+  const handleHostDirectTouchStart = (event) => {
+    if (!useHostDirectTableTap) return
+    if (event.touches.length !== 1) return
+
+    const touch = event.touches[0]
+    beginHostFloorDirectTableTap(hostTableTapRegistry.current, {
+      pointerId: touch.identifier,
+      tableId: table.id,
+      clientX: touch.clientX,
+      clientY: touch.clientY,
+    })
+    event.stopPropagation()
+  }
+
+  const handleHostDirectTouchEnd = (event) => {
+    if (!useHostDirectTableTap) return
+
+    const touch = event.changedTouches[0]
+    if (!touch) return
+    if (isHostFloorTableTapConsumedForTable(hostTableTapRegistry.current, table.id)) return
+
+    const result = completeHostFloorDirectTableTap(hostTableTapRegistry.current, {
+      pointerId: touch.identifier,
+      clientX: touch.clientX,
+      clientY: touch.clientY,
+    })
+    if (!result.activated) return
+
+    event.preventDefault()
+    event.stopPropagation()
+    onHostTableDirectTap?.(tableState, event, { tableLabel: hostTableLabel })
+  }
 
   const tableBookingEntries = useMemo(() => (
     tableSchedule.slice(0, 3).map((entry, index) => ({
@@ -7597,7 +7676,12 @@ function FloorTableNode({
       onDragOver={(event) => onDragOver(event, tableState)}
       onDragLeave={onDragLeave}
       onDrop={(event) => onDrop(event, tableState)}
-      onClick={activateTableViaViewport ? undefined : handleClick}
+      onClick={useHostDirectTableTap || activateTableViaViewport ? undefined : handleClick}
+      onPointerDown={useHostDirectTableTap ? handleHostDirectPointerDown : undefined}
+      onPointerUp={useHostDirectTableTap ? handleHostDirectPointerUp : undefined}
+      onPointerCancel={useHostDirectTableTap ? handleHostDirectPointerCancel : undefined}
+      onTouchStart={useHostDirectTableTap ? handleHostDirectTouchStart : undefined}
+      onTouchEnd={useHostDirectTableTap ? handleHostDirectTouchEnd : undefined}
       onKeyDown={isHostFloor ? handleTableKeyDown : undefined}
       onContextMenu={(event) => onTableContextMenu(event, tableState)}
       onPointerEnter={handlePointerEnter}
@@ -7893,6 +7977,8 @@ function FloorPlanView({
   const [floorPan, setFloorPan] = useState({ x: 0, y: 0 })
   const [tooltipDismissVersion, setTooltipDismissVersion] = useState(0)
   const [scheduleCardTable, setScheduleCardTable] = useState(null)
+  const [lastHostTableTapLabel, setLastHostTableTapLabel] = useState('none')
+  const hostTableTapRegistryRef = useRef(createHostFloorTableTapRegistry())
 
   useEffect(() => {
     if (!isHostFloorDebugEnabled() || !isCompact) return
@@ -8480,6 +8566,14 @@ function FloorPlanView({
     }, 450)
   }, [])
 
+  const handleHostTableDirectTap = useCallback((tableState, event, meta = {}) => {
+    setLastHostTableTapLabel(meta.tableLabel || tableState.table?.label || 'unknown')
+    markTableTapSuppressClick()
+    event?.preventDefault?.()
+    event?.stopPropagation?.()
+    handleTableClickRef.current(tableState, event)
+  }, [markTableTapSuppressClick])
+
   const activateTableFromViewport = useCallback((tableState, event, debugMeta = {}) => {
     if (!tableState) {
       if (isHostFloorDebugEnabled()) {
@@ -8605,6 +8699,10 @@ function FloorPlanView({
 
     if (!tableTap?.tableId) return
 
+    if (shouldSkipViewportTableTap(hostTableTapRegistryRef.current, tableTap)) {
+      return
+    }
+
     const tableState = resolveHostFloorTableState(
       visibleTableStatesRef.current,
       tableTap.tableId,
@@ -8666,6 +8764,10 @@ function FloorPlanView({
     }
 
     if (!tableTap?.tableId) return
+
+    if (shouldSkipViewportTableTap(hostTableTapRegistryRef.current, tableTap)) {
+      return
+    }
 
     const tableState = resolveHostFloorTableState(
       visibleTableStatesRef.current,
@@ -8757,6 +8859,7 @@ function FloorPlanView({
 
   return (
     <div className={`floor-plan-workspace${isCompact ? ' is-compact is-host-floor' : ''}${selectedSeating ? ' has-active-seating' : ''}${showHostSeatingBar && isCompact ? ' has-seating-drawer' : ''}${isHeatmap ? ' is-heatmap-mode' : ' is-normal-mode'}`} data-floor-view-mode={viewMode}>
+      {isCompact ? <HostTableTapDirectMarker lastTableTap={lastHostTableTapLabel} /> : null}
       {loadError ? (
         <div className="floor-plan-persistence-notice" role="status">{loadError}</div>
       ) : null}
@@ -8931,6 +9034,8 @@ function FloorPlanView({
             isSeatPicking={isSeatPicking}
             isHostFloor={isCompact}
             activateTableViaViewport={isCompact}
+            hostTableTapRegistry={isCompact ? hostTableTapRegistryRef : null}
+            onHostTableDirectTap={isCompact ? handleHostTableDirectTap : undefined}
             linkMeta={reservationLinkTableMeta.get(tableState.table.id)}
             isDropTarget={dropTargetTableId === tableState.table.id}
             isDragging={draggingReservationId && tableState.reservation

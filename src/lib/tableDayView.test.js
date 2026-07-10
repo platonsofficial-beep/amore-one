@@ -99,6 +99,11 @@ describe('tableDayView', () => {
     })).toBe(false)
   })
 
+  it('keeps edit-layout host pick active from opening table day view', () => {
+    expect(shouldOpenTableDayViewOnTableClick({ isHostFloorPickActive: true })).toBe(false)
+    expect(isTableAssignmentSelectionClick({ isHostFloorPickActive: true })).toBe(true)
+  })
+
   it('renders all active seatings for the selected date', () => {
     const rows = buildFloorTableDayViewRows(TABLE, [], '2026-07-10', SEATINGS, { layout: LAYOUT })
     expect(rows.map((row) => row.seating.name)).toEqual(['Brunch 1', 'Brunch 2', 'Dinner 1'])
