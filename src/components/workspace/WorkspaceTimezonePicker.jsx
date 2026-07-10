@@ -5,7 +5,7 @@ import {
   flattenTimezonePickerSections,
   getTimezoneOptionLabel,
   getTimezonePickerValueForSelection,
-  resolveTimezoneDisplay,
+  resolveTimezoneClosedDisplay,
   searchTimezoneOptions,
 } from '../../lib/workspaceTimezoneUtils'
 import './workspaceTimezonePicker.css'
@@ -34,10 +34,24 @@ function TimezoneOptionButton({
   onHighlight,
   optionId,
 }) {
-  const primary = getTimezoneOptionLabel(option)
-  const subtitle = option.subtitle ? (
-    <span className="workspace-timezone-picker-option-subtitle">{option.subtitle}</span>
-  ) : null
+  if (option.kind === 'browser-default') {
+    return (
+      <li role="presentation">
+        <button
+          id={optionId}
+          type="button"
+          className={`workspace-timezone-picker-option${isSelected ? ' is-selected' : ''}${isHighlighted ? ' is-highlighted' : ''}`}
+          role="option"
+          aria-selected={isSelected}
+          onMouseEnter={onHighlight}
+          onClick={() => onSelect(option)}
+        >
+          <span className="workspace-timezone-picker-option-primary">{getTimezoneOptionLabel(option)}</span>
+          <span className="workspace-timezone-picker-option-secondary">{option.secondaryLabel}</span>
+        </button>
+      </li>
+    )
+  }
 
   return (
     <li role="presentation">
@@ -50,11 +64,13 @@ function TimezoneOptionButton({
         onMouseEnter={onHighlight}
         onClick={() => onSelect(option)}
       >
-        <span className="workspace-timezone-picker-option-primary">
-          {primary}
-          {subtitle}
-        </span>
-        <span className="workspace-timezone-picker-option-secondary">{option.secondaryLabel}</span>
+        <span className="workspace-timezone-picker-option-primary">{option.cityLabel}</span>
+        {option.iana ? (
+          <span className="workspace-timezone-picker-option-iana">{option.iana}</span>
+        ) : null}
+        {option.offsetLabel ? (
+          <span className="workspace-timezone-picker-option-offset">{option.offsetLabel}</span>
+        ) : null}
       </button>
     </li>
   )
@@ -159,7 +175,10 @@ export function WorkspaceTimezonePicker({
   const [highlightedIndex, setHighlightedIndex] = useState(0)
   const [menuPosition, setMenuPosition] = useState(null)
 
-  const display = useMemo(() => resolveTimezoneDisplay(value), [value])
+  const display = useMemo(
+    () => resolveTimezoneClosedDisplay(value, { countryName }),
+    [countryName, value],
+  )
 
   const sections = useMemo(() => buildTimezonePickerSections({
     savedValue: value,

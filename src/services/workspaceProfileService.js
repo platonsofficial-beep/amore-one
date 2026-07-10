@@ -3,6 +3,7 @@ import {
   getDefaultWorkspaceCurrency,
   getDefaultWorkspaceTimezone,
 } from '../lib/workspaceProfileOptions'
+import { normalizeLocationDisplayValue } from '../lib/workspaceProfileUtils'
 
 const WORKSPACE_PROFILES_TABLE = 'workspace_profiles'
 const WORKSPACE_KEY = 'default'
@@ -56,8 +57,8 @@ function normalizeProfile(profile = {}) {
     currency: `${profile.currency ?? ''}`.trim(),
     logoUrl: `${profile.logoUrl ?? ''}`.trim(),
     countryCode: `${profile.countryCode ?? profile.country_code ?? ''}`.trim().toUpperCase(),
-    countryName: `${profile.countryName ?? profile.country_name ?? ''}`.trim(),
-    city: `${profile.city ?? ''}`.trim(),
+    countryName: normalizeLocationDisplayValue(profile.countryName ?? profile.country_name ?? ''),
+    city: normalizeLocationDisplayValue(profile.city ?? ''),
     defaultPhoneCountryCode: `${profile.defaultPhoneCountryCode ?? profile.default_phone_country_code ?? ''}`.trim(),
   }
 }

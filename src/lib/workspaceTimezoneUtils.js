@@ -1,4 +1,5 @@
 import { getDefaultWorkspaceTimezone } from './workspaceProfileOptions'
+import { normalizeLocationDisplayValue } from './workspaceProfileUtils'
 
 export const BROWSER_DEFAULT_TIMEZONE_VALUE = ''
 
@@ -290,6 +291,49 @@ export function inferVenueTimezone({
   }
 
   return ''
+}
+
+function inferCountryLabelFromTimezone(timeZone) {
+  const trimmed = `${timeZone ?? ''}`.trim()
+  if (!trimmed) return ''
+
+  const rule = VENUE_TIMEZONE_RULES.find((entry) => entry.timeZone === trimmed)
+  if (!rule) return ''
+
+  const countryToken = rule.countries.find((entry) => entry.length > 2) ?? ''
+  return countryToken ? normalizeLocationDisplayValue(countryToken) : ''
+}
+
+export function resolveTimezoneClosedDisplay(
+  value,
+  {
+    countryName = '',
+    date = new Date(),
+  } = {},
+) {
+  const display = resolveTimezoneDisplay(value, date)
+
+  if (display.isBrowserDefault) {
+    return display
+  }
+
+  const normalizedCountry = normalizeLocationDisplayValue(countryName)
+  const countryLabel = normalizedCountry
+    || inferCountryLabelFromTimezone(display.iana)
+  const offsetLabel = display.offsetLabel
+
+  let secondaryLabel = display.secondaryLabel
+  if (countryLabel) {
+    secondaryLabel = offsetLabel ? `${countryLabel} • ${offsetLabel}` : countryLabel
+  } else if (display.iana) {
+    secondaryLabel = offsetLabel ? `${display.iana} · ${offsetLabel}` : display.iana
+  }
+
+  return {
+    ...display,
+    countryLabel,
+    secondaryLabel,
+  }
 }
 
 export function resolveTimezoneDisplay(value, date = new Date()) {

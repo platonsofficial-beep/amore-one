@@ -3,10 +3,16 @@ import {
   areWorkspaceProfilesEqual,
   buildWorkspaceIdentityLines,
   isWorkspaceProfileConfigured,
+  normalizeLocationDisplayValue,
   shouldInitializeWorkspaceProfileDraft,
 } from './workspaceProfileUtils'
 
 describe('workspaceProfileUtils', () => {
+  it('normalizes country and city display values', () => {
+    expect(normalizeLocationDisplayValue('cyprus')).toBe('Cyprus')
+    expect(normalizeLocationDisplayValue('nicosia')).toBe('Nicosia')
+    expect(normalizeLocationDisplayValue('  new   york  ')).toBe('New York')
+  })
   it('detects configured workspace profiles', () => {
     expect(isWorkspaceProfileConfigured({ businessName: 'Amore' })).toBe(true)
     expect(isWorkspaceProfileConfigured({ managerName: 'Alex' })).toBe(true)

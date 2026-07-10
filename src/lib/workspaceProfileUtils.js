@@ -87,6 +87,19 @@ function normalizeProfileField(value) {
   return `${value ?? ''}`.trim()
 }
 
+export function normalizeLocationDisplayValue(value) {
+  const trimmed = normalizeProfileField(value)
+  if (!trimmed) return ''
+
+  return trimmed
+    .split(/\s+/)
+    .map((word) => word.replace(
+      /^(\p{L})(\p{L}*)/u,
+      (_, first, rest) => first.toLocaleUpperCase(undefined) + rest.toLocaleLowerCase(undefined),
+    ))
+    .join(' ')
+}
+
 export function areWorkspaceProfilesEqual(left = {}, right = {}) {
   return WORKSPACE_PROFILE_FIELDS.every((field) => (
     normalizeProfileField(left?.[field]) === normalizeProfileField(right?.[field])

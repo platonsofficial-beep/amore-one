@@ -5,6 +5,7 @@ import {
   formatTimezoneOffsetLabel,
   getTimezonePickerValueForSelection,
   inferVenueTimezone,
+  resolveTimezoneClosedDisplay,
   resolveTimezoneDisplay,
   searchTimezoneOptions,
 } from './workspaceTimezoneUtils'
@@ -22,7 +23,29 @@ describe('workspaceTimezoneUtils', () => {
     expect(display.isValid).toBe(true)
   })
 
-  it('maps Nicosia selection to Europe/Nicosia storage value', () => {
+  it('hides IANA in the closed picker when country_name exists', () => {
+    const display = resolveTimezoneClosedDisplay('Europe/Nicosia', {
+      countryName: 'cyprus',
+      date: winterDate,
+    })
+
+    expect(display.cityLabel).toBe('Nicosia')
+    expect(display.secondaryLabel).toContain('Cyprus')
+    expect(display.secondaryLabel).toContain('GMT')
+    expect(display.secondaryLabel).not.toContain('Europe/Nicosia')
+  })
+
+  it('falls back to IANA in the closed picker when country is missing', () => {
+    const display = resolveTimezoneClosedDisplay('America/New_York', {
+      countryName: '',
+      date: winterDate,
+    })
+
+    expect(display.secondaryLabel).toContain('America/New_York')
+    expect(display.secondaryLabel).toContain('GMT')
+  })
+
+  it('keeps stored timezone as Europe/Nicosia when selecting Nicosia', () => {
     const sections = buildTimezonePickerSections({ savedValue: '', date: winterDate })
     const europe = sections.find((section) => section.id === 'europe')
     const nicosia = europe?.options.find((option) => option.cityLabel === 'Nicosia')

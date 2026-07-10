@@ -32,11 +32,23 @@ function renderPicker(props) {
 }
 
 describe('WorkspaceTimezonePicker', () => {
-  it('shows saved Europe/Nicosia in the closed field', () => {
-    const { container, cleanup } = renderPicker({ value: 'Europe/Nicosia' })
+  it('shows saved Europe/Nicosia with country in the closed field', () => {
+    const { container, cleanup } = renderPicker({
+      value: 'Europe/Nicosia',
+      countryName: 'Cyprus',
+    })
 
     expect(container.querySelector('.workspace-timezone-picker-trigger-primary')?.textContent).toBe('Nicosia')
-    expect(container.querySelector('.workspace-timezone-picker-trigger-secondary')?.textContent).toContain('Europe/Nicosia')
+    expect(container.querySelector('.workspace-timezone-picker-trigger-secondary')?.textContent).toContain('Cyprus')
+    expect(container.querySelector('.workspace-timezone-picker-trigger-secondary')?.textContent).not.toContain('Europe/Nicosia')
+
+    cleanup()
+  })
+
+  it('falls back to IANA in the closed field when country is missing', () => {
+    const { container, cleanup } = renderPicker({ value: 'America/New_York' })
+
+    expect(container.querySelector('.workspace-timezone-picker-trigger-secondary')?.textContent).toContain('America/New_York')
 
     cleanup()
   })
