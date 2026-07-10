@@ -46,12 +46,13 @@ describe('TableTransformManager', () => {
         size: { width: 240, height: 240 },
         rotation: 0,
       },
+      lastCommitted: {
+        position: { x: 100, y: 100 },
+        size: { width: 200, height: 200 },
+        rotation: 0,
+      },
     }
     element.classList.add('is-transforming')
-    element.style.left = '100px'
-    element.style.top = '100px'
-    element.style.width = '240px'
-    element.style.height = '240px'
   })
 
   afterEach(() => {
@@ -60,21 +61,30 @@ describe('TableTransformManager', () => {
     manager.dispose()
   })
 
-  it('commits transform before clearing preview styles on pointerup', () => {
-    const callOrder = []
-    onTransformTable.mockImplementation(() => {
-      callOrder.push('commit')
+  it('updates canonical object size through onTransformTable during resize move', () => {
+    manager.scheduleCommit({
+      position: { x: 100, y: 100 },
+      size: { width: 240, height: 240 },
+      rotation: 0,
     })
 
-    manager.end({ pointerId: 1 })
+    vi.runAllTimers()
 
     expect(onTransformTable).toHaveBeenCalledWith('table-1', {
       position: { x: 100, y: 100 },
       size: { width: 240, height: 240 },
       rotation: 0,
     })
-    expect(callOrder).toEqual(['commit'])
-    expect(element.style.width).toBe('240px')
+    expect(element.style.width).toBe('')
+    expect(element.style.height).toBe('')
+  })
+
+  it('does not apply inline width/height preview styles during resize', () => {
+    manager.scheduleCommit({
+      position: { x: 100, y: 100 },
+      size: { width: 240, height: 240 },
+      rotation: 0,
+    })
 
     vi.runAllTimers()
 
@@ -82,19 +92,11 @@ describe('TableTransformManager', () => {
     expect(element.style.height).toBe('')
     expect(element.style.left).toBe('')
     expect(element.style.top).toBe('')
-    expect(element.classList.contains('is-transforming')).toBe(false)
+    const body = element.querySelector('[data-fpb-object-body]')
+    expect(body.style.transform).toBe('')
   })
 
-  it('cleans up preview styles on pointercancel', () => {
-    manager.end({ pointerId: 1, type: 'pointercancel' })
-
-    expect(onTransformTable).toHaveBeenCalledTimes(1)
-    vi.runAllTimers()
-    expect(element.style.width).toBe('')
-    expect(element.classList.contains('is-transforming')).toBe(false)
-  })
-
-  it('flushes pending preview frame before commit', () => {
+  it('flushes pending commit before ending the session', () => {
     manager.rafId = 42
     manager.session.preview = {
       position: { x: 120, y: 120 },
@@ -111,17 +113,32 @@ describe('TableTransformManager', () => {
       size: { width: 180, height: 180 },
       rotation: 0,
     })
+    expect(element.style.width).toBe('')
+    expect(element.classList.contains('is-transforming')).toBe(false)
   })
 
-  it('applies rotation preview on the object body, not the positioned root', () => {
-    const body = element.querySelector('[data-fpb-object-body]')
-    manager.applyPreview({
+  it('does not duplicate commit on pointerup when preview already committed', () => {
+    manager.session.preview = {
       position: { x: 100, y: 100 },
-      size: { width: 200, height: 200 },
-      rotation: 45,
-    })
+      size: { width: 240, height: 240 },
+      rotation: 0,
+    }
+    manager.session.lastCommitted = {
+      position: { x: 100, y: 100 },
+      size: { width: 240, height: 240 },
+      rotation: 0,
+    }
 
-    expect(element.style.transform).toBe('')
-    expect(body.style.transform).toBe('rotate(45deg)')
+    manager.end({ pointerId: 1 })
+
+    expect(onTransformTable).not.toHaveBeenCalled()
+    expect(element.style.width).toBe('')
+  })
+
+  it('cleans up session styles on pointercancel', () => {
+    manager.end({ pointerId: 1, type: 'pointercancel' })
+
+    expect(element.style.width).toBe('')
+    expect(element.classList.contains('is-transforming')).toBe(false)
   })
 })

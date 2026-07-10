@@ -5,6 +5,15 @@ import {
 } from '../lib/tableTransformUtils'
 import { OBJECT_BODY_SELECTOR } from '../lib/canvasObjectDom'
 
+function previewsEqual(a, b) {
+  if (!a || !b) return false
+  return a.position.x === b.position.x
+    && a.position.y === b.position.y
+    && a.size.width === b.size.width
+    && a.size.height === b.size.height
+    && a.rotation === b.rotation
+}
+
 export class TableTransformManager {
   constructor({ getClientToWorld, onTransformTable }) {
     this.getClientToWorld = getClientToWorld
@@ -26,27 +35,53 @@ export class TableTransformManager {
     return element?.querySelector(OBJECT_BODY_SELECTOR) ?? element
   }
 
-  applyPreview({ position, size, rotation }) {
-    if (!this.element || !this.session) return
+  commitPreview(session = this.session) {
+    if (!session?.preview) return false
 
-    if (position) {
-      this.element.style.left = `${position.x}px`
-      this.element.style.top = `${position.y}px`
+    const preview = session.preview
+    if (previewsEqual(preview, session.lastCommitted)) {
+      return false
     }
 
-    if (size) {
-      this.element.style.width = `${size.width}px`
-      this.element.style.height = `${size.height}px`
-    }
+    this.onTransformTable(session.objectId, {
+      position: { ...preview.position },
+      size: { ...preview.size },
+      rotation: preview.rotation,
+    })
 
-    if (rotation !== undefined) {
-      const body = this.getObjectBody(this.element)
-      body.style.transform = `rotate(${rotation}deg)`
+    session.lastCommitted = {
+      position: { ...preview.position },
+      size: { ...preview.size },
+      rotation: preview.rotation,
     }
+    return true
   }
 
-  clearPreviewElementStyles(element = this.element) {
+  scheduleCommit(preview) {
+    if (!this.session) return
+
+    this.session.preview = preview
+    if (this.rafId !== null) return
+
+    this.rafId = window.requestAnimationFrame(() => {
+      this.rafId = null
+      if (this.session) {
+        this.commitPreview(this.session)
+      }
+    })
+  }
+
+  flushCommit() {
+    if (this.rafId !== null) {
+      window.cancelAnimationFrame(this.rafId)
+      this.rafId = null
+    }
+    this.commitPreview()
+  }
+
+  clearSessionSurface(element = this.element) {
     if (!element) return
+
     element.style.left = ''
     element.style.top = ''
     element.style.width = ''
@@ -59,41 +94,6 @@ export class TableTransformManager {
       body.style.transform = ''
       body.style.willChange = ''
     }
-  }
-
-  clearPreview() {
-    this.clearPreviewElementStyles(this.element)
-  }
-
-  flushPreviewFrame() {
-    if (this.rafId !== null) {
-      window.cancelAnimationFrame(this.rafId)
-      this.rafId = null
-    }
-
-    if (this.session?.preview) {
-      this.applyPreview(this.session.preview)
-    }
-  }
-
-  scheduleClearPreview(element) {
-    window.requestAnimationFrame(() => {
-      this.clearPreviewElementStyles(element)
-    })
-  }
-
-  schedulePreview(preview) {
-    if (!this.session) return
-
-    this.session.preview = preview
-    if (this.rafId !== null) return
-
-    this.rafId = window.requestAnimationFrame(() => {
-      this.rafId = null
-      if (this.session?.preview) {
-        this.applyPreview(this.session.preview)
-      }
-    })
   }
 
   attachWindowListeners() {
@@ -156,6 +156,12 @@ export class TableTransformManager {
       body.style.willChange = 'transform'
     }
 
+    const initialPreview = {
+      position: { ...object.position },
+      size: { ...object.size },
+      rotation: object.rotation ?? 0,
+    }
+
     const started = this.beginSession(event, element, {
       mode: 'resize',
       objectId: object.id,
@@ -169,18 +175,12 @@ export class TableTransformManager {
         size: { ...object.size },
         rotation: object.rotation ?? 0,
       },
-      preview: {
-        position: { ...object.position },
-        size: { ...object.size },
-        rotation: object.rotation ?? 0,
-      },
+      preview: initialPreview,
+      lastCommitted: initialPreview,
     })
 
     if (!started) {
-      element.classList.remove('is-transforming')
-      element.style.willChange = ''
-      const body = this.getObjectBody(element)
-      if (body) body.style.willChange = ''
+      this.clearSessionSurface(element)
       this.element = null
       this.session = null
     }
@@ -205,6 +205,12 @@ export class TableTransformManager {
       body.style.willChange = 'transform'
     }
 
+    const initialPreview = {
+      position: { ...object.position },
+      size: { ...object.size },
+      rotation: normalizeRotation(object.rotation ?? 0),
+    }
+
     const started = this.beginSession(event, element, {
       mode: 'rotate',
       objectId: object.id,
@@ -213,17 +219,12 @@ export class TableTransformManager {
       floorBounds: null,
       startPointerAngle,
       startRotation: normalizeRotation(object.rotation ?? 0),
-      preview: {
-        position: { ...object.position },
-        size: { ...object.size },
-        rotation: normalizeRotation(object.rotation ?? 0),
-      },
+      preview: initialPreview,
+      lastCommitted: initialPreview,
     })
 
     if (!started) {
-      element.classList.remove('is-transforming')
-      const body = this.getObjectBody(element)
-      if (body) body.style.willChange = ''
+      this.clearSessionSurface(element)
       this.element = null
       this.session = null
     }
@@ -250,7 +251,7 @@ export class TableTransformManager {
         floorBounds: session.floorBounds,
       })
 
-      this.schedulePreview({
+      this.scheduleCommit({
         position: next.position,
         size: next.size,
         rotation: session.preview.rotation,
@@ -267,7 +268,7 @@ export class TableTransformManager {
         event.shiftKey,
       )
 
-      this.schedulePreview({
+      this.scheduleCommit({
         position: session.preview.position,
         size: session.preview.size,
         rotation,
@@ -279,17 +280,9 @@ export class TableTransformManager {
     const session = this.session
     if (!session || event.pointerId !== session.pointerId) return
 
-    this.flushPreviewFrame()
+    this.flushCommit()
 
-    const preview = session.preview
-      ? {
-        position: { ...session.preview.position },
-        size: { ...session.preview.size },
-        rotation: session.preview.rotation,
-      }
-      : null
     const element = this.element
-    const objectId = session.objectId
 
     try {
       if (event.currentTarget?.hasPointerCapture?.(event.pointerId)) {
@@ -305,17 +298,12 @@ export class TableTransformManager {
     this.session = null
     this.element = null
     this.rafId = null
-
-    if (preview) {
-      this.onTransformTable(objectId, preview)
-    }
-
-    this.scheduleClearPreview(element)
+    this.clearSessionSurface(element)
   }
 
   cancel() {
     this.detachWindowListeners()
-    this.clearPreview()
+    this.clearSessionSurface(this.element)
     this.session = null
     this.element = null
 
@@ -327,7 +315,7 @@ export class TableTransformManager {
 
   dispose() {
     this.detachWindowListeners()
-    this.clearPreview()
+    this.clearSessionSurface(this.element)
     this.cancel()
   }
 }

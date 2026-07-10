@@ -263,4 +263,37 @@ describe('CanvasObjectNode selection chrome', () => {
     expect(zoomedContainer.querySelector('.fpb-handle-nw')).not.toBeNull()
     unmountZoomed()
   })
+
+  it('keeps selection chrome bounds aligned with object.size after resize', () => {
+    const { container, unmount } = renderNode({
+      object: {
+        ...tableObject,
+        size: { width: 240, height: 240 },
+      },
+      isSelected: true,
+      showTransformChrome: true,
+      isDragging: false,
+      isTransforming: false,
+      activeTool: 'select',
+      isEditable: true,
+      cameraZoom: 1,
+      onPointerDown: vi.fn(),
+      onPointerMove: vi.fn(),
+      onPointerUp: vi.fn(),
+      onResizePointerDown: vi.fn(),
+      onRotatePointerDown: vi.fn(),
+    })
+
+    const root = container.querySelector('.fpb-canvas-object')
+    const chrome = container.querySelector('.fpb-selection-chrome')
+
+    expect(root.style.width).toBe('240px')
+    expect(root.style.height).toBe('240px')
+    expect(chrome.getAttribute('data-bounds-width')).toBe('240')
+    expect(chrome.getAttribute('data-bounds-height')).toBe('240')
+    expect(root.style.transform).toBe('')
+    expect(root.querySelector('[data-fpb-object-body]').style.transform).toBe('rotate(0deg)')
+
+    unmount()
+  })
 })

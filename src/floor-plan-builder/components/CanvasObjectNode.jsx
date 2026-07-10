@@ -40,17 +40,22 @@ function CanvasObjectNodeComponent({
     : minDimension < 128
       ? 'cozy'
       : 'normal'
-  const isDirectManipulation = isDragging || isTransforming
   const { handleSize, chromeInset } = getTableHandleMetrics(minDimension)
+  const renderBounds = {
+    left: position.x,
+    top: position.y,
+    width: size.width,
+    height: size.height,
+  }
 
   return (
     <div
       className={`fpb-canvas-object type-${object.type}${shapeClass}${isSelected ? ' is-selected' : ''}${isDragging ? ' is-dragging' : ''}${isTransforming ? ' is-transforming' : ''}${isLocked ? ' is-locked' : ''}${labelDensity !== 'normal' ? ` is-label-${labelDensity}` : ''}${isEditable ? ' is-editable' : ''}`}
       style={{
-        left: position.x,
-        top: position.y,
-        width: size.width,
-        height: size.height,
+        left: renderBounds.left,
+        top: renderBounds.top,
+        width: renderBounds.width,
+        height: renderBounds.height,
         zIndex: isDragging || isTransforming ? 20 : object.zIndex,
         touchAction: isEditable ? 'none' : 'auto',
         '--fpb-handle-size': `${handleSize}px`,
@@ -75,7 +80,7 @@ function CanvasObjectNodeComponent({
         data-fpb-object-body
         className="fpb-canvas-object-body"
         style={{
-          transform: isDirectManipulation ? undefined : `rotate(${rotation}deg)`,
+          transform: `rotate(${rotation}deg)`,
         }}
       >
         <div className="fpb-canvas-object-surface">
@@ -89,6 +94,8 @@ function CanvasObjectNodeComponent({
           <div
             className="fpb-selection-chrome"
             aria-hidden="true"
+            data-bounds-width={renderBounds.width}
+            data-bounds-height={renderBounds.height}
             style={{ pointerEvents: isDragging ? 'none' : undefined }}
           >
             {CORNER_HANDLES.map((handle) => (

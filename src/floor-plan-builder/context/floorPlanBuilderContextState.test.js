@@ -326,6 +326,41 @@ describe('TRANSFORM_TABLE', () => {
     expect(nextState.objects[0].size).toEqual({ width: 240, height: 240 })
     expect(nextState.objects[0].position).toEqual({ x: 200, y: 200 })
   })
+
+  it('updates object.size on each live resize commit', () => {
+    const initialState = {
+      ...createInitialBuilderState({ initialEditing: true }),
+      objects: [{
+        ...createTable('table-1'),
+        position: { x: 200, y: 200 },
+        size: { width: 200, height: 200 },
+        properties: { shape: 'square', capacity: 4 },
+      }],
+    }
+
+    const midResize = floorPlanBuilderReducer(initialState, {
+      type: 'TRANSFORM_TABLE',
+      payload: {
+        objectId: 'table-1',
+        position: { x: 200, y: 200 },
+        size: { width: 220, height: 220 },
+        rotation: 0,
+      },
+    })
+
+    const afterRelease = floorPlanBuilderReducer(midResize, {
+      type: 'TRANSFORM_TABLE',
+      payload: {
+        objectId: 'table-1',
+        position: { x: 200, y: 200 },
+        size: { width: 240, height: 240 },
+        rotation: 0,
+      },
+    })
+
+    expect(midResize.objects[0].size).toEqual({ width: 220, height: 220 })
+    expect(afterRelease.objects[0].size).toEqual({ width: 240, height: 240 })
+  })
 })
 
 describe('CLEAR_ACTIVE_FLOOR_LAYOUT', () => {
