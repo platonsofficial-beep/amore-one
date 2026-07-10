@@ -1,11 +1,23 @@
 /**
  * @vitest-environment jsdom
  */
-import { describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { createElement } from 'react'
 import { createRoot } from 'react-dom/client'
 import { act } from 'react'
 import { MobileReservationsHostView } from './MobileReservationsHostView'
+
+const splitViewportMock = vi.hoisted(() => ({
+  isSplit: false,
+}))
+
+vi.mock('../../../lib/mobileHostReservationUtils', async (importOriginal) => {
+  const actual = await importOriginal()
+  return {
+    ...actual,
+    isMobileHostSplitViewport: () => splitViewportMock.isSplit,
+  }
+})
 
 function renderHostView(props = {}) {
   const container = document.createElement('div')
@@ -36,6 +48,19 @@ function renderHostView(props = {}) {
 }
 
 describe('MobileReservationsHostView header actions', () => {
+  beforeEach(() => {
+    splitViewportMock.isSplit = false
+  })
+
+  it('keeps portrait filter tabs outside split layout', () => {
+    const { container, unmount } = renderHostView()
+
+    expect(container.querySelector('.mobile-host-reservations-tabs')).not.toBeNull()
+    expect(container.querySelector('.host-reservation-list-sections')).toBeNull()
+
+    unmount()
+  })
+
   it('hides the header layout action when no published layout exists', () => {
     const { container, unmount } = renderHostView({ hasLayout: false })
 

@@ -237,6 +237,26 @@ export function getHostListStatusLabel(status) {
   return getHostStatusMeta(status).label
 }
 
+const HOST_LIST_COMPACT_STATUS_LABELS = {
+  Pending: 'Pending',
+  Waiting: 'Arrived',
+  'Not Confirmed': 'Unconfirmed',
+  Confirmed: 'Confirmed',
+  'Late Booking': 'Late',
+  'Checked In (Partial)': 'Seated',
+  'Checked In': 'Seated',
+  'Walk In': 'Seated',
+  'Checked Out': 'Completed',
+  Cancelled: 'Cancelled',
+  'Not Shown': 'No-show',
+  Rejected: 'Rejected',
+}
+
+export function getHostListCompactStatusLabel(status) {
+  const normalized = normalizeReservationStatus(status)
+  return HOST_LIST_COMPACT_STATUS_LABELS[normalized] ?? getHostStatusMeta(normalized).label
+}
+
 export function getHostReservationStatusOptions() {
   return HOST_RESERVATION_STATUSES.map((entry) => ({
     value: entry.id,

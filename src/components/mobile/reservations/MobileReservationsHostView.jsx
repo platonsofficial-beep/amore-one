@@ -6,13 +6,14 @@ import {
 } from '../../reservations/hostReservationListUtils'
 import { getHostListEmptyState } from '../../../lib/reservationServiceIntelligence'
 import {
-  countMobileHostReservationsByTab,
   filterMobileHostReservations,
   isMobileHostSplitViewport,
   MOBILE_HOST_TABS,
   resolveHostReservationFormVariant,
 } from '../../../lib/mobileHostReservationUtils'
 import { MobileReservationHostCard } from './MobileReservationHostCard'
+import { HostReservationList } from '../../reservations/HostReservationList'
+import { HOST_LIST_HELPERS } from '../../reservations/hostReservationListHelpers'
 import {
   MobileHostReservationRowMenu,
   MobileHostReservationStatusMenu,
@@ -77,9 +78,27 @@ export function MobileReservationsHostView({
   )
 
   const tabCounts = useMemo(
-    () => countMobileHostReservationsByTab(workspaceReservations),
+    () => MOBILE_HOST_TABS.reduce((counts, tab) => ({
+      ...counts,
+      [tab.id]: filterMobileHostReservations(workspaceReservations, { tabId: tab.id }).length,
+    }), {}),
     [workspaceReservations],
   )
+
+  const searchFilteredReservations = useMemo(() => {
+    const needle = searchTerm.trim().toLowerCase()
+    if (!needle) return workspaceReservations
+
+    return workspaceReservations.filter((reservation) => (
+      [
+        reservation?.guestName,
+        reservation?.phone,
+        reservation?.tableNumber,
+        reservation?.area,
+        reservation?.notes,
+      ].join(' ').toLowerCase().includes(needle)
+    ))
+  }, [searchTerm, workspaceReservations])
 
   const visibleReservations = useMemo(
     () => filterMobileHostReservations(workspaceReservations, {
@@ -200,6 +219,7 @@ export function MobileReservationsHostView({
         </button>
       </div>
 
+      {!isSplitLayout ? (
       <div className="mobile-host-reservations-tabs" role="tablist" aria-label="Service tabs">
         {MOBILE_HOST_TABS.map((tab) => (
           <button
@@ -215,10 +235,11 @@ export function MobileReservationsHostView({
           </button>
         ))}
       </div>
+      ) : null}
     </div>
   )
 
-  const reservationList = isLoading ? (
+  const portraitReservationList = isLoading ? (
     <p className="mobile-host-reservations-loading">Loading reservations…</p>
   ) : visibleReservations.length === 0 ? (
     (() => {
@@ -262,6 +283,32 @@ export function MobileReservationsHostView({
       ))}
     </ul>
   )
+
+  const splitReservationList = (
+    <HostReservationList
+      layout="compactTablet"
+      reservations={searchFilteredReservations}
+      nowMinutes={nowMinutes}
+      todayKey={todayKey}
+      isLoading={isLoading}
+      isSelected={(reservation) => `${effectiveSelectedReservationId}` === `${reservation.id}`}
+      hostEditingReservation={editingReservation}
+      draggingReservationId={null}
+      isSavingStatus={isSaving}
+      listFilter="All"
+      searchTerm={searchTerm}
+      dailySnapshot={summary}
+      isViewingToday
+      onOpenEdit={handleSelectReservation}
+      onStatusChange={handleStatusSelect}
+      onDragStart={() => {}}
+      onDragEnd={() => {}}
+      onOpenRowMenu={handleOpenRowMenu}
+      helpers={HOST_LIST_HELPERS}
+    />
+  )
+
+  const reservationList = isSplitLayout ? splitReservationList : portraitReservationList
 
   const portraitFloorSection = !isSplitLayout && rightPaneContent ? (
     <div className="mobile-host-floor-collapsible">

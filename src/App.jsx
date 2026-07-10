@@ -29,6 +29,7 @@ import TasksView from './components/tasks/TasksView'
 import { HostReservationEditPanel, createHostReservationEditForm } from './components/reservations/HostReservationEditPanel'
 import { HostReservationEditErrorBoundary } from './components/reservations/HostReservationEditErrorBoundary'
 import { HostReservationList } from './components/reservations/HostReservationList'
+import { HOST_LIST_HELPERS } from './components/reservations/hostReservationListHelpers'
 import { HostManagerSummaryBar } from './components/reservations/HostManagerSummaryBar'
 import { formatHostNextArrivalHint } from './components/reservations/HostServiceHealthStrip'
 import { HostWorkspaceDateNav } from './components/reservations/HostWorkspaceDateNav'
@@ -10244,19 +10245,6 @@ function getSeatedDurationLabel(reservation, nowMinutes, todayKey) {
   return remainder > 0 ? `${hours}h ${remainder}m seated` : `${hours}h seated`
 }
 
-const HOST_LIST_HELPERS = {
-  formatReservationGuestName,
-  formatHostReservationListTime,
-  getReservationDisplayStatus,
-  getReservationDisplayStatusTone,
-  getHostListStatusLabel,
-  getHostReservationWarnings,
-  getGuestCustomerType,
-  normalizeReservationStatus,
-  isReservationWaiting,
-  isReservationInHouse,
-  isReservationLate,
-}
 
 function HostServicePressureBar({ slots, nowMinutes, selectedHour = null, onHourSelect }) {
   if (!slots.length) return null

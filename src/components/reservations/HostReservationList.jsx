@@ -4,14 +4,17 @@ import {
 } from '../../lib/timeFormatUtils'
 import {
   formatHostListTableLabel,
-  formatHostListTableTooltip,
 } from '../../lib/seatingAssignment'
 import {
   getHostReservationQuickActions,
   getHostReservationVisualIndicator,
+  getHostListCompactStatusLabel,
   getHostStatusMeta,
   getReservationDisplayStatus,
 } from '../../lib/reservationHostStatus'
+import {
+  formatHostListMetaLine,
+} from './hostReservationListHelpers'
 import {
   getDefaultHostListCollapsedSections,
   groupHostListOperationalSections,
@@ -62,6 +65,8 @@ function HostReservationListRow({
   onQuickStatusUpdate,
   onDragStart,
   onDragEnd,
+  onOpenRowMenu = null,
+  layout = 'default',
   helpers,
 }) {
   const {
@@ -72,16 +77,20 @@ function HostReservationListRow({
   const guestName = formatReservationGuestName(reservation.guestName)
   const guestCount = Number(reservation.guests) || 0
   const tableLabel = formatHostListTableLabel(reservation)
-  const tableTooltip = formatHostListTableTooltip(reservation)
   const scheduleLabel = formatHostListScheduleLabel(
     reservation,
     todayKey,
   )
   const displayStatus = getReservationDisplayStatus(reservation, nowMinutes, todayKey)
   const statusMeta = getHostStatusMeta(displayStatus)
+  const compactStatusLabel = getHostListCompactStatusLabel(displayStatus)
   const visualIndicator = getHostReservationVisualIndicator(reservation, nowMinutes, todayKey)
   const warnings = getHostReservationWarnings(reservation, nowMinutes, todayKey)
-  const quickActions = getHostReservationQuickActions(reservation, { nowMinutes, todayKey })
+  const quickActions = layout === 'default'
+    ? getHostReservationQuickActions(reservation, { nowMinutes, todayKey })
+    : []
+  const isCompactTablet = layout === 'compactTablet'
+  const metaLine = formatHostListMetaLine(guestCount, tableLabel)
 
   const handleCardActivate = () => {
     onOpenEdit(reservation)
@@ -98,14 +107,19 @@ function HostReservationListRow({
     onQuickStatusUpdate?.(reservation, action.status)
   }
 
+  const handleOpenRowMenu = (event) => {
+    event.stopPropagation()
+    onOpenRowMenu?.(reservation, event)
+  }
+
   return (
     <article
-      className={`host-reservation-card tone-${statusMeta.tone}${isSelected ? ' is-selected' : ''}${isEditing ? ' is-editing' : ''}${isDragging ? ' is-dragging' : ''}${isStatusPickerOpen ? ' is-status-picker-open' : ''}${isNextArrival ? ' is-next-arrival' : ''}`}
+      className={`host-reservation-card tone-${statusMeta.tone}${isSelected ? ' is-selected' : ''}${isEditing ? ' is-editing' : ''}${isDragging ? ' is-dragging' : ''}${isStatusPickerOpen ? ' is-status-picker-open' : ''}${isNextArrival ? ' is-next-arrival' : ''}${isCompactTablet ? ' is-compact-tablet' : ''}`}
       role="listitem"
       tabIndex={0}
-      draggable
-      onDragStart={onDragStart}
-      onDragEnd={onDragEnd}
+      draggable={!isCompactTablet}
+      onDragStart={isCompactTablet ? undefined : onDragStart}
+      onDragEnd={isCompactTablet ? undefined : onDragEnd}
       onClick={handleCardActivate}
       onKeyDown={(event) => {
         if (event.key === 'Enter' || event.key === ' ') {
@@ -133,23 +147,11 @@ function HostReservationListRow({
           ) : null}
           </div>
           <div className="host-reservation-card-details">
-            <span className="host-reservation-card-meta">
-              {guestCount}
-              {tableLabel ? (
-                <>
-                  {' • '}
-                  <span
-                    className="host-reservation-card-tables"
-                    title={tableTooltip !== tableLabel ? tableTooltip : undefined}
-                  >
-                    {tableLabel}
-                  </span>
-                </>
-              ) : null}
-            </span>
+            <span className="host-reservation-card-meta">{metaLine}</span>
           </div>
         </div>
 
+        <div className="host-reservation-card-trailing">
         <button
         type="button"
         className={`host-reservation-card-status-pill tone-${statusMeta.tone} is-compact`}
@@ -158,8 +160,21 @@ function HostReservationListRow({
         aria-haspopup="dialog"
         onClick={handleOpenStatusPicker}
       >
-        {statusMeta.label}
+        {compactStatusLabel}
       </button>
+      {onOpenRowMenu ? (
+        <button
+          type="button"
+          className="host-reservation-card-row-menu"
+          aria-label="More reservation actions"
+          aria-haspopup="menu"
+          disabled={isSavingStatus}
+          onClick={handleOpenRowMenu}
+        >
+          ⋯
+        </button>
+      ) : null}
+      </div>
       </div>
 
       {quickActions.length > 0 ? (
@@ -200,6 +215,8 @@ export function HostReservationList({
   onStatusChange,
   onDragStart,
   onDragEnd,
+  onOpenRowMenu = null,
+  layout = 'default',
   helpers,
 }) {
   const operationalSections = useMemo(
@@ -211,6 +228,8 @@ export function HostReservationList({
     ),
     [reservations, nowMinutes, todayKey, problemFilterOptions],
   )
+
+  const listLayoutClass = layout === 'compactTablet' ? ' is-compact-tablet-layout' : ''
 
   const [collapsedSections, setCollapsedSections] = useState(readCollapsedSections)
   const [statusPicker, setStatusPicker] = useState(null)
@@ -286,7 +305,7 @@ export function HostReservationList({
   return (
     <>
       <div
-        className="host-reservation-list host-reservation-list-grouped host-reservation-list-sections"
+        className={`host-reservation-list host-reservation-list-grouped host-reservation-list-sections${listLayoutClass}`}
         aria-label="Reservations"
       >
         {operationalSections
@@ -345,6 +364,8 @@ export function HostReservationList({
                       onQuickStatusUpdate={onStatusChange}
                       onDragStart={(event) => onDragStart(event, reservation)}
                       onDragEnd={onDragEnd}
+                      onOpenRowMenu={onOpenRowMenu}
+                      layout={layout}
                       helpers={helpers}
                     />
                   ))}

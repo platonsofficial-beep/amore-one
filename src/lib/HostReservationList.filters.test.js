@@ -21,7 +21,7 @@ describe('HostReservationList operational sections', () => {
     act(() => {
       root.render(createElement(HostReservationList, {
         reservations: [
-          { id: '1', guestName: 'Maria', guests: 2, time: '19:00', date: '2026-07-10', status: 'Confirmed' },
+          { id: '1', guestName: 'Maria', guests: 2, time: '19:00', date: '2026-07-10', status: 'Confirmed', tableNumber: '12' },
         ],
         nowMinutes: 18 * 60,
         todayKey: '2026-07-10',
@@ -38,6 +38,8 @@ describe('HostReservationList operational sections', () => {
     expect(container.querySelector('.host-reservation-group')).not.toBeNull()
     expect(container.querySelector('.host-reservation-group-label')?.textContent).toBe('Upcoming')
     expect(container.querySelectorAll('.host-reservation-card')).toHaveLength(1)
+    expect(container.querySelector('.host-reservation-card-meta')?.textContent).toBe('2 • T12')
+    expect(container.querySelector('.host-reservation-card-status-pill')?.textContent?.trim()).toBe('Confirmed')
 
     act(() => {
       root.unmount()

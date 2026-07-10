@@ -6470,6 +6470,36 @@ html[data-one-debug-scroll='1'] .floor-plan-viewport.is-host-viewport {
   padding-bottom: max(12px, env(safe-area-inset-bottom, 0px));
 }
 
+.app-shell.is-host-station-shell .mobile-host-reservations-list-pane .host-reservation-list {
+  padding: 0 4px 8px;
+}
+
+.app-shell.is-host-station-shell .mobile-host-reservations.is-landscape .mobile-host-reservations-tabs {
+  display: none;
+}
+
+.app-shell.is-host-station-shell .mobile-host-reservations-list-pane .host-reservation-group-header {
+  min-height: 44px;
+}
+
+.app-shell.is-host-station-shell .mobile-host-reservations-list-pane .host-reservation-card.is-compact-tablet {
+  min-height: 48px;
+  max-height: 52px;
+}
+
+.app-shell.is-host-station-shell .mobile-host-reservations-list-pane .host-reservation-card-guest {
+  font-size: 0.88rem;
+  font-weight: 650;
+  color: #f3ede4;
+}
+
+.app-shell.is-host-station-shell .mobile-host-reservations-list-pane .host-reservation-card-status-pill.is-compact {
+  min-height: 44px;
+  padding: 4px 8px;
+  max-width: none;
+  white-space: nowrap;
+}
+
 .app-shell.is-host-station-shell .mobile-host-reservation-row.is-compact {
   min-height: 64px;
 }
