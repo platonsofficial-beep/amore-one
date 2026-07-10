@@ -50,6 +50,7 @@ import { PublishedFloorPlanProvider, usePublishedFloorPlan } from './lib/Publish
 import { loadPublishedHostLayout } from './lib/builderToHostLayout'
 import { completeReturnToHost } from './lib/publishReturnToHost'
 import { useHostReturnAfterPublishBoot } from './lib/useHostReturnAfterPublishBoot'
+import { isHostAssignmentModeActive } from './lib/hostAssignmentPanelUtils'
 import { resolveActiveFloorAreaId } from './lib/publishFloorPlanTransition'
 import {
   computeSeatingAssignmentTotals,
@@ -8923,6 +8924,10 @@ function MobileReservationsHostShellBody({
       canEditFloorPlan={canEditFloorPlan}
       onEditReservation={onEditReservation}
       onOpenFloorPlanLayout={() => setFloorPlanMode('edit')}
+      isAssignmentMode={isHostAssignmentModeActive({
+        selectedReservation,
+        floorPlanMode,
+      })}
     />
   )
 

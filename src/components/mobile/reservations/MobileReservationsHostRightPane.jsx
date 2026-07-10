@@ -16,6 +16,7 @@ export function MobileReservationsHostRightPane({
   canEditFloorPlan = false,
   onEditReservation,
   onOpenFloorPlanLayout,
+  isAssignmentMode = false,
 }) {
   if (!hasLayout) {
     return (
@@ -43,13 +44,16 @@ export function MobileReservationsHostRightPane({
   }
 
   return (
-    <div className="mobile-host-reservations-right-pane">
+    <div
+      className={`mobile-host-reservations-right-pane${isAssignmentMode ? ' is-assignment-mode' : ''}`}
+      data-assignment-mode={isAssignmentMode ? 'true' : 'false'}
+    >
       <div className="mobile-host-floor-stage" aria-label="Floor plan">
         {floorPlanContent}
       </div>
 
-      {selectedReservation ? (
-        <div className="mobile-host-floor-selection">
+      {selectedReservation && !isAssignmentMode ? (
+        <div className="mobile-host-floor-selection" data-testid="host-floor-selection-summary">
           <MobileHostFloorSelectionCard
             reservation={selectedReservation}
             todayKey={todayKey}

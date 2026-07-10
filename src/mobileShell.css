@@ -5441,6 +5441,51 @@
   padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
+.mobile-host-reservations-right-pane.is-assignment-mode {
+  gap: 0;
+  overflow: hidden;
+  touch-action: manipulation;
+}
+
+.mobile-host-reservations-right-pane.is-assignment-mode .mobile-host-floor-stage {
+  flex: 1 1 auto;
+  min-height: 0;
+  height: auto;
+}
+
+.mobile-host-floor-stage .floor-plan-workspace.is-host-floor.has-seating-drawer {
+  gap: 0;
+}
+
+.mobile-host-floor-stage .floor-plan-workspace.has-seating-drawer .floor-plan-host-shell {
+  flex-direction: column;
+  min-height: 0;
+}
+
+.mobile-host-floor-stage .floor-plan-workspace.has-seating-drawer .floor-plan-host-main {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.mobile-host-floor-stage .floor-plan-workspace.has-seating-drawer .host-seating-drawer {
+  flex: 0 0 auto;
+  width: 100%;
+  max-width: none;
+  min-height: 220px;
+  max-height: min(44vh, 380px);
+  border-left: 0;
+  border-top: 1px solid rgba(212, 175, 55, 0.22);
+  overflow: hidden;
+}
+
+.mobile-host-reservations.is-portrait .mobile-host-floor-stage .floor-plan-workspace.has-seating-drawer .host-seating-drawer {
+  max-height: min(52vh, 420px);
+}
+
+.mobile-host-reservations.is-portrait .mobile-host-floor-collapsible-body .mobile-host-reservations-right-pane.is-assignment-mode {
+  min-height: min(72vh, 720px);
+}
+
 .mobile-host-floor-stage {
   flex: 1 1 auto;
   min-height: 240px;

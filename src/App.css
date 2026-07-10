@@ -6002,10 +6002,81 @@
 
 .host-seating-drawer-header {
   display: flex;
-  flex-direction: column;
-  gap: 4px;
-  padding-bottom: 10px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 0.85rem 1rem 0.5rem;
+  flex-shrink: 0;
+}
+
+.host-seating-drawer-heading {
+  flex: 1;
+  min-width: 0;
+}
+
+.host-seating-drawer-close {
+  flex-shrink: 0;
+  min-width: 44px;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.host-seating-drawer-meta {
+  margin: 0;
+  font-size: 0.78rem;
+  color: rgba(255, 255, 255, 0.62);
+}
+
+.seating-confirm-panel.is-host-drawer .host-seating-drawer-capacity {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.host-seating-drawer-advisory {
+  margin: 0;
+  padding: 0.65rem 0.75rem;
+  border-radius: 10px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.host-seating-drawer-advisory.is-neutral {
+  color: rgba(255, 255, 255, 0.62);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.host-seating-drawer-advisory.is-success {
+  color: #d8f0d0;
+  background: rgba(76, 175, 80, 0.12);
+  border: 1px solid rgba(76, 175, 80, 0.28);
+}
+
+.host-seating-drawer-advisory.is-warning {
+  color: #ffe0c2;
+  background: rgba(255, 152, 0, 0.12);
+  border: 1px solid rgba(255, 152, 0, 0.28);
+}
+
+.host-seating-drawer-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+  touch-action: pan-y;
+  -webkit-overflow-scrolling: touch;
+  padding: 0 1rem;
+}
+
+.host-seating-drawer-actions {
+  flex-shrink: 0;
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
 }
 
 .host-seating-drawer-eyebrow {
@@ -28859,11 +28930,13 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 .host-reservation-card-body, .host-reservation-card-details { min-width: 0; }
 .host-reservation-card-tables { overflow-wrap: anywhere; }
 .host-reservation-card-status-pill.is-compact { min-height: 32px; padding: 0.2rem 0.55rem; font-size: 0.72rem; }
-.seating-confirm-panel.is-host-drawer { display: flex; flex-direction: column; height: 100%; min-height: 0; }
-.host-seating-drawer-header { display: flex; justify-content: space-between; gap: 0.75rem; align-items: flex-start; padding: 0.85rem 1rem 0.5rem; }
-.host-seating-drawer-scroll { flex: 1; min-height: 0; overflow-y: auto; padding: 0 1rem; }
-.host-seating-drawer-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 0.65rem; padding: 0.75rem 1rem calc(0.75rem + env(safe-area-inset-bottom, 0px)); border-top: 1px solid rgba(255,255,255,0.08); }
+.seating-confirm-panel.is-host-drawer { display: flex; flex-direction: column; height: 100%; min-height: 0; overflow: hidden; }
+.host-seating-drawer { overflow: hidden; }
+.host-seating-drawer-header { display: flex; justify-content: space-between; gap: 0.75rem; align-items: flex-start; padding: 0.85rem 1rem 0.5rem; border-bottom: 1px solid rgba(255,255,255,0.06); }
+.host-seating-drawer-scroll { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; touch-action: pan-y; padding: 0.75rem 1rem; }
+.host-seating-drawer-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 0.65rem; padding: 0.75rem 1rem calc(0.75rem + env(safe-area-inset-bottom, 0px)); border-top: 1px solid rgba(255,255,255,0.08); background: rgba(14,13,11,0.98); }
 .host-seating-drawer-actions .seating-confirm-btn { min-height: 44px; }
+.host-seating-drawer-close { min-width: 44px; min-height: 44px; }
 .reservation-table-selector-unit { display: flex; flex-direction: column; align-items: flex-start; gap: 0.2rem; text-align: left; }
 .reservation-table-selector-unit-meta { display: flex; flex-direction: column; gap: 0.1rem; }
 .host-station-error-boundary, .mobile-host-floor-refreshing, .mobile-host-floor-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.75rem; min-height: 12rem; padding: 1rem; text-align: center; }

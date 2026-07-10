@@ -6,9 +6,10 @@ import {
   formatSeatingAssignmentLabels,
 } from '../../lib/seatingAssignment'
 import { getHostUnitById } from '../../lib/hostFloorPlanLayout'
-import { formatSeatingChipLabel } from '../../lib/reservationSeatings'
+import { normalizeReservationSeating, normalizeReservationSeatingInput } from '../../lib/reservationSeatings'
 import { formatTime24 } from '../../lib/timeFormatUtils'
 import { usePublishedFloorPlan } from '../../lib/PublishedFloorPlanContext'
+import { getHostSeatingAssignmentAdvisory } from '../../lib/hostAssignmentPanelUtils'
 
 export function SeatingConfirmPanel({
   reservation,
@@ -45,39 +46,54 @@ export function SeatingConfirmPanel({
   const isHostDrawer = variant === 'host-drawer'
   const hasSelection = assignedUnits.length > 0
   const chairsNeeded = Math.max(0, totals.capacityGap)
-  const seatingLabel = seating ? formatSeatingChipLabel(seating) : ''
   const timeLabel = formatTime24(reservation.time)
+  const normalizedSeating = seating
+    ? (normalizeReservationSeating(seating) ?? normalizeReservationSeatingInput(seating))
+    : null
+  const seatingName = normalizedSeating?.name ?? ''
+  const advisory = getHostSeatingAssignmentAdvisory({ hasSelection, totals })
+  const reservationMeta = [timeLabel, seatingName].filter(Boolean).join(' · ')
 
   if (isHostDrawer) {
     return (
-      <div className="seating-confirm-panel is-host-drawer" role="region" aria-label="Assign seating">
+      <div
+        className="seating-confirm-panel is-host-drawer"
+        role="region"
+        aria-label="Assign seating"
+        data-testid="host-assignment-panel"
+        data-assignment-mode="true"
+      >
         <header className="host-seating-drawer-header">
           <div className="host-seating-drawer-heading">
             <p className="host-seating-drawer-eyebrow">Assign seating</p>
             <h4 className="host-seating-drawer-title">{reservation.guestName}</h4>
-            {seatingLabel || timeLabel ? (
-              <p className="host-seating-drawer-subtitle">
-                {seatingLabel}
-                {seatingLabel && timeLabel ? ' · ' : ''}
-                {timeLabel}
-              </p>
+            {reservationMeta ? (
+              <p className="host-seating-drawer-subtitle">{reservationMeta}</p>
             ) : null}
-            <p className="host-seating-drawer-meta">{totals.guests} guests</p>
+            <p className="host-seating-drawer-meta">
+              {totals.guests} {totals.guests === 1 ? 'guest' : 'guests'}
+            </p>
           </div>
           <button
             type="button"
             className="icon-btn host-seating-drawer-close"
             onClick={onCancel}
             aria-label="Close assign seating panel"
+            data-testid="host-assignment-close"
           >
             ✕
           </button>
         </header>
 
-        <div className="host-seating-drawer-scroll">
+        <div
+          className="host-seating-drawer-scroll"
+          data-testid="host-assignment-scroll"
+        >
           <div className="host-seating-drawer-section">
             <span className="host-seating-drawer-label">Selected tables</span>
-            <p className="host-seating-drawer-tables">{hasSelection ? drawerLabels : 'Click tables on the floor plan'}</p>
+            <p className="host-seating-drawer-tables" data-testid="host-assignment-selected-tables">
+              {hasSelection ? drawerLabels : 'Click tables on the floor plan'}
+            </p>
           </div>
 
           <dl className="host-seating-drawer-capacity">
@@ -89,13 +105,19 @@ export function SeatingConfirmPanel({
               <dt>Capacity</dt>
               <dd>{totals.totalGuestCapacity}</dd>
             </div>
+            <div>
+              <dt>Extra chairs</dt>
+              <dd>{totals.extraChairs}</dd>
+            </div>
           </dl>
 
-          {hasSelection && !totals.isOverCapacity ? (
-            <p className="host-seating-drawer-success" role="status">
-              Capacity fits this party.
-            </p>
-          ) : null}
+          <p
+            className={`host-seating-drawer-advisory is-${advisory.tone}`}
+            role="status"
+            data-testid="host-assignment-advisory"
+          >
+            {advisory.message}
+          </p>
 
           {hasSelection && totals.isOverCapacity ? (
             <p className="host-seating-drawer-warning" role="status">
@@ -128,12 +150,13 @@ export function SeatingConfirmPanel({
           ) : null}
         </div>
 
-        <div className="host-seating-drawer-actions">
+        <div className="host-seating-drawer-actions" data-testid="host-assignment-actions">
           <button
             type="button"
             className="seating-confirm-btn"
             onClick={onCancel}
             disabled={isSaving}
+            data-testid="host-assignment-cancel"
           >
             Cancel
           </button>
@@ -142,6 +165,7 @@ export function SeatingConfirmPanel({
             className="seating-confirm-btn seating-confirm-btn-primary"
             onClick={() => onConfirm(draftAssignment)}
             disabled={isSaving || assignedUnits.length === 0}
+            data-testid="host-assignment-confirm"
           >
             Confirm seating
           </button>

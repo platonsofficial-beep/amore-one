@@ -1,0 +1,101 @@
+import { describe, expect, it } from 'vitest'
+import {
+  getHostSeatingAssignmentAdvisory,
+  isHostAssignmentModeActive,
+} from './hostAssignmentPanelUtils'
+import { computeSeatingAssignmentTotals } from './seatingAssignment'
+
+describe('host assignment panel utils', () => {
+  it('enters assignment mode when a reservation is selected in floor view', () => {
+    expect(isHostAssignmentModeActive({
+      selectedReservation: { id: 'res-1' },
+      floorPlanMode: 'view',
+    })).toBe(true)
+  })
+
+  it('does not enter assignment mode while editing layout', () => {
+    expect(isHostAssignmentModeActive({
+      selectedReservation: { id: 'res-1' },
+      floorPlanMode: 'edit',
+    })).toBe(false)
+  })
+
+  it('returns advisory states for selection and capacity', () => {
+    expect(getHostSeatingAssignmentAdvisory({ hasSelection: false }).message)
+      .toBe('No tables selected.')
+
+    const totals = computeSeatingAssignmentTotals({
+      assignedUnits: [{ id: 'u1', label: 'T1', seatedCapacity: 2, maxGuestCapacity: 2 }],
+      extraChairs: 0,
+      standingGuests: 0,
+    }, 4)
+
+    expect(getHostSeatingAssignmentAdvisory({ hasSelection: true, totals }).message)
+      .toBe('Selected capacity is below party size.')
+
+    const fittingTotals = computeSeatingAssignmentTotals({
+      assignedUnits: [{ id: 'u2', label: 'T2', seatedCapacity: 2, maxGuestCapacity: 4 }],
+      extraChairs: 0,
+      standingGuests: 0,
+    }, 2)
+
+    expect(getHostSeatingAssignmentAdvisory({ hasSelection: true, totals: fittingTotals }).message)
+      .toBe('Capacity fits this party.')
+  })
+})
+
+/**
+ * @vitest-environment jsdom
+ */
+import { createElement } from 'react'
+import { createRoot } from 'react-dom/client'
+import { act } from 'react'
+import { MobileReservationsHostRightPane } from '../components/mobile/reservations/MobileReservationsHostRightPane'
+
+describe('MobileReservationsHostRightPane assignment mode', () => {
+  it('hides duplicate bottom reservation summary during assignment mode', () => {
+    const container = document.createElement('div')
+    document.body.appendChild(container)
+    const root = createRoot(container)
+
+    act(() => {
+      root.render(createElement(MobileReservationsHostRightPane, {
+        hasLayout: true,
+        floorPlanContent: createElement('div', { 'data-testid': 'floor' }, 'Floor'),
+        selectedReservation: { id: 'res-1', guestName: 'Guest' },
+        isAssignmentMode: true,
+      }))
+    })
+
+    expect(container.querySelector('[data-assignment-mode="true"]')).toBeTruthy()
+    expect(container.querySelector('[data-testid="host-floor-selection-summary"]')).toBeNull()
+
+    act(() => root.unmount())
+    container.remove()
+  })
+
+  it('restores bottom reservation summary when assignment mode closes', () => {
+    const container = document.createElement('div')
+    document.body.appendChild(container)
+    const root = createRoot(container)
+
+    act(() => {
+      root.render(createElement(MobileReservationsHostRightPane, {
+        hasLayout: true,
+        floorPlanContent: createElement('div', null, 'Floor'),
+        selectedReservation: { id: 'res-1', guestName: 'Guest', guests: 2, time: '17:00' },
+        isAssignmentMode: false,
+        todayKey: '2026-07-10',
+        nowMinutes: 900,
+      }))
+    })
+
+    expect(container.querySelector('[data-testid="host-floor-selection-summary"]')).toBeTruthy()
+    expect(container.getAttribute('data-assignment-mode')).toBeNull()
+    expect(container.querySelector('.mobile-host-reservations-right-pane')?.getAttribute('data-assignment-mode'))
+      .toBe('false')
+
+    act(() => root.unmount())
+    container.remove()
+  })
+})
