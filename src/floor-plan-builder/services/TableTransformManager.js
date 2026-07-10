@@ -3,6 +3,7 @@ import {
   computeRotationFromPointer,
   normalizeRotation,
 } from '../lib/tableTransformUtils'
+import { OBJECT_BODY_SELECTOR } from '../lib/canvasObjectDom'
 
 export class TableTransformManager {
   constructor({ getClientToWorld, onTransformTable }) {
@@ -21,6 +22,10 @@ export class TableTransformManager {
     return this.session?.objectId ?? null
   }
 
+  getObjectBody(element = this.element) {
+    return element?.querySelector(OBJECT_BODY_SELECTOR) ?? element
+  }
+
   applyPreview({ position, size, rotation }) {
     if (!this.element || !this.session) return
 
@@ -35,7 +40,8 @@ export class TableTransformManager {
     }
 
     if (rotation !== undefined) {
-      this.element.style.transform = `rotate(${rotation}deg)`
+      const body = this.getObjectBody(this.element)
+      body.style.transform = `rotate(${rotation}deg)`
     }
   }
 
@@ -45,9 +51,14 @@ export class TableTransformManager {
     element.style.top = ''
     element.style.width = ''
     element.style.height = ''
-    element.style.transform = ''
     element.style.willChange = ''
     element.classList.remove('is-transforming')
+
+    const body = this.getObjectBody(element)
+    if (body && body !== element) {
+      body.style.transform = ''
+      body.style.willChange = ''
+    }
   }
 
   clearPreview() {
@@ -139,7 +150,11 @@ export class TableTransformManager {
     if (!element) return false
 
     element.classList.add('is-transforming')
-    element.style.willChange = 'left, top, width, height, transform'
+    element.style.willChange = 'left, top, width, height'
+    const body = this.getObjectBody(element)
+    if (body) {
+      body.style.willChange = 'transform'
+    }
 
     const started = this.beginSession(event, element, {
       mode: 'resize',
@@ -164,6 +179,8 @@ export class TableTransformManager {
     if (!started) {
       element.classList.remove('is-transforming')
       element.style.willChange = ''
+      const body = this.getObjectBody(element)
+      if (body) body.style.willChange = ''
       this.element = null
       this.session = null
     }
@@ -183,7 +200,10 @@ export class TableTransformManager {
     const startPointerAngle = Math.atan2(pointerWorld.y - center.y, pointerWorld.x - center.x)
 
     element.classList.add('is-transforming')
-    element.style.willChange = 'transform'
+    const body = this.getObjectBody(element)
+    if (body) {
+      body.style.willChange = 'transform'
+    }
 
     const started = this.beginSession(event, element, {
       mode: 'rotate',
@@ -202,7 +222,8 @@ export class TableTransformManager {
 
     if (!started) {
       element.classList.remove('is-transforming')
-      element.style.willChange = ''
+      const body = this.getObjectBody(element)
+      if (body) body.style.willChange = ''
       this.element = null
       this.session = null
     }

@@ -12,6 +12,7 @@ function CanvasObjectNodeComponent({
   isTransforming,
   activeTool,
   isEditable = true,
+  cameraZoom = 1,
   onPointerDown,
   onPointerMove,
   onPointerUp,
@@ -50,13 +51,12 @@ function CanvasObjectNodeComponent({
         top: position.y,
         width: size.width,
         height: size.height,
-        transform: isDirectManipulation ? undefined : `rotate(${rotation}deg)`,
-        transformOrigin: 'center center',
         zIndex: isDragging || isTransforming ? 20 : object.zIndex,
         touchAction: isEditable ? 'none' : 'auto',
         '--fpb-handle-size': `${handleSize}px`,
         '--fpb-selection-chrome-inset': `-${chromeInset}px`,
       }}
+      data-camera-zoom={cameraZoom}
       onPointerDown={(event) => {
         if (event.target.closest('.fpb-handle')) return
         event.stopPropagation()
@@ -71,49 +71,57 @@ function CanvasObjectNodeComponent({
       data-tool={activeTool}
       data-object-id={object.id}
     >
-      <div className="fpb-canvas-object-surface">
-        <span className="fpb-canvas-object-label" title={label}>{label}</span>
-        {isTable && labelDensity === 'normal' ? (
-          <span className="fpb-canvas-object-meta">{guestLabel}</span>
-        ) : null}
-      </div>
+      <div
+        data-fpb-object-body
+        className="fpb-canvas-object-body"
+        style={{
+          transform: isDirectManipulation ? undefined : `rotate(${rotation}deg)`,
+        }}
+      >
+        <div className="fpb-canvas-object-surface">
+          <span className="fpb-canvas-object-label" title={label}>{label}</span>
+          {isTable && labelDensity === 'normal' ? (
+            <span className="fpb-canvas-object-meta">{guestLabel}</span>
+          ) : null}
+        </div>
 
-      {showTransformChrome && isTable && isEditable ? (
-        <div
-          className="fpb-selection-chrome"
-          aria-hidden="true"
-          style={{ pointerEvents: isDragging ? 'none' : undefined }}
-        >
-          {CORNER_HANDLES.map((handle) => (
+        {showTransformChrome && isTable && isEditable ? (
+          <div
+            className="fpb-selection-chrome"
+            aria-hidden="true"
+            style={{ pointerEvents: isDragging ? 'none' : undefined }}
+          >
+            {CORNER_HANDLES.map((handle) => (
+              <button
+                key={handle}
+                type="button"
+                className={`fpb-handle fpb-handle-${handle}`}
+                tabIndex={-1}
+                aria-label={`Resize ${handle} corner`}
+                onPointerDown={(event) => {
+                  event.stopPropagation()
+                  onResizePointerDown?.(event, object, handle)
+                }}
+                onPointerMove={onPointerMove}
+                onPointerUp={onPointerUp}
+              />
+            ))}
+            <span className="fpb-rotate-stem" />
             <button
-              key={handle}
               type="button"
-              className={`fpb-handle fpb-handle-${handle}`}
+              className="fpb-handle fpb-handle-rotate"
               tabIndex={-1}
-              aria-label={`Resize ${handle} corner`}
+              aria-label="Rotate table"
               onPointerDown={(event) => {
                 event.stopPropagation()
-                onResizePointerDown?.(event, object, handle)
+                onRotatePointerDown?.(event, object)
               }}
               onPointerMove={onPointerMove}
               onPointerUp={onPointerUp}
             />
-          ))}
-          <span className="fpb-rotate-stem" />
-          <button
-            type="button"
-            className="fpb-handle fpb-handle-rotate"
-            tabIndex={-1}
-            aria-label="Rotate table"
-            onPointerDown={(event) => {
-              event.stopPropagation()
-              onRotatePointerDown?.(event, object)
-            }}
-            onPointerMove={onPointerMove}
-            onPointerUp={onPointerUp}
-          />
-        </div>
-      ) : null}
+          </div>
+        ) : null}
+      </div>
     </div>
   )
 }
@@ -125,6 +133,7 @@ function arePropsEqual(previous, next) {
   if (previous.isTransforming !== next.isTransforming) return false
   if (previous.isEditable !== next.isEditable) return false
   if (previous.activeTool !== next.activeTool) return false
+  if (previous.cameraZoom !== next.cameraZoom) return false
   if (previous.object.id !== next.object.id) return false
 
   const { position } = next.object

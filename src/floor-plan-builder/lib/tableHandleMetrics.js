@@ -1,3 +1,4 @@
+/** Sizes are workspace units — they scale with the canvas stage transform. */
 export const TABLE_HANDLE_MIN_SIZE = 18
 export const TABLE_HANDLE_MAX_SIZE = 44
 export const TABLE_HANDLE_SIZE_RATIO = 0.26

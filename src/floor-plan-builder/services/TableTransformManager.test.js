@@ -7,6 +7,10 @@ import { TableTransformManager } from './TableTransformManager'
 function createElement() {
   const element = document.createElement('div')
   element.className = 'fpb-canvas-object'
+  const body = document.createElement('div')
+  body.className = 'fpb-canvas-object-body'
+  body.setAttribute('data-fpb-object-body', '')
+  element.appendChild(body)
   document.body.appendChild(element)
   return element
 }
@@ -107,5 +111,17 @@ describe('TableTransformManager', () => {
       size: { width: 180, height: 180 },
       rotation: 0,
     })
+  })
+
+  it('applies rotation preview on the object body, not the positioned root', () => {
+    const body = element.querySelector('[data-fpb-object-body]')
+    manager.applyPreview({
+      position: { x: 100, y: 100 },
+      size: { width: 200, height: 200 },
+      rotation: 45,
+    })
+
+    expect(element.style.transform).toBe('')
+    expect(body.style.transform).toBe('rotate(45deg)')
   })
 })

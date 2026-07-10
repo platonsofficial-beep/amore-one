@@ -302,6 +302,7 @@ export function BuilderCanvas({ containerRef, viewportControls, workspaceLayoutK
             transformingObjectId={transformingObjectId}
             activeTool="select"
             isEditable={isEditing}
+            cameraZoom={state.camera.zoom}
             onFloorBackgroundPointerUp={handleFloorBackgroundPointerUp}
             onObjectPointerDown={handleObjectPointerDownWrapped}
             onObjectPointerMove={handlePointerMove}

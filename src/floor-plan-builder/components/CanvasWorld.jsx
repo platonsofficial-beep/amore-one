@@ -10,6 +10,7 @@ export function CanvasWorld({
   transformingObjectId,
   activeTool,
   isEditable = true,
+  cameraZoom = 1,
   onFloorBackgroundPointerUp,
   onObjectPointerDown,
   onObjectPointerMove,
@@ -33,6 +34,7 @@ export function CanvasWorld({
           transformingObjectId={transformingObjectId}
           activeTool={activeTool}
           isEditable={isEditable}
+          cameraZoom={cameraZoom}
           onObjectPointerDown={onObjectPointerDown}
           onObjectPointerMove={onObjectPointerMove}
           onObjectPointerUp={onObjectPointerUp}

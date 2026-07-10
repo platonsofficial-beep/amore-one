@@ -8,6 +8,7 @@ function CanvasObjectsLayerComponent({
   transformingObjectId,
   activeTool,
   isEditable = true,
+  cameraZoom = 1,
   onObjectPointerDown,
   onObjectPointerMove,
   onObjectPointerUp,
@@ -24,6 +25,7 @@ function CanvasObjectsLayerComponent({
       isTransforming={transformingObjectId === object.id}
       activeTool={activeTool}
       isEditable={isEditable}
+      cameraZoom={cameraZoom}
       onPointerDown={onObjectPointerDown}
       onPointerMove={onObjectPointerMove}
       onPointerUp={onObjectPointerUp}
@@ -38,6 +40,7 @@ function areLayerPropsEqual(previous, next) {
   if (previous.transformingObjectId !== next.transformingObjectId) return false
   if (previous.isEditable !== next.isEditable) return false
   if (previous.activeTool !== next.activeTool) return false
+  if (previous.cameraZoom !== next.cameraZoom) return false
   if (previous.objects !== next.objects) return false
   if (previous.selectedTableIds !== next.selectedTableIds) return false
   return true

@@ -866,6 +866,7 @@
   left: 0;
   z-index: 3;
   pointer-events: none;
+  overflow: visible;
 }
 
 .fpb-objects-layer .fpb-canvas-object {
@@ -875,9 +876,16 @@
 .fpb-canvas-object {
   position: absolute;
   touch-action: none;
-  will-change: transform;
   z-index: 1;
   cursor: pointer;
+  overflow: visible;
+}
+
+.fpb-canvas-object-body {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transform-origin: center center;
 }
 
 .fpb-canvas-object-surface {
@@ -961,6 +969,10 @@
 }
 
 .fpb-canvas-object.is-dragging {
+  will-change: left, top;
+}
+
+.fpb-canvas-object.is-dragging .fpb-canvas-object-body {
   will-change: transform;
 }
 
@@ -980,7 +992,11 @@
 }
 
 .fpb-canvas-object.is-transforming {
-  will-change: left, top, width, height, transform;
+  will-change: left, top, width, height;
+}
+
+.fpb-canvas-object.is-transforming .fpb-canvas-object-body {
+  will-change: transform;
 }
 
 .fpb-canvas-object.is-transforming .fpb-canvas-object-surface {

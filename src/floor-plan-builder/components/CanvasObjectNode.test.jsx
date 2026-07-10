@@ -198,3 +198,69 @@ describe('CanvasObjectNode preset dimensions', () => {
     unmount()
   })
 })
+
+describe('CanvasObjectNode selection chrome', () => {
+  it('renders handles inside the rotated object body within the positioned root', () => {
+    const { container, unmount } = renderNode({
+      object: {
+        ...tableObject,
+        rotation: 30,
+      },
+      isSelected: true,
+      showTransformChrome: true,
+      isDragging: false,
+      isTransforming: false,
+      activeTool: 'select',
+      isEditable: true,
+      cameraZoom: 1,
+      onPointerDown: vi.fn(),
+      onPointerMove: vi.fn(),
+      onPointerUp: vi.fn(),
+      onResizePointerDown: vi.fn(),
+      onRotatePointerDown: vi.fn(),
+    })
+
+    const root = container.querySelector('.fpb-canvas-object')
+    const body = container.querySelector('[data-fpb-object-body]')
+    const chrome = container.querySelector('.fpb-selection-chrome')
+    const handle = container.querySelector('.fpb-handle-nw')
+
+    expect(root.style.transform).toBe('')
+    expect(body.style.transform).toBe('rotate(30deg)')
+    expect(body.contains(chrome)).toBe(true)
+    expect(chrome.contains(handle)).toBe(true)
+
+    unmount()
+  })
+
+  it('re-renders selection chrome when camera zoom changes', () => {
+    const props = {
+      object: tableObject,
+      isSelected: true,
+      showTransformChrome: true,
+      isDragging: false,
+      isTransforming: false,
+      activeTool: 'select',
+      isEditable: true,
+      onPointerDown: vi.fn(),
+      onPointerMove: vi.fn(),
+      onPointerUp: vi.fn(),
+      onResizePointerDown: vi.fn(),
+      onRotatePointerDown: vi.fn(),
+    }
+
+    const { container, unmount } = renderNode({ ...props, cameraZoom: 0.52 })
+    const rootAtLowZoom = container.querySelector('.fpb-canvas-object')
+    expect(rootAtLowZoom.getAttribute('data-camera-zoom')).toBe('0.52')
+    unmount()
+
+    const { container: zoomedContainer, unmount: unmountZoomed } = renderNode({
+      ...props,
+      cameraZoom: 1.3,
+    })
+    const rootAtHighZoom = zoomedContainer.querySelector('.fpb-canvas-object')
+    expect(rootAtHighZoom.getAttribute('data-camera-zoom')).toBe('1.3')
+    expect(zoomedContainer.querySelector('.fpb-handle-nw')).not.toBeNull()
+    unmountZoomed()
+  })
+})
