@@ -1,3 +1,6 @@
+/**
+ * @vitest-environment jsdom
+ */
 import { describe, expect, it, vi, beforeEach } from 'vitest'
 import {
   clearPublishBreadcrumbs,
@@ -7,8 +10,10 @@ import {
 import {
   prepareReturnToHost,
   validatePublishReturnToHostReadiness,
+  completeReturnToHost,
 } from './publishReturnToHost'
 import { buildPublishTransitionResult } from './publishFloorPlanTransition'
+import { mockWindowLocationReload } from './test/mockWindowLocationReload'
 
 const sampleBuilderLayout = {
   version: 1,
@@ -132,24 +137,46 @@ describe('controlled publish flow contract', () => {
     expect(hostVisible).toBe(false)
   })
 
-  it('return to host enables exit only after readiness passes', async () => {
+  it('return to host enables exit only after readiness passes for soft transition', async () => {
     let editorMounted = true
     let hostVisible = false
     const transition = buildPublishTransitionResult(sampleBuilderLayout)
 
-    const readiness = await prepareReturnToHost({
+    const result = await completeReturnToHost({
       transition,
       hasDisplayableLayout: true,
       layout: transition.hostLayout,
+      useControlledReload: false,
     })
 
-    if (readiness.ok) {
+    if (result.ok && !result.reload) {
       editorMounted = false
       hostVisible = true
     }
 
-    expect(readiness.ok).toBe(true)
+    expect(result.ok).toBe(true)
+    expect(result.reload).toBeUndefined()
     expect(editorMounted).toBe(false)
     expect(hostVisible).toBe(true)
+  })
+
+  it('host controlled reload keeps editor mounted until page reload', async () => {
+    let editorMounted = true
+    const transition = buildPublishTransitionResult(sampleBuilderLayout)
+    const locationMock = mockWindowLocationReload()
+
+    const result = await completeReturnToHost({
+      transition,
+      hasDisplayableLayout: true,
+      layout: transition.hostLayout,
+      useControlledReload: true,
+      workspaceId: 'ws-host',
+    })
+
+    expect(result).toEqual({ ok: true, reload: true })
+    expect(editorMounted).toBe(true)
+    expect(locationMock.reload).toHaveBeenCalledTimes(1)
+
+    locationMock.restore()
   })
 })

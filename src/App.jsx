@@ -48,8 +48,8 @@ import { TimeSelect } from './components/TimeSelect'
 import { getHostUnitById, toSeatingUnitFromLayoutUnit } from './lib/hostFloorPlanLayout'
 import { PublishedFloorPlanProvider, usePublishedFloorPlan } from './lib/PublishedFloorPlanContext'
 import { loadPublishedHostLayout } from './lib/builderToHostLayout'
-import { prepareReturnToHost } from './lib/publishReturnToHost'
-import { recordPublishBreadcrumb } from './lib/publishFloorPlanDiagnostics'
+import { completeReturnToHost } from './lib/publishReturnToHost'
+import { useHostReturnAfterPublishBoot } from './lib/useHostReturnAfterPublishBoot'
 import { resolveActiveFloorAreaId } from './lib/publishFloorPlanTransition'
 import {
   computeSeatingAssignmentTotals,
@@ -8696,6 +8696,8 @@ function MobileReservationsHostShell({
   canEditFloorPlan = false,
   reservationSeatings = [],
   hostSettingsProps = null,
+  workspaceId = '',
+  useControlledReloadReturn = false,
 }) {
   const workspaceReservations = useMemo(
     () => getHostWorkspaceReservations(reservations, todayKey, workspaceTimeZone),
@@ -8730,6 +8732,8 @@ function MobileReservationsHostShell({
         canEditFloorPlan={canEditFloorPlan}
         reservationSeatings={reservationSeatings}
         hostSettingsProps={hostSettingsProps}
+        workspaceId={workspaceId}
+        useControlledReloadReturn={useControlledReloadReturn}
       />
     </ReservationWorkspaceProvider>
   )
@@ -8754,6 +8758,8 @@ function MobileReservationsHostShellBody({
   canEditFloorPlan = false,
   reservationSeatings = [],
   hostSettingsProps = null,
+  workspaceId = '',
+  useControlledReloadReturn = false,
 }) {
   const {
     selectedReservation,
@@ -8770,8 +8776,20 @@ function MobileReservationsHostShellBody({
     publishNotice,
     clearPublishNotice,
     isRefreshingPublishedLayout,
+    isLoading: isPublishedLayoutLoading,
+    loadError: publishedLayoutLoadError,
     reload,
   } = usePublishedFloorPlan()
+
+  const { isBootRestoring, bootRestoreFailed } = useHostReturnAfterPublishBoot({
+    enabled: useControlledReloadReturn,
+    workspaceId,
+    hasDisplayableLayout,
+    isLoading: isPublishedLayoutLoading,
+    loadError: publishedLayoutLoadError,
+    setActiveFloorAreaId,
+    setFloorPlanMode,
+  })
 
   useEffect(() => {
     if (!publishNotice) return
@@ -8780,24 +8798,35 @@ function MobileReservationsHostShellBody({
   }, [clearPublishNotice, onReservationNotice, publishNotice])
 
   const handleReturnToHost = useCallback(async (transition) => {
-    const readiness = await prepareReturnToHost({
+    const result = await completeReturnToHost({
       transition,
       hasDisplayableLayout,
       layout,
       activeFloorAreaId,
       reload,
+      useControlledReload: useControlledReloadReturn,
+      workspaceId,
     })
 
-    if (!readiness.ok) {
-      return readiness
+    if (!result?.ok) {
+      return result
     }
 
-    setActiveFloorAreaId(readiness.activeFloorAreaId)
-    recordPublishBreadcrumb('host-floor-rendered', {
-      activeFloorAreaId: readiness.activeFloorAreaId,
-    })
+    if (result.reload) {
+      return result
+    }
+
+    setActiveFloorAreaId(result.activeFloorAreaId)
     return { ok: true }
-  }, [activeFloorAreaId, hasDisplayableLayout, layout, reload, setActiveFloorAreaId])
+  }, [
+    activeFloorAreaId,
+    hasDisplayableLayout,
+    layout,
+    reload,
+    setActiveFloorAreaId,
+    useControlledReloadReturn,
+    workspaceId,
+  ])
 
   if (floorPlanMode === 'edit' && canEditFloorPlan) {
     return (
@@ -8808,6 +8837,37 @@ function MobileReservationsHostShellBody({
           onActiveAreaChange={setActiveFloorAreaId}
           onReturnToHost={handleReturnToHost}
         />
+      </div>
+    )
+  }
+
+  if (isBootRestoring) {
+    return (
+      <div className="mobile-host-floor-refreshing" role="status">
+        <p>Loading published layout…</p>
+      </div>
+    )
+  }
+
+  if (bootRestoreFailed && !hasDisplayableLayout) {
+    return (
+      <div className="host-station-error-boundary" role="alert">
+        <h3>Host Station could not load.</h3>
+        <p>{publishedLayoutLoadError || 'Unable to load the published floor layout.'}</p>
+        <div className="host-station-error-actions">
+          <button type="button" className="host-station-error-retry" onClick={() => reload()}>
+            Retry
+          </button>
+          {canEditFloorPlan ? (
+            <button
+              type="button"
+              className="host-station-error-return-editor"
+              onClick={() => setFloorPlanMode('edit')}
+            >
+              Open layout editor
+            </button>
+          ) : null}
+        </div>
       </div>
     )
   }
@@ -10680,22 +10740,24 @@ function ReservationsUnifiedCanvas({
   }
 
   const handleReturnToHost = useCallback(async (transition) => {
-    const readiness = await prepareReturnToHost({
+    const result = await completeReturnToHost({
       transition,
       hasDisplayableLayout,
       layout,
       activeFloorAreaId,
       reload,
+      useControlledReload: false,
     })
 
-    if (!readiness.ok) {
-      return readiness
+    if (!result?.ok) {
+      return result
     }
 
-    setActiveFloorAreaId(readiness.activeFloorAreaId)
-    recordPublishBreadcrumb('host-floor-rendered', {
-      activeFloorAreaId: readiness.activeFloorAreaId,
-    })
+    if (result.reload) {
+      return result
+    }
+
+    setActiveFloorAreaId(result.activeFloorAreaId)
     return { ok: true }
   }, [activeFloorAreaId, hasDisplayableLayout, layout, reload, setActiveFloorAreaId])
 
@@ -21043,6 +21105,8 @@ function App() {
               onSeatGuestAtTable={handleSeatGuestAtTable}
               canEditFloorPlan={canEditFloorPlanRole}
               reservationSeatings={reservationSeatings}
+              workspaceId={activeWorkspaceId}
+              useControlledReloadReturn={isHostMobileRole(role)}
             />
           ) : (
             <ReservationsView
@@ -21496,6 +21560,8 @@ function App() {
                       onSeatGuestAtTable={handleSeatGuestAtTable}
                       canEditFloorPlan={canEditFloorPlanRole}
                       reservationSeatings={reservationSeatings}
+                      workspaceId={activeWorkspaceId}
+                      useControlledReloadReturn
                       hostSettingsProps={{
                         profile: {
                           name: resolvedUserDisplayName,

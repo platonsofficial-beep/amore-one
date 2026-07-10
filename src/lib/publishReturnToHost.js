@@ -1,5 +1,6 @@
 import { buildPublishTransitionResult, resolveActiveFloorAreaId } from './publishFloorPlanTransition'
 import { recordPublishBreadcrumb } from './publishFloorPlanDiagnostics'
+import { triggerHostReturnAfterPublishReload } from './hostReturnAfterPublishBoot'
 
 export function validatePublishReturnToHostReadiness({
   transition = null,
@@ -99,4 +100,43 @@ export async function prepareReturnToHost({
   })
 
   return readiness
+}
+
+export async function completeReturnToHost({
+  transition,
+  hasDisplayableLayout,
+  layout,
+  activeFloorAreaId,
+  reload,
+  useControlledReload = false,
+  workspaceId = '',
+} = {}) {
+  const readiness = await prepareReturnToHost({
+    transition,
+    hasDisplayableLayout,
+    layout,
+    activeFloorAreaId,
+    reload,
+  })
+
+  if (!readiness.ok) {
+    return readiness
+  }
+
+  if (useControlledReload) {
+    triggerHostReturnAfterPublishReload({
+      workspaceId,
+      activeFloorAreaId: readiness.activeFloorAreaId,
+    })
+    return { ok: true, reload: true }
+  }
+
+  recordPublishBreadcrumb('host-floor-rendered', {
+    activeFloorAreaId: readiness.activeFloorAreaId,
+  })
+
+  return {
+    ok: true,
+    activeFloorAreaId: readiness.activeFloorAreaId,
+  }
 }

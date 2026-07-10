@@ -260,6 +260,10 @@ function EmbeddedFloorPlanEditorShell({
         return
       }
 
+      if (result?.reload) {
+        return
+      }
+
       recordPublishBreadcrumb('editor-unmounted')
       exitEditMode()
     } catch (error) {

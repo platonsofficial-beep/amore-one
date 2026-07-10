@@ -43,12 +43,13 @@ describe('HostStationErrorBoundary', () => {
     unmount()
   })
 
-  it('offers return to editor action', () => {
+  it('offers open layout editor action', () => {
     const onReturnToEditor = vi.fn()
     const { container, unmount } = renderBoundary({ onReturnToEditor })
 
     const button = container.querySelector('.host-station-error-return-editor')
     expect(button).toBeTruthy()
+    expect(button.textContent).toContain('Open layout editor')
     act(() => button.click())
     expect(onReturnToEditor).toHaveBeenCalled()
 

@@ -47,7 +47,7 @@ export class HostStationErrorBoundary extends Component {
               className="host-station-error-return-editor"
               onClick={this.handleReturnToEditor}
             >
-              Return to editor
+              Open layout editor
             </button>
           ) : null}
         </div>
