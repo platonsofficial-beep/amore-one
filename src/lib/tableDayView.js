@@ -238,3 +238,57 @@ export function isTableAssignmentSelectionClick({
   if (!selectedReservation) return false
   return canAssign || isPickedForSeating
 }
+
+export function isHostFloorTablePickedForSeating(seatingDraftUnitIds = [], tableId = null) {
+  if (tableId == null) return false
+  return seatingDraftUnitIds.some((id) => String(id) === String(tableId))
+}
+
+/**
+ * Compact host floor taps open Table Day View by default.
+ * Assignment toggles only apply to tables already in the active seating draft.
+ * Desktop keeps the broader assignment intercept behavior.
+ */
+export function resolveHostFloorTableClickRoute({
+  isHeatmap = false,
+  isCompact = false,
+  isHostFloorPickActive = false,
+  selectedReservation = null,
+  seatingDraftUnitIds = [],
+  tableId = null,
+  canAssign = false,
+} = {}) {
+  if (isHeatmap) return 'blocked-heatmap'
+  if (isHostFloorPickActive) return 'edit-layout'
+
+  const isPickedForSeating = isHostFloorTablePickedForSeating(seatingDraftUnitIds, tableId)
+
+  if (isCompact) {
+    if (selectedReservation && isPickedForSeating) {
+      return 'assignment'
+    }
+    return 'normal-day-view'
+  }
+
+  if (isTableAssignmentSelectionClick({
+    selectedReservation,
+    isHostFloorPickActive,
+    canAssign,
+    isPickedForSeating,
+  })) {
+    return 'assignment'
+  }
+
+  return 'normal-day-view'
+}
+
+export function getFloorTableSeatingDialogMountGuard({
+  isCompact = false,
+  scheduleCardTable = null,
+  isHeatmap = false,
+} = {}) {
+  if (!isCompact) return 'component-not-rendered'
+  if (isHeatmap) return 'hidden-by-mode'
+  if (!scheduleCardTable) return 'no-table'
+  return 'pass'
+}

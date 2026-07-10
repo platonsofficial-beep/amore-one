@@ -168,6 +168,7 @@ import {
   buildReleaseTableAssignmentUpdate,
   buildTableDayViewCreatePrefill,
   isTableAssignmentSelectionClick,
+  resolveHostFloorTableClickRoute,
   shouldOpenTableDayViewOnTableClick,
 } from './lib/tableDayView'
 import {
@@ -8474,27 +8475,31 @@ function FloorPlanView({
       return
     }
 
-    if (
-      isTableAssignmentSelectionClick({
-        selectedReservation,
-        isHostFloorPickActive,
-        canAssign: canAssignSelectedReservationToTable(tableState),
-        isPickedForSeating: seatingDraftUnitIds.includes(tableState.table.id),
-      })
-    ) {
-      if (isHostFloorPickActive) {
-        if (tableState.status === 'available' || tableState.status === 'cleaning') {
-          toggleHostEditUnit(tableState.table.id)
-        }
-        return
-      }
+    const clickRoute = resolveHostFloorTableClickRoute({
+      isHeatmap,
+      isCompact,
+      isHostFloorPickActive,
+      selectedReservation,
+      seatingDraftUnitIds,
+      tableId: tableState.table.id,
+      canAssign: canAssignSelectedReservationToTable(tableState),
+    })
 
+    if (clickRoute === 'edit-layout') {
+      if (tableState.status === 'available' || tableState.status === 'cleaning') {
+        toggleHostEditUnit(tableState.table.id)
+      }
+      return
+    }
+
+    if (clickRoute === 'assignment') {
       toggleSeatingUnit(tableState.table.id)
       return
     }
 
     if (
-      isCompact
+      clickRoute === 'normal-day-view'
+      && isCompact
       && shouldOpenTableDayViewOnTableClick({
         isHeatmap,
         isHostFloorPickActive,

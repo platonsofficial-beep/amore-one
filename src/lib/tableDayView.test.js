@@ -5,7 +5,10 @@ import {
   buildTableDayViewCreatePrefill,
   findAllReservationsForTableSeating,
   formatSeatingWindowLabel,
+  getFloorTableSeatingDialogMountGuard,
+  isHostFloorTablePickedForSeating,
   isTableAssignmentSelectionClick,
+  resolveHostFloorTableClickRoute,
   resolveTableDayViewRowState,
   shouldOpenTableDayViewOnTableClick,
 } from './tableDayView'
@@ -102,6 +105,52 @@ describe('tableDayView', () => {
   it('keeps edit-layout host pick active from opening table day view', () => {
     expect(shouldOpenTableDayViewOnTableClick({ isHostFloorPickActive: true })).toBe(false)
     expect(isTableAssignmentSelectionClick({ isHostFloorPickActive: true })).toBe(true)
+    expect(resolveHostFloorTableClickRoute({ isHostFloorPickActive: true })).toBe('edit-layout')
+  })
+
+  it('opens compact host table day view even when a reservation is selected', () => {
+    expect(resolveHostFloorTableClickRoute({
+      isCompact: true,
+      selectedReservation: { id: 'res-1' },
+      tableId: 't10',
+      canAssign: true,
+      seatingDraftUnitIds: [],
+    })).toBe('normal-day-view')
+  })
+
+  it('routes compact host taps on draft-picked tables to assignment', () => {
+    expect(resolveHostFloorTableClickRoute({
+      isCompact: true,
+      selectedReservation: { id: 'res-1' },
+      tableId: 't10',
+      seatingDraftUnitIds: ['t10'],
+    })).toBe('assignment')
+    expect(isHostFloorTablePickedForSeating(['t10'], 't10')).toBe(true)
+  })
+
+  it('keeps desktop assignment intercept for assignable tables', () => {
+    expect(resolveHostFloorTableClickRoute({
+      isCompact: false,
+      selectedReservation: { id: 'res-1' },
+      tableId: 't10',
+      canAssign: true,
+    })).toBe('assignment')
+  })
+
+  it('passes dialog mount guard when compact host has a schedule card table', () => {
+    expect(getFloorTableSeatingDialogMountGuard({
+      isCompact: true,
+      scheduleCardTable: { id: 't10' },
+    })).toBe('pass')
+    expect(getFloorTableSeatingDialogMountGuard({
+      isCompact: true,
+      scheduleCardTable: null,
+    })).toBe('no-table')
+    expect(getFloorTableSeatingDialogMountGuard({
+      isCompact: true,
+      isHeatmap: true,
+      scheduleCardTable: { id: 't10' },
+    })).toBe('hidden-by-mode')
   })
 
   it('renders all active seatings for the selected date', () => {
