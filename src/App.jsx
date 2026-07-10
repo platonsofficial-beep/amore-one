@@ -128,6 +128,7 @@ import {
   getActiveSeatingsForDate,
   matchReservationTimeToSeating,
   resolveReservationSeatingId,
+  validateReservationSeatingForm,
 } from './lib/reservationSeatings'
 import { getConflictingUnitIds } from './lib/reservationTableOptions'
 import { createInventoryItem, deleteInventoryItem, getInventoryItems, updateInventoryItem } from './services/inventoryService'
@@ -15397,8 +15398,9 @@ function App() {
       return
     }
 
-    if (!reservationSeatingForm.name.trim()) {
-      setReservationSeatingsNotice('Seating name is required.')
+    const validation = validateReservationSeatingForm(reservationSeatingForm)
+    if (!validation.ok) {
+      setReservationSeatingsNotice(validation.error)
       return
     }
 
@@ -15407,18 +15409,21 @@ function App() {
 
     try {
       if (editingReservationSeatingId) {
-        const updatedSeating = await updateReservationSeating(
-          activeWorkspaceId,
-          editingReservationSeatingId,
-          reservationSeatingForm,
-        )
+        const updatedSeating = await updateReservationSeating({
+          workspaceId: activeWorkspaceId,
+          id: editingReservationSeatingId,
+          seating: validation.seating,
+        })
         setReservationSeatings((current) => current
           .map((seating) => (seating.id === updatedSeating.id ? updatedSeating : seating)))
         setReservationSeatingsNotice('Seating updated.')
       } else {
-        const createdSeating = await createReservationSeating(activeWorkspaceId, {
-          ...reservationSeatingForm,
-          sortOrder: reservationSeatings.length,
+        const createdSeating = await createReservationSeating({
+          workspaceId: activeWorkspaceId,
+          seating: {
+            ...validation.seating,
+            sortOrder: reservationSeatings.length,
+          },
         })
         setReservationSeatings((current) => [...current, createdSeating])
         setReservationSeatingsNotice('Seating added.')
@@ -15428,6 +15433,7 @@ function App() {
       setEditingReservationSeatingId(null)
       setReservationSeatingForm(createDefaultSeatingForm())
     } catch (error) {
+      console.error('[App] handleReservationSeatingSubmit error:', error)
       setReservationSeatingsNotice(error.message || 'Unable to save seating right now.')
     } finally {
       setIsSavingReservationSeating(false)
@@ -15459,7 +15465,10 @@ function App() {
     setReservationSeatings(reordered)
 
     try {
-      await reorderReservationSeatings(activeWorkspaceId, reordered.map((entry) => entry.id))
+      await reorderReservationSeatings({
+        workspaceId: activeWorkspaceId,
+        orderedIds: reordered.map((entry) => entry.id),
+      })
       setReservationSeatingsNotice('Seating order updated.')
       await refreshReservationSeatings()
     } catch (error) {
@@ -15475,9 +15484,17 @@ function App() {
     setReservationSeatingsNotice('')
 
     try {
-      const updatedSeating = await updateReservationSeating(activeWorkspaceId, seating.id, {
-        ...seating,
-        isActive: !seating.isActive,
+      const updatedSeating = await updateReservationSeating({
+        workspaceId: activeWorkspaceId,
+        id: seating.id,
+        seating: {
+          name: seating.name,
+          startTime: seating.startTime,
+          durationMinutes: seating.durationMinutes,
+          daysOfWeek: seating.daysOfWeek,
+          sortOrder: seating.sortOrder,
+          isActive: !seating.isActive,
+        },
       })
       setReservationSeatings((current) => current.map((entry) => (
         entry.id === updatedSeating.id ? updatedSeating : entry
@@ -15500,7 +15517,10 @@ function App() {
     setIsSavingReservationSeating(true)
 
     try {
-      await deleteReservationSeating(activeWorkspaceId, reservationSeatingPendingDelete.id)
+      await deleteReservationSeating({
+        workspaceId: activeWorkspaceId,
+        id: reservationSeatingPendingDelete.id,
+      })
       setReservationSeatings((current) => current.filter((seating) => (
         seating.id !== reservationSeatingPendingDelete.id
       )))

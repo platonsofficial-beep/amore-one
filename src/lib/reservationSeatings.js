@@ -17,11 +17,14 @@ export function normalizeDaysOfWeek(days) {
   return normalized.length > 0 ? normalized : [...ALL_DAYS_OF_WEEK]
 }
 
-export function normalizeReservationSeating(record) {
+export function normalizeReservationSeatingInput(record) {
   if (!record) return null
 
-  const id = `${record.id ?? ''}`.trim()
-  if (!id) return null
+  const name = `${record.name ?? ''}`.trim()
+  if (!name) return null
+
+  const startTime = normalizeReservationTimeValue(record.startTime ?? record.start_time ?? '')
+  if (!startTime) return null
 
   const durationMinutes = Math.max(
     15,
@@ -29,14 +32,85 @@ export function normalizeReservationSeating(record) {
   )
 
   return {
-    id,
-    workspaceId: record.workspaceId ?? record.workspace_id ?? '',
-    name: `${record.name ?? ''}`.trim() || 'Seating',
-    startTime: normalizeReservationTimeValue(record.startTime ?? record.start_time ?? ''),
+    name,
+    startTime,
     durationMinutes,
     daysOfWeek: normalizeDaysOfWeek(record.daysOfWeek ?? record.days_of_week),
     sortOrder: Math.max(0, Number(record.sortOrder ?? record.sort_order) || 0),
     isActive: record.isActive ?? record.is_active ?? true,
+    workspaceId: record.workspaceId ?? record.workspace_id ?? '',
+  }
+}
+
+export function validateReservationSeatingForm(form) {
+  const name = `${form?.name ?? ''}`.trim()
+  if (!name) {
+    return { ok: false, error: 'Seating name is required.' }
+  }
+
+  const startTime = normalizeReservationTimeValue(form?.startTime ?? form?.start_time ?? '')
+  if (!startTime) {
+    return { ok: false, error: 'Start time is required.' }
+  }
+
+  const durationMinutes = Number(form?.durationMinutes ?? form?.duration_minutes)
+  if (!Number.isFinite(durationMinutes) || durationMinutes < 15 || durationMinutes > 480) {
+    return { ok: false, error: 'Duration must be between 15 and 480 minutes.' }
+  }
+
+  const rawDays = form?.daysOfWeek ?? form?.days_of_week
+  if (!Array.isArray(rawDays) || rawDays.length === 0) {
+    return { ok: false, error: 'Select at least one day of the week.' }
+  }
+
+  const daysOfWeek = normalizeDaysOfWeek(rawDays)
+  if (daysOfWeek.length === 0) {
+    return { ok: false, error: 'Select at least one day of the week.' }
+  }
+
+  return {
+    ok: true,
+    seating: {
+      name,
+      startTime,
+      durationMinutes: Math.max(15, Math.min(480, durationMinutes)),
+      daysOfWeek,
+      sortOrder: Math.max(0, Number(form?.sortOrder ?? form?.sort_order) || 0),
+      isActive: form?.isActive ?? form?.is_active ?? true,
+    },
+  }
+}
+
+export function serializeReservationSeatingRow(seating, workspaceId) {
+  const normalized = normalizeReservationSeatingInput(seating)
+  if (!normalized) {
+    throw new Error('Seating details are invalid.')
+  }
+
+  return {
+    workspace_id: workspaceId,
+    name: normalized.name,
+    start_time: normalized.startTime,
+    duration_minutes: normalized.durationMinutes,
+    days_of_week: normalized.daysOfWeek,
+    sort_order: normalized.sortOrder,
+    is_active: normalized.isActive,
+  }
+}
+
+export function normalizeReservationSeating(record) {
+  if (!record) return null
+
+  const id = `${record.id ?? ''}`.trim()
+  if (!id) return null
+
+  const input = normalizeReservationSeatingInput(record)
+  if (!input) return null
+
+  return {
+    id,
+    ...input,
+    workspaceId: record.workspaceId ?? record.workspace_id ?? input.workspaceId,
     createdAt: record.createdAt ?? record.created_at ?? null,
     updatedAt: record.updatedAt ?? record.updated_at ?? null,
   }

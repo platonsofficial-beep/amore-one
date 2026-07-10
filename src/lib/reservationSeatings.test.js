@@ -6,8 +6,11 @@ import {
   matchReservationTimeToSeating,
   normalizeDaysOfWeek,
   normalizeReservationSeating,
+  normalizeReservationSeatingInput,
   resolveReservationSeatingId,
+  serializeReservationSeatingRow,
   sortReservationSeatings,
+  validateReservationSeatingForm,
 } from './reservationSeatings'
 
 const SAMPLE_SEATINGS = [
@@ -117,5 +120,79 @@ describe('reservationSeatings', () => {
   it('builds seatings lookup map', () => {
     const byId = buildSeatingsById(SAMPLE_SEATINGS)
     expect(byId.get('dinner-1')?.startTime).toBe('19:00')
+  })
+
+  it('normalizes create/update seating input without an id', () => {
+    const input = normalizeReservationSeatingInput({
+      name: 'Brunch',
+      startTime: '10:00',
+      durationMinutes: 120,
+      daysOfWeek: [0, 6],
+      sortOrder: 2,
+      isActive: true,
+    })
+
+    expect(input).toMatchObject({
+      name: 'Brunch',
+      startTime: '10:00',
+      durationMinutes: 120,
+      daysOfWeek: [0, 6],
+      sortOrder: 2,
+      isActive: true,
+    })
+    expect(normalizeReservationSeating(input)).toBeNull()
+  })
+
+  it('validates populated form and returns seating payload', () => {
+    const result = validateReservationSeatingForm({
+      name: 'Brunch',
+      startTime: '10:00',
+      durationMinutes: 120,
+      daysOfWeek: [1, 2, 3, 4, 5],
+      isActive: true,
+    })
+
+    expect(result.ok).toBe(true)
+    expect(result.seating).toMatchObject({
+      name: 'Brunch',
+      startTime: '10:00',
+      durationMinutes: 120,
+      daysOfWeek: [1, 2, 3, 4, 5],
+      isActive: true,
+    })
+  })
+
+  it('requires at least one selected day', () => {
+    const result = validateReservationSeatingForm({
+      name: 'Brunch',
+      startTime: '10:00',
+      durationMinutes: 120,
+      daysOfWeek: [],
+      isActive: true,
+    })
+
+    expect(result.ok).toBe(false)
+    expect(result.error).toContain('day')
+  })
+
+  it('serializes seating row for database insert', () => {
+    const row = serializeReservationSeatingRow({
+      name: 'Brunch',
+      startTime: '10:00',
+      durationMinutes: 120,
+      daysOfWeek: [0, 6],
+      sortOrder: 3,
+      isActive: true,
+    }, 'ws-1')
+
+    expect(row).toEqual({
+      workspace_id: 'ws-1',
+      name: 'Brunch',
+      start_time: '10:00',
+      duration_minutes: 120,
+      days_of_week: [0, 6],
+      sort_order: 3,
+      is_active: true,
+    })
   })
 })

@@ -1,5 +1,8 @@
+import {
+  normalizeReservationSeating,
+  serializeReservationSeatingRow,
+} from '../lib/reservationSeatings'
 import { supabase } from '../lib/supabaseClient'
-import { normalizeReservationSeating } from '../lib/reservationSeatings'
 
 const SEATINGS_TABLE = 'reservation_seatings'
 
@@ -31,23 +34,6 @@ function mapSeating(record) {
   })
 }
 
-function serializeSeating(seating, workspaceId) {
-  const normalized = normalizeReservationSeating({ ...seating, workspaceId })
-  if (!normalized) {
-    throw new Error('Seating is required.')
-  }
-
-  return {
-    workspace_id: workspaceId,
-    name: normalized.name,
-    start_time: normalized.startTime,
-    duration_minutes: normalized.durationMinutes,
-    days_of_week: normalized.daysOfWeek,
-    sort_order: normalized.sortOrder,
-    is_active: normalized.isActive,
-  }
-}
-
 export async function getReservationSeatings(workspaceId, { includeInactive = false } = {}) {
   const normalizedWorkspaceId = requireWorkspaceId(workspaceId)
 
@@ -77,12 +63,15 @@ export async function getReservationSeatings(workspaceId, { includeInactive = fa
   return (data ?? []).map(mapSeating).filter(Boolean)
 }
 
-export async function createReservationSeating(workspaceId, seating) {
+export async function createReservationSeating({ workspaceId, seating }) {
   const normalizedWorkspaceId = requireWorkspaceId(workspaceId)
+  if (!seating || typeof seating !== 'object') {
+    throw new Error('Seating details are required.')
+  }
 
   const { data, error } = await supabase
     .from(SEATINGS_TABLE)
-    .insert([serializeSeating(seating, normalizedWorkspaceId)])
+    .insert([serializeReservationSeatingRow(seating, normalizedWorkspaceId)])
     .select('*')
     .single()
 
@@ -94,16 +83,19 @@ export async function createReservationSeating(workspaceId, seating) {
   return mapSeating(data)
 }
 
-export async function updateReservationSeating(workspaceId, id, seating) {
+export async function updateReservationSeating({ workspaceId, id, seating }) {
   const normalizedWorkspaceId = requireWorkspaceId(workspaceId)
   const normalizedId = `${id ?? ''}`.trim()
   if (!normalizedId) {
-    throw new Error('Seating is required.')
+    throw new Error('Seating id is required.')
+  }
+  if (!seating || typeof seating !== 'object') {
+    throw new Error('Seating details are required.')
   }
 
   const { data, error } = await supabase
     .from(SEATINGS_TABLE)
-    .update(serializeSeating(seating, normalizedWorkspaceId))
+    .update(serializeReservationSeatingRow(seating, normalizedWorkspaceId))
     .eq('workspace_id', normalizedWorkspaceId)
     .eq('id', normalizedId)
     .select('*')
@@ -117,11 +109,11 @@ export async function updateReservationSeating(workspaceId, id, seating) {
   return mapSeating(data)
 }
 
-export async function deleteReservationSeating(workspaceId, id) {
+export async function deleteReservationSeating({ workspaceId, id }) {
   const normalizedWorkspaceId = requireWorkspaceId(workspaceId)
   const normalizedId = `${id ?? ''}`.trim()
   if (!normalizedId) {
-    throw new Error('Seating is required.')
+    throw new Error('Seating id is required.')
   }
 
   const { error } = await supabase
@@ -136,22 +128,23 @@ export async function deleteReservationSeating(workspaceId, id) {
   }
 }
 
-export async function reorderReservationSeatings(workspaceId, orderedIds = []) {
+export async function reorderReservationSeatings({ workspaceId, orderedIds = [] }) {
   const normalizedWorkspaceId = requireWorkspaceId(workspaceId)
-  const ids = orderedIds.map((id) => `${id ?? ''}`.trim()).filter(Boolean)
+  const ids = orderedIds.map((entry) => `${entry ?? ''}`.trim()).filter(Boolean)
   if (!ids.length) return []
 
-  const updates = ids.map((id, index) => (
+  const updates = ids.map((entryId, index) => (
     supabase
       .from(SEATINGS_TABLE)
       .update({ sort_order: index })
       .eq('workspace_id', normalizedWorkspaceId)
-      .eq('id', id)
+      .eq('id', entryId)
   ))
 
   const results = await Promise.all(updates)
   const failed = results.find((result) => result.error)
   if (failed?.error) {
+    console.error('[reservationSeatingService] reorderReservationSeatings error:', failed.error)
     throw new Error(failed.error.message || 'Unable to reorder seatings right now.')
   }
 
