@@ -1,7 +1,22 @@
 import { createPortal } from 'react-dom'
 import { useMediaQuery } from '../../lib/useMediaQuery'
-import { formatHostListUnitLabel } from '../../lib/seatingAssignment'
+import { formatHostListUnitLabel, getReservationSeatingAssignment } from '../../lib/seatingAssignment'
 import { formatTime24 } from '../../lib/timeFormatUtils'
+
+function getTableChipMeta(reservation, assignedTablesLabel) {
+  if (!assignedTablesLabel || assignedTablesLabel === '—') return null
+
+  const assignment = getReservationSeatingAssignment(reservation)
+  let tableCount = assignment?.assignedUnits?.length ?? 0
+  if (tableCount === 0) {
+    tableCount = assignedTablesLabel.split(' + ').filter(Boolean).length
+  }
+
+  return {
+    prefix: tableCount === 1 ? 'Table' : 'Tables',
+    value: assignedTablesLabel,
+  }
+}
 
 function formatGuestRange(table) {
   const minGuests = Math.max(0, Number(table.minGuests ?? table.min_guests) || 0)
@@ -34,6 +49,7 @@ function TableDayViewRow({
   canManageAssignment,
   onNewReservation,
   onOpenReservation,
+  onEditReservation,
   onQuickStatusUpdate,
   onReleaseTable,
 }) {
@@ -42,6 +58,12 @@ function TableDayViewRow({
   const guestName = reservation?.guestName || 'Guest'
   const guestCount = Math.max(0, Number(reservation?.guests) || 0)
   const arrivalTime = reservation?.time ? formatTime24(reservation.time) : null
+  const tableChip = getTableChipMeta(reservation, row.assignedTablesLabel)
+
+  const handleEditReservation = (event) => {
+    event.stopPropagation()
+    onEditReservation?.(reservation)
+  }
 
   if (hasConflict) {
     return (
@@ -104,24 +126,53 @@ function TableDayViewRow({
         <time className="floor-table-day-seating-time">{timeWindowLabel}</time>
       </div>
 
-      {row.statusLabel ? (
-        <span className={`floor-table-day-status-badge is-${state}`}>{row.statusLabel}</span>
-      ) : null}
-
-      <p className="floor-table-day-guest-name">{guestName}</p>
+      <div className="floor-table-day-guest-row">
+        <h4 className="floor-table-day-guest-name">{guestName}</h4>
+        {onEditReservation ? (
+          <button
+            type="button"
+            className="floor-table-day-edit-btn"
+            disabled={isSaving}
+            onClick={handleEditReservation}
+            data-testid="floor-table-day-edit-reservation"
+            aria-label={`Edit reservation for ${guestName}`}
+          >
+            <span className="floor-table-day-edit-btn-icon" aria-hidden="true">✏</span>
+            Edit
+          </button>
+        ) : null}
+      </div>
 
       <p className="floor-table-day-guest-meta">
-        {arrivalTime ? `${arrivalTime} · ` : ''}
-        {guestCount}
-        {' '}
-        {guestCount === 1 ? 'guest' : 'guests'}
+        {arrivalTime ? (
+          <>
+            <span className="floor-table-day-guest-time">{arrivalTime}</span>
+            <span className="floor-table-day-guest-count">
+              {' · '}
+              {guestCount}
+              {' '}
+              {guestCount === 1 ? 'guest' : 'guests'}
+            </span>
+          </>
+        ) : (
+          <span className="floor-table-day-guest-count">
+            {guestCount}
+            {' '}
+            {guestCount === 1 ? 'guest' : 'guests'}
+          </span>
+        )}
       </p>
 
-      {row.assignedTablesLabel ? (
+      {tableChip ? (
         <div className="floor-table-day-table-chip">
-          <span className="floor-table-day-table-chip-label">Tables</span>
-          <span className="floor-table-day-table-chip-value">{row.assignedTablesLabel}</span>
+          <span className="floor-table-day-table-chip-label">{tableChip.prefix}</span>
+          <span className="floor-table-day-table-chip-separator" aria-hidden="true">·</span>
+          <span className="floor-table-day-table-chip-value">{tableChip.value}</span>
         </div>
+      ) : null}
+
+      {row.statusLabel ? (
+        <span className={`floor-table-day-status-badge is-${state}`}>{row.statusLabel}</span>
       ) : null}
 
       {row.hasNotes ? (
@@ -173,6 +224,7 @@ export function FloorTableSeatingDialog({
   rows = [],
   onNewReservation,
   onOpenReservation,
+  onEditReservation,
   onQuickStatusUpdate,
   onReleaseTable,
   onClose,
@@ -236,6 +288,7 @@ export function FloorTableSeatingDialog({
                 canManageAssignment={canManageAssignment}
                 onNewReservation={onNewReservation}
                 onOpenReservation={onOpenReservation}
+                onEditReservation={onEditReservation}
                 onQuickStatusUpdate={onQuickStatusUpdate}
                 onReleaseTable={onReleaseTable}
               />

@@ -7924,6 +7924,7 @@ function FloorPlanView({
   onQuickStatusUpdate,
   onOpenAddReservation,
   onOpenReservation,
+  onEditReservation,
   onHostEditSave,
   onReservationNotice,
   canManageAssignment = true,
@@ -8135,6 +8136,15 @@ function FloorPlanView({
     }
     openHostEdit(reservation)
   }, [closeScheduleCardTable, onOpenReservation, openHostEdit])
+
+  const handleScheduleCardEditReservation = useCallback((reservation) => {
+    closeScheduleCardTable('edit-reservation')
+    if (onEditReservation) {
+      onEditReservation(reservation)
+      return
+    }
+    openHostEdit(reservation)
+  }, [closeScheduleCardTable, onEditReservation, openHostEdit])
 
   const handleScheduleCardQuickStatus = useCallback(async (reservation, status) => {
     if (!onQuickStatusUpdate || !reservation) return
@@ -9177,6 +9187,7 @@ function FloorPlanView({
           dateLabel={scheduleCardDateLabel}
           rows={scheduleCardRows}
           onOpenReservation={handleScheduleCardEdit}
+          onEditReservation={handleScheduleCardEditReservation}
           onNewReservation={handleScheduleCardNewReservation}
           onQuickStatusUpdate={handleScheduleCardQuickStatus}
           onReleaseTable={handleScheduleCardReleaseTable}
@@ -9439,6 +9450,7 @@ function MobileReservationsHostShellBody({
         onQuickStatusUpdate={onQuickStatusUpdate}
         onOpenAddReservation={handleFloorOpenAddReservation}
         onOpenReservation={handleFloorOpenReservation}
+        onEditReservation={handleFloorOpenReservation}
         onHostEditSave={onHostEditSave}
         onReservationNotice={onReservationNotice}
         canManageAssignment={canManageAssignment}
