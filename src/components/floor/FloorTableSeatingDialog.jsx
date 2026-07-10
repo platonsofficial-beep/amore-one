@@ -1,6 +1,5 @@
 import { useMediaQuery } from '../../lib/useMediaQuery'
 import { formatHostListUnitLabel } from '../../lib/seatingAssignment'
-import { getHostListStatusLabel } from '../../lib/reservationHostStatus'
 import { formatTableConflictReason } from '../../lib/tableAvailability'
 import { formatTime24 } from '../../lib/timeFormatUtils'
 
@@ -76,9 +75,6 @@ export function FloorTableSeatingDialog({
           <ul className="floor-table-seating-dialog-list" aria-label="Seating availability">
             {safeRows.map((row) => {
               const reservation = row.reservation
-              const statusLabel = reservation
-                ? getHostListStatusLabel(reservation.status)
-                : 'Available'
 
               return (
                 <li key={row.seating.id} className="floor-table-seating-dialog-item">
@@ -101,8 +97,12 @@ export function FloorTableSeatingDialog({
                           {reservation?.guestName || 'Guest'}
                           {' · '}
                           {Math.max(0, Number(reservation?.guests) || 0)} guests
-                          {' · '}
-                          {statusLabel}
+                          {reservation?.time ? (
+                            <>
+                              {' · '}
+                              {formatTime24(reservation.time)}
+                            </>
+                          ) : null}
                         </span>
                       </button>
                     )}

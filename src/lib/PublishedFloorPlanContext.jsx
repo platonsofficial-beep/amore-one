@@ -49,6 +49,7 @@ export function PublishedFloorPlanProvider({ children, workspaceId = '' }) {
   const [publishNotice, setPublishNotice] = useState(null)
   const [isRefreshingPublishedLayout, setIsRefreshingPublishedLayout] = useState(false)
   const skipNextPublishedEventRef = useRef(false)
+  const stableHostLayoutRef = useRef(null)
 
   const applyWorkspaceLayouts = useCallback(({ publishedLayout, draftLayout, publishedAt: nextPublishedAt }) => {
     const normalizedPublished = publishedLayout ? cloneBuilderLayout(publishedLayout) : null
@@ -256,10 +257,17 @@ export function PublishedFloorPlanProvider({ children, workspaceId = '' }) {
     }
   }, [reload])
 
-  const layout = useMemo(
-    () => builderLayoutToHostLayout(publishedBuilderLayout),
-    [publishedBuilderLayout],
-  )
+  const layout = useMemo(() => {
+    const nextLayout = builderLayoutToHostLayout(publishedBuilderLayout)
+    if (nextLayout?.tables?.length || nextLayout?.zones?.length) {
+      stableHostLayoutRef.current = nextLayout
+      return nextLayout
+    }
+
+    return stableHostLayoutRef.current
+  }, [publishedBuilderLayout])
+
+  const hasDisplayableLayout = Boolean(layout?.tables?.length || layout?.zones?.length)
 
   const hasUnpublishedDraft = useMemo(() => {
     if (!draftBuilderLayout) return false
@@ -271,7 +279,8 @@ export function PublishedFloorPlanProvider({ children, workspaceId = '' }) {
     builderLayout: draftBuilderLayout,
     publishedBuilderLayout,
     layout,
-    hasLayout: Boolean(layout?.tables?.length),
+    hasLayout: hasDisplayableLayout,
+    hasDisplayableLayout,
     hasUnpublishedDraft,
     publishedAt,
     isLoading,
@@ -298,6 +307,7 @@ export function PublishedFloorPlanProvider({ children, workspaceId = '' }) {
     reload,
     saveDraftLayout,
     saveError,
+    hasDisplayableLayout,
   ])
 
   return (

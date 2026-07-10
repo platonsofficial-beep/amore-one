@@ -1,11 +1,10 @@
 import { useMemo } from 'react'
 import {
   CUSTOM_SEATING_VALUE,
+  formatSeatingChipLabel,
   getActiveSeatingsForDate,
   matchReservationTimeToSeating,
-  normalizeReservationSeating,
 } from '../../lib/reservationSeatings'
-import { formatTime24 } from '../../lib/timeFormatUtils'
 
 export function ReservationSeatingSelect({
   seatings = [],
@@ -13,7 +12,6 @@ export function ReservationSeatingSelect({
   seatingId = null,
   timeValue = '',
   onSeatingChange,
-  onTimeChange,
   required = false,
   className = 'reservation-seating-select',
 }) {
@@ -38,9 +36,6 @@ export function ReservationSeatingSelect({
 
     const seating = activeSeatings.find((entry) => entry.id === nextValue) ?? null
     onSeatingChange?.(seating?.id ?? null, { seating, isCustom: false })
-    if (seating?.startTime) {
-      onTimeChange?.(seating.startTime)
-    }
   }
 
   return (
@@ -50,14 +45,16 @@ export function ReservationSeatingSelect({
         <option value="" disabled={required}>Select seating</option>
         {activeSeatings.map((seating) => (
           <option key={seating.id} value={seating.id}>
-            {seating.name} — {formatTime24(seating.startTime)}
+            {formatSeatingChipLabel(seating)}
           </option>
         ))}
         <option value={CUSTOM_SEATING_VALUE}>Custom time</option>
       </select>
       {selectedValue === CUSTOM_SEATING_VALUE ? (
-        <small className="reservation-seating-select-hint">Choose a custom time below.</small>
-      ) : null}
+        <small className="reservation-seating-select-hint">Choose a custom exact time below.</small>
+      ) : (
+        <small className="reservation-seating-select-hint">Exact reservation time is set separately below.</small>
+      )}
     </label>
   )
 }
@@ -67,7 +64,7 @@ export function resolveSeatingSelection({ seatingId, time, date, seatings = [] }
     const seating = seatings.find((entry) => entry.id === seatingId) ?? null
     return {
       seatingId: seating?.id ?? seatingId,
-      time: seating?.startTime ?? time,
+      time,
       isCustom: false,
     }
   }
@@ -76,7 +73,7 @@ export function resolveSeatingSelection({ seatingId, time, date, seatings = [] }
   if (matched) {
     return {
       seatingId: matched.id,
-      time: matched.startTime,
+      time,
       isCustom: false,
     }
   }
@@ -88,8 +85,4 @@ export function resolveSeatingSelection({ seatingId, time, date, seatings = [] }
   }
 }
 
-export function formatSeatingOptionLabel(seating) {
-  const normalized = normalizeReservationSeating(seating)
-  if (!normalized) return ''
-  return `${normalized.name} — ${formatTime24(normalized.startTime)}`
-}
+export { formatSeatingChipLabel as formatSeatingOptionLabel }

@@ -77,6 +77,10 @@ const WORKSPACE_PROFILE_FIELDS = [
   'timezone',
   'currency',
   'logoUrl',
+  'countryCode',
+  'countryName',
+  'city',
+  'defaultPhoneCountryCode',
 ]
 
 function normalizeProfileField(value) {

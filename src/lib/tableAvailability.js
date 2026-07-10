@@ -92,6 +92,42 @@ export function buildFloorTableSeatingRows(
   })
 }
 
+export function buildTableSeatingDayIndicators(
+  table,
+  reservations,
+  dateKey,
+  seatings = [],
+  {
+    layout = null,
+    seatingsById = null,
+  } = {},
+) {
+  const byId = seatingsById ?? new Map(seatings.map((entry) => [entry.id, entry]))
+  const activeSeatings = getActiveSeatingsForDate(seatings, dateKey)
+
+  return activeSeatings.map((seating) => {
+    const reservation = findReservationForTableSeating(
+      reservations,
+      table,
+      dateKey,
+      seating,
+      { layout, seatingsById: byId },
+    )
+    const { hostIndicator } = resolveSeatingFloorStatus(null, reservation)
+
+    return {
+      seatingId: seating.id,
+      seatingName: seating.name,
+      startTime: seating.startTime,
+      state: reservation ? hostIndicator : 'empty',
+      reservation,
+      ariaLabel: reservation
+        ? `${seating.name} · Reserved by ${reservation.guestName || 'Guest'} at ${formatTime24(reservation.time)}`
+        : `${seating.name} · Available`,
+    }
+  })
+}
+
 export function resolveSeatingFloorStatus(conflict, reservation) {
   if (!conflict && !reservation) {
     return { floorStatus: 'available', hostIndicator: 'empty' }

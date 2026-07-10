@@ -11,6 +11,7 @@ import {
   serializeReservationSeatingRow,
   sortReservationSeatings,
   validateReservationSeatingForm,
+  getSeatingWindowTimeOptions,
 } from './reservationSeatings'
 
 const SAMPLE_SEATINGS = [
@@ -194,5 +195,18 @@ describe('reservationSeatings', () => {
       sort_order: 3,
       is_active: true,
     })
+  })
+
+  it('builds seating window time options at 15-minute intervals', () => {
+    const seating = normalizeReservationSeatingInput({
+      name: 'Dinner 1',
+      startTime: '19:00',
+      durationMinutes: 120,
+      daysOfWeek: [1, 2, 3, 4, 5, 6],
+    })
+
+    expect(getSeatingWindowTimeOptions(seating)).toEqual([
+      '19:00', '19:15', '19:30', '19:45', '20:00', '20:15', '20:30', '20:45',
+    ])
   })
 })

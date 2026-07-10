@@ -20,6 +20,7 @@ import {
 import { getReservationDisplayStatus } from '../../../lib/reservationHostStatus'
 import { MobileReservationHostEditSheet } from './MobileReservationHostEditSheet'
 import { MobileReservationQuickCreateSheet } from './MobileReservationQuickCreateSheet'
+import { HostSettingsPanel } from '../../host/HostSettingsPanel'
 
 export function MobileReservationsHostView({
   reservations = [],
@@ -42,10 +43,12 @@ export function MobileReservationsHostView({
   renderRightPane,
   selectedReservationId: controlledSelectedReservationId = null,
   onSelectReservation,
+  hostSettingsProps = null,
 }) {
   const [activeTab, setActiveTab] = useState('upcoming')
   const [searchTerm, setSearchTerm] = useState('')
   const [isCreateOpen, setIsCreateOpen] = useState(false)
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false)
   const [editingReservation, setEditingReservation] = useState(null)
   const [localSelectedReservationId, setLocalSelectedReservationId] = useState(null)
   const [isSplitLayout, setIsSplitLayout] = useState(() => isMobileHostSplitViewport())
@@ -306,14 +309,14 @@ export function MobileReservationsHostView({
           <span><strong>{summary.seatedGuests ?? summary.inHouse}</strong> seated</span>
         </div>
         <div className="mobile-host-sticky-actions">
-          {hasLayout && canEditFloorPlan && onOpenFloorPlanLayout ? (
+          {hostSettingsProps ? (
             <button
               type="button"
-              className="mobile-host-layout-btn"
-              onClick={onOpenFloorPlanLayout}
-              aria-label="Edit floor plan layout"
+              className="mobile-host-settings-btn"
+              onClick={() => setIsSettingsOpen(true)}
+              aria-label="Host settings"
             >
-              Edit layout
+              ⚙ Settings
             </button>
           ) : null}
           {onExitHostMode ? (
@@ -399,6 +402,21 @@ export function MobileReservationsHostView({
         onClose={() => setRowMenu(null)}
         onEdit={handleEditReservation}
       />
+
+      {isSettingsOpen && hostSettingsProps ? (
+        <div className="mobile-host-settings-overlay" role="presentation">
+          <button
+            type="button"
+            className="mobile-host-settings-backdrop"
+            onClick={() => setIsSettingsOpen(false)}
+            aria-label="Close settings"
+          />
+          <HostSettingsPanel
+            {...hostSettingsProps}
+            onClose={() => setIsSettingsOpen(false)}
+          />
+        </div>
+      ) : null}
     </div>
   )
 }

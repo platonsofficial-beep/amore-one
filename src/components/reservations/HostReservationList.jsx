@@ -116,19 +116,27 @@ function HostReservationListRow({
           <div className="host-reservation-card-details">
             <span className="host-reservation-card-guests">
               {guestCount} {guestCount === 1 ? 'guest' : 'guests'}
+              {tableLabel ? (
+                <>
+                  {' · '}
+                  <span
+                    className="host-reservation-card-tables"
+                    title={tableTooltip !== tableLabel ? tableTooltip : undefined}
+                  >
+                    {tableLabel}
+                  </span>
+                </>
+              ) : null}
             </span>
-            <span
-              className="host-reservation-card-tables"
-              title={tableTooltip !== tableLabel ? tableTooltip : undefined}
-            >
-              {tableLabel}
-            </span>
+            {reservation.area ? (
+              <span className="host-reservation-card-area">{reservation.area}</span>
+            ) : null}
           </div>
         </div>
 
         <button
         type="button"
-        className={`host-reservation-card-status-pill tone-${statusMeta.tone}`}
+        className={`host-reservation-card-status-pill tone-${statusMeta.tone} is-compact`}
         aria-label={`Status: ${statusMeta.label}. Change status.`}
         aria-expanded={isStatusPickerOpen}
         aria-haspopup="dialog"

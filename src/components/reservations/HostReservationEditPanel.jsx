@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import {
   buildSeatingAssignment,
   formatSeatingAssignmentSummary,
@@ -20,6 +20,7 @@ import { ReservationTableSelector } from './ReservationTableSelector'
 import { ReservationDateField } from './ReservationDateField'
 import { ReservationTimeSelect } from './ReservationTimeSelect'
 import { ReservationSeatingSelect } from './ReservationSeatingSelect'
+import { buildSeatingsById } from '../../lib/reservationSeatings'
 
 import { HOST_RESERVATION_STATUSES } from '../../lib/reservationHostStatus'
 
@@ -83,6 +84,8 @@ export function HostReservationEditPanel({
   const { layout: contextLayout } = usePublishedFloorPlan()
   const activeLayout = layout ?? contextLayout
   const zones = activeLayout?.zones ?? []
+  const seatingsById = useMemo(() => buildSeatingsById(seatings), [seatings])
+  const selectedSeating = form?.seatingId ? seatingsById.get(form.seatingId) ?? null : null
 
   useEffect(() => {
     setNotesExpanded(Boolean(`${reservation?.notes ?? ''}`.trim()))
@@ -257,15 +260,15 @@ export function HostReservationEditPanel({
               dateKey={form.date || todayKey}
               seatingId={form.seatingId}
               timeValue={form.time}
-              onSeatingChange={(seatingId) => updateField({ seatingId })}
-              onTimeChange={(time) => updateField({ time })}
+              onSeatingChange={(nextSeatingId) => updateField({ seatingId: nextSeatingId })}
             />
 
             <label className="host-reservation-edit-field">
               <span>Time</span>
               <ReservationTimeSelect
                 value={form.time}
-                onChange={(time) => updateField({ time, seatingId: null })}
+                onChange={(time) => updateField({ time })}
+                seating={selectedSeating}
                 required
               />
             </label>

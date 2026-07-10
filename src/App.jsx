@@ -113,7 +113,10 @@ import {
 } from './lib/reservationServiceIntelligence'
 import { EmbeddedFloorPlanEditor } from './components/floor/EmbeddedFloorPlanEditor'
 import { FloorPlanReservationLinks } from './components/floor/FloorPlanReservationLinks'
+import { FloorSeatingSelector } from './components/floor/FloorSeatingSelector'
+import { FloorTableSeatingIndicators } from './components/floor/FloorTableSeatingIndicators'
 import { FloorTableReservationTooltip } from './components/floor/FloorTableReservationTooltip'
+import { HostStationErrorBoundary } from './components/host/HostStationErrorBoundary'
 import {
   FloorTableSeatingDialog,
   formatFloorTableAreaLabel,
@@ -121,10 +124,17 @@ import {
 } from './components/floor/FloorTableSeatingDialog'
 import {
   buildFloorTableSeatingRows,
+  buildTableSeatingDayIndicators,
   resolveSeatingFloorStatus,
 } from './lib/tableAvailability'
 import {
+  buildHostServiceDashboard,
+  countHostListFilterMatches,
+  hostListFilterMatch as matchHostReservationListFilter,
+} from './lib/hostServiceDashboard'
+import {
   buildSeatingsById,
+  formatSeatingChipLabel,
   getActiveSeatingsForDate,
   matchReservationTimeToSeating,
   resolveReservationSeatingId,
@@ -284,6 +294,10 @@ import {
   formatHostReservationListTime,
 } from './lib/timeFormatUtils'
 import { validateReservationFormFields } from './lib/reservationFormValidation'
+import {
+  resolveWorkspaceDefaultPhoneCountryCode,
+  setWorkspaceDefaultPhoneCountryCode,
+} from './lib/reservationPhoneUtils'
 import {
   handleReservationFormEnterKey,
   preventReservationFormSubmit,
@@ -5626,9 +5640,9 @@ function ScheduleView({
 }
 
 const HOST_LIST_FILTERS = [
-  'All',
   'Upcoming',
-  'In House',
+  'Arrived',
+  'Seated',
   'Completed',
   'Problems',
 ]
@@ -6998,6 +7012,7 @@ function buildFloorPlanSnapshot({
   debugAssignments = false,
   selectedSeating = null,
   seatingsById = new Map(),
+  seatings = [],
   selectedReservation = null,
 }) {
   if (!layout?.tables?.length) {
@@ -7063,6 +7078,12 @@ function buildFloorPlanSnapshot({
         heatMap: null,
         cleaningQueue: null,
         future: FLOOR_PLAN_FUTURE_MODULES,
+        seatingIndicators: syncWithList && seatings.length
+          ? buildTableSeatingDayIndicators(table, enrichedReservations, todayKey, seatings, {
+            layout,
+            seatingsById,
+          })
+          : [],
       },
     }
   })
@@ -7586,8 +7607,9 @@ function FloorTableNode({
                   <span className="floor-table-party">{guestCount} guests</span>
                 </>
               ) : (
-                <span className="floor-table-seats">{seatCapacity} seats</span>
+                <span className="floor-table-seats">{seatCapacity} guests</span>
               )}
+              <FloorTableSeatingIndicators indicators={tableState.meta?.seatingIndicators ?? []} />
             </div>
           </>
         ) : (
@@ -7797,7 +7819,7 @@ function FloorPlanView({
     setFloorPlanMode,
     floorPlanMode,
   } = useReservationWorkspace()
-  const { hasLayout, loadError, saveError, isRefreshingPublishedLayout } = usePublishedFloorPlan()
+  const { hasLayout, hasDisplayableLayout, loadError, saveError, isRefreshingPublishedLayout } = usePublishedFloorPlan()
   const [dropTargetTableId, setDropTargetTableId] = useState(null)
   const [mergeSelection, setMergeSelection] = useState([])
   const [mergedGroups, setMergedGroups] = useState([])
@@ -8014,6 +8036,7 @@ function FloorPlanView({
       debugAssignments: isCompact && import.meta.env.DEV,
       selectedSeating,
       seatingsById,
+      seatings,
       selectedReservation,
     })
   ), [
@@ -8022,6 +8045,7 @@ function FloorPlanView({
     isCompact,
     layout,
     nowMinutes,
+    seatings,
     selectedReservation,
     selectedSeating,
     seatingsById,
@@ -8351,7 +8375,29 @@ function FloorPlanView({
     || isHostFloorPickActive,
   )
 
-  if (!hasLayout) {
+  const activeSeatings = useMemo(
+    () => getActiveSeatingsForDate(seatings, todayKey),
+    [seatings, todayKey],
+  )
+
+  const seatingSummaries = useMemo(() => {
+    const summaries = {}
+    activeSeatings.forEach((seating) => {
+      const conflicts = getConflictingUnitIds(assignmentReservations, todayKey, seating.startTime, {
+        seatingId: seating.id,
+        durationMinutes: seating.durationMinutes,
+        seatingsById,
+        layout,
+      })
+      summaries[seating.id] = {
+        occupiedTables: conflicts.size,
+        totalTables: layout?.tables?.length ?? 0,
+      }
+    })
+    return summaries
+  }, [activeSeatings, assignmentReservations, layout, seatingsById, todayKey])
+
+  if (!hasDisplayableLayout) {
     if (isRefreshingPublishedLayout) {
       return (
         <div className={`floor-plan-workspace${isCompact ? ' is-compact' : ''} floor-plan-refreshing-state`} role="status">
@@ -8412,20 +8458,6 @@ function FloorPlanView({
         <div className="floor-plan-toolbar-actions">
           {!isCompact && !isHeatmap ? <FloorPlanLiveStats stats={floorPlanSnapshot.stats} /> : null}
           {!isCompact ? <FloorPlanViewModeToggle value={viewMode} onChange={setViewMode} /> : null}
-          {isCompact && !isHeatmap && seatings.length > 0 ? (
-            <div className="floor-plan-seating-filter" role="group" aria-label="Service seating">
-              {getActiveSeatingsForDate(seatings, todayKey).map((seating) => (
-                <button
-                  key={seating.id}
-                  type="button"
-                  className={`floor-plan-seating-chip${selectedSeating?.id === seating.id ? ' is-active' : ''}`}
-                  onClick={() => onSelectedSeatingChange?.(seating.id)}
-                >
-                  {seating.name}
-                </button>
-              ))}
-            </div>
-          ) : null}
           {isCompact && !isHeatmap ? (
             <div className="floor-plan-toolbar-actions-group">
               {canEditFloorPlan ? (
@@ -8474,6 +8506,16 @@ function FloorPlanView({
 
       {!isCompact && !isHeatmap ? <FloorPlanLegend /> : null}
       {isHeatmap ? <FloorHeatmapLegend /> : null}
+
+      {isCompact && !isHeatmap && activeSeatings.length > 0 ? (
+        <FloorSeatingSelector
+          seatings={activeSeatings}
+          dateKey={todayKey}
+          selectedSeatingId={selectedSeating?.id ?? null}
+          onSelect={onSelectedSeatingChange}
+          summaries={seatingSummaries}
+        />
+      ) : null}
 
       {mergeSelection.length > 0 && !isHeatmap ? (
         <p className="floor-plan-merge-hint">
@@ -8584,6 +8626,7 @@ function FloorPlanView({
             <SeatingConfirmPanel
               variant="host-drawer"
               reservation={selectedReservation}
+              seating={selectedSeating}
               selectedUnitIds={seatingDraftUnitIds}
               extraChairs={seatingExtraChairs}
               standingGuests={seatingStandingGuests}
@@ -8650,6 +8693,7 @@ function MobileReservationsHostShell({
   onSeatGuestAtTable,
   canEditFloorPlan = false,
   reservationSeatings = [],
+  hostSettingsProps = null,
 }) {
   const workspaceReservations = useMemo(
     () => getHostWorkspaceReservations(reservations, todayKey, workspaceTimeZone),
@@ -8682,6 +8726,8 @@ function MobileReservationsHostShell({
         onExitHostMode={onExitHostMode}
         onSeatGuestAtTable={onSeatGuestAtTable}
         canEditFloorPlan={canEditFloorPlan}
+        reservationSeatings={reservationSeatings}
+        hostSettingsProps={hostSettingsProps}
       />
     </ReservationWorkspaceProvider>
   )
@@ -8705,6 +8751,7 @@ function MobileReservationsHostShellBody({
   onSeatGuestAtTable,
   canEditFloorPlan = false,
   reservationSeatings = [],
+  hostSettingsProps = null,
 }) {
   const {
     selectedReservation,
@@ -8716,9 +8763,11 @@ function MobileReservationsHostShellBody({
   } = useReservationWorkspace()
   const {
     hasLayout,
+    hasDisplayableLayout,
     publishNotice,
     clearPublishNotice,
     isRefreshingPublishedLayout,
+    reload,
   } = usePublishedFloorPlan()
 
   useEffect(() => {
@@ -8746,16 +8795,20 @@ function MobileReservationsHostShellBody({
     )
   }
 
-  if (isRefreshingPublishedLayout && !hasLayout) {
+  if (isRefreshingPublishedLayout && !hasDisplayableLayout) {
     return (
       <div className="mobile-host-floor-refreshing" role="status">
         <p>Updating published layout…</p>
+        <button type="button" className="mobile-host-floor-refresh-retry" onClick={() => reload()}>
+          Retry
+        </button>
       </div>
     )
   }
 
-  const floorPlanContent = hasLayout ? (
-    <FloorPlanView
+  const floorPlanContent = hasDisplayableLayout ? (
+    <HostStationErrorBoundary onRetry={() => reload()}>
+      <FloorPlanView
       reservations={workspaceReservations}
       allReservations={reservations}
       listReservations={workspaceReservations}
@@ -8768,11 +8821,21 @@ function MobileReservationsHostShellBody({
       onQuickStatusUpdate={onQuickStatusUpdate}
       onOpenAddReservation={() => {}}
     />
-  ) : null
+    </HostStationErrorBoundary>
+  ) : (
+    <div className="mobile-host-floor-empty" role="status">
+      <p>No published floor layout yet.</p>
+      {canEditFloorPlan ? (
+        <button type="button" className="mobile-host-layout-btn" onClick={() => setFloorPlanMode('edit')}>
+          Edit layout
+        </button>
+      ) : null}
+    </div>
+  )
 
   const rightPane = ({ onEditReservation }) => (
     <MobileReservationsHostRightPane
-      hasLayout={hasLayout}
+      hasLayout={hasDisplayableLayout}
       floorPlanContent={floorPlanContent}
       selectedReservation={selectedReservation}
       todayKey={todayKey}
@@ -8800,8 +8863,9 @@ function MobileReservationsHostShellBody({
       onExitHostMode={onExitHostMode}
       canEditFloorPlan={canEditFloorPlan}
       reservationSeatings={reservationSeatings}
-      hasLayout={hasLayout}
+      hasLayout={hasDisplayableLayout}
       onOpenFloorPlanLayout={() => setFloorPlanMode('edit')}
+      hostSettingsProps={hostSettingsProps}
       renderRightPane={rightPane}
       selectedReservationId={selectedReservation?.id ?? null}
       onSelectReservation={(reservation) => selectReservation(reservation, { scrollFloor: true })}
@@ -9238,25 +9302,6 @@ function getHostReservationWarnings(reservation, nowMinutes, todayKey) {
   }
 
   return warnings
-}
-
-function hostListFilterMatch(reservation, filter, nowMinutes, todayKey) {
-  const groupId = getHostListGroupId(reservation)
-
-  switch (filter) {
-    case 'All':
-      return true
-    case 'Upcoming':
-      return groupId === 'upcoming' || isReservationUpcoming(reservation, todayKey, nowMinutes)
-    case 'In House':
-      return groupId === 'in-house' || isReservationInHouse(reservation)
-    case 'Completed':
-      return groupId === 'completed'
-    case 'Problems':
-      return groupId === 'problems'
-    default:
-      return true
-  }
 }
 
 function shouldHideInDefaultHostView(reservation, listFilter, listSort, nowMinutes, todayKey) {
@@ -10469,20 +10514,20 @@ function HostReservationListControls({
   onToggleHourFilter,
   hasHourSlots,
   problemsCount = 0,
+  filterCounts = {},
 }) {
   return (
     <div className="host-reservation-list-controls">
       <div className="host-reservation-list-filters" role="toolbar" aria-label="Reservation filters">
         {HOST_LIST_FILTERS.map((filter) => {
-          const isProblems = filter === 'Problems'
-          const problems = Number(problemsCount) || 0
-          const label = isProblems && problems > 0 ? `Problems (${problems})` : filter
+          const count = Number(filterCounts[filter]) || 0
+          const label = `${filter} ${count}`
 
           return (
             <button
               key={filter}
               type="button"
-              className={`host-list-filter-chip${listFilter === filter ? ' active' : ''}${isProblems && problems > 0 ? ' has-count' : ''}`}
+              className={`host-list-filter-chip${listFilter === filter ? ' active' : ''}${filter === 'Problems' && count > 0 ? ' has-count' : ''}`}
               onClick={() => onListFilterChange(filter)}
             >
               {label}
@@ -10542,6 +10587,7 @@ function ReservationsUnifiedCanvas({
   isViewingToday = true,
   onQuickStatusUpdate,
   isSavingStatus,
+  hostFilterCounts = {},
 }) {
   const { layout } = usePublishedFloorPlan()
   const canEditFloorPlan = floorPlanProps.canEditFloorPlan !== false
@@ -10590,6 +10636,18 @@ function ReservationsUnifiedCanvas({
     }
   }, [dailySnapshot, listReservations, floorPlanProps.nowMinutes, floorPlanProps.todayKey])
 
+  const hostServiceDashboard = useMemo(() => (
+    buildHostServiceDashboard({
+      reservations: floorPlanProps.listReservations ?? listReservations,
+      nowMinutes: floorPlanProps.nowMinutes,
+      todayKey: floorPlanProps.todayKey,
+      layout,
+      seatings: floorPlanProps.seatings ?? [],
+      selectedSeating: floorPlanProps.selectedSeating ?? null,
+      seatingsById: buildSeatingsById(floorPlanProps.seatings ?? []),
+    })
+  ), [floorPlanProps, layout, listReservations])
+
   const handleStatusChange = async (reservation, status) => {
     if (!onQuickStatusUpdate) return
 
@@ -10612,7 +10670,7 @@ function ReservationsUnifiedCanvas({
       {floorPlanMode !== 'edit' ? (
       <section className="host-operations-list" aria-label="Reservation list">
         <div className="host-operations-list-sticky">
-          <HostManagerSummaryBar summary={hostManagerSummary} problemsCount={problemsCount} />
+          <HostManagerSummaryBar summary={hostManagerSummary} dashboard={hostServiceDashboard} problemsCount={problemsCount} />
           <HostServiceHealthStrip
             metrics={serviceHealthMetrics}
             insights={serviceInsights}
@@ -10638,6 +10696,7 @@ function ReservationsUnifiedCanvas({
             onToggleHourFilter={() => setShowHourFilter((current) => !current)}
             hasHourSlots={hostServicePressureSlots.length > 0}
             problemsCount={problemsCount}
+            filterCounts={hostFilterCounts}
           />
         </div>
         <div className="host-operations-list-scroll">
@@ -10786,7 +10845,7 @@ function ReservationsWorkspaceBody({
   reservationSeatings = [],
 }) {
   const [searchTerm, setSearchTerm] = useState('')
-  const [listFilter, setListFilter] = useState('All')
+  const [listFilter, setListFilter] = useState('Upcoming')
   const [listSort, setListSort] = useState('service')
   const [serviceHourFilter, setServiceHourFilter] = useState(null)
   const [selectedServiceSeatingId, setSelectedServiceSeatingId] = useState('')
@@ -10901,7 +10960,7 @@ function ReservationsWorkspaceBody({
 
   const hostListWithoutHourFilter = useMemo(() => (
     filteredWorkspaceReservations.filter((reservation) => (
-      hostListFilterMatch(reservation, listFilter, nowMinutes, selectedDateKey)
+      matchHostReservationListFilter(reservation, listFilter, nowMinutes, selectedDateKey)
       && !shouldHideInDefaultHostView(reservation, listFilter, listSort, nowMinutes, selectedDateKey)
     ))
   ), [
@@ -10911,6 +10970,13 @@ function ReservationsWorkspaceBody({
     nowMinutes,
     selectedDateKey,
   ])
+
+  const hostFilterCounts = useMemo(() => (
+    HOST_LIST_FILTERS.reduce((counts, filter) => ({
+      ...counts,
+      [filter]: countHostListFilterMatches(filteredWorkspaceReservations, filter, nowMinutes, selectedDateKey),
+    }), {})
+  ), [filteredWorkspaceReservations, nowMinutes, selectedDateKey])
 
   const hostServicePressureSlots = useMemo(
     () => buildHostServiceHourPressureSlots(hostListWithoutHourFilter),
@@ -11149,6 +11215,7 @@ function ReservationsWorkspaceBody({
         dailySnapshot={dailySnapshot}
         timelinePanelProps={timelinePanelProps}
         floorPlanProps={floorPlanProps}
+        hostFilterCounts={hostFilterCounts}
         sharedCardProps={sharedCardProps}
         openMoreReservationId={openMoreReservationId}
         onToggleMore={handleToggleMore}
@@ -11207,6 +11274,7 @@ function ReservationsWorkspaceContent({
   dailySnapshot = null,
   timelinePanelProps,
   floorPlanProps,
+  hostFilterCounts = {},
   sharedCardProps: _sharedCardProps,
   openMoreReservationId: _openMoreReservationId,
   onToggleMore: _onToggleMore,
@@ -11317,6 +11385,7 @@ function ReservationsWorkspaceContent({
           isLoading={isLoading}
           onQuickStatusUpdate={onQuickStatusUpdate}
           isSavingStatus={isSaving}
+          hostFilterCounts={hostFilterCounts}
         />
       </div>
 
@@ -13492,6 +13561,10 @@ function App() {
   }, [activeView, teamSection, stockSection, operationsSection])
 
   const workspaceTimeZone = workspaceProfile.timezone
+
+  useEffect(() => {
+    setWorkspaceDefaultPhoneCountryCode(resolveWorkspaceDefaultPhoneCountryCode(workspaceProfile))
+  }, [workspaceProfile])
   const currentDateLabel = formatCurrentDateLabel(localNow, workspaceTimeZone)
   const currentDateKey = getCurrentDateKey(localNow, workspaceTimeZone)
   const currentTimeGreeting = getTimeGreeting(localNow, workspaceTimeZone)
@@ -21386,6 +21459,17 @@ function App() {
                       onExitHostMode={undefined}
                       onSeatGuestAtTable={handleSeatGuestAtTable}
                       canEditFloorPlan={canEditFloorPlanRole}
+                      reservationSeatings={reservationSeatings}
+                      hostSettingsProps={{
+                        profile: {
+                          name: resolvedUserDisplayName,
+                          email: user?.email ?? '',
+                          phone: mobileProfilePhone,
+                        },
+                        workspaceProfile,
+                        membership,
+                        onSignOut: handleMobileSignOut,
+                      }}
                     />
                   )
 

@@ -216,6 +216,9 @@ function EmbeddedFloorPlanEditorShell({
     setPublishError(null)
     try {
       const transition = await onPublishLayout(buildLayoutPayload())
+      if (!transition?.ok) {
+        throw new Error('Published layout is missing floor areas. Stay in the editor and try again.')
+      }
       dispatch({ type: 'MARK_DRAFT_SAVED' })
       onPublishComplete?.(transition)
       exitEditMode()

@@ -1,5 +1,14 @@
 import { DEFAULT_RESERVATION_DURATION_MINUTES } from './reservationConstants'
-import { normalizeReservationTimeValue } from './timeFormatUtils'
+import {
+  normalizeReservationTimeValue,
+  parseReservationTimeToMinutes,
+} from './timeFormatUtils'
+
+function formatMinutesAsTime(totalMinutes) {
+  const hours = Math.floor(totalMinutes / 60) % 24
+  const minutes = totalMinutes % 60
+  return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`
+}
 
 export const CUSTOM_SEATING_VALUE = '__custom__'
 
@@ -243,6 +252,32 @@ export const DAY_OF_WEEK_OPTIONS = [
   { value: 5, label: 'Fri' },
   { value: 6, label: 'Sat' },
 ]
+
+export const SEATING_TIME_INTERVAL_MINUTES = 15
+
+export function getSeatingWindowTimeOptions(seating, { intervalMinutes = SEATING_TIME_INTERVAL_MINUTES } = {}) {
+  const normalized = normalizeReservationSeating(seating) ?? normalizeReservationSeatingInput(seating)
+  if (!normalized) return []
+
+  const startMinutes = parseReservationTimeToMinutes(normalized.startTime)
+  if (startMinutes === null) return []
+
+  const safeInterval = Math.max(5, Number(intervalMinutes) || SEATING_TIME_INTERVAL_MINUTES)
+  const lastStart = startMinutes + normalized.durationMinutes - safeInterval
+  const options = []
+
+  for (let minute = startMinutes; minute <= lastStart; minute += safeInterval) {
+    options.push(formatMinutesAsTime(minute))
+  }
+
+  return options
+}
+
+export function formatSeatingChipLabel(seating) {
+  const normalized = normalizeReservationSeating(seating) ?? normalizeReservationSeatingInput(seating)
+  if (!normalized) return ''
+  return `${normalized.name} · ${normalized.startTime}`
+}
 
 export function formatSeatingDaysLabel(daysOfWeek = []) {
   const normalized = normalizeDaysOfWeek(daysOfWeek)

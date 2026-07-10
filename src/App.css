@@ -28838,3 +28838,39 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   }
 }
 
+
+/* Host Station stabilization */
+.floor-seating-selector { display: flex; flex-direction: column; gap: 0.5rem; padding: 0.5rem 0.75rem 0; }
+.floor-seating-selector-label { margin: 0; font-size: 0.72rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-muted, #8a8f98); }
+.floor-seating-selector-scroll { display: flex; gap: 0.5rem; overflow-x: auto; padding-bottom: 0.25rem; -webkit-overflow-scrolling: touch; }
+.floor-seating-selector-chip { min-height: 44px; padding: 0.5rem 0.85rem; border-radius: 999px; border: 1px solid rgba(255,255,255,0.12); background: rgba(255,255,255,0.04); color: inherit; white-space: nowrap; display: inline-flex; flex-direction: column; align-items: flex-start; gap: 0.15rem; }
+.floor-seating-selector-chip.is-active { border-color: #c9a227; background: rgba(201,162,39,0.18); box-shadow: inset 0 0 0 1px rgba(201,162,39,0.35); }
+.floor-table-seating-indicators { display: flex; gap: 0.18rem; margin-top: 0.2rem; }
+.floor-table-seating-indicator { width: 0.45rem; height: 0.45rem; border-radius: 999px; background: rgba(255,255,255,0.25); }
+.floor-table-seating-indicator.is-empty { background: #4caf50; }
+.floor-table-seating-indicator.is-confirmed { background: #f0b429; }
+.floor-table-seating-indicator.is-waiting { background: #ff9800; }
+.floor-table-seating-indicator.is-seated { background: #ef5350; }
+.host-service-dashboard { display: flex; flex-direction: column; gap: 0.35rem; padding: 0.55rem 0.75rem; border-bottom: 1px solid rgba(255,255,255,0.08); font-size: 0.82rem; }
+.host-service-dashboard-row { display: flex; flex-wrap: wrap; gap: 0.35rem; align-items: center; }
+.host-list-filter-chip { min-height: 44px; white-space: nowrap; flex: 0 0 auto; }
+.host-reservation-list-filters { display: flex; gap: 0.45rem; overflow-x: auto; padding-bottom: 0.25rem; }
+.host-reservation-card-main { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 0.65rem; align-items: start; }
+.host-reservation-card-body, .host-reservation-card-details { min-width: 0; }
+.host-reservation-card-tables { overflow-wrap: anywhere; }
+.host-reservation-card-status-pill.is-compact { min-height: 32px; padding: 0.2rem 0.55rem; font-size: 0.72rem; }
+.seating-confirm-panel.is-host-drawer { display: flex; flex-direction: column; height: 100%; min-height: 0; }
+.host-seating-drawer-header { display: flex; justify-content: space-between; gap: 0.75rem; align-items: flex-start; padding: 0.85rem 1rem 0.5rem; }
+.host-seating-drawer-scroll { flex: 1; min-height: 0; overflow-y: auto; padding: 0 1rem; }
+.host-seating-drawer-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 0.65rem; padding: 0.75rem 1rem calc(0.75rem + env(safe-area-inset-bottom, 0px)); border-top: 1px solid rgba(255,255,255,0.08); }
+.host-seating-drawer-actions .seating-confirm-btn { min-height: 44px; }
+.reservation-table-selector-unit { display: flex; flex-direction: column; align-items: flex-start; gap: 0.2rem; text-align: left; }
+.reservation-table-selector-unit-meta { display: flex; flex-direction: column; gap: 0.1rem; }
+.host-station-error-boundary, .mobile-host-floor-refreshing, .mobile-host-floor-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.75rem; min-height: 12rem; padding: 1rem; text-align: center; }
+.mobile-host-settings-btn { min-height: 44px; padding: 0.45rem 0.75rem; }
+.mobile-host-settings-overlay { position: fixed; inset: 0; z-index: 120; display: flex; align-items: flex-end; justify-content: center; }
+.mobile-host-settings-backdrop { position: absolute; inset: 0; border: 0; background: rgba(0,0,0,0.45); }
+.host-settings-panel { position: relative; width: min(100%, 28rem); max-height: min(88vh, 720px); background: var(--panel-bg, #111); border-radius: 1rem 1rem 0 0; display: flex; flex-direction: column; }
+.host-settings-scroll { overflow-y: auto; padding: 0 1rem 1rem; }
+.host-settings-footer { padding: 0.75rem 1rem calc(0.75rem + env(safe-area-inset-bottom, 0px)); }
+.host-settings-signout { min-height: 44px; width: 100%; }

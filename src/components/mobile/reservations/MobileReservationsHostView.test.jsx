@@ -45,11 +45,19 @@ describe('MobileReservationsHostView header actions', () => {
     unmount()
   })
 
-  it('shows Edit layout in the header when a published layout exists', () => {
-    const { container, unmount } = renderHostView({ hasLayout: true })
+  it('shows Settings in the header when host settings are available', () => {
+    const { container, unmount } = renderHostView({
+      hasLayout: true,
+      hostSettingsProps: {
+        profile: { name: 'Host User' },
+        workspaceProfile: { businessName: 'Amore' },
+        onSignOut: vi.fn(),
+      },
+    })
 
-    const layoutButton = container.querySelector('.mobile-host-layout-btn')
-    expect(layoutButton?.textContent).toBe('Edit layout')
+    const settingsButton = container.querySelector('.mobile-host-settings-btn')
+    expect(settingsButton?.textContent).toBe('⚙ Settings')
+    expect(container.querySelector('.mobile-host-layout-btn')).toBeNull()
 
     unmount()
   })

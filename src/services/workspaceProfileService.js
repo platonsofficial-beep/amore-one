@@ -15,6 +15,10 @@ export const EMPTY_WORKSPACE_PROFILE = {
   timezone: '',
   currency: '',
   logoUrl: '',
+  countryCode: '',
+  countryName: '',
+  city: '',
+  defaultPhoneCountryCode: '',
 }
 
 function isTableUnavailableError(error) {
@@ -33,6 +37,10 @@ function normalizeProfile(profile = {}) {
     timezone: `${profile.timezone ?? ''}`.trim(),
     currency: `${profile.currency ?? ''}`.trim(),
     logoUrl: `${profile.logoUrl ?? ''}`.trim(),
+    countryCode: `${profile.countryCode ?? profile.country_code ?? ''}`.trim().toUpperCase(),
+    countryName: `${profile.countryName ?? profile.country_name ?? ''}`.trim(),
+    city: `${profile.city ?? ''}`.trim(),
+    defaultPhoneCountryCode: `${profile.defaultPhoneCountryCode ?? profile.default_phone_country_code ?? ''}`.trim(),
   }
 }
 
@@ -47,6 +55,10 @@ function mapWorkspaceProfile(record) {
     timezone: record.timezone ?? '',
     currency: record.currency ?? '',
     logoUrl: record.logo_url ?? record.logoUrl ?? '',
+    countryCode: record.country_code ?? record.countryCode ?? '',
+    countryName: record.country_name ?? record.countryName ?? '',
+    city: record.city ?? '',
+    defaultPhoneCountryCode: record.default_phone_country_code ?? record.defaultPhoneCountryCode ?? '',
   })
 }
 
@@ -61,6 +73,10 @@ function serializeWorkspaceProfile(profile) {
     timezone: normalized.timezone,
     currency: normalized.currency,
     logo_url: normalized.logoUrl,
+    country_code: normalized.countryCode,
+    country_name: normalized.countryName,
+    city: normalized.city,
+    default_phone_country_code: normalized.defaultPhoneCountryCode,
   }
 }
 

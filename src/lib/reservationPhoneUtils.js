@@ -4,6 +4,7 @@ import {
   PRIORITY_PHONE_COUNTRIES,
   detectDefaultPhoneCountryCode,
   findPhoneCountryByCode,
+  findPhoneCountryByIso2,
 } from './phoneCountries'
 
 export { DEFAULT_PHONE_COUNTRY_CODE as DEFAULT_RESERVATION_PHONE_COUNTRY_CODE }
@@ -17,11 +18,38 @@ export {
   PHONE_COUNTRIES,
 } from './phoneCountries'
 
+let workspaceDefaultPhoneCountryCode = null
+
+export function setWorkspaceDefaultPhoneCountryCode(code) {
+  workspaceDefaultPhoneCountryCode = `${code ?? ''}`.trim() || null
+}
+
+export function resolveWorkspaceDefaultPhoneCountryCode(profile = {}) {
+  const explicit = `${profile.defaultPhoneCountryCode ?? profile.default_phone_country_code ?? ''}`.trim()
+  if (explicit) return explicit
+
+  const iso2 = `${profile.countryCode ?? profile.country_code ?? ''}`.trim()
+  if (iso2) {
+    const country = findPhoneCountryByIso2(iso2)
+    if (country) return country.code
+  }
+
+  return detectDefaultPhoneCountryCode({ fallbackCode: DEFAULT_PHONE_COUNTRY_CODE })
+}
+
 function normalizeLocalDigits(value = '') {
   return `${value ?? ''}`.replace(/\D/g, '')
 }
 
-export function getDefaultReservationPhoneCountryCode() {
+export function getDefaultReservationPhoneCountryCode(profile = null) {
+  if (profile) {
+    return resolveWorkspaceDefaultPhoneCountryCode(profile)
+  }
+
+  if (workspaceDefaultPhoneCountryCode) {
+    return workspaceDefaultPhoneCountryCode
+  }
+
   return detectDefaultPhoneCountryCode({ fallbackCode: DEFAULT_PHONE_COUNTRY_CODE })
 }
 

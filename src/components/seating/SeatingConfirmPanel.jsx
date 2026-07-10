@@ -6,6 +6,8 @@ import {
   formatSeatingAssignmentLabels,
 } from '../../lib/seatingAssignment'
 import { getHostUnitById } from '../../lib/hostFloorPlanLayout'
+import { formatSeatingChipLabel } from '../../lib/reservationSeatings'
+import { formatTime24 } from '../../lib/timeFormatUtils'
 import { usePublishedFloorPlan } from '../../lib/PublishedFloorPlanContext'
 
 export function SeatingConfirmPanel({
@@ -19,6 +21,7 @@ export function SeatingConfirmPanel({
   onCancel,
   isSaving = false,
   variant = 'default',
+  seating = null,
 }) {
   const { layout } = usePublishedFloorPlan()
   if (!reservation) return null
@@ -42,77 +45,90 @@ export function SeatingConfirmPanel({
   const isHostDrawer = variant === 'host-drawer'
   const hasSelection = assignedUnits.length > 0
   const chairsNeeded = Math.max(0, totals.capacityGap)
+  const seatingLabel = seating ? formatSeatingChipLabel(seating) : ''
+  const timeLabel = formatTime24(reservation.time)
 
   if (isHostDrawer) {
     return (
       <div className="seating-confirm-panel is-host-drawer" role="region" aria-label="Assign seating">
-        <div className="host-seating-drawer-header">
-          <p className="host-seating-drawer-eyebrow">Assign seating</p>
-          <h4 className="host-seating-drawer-title">{reservation.guestName}</h4>
-          <p className="host-seating-drawer-subtitle">{totals.guests} guests</p>
-        </div>
-
-        <div className="host-seating-drawer-section">
-          <span className="host-seating-drawer-label">Selected tables</span>
-          <p className="host-seating-drawer-tables">{hasSelection ? drawerLabels : 'Click tables on the floor plan'}</p>
-        </div>
-
-        <dl className="host-seating-drawer-capacity">
-          <div>
-            <dt>Guests</dt>
-            <dd>{totals.guests}</dd>
+        <header className="host-seating-drawer-header">
+          <div className="host-seating-drawer-heading">
+            <p className="host-seating-drawer-eyebrow">Assign seating</p>
+            <h4 className="host-seating-drawer-title">{reservation.guestName}</h4>
+            {seatingLabel || timeLabel ? (
+              <p className="host-seating-drawer-subtitle">
+                {seatingLabel}
+                {seatingLabel && timeLabel ? ' · ' : ''}
+                {timeLabel}
+              </p>
+            ) : null}
+            <p className="host-seating-drawer-meta">{totals.guests} guests</p>
           </div>
-          <div>
-            <dt>Capacity</dt>
-            <dd>{totals.totalGuestCapacity}</dd>
+          <button
+            type="button"
+            className="icon-btn host-seating-drawer-close"
+            onClick={onCancel}
+            aria-label="Close assign seating panel"
+          >
+            ✕
+          </button>
+        </header>
+
+        <div className="host-seating-drawer-scroll">
+          <div className="host-seating-drawer-section">
+            <span className="host-seating-drawer-label">Selected tables</span>
+            <p className="host-seating-drawer-tables">{hasSelection ? drawerLabels : 'Click tables on the floor plan'}</p>
           </div>
-        </dl>
 
-        {hasSelection && !totals.isOverCapacity ? (
-          <p className="host-seating-drawer-success" role="status">
-            Capacity fits this party.
-          </p>
-        ) : null}
+          <dl className="host-seating-drawer-capacity">
+            <div>
+              <dt>Guests</dt>
+              <dd>{totals.guests}</dd>
+            </div>
+            <div>
+              <dt>Capacity</dt>
+              <dd>{totals.totalGuestCapacity}</dd>
+            </div>
+          </dl>
 
-        {hasSelection && totals.isOverCapacity ? (
-          <p className="host-seating-drawer-warning" role="status">
-            Need {chairsNeeded} extra chair{chairsNeeded === 1 ? '' : 's'} or more seating.
-          </p>
-        ) : null}
+          {hasSelection && !totals.isOverCapacity ? (
+            <p className="host-seating-drawer-success" role="status">
+              Capacity fits this party.
+            </p>
+          ) : null}
 
-        <label className="host-seating-drawer-field">
-          <span>Extra chairs</span>
-          <input
-            type="number"
-            min="0"
-            max="12"
-            value={extraChairs}
-            onChange={(event) => onExtraChairsChange(Math.max(0, Number(event.target.value) || 0))}
-          />
-        </label>
+          {hasSelection && totals.isOverCapacity ? (
+            <p className="host-seating-drawer-warning" role="status">
+              Need {chairsNeeded} extra chair{chairsNeeded === 1 ? '' : 's'} or more seating.
+            </p>
+          ) : null}
 
-        {canUseStanding ? (
           <label className="host-seating-drawer-field">
-            <span>Standing guests</span>
+            <span>Extra chairs</span>
             <input
               type="number"
               min="0"
               max="12"
-              value={standingGuests}
-              onChange={(event) => onStandingGuestsChange(Math.max(0, Number(event.target.value) || 0))}
+              value={extraChairs}
+              onChange={(event) => onExtraChairsChange(Math.max(0, Number(event.target.value) || 0))}
             />
           </label>
-        ) : null}
+
+          {canUseStanding ? (
+            <label className="host-seating-drawer-field">
+              <span>Standing guests</span>
+              <input
+                type="number"
+                min="0"
+                max="12"
+                value={standingGuests}
+                onChange={(event) => onStandingGuestsChange(Math.max(0, Number(event.target.value) || 0))}
+              />
+            </label>
+          ) : null}
+        </div>
 
         <div className="host-seating-drawer-actions">
-          <button
-            type="button"
-            className="seating-confirm-btn seating-confirm-btn-primary"
-            onClick={() => onConfirm(draftAssignment)}
-            disabled={isSaving || assignedUnits.length === 0}
-          >
-            Confirm seating
-          </button>
           <button
             type="button"
             className="seating-confirm-btn"
@@ -120,6 +136,14 @@ export function SeatingConfirmPanel({
             disabled={isSaving}
           >
             Cancel
+          </button>
+          <button
+            type="button"
+            className="seating-confirm-btn seating-confirm-btn-primary"
+            onClick={() => onConfirm(draftAssignment)}
+            disabled={isSaving || assignedUnits.length === 0}
+          >
+            Confirm seating
           </button>
         </div>
       </div>

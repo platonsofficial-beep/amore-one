@@ -178,8 +178,10 @@ export function ReservationTableSelector({
               >
                 <span className="reservation-table-selector-unit-label">{formatHostListUnitLabel(unit.label)}</span>
                 <span className="reservation-table-selector-unit-meta">
-                  {zoneLabel ? <span>{zoneLabel}</span> : null}
-                  <span>{unit.minGuestCapacity ?? unit.seatedCapacity ?? 0}–{unit.maxGuestCapacity} guests</span>
+                  {zoneLabel ? <span className="reservation-table-selector-unit-area">{zoneLabel}</span> : null}
+                  <span className="reservation-table-selector-unit-capacity">
+                    {unit.minGuestCapacity ?? unit.seatedCapacity ?? 0}–{unit.maxGuestCapacity} guests
+                  </span>
                 </span>
                 {isUnavailable ? (
                   <span className="reservation-table-selector-unit-status">

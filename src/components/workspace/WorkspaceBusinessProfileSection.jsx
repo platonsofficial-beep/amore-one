@@ -116,6 +116,43 @@ export function WorkspaceBusinessProfileSection({
                 ))}
               </select>
             </label>
+            <label className="form-field">
+              <span>Country code</span>
+              <input
+                value={workspaceProfile.countryCode}
+                onChange={(event) => onChange({ ...workspaceProfile, countryCode: event.target.value.toUpperCase() })}
+                placeholder="CY"
+                maxLength={2}
+                disabled={isLoading || isSaving}
+              />
+            </label>
+            <label className="form-field">
+              <span>Country</span>
+              <input
+                value={workspaceProfile.countryName}
+                onChange={(event) => onChange({ ...workspaceProfile, countryName: event.target.value })}
+                placeholder="Cyprus"
+                disabled={isLoading || isSaving}
+              />
+            </label>
+            <label className="form-field">
+              <span>City</span>
+              <input
+                value={workspaceProfile.city}
+                onChange={(event) => onChange({ ...workspaceProfile, city: event.target.value })}
+                placeholder="Nicosia"
+                disabled={isLoading || isSaving}
+              />
+            </label>
+            <label className="form-field">
+              <span>Default phone country</span>
+              <input
+                value={workspaceProfile.defaultPhoneCountryCode}
+                onChange={(event) => onChange({ ...workspaceProfile, defaultPhoneCountryCode: event.target.value })}
+                placeholder="+357"
+                disabled={isLoading || isSaving}
+              />
+            </label>
             <label className="form-field full-width">
               <span>Logo</span>
               <div className="workspace-logo-field">
