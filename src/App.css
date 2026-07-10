@@ -6944,10 +6944,154 @@
 }
 
 .floor-table-seating-dialog-overlay.is-tablet .floor-table-seating-dialog {
-  width: min(100%, 420px);
-  max-height: min(72vh, 520px);
+  width: min(100%, 580px);
+  max-height: min(calc(var(--visual-viewport-height, 100vh) - 32px), 620px);
   border-radius: 14px;
   border-bottom: 1px solid rgba(212, 175, 55, 0.24);
+}
+
+.floor-table-seating-dialog-close {
+  min-width: 44px;
+  min-height: 44px;
+  flex-shrink: 0;
+}
+
+.floor-table-seating-dialog-date {
+  margin: 6px 0 0;
+  color: rgba(255, 255, 255, 0.82);
+  font-size: 0.82rem;
+}
+
+.floor-table-day-list {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+
+.floor-table-day-row {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 44px;
+  padding: 12px 10px;
+  margin-bottom: 8px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.floor-table-day-row.is-available {
+  border-color: rgba(143, 214, 168, 0.18);
+}
+
+.floor-table-day-row.is-reserved {
+  border-color: rgba(212, 175, 55, 0.28);
+  background: rgba(212, 175, 55, 0.06);
+}
+
+.floor-table-day-row.is-arrived {
+  border-color: rgba(96, 165, 250, 0.28);
+  background: rgba(96, 165, 250, 0.08);
+}
+
+.floor-table-day-row.is-seated {
+  border-color: rgba(143, 214, 168, 0.32);
+  background: rgba(143, 214, 168, 0.08);
+}
+
+.floor-table-day-row.is-completed {
+  opacity: 0.72;
+}
+
+.floor-table-day-row.is-problem {
+  border-color: rgba(248, 113, 113, 0.42);
+  background: rgba(248, 113, 113, 0.1);
+}
+
+.floor-table-day-row-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.floor-table-day-row-head strong {
+  font-size: 0.92rem;
+}
+
+.floor-table-day-row-head time {
+  color: rgba(255, 255, 255, 0.62);
+  font-size: 0.78rem;
+  white-space: nowrap;
+}
+
+.floor-table-day-row-status,
+.floor-table-day-row-tables,
+.floor-table-day-row-notes {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.78);
+  font-size: 0.8rem;
+  line-height: 1.35;
+}
+
+.floor-table-day-row-notes {
+  color: #d4af37;
+}
+
+.floor-table-day-row-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.floor-table-day-action,
+.floor-table-day-quick-action,
+.floor-table-day-conflict-btn {
+  min-height: 44px;
+  padding: 0 14px;
+  border-radius: 10px;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.floor-table-day-action.is-primary {
+  border: 1px solid rgba(212, 175, 55, 0.34);
+  background: rgba(212, 175, 55, 0.14);
+  color: #f7efe1;
+}
+
+.floor-table-day-action.is-release {
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.04);
+  color: rgba(255, 255, 255, 0.82);
+}
+
+.floor-table-day-quick-action {
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.05);
+  color: #f0f0f0;
+}
+
+.floor-table-day-quick-action.is-primary {
+  border-color: rgba(212, 175, 55, 0.34);
+  color: #f7efe1;
+}
+
+.floor-table-day-conflict-list {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.floor-table-day-conflict-btn {
+  width: 100%;
+  border: 1px solid rgba(248, 113, 113, 0.28);
+  background: rgba(0, 0, 0, 0.2);
+  color: #fecaca;
+  text-align: left;
 }
 
 .floor-table-seating-dialog-header {

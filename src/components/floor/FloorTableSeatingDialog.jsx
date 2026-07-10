@@ -1,6 +1,6 @@
+import { createPortal } from 'react-dom'
 import { useMediaQuery } from '../../lib/useMediaQuery'
 import { formatHostListUnitLabel } from '../../lib/seatingAssignment'
-import { formatTableConflictReason } from '../../lib/tableAvailability'
 import { formatTime24 } from '../../lib/timeFormatUtils'
 
 function formatGuestRange(table) {
@@ -22,122 +22,230 @@ export function getFloorTableSeatingDialogOverlayClass(isPhone) {
   return `floor-table-seating-dialog-overlay${isPhone ? ' is-phone' : ' is-tablet'}`
 }
 
+function TableDayViewRow({
+  row,
+  tableLabel,
+  isSaving,
+  canManageAssignment,
+  onNewReservation,
+  onOpenReservation,
+  onQuickStatusUpdate,
+  onReleaseTable,
+}) {
+  const { seating, reservation, conflicts, hasConflict, isAvailable, timeWindowLabel, state } = row
+  const releaseLabel = tableLabel ? `Release ${tableLabel}` : 'Release table'
+
+  if (hasConflict) {
+    return (
+      <li className="floor-table-day-row is-problem" data-testid="floor-table-day-row-problem">
+        <div className="floor-table-day-row-main">
+          <div className="floor-table-day-row-head">
+            <strong>{seating.name}</strong>
+            <time>{timeWindowLabel}</time>
+          </div>
+          <p className="floor-table-day-row-status">Problem · overlapping reservations</p>
+          <ul className="floor-table-day-conflict-list">
+            {conflicts.map((conflictReservation) => (
+              <li key={conflictReservation.id}>
+                <button
+                  type="button"
+                  className="floor-table-day-conflict-btn"
+                  disabled={isSaving}
+                  onClick={() => onOpenReservation?.(conflictReservation)}
+                >
+                  {conflictReservation.guestName || 'Guest'}
+                  {' · '}
+                  {formatTime24(conflictReservation.time)}
+                  {' · '}
+                  {Math.max(0, Number(conflictReservation.guests) || 0)} guests
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </li>
+    )
+  }
+
+  if (isAvailable) {
+    return (
+      <li className="floor-table-day-row is-available" data-testid="floor-table-day-row-available">
+        <div className="floor-table-day-row-main">
+          <div className="floor-table-day-row-head">
+            <strong>{seating.name}</strong>
+            <time>{timeWindowLabel}</time>
+          </div>
+          <p className="floor-table-day-row-status">Available</p>
+        </div>
+        <button
+          type="button"
+          className="floor-table-day-action is-primary"
+          disabled={isSaving}
+          onClick={() => onNewReservation?.(seating)}
+          data-testid="floor-table-day-new-reservation"
+        >
+          + New reservation
+        </button>
+      </li>
+    )
+  }
+
+  return (
+    <li className={`floor-table-day-row is-${state}`} data-testid="floor-table-day-row-occupied">
+      <div className="floor-table-day-row-main">
+        <div className="floor-table-day-row-head">
+          <strong>{seating.name}</strong>
+          <time>{timeWindowLabel}</time>
+        </div>
+        <p className="floor-table-day-row-status">
+          {row.statusLabel || 'Reserved'}
+          {' · '}
+          {reservation?.guestName || 'Guest'}
+          {' · '}
+          {Math.max(0, Number(reservation?.guests) || 0)} guests
+          {reservation?.time ? (
+            <>
+              {' · '}
+              {formatTime24(reservation.time)}
+            </>
+          ) : null}
+        </p>
+        {row.assignedTablesLabel ? (
+          <p className="floor-table-day-row-tables">{row.assignedTablesLabel}</p>
+        ) : null}
+        {row.hasNotes ? (
+          <p className="floor-table-day-row-notes" aria-label="Reservation has notes">Notes</p>
+        ) : null}
+        <div className="floor-table-day-row-actions">
+          <button
+            type="button"
+            className="floor-table-day-action is-primary"
+            disabled={isSaving}
+            onClick={() => onOpenReservation?.(reservation)}
+            data-testid="floor-table-day-open-reservation"
+          >
+            Open reservation
+          </button>
+          {row.quickActions?.map((action) => (
+            <button
+              key={action.id}
+              type="button"
+              className={`floor-table-day-quick-action is-${action.variant ?? 'secondary'}`}
+              disabled={isSaving}
+              onClick={() => onQuickStatusUpdate?.(reservation, action.status)}
+            >
+              {action.label}
+            </button>
+          ))}
+          {canManageAssignment ? (
+            <button
+              type="button"
+              className="floor-table-day-action is-release"
+              disabled={isSaving}
+              onClick={() => onReleaseTable?.(reservation)}
+              data-testid="floor-table-day-release-table"
+            >
+              {releaseLabel}
+            </button>
+          ) : null}
+        </div>
+      </div>
+    </li>
+  )
+}
+
 export function FloorTableSeatingDialog({
   table,
   tableLabel,
   areaLabel = '',
+  dateLabel = '',
   rows = [],
   onNewReservation,
   onOpenReservation,
+  onQuickStatusUpdate,
+  onReleaseTable,
   onClose,
   isSaving = false,
+  canManageAssignment = true,
 }) {
   const isPhone = useMediaQuery('(max-width: 720px)')
   const overlayClassName = getFloorTableSeatingDialogOverlayClass(isPhone)
   const safeRows = Array.isArray(rows) ? rows : []
+  const releaseTableLabel = formatHostListUnitLabel(tableLabel?.replace(/^TABLE\s*/i, 'T') ?? table?.label ?? '')
 
-  return (
+  if (typeof document === 'undefined') return null
+
+  return createPortal(
     <div className={overlayClassName} role="presentation" data-testid="floor-table-seating-dialog">
       <button
         type="button"
         className="floor-table-seating-dialog-backdrop"
         onClick={onClose}
-        aria-label="Close table seating status"
+        aria-label="Close table day view"
       />
       <div
-        className="floor-table-seating-dialog"
+        className="floor-table-seating-dialog floor-table-day-view"
         role="dialog"
         aria-modal="true"
         aria-labelledby="floor-table-seating-dialog-title"
         onClick={(event) => event.stopPropagation()}
+        data-testid="floor-table-day-view"
       >
         <header className="floor-table-seating-dialog-header">
           <div className="floor-table-seating-dialog-heading">
             <h3 id="floor-table-seating-dialog-title">{tableLabel}</h3>
-            {areaLabel ? (
-              <p className="floor-table-seating-dialog-subtitle">{areaLabel}</p>
+            {areaLabel || table ? (
+              <p className="floor-table-seating-dialog-subtitle">
+                {[areaLabel, table ? formatGuestRange(table) : ''].filter(Boolean).join(' · ')}
+              </p>
             ) : null}
-            {table ? (
-              <p className="floor-table-seating-dialog-capacity">{formatGuestRange(table)}</p>
+            {dateLabel ? (
+              <p className="floor-table-seating-dialog-date">{dateLabel}</p>
             ) : null}
           </div>
           <button
             type="button"
             className="icon-btn floor-table-seating-dialog-close"
             onClick={onClose}
-            aria-label="Close table seating status"
+            aria-label="Close table day view"
+            data-testid="floor-table-day-close"
           >
             ✕
           </button>
         </header>
 
         {safeRows.length > 0 ? (
-          <ul className="floor-table-seating-dialog-list" aria-label="Seating availability">
-            {safeRows.map((row) => {
-              const reservation = row.reservation
-
-              return (
-                <li key={row.seating.id} className="floor-table-seating-dialog-item">
-                  <div className="floor-table-seating-dialog-item-main">
-                    <div className="floor-table-seating-dialog-item-head">
-                      <strong>{row.seating.name}</strong>
-                      <time>{row.timeLabel || formatTime24(row.seating.startTime)}</time>
-                    </div>
-                    {row.isAvailable ? (
-                      <p className="floor-table-seating-dialog-status is-available">Available</p>
-                    ) : (
-                      <button
-                        type="button"
-                        className="floor-table-seating-dialog-reserved"
-                        disabled={isSaving}
-                        onClick={() => onOpenReservation?.(reservation)}
-                      >
-                        <span className="floor-table-seating-dialog-status is-reserved">Reserved</span>
-                        <span className="floor-table-seating-dialog-reserved-copy">
-                          {reservation?.guestName || 'Guest'}
-                          {' · '}
-                          {Math.max(0, Number(reservation?.guests) || 0)} guests
-                          {reservation?.time ? (
-                            <>
-                              {' · '}
-                              {formatTime24(reservation.time)}
-                            </>
-                          ) : null}
-                        </span>
-                      </button>
-                    )}
-                  </div>
-                  {row.isAvailable ? (
-                    <button
-                      type="button"
-                      className="floor-table-seating-dialog-action"
-                      disabled={isSaving}
-                      onClick={() => onNewReservation?.(row.seating)}
-                    >
-                      New reservation
-                    </button>
-                  ) : null}
-                </li>
-              )
-            })}
+          <ul className="floor-table-seating-dialog-list floor-table-day-list" aria-label="Table day seatings">
+            {safeRows.map((row) => (
+              <TableDayViewRow
+                key={row.seating.id}
+                row={row}
+                tableLabel={releaseTableLabel}
+                isSaving={isSaving}
+                canManageAssignment={canManageAssignment}
+                onNewReservation={onNewReservation}
+                onOpenReservation={onOpenReservation}
+                onQuickStatusUpdate={onQuickStatusUpdate}
+                onReleaseTable={onReleaseTable}
+              />
+            ))}
           </ul>
         ) : (
           <p className="floor-table-seating-dialog-empty">No active seatings configured for this date.</p>
         )}
       </div>
-    </div>
+    </div>,
+    document.body,
   )
 }
 
 export function getFloorTableDialogLabel(table) {
   if (!table) return 'TABLE'
   const unitLabel = table.displayLabel ?? (table.unitType === 'table' ? `Table ${table.label}` : table.label)
-  return `${unitLabel}`.toUpperCase()
+  return formatHostListUnitLabel(unitLabel).toUpperCase()
 }
 
 export function formatFloorTableAreaLabel(layout, table) {
   if (!table?.zoneId || !layout?.zones?.length) return ''
   return layout.zones.find((zone) => zone.id === table.zoneId)?.label ?? ''
 }
-
-export { formatTableConflictReason, formatHostListUnitLabel }

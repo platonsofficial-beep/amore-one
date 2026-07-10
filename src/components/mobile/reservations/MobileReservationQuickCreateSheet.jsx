@@ -146,6 +146,7 @@ export function MobileReservationQuickCreateSheet({
   todayKey = '',
   isSaving = false,
   variant = 'sheet',
+  prefill = null,
   onClose,
   onSubmit,
 }) {
@@ -155,9 +156,19 @@ export function MobileReservationQuickCreateSheet({
     if (!isOpen) return
     setForm({
       ...EMPTY_FORM,
-      date: normalizeReservationDateKey(todayKey),
+      ...prefill,
+      date: normalizeReservationDateKey(prefill?.date ?? todayKey),
+      guests: `${prefill?.guests ?? '2'}`,
+      tableNumber: `${prefill?.tableNumber ?? ''}`,
+      phone: `${prefill?.phone ?? ''}`,
+      guestName: `${prefill?.guestName ?? ''}`,
+      time: `${prefill?.time ?? ''}`,
+      notes: `${prefill?.notes ?? ''}`,
+      seatingId: prefill?.seatingId ?? null,
+      assignedUnits: Array.isArray(prefill?.assignedUnits) ? prefill.assignedUnits : [],
+      area: `${prefill?.area ?? ''}`,
     })
-  }, [isOpen, todayKey])
+  }, [isOpen, prefill, todayKey])
 
   if (!isOpen) return null
 

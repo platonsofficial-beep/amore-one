@@ -35,6 +35,7 @@ import { HostWorkspaceDateNav } from './components/reservations/HostWorkspaceDat
 import {
   buildHostManagerSummary,
   formatHostWorkspaceDateNavLabel,
+  formatHostWorkspaceLongDateLabel,
   getHostWorkspaceReservations,
   resolveHostWorkspaceDateKey,
   shiftHostWorkspaceDateKey,
@@ -53,8 +54,10 @@ import { useHostReturnAfterPublishBoot } from './lib/useHostReturnAfterPublishBo
 import { isHostAssignmentModeActive } from './lib/hostAssignmentPanelUtils'
 import { resolveActiveFloorAreaId } from './lib/publishFloorPlanTransition'
 import {
+  buildSeatingAssignment,
   computeSeatingAssignmentTotals,
   enrichReservationWithSeatingAssignment,
+  formatSeatingAssignmentLabels,
   formatSeatingAssignmentSummary,
   formatHostListTableLabel,
   formatHostFloorReservationTooltipMeta,
@@ -126,10 +129,16 @@ import {
   getFloorTableDialogLabel,
 } from './components/floor/FloorTableSeatingDialog'
 import {
-  buildFloorTableSeatingRows,
   buildTableSeatingDayIndicators,
   resolveSeatingFloorStatus,
 } from './lib/tableAvailability'
+import {
+  buildFloorTableDayViewRows,
+  buildReleaseTableAssignmentUpdate,
+  buildTableDayViewCreatePrefill,
+  isTableAssignmentSelectionClick,
+  shouldOpenTableDayViewOnTableClick,
+} from './lib/tableDayView'
 import {
   buildHostServiceDashboard,
   countHostListFilterMatches,
@@ -7790,6 +7799,10 @@ function FloorPlanView({
   onSeatGuestAtTable,
   onQuickStatusUpdate,
   onOpenAddReservation,
+  onOpenReservation,
+  onHostEditSave,
+  onReservationNotice,
+  canManageAssignment = true,
   seatings = [],
   selectedSeating = null,
   onSelectedSeatingChange,
@@ -7970,25 +7983,44 @@ function FloorPlanView({
     ? listReservations
     : allReservations
 
-  const seatingsById = useMemo(() => buildSeatingsById(seatings), [seatings])
+  const effectiveSeatings = useMemo(
+    () => (seatings.length > 0 ? seatings : (reservationSeatings ?? [])),
+    [reservationSeatings, seatings],
+  )
+
+  const seatingsById = useMemo(
+    () => buildSeatingsById(effectiveSeatings),
+    [effectiveSeatings],
+  )
 
   const scheduleCardRows = useMemo(() => {
     if (!scheduleCardTable) return []
-    return buildFloorTableSeatingRows(
+    return buildFloorTableDayViewRows(
       scheduleCardTable,
       assignmentReservations,
       todayKey,
-      seatings,
-      { layout, seatingsById },
+      effectiveSeatings,
+      {
+        layout,
+        seatingsById,
+        nowMinutes,
+        todayKey,
+      },
     )
   }, [
     assignmentReservations,
+    effectiveSeatings,
     layout,
+    nowMinutes,
     scheduleCardTable,
-    seatings,
     seatingsById,
     todayKey,
   ])
+
+  const scheduleCardDateLabel = useMemo(
+    () => formatHostWorkspaceLongDateLabel(todayKey),
+    [todayKey],
+  )
 
   useEffect(() => {
     if (hostEditingReservation) {
@@ -7998,30 +8030,64 @@ function FloorPlanView({
 
   const handleScheduleCardEdit = useCallback((reservation) => {
     setScheduleCardTable(null)
+    if (onOpenReservation) {
+      onOpenReservation(reservation)
+      return
+    }
     openHostEdit(reservation)
-  }, [openHostEdit])
+  }, [onOpenReservation, openHostEdit])
 
-  const _handleScheduleCardSeatGuests = useCallback(async (reservation) => {
+  const handleScheduleCardQuickStatus = useCallback(async (reservation, status) => {
     if (!onQuickStatusUpdate || !reservation) return
-    await onQuickStatusUpdate(reservation, 'Checked In')
-  }, [onQuickStatusUpdate])
-
-  const _handleScheduleCardComplete = useCallback(async (reservation) => {
-    if (!onQuickStatusUpdate || !reservation) return
-    await onQuickStatusUpdate(reservation, 'Checked Out')
+    await onQuickStatusUpdate(reservation, status)
   }, [onQuickStatusUpdate])
 
   const handleScheduleCardNewReservation = useCallback((seating) => {
     if (!scheduleCardTable) return
-    setScheduleCardTable(null)
-    onOpenAddReservation?.({
+    const prefill = buildTableDayViewCreatePrefill({
       table: scheduleCardTable,
-      date: todayKey,
+      dateKey: todayKey,
       seating,
-      seatingId: seating?.id ?? null,
-      time: seating?.startTime ?? '',
+      layout,
     })
-  }, [onOpenAddReservation, scheduleCardTable, todayKey])
+    setScheduleCardTable(null)
+    onOpenAddReservation?.(prefill)
+  }, [layout, onOpenAddReservation, scheduleCardTable, todayKey])
+
+  const handleScheduleCardReleaseTable = useCallback(async (reservation) => {
+    if (!onHostEditSave || !scheduleCardTable || !reservation || !canManageAssignment) return
+
+    const releaseUpdate = buildReleaseTableAssignmentUpdate(reservation, scheduleCardTable, { layout })
+    const guestLabel = reservation.guestName || 'this reservation'
+    const confirmMessage = releaseUpdate.isLastTable
+      ? `Release ${releaseUpdate.tableLabel} from ${guestLabel}? The reservation will stay on the books without a table assignment.`
+      : `Release ${releaseUpdate.tableLabel} from ${guestLabel}? Other assigned tables will stay linked.`
+
+    if (!window.confirm(confirmMessage)) return
+
+    const form = createHostReservationEditForm(reservation, layout, effectiveSeatings)
+    form.assignedUnits = releaseUpdate.assignment.assignedUnits
+    form.extraChairs = releaseUpdate.assignment.extraChairs
+    form.standingGuests = releaseUpdate.assignment.standingGuests
+    form.tableNumber = releaseUpdate.tableNumber
+
+    const result = await onHostEditSave(reservation, form, todayKey)
+    if (result?.saved) {
+      onReservationNotice?.(
+        releaseUpdate.isLastTable
+          ? `${releaseUpdate.tableLabel} released. Reservation is now unassigned.`
+          : `${releaseUpdate.tableLabel} released from reservation.`,
+      )
+    }
+  }, [
+    canManageAssignment,
+    effectiveSeatings,
+    layout,
+    onHostEditSave,
+    onReservationNotice,
+    scheduleCardTable,
+    todayKey,
+  ])
 
   const resolvedFloorAreaId = useMemo(
     () => resolveActiveFloorAreaId(layout, activeFloorAreaId),
@@ -8039,16 +8105,16 @@ function FloorPlanView({
       debugAssignments: isCompact && import.meta.env.DEV,
       selectedSeating,
       seatingsById,
-      seatings,
+      seatings: effectiveSeatings,
       selectedReservation,
     })
   ), [
     assignmentReservations,
     cleaningFlags,
+    effectiveSeatings,
     isCompact,
     layout,
     nowMinutes,
-    seatings,
     selectedReservation,
     selectedSeating,
     seatingsById,
@@ -8317,19 +8383,32 @@ function FloorPlanView({
     }
 
     if (
-      isHostFloorPickActive
-      && (tableState.status === 'available' || tableState.status === 'cleaning')
+      isTableAssignmentSelectionClick({
+        selectedReservation,
+        isHostFloorPickActive,
+        canAssign: canAssignSelectedReservationToTable(tableState),
+        isPickedForSeating: seatingDraftUnitIds.includes(tableState.table.id),
+      })
     ) {
-      toggleHostEditUnit(tableState.table.id)
-      return
-    }
+      if (isHostFloorPickActive) {
+        if (tableState.status === 'available' || tableState.status === 'cleaning') {
+          toggleHostEditUnit(tableState.table.id)
+        }
+        return
+      }
 
-    if (canAssignSelectedReservationToTable(tableState)) {
       toggleSeatingUnit(tableState.table.id)
       return
     }
 
-    if (isCompact) {
+    if (
+      isCompact
+      && shouldOpenTableDayViewOnTableClick({
+        isHeatmap,
+        isHostFloorPickActive,
+        isAssignmentSelection: false,
+      })
+    ) {
       event.stopPropagation()
       setTooltipDismissVersion((current) => current + 1)
       setScheduleCardTable(tableState.table)
@@ -8379,8 +8458,8 @@ function FloorPlanView({
   )
 
   const activeSeatings = useMemo(
-    () => getActiveSeatingsForDate(seatings, todayKey),
-    [seatings, todayKey],
+    () => getActiveSeatingsForDate(effectiveSeatings, todayKey),
+    [effectiveSeatings, todayKey],
   )
 
   const seatingSummaries = useMemo(() => {
@@ -8667,12 +8746,15 @@ function FloorPlanView({
           table={scheduleCardTable}
           tableLabel={getFloorTableDialogLabel(scheduleCardTable)}
           areaLabel={formatFloorTableAreaLabel(layout, scheduleCardTable)}
+          dateLabel={scheduleCardDateLabel}
           rows={scheduleCardRows}
-          onEditReservation={handleScheduleCardEdit}
           onOpenReservation={handleScheduleCardEdit}
           onNewReservation={handleScheduleCardNewReservation}
+          onQuickStatusUpdate={handleScheduleCardQuickStatus}
+          onReleaseTable={handleScheduleCardReleaseTable}
           onClose={() => setScheduleCardTable(null)}
           isSaving={isSaving}
+          canManageAssignment={canManageAssignment}
         />
       ) : null}
     </div>
@@ -8695,6 +8777,7 @@ function MobileReservationsHostShell({
   onExitHostMode,
   onSeatGuestAtTable,
   canEditFloorPlan = false,
+  canManageAssignment = true,
   reservationSeatings = [],
   hostSettingsProps = null,
   workspaceId = '',
@@ -8731,6 +8814,7 @@ function MobileReservationsHostShell({
         onExitHostMode={onExitHostMode}
         onSeatGuestAtTable={onSeatGuestAtTable}
         canEditFloorPlan={canEditFloorPlan}
+        canManageAssignment={canManageAssignment}
         reservationSeatings={reservationSeatings}
         hostSettingsProps={hostSettingsProps}
         workspaceId={workspaceId}
@@ -8757,6 +8841,7 @@ function MobileReservationsHostShellBody({
   onExitHostMode,
   onSeatGuestAtTable,
   canEditFloorPlan = false,
+  canManageAssignment = true,
   reservationSeatings = [],
   hostSettingsProps = null,
   workspaceId = '',
@@ -8797,6 +8882,17 @@ function MobileReservationsHostShellBody({
     onReservationNotice?.(publishNotice)
     clearPublishNotice()
   }, [clearPublishNotice, onReservationNotice, publishNotice])
+
+  const [floorCreatePrefill, setFloorCreatePrefill] = useState(null)
+  const [floorEditReservation, setFloorEditReservation] = useState(null)
+
+  const handleFloorOpenAddReservation = useCallback((prefill) => {
+    setFloorCreatePrefill(prefill ?? null)
+  }, [])
+
+  const handleFloorOpenReservation = useCallback((reservation) => {
+    setFloorEditReservation(reservation ?? null)
+  }, [])
 
   const handleReturnToHost = useCallback(async (transition) => {
     const result = await completeReturnToHost({
@@ -8890,18 +8986,23 @@ function MobileReservationsHostShellBody({
       onReturnToEditor={() => setFloorPlanMode('edit')}
     >
       <FloorPlanView
-      reservations={workspaceReservations}
-      allReservations={reservations}
-      listReservations={workspaceReservations}
-      todayKey={todayKey}
-      nowMinutes={nowMinutes}
-      isSaving={isSaving}
-      isCompact
-      canEditFloorPlan={canEditFloorPlan}
-      onSeatGuestAtTable={onSeatGuestAtTable}
-      onQuickStatusUpdate={onQuickStatusUpdate}
-      onOpenAddReservation={() => {}}
-    />
+        reservations={workspaceReservations}
+        allReservations={reservations}
+        listReservations={workspaceReservations}
+        todayKey={todayKey}
+        nowMinutes={nowMinutes}
+        isSaving={isSaving}
+        isCompact
+        canEditFloorPlan={canEditFloorPlan}
+        onSeatGuestAtTable={onSeatGuestAtTable}
+        onQuickStatusUpdate={onQuickStatusUpdate}
+        onOpenAddReservation={handleFloorOpenAddReservation}
+        onOpenReservation={handleFloorOpenReservation}
+        onHostEditSave={onHostEditSave}
+        onReservationNotice={onReservationNotice}
+        canManageAssignment={canManageAssignment}
+        seatings={reservationSeatings}
+      />
     </HostStationErrorBoundary>
   ) : (
     <div className="mobile-host-floor-empty" role="status">
@@ -8951,6 +9052,10 @@ function MobileReservationsHostShellBody({
       hasLayout={hasDisplayableLayout}
       onOpenFloorPlanLayout={() => setFloorPlanMode('edit')}
       hostSettingsProps={hostSettingsProps}
+      floorCreatePrefill={floorCreatePrefill}
+      onFloorCreatePrefillConsumed={() => setFloorCreatePrefill(null)}
+      floorEditReservation={floorEditReservation}
+      onFloorEditReservationConsumed={() => setFloorEditReservation(null)}
       renderRightPane={rightPane}
       selectedReservationId={selectedReservation?.id ?? null}
       onSelectReservation={(reservation) => selectReservation(reservation, { scrollFloor: true })}
@@ -11249,6 +11354,10 @@ function ReservationsWorkspaceBody({
     onSeatGuestAtTable,
     onQuickStatusUpdate,
     onOpenAddReservation: openAddReservationForServiceDate,
+    onOpenReservation: onOpenEditReservation,
+    onHostEditSave,
+    onReservationNotice,
+    canManageAssignment: Boolean(onHostEditSave),
     seatings: reservationSeatings,
     selectedSeating: reservationSeatings.find((entry) => entry.id === selectedServiceSeatingId) ?? null,
     onSelectedSeatingChange: setSelectedServiceSeatingId,
@@ -20748,16 +20857,26 @@ function App() {
     setReservationNotice('')
 
     try {
+      const assignedUnits = Array.isArray(form.assignedUnits) ? form.assignedUnits : []
+      const seatingAssignment = assignedUnits.length
+        ? buildSeatingAssignment({ assignedUnits, partySize: Number(form.guests) || 2 })
+        : null
+      const tableNumber = seatingAssignment
+        ? formatSeatingAssignmentLabels(seatingAssignment)
+        : `${form.tableNumber ?? ''}`.trim()
+
       const created = await createReservation(activeWorkspaceId, {
         guestName: validation.guestName,
         phone: `${form.phone ?? ''}`.trim(),
         date: validation.date,
         time: validation.time,
         guests: Number(form.guests) || 2,
-        tableNumber: `${form.tableNumber ?? ''}`.trim(),
-        area: 'Main Dining',
+        tableNumber,
+        area: `${form.area ?? ''}`.trim() || 'Main Dining',
         status: 'Pending',
         notes: `${form.notes ?? ''}`.trim(),
+        seatingId: form.seatingId ?? null,
+        seatingAssignment,
       }, user?.id ?? null)
 
       upsertReservationInState(created)
@@ -21109,6 +21228,7 @@ function App() {
               onExitHostMode={isHostMobileRole(role) ? undefined : handleMobileExitReservationsHostMode}
               onSeatGuestAtTable={handleSeatGuestAtTable}
               canEditFloorPlan={canEditFloorPlanRole}
+              canManageAssignment={canManageReservationsRole}
               reservationSeatings={reservationSeatings}
               workspaceId={activeWorkspaceId}
               useControlledReloadReturn={isHostMobileRole(role)}

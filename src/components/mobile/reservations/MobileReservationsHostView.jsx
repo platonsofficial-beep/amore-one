@@ -44,10 +44,15 @@ export function MobileReservationsHostView({
   selectedReservationId: controlledSelectedReservationId = null,
   onSelectReservation,
   hostSettingsProps = null,
+  floorCreatePrefill = null,
+  onFloorCreatePrefillConsumed,
+  floorEditReservation = null,
+  onFloorEditReservationConsumed,
 }) {
   const [activeTab, setActiveTab] = useState('upcoming')
   const [searchTerm, setSearchTerm] = useState('')
   const [isCreateOpen, setIsCreateOpen] = useState(false)
+  const [createPrefill, setCreatePrefill] = useState(null)
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
   const [editingReservation, setEditingReservation] = useState(null)
   const [localSelectedReservationId, setLocalSelectedReservationId] = useState(null)
@@ -101,10 +106,18 @@ export function MobileReservationsHostView({
   const formVariant = resolveHostReservationFormVariant({ isSplitLayout })
   const useInlineDetailPane = isSplitLayout && (isCreateOpen || editingReservation)
 
+  useEffect(() => {
+    if (!floorCreatePrefill) return
+    setCreatePrefill(floorCreatePrefill)
+    setIsCreateOpen(true)
+    onFloorCreatePrefillConsumed?.()
+  }, [floorCreatePrefill, onFloorCreatePrefillConsumed])
+
   const handleCreateSubmit = async (form) => {
     const created = await onCreateReservation?.(form)
     if (created !== false) {
       setIsCreateOpen(false)
+      setCreatePrefill(null)
     }
     return created
   }
@@ -127,6 +140,13 @@ export function MobileReservationsHostView({
     }
     setLocalSelectedReservationId(reservation.id)
   }
+
+  useEffect(() => {
+    if (!floorEditReservation) return
+    handleEditReservation(floorEditReservation)
+    onFloorEditReservationConsumed?.()
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- open edit when floor day view requests it
+  }, [floorEditReservation, onFloorEditReservationConsumed])
 
   const handleOpenStatusMenu = (reservation, event) => {
     setRowMenu(null)
@@ -170,7 +190,10 @@ export function MobileReservationsHostView({
         <button
           type="button"
           className="mobile-host-reservations-add-btn"
-          onClick={() => setIsCreateOpen(true)}
+          onClick={() => {
+            setCreatePrefill(null)
+            setIsCreateOpen(true)
+          }}
           disabled={isSaving}
         >
           + Reservation
@@ -268,7 +291,11 @@ export function MobileReservationsHostView({
         variant="inline"
         todayKey={todayKey}
         isSaving={isSaving}
-        onClose={() => setIsCreateOpen(false)}
+        prefill={createPrefill}
+        onClose={() => {
+          setIsCreateOpen(false)
+          setCreatePrefill(null)
+        }}
         onSubmit={handleCreateSubmit}
       />
     ) : (
@@ -365,7 +392,11 @@ export function MobileReservationsHostView({
             variant={formVariant === 'inline' ? 'panel' : formVariant}
             todayKey={todayKey}
             isSaving={isSaving}
-            onClose={() => setIsCreateOpen(false)}
+            prefill={createPrefill}
+            onClose={() => {
+              setIsCreateOpen(false)
+              setCreatePrefill(null)
+            }}
             onSubmit={handleCreateSubmit}
           />
 
