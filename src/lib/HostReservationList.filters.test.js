@@ -12,8 +12,8 @@ const helpers = {
   getHostReservationWarnings: () => [],
 }
 
-describe('HostReservationList operational filters', () => {
-  it('renders a flat list for an active operational filter', () => {
+describe('HostReservationList operational sections', () => {
+  it('renders collapsible sections instead of flat filter lists', () => {
     const container = document.createElement('div')
     document.body.appendChild(container)
     const root = createRoot(container)
@@ -25,7 +25,7 @@ describe('HostReservationList operational filters', () => {
         ],
         nowMinutes: 18 * 60,
         todayKey: '2026-07-10',
-        listFilter: 'Upcoming',
+        listFilter: 'All',
         isSelected: () => false,
         onOpenEdit: vi.fn(),
         onStatusChange: vi.fn(),
@@ -35,7 +35,8 @@ describe('HostReservationList operational filters', () => {
       }))
     })
 
-    expect(container.querySelector('.host-reservation-group')).toBeNull()
+    expect(container.querySelector('.host-reservation-group')).not.toBeNull()
+    expect(container.querySelector('.host-reservation-group-label')?.textContent).toBe('Upcoming')
     expect(container.querySelectorAll('.host-reservation-card')).toHaveLength(1)
 
     act(() => {
@@ -44,7 +45,7 @@ describe('HostReservationList operational filters', () => {
     container.remove()
   })
 
-  it('shows the filter-specific empty state copy', () => {
+  it('shows the default empty state copy when no reservations match', () => {
     const container = document.createElement('div')
     document.body.appendChild(container)
     const root = createRoot(container)
@@ -54,7 +55,7 @@ describe('HostReservationList operational filters', () => {
         reservations: [],
         nowMinutes: 18 * 60,
         todayKey: '2026-07-10',
-        listFilter: 'Problems',
+        listFilter: 'All',
         isSelected: () => false,
         onOpenEdit: vi.fn(),
         onStatusChange: vi.fn(),
@@ -64,7 +65,7 @@ describe('HostReservationList operational filters', () => {
       }))
     })
 
-    expect(container.textContent).toContain('No current problems')
+    expect(container.textContent).toContain('No reservations in this view')
 
     act(() => {
       root.unmount()

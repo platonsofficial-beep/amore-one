@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import {
   formatHostReservationListTime,
 } from '../../lib/timeFormatUtils'
@@ -13,9 +13,11 @@ import {
   getReservationDisplayStatus,
 } from '../../lib/reservationHostStatus'
 import {
-  groupHostListReservations,
+  getDefaultHostListCollapsedSections,
+  groupHostListOperationalSections,
+  HOST_LIST_OPERATIONAL_SECTION_DEFS,
+  HOST_LIST_SECTION_COLLAPSE_STORAGE_KEY,
 } from './hostReservationListUtils'
-import { HOST_LIST_OPERATIONAL_FILTERS } from '../../lib/hostServiceDashboard'
 import { getHostListEmptyState } from '../../lib/reservationServiceIntelligence'
 import { HostReservationStatusPicker } from './HostReservationStatusPicker'
 
@@ -27,6 +29,22 @@ function getQuickActionClassName(action) {
   if (action.variant === 'danger') return 'host-reservation-card-quick-action is-danger'
   if (action.variant === 'primary') return 'host-reservation-card-quick-action is-primary'
   return 'host-reservation-card-quick-action'
+}
+
+function readCollapsedSections() {
+  if (typeof window === 'undefined') return getDefaultHostListCollapsedSections()
+
+  try {
+    const raw = window.localStorage.getItem(HOST_LIST_SECTION_COLLAPSE_STORAGE_KEY)
+    if (!raw) return getDefaultHostListCollapsedSections()
+
+    const parsed = JSON.parse(raw)
+    if (!Array.isArray(parsed)) return getDefaultHostListCollapsedSections()
+
+    return new Set(parsed)
+  } catch {
+    return getDefaultHostListCollapsedSections()
+  }
 }
 
 function HostReservationListRow({
@@ -115,11 +133,11 @@ function HostReservationListRow({
           ) : null}
           </div>
           <div className="host-reservation-card-details">
-            <span className="host-reservation-card-guests">
-              {guestCount} {guestCount === 1 ? 'guest' : 'guests'}
+            <span className="host-reservation-card-meta">
+              {guestCount}
               {tableLabel ? (
                 <>
-                  {' · '}
+                  {' • '}
                   <span
                     className="host-reservation-card-tables"
                     title={tableTooltip !== tableLabel ? tableTooltip : undefined}
@@ -177,29 +195,42 @@ export function HostReservationList({
   searchTerm = '',
   dailySnapshot = null,
   isViewingToday = true,
+  problemFilterOptions = null,
   onOpenEdit,
   onStatusChange,
   onDragStart,
   onDragEnd,
   helpers,
 }) {
-  const useOperationalFilter = HOST_LIST_OPERATIONAL_FILTERS.includes(listFilter)
-
-  const groupedReservations = useMemo(
-    () => (useOperationalFilter ? [] : groupHostListReservations(reservations)),
-    [reservations, useOperationalFilter],
+  const operationalSections = useMemo(
+    () => groupHostListOperationalSections(
+      reservations,
+      nowMinutes,
+      todayKey,
+      problemFilterOptions ?? {},
+    ),
+    [reservations, nowMinutes, todayKey, problemFilterOptions],
   )
 
-  const [collapsedGroups, setCollapsedGroups] = useState(() => new Set(['completed']))
+  const [collapsedSections, setCollapsedSections] = useState(readCollapsedSections)
   const [statusPicker, setStatusPicker] = useState(null)
 
-  const toggleGroup = (groupId) => {
-    setCollapsedGroups((current) => {
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+
+    window.localStorage.setItem(
+      HOST_LIST_SECTION_COLLAPSE_STORAGE_KEY,
+      JSON.stringify([...collapsedSections]),
+    )
+  }, [collapsedSections])
+
+  const toggleSection = (sectionId) => {
+    setCollapsedSections((current) => {
       const next = new Set(current)
-      if (next.has(groupId)) {
-        next.delete(groupId)
+      if (next.has(sectionId)) {
+        next.delete(sectionId)
       } else {
-        next.add(groupId)
+        next.add(sectionId)
       }
       return next
     })
@@ -229,7 +260,13 @@ export function HostReservationList({
     return <p className="host-reservation-list-empty">Loading reservations…</p>
   }
 
-  if (!reservations.length) {
+  const visibleSections = operationalSections.filter((section) => section.reservations.length > 0)
+  const totalVisible = visibleSections.reduce(
+    (count, section) => count + section.reservations.length,
+    0,
+  )
+
+  if (!totalVisible) {
     const emptyState = getHostListEmptyState({
       filter: listFilter,
       searchTerm,
@@ -249,54 +286,47 @@ export function HostReservationList({
   return (
     <>
       <div
-        className={`host-reservation-list${useOperationalFilter ? '' : ' host-reservation-list-grouped'}`}
+        className="host-reservation-list host-reservation-list-grouped host-reservation-list-sections"
         aria-label="Reservations"
-        role={useOperationalFilter ? 'list' : undefined}
       >
-        {useOperationalFilter ? (
-          reservations.map((reservation) => (
-            <HostReservationListRow
-              key={reservation.id}
-              reservation={reservation}
-              nowMinutes={nowMinutes}
-              todayKey={todayKey}
-              isSelected={isSelected(reservation)}
-              isEditing={hostEditingReservation
-                && String(hostEditingReservation.id) === String(reservation.id)}
-              isDragging={draggingReservationId === String(reservation.id)}
-              isStatusPickerOpen={String(statusPicker?.reservation?.id) === String(reservation.id)}
-              isNextArrival={nextArrivalId !== null
-                && String(nextArrivalId) === String(reservation.id)}
-              isSavingStatus={isSavingStatus}
-              onOpenEdit={onOpenEdit}
-              onOpenStatusPicker={handleOpenStatusPicker}
-              onQuickStatusUpdate={onStatusChange}
-              onDragStart={(event) => onDragStart(event, reservation)}
-              onDragEnd={onDragEnd}
-              helpers={helpers}
-            />
-          ))
-        ) : groupedReservations.map((group) => {
-          const isCollapsed = collapsedGroups.has(group.id)
+        {operationalSections
+          .filter((section) => section.reservations.length > 0)
+          .map((section) => {
+          const isCollapsed = collapsedSections.has(section.id)
+          const sectionTone = HOST_LIST_OPERATIONAL_SECTION_DEFS.find(
+            (entry) => entry.id === section.id,
+          )?.id === 'problems' ? 'cancelled' : (
+            section.id === 'completed' ? 'completed' : (
+              section.id === 'seated' ? 'in-house' : (
+                section.id === 'arrived' ? 'waiting' : 'booked'
+              )
+            )
+          )
 
           return (
-            <section key={group.id} className={`host-reservation-group tone-${group.tone}`}>
+            <section
+              key={section.id}
+              className={`host-reservation-group tone-${sectionTone}${section.reservations.length === 0 ? ' is-empty' : ''}`}
+            >
               <button
                 type="button"
                 className="host-reservation-group-header"
                 aria-expanded={!isCollapsed}
-                onClick={() => toggleGroup(group.id)}
+                onClick={() => toggleSection(section.id)}
               >
-                <span className="host-reservation-group-label">{group.label}</span>
-                <span className="host-reservation-group-count">{group.reservations.length}</span>
-                <span className={`host-reservation-group-chevron${isCollapsed ? ' is-collapsed' : ''}`} aria-hidden="true">
-                  ▾
+                <span
+                  className={`host-reservation-group-chevron${isCollapsed ? ' is-collapsed' : ''}`}
+                  aria-hidden="true"
+                >
+                  {isCollapsed ? '▶' : '▼'}
                 </span>
+                <span className="host-reservation-group-label">{section.label}</span>
+                <span className="host-reservation-group-count">({section.reservations.length})</span>
               </button>
 
-              {!isCollapsed ? (
+              {!isCollapsed && section.reservations.length > 0 ? (
                 <div className="host-reservation-group-items" role="list">
-                  {group.reservations.map((reservation) => (
+                  {section.reservations.map((reservation) => (
                     <HostReservationListRow
                       key={reservation.id}
                       reservation={reservation}

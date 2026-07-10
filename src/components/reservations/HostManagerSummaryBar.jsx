@@ -1,85 +1,57 @@
-export function HostManagerSummaryBar({ summary, dashboard = null, problemsCount = 0 }) {
-  if (!summary && !dashboard) return null
+export function HostManagerSummaryBar({
+  dashboard = null,
+  dailySnapshot = null,
+  upcomingNext30Min = 0,
+  isViewingToday = true,
+}) {
+  if (!dashboard && !dailySnapshot) return null
 
-  if (dashboard) {
-    const peak = dashboard.peakSeating
-
-    return (
-      <div className="host-service-dashboard" aria-label="Host service dashboard">
-        <div className="host-service-dashboard-row">
-          <span className="host-service-dashboard-tag">Today</span>
-          <span>Expected {dashboard.expectedGuests}</span>
-          <span>·</span>
-          <span>Arrived {dashboard.arrivedGuests}</span>
-          <span>·</span>
-          <span>Remaining {dashboard.remainingGuests}</span>
-          <span>·</span>
-          <span>Seated {dashboard.seatedGuests}</span>
-        </div>
-        <div className="host-service-dashboard-row">
-          <span>Reservations {dashboard.totalReservations}</span>
-          <span>·</span>
-          <span>Upcoming {dashboard.upcomingCount}</span>
-          <span>·</span>
-          <span>Arrived {dashboard.arrivedCount}</span>
-          <span>·</span>
-          <span>Seated {dashboard.seatedCount}</span>
-          <span>·</span>
-          <span>Completed {dashboard.completedCount}</span>
-          {dashboard.problemsCount > 0 ? (
-            <>
-              <span>·</span>
-              <span className="host-service-dashboard-problems">Problems {dashboard.problemsCount}</span>
-            </>
-          ) : null}
-        </div>
-        <div className="host-service-dashboard-row">
-          <span>Tables {dashboard.totalTables}</span>
-          <span>·</span>
-          <span>Free {dashboard.availableTables}</span>
-          <span>·</span>
-          <span>Reserved {dashboard.reservedTables}</span>
-          <span>·</span>
-          <span>Occupied {dashboard.occupiedTables}</span>
-        </div>
-        {peak?.covers > 0 ? (
-          <div className="host-service-dashboard-row is-peak">
-            <span>Peak: {peak.name} · {peak.startTime} · {peak.covers} covers</span>
-          </div>
-        ) : null}
-      </div>
-    )
-  }
-
-  const attentionCount = Number(summary.needsAttention) || 0
-  const problems = Number(problemsCount) || 0
+  const totalCovers = Number(dailySnapshot?.totalCovers ?? dashboard?.expectedGuests) || 0
+  const seatedCount = Number(dashboard?.seatedCount ?? dailySnapshot?.seatedTables) || 0
+  const waitingCount = Number(dailySnapshot?.waitingCount) || 0
+  const lateCount = Number(dailySnapshot?.lateCount) || 0
+  const upcomingCount = Number(upcomingNext30Min ?? dailySnapshot?.upcomingArrivals) || 0
+  const freeTables = Number(dashboard?.availableTables) || 0
 
   return (
-    <div className="host-manager-summary-bar" aria-label="Reservations summary">
-      <div className="host-manager-summary-item">
-        <span className="host-manager-summary-value">{summary.totalCovers ?? 0}</span>
-        <span className="host-manager-summary-label">Covers</span>
+    <div className="host-operational-summary" aria-label="Live operational summary">
+      <div className="host-operational-summary-heading">
+        <span className="host-operational-summary-tag">{isViewingToday ? 'Today' : 'Service'}</span>
+        <span className="host-operational-summary-covers">
+          <strong>{totalCovers}</strong>
+          {' '}
+          Covers
+        </span>
       </div>
-      <div className="host-manager-summary-item">
-        <span className="host-manager-summary-value">{summary.upcomingArrivals ?? 0}</span>
-        <span className="host-manager-summary-label">Upcoming</span>
-      </div>
-      <div className="host-manager-summary-item">
-        <span className="host-manager-summary-value">{summary.seatedGuests ?? 0}</span>
-        <span className="host-manager-summary-label">Seated</span>
-      </div>
-      {attentionCount > 0 ? (
-        <div className="host-manager-summary-item is-warn" role="status">
-          <span className="host-manager-summary-value">{attentionCount}</span>
-          <span className="host-manager-summary-label">Need attention</span>
+
+      <div className="host-operational-summary-grid" role="list">
+        <div className="host-operational-summary-stat" role="listitem">
+          <strong>{seatedCount}</strong>
+          <span>Seated</span>
         </div>
-      ) : null}
-      {problems > 0 ? (
-        <div className="host-manager-summary-item is-problems" role="status">
-          <span className="host-manager-summary-value">{problems}</span>
-          <span className="host-manager-summary-label">Problems</span>
+        <div
+          className={`host-operational-summary-stat${waitingCount === 0 ? ' is-muted' : ''}`}
+          role="listitem"
+        >
+          <strong>{waitingCount}</strong>
+          <span>Waiting</span>
         </div>
-      ) : null}
+        <div className="host-operational-summary-stat" role="listitem">
+          <strong>{upcomingCount}</strong>
+          <span>Upcoming (next 30 min)</span>
+        </div>
+        <div
+          className={`host-operational-summary-stat${lateCount === 0 ? ' is-muted' : ''}`}
+          role="listitem"
+        >
+          <strong>{lateCount}</strong>
+          <span>Late</span>
+        </div>
+        <div className="host-operational-summary-stat" role="listitem">
+          <strong>{freeTables}</strong>
+          <span>Free Tables</span>
+        </div>
+      </div>
     </div>
   )
 }

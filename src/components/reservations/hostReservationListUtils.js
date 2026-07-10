@@ -10,10 +10,18 @@ import { normalizeReservationDateKey } from '../../lib/timeFormatUtils'
 import { formatLocalDateKey, parseLocalDate } from '../../lib/weekUtils'
 import {
   getHostListGroupId,
+  isReservationInHouse,
   isReservationLate,
   isReservationWaiting,
   isTerminalReservationStatus,
+  normalizeReservationStatus,
 } from '../../lib/reservationHostStatus'
+import {
+  isReservationCompletedForHostFilter,
+  isReservationProblemForHostFilter,
+  isReservationUpcomingForHostFilter,
+  sortHostListFilterReservations,
+} from '../../lib/hostServiceDashboard'
 import {
   buildDailyServiceSnapshot,
   getHostReservationAlertReasons,
@@ -24,6 +32,78 @@ export {
   getHostListGroupId,
   groupHostListReservations,
 } from '../../lib/reservationHostStatus'
+
+export const HOST_LIST_OPERATIONAL_SECTION_DEFS = [
+  { id: 'upcoming', label: 'Upcoming', sortFilter: 'Upcoming', defaultExpanded: true },
+  { id: 'arrived', label: 'Arrived', sortFilter: 'Arrived', defaultExpanded: false },
+  { id: 'seated', label: 'Seated', sortFilter: 'Arrived', defaultExpanded: false },
+  { id: 'completed', label: 'Completed', sortFilter: 'Completed', defaultExpanded: false },
+  { id: 'problems', label: 'Problems', sortFilter: 'Problems', defaultExpanded: true },
+]
+
+
+export const HOST_LIST_SECTION_COLLAPSE_STORAGE_KEY = 'host-list-section-collapsed-v2'
+
+function getHostListOperationalSectionId(reservation, nowMinutes, todayKey, problemOptions = {}) {
+  if (isReservationCompletedForHostFilter(reservation)) return 'completed'
+  if (isReservationInHouse(reservation)) return 'seated'
+  if (normalizeReservationStatus(reservation?.status) === 'Waiting') return 'arrived'
+  if (isReservationUpcomingForHostFilter(reservation, nowMinutes, todayKey)) return 'upcoming'
+  if (isReservationProblemForHostFilter(reservation, nowMinutes, todayKey, problemOptions)) {
+    return 'problems'
+  }
+  return null
+}
+
+export function groupHostListOperationalSections(
+  reservations = [],
+  nowMinutes,
+  todayKey,
+  problemOptions = {},
+) {
+  const buckets = Object.fromEntries(
+    HOST_LIST_OPERATIONAL_SECTION_DEFS.map((section) => [section.id, []]),
+  )
+
+  reservations.forEach((reservation) => {
+    const sectionId = getHostListOperationalSectionId(
+      reservation,
+      nowMinutes,
+      todayKey,
+      problemOptions,
+    )
+    if (sectionId) buckets[sectionId]?.push(reservation)
+  })
+
+  return HOST_LIST_OPERATIONAL_SECTION_DEFS.map((section) => ({
+    ...section,
+    reservations: sortHostListFilterReservations(
+      buckets[section.id] ?? [],
+      section.sortFilter,
+      nowMinutes,
+      todayKey,
+      problemOptions,
+    ),
+  }))
+}
+
+export function getDefaultHostListCollapsedSections() {
+  return new Set(
+    HOST_LIST_OPERATIONAL_SECTION_DEFS
+      .filter((section) => !section.defaultExpanded)
+      .map((section) => section.id),
+  )
+}
+
+export function formatHostWorkspaceShortDateLabel(dateKey = '') {
+  const normalizedDateKey = normalizeReservationDateKey(dateKey)
+  if (!normalizedDateKey) return ''
+
+  const date = parseLocalDate(normalizedDateKey)
+  const weekday = date.toLocaleDateString('en-US', { weekday: 'long' })
+  const monthDay = date.toLocaleDateString('en-US', { month: 'long', day: 'numeric' })
+  return `${weekday} • ${monthDay}`
+}
 
 export function resolveHostWorkspaceDateKey(date = getLocalNow(), timeZone = '') {
   return getCurrentDateKey(date, timeZone)

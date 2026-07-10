@@ -30,12 +30,13 @@ import { HostReservationEditPanel, createHostReservationEditForm } from './compo
 import { HostReservationEditErrorBoundary } from './components/reservations/HostReservationEditErrorBoundary'
 import { HostReservationList } from './components/reservations/HostReservationList'
 import { HostManagerSummaryBar } from './components/reservations/HostManagerSummaryBar'
-import { HostServiceHealthStrip, formatHostNextArrivalHint } from './components/reservations/HostServiceHealthStrip'
+import { formatHostNextArrivalHint } from './components/reservations/HostServiceHealthStrip'
 import { HostWorkspaceDateNav } from './components/reservations/HostWorkspaceDateNav'
 import {
   buildHostManagerSummary,
   formatHostWorkspaceDateNavLabel,
   formatHostWorkspaceLongDateLabel,
+  formatHostWorkspaceShortDateLabel,
   getHostWorkspaceReservations,
   resolveHostWorkspaceDateKey,
   shiftHostWorkspaceDateKey,
@@ -181,11 +182,7 @@ import {
 } from './lib/hostScheduleCardLifecycle'
 import {
   buildHostServiceDashboard,
-  buildHostFilterCounts,
-  countHostListFilterMatches,
-  HOST_LIST_OPERATIONAL_FILTERS,
-  hostListFilterMatch as matchHostReservationListFilter,
-  sortHostListFilterReservations,
+  isReservationUpcomingForHostFilter,
 } from './lib/hostServiceDashboard'
 import {
   buildSeatingsById,
@@ -5694,7 +5691,6 @@ function ScheduleView({
   )
 }
 
-const HOST_LIST_FILTERS = HOST_LIST_OPERATIONAL_FILTERS
 
 const HOST_LIST_SORTS = [
   { id: 'service', label: 'Service order' },
@@ -8973,12 +8969,13 @@ function FloorPlanView({
                 </button>
               ) : null}
               <div className="floor-plan-zoom-controls" aria-label="Floor plan zoom">
-              <button type="button" className="floor-plan-zoom-btn" onClick={handleFloorZoomOut} aria-label="Zoom out">−</button>
-              <span className="floor-plan-zoom-label">{Math.round(floorZoom * 100)}%</span>
-              <button type="button" className="floor-plan-zoom-btn" onClick={handleFloorZoomIn} aria-label="Zoom in">+</button>
-              <button type="button" className="floor-plan-zoom-btn floor-plan-zoom-fit" onClick={handleFloorZoomFit}>
-                View fit
-              </button>
+              <div className="floor-plan-zoom-controls-group">
+                <button type="button" className="floor-plan-zoom-btn" onClick={handleFloorZoomOut} aria-label="Zoom out">−</button>
+                <button type="button" className="floor-plan-zoom-btn floor-plan-zoom-fit" onClick={handleFloorZoomFit} aria-label="Fit to view">
+                  Fit
+                </button>
+                <button type="button" className="floor-plan-zoom-btn" onClick={handleFloorZoomIn} aria-label="Zoom in">+</button>
+              </div>
               <button type="button" className="floor-plan-zoom-btn floor-plan-zoom-reset" onClick={handleFloorZoomReset}>
                 Reset
               </button>
@@ -11141,38 +11138,14 @@ function ServiceTimelinePanel({
 }
 
 function HostReservationListControls({
-  listFilter,
   listSort,
-  onListFilterChange,
   onListSortChange,
   showHourFilter,
   onToggleHourFilter,
   hasHourSlots,
-  problemsCount = 0,
-  filterCounts = {},
 }) {
   return (
     <div className="host-reservation-list-controls">
-      <div className="host-reservation-list-filters" role="toolbar" aria-label="Reservation filters">
-        {HOST_LIST_FILTERS.map((filter) => {
-          const count = Number(filterCounts[filter]) || 0
-          const isActive = listFilter === filter
-
-          return (
-            <button
-              key={filter}
-              type="button"
-              className={`host-list-filter-chip${isActive ? ' is-active active' : ''}${filter === 'Problems' && count > 0 ? ' has-count' : ''}`}
-              onClick={() => onListFilterChange(filter)}
-              aria-pressed={isActive}
-            >
-              <span className="host-list-filter-chip-label">{filter}</span>
-              <span className="host-list-filter-chip-count">{count}</span>
-            </button>
-          )
-        })}
-      </div>
-
       <div className="host-reservation-list-toolbar">
         <label className="host-reservation-list-sort">
           <span>Sort</span>
@@ -11205,26 +11178,21 @@ function ReservationsUnifiedCanvas({
   timelinePanelProps,
   floorPlanProps,
   listReservations,
-  listFilter,
   listSort,
-  onListFilterChange,
   onListSortChange,
   hostServicePressureSlots,
   serviceHourFilter,
   onServiceHourFilterChange,
-  serviceHealthMetrics,
-  serviceInsights,
-  arrivalWaves,
-  problemsCount = 0,
-  nextArrivalHint = '',
-  nextArrivalId = null,
   isLoading,
   searchTerm = '',
   dailySnapshot = null,
   isViewingToday = true,
   onQuickStatusUpdate,
   isSavingStatus,
-  hostFilterCounts = {},
+  hostProblemFilterOptions = null,
+  upcomingNext30Min = 0,
+  nextArrivalHint = '',
+  nextArrivalId = null,
 }) {
   const { layout, hasDisplayableLayout, reload } = usePublishedFloorPlan()
   const canEditFloorPlan = floorPlanProps.canEditFloorPlan !== false
@@ -11249,29 +11217,12 @@ function ReservationsUnifiedCanvas({
     setActiveFloorAreaId,
     openHostEdit,
     isSelected,
-    selectReservation,
     draggingReservationId,
     setDraggingReservationId,
     clearDragState,
   } = useReservationWorkspace()
   const [isSavingListStatus, setIsSavingListStatus] = useState(false)
   const [showHourFilter, setShowHourFilter] = useState(false)
-
-  const hostManagerSummary = useMemo(() => {
-    const filteredSummary = buildHostManagerSummary(
-      listReservations,
-      floorPlanProps.nowMinutes,
-      floorPlanProps.todayKey,
-    )
-
-    if (!dailySnapshot) return filteredSummary
-
-    return {
-      ...dailySnapshot,
-      needsAttention: filteredSummary.needsAttention,
-      unassigned: dailySnapshot.unassignedTables,
-    }
-  }, [dailySnapshot, listReservations, floorPlanProps.nowMinutes, floorPlanProps.todayKey])
 
   const hostServiceDashboard = useMemo(() => (
     buildHostServiceDashboard({
@@ -11282,8 +11233,9 @@ function ReservationsUnifiedCanvas({
       seatings: floorPlanProps.seatings ?? [],
       selectedSeating: floorPlanProps.selectedSeating ?? null,
       seatingsById: buildSeatingsById(floorPlanProps.seatings ?? []),
+      problemOptions: hostProblemFilterOptions ?? {},
     })
-  ), [floorPlanProps, layout, listReservations])
+  ), [floorPlanProps, hostProblemFilterOptions, layout, listReservations])
 
   const handleStatusChange = async (reservation, status) => {
     if (!onQuickStatusUpdate) return
@@ -11329,14 +11281,11 @@ function ReservationsUnifiedCanvas({
       {floorPlanMode !== 'edit' ? (
       <section className="host-operations-list" aria-label="Reservation list">
         <div className="host-operations-list-sticky">
-          <HostManagerSummaryBar summary={hostManagerSummary} dashboard={hostServiceDashboard} problemsCount={problemsCount} />
-          <HostServiceHealthStrip
-            metrics={serviceHealthMetrics}
-            insights={serviceInsights}
-            arrivalWaves={arrivalWaves}
-            isLoading={isLoading}
-            onSelectReservation={selectReservation}
-            isReservationSelected={isSelected}
+          <HostManagerSummaryBar
+            dashboard={hostServiceDashboard}
+            dailySnapshot={dailySnapshot}
+            upcomingNext30Min={upcomingNext30Min}
+            isViewingToday={isViewingToday}
           />
           {showHourFilter ? (
             <HostServicePressureBar
@@ -11347,15 +11296,11 @@ function ReservationsUnifiedCanvas({
             />
           ) : null}
           <HostReservationListControls
-            listFilter={listFilter}
             listSort={listSort}
-            onListFilterChange={onListFilterChange}
             onListSortChange={onListSortChange}
             showHourFilter={showHourFilter}
             onToggleHourFilter={() => setShowHourFilter((current) => !current)}
             hasHourSlots={hostServicePressureSlots.length > 0}
-            problemsCount={problemsCount}
-            filterCounts={hostFilterCounts}
           />
         </div>
         <div className="host-operations-list-scroll">
@@ -11377,10 +11322,11 @@ function ReservationsUnifiedCanvas({
             onDragEnd={clearDragState}
             isSavingStatus={isSavingListStatus || isSavingStatus}
             nextArrivalId={nextArrivalId}
-            listFilter={listFilter}
+            listFilter="All"
             searchTerm={searchTerm}
             dailySnapshot={dailySnapshot}
             isViewingToday={isViewingToday}
+            problemFilterOptions={hostProblemFilterOptions}
             onStatusChange={handleStatusChange}
             helpers={HOST_LIST_HELPERS}
           />
@@ -11500,7 +11446,6 @@ function ReservationsWorkspaceBody({
   reservationSeatings = [],
 }) {
   const [searchTerm, setSearchTerm] = useState('')
-  const [listFilter, setListFilter] = useState('Upcoming')
   const [listSort, setListSort] = useState('service')
   const [serviceHourFilter, setServiceHourFilter] = useState(null)
   const [selectedServiceSeatingId, setSelectedServiceSeatingId] = useState('')
@@ -11554,25 +11499,21 @@ function ReservationsWorkspaceBody({
 
   const handlePreviousDay = useCallback(() => {
     setServiceHourFilter(null)
-    setListFilter('Upcoming')
     setSelectedDateKey((current) => shiftHostWorkspaceDateKey(current, -1))
   }, [])
 
   const handleNextDay = useCallback(() => {
     setServiceHourFilter(null)
-    setListFilter('Upcoming')
     setSelectedDateKey((current) => shiftHostWorkspaceDateKey(current, 1))
   }, [])
 
   const handleGoToToday = useCallback(() => {
     setServiceHourFilter(null)
-    setListFilter('Upcoming')
     setSelectedDateKey(workspaceTodayKey)
   }, [workspaceTodayKey])
 
   const handleSelectDate = useCallback((dateKey) => {
     setServiceHourFilter(null)
-    setListFilter('Upcoming')
     setSelectedDateKey(normalizeReservationDateKey(dateKey))
   }, [])
 
@@ -11624,35 +11565,18 @@ function ReservationsWorkspaceBody({
     ))
   ), [searchNeedle, workspaceReservations])
 
-  const hostListWithoutHourFilter = useMemo(() => (
-    filteredWorkspaceReservations.filter((reservation) => (
-      matchHostReservationListFilter(
-        reservation,
-        listFilter,
-        nowMinutes,
-        selectedDateKey,
-        hostProblemFilterOptions,
-      )
-      && !shouldHideInDefaultHostView(reservation, listFilter, listSort, nowMinutes, selectedDateKey)
-    ))
-  ), [
-    filteredWorkspaceReservations,
-    hostProblemFilterOptions,
-    listFilter,
-    listSort,
-    nowMinutes,
-    selectedDateKey,
-  ])
-
-  const hostFilterCounts = useMemo(
-    () => buildHostFilterCounts(
-      filteredWorkspaceReservations,
-      nowMinutes,
-      selectedDateKey,
-      hostProblemFilterOptions,
-    ),
-    [filteredWorkspaceReservations, hostProblemFilterOptions, nowMinutes, selectedDateKey],
+  const hostListWithoutHourFilter = useMemo(
+    () => filteredWorkspaceReservations,
+    [filteredWorkspaceReservations],
   )
+
+  const upcomingNext30MinCount = useMemo(() => (
+    workspaceReservations.filter((reservation) => {
+      const arrivalMinutes = parseTimeToMinutes(reservation.time)
+      if (arrivalMinutes === null || arrivalMinutes > nowMinutes + 30) return false
+      return isReservationUpcomingForHostFilter(reservation, nowMinutes, selectedDateKey)
+    }).length
+  ), [nowMinutes, selectedDateKey, workspaceReservations])
 
   const hostServicePressureSlots = useMemo(
     () => buildHostServiceHourPressureSlots(hostListWithoutHourFilter),
@@ -11666,36 +11590,16 @@ function ReservationsWorkspaceBody({
       ))
       : hostListWithoutHourFilter
 
-    if (HOST_LIST_OPERATIONAL_FILTERS.includes(listFilter)) {
-      return sortHostListFilterReservations(
-        filtered,
-        listFilter,
-        nowMinutes,
-        selectedDateKey,
-        hostProblemFilterOptions,
-      )
-    }
+    if (listSort === 'service') return filtered
 
     return sortHostReservations(filtered, listSort, nowMinutes, selectedDateKey)
   }, [
     hostListWithoutHourFilter,
-    hostProblemFilterOptions,
-    listFilter,
     listSort,
     nowMinutes,
     serviceHourFilter,
     selectedDateKey,
   ])
-
-  const hostHeaderStats = useMemo(
-    () => buildHostManagerSummary(workspaceReservations, nowMinutes, selectedDateKey),
-    [nowMinutes, selectedDateKey, workspaceReservations],
-  )
-
-  const handleListFilterChange = (filter) => {
-    setListFilter(filter)
-    setServiceHourFilter(null)
-  }
 
   const handleServiceHourFilterChange = (hour) => {
     setServiceHourFilter(hour)
@@ -11737,16 +11641,6 @@ function ReservationsWorkspaceBody({
     [nextArrival, nowMinutes],
   )
 
-  const hostProblemsCount = useMemo(
-    () => countHostListFilterMatches(
-      workspaceReservations,
-      'Problems',
-      nowMinutes,
-      selectedDateKey,
-      hostProblemFilterOptions,
-    ),
-    [hostProblemFilterOptions, nowMinutes, selectedDateKey, workspaceReservations],
-  )
 
   const activeTimelineReservationId = useMemo(
     () => getActiveTimelineReservationId(filteredWorkspaceReservations, nowMinutes, selectedDateKey),
@@ -11893,25 +11787,19 @@ function ReservationsWorkspaceBody({
         nowMinutes={nowMinutes}
         searchTerm={searchTerm}
         onSearchTermChange={setSearchTerm}
-        listFilter={listFilter}
         listSort={listSort}
-        onListFilterChange={handleListFilterChange}
         onListSortChange={setListSort}
-        hostHeaderStats={hostHeaderStats}
         hostListReservations={hostListReservations}
         hostServicePressureSlots={hostServicePressureSlots}
         serviceHourFilter={serviceHourFilter}
         onServiceHourFilterChange={handleServiceHourFilterChange}
-        serviceHealthMetrics={serviceHealthMetrics}
-        serviceInsights={serviceInsights}
-        arrivalWaves={arrivalWaves}
-        problemsCount={hostProblemsCount}
+        hostProblemFilterOptions={hostProblemFilterOptions}
+        upcomingNext30MinCount={upcomingNext30MinCount}
         nextArrivalHint={nextArrivalHint}
         nextArrivalId={nextArrivalId}
         dailySnapshot={dailySnapshot}
         timelinePanelProps={timelinePanelProps}
         floorPlanProps={floorPlanProps}
-        hostFilterCounts={hostFilterCounts}
         sharedCardProps={sharedCardProps}
         openMoreReservationId={openMoreReservationId}
         onToggleMore={handleToggleMore}
@@ -11952,25 +11840,19 @@ function ReservationsWorkspaceContent({
   nowMinutes,
   searchTerm,
   onSearchTermChange,
-  listFilter,
   listSort,
-  onListFilterChange,
   onListSortChange,
-  hostHeaderStats,
   hostListReservations,
   hostServicePressureSlots,
   serviceHourFilter,
   onServiceHourFilterChange,
-  serviceHealthMetrics,
-  serviceInsights,
-  arrivalWaves,
-  problemsCount = 0,
+  hostProblemFilterOptions = null,
+  upcomingNext30MinCount = 0,
   nextArrivalHint = '',
   nextArrivalId,
   dailySnapshot = null,
   timelinePanelProps,
   floorPlanProps,
-  hostFilterCounts = {},
   sharedCardProps: _sharedCardProps,
   openMoreReservationId: _openMoreReservationId,
   onToggleMore: _onToggleMore,
@@ -11998,6 +11880,9 @@ function ReservationsWorkspaceContent({
         <header className="reservations-host-header">
           <div className="reservations-host-header-main">
             <h2>Reservations</h2>
+            <p className="reservations-host-header-date">
+              {formatHostWorkspaceShortDateLabel(todayKey)}
+            </p>
             <HostWorkspaceDateNav
               dateTime={todayKey}
               label={todayLabel}
@@ -12008,13 +11893,6 @@ function ReservationsWorkspaceContent({
               onGoToToday={onGoToToday}
               onSelectDate={onSelectDate}
             />
-            <p className="reservations-host-header-stats">
-              {hostHeaderStats?.totalCovers ?? 0} covers
-              {' · '}
-              {hostHeaderStats?.upcomingArrivals ?? 0} upcoming
-              {' · '}
-              {hostHeaderStats?.seatedGuests ?? 0} seated
-            </p>
             {onOpenHostMode ? (
               <button
                 type="button"
@@ -12062,17 +11940,13 @@ function ReservationsWorkspaceContent({
           timelinePanelProps={timelinePanelProps}
           floorPlanProps={floorPlanProps}
           listReservations={hostListReservations}
-          listFilter={listFilter}
           listSort={listSort}
-          onListFilterChange={onListFilterChange}
           onListSortChange={onListSortChange}
           hostServicePressureSlots={hostServicePressureSlots}
           serviceHourFilter={serviceHourFilter}
           onServiceHourFilterChange={onServiceHourFilterChange}
-          serviceHealthMetrics={serviceHealthMetrics}
-          serviceInsights={serviceInsights}
-          arrivalWaves={arrivalWaves}
-          problemsCount={problemsCount}
+          hostProblemFilterOptions={hostProblemFilterOptions}
+          upcomingNext30Min={upcomingNext30MinCount}
           nextArrivalHint={nextArrivalHint}
           nextArrivalId={nextArrivalId}
           searchTerm={searchTerm}
@@ -12081,7 +11955,6 @@ function ReservationsWorkspaceContent({
           isLoading={isLoading}
           onQuickStatusUpdate={onQuickStatusUpdate}
           isSavingStatus={isSaving}
-          hostFilterCounts={hostFilterCounts}
         />
       </div>
 
