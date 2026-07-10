@@ -2,7 +2,6 @@ import { useFloorPlanBuilder } from '../hooks/useFloorPlanBuilder'
 import { TABLE_TYPES } from '../models/componentCatalog'
 import {
   FLOOR_PLAN_OBJECT_TYPES,
-  adjustTableDimension,
   buildTableSizePresetPatch,
   formatBuilderTableLabel,
   getObjectDisplayLabel,
@@ -11,7 +10,12 @@ import {
   TABLE_CAPACITY_MAX,
   TABLE_CAPACITY_MIN,
 } from '../models/floorPlanObject'
-import { normalizeRotation, stepRotation } from '../lib/tableTransformUtils'
+import {
+  buildTableSizeResetPatch,
+  canDecreaseTableDimension,
+  normalizeTableSize,
+} from '../lib/tableDimensions'
+import { getTableMinSize, normalizeRotation, stepRotation } from '../lib/tableTransformUtils'
 import {
   createDefaultSections,
   getTableSectionTotals,
@@ -140,9 +144,10 @@ export function BuilderInspector({ onClose, showCloseButton = false }) {
   const maxGuests = guestRange.maxGuests
   const shape = properties.shape ?? 'round'
   const floorId = selectedObject.floorId ?? state.activeFloorId
-  const objectSize = selectedObject.size ?? {}
-  const width = Math.max(1, Math.round(Number(objectSize.width) || 1))
-  const height = Math.max(1, Math.round(Number(objectSize.height) || 1))
+  const minSize = getTableMinSize(shape)
+  const normalizedSize = normalizeTableSize(selectedObject.size, shape)
+  const width = normalizedSize.width
+  const height = normalizedSize.height
   const rotation = Math.round(normalizeRotation(selectedObject.rotation ?? 0))
   const sections = Array.isArray(properties.sections) ? properties.sections : []
   const showSections = supportsTableSections(shape, floorId)
@@ -410,6 +415,14 @@ export function BuilderInspector({ onClose, showCloseButton = false }) {
                 {preset.charAt(0).toUpperCase() + preset.slice(1)}
               </button>
             ))}
+            <button
+              type="button"
+              className="fpb-inspector-size-preset-btn"
+              onClick={() => updateTable(buildTableSizeResetPatch(shape))}
+              disabled={isReadOnly}
+            >
+              Reset size
+            </button>
           </div>
         </div>
 
@@ -420,15 +433,15 @@ export function BuilderInspector({ onClose, showCloseButton = false }) {
               <button
                 type="button"
                 className="fpb-inspector-stepper-btn"
-                onClick={() => updateTable({ width: adjustTableDimension(width, -8) })}
-                disabled={isReadOnly}
+                onClick={() => updateTable({ width: width - 8 })}
+                disabled={isReadOnly || !canDecreaseTableDimension(width, -8, shape, 'width')}
                 aria-label="Decrease width"
               >
                 −
               </button>
               <input
                 type="number"
-                min="1"
+                min={minSize.width}
                 value={width}
                 onChange={(event) => updateTable({ width: event.target.value })}
                 disabled={isReadOnly}
@@ -436,7 +449,7 @@ export function BuilderInspector({ onClose, showCloseButton = false }) {
               <button
                 type="button"
                 className="fpb-inspector-stepper-btn"
-                onClick={() => updateTable({ width: adjustTableDimension(width, 8) })}
+                onClick={() => updateTable({ width: width + 8 })}
                 disabled={isReadOnly}
                 aria-label="Increase width"
               >
@@ -451,15 +464,15 @@ export function BuilderInspector({ onClose, showCloseButton = false }) {
               <button
                 type="button"
                 className="fpb-inspector-stepper-btn"
-                onClick={() => updateTable({ height: adjustTableDimension(height, -8) })}
-                disabled={isReadOnly}
+                onClick={() => updateTable({ height: height - 8 })}
+                disabled={isReadOnly || !canDecreaseTableDimension(height, -8, shape, 'height')}
                 aria-label="Decrease height"
               >
                 −
               </button>
               <input
                 type="number"
-                min="1"
+                min={minSize.height}
                 value={height}
                 onChange={(event) => updateTable({ height: event.target.value })}
                 disabled={isReadOnly}
@@ -467,7 +480,7 @@ export function BuilderInspector({ onClose, showCloseButton = false }) {
               <button
                 type="button"
                 className="fpb-inspector-stepper-btn"
-                onClick={() => updateTable({ height: adjustTableDimension(height, 8) })}
+                onClick={() => updateTable({ height: height + 8 })}
                 disabled={isReadOnly}
                 aria-label="Increase height"
               >

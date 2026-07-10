@@ -185,7 +185,7 @@ export function formatTableGuestRangeLabel(properties = {}, shape = 'round') {
   return `${minGuests}–${maxGuests} guests`
 }
 
-export function adjustTableDimension(value, delta, minimum = 44) {
+export function adjustTableDimension(value, delta, minimum = 64) {
   const current = Math.max(minimum, Math.round(Number(value) || minimum))
   return Math.max(minimum, current + delta)
 }

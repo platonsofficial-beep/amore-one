@@ -1,10 +1,10 @@
 import { floorBoundaryService } from '../services/FloorBoundaryService'
 
 export const TABLE_MIN_SIZES = {
-  round: { width: 44, height: 44 },
-  square: { width: 44, height: 44 },
-  rectangle: { width: 64, height: 44 },
-  island: { width: 90, height: 44 },
+  round: { width: 64, height: 64 },
+  square: { width: 64, height: 64 },
+  rectangle: { width: 80, height: 64 },
+  island: { width: 100, height: 64 },
 }
 
 export function keepsTableAspectRatio(shape) {

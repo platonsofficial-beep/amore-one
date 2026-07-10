@@ -46,10 +46,10 @@ function CanvasObjectNodeComponent({
     <div
       className={`fpb-canvas-object type-${object.type}${shapeClass}${isSelected ? ' is-selected' : ''}${isDragging ? ' is-dragging' : ''}${isTransforming ? ' is-transforming' : ''}${isLocked ? ' is-locked' : ''}${labelDensity !== 'normal' ? ` is-label-${labelDensity}` : ''}${isEditable ? ' is-editable' : ''}`}
       style={{
-        left: isTransforming ? undefined : position.x,
-        top: isTransforming ? undefined : position.y,
-        width: isTransforming ? undefined : size.width,
-        height: isTransforming ? undefined : size.height,
+        left: position.x,
+        top: position.y,
+        width: size.width,
+        height: size.height,
         transform: isDirectManipulation ? undefined : `rotate(${rotation}deg)`,
         transformOrigin: 'center center',
         zIndex: isDragging || isTransforming ? 20 : object.zIndex,

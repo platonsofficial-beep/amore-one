@@ -20,9 +20,11 @@ import {
 import { createInitialFloors, createUniqueAreaId } from '../models/floorPlans'
 import { createDefaultFloor, createDefaultWorkspace, expandFloorWorkspace, getWorkspaceBounds, resetFloorWorkspace } from '../models/floorWorkspace'
 import {
+  normalizeTableSize,
+  resolveTableSizeFromPatch,
+} from '../lib/tableDimensions'
+import {
   fitTableRectToFloor,
-  getTableMinSize,
-  keepsTableAspectRatio,
   normalizeRotation,
 } from '../lib/tableTransformUtils'
 import { getTableSectionTotals, normalizeTableSection } from '../lib/tableSections'
@@ -37,91 +39,48 @@ function getFloorWorkspaceBounds(floors, floorId) {
   return getWorkspaceBounds(workspace)
 }
 
-function resolveExplicitTableDimension(value, fallback, minimum = 1) {
-  if (value !== undefined && value !== null && `${value}`.trim() !== '') {
-    const parsed = Math.round(Number(value))
-    if (Number.isFinite(parsed)) {
-      return Math.max(minimum, parsed)
-    }
-  }
-
-  const fallbackValue = Math.round(Number(fallback))
-  return Math.max(minimum, Number.isFinite(fallbackValue) ? fallbackValue : minimum)
-}
-
 function resolveTableDimensionsFromPatch({
   patch,
   object,
   nextShape,
   shapeChanged,
 }) {
-  const minSize = getTableMinSize(nextShape)
-  const currentSize = object.size ?? minSize
-  const presetDetails = patch.sizePreset !== undefined
-    ? getTablePresetDetails(nextShape, patch.sizePreset)
-    : null
+  if (shapeChanged) {
+    return {
+      size: normalizeTableSize(getTableShapeSize(nextShape), nextShape),
+      sizeChanged: true,
+    }
+  }
+
+  if (patch.sizePreset !== undefined) {
+    const presetDetails = getTablePresetDetails(nextShape, patch.sizePreset)
+    return {
+      size: normalizeTableSize(
+        { width: presetDetails.width, height: presetDetails.height },
+        nextShape,
+      ),
+      sizeChanged: true,
+    }
+  }
+
   const explicitWidth = patch.width ?? patch.size?.width
   const explicitHeight = patch.height ?? patch.size?.height
 
-  if (shapeChanged) {
-    return {
-      size: getTableShapeSize(nextShape),
-      sizeChanged: true,
-      explicitWidth,
-      explicitHeight,
-    }
-  }
-
-  if (presetDetails) {
-    let width = Math.max(minSize.width, Math.round(Number(presetDetails.width)))
-    let height = Math.max(minSize.height, Math.round(Number(presetDetails.height)))
-    if (keepsTableAspectRatio(nextShape)) {
-      const dim = Math.max(width, height)
-      width = dim
-      height = dim
-    }
-
-    return {
-      size: { width, height },
-      sizeChanged: true,
-      explicitWidth,
-      explicitHeight,
-    }
-  }
-
   if (explicitWidth !== undefined || explicitHeight !== undefined) {
-    let width = resolveExplicitTableDimension(
-      explicitWidth,
-      currentSize.width,
-      minSize.width,
-    )
-    let height = resolveExplicitTableDimension(
-      explicitHeight,
-      currentSize.height,
-      minSize.height,
-    )
-    if (keepsTableAspectRatio(nextShape)) {
-      const dim = Math.max(width, height)
-      width = dim
-      height = dim
-    }
-
     return {
-      size: { width, height },
+      size: resolveTableSizeFromPatch({
+        baseSize: object.size,
+        shape: nextShape,
+        explicitWidth,
+        explicitHeight,
+      }),
       sizeChanged: true,
-      explicitWidth,
-      explicitHeight,
     }
   }
 
   return {
-    size: {
-      width: Math.max(minSize.width, Math.round(Number(currentSize.width) || minSize.width)),
-      height: Math.max(minSize.height, Math.round(Number(currentSize.height) || minSize.height)),
-    },
+    size: normalizeTableSize(object.size, nextShape),
     sizeChanged: false,
-    explicitWidth,
-    explicitHeight,
   }
 }
 

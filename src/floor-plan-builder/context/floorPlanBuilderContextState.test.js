@@ -236,6 +236,96 @@ describe('UPDATE_TABLE', () => {
     expect(sizes[2]).toEqual({ width: 200, height: 200 })
     expect(new Set(sizes.map((size) => size.width)).size).toBe(3)
   })
+
+  it('decreases square width via width-only patch', () => {
+    const initialState = {
+      ...createInitialBuilderState({ initialEditing: true }),
+      objects: [{
+        ...createTable('table-1'),
+        size: { width: 200, height: 200 },
+        properties: { shape: 'square', capacity: 4 },
+      }],
+    }
+
+    const nextState = floorPlanBuilderReducer(initialState, {
+      type: 'UPDATE_TABLE',
+      payload: {
+        objectId: 'table-1',
+        patch: { width: 192 },
+      },
+    })
+
+    expect(nextState.objects[0].size).toEqual({ width: 192, height: 192 })
+  })
+
+  it('decreases rectangle height via height-only patch', () => {
+    const initialState = {
+      ...createInitialBuilderState({ initialEditing: true }),
+      objects: [{
+        ...createTable('table-1'),
+        size: { width: 200, height: 120 },
+        properties: { shape: 'rectangle', capacity: 4 },
+      }],
+    }
+
+    const nextState = floorPlanBuilderReducer(initialState, {
+      type: 'UPDATE_TABLE',
+      payload: {
+        objectId: 'table-1',
+        patch: { height: 112 },
+      },
+    })
+
+    expect(nextState.objects[0].size).toEqual({ width: 200, height: 112 })
+  })
+
+  it('normalizes corrupt tiny tables when edited', () => {
+    const initialState = {
+      ...createInitialBuilderState({ initialEditing: true }),
+      objects: [{
+        ...createTable('table-1'),
+        size: { width: 8, height: 6 },
+        properties: { shape: 'square', capacity: 2 },
+      }],
+    }
+
+    const nextState = floorPlanBuilderReducer(initialState, {
+      type: 'UPDATE_TABLE',
+      payload: {
+        objectId: 'table-1',
+        patch: { tableNumber: '9' },
+      },
+    })
+
+    expect(nextState.objects[0].size).toEqual({ width: 64, height: 64 })
+  })
+})
+
+describe('TRANSFORM_TABLE', () => {
+  it('persists resize preview dimensions from canvas handles', () => {
+    const initialState = {
+      ...createInitialBuilderState({ initialEditing: true }),
+      objects: [{
+        ...createTable('table-1'),
+        position: { x: 200, y: 200 },
+        size: { width: 200, height: 200 },
+        properties: { shape: 'square', capacity: 4 },
+      }],
+    }
+
+    const nextState = floorPlanBuilderReducer(initialState, {
+      type: 'TRANSFORM_TABLE',
+      payload: {
+        objectId: 'table-1',
+        position: { x: 200, y: 200 },
+        size: { width: 240, height: 240 },
+        rotation: 0,
+      },
+    })
+
+    expect(nextState.objects[0].size).toEqual({ width: 240, height: 240 })
+    expect(nextState.objects[0].position).toEqual({ x: 200, y: 200 })
+  })
 })
 
 describe('CLEAR_ACTIVE_FLOOR_LAYOUT', () => {

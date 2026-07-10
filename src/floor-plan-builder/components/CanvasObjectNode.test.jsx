@@ -172,4 +172,29 @@ describe('CanvasObjectNode preset dimensions', () => {
 
     unmount()
   })
+
+  it('keeps canonical position and size styles while transforming', () => {
+    const { container, unmount } = renderNode({
+      object: tableObject,
+      isSelected: true,
+      showTransformChrome: true,
+      isDragging: false,
+      isTransforming: true,
+      activeTool: 'select',
+      isEditable: true,
+      onPointerDown: vi.fn(),
+      onPointerMove: vi.fn(),
+      onPointerUp: vi.fn(),
+      onResizePointerDown: vi.fn(),
+      onRotatePointerDown: vi.fn(),
+    })
+
+    const root = container.querySelector('.fpb-canvas-object')
+    expect(root.style.left).toBe('100px')
+    expect(root.style.top).toBe('120px')
+    expect(root.style.width).toBe('140px')
+    expect(root.style.height).toBe('140px')
+
+    unmount()
+  })
 })

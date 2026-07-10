@@ -39,15 +39,36 @@ export class TableTransformManager {
     }
   }
 
+  clearPreviewElementStyles(element = this.element) {
+    if (!element) return
+    element.style.left = ''
+    element.style.top = ''
+    element.style.width = ''
+    element.style.height = ''
+    element.style.transform = ''
+    element.style.willChange = ''
+    element.classList.remove('is-transforming')
+  }
+
   clearPreview() {
-    if (!this.element) return
-    this.element.style.left = ''
-    this.element.style.top = ''
-    this.element.style.width = ''
-    this.element.style.height = ''
-    this.element.style.transform = ''
-    this.element.style.willChange = ''
-    this.element.classList.remove('is-transforming')
+    this.clearPreviewElementStyles(this.element)
+  }
+
+  flushPreviewFrame() {
+    if (this.rafId !== null) {
+      window.cancelAnimationFrame(this.rafId)
+      this.rafId = null
+    }
+
+    if (this.session?.preview) {
+      this.applyPreview(this.session.preview)
+    }
+  }
+
+  scheduleClearPreview(element) {
+    window.requestAnimationFrame(() => {
+      this.clearPreviewElementStyles(element)
+    })
   }
 
   schedulePreview(preview) {
@@ -237,10 +258,17 @@ export class TableTransformManager {
     const session = this.session
     if (!session || event.pointerId !== session.pointerId) return
 
+    this.flushPreviewFrame()
+
     const preview = session.preview
-    if (preview) {
-      this.onTransformTable(session.objectId, preview)
-    }
+      ? {
+        position: { ...session.preview.position },
+        size: { ...session.preview.size },
+        rotation: session.preview.rotation,
+      }
+      : null
+    const element = this.element
+    const objectId = session.objectId
 
     try {
       if (event.currentTarget?.hasPointerCapture?.(event.pointerId)) {
@@ -253,12 +281,20 @@ export class TableTransformManager {
     }
 
     this.detachWindowListeners()
-    this.clearPreview()
-    this.cancel()
+    this.session = null
+    this.element = null
+    this.rafId = null
+
+    if (preview) {
+      this.onTransformTable(objectId, preview)
+    }
+
+    this.scheduleClearPreview(element)
   }
 
   cancel() {
     this.detachWindowListeners()
+    this.clearPreview()
     this.session = null
     this.element = null
 
