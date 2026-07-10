@@ -2,7 +2,7 @@ import { FLOOR_PLAN_OBJECT_TYPES, formatBuilderTableLabel, resolveTableGuestRang
 import { createDefaultFloor, createDefaultWorkspace, getFloorBounds } from '../floor-plan-builder/models/floorWorkspace'
 import { normalizeTableSection } from '../floor-plan-builder/lib/tableSections'
 import { loadLocalFloorPlanLayout } from '../floor-plan-builder/lib/floorPlanStorage'
-import { getActiveBuilderLayoutCache } from '../services/floorPlanService'
+import { getActiveBuilderLayoutCache, getActivePublishedLayoutCache } from '../services/floorPlanService'
 import { SEATING_UNIT_TYPES } from './seatingAssignment'
 
 function getFloorWorkspace(floors, floorId) {
@@ -142,7 +142,7 @@ export function builderLayoutToHostLayout(builderLayout) {
 }
 
 export function loadPublishedHostLayout(workspaceId = '') {
-  const cached = getActiveBuilderLayoutCache()
+  const cached = getActivePublishedLayoutCache() ?? getActiveBuilderLayoutCache()
   const saved = cached ?? loadLocalFloorPlanLayout(workspaceId)
   if (!saved) return null
   return builderLayoutToHostLayout(saved)

@@ -2074,6 +2074,28 @@
   width: 100%;
 }
 
+.floor-plan-refreshing-state,
+.mobile-host-floor-refreshing {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 220px;
+  padding: 24px;
+  color: rgba(245, 230, 196, 0.88);
+  background: #0a0a0b;
+}
+
+.floor-plan-refreshing-state p,
+.mobile-host-floor-refreshing p {
+  margin: 0;
+  font-size: 0.92rem;
+  font-weight: 600;
+}
+
+.unified-floor-editor-publish-error {
+  margin-left: 8px;
+}
+
 .fpb-inspector-dimension-controls {
   display: grid;
   gap: 10px;

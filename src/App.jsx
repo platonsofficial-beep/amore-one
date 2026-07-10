@@ -40,6 +40,7 @@ import { TimeSelect } from './components/TimeSelect'
 import { getHostUnitById, toSeatingUnitFromLayoutUnit } from './lib/hostFloorPlanLayout'
 import { PublishedFloorPlanProvider, usePublishedFloorPlan } from './lib/PublishedFloorPlanContext'
 import { loadPublishedHostLayout } from './lib/builderToHostLayout'
+import { resolveActiveFloorAreaId } from './lib/publishFloorPlanTransition'
 import {
   computeSeatingAssignmentTotals,
   enrichReservationWithSeatingAssignment,
@@ -5688,10 +5689,9 @@ function ReservationWorkspaceProvider({
   useEffect(() => {
     if (!layout?.zones?.length) return
 
-    setActiveFloorAreaId((current) => {
-      if (current && layout.zones.some((zone) => zone.id === current)) return current
-      return layout.zones[0].id
-    })
+    setActiveFloorAreaId((current) => (
+      resolveActiveFloorAreaId(layout, current) ?? current
+    ))
   }, [layout])
 
   const selectedTableId = useMemo(
@@ -7698,7 +7698,7 @@ function FloorPlanView({
     setFloorPlanMode,
     floorPlanMode,
   } = useReservationWorkspace()
-  const { hasLayout, loadError, saveError } = usePublishedFloorPlan()
+  const { hasLayout, loadError, saveError, isRefreshingPublishedLayout } = usePublishedFloorPlan()
   const [dropTargetTableId, setDropTargetTableId] = useState(null)
   const [mergeSelection, setMergeSelection] = useState([])
   const [mergedGroups, setMergedGroups] = useState([])
@@ -7895,6 +7895,11 @@ function FloorPlanView({
     onOpenAddReservation?.({ table: scheduleCardTable, date: todayKey })
   }, [onOpenAddReservation, scheduleCardTable, todayKey])
 
+  const resolvedFloorAreaId = useMemo(
+    () => resolveActiveFloorAreaId(layout, activeFloorAreaId),
+    [layout, activeFloorAreaId],
+  )
+
   const floorPlanSnapshot = useMemo(() => (
     buildFloorPlanSnapshot({
       layout,
@@ -7908,15 +7913,15 @@ function FloorPlanView({
   ), [assignmentReservations, cleaningFlags, isCompact, layout, nowMinutes, todayKey])
 
   const activeZone = useMemo(() => (
-    floorPlanSnapshot.layout.zones.find((zone) => zone.id === activeFloorAreaId)
+    floorPlanSnapshot.layout.zones.find((zone) => zone.id === resolvedFloorAreaId)
       ?? floorPlanSnapshot.layout.zones[0]
-  ), [activeFloorAreaId, floorPlanSnapshot.layout.zones])
+  ), [resolvedFloorAreaId, floorPlanSnapshot.layout.zones])
 
   const visibleTableStates = useMemo(() => (
     floorPlanSnapshot.tableStates.filter((tableState) => (
-      tableState.table.zoneId === activeFloorAreaId
+      tableState.table.zoneId === resolvedFloorAreaId
     ))
-  ), [activeFloorAreaId, floorPlanSnapshot.tableStates])
+  ), [resolvedFloorAreaId, floorPlanSnapshot.tableStates])
 
   const reservationLinkGroups = useMemo(
     () => (isCompact && !isHeatmap ? buildReservationLinkGroups(visibleTableStates) : []),
@@ -7963,7 +7968,7 @@ function FloorPlanView({
     dismissFloorTooltips()
     isManualFloorZoomRef.current = false
     applyHostFloorAutoFit()
-  }, [activeFloorAreaId, applyHostFloorAutoFit, dismissFloorTooltips, floorPlanSnapshot.layout.id, floorPlanSnapshot.layout.publishedAt, isCompact])
+  }, [activeFloorAreaId, applyHostFloorAutoFit, dismissFloorTooltips, floorPlanSnapshot.layout.id, floorPlanSnapshot.layout.publishedAt, isCompact, resolvedFloorAreaId])
 
   useEffect(() => {
     if (floorPlanMode === 'edit') {
@@ -8231,6 +8236,14 @@ function FloorPlanView({
   )
 
   if (!hasLayout) {
+    if (isRefreshingPublishedLayout) {
+      return (
+        <div className={`floor-plan-workspace${isCompact ? ' is-compact' : ''} floor-plan-refreshing-state`} role="status">
+          <p>Updating published layout…</p>
+        </div>
+      )
+    }
+
     return (
       <div className={`floor-plan-workspace${isCompact ? ' is-compact' : ''} floor-plan-empty-state`}>
         {loadError ? (
@@ -8273,7 +8286,7 @@ function FloorPlanView({
           {isCompact ? (
             <FloorPlanAreaSwitcher
               zones={floorPlanSnapshot.layout.zones}
-              activeZoneId={activeFloorAreaId}
+              activeZoneId={resolvedFloorAreaId}
               onChange={setActiveFloorAreaId}
             />
           ) : (
@@ -8313,7 +8326,7 @@ function FloorPlanView({
       {!isCompact ? (
         <FloorPlanAreaSwitcher
           zones={floorPlanSnapshot.layout.zones}
-          activeZoneId={activeFloorAreaId}
+          activeZoneId={resolvedFloorAreaId}
           onChange={setActiveFloorAreaId}
         />
       ) : null}
@@ -8360,7 +8373,7 @@ function FloorPlanView({
             className="floor-plan-canvas"
             ref={floorCanvasRef}
             data-floor-plan-layout={floorPlanSnapshot.layout.id}
-            data-floor-area-id={activeFloorAreaId}
+            data-floor-area-id={resolvedFloorAreaId}
             data-view-mode={viewMode}
             data-seat-mode={selectedReservation && !isHeatmap && isCompact ? 'true' : 'false'}
             onClick={handleCanvasClick}
@@ -8567,7 +8580,24 @@ function MobileReservationsHostShellBody({
     activeFloorAreaId,
     setActiveFloorAreaId,
   } = useReservationWorkspace()
-  const { hasLayout } = usePublishedFloorPlan()
+  const {
+    hasLayout,
+    publishNotice,
+    clearPublishNotice,
+    isRefreshingPublishedLayout,
+  } = usePublishedFloorPlan()
+
+  useEffect(() => {
+    if (!publishNotice) return
+    onReservationNotice?.(publishNotice)
+    clearPublishNotice()
+  }, [clearPublishNotice, onReservationNotice, publishNotice])
+
+  const handlePublishComplete = useCallback((transition) => {
+    if (transition?.activeFloorAreaId) {
+      setActiveFloorAreaId(transition.activeFloorAreaId)
+    }
+  }, [setActiveFloorAreaId])
 
   if (floorPlanMode === 'edit' && canEditFloorPlan) {
     return (
@@ -8576,7 +8606,16 @@ function MobileReservationsHostShellBody({
           onExit={() => setFloorPlanMode('view')}
           initialAreaId={activeFloorAreaId}
           onActiveAreaChange={setActiveFloorAreaId}
+          onPublishComplete={handlePublishComplete}
         />
+      </div>
+    )
+  }
+
+  if (isRefreshingPublishedLayout && !hasLayout) {
+    return (
+      <div className="mobile-host-floor-refreshing" role="status">
+        <p>Updating published layout…</p>
       </div>
     )
   }
@@ -10502,6 +10541,11 @@ function ReservationsUnifiedCanvas({
             onExit={() => setFloorPlanMode('view')}
             initialAreaId={activeFloorAreaId}
             onActiveAreaChange={setActiveFloorAreaId}
+            onPublishComplete={(transition) => {
+              if (transition?.activeFloorAreaId) {
+                setActiveFloorAreaId(transition.activeFloorAreaId)
+              }
+            }}
           />
         ) : (
           <FloorPlanView {...floorPlanProps} isCompact />

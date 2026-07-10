@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import {
   PUBLISHED_LAYOUT_EVENT,
   cloneBuilderLayout,
@@ -16,6 +16,10 @@ import {
   setActivePublishedLayoutCache,
 } from '../services/floorPlanService'
 import { builderLayoutToHostLayout } from './builderToHostLayout'
+import {
+  buildPublishTransitionResult,
+  isValidPublishedBuilderLayout,
+} from './publishFloorPlanTransition'
 
 const PublishedFloorPlanContext = createContext({
   builderLayout: null,
@@ -27,6 +31,8 @@ const PublishedFloorPlanContext = createContext({
   isLoading: false,
   loadError: null,
   saveError: null,
+  publishNotice: null,
+  isRefreshingPublishedLayout: false,
   saveDraftLayout: async () => null,
   publishLayout: async () => null,
   saveLayout: async () => null,
@@ -40,6 +46,9 @@ export function PublishedFloorPlanProvider({ children, workspaceId = '' }) {
   const [isLoading, setIsLoading] = useState(false)
   const [loadError, setLoadError] = useState(null)
   const [saveError, setSaveError] = useState(null)
+  const [publishNotice, setPublishNotice] = useState(null)
+  const [isRefreshingPublishedLayout, setIsRefreshingPublishedLayout] = useState(false)
+  const skipNextPublishedEventRef = useRef(false)
 
   const applyWorkspaceLayouts = useCallback(({ publishedLayout, draftLayout, publishedAt: nextPublishedAt }) => {
     const normalizedPublished = publishedLayout ? cloneBuilderLayout(publishedLayout) : null
@@ -51,6 +60,26 @@ export function PublishedFloorPlanProvider({ children, workspaceId = '' }) {
     setActivePublishedLayoutCache(normalizedPublished)
     setActiveBuilderLayoutCache(normalizedDraft)
   }, [])
+
+  const applyPublishedLayoutResult = useCallback((savedLayout, { notice } = {}) => {
+    const transition = buildPublishTransitionResult(savedLayout)
+    if (!transition.ok) {
+      return transition
+    }
+
+    applyWorkspaceLayouts({
+      publishedLayout: transition.savedLayout,
+      draftLayout: transition.savedLayout,
+      publishedAt: transition.savedLayout.publishedAt ?? new Date().toISOString(),
+    })
+    setLoadError(null)
+    setSaveError(null)
+    if (notice) {
+      setPublishNotice(notice)
+    }
+
+    return transition
+  }, [applyWorkspaceLayouts])
 
   const readStoredLayouts = useCallback(async () => {
     const normalizedWorkspaceId = `${workspaceId ?? ''}`.trim()
@@ -76,25 +105,21 @@ export function PublishedFloorPlanProvider({ children, workspaceId = '' }) {
   }, [workspaceId])
 
   const reload = useCallback(async (nextBuilderLayout) => {
-    if (nextBuilderLayout?.floors?.length) {
-      applyWorkspaceLayouts({
-        publishedLayout: nextBuilderLayout,
-        draftLayout: nextBuilderLayout,
-        publishedAt: nextBuilderLayout.publishedAt ?? new Date().toISOString(),
-      })
-      setLoadError(null)
-      return
+    if (isValidPublishedBuilderLayout(nextBuilderLayout)) {
+      applyPublishedLayoutResult(nextBuilderLayout)
+      return buildPublishTransitionResult(nextBuilderLayout)
     }
 
-    setIsLoading(true)
+    setIsRefreshingPublishedLayout(true)
     try {
       const result = await readStoredLayouts()
       applyWorkspaceLayouts(result)
       setLoadError(result.error)
+      return buildPublishTransitionResult(result.publishedLayout)
     } finally {
-      setIsLoading(false)
+      setIsRefreshingPublishedLayout(false)
     }
-  }, [applyWorkspaceLayouts, readStoredLayouts])
+  }, [applyPublishedLayoutResult, applyWorkspaceLayouts, readStoredLayouts])
 
   useEffect(() => {
     let cancelled = false
@@ -166,24 +191,30 @@ export function PublishedFloorPlanProvider({ children, workspaceId = '' }) {
     }
 
     setSaveError(null)
+    setPublishNotice(null)
     const normalizedWorkspaceId = `${workspaceId ?? ''}`.trim()
+
+    const finalizePublish = (saved, { usedFallback = false } = {}) => {
+      const transition = applyPublishedLayoutResult(saved, {
+        notice: usedFallback
+          ? 'Layout saved locally. Cloud publish is unavailable right now.'
+          : 'Layout published successfully.',
+      })
+
+      if (!transition.ok) {
+        throw new Error('Published layout is missing floor areas. Stay in the editor and try again.')
+      }
+
+      skipNextPublishedEventRef.current = true
+      return transition
+    }
 
     try {
       const saved = normalizedWorkspaceId
         ? await publishFloorPlan(normalizedWorkspaceId, payload)
         : saveLocalFloorPlanLayout(payload, normalizedWorkspaceId)
 
-      if (saved) {
-        const cloned = cloneBuilderLayout(saved)
-        setPublishedBuilderLayout(cloned)
-        setDraftBuilderLayout(cloned)
-        setPublishedAt(saved.publishedAt ?? new Date().toISOString())
-        setActivePublishedLayoutCache(cloned)
-        setActiveBuilderLayoutCache(cloned)
-        window.dispatchEvent(new CustomEvent(PUBLISHED_LAYOUT_EVENT, { detail: saved }))
-      }
-
-      return saved
+      return finalizePublish(saved)
     } catch (error) {
       const message = error?.message || 'Unable to publish floor plan right now.'
       setSaveError(message)
@@ -194,21 +225,20 @@ export function PublishedFloorPlanProvider({ children, workspaceId = '' }) {
       }, normalizedWorkspaceId)
 
       if (localSaved) {
-        const cloned = cloneBuilderLayout(localSaved)
-        setPublishedBuilderLayout(cloned)
-        setDraftBuilderLayout(cloned)
-        setPublishedAt(localSaved.publishedAt ?? null)
-        setActivePublishedLayoutCache(cloned)
-        setActiveBuilderLayoutCache(cloned)
-        window.dispatchEvent(new CustomEvent(PUBLISHED_LAYOUT_EVENT, { detail: localSaved }))
+        return finalizePublish(localSaved, { usedFallback: true })
       }
 
-      return localSaved
+      throw new Error(message)
     }
-  }, [workspaceId])
+  }, [applyPublishedLayoutResult, workspaceId])
 
   useEffect(() => {
     const handlePublished = (event) => {
+      if (skipNextPublishedEventRef.current) {
+        skipNextPublishedEventRef.current = false
+        return
+      }
+
       reload(event.detail ?? null)
     }
 
@@ -245,8 +275,11 @@ export function PublishedFloorPlanProvider({ children, workspaceId = '' }) {
     hasUnpublishedDraft,
     publishedAt,
     isLoading,
+    isRefreshingPublishedLayout,
     loadError,
     saveError,
+    publishNotice,
+    clearPublishNotice: () => setPublishNotice(null),
     saveDraftLayout,
     publishLayout,
     saveLayout: publishLayout,
@@ -255,9 +288,11 @@ export function PublishedFloorPlanProvider({ children, workspaceId = '' }) {
     draftBuilderLayout,
     hasUnpublishedDraft,
     isLoading,
+    isRefreshingPublishedLayout,
     layout,
     loadError,
     publishLayout,
+    publishNotice,
     publishedAt,
     publishedBuilderLayout,
     reload,

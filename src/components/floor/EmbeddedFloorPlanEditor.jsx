@@ -86,6 +86,7 @@ function EmbeddedFloorPlanEditorShell({
   onExit,
   onSaveDraft,
   onPublishLayout,
+  onPublishComplete,
   hasUnpublishedDraft,
   initialAreaId,
   onActiveAreaChange,
@@ -192,6 +193,7 @@ function EmbeddedFloorPlanEditorShell({
 
   const [isSavingDraft, setIsSavingDraft] = useState(false)
   const [isPublishingLayout, setIsPublishingLayout] = useState(false)
+  const [publishError, setPublishError] = useState(null)
 
   const buildLayoutPayload = () => ({
     floors: state.floors,
@@ -211,10 +213,14 @@ function EmbeddedFloorPlanEditorShell({
 
   const handlePublish = async () => {
     setIsPublishingLayout(true)
+    setPublishError(null)
     try {
-      await onPublishLayout(buildLayoutPayload())
+      const transition = await onPublishLayout(buildLayoutPayload())
       dispatch({ type: 'MARK_DRAFT_SAVED' })
+      onPublishComplete?.(transition)
       exitEditMode()
+    } catch (error) {
+      setPublishError(error?.message || 'Unable to publish the floor plan right now.')
     } finally {
       setIsPublishingLayout(false)
     }
@@ -302,6 +308,11 @@ function EmbeddedFloorPlanEditorShell({
         <div ref={toolbarRef} className="fpb-editor-toolbar unified-floor-editor-toolbar">
           <div className="unified-floor-editor-toolbar-main">
             <span className="unified-floor-editor-mode">Edit layout</span>
+            {publishError ? (
+              <span className="floor-plan-persistence-notice unified-floor-editor-publish-error" role="alert">
+                {publishError}
+              </span>
+            ) : null}
             <EditorAreaSwitcher
               floors={state.floors}
               activeFloorId={state.activeFloorId}
@@ -440,7 +451,7 @@ function EmbeddedFloorPlanEditorShell({
   )
 }
 
-export function EmbeddedFloorPlanEditor({ onExit, initialAreaId, onActiveAreaChange }) {
+export function EmbeddedFloorPlanEditor({ onExit, initialAreaId, onActiveAreaChange, onPublishComplete }) {
   const containerRef = useRef(null)
   const {
     builderLayout,
@@ -473,6 +484,7 @@ export function EmbeddedFloorPlanEditor({ onExit, initialAreaId, onActiveAreaCha
         onExit={onExit}
         onSaveDraft={handleSaveDraft}
         onPublishLayout={handlePublishLayout}
+        onPublishComplete={onPublishComplete}
         hasUnpublishedDraft={hasUnpublishedDraft}
         initialAreaId={initialAreaId}
         onActiveAreaChange={onActiveAreaChange}
