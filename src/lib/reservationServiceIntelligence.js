@@ -349,21 +349,30 @@ export function getHostListEmptyState({
 
   if (filter === 'Problems') {
     return {
-      title: 'No problems right now',
-      copy: 'Cancelled, no-show, and rejected reservations will appear here.',
+      title: 'No current problems',
+      copy: 'Late arrivals, long waits, and other issues will appear here when they need attention.',
     }
   }
 
   if (filter === 'Completed') {
     return {
-      title: 'No completed tables yet',
+      title: 'No completed reservations',
       copy: isViewingToday
         ? 'Checked-out reservations will show here as service progresses.'
         : 'No completed reservations for this date.',
     }
   }
 
-  if (filter === 'In House') {
+  if (filter === 'Arrived') {
+    return {
+      title: 'No arrived guests',
+      copy: isViewingToday
+        ? 'Mark guests as arrived from Upcoming when they check in.'
+        : 'No arrived reservations for this date.',
+    }
+  }
+
+  if (filter === 'Seated' || filter === 'In House') {
     return {
       title: 'No guests seated',
       copy: isViewingToday

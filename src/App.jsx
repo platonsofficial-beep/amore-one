@@ -181,8 +181,11 @@ import {
 } from './lib/hostScheduleCardLifecycle'
 import {
   buildHostServiceDashboard,
+  buildHostFilterCounts,
   countHostListFilterMatches,
+  HOST_LIST_OPERATIONAL_FILTERS,
   hostListFilterMatch as matchHostReservationListFilter,
+  sortHostListFilterReservations,
 } from './lib/hostServiceDashboard'
 import {
   buildSeatingsById,
@@ -5691,13 +5694,7 @@ function ScheduleView({
   )
 }
 
-const HOST_LIST_FILTERS = [
-  'Upcoming',
-  'Arrived',
-  'Seated',
-  'Completed',
-  'Problems',
-]
+const HOST_LIST_FILTERS = HOST_LIST_OPERATIONAL_FILTERS
 
 const HOST_LIST_SORTS = [
   { id: 'service', label: 'Service order' },
@@ -11159,16 +11156,18 @@ function HostReservationListControls({
       <div className="host-reservation-list-filters" role="toolbar" aria-label="Reservation filters">
         {HOST_LIST_FILTERS.map((filter) => {
           const count = Number(filterCounts[filter]) || 0
-          const label = `${filter} ${count}`
+          const isActive = listFilter === filter
 
           return (
             <button
               key={filter}
               type="button"
-              className={`host-list-filter-chip${listFilter === filter ? ' active' : ''}${filter === 'Problems' && count > 0 ? ' has-count' : ''}`}
+              className={`host-list-filter-chip${isActive ? ' is-active active' : ''}${filter === 'Problems' && count > 0 ? ' has-count' : ''}`}
               onClick={() => onListFilterChange(filter)}
+              aria-pressed={isActive}
             >
-              {label}
+              <span className="host-list-filter-chip-label">{filter}</span>
+              <span className="host-list-filter-chip-count">{count}</span>
             </button>
           )
         })}
@@ -11555,21 +11554,25 @@ function ReservationsWorkspaceBody({
 
   const handlePreviousDay = useCallback(() => {
     setServiceHourFilter(null)
+    setListFilter('Upcoming')
     setSelectedDateKey((current) => shiftHostWorkspaceDateKey(current, -1))
   }, [])
 
   const handleNextDay = useCallback(() => {
     setServiceHourFilter(null)
+    setListFilter('Upcoming')
     setSelectedDateKey((current) => shiftHostWorkspaceDateKey(current, 1))
   }, [])
 
   const handleGoToToday = useCallback(() => {
     setServiceHourFilter(null)
+    setListFilter('Upcoming')
     setSelectedDateKey(workspaceTodayKey)
   }, [workspaceTodayKey])
 
   const handleSelectDate = useCallback((dateKey) => {
     setServiceHourFilter(null)
+    setListFilter('Upcoming')
     setSelectedDateKey(normalizeReservationDateKey(dateKey))
   }, [])
 
@@ -11608,6 +11611,13 @@ function ReservationsWorkspaceBody({
 
   const searchNeedle = searchTerm.trim().toLowerCase()
 
+  const hostProblemFilterOptions = useMemo(() => ({
+    includeUnassigned: true,
+    includeCapacity: true,
+    isUnassigned: isReservationUnassigned,
+    hasCapacityWarning: reservationHasCapacityWarning,
+  }), [])
+
   const filteredWorkspaceReservations = useMemo(() => (
     workspaceReservations.filter((reservation) => (
       reservationMatchesSearch(reservation, searchNeedle)
@@ -11616,23 +11626,33 @@ function ReservationsWorkspaceBody({
 
   const hostListWithoutHourFilter = useMemo(() => (
     filteredWorkspaceReservations.filter((reservation) => (
-      matchHostReservationListFilter(reservation, listFilter, nowMinutes, selectedDateKey)
+      matchHostReservationListFilter(
+        reservation,
+        listFilter,
+        nowMinutes,
+        selectedDateKey,
+        hostProblemFilterOptions,
+      )
       && !shouldHideInDefaultHostView(reservation, listFilter, listSort, nowMinutes, selectedDateKey)
     ))
   ), [
     filteredWorkspaceReservations,
+    hostProblemFilterOptions,
     listFilter,
     listSort,
     nowMinutes,
     selectedDateKey,
   ])
 
-  const hostFilterCounts = useMemo(() => (
-    HOST_LIST_FILTERS.reduce((counts, filter) => ({
-      ...counts,
-      [filter]: countHostListFilterMatches(filteredWorkspaceReservations, filter, nowMinutes, selectedDateKey),
-    }), {})
-  ), [filteredWorkspaceReservations, nowMinutes, selectedDateKey])
+  const hostFilterCounts = useMemo(
+    () => buildHostFilterCounts(
+      filteredWorkspaceReservations,
+      nowMinutes,
+      selectedDateKey,
+      hostProblemFilterOptions,
+    ),
+    [filteredWorkspaceReservations, hostProblemFilterOptions, nowMinutes, selectedDateKey],
+  )
 
   const hostServicePressureSlots = useMemo(
     () => buildHostServiceHourPressureSlots(hostListWithoutHourFilter),
@@ -11646,9 +11666,21 @@ function ReservationsWorkspaceBody({
       ))
       : hostListWithoutHourFilter
 
+    if (HOST_LIST_OPERATIONAL_FILTERS.includes(listFilter)) {
+      return sortHostListFilterReservations(
+        filtered,
+        listFilter,
+        nowMinutes,
+        selectedDateKey,
+        hostProblemFilterOptions,
+      )
+    }
+
     return sortHostReservations(filtered, listSort, nowMinutes, selectedDateKey)
   }, [
     hostListWithoutHourFilter,
+    hostProblemFilterOptions,
+    listFilter,
     listSort,
     nowMinutes,
     serviceHourFilter,
@@ -11706,10 +11738,14 @@ function ReservationsWorkspaceBody({
   )
 
   const hostProblemsCount = useMemo(
-    () => workspaceReservations.filter(
-      (reservation) => getHostListGroupId(reservation) === 'problems',
-    ).length,
-    [workspaceReservations],
+    () => countHostListFilterMatches(
+      workspaceReservations,
+      'Problems',
+      nowMinutes,
+      selectedDateKey,
+      hostProblemFilterOptions,
+    ),
+    [hostProblemFilterOptions, nowMinutes, selectedDateKey, workspaceReservations],
   )
 
   const activeTimelineReservationId = useMemo(

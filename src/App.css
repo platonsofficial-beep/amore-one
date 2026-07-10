@@ -4644,26 +4644,55 @@
 }
 
 .host-reservation-list-filters {
-  display: flex;
-  gap: 4px;
-  overflow-x: auto;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
   padding-bottom: 2px;
-  scrollbar-width: thin;
 }
 
 .host-list-filter-chip {
-  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  min-width: 0;
   border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 999px;
+  border-radius: 10px;
   background: rgba(255, 255, 255, 0.03);
   color: rgba(255, 255, 255, 0.68);
-  font-size: 0.82rem;
+  font-size: 0.74rem;
   font-weight: 600;
   min-height: 44px;
-  padding: 0 14px;
+  padding: 0 8px;
   cursor: pointer;
-  white-space: nowrap;
+  touch-action: manipulation;
   transition: background 160ms ease, border-color 160ms ease, color 160ms ease;
+}
+
+.host-list-filter-chip-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.host-list-filter-chip-count {
+  flex-shrink: 0;
+  min-width: 1.15rem;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.82);
+  font-size: 0.68rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
+}
+
+.host-list-filter-chip.is-active .host-list-filter-chip-count,
+.host-list-filter-chip.active .host-list-filter-chip-count {
+  background: rgba(212, 175, 55, 0.18);
+  color: #f0dfb0;
 }
 
 .host-list-filter-chip:hover:not(.active) {
@@ -4671,7 +4700,8 @@
   color: rgba(255, 255, 255, 0.88);
 }
 
-.host-list-filter-chip.active {
+.host-list-filter-chip.active,
+.host-list-filter-chip.is-active {
   border-color: rgba(212, 175, 55, 0.45);
   background: rgba(212, 175, 55, 0.14);
   color: #f0dfb0;
@@ -29541,7 +29571,8 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 .floor-table-seating-indicator.is-seated { background: #ef5350; }
 .host-service-dashboard { display: flex; flex-direction: column; gap: 0.35rem; padding: 0.55rem 0.75rem; border-bottom: 1px solid rgba(255,255,255,0.08); font-size: 0.82rem; }
 .host-service-dashboard-row { display: flex; flex-wrap: wrap; gap: 0.35rem; align-items: center; }
-.host-list-filter-chip { min-height: 44px; white-space: nowrap; flex: 0 0 auto; }
+.host-list-filter-chip { min-height: 44px; min-width: 0; width: 100%; }
+.host-list-filter-chip-label { white-space: nowrap; }
 .host-reservation-list-filters { display: flex; gap: 0.45rem; overflow-x: auto; padding-bottom: 0.25rem; }
 .host-reservation-card-main { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 0.65rem; align-items: start; }
 .host-reservation-card-body, .host-reservation-card-details { min-width: 0; }

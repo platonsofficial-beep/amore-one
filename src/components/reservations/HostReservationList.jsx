@@ -15,6 +15,7 @@ import {
 import {
   groupHostListReservations,
 } from './hostReservationListUtils'
+import { HOST_LIST_OPERATIONAL_FILTERS } from '../../lib/hostServiceDashboard'
 import { getHostListEmptyState } from '../../lib/reservationServiceIntelligence'
 import { HostReservationStatusPicker } from './HostReservationStatusPicker'
 
@@ -182,9 +183,11 @@ export function HostReservationList({
   onDragEnd,
   helpers,
 }) {
+  const useOperationalFilter = HOST_LIST_OPERATIONAL_FILTERS.includes(listFilter)
+
   const groupedReservations = useMemo(
-    () => groupHostListReservations(reservations),
-    [reservations],
+    () => (useOperationalFilter ? [] : groupHostListReservations(reservations)),
+    [reservations, useOperationalFilter],
   )
 
   const [collapsedGroups, setCollapsedGroups] = useState(() => new Set(['completed']))
@@ -245,8 +248,35 @@ export function HostReservationList({
 
   return (
     <>
-      <div className="host-reservation-list host-reservation-list-grouped" aria-label="Reservations">
-        {groupedReservations.map((group) => {
+      <div
+        className={`host-reservation-list${useOperationalFilter ? '' : ' host-reservation-list-grouped'}`}
+        aria-label="Reservations"
+        role={useOperationalFilter ? 'list' : undefined}
+      >
+        {useOperationalFilter ? (
+          reservations.map((reservation) => (
+            <HostReservationListRow
+              key={reservation.id}
+              reservation={reservation}
+              nowMinutes={nowMinutes}
+              todayKey={todayKey}
+              isSelected={isSelected(reservation)}
+              isEditing={hostEditingReservation
+                && String(hostEditingReservation.id) === String(reservation.id)}
+              isDragging={draggingReservationId === String(reservation.id)}
+              isStatusPickerOpen={String(statusPicker?.reservation?.id) === String(reservation.id)}
+              isNextArrival={nextArrivalId !== null
+                && String(nextArrivalId) === String(reservation.id)}
+              isSavingStatus={isSavingStatus}
+              onOpenEdit={onOpenEdit}
+              onOpenStatusPicker={handleOpenStatusPicker}
+              onQuickStatusUpdate={onStatusChange}
+              onDragStart={(event) => onDragStart(event, reservation)}
+              onDragEnd={onDragEnd}
+              helpers={helpers}
+            />
+          ))
+        ) : groupedReservations.map((group) => {
           const isCollapsed = collapsedGroups.has(group.id)
 
           return (
