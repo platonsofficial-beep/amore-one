@@ -59,6 +59,7 @@ export function WorkspaceBusinessProfileSection({
           className="employee-form"
           onSubmit={(event) => {
             event.preventDefault()
+            if (isLoading || isSaving || !isDirty) return
             onSubmit()
           }}
         >
@@ -186,10 +187,18 @@ export function WorkspaceBusinessProfileSection({
           <div className="modal-actions">
             <button
               type="submit"
-              className="primary-btn workspace-action-btn"
+              className={`primary-btn workspace-action-btn${isSaving ? ' is-saving' : ''}`}
               disabled={isLoading || isSaving || !isDirty}
+              aria-busy={isSaving}
             >
-              {isSaving ? 'Saving…' : 'Save Profile'}
+              {isSaving ? (
+                <span className="workspace-action-btn-content">
+                  <span className="workspace-action-btn-spinner" aria-hidden="true" />
+                  <span>Saving...</span>
+                </span>
+              ) : (
+                'Save Profile'
+              )}
             </button>
           </div>
         </form>

@@ -22968,7 +22968,34 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 }
 
 .workspace-action-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   min-height: 44px;
+  min-width: 9.75rem;
+}
+
+.workspace-action-btn-content {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.workspace-action-btn-spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(26, 18, 7, 0.22);
+  border-top-color: #1a1207;
+  border-radius: 50%;
+  animation: workspaceActionBtnSpin 0.8s linear infinite;
+  flex-shrink: 0;
+}
+
+@keyframes workspaceActionBtnSpin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .workspace-link-btn {
