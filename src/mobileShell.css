@@ -5447,6 +5447,11 @@
   touch-action: manipulation;
 }
 
+.mobile-host-reservations.is-landscape .mobile-host-reservations-right-pane {
+  overflow: hidden;
+  touch-action: manipulation;
+}
+
 .mobile-host-reservations-right-pane.is-assignment-mode .mobile-host-floor-stage {
   flex: 1 1 auto;
   min-height: 0;
@@ -5542,6 +5547,7 @@
 .mobile-host-reservations.is-landscape .mobile-host-floor-stage {
   min-height: 0;
   height: 100%;
+  touch-action: manipulation;
 }
 
 .mobile-host-floor-stage .floor-plan-workspace.is-host-floor {

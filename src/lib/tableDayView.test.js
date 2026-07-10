@@ -89,6 +89,11 @@ describe('tableDayView', () => {
       isPickedForSeating: true,
     })).toBe(true)
     expect(isTableAssignmentSelectionClick({
+      selectedReservation: { id: 'a' },
+      canAssign: false,
+      isPickedForSeating: false,
+    })).toBe(false)
+    expect(isTableAssignmentSelectionClick({
       selectedReservation: null,
       canAssign: false,
     })).toBe(false)

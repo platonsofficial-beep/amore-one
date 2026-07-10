@@ -7308,6 +7308,7 @@
   overflow: hidden;
   border-radius: 14px;
   border: 1px solid rgba(255, 255, 255, 0.07);
+  touch-action: none;
   background:
     radial-gradient(circle at 20% 20%, rgba(212, 175, 55, 0.05), transparent 42%),
     radial-gradient(circle at 82% 58%, rgba(115, 184, 109, 0.04), transparent 36%),
@@ -7630,6 +7631,80 @@
   white-space: nowrap;
   line-height: 1.1;
   flex-shrink: 0;
+}
+
+.floor-plan-workspace.is-host-floor .floor-table-node.is-host-touch {
+  touch-action: manipulation;
+  pointer-events: auto;
+  cursor: pointer;
+}
+
+.floor-plan-workspace.is-host-floor .floor-table-pax,
+.floor-plan-workspace.is-host-floor .floor-table-capacity-label {
+  font-size: clamp(0.5rem, 8cqb, 0.72rem);
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  line-height: 1.1;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.floor-plan-workspace.is-host-floor .floor-table-pax {
+  color: rgba(232, 215, 168, 0.94);
+}
+
+.floor-plan-workspace.is-host-floor .floor-table-capacity-label {
+  color: rgba(196, 165, 116, 0.88);
+}
+
+.floor-plan-workspace.is-host-floor .floor-table-content .floor-table-number {
+  font-size: clamp(0.56rem, 11cqb, 0.82rem);
+  line-height: 1.05;
+}
+
+.floor-plan-workspace.is-host-floor .floor-table-content .floor-table-time,
+.floor-plan-workspace.is-host-floor .floor-table-content .floor-table-reservation-time {
+  font-size: clamp(0.54rem, 9cqb, 0.76rem);
+  font-weight: 800;
+  color: #ffe7a8;
+}
+
+.floor-plan-workspace.is-host-floor .floor-table-seating-indicators {
+  margin-top: 2px;
+  gap: 0.12rem;
+}
+
+.floor-plan-workspace.is-host-floor .floor-table-seating-indicator {
+  width: 0.34rem;
+  height: 0.34rem;
+}
+
+.floor-plan-workspace.is-host-floor .floor-seating-selector {
+  position: relative;
+  z-index: 3;
+  flex-shrink: 0;
+  pointer-events: auto;
+  touch-action: manipulation;
+}
+
+.floor-plan-workspace.is-host-floor .floor-plan-toolbar {
+  position: relative;
+  z-index: 3;
+  pointer-events: auto;
+  touch-action: manipulation;
+}
+
+.floor-plan-workspace.is-host-floor.has-active-seating .floor-seating-selector-chip.is-active {
+  border-color: rgba(212, 175, 55, 0.82);
+  background: rgba(212, 175, 55, 0.22);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 224, 150, 0.28),
+    0 0 16px rgba(212, 175, 55, 0.18);
+}
+
+.floor-plan-workspace.is-host-floor.has-active-seating .floor-seating-selector-chip.is-active .floor-seating-selector-chip-label {
+  color: #fff4d6;
+  font-weight: 800;
 }
 
 .floor-plan-workspace.is-host-floor .floor-table-party,
@@ -29180,8 +29255,9 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 .floor-seating-selector { display: flex; flex-direction: column; gap: 0.5rem; padding: 0.5rem 0.75rem 0; }
 .floor-seating-selector-label { margin: 0; font-size: 0.72rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-muted, #8a8f98); }
 .floor-seating-selector-scroll { display: flex; gap: 0.5rem; overflow-x: auto; padding-bottom: 0.25rem; -webkit-overflow-scrolling: touch; }
-.floor-seating-selector-chip { min-height: 44px; padding: 0.5rem 0.85rem; border-radius: 999px; border: 1px solid rgba(255,255,255,0.12); background: rgba(255,255,255,0.04); color: inherit; white-space: nowrap; display: inline-flex; flex-direction: column; align-items: flex-start; gap: 0.15rem; }
+.floor-seating-selector-chip { min-height: 44px; padding: 0.5rem 0.85rem; border-radius: 999px; border: 1px solid rgba(255,255,255,0.12); background: rgba(255,255,255,0.04); color: inherit; white-space: nowrap; display: inline-flex; flex-direction: column; align-items: flex-start; gap: 0.15rem; cursor: pointer; touch-action: manipulation; pointer-events: auto; }
 .floor-seating-selector-chip.is-active { border-color: #c9a227; background: rgba(201,162,39,0.18); box-shadow: inset 0 0 0 1px rgba(201,162,39,0.35); }
+.floor-seating-selector-chip-label { font-weight: 700; }
 .floor-table-seating-indicators { display: flex; gap: 0.18rem; margin-top: 0.2rem; }
 .floor-table-seating-indicator { width: 0.45rem; height: 0.45rem; border-radius: 999px; background: rgba(255,255,255,0.25); }
 .floor-table-seating-indicator.is-empty { background: #4caf50; }

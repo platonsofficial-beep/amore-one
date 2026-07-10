@@ -76,6 +76,16 @@ import {
   HOST_FLOOR_MAX_ZOOM,
   HOST_FLOOR_MIN_ZOOM,
 } from './lib/hostFloorPlanViewport'
+import {
+  getHostFloorPointerDistance,
+  isHostFloorTapGesture,
+  isInteractiveHostFloorTarget,
+  shouldStartHostFloorPan,
+} from './lib/hostFloorPointerInteraction'
+import {
+  formatHostFloorCapacityLabel,
+  formatHostFloorPartyLabel,
+} from './lib/hostFloorTableLabels'
 import { getFloorLayoutSpaceStyle, getPublishedTableLayoutStyle } from './lib/publishedTableLayout'
 import {
   isFloorTablePhysicallyOccupied,
@@ -7470,6 +7480,8 @@ function FloorTableNode({
     : Boolean(table.widthPercent)
 
   const tableNodeRef = useRef(null)
+  const hostPointerStartRef = useRef(null)
+  const hostClickFromPointerRef = useRef(false)
   const [isTooltipVisible, setIsTooltipVisible] = useState(false)
 
   const tableBookingEntries = useMemo(() => (
@@ -7490,6 +7502,11 @@ function FloorTableNode({
     && displayReservation
     && !hasMultipleTableBookings,
   )
+  const hostPartyLabel = formatHostFloorPartyLabel(guestCount)
+  const hostCapacityLabel = formatHostFloorCapacityLabel(table)
+  const hostPrimaryTimeLabel = seatedDurationLabel
+    || (arrivalTime && arrivalTime !== '—' ? arrivalTime : null)
+  const showHostReservationSummary = Boolean(showHostFloorGuestInfo && hostPartyLabel)
   const hostStatusBadge = hostVisualIndicator === 'seated'
     ? 'Occupied'
     : (hostVisualIndicator === 'confirmed' || hostVisualIndicator === 'waiting')
@@ -7537,6 +7554,7 @@ function FloorTableNode({
   }
 
   const handleClick = (event) => {
+    if (hostClickFromPointerRef.current) return
     setIsTooltipVisible(false)
     if (isHeatmap) {
       event.stopPropagation()
@@ -7544,6 +7562,45 @@ function FloorTableNode({
       return
     }
 
+    onTableClick(tableState, event)
+  }
+
+  const handleHostPointerDown = (event) => {
+    if (!isHostFloor || isHeatmap) return
+    if (event.pointerType === 'mouse' && event.button !== 0) return
+
+    hostPointerStartRef.current = {
+      clientX: event.clientX,
+      clientY: event.clientY,
+      pointerId: event.pointerId,
+    }
+  }
+
+  const handleHostPointerUp = (event) => {
+    if (!isHostFloor || isHeatmap) return
+
+    const start = hostPointerStartRef.current
+    hostPointerStartRef.current = null
+    if (!start || start.pointerId !== event.pointerId) return
+    if (!isHostFloorTapGesture(start, event)) return
+
+    hostClickFromPointerRef.current = true
+    setIsTooltipVisible(false)
+    event.preventDefault()
+    event.stopPropagation()
+    onTableClick(tableState, event)
+    window.requestAnimationFrame(() => {
+      hostClickFromPointerRef.current = false
+    })
+  }
+
+  const handleHostPointerCancel = () => {
+    hostPointerStartRef.current = null
+  }
+
+  const handleTableKeyDown = (event) => {
+    if (event.key !== 'Enter' && event.key !== ' ') return
+    event.preventDefault()
     onTableClick(tableState, event)
   }
 
@@ -7561,6 +7618,10 @@ function FloorTableNode({
       onDragLeave={onDragLeave}
       onDrop={(event) => onDrop(event, tableState)}
       onClick={handleClick}
+      onPointerDown={isHostFloor ? handleHostPointerDown : undefined}
+      onPointerUp={isHostFloor ? handleHostPointerUp : undefined}
+      onPointerCancel={isHostFloor ? handleHostPointerCancel : undefined}
+      onKeyDown={isHostFloor ? handleTableKeyDown : undefined}
       onContextMenu={(event) => onTableContextMenu(event, tableState)}
       onPointerEnter={handlePointerEnter}
       onPointerLeave={handlePointerLeave}
@@ -7580,10 +7641,10 @@ function FloorTableNode({
         {isHostFloor && !isHeatmap ? (
           <>
             <div className="floor-table-chrome">
-              {linkMeta?.isMultiLinked ? (
+              {!showHostReservationSummary && linkMeta?.isMultiLinked ? (
                 <span className="floor-table-linked-badge" aria-hidden="true" />
               ) : null}
-              {hostStatusBadge ? (
+              {!showHostReservationSummary && hostStatusBadge ? (
                 <span className={`floor-table-status-badge is-${hostVisualIndicator === 'seated' ? 'seated' : 'confirmed'}`}>
                   {hostStatusBadge}
                 </span>
@@ -7608,20 +7669,19 @@ function FloorTableNode({
                     ) : null}
                   </span>
                 </div>
-              ) : showHostFloorGuestInfo ? (
+              ) : showHostReservationSummary ? (
                 <>
-                  <span className="floor-table-guest">{guestName}</span>
-                  {arrivalTime && arrivalTime !== '—' ? (
-                    <span className="floor-table-time floor-table-reservation-time">{arrivalTime}</span>
-                  ) : seatedDurationLabel ? (
-                    <span className="floor-table-time floor-table-reservation-time">{seatedDurationLabel}</span>
+                  {hostPrimaryTimeLabel ? (
+                    <span className="floor-table-time floor-table-reservation-time">{hostPrimaryTimeLabel}</span>
                   ) : null}
-                  <span className="floor-table-party">{guestCount} guests</span>
+                  <span className="floor-table-pax">{hostPartyLabel}</span>
                 </>
-              ) : (
-                <span className="floor-table-seats">{seatCapacity} guests</span>
-              )}
-              <FloorTableSeatingIndicators indicators={tableState.meta?.seatingIndicators ?? []} />
+              ) : hostCapacityLabel ? (
+                <span className="floor-table-capacity-label">{hostCapacityLabel}</span>
+              ) : null}
+              {!showHostReservationSummary ? (
+                <FloorTableSeatingIndicators indicators={tableState.meta?.seatingIndicators ?? []} />
+              ) : null}
             </div>
           </>
         ) : (
@@ -7850,7 +7910,7 @@ function FloorPlanView({
   const previousTableStatusesRef = useRef(new Map())
   const viewportRef = useRef(null)
   const floorPanStateRef = useRef({ x: 0, y: 0 })
-  const floorPanDragRef = useRef({ active: false, startX: 0, startY: 0, originX: 0, originY: 0 })
+  const floorPointerRef = useRef({ mode: 'idle' })
   const isManualFloorZoomRef = useRef(false)
   const [floorZoom, setFloorZoom] = useState(1)
   const [floorPan, setFloorPan] = useState({ x: 0, y: 0 })
@@ -7900,49 +7960,73 @@ function FloorPlanView({
     return () => viewport.removeEventListener('wheel', onWheel)
   }, [clampFloorZoom, dismissFloorTooltips, isCompact])
 
-  useEffect(() => {
-    if (!isCompact) return undefined
+  const resetFloorPointerState = useCallback(() => {
+    floorPointerRef.current = { mode: 'idle' }
+    viewportRef.current?.classList.remove('is-panning')
+  }, [])
 
-    const onMouseMove = (event) => {
-      const drag = floorPanDragRef.current
-      if (!drag.active) return
-
-      setFloorPan({
-        x: drag.originX + (event.clientX - drag.startX),
-        y: drag.originY + (event.clientY - drag.startY),
-      })
-    }
-
-    const onMouseUp = () => {
-      floorPanDragRef.current.active = false
-      viewportRef.current?.classList.remove('is-panning')
-    }
-
-    window.addEventListener('mousemove', onMouseMove)
-    window.addEventListener('mouseup', onMouseUp)
-    return () => {
-      window.removeEventListener('mousemove', onMouseMove)
-      window.removeEventListener('mouseup', onMouseUp)
-    }
-  }, [isCompact])
-
-  const handleViewportPanStart = (event) => {
+  const handleViewportPointerDown = useCallback((event) => {
     if (!isCompact) return
-    if (event.button !== 0) return
-    if (event.target.closest('.floor-table-node')) return
+    if (event.pointerType === 'mouse' && event.button !== 0) return
+    if (isInteractiveHostFloorTarget(event.target)) return
 
-    dismissFloorTooltips()
-    event.preventDefault()
     const pan = floorPanStateRef.current
-    floorPanDragRef.current = {
-      active: true,
+    floorPointerRef.current = {
+      mode: 'pending',
+      pointerId: event.pointerId,
       startX: event.clientX,
       startY: event.clientY,
       originX: pan.x,
       originY: pan.y,
     }
-    viewportRef.current?.classList.add('is-panning')
-  }
+
+    event.currentTarget.setPointerCapture?.(event.pointerId)
+  }, [isCompact])
+
+  const handleViewportPointerMove = useCallback((event) => {
+    if (!isCompact) return
+
+    const state = floorPointerRef.current
+    if (state.mode === 'idle' || state.pointerId !== event.pointerId) return
+
+    const distance = getHostFloorPointerDistance(
+      { clientX: state.startX, clientY: state.startY },
+      event,
+    )
+
+    if (state.mode === 'pending') {
+      if (!shouldStartHostFloorPan(distance)) return
+      state.mode = 'panning'
+      dismissFloorTooltips()
+      viewportRef.current?.classList.add('is-panning')
+      isManualFloorZoomRef.current = true
+    }
+
+    if (state.mode === 'panning') {
+      event.preventDefault()
+      setFloorPan({
+        x: state.originX + (event.clientX - state.startX),
+        y: state.originY + (event.clientY - state.startY),
+      })
+    }
+  }, [dismissFloorTooltips, isCompact])
+
+  const handleViewportPointerUp = useCallback((event) => {
+    if (!isCompact) return
+
+    const state = floorPointerRef.current
+    if (state.pointerId !== event.pointerId) return
+
+    resetFloorPointerState()
+    event.currentTarget.releasePointerCapture?.(event.pointerId)
+  }, [isCompact, resetFloorPointerState])
+
+  const handleViewportPointerCancel = useCallback((event) => {
+    if (!isCompact) return
+    if (floorPointerRef.current.pointerId !== event.pointerId) return
+    resetFloorPointerState()
+    event.currentTarget.releasePointerCapture?.(event.pointerId)
+  }, [isCompact, resetFloorPointerState])
 
   const isHeatmap = viewMode === 'heatmap'
   const showHostSeatingBar = Boolean(
@@ -8515,7 +8599,7 @@ function FloorPlanView({
   }
 
   return (
-    <div className={`floor-plan-workspace${isCompact ? ' is-compact is-host-floor' : ''}${showHostSeatingBar && isCompact ? ' has-seating-drawer' : ''}${isHeatmap ? ' is-heatmap-mode' : ' is-normal-mode'}`} data-floor-view-mode={viewMode}>
+    <div className={`floor-plan-workspace${isCompact ? ' is-compact is-host-floor' : ''}${selectedSeating ? ' has-active-seating' : ''}${showHostSeatingBar && isCompact ? ' has-seating-drawer' : ''}${isHeatmap ? ' is-heatmap-mode' : ' is-normal-mode'}`} data-floor-view-mode={viewMode}>
       {loadError ? (
         <div className="floor-plan-persistence-notice" role="status">{loadError}</div>
       ) : null}
@@ -8608,7 +8692,10 @@ function FloorPlanView({
       <div
         className={`floor-plan-viewport${isCompact ? ' is-host-viewport' : ''}${floorZoom > 1.01 || Math.abs(floorPan.x) > 1 || Math.abs(floorPan.y) > 1 ? ' is-zoomed' : ''}`}
         ref={isCompact ? viewportRef : undefined}
-        onMouseDown={isCompact ? handleViewportPanStart : undefined}
+        onPointerDown={isCompact ? handleViewportPointerDown : undefined}
+        onPointerMove={isCompact ? handleViewportPointerMove : undefined}
+        onPointerUp={isCompact ? handleViewportPointerUp : undefined}
+        onPointerCancel={isCompact ? handleViewportPointerCancel : undefined}
       >
         {isCompact ? (
           <div className="floor-plan-canvas-area-title" aria-label={`Area: ${activeZone?.label ?? 'Floor'}`}>
@@ -8885,6 +8972,19 @@ function MobileReservationsHostShellBody({
 
   const [floorCreatePrefill, setFloorCreatePrefill] = useState(null)
   const [floorEditReservation, setFloorEditReservation] = useState(null)
+  const [selectedServiceSeatingId, setSelectedServiceSeatingId] = useState('')
+
+  useEffect(() => {
+    const activeSeatings = getActiveSeatingsForDate(reservationSeatings, todayKey)
+    if (!activeSeatings.length) {
+      setSelectedServiceSeatingId('')
+      return
+    }
+
+    setSelectedServiceSeatingId((current) => (
+      activeSeatings.some((entry) => entry.id === current) ? current : activeSeatings[0].id
+    ))
+  }, [reservationSeatings, todayKey])
 
   const handleFloorOpenAddReservation = useCallback((prefill) => {
     setFloorCreatePrefill(prefill ?? null)
@@ -9002,6 +9102,8 @@ function MobileReservationsHostShellBody({
         onReservationNotice={onReservationNotice}
         canManageAssignment={canManageAssignment}
         seatings={reservationSeatings}
+        selectedSeating={reservationSeatings.find((entry) => entry.id === selectedServiceSeatingId) ?? null}
+        onSelectedSeatingChange={setSelectedServiceSeatingId}
       />
     </HostStationErrorBoundary>
   ) : (
