@@ -8626,6 +8626,7 @@ function MobileReservationsHostShellBody({
       onCreateReservation={onCreateReservation}
       onExitHostMode={onExitHostMode}
       canEditFloorPlan={canEditFloorPlan}
+      hasLayout={hasLayout}
       onOpenFloorPlanLayout={() => setFloorPlanMode('edit')}
       renderRightPane={rightPane}
       selectedReservationId={selectedReservation?.id ?? null}
@@ -20506,7 +20507,7 @@ function App() {
               onHostEditDelete={handleHostEditDelete}
               onReservationNotice={setReservationNotice}
               onCreateReservation={handleMobileHostReservationCreate}
-              onExitHostMode={handleMobileExitReservationsHostMode}
+              onExitHostMode={isHostMobileRole(role) ? undefined : handleMobileExitReservationsHostMode}
               onSeatGuestAtTable={handleSeatGuestAtTable}
               canEditFloorPlan={canEditFloorPlanRole}
             />

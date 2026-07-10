@@ -122,6 +122,21 @@ export function getTableSizeForPreset(shape, preset = 'medium') {
   return { width, height }
 }
 
+export function buildTableSizePresetPatch(shape, preset = 'medium') {
+  const details = getTablePresetDetails(shape, preset)
+  return {
+    sizePreset: preset,
+    size: {
+      width: details.width,
+      height: details.height,
+    },
+    width: details.width,
+    height: details.height,
+    minGuests: details.minGuests,
+    maxGuests: details.maxGuests,
+  }
+}
+
 export const TABLE_CAPACITY_MIN = 1
 export const TABLE_CAPACITY_MAX = 20
 

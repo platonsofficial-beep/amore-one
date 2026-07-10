@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
+  buildTableSizePresetPatch,
   clampTableCapacity,
   getTablePresetCapacity,
   getTablePresetDetails,
@@ -64,6 +65,25 @@ describe('table size presets', () => {
 
     expect(medium - small).toBeGreaterThanOrEqual(40)
     expect(large - medium).toBeGreaterThanOrEqual(50)
+  })
+
+  it('builds a preset patch that updates canvas size and guest range fields', () => {
+    expect(buildTableSizePresetPatch('square', 'small')).toEqual({
+      sizePreset: 'small',
+      size: { width: 90, height: 90 },
+      width: 90,
+      height: 90,
+      minGuests: 1,
+      maxGuests: 2,
+    })
+    expect(buildTableSizePresetPatch('rectangle', 'large')).toEqual({
+      sizePreset: 'large',
+      size: { width: 280, height: 150 },
+      width: 280,
+      height: 150,
+      minGuests: 6,
+      maxGuests: 8,
+    })
   })
 })
 

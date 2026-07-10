@@ -3,6 +3,7 @@ import { screenToWorld } from '../lib/camera'
 import { floorBoundaryService } from '../services/FloorBoundaryService'
 import { createObjectDragManager } from '../services/ObjectDragManager'
 import { snapService } from '../services/SnapService'
+import { resolvePendingDragSelection } from './dragSelection'
 
 export function useObjectDrag({
   containerRef,
@@ -23,7 +24,9 @@ export function useObjectDrag({
   const floorBoundsRef = useRef(floorBounds)
   const selectedTableIdsRef = useRef(selectedTableIds)
   const multiSelectEnabledRef = useRef(multiSelectEnabled)
-  const pendingClickRef = useRef(null)
+  const pendingSelectionRef = useRef(null)
+  const onSelectObjectRef = useRef(onSelectObject)
+  const onToggleSelectionRef = useRef(onToggleSelection)
   const [draggingObjectId, setDraggingObjectId] = useState(null)
 
   useEffect(() => {
@@ -33,7 +36,18 @@ export function useObjectDrag({
     floorBoundsRef.current = floorBounds
     selectedTableIdsRef.current = selectedTableIds
     multiSelectEnabledRef.current = multiSelectEnabled
-  }, [camera, floorBounds, multiSelectEnabled, selectedTableIds, snapEnabled, viewportSize])
+    onSelectObjectRef.current = onSelectObject
+    onToggleSelectionRef.current = onToggleSelection
+  }, [
+    camera,
+    floorBounds,
+    multiSelectEnabled,
+    onSelectObject,
+    onToggleSelection,
+    selectedTableIds,
+    snapEnabled,
+    viewportSize,
+  ])
 
   const clientToWorld = useCallback((clientX, clientY) => {
     const container = containerRef.current
@@ -50,6 +64,28 @@ export function useObjectDrag({
     )
   }, [containerRef])
 
+  const applyPendingSelection = useCallback(({ objectId, moved }) => {
+    const pending = pendingSelectionRef.current
+    pendingSelectionRef.current = null
+    if (!pending) return
+
+    const action = resolvePendingDragSelection({
+      objectId: pending.objectId ?? objectId,
+      wasSelected: pending.wasSelected,
+      isMultiSelect: pending.isMultiSelect,
+      moved,
+    })
+
+    if (!action) return
+
+    if (action.type === 'SELECT_OBJECT') {
+      onSelectObjectRef.current(action.objectId)
+      return
+    }
+
+    onToggleSelectionRef.current(action.objectId)
+  }, [])
+
   const dragManagerRef = useRef(null)
 
   if (!dragManagerRef.current) {
@@ -58,7 +94,8 @@ export function useObjectDrag({
       boundaryService: floorBoundaryService,
       getClientToWorld: (clientX, clientY) => clientToWorld(clientX, clientY),
       onMoveObject,
-      onDragComplete: () => {
+      onDragComplete: ({ moved }) => {
+        applyPendingSelection({ moved })
         setDraggingObjectId(null)
       },
     })
@@ -67,7 +104,8 @@ export function useObjectDrag({
   const dragManager = dragManagerRef.current
   dragManager.getClientToWorld = clientToWorld
   dragManager.onMoveObject = onMoveObject
-  dragManager.onDragComplete = () => {
+  dragManager.onDragComplete = ({ moved }) => {
+    applyPendingSelection({ moved })
     setDraggingObjectId(null)
   }
 
@@ -76,21 +114,15 @@ export function useObjectDrag({
 
     if (!isEditing) return false
     if (object.properties?.locked === true) return false
-    if (event.isPrimary === false) return false
+    if (event.pointerType !== 'touch' && event.isPrimary === false) return false
 
-    const isSelected = selectedTableIdsRef.current.includes(object.id)
+    const wasSelected = selectedTableIdsRef.current.includes(object.id)
     const isMultiSelect = multiSelectEnabledRef.current
 
-    if (!isMultiSelect) {
-      if (!isSelected) {
-        onSelectObject(object.id)
-      }
-      pendingClickRef.current = null
-    } else if (!isSelected) {
-      onToggleSelection(object.id)
-      pendingClickRef.current = null
-    } else {
-      pendingClickRef.current = { objectId: object.id }
+    pendingSelectionRef.current = {
+      objectId: object.id,
+      wasSelected,
+      isMultiSelect,
     }
 
     const started = dragManager.start(event, object, {
@@ -100,10 +132,12 @@ export function useObjectDrag({
 
     if (started) {
       setDraggingObjectId(object.id)
+    } else {
+      pendingSelectionRef.current = null
     }
 
     return started
-  }, [dragManager, isEditing, onSelectObject, onToggleSelection])
+  }, [dragManager, isEditing])
 
   const handleDragMove = useCallback((event) => {
     dragManager.move(event)
@@ -111,16 +145,8 @@ export function useObjectDrag({
 
   const endDrag = useCallback((event) => {
     if (!dragManager.isActive()) return
-
-    const pending = pendingClickRef.current
-    const moved = dragManager.end(event) ?? false
-
-    if (pending && !moved) {
-      onToggleSelection(pending.objectId)
-    }
-
-    pendingClickRef.current = null
-  }, [dragManager, onToggleSelection])
+    dragManager.end(event)
+  }, [dragManager])
 
   useEffect(() => () => {
     dragManager.dispose()

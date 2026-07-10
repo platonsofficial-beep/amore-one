@@ -10,6 +10,7 @@ import { cloneBuilderLayout, loadFloorPlanLayout, saveFloorPlanLayout } from '..
 import {
   FLOOR_PLAN_OBJECT_TYPES,
   clampTableCapacity,
+  getTablePresetDetails,
   getTableShapeSize,
   normalizeFloorPlanTableObject,
   normalizeLayoutObjects,
@@ -34,6 +35,106 @@ function getFloorWorkspaceBounds(floors, floorId) {
     ...(floor?.workspace ?? createDefaultWorkspace()),
   }
   return getWorkspaceBounds(workspace)
+}
+
+function resolveExplicitTableDimension(value, fallback, minimum = 1) {
+  if (value !== undefined && value !== null && `${value}`.trim() !== '') {
+    const parsed = Math.round(Number(value))
+    if (Number.isFinite(parsed)) {
+      return Math.max(minimum, parsed)
+    }
+  }
+
+  const fallbackValue = Math.round(Number(fallback))
+  return Math.max(minimum, Number.isFinite(fallbackValue) ? fallbackValue : minimum)
+}
+
+function resolveTableDimensionsFromPatch({
+  patch,
+  object,
+  nextShape,
+  shapeChanged,
+}) {
+  const minSize = getTableMinSize(nextShape)
+  const currentSize = object.size ?? minSize
+  const presetDetails = patch.sizePreset !== undefined
+    ? getTablePresetDetails(nextShape, patch.sizePreset)
+    : null
+  const explicitWidth = patch.width ?? patch.size?.width
+  const explicitHeight = patch.height ?? patch.size?.height
+
+  if (shapeChanged) {
+    return {
+      size: getTableShapeSize(nextShape),
+      sizeChanged: true,
+      explicitWidth,
+      explicitHeight,
+    }
+  }
+
+  if (presetDetails) {
+    let width = Math.max(minSize.width, Math.round(Number(presetDetails.width)))
+    let height = Math.max(minSize.height, Math.round(Number(presetDetails.height)))
+    if (keepsTableAspectRatio(nextShape)) {
+      const dim = Math.max(width, height)
+      width = dim
+      height = dim
+    }
+
+    return {
+      size: { width, height },
+      sizeChanged: true,
+      explicitWidth,
+      explicitHeight,
+    }
+  }
+
+  if (explicitWidth !== undefined || explicitHeight !== undefined) {
+    let width = resolveExplicitTableDimension(
+      explicitWidth,
+      currentSize.width,
+      minSize.width,
+    )
+    let height = resolveExplicitTableDimension(
+      explicitHeight,
+      currentSize.height,
+      minSize.height,
+    )
+    if (keepsTableAspectRatio(nextShape)) {
+      const dim = Math.max(width, height)
+      width = dim
+      height = dim
+    }
+
+    return {
+      size: { width, height },
+      sizeChanged: true,
+      explicitWidth,
+      explicitHeight,
+    }
+  }
+
+  return {
+    size: {
+      width: Math.max(minSize.width, Math.round(Number(currentSize.width) || minSize.width)),
+      height: Math.max(minSize.height, Math.round(Number(currentSize.height) || minSize.height)),
+    },
+    sizeChanged: false,
+    explicitWidth,
+    explicitHeight,
+  }
+}
+
+function getCenterAnchoredPosition(object, nextSize) {
+  const currentSize = object.size ?? { width: 1, height: 1 }
+  const currentPosition = object.position ?? { x: 0, y: 0 }
+  const centerX = currentPosition.x + (Number(currentSize.width) || 0) / 2
+  const centerY = currentPosition.y + (Number(currentSize.height) || 0) / 2
+
+  return {
+    x: centerX - (Number(nextSize.width) || 0) / 2,
+    y: centerY - (Number(nextSize.height) || 0) / 2,
+  }
 }
 
 function cloneLayoutData({ floors, objects, activeFloorId }) {
@@ -322,36 +423,27 @@ function floorPlanBuilderReducer(state, action) {
             : (object.properties.sections ?? [])
           const sectionTotals = getTableSectionTotals(nextSections)
 
-          let nextSize = { ...object.size }
-          const explicitWidth = patch.width ?? patch.size?.width
-          const explicitHeight = patch.height ?? patch.size?.height
-
-          if (shapeChanged) {
-            nextSize = getTableShapeSize(nextShape)
-          } else if (explicitWidth !== undefined || explicitHeight !== undefined) {
-            let width = Math.max(
-              getTableMinSize(nextShape).width,
-              Math.round(Number(explicitWidth ?? object.size.width) || object.size.width),
-            )
-            let height = Math.max(
-              getTableMinSize(nextShape).height,
-              Math.round(Number(explicitHeight ?? object.size.height) || object.size.height),
-            )
-            if (keepsTableAspectRatio(nextShape)) {
-              const dim = Math.max(width, height)
-              width = dim
-              height = dim
-            }
-            nextSize = { width, height }
-          }
+          const {
+            size: nextSize,
+            sizeChanged,
+          } = resolveTableDimensionsFromPatch({
+            patch,
+            object,
+            nextShape,
+            shapeChanged,
+          })
 
           let nextRotation = object.rotation ?? 0
           if (patch.rotation !== undefined) {
             nextRotation = normalizeRotation(patch.rotation)
           }
 
+          const resizeAnchorPosition = sizeChanged
+            ? getCenterAnchoredPosition(object, nextSize)
+            : object.position
+
           const fitted = fitTableRectToFloor(
-            object.position,
+            resizeAnchorPosition,
             nextSize,
             getFloorWorkspaceBounds(state.floors, nextFloorId),
             nextShape,

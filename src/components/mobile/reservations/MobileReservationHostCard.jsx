@@ -17,6 +17,89 @@ function getActionClassName(action) {
   return 'mobile-host-reservation-action'
 }
 
+function MobileHostReservationCompactRow({
+  reservation,
+  todayKey,
+  nowMinutes,
+  isSelected,
+  isStatusMenuOpen,
+  isSaving,
+  onSelect,
+  onOpenStatusMenu,
+  onOpenRowMenu,
+}) {
+  const guestName = `${reservation?.guestName ?? 'Guest'}`.trim() || 'Guest'
+  const partySize = Number(reservation?.guests) || 0
+  const tableLabel = formatHostListTableLabel(reservation)
+  const area = `${reservation?.area ?? ''}`.trim()
+  const tableSection = tableLabel !== '—'
+    ? (area ? `${tableLabel} · ${area}` : tableLabel)
+    : (area || 'Unassigned')
+  const timeLabel = formatHostReservationListTime(reservation, todayKey)
+  const displayStatus = getReservationDisplayStatus(reservation, nowMinutes, todayKey)
+  const statusMeta = getHostStatusMeta(displayStatus)
+
+  return (
+    <li className="mobile-host-reservation-item">
+      <article
+        className={`mobile-host-reservation-row is-compact${isSelected ? ' is-selected' : ''}${isStatusMenuOpen ? ' is-status-menu-open' : ''}`}
+      >
+        <span
+          className={`mobile-host-reservation-row-indicator tone-${statusMeta.tone}`}
+          aria-hidden="true"
+          title={statusMeta.label}
+        >
+          {statusMeta.icon}
+        </span>
+
+        <button
+          type="button"
+          className="mobile-host-reservation-row-main"
+          onClick={() => onSelect?.(reservation)}
+        >
+          <div className="mobile-host-reservation-row-primary">
+            <span className="mobile-host-reservation-row-time">{timeLabel}</span>
+            <span className="mobile-host-reservation-row-name">{guestName}</span>
+          </div>
+          <p className="mobile-host-reservation-row-meta">
+            {partySize} {partySize === 1 ? 'guest' : 'guests'} · {tableSection}
+          </p>
+        </button>
+
+        <button
+          type="button"
+          className={`mobile-host-reservation-row-status tone-${statusMeta.tone}`}
+          aria-label={`Status: ${statusMeta.label}. Change status.`}
+          aria-expanded={isStatusMenuOpen}
+          aria-haspopup="dialog"
+          disabled={isSaving}
+          onClick={(event) => {
+            event.stopPropagation()
+            onOpenStatusMenu?.(reservation, event)
+          }}
+        >
+          <span className="mobile-host-reservation-row-status-label">{statusMeta.label}</span>
+          <span className="mobile-host-reservation-row-status-caret" aria-hidden="true">▾</span>
+        </button>
+
+        <button
+          type="button"
+          className="mobile-host-reservation-row-more"
+          aria-label="More reservation actions"
+          aria-haspopup="menu"
+          disabled={isSaving}
+          onClick={(event) => {
+            event.stopPropagation()
+            onOpenRowMenu?.(reservation, event)
+          }}
+        >
+          ⋯
+        </button>
+      </article>
+    </li>
+  )
+}
+
 export function MobileReservationHostCard({
   reservation,
   groupId: _groupId,
@@ -24,9 +107,12 @@ export function MobileReservationHostCard({
   nowMinutes = 0,
   isSelected = false,
   isLandscapeLayout = false,
+  isStatusMenuOpen = false,
   onSelect,
   onQuickStatusUpdate,
   onEdit,
+  onOpenStatusMenu,
+  onOpenRowMenu,
   isSaving = false,
 }) {
   const guestName = `${reservation?.guestName ?? 'Guest'}`.trim() || 'Guest'
@@ -61,41 +147,17 @@ export function MobileReservationHostCard({
 
   if (isLandscapeLayout) {
     return (
-      <li className="mobile-host-reservation-item">
-        <article className={`mobile-host-reservation-card is-landscape-layout${isSelected ? ' is-selected' : ''}`}>
-          <button
-            type="button"
-            className="mobile-host-reservation-card-main"
-            onClick={() => onSelect?.(reservation)}
-          >
-            <span className="mobile-host-reservation-time is-large">{timeLabel}</span>
-            <div className="mobile-host-reservation-service-copy">
-              <h3 className="mobile-host-reservation-guest">{guestName}</h3>
-              <p className="mobile-host-reservation-meta">
-                {partySize} {partySize === 1 ? 'guest' : 'guests'}
-              </p>
-              <p className="mobile-host-reservation-table">{tableSection}</p>
-            </div>
-            <span className={`mobile-host-reservation-status tone-${statusMeta.tone}`}>
-              {statusMeta.label}
-            </span>
-          </button>
-
-          <div className="mobile-host-reservation-actions" role="group" aria-label="Quick actions">
-            {quickActions.map((action) => (
-              <button
-                key={action.id}
-                type="button"
-                className={getActionClassName(action)}
-                onClick={(event) => handleAction(event, action)}
-                disabled={isSaving}
-              >
-                {action.label}
-              </button>
-            ))}
-          </div>
-        </article>
-      </li>
+      <MobileHostReservationCompactRow
+        reservation={reservation}
+        todayKey={todayKey}
+        nowMinutes={nowMinutes}
+        isSelected={isSelected}
+        isStatusMenuOpen={isStatusMenuOpen}
+        isSaving={isSaving}
+        onSelect={onSelect}
+        onOpenStatusMenu={onOpenStatusMenu}
+        onOpenRowMenu={onOpenRowMenu}
+      />
     )
   }
 

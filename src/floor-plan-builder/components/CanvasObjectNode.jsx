@@ -1,5 +1,6 @@
 import { memo } from 'react'
 import { FLOOR_PLAN_OBJECT_TYPES, formatBuilderTableLabel, formatTableGuestRangeLabel } from '../models/floorPlanObject'
+import { getTableHandleMetrics } from '../lib/tableHandleMetrics'
 
 const CORNER_HANDLES = ['nw', 'ne', 'se', 'sw']
 
@@ -39,6 +40,7 @@ function CanvasObjectNodeComponent({
       ? 'cozy'
       : 'normal'
   const isDirectManipulation = isDragging || isTransforming
+  const { handleSize, chromeInset } = getTableHandleMetrics(minDimension)
 
   return (
     <div
@@ -52,13 +54,12 @@ function CanvasObjectNodeComponent({
         transformOrigin: 'center center',
         zIndex: isDragging || isTransforming ? 20 : object.zIndex,
         touchAction: isEditable ? 'none' : 'auto',
+        '--fpb-handle-size': `${handleSize}px`,
+        '--fpb-selection-chrome-inset': `-${chromeInset}px`,
       }}
       onPointerDown={(event) => {
         if (event.target.closest('.fpb-handle')) return
         event.stopPropagation()
-        if (event.cancelable) {
-          event.preventDefault()
-        }
         onPointerDown(event, object)
       }}
       onPointerMove={onPointerMove}
@@ -78,7 +79,11 @@ function CanvasObjectNodeComponent({
       </div>
 
       {showTransformChrome && isTable && isEditable ? (
-        <div className="fpb-selection-chrome" aria-hidden="true">
+        <div
+          className="fpb-selection-chrome"
+          aria-hidden="true"
+          style={{ pointerEvents: isDragging ? 'none' : undefined }}
+        >
           {CORNER_HANDLES.map((handle) => (
             <button
               key={handle}
@@ -86,7 +91,10 @@ function CanvasObjectNodeComponent({
               className={`fpb-handle fpb-handle-${handle}`}
               tabIndex={-1}
               aria-label={`Resize ${handle} corner`}
-              onPointerDown={(event) => onResizePointerDown?.(event, object, handle)}
+              onPointerDown={(event) => {
+                event.stopPropagation()
+                onResizePointerDown?.(event, object, handle)
+              }}
               onPointerMove={onPointerMove}
               onPointerUp={onPointerUp}
             />
@@ -97,7 +105,10 @@ function CanvasObjectNodeComponent({
             className="fpb-handle fpb-handle-rotate"
             tabIndex={-1}
             aria-label="Rotate table"
-            onPointerDown={(event) => onRotatePointerDown?.(event, object)}
+            onPointerDown={(event) => {
+              event.stopPropagation()
+              onRotatePointerDown?.(event, object)
+            }}
             onPointerMove={onPointerMove}
             onPointerUp={onPointerUp}
           />

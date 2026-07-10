@@ -244,6 +244,29 @@ export function getHostReservationStatusOptions() {
   }))
 }
 
+/** Simplified status menu for Host Station tablet list rows. */
+export const HOST_STATION_STATUS_MENU_OPTIONS = [
+  { status: 'Pending', menuLabel: 'Pending' },
+  { status: 'Confirmed', menuLabel: 'Confirmed' },
+  { status: 'Waiting', menuLabel: 'Arrived' },
+  { status: 'Checked In', menuLabel: 'Seated' },
+  { status: 'Checked Out', menuLabel: 'Completed' },
+  { status: 'Not Shown', menuLabel: 'No show' },
+  { status: 'Cancelled', menuLabel: 'Cancelled' },
+]
+
+export function getHostStationStatusMenuOptions() {
+  return HOST_STATION_STATUS_MENU_OPTIONS.map((entry) => {
+    const meta = getHostStatusMeta(entry.status)
+    return {
+      ...meta,
+      status: entry.status,
+      menuLabel: entry.menuLabel,
+      label: entry.menuLabel,
+    }
+  })
+}
+
 export function isReservationLateByTime(reservation, nowMinutes, todayKey) {
   if (`${reservation?.date ?? ''}`.slice(0, 10) !== todayKey) return false
 

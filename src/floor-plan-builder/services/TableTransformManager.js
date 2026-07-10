@@ -41,6 +41,11 @@ export class TableTransformManager {
 
   clearPreview() {
     if (!this.element) return
+    this.element.style.left = ''
+    this.element.style.top = ''
+    this.element.style.width = ''
+    this.element.style.height = ''
+    this.element.style.transform = ''
     this.element.style.willChange = ''
     this.element.classList.remove('is-transforming')
   }

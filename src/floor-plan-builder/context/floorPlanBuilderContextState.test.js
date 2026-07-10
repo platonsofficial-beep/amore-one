@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { createInitialBuilderState, floorPlanBuilderReducer } from './floorPlanBuilderContextState'
-import { FLOOR_PLAN_OBJECT_TYPES } from '../models/floorPlanObject'
+import { FLOOR_PLAN_OBJECT_TYPES, buildTableSizePresetPatch } from '../models/floorPlanObject'
 
 function createTable(id, floorId = 'main') {
   return {
@@ -126,6 +126,115 @@ describe('UPDATE_TABLE', () => {
     expect(nextState.objects[0].properties.minGuests).toBe(1)
     expect(nextState.objects[0].properties.maxGuests).toBe(2)
     expect(nextState.objects[0].properties.capacity).toBe(2)
+  })
+
+  it('keeps the table selected and preserves a valid position after resizing', () => {
+    const initialState = {
+      ...createInitialBuilderState({ initialEditing: true }),
+      selectedTableIds: ['table-1'],
+      objects: [{
+        ...createTable('table-1'),
+        position: { x: 200, y: 180 },
+        size: { width: 160, height: 160 },
+        properties: {
+          shape: 'square',
+          capacity: 4,
+          minGuests: 2,
+          maxGuests: 4,
+        },
+      }],
+    }
+
+    const nextState = floorPlanBuilderReducer(initialState, {
+      type: 'UPDATE_TABLE',
+      payload: {
+        objectId: 'table-1',
+        patch: {
+          width: 90,
+          height: 90,
+          minGuests: 1,
+          maxGuests: 2,
+        },
+      },
+    })
+
+    const table = nextState.objects[0]
+    expect(nextState.selectedTableIds).toEqual(['table-1'])
+    expect(table.id).toBe('table-1')
+    expect(table.size).toEqual({ width: 90, height: 90 })
+    expect(Number.isFinite(table.position.x)).toBe(true)
+    expect(Number.isFinite(table.position.y)).toBe(true)
+    expect(table.position.x).toBe(235)
+    expect(table.position.y).toBe(215)
+  })
+
+  it('applies sizePreset to object.size for canvas rendering', () => {
+    const initialState = {
+      ...createInitialBuilderState({ initialEditing: true }),
+      selectedTableIds: ['table-1'],
+      objects: [{
+        ...createTable('table-1'),
+        position: { x: 200, y: 180 },
+        size: { width: 200, height: 120 },
+        properties: {
+          shape: 'rectangle',
+          capacity: 6,
+          minGuests: 4,
+          maxGuests: 6,
+        },
+      }],
+    }
+
+    const nextState = floorPlanBuilderReducer(initialState, {
+      type: 'UPDATE_TABLE',
+      payload: {
+        objectId: 'table-1',
+        patch: buildTableSizePresetPatch('rectangle', 'small'),
+      },
+    })
+
+    const table = nextState.objects[0]
+    expect(nextState.selectedTableIds).toEqual(['table-1'])
+    expect(table.size).toEqual({ width: 140, height: 90 })
+    expect(table.properties.minGuests).toBe(2)
+    expect(table.properties.maxGuests).toBe(4)
+    expect(table.properties.capacity).toBe(4)
+  })
+
+  it('updates all three square presets with distinct canvas dimensions', () => {
+    const baseTable = {
+      ...createTable('table-1'),
+      position: { x: 300, y: 240 },
+      properties: {
+        shape: 'square',
+        capacity: 4,
+        minGuests: 2,
+        maxGuests: 4,
+      },
+    }
+
+    const sizes = ['small', 'medium', 'large'].map((preset) => {
+      const nextState = floorPlanBuilderReducer({
+        ...createInitialBuilderState({ initialEditing: true }),
+        objects: [{
+          ...baseTable,
+          size: { width: 220, height: 220 },
+        }],
+      }, {
+        type: 'UPDATE_TABLE',
+        payload: {
+          objectId: 'table-1',
+          patch: buildTableSizePresetPatch('square', preset),
+        },
+      })
+
+      return nextState.objects[0].size
+    })
+
+    expect(sizes[0]).toEqual({ width: 90, height: 90 })
+    expect(sizes[1]).toEqual({ width: 140, height: 140 })
+    expect(sizes[2]).toEqual({ width: 200, height: 200 })
+    expect(new Set(sizes.map((size) => size.width)).size).toBe(3)
   })
 })
 

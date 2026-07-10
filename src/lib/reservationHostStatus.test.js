@@ -5,6 +5,7 @@ import {
   canMarkReservationNoShow,
   canSeatReservation,
   getHostReservationQuickActions,
+  getHostStationStatusMenuOptions,
 } from './reservationHostStatus'
 
 const TODAY = '2026-07-08'
@@ -56,5 +57,22 @@ describe('reservationHostStatus quick actions', () => {
     expect(actions).toEqual([
       { id: 'complete', label: 'Complete', status: 'Checked Out', variant: 'primary' },
     ])
+  })
+})
+
+describe('getHostStationStatusMenuOptions', () => {
+  it('returns simplified host-station status labels mapped to canonical status ids', () => {
+    const options = getHostStationStatusMenuOptions()
+    expect(options.map((entry) => entry.menuLabel)).toEqual([
+      'Pending',
+      'Confirmed',
+      'Arrived',
+      'Seated',
+      'Completed',
+      'No show',
+      'Cancelled',
+    ])
+    expect(options.find((entry) => entry.menuLabel === 'Arrived')?.status).toBe('Waiting')
+    expect(options.find((entry) => entry.menuLabel === 'Seated')?.status).toBe('Checked In')
   })
 })

@@ -13,6 +13,11 @@ import {
   resolveHostReservationFormVariant,
 } from '../../../lib/mobileHostReservationUtils'
 import { MobileReservationHostCard } from './MobileReservationHostCard'
+import {
+  MobileHostReservationRowMenu,
+  MobileHostReservationStatusMenu,
+} from './MobileHostReservationStatusMenu'
+import { getReservationDisplayStatus } from '../../../lib/reservationHostStatus'
 import { MobileReservationHostEditSheet } from './MobileReservationHostEditSheet'
 import { MobileReservationQuickCreateSheet } from './MobileReservationQuickCreateSheet'
 
@@ -31,6 +36,7 @@ export function MobileReservationsHostView({
   onCreateReservation,
   onExitHostMode,
   canEditFloorPlan = false,
+  hasLayout = false,
   onOpenFloorPlanLayout,
   renderRightPane,
   selectedReservationId: controlledSelectedReservationId = null,
@@ -43,6 +49,8 @@ export function MobileReservationsHostView({
   const [localSelectedReservationId, setLocalSelectedReservationId] = useState(null)
   const [isSplitLayout, setIsSplitLayout] = useState(() => isMobileHostSplitViewport())
   const [isFloorPlanOpen, setIsFloorPlanOpen] = useState(false)
+  const [statusMenu, setStatusMenu] = useState(null)
+  const [rowMenu, setRowMenu] = useState(null)
 
   useEffect(() => {
     const updateOrientation = () => setIsSplitLayout(isMobileHostSplitViewport())
@@ -114,6 +122,29 @@ export function MobileReservationsHostView({
       return
     }
     setLocalSelectedReservationId(reservation.id)
+  }
+
+  const handleOpenStatusMenu = (reservation, event) => {
+    setRowMenu(null)
+    setStatusMenu({
+      reservation,
+      anchorRect: event.currentTarget.getBoundingClientRect(),
+      currentStatusId: getReservationDisplayStatus(reservation, nowMinutes, todayKey),
+    })
+  }
+
+  const handleOpenRowMenu = (reservation, event) => {
+    setStatusMenu(null)
+    setRowMenu({
+      reservation,
+      anchorRect: event.currentTarget.getBoundingClientRect(),
+    })
+  }
+
+  const handleStatusSelect = async (reservation, status) => {
+    if (isSaving) return
+    await onQuickStatusUpdate?.(reservation, status)
+    setStatusMenu(null)
   }
 
   const rightPaneContent = renderRightPane
@@ -193,9 +224,12 @@ export function MobileReservationsHostView({
           nowMinutes={nowMinutes}
           isSelected={`${effectiveSelectedReservationId}` === `${reservation.id}`}
           isLandscapeLayout={isSplitLayout}
+          isStatusMenuOpen={statusMenu?.reservation?.id === reservation.id}
           onSelect={handleSelectReservation}
           onQuickStatusUpdate={onQuickStatusUpdate}
           onEdit={handleEditReservation}
+          onOpenStatusMenu={handleOpenStatusMenu}
+          onOpenRowMenu={handleOpenRowMenu}
           isSaving={isSaving}
         />
       ))}
@@ -270,14 +304,14 @@ export function MobileReservationsHostView({
           <span><strong>{summary.seatedGuests ?? summary.inHouse}</strong> seated</span>
         </div>
         <div className="mobile-host-sticky-actions">
-          {canEditFloorPlan ? (
+          {hasLayout && canEditFloorPlan && onOpenFloorPlanLayout ? (
             <button
               type="button"
               className="mobile-host-layout-btn"
               onClick={onOpenFloorPlanLayout}
               aria-label="Edit floor plan layout"
             >
-              Layout
+              Edit layout
             </button>
           ) : null}
           {onExitHostMode ? (
@@ -287,7 +321,7 @@ export function MobileReservationsHostView({
               onClick={onExitHostMode}
               aria-label="Exit Host Mode"
             >
-              Exit Host Mode
+              Exit
             </button>
           ) : null}
         </div>
@@ -343,6 +377,25 @@ export function MobileReservationsHostView({
           />
         </>
       ) : null}
+
+      <MobileHostReservationStatusMenu
+        reservation={statusMenu?.reservation}
+        currentStatusId={statusMenu?.currentStatusId}
+        anchorRect={statusMenu?.anchorRect}
+        isOpen={Boolean(statusMenu)}
+        isSaving={isSaving}
+        onClose={() => setStatusMenu(null)}
+        onSelectStatus={handleStatusSelect}
+      />
+
+      <MobileHostReservationRowMenu
+        reservation={rowMenu?.reservation}
+        anchorRect={rowMenu?.anchorRect}
+        isOpen={Boolean(rowMenu)}
+        isSaving={isSaving}
+        onClose={() => setRowMenu(null)}
+        onEdit={handleEditReservation}
+      />
     </div>
   )
 }

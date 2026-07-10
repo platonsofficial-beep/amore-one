@@ -4882,6 +4882,310 @@
   list-style: none;
 }
 
+.mobile-host-reservations.is-landscape .mobile-host-reservation-list {
+  gap: 2px;
+}
+
+.mobile-host-reservation-row.is-compact {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr) auto 44px;
+  align-items: center;
+  gap: 8px;
+  min-height: 68px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.03);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+}
+
+.mobile-host-reservation-row.is-compact.is-selected {
+  box-shadow: inset 0 0 0 1px rgba(212, 175, 55, 0.34);
+  background: rgba(212, 175, 55, 0.06);
+}
+
+.mobile-host-reservation-row.is-compact.is-status-menu-open {
+  box-shadow: inset 0 0 0 1px rgba(212, 175, 55, 0.28);
+}
+
+.mobile-host-reservation-row-indicator {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  font-size: 0.92rem;
+  line-height: 1;
+  flex-shrink: 0;
+  background: rgba(255, 255, 255, 0.06);
+  color: #d8cdbf;
+}
+
+.mobile-host-reservation-row-main {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+}
+
+.mobile-host-reservation-row-primary {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+}
+
+.mobile-host-reservation-row-time {
+  flex-shrink: 0;
+  color: #f0dca2;
+  font-size: 0.88rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.mobile-host-reservation-row-name {
+  min-width: 0;
+  color: #fff7e8;
+  font-size: 0.94rem;
+  font-weight: 700;
+  line-height: 1.2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mobile-host-reservation-row-meta {
+  margin: 0;
+  color: #a89f92;
+  font-size: 0.78rem;
+  line-height: 1.25;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mobile-host-reservation-row-status {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-width: 44px;
+  min-height: 44px;
+  max-width: 112px;
+  padding: 0 10px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.04);
+  color: #e8dcc6;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.mobile-host-reservation-row-status-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mobile-host-reservation-row-status-caret {
+  flex-shrink: 0;
+  font-size: 0.62rem;
+  opacity: 0.72;
+}
+
+.mobile-host-reservation-row-more {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.04);
+  color: #d8cdbf;
+  font-size: 1.2rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.mobile-host-reservation-row-more:focus-visible,
+.mobile-host-reservation-row-status:focus-visible,
+.mobile-host-reservation-row-main:focus-visible {
+  outline: 2px solid rgba(212, 175, 55, 0.55);
+  outline-offset: 2px;
+}
+
+.mobile-host-reservation-row-indicator.tone-pending,
+.mobile-host-reservation-row-status.tone-pending {
+  background: rgba(110, 176, 232, 0.18);
+  color: #9ec5ef;
+  border-color: rgba(110, 176, 232, 0.28);
+}
+
+.mobile-host-reservation-row-indicator.tone-waiting,
+.mobile-host-reservation-row-status.tone-waiting,
+.mobile-host-reservation-row-indicator.tone-late-booking,
+.mobile-host-reservation-row-status.tone-late-booking {
+  background: rgba(126, 184, 239, 0.18);
+  color: #a8ccef;
+}
+
+.mobile-host-reservation-row-indicator.tone-confirmed,
+.mobile-host-reservation-row-status.tone-confirmed {
+  background: rgba(82, 184, 116, 0.16);
+  color: #8fd6a0;
+}
+
+.mobile-host-reservation-row-indicator.tone-checked-in,
+.mobile-host-reservation-row-status.tone-checked-in,
+.mobile-host-reservation-row-indicator.tone-walk-in,
+.mobile-host-reservation-row-status.tone-walk-in,
+.mobile-host-reservation-row-indicator.tone-checked-in-partial,
+.mobile-host-reservation-row-status.tone-checked-in-partial {
+  background: rgba(240, 168, 106, 0.18);
+  color: #f0c095;
+}
+
+.mobile-host-reservation-row-indicator.tone-checked-out,
+.mobile-host-reservation-row-status.tone-checked-out {
+  background: rgba(110, 176, 232, 0.14);
+  color: #9ec5ef;
+}
+
+.mobile-host-reservation-row-indicator.tone-cancelled,
+.mobile-host-reservation-row-status.tone-cancelled,
+.mobile-host-reservation-row-indicator.tone-not-shown,
+.mobile-host-reservation-row-status.tone-not-shown,
+.mobile-host-reservation-row-indicator.tone-rejected,
+.mobile-host-reservation-row-status.tone-rejected {
+  background: rgba(154, 148, 140, 0.18);
+  color: #b8b0a3;
+}
+
+.mobile-host-status-menu-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 11999;
+  background: transparent;
+}
+
+.mobile-host-status-menu,
+.mobile-host-row-menu {
+  min-width: 180px;
+  max-width: min(240px, calc(100vw - 16px));
+  padding: 6px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(12, 12, 13, 0.98);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.42);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 120ms ease;
+}
+
+.mobile-host-status-menu.is-positioned,
+.mobile-host-row-menu.is-positioned {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.mobile-host-status-menu-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.mobile-host-status-menu-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 44px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: #e8dcc6;
+  font-size: 0.86rem;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+
+.mobile-host-status-menu-option.is-active,
+.mobile-host-status-menu-option:hover,
+.mobile-host-status-menu-option:focus-visible {
+  background: rgba(212, 175, 55, 0.12);
+  outline: none;
+}
+
+.mobile-host-status-menu-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  flex-shrink: 0;
+  background: rgba(255, 255, 255, 0.24);
+}
+
+.mobile-host-status-menu-dot.tone-pending { background: #6eb0e8; }
+.mobile-host-status-menu-dot.tone-waiting,
+.mobile-host-status-menu-dot.tone-late-booking { background: #7eb8ef; }
+.mobile-host-status-menu-dot.tone-confirmed { background: #68c98a; }
+.mobile-host-status-menu-dot.tone-checked-in,
+.mobile-host-status-menu-dot.tone-walk-in,
+.mobile-host-status-menu-dot.tone-checked-in-partial { background: #f0a86a; }
+.mobile-host-status-menu-dot.tone-checked-out { background: #6eb0e8; }
+.mobile-host-status-menu-dot.tone-cancelled,
+.mobile-host-status-menu-dot.tone-not-shown,
+.mobile-host-status-menu-dot.tone-rejected { background: #9a948c; }
+
+.mobile-host-status-menu-label {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.mobile-host-status-menu-check {
+  flex-shrink: 0;
+  color: #d4af37;
+  font-size: 0.82rem;
+}
+
+.mobile-host-row-menu-option {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-height: 44px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: #e8dcc6;
+  font-size: 0.86rem;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+
+.mobile-host-row-menu-option:hover,
+.mobile-host-row-menu-option:focus-visible {
+  background: rgba(212, 175, 55, 0.12);
+  outline: none;
+}
+
 .mobile-host-reservation-item {
   list-style: none;
 }
@@ -6072,6 +6376,10 @@ html[data-one-debug-scroll='1'] .floor-plan-viewport.is-host-viewport {
 
 .app-shell.is-host-station-shell .mobile-host-reservations-list-pane .mobile-host-list-scroll {
   padding-bottom: max(12px, env(safe-area-inset-bottom, 0px));
+}
+
+.app-shell.is-host-station-shell .mobile-host-reservation-row.is-compact {
+  min-height: 64px;
 }
 
 .mobile-host-reservation-inline-panel {

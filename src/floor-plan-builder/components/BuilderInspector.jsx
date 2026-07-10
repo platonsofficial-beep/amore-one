@@ -3,9 +3,9 @@ import { TABLE_TYPES } from '../models/componentCatalog'
 import {
   FLOOR_PLAN_OBJECT_TYPES,
   adjustTableDimension,
+  buildTableSizePresetPatch,
   formatBuilderTableLabel,
   getObjectDisplayLabel,
-  getTablePresetDetails,
   normalizeTableGuestRange,
   resolveTableGuestRange,
   TABLE_CAPACITY_MAX,
@@ -403,13 +403,7 @@ export function BuilderInspector({ onClose, showCloseButton = false }) {
                 type="button"
                 className="fpb-inspector-size-preset-btn"
                 onClick={() => {
-                  const presetDetails = getTablePresetDetails(shape, preset)
-                  updateTable({
-                    width: presetDetails.width,
-                    height: presetDetails.height,
-                    minGuests: presetDetails.minGuests,
-                    maxGuests: presetDetails.maxGuests,
-                  })
+                  updateTable(buildTableSizePresetPatch(shape, preset))
                 }}
                 disabled={isReadOnly}
               >

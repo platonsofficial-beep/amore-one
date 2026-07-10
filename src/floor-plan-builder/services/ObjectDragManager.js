@@ -46,6 +46,24 @@ export class ObjectDragManager {
     this.element.classList.remove('is-dragging')
   }
 
+  flushPendingMove(session) {
+    if (!session?.pendingMovePosition) return
+
+    this.onMoveObject?.(session.objectId, session.pendingMovePosition)
+    session.committedPosition = { ...session.pendingMovePosition }
+    session.pendingMovePosition = null
+  }
+
+  scheduleMoveCommit(session) {
+    if (session.moveRafId !== null) return
+
+    session.moveRafId = window.requestAnimationFrame(() => {
+      session.moveRafId = null
+      if (!this.session || this.session !== session) return
+      this.flushPendingMove(session)
+    })
+  }
+
   attachWindowListeners() {
     if (this.boundMove) return
 
@@ -78,10 +96,6 @@ export class ObjectDragManager {
   start(event, object, { snapEnabled, floorBounds }) {
     if (event.pointerType === 'mouse' && event.button !== 0) return false
 
-    if (event.cancelable) {
-      event.preventDefault()
-    }
-
     const world = this.getClientToWorld(event.clientX, event.clientY)
 
     this.element = event.currentTarget
@@ -98,6 +112,9 @@ export class ObjectDragManager {
       offsetY: world.y - object.position.y,
       originPosition: { ...object.position },
       previewPosition: { ...object.position },
+      committedPosition: { ...object.position },
+      pendingMovePosition: null,
+      moveRafId: null,
       snapEnabled,
       floorBounds,
       moved: false,
@@ -133,15 +150,21 @@ export class ObjectDragManager {
     )
 
     session.previewPosition = nextPosition
+    session.pendingMovePosition = nextPosition
     session.moved = session.moved
       || this.hasPositionChanged(session.originPosition, nextPosition)
 
-    this.onMoveObject?.(session.objectId, nextPosition)
+    this.scheduleMoveCommit(session)
   }
 
   end(event) {
     const session = this.session
     if (!session || event.pointerId !== session.pointerId) return false
+
+    if (session.moveRafId !== null) {
+      window.cancelAnimationFrame(session.moveRafId)
+      session.moveRafId = null
+    }
 
     const finalPosition = this.resolvePosition(
       session.previewPosition ?? session.originPosition,
@@ -178,6 +201,9 @@ export class ObjectDragManager {
   }
 
   cancel() {
+    if (this.session?.moveRafId !== null) {
+      window.cancelAnimationFrame(this.session.moveRafId)
+    }
     this.detachWindowListeners()
     this.clearDragSurface()
     this.session = null
