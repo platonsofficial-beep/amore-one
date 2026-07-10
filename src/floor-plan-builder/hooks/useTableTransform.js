@@ -24,7 +24,7 @@ export function useTableTransform({
     const container = containerRef.current
     const viewport = viewportSizeRef.current
     if (!container || !viewport.width || !viewport.height) {
-      return { x: 0, y: 0 }
+      return null
     }
 
     const rect = container.getBoundingClientRect()

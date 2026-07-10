@@ -268,6 +268,7 @@ describe('CanvasObjectNode selection chrome', () => {
     const { container, unmount } = renderNode({
       object: {
         ...tableObject,
+        properties: { ...tableObject.properties, shape: 'square' },
         size: { width: 240, height: 240 },
       },
       isSelected: true,
@@ -293,6 +294,40 @@ describe('CanvasObjectNode selection chrome', () => {
     expect(chrome.getAttribute('data-bounds-height')).toBe('240')
     expect(root.style.transform).toBe('')
     expect(root.querySelector('[data-fpb-object-body]').style.transform).toBe('rotate(0deg)')
+
+    unmount()
+  })
+
+  it('normalizes mismatched square render bounds to a single square box', () => {
+    const { container, unmount } = renderNode({
+      object: {
+        ...tableObject,
+        position: { x: 100, y: 120 },
+        properties: { ...tableObject.properties, shape: 'square' },
+        size: { width: 200, height: 160 },
+      },
+      isSelected: true,
+      showTransformChrome: true,
+      isDragging: false,
+      isTransforming: false,
+      activeTool: 'select',
+      isEditable: true,
+      cameraZoom: 1,
+      onPointerDown: vi.fn(),
+      onPointerMove: vi.fn(),
+      onPointerUp: vi.fn(),
+      onResizePointerDown: vi.fn(),
+      onRotatePointerDown: vi.fn(),
+    })
+
+    const root = container.querySelector('.fpb-canvas-object')
+    const chrome = container.querySelector('.fpb-selection-chrome')
+
+    expect(root.style.width).toBe('200px')
+    expect(root.style.height).toBe('200px')
+    expect(root.style.top).toBe('100px')
+    expect(chrome.getAttribute('data-bounds-width')).toBe('200')
+    expect(chrome.getAttribute('data-bounds-height')).toBe('200')
 
     unmount()
   })

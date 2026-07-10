@@ -80,6 +80,73 @@ function applyMinSize(width, height, shape) {
   return { width: nextWidth, height: nextHeight }
 }
 
+function worldDeltaToLocal(dx, dy, rotationDeg) {
+  const rad = (-rotationDeg * Math.PI) / 180
+  return {
+    x: (dx * Math.cos(rad)) - (dy * Math.sin(rad)),
+    y: (dx * Math.sin(rad)) + (dy * Math.cos(rad)),
+  }
+}
+
+function localOffsetToWorld(localOffset, anchorWorld, rotationDeg) {
+  const rad = (rotationDeg * Math.PI) / 180
+  return {
+    x: anchorWorld.x + (localOffset.x * Math.cos(rad)) - (localOffset.y * Math.sin(rad)),
+    y: anchorWorld.y + (localOffset.x * Math.sin(rad)) + (localOffset.y * Math.cos(rad)),
+  }
+}
+
+export function getResizeAnchorWorld(handle, origin) {
+  const object = {
+    position: { ...origin.position },
+    size: { ...origin.size },
+    rotation: origin.rotation ?? 0,
+  }
+
+  if (handle === 'se') {
+    return localTopLeftToWorld({ x: 0, y: 0 }, object)
+  }
+  if (handle === 'sw') {
+    return localTopLeftToWorld({ x: object.size.width, y: 0 }, object)
+  }
+  if (handle === 'ne') {
+    return localTopLeftToWorld({ x: 0, y: object.size.height }, object)
+  }
+  return localTopLeftToWorld({ x: object.size.width, y: object.size.height }, object)
+}
+
+function getResizePositionFromAnchor(handle, anchorWorld, sized, rotationDeg) {
+  if (handle === 'se') {
+    return { x: anchorWorld.x, y: anchorWorld.y }
+  }
+  if (handle === 'sw') {
+    return localOffsetToWorld({ x: -sized.width, y: 0 }, anchorWorld, rotationDeg)
+  }
+  if (handle === 'ne') {
+    return localOffsetToWorld({ x: 0, y: -sized.height }, anchorWorld, rotationDeg)
+  }
+  return localOffsetToWorld({ x: -sized.width, y: -sized.height }, anchorWorld, rotationDeg)
+}
+
+function getLocalDimensionsFromPointer(handle, pointerWorld, anchorWorld, rotationDeg) {
+  const local = worldDeltaToLocal(
+    pointerWorld.x - anchorWorld.x,
+    pointerWorld.y - anchorWorld.y,
+    rotationDeg,
+  )
+
+  if (handle === 'se') {
+    return { width: local.x, height: local.y }
+  }
+  if (handle === 'sw') {
+    return { width: -local.x, height: local.y }
+  }
+  if (handle === 'ne') {
+    return { width: local.x, height: -local.y }
+  }
+  return { width: -local.x, height: -local.y }
+}
+
 export function fitTableRectToFloor(position, size, floorBounds, shape) {
   const minSize = getTableMinSize(shape)
   let width = Math.max(minSize.width, size.width)
@@ -135,76 +202,78 @@ export function fitTableRectToFloor(position, size, floorBounds, shape) {
   }
 }
 
-export function computeResizeFromHandle({
+function isValidPointerWorld(point) {
+  return point
+    && Number.isFinite(point.x)
+    && Number.isFinite(point.y)
+}
+
+function isValidBounds({ position, size }) {
+  return Number.isFinite(position?.x)
+    && Number.isFinite(position?.y)
+    && Number.isFinite(size?.width)
+    && Number.isFinite(size?.height)
+    && size.width > 0
+    && size.height > 0
+}
+
+export function preserveResizeAnchor(handle, anchorWorld, bounds, rotationDeg = 0) {
+  const currentAnchor = getResizeAnchorWorld(handle, {
+    position: bounds.position,
+    size: bounds.size,
+    rotation: rotationDeg,
+  })
+
+  return {
+    position: {
+      x: bounds.position.x + (anchorWorld.x - currentAnchor.x),
+      y: bounds.position.y + (anchorWorld.y - currentAnchor.y),
+    },
+    size: { ...bounds.size },
+  }
+}
+
+export function finalizeResizeFromHandle({
   handle,
   pointerWorld,
   origin,
   shape,
   floorBounds,
+  anchorWorld,
 }) {
-  const object = {
-    position: origin.position,
-    size: origin.size,
-    rotation: origin.rotation ?? 0,
-  }
-  const localPointer = worldToObjectLocal(pointerWorld, object)
-  const { position, size } = object
-
-  let localW = size.width
-  let localH = size.height
-
-  if (handle === 'se') {
-    localW = localPointer.x
-    localH = localPointer.y
-  } else if (handle === 'sw') {
-    localW = size.width - localPointer.x
-    localH = localPointer.y
-  } else if (handle === 'ne') {
-    localW = localPointer.x
-    localH = size.height - localPointer.y
-  } else if (handle === 'nw') {
-    localW = size.width - localPointer.x
-    localH = size.height - localPointer.y
+  if (!isValidPointerWorld(pointerWorld)) {
+    return null
   }
 
-  const sized = applyMinSize(localW, localH, shape)
+  const rotation = origin.rotation ?? 0
+  const anchor = anchorWorld ?? getResizeAnchorWorld(handle, origin)
+  const raw = getLocalDimensionsFromPointer(handle, pointerWorld, anchor, rotation)
+  const sized = applyMinSize(raw.width, raw.height, shape)
+  const position = getResizePositionFromAnchor(handle, anchor, sized, rotation)
 
-  if (handle === 'se') {
-    return fitTableRectToFloor(
-      { x: position.x, y: position.y },
-      sized,
-      floorBounds,
-      shape,
-    )
-  }
-
-  if (handle === 'sw') {
-    const anchor = localTopLeftToWorld({ x: size.width, y: 0 }, object)
-    return fitTableRectToFloor(
-      { x: anchor.x - sized.width, y: anchor.y },
-      sized,
-      floorBounds,
-      shape,
-    )
-  }
-
-  if (handle === 'ne') {
-    const anchor = localTopLeftToWorld({ x: 0, y: size.height }, object)
-    return fitTableRectToFloor(
-      { x: anchor.x, y: anchor.y - sized.height },
-      sized,
-      floorBounds,
-      shape,
-    )
-  }
-
-  const anchor = localTopLeftToWorld({ x: size.width, y: size.height }, object)
-  return fitTableRectToFloor(
-    { x: anchor.x - sized.width, y: anchor.y - sized.height },
-    sized,
+  let result = fitTableRectToFloor(position, sized, floorBounds, shape)
+  result = preserveResizeAnchor(handle, anchor, result, rotation)
+  result.position = floorBoundaryService.clampToFloor(
+    result.position,
+    result.size,
     floorBounds,
-    shape,
   )
+  result = preserveResizeAnchor(handle, anchor, result, rotation)
+  result.position = floorBoundaryService.clampToFloor(
+    result.position,
+    result.size,
+    floorBounds,
+  )
+
+  if (!isValidBounds(result)) {
+    return null
+  }
+
+  return result
+}
+
+export function computeResizeFromHandle(params) {
+  return finalizeResizeFromHandle(params)
 }
 
 export function computeRotationFromPointer(pointerWorld, object, startPointerAngle, startRotation, shiftKey) {

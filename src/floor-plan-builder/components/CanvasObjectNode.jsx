@@ -1,6 +1,7 @@
 import { memo } from 'react'
 import { FLOOR_PLAN_OBJECT_TYPES, formatBuilderTableLabel, formatTableGuestRangeLabel } from '../models/floorPlanObject'
 import { getTableHandleMetrics } from '../lib/tableHandleMetrics'
+import { normalizeTableBounds } from '../lib/tableDimensions'
 
 const CORNER_HANDLES = ['nw', 'ne', 'se', 'sw']
 
@@ -22,8 +23,14 @@ function CanvasObjectNodeComponent({
   if (!object?.id) return null
 
   const properties = object.properties ?? {}
-  const position = object.position ?? { x: 0, y: 0 }
-  const size = object.size ?? { width: 80, height: 80 }
+  const shape = properties.shape ?? 'round'
+  const normalizedBounds = normalizeTableBounds({
+    position: object.position,
+    size: object.size,
+    shape,
+  })
+  const position = normalizedBounds.position
+  const size = normalizedBounds.size
   const shapeClass = object.type === FLOOR_PLAN_OBJECT_TYPES.TABLE
     ? ` shape-${properties.shape ?? 'round'}`
     : ''
@@ -107,7 +114,11 @@ function CanvasObjectNodeComponent({
                 aria-label={`Resize ${handle} corner`}
                 onPointerDown={(event) => {
                   event.stopPropagation()
-                  onResizePointerDown?.(event, object, handle)
+                  onResizePointerDown?.(event, {
+                    ...object,
+                    position: { ...position },
+                    size: { ...size },
+                  }, handle)
                 }}
                 onPointerMove={onPointerMove}
                 onPointerUp={onPointerUp}

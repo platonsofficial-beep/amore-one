@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   buildTableSizeResetPatch,
   canDecreaseTableDimension,
+  normalizeTableBounds,
   normalizeTableSize,
   resolveTableSizeFromPatch,
 } from './tableDimensions'
@@ -84,5 +85,51 @@ describe('buildTableSizeResetPatch', () => {
       width: 140,
       height: 140,
     })
+  })
+})
+
+describe('normalizeTableBounds', () => {
+  it('preserves center while squaring mismatched square dimensions', () => {
+    const next = normalizeTableBounds({
+      position: { x: 100, y: 120 },
+      size: { width: 200, height: 160 },
+      shape: 'square',
+    })
+
+    expect(next.size).toEqual({ width: 200, height: 200 })
+    expect(next.position).toEqual({ x: 100, y: 100 })
+  })
+
+  it('leaves rectangle width and height independent', () => {
+    const next = normalizeTableBounds({
+      position: { x: 80, y: 90 },
+      size: { width: 200, height: 140 },
+      shape: 'rectangle',
+    })
+
+    expect(next.size).toEqual({ width: 200, height: 140 })
+    expect(next.position).toEqual({ x: 80, y: 90 })
+  })
+
+  it('height-only square patch path uses equal dimensions', () => {
+    const next = resolveTableSizeFromPatch({
+      baseSize: { width: 200, height: 200 },
+      shape: 'square',
+      explicitWidth: undefined,
+      explicitHeight: 176,
+    })
+
+    expect(next).toEqual({ width: 176, height: 176 })
+  })
+
+  it('width-only square patch path uses equal dimensions', () => {
+    const next = resolveTableSizeFromPatch({
+      baseSize: { width: 200, height: 200 },
+      shape: 'square',
+      explicitWidth: 184,
+      explicitHeight: undefined,
+    })
+
+    expect(next).toEqual({ width: 184, height: 184 })
   })
 })

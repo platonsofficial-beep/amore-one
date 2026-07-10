@@ -1,8 +1,10 @@
 import {
   computeResizeFromHandle,
   computeRotationFromPointer,
+  getResizeAnchorWorld,
   normalizeRotation,
 } from '../lib/tableTransformUtils'
+import { normalizeTableBounds } from '../lib/tableDimensions'
 import { OBJECT_BODY_SELECTOR } from '../lib/canvasObjectDom'
 
 function previewsEqual(a, b) {
@@ -156,11 +158,23 @@ export class TableTransformManager {
       body.style.willChange = 'transform'
     }
 
-    const initialPreview = {
-      position: { ...object.position },
-      size: { ...object.size },
+    const shape = object.properties.shape ?? 'round'
+    const normalized = normalizeTableBounds({
+      position: object.position,
+      size: object.size,
+      shape,
+    })
+    const resizeOrigin = {
+      position: { ...normalized.position },
+      size: { ...normalized.size },
       rotation: object.rotation ?? 0,
     }
+    const initialPreview = {
+      position: { ...resizeOrigin.position },
+      size: { ...resizeOrigin.size },
+      rotation: resizeOrigin.rotation,
+    }
+    const anchorWorld = getResizeAnchorWorld(handle, resizeOrigin)
 
     const started = this.beginSession(event, element, {
       mode: 'resize',
@@ -168,13 +182,10 @@ export class TableTransformManager {
       pointerId: event.pointerId,
       handle,
       object,
-      shape: object.properties.shape ?? 'round',
+      shape,
       floorBounds,
-      origin: {
-        position: { ...object.position },
-        size: { ...object.size },
-        rotation: object.rotation ?? 0,
-      },
+      anchorWorld,
+      origin: resizeOrigin,
       preview: initialPreview,
       lastCommitted: initialPreview,
     })
@@ -183,9 +194,18 @@ export class TableTransformManager {
       this.clearSessionSurface(element)
       this.element = null
       this.session = null
+      return false
     }
 
-    return started
+    if (!previewsEqual(initialPreview, {
+      position: object.position,
+      size: object.size,
+      rotation: object.rotation ?? 0,
+    })) {
+      this.commitPreview(this.session)
+    }
+
+    return true
   }
 
   startRotate(event, object) {
@@ -193,6 +213,8 @@ export class TableTransformManager {
     if (!element) return false
 
     const pointerWorld = this.getClientToWorld(event.clientX, event.clientY)
+    if (!pointerWorld) return false
+
     const center = {
       x: object.position.x + (object.size.width / 2),
       y: object.position.y + (object.size.height / 2),
@@ -249,7 +271,10 @@ export class TableTransformManager {
         origin: session.origin,
         shape: session.shape,
         floorBounds: session.floorBounds,
+        anchorWorld: session.anchorWorld,
       })
+
+      if (!next) return
 
       this.scheduleCommit({
         position: next.position,

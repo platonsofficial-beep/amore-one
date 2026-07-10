@@ -318,19 +318,28 @@ function floorPlanBuilderReducer(state, action) {
           if (object.id !== objectId) return object
           if (object.type !== FLOOR_PLAN_OBJECT_TYPES.TABLE) return object
 
-          const shape = object.properties.shape ?? 'round'
-          const bounds = getFloorWorkspaceBounds(state.floors, object.floorId)
-          const fitted = fitTableRectToFloor(
-            position ?? object.position,
-            size ?? object.size,
-            bounds,
-            shape,
-          )
+          const nextPosition = {
+            x: position?.x ?? object.position.x,
+            y: position?.y ?? object.position.y,
+          }
+          const nextSize = {
+            width: size?.width ?? object.size.width,
+            height: size?.height ?? object.size.height,
+          }
+
+          if (!Number.isFinite(nextPosition.x)
+            || !Number.isFinite(nextPosition.y)
+            || !Number.isFinite(nextSize.width)
+            || !Number.isFinite(nextSize.height)
+            || nextSize.width <= 0
+            || nextSize.height <= 0) {
+            return object
+          }
 
           return {
             ...object,
-            position: fitted.position,
-            size: fitted.size,
+            position: nextPosition,
+            size: nextSize,
             rotation: normalizeRotation(rotation ?? object.rotation ?? 0),
           }
         }),

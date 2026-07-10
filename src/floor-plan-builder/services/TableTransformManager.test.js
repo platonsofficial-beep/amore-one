@@ -2,6 +2,8 @@
  * @vitest-environment jsdom
  */
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest'
+import { normalizeTableBounds } from '../lib/tableDimensions'
+import { getResizeAnchorWorld } from '../lib/tableTransformUtils'
 import { TableTransformManager } from './TableTransformManager'
 
 function createElement() {
@@ -140,5 +142,73 @@ describe('TableTransformManager', () => {
 
     expect(element.style.width).toBe('')
     expect(element.classList.contains('is-transforming')).toBe(false)
+  })
+
+  it('skips resize commit when pointer world is unavailable', () => {
+    const nullPointerManager = new TableTransformManager({
+      getClientToWorld: () => null,
+      onTransformTable,
+    })
+    nullPointerManager.element = element
+    nullPointerManager.session = { ...manager.session }
+
+    nullPointerManager.move({ pointerId: 1, clientX: 0, clientY: 0, preventDefault: vi.fn() })
+
+    expect(onTransformTable).not.toHaveBeenCalled()
+    nullPointerManager.dispose()
+  })
+
+  it('commits normalized square bounds when resize starts with mismatched dimensions', () => {
+    const onTransform = vi.fn()
+    const resizeManager = new TableTransformManager({
+      getClientToWorld: () => ({ x: 300, y: 300 }),
+      onTransformTable: onTransform,
+    })
+
+    const normalized = normalizeTableBounds({
+      position: { x: 100, y: 120 },
+      size: { width: 200, height: 160 },
+      shape: 'square',
+    })
+
+    resizeManager.session = {
+      mode: 'resize',
+      objectId: 'table-square',
+      pointerId: 2,
+      handle: 'ne',
+      shape: 'square',
+      floorBounds: { minX: 0, minY: 0, maxX: 2200, maxY: 1400 },
+      anchorWorld: getResizeAnchorWorld('ne', {
+        position: normalized.position,
+        size: normalized.size,
+        rotation: 0,
+      }),
+      origin: {
+        position: normalized.position,
+        size: normalized.size,
+        rotation: 0,
+      },
+      preview: {
+        position: normalized.position,
+        size: normalized.size,
+        rotation: 0,
+      },
+      lastCommitted: {
+        position: { x: 100, y: 120 },
+        size: { width: 200, height: 160 },
+        rotation: 0,
+      },
+    }
+
+    resizeManager.commitPreview(resizeManager.session)
+
+    expect(onTransform).toHaveBeenCalledWith('table-square', {
+      position: normalized.position,
+      size: normalized.size,
+      rotation: 0,
+    })
+    expect(normalized.size).toEqual({ width: 200, height: 200 })
+
+    resizeManager.dispose()
   })
 })

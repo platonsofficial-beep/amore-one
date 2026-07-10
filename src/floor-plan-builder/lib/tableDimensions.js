@@ -107,3 +107,32 @@ export function canDecreaseTableDimension(value, delta, shape = 'round', axis = 
   const current = Math.max(minimum, Math.round(Number(value) || minimum))
   return current + delta >= minimum
 }
+
+/** Normalize aspect-locked tables to a square size while preserving center. */
+export function normalizeTableBounds({
+  position = { x: 0, y: 0 },
+  size = { width: 0, height: 0 },
+  shape = 'round',
+}) {
+  const nextSize = normalizeTableSize(size, shape)
+  if (!keepsTableAspectRatio(shape)) {
+    return {
+      position: {
+        x: Number(position.x) || 0,
+        y: Number(position.y) || 0,
+      },
+      size: nextSize,
+    }
+  }
+
+  const centerX = (Number(position.x) || 0) + (Number(size.width) || 0) / 2
+  const centerY = (Number(position.y) || 0) + (Number(size.height) || 0) / 2
+
+  return {
+    position: {
+      x: centerX - nextSize.width / 2,
+      y: centerY - nextSize.height / 2,
+    },
+    size: nextSize,
+  }
+}

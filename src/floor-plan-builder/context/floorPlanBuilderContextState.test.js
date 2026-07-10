@@ -361,6 +361,31 @@ describe('TRANSFORM_TABLE', () => {
     expect(midResize.objects[0].size).toEqual({ width: 220, height: 220 })
     expect(afterRelease.objects[0].size).toEqual({ width: 240, height: 240 })
   })
+
+  it('rejects invalid transform bounds instead of snapping to origin', () => {
+    const initialState = {
+      ...createInitialBuilderState({ initialEditing: true }),
+      objects: [{
+        ...createTable('table-1'),
+        position: { x: 200, y: 200 },
+        size: { width: 200, height: 200 },
+        properties: { shape: 'square', capacity: 4 },
+      }],
+    }
+
+    const nextState = floorPlanBuilderReducer(initialState, {
+      type: 'TRANSFORM_TABLE',
+      payload: {
+        objectId: 'table-1',
+        position: { x: 0, y: 0 },
+        size: { width: 0, height: 0 },
+        rotation: 0,
+      },
+    })
+
+    expect(nextState.objects[0].position).toEqual({ x: 200, y: 200 })
+    expect(nextState.objects[0].size).toEqual({ width: 200, height: 200 })
+  })
 })
 
 describe('CLEAR_ACTIVE_FLOOR_LAYOUT', () => {
