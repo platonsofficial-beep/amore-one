@@ -128,9 +128,6 @@ function HostReservationListRow({
                 </>
               ) : null}
             </span>
-            {reservation.area ? (
-              <span className="host-reservation-card-area">{reservation.area}</span>
-            ) : null}
           </div>
         </div>
 

@@ -31,10 +31,7 @@ function MobileHostReservationCompactRow({
   const guestName = `${reservation?.guestName ?? 'Guest'}`.trim() || 'Guest'
   const partySize = Number(reservation?.guests) || 0
   const tableLabel = formatHostListTableLabel(reservation)
-  const area = `${reservation?.area ?? ''}`.trim()
-  const tableSection = tableLabel !== '—'
-    ? (area ? `${tableLabel} · ${area}` : tableLabel)
-    : (area || 'Unassigned')
+  const tableSection = tableLabel !== '—' ? tableLabel : 'Unassigned'
   const timeLabel = formatHostReservationListTime(reservation, todayKey)
   const displayStatus = getReservationDisplayStatus(reservation, nowMinutes, todayKey)
   const statusMeta = getHostStatusMeta(displayStatus)
@@ -119,10 +116,7 @@ export function MobileReservationHostCard({
   const partySize = Number(reservation?.guests) || 0
   const phone = `${reservation?.phone ?? ''}`.trim()
   const tableLabel = formatHostListTableLabel(reservation)
-  const area = `${reservation?.area ?? ''}`.trim()
-  const tableSection = tableLabel !== '—'
-    ? (area ? `${tableLabel} · ${area}` : tableLabel)
-    : (area || 'Unassigned')
+  const tableSection = tableLabel !== '—' ? tableLabel : 'Unassigned'
   const timeLabel = formatHostReservationListTime(reservation, todayKey)
   const displayStatus = getReservationDisplayStatus(reservation, nowMinutes, todayKey)
   const statusMeta = getHostStatusMeta(displayStatus)

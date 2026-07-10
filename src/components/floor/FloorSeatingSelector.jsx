@@ -1,5 +1,3 @@
-import { formatSeatingChipLabel } from '../../lib/reservationSeatings'
-
 export function FloorSeatingSelector({
   seatings = [],
   dateKey,
@@ -15,10 +13,10 @@ export function FloorSeatingSelector({
       <div className="floor-seating-selector-scroll" role="group" aria-label="Service seating">
         {seatings.map((seating) => {
           const summary = summaries[seating.id]
-          const summaryLabel = summary?.bookedCovers != null && summary?.totalCapacity != null
-            ? `${summary.bookedCovers}/${summary.totalCapacity} covers`
+          const summaryCount = summary?.bookedCovers != null && summary?.totalCapacity != null
+            ? `${summary.bookedCovers}/${summary.totalCapacity}`
             : summary?.occupiedTables != null && summary?.totalTables != null
-              ? `${summary.occupiedTables}/${summary.totalTables} tables`
+              ? `${summary.occupiedTables}/${summary.totalTables}`
               : ''
 
           return (
@@ -29,9 +27,10 @@ export function FloorSeatingSelector({
               onClick={() => onSelect?.(seating.id)}
               aria-pressed={selectedSeatingId === seating.id}
             >
-              <span className="floor-seating-selector-chip-label">{formatSeatingChipLabel(seating)}</span>
-              {summaryLabel ? (
-                <span className="floor-seating-selector-chip-summary">{summaryLabel}</span>
+              <span className="floor-seating-selector-chip-name">{seating.name}</span>
+              <span className="floor-seating-selector-chip-time">{seating.startTime}</span>
+              {summaryCount ? (
+                <span className="floor-seating-selector-chip-count">{summaryCount}</span>
               ) : null}
             </button>
           )
