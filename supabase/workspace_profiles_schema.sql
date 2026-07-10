@@ -1,5 +1,7 @@
 -- Singleton workspace profile for the current ONE workspace.
 -- Run in Supabase SQL editor if this table does not already exist.
+-- Existing databases that predate venue location fields must also run
+-- workspace_profiles_venue_location.sql (idempotent ALTER).
 
 create table if not exists public.workspace_profiles (
   id bigint generated always as identity primary key,
@@ -10,6 +12,10 @@ create table if not exists public.workspace_profiles (
   timezone text not null default '',
   currency text not null default '',
   logo_url text not null default '',
+  country_code text not null default '',
+  country_name text not null default '',
+  city text not null default '',
+  default_phone_country_code text not null default '',
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );

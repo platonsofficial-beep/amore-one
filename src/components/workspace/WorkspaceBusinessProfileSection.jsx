@@ -1,9 +1,9 @@
 import {
   MAX_WORKSPACE_LOGO_BYTES,
   WORKSPACE_PROFILE_CURRENCIES,
-  WORKSPACE_PROFILE_TIMEZONES,
 } from '../../lib/workspaceProfileOptions'
 import { isWorkspaceProfileConfigured } from '../../lib/workspaceProfileUtils'
+import { WorkspaceTimezonePicker } from './WorkspaceTimezonePicker'
 
 export function WorkspaceBusinessProfileSection({
   workspaceProfile,
@@ -91,17 +91,15 @@ export function WorkspaceBusinessProfileSection({
               />
             </label>
             <label className="form-field">
-              <span>Timezone</span>
-              <select
+              <span>Time zone</span>
+              <WorkspaceTimezonePicker
                 value={workspaceProfile.timezone}
-                onChange={(event) => onChange({ ...workspaceProfile, timezone: event.target.value })}
+                onChange={(timezone) => onChange({ ...workspaceProfile, timezone })}
                 disabled={isLoading || isSaving}
-              >
-                <option value="">Browser default</option>
-                {WORKSPACE_PROFILE_TIMEZONES.map((option) => (
-                  <option key={option.value} value={option.value}>{option.label}</option>
-                ))}
-              </select>
+                countryCode={workspaceProfile.countryCode}
+                countryName={workspaceProfile.countryName}
+                city={workspaceProfile.city}
+              />
             </label>
             <label className="form-field">
               <span>Currency</span>

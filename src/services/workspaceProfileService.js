@@ -28,6 +28,24 @@ function isTableUnavailableError(error) {
     || message.includes('could not find the table')
 }
 
+function isMissingColumnError(error) {
+  const message = error?.message?.toLowerCase() ?? ''
+  return message.includes('schema cache')
+    && message.includes('column')
+}
+
+function getWorkspaceProfileErrorMessage(error, action = 'load') {
+  if (isTableUnavailableError(error)) {
+    return 'Workspace profile table is not ready yet.'
+  }
+
+  if (isMissingColumnError(error)) {
+    return 'Workspace profile schema is out of date. Run supabase/workspace_profiles_venue_location.sql in the Supabase SQL editor, then reload schema cache if needed.'
+  }
+
+  return error.message || `Unable to ${action} workspace profile right now.`
+}
+
 function normalizeProfile(profile = {}) {
   return {
     id: profile.id ?? null,
@@ -102,7 +120,7 @@ export async function getWorkspaceProfile() {
       throw new Error('Workspace profile table is not ready yet.')
     }
 
-    throw new Error(error.message || 'Unable to load workspace profile right now.')
+    throw new Error(getWorkspaceProfileErrorMessage(error, 'load'))
   }
 
   if (data) {
@@ -129,7 +147,7 @@ export async function saveWorkspaceProfile(profile) {
       throw new Error('Workspace profile table is not ready yet.')
     }
 
-    throw new Error(existingError.message || 'Unable to save workspace profile right now.')
+    throw new Error(getWorkspaceProfileErrorMessage(existingError, 'save'))
   }
 
   const request = existing?.id
@@ -149,7 +167,7 @@ export async function saveWorkspaceProfile(profile) {
 
   if (error) {
     console.error('[workspaceProfileService] saveWorkspaceProfile error:', error)
-    throw new Error(error.message || 'Unable to save workspace profile right now.')
+    throw new Error(getWorkspaceProfileErrorMessage(error, 'save'))
   }
 
   return mapWorkspaceProfile(data)

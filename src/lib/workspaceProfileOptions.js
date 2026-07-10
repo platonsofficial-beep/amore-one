@@ -1,4 +1,5 @@
 export const WORKSPACE_PROFILE_TIMEZONES = [
+  { value: 'Europe/Nicosia', label: 'Nicosia' },
   { value: 'America/New_York', label: 'Eastern Time (US & Canada)' },
   { value: 'America/Chicago', label: 'Central Time (US & Canada)' },
   { value: 'America/Denver', label: 'Mountain Time (US & Canada)' },

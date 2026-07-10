@@ -1,4 +1,6 @@
 -- Venue location fields for workspace profile (idempotent).
+-- Required by Settings → Business Profile and reservation phone defaults.
+-- Run after workspace_profiles_schema.sql on databases created before 2026-07-10.
 alter table if exists public.workspace_profiles
   add column if not exists country_code text not null default '',
   add column if not exists country_name text not null default '',
