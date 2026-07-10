@@ -7,35 +7,25 @@ import { describe, expect, it } from 'vitest'
 import { HostTableTapDirectMarker } from './HostTableTapDirectMarker'
 
 describe('HostTableTapDirectMarker', () => {
-  it('renders the production marker and last tap label', () => {
+  it('renders v2 lifecycle fields', () => {
     const container = document.createElement('div')
     document.body.appendChild(container)
     const root = createRoot(container)
 
     act(() => {
-      root.render(createElement(HostTableTapDirectMarker, { lastTableTap: 'T10' }))
+      root.render(createElement(HostTableTapDirectMarker, {
+        lastTableTap: 'T10',
+        openedTable: 'T10',
+        lastDismissSource: 'none',
+        openDurationMs: 2400,
+      }))
     })
 
     const marker = container.querySelector('[data-testid="host-table-tap-direct-marker"]')
-    expect(marker?.textContent).toContain('TABLE TAP DIRECT v1')
-    expect(marker?.textContent).toContain('Last table tap: T10')
-
-    act(() => {
-      root.unmount()
-    })
-    container.remove()
-  })
-
-  it('defaults last tap to none', () => {
-    const container = document.createElement('div')
-    document.body.appendChild(container)
-    const root = createRoot(container)
-
-    act(() => {
-      root.render(createElement(HostTableTapDirectMarker))
-    })
-
-    expect(container.textContent).toContain('Last table tap: none')
+    expect(marker?.textContent).toContain('TABLE TAP DIRECT v2')
+    expect(marker?.textContent).toContain('Opened table: T10')
+    expect(marker?.textContent).toContain('Last dismiss: none')
+    expect(marker?.textContent).toContain('Duration: 2400ms')
 
     act(() => {
       root.unmount()

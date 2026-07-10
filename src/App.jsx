@@ -172,7 +172,15 @@ import {
   shouldOpenTableDayViewOnTableClick,
 } from './lib/tableDayView'
 import {
-  buildHostServiceDashboard,
+  buildHostFloorContextSnapshot,
+  createHostScheduleCardLifecycleState,
+  getScheduleCardOpenDurationMs,
+  recordScheduleCardDismiss,
+  recordScheduleCardOpen,
+  resolveScheduleCardTableById,
+  shouldCloseScheduleCardForFloorContextChange,
+  shouldIgnoreCanvasDismissForScheduleCard,
+} from './lib/hostScheduleCardLifecycle'
   countHostListFilterMatches,
   hostListFilterMatch as matchHostReservationListFilter,
 } from './lib/hostServiceDashboard'
@@ -7977,21 +7985,52 @@ function FloorPlanView({
   const [floorZoom, setFloorZoom] = useState(1)
   const [floorPan, setFloorPan] = useState({ x: 0, y: 0 })
   const [tooltipDismissVersion, setTooltipDismissVersion] = useState(0)
-  const [scheduleCardTable, setScheduleCardTable] = useState(null)
+  const [scheduleCardTableId, setScheduleCardTableId] = useState(null)
+  const [scheduleCardLifecycle, setScheduleCardLifecycle] = useState(createHostScheduleCardLifecycleState)
+  const [scheduleCardMarkerNow, setScheduleCardMarkerNow] = useState(() => Date.now())
   const [lastHostTableTapLabel, setLastHostTableTapLabel] = useState('none')
   const hostTableTapRegistryRef = useRef(createHostFloorTableTapRegistry())
+  const scheduleCardTableIdRef = useRef(null)
+  const visibleTableStatesRef = useRef([])
+  scheduleCardTableIdRef.current = scheduleCardTableId
+
+  const scheduleCardTable = useMemo(() => resolveScheduleCardTableById(scheduleCardTableId, {
+    layoutTables: layout?.tables ?? [],
+    visibleTableStates: [],
+  }), [layout?.tables, scheduleCardTableId])
+
+  const closeScheduleCardTable = useCallback((source) => {
+    setScheduleCardTableId(null)
+    setScheduleCardLifecycle((current) => recordScheduleCardDismiss(current, source))
+  }, [])
+
+  const openScheduleCardTable = useCallback((table, source = 'table-tap') => {
+    if (!table?.id) return
+    setScheduleCardTableId(String(table.id))
+    setScheduleCardLifecycle((current) => recordScheduleCardOpen(current, {
+      tableId: table.id,
+      tableLabel: table.label ?? table.displayLabel,
+    }))
+  }, [])
 
   useEffect(() => {
     if (!isHostFloorDebugEnabled() || !isCompact) return
     patchHostFloorDebugTrace({
-      dayViewState: scheduleCardTable ? 'open' : 'closed',
-      lastEvent: scheduleCardTable ? 'schedule-card-open' : 'schedule-card-closed',
+      dayViewState: scheduleCardTableId ? 'open' : 'closed',
+      lastEvent: scheduleCardTableId ? 'schedule-card-open' : 'schedule-card-closed',
     })
-  }, [isCompact, scheduleCardTable])
+  }, [isCompact, scheduleCardTableId])
+
+  useEffect(() => {
+    if (!isCompact || !scheduleCardLifecycle.openedAt) return undefined
+    const timerId = window.setInterval(() => {
+      setScheduleCardMarkerNow(Date.now())
+    }, 250)
+    return () => window.clearInterval(timerId)
+  }, [isCompact, scheduleCardLifecycle.openedAt])
 
   const dismissFloorTooltips = useCallback(() => {
     setTooltipDismissVersion((current) => current + 1)
-    setScheduleCardTable(null)
   }, [])
 
   const clampFloorZoom = useCallback((value) => (
@@ -8001,16 +8040,16 @@ function FloorPlanView({
   floorPanStateRef.current = floorPan
 
   const handleFloorZoomIn = useCallback(() => {
-    dismissFloorTooltips()
+    closeScheduleCardTable('zoom-in')
     isManualFloorZoomRef.current = true
     setFloorZoom((current) => clampFloorZoom(current + 0.12))
-  }, [clampFloorZoom, dismissFloorTooltips])
+  }, [clampFloorZoom, closeScheduleCardTable])
 
   const handleFloorZoomOut = useCallback(() => {
-    dismissFloorTooltips()
+    closeScheduleCardTable('zoom-out')
     isManualFloorZoomRef.current = true
     setFloorZoom((current) => clampFloorZoom(current - 0.12))
-  }, [clampFloorZoom, dismissFloorTooltips])
+  }, [clampFloorZoom, closeScheduleCardTable])
 
   useEffect(() => {
     if (!isCompact) return undefined
@@ -8019,6 +8058,7 @@ function FloorPlanView({
     if (!viewport) return undefined
 
     const onWheel = (event) => {
+      if (scheduleCardTableIdRef.current) return
       dismissFloorTooltips()
       if (!event.ctrlKey && !event.metaKey) return
 
@@ -8086,49 +8126,25 @@ function FloorPlanView({
     [effectiveSeatings],
   )
 
-  const scheduleCardRows = useMemo(() => {
-    if (!scheduleCardTable) return []
-    return buildFloorTableDayViewRows(
-      scheduleCardTable,
-      assignmentReservations,
-      todayKey,
-      effectiveSeatings,
-      {
-        layout,
-        seatingsById,
-        nowMinutes,
-        todayKey,
-      },
-    )
-  }, [
-    assignmentReservations,
-    effectiveSeatings,
-    layout,
-    nowMinutes,
-    scheduleCardTable,
-    seatingsById,
-    todayKey,
-  ])
-
   const scheduleCardDateLabel = useMemo(
     () => formatHostWorkspaceLongDateLabel(todayKey),
     [todayKey],
   )
 
   useEffect(() => {
-    if (hostEditingReservation) {
-      setScheduleCardTable(null)
+    if (hostEditingReservation && scheduleCardTableIdRef.current) {
+      closeScheduleCardTable('host-edit-open')
     }
-  }, [hostEditingReservation])
+  }, [closeScheduleCardTable, hostEditingReservation])
 
   const handleScheduleCardEdit = useCallback((reservation) => {
-    setScheduleCardTable(null)
+    closeScheduleCardTable('open-reservation')
     if (onOpenReservation) {
       onOpenReservation(reservation)
       return
     }
     openHostEdit(reservation)
-  }, [onOpenReservation, openHostEdit])
+  }, [closeScheduleCardTable, onOpenReservation, openHostEdit])
 
   const handleScheduleCardQuickStatus = useCallback(async (reservation, status) => {
     if (!onQuickStatusUpdate || !reservation) return
@@ -8143,9 +8159,9 @@ function FloorPlanView({
       seating,
       layout,
     })
-    setScheduleCardTable(null)
+    closeScheduleCardTable('new-reservation')
     onOpenAddReservation?.(prefill)
-  }, [layout, onOpenAddReservation, scheduleCardTable, todayKey])
+  }, [closeScheduleCardTable, layout, onOpenAddReservation, scheduleCardTable, todayKey])
 
   const handleScheduleCardReleaseTable = useCallback(async (reservation) => {
     if (!onHostEditSave || !scheduleCardTable || !reservation || !canManageAssignment) return
@@ -8225,6 +8241,40 @@ function FloorPlanView({
     ))
   ), [resolvedFloorAreaId, floorPlanSnapshot.tableStates])
 
+  visibleTableStatesRef.current = visibleTableStates
+
+  const resolvedScheduleCardTable = useMemo(() => {
+    if (!scheduleCardTableId) return null
+    return resolveScheduleCardTableById(scheduleCardTableId, {
+      layoutTables: layout?.tables ?? [],
+      visibleTableStates,
+    }) ?? scheduleCardTable
+  }, [layout?.tables, scheduleCardTable, scheduleCardTableId, visibleTableStates])
+
+  const scheduleCardRows = useMemo(() => {
+    if (!resolvedScheduleCardTable) return []
+    return buildFloorTableDayViewRows(
+      resolvedScheduleCardTable,
+      assignmentReservations,
+      todayKey,
+      effectiveSeatings,
+      {
+        layout,
+        seatingsById,
+        nowMinutes,
+        todayKey,
+      },
+    )
+  }, [
+    assignmentReservations,
+    effectiveSeatings,
+    layout,
+    nowMinutes,
+    resolvedScheduleCardTable,
+    seatingsById,
+    todayKey,
+  ])
+
   const reservationLinkGroups = useMemo(
     () => (isCompact && !isHeatmap ? buildReservationLinkGroups(visibleTableStates) : []),
     [isCompact, isHeatmap, visibleTableStates],
@@ -8240,7 +8290,7 @@ function FloorPlanView({
     if (!viewport) return
 
     const layoutSpace = viewport.querySelector('.floor-plan-layout-space')
-    const tables = visibleTableStates.map((tableState) => tableState.table)
+    const tables = visibleTableStatesRef.current.map((tableState) => tableState.table)
     const fit = computeHostFloorFit({
       tables,
       viewportWidth: layoutSpace?.clientWidth || viewport.clientWidth,
@@ -8250,33 +8300,60 @@ function FloorPlanView({
     setFloorZoom(fit.zoom)
     setFloorPan(fit.pan)
     isManualFloorZoomRef.current = false
-  }, [visibleTableStates])
+  }, [])
 
   const handleFloorZoomFit = useCallback(() => {
-    dismissFloorTooltips()
+    closeScheduleCardTable('zoom-fit')
     applyHostFloorAutoFit()
-  }, [applyHostFloorAutoFit, dismissFloorTooltips])
+  }, [applyHostFloorAutoFit, closeScheduleCardTable])
 
   const handleFloorZoomReset = useCallback(() => {
-    dismissFloorTooltips()
+    closeScheduleCardTable('zoom-reset')
     setFloorZoom(1)
     setFloorPan({ x: 0, y: 0 })
     isManualFloorZoomRef.current = true
-  }, [dismissFloorTooltips])
+  }, [closeScheduleCardTable])
+
+  const hostFloorContextRef = useRef(null)
 
   useEffect(() => {
     if (!isCompact) return undefined
 
-    dismissFloorTooltips()
+    const nextContext = buildHostFloorContextSnapshot({
+      areaId: resolvedFloorAreaId,
+      layoutId: floorPlanSnapshot.layout.id,
+      publishedAt: floorPlanSnapshot.layout.publishedAt,
+    })
+
+    if (shouldCloseScheduleCardForFloorContextChange({
+      previous: hostFloorContextRef.current,
+      next: nextContext,
+    })) {
+      closeScheduleCardTable(
+        hostFloorContextRef.current?.areaId !== nextContext.areaId
+          ? 'floor-area-change'
+          : 'floor-layout-change',
+      )
+    }
+
+    hostFloorContextRef.current = nextContext
     isManualFloorZoomRef.current = false
     applyHostFloorAutoFit()
-  }, [activeFloorAreaId, applyHostFloorAutoFit, dismissFloorTooltips, floorPlanSnapshot.layout.id, floorPlanSnapshot.layout.publishedAt, isCompact, resolvedFloorAreaId])
+  }, [
+    activeFloorAreaId,
+    applyHostFloorAutoFit,
+    closeScheduleCardTable,
+    floorPlanSnapshot.layout.id,
+    floorPlanSnapshot.layout.publishedAt,
+    isCompact,
+    resolvedFloorAreaId,
+  ])
 
   useEffect(() => {
     if (floorPlanMode === 'edit') {
-      dismissFloorTooltips()
+      closeScheduleCardTable('edit-layout')
     }
-  }, [dismissFloorTooltips, floorPlanMode])
+  }, [closeScheduleCardTable, floorPlanMode])
 
   useEffect(() => {
     if (!isCompact) return undefined
@@ -8508,7 +8585,7 @@ function FloorPlanView({
     ) {
       event?.stopPropagation?.()
       setTooltipDismissVersion((current) => current + 1)
-      setScheduleCardTable(tableState.table)
+      openScheduleCardTable(tableState.table, 'table-tap')
       if (isHostFloorDebugEnabled()) {
         patchHostFloorDebugTrace({
           callbackFired: true,
@@ -8544,14 +8621,18 @@ function FloorPlanView({
   }
 
   const handleCanvasClick = () => {
-    if (suppressTableClickRef.current) return
+    if (shouldIgnoreCanvasDismissForScheduleCard({
+      suppressTableClick: suppressTableClickRef.current,
+      hasScheduleCardTable: Boolean(scheduleCardTableIdRef.current),
+    })) {
+      return
+    }
     dismissFloorTooltips()
     if (isHeatmap) {
       setAnalyticsTableId(null)
     }
   }
 
-  const visibleTableStatesRef = useRef([])
   visibleTableStatesRef.current = visibleTableStates
 
   const suppressTableClickRef = useRef(false)
@@ -8864,7 +8945,14 @@ function FloorPlanView({
 
   return (
     <div className={`floor-plan-workspace${isCompact ? ' is-compact is-host-floor' : ''}${selectedSeating ? ' has-active-seating' : ''}${showHostSeatingBar && isCompact ? ' has-seating-drawer' : ''}${isHeatmap ? ' is-heatmap-mode' : ' is-normal-mode'}`} data-floor-view-mode={viewMode}>
-      {isCompact ? <HostTableTapDirectMarker lastTableTap={lastHostTableTapLabel} /> : null}
+      {isCompact ? (
+        <HostTableTapDirectMarker
+          lastTableTap={lastHostTableTapLabel}
+          openedTable={scheduleCardLifecycle.openedTableLabel || (scheduleCardTableId ? scheduleCardTableId : 'none')}
+          lastDismissSource={scheduleCardLifecycle.lastDismissSource}
+          openDurationMs={getScheduleCardOpenDurationMs(scheduleCardLifecycle, scheduleCardMarkerNow)}
+        />
+      ) : null}
       {loadError ? (
         <div className="floor-plan-persistence-notice" role="status">{loadError}</div>
       ) : null}
@@ -9099,18 +9187,18 @@ function FloorPlanView({
         onSplitPlaceholder={handleSplitPlaceholder}
       />
 
-      {isCompact && scheduleCardTable && !isHeatmap ? (
+      {isCompact && scheduleCardTableId && resolvedScheduleCardTable && !isHeatmap ? (
         <FloorTableSeatingDialog
-          table={scheduleCardTable}
-          tableLabel={getFloorTableDialogLabel(scheduleCardTable)}
-          areaLabel={formatFloorTableAreaLabel(layout, scheduleCardTable)}
+          table={resolvedScheduleCardTable}
+          tableLabel={getFloorTableDialogLabel(resolvedScheduleCardTable)}
+          areaLabel={formatFloorTableAreaLabel(layout, resolvedScheduleCardTable)}
           dateLabel={scheduleCardDateLabel}
           rows={scheduleCardRows}
           onOpenReservation={handleScheduleCardEdit}
           onNewReservation={handleScheduleCardNewReservation}
           onQuickStatusUpdate={handleScheduleCardQuickStatus}
           onReleaseTable={handleScheduleCardReleaseTable}
-          onClose={() => setScheduleCardTable(null)}
+          onClose={() => closeScheduleCardTable('dialog-close')}
           isSaving={isSaving}
           canManageAssignment={canManageAssignment}
         />
