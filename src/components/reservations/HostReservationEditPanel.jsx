@@ -7,6 +7,7 @@ import {
 } from '../../lib/seatingAssignment'
 import { CUSTOMER_TYPES } from '../../lib/reservationCustomerType'
 import { resolveAreaIdForReservation } from '../../lib/reservationTableOptions'
+import { resolveReservationSeatingId } from '../../lib/reservationSeatings'
 import { normalizeReservationTimeValue, normalizeReservationDateKey } from '../../lib/timeFormatUtils'
 import { validateReservationFormFields } from '../../lib/reservationFormValidation'
 import {
@@ -18,12 +19,13 @@ import { usePublishedFloorPlan } from '../../lib/PublishedFloorPlanContext'
 import { ReservationTableSelector } from './ReservationTableSelector'
 import { ReservationDateField } from './ReservationDateField'
 import { ReservationTimeSelect } from './ReservationTimeSelect'
+import { ReservationSeatingSelect } from './ReservationSeatingSelect'
 
 import { HOST_RESERVATION_STATUSES } from '../../lib/reservationHostStatus'
 
 const RESERVATION_STATUSES = HOST_RESERVATION_STATUSES.map((entry) => entry.id)
 
-export function createHostReservationEditForm(reservation, layout) {
+export function createHostReservationEditForm(reservation, layout, seatings = []) {
   if (!reservation) return null
 
   const safeReservation = {
@@ -55,6 +57,7 @@ export function createHostReservationEditForm(reservation, layout) {
     extraChairs: assignment.extraChairs ?? 0,
     standingGuests: assignment.standingGuests ?? 0,
     seatingAreaId: resolveAreaIdForReservation(layout, safeReservation, assignedUnits),
+    seatingId: resolveReservationSeatingId(safeReservation, seatings),
   }
 }
 
@@ -73,6 +76,7 @@ export function HostReservationEditPanel({
   reservations = [],
   todayKey,
   layout,
+  seatings = [],
 }) {
   const [notesExpanded, setNotesExpanded] = useState(false)
   const isDrawer = variant === 'drawer'
@@ -247,11 +251,21 @@ export function HostReservationEditPanel({
               />
             </label>
 
+            <ReservationSeatingSelect
+              className="host-reservation-edit-field reservation-seating-select"
+              seatings={seatings}
+              dateKey={form.date || todayKey}
+              seatingId={form.seatingId}
+              timeValue={form.time}
+              onSeatingChange={(seatingId) => updateField({ seatingId })}
+              onTimeChange={(time) => updateField({ time })}
+            />
+
             <label className="host-reservation-edit-field">
               <span>Time</span>
               <ReservationTimeSelect
                 value={form.time}
-                onChange={(time) => updateField({ time })}
+                onChange={(time) => updateField({ time, seatingId: null })}
                 required
               />
             </label>
@@ -306,6 +320,8 @@ export function HostReservationEditPanel({
               todayKey={form.date || todayKey}
               reservationTime={form.time}
               reservationId={reservation.id}
+              seatingId={form.seatingId}
+              seatings={seatings}
               selectedAreaId={form.seatingAreaId}
               assignedUnits={form.assignedUnits}
               guests={form.guests}

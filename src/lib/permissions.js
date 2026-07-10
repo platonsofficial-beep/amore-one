@@ -149,6 +149,10 @@ export function canEditFloorPlan(role) {
   return isManagerRole(role)
 }
 
+export function canConfigureReservationSeatings(role) {
+  return isManagerRole(role)
+}
+
 export function canManageReservations(role) {
   return canAccessModule(role, 'reservations')
 }

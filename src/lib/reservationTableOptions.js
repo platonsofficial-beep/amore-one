@@ -7,6 +7,7 @@ import {
   normalizeReservationStatus,
   isTerminalReservationStatus,
 } from './reservationHostStatus'
+import { resolveReservationBlockedInterval } from './reservationSeatings'
 import { parseTimeToMinutes } from './shiftHoursUtils'
 import { normalizeReservationDateKey } from './timeFormatUtils'
 import {
@@ -74,15 +75,26 @@ export function getConflictingUnitIds(
   {
     excludeReservationId = null,
     layout = null,
-    durationMinutes = DEFAULT_RESERVATION_DURATION_MINUTES,
+    durationMinutes = null,
     bufferMinutes = RESERVATION_TURNOVER_BUFFER_MINUTES,
+    seatingId = null,
+    seatingsById = new Map(),
   } = {},
 ) {
   const conflicts = new Map()
   const normalizedDateKey = `${dateKey ?? ''}`.slice(0, 10)
   if (!normalizedDateKey) return conflicts
 
-  const candidateInterval = buildReservationBlockedInterval(timeValue, durationMinutes, bufferMinutes)
+  const selectedSeating = seatingId ? seatingsById.get(seatingId) : null
+  const candidateTime = selectedSeating?.startTime ?? timeValue
+  const candidateDuration = durationMinutes
+    ?? (selectedSeating ? selectedSeating.durationMinutes : DEFAULT_RESERVATION_DURATION_MINUTES)
+
+  const candidateInterval = buildReservationBlockedInterval(
+    candidateTime,
+    candidateDuration,
+    bufferMinutes,
+  )
   if (!candidateInterval) return conflicts
 
   const layoutUnits = layout ? (layout.units ?? layout.tables ?? []) : []
@@ -92,9 +104,14 @@ export function getConflictingUnitIds(
     if (excludeReservationId && String(reservation.id) === String(excludeReservationId)) return
     if (!reservationBlocksTableAvailability(reservation)) return
 
+    const blocked = resolveReservationBlockedInterval(reservation, seatingsById, {
+      fallbackDurationMinutes: DEFAULT_RESERVATION_DURATION_MINUTES,
+    })
+    if (!blocked?.timeValue) return
+
     const existingInterval = buildReservationBlockedInterval(
-      reservation.time,
-      durationMinutes,
+      blocked.timeValue,
+      blocked.durationMinutes,
       bufferMinutes,
     )
     if (!reservationBlockedIntervalsOverlap(candidateInterval, existingInterval)) return
@@ -103,11 +120,14 @@ export function getConflictingUnitIds(
       const unitId = resolveOccupiedUnitId(unit, layoutUnits)
       if (!unitId) return
 
+      const guests = Math.max(0, Number(reservation.guests ?? reservation.party_size) || 0)
       conflicts.set(unitId, {
         reservationId: reservation.id,
-        guestName: reservation.guestName,
-        time: reservation.time,
+        guestName: reservation.guestName ?? reservation.guest_name ?? '',
+        time: blocked.timeValue,
+        guests,
         status: normalizeReservationStatus(reservation.status),
+        seatingId: blocked.seatingId,
       })
     })
   })

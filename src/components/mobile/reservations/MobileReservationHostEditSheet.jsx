@@ -9,6 +9,7 @@ export function MobileReservationHostEditSheet({
   reservation = null,
   todayKey = '',
   reservations = [],
+  seatings = [],
   isSaving = false,
   variant = 'sheet',
   onClose,
@@ -20,8 +21,8 @@ export function MobileReservationHostEditSheet({
   const [form, setForm] = useState(null)
 
   useEffect(() => {
-    setForm(reservation ? createHostReservationEditForm(reservation, layout) : null)
-  }, [reservation, layout])
+    setForm(reservation ? createHostReservationEditForm(reservation, layout, seatings) : null)
+  }, [reservation, layout, seatings])
 
   if (!reservation) return null
 
@@ -70,6 +71,7 @@ export function MobileReservationHostEditSheet({
       reservations={reservations}
       todayKey={todayKey}
       layout={layout}
+      seatings={seatings}
     />
   )
 

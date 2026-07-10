@@ -1,0 +1,187 @@
+import { describe, expect, it } from 'vitest'
+import { computeSeatingAssignmentTotals } from './seatingAssignment'
+import { getConflictingUnitIds } from './reservationTableOptions'
+import {
+  buildFloorTableSeatingRows,
+  findReservationForTableSeating,
+  formatTableConflictReason,
+  reservationBlocksTableAvailability,
+} from './tableAvailability'
+import { buildSeatingsById } from './reservationSeatings'
+
+const SEATINGS = buildSeatingsById([
+  {
+    id: 'dinner-1',
+    name: 'Dinner 1',
+    startTime: '19:00',
+    durationMinutes: 90,
+    daysOfWeek: [0, 1, 2, 3, 4, 5, 6],
+    sortOrder: 0,
+    isActive: true,
+  },
+  {
+    id: 'dinner-2',
+    name: 'Dinner 2',
+    startTime: '21:00',
+    durationMinutes: 90,
+    daysOfWeek: [0, 1, 2, 3, 4, 5, 6],
+    sortOrder: 1,
+    isActive: true,
+  },
+])
+
+const LAYOUT = {
+  units: [
+    { id: 't3', label: 'T3', zoneId: 'main', seatedCapacity: 2, maxGuestCapacity: 4 },
+    { id: 't4', label: 'T4', zoneId: 'main', seatedCapacity: 2, maxGuestCapacity: 4 },
+  ],
+}
+
+function buildReservation(overrides = {}) {
+  return {
+    id: 'res-1',
+    guestName: 'Alex',
+    date: '2026-07-09',
+    time: '19:00',
+    guests: 4,
+    status: 'Confirmed',
+    seatingId: 'dinner-1',
+    seatingAssignment: {
+      assignedUnits: [{ id: 't3', label: 'T3', seatedCapacity: 2, maxGuestCapacity: 4 }],
+      extraChairs: 0,
+      standingGuests: 0,
+    },
+    ...overrides,
+  }
+}
+
+describe('tableAvailability', () => {
+  it('marks table available for one seating but occupied for another', () => {
+    const reservations = [buildReservation()]
+    const table = { id: 't3', label: 'T3' }
+
+    const earlyConflicts = getConflictingUnitIds(reservations, '2026-07-09', '19:00', {
+      seatingId: 'dinner-1',
+      seatingsById: SEATINGS,
+      layout: LAYOUT,
+    })
+    const lateConflicts = getConflictingUnitIds(reservations, '2026-07-09', '21:00', {
+      seatingId: 'dinner-2',
+      seatingsById: SEATINGS,
+      layout: LAYOUT,
+    })
+
+    expect(earlyConflicts.has('t3')).toBe(true)
+    expect(lateConflicts.has('t3')).toBe(false)
+  })
+
+  it('blocks every table in a multi-table reservation', () => {
+    const reservations = [
+      buildReservation({
+        seatingAssignment: {
+          assignedUnits: [
+            { id: 't3', label: 'T3', seatedCapacity: 2, maxGuestCapacity: 4 },
+            { id: 't4', label: 'T4', seatedCapacity: 2, maxGuestCapacity: 4 },
+          ],
+          extraChairs: 0,
+          standingGuests: 0,
+        },
+      }),
+    ]
+
+    const conflicts = getConflictingUnitIds(reservations, '2026-07-09', '19:00', {
+      seatingId: 'dinner-1',
+      seatingsById: SEATINGS,
+      layout: LAYOUT,
+    })
+
+    expect(conflicts.has('t3')).toBe(true)
+    expect(conflicts.has('t4')).toBe(true)
+  })
+
+  it('does not block tables for completed, cancelled, or no-show reservations', () => {
+    const statuses = ['Checked Out', 'Cancelled', 'Not Shown']
+
+    statuses.forEach((status) => {
+      const conflicts = getConflictingUnitIds(
+        [buildReservation({ status })],
+        '2026-07-09',
+        '19:00',
+        {
+          seatingId: 'dinner-1',
+          seatingsById: SEATINGS,
+          layout: LAYOUT,
+        },
+      )
+
+      expect(conflicts.size).toBe(0)
+    })
+  })
+
+  it('excludes the reservation being edited from conflict checks', () => {
+    const reservations = [buildReservation({ id: 'res-edit' })]
+    const conflicts = getConflictingUnitIds(reservations, '2026-07-09', '19:00', {
+      seatingId: 'dinner-1',
+      seatingsById: SEATINGS,
+      layout: LAYOUT,
+      excludeReservationId: 'res-edit',
+    })
+
+    expect(conflicts.size).toBe(0)
+  })
+
+  it('formats conflict reasons for unavailable tables', () => {
+    const reason = formatTableConflictReason({
+      time: '19:00',
+      guests: 4,
+      guestName: 'Alex',
+    })
+
+    expect(reason).toContain('Reserved at 19:00')
+    expect(reason).toContain('4 guests')
+    expect(reason).toContain('Alex')
+  })
+
+  it('builds per-seating rows for a table', () => {
+    const reservations = [buildReservation()]
+    const table = { id: 't3', label: 'T3' }
+    const rows = buildFloorTableSeatingRows(table, reservations, '2026-07-09', [...SEATINGS.values()], {
+      layout: LAYOUT,
+      seatingsById: SEATINGS,
+    })
+
+    expect(rows).toHaveLength(2)
+    expect(rows[0].isAvailable).toBe(false)
+    expect(rows[1].isAvailable).toBe(true)
+  })
+
+  it('finds occupied reservation for a table seating', () => {
+    const reservations = [buildReservation({ guestName: 'Jordan' })]
+    const reservation = findReservationForTableSeating(
+      reservations,
+      { id: 't3' },
+      '2026-07-09',
+      SEATINGS.get('dinner-1'),
+      { seatingsById: SEATINGS, layout: LAYOUT },
+    )
+
+    expect(reservation?.guestName).toBe('Jordan')
+  })
+
+  it('reports advisory capacity below party size without blocking save semantics', () => {
+    const totals = computeSeatingAssignmentTotals({
+      assignedUnits: [{ id: 't3', label: 'T3', seatedCapacity: 2, maxGuestCapacity: 4 }],
+      extraChairs: 0,
+      standingGuests: 0,
+    }, 6)
+
+    expect(totals.isUnderCapacity).toBe(true)
+    expect(totals.capacityGap).toBe(2)
+  })
+
+  it('uses terminal status helper for availability blocking', () => {
+    expect(reservationBlocksTableAvailability('Confirmed')).toBe(true)
+    expect(reservationBlocksTableAvailability('Checked Out')).toBe(false)
+    expect(reservationBlocksTableAvailability('Not Shown')).toBe(false)
+  })
+})

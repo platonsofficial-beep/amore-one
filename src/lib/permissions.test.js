@@ -14,6 +14,7 @@ import {
   canManageAnnouncements,
   canManageEmployeeInvites,
   canManageOperations,
+  canConfigureReservationSeatings,
   canManageReservations,
   canManageStock,
   canOpenMobileFullSchedule,
@@ -113,6 +114,14 @@ describe('permissions', () => {
       expect(canManageReservations('manager')).toBe(true)
       expect(canManageReservations('host')).toBe(true)
       expect(canManageReservations('staff')).toBe(false)
+    })
+
+    it('limits seating configuration to management roles', () => {
+      expect(canConfigureReservationSeatings('owner')).toBe(true)
+      expect(canConfigureReservationSeatings('general_manager')).toBe(true)
+      expect(canConfigureReservationSeatings('manager')).toBe(true)
+      expect(canConfigureReservationSeatings('host')).toBe(false)
+      expect(canConfigureReservationSeatings('staff')).toBe(false)
     })
   })
 

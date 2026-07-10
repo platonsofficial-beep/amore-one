@@ -60,7 +60,7 @@ export function WorkspaceVenueSetupSection({
           title="Reservation Areas"
           icon="🍽️"
           items={reservationAreas}
-          fallbackNote="Configure dining areas in Reservations → Settings."
+          fallbackNote="Configure service seatings in Settings → Reservations."
         />
         <WorkspaceVenueCard
           title="Task Boards"

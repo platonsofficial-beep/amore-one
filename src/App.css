@@ -6697,6 +6697,224 @@
   }
 }
 
+@media (max-width: 720px) {
+  .floor-table-schedule-card {
+    width: 100%;
+    max-height: min(78vh, 520px);
+  }
+}
+
+.floor-table-seating-dialog-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 39;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 0;
+  pointer-events: none;
+}
+
+.floor-table-seating-dialog-overlay.is-tablet {
+  align-items: center;
+  padding: 16px;
+}
+
+.floor-table-seating-dialog-backdrop {
+  position: absolute;
+  inset: 0;
+  border: 0;
+  margin: 0;
+  padding: 0;
+  background: rgba(0, 0, 0, 0.28);
+  pointer-events: auto;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.floor-table-seating-dialog {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  width: min(100%, 340px);
+  max-height: min(68vh, 420px);
+  border-radius: 16px 16px 0 0;
+  border: 1px solid rgba(212, 175, 55, 0.24);
+  border-bottom: 0;
+  background: rgba(8, 8, 10, 0.98);
+  box-shadow:
+    0 -8px 32px rgba(0, 0, 0, 0.42),
+    0 0 20px rgba(212, 175, 55, 0.08);
+  overflow: hidden;
+  pointer-events: auto;
+}
+
+.floor-table-seating-dialog-overlay.is-tablet .floor-table-seating-dialog {
+  width: min(100%, 420px);
+  max-height: min(72vh, 520px);
+  border-radius: 14px;
+  border-bottom: 1px solid rgba(212, 175, 55, 0.24);
+}
+
+.floor-table-seating-dialog-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 16px 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.floor-table-seating-dialog-heading h3 {
+  margin: 0;
+  font-size: 1rem;
+  letter-spacing: 0.04em;
+}
+
+.floor-table-seating-dialog-subtitle,
+.floor-table-seating-dialog-capacity {
+  margin: 4px 0 0;
+  color: rgba(255, 255, 255, 0.68);
+  font-size: 0.78rem;
+}
+
+.floor-table-seating-dialog-list {
+  list-style: none;
+  margin: 0;
+  padding: 8px 12px 12px;
+  overflow: auto;
+}
+
+.floor-table-seating-dialog-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.floor-table-seating-dialog-item-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.floor-table-seating-dialog-status.is-available {
+  color: #8fd6a8;
+}
+
+.floor-table-seating-dialog-status.is-reserved {
+  color: #d4af37;
+}
+
+.floor-table-seating-dialog-reserved {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  padding: 0;
+  text-align: left;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.floor-table-seating-dialog-action {
+  min-height: 44px;
+  padding: 0 14px;
+  border-radius: 10px;
+  border: 1px solid rgba(212, 175, 55, 0.28);
+  background: rgba(212, 175, 55, 0.12);
+  color: #f7efe1;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.floor-table-seating-dialog-empty {
+  padding: 20px 16px;
+  color: rgba(255, 255, 255, 0.68);
+  text-align: center;
+}
+
+.floor-plan-seating-filter {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 8px 12px 0;
+}
+
+.floor-plan-seating-chip {
+  min-height: 44px;
+  padding: 0 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.04);
+  color: #d8cdbd;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.floor-plan-seating-chip.is-active {
+  border-color: rgba(212, 175, 55, 0.42);
+  background: rgba(212, 175, 55, 0.16);
+  color: #f7efe1;
+}
+
+.reservation-table-selector-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 8px 0;
+}
+
+.reservation-table-selector-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  font-size: 0.82rem;
+}
+
+.workspace-seating-days {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.workspace-seating-day-chip {
+  min-width: 44px;
+  min-height: 44px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.04);
+  color: #d8cdbd;
+  cursor: pointer;
+}
+
+.workspace-seating-day-chip.is-active {
+  border-color: rgba(212, 175, 55, 0.42);
+  background: rgba(212, 175, 55, 0.16);
+  color: #f7efe1;
+}
+
+.workspace-seating-row.is-inactive {
+  opacity: 0.72;
+}
+
+.reservation-seating-select-hint {
+  display: block;
+  margin-top: 6px;
+  color: rgba(255, 255, 255, 0.62);
+  font-size: 0.78rem;
+}
+
 .floor-plan-zoom-controls {
   display: inline-flex;
   align-items: center;

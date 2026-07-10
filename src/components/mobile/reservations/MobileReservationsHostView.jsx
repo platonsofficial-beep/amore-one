@@ -36,6 +36,7 @@ export function MobileReservationsHostView({
   onCreateReservation,
   onExitHostMode,
   canEditFloorPlan = false,
+  reservationSeatings = [],
   hasLayout = false,
   onOpenFloorPlanLayout,
   renderRightPane,
@@ -273,6 +274,7 @@ export function MobileReservationsHostView({
         variant="inline"
         todayKey={todayKey}
         reservations={reservations}
+        seatings={reservationSeatings}
         isSaving={isSaving}
         onClose={() => setEditingReservation(null)}
         onSave={onHostEditSave}
@@ -369,6 +371,7 @@ export function MobileReservationsHostView({
             variant={formVariant === 'inline' ? 'panel' : formVariant}
             todayKey={todayKey}
             reservations={reservations}
+            seatings={reservationSeatings}
             isSaving={isSaving}
             onClose={() => setEditingReservation(null)}
             onSave={onHostEditSave}

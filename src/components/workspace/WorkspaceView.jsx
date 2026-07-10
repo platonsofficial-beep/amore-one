@@ -1,6 +1,7 @@
 import { WorkspaceBusinessProfileSection } from './WorkspaceBusinessProfileSection'
 import { WorkspacePositionsSection } from './WorkspacePositionsSection'
 import { WorkspaceVenueSetupSection } from './WorkspaceVenueSetupSection'
+import { WorkspaceReservationSeatingsSection } from './WorkspaceReservationSeatingsSection'
 import { WorkspaceTeamSection } from './WorkspaceTeamSection'
 import { WorkspaceSystemSection } from './WorkspaceSystemSection'
 
@@ -8,6 +9,7 @@ export const WORKSPACE_SECTIONS = [
   { id: 'profile', label: 'Business Profile', icon: '🏢' },
   { id: 'positions', label: 'Positions', icon: '👔' },
   { id: 'venue', label: 'Venue Setup', icon: '📍' },
+  { id: 'reservations', label: 'Reservations', icon: '🍽️' },
   { id: 'team', label: 'Team', icon: '👥' },
   { id: 'system', label: 'System', icon: '⚙️' },
 ]
@@ -19,6 +21,7 @@ export function WorkspaceView({
   businessProfileProps,
   positionsProps,
   venueSetupProps,
+  reservationSeatingsProps,
   teamProps,
   systemProps,
 }) {
@@ -50,6 +53,9 @@ export function WorkspaceView({
           ) : null}
           {activeSection === 'venue' ? (
             <WorkspaceVenueSetupSection {...venueSetupProps} />
+          ) : null}
+          {activeSection === 'reservations' ? (
+            <WorkspaceReservationSeatingsSection {...reservationSeatingsProps} />
           ) : null}
           {activeSection === 'team' ? (
             <WorkspaceTeamSection {...teamProps} workspace={workspace} />

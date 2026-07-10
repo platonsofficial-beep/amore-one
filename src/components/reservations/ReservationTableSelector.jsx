@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { usePublishedFloorPlan } from '../../lib/PublishedFloorPlanContext'
 import {
   assignmentAllowsStanding,
@@ -6,6 +6,11 @@ import {
   computeSeatingAssignmentTotals,
   formatHostListUnitLabel,
 } from '../../lib/seatingAssignment'
+import {
+  buildSeatingsById,
+  resolveSeatingDuration,
+} from '../../lib/reservationSeatings'
+import { formatTableConflictReason } from '../../lib/tableAvailability'
 import {
   getConflictingUnitIds,
   getLayoutUnitsForArea,
@@ -20,6 +25,8 @@ export function ReservationTableSelector({
   todayKey,
   reservationTime = '',
   reservationId = null,
+  seatingId = null,
+  seatings = [],
   selectedAreaId,
   assignedUnits = [],
   guests = 2,
@@ -29,23 +36,56 @@ export function ReservationTableSelector({
   onAssignedUnitsChange,
   onExtraChairsChange,
   onStandingGuestsChange,
+  requireDateAndTime = true,
 }) {
   const { layout: contextLayout } = usePublishedFloorPlan()
   const layout = layoutProp ?? contextLayout
   const zones = layout?.zones ?? []
+  const [showUnavailable, setShowUnavailable] = useState(false)
+
+  const seatingsById = useMemo(() => buildSeatingsById(seatings), [seatings])
+  const selectedSeating = seatingId ? seatingsById.get(seatingId) : null
+  const hasSchedulingContext = Boolean(todayKey && (reservationTime || selectedSeating))
+  const isPickerReady = !requireDateAndTime || hasSchedulingContext
 
   const conflictingUnitIds = useMemo(
-    () => getConflictingUnitIds(reservations, todayKey, reservationTime, {
-      excludeReservationId: reservationId,
+    () => {
+      if (!isPickerReady) return new Map()
+
+      return getConflictingUnitIds(reservations, todayKey, reservationTime, {
+        excludeReservationId: reservationId,
+        layout,
+        seatingId,
+        seatingsById,
+        durationMinutes: selectedSeating
+          ? resolveSeatingDuration(selectedSeating)
+          : undefined,
+      })
+    },
+    [
+      isPickerReady,
       layout,
-    }),
-    [layout, reservationId, reservationTime, reservations, todayKey],
+      reservationId,
+      reservationTime,
+      reservations,
+      seatingId,
+      seatingsById,
+      selectedSeating,
+      todayKey,
+    ],
   )
 
   const areaUnits = useMemo(
     () => getLayoutUnitsForArea(layout, selectedAreaId),
     [layout, selectedAreaId],
   )
+
+  const visibleUnits = useMemo(() => {
+    if (showUnavailable) return areaUnits
+    return areaUnits.filter((unit) => (
+      isUnitSelectable(unit.id, conflictingUnitIds, assignedUnits.map((entry) => entry.id))
+    ))
+  }, [areaUnits, assignedUnits, conflictingUnitIds, showUnavailable])
 
   const selectedUnitIds = useMemo(
     () => assignedUnits.map((unit) => unit.id),
@@ -101,12 +141,31 @@ export function ReservationTableSelector({
         </div>
       ) : null}
 
+      <div className="reservation-table-selector-toolbar">
+        <p className="reservation-table-selector-toolbar-label">Available tables</p>
+        <label className="reservation-table-selector-toggle">
+          <input
+            type="checkbox"
+            checked={showUnavailable}
+            onChange={(event) => setShowUnavailable(event.target.checked)}
+          />
+          <span>Show unavailable</span>
+        </label>
+      </div>
+
+      {!isPickerReady ? (
+        <p className="reservation-table-selector-hint">Select date and seating/time to see available tables.</p>
+      ) : null}
+
       <div className="reservation-table-selector-grid-wrap">
         <div className="reservation-table-selector-grid" role="group" aria-label="Available tables and sections">
-          {areaUnits.map((unit) => {
+          {visibleUnits.map((unit) => {
             const isSelected = selectedUnitIds.some((id) => unitIdsMatch(id, unit.id))
             const conflict = conflictingUnitIds.get(unit.id)
             const isUnavailable = !isUnitSelectable(unit.id, conflictingUnitIds, selectedUnitIds)
+            const zoneLabel = zones.find((zone) => zone.id === unit.area || zone.id === selectedAreaId)?.label
+              ?? zones.find((zone) => zone.id === selectedAreaId)?.label
+              ?? ''
 
             return (
               <button
@@ -115,13 +174,20 @@ export function ReservationTableSelector({
                 className={`reservation-table-selector-unit${isSelected ? ' is-selected' : ''}${isUnavailable ? ' is-unavailable' : ''}`}
                 onClick={() => handleToggleUnit(unit)}
                 disabled={isUnavailable}
-                title={isUnavailable
-                  ? `Busy${conflict?.guestName ? ` · ${conflict.guestName}` : ''}${conflict?.time ? ` · ${conflict.time}` : ''}`
-                  : undefined}
+                title={isUnavailable ? formatTableConflictReason(conflict) : undefined}
               >
                 <span className="reservation-table-selector-unit-label">{formatHostListUnitLabel(unit.label)}</span>
-                <span className="reservation-table-selector-unit-capacity">{unit.maxGuestCapacity} seats</span>
-                {isUnavailable ? <span className="reservation-table-selector-unit-status">Busy</span> : null}
+                <span className="reservation-table-selector-unit-meta">
+                  {zoneLabel ? <span>{zoneLabel}</span> : null}
+                  <span>{unit.minGuestCapacity ?? unit.seatedCapacity ?? 0}–{unit.maxGuestCapacity} guests</span>
+                </span>
+                {isUnavailable ? (
+                  <span className="reservation-table-selector-unit-status">
+                    {formatTableConflictReason(conflict)}
+                  </span>
+                ) : (
+                  <span className="reservation-table-selector-unit-status is-available">Available</span>
+                )}
               </button>
             )
           })}
@@ -130,22 +196,22 @@ export function ReservationTableSelector({
 
       <dl className="host-reservation-edit-summary reservation-table-selector-summary">
         <div>
-          <dt>Capacity</dt>
+          <dt>Selected tables</dt>
+          <dd>{assignedUnits.map((unit) => formatHostListUnitLabel(unit.label)).join(' + ') || '—'}</dd>
+        </div>
+        <div>
+          <dt>Combined capacity</dt>
           <dd>{totals.totalGuestCapacity}</dd>
         </div>
         <div>
-          <dt>Guests</dt>
+          <dt>Party size</dt>
           <dd>{totals.guests}</dd>
-        </div>
-        <div>
-          <dt>Selected</dt>
-          <dd>{assignedUnits.length}</dd>
         </div>
       </dl>
 
-      {totals.isOverCapacity ? (
+      {totals.isUnderCapacity ? (
         <p className="host-reservation-edit-warning">
-          Capacity is short by {totals.capacityGap} guest{totals.capacityGap === 1 ? '' : 's'}.
+          Selected capacity is below party size by {totals.capacityGap} guest{totals.capacityGap === 1 ? '' : 's'}. You can still save.
         </p>
       ) : null}
 

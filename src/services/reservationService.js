@@ -29,6 +29,7 @@ function mapReservation(record) {
     area: record.area ?? '',
     status: normalizeReservationStatus(record.status ?? 'Pending'),
     notes: rawNotes,
+    seatingId: record.seating_id ?? record.seatingId ?? null,
     updatedAt: record.updated_at ?? record.updatedAt ?? null,
     createdAt: record.created_at ?? record.createdAt ?? null,
   }
@@ -88,6 +89,7 @@ function serializeReservation(reservation) {
     table_number: tableNumber,
     area: `${reservation.area ?? ''}`.trim(),
     status: normalizeReservationStatus(reservation.status ?? 'Pending'),
+    seating_id: reservation.seatingId ?? reservation.seating_id ?? null,
     notes,
   }
 }
@@ -159,6 +161,9 @@ export function buildReservationUpdatePayload(reservation, patch) {
     tableNumber,
     area: patch.area ?? reservation.area,
     status: normalizeReservationStatus(patch.status ?? reservation.status ?? 'Pending'),
+    seatingId: Object.hasOwn(patch, 'seatingId')
+      ? (patch.seatingId ?? null)
+      : (reservation.seatingId ?? reservation.seating_id ?? null),
     customerType,
     notes: encodeSeatingAssignmentInNotes(
       encodeCustomerTypeInNotes(userNotes, customerType),
