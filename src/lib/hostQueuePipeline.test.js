@@ -333,7 +333,7 @@ describe('hostQueuePipeline row presentation', () => {
       LAYOUT,
     )
 
-    expect(presentation.metaLine).toBe('👤2   🍽 T27')
+    expect(presentation.metaLine).toBe('👤 2   🍽 T27')
   })
 
   it('renders multi-table labels', () => {
@@ -352,15 +352,15 @@ describe('hostQueuePipeline row presentation', () => {
       LAYOUT,
     )
 
-    expect(presentation.metaLine).toBe('👤4   🍽 T15 + T16')
+    expect(presentation.metaLine).toBe('👤 4   🍽 T15 + T16')
   })
 
   it('renders explicit unassigned rows', () => {
     const presentation = buildHostQueueRowPresentation(buildReservation({ guests: 2 }), LAYOUT)
-    expect(presentation.metaLine).toBe('👤2   🍽 Unassigned')
+    expect(presentation.metaLine).toBe('👤 2   🍽 Unassigned')
   })
 
-  it('renders extra chairs and standing guests from structured data', () => {
+  it('renders extra chairs and standing guests inline in metadata', () => {
     const presentation = buildHostQueueRowPresentation(
       buildReservation({
         seatingAssignment: {
@@ -372,7 +372,26 @@ describe('hostQueuePipeline row presentation', () => {
       LAYOUT,
     )
 
-    expect(presentation.chips.map((chip) => chip.label)).toEqual(['🪑 +1', 'Standing +2'])
+    expect(presentation.metaLine).toContain('🪑 +1')
+    expect(presentation.metaLine).toContain('Standing +2')
+    expect(presentation.chips.map((chip) => chip.label)).toEqual([])
+  })
+
+  it('renders inline extra chair without duplicating note-derived badges', () => {
+    const presentation = buildHostQueueRowPresentation(
+      buildReservation({
+        notes: 'Guest needs extra chair',
+        seatingAssignment: {
+          assignedUnits: [{ id: 't27', label: 'T27' }],
+          extraChairs: 1,
+          standingGuests: 0,
+        },
+      }),
+      LAYOUT,
+    )
+
+    expect(presentation.metaLine).toContain('🪑 +1')
+    expect(presentation.chips.some((chip) => chip.id === 'extra-chair-note')).toBe(false)
   })
 })
 

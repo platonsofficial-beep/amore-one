@@ -126,7 +126,19 @@ describe('MobileReservationsHostView compact tablet list', () => {
 
     const latePill = container.querySelector('.host-reservation-card-status-pill')
     expect(latePill?.textContent).not.toContain('LATE BOOK')
-    expect(latePill?.textContent?.trim()).toBe('Late')
+    expect(latePill?.textContent?.trim()).toBe('Late 75m')
+
+    unmount()
+  })
+
+  it('renders compact service summary metrics in the header', () => {
+    const { container, unmount } = renderSplitHostView()
+
+    const summary = container.querySelector('.host-queue-service-summary')
+    expect(summary).not.toBeNull()
+    expect(summary?.textContent).toContain('expected')
+    expect(summary?.textContent).toMatch(/\d+\/\d+/)
+    expect(summary?.textContent).toContain('in house')
 
     unmount()
   })
@@ -134,7 +146,7 @@ describe('MobileReservationsHostView compact tablet list', () => {
   it('renders assigned table metadata as compact queue labels', () => {
     const { container, unmount } = renderSplitHostView()
 
-    expect(container.textContent).toContain('👤4   🍽 T15 + T16')
+    expect(container.textContent).toContain('👤 4   🍽 T15 + T16')
 
     unmount()
   })
@@ -142,7 +154,7 @@ describe('MobileReservationsHostView compact tablet list', () => {
   it('renders unassigned metadata as compact queue labels', () => {
     const { container, unmount } = renderSplitHostView()
 
-    expect(container.textContent).toContain('👤4   🍽 Unassigned')
+    expect(container.textContent).toContain('👤 4   🍽 Unassigned')
 
     unmount()
   })

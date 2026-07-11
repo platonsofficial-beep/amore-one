@@ -3,6 +3,4 @@ export const HOST_FLOOR_PLAN_LEGEND_ITEMS = [
   { id: 'available', label: 'Available', tone: 'host-available' },
   { id: 'reserved', label: 'Reserved', tone: 'host-reserved' },
   { id: 'seated', label: 'Seated', tone: 'host-seated' },
-  { id: 'problem', label: 'Problem', tone: 'host-problem' },
-  { id: 'combined', label: 'Combined', tone: 'host-combined' },
 ]

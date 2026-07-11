@@ -3,11 +3,13 @@ import {
 } from '../../../lib/seatingAssignment'
 import {
   getHostReservationQuickActions,
+  getHostListCompactStatusPresentation,
   getHostStatusMeta,
   getReservationDisplayStatus,
 } from '../../../lib/reservationHostStatus'
 import { formatHostReservationListTime } from '../../../lib/timeFormatUtils'
-import { HostQueueReservationDetails } from './HostQueueReservationDetails'
+import { HostQueueReservationDetails, HostQueueNameIndicators } from './HostQueueReservationDetails'
+import { buildHostQueueRowPresentation } from '../../../lib/hostQueuePipeline'
 
 function getActionClassName(action) {
   if (action.id === 'edit') return 'mobile-host-reservation-action is-ghost'
@@ -38,6 +40,12 @@ function MobileHostReservationCompactRow({
   const timeLabel = formatHostReservationListTime(reservation, todayKey)
   const displayStatus = getReservationDisplayStatus(reservation, nowMinutes, todayKey)
   const statusMeta = getHostStatusMeta(displayStatus)
+  const statusPresentation = useHostQueuePresentation
+    ? getHostListCompactStatusPresentation(reservation, nowMinutes, todayKey)
+    : { label: statusMeta.label, severity: null }
+  const nameIndicators = useHostQueuePresentation
+    ? buildHostQueueRowPresentation(reservation, floorLayout).nameIndicators
+    : []
 
   return (
     <li className="mobile-host-reservation-item">
@@ -59,7 +67,10 @@ function MobileHostReservationCompactRow({
         >
           <div className="mobile-host-reservation-row-primary">
             <span className="mobile-host-reservation-row-time">{timeLabel}</span>
-            <span className="mobile-host-reservation-row-name">{guestName}</span>
+            <span className="mobile-host-reservation-row-name">
+              {guestName}
+              <HostQueueNameIndicators indicators={nameIndicators} />
+            </span>
           </div>
           {useHostQueuePresentation ? (
             <HostQueueReservationDetails
@@ -76,7 +87,7 @@ function MobileHostReservationCompactRow({
 
         <button
           type="button"
-          className={`mobile-host-reservation-row-status tone-${statusMeta.tone}`}
+          className={`mobile-host-reservation-row-status tone-${statusMeta.tone}${statusPresentation.severity ? ` is-late-${statusPresentation.severity}` : ''}`}
           aria-label={`Status: ${statusMeta.label}. Change status.`}
           aria-expanded={isStatusMenuOpen}
           aria-haspopup="dialog"
@@ -86,7 +97,7 @@ function MobileHostReservationCompactRow({
             onOpenStatusMenu?.(reservation, event)
           }}
         >
-          <span className="mobile-host-reservation-row-status-label">{statusMeta.label}</span>
+          <span className="mobile-host-reservation-row-status-label">{statusPresentation.label}</span>
           <span className="mobile-host-reservation-row-status-caret" aria-hidden="true">▾</span>
         </button>
 

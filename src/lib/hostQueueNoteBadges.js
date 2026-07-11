@@ -75,3 +75,29 @@ export function summarizeHostQueueNoteBadges(badges = [], maxVisible = HOST_QUEU
   const overflowCount = Math.max(0, badges.length - visible.length)
   return { visible, overflowCount }
 }
+
+export function resolveHostQueueBadgeTone(badgeId = '') {
+  switch (badgeId) {
+    case 'extra-chairs':
+    case 'structured-extra-chair':
+    case 'extra-chair-note':
+      return 'extra-chair'
+    case 'structured-standing':
+      return 'standing'
+    case 'allergy':
+      return 'allergy'
+    case 'birthday':
+    case 'anniversary':
+      return 'occasion'
+    case 'vip':
+      return 'vip'
+    case 'accessibility':
+      return 'accessibility'
+    case 'baby-chair':
+      return 'high-chair'
+    case 'window':
+      return 'window'
+    default:
+      return 'neutral'
+  }
+}

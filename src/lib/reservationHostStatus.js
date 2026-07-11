@@ -257,6 +257,44 @@ export function getHostListCompactStatusLabel(status) {
   return HOST_LIST_COMPACT_STATUS_LABELS[normalized] ?? getHostStatusMeta(normalized).label
 }
 
+export function getReservationLateDelayMinutes(reservation, nowMinutes, todayKey) {
+  if (`${reservation?.date ?? ''}`.slice(0, 10) !== `${todayKey ?? ''}`.slice(0, 10)) {
+    return null
+  }
+
+  const arrivalMinutes = parseTimeToMinutes(reservation?.time)
+  if (arrivalMinutes === null) return null
+
+  const delay = nowMinutes - arrivalMinutes
+  return delay > 0 ? delay : null
+}
+
+export function getHostListCompactStatusPresentation(
+  reservation,
+  nowMinutes,
+  todayKey,
+) {
+  const displayStatus = getReservationDisplayStatus(reservation, nowMinutes, todayKey)
+  const label = getHostListCompactStatusLabel(displayStatus)
+
+  if (displayStatus === 'Late Booking') {
+    const delayMinutes = getReservationLateDelayMinutes(reservation, nowMinutes, todayKey)
+    if (delayMinutes != null) {
+      return {
+        label: `Late ${delayMinutes}m`,
+        delayMinutes,
+        severity: delayMinutes >= 20 ? 'severe' : 'mild',
+      }
+    }
+  }
+
+  return {
+    label,
+    delayMinutes: null,
+    severity: null,
+  }
+}
+
 export function getHostReservationStatusOptions() {
   return HOST_RESERVATION_STATUSES.map((entry) => ({
     value: entry.id,

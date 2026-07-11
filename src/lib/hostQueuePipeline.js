@@ -17,6 +17,7 @@ import { normalizeReservationTimeValue } from './timeFormatUtils'
 import {
   deriveHostQueueNoteBadges,
   getReservationUserNotesText,
+  resolveHostQueueBadgeTone,
   summarizeHostQueueNoteBadges,
 } from './hostQueueNoteBadges'
 
@@ -370,16 +371,13 @@ export function buildHostQueueReservationList(
     problemFilterOptions = {},
   } = {},
 ) {
-  let filtered = filterReservationsBySelectedSeating(
-    reservations,
+  let filtered = buildHostQueueScopeReservations(reservations, {
     selectedSeating,
     seatings,
     dateKey,
-  )
-
-  filtered = filtered.filter((reservation) => (
-    reservationMatchesHostQueueArea(reservation, areaFilterId, layout)
-  ))
+    areaFilterId,
+    layout,
+  })
 
   filtered = applyHostQueueOperationalFilters(filtered, activeFilterIds, {
     nowMinutes,
@@ -389,6 +387,30 @@ export function buildHostQueueReservationList(
 
   filtered = filtered.filter((reservation) => (
     reservationMatchesHostQueueSearch(reservation, searchTerm, layout)
+  ))
+
+  return filtered
+}
+
+export function buildHostQueueScopeReservations(
+  reservations = [],
+  {
+    selectedSeating = null,
+    seatings = [],
+    dateKey = '',
+    areaFilterId = HOST_QUEUE_ALL_AREAS,
+    layout = null,
+  } = {},
+) {
+  let filtered = filterReservationsBySelectedSeating(
+    reservations,
+    selectedSeating,
+    seatings,
+    dateKey,
+  )
+
+  filtered = filtered.filter((reservation) => (
+    reservationMatchesHostQueueArea(reservation, areaFilterId, layout)
   ))
 
   return filtered
@@ -463,48 +485,74 @@ export function formatHostQueueTableSegment(reservation) {
   )).join(' + ')
 }
 
+export function getHostQueueNameIndicators(reservation) {
+  const userNotes = getReservationUserNotesText(reservation?.notes ?? '').toLowerCase()
+
+  if (/allerg/i.test(userNotes)) {
+    return [{ id: 'allergy', icon: '⚠', label: 'Allergy' }]
+  }
+  if (/wheelchair|accessibility|accessible/.test(userNotes)) {
+    return [{ id: 'accessibility', icon: '♿', label: 'Accessibility' }]
+  }
+  if (/\bvip\b|\bv\.v\.i\.p\b/.test(userNotes)) {
+    return [{ id: 'vip', icon: '★', label: 'VIP' }]
+  }
+
+  return []
+}
+
 export function buildHostQueueRowPresentation(reservation, layout = null) {
   const partySize = Number(reservation?.guests) || 0
   const assignment = getReservationSeatingAssignment(reservation)
   const tableSegment = formatHostQueueTableSegment(reservation)
   const areaLabel = getReservationExplicitAreaLabel(reservation, layout)
   const hasAssignedTables = reservationHasAssignedTables(reservation)
+  const extraChairs = assignment?.extraChairs ?? 0
+  const standingGuests = assignment?.standingGuests ?? 0
 
-  const metaParts = [`👤${partySize}`]
+  const metaParts = [`👤 ${partySize}`]
   if (areaLabel && !hasAssignedTables) {
     metaParts.push(`📍 ${areaLabel}`)
   }
   metaParts.push(`🍽 ${tableSegment}`)
 
-  const structuredChips = []
-  if ((assignment?.extraChairs ?? 0) > 0) {
-    structuredChips.push({ id: 'extra-chairs', label: `🪑 +${assignment.extraChairs}` })
+  if (extraChairs > 0) {
+    metaParts.push(`🪑 +${extraChairs}`)
   }
-  if ((assignment?.standingGuests ?? 0) > 0) {
-    structuredChips.push({
-      id: 'standing-guests',
-      label: `Standing +${assignment.standingGuests}`,
-    })
+  if (standingGuests > 0) {
+    metaParts.push(`Standing +${standingGuests}`)
   }
 
   const structuredBadgeIds = getStructuredRequirementBadgeIds(reservation)
   const noteBadges = deriveHostQueueNoteBadges(reservation, {
-    extraChairs: assignment?.extraChairs ?? 0,
-    standingGuests: assignment?.standingGuests ?? 0,
+    extraChairs,
+    standingGuests,
     structuredBadgeIds,
-  }).filter((badge) => !structuredChips.some((chip) => chip.label === badge.label))
+  }).filter((badge) => {
+    if (badge.id === 'extra-chair-note' || badge.id === 'structured-extra-chair') return false
+    if (badge.id === 'structured-standing') return false
+    return true
+  })
 
-  const combinedBadges = [...structuredChips, ...noteBadges.map((badge) => ({
+  const chipBadges = noteBadges.map((badge) => ({
     id: badge.id,
     label: badge.label,
-  }))]
+    tone: resolveHostQueueBadgeTone(badge.id),
+  }))
 
-  const { visible, overflowCount } = summarizeHostQueueNoteBadges(combinedBadges)
+  const { visible, overflowCount } = summarizeHostQueueNoteBadges(chipBadges)
 
   return {
     metaLine: metaParts.join('   '),
+    metaAriaLabel: [
+      `${partySize} guests`,
+      tableSegment === 'Unassigned' ? 'table unassigned' : `table ${tableSegment}`,
+      extraChairs > 0 ? `${extraChairs} extra chair${extraChairs === 1 ? '' : 's'}` : '',
+      standingGuests > 0 ? `${standingGuests} standing guest${standingGuests === 1 ? '' : 's'}` : '',
+    ].filter(Boolean).join(', '),
     chips: visible,
     overflowCount,
+    nameIndicators: getHostQueueNameIndicators(reservation),
   }
 }
 

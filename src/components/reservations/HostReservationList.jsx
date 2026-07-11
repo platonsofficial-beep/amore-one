@@ -9,6 +9,7 @@ import {
   getHostReservationQuickActions,
   getHostReservationVisualIndicator,
   getHostListCompactStatusLabel,
+  getHostListCompactStatusPresentation,
   getHostStatusMeta,
   getReservationDisplayStatus,
 } from '../../lib/reservationHostStatus'
@@ -23,7 +24,8 @@ import {
 } from './hostReservationListUtils'
 import { getHostListEmptyState } from '../../lib/reservationServiceIntelligence'
 import { groupHostQueueOperationalSections } from '../../lib/hostQueuePipeline'
-import { HostQueueReservationDetails } from '../mobile/reservations/HostQueueReservationDetails'
+import { HostQueueReservationDetails, HostQueueNameIndicators } from '../mobile/reservations/HostQueueReservationDetails'
+import { buildHostQueueRowPresentation } from '../../lib/hostQueuePipeline'
 import { HostReservationStatusPicker } from './HostReservationStatusPicker'
 
 function formatHostListScheduleLabel(reservation, todayKey) {
@@ -87,7 +89,13 @@ function HostReservationListRow({
   )
   const displayStatus = getReservationDisplayStatus(reservation, nowMinutes, todayKey)
   const statusMeta = getHostStatusMeta(displayStatus)
-  const compactStatusLabel = getHostListCompactStatusLabel(displayStatus)
+  const statusPresentation = useHostQueuePresentation
+    ? getHostListCompactStatusPresentation(reservation, nowMinutes, todayKey)
+    : { label: getHostListCompactStatusLabel(displayStatus), severity: null }
+  const compactStatusLabel = statusPresentation.label
+  const nameIndicators = useHostQueuePresentation
+    ? buildHostQueueRowPresentation(reservation, floorLayout).nameIndicators
+    : []
   const visualIndicator = getHostReservationVisualIndicator(reservation, nowMinutes, todayKey)
   const warnings = getHostReservationWarnings(reservation, nowMinutes, todayKey)
   const quickActions = layout === 'default'
@@ -144,6 +152,7 @@ function HostReservationListRow({
             />
           ) : null}
           <strong className="host-reservation-card-guest">{guestName}</strong>
+          <HostQueueNameIndicators indicators={nameIndicators} />
           {warnings.length > 0 ? (
             <span className="host-reservation-card-warning" title="Needs attention" aria-label="Needs attention">
               !
@@ -166,7 +175,7 @@ function HostReservationListRow({
         <div className="host-reservation-card-trailing">
         <button
         type="button"
-        className={`host-reservation-card-status-pill tone-${statusMeta.tone} is-compact`}
+        className={`host-reservation-card-status-pill tone-${statusMeta.tone} is-compact${statusPresentation.severity ? ` is-late-${statusPresentation.severity}` : ''}`}
         aria-label={`Status: ${statusMeta.label}. Change status.`}
         aria-expanded={isStatusPickerOpen}
         aria-haspopup="dialog"

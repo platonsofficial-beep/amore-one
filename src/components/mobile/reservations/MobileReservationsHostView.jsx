@@ -4,6 +4,7 @@ import {
   formatHostWorkspaceDateNavLabel,
   getHostWorkspaceReservations,
 } from '../../reservations/hostReservationListUtils'
+import { buildHostQueueServiceMetricsFromReservations } from '../../../lib/hostQueueServiceMetrics'
 import { getHostListEmptyState } from '../../../lib/reservationServiceIntelligence'
 import {
   filterMobileHostReservations,
@@ -19,6 +20,7 @@ import {
   HOST_QUEUE_ALL_AREAS,
   HOST_QUEUE_SORT_OPTIONS,
   reservationIsVisibleInHostQueue,
+  buildHostQueueScopeReservations,
 } from '../../../lib/hostQueuePipeline'
 import {
   readHostQueueSortPreference,
@@ -37,6 +39,7 @@ import { MobileReservationHostEditSheet } from './MobileReservationHostEditSheet
 import { MobileReservationQuickCreateSheet } from './MobileReservationQuickCreateSheet'
 import { HostSettingsPanel } from '../../host/HostSettingsPanel'
 import { HostQueueToolbar } from './HostQueueToolbar'
+import { HostQueueServiceSummary } from './HostQueueServiceSummary'
 
 export function MobileReservationsHostView({
   reservations = [],
@@ -104,6 +107,42 @@ export function MobileReservationsHostView({
     [layout],
   )
 
+  const scopeReservations = useMemo(
+    () => buildHostQueueScopeReservations(workspaceReservations, {
+      selectedSeating,
+      seatings: reservationSeatings,
+      dateKey: todayKey,
+      areaFilterId,
+      layout,
+    }),
+    [
+      areaFilterId,
+      layout,
+      reservationSeatings,
+      selectedSeating,
+      todayKey,
+      workspaceReservations,
+    ],
+  )
+
+  const serviceMetrics = useMemo(
+    () => buildHostQueueServiceMetricsFromReservations(workspaceReservations, {
+      selectedSeating,
+      seatings: reservationSeatings,
+      dateKey: todayKey,
+      areaFilterId,
+      layout,
+    }),
+    [
+      areaFilterId,
+      layout,
+      reservationSeatings,
+      selectedSeating,
+      todayKey,
+      workspaceReservations,
+    ],
+  )
+
   const queueReservations = useMemo(
     () => buildHostQueueReservationList(workspaceReservations, {
       selectedSeating,
@@ -149,8 +188,8 @@ export function MobileReservationsHostView({
   )
 
   const summary = useMemo(
-    () => buildHostManagerSummary(queueReservations, nowMinutes, todayKey),
-    [queueReservations, nowMinutes, todayKey],
+    () => buildHostManagerSummary(scopeReservations, nowMinutes, todayKey),
+    [scopeReservations, nowMinutes, todayKey],
   )
 
   const queueEmptyState = useMemo(
@@ -285,7 +324,7 @@ export function MobileReservationsHostView({
 
   const listControls = (
     <div className="mobile-host-list-controls">
-      <div className="mobile-host-reservations-toolbar">
+      <div className="mobile-host-reservations-toolbar host-queue-search-row">
         <label className="mobile-host-reservations-search">
           <span className="sr-only">Search reservations</span>
           <input
@@ -309,17 +348,19 @@ export function MobileReservationsHostView({
       </div>
 
       {isSplitLayout ? (
-        <HostQueueToolbar
-          areaOptions={areaOptions}
-          areaFilterId={areaFilterId}
-          onAreaFilterChange={setAreaFilterId}
-          activeFilterIds={activeFilterIds}
-          onToggleFilter={handleToggleFilter}
-          onClearFilters={handleClearFilters}
-          sortId={sortId}
-          onSortChange={handleSortChange}
-          sortOptions={HOST_QUEUE_SORT_OPTIONS}
-        />
+        <div className="host-queue-context-row">
+          <HostQueueToolbar
+            areaOptions={areaOptions}
+            areaFilterId={areaFilterId}
+            onAreaFilterChange={setAreaFilterId}
+            activeFilterIds={activeFilterIds}
+            onToggleFilter={handleToggleFilter}
+            onClearFilters={handleClearFilters}
+            sortId={sortId}
+            onSortChange={handleSortChange}
+            sortOptions={HOST_QUEUE_SORT_OPTIONS}
+          />
+        </div>
       ) : null}
 
       {!isSplitLayout ? (
@@ -491,10 +532,16 @@ export function MobileReservationsHostView({
           <h1 className="mobile-host-sticky-title">Reservations</h1>
           <p className="mobile-host-sticky-date">{dateLabel}</p>
         </div>
-        <div className="mobile-host-sticky-center" aria-label="Service totals">
-          <span><strong>{summary.totalCovers ?? summary.totalGuests}</strong> covers</span>
-          <span><strong>{summary.upcomingArrivals ?? 0}</strong> upcoming</span>
-          <span><strong>{summary.seatedGuests ?? summary.inHouse}</strong> seated</span>
+        <div className="mobile-host-sticky-center" aria-label="Service summary">
+          {isSplitLayout ? (
+            <HostQueueServiceSummary {...serviceMetrics} />
+          ) : (
+            <>
+              <span><strong>{summary.totalCovers ?? summary.totalGuests}</strong> covers</span>
+              <span><strong>{summary.upcomingArrivals ?? 0}</strong> upcoming</span>
+              <span><strong>{summary.seatedGuests ?? summary.inHouse}</strong> seated</span>
+            </>
+          )}
         </div>
         <div className="mobile-host-sticky-actions">
           {hostSettingsProps ? (

@@ -31,17 +31,15 @@ describe('FloorPlanLegend', () => {
     })
   }
 
-  it('renders all five host legend items', () => {
+  it('renders all three host legend items', () => {
     renderLegend()
 
     const chips = container.querySelectorAll('.floor-plan-legend-chip')
-    expect(chips).toHaveLength(5)
+    expect(chips).toHaveLength(3)
     expect([...chips].map((chip) => chip.textContent.trim())).toEqual([
       'Available',
       'Reserved',
       'Seated',
-      'Problem',
-      'Combined',
     ])
   })
 
@@ -51,15 +49,13 @@ describe('FloorPlanLegend', () => {
     expect(container.querySelector('.tone-host-available')).toBeTruthy()
     expect(container.querySelector('.tone-host-reserved')).toBeTruthy()
     expect(container.querySelector('.tone-host-seated')).toBeTruthy()
-    expect(container.querySelector('.tone-host-problem')).toBeTruthy()
-    expect(container.querySelector('.tone-host-combined')).toBeTruthy()
   })
 
   it('uses compact dot markers and a horizontal layout class', () => {
     renderLegend()
 
     expect(container.querySelector('.floor-plan-legend.is-compact')).toBeTruthy()
-    expect(container.querySelectorAll('.floor-plan-legend-dot')).toHaveLength(5)
+    expect(container.querySelectorAll('.floor-plan-legend-dot')).toHaveLength(3)
     expect(container.querySelectorAll('.floor-plan-legend-swatch')).toHaveLength(0)
   })
 
@@ -69,7 +65,7 @@ describe('FloorPlanLegend', () => {
     const legend = container.querySelector('.floor-plan-legend.is-compact')
     expect(legend).toBeTruthy()
     expect(legend.classList.contains('is-compact')).toBe(true)
-    expect(legend.querySelectorAll('.floor-plan-legend-chip')).toHaveLength(5)
+    expect(legend.querySelectorAll('.floor-plan-legend-chip')).toHaveLength(3)
   })
 
   it('renders nothing when items are empty', () => {
