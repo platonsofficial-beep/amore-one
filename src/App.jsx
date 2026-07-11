@@ -72,7 +72,6 @@ import {
   formatHostListUnitLabel,
   formatHostFloorReservationTooltipMeta,
   getReservationSeatingAssignment,
-  getReservationAssignedUnitsForMatching,
   resolveSeatingDraftFromReservation,
   normalizeUnitKey,
   reservationUsesSeatingUnit,
@@ -121,6 +120,10 @@ import {
   resolveFloorTableOperationalState,
 } from './lib/floorTableOperationalState'
 import {
+  applyHostFloorSelectedSeatingContext,
+  resolveHostFloorSemanticClass,
+} from './lib/hostFloorTableVisualState'
+import {
   buildFloorTableReservationMap,
   debugFloorAssignmentSnapshot,
   getReservationDateKey,
@@ -168,10 +171,7 @@ import {
   formatFloorTableAreaLabel,
   getFloorTableDialogLabel,
 } from './components/floor/FloorTableSeatingDialog'
-import {
-  buildTableSeatingDayIndicators,
-  resolveSeatingFloorStatus,
-} from './lib/tableAvailability'
+import { buildTableSeatingDayIndicators } from './lib/tableAvailability'
 import {
   buildFloorTableDayViewRows,
   buildReleaseTableAssignmentUpdate,
@@ -7143,68 +7143,13 @@ function buildFloorPlanSnapshot({
   })
 
   if (selectedSeating) {
-    const seatingConflicts = getConflictingUnitIds(
+    tableStates = applyHostFloorSelectedSeatingContext(tableStates, {
+      selectedSeating,
       enrichedReservations,
       todayKey,
-      selectedSeating.startTime,
-      {
-        seatingId: selectedSeating.id,
-        durationMinutes: selectedSeating.durationMinutes,
-        seatingsById,
-        layout,
-      },
-    )
-
-    tableStates = tableStates.map((tableState) => {
-      const conflict = seatingConflicts.get(tableState.table.id)
-      const isSelectedTable = selectedReservation
-        && getReservationAssignedUnitsForMatching(selectedReservation).some((unit) => (
-          seatingUnitMatchesFloorUnit(unit, tableState.table)
-        ))
-
-      if (isSelectedTable) {
-        return {
-          ...tableState,
-          status: 'selected',
-          operational: {
-            ...tableState.operational,
-            hostIndicator: 'confirmed',
-            floorStatus: 'selected',
-          },
-        }
-      }
-
-      if (!conflict) {
-        return {
-          ...tableState,
-          reservation: null,
-          status: 'available',
-          operational: {
-            ...tableState.operational,
-            hostIndicator: 'empty',
-            floorStatus: 'available',
-            displayReservation: null,
-            activeReservation: null,
-          },
-        }
-      }
-
-      const conflictReservation = enrichedReservations.find((entry) => (
-        String(entry.id) === String(conflict.reservationId)
-      )) ?? tableState.reservation
-      const seatingStatus = resolveSeatingFloorStatus(conflict, conflictReservation)
-
-      return {
-        ...tableState,
-        reservation: conflictReservation ?? tableState.reservation,
-        status: seatingStatus.floorStatus,
-        operational: {
-          ...tableState.operational,
-          hostIndicator: seatingStatus.hostIndicator,
-          floorStatus: seatingStatus.floorStatus,
-          displayReservation: conflictReservation ?? tableState.operational?.displayReservation,
-        },
-      }
+      seatingsById,
+      layout,
+      selectedReservation,
     })
   }
 
@@ -7436,8 +7381,13 @@ function FloorTableNode({
 
   const hostOperational = isHostFloor && !isHeatmap ? operational : null
   const hostVisualIndicator = hostOperational?.hostIndicator ?? null
+  const hostSemanticClass = isHostFloor && !isHeatmap && hostOperational
+    ? resolveHostFloorSemanticClass(hostOperational, {
+      hasSeatingConflict: hostOperational.hasSeatingConflict,
+    })
+    : ''
   const tableStatusClass = isHostFloor && !isHeatmap && hostVisualIndicator
-    ? `host-indicator-${hostVisualIndicator}`
+    ? `host-indicator-${hostVisualIndicator}${hostSemanticClass ? ` ${hostSemanticClass}` : ''}`
     : `status-${status}`
   const showHostVisualDot = Boolean(
     hostVisualIndicator
