@@ -456,3 +456,17 @@ describe('tableDayView', () => {
     expect(onClose).toHaveBeenCalledTimes(1)
   })
 })
+
+describe('getTableDayViewStatusPresentation', () => {
+  it('returns available and seated premium labels', async () => {
+    const { getTableDayViewStatusPresentation } = await import('./tableDayView')
+
+    expect(getTableDayViewStatusPresentation({ isAvailable: true, state: 'available' }))
+      .toMatchObject({ dot: '🟢', label: 'Available' })
+
+    expect(getTableDayViewStatusPresentation({
+      statusLabel: 'Checked In',
+      state: 'seated',
+    })).toMatchObject({ dot: '🟢', label: 'Checked In' })
+  })
+})

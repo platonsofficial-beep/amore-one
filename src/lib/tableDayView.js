@@ -7,7 +7,11 @@ import {
   getReservationSeatingAssignment,
   seatingUnitMatchesFloorUnit,
 } from './seatingAssignment'
-import { getHostReservationQuickActions } from './reservationHostStatus'
+import {
+  getHostReservationQuickActions,
+  getHostStatusMeta,
+  normalizeReservationStatus,
+} from './reservationHostStatus'
 import {
   findLayoutUnit,
 } from './reservationTableOptions'
@@ -288,4 +292,54 @@ export function getFloorTableSeatingDialogMountGuard({
   if (isHeatmap) return 'hidden-by-mode'
   if (!scheduleCardTable) return 'no-table'
   return 'pass'
+}
+
+const TABLE_DAY_VIEW_STATUS_LABELS = {
+  'Checked In (Partial)': 'Checked In',
+  'Walk In': 'Checked In',
+  'Not Shown': 'No Show',
+  'Checked Out': 'Completed',
+  'Late Booking': 'Late',
+}
+
+const TABLE_DAY_VIEW_STATE_DOTS = {
+  available: '🟢',
+  reserved: '🟡',
+  arrived: '🔵',
+  seated: '🟢',
+  completed: '⚪',
+  problem: '🔴',
+}
+
+export function getTableDayViewStatusPresentation({
+  statusLabel = '',
+  state = 'reserved',
+  isAvailable = false,
+} = {}) {
+  if (isAvailable || state === 'available') {
+    return {
+      dot: TABLE_DAY_VIEW_STATE_DOTS.available,
+      label: 'Available',
+      tone: 'confirmed',
+    }
+  }
+
+  if (state === 'problem') {
+    return {
+      dot: TABLE_DAY_VIEW_STATE_DOTS.problem,
+      label: 'Problem',
+      tone: 'not-shown',
+    }
+  }
+
+  const normalized = normalizeReservationStatus(statusLabel)
+  const tone = getHostStatusMeta(normalized).tone
+  const label = TABLE_DAY_VIEW_STATUS_LABELS[normalized]
+    ?? (statusLabel || 'Reserved')
+
+  return {
+    dot: TABLE_DAY_VIEW_STATE_DOTS[state] ?? '•',
+    label,
+    tone,
+  }
 }

@@ -2,7 +2,82 @@ import { createPortal } from 'react-dom'
 import { useMediaQuery } from '../../lib/useMediaQuery'
 import { formatHostListUnitLabel, getReservationSeatingAssignment } from '../../lib/seatingAssignment'
 import { formatHostAssignmentActionLabel } from '../../lib/hostAssignmentPanelUtils'
+import { getTableDayViewStatusPresentation } from '../../lib/tableDayView'
 import { formatTime24 } from '../../lib/timeFormatUtils'
+
+function TableDayViewRowDivider() {
+  return <div className="floor-table-day-row-divider" aria-hidden="true" />
+}
+
+function TableDayViewInfoList({ items = [] }) {
+  if (!items.length) return null
+
+  return (
+    <ul className="floor-table-day-info-list">
+      {items.map((item) => (
+        <li key={item.id} className="floor-table-day-info-item">
+          <span className="floor-table-day-info-icon" aria-hidden="true">{item.icon}</span>
+          <span
+            className={`floor-table-day-info-label${item.id === 'time' ? ' floor-table-day-guest-time' : ''}${item.id === 'guests' ? ' floor-table-day-guest-count' : ''}${item.id === 'table' ? ' floor-table-day-table-chip' : ''}`}
+          >
+            {item.label}
+          </span>
+        </li>
+      ))}
+    </ul>
+  )
+}
+
+function TableDayViewStatusPill({ presentation }) {
+  if (!presentation) return null
+
+  return (
+    <span
+      className={`host-reservation-card-status-pill floor-table-day-status-pill tone-${presentation.tone} is-compact is-readonly`}
+      aria-label={`Status: ${presentation.label}`}
+    >
+      {`${presentation.dot} ${presentation.label}`}
+    </span>
+  )
+}
+
+function buildTableDayViewInfoItems(reservation, assignedTablesLabel) {
+  if (!reservation) return []
+
+  const guestCount = Math.max(0, Number(reservation?.guests) || 0)
+  const arrivalTime = reservation?.time ? formatTime24(reservation.time) : null
+  const assignment = getReservationSeatingAssignment(reservation)
+  const extraChairs = Math.max(0, Number(assignment?.extraChairs) || 0)
+  const tableChip = getTableChipMeta(reservation, assignedTablesLabel)
+  const items = []
+
+  if (arrivalTime) {
+    items.push({ id: 'time', icon: '🕣', label: arrivalTime })
+  }
+  if (guestCount > 0) {
+    items.push({
+      id: 'guests',
+      icon: '👥',
+      label: `${guestCount} ${guestCount === 1 ? 'guest' : 'guests'}`,
+    })
+  }
+  if (tableChip) {
+    items.push({
+      id: 'table',
+      icon: '🍽',
+      label: `${tableChip.prefix} ${tableChip.value}`,
+    })
+  }
+  if (extraChairs > 0) {
+    items.push({
+      id: 'extra-chair',
+      icon: '🪑',
+      label: `+${extraChairs} Extra chair${extraChairs === 1 ? '' : 's'}`,
+    })
+  }
+
+  return items
+}
 
 function TableDayViewAssignmentRow({
   row,
@@ -16,9 +91,7 @@ function TableDayViewAssignmentRow({
 }) {
   const { seating, timeWindowLabel } = row
   const guestName = assignmentReservation?.guestName || 'Guest'
-  const guestCount = Math.max(0, Number(assignmentReservation?.guests) || 0)
-  const arrivalTime = assignmentReservation?.time ? formatTime24(assignmentReservation.time) : null
-  const confirmLabel = formatHostAssignmentActionLabel({ draftTableLabels, tableLabel })
+  const infoItems = buildTableDayViewInfoItems(assignmentReservation, '')
 
   return (
     <>
@@ -27,57 +100,44 @@ function TableDayViewAssignmentRow({
         <time className="floor-table-day-seating-time">{timeWindowLabel}</time>
       </div>
 
-      <div className="floor-table-day-guest-row">
-        <h4 className="floor-table-day-guest-name">{guestName}</h4>
-      </div>
+      <TableDayViewRowDivider />
 
-      <p className="floor-table-day-guest-meta">
-        {arrivalTime ? (
-          <>
-            <span className="floor-table-day-guest-time">{arrivalTime}</span>
-            <span className="floor-table-day-guest-count">
-              {' · '}
-              {guestCount}
-              {' '}
-              {guestCount === 1 ? 'guest' : 'guests'}
-            </span>
-          </>
-        ) : (
-          <span className="floor-table-day-guest-count">
-            {guestCount}
-            {' '}
-            {guestCount === 1 ? 'guest' : 'guests'}
-          </span>
-        )}
-      </p>
+      <div className="floor-table-day-row-body">
+        <h4 className="floor-table-day-guest-name">
+          <span className="floor-table-day-guest-icon" aria-hidden="true">👤</span>
+          {guestName}
+        </h4>
 
-      {!canAssign ? (
-        <p className="floor-table-day-assignment-blocked" role="status">
-          This seating is not available for assignment on this table.
-        </p>
-      ) : null}
+        <TableDayViewInfoList items={infoItems} />
 
-      <div className="floor-table-day-row-actions">
-        <button
-          type="button"
-          className="floor-table-day-action is-primary"
-          disabled={isSaving || !canAssign}
-          onClick={onConfirmAssignment}
-          data-testid="floor-table-day-assign-reservation"
-        >
-          {confirmLabel}
-        </button>
-        {onCancelAssignment ? (
+        {!canAssign ? (
+          <p className="floor-table-day-assignment-blocked" role="status">
+            This seating is not available for assignment on this table.
+          </p>
+        ) : null}
+
+        <div className="floor-table-day-row-actions">
           <button
             type="button"
-            className="floor-table-day-action is-secondary"
-            disabled={isSaving}
-            onClick={onCancelAssignment}
-            data-testid="floor-table-day-cancel-assignment"
+            className="floor-table-day-action is-primary"
+            disabled={isSaving || !canAssign}
+            onClick={onConfirmAssignment}
+            data-testid="floor-table-day-assign-reservation"
           >
-            Cancel selection
+            {formatHostAssignmentActionLabel({ draftTableLabels, tableLabel })}
           </button>
-        ) : null}
+          {onCancelAssignment ? (
+            <button
+              type="button"
+              className="floor-table-day-action is-secondary"
+              disabled={isSaving}
+              onClick={onCancelAssignment}
+              data-testid="floor-table-day-cancel-assignment"
+            >
+              Cancel selection
+            </button>
+          ) : null}
+        </div>
       </div>
     </>
   )
@@ -98,18 +158,14 @@ function getTableChipMeta(reservation, assignedTablesLabel) {
   }
 }
 
-function formatGuestRange(table) {
+export function formatTableDayViewCapacity(table) {
   const minGuests = Math.max(0, Number(table.minGuests ?? table.min_guests) || 0)
   const maxGuests = Math.max(
     minGuests,
     Number(table.maxGuestCapacity ?? table.maxGuests ?? table.seatedCapacity) || 0,
   )
 
-  if (minGuests > 0 && maxGuests > minGuests) {
-    return `${minGuests}–${maxGuests} guests`
-  }
-
-  if (maxGuests > 0) return `Up to ${maxGuests} guests`
+  if (maxGuests > 0) return `Capacity ${maxGuests}`
   return 'Capacity varies'
 }
 
@@ -118,8 +174,8 @@ export function getFloorTableSeatingDialogOverlayClass(isPhone) {
 }
 
 function getQuickActionClassName(action) {
-  if (action.variant === 'danger') return 'floor-table-day-quick-action is-danger'
-  return 'floor-table-day-quick-action is-secondary'
+  if (action.variant === 'danger') return 'floor-table-day-action is-danger'
+  return 'floor-table-day-action is-secondary'
 }
 
 function getAssignmentRowClassName(baseClassName, {
@@ -150,9 +206,12 @@ function TableDayViewRow({
   const isAssignmentSelected = assignmentContext?.seatingId === seating.id
   const releaseLabel = tableLabel ? `Release ${tableLabel}` : 'Release table'
   const guestName = reservation?.guestName || 'Guest'
-  const guestCount = Math.max(0, Number(reservation?.guests) || 0)
-  const arrivalTime = reservation?.time ? formatTime24(reservation.time) : null
-  const tableChip = getTableChipMeta(reservation, row.assignedTablesLabel)
+  const infoItems = buildTableDayViewInfoItems(reservation, row.assignedTablesLabel)
+  const statusPresentation = getTableDayViewStatusPresentation({
+    statusLabel: row.statusLabel,
+    state,
+    isAvailable,
+  })
 
   const handleSelectSeating = () => {
     assignmentContext?.onSelectSeating?.(seating.id)
@@ -162,11 +221,6 @@ function TableDayViewRow({
     if (event.key !== 'Enter' && event.key !== ' ') return
     event.preventDefault()
     handleSelectSeating()
-  }
-
-  const handleEditReservation = (event) => {
-    event.stopPropagation()
-    onEditReservation?.(reservation)
   }
 
   const stopRowSelection = (event) => {
@@ -212,37 +266,44 @@ function TableDayViewRow({
           <strong className="floor-table-day-seating-name">{seating.name}</strong>
           <time className="floor-table-day-seating-time">{timeWindowLabel}</time>
         </div>
-        <span className="floor-table-day-status-badge is-problem">Problem</span>
-        <p className="floor-table-day-row-lead">Overlapping reservations</p>
-        <ul className="floor-table-day-conflict-list">
-          {conflicts.map((conflictReservation) => (
-            <li key={conflictReservation.id}>
-              <button
-                type="button"
-                className="floor-table-day-conflict-btn"
-                disabled={isSaving}
-                onClick={(event) => {
-                  stopRowSelection(event)
-                  onOpenReservation?.(conflictReservation)
-                }}
-              >
-                {conflictReservation.guestName || 'Guest'}
-                {' · '}
-                {formatTime24(conflictReservation.time)}
-                {' · '}
-                {Math.max(0, Number(conflictReservation.guests) || 0)} guests
-              </button>
-            </li>
-          ))}
-        </ul>
+
+        <TableDayViewRowDivider />
+
+        <div className="floor-table-day-row-body">
+          <TableDayViewStatusPill presentation={statusPresentation} />
+          <p className="floor-table-day-row-lead">Overlapping reservations</p>
+          <ul className="floor-table-day-conflict-list">
+            {conflicts.map((conflictReservation) => (
+              <li key={conflictReservation.id}>
+                <button
+                  type="button"
+                  className="floor-table-day-conflict-btn"
+                  disabled={isSaving}
+                  onClick={(event) => {
+                    stopRowSelection(event)
+                    onOpenReservation?.(conflictReservation)
+                  }}
+                >
+                  {conflictReservation.guestName || 'Guest'}
+                  {' · '}
+                  {formatTime24(conflictReservation.time)}
+                  {' · '}
+                  {Math.max(0, Number(conflictReservation.guests) || 0)} guests
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
       </li>
     )
   }
 
   if (isAvailable) {
+    const availablePresentation = getTableDayViewStatusPresentation({ isAvailable: true, state: 'available' })
+
     return (
       <li
-        className={getAssignmentRowClassName('floor-table-day-row is-available', {
+        className={getAssignmentRowClassName('floor-table-day-row is-available is-centered', {
           isAssignmentMode,
           isAssignmentSelected,
         })}
@@ -252,26 +313,23 @@ function TableDayViewRow({
         onClick={isAssignmentMode ? handleSelectSeating : undefined}
         onKeyDown={isAssignmentMode ? handleSelectSeatingKeyDown : undefined}
       >
-        <div className="floor-table-day-row-head">
+        <div className="floor-table-day-available-body">
           <strong className="floor-table-day-seating-name">{seating.name}</strong>
-          <time className="floor-table-day-seating-time">{timeWindowLabel}</time>
-        </div>
-        <span className="floor-table-day-status-badge is-available">Available</span>
-        {!isAssignmentMode ? (
-          <div className="floor-table-day-row-footer">
+          <TableDayViewStatusPill presentation={availablePresentation} />
+          {!isAssignmentMode ? (
             <button
               type="button"
-              className="floor-table-day-action is-primary is-compact"
+              className="floor-table-day-action is-primary"
               disabled={isSaving}
               onClick={() => onNewReservation?.(seating)}
               data-testid="floor-table-day-new-reservation"
             >
               + New reservation
             </button>
-          </div>
-        ) : (
-          <p className="floor-table-day-seating-select-hint">Tap to seat here</p>
-        )}
+          ) : (
+            <p className="floor-table-day-seating-select-hint">Tap to seat here</p>
+          )}
+        </div>
       </li>
     )
   }
@@ -293,96 +351,77 @@ function TableDayViewRow({
         <time className="floor-table-day-seating-time">{timeWindowLabel}</time>
       </div>
 
-      <div className="floor-table-day-guest-row">
-        <h4 className="floor-table-day-guest-name">{guestName}</h4>
-        {onEditReservation ? (
-          <button
-            type="button"
-            className="floor-table-day-edit-btn"
-            disabled={isSaving}
-            onClick={handleEditReservation}
-            data-testid="floor-table-day-edit-reservation"
-            aria-label={`Edit reservation for ${guestName}`}
-          >
-            <span className="floor-table-day-edit-btn-icon" aria-hidden="true">✏</span>
-            Edit
-          </button>
+      <TableDayViewRowDivider />
+
+      <div className="floor-table-day-row-body">
+        <h4 className="floor-table-day-guest-name">
+          <span className="floor-table-day-guest-icon" aria-hidden="true">👤</span>
+          {guestName}
+        </h4>
+
+        <TableDayViewInfoList items={infoItems} />
+
+        {row.statusLabel ? (
+          <TableDayViewStatusPill presentation={statusPresentation} />
         ) : null}
-      </div>
 
-      <p className="floor-table-day-guest-meta">
-        {arrivalTime ? (
-          <>
-            <span className="floor-table-day-guest-time">{arrivalTime}</span>
-            <span className="floor-table-day-guest-count">
-              {' · '}
-              {guestCount}
-              {' '}
-              {guestCount === 1 ? 'guest' : 'guests'}
-            </span>
-          </>
+        {row.hasNotes ? (
+          <p className="floor-table-day-row-notes" aria-label="Reservation has notes">Notes</p>
+        ) : null}
+
+        {!isAssignmentMode ? (
+          <div className="floor-table-day-row-actions">
+            <button
+              type="button"
+              className="floor-table-day-action is-primary"
+              disabled={isSaving}
+              onClick={() => onOpenReservation?.(reservation)}
+              data-testid="floor-table-day-open-reservation"
+            >
+              Open reservation
+            </button>
+            {onEditReservation ? (
+              <button
+                type="button"
+                className="floor-table-day-action is-secondary"
+                disabled={isSaving}
+                onClick={(event) => {
+                  event.stopPropagation()
+                  onEditReservation(reservation)
+                }}
+                data-testid="floor-table-day-edit-reservation"
+                aria-label={`Edit reservation for ${guestName}`}
+              >
+                Edit
+              </button>
+            ) : null}
+            {row.quickActions?.map((action) => (
+              <button
+                key={action.id}
+                type="button"
+                className={getQuickActionClassName(action)}
+                disabled={isSaving}
+                onClick={() => onQuickStatusUpdate?.(reservation, action.status)}
+              >
+                {action.label}
+              </button>
+            ))}
+            {canManageAssignment ? (
+              <button
+                type="button"
+                className="floor-table-day-action is-secondary is-release"
+                disabled={isSaving}
+                onClick={() => onReleaseTable?.(reservation)}
+                data-testid="floor-table-day-release-table"
+              >
+                {releaseLabel}
+              </button>
+            ) : null}
+          </div>
         ) : (
-          <span className="floor-table-day-guest-count">
-            {guestCount}
-            {' '}
-            {guestCount === 1 ? 'guest' : 'guests'}
-          </span>
+          <p className="floor-table-day-seating-select-hint">Tap to review assignment</p>
         )}
-      </p>
-
-      {tableChip ? (
-        <div className="floor-table-day-table-chip">
-          <span className="floor-table-day-table-chip-label">{tableChip.prefix}</span>
-          <span className="floor-table-day-table-chip-separator" aria-hidden="true">·</span>
-          <span className="floor-table-day-table-chip-value">{tableChip.value}</span>
-        </div>
-      ) : null}
-
-      {row.statusLabel ? (
-        <span className={`floor-table-day-status-badge is-${state}`}>{row.statusLabel}</span>
-      ) : null}
-
-      {row.hasNotes ? (
-        <p className="floor-table-day-row-notes" aria-label="Reservation has notes">Notes</p>
-      ) : null}
-
-      {!isAssignmentMode ? (
-        <div className="floor-table-day-row-actions">
-          <button
-            type="button"
-            className="floor-table-day-action is-primary"
-            disabled={isSaving}
-            onClick={() => onOpenReservation?.(reservation)}
-            data-testid="floor-table-day-open-reservation"
-          >
-            Open reservation
-          </button>
-          {row.quickActions?.map((action) => (
-            <button
-              key={action.id}
-              type="button"
-              className={getQuickActionClassName(action)}
-              disabled={isSaving}
-              onClick={() => onQuickStatusUpdate?.(reservation, action.status)}
-            >
-              {action.label}
-            </button>
-          ))}
-          {canManageAssignment ? (
-            <button
-              type="button"
-              className="floor-table-day-action is-release"
-              disabled={isSaving}
-              onClick={() => onReleaseTable?.(reservation)}
-              data-testid="floor-table-day-release-table"
-            >
-              {releaseLabel}
-            </button>
-          ) : null}
-        </div>
-      ) : (
-        <p className="floor-table-day-seating-select-hint">Tap to review assignment</p>
-      )}
+      </div>
     </li>
   )
 }
@@ -431,14 +470,26 @@ export function FloorTableSeatingDialog({
         <header className="floor-table-seating-dialog-header">
           <div className="floor-table-seating-dialog-heading">
             <h3 id="floor-table-seating-dialog-title">{tableLabel}</h3>
-            {areaLabel || table ? (
-              <p className="floor-table-seating-dialog-subtitle">
-                {[areaLabel, table ? formatGuestRange(table) : ''].filter(Boolean).join(' · ')}
-              </p>
-            ) : null}
-            {dateLabel ? (
-              <p className="floor-table-seating-dialog-date">{dateLabel}</p>
-            ) : null}
+            <ul className="floor-table-day-header-meta">
+              {areaLabel ? (
+                <li className="floor-table-day-header-meta-item">
+                  <span aria-hidden="true">📍</span>
+                  {areaLabel}
+                </li>
+              ) : null}
+              {table ? (
+                <li className="floor-table-day-header-meta-item">
+                  <span aria-hidden="true">👥</span>
+                  {formatTableDayViewCapacity(table)}
+                </li>
+              ) : null}
+              {dateLabel ? (
+                <li className="floor-table-day-header-meta-item">
+                  <span aria-hidden="true">📅</span>
+                  {dateLabel}
+                </li>
+              ) : null}
+            </ul>
             {needsSeatingChoice ? (
               <p className="floor-table-day-assignment-hint" data-testid="floor-table-day-choose-seating">
                 Choose a seating

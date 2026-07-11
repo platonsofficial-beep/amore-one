@@ -77,8 +77,8 @@ function renderDialog(props) {
   return {
     container,
     root,
-    query: (selector) => document.querySelector(selector),
-    queryAll: (selector) => document.querySelectorAll(selector),
+    query: (selector) => document.querySelector('[data-testid="floor-table-day-view"]')?.querySelector(selector) ?? null,
+    queryAll: (selector) => document.querySelectorAll('[data-testid="floor-table-day-view"] ' + selector),
     cleanup: () => {
       act(() => {
         root.unmount()
@@ -144,7 +144,7 @@ describe('FloorTableSeatingDialog host day view', () => {
 
     const guestHeading = query('.floor-table-day-guest-name')
     expect(guestHeading?.tagName).toBe('H4')
-    expect(guestHeading?.textContent).toBe('Maria Rossi')
+    expect(guestHeading?.textContent).toContain('Maria Rossi')
     cleanup()
   })
 
@@ -160,7 +160,7 @@ describe('FloorTableSeatingDialog host day view', () => {
     })
 
     expect(query('.floor-table-day-guest-time')?.textContent).toBe('20:30')
-    expect(query('.floor-table-day-guest-count')?.textContent).toBe(' · 4 guests')
+    expect(query('.floor-table-day-guest-count')?.textContent).toBe('4 guests')
     cleanup()
   })
 
@@ -183,9 +183,9 @@ describe('FloorTableSeatingDialog host day view', () => {
       onClose: () => {},
     })
 
-    const chip = query('.floor-table-day-table-chip')
-    expect(chip?.querySelector('.floor-table-day-table-chip-label')?.textContent).toBe('Table')
-    expect(chip?.textContent).toContain('T15')
+    const tableLine = query('.floor-table-day-table-chip')
+    expect(tableLine?.textContent).toContain('Table')
+    expect(tableLine?.textContent).toContain('T15')
     cleanup()
   })
 
@@ -211,9 +211,9 @@ describe('FloorTableSeatingDialog host day view', () => {
       onClose: () => {},
     })
 
-    const chip = query('.floor-table-day-table-chip')
-    expect(chip?.querySelector('.floor-table-day-table-chip-label')?.textContent).toBe('Tables')
-    expect(chip?.querySelector('.floor-table-day-table-chip-value')?.textContent).toBe('T15 + T16')
+    const tableLine = query('.floor-table-day-table-chip')
+    expect(tableLine?.textContent).toContain('Tables')
+    expect(tableLine?.textContent).toContain('T15 + T16')
     cleanup()
   })
 
@@ -304,7 +304,9 @@ describe('FloorTableSeatingDialog host day view', () => {
     expect(onOpenReservation).toHaveBeenCalledWith(reservation)
 
     act(() => {
-      query('.floor-table-day-quick-action')
+      const dialog = document.querySelector('[data-testid="floor-table-day-view"]')
+      Array.from(dialog?.querySelectorAll('.floor-table-day-action.is-secondary') ?? [])
+        .find((button) => button.textContent === 'Arrived')
         ?.dispatchEvent(new MouseEvent('click', { bubbles: true }))
     })
     expect(onQuickStatusUpdate).toHaveBeenCalledWith(reservation, 'Arrived')
@@ -384,7 +386,7 @@ describe('FloorTableSeatingDialog host day view', () => {
 
     expect(document.querySelector('[data-assignment-mode="true"]')).not.toBeNull()
     expect(query('[data-testid="floor-table-day-row-assignment"]')).not.toBeNull()
-    expect(query('.floor-table-day-guest-name')?.textContent).toBe('Samaridis')
+    expect(query('.floor-table-day-guest-name')?.textContent).toContain('Samaridis')
     expect(query('[data-testid="floor-table-day-assign-reservation"]')?.textContent)
       .toContain('Assign T23')
 
@@ -480,6 +482,62 @@ describe('FloorTableSeatingDialog host day view', () => {
 
     expect(query('[data-testid="floor-table-day-assign-reservation"]')?.disabled).toBe(true)
     expect(query('.floor-table-day-assignment-blocked')).not.toBeNull()
+    cleanup()
+  })
+
+  it('shows extra-chair metadata only when assigned', () => {
+    const { query, cleanup } = renderDialog({
+      table: { id: 't10', label: 'T10' },
+      tableLabel: 'T10',
+      rows: [buildOccupiedRow({
+        reservation: {
+          id: 'res-1',
+          guestName: 'Fournie',
+          guests: 2,
+          time: '20:30',
+          seatingAssignment: {
+            assignedUnits: [{ id: 't102', label: 'T102' }],
+            extraChairs: 1,
+            standingGuests: 0,
+          },
+        },
+        assignedTablesLabel: 'T102',
+      })],
+      onClose: () => {},
+    })
+
+    expect(query('.floor-table-day-info-list')?.textContent).toContain('🪑')
+    expect(query('.floor-table-day-info-list')?.textContent).toContain('+1 Extra chair')
+    cleanup()
+  })
+
+  it('renders premium header metadata lines', () => {
+    const { query, cleanup } = renderDialog({
+      table: { id: 't102', label: 'T102', maxGuestCapacity: 2 },
+      tableLabel: 'T102',
+      areaLabel: 'Main Dining',
+      dateLabel: 'Saturday, July 11',
+      rows: [{
+        seating: SEATINGS[0],
+        reservation: null,
+        conflicts: [],
+        hasConflict: false,
+        isAvailable: true,
+        timeWindowLabel: '19:00–21:00',
+        state: 'available',
+      }],
+      onClose: () => {},
+    })
+
+    const dialog = document.querySelector('[data-testid="floor-table-day-view"]')
+    const metaItems = Array.from(dialog?.querySelectorAll('.floor-table-day-header-meta-item') ?? [])
+      .map((node) => node.textContent?.replace(/\s+/g, '').trim())
+    expect(metaItems).toEqual([
+      '📍MainDining',
+      '👥Capacity2',
+      '📅Saturday,July11',
+    ])
+    expect(query('.floor-table-day-status-pill')?.textContent).toContain('Available')
     cleanup()
   })
 })
