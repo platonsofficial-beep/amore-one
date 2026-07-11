@@ -1,6 +1,8 @@
 import {
   formatHostListUnitLabel,
   getReservationAssignedUnitsForMatching,
+  buildSeatingAssignment,
+  computeSeatingAssignmentTotals,
 } from './seatingAssignment'
 import {
   buildSeatingsById,
@@ -125,16 +127,42 @@ export function formatHostQuickCreateSelectedTableSummary(assignedUnits = []) {
 
 export function formatHostQuickCreateTableSelectionStatus(assignedUnits = []) {
   const summary = formatHostQuickCreateSelectedTableSummary(assignedUnits)
-  return summary ? `Selected table · ${summary}` : 'No table selected'
+  if (!summary) return 'No table selected'
+  if (assignedUnits.length === 1) return `Selected table · ${summary}`
+  return `Selected tables · ${summary}`
 }
 
-export function buildHostQuickCreateAvailabilityKey(form, reservations = []) {
+export function formatHostQuickCreateTableCapacitySummary(assignedUnits = [], partySize = 0) {
+  if (!assignedUnits.length) return ''
+  const totals = computeSeatingAssignmentTotals(
+    buildSeatingAssignment({ assignedUnits, partySize: Number(partySize) || 0 }),
+    partySize,
+  )
+  return `Capacity ${totals.totalGuestCapacity} · Guests ${totals.guests}`
+}
+
+export function formatHostQuickCreateTableCompactCapacity(unit) {
+  const min = Number(unit?.minGuestCapacity ?? unit?.seatedCapacity) || 0
+  const max = Number(unit?.maxGuestCapacity ?? unit?.seatedCapacity) || 0
+
+  if (min > 0 && max > 0 && min !== max) {
+    return `👤${min}–${max}`
+  }
+
+  if (max > 0) {
+    return `👤${max}`
+  }
+
+  return ''
+}
+
+export function buildHostQuickCreateAvailabilityKey(form, reservations = [], layout = null) {
   if (!form?.date || !form?.seatingId || !form?.seatingAreaId) return ''
 
   const normalizedDate = normalizeReservationDateKey(form.date)
   if (!normalizedDate) return ''
 
-  return reservations
+  const reservationKey = reservations
     .filter((reservation) => normalizeReservationDateKey(reservation) === normalizedDate)
     .map((reservation) => {
       const unitIds = getReservationAssignedUnitsForMatching(reservation)
@@ -150,6 +178,27 @@ export function buildHostQuickCreateAvailabilityKey(form, reservations = []) {
     })
     .sort()
     .join('|')
+
+  const layoutKey = (layout?.units ?? layout?.tables ?? [])
+    .filter((unit) => unit.zoneId === form.seatingAreaId)
+    .map((unit) => [
+      unit.id,
+      unit.label ?? '',
+      unit.seatedCapacity ?? '',
+      unit.maxGuestCapacity ?? '',
+    ].join('~'))
+    .sort()
+    .join('+')
+
+  return [
+    normalizedDate,
+    normalizeReservationTimeValue(form.time) ?? '',
+    form.seatingId,
+    form.seatingAreaId,
+    `${form.guests ?? ''}`,
+    layoutKey,
+    reservationKey,
+  ].join('::')
 }
 
 export function formatHostQuickCreateTableOptionLabel(unit, partySize) {
@@ -228,9 +277,9 @@ export function buildHostQuickCreateTableOptions({
 
   const options = areaUnits.map((unit) => {
     const conflict = conflictingUnitIds.get(unit.id)
-    const capacityCompatible = isTableCapacityCompatible(unit, partySize)
-    const isSelectable = isUnitSelectable(unit.id, conflictingUnitIds, selectedUnitIds)
-      && capacityCompatible
+    const isConflictBlocked = !isUnitSelectable(unit.id, conflictingUnitIds, selectedUnitIds)
+    const isSelectable = !isConflictBlocked
+    const capacityLabel = formatHostQuickCreateTableCompactCapacity(unit)
 
     return {
       unit,
@@ -244,7 +293,8 @@ export function buildHostQuickCreateTableOptions({
           seatingsById,
           seatingId,
         ),
-      label: formatHostQuickCreateTableOptionLabel(unit, partySize),
+      label: formatHostListUnitLabel(unit.label),
+      capacityLabel,
     }
   })
 
@@ -255,9 +305,11 @@ export function buildHostQuickCreateTableOptions({
     return left.label.localeCompare(right.label, undefined, { numeric: true })
   })
 
+  const visibleAvailableCount = options.filter((entry) => entry.isSelectable).length
+
   return {
     options,
-    availableCount: options.filter((entry) => entry.isSelectable).length,
+    availableCount: visibleAvailableCount,
     canSelect: true,
   }
 }
@@ -280,7 +332,7 @@ export function getHostQuickCreateTableHelperText(form, tableOptions, seatings =
     return 'Checking availability...'
   }
 
-  if (tableOptions.availableCount === 0) {
+  if (tableOptions.availableCount === 0 && !(form.assignedUnits?.length > 0)) {
     const seatingName = seatings.find((entry) => entry.id === form.seatingId)?.name ?? 'this seating'
     return `No available tables in this area for ${seatingName}`
   }
@@ -331,42 +383,65 @@ export function createHostQuickCreateFormState(prefill = {}, { todayKey = '', la
   }
 }
 
+function buildHostQuickCreateConflictContext(form, context = {}) {
+  const { layout = null, reservations = [], seatings = [] } = context
+  const seatingsById = buildSeatingsById(seatings)
+  const selectedSeating = form.seatingId ? seatingsById.get(form.seatingId) : null
+
+  return {
+    conflictingUnitIds: getConflictingUnitIds(reservations, form.date, form.time, {
+      layout,
+      seatingId: form.seatingId,
+      seatingsById,
+      durationMinutes: selectedSeating ? resolveSeatingDuration(selectedSeating) : undefined,
+    }),
+    areaUnits: getLayoutUnitsForArea(layout, form.seatingAreaId),
+  }
+}
+
+function isCanonicalQuickCreateAssignmentValid(unit, { conflictingUnitIds, areaUnits }) {
+  const layoutUnit = areaUnits.find((entry) => unitIdsMatch(entry.id, unit.id))
+  if (!layoutUnit) return false
+  return !conflictingUnitIds.has(layoutUnit.id)
+}
+
+function formatRemovedQuickCreateTableNotice(removedUnits = []) {
+  if (removedUnits.length === 0) return ''
+  if (removedUnits.length === 1) {
+    return `${formatHostListUnitLabel(removedUnits[0].label)} was removed because it is no longer available.`
+  }
+  const labels = removedUnits.map((unit) => formatHostListUnitLabel(unit.label)).join(', ')
+  return `${labels} were removed because they are no longer available.`
+}
+
 function clearInvalidAssignedUnits(form, context) {
-  const { layout, reservations, seatings } = context
   if (!form.assignedUnits.length) {
-    return { assignedUnits: [], tableSelectionNotice: form.tableSelectionNotice }
+    return { assignedUnits: [], tableSelectionNotice: '' }
   }
 
-  const { options } = buildHostQuickCreateTableOptions({
-    layout,
-    reservations,
-    dateKey: form.date,
-    time: form.time,
-    seatingId: form.seatingId,
-    areaId: form.seatingAreaId,
-    partySize: form.guests,
-    seatings,
-    assignedUnits: [],
+  const { conflictingUnitIds, areaUnits } = buildHostQuickCreateConflictContext(form, context)
+  const nextAssignedUnits = []
+  const removedUnits = []
+
+  form.assignedUnits.forEach((unit) => {
+    const layoutUnit = areaUnits.find((entry) => unitIdsMatch(entry.id, unit.id))
+    if (!layoutUnit || conflictingUnitIds.has(layoutUnit.id)) {
+      removedUnits.push(unit)
+      return
+    }
+    nextAssignedUnits.push(layoutUnit)
   })
 
-  const validIds = new Set(
-    options.filter((entry) => entry.isSelectable).map((entry) => entry.unit.id),
-  )
-  const nextAssignedUnits = form.assignedUnits.filter((unit) => (
-    validIds.has(unit.id)
-    || options.some((entry) => unitIdsMatch(entry.unit.id, unit.id) && entry.isSelectable)
-  ))
-
-  if (nextAssignedUnits.length === form.assignedUnits.length) {
+  if (removedUnits.length === 0) {
     return {
-      assignedUnits: form.assignedUnits,
+      assignedUnits: nextAssignedUnits,
       tableSelectionNotice: form.tableSelectionNotice,
     }
   }
 
   return {
     assignedUnits: nextAssignedUnits,
-    tableSelectionNotice: 'Table selection cleared because availability changed.',
+    tableSelectionNotice: formatRemovedQuickCreateTableNotice(removedUnits),
   }
 }
 
@@ -473,10 +548,8 @@ export function applyHostQuickCreateFormPatch(form, patch, context = {}) {
   if (areaChanged) {
     const zone = zones.find((entry) => entry.id === next.seatingAreaId)
     next.area = zone?.label ?? ''
-    if (form.assignedUnits.length) {
-      next.tableSelectionNotice = 'Table selection cleared because availability changed.'
-    }
     next.assignedUnits = []
+    next.tableSelectionNotice = ''
   }
 
   if (dateChanged || timeChanged) {
@@ -512,20 +585,6 @@ export function applyHostQuickCreateFormPatch(form, patch, context = {}) {
     seatingChanged
     || dateChanged
     || timeChanged
-    || guestsChanged
-    || areaChanged
-  ) {
-    const cleared = clearInvalidAssignedUnits(next, context)
-    next.assignedUnits = cleared.assignedUnits
-    if (cleared.tableSelectionNotice) {
-      next.tableSelectionNotice = cleared.tableSelectionNotice
-    }
-  }
-
-  if (
-    (seatingChanged || dateChanged || timeChanged)
-    && next.seatingId
-    && next.assignedUnits.length
   ) {
     const cleared = clearInvalidAssignedUnits(next, context)
     next.assignedUnits = cleared.assignedUnits
@@ -537,12 +596,7 @@ export function applyHostQuickCreateFormPatch(form, patch, context = {}) {
   return next
 }
 
-export function toggleHostQuickCreateTableSelection(
-  form,
-  unit,
-  context = {},
-  { allowMultipleTables = false } = {},
-) {
+export function toggleHostQuickCreateTableSelection(form, unit, context = {}) {
   if (!unit || !form) return form
 
   const { options } = buildHostQuickCreateTableOptions({
@@ -563,19 +617,10 @@ export function toggleHostQuickCreateTableSelection(
   const normalizedUnit = option.unit
   const isSelected = form.assignedUnits.some((entry) => unitIdsMatch(entry.id, normalizedUnit.id))
 
-  if (allowMultipleTables) {
-    if (!isSelected && !option.isSelectable) return form
-    return {
-      ...form,
-      assignedUnits: toggleAssignedUnit(form.assignedUnits, normalizedUnit),
-      tableSelectionNotice: '',
-    }
-  }
-
   if (isSelected) {
     return {
       ...form,
-      assignedUnits: [],
+      assignedUnits: toggleAssignedUnit(form.assignedUnits, normalizedUnit),
       tableSelectionNotice: '',
     }
   }
@@ -584,7 +629,7 @@ export function toggleHostQuickCreateTableSelection(
 
   return {
     ...form,
-    assignedUnits: [normalizedUnit],
+    assignedUnits: toggleAssignedUnit(form.assignedUnits, normalizedUnit),
     tableSelectionNotice: '',
   }
 }

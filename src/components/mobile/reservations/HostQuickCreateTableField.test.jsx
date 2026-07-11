@@ -169,7 +169,7 @@ describe('HostQuickCreateTableField', () => {
     unmount()
   })
 
-  it('replaces the previous selection when another available table is tapped', () => {
+  it('adds a second table instead of replacing the first selection', () => {
     const onSelectTable = vi.fn()
     let form = buildReadyForm()
     const { container, rerender, unmount } = renderField({ form, onSelectTable })
@@ -195,6 +195,62 @@ describe('HostQuickCreateTableField', () => {
 
     expect(onSelectTable).toHaveBeenCalledTimes(2)
     expect(onSelectTable.mock.calls[1][0].id).toBe('t13')
+
+    unmount()
+  })
+
+  it('renders compact table capacity labels', () => {
+    const { container, unmount } = renderField()
+
+    const t18Button = getTableButton(container, 'T18')
+    expect(t18Button?.querySelector('.mobile-host-quick-create-table-option-label')?.textContent).toBe('T18')
+    expect(t18Button?.querySelector('.mobile-host-quick-create-table-option-capacity')?.textContent).toBe('👤4')
+
+    unmount()
+  })
+
+  it('shows plural selection summary and capacity summary for multiple tables', () => {
+    const { container, rerender, unmount } = renderField()
+
+    rerender({
+      ...buildReadyForm(),
+      guests: '4',
+      assignedUnits: [
+        { id: 't13', label: 'T13', seatedCapacity: 2, maxGuestCapacity: 2 },
+        { id: 't18', label: 'T18', seatedCapacity: 4, maxGuestCapacity: 4 },
+      ],
+    })
+
+    expect(container.querySelector('[data-testid="host-quick-create-table-status"]')?.textContent)
+      .toBe('Selected tables · T13 + T18')
+    expect(container.querySelector('.mobile-host-quick-create-table-capacity-summary')?.textContent)
+      .toBe('Capacity 6 · Guests 4')
+
+    unmount()
+  })
+
+  it('allows tapping a selected table to remove only that table', () => {
+    const onSelectTable = vi.fn()
+    const { container, rerender, unmount } = renderField({
+      form: {
+        ...buildReadyForm(),
+        assignedUnits: [
+          { id: 't13', label: 'T13', seatedCapacity: 2, maxGuestCapacity: 2 },
+          { id: 't18', label: 'T18', seatedCapacity: 4, maxGuestCapacity: 4 },
+        ],
+      },
+      onSelectTable,
+    })
+
+    const t13Button = getTableButton(container, 'T13')
+    expect(t13Button?.getAttribute('aria-pressed')).toBe('true')
+    expect(t13Button?.disabled).toBe(false)
+
+    act(() => {
+      t13Button?.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    })
+
+    expect(onSelectTable).toHaveBeenCalledWith(expect.objectContaining({ id: 't13' }))
 
     unmount()
   })

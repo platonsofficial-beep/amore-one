@@ -69,7 +69,7 @@ function HostReservationQuickCreateFields({
   }
 
   const handleClearTable = () => {
-    updateForm({ assignedUnits: [] })
+    updateForm({ assignedUnits: [], tableSelectionNotice: '' })
   }
 
   const handleSave = async () => {
@@ -224,8 +224,8 @@ export function MobileReservationQuickCreateSheet({
   const [form, setForm] = useState(EMPTY_HOST_QUICK_CREATE_FORM)
   const wasOpenRef = useRef(false)
   const availabilityKey = useMemo(
-    () => buildHostQuickCreateAvailabilityKey(form, reservations),
-    [form.date, form.seatingId, form.seatingAreaId, reservations],
+    () => buildHostQuickCreateAvailabilityKey(form, reservations, layout),
+    [form.date, form.time, form.seatingId, form.seatingAreaId, form.guests, layout, reservations],
   )
 
   useEffect(() => {

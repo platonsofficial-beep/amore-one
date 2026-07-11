@@ -1,10 +1,11 @@
 import { useMemo } from 'react'
 import {
   buildHostQuickCreateTableOptions,
+  formatHostQuickCreateTableCapacitySummary,
   formatHostQuickCreateTableSelectionStatus,
   getHostQuickCreateTableHelperText,
 } from '../../../lib/hostQuickCreateForm'
-import { formatHostListUnitLabel } from '../../../lib/seatingAssignment'
+import { buildSeatingAssignment, computeSeatingAssignmentTotals } from '../../../lib/seatingAssignment'
 import { unitIdsMatch } from '../../../lib/reservationTableOptions'
 
 export function HostQuickCreateTableField({
@@ -50,13 +51,30 @@ export function HostQuickCreateTableField({
     [form.assignedUnits],
   )
 
-  const showTableGrid = !helperText
-  const hasSelection = form.assignedUnits.length > 0
+  const capacitySummary = useMemo(
+    () => formatHostQuickCreateTableCapacitySummary(form.assignedUnits, form.guests),
+    [form.assignedUnits, form.guests],
+  )
 
-  const handleSelect = (event, unit, isSelectable) => {
+  const capacityTotals = useMemo(
+    () => computeSeatingAssignmentTotals(
+      buildSeatingAssignment({
+        assignedUnits: form.assignedUnits,
+        partySize: Number(form.guests) || 0,
+      }),
+      form.guests,
+    ),
+    [form.assignedUnits, form.guests],
+  )
+
+  const showTableGrid = !helperText || form.assignedUnits.length > 0
+  const hasSelection = form.assignedUnits.length > 0
+  const showCapacitySummary = form.assignedUnits.length > 1 && capacitySummary
+
+  const handleSelect = (event, unit, isSelectable, isSelected) => {
     event.preventDefault()
     event.stopPropagation()
-    if (!isSelectable) return
+    if (!isSelectable && !isSelected) return
     onSelectTable?.(unit)
   }
 
@@ -87,6 +105,18 @@ export function HostQuickCreateTableField({
         {selectionStatus}
       </p>
 
+      {showCapacitySummary ? (
+        <p className="mobile-host-quick-create-table-capacity-summary" role="status">
+          {capacitySummary}
+        </p>
+      ) : null}
+
+      {capacityTotals.isUnderCapacity ? (
+        <p className="mobile-host-quick-create-table-capacity-warning" role="status">
+          Selected capacity is below party size by {capacityTotals.capacityGap} guest{capacityTotals.capacityGap === 1 ? '' : 's'}.
+        </p>
+      ) : null}
+
       {form.tableSelectionNotice ? (
         <p className="mobile-host-form-notice" role="status">{form.tableSelectionNotice}</p>
       ) : null}
@@ -102,9 +132,9 @@ export function HostQuickCreateTableField({
           aria-label="Available tables"
           data-testid="host-quick-create-table-grid"
         >
-          {tableOptions.options.map(({ unit, isSelectable, disabledReason, label }) => {
+          {tableOptions.options.map(({ unit, isSelectable, disabledReason, label, capacityLabel }) => {
             const isSelected = form.assignedUnits.some((entry) => unitIdsMatch(entry.id, unit.id))
-            const isDisabled = !isSelectable
+            const isDisabled = !isSelectable && !isSelected
 
             return (
               <button
@@ -115,9 +145,15 @@ export function HostQuickCreateTableField({
                 disabled={isDisabled}
                 className={`mobile-host-quick-create-table-option${isSelected ? ' is-selected' : ''}${isDisabled ? ' is-unavailable' : ''}`}
                 data-testid={`host-quick-create-table-option-${unit.id}`}
-                onClick={(event) => handleSelect(event, unit, isSelectable)}
+                onClick={(event) => handleSelect(event, unit, isSelectable, isSelected)}
               >
-                {isSelectable ? label : `${formatHostListUnitLabel(unit.label)} · ${disabledReason}`}
+                <span className="mobile-host-quick-create-table-option-label">{label}</span>
+                {capacityLabel ? (
+                  <span className="mobile-host-quick-create-table-option-capacity">{capacityLabel}</span>
+                ) : null}
+                {!isSelectable && !isSelected && disabledReason ? (
+                  <span className="mobile-host-quick-create-table-option-status">{disabledReason}</span>
+                ) : null}
               </button>
             )
           })}

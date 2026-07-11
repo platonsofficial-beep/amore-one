@@ -13,6 +13,7 @@ vi.mock('../../../lib/PublishedFloorPlanContext', () => ({
       zones: [{ id: 'main', label: 'Main Dining' }],
       units: [
         { id: 't18', label: 'T18', zoneId: 'main', seatedCapacity: 4, maxGuestCapacity: 4 },
+        { id: 't13', label: 'T13', zoneId: 'main', seatedCapacity: 2, maxGuestCapacity: 2 },
       ],
     },
   }),
@@ -116,6 +117,73 @@ describe('MobileReservationQuickCreateSheet table picker integration', () => {
     expect(onSubmit).toHaveBeenCalledTimes(1)
     expect(onSubmit.mock.calls[0][0].assignedUnits).toHaveLength(1)
     expect(onSubmit.mock.calls[0][0].assignedUnits[0].id).toBe('t18')
+
+    unmount()
+  })
+
+  it('selects multiple tables and passes all assignedUnits to Save Reservation', async () => {
+    const onSubmit = vi.fn(async () => true)
+    const { container, unmount } = renderSheet({
+      prefill: {
+        time: '21:00',
+        seatingId: 'dinner-2',
+        seatingAreaId: 'main',
+        area: 'Main Dining',
+        guests: '4',
+      },
+      onSubmit,
+    })
+
+    const findButton = (label) => [...container.querySelectorAll('.mobile-host-quick-create-table-option')]
+      .find((button) => button.textContent?.includes(label))
+
+    await act(async () => {
+      findButton('T13')?.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    })
+    await act(async () => {
+      findButton('T18')?.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    })
+
+    expect(container.querySelector('[data-testid="host-quick-create-table-status"]')?.textContent)
+      .toBe('Selected tables · T13 + T18')
+
+    const saveButton = [...container.querySelectorAll('button')]
+      .find((button) => button.textContent === 'Save reservation')
+
+    await act(async () => {
+      saveButton?.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    })
+
+    expect(onSubmit).toHaveBeenCalledTimes(1)
+    expect(onSubmit.mock.calls[0][0].assignedUnits.map((unit) => unit.id)).toEqual(['t13', 't18'])
+
+    unmount()
+  })
+
+  it('keeps a selected table after availability refresh with unchanged canonical data', async () => {
+    const onSubmit = vi.fn(async () => true)
+    const { container, unmount } = renderSheet({
+      prefill: {
+        time: '21:00',
+        seatingId: 'dinner-2',
+        seatingAreaId: 'main',
+        area: 'Main Dining',
+        guests: '4',
+      },
+      onSubmit,
+    })
+
+    const t18Button = [...container.querySelectorAll('.mobile-host-quick-create-table-option')]
+      .find((button) => button.textContent?.includes('T18'))
+
+    await act(async () => {
+      t18Button?.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    })
+
+    expect(container.querySelector('[data-testid="host-quick-create-table-status"]')?.textContent)
+      .toBe('Selected table · T18')
+    expect(container.querySelector('.mobile-host-form-notice')).toBeNull()
+    expect(container.querySelector('.mobile-host-form-hint')?.textContent ?? '').not.toContain('No available tables')
 
     unmount()
   })

@@ -6010,6 +6010,11 @@
 }
 
 .mobile-host-quick-create-table-option {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 2px;
   min-height: 44px;
   padding: 8px 10px;
   border: 1px solid rgba(255, 255, 255, 0.08);
@@ -6017,14 +6022,46 @@
   background: rgba(255, 255, 255, 0.05);
   color: #f7efe1;
   font: inherit;
-  font-size: 0.82rem;
-  font-weight: 600;
-  line-height: 1.25;
   text-align: left;
   white-space: nowrap;
   cursor: pointer;
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
+}
+
+.mobile-host-quick-create-table-option-label {
+  font-size: 0.86rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.mobile-host-quick-create-table-option-capacity {
+  font-size: 0.72rem;
+  font-weight: 600;
+  line-height: 1.2;
+  color: rgba(247, 239, 225, 0.78);
+}
+
+.mobile-host-quick-create-table-option-status {
+  font-size: 0.66rem;
+  font-weight: 600;
+  line-height: 1.2;
+  color: rgba(247, 239, 225, 0.55);
+}
+
+.mobile-host-quick-create-table-capacity-summary,
+.mobile-host-quick-create-table-capacity-warning {
+  margin: 0;
+  font-size: 0.74rem;
+  font-weight: 600;
+}
+
+.mobile-host-quick-create-table-capacity-summary {
+  color: #c9bfb0;
+}
+
+.mobile-host-quick-create-table-capacity-warning {
+  color: #d4af37;
 }
 
 .mobile-host-quick-create-table-option.is-selected {

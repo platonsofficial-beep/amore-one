@@ -13,6 +13,8 @@ import {
   refreshHostQuickCreateAssignedUnits,
   formatHostQuickCreateSelectedTableSummary,
   formatHostQuickCreateTableSelectionStatus,
+  formatHostQuickCreateTableCapacitySummary,
+  formatHostQuickCreateTableCompactCapacity,
   buildHostQuickCreateAvailabilityKey,
 } from './hostQuickCreateForm'
 
@@ -291,14 +293,15 @@ describe('hostQuickCreateForm', () => {
     expect(form.assignedUnits).toEqual([])
   })
 
-  it('15. capacity-incompatible table cannot be selected', () => {
+  it('15. capacity-limited table can still be selected for multi-table combine', () => {
     let form = createHostQuickCreateFormState(
       { date: SERVICE_DATE, time: '19:00', seatingId: 'dinner-1', seatingAreaId: 'main', area: 'Main Dining', guests: '4' },
       { todayKey: SERVICE_DATE, layout: LAYOUT, seatings: SEATINGS },
     )
     const smallTable = LAYOUT.units.find((unit) => unit.id === 't16')
     form = toggleHostQuickCreateTableSelection(form, smallTable, CONTEXT)
-    expect(form.assignedUnits).toEqual([])
+    expect(form.assignedUnits).toHaveLength(1)
+    expect(form.assignedUnits[0].id).toBe('t16')
 
     const options = buildHostQuickCreateTableOptions({
       layout: LAYOUT,
@@ -309,8 +312,10 @@ describe('hostQuickCreateForm', () => {
       areaId: form.seatingAreaId,
       partySize: form.guests,
       seatings: SEATINGS,
+      assignedUnits: form.assignedUnits,
     })
-    expect(options.options.find((entry) => entry.unit.id === 't16')?.disabledReason).toBe('Capacity 2')
+    expect(options.options.find((entry) => entry.unit.id === 't16')?.isSelectable).toBe(true)
+    expect(formatHostQuickCreateTableCapacitySummary(form.assignedUnits, form.guests)).toBe('Capacity 2 · Guests 4')
   })
 
   it('16. changing seating clears an invalid table', () => {
@@ -329,7 +334,7 @@ describe('hostQuickCreateForm', () => {
 
     form = applyHostQuickCreateFormPatch(form, { seatingId: 'dinner-1' }, CONTEXT)
     expect(form.assignedUnits).toEqual([])
-    expect(form.tableSelectionNotice).toBe('Table selection cleared because availability changed.')
+    expect(form.tableSelectionNotice).toBe('T15 was removed because it is no longer available.')
   })
 
   it('17. changing area clears the previous table', () => {
@@ -348,10 +353,10 @@ describe('hostQuickCreateForm', () => {
     form = applyHostQuickCreateFormPatch(form, { seatingAreaId: 'bar' }, CONTEXT)
     expect(form.assignedUnits).toEqual([])
     expect(form.area).toBe('Bar')
-    expect(form.tableSelectionNotice).toBe('Table selection cleared because availability changed.')
+    expect(form.tableSelectionNotice).toBe('')
   })
 
-  it('18. changing date, time, or party size recomputes availability', () => {
+  it('18. changing party size preserves valid selections and seating/time still revalidates conflicts', () => {
     let form = createHostQuickCreateFormState(
       {
         date: SERVICE_DATE,
@@ -366,8 +371,9 @@ describe('hostQuickCreateForm', () => {
     )
 
     form = applyHostQuickCreateFormPatch(form, { guests: '4' }, CONTEXT)
-    expect(form.assignedUnits).toEqual([])
-    expect(form.tableSelectionNotice).toBe('Table selection cleared because availability changed.')
+    expect(form.assignedUnits).toHaveLength(1)
+    expect(form.assignedUnits[0].id).toBe('t16')
+    expect(form.tableSelectionNotice).toBe('')
 
     form = createHostQuickCreateFormState(
       {
@@ -383,6 +389,7 @@ describe('hostQuickCreateForm', () => {
     form = applyHostQuickCreateFormPatch(form, { time: '19:00' }, CONTEXT)
     expect(form.seatingId).toBe('dinner-1')
     expect(form.assignedUnits).toEqual([])
+    expect(form.tableSelectionNotice).toBe('T15 was removed because it is no longer available.')
   })
 
   it('19. no available tables still permits unassigned creation state', () => {
@@ -472,7 +479,7 @@ describe('hostQuickCreateForm', () => {
     expect(form.assignedUnits[0].id).toBe('t15')
   })
 
-  it('21c. multi-table mode toggles tables on and off', () => {
+  it('21c. multi-table selection toggles tables on and off', () => {
     let form = createHostQuickCreateFormState(
       {
         date: SERVICE_DATE,
@@ -487,12 +494,78 @@ describe('hostQuickCreateForm', () => {
     const t15 = LAYOUT.units.find((unit) => unit.id === 't15')
     const t16 = LAYOUT.units.find((unit) => unit.id === 't16')
 
-    form = toggleHostQuickCreateTableSelection(form, t15, CONTEXT, { allowMultipleTables: true })
-    form = toggleHostQuickCreateTableSelection(form, t16, CONTEXT, { allowMultipleTables: true })
+    form = toggleHostQuickCreateTableSelection(form, t15, CONTEXT)
+    form = toggleHostQuickCreateTableSelection(form, t16, CONTEXT)
     expect(formatHostQuickCreateSelectedTableSummary(form.assignedUnits)).toBe('T15 + T16')
+    expect(formatHostQuickCreateTableSelectionStatus(form.assignedUnits)).toBe('Selected tables · T15 + T16')
 
-    form = toggleHostQuickCreateTableSelection(form, t15, CONTEXT, { allowMultipleTables: true })
+    form = toggleHostQuickCreateTableSelection(form, t15, CONTEXT)
     expect(formatHostQuickCreateSelectedTableSummary(form.assignedUnits)).toBe('T16')
+    expect(formatHostQuickCreateTableSelectionStatus(form.assignedUnits)).toBe('Selected table · T16')
+  })
+
+  it('21e. selected table survives refresh when canonical availability is unchanged', () => {
+    let form = createHostQuickCreateFormState(
+      {
+        date: SERVICE_DATE,
+        time: '21:00',
+        seatingId: 'dinner-2',
+        seatingAreaId: 'main',
+        area: 'Main Dining',
+        guests: '4',
+      },
+      { todayKey: SERVICE_DATE, layout: LAYOUT, seatings: SEATINGS },
+    )
+    const smallTable = LAYOUT.units.find((unit) => unit.id === 't16')
+    form = toggleHostQuickCreateTableSelection(form, smallTable, CONTEXT)
+    form = refreshHostQuickCreateAssignedUnits(form, {
+      ...CONTEXT,
+      reservations: [...CONTEXT.reservations],
+    })
+    expect(form.assignedUnits).toHaveLength(1)
+    expect(form.assignedUnits[0].id).toBe('t16')
+    expect(form.tableSelectionNotice).toBe('')
+  })
+
+  it('21f. real conflict removes only the affected selected table', () => {
+    let form = createHostQuickCreateFormState(
+      {
+        date: SERVICE_DATE,
+        time: '21:00',
+        seatingId: 'dinner-2',
+        seatingAreaId: 'main',
+        area: 'Main Dining',
+        guests: '4',
+      },
+      { todayKey: SERVICE_DATE, layout: LAYOUT, seatings: SEATINGS },
+    )
+    form = toggleHostQuickCreateTableSelection(form, LAYOUT.units.find((unit) => unit.id === 't15'), CONTEXT)
+    form = toggleHostQuickCreateTableSelection(form, LAYOUT.units.find((unit) => unit.id === 't16'), CONTEXT)
+
+    form = refreshHostQuickCreateAssignedUnits(form, {
+      ...CONTEXT,
+      reservations: [
+        ...CONTEXT.reservations,
+        buildOccupiedReservation({
+          id: 'res-t16',
+          time: '21:00',
+          seatingId: 'dinner-2',
+          seatingAssignment: {
+            assignedUnits: [{ id: 't16', label: 'T16', seatedCapacity: 2, maxGuestCapacity: 2 }],
+            extraChairs: 0,
+            standingGuests: 0,
+          },
+        }),
+      ],
+    })
+
+    expect(form.assignedUnits.map((unit) => unit.id)).toEqual(['t15'])
+    expect(form.tableSelectionNotice).toBe('T16 was removed because it is no longer available.')
+  })
+
+  it('21g. compact table capacity labels use guest icon format', () => {
+    expect(formatHostQuickCreateTableCompactCapacity({ seatedCapacity: 3, maxGuestCapacity: 3 })).toBe('👤3')
+    expect(formatHostQuickCreateTableCompactCapacity({ seatedCapacity: 2, maxGuestCapacity: 4 })).toBe('👤2–4')
   })
 
   it('21d. availability key stays stable when reservation array reference changes', () => {
@@ -506,8 +579,8 @@ describe('hostQuickCreateForm', () => {
       { todayKey: SERVICE_DATE, layout: LAYOUT, seatings: SEATINGS },
     )
     const reservations = [buildOccupiedReservation()]
-    const keyA = buildHostQuickCreateAvailabilityKey(form, reservations)
-    const keyB = buildHostQuickCreateAvailabilityKey(form, [...reservations])
+    const keyA = buildHostQuickCreateAvailabilityKey(form, reservations, LAYOUT)
+    const keyB = buildHostQuickCreateAvailabilityKey(form, [...reservations], LAYOUT)
     expect(keyA).toBe(keyB)
   })
 
