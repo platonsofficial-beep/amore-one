@@ -8272,6 +8272,161 @@
   font-weight: 800;
 }
 
+.host-multi-table-entry {
+  display: flex;
+  justify-content: center;
+  padding: 0 10px 6px;
+  flex-shrink: 0;
+}
+
+.host-multi-table-entry-btn {
+  min-height: 44px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(212, 175, 55, 0.28);
+  background: rgba(12, 12, 14, 0.72);
+  color: rgba(232, 215, 168, 0.92);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  touch-action: manipulation;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.22);
+}
+
+.host-multi-table-entry-btn:hover,
+.host-multi-table-entry-btn:focus-visible {
+  border-color: rgba(212, 175, 55, 0.48);
+  background: rgba(18, 16, 12, 0.88);
+  color: #f5eacf;
+}
+
+.floor-plan-workspace.is-host-floor.has-multi-table-mode .floor-plan-host-main {
+  position: relative;
+}
+
+.host-multi-table-selection-bar {
+  position: absolute;
+  left: 10px;
+  right: 10px;
+  bottom: 10px;
+  z-index: 4;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-height: 56px;
+  padding: 8px 10px;
+  border-radius: 12px;
+  border: 1px solid rgba(212, 175, 55, 0.34);
+  background:
+    linear-gradient(180deg, rgba(16, 14, 10, 0.94), rgba(8, 8, 9, 0.96));
+  box-shadow:
+    0 10px 28px rgba(0, 0, 0, 0.42),
+    inset 0 0 0 1px rgba(255, 224, 150, 0.08);
+  pointer-events: auto;
+  touch-action: manipulation;
+}
+
+.host-multi-table-selection-bar-main {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.host-multi-table-selection-mode {
+  flex-shrink: 0;
+  padding: 3px 7px;
+  border-radius: 999px;
+  border: 1px solid rgba(212, 175, 55, 0.34);
+  background: rgba(212, 175, 55, 0.1);
+  color: #e8d7a8;
+  font-size: 0.58rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.host-multi-table-selection-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.host-multi-table-selection-count {
+  color: #f5efe0;
+  font-size: 0.76rem;
+  font-weight: 800;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.host-multi-table-selection-meta {
+  color: rgba(232, 215, 168, 0.72);
+  font-size: 0.68rem;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.host-multi-table-selection-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.host-multi-table-selection-btn {
+  min-height: 44px;
+  min-width: 44px;
+  padding: 0 14px;
+  border-radius: 999px;
+  font-size: 0.76rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.host-multi-table-selection-btn.is-secondary {
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.04);
+  color: rgba(240, 232, 216, 0.88);
+}
+
+.host-multi-table-selection-btn.is-primary {
+  border: 1px solid rgba(212, 175, 55, 0.52);
+  background: rgba(212, 175, 55, 0.18);
+  color: #fff4d6;
+}
+
+.host-multi-table-selection-btn.is-primary:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.floor-plan-workspace.is-host-floor.has-multi-table-mode .floor-table-node.is-seat-selected .floor-table-node-surface {
+  border-color: rgba(255, 224, 150, 0.98);
+  box-shadow:
+    0 0 0 3px rgba(212, 175, 55, 0.82),
+    0 0 28px rgba(212, 175, 55, 0.34);
+  background: rgba(212, 175, 55, 0.22);
+}
+
+.floor-plan-workspace.is-host-floor.has-multi-table-mode .floor-table-node.is-seated.is-seat-selected .floor-table-node-surface,
+.floor-plan-workspace.is-host-floor.has-multi-table-mode .floor-table-node.is-arrived.is-seat-selected .floor-table-node-surface,
+.floor-plan-workspace.is-host-floor.has-multi-table-mode .floor-table-node.has-conflict.is-seat-selected .floor-table-node-surface {
+  box-shadow:
+    0 0 0 3px rgba(212, 175, 55, 0.78),
+    0 0 0 1px rgba(255, 224, 150, 0.42),
+    0 0 24px rgba(212, 175, 55, 0.28);
+}
+
 .host-operations-floor .floor-plan-workspace.is-host-floor .floor-plan-layout-space.is-published-layout {
   padding: clamp(4px, 0.8%, 10px);
   border-color: rgba(255, 255, 255, 0.04);

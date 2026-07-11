@@ -58,6 +58,8 @@ import {
   isHostCompactAssignmentSelection,
   isReservationEligibleForHostTableAssignment,
   isTableDayViewRowAssignableForAssignment,
+  shouldShowHostMultiTableEntryAction,
+  canToggleTableInHostMultiTableSelection,
   shouldShowHostSeatingDrawer,
 } from './lib/hostAssignmentPanelUtils'
 import { resolveActiveFloorAreaId } from './lib/publishFloorPlanTransition'
@@ -165,6 +167,7 @@ import { FloorSeatingSelector } from './components/floor/FloorSeatingSelector'
 import { FloorTableSeatingIndicators } from './components/floor/FloorTableSeatingIndicators'
 import { FloorTableReservationTooltip } from './components/floor/FloorTableReservationTooltip'
 import { HostFloorDebugOverlay } from './components/floor/HostFloorDebugOverlay'
+import { HostMultiTableSelectionBar } from './components/floor/HostMultiTableSelectionBar'
 import { HostStationErrorBoundary } from './components/host/HostStationErrorBoundary'
 import {
   FloorTableSeatingDialog,
@@ -5760,6 +5763,7 @@ function ReservationWorkspaceProvider({
   const [hostEditingReservation, setHostEditingReservation] = useState(null)
   const [hostEditForm, setHostEditForm] = useState(null)
   const [isHostFloorPickActive, setIsHostFloorPickActive] = useState(false)
+  const [isHostMultiTableSelectMode, setIsHostMultiTableSelectMode] = useState(false)
   const [floorPlanMode, setFloorPlanMode] = useState('view')
 
   useEffect(() => {
@@ -5956,6 +5960,16 @@ function ReservationWorkspaceProvider({
     })
   }, [layout])
 
+  const startHostMultiTableSelect = useCallback(() => {
+    clearSeatingDraft()
+    setIsHostMultiTableSelectMode(true)
+  }, [clearSeatingDraft])
+
+  const cancelHostMultiTableSelect = useCallback(() => {
+    clearSeatingDraft()
+    setIsHostMultiTableSelectMode(false)
+  }, [clearSeatingDraft])
+
   const startHostFloorPick = useCallback(() => {
     setIsHostFloorPickActive((current) => !current)
     clearSeatingDraft()
@@ -5975,6 +5989,7 @@ function ReservationWorkspaceProvider({
     setSelectedReservation(reservation)
     setIsGuestProfileOpen(openGuestProfile)
     setSelectionPulseKey((current) => current + 1)
+    setIsHostMultiTableSelectMode(false)
     initializeSeatingDraftFromReservation(reservation)
 
     if (scrollFloor) {
@@ -5998,6 +6013,7 @@ function ReservationWorkspaceProvider({
   const clearSelection = useCallback(() => {
     setSelectedReservation(null)
     setIsGuestProfileOpen(false)
+    setIsHostMultiTableSelectMode(false)
     clearSeatingDraft()
     closeHostEdit()
   }, [clearSeatingDraft, closeHostEdit])
@@ -6035,6 +6051,9 @@ function ReservationWorkspaceProvider({
     setHostEditForm,
     hostEditUnitIds,
     isHostFloorPickActive,
+    isHostMultiTableSelectMode,
+    startHostMultiTableSelect,
+    cancelHostMultiTableSelect,
     floorPlanMode,
     setFloorPlanMode,
     openHostEdit,
@@ -6081,6 +6100,9 @@ function ReservationWorkspaceProvider({
     hostEditForm,
     hostEditUnitIds,
     isHostFloorPickActive,
+    isHostMultiTableSelectMode,
+    startHostMultiTableSelect,
+    cancelHostMultiTableSelect,
     floorPlanMode,
     onHostEditSave,
     onHostEditDelete,
@@ -7917,6 +7939,9 @@ function FloorPlanView({
     closeHostEdit,
     setFloorPlanMode,
     floorPlanMode,
+    isHostMultiTableSelectMode,
+    startHostMultiTableSelect,
+    cancelHostMultiTableSelect,
   } = useReservationWorkspace()
   const { hasLayout, hasDisplayableLayout, loadError, saveError, isRefreshingPublishedLayout } = usePublishedFloorPlan()
   const [dropTargetTableId, setDropTargetTableId] = useState(null)
@@ -8037,6 +8062,12 @@ function FloorPlanView({
   const hostCompactAssignmentSelection = isHostCompactAssignmentSelection({
     isCompact,
     selectedReservation,
+  })
+  const showHostMultiTableEntry = shouldShowHostMultiTableEntryAction({
+    isCompact,
+    isHeatmap,
+    hostCompactAssignmentSelection,
+    isHostMultiTableSelectMode,
   })
 
   const heatmapPeriodRange = useMemo(() => (
@@ -8518,6 +8549,7 @@ function FloorPlanView({
       isHeatmap,
       isCompact,
       isHostFloorPickActive,
+      isHostMultiTableSelectMode,
       selectedReservation,
       seatingDraftUnitIds,
       tableId: tableState.table.id,
@@ -8528,6 +8560,18 @@ function FloorPlanView({
       if (tableState.status === 'available' || tableState.status === 'cleaning') {
         toggleHostEditUnit(tableState.table.id)
       }
+      return
+    }
+
+    if (clickRoute === 'multi-table-toggle') {
+      if (!canToggleTableInHostMultiTableSelection({
+        tableId: tableState.table.id,
+        selectedUnitIds: seatingDraftUnitIds,
+        canAssign: canAssignSelectedReservationToTable(tableState),
+      })) {
+        return
+      }
+      toggleSeatingUnit(tableState.table.id)
       return
     }
 
@@ -8547,7 +8591,7 @@ function FloorPlanView({
     ) {
       event?.stopPropagation?.()
       setTooltipDismissVersion((current) => current + 1)
-      if (hostCompactAssignmentSelection) {
+      if (hostCompactAssignmentSelection && !isHostMultiTableSelectMode) {
         startSeatingDraft(selectedReservation, tableState.table.id)
         const autoSeatingId = resolveReservationSeatingId(
           selectedReservation,
@@ -8885,9 +8929,11 @@ function FloorPlanView({
       ...assignment,
       seatingId: scheduleCardAssignmentSeatingId,
     })
+    cancelHostMultiTableSelect()
     clearSelection()
     closeScheduleCardTable('assignment-confirmed')
   }, [
+    cancelHostMultiTableSelect,
     clearSelection,
     closeScheduleCardTable,
     layout,
@@ -8958,8 +9004,32 @@ function FloorPlanView({
     selectedReservation,
   ])
 
+  const handleMultiTableContinue = useCallback(() => {
+    if (!selectedReservation || seatingDraftUnitIds.length === 0) return
+
+    const primaryTableId = seatingDraftUnitIds[0]
+    const tableState = visibleTableStatesRef.current.find(
+      (entry) => String(entry.table.id) === String(primaryTableId),
+    )
+    if (!tableState) return
+
+    const autoSeatingId = resolveReservationSeatingId(
+      selectedReservation,
+      effectiveSeatings,
+      todayKey,
+    )
+    setScheduleCardAssignmentSeatingId(autoSeatingId)
+    openScheduleCardTable(tableState.table, 'multi-table-continue', { assignmentMode: true })
+  }, [
+    effectiveSeatings,
+    openScheduleCardTable,
+    selectedReservation,
+    seatingDraftUnitIds,
+    todayKey,
+  ])
+
   const isSeatPicking = Boolean(
-    (hostCompactAssignmentSelection && !isHeatmap)
+    (isHostMultiTableSelectMode && hostCompactAssignmentSelection && !isHeatmap)
     || isHostFloorPickActive,
   )
 
@@ -9021,7 +9091,7 @@ function FloorPlanView({
   }
 
   return (
-    <div className={`floor-plan-workspace${isCompact ? ' is-compact is-host-floor' : ''}${selectedSeating ? ' has-active-seating' : ''}${showHostSeatingBar && isCompact ? ' has-seating-drawer' : ''}${isHeatmap ? ' is-heatmap-mode' : ' is-normal-mode'}`} data-floor-view-mode={viewMode}>
+    <div className={`floor-plan-workspace${isCompact ? ' is-compact is-host-floor' : ''}${selectedSeating ? ' has-active-seating' : ''}${isHostMultiTableSelectMode ? ' has-multi-table-mode' : ''}${showHostSeatingBar && isCompact ? ' has-seating-drawer' : ''}${isHeatmap ? ' is-heatmap-mode' : ' is-normal-mode'}`} data-floor-view-mode={viewMode}>
       {loadError ? (
         <div className="floor-plan-persistence-notice" role="status">{loadError}</div>
       ) : null}
@@ -9112,6 +9182,19 @@ function FloorPlanView({
         </p>
       ) : null}
 
+      {showHostMultiTableEntry ? (
+        <div className="host-multi-table-entry">
+          <button
+            type="button"
+            className="host-multi-table-entry-btn"
+            onClick={startHostMultiTableSelect}
+            data-testid="host-multi-table-entry"
+          >
+            Select multiple tables
+          </button>
+        </div>
+      ) : null}
+
       <div
         className={`floor-plan-viewport${isCompact ? ' is-host-viewport' : ''}${floorZoom > 1.01 || Math.abs(floorPan.x) > 1 || Math.abs(floorPan.y) > 1 ? ' is-zoomed' : ''}`}
         ref={isCompact ? viewportRef : undefined}
@@ -9142,7 +9225,8 @@ function FloorPlanView({
             data-floor-plan-layout={floorPlanSnapshot.layout.id}
             data-floor-area-id={resolvedFloorAreaId}
             data-view-mode={viewMode}
-            data-seat-mode={selectedReservation && !isHeatmap && isCompact ? 'true' : 'false'}
+            data-seat-mode={isHostMultiTableSelectMode && selectedReservation && !isHeatmap && isCompact ? 'true' : 'false'}
+            data-multi-table-mode={isHostMultiTableSelectMode ? 'true' : 'false'}
             onClick={handleCanvasClick}
             onDragOver={(event) => {
               if (isReservationDragActive(event)) {
@@ -9218,6 +9302,16 @@ function FloorPlanView({
         </div>
       </div>
         </div>
+
+        {isHostMultiTableSelectMode && hostCompactAssignmentSelection && !isHeatmap ? (
+          <HostMultiTableSelectionBar
+            selectedUnitIds={seatingDraftUnitIds}
+            reservation={selectedReservation}
+            layout={layout}
+            onCancel={cancelHostMultiTableSelect}
+            onContinue={handleMultiTableContinue}
+          />
+        ) : null}
 
         {showHostSeatingBar ? (
           <aside className="host-seating-drawer" aria-label="Assign seating">

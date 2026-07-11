@@ -1,6 +1,12 @@
 import { reservationHasAssignedTables } from './floorAssignmentMapping'
 import { isTerminalReservationStatus } from './reservationHostStatus'
 import { resolveReservationSeatingId } from './reservationSeatings'
+import {
+  buildSeatingAssignment,
+  computeSeatingAssignmentTotals,
+  formatSeatingAssignmentDrawerLabels,
+} from './seatingAssignment'
+import { getHostUnitById, toSeatingUnitFromLayoutUnit } from './hostFloorPlanLayout'
 
 export function isReservationEligibleForHostTableAssignment(reservation) {
   if (!reservation) return false
@@ -65,6 +71,51 @@ export function shouldHostAssignmentEnableScroll({
 } = {}) {
   if (isPortrait) return true
   return bodyScrollHeight > availableBodyHeight + 1
+}
+
+export function shouldShowHostMultiTableEntryAction({
+  isCompact = false,
+  isHeatmap = false,
+  hostCompactAssignmentSelection = false,
+  isHostMultiTableSelectMode = false,
+} = {}) {
+  return Boolean(
+    isCompact
+    && !isHeatmap
+    && hostCompactAssignmentSelection
+    && !isHostMultiTableSelectMode,
+  )
+}
+
+export function buildHostMultiTableSelectionSummary({
+  selectedUnitIds = [],
+  layout = null,
+  partySize = 0,
+} = {}) {
+  const assignedUnits = selectedUnitIds
+    .map((unitId) => toSeatingUnitFromLayoutUnit(getHostUnitById(unitId, layout)))
+    .filter(Boolean)
+  const assignment = buildSeatingAssignment({ assignedUnits, partySize })
+  const totals = computeSeatingAssignmentTotals(assignment, partySize)
+  const guests = Math.max(0, Number(partySize) || 0)
+
+  return {
+    tableSummary: formatSeatingAssignmentDrawerLabels(assignment),
+    capacityLabel: `Capacity ${totals.totalGuestCapacity}`,
+    guestsLabel: `Guests ${guests}`,
+    totalGuestCapacity: totals.totalGuestCapacity,
+  }
+}
+
+export function canToggleTableInHostMultiTableSelection({
+  tableId = null,
+  selectedUnitIds = [],
+  canAssign = false,
+} = {}) {
+  if (!tableId) return false
+  const isSelected = selectedUnitIds.some((id) => String(id) === String(tableId))
+  if (isSelected) return true
+  return canAssign
 }
 
 export function getHostSeatingAssignmentAdvisory({ hasSelection = false, totals = null } = {}) {

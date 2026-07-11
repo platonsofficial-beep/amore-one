@@ -248,6 +248,7 @@ export function resolveHostFloorTableClickRoute({
   isHeatmap = false,
   isCompact = false,
   isHostFloorPickActive = false,
+  isHostMultiTableSelectMode = false,
   selectedReservation = null,
   seatingDraftUnitIds = [],
   tableId = null,
@@ -259,6 +260,9 @@ export function resolveHostFloorTableClickRoute({
   const isPickedForSeating = isHostFloorTablePickedForSeating(seatingDraftUnitIds, tableId)
 
   if (isCompact) {
+    if (isHostMultiTableSelectMode && selectedReservation) {
+      return 'multi-table-toggle'
+    }
     return 'normal-day-view'
   }
 

@@ -147,6 +147,16 @@ describe('tableDayView', () => {
     })).toBe('normal-day-view')
   })
 
+  it('toggles tables in compact multi-table mode instead of opening day view', () => {
+    expect(resolveHostFloorTableClickRoute({
+      isCompact: true,
+      isHostMultiTableSelectMode: true,
+      selectedReservation: { id: 'res-1' },
+      tableId: 't10',
+      canAssign: true,
+    })).toBe('multi-table-toggle')
+  })
+
   it('keeps desktop assignment intercept for assignable tables', () => {
     expect(resolveHostFloorTableClickRoute({
       isCompact: false,

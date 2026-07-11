@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
+  buildHostMultiTableSelectionSummary,
+  canToggleTableInHostMultiTableSelection,
   getHostSeatingAssignmentAdvisory,
   getHostAssignmentScrollPolicy,
   HOST_ASSIGNMENT_STANDARD_LANDSCAPE_HEIGHT_BUDGET,
@@ -9,6 +11,7 @@ import {
   isTableDayViewRowAssignableForAssignment,
   resolveHostAssignmentSeatingId,
   shouldHostAssignmentEnableScroll,
+  shouldShowHostMultiTableEntryAction,
   shouldShowHostSeatingDrawer,
 } from './hostAssignmentPanelUtils'
 import { computeSeatingAssignmentTotals } from './seatingAssignment'
@@ -55,6 +58,60 @@ describe('host assignment panel utils', () => {
 
   it('retires the legacy host seating drawer', () => {
     expect(shouldShowHostSeatingDrawer()).toBe(false)
+  })
+
+  it('shows the multi-table entry action for compact unassigned selections', () => {
+    expect(shouldShowHostMultiTableEntryAction({
+      isCompact: true,
+      hostCompactAssignmentSelection: true,
+      isHostMultiTableSelectMode: false,
+    })).toBe(true)
+    expect(shouldShowHostMultiTableEntryAction({
+      isCompact: true,
+      hostCompactAssignmentSelection: true,
+      isHostMultiTableSelectMode: true,
+    })).toBe(false)
+    expect(shouldShowHostMultiTableEntryAction({
+      isCompact: false,
+      hostCompactAssignmentSelection: true,
+    })).toBe(false)
+  })
+
+  it('summarizes multi-table capacity across selected units', () => {
+    const layout = {
+      units: [
+        { id: 't15', label: 'T15', seatedCapacity: 2, maxGuestCapacity: 4 },
+        { id: 't16', label: 'T16', seatedCapacity: 2, maxGuestCapacity: 4 },
+      ],
+    }
+
+    const summary = buildHostMultiTableSelectionSummary({
+      selectedUnitIds: ['t15', 't16'],
+      layout,
+      partySize: 5,
+    })
+
+    expect(summary.tableSummary).toBe('T15 + T16')
+    expect(summary.capacityLabel).toBe('Capacity 8')
+    expect(summary.guestsLabel).toBe('Guests 5')
+  })
+
+  it('allows deselecting a table and blocks unavailable table toggles', () => {
+    expect(canToggleTableInHostMultiTableSelection({
+      tableId: 't15',
+      selectedUnitIds: ['t15'],
+      canAssign: false,
+    })).toBe(true)
+    expect(canToggleTableInHostMultiTableSelection({
+      tableId: 't16',
+      selectedUnitIds: ['t15'],
+      canAssign: false,
+    })).toBe(false)
+    expect(canToggleTableInHostMultiTableSelection({
+      tableId: 't16',
+      selectedUnitIds: ['t15'],
+      canAssign: true,
+    })).toBe(true)
   })
 
   it('resolves assignment seating from reservation and manual session override', () => {
