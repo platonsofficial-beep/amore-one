@@ -168,13 +168,35 @@ export function getActiveSeatingsForDate(seatings = [], dateKey) {
   ))
 }
 
+export function isReservationTimeInSeatingWindow(timeValue, seating) {
+  const normalizedTime = normalizeReservationTimeValue(timeValue)
+  if (!normalizedTime) return false
+
+  const normalized = normalizeReservationSeating(seating) ?? normalizeReservationSeatingInput(seating)
+  if (!normalized) return false
+
+  const startMinutes = parseReservationTimeToMinutes(normalized.startTime)
+  const timeMinutes = parseReservationTimeToMinutes(normalizedTime)
+  if (startMinutes === null || timeMinutes === null) return false
+
+  const durationMinutes = Math.max(15, Number(normalized.durationMinutes) || DEFAULT_RESERVATION_DURATION_MINUTES)
+  const endMinutes = startMinutes + durationMinutes
+
+  if (endMinutes <= 1440) {
+    return timeMinutes >= startMinutes && timeMinutes < endMinutes
+  }
+
+  const wrappedEnd = endMinutes % 1440
+  return timeMinutes >= startMinutes || timeMinutes < wrappedEnd
+}
+
 export function matchReservationTimeToSeating(timeValue, dateKey, seatings = []) {
   const normalizedTime = normalizeReservationTimeValue(timeValue)
   if (!normalizedTime) return null
 
   const activeSeatings = getActiveSeatingsForDate(seatings, dateKey)
   const matches = activeSeatings.filter((seating) => (
-    getSeatingWindowTimeOptions(seating).includes(normalizedTime)
+    isReservationTimeInSeatingWindow(normalizedTime, seating)
   ))
 
   if (matches.length === 0) return null
@@ -199,6 +221,21 @@ export function resolveReservationSeatingId(reservation, seatings = [], dateKey 
     seatings,
   )
   return matched?.id ?? null
+}
+
+export function reservationMatchesTableDayViewSeating(
+  reservation,
+  seating,
+  dateKey,
+  seatings = [],
+) {
+  const normalizedSeating = normalizeReservationSeating(seating)
+  if (!normalizedSeating) return false
+
+  const resolvedSeatingId = resolveReservationSeatingId(reservation, seatings, dateKey)
+  if (!resolvedSeatingId) return false
+
+  return String(resolvedSeatingId) === String(normalizedSeating.id)
 }
 
 export function resolveSeatingDuration(seating, fallback = DEFAULT_RESERVATION_DURATION_MINUTES) {

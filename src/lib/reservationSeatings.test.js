@@ -7,6 +7,8 @@ import {
   normalizeDaysOfWeek,
   normalizeReservationSeating,
   normalizeReservationSeatingInput,
+  isReservationTimeInSeatingWindow,
+  reservationMatchesTableDayViewSeating,
   resolveReservationSeatingId,
   serializeReservationSeatingRow,
   sortReservationSeatings,
@@ -105,6 +107,35 @@ describe('reservationSeatings', () => {
     expect(matchReservationTimeToSeating('20:45', '2026-07-10', seatings)?.id).toBe('dinner-1')
     expect(resolveReservationSeatingId({ date: '2026-07-10', time: '20:45' }, seatings)).toBe('dinner-1')
     expect(resolveReservationSeatingId({ date: '2026-07-10', time: '18:30' }, seatings)).toBeNull()
+  })
+
+  it('uses start-inclusive end-exclusive seating window boundaries', () => {
+    const seatings = sortReservationSeatings([
+      {
+        id: 'dinner-1',
+        name: 'Dinner 1',
+        start_time: '19:00',
+        duration_minutes: 120,
+        days_of_week: [0, 1, 2, 3, 4, 5, 6],
+        sort_order: 0,
+        is_active: true,
+      },
+      {
+        id: 'dinner-2',
+        name: 'Dinner 2',
+        start_time: '21:00',
+        duration_minutes: 120,
+        days_of_week: [0, 1, 2, 3, 4, 5, 6],
+        sort_order: 1,
+        is_active: true,
+      },
+    ])
+
+    expect(isReservationTimeInSeatingWindow('20:59', seatings[0])).toBe(true)
+    expect(isReservationTimeInSeatingWindow('21:00', seatings[0])).toBe(false)
+    expect(isReservationTimeInSeatingWindow('21:00', seatings[1])).toBe(true)
+    expect(matchReservationTimeToSeating('20:59', '2026-07-10', seatings)?.id).toBe('dinner-1')
+    expect(matchReservationTimeToSeating('21:00', '2026-07-10', seatings)?.id).toBe('dinner-2')
   })
 
   it('prefers valid reservation seating_id and falls back to time windows when stale', () => {

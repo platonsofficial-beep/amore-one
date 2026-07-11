@@ -9,14 +9,12 @@ import {
 } from './seatingAssignment'
 import { getHostReservationQuickActions } from './reservationHostStatus'
 import {
-  buildReservationBlockedInterval,
   findLayoutUnit,
-  reservationBlockedIntervalsOverlap,
 } from './reservationTableOptions'
 import {
   getActiveSeatingsForDate,
   normalizeReservationSeating,
-  resolveReservationBlockedInterval,
+  reservationMatchesTableDayViewSeating,
 } from './reservationSeatings'
 import { parseTimeToMinutes } from './shiftHoursUtils'
 import { formatTime24, normalizeReservationDateKey } from './timeFormatUtils'
@@ -58,12 +56,9 @@ export function findAllReservationsForTableSeating(
   if (!normalizedSeating || !table) return []
 
   const normalizedDateKey = normalizeReservationDateKey(dateKey)
-  const candidateInterval = buildReservationBlockedInterval(
-    normalizedSeating.startTime,
-    normalizedSeating.durationMinutes,
-  )
-  if (!candidateInterval) return []
-
+  const seatingsList = seatingsById.size > 0
+    ? [...seatingsById.values()]
+    : [normalizedSeating]
   const matches = []
 
   reservations.forEach((reservation) => {
@@ -75,14 +70,14 @@ export function findAllReservationsForTableSeating(
     const occupiesTable = assignedUnits.some((unit) => seatingUnitMatchesFloorUnit(unit, table))
     if (!occupiesTable) return
 
-    const blocked = resolveReservationBlockedInterval(reservation, seatingsById)
-    if (!blocked?.timeValue) return
-
-    const existingInterval = buildReservationBlockedInterval(
-      blocked.timeValue,
-      blocked.durationMinutes,
-    )
-    if (!existingInterval || !reservationBlockedIntervalsOverlap(candidateInterval, existingInterval)) return
+    if (!reservationMatchesTableDayViewSeating(
+      reservation,
+      normalizedSeating,
+      normalizedDateKey,
+      seatingsList,
+    )) {
+      return
+    }
 
     matches.push(reservation)
   })

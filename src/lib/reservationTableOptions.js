@@ -7,7 +7,7 @@ import {
   normalizeReservationStatus,
   isTerminalReservationStatus,
 } from './reservationHostStatus'
-import { resolveReservationBlockedInterval } from './reservationSeatings'
+import { resolveReservationBlockedInterval, reservationMatchesTableDayViewSeating } from './reservationSeatings'
 import { parseTimeToMinutes } from './shiftHoursUtils'
 import { normalizeReservationDateKey } from './timeFormatUtils'
 import {
@@ -86,6 +86,7 @@ export function getConflictingUnitIds(
   if (!normalizedDateKey) return conflicts
 
   const selectedSeating = seatingId ? seatingsById.get(seatingId) : null
+  const seatingsList = seatingsById.size > 0 ? [...seatingsById.values()] : []
   const candidateTime = selectedSeating?.startTime ?? timeValue
   const candidateDuration = durationMinutes
     ?? (selectedSeating ? selectedSeating.durationMinutes : DEFAULT_RESERVATION_DURATION_MINUTES)
@@ -103,6 +104,19 @@ export function getConflictingUnitIds(
     if (normalizeReservationDateKey(reservation) !== normalizedDateKey) return
     if (excludeReservationId && String(reservation.id) === String(excludeReservationId)) return
     if (!reservationBlocksTableAvailability(reservation)) return
+
+    if (
+      selectedSeating
+      && seatingsList.length > 0
+      && !reservationMatchesTableDayViewSeating(
+        reservation,
+        selectedSeating,
+        normalizedDateKey,
+        seatingsList,
+      )
+    ) {
+      return
+    }
 
     const blocked = resolveReservationBlockedInterval(reservation, seatingsById, {
       fallbackDurationMinutes: DEFAULT_RESERVATION_DURATION_MINUTES,

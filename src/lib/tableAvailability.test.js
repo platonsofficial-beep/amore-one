@@ -75,6 +75,38 @@ describe('tableAvailability', () => {
     expect(lateConflicts.has('t3')).toBe(false)
   })
 
+  it('does not double-count boundary reservations across seatings', () => {
+    const reservations = [
+      buildReservation({
+        id: 'res-boundary',
+        guestName: 'Paparas',
+        time: '21:00',
+        seatingId: 'dinner-2',
+        seatingAssignment: {
+          assignedUnits: [{ id: 't3', label: 'T3', seatedCapacity: 2, maxGuestCapacity: 4 }],
+          extraChairs: 0,
+          standingGuests: 0,
+        },
+      }),
+    ]
+
+    const dinnerOneConflicts = getConflictingUnitIds(reservations, '2026-07-09', '19:00', {
+      seatingId: 'dinner-1',
+      durationMinutes: 120,
+      seatingsById: SEATINGS,
+      layout: LAYOUT,
+    })
+    const dinnerTwoConflicts = getConflictingUnitIds(reservations, '2026-07-09', '21:00', {
+      seatingId: 'dinner-2',
+      durationMinutes: 120,
+      seatingsById: SEATINGS,
+      layout: LAYOUT,
+    })
+
+    expect(dinnerOneConflicts.has('t3')).toBe(false)
+    expect(dinnerTwoConflicts.has('t3')).toBe(true)
+  })
+
   it('blocks every table in a multi-table reservation', () => {
     const reservations = [
       buildReservation({

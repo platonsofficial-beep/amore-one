@@ -55,6 +55,29 @@ const LAYOUT = {
 
 const TABLE = { id: 't14', label: 'T14', zoneId: 'main', minGuests: 2, maxGuestCapacity: 4 }
 
+const DINNER_SEATINGS = [
+  ...SEATINGS,
+  {
+    id: 'dinner-2',
+    name: 'Dinner 2',
+    startTime: '21:00',
+    durationMinutes: 120,
+    daysOfWeek: [0, 1, 2, 3, 4, 5, 6],
+    sortOrder: 3,
+    isActive: true,
+  },
+]
+
+const TABLE_T11 = { id: 't11', label: 'T11', zoneId: 'main', minGuests: 2, maxGuestCapacity: 4 }
+
+const LAYOUT_WITH_T11 = {
+  zones: [{ id: 'main', label: 'Main Dining' }],
+  units: [
+    { id: 't11', label: 'T11', zoneId: 'main', seatedCapacity: 2, maxGuestCapacity: 4 },
+    ...LAYOUT.units,
+  ],
+}
+
 function buildReservation(overrides = {}) {
   return {
     id: 'res-1',
@@ -152,6 +175,68 @@ describe('tableDayView', () => {
   it('renders all active seatings for the selected date', () => {
     const rows = buildFloorTableDayViewRows(TABLE, [], '2026-07-10', SEATINGS, { layout: LAYOUT })
     expect(rows.map((row) => row.seating.name)).toEqual(['Brunch 1', 'Brunch 2', 'Dinner 1'])
+  })
+
+  it('shows a boundary reservation only in its resolved seating row', () => {
+    const reservations = [
+      buildReservation({
+        id: 'res-paparas',
+        guestName: 'Paparas',
+        time: '21:00',
+        seatingId: 'dinner-2',
+        seatingAssignment: {
+          assignedUnits: [{ id: 't11', label: 'T11', seatedCapacity: 2, maxGuestCapacity: 4 }],
+          extraChairs: 0,
+          standingGuests: 0,
+        },
+      }),
+    ]
+
+    const rows = buildFloorTableDayViewRows(
+      TABLE_T11,
+      reservations,
+      '2026-07-10',
+      DINNER_SEATINGS,
+      { layout: LAYOUT_WITH_T11 },
+    )
+
+    const dinnerOne = rows.find((row) => row.seating.id === 'dinner-1')
+    const dinnerTwo = rows.find((row) => row.seating.id === 'dinner-2')
+
+    expect(dinnerOne?.reservation).toBeNull()
+    expect(dinnerOne?.isAvailable).toBe(true)
+    expect(dinnerTwo?.reservation?.guestName).toBe('Paparas')
+    expect(rows.filter((row) => row.reservation?.id === 'res-paparas')).toHaveLength(1)
+  })
+
+  it('prefers valid seating_id over time matching and never duplicates across rows', () => {
+    const seatings = buildSeatingsById(DINNER_SEATINGS)
+    const reservation = buildReservation({
+      id: 'res-priority',
+      time: '21:00',
+      seatingId: 'dinner-2',
+      seatingAssignment: {
+        assignedUnits: [{ id: 't11', label: 'T11', seatedCapacity: 2, maxGuestCapacity: 4 }],
+        extraChairs: 0,
+        standingGuests: 0,
+      },
+    })
+
+    expect(findAllReservationsForTableSeating(
+      [reservation],
+      TABLE_T11,
+      '2026-07-10',
+      DINNER_SEATINGS.find((entry) => entry.id === 'dinner-1'),
+      { layout: LAYOUT_WITH_T11, seatingsById: seatings },
+    )).toHaveLength(0)
+
+    expect(findAllReservationsForTableSeating(
+      [reservation],
+      TABLE_T11,
+      '2026-07-10',
+      DINNER_SEATINGS.find((entry) => entry.id === 'dinner-2'),
+      { layout: LAYOUT_WITH_T11, seatingsById: seatings },
+    )).toHaveLength(1)
   })
 
   it('shows a table available in one seating and occupied in another', () => {
