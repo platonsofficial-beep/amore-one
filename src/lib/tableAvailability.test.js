@@ -3,11 +3,15 @@ import { computeSeatingAssignmentTotals } from './seatingAssignment'
 import { getConflictingUnitIds } from './reservationTableOptions'
 import {
   buildFloorTableSeatingRows,
+  buildHostSeatingTableAvailability,
   findReservationForTableSeating,
+  formatHostSeatingTableAvailabilityAccessible,
+  formatHostSeatingTableAvailabilityDisplay,
   formatTableConflictReason,
   reservationBlocksTableAvailability,
 } from './tableAvailability'
 import { buildSeatingsById } from './reservationSeatings'
+import { HOST_QUEUE_ALL_AREAS } from './hostQueuePipeline'
 
 const SEATINGS = buildSeatingsById([
   {
@@ -215,5 +219,229 @@ describe('tableAvailability', () => {
     expect(reservationBlocksTableAvailability('Confirmed')).toBe(true)
     expect(reservationBlocksTableAvailability('Checked Out')).toBe(false)
     expect(reservationBlocksTableAvailability('Not Shown')).toBe(false)
+  })
+})
+
+const MAIN_DINING_LAYOUT = {
+  zones: [
+    { id: 'main', label: 'Main Dining' },
+    { id: 'bar', label: 'Bar' },
+  ],
+  tables: [
+    ...Array.from({ length: 37 }, (_, index) => ({
+      id: `t-${index + 1}`,
+      label: `T${index + 1}`,
+      zoneId: 'main',
+      seats: 4,
+    })),
+    { id: 'bar-1', label: 'Bar 1', zoneId: 'bar', seats: 4 },
+  ],
+}
+
+function buildMainDiningReservations(tableIds, overrides = {}) {
+  return [{
+    id: 'res-main',
+    guestName: 'Party',
+    date: '2026-07-09',
+    time: '21:00',
+    guests: 4,
+    status: 'Confirmed',
+    seatingId: 'dinner-2',
+    seatingAssignment: {
+      assignedUnits: tableIds.map((id) => ({ id, label: id })),
+      extraChairs: 0,
+      standingGuests: 0,
+    },
+    ...overrides,
+  }]
+}
+
+describe('buildHostSeatingTableAvailability', () => {
+  const dinnerTwo = SEATINGS.get('dinner-2')
+
+  it('returns 19 available tables when 18 of 37 are unavailable', () => {
+    const unavailableIds = Array.from({ length: 18 }, (_, index) => `t-${index + 1}`)
+    const availability = buildHostSeatingTableAvailability(
+      buildMainDiningReservations(unavailableIds),
+      {
+        seating: dinnerTwo,
+        dateKey: '2026-07-09',
+        layout: MAIN_DINING_LAYOUT,
+        areaFilterId: 'main',
+        seatingsById: SEATINGS,
+      },
+    )
+
+    expect(availability.totalTables).toBe(37)
+    expect(availability.unavailableTables).toBe(18)
+    expect(availability.availableTables).toBe(19)
+    expect(formatHostSeatingTableAvailabilityDisplay(availability)).toBe('19/37 available')
+    expect(formatHostSeatingTableAvailabilityAccessible(availability))
+      .toBe('19 of 37 tables available')
+  })
+
+  it('returns full availability when no reservations block tables', () => {
+    const availability = buildHostSeatingTableAvailability([], {
+      seating: dinnerTwo,
+      dateKey: '2026-07-09',
+      layout: MAIN_DINING_LAYOUT,
+      areaFilterId: 'main',
+      seatingsById: SEATINGS,
+    })
+
+    expect(availability).toMatchObject({
+      totalTables: 37,
+      unavailableTables: 0,
+      availableTables: 37,
+    })
+    expect(formatHostSeatingTableAvailabilityDisplay(availability)).toBe('37/37 available')
+  })
+
+  it('returns zero available tables when every table is blocked', () => {
+    const unavailableIds = Array.from({ length: 37 }, (_, index) => `t-${index + 1}`)
+    const availability = buildHostSeatingTableAvailability(
+      buildMainDiningReservations(unavailableIds),
+      {
+        seating: dinnerTwo,
+        dateKey: '2026-07-09',
+        layout: MAIN_DINING_LAYOUT,
+        areaFilterId: 'main',
+        seatingsById: SEATINGS,
+      },
+    )
+
+    expect(availability.availableTables).toBe(0)
+    expect(formatHostSeatingTableAvailabilityDisplay(availability)).toBe('0/37 available')
+  })
+
+  it('reduces availability by two for a reservation assigned to two tables', () => {
+    const availability = buildHostSeatingTableAvailability(
+      buildMainDiningReservations(['t-1', 't-2']),
+      {
+        seating: dinnerTwo,
+        dateKey: '2026-07-09',
+        layout: MAIN_DINING_LAYOUT,
+        areaFilterId: 'main',
+        seatingsById: SEATINGS,
+      },
+    )
+
+    expect(availability.unavailableTables).toBe(2)
+    expect(availability.availableTables).toBe(35)
+  })
+
+  it('counts duplicate table ids only once', () => {
+    const availability = buildHostSeatingTableAvailability(
+      buildMainDiningReservations(['t-1', 't-1', 't-2']),
+      {
+        seating: dinnerTwo,
+        dateKey: '2026-07-09',
+        layout: MAIN_DINING_LAYOUT,
+        areaFilterId: 'main',
+        seatingsById: SEATINGS,
+      },
+    )
+
+    expect(availability.unavailableTables).toBe(2)
+    expect(availability.availableTables).toBe(35)
+  })
+
+  it('does not consume tables for completed, cancelled, or no-show reservations', () => {
+    ;['Checked Out', 'Cancelled', 'Not Shown'].forEach((status) => {
+      const availability = buildHostSeatingTableAvailability(
+        buildMainDiningReservations(['t-1'], { status }),
+        {
+          seating: dinnerTwo,
+          dateKey: '2026-07-09',
+          layout: MAIN_DINING_LAYOUT,
+          areaFilterId: 'main',
+          seatingsById: SEATINGS,
+        },
+      )
+
+      expect(availability.availableTables).toBe(37)
+    })
+  })
+
+  it('consumes tables for confirmed and seated reservations', () => {
+    const confirmed = buildHostSeatingTableAvailability(
+      buildMainDiningReservations(['t-3'], { status: 'Confirmed', seatingId: 'dinner-2', time: '21:00' }),
+      {
+        seating: dinnerTwo,
+        dateKey: '2026-07-09',
+        layout: MAIN_DINING_LAYOUT,
+        areaFilterId: 'main',
+        seatingsById: SEATINGS,
+      },
+    )
+    const seated = buildHostSeatingTableAvailability(
+      buildMainDiningReservations(['t-4'], { status: 'Checked In', seatingId: 'dinner-2', time: '21:00' }),
+      {
+        seating: dinnerTwo,
+        dateKey: '2026-07-09',
+        layout: MAIN_DINING_LAYOUT,
+        areaFilterId: 'main',
+        seatingsById: SEATINGS,
+      },
+    )
+
+    expect(confirmed.availableTables).toBe(36)
+    expect(seated.availableTables).toBe(36)
+  })
+
+  it('does not reduce Dinner 1 availability for a Dinner 2 reservation', () => {
+    const dinnerOne = SEATINGS.get('dinner-1')
+    const availability = buildHostSeatingTableAvailability(
+      buildMainDiningReservations(['t-3'], { seatingId: 'dinner-2', time: '21:00' }),
+      {
+        seating: dinnerOne,
+        dateKey: '2026-07-09',
+        layout: MAIN_DINING_LAYOUT,
+        areaFilterId: 'main',
+        seatingsById: SEATINGS,
+      },
+    )
+
+    expect(availability.availableTables).toBe(37)
+  })
+
+  it('counts only tables in the selected area', () => {
+    const availabilityMain = buildHostSeatingTableAvailability(
+      buildMainDiningReservations(['t-1'], { seatingId: 'dinner-2', time: '21:00' }),
+      {
+        seating: dinnerTwo,
+        dateKey: '2026-07-09',
+        layout: MAIN_DINING_LAYOUT,
+        areaFilterId: 'main',
+        seatingsById: SEATINGS,
+      },
+    )
+    const availabilityBar = buildHostSeatingTableAvailability(
+      buildMainDiningReservations(['t-1'], { seatingId: 'dinner-2', time: '21:00' }),
+      {
+        seating: dinnerTwo,
+        dateKey: '2026-07-09',
+        layout: MAIN_DINING_LAYOUT,
+        areaFilterId: 'bar',
+        seatingsById: SEATINGS,
+      },
+    )
+
+    expect(availabilityMain.totalTables).toBe(37)
+    expect(availabilityMain.availableTables).toBe(36)
+    expect(availabilityBar.totalTables).toBe(1)
+    expect(availabilityBar.availableTables).toBe(1)
+  })
+
+  it('uses the full published table set for all areas', () => {
+    const availability = buildHostSeatingTableAvailability([], {
+      seating: dinnerTwo,
+      dateKey: '2026-07-09',
+      layout: MAIN_DINING_LAYOUT,
+      areaFilterId: HOST_QUEUE_ALL_AREAS,
+      seatingsById: SEATINGS,
+    })
+
+    expect(availability.totalTables).toBe(38)
   })
 })

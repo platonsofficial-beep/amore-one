@@ -187,7 +187,10 @@ import {
   getFloorTableDialogLabel,
 } from './components/floor/FloorTableSeatingDialog'
 import { useHostTableInspectorDrawer } from './lib/useHostTableInspectorDrawer'
-import { buildTableSeatingDayIndicators } from './lib/tableAvailability'
+import {
+  buildHostSeatingTableAvailability,
+  buildTableSeatingDayIndicators,
+} from './lib/tableAvailability'
 import {
   buildFloorTableDayViewRows,
   buildReleaseTableAssignmentUpdate,
@@ -9096,15 +9099,14 @@ function FloorPlanView({
     )
 
     activeSeatings.forEach((seating) => {
-      const conflicts = getConflictingUnitIds(assignmentReservations, todayKey, seating.startTime, {
-        seatingId: seating.id,
-        durationMinutes: seating.durationMinutes,
-        seatingsById,
-        layout,
-      })
       summaries[seating.id] = {
-        occupiedTables: conflicts.size,
-        totalTables: layout?.tables?.length ?? 0,
+        tableAvailability: buildHostSeatingTableAvailability(assignmentReservations, {
+          seating,
+          dateKey: todayKey,
+          layout,
+          areaFilterId: hostQueueAreaFilterId,
+          seatingsById,
+        }),
         operationalMetrics: operationalMetricsBySeating[seating.id] ?? null,
       }
     })

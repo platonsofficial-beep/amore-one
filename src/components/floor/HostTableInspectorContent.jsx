@@ -447,7 +447,7 @@ function TableInspectorAvailableRow({
             }}
             data-testid="floor-table-day-new-reservation"
           >
-            + New reservation
+            [ + New reservation ]
           </button>
         ) : (
           <p className="floor-table-day-seating-select-hint">Tap to seat here</p>

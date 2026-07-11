@@ -1,5 +1,9 @@
 import { FloorPlanLegend } from './FloorPlanLegend'
 import { formatHostQueueSeatingChipMetricsLine } from '../../lib/hostQueueServiceMetrics'
+import {
+  formatHostSeatingTableAvailabilityAccessible,
+  formatHostSeatingTableAvailabilityDisplay,
+} from '../../lib/tableAvailability'
 
 export function FloorSeatingSelector({
   seatings = [],
@@ -18,11 +22,15 @@ export function FloorSeatingSelector({
         <div className="floor-seating-selector-scroll" role="group" aria-label="Service seating">
           {seatings.map((seating) => {
             const summary = summaries[seating.id]
-            const summaryCount = summary?.bookedCovers != null && summary?.totalCapacity != null
-              ? `${summary.bookedCovers}/${summary.totalCapacity}`
-              : summary?.occupiedTables != null && summary?.totalTables != null
-                ? `${summary.occupiedTables}/${summary.totalTables}`
+            const tableAvailability = summary?.tableAvailability
+            const summaryCount = tableAvailability
+              ? formatHostSeatingTableAvailabilityDisplay(tableAvailability)
+              : summary?.bookedCovers != null && summary?.totalCapacity != null
+                ? `${summary.bookedCovers}/${summary.totalCapacity}`
                 : ''
+            const summaryAccessibleLabel = tableAvailability
+              ? formatHostSeatingTableAvailabilityAccessible(tableAvailability)
+              : ''
             const metricsLine = summary?.operationalMetrics
               ? formatHostQueueSeatingChipMetricsLine(summary.operationalMetrics)
               : ''
@@ -38,7 +46,12 @@ export function FloorSeatingSelector({
                 <span className="floor-seating-selector-chip-name">{seating.name}</span>
                 <span className="floor-seating-selector-chip-time">{seating.startTime}</span>
                 {summaryCount ? (
-                  <span className="floor-seating-selector-chip-count">{summaryCount}</span>
+                  <span
+                    className="floor-seating-selector-chip-count"
+                    aria-label={summaryAccessibleLabel || undefined}
+                  >
+                    {summaryCount}
+                  </span>
                 ) : null}
                 {metricsLine ? (
                   <span className="floor-seating-selector-chip-metrics">{metricsLine}</span>

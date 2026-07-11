@@ -108,8 +108,11 @@ describe('FloorSeatingSelector', () => {
         onSelect: () => {},
         summaries: {
           brunch: {
-            occupiedTables: 18,
-            totalTables: 37,
+            tableAvailability: {
+              availableTables: 19,
+              totalTables: 37,
+              unavailableTables: 18,
+            },
             operationalMetrics: {
               expectedGuests: 35,
               expectedAssignedTables: 17,
@@ -120,6 +123,10 @@ describe('FloorSeatingSelector', () => {
       }))
     })
 
+    expect(container.querySelector('.floor-seating-selector-chip-count')?.textContent)
+      .toBe('19/37 available')
+    expect(container.querySelector('.floor-seating-selector-chip-count')?.getAttribute('aria-label'))
+      .toBe('19 of 37 tables available')
     expect(container.querySelector('.floor-seating-selector-chip-metrics')?.textContent)
       .toBe('👥35 · 🍽17 · 🪑2')
   })
@@ -136,8 +143,11 @@ describe('FloorSeatingSelector', () => {
         onSelect: () => {},
         summaries: {
           brunch: {
-            occupiedTables: 18,
-            totalTables: 37,
+            tableAvailability: {
+              availableTables: 19,
+              totalTables: 37,
+              unavailableTables: 18,
+            },
             operationalMetrics: {
               expectedGuests: 35,
               expectedAssignedTables: 17,

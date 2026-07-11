@@ -162,6 +162,8 @@ describe('HostTableInspector', () => {
 
     const hero = document.querySelector('.floor-table-day-row.is-hero-primary')
     expect(hero).not.toBeNull()
+    expect(hero?.querySelector('.floor-table-day-guest-headline')).not.toBeNull()
+    expect(hero?.querySelector('.floor-table-day-guest-name')?.textContent).toBe('Fournie')
     const pill = hero?.querySelector('.selected-reservation-status')
     expect(pill?.querySelector('.selected-reservation-status-icon')?.textContent).toBe('🍽')
     expect(pill?.querySelector('.selected-reservation-status-label')?.textContent).toBe('Seated')
@@ -221,6 +223,7 @@ describe('HostTableInspector', () => {
     const row = document.querySelector('.table-inspector-seating-row.is-available')
     const button = query('[data-testid="floor-table-day-new-reservation"]')
     expect(row?.contains(button)).toBe(true)
+    expect(button?.textContent).toContain('[ + New reservation ]')
     expect(row?.classList.contains('is-compact-available-row')).toBe(false)
     expect(document.querySelector('.host-table-inspector-seating-timeline')?.className).not.toContain('overflow-hidden')
     cleanup()
