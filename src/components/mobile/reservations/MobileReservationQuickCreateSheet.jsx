@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { ReservationDateField } from '../../reservations/ReservationDateField'
 import { ReservationPhoneField } from '../../reservations/ReservationPhoneField'
 import { ReservationTimeSelect } from '../../reservations/ReservationTimeSelect'
@@ -7,16 +7,15 @@ import {
   preventReservationFormSubmit,
 } from '../../../lib/reservationFormNavigation'
 import { normalizeReservationDateKey } from '../../../lib/timeFormatUtils'
-
-const EMPTY_FORM = {
-  guestName: '',
-  phone: '',
-  date: '',
-  time: '',
-  guests: '2',
-  notes: '',
-  tableNumber: '',
-}
+import { usePublishedFloorPlan } from '../../../lib/PublishedFloorPlanContext'
+import { getActiveSeatingsForDate } from '../../../lib/reservationSeatings'
+import {
+  applyHostQuickCreateFormPatch,
+  createHostQuickCreateFormState,
+  EMPTY_HOST_QUICK_CREATE_FORM,
+  formatHostQuickCreateSeatingOptionLabel,
+} from '../../../lib/hostQuickCreateForm'
+import { HostQuickCreateTableField } from './HostQuickCreateTableField'
 
 function HostReservationQuickCreateFields({
   form,
@@ -25,7 +24,24 @@ function HostReservationQuickCreateFields({
   isSaving,
   onClose,
   onSubmit,
+  seatings = [],
+  reservations = [],
+  layout = null,
 }) {
+  const activeSeatings = useMemo(
+    () => getActiveSeatingsForDate(seatings, form.date || todayKey),
+    [form.date, seatings, todayKey],
+  )
+  const zones = layout?.zones ?? []
+
+  const updateForm = (patch) => {
+    setForm((current) => applyHostQuickCreateFormPatch(current, patch, {
+      layout,
+      seatings,
+      reservations,
+    }))
+  }
+
   const handleSave = async () => {
     await onSubmit?.(form)
   }
@@ -41,10 +57,7 @@ function HostReservationQuickCreateFields({
         <input
           type="text"
           value={form.guestName}
-          onChange={(event) => setForm((current) => ({
-            ...current,
-            guestName: event.target.value,
-          }))}
+          onChange={(event) => updateForm({ guestName: event.target.value })}
           placeholder="Guest name"
           required
           autoComplete="name"
@@ -55,7 +68,7 @@ function HostReservationQuickCreateFields({
         <span>Phone</span>
         <ReservationPhoneField
           value={form.phone}
-          onChange={(phone) => setForm((current) => ({ ...current, phone }))}
+          onChange={(phone) => updateForm({ phone })}
           placeholder="Optional"
         />
       </label>
@@ -64,7 +77,7 @@ function HostReservationQuickCreateFields({
         <span>Date</span>
         <ReservationDateField
           value={form.date}
-          onChange={(date) => setForm((current) => ({ ...current, date }))}
+          onChange={(date) => updateForm({ date })}
           todayKey={todayKey}
           required
         />
@@ -75,7 +88,7 @@ function HostReservationQuickCreateFields({
           <span>Time</span>
           <ReservationTimeSelect
             value={form.time}
-            onChange={(time) => setForm((current) => ({ ...current, time }))}
+            onChange={(time) => updateForm({ time })}
           />
         </label>
 
@@ -85,37 +98,64 @@ function HostReservationQuickCreateFields({
             type="number"
             min="1"
             value={form.guests}
-            onChange={(event) => setForm((current) => ({
-              ...current,
-              guests: event.target.value,
-            }))}
+            onChange={(event) => updateForm({ guests: event.target.value })}
             required
           />
         </label>
       </div>
 
-      <label className="mobile-host-form-field">
-        <span>Table (optional)</span>
-        <input
-          type="text"
-          value={form.tableNumber}
-          onChange={(event) => setForm((current) => ({
-            ...current,
-            tableNumber: event.target.value,
-          }))}
-          placeholder="Table or section"
-        />
-      </label>
+      <div className="mobile-host-form-row">
+        <label className="mobile-host-form-field">
+          <span>Seating</span>
+          <select
+            value={form.seatingId ?? ''}
+            onChange={(event) => updateForm({
+              seatingId: event.target.value || null,
+            })}
+            data-testid="host-quick-create-seating"
+          >
+            <option value="">Choose a seating</option>
+            {activeSeatings.map((seating) => (
+              <option key={seating.id} value={seating.id}>
+                {formatHostQuickCreateSeatingOptionLabel(seating)}
+                {form.recommendedSeatingId === seating.id && !form.seatingManuallyOverridden
+                  ? ' · Recommended'
+                  : ''}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <label className="mobile-host-form-field">
+          <span>Area</span>
+          <select
+            value={form.seatingAreaId}
+            onChange={(event) => updateForm({ seatingAreaId: event.target.value })}
+            disabled={zones.length === 0}
+            data-testid="host-quick-create-area"
+          >
+            <option value="">Choose an area</option>
+            {zones.map((zone) => (
+              <option key={zone.id} value={zone.id}>{zone.label}</option>
+            ))}
+          </select>
+        </label>
+      </div>
+
+      <HostQuickCreateTableField
+        form={form}
+        layout={layout}
+        reservations={reservations}
+        seatings={seatings}
+        onFormChange={setForm}
+      />
 
       <label className="mobile-host-form-field">
         <span>Notes</span>
         <textarea
           rows={3}
           value={form.notes}
-          onChange={(event) => setForm((current) => ({
-            ...current,
-            notes: event.target.value,
-          }))}
+          onChange={(event) => updateForm({ notes: event.target.value })}
           placeholder="Allergies, occasion, seating preference"
         />
       </label>
@@ -147,41 +187,44 @@ export function MobileReservationQuickCreateSheet({
   isSaving = false,
   variant = 'sheet',
   prefill = null,
+  seatings = [],
+  reservations = [],
   onClose,
   onSubmit,
 }) {
-  const [form, setForm] = useState(EMPTY_FORM)
+  const { layout } = usePublishedFloorPlan()
+  const [form, setForm] = useState(EMPTY_HOST_QUICK_CREATE_FORM)
 
   useEffect(() => {
     if (!isOpen) return
-    setForm({
-      ...EMPTY_FORM,
+    setForm(createHostQuickCreateFormState({
       ...prefill,
       date: normalizeReservationDateKey(prefill?.date ?? todayKey),
       guests: `${prefill?.guests ?? '2'}`,
-      tableNumber: `${prefill?.tableNumber ?? ''}`,
       phone: `${prefill?.phone ?? ''}`,
       guestName: `${prefill?.guestName ?? ''}`,
       time: `${prefill?.time ?? ''}`,
       notes: `${prefill?.notes ?? ''}`,
       seatingId: prefill?.seatingId ?? null,
-      assignedUnits: Array.isArray(prefill?.assignedUnits) ? prefill.assignedUnits : [],
+      seatingAreaId: prefill?.seatingAreaId ?? '',
       area: `${prefill?.area ?? ''}`,
-    })
-  }, [isOpen, prefill, todayKey])
+      assignedUnits: Array.isArray(prefill?.assignedUnits) ? prefill.assignedUnits : [],
+      seatingManuallyOverridden: Boolean(prefill?.seatingManuallyOverridden),
+    }, { todayKey, layout, seatings }))
+  }, [isOpen, layout, prefill, seatings, todayKey])
 
   if (!isOpen) return null
 
   const handleClose = () => {
     if (isSaving) return
-    setForm(EMPTY_FORM)
+    setForm(EMPTY_HOST_QUICK_CREATE_FORM)
     onClose?.()
   }
 
   const handleSubmit = async (nextForm) => {
     const saved = await onSubmit?.(nextForm)
     if (saved !== false) {
-      setForm(EMPTY_FORM)
+      setForm(EMPTY_HOST_QUICK_CREATE_FORM)
     }
     return saved
   }
@@ -211,6 +254,9 @@ export function MobileReservationQuickCreateSheet({
       isSaving={isSaving}
       onClose={handleClose}
       onSubmit={handleSubmit}
+      seatings={seatings}
+      reservations={reservations}
+      layout={layout}
     />
   )
 

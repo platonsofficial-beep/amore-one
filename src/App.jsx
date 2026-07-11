@@ -21436,7 +21436,7 @@ function App() {
         time: validation.time,
         guests: Number(form.guests) || 2,
         tableNumber,
-        area: `${form.area ?? ''}`.trim() || 'Main Dining',
+        area: `${form.area ?? ''}`.trim(),
         status: 'Pending',
         notes: `${form.notes ?? ''}`.trim(),
         seatingId: form.seatingId ?? null,

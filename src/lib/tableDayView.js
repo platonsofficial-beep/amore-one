@@ -206,8 +206,9 @@ export function buildTableDayViewCreatePrefill({
     guests: '2',
     tableNumber: assignedUnits.length ? formatSeatingAssignmentLabels(assignment) : '',
     seatingId: seating?.id ?? null,
+    seatingAreaId: table?.zoneId ?? layoutUnit?.zoneId ?? '',
     assignedUnits,
-    area: layout?.zones?.find((zone) => zone.id === table?.zoneId)?.label ?? '',
+    area: layout?.zones?.find((zone) => zone.id === (table?.zoneId ?? layoutUnit?.zoneId))?.label ?? '',
     notes: '',
   }
 }

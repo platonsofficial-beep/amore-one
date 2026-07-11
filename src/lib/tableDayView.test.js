@@ -320,6 +320,7 @@ describe('tableDayView', () => {
     expect(prefill.time).toBe('12:00')
     expect(prefill.tableNumber).toContain('T14')
     expect(prefill.area).toBe('Main Dining')
+    expect(prefill.seatingAreaId).toBe('main')
     expect(prefill.assignedUnits).toHaveLength(1)
   })
 

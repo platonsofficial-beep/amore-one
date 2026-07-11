@@ -1,0 +1,466 @@
+import { describe, expect, it } from 'vitest'
+import { buildSeatingAssignment, formatSeatingAssignmentLabels } from './seatingAssignment'
+import { getActiveSeatingsForDate, sortReservationSeatings } from './reservationSeatings'
+import {
+  applyHostQuickCreateFormPatch,
+  buildHostQuickCreateTableOptions,
+  createHostQuickCreateFormState,
+  formatHostQuickCreateSeatingOptionLabel,
+  getHostQuickCreateTableHelperText,
+  resolveHostQuickCreateRecommendedSeatingId,
+  toggleHostQuickCreateTableSelection,
+} from './hostQuickCreateForm'
+
+const SERVICE_DATE = '2026-07-10'
+
+const RAW_SEATINGS = [
+  {
+    id: 'brunch',
+    name: 'Brunch',
+    start_time: '10:00',
+    duration_minutes: 120,
+    days_of_week: [0, 1, 2, 3, 4, 5, 6],
+    sort_order: 0,
+    is_active: true,
+  },
+  {
+    id: 'lunch',
+    name: 'Lunch',
+    start_time: '12:00',
+    duration_minutes: 120,
+    days_of_week: [0, 1, 2, 3, 4, 5, 6],
+    sort_order: 1,
+    is_active: true,
+  },
+  {
+    id: 'dinner-1',
+    name: 'Dinner 1',
+    start_time: '19:00',
+    duration_minutes: 120,
+    days_of_week: [0, 1, 2, 3, 4, 5, 6],
+    sort_order: 2,
+    is_active: true,
+  },
+  {
+    id: 'dinner-2',
+    name: 'Dinner 2',
+    start_time: '21:00',
+    duration_minutes: 120,
+    days_of_week: [0, 1, 2, 3, 4, 5, 6],
+    sort_order: 3,
+    is_active: true,
+  },
+]
+
+const SEATINGS = sortReservationSeatings(RAW_SEATINGS)
+
+const LAYOUT = {
+  zones: [
+    { id: 'main', label: 'Main Dining' },
+    { id: 'bar', label: 'Bar' },
+  ],
+  units: [
+    { id: 't15', label: 'T15', zoneId: 'main', seatedCapacity: 4, maxGuestCapacity: 4 },
+    { id: 't16', label: 'T16', zoneId: 'main', seatedCapacity: 2, maxGuestCapacity: 2 },
+    { id: 't17', label: 'T17', zoneId: 'bar', seatedCapacity: 4, maxGuestCapacity: 4 },
+  ],
+}
+
+function buildOccupiedReservation(overrides = {}) {
+  return {
+    id: 'res-occupied',
+    guestName: 'Alex',
+    date: SERVICE_DATE,
+    time: '19:00',
+    guests: 2,
+    status: 'Confirmed',
+    seatingId: 'dinner-1',
+    seatingAssignment: {
+      assignedUnits: [{ id: 't15', label: 'T15', seatedCapacity: 4, maxGuestCapacity: 4 }],
+      extraChairs: 0,
+      standingGuests: 0,
+    },
+    ...overrides,
+  }
+}
+
+const CONTEXT = {
+  layout: LAYOUT,
+  seatings: SEATINGS,
+  reservations: [buildOccupiedReservation()],
+}
+
+describe('hostQuickCreateForm', () => {
+  it('1. active seatings populate the Seating selector options', () => {
+    const active = getActiveSeatingsForDate(SEATINGS, SERVICE_DATE)
+    expect(active.map((entry) => entry.id)).toEqual(['brunch', 'lunch', 'dinner-1', 'dinner-2'])
+    expect(formatHostQuickCreateSeatingOptionLabel(active[2])).toContain('Dinner 1')
+    expect(formatHostQuickCreateSeatingOptionLabel(active[2])).toContain('19:00')
+  })
+
+  it('2. 20:45 recommends Dinner 1', () => {
+    expect(resolveHostQuickCreateRecommendedSeatingId(SERVICE_DATE, '20:45', SEATINGS)).toBe('dinner-1')
+  })
+
+  it('3. 21:00 recommends Dinner 2', () => {
+    expect(resolveHostQuickCreateRecommendedSeatingId(SERVICE_DATE, '21:00', SEATINGS)).toBe('dinner-2')
+  })
+
+  it('4. no match does not fall back to Brunch or the first seating', () => {
+    const state = createHostQuickCreateFormState(
+      { date: SERVICE_DATE, time: '08:00' },
+      { todayKey: SERVICE_DATE, layout: LAYOUT, seatings: SEATINGS },
+    )
+    expect(state.seatingId).toBeNull()
+    expect(state.recommendedSeatingId).toBeNull()
+  })
+
+  it('5. host can manually change Dinner 1 to Dinner 2', () => {
+    let form = createHostQuickCreateFormState(
+      { date: SERVICE_DATE, time: '20:45' },
+      { todayKey: SERVICE_DATE, layout: LAYOUT, seatings: SEATINGS },
+    )
+    expect(form.seatingId).toBe('dinner-1')
+
+    form = applyHostQuickCreateFormPatch(form, { seatingId: 'dinner-2' }, CONTEXT)
+    expect(form.seatingId).toBe('dinner-2')
+    expect(form.seatingManuallyOverridden).toBe(true)
+  })
+
+  it('6. manual seating override is preserved until date or time makes it invalid', () => {
+    let form = createHostQuickCreateFormState(
+      { date: SERVICE_DATE, time: '21:15', seatingId: 'dinner-2', seatingManuallyOverridden: true },
+      { todayKey: SERVICE_DATE, layout: LAYOUT, seatings: SEATINGS },
+    )
+    expect(form.seatingId).toBe('dinner-2')
+
+    form = applyHostQuickCreateFormPatch(form, { guests: '4' }, CONTEXT)
+    expect(form.seatingId).toBe('dinner-2')
+    expect(form.seatingManuallyOverridden).toBe(true)
+
+    form = applyHostQuickCreateFormPatch(form, { time: '21:30' }, CONTEXT)
+    expect(form.seatingId).toBe('dinner-2')
+    expect(form.seatingManuallyOverridden).toBe(true)
+
+    form = applyHostQuickCreateFormPatch(form, { time: '20:45' }, CONTEXT)
+    expect(form.seatingId).toBeNull()
+    expect(form.seatingManuallyOverridden).toBe(false)
+  })
+
+  it('7. published areas populate the Area selector', () => {
+    const form = createHostQuickCreateFormState(
+      { date: SERVICE_DATE, time: '19:00' },
+      { todayKey: SERVICE_DATE, layout: LAYOUT, seatings: SEATINGS },
+    )
+    expect(LAYOUT.zones.map((zone) => zone.label)).toEqual(['Main Dining', 'Bar'])
+    expect(form.seatingAreaId).toBe('')
+    expect(form.area).toBe('')
+  })
+
+  it('8. one area auto-selects', () => {
+    const singleAreaLayout = {
+      zones: [{ id: 'main', label: 'Main Dining' }],
+      units: LAYOUT.units.filter((unit) => unit.zoneId === 'main'),
+    }
+    const form = createHostQuickCreateFormState(
+      { date: SERVICE_DATE, time: '19:00' },
+      { todayKey: SERVICE_DATE, layout: singleAreaLayout, seatings: SEATINGS },
+    )
+    expect(form.seatingAreaId).toBe('main')
+    expect(form.area).toBe('Main Dining')
+  })
+
+  it('9. table selector is disabled without Seating', () => {
+    const form = createHostQuickCreateFormState(
+      { date: SERVICE_DATE, time: '19:00', seatingAreaId: 'main', area: 'Main Dining' },
+      { todayKey: SERVICE_DATE, layout: LAYOUT, seatings: SEATINGS },
+    )
+    const options = buildHostQuickCreateTableOptions({
+      layout: LAYOUT,
+      reservations: [],
+      dateKey: form.date,
+      time: form.time,
+      seatingId: null,
+      areaId: form.seatingAreaId,
+      partySize: form.guests,
+      seatings: SEATINGS,
+    })
+    expect(options.canSelect).toBe(false)
+    expect(getHostQuickCreateTableHelperText({ ...form, seatingId: null }, options, SEATINGS))
+      .toBe('Choose a seating to view available tables')
+  })
+
+  it('10. table selector is disabled without Area', () => {
+    const form = createHostQuickCreateFormState(
+      { date: SERVICE_DATE, time: '19:00', seatingId: 'dinner-1' },
+      { todayKey: SERVICE_DATE, layout: LAYOUT, seatings: SEATINGS },
+    )
+    const options = buildHostQuickCreateTableOptions({
+      layout: LAYOUT,
+      reservations: [],
+      dateKey: form.date,
+      time: form.time,
+      seatingId: form.seatingId,
+      areaId: '',
+      partySize: form.guests,
+      seatings: SEATINGS,
+    })
+    expect(options.canSelect).toBe(false)
+    expect(getHostQuickCreateTableHelperText(form, options, SEATINGS))
+      .toBe('Choose an area to view available tables')
+  })
+
+  it('11. Main Dining shows only Main Dining tables', () => {
+    const options = buildHostQuickCreateTableOptions({
+      layout: LAYOUT,
+      reservations: [],
+      dateKey: SERVICE_DATE,
+      time: '19:00',
+      seatingId: 'dinner-1',
+      areaId: 'main',
+      partySize: 2,
+      seatings: SEATINGS,
+    })
+    expect(options.options.map((entry) => entry.unit.id)).toEqual(['t15', 't16'])
+  })
+
+  it('12. availability is scoped to the selected seating', () => {
+    const dinnerOne = buildHostQuickCreateTableOptions({
+      layout: LAYOUT,
+      reservations: CONTEXT.reservations,
+      dateKey: SERVICE_DATE,
+      time: '19:00',
+      seatingId: 'dinner-1',
+      areaId: 'main',
+      partySize: 2,
+      seatings: SEATINGS,
+    })
+    const dinnerTwo = buildHostQuickCreateTableOptions({
+      layout: LAYOUT,
+      reservations: CONTEXT.reservations,
+      dateKey: SERVICE_DATE,
+      time: '21:00',
+      seatingId: 'dinner-2',
+      areaId: 'main',
+      partySize: 2,
+      seatings: SEATINGS,
+    })
+
+    expect(dinnerOne.options.find((entry) => entry.unit.id === 't15')?.isSelectable).toBe(false)
+    expect(dinnerTwo.options.find((entry) => entry.unit.id === 't15')?.isSelectable).toBe(true)
+  })
+
+  it('13. a table occupied in Dinner 1 may remain available in Dinner 2 when valid', () => {
+    const options = buildHostQuickCreateTableOptions({
+      layout: LAYOUT,
+      reservations: CONTEXT.reservations,
+      dateKey: SERVICE_DATE,
+      time: '21:00',
+      seatingId: 'dinner-2',
+      areaId: 'main',
+      partySize: 2,
+      seatings: SEATINGS,
+    })
+    expect(options.options.find((entry) => entry.unit.id === 't15')?.isSelectable).toBe(true)
+  })
+
+  it('14. conflicting table cannot be selected', () => {
+    let form = createHostQuickCreateFormState(
+      { date: SERVICE_DATE, time: '19:00', seatingId: 'dinner-1', seatingAreaId: 'main', area: 'Main Dining' },
+      { todayKey: SERVICE_DATE, layout: LAYOUT, seatings: SEATINGS },
+    )
+    const occupied = LAYOUT.units.find((unit) => unit.id === 't15')
+    form = toggleHostQuickCreateTableSelection(form, occupied, CONTEXT)
+    expect(form.assignedUnits).toEqual([])
+  })
+
+  it('15. capacity-incompatible table cannot be selected', () => {
+    let form = createHostQuickCreateFormState(
+      { date: SERVICE_DATE, time: '19:00', seatingId: 'dinner-1', seatingAreaId: 'main', area: 'Main Dining', guests: '4' },
+      { todayKey: SERVICE_DATE, layout: LAYOUT, seatings: SEATINGS },
+    )
+    const smallTable = LAYOUT.units.find((unit) => unit.id === 't16')
+    form = toggleHostQuickCreateTableSelection(form, smallTable, CONTEXT)
+    expect(form.assignedUnits).toEqual([])
+
+    const options = buildHostQuickCreateTableOptions({
+      layout: LAYOUT,
+      reservations: [],
+      dateKey: form.date,
+      time: form.time,
+      seatingId: form.seatingId,
+      areaId: form.seatingAreaId,
+      partySize: form.guests,
+      seatings: SEATINGS,
+    })
+    expect(options.options.find((entry) => entry.unit.id === 't16')?.disabledReason).toBe('Capacity 2')
+  })
+
+  it('16. changing seating clears an invalid table', () => {
+    let form = createHostQuickCreateFormState(
+      {
+        date: SERVICE_DATE,
+        time: '19:00',
+        seatingId: 'dinner-2',
+        seatingManuallyOverridden: true,
+        seatingAreaId: 'main',
+        area: 'Main Dining',
+        assignedUnits: [{ id: 't15', label: 'T15', seatedCapacity: 4, maxGuestCapacity: 4 }],
+      },
+      { todayKey: SERVICE_DATE, layout: LAYOUT, seatings: SEATINGS },
+    )
+
+    form = applyHostQuickCreateFormPatch(form, { seatingId: 'dinner-1' }, CONTEXT)
+    expect(form.assignedUnits).toEqual([])
+    expect(form.tableSelectionNotice).toBe('Table selection cleared because availability changed.')
+  })
+
+  it('17. changing area clears the previous table', () => {
+    let form = createHostQuickCreateFormState(
+      {
+        date: SERVICE_DATE,
+        time: '21:00',
+        seatingId: 'dinner-2',
+        seatingAreaId: 'main',
+        area: 'Main Dining',
+        assignedUnits: [{ id: 't15', label: 'T15', seatedCapacity: 4, maxGuestCapacity: 4 }],
+      },
+      { todayKey: SERVICE_DATE, layout: LAYOUT, seatings: SEATINGS },
+    )
+
+    form = applyHostQuickCreateFormPatch(form, { seatingAreaId: 'bar' }, CONTEXT)
+    expect(form.assignedUnits).toEqual([])
+    expect(form.area).toBe('Bar')
+    expect(form.tableSelectionNotice).toBe('Table selection cleared because availability changed.')
+  })
+
+  it('18. changing date, time, or party size recomputes availability', () => {
+    let form = createHostQuickCreateFormState(
+      {
+        date: SERVICE_DATE,
+        time: '21:00',
+        seatingId: 'dinner-2',
+        seatingAreaId: 'main',
+        area: 'Main Dining',
+        guests: '2',
+        assignedUnits: [{ id: 't16', label: 'T16', seatedCapacity: 2, maxGuestCapacity: 2 }],
+      },
+      { todayKey: SERVICE_DATE, layout: LAYOUT, seatings: SEATINGS },
+    )
+
+    form = applyHostQuickCreateFormPatch(form, { guests: '4' }, CONTEXT)
+    expect(form.assignedUnits).toEqual([])
+    expect(form.tableSelectionNotice).toBe('Table selection cleared because availability changed.')
+
+    form = createHostQuickCreateFormState(
+      {
+        date: SERVICE_DATE,
+        time: '21:00',
+        seatingId: 'dinner-2',
+        seatingAreaId: 'main',
+        area: 'Main Dining',
+        assignedUnits: [{ id: 't15', label: 'T15', seatedCapacity: 4, maxGuestCapacity: 4 }],
+      },
+      { todayKey: SERVICE_DATE, layout: LAYOUT, seatings: SEATINGS },
+    )
+    form = applyHostQuickCreateFormPatch(form, { time: '19:00' }, CONTEXT)
+    expect(form.seatingId).toBe('dinner-1')
+    expect(form.assignedUnits).toEqual([])
+  })
+
+  it('19. no available tables still permits unassigned creation state', () => {
+    const options = buildHostQuickCreateTableOptions({
+      layout: LAYOUT,
+      reservations: CONTEXT.reservations,
+      dateKey: SERVICE_DATE,
+      time: '19:00',
+      seatingId: 'dinner-1',
+      areaId: 'main',
+      partySize: 2,
+      seatings: SEATINGS,
+    })
+    expect(options.availableCount).toBe(1)
+    const form = createHostQuickCreateFormState(
+      {
+        date: SERVICE_DATE,
+        time: '19:00',
+        seatingId: 'dinner-1',
+        seatingAreaId: 'main',
+        area: 'Main Dining',
+      },
+      { todayKey: SERVICE_DATE, layout: LAYOUT, seatings: SEATINGS },
+    )
+    expect(form.assignedUnits).toEqual([])
+    expect(form.seatingId).toBe('dinner-1')
+    expect(form.area).toBe('Main Dining')
+  })
+
+  it('20. seating and area without table are persisted in form state', () => {
+    const form = createHostQuickCreateFormState(
+      {
+        date: SERVICE_DATE,
+        time: '19:00',
+        seatingId: 'dinner-1',
+        seatingAreaId: 'main',
+        area: 'Main Dining',
+      },
+      { todayKey: SERVICE_DATE, layout: LAYOUT, seatings: SEATINGS },
+    )
+    expect(form.seatingId).toBe('dinner-1')
+    expect(form.seatingAreaId).toBe('main')
+    expect(form.area).toBe('Main Dining')
+    expect(form.assignedUnits).toEqual([])
+  })
+
+  it('21. selected table uses existing assignment serialization fields', () => {
+    let form = createHostQuickCreateFormState(
+      {
+        date: SERVICE_DATE,
+        time: '21:00',
+        seatingId: 'dinner-2',
+        seatingAreaId: 'main',
+        area: 'Main Dining',
+        guests: '2',
+      },
+      { todayKey: SERVICE_DATE, layout: LAYOUT, seatings: SEATINGS },
+    )
+    const availableTable = LAYOUT.units.find((unit) => unit.id === 't15')
+    form = toggleHostQuickCreateTableSelection(form, availableTable, CONTEXT)
+    const assignment = buildSeatingAssignment({ assignedUnits: form.assignedUnits, partySize: 2 })
+    expect(formatSeatingAssignmentLabels(assignment)).toBe('T15')
+    expect(form.assignedUnits).toHaveLength(1)
+  })
+
+  it('22. quick create form does not include seated status semantics', () => {
+    const form = createHostQuickCreateFormState(
+      { date: SERVICE_DATE, time: '19:00' },
+      { todayKey: SERVICE_DATE, layout: LAYOUT, seatings: SEATINGS },
+    )
+    expect(form).not.toHaveProperty('status')
+  })
+
+  it('23. edit/reopen prefill preserves seating, area, and table', () => {
+    const prefill = {
+      guestName: 'Jordan',
+      date: SERVICE_DATE,
+      time: '21:00',
+      guests: '2',
+      seatingId: 'dinner-2',
+      seatingAreaId: 'main',
+      area: 'Main Dining',
+      assignedUnits: [{ id: 't15', label: 'T15', seatedCapacity: 4, maxGuestCapacity: 4 }],
+      seatingManuallyOverridden: true,
+    }
+    const form = createHostQuickCreateFormState(prefill, {
+      todayKey: SERVICE_DATE,
+      layout: LAYOUT,
+      seatings: SEATINGS,
+      reservations: CONTEXT.reservations,
+    })
+    expect(form.seatingId).toBe('dinner-2')
+    expect(form.seatingAreaId).toBe('main')
+    expect(form.area).toBe('Main Dining')
+    expect(form.assignedUnits).toHaveLength(1)
+    expect(form.assignedUnits[0].id).toBe('t15')
+  })
+})

@@ -339,6 +339,8 @@ export function MobileReservationsHostView({
         todayKey={todayKey}
         isSaving={isSaving}
         prefill={createPrefill}
+        seatings={reservationSeatings}
+        reservations={reservations}
         onClose={() => {
           setIsCreateOpen(false)
           setCreatePrefill(null)
@@ -440,6 +442,8 @@ export function MobileReservationsHostView({
             todayKey={todayKey}
             isSaving={isSaving}
             prefill={createPrefill}
+            seatings={reservationSeatings}
+            reservations={reservations}
             onClose={() => {
               setIsCreateOpen(false)
               setCreatePrefill(null)
