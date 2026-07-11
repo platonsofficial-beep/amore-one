@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   buildHostMultiTableSelectionSummary,
   canToggleTableInHostMultiTableSelection,
+  formatHostAssignmentActionLabel,
   getHostSeatingAssignmentAdvisory,
   getHostAssignmentScrollPolicy,
   HOST_ASSIGNMENT_STANDARD_LANDSCAPE_HEIGHT_BUDGET,
@@ -94,6 +95,11 @@ describe('host assignment panel utils', () => {
     expect(summary.tableSummary).toBe('T15 + T16')
     expect(summary.capacityLabel).toBe('Capacity 8')
     expect(summary.guestsLabel).toBe('Guests 5')
+  })
+
+  it('formats host assignment action labels without implying seated status', () => {
+    expect(formatHostAssignmentActionLabel({ tableLabel: 'T15' })).toBe('Assign T15')
+    expect(formatHostAssignmentActionLabel({ draftTableLabels: 'T15 + T16' })).toBe('Assign T15 + T16')
   })
 
   it('allows deselecting a table and blocks unavailable table toggles', () => {

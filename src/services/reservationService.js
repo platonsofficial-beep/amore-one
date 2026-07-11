@@ -94,7 +94,7 @@ function serializeReservation(reservation) {
   }
 }
 
-export function createSeatingAssignmentPayload(reservation, assignmentInput) {
+export function createSeatingAssignmentPayload(reservation, assignmentInput, { markSeated = false } = {}) {
   const seatingAssignment = buildSeatingAssignment({
     assignedUnits: assignmentInput?.assignedUnits ?? [],
     extraChairs: assignmentInput?.extraChairs ?? 0,
@@ -105,6 +105,7 @@ export function createSeatingAssignmentPayload(reservation, assignmentInput) {
   const userNotes = stripCustomerTypeFromNotes(
     stripSeatingAssignmentFromNotes(reservation.notes),
   )
+  const currentStatus = normalizeReservationStatus(reservation.status ?? 'Pending')
 
   return {
     guestName: reservation.guestName,
@@ -114,7 +115,7 @@ export function createSeatingAssignmentPayload(reservation, assignmentInput) {
     guests: reservation.guests,
     tableNumber: formatSeatingAssignmentLabels(seatingAssignment),
     area: reservation.area,
-    status: 'Checked In',
+    status: markSeated ? 'Checked In' : currentStatus,
     customerType: reservation.customerType ?? parseCustomerTypeFromNotes(reservation.notes),
     notes: encodeSeatingAssignmentInNotes(
       encodeCustomerTypeInNotes(userNotes, reservation.customerType ?? 'Regular'),
@@ -123,6 +124,11 @@ export function createSeatingAssignmentPayload(reservation, assignmentInput) {
     seatingAssignment,
     seatingId: assignmentInput?.seatingId ?? reservation.seatingId ?? reservation.seating_id ?? null,
   }
+}
+
+/** Host/table assignment that preserves the reservation's current status. */
+export function assignReservationTablesPayload(reservation, assignmentInput) {
+  return createSeatingAssignmentPayload(reservation, assignmentInput, { markSeated: false })
 }
 
 export function buildReservationUpdatePayload(reservation, patch) {

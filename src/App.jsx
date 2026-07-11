@@ -19,7 +19,7 @@ import { createWeeklyScheduleTemplate, deleteWeeklyScheduleTemplate, getWeeklySc
 import {
   createReservation,
   buildReservationUpdatePayload,
-  createSeatingAssignmentPayload,
+  assignReservationTablesPayload,
   deleteReservation,
   getReservations,
   updateReservation,
@@ -7900,7 +7900,7 @@ function FloorPlanView({
   isSaving,
   isCompact = false,
   canEditFloorPlan = true,
-  onSeatGuestAtTable,
+  onAssignReservationTables,
   onQuickStatusUpdate,
   onOpenAddReservation,
   onOpenReservation,
@@ -8892,15 +8892,15 @@ function FloorPlanView({
   }, [isCompact, isHeatmap, resetFloorPointerState])
 
   const handleConfirmSeating = async (assignment) => {
-    if (!selectedReservation || !onSeatGuestAtTable) return
-    await onSeatGuestAtTable(selectedReservation, assignment)
+    if (!selectedReservation || !onAssignReservationTables) return
+    await onAssignReservationTables(selectedReservation, assignment)
     clearSelection()
   }
 
   const handleScheduleCardConfirmAssignment = useCallback(async () => {
     if (
       !selectedReservation
-      || !onSeatGuestAtTable
+      || !onAssignReservationTables
       || !scheduleCardAssignmentSeatingId
       || seatingDraftUnitIds.length === 0
     ) {
@@ -8925,7 +8925,7 @@ function FloorPlanView({
       partySize: selectedReservation.guests,
     })
 
-    await onSeatGuestAtTable(selectedReservation, {
+    await onAssignReservationTables(selectedReservation, {
       ...assignment,
       seatingId: scheduleCardAssignmentSeatingId,
     })
@@ -8937,7 +8937,7 @@ function FloorPlanView({
     clearSelection,
     closeScheduleCardTable,
     layout,
-    onSeatGuestAtTable,
+    onAssignReservationTables,
     scheduleCardAssignmentSeatingId,
     scheduleCardRows,
     seatingDraftUnitIds,
@@ -9387,7 +9387,7 @@ function MobileReservationsHostShell({
   onReservationNotice,
   onCreateReservation,
   onExitHostMode,
-  onSeatGuestAtTable,
+  onAssignReservationTables,
   canEditFloorPlan = false,
   canManageAssignment = true,
   reservationSeatings = [],
@@ -9424,7 +9424,7 @@ function MobileReservationsHostShell({
         onReservationNotice={onReservationNotice}
         onCreateReservation={onCreateReservation}
         onExitHostMode={onExitHostMode}
-        onSeatGuestAtTable={onSeatGuestAtTable}
+        onAssignReservationTables={onAssignReservationTables}
         canEditFloorPlan={canEditFloorPlan}
         canManageAssignment={canManageAssignment}
         reservationSeatings={reservationSeatings}
@@ -9451,7 +9451,7 @@ function MobileReservationsHostShellBody({
   onReservationNotice,
   onCreateReservation,
   onExitHostMode,
-  onSeatGuestAtTable,
+  onAssignReservationTables,
   canEditFloorPlan = false,
   canManageAssignment = true,
   reservationSeatings = [],
@@ -9652,7 +9652,7 @@ function MobileReservationsHostShellBody({
         isSaving={isSaving}
         isCompact
         canEditFloorPlan={canEditFloorPlan}
-        onSeatGuestAtTable={onSeatGuestAtTable}
+        onAssignReservationTables={onAssignReservationTables}
         onQuickStatusUpdate={onQuickStatusUpdate}
         onOpenAddReservation={handleFloorOpenAddReservation}
         onOpenReservation={handleFloorOpenReservation}
@@ -11640,7 +11640,7 @@ function ReservationsWorkspaceBody({
   onQuickStatusUpdate,
   onQuickNoteUpdate,
   onTableReassign,
-  onSeatGuestAtTable,
+  onAssignReservationTables,
   onHostEditSave,
   onHostEditDelete,
   isLoading,
@@ -11936,7 +11936,7 @@ function ReservationsWorkspaceBody({
     isSaving,
     canEditFloorPlan,
     onTableReassign,
-    onSeatGuestAtTable,
+    onAssignReservationTables,
     onQuickStatusUpdate,
     onOpenAddReservation: openAddReservationForServiceDate,
     onOpenReservation: onOpenEditReservation,
@@ -19639,7 +19639,7 @@ function App() {
     }
   }
 
-  const handleSeatGuestAtTable = async (reservation, assignment) => {
+  const handleAssignReservationTables = async (reservation, assignment) => {
     if (!canManageReservationsRole) return
 
     if (isSavingReservationRef.current) return
@@ -19648,15 +19648,15 @@ function App() {
     setIsSavingReservation(true)
 
     try {
-      const payload = createSeatingAssignmentPayload(reservation, assignment)
+      const payload = assignReservationTablesPayload(reservation, assignment)
       const updated = await updateReservation(activeWorkspaceId, reservation.id, payload)
       upsertReservationInState(updated)
       await reloadTodayReservations()
       setReservationNotice(
-        `Seated ${formatReservationGuestName(reservation.guestName)} at ${formatSeatingAssignmentSummary(payload.seatingAssignment, reservation.guests)}.`,
+        `Assigned ${formatReservationGuestName(reservation.guestName)} to ${formatSeatingAssignmentSummary(payload.seatingAssignment, reservation.guests)}.`,
       )
     } catch (error) {
-      setReservationNotice(error.message || 'Unable to seat guest right now.')
+      setReservationNotice(error.message || 'Unable to assign tables right now.')
     } finally {
       isSavingReservationRef.current = false
       setIsSavingReservation(false)
@@ -21790,7 +21790,7 @@ function App() {
               onReservationNotice={setReservationNotice}
               onCreateReservation={handleMobileHostReservationCreate}
               onExitHostMode={isHostMobileRole(role) ? undefined : handleMobileExitReservationsHostMode}
-              onSeatGuestAtTable={handleSeatGuestAtTable}
+              onAssignReservationTables={handleAssignReservationTables}
               canEditFloorPlan={canEditFloorPlanRole}
               canManageAssignment={canManageReservationsRole}
               reservationSeatings={reservationSeatings}
@@ -21810,7 +21810,7 @@ function App() {
               onQuickStatusUpdate={handleQuickReservationStatus}
               onQuickNoteUpdate={handleQuickReservationNote}
               onTableReassign={handleQuickReservationTableReassign}
-              onSeatGuestAtTable={handleSeatGuestAtTable}
+              onAssignReservationTables={handleAssignReservationTables}
               onHostEditSave={handleHostEditSave}
               onHostEditDelete={handleHostEditDelete}
               onReservationNotice={setReservationNotice}
@@ -22246,7 +22246,7 @@ function App() {
                       onReservationNotice={setReservationNotice}
                       onCreateReservation={handleMobileHostReservationCreate}
                       onExitHostMode={undefined}
-                      onSeatGuestAtTable={handleSeatGuestAtTable}
+                      onAssignReservationTables={handleAssignReservationTables}
                       canEditFloorPlan={canEditFloorPlanRole}
                       reservationSeatings={reservationSeatings}
                       workspaceId={activeWorkspaceId}

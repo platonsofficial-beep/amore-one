@@ -1,6 +1,7 @@
 import { createPortal } from 'react-dom'
 import { useMediaQuery } from '../../lib/useMediaQuery'
 import { formatHostListUnitLabel, getReservationSeatingAssignment } from '../../lib/seatingAssignment'
+import { formatHostAssignmentActionLabel } from '../../lib/hostAssignmentPanelUtils'
 import { formatTime24 } from '../../lib/timeFormatUtils'
 
 function TableDayViewAssignmentRow({
@@ -17,10 +18,7 @@ function TableDayViewAssignmentRow({
   const guestName = assignmentReservation?.guestName || 'Guest'
   const guestCount = Math.max(0, Number(assignmentReservation?.guests) || 0)
   const arrivalTime = assignmentReservation?.time ? formatTime24(assignmentReservation.time) : null
-  const assignLabel = tableLabel ? `Assign to ${tableLabel}` : 'Assign to table'
-  const confirmLabel = draftTableLabels?.includes('+')
-    ? `Confirm seating (${draftTableLabels})`
-    : assignLabel
+  const confirmLabel = formatHostAssignmentActionLabel({ draftTableLabels, tableLabel })
 
   return (
     <>

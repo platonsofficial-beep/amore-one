@@ -386,7 +386,7 @@ describe('FloorTableSeatingDialog host day view', () => {
     expect(query('[data-testid="floor-table-day-row-assignment"]')).not.toBeNull()
     expect(query('.floor-table-day-guest-name')?.textContent).toBe('Samaridis')
     expect(query('[data-testid="floor-table-day-assign-reservation"]')?.textContent)
-      .toContain('Assign to T23')
+      .toContain('Assign T23')
 
     act(() => {
       query('[data-testid="floor-table-day-assign-reservation"]')

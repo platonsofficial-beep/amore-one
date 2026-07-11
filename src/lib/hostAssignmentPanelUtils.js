@@ -107,6 +107,11 @@ export function buildHostMultiTableSelectionSummary({
   }
 }
 
+export function formatHostAssignmentActionLabel({ draftTableLabels = '', tableLabel = '' } = {}) {
+  const labels = `${draftTableLabels || tableLabel || ''}`.trim()
+  return labels ? `Assign ${labels}` : 'Assign table'
+}
+
 export function canToggleTableInHostMultiTableSelection({
   tableId = null,
   selectedUnitIds = [],
