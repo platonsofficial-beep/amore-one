@@ -304,8 +304,8 @@ const HOST_FLOOR_SELECTION_STATUS_LABELS = {
 }
 
 const HOST_FLOOR_SELECTION_STATUS_ICONS = {
-  Pending: '◷',
-  Waiting: '◴',
+  Pending: '⏳',
+  Waiting: '👋',
   'Not Confirmed': '🕐',
   Confirmed: '✓',
   'Late Booking': '⏰',
@@ -314,7 +314,7 @@ const HOST_FLOOR_SELECTION_STATUS_ICONS = {
   'Walk In': '🍽',
   'Checked Out': '✓',
   Cancelled: '❌',
-  'Not Shown': '❌',
+  'Not Shown': '⚠',
   Rejected: '❌',
 }
 

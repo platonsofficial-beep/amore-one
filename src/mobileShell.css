@@ -6058,15 +6058,87 @@
   padding: 0 2px;
 }
 
-.mobile-host-floor-selection-status.host-reservation-card-status-pill {
+.mobile-host-floor-selection-status.host-reservation-card-status-pill.selected-reservation-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
   cursor: default;
   pointer-events: none;
-  min-height: 34px;
-  padding: 0 11px;
+  min-height: 44px;
+  width: fit-content;
+  max-width: 100%;
+  padding: 0 12px 0 8px;
   font-size: 0.68rem;
   font-weight: 650;
   letter-spacing: 0.01em;
   text-transform: none;
+}
+
+.selected-reservation-status-icon {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.07);
+  font-size: 0.88rem;
+  line-height: 1;
+  overflow: hidden;
+}
+
+.selected-reservation-status-label {
+  flex: 0 1 auto;
+  min-width: 0;
+  white-space: nowrap;
+}
+
+.mobile-host-floor-selection-status.tone-checked-in .selected-reservation-status-icon,
+.mobile-host-floor-selection-status.tone-checked-in-partial .selected-reservation-status-icon,
+.mobile-host-floor-selection-status.tone-walk-in .selected-reservation-status-icon {
+  background: rgba(240, 168, 106, 0.2);
+  border-color: rgba(240, 168, 106, 0.28);
+}
+
+.mobile-host-floor-selection-status.tone-confirmed .selected-reservation-status-icon,
+.mobile-host-floor-selection-status.tone-not-confirmed .selected-reservation-status-icon {
+  background: rgba(104, 201, 138, 0.16);
+  border-color: rgba(104, 201, 138, 0.24);
+}
+
+.mobile-host-floor-selection-status.tone-late-booking .selected-reservation-status-icon,
+.mobile-host-floor-selection-status.is-late-mild .selected-reservation-status-icon,
+.mobile-host-floor-selection-status.is-late-severe .selected-reservation-status-icon {
+  background: rgba(232, 181, 106, 0.18);
+  border-color: rgba(232, 181, 106, 0.26);
+}
+
+.mobile-host-floor-selection-status.tone-waiting .selected-reservation-status-icon,
+.mobile-host-floor-selection-status.tone-pending .selected-reservation-status-icon {
+  background: rgba(110, 176, 232, 0.16);
+  border-color: rgba(110, 176, 232, 0.24);
+}
+
+.mobile-host-floor-selection-status.tone-not-shown .selected-reservation-status-icon,
+.mobile-host-floor-selection-status.tone-cancelled .selected-reservation-status-icon,
+.mobile-host-floor-selection-status.tone-rejected .selected-reservation-status-icon {
+  background: rgba(255, 92, 92, 0.14);
+  border-color: rgba(255, 92, 92, 0.24);
+}
+
+@media (max-width: 1180px) {
+  .mobile-host-floor-selection-status.host-reservation-card-status-pill.selected-reservation-status {
+    gap: 7px;
+    padding: 0 10px 0 7px;
+  }
+
+  .selected-reservation-status-icon {
+    width: 26px;
+    height: 26px;
+    font-size: 0.82rem;
+  }
 }
 
 .mobile-host-floor-selection-actions {

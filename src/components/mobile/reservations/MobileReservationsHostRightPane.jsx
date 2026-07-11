@@ -93,7 +93,6 @@ export function MobileHostFloorSelectionCard({
     nowMinutes,
     todayKey,
   )
-  const statusLabel = `${statusPresentation.icon} ${statusPresentation.label}`.trim()
 
   return (
     <div className="mobile-host-floor-selection" data-testid="host-floor-selection-summary">
@@ -111,10 +110,15 @@ export function MobileHostFloorSelectionCard({
 
         <div className="mobile-host-floor-selection-center">
           <span
-            className={`host-reservation-card-status-pill mobile-host-floor-selection-status tone-${statusMeta.tone} is-compact is-readonly${statusPresentation.severity ? ` is-late-${statusPresentation.severity}` : ''}`}
-            aria-label={`Status: ${statusMeta.label}`}
+            className={`host-reservation-card-status-pill mobile-host-floor-selection-status selected-reservation-status tone-${statusMeta.tone} is-compact is-readonly${statusPresentation.severity ? ` is-late-${statusPresentation.severity}` : ''}`}
+            aria-label={`Reservation status: ${statusPresentation.label}`}
           >
-            {statusLabel}
+            <span className="selected-reservation-status-icon" aria-hidden="true">
+              {statusPresentation.icon}
+            </span>
+            <span className="selected-reservation-status-label">
+              {statusPresentation.label}
+            </span>
           </span>
         </div>
 

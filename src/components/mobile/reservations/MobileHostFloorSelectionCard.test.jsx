@@ -18,6 +18,33 @@ const SEATINGS = [
   },
 ]
 
+function renderSelectionCard(reservation, options = {}) {
+  const container = document.createElement('div')
+  document.body.appendChild(container)
+  const root = createRoot(container)
+
+  act(() => {
+    root.render(createElement(MobileHostFloorSelectionCard, {
+      reservation,
+      todayKey: '2026-07-10',
+      nowMinutes: options.nowMinutes ?? 1200,
+      reservationSeatings: SEATINGS,
+      onEdit: () => {},
+      onOpenRowMenu: () => {},
+      ...options,
+    }))
+  })
+
+  return {
+    container,
+    root,
+    cleanup: () => {
+      act(() => root.unmount())
+      container.remove()
+    },
+  }
+}
+
 describe('getHostFloorSelectionStatusPresentation', () => {
   it('renders premium confirmed status copy', () => {
     expect(getHostFloorSelectionStatusPresentation(
@@ -44,12 +71,15 @@ describe('getHostFloorSelectionStatusPresentation', () => {
     expect(presentation.severity).toBe('severe')
   })
 
-  it('renders seated and no-show labels', () => {
+  it('renders seated and no-show labels with shared icon mapping', () => {
     expect(getHostFloorSelectionStatusPresentation(
       { status: 'Checked In', date: '2026-07-10', time: '20:30' },
       1200,
       '2026-07-10',
-    ).label).toBe('Seated')
+    )).toMatchObject({
+      label: 'Seated',
+      icon: '🍽',
+    })
 
     expect(getHostFloorSelectionStatusPresentation(
       { status: 'Not Shown', date: '2026-07-10', time: '20:30' },
@@ -57,39 +87,35 @@ describe('getHostFloorSelectionStatusPresentation', () => {
       '2026-07-10',
     )).toMatchObject({
       label: 'No Show',
-      icon: '❌',
+      icon: '⚠',
+    })
+
+    expect(getHostFloorSelectionStatusPresentation(
+      { status: 'Waiting', date: '2026-07-10', time: '20:30' },
+      1200,
+      '2026-07-10',
+    )).toMatchObject({
+      label: 'Arrived',
+      icon: '👋',
     })
   })
 })
 
 describe('MobileHostFloorSelectionCard', () => {
   it('renders premium toolbar layout with metadata and actions', () => {
-    const container = document.createElement('div')
-    document.body.appendChild(container)
-    const root = createRoot(container)
-
-    act(() => {
-      root.render(createElement(MobileHostFloorSelectionCard, {
-        reservation: {
-          id: 'res-1',
-          guestName: 'Fournie',
-          guests: 2,
-          time: '20:30',
-          date: '2026-07-10',
-          status: 'Confirmed',
-          seatingId: 'dinner-2',
-          seatingAssignment: {
-            assignedUnits: [{ id: 't102', label: 'T102' }],
-            extraChairs: 1,
-            standingGuests: 0,
-          },
-        },
-        todayKey: '2026-07-10',
-        nowMinutes: 1200,
-        reservationSeatings: SEATINGS,
-        onEdit: () => {},
-        onOpenRowMenu: () => {},
-      }))
+    const { container, cleanup } = renderSelectionCard({
+      id: 'res-1',
+      guestName: 'Fournie',
+      guests: 2,
+      time: '20:30',
+      date: '2026-07-10',
+      status: 'Confirmed',
+      seatingId: 'dinner-2',
+      seatingAssignment: {
+        assignedUnits: [{ id: 't102', label: 'T102' }],
+        extraChairs: 1,
+        standingGuests: 0,
+      },
     })
 
     expect(container.querySelector('.mobile-host-floor-selection-guest')?.textContent).toBe('Fournie')
@@ -102,48 +128,96 @@ describe('MobileHostFloorSelectionCard', () => {
     expect(container.querySelector('.mobile-host-floor-selection-meta')?.textContent)
       .toContain('🍷 Dinner 2')
 
-    const statusPill = container.querySelector('.host-reservation-card-status-pill')
+    const statusPill = container.querySelector('.selected-reservation-status')
     expect(statusPill?.classList.contains('tone-confirmed')).toBe(true)
-    expect(statusPill?.textContent).toBe('✓ Confirmed')
+    expect(statusPill?.querySelector('.selected-reservation-status-icon')?.textContent).toBe('✓')
+    expect(statusPill?.querySelector('.selected-reservation-status-label')?.textContent).toBe('Confirmed')
+    expect(statusPill?.getAttribute('aria-label')).toBe('Reservation status: Confirmed')
     expect(container.querySelector('.mobile-host-floor-selection-edit-btn')).toBeTruthy()
     expect(container.querySelector('.mobile-host-floor-selection-menu-btn')).toBeTruthy()
 
-    act(() => root.unmount())
-    container.remove()
+    cleanup()
+  })
+
+  it('renders seated status with a dedicated icon circle and separate label', () => {
+    const { container, cleanup } = renderSelectionCard({
+      id: 'res-seated',
+      guestName: 'Fournie',
+      guests: 2,
+      time: '20:30',
+      date: '2026-07-10',
+      status: 'Checked In',
+      seatingAssignment: {
+        assignedUnits: [{ id: 't102', label: 'T102' }],
+        extraChairs: 0,
+        standingGuests: 0,
+      },
+    })
+
+    const statusPill = container.querySelector('.selected-reservation-status')
+    const icon = statusPill?.querySelector('.selected-reservation-status-icon')
+    const label = statusPill?.querySelector('.selected-reservation-status-label')
+
+    expect(icon).not.toBeNull()
+    expect(icon?.getAttribute('aria-hidden')).toBe('true')
+    expect(icon?.textContent).toBe('🍽')
+    expect(label?.textContent).toBe('Seated')
+    expect(statusPill?.textContent).toBe('🍽Seated')
+    expect(statusPill?.getAttribute('aria-label')).toBe('Reservation status: Seated')
+    expect(statusPill?.classList.contains('tone-checked-in')).toBe(true)
+
+    cleanup()
+  })
+
+  it('uses the shared icon-circle structure for late and no-show statuses', () => {
+    const late = renderSelectionCard({
+      id: 'res-late',
+      guestName: 'Late Guest',
+      guests: 2,
+      time: '18:00',
+      date: '2026-07-10',
+      status: 'Confirmed',
+    }, { nowMinutes: 19 * 60 + 12 })
+
+    const latePill = late.container.querySelector('.selected-reservation-status')
+    expect(latePill?.querySelector('.selected-reservation-status-icon')?.textContent).toBe('⏰')
+    expect(latePill?.querySelector('.selected-reservation-status-label')?.textContent).toBe('Late 72m')
+    late.cleanup()
+
+    const noShow = renderSelectionCard({
+      id: 'res-noshow',
+      guestName: 'No Show Guest',
+      guests: 2,
+      time: '20:30',
+      date: '2026-07-10',
+      status: 'Not Shown',
+    })
+
+    const noShowPill = noShow.container.querySelector('.selected-reservation-status')
+    expect(noShowPill?.querySelector('.selected-reservation-status-icon')?.textContent).toBe('⚠')
+    expect(noShowPill?.querySelector('.selected-reservation-status-label')?.textContent).toBe('No Show')
+    noShow.cleanup()
   })
 
   it('hides extra-chair and seating metadata when unavailable', () => {
-    const container = document.createElement('div')
-    document.body.appendChild(container)
-    const root = createRoot(container)
-
-    act(() => {
-      root.render(createElement(MobileHostFloorSelectionCard, {
-        reservation: {
-          id: 'res-2',
-          guestName: 'Paparas',
-          guests: 2,
-          time: '20:30',
-          date: '2026-07-10',
-          status: 'Confirmed',
-          seatingAssignment: {
-            assignedUnits: [{ id: 't11', label: 'T11' }],
-            extraChairs: 0,
-            standingGuests: 0,
-          },
-        },
-        todayKey: '2026-07-10',
-        nowMinutes: 1200,
-        reservationSeatings: [],
-        onEdit: () => {},
-      }))
-    })
+    const { container, cleanup } = renderSelectionCard({
+      id: 'res-2',
+      guestName: 'Paparas',
+      guests: 2,
+      time: '20:30',
+      date: '2026-07-10',
+      status: 'Confirmed',
+      seatingAssignment: {
+        assignedUnits: [{ id: 't11', label: 'T11' }],
+        extraChairs: 0,
+        standingGuests: 0,
+      },
+    }, { reservationSeatings: [] })
 
     const meta = container.querySelector('.mobile-host-floor-selection-meta')?.textContent ?? ''
     expect(meta).not.toContain('🪑')
     expect(meta).not.toContain('🍷')
 
-    act(() => root.unmount())
-    container.remove()
+    cleanup()
   })
 })
