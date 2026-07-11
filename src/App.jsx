@@ -69,6 +69,7 @@ import {
   formatSeatingAssignmentDrawerLabels,
   formatSeatingAssignmentSummary,
   formatHostListTableLabel,
+  formatHostListUnitLabel,
   formatHostFloorReservationTooltipMeta,
   getReservationSeatingAssignment,
   getReservationAssignedUnitsForMatching,
