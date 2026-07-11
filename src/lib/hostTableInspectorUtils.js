@@ -27,7 +27,10 @@ export function buildHostTableInspectorContextStrip(rows = []) {
 
     return {
       kind: 'occupied',
-      contextLine: timeLabel ? `🟢 Occupied · Since ${timeLabel}` : '🟢 Occupied',
+      contextLine: timeLabel ? `🟢 In service · Since ${timeLabel}` : '🟢 In service',
+      contextAccessibleLabel: timeLabel
+        ? `Table in service since ${timeLabel}`
+        : 'Table in service',
       guestLine: guestName,
     }
   }
@@ -38,6 +41,7 @@ export function buildHostTableInspectorContextStrip(rows = []) {
   return {
     kind: 'available',
     contextLine: 'Available now',
+    contextAccessibleLabel: 'Table available now',
     guestLine: '',
   }
 }
@@ -50,9 +54,9 @@ export function buildHostTableInspectorSummary(rows = []) {
   if (strip.kind === 'occupied') {
     return {
       kind: 'occupied',
-      primary: 'Occupied',
+      primary: 'In service',
       secondary: strip.guestLine,
-      detail: strip.contextLine.replace('🟢 Occupied · ', '').replace('🟢 Occupied', '').trim(),
+      detail: strip.contextLine.replace('🟢 In service · ', '').replace('🟢 In service', '').trim(),
     }
   }
 

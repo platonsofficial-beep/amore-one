@@ -111,7 +111,7 @@ describe('HostTableInspector', () => {
     cleanup()
   })
 
-  it('renders occupied context strip without large uppercase summary block', () => {
+  it('renders in-service context strip without Occupied wording', () => {
     const { cleanup } = renderInspector({
       rows: [{
         seating: SEATING,
@@ -127,9 +127,11 @@ describe('HostTableInspector', () => {
     })
 
     const context = document.querySelector('[data-testid="host-table-inspector-context"]')
-    expect(context?.textContent).toContain('🟢 Occupied · Since 20:30')
+    expect(context?.textContent).toContain('🟢 In service · Since 20:30')
+    expect(context?.textContent).not.toContain('Occupied')
+    expect(context?.querySelector('.host-table-inspector-context-line')?.getAttribute('aria-label'))
+      .toBe('Table in service since 20:30')
     expect(context?.querySelector('.host-table-inspector-context-guest')?.textContent).toBe('Fournie')
-    expect(context?.textContent).not.toMatch(/OCCUPIED/)
     cleanup()
   })
 

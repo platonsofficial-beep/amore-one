@@ -43,14 +43,15 @@ describe('hostTableInspectorUtils', () => {
   })
 
   describe('buildHostTableInspectorContextStrip', () => {
-    it('renders compact occupied context strip', () => {
+    it('renders compact in-service context strip', () => {
       expect(buildHostTableInspectorContextStrip([{
         reservation: { guestName: 'Fournie', time: '20:30' },
         seating: { name: 'Dinner 2' },
         hasConflict: false,
       }])).toEqual({
         kind: 'occupied',
-        contextLine: '🟢 Occupied · Since 20:30',
+        contextLine: '🟢 In service · Since 20:30',
+        contextAccessibleLabel: 'Table in service since 20:30',
         guestLine: 'Fournie',
       })
     })
@@ -64,6 +65,7 @@ describe('hostTableInspectorUtils', () => {
       }])).toEqual({
         kind: 'available',
         contextLine: 'Available now',
+        contextAccessibleLabel: 'Table available now',
         guestLine: '',
       })
     })
@@ -76,7 +78,7 @@ describe('hostTableInspectorUtils', () => {
         hasConflict: false,
       }])).toMatchObject({
         kind: 'occupied',
-        primary: 'Occupied',
+        primary: 'In service',
         secondary: 'Fournie',
       })
     })

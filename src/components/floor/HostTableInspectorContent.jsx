@@ -146,7 +146,12 @@ function InspectorContextStrip({ rows = [] }) {
 
   return (
     <div className="host-table-inspector-context" data-testid="host-table-inspector-context">
-      <p className="host-table-inspector-context-line">{strip.contextLine}</p>
+      <p
+        className="host-table-inspector-context-line"
+        aria-label={strip.contextAccessibleLabel || undefined}
+      >
+        {strip.contextLine}
+      </p>
       {strip.guestLine ? (
         <p className="host-table-inspector-context-guest">{strip.guestLine}</p>
       ) : null}
