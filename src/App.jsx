@@ -129,6 +129,7 @@ import {
 import {
   hostFloorReservationVisualStateChanged,
   mergeOptimisticReservationUpdate,
+  replaceReservationInCollection,
   resolveHostFloorReservationRecord,
   syncHostWorkspaceReservationSelection,
 } from './lib/hostFloorReservationState'
@@ -5824,6 +5825,7 @@ function ReservationWorkspaceProvider({
           status: fresh.status ?? current.status,
           assignedUnits: fresh.seatingAssignment?.assignedUnits ?? current.assignedUnits,
           tableNumber: fresh.tableNumber ?? current.tableNumber,
+          seatingId: fresh.seatingId ?? fresh.seating_id ?? current.seatingId ?? null,
         }
         : current
     ))
@@ -14996,16 +14998,7 @@ function App() {
 
   const upsertReservationInState = useCallback((reservation) => {
     if (!reservation?.id) return
-    const reservationId = `${reservation.id}`
-    setReservations((current) => {
-      const existingIndex = current.findIndex((entry) => `${entry.id}` === reservationId)
-      if (existingIndex === -1) {
-        return [...current, reservation]
-      }
-      const next = [...current]
-      next[existingIndex] = reservation
-      return next
-    })
+    setReservations((current) => replaceReservationInCollection(current, reservation))
   }, [])
 
   const removeReservationFromState = useCallback((reservationId) => {
@@ -19472,7 +19465,7 @@ function App() {
     setReservationNotice('')
 
     try {
-      const payload = buildReservationUpdatePayload(reservation, {
+      const patch = {
         guestName: validation.guestName,
         phone: form.phone.trim(),
         date: validation.date,
@@ -19488,8 +19481,14 @@ function App() {
         seatingId: form.seatingId
           ?? matchReservationTimeToSeating(validation.time, validation.date, reservationSeatings)?.id
           ?? null,
-      })
-      const updated = await updateReservation(activeWorkspaceId, reservation.id, payload)
+      }
+      const optimisticReservation = mergeOptimisticReservationUpdate(reservation, patch)
+      upsertReservationInState(optimisticReservation)
+      const updated = await updateReservation(
+        activeWorkspaceId,
+        reservation.id,
+        buildReservationUpdatePayload(reservation, patch),
+      )
       upsertReservationInState(updated)
       await reloadTodayReservations()
       setReservationNotice('Reservation updated.')

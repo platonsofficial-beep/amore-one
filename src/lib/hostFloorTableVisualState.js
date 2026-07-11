@@ -10,6 +10,7 @@ import {
   findAllReservationsForTableSeating,
   resolveTableDayViewRowState,
 } from './tableDayView'
+import { reservationMatchesTableDayViewSeating } from './reservationSeatings'
 import { resolveHostFloorReservationRecord } from './hostFloorReservationState'
 
 export const HOST_FLOOR_VISUAL_STATE_PRIORITY = [
@@ -87,6 +88,10 @@ export function applyHostFloorSelectedSeatingContext(
     enrichedReservations,
   )
 
+  const seatingsList = seatingsById.size > 0
+    ? [...seatingsById.values()]
+    : [selectedSeating]
+
   const seatingConflicts = getConflictingUnitIds(
     enrichedReservations,
     todayKey,
@@ -132,8 +137,16 @@ export function applyHostFloorSelectedSeatingContext(
       && getReservationAssignedUnitsForMatching(selectedReservationRecord).some((unit) => (
         seatingUnitMatchesFloorUnit(unit, tableState.table)
       ))
+    const selectedReservationMatchesSeating = selectedReservationRecord
+      ? reservationMatchesTableDayViewSeating(
+        selectedReservationRecord,
+        selectedSeating,
+        todayKey,
+        seatingsList,
+      )
+      : false
 
-    if (isSelectedTable) {
+    if (isSelectedTable && selectedReservationMatchesSeating) {
       if (isTerminalReservationStatus(selectedReservationRecord?.status)) {
         return {
           ...tableState,

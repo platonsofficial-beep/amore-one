@@ -7,6 +7,8 @@ import {
 import {
   getHostFloorReservationRevision,
   mergeOptimisticReservationUpdate,
+  normalizeCanonicalReservation,
+  replaceReservationInCollection,
   syncHostWorkspaceReservationSelection,
 } from './hostFloorReservationState'
 
@@ -110,6 +112,57 @@ describe('hostFloorReservationState', () => {
     expect(getHostFloorReservationRevision([optimistic])).not.toBe(
       getHostFloorReservationRevision([reservation]),
     )
+  })
+
+  it('replaces reservations by id without duplicating the collection', () => {
+    const original = buildReservation({ seatingId: 'dinner-1' })
+    const moved = buildReservation({ seatingId: 'dinner-2' })
+
+    const next = replaceReservationInCollection([original], moved)
+
+    expect(next).toHaveLength(1)
+    expect(next[0].seatingId).toBe('dinner-2')
+    expect(next.map((entry) => entry.id)).toEqual(['res-1'])
+  })
+
+  it('normalizes seatingId and drops stale seating_id fields', () => {
+    const normalized = normalizeCanonicalReservation({
+      id: 'res-1',
+      seatingId: 'dinner-2',
+      seating_id: 'dinner-1',
+      guestName: 'Alex',
+    })
+
+    expect(normalized.seatingId).toBe('dinner-2')
+    expect(normalized).not.toHaveProperty('seating_id')
+  })
+
+  it('optimistic seating moves overwrite the previous seating immediately', () => {
+    const reservation = buildReservation({ seatingId: 'dinner-1', time: '19:00' })
+    const optimistic = mergeOptimisticReservationUpdate(reservation, { seatingId: 'dinner-2' })
+
+    expect(optimistic.seatingId).toBe('dinner-2')
+    expect(optimistic).not.toHaveProperty('seating_id')
+    expect(replaceReservationInCollection([reservation], optimistic)).toEqual([optimistic])
+  })
+
+  it('server reconciliation replaces optimistic seating without duplicating ids', () => {
+    const reservation = buildReservation({ seatingId: 'dinner-1' })
+    const optimistic = mergeOptimisticReservationUpdate(reservation, { seatingId: 'dinner-2' })
+    const server = buildReservation({
+      seatingId: 'dinner-2',
+      time: '21:00',
+      status: 'Confirmed',
+    })
+
+    const reconciled = replaceReservationInCollection(
+      replaceReservationInCollection([reservation], optimistic),
+      server,
+    )
+
+    expect(reconciled).toHaveLength(1)
+    expect(reconciled[0].seatingId).toBe('dinner-2')
+    expect(reconciled[0].time).toBe('21:00')
   })
 })
 

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { buildSeatingsById } from './reservationSeatings'
+import { getConflictingUnitIds } from './reservationTableOptions'
 import { resolveFloorTableOperationalState } from './floorTableOperationalState'
 import {
   applyHostFloorSelectedSeatingContext,
@@ -224,6 +225,127 @@ describe('hostFloorTableVisualState', () => {
 
     expect(filtered[0].operational.hostIndicator).toBe('seated')
     expect(resolveHostFloorSemanticClass(filtered[0].operational)).toBe('is-seated')
+  })
+
+  it('does not pin a selected reservation to a seating it no longer belongs to', () => {
+    const staleSelected = buildReservation({
+      id: 'res-move',
+      time: '19:00',
+      seatingId: 'dinner-1',
+      status: 'Confirmed',
+    })
+    const movedReservation = buildReservation({
+      id: 'res-move',
+      time: '19:00',
+      seatingId: 'dinner-2',
+      status: 'Confirmed',
+    })
+    const tableState = buildTableState(LAYOUT.tables[0], [movedReservation], 1170)
+
+    const dinnerOne = applyHostFloorSelectedSeatingContext([tableState], {
+      selectedSeating: SEATINGS.get('dinner-1'),
+      enrichedReservations: [movedReservation],
+      todayKey: '2026-07-09',
+      seatingsById: SEATINGS,
+      layout: LAYOUT,
+      selectedReservation: staleSelected,
+    })
+    const dinnerTwo = applyHostFloorSelectedSeatingContext([tableState], {
+      selectedSeating: SEATINGS.get('dinner-2'),
+      enrichedReservations: [movedReservation],
+      todayKey: '2026-07-09',
+      seatingsById: SEATINGS,
+      layout: LAYOUT,
+      selectedReservation: staleSelected,
+    })
+
+    expect(resolveHostFloorSemanticClass(dinnerOne[0].operational)).toBe('is-available')
+    expect(resolveHostFloorSemanticClass(dinnerTwo[0].operational)).toBe('is-reserved')
+  })
+
+  it('updates seating counts and floor membership immediately after Dinner 1 → Dinner 2', () => {
+    const movedReservation = buildReservation({
+      id: 'res-move',
+      time: '19:00',
+      seatingId: 'dinner-2',
+      status: 'Confirmed',
+    })
+    const tableState = buildTableState(LAYOUT.tables[0], [movedReservation], 1170)
+    const reservations = [movedReservation]
+
+    const dinnerOneConflicts = getConflictingUnitIds(reservations, '2026-07-09', '19:00', {
+      seatingId: 'dinner-1',
+      durationMinutes: 120,
+      seatingsById: SEATINGS,
+      layout: LAYOUT,
+    })
+    const dinnerTwoConflicts = getConflictingUnitIds(reservations, '2026-07-09', '21:00', {
+      seatingId: 'dinner-2',
+      durationMinutes: 120,
+      seatingsById: SEATINGS,
+      layout: LAYOUT,
+    })
+
+    expect(dinnerOneConflicts.has('t11')).toBe(false)
+    expect(dinnerTwoConflicts.has('t11')).toBe(true)
+
+    const dinnerTwoFloor = applyHostFloorSelectedSeatingContext([tableState], {
+      selectedSeating: SEATINGS.get('dinner-2'),
+      enrichedReservations: reservations,
+      todayKey: '2026-07-09',
+      seatingsById: SEATINGS,
+      layout: LAYOUT,
+      selectedReservation: movedReservation,
+    })
+
+    expect(resolveHostFloorSemanticClass(dinnerTwoFloor[0].operational)).toBe('is-reserved')
+  })
+
+  it('moves every assigned table when a multi-table reservation changes seating', () => {
+    const movedReservation = buildReservation({
+      id: 'res-multi',
+      time: '19:00',
+      seatingId: 'dinner-2',
+      status: 'Confirmed',
+      seatingAssignment: {
+        assignedUnits: [
+          { id: 't11', label: 'T11', seatedCapacity: 4, maxGuestCapacity: 4 },
+          { id: 't12', label: 'T12', seatedCapacity: 4, maxGuestCapacity: 4 },
+        ],
+        extraChairs: 0,
+        standingGuests: 0,
+      },
+    })
+    const tableStates = [
+      buildTableState(LAYOUT.tables[0], [movedReservation], 1170),
+      buildTableState(LAYOUT.tables[1], [movedReservation], 1170),
+    ]
+
+    const dinnerOne = applyHostFloorSelectedSeatingContext(tableStates, {
+      selectedSeating: SEATINGS.get('dinner-1'),
+      enrichedReservations: [movedReservation],
+      todayKey: '2026-07-09',
+      seatingsById: SEATINGS,
+      layout: LAYOUT,
+      selectedReservation: movedReservation,
+    })
+    const dinnerTwo = applyHostFloorSelectedSeatingContext(tableStates, {
+      selectedSeating: SEATINGS.get('dinner-2'),
+      enrichedReservations: [movedReservation],
+      todayKey: '2026-07-09',
+      seatingsById: SEATINGS,
+      layout: LAYOUT,
+      selectedReservation: movedReservation,
+    })
+
+    expect(dinnerOne.map((entry) => resolveHostFloorSemanticClass(entry.operational))).toEqual([
+      'is-available',
+      'is-available',
+    ])
+    expect(dinnerTwo.map((entry) => resolveHostFloorSemanticClass(entry.operational))).toEqual([
+      'is-reserved',
+      'is-reserved',
+    ])
   })
 
   it('maps late booking status to reserved rather than problem', () => {
