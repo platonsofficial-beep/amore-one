@@ -295,6 +295,54 @@ export function getHostListCompactStatusPresentation(
   }
 }
 
+const HOST_FLOOR_SELECTION_STATUS_LABELS = {
+  'Checked In': 'Seated',
+  'Checked In (Partial)': 'Seated',
+  'Walk In': 'Seated',
+  'Not Shown': 'No Show',
+  'Checked Out': 'Completed',
+}
+
+const HOST_FLOOR_SELECTION_STATUS_ICONS = {
+  Pending: '◷',
+  Waiting: '◴',
+  'Not Confirmed': '🕐',
+  Confirmed: '✓',
+  'Late Booking': '⏰',
+  'Checked In': '🍽',
+  'Checked In (Partial)': '🍽',
+  'Walk In': '🍽',
+  'Checked Out': '✓',
+  Cancelled: '❌',
+  'Not Shown': '❌',
+  Rejected: '❌',
+}
+
+export function getHostFloorSelectionStatusPresentation(
+  reservation,
+  nowMinutes,
+  todayKey,
+) {
+  const displayStatus = getReservationDisplayStatus(reservation, nowMinutes, todayKey)
+  const compact = getHostListCompactStatusPresentation(reservation, nowMinutes, todayKey)
+  const tone = getHostStatusMeta(displayStatus).tone
+  const icon = HOST_FLOOR_SELECTION_STATUS_ICONS[displayStatus] ?? '•'
+
+  let label = HOST_FLOOR_SELECTION_STATUS_LABELS[displayStatus]
+    ?? getHostListCompactStatusLabel(displayStatus)
+
+  if (displayStatus === 'Late Booking') {
+    label = compact.label
+  }
+
+  return {
+    label,
+    icon,
+    tone,
+    severity: compact.severity,
+  }
+}
+
 export function getHostReservationStatusOptions() {
   return HOST_RESERVATION_STATUSES.map((entry) => ({
     value: entry.id,

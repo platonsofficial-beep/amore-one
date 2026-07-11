@@ -9708,7 +9708,7 @@ function MobileReservationsHostShellBody({
     )
   )
 
-  const rightPane = ({ onEditReservation, areaFilterId: hostQueueAreaFilterId }) => (
+  const rightPane = ({ onEditReservation, onOpenRowMenu, areaFilterId: hostQueueAreaFilterId }) => (
     <MobileReservationsHostRightPane
       hasLayout={hasDisplayableLayout}
       floorPlanContent={buildFloorPlanContent(hostQueueAreaFilterId ?? HOST_QUEUE_ALL_AREAS)}
@@ -9717,7 +9717,10 @@ function MobileReservationsHostShellBody({
       nowMinutes={nowMinutes}
       canEditFloorPlan={canEditFloorPlan}
       onEditReservation={onEditReservation}
+      onOpenRowMenu={onOpenRowMenu}
       onOpenFloorPlanLayout={() => setFloorPlanMode('edit')}
+      floorLayout={layout}
+      reservationSeatings={reservationSeatings}
       isAssignmentMode={isHostAssignmentModeActive({
         selectedReservation,
         floorPlanMode,

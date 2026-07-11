@@ -332,6 +332,7 @@ export function MobileReservationsHostView({
   const rightPaneContent = renderRightPane
     ? renderRightPane({
       onEditReservation: handleEditReservation,
+      onOpenRowMenu: handleOpenRowMenu,
       areaFilterId,
     })
     : null

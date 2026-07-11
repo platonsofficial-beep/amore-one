@@ -1,11 +1,10 @@
 import {
-  formatHostListTableLabel,
-} from '../../../lib/seatingAssignment'
-import {
+  getHostFloorSelectionStatusPresentation,
   getHostStatusMeta,
   getReservationDisplayStatus,
 } from '../../../lib/reservationHostStatus'
 import { formatHostReservationListTime } from '../../../lib/timeFormatUtils'
+import { buildHostFloorSelectionMetaLine } from '../../../lib/hostFloorSelectionBar'
 
 export function MobileReservationsHostRightPane({
   hasLayout = false,
@@ -16,7 +15,10 @@ export function MobileReservationsHostRightPane({
   canEditFloorPlan = false,
   onEditReservation,
   onOpenFloorPlanLayout,
+  onOpenRowMenu = null,
   isAssignmentMode = false,
+  floorLayout = null,
+  reservationSeatings = [],
 }) {
   if (!hasLayout) {
     return (
@@ -53,54 +55,91 @@ export function MobileReservationsHostRightPane({
       </div>
 
       {selectedReservation && !isAssignmentMode ? (
-        <div className="mobile-host-floor-selection" data-testid="host-floor-selection-summary">
-          <MobileHostFloorSelectionCard
-            reservation={selectedReservation}
-            todayKey={todayKey}
-            nowMinutes={nowMinutes}
-            onEdit={onEditReservation}
-          />
-        </div>
+        <MobileHostFloorSelectionCard
+          key={selectedReservation.id}
+          reservation={selectedReservation}
+          todayKey={todayKey}
+          nowMinutes={nowMinutes}
+          floorLayout={floorLayout}
+          reservationSeatings={reservationSeatings}
+          onEdit={onEditReservation}
+          onOpenRowMenu={onOpenRowMenu}
+        />
       ) : null}
     </div>
   )
 }
 
-function MobileHostFloorSelectionCard({
+export function MobileHostFloorSelectionCard({
   reservation,
   todayKey,
   nowMinutes,
+  floorLayout = null,
+  reservationSeatings = [],
   onEdit,
+  onOpenRowMenu = null,
 }) {
   const guestName = `${reservation?.guestName ?? 'Guest'}`.trim() || 'Guest'
-  const partySize = Number(reservation?.guests) || 0
-  const tableLabel = formatHostListTableLabel(reservation)
   const timeLabel = formatHostReservationListTime(reservation, todayKey)
+  const metaPresentation = buildHostFloorSelectionMetaLine(reservation, {
+    floorLayout,
+    seatings: reservationSeatings,
+    dateKey: todayKey,
+  })
   const displayStatus = getReservationDisplayStatus(reservation, nowMinutes, todayKey)
   const statusMeta = getHostStatusMeta(displayStatus)
+  const statusPresentation = getHostFloorSelectionStatusPresentation(
+    reservation,
+    nowMinutes,
+    todayKey,
+  )
+  const statusLabel = `${statusPresentation.icon} ${statusPresentation.label}`.trim()
 
   return (
-    <article className="mobile-host-floor-selection-card">
-      <div className="mobile-host-floor-selection-main">
-        <p className="mobile-host-floor-selection-time">{timeLabel}</p>
-        <div className="mobile-host-floor-selection-copy">
-          <h3>{guestName}</h3>
-          <p>
-            {partySize} {partySize === 1 ? 'guest' : 'guests'}
-            {tableLabel !== '—' ? ` · ${tableLabel}` : ''}
+    <div className="mobile-host-floor-selection" data-testid="host-floor-selection-summary">
+      <article className="mobile-host-floor-selection-card">
+        <div className="mobile-host-floor-selection-left">
+          <p className="mobile-host-floor-selection-time">{timeLabel}</p>
+          <h3 className="mobile-host-floor-selection-guest">{guestName}</h3>
+          <p
+            className="mobile-host-floor-selection-meta"
+            aria-label={metaPresentation.metaAriaLabel}
+          >
+            {metaPresentation.metaLine}
           </p>
         </div>
-        <span className={`mobile-host-reservation-status tone-${statusMeta.tone}`}>
-          {statusMeta.label}
-        </span>
-      </div>
-      <button
-        type="button"
-        className="mobile-host-floor-selection-edit-btn"
-        onClick={() => onEdit?.(reservation)}
-      >
-        Edit
-      </button>
-    </article>
+
+        <div className="mobile-host-floor-selection-center">
+          <span
+            className={`host-reservation-card-status-pill mobile-host-floor-selection-status tone-${statusMeta.tone} is-compact is-readonly${statusPresentation.severity ? ` is-late-${statusPresentation.severity}` : ''}`}
+            aria-label={`Status: ${statusMeta.label}`}
+          >
+            {statusLabel}
+          </span>
+        </div>
+
+        <div className="mobile-host-floor-selection-actions">
+          <button
+            type="button"
+            className="mobile-host-floor-selection-edit-btn"
+            onClick={() => onEdit?.(reservation)}
+          >
+            <span className="mobile-host-floor-selection-action-icon" aria-hidden="true">✏️</span>
+            <span>Edit</span>
+          </button>
+          {onOpenRowMenu ? (
+            <button
+              type="button"
+              className="mobile-host-floor-selection-menu-btn"
+              aria-label="More reservation actions"
+              aria-haspopup="menu"
+              onClick={(event) => onOpenRowMenu(reservation, event)}
+            >
+              ⋯
+            </button>
+          ) : null}
+        </div>
+      </article>
+    </div>
   )
 }
