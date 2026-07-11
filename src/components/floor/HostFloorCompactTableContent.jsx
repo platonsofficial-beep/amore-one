@@ -13,7 +13,7 @@ export function HostFloorCompactTableContent({
         <span className="floor-table-combined-marker" aria-hidden="true" />
       ) : null}
       <div className={`floor-table-content is-tier-${content.tier} is-mode-${content.mode}`}>
-        <span className="floor-table-number">{content.tableLabel}</span>
+        <span className={`floor-table-number ${content.tableLabelClass ?? ''}`.trim()}>{content.tableLabel}</span>
         {content.timeLabel ? (
           <span className="floor-table-time floor-table-reservation-time">{content.timeLabel}</span>
         ) : null}

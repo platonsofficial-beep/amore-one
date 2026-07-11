@@ -418,6 +418,36 @@ describe('hostFloorTableContent', () => {
     expect(content.statusBadgeText).toBeNull()
   })
 
+  it('renders table label length classes in compact floor DOM', () => {
+    const reservation = buildReservation({ status: 'Confirmed', time: '20:30', guests: 4 })
+    const operational = resolveFloorTableOperationalState([reservation], 1230, '2026-07-09')
+    const content = buildHostFloorCompactTableContent({
+      table: { ...TABLE, label: '109', displayLabel: 'T109', widthPercent: 6, heightPercent: 6 },
+      operational,
+      displayReservation: reservation,
+    })
+
+    const container = document.createElement('div')
+    const root = createRoot(container)
+
+    act(() => {
+      root.render(createElement(HostFloorCompactTableContent, {
+        content,
+        linkMeta: { isMultiLinked: true },
+        seatingIndicators: [],
+      }))
+    })
+
+    const label = container.querySelector('.floor-table-number')
+    expect(label?.textContent).toBe('T109')
+    expect(label?.classList.contains('is-id-extra-long')).toBe(true)
+    expect(container.querySelector('.floor-table-combined-marker')).toBeTruthy()
+
+    act(() => {
+      root.unmount()
+    })
+  })
+
   it('formats table labels consistently', () => {
     expect(formatHostFloorTableLabel({ label: '11' })).toBe('T11')
     expect(formatHostFloorTableLabel({ displayLabel: 'T11' })).toBe('T11')

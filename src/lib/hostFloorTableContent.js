@@ -36,6 +36,19 @@ export function resolveHostFloorTableContentTier(table) {
   return HOST_FLOOR_CONTENT_TIERS.NORMAL
 }
 
+export function resolveHostFloorTableLabelLengthClass(tableLabel, tier = HOST_FLOOR_CONTENT_TIERS.NORMAL) {
+  const length = `${tableLabel ?? ''}`.trim().length
+
+  if (tier === HOST_FLOOR_CONTENT_TIERS.VERY_SMALL) {
+    if (length >= 4) return 'is-id-extra-long'
+    return 'is-id-short'
+  }
+
+  if (length >= 5) return 'is-id-long'
+  if (length >= 4) return 'is-id-medium'
+  return 'is-id-short'
+}
+
 export function formatHostFloorCompactGuestIndicator(guestCount) {
   const count = Math.max(0, Number(guestCount) || 0)
   if (count <= 0) return ''
@@ -81,6 +94,7 @@ export function buildHostFloorCompactTableContent({
       tier,
       semanticClass: resolvedSemanticClass,
       tableLabel,
+      tableLabelClass: resolveHostFloorTableLabelLengthClass(tableLabel, tier),
       timeLabel: null,
       partyLabel: formatHostFloorCompactCapacityLabel(table),
       showChairDots: tier === HOST_FLOOR_CONTENT_TIERS.NORMAL,
@@ -96,6 +110,7 @@ export function buildHostFloorCompactTableContent({
     tier,
     semanticClass: resolvedSemanticClass,
     tableLabel,
+    tableLabelClass: resolveHostFloorTableLabelLengthClass(tableLabel, tier),
     timeLabel,
     partyLabel: formatHostFloorCompactPartyLabel(guestCount),
     showChairDots: false,

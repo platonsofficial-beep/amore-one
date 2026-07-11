@@ -520,7 +520,8 @@ export function buildHostQueueRowPresentation(reservation, layout = null) {
   const extraChairs = assignment?.extraChairs ?? 0
   const standingGuests = assignment?.standingGuests ?? 0
 
-  const metaParts = [`👤 ${partySize}`]
+  const guestLabel = `${partySize} guest${partySize === 1 ? '' : 's'}`
+  const metaParts = [`👤 ${guestLabel}`]
   if (areaLabel && !hasAssignedTables) {
     metaParts.push(`📍 ${areaLabel}`)
   }

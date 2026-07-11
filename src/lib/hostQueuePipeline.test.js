@@ -333,7 +333,7 @@ describe('hostQueuePipeline row presentation', () => {
       LAYOUT,
     )
 
-    expect(presentation.metaLine).toBe('👤 2  •  🍽 T27')
+    expect(presentation.metaLine).toBe('👤 2 guests  •  🍽 T27')
   })
 
   it('renders multi-table labels', () => {
@@ -352,12 +352,20 @@ describe('hostQueuePipeline row presentation', () => {
       LAYOUT,
     )
 
-    expect(presentation.metaLine).toBe('👤 4  •  🍽 T15 + T16')
+    expect(presentation.metaLine).toBe('👤 4 guests  •  🍽 T15 + T16')
+  })
+
+  it('renders singular and plural guest labels in metadata', () => {
+    const singleGuest = buildHostQueueRowPresentation(buildReservation({ guests: 1 }), LAYOUT)
+    const multipleGuests = buildHostQueueRowPresentation(buildReservation({ guests: 4 }), LAYOUT)
+
+    expect(singleGuest.metaLine).toContain('👤 1 guest')
+    expect(multipleGuests.metaLine).toContain('👤 4 guests')
   })
 
   it('renders explicit unassigned rows', () => {
     const presentation = buildHostQueueRowPresentation(buildReservation({ guests: 2 }), LAYOUT)
-    expect(presentation.metaLine).toBe('👤 2  •  🍽 Unassigned')
+    expect(presentation.metaLine).toBe('👤 2 guests  •  🍽 Unassigned')
   })
 
   it('renders extra chairs and standing guests inline in metadata', () => {

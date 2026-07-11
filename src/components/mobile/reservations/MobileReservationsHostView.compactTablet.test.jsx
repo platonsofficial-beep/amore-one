@@ -163,8 +163,28 @@ describe('MobileReservationsHostView compact tablet list', () => {
     const timeGroups = container.querySelectorAll('.host-queue-time-group-header')
     expect(timeGroups.length).toBeGreaterThan(0)
     expect([...timeGroups].some((node) => node.textContent?.includes('20:00'))).toBe(true)
-    expect(container.querySelectorAll('.host-reservation-card.is-time-grouped').length).toBeGreaterThan(0)
+
+    const groupedRows = container.querySelectorAll('.host-reservation-card.is-time-grouped')
+    expect(groupedRows.length).toBeGreaterThan(0)
     expect(container.querySelectorAll('.host-reservation-card.is-time-grouped .host-reservation-card-time').length).toBe(0)
+    expect(container.querySelectorAll('.host-reservation-card-main.is-time-grouped').length).toBeGreaterThan(0)
+
+    const groupedRow = groupedRows[0]
+    expect(groupedRow.querySelector('.host-reservation-card-guest')?.textContent?.length).toBeGreaterThan(0)
+    expect(groupedRow.querySelector('.host-queue-row-meta-line')?.textContent).toMatch(/👤 \d+ guests/)
+
+    unmount()
+  })
+
+  it('uses the same reservation row layout for table sort', () => {
+    writeHostQueueSortPreference('table')
+    const { container, unmount } = renderSplitHostView()
+
+    expect(container.querySelectorAll('.host-queue-time-group-header').length).toBe(0)
+    expect(container.querySelectorAll('.host-reservation-card-main.is-time-grouped').length).toBe(0)
+    expect(container.querySelectorAll('.host-reservation-card-time').length).toBeGreaterThan(0)
+    expect(container.querySelector('.host-reservation-card-status-pill')).toBeTruthy()
+    expect(container.querySelector('.host-reservation-card-row-menu')).toBeTruthy()
 
     unmount()
   })
@@ -172,7 +192,7 @@ describe('MobileReservationsHostView compact tablet list', () => {
   it('renders assigned table metadata with separator spacing', () => {
     const { container, unmount } = renderSplitHostView()
 
-    expect(container.textContent).toContain('👤 4  •  🍽 T15 + T16')
+    expect(container.textContent).toContain('👤 4 guests  •  🍽 T15 + T16')
 
     unmount()
   })
@@ -180,7 +200,7 @@ describe('MobileReservationsHostView compact tablet list', () => {
   it('renders unassigned metadata with separator spacing', () => {
     const { container, unmount } = renderSplitHostView()
 
-    expect(container.textContent).toContain('👤 4  •  🍽 Unassigned')
+    expect(container.textContent).toContain('👤 4 guests  •  🍽 Unassigned')
 
     unmount()
   })

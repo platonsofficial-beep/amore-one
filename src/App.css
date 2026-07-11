@@ -5044,6 +5044,12 @@
   grid-template-columns: 56px minmax(0, 1fr) auto;
   gap: 7px;
   align-items: center;
+  min-width: 0;
+}
+
+.host-reservation-card-main.is-time-grouped {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
 }
 
 .host-reservation-card-trailing {
@@ -5051,6 +5057,11 @@
   align-items: center;
   gap: 4px;
   flex-shrink: 0;
+  grid-column: 3;
+}
+
+.host-reservation-card-main.is-time-grouped .host-reservation-card-trailing {
+  grid-column: 2;
 }
 
 .host-reservation-card-row-menu {
@@ -5082,6 +5093,10 @@
 .host-reservation-list.is-compact-tablet-layout .host-reservation-card-main {
   grid-template-columns: 52px minmax(0, 1fr) auto;
   gap: 6px;
+}
+
+.host-reservation-list.is-compact-tablet-layout .host-reservation-card-main.is-time-grouped {
+  grid-template-columns: minmax(0, 1fr) auto;
 }
 
 .host-reservation-list.is-compact-tablet-layout .host-reservation-card-guest {
@@ -5188,13 +5203,19 @@
   line-height: 1.15;
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
+  grid-column: 1;
 }
 
 .host-reservation-card-body {
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 1px;
+  gap: 2px;
+  grid-column: 2;
+}
+
+.host-reservation-card-main.is-time-grouped .host-reservation-card-body {
+  grid-column: 1;
 }
 
 .host-reservation-card-title-row {
@@ -5692,10 +5713,6 @@
 
 .host-reservation-card-main {
   min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 0;
-  justify-content: center;
 }
 
 .host-reservation-card-body {
@@ -8090,20 +8107,20 @@
 
 .floor-plan-workspace.is-host-floor .floor-table-combined-marker {
   position: absolute;
-  top: 4px;
-  right: 4px;
+  top: 3px;
+  right: 3px;
   z-index: 3;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 8px;
-  height: 8px;
+  width: 7px;
+  height: 7px;
   background: transparent;
   border: none;
   color: var(--host-floor-combined-dot);
-  font-size: 0.44rem;
+  font-size: 0.4rem;
   line-height: 1;
-  opacity: 0.5;
+  opacity: 0.45;
   pointer-events: none;
 }
 
@@ -8117,11 +8134,26 @@
   font-weight: 700;
   letter-spacing: 0.06em;
   line-height: 1.08;
-  max-width: 92%;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  max-width: 100%;
+  overflow: visible;
+  text-overflow: clip;
   white-space: nowrap;
   flex-shrink: 0;
+}
+
+.floor-plan-workspace.is-host-floor .floor-table-content .floor-table-number.is-id-medium {
+  font-size: clamp(0.52rem, 10.5cqb, 0.74rem);
+  letter-spacing: 0.04em;
+}
+
+.floor-plan-workspace.is-host-floor .floor-table-content .floor-table-number.is-id-long {
+  font-size: clamp(0.48rem, 9.5cqb, 0.66rem);
+  letter-spacing: 0.03em;
+}
+
+.floor-plan-workspace.is-host-floor .floor-table-content .floor-table-number.is-id-extra-long {
+  font-size: clamp(0.44rem, 8.5cqb, 0.58rem);
+  letter-spacing: 0.02em;
 }
 
 .floor-plan-workspace.is-host-floor .floor-table-content .floor-table-time,
@@ -8292,8 +8324,8 @@
   letter-spacing: 0.08em;
   color: #f8edd0;
   max-width: 100%;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  overflow: visible;
+  text-overflow: clip;
   white-space: nowrap;
   line-height: 1.1;
   flex-shrink: 0;
@@ -30427,6 +30459,7 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 .host-list-filter-chip-label { white-space: nowrap; }
 .host-reservation-list-filters { display: flex; gap: 0.45rem; overflow-x: auto; padding-bottom: 0.25rem; }
 .host-reservation-card-main { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 0.65rem; align-items: start; }
+.host-reservation-card-main.is-time-grouped { grid-template-columns: minmax(0, 1fr) auto; align-items: center; }
 .host-reservation-card-body, .host-reservation-card-details { min-width: 0; }
 .host-reservation-card-tables { overflow-wrap: anywhere; }
 .host-reservation-card-status-pill.is-compact { min-height: 44px; padding: 4px 7px; font-size: 0.6rem; width: fit-content; max-width: none; }

@@ -4555,6 +4555,19 @@
   }
 }
 
+.host-queue-time-group {
+  width: 100%;
+  min-width: 0;
+}
+
+.host-queue-time-group-items {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+  min-width: 0;
+}
+
 .host-queue-time-group-header {
   display: flex;
   align-items: baseline;
@@ -6930,13 +6943,18 @@ html[data-one-debug-scroll='1'] .floor-plan-viewport.is-host-viewport {
 
 .app-shell.is-host-station-shell .mobile-host-reservations-list-pane .host-reservation-card.is-compact-tablet {
   min-height: 48px;
-  max-height: 52px;
+  max-height: none;
+}
+
+.app-shell.is-host-station-shell .mobile-host-reservations-list-pane .host-reservation-card-main.is-time-grouped {
+  grid-template-columns: minmax(0, 1fr) auto;
 }
 
 .app-shell.is-host-station-shell .mobile-host-reservations-list-pane .host-reservation-card-guest {
   font-size: 0.88rem;
   font-weight: 650;
   color: #f3ede4;
+  flex: 1 1 auto;
 }
 
 .app-shell.is-host-station-shell .mobile-host-reservations-list-pane .host-reservation-card-status-pill.is-compact {

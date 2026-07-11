@@ -143,7 +143,7 @@ function HostReservationListRow({
         }
       }}
     >
-      <div className="host-reservation-card-main">
+      <div className={`host-reservation-card-main${hideScheduleTime ? ' is-time-grouped' : ''}`}>
         {!hideScheduleTime ? (
           <span className="host-reservation-card-time">{scheduleLabel}</span>
         ) : null}
