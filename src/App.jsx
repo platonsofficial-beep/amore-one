@@ -164,6 +164,8 @@ import {
 import { EmbeddedFloorPlanEditor } from './components/floor/EmbeddedFloorPlanEditor'
 import { FloorPlanReservationLinks } from './components/floor/FloorPlanReservationLinks'
 import { FloorSeatingSelector } from './components/floor/FloorSeatingSelector'
+import { FloorPlanLegend } from './components/floor/FloorPlanLegend'
+import { HOST_FLOOR_PLAN_LEGEND_ITEMS } from './lib/hostFloorPlanLegend'
 import { FloorTableSeatingIndicators } from './components/floor/FloorTableSeatingIndicators'
 import { FloorTableReservationTooltip } from './components/floor/FloorTableReservationTooltip'
 import { HostFloorDebugOverlay } from './components/floor/HostFloorDebugOverlay'
@@ -7182,18 +7184,11 @@ function buildFloorPlanSnapshot({
   }
 }
 
-function FloorPlanLegend() {
-  return (
-    <div className="floor-plan-legend" aria-label="Table status legend">
-      {Object.values(FLOOR_TABLE_STATUS_META).map((entry) => (
-        <span key={entry.tone} className={`floor-plan-legend-item tone-${entry.tone}`}>
-          <span className="floor-plan-legend-swatch" aria-hidden="true" />
-          {entry.label}
-        </span>
-      ))}
-    </div>
-  )
-}
+const DESKTOP_FLOOR_PLAN_LEGEND_ITEMS = Object.entries(FLOOR_TABLE_STATUS_META).map(([id, entry]) => ({
+  id,
+  label: entry.label,
+  tone: entry.tone,
+}))
 
 function FloorHeatmapLegend() {
   return (
@@ -9163,7 +9158,9 @@ function FloorPlanView({
         />
       ) : null}
 
-      {!isCompact && !isHeatmap ? <FloorPlanLegend /> : null}
+      {!isCompact && !isHeatmap ? (
+        <FloorPlanLegend items={DESKTOP_FLOOR_PLAN_LEGEND_ITEMS} />
+      ) : null}
       {isHeatmap ? <FloorHeatmapLegend /> : null}
 
       {isCompact && !isHeatmap && activeSeatings.length > 0 ? (
@@ -9173,6 +9170,7 @@ function FloorPlanView({
           selectedSeatingId={selectedSeating?.id ?? null}
           onSelect={onSelectedSeatingChange}
           summaries={seatingSummaries}
+          legendItems={HOST_FLOOR_PLAN_LEGEND_ITEMS}
         />
       ) : null}
 

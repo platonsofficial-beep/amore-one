@@ -74,4 +74,25 @@ describe('FloorSeatingSelector', () => {
     expect(chips[0].classList.contains('is-active')).toBe(false)
     expect(chips[1].classList.contains('is-active')).toBe(true)
   })
+
+  it('renders the floor plan legend beside seating chips when legendItems are provided', () => {
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    act(() => {
+      root.render(createElement(FloorSeatingSelector, {
+        seatings: SEATINGS,
+        selectedSeatingId: 'brunch',
+        onSelect: () => {},
+        legendItems: [
+          { id: 'available', label: 'Available', tone: 'host-available' },
+          { id: 'reserved', label: 'Reserved', tone: 'host-reserved' },
+        ],
+      }))
+    })
+
+    expect(container.querySelector('.floor-seating-selector-legend')).toBeTruthy()
+    expect(container.querySelectorAll('.floor-plan-legend-chip')).toHaveLength(2)
+  })
 })
