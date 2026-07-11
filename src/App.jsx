@@ -9450,6 +9450,8 @@ function MobileReservationsHostShellBody({
     selectedReservation,
     selectReservation,
     clearSelection,
+    clearSeatingDraft,
+    cancelHostMultiTableSelect,
     floorPlanMode,
     setFloorPlanMode,
     activeFloorAreaId,
@@ -9520,7 +9522,12 @@ function MobileReservationsHostShellBody({
   }, [clearSelection, reservations, selectedReservation])
 
   const handleHostSelectReservation = useCallback((reservation) => {
-    if (!reservation) return
+    if (!reservation) {
+      clearSelection()
+      clearSeatingDraft()
+      cancelHostMultiTableSelect()
+      return
+    }
 
     if (reservationIdsMatch(selectedReservation, reservation)) {
       clearSelection()
@@ -9529,7 +9536,19 @@ function MobileReservationsHostShellBody({
 
     const isUnassigned = isReservationEligibleForHostTableAssignment(reservation)
     selectReservation(reservation, { scrollFloor: !isUnassigned })
-  }, [clearSelection, selectReservation, selectedReservation])
+  }, [
+    cancelHostMultiTableSelect,
+    clearSelection,
+    clearSeatingDraft,
+    selectReservation,
+    selectedReservation,
+  ])
+
+  const handleClearAssignmentSelection = useCallback(() => {
+    clearSelection()
+    clearSeatingDraft()
+    cancelHostMultiTableSelect()
+  }, [cancelHostMultiTableSelect, clearSelection, clearSeatingDraft])
 
   const handleFloorOpenAddReservation = useCallback((prefill) => {
     setFloorCreatePrefill(prefill ?? null)
@@ -9698,6 +9717,8 @@ function MobileReservationsHostShellBody({
       onExitHostMode={onExitHostMode}
       canEditFloorPlan={canEditFloorPlan}
       reservationSeatings={reservationSeatings}
+      selectedServiceSeatingId={selectedServiceSeatingId}
+      selectedSeating={reservationSeatings.find((entry) => entry.id === selectedServiceSeatingId) ?? null}
       hasLayout={hasDisplayableLayout}
       onOpenFloorPlanLayout={() => setFloorPlanMode('edit')}
       hostSettingsProps={hostSettingsProps}
@@ -9708,6 +9729,7 @@ function MobileReservationsHostShellBody({
       renderRightPane={rightPane}
       selectedReservationId={selectedReservation?.id ?? null}
       onSelectReservation={handleHostSelectReservation}
+      onClearAssignmentSelection={handleClearAssignmentSelection}
     />
   )
 }

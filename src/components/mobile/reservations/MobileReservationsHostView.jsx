@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   buildHostManagerSummary,
   formatHostWorkspaceDateNavLabel,
@@ -11,6 +11,20 @@ import {
   MOBILE_HOST_TABS,
   resolveHostReservationFormVariant,
 } from '../../../lib/mobileHostReservationUtils'
+import {
+  buildHostQueueAreaOptions,
+  buildHostQueueEmptyState,
+  buildHostQueueReservationList,
+  countActiveHostQueueFilters,
+  HOST_QUEUE_ALL_AREAS,
+  HOST_QUEUE_SORT_OPTIONS,
+  reservationIsVisibleInHostQueue,
+} from '../../../lib/hostQueuePipeline'
+import {
+  readHostQueueSortPreference,
+  writeHostQueueSortPreference,
+} from '../../../lib/hostQueuePersistence'
+import { usePublishedFloorPlan } from '../../../lib/PublishedFloorPlanContext'
 import { MobileReservationHostCard } from './MobileReservationHostCard'
 import { HostReservationList } from '../../reservations/HostReservationList'
 import { HOST_LIST_HELPERS } from '../../reservations/hostReservationListHelpers'
@@ -22,6 +36,7 @@ import { getReservationDisplayStatus } from '../../../lib/reservationHostStatus'
 import { MobileReservationHostEditSheet } from './MobileReservationHostEditSheet'
 import { MobileReservationQuickCreateSheet } from './MobileReservationQuickCreateSheet'
 import { HostSettingsPanel } from '../../host/HostSettingsPanel'
+import { HostQueueToolbar } from './HostQueueToolbar'
 
 export function MobileReservationsHostView({
   reservations = [],
@@ -39,19 +54,26 @@ export function MobileReservationsHostView({
   onExitHostMode,
   canEditFloorPlan = false,
   reservationSeatings = [],
+  selectedServiceSeatingId = '',
+  selectedSeating = null,
   hasLayout = false,
   onOpenFloorPlanLayout,
   renderRightPane,
   selectedReservationId: controlledSelectedReservationId = null,
   onSelectReservation,
+  onClearAssignmentSelection,
   hostSettingsProps = null,
   floorCreatePrefill = null,
   onFloorCreatePrefillConsumed,
   floorEditReservation = null,
   onFloorEditReservationConsumed,
 }) {
+  const { layout } = usePublishedFloorPlan()
   const [activeTab, setActiveTab] = useState('upcoming')
   const [searchTerm, setSearchTerm] = useState('')
+  const [areaFilterId, setAreaFilterId] = useState(HOST_QUEUE_ALL_AREAS)
+  const [activeFilterIds, setActiveFilterIds] = useState([])
+  const [sortId, setSortId] = useState(() => readHostQueueSortPreference())
   const [isCreateOpen, setIsCreateOpen] = useState(false)
   const [createPrefill, setCreatePrefill] = useState(null)
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
@@ -77,40 +99,68 @@ export function MobileReservationsHostView({
     [reservations, todayKey, workspaceTimeZone],
   )
 
+  const areaOptions = useMemo(
+    () => buildHostQueueAreaOptions(layout),
+    [layout],
+  )
+
+  const queueReservations = useMemo(
+    () => buildHostQueueReservationList(workspaceReservations, {
+      selectedSeating,
+      seatings: reservationSeatings,
+      dateKey: todayKey,
+      areaFilterId,
+      activeFilterIds,
+      searchTerm,
+      layout,
+      nowMinutes,
+      problemFilterOptions: { includeUnassigned: true, includeCapacity: true },
+    }),
+    [
+      activeFilterIds,
+      areaFilterId,
+      layout,
+      nowMinutes,
+      reservationSeatings,
+      searchTerm,
+      selectedSeating,
+      todayKey,
+      workspaceReservations,
+    ],
+  )
+
+  const activeFilterCount = countActiveHostQueueFilters(activeFilterIds)
+  const selectedAreaLabel = areaOptions.find((entry) => entry.id === areaFilterId)?.label ?? ''
+
   const tabCounts = useMemo(
     () => MOBILE_HOST_TABS.reduce((counts, tab) => ({
       ...counts,
-      [tab.id]: filterMobileHostReservations(workspaceReservations, { tabId: tab.id }).length,
+      [tab.id]: filterMobileHostReservations(queueReservations, { tabId: tab.id }).length,
     }), {}),
-    [workspaceReservations],
+    [queueReservations],
   )
 
-  const searchFilteredReservations = useMemo(() => {
-    const needle = searchTerm.trim().toLowerCase()
-    if (!needle) return workspaceReservations
-
-    return workspaceReservations.filter((reservation) => (
-      [
-        reservation?.guestName,
-        reservation?.phone,
-        reservation?.tableNumber,
-        reservation?.area,
-        reservation?.notes,
-      ].join(' ').toLowerCase().includes(needle)
-    ))
-  }, [searchTerm, workspaceReservations])
-
   const visibleReservations = useMemo(
-    () => filterMobileHostReservations(workspaceReservations, {
+    () => filterMobileHostReservations(queueReservations, {
       tabId: activeTab,
-      searchTerm,
+      searchTerm: '',
     }),
-    [workspaceReservations, activeTab, searchTerm],
+    [queueReservations, activeTab],
   )
 
   const summary = useMemo(
-    () => buildHostManagerSummary(workspaceReservations, nowMinutes, todayKey),
-    [workspaceReservations, nowMinutes, todayKey],
+    () => buildHostManagerSummary(queueReservations, nowMinutes, todayKey),
+    [queueReservations, nowMinutes, todayKey],
+  )
+
+  const queueEmptyState = useMemo(
+    () => buildHostQueueEmptyState({
+      selectedSeatingName: selectedSeating?.name ?? '',
+      selectedAreaLabel: areaFilterId === HOST_QUEUE_ALL_AREAS ? '' : selectedAreaLabel,
+      activeFilterCount,
+      searchTerm,
+    }),
+    [activeFilterCount, areaFilterId, searchTerm, selectedAreaLabel, selectedSeating?.name],
   )
 
   const dateLabel = useMemo(
@@ -124,6 +174,45 @@ export function MobileReservationsHostView({
 
   const formVariant = resolveHostReservationFormVariant({ isSplitLayout })
   const useInlineDetailPane = isSplitLayout && (isCreateOpen || editingReservation)
+
+  const handleSortChange = useCallback((nextSortId) => {
+    setSortId(nextSortId)
+    writeHostQueueSortPreference(nextSortId)
+  }, [])
+
+  const handleToggleFilter = useCallback((filterId) => {
+    setActiveFilterIds((current) => (
+      current.includes(filterId)
+        ? current.filter((entry) => entry !== filterId)
+        : [...current, filterId]
+    ))
+  }, [])
+
+  const handleClearFilters = useCallback(() => {
+    setActiveFilterIds([])
+    setSearchTerm('')
+  }, [])
+
+  useEffect(() => {
+    if (!effectiveSelectedReservationId || !onClearAssignmentSelection) return
+
+    const selectedReservation = reservations.find(
+      (entry) => String(entry.id) === String(effectiveSelectedReservationId),
+    )
+    if (!selectedReservation) {
+      onClearAssignmentSelection()
+      return
+    }
+
+    if (!reservationIsVisibleInHostQueue(selectedReservation, queueReservations)) {
+      onClearAssignmentSelection()
+    }
+  }, [
+    effectiveSelectedReservationId,
+    onClearAssignmentSelection,
+    queueReservations,
+    reservations,
+  ])
 
   useEffect(() => {
     if (!floorCreatePrefill) return
@@ -203,7 +292,7 @@ export function MobileReservationsHostView({
             type="search"
             value={searchTerm}
             onChange={(event) => setSearchTerm(event.target.value)}
-            placeholder="Search guest, phone, table"
+            placeholder="Search guest, phone, table, area, notes"
           />
         </label>
         <button
@@ -218,6 +307,20 @@ export function MobileReservationsHostView({
           + Reservation
         </button>
       </div>
+
+      {isSplitLayout ? (
+        <HostQueueToolbar
+          areaOptions={areaOptions}
+          areaFilterId={areaFilterId}
+          onAreaFilterChange={setAreaFilterId}
+          activeFilterIds={activeFilterIds}
+          onToggleFilter={handleToggleFilter}
+          onClearFilters={handleClearFilters}
+          sortId={sortId}
+          onSortChange={handleSortChange}
+          sortOptions={HOST_QUEUE_SORT_OPTIONS}
+        />
+      ) : null}
 
       {!isSplitLayout ? (
       <div className="mobile-host-reservations-tabs" role="tablist" aria-label="Service tabs">
@@ -243,16 +346,18 @@ export function MobileReservationsHostView({
     <p className="mobile-host-reservations-loading">Loading reservations…</p>
   ) : visibleReservations.length === 0 ? (
     (() => {
-      const emptyState = getHostListEmptyState({
-        filter: activeTab === 'upcoming' ? 'Upcoming'
-          : activeTab === 'in-house' ? 'In House'
-            : activeTab === 'completed' ? 'Completed'
-              : activeTab === 'problems' ? 'Problems'
-                : 'All',
-        searchTerm,
-        snapshot: summary,
-        isViewingToday: true,
-      })
+      const emptyState = activeFilterCount > 0 || searchTerm.trim()
+        ? queueEmptyState
+        : getHostListEmptyState({
+          filter: activeTab === 'upcoming' ? 'Upcoming'
+            : activeTab === 'in-house' ? 'In House'
+              : activeTab === 'completed' ? 'Completed'
+                : activeTab === 'problems' ? 'Problems'
+                  : 'All',
+          searchTerm,
+          snapshot: summary,
+          isViewingToday: true,
+        })
 
       return (
         <div className="mobile-host-reservations-empty" role="status">
@@ -279,6 +384,8 @@ export function MobileReservationsHostView({
           onOpenStatusMenu={handleOpenStatusMenu}
           onOpenRowMenu={handleOpenRowMenu}
           isSaving={isSaving}
+          layout={layout}
+          useHostQueuePresentation={isSplitLayout}
         />
       ))}
     </ul>
@@ -287,7 +394,7 @@ export function MobileReservationsHostView({
   const splitReservationList = (
     <HostReservationList
       layout="compactTablet"
-      reservations={searchFilteredReservations}
+      reservations={queueReservations}
       nowMinutes={nowMinutes}
       todayKey={todayKey}
       isLoading={isLoading}
@@ -305,6 +412,11 @@ export function MobileReservationsHostView({
       onDragEnd={() => {}}
       onOpenRowMenu={handleOpenRowMenu}
       helpers={HOST_LIST_HELPERS}
+      floorLayout={layout}
+      sortId={sortId}
+      queueEmptyState={queueEmptyState}
+      onClearQueueFilters={handleClearFilters}
+      useHostQueuePresentation
     />
   )
 
@@ -373,7 +485,7 @@ export function MobileReservationsHostView({
   )
 
   return (
-    <div className={`mobile-host-reservations is-host-mode${isSplitLayout ? ' is-landscape' : ' is-portrait'}`}>
+    <div className={`mobile-host-reservations is-host-mode${isSplitLayout ? ' is-landscape is-host-queue' : ' is-portrait'}`}>
       <header className="mobile-host-sticky-bar" aria-label="Host mode header">
         <div className="mobile-host-sticky-left">
           <h1 className="mobile-host-sticky-title">Reservations</h1>
@@ -414,7 +526,7 @@ export function MobileReservationsHostView({
 
       {isSplitLayout ? (
         <div className="mobile-host-reservations-landscape">
-          <section className="mobile-host-reservations-list-pane" aria-label="Reservation timeline">
+          <section className="mobile-host-reservations-list-pane" aria-label="Host queue">
             {listControls}
             <div className="mobile-host-list-scroll">
               {reservationList}

@@ -7,6 +7,7 @@ import {
   getReservationDisplayStatus,
 } from '../../../lib/reservationHostStatus'
 import { formatHostReservationListTime } from '../../../lib/timeFormatUtils'
+import { HostQueueReservationDetails } from './HostQueueReservationDetails'
 
 function getActionClassName(action) {
   if (action.id === 'edit') return 'mobile-host-reservation-action is-ghost'
@@ -27,6 +28,8 @@ function MobileHostReservationCompactRow({
   onSelect,
   onOpenStatusMenu,
   onOpenRowMenu,
+  floorLayout = null,
+  useHostQueuePresentation = false,
 }) {
   const guestName = `${reservation?.guestName ?? 'Guest'}`.trim() || 'Guest'
   const partySize = Number(reservation?.guests) || 0
@@ -58,9 +61,17 @@ function MobileHostReservationCompactRow({
             <span className="mobile-host-reservation-row-time">{timeLabel}</span>
             <span className="mobile-host-reservation-row-name">{guestName}</span>
           </div>
-          <p className="mobile-host-reservation-row-meta">
-            {partySize} {partySize === 1 ? 'guest' : 'guests'} · {tableSection}
-          </p>
+          {useHostQueuePresentation ? (
+            <HostQueueReservationDetails
+              reservation={reservation}
+              layout={floorLayout}
+              className="host-queue-row-details mobile-host-reservation-row-meta"
+            />
+          ) : (
+            <p className="mobile-host-reservation-row-meta">
+              {partySize} {partySize === 1 ? 'guest' : 'guests'} · {tableSection}
+            </p>
+          )}
         </button>
 
         <button
@@ -111,6 +122,8 @@ export function MobileReservationHostCard({
   onOpenStatusMenu,
   onOpenRowMenu,
   isSaving = false,
+  layout = null,
+  useHostQueuePresentation = false,
 }) {
   const guestName = `${reservation?.guestName ?? 'Guest'}`.trim() || 'Guest'
   const partySize = Number(reservation?.guests) || 0
@@ -151,6 +164,8 @@ export function MobileReservationHostCard({
         onSelect={onSelect}
         onOpenStatusMenu={onOpenStatusMenu}
         onOpenRowMenu={onOpenRowMenu}
+        floorLayout={layout}
+        useHostQueuePresentation={useHostQueuePresentation}
       />
     )
   }

@@ -131,18 +131,18 @@ describe('MobileReservationsHostView compact tablet list', () => {
     unmount()
   })
 
-  it('renders assigned table metadata as 4 • T15 + T16', () => {
+  it('renders assigned table metadata as compact queue labels', () => {
     const { container, unmount } = renderSplitHostView()
 
-    expect(container.textContent).toContain('4 • T15 + T16')
+    expect(container.textContent).toContain('👤4   🍽 T15 + T16')
 
     unmount()
   })
 
-  it('renders unassigned metadata as 4 • Unassigned', () => {
+  it('renders unassigned metadata as compact queue labels', () => {
     const { container, unmount } = renderSplitHostView()
 
-    expect(container.textContent).toContain('4 • Unassigned')
+    expect(container.textContent).toContain('👤4   🍽 Unassigned')
 
     unmount()
   })

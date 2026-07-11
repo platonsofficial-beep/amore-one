@@ -22,6 +22,8 @@ import {
   HOST_LIST_SECTION_COLLAPSE_STORAGE_KEY,
 } from './hostReservationListUtils'
 import { getHostListEmptyState } from '../../lib/reservationServiceIntelligence'
+import { groupHostQueueOperationalSections } from '../../lib/hostQueuePipeline'
+import { HostQueueReservationDetails } from '../mobile/reservations/HostQueueReservationDetails'
 import { HostReservationStatusPicker } from './HostReservationStatusPicker'
 
 function formatHostListScheduleLabel(reservation, todayKey) {
@@ -67,6 +69,8 @@ function HostReservationListRow({
   onDragEnd,
   onOpenRowMenu = null,
   layout = 'default',
+  floorLayout = null,
+  useHostQueuePresentation = false,
   helpers,
 }) {
   const {
@@ -146,9 +150,17 @@ function HostReservationListRow({
             </span>
           ) : null}
           </div>
-          <div className="host-reservation-card-details">
-            <span className="host-reservation-card-meta">{metaLine}</span>
-          </div>
+          {useHostQueuePresentation ? (
+            <HostQueueReservationDetails
+              reservation={reservation}
+              layout={floorLayout}
+              className="host-reservation-card-details host-queue-row-details"
+            />
+          ) : (
+            <div className="host-reservation-card-details">
+              <span className="host-reservation-card-meta">{metaLine}</span>
+            </div>
+          )}
         </div>
 
         <div className="host-reservation-card-trailing">
@@ -217,16 +229,30 @@ export function HostReservationList({
   onDragEnd,
   onOpenRowMenu = null,
   layout = 'default',
+  floorLayout = null,
+  sortId = null,
+  queueEmptyState = null,
+  onClearQueueFilters = null,
+  useHostQueuePresentation = false,
   helpers,
 }) {
   const operationalSections = useMemo(
-    () => groupHostListOperationalSections(
-      reservations,
-      nowMinutes,
-      todayKey,
-      problemFilterOptions ?? {},
+    () => (
+      sortId
+        ? groupHostQueueOperationalSections(reservations, {
+          nowMinutes,
+          todayKey,
+          sortId,
+          problemFilterOptions: problemFilterOptions ?? {},
+        })
+        : groupHostListOperationalSections(
+          reservations,
+          nowMinutes,
+          todayKey,
+          problemFilterOptions ?? {},
+        )
     ),
-    [reservations, nowMinutes, todayKey, problemFilterOptions],
+    [reservations, nowMinutes, todayKey, problemFilterOptions, sortId],
   )
 
   const listLayoutClass = layout === 'compactTablet' ? ' is-compact-tablet-layout' : ''
@@ -286,7 +312,7 @@ export function HostReservationList({
   )
 
   if (!totalVisible) {
-    const emptyState = getHostListEmptyState({
+    const emptyState = queueEmptyState ?? getHostListEmptyState({
       filter: listFilter,
       searchTerm,
       snapshot: dailySnapshot,
@@ -298,6 +324,15 @@ export function HostReservationList({
         <p className="reservations-empty-icon" aria-hidden="true">🍽</p>
         <h4>{emptyState.title}</h4>
         <p>{emptyState.copy}</p>
+        {emptyState.showClearFilters && onClearQueueFilters ? (
+          <button
+            type="button"
+            className="host-queue-toolbar-clear"
+            onClick={onClearQueueFilters}
+          >
+            Clear filters
+          </button>
+        ) : null}
       </div>
     )
   }
@@ -366,6 +401,8 @@ export function HostReservationList({
                       onDragEnd={onDragEnd}
                       onOpenRowMenu={onOpenRowMenu}
                       layout={layout}
+                      floorLayout={floorLayout}
+                      useHostQueuePresentation={useHostQueuePresentation}
                       helpers={helpers}
                     />
                   ))}
