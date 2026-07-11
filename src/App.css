@@ -20343,6 +20343,11 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 .primary-btn:disabled,
 .ghost-btn:disabled {
   opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.primary-btn.is-loading,
+.ghost-btn.is-loading {
   cursor: wait;
 }
 
