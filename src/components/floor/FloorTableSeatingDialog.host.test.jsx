@@ -344,4 +344,58 @@ describe('FloorTableSeatingDialog host day view', () => {
     expect(onNewReservation).toHaveBeenCalledWith(SEATINGS[0])
     cleanup()
   })
+
+  it('shows assignment pending row with assign action in assignment mode', () => {
+    const onConfirmAssignment = vi.fn()
+    const onCancelAssignment = vi.fn()
+    const reservation = {
+      id: 'res-pending',
+      guestName: 'Samaridis',
+      guests: 2,
+      time: '20:45',
+      seatingId: 'dinner-1',
+    }
+
+    const { query, cleanup } = renderDialog({
+      table: { id: 't23', label: 'T23' },
+      tableLabel: 'T23',
+      rows: [{
+        seating: SEATINGS[0],
+        reservation: null,
+        conflicts: [],
+        hasConflict: false,
+        isAvailable: true,
+        timeWindowLabel: '19:00–21:00',
+        state: 'available',
+      }],
+      assignmentContext: {
+        reservation,
+        seatingId: 'dinner-1',
+        tableLabel: 'T23',
+        draftTableLabels: 'T23',
+        onConfirmAssignment,
+        onCancelAssignment,
+      },
+      onClose: () => {},
+    })
+
+    expect(document.querySelector('[data-assignment-mode="true"]')).not.toBeNull()
+    expect(query('[data-testid="floor-table-day-row-assignment"]')).not.toBeNull()
+    expect(query('.floor-table-day-guest-name')?.textContent).toBe('Samaridis')
+    expect(query('[data-testid="floor-table-day-assign-reservation"]')?.textContent)
+      .toContain('Assign to T23')
+
+    act(() => {
+      query('[data-testid="floor-table-day-assign-reservation"]')
+        ?.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    })
+    expect(onConfirmAssignment).toHaveBeenCalledTimes(1)
+
+    act(() => {
+      query('[data-testid="floor-table-day-cancel-assignment"]')
+        ?.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    })
+    expect(onCancelAssignment).toHaveBeenCalledTimes(1)
+    cleanup()
+  })
 })

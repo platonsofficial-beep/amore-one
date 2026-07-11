@@ -3,6 +3,81 @@ import { useMediaQuery } from '../../lib/useMediaQuery'
 import { formatHostListUnitLabel, getReservationSeatingAssignment } from '../../lib/seatingAssignment'
 import { formatTime24 } from '../../lib/timeFormatUtils'
 
+function TableDayViewAssignmentRow({
+  row,
+  assignmentReservation,
+  tableLabel,
+  draftTableLabels = '',
+  isSaving,
+  onConfirmAssignment,
+  onCancelAssignment,
+}) {
+  const { seating, timeWindowLabel } = row
+  const guestName = assignmentReservation?.guestName || 'Guest'
+  const guestCount = Math.max(0, Number(assignmentReservation?.guests) || 0)
+  const arrivalTime = assignmentReservation?.time ? formatTime24(assignmentReservation.time) : null
+  const assignLabel = tableLabel ? `Assign to ${tableLabel}` : 'Assign to table'
+  const confirmLabel = draftTableLabels?.includes('+')
+    ? `Confirm seating (${draftTableLabels})`
+    : assignLabel
+
+  return (
+    <li className="floor-table-day-row is-assignment-pending" data-testid="floor-table-day-row-assignment">
+      <div className="floor-table-day-row-head">
+        <strong className="floor-table-day-seating-name">{seating.name}</strong>
+        <time className="floor-table-day-seating-time">{timeWindowLabel}</time>
+      </div>
+
+      <div className="floor-table-day-guest-row">
+        <h4 className="floor-table-day-guest-name">{guestName}</h4>
+      </div>
+
+      <p className="floor-table-day-guest-meta">
+        {arrivalTime ? (
+          <>
+            <span className="floor-table-day-guest-time">{arrivalTime}</span>
+            <span className="floor-table-day-guest-count">
+              {' · '}
+              {guestCount}
+              {' '}
+              {guestCount === 1 ? 'guest' : 'guests'}
+            </span>
+          </>
+        ) : (
+          <span className="floor-table-day-guest-count">
+            {guestCount}
+            {' '}
+            {guestCount === 1 ? 'guest' : 'guests'}
+          </span>
+        )}
+      </p>
+
+      <div className="floor-table-day-row-actions">
+        <button
+          type="button"
+          className="floor-table-day-action is-primary"
+          disabled={isSaving}
+          onClick={onConfirmAssignment}
+          data-testid="floor-table-day-assign-reservation"
+        >
+          {confirmLabel}
+        </button>
+        {onCancelAssignment ? (
+          <button
+            type="button"
+            className="floor-table-day-action is-secondary"
+            disabled={isSaving}
+            onClick={onCancelAssignment}
+            data-testid="floor-table-day-cancel-assignment"
+          >
+            Cancel selection
+          </button>
+        ) : null}
+      </div>
+    </li>
+  )
+}
+
 function getTableChipMeta(reservation, assignedTablesLabel) {
   if (!assignedTablesLabel || assignedTablesLabel === '—') return null
 
@@ -47,6 +122,7 @@ function TableDayViewRow({
   tableLabel,
   isSaving,
   canManageAssignment,
+  assignmentContext = null,
   onNewReservation,
   onOpenReservation,
   onEditReservation,
@@ -54,6 +130,23 @@ function TableDayViewRow({
   onReleaseTable,
 }) {
   const { seating, reservation, conflicts, hasConflict, isAvailable, timeWindowLabel, state } = row
+
+  if (
+    assignmentContext?.reservation
+    && assignmentContext.seatingId === seating.id
+  ) {
+    return (
+      <TableDayViewAssignmentRow
+        row={row}
+        assignmentReservation={assignmentContext.reservation}
+        tableLabel={assignmentContext.tableLabel}
+        draftTableLabels={assignmentContext.draftTableLabels}
+        isSaving={isSaving}
+        onConfirmAssignment={assignmentContext.onConfirmAssignment}
+        onCancelAssignment={assignmentContext.onCancelAssignment}
+      />
+    )
+  }
   const releaseLabel = tableLabel ? `Release ${tableLabel}` : 'Release table'
   const guestName = reservation?.guestName || 'Guest'
   const guestCount = Math.max(0, Number(reservation?.guests) || 0)
@@ -222,6 +315,7 @@ export function FloorTableSeatingDialog({
   areaLabel = '',
   dateLabel = '',
   rows = [],
+  assignmentContext = null,
   onNewReservation,
   onOpenReservation,
   onEditReservation,
@@ -247,12 +341,13 @@ export function FloorTableSeatingDialog({
         aria-label="Close table day view"
       />
       <div
-        className="floor-table-seating-dialog floor-table-day-view"
+        className={`floor-table-seating-dialog floor-table-day-view${assignmentContext ? ' is-assignment-mode' : ''}`}
         role="dialog"
         aria-modal="true"
         aria-labelledby="floor-table-seating-dialog-title"
         onClick={(event) => event.stopPropagation()}
         data-testid="floor-table-day-view"
+        data-assignment-mode={assignmentContext ? 'true' : 'false'}
       >
         <header className="floor-table-seating-dialog-header">
           <div className="floor-table-seating-dialog-heading">
@@ -286,6 +381,7 @@ export function FloorTableSeatingDialog({
                 tableLabel={releaseTableLabel}
                 isSaving={isSaving}
                 canManageAssignment={canManageAssignment}
+                assignmentContext={assignmentContext}
                 onNewReservation={onNewReservation}
                 onOpenReservation={onOpenReservation}
                 onEditReservation={onEditReservation}

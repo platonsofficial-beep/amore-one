@@ -7340,6 +7340,15 @@
   background: rgba(248, 113, 113, 0.06);
 }
 
+.floor-table-day-row.is-assignment-pending {
+  border-color: rgba(212, 175, 55, 0.28);
+  background: rgba(212, 175, 55, 0.08);
+}
+
+.floor-table-seating-dialog.is-assignment-mode .floor-table-day-row.is-assignment-pending {
+  box-shadow: inset 0 0 0 1px rgba(212, 175, 55, 0.12);
+}
+
 .floor-table-day-row-head {
   display: flex;
   align-items: baseline;

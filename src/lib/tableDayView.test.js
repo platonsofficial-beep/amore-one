@@ -108,7 +108,7 @@ describe('tableDayView', () => {
     expect(resolveHostFloorTableClickRoute({ isHostFloorPickActive: true })).toBe('edit-layout')
   })
 
-  it('opens compact host table day view even when a reservation is selected', () => {
+  it('opens compact host table day view when a reservation is selected', () => {
     expect(resolveHostFloorTableClickRoute({
       isCompact: true,
       selectedReservation: { id: 'res-1' },
@@ -116,16 +116,12 @@ describe('tableDayView', () => {
       canAssign: true,
       seatingDraftUnitIds: [],
     })).toBe('normal-day-view')
-  })
-
-  it('routes compact host taps on draft-picked tables to assignment', () => {
     expect(resolveHostFloorTableClickRoute({
       isCompact: true,
       selectedReservation: { id: 'res-1' },
       tableId: 't10',
       seatingDraftUnitIds: ['t10'],
-    })).toBe('assignment')
-    expect(isHostFloorTablePickedForSeating(['t10'], 't10')).toBe(true)
+    })).toBe('normal-day-view')
   })
 
   it('keeps desktop assignment intercept for assignable tables', () => {

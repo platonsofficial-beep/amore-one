@@ -1,8 +1,44 @@
+import { reservationHasAssignedTables } from './floorAssignmentMapping'
+import { isTerminalReservationStatus } from './reservationHostStatus'
+import { resolveReservationSeatingId } from './reservationSeatings'
+
+export function isReservationEligibleForHostTableAssignment(reservation) {
+  if (!reservation) return false
+  if (isTerminalReservationStatus(reservation?.status)) return false
+  return !reservationHasAssignedTables(reservation)
+}
+
+export function isHostCompactAssignmentSelection({
+  isCompact = false,
+  selectedReservation = null,
+} = {}) {
+  if (!isCompact || !selectedReservation) return false
+  return isReservationEligibleForHostTableAssignment(selectedReservation)
+}
+
 export function isHostAssignmentModeActive({
   selectedReservation = null,
   floorPlanMode = 'view',
+  isCompact = false,
 } = {}) {
-  return Boolean(selectedReservation) && floorPlanMode === 'view'
+  if (!selectedReservation || floorPlanMode !== 'view') return false
+  if (isCompact) {
+    return isHostCompactAssignmentSelection({ isCompact, selectedReservation })
+  }
+  return true
+}
+
+export function shouldShowHostSeatingDrawer() {
+  return false
+}
+
+export function resolveHostAssignmentSeatingId({
+  reservation = null,
+  seatings = [],
+  selectedSeatingId = null,
+} = {}) {
+  if (selectedSeatingId) return selectedSeatingId
+  return resolveReservationSeatingId(reservation, seatings)
 }
 
 /** Approximate height budget for standard iPad landscape assignment content (px). */

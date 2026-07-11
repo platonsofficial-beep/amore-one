@@ -264,9 +264,6 @@ export function resolveHostFloorTableClickRoute({
   const isPickedForSeating = isHostFloorTablePickedForSeating(seatingDraftUnitIds, tableId)
 
   if (isCompact) {
-    if (selectedReservation && isPickedForSeating) {
-      return 'assignment'
-    }
     return 'normal-day-view'
   }
 

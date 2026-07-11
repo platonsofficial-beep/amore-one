@@ -4,23 +4,79 @@ import {
   getHostAssignmentScrollPolicy,
   HOST_ASSIGNMENT_STANDARD_LANDSCAPE_HEIGHT_BUDGET,
   isHostAssignmentModeActive,
+  isHostCompactAssignmentSelection,
+  isReservationEligibleForHostTableAssignment,
+  resolveHostAssignmentSeatingId,
   shouldHostAssignmentEnableScroll,
+  shouldShowHostSeatingDrawer,
 } from './hostAssignmentPanelUtils'
 import { computeSeatingAssignmentTotals } from './seatingAssignment'
 
 describe('host assignment panel utils', () => {
-  it('enters assignment mode when a reservation is selected in floor view', () => {
+  it('enters assignment mode when an unassigned reservation is selected on compact host', () => {
     expect(isHostAssignmentModeActive({
-      selectedReservation: { id: 'res-1' },
+      selectedReservation: { id: 'res-1', status: 'Confirmed' },
       floorPlanMode: 'view',
+      isCompact: true,
     })).toBe(true)
+  })
+
+  it('does not enter assignment mode for assigned reservations on compact host', () => {
+    expect(isHostAssignmentModeActive({
+      selectedReservation: {
+        id: 'res-1',
+        status: 'Confirmed',
+        seatingAssignment: { assignedUnits: [{ id: 't1', label: 'T1' }] },
+      },
+      floorPlanMode: 'view',
+      isCompact: true,
+    })).toBe(false)
   })
 
   it('does not enter assignment mode while editing layout', () => {
     expect(isHostAssignmentModeActive({
       selectedReservation: { id: 'res-1' },
       floorPlanMode: 'edit',
+      isCompact: true,
     })).toBe(false)
+  })
+
+  it('identifies compact assignment selection for unassigned reservations', () => {
+    expect(isHostCompactAssignmentSelection({
+      isCompact: true,
+      selectedReservation: { id: 'res-1', status: 'Confirmed' },
+    })).toBe(true)
+    expect(isReservationEligibleForHostTableAssignment({
+      id: 'res-1',
+      status: 'Completed',
+    })).toBe(false)
+  })
+
+  it('retires the legacy host seating drawer', () => {
+    expect(shouldShowHostSeatingDrawer()).toBe(false)
+  })
+
+  it('resolves assignment seating from reservation and manual override', () => {
+    const seatings = [{
+      id: 'dinner-1',
+      name: 'Dinner 1',
+      startTime: '19:00',
+      durationMinutes: 120,
+      daysOfWeek: [0, 1, 2, 3, 4, 5, 6],
+      sortOrder: 0,
+      isActive: true,
+    }]
+
+    expect(resolveHostAssignmentSeatingId({
+      reservation: { seatingId: 'dinner-1', time: '20:45' },
+      seatings,
+    })).toBe('dinner-1')
+
+    expect(resolveHostAssignmentSeatingId({
+      reservation: { time: '19:00', date: '2026-07-10' },
+      seatings,
+      selectedSeatingId: 'manual-seating',
+    })).toBe('manual-seating')
   })
 
   it('returns advisory states for selection and capacity', () => {

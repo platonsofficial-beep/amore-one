@@ -53,13 +53,20 @@ import { PublishedFloorPlanProvider, usePublishedFloorPlan } from './lib/Publish
 import { loadPublishedHostLayout } from './lib/builderToHostLayout'
 import { completeReturnToHost } from './lib/publishReturnToHost'
 import { useHostReturnAfterPublishBoot } from './lib/useHostReturnAfterPublishBoot'
-import { isHostAssignmentModeActive } from './lib/hostAssignmentPanelUtils'
+import {
+  isHostAssignmentModeActive,
+  isHostCompactAssignmentSelection,
+  isReservationEligibleForHostTableAssignment,
+  resolveHostAssignmentSeatingId,
+  shouldShowHostSeatingDrawer,
+} from './lib/hostAssignmentPanelUtils'
 import { resolveActiveFloorAreaId } from './lib/publishFloorPlanTransition'
 import {
   buildSeatingAssignment,
   computeSeatingAssignmentTotals,
   enrichReservationWithSeatingAssignment,
   formatSeatingAssignmentLabels,
+  formatSeatingAssignmentDrawerLabels,
   formatSeatingAssignmentSummary,
   formatHostListTableLabel,
   formatHostFloorReservationTooltipMeta,
@@ -7981,6 +7988,7 @@ function FloorPlanView({
   const [floorPan, setFloorPan] = useState({ x: 0, y: 0 })
   const [tooltipDismissVersion, setTooltipDismissVersion] = useState(0)
   const [scheduleCardTableId, setScheduleCardTableId] = useState(null)
+  const [scheduleCardAssignmentMode, setScheduleCardAssignmentMode] = useState(false)
   const scheduleCardLifecycleRef = useRef(createHostScheduleCardLifecycleState())
   const hostTableTapRegistryRef = useRef(createHostFloorTableTapRegistry())
   const scheduleCardTableIdRef = useRef(null)
@@ -7994,15 +8002,17 @@ function FloorPlanView({
 
   const closeScheduleCardTable = useCallback((source) => {
     setScheduleCardTableId(null)
+    setScheduleCardAssignmentMode(false)
     scheduleCardLifecycleRef.current = recordScheduleCardDismiss(
       scheduleCardLifecycleRef.current,
       source,
     )
   }, [])
 
-  const openScheduleCardTable = useCallback((table, source = 'table-tap') => {
+  const openScheduleCardTable = useCallback((table, source = 'table-tap', options = {}) => {
     if (!table?.id) return
     setScheduleCardTableId(String(table.id))
+    setScheduleCardAssignmentMode(Boolean(options.assignmentMode))
     scheduleCardLifecycleRef.current = recordScheduleCardOpen(
       scheduleCardLifecycleRef.current,
       {
@@ -8069,13 +8079,12 @@ function FloorPlanView({
   }, [])
 
   const isHeatmap = viewMode === 'heatmap'
-  const showHostSeatingBar = Boolean(
-    selectedReservation
-    && isCompact
-    && !isHeatmap
-    && !hostEditingReservation
-    && !isHostFloorPickActive
-  )
+  const showHostSeatingBar = shouldShowHostSeatingDrawer()
+
+  const hostCompactAssignmentSelection = isHostCompactAssignmentSelection({
+    isCompact,
+    selectedReservation,
+  })
 
   const heatmapPeriodRange = useMemo(() => (
     getFloorHeatmapDateRange(heatmapPeriodId, todayKey, {
@@ -8585,7 +8594,12 @@ function FloorPlanView({
     ) {
       event?.stopPropagation?.()
       setTooltipDismissVersion((current) => current + 1)
-      openScheduleCardTable(tableState.table, 'table-tap')
+      if (hostCompactAssignmentSelection) {
+        startSeatingDraft(selectedReservation, tableState.table.id)
+        openScheduleCardTable(tableState.table, 'table-tap-assignment', { assignmentMode: true })
+      } else {
+        openScheduleCardTable(tableState.table, 'table-tap')
+      }
       if (isHostFloorDebugEnabled()) {
         patchHostFloorDebugTrace({
           callbackFired: true,
@@ -8880,8 +8894,90 @@ function FloorPlanView({
     clearSelection()
   }
 
+  const handleScheduleCardConfirmAssignment = useCallback(async () => {
+    if (!selectedReservation || !onSeatGuestAtTable || seatingDraftUnitIds.length === 0) return
+
+    const assignedUnits = seatingDraftUnitIds
+      .map((unitId) => toSeatingUnitFromLayoutUnit(getHostUnitById(unitId, layout)))
+      .filter(Boolean)
+
+    if (!assignedUnits.length) return
+
+    const assignment = buildSeatingAssignment({
+      assignedUnits,
+      extraChairs: seatingExtraChairs,
+      standingGuests: seatingStandingGuests,
+      partySize: selectedReservation.guests,
+    })
+
+    await onSeatGuestAtTable(selectedReservation, assignment)
+    clearSelection()
+    closeScheduleCardTable('assignment-confirmed')
+  }, [
+    clearSelection,
+    closeScheduleCardTable,
+    layout,
+    onSeatGuestAtTable,
+    seatingDraftUnitIds,
+    seatingExtraChairs,
+    seatingStandingGuests,
+    selectedReservation,
+  ])
+
+  const handleScheduleCardCancelAssignment = useCallback(() => {
+    clearSelection()
+    closeScheduleCardTable('assignment-cancelled')
+  }, [clearSelection, closeScheduleCardTable])
+
+  const scheduleCardAssignmentContext = useMemo(() => {
+    if (!scheduleCardAssignmentMode || !hostCompactAssignmentSelection || !selectedReservation) {
+      return null
+    }
+
+    const seatingId = resolveHostAssignmentSeatingId({
+      reservation: selectedReservation,
+      seatings: effectiveSeatings,
+      selectedSeatingId: selectedSeating?.id ?? null,
+    })
+
+    if (!seatingId || !resolvedScheduleCardTable) return null
+
+    const draftAssignment = buildSeatingAssignment({
+      assignedUnits: seatingDraftUnitIds
+        .map((unitId) => toSeatingUnitFromLayoutUnit(getHostUnitById(unitId, layout)))
+        .filter(Boolean),
+      extraChairs: seatingExtraChairs,
+      standingGuests: seatingStandingGuests,
+      partySize: selectedReservation.guests,
+    })
+
+    const tableDialogLabel = getFloorTableDialogLabel(resolvedScheduleCardTable)
+
+    return {
+      reservation: selectedReservation,
+      seatingId,
+      tableLabel: formatHostListUnitLabel(tableDialogLabel.replace(/^TABLE\s*/i, 'T')),
+      draftTableLabels: formatSeatingAssignmentDrawerLabels(draftAssignment),
+      onConfirmAssignment: handleScheduleCardConfirmAssignment,
+      onCancelAssignment: handleScheduleCardCancelAssignment,
+    }
+  }, [
+    effectiveSeatings,
+    handleScheduleCardCancelAssignment,
+    handleScheduleCardConfirmAssignment,
+    hostCompactAssignmentSelection,
+    layout,
+    resolvedScheduleCardTable,
+    scheduleCardAssignmentMode,
+    seatingDraftUnitIds,
+    seatingExtraChairs,
+    seatingStandingGuests,
+    selectedReservation,
+    selectedSeating?.id,
+  ])
+
   const isSeatPicking = Boolean(
-    (selectedReservation && !isHeatmap && isCompact)
+    (hostCompactAssignmentSelection && !isHeatmap)
     || isHostFloorPickActive,
   )
 
@@ -9186,6 +9282,7 @@ function FloorPlanView({
           areaLabel={formatFloorTableAreaLabel(layout, resolvedScheduleCardTable)}
           dateLabel={scheduleCardDateLabel}
           rows={scheduleCardRows}
+          assignmentContext={scheduleCardAssignmentContext}
           onOpenReservation={handleScheduleCardEdit}
           onEditReservation={handleScheduleCardEditReservation}
           onNewReservation={handleScheduleCardNewReservation}
@@ -9289,6 +9386,7 @@ function MobileReservationsHostShellBody({
   const {
     selectedReservation,
     selectReservation,
+    clearSelection,
     floorPlanMode,
     setFloorPlanMode,
     activeFloorAreaId,
@@ -9337,6 +9435,38 @@ function MobileReservationsHostShellBody({
       activeSeatings.some((entry) => entry.id === current) ? current : activeSeatings[0].id
     ))
   }, [reservationSeatings, todayKey])
+
+  useEffect(() => {
+    if (!selectedReservation?.id) return
+    if (!isReservationEligibleForHostTableAssignment(selectedReservation)) return
+
+    const seatingId = resolveReservationSeatingId(selectedReservation, reservationSeatings)
+    if (seatingId) {
+      setSelectedServiceSeatingId(seatingId)
+    }
+  }, [reservationSeatings, selectedReservation])
+
+  useEffect(() => {
+    if (!selectedReservation) return
+    const stillExists = reservations.some(
+      (entry) => String(entry.id) === String(selectedReservation.id),
+    )
+    if (!stillExists) {
+      clearSelection()
+    }
+  }, [clearSelection, reservations, selectedReservation])
+
+  const handleHostSelectReservation = useCallback((reservation) => {
+    if (!reservation) return
+
+    if (reservationIdsMatch(selectedReservation, reservation)) {
+      clearSelection()
+      return
+    }
+
+    const isUnassigned = isReservationEligibleForHostTableAssignment(reservation)
+    selectReservation(reservation, { scrollFloor: !isUnassigned })
+  }, [clearSelection, selectReservation, selectedReservation])
 
   const handleFloorOpenAddReservation = useCallback((prefill) => {
     setFloorCreatePrefill(prefill ?? null)
@@ -9483,6 +9613,7 @@ function MobileReservationsHostShellBody({
       isAssignmentMode={isHostAssignmentModeActive({
         selectedReservation,
         floorPlanMode,
+        isCompact: true,
       })}
     />
   )
@@ -9513,7 +9644,7 @@ function MobileReservationsHostShellBody({
       onFloorEditReservationConsumed={() => setFloorEditReservation(null)}
       renderRightPane={rightPane}
       selectedReservationId={selectedReservation?.id ?? null}
-      onSelectReservation={(reservation) => selectReservation(reservation, { scrollFloor: true })}
+      onSelectReservation={handleHostSelectReservation}
     />
   )
 }
