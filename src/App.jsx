@@ -126,6 +126,12 @@ import {
   resolveHostFloorSemanticClass,
 } from './lib/hostFloorTableVisualState'
 import {
+  hostFloorReservationVisualStateChanged,
+  mergeOptimisticReservationUpdate,
+  resolveHostFloorReservationRecord,
+  syncHostWorkspaceReservationSelection,
+} from './lib/hostFloorReservationState'
+import {
   buildFloorTableReservationMap,
   debugFloorAssignmentSnapshot,
   getReservationDateKey,
@@ -5792,6 +5798,36 @@ function ReservationWorkspaceProvider({
     ))
   }, [layout])
 
+  useEffect(() => {
+    setSelectedReservation((current) => (
+      syncHostWorkspaceReservationSelection(current, filteredTodayReservations)
+    ))
+  }, [filteredTodayReservations])
+
+  useEffect(() => {
+    if (!hostEditingReservation?.id) return
+
+    const fresh = resolveHostFloorReservationRecord(
+      hostEditingReservation,
+      filteredTodayReservations,
+    )
+    if (!fresh || !hostFloorReservationVisualStateChanged(hostEditingReservation, fresh)) {
+      return
+    }
+
+    setHostEditingReservation(fresh)
+    setHostEditForm((current) => (
+      current
+        ? {
+          ...current,
+          status: fresh.status ?? current.status,
+          assignedUnits: fresh.seatingAssignment?.assignedUnits ?? current.assignedUnits,
+          tableNumber: fresh.tableNumber ?? current.tableNumber,
+        }
+        : current
+    ))
+  }, [filteredTodayReservations, hostEditingReservation])
+
   const selectedTableId = useMemo(
     () => (selectedReservation ? getTableIdForReservation(selectedReservation, layout) : null),
     [layout, selectedReservation],
@@ -8091,9 +8127,11 @@ function FloorPlanView({
     }
   }, [isHeatmap])
 
-  const assignmentReservations = isCompact && listReservations?.length
-    ? listReservations
-    : allReservations
+  const assignmentReservations = useMemo(() => {
+    const canonical = allReservations?.length ? allReservations : reservations
+    if (!isCompact) return canonical
+    return listReservations?.length ? listReservations : canonical
+  }, [allReservations, isCompact, listReservations, reservations])
 
   const effectiveSeatings = useMemo(
     () => (seatings.length > 0 ? seatings : (reservationSeatings ?? [])),
@@ -19564,6 +19602,9 @@ function App() {
     isSavingReservationRef.current = true
     setIsSavingReservation(true)
 
+    const optimisticReservation = mergeOptimisticReservationUpdate(reservation, { status })
+    upsertReservationInState(optimisticReservation)
+
     try {
       const updated = await updateReservation(
         activeWorkspaceId,
@@ -19574,6 +19615,7 @@ function App() {
       await reloadTodayReservations()
       setReservationNotice(`Reservation marked ${getHostListStatusLabel(status)}.`)
     } catch (error) {
+      upsertReservationInState(reservation)
       setReservationNotice(error.message || 'Unable to update reservation right now.')
     } finally {
       isSavingReservationRef.current = false

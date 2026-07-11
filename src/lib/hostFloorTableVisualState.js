@@ -1,6 +1,7 @@
 import { FLOOR_TABLE_OPERATIONAL_PHASES } from './floorTableOperationalState'
 import { getConflictingUnitIds } from './reservationTableOptions'
 import { resolveSeatingFloorStatus } from './tableAvailability'
+import { isTerminalReservationStatus } from './reservationHostStatus'
 import {
   getReservationAssignedUnitsForMatching,
   seatingUnitMatchesFloorUnit,
@@ -9,6 +10,7 @@ import {
   findAllReservationsForTableSeating,
   resolveTableDayViewRowState,
 } from './tableDayView'
+import { resolveHostFloorReservationRecord } from './hostFloorReservationState'
 
 export const HOST_FLOOR_VISUAL_STATE_PRIORITY = [
   'has-conflict',
@@ -47,6 +49,11 @@ export function applyHostFloorSelectedSeatingContext(
   },
 ) {
   if (!selectedSeating) return tableStates
+
+  const selectedReservationRecord = resolveHostFloorReservationRecord(
+    selectedReservation,
+    enrichedReservations,
+  )
 
   const seatingConflicts = getConflictingUnitIds(
     enrichedReservations,
@@ -89,13 +96,30 @@ export function applyHostFloorSelectedSeatingContext(
     }
 
     const conflict = seatingConflicts.get(tableState.table.id)
-    const isSelectedTable = selectedReservation
-      && getReservationAssignedUnitsForMatching(selectedReservation).some((unit) => (
+    const isSelectedTable = selectedReservationRecord
+      && getReservationAssignedUnitsForMatching(selectedReservationRecord).some((unit) => (
         seatingUnitMatchesFloorUnit(unit, tableState.table)
       ))
 
     if (isSelectedTable) {
-      const seatingStatus = resolveSeatingFloorStatus(conflict, selectedReservation)
+      if (isTerminalReservationStatus(selectedReservationRecord?.status)) {
+        return {
+          ...tableState,
+          reservation: null,
+          status: 'available',
+          operational: {
+            ...tableState.operational,
+            phase: FLOOR_TABLE_OPERATIONAL_PHASES.AVAILABLE,
+            hostIndicator: 'empty',
+            floorStatus: 'available',
+            displayReservation: null,
+            activeReservation: null,
+            hasSeatingConflict: false,
+          },
+        }
+      }
+
+      const seatingStatus = resolveSeatingFloorStatus(conflict, selectedReservationRecord)
       const preserveOccupied = seatingStatus.hostIndicator === 'seated'
         || seatingStatus.hostIndicator === 'waiting'
       const nextPhase = preserveOccupied
@@ -106,15 +130,15 @@ export function applyHostFloorSelectedSeatingContext(
 
       return {
         ...tableState,
-        reservation: selectedReservation,
+        reservation: selectedReservationRecord,
         status: preserveOccupied ? seatingStatus.floorStatus : 'selected',
         operational: {
           ...tableState.operational,
           phase: nextPhase,
           hostIndicator: preserveOccupied ? seatingStatus.hostIndicator : 'confirmed',
           floorStatus: preserveOccupied ? seatingStatus.floorStatus : 'selected',
-          displayReservation: selectedReservation,
-          activeReservation: selectedReservation,
+          displayReservation: selectedReservationRecord,
+          activeReservation: selectedReservationRecord,
           hasSeatingConflict: false,
         },
       }
