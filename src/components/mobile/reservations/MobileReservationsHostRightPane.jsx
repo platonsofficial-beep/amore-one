@@ -1,3 +1,5 @@
+import { HostTableInspector } from '../../floor/HostTableInspector'
+import { shouldCompactHostFloorSelectionCard } from '../../../lib/hostTableInspectorUtils'
 import {
   getHostFloorSelectionStatusPresentation,
   getHostStatusMeta,
@@ -19,6 +21,7 @@ export function MobileReservationsHostRightPane({
   isAssignmentMode = false,
   floorLayout = null,
   reservationSeatings = [],
+  tableInspectorProps = null,
 }) {
   if (!hasLayout) {
     return (
@@ -45,16 +48,24 @@ export function MobileReservationsHostRightPane({
     )
   }
 
+  const inspectorOpen = Boolean(tableInspectorProps?.isOpen)
+  const compactBottomCard = shouldCompactHostFloorSelectionCard({
+    inspectorOpen,
+    selectedReservation,
+    inspectorRows: tableInspectorProps?.rows ?? [],
+  })
+
   return (
     <div
-      className={`mobile-host-reservations-right-pane${isAssignmentMode ? ' is-assignment-mode' : ''}`}
+      className={`mobile-host-reservations-right-pane${isAssignmentMode ? ' is-assignment-mode' : ''}${inspectorOpen ? ' has-table-inspector' : ''}`}
       data-assignment-mode={isAssignmentMode ? 'true' : 'false'}
+      data-table-inspector-open={inspectorOpen ? 'true' : 'false'}
     >
       <div className="mobile-host-floor-stage" aria-label="Floor plan">
         {floorPlanContent}
       </div>
 
-      {selectedReservation && !isAssignmentMode ? (
+      {selectedReservation && !isAssignmentMode && !compactBottomCard ? (
         <MobileHostFloorSelectionCard
           key={selectedReservation.id}
           reservation={selectedReservation}
@@ -66,6 +77,82 @@ export function MobileReservationsHostRightPane({
           onOpenRowMenu={onOpenRowMenu}
         />
       ) : null}
+
+      {selectedReservation && !isAssignmentMode && compactBottomCard ? (
+        <MobileHostFloorSelectionCompactStrip
+          reservation={selectedReservation}
+          todayKey={todayKey}
+          nowMinutes={nowMinutes}
+          onEdit={onEditReservation}
+          onOpenRowMenu={onOpenRowMenu}
+        />
+      ) : null}
+
+      {inspectorOpen ? (
+        <HostTableInspector {...tableInspectorProps} />
+      ) : null}
+    </div>
+  )
+}
+
+function MobileHostFloorSelectionCompactStrip({
+  reservation,
+  todayKey,
+  nowMinutes,
+  onEdit,
+  onOpenRowMenu = null,
+}) {
+  const guestName = `${reservation?.guestName ?? 'Guest'}`.trim() || 'Guest'
+  const displayStatus = getReservationDisplayStatus(reservation, nowMinutes, todayKey)
+  const statusMeta = getHostStatusMeta(displayStatus)
+  const statusPresentation = getHostFloorSelectionStatusPresentation(
+    reservation,
+    nowMinutes,
+    todayKey,
+  )
+
+  return (
+    <div className="mobile-host-floor-selection is-compact-context" data-testid="host-floor-selection-compact">
+      <article className="mobile-host-floor-selection-card is-compact-context">
+        <div className="mobile-host-floor-selection-left">
+          <h3 className="mobile-host-floor-selection-guest">{guestName}</h3>
+          <p className="mobile-host-floor-selection-meta">Viewing in table inspector</p>
+        </div>
+        <div className="mobile-host-floor-selection-center">
+          <span
+            className={`host-reservation-card-status-pill mobile-host-floor-selection-status selected-reservation-status tone-${statusMeta.tone} is-compact is-readonly${statusPresentation.severity ? ` is-late-${statusPresentation.severity}` : ''}`}
+            aria-label={`Reservation status: ${statusPresentation.label}`}
+          >
+            <span className="selected-reservation-status-icon" aria-hidden="true">
+              {statusPresentation.icon}
+            </span>
+            <span className="selected-reservation-status-label">
+              {statusPresentation.label}
+            </span>
+          </span>
+        </div>
+        <div className="mobile-host-floor-selection-actions">
+          <button
+            type="button"
+            className="mobile-host-floor-selection-edit-btn"
+            onClick={() => onEdit?.(reservation)}
+          >
+            <span className="mobile-host-floor-selection-action-icon" aria-hidden="true">✏️</span>
+            <span>Edit</span>
+          </button>
+          {onOpenRowMenu ? (
+            <button
+              type="button"
+              className="mobile-host-floor-selection-menu-btn"
+              aria-label="More reservation actions"
+              aria-haspopup="menu"
+              onClick={(event) => onOpenRowMenu(reservation, event)}
+            >
+              ⋯
+            </button>
+          ) : null}
+        </div>
+      </article>
     </div>
   )
 }

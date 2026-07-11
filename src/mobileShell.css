@@ -5768,12 +5768,22 @@
   gap: 8px;
   flex: 1 1 auto;
   min-height: 0;
+  position: relative;
   overflow-y: auto;
   overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior-y: contain;
   touch-action: pan-y;
   padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+.mobile-host-reservations-right-pane.has-table-inspector {
+  overflow: hidden;
+  touch-action: manipulation;
+}
+
+.mobile-host-reservations.is-landscape .mobile-host-reservations-right-pane.has-table-inspector {
+  overflow: hidden;
 }
 
 .mobile-host-reservations-right-pane.is-assignment-mode {
@@ -7275,4 +7285,179 @@ html[data-one-debug-scroll='1'] .floor-plan-viewport.is-host-viewport {
   .app-shell.is-host-station-shell .mobile-host-reservation-inline-panel {
     border-left: 1px solid rgba(255, 255, 255, 0.08);
   }
+}
+
+.host-table-inspector {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 4;
+  display: flex;
+  flex-direction: column;
+  width: clamp(310px, 29vw, 390px);
+  max-width: 100%;
+  pointer-events: auto;
+  overscroll-behavior: contain;
+  border-left: 1px solid rgba(212, 175, 55, 0.18);
+  border-radius: 14px 0 0 0;
+  background:
+    linear-gradient(
+      180deg,
+      rgba(36, 33, 30, 0.97) 0%,
+      rgba(14, 12, 10, 0.99) 100%
+    );
+  backdrop-filter: blur(18px) saturate(120%);
+  -webkit-backdrop-filter: blur(18px) saturate(120%);
+  box-shadow:
+    inset 1px 0 0 rgba(255, 255, 255, 0.05),
+    -12px 0 32px rgba(0, 0, 0, 0.34);
+  animation: host-table-inspector-enter 180ms ease;
+}
+
+.mobile-host-reservations-right-pane.has-table-inspector:has(.mobile-host-floor-selection.is-compact-context) .host-table-inspector,
+.mobile-host-reservations-right-pane.has-table-inspector:has(.mobile-host-floor-selection:not(.is-compact-context)) .host-table-inspector {
+  bottom: 78px;
+}
+
+@keyframes host-table-inspector-enter {
+  from {
+    opacity: 0;
+    transform: translateX(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .host-table-inspector {
+    animation: none;
+  }
+}
+
+.host-table-inspector-header {
+  flex-shrink: 0;
+}
+
+.host-table-inspector-accessible-title {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.host-table-inspector-summary {
+  flex-shrink: 0;
+  margin: 0;
+  padding: 10px 16px 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.host-table-inspector-summary-primary {
+  margin: 0;
+  color: #f3dfaa;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.host-table-inspector-summary-secondary {
+  margin: 4px 0 0;
+  color: #faf4e8;
+  font-size: 0.92rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.host-table-inspector-summary-detail {
+  margin: 2px 0 0;
+  color: rgba(168, 159, 146, 0.82);
+  font-size: 0.74rem;
+  line-height: 1.3;
+}
+
+.host-table-inspector-list {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.host-table-inspector-assignment-tables {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px solid rgba(212, 175, 55, 0.16);
+  background: rgba(212, 175, 55, 0.06);
+}
+
+.host-table-inspector-assignment-label {
+  margin: 0;
+  color: rgba(168, 159, 146, 0.82);
+  font-size: 0.68rem;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.host-table-inspector-assignment-value {
+  margin: 0;
+  color: #faf4e8;
+  font-size: 0.86rem;
+  font-weight: 700;
+}
+
+.host-table-inspector-assignment-capacity {
+  margin: 0;
+  color: rgba(168, 159, 146, 0.78);
+  font-size: 0.72rem;
+}
+
+.floor-table-day-row-body.is-compact-available {
+  gap: 8px;
+}
+
+.floor-table-day-guest-headline {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.floor-table-day-guest-headline .floor-table-day-guest-name {
+  margin: 0;
+}
+
+.floor-table-day-guest-status-note {
+  flex-shrink: 0;
+  color: rgba(232, 181, 106, 0.92);
+  font-size: 0.68rem;
+  font-weight: 650;
+  white-space: nowrap;
+}
+
+.mobile-host-floor-selection.is-compact-context {
+  flex-shrink: 0;
+  z-index: 5;
+}
+
+.mobile-host-floor-selection-card.is-compact-context {
+  min-height: 64px;
+  padding: 8px 12px;
+}
+
+.mobile-host-floor-selection-card.is-compact-context .mobile-host-floor-selection-meta {
+  font-size: 0.68rem;
+  color: rgba(168, 159, 146, 0.68);
 }

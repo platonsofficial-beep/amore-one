@@ -186,6 +186,7 @@ import {
   formatFloorTableAreaLabel,
   getFloorTableDialogLabel,
 } from './components/floor/FloorTableSeatingDialog'
+import { useHostTableInspectorDrawer } from './lib/useHostTableInspectorDrawer'
 import { buildTableSeatingDayIndicators } from './lib/tableAvailability'
 import {
   buildFloorTableDayViewRows,
@@ -7896,6 +7897,7 @@ function FloorPlanView({
   selectedSeating = null,
   onSelectedSeatingChange,
   hostQueueAreaFilterId = HOST_QUEUE_ALL_AREAS,
+  onTableInspectorChange = null,
 }) {
   const {
     clearSelection,
@@ -8991,6 +8993,62 @@ function FloorPlanView({
     selectedReservation,
   ])
 
+  const useTableInspectorDrawer = useHostTableInspectorDrawer()
+
+  const tableInspectorProps = useMemo(() => {
+    if (!isCompact || !useTableInspectorDrawer || !scheduleCardTableId || !resolvedScheduleCardTable || isHeatmap) {
+      return null
+    }
+
+    return {
+      isOpen: true,
+      table: resolvedScheduleCardTable,
+      tableLabel: getFloorTableDialogLabel(resolvedScheduleCardTable),
+      areaLabel: formatFloorTableAreaLabel(layout, resolvedScheduleCardTable),
+      dateLabel: scheduleCardDateLabel,
+      rows: scheduleCardRows,
+      assignmentContext: scheduleCardAssignmentContext,
+      onOpenReservation: handleScheduleCardEdit,
+      onEditReservation: handleScheduleCardEditReservation,
+      onNewReservation: handleScheduleCardNewReservation,
+      onQuickStatusUpdate: handleScheduleCardQuickStatus,
+      onReleaseTable: handleScheduleCardReleaseTable,
+      onClose: () => closeScheduleCardTable('dialog-close'),
+      isSaving,
+      canManageAssignment,
+      nowMinutes,
+      todayKey,
+      floorLayout: layout,
+      reservationSeatings: effectiveSeatings,
+    }
+  }, [
+    canManageAssignment,
+    closeScheduleCardTable,
+    effectiveSeatings,
+    handleScheduleCardEdit,
+    handleScheduleCardEditReservation,
+    handleScheduleCardNewReservation,
+    handleScheduleCardQuickStatus,
+    handleScheduleCardReleaseTable,
+    isCompact,
+    isHeatmap,
+    isSaving,
+    layout,
+    nowMinutes,
+    resolvedScheduleCardTable,
+    scheduleCardAssignmentContext,
+    scheduleCardDateLabel,
+    scheduleCardRows,
+    scheduleCardTableId,
+    todayKey,
+    useTableInspectorDrawer,
+  ])
+
+  useEffect(() => {
+    onTableInspectorChange?.(tableInspectorProps)
+    return () => onTableInspectorChange?.(null)
+  }, [onTableInspectorChange, tableInspectorProps])
+
   const handleMultiTableContinue = useCallback(() => {
     if (!selectedReservation || seatingDraftUnitIds.length === 0) return
 
@@ -9361,7 +9419,7 @@ function FloorPlanView({
         onSplitPlaceholder={handleSplitPlaceholder}
       />
 
-      {isCompact && scheduleCardTableId && resolvedScheduleCardTable && !isHeatmap ? (
+      {isCompact && scheduleCardTableId && resolvedScheduleCardTable && !isHeatmap && !useTableInspectorDrawer ? (
         <FloorTableSeatingDialog
           table={resolvedScheduleCardTable}
           tableLabel={getFloorTableDialogLabel(resolvedScheduleCardTable)}
@@ -9377,6 +9435,10 @@ function FloorPlanView({
           onClose={() => closeScheduleCardTable('dialog-close')}
           isSaving={isSaving}
           canManageAssignment={canManageAssignment}
+          nowMinutes={nowMinutes}
+          todayKey={todayKey}
+          floorLayout={layout}
+          reservationSeatings={effectiveSeatings}
         />
       ) : null}
     </div>
@@ -9511,6 +9573,7 @@ function MobileReservationsHostShellBody({
   const [floorCreatePrefill, setFloorCreatePrefill] = useState(null)
   const [floorEditReservation, setFloorEditReservation] = useState(null)
   const [selectedServiceSeatingId, setSelectedServiceSeatingId] = useState('')
+  const [tableInspectorProps, setTableInspectorProps] = useState(null)
 
   useEffect(() => {
     const activeSeatings = getActiveSeatingsForDate(reservationSeatings, todayKey)
@@ -9694,6 +9757,7 @@ function MobileReservationsHostShellBody({
           selectedSeating={reservationSeatings.find((entry) => entry.id === selectedServiceSeatingId) ?? null}
           onSelectedSeatingChange={setSelectedServiceSeatingId}
           hostQueueAreaFilterId={hostQueueAreaFilterId}
+          onTableInspectorChange={setTableInspectorProps}
         />
       </HostStationErrorBoundary>
     ) : (
@@ -9726,6 +9790,7 @@ function MobileReservationsHostShellBody({
         floorPlanMode,
         isCompact: true,
       })}
+      tableInspectorProps={tableInspectorProps}
     />
   )
 
