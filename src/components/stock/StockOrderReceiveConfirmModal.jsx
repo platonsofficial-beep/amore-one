@@ -4,6 +4,7 @@ import {
   willCompleteOrderAfterReceive,
 } from '../../lib/stockOrderUtils'
 import { formatStockQuantity } from '../../lib/stockUtils'
+import { LoadingButton } from '../LoadingButton'
 
 export function StockOrderReceiveConfirmModal({
   order,
@@ -99,14 +100,15 @@ export function StockOrderReceiveConfirmModal({
           <button type="button" className="ghost-btn" onClick={handleDismiss} disabled={isSaving}>
             Cancel
           </button>
-          <button
+          <LoadingButton
             type="button"
-            className="primary-btn"
+            isLoading={isSaving}
+            loadingLabel="Receiving..."
+            disabled={pendingLines.length === 0}
             onClick={handleConfirm}
-            disabled={isSaving || pendingLines.length === 0}
           >
-            {isSaving ? 'Receiving…' : 'Confirm receive'}
-          </button>
+            Confirm receive
+          </LoadingButton>
         </footer>
       </div>
     </div>

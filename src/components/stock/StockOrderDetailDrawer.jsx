@@ -21,6 +21,7 @@ import {
   normalizeStockOrderStatus,
 } from '../../lib/stockOrderUtils'
 import { formatStockPurchasePrice, formatStockQuantity } from '../../lib/stockUtils'
+import { LoadingButton } from '../LoadingButton'
 import { StockOrderReceiveConfirmModal } from './StockOrderReceiveConfirmModal'
 
 function ReceiveProgressBar({ received, ordered, unit }) {
@@ -760,14 +761,16 @@ export function StockOrderDetailDrawer({
               ) : null}
 
               {showReceivingMode ? (
-                <button
+                <LoadingButton
                   type="button"
-                  className="primary-btn stock-product-history-action-btn"
+                  className="stock-product-history-action-btn"
+                  isLoading={isSaving}
+                  loadingLabel="Receiving..."
+                  disabled={!hasReceiveInput}
                   onClick={openReceiveConfirm}
-                  disabled={isSaving || !hasReceiveInput}
                 >
-                  {isSaving ? 'Receiving…' : `Review receive${hasReceiveInput ? '' : ' — enter quantities'}`}
-                </button>
+                  {`Review receive${hasReceiveInput ? '' : ' — enter quantities'}`}
+                </LoadingButton>
               ) : null}
               </footer>
             </>

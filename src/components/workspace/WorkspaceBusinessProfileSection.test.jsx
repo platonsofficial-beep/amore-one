@@ -58,7 +58,7 @@ describe('WorkspaceBusinessProfileSection save button', () => {
     const button = container.querySelector('.workspace-action-btn')
 
     expect(button?.textContent).toContain('Save Profile')
-    expect(button?.querySelector('.workspace-action-btn-spinner')).toBeNull()
+    expect(button?.querySelector('.btn-loading-spinner')).toBeNull()
 
     cleanup()
   })
@@ -97,9 +97,9 @@ describe('WorkspaceBusinessProfileSection save button', () => {
     const { container, cleanup } = renderSection({ isSaving: true })
     const button = container.querySelector('.workspace-action-btn')
 
-    expect(button?.querySelector('.workspace-action-btn-content')).not.toBeNull()
-    expect(button?.querySelector('.workspace-action-btn-spinner')).not.toBeNull()
-    expect(button?.contains(button.querySelector('.workspace-action-btn-spinner'))).toBe(true)
+    expect(button?.querySelector('.btn-loading-content')).not.toBeNull()
+    expect(button?.querySelector('.btn-loading-spinner')).not.toBeNull()
+    expect(button?.contains(button.querySelector('.btn-loading-spinner'))).toBe(true)
 
     cleanup()
   })

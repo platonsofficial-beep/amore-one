@@ -3,6 +3,7 @@ import {
   WORKSPACE_PROFILE_CURRENCIES,
 } from '../../lib/workspaceProfileOptions'
 import { isWorkspaceProfileConfigured } from '../../lib/workspaceProfileUtils'
+import { LoadingButton } from '../LoadingButton'
 import { WorkspaceTimezonePicker } from './WorkspaceTimezonePicker'
 
 export function WorkspaceBusinessProfileSection({
@@ -185,21 +186,15 @@ export function WorkspaceBusinessProfileSection({
           </div>
 
           <div className="modal-actions">
-            <button
+            <LoadingButton
               type="submit"
-              className={`primary-btn workspace-action-btn${isSaving ? ' is-saving' : ''}`}
-              disabled={isLoading || isSaving || !isDirty}
-              aria-busy={isSaving}
+              className="workspace-action-btn"
+              isLoading={isSaving}
+              loadingLabel="Saving..."
+              disabled={isLoading || !isDirty}
             >
-              {isSaving ? (
-                <span className="workspace-action-btn-content">
-                  <span className="workspace-action-btn-spinner" aria-hidden="true" />
-                  <span>Saving...</span>
-                </span>
-              ) : (
-                'Save Profile'
-              )}
-            </button>
+              Save Profile
+            </LoadingButton>
           </div>
         </form>
       </div>
