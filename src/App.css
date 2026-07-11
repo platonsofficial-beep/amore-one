@@ -6770,13 +6770,13 @@
   --host-floor-reserved-fill: linear-gradient(180deg, rgba(42, 34, 16, 0.98), rgba(12, 10, 8, 0.98));
   --host-floor-reserved-text: rgba(244, 224, 168, 0.9);
   --host-floor-reserved-dot: rgba(232, 196, 110, 0.94);
-  --host-floor-reserved-glow: rgba(212, 175, 55, 0.34);
+  --host-floor-reserved-glow: rgba(212, 175, 55, 0.27);
 
   --host-floor-seated-border: rgba(48, 168, 196, 0.88);
   --host-floor-seated-fill: linear-gradient(180deg, rgba(10, 38, 50, 0.96), rgba(6, 20, 28, 0.98));
   --host-floor-seated-text: rgba(224, 244, 252, 0.94);
   --host-floor-seated-dot: rgba(48, 168, 196, 0.92);
-  --host-floor-seated-glow: rgba(42, 156, 182, 0.22);
+  --host-floor-seated-glow: rgba(42, 156, 182, 0.18);
 
   --host-floor-problem-border: rgba(214, 96, 84, 0.92);
   --host-floor-problem-fill: linear-gradient(180deg, rgba(40, 14, 12, 0.98), rgba(10, 6, 6, 0.98));
@@ -6784,8 +6784,8 @@
   --host-floor-problem-dot: rgba(214, 96, 84, 0.92);
   --host-floor-problem-glow: rgba(176, 74, 52, 0.16);
 
-  --host-floor-combined-accent: rgba(148, 124, 196, 0.52);
-  --host-floor-combined-dot: rgba(148, 124, 196, 0.78);
+  --host-floor-combined-accent: rgba(148, 124, 196, 0.38);
+  --host-floor-combined-dot: rgba(148, 124, 196, 0.62);
 
   --host-floor-surface-transition: border-color 160ms ease, box-shadow 160ms ease, background 160ms ease, background-color 160ms ease;
 }
@@ -8036,15 +8036,6 @@
   min-height: 122px;
 }
 
-.floor-plan-workspace.is-host-floor .floor-table-content .floor-table-time,
-.floor-plan-workspace.is-host-floor .floor-table-content .floor-table-reservation-time {
-  font-size: clamp(0.42rem, 6.5cqb, 0.58rem);
-  font-weight: 600;
-  color: rgba(232, 215, 168, 0.82);
-  line-height: 1.1;
-  flex-shrink: 0;
-}
-
 .floor-plan-workspace.is-host-floor .floor-table-content .floor-table-guest {
   font-size: clamp(0.5rem, 10cqb, 0.78rem);
   font-weight: 700;
@@ -8064,11 +8055,11 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: clamp(3px, 5%, 5px);
+  gap: clamp(3px, 5.5%, 6px);
   width: 100%;
   min-width: 0;
   min-height: 0;
-  padding: clamp(2px, 4%, 4px) clamp(3px, 5%, 5px);
+  padding: clamp(3px, 5%, 5px) clamp(3px, 5%, 5px);
   text-align: center;
 }
 
@@ -8077,29 +8068,41 @@
   padding: clamp(1px, 3%, 3px) clamp(2px, 4%, 4px);
 }
 
+.floor-plan-workspace.is-host-floor .floor-table-content.is-mode-occupied {
+  gap: clamp(2px, 4%, 4px);
+}
+
+.floor-plan-workspace.is-host-floor .floor-table-content.is-mode-occupied.is-tier-small {
+  gap: clamp(1px, 3%, 3px);
+}
+
+.floor-plan-workspace.is-host-floor .floor-table-content.is-mode-occupied.is-tier-very-small {
+  gap: 1px;
+  padding: clamp(1px, 2%, 2px) clamp(2px, 3%, 3px);
+}
+
 .floor-plan-workspace.is-host-floor .floor-table-combined-marker {
   position: absolute;
-  top: clamp(3px, 6%, 5px);
-  right: clamp(3px, 6%, 5px);
+  top: 4px;
+  right: 4px;
   z-index: 3;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 9px;
-  height: 9px;
-  border-radius: 3px;
-  background: rgba(10, 10, 11, 0.72);
-  border: 1px solid var(--host-floor-combined-accent);
+  width: 8px;
+  height: 8px;
+  background: transparent;
+  border: none;
   color: var(--host-floor-combined-dot);
-  font-size: 0.38rem;
+  font-size: 0.44rem;
   line-height: 1;
-  opacity: 0.82;
+  opacity: 0.5;
   pointer-events: none;
 }
 
 .floor-plan-workspace.is-host-floor .floor-table-combined-marker::before {
   content: '⛓';
-  transform: scale(0.88);
+  transform: scale(0.72);
 }
 
 .floor-plan-workspace.is-host-floor .floor-table-content .floor-table-number {
@@ -8116,28 +8119,25 @@
 
 .floor-plan-workspace.is-host-floor .floor-table-content .floor-table-time,
 .floor-plan-workspace.is-host-floor .floor-table-content .floor-table-reservation-time {
-  font-size: clamp(0.5rem, 9cqb, 0.68rem);
+  font-size: clamp(0.48rem, 8.5cqb, 0.66rem);
   font-weight: 500;
-  letter-spacing: 0.04em;
-  line-height: 1.12;
+  letter-spacing: 0.03em;
+  line-height: 1.1;
   font-variant-numeric: tabular-nums;
-  max-width: 92%;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  max-width: 100%;
+  overflow: visible;
+  text-overflow: clip;
   white-space: nowrap;
-  flex-shrink: 0;
+  flex-shrink: 1;
+  min-width: 0;
 }
 
-.floor-plan-workspace.is-host-floor .floor-table-content .floor-table-pax,
-.floor-plan-workspace.is-host-floor .floor-table-content .floor-table-capacity-label {
-  font-size: clamp(0.46rem, 7.5cqb, 0.58rem);
+.floor-plan-workspace.is-host-floor .floor-table-content .floor-table-guest-indicator {
+  font-size: clamp(0.38rem, 5.8cqb, 0.5rem);
   font-weight: 400;
-  letter-spacing: 0.03em;
-  line-height: 1.12;
-  max-width: 92%;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  letter-spacing: 0;
+  line-height: 1.08;
+  max-width: 100%;
   flex-shrink: 0;
 }
 
@@ -8145,12 +8145,23 @@
   font-size: clamp(0.52rem, 11cqb, 0.72rem);
 }
 
-.floor-plan-workspace.is-host-floor .floor-table-content.is-tier-very-small .floor-table-time,
-.floor-plan-workspace.is-host-floor .floor-table-content.is-tier-very-small .floor-table-reservation-time {
-  font-size: clamp(0.46rem, 8cqb, 0.58rem);
+.floor-plan-workspace.is-host-floor .floor-table-content.is-tier-small .floor-table-time,
+.floor-plan-workspace.is-host-floor .floor-table-content.is-tier-small .floor-table-reservation-time {
+  font-size: clamp(0.44rem, 7.5cqb, 0.58rem);
+  line-height: 1.08;
 }
 
-.floor-plan-workspace.is-host-floor .floor-table-content.is-tier-very-small .floor-table-pax,
+.floor-plan-workspace.is-host-floor .floor-table-content.is-tier-very-small .floor-table-time,
+.floor-plan-workspace.is-host-floor .floor-table-content.is-tier-very-small .floor-table-reservation-time {
+  font-size: clamp(0.4rem, 7cqb, 0.52rem);
+  line-height: 1.06;
+  letter-spacing: 0.02em;
+}
+
+.floor-plan-workspace.is-host-floor .floor-table-content.is-tier-very-small .floor-table-guest-indicator {
+  font-size: clamp(0.34rem, 5cqb, 0.44rem);
+}
+
 .floor-plan-workspace.is-host-floor .floor-table-content.is-tier-very-small .floor-table-capacity-label {
   font-size: clamp(0.42rem, 6.5cqb, 0.52rem);
 }
@@ -8261,10 +8272,11 @@
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
   max-width: 100%;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  overflow: visible;
+  text-overflow: clip;
   line-height: 1.1;
-  flex-shrink: 0;
+  flex-shrink: 1;
+  min-width: 0;
 }
 
 .floor-plan-workspace.is-host-floor .floor-table-number {
@@ -8942,7 +8954,7 @@
     var(--host-floor-reserved-fill);
   box-shadow:
     0 0 0 1px rgba(212, 175, 55, 0.18),
-    0 0 20px var(--host-floor-reserved-glow),
+    0 0 16px var(--host-floor-reserved-glow),
     inset 0 0 0 1px rgba(255, 224, 150, 0.08);
   opacity: 1;
 }
@@ -8975,7 +8987,7 @@
     var(--host-floor-seated-fill);
   box-shadow:
     0 0 0 1px rgba(48, 168, 196, 0.2),
-    0 0 16px var(--host-floor-seated-glow),
+    0 0 13px var(--host-floor-seated-glow),
     inset 0 0 0 1px rgba(120, 210, 228, 0.08);
   opacity: 1;
 }
@@ -9008,7 +9020,7 @@
     var(--host-floor-seated-fill);
   box-shadow:
     0 0 0 1px rgba(48, 168, 196, 0.24),
-    0 0 18px var(--host-floor-seated-glow),
+    0 0 14px var(--host-floor-seated-glow),
     inset 0 0 0 1px rgba(120, 210, 228, 0.1);
   opacity: 1;
 }
@@ -9055,7 +9067,7 @@
   box-shadow:
     0 0 0 2px rgba(212, 175, 55, 0.52),
     0 0 0 1px rgba(72, 196, 214, 0.48),
-    0 0 24px var(--host-floor-seated-glow),
+    0 0 19px var(--host-floor-seated-glow),
     inset 0 0 0 1px rgba(168, 236, 248, 0.16);
 }
 
@@ -9065,7 +9077,7 @@
   box-shadow:
     0 0 0 2px rgba(212, 175, 55, 0.52),
     0 0 0 1px rgba(212, 175, 55, 0.38),
-    0 0 24px var(--host-floor-reserved-glow),
+    0 0 19px var(--host-floor-reserved-glow),
     inset 0 0 0 1px rgba(255, 224, 150, 0.14);
 }
 

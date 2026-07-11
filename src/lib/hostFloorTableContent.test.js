@@ -12,7 +12,9 @@ import {
   resolveHostFloorVisualPresentation,
 } from './hostFloorTableVisualState'
 import {
+  buildHostFloorCompactAriaLabel,
   buildHostFloorCompactTableContent,
+  formatHostFloorCompactGuestIndicator,
   formatHostFloorTableLabel,
   hostFloorCompactContentIncludesStatusWords,
   resolveHostFloorTableContentTier,
@@ -156,7 +158,7 @@ describe('hostFloorTableContent', () => {
 
     expect(content.tableLabel).toBe('T11')
     expect(content.timeLabel).toBe('21:00')
-    expect(content.partyLabel).toBe('2 pax')
+    expect(content.partyLabel).toBe('👤2')
     expect(content.mode).toBe('occupied')
   })
 
@@ -169,8 +171,9 @@ describe('hostFloorTableContent', () => {
 
     expect(content.tableLabel).toBe('T11')
     expect(content.timeLabel).toBeNull()
-    expect(content.partyLabel).toBe('4 pax')
+    expect(content.partyLabel).toBe('👤4')
     expect(content.mode).toBe('available')
+    expect(content.partyLabel).not.toContain('pax')
   })
 
   it('hides chair dots for occupied/reserved compact tables', () => {
@@ -304,7 +307,7 @@ describe('hostFloorTableContent', () => {
       displayReservation: reservation,
     })
 
-    expect(content.partyLabel).toBe('2p')
+    expect(content.partyLabel).toBe('👤2')
   })
 
   it('maps legend tones to the same semantic CSS tokens as table states', () => {
@@ -343,11 +346,61 @@ describe('hostFloorTableContent', () => {
     expect(container.textContent).not.toMatch(/reserved|seated|available|in house|occupied|confirmed/i)
     expect(container.textContent).toContain('T11')
     expect(container.textContent).toContain('21:00')
-    expect(container.querySelector('.floor-table-combined-marker')).toBeTruthy()
+    expect(container.textContent).toContain('👤2')
+    expect(container.querySelector('.floor-table-guest-indicator')).toBeTruthy()
 
     act(() => {
       root.unmount()
     })
+  })
+
+  it('uses compact guest indicator for occupied tables', () => {
+    expect(formatHostFloorCompactGuestIndicator(2)).toBe('👤2')
+    expect(formatHostFloorCompactGuestIndicator(4)).toBe('👤4')
+    expect(formatHostFloorCompactGuestIndicator(6)).toBe('👤6')
+  })
+
+  it('never uses pax label on host floor compact tables', () => {
+    const reservation = buildReservation({ status: 'Confirmed', guests: 4 })
+    const operational = resolveFloorTableOperationalState([reservation], 1200, '2026-07-09')
+    const occupiedContent = buildHostFloorCompactTableContent({
+      table: TABLE,
+      operational,
+      displayReservation: reservation,
+    })
+    const availableContent = buildHostFloorCompactTableContent({
+      table: TABLE,
+      operational: resolveFloorTableOperationalState([], 1200, '2026-07-09'),
+    })
+
+    expect(occupiedContent.partyLabel).toBe('👤4')
+    expect(availableContent.partyLabel).toBe('👤4')
+    expect(occupiedContent.partyLabel).not.toContain('pax')
+    expect(availableContent.partyLabel).not.toContain('pax')
+  })
+
+  it('preserves full reservation time without truncation markers', () => {
+    const reservation = buildReservation({ status: 'Confirmed', time: '21:15' })
+    const operational = resolveFloorTableOperationalState([reservation], 1200, '2026-07-09')
+    const content = buildHostFloorCompactTableContent({
+      table: { ...TABLE, widthPercent: 5, heightPercent: 5 },
+      operational,
+      displayReservation: reservation,
+    })
+
+    expect(content.timeLabel).toBe('21:15')
+    expect(content.timeLabel).not.toContain('...')
+  })
+
+  it('builds accessible labels from guest indicator format', () => {
+    const content = {
+      mode: 'occupied',
+      tableLabel: 'T13',
+      timeLabel: '21:15',
+      partyLabel: '👤4',
+    }
+
+    expect(buildHostFloorCompactAriaLabel(content)).toBe('T13, 21:15, 4 guests')
   })
 
   it('renders strict three-line hierarchy for occupied tables', () => {
@@ -361,7 +414,7 @@ describe('hostFloorTableContent', () => {
 
     expect(content.tableLabel).toBe('T11')
     expect(content.timeLabel).toBe('21:15')
-    expect(content.partyLabel).toBe('4 pax')
+    expect(content.partyLabel).toBe('👤4')
     expect(content.statusBadgeText).toBeNull()
   })
 

@@ -1,5 +1,4 @@
 import { formatTime24 } from './timeFormatUtils'
-import { formatHostFloorCapacityLabel, formatHostFloorPartyLabel } from './hostFloorTableLabels'
 import { resolveHostFloorSemanticClass } from './hostFloorTableVisualState'
 
 export const HOST_FLOOR_CONTENT_TIERS = {
@@ -37,30 +36,28 @@ export function resolveHostFloorTableContentTier(table) {
   return HOST_FLOOR_CONTENT_TIERS.NORMAL
 }
 
-export function formatHostFloorCompactPartyLabel(guestCount, { tier = HOST_FLOOR_CONTENT_TIERS.NORMAL } = {}) {
+export function formatHostFloorCompactGuestIndicator(guestCount) {
   const count = Math.max(0, Number(guestCount) || 0)
   if (count <= 0) return ''
-
-  if (tier === HOST_FLOOR_CONTENT_TIERS.VERY_SMALL) {
-    return `${count}p`
-  }
-
-  return formatHostFloorPartyLabel(count)
+  return `👤${count}`
 }
 
-export function formatHostFloorCompactCapacityLabel(table, { tier = HOST_FLOOR_CONTENT_TIERS.NORMAL } = {}) {
+export function formatHostFloorCompactPartyLabel(guestCount) {
+  return formatHostFloorCompactGuestIndicator(guestCount)
+}
+
+export function formatHostFloorCompactCapacityLabel(table) {
   const maxGuests = Math.max(
     0,
     Number(table?.maxGuestCapacity ?? table?.maxGuests ?? table?.seatedCapacity ?? table?.seats) || 0,
   )
 
-  if (maxGuests <= 0) return ''
+  return formatHostFloorCompactGuestIndicator(maxGuests)
+}
 
-  if (tier === HOST_FLOOR_CONTENT_TIERS.VERY_SMALL) {
-    return `${maxGuests}p`
-  }
-
-  return formatHostFloorCapacityLabel(table) || formatHostFloorPartyLabel(maxGuests)
+export function parseHostFloorGuestIndicator(label) {
+  const match = `${label ?? ''}`.match(/^👤(\d+)$/)
+  return match ? Number(match[1]) : null
 }
 
 export function buildHostFloorCompactTableContent({
@@ -85,7 +82,7 @@ export function buildHostFloorCompactTableContent({
       semanticClass: resolvedSemanticClass,
       tableLabel,
       timeLabel: null,
-      partyLabel: formatHostFloorCompactCapacityLabel(table, { tier }),
+      partyLabel: formatHostFloorCompactCapacityLabel(table),
       showChairDots: tier === HOST_FLOOR_CONTENT_TIERS.NORMAL,
       statusBadgeText: null,
     }
@@ -100,7 +97,7 @@ export function buildHostFloorCompactTableContent({
     semanticClass: resolvedSemanticClass,
     tableLabel,
     timeLabel,
-    partyLabel: formatHostFloorCompactPartyLabel(guestCount, { tier }),
+    partyLabel: formatHostFloorCompactPartyLabel(guestCount),
     showChairDots: false,
     statusBadgeText: null,
   }
@@ -124,14 +121,17 @@ export function hostFloorCompactContentIncludesStatusWords(content) {
 export function buildHostFloorCompactAriaLabel(content) {
   if (!content) return 'Table'
 
+  const guestCount = parseHostFloorGuestIndicator(content.partyLabel)
+
   if (content.mode === 'occupied') {
     const parts = [content.tableLabel]
     if (content.timeLabel) parts.push(content.timeLabel)
-    if (content.partyLabel) parts.push(content.partyLabel.replace(/\bp\b/, 'guests'))
+    if (guestCount !== null) parts.push(`${guestCount} guests`)
     return parts.join(', ')
   }
 
   const parts = [content.tableLabel, 'available']
-  if (content.partyLabel) parts.push(content.partyLabel)
+  if (guestCount !== null) parts.push(`${guestCount} seats`)
+  else if (content.partyLabel) parts.push(content.partyLabel)
   return parts.join(', ')
 }

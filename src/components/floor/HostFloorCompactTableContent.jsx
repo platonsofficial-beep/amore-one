@@ -12,15 +12,13 @@ export function HostFloorCompactTableContent({
       {linkMeta?.isMultiLinked ? (
         <span className="floor-table-combined-marker" aria-hidden="true" />
       ) : null}
-      <div className={`floor-table-content is-tier-${content.tier}`}>
+      <div className={`floor-table-content is-tier-${content.tier} is-mode-${content.mode}`}>
         <span className="floor-table-number">{content.tableLabel}</span>
         {content.timeLabel ? (
           <span className="floor-table-time floor-table-reservation-time">{content.timeLabel}</span>
         ) : null}
         {content.partyLabel ? (
-          <span className={content.mode === 'available' ? 'floor-table-capacity-label' : 'floor-table-pax'}>
-            {content.partyLabel}
-          </span>
+          <span className="floor-table-guest-indicator">{content.partyLabel}</span>
         ) : null}
         {content.showChairDots ? (
           <FloorTableSeatingIndicators indicators={seatingIndicators} />

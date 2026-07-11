@@ -43,13 +43,13 @@ export const HOST_FLOOR_SEMANTIC_CSS_VARS = {
   '--host-floor-reserved-fill': 'linear-gradient(180deg, rgba(42, 34, 16, 0.98), rgba(12, 10, 8, 0.98))',
   '--host-floor-reserved-text': 'rgba(244, 224, 168, 0.9)',
   '--host-floor-reserved-dot': 'rgba(232, 196, 110, 0.94)',
-  '--host-floor-reserved-glow': 'rgba(212, 175, 55, 0.34)',
+  '--host-floor-reserved-glow': 'rgba(212, 175, 55, 0.27)',
 
   '--host-floor-seated-border': 'rgba(48, 168, 196, 0.88)',
   '--host-floor-seated-fill': 'linear-gradient(180deg, rgba(10, 38, 50, 0.96), rgba(6, 20, 28, 0.98))',
   '--host-floor-seated-text': 'rgba(224, 244, 252, 0.94)',
   '--host-floor-seated-dot': 'rgba(48, 168, 196, 0.92)',
-  '--host-floor-seated-glow': 'rgba(42, 156, 182, 0.22)',
+  '--host-floor-seated-glow': 'rgba(42, 156, 182, 0.18)',
 
   '--host-floor-problem-border': 'rgba(214, 96, 84, 0.92)',
   '--host-floor-problem-fill': 'linear-gradient(180deg, rgba(40, 14, 12, 0.98), rgba(10, 6, 6, 0.98))',
@@ -57,8 +57,8 @@ export const HOST_FLOOR_SEMANTIC_CSS_VARS = {
   '--host-floor-problem-dot': 'rgba(214, 96, 84, 0.92)',
   '--host-floor-problem-glow': 'rgba(176, 74, 52, 0.16)',
 
-  '--host-floor-combined-accent': 'rgba(148, 124, 196, 0.52)',
-  '--host-floor-combined-dot': 'rgba(148, 124, 196, 0.78)',
+  '--host-floor-combined-accent': 'rgba(148, 124, 196, 0.38)',
+  '--host-floor-combined-dot': 'rgba(148, 124, 196, 0.62)',
 }
 
 export function resolveHostFloorLegendToneToken(tone) {
