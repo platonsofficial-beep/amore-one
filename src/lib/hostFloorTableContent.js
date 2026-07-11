@@ -15,6 +15,7 @@ const HOST_FLOOR_STATUS_BADGE_WORDS = [
   'AVAILABLE',
   'IN HOUSE',
   'OCCUPIED',
+  'CONFIRMED',
 ]
 
 export function formatHostFloorTableLabel(table) {
@@ -85,7 +86,7 @@ export function buildHostFloorCompactTableContent({
       tableLabel,
       timeLabel: null,
       partyLabel: formatHostFloorCompactCapacityLabel(table, { tier }),
-      showChairDots: tier !== HOST_FLOOR_CONTENT_TIERS.VERY_SMALL,
+      showChairDots: tier === HOST_FLOOR_CONTENT_TIERS.NORMAL,
       statusBadgeText: null,
     }
   }

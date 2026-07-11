@@ -10,11 +10,9 @@ export function HostFloorCompactTableContent({
   return (
     <>
       {linkMeta?.isMultiLinked ? (
-        <div className="floor-table-chrome">
-          <span className="floor-table-linked-badge" aria-hidden="true" />
-        </div>
+        <span className="floor-table-combined-marker" aria-hidden="true" />
       ) : null}
-      <div className="floor-table-content">
+      <div className={`floor-table-content is-tier-${content.tier}`}>
         <span className="floor-table-number">{content.tableLabel}</span>
         {content.timeLabel ? (
           <span className="floor-table-time floor-table-reservation-time">{content.timeLabel}</span>

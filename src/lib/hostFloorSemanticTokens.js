@@ -25,6 +25,7 @@ export const HOST_FLOOR_SEMANTIC_TOKENS = {
     fill: 'var(--host-floor-problem-fill)',
     text: 'var(--host-floor-problem-text)',
     dot: 'var(--host-floor-problem-dot)',
+    glow: 'var(--host-floor-problem-glow)',
   },
   combined: {
     accent: 'var(--host-floor-combined-accent)',
@@ -33,30 +34,31 @@ export const HOST_FLOOR_SEMANTIC_TOKENS = {
 }
 
 export const HOST_FLOOR_SEMANTIC_CSS_VARS = {
-  '--host-floor-available-border': 'rgba(127, 154, 134, 0.55)',
-  '--host-floor-available-fill': 'rgba(8, 8, 9, 0.94)',
-  '--host-floor-available-text': 'rgba(196, 224, 202, 0.82)',
-  '--host-floor-available-dot': 'rgba(127, 154, 134, 0.72)',
+  '--host-floor-available-border': 'rgba(108, 138, 116, 0.42)',
+  '--host-floor-available-fill': 'rgba(8, 8, 9, 0.96)',
+  '--host-floor-available-text': 'rgba(188, 210, 192, 0.88)',
+  '--host-floor-available-dot': 'rgba(108, 138, 116, 0.72)',
 
-  '--host-floor-reserved-border': 'rgba(255, 224, 150, 0.78)',
-  '--host-floor-reserved-fill': 'linear-gradient(180deg, rgba(48, 38, 18, 0.98), rgba(14, 12, 10, 0.98))',
-  '--host-floor-reserved-text': 'rgba(240, 215, 138, 0.82)',
-  '--host-floor-reserved-dot': 'rgba(255, 214, 120, 0.92)',
-  '--host-floor-reserved-glow': 'rgba(212, 175, 55, 0.28)',
+  '--host-floor-reserved-border': 'rgba(232, 196, 110, 0.92)',
+  '--host-floor-reserved-fill': 'linear-gradient(180deg, rgba(42, 34, 16, 0.98), rgba(12, 10, 8, 0.98))',
+  '--host-floor-reserved-text': 'rgba(244, 224, 168, 0.9)',
+  '--host-floor-reserved-dot': 'rgba(232, 196, 110, 0.94)',
+  '--host-floor-reserved-glow': 'rgba(212, 175, 55, 0.34)',
 
-  '--host-floor-seated-border': 'rgba(72, 196, 214, 0.92)',
-  '--host-floor-seated-fill': 'linear-gradient(180deg, rgba(10, 42, 54, 0.94), rgba(6, 22, 30, 0.98))',
-  '--host-floor-seated-text': 'rgba(236, 248, 252, 0.94)',
-  '--host-floor-seated-dot': 'rgba(72, 196, 214, 0.92)',
-  '--host-floor-seated-glow': 'rgba(56, 164, 186, 0.28)',
+  '--host-floor-seated-border': 'rgba(48, 168, 196, 0.88)',
+  '--host-floor-seated-fill': 'linear-gradient(180deg, rgba(10, 38, 50, 0.96), rgba(6, 20, 28, 0.98))',
+  '--host-floor-seated-text': 'rgba(224, 244, 252, 0.94)',
+  '--host-floor-seated-dot': 'rgba(48, 168, 196, 0.92)',
+  '--host-floor-seated-glow': 'rgba(42, 156, 182, 0.22)',
 
-  '--host-floor-problem-border': 'rgba(224, 120, 108, 0.88)',
-  '--host-floor-problem-fill': 'linear-gradient(180deg, rgba(44, 16, 14, 0.98), rgba(12, 8, 8, 0.98))',
-  '--host-floor-problem-text': 'rgba(255, 232, 226, 0.94)',
+  '--host-floor-problem-border': 'rgba(214, 96, 84, 0.92)',
+  '--host-floor-problem-fill': 'linear-gradient(180deg, rgba(40, 14, 12, 0.98), rgba(10, 6, 6, 0.98))',
+  '--host-floor-problem-text': 'rgba(255, 228, 222, 0.94)',
   '--host-floor-problem-dot': 'rgba(214, 96, 84, 0.92)',
+  '--host-floor-problem-glow': 'rgba(176, 74, 52, 0.16)',
 
-  '--host-floor-combined-accent': 'rgba(167, 139, 212, 0.72)',
-  '--host-floor-combined-dot': 'rgba(167, 139, 212, 0.88)',
+  '--host-floor-combined-accent': 'rgba(148, 124, 196, 0.52)',
+  '--host-floor-combined-dot': 'rgba(148, 124, 196, 0.78)',
 }
 
 export function resolveHostFloorLegendToneToken(tone) {

@@ -185,14 +185,22 @@ describe('hostFloorTableContent', () => {
     expect(content.showChairDots).toBe(false)
   })
 
-  it('shows chair dots only for available tables when they fit', () => {
+  it('shows chair dots only for normal-sized available tables', () => {
     const operational = resolveFloorTableOperationalState([], 1200, '2026-07-09')
-    const content = buildHostFloorCompactTableContent({
-      table: TABLE,
+    const normalTable = { ...TABLE, widthPercent: 12, heightPercent: 12 }
+    const smallTable = { ...TABLE, widthPercent: 8, heightPercent: 8 }
+
+    const normalContent = buildHostFloorCompactTableContent({
+      table: normalTable,
+      operational,
+    })
+    const smallContent = buildHostFloorCompactTableContent({
+      table: smallTable,
       operational,
     })
 
-    expect(content.showChairDots).toBe(true)
+    expect(normalContent.showChairDots).toBe(true)
+    expect(smallContent.showChairDots).toBe(false)
   })
 
   it('never combines dinner 1 and dinner 2 reservations in one compact table', () => {
@@ -327,18 +335,34 @@ describe('hostFloorTableContent', () => {
     act(() => {
       root.render(createElement(HostFloorCompactTableContent, {
         content,
-        linkMeta: null,
+        linkMeta: { isMultiLinked: true },
         seatingIndicators: [],
       }))
     })
 
-    expect(container.textContent).not.toMatch(/reserved|seated|available|in house|occupied/i)
+    expect(container.textContent).not.toMatch(/reserved|seated|available|in house|occupied|confirmed/i)
     expect(container.textContent).toContain('T11')
     expect(container.textContent).toContain('21:00')
+    expect(container.querySelector('.floor-table-combined-marker')).toBeTruthy()
 
     act(() => {
       root.unmount()
     })
+  })
+
+  it('renders strict three-line hierarchy for occupied tables', () => {
+    const reservation = buildReservation({ status: 'Confirmed', time: '21:15', guests: 4 })
+    const operational = resolveFloorTableOperationalState([reservation], 1200, '2026-07-09')
+    const content = buildHostFloorCompactTableContent({
+      table: TABLE,
+      operational,
+      displayReservation: reservation,
+    })
+
+    expect(content.tableLabel).toBe('T11')
+    expect(content.timeLabel).toBe('21:15')
+    expect(content.partyLabel).toBe('4 pax')
+    expect(content.statusBadgeText).toBeNull()
   })
 
   it('formats table labels consistently', () => {
