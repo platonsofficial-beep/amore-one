@@ -764,7 +764,7 @@ export function StockOrderDetailDrawer({
                 <LoadingButton
                   type="button"
                   className="stock-product-history-action-btn"
-                  isLoading={isSaving}
+                  loading={isSaving}
                   loadingLabel="Receiving..."
                   disabled={!hasReceiveInput}
                   onClick={openReceiveConfirm}

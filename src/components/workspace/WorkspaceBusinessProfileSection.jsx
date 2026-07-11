@@ -3,6 +3,7 @@ import {
   WORKSPACE_PROFILE_CURRENCIES,
 } from '../../lib/workspaceProfileOptions'
 import { isWorkspaceProfileConfigured } from '../../lib/workspaceProfileUtils'
+import { useState } from 'react'
 import { LoadingButton } from '../LoadingButton'
 import { WorkspaceTimezonePicker } from './WorkspaceTimezonePicker'
 
@@ -20,6 +21,20 @@ export function WorkspaceBusinessProfileSection({
   const noticeIsError = Boolean(
     noticeMessage && !/saved|updated|success/i.test(noticeMessage),
   )
+  const [isSubmitting, setIsSubmitting] = useState(false)
+
+  const handleSave = async () => {
+    if (isLoading || isSaving || isSubmitting || !isDirty) return
+
+    setIsSubmitting(true)
+    try {
+      await onSubmit?.()
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  const isSavePending = isSaving || isSubmitting
 
   return (
     <>
@@ -60,8 +75,7 @@ export function WorkspaceBusinessProfileSection({
           className="employee-form"
           onSubmit={(event) => {
             event.preventDefault()
-            if (isLoading || isSaving || !isDirty) return
-            onSubmit()
+            void handleSave()
           }}
         >
           <div className="form-grid">
@@ -71,7 +85,7 @@ export function WorkspaceBusinessProfileSection({
                 value={workspaceProfile.businessName}
                 onChange={(event) => onChange({ ...workspaceProfile, businessName: event.target.value })}
                 placeholder="e.g. Amore Nicosia"
-                disabled={isLoading || isSaving}
+                disabled={isLoading || isSavePending}
               />
             </label>
             <label className="form-field">
@@ -80,7 +94,7 @@ export function WorkspaceBusinessProfileSection({
                 value={workspaceProfile.managerName}
                 onChange={(event) => onChange({ ...workspaceProfile, managerName: event.target.value })}
                 placeholder="Full name"
-                disabled={isLoading || isSaving}
+                disabled={isLoading || isSavePending}
               />
             </label>
             <label className="form-field">
@@ -89,7 +103,7 @@ export function WorkspaceBusinessProfileSection({
                 value={workspaceProfile.managerRole}
                 onChange={(event) => onChange({ ...workspaceProfile, managerRole: event.target.value })}
                 placeholder="e.g. General Manager"
-                disabled={isLoading || isSaving}
+                disabled={isLoading || isSavePending}
               />
             </label>
             <label className="form-field">
@@ -97,7 +111,7 @@ export function WorkspaceBusinessProfileSection({
               <WorkspaceTimezonePicker
                 value={workspaceProfile.timezone}
                 onChange={(timezone) => onChange({ ...workspaceProfile, timezone })}
-                disabled={isLoading || isSaving}
+                disabled={isLoading || isSavePending}
                 countryCode={workspaceProfile.countryCode}
                 countryName={workspaceProfile.countryName}
                 city={workspaceProfile.city}
@@ -108,7 +122,7 @@ export function WorkspaceBusinessProfileSection({
               <select
                 value={workspaceProfile.currency}
                 onChange={(event) => onChange({ ...workspaceProfile, currency: event.target.value })}
-                disabled={isLoading || isSaving}
+                disabled={isLoading || isSavePending}
               >
                 <option value="">Not set</option>
                 {WORKSPACE_PROFILE_CURRENCIES.map((option) => (
@@ -123,7 +137,7 @@ export function WorkspaceBusinessProfileSection({
                 onChange={(event) => onChange({ ...workspaceProfile, countryCode: event.target.value.toUpperCase() })}
                 placeholder="CY"
                 maxLength={2}
-                disabled={isLoading || isSaving}
+                disabled={isLoading || isSavePending}
               />
             </label>
             <label className="form-field">
@@ -132,7 +146,7 @@ export function WorkspaceBusinessProfileSection({
                 value={workspaceProfile.countryName}
                 onChange={(event) => onChange({ ...workspaceProfile, countryName: event.target.value })}
                 placeholder="Cyprus"
-                disabled={isLoading || isSaving}
+                disabled={isLoading || isSavePending}
               />
             </label>
             <label className="form-field">
@@ -141,7 +155,7 @@ export function WorkspaceBusinessProfileSection({
                 value={workspaceProfile.city}
                 onChange={(event) => onChange({ ...workspaceProfile, city: event.target.value })}
                 placeholder="Nicosia"
-                disabled={isLoading || isSaving}
+                disabled={isLoading || isSavePending}
               />
             </label>
             <label className="form-field">
@@ -150,7 +164,7 @@ export function WorkspaceBusinessProfileSection({
                 value={workspaceProfile.defaultPhoneCountryCode}
                 onChange={(event) => onChange({ ...workspaceProfile, defaultPhoneCountryCode: event.target.value })}
                 placeholder="+357"
-                disabled={isLoading || isSaving}
+                disabled={isLoading || isSavePending}
               />
             </label>
             <label className="form-field full-width">
@@ -170,12 +184,12 @@ export function WorkspaceBusinessProfileSection({
                       type="file"
                       accept="image/png,image/jpeg,image/webp,image/svg+xml"
                       onChange={onLogoFileChange}
-                      disabled={isLoading || isSaving}
+                      disabled={isLoading || isSavePending}
                       hidden
                     />
                   </label>
                   {workspaceProfile.logoUrl ? (
-                    <button type="button" className="ghost-btn small" onClick={onClearLogo} disabled={isLoading || isSaving}>
+                    <button type="button" className="ghost-btn small" onClick={onClearLogo} disabled={isLoading || isSavePending}>
                       Remove logo
                     </button>
                   ) : null}
@@ -189,7 +203,7 @@ export function WorkspaceBusinessProfileSection({
             <LoadingButton
               type="submit"
               className="workspace-action-btn"
-              isLoading={isSaving}
+              loading={isSavePending}
               loadingLabel="Saving..."
               disabled={isLoading || !isDirty}
             >

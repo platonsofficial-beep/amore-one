@@ -46,7 +46,7 @@ describe('LoadingButton', () => {
 
   it('renders spinner and loading label inside the button while loading', () => {
     const { container, cleanup } = renderButton({
-      isLoading: true,
+      loading: true,
       loadingLabel: 'Saving...',
       children: 'Save Profile',
     })
@@ -63,7 +63,7 @@ describe('LoadingButton', () => {
 
   it('applies shared loading classes while loading', () => {
     const { container, cleanup } = renderButton({
-      isLoading: true,
+      loading: true,
       loadingLabel: 'Receiving...',
     })
     const button = container.querySelector('button')
@@ -79,7 +79,7 @@ describe('LoadingButton', () => {
   })
 
   it('disables the button while loading', () => {
-    const { container, cleanup } = renderButton({ isLoading: true })
+    const { container, cleanup } = renderButton({ loading: true })
 
     expect(container.querySelector('button')?.disabled).toBe(true)
 
@@ -88,7 +88,7 @@ describe('LoadingButton', () => {
 
   it('does not fire click while loading', () => {
     const onClick = vi.fn()
-    const { container, cleanup } = renderButton({ isLoading: true, onClick })
+    const { container, cleanup } = renderButton({ loading: true, onClick })
 
     act(() => {
       container.querySelector('button')?.click()
@@ -99,12 +99,47 @@ describe('LoadingButton', () => {
     cleanup()
   })
 
+  it('shows loading content while an async click handler is in flight', async () => {
+    let resolveClick
+    const onClick = vi.fn(() => new Promise((resolve) => {
+      resolveClick = resolve
+    }))
+    const { container, cleanup } = renderButton({ onClick, children: 'Confirm receive' })
+    const button = container.querySelector('button')
+
+    await act(async () => {
+      button?.click()
+      await Promise.resolve()
+    })
+
+    expect(onClick).toHaveBeenCalledTimes(1)
+    expect(button?.textContent).toContain('Confirm receive')
+    expect(button?.querySelector('.btn-loading-content')).not.toBeNull()
+
+    await act(async () => {
+      resolveClick()
+      await Promise.resolve()
+    })
+
+    expect(button?.querySelector('.btn-loading-content')).toBeNull()
+
+    cleanup()
+  })
+
   it('supports ghost variant class', () => {
     const { container, cleanup } = renderButton({ variant: 'ghost', children: 'Cancel' })
     const button = container.querySelector('button')
 
     expect(button?.className).toContain('ghost-btn')
     expect(button?.className).not.toContain('primary-btn')
+
+    cleanup()
+  })
+
+  it('supports legacy isLoading prop', () => {
+    const { container, cleanup } = renderButton({ isLoading: true, loadingLabel: 'Saving...' })
+
+    expect(container.querySelector('.btn-loading-content')).not.toBeNull()
 
     cleanup()
   })

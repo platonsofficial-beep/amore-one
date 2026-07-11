@@ -43,14 +43,27 @@ function renderModal(props = {}) {
 }
 
 describe('StockOrderReceiveConfirmModal confirm button', () => {
-  it('keeps the loading spinner inside the confirm button while receiving', () => {
-    const { container, cleanup } = renderModal({ isSaving: true })
+  it('keeps the loading spinner inside the confirm button while receiving', async () => {
+    let resolveConfirm
+    const onConfirm = vi.fn(() => new Promise((resolve) => {
+      resolveConfirm = resolve
+    }))
+    const { container, cleanup } = renderModal({ isSaving: false, onConfirm })
     const button = container.querySelector('.primary-btn')
-    const spinner = button?.querySelector('.btn-loading-spinner')
+
+    await act(async () => {
+      button?.click()
+      await Promise.resolve()
+    })
 
     expect(button?.textContent).toContain('Receiving...')
-    expect(spinner).not.toBeNull()
-    expect(button?.contains(spinner)).toBe(true)
+    expect(button?.querySelector('.btn-loading-spinner')).not.toBeNull()
+    expect(button?.contains(button.querySelector('.btn-loading-spinner'))).toBe(true)
+
+    await act(async () => {
+      resolveConfirm()
+      await Promise.resolve()
+    })
 
     cleanup()
   })

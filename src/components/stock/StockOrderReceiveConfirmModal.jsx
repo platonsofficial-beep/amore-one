@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import {
   buildPendingReceiveLines,
   formatStockOrderNumber,
@@ -16,16 +17,25 @@ export function StockOrderReceiveConfirmModal({
   const pendingLines = buildPendingReceiveLines(order, receiveNowByItemId)
   const willComplete = willCompleteOrderAfterReceive(order, receiveNowByItemId)
   const totalUnitsReceiving = pendingLines.reduce((sum, line) => sum + line.receiveNow, 0)
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   const handleDismiss = () => {
-    if (isSaving) return
+    if (isSaving || isSubmitting) return
     onClose()
   }
 
-  const handleConfirm = () => {
-    if (isSaving) return
-    onConfirm()
+  const handleConfirm = async () => {
+    if (isSaving || isSubmitting) return
+
+    setIsSubmitting(true)
+    try {
+      await onConfirm?.()
+    } finally {
+      setIsSubmitting(false)
+    }
   }
+
+  const isReceivePending = isSaving || isSubmitting
 
   return (
     <div className="employee-modal-backdrop stock-order-receive-confirm-backdrop task-modal-backdrop" onClick={handleDismiss}>
@@ -35,7 +45,7 @@ export function StockOrderReceiveConfirmModal({
         role="dialog"
         aria-modal="true"
         aria-labelledby="stock-order-receive-confirm-title"
-        aria-busy={isSaving}
+        aria-busy={isReceivePending}
       >
         <header className="stock-create-order-header">
           <div>
@@ -49,7 +59,7 @@ export function StockOrderReceiveConfirmModal({
             type="button"
             className="icon-btn stock-create-order-close"
             onClick={handleDismiss}
-            disabled={isSaving}
+            disabled={isReceivePending}
             aria-label="Close receive confirmation"
           >
             ✕
@@ -97,12 +107,12 @@ export function StockOrderReceiveConfirmModal({
         </div>
 
         <footer className="stock-create-order-footer">
-          <button type="button" className="ghost-btn" onClick={handleDismiss} disabled={isSaving}>
+          <button type="button" className="ghost-btn" onClick={handleDismiss} disabled={isReceivePending}>
             Cancel
           </button>
           <LoadingButton
             type="button"
-            isLoading={isSaving}
+            loading={isReceivePending}
             loadingLabel="Receiving..."
             disabled={pendingLines.length === 0}
             onClick={handleConfirm}

@@ -80,15 +80,28 @@ describe('WorkspaceBusinessProfileSection save button', () => {
     cleanup()
   })
 
-  it('does not submit twice while saving', () => {
-    const onSubmit = vi.fn()
-    const { container, cleanup } = renderSection({ isSaving: true, onSubmit })
+  it('does not submit twice while saving', async () => {
+    let resolveSave
+    const onSubmit = vi.fn(() => new Promise((resolve) => {
+      resolveSave = resolve
+    }))
+    const { container, cleanup } = renderSection({ onSubmit })
 
-    act(() => {
-      container.querySelector('form')?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+    await act(async () => {
+      container.querySelector('form')?.requestSubmit()
+      await Promise.resolve()
     })
 
-    expect(onSubmit).not.toHaveBeenCalled()
+    await act(async () => {
+      container.querySelector('form')?.requestSubmit()
+    })
+
+    expect(onSubmit).toHaveBeenCalledTimes(1)
+
+    await act(async () => {
+      resolveSave()
+      await Promise.resolve()
+    })
 
     cleanup()
   })
