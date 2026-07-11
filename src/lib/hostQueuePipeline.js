@@ -23,6 +23,16 @@ import {
 
 export const HOST_QUEUE_ALL_AREAS = '__all__'
 export const HOST_QUEUE_UNASSIGNED_AREA = '__unassigned__'
+export const HOST_QUEUE_META_SEPARATOR = '  •  '
+
+function formatHostQueueTableAriaLabel(tableSegment) {
+  if (tableSegment === 'Unassigned') return 'table unassigned'
+  if (tableSegment.includes(' + ')) {
+    const tables = tableSegment.split(' + ').join(' and ')
+    return `tables ${tables}`
+  }
+  return `table ${tableSegment}`
+}
 
 export const HOST_QUEUE_DEFAULT_SORT = 'time-asc'
 
@@ -543,10 +553,10 @@ export function buildHostQueueRowPresentation(reservation, layout = null) {
   const { visible, overflowCount } = summarizeHostQueueNoteBadges(chipBadges)
 
   return {
-    metaLine: metaParts.join('   '),
+    metaLine: metaParts.join(HOST_QUEUE_META_SEPARATOR),
     metaAriaLabel: [
-      `${partySize} guests`,
-      tableSegment === 'Unassigned' ? 'table unassigned' : `table ${tableSegment}`,
+      `${partySize} guest${partySize === 1 ? '' : 's'}`,
+      formatHostQueueTableAriaLabel(tableSegment),
       extraChairs > 0 ? `${extraChairs} extra chair${extraChairs === 1 ? '' : 's'}` : '',
       standingGuests > 0 ? `${standingGuests} standing guest${standingGuests === 1 ? '' : 's'}` : '',
     ].filter(Boolean).join(', '),

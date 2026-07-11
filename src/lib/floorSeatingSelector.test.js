@@ -95,4 +95,59 @@ describe('FloorSeatingSelector', () => {
     expect(container.querySelector('.floor-seating-selector-legend')).toBeTruthy()
     expect(container.querySelectorAll('.floor-plan-legend-chip')).toHaveLength(2)
   })
+
+  it('renders seating chip operational metrics line', () => {
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    act(() => {
+      root.render(createElement(FloorSeatingSelector, {
+        seatings: SEATINGS,
+        selectedSeatingId: 'brunch',
+        onSelect: () => {},
+        summaries: {
+          brunch: {
+            occupiedTables: 18,
+            totalTables: 37,
+            operationalMetrics: {
+              expectedGuests: 35,
+              expectedAssignedTables: 17,
+              inHouseGuests: 2,
+            },
+          },
+        },
+      }))
+    })
+
+    expect(container.querySelector('.floor-seating-selector-chip-metrics')?.textContent)
+      .toBe('👥35 · 🍽17 · 🪑2')
+  })
+
+  it('includes responsive hide rule for seating chip metrics', () => {
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+
+    act(() => {
+      root.render(createElement(FloorSeatingSelector, {
+        seatings: SEATINGS,
+        selectedSeatingId: 'brunch',
+        onSelect: () => {},
+        summaries: {
+          brunch: {
+            occupiedTables: 18,
+            totalTables: 37,
+            operationalMetrics: {
+              expectedGuests: 35,
+              expectedAssignedTables: 17,
+              inHouseGuests: 2,
+            },
+          },
+        },
+      }))
+    })
+
+    expect(container.querySelector('.floor-seating-selector-chip-metrics')).toBeTruthy()
+  })
 })

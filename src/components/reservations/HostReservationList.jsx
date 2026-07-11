@@ -24,6 +24,7 @@ import {
 } from './hostReservationListUtils'
 import { getHostListEmptyState } from '../../lib/reservationServiceIntelligence'
 import { groupHostQueueOperationalSections } from '../../lib/hostQueuePipeline'
+import { groupHostQueueReservationsByTime } from '../../lib/hostQueueTimeGroups'
 import { HostQueueReservationDetails, HostQueueNameIndicators } from '../mobile/reservations/HostQueueReservationDetails'
 import { buildHostQueueRowPresentation } from '../../lib/hostQueuePipeline'
 import { HostReservationStatusPicker } from './HostReservationStatusPicker'
@@ -72,6 +73,7 @@ function HostReservationListRow({
   onOpenRowMenu = null,
   layout = 'default',
   floorLayout = null,
+  hideScheduleTime = false,
   useHostQueuePresentation = false,
   helpers,
 }) {
@@ -93,6 +95,7 @@ function HostReservationListRow({
     ? getHostListCompactStatusPresentation(reservation, nowMinutes, todayKey)
     : { label: getHostListCompactStatusLabel(displayStatus), severity: null }
   const compactStatusLabel = statusPresentation.label
+  const isLateWithDuration = /^Late \d+m$/.test(compactStatusLabel)
   const nameIndicators = useHostQueuePresentation
     ? buildHostQueueRowPresentation(reservation, floorLayout).nameIndicators
     : []
@@ -126,7 +129,7 @@ function HostReservationListRow({
 
   return (
     <article
-      className={`host-reservation-card tone-${statusMeta.tone}${isSelected ? ' is-selected' : ''}${isEditing ? ' is-editing' : ''}${isDragging ? ' is-dragging' : ''}${isStatusPickerOpen ? ' is-status-picker-open' : ''}${isNextArrival ? ' is-next-arrival' : ''}${isCompactTablet ? ' is-compact-tablet' : ''}`}
+      className={`host-reservation-card tone-${statusMeta.tone}${isSelected ? ' is-selected' : ''}${isEditing ? ' is-editing' : ''}${isDragging ? ' is-dragging' : ''}${isStatusPickerOpen ? ' is-status-picker-open' : ''}${isNextArrival ? ' is-next-arrival' : ''}${isCompactTablet ? ' is-compact-tablet' : ''}${hideScheduleTime ? ' is-time-grouped' : ''}`}
       role="listitem"
       tabIndex={0}
       draggable={!isCompactTablet}
@@ -141,7 +144,9 @@ function HostReservationListRow({
       }}
     >
       <div className="host-reservation-card-main">
-        <span className="host-reservation-card-time">{scheduleLabel}</span>
+        {!hideScheduleTime ? (
+          <span className="host-reservation-card-time">{scheduleLabel}</span>
+        ) : null}
 
         <div className="host-reservation-card-body">
           <div className="host-reservation-card-title-row">
@@ -153,7 +158,7 @@ function HostReservationListRow({
           ) : null}
           <strong className="host-reservation-card-guest">{guestName}</strong>
           <HostQueueNameIndicators indicators={nameIndicators} />
-          {warnings.length > 0 ? (
+          {warnings.length > 0 && !isLateWithDuration ? (
             <span className="host-reservation-card-warning" title="Needs attention" aria-label="Needs attention">
               !
             </span>
@@ -321,6 +326,23 @@ export function HostReservationList({
   )
 
   if (!totalVisible) {
+    if (useHostQueuePresentation) {
+      return (
+        <div className="host-reservation-list-empty is-host-queue-empty">
+          <p className="host-reservation-list-empty-title">No reservations match the current filters.</p>
+          {onClearQueueFilters ? (
+            <button
+              type="button"
+              className="host-queue-toolbar-clear"
+              onClick={onClearQueueFilters}
+            >
+              Clear filters
+            </button>
+          ) : null}
+        </div>
+      )
+    }
+
     const emptyState = queueEmptyState ?? getHostListEmptyState({
       filter: listFilter,
       searchTerm,
@@ -356,6 +378,9 @@ export function HostReservationList({
           .filter((section) => section.reservations.length > 0)
           .map((section) => {
           const isCollapsed = collapsedSections.has(section.id)
+          const timeGroups = sortId
+            ? groupHostQueueReservationsByTime(section.reservations, sortId)
+            : null
           const sectionTone = HOST_LIST_OPERATIONAL_SECTION_DEFS.find(
             (entry) => entry.id === section.id,
           )?.id === 'problems' ? 'cancelled' : (
@@ -389,7 +414,43 @@ export function HostReservationList({
 
               {!isCollapsed && section.reservations.length > 0 ? (
                 <div className="host-reservation-group-items" role="list">
-                  {section.reservations.map((reservation) => (
+                  {timeGroups ? timeGroups.map((group) => (
+                    <div key={`${section.id}-${group.timeKey}`} className="host-queue-time-group">
+                      <div className="host-queue-time-group-header">
+                        <span className="host-queue-time-group-label">{group.timeLabel}</span>
+                        <span className="host-queue-time-group-count">({group.count})</span>
+                      </div>
+                      <div className="host-queue-time-group-items" role="list">
+                        {group.reservations.map((reservation) => (
+                          <HostReservationListRow
+                            key={reservation.id}
+                            reservation={reservation}
+                            nowMinutes={nowMinutes}
+                            todayKey={todayKey}
+                            isSelected={isSelected(reservation)}
+                            isEditing={hostEditingReservation
+                              && String(hostEditingReservation.id) === String(reservation.id)}
+                            isDragging={draggingReservationId === String(reservation.id)}
+                            isStatusPickerOpen={String(statusPicker?.reservation?.id) === String(reservation.id)}
+                            isNextArrival={nextArrivalId !== null
+                              && String(nextArrivalId) === String(reservation.id)}
+                            isSavingStatus={isSavingStatus}
+                            onOpenEdit={onOpenEdit}
+                            onOpenStatusPicker={handleOpenStatusPicker}
+                            onQuickStatusUpdate={onStatusChange}
+                            onDragStart={(event) => onDragStart(event, reservation)}
+                            onDragEnd={onDragEnd}
+                            onOpenRowMenu={onOpenRowMenu}
+                            layout={layout}
+                            floorLayout={floorLayout}
+                            hideScheduleTime
+                            useHostQueuePresentation={useHostQueuePresentation}
+                            helpers={helpers}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  )) : section.reservations.map((reservation) => (
                     <HostReservationListRow
                       key={reservation.id}
                       reservation={reservation}

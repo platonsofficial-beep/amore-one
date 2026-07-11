@@ -4527,6 +4527,72 @@
   letter-spacing: 0.01em;
 }
 
+.host-queue-metric-icon {
+  font-size: 0.62rem;
+  opacity: 0.72;
+  line-height: 1;
+}
+
+.host-queue-list-transition {
+  animation: host-queue-list-enter 150ms ease-out;
+}
+
+@keyframes host-queue-list-enter {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .host-queue-list-transition {
+    animation: none;
+  }
+}
+
+.host-queue-time-group-header {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  padding: 4px 8px 2px;
+  font-size: 0.68rem;
+}
+
+.host-queue-time-group-label {
+  color: #d8cdbd;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.host-queue-time-group-count {
+  color: #8f867a;
+  font-size: 0.64rem;
+}
+
+.host-queue-time-group + .host-queue-time-group {
+  margin-top: 4px;
+}
+
+.host-reservation-list-empty.is-host-queue-empty {
+  padding: 24px 16px;
+  text-align: center;
+}
+
+.host-reservation-list-empty.is-host-queue-empty .host-reservation-list-empty-title {
+  margin: 0 0 12px;
+  color: #c9bfb0;
+  font-size: 0.82rem;
+}
+
+.host-queue-row-meta-line {
+  white-space: nowrap;
+}
+
 .host-queue-name-indicators {
   display: inline-flex;
   align-items: center;
@@ -4603,12 +4669,16 @@
 .mobile-host-reservation-row-status.is-late-mild {
   color: #e8b56a;
   box-shadow: inset 0 0 0 1px rgba(232, 181, 106, 0.28);
+  text-transform: none;
+  letter-spacing: 0.01em;
 }
 
 .host-reservation-card-status-pill.is-late-severe,
 .mobile-host-reservation-row-status.is-late-severe {
   color: #ffb08f;
   box-shadow: inset 0 0 0 1px rgba(255, 120, 84, 0.34);
+  text-transform: none;
+  letter-spacing: 0.01em;
 }
 
 .mobile-host-sticky-center strong {

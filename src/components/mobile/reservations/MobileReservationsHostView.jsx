@@ -230,7 +230,18 @@ export function MobileReservationsHostView({
   const handleClearFilters = useCallback(() => {
     setActiveFilterIds([])
     setSearchTerm('')
+    setAreaFilterId(HOST_QUEUE_ALL_AREAS)
   }, [])
+
+  const listTransitionKey = useMemo(
+    () => [
+      sortId,
+      areaFilterId,
+      selectedSeating?.id ?? '',
+      activeFilterIds.slice().sort().join(','),
+    ].join('|'),
+    [activeFilterIds, areaFilterId, selectedSeating?.id, sortId],
+  )
 
   useEffect(() => {
     if (!effectiveSelectedReservationId || !onClearAssignmentSelection) return
@@ -319,7 +330,10 @@ export function MobileReservationsHostView({
   }
 
   const rightPaneContent = renderRightPane
-    ? renderRightPane({ onEditReservation: handleEditReservation })
+    ? renderRightPane({
+      onEditReservation: handleEditReservation,
+      areaFilterId,
+    })
     : null
 
   const listControls = (
@@ -576,7 +590,9 @@ export function MobileReservationsHostView({
           <section className="mobile-host-reservations-list-pane" aria-label="Host queue">
             {listControls}
             <div className="mobile-host-list-scroll">
-              {reservationList}
+              <div key={listTransitionKey} className="host-queue-list-transition">
+                {reservationList}
+              </div>
             </div>
           </section>
           <section className="mobile-host-reservations-detail-pane host-station-form-pane" aria-label="Reservation details">

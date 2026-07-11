@@ -174,6 +174,8 @@ import { FloorPlanReservationLinks } from './components/floor/FloorPlanReservati
 import { FloorSeatingSelector } from './components/floor/FloorSeatingSelector'
 import { FloorPlanLegend } from './components/floor/FloorPlanLegend'
 import { HOST_FLOOR_PLAN_LEGEND_ITEMS } from './lib/hostFloorPlanLegend'
+import { buildHostQueueSeatingChipMetricsMap } from './lib/hostQueueServiceMetrics'
+import { HOST_QUEUE_ALL_AREAS } from './lib/hostQueuePipeline'
 import { HostFloorCompactTableContent } from './components/floor/HostFloorCompactTableContent'
 import { FloorTableReservationTooltip } from './components/floor/FloorTableReservationTooltip'
 import { HostFloorDebugOverlay } from './components/floor/HostFloorDebugOverlay'
@@ -7893,6 +7895,7 @@ function FloorPlanView({
   seatings = [],
   selectedSeating = null,
   onSelectedSeatingChange,
+  hostQueueAreaFilterId = HOST_QUEUE_ALL_AREAS,
 }) {
   const {
     clearSelection,
@@ -9024,6 +9027,16 @@ function FloorPlanView({
 
   const seatingSummaries = useMemo(() => {
     const summaries = {}
+    const operationalMetricsBySeating = buildHostQueueSeatingChipMetricsMap(
+      listReservations ?? reservations,
+      {
+        seatings: activeSeatings,
+        dateKey: todayKey,
+        areaFilterId: hostQueueAreaFilterId,
+        layout,
+      },
+    )
+
     activeSeatings.forEach((seating) => {
       const conflicts = getConflictingUnitIds(assignmentReservations, todayKey, seating.startTime, {
         seatingId: seating.id,
@@ -9034,10 +9047,20 @@ function FloorPlanView({
       summaries[seating.id] = {
         occupiedTables: conflicts.size,
         totalTables: layout?.tables?.length ?? 0,
+        operationalMetrics: operationalMetricsBySeating[seating.id] ?? null,
       }
     })
     return summaries
-  }, [activeSeatings, assignmentReservations, layout, seatingsById, todayKey])
+  }, [
+    activeSeatings,
+    assignmentReservations,
+    hostQueueAreaFilterId,
+    layout,
+    listReservations,
+    reservations,
+    seatingsById,
+    todayKey,
+  ])
 
   if (!hasDisplayableLayout) {
     if (isRefreshingPublishedLayout) {
@@ -9644,48 +9667,51 @@ function MobileReservationsHostShellBody({
     )
   }
 
-  const floorPlanContent = hasDisplayableLayout ? (
-    <HostStationErrorBoundary
-      onRetry={() => reload()}
-      onReturnToEditor={() => setFloorPlanMode('edit')}
-    >
-      <FloorPlanView
-        reservations={workspaceReservations}
-        allReservations={reservations}
-        listReservations={workspaceReservations}
-        todayKey={todayKey}
-        nowMinutes={nowMinutes}
-        isSaving={isSaving}
-        isCompact
-        canEditFloorPlan={canEditFloorPlan}
-        onAssignReservationTables={onAssignReservationTables}
-        onQuickStatusUpdate={onQuickStatusUpdate}
-        onOpenAddReservation={handleFloorOpenAddReservation}
-        onOpenReservation={handleFloorOpenReservation}
-        onEditReservation={handleFloorOpenReservation}
-        onHostEditSave={onHostEditSave}
-        onReservationNotice={onReservationNotice}
-        canManageAssignment={canManageAssignment}
-        seatings={reservationSeatings}
-        selectedSeating={reservationSeatings.find((entry) => entry.id === selectedServiceSeatingId) ?? null}
-        onSelectedSeatingChange={setSelectedServiceSeatingId}
-      />
-    </HostStationErrorBoundary>
-  ) : (
-    <div className="mobile-host-floor-empty" role="status">
-      <p>No published floor layout yet.</p>
-      {canEditFloorPlan ? (
-        <button type="button" className="mobile-host-layout-btn" onClick={() => setFloorPlanMode('edit')}>
-          Edit layout
-        </button>
-      ) : null}
-    </div>
+  const buildFloorPlanContent = (hostQueueAreaFilterId = HOST_QUEUE_ALL_AREAS) => (
+    hasDisplayableLayout ? (
+      <HostStationErrorBoundary
+        onRetry={() => reload()}
+        onReturnToEditor={() => setFloorPlanMode('edit')}
+      >
+        <FloorPlanView
+          reservations={workspaceReservations}
+          allReservations={reservations}
+          listReservations={workspaceReservations}
+          todayKey={todayKey}
+          nowMinutes={nowMinutes}
+          isSaving={isSaving}
+          isCompact
+          canEditFloorPlan={canEditFloorPlan}
+          onAssignReservationTables={onAssignReservationTables}
+          onQuickStatusUpdate={onQuickStatusUpdate}
+          onOpenAddReservation={handleFloorOpenAddReservation}
+          onOpenReservation={handleFloorOpenReservation}
+          onEditReservation={handleFloorOpenReservation}
+          onHostEditSave={onHostEditSave}
+          onReservationNotice={onReservationNotice}
+          canManageAssignment={canManageAssignment}
+          seatings={reservationSeatings}
+          selectedSeating={reservationSeatings.find((entry) => entry.id === selectedServiceSeatingId) ?? null}
+          onSelectedSeatingChange={setSelectedServiceSeatingId}
+          hostQueueAreaFilterId={hostQueueAreaFilterId}
+        />
+      </HostStationErrorBoundary>
+    ) : (
+      <div className="mobile-host-floor-empty" role="status">
+        <p>No published floor layout yet.</p>
+        {canEditFloorPlan ? (
+          <button type="button" className="mobile-host-layout-btn" onClick={() => setFloorPlanMode('edit')}>
+            Edit layout
+          </button>
+        ) : null}
+      </div>
+    )
   )
 
-  const rightPane = ({ onEditReservation }) => (
+  const rightPane = ({ onEditReservation, areaFilterId: hostQueueAreaFilterId }) => (
     <MobileReservationsHostRightPane
       hasLayout={hasDisplayableLayout}
-      floorPlanContent={floorPlanContent}
+      floorPlanContent={buildFloorPlanContent(hostQueueAreaFilterId ?? HOST_QUEUE_ALL_AREAS)}
       selectedReservation={selectedReservation}
       todayKey={todayKey}
       nowMinutes={nowMinutes}

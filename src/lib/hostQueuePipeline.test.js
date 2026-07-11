@@ -333,7 +333,7 @@ describe('hostQueuePipeline row presentation', () => {
       LAYOUT,
     )
 
-    expect(presentation.metaLine).toBe('👤 2   🍽 T27')
+    expect(presentation.metaLine).toBe('👤 2  •  🍽 T27')
   })
 
   it('renders multi-table labels', () => {
@@ -352,12 +352,12 @@ describe('hostQueuePipeline row presentation', () => {
       LAYOUT,
     )
 
-    expect(presentation.metaLine).toBe('👤 4   🍽 T15 + T16')
+    expect(presentation.metaLine).toBe('👤 4  •  🍽 T15 + T16')
   })
 
   it('renders explicit unassigned rows', () => {
     const presentation = buildHostQueueRowPresentation(buildReservation({ guests: 2 }), LAYOUT)
-    expect(presentation.metaLine).toBe('👤 2   🍽 Unassigned')
+    expect(presentation.metaLine).toBe('👤 2  •  🍽 Unassigned')
   })
 
   it('renders extra chairs and standing guests inline in metadata', () => {
@@ -372,7 +372,7 @@ describe('hostQueuePipeline row presentation', () => {
       LAYOUT,
     )
 
-    expect(presentation.metaLine).toContain('🪑 +1')
+    expect(presentation.metaLine).toContain('  •  🪑 +1')
     expect(presentation.metaLine).toContain('Standing +2')
     expect(presentation.chips.map((chip) => chip.label)).toEqual([])
   })
@@ -390,7 +390,7 @@ describe('hostQueuePipeline row presentation', () => {
       LAYOUT,
     )
 
-    expect(presentation.metaLine).toContain('🪑 +1')
+    expect(presentation.metaLine).toContain('  •  🪑 +1')
     expect(presentation.chips.some((chip) => chip.id === 'extra-chair-note')).toBe(false)
   })
 })

@@ -7,6 +7,10 @@ import { createRoot } from 'react-dom/client'
 import { act } from 'react'
 import { MobileReservationsHostView } from './MobileReservationsHostView'
 import { HOST_LIST_SECTION_COLLAPSE_STORAGE_KEY } from '../../reservations/hostReservationListUtils'
+import {
+  HOST_QUEUE_SORT_STORAGE_KEY,
+  writeHostQueueSortPreference,
+} from '../../../lib/hostQueuePersistence'
 
 vi.mock('../../../lib/mobileHostReservationUtils', async (importOriginal) => {
   const actual = await importOriginal()
@@ -32,6 +36,14 @@ function renderSplitHostView(props = {}) {
           date: '2026-07-10',
           status: 'Confirmed',
           tableNumber: '15+16',
+        },
+        {
+          id: 'up-2',
+          guestName: 'Sam',
+          guests: 2,
+          time: '20:00',
+          date: '2026-07-10',
+          status: 'Pending',
         },
         {
           id: 'prob-cancel',
@@ -77,6 +89,7 @@ function renderSplitHostView(props = {}) {
 describe('MobileReservationsHostView compact tablet list', () => {
   beforeEach(() => {
     window.localStorage.clear()
+    writeHostQueueSortPreference('time-asc')
   })
 
   it('does not render old filter tabs in split layout', () => {
@@ -121,21 +134,22 @@ describe('MobileReservationsHostView compact tablet list', () => {
     unmount()
   })
 
-  it('uses compact status labels that do not truncate', () => {
+  it('uses compact late status labels in sentence case', () => {
     const { container, unmount } = renderSplitHostView()
 
     const latePill = container.querySelector('.host-reservation-card-status-pill')
-    expect(latePill?.textContent).not.toContain('LATE BOOK')
+    expect(latePill?.textContent).not.toContain('LATE')
     expect(latePill?.textContent?.trim()).toBe('Late 75m')
 
     unmount()
   })
 
-  it('renders compact service summary metrics in the header', () => {
+  it('renders compact service summary metrics with icons in the header', () => {
     const { container, unmount } = renderSplitHostView()
 
     const summary = container.querySelector('.host-queue-service-summary')
     expect(summary).not.toBeNull()
+    expect(summary?.querySelectorAll('.host-queue-metric-icon')).toHaveLength(3)
     expect(summary?.textContent).toContain('expected')
     expect(summary?.textContent).toMatch(/\d+\/\d+/)
     expect(summary?.textContent).toContain('in house')
@@ -143,18 +157,30 @@ describe('MobileReservationsHostView compact tablet list', () => {
     unmount()
   })
 
-  it('renders assigned table metadata as compact queue labels', () => {
+  it('groups reservations by exact time when time sort is active', () => {
     const { container, unmount } = renderSplitHostView()
 
-    expect(container.textContent).toContain('👤 4   🍽 T15 + T16')
+    const timeGroups = container.querySelectorAll('.host-queue-time-group-header')
+    expect(timeGroups.length).toBeGreaterThan(0)
+    expect([...timeGroups].some((node) => node.textContent?.includes('20:00'))).toBe(true)
+    expect(container.querySelectorAll('.host-reservation-card.is-time-grouped').length).toBeGreaterThan(0)
+    expect(container.querySelectorAll('.host-reservation-card.is-time-grouped .host-reservation-card-time').length).toBe(0)
 
     unmount()
   })
 
-  it('renders unassigned metadata as compact queue labels', () => {
+  it('renders assigned table metadata with separator spacing', () => {
     const { container, unmount } = renderSplitHostView()
 
-    expect(container.textContent).toContain('👤 4   🍽 Unassigned')
+    expect(container.textContent).toContain('👤 4  •  🍽 T15 + T16')
+
+    unmount()
+  })
+
+  it('renders unassigned metadata with separator spacing', () => {
+    const { container, unmount } = renderSplitHostView()
+
+    expect(container.textContent).toContain('👤 4  •  🍽 Unassigned')
 
     unmount()
   })
@@ -163,6 +189,64 @@ describe('MobileReservationsHostView compact tablet list', () => {
     const { container, unmount } = renderSplitHostView()
 
     expect(container.querySelector('.host-reservation-card-row-menu')).not.toBeNull()
+
+    unmount()
+  })
+
+  it('renders list transition wrapper for filter changes', () => {
+    const { container, unmount } = renderSplitHostView()
+
+    expect(container.querySelector('.host-queue-list-transition')).not.toBeNull()
+
+    unmount()
+  })
+
+  it('shows compact empty state with clear filters action', () => {
+    const { container, unmount } = renderSplitHostView({
+      reservations: [],
+    })
+
+    expect(container.textContent).toContain('No reservations match the current filters.')
+    expect(container.querySelector('.host-queue-toolbar-clear')).not.toBeNull()
+
+    unmount()
+  })
+})
+
+describe('MobileReservationsHostView clear filters behavior', () => {
+  beforeEach(() => {
+    window.localStorage.clear()
+    writeHostQueueSortPreference('name-asc')
+  })
+
+  it('preserves selected seating and sort when clearing filters', async () => {
+    const seatings = [
+      {
+        id: 'dinner-1',
+        name: 'Dinner 1',
+        startTime: '19:00',
+        durationMinutes: 120,
+        daysOfWeek: [0, 1, 2, 3, 4, 5, 6],
+        sortOrder: 0,
+        isActive: true,
+      },
+    ]
+
+    const { container, unmount } = renderSplitHostView({
+      reservations: [],
+      reservationSeatings: seatings,
+      selectedSeating: seatings[0],
+      selectedServiceSeatingId: 'dinner-1',
+    })
+
+    const clearButton = container.querySelector('.host-queue-toolbar-clear')
+    expect(clearButton).not.toBeNull()
+
+    await act(async () => {
+      clearButton?.click()
+    })
+
+    expect(window.localStorage.getItem(HOST_QUEUE_SORT_STORAGE_KEY)).toBe('name-asc')
 
     unmount()
   })

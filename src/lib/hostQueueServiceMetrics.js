@@ -123,3 +123,39 @@ export function buildHostQueueServiceMetricsFromReservations(
     areaFilterId,
   })
 }
+
+export function buildHostQueueSeatingChipMetricsMap(
+  reservations = [],
+  {
+    seatings = [],
+    dateKey = '',
+    areaFilterId = HOST_QUEUE_ALL_AREAS,
+    layout = null,
+  } = {},
+) {
+  const metricsBySeatingId = {}
+
+  seatings.forEach((seating) => {
+    if (!seating?.id) return
+    metricsBySeatingId[seating.id] = buildHostQueueServiceMetricsFromReservations(
+      reservations,
+      {
+        selectedSeating: seating,
+        seatings,
+        dateKey,
+        areaFilterId,
+        layout,
+      },
+    )
+  })
+
+  return metricsBySeatingId
+}
+
+export function formatHostQueueSeatingChipMetricsLine({
+  expectedGuests = 0,
+  expectedAssignedTables = 0,
+  inHouseGuests = 0,
+} = {}) {
+  return `👥${expectedGuests} · 🍽${expectedAssignedTables} · 🪑${inHouseGuests}`
+}

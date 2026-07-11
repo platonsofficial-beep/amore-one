@@ -1,4 +1,5 @@
 import { FloorPlanLegend } from './FloorPlanLegend'
+import { formatHostQueueSeatingChipMetricsLine } from '../../lib/hostQueueServiceMetrics'
 
 export function FloorSeatingSelector({
   seatings = [],
@@ -22,6 +23,9 @@ export function FloorSeatingSelector({
               : summary?.occupiedTables != null && summary?.totalTables != null
                 ? `${summary.occupiedTables}/${summary.totalTables}`
                 : ''
+            const metricsLine = summary?.operationalMetrics
+              ? formatHostQueueSeatingChipMetricsLine(summary.operationalMetrics)
+              : ''
 
             return (
               <button
@@ -35,6 +39,9 @@ export function FloorSeatingSelector({
                 <span className="floor-seating-selector-chip-time">{seating.startTime}</span>
                 {summaryCount ? (
                   <span className="floor-seating-selector-chip-count">{summaryCount}</span>
+                ) : null}
+                {metricsLine ? (
+                  <span className="floor-seating-selector-chip-metrics">{metricsLine}</span>
                 ) : null}
               </button>
             )

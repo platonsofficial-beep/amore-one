@@ -193,6 +193,17 @@ describe('buildHostQueueServiceMetrics', () => {
   })
 })
 
+describe('formatHostQueueSeatingChipMetricsLine', () => {
+  it('formats compact per-seating operational metrics', async () => {
+    const { formatHostQueueSeatingChipMetricsLine } = await import('./hostQueueServiceMetrics')
+    expect(formatHostQueueSeatingChipMetricsLine({
+      expectedGuests: 35,
+      expectedAssignedTables: 17,
+      inHouseGuests: 2,
+    })).toBe('👥35 · 🍽17 · 🪑2')
+  })
+})
+
 describe('buildHostQueueServiceMetricsFromReservations scope', () => {
   const reservations = [
     buildReservation({
