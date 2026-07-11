@@ -225,4 +225,24 @@ describe('hostFloorTableVisualState', () => {
     expect(filtered[0].operational.hostIndicator).toBe('seated')
     expect(resolveHostFloorSemanticClass(filtered[0].operational)).toBe('is-seated')
   })
+
+  it('maps late booking status to reserved rather than problem', () => {
+    const operational = {
+      hostIndicator: 'confirmed',
+      phase: 'upcoming',
+      hasSeatingConflict: false,
+    }
+
+    expect(resolveHostFloorSemanticClass(operational)).toBe('is-reserved')
+  })
+
+  it('maps explicit problem host indicator to conflict styling', () => {
+    const operational = {
+      hostIndicator: 'problem',
+      phase: 'available',
+      hasSeatingConflict: false,
+    }
+
+    expect(resolveHostFloorSemanticClass(operational)).toBe('has-conflict')
+  })
 })

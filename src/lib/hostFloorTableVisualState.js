@@ -20,10 +20,10 @@ export const HOST_FLOOR_VISUAL_STATE_PRIORITY = [
   'is-available',
 ]
 
-const CONFLICT_HOST_INDICATORS = new Set(['problem', 'cleaning', 'late'])
+const PROBLEM_HOST_INDICATORS = new Set(['problem', 'cleaning'])
 
 export function resolveHostFloorSemanticClass(operational, { hasSeatingConflict = false } = {}) {
-  if (hasSeatingConflict || CONFLICT_HOST_INDICATORS.has(operational?.hostIndicator)) {
+  if (hasSeatingConflict || PROBLEM_HOST_INDICATORS.has(operational?.hostIndicator)) {
     return 'has-conflict'
   }
 
@@ -35,6 +35,38 @@ export function resolveHostFloorSemanticClass(operational, { hasSeatingConflict 
   if (hostIndicator === 'confirmed' || phase === 'upcoming') return 'is-reserved'
 
   return 'is-available'
+}
+
+export function resolveHostFloorVisualPresentation(
+  operational,
+  { hasSeatingConflict = false, isMultiLinked = false } = {},
+) {
+  const semanticClass = resolveHostFloorSemanticClass(operational, { hasSeatingConflict })
+  const hostIndicator = operational?.hostIndicator ?? 'empty'
+
+  let statusToken = 'available'
+  if (semanticClass === 'has-conflict') statusToken = 'problem'
+  else if (semanticClass === 'is-seated' || semanticClass === 'is-arrived') statusToken = 'seated'
+  else if (semanticClass === 'is-reserved') statusToken = 'reserved'
+
+  return {
+    semanticClass,
+    hostIndicatorClass: `host-indicator-${hostIndicator}`,
+    statusToken,
+    isCombined: Boolean(isMultiLinked),
+  }
+}
+
+export function resolveHostFloorTableStatusClass(
+  operational,
+  { hasSeatingConflict = false, isMultiLinked = false } = {},
+) {
+  const presentation = resolveHostFloorVisualPresentation(operational, {
+    hasSeatingConflict,
+    isMultiLinked,
+  })
+
+  return `${presentation.hostIndicatorClass} ${presentation.semanticClass}`.trim()
 }
 
 export function applyHostFloorSelectedSeatingContext(

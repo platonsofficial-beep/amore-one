@@ -6760,6 +6760,31 @@
   flex-direction: column;
   min-height: 0;
   position: relative;
+
+  --host-floor-available-border: rgba(127, 154, 134, 0.55);
+  --host-floor-available-fill: rgba(8, 8, 9, 0.94);
+  --host-floor-available-text: rgba(196, 224, 202, 0.82);
+  --host-floor-available-dot: rgba(127, 154, 134, 0.72);
+
+  --host-floor-reserved-border: rgba(255, 224, 150, 0.78);
+  --host-floor-reserved-fill: linear-gradient(180deg, rgba(48, 38, 18, 0.98), rgba(14, 12, 10, 0.98));
+  --host-floor-reserved-text: rgba(240, 215, 138, 0.82);
+  --host-floor-reserved-dot: rgba(255, 214, 120, 0.92);
+  --host-floor-reserved-glow: rgba(212, 175, 55, 0.28);
+
+  --host-floor-seated-border: rgba(72, 196, 214, 0.92);
+  --host-floor-seated-fill: linear-gradient(180deg, rgba(10, 42, 54, 0.94), rgba(6, 22, 30, 0.98));
+  --host-floor-seated-text: rgba(236, 248, 252, 0.94);
+  --host-floor-seated-dot: rgba(72, 196, 214, 0.92);
+  --host-floor-seated-glow: rgba(56, 164, 186, 0.28);
+
+  --host-floor-problem-border: rgba(224, 120, 108, 0.88);
+  --host-floor-problem-fill: linear-gradient(180deg, rgba(44, 16, 14, 0.98), rgba(12, 8, 8, 0.98));
+  --host-floor-problem-text: rgba(255, 232, 226, 0.94);
+  --host-floor-problem-dot: rgba(214, 96, 84, 0.92);
+
+  --host-floor-combined-accent: rgba(167, 139, 212, 0.72);
+  --host-floor-combined-dot: rgba(167, 139, 212, 0.88);
 }
 
 .floor-table-schedule-card-overlay {
@@ -8053,23 +8078,7 @@
 }
 
 .floor-plan-workspace.is-host-floor .floor-table-status-badge {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  max-width: 100%;
-  padding: 1px 5px;
-  border-radius: 999px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  background: rgba(10, 10, 11, 0.88);
-  color: #f0e8d8;
-  font-size: clamp(0.38rem, 5.5cqb, 0.5rem);
-  font-weight: 800;
-  letter-spacing: 0.05em;
-  line-height: 1.2;
-  text-transform: uppercase;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  display: none;
 }
 
 .floor-plan-workspace.is-host-floor .floor-table-status-badge.is-confirmed {
@@ -8112,7 +8121,7 @@
   width: 11px;
   height: 11px;
   flex-shrink: 0;
-  color: rgba(232, 196, 110, 0.88);
+  color: var(--host-floor-combined-accent);
   font-size: 0.48rem;
   line-height: 1;
   opacity: 0.92;
@@ -8810,31 +8819,36 @@
 
 .floor-plan-workspace.is-host-floor .floor-table-node.host-indicator-empty .floor-table-node-surface,
 .floor-plan-workspace.is-host-floor .floor-table-node.is-available .floor-table-node-surface {
-  border-color: rgba(212, 175, 55, 0.22);
+  border-color: var(--host-floor-available-border);
   background:
-    radial-gradient(circle at 50% 18%, rgba(255, 236, 190, 0.02), transparent 60%),
-    rgba(8, 8, 9, 0.94);
+    radial-gradient(circle at 50% 18%, rgba(127, 154, 134, 0.04), transparent 60%),
+    var(--host-floor-available-fill);
   box-shadow:
-    inset 0 0 0 1px rgba(212, 175, 55, 0.05),
+    inset 0 0 0 1px rgba(127, 154, 134, 0.08),
     0 2px 8px rgba(0, 0, 0, 0.18);
   opacity: 0.96;
 }
 
 .floor-plan-workspace.is-host-floor .floor-table-node.host-indicator-empty .floor-table-number,
 .floor-plan-workspace.is-host-floor .floor-table-node.is-available .floor-table-number {
-  color: rgba(232, 215, 168, 0.72);
+  color: var(--host-floor-available-text);
   font-weight: 800;
+}
+
+.floor-plan-workspace.is-host-floor .floor-table-node.host-indicator-empty .floor-table-capacity-label,
+.floor-plan-workspace.is-host-floor .floor-table-node.is-available .floor-table-capacity-label {
+  color: rgba(160, 176, 152, 0.78);
 }
 
 .floor-plan-workspace.is-host-floor .floor-table-node.host-indicator-confirmed .floor-table-node-surface,
 .floor-plan-workspace.is-host-floor .floor-table-node.is-reserved .floor-table-node-surface {
-  border-color: rgba(255, 224, 150, 0.78);
+  border-color: var(--host-floor-reserved-border);
   background:
     radial-gradient(circle at 50% 20%, rgba(212, 175, 55, 0.24), transparent 62%),
-    linear-gradient(180deg, rgba(48, 38, 18, 0.98), rgba(14, 12, 10, 0.98));
+    var(--host-floor-reserved-fill);
   box-shadow:
     0 0 0 1px rgba(212, 175, 55, 0.32),
-    0 0 24px rgba(212, 175, 55, 0.28),
+    0 0 24px var(--host-floor-reserved-glow),
     inset 0 0 0 1px rgba(255, 224, 150, 0.12);
   opacity: 1;
 }
@@ -8856,13 +8870,13 @@
 
 .floor-plan-workspace.is-host-floor .floor-table-node.host-indicator-waiting .floor-table-node-surface,
 .floor-plan-workspace.is-host-floor .floor-table-node.is-arrived .floor-table-node-surface {
-  border-color: rgba(120, 210, 230, 0.82);
+  border-color: var(--host-floor-seated-border);
   background:
     radial-gradient(circle at 50% 20%, rgba(72, 176, 198, 0.28), transparent 62%),
-    linear-gradient(180deg, rgba(12, 34, 44, 0.96), rgba(8, 14, 18, 0.98));
+    var(--host-floor-seated-fill);
   box-shadow:
     0 0 0 1px rgba(96, 196, 214, 0.34),
-    0 0 20px rgba(72, 176, 198, 0.22),
+    0 0 20px var(--host-floor-seated-glow),
     inset 0 0 0 1px rgba(168, 228, 240, 0.12);
   opacity: 1;
 }
@@ -8884,13 +8898,13 @@
 
 .floor-plan-workspace.is-host-floor .floor-table-node.host-indicator-seated .floor-table-node-surface,
 .floor-plan-workspace.is-host-floor .floor-table-node.is-seated .floor-table-node-surface {
-  border-color: rgba(72, 196, 214, 0.92);
+  border-color: var(--host-floor-seated-border);
   background:
     radial-gradient(circle at 50% 24%, rgba(56, 164, 186, 0.34), transparent 64%),
-    linear-gradient(180deg, rgba(10, 42, 54, 0.94), rgba(6, 22, 30, 0.98));
+    var(--host-floor-seated-fill);
   box-shadow:
     0 0 0 1px rgba(72, 196, 214, 0.42),
-    0 0 22px rgba(56, 164, 186, 0.28),
+    0 0 22px var(--host-floor-seated-glow),
     inset 0 0 0 1px rgba(168, 236, 248, 0.14);
   opacity: 1;
 }
@@ -8928,21 +8942,39 @@
 
 .floor-plan-workspace.is-host-floor .floor-table-node.is-seated.is-selected .floor-table-node-surface,
 .floor-plan-workspace.is-host-floor .floor-table-node.host-indicator-seated.is-selected .floor-table-node-surface {
-  border-color: rgba(96, 210, 228, 0.96);
+  border-color: var(--host-floor-seated-border);
   box-shadow:
     0 0 0 2px rgba(212, 175, 55, 0.52),
     0 0 0 1px rgba(72, 196, 214, 0.48),
-    0 0 24px rgba(56, 164, 186, 0.32),
+    0 0 24px var(--host-floor-seated-glow),
     inset 0 0 0 1px rgba(168, 236, 248, 0.16);
+}
+
+.floor-plan-workspace.is-host-floor .floor-table-node.is-reserved.is-selected .floor-table-node-surface,
+.floor-plan-workspace.is-host-floor .floor-table-node.host-indicator-confirmed.is-selected .floor-table-node-surface {
+  border-color: var(--host-floor-reserved-border);
+  box-shadow:
+    0 0 0 2px rgba(212, 175, 55, 0.52),
+    0 0 0 1px rgba(212, 175, 55, 0.38),
+    0 0 24px var(--host-floor-reserved-glow),
+    inset 0 0 0 1px rgba(255, 224, 150, 0.14);
+}
+
+.floor-plan-workspace.is-host-floor .floor-table-node.is-available.is-selected .floor-table-node-surface,
+.floor-plan-workspace.is-host-floor .floor-table-node.host-indicator-empty.is-selected .floor-table-node-surface {
+  border-color: var(--host-floor-available-border);
+  box-shadow:
+    0 0 0 2px rgba(212, 175, 55, 0.42),
+    inset 0 0 0 1px rgba(127, 154, 134, 0.12);
 }
 
 .floor-plan-workspace.is-host-floor .floor-table-node.has-conflict .floor-table-node-surface,
 .floor-plan-workspace.is-host-floor .floor-table-node.host-indicator-problem .floor-table-node-surface,
 .floor-plan-workspace.is-host-floor .floor-table-node.host-indicator-late .floor-table-node-surface {
-  border-color: rgba(224, 120, 108, 0.88);
+  border-color: var(--host-floor-problem-border);
   background:
     radial-gradient(circle at 50% 20%, rgba(176, 74, 52, 0.28), transparent 62%),
-    linear-gradient(180deg, rgba(44, 16, 14, 0.98), rgba(12, 8, 8, 0.98));
+    var(--host-floor-problem-fill);
   box-shadow:
     0 0 0 1px rgba(224, 120, 108, 0.42),
     0 0 22px rgba(176, 74, 52, 0.28),
@@ -12311,27 +12343,27 @@
 }
 
 .floor-plan-legend-chip.tone-host-available .floor-plan-legend-dot {
-  background: rgba(127, 154, 134, 0.72);
+  background: var(--host-floor-available-dot);
   box-shadow: 0 0 0 1px rgba(160, 176, 152, 0.55);
 }
 
 .floor-plan-legend-chip.tone-host-reserved .floor-plan-legend-dot {
-  background: rgba(255, 214, 120, 0.92);
+  background: var(--host-floor-reserved-dot);
   box-shadow: 0 0 0 1px rgba(255, 224, 150, 0.55);
 }
 
 .floor-plan-legend-chip.tone-host-seated .floor-plan-legend-dot {
-  background: rgba(72, 196, 214, 0.92);
+  background: var(--host-floor-seated-dot);
   box-shadow: 0 0 0 1px rgba(120, 220, 236, 0.45);
 }
 
 .floor-plan-legend-chip.tone-host-problem .floor-plan-legend-dot {
-  background: rgba(214, 96, 84, 0.92);
+  background: var(--host-floor-problem-dot);
   box-shadow: 0 0 0 1px rgba(224, 120, 108, 0.45);
 }
 
 .floor-plan-legend-chip.tone-host-combined .floor-plan-legend-dot {
-  background: rgba(167, 139, 212, 0.88);
+  background: var(--host-floor-combined-dot);
   box-shadow: 0 0 0 1px rgba(186, 158, 228, 0.45);
 }
 
@@ -12440,11 +12472,21 @@
   box-shadow: none;
 }
 
-.floor-table-node.is-multi-linked .floor-table-node-surface {
+.floor-table-node.is-multi-linked:not(.is-host-touch) .floor-table-node-surface {
   border-color: var(--table-link-stroke, rgba(212, 175, 55, 0.55));
   box-shadow:
     0 6px 18px rgba(0, 0, 0, 0.24),
     0 0 0 1px var(--table-link-stroke, rgba(212, 175, 55, 0.18));
+}
+
+.floor-plan-workspace.is-host-floor .floor-table-node.is-multi-linked .floor-table-node-surface::after {
+  content: '';
+  position: absolute;
+  inset: 3px;
+  border-radius: inherit;
+  border: 1px solid var(--host-floor-combined-accent);
+  pointer-events: none;
+  opacity: 0.88;
 }
 
 .floor-table-node.is-multi-linked.link-tone-upcoming {

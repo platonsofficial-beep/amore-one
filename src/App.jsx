@@ -113,9 +113,10 @@ import {
   shouldSkipViewportTableTap,
 } from './lib/hostFloorTableTapSession'
 import {
-  formatHostFloorCapacityLabel,
-  formatHostFloorPartyLabel,
-} from './lib/hostFloorTableLabels'
+  buildHostFloorCompactAriaLabel,
+  buildHostFloorCompactTableContent,
+  formatHostFloorTableLabel,
+} from './lib/hostFloorTableContent'
 import { getFloorLayoutSpaceStyle, getPublishedTableLayoutStyle } from './lib/publishedTableLayout'
 import {
   isFloorTablePhysicallyOccupied,
@@ -123,7 +124,7 @@ import {
 } from './lib/floorTableOperationalState'
 import {
   applyHostFloorSelectedSeatingContext,
-  resolveHostFloorSemanticClass,
+  resolveHostFloorTableStatusClass,
 } from './lib/hostFloorTableVisualState'
 import {
   hostFloorReservationVisualStateChanged,
@@ -172,7 +173,7 @@ import { FloorPlanReservationLinks } from './components/floor/FloorPlanReservati
 import { FloorSeatingSelector } from './components/floor/FloorSeatingSelector'
 import { FloorPlanLegend } from './components/floor/FloorPlanLegend'
 import { HOST_FLOOR_PLAN_LEGEND_ITEMS } from './lib/hostFloorPlanLegend'
-import { FloorTableSeatingIndicators } from './components/floor/FloorTableSeatingIndicators'
+import { HostFloorCompactTableContent } from './components/floor/HostFloorCompactTableContent'
 import { FloorTableReservationTooltip } from './components/floor/FloorTableReservationTooltip'
 import { HostFloorDebugOverlay } from './components/floor/HostFloorDebugOverlay'
 import { HostMultiTableSelectionBar } from './components/floor/HostMultiTableSelectionBar'
@@ -7380,15 +7381,6 @@ function FloorTableContextMenu({ menu, mergedGroup, onClose, onSplitPlaceholder 
   )
 }
 
-function formatHostFloorTableLabel(table) {
-  const raw = `${table?.displayLabel ?? table?.label ?? ''}`.trim()
-  if (!raw) return 'T?'
-  if (/^T\d+/i.test(raw)) return raw.toUpperCase()
-  if (/^table\s+/i.test(raw)) return raw.replace(/^table\s+/i, 'T').toUpperCase()
-  if (/^\d+$/.test(raw)) return `T${raw}`
-  return raw.toUpperCase()
-}
-
 function FloorTableNode({
   tableState,
   allReservations = [],
@@ -7434,13 +7426,18 @@ function FloorTableNode({
 
   const hostOperational = isHostFloor && !isHeatmap ? operational : null
   const hostVisualIndicator = hostOperational?.hostIndicator ?? null
-  const hostSemanticClass = isHostFloor && !isHeatmap && hostOperational
-    ? resolveHostFloorSemanticClass(hostOperational, {
-      hasSeatingConflict: hostOperational.hasSeatingConflict,
+  const hostCompactContent = isHostFloor && !isHeatmap && hostOperational
+    ? buildHostFloorCompactTableContent({
+      table,
+      operational: hostOperational,
+      displayReservation: hostOperational.displayReservation ?? reservation,
     })
-    : ''
-  const tableStatusClass = isHostFloor && !isHeatmap && hostVisualIndicator
-    ? `host-indicator-${hostVisualIndicator}${hostSemanticClass ? ` ${hostSemanticClass}` : ''}`
+    : null
+  const tableStatusClass = isHostFloor && !isHeatmap && hostOperational
+    ? resolveHostFloorTableStatusClass(hostOperational, {
+      hasSeatingConflict: hostOperational.hasSeatingConflict,
+      isMultiLinked: linkMeta?.isMultiLinked,
+    })
     : `status-${status}`
   const showHostVisualDot = Boolean(
     hostVisualIndicator
@@ -7600,22 +7597,12 @@ function FloorTableNode({
     .map((entry) => `${entry.time} ${entry.guestName}`)
     .join(', ')
 
-  const hasMultipleTableBookings = isHostFloor && tableSchedule.length > 1
+  const hasMultipleTableBookings = isHostFloor && !syncWithList && tableSchedule.length > 1
   const showHostFloorGuestInfo = Boolean(
     guestName
     && displayReservation
     && !hasMultipleTableBookings,
   )
-  const hostPartyLabel = formatHostFloorPartyLabel(guestCount)
-  const hostCapacityLabel = formatHostFloorCapacityLabel(table)
-  const hostPrimaryTimeLabel = seatedDurationLabel
-    || (arrivalTime && arrivalTime !== '—' ? arrivalTime : null)
-  const showHostReservationSummary = Boolean(showHostFloorGuestInfo && hostPartyLabel)
-  const hostStatusBadge = hostVisualIndicator === 'seated'
-    ? 'Occupied'
-    : (hostVisualIndicator === 'confirmed' || hostVisualIndicator === 'waiting')
-      ? 'Reserved'
-      : null
   const showUpcomingLabel = Boolean(
     isHostFloor
     && isHeatmap
@@ -7704,61 +7691,23 @@ function FloorTableNode({
       tabIndex={0}
       aria-label={isHeatmap
         ? `${unitLabel}, ${heatmapMetrics?.utilizationPercent ?? 0}% utilization`
-        : hasMultipleTableBookings
-          ? `${hostTableLabel}, ${tableSchedule.length} bookings, ${tableBookingTimesLabel}`
-          : showHostFloorGuestInfo
-            ? `${hostTableLabel}, ${guestName}, ${arrivalTime || seatedDurationLabel || '—'}, ${guestCount} guests`
-            : `${hostTableLabel}, ${seatCapacity} seats, available`}
+        : isHostFloor && hostCompactContent
+          ? buildHostFloorCompactAriaLabel(hostCompactContent)
+          : hasMultipleTableBookings
+            ? `${hostTableLabel}, ${tableSchedule.length} bookings, ${tableBookingTimesLabel}`
+            : showHostFloorGuestInfo
+              ? `${hostTableLabel}, ${guestName}, ${arrivalTime || seatedDurationLabel || '—'}, ${guestCount} guests`
+              : `${hostTableLabel}, ${seatCapacity} seats, available`}
       aria-current={tableIsSelected ? 'true' : undefined}
       aria-expanded={isHeatmap ? isAnalyticsOpen : undefined}
     >
       <div className="floor-table-node-surface">
         {isHostFloor && !isHeatmap ? (
-          <>
-            <div className="floor-table-chrome">
-              {!showHostReservationSummary && linkMeta?.isMultiLinked ? (
-                <span className="floor-table-linked-badge" aria-hidden="true" />
-              ) : null}
-              {!showHostReservationSummary && hostStatusBadge ? (
-                <span className={`floor-table-status-badge is-${hostVisualIndicator === 'seated' ? 'seated' : 'confirmed'}`}>
-                  {hostStatusBadge}
-                </span>
-              ) : null}
-            </div>
-            <div className="floor-table-content">
-              <span className="floor-table-number">{hostTableLabel}</span>
-              {hasMultipleTableBookings ? (
-                <div className="floor-table-multi-bookings">
-                  <span className="floor-table-booking-count">{tableSchedule.length} BOOKINGS</span>
-                  <span className="floor-table-booking-entries">
-                    {tableBookingEntries.map((entry) => (
-                      <span key={entry.id} className="floor-table-booking-entry">
-                        <span className="floor-table-booking-time">{entry.time}</span>
-                        <span className="floor-table-booking-guest">{entry.guestName}</span>
-                      </span>
-                    ))}
-                    {tableSchedule.length > 3 ? (
-                      <span className="floor-table-booking-entry is-more">
-                        +{tableSchedule.length - 3} more
-                      </span>
-                    ) : null}
-                  </span>
-                </div>
-              ) : showHostReservationSummary ? (
-                <>
-                  {hostPrimaryTimeLabel ? (
-                    <span className="floor-table-time floor-table-reservation-time">{hostPrimaryTimeLabel}</span>
-                  ) : null}
-                  <span className="floor-table-pax">{hostPartyLabel}</span>
-                </>
-              ) : hostCapacityLabel ? (
-                <span className="floor-table-capacity-label">{hostCapacityLabel}</span>
-              ) : null}
-              {!showHostReservationSummary ? (
-                <FloorTableSeatingIndicators indicators={tableState.meta?.seatingIndicators ?? []} />
-              ) : null}
-            </div>
-          </>
+          <HostFloorCompactTableContent
+            content={hostCompactContent}
+            linkMeta={linkMeta}
+            seatingIndicators={tableState.meta?.seatingIndicators ?? []}
+          />
         ) : (
           <>
             {showHostVisualDot ? (
