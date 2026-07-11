@@ -9,6 +9,7 @@ import {
   getHostQuickCreateTableHelperText,
   resolveHostQuickCreateRecommendedSeatingId,
   toggleHostQuickCreateTableSelection,
+  syncHostQuickCreateLayoutContext,
 } from './hostQuickCreateForm'
 
 const SERVICE_DATE = '2026-07-10'
@@ -186,8 +187,20 @@ describe('hostQuickCreateForm', () => {
       seatings: SEATINGS,
     })
     expect(options.canSelect).toBe(false)
-    expect(getHostQuickCreateTableHelperText({ ...form, seatingId: null }, options, SEATINGS))
+    expect(getHostQuickCreateTableHelperText({ ...form, seatingId: null }, options, SEATINGS, { layout: LAYOUT }))
       .toBe('Choose a seating to view available tables')
+  })
+
+  it('9b. no time shows Choose a time first even when area is selected', () => {
+    const form = {
+      date: SERVICE_DATE,
+      time: '',
+      seatingId: null,
+      seatingAreaId: 'main',
+      area: 'Main Dining',
+    }
+    expect(getHostQuickCreateTableHelperText(form, { canSelect: false, availableCount: 0, options: [] }, SEATINGS, { layout: LAYOUT }))
+      .toBe('Choose a time first')
   })
 
   it('10. table selector is disabled without Area', () => {
@@ -206,7 +219,7 @@ describe('hostQuickCreateForm', () => {
       seatings: SEATINGS,
     })
     expect(options.canSelect).toBe(false)
-    expect(getHostQuickCreateTableHelperText(form, options, SEATINGS))
+    expect(getHostQuickCreateTableHelperText(form, options, SEATINGS, { layout: LAYOUT }))
       .toBe('Choose an area to view available tables')
   })
 
@@ -462,5 +475,186 @@ describe('hostQuickCreateForm', () => {
     expect(form.area).toBe('Main Dining')
     expect(form.assignedUnits).toHaveLength(1)
     expect(form.assignedUnits[0].id).toBe('t15')
+  })
+
+  describe('dependent availability flow', () => {
+    const singleAreaLayout = {
+      zones: [{ id: 'main', label: 'Main Dining' }],
+      units: LAYOUT.units.filter((unit) => unit.zoneId === 'main'),
+    }
+
+    it('selecting time auto-selects matching seating via resolveReservationSeatingId', () => {
+      let form = createHostQuickCreateFormState(
+        { date: SERVICE_DATE },
+        { todayKey: SERVICE_DATE, layout: singleAreaLayout, seatings: SEATINGS },
+      )
+
+      form = applyHostQuickCreateFormPatch(form, { time: '20:45' }, {
+        layout: singleAreaLayout,
+        seatings: SEATINGS,
+        reservations: [],
+      })
+
+      expect(form.seatingId).toBe('dinner-1')
+      expect(form.recommendedSeatingId).toBe('dinner-1')
+      expect(form.seatingManuallyOverridden).toBe(false)
+
+      form = applyHostQuickCreateFormPatch(form, { time: '21:00' }, {
+        layout: singleAreaLayout,
+        seatings: SEATINGS,
+        reservations: [],
+      })
+      expect(form.seatingId).toBe('dinner-2')
+    })
+
+    it('seating and auto-selected area immediately populate tables after time selection', () => {
+      let form = createHostQuickCreateFormState(
+        { date: SERVICE_DATE },
+        { todayKey: SERVICE_DATE, layout: singleAreaLayout, seatings: SEATINGS },
+      )
+
+      form = applyHostQuickCreateFormPatch(form, { time: '21:00' }, {
+        layout: singleAreaLayout,
+        seatings: SEATINGS,
+        reservations: [],
+      })
+
+      expect(form.seatingAreaId).toBe('main')
+      expect(form.seatingId).toBe('dinner-2')
+
+      const options = buildHostQuickCreateTableOptions({
+        layout: singleAreaLayout,
+        reservations: [],
+        dateKey: form.date,
+        time: form.time,
+        seatingId: form.seatingId,
+        areaId: form.seatingAreaId,
+        partySize: form.guests,
+        seatings: SEATINGS,
+      })
+
+      expect(options.canSelect).toBe(true)
+      expect(options.options.length).toBeGreaterThan(0)
+      expect(getHostQuickCreateTableHelperText(form, options, SEATINGS, { layout: singleAreaLayout })).toBe('')
+    })
+
+    it('late-loaded layout syncs single area and table availability without resetting time', () => {
+      let form = createHostQuickCreateFormState(
+        { date: SERVICE_DATE, time: '21:00' },
+        { todayKey: SERVICE_DATE, layout: null, seatings: SEATINGS },
+      )
+
+      expect(form.seatingId).toBe('dinner-2')
+      expect(form.seatingAreaId).toBe('')
+
+      form = syncHostQuickCreateLayoutContext(form, {
+        layout: singleAreaLayout,
+        seatings: SEATINGS,
+        reservations: [],
+      })
+
+      expect(form.time).toBe('21:00')
+      expect(form.seatingId).toBe('dinner-2')
+      expect(form.seatingAreaId).toBe('main')
+
+      const options = buildHostQuickCreateTableOptions({
+        layout: singleAreaLayout,
+        reservations: [],
+        dateKey: form.date,
+        time: form.time,
+        seatingId: form.seatingId,
+        areaId: form.seatingAreaId,
+        partySize: form.guests,
+        seatings: SEATINGS,
+      })
+      expect(options.canSelect).toBe(true)
+      expect(options.availableCount).toBeGreaterThan(0)
+    })
+
+    it('shows Checking availability when seating and area exist before layout is ready', () => {
+      const form = {
+        date: SERVICE_DATE,
+        time: '21:00',
+        seatingId: 'dinner-2',
+        seatingAreaId: 'main',
+        area: 'Main Dining',
+      }
+
+      expect(
+        getHostQuickCreateTableHelperText(
+          form,
+          { canSelect: false, availableCount: 0, options: [] },
+          SEATINGS,
+          { layout: null },
+        ),
+      ).toBe('Checking availability...')
+    })
+
+    it('changing seating recomputes available tables', () => {
+      let form = createHostQuickCreateFormState(
+        { date: SERVICE_DATE, time: '19:00', seatingAreaId: 'main', area: 'Main Dining' },
+        { todayKey: SERVICE_DATE, layout: LAYOUT, seatings: SEATINGS },
+      )
+
+      const dinnerOneOptions = buildHostQuickCreateTableOptions({
+        layout: LAYOUT,
+        reservations: CONTEXT.reservations,
+        dateKey: form.date,
+        time: form.time,
+        seatingId: form.seatingId,
+        areaId: form.seatingAreaId,
+        partySize: form.guests,
+        seatings: SEATINGS,
+      })
+      expect(dinnerOneOptions.options.find((entry) => entry.unit.id === 't15')?.isSelectable).toBe(false)
+
+      form = applyHostQuickCreateFormPatch(form, { time: '21:00' }, CONTEXT)
+      const dinnerTwoOptions = buildHostQuickCreateTableOptions({
+        layout: LAYOUT,
+        reservations: CONTEXT.reservations,
+        dateKey: form.date,
+        time: form.time,
+        seatingId: form.seatingId,
+        areaId: form.seatingAreaId,
+        partySize: form.guests,
+        seatings: SEATINGS,
+      })
+      expect(form.seatingId).toBe('dinner-2')
+      expect(dinnerTwoOptions.options.find((entry) => entry.unit.id === 't15')?.isSelectable).toBe(true)
+    })
+
+    it('no available tables shows the seating-specific message', () => {
+      const reservations = [
+        buildOccupiedReservation(),
+        buildOccupiedReservation({
+          id: 'res-t16',
+          seatingAssignment: {
+            assignedUnits: [{ id: 't16', label: 'T16', seatedCapacity: 2, maxGuestCapacity: 2 }],
+            extraChairs: 0,
+            standingGuests: 0,
+          },
+        }),
+      ]
+      const options = buildHostQuickCreateTableOptions({
+        layout: LAYOUT,
+        reservations,
+        dateKey: SERVICE_DATE,
+        time: '19:00',
+        seatingId: 'dinner-1',
+        areaId: 'main',
+        partySize: 2,
+        seatings: SEATINGS,
+      })
+      const form = {
+        date: SERVICE_DATE,
+        time: '19:00',
+        seatingId: 'dinner-1',
+        seatingAreaId: 'main',
+      }
+
+      expect(options.availableCount).toBe(0)
+      expect(getHostQuickCreateTableHelperText(form, options, SEATINGS, { layout: LAYOUT }))
+        .toBe('No available tables in this area for Dinner 1')
+    })
   })
 })

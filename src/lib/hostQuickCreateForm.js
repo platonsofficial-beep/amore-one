@@ -4,8 +4,8 @@ import {
   getActiveSeatingsForDate,
   isReservationTimeInSeatingWindow,
   isSeatingActiveOnDate,
-  matchReservationTimeToSeating,
   normalizeReservationSeating,
+  resolveReservationSeatingId,
   resolveSeatingDuration,
 } from './reservationSeatings'
 import { formatTableConflictReason } from './tableAvailability'
@@ -43,7 +43,7 @@ export function formatHostQuickCreateSeatingOptionLabel(seating) {
 
 export function resolveHostQuickCreateRecommendedSeatingId(dateKey, timeValue, seatings = []) {
   if (!dateKey || !timeValue) return null
-  return matchReservationTimeToSeating(timeValue, dateKey, seatings)?.id ?? null
+  return resolveReservationSeatingId({ date: dateKey, time: timeValue }, seatings, dateKey)
 }
 
 export function isHostQuickCreateSeatingValidForContext(seating, dateKey, timeValue) {
@@ -222,7 +222,11 @@ export function buildHostQuickCreateTableOptions({
   }
 }
 
-export function getHostQuickCreateTableHelperText(form, tableOptions, seatings = []) {
+export function getHostQuickCreateTableHelperText(form, tableOptions, seatings = [], { layout = null } = {}) {
+  if (!form.time) {
+    return 'Choose a time first'
+  }
+
   if (!form.seatingId) {
     return 'Choose a seating to view available tables'
   }
@@ -231,8 +235,9 @@ export function getHostQuickCreateTableHelperText(form, tableOptions, seatings =
     return 'Choose an area to view available tables'
   }
 
-  if (!tableOptions.canSelect) {
-    return 'Select date and time to view available tables'
+  const layoutReady = Boolean(layout?.zones?.length)
+  if (!layoutReady || !tableOptions.canSelect) {
+    return 'Checking availability...'
   }
 
   if (tableOptions.availableCount === 0) {
@@ -325,6 +330,57 @@ function clearInvalidAssignedUnits(form, context) {
   }
 }
 
+export function syncHostQuickCreateLayoutContext(form, context = {}) {
+  const { layout = null, seatings = [], reservations = [] } = context
+  if (!form) return form
+
+  let next = { ...form }
+  let changed = false
+
+  const recommendedSeatingId = resolveHostQuickCreateRecommendedSeatingId(
+    next.date,
+    next.time,
+    seatings,
+  )
+
+  if (next.recommendedSeatingId !== recommendedSeatingId) {
+    next.recommendedSeatingId = recommendedSeatingId
+    changed = true
+  }
+
+  if (!next.seatingManuallyOverridden && next.time && next.seatingId !== recommendedSeatingId) {
+    next.seatingId = recommendedSeatingId
+    changed = true
+  }
+
+  const areaSelection = resolveHostQuickCreateAreaSelection(
+    layout,
+    next.seatingAreaId,
+    next.area,
+  )
+  if (!next.seatingAreaId && areaSelection.seatingAreaId) {
+    next.seatingAreaId = areaSelection.seatingAreaId
+    next.area = areaSelection.area
+    changed = true
+  }
+
+  if (next.seatingId && next.seatingAreaId) {
+    const cleared = clearInvalidAssignedUnits(next, { layout, seatings, reservations })
+    if (
+      cleared.assignedUnits.length !== next.assignedUnits.length
+      || cleared.tableSelectionNotice !== next.tableSelectionNotice
+    ) {
+      next.assignedUnits = cleared.assignedUnits
+      if (cleared.tableSelectionNotice) {
+        next.tableSelectionNotice = cleared.tableSelectionNotice
+      }
+      changed = true
+    }
+  }
+
+  return changed ? next : form
+}
+
 export function applyHostQuickCreateFormPatch(form, patch, context = {}) {
   const { layout = null, seatings = [] } = context
   let next = { ...form, ...patch, tableSelectionNotice: '' }
@@ -345,7 +401,16 @@ export function applyHostQuickCreateFormPatch(form, patch, context = {}) {
   }
 
   if (seatingChanged) {
-    next.seatingManuallyOverridden = true
+    next.recommendedSeatingId = resolveHostQuickCreateRecommendedSeatingId(
+      next.date,
+      next.time,
+      seatings,
+    )
+    if (!next.seatingId) {
+      next.seatingManuallyOverridden = false
+    } else {
+      next.seatingManuallyOverridden = next.seatingId !== next.recommendedSeatingId
+    }
     const zone = zones.find((entry) => entry.id === next.seatingAreaId)
     next.area = zone?.label ?? next.area
   }
@@ -377,12 +442,14 @@ export function applyHostQuickCreateFormPatch(form, patch, context = {}) {
     }
   }
 
-  if (dateChanged && !Object.hasOwn(patch, 'seatingAreaId')) {
+  if ((dateChanged || timeChanged) && !Object.hasOwn(patch, 'seatingAreaId')) {
     const areaSelection = resolveHostQuickCreateAreaSelection(layout, next.seatingAreaId, next.area)
-    if (areaSelection.seatingAreaId !== next.seatingAreaId) {
+    if (!next.seatingAreaId && areaSelection.seatingAreaId) {
       next.seatingAreaId = areaSelection.seatingAreaId
       next.area = areaSelection.area
-      next.assignedUnits = []
+      if (form.assignedUnits.length) {
+        next.assignedUnits = []
+      }
     }
   }
 

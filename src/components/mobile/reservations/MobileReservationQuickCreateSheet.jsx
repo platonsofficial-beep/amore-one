@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { ReservationDateField } from '../../reservations/ReservationDateField'
 import { ReservationPhoneField } from '../../reservations/ReservationPhoneField'
 import { ReservationTimeSelect } from '../../reservations/ReservationTimeSelect'
@@ -14,6 +14,7 @@ import {
   createHostQuickCreateFormState,
   EMPTY_HOST_QUICK_CREATE_FORM,
   formatHostQuickCreateSeatingOptionLabel,
+  syncHostQuickCreateLayoutContext,
 } from '../../../lib/hostQuickCreateForm'
 import { HostQuickCreateTableField } from './HostQuickCreateTableField'
 
@@ -194,9 +195,17 @@ export function MobileReservationQuickCreateSheet({
 }) {
   const { layout } = usePublishedFloorPlan()
   const [form, setForm] = useState(EMPTY_HOST_QUICK_CREATE_FORM)
+  const wasOpenRef = useRef(false)
 
   useEffect(() => {
-    if (!isOpen) return
+    if (!isOpen) {
+      wasOpenRef.current = false
+      return
+    }
+
+    if (wasOpenRef.current) return
+    wasOpenRef.current = true
+
     setForm(createHostQuickCreateFormState({
       ...prefill,
       date: normalizeReservationDateKey(prefill?.date ?? todayKey),
@@ -211,7 +220,16 @@ export function MobileReservationQuickCreateSheet({
       assignedUnits: Array.isArray(prefill?.assignedUnits) ? prefill.assignedUnits : [],
       seatingManuallyOverridden: Boolean(prefill?.seatingManuallyOverridden),
     }, { todayKey, layout, seatings }))
-  }, [isOpen, layout, prefill, seatings, todayKey])
+  }, [isOpen, prefill, todayKey, layout, seatings])
+
+  useEffect(() => {
+    if (!isOpen) return
+    setForm((current) => syncHostQuickCreateLayoutContext(current, {
+      layout,
+      seatings,
+      reservations,
+    }))
+  }, [isOpen, layout, seatings, reservations])
 
   if (!isOpen) return null
 

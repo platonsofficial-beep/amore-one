@@ -1,3 +1,4 @@
+import { useMemo } from 'react'
 import {
   buildHostQuickCreateTableOptions,
   getHostQuickCreateTableHelperText,
@@ -13,20 +14,37 @@ export function HostQuickCreateTableField({
   seatings = [],
   onFormChange,
 }) {
-  const tableOptions = buildHostQuickCreateTableOptions({
-    layout,
-    reservations,
-    dateKey: form.date,
-    time: form.time,
-    seatingId: form.seatingId,
-    areaId: form.seatingAreaId,
-    partySize: form.guests,
-    seatings,
-    assignedUnits: form.assignedUnits,
-  })
+  const tableOptions = useMemo(
+    () => buildHostQuickCreateTableOptions({
+      layout,
+      reservations,
+      dateKey: form.date,
+      time: form.time,
+      seatingId: form.seatingId,
+      areaId: form.seatingAreaId,
+      partySize: form.guests,
+      seatings,
+      assignedUnits: form.assignedUnits,
+    }),
+    [
+      layout,
+      reservations,
+      form.date,
+      form.time,
+      form.seatingId,
+      form.seatingAreaId,
+      form.guests,
+      form.assignedUnits,
+      seatings,
+    ],
+  )
 
-  const helperText = getHostQuickCreateTableHelperText(form, tableOptions, seatings)
-  const isDisabled = !form.seatingId || !form.seatingAreaId || !tableOptions.canSelect
+  const helperText = useMemo(
+    () => getHostQuickCreateTableHelperText(form, tableOptions, seatings, { layout }),
+    [form, tableOptions, seatings, layout],
+  )
+
+  const showTableGrid = !helperText
   const selectedUnit = form.assignedUnits[0] ?? null
 
   const handleToggle = (unit) => {
@@ -65,13 +83,14 @@ export function HostQuickCreateTableField({
       ) : null}
 
       {helperText ? (
-        <p className="mobile-host-form-hint">{helperText}</p>
-      ) : (
+        <p className="mobile-host-form-hint" role="status">{helperText}</p>
+      ) : null}
+
+      {showTableGrid ? (
         <div
           className="mobile-host-quick-create-table-grid"
           role="listbox"
           aria-label="Available tables"
-          aria-disabled={isDisabled}
         >
           {tableOptions.options.map(({ unit, isSelectable, disabledReason, label }) => {
             const isSelected = form.assignedUnits.some((entry) => unitIdsMatch(entry.id, unit.id))
@@ -93,7 +112,7 @@ export function HostQuickCreateTableField({
             )
           })}
         </div>
-      )}
+      ) : null}
     </div>
   )
 }
