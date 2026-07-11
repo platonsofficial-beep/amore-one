@@ -11,10 +11,13 @@ import { usePublishedFloorPlan } from '../../../lib/PublishedFloorPlanContext'
 import { getActiveSeatingsForDate } from '../../../lib/reservationSeatings'
 import {
   applyHostQuickCreateFormPatch,
+  buildHostQuickCreateAvailabilityKey,
   createHostQuickCreateFormState,
   EMPTY_HOST_QUICK_CREATE_FORM,
   formatHostQuickCreateSeatingOptionLabel,
+  refreshHostQuickCreateAssignedUnits,
   syncHostQuickCreateLayoutContext,
+  toggleHostQuickCreateTableSelection,
 } from '../../../lib/hostQuickCreateForm'
 import { HostQuickCreateTableField } from './HostQuickCreateTableField'
 
@@ -29,6 +32,11 @@ function HostReservationQuickCreateFields({
   reservations = [],
   layout = null,
 }) {
+  const formRef = useRef(form)
+  useEffect(() => {
+    formRef.current = form
+  }, [form])
+
   const activeSeatings = useMemo(
     () => getActiveSeatingsForDate(seatings, form.date || todayKey),
     [form.date, seatings, todayKey],
@@ -43,8 +51,29 @@ function HostReservationQuickCreateFields({
     }))
   }
 
+  const handleSelectTable = (unit) => {
+    setForm((current) => {
+      const toggled = toggleHostQuickCreateTableSelection(current, unit, {
+        layout,
+        reservations,
+        seatings,
+      })
+      return applyHostQuickCreateFormPatch(current, {
+        assignedUnits: toggled.assignedUnits,
+      }, {
+        layout,
+        seatings,
+        reservations,
+      })
+    })
+  }
+
+  const handleClearTable = () => {
+    updateForm({ assignedUnits: [] })
+  }
+
   const handleSave = async () => {
-    await onSubmit?.(form)
+    await onSubmit?.(formRef.current)
   }
 
   return (
@@ -119,9 +148,6 @@ function HostReservationQuickCreateFields({
             {activeSeatings.map((seating) => (
               <option key={seating.id} value={seating.id}>
                 {formatHostQuickCreateSeatingOptionLabel(seating)}
-                {form.recommendedSeatingId === seating.id && !form.seatingManuallyOverridden
-                  ? ' · Recommended'
-                  : ''}
               </option>
             ))}
           </select>
@@ -148,7 +174,8 @@ function HostReservationQuickCreateFields({
         layout={layout}
         reservations={reservations}
         seatings={seatings}
-        onFormChange={setForm}
+        onSelectTable={handleSelectTable}
+        onClearTable={handleClearTable}
       />
 
       <label className="mobile-host-form-field">
@@ -196,6 +223,10 @@ export function MobileReservationQuickCreateSheet({
   const { layout } = usePublishedFloorPlan()
   const [form, setForm] = useState(EMPTY_HOST_QUICK_CREATE_FORM)
   const wasOpenRef = useRef(false)
+  const availabilityKey = useMemo(
+    () => buildHostQuickCreateAvailabilityKey(form, reservations),
+    [form.date, form.seatingId, form.seatingAreaId, reservations],
+  )
 
   useEffect(() => {
     if (!isOpen) {
@@ -227,9 +258,17 @@ export function MobileReservationQuickCreateSheet({
     setForm((current) => syncHostQuickCreateLayoutContext(current, {
       layout,
       seatings,
+    }))
+  }, [isOpen, layout, seatings])
+
+  useEffect(() => {
+    if (!isOpen) return
+    setForm((current) => refreshHostQuickCreateAssignedUnits(current, {
+      layout,
+      seatings,
       reservations,
     }))
-  }, [isOpen, layout, seatings, reservations])
+  }, [isOpen, layout, seatings, availabilityKey])
 
   if (!isOpen) return null
 

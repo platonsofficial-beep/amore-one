@@ -10,6 +10,10 @@ import {
   resolveHostQuickCreateRecommendedSeatingId,
   toggleHostQuickCreateTableSelection,
   syncHostQuickCreateLayoutContext,
+  refreshHostQuickCreateAssignedUnits,
+  formatHostQuickCreateSelectedTableSummary,
+  formatHostQuickCreateTableSelectionStatus,
+  buildHostQuickCreateAvailabilityKey,
 } from './hostQuickCreateForm'
 
 const SERVICE_DATE = '2026-07-10'
@@ -442,6 +446,69 @@ describe('hostQuickCreateForm', () => {
     const assignment = buildSeatingAssignment({ assignedUnits: form.assignedUnits, partySize: 2 })
     expect(formatSeatingAssignmentLabels(assignment)).toBe('T15')
     expect(form.assignedUnits).toHaveLength(1)
+    expect(formatHostQuickCreateSelectedTableSummary(form.assignedUnits)).toBe('T15')
+    expect(formatHostQuickCreateTableSelectionStatus(form.assignedUnits)).toBe('Selected table · T15')
+  })
+
+  it('21b. table selection survives reservation refresh sync', () => {
+    let form = createHostQuickCreateFormState(
+      {
+        date: SERVICE_DATE,
+        time: '21:00',
+        seatingId: 'dinner-2',
+        seatingAreaId: 'main',
+        area: 'Main Dining',
+        guests: '2',
+      },
+      { todayKey: SERVICE_DATE, layout: LAYOUT, seatings: SEATINGS },
+    )
+    const availableTable = LAYOUT.units.find((unit) => unit.id === 't15')
+    form = toggleHostQuickCreateTableSelection(form, availableTable, CONTEXT)
+    form = refreshHostQuickCreateAssignedUnits(form, {
+      ...CONTEXT,
+      reservations: [...CONTEXT.reservations],
+    })
+    expect(form.assignedUnits).toHaveLength(1)
+    expect(form.assignedUnits[0].id).toBe('t15')
+  })
+
+  it('21c. multi-table mode toggles tables on and off', () => {
+    let form = createHostQuickCreateFormState(
+      {
+        date: SERVICE_DATE,
+        time: '21:00',
+        seatingId: 'dinner-2',
+        seatingAreaId: 'main',
+        area: 'Main Dining',
+        guests: '2',
+      },
+      { todayKey: SERVICE_DATE, layout: LAYOUT, seatings: SEATINGS },
+    )
+    const t15 = LAYOUT.units.find((unit) => unit.id === 't15')
+    const t16 = LAYOUT.units.find((unit) => unit.id === 't16')
+
+    form = toggleHostQuickCreateTableSelection(form, t15, CONTEXT, { allowMultipleTables: true })
+    form = toggleHostQuickCreateTableSelection(form, t16, CONTEXT, { allowMultipleTables: true })
+    expect(formatHostQuickCreateSelectedTableSummary(form.assignedUnits)).toBe('T15 + T16')
+
+    form = toggleHostQuickCreateTableSelection(form, t15, CONTEXT, { allowMultipleTables: true })
+    expect(formatHostQuickCreateSelectedTableSummary(form.assignedUnits)).toBe('T16')
+  })
+
+  it('21d. availability key stays stable when reservation array reference changes', () => {
+    const form = createHostQuickCreateFormState(
+      {
+        date: SERVICE_DATE,
+        time: '21:00',
+        seatingId: 'dinner-2',
+        seatingAreaId: 'main',
+      },
+      { todayKey: SERVICE_DATE, layout: LAYOUT, seatings: SEATINGS },
+    )
+    const reservations = [buildOccupiedReservation()]
+    const keyA = buildHostQuickCreateAvailabilityKey(form, reservations)
+    const keyB = buildHostQuickCreateAvailabilityKey(form, [...reservations])
+    expect(keyA).toBe(keyB)
   })
 
   it('22. quick create form does not include seated status semantics', () => {

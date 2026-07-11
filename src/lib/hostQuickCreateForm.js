@@ -1,4 +1,7 @@
-import { formatHostListUnitLabel } from './seatingAssignment'
+import {
+  formatHostListUnitLabel,
+  getReservationAssignedUnitsForMatching,
+} from './seatingAssignment'
 import {
   buildSeatingsById,
   getActiveSeatingsForDate,
@@ -13,6 +16,7 @@ import {
   getConflictingUnitIds,
   getLayoutUnitsForArea,
   isUnitSelectable,
+  toggleAssignedUnit,
   unitIdsMatch,
 } from './reservationTableOptions'
 import { formatSeatingWindowLabel } from './tableDayView'
@@ -110,6 +114,42 @@ export function formatHostQuickCreateTableCapacityLabel(unit) {
   }
 
   return ''
+}
+
+export function formatHostQuickCreateSelectedTableSummary(assignedUnits = []) {
+  if (!Array.isArray(assignedUnits) || assignedUnits.length === 0) return ''
+  return assignedUnits
+    .map((unit) => formatHostListUnitLabel(unit.label))
+    .join(' + ')
+}
+
+export function formatHostQuickCreateTableSelectionStatus(assignedUnits = []) {
+  const summary = formatHostQuickCreateSelectedTableSummary(assignedUnits)
+  return summary ? `Selected table · ${summary}` : 'No table selected'
+}
+
+export function buildHostQuickCreateAvailabilityKey(form, reservations = []) {
+  if (!form?.date || !form?.seatingId || !form?.seatingAreaId) return ''
+
+  const normalizedDate = normalizeReservationDateKey(form.date)
+  if (!normalizedDate) return ''
+
+  return reservations
+    .filter((reservation) => normalizeReservationDateKey(reservation) === normalizedDate)
+    .map((reservation) => {
+      const unitIds = getReservationAssignedUnitsForMatching(reservation)
+        .map((unit) => unit.id)
+        .sort()
+        .join('+')
+      return [
+        reservation.id,
+        reservation.time ?? reservation.start_time ?? '',
+        reservation.status ?? '',
+        unitIds,
+      ].join(':')
+    })
+    .sort()
+    .join('|')
 }
 
 export function formatHostQuickCreateTableOptionLabel(unit, partySize) {
@@ -330,8 +370,27 @@ function clearInvalidAssignedUnits(form, context) {
   }
 }
 
+export function refreshHostQuickCreateAssignedUnits(form, context = {}) {
+  if (!form?.assignedUnits?.length) return form
+  if (!form.seatingId || !form.seatingAreaId) return form
+
+  const cleared = clearInvalidAssignedUnits(form, context)
+  if (
+    cleared.assignedUnits.length === form.assignedUnits.length
+    && cleared.tableSelectionNotice === form.tableSelectionNotice
+  ) {
+    return form
+  }
+
+  return {
+    ...form,
+    assignedUnits: cleared.assignedUnits,
+    tableSelectionNotice: cleared.tableSelectionNotice || form.tableSelectionNotice,
+  }
+}
+
 export function syncHostQuickCreateLayoutContext(form, context = {}) {
-  const { layout = null, seatings = [], reservations = [] } = context
+  const { layout = null, seatings = [] } = context
   if (!form) return form
 
   let next = { ...form }
@@ -364,26 +423,17 @@ export function syncHostQuickCreateLayoutContext(form, context = {}) {
     changed = true
   }
 
-  if (next.seatingId && next.seatingAreaId) {
-    const cleared = clearInvalidAssignedUnits(next, { layout, seatings, reservations })
-    if (
-      cleared.assignedUnits.length !== next.assignedUnits.length
-      || cleared.tableSelectionNotice !== next.tableSelectionNotice
-    ) {
-      next.assignedUnits = cleared.assignedUnits
-      if (cleared.tableSelectionNotice) {
-        next.tableSelectionNotice = cleared.tableSelectionNotice
-      }
-      changed = true
-    }
-  }
-
   return changed ? next : form
 }
 
 export function applyHostQuickCreateFormPatch(form, patch, context = {}) {
   const { layout = null, seatings = [] } = context
-  let next = { ...form, ...patch, tableSelectionNotice: '' }
+  const assignedUnitsChanged = Object.hasOwn(patch, 'assignedUnits')
+  let next = {
+    ...form,
+    ...patch,
+    tableSelectionNotice: assignedUnitsChanged ? (form.tableSelectionNotice ?? '') : '',
+  }
 
   const zones = layout?.zones ?? []
   const dateChanged = Object.hasOwn(patch, 'date')
@@ -391,6 +441,11 @@ export function applyHostQuickCreateFormPatch(form, patch, context = {}) {
   const seatingChanged = Object.hasOwn(patch, 'seatingId')
   const areaChanged = Object.hasOwn(patch, 'seatingAreaId')
   const guestsChanged = Object.hasOwn(patch, 'guests')
+
+  if (assignedUnitsChanged) {
+    next.assignedUnits = Array.isArray(patch.assignedUnits) ? patch.assignedUnits : []
+    return next
+  }
 
   if (dateChanged) {
     next.date = normalizeReservationDateKey(next.date)
@@ -482,17 +537,13 @@ export function applyHostQuickCreateFormPatch(form, patch, context = {}) {
   return next
 }
 
-export function toggleHostQuickCreateTableSelection(form, unit, context = {}) {
-  if (!unit) return form
-
-  const isSelected = form.assignedUnits.some((entry) => unitIdsMatch(entry.id, unit.id))
-  if (isSelected) {
-    return {
-      ...form,
-      assignedUnits: [],
-      tableSelectionNotice: '',
-    }
-  }
+export function toggleHostQuickCreateTableSelection(
+  form,
+  unit,
+  context = {},
+  { allowMultipleTables = false } = {},
+) {
+  if (!unit || !form) return form
 
   const { options } = buildHostQuickCreateTableOptions({
     layout: context.layout,
@@ -507,13 +558,33 @@ export function toggleHostQuickCreateTableSelection(form, unit, context = {}) {
   })
 
   const option = options.find((entry) => unitIdsMatch(entry.unit.id, unit.id))
-  if (!option?.isSelectable) {
-    return form
+  if (!option) return form
+
+  const normalizedUnit = option.unit
+  const isSelected = form.assignedUnits.some((entry) => unitIdsMatch(entry.id, normalizedUnit.id))
+
+  if (allowMultipleTables) {
+    if (!isSelected && !option.isSelectable) return form
+    return {
+      ...form,
+      assignedUnits: toggleAssignedUnit(form.assignedUnits, normalizedUnit),
+      tableSelectionNotice: '',
+    }
   }
+
+  if (isSelected) {
+    return {
+      ...form,
+      assignedUnits: [],
+      tableSelectionNotice: '',
+    }
+  }
+
+  if (!option.isSelectable) return form
 
   return {
     ...form,
-    assignedUnits: [unit],
+    assignedUnits: [normalizedUnit],
     tableSelectionNotice: '',
   }
 }

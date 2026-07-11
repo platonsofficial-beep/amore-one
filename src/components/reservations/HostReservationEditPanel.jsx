@@ -140,7 +140,9 @@ export function HostReservationEditPanel({
   })
   const hasNotes = Boolean(`${form.notes ?? ''}`.trim())
 
-  const updateField = (patch) => onChange({ ...form, ...patch })
+  const updateField = (patch) => {
+    onChange((current) => ({ ...current, ...patch }))
+  }
 
   const handleClearSeating = () => {
     updateField({

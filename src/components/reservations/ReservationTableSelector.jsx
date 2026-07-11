@@ -107,7 +107,8 @@ export function ReservationTableSelector({
   const canUseStanding = assignmentAllowsStanding(draftAssignment)
 
   const handleToggleUnit = (unit) => {
-    if (!isUnitSelectable(unit.id, conflictingUnitIds, selectedUnitIds)) return
+    const isSelected = selectedUnitIds.some((id) => unitIdsMatch(id, unit.id))
+    if (!isSelected && !isUnitSelectable(unit.id, conflictingUnitIds, selectedUnitIds)) return
     onAssignedUnitsChange(toggleAssignedUnit(assignedUnits, unit))
   }
 
@@ -173,7 +174,7 @@ export function ReservationTableSelector({
                 type="button"
                 className={`reservation-table-selector-unit${isSelected ? ' is-selected' : ''}${isUnavailable ? ' is-unavailable' : ''}`}
                 onClick={() => handleToggleUnit(unit)}
-                disabled={isUnavailable}
+                disabled={isUnavailable && !isSelected}
                 title={isUnavailable ? formatTableConflictReason(conflict) : undefined}
               >
                 <span className="reservation-table-selector-unit-label">{formatHostListUnitLabel(unit.label)}</span>

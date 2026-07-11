@@ -1,8 +1,8 @@
 import { useMemo } from 'react'
 import {
   buildHostQuickCreateTableOptions,
+  formatHostQuickCreateTableSelectionStatus,
   getHostQuickCreateTableHelperText,
-  toggleHostQuickCreateTableSelection,
 } from '../../../lib/hostQuickCreateForm'
 import { formatHostListUnitLabel } from '../../../lib/seatingAssignment'
 import { unitIdsMatch } from '../../../lib/reservationTableOptions'
@@ -12,7 +12,8 @@ export function HostQuickCreateTableField({
   layout = null,
   reservations = [],
   seatings = [],
-  onFormChange,
+  onSelectTable,
+  onClearTable,
 }) {
   const tableOptions = useMemo(
     () => buildHostQuickCreateTableOptions({
@@ -44,39 +45,47 @@ export function HostQuickCreateTableField({
     [form, tableOptions, seatings, layout],
   )
 
+  const selectionStatus = useMemo(
+    () => formatHostQuickCreateTableSelectionStatus(form.assignedUnits),
+    [form.assignedUnits],
+  )
+
   const showTableGrid = !helperText
-  const selectedUnit = form.assignedUnits[0] ?? null
+  const hasSelection = form.assignedUnits.length > 0
 
-  const handleToggle = (unit) => {
-    onFormChange(toggleHostQuickCreateTableSelection(form, unit, {
-      layout,
-      reservations,
-      seatings,
-    }))
-  }
-
-  const handleClear = () => {
-    onFormChange({
-      ...form,
-      assignedUnits: [],
-      tableSelectionNotice: '',
-    })
+  const handleSelect = (event, unit, isSelectable) => {
+    event.preventDefault()
+    event.stopPropagation()
+    if (!isSelectable) return
+    onSelectTable?.(unit)
   }
 
   return (
     <div className="mobile-host-form-field mobile-host-quick-create-table-field">
       <div className="mobile-host-quick-create-table-header">
         <span>Table (optional)</span>
-        {selectedUnit ? (
+        {hasSelection ? (
           <button
             type="button"
             className="mobile-host-quick-create-clear-table"
-            onClick={handleClear}
+            onClick={(event) => {
+              event.stopPropagation()
+              onClearTable?.()
+            }}
           >
             Clear table
           </button>
         ) : null}
       </div>
+
+      <p
+        className={`mobile-host-quick-create-table-status${hasSelection ? ' has-selection' : ''}`}
+        role="status"
+        aria-live="polite"
+        data-testid="host-quick-create-table-status"
+      >
+        {selectionStatus}
+      </p>
 
       {form.tableSelectionNotice ? (
         <p className="mobile-host-form-notice" role="status">{form.tableSelectionNotice}</p>
@@ -89,25 +98,26 @@ export function HostQuickCreateTableField({
       {showTableGrid ? (
         <div
           className="mobile-host-quick-create-table-grid"
-          role="listbox"
+          role="group"
           aria-label="Available tables"
+          data-testid="host-quick-create-table-grid"
         >
           {tableOptions.options.map(({ unit, isSelectable, disabledReason, label }) => {
             const isSelected = form.assignedUnits.some((entry) => unitIdsMatch(entry.id, unit.id))
+            const isDisabled = !isSelectable
 
             return (
               <button
                 key={unit.id}
                 type="button"
-                role="option"
-                aria-selected={isSelected}
-                className={`mobile-host-quick-create-table-option${isSelected ? ' is-selected' : ''}${!isSelectable ? ' is-unavailable' : ''}`}
-                disabled={!isSelectable}
-                onClick={() => handleToggle(unit)}
+                aria-pressed={isSelected}
+                aria-disabled={isDisabled}
+                disabled={isDisabled}
+                className={`mobile-host-quick-create-table-option${isSelected ? ' is-selected' : ''}${isDisabled ? ' is-unavailable' : ''}`}
+                data-testid={`host-quick-create-table-option-${unit.id}`}
+                onClick={(event) => handleSelect(event, unit, isSelectable)}
               >
-                <span className="mobile-host-quick-create-table-option-label">
-                  {isSelectable ? label : `${formatHostListUnitLabel(unit.label)} · ${disabledReason}`}
-                </span>
+                {isSelectable ? label : `${formatHostListUnitLabel(unit.label)} · ${disabledReason}`}
               </button>
             )
           })}
