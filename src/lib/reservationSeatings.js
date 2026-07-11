@@ -173,25 +173,38 @@ export function matchReservationTimeToSeating(timeValue, dateKey, seatings = [])
   if (!normalizedTime) return null
 
   const activeSeatings = getActiveSeatingsForDate(seatings, dateKey)
-  return activeSeatings.find((seating) => seating.startTime === normalizedTime) ?? null
+  const matches = activeSeatings.filter((seating) => (
+    getSeatingWindowTimeOptions(seating).includes(normalizedTime)
+  ))
+
+  if (matches.length === 0) return null
+  if (matches.length === 1) return matches[0]
+
+  return sortReservationSeatings(matches)[0] ?? null
+}
+
+export function resolveReservationSeatingId(reservation, seatings = [], dateKey = null) {
+  const resolvedDateKey = dateKey ?? reservation?.date ?? reservation?.reservation_date ?? ''
+  const activeSeatings = getActiveSeatingsForDate(seatings, resolvedDateKey)
+  const activeSeatingIds = new Set(activeSeatings.map((entry) => entry.id))
+
+  const explicitSeatingId = reservation?.seatingId ?? reservation?.seating_id ?? null
+  if (explicitSeatingId && activeSeatingIds.has(explicitSeatingId)) {
+    return explicitSeatingId
+  }
+
+  const matched = matchReservationTimeToSeating(
+    reservation?.time ?? reservation?.reservation_time,
+    resolvedDateKey,
+    seatings,
+  )
+  return matched?.id ?? null
 }
 
 export function resolveSeatingDuration(seating, fallback = DEFAULT_RESERVATION_DURATION_MINUTES) {
   const normalized = normalizeReservationSeating(seating)
   if (!normalized) return fallback
   return normalized.durationMinutes
-}
-
-export function resolveReservationSeatingId(reservation, seatings = []) {
-  if (reservation?.seatingId) return reservation.seatingId
-  if (reservation?.seating_id) return reservation.seating_id
-
-  const matched = matchReservationTimeToSeating(
-    reservation?.time ?? reservation?.reservation_time,
-    reservation?.date ?? reservation?.reservation_date,
-    seatings,
-  )
-  return matched?.id ?? null
 }
 
 export function resolveReservationBlockedInterval(

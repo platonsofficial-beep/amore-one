@@ -35,10 +35,16 @@ export function shouldShowHostSeatingDrawer() {
 export function resolveHostAssignmentSeatingId({
   reservation = null,
   seatings = [],
-  selectedSeatingId = null,
+  manualSeatingId = null,
+  dateKey = null,
 } = {}) {
-  if (selectedSeatingId) return selectedSeatingId
-  return resolveReservationSeatingId(reservation, seatings)
+  if (manualSeatingId) return manualSeatingId
+  return resolveReservationSeatingId(reservation, seatings, dateKey)
+}
+
+export function isTableDayViewRowAssignableForAssignment(row) {
+  if (!row) return false
+  return Boolean(row.isAvailable) && !row.hasConflict
 }
 
 /** Approximate height budget for standard iPad landscape assignment content (px). */

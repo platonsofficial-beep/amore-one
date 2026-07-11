@@ -348,6 +348,7 @@ describe('FloorTableSeatingDialog host day view', () => {
   it('shows assignment pending row with assign action in assignment mode', () => {
     const onConfirmAssignment = vi.fn()
     const onCancelAssignment = vi.fn()
+    const onSelectSeating = vi.fn()
     const reservation = {
       id: 'res-pending',
       guestName: 'Samaridis',
@@ -373,8 +374,10 @@ describe('FloorTableSeatingDialog host day view', () => {
         seatingId: 'dinner-1',
         tableLabel: 'T23',
         draftTableLabels: 'T23',
+        canAssign: true,
         onConfirmAssignment,
         onCancelAssignment,
+        onSelectSeating,
       },
       onClose: () => {},
     })
@@ -396,6 +399,87 @@ describe('FloorTableSeatingDialog host day view', () => {
         ?.dispatchEvent(new MouseEvent('click', { bubbles: true }))
     })
     expect(onCancelAssignment).toHaveBeenCalledTimes(1)
+    cleanup()
+  })
+
+  it('allows manual seating selection and blocks assign until a seating is chosen', () => {
+    const onSelectSeating = vi.fn()
+    const dinnerTwo = {
+      ...SEATINGS[0],
+      id: 'dinner-2',
+      name: 'Dinner 2',
+    }
+
+    const { query, queryAll, cleanup } = renderDialog({
+      table: { id: 't22', label: 'T22' },
+      tableLabel: 'T22',
+      rows: [
+        {
+          seating: SEATINGS[0],
+          reservation: null,
+          conflicts: [],
+          hasConflict: false,
+          isAvailable: true,
+          timeWindowLabel: '19:00–21:00',
+          state: 'available',
+        },
+        {
+          seating: dinnerTwo,
+          reservation: null,
+          conflicts: [],
+          hasConflict: false,
+          isAvailable: true,
+          timeWindowLabel: '21:00–23:00',
+          state: 'available',
+        },
+      ],
+      assignmentContext: {
+        reservation: { id: 'res-1', guestName: 'Samaridis', guests: 2, time: '20:45' },
+        seatingId: null,
+        tableLabel: 'T22',
+        draftTableLabels: 'T22',
+        canAssign: false,
+        onConfirmAssignment: vi.fn(),
+        onCancelAssignment: vi.fn(),
+        onSelectSeating,
+      },
+      onClose: () => {},
+    })
+
+    expect(query('[data-testid="floor-table-day-choose-seating"]')?.textContent).toBe('Choose a seating')
+    expect(query('[data-testid="floor-table-day-assign-reservation"]')).toBeNull()
+
+    act(() => {
+      queryAll('[data-testid="floor-table-day-row-available"]')[1]
+        ?.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    })
+    expect(onSelectSeating).toHaveBeenCalledWith('dinner-2')
+    cleanup()
+  })
+
+  it('disables assign when the selected seating is occupied or conflicted', () => {
+    const { query, cleanup } = renderDialog({
+      table: { id: 't22', label: 'T22' },
+      tableLabel: 'T22',
+      rows: [buildOccupiedRow({
+        reservation: { id: 'res-1', guestName: 'Maria', guests: 2, time: '19:30' },
+        assignedTablesLabel: 'T22',
+      })],
+      assignmentContext: {
+        reservation: { id: 'res-pending', guestName: 'Samaridis', guests: 2, time: '20:45' },
+        seatingId: 'dinner-1',
+        tableLabel: 'T22',
+        draftTableLabels: 'T22',
+        canAssign: false,
+        onConfirmAssignment: vi.fn(),
+        onCancelAssignment: vi.fn(),
+        onSelectSeating: vi.fn(),
+      },
+      onClose: () => {},
+    })
+
+    expect(query('[data-testid="floor-table-day-assign-reservation"]')?.disabled).toBe(true)
+    expect(query('.floor-table-day-assignment-blocked')).not.toBeNull()
     cleanup()
   })
 })

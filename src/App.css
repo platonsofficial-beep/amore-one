@@ -7345,6 +7345,35 @@
   background: rgba(212, 175, 55, 0.08);
 }
 
+.floor-table-day-row.is-seating-selected {
+  border-color: rgba(212, 175, 55, 0.55);
+  box-shadow: inset 0 0 0 1px rgba(212, 175, 55, 0.35);
+  background: rgba(212, 175, 55, 0.1);
+}
+
+.floor-table-day-row.is-seating-selectable {
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.floor-table-day-row.is-seating-selectable:focus-visible {
+  outline: 2px solid rgba(212, 175, 55, 0.65);
+  outline-offset: 2px;
+}
+
+.floor-table-day-assignment-hint,
+.floor-table-day-seating-select-hint {
+  margin: 0;
+  color: rgba(246, 220, 162, 0.88);
+  font-size: 0.78rem;
+}
+
+.floor-table-day-assignment-blocked {
+  margin: 0;
+  color: rgba(248, 180, 180, 0.92);
+  font-size: 0.78rem;
+}
+
 .floor-table-seating-dialog.is-assignment-mode .floor-table-day-row.is-assignment-pending {
   box-shadow: inset 0 0 0 1px rgba(212, 175, 55, 0.12);
 }

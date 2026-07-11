@@ -6,6 +6,7 @@ import {
   isHostAssignmentModeActive,
   isHostCompactAssignmentSelection,
   isReservationEligibleForHostTableAssignment,
+  isTableDayViewRowAssignableForAssignment,
   resolveHostAssignmentSeatingId,
   shouldHostAssignmentEnableScroll,
   shouldShowHostSeatingDrawer,
@@ -56,7 +57,7 @@ describe('host assignment panel utils', () => {
     expect(shouldShowHostSeatingDrawer()).toBe(false)
   })
 
-  it('resolves assignment seating from reservation and manual override', () => {
+  it('resolves assignment seating from reservation and manual session override', () => {
     const seatings = [{
       id: 'dinner-1',
       name: 'Dinner 1',
@@ -65,18 +66,40 @@ describe('host assignment panel utils', () => {
       daysOfWeek: [0, 1, 2, 3, 4, 5, 6],
       sortOrder: 0,
       isActive: true,
+    }, {
+      id: 'dinner-2',
+      name: 'Dinner 2',
+      startTime: '21:00',
+      durationMinutes: 120,
+      daysOfWeek: [0, 1, 2, 3, 4, 5, 6],
+      sortOrder: 1,
+      isActive: true,
     }]
 
     expect(resolveHostAssignmentSeatingId({
-      reservation: { seatingId: 'dinner-1', time: '20:45' },
+      reservation: { seatingId: 'dinner-1', time: '20:45', date: '2026-07-10' },
       seatings,
+      dateKey: '2026-07-10',
     })).toBe('dinner-1')
 
     expect(resolveHostAssignmentSeatingId({
-      reservation: { time: '19:00', date: '2026-07-10' },
+      reservation: { time: '20:45', date: '2026-07-10' },
       seatings,
-      selectedSeatingId: 'manual-seating',
-    })).toBe('manual-seating')
+      dateKey: '2026-07-10',
+    })).toBe('dinner-1')
+
+    expect(resolveHostAssignmentSeatingId({
+      reservation: { time: '20:45', date: '2026-07-10' },
+      seatings,
+      manualSeatingId: 'dinner-2',
+      dateKey: '2026-07-10',
+    })).toBe('dinner-2')
+  })
+
+  it('blocks assignment on conflict or occupied day view rows', () => {
+    expect(isTableDayViewRowAssignableForAssignment({ isAvailable: true, hasConflict: false })).toBe(true)
+    expect(isTableDayViewRowAssignableForAssignment({ isAvailable: false, hasConflict: false })).toBe(false)
+    expect(isTableDayViewRowAssignableForAssignment({ isAvailable: true, hasConflict: true })).toBe(false)
   })
 
   it('returns advisory states for selection and capacity', () => {

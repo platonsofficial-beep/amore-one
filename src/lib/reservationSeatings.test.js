@@ -71,6 +71,58 @@ describe('reservationSeatings', () => {
     expect(matched?.id).toBe('dinner-1')
   })
 
+  it('matches reservation time inside seating windows instead of only exact start times', () => {
+    const seatings = sortReservationSeatings([
+      {
+        id: 'brunch-1',
+        name: 'Brunch 1',
+        start_time: '10:00',
+        duration_minutes: 120,
+        days_of_week: [0, 1, 2, 3, 4, 5, 6],
+        sort_order: 0,
+        is_active: true,
+      },
+      {
+        id: 'dinner-1',
+        name: 'Dinner 1',
+        start_time: '19:00',
+        duration_minutes: 120,
+        days_of_week: [0, 1, 2, 3, 4, 5, 6],
+        sort_order: 1,
+        is_active: true,
+      },
+      {
+        id: 'dinner-2',
+        name: 'Dinner 2',
+        start_time: '21:00',
+        duration_minutes: 120,
+        days_of_week: [0, 1, 2, 3, 4, 5, 6],
+        sort_order: 2,
+        is_active: true,
+      },
+    ])
+
+    expect(matchReservationTimeToSeating('20:45', '2026-07-10', seatings)?.id).toBe('dinner-1')
+    expect(resolveReservationSeatingId({ date: '2026-07-10', time: '20:45' }, seatings)).toBe('dinner-1')
+    expect(resolveReservationSeatingId({ date: '2026-07-10', time: '18:30' }, seatings)).toBeNull()
+  })
+
+  it('prefers valid reservation seating_id and falls back to time windows when stale', () => {
+    const seatings = sortReservationSeatings(SAMPLE_SEATINGS)
+
+    expect(resolveReservationSeatingId({
+      date: '2026-07-09',
+      time: '20:45',
+      seatingId: 'dinner-1',
+    }, seatings)).toBe('dinner-1')
+
+    expect(resolveReservationSeatingId({
+      date: '2026-07-09',
+      time: '20:45',
+      seatingId: 'missing-seating',
+    }, seatings)).toBe('dinner-1')
+  })
+
   it('resolves seating id from legacy reservations without seating_id when time matches', () => {
     const seatings = sortReservationSeatings(SAMPLE_SEATINGS)
     const seatingId = resolveReservationSeatingId({

@@ -121,6 +121,7 @@ export function createSeatingAssignmentPayload(reservation, assignmentInput) {
       seatingAssignment,
     ),
     seatingAssignment,
+    seatingId: assignmentInput?.seatingId ?? reservation.seatingId ?? reservation.seating_id ?? null,
   }
 }
 
