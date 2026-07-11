@@ -7379,7 +7379,7 @@ html[data-one-debug-scroll='1'] .floor-plan-viewport.is-host-viewport {
 
 .host-table-inspector-context {
   flex-shrink: 0;
-  padding: 8px 14px 10px;
+  padding: 6px 14px 8px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.05);
 }
 
@@ -7435,7 +7435,170 @@ html[data-one-debug-scroll='1'] .floor-plan-viewport.is-host-viewport {
   overflow-y: auto;
   overflow-x: hidden;
   overscroll-behavior: contain;
-  padding-top: 6px;
+  padding: 4px 12px 14px;
+}
+
+.host-table-inspector-list.floor-table-seating-dialog-list {
+  padding: 4px 12px 14px;
+}
+
+.host-table-inspector-seating-timeline {
+  display: flex;
+  flex-direction: column;
+  margin: 0 0 10px;
+  padding: 0;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  background:
+    linear-gradient(
+      180deg,
+      rgba(28, 26, 24, 0.82) 0%,
+      rgba(16, 14, 12, 0.9) 100%
+    );
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  overflow: visible;
+}
+
+.host-table-inspector-seating-timeline:last-child {
+  margin-bottom: 0;
+}
+
+.table-inspector-seating-row.is-available {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  padding: 10px 12px;
+  overflow: visible;
+}
+
+.table-inspector-seating-row.is-available.has-divider {
+  padding-top: 0;
+}
+
+.table-inspector-seating-divider {
+  height: 1px;
+  margin: 0 0 10px;
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(212, 175, 55, 0.14) 50%,
+    rgba(255, 255, 255, 0) 100%
+  );
+}
+
+.table-inspector-seating-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  min-width: 0;
+}
+
+.table-inspector-seating-heading strong {
+  min-width: 0;
+  color: #faf4e8;
+  font-size: 0.84rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.table-inspector-seating-heading time {
+  flex-shrink: 0;
+  color: rgba(168, 159, 146, 0.78);
+  font-size: 0.72rem;
+  line-height: 1.25;
+  white-space: nowrap;
+}
+
+.table-inspector-seating-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px 10px;
+  min-width: 0;
+}
+
+.availability-state {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  width: fit-content;
+  color: rgba(143, 214, 168, 0.92);
+  font-size: 0.72rem;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.availability-dot {
+  width: 7px;
+  height: 7px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: rgba(82, 196, 130, 0.95);
+  box-shadow: 0 0 0 2px rgba(82, 196, 130, 0.16);
+}
+
+.table-inspector-new-reservation-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0 12px;
+  border: 1px solid rgba(212, 175, 55, 0.22);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.04);
+  color: rgba(243, 223, 170, 0.92);
+  font-size: 0.74rem;
+  font-weight: 650;
+  line-height: 1.2;
+  cursor: pointer;
+  touch-action: manipulation;
+  white-space: nowrap;
+  justify-self: end;
+  transition:
+    background 160ms ease,
+    border-color 160ms ease,
+    color 160ms ease;
+}
+
+.table-inspector-new-reservation-action:hover,
+.table-inspector-new-reservation-action:focus-visible {
+  background: rgba(255, 255, 255, 0.07);
+  border-color: rgba(212, 175, 55, 0.32);
+  color: #f3dfaa;
+  outline: none;
+}
+
+.table-inspector-new-reservation-action:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.table-inspector-seating-row.is-seating-selectable {
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.table-inspector-seating-row.is-seating-selected {
+  background: rgba(212, 175, 55, 0.06);
+  box-shadow: inset 0 0 0 1px rgba(212, 175, 55, 0.24);
+}
+
+.table-inspector-seating-row.is-seating-selectable:focus-visible {
+  outline: 2px solid rgba(212, 175, 55, 0.65);
+  outline-offset: -2px;
+}
+
+@media (max-width: 340px) {
+  .table-inspector-seating-body {
+    grid-template-columns: 1fr;
+  }
+
+  .table-inspector-new-reservation-action {
+    width: 100%;
+    justify-self: stretch;
+  }
 }
 
 .host-table-inspector .floor-table-day-row.is-hero-primary {
@@ -7453,36 +7616,6 @@ html[data-one-debug-scroll='1'] .floor-plan-viewport.is-host-viewport {
 
 .host-table-inspector .floor-table-day-row.is-hero-primary .floor-table-day-guest-name {
   font-size: 1.02rem;
-}
-
-.host-table-inspector .floor-table-day-row.is-compact-available-row {
-  padding-bottom: 0;
-  min-height: 90px;
-  max-height: 110px;
-}
-
-.host-table-inspector .floor-table-day-row.is-compact-available-row .floor-table-day-row-head {
-  padding: 10px 12px 6px;
-}
-
-.host-table-inspector .floor-table-day-row.is-compact-available-row .floor-table-day-row-body.is-compact-available {
-  padding: 0 12px 10px;
-  gap: 8px;
-}
-
-.host-table-inspector-available-inline {
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  gap: 8px;
-}
-
-.host-table-inspector-available-inline .floor-table-day-action.is-primary {
-  width: 100%;
-}
-
-.host-table-inspector .floor-table-day-status-pill.is-compact-available-status {
-  align-self: flex-start;
 }
 
 .host-table-inspector .floor-table-day-row-actions.is-hierarchy {
@@ -7576,10 +7709,6 @@ html[data-one-debug-scroll='1'] .floor-plan-viewport.is-host-viewport {
   margin: 0;
   color: rgba(168, 159, 146, 0.78);
   font-size: 0.72rem;
-}
-
-.floor-table-day-row-body.is-compact-available {
-  gap: 8px;
 }
 
 .floor-table-day-guest-headline {

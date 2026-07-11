@@ -5,6 +5,7 @@ import {
   resolveInspectorPrimaryRowId,
   sortInspectorRowsForPresentation,
   formatInspectorExtraChairLabel,
+  groupInspectorRowsForRender,
 } from '../../lib/hostTableInspectorUtils'
 import { formatHostListUnitLabel, getReservationSeatingAssignment } from '../../lib/seatingAssignment'
 import { formatHostAssignmentActionLabel } from '../../lib/hostAssignmentPanelUtils'
@@ -386,6 +387,76 @@ function getAssignmentRowClassName(baseClassName, {
   ].filter(Boolean).join(' ')
 }
 
+function TableInspectorAvailableRow({
+  row,
+  isSaving,
+  assignmentContext = null,
+  onNewReservation,
+  showDivider = false,
+}) {
+  const { seating, timeWindowLabel } = row
+  const isAssignmentMode = Boolean(assignmentContext?.reservation)
+  const isAssignmentSelected = assignmentContext?.seatingId === seating.id
+
+  const handleSelectSeating = () => {
+    assignmentContext?.onSelectSeating?.(seating.id)
+  }
+
+  const handleSelectSeatingKeyDown = (event) => {
+    if (event.key !== 'Enter' && event.key !== ' ') return
+    event.preventDefault()
+    handleSelectSeating()
+  }
+
+  const stopRowSelection = (event) => {
+    event.stopPropagation()
+  }
+
+  return (
+    <div
+      className={getAssignmentRowClassName(
+        `table-inspector-seating-row is-available${showDivider ? ' has-divider' : ''}`,
+        { isAssignmentMode, isAssignmentSelected },
+      )}
+      data-testid="floor-table-day-row-available"
+      role={isAssignmentMode ? 'button' : undefined}
+      tabIndex={isAssignmentMode ? 0 : undefined}
+      onClick={isAssignmentMode ? handleSelectSeating : undefined}
+      onKeyDown={isAssignmentMode ? handleSelectSeatingKeyDown : undefined}
+    >
+      {showDivider ? (
+        <div className="table-inspector-seating-divider" aria-hidden="true" />
+      ) : null}
+      <div className="table-inspector-seating-heading">
+        <strong>{seating.name}</strong>
+        <time dateTime={timeWindowLabel}>{timeWindowLabel}</time>
+      </div>
+      <div className="table-inspector-seating-body">
+        <span className="availability-state" aria-label="Available">
+          <span className="availability-dot" aria-hidden="true" />
+          Available
+        </span>
+        {!isAssignmentMode ? (
+          <button
+            type="button"
+            className="table-inspector-new-reservation-action"
+            disabled={isSaving}
+            onClick={(event) => {
+              stopRowSelection(event)
+              onNewReservation?.(seating)
+            }}
+            data-testid="floor-table-day-new-reservation"
+          >
+            + New reservation
+          </button>
+        ) : (
+          <p className="floor-table-day-seating-select-hint">Tap to seat here</p>
+        )}
+      </div>
+    </div>
+  )
+}
+
 function TableDayViewRow({
   row,
   tableLabel,
@@ -500,14 +571,12 @@ function TableDayViewRow({
   }
 
   if (isAvailable) {
-    const availablePresentation = getTableDayViewStatusPresentation({ isAvailable: true, state: 'available' })
-
     return (
       <li
-        className={getAssignmentRowClassName(
-          `floor-table-day-row is-available${useDrawerHierarchy ? ' is-compact-available-row' : ''}`,
-          { isAssignmentMode, isAssignmentSelected },
-        )}
+        className={getAssignmentRowClassName('floor-table-day-row is-available', {
+          isAssignmentMode,
+          isAssignmentSelected,
+        })}
         data-testid="floor-table-day-row-available"
         role={isAssignmentMode ? 'button' : undefined}
         tabIndex={isAssignmentMode ? 0 : undefined}
@@ -518,27 +587,22 @@ function TableDayViewRow({
           <strong className="floor-table-day-seating-name">{seating.name}</strong>
           <time className="floor-table-day-seating-time">{timeWindowLabel}</time>
         </div>
-        {useDrawerHierarchy ? null : <TableDayViewRowDivider />}
-        <div className={`floor-table-day-row-body${useDrawerHierarchy ? ' is-compact-available' : ''}`}>
-          <div className="host-table-inspector-available-inline">
-            <TableDayViewStatusPill
-              presentation={availablePresentation}
-              className="is-compact-available-status"
-            />
-            {!isAssignmentMode ? (
-              <button
-                type="button"
-                className="floor-table-day-action is-primary"
-                disabled={isSaving}
-                onClick={() => onNewReservation?.(seating)}
-                data-testid="floor-table-day-new-reservation"
-              >
-                + New reservation
-              </button>
-            ) : (
-              <p className="floor-table-day-seating-select-hint">Tap to seat here</p>
-            )}
-          </div>
+        <TableDayViewRowDivider />
+        <div className="floor-table-day-row-body">
+          <TableDayViewStatusPill presentation={getTableDayViewStatusPresentation({ isAvailable: true, state: 'available' })} />
+          {!isAssignmentMode ? (
+            <button
+              type="button"
+              className="floor-table-day-action is-primary"
+              disabled={isSaving}
+              onClick={() => onNewReservation?.(seating)}
+              data-testid="floor-table-day-new-reservation"
+            >
+              + New reservation
+            </button>
+          ) : (
+            <p className="floor-table-day-seating-select-hint">Tap to seat here</p>
+          )}
         </div>
       </li>
     )
@@ -721,27 +785,50 @@ export function HostTableInspectorContent({
           className={`floor-table-seating-dialog-list floor-table-day-list host-table-inspector-list${animateEntrance ? ' is-initial' : ''}`}
           aria-label="Table day seatings"
         >
-          {displayRows.map((row) => (
-            <TableDayViewRow
-              key={row.seating.id}
-              row={row}
-              tableLabel={releaseTableLabel}
-              isSaving={isSaving}
-              canManageAssignment={canManageAssignment}
-              assignmentContext={assignmentContext}
-              onNewReservation={onNewReservation}
-              onOpenReservation={onOpenReservation}
-              onEditReservation={onEditReservation}
-              onQuickStatusUpdate={onQuickStatusUpdate}
-              onReleaseTable={onReleaseTable}
-              nowMinutes={nowMinutes}
-              todayKey={todayKey}
-              reservationSeatings={reservationSeatings}
-              tableCapacityLabel={assignmentCapacityLabel}
-              isHeroPrimary={primaryRowId != null && row.seating.id === primaryRowId}
-              useDrawerHierarchy={useDrawerHierarchy}
-            />
-          ))}
+          {groupInspectorRowsForRender(displayRows, useDrawerHierarchy).map((group) => {
+            if (group.type === 'available-timeline') {
+              return (
+                <li
+                  key={`available-timeline-${group.rows.map((row) => row.seating.id).join('-')}`}
+                  className="host-table-inspector-seating-timeline"
+                  data-testid="host-table-inspector-available-timeline"
+                >
+                  {group.rows.map((row, index) => (
+                    <TableInspectorAvailableRow
+                      key={row.seating.id}
+                      row={row}
+                      isSaving={isSaving}
+                      assignmentContext={assignmentContext}
+                      onNewReservation={onNewReservation}
+                      showDivider={index > 0}
+                    />
+                  ))}
+                </li>
+              )
+            }
+
+            return (
+              <TableDayViewRow
+                key={group.row.seating.id}
+                row={group.row}
+                tableLabel={releaseTableLabel}
+                isSaving={isSaving}
+                canManageAssignment={canManageAssignment}
+                assignmentContext={assignmentContext}
+                onNewReservation={onNewReservation}
+                onOpenReservation={onOpenReservation}
+                onEditReservation={onEditReservation}
+                onQuickStatusUpdate={onQuickStatusUpdate}
+                onReleaseTable={onReleaseTable}
+                nowMinutes={nowMinutes}
+                todayKey={todayKey}
+                reservationSeatings={reservationSeatings}
+                tableCapacityLabel={assignmentCapacityLabel}
+                isHeroPrimary={primaryRowId != null && group.row.seating.id === primaryRowId}
+                useDrawerHierarchy={useDrawerHierarchy}
+              />
+            )
+          })}
         </ul>
       ) : (
         <p className="floor-table-seating-dialog-empty">No active seatings configured for this date.</p>

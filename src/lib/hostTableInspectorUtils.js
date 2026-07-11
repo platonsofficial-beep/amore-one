@@ -127,3 +127,31 @@ export function formatInspectorExtraChairLabel(extraChairs = 0) {
   if (count <= 0) return ''
   return `+${count} extra chair${count === 1 ? '' : 's'}`
 }
+
+export function groupInspectorRowsForRender(rows = [], useDrawerHierarchy = false) {
+  const safeRows = Array.isArray(rows) ? rows : []
+  if (!useDrawerHierarchy) {
+    return safeRows.map((row) => ({ type: 'card', row }))
+  }
+
+  const groups = []
+  let availableBatch = []
+
+  const flushAvailable = () => {
+    if (!availableBatch.length) return
+    groups.push({ type: 'available-timeline', rows: [...availableBatch] })
+    availableBatch = []
+  }
+
+  safeRows.forEach((row) => {
+    if (row?.isAvailable && !row?.hasConflict) {
+      availableBatch.push(row)
+      return
+    }
+    flushAvailable()
+    groups.push({ type: 'card', row })
+  })
+  flushAvailable()
+
+  return groups
+}

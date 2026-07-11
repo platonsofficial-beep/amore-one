@@ -6,6 +6,7 @@ import {
   buildHostTableInspectorContextStrip,
   buildHostTableInspectorSummary,
   formatInspectorExtraChairLabel,
+  groupInspectorRowsForRender,
   resolveInspectorPrimaryRowId,
   shouldCompactHostFloorSelectionCard,
   shouldUseHostTableInspectorDrawer,
@@ -123,6 +124,29 @@ describe('hostTableInspectorUtils', () => {
         selectedReservation: { id: 'res-1' },
         inspectorRows: [{ reservation: { id: 'res-2' }, hasConflict: false }],
       })).toBe(false)
+    })
+  })
+
+  describe('groupInspectorRowsForRender', () => {
+    it('groups consecutive available rows into one timeline in drawer mode', () => {
+      const brunch = { seating: { id: 'brunch' }, isAvailable: true, hasConflict: false }
+      const lunch = { seating: { id: 'lunch' }, isAvailable: true, hasConflict: false }
+      const dinner = {
+        seating: { id: 'dinner' },
+        reservation: {},
+        state: 'seated',
+        hasConflict: false,
+      }
+
+      expect(groupInspectorRowsForRender([dinner, brunch, lunch], true)).toEqual([
+        { type: 'card', row: dinner },
+        { type: 'available-timeline', rows: [brunch, lunch] },
+      ])
+    })
+
+    it('keeps card rows in dialog mode', () => {
+      const row = { seating: { id: 'brunch' }, isAvailable: true, hasConflict: false }
+      expect(groupInspectorRowsForRender([row], false)).toEqual([{ type: 'card', row }])
     })
   })
 })
