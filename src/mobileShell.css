@@ -7297,6 +7297,7 @@ html[data-one-debug-scroll='1'] .floor-plan-viewport.is-host-viewport {
   flex-direction: column;
   width: clamp(310px, 29vw, 390px);
   max-width: 100%;
+  overflow-x: hidden;
   pointer-events: auto;
   overscroll-behavior: contain;
   border-left: 1px solid rgba(212, 175, 55, 0.18);
@@ -7342,16 +7343,59 @@ html[data-one-debug-scroll='1'] .floor-plan-viewport.is-host-viewport {
   flex-shrink: 0;
 }
 
-.host-table-inspector-accessible-title {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  margin: -1px;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-  white-space: nowrap;
-  border: 0;
+.host-table-inspector-header.is-compact.floor-table-seating-dialog-header {
+  padding: 14px 14px 10px;
+  align-items: flex-start;
+}
+
+.host-table-inspector-header.is-compact .floor-table-seating-dialog-close {
+  margin-top: 0;
+}
+
+.host-table-inspector-header.is-compact .floor-table-seating-dialog-heading h3 {
+  font-size: 1.28rem;
+  line-height: 1.05;
+}
+
+.host-table-inspector-header-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 8px;
+}
+
+.host-table-inspector-meta-line {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 14px;
+  color: rgba(168, 159, 146, 0.82);
+  font-size: 0.72rem;
+  line-height: 1.3;
+}
+
+.host-table-inspector-meta-line.is-date {
+  color: rgba(168, 159, 146, 0.68);
+}
+
+.host-table-inspector-context {
+  flex-shrink: 0;
+  padding: 8px 14px 10px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.host-table-inspector-context-line {
+  margin: 0;
+  color: rgba(168, 159, 146, 0.88);
+  font-size: 0.72rem;
+  line-height: 1.25;
+}
+
+.host-table-inspector-context-guest {
+  margin: 3px 0 0;
+  color: #faf4e8;
+  font-size: 0.86rem;
+  font-weight: 700;
+  line-height: 1.2;
 }
 
 .host-table-inspector-summary {
@@ -7389,7 +7433,117 @@ html[data-one-debug-scroll='1'] .floor-plan-viewport.is-host-viewport {
   flex: 1 1 auto;
   min-height: 0;
   overflow-y: auto;
+  overflow-x: hidden;
   overscroll-behavior: contain;
+  padding-top: 6px;
+}
+
+.host-table-inspector .floor-table-day-row.is-hero-primary {
+  border-color: rgba(212, 175, 55, 0.22);
+  background:
+    linear-gradient(
+      180deg,
+      rgba(40, 34, 24, 0.94) 0%,
+      rgba(22, 18, 14, 0.96) 100%
+    );
+  box-shadow:
+    inset 0 1px 0 rgba(212, 175, 55, 0.08),
+    0 8px 18px rgba(0, 0, 0, 0.18);
+}
+
+.host-table-inspector .floor-table-day-row.is-hero-primary .floor-table-day-guest-name {
+  font-size: 1.02rem;
+}
+
+.host-table-inspector .floor-table-day-row.is-compact-available-row {
+  padding-bottom: 0;
+  min-height: 90px;
+  max-height: 110px;
+}
+
+.host-table-inspector .floor-table-day-row.is-compact-available-row .floor-table-day-row-head {
+  padding: 10px 12px 6px;
+}
+
+.host-table-inspector .floor-table-day-row.is-compact-available-row .floor-table-day-row-body.is-compact-available {
+  padding: 0 12px 10px;
+  gap: 8px;
+}
+
+.host-table-inspector-available-inline {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+}
+
+.host-table-inspector-available-inline .floor-table-day-action.is-primary {
+  width: 100%;
+}
+
+.host-table-inspector .floor-table-day-status-pill.is-compact-available-status {
+  align-self: flex-start;
+}
+
+.host-table-inspector .floor-table-day-row-actions.is-hierarchy {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 4px;
+}
+
+.host-table-inspector .floor-table-day-action.is-full-width {
+  width: 100%;
+}
+
+.host-table-inspector .floor-table-day-row-actions-secondary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.host-table-inspector .floor-table-day-row-actions-secondary .floor-table-day-action {
+  flex: 1 1 calc(50% - 4px);
+  min-width: 0;
+}
+
+.host-table-inspector .floor-table-day-action.is-release-muted {
+  align-self: flex-start;
+  min-height: 44px;
+  padding: 0 4px;
+  border: 0;
+  background: transparent;
+  color: rgba(168, 159, 146, 0.72);
+  font-size: 0.74rem;
+  font-weight: 600;
+  box-shadow: none;
+}
+
+.host-table-inspector .floor-table-day-action.is-release-muted:hover,
+.host-table-inspector .floor-table-day-action.is-release-muted:focus-visible {
+  color: rgba(200, 192, 180, 0.92);
+  background: transparent;
+  outline: none;
+}
+
+.host-table-inspector .floor-table-day-guest-headline {
+  align-items: center;
+}
+
+.host-table-inspector .floor-table-day-status-pill.is-headline-status {
+  flex-shrink: 0;
+}
+
+.host-table-inspector-accessible-title {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 
 .host-table-inspector-assignment-tables {

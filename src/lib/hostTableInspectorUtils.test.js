@@ -3,9 +3,13 @@
  */
 import { describe, expect, it, afterEach } from 'vitest'
 import {
+  buildHostTableInspectorContextStrip,
   buildHostTableInspectorSummary,
+  formatInspectorExtraChairLabel,
+  resolveInspectorPrimaryRowId,
   shouldCompactHostFloorSelectionCard,
   shouldUseHostTableInspectorDrawer,
+  sortInspectorRowsForPresentation,
 } from './hostTableInspectorUtils'
 
 describe('hostTableInspectorUtils', () => {
@@ -37,32 +41,70 @@ describe('hostTableInspectorUtils', () => {
     })
   })
 
-  describe('buildHostTableInspectorSummary', () => {
-    it('summarizes occupied table state', () => {
-      expect(buildHostTableInspectorSummary([{
+  describe('buildHostTableInspectorContextStrip', () => {
+    it('renders compact occupied context strip', () => {
+      expect(buildHostTableInspectorContextStrip([{
         reservation: { guestName: 'Fournie', time: '20:30' },
         seating: { name: 'Dinner 2' },
+        hasConflict: false,
+      }])).toEqual({
+        kind: 'occupied',
+        contextLine: '🟢 Occupied · Since 20:30',
+        guestLine: 'Fournie',
+      })
+    })
+
+    it('renders available-now strip when no occupant', () => {
+      expect(buildHostTableInspectorContextStrip([{
+        reservation: null,
+        isAvailable: true,
+        hasConflict: false,
+        seating: { name: 'Brunch' },
+      }])).toEqual({
+        kind: 'available',
+        contextLine: 'Available now',
+        guestLine: '',
+      })
+    })
+  })
+
+  describe('buildHostTableInspectorSummary', () => {
+    it('keeps legacy summary adapter for occupied rows', () => {
+      expect(buildHostTableInspectorSummary([{
+        reservation: { guestName: 'Fournie', time: '20:30' },
         hasConflict: false,
       }])).toMatchObject({
         kind: 'occupied',
         primary: 'Occupied',
         secondary: 'Fournie',
-        detail: 'Since 20:30',
       })
     })
+  })
 
-    it('summarizes available table state', () => {
-      expect(buildHostTableInspectorSummary([{
-        reservation: null,
-        isAvailable: true,
-        hasConflict: false,
-        seating: { name: 'Dinner 1' },
-        timeWindowLabel: '19:00–21:00',
-      }])).toMatchObject({
-        kind: 'available',
-        primary: 'Available now',
-        secondary: 'Dinner 1',
-      })
+  describe('formatInspectorExtraChairLabel', () => {
+    it('formats singular and plural extra-chair labels', () => {
+      expect(formatInspectorExtraChairLabel(0)).toBe('')
+      expect(formatInspectorExtraChairLabel(1)).toBe('+1 extra chair')
+      expect(formatInspectorExtraChairLabel(2)).toBe('+2 extra chairs')
+    })
+  })
+
+  describe('resolveInspectorPrimaryRowId', () => {
+    it('prefers seated rows as the hero target', () => {
+      expect(resolveInspectorPrimaryRowId([
+        { seating: { id: 'brunch' }, isAvailable: true, hasConflict: false },
+        { seating: { id: 'dinner' }, reservation: {}, state: 'seated', hasConflict: false },
+      ])).toBe('dinner')
+    })
+  })
+
+  describe('sortInspectorRowsForPresentation', () => {
+    it('orders occupied before available while preserving ties', () => {
+      const sorted = sortInspectorRowsForPresentation([
+        { seating: { id: 'brunch' }, isAvailable: true, hasConflict: false },
+        { seating: { id: 'dinner' }, reservation: {}, state: 'seated', hasConflict: false },
+      ])
+      expect(sorted.map((row) => row.seating.id)).toEqual(['dinner', 'brunch'])
     })
   })
 

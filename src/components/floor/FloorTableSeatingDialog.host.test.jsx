@@ -514,7 +514,7 @@ describe('FloorTableSeatingDialog host day view', () => {
     })
 
     expect(query('.floor-table-day-info-list')?.textContent).toContain('🪑')
-    expect(query('.floor-table-day-info-list')?.textContent).toContain('+1')
+    expect(query('.floor-table-day-info-list')?.textContent).toContain('+1 extra chair')
     cleanup()
   })
 

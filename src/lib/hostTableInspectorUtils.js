@@ -15,7 +15,7 @@ export function shouldUseHostTableInspectorDrawer() {
   return isMobileHostSplitViewport() || window.innerWidth >= 1024
 }
 
-export function buildHostTableInspectorSummary(rows = []) {
+export function buildHostTableInspectorContextStrip(rows = []) {
   const safeRows = Array.isArray(rows) ? rows : []
   const occupiedRow = safeRows.find((row) => row?.reservation && !row?.hasConflict)
 
@@ -27,23 +27,85 @@ export function buildHostTableInspectorSummary(rows = []) {
 
     return {
       kind: 'occupied',
-      primary: 'Occupied',
-      secondary: guestName,
-      detail: timeLabel ? `Since ${timeLabel}` : '',
-      seatingName: occupiedRow.seating?.name ?? '',
+      contextLine: timeLabel ? `🟢 Occupied · Since ${timeLabel}` : '🟢 Occupied',
+      guestLine: guestName,
     }
   }
 
-  const availableRows = safeRows.filter((row) => row?.isAvailable && !row?.hasConflict)
-  const nextRow = availableRows[0] ?? null
+  const hasAvailable = safeRows.some((row) => row?.isAvailable && !row?.hasConflict)
+  if (!hasAvailable) return null
 
   return {
     kind: 'available',
-    primary: 'Available now',
-    secondary: nextRow?.seating?.name ?? '',
-    detail: nextRow?.timeWindowLabel ?? '',
-    seatingName: nextRow?.seating?.name ?? '',
+    contextLine: 'Available now',
+    guestLine: '',
   }
+}
+
+/** @deprecated use buildHostTableInspectorContextStrip */
+export function buildHostTableInspectorSummary(rows = []) {
+  const strip = buildHostTableInspectorContextStrip(rows)
+  if (!strip) return null
+
+  if (strip.kind === 'occupied') {
+    return {
+      kind: 'occupied',
+      primary: 'Occupied',
+      secondary: strip.guestLine,
+      detail: strip.contextLine.replace('🟢 Occupied · ', '').replace('🟢 Occupied', '').trim(),
+    }
+  }
+
+  return {
+    kind: 'available',
+    primary: strip.contextLine,
+    secondary: '',
+    detail: '',
+  }
+}
+
+export function resolveInspectorPrimaryRowId(rows = []) {
+  const safeRows = Array.isArray(rows) ? rows : []
+
+  const activeOccupied = safeRows.find((row) => (
+    row?.reservation
+    && !row?.hasConflict
+    && ['seated', 'arrived'].includes(row.state)
+  ))
+  if (activeOccupied) return activeOccupied.seating?.id ?? null
+
+  const upcomingReserved = safeRows.find((row) => (
+    row?.reservation
+    && !row?.hasConflict
+    && row.state === 'reserved'
+  ))
+  if (upcomingReserved) return upcomingReserved.seating?.id ?? null
+
+  return null
+}
+
+export function sortInspectorRowsForPresentation(rows = []) {
+  const safeRows = Array.isArray(rows) ? rows : []
+
+  const rank = (row) => {
+    if (row?.hasConflict) return 0
+    if (row?.reservation && !row?.hasConflict) {
+      if (['seated', 'arrived'].includes(row.state)) return 1
+      if (row.state === 'reserved') return 2
+      if (row.state === 'completed') return 4
+      return 3
+    }
+    if (row?.isAvailable) return 3
+    return 5
+  }
+
+  return safeRows
+    .map((row, index) => ({ row, index, rank: rank(row) }))
+    .sort((left, right) => (
+      left.rank - right.rank
+      || left.index - right.index
+    ))
+    .map((entry) => entry.row)
 }
 
 export function shouldCompactHostFloorSelectionCard({
@@ -58,4 +120,10 @@ export function shouldCompactHostFloorSelectionCard({
     && !row?.hasConflict
     && String(row.reservation.id) === String(selectedReservation.id)
   ))
+}
+
+export function formatInspectorExtraChairLabel(extraChairs = 0) {
+  const count = Math.max(0, Number(extraChairs) || 0)
+  if (count <= 0) return ''
+  return `+${count} extra chair${count === 1 ? '' : 's'}`
 }
