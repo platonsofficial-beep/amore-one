@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { parseTimeToMinutes } from './shiftHoursUtils'
 import { isReservationInHouse } from './reservationHostStatus'
-import { formatTime24 } from './timeFormatUtils'
+import { formatTime24, normalizeReservationDateKey } from './timeFormatUtils'
 import { FLOOR_TABLE_OPERATIONAL_PHASES } from './floorTableOperationalState'
 
 export const HOST_DINING_TIMER_REFRESH_MS = 60_000
@@ -18,8 +18,11 @@ export function getReservationInServiceElapsedMinutes(
 ) {
   if (!isReservationInHouse(reservation)) return null
 
-  const dateKey = `${reservation.date ?? ''}`.slice(0, 10)
-  if (dateKey !== todayKey) return null
+  const dateKey = normalizeReservationDateKey(
+    reservation?.date || reservation?.reservation_date || '',
+  )
+  const normalizedTodayKey = normalizeReservationDateKey(todayKey)
+  if (!dateKey || dateKey !== normalizedTodayKey) return null
 
   const arrivalMinutes = parseTimeToMinutes(reservation.time)
   if (arrivalMinutes === null || nowMinutes < arrivalMinutes) return null
@@ -68,6 +71,8 @@ export function useHostDiningTimerClock(enabled = false) {
 
   useEffect(() => {
     if (!enabled) return undefined
+
+    setReferenceDate(new Date())
 
     const intervalId = window.setInterval(() => {
       setReferenceDate(new Date())

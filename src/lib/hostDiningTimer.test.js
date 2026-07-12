@@ -6,6 +6,8 @@ import { createRoot } from 'react-dom/client'
 import { createElement, act } from 'react'
 import { resolveFloorTableOperationalState } from './floorTableOperationalState'
 import { buildHostTableInspectorContextStrip } from './hostTableInspectorUtils'
+import { applyHostFloorSelectedSeatingContext } from './hostFloorTableVisualState'
+import { buildSeatingsById } from './reservationSeatings'
 import {
   HOST_DINING_TIMER_REFRESH_MS,
   buildHostFloorDiningTimerLabel,
@@ -61,6 +63,21 @@ describe('hostDiningTimer', () => {
     it('returns null when the reservation date does not match today', () => {
       const reservation = buildReservation({ date: '2026-07-08', time: '21:00' })
       expect(getReservationInServiceElapsedMinutes(reservation, 22 * 60, '2026-07-09')).toBeNull()
+    })
+
+    it('matches reservation_date when date is stored on the alternate field', () => {
+      const reservation = buildReservation({
+        date: '',
+        reservation_date: '2026-07-09',
+        time: '21:00',
+      })
+      expect(getReservationInServiceElapsedMinutes(reservation, 22 * 60, '2026-07-09')).toBe(60)
+    })
+
+    it('returns null when a stale nowMinutes is before the reservation time', () => {
+      const reservation = buildReservation({ status: 'Checked In', time: '21:00' })
+      expect(getReservationInServiceElapsedMinutes(reservation, 20 * 60, '2026-07-09')).toBeNull()
+      expect(getReservationInServiceElapsedMinutes(reservation, 22 * 60, '2026-07-09')).toBe(60)
     })
 
     it('returns null before the reservation time on the service day', () => {
@@ -123,6 +140,49 @@ describe('hostDiningTimer', () => {
         nowMinutes: 20 * 60,
         todayKey: '2026-07-09',
       })).toBeNull()
+    })
+
+    it('shows elapsed time for checked-in reservations through selected seating context', () => {
+      const seatingsById = buildSeatingsById([{
+        id: 'dinner-1',
+        name: 'Dinner 1',
+        startTime: '19:00',
+        durationMinutes: 180,
+        daysOfWeek: [0, 1, 2, 3, 4, 5, 6],
+        sortOrder: 0,
+        isActive: true,
+      }])
+      const table = { id: 't10', label: '10', zoneId: 'main' }
+      const reservation = buildReservation({
+        status: 'Checked In',
+        time: '21:00',
+        seatingId: 'dinner-1',
+        seatingAssignment: {
+          assignedUnits: [{ id: 't10', label: 'T10' }],
+        },
+      })
+      const nowMinutes = 22 * 60 + 8
+      const todayKey = '2026-07-09'
+      const operational = resolveFloorTableOperationalState([reservation], nowMinutes, todayKey)
+      const [tableState] = applyHostFloorSelectedSeatingContext([{
+        table,
+        reservation,
+        status: operational.floorStatus,
+        operational,
+        meta: {},
+      }], {
+        selectedSeating: seatingsById.get('dinner-1'),
+        enrichedReservations: [reservation],
+        todayKey,
+        seatingsById,
+        layout: { tables: [table] },
+      })
+
+      expect(buildHostFloorDiningTimerLabel(tableState.operational.displayReservation, {
+        phase: tableState.operational.phase,
+        nowMinutes,
+        todayKey,
+      })).toBe('⏱ 1h 8m')
     })
 
     it('shows the same elapsed time for multi-table seated reservations', () => {
@@ -222,6 +282,15 @@ describe('hostDiningTimer', () => {
 
       setIntervalSpy.mockRestore()
       clearIntervalSpy.mockRestore()
+    })
+
+    it('syncs the reference date immediately when enabled', () => {
+      vi.setSystemTime(new Date(2026, 6, 9, 22, 18, 0))
+      const harness = renderClockHarness(true)
+
+      expect(getNowMinutesFromDate(harness.getLatestDate())).toBe(22 * 60 + 18)
+
+      harness.unmount()
     })
 
     it('clears the interval when disabled after being enabled', () => {

@@ -25,6 +25,7 @@ describe('host floor dining timer wiring', () => {
     expect(appSource).toContain('showDiningTimers={showDiningTimers}')
     expect(appSource).toContain('diningTimerNowMinutes={diningTimerNowMinutes}')
     expect(appSource).toContain('diningTimerLabel={diningTimerLabel}')
+    expect(appSource).toMatch(/buildHostFloorDiningTimerLabel\([\s\S]*?nowMinutes,/)
   })
 
   it('does not alter table tap handlers when wiring dining timers', () => {
