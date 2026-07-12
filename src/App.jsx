@@ -217,6 +217,7 @@ import {
   formatSeatingChipLabel,
   getActiveSeatingsForDate,
   matchReservationTimeToSeating,
+  resolveHostStationInitialSeatingId,
   resolveReservationSeatingId,
   validateReservationSeatingForm,
 } from './lib/reservationSeatings'
@@ -9599,6 +9600,13 @@ function MobileReservationsHostShellBody({
   const [selectedServiceSeatingId, setSelectedServiceSeatingId] = useState('')
   const [tableInspectorProps, setTableInspectorProps] = useState(null)
   const previousDateKeyRef = useRef(todayKey)
+  const hostSeatingInitializedRef = useRef(false)
+  const hostSeatingManuallySelectedRef = useRef(false)
+
+  const handleSelectedSeatingChange = useCallback((seatingId) => {
+    hostSeatingManuallySelectedRef.current = true
+    setSelectedServiceSeatingId(seatingId)
+  }, [])
 
   useEffect(() => {
     if (previousDateKeyRef.current === todayKey) return
@@ -9620,10 +9628,23 @@ function MobileReservationsHostShellBody({
       return
     }
 
+    const isViewingToday = normalizeReservationDateKey(todayKey) === normalizeReservationDateKey(workspaceTodayKey)
+
+    if (!hostSeatingInitializedRef.current) {
+      hostSeatingInitializedRef.current = true
+      if (isViewingToday && !hostSeatingManuallySelectedRef.current) {
+        const initialId = resolveHostStationInitialSeatingId(activeSeatings, nowMinutes)
+        setSelectedServiceSeatingId(initialId ?? activeSeatings[0].id)
+        return
+      }
+      setSelectedServiceSeatingId(activeSeatings[0].id)
+      return
+    }
+
     setSelectedServiceSeatingId((current) => (
       activeSeatings.some((entry) => entry.id === current) ? current : activeSeatings[0].id
     ))
-  }, [reservationSeatings, todayKey])
+  }, [reservationSeatings, todayKey, workspaceTodayKey, nowMinutes])
 
   useEffect(() => {
     if (!selectedReservation?.id) return
@@ -9793,7 +9814,7 @@ function MobileReservationsHostShellBody({
           canManageAssignment={canManageAssignment}
           seatings={reservationSeatings}
           selectedSeating={reservationSeatings.find((entry) => entry.id === selectedServiceSeatingId) ?? null}
-          onSelectedSeatingChange={setSelectedServiceSeatingId}
+          onSelectedSeatingChange={handleSelectedSeatingChange}
           hostQueueAreaFilterId={hostQueueAreaFilterId}
           onTableInspectorChange={setTableInspectorProps}
         />

@@ -168,6 +168,45 @@ export function getActiveSeatingsForDate(seatings = [], dateKey) {
   ))
 }
 
+export function resolveHostStationInitialSeatingId(activeSeatings = [], nowMinutes = 0) {
+  const sorted = sortReservationSeatings(activeSeatings)
+  if (sorted.length === 0) return null
+
+  const startEntries = sorted
+    .map((seating) => ({
+      id: seating.id,
+      startMinutes: parseReservationTimeToMinutes(seating.startTime),
+    }))
+    .filter((entry) => entry.startMinutes !== null)
+
+  if (startEntries.length === 0) return sorted[0].id
+
+  const currentMinutes = Number(nowMinutes)
+  if (!Number.isFinite(currentMinutes)) return sorted[0].id
+
+  const firstStart = startEntries[0].startMinutes
+  const lastStart = startEntries[startEntries.length - 1].startMinutes
+
+  if (currentMinutes < firstStart) return startEntries[0].id
+  if (currentMinutes >= lastStart) return startEntries[startEntries.length - 1].id
+
+  let bestId = startEntries[0].id
+  let bestStart = startEntries[0].startMinutes
+  let bestDistance = Math.abs(currentMinutes - bestStart)
+
+  for (let index = 1; index < startEntries.length; index += 1) {
+    const { id, startMinutes } = startEntries[index]
+    const distance = Math.abs(currentMinutes - startMinutes)
+    if (distance < bestDistance || (distance === bestDistance && startMinutes > bestStart)) {
+      bestId = id
+      bestStart = startMinutes
+      bestDistance = distance
+    }
+  }
+
+  return bestId
+}
+
 export function isReservationTimeInSeatingWindow(timeValue, seating) {
   const normalizedTime = normalizeReservationTimeValue(timeValue)
   if (!normalizedTime) return false
