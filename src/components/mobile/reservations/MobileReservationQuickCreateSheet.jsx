@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { ReservationDateField } from '../../reservations/ReservationDateField'
 import { ReservationPhoneField } from '../../reservations/ReservationPhoneField'
-import { ReservationTimeSelect } from '../../reservations/ReservationTimeSelect'
+import { HostQuickCreateTimePicker } from './HostQuickCreateTimePicker'
 import { CUSTOMER_TYPES } from '../../../lib/reservationCustomerType'
 import { HOST_RESERVATION_STATUSES } from '../../../lib/reservationHostStatus'
 import {
@@ -185,7 +185,7 @@ function HostReservationQuickCreateFields({
       <div className="mobile-host-form-row">
         <label className="mobile-host-form-field">
           <span>Time</span>
-          <ReservationTimeSelect
+          <HostQuickCreateTimePicker
             value={form.time}
             onChange={(time) => updateForm({ time })}
           />
