@@ -245,7 +245,7 @@ const HOST_LIST_COMPACT_STATUS_LABELS = {
   'Late Booking': 'Late',
   'Checked In (Partial)': 'Seated',
   'Checked In': 'Seated',
-  'Walk In': 'Seated',
+  'Walk In': 'Walk-in',
   'Checked Out': 'Completed',
   Cancelled: 'Cancelled',
   'Not Shown': 'No-show',

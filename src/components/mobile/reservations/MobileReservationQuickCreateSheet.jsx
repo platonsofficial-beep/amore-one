@@ -104,8 +104,14 @@ function HostReservationQuickCreateFields({
     const trimmedFirstName = `${firstName}`.trim()
     const trimmedLastName = `${lastName}`.trim()
     const isEditMode = mode === 'edit'
+    const isWalkInMode = mode === 'walk-in'
 
-    if (!trimmedFirstName || (!isEditMode && !trimmedLastName)) {
+    if (isWalkInMode) {
+      if (!trimmedFirstName && !trimmedLastName) {
+        onNameValidationError?.('Please provide at least a first name or last name')
+        return
+      }
+    } else if (!trimmedFirstName || (!isEditMode && !trimmedLastName)) {
       onNameValidationError?.('Please provide the guest name.')
       return
     }
@@ -138,7 +144,7 @@ function HostReservationQuickCreateFields({
               onFirstNameChange?.(event.target.value)
             }}
             placeholder="First name"
-            required
+            required={mode === 'create'}
             autoComplete="given-name"
           />
         </label>

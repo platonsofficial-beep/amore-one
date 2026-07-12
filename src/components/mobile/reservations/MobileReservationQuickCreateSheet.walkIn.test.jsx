@@ -59,6 +59,22 @@ function fillGuestName(container, firstName = 'Alex', lastName = 'Rivera') {
   })
 }
 
+async function clickSeatNow(container) {
+  await act(async () => {
+    container.querySelector('[data-testid="host-quick-create-primary-action"]')
+      ?.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+  })
+}
+
+function renderWalkInSheet({ onSubmit = vi.fn(async () => true), prefill = { date: '2026-07-10', time: '21:00' }, ...props } = {}) {
+  return renderSheet({
+    mode: 'walk-in',
+    prefill,
+    onSubmit,
+    ...props,
+  })
+}
+
 function renderSheet({ onSubmit = vi.fn(async () => true), ...props } = {}) {
   const container = document.createElement('div')
   document.body.appendChild(container)
@@ -224,6 +240,87 @@ describe('MobileReservationQuickCreateSheet walk-in mode', () => {
     const saveButton = container.querySelector('[data-testid="host-quick-create-primary-action"]')
     expect(saveButton?.disabled).toBe(true)
     expect(saveButton?.textContent).toBe('Saving…')
+
+    unmount()
+  })
+})
+
+describe('MobileReservationQuickCreateSheet walk-in name validation', () => {
+  it('submits with first name only', async () => {
+    const onSubmit = vi.fn(async () => true)
+    const { container, unmount } = renderWalkInSheet({ onSubmit })
+
+    fillGuestName(container, 'Poponis', '')
+    await clickSeatNow(container)
+
+    expect(onSubmit).toHaveBeenCalledTimes(1)
+    expect(onSubmit.mock.calls[0][0].guestName).toBe('Poponis')
+
+    unmount()
+  })
+
+  it('submits with last name only', async () => {
+    const onSubmit = vi.fn(async () => true)
+    const { container, unmount } = renderWalkInSheet({ onSubmit })
+
+    fillGuestName(container, '', 'Psilos')
+    await clickSeatNow(container)
+
+    expect(onSubmit).toHaveBeenCalledTimes(1)
+    expect(onSubmit.mock.calls[0][0].guestName).toBe('Psilos')
+
+    unmount()
+  })
+
+  it('submits with both names', async () => {
+    const onSubmit = vi.fn(async () => true)
+    const { container, unmount } = renderWalkInSheet({ onSubmit })
+
+    fillGuestName(container, 'Poponis', 'Psilos')
+    await clickSeatNow(container)
+
+    expect(onSubmit).toHaveBeenCalledTimes(1)
+    expect(onSubmit.mock.calls[0][0].guestName).toBe('Poponis Psilos')
+
+    unmount()
+  })
+
+  it('blocks submit when both names are empty or whitespace-only', async () => {
+    const onSubmit = vi.fn(async () => true)
+    const { container, unmount } = renderWalkInSheet({ onSubmit })
+
+    fillGuestName(container, '', '')
+    await clickSeatNow(container)
+
+    expect(onSubmit).not.toHaveBeenCalled()
+    expect(container.querySelector('.mobile-host-reservations-notice')?.textContent)
+      .toBe('Please provide at least a first name or last name')
+
+    fillGuestName(container, '   ', '  ')
+    await clickSeatNow(container)
+
+    expect(onSubmit).not.toHaveBeenCalled()
+
+    unmount()
+  })
+
+  it('keeps standard create validation unchanged', async () => {
+    const onSubmit = vi.fn(async () => true)
+    const { container, unmount } = renderSheet({
+      mode: 'create',
+      prefill: { time: '21:00' },
+      onSubmit,
+    })
+
+    fillGuestName(container, 'Poponis', '')
+    await clickSeatNow(container)
+    expect(onSubmit).not.toHaveBeenCalled()
+    expect(container.querySelector('.mobile-host-reservations-notice')?.textContent)
+      .toBe('Please provide the guest name.')
+
+    fillGuestName(container, '', 'Psilos')
+    await clickSeatNow(container)
+    expect(onSubmit).not.toHaveBeenCalled()
 
     unmount()
   })
