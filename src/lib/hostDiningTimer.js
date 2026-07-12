@@ -1,14 +1,36 @@
 import { useEffect, useState } from 'react'
-import { parseTimeToMinutes } from './shiftHoursUtils'
 import { isReservationInHouse } from './reservationHostStatus'
-import { formatTime24, normalizeReservationDateKey } from './timeFormatUtils'
+import {
+  formatTime24,
+  normalizeReservationDateKey,
+  parseReservationTimeToMinutes,
+} from './timeFormatUtils'
 import { FLOOR_TABLE_OPERATIONAL_PHASES } from './floorTableOperationalState'
 
 export const HOST_DINING_TIMER_REFRESH_MS = 60_000
+const SERVICE_DAY_EARLY_MORNING_CUTOFF = 360
+
+function getReservationTimeValue(reservation) {
+  return reservation?.time || reservation?.reservation_time || ''
+}
+
+function toServiceDayMinutes(timeValue) {
+  const minutes = parseReservationTimeToMinutes(timeValue)
+  if (minutes === null) return null
+  return minutes < SERVICE_DAY_EARLY_MORNING_CUTOFF ? minutes + 1440 : minutes
+}
+
+function toServiceDayNowMinutes(nowMinutes) {
+  if (nowMinutes === null || nowMinutes === undefined) return null
+  return nowMinutes < SERVICE_DAY_EARLY_MORNING_CUTOFF
+    ? nowMinutes + 1440
+    : nowMinutes
+}
 
 export function getReservationInServiceSinceTimeLabel(reservation) {
-  if (!reservation?.time) return ''
-  return formatTime24(reservation.time) || ''
+  const timeValue = getReservationTimeValue(reservation)
+  if (!timeValue) return ''
+  return formatTime24(timeValue) || ''
 }
 
 export function getReservationInServiceElapsedMinutes(
@@ -24,10 +46,11 @@ export function getReservationInServiceElapsedMinutes(
   const normalizedTodayKey = normalizeReservationDateKey(todayKey)
   if (!dateKey || dateKey !== normalizedTodayKey) return null
 
-  const arrivalMinutes = parseTimeToMinutes(reservation.time)
-  if (arrivalMinutes === null || nowMinutes < arrivalMinutes) return null
+  const arrivalMinutes = toServiceDayMinutes(getReservationTimeValue(reservation))
+  const nowKey = toServiceDayNowMinutes(nowMinutes)
+  if (arrivalMinutes === null || nowKey === null || nowKey < arrivalMinutes) return null
 
-  return nowMinutes - arrivalMinutes
+  return nowKey - arrivalMinutes
 }
 
 export function formatHostDiningTimerLabel(elapsedMinutes) {
@@ -42,15 +65,24 @@ export function formatHostDiningTimerLabel(elapsedMinutes) {
   return `⏱ ${hours}h ${remainder}m`
 }
 
+export function isHostFloorDiningTimerTable({
+  phase = null,
+  hostIndicator = null,
+} = {}) {
+  return phase === FLOOR_TABLE_OPERATIONAL_PHASES.SEATED
+    || hostIndicator === 'seated'
+}
+
 export function buildHostFloorDiningTimerLabel(
   reservation,
   {
     phase = null,
+    hostIndicator = null,
     nowMinutes = 0,
     todayKey = '',
   } = {},
 ) {
-  if (!reservation || phase !== FLOOR_TABLE_OPERATIONAL_PHASES.SEATED) return null
+  if (!reservation || !isHostFloorDiningTimerTable({ phase, hostIndicator })) return null
 
   const elapsedMinutes = getReservationInServiceElapsedMinutes(
     reservation,

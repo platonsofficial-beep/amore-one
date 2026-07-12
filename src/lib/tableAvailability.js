@@ -5,7 +5,7 @@ import {
   getActiveSeatingsForDate,
   normalizeReservationSeating,
 } from './reservationSeatings'
-import { isTerminalReservationStatus } from './reservationHostStatus'
+import { isTerminalReservationStatus, normalizeReservationStatus } from './reservationHostStatus'
 import { formatTime24 } from './timeFormatUtils'
 import { countPublishedTablesInScope } from './hostQueueServiceMetrics'
 import { HOST_QUEUE_ALL_AREAS } from './hostQueuePipeline'
@@ -208,7 +208,7 @@ export function resolveSeatingFloorStatus(conflict, reservation) {
     return { floorStatus: 'available', hostIndicator: 'empty' }
   }
 
-  const status = `${reservation?.status ?? conflict?.status ?? ''}`.trim()
+  const status = normalizeReservationStatus(reservation?.status ?? conflict?.status ?? 'Pending')
   if (['Checked In', 'Walk In', 'Checked In (Partial)'].includes(status)) {
     return { floorStatus: 'seated', hostIndicator: 'seated' }
   }

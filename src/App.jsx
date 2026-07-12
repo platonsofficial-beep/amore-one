@@ -7458,6 +7458,7 @@ function FloorTableNode({
   const diningTimerLabel = showDiningTimers && isHostFloor && !isHeatmap && displayReservation
     ? buildHostFloorDiningTimerLabel(displayReservation, {
       phase: hostOperational?.phase,
+      hostIndicator: hostOperational?.hostIndicator,
       nowMinutes,
       todayKey,
     })

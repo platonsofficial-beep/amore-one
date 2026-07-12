@@ -89,6 +89,11 @@ describe('hostDiningTimer', () => {
       const reservation = buildReservation({ status: 'Walk In', time: '20:00' })
       expect(getReservationInServiceElapsedMinutes(reservation, 21 * 60 + 12, '2026-07-09')).toBe(72)
     })
+
+    it('uses service-day minutes after midnight for late service', () => {
+      const reservation = buildReservation({ status: 'Checked In', time: '23:00' })
+      expect(getReservationInServiceElapsedMinutes(reservation, 1 * 60 + 30, '2026-07-09')).toBe(150)
+    })
   })
 
   describe('formatHostDiningTimerLabel', () => {
@@ -180,9 +185,55 @@ describe('hostDiningTimer', () => {
 
       expect(buildHostFloorDiningTimerLabel(tableState.operational.displayReservation, {
         phase: tableState.operational.phase,
+        hostIndicator: tableState.operational.hostIndicator,
         nowMinutes,
         todayKey,
       })).toBe('⏱ 1h 8m')
+    })
+
+    it('shows elapsed time for legacy Seated status through selected seating context', () => {
+      const seatingsById = buildSeatingsById([{
+        id: 'dinner-1',
+        name: 'Dinner 1',
+        startTime: '19:00',
+        durationMinutes: 180,
+        daysOfWeek: [0, 1, 2, 3, 4, 5, 6],
+        sortOrder: 0,
+        isActive: true,
+      }])
+      const table = { id: 't10', label: '10', zoneId: 'main' }
+      const reservation = buildReservation({
+        status: 'Seated',
+        time: '21:00',
+        seatingId: 'dinner-1',
+        seatingAssignment: {
+          assignedUnits: [{ id: 't10', label: 'T10' }],
+        },
+      })
+      const nowMinutes = 22 * 60 + 15
+      const todayKey = '2026-07-09'
+      const operational = resolveFloorTableOperationalState([reservation], nowMinutes, todayKey)
+      const [tableState] = applyHostFloorSelectedSeatingContext([{
+        table,
+        reservation,
+        status: operational.floorStatus,
+        operational,
+        meta: {},
+      }], {
+        selectedSeating: seatingsById.get('dinner-1'),
+        enrichedReservations: [reservation],
+        todayKey,
+        seatingsById,
+        layout: { tables: [table] },
+      })
+
+      expect(tableState.operational.phase).toBe('seated')
+      expect(buildHostFloorDiningTimerLabel(tableState.operational.displayReservation, {
+        phase: tableState.operational.phase,
+        hostIndicator: tableState.operational.hostIndicator,
+        nowMinutes,
+        todayKey,
+      })).toBe('⏱ 1h 15m')
     })
 
     it('shows the same elapsed time for multi-table seated reservations', () => {
