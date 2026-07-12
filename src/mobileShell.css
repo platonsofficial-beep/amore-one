@@ -5030,9 +5030,27 @@
 
 .host-queue-toolbar {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   align-items: center;
   gap: 6px;
+  min-width: 0;
+}
+
+.host-queue-toolbar-btn:nth-child(1),
+.host-queue-toolbar-btn:nth-child(2),
+.host-queue-toolbar-clear {
+  flex: 0 0 auto;
+}
+
+.host-queue-toolbar-btn:nth-child(3) {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.host-queue-toolbar-btn > span[aria-hidden="true"] {
+  flex-shrink: 0;
 }
 
 .host-queue-context-row {
@@ -5057,6 +5075,9 @@
   letter-spacing: 0.02em;
   white-space: nowrap;
   cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  min-width: 0;
 }
 
 .host-queue-toolbar-btn.is-open {
