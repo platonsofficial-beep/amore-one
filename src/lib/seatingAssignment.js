@@ -1,4 +1,5 @@
 import { stripCustomerTypeFromNotes } from './reservationCustomerType'
+import { stripPurposeFromNotes } from './reservationPurpose'
 
 export const SEATING_UNIT_TYPES = {
   TABLE: 'table',
@@ -245,7 +246,9 @@ export function enrichReservationWithSeatingAssignment(reservation) {
     ...reservation,
     notes: rawNotes,
   })
-  const displayNotes = stripCustomerTypeFromNotes(stripSeatingAssignmentFromNotes(rawNotes))
+  const displayNotes = stripPurposeFromNotes(
+    stripCustomerTypeFromNotes(stripSeatingAssignmentFromNotes(rawNotes)),
+  )
   const tableNumber = seatingAssignment.assignedUnits.length > 0
     ? formatSeatingAssignmentLabels(seatingAssignment)
     : `${reservation.tableNumber ?? ''}`.trim()

@@ -10,6 +10,11 @@ import {
   normalizeStoredCustomerType,
   parseCustomerTypeFromNotes,
 } from '../../lib/reservationCustomerType'
+import {
+  RESERVATION_PURPOSE_OPTIONS,
+  normalizeStoredReservationPurpose,
+  parsePurposeFromNotes,
+} from '../../lib/reservationPurpose'
 import { getReservationEditableNotesText } from '../../lib/hostQueueNoteBadges'
 import { resolveAreaIdForReservation } from '../../lib/reservationTableOptions'
 import { resolveReservationSeatingId } from '../../lib/reservationSeatings'
@@ -46,6 +51,9 @@ export function createHostReservationEditForm(reservation, layout, seatings = []
     customerType: normalizeStoredCustomerType(
       reservation.customerType ?? parseCustomerTypeFromNotes(reservation.notes),
     ),
+    reservationPurpose: normalizeStoredReservationPurpose(
+      reservation.reservationPurpose ?? parsePurposeFromNotes(reservation.notes),
+    ),
     area: reservation.area ?? '',
   }
   const assignment = getReservationSeatingAssignment(safeReservation)
@@ -58,6 +66,7 @@ export function createHostReservationEditForm(reservation, layout, seatings = []
     time: normalizeReservationTimeValue(safeReservation.time),
     guests: `${safeReservation.guests ?? 2}`,
     customerType: safeReservation.customerType,
+    reservationPurpose: safeReservation.reservationPurpose,
     status: safeReservation.status,
     notes: getReservationEditableNotesText(safeReservation.notes),
     area: safeReservation.area,
@@ -282,6 +291,19 @@ export function HostReservationEditPanel({
               />
             </label>
           </div>
+
+          <label className="host-reservation-edit-field">
+            <span>Reservation Type</span>
+            <select
+              value={form.reservationPurpose ?? 'dinner'}
+              onChange={(event) => updateField({ reservationPurpose: event.target.value })}
+              data-testid="host-reservation-edit-purpose"
+            >
+              {RESERVATION_PURPOSE_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>{option.label}</option>
+              ))}
+            </select>
+          </label>
 
           <label className="host-reservation-edit-field">
             <span>Guest Type</span>

@@ -70,6 +70,19 @@ function getGuestTypeSelect(container) {
   return container.querySelector('[data-testid="host-quick-create-customer-type"]')
 }
 
+function getPurposeSelect(container) {
+  return container.querySelector('[data-testid="host-quick-create-purpose"]')
+}
+
+function selectPurpose(container, value) {
+  act(() => {
+    const select = getPurposeSelect(container)
+    if (!select) return
+    select.value = value
+    select.dispatchEvent(new Event('change', { bubbles: true }))
+  })
+}
+
 async function clickSaveReservation(container) {
   const saveButton = [...container.querySelectorAll('button')]
     .find((button) => button.textContent === 'Save reservation')
@@ -350,6 +363,32 @@ describe('MobileReservationQuickCreateSheet guest type', () => {
 
     expect(container.querySelector('[data-testid="guest-history-panel"]')).toBeNull()
     expect(container.querySelector('[data-testid="guest-phone-lookup"]')).toBeNull()
+
+    unmount()
+  })
+})
+
+describe('MobileReservationQuickCreateSheet reservation purpose', () => {
+  it('defaults new reservation purpose to Dinner', () => {
+    const { container, unmount } = renderSheet()
+
+    expect(getPurposeSelect(container)?.value).toBe('dinner')
+    expect(getPurposeSelect(container)?.selectedOptions[0]?.textContent).toBe('🍽️ Dinner')
+
+    unmount()
+  })
+
+  it('submits selected drinks purpose with create payload', async () => {
+    const onSubmit = vi.fn(async () => true)
+    const { container, unmount } = renderSheet({ onSubmit })
+
+    selectPurpose(container, 'drinks')
+    fillGuestName(container)
+
+    await clickSaveReservation(container)
+
+    expect(onSubmit).toHaveBeenCalledTimes(1)
+    expect(onSubmit.mock.calls[0][0].reservationPurpose).toBe('drinks')
 
     unmount()
   })

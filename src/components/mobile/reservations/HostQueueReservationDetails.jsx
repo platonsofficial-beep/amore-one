@@ -2,6 +2,10 @@ import { Fragment } from 'react'
 import { reservationHasAssignedTables } from '../../../lib/floorAssignmentMapping'
 import { getReservationSeatingAssignment } from '../../../lib/seatingAssignment'
 import {
+  getReservationPurpose,
+  getReservationPurposeLabel,
+} from '../../../lib/reservationPurpose'
+import {
   buildHostQueueRowPresentation,
   formatHostQueueTableSegment,
   getReservationExplicitAreaLabel,
@@ -200,6 +204,19 @@ export function HostReservationGuestTypeBadge({ badge = null }) {
       aria-label={`Guest type: ${badge.label}`}
     >
       {badge.label}
+    </span>
+  )
+}
+
+export function HostReservationPurposeLabel({ reservation }) {
+  const label = getReservationPurposeLabel(getReservationPurpose(reservation))
+
+  return (
+    <span
+      className="host-reservation-card-purpose-label"
+      aria-label={`Reservation type: ${label.replace(/^[^\s]+\s/u, '')}`}
+    >
+      {label}
     </span>
   )
 }

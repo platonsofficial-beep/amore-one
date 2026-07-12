@@ -69,6 +69,22 @@ describe('MobileReservationHostCard compact tablet row', () => {
     unmount()
   })
 
+  it('renders drinks purpose beside the guest name on compact tablet rows', () => {
+    const { container, unmount } = renderCard({
+      reservation: {
+        ...reservation,
+        guestName: 'Andreas Nicolaou',
+        notes: 'Bar table\n@@PURPOSE@@drinks',
+        reservationPurpose: 'drinks',
+      },
+    })
+
+    expect(container.querySelector('.mobile-host-reservation-row-name')?.textContent).toContain('Andreas Nicolaou')
+    expect(container.querySelector('.host-reservation-card-purpose-label')?.textContent).toBe('🍸 Drinks')
+
+    unmount()
+  })
+
   it('renders guest type badge below the guest name when present', () => {
     const { container, unmount } = renderCard({
       reservation: {

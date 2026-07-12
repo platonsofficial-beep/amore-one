@@ -16,6 +16,12 @@ import {
   parseCustomerTypeFromNotes,
   stripCustomerTypeFromNotes,
 } from '../lib/reservationCustomerType'
+import {
+  encodePurposeInNotes,
+  normalizeStoredReservationPurpose,
+  parsePurposeFromNotes,
+  stripPurposeFromNotes,
+} from '../lib/reservationPurpose'
 import { getReservationEditableNotesText } from '../lib/hostQueueNoteBadges'
 
 function mapReservation(record) {
@@ -40,6 +46,7 @@ function mapReservation(record) {
   return enrichReservationWithSeatingAssignment({
     ...mapped,
     customerType: parseCustomerTypeFromNotes(rawNotes),
+    reservationPurpose: parsePurposeFromNotes(rawNotes),
   })
 }
 
@@ -70,6 +77,7 @@ function resolveTableNumberForSerialize(seatingAssignment, reservation) {
 
 function buildPersistedReservationNotes(reservation, {
   customerType = reservation.customerType,
+  reservationPurpose = reservation.reservationPurpose,
   userNotes = getReservationEditableNotesText(reservation.notes),
   status = reservation.status,
   seatingAssignment = resolveSeatingAssignmentForSerialize(reservation),
@@ -83,9 +91,13 @@ function buildPersistedReservationNotes(reservation, {
   const normalizedCustomerType = normalizeStoredCustomerType(
     customerType ?? parseCustomerTypeFromNotes(reservation.notes),
   )
+  const normalizedPurpose = normalizeStoredReservationPurpose(
+    reservationPurpose ?? parsePurposeFromNotes(reservation.notes),
+  )
   const notesWithCustomer = encodeCustomerTypeInNotes(editableNotes, normalizedCustomerType)
+  const notesWithPurpose = encodePurposeInNotes(notesWithCustomer, normalizedPurpose)
   return encodeSeatingAssignmentInNotes(
-    notesWithCustomer,
+    notesWithPurpose,
     seatingAssignment.assignedUnits.length > 0 ? seatingAssignment : null,
   )
 }
@@ -125,10 +137,13 @@ export function createSeatingAssignmentPayload(reservation, assignmentInput, { m
     partySize: reservation.guests,
   })
 
-  const userNotes = stripCustomerTypeFromNotes(
-    stripSeatingAssignmentFromNotes(reservation.notes),
+  const userNotes = stripPurposeFromNotes(
+    stripCustomerTypeFromNotes(
+      stripSeatingAssignmentFromNotes(reservation.notes),
+    ),
   )
   const currentStatus = normalizeReservationStatus(reservation.status ?? 'Pending')
+  const reservationPurpose = reservation.reservationPurpose ?? parsePurposeFromNotes(reservation.notes)
 
   return {
     guestName: reservation.guestName,
@@ -140,8 +155,12 @@ export function createSeatingAssignmentPayload(reservation, assignmentInput, { m
     area: reservation.area,
     status: markSeated ? 'Checked In' : currentStatus,
     customerType: reservation.customerType ?? parseCustomerTypeFromNotes(reservation.notes),
+    reservationPurpose,
     notes: encodeSeatingAssignmentInNotes(
-      encodeCustomerTypeInNotes(userNotes, reservation.customerType ?? 'Regular'),
+      encodePurposeInNotes(
+        encodeCustomerTypeInNotes(userNotes, reservation.customerType ?? 'Regular'),
+        reservationPurpose,
+      ),
       seatingAssignment,
     ),
     seatingAssignment,
@@ -178,6 +197,11 @@ export function buildReservationUpdatePayload(reservation, patch) {
     : normalizeStoredCustomerType(
       reservation.customerType ?? parseCustomerTypeFromNotes(reservation.notes),
     )
+  const reservationPurpose = Object.hasOwn(patch, 'reservationPurpose')
+    ? normalizeStoredReservationPurpose(patch.reservationPurpose)
+    : normalizeStoredReservationPurpose(
+      reservation.reservationPurpose ?? parsePurposeFromNotes(reservation.notes),
+    )
   const userNotes = getReservationEditableNotesText(
     Object.hasOwn(patch, 'notes') ? patch.notes : reservation.notes,
   )
@@ -200,8 +224,10 @@ export function buildReservationUpdatePayload(reservation, patch) {
       ? (patch.seatingId ?? null)
       : (reservation.seatingId ?? reservation.seating_id ?? null),
     customerType,
+    reservationPurpose,
     notes: buildPersistedReservationNotes(reservation, {
       customerType,
+      reservationPurpose,
       userNotes,
       status,
       seatingAssignment,

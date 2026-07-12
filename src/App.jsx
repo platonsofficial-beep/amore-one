@@ -19656,6 +19656,7 @@ function App() {
         time: validation.time,
         guests: form.guests,
         customerType: normalizeStoredCustomerType(form.customerType),
+        reservationPurpose: form.reservationPurpose ?? 'dinner',
         status: form.status,
         notes: form.notes.trim(),
         area: form.area,
@@ -21616,6 +21617,7 @@ function App() {
         status: resolveHostQuickCreateCreateStatus(form),
         notes: resolveHostQuickCreateCreateNotes(form),
         customerType: form.customerType ?? 'Regular',
+        reservationPurpose: form.reservationPurpose ?? 'dinner',
         seatingId: form.seatingId ?? null,
         seatingAssignment,
       }, user?.id ?? null)

@@ -1,4 +1,5 @@
 import { stripCustomerTypeFromNotes } from './reservationCustomerType'
+import { stripPurposeFromNotes } from './reservationPurpose'
 import { stripSeatingAssignmentFromNotes } from './seatingAssignment'
 
 const NOTE_BADGE_RULES = [
@@ -39,7 +40,9 @@ export function stripWalkInNotesMarker(notes = '') {
 }
 
 export function getReservationUserNotesText(notes = '') {
-  return stripCustomerTypeFromNotes(stripSeatingAssignmentFromNotes(notes)).trim()
+  return stripPurposeFromNotes(
+    stripCustomerTypeFromNotes(stripSeatingAssignmentFromNotes(notes)),
+  ).trim()
 }
 
 export function getReservationEditableNotesText(notes = '') {

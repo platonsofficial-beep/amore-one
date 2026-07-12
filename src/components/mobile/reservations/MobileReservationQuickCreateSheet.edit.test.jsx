@@ -232,6 +232,20 @@ describe('MobileReservationQuickCreateSheet edit mode', () => {
     unmount()
   })
 
+  it('restores saved reservation purpose in edit mode', () => {
+    const { container, unmount } = renderEditSheet({
+      reservation: {
+        ...EDIT_RESERVATION,
+        notes: 'Bar seating\n@@PURPOSE@@drinks',
+        reservationPurpose: 'drinks',
+      },
+    })
+
+    expect(container.querySelector('[data-testid="host-quick-create-purpose"]')?.value).toBe('drinks')
+
+    unmount()
+  })
+
   it('calls update handler with reservation id and preserved status and customer type when unchanged', async () => {
     const onSubmit = vi.fn(async () => true)
     const { container, unmount } = renderEditSheet({ onSubmit })

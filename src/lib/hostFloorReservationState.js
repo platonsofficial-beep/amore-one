@@ -60,6 +60,7 @@ export function mergeOptimisticReservationUpdate(reservation, patch) {
     ...payload,
     status: payload.status,
     customerType: payload.customerType,
+    reservationPurpose: payload.reservationPurpose,
     seatingAssignment: payload.seatingAssignment,
     tableNumber: payload.tableNumber,
     notes: payload.notes,

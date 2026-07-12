@@ -8,7 +8,7 @@ import {
   getReservationDisplayStatus,
 } from '../../../lib/reservationHostStatus'
 import { formatHostReservationListTime } from '../../../lib/timeFormatUtils'
-import { HostQueueReservationDetails, HostQueueNameIndicators, HostReservationGuestTypeBadge } from './HostQueueReservationDetails'
+import { HostQueueReservationDetails, HostQueueNameIndicators, HostReservationGuestTypeBadge, HostReservationPurposeLabel } from './HostQueueReservationDetails'
 import { buildHostQueueRowPresentation } from '../../../lib/hostQueuePipeline'
 import { HOST_LIST_HELPERS } from '../../reservations/hostReservationListHelpers'
 import { getHostNameGuestTypeBadgeMeta } from '../../reservations/hostReservationListUtils'
@@ -74,10 +74,13 @@ function MobileHostReservationCompactRow({
           <div className="mobile-host-reservation-row-primary">
             <span className="mobile-host-reservation-row-time">{timeLabel}</span>
             <div className="mobile-host-reservation-row-name-column">
-              <span className="mobile-host-reservation-row-name">
-                {guestName}
-                <HostQueueNameIndicators indicators={nameIndicators} />
-              </span>
+              <div className="host-reservation-card-name-purpose mobile-host-reservation-row-name-line">
+                <span className="mobile-host-reservation-row-name">
+                  {guestName}
+                  <HostQueueNameIndicators indicators={nameIndicators} />
+                </span>
+                <HostReservationPurposeLabel reservation={reservation} />
+              </div>
               {guestTypeBadge ? (
                 <div className="host-reservation-card-guest-type-row">
                   <HostReservationGuestTypeBadge badge={guestTypeBadge} />

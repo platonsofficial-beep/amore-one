@@ -5256,6 +5256,24 @@
   min-width: 0;
 }
 
+.host-reservation-card-name-purpose {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.host-reservation-card-purpose-label {
+  flex: 0 0 auto;
+  color: rgba(255, 255, 255, 0.55);
+  font-size: 0.62rem;
+  font-weight: 500;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
 .host-reservation-visual-dot {
   width: 6px;
   height: 6px;
@@ -5264,7 +5282,8 @@
 
 .host-reservation-card-guest {
   min-width: 0;
-  flex: 1 1 auto;
+  flex: 0 1 auto;
+  max-width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;

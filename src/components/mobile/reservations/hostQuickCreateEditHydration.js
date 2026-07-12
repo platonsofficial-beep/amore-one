@@ -34,6 +34,7 @@ export function buildQuickCreateEditHydration(reservation, layout, seatings = []
       ...quickForm,
       status: editForm.status,
       customerType: editForm.customerType,
+      reservationPurpose: editForm.reservationPurpose,
       standingGuests: editForm.standingGuests ?? 0,
     },
     firstName,

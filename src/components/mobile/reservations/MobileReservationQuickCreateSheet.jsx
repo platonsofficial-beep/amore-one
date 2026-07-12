@@ -3,6 +3,7 @@ import { ReservationDateField } from '../../reservations/ReservationDateField'
 import { ReservationPhoneField } from '../../reservations/ReservationPhoneField'
 import { HostQuickCreateTimePicker } from './HostQuickCreateTimePicker'
 import { GUEST_TYPE_OPTIONS } from '../../../lib/reservationCustomerType'
+import { RESERVATION_PURPOSE_OPTIONS } from '../../../lib/reservationPurpose'
 import { HOST_RESERVATION_STATUSES } from '../../../lib/reservationHostStatus'
 import {
   handleReservationFormEnterKey,
@@ -255,6 +256,19 @@ function HostReservationQuickCreateFields({
       />
 
       <div className="mobile-host-form-row">
+        <label className="mobile-host-form-field">
+          <span>Reservation Type</span>
+          <select
+            value={form.reservationPurpose ?? 'dinner'}
+            onChange={(event) => updateForm({ reservationPurpose: event.target.value })}
+            data-testid="host-quick-create-purpose"
+          >
+            {RESERVATION_PURPOSE_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>{option.label}</option>
+            ))}
+          </select>
+        </label>
+
         <label className="mobile-host-form-field">
           <span>Guest Type</span>
           <select

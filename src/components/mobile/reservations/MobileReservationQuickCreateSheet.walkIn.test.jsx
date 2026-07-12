@@ -177,6 +177,33 @@ describe('MobileReservationQuickCreateSheet walk-in mode', () => {
       notes: 'Birthday table',
       assignedUnits: [{ id: 't18', label: 'T18', seatedCapacity: 4, maxGuestCapacity: 4 }],
     })
+    expect(onSubmit.mock.calls[0][0].reservationPurpose).toBe('dinner')
+
+    unmount()
+  })
+
+  it('submits walk-in payload with drinks purpose', async () => {
+    const onSubmit = vi.fn(async () => true)
+    const { container, unmount } = renderSheet({
+      mode: 'walk-in',
+      prefill: { date: '2026-07-10', time: '21:00' },
+      onSubmit,
+    })
+
+    fillGuestName(container)
+    act(() => {
+      const select = container.querySelector('[data-testid="host-quick-create-purpose"]')
+      select.value = 'drinks'
+      select.dispatchEvent(new Event('change', { bubbles: true }))
+    })
+
+    await act(async () => {
+      container.querySelector('[data-testid="host-quick-create-primary-action"]')
+        ?.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    })
+
+    expect(onSubmit.mock.calls[0][0].reservationPurpose).toBe('drinks')
+    expect(onSubmit.mock.calls[0][0].walkIn).toBe(true)
 
     unmount()
   })

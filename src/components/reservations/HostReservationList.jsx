@@ -25,7 +25,7 @@ import {
 import { getHostListEmptyState } from '../../lib/reservationServiceIntelligence'
 import { groupHostQueueOperationalSections } from '../../lib/hostQueuePipeline'
 import { groupHostQueueReservationsByTime } from '../../lib/hostQueueTimeGroups'
-import { HostQueueReservationDetails, HostQueueNameIndicators, HostReservationGuestTypeBadge } from '../mobile/reservations/HostQueueReservationDetails'
+import { HostQueueReservationDetails, HostQueueNameIndicators, HostReservationGuestTypeBadge, HostReservationPurposeLabel } from '../mobile/reservations/HostQueueReservationDetails'
 import { buildHostQueueRowPresentation } from '../../lib/hostQueuePipeline'
 import { getHostNameGuestTypeBadgeMeta } from './hostReservationListUtils'
 import { HostReservationStatusPicker } from './HostReservationStatusPicker'
@@ -161,7 +161,10 @@ function HostReservationListRow({
               aria-hidden="true"
             />
           ) : null}
+          <div className="host-reservation-card-name-purpose">
           <strong className="host-reservation-card-guest">{guestName}</strong>
+          <HostReservationPurposeLabel reservation={reservation} />
+          </div>
           <HostQueueNameIndicators indicators={nameIndicators} />
           {warnings.length > 0 && !isLateWithDuration ? (
             <span className="host-reservation-card-warning" title="Needs attention" aria-label="Needs attention">

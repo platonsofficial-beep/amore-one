@@ -853,5 +853,6 @@ describe('hostQuickCreateForm walk-in helpers', () => {
 
   it('defaults quick create form guest type to Regular/Normal', () => {
     expect(EMPTY_HOST_QUICK_CREATE_FORM.customerType).toBe('Regular')
+    expect(EMPTY_HOST_QUICK_CREATE_FORM.reservationPurpose).toBe('dinner')
   })
 })
