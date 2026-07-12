@@ -162,7 +162,6 @@ function HostReservationListRow({
             />
           ) : null}
           <strong className="host-reservation-card-guest">{guestName}</strong>
-          <HostReservationGuestTypeBadge badge={guestTypeBadge} />
           <HostQueueNameIndicators indicators={nameIndicators} />
           {warnings.length > 0 && !isLateWithDuration ? (
             <span className="host-reservation-card-warning" title="Needs attention" aria-label="Needs attention">
@@ -170,6 +169,11 @@ function HostReservationListRow({
             </span>
           ) : null}
           </div>
+          {guestTypeBadge ? (
+            <div className="host-reservation-card-guest-type-row">
+              <HostReservationGuestTypeBadge badge={guestTypeBadge} />
+            </div>
+          ) : null}
           {useHostQueuePresentation ? (
             <HostQueueReservationDetails
               reservation={reservation}

@@ -69,17 +69,47 @@ describe('MobileReservationHostCard compact tablet row', () => {
     unmount()
   })
 
-  it('renders guest type badge beside the guest name when present', () => {
+  it('renders guest type badge below the guest name when present', () => {
     const { container, unmount } = renderCard({
       reservation: {
         ...reservation,
+        guestName: 'Konstantina Spanomitrou',
         notes: 'Anniversary\n@@CUSTOMER@@VVIP',
         customerType: 'VVIP',
+        tableNumber: 'T110',
       },
       useHostQueuePresentation: true,
     })
 
-    expect(container.querySelector('.host-reservation-guest-type-badge')?.textContent).toBe('VVIP')
+    const nameEl = container.querySelector('.mobile-host-reservation-row-name')
+    const badgeRow = container.querySelector('.host-reservation-card-guest-type-row')
+    const details = container.querySelector('.host-queue-row-details')
+
+    expect(nameEl?.querySelector('.host-reservation-guest-type-badge')).toBeNull()
+    expect(nameEl?.textContent).toContain('Konstantina Spanomitrou')
+    expect(badgeRow?.querySelector('.host-reservation-guest-type-badge')?.textContent).toBe('VVIP')
+    expect(details?.textContent).toContain('T110')
+
+    unmount()
+  })
+
+  it('keeps guest name on its own line without sharing width with the badge', () => {
+    const { container, unmount } = renderCard({
+      reservation: {
+        ...reservation,
+        guestName: 'Konstantina Spanomitrou',
+        notes: 'Window seat\n@@CUSTOMER@@House Guest',
+        customerType: 'House Guest',
+      },
+      useHostQueuePresentation: true,
+    })
+
+    expect(container.querySelector('.mobile-host-reservation-row-name-column')).not.toBeNull()
+    expect(container.querySelector('.host-reservation-card-guest-type-row')).not.toBeNull()
+    expect(container.querySelector('.mobile-host-reservation-row-name')?.textContent)
+      .toContain('Konstantina Spanomitrou')
+    expect(container.querySelector('.mobile-host-reservation-row-name')?.querySelector('.host-reservation-guest-type-badge'))
+      .toBeNull()
 
     unmount()
   })

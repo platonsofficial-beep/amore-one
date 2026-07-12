@@ -73,11 +73,17 @@ function MobileHostReservationCompactRow({
         >
           <div className="mobile-host-reservation-row-primary">
             <span className="mobile-host-reservation-row-time">{timeLabel}</span>
-            <span className="mobile-host-reservation-row-name">
-              {guestName}
-              <HostReservationGuestTypeBadge badge={guestTypeBadge} />
-              <HostQueueNameIndicators indicators={nameIndicators} />
-            </span>
+            <div className="mobile-host-reservation-row-name-column">
+              <span className="mobile-host-reservation-row-name">
+                {guestName}
+                <HostQueueNameIndicators indicators={nameIndicators} />
+              </span>
+              {guestTypeBadge ? (
+                <div className="host-reservation-card-guest-type-row">
+                  <HostReservationGuestTypeBadge badge={guestTypeBadge} />
+                </div>
+              ) : null}
+            </div>
           </div>
           {useHostQueuePresentation ? (
             <HostQueueReservationDetails
