@@ -124,6 +124,7 @@ import {
   getNowMinutesFromDate,
   useHostDiningTimerClock,
 } from './lib/hostDiningTimer'
+import { buildDiningTimerExternalLabelPlacementMap } from './lib/hostDiningTimerExternalLabelPlacement'
 import { getFloorLayoutSpaceStyle, getPublishedTableLayoutStyle } from './lib/publishedTableLayout'
 import {
   isFloorTablePhysicallyOccupied,
@@ -7433,6 +7434,7 @@ function FloorTableNode({
   onDrop,
   showDiningTimers = false,
   diningTimerNowMinutes = nowMinutes,
+  diningTimerLabelPlacement = null,
 }) {
   const { isSelected, selectionPulseKey, seatingDraftUnitIds, hostEditUnitIds, isHostFloorPickActive, selectedReservation } = useReservationWorkspace()
   const { table, reservation, status, operational } = tableState
@@ -7806,8 +7808,9 @@ function FloorTableNode({
 
       {diningTimerPresentation?.estimatedFreeExternalLabel ? (
         <span
-          className={`floor-table-dining-timer-external is-urgency-${diningTimerPresentation.urgency}`}
+          className={`floor-table-dining-timer-external is-placement-${diningTimerLabelPlacement?.position ?? 'below'} is-urgency-${diningTimerPresentation.urgency}`}
           data-testid="floor-table-dining-timer-external"
+          data-placement={diningTimerLabelPlacement?.position ?? 'below'}
           data-urgency={diningTimerPresentation.urgency}
         >
           {diningTimerPresentation.estimatedFreeExternalLabel}
@@ -8308,6 +8311,37 @@ function FloorPlanView({
     () => buildReservationLinkTableMeta(reservationLinkGroups),
     [reservationLinkGroups],
   )
+
+  const diningTimerExternalLabelPlacements = useMemo(() => {
+    if (!showDiningTimers || !isCompact || isHeatmap) return new Map()
+
+    const allTables = visibleTableStates.map((tableState) => tableState.table)
+    const labelTables = visibleTableStates.flatMap((tableState) => {
+      const displayReservation = tableState.operational?.displayReservation ?? tableState.reservation
+      const presentation = buildHostFloorDiningTimerPresentation(displayReservation, {
+        phase: tableState.operational?.phase,
+        hostIndicator: tableState.operational?.hostIndicator,
+        nowMinutes: diningTimerNowMinutes,
+        todayKey,
+      })
+
+      if (!presentation?.estimatedFreeExternalLabel) return []
+
+      return [{ id: tableState.table.id, table: tableState.table }]
+    })
+
+    return buildDiningTimerExternalLabelPlacementMap({
+      labelTables,
+      allTables,
+    })
+  }, [
+    diningTimerNowMinutes,
+    isCompact,
+    isHeatmap,
+    showDiningTimers,
+    todayKey,
+    visibleTableStates,
+  ])
 
   const applyHostFloorAutoFit = useCallback(() => {
     const viewport = viewportRef.current
@@ -9416,6 +9450,7 @@ function FloorPlanView({
             onDrop={handleDrop}
             showDiningTimers={showDiningTimers}
             diningTimerNowMinutes={diningTimerNowMinutes}
+            diningTimerLabelPlacement={diningTimerExternalLabelPlacements.get(tableState.table.id) ?? null}
           />
         ))}
             </div>

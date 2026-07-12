@@ -8413,10 +8413,7 @@
 
 .floor-plan-workspace.is-host-floor .floor-table-dining-timer-external {
   position: absolute;
-  left: 50%;
-  top: 100%;
-  transform: translate(-50%, 2px);
-  z-index: 1;
+  z-index: 3;
   font-size: clamp(0.42rem, 6.8cqb, 0.56rem);
   font-weight: 500;
   font-variant-numeric: tabular-nums;
@@ -8424,6 +8421,36 @@
   letter-spacing: 0.01em;
   white-space: nowrap;
   pointer-events: none;
+  padding: 1px 4px;
+  border-radius: 4px;
+  background: rgba(10, 10, 11, 0.78);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.34);
+}
+
+.floor-plan-workspace.is-host-floor .floor-table-dining-timer-external.is-placement-below {
+  left: 50%;
+  top: 100%;
+  transform: translate(-50%, 2px);
+}
+
+.floor-plan-workspace.is-host-floor .floor-table-dining-timer-external.is-placement-above {
+  left: 50%;
+  bottom: 100%;
+  top: auto;
+  transform: translate(-50%, -2px);
+}
+
+.floor-plan-workspace.is-host-floor .floor-table-dining-timer-external.is-placement-right {
+  left: 100%;
+  top: 50%;
+  transform: translate(4px, -50%);
+}
+
+.floor-plan-workspace.is-host-floor .floor-table-dining-timer-external.is-placement-left {
+  right: 100%;
+  left: auto;
+  top: 50%;
+  transform: translate(-4px, -50%);
 }
 
 .floor-plan-workspace.is-host-floor .floor-table-dining-timer-external.is-urgency-normal {

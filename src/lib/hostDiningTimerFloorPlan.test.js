@@ -25,8 +25,11 @@ describe('host floor dining timer wiring', () => {
     expect(appSource).toContain('showDiningTimers={showDiningTimers}')
     expect(appSource).toContain('diningTimerNowMinutes={diningTimerNowMinutes}')
     expect(appSource).toContain('diningTimerPresentation={diningTimerPresentation}')
+    expect(appSource).toContain('diningTimerLabelPlacement={diningTimerExternalLabelPlacements.get(tableState.table.id) ?? null}')
     expect(appSource).toContain('data-testid="floor-table-dining-timer-external"')
+    expect(appSource).toContain('data-placement={diningTimerLabelPlacement?.position ?? \'below\'}')
     expect(appSource).toContain('estimatedFreeExternalLabel')
+    expect(appSource).toContain('buildDiningTimerExternalLabelPlacementMap')
     expect(appSource).toMatch(/buildHostFloorDiningTimerPresentation\([\s\S]*?hostIndicator: hostOperational\?\.hostIndicator,/)
   })
 
@@ -36,6 +39,10 @@ describe('host floor dining timer wiring', () => {
     expect(appCss).toMatch(/\.floor-table-content \.floor-table-dining-timer-elapsed \{[^}]*white-space:\s*nowrap;/)
     expect(appCss).not.toMatch(/\.floor-table-content \.floor-table-dining-timer-elapsed \{[^}]*text-overflow:\s*ellipsis/)
     expect(appCss).toContain('.floor-table-dining-timer-external')
+    expect(appCss).toContain('.floor-table-dining-timer-external.is-placement-above')
+    expect(appCss).toContain('.floor-table-dining-timer-external.is-placement-below')
+    expect(appCss).toMatch(/\.floor-table-dining-timer-external[\s\S]*z-index:\s*3/)
+    expect(appCss).toMatch(/\.floor-plan-reservation-links[\s\S]*z-index:\s*0/)
   })
 
   it('does not alter table tap handlers when wiring dining timers', () => {
