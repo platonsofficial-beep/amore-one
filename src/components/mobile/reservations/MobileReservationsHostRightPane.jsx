@@ -18,6 +18,7 @@ export function MobileReservationsHostRightPane({
   onEditReservation,
   onOpenFloorPlanLayout,
   onOpenRowMenu = null,
+  onCloseSelection = null,
   isAssignmentMode = false,
   floorLayout = null,
   reservationSeatings = [],
@@ -75,6 +76,7 @@ export function MobileReservationsHostRightPane({
           reservationSeatings={reservationSeatings}
           onEdit={onEditReservation}
           onOpenRowMenu={onOpenRowMenu}
+          onClose={onCloseSelection}
         />
       ) : null}
 
@@ -85,6 +87,7 @@ export function MobileReservationsHostRightPane({
           nowMinutes={nowMinutes}
           onEdit={onEditReservation}
           onOpenRowMenu={onOpenRowMenu}
+          onClose={onCloseSelection}
         />
       ) : null}
 
@@ -101,6 +104,7 @@ function MobileHostFloorSelectionCompactStrip({
   nowMinutes,
   onEdit,
   onOpenRowMenu = null,
+  onClose = null,
 }) {
   const guestName = `${reservation?.guestName ?? 'Guest'}`.trim() || 'Guest'
   const displayStatus = getReservationDisplayStatus(reservation, nowMinutes, todayKey)
@@ -151,6 +155,16 @@ function MobileHostFloorSelectionCompactStrip({
               ⋯
             </button>
           ) : null}
+          {onClose ? (
+            <button
+              type="button"
+              className="mobile-host-floor-selection-close-btn"
+              aria-label="Close reservation card"
+              onClick={() => onClose()}
+            >
+              ✕
+            </button>
+          ) : null}
         </div>
       </article>
     </div>
@@ -165,6 +179,7 @@ export function MobileHostFloorSelectionCard({
   reservationSeatings = [],
   onEdit,
   onOpenRowMenu = null,
+  onClose = null,
 }) {
   const guestName = `${reservation?.guestName ?? 'Guest'}`.trim() || 'Guest'
   const timeLabel = formatHostReservationListTime(reservation, todayKey)
@@ -227,6 +242,16 @@ export function MobileHostFloorSelectionCard({
               onClick={(event) => onOpenRowMenu(reservation, event)}
             >
               ⋯
+            </button>
+          ) : null}
+          {onClose ? (
+            <button
+              type="button"
+              className="mobile-host-floor-selection-close-btn"
+              aria-label="Close reservation card"
+              onClick={() => onClose()}
+            >
+              ✕
             </button>
           ) : null}
         </div>

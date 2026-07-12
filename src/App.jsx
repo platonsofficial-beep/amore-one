@@ -9784,6 +9784,7 @@ function MobileReservationsHostShellBody({
       canEditFloorPlan={canEditFloorPlan}
       onEditReservation={onEditReservation}
       onOpenRowMenu={onOpenRowMenu}
+      onCloseSelection={handleClearAssignmentSelection}
       onOpenFloorPlanLayout={() => setFloorPlanMode('edit')}
       floorLayout={layout}
       reservationSeatings={reservationSeatings}
