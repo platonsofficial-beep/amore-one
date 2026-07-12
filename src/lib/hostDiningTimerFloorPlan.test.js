@@ -24,13 +24,17 @@ describe('host floor dining timer wiring', () => {
   it('passes dining timer props only through the compact host floor table node', () => {
     expect(appSource).toContain('showDiningTimers={showDiningTimers}')
     expect(appSource).toContain('diningTimerNowMinutes={diningTimerNowMinutes}')
-    expect(appSource).toContain('diningTimerLabel={diningTimerLabel}')
-    expect(appSource).toMatch(/buildHostFloorDiningTimerLabel\([\s\S]*?hostIndicator: hostOperational\?\.hostIndicator,/)
+    expect(appSource).toContain('diningTimerPresentation={diningTimerPresentation}')
+    expect(appSource).toMatch(/buildHostFloorDiningTimerPresentation\([\s\S]*?hostIndicator: hostOperational\?\.hostIndicator,/)
+  })
+
+  it('keeps dining timer overlay non-interactive in host floor CSS', () => {
+    expect(appCss).toMatch(/\.floor-table-dining-timer[\s\S]*pointer-events:\s*none/)
   })
 
   it('does not alter table tap handlers when wiring dining timers', () => {
     expect(appSource).toContain('onHostTableDirectTap')
     expect(appSource).toContain('hostTableTapRegistry')
-    expect(appSource).not.toMatch(/diningTimerLabel[\s\S]{0,120}preventDefault\(/)
+    expect(appSource).not.toMatch(/diningTimerPresentation[\s\S]{0,120}preventDefault\(/)
   })
 })

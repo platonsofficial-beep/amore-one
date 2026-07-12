@@ -29,7 +29,7 @@ import {
   resolveHostFloorLegendToneToken,
 } from './hostFloorSemanticTokens'
 import { HostFloorCompactTableContent } from '../components/floor/HostFloorCompactTableContent'
-import { buildHostFloorDiningTimerLabel } from './hostDiningTimer'
+import { buildHostFloorDiningTimerPresentation } from './hostDiningTimer'
 
 const SEATINGS = buildSeatingsById([
   {
@@ -459,7 +459,8 @@ describe('host floor dining timer display', () => {
   function renderCompactTableContent({
     reservation,
     nowMinutes = 22 * 60 + 18,
-    diningTimerLabel = null,
+    diningTimerPresentation = null,
+    tier = 'normal',
   } = {}) {
     const operational = resolveFloorTableOperationalState(
       reservation ? [reservation] : [],
@@ -467,7 +468,9 @@ describe('host floor dining timer display', () => {
       '2026-07-09',
     )
     const content = buildHostFloorCompactTableContent({
-      table: TABLE,
+      table: tier === 'very-small'
+        ? { ...TABLE, widthPercent: 5, heightPercent: 5 }
+        : TABLE,
       operational,
       displayReservation: reservation,
     })
@@ -479,7 +482,7 @@ describe('host floor dining timer display', () => {
         content,
         linkMeta: { isMultiLinked: false },
         seatingIndicators: [],
-        diningTimerLabel,
+        diningTimerPresentation,
       }))
     })
 
@@ -501,32 +504,77 @@ describe('host floor dining timer display', () => {
     unmount()
   })
 
-  it('renders dining timer overlay when enabled with a seated reservation', () => {
+  it('renders elapsed and estimated free when timer presentation is enabled', () => {
     const reservation = buildReservation({ status: 'Checked In', time: '21:00' })
-    const diningTimerLabel = buildHostFloorDiningTimerLabel(reservation, {
+    const diningTimerPresentation = buildHostFloorDiningTimerPresentation(reservation, {
       phase: 'seated',
-      nowMinutes: 22 * 60 + 18,
+      nowMinutes: 22 * 60 + 48,
       todayKey: '2026-07-09',
     })
     const { container, unmount } = renderCompactTableContent({
       reservation,
-      diningTimerLabel,
+      diningTimerPresentation,
     })
 
     const timer = container.querySelector('[data-testid="floor-table-dining-timer"]')
-    expect(timer?.textContent).toBe('⏱ 1h 18m')
+    expect(timer?.querySelector('.floor-table-dining-timer-elapsed')?.textContent).toBe('⏱ 1h 48m')
+    expect(timer?.querySelector('.floor-table-dining-timer-est-free')?.textContent).toBe('Est. free 23:30')
+    expect(timer?.getAttribute('data-urgency')).toBe('approaching')
     expect(container.textContent).toContain('T11')
     expect(container.textContent).toContain('👤2')
     unmount()
   })
 
+  it('renders urgency classes for normal, approaching, and overdue', () => {
+    const reservation = buildReservation({ status: 'Checked In', time: '21:00' })
+    const cases = [
+      { nowMinutes: 21 * 60 + 30, urgency: 'normal' },
+      { nowMinutes: 22 * 60 + 48, urgency: 'approaching' },
+      { nowMinutes: 23 * 60 + 45, urgency: 'overdue' },
+    ]
+
+    cases.forEach(({ nowMinutes, urgency }) => {
+      const diningTimerPresentation = buildHostFloorDiningTimerPresentation(reservation, {
+        phase: 'seated',
+        nowMinutes,
+        todayKey: '2026-07-09',
+      })
+      const { container, unmount } = renderCompactTableContent({
+        reservation,
+        nowMinutes,
+        diningTimerPresentation,
+      })
+
+      expect(container.querySelector('.floor-table-dining-timer')?.classList.contains(`is-urgency-${urgency}`)).toBe(true)
+      unmount()
+    })
+  })
+
+  it('renders compact timer line on very small tables', () => {
+    const reservation = buildReservation({ status: 'Checked In', time: '21:00' })
+    const diningTimerPresentation = buildHostFloorDiningTimerPresentation(reservation, {
+      phase: 'seated',
+      nowMinutes: 21 * 60 + 48,
+      todayKey: '2026-07-09',
+      isCompact: true,
+    })
+    const { container, unmount } = renderCompactTableContent({
+      reservation,
+      diningTimerPresentation,
+      tier: 'very-small',
+    })
+
+    expect(container.querySelector('.floor-table-dining-timer-compact')?.textContent).toBe('⏱ 48m · 23:30')
+    unmount()
+  })
+
   it('does not render dining timer overlays for available tables', () => {
-    const diningTimerLabel = buildHostFloorDiningTimerLabel(null, {
+    const diningTimerPresentation = buildHostFloorDiningTimerPresentation(null, {
       phase: 'available',
       nowMinutes: 22 * 60,
       todayKey: '2026-07-09',
     })
-    const { container, unmount } = renderCompactTableContent({ diningTimerLabel })
+    const { container, unmount } = renderCompactTableContent({ diningTimerPresentation })
 
     expect(container.querySelector('[data-testid="floor-table-dining-timer"]')).toBeNull()
     unmount()
@@ -534,17 +582,33 @@ describe('host floor dining timer display', () => {
 
   it('does not render dining timer overlays for reserved but not seated tables', () => {
     const reservation = buildReservation({ status: 'Confirmed', time: '21:00' })
-    const diningTimerLabel = buildHostFloorDiningTimerLabel(reservation, {
+    const diningTimerPresentation = buildHostFloorDiningTimerPresentation(reservation, {
       phase: 'upcoming',
       nowMinutes: 20 * 60,
       todayKey: '2026-07-09',
     })
     const { container, unmount } = renderCompactTableContent({
       reservation,
-      diningTimerLabel,
+      diningTimerPresentation,
     })
 
     expect(container.querySelector('[data-testid="floor-table-dining-timer"]')).toBeNull()
+    unmount()
+  })
+
+  it('keeps dining timer overlay markup for non-interactive styling', () => {
+    const reservation = buildReservation({ status: 'Checked In', time: '21:00' })
+    const diningTimerPresentation = buildHostFloorDiningTimerPresentation(reservation, {
+      phase: 'seated',
+      nowMinutes: 22 * 60,
+      todayKey: '2026-07-09',
+    })
+    const { container, unmount } = renderCompactTableContent({
+      reservation,
+      diningTimerPresentation,
+    })
+
+    expect(container.querySelector('.floor-table-dining-timer.is-urgency-normal')).toBeTruthy()
     unmount()
   })
 })

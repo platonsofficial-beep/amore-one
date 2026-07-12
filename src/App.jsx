@@ -120,6 +120,7 @@ import {
 } from './lib/hostFloorTableContent'
 import {
   buildHostFloorDiningTimerLabel,
+  buildHostFloorDiningTimerPresentation,
   getNowMinutesFromDate,
   useHostDiningTimerClock,
 } from './lib/hostDiningTimer'
@@ -7455,12 +7456,13 @@ function FloorTableNode({
       displayReservation,
     })
     : null
-  const diningTimerLabel = showDiningTimers && isHostFloor && !isHeatmap && displayReservation
-    ? buildHostFloorDiningTimerLabel(displayReservation, {
+  const diningTimerPresentation = showDiningTimers && isHostFloor && !isHeatmap && displayReservation
+    ? buildHostFloorDiningTimerPresentation(displayReservation, {
       phase: hostOperational?.phase,
       hostIndicator: hostOperational?.hostIndicator,
       nowMinutes,
       todayKey,
+      isCompact: hostCompactContent?.tier === 'very-small',
     })
     : null
   const tableStatusClass = isHostFloor && !isHeatmap && hostOperational
@@ -7736,7 +7738,7 @@ function FloorTableNode({
             content={hostCompactContent}
             linkMeta={linkMeta}
             seatingIndicators={tableState.meta?.seatingIndicators ?? []}
-            diningTimerLabel={diningTimerLabel}
+            diningTimerPresentation={diningTimerPresentation}
           />
         ) : (
           <>

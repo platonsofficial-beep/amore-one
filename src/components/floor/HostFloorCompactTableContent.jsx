@@ -4,7 +4,7 @@ export function HostFloorCompactTableContent({
   content,
   linkMeta = null,
   seatingIndicators = [],
-  diningTimerLabel = null,
+  diningTimerPresentation = null,
 }) {
   if (!content) return null
 
@@ -21,9 +21,20 @@ export function HostFloorCompactTableContent({
         {content.partyLabel ? (
           <span className="floor-table-guest-indicator">{content.partyLabel}</span>
         ) : null}
-        {diningTimerLabel ? (
-          <span className="floor-table-dining-timer" data-testid="floor-table-dining-timer">
-            {diningTimerLabel}
+        {diningTimerPresentation ? (
+          <span
+            className={`floor-table-dining-timer is-urgency-${diningTimerPresentation.urgency}`}
+            data-testid="floor-table-dining-timer"
+            data-urgency={diningTimerPresentation.urgency}
+          >
+            {diningTimerPresentation.compactLine ? (
+              <span className="floor-table-dining-timer-compact">{diningTimerPresentation.compactLine}</span>
+            ) : (
+              <>
+                <span className="floor-table-dining-timer-elapsed">{diningTimerPresentation.elapsedLabel}</span>
+                <span className="floor-table-dining-timer-est-free">{diningTimerPresentation.estimatedFreeLabel}</span>
+              </>
+            )}
           </span>
         ) : null}
         {content.showChairDots ? (

@@ -9,12 +9,20 @@ import { buildHostTableInspectorContextStrip } from './hostTableInspectorUtils'
 import { applyHostFloorSelectedSeatingContext } from './hostFloorTableVisualState'
 import { buildSeatingsById } from './reservationSeatings'
 import {
+  HOST_DINING_TIMER_DURATION_POLICY_MINUTES,
   HOST_DINING_TIMER_REFRESH_MS,
+  HOST_DINING_TIMER_URGENCY_LEVELS,
   buildHostFloorDiningTimerLabel,
+  buildHostFloorDiningTimerPresentation,
+  formatHostDiningTimerEstimatedFreeLabel,
   formatHostDiningTimerLabel,
+  formatServiceDayMinutesAsTime24,
+  getHostDiningTimerExpectedDurationMinutes,
   getNowMinutesFromDate,
+  getReservationEstimatedFreeServiceDayMinutes,
   getReservationInServiceElapsedMinutes,
   getReservationInServiceSinceTimeLabel,
+  resolveHostDiningTimerUrgency,
   useHostDiningTimerClock,
 } from './hostDiningTimer'
 
@@ -111,6 +119,138 @@ describe('hostDiningTimer', () => {
 
     it('returns null for zero elapsed minutes', () => {
       expect(formatHostDiningTimerLabel(0)).toBeNull()
+    })
+  })
+
+  describe('duration policies', () => {
+    it('resolves dinner to 150 minutes', () => {
+      expect(HOST_DINING_TIMER_DURATION_POLICY_MINUTES.dinner).toBe(150)
+      expect(getHostDiningTimerExpectedDurationMinutes(buildReservation({
+        reservationPurpose: 'dinner',
+      }))).toBe(150)
+    })
+
+    it('resolves drinks to 90 minutes', () => {
+      expect(HOST_DINING_TIMER_DURATION_POLICY_MINUTES.drinks).toBe(90)
+      expect(getHostDiningTimerExpectedDurationMinutes(buildReservation({
+        reservationPurpose: 'drinks',
+      }))).toBe(90)
+    })
+
+    it('resolves legacy/no-purpose reservations to dinner', () => {
+      expect(getHostDiningTimerExpectedDurationMinutes(buildReservation())).toBe(150)
+      expect(getHostDiningTimerExpectedDurationMinutes(buildReservation({ notes: '' }))).toBe(150)
+    })
+  })
+
+  describe('resolveHostDiningTimerUrgency', () => {
+    it('marks dinner below 70% as normal', () => {
+      expect(resolveHostDiningTimerUrgency(104, 150)).toBe(HOST_DINING_TIMER_URGENCY_LEVELS.NORMAL)
+    })
+
+    it('marks dinner at 70% as approaching', () => {
+      expect(resolveHostDiningTimerUrgency(105, 150)).toBe(HOST_DINING_TIMER_URGENCY_LEVELS.APPROACHING)
+    })
+
+    it('marks dinner at 100% as approaching', () => {
+      expect(resolveHostDiningTimerUrgency(150, 150)).toBe(HOST_DINING_TIMER_URGENCY_LEVELS.APPROACHING)
+    })
+
+    it('marks dinner above 100% as overdue', () => {
+      expect(resolveHostDiningTimerUrgency(151, 150)).toBe(HOST_DINING_TIMER_URGENCY_LEVELS.OVERDUE)
+    })
+
+    it('marks drinks below 70% as normal', () => {
+      expect(resolveHostDiningTimerUrgency(62, 90)).toBe(HOST_DINING_TIMER_URGENCY_LEVELS.NORMAL)
+    })
+
+    it('marks drinks at 70% as approaching', () => {
+      expect(resolveHostDiningTimerUrgency(63, 90)).toBe(HOST_DINING_TIMER_URGENCY_LEVELS.APPROACHING)
+    })
+
+    it('marks drinks above expected duration as overdue', () => {
+      expect(resolveHostDiningTimerUrgency(91, 90)).toBe(HOST_DINING_TIMER_URGENCY_LEVELS.OVERDUE)
+    })
+  })
+
+  describe('estimated free time', () => {
+    it('formats dinner start 21:00 as estimated free 23:30', () => {
+      const reservation = buildReservation({ time: '21:00', reservationPurpose: 'dinner' })
+      expect(formatHostDiningTimerEstimatedFreeLabel(
+        getReservationEstimatedFreeServiceDayMinutes(reservation),
+      )).toBe('Est. free 23:30')
+    })
+
+    it('formats drinks start 21:00 as estimated free 22:30', () => {
+      const reservation = buildReservation({ time: '21:00', reservationPurpose: 'drinks' })
+      expect(formatHostDiningTimerEstimatedFreeLabel(
+        getReservationEstimatedFreeServiceDayMinutes(reservation),
+      )).toBe('Est. free 22:30')
+    })
+
+    it('formats drinks start 23:30 as estimated free 01:00', () => {
+      const reservation = buildReservation({ time: '23:30', reservationPurpose: 'drinks' })
+      expect(formatHostDiningTimerEstimatedFreeLabel(
+        getReservationEstimatedFreeServiceDayMinutes(reservation),
+      )).toBe('Est. free 01:00')
+    })
+
+    it('formats dinner start 23:00 as estimated free 01:30', () => {
+      const reservation = buildReservation({ time: '23:00', reservationPurpose: 'dinner' })
+      expect(formatHostDiningTimerEstimatedFreeLabel(
+        getReservationEstimatedFreeServiceDayMinutes(reservation),
+      )).toBe('Est. free 01:30')
+    })
+
+    it('keeps service-day midnight formatting correct', () => {
+      expect(formatServiceDayMinutesAsTime24(1500)).toBe('01:00')
+      expect(formatServiceDayMinutesAsTime24(1530)).toBe('01:30')
+    })
+  })
+
+  describe('buildHostFloorDiningTimerPresentation', () => {
+    it('returns elapsed, estimated free, and urgency for seated dinner', () => {
+      const reservation = buildReservation({ status: 'Checked In', time: '21:00' })
+      const presentation = buildHostFloorDiningTimerPresentation(reservation, {
+        phase: 'seated',
+        nowMinutes: 22 * 60 + 48,
+        todayKey: '2026-07-09',
+      })
+
+      expect(presentation).toEqual({
+        elapsedLabel: '⏱ 1h 48m',
+        estimatedFreeLabel: 'Est. free 23:30',
+        urgency: HOST_DINING_TIMER_URGENCY_LEVELS.APPROACHING,
+        compactLine: null,
+      })
+    })
+
+    it('uses drinks duration policy for purpose-aware intelligence', () => {
+      const reservation = buildReservation({
+        status: 'Checked In',
+        time: '21:00',
+        reservationPurpose: 'drinks',
+      })
+      const presentation = buildHostFloorDiningTimerPresentation(reservation, {
+        phase: 'seated',
+        nowMinutes: 21 * 60 + 48,
+        todayKey: '2026-07-09',
+      })
+
+      expect(presentation?.estimatedFreeLabel).toBe('Est. free 22:30')
+      expect(presentation?.urgency).toBe(HOST_DINING_TIMER_URGENCY_LEVELS.NORMAL)
+    })
+
+    it('returns compact line for very small tables', () => {
+      const reservation = buildReservation({ status: 'Checked In', time: '21:00' })
+      const presentation = buildHostFloorDiningTimerPresentation(reservation, {
+        phase: 'seated',
+        nowMinutes: 21 * 60 + 48,
+        todayKey: '2026-07-09',
+        isCompact: true,
+      })
+
+      expect(presentation?.compactLine).toBe('⏱ 48m · 23:30')
     })
   })
 

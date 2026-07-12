@@ -8379,18 +8379,50 @@
 }
 
 .floor-plan-workspace.is-host-floor .floor-table-content .floor-table-dining-timer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
   font-size: clamp(0.44rem, 7.2cqb, 0.58rem);
   font-weight: 600;
-  color: rgba(159, 212, 176, 0.92);
   font-variant-numeric: tabular-nums;
   line-height: 1.08;
-  white-space: nowrap;
+  max-width: 100%;
   flex-shrink: 0;
   pointer-events: none;
 }
 
+.floor-plan-workspace.is-host-floor .floor-table-content .floor-table-dining-timer.is-urgency-normal {
+  color: rgba(159, 212, 176, 0.92);
+}
+
+.floor-plan-workspace.is-host-floor .floor-table-content .floor-table-dining-timer.is-urgency-approaching {
+  color: rgba(212, 175, 55, 0.96);
+}
+
+.floor-plan-workspace.is-host-floor .floor-table-content .floor-table-dining-timer.is-urgency-overdue {
+  color: rgba(224, 124, 124, 0.95);
+}
+
+.floor-plan-workspace.is-host-floor .floor-table-content .floor-table-dining-timer-elapsed,
+.floor-plan-workspace.is-host-floor .floor-table-content .floor-table-dining-timer-est-free,
+.floor-plan-workspace.is-host-floor .floor-table-content .floor-table-dining-timer-compact {
+  white-space: nowrap;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.floor-plan-workspace.is-host-floor .floor-table-content .floor-table-dining-timer-est-free {
+  font-size: 0.92em;
+  font-weight: 500;
+  opacity: 0.92;
+}
+
 .floor-plan-workspace.is-host-floor .floor-table-content.is-tier-very-small .floor-table-dining-timer {
   font-size: clamp(0.38rem, 6.2cqb, 0.5rem);
+  flex-direction: row;
+  gap: 0;
 }
 
 .floor-plan-workspace.is-host-floor .floor-table-content .floor-table-number {
