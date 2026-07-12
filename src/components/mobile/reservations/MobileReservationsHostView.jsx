@@ -35,6 +35,7 @@ import {
 } from './MobileHostReservationStatusMenu'
 import { getReservationDisplayStatus } from '../../../lib/reservationHostStatus'
 import { MobileReservationQuickCreateSheet } from './MobileReservationQuickCreateSheet'
+import { buildHostWalkInCreatePrefill } from '../../../lib/hostQuickCreateForm'
 import { HostSettingsPanel } from '../../host/HostSettingsPanel'
 import { HostQueueToolbar } from './HostQueueToolbar'
 import { HostQueueServiceSummary } from './HostQueueServiceSummary'
@@ -80,6 +81,7 @@ export function MobileReservationsHostView({
   const [sortId, setSortId] = useState(() => readHostQueueSortPreference())
   const [isCreateOpen, setIsCreateOpen] = useState(false)
   const [createPrefill, setCreatePrefill] = useState(null)
+  const [quickCreateMode, setQuickCreateMode] = useState('create')
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
   const [editingReservation, setEditingReservation] = useState(null)
   const [localSelectedReservationId, setLocalSelectedReservationId] = useState(null)
@@ -265,15 +267,35 @@ export function MobileReservationsHostView({
   useEffect(() => {
     if (!floorCreatePrefill) return
     setCreatePrefill(floorCreatePrefill)
+    setQuickCreateMode('create')
     setIsCreateOpen(true)
     onFloorCreatePrefillConsumed?.()
   }, [floorCreatePrefill, onFloorCreatePrefillConsumed])
 
+  const handleCloseQuickCreate = useCallback(() => {
+    setIsCreateOpen(false)
+    setCreatePrefill(null)
+    setQuickCreateMode('create')
+  }, [])
+
+  const handleOpenStandardCreate = useCallback(() => {
+    setEditingReservation(null)
+    setCreatePrefill(null)
+    setQuickCreateMode('create')
+    setIsCreateOpen(true)
+  }, [])
+
+  const handleOpenWalkInCreate = useCallback(() => {
+    setEditingReservation(null)
+    setCreatePrefill(buildHostWalkInCreatePrefill({ date: todayKey, nowMinutes }))
+    setQuickCreateMode('walk-in')
+    setIsCreateOpen(true)
+  }, [nowMinutes, todayKey])
+
   const handleCreateSubmit = async (form) => {
     const created = await onCreateReservation?.(form)
     if (created !== false) {
-      setIsCreateOpen(false)
-      setCreatePrefill(null)
+      handleCloseQuickCreate()
     }
     return created
   }
@@ -357,18 +379,26 @@ export function MobileReservationsHostView({
             placeholder="Search guest, phone, table, area, notes"
           />
         </label>
-        <button
-          type="button"
-          className="mobile-host-reservations-add-btn"
-          onClick={() => {
-            setEditingReservation(null)
-            setCreatePrefill(null)
-            setIsCreateOpen(true)
-          }}
-          disabled={isSaving}
-        >
-          + Reservation
-        </button>
+        <div className="mobile-host-reservations-create-actions">
+          <button
+            type="button"
+            className="mobile-host-reservations-walk-in-btn"
+            onClick={handleOpenWalkInCreate}
+            disabled={isSaving}
+            data-testid="host-walk-in-create-btn"
+          >
+            Walk-in
+          </button>
+          <button
+            type="button"
+            className="mobile-host-reservations-add-btn"
+            onClick={handleOpenStandardCreate}
+            disabled={isSaving}
+            data-testid="host-standard-create-btn"
+          >
+            + Reservation
+          </button>
+        </div>
       </div>
 
       {isSplitLayout ? (
@@ -513,15 +543,13 @@ export function MobileReservationsHostView({
       <MobileReservationQuickCreateSheet
         isOpen
         variant="inline"
+        mode={quickCreateMode}
         todayKey={todayKey}
         isSaving={isSaving}
         prefill={createPrefill}
         seatings={reservationSeatings}
         reservations={reservations}
-        onClose={() => {
-          setIsCreateOpen(false)
-          setCreatePrefill(null)
-        }}
+        onClose={handleCloseQuickCreate}
         onSubmit={handleCreateSubmit}
       />
     ) : (
@@ -627,16 +655,14 @@ export function MobileReservationsHostView({
         <>
           <MobileReservationQuickCreateSheet
             isOpen={isCreateOpen}
+            mode={quickCreateMode}
             variant={formVariant === 'inline' ? 'panel' : formVariant}
             todayKey={todayKey}
             isSaving={isSaving}
             prefill={createPrefill}
             seatings={reservationSeatings}
             reservations={reservations}
-            onClose={() => {
-              setIsCreateOpen(false)
-              setCreatePrefill(null)
-            }}
+            onClose={handleCloseQuickCreate}
             onSubmit={handleCreateSubmit}
           />
 

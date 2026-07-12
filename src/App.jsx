@@ -376,6 +376,10 @@ import {
 } from './lib/timeFormatUtils'
 import { validateReservationFormFields } from './lib/reservationFormValidation'
 import {
+  resolveHostQuickCreateCreateNotes,
+  resolveHostQuickCreateCreateStatus,
+} from './lib/hostQuickCreateForm'
+import {
   resolveWorkspaceDefaultPhoneCountryCode,
   setWorkspaceDefaultPhoneCountryCode,
 } from './lib/reservationPhoneUtils'
@@ -21607,8 +21611,8 @@ function App() {
         guests: Number(form.guests) || 2,
         tableNumber,
         area: `${form.area ?? ''}`.trim(),
-        status: 'Pending',
-        notes: `${form.notes ?? ''}`.trim(),
+        status: resolveHostQuickCreateCreateStatus(form),
+        notes: resolveHostQuickCreateCreateNotes(form),
         seatingId: form.seatingId ?? null,
         seatingAssignment,
       }, user?.id ?? null)

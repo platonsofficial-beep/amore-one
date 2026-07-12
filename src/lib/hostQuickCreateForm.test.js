@@ -16,6 +16,10 @@ import {
   formatHostQuickCreateTableCapacitySummary,
   formatHostQuickCreateTableCompactCapacity,
   buildHostQuickCreateAvailabilityKey,
+  buildHostWalkInCreatePrefill,
+  ensureWalkInNotesMarker,
+  resolveHostQuickCreateCreateNotes,
+  resolveHostQuickCreateCreateStatus,
 } from './hostQuickCreateForm'
 
 const SERVICE_DATE = '2026-07-10'
@@ -813,5 +817,36 @@ describe('hostQuickCreateForm', () => {
       expect(getHostQuickCreateTableHelperText(form, options, SEATINGS, { layout: LAYOUT }))
         .toBe('No available tables in this area for Dinner 1')
     })
+  })
+})
+
+describe('hostQuickCreateForm walk-in helpers', () => {
+  it('buildHostWalkInCreatePrefill uses viewed date and rounds time to 15 minutes', () => {
+    expect(buildHostWalkInCreatePrefill({ date: '2026-07-10', nowMinutes: 722 })).toEqual({
+      date: '2026-07-10',
+      time: '12:00',
+    })
+    expect(buildHostWalkInCreatePrefill({ date: '2026-07-10', nowMinutes: 728 })).toEqual({
+      date: '2026-07-10',
+      time: '12:15',
+    })
+  })
+
+  it('ensureWalkInNotesMarker adds one marker without duplicating existing walk-in notes', () => {
+    expect(ensureWalkInNotesMarker('Window seat')).toBe('Window seat\nwalk-in')
+    expect(ensureWalkInNotesMarker('walk-in guest')).toBe('walk-in guest')
+    expect(ensureWalkInNotesMarker('Walk In party')).toBe('Walk In party')
+    expect(ensureWalkInNotesMarker('')).toBe('walk-in')
+  })
+
+  it('resolveHostQuickCreateCreateStatus and notes honor walk-in mode only', () => {
+    expect(resolveHostQuickCreateCreateStatus({ walkIn: true })).toBe('Walk In')
+    expect(resolveHostQuickCreateCreateStatus({ walkIn: false })).toBe('Pending')
+    expect(resolveHostQuickCreateCreateStatus({})).toBe('Pending')
+
+    expect(resolveHostQuickCreateCreateNotes({ walkIn: true, notes: 'Allergic to nuts' }))
+      .toBe('Allergic to nuts\nwalk-in')
+    expect(resolveHostQuickCreateCreateNotes({ notes: 'Allergic to nuts' }))
+      .toBe('Allergic to nuts')
   })
 })

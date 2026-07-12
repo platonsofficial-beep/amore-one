@@ -338,6 +338,7 @@ export function MobileReservationQuickCreateSheet({
   const [editGuestTitle, setEditGuestTitle] = useState('Edit reservation')
   const openSessionRef = useRef(null)
   const isEditMode = mode === 'edit'
+  const isWalkInMode = mode === 'walk-in'
 
   const availabilityReservations = useMemo(() => {
     if (!isEditMode || !reservation?.id) return reservations
@@ -355,7 +356,7 @@ export function MobileReservationQuickCreateSheet({
       return
     }
 
-    const sessionKey = isEditMode ? `edit:${reservation?.id ?? ''}` : 'create'
+    const sessionKey = isEditMode ? `edit:${reservation?.id ?? ''}` : mode
     if (openSessionRef.current === sessionKey) return
     openSessionRef.current = sessionKey
 
@@ -388,7 +389,7 @@ export function MobileReservationQuickCreateSheet({
     setLastName('')
     setEditGuestTitle('Edit reservation')
     setNameError('')
-  }, [isOpen, isEditMode, reservation, prefill, todayKey, layout, seatings])
+  }, [isOpen, isEditMode, mode, reservation, prefill, todayKey, layout, seatings])
 
   useEffect(() => {
     if (!isOpen) return
@@ -419,9 +420,10 @@ export function MobileReservationQuickCreateSheet({
   }
 
   const handleSubmit = async (nextForm) => {
+    const submitForm = isWalkInMode ? { ...nextForm, walkIn: true } : nextForm
     const saved = isEditMode
-      ? await onSubmit?.(reservation, nextForm, todayKey)
-      : await onSubmit?.(nextForm)
+      ? await onSubmit?.(reservation, submitForm, todayKey)
+      : await onSubmit?.(submitForm)
     if (saved !== false) {
       setForm(EMPTY_HOST_QUICK_CREATE_FORM)
       setFirstName('')
@@ -436,7 +438,11 @@ export function MobileReservationQuickCreateSheet({
     setNameError(`${message ?? ''}`.trim())
   }
 
-  const eyebrowLabel = isEditMode ? 'Edit reservation' : 'New reservation'
+  const eyebrowLabel = isEditMode
+    ? 'Edit reservation'
+    : isWalkInMode
+      ? 'NEW WALK-IN'
+      : 'New reservation'
   const titleLabel = isEditMode ? editGuestTitle : 'Quick create'
 
   const header = (
@@ -474,15 +480,21 @@ export function MobileReservationQuickCreateSheet({
       reservations={availabilityReservations}
       layout={layout}
       mode={mode}
-      primaryActionLabel={isEditMode ? 'Save changes' : 'Save reservation'}
-      showPendingHint={!isEditMode}
+      primaryActionLabel={isEditMode ? 'Save changes' : isWalkInMode ? 'Seat Now' : 'Save reservation'}
+      showPendingHint={!isEditMode && !isWalkInMode}
     />
   )
 
-  const panelAriaLabel = isEditMode ? 'Edit reservation' : 'Create reservation'
+  const panelAriaLabel = isEditMode
+    ? 'Edit reservation'
+    : isWalkInMode
+      ? 'Create walk-in'
+      : 'Create reservation'
   const dialogTitleId = isEditMode
     ? 'mobile-host-reservation-edit-title'
-    : 'mobile-host-reservation-create-title'
+    : isWalkInMode
+      ? 'mobile-host-reservation-walk-in-title'
+      : 'mobile-host-reservation-create-title'
 
   if (variant === 'inline') {
     return (
@@ -490,7 +502,11 @@ export function MobileReservationQuickCreateSheet({
         className={`mobile-host-reservation-inline-panel host-station-form-surface${isEditMode ? ' is-edit' : ''}`}
         role="region"
         aria-label={panelAriaLabel}
-        data-testid={isEditMode ? 'host-quick-create-edit-panel' : 'host-quick-create-create-panel'}
+        data-testid={isEditMode
+          ? 'host-quick-create-edit-panel'
+          : isWalkInMode
+            ? 'host-quick-create-walk-in-panel'
+            : 'host-quick-create-create-panel'}
       >
         {header}
         <div className="mobile-host-reservation-inline-body">

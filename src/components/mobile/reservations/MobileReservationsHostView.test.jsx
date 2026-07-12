@@ -19,6 +19,27 @@ vi.mock('../../../lib/mobileHostReservationUtils', async (importOriginal) => {
   }
 })
 
+vi.mock('../../../lib/PublishedFloorPlanContext', () => ({
+  usePublishedFloorPlan: () => ({
+    layout: {
+      zones: [{ id: 'main', label: 'Main Dining' }],
+      units: [],
+    },
+  }),
+}))
+
+const SEATINGS = [
+  {
+    id: 'dinner-2',
+    name: 'Dinner 2',
+    start_time: '21:00',
+    duration_minutes: 120,
+    days_of_week: [0, 1, 2, 3, 4, 5, 6],
+    sort_order: 0,
+    is_active: true,
+  },
+]
+
 function renderHostView(props = {}) {
   const container = document.createElement('div')
   document.body.appendChild(container)
@@ -50,6 +71,14 @@ function renderHostView(props = {}) {
 describe('MobileReservationsHostView header actions', () => {
   beforeEach(() => {
     splitViewportMock.isSplit = false
+    Object.defineProperty(window, 'matchMedia', {
+      writable: true,
+      value: vi.fn(() => ({
+        matches: false,
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+      })),
+    })
   })
 
   it('keeps portrait filter tabs outside split layout', () => {
@@ -96,4 +125,78 @@ describe('MobileReservationsHostView header actions', () => {
     expect(withoutExit.container.querySelector('.mobile-host-mode-exit-btn')).toBeNull()
     withoutExit.unmount()
   })
+
+  it('opens standard create from + Reservation and walk-in create from Walk-in button', async () => {
+    splitViewportMock.isSplit = true
+    const onCreateReservation = vi.fn(async () => true)
+    const { container, unmount } = renderHostView({
+      todayKey: '2026-07-10',
+      nowMinutes: 728,
+      reservationSeatings: SEATINGS,
+      onCreateReservation,
+    })
+
+    await act(async () => {
+      container.querySelector('[data-testid="host-standard-create-btn"]')
+        ?.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    })
+
+    expect(container.querySelector('[data-testid="host-quick-create-create-panel"]')).not.toBeNull()
+    expect(container.querySelector('[data-testid="host-quick-create-eyebrow"]')?.textContent)
+      .toBe('New reservation')
+
+    await act(async () => {
+      container.querySelector('.mobile-host-reservation-panel-header .mobile-sheet-close-btn')
+        ?.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    })
+
+    await act(async () => {
+      container.querySelector('[data-testid="host-walk-in-create-btn"]')
+        ?.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    })
+
+    expect(container.querySelector('[data-testid="host-quick-create-walk-in-panel"]')).not.toBeNull()
+    expect(container.querySelector('[data-testid="host-quick-create-eyebrow"]')?.textContent)
+      .toBe('NEW WALK-IN')
+    expect(container.querySelector('[data-testid="host-quick-create-time-trigger"]')?.textContent)
+      .toContain('12:15')
+
+    fillGuestNameAndSubmitWalkIn(container, onCreateReservation)
+
+    splitViewportMock.isSplit = false
+    unmount()
+  })
 })
+
+function setInputValue(input, value) {
+  if (!input) return
+  const prototype = input instanceof HTMLTextAreaElement
+    ? HTMLTextAreaElement.prototype
+    : HTMLInputElement.prototype
+  const setter = Object.getOwnPropertyDescriptor(prototype, 'value')?.set
+  setter?.call(input, value)
+  input.dispatchEvent(new Event('input', { bubbles: true }))
+  input.dispatchEvent(new Event('change', { bubbles: true }))
+}
+
+function fillGuestNameAndSubmitWalkIn(container, onCreateReservation) {
+  act(() => {
+    setInputValue(container.querySelector('input[autocomplete="given-name"]'), 'Jamie')
+    setInputValue(container.querySelector('input[autocomplete="family-name"]'), 'Lee')
+  })
+
+  act(() => {
+    container.querySelector('[data-testid="host-quick-create-primary-action"]')
+      ?.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+  })
+
+  expect(onCreateReservation).toHaveBeenCalled()
+  const submitted = onCreateReservation.mock.calls.at(-1)?.[0]
+  expect(submitted).toMatchObject({
+    walkIn: true,
+    guestName: 'Jamie Lee',
+    date: '2026-07-10',
+    time: '12:15',
+  })
+  expect(submitted.walkIn).toBe(true)
+}

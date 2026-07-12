@@ -41,6 +41,40 @@ export const EMPTY_HOST_QUICK_CREATE_FORM = {
   tableSelectionNotice: '',
 }
 
+export const WALK_IN_NOTES_MARKER = 'walk-in'
+
+export function buildHostWalkInCreatePrefill({ date = '', nowMinutes = 0 } = {}) {
+  const roundedMinutes = Math.round(nowMinutes / 15) * 15
+  const hours = Math.floor(roundedMinutes / 60) % 24
+  const mins = roundedMinutes % 60
+  const time = `${String(hours).padStart(2, '0')}:${String(mins).padStart(2, '0')}`
+
+  return {
+    date: normalizeReservationDateKey(date),
+    time: normalizeReservationTimeValue(time),
+  }
+}
+
+export function ensureWalkInNotesMarker(notes) {
+  const trimmed = `${notes ?? ''}`.trim()
+  const lower = trimmed.toLowerCase()
+
+  if (lower.includes('walk-in') || lower.includes('walk in') || lower.includes('walkin')) {
+    return trimmed
+  }
+
+  return trimmed ? `${trimmed}\n${WALK_IN_NOTES_MARKER}` : WALK_IN_NOTES_MARKER
+}
+
+export function resolveHostQuickCreateCreateStatus(form) {
+  return form?.walkIn ? 'Walk In' : 'Pending'
+}
+
+export function resolveHostQuickCreateCreateNotes(form) {
+  const notes = `${form?.notes ?? ''}`.trim()
+  return form?.walkIn ? ensureWalkInNotesMarker(notes) : notes
+}
+
 export function formatHostQuickCreateSeatingOptionLabel(seating) {
   const normalized = normalizeReservationSeating(seating)
   if (!normalized) return ''
