@@ -115,8 +115,9 @@ describe('FloorSeatingSelector', () => {
             },
             operationalMetrics: {
               expectedGuests: 35,
-              expectedAssignedTables: 17,
-              inHouseGuests: 2,
+              reservedTables: 17,
+              seatedTables: 5,
+              inHouseGuests: 9,
             },
           },
         },
@@ -128,7 +129,7 @@ describe('FloorSeatingSelector', () => {
     expect(container.querySelector('.floor-seating-selector-chip-count')?.getAttribute('aria-label'))
       .toBe('19 of 37 tables available')
     expect(container.querySelector('.floor-seating-selector-chip-metrics')?.textContent)
-      .toBe('👥35 · 🍽17 · 🪑2')
+      .toBe('👥35 · 🍽17 · 🪑5 · 👤9')
   })
 
   it('includes responsive hide rule for seating chip metrics', () => {
@@ -150,8 +151,9 @@ describe('FloorSeatingSelector', () => {
             },
             operationalMetrics: {
               expectedGuests: 35,
-              expectedAssignedTables: 17,
-              inHouseGuests: 2,
+              reservedTables: 17,
+              seatedTables: 5,
+              inHouseGuests: 9,
             },
           },
         },

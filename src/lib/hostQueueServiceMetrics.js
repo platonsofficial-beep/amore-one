@@ -18,6 +18,21 @@ const EXPECTED_EXCLUDED_STATUS_IDS = new Set([
   'Rejected',
 ])
 
+const RESERVED_DAY_STATUS_IDS = new Set([
+  'Pending',
+  'Confirmed',
+  'Checked In',
+  'Walk In',
+  'Late Booking',
+  'Waiting',
+])
+
+const SEATED_TABLE_STATUS_IDS = new Set([
+  'Checked In',
+  'Walk In',
+  'Checked In (Partial)',
+])
+
 export function isReservationExpectedForServiceMetrics(reservation) {
   const status = normalizeReservationStatus(reservation?.status)
   if (EXPECTED_EXCLUDED_STATUS_IDS.has(status)) return false
@@ -25,12 +40,23 @@ export function isReservationExpectedForServiceMetrics(reservation) {
   return true
 }
 
-export function getExpectedAssignedTableIdsForScope(
+export function isReservationReservedForDayMetrics(reservation) {
+  const status = normalizeReservationStatus(reservation?.status)
+  return RESERVED_DAY_STATUS_IDS.has(status)
+}
+
+export function isReservationSeatedForTableMetrics(reservation) {
+  const status = normalizeReservationStatus(reservation?.status)
+  return SEATED_TABLE_STATUS_IDS.has(status)
+}
+
+function getAssignedTableIdsForScope(
   reservation,
   layout = null,
   areaFilterId = HOST_QUEUE_ALL_AREAS,
+  { includeReservation = () => true } = {},
 ) {
-  if (!isReservationExpectedForServiceMetrics(reservation)) {
+  if (!includeReservation(reservation)) {
     return new Set()
   }
 
@@ -54,6 +80,45 @@ export function getExpectedAssignedTableIdsForScope(
   return tableIds
 }
 
+export function getExpectedAssignedTableIdsForScope(
+  reservation,
+  layout = null,
+  areaFilterId = HOST_QUEUE_ALL_AREAS,
+) {
+  return getAssignedTableIdsForScope(
+    reservation,
+    layout,
+    areaFilterId,
+    { includeReservation: isReservationExpectedForServiceMetrics },
+  )
+}
+
+export function getReservedTableIdsForScope(
+  reservation,
+  layout = null,
+  areaFilterId = HOST_QUEUE_ALL_AREAS,
+) {
+  return getAssignedTableIdsForScope(
+    reservation,
+    layout,
+    areaFilterId,
+    { includeReservation: isReservationReservedForDayMetrics },
+  )
+}
+
+export function getSeatedTableIdsForScope(
+  reservation,
+  layout = null,
+  areaFilterId = HOST_QUEUE_ALL_AREAS,
+) {
+  return getAssignedTableIdsForScope(
+    reservation,
+    layout,
+    areaFilterId,
+    { includeReservation: isReservationSeatedForTableMetrics },
+  )
+}
+
 export function countPublishedTablesInScope(
   layout = null,
   areaFilterId = HOST_QUEUE_ALL_AREAS,
@@ -74,7 +139,8 @@ export function buildHostQueueServiceMetrics(
   } = {},
 ) {
   let expectedGuests = 0
-  const expectedTableIds = new Set()
+  const reservedTableIds = new Set()
+  const seatedTableIds = new Set()
   let inHouseGuests = 0
 
   reservations.forEach((reservation) => {
@@ -83,19 +149,29 @@ export function buildHostQueueServiceMetrics(
 
     if (isReservationExpectedForServiceMetrics(reservation)) {
       expectedGuests += guests
-      getExpectedAssignedTableIdsForScope(reservation, layout, areaFilterId)
-        .forEach((tableId) => expectedTableIds.add(tableId))
     }
+
+    getReservedTableIdsForScope(reservation, layout, areaFilterId)
+      .forEach((tableId) => reservedTableIds.add(tableId))
+
+    getSeatedTableIdsForScope(reservation, layout, areaFilterId)
+      .forEach((tableId) => seatedTableIds.add(tableId))
 
     if (isReservationInHouseStatus(status)) {
       inHouseGuests += guests
     }
   })
 
+  const totalPublishedTables = countPublishedTablesInScope(layout, areaFilterId)
+  const reservedTables = reservedTableIds.size
+  const freeTables = Math.max(0, totalPublishedTables - reservedTables)
+
   return {
     expectedGuests,
-    expectedAssignedTables: expectedTableIds.size,
-    totalPublishedTables: countPublishedTablesInScope(layout, areaFilterId),
+    reservedTables,
+    totalPublishedTables,
+    freeTables,
+    seatedTables: seatedTableIds.size,
     inHouseGuests,
   }
 }
@@ -154,8 +230,9 @@ export function buildHostQueueSeatingChipMetricsMap(
 
 export function formatHostQueueSeatingChipMetricsLine({
   expectedGuests = 0,
-  expectedAssignedTables = 0,
+  reservedTables = 0,
+  seatedTables = 0,
   inHouseGuests = 0,
 } = {}) {
-  return `👥${expectedGuests} · 🍽${expectedAssignedTables} · 🪑${inHouseGuests}`
+  return `👥${expectedGuests} · 🍽${reservedTables} · 🪑${seatedTables} · 👤${inHouseGuests}`
 }
