@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { ReservationDateField } from '../../reservations/ReservationDateField'
 import { ReservationPhoneField } from '../../reservations/ReservationPhoneField'
 import { HostQuickCreateTimePicker } from './HostQuickCreateTimePicker'
-import { CUSTOMER_TYPES } from '../../../lib/reservationCustomerType'
+import { GUEST_TYPE_OPTIONS } from '../../../lib/reservationCustomerType'
 import { HOST_RESERVATION_STATUSES } from '../../../lib/reservationHostStatus'
 import {
   handleReservationFormEnterKey,
@@ -254,21 +254,21 @@ function HostReservationQuickCreateFields({
         onToggleExtraChair={handleToggleExtraChair}
       />
 
-      {mode === 'edit' ? (
-        <div className="mobile-host-form-row">
-          <label className="mobile-host-form-field">
-            <span>Customer type</span>
-            <select
-              value={form.customerType ?? 'Regular'}
-              onChange={(event) => updateForm({ customerType: event.target.value })}
-              data-testid="host-quick-create-customer-type"
-            >
-              {CUSTOMER_TYPES.map((type) => (
-                <option key={type} value={type}>{type}</option>
-              ))}
-            </select>
-          </label>
+      <div className="mobile-host-form-row">
+        <label className="mobile-host-form-field">
+          <span>Guest Type</span>
+          <select
+            value={form.customerType ?? 'Regular'}
+            onChange={(event) => updateForm({ customerType: event.target.value })}
+            data-testid="host-quick-create-customer-type"
+          >
+            {GUEST_TYPE_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>{option.label}</option>
+            ))}
+          </select>
+        </label>
 
+        {mode === 'edit' ? (
           <label className="mobile-host-form-field">
             <span>Status</span>
             <select
@@ -281,8 +281,8 @@ function HostReservationQuickCreateFields({
               ))}
             </select>
           </label>
-        </div>
-      ) : null}
+        ) : null}
+      </div>
 
       <label className="mobile-host-form-field">
         <span>Notes</span>

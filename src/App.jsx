@@ -10249,6 +10249,7 @@ function isReservationVvip(reservation) {
 }
 
 function getGuestCustomerType(reservation) {
+  if (reservation?.customerType === 'House Guest') return 'House Guest'
   if (reservation?.customerType === 'VVIP') return 'VVIP'
   if (reservation?.customerType === 'VIP') return 'VIP'
   if (isReservationVvip(reservation)) return 'VVIP'
@@ -21613,6 +21614,7 @@ function App() {
         area: `${form.area ?? ''}`.trim(),
         status: resolveHostQuickCreateCreateStatus(form),
         notes: resolveHostQuickCreateCreateNotes(form),
+        customerType: form.customerType ?? 'Regular',
         seatingId: form.seatingId ?? null,
         seatingAssignment,
       }, user?.id ?? null)

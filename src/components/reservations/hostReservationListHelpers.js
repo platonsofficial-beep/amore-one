@@ -14,6 +14,7 @@ import {
   normalizeReservationStatus,
 } from '../../lib/reservationHostStatus'
 import { getHostReservationAlertReasons } from '../../lib/reservationServiceIntelligence'
+import { parseCustomerTypeFromNotes } from '../../lib/reservationCustomerType'
 import { formatHostReservationListTime } from '../../lib/timeFormatUtils'
 
 export function formatReservationGuestName(name) {
@@ -63,10 +64,11 @@ export function getHostReservationWarnings(reservation, nowMinutes, todayKey) {
 }
 
 function getGuestCustomerType(reservation) {
-  const haystack = `${reservation?.notes ?? ''} ${reservation?.area ?? ''}`.toLowerCase()
-  if (haystack.includes('vvip') || haystack.includes('v.v.i.p')) return 'VVIP'
-  if (haystack.includes('vip')) return 'VIP'
-  return 'Regular'
+  const fromField = `${reservation?.customerType ?? ''}`.trim()
+  if (fromField === 'VIP' || fromField === 'VVIP' || fromField === 'House Guest') {
+    return fromField
+  }
+  return parseCustomerTypeFromNotes(reservation?.notes ?? '')
 }
 
 export const HOST_LIST_HELPERS = {

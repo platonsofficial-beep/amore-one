@@ -5,7 +5,7 @@ import {
   getReservationAssignedUnitsForMatching,
   getReservationSeatingAssignment,
 } from '../../lib/seatingAssignment'
-import { CUSTOMER_TYPES } from '../../lib/reservationCustomerType'
+import { GUEST_TYPE_OPTIONS } from '../../lib/reservationCustomerType'
 import { resolveAreaIdForReservation } from '../../lib/reservationTableOptions'
 import { resolveReservationSeatingId } from '../../lib/reservationSeatings'
 import { normalizeReservationTimeValue, normalizeReservationDateKey } from '../../lib/timeFormatUtils'
@@ -277,13 +277,13 @@ export function HostReservationEditPanel({
           </div>
 
           <label className="host-reservation-edit-field">
-            <span>Customer type</span>
+            <span>Guest Type</span>
             <select
               value={form.customerType}
               onChange={(event) => updateField({ customerType: event.target.value })}
             >
-              {CUSTOMER_TYPES.map((type) => (
-                <option key={type} value={type}>{type}</option>
+              {GUEST_TYPE_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>{option.label}</option>
               ))}
             </select>
           </label>

@@ -379,5 +379,9 @@ export function getHostListCustomerTypeMeta(reservation, getGuestCustomerType) {
     return { label: 'VIP', className: 'type-vip' }
   }
 
+  if (customerType === 'House Guest') {
+    return { label: 'HOUSE GUEST', className: 'type-house-guest' }
+  }
+
   return { label: 'REG', className: 'type-regular' }
 }

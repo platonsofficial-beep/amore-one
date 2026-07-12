@@ -31,6 +31,7 @@ export const EMPTY_HOST_QUICK_CREATE_FORM = {
   time: '',
   guests: '2',
   notes: '',
+  customerType: 'Regular',
   seatingId: null,
   seatingManuallyOverridden: false,
   recommendedSeatingId: null,

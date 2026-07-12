@@ -209,11 +209,25 @@ describe('MobileReservationQuickCreateSheet edit mode', () => {
     unmount()
   })
 
-  it('prefills status and customer type in edit-only fields', () => {
+  it('prefills status and guest type in edit-only fields', () => {
     const { container, unmount } = renderEditSheet()
 
     expect(container.querySelector('[data-testid="host-quick-create-status"]')?.value).toBe('Confirmed')
     expect(container.querySelector('[data-testid="host-quick-create-customer-type"]')?.value).toBe('VIP')
+    expect(container.querySelector('[data-testid="host-quick-create-customer-type"]')?.selectedOptions[0]?.textContent)
+      .toBe('VIP')
+
+    unmount()
+  })
+
+  it('displays Regular reservations as Normal in guest type select', () => {
+    const { container, unmount } = renderEditSheet({
+      reservation: SECOND_EDIT_RESERVATION,
+    })
+
+    expect(container.querySelector('[data-testid="host-quick-create-customer-type"]')?.value).toBe('Regular')
+    expect(container.querySelector('[data-testid="host-quick-create-customer-type"]')?.selectedOptions[0]?.textContent)
+      .toBe('Normal')
 
     unmount()
   })

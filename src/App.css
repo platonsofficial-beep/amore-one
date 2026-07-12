@@ -5807,6 +5807,12 @@
   color: #bfe6cb;
 }
 
+.host-reservation-card-type.type-house-guest {
+  border-color: rgba(176, 196, 222, 0.35);
+  background: rgba(176, 196, 222, 0.12);
+  color: #d4e2f4;
+}
+
 .host-reservation-card-meta {
   display: flex;
   flex-wrap: nowrap;
@@ -5998,6 +6004,12 @@
   border-color: rgba(240, 194, 123, 0.4);
   background: rgba(240, 194, 123, 0.14);
   color: #f5ddb0;
+}
+
+.host-reservation-type-badge.type-house-guest {
+  border-color: rgba(176, 196, 222, 0.35);
+  background: rgba(176, 196, 222, 0.12);
+  color: #d4e2f4;
 }
 
 .host-reservation-status-pill {

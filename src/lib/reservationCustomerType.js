@@ -1,6 +1,26 @@
 export const CUSTOMER_TYPE_MARKER = '\n@@CUSTOMER@@'
 
-export const CUSTOMER_TYPES = ['Regular', 'VIP', 'VVIP']
+export const CUSTOMER_TYPES = ['Regular', 'VIP', 'VVIP', 'House Guest']
+
+export const GUEST_TYPE_OPTIONS = [
+  { value: 'Regular', label: 'Normal' },
+  { value: 'VIP', label: 'VIP' },
+  { value: 'VVIP', label: 'VVIP' },
+  { value: 'House Guest', label: 'House Guest' },
+]
+
+export function getGuestTypeLabel(customerType) {
+  const normalized = normalizeStoredCustomerType(customerType)
+  const option = GUEST_TYPE_OPTIONS.find((entry) => entry.value === normalized)
+  return option?.label ?? 'Normal'
+}
+
+export function normalizeStoredCustomerType(customerType) {
+  const value = `${customerType ?? ''}`.trim()
+  if (value === 'Normal') return 'Regular'
+  if (CUSTOMER_TYPES.includes(value)) return value
+  return 'Regular'
+}
 
 export function parseCustomerTypeFromNotes(notes) {
   const value = `${notes ?? ''}`
@@ -13,7 +33,7 @@ export function parseCustomerTypeFromNotes(notes) {
   }
 
   const raw = value.slice(markerIndex + CUSTOMER_TYPE_MARKER.length).trim()
-  if (raw === 'VIP' || raw === 'VVIP') return raw
+  if (raw === 'VIP' || raw === 'VVIP' || raw === 'House Guest') return raw
   return 'Regular'
 }
 
@@ -26,7 +46,7 @@ export function stripCustomerTypeFromNotes(notes) {
 
 export function encodeCustomerTypeInNotes(notes, customerType) {
   const userNotes = stripCustomerTypeFromNotes(notes)
-  const type = CUSTOMER_TYPES.includes(customerType) ? customerType : 'Regular'
+  const type = normalizeStoredCustomerType(customerType)
   if (type === 'Regular') return userNotes
   return userNotes
     ? `${userNotes}${CUSTOMER_TYPE_MARKER}${type}`

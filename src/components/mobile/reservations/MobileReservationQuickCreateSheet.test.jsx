@@ -57,6 +57,19 @@ function fillGuestName(container, firstName = 'Alex', lastName = 'Rivera') {
   })
 }
 
+function selectGuestType(container, value) {
+  act(() => {
+    const select = container.querySelector('[data-testid="host-quick-create-customer-type"]')
+    if (!select) return
+    select.value = value
+    select.dispatchEvent(new Event('change', { bubbles: true }))
+  })
+}
+
+function getGuestTypeSelect(container) {
+  return container.querySelector('[data-testid="host-quick-create-customer-type"]')
+}
+
 async function clickSaveReservation(container) {
   const saveButton = [...container.querySelectorAll('button')]
     .find((button) => button.textContent === 'Save reservation')
@@ -301,6 +314,42 @@ describe('MobileReservationQuickCreateSheet extra chair', () => {
     await clickSaveReservation(container)
 
     expect(container.querySelector('[data-testid="host-quick-create-extra-chair-toggle"]')).toBeNull()
+
+    unmount()
+  })
+})
+
+describe('MobileReservationQuickCreateSheet guest type', () => {
+  it('defaults new reservation guest type to Normal', () => {
+    const { container, unmount } = renderSheet()
+
+    expect(getGuestTypeSelect(container)?.value).toBe('Regular')
+    expect(getGuestTypeSelect(container)?.selectedOptions[0]?.textContent).toBe('Normal')
+
+    unmount()
+  })
+
+  it('submits selected guest type with create payload', async () => {
+    const onSubmit = vi.fn(async () => true)
+    const { container, unmount } = renderSheet({ onSubmit })
+
+    selectGuestType(container, 'House Guest')
+    fillGuestName(container)
+
+    await clickSaveReservation(container)
+
+    expect(onSubmit).toHaveBeenCalledTimes(1)
+    expect(onSubmit.mock.calls[0][0].customerType).toBe('House Guest')
+    expect(onSubmit.mock.calls[0][0].walkIn).toBeUndefined()
+
+    unmount()
+  })
+
+  it('does not add phone lookup or guest history behavior', () => {
+    const { container, unmount } = renderSheet()
+
+    expect(container.querySelector('[data-testid="guest-history-panel"]')).toBeNull()
+    expect(container.querySelector('[data-testid="guest-phone-lookup"]')).toBeNull()
 
     unmount()
   })

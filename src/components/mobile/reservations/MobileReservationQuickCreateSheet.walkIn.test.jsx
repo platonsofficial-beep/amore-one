@@ -59,6 +59,15 @@ function fillGuestName(container, firstName = 'Alex', lastName = 'Rivera') {
   })
 }
 
+function selectGuestType(container, value) {
+  act(() => {
+    const select = container.querySelector('[data-testid="host-quick-create-customer-type"]')
+    if (!select) return
+    select.value = value
+    select.dispatchEvent(new Event('change', { bubbles: true }))
+  })
+}
+
 async function clickSeatNow(container) {
   await act(async () => {
     container.querySelector('[data-testid="host-quick-create-primary-action"]')
@@ -321,6 +330,39 @@ describe('MobileReservationQuickCreateSheet walk-in name validation', () => {
     fillGuestName(container, '', 'Psilos')
     await clickSeatNow(container)
     expect(onSubmit).not.toHaveBeenCalled()
+
+    unmount()
+  })
+
+  it('defaults walk-in guest type to Normal', () => {
+    const { container, unmount } = renderWalkInSheet()
+
+    expect(container.querySelector('[data-testid="host-quick-create-customer-type"]')?.value)
+      .toBe('Regular')
+    expect(container.querySelector('[data-testid="host-quick-create-customer-type"]')?.selectedOptions[0]?.textContent)
+      .toBe('Normal')
+
+    unmount()
+  })
+
+  it('submits walk-in with selected guest type and preserved notes', async () => {
+    const onSubmit = vi.fn(async () => true)
+    const { container, unmount } = renderWalkInSheet({ onSubmit })
+
+    selectGuestType(container, 'VIP')
+    fillGuestName(container)
+    act(() => {
+      setInputValue(container.querySelector('textarea'), 'Birthday table')
+    })
+
+    await clickSeatNow(container)
+
+    expect(onSubmit).toHaveBeenCalledTimes(1)
+    expect(onSubmit.mock.calls[0][0]).toMatchObject({
+      walkIn: true,
+      customerType: 'VIP',
+      notes: 'Birthday table',
+    })
 
     unmount()
   })

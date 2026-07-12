@@ -18,6 +18,7 @@ import {
   buildHostQuickCreateAvailabilityKey,
   buildHostWalkInCreatePrefill,
   ensureWalkInNotesMarker,
+  EMPTY_HOST_QUICK_CREATE_FORM,
   resolveHostQuickCreateCreateNotes,
   resolveHostQuickCreateCreateStatus,
 } from './hostQuickCreateForm'
@@ -848,5 +849,9 @@ describe('hostQuickCreateForm walk-in helpers', () => {
       .toBe('Allergic to nuts\nwalk-in')
     expect(resolveHostQuickCreateCreateNotes({ notes: 'Allergic to nuts' }))
       .toBe('Allergic to nuts')
+  })
+
+  it('defaults quick create form guest type to Regular/Normal', () => {
+    expect(EMPTY_HOST_QUICK_CREATE_FORM.customerType).toBe('Regular')
   })
 })
