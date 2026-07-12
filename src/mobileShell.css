@@ -5243,6 +5243,32 @@
   padding: 0;
 }
 
+.host-queue-toolbar-menu-section {
+  list-style: none;
+}
+
+.host-queue-toolbar-menu-section + .host-queue-toolbar-menu-section {
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.host-queue-toolbar-menu-section-label {
+  margin: 0 0 4px;
+  padding: 0 12px;
+  color: rgba(255, 255, 255, 0.52);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.host-queue-toolbar-menu-section-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
 .host-queue-toolbar-menu-item {
   display: flex;
   align-items: center;

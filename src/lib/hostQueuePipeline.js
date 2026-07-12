@@ -20,6 +20,7 @@ import {
   resolveHostQueueBadgeTone,
   summarizeHostQueueNoteBadges,
 } from './hostQueueNoteBadges'
+import { getReservationPurpose } from './reservationPurpose'
 
 export const HOST_QUEUE_ALL_AREAS = '__all__'
 export const HOST_QUEUE_UNASSIGNED_AREA = '__unassigned__'
@@ -55,6 +56,25 @@ export const HOST_QUEUE_FILTER_OPTIONS = [
   { id: 'large-party', label: 'Large party (4+)' },
   { id: 'problems', label: 'Problems' },
   { id: 'special-requirements', label: 'Special requirements' },
+]
+
+export const HOST_QUEUE_PURPOSE_FILTER_OPTIONS = [
+  { id: 'purpose-dinner', label: '🍽️ Dinner' },
+  { id: 'purpose-drinks', label: '🍸 Drinks' },
+]
+
+export const HOST_QUEUE_PURPOSE_FILTER_IDS = HOST_QUEUE_PURPOSE_FILTER_OPTIONS.map(
+  (entry) => entry.id,
+)
+
+export const HOST_QUEUE_FILTER_MENU_SECTIONS = [
+  {
+    options: HOST_QUEUE_FILTER_OPTIONS.filter((entry) => entry.id !== 'all'),
+  },
+  {
+    label: 'Reservation Type',
+    options: HOST_QUEUE_PURPOSE_FILTER_OPTIONS,
+  },
 ]
 
 function getReservationSortMinutes(reservation) {
@@ -257,6 +277,22 @@ export function reservationMatchesHostQueueOperationalFilter(
   }
 }
 
+export function reservationMatchesHostQueuePurposeFilters(
+  reservation,
+  purposeFilterIds = [],
+) {
+  const activePurposeFilters = purposeFilterIds.filter((entry) => (
+    HOST_QUEUE_PURPOSE_FILTER_IDS.includes(entry)
+  ))
+
+  if (activePurposeFilters.length !== 1) return true
+
+  const purpose = getReservationPurpose(reservation)
+  if (activePurposeFilters[0] === 'purpose-dinner') return purpose === 'dinner'
+  if (activePurposeFilters[0] === 'purpose-drinks') return purpose === 'drinks'
+  return true
+}
+
 export function applyHostQueueOperationalFilters(
   reservations = [],
   activeFilterIds = [],
@@ -265,8 +301,17 @@ export function applyHostQueueOperationalFilters(
   const filters = activeFilterIds.filter((entry) => entry && entry !== 'all')
   if (!filters.length) return [...reservations]
 
-  return reservations.filter((reservation) => (
-    filters.every((filterId) => reservationMatchesHostQueueOperationalFilter(
+  const purposeFilters = filters.filter((entry) => HOST_QUEUE_PURPOSE_FILTER_IDS.includes(entry))
+  const operationalFilters = filters.filter((entry) => !HOST_QUEUE_PURPOSE_FILTER_IDS.includes(entry))
+
+  let filtered = reservations.filter((reservation) => (
+    reservationMatchesHostQueuePurposeFilters(reservation, purposeFilters)
+  ))
+
+  if (!operationalFilters.length) return filtered
+
+  return filtered.filter((reservation) => (
+    operationalFilters.every((filterId) => reservationMatchesHostQueueOperationalFilter(
       reservation,
       filterId,
       options,

@@ -465,3 +465,117 @@ describe('hostQueuePipeline search and filters', () => {
     expect(applyHostQueueOperationalFilters(reservations, ['large-party']).map((entry) => entry.id)).toEqual(['large'])
   })
 })
+
+describe('hostQueuePipeline reservation purpose filters', () => {
+  const dinnerReservation = buildReservation({
+    id: 'dinner-res',
+    guestName: 'Maria Georgiou',
+    reservationPurpose: 'dinner',
+  })
+
+  const drinksReservation = buildReservation({
+    id: 'drinks-res',
+    guestName: 'Andreas Nicolaou',
+    notes: 'Bar table\n@@PURPOSE@@drinks',
+    reservationPurpose: 'drinks',
+  })
+
+  const reservations = [dinnerReservation, drinksReservation]
+
+  it('shows all reservations when no purpose filter is selected', () => {
+    expect(applyHostQueueOperationalFilters(reservations, []).map((entry) => entry.id))
+      .toEqual(['dinner-res', 'drinks-res'])
+  })
+
+  it('filters dinner only when purpose-dinner is selected', () => {
+    expect(applyHostQueueOperationalFilters(reservations, ['purpose-dinner']).map((entry) => entry.id))
+      .toEqual(['dinner-res'])
+  })
+
+  it('filters drinks only when purpose-drinks is selected', () => {
+    expect(applyHostQueueOperationalFilters(reservations, ['purpose-drinks']).map((entry) => entry.id))
+      .toEqual(['drinks-res'])
+  })
+
+  it('shows all reservations when both purpose filters are selected', () => {
+    expect(applyHostQueueOperationalFilters(reservations, ['purpose-dinner', 'purpose-drinks']).map((entry) => entry.id))
+      .toEqual(['dinner-res', 'drinks-res'])
+  })
+
+  it('combines purpose filter with area filter using existing AND logic', () => {
+    const scoped = [
+      buildReservation({
+        id: 'bar-drinks',
+        area: 'Bar',
+        notes: 'Cocktails\n@@PURPOSE@@drinks',
+        reservationPurpose: 'drinks',
+        seatingAssignment: {
+          assignedUnits: [{ id: 't25', label: 'T25' }],
+          extraChairs: 0,
+          standingGuests: 0,
+        },
+      }),
+      buildReservation({
+        id: 'main-dinner',
+        area: 'Main Dining',
+        reservationPurpose: 'dinner',
+        seatingAssignment: {
+          assignedUnits: [{ id: 't10', label: 'T10' }],
+          extraChairs: 0,
+          standingGuests: 0,
+        },
+      }),
+    ]
+
+    const filtered = buildHostQueueReservationList(scoped, {
+      dateKey: '2026-07-10',
+      areaFilterId: 'bar',
+      activeFilterIds: ['purpose-drinks'],
+      layout: LAYOUT,
+    })
+
+    expect(filtered.map((entry) => entry.id)).toEqual(['bar-drinks'])
+  })
+
+  it('combines purpose filter with problems filter and search', () => {
+    const scoped = [
+      buildReservation({
+        id: 'late-drinks',
+        guestName: 'Late Drinks Guest',
+        time: '18:00',
+        notes: 'Needs bar\n@@PURPOSE@@drinks',
+        reservationPurpose: 'drinks',
+      }),
+      buildReservation({
+        id: 'late-dinner',
+        guestName: 'Late Dinner Guest',
+        time: '18:00',
+        reservationPurpose: 'dinner',
+      }),
+    ]
+
+    const filtered = buildHostQueueReservationList(scoped, {
+      dateKey: '2026-07-10',
+      activeFilterIds: ['purpose-drinks', 'problems'],
+      searchTerm: 'bar',
+      layout: LAYOUT,
+      nowMinutes: 20 * 60,
+      problemFilterOptions: { includeUnassigned: true, includeCapacity: true },
+    })
+
+    expect(filtered.map((entry) => entry.id)).toEqual(['late-drinks'])
+  })
+
+  it('preserves sort order after purpose filtering', () => {
+    const scoped = [
+      buildReservation({ id: 'late-dinner', time: '21:00', reservationPurpose: 'dinner' }),
+      buildReservation({ id: 'early-dinner', time: '19:00', reservationPurpose: 'dinner' }),
+      buildReservation({ id: 'drinks', time: '20:00', reservationPurpose: 'drinks' }),
+    ]
+
+    const filtered = applyHostQueueOperationalFilters(scoped, ['purpose-dinner'])
+    const sorted = sortHostQueueReservations(filtered, 'time-asc')
+
+    expect(sorted.map((entry) => entry.id)).toEqual(['early-dinner', 'late-dinner'])
+  })
+})

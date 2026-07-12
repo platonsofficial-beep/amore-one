@@ -1,10 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { HOST_QUEUE_FILTER_OPTIONS } from '../../../lib/hostQueuePipeline'
-
-const HOST_QUEUE_FILTER_MENU_OPTIONS = HOST_QUEUE_FILTER_OPTIONS.filter(
-  (entry) => entry.id !== 'all',
-)
+import { HOST_QUEUE_FILTER_MENU_SECTIONS } from '../../../lib/hostQueuePipeline'
 
 const MENU_MARGIN = 8
 const MENU_Z_INDEX = 11990
@@ -33,6 +29,7 @@ function HostQueueToolbarMenu({
   label,
   ariaLabel,
   options = [],
+  sections = null,
   selectedId = null,
   selectedIds = [],
   onSelect,
@@ -55,7 +52,37 @@ function HostQueueToolbarMenu({
     const { width, height } = panelRef.current.getBoundingClientRect()
     setPosition(computeMenuPosition(anchorRect, width, height))
     setIsPositioned(true)
-  }, [anchorRect, isOpen, options.length, selectedId, selectedIds.join('|')])
+  }, [anchorRect, isOpen, options.length, sections, selectedId, selectedIds.join('|')])
+
+  const renderMenuOption = (option) => {
+    const isSelected = multiSelect
+      ? selectedIds.includes(option.id)
+      : selectedId === option.id
+
+    return (
+      <li key={option.id}>
+        <button
+          type="button"
+          role="option"
+          aria-selected={isSelected}
+          className={`host-queue-toolbar-menu-item${isSelected ? ' is-selected' : ''}`}
+          onClick={() => {
+            if (multiSelect) {
+              onToggle?.(option.id)
+              return
+            }
+            onSelect?.(option.id)
+            setIsOpen(false)
+          }}
+        >
+          <span>{option.label}</span>
+          {isSelected ? <span aria-hidden="true">✓</span> : null}
+        </button>
+      </li>
+    )
+  }
+
+  const menuOptions = sections ?? [{ options }]
 
   useEffect(() => {
     if (!isOpen) return undefined
@@ -98,33 +125,19 @@ function HostQueueToolbarMenu({
       aria-label={ariaLabel}
     >
       <ul className="host-queue-toolbar-menu-list" role="listbox" aria-label={ariaLabel}>
-        {options.map((option) => {
-          const isSelected = multiSelect
-            ? selectedIds.includes(option.id)
-            : selectedId === option.id
-
-          return (
-            <li key={option.id}>
-              <button
-                type="button"
-                role="option"
-                aria-selected={isSelected}
-                className={`host-queue-toolbar-menu-item${isSelected ? ' is-selected' : ''}`}
-                onClick={() => {
-                  if (multiSelect) {
-                    onToggle?.(option.id)
-                    return
-                  }
-                  onSelect?.(option.id)
-                  setIsOpen(false)
-                }}
-              >
-                <span>{option.label}</span>
-                {isSelected ? <span aria-hidden="true">✓</span> : null}
-              </button>
-            </li>
-          )
-        })}
+        {menuOptions.map((section, index) => (
+          <li
+            key={section.label ?? `section-${index}`}
+            className={`host-queue-toolbar-menu-section${section.label ? ' has-label' : ''}`}
+          >
+            {section.label ? (
+              <p className="host-queue-toolbar-menu-section-label">{section.label}</p>
+            ) : null}
+            <ul className="host-queue-toolbar-menu-section-list">
+              {section.options.map((option) => renderMenuOption(option))}
+            </ul>
+          </li>
+        ))}
       </ul>
     </div>,
     document.body,
@@ -176,7 +189,7 @@ export function HostQueueToolbar({
       <HostQueueToolbarMenu
         label={activeFilterCount > 0 ? `Filter · ${activeFilterCount}` : 'Filter'}
         ariaLabel="Operational filters"
-        options={HOST_QUEUE_FILTER_MENU_OPTIONS}
+        sections={HOST_QUEUE_FILTER_MENU_SECTIONS}
         selectedIds={activeFilterIds}
         onToggle={onToggleFilter}
         multiSelect
