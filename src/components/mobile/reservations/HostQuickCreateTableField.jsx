@@ -15,7 +15,10 @@ export function HostQuickCreateTableField({
   seatings = [],
   onSelectTable,
   onClearTable,
+  onToggleExtraChair,
 }) {
+  const extraChairs = Math.max(0, Math.min(1, Number(form.extraChairs) || 0))
+
   const tableOptions = useMemo(
     () => buildHostQuickCreateTableOptions({
       layout,
@@ -52,30 +55,37 @@ export function HostQuickCreateTableField({
   )
 
   const capacitySummary = useMemo(
-    () => formatHostQuickCreateTableCapacitySummary(form.assignedUnits, form.guests),
-    [form.assignedUnits, form.guests],
+    () => formatHostQuickCreateTableCapacitySummary(form.assignedUnits, form.guests, extraChairs),
+    [form.assignedUnits, form.guests, extraChairs],
   )
 
   const capacityTotals = useMemo(
     () => computeSeatingAssignmentTotals(
       buildSeatingAssignment({
         assignedUnits: form.assignedUnits,
+        extraChairs,
         partySize: Number(form.guests) || 0,
       }),
       form.guests,
     ),
-    [form.assignedUnits, form.guests],
+    [form.assignedUnits, form.guests, extraChairs],
   )
 
   const showTableGrid = !helperText || form.assignedUnits.length > 0
   const hasSelection = form.assignedUnits.length > 0
-  const showCapacitySummary = form.assignedUnits.length > 1 && capacitySummary
+  const showCapacityRow = hasSelection && capacitySummary
 
   const handleSelect = (event, unit, isSelectable, isSelected) => {
     event.preventDefault()
     event.stopPropagation()
     if (!isSelectable && !isSelected) return
     onSelectTable?.(unit)
+  }
+
+  const handleToggleExtraChair = (event) => {
+    event.preventDefault()
+    event.stopPropagation()
+    onToggleExtraChair?.()
   }
 
   return (
@@ -105,10 +115,22 @@ export function HostQuickCreateTableField({
         {selectionStatus}
       </p>
 
-      {showCapacitySummary ? (
-        <p className="mobile-host-quick-create-table-capacity-summary" role="status">
-          {capacitySummary}
-        </p>
+      {showCapacityRow ? (
+        <div className="mobile-host-quick-create-capacity-row">
+          <p className="mobile-host-quick-create-table-capacity-summary" role="status">
+            {capacitySummary}
+          </p>
+          <button
+            type="button"
+            className={`mobile-host-quick-create-extra-chair-toggle${extraChairs > 0 ? ' is-active' : ''}`}
+            aria-pressed={extraChairs > 0}
+            aria-label="Extra chair plus one"
+            data-testid="host-quick-create-extra-chair-toggle"
+            onClick={handleToggleExtraChair}
+          >
+            🪑 Extra chair +1
+          </button>
+        </div>
       ) : null}
 
       {capacityTotals.isUnderCapacity ? (

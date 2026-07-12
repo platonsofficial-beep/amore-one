@@ -64,9 +64,13 @@ function HostReservationQuickCreateFields({
         reservations,
         seatings,
       })
-      return applyHostQuickCreateFormPatch(current, {
+      const patch = {
         assignedUnits: toggled.assignedUnits,
-      }, {
+      }
+      if (toggled.assignedUnits.length === 0) {
+        patch.extraChairs = 0
+      }
+      return applyHostQuickCreateFormPatch(current, patch, {
         layout,
         seatings,
         reservations,
@@ -75,7 +79,17 @@ function HostReservationQuickCreateFields({
   }
 
   const handleClearTable = () => {
-    updateForm({ assignedUnits: [], tableSelectionNotice: '' })
+    updateForm({ assignedUnits: [], extraChairs: 0, tableSelectionNotice: '' })
+  }
+
+  const handleToggleExtraChair = () => {
+    setForm((current) => applyHostQuickCreateFormPatch(current, {
+      extraChairs: (Number(current.extraChairs) || 0) > 0 ? 0 : 1,
+    }, {
+      layout,
+      seatings,
+      reservations,
+    }))
   }
 
   const handleSave = async () => {
@@ -218,6 +232,7 @@ function HostReservationQuickCreateFields({
         seatings={seatings}
         onSelectTable={handleSelectTable}
         onClearTable={handleClearTable}
+        onToggleExtraChair={handleToggleExtraChair}
       />
 
       <label className="mobile-host-form-field">

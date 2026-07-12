@@ -246,3 +246,62 @@ describe('MobileReservationQuickCreateSheet guest name fields', () => {
     unmount()
   })
 })
+
+describe('MobileReservationQuickCreateSheet extra chair', () => {
+  const tablePrefill = {
+    time: '21:00',
+    seatingId: 'dinner-2',
+    seatingAreaId: 'main',
+    area: 'Main Dining',
+  }
+
+  async function selectTable(container, label = 'T18') {
+    const tableButton = [...container.querySelectorAll('.mobile-host-quick-create-table-option')]
+      .find((button) => button.textContent?.includes(label))
+
+    await act(async () => {
+      tableButton?.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    })
+  }
+
+  it('submits extraChairs on the form when active', async () => {
+    const onSubmit = vi.fn(async () => true)
+    const { container, unmount } = renderSheet({ onSubmit, prefill: tablePrefill })
+
+    fillGuestName(container)
+    await selectTable(container)
+
+    const toggle = container.querySelector('[data-testid="host-quick-create-extra-chair-toggle"]')
+    expect(toggle).not.toBeNull()
+
+    await act(async () => {
+      toggle?.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    })
+
+    await clickSaveReservation(container)
+
+    expect(onSubmit).toHaveBeenCalledTimes(1)
+    expect(onSubmit.mock.calls[0][0].extraChairs).toBe(1)
+
+    unmount()
+  })
+
+  it('resets extra chair state after successful save', async () => {
+    const onSubmit = vi.fn(async () => true)
+    const { container, unmount } = renderSheet({ onSubmit, prefill: tablePrefill })
+
+    fillGuestName(container)
+    await selectTable(container)
+
+    const toggle = container.querySelector('[data-testid="host-quick-create-extra-chair-toggle"]')
+    await act(async () => {
+      toggle?.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    })
+
+    await clickSaveReservation(container)
+
+    expect(container.querySelector('[data-testid="host-quick-create-extra-chair-toggle"]')).toBeNull()
+
+    unmount()
+  })
+})

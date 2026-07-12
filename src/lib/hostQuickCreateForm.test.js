@@ -318,6 +318,23 @@ describe('hostQuickCreateForm', () => {
     expect(formatHostQuickCreateTableCapacitySummary(form.assignedUnits, form.guests)).toBe('Capacity 2 · Guests 4')
   })
 
+  it('formats capacity summary with one extra chair', () => {
+    const form = createHostQuickCreateFormState(
+      {
+        date: SERVICE_DATE,
+        time: '19:00',
+        guests: '7',
+        assignedUnits: [{ id: 't15', label: 'T15', seatedCapacity: 6, maxGuestCapacity: 6 }],
+      },
+      { todayKey: SERVICE_DATE, layout: LAYOUT, seatings: SEATINGS },
+    )
+
+    expect(formatHostQuickCreateTableCapacitySummary(form.assignedUnits, form.guests, 0))
+      .toBe('Capacity 6 · Guests 7')
+    expect(formatHostQuickCreateTableCapacitySummary(form.assignedUnits, form.guests, 1))
+      .toBe('Capacity 6 + 1 chair · Guests 7')
+  })
+
   it('16. changing seating clears an invalid table', () => {
     let form = createHostQuickCreateFormState(
       {

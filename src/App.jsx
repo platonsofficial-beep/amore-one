@@ -21529,7 +21529,11 @@ function App() {
     try {
       const assignedUnits = Array.isArray(form.assignedUnits) ? form.assignedUnits : []
       const seatingAssignment = assignedUnits.length
-        ? buildSeatingAssignment({ assignedUnits, partySize: Number(form.guests) || 2 })
+        ? buildSeatingAssignment({
+          assignedUnits,
+          partySize: Number(form.guests) || 2,
+          extraChairs: Math.max(0, Math.min(1, Number(form.extraChairs) || 0)),
+        })
         : null
       const tableNumber = seatingAssignment
         ? formatSeatingAssignmentLabels(seatingAssignment)

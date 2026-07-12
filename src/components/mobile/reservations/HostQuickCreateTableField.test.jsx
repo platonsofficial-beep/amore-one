@@ -64,6 +64,7 @@ function renderField({
   reservations = [],
   onSelectTable = vi.fn(),
   onClearTable = vi.fn(),
+  onToggleExtraChair = vi.fn(),
 } = {}) {
   const container = document.createElement('div')
   document.body.appendChild(container)
@@ -83,6 +84,9 @@ function renderField({
         },
         onClearTable: () => {
           onClearTable()
+        },
+        onToggleExtraChair: () => {
+          onToggleExtraChair()
         },
       }))
     })
@@ -305,5 +309,131 @@ describe('HostQuickCreateTableField', () => {
 
     act(() => root.unmount())
     container.remove()
+  })
+})
+
+describe('HostQuickCreateTableField extra chair', () => {
+  const selectedT18 = {
+    id: 't18',
+    label: 'T18',
+    seatedCapacity: 6,
+    maxGuestCapacity: 6,
+  }
+
+  it('hides Extra Chair when no table is selected', () => {
+    const { container, unmount } = renderField()
+
+    expect(container.querySelector('[data-testid="host-quick-create-extra-chair-toggle"]')).toBeNull()
+    expect(container.querySelector('.mobile-host-quick-create-capacity-row')).toBeNull()
+
+    unmount()
+  })
+
+  it('shows Extra Chair after selecting a table', () => {
+    const { container, rerender, unmount } = renderField()
+
+    rerender({
+      ...buildReadyForm(),
+      assignedUnits: [selectedT18],
+    })
+
+    expect(container.querySelector('[data-testid="host-quick-create-extra-chair-toggle"]')).not.toBeNull()
+    expect(container.querySelector('.mobile-host-quick-create-capacity-row')).not.toBeNull()
+
+    unmount()
+  })
+
+  it('starts inactive and toggles exactly one extra chair', () => {
+    const onToggleExtraChair = vi.fn()
+    const { container, rerender, unmount } = renderField({
+      form: {
+        ...buildReadyForm(),
+        assignedUnits: [selectedT18],
+        extraChairs: 0,
+      },
+      onToggleExtraChair,
+    })
+
+    const toggle = container.querySelector('[data-testid="host-quick-create-extra-chair-toggle"]')
+    expect(toggle?.getAttribute('aria-pressed')).toBe('false')
+    expect(toggle?.classList.contains('is-active')).toBe(false)
+
+    act(() => {
+      toggle?.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    })
+    expect(onToggleExtraChair).toHaveBeenCalledTimes(1)
+
+    rerender({
+      ...buildReadyForm(),
+      guests: '7',
+      assignedUnits: [selectedT18],
+      extraChairs: 1,
+    })
+
+    const activeToggle = container.querySelector('[data-testid="host-quick-create-extra-chair-toggle"]')
+    expect(activeToggle?.getAttribute('aria-pressed')).toBe('true')
+    expect(activeToggle?.classList.contains('is-active')).toBe(true)
+    expect(container.querySelector('.mobile-host-quick-create-table-capacity-summary')?.textContent)
+      .toBe('Capacity 6 + 1 chair · Guests 7')
+
+    act(() => {
+      activeToggle?.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    })
+    expect(onToggleExtraChair).toHaveBeenCalledTimes(2)
+
+    rerender({
+      ...buildReadyForm(),
+      guests: '7',
+      assignedUnits: [selectedT18],
+      extraChairs: 0,
+    })
+
+    expect(container.querySelector('[data-testid="host-quick-create-extra-chair-toggle"]')?.getAttribute('aria-pressed'))
+      .toBe('false')
+    expect(container.querySelector('.mobile-host-quick-create-table-capacity-summary')?.textContent)
+      .toBe('Capacity 6 · Guests 7')
+
+    unmount()
+  })
+
+  it('warns for Capacity 6 / Guests 7 when inactive and clears warning when active', () => {
+    const { container, rerender, unmount } = renderField()
+
+    rerender({
+      ...buildReadyForm(),
+      guests: '7',
+      assignedUnits: [selectedT18],
+      extraChairs: 0,
+    })
+
+    expect(container.querySelector('.mobile-host-quick-create-table-capacity-warning')?.textContent)
+      .toContain('below party size by 1 guest')
+
+    rerender({
+      ...buildReadyForm(),
+      guests: '7',
+      assignedUnits: [selectedT18],
+      extraChairs: 1,
+    })
+
+    expect(container.querySelector('.mobile-host-quick-create-table-capacity-warning')).toBeNull()
+
+    unmount()
+  })
+
+  it('still warns for Capacity 6 / Guests 8 when extra chair is active', () => {
+    const { container, rerender, unmount } = renderField()
+
+    rerender({
+      ...buildReadyForm(),
+      guests: '8',
+      assignedUnits: [selectedT18],
+      extraChairs: 1,
+    })
+
+    expect(container.querySelector('.mobile-host-quick-create-table-capacity-warning')?.textContent)
+      .toContain('below party size by 1 guest')
+
+    unmount()
   })
 })

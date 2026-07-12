@@ -6572,6 +6572,53 @@
   font-weight: 600;
 }
 
+.mobile-host-quick-create-capacity-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 44px;
+  min-width: 0;
+}
+
+.mobile-host-quick-create-capacity-row .mobile-host-quick-create-table-capacity-summary {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mobile-host-quick-create-extra-chair-toggle {
+  flex: 0 0 auto;
+  min-height: 44px;
+  min-width: 44px;
+  padding: 0 10px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.04);
+  color: rgba(247, 239, 225, 0.78);
+  font: inherit;
+  font-size: 0.68rem;
+  font-weight: 650;
+  line-height: 1.1;
+  white-space: nowrap;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.mobile-host-quick-create-extra-chair-toggle.is-active {
+  border-color: rgba(212, 175, 55, 0.85);
+  background: rgba(212, 175, 55, 0.18);
+  color: #fff7e8;
+  box-shadow: 0 0 0 1px rgba(212, 175, 55, 0.35);
+}
+
+.mobile-host-quick-create-extra-chair-toggle:focus-visible {
+  outline: 2px solid rgba(212, 175, 55, 0.72);
+  outline-offset: 2px;
+}
+
 .mobile-host-quick-create-table-capacity-summary {
   color: #c9bfb0;
 }

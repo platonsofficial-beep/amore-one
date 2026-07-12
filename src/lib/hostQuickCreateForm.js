@@ -37,6 +37,7 @@ export const EMPTY_HOST_QUICK_CREATE_FORM = {
   seatingAreaId: '',
   area: '',
   assignedUnits: [],
+  extraChairs: 0,
   tableSelectionNotice: '',
 }
 
@@ -132,13 +133,20 @@ export function formatHostQuickCreateTableSelectionStatus(assignedUnits = []) {
   return `Selected tables · ${summary}`
 }
 
-export function formatHostQuickCreateTableCapacitySummary(assignedUnits = [], partySize = 0) {
+export function formatHostQuickCreateTableCapacitySummary(assignedUnits = [], partySize = 0, extraChairs = 0) {
   if (!assignedUnits.length) return ''
-  const totals = computeSeatingAssignmentTotals(
-    buildSeatingAssignment({ assignedUnits, partySize: Number(partySize) || 0 }),
+  const baseTotals = computeSeatingAssignmentTotals(
+    buildSeatingAssignment({ assignedUnits, partySize: Number(partySize) || 0, extraChairs: 0 }),
     partySize,
   )
-  return `Capacity ${totals.totalGuestCapacity} · Guests ${totals.guests}`
+  const extra = Math.max(0, Math.min(1, Number(extraChairs) || 0))
+  const guests = baseTotals.guests
+
+  if (extra > 0) {
+    return `Capacity ${baseTotals.totalGuestCapacity} + ${extra} chair · Guests ${guests}`
+  }
+
+  return `Capacity ${baseTotals.totalGuestCapacity} · Guests ${guests}`
 }
 
 export function formatHostQuickCreateTableCompactCapacity(unit) {
@@ -379,6 +387,7 @@ export function createHostQuickCreateFormState(prefill = {}, { todayKey = '', la
     seatingAreaId: areaSelection.seatingAreaId,
     area: areaSelection.area,
     assignedUnits: Array.isArray(prefill?.assignedUnits) ? prefill.assignedUnits : [],
+    extraChairs: Math.max(0, Math.min(1, Number(prefill?.extraChairs) || 0)),
     tableSelectionNotice: '',
   }
 }
