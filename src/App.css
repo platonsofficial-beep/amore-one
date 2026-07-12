@@ -242,6 +242,14 @@
 .main-panel-reservations {
   overflow: hidden;
   padding-bottom: 16px;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.main-panel-reservations .mobile-host-reservations.is-host-mode {
+  flex: 1 1 auto;
+  min-height: 0;
 }
 
 .main-panel-schedule {

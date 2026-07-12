@@ -70,6 +70,13 @@ export function countMobileHostReservationsByTab(reservations = []) {
   return counts
 }
 
+export const HOST_STATION_DESKTOP_MIN_WIDTH = 721
+
+export function isHostStationDesktopViewport() {
+  if (typeof window === 'undefined') return false
+  return window.innerWidth >= HOST_STATION_DESKTOP_MIN_WIDTH
+}
+
 export function isMobileHostLandscapeViewport() {
   if (typeof window === 'undefined') return false
   return window.matchMedia?.('(orientation: landscape)')?.matches
@@ -88,8 +95,17 @@ export function isHostTabletPanelViewport() {
 
 export function isMobileHostSplitViewport() {
   if (typeof window === 'undefined') return false
+  if (isHostStationDesktopViewport()) return true
   if (isMobileHostLandscapeViewport()) return true
   return isMobileHostTabletViewport() && window.innerWidth > window.innerHeight
+}
+
+export function shouldShowHostStationPortraitFallback() {
+  if (typeof window === 'undefined') return false
+  if (isHostStationDesktopViewport()) return false
+  const width = window.innerWidth || 0
+  const height = window.innerHeight || 0
+  return width < 700 && height > width
 }
 
 export function resolveHostReservationFormVariant({ isSplitLayout = false } = {}) {

@@ -139,12 +139,22 @@ describe('permissions', () => {
       })).toBe(true)
     })
 
-    it('keeps manager host mode mobile-only', () => {
+    it('routes manager and host-capable roles to host view on desktop', () => {
+      expect(shouldShowReservationsHostView({
+        role: 'owner',
+        useMobileExperience: false,
+        mobileReservationsHostMode: false,
+      })).toBe(true)
       expect(shouldShowReservationsHostView({
         role: 'manager',
         useMobileExperience: false,
-        mobileReservationsHostMode: true,
-      })).toBe(false)
+        mobileReservationsHostMode: false,
+      })).toBe(true)
+      expect(shouldShowReservationsHostView({
+        role: 'general_manager',
+        useMobileExperience: false,
+        mobileReservationsHostMode: false,
+      })).toBe(true)
       expect(shouldShowReservationsHostView({
         role: 'manager',
         useMobileExperience: true,
@@ -171,6 +181,8 @@ describe('permissions', () => {
     })
 
     it('allows host and managers to open host mode but not staff', () => {
+      expect(canOpenReservationsHostMode('owner')).toBe(true)
+      expect(canOpenReservationsHostMode('general_manager')).toBe(true)
       expect(canOpenReservationsHostMode('host')).toBe(true)
       expect(canOpenReservationsHostMode('manager')).toBe(true)
       expect(canOpenReservationsHostMode('staff')).toBe(false)

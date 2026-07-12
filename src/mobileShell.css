@@ -7804,6 +7804,53 @@ html[data-one-debug-scroll='1'] .floor-plan-viewport.is-host-viewport {
   }
 }
 
+@media (min-width: 721px) {
+  .main-panel-reservations .mobile-host-reservations.is-host-mode.is-landscape,
+  .app-shell.is-host-station-shell .mobile-host-reservations.is-host-mode.is-landscape {
+    min-height: calc(100dvh - 72px);
+    height: 100%;
+  }
+
+  .main-panel-reservations .mobile-host-reservations-landscape,
+  .app-shell.is-host-station-shell .mobile-host-reservations-landscape,
+  .mobile-host-reservations.is-host-mode.is-landscape .mobile-host-reservations-landscape {
+    grid-template-columns: minmax(280px, clamp(320px, 34vw, 420px)) minmax(0, 1fr);
+  }
+
+  .main-panel-reservations .mobile-host-reservations.is-host-mode,
+  .app-shell.is-host-station-shell .mobile-host-reservations.is-host-mode {
+    --host-station-shell-mode: desktop;
+  }
+}
+
+.mobile-host-reservations.is-portrait-fallback {
+  display: flex;
+  flex: 1 1 auto;
+  align-items: center;
+  justify-content: center;
+  min-height: min(100%, 420px);
+  padding: 24px;
+}
+
+.mobile-host-reservations-portrait-fallback {
+  max-width: 320px;
+  text-align: center;
+}
+
+.mobile-host-reservations-portrait-fallback-title {
+  margin: 0 0 8px;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: rgba(232, 215, 168, 0.96);
+}
+
+.mobile-host-reservations-portrait-fallback-copy {
+  margin: 0;
+  font-size: 0.88rem;
+  line-height: 1.45;
+  color: rgba(184, 173, 156, 0.92);
+}
+
 .host-table-inspector {
   position: absolute;
   top: 0;

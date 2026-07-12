@@ -10,6 +10,7 @@ import {
   isMobileHostSplitViewport,
   MOBILE_HOST_TABS,
   resolveHostReservationFormVariant,
+  shouldShowHostStationPortraitFallback,
 } from '../../../lib/mobileHostReservationUtils'
 import {
   buildHostQueueAreaOptions,
@@ -85,13 +86,19 @@ export function MobileReservationsHostView({
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
   const [editingReservation, setEditingReservation] = useState(null)
   const [localSelectedReservationId, setLocalSelectedReservationId] = useState(null)
-  const [isSplitLayout, setIsSplitLayout] = useState(() => isMobileHostSplitViewport())
+  const [isSplitLayout, setIsSplitLayout] = useState(() => (
+    !shouldShowHostStationPortraitFallback() && isMobileHostSplitViewport()
+  ))
   const [isFloorPlanOpen, setIsFloorPlanOpen] = useState(false)
   const [statusMenu, setStatusMenu] = useState(null)
   const [rowMenu, setRowMenu] = useState(null)
 
   useEffect(() => {
-    const updateOrientation = () => setIsSplitLayout(isMobileHostSplitViewport())
+    const updateOrientation = () => {
+      setIsSplitLayout(
+        !shouldShowHostStationPortraitFallback() && isMobileHostSplitViewport(),
+      )
+    }
     window.addEventListener('resize', updateOrientation)
     window.addEventListener('orientationchange', updateOrientation)
     return () => {
@@ -576,6 +583,19 @@ export function MobileReservationsHostView({
       </p>
     </div>
   )
+
+  if (shouldShowHostStationPortraitFallback()) {
+    return (
+      <div className="mobile-host-reservations is-host-mode is-portrait-fallback" role="status">
+        <div className="mobile-host-reservations-portrait-fallback">
+          <p className="mobile-host-reservations-portrait-fallback-title">Rotate your device</p>
+          <p className="mobile-host-reservations-portrait-fallback-copy">
+            Host Station works best in landscape. Turn your phone sideways to continue.
+          </p>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className={`mobile-host-reservations is-host-mode${isSplitLayout ? ' is-landscape is-host-queue' : ' is-portrait'}`}>

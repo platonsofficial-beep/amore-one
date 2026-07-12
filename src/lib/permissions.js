@@ -170,6 +170,7 @@ export function shouldShowReservationsHostView({
 } = {}) {
   if (!canAccessModule(role, 'reservations')) return false
   if (isHostRole(role)) return true
+  if (canOpenReservationsHostMode(role)) return true
   return Boolean(useMobileExperience && mobileReservationsHostMode)
 }
 
