@@ -171,7 +171,8 @@ describe('MobileReservationsHostView compact tablet list', () => {
 
     const groupedRow = groupedRows[0]
     expect(groupedRow.querySelector('.host-reservation-card-guest')?.textContent?.length).toBeGreaterThan(0)
-    expect(groupedRow.querySelector('.host-queue-row-meta-line')?.textContent).toMatch(/👤 \d+ guests/)
+    expect(groupedRow.querySelector('.host-queue-row-meta-group')).not.toBeNull()
+    expect(groupedRow.querySelector('.host-queue-row-meta-text')?.textContent).toMatch(/\d+ guests?/)
 
     unmount()
   })
@@ -194,10 +195,12 @@ describe('MobileReservationsHostView compact tablet list', () => {
 
     const mariaRow = [...container.querySelectorAll('.host-reservation-card')]
       .find((row) => row.textContent?.includes('Maria'))
-    const metaItems = mariaRow?.querySelectorAll('.host-queue-row-meta-item')
+    const metaGroups = mariaRow?.querySelectorAll('.host-queue-row-meta-group')
 
-    expect(metaItems?.[0]?.textContent).toBe('👤 4 guests')
-    expect(metaItems?.[1]?.textContent).toBe('🍽 T15 + T16')
+    expect(metaGroups?.[0]?.querySelector('.host-queue-row-meta-text')?.textContent).toBe('4 guests')
+    expect(metaGroups?.[0]?.querySelector('.host-queue-row-meta-icon')?.textContent).toBe('👤')
+    expect(metaGroups?.[1]?.querySelector('.host-queue-row-meta-text')?.textContent).toBe('T15 + T16')
+    expect(metaGroups?.[1]?.querySelector('.host-queue-row-meta-icon')?.textContent).toBe('🍽')
     expect(mariaRow?.querySelectorAll('.host-queue-row-meta-bullet')).toHaveLength(1)
 
     unmount()
@@ -208,11 +211,19 @@ describe('MobileReservationsHostView compact tablet list', () => {
 
     const alexRow = [...container.querySelectorAll('.host-reservation-card')]
       .find((row) => row.textContent?.includes('Alex'))
-    const metaItems = alexRow?.querySelectorAll('.host-queue-row-meta-item')
+    const metaGroups = alexRow?.querySelectorAll('.host-queue-row-meta-group')
 
-    expect(metaItems?.[0]?.textContent).toBe('👤 4 guests')
-    expect(metaItems?.[1]?.textContent).toBe('🍽 Unassigned')
+    expect(metaGroups?.[0]?.querySelector('.host-queue-row-meta-text')?.textContent).toBe('4 guests')
+    expect(metaGroups?.[1]?.querySelector('.host-queue-row-meta-text')?.textContent).toBe('Unassigned')
     expect(alexRow?.querySelectorAll('.host-queue-row-meta-bullet')).toHaveLength(1)
+
+    unmount()
+  })
+
+  it('keeps warning indicators available on rows that need attention', () => {
+    const { container, unmount } = renderSplitHostView()
+
+    expect(container.querySelector('.host-reservation-card-warning')).not.toBeNull()
 
     unmount()
   })

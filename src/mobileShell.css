@@ -4603,41 +4603,56 @@
 }
 
 .host-queue-row-meta-line {
-  display: inline-flex;
+  display: flex;
   align-items: baseline;
-  flex-wrap: nowrap;
-  gap: 0;
+  flex-wrap: wrap;
   min-width: 0;
   max-width: 100%;
   color: rgba(255, 255, 255, 0.62);
   font-size: 0.72rem;
   line-height: 1.25;
-  overflow: hidden;
 }
 
-.host-queue-row-meta-segment {
+.host-queue-row-meta-group {
   display: inline-flex;
   align-items: baseline;
-  min-width: 0;
-}
-
-.host-queue-row-meta-item {
-  display: inline-flex;
-  align-items: baseline;
+  gap: 0.35em;
+  flex: 0 0 auto;
+  max-width: 100%;
   white-space: nowrap;
 }
 
-.host-queue-row-meta-segment:last-child .host-queue-row-meta-item {
+.host-queue-row-meta-group:last-child {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.host-queue-row-meta-icon {
+  flex: 0 0 auto;
+  line-height: 1;
+}
+
+.host-queue-row-meta-text {
+  flex: 0 1 auto;
+  min-width: 0;
+  line-height: 1.25;
+}
+
+.host-queue-row-meta-group:last-child .host-queue-row-meta-text {
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
 .host-queue-row-meta-bullet {
-  flex-shrink: 0;
-  padding: 0 0.4em;
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding-inline: 0.55em;
   color: rgba(255, 255, 255, 0.38);
   font-size: 0.68em;
   line-height: 1;
+  user-select: none;
 }
 
 .host-queue-name-indicators {
@@ -7201,6 +7216,17 @@ html[data-one-debug-scroll='1'] .floor-plan-viewport.is-host-viewport {
 
 .app-shell.is-host-station-shell .mobile-host-reservations-list-pane .host-reservation-card-main.is-time-grouped {
   grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+}
+
+.app-shell.is-host-station-shell .mobile-host-reservations-list-pane .host-reservation-card-title-row {
+  align-items: center;
+}
+
+.app-shell.is-host-station-shell .mobile-host-reservations-list-pane .host-reservation-card-warning {
+  flex: 0 0 auto;
+  align-self: center;
+  margin-left: auto;
 }
 
 .app-shell.is-host-station-shell .mobile-host-reservations-list-pane .host-reservation-card-guest {
