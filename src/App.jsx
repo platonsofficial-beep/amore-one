@@ -7978,6 +7978,7 @@ function FloorPlanView({
   const [scheduleCardAssignmentMode, setScheduleCardAssignmentMode] = useState(false)
   const [scheduleCardAssignmentSeatingId, setScheduleCardAssignmentSeatingId] = useState(null)
   const [showDiningTimers, setShowDiningTimers] = useState(false)
+  const isHeatmap = viewMode === 'heatmap'
   const scheduleCardLifecycleRef = useRef(createHostScheduleCardLifecycleState())
   const hostTableTapRegistryRef = useRef(createHostFloorTableTapRegistry())
   const scheduleCardTableIdRef = useRef(null)
@@ -8073,7 +8074,6 @@ function FloorPlanView({
     viewportRef.current?.classList.remove('is-panning')
   }, [])
 
-  const isHeatmap = viewMode === 'heatmap'
   const showHostSeatingBar = shouldShowHostSeatingDrawer()
 
   const hostCompactAssignmentSelection = isHostCompactAssignmentSelection({
