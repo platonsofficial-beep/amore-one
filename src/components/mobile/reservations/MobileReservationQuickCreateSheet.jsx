@@ -2,6 +2,8 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { ReservationDateField } from '../../reservations/ReservationDateField'
 import { ReservationPhoneField } from '../../reservations/ReservationPhoneField'
 import { ReservationTimeSelect } from '../../reservations/ReservationTimeSelect'
+import { CUSTOMER_TYPES } from '../../../lib/reservationCustomerType'
+import { HOST_RESERVATION_STATUSES } from '../../../lib/reservationHostStatus'
 import {
   handleReservationFormEnterKey,
   preventReservationFormSubmit,
@@ -20,6 +22,9 @@ import {
   toggleHostQuickCreateTableSelection,
 } from '../../../lib/hostQuickCreateForm'
 import { HostQuickCreateTableField } from './HostQuickCreateTableField'
+import { buildQuickCreateEditHydration } from './hostQuickCreateEditHydration'
+
+const EDIT_RESERVATION_STATUSES = HOST_RESERVATION_STATUSES.map((entry) => entry.id)
 
 function HostReservationQuickCreateFields({
   form,
@@ -37,6 +42,9 @@ function HostReservationQuickCreateFields({
   seatings = [],
   reservations = [],
   layout = null,
+  mode = 'create',
+  primaryActionLabel = 'Save reservation',
+  showPendingHint = true,
 }) {
   const formRef = useRef(form)
   useEffect(() => {
@@ -95,16 +103,21 @@ function HostReservationQuickCreateFields({
   const handleSave = async () => {
     const trimmedFirstName = `${firstName}`.trim()
     const trimmedLastName = `${lastName}`.trim()
+    const isEditMode = mode === 'edit'
 
-    if (!trimmedFirstName || !trimmedLastName) {
+    if (!trimmedFirstName || (!isEditMode && !trimmedLastName)) {
       onNameValidationError?.('Please provide the guest name.')
       return
     }
 
     onNameValidationError?.('')
+    const guestName = trimmedLastName
+      ? `${trimmedFirstName} ${trimmedLastName}`.trim()
+      : trimmedFirstName
+
     await onSubmit?.({
       ...formRef.current,
-      guestName: `${trimmedFirstName} ${trimmedLastName}`.trim(),
+      guestName,
     })
   }
 
@@ -140,7 +153,7 @@ function HostReservationQuickCreateFields({
               onLastNameChange?.(event.target.value)
             }}
             placeholder="Last name"
-            required
+            required={mode !== 'edit'}
             autoComplete="family-name"
           />
         </label>
@@ -235,6 +248,36 @@ function HostReservationQuickCreateFields({
         onToggleExtraChair={handleToggleExtraChair}
       />
 
+      {mode === 'edit' ? (
+        <div className="mobile-host-form-row">
+          <label className="mobile-host-form-field">
+            <span>Customer type</span>
+            <select
+              value={form.customerType ?? 'Regular'}
+              onChange={(event) => updateForm({ customerType: event.target.value })}
+              data-testid="host-quick-create-customer-type"
+            >
+              {CUSTOMER_TYPES.map((type) => (
+                <option key={type} value={type}>{type}</option>
+              ))}
+            </select>
+          </label>
+
+          <label className="mobile-host-form-field">
+            <span>Status</span>
+            <select
+              value={form.status ?? 'Pending'}
+              onChange={(event) => updateForm({ status: event.target.value })}
+              data-testid="host-quick-create-status"
+            >
+              {EDIT_RESERVATION_STATUSES.map((status) => (
+                <option key={status} value={status}>{status}</option>
+              ))}
+            </select>
+          </label>
+        </div>
+      ) : null}
+
       <label className="mobile-host-form-field">
         <span>Notes</span>
         <textarea
@@ -245,9 +288,11 @@ function HostReservationQuickCreateFields({
         />
       </label>
 
-      <p className="mobile-host-form-hint">
-        Pending status · tap date or calendar to change service day
-      </p>
+      {showPendingHint ? (
+        <p className="mobile-host-form-hint">
+          Pending status · tap date or calendar to change service day
+        </p>
+      ) : null}
 
       <div className="mobile-host-reservation-form-actions">
         <button
@@ -258,8 +303,14 @@ function HostReservationQuickCreateFields({
         >
           Cancel
         </button>
-        <button type="button" className="mobile-primary-btn" onClick={handleSave} disabled={isSaving}>
-          {isSaving ? 'Saving…' : 'Save reservation'}
+        <button
+          type="button"
+          className="mobile-primary-btn"
+          onClick={handleSave}
+          disabled={isSaving}
+          data-testid="host-quick-create-primary-action"
+        >
+          {isSaving ? 'Saving…' : primaryActionLabel}
         </button>
       </div>
     </form>
@@ -271,6 +322,8 @@ export function MobileReservationQuickCreateSheet({
   todayKey = '',
   isSaving = false,
   variant = 'sheet',
+  mode = 'create',
+  reservation = null,
   prefill = null,
   seatings = [],
   reservations = [],
@@ -282,20 +335,41 @@ export function MobileReservationQuickCreateSheet({
   const [firstName, setFirstName] = useState('')
   const [lastName, setLastName] = useState('')
   const [nameError, setNameError] = useState('')
-  const wasOpenRef = useRef(false)
+  const [editGuestTitle, setEditGuestTitle] = useState('Edit reservation')
+  const openSessionRef = useRef(null)
+  const isEditMode = mode === 'edit'
+
+  const availabilityReservations = useMemo(() => {
+    if (!isEditMode || !reservation?.id) return reservations
+    return reservations.filter((entry) => String(entry.id) !== String(reservation.id))
+  }, [isEditMode, reservation?.id, reservations])
+
   const availabilityKey = useMemo(
-    () => buildHostQuickCreateAvailabilityKey(form, reservations, layout),
-    [form.date, form.time, form.seatingId, form.seatingAreaId, form.guests, layout, reservations],
+    () => buildHostQuickCreateAvailabilityKey(form, availabilityReservations, layout),
+    [form.date, form.time, form.seatingId, form.seatingAreaId, form.guests, layout, availabilityReservations],
   )
 
   useEffect(() => {
     if (!isOpen) {
-      wasOpenRef.current = false
+      openSessionRef.current = null
       return
     }
 
-    if (wasOpenRef.current) return
-    wasOpenRef.current = true
+    const sessionKey = isEditMode ? `edit:${reservation?.id ?? ''}` : 'create'
+    if (openSessionRef.current === sessionKey) return
+    openSessionRef.current = sessionKey
+
+    if (isEditMode && reservation) {
+      const hydration = buildQuickCreateEditHydration(reservation, layout, seatings, todayKey)
+      if (hydration) {
+        setForm(hydration.quickForm)
+        setFirstName(hydration.firstName)
+        setLastName(hydration.lastName)
+        setEditGuestTitle(hydration.guestTitle)
+        setNameError('')
+      }
+      return
+    }
 
     setForm(createHostQuickCreateFormState({
       ...prefill,
@@ -312,8 +386,9 @@ export function MobileReservationQuickCreateSheet({
     }, { todayKey, layout, seatings }))
     setFirstName('')
     setLastName('')
+    setEditGuestTitle('Edit reservation')
     setNameError('')
-  }, [isOpen, prefill, todayKey, layout, seatings])
+  }, [isOpen, isEditMode, reservation, prefill, todayKey, layout, seatings])
 
   useEffect(() => {
     if (!isOpen) return
@@ -328,9 +403,9 @@ export function MobileReservationQuickCreateSheet({
     setForm((current) => refreshHostQuickCreateAssignedUnits(current, {
       layout,
       seatings,
-      reservations,
+      reservations: availabilityReservations,
     }))
-  }, [isOpen, layout, seatings, availabilityKey])
+  }, [isOpen, layout, seatings, availabilityKey, availabilityReservations])
 
   if (!isOpen) return null
 
@@ -344,11 +419,14 @@ export function MobileReservationQuickCreateSheet({
   }
 
   const handleSubmit = async (nextForm) => {
-    const saved = await onSubmit?.(nextForm)
+    const saved = isEditMode
+      ? await onSubmit?.(reservation, nextForm, todayKey)
+      : await onSubmit?.(nextForm)
     if (saved !== false) {
       setForm(EMPTY_HOST_QUICK_CREATE_FORM)
       setFirstName('')
       setLastName('')
+      setEditGuestTitle('Edit reservation')
       setNameError('')
     }
     return saved
@@ -358,11 +436,14 @@ export function MobileReservationQuickCreateSheet({
     setNameError(`${message ?? ''}`.trim())
   }
 
+  const eyebrowLabel = isEditMode ? 'Edit reservation' : 'New reservation'
+  const titleLabel = isEditMode ? editGuestTitle : 'Quick create'
+
   const header = (
     <header className="mobile-host-reservation-panel-header">
       <div className="mobile-host-reservation-panel-header-copy">
-        <p className="mobile-screen-eyebrow">New reservation</p>
-        <h2 className="mobile-host-reservation-panel-title">Quick create</h2>
+        <p className="mobile-screen-eyebrow" data-testid="host-quick-create-eyebrow">{eyebrowLabel}</p>
+        <h2 className="mobile-host-reservation-panel-title">{titleLabel}</h2>
       </div>
       <button
         type="button"
@@ -390,14 +471,27 @@ export function MobileReservationQuickCreateSheet({
       onClose={handleClose}
       onSubmit={handleSubmit}
       seatings={seatings}
-      reservations={reservations}
+      reservations={availabilityReservations}
       layout={layout}
+      mode={mode}
+      primaryActionLabel={isEditMode ? 'Save changes' : 'Save reservation'}
+      showPendingHint={!isEditMode}
     />
   )
 
+  const panelAriaLabel = isEditMode ? 'Edit reservation' : 'Create reservation'
+  const dialogTitleId = isEditMode
+    ? 'mobile-host-reservation-edit-title'
+    : 'mobile-host-reservation-create-title'
+
   if (variant === 'inline') {
     return (
-      <div className="mobile-host-reservation-inline-panel host-station-form-surface" role="region" aria-label="Create reservation">
+      <div
+        className={`mobile-host-reservation-inline-panel host-station-form-surface${isEditMode ? ' is-edit' : ''}`}
+        role="region"
+        aria-label={panelAriaLabel}
+        data-testid={isEditMode ? 'host-quick-create-edit-panel' : 'host-quick-create-create-panel'}
+      >
         {header}
         <div className="mobile-host-reservation-inline-body">
           {fields}
@@ -414,9 +508,9 @@ export function MobileReservationQuickCreateSheet({
           onClick={(event) => event.stopPropagation()}
           role="dialog"
           aria-modal="true"
-          aria-labelledby="mobile-host-reservation-create-title"
+          aria-labelledby={dialogTitleId}
         >
-          <div id="mobile-host-reservation-create-title" className="sr-only">Create reservation</div>
+          <div id={dialogTitleId} className="sr-only">{panelAriaLabel}</div>
           {header}
           <div className="mobile-host-reservation-panel-body">
             {fields}
@@ -433,14 +527,14 @@ export function MobileReservationQuickCreateSheet({
         onClick={(event) => event.stopPropagation()}
         role="dialog"
         aria-modal="true"
-        aria-labelledby="mobile-host-reservation-create-title"
+        aria-labelledby={dialogTitleId}
       >
         <div className="mobile-sheet-handle" aria-hidden="true" />
         <header className="mobile-sheet-header">
           <div className="mobile-sheet-header-copy">
-            <p className="mobile-screen-eyebrow">New reservation</p>
-            <h2 id="mobile-host-reservation-create-title" className="mobile-sheet-title">
-              Quick create
+            <p className="mobile-screen-eyebrow" data-testid="host-quick-create-eyebrow">{eyebrowLabel}</p>
+            <h2 id={dialogTitleId} className="mobile-sheet-title">
+              {titleLabel}
             </h2>
           </div>
           <button

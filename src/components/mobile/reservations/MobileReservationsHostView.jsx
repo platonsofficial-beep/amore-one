@@ -35,7 +35,6 @@ import {
   MobileHostReservationStatusMenu,
 } from './MobileHostReservationStatusMenu'
 import { getReservationDisplayStatus } from '../../../lib/reservationHostStatus'
-import { MobileReservationHostEditSheet } from './MobileReservationHostEditSheet'
 import { MobileReservationQuickCreateSheet } from './MobileReservationQuickCreateSheet'
 import { HostSettingsPanel } from '../../host/HostSettingsPanel'
 import { HostQueueToolbar } from './HostQueueToolbar'
@@ -280,6 +279,14 @@ export function MobileReservationsHostView({
     return created
   }
 
+  const handleEditSubmit = async (reservation, form) => {
+    const result = await onHostEditSave?.(reservation, form, todayKey)
+    if (result?.saved) {
+      setEditingReservation(null)
+    }
+    return result?.saved ?? false
+  }
+
   const handleSelectReservation = (reservation) => {
     if (isSplitLayout && onSelectReservation) {
       onSelectReservation(reservation)
@@ -291,6 +298,8 @@ export function MobileReservationsHostView({
   }
 
   const handleEditReservation = (reservation) => {
+    setIsCreateOpen(false)
+    setCreatePrefill(null)
     setEditingReservation(reservation)
     if (isSplitLayout && onSelectReservation) {
       onSelectReservation(reservation)
@@ -353,6 +362,7 @@ export function MobileReservationsHostView({
           type="button"
           className="mobile-host-reservations-add-btn"
           onClick={() => {
+            setEditingReservation(null)
             setCreatePrefill(null)
             setIsCreateOpen(true)
           }}
@@ -516,17 +526,17 @@ export function MobileReservationsHostView({
         onSubmit={handleCreateSubmit}
       />
     ) : (
-      <MobileReservationHostEditSheet
-        reservation={editingReservation}
+      <MobileReservationQuickCreateSheet
+        isOpen
+        mode="edit"
         variant="inline"
+        reservation={editingReservation}
         todayKey={todayKey}
-        reservations={reservations}
-        seatings={reservationSeatings}
         isSaving={isSaving}
+        seatings={reservationSeatings}
+        reservations={reservations}
         onClose={() => setEditingReservation(null)}
-        onSave={onHostEditSave}
-        onDelete={onHostEditDelete}
-        onValidationError={onReservationNotice}
+        onSubmit={handleEditSubmit}
       />
     )
   ) : rightPaneContent
@@ -627,17 +637,17 @@ export function MobileReservationsHostView({
             onSubmit={handleCreateSubmit}
           />
 
-          <MobileReservationHostEditSheet
-            reservation={editingReservation}
+          <MobileReservationQuickCreateSheet
+            isOpen={Boolean(editingReservation)}
+            mode="edit"
             variant={formVariant === 'inline' ? 'panel' : formVariant}
+            reservation={editingReservation}
             todayKey={todayKey}
-            reservations={reservations}
-            seatings={reservationSeatings}
             isSaving={isSaving}
+            seatings={reservationSeatings}
+            reservations={reservations}
             onClose={() => setEditingReservation(null)}
-            onSave={onHostEditSave}
-            onDelete={onHostEditDelete}
-            onValidationError={onReservationNotice}
+            onSubmit={handleEditSubmit}
           />
         </>
       ) : null}
