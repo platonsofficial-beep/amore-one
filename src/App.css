@@ -8382,12 +8382,11 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 1px;
+  gap: 0;
   font-size: clamp(0.44rem, 7.2cqb, 0.58rem);
   font-weight: 600;
   font-variant-numeric: tabular-nums;
   line-height: 1.08;
-  max-width: 100%;
   flex-shrink: 0;
   pointer-events: none;
 }
@@ -8404,25 +8403,39 @@
   color: rgba(224, 124, 124, 0.95);
 }
 
-.floor-plan-workspace.is-host-floor .floor-table-content .floor-table-dining-timer-elapsed,
-.floor-plan-workspace.is-host-floor .floor-table-content .floor-table-dining-timer-est-free,
-.floor-plan-workspace.is-host-floor .floor-table-content .floor-table-dining-timer-compact {
+.floor-plan-workspace.is-host-floor .floor-table-content .floor-table-dining-timer-elapsed {
   white-space: nowrap;
-  max-width: 100%;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.floor-plan-workspace.is-host-floor .floor-table-content .floor-table-dining-timer-est-free {
-  font-size: 0.92em;
-  font-weight: 500;
-  opacity: 0.92;
 }
 
 .floor-plan-workspace.is-host-floor .floor-table-content.is-tier-very-small .floor-table-dining-timer {
   font-size: clamp(0.38rem, 6.2cqb, 0.5rem);
-  flex-direction: row;
-  gap: 0;
+}
+
+.floor-plan-workspace.is-host-floor .floor-table-dining-timer-external {
+  position: absolute;
+  left: 50%;
+  top: 100%;
+  transform: translate(-50%, 2px);
+  z-index: 1;
+  font-size: clamp(0.42rem, 6.8cqb, 0.56rem);
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.floor-plan-workspace.is-host-floor .floor-table-dining-timer-external.is-urgency-normal {
+  color: rgba(159, 212, 176, 0.78);
+}
+
+.floor-plan-workspace.is-host-floor .floor-table-dining-timer-external.is-urgency-approaching {
+  color: rgba(212, 175, 55, 0.84);
+}
+
+.floor-plan-workspace.is-host-floor .floor-table-dining-timer-external.is-urgency-overdue {
+  color: rgba(224, 124, 124, 0.82);
 }
 
 .floor-plan-workspace.is-host-floor .floor-table-content .floor-table-number {

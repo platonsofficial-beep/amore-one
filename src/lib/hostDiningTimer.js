@@ -117,6 +117,12 @@ export function formatHostDiningTimerEstimatedFreeLabel(estimatedFreeServiceDayM
   return `Est. free ${timeLabel}`
 }
 
+export function formatHostDiningTimerExternalFreeLabel(estimatedFreeServiceDayMinutes) {
+  const timeLabel = formatServiceDayMinutesAsTime24(estimatedFreeServiceDayMinutes)
+  if (!timeLabel) return null
+  return `🕒 ${timeLabel}`
+}
+
 export function formatHostDiningTimerCompactLine(elapsedLabel, estimatedFreeTimeLabel) {
   if (!elapsedLabel || !estimatedFreeTimeLabel) return null
   const timeOnly = estimatedFreeTimeLabel.replace(/^Est\. free\s+/, '')
@@ -138,7 +144,6 @@ export function buildHostFloorDiningTimerPresentation(
     hostIndicator = null,
     nowMinutes = 0,
     todayKey = '',
-    isCompact = false,
   } = {},
 ) {
   if (!reservation || !isHostFloorDiningTimerTable({ phase, hostIndicator })) return null
@@ -155,18 +160,15 @@ export function buildHostFloorDiningTimerPresentation(
 
   const expectedDurationMinutes = getHostDiningTimerExpectedDurationMinutes(reservation)
   const estimatedFreeServiceDayMinutes = getReservationEstimatedFreeServiceDayMinutes(reservation)
-  const estimatedFreeLabel = formatHostDiningTimerEstimatedFreeLabel(estimatedFreeServiceDayMinutes)
-  if (!estimatedFreeLabel) return null
+  const estimatedFreeExternalLabel = formatHostDiningTimerExternalFreeLabel(estimatedFreeServiceDayMinutes)
+  if (!estimatedFreeExternalLabel) return null
 
   const urgency = resolveHostDiningTimerUrgency(elapsedMinutes, expectedDurationMinutes)
 
   return {
     elapsedLabel,
-    estimatedFreeLabel,
+    estimatedFreeExternalLabel,
     urgency,
-    compactLine: isCompact
-      ? formatHostDiningTimerCompactLine(elapsedLabel, estimatedFreeLabel)
-      : null,
   }
 }
 

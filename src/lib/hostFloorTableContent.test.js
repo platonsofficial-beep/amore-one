@@ -504,7 +504,7 @@ describe('host floor dining timer display', () => {
     unmount()
   })
 
-  it('renders elapsed and estimated free when timer presentation is enabled', () => {
+  it('renders elapsed timer inside the table when timer presentation is enabled', () => {
     const reservation = buildReservation({ status: 'Checked In', time: '21:00' })
     const diningTimerPresentation = buildHostFloorDiningTimerPresentation(reservation, {
       phase: 'seated',
@@ -518,10 +518,33 @@ describe('host floor dining timer display', () => {
 
     const timer = container.querySelector('[data-testid="floor-table-dining-timer"]')
     expect(timer?.querySelector('.floor-table-dining-timer-elapsed')?.textContent).toBe('⏱ 1h 48m')
-    expect(timer?.querySelector('.floor-table-dining-timer-est-free')?.textContent).toBe('Est. free 23:30')
+    expect(timer?.querySelector('.floor-table-dining-timer-est-free')).toBeNull()
+    expect(timer?.querySelector('.floor-table-dining-timer-compact')).toBeNull()
     expect(timer?.getAttribute('data-urgency')).toBe('approaching')
+    expect(container.textContent).not.toContain('Est. free')
+    expect(container.textContent).not.toContain('🕒')
     expect(container.textContent).toContain('T11')
     expect(container.textContent).toContain('👤2')
+    unmount()
+  })
+
+  it('does not truncate elapsed timer text with ellipsis markup', () => {
+    const reservation = buildReservation({ status: 'Checked In', time: '17:28' })
+    const diningTimerPresentation = buildHostFloorDiningTimerPresentation(reservation, {
+      phase: 'seated',
+      nowMinutes: 22 * 60,
+      todayKey: '2026-07-09',
+    })
+    const { container, unmount } = renderCompactTableContent({
+      reservation,
+      diningTimerPresentation,
+      tier: 'very-small',
+    })
+
+    const elapsed = container.querySelector('.floor-table-dining-timer-elapsed')
+    expect(elapsed?.textContent).toBe('⏱ 4h 32m')
+    expect(elapsed?.textContent).not.toMatch(/\.\.\./)
+    expect(container.querySelector('.floor-table-dining-timer-compact')).toBeNull()
     unmount()
   })
 
@@ -550,13 +573,12 @@ describe('host floor dining timer display', () => {
     })
   })
 
-  it('renders compact timer line on very small tables', () => {
+  it('renders elapsed only on very small tables without compact combined line', () => {
     const reservation = buildReservation({ status: 'Checked In', time: '21:00' })
     const diningTimerPresentation = buildHostFloorDiningTimerPresentation(reservation, {
       phase: 'seated',
       nowMinutes: 21 * 60 + 48,
       todayKey: '2026-07-09',
-      isCompact: true,
     })
     const { container, unmount } = renderCompactTableContent({
       reservation,
@@ -564,7 +586,9 @@ describe('host floor dining timer display', () => {
       tier: 'very-small',
     })
 
-    expect(container.querySelector('.floor-table-dining-timer-compact')?.textContent).toBe('⏱ 48m · 23:30')
+    expect(container.querySelector('.floor-table-dining-timer-elapsed')?.textContent).toBe('⏱ 48m')
+    expect(container.querySelector('.floor-table-dining-timer-compact')).toBeNull()
+    expect(container.textContent).not.toContain('Est. free')
     unmount()
   })
 

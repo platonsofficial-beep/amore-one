@@ -7462,7 +7462,6 @@ function FloorTableNode({
       hostIndicator: hostOperational?.hostIndicator,
       nowMinutes,
       todayKey,
-      isCompact: hostCompactContent?.tier === 'very-small',
     })
     : null
   const tableStatusClass = isHostFloor && !isHeatmap && hostOperational
@@ -7804,6 +7803,16 @@ function FloorTableNode({
           </>
         )}
       </div>
+
+      {diningTimerPresentation?.estimatedFreeExternalLabel ? (
+        <span
+          className={`floor-table-dining-timer-external is-urgency-${diningTimerPresentation.urgency}`}
+          data-testid="floor-table-dining-timer-external"
+          data-urgency={diningTimerPresentation.urgency}
+        >
+          {diningTimerPresentation.estimatedFreeExternalLabel}
+        </span>
+      ) : null}
 
       {isHeatmap ? (
         <div

@@ -25,11 +25,17 @@ describe('host floor dining timer wiring', () => {
     expect(appSource).toContain('showDiningTimers={showDiningTimers}')
     expect(appSource).toContain('diningTimerNowMinutes={diningTimerNowMinutes}')
     expect(appSource).toContain('diningTimerPresentation={diningTimerPresentation}')
+    expect(appSource).toContain('data-testid="floor-table-dining-timer-external"')
+    expect(appSource).toContain('estimatedFreeExternalLabel')
     expect(appSource).toMatch(/buildHostFloorDiningTimerPresentation\([\s\S]*?hostIndicator: hostOperational\?\.hostIndicator,/)
   })
 
   it('keeps dining timer overlay non-interactive in host floor CSS', () => {
     expect(appCss).toMatch(/\.floor-table-dining-timer[\s\S]*pointer-events:\s*none/)
+    expect(appCss).toMatch(/\.floor-table-dining-timer-external[\s\S]*pointer-events:\s*none/)
+    expect(appCss).toMatch(/\.floor-table-content \.floor-table-dining-timer-elapsed \{[^}]*white-space:\s*nowrap;/)
+    expect(appCss).not.toMatch(/\.floor-table-content \.floor-table-dining-timer-elapsed \{[^}]*text-overflow:\s*ellipsis/)
+    expect(appCss).toContain('.floor-table-dining-timer-external')
   })
 
   it('does not alter table tap handlers when wiring dining timers', () => {

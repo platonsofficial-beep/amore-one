@@ -15,6 +15,7 @@ import {
   buildHostFloorDiningTimerLabel,
   buildHostFloorDiningTimerPresentation,
   formatHostDiningTimerEstimatedFreeLabel,
+  formatHostDiningTimerExternalFreeLabel,
   formatHostDiningTimerLabel,
   formatServiceDayMinutesAsTime24,
   getHostDiningTimerExpectedDurationMinutes,
@@ -206,10 +207,24 @@ describe('hostDiningTimer', () => {
       expect(formatServiceDayMinutesAsTime24(1500)).toBe('01:00')
       expect(formatServiceDayMinutesAsTime24(1530)).toBe('01:30')
     })
+
+    it('formats external free label as clock emoji and time only', () => {
+      const reservation = buildReservation({ time: '21:00', reservationPurpose: 'dinner' })
+      expect(formatHostDiningTimerExternalFreeLabel(
+        getReservationEstimatedFreeServiceDayMinutes(reservation),
+      )).toBe('🕒 23:30')
+    })
+
+    it('formats drinks external free label without Est. free text', () => {
+      const reservation = buildReservation({ time: '21:00', reservationPurpose: 'drinks' })
+      expect(formatHostDiningTimerExternalFreeLabel(
+        getReservationEstimatedFreeServiceDayMinutes(reservation),
+      )).toBe('🕒 22:30')
+    })
   })
 
   describe('buildHostFloorDiningTimerPresentation', () => {
-    it('returns elapsed, estimated free, and urgency for seated dinner', () => {
+    it('returns elapsed, external estimated free, and urgency for seated dinner', () => {
       const reservation = buildReservation({ status: 'Checked In', time: '21:00' })
       const presentation = buildHostFloorDiningTimerPresentation(reservation, {
         phase: 'seated',
@@ -219,9 +234,8 @@ describe('hostDiningTimer', () => {
 
       expect(presentation).toEqual({
         elapsedLabel: '⏱ 1h 48m',
-        estimatedFreeLabel: 'Est. free 23:30',
+        estimatedFreeExternalLabel: '🕒 23:30',
         urgency: HOST_DINING_TIMER_URGENCY_LEVELS.APPROACHING,
-        compactLine: null,
       })
     })
 
@@ -237,20 +251,21 @@ describe('hostDiningTimer', () => {
         todayKey: '2026-07-09',
       })
 
-      expect(presentation?.estimatedFreeLabel).toBe('Est. free 22:30')
+      expect(presentation?.estimatedFreeExternalLabel).toBe('🕒 22:30')
       expect(presentation?.urgency).toBe(HOST_DINING_TIMER_URGENCY_LEVELS.NORMAL)
     })
 
-    it('returns compact line for very small tables', () => {
+    it('keeps elapsed label readable on very small tables without compact line', () => {
       const reservation = buildReservation({ status: 'Checked In', time: '21:00' })
       const presentation = buildHostFloorDiningTimerPresentation(reservation, {
         phase: 'seated',
         nowMinutes: 21 * 60 + 48,
         todayKey: '2026-07-09',
-        isCompact: true,
       })
 
-      expect(presentation?.compactLine).toBe('⏱ 48m · 23:30')
+      expect(presentation?.elapsedLabel).toBe('⏱ 48m')
+      expect(presentation?.estimatedFreeExternalLabel).toBe('🕒 23:30')
+      expect(presentation?.compactLine).toBeUndefined()
     })
   })
 

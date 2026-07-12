@@ -27,14 +27,7 @@ export function HostFloorCompactTableContent({
             data-testid="floor-table-dining-timer"
             data-urgency={diningTimerPresentation.urgency}
           >
-            {diningTimerPresentation.compactLine ? (
-              <span className="floor-table-dining-timer-compact">{diningTimerPresentation.compactLine}</span>
-            ) : (
-              <>
-                <span className="floor-table-dining-timer-elapsed">{diningTimerPresentation.elapsedLabel}</span>
-                <span className="floor-table-dining-timer-est-free">{diningTimerPresentation.estimatedFreeLabel}</span>
-              </>
-            )}
+            <span className="floor-table-dining-timer-elapsed">{diningTimerPresentation.elapsedLabel}</span>
           </span>
         ) : null}
         {content.showChairDots ? (
