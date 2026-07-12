@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { HostWorkspaceDatePicker } from '../../reservations/HostWorkspaceDatePicker'
 import { ReservationCalendarIcon } from '../../reservations/ReservationCalendarIcon'
-import { formatHostWorkspaceDateNavLabel } from '../../reservations/hostReservationListUtils'
+import { formatHostWorkspaceDateNavLabel, shiftHostWorkspaceDateKey } from '../../reservations/hostReservationListUtils'
 import { normalizeReservationDateKey } from '../../../lib/timeFormatUtils'
 
 export function MobileHostReservationDateNav({
@@ -40,6 +40,13 @@ export function MobileHostReservationDateNav({
     closePicker()
   }
 
+  const handleShiftDay = (dayOffset) => {
+    if (!onSelectDate || !normalizedSelectedDateKey) return
+    const nextDateKey = shiftHostWorkspaceDateKey(normalizedSelectedDateKey, dayOffset)
+    if (!nextDateKey) return
+    onSelectDate(normalizeReservationDateKey(nextDateKey))
+  }
+
   const picker = isPickerOpen ? createPortal(
     <div
       className="mobile-host-date-picker-backdrop"
@@ -69,6 +76,16 @@ export function MobileHostReservationDateNav({
       <div className="mobile-host-sticky-date-nav">
         <button
           type="button"
+          className="mobile-host-sticky-date-step-btn"
+          onClick={() => handleShiftDay(-1)}
+          aria-label="Previous day"
+          data-testid="mobile-host-date-previous"
+          disabled={!onSelectDate || !normalizedSelectedDateKey}
+        >
+          ‹
+        </button>
+        <button
+          type="button"
           className="mobile-host-sticky-date-btn"
           onClick={openPicker}
           aria-haspopup="dialog"
@@ -78,6 +95,16 @@ export function MobileHostReservationDateNav({
           disabled={!onSelectDate}
         >
           <time dateTime={normalizedSelectedDateKey}>{label}</time>
+        </button>
+        <button
+          type="button"
+          className="mobile-host-sticky-date-step-btn"
+          onClick={() => handleShiftDay(1)}
+          aria-label="Next day"
+          data-testid="mobile-host-date-next"
+          disabled={!onSelectDate || !normalizedSelectedDateKey}
+        >
+          ›
         </button>
         <button
           type="button"

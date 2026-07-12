@@ -186,4 +186,58 @@ describe('MobileHostReservationDateNav', () => {
 
     unmount()
   })
+
+  it('moves exactly one day back when the previous-day button is tapped', async () => {
+    const onSelectDate = vi.fn()
+    const { container, unmount } = renderHostView({
+      onSelectDate,
+      todayKey: '2026-07-10',
+      workspaceTodayKey: '2026-07-10',
+    })
+
+    await act(async () => {
+      container.querySelector('[data-testid="mobile-host-date-previous"]')
+        ?.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    })
+
+    expect(onSelectDate).toHaveBeenCalledWith('2026-07-09')
+
+    unmount()
+  })
+
+  it('moves exactly one day forward when the next-day button is tapped', async () => {
+    const onSelectDate = vi.fn()
+    const { container, unmount } = renderHostView({
+      onSelectDate,
+      todayKey: '2026-07-10',
+      workspaceTodayKey: '2026-07-10',
+    })
+
+    await act(async () => {
+      container.querySelector('[data-testid="mobile-host-date-next"]')
+        ?.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    })
+
+    expect(onSelectDate).toHaveBeenCalledWith('2026-07-11')
+
+    unmount()
+  })
+
+  it('shows Yesterday and Tomorrow labels when adjacent to workspace today', () => {
+    const yesterday = renderHostView({
+      todayKey: '2026-07-09',
+      workspaceTodayKey: '2026-07-10',
+    })
+    expect(yesterday.container.querySelector('[data-testid="mobile-host-date-label"]')?.textContent)
+      .toMatch(/^Yesterday · /)
+    yesterday.unmount()
+
+    const tomorrow = renderHostView({
+      todayKey: '2026-07-11',
+      workspaceTodayKey: '2026-07-10',
+    })
+    expect(tomorrow.container.querySelector('[data-testid="mobile-host-date-label"]')?.textContent)
+      .toMatch(/^Tomorrow · /)
+    tomorrow.unmount()
+  })
 })
