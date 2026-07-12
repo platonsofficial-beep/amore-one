@@ -4,6 +4,7 @@ export function HostFloorCompactTableContent({
   content,
   linkMeta = null,
   seatingIndicators = [],
+  diningTimerLabel = null,
 }) {
   if (!content) return null
 
@@ -19,6 +20,11 @@ export function HostFloorCompactTableContent({
         ) : null}
         {content.partyLabel ? (
           <span className="floor-table-guest-indicator">{content.partyLabel}</span>
+        ) : null}
+        {diningTimerLabel ? (
+          <span className="floor-table-dining-timer" data-testid="floor-table-dining-timer">
+            {diningTimerLabel}
+          </span>
         ) : null}
         {content.showChairDots ? (
           <FloorTableSeatingIndicators indicators={seatingIndicators} />

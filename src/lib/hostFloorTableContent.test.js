@@ -29,6 +29,7 @@ import {
   resolveHostFloorLegendToneToken,
 } from './hostFloorSemanticTokens'
 import { HostFloorCompactTableContent } from '../components/floor/HostFloorCompactTableContent'
+import { buildHostFloorDiningTimerLabel } from './hostDiningTimer'
 
 const SEATINGS = buildSeatingsById([
   {
@@ -451,5 +452,99 @@ describe('hostFloorTableContent', () => {
   it('formats table labels consistently', () => {
     expect(formatHostFloorTableLabel({ label: '11' })).toBe('T11')
     expect(formatHostFloorTableLabel({ displayLabel: 'T11' })).toBe('T11')
+  })
+})
+
+describe('host floor dining timer display', () => {
+  function renderCompactTableContent({
+    reservation,
+    nowMinutes = 22 * 60 + 18,
+    diningTimerLabel = null,
+  } = {}) {
+    const operational = resolveFloorTableOperationalState(
+      reservation ? [reservation] : [],
+      nowMinutes,
+      '2026-07-09',
+    )
+    const content = buildHostFloorCompactTableContent({
+      table: TABLE,
+      operational,
+      displayReservation: reservation,
+    })
+    const container = document.createElement('div')
+    const root = createRoot(container)
+
+    act(() => {
+      root.render(createElement(HostFloorCompactTableContent, {
+        content,
+        linkMeta: { isMultiLinked: false },
+        seatingIndicators: [],
+        diningTimerLabel,
+      }))
+    })
+
+    return {
+      container,
+      unmount: () => {
+        act(() => {
+          root.unmount()
+        })
+      },
+    }
+  }
+
+  it('hides dining timer overlays by default in compact table DOM', () => {
+    const reservation = buildReservation({ status: 'Checked In', time: '21:00' })
+    const { container, unmount } = renderCompactTableContent({ reservation })
+
+    expect(container.querySelector('[data-testid="floor-table-dining-timer"]')).toBeNull()
+    unmount()
+  })
+
+  it('renders dining timer overlay when enabled with a seated reservation', () => {
+    const reservation = buildReservation({ status: 'Checked In', time: '21:00' })
+    const diningTimerLabel = buildHostFloorDiningTimerLabel(reservation, {
+      phase: 'seated',
+      nowMinutes: 22 * 60 + 18,
+      todayKey: '2026-07-09',
+    })
+    const { container, unmount } = renderCompactTableContent({
+      reservation,
+      diningTimerLabel,
+    })
+
+    const timer = container.querySelector('[data-testid="floor-table-dining-timer"]')
+    expect(timer?.textContent).toBe('⏱ 1h 18m')
+    expect(container.textContent).toContain('T11')
+    expect(container.textContent).toContain('👤2')
+    unmount()
+  })
+
+  it('does not render dining timer overlays for available tables', () => {
+    const diningTimerLabel = buildHostFloorDiningTimerLabel(null, {
+      phase: 'available',
+      nowMinutes: 22 * 60,
+      todayKey: '2026-07-09',
+    })
+    const { container, unmount } = renderCompactTableContent({ diningTimerLabel })
+
+    expect(container.querySelector('[data-testid="floor-table-dining-timer"]')).toBeNull()
+    unmount()
+  })
+
+  it('does not render dining timer overlays for reserved but not seated tables', () => {
+    const reservation = buildReservation({ status: 'Confirmed', time: '21:00' })
+    const diningTimerLabel = buildHostFloorDiningTimerLabel(reservation, {
+      phase: 'upcoming',
+      nowMinutes: 20 * 60,
+      todayKey: '2026-07-09',
+    })
+    const { container, unmount } = renderCompactTableContent({
+      reservation,
+      diningTimerLabel,
+    })
+
+    expect(container.querySelector('[data-testid="floor-table-dining-timer"]')).toBeNull()
+    unmount()
   })
 })

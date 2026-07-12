@@ -118,6 +118,11 @@ import {
   buildHostFloorCompactTableContent,
   formatHostFloorTableLabel,
 } from './lib/hostFloorTableContent'
+import {
+  buildHostFloorDiningTimerLabel,
+  getNowMinutesFromDate,
+  useHostDiningTimerClock,
+} from './lib/hostDiningTimer'
 import { getFloorLayoutSpaceStyle, getPublishedTableLayoutStyle } from './lib/publishedTableLayout'
 import {
   isFloorTablePhysicallyOccupied,
@@ -7425,6 +7430,8 @@ function FloorTableNode({
   onDragOver,
   onDragLeave,
   onDrop,
+  showDiningTimers = false,
+  diningTimerNowMinutes = nowMinutes,
 }) {
   const { isSelected, selectionPulseKey, seatingDraftUnitIds, hostEditUnitIds, isHostFloorPickActive, selectedReservation } = useReservationWorkspace()
   const { table, reservation, status, operational } = tableState
@@ -7440,11 +7447,19 @@ function FloorTableNode({
 
   const hostOperational = isHostFloor && !isHeatmap ? operational : null
   const hostVisualIndicator = hostOperational?.hostIndicator ?? null
+  const displayReservation = hostOperational?.displayReservation ?? reservation
   const hostCompactContent = isHostFloor && !isHeatmap && hostOperational
     ? buildHostFloorCompactTableContent({
       table,
       operational: hostOperational,
-      displayReservation: hostOperational.displayReservation ?? reservation,
+      displayReservation,
+    })
+    : null
+  const diningTimerLabel = showDiningTimers && isHostFloor && !isHeatmap && displayReservation
+    ? buildHostFloorDiningTimerLabel(displayReservation, {
+      phase: hostOperational?.phase,
+      nowMinutes: diningTimerNowMinutes,
+      todayKey,
     })
     : null
   const tableStatusClass = isHostFloor && !isHeatmap && hostOperational
@@ -7457,7 +7472,6 @@ function FloorTableNode({
     hostVisualIndicator
     && ['confirmed', 'waiting', 'seated', 'finished', 'late'].includes(hostVisualIndicator),
   )
-  const displayReservation = hostOperational?.displayReservation ?? reservation
   const guestName = displayReservation ? formatReservationGuestName(displayReservation.guestName) : null
   const guestCount = displayReservation ? Number(displayReservation.guests) || 0 : 0
   const arrivalTime = displayReservation ? formatTime24(displayReservation.time) || '—' : null
@@ -7721,6 +7735,7 @@ function FloorTableNode({
             content={hostCompactContent}
             linkMeta={linkMeta}
             seatingIndicators={tableState.meta?.seatingIndicators ?? []}
+            diningTimerLabel={diningTimerLabel}
           />
         ) : (
           <>
@@ -7962,11 +7977,17 @@ function FloorPlanView({
   const [scheduleCardTableId, setScheduleCardTableId] = useState(null)
   const [scheduleCardAssignmentMode, setScheduleCardAssignmentMode] = useState(false)
   const [scheduleCardAssignmentSeatingId, setScheduleCardAssignmentSeatingId] = useState(null)
+  const [showDiningTimers, setShowDiningTimers] = useState(false)
   const scheduleCardLifecycleRef = useRef(createHostScheduleCardLifecycleState())
   const hostTableTapRegistryRef = useRef(createHostFloorTableTapRegistry())
   const scheduleCardTableIdRef = useRef(null)
   const visibleTableStatesRef = useRef([])
   scheduleCardTableIdRef.current = scheduleCardTableId
+
+  const diningTimerReferenceDate = useHostDiningTimerClock(
+    isCompact && !isHeatmap && showDiningTimers,
+  )
+  const diningTimerNowMinutes = getNowMinutesFromDate(diningTimerReferenceDate)
 
   const scheduleCardTable = useMemo(() => resolveScheduleCardTableById(scheduleCardTableId, {
     layoutTables: layout?.tables ?? [],
@@ -9200,6 +9221,16 @@ function FloorPlanView({
                   Edit layout
                 </button>
               ) : null}
+              <button
+                type="button"
+                className={`floor-plan-dining-timers-btn${showDiningTimers ? ' is-active' : ''}`}
+                onClick={() => setShowDiningTimers((current) => !current)}
+                aria-pressed={showDiningTimers}
+                aria-label="Dining timers"
+                data-testid="host-floor-dining-timers-toggle"
+              >
+                ⏱ Timers
+              </button>
               <div className="floor-plan-zoom-controls" aria-label="Floor plan zoom">
               <div className="floor-plan-zoom-controls-group">
                 <button type="button" className="floor-plan-zoom-btn" onClick={handleFloorZoomOut} aria-label="Zoom out">−</button>
@@ -9371,6 +9402,8 @@ function FloorPlanView({
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
             onDrop={handleDrop}
+            showDiningTimers={showDiningTimers}
+            diningTimerNowMinutes={diningTimerNowMinutes}
           />
         ))}
             </div>

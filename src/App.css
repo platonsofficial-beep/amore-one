@@ -8378,7 +8378,22 @@
   flex-shrink: 0;
 }
 
-.floor-plan-workspace.is-host-floor .floor-table-content.is-tier-very-small .floor-table-number {
+.floor-plan-workspace.is-host-floor .floor-table-content .floor-table-dining-timer {
+  font-size: clamp(0.44rem, 7.2cqb, 0.58rem);
+  font-weight: 600;
+  color: rgba(159, 212, 176, 0.92);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.08;
+  white-space: nowrap;
+  flex-shrink: 0;
+  pointer-events: none;
+}
+
+.floor-plan-workspace.is-host-floor .floor-table-content.is-tier-very-small .floor-table-dining-timer {
+  font-size: clamp(0.38rem, 6.2cqb, 0.5rem);
+}
+
+.floor-plan-workspace.is-host-floor .floor-table-content .floor-table-number {
   font-size: clamp(0.52rem, 11cqb, 0.72rem);
 }
 
@@ -13258,6 +13273,31 @@
   font-size: 0.72rem;
   font-weight: 700;
   cursor: pointer;
+}
+
+.floor-plan-dining-timers-btn {
+  min-height: 44px;
+  min-width: 44px;
+  padding: 6px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(212, 175, 55, 0.35);
+  background: rgba(255, 255, 255, 0.04);
+  color: rgba(232, 215, 168, 0.88);
+  font-size: 0.72rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.floor-plan-dining-timers-btn.is-active {
+  border-color: rgba(212, 175, 55, 0.72);
+  background: rgba(212, 175, 55, 0.16);
+  color: #f3e3b0;
+  box-shadow: inset 0 0 0 1px rgba(212, 175, 55, 0.18);
+}
+
+.floor-plan-dining-timers-btn:focus-visible {
+  outline: 2px solid rgba(212, 175, 55, 0.65);
+  outline-offset: 2px;
 }
 
 .floor-plan-deprecated-notice {

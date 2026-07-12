@@ -1,5 +1,5 @@
-import { formatTime24 } from './timeFormatUtils'
 import { isMobileHostSplitViewport } from './mobileHostReservationUtils'
+import { getReservationInServiceSinceTimeLabel } from './hostDiningTimer'
 
 export function shouldUseHostTableInspectorDrawer() {
   if (typeof window === 'undefined') return false
@@ -21,9 +21,7 @@ export function buildHostTableInspectorContextStrip(rows = []) {
 
   if (occupiedRow?.reservation) {
     const guestName = `${occupiedRow.reservation.guestName ?? 'Guest'}`.trim() || 'Guest'
-    const timeLabel = occupiedRow.reservation.time
-      ? formatTime24(occupiedRow.reservation.time)
-      : ''
+    const timeLabel = getReservationInServiceSinceTimeLabel(occupiedRow.reservation)
 
     return {
       kind: 'occupied',
