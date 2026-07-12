@@ -24,6 +24,12 @@ import { HostQuickCreateTableField } from './HostQuickCreateTableField'
 function HostReservationQuickCreateFields({
   form,
   setForm,
+  firstName,
+  lastName,
+  onFirstNameChange,
+  onLastNameChange,
+  nameError,
+  onNameValidationError,
   todayKey,
   isSaving,
   onClose,
@@ -73,7 +79,19 @@ function HostReservationQuickCreateFields({
   }
 
   const handleSave = async () => {
-    await onSubmit?.(formRef.current)
+    const trimmedFirstName = `${firstName}`.trim()
+    const trimmedLastName = `${lastName}`.trim()
+
+    if (!trimmedFirstName || !trimmedLastName) {
+      onNameValidationError?.('Please provide the guest name.')
+      return
+    }
+
+    onNameValidationError?.('')
+    await onSubmit?.({
+      ...formRef.current,
+      guestName: `${trimmedFirstName} ${trimmedLastName}`.trim(),
+    })
   }
 
   return (
@@ -82,17 +100,41 @@ function HostReservationQuickCreateFields({
       onSubmit={preventReservationFormSubmit}
       onKeyDownCapture={handleReservationFormEnterKey}
     >
-      <label className="mobile-host-form-field">
-        <span>Guest name</span>
-        <input
-          type="text"
-          value={form.guestName}
-          onChange={(event) => updateForm({ guestName: event.target.value })}
-          placeholder="Guest name"
-          required
-          autoComplete="name"
-        />
-      </label>
+      <div className="mobile-host-form-row">
+        <label className="mobile-host-form-field">
+          <span>First name</span>
+          <input
+            type="text"
+            value={firstName}
+            onChange={(event) => {
+              onNameValidationError?.('')
+              onFirstNameChange?.(event.target.value)
+            }}
+            placeholder="First name"
+            required
+            autoComplete="given-name"
+          />
+        </label>
+
+        <label className="mobile-host-form-field">
+          <span>Last name</span>
+          <input
+            type="text"
+            value={lastName}
+            onChange={(event) => {
+              onNameValidationError?.('')
+              onLastNameChange?.(event.target.value)
+            }}
+            placeholder="Last name"
+            required
+            autoComplete="family-name"
+          />
+        </label>
+      </div>
+
+      {nameError ? (
+        <div className="mobile-host-reservations-notice" role="alert">{nameError}</div>
+      ) : null}
 
       <label className="mobile-host-form-field">
         <span>Phone</span>
@@ -222,6 +264,9 @@ export function MobileReservationQuickCreateSheet({
 }) {
   const { layout } = usePublishedFloorPlan()
   const [form, setForm] = useState(EMPTY_HOST_QUICK_CREATE_FORM)
+  const [firstName, setFirstName] = useState('')
+  const [lastName, setLastName] = useState('')
+  const [nameError, setNameError] = useState('')
   const wasOpenRef = useRef(false)
   const availabilityKey = useMemo(
     () => buildHostQuickCreateAvailabilityKey(form, reservations, layout),
@@ -242,7 +287,6 @@ export function MobileReservationQuickCreateSheet({
       date: normalizeReservationDateKey(prefill?.date ?? todayKey),
       guests: `${prefill?.guests ?? '2'}`,
       phone: `${prefill?.phone ?? ''}`,
-      guestName: `${prefill?.guestName ?? ''}`,
       time: `${prefill?.time ?? ''}`,
       notes: `${prefill?.notes ?? ''}`,
       seatingId: prefill?.seatingId ?? null,
@@ -251,6 +295,9 @@ export function MobileReservationQuickCreateSheet({
       assignedUnits: Array.isArray(prefill?.assignedUnits) ? prefill.assignedUnits : [],
       seatingManuallyOverridden: Boolean(prefill?.seatingManuallyOverridden),
     }, { todayKey, layout, seatings }))
+    setFirstName('')
+    setLastName('')
+    setNameError('')
   }, [isOpen, prefill, todayKey, layout, seatings])
 
   useEffect(() => {
@@ -275,6 +322,9 @@ export function MobileReservationQuickCreateSheet({
   const handleClose = () => {
     if (isSaving) return
     setForm(EMPTY_HOST_QUICK_CREATE_FORM)
+    setFirstName('')
+    setLastName('')
+    setNameError('')
     onClose?.()
   }
 
@@ -282,8 +332,15 @@ export function MobileReservationQuickCreateSheet({
     const saved = await onSubmit?.(nextForm)
     if (saved !== false) {
       setForm(EMPTY_HOST_QUICK_CREATE_FORM)
+      setFirstName('')
+      setLastName('')
+      setNameError('')
     }
     return saved
+  }
+
+  const handleNameValidationError = (message) => {
+    setNameError(`${message ?? ''}`.trim())
   }
 
   const header = (
@@ -307,6 +364,12 @@ export function MobileReservationQuickCreateSheet({
     <HostReservationQuickCreateFields
       form={form}
       setForm={setForm}
+      firstName={firstName}
+      lastName={lastName}
+      onFirstNameChange={setFirstName}
+      onLastNameChange={setLastName}
+      nameError={nameError}
+      onNameValidationError={handleNameValidationError}
       todayKey={todayKey}
       isSaving={isSaving}
       onClose={handleClose}

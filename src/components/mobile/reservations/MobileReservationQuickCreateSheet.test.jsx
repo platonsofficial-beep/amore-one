@@ -42,6 +42,30 @@ const SEATINGS = [
   },
 ]
 
+function setInputValue(input, value) {
+  if (!input) return
+  const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')?.set
+  setter?.call(input, value)
+  input.dispatchEvent(new Event('input', { bubbles: true }))
+  input.dispatchEvent(new Event('change', { bubbles: true }))
+}
+
+function fillGuestName(container, firstName = 'Alex', lastName = 'Rivera') {
+  act(() => {
+    setInputValue(container.querySelector('input[autocomplete="given-name"]'), firstName)
+    setInputValue(container.querySelector('input[autocomplete="family-name"]'), lastName)
+  })
+}
+
+async function clickSaveReservation(container) {
+  const saveButton = [...container.querySelectorAll('button')]
+    .find((button) => button.textContent === 'Save reservation')
+
+  await act(async () => {
+    saveButton?.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+  })
+}
+
 function renderSheet({ onSubmit = vi.fn(async () => true), ...props } = {}) {
   const container = document.createElement('div')
   document.body.appendChild(container)
@@ -107,12 +131,9 @@ describe('MobileReservationQuickCreateSheet table picker integration', () => {
     expect(container.querySelector('[data-testid="host-quick-create-table-status"]')?.textContent)
       .toBe('Selected table · T18')
 
-    const saveButton = [...container.querySelectorAll('button')]
-      .find((button) => button.textContent === 'Save reservation')
+    fillGuestName(container)
 
-    await act(async () => {
-      saveButton?.dispatchEvent(new MouseEvent('click', { bubbles: true }))
-    })
+    await clickSaveReservation(container)
 
     expect(onSubmit).toHaveBeenCalledTimes(1)
     expect(onSubmit.mock.calls[0][0].assignedUnits).toHaveLength(1)
@@ -147,12 +168,9 @@ describe('MobileReservationQuickCreateSheet table picker integration', () => {
     expect(container.querySelector('[data-testid="host-quick-create-table-status"]')?.textContent)
       .toBe('Selected tables · T13 + T18')
 
-    const saveButton = [...container.querySelectorAll('button')]
-      .find((button) => button.textContent === 'Save reservation')
+    fillGuestName(container)
 
-    await act(async () => {
-      saveButton?.dispatchEvent(new MouseEvent('click', { bubbles: true }))
-    })
+    await clickSaveReservation(container)
 
     expect(onSubmit).toHaveBeenCalledTimes(1)
     expect(onSubmit.mock.calls[0][0].assignedUnits.map((unit) => unit.id)).toEqual(['t13', 't18'])
@@ -184,6 +202,46 @@ describe('MobileReservationQuickCreateSheet table picker integration', () => {
       .toBe('Selected table · T18')
     expect(container.querySelector('.mobile-host-form-notice')).toBeNull()
     expect(container.querySelector('.mobile-host-form-hint')?.textContent ?? '').not.toContain('No available tables')
+
+    unmount()
+  })
+})
+
+describe('MobileReservationQuickCreateSheet guest name fields', () => {
+  it('renders separate first and last name fields side by side', () => {
+    const { container, unmount } = renderSheet()
+
+    expect(container.querySelector('input[autocomplete="given-name"]')).not.toBeNull()
+    expect(container.querySelector('input[autocomplete="family-name"]')).not.toBeNull()
+    expect(container.querySelector('input[autocomplete="name"]')).toBeNull()
+    expect(container.querySelector('.mobile-host-form-row input[autocomplete="given-name"]')).not.toBeNull()
+
+    unmount()
+  })
+
+  it('combines first and last name into guestName on save', async () => {
+    const onSubmit = vi.fn(async () => true)
+    const { container, unmount } = renderSheet({ onSubmit })
+
+    fillGuestName(container, 'Maria', 'Costa')
+    await clickSaveReservation(container)
+
+    expect(onSubmit).toHaveBeenCalledTimes(1)
+    expect(onSubmit.mock.calls[0][0].guestName).toBe('Maria Costa')
+
+    unmount()
+  })
+
+  it('blocks save and shows validation when either name field is empty', async () => {
+    const onSubmit = vi.fn(async () => true)
+    const { container, unmount } = renderSheet({ onSubmit })
+
+    fillGuestName(container, 'Maria', '')
+    await clickSaveReservation(container)
+
+    expect(onSubmit).not.toHaveBeenCalled()
+    expect(container.querySelector('.mobile-host-reservations-notice')?.textContent)
+      .toBe('Please provide the guest name.')
 
     unmount()
   })
