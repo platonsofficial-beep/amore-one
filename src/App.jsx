@@ -9469,9 +9469,27 @@ function MobileReservationsHostShell({
   workspaceId = '',
   useControlledReloadReturn = false,
 }) {
+  const workspaceTodayKey = todayKey
+  const workspaceTodayRef = useRef(workspaceTodayKey)
+  const [selectedDateKey, setSelectedDateKey] = useState(workspaceTodayKey)
+
+  useEffect(() => {
+    const previousToday = workspaceTodayRef.current
+    if (previousToday !== workspaceTodayKey) {
+      setSelectedDateKey((current) => (
+        current === previousToday ? workspaceTodayKey : current
+      ))
+      workspaceTodayRef.current = workspaceTodayKey
+    }
+  }, [workspaceTodayKey])
+
+  const handleSelectDate = useCallback((dateKey) => {
+    setSelectedDateKey(normalizeReservationDateKey(dateKey))
+  }, [])
+
   const workspaceReservations = useMemo(
-    () => getHostWorkspaceReservations(reservations, todayKey, workspaceTimeZone),
-    [reservations, todayKey, workspaceTimeZone],
+    () => getHostWorkspaceReservations(reservations, selectedDateKey, workspaceTimeZone),
+    [reservations, selectedDateKey, workspaceTimeZone],
   )
 
   return (
@@ -9487,7 +9505,9 @@ function MobileReservationsHostShell({
         reservations={reservations}
         workspaceReservations={workspaceReservations}
         workspaceTimeZone={workspaceTimeZone}
-        todayKey={todayKey}
+        todayKey={selectedDateKey}
+        workspaceTodayKey={workspaceTodayKey}
+        onSelectDate={handleSelectDate}
         nowMinutes={nowMinutes}
         isLoading={isLoading}
         isSaving={isSaving}
@@ -9515,6 +9535,8 @@ function MobileReservationsHostShellBody({
   workspaceReservations,
   workspaceTimeZone,
   todayKey,
+  workspaceTodayKey = '',
+  onSelectDate = null,
   nowMinutes,
   isLoading,
   isSaving,
@@ -9576,6 +9598,20 @@ function MobileReservationsHostShellBody({
   const [floorEditReservation, setFloorEditReservation] = useState(null)
   const [selectedServiceSeatingId, setSelectedServiceSeatingId] = useState('')
   const [tableInspectorProps, setTableInspectorProps] = useState(null)
+  const previousDateKeyRef = useRef(todayKey)
+
+  useEffect(() => {
+    if (previousDateKeyRef.current === todayKey) return
+    previousDateKeyRef.current = todayKey
+    clearSelection()
+    clearSeatingDraft()
+    cancelHostMultiTableSelect()
+  }, [
+    cancelHostMultiTableSelect,
+    clearSelection,
+    clearSeatingDraft,
+    todayKey,
+  ])
 
   useEffect(() => {
     const activeSeatings = getActiveSeatingsForDate(reservationSeatings, todayKey)
@@ -9802,6 +9838,8 @@ function MobileReservationsHostShellBody({
       reservations={reservations}
       workspaceTimeZone={workspaceTimeZone}
       todayKey={todayKey}
+      workspaceTodayKey={workspaceTodayKey || todayKey}
+      onSelectDate={onSelectDate}
       nowMinutes={nowMinutes}
       isLoading={isLoading}
       isSaving={isSaving}

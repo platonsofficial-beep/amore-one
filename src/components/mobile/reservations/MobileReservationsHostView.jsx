@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   buildHostManagerSummary,
-  formatHostWorkspaceDateNavLabel,
   getHostWorkspaceReservations,
 } from '../../reservations/hostReservationListUtils'
 import { buildHostQueueServiceMetricsFromReservations } from '../../../lib/hostQueueServiceMetrics'
@@ -39,11 +38,14 @@ import { MobileReservationQuickCreateSheet } from './MobileReservationQuickCreat
 import { HostSettingsPanel } from '../../host/HostSettingsPanel'
 import { HostQueueToolbar } from './HostQueueToolbar'
 import { HostQueueServiceSummary } from './HostQueueServiceSummary'
+import { MobileHostReservationDateNav } from './MobileHostReservationDateNav'
 
 export function MobileReservationsHostView({
   reservations = [],
   workspaceTimeZone = '',
   todayKey = '',
+  workspaceTodayKey = '',
+  onSelectDate = null,
   nowMinutes = 0,
   isLoading = false,
   isSaving = false,
@@ -201,10 +203,7 @@ export function MobileReservationsHostView({
     [activeFilterCount, areaFilterId, searchTerm, selectedAreaLabel, selectedSeating?.name],
   )
 
-  const dateLabel = useMemo(
-    () => formatHostWorkspaceDateNavLabel(todayKey, todayKey),
-    [todayKey],
-  )
+  const effectiveWorkspaceTodayKey = workspaceTodayKey || todayKey
 
   const effectiveSelectedReservationId = isSplitLayout && controlledSelectedReservationId != null
     ? controlledSelectedReservationId
@@ -555,7 +554,11 @@ export function MobileReservationsHostView({
       <header className="mobile-host-sticky-bar" aria-label="Host mode header">
         <div className="mobile-host-sticky-left">
           <h1 className="mobile-host-sticky-title">Reservations</h1>
-          <p className="mobile-host-sticky-date">{dateLabel}</p>
+          <MobileHostReservationDateNav
+            selectedDateKey={todayKey}
+            workspaceTodayKey={effectiveWorkspaceTodayKey}
+            onSelectDate={onSelectDate}
+          />
         </div>
         <div className="mobile-host-sticky-center" aria-label="Service summary">
           {isSplitLayout ? (
