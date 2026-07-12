@@ -3,7 +3,7 @@
  */
 import { createElement } from 'react'
 import { createRoot } from 'react-dom/client'
-import { act } from 'react'
+import { act, useState } from 'react'
 import { describe, expect, it, vi, afterEach } from 'vitest'
 import { HostTableInspector } from './HostTableInspector'
 import { useHostTableInspectorEscape } from './HostTableInspectorContent'
@@ -425,6 +425,167 @@ describe('HostTableInspector', () => {
     expect(document.querySelector('.floor-table-seating-dialog-backdrop')).toBeNull()
     expect(document.querySelector('.floor-table-seating-dialog-overlay')).toBeNull()
     document.querySelectorAll('[data-testid="host-table-inspector"]').forEach((node) => node.remove())
+  })
+
+  it('shows assignment pending row on available timeline when seating is selected', () => {
+    const onConfirmAssignment = vi.fn()
+    const onCancelAssignment = vi.fn()
+    const onSelectSeating = vi.fn()
+    const reservation = {
+      id: 'res-pending',
+      guestName: 'Samaridis',
+      guests: 2,
+      time: '20:45',
+    }
+
+    const { query, cleanup } = renderInspector({
+      rows: [{
+        seating: SEATING,
+        reservation: null,
+        conflicts: [],
+        hasConflict: false,
+        isAvailable: true,
+        timeWindowLabel: '19:00–21:00',
+        state: 'available',
+      }],
+      assignmentContext: {
+        reservation,
+        seatingId: 'dinner-1',
+        tableLabel: 'T102',
+        draftTableLabels: 'T102',
+        canAssign: true,
+        onConfirmAssignment,
+        onCancelAssignment,
+        onSelectSeating,
+      },
+    })
+
+    expect(document.querySelector('[data-assignment-mode="true"]')).not.toBeNull()
+    expect(query('[data-testid="floor-table-day-row-assignment"]')).not.toBeNull()
+    expect(query('.floor-table-day-guest-name')?.textContent).toContain('Samaridis')
+    expect(query('[data-testid="floor-table-day-assign-reservation"]')?.textContent)
+      .toContain('Assign T102')
+
+    act(() => {
+      query('[data-testid="floor-table-day-assign-reservation"]')
+        ?.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    })
+    expect(onConfirmAssignment).toHaveBeenCalledTimes(1)
+
+    act(() => {
+      query('[data-testid="floor-table-day-cancel-assignment"]')
+        ?.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    })
+    expect(onCancelAssignment).toHaveBeenCalledTimes(1)
+    cleanup()
+  })
+
+  it('calls onSelectSeating when tapping Tap to seat here on available timeline rows', () => {
+    function AssignmentSelectionHarness() {
+      const [seatingId, setSeatingId] = useState(null)
+      const onConfirmAssignment = vi.fn()
+
+      return createElement(HostTableInspector, {
+        isOpen: true,
+        table: { id: 't102', label: 'T102', maxGuestCapacity: 2 },
+        tableLabel: 'T102',
+        rows: ALL_AVAILABLE_SEATINGS,
+        assignmentContext: {
+          reservation: { id: 'res-1', guestName: 'Samaridis', guests: 2, time: '20:45' },
+          seatingId,
+          tableLabel: 'T102',
+          draftTableLabels: 'T102',
+          canAssign: Boolean(seatingId),
+          onConfirmAssignment,
+          onCancelAssignment: vi.fn(),
+          onSelectSeating: setSeatingId,
+        },
+        onClose: vi.fn(),
+      })
+    }
+
+    const container = document.createElement('div')
+    document.body.appendChild(container)
+    const root = createRoot(container)
+
+    act(() => {
+      root.render(createElement(AssignmentSelectionHarness))
+    })
+
+    expect(document.querySelector('[data-testid="floor-table-day-choose-seating"]')?.textContent)
+      .toBe('Choose a seating')
+    expect(document.querySelector('[data-testid="floor-table-day-assign-reservation"]')).toBeNull()
+
+    const availableRows = document.querySelectorAll('[data-testid="floor-table-day-row-available"]')
+    act(() => {
+      availableRows[2]?.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    })
+
+    expect(document.querySelector('[data-testid="floor-table-day-row-assignment"]')).not.toBeNull()
+    expect(document.querySelector('[data-testid="floor-table-day-assign-reservation"]')).not.toBeNull()
+
+    act(() => {
+      root.unmount()
+    })
+    container.remove()
+    document.querySelectorAll('[data-testid="host-table-inspector"]').forEach((node) => node.remove())
+  })
+
+  it('keeps Tap to seat here as normal new-reservation flow when no reservation is selected', () => {
+    const onNewReservation = vi.fn()
+    const { query, cleanup } = renderInspector({
+      rows: [{
+        seating: SEATING,
+        reservation: null,
+        conflicts: [],
+        hasConflict: false,
+        isAvailable: true,
+        timeWindowLabel: '19:00–21:00',
+        state: 'available',
+      }],
+      onNewReservation,
+      assignmentContext: null,
+    })
+
+    expect(document.querySelector('[data-testid="floor-table-day-row-assignment"]')).toBeNull()
+    expect(query('[data-testid="floor-table-day-new-reservation"]')).not.toBeNull()
+
+    act(() => {
+      query('[data-testid="floor-table-day-new-reservation"]')
+        ?.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    })
+    expect(onNewReservation).toHaveBeenCalledWith(SEATING)
+    cleanup()
+  })
+
+  it('disables assign when the selected seating is occupied or conflicted in drawer mode', () => {
+    const { query, cleanup } = renderInspector({
+      rows: [{
+        seating: SEATING,
+        reservation: { id: 'res-1', guestName: 'Maria', guests: 2, time: '19:30' },
+        conflicts: [],
+        hasConflict: false,
+        isAvailable: false,
+        timeWindowLabel: '19:00–21:00',
+        state: 'reserved',
+        statusLabel: 'Reserved',
+        assignedTablesLabel: 'T102',
+      }],
+      assignmentContext: {
+        reservation: { id: 'res-pending', guestName: 'Samaridis', guests: 2, time: '20:45' },
+        seatingId: 'dinner-1',
+        tableLabel: 'T102',
+        draftTableLabels: 'T102',
+        canAssign: false,
+        onConfirmAssignment: vi.fn(),
+        onCancelAssignment: vi.fn(),
+        onSelectSeating: vi.fn(),
+      },
+    })
+
+    expect(query('[data-testid="floor-table-day-assign-reservation"]')?.disabled).toBe(true)
+    expect(query('.floor-table-day-assignment-blocked')).not.toBeNull()
+    cleanup()
   })
 })
 

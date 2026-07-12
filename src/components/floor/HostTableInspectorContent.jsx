@@ -398,6 +398,7 @@ function TableInspectorAvailableRow({
   assignmentContext = null,
   onNewReservation,
   showDivider = false,
+  tableCapacityLabel = '',
 }) {
   const { seating, timeWindowLabel } = row
   const isAssignmentMode = Boolean(assignmentContext?.reservation)
@@ -415,6 +416,30 @@ function TableInspectorAvailableRow({
 
   const stopRowSelection = (event) => {
     event.stopPropagation()
+  }
+
+  if (isAssignmentMode && isAssignmentSelected) {
+    return (
+      <div
+        className="table-inspector-seating-row is-assignment-pending"
+        data-testid="floor-table-day-row-assignment"
+      >
+        {showDivider ? (
+          <div className="table-inspector-seating-divider" aria-hidden="true" />
+        ) : null}
+        <TableDayViewAssignmentRow
+          row={row}
+          assignmentReservation={assignmentContext.reservation}
+          tableLabel={assignmentContext.tableLabel}
+          draftTableLabels={assignmentContext.draftTableLabels}
+          tableCapacityLabel={tableCapacityLabel}
+          isSaving={isSaving}
+          canAssign={assignmentContext.canAssign !== false}
+          onConfirmAssignment={assignmentContext.onConfirmAssignment}
+          onCancelAssignment={assignmentContext.onCancelAssignment}
+        />
+      </div>
+    )
   }
 
   return (
@@ -806,6 +831,7 @@ export function HostTableInspectorContent({
                       assignmentContext={assignmentContext}
                       onNewReservation={onNewReservation}
                       showDivider={index > 0}
+                      tableCapacityLabel={assignmentCapacityLabel}
                     />
                   ))}
                 </li>
