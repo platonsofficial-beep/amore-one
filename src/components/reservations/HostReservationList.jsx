@@ -25,7 +25,7 @@ import {
 import { getHostListEmptyState } from '../../lib/reservationServiceIntelligence'
 import { groupHostQueueOperationalSections } from '../../lib/hostQueuePipeline'
 import { groupHostQueueReservationsByTime } from '../../lib/hostQueueTimeGroups'
-import { HostQueueReservationDetails, HostQueueNameIndicators } from '../mobile/reservations/HostQueueReservationDetails'
+import { HostQueueReservationDetails, HostQueueNameIndicators, HostReservationMetaLine } from '../mobile/reservations/HostQueueReservationDetails'
 import { buildHostQueueRowPresentation } from '../../lib/hostQueuePipeline'
 import { HostReservationStatusPicker } from './HostReservationStatusPicker'
 
@@ -172,7 +172,7 @@ function HostReservationListRow({
             />
           ) : (
             <div className="host-reservation-card-details">
-              <span className="host-reservation-card-meta">{metaLine}</span>
+              <HostReservationMetaLine metaLine={metaLine} />
             </div>
           )}
         </div>

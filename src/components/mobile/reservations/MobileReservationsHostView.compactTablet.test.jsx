@@ -192,7 +192,13 @@ describe('MobileReservationsHostView compact tablet list', () => {
   it('renders assigned table metadata with separator spacing', () => {
     const { container, unmount } = renderSplitHostView()
 
-    expect(container.textContent).toContain('👤 4 guests  •  🍽 T15 + T16')
+    const mariaRow = [...container.querySelectorAll('.host-reservation-card')]
+      .find((row) => row.textContent?.includes('Maria'))
+    const metaItems = mariaRow?.querySelectorAll('.host-queue-row-meta-item')
+
+    expect(metaItems?.[0]?.textContent).toBe('👤 4 guests')
+    expect(metaItems?.[1]?.textContent).toBe('🍽 T15 + T16')
+    expect(mariaRow?.querySelectorAll('.host-queue-row-meta-bullet')).toHaveLength(1)
 
     unmount()
   })
@@ -200,7 +206,13 @@ describe('MobileReservationsHostView compact tablet list', () => {
   it('renders unassigned metadata with separator spacing', () => {
     const { container, unmount } = renderSplitHostView()
 
-    expect(container.textContent).toContain('👤 4 guests  •  🍽 Unassigned')
+    const alexRow = [...container.querySelectorAll('.host-reservation-card')]
+      .find((row) => row.textContent?.includes('Alex'))
+    const metaItems = alexRow?.querySelectorAll('.host-queue-row-meta-item')
+
+    expect(metaItems?.[0]?.textContent).toBe('👤 4 guests')
+    expect(metaItems?.[1]?.textContent).toBe('🍽 Unassigned')
+    expect(alexRow?.querySelectorAll('.host-queue-row-meta-bullet')).toHaveLength(1)
 
     unmount()
   })

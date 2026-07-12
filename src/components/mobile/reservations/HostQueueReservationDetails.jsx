@@ -1,5 +1,37 @@
 import { buildHostQueueRowPresentation } from '../../../lib/hostQueuePipeline'
 
+const HOST_QUEUE_META_SEPARATOR = '  •  '
+const HOST_LIST_META_SEPARATOR = ' • '
+
+export function HostReservationMetaLine({
+  metaLine = '',
+  ariaLabel = '',
+  className = 'host-queue-row-meta-line',
+}) {
+  const separator = metaLine.includes(HOST_QUEUE_META_SEPARATOR)
+    ? HOST_QUEUE_META_SEPARATOR
+    : HOST_LIST_META_SEPARATOR
+  const items = `${metaLine ?? ''}`
+    .split(separator)
+    .map((entry) => entry.trim())
+    .filter(Boolean)
+
+  if (items.length === 0) return null
+
+  return (
+    <span className={className} aria-label={ariaLabel || undefined}>
+      {items.map((item, index) => (
+        <span key={`${item}-${index}`} className="host-queue-row-meta-segment">
+          {index > 0 ? (
+            <span className="host-queue-row-meta-bullet" aria-hidden="true">•</span>
+          ) : null}
+          <span className="host-queue-row-meta-item">{item}</span>
+        </span>
+      ))}
+    </span>
+  )
+}
+
 export function HostQueueReservationDetails({
   reservation,
   layout = null,
@@ -9,12 +41,10 @@ export function HostQueueReservationDetails({
 
   return (
     <div className={className}>
-      <span
-        className="host-queue-row-meta-line"
-        aria-label={presentation.metaAriaLabel}
-      >
-        {presentation.metaLine}
-      </span>
+      <HostReservationMetaLine
+        metaLine={presentation.metaLine}
+        ariaLabel={presentation.metaAriaLabel}
+      />
       {presentation.chips.length > 0 || presentation.overflowCount > 0 ? (
         <div className="host-queue-row-chips" aria-label="Operational requirements">
           {presentation.chips.map((chip) => (
