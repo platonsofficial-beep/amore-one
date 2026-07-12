@@ -30,6 +30,7 @@ import { HostReservationEditPanel, createHostReservationEditForm } from './compo
 import { HostReservationEditErrorBoundary } from './components/reservations/HostReservationEditErrorBoundary'
 import { HostReservationList } from './components/reservations/HostReservationList'
 import { HOST_LIST_HELPERS } from './components/reservations/hostReservationListHelpers'
+import { normalizeStoredCustomerType } from './lib/reservationCustomerType'
 import { HostManagerSummaryBar } from './components/reservations/HostManagerSummaryBar'
 import { formatHostNextArrivalHint } from './components/reservations/HostServiceHealthStrip'
 import { HostWorkspaceDateNav } from './components/reservations/HostWorkspaceDateNav'
@@ -19654,7 +19655,7 @@ function App() {
         date: validation.date,
         time: validation.time,
         guests: form.guests,
-        customerType: form.customerType,
+        customerType: normalizeStoredCustomerType(form.customerType),
         status: form.status,
         notes: form.notes.trim(),
         area: form.area,

@@ -8,8 +8,10 @@ import {
   getReservationDisplayStatus,
 } from '../../../lib/reservationHostStatus'
 import { formatHostReservationListTime } from '../../../lib/timeFormatUtils'
-import { HostQueueReservationDetails, HostQueueNameIndicators } from './HostQueueReservationDetails'
+import { HostQueueReservationDetails, HostQueueNameIndicators, HostReservationGuestTypeBadge } from './HostQueueReservationDetails'
 import { buildHostQueueRowPresentation } from '../../../lib/hostQueuePipeline'
+import { HOST_LIST_HELPERS } from '../../reservations/hostReservationListHelpers'
+import { getHostNameGuestTypeBadgeMeta } from '../../reservations/hostReservationListUtils'
 
 function getActionClassName(action) {
   if (action.id === 'edit') return 'mobile-host-reservation-action is-ghost'
@@ -46,6 +48,10 @@ function MobileHostReservationCompactRow({
   const nameIndicators = useHostQueuePresentation
     ? buildHostQueueRowPresentation(reservation, floorLayout).nameIndicators
     : []
+  const guestTypeBadge = getHostNameGuestTypeBadgeMeta(
+    reservation,
+    HOST_LIST_HELPERS.getGuestCustomerType,
+  )
 
   return (
     <li className="mobile-host-reservation-item">
@@ -69,6 +75,7 @@ function MobileHostReservationCompactRow({
             <span className="mobile-host-reservation-row-time">{timeLabel}</span>
             <span className="mobile-host-reservation-row-name">
               {guestName}
+              <HostReservationGuestTypeBadge badge={guestTypeBadge} />
               <HostQueueNameIndicators indicators={nameIndicators} />
             </span>
           </div>

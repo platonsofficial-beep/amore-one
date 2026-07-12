@@ -5512,6 +5512,9 @@
 }
 
 .mobile-host-reservation-row-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   min-width: 0;
   color: #fff7e8;
   font-size: 0.94rem;

@@ -383,6 +383,38 @@ describe('MobileReservationQuickCreateSheet edit mode', () => {
 
     unmount()
   })
+
+  it('submits changed guest type on save changes', async () => {
+    const onSubmit = vi.fn(async () => true)
+    const { container, unmount } = renderEditSheet({ onSubmit })
+
+    act(() => {
+      const select = container.querySelector('[data-testid="host-quick-create-customer-type"]')
+      select.value = 'House Guest'
+      select.dispatchEvent(new Event('change', { bubbles: true }))
+    })
+
+    await clickPrimaryAction(container)
+
+    expect(onSubmit.mock.calls[0][1].customerType).toBe('House Guest')
+
+    unmount()
+  })
+
+  it('reopens edit with saved guest type and hidden notes marker', () => {
+    const { container, unmount } = renderEditSheet({
+      reservation: {
+        ...EDIT_RESERVATION,
+        customerType: undefined,
+        notes: 'Window seat\n@@CUSTOMER@@VIP',
+      },
+    })
+
+    expect(container.querySelector('[data-testid="host-quick-create-customer-type"]')?.value).toBe('VIP')
+    expect(container.querySelector('textarea')?.value).toBe('Window seat')
+
+    unmount()
+  })
 })
 
 describe('MobileReservationQuickCreateSheet create mode regression', () => {

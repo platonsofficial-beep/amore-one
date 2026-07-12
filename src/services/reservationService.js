@@ -9,11 +9,14 @@ import {
   parseSeatingAssignmentFromNotes,
   stripSeatingAssignmentFromNotes,
 } from '../lib/seatingAssignment'
+import { ensureWalkInNotesMarker } from '../lib/hostQuickCreateForm'
 import {
   encodeCustomerTypeInNotes,
+  normalizeStoredCustomerType,
   parseCustomerTypeFromNotes,
   stripCustomerTypeFromNotes,
 } from '../lib/reservationCustomerType'
+import { getReservationEditableNotesText } from '../lib/hostQueueNoteBadges'
 
 function mapReservation(record) {
   const rawNotes = record.notes ?? ''
@@ -149,10 +152,14 @@ export function buildReservationUpdatePayload(reservation, patch) {
     partySize: patch.guests ?? reservation.guests,
   })
 
-  const userNotes = stripCustomerTypeFromNotes(
-    stripSeatingAssignmentFromNotes(patch.notes ?? reservation.notes),
+  const status = normalizeReservationStatus(patch.status ?? reservation.status ?? 'Pending')
+  let userNotes = getReservationEditableNotesText(patch.notes ?? reservation.notes)
+  if (status === 'Walk In') {
+    userNotes = ensureWalkInNotesMarker(userNotes)
+  }
+  const customerType = normalizeStoredCustomerType(
+    patch.customerType ?? reservation.customerType ?? parseCustomerTypeFromNotes(reservation.notes),
   )
-  const customerType = patch.customerType ?? reservation.customerType ?? 'Regular'
   const tableNumber = seatingAssignment.assignedUnits.length > 0
     ? formatSeatingAssignmentLabels(seatingAssignment)
     : Object.hasOwn(patch, 'assignedUnits') || Object.hasOwn(patch, 'tableNumber')

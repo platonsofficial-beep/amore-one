@@ -114,6 +114,17 @@ describe('hostFloorReservationState', () => {
     )
   })
 
+  it('keeps customerType on optimistic reservation updates', () => {
+    const reservation = buildReservation({ notes: 'Window seat' })
+    const optimistic = mergeOptimisticReservationUpdate(reservation, {
+      customerType: 'VIP',
+      notes: 'Window seat',
+    })
+
+    expect(optimistic.customerType).toBe('VIP')
+    expect(optimistic.notes).toContain('@@CUSTOMER@@VIP')
+  })
+
   it('replaces reservations by id without duplicating the collection', () => {
     const original = buildReservation({ seatingId: 'dinner-1' })
     const moved = buildReservation({ seatingId: 'dinner-2' })

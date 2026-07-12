@@ -25,8 +25,9 @@ import {
 import { getHostListEmptyState } from '../../lib/reservationServiceIntelligence'
 import { groupHostQueueOperationalSections } from '../../lib/hostQueuePipeline'
 import { groupHostQueueReservationsByTime } from '../../lib/hostQueueTimeGroups'
-import { HostQueueReservationDetails, HostQueueNameIndicators, HostReservationMetaLine } from '../mobile/reservations/HostQueueReservationDetails'
+import { HostQueueReservationDetails, HostQueueNameIndicators, HostReservationGuestTypeBadge } from '../mobile/reservations/HostQueueReservationDetails'
 import { buildHostQueueRowPresentation } from '../../lib/hostQueuePipeline'
+import { getHostNameGuestTypeBadgeMeta } from './hostReservationListUtils'
 import { HostReservationStatusPicker } from './HostReservationStatusPicker'
 
 function formatHostListScheduleLabel(reservation, todayKey) {
@@ -80,6 +81,7 @@ function HostReservationListRow({
   const {
     formatReservationGuestName,
     getHostReservationWarnings,
+    getGuestCustomerType,
   } = helpers
 
   const guestName = formatReservationGuestName(reservation.guestName)
@@ -99,6 +101,9 @@ function HostReservationListRow({
   const nameIndicators = useHostQueuePresentation
     ? buildHostQueueRowPresentation(reservation, floorLayout).nameIndicators
     : []
+  const guestTypeBadge = typeof getGuestCustomerType === 'function'
+    ? getHostNameGuestTypeBadgeMeta(reservation, getGuestCustomerType)
+    : null
   const visualIndicator = getHostReservationVisualIndicator(reservation, nowMinutes, todayKey)
   const warnings = getHostReservationWarnings(reservation, nowMinutes, todayKey)
   const quickActions = layout === 'default'
@@ -157,6 +162,7 @@ function HostReservationListRow({
             />
           ) : null}
           <strong className="host-reservation-card-guest">{guestName}</strong>
+          <HostReservationGuestTypeBadge badge={guestTypeBadge} />
           <HostQueueNameIndicators indicators={nameIndicators} />
           {warnings.length > 0 && !isLateWithDuration ? (
             <span className="host-reservation-card-warning" title="Needs attention" aria-label="Needs attention">

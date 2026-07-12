@@ -416,6 +416,7 @@ export function createHostQuickCreateFormState(prefill = {}, { todayKey = '', la
     time,
     guests: `${prefill?.guests ?? '2'}`,
     notes: `${prefill?.notes ?? ''}`,
+    customerType: `${prefill?.customerType ?? EMPTY_HOST_QUICK_CREATE_FORM.customerType}`,
     seatingId,
     seatingManuallyOverridden,
     recommendedSeatingId,

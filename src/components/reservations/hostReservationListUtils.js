@@ -363,6 +363,24 @@ export function buildHostManagerSummary(visibleReservations = [], nowMinutes, to
   }
 }
 
+export function getHostNameGuestTypeBadgeMeta(reservation, getGuestCustomerType) {
+  const customerType = getGuestCustomerType(reservation)
+
+  if (customerType === 'VVIP') {
+    return { label: 'VVIP', className: 'type-vvip' }
+  }
+
+  if (customerType === 'VIP') {
+    return { label: 'VIP', className: 'type-vip' }
+  }
+
+  if (customerType === 'House Guest') {
+    return { label: 'HOUSE GUEST', className: 'type-house-guest' }
+  }
+
+  return null
+}
+
 export function getHostListCustomerTypeMeta(reservation, getGuestCustomerType) {
   const notes = `${reservation?.notes ?? ''}`.toLowerCase()
   const customerType = getGuestCustomerType(reservation)

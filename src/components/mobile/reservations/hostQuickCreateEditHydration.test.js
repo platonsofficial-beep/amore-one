@@ -84,4 +84,15 @@ describe('buildQuickCreateEditHydration', () => {
     expect(hydration.quickForm.extraChairs).toBe(1)
     expect(hydration.quickForm.assignedUnits.map((unit) => unit.id)).toEqual(['t18'])
   })
+
+  it('hydrates guest type and notes from encoded notes marker only', () => {
+    const hydration = buildQuickCreateEditHydration({
+      ...reservation,
+      customerType: undefined,
+      notes: `Window seat\n@@CUSTOMER@@House Guest`,
+    }, LAYOUT, SEATINGS, '2026-07-10')
+
+    expect(hydration.quickForm.customerType).toBe('House Guest')
+    expect(hydration.quickForm.notes).toBe('Window seat')
+  })
 })

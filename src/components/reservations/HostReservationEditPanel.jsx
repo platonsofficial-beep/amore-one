@@ -5,7 +5,12 @@ import {
   getReservationAssignedUnitsForMatching,
   getReservationSeatingAssignment,
 } from '../../lib/seatingAssignment'
-import { GUEST_TYPE_OPTIONS } from '../../lib/reservationCustomerType'
+import {
+  GUEST_TYPE_OPTIONS,
+  normalizeStoredCustomerType,
+  parseCustomerTypeFromNotes,
+} from '../../lib/reservationCustomerType'
+import { getReservationEditableNotesText } from '../../lib/hostQueueNoteBadges'
 import { resolveAreaIdForReservation } from '../../lib/reservationTableOptions'
 import { resolveReservationSeatingId } from '../../lib/reservationSeatings'
 import { normalizeReservationTimeValue, normalizeReservationDateKey } from '../../lib/timeFormatUtils'
@@ -38,7 +43,9 @@ export function createHostReservationEditForm(reservation, layout, seatings = []
     guests: reservation.guests ?? 2,
     time: reservation.time ?? '',
     phone: reservation.phone ?? '',
-    customerType: reservation.customerType ?? 'Regular',
+    customerType: normalizeStoredCustomerType(
+      reservation.customerType ?? parseCustomerTypeFromNotes(reservation.notes),
+    ),
     area: reservation.area ?? '',
   }
   const assignment = getReservationSeatingAssignment(safeReservation)
@@ -52,7 +59,7 @@ export function createHostReservationEditForm(reservation, layout, seatings = []
     guests: `${safeReservation.guests ?? 2}`,
     customerType: safeReservation.customerType,
     status: safeReservation.status,
-    notes: safeReservation.notes,
+    notes: getReservationEditableNotesText(safeReservation.notes),
     area: safeReservation.area,
     assignedUnits,
     extraChairs: assignment.extraChairs ?? 0,

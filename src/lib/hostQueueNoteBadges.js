@@ -25,8 +25,25 @@ const STRUCTURED_BADGE_SUPPRESSION = {
   'vip': 'vip',
 }
 
+export function stripWalkInNotesMarker(notes = '') {
+  return `${notes ?? ''}`
+    .split('\n')
+    .map((line) => line.trim())
+    .filter((line) => {
+      if (!line) return false
+      const lower = line.toLowerCase()
+      return lower !== 'walk-in' && lower !== 'walk in' && lower !== 'walkin'
+    })
+    .join('\n')
+    .trim()
+}
+
 export function getReservationUserNotesText(notes = '') {
   return stripCustomerTypeFromNotes(stripSeatingAssignmentFromNotes(notes)).trim()
+}
+
+export function getReservationEditableNotesText(notes = '') {
+  return stripWalkInNotesMarker(getReservationUserNotesText(notes))
 }
 
 export function deriveHostQueueNoteBadges(

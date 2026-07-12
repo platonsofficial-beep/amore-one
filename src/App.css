@@ -5273,6 +5273,40 @@
   line-height: 1.2;
 }
 
+.host-reservation-guest-type-badge {
+  display: inline-flex;
+  align-items: center;
+  flex: 0 0 auto;
+  padding: 1px 5px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.04);
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 0.48rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  line-height: 1.1;
+  white-space: nowrap;
+}
+
+.host-reservation-guest-type-badge.type-vip {
+  border-color: rgba(212, 175, 55, 0.35);
+  background: rgba(212, 175, 55, 0.12);
+  color: #e8d7a8;
+}
+
+.host-reservation-guest-type-badge.type-vvip {
+  border-color: rgba(240, 194, 123, 0.4);
+  background: rgba(240, 194, 123, 0.14);
+  color: #f5ddb0;
+}
+
+.host-reservation-guest-type-badge.type-house-guest {
+  border-color: rgba(176, 196, 222, 0.35);
+  background: rgba(176, 196, 222, 0.12);
+  color: #d4e2f4;
+}
+
 .host-reservation-card-details {
   display: flex;
   flex-wrap: wrap;

@@ -68,4 +68,33 @@ describe('MobileReservationHostCard compact tablet row', () => {
 
     unmount()
   })
+
+  it('renders guest type badge beside the guest name when present', () => {
+    const { container, unmount } = renderCard({
+      reservation: {
+        ...reservation,
+        notes: 'Anniversary\n@@CUSTOMER@@VVIP',
+        customerType: 'VVIP',
+      },
+      useHostQueuePresentation: true,
+    })
+
+    expect(container.querySelector('.host-reservation-guest-type-badge')?.textContent).toBe('VVIP')
+
+    unmount()
+  })
+
+  it('does not render guest type badge for Normal guests', () => {
+    const { container, unmount } = renderCard({
+      reservation: {
+        ...reservation,
+        customerType: 'Regular',
+      },
+      useHostQueuePresentation: true,
+    })
+
+    expect(container.querySelector('.host-reservation-guest-type-badge')).toBeNull()
+
+    unmount()
+  })
 })

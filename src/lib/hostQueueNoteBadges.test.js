@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   deriveHostQueueNoteBadges,
+  getReservationEditableNotesText,
   getReservationUserNotesText,
   summarizeHostQueueNoteBadges,
 } from './hostQueueNoteBadges'
@@ -49,5 +50,10 @@ describe('hostQueueNoteBadges', () => {
   it('strips serialized seating metadata from note search text', () => {
     const notes = 'Guest prefers patio\n@@SEATING@@{"assignedUnits":[{"id":"t10","label":"T10"}]}'
     expect(getReservationUserNotesText(notes)).toBe('Guest prefers patio')
+  })
+
+  it('strips internal customer and walk-in markers from editable notes', () => {
+    const notes = 'Birthday table\nwalk-in\n@@CUSTOMER@@VIP'
+    expect(getReservationEditableNotesText(notes)).toBe('Birthday table')
   })
 })

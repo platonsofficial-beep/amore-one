@@ -190,3 +190,16 @@ export function HostQueueNameIndicators({ indicators = [] }) {
     </span>
   )
 }
+
+export function HostReservationGuestTypeBadge({ badge = null }) {
+  if (!badge?.label) return null
+
+  return (
+    <span
+      className={`host-reservation-guest-type-badge ${badge.className}`}
+      aria-label={`Guest type: ${badge.label}`}
+    >
+      {badge.label}
+    </span>
+  )
+}
