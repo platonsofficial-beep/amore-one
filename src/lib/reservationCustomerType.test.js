@@ -51,4 +51,10 @@ describe('reservationCustomerType', () => {
     expect(parseCustomerTypeFromNotes(encoded)).toBe('VIP')
     expect(stripCustomerTypeFromNotes(encoded)).toBe('Birthday table\nwalk-in')
   })
+
+  it('parses customer type when seating metadata follows the marker', () => {
+    const notes = `Window seat${CUSTOMER_TYPE_MARKER}VVIP\n@@SEATING@@{"assignedUnits":[]}`
+    expect(parseCustomerTypeFromNotes(notes)).toBe('VVIP')
+    expect(stripCustomerTypeFromNotes(notes)).toBe('Window seat\n@@SEATING@@{"assignedUnits":[]}')
+  })
 })

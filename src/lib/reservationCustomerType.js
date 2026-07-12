@@ -22,6 +22,12 @@ export function normalizeStoredCustomerType(customerType) {
   return 'Regular'
 }
 
+function readStoredCustomerTypeValue(rawValue = '') {
+  const firstLine = `${rawValue ?? ''}`.trim().split('\n')[0]?.trim() ?? ''
+  if (firstLine === 'VIP' || firstLine === 'VVIP' || firstLine === 'House Guest') return firstLine
+  return 'Regular'
+}
+
 export function parseCustomerTypeFromNotes(notes) {
   const value = `${notes ?? ''}`
   const markerIndex = value.indexOf(CUSTOMER_TYPE_MARKER)
@@ -32,16 +38,23 @@ export function parseCustomerTypeFromNotes(notes) {
     return 'Regular'
   }
 
-  const raw = value.slice(markerIndex + CUSTOMER_TYPE_MARKER.length).trim()
-  if (raw === 'VIP' || raw === 'VVIP' || raw === 'House Guest') return raw
-  return 'Regular'
+  const raw = value.slice(markerIndex + CUSTOMER_TYPE_MARKER.length)
+  return readStoredCustomerTypeValue(raw)
 }
 
 export function stripCustomerTypeFromNotes(notes) {
   const value = `${notes ?? ''}`
   const markerIndex = value.indexOf(CUSTOMER_TYPE_MARKER)
   if (markerIndex < 0) return value.trim()
-  return value.slice(0, markerIndex).trim()
+
+  const before = value.slice(0, markerIndex).trimEnd()
+  const afterMarker = value.slice(markerIndex + CUSTOMER_TYPE_MARKER.length)
+  const afterLines = afterMarker.split('\n')
+  const remainder = afterLines.slice(1).join('\n').trim()
+
+  if (!remainder) return before.trim()
+  if (!before) return remainder
+  return `${before}\n${remainder}`.trim()
 }
 
 export function encodeCustomerTypeInNotes(notes, customerType) {

@@ -68,20 +68,32 @@ function resolveTableNumberForSerialize(seatingAssignment, reservation) {
   return `${reservation.tableNumber ?? ''}`.trim()
 }
 
-function serializeReservation(reservation) {
-  const seatingAssignment = resolveSeatingAssignmentForSerialize(reservation)
-  const tableNumber = resolveTableNumberForSerialize(seatingAssignment, reservation)
-  const userNotes = stripCustomerTypeFromNotes(
-    stripSeatingAssignmentFromNotes(reservation.notes),
+function buildPersistedReservationNotes(reservation, {
+  customerType = reservation.customerType,
+  userNotes = getReservationEditableNotesText(reservation.notes),
+  status = reservation.status,
+  seatingAssignment = resolveSeatingAssignmentForSerialize(reservation),
+} = {}) {
+  const normalizedStatus = normalizeReservationStatus(status ?? 'Pending')
+  let editableNotes = `${userNotes ?? ''}`.trim()
+  if (normalizedStatus === 'Walk In') {
+    editableNotes = ensureWalkInNotesMarker(editableNotes)
+  }
+
+  const normalizedCustomerType = normalizeStoredCustomerType(
+    customerType ?? parseCustomerTypeFromNotes(reservation.notes),
   )
-  const notesWithCustomer = encodeCustomerTypeInNotes(
-    userNotes,
-    reservation.customerType ?? parseCustomerTypeFromNotes(reservation.notes),
-  )
-  const notes = encodeSeatingAssignmentInNotes(
+  const notesWithCustomer = encodeCustomerTypeInNotes(editableNotes, normalizedCustomerType)
+  return encodeSeatingAssignmentInNotes(
     notesWithCustomer,
     seatingAssignment.assignedUnits.length > 0 ? seatingAssignment : null,
   )
+}
+
+function serializeReservation(reservation) {
+  const seatingAssignment = resolveSeatingAssignmentForSerialize(reservation)
+  const tableNumber = resolveTableNumberForSerialize(seatingAssignment, reservation)
+  const notes = buildPersistedReservationNotes(reservation, { seatingAssignment })
 
   return {
     guest_name: `${reservation.guestName ?? reservation.guest_name ?? ''}`.trim(),
@@ -95,6 +107,14 @@ function serializeReservation(reservation) {
     seating_id: reservation.seatingId ?? reservation.seating_id ?? null,
     notes,
   }
+}
+
+export function serializeReservationForPersistence(reservation) {
+  return serializeReservation(reservation)
+}
+
+export function mapReservationRecord(record) {
+  return mapReservation(record)
 }
 
 export function createSeatingAssignmentPayload(reservation, assignmentInput, { markSeated = false } = {}) {
@@ -153,12 +173,13 @@ export function buildReservationUpdatePayload(reservation, patch) {
   })
 
   const status = normalizeReservationStatus(patch.status ?? reservation.status ?? 'Pending')
-  let userNotes = getReservationEditableNotesText(patch.notes ?? reservation.notes)
-  if (status === 'Walk In') {
-    userNotes = ensureWalkInNotesMarker(userNotes)
-  }
-  const customerType = normalizeStoredCustomerType(
-    patch.customerType ?? reservation.customerType ?? parseCustomerTypeFromNotes(reservation.notes),
+  const customerType = Object.hasOwn(patch, 'customerType')
+    ? normalizeStoredCustomerType(patch.customerType)
+    : normalizeStoredCustomerType(
+      reservation.customerType ?? parseCustomerTypeFromNotes(reservation.notes),
+    )
+  const userNotes = getReservationEditableNotesText(
+    Object.hasOwn(patch, 'notes') ? patch.notes : reservation.notes,
   )
   const tableNumber = seatingAssignment.assignedUnits.length > 0
     ? formatSeatingAssignmentLabels(seatingAssignment)
@@ -179,10 +200,12 @@ export function buildReservationUpdatePayload(reservation, patch) {
       ? (patch.seatingId ?? null)
       : (reservation.seatingId ?? reservation.seating_id ?? null),
     customerType,
-    notes: encodeSeatingAssignmentInNotes(
-      encodeCustomerTypeInNotes(userNotes, customerType),
-      seatingAssignment.assignedUnits.length > 0 ? seatingAssignment : null,
-    ),
+    notes: buildPersistedReservationNotes(reservation, {
+      customerType,
+      userNotes,
+      status,
+      seatingAssignment,
+    }),
     seatingAssignment,
   }
 }
