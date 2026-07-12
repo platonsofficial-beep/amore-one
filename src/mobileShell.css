@@ -4616,7 +4616,7 @@
 .host-queue-row-meta-group {
   display: inline-flex;
   align-items: baseline;
-  gap: 0.35em;
+  gap: 0.55em;
   flex: 0 0 auto;
   max-width: 100%;
   white-space: nowrap;
@@ -4648,7 +4648,7 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding-inline: 0.55em;
+  padding-inline: 0.85em;
   color: rgba(255, 255, 255, 0.38);
   font-size: 0.68em;
   line-height: 1;
