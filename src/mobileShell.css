@@ -5150,6 +5150,18 @@
 
 .mobile-host-reservations.is-host-queue .host-reservation-card-details.host-queue-row-details {
   min-width: 0;
+  align-items: flex-start;
+  align-self: stretch;
+  width: 100%;
+}
+
+.mobile-host-reservations.is-host-queue .host-queue-row-details {
+  width: 100%;
+}
+
+.mobile-host-reservations.is-host-queue .host-queue-row-meta-line {
+  justify-content: flex-start;
+  width: 100%;
 }
 
 .mobile-host-reservations.is-host-queue .host-queue-row-details.mobile-host-reservation-row-meta {
