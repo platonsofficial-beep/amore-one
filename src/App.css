@@ -3520,6 +3520,37 @@
   font-weight: 600;
 }
 
+.host-workspace-date-picker-footer {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.host-workspace-date-picker-footer-btn {
+  flex: 1 1 0;
+  min-height: 44px;
+  padding: 0 12px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.04);
+  color: #d8d0c3;
+  font-size: 0.82rem;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.host-workspace-date-picker-footer-btn:hover,
+.host-workspace-date-picker-footer-btn:focus-visible {
+  background: rgba(255, 255, 255, 0.08);
+  color: #f7efe1;
+  outline: none;
+}
+
+.host-workspace-date-picker-footer-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
 .host-workspace-date-nav-today {
   min-height: 44px;
   padding: 0 14px;

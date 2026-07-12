@@ -126,6 +126,54 @@ describe('MobileHostReservationDateNav', () => {
     unmount()
   })
 
+  it('selects today and closes the picker when Today is tapped', async () => {
+    const onSelectDate = vi.fn()
+    const { container, unmount } = renderHostView({
+      onSelectDate,
+      todayKey: '2026-07-11',
+      workspaceTodayKey: '2026-07-10',
+    })
+
+    await act(async () => {
+      container.querySelector('[data-testid="mobile-host-date-calendar"]')
+        ?.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    })
+
+    await act(async () => {
+      document.querySelector('[data-testid="host-workspace-date-picker-today"]')
+        ?.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    })
+
+    expect(onSelectDate).toHaveBeenCalledWith('2026-07-10')
+    expect(document.querySelector('[data-testid="mobile-host-date-picker"]')).toBeNull()
+
+    unmount()
+  })
+
+  it('closes the picker without changing the date when Cancel is tapped', async () => {
+    const onSelectDate = vi.fn()
+    const { container, unmount } = renderHostView({
+      onSelectDate,
+      todayKey: '2026-07-11',
+      workspaceTodayKey: '2026-07-10',
+    })
+
+    await act(async () => {
+      container.querySelector('[data-testid="mobile-host-date-calendar"]')
+        ?.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    })
+
+    await act(async () => {
+      document.querySelector('[data-testid="host-workspace-date-picker-cancel"]')
+        ?.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    })
+
+    expect(onSelectDate).not.toHaveBeenCalled()
+    expect(document.querySelector('[data-testid="mobile-host-date-picker"]')).toBeNull()
+
+    unmount()
+  })
+
   it('shows a plain date label when viewing a non-today date', () => {
     const { container, unmount } = renderHostView({
       todayKey: '2026-07-11',

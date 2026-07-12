@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { normalizeReservationDateKey } from '../../lib/timeFormatUtils'
 import {
   HOST_WORKSPACE_CALENDAR_WEEKDAY_LABELS,
   buildHostWorkspaceCalendarWeeks,
@@ -24,9 +25,16 @@ export function HostWorkspaceDatePicker({
     [viewMonthKey, selectedDateKey, workspaceTodayKey],
   )
 
+  const normalizedTodayKey = normalizeReservationDateKey(workspaceTodayKey)
+
   const handleSelectDay = (dateKey) => {
     onSelectDate(dateKey)
-    onClose()
+    onClose?.()
+  }
+
+  const handleSelectToday = () => {
+    if (!normalizedTodayKey) return
+    handleSelectDay(normalizedTodayKey)
   }
 
   return (
@@ -82,6 +90,26 @@ export function HostWorkspaceDatePicker({
           </div>
         ))}
       </div>
+
+      <footer className="host-workspace-date-picker-footer">
+        <button
+          type="button"
+          className="host-workspace-date-picker-footer-btn"
+          onClick={onClose}
+          data-testid="host-workspace-date-picker-cancel"
+        >
+          Cancel
+        </button>
+        <button
+          type="button"
+          className="host-workspace-date-picker-footer-btn"
+          onClick={handleSelectToday}
+          disabled={!normalizedTodayKey}
+          data-testid="host-workspace-date-picker-today"
+        >
+          Today
+        </button>
+      </footer>
     </div>
   )
 }
