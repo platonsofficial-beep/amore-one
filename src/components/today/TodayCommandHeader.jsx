@@ -23,8 +23,14 @@ export function TodayCommandHeader({
           <div className="today-command-row today-command-row-identity">
             <div className="today-command-identity">
               <h2 className="today-command-greeting">{greeting}</h2>
-              {executiveMessage ? (
-                <p className="today-executive-message">{executiveMessage}</p>
+              {executiveMessage?.message ? (
+                <p
+                  className={`today-executive-message tone-${executiveMessage.tone ?? 'neutral'}`}
+                  aria-live="polite"
+                >
+                  <span className="today-executive-indicator" aria-hidden="true" />
+                  <span className="today-executive-copy">{executiveMessage.message}</span>
+                </p>
               ) : null}
               <div className="today-command-venue-row">
                 {workspaceBadge ? (

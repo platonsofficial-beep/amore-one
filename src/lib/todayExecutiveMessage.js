@@ -6,6 +6,14 @@ function clampExecutiveMessage(message) {
   return `${text.slice(0, TODAY_EXECUTIVE_MESSAGE_MAX_LENGTH - 1).trimEnd()}…`
 }
 
+function buildExecutivePresentation({ tone, message }) {
+  return {
+    tone,
+    indicator: 'dot',
+    message: clampExecutiveMessage(message),
+  }
+}
+
 export function hasTodayStockProblems({
   stockSummary = null,
   stockSummaryLine = '',
@@ -32,37 +40,68 @@ export function buildTodayExecutiveMessage({
   hasStockProblems = false,
 } = {}) {
   if (hasUrgentAttention) {
-    return clampExecutiveMessage('🚨 Immediate attention required.')
+    const urgentMessage = isServiceInProgress
+      ? 'Immediate attention is required during service.'
+      : 'Immediate attention is required before service.'
+    return buildExecutivePresentation({
+      tone: 'critical',
+      message: urgentMessage,
+    })
   }
 
   const overdue = Number(overdueTaskCount) || 0
   if (overdue > 0) {
-    const taskLabel = overdue === 1 ? 'task' : 'tasks'
-    return clampExecutiveMessage(`⚠️ You have ${overdue} overdue ${taskLabel}.`)
+    const overdueMessage = overdue === 1
+      ? '1 overdue task needs your attention.'
+      : `${overdue} overdue tasks need your attention.`
+    return buildExecutivePresentation({
+      tone: 'warning',
+      message: overdueMessage,
+    })
   }
 
   if (hasScheduleGaps) {
-    return clampExecutiveMessage('👥 Schedule has staffing gaps.')
+    return buildExecutivePresentation({
+      tone: 'warning',
+      message: 'Staffing gaps need attention before service.',
+    })
   }
 
   const reservations = Number(reservationsTodayCount) || 0
   if (reservations > 0) {
-    const reservationLabel = reservations === 1 ? 'reservation' : 'reservations'
-    return clampExecutiveMessage(`🍽️ ${reservations} ${reservationLabel} expected today.`)
+    const reservationsMessage = reservations === 1
+      ? '1 reservation is expected today.'
+      : `${reservations} reservations are expected today.`
+    return buildExecutivePresentation({
+      tone: 'neutral',
+      message: reservationsMessage,
+    })
   }
 
   const shiftStart = `${firstShiftStartLabel ?? ''}`.trim()
   if (!isServiceInProgress && shiftStart) {
-    return clampExecutiveMessage(`🕒 First shift starts at ${shiftStart}.`)
+    return buildExecutivePresentation({
+      tone: 'neutral',
+      message: `The first shift starts at ${shiftStart}.`,
+    })
   }
 
   if (isServiceInProgress) {
-    return clampExecutiveMessage('🟢 Service is currently in progress.')
+    return buildExecutivePresentation({
+      tone: 'positive',
+      message: 'Service is currently in progress.',
+    })
   }
 
   if (hasStockProblems) {
-    return clampExecutiveMessage('📦 Stock items require attention.')
+    return buildExecutivePresentation({
+      tone: 'warning',
+      message: 'Stock items require attention.',
+    })
   }
 
-  return clampExecutiveMessage("✨ Everything is ready for today's service.")
+  return buildExecutivePresentation({
+    tone: 'positive',
+    message: "Everything is ready for today's service.",
+  })
 }

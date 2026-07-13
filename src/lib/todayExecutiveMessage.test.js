@@ -5,9 +5,21 @@ import {
   TODAY_EXECUTIVE_MESSAGE_MAX_LENGTH,
 } from './todayExecutiveMessage'
 
+const EMOJI_PATTERN = /[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/u
+
+function expectExecutivePresentation(result, { tone, message }) {
+  expect(result).toEqual({
+    tone,
+    indicator: 'dot',
+    message,
+  })
+  expect(result.message).not.toMatch(EMOJI_PATTERN)
+  expect(result.message.length).toBeLessThanOrEqual(TODAY_EXECUTIVE_MESSAGE_MAX_LENGTH)
+}
+
 describe('todayExecutiveMessage', () => {
   it('selects the highest-priority executive message deterministically', () => {
-    expect(buildTodayExecutiveMessage({
+    expectExecutivePresentation(buildTodayExecutiveMessage({
       hasUrgentAttention: true,
       overdueTaskCount: 4,
       hasScheduleGaps: true,
@@ -15,43 +27,100 @@ describe('todayExecutiveMessage', () => {
       firstShiftStartLabel: '16:30',
       isServiceInProgress: true,
       hasStockProblems: true,
-    })).toBe('🚨 Immediate attention required.')
+    }), {
+      tone: 'critical',
+      message: 'Immediate attention is required during service.',
+    })
 
-    expect(buildTodayExecutiveMessage({
+    expectExecutivePresentation(buildTodayExecutiveMessage({
+      hasUrgentAttention: true,
+      isServiceInProgress: false,
+    }), {
+      tone: 'critical',
+      message: 'Immediate attention is required before service.',
+    })
+
+    expectExecutivePresentation(buildTodayExecutiveMessage({
       overdueTaskCount: 3,
       hasScheduleGaps: true,
       reservationsTodayCount: 7,
-    })).toBe('⚠️ You have 3 overdue tasks.')
+    }), {
+      tone: 'warning',
+      message: '3 overdue tasks need your attention.',
+    })
 
-    expect(buildTodayExecutiveMessage({
+    expectExecutivePresentation(buildTodayExecutiveMessage({
+      overdueTaskCount: 1,
+    }), {
+      tone: 'warning',
+      message: '1 overdue task needs your attention.',
+    })
+
+    expectExecutivePresentation(buildTodayExecutiveMessage({
       hasScheduleGaps: true,
       reservationsTodayCount: 7,
-    })).toBe('👥 Schedule has staffing gaps.')
+    }), {
+      tone: 'warning',
+      message: 'Staffing gaps need attention before service.',
+    })
 
-    expect(buildTodayExecutiveMessage({
+    expectExecutivePresentation(buildTodayExecutiveMessage({
       reservationsTodayCount: 7,
       firstShiftStartLabel: '16:30',
-    })).toBe('🍽️ 7 reservations expected today.')
+    }), {
+      tone: 'neutral',
+      message: '7 reservations are expected today.',
+    })
 
-    expect(buildTodayExecutiveMessage({
+    expectExecutivePresentation(buildTodayExecutiveMessage({
+      reservationsTodayCount: 1,
+    }), {
+      tone: 'neutral',
+      message: '1 reservation is expected today.',
+    })
+
+    expectExecutivePresentation(buildTodayExecutiveMessage({
       firstShiftStartLabel: '16:30',
-    })).toBe('🕒 First shift starts at 16:30.')
+    }), {
+      tone: 'neutral',
+      message: 'The first shift starts at 16:30.',
+    })
 
-    expect(buildTodayExecutiveMessage({
+    expectExecutivePresentation(buildTodayExecutiveMessage({
       isServiceInProgress: true,
-    })).toBe('🟢 Service is currently in progress.')
+    }), {
+      tone: 'positive',
+      message: 'Service is currently in progress.',
+    })
 
-    expect(buildTodayExecutiveMessage({
+    expectExecutivePresentation(buildTodayExecutiveMessage({
       hasStockProblems: true,
-    })).toBe('📦 Stock items require attention.')
+    }), {
+      tone: 'warning',
+      message: 'Stock items require attention.',
+    })
 
-    expect(buildTodayExecutiveMessage({})).toBe("✨ Everything is ready for today's service.")
+    expectExecutivePresentation(buildTodayExecutiveMessage({}), {
+      tone: 'positive',
+      message: "Everything is ready for today's service.",
+    })
   })
 
-  it('keeps messages within the executive subtitle limit', () => {
-    expect(buildTodayExecutiveMessage({
-      overdueTaskCount: 3,
-    }).length).toBeLessThanOrEqual(TODAY_EXECUTIVE_MESSAGE_MAX_LENGTH)
+  it('assigns presentation tones for each executive state', () => {
+    expect(buildTodayExecutiveMessage({ hasUrgentAttention: true }).tone).toBe('critical')
+    expect(buildTodayExecutiveMessage({ overdueTaskCount: 2 }).tone).toBe('warning')
+    expect(buildTodayExecutiveMessage({ hasScheduleGaps: true }).tone).toBe('warning')
+    expect(buildTodayExecutiveMessage({ reservationsTodayCount: 2 }).tone).toBe('neutral')
+    expect(buildTodayExecutiveMessage({ firstShiftStartLabel: '16:30' }).tone).toBe('neutral')
+    expect(buildTodayExecutiveMessage({ isServiceInProgress: true }).tone).toBe('positive')
+    expect(buildTodayExecutiveMessage({ hasStockProblems: true }).tone).toBe('warning')
+    expect(buildTodayExecutiveMessage({}).tone).toBe('positive')
+  })
+
+  it('returns exactly one dot-indicator presentation object', () => {
+    const result = buildTodayExecutiveMessage({ reservationsTodayCount: 4 })
+    expect(result.indicator).toBe('dot')
+    expect(Object.keys(result).sort()).toEqual(['indicator', 'message', 'tone'])
   })
 
   it('detects stock problems from existing summary data only', () => {
