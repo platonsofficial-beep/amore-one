@@ -1355,7 +1355,7 @@ function EmployeePremiumDateField({
 
     updatePickerPosition()
 
-    const handlePointerDown = (event) => {
+    const handleClickOutside = (event) => {
       if (rootRef.current?.contains(event.target)) return
       if (event.target instanceof Element && event.target.closest('.employee-premium-date-picker-portal')) return
       setIsPickerOpen(false)
@@ -1365,18 +1365,30 @@ function EmployeePremiumDateField({
       if (event.key === 'Escape') setIsPickerOpen(false)
     }
 
-    const handleReposition = () => updatePickerPosition()
+    let repositionFrameId = null
+    const scheduleReposition = () => {
+      if (repositionFrameId !== null) cancelAnimationFrame(repositionFrameId)
+      repositionFrameId = requestAnimationFrame(() => {
+        repositionFrameId = null
+        updatePickerPosition()
+      })
+    }
 
-    document.addEventListener('pointerdown', handlePointerDown)
+    const modalScrollContainer = anchorRef.current?.closest('.employee-premium-form-modal')
+
+    document.addEventListener('click', handleClickOutside, true)
     document.addEventListener('keydown', handleKeyDown)
-    window.addEventListener('resize', handleReposition)
-    window.addEventListener('scroll', handleReposition, true)
+    window.addEventListener('resize', scheduleReposition)
+    window.addEventListener('scroll', scheduleReposition, true)
+    modalScrollContainer?.addEventListener('scroll', scheduleReposition, { passive: true })
 
     return () => {
-      document.removeEventListener('pointerdown', handlePointerDown)
+      document.removeEventListener('click', handleClickOutside, true)
       document.removeEventListener('keydown', handleKeyDown)
-      window.removeEventListener('resize', handleReposition)
-      window.removeEventListener('scroll', handleReposition, true)
+      window.removeEventListener('resize', scheduleReposition)
+      window.removeEventListener('scroll', scheduleReposition, true)
+      modalScrollContainer?.removeEventListener('scroll', scheduleReposition)
+      if (repositionFrameId !== null) cancelAnimationFrame(repositionFrameId)
     }
   }, [isPickerOpen, updatePickerPosition])
 
@@ -14340,6 +14352,13 @@ function App() {
   const employeePremiumFormModalRef = useRef(null)
   const [editingEmployee, setEditingEmployee] = useState(null)
   const [employeeForm, setEmployeeForm] = useState(() => buildEmployeeForm())
+  const handleCloseEmployeeModal = useCallback(() => {
+    setIsEmployeeModalOpen(false)
+    setEditingEmployee(null)
+    setSaveError('')
+    setEmployeeFormOpenMenuId(null)
+    setEmployeeForm(buildEmployeeForm())
+  }, [])
   const [positions, setPositions] = useState([])
   const [positionsNotice, setPositionsNotice] = useState('')
   const [isPositionsLoading, setIsPositionsLoading] = useState(true)
@@ -14865,6 +14884,13 @@ function App() {
       ? resolvePermittedTeamSection(role, teamSection || getDefaultTeamSection(role, canAccessTeamSection))
       : teamSection
 
+    if (isEmployeeModalOpen) {
+      const remainsOnPeople = permittedView === 'team' && nextTeamSection === 'members'
+      if (!remainsOnPeople) {
+        handleCloseEmployeeModal()
+      }
+    }
+
     setActiveView(permittedView)
     if (permittedView === 'team') {
       setTeamSection(nextTeamSection)
@@ -14880,10 +14906,15 @@ function App() {
       stockSection,
       operationsSection,
     })
-  }, [role, settingsSection, teamSection, stockSection, operationsSection])
+  }, [role, settingsSection, teamSection, stockSection, operationsSection, isEmployeeModalOpen, handleCloseEmployeeModal, canAccessTeamSection])
 
   const handleTeamSectionChange = useCallback((nextSection) => {
     const permittedSection = resolvePermittedTeamSection(role, nextSection)
+
+    if (isEmployeeModalOpen && activeView === 'team' && permittedSection !== 'members') {
+      handleCloseEmployeeModal()
+    }
+
     setTeamSection(permittedSection)
     if (permittedSection !== 'members') {
       setSelectedEmployee(null)
@@ -14895,7 +14926,7 @@ function App() {
       stockSection,
       operationsSection,
     })
-  }, [role, activeView, settingsSection, stockSection, operationsSection])
+  }, [role, activeView, settingsSection, stockSection, operationsSection, isEmployeeModalOpen, handleCloseEmployeeModal])
 
   const handleStockSectionChange = useCallback((nextSection) => {
     setStockSection(nextSection)
@@ -18036,14 +18067,6 @@ function App() {
     setEmployeeFormOpenMenuId(null)
     setEmployeeForm(buildEmployeeForm(employee))
     setIsEmployeeModalOpen(true)
-  }
-
-  const handleCloseEmployeeModal = () => {
-    setIsEmployeeModalOpen(false)
-    setEditingEmployee(null)
-    setSaveError('')
-    setEmployeeFormOpenMenuId(null)
-    setEmployeeForm(buildEmployeeForm())
   }
 
   useEffect(() => {
