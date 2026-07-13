@@ -188,6 +188,14 @@ export function shouldUseReservationsHostDedicatedShell({
   })
 }
 
+export function resolveExitReservationsHostDestination(previousView, role) {
+  const normalized = `${previousView ?? ''}`.trim()
+  if (normalized && normalized !== 'reservations') {
+    return resolvePermittedActiveView(role, normalized)
+  }
+  return resolvePermittedActiveView(role, 'today')
+}
+
 export function resolveHostMobileTabChange(tab, role) {
   if (!isHostRole(role)) {
     return {

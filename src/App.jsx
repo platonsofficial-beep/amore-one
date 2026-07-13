@@ -561,6 +561,7 @@ import {
   resolveHostMobileTabChange,
   resolveMobileShellVariant,
   resolvePermittedActiveView,
+  resolveExitReservationsHostDestination,
   shouldShowReservationsHostView,
   shouldUseReservationsHostDedicatedShell,
   shouldUseHostStationLanding,
@@ -13997,6 +13998,7 @@ function App() {
   const [workspaceProfileNotice, setWorkspaceProfileNotice] = useState('')
   const [inviteAcceptedNotice, setInviteAcceptedNotice] = useState('')
   const previousActiveViewRef = useRef(activeView)
+  const preReservationsHostViewRef = useRef('today')
 
   const {
     syncDevMembershipProfile,
@@ -15621,6 +15623,12 @@ function App() {
       setInviteAcceptedNotice(notice)
     }
   }, [isAuthLoading])
+
+  useEffect(() => {
+    if (activeView !== 'reservations') {
+      preReservationsHostViewRef.current = activeView
+    }
+  }, [activeView])
 
   useEffect(() => {
     const enteredSettings = shouldInitializeWorkspaceProfileDraft(
@@ -21548,7 +21556,12 @@ function App() {
 
   const handleMobileExitReservationsHostMode = useCallback(() => {
     setMobileReservationsHostMode(false)
-  }, [])
+    setMobileExpandedView(null)
+    handleActiveViewChange(resolveExitReservationsHostDestination(
+      preReservationsHostViewRef.current,
+      role,
+    ))
+  }, [role, handleActiveViewChange])
 
   const handleMobileHostReservationCreate = async (form) => {
     if (!canManageReservationsRole) return false

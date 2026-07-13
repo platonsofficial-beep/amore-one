@@ -143,6 +143,8 @@ describe('host station responsive routing', () => {
       expect(appSource).toContain('hideGlobalAppSidebar')
       expect(appSource).toContain('useHostStationShell = isHostMobileShell || useReservationsHostDedicatedShell')
       expect(appSource).toContain('onExitHostMode={isHostMobileRole(role) ? undefined : handleMobileExitReservationsHostMode}')
+      expect(appSource).toContain('resolveExitReservationsHostDestination')
+      expect(appSource).toContain('handleActiveViewChange(resolveExitReservationsHostDestination')
     })
 
     it('does not duplicate a separate desktop Host Station component', () => {

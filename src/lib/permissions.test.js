@@ -31,6 +31,7 @@ import {
   resolvePermittedActiveView,
   resolvePermittedOperationsSection,
   resolvePermittedTeamSection,
+  resolveExitReservationsHostDestination,
   shouldShowReservationsHostView,
   shouldUseHostStationLanding,
   shouldUseHostStationShell,
@@ -226,6 +227,13 @@ describe('permissions', () => {
         useMobileExperience: false,
         mobileReservationsHostMode: true,
       })).toBe(false)
+    })
+
+    it('resolves management host exit to the previous main view or Today', () => {
+      expect(resolveExitReservationsHostDestination('stock', 'owner')).toBe('stock')
+      expect(resolveExitReservationsHostDestination('operations', 'manager')).toBe('operations')
+      expect(resolveExitReservationsHostDestination('reservations', 'general_manager')).toBe('today')
+      expect(resolveExitReservationsHostDestination('', 'owner')).toBe('today')
     })
   })
 
