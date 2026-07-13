@@ -18166,6 +18166,51 @@
   }
 }
 
+.employee-premium-form .employee-premium-phone-field.reservation-phone-field {
+  gap: 0;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  background: rgba(12, 12, 13, 0.62);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+  overflow: hidden;
+}
+
+.employee-premium-form .employee-premium-phone-field .reservation-phone-field-country-picker {
+  min-width: 7.5rem;
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.employee-premium-form .employee-premium-phone-field .phone-country-picker-trigger {
+  min-height: 44px;
+  height: 44px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.employee-premium-form .employee-premium-phone-field .phone-country-picker-trigger-label {
+  font-size: 0.88rem;
+  white-space: nowrap;
+}
+
+.employee-premium-form .employee-premium-phone-field .reservation-phone-field-input {
+  min-height: 44px;
+  height: 44px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  font-size: 0.9rem;
+}
+
+.employee-premium-form .employee-premium-phone-field .phone-country-picker-trigger:focus-visible,
+.employee-premium-form .employee-premium-phone-field .reservation-phone-field-input:focus-visible {
+  outline: 0;
+  box-shadow: inset 0 0 0 2px rgba(212, 175, 55, 0.42);
+}
+
 .employee-premium-form-section:has(.employee-premium-position-grid) {
   padding-bottom: 18px;
 }

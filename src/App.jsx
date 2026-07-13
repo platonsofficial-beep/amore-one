@@ -1261,6 +1261,19 @@ function mergeEmployeeFullName(firstName = '', lastName = '') {
     .join(' ')
 }
 
+function normalizeEmployeePhoneForDisplay(phone = '') {
+  const trimmed = `${phone}`.trim()
+  if (!trimmed) return ''
+  if (trimmed.startsWith('00')) {
+    return `+${trimmed.slice(2).replace(/\s/g, '')}`
+  }
+  return trimmed
+}
+
+function dismissEmployeeFormOverlayPickers() {
+  document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))
+}
+
 const EMPLOYEE_FORM_SELECT_Z_INDEX = 1300
 const EMPLOYEE_DATE_PICKER_Z_INDEX = 1250
 const EMPLOYEE_DATE_PICKER_WIDTH = 300
@@ -1469,6 +1482,9 @@ function EmployeePremiumFieldSelect({
   const selectedOption = options.find((option) => option.value === value) ?? options[0]
 
   const setIsOpen = useCallback((nextOpen) => {
+    if (nextOpen) {
+      dismissEmployeeFormOverlayPickers()
+    }
     setOpenMenuId(nextOpen ? menuId : null)
   }, [menuId, setOpenMenuId])
 
@@ -1622,6 +1638,9 @@ function EmployeePremiumPositionField({
   }, [options, value])
 
   const setIsOpen = useCallback((nextOpen) => {
+    if (nextOpen) {
+      dismissEmployeeFormOverlayPickers()
+    }
     setOpenMenuId(nextOpen ? menuId : null)
   }, [menuId, setOpenMenuId])
 
@@ -23323,7 +23342,17 @@ function App() {
                   <div className="employee-premium-form-grid">
                     <label className="form-field">
                       <span>Phone</span>
-                      <input value={employeeForm.phone} onChange={(event) => setEmployeeForm((current) => ({ ...current, phone: event.target.value }))} placeholder="Phone" />
+                      <div
+                        className="employee-premium-phone-field-wrap"
+                        onPointerDownCapture={() => setEmployeeFormOpenMenuId(null)}
+                      >
+                        <ReservationPhoneField
+                          className="reservation-phone-field employee-premium-phone-field"
+                          value={normalizeEmployeePhoneForDisplay(employeeForm.phone)}
+                          onChange={(phone) => setEmployeeForm((current) => ({ ...current, phone }))}
+                          placeholder="Local number"
+                        />
+                      </div>
                     </label>
                     <label className="form-field">
                       <span>Email</span>
