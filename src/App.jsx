@@ -399,6 +399,10 @@ import {
   preventReservationFormSubmit,
 } from './lib/reservationFormNavigation'
 import {
+  focusNextEmployeeFormField,
+  handleEmployeeFormEnterKey,
+} from './lib/employeeFormNavigation'
+import {
   buildEmployeeWeeklyHoursMap,
   calculateShiftDurationHours,
   formatHoursLabel,
@@ -1411,6 +1415,11 @@ function EmployeePremiumDateField({
   const handleSelectDate = (dateKey) => {
     onChange(normalizeReservationDateKey(dateKey))
     closePicker()
+    requestAnimationFrame(() => {
+      if (anchorRef.current) {
+        focusNextEmployeeFormField(anchorRef.current)
+      }
+    })
   }
 
   const pickerPortal = isPickerOpen && pickerPosition && typeof document !== 'undefined'
@@ -1532,6 +1541,11 @@ function EmployeePremiumFieldSelect({
         event.preventDefault()
         onChange(options[activeIndex].value)
         setIsOpen(false)
+        requestAnimationFrame(() => {
+          if (triggerRef.current) {
+            focusNextEmployeeFormField(triggerRef.current)
+          }
+        })
       }
     }
 
@@ -1596,7 +1610,14 @@ function EmployeePremiumFieldSelect({
           className="employee-premium-field-select-trigger"
           onClick={() => setIsOpen(!isOpen)}
           onKeyDown={(event) => {
-            if (event.key === 'Enter' || event.key === ' ') {
+            if (event.key === 'Enter') {
+              event.preventDefault()
+              if (!isOpen) {
+                setIsOpen(true)
+              }
+              return
+            }
+            if (event.key === ' ') {
               event.preventDefault()
               setIsOpen(!isOpen)
             }
@@ -1689,6 +1710,11 @@ function EmployeePremiumPositionField({
         event.preventDefault()
         onChange(filteredOptions[activeIndex].value)
         setIsOpen(false)
+        requestAnimationFrame(() => {
+          if (inputRef.current) {
+            focusNextEmployeeFormField(inputRef.current)
+          }
+        })
       }
     }
 
@@ -1759,6 +1785,21 @@ function EmployeePremiumPositionField({
             if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
               event.preventDefault()
               setIsOpen(true)
+              return
+            }
+
+            if (event.key === 'Enter') {
+              if (!isOpen) {
+                event.preventDefault()
+                focusNextEmployeeFormField(event.currentTarget)
+                return
+              }
+
+              if (filteredOptions.length === 0) {
+                event.preventDefault()
+                setIsOpen(false)
+                focusNextEmployeeFormField(event.currentTarget)
+              }
             }
           }}
           aria-autocomplete="list"
@@ -23235,7 +23276,7 @@ function App() {
                 <button type="button" className="icon-btn employee-premium-form-close" onClick={handleCloseEmployeeModal} aria-label="Close employee form">✕</button>
               </div>
 
-              <form className="employee-form employee-premium-form" onSubmit={handleEmployeeSubmit}>
+              <form className="employee-form employee-premium-form" onSubmit={handleEmployeeSubmit} onKeyDownCapture={handleEmployeeFormEnterKey}>
                 <section className="employee-premium-form-section">
                   <h4 className="employee-premium-form-section-title">Basic Information</h4>
                   <div className="employee-premium-form-grid">
