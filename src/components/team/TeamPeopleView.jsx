@@ -31,6 +31,13 @@ function formatEmployeeTodayShift(employee, employeeTodayShifts = {}) {
   return todayShift || 'Not scheduled'
 }
 
+function handleEmployeeCardKeyDown(event, employee, onSelectEmployee) {
+  if (event.key !== 'Enter' && event.key !== ' ') return
+
+  event.preventDefault()
+  onSelectEmployee(employee)
+}
+
 export function TeamPeopleView({
   employees,
   totalEmployeeCount = 0,
@@ -97,7 +104,15 @@ export function TeamPeopleView({
       ) : (
         <div className="team-people-grid">
           {employees.map((employee) => (
-            <article key={employee.id} className="team-people-card">
+            <article
+              key={employee.id}
+              className="team-people-card"
+              role="button"
+              tabIndex={0}
+              aria-label={`View ${employee.name}`}
+              onClick={() => onSelectEmployee(employee)}
+              onKeyDown={(event) => handleEmployeeCardKeyDown(event, employee, onSelectEmployee)}
+            >
               <div className="team-people-card-top">
                 <div className="employee-photo">{getInitials(employee.name)}</div>
                 <div className="team-people-card-identity">
@@ -122,13 +137,9 @@ export function TeamPeopleView({
                 </div>
               </dl>
 
-              <button
-                type="button"
-                className="team-people-card-action"
-                onClick={() => onSelectEmployee(employee)}
-              >
+              <span className="team-people-card-action" aria-hidden="true">
                 Open
-              </button>
+              </span>
             </article>
           ))}
         </div>
