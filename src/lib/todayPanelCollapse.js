@@ -8,7 +8,10 @@ export const TODAY_PANEL_IDS = {
   QUICK_ACTIONS: 'quick-actions',
 }
 
-export function getDefaultTodayPanelExpanded(panelId, { hasUrgentAttention = false } = {}) {
+export function getDefaultTodayPanelExpanded(panelId, {
+  hasUrgentAttention = false,
+  hasShiftsToday = false,
+} = {}) {
   switch (panelId) {
     case TODAY_PANEL_IDS.ANNOUNCEMENTS:
     case TODAY_PANEL_IDS.SERVICE_TIMELINE:
@@ -16,11 +19,19 @@ export function getDefaultTodayPanelExpanded(panelId, { hasUrgentAttention = fal
     case TODAY_PANEL_IDS.ATTENTION:
       return hasUrgentAttention
     case TODAY_PANEL_IDS.TEAM_TODAY:
+      return hasShiftsToday
     case TODAY_PANEL_IDS.QUICK_ACTIONS:
       return false
     default:
       return true
   }
+}
+
+export function hasTeamTodayShifts(groups = []) {
+  return (groups ?? []).reduce(
+    (sum, group) => sum + (group?.members?.length ?? 0),
+    0,
+  ) > 0
 }
 
 function readStoredPanelState() {

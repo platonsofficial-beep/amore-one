@@ -447,6 +447,7 @@ import {
 } from './lib/todayDashboardUtils'
 import {
   getDefaultTodayPanelExpanded,
+  hasTeamTodayShifts,
   hasTodayPanelStoredPreference,
   readTodayPanelExpanded,
   TODAY_PANEL_IDS,
@@ -1110,7 +1111,9 @@ function CommandCenterView({
 
           <TodayCollapsiblePanel
             panelId={TODAY_PANEL_IDS.TEAM_TODAY}
-            defaultExpanded={getDefaultTodayPanelExpanded(TODAY_PANEL_IDS.TEAM_TODAY)}
+            defaultExpanded={getDefaultTodayPanelExpanded(TODAY_PANEL_IDS.TEAM_TODAY, {
+              hasShiftsToday: hasTeamTodayShifts(teamTodayGroups),
+            })}
             title="Team Today"
             ariaLabel="Team today"
             summary={formatTeamTodayCollapsedSummary({
