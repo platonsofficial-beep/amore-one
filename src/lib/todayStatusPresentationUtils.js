@@ -50,7 +50,7 @@ function buildTeamCard(teamScheduledSummary = '') {
     title: 'Team',
     primary: scheduledMatch ? `${scheduledMatch[1]} scheduled` : parts[0],
     secondary: parts[1] || (parts[0]?.includes('today') ? 'On roster today' : ''),
-    tone: parts[1]?.includes('gap') ? 'warning' : 'default',
+    tone: /open shift/i.test(parts[1] ?? '') || parts[1]?.includes('gap') ? 'warning' : 'default',
   }
 }
 

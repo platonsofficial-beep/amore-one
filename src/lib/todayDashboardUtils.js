@@ -15,6 +15,17 @@ function formatPluralCount(count, singular, plural = `${singular}s`) {
   return `${count} ${count === 1 ? singular : plural}`
 }
 
+function formatTeamTodayCoverageCopy(label = '') {
+  const text = `${label ?? ''}`.trim()
+  if (!text) return text
+
+  return text
+    .replace(/\b(\d+)\s+coverage gaps\b/gi, '$1 Open shifts')
+    .replace(/\b1\s+coverage gap\b/gi, '1 Open shift')
+    .replace(/\b(\d+)\s+gaps\b/gi, '$1 Open shifts')
+    .replace(/\b1\s+gap\b/gi, '1 Open shift')
+}
+
 function isTimeWithinShift(nowMinutes, startMinutes, endMinutes) {
   if (startMinutes === null || endMinutes === null) return false
   if (startMinutes === endMinutes) return false
@@ -288,7 +299,7 @@ export function formatTeamTodayCollapsedSummary({
 
   const coverageLabel = teamStatus.coverageTone === 'ok'
     ? 'Service covered'
-    : (teamStatus.coverageDetail || teamStatus.coverageValue || 'Review coverage')
+    : formatTeamTodayCoverageCopy(teamStatus.coverageDetail || teamStatus.coverageValue || 'Review coverage')
 
   return `${workingLabel} · ${coverageLabel}`
 }
@@ -301,7 +312,7 @@ export function formatAttentionCollapsedSummary(items = []) {
 
   const parts = []
   if (urgentCount > 0) {
-    parts.push(formatPluralCount(urgentCount, 'urgent', 'urgent'))
+    parts.push(formatPluralCount(urgentCount, 'Needs attention', 'Needs attention'))
   }
   if (reminderCount > 0) {
     parts.push(formatPluralCount(reminderCount, 'reminder', 'reminders'))

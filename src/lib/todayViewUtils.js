@@ -213,11 +213,11 @@ export function buildTodayStatusSummary({
   let teamScheduledSummary = 'No shifts scheduled today'
   if (scheduledStaff === 1) {
     teamScheduledSummary = coverageGaps > 0
-      ? `1 scheduled · ${coverageGaps} gap${coverageGaps === 1 ? '' : 's'}`
+      ? `1 scheduled · ${coverageGaps} Open shift${coverageGaps === 1 ? '' : 's'}`
       : '1 scheduled today'
   } else if (scheduledStaff > 0) {
     teamScheduledSummary = coverageGaps > 0
-      ? `${scheduledStaff} scheduled · ${coverageGaps} gap${coverageGaps === 1 ? '' : 's'}`
+      ? `${scheduledStaff} scheduled · ${coverageGaps} Open shift${coverageGaps === 1 ? '' : 's'}`
       : `${scheduledStaff} scheduled today`
   }
 

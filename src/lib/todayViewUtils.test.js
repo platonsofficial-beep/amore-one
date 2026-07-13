@@ -68,7 +68,7 @@ describe('todayViewUtils', () => {
       snapshot: { scheduledStaff: 5, coverageGaps: 2 },
     })
 
-    expect(summary.teamScheduledSummary).toBe('5 scheduled · 2 gaps')
+    expect(summary.teamScheduledSummary).toBe('5 scheduled · 2 Open shifts')
   })
 
   it('prioritizes urgent issues before service actions and information', () => {
