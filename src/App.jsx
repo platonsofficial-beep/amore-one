@@ -46,6 +46,8 @@ import {
 } from './components/reservations/hostReservationListUtils'
 import { ReservationTableSelector } from './components/reservations/ReservationTableSelector'
 import { ReservationDateField } from './components/reservations/ReservationDateField'
+import { HostWorkspaceDatePicker } from './components/reservations/HostWorkspaceDatePicker'
+import { ReservationCalendarIcon } from './components/reservations/ReservationCalendarIcon'
 import { ReservationPhoneField } from './components/reservations/ReservationPhoneField'
 import { ReservationTimeSelect } from './components/reservations/ReservationTimeSelect'
 import { ReservationSeatingSelect } from './components/reservations/ReservationSeatingSelect'
@@ -1260,6 +1262,8 @@ function mergeEmployeeFullName(firstName = '', lastName = '') {
 }
 
 const EMPLOYEE_FORM_SELECT_Z_INDEX = 1300
+const EMPLOYEE_DATE_PICKER_Z_INDEX = 1250
+const EMPLOYEE_DATE_PICKER_WIDTH = 300
 
 const EMPLOYEE_DEPARTMENT_OPTIONS = [
   { value: 'Service', label: 'Service' },
@@ -1297,19 +1301,164 @@ function computeEmployeePremiumSelectPosition(anchorRect) {
   return { top, left, width: menuWidth }
 }
 
+function computeEmployeeDatePickerPosition(anchorRect) {
+  const viewportPadding = 16
+  const pickerWidth = Math.min(EMPLOYEE_DATE_PICKER_WIDTH, window.innerWidth - viewportPadding * 2)
+  const maxLeft = window.innerWidth - pickerWidth - viewportPadding
+  const preferredLeft = anchorRect.right - pickerWidth
+  const left = Math.max(viewportPadding, Math.min(preferredLeft, maxLeft))
+  const top = anchorRect.bottom + 6
+  const maxTop = window.innerHeight - viewportPadding
+
+  return {
+    top: Math.min(top, maxTop),
+    left,
+    width: pickerWidth,
+  }
+}
+
+function formatEmployeeFormDateLabel(value) {
+  const normalized = normalizeReservationDateKey(value)
+  if (!normalized) return ''
+
+  const [year, month, day] = normalized.split('-')
+  const parsed = new Date(`${year}-${month}-${day}`)
+  if (Number.isNaN(parsed.getTime())) return normalized
+
+  return parsed.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+}
+
+function EmployeePremiumDateField({
+  value,
+  onChange,
+  todayKey = '',
+  id,
+}) {
+  const normalizedValue = normalizeReservationDateKey(value)
+  const workspaceTodayKey = normalizeReservationDateKey(todayKey) || normalizedValue
+  const [isPickerOpen, setIsPickerOpen] = useState(false)
+  const [pickerPosition, setPickerPosition] = useState(null)
+  const rootRef = useRef(null)
+  const anchorRef = useRef(null)
+  const displayLabel = formatEmployeeFormDateLabel(normalizedValue)
+
+  const updatePickerPosition = useCallback(() => {
+    if (!anchorRef.current) return
+    setPickerPosition(computeEmployeeDatePickerPosition(anchorRef.current.getBoundingClientRect()))
+  }, [])
+
+  useEffect(() => {
+    if (!isPickerOpen) {
+      setPickerPosition(null)
+      return undefined
+    }
+
+    updatePickerPosition()
+
+    const handlePointerDown = (event) => {
+      if (rootRef.current?.contains(event.target)) return
+      if (event.target instanceof Element && event.target.closest('.employee-premium-date-picker-portal')) return
+      setIsPickerOpen(false)
+    }
+
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') setIsPickerOpen(false)
+    }
+
+    const handleReposition = () => updatePickerPosition()
+
+    document.addEventListener('pointerdown', handlePointerDown)
+    document.addEventListener('keydown', handleKeyDown)
+    window.addEventListener('resize', handleReposition)
+    window.addEventListener('scroll', handleReposition, true)
+
+    return () => {
+      document.removeEventListener('pointerdown', handlePointerDown)
+      document.removeEventListener('keydown', handleKeyDown)
+      window.removeEventListener('resize', handleReposition)
+      window.removeEventListener('scroll', handleReposition, true)
+    }
+  }, [isPickerOpen, updatePickerPosition])
+
+  const openPicker = () => setIsPickerOpen(true)
+  const closePicker = () => setIsPickerOpen(false)
+
+  const handleSelectDate = (dateKey) => {
+    onChange(normalizeReservationDateKey(dateKey))
+    closePicker()
+  }
+
+  const pickerPortal = isPickerOpen && pickerPosition && typeof document !== 'undefined'
+    ? createPortal(
+      <div
+        className="employee-premium-date-picker-portal"
+        style={{
+          position: 'fixed',
+          top: `${pickerPosition.top}px`,
+          left: `${pickerPosition.left}px`,
+          width: `${pickerPosition.width}px`,
+          zIndex: EMPLOYEE_DATE_PICKER_Z_INDEX,
+        }}
+      >
+        <HostWorkspaceDatePicker
+          selectedDateKey={normalizedValue || workspaceTodayKey}
+          workspaceTodayKey={workspaceTodayKey}
+          onSelectDate={handleSelectDate}
+          onClose={closePicker}
+        />
+      </div>,
+      document.body,
+    )
+    : null
+
+  return (
+    <div className="employee-premium-date-field" ref={rootRef}>
+      <button
+        ref={anchorRef}
+        id={id}
+        type="button"
+        className="employee-premium-date-trigger"
+        onClick={openPicker}
+        onKeyDown={(event) => {
+          if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault()
+            openPicker()
+          }
+        }}
+        aria-haspopup="dialog"
+        aria-expanded={isPickerOpen}
+        aria-label="Start date"
+      >
+        <span className={`employee-premium-date-value${displayLabel ? '' : ' is-placeholder'}`}>
+          {displayLabel || 'Select start date'}
+        </span>
+        <ReservationCalendarIcon className="employee-premium-date-icon" />
+      </button>
+      {pickerPortal}
+    </div>
+  )
+}
+
 function EmployeePremiumFieldSelect({
   value,
   onChange,
   options,
   ariaLabel,
   id,
+  menuId,
+  openMenuId,
+  setOpenMenuId,
 }) {
-  const [isOpen, setIsOpen] = useState(false)
+  const isOpen = openMenuId === menuId
   const [menuPosition, setMenuPosition] = useState(null)
   const [activeIndex, setActiveIndex] = useState(-1)
   const rootRef = useRef(null)
   const triggerRef = useRef(null)
   const selectedOption = options.find((option) => option.value === value) ?? options[0]
+
+  const setIsOpen = useCallback((nextOpen) => {
+    setOpenMenuId(nextOpen ? menuId : null)
+  }, [menuId, setOpenMenuId])
 
   const updateMenuPosition = useCallback(() => {
     if (!triggerRef.current) return
@@ -1371,7 +1520,7 @@ function EmployeePremiumFieldSelect({
       window.removeEventListener('resize', handleReposition)
       window.removeEventListener('scroll', handleReposition, true)
     }
-  }, [isOpen, activeIndex, onChange, options, updateMenuPosition, value])
+  }, [activeIndex, isOpen, onChange, options, setIsOpen, updateMenuPosition, value])
 
   const menuPortal = isOpen && menuPosition && typeof document !== 'undefined'
     ? createPortal(
@@ -1417,11 +1566,11 @@ function EmployeePremiumFieldSelect({
           id={id}
           type="button"
           className="employee-premium-field-select-trigger"
-          onClick={() => setIsOpen((current) => !current)}
+          onClick={() => setIsOpen(!isOpen)}
           onKeyDown={(event) => {
             if (event.key === 'Enter' || event.key === ' ') {
               event.preventDefault()
-              setIsOpen((current) => !current)
+              setIsOpen(!isOpen)
             }
           }}
           aria-haspopup="listbox"
@@ -1431,6 +1580,162 @@ function EmployeePremiumFieldSelect({
           <span className="employee-premium-field-select-value">{selectedOption?.label ?? ''}</span>
           <span className="employee-premium-field-select-chevron" aria-hidden="true">▾</span>
         </button>
+      </div>
+      {menuPortal}
+    </>
+  )
+}
+
+function EmployeePremiumPositionField({
+  value,
+  onChange,
+  options,
+  menuId,
+  openMenuId,
+  setOpenMenuId,
+  id,
+  placeholder = 'Search and select primary position',
+}) {
+  const isOpen = openMenuId === menuId
+  const [menuPosition, setMenuPosition] = useState(null)
+  const [activeIndex, setActiveIndex] = useState(-1)
+  const rootRef = useRef(null)
+  const inputRef = useRef(null)
+
+  const filteredOptions = useMemo(() => {
+    const needle = `${value ?? ''}`.trim().toLowerCase()
+    return options
+      .map((position) => ({ value: position.name, label: position.name }))
+      .filter((option) => !needle || option.label.toLowerCase().includes(needle))
+  }, [options, value])
+
+  const setIsOpen = useCallback((nextOpen) => {
+    setOpenMenuId(nextOpen ? menuId : null)
+  }, [menuId, setOpenMenuId])
+
+  const updateMenuPosition = useCallback(() => {
+    if (!inputRef.current) return
+    setMenuPosition(computeEmployeePremiumSelectPosition(inputRef.current.getBoundingClientRect()))
+  }, [])
+
+  useEffect(() => {
+    if (!isOpen) {
+      setActiveIndex(-1)
+      setMenuPosition(null)
+      return undefined
+    }
+
+    setActiveIndex(filteredOptions.length > 0 ? 0 : -1)
+    updateMenuPosition()
+
+    const handlePointerDown = (event) => {
+      if (rootRef.current?.contains(event.target)) return
+      if (event.target instanceof Element && event.target.closest('.employee-premium-field-select-portal')) return
+      setIsOpen(false)
+    }
+
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') {
+        setIsOpen(false)
+        return
+      }
+
+      if (!filteredOptions.length) return
+
+      if (event.key === 'ArrowDown') {
+        event.preventDefault()
+        setActiveIndex((current) => Math.min(filteredOptions.length - 1, Math.max(0, current) + 1))
+        return
+      }
+
+      if (event.key === 'ArrowUp') {
+        event.preventDefault()
+        setActiveIndex((current) => Math.max(0, current - 1))
+        return
+      }
+
+      if (event.key === 'Enter' && activeIndex >= 0) {
+        event.preventDefault()
+        onChange(filteredOptions[activeIndex].value)
+        setIsOpen(false)
+      }
+    }
+
+    const handleReposition = () => updateMenuPosition()
+
+    document.addEventListener('pointerdown', handlePointerDown)
+    document.addEventListener('keydown', handleKeyDown)
+    window.addEventListener('resize', handleReposition)
+    window.addEventListener('scroll', handleReposition, true)
+
+    return () => {
+      document.removeEventListener('pointerdown', handlePointerDown)
+      document.removeEventListener('keydown', handleKeyDown)
+      window.removeEventListener('resize', handleReposition)
+      window.removeEventListener('scroll', handleReposition, true)
+    }
+  }, [activeIndex, filteredOptions, isOpen, onChange, setIsOpen, updateMenuPosition])
+
+  const menuPortal = isOpen && menuPosition && filteredOptions.length > 0 && typeof document !== 'undefined'
+    ? createPortal(
+      <ul
+        className="employee-premium-field-select-menu employee-premium-field-select-portal"
+        role="listbox"
+        aria-label="Primary position options"
+        style={{
+          position: 'fixed',
+          top: `${menuPosition.top}px`,
+          left: `${menuPosition.left}px`,
+          width: `${menuPosition.width}px`,
+          zIndex: EMPLOYEE_FORM_SELECT_Z_INDEX,
+        }}
+      >
+        {filteredOptions.map((option, index) => (
+          <li key={option.value} role="presentation">
+            <button
+              type="button"
+              role="option"
+              className={`employee-premium-field-select-option${option.value === value ? ' is-selected' : ''}${index === activeIndex ? ' is-active' : ''}`}
+              aria-selected={option.value === value}
+              onMouseEnter={() => setActiveIndex(index)}
+              onClick={() => {
+                onChange(option.value)
+                setIsOpen(false)
+              }}
+            >
+              {option.label}
+            </button>
+          </li>
+        ))}
+      </ul>,
+      document.body,
+    )
+    : null
+
+  return (
+    <>
+      <div className={`employee-premium-position-field${isOpen ? ' is-open' : ''}`} ref={rootRef}>
+        <input
+          ref={inputRef}
+          id={id}
+          className="employee-premium-position-input"
+          value={value}
+          placeholder={placeholder}
+          onChange={(event) => onChange(event.target.value)}
+          onFocus={() => setIsOpen(true)}
+          onClick={() => setIsOpen(true)}
+          onKeyDown={(event) => {
+            if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+              event.preventDefault()
+              setIsOpen(true)
+            }
+          }}
+          aria-autocomplete="list"
+          aria-expanded={isOpen}
+          aria-haspopup="listbox"
+          aria-label="Primary position"
+          required
+        />
       </div>
       {menuPortal}
     </>
@@ -14031,6 +14336,7 @@ function App() {
   const [isShiftOverlapConfirmOpen, setIsShiftOverlapConfirmOpen] = useState(false)
   const shiftOverlapConfirmResolverRef = useRef(null)
   const [isEmployeeModalOpen, setIsEmployeeModalOpen] = useState(false)
+  const [employeeFormOpenMenuId, setEmployeeFormOpenMenuId] = useState(null)
   const employeePremiumFormModalRef = useRef(null)
   const [editingEmployee, setEditingEmployee] = useState(null)
   const [employeeForm, setEmployeeForm] = useState(() => buildEmployeeForm())
@@ -17719,6 +18025,7 @@ function App() {
   const handleOpenAddEmployee = () => {
     setEditingEmployee(null)
     setSaveError('')
+    setEmployeeFormOpenMenuId(null)
     setEmployeeForm(buildEmployeeForm())
     setIsEmployeeModalOpen(true)
   }
@@ -17726,6 +18033,7 @@ function App() {
   const handleOpenEditEmployee = (employee) => {
     setEditingEmployee(employee)
     setSaveError('')
+    setEmployeeFormOpenMenuId(null)
     setEmployeeForm(buildEmployeeForm(employee))
     setIsEmployeeModalOpen(true)
   }
@@ -17734,6 +18042,7 @@ function App() {
     setIsEmployeeModalOpen(false)
     setEditingEmployee(null)
     setSaveError('')
+    setEmployeeFormOpenMenuId(null)
     setEmployeeForm(buildEmployeeForm())
   }
 
@@ -22910,6 +23219,9 @@ function App() {
                       <EmployeePremiumFieldSelect
                         id="employee-form-department"
                         ariaLabel="Department"
+                        menuId="employee-department"
+                        openMenuId={employeeFormOpenMenuId}
+                        setOpenMenuId={setEmployeeFormOpenMenuId}
                         value={employeeForm.department}
                         options={EMPLOYEE_DEPARTMENT_OPTIONS}
                         onChange={(department) => setEmployeeForm((current) => ({ ...current, department }))}
@@ -22917,26 +23229,19 @@ function App() {
                     </label>
                     <label className="form-field">
                       <span>Primary Position</span>
-                      <input
-                        className="employee-premium-primary-position-input"
-                        list="employee-primary-position-options"
+                      <EmployeePremiumPositionField
+                        id="employee-form-primary-position"
+                        menuId="employee-primary-position"
+                        openMenuId={employeeFormOpenMenuId}
+                        setOpenMenuId={setEmployeeFormOpenMenuId}
                         value={employeeForm.primaryPosition}
-                        onChange={(event) => setEmployeeForm((current) => {
-                          const nextPrimary = event.target.value
-                          return {
-                            ...current,
-                            primaryPosition: nextPrimary,
-                            additionalPositions: current.additionalPositions.filter((name) => name.toLowerCase() !== `${nextPrimary}`.trim().toLowerCase()),
-                          }
-                        })}
-                        placeholder="Search and select primary position"
-                        required
+                        options={employeePositionOptions}
+                        onChange={(nextPrimary) => setEmployeeForm((current) => ({
+                          ...current,
+                          primaryPosition: nextPrimary,
+                          additionalPositions: current.additionalPositions.filter((name) => name.toLowerCase() !== `${nextPrimary}`.trim().toLowerCase()),
+                        }))}
                       />
-                      <datalist id="employee-primary-position-options">
-                        {employeePositionOptions.map((position) => (
-                          <option key={`primary-position-option-${position.name}`} value={position.name} />
-                        ))}
-                      </datalist>
                     </label>
                   </div>
                 </section>
@@ -22946,8 +23251,8 @@ function App() {
                   <div className="employee-premium-form-grid">
                     <label className="form-field">
                       <span>Start Date</span>
-                      <ReservationDateField
-                        className="reservation-date-field employee-premium-date-field"
+                      <EmployeePremiumDateField
+                        id="employee-form-start-date"
                         value={employeeForm.hireDate}
                         onChange={(hireDate) => setEmployeeForm((current) => ({ ...current, hireDate }))}
                         todayKey={currentDateKey}
@@ -22966,6 +23271,9 @@ function App() {
                       <EmployeePremiumFieldSelect
                         id="employee-form-shift"
                         ariaLabel="Shift"
+                        menuId="employee-shift"
+                        openMenuId={employeeFormOpenMenuId}
+                        setOpenMenuId={setEmployeeFormOpenMenuId}
                         value={employeeForm.shift}
                         options={EMPLOYEE_SHIFT_OPTIONS}
                         onChange={(shift) => setEmployeeForm((current) => ({ ...current, shift }))}
@@ -22976,6 +23284,9 @@ function App() {
                       <EmployeePremiumFieldSelect
                         id="employee-form-status"
                         ariaLabel="Status"
+                        menuId="employee-status"
+                        openMenuId={employeeFormOpenMenuId}
+                        setOpenMenuId={setEmployeeFormOpenMenuId}
                         value={employeeForm.status}
                         options={EMPLOYEE_STATUS_OPTIONS}
                         onChange={(status) => setEmployeeForm((current) => ({ ...current, status }))}
