@@ -1234,6 +1234,30 @@ function getInventoryStatus(quantity, minimumQuantity, selectedStatus = 'In Stoc
   return selectedStatus === 'Low Stock' || selectedStatus === 'Out of Stock' ? 'In Stock' : selectedStatus
 }
 
+function splitEmployeeFullName(fullName = '') {
+  const parts = `${fullName}`.trim().split(/\s+/).filter(Boolean)
+
+  if (parts.length === 0) {
+    return { firstName: '', lastName: '' }
+  }
+
+  if (parts.length === 1) {
+    return { firstName: parts[0], lastName: '' }
+  }
+
+  return {
+    firstName: parts[0],
+    lastName: parts.slice(1).join(' '),
+  }
+}
+
+function mergeEmployeeFullName(firstName = '', lastName = '') {
+  return [firstName, lastName]
+    .map((part) => `${part ?? ''}`.trim())
+    .filter(Boolean)
+    .join(' ')
+}
+
 function buildEmployeeForm(employee = null) {
   const normalizeProfileShift = (shift) => {
     if (!shift) return 'Flexible / Rotating'
@@ -1262,8 +1286,11 @@ function buildEmployeeForm(employee = null) {
       .filter((name) => name && name.toLowerCase() !== primaryPosition.toLowerCase()),
   ))
 
+  const { firstName, lastName } = splitEmployeeFullName(employee?.name ?? '')
+
   return {
-    fullName: employee?.name ?? '',
+    firstName,
+    lastName,
     primaryPosition,
     additionalPositions,
     customPositionName: '',
@@ -17603,7 +17630,9 @@ function App() {
       return
     }
 
-    if (!employeeForm.fullName.trim()) {
+    const mergedFullName = mergeEmployeeFullName(employeeForm.firstName, employeeForm.lastName)
+
+    if (!mergedFullName.trim()) {
       const message = 'Full Name is required.'
       setSaveError(message)
       setStaffNotice(message)
@@ -17665,7 +17694,7 @@ function App() {
     })
 
     const payload = {
-      name: employeeForm.fullName.trim(),
+      name: mergedFullName,
       position: allPositionNames.join(', '),
       positions: selectedPositions,
       primaryPosition: normalizedPrimary,
@@ -22651,152 +22680,193 @@ function App() {
         })()}
 
         {isEmployeeModalOpen ? (
-          <div className="employee-modal-backdrop" onClick={handleCloseEmployeeModal}>
-            <div className="employee-modal" onClick={(event) => event.stopPropagation()}>
-              <div className="drawer-header">
+          <div className="employee-modal-backdrop employee-premium-form-backdrop" onClick={handleCloseEmployeeModal}>
+            <div className="employee-modal employee-premium-form-modal" onClick={(event) => event.stopPropagation()}>
+              <div className="drawer-header employee-premium-form-header">
                 <div>
-                  <p className="eyebrow">Employee form</p>
+                  <p className="eyebrow">Employee</p>
                   <h3>{editingEmployee ? 'Edit employee' : 'Add employee'}</h3>
                 </div>
-                <button type="button" className="icon-btn" onClick={handleCloseEmployeeModal}>✕</button>
+                <button type="button" className="icon-btn employee-premium-form-close" onClick={handleCloseEmployeeModal} aria-label="Close employee form">✕</button>
               </div>
 
-              <form className="employee-form" onSubmit={handleEmployeeSubmit}>
-                <div className="form-grid">
-                  <label className="form-field">
-                    <span>Full Name</span>
-                    <input value={employeeForm.fullName} onChange={(event) => setEmployeeForm((current) => ({ ...current, fullName: event.target.value }))} placeholder="Full Name" required />
-                  </label>
-                  <div className="form-field full-width">
-                    <span>Primary Position (required)</span>
-                    <input
-                      list="employee-primary-position-options"
-                      value={employeeForm.primaryPosition}
-                      onChange={(event) => setEmployeeForm((current) => {
-                        const nextPrimary = event.target.value
-                        return {
-                          ...current,
-                          primaryPosition: nextPrimary,
-                          additionalPositions: current.additionalPositions.filter((name) => name.toLowerCase() !== `${nextPrimary}`.trim().toLowerCase()),
-                        }
-                      })}
-                      placeholder="Search and select primary position"
-                      required
-                    />
-                    <datalist id="employee-primary-position-options">
-                      {employeePositionOptions.map((position) => (
-                        <option key={`primary-position-option-${position.name}`} value={position.name} />
-                      ))}
-                    </datalist>
-                  </div>
-                  <div className="form-field full-width">
-                    <span>Additional Positions (optional)</span>
-                    <div className="positions-chip-grid">
-                      {employeePositionOptions
-                        .filter((position) => position.name.toLowerCase() !== `${employeeForm.primaryPosition ?? ''}`.trim().toLowerCase())
-                        .map((position) => {
-                          const checked = employeeForm.additionalPositions.some((name) => name.toLowerCase() === position.name.toLowerCase())
-
-                          return (
-                            <button
-                              key={`employee-position-chip-${position.name}`}
-                              type="button"
-                              className={`position-chip ${checked ? 'active' : ''}`}
-                              onClick={() => {
-                                setEmployeeForm((current) => {
-                                  const alreadySelected = current.additionalPositions.some((name) => name.toLowerCase() === position.name.toLowerCase())
-                                  const nextAdditional = alreadySelected
-                                    ? current.additionalPositions.filter((name) => name.toLowerCase() !== position.name.toLowerCase())
-                                    : [...current.additionalPositions, position.name]
-
-                                  return {
-                                    ...current,
-                                    additionalPositions: nextAdditional,
-                                  }
-                                })
-                              }}
-                            >
-                              <span className="position-chip-check">{checked ? '☑' : '☐'}</span>
-                              <span>{position.name}</span>
-                            </button>
-                          )
+              <form className="employee-form employee-premium-form" onSubmit={handleEmployeeSubmit}>
+                <section className="employee-premium-form-section">
+                  <h4 className="employee-premium-form-section-title">Basic Information</h4>
+                  <div className="employee-premium-form-grid">
+                    <label className="form-field">
+                      <span>First Name</span>
+                      <input
+                        value={employeeForm.firstName}
+                        onChange={(event) => setEmployeeForm((current) => ({ ...current, firstName: event.target.value }))}
+                        placeholder="First name"
+                        required
+                      />
+                    </label>
+                    <label className="form-field">
+                      <span>Last Name</span>
+                      <input
+                        value={employeeForm.lastName}
+                        onChange={(event) => setEmployeeForm((current) => ({ ...current, lastName: event.target.value }))}
+                        placeholder="Last name"
+                      />
+                    </label>
+                    <label className="form-field">
+                      <span>Department</span>
+                      <select value={employeeForm.department} onChange={(event) => setEmployeeForm((current) => ({ ...current, department: event.target.value }))}>
+                        <option value="Service">Service</option>
+                        <option value="Bar">Bar</option>
+                        <option value="Kitchen">Kitchen</option>
+                        <option value="Management">Management</option>
+                      </select>
+                    </label>
+                    <label className="form-field">
+                      <span>Primary Position</span>
+                      <input
+                        list="employee-primary-position-options"
+                        value={employeeForm.primaryPosition}
+                        onChange={(event) => setEmployeeForm((current) => {
+                          const nextPrimary = event.target.value
+                          return {
+                            ...current,
+                            primaryPosition: nextPrimary,
+                            additionalPositions: current.additionalPositions.filter((name) => name.toLowerCase() !== `${nextPrimary}`.trim().toLowerCase()),
+                          }
                         })}
-                    </div>
+                        placeholder="Search and select primary position"
+                        required
+                      />
+                      <datalist id="employee-primary-position-options">
+                        {employeePositionOptions.map((position) => (
+                          <option key={`primary-position-option-${position.name}`} value={position.name} />
+                        ))}
+                      </datalist>
+                    </label>
                   </div>
-                  <div className="form-field full-width">
-                    <span>+ Add Custom Position</span>
-                    <div className="custom-position-row">
+                </section>
+
+                <section className="employee-premium-form-section">
+                  <h4 className="employee-premium-form-section-title">Employment</h4>
+                  <div className="employee-premium-form-grid">
+                    <label className="form-field">
+                      <span>Start Date</span>
+                      <input type="date" value={employeeForm.hireDate ? new Date(employeeForm.hireDate).toISOString().split('T')[0] : ''} onChange={(event) => setEmployeeForm((current) => ({ ...current, hireDate: event.target.value }))} />
+                    </label>
+                    <label className="form-field">
+                      <span>Weekly Hours</span>
+                      <input value={employeeForm.weeklyHours} onChange={(event) => setEmployeeForm((current) => ({ ...current, weeklyHours: event.target.value }))} placeholder="Weekly hours" />
+                    </label>
+                    <label className="form-field">
+                      <span>Salary</span>
+                      <input value={employeeForm.salary} onChange={(event) => setEmployeeForm((current) => ({ ...current, salary: event.target.value }))} placeholder="Salary" />
+                    </label>
+                    <label className="form-field">
+                      <span>Shift</span>
+                      <select value={employeeForm.shift} onChange={(event) => setEmployeeForm((current) => ({ ...current, shift: event.target.value }))}>
+                        <option value="Flexible / Rotating">Flexible / Rotating</option>
+                        <option value="Morning">Morning</option>
+                        <option value="Evening">Evening</option>
+                        <option value="Night">Night</option>
+                      </select>
+                    </label>
+                    <label className="form-field">
+                      <span>Status</span>
+                      <select value={employeeForm.status} onChange={(event) => setEmployeeForm((current) => ({ ...current, status: event.target.value }))}>
+                        <option value="Working">Working</option>
+                        <option value="Break">Break</option>
+                        <option value="Day Off">Day Off</option>
+                        <option value="Leave">Leave</option>
+                      </select>
+                    </label>
+                  </div>
+                </section>
+
+                <section className="employee-premium-form-section">
+                  <h4 className="employee-premium-form-section-title">Contact</h4>
+                  <div className="employee-premium-form-grid">
+                    <label className="form-field">
+                      <span>Phone</span>
+                      <input value={employeeForm.phone} onChange={(event) => setEmployeeForm((current) => ({ ...current, phone: event.target.value }))} placeholder="Phone" />
+                    </label>
+                    <label className="form-field">
+                      <span>Email</span>
+                      <input type="email" value={employeeForm.email} onChange={(event) => setEmployeeForm((current) => ({ ...current, email: event.target.value }))} placeholder="Email" />
+                    </label>
+                    <label className="form-field full-width">
+                      <span>Emergency Contact</span>
+                      <input value={employeeForm.emergencyContact} onChange={(event) => setEmployeeForm((current) => ({ ...current, emergencyContact: event.target.value }))} placeholder="Emergency contact" />
+                    </label>
+                  </div>
+                </section>
+
+                <section className="employee-premium-form-section">
+                  <h4 className="employee-premium-form-section-title">Additional Positions</h4>
+                  <div className="employee-premium-position-grid">
+                    {employeePositionOptions
+                      .filter((position) => position.name.toLowerCase() !== `${employeeForm.primaryPosition ?? ''}`.trim().toLowerCase())
+                      .map((position) => {
+                        const checked = employeeForm.additionalPositions.some((name) => name.toLowerCase() === position.name.toLowerCase())
+
+                        return (
+                          <button
+                            key={`employee-position-chip-${position.name}`}
+                            type="button"
+                            className={`employee-premium-position-chip ${checked ? 'is-selected' : ''}`}
+                            aria-pressed={checked}
+                            onClick={() => {
+                              setEmployeeForm((current) => {
+                                const alreadySelected = current.additionalPositions.some((name) => name.toLowerCase() === position.name.toLowerCase())
+                                const nextAdditional = alreadySelected
+                                  ? current.additionalPositions.filter((name) => name.toLowerCase() !== position.name.toLowerCase())
+                                  : [...current.additionalPositions, position.name]
+
+                                return {
+                                  ...current,
+                                  additionalPositions: nextAdditional,
+                                }
+                              })
+                            }}
+                          >
+                            {position.name}
+                          </button>
+                        )
+                      })}
+                  </div>
+
+                  <div className="employee-premium-custom-position">
+                    <label className="form-field full-width">
+                      <span>Create Custom Position</span>
                       <input
                         value={employeeForm.customPositionName}
                         onChange={(event) => setEmployeeForm((current) => ({ ...current, customPositionName: event.target.value }))}
                         placeholder="e.g. Sommelier, VIP Host, Pizza Chef"
                       />
-                      <button type="button" className="ghost-btn" onClick={handleAddCustomPositionToEmployee} disabled={isSavingEmployee}>+ Add Custom Position</button>
-                    </div>
+                    </label>
+                    <button type="button" className="ghost-btn employee-premium-custom-position-btn" onClick={handleAddCustomPositionToEmployee} disabled={isSavingEmployee}>
+                      Create custom position
+                    </button>
                   </div>
-                  <label className="form-field">
-                    <span>Phone</span>
-                    <input value={employeeForm.phone} onChange={(event) => setEmployeeForm((current) => ({ ...current, phone: event.target.value }))} placeholder="Phone" />
-                  </label>
-                  <label className="form-field">
-                    <span>Email</span>
-                    <input type="email" value={employeeForm.email} onChange={(event) => setEmployeeForm((current) => ({ ...current, email: event.target.value }))} placeholder="Email" />
-                  </label>
-                  <label className="form-field">
-                    <span>Hire Date</span>
-                    <input type="date" value={employeeForm.hireDate ? new Date(employeeForm.hireDate).toISOString().split('T')[0] : ''} onChange={(event) => setEmployeeForm((current) => ({ ...current, hireDate: event.target.value }))} />
-                  </label>
-                  <label className="form-field">
-                    <span>Salary</span>
-                    <input value={employeeForm.salary} onChange={(event) => setEmployeeForm((current) => ({ ...current, salary: event.target.value }))} placeholder="Salary" />
-                  </label>
-                  <label className="form-field">
-                    <span>Weekly Hours</span>
-                    <input value={employeeForm.weeklyHours} onChange={(event) => setEmployeeForm((current) => ({ ...current, weeklyHours: event.target.value }))} placeholder="Weekly Hours" />
-                  </label>
-                  <label className="form-field">
-                    <span>Department</span>
-                    <select value={employeeForm.department} onChange={(event) => setEmployeeForm((current) => ({ ...current, department: event.target.value }))}>
-                      <option value="Service">Service</option>
-                      <option value="Bar">Bar</option>
-                      <option value="Kitchen">Kitchen</option>
-                      <option value="Management">Management</option>
-                    </select>
-                  </label>
-                  <label className="form-field">
-                    <span>Shift</span>
-                    <select value={employeeForm.shift} onChange={(event) => setEmployeeForm((current) => ({ ...current, shift: event.target.value }))}>
-                      <option value="Flexible / Rotating">Flexible / Rotating</option>
-                      <option value="Morning">Morning</option>
-                      <option value="Evening">Evening</option>
-                      <option value="Night">Night</option>
-                    </select>
-                  </label>
-                  <label className="form-field">
-                    <span>Status</span>
-                    <select value={employeeForm.status} onChange={(event) => setEmployeeForm((current) => ({ ...current, status: event.target.value }))}>
-                      <option value="Working">Working</option>
-                      <option value="Break">Break</option>
-                      <option value="Day Off">Day Off</option>
-                      <option value="Leave">Leave</option>
-                    </select>
-                  </label>
-                  <label className="form-field">
-                    <span>Emergency Contact</span>
-                    <input value={employeeForm.emergencyContact} onChange={(event) => setEmployeeForm((current) => ({ ...current, emergencyContact: event.target.value }))} placeholder="Emergency Contact" />
-                  </label>
-                </div>
+                </section>
 
-                <label className="form-field full-width">
-                  <span>Notes</span>
-                  <textarea rows="4" value={employeeForm.notes} onChange={(event) => setEmployeeForm((current) => ({ ...current, notes: event.target.value }))} placeholder="Notes" />
-                </label>
+                <section className="employee-premium-form-section">
+                  <h4 className="employee-premium-form-section-title">Manager Notes</h4>
+                  <label className="form-field full-width">
+                    <span className="sr-only">Manager notes</span>
+                    <textarea
+                      className="employee-premium-notes-input"
+                      rows="6"
+                      value={employeeForm.notes}
+                      onChange={(event) => setEmployeeForm((current) => ({ ...current, notes: event.target.value }))}
+                      placeholder="Notes for managers about this employee"
+                    />
+                  </label>
+                </section>
 
                 {saveError ? <div className="staff-status-banner">{saveError}</div> : null}
 
-                <div className="modal-actions">
-                  <button type="button" className="ghost-btn" onClick={handleCloseEmployeeModal}>Cancel</button>
-                  <button type="submit" className="primary-btn" disabled={isSavingEmployee}>
+                <div className="modal-actions employee-premium-form-actions">
+                  <button type="button" className="ghost-btn employee-premium-form-cancel-btn" onClick={handleCloseEmployeeModal}>Cancel</button>
+                  <button type="submit" className="primary-btn employee-premium-form-save-btn" disabled={isSavingEmployee}>
                     {isSavingEmployee ? 'Saving…' : 'Save'}
                   </button>
                 </div>
