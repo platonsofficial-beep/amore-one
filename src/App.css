@@ -824,6 +824,67 @@
   flex-shrink: 0;
 }
 
+.today-attention-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.today-attention-groups {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+
+.today-attention-group {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.today-attention-group-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+}
+
+.today-attention-group-icon {
+  font-size: 0.72rem;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.today-attention-group-title {
+  margin: 0;
+  color: #d8cfc0;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.today-attention-group-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.today-attention-group.accent-critical .today-attention-group-title {
+  color: #ffb4a8;
+}
+
+.today-attention-group.accent-warning .today-attention-group-title {
+  color: #f0d39a;
+}
+
+.today-attention-group.accent-info .today-attention-group-title {
+  color: #9ec5e8;
+}
+
 .today-attention-item {
   display: flex;
   flex-direction: column;
@@ -832,8 +893,34 @@
   border-bottom: 1px solid rgba(255, 255, 255, 0.06);
 }
 
+.today-attention-panel .today-attention-item {
+  padding: 0;
+  border-bottom: 0;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.02);
+  overflow: hidden;
+}
+
+.today-attention-panel .today-attention-item.tone-critical {
+  border-left: 3px solid #e06a5a;
+}
+
+.today-attention-panel .today-attention-item.tone-warning {
+  border-left: 3px solid #d4af37;
+}
+
+.today-attention-panel .today-attention-item.tone-info,
+.today-attention-panel .today-attention-item.tone-default {
+  border-left: 3px solid rgba(158, 197, 232, 0.65);
+}
+
 .today-attention-item.is-actionable {
   padding: 0;
+}
+
+.today-attention-panel .today-attention-item.is-static {
+  padding: 12px 14px;
 }
 
 .today-attention-item.is-static {
@@ -858,6 +945,11 @@
   transition: background-color 0.15s ease;
 }
 
+.today-attention-panel .today-attention-trigger {
+  padding: 12px 14px;
+  border-radius: 12px;
+}
+
 .today-attention-trigger:hover {
   background: rgba(255, 255, 255, 0.03);
 }
@@ -880,16 +972,67 @@
 .today-attention-copy {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 4px;
   min-width: 0;
   width: 100%;
+}
+
+.today-attention-row-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  min-width: 0;
+}
+
+.today-attention-row-title {
+  color: #fff2df;
+  font-size: 0.98rem;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.today-attention-row-subtitle {
+  color: #b8afa2;
+  font-size: 0.86rem;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.today-attention-row-badge {
+  flex-shrink: 0;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.today-attention-row-badge.tone-critical {
+  background: rgba(224, 106, 90, 0.16);
+  color: #ffb4a8;
+}
+
+.today-attention-row-badge.tone-warning {
+  background: rgba(212, 175, 55, 0.16);
+  color: #f0d39a;
+}
+
+.today-attention-row-badge.tone-info,
+.today-attention-row-badge.tone-default {
+  background: rgba(158, 197, 232, 0.14);
+  color: #9ec5e8;
 }
 
 .today-attention-item:last-child {
   border-bottom: 0;
 }
 
-.today-attention-item strong {
+.today-attention-item strong,
+.today-attention-row-title {
   color: #fff2df;
   font-size: 0.98rem;
   overflow-wrap: anywhere;
@@ -903,24 +1046,27 @@
   word-break: break-word;
 }
 
-.today-attention-item.tone-critical strong {
+.today-attention-item.tone-critical strong,
+.today-attention-item.tone-critical .today-attention-row-title {
   color: #ffb4a8;
 }
 
-.today-attention-item.tone-warning strong {
+.today-attention-item.tone-warning strong,
+.today-attention-item.tone-warning .today-attention-row-title {
   color: #f0d39a;
 }
 
 .today-attention-actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 12px;
+  gap: 10px;
+  margin-top: 4px;
+  padding-top: 4px;
 }
 
 .today-attention-pill {
   min-height: 44px;
-  padding: 0 14px;
+  padding: 0 16px;
   border-radius: 999px;
   border: 1px solid rgba(212, 175, 55, 0.28);
   background: rgba(212, 175, 55, 0.08);
@@ -928,6 +1074,7 @@
   font-size: 0.84rem;
   font-weight: 600;
   cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
 }
 
 .today-attention-pill:hover {

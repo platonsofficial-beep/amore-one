@@ -429,7 +429,7 @@ import { buildTodayCommandCenterAttentionItems } from './lib/mobileManagerTodayU
 import {
   resolveTodayAttentionDestination,
 } from './lib/todayAttentionNavigation'
-import { TodayAttentionListItem } from './components/today/TodayAttentionListItem'
+import { TodayAttentionPanel } from './components/today/TodayAttentionPanel'
 import { buildStockOrdersOperationsSummary } from './lib/stockOrderUtils'
 import { buildStockDashboardSummary, resolveDashboardStockAlerts } from './lib/stockUtils'
 import { filterTasksExcludingAnnouncementDuplicates } from './lib/operationsAnnouncementUtils'
@@ -1190,7 +1190,6 @@ function CommandCenterView({
   ))
   const showScheduleAttention = Boolean(onViewSchedule) && attentionItems.some((item) => item.key === 'schedule-issues')
   const showReservationAttention = Boolean(onViewReservations) && attentionItems.some((item) => item.key.startsWith('reservation:'))
-  const showAttentionActions = showStockAttention || showTasksAttention || showScheduleAttention || showReservationAttention
   const showStockStatus = Boolean(statusSummary.stockSummaryLine)
 
   return (
@@ -1259,44 +1258,19 @@ function CommandCenterView({
             ariaLabel="Attention"
             summary={formatAttentionCollapsedSummary(attentionItems)}
           >
-            {attentionItems.length === 0 ? (
-              <p className="today-empty-note today-empty-note-clear">Nothing needs your attention right now.</p>
-            ) : (
-              <ul className="today-attention-list" aria-label="Attention items">
-                {attentionItems.map((item) => (
-                  <TodayAttentionListItem
-                    key={item.key}
-                    item={item}
-                    attentionPermissions={attentionPermissions}
-                    onAttentionItemClick={onAttentionItemClick}
-                  />
-                ))}
-              </ul>
-            )}
-            {showAttentionActions ? (
-              <div className="today-attention-actions">
-                {showReservationAttention ? (
-                  <button type="button" className="today-attention-pill" onClick={onViewReservations}>
-                    Reservations
-                  </button>
-                ) : null}
-                {showStockAttention ? (
-                  <button type="button" className="today-attention-pill" onClick={onViewStock}>
-                    Stock
-                  </button>
-                ) : null}
-                {showTasksAttention ? (
-                  <button type="button" className="today-attention-pill" onClick={onViewTasks}>
-                    Tasks
-                  </button>
-                ) : null}
-                {showScheduleAttention ? (
-                  <button type="button" className="today-attention-pill" onClick={onViewSchedule}>
-                    Schedule
-                  </button>
-                ) : null}
-              </div>
-            ) : null}
+            <TodayAttentionPanel
+              attentionItems={attentionItems}
+              attentionPermissions={attentionPermissions}
+              onAttentionItemClick={onAttentionItemClick}
+              showReservationAttention={showReservationAttention}
+              showStockAttention={showStockAttention}
+              showTasksAttention={showTasksAttention}
+              showScheduleAttention={showScheduleAttention}
+              onViewReservations={onViewReservations}
+              onViewStock={onViewStock}
+              onViewTasks={onViewTasks}
+              onViewSchedule={onViewSchedule}
+            />
           </TodayCollapsiblePanel>
 
           {quickActions.some((action) => action.available) ? (

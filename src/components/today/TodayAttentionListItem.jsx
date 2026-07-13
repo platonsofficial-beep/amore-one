@@ -1,4 +1,5 @@
 import { getTodayAttentionItemA11y } from '../../lib/todayAttentionNavigation'
+import { getTodayAttentionRowBadge } from '../../lib/todayAttentionPresentationUtils'
 
 export function TodayAttentionListItem({
   item,
@@ -9,6 +10,7 @@ export function TodayAttentionListItem({
 }) {
   const { isActionable, actionLabel } = getTodayAttentionItemA11y(item, attentionPermissions)
   const tone = item?.tone ?? 'default'
+  const badge = getTodayAttentionRowBadge(item)
   const isMobile = variant === 'mobile'
 
   const itemClassName = [
@@ -32,8 +34,15 @@ export function TodayAttentionListItem({
     </>
   ) : (
     <span className="today-attention-copy" aria-hidden={isActionable ? 'true' : undefined}>
-      <strong>{item.label}</strong>
-      <span>{item.detail}</span>
+      <span className="today-attention-row-top">
+        <strong className="today-attention-row-title">{item.label}</strong>
+        {badge ? (
+          <span className={`today-attention-row-badge tone-${tone}`}>{badge}</span>
+        ) : null}
+      </span>
+      {item.detail ? (
+        <span className="today-attention-row-subtitle">{item.detail}</span>
+      ) : null}
     </span>
   )
 
