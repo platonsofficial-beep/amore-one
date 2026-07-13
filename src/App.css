@@ -18045,6 +18045,18 @@
   justify-content: center;
 }
 
+@media (min-width: 761px) {
+  .app-shell:not(.is-mobile-shell):has(.sidebar) .employee-premium-form-backdrop {
+    padding-left: calc(240px + 20px);
+  }
+}
+
+@media (min-width: 761px) and (max-width: 1200px) {
+  .app-shell:not(.is-mobile-shell):has(.sidebar) .employee-premium-form-backdrop {
+    padding-left: calc(220px + 20px);
+  }
+}
+
 @media (max-width: 760px) {
   .employee-premium-form-backdrop {
     align-items: flex-end;
