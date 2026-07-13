@@ -504,6 +504,7 @@ import { UserMenu } from './components/auth/UserMenu'
 import { MobileManagerApp } from './components/mobile/MobileManagerApp'
 import { MobileStaffApp } from './components/mobile/MobileStaffApp'
 import { MobileReservationsHostView } from './components/mobile/reservations/MobileReservationsHostView'
+import { MobileReservationQuickCreateSheet } from './components/mobile/reservations/MobileReservationQuickCreateSheet'
 import { MobileReservationsHostRightPane } from './components/mobile/reservations/MobileReservationsHostRightPane'
 import { ScheduleWeekNav } from './components/schedule/ScheduleWeekNav'
 import { ViewportDebugOverlay } from './components/shell/ViewportDebugOverlay'
@@ -13880,6 +13881,7 @@ function App() {
   const [reservationNotice, setReservationNotice] = useState('')
   const [isReservationsLoading, setIsReservationsLoading] = useState(true)
   const [isReservationModalOpen, setIsReservationModalOpen] = useState(false)
+  const [isDashboardReservationQuickCreateOpen, setIsDashboardReservationQuickCreateOpen] = useState(false)
   const [isQuickReservationOpen, setIsQuickReservationOpen] = useState(false)
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false)
   const [editingReservation, setEditingReservation] = useState(null)
@@ -19479,7 +19481,7 @@ function App() {
     if (actionId === 'add-reservation') {
       if (!canAccessModule(role, 'reservations')) return
       handleActiveViewChange('reservations')
-      handleOpenAddReservation()
+      setIsDashboardReservationQuickCreateOpen(true)
       return
     }
 
@@ -23251,6 +23253,24 @@ function App() {
               </form>
             </div>
           </div>
+        ) : null}
+
+        {isDashboardReservationQuickCreateOpen && canManageReservationsRole ? (
+          <MobileReservationQuickCreateSheet
+            isOpen
+            todayKey={currentDateKey}
+            isSaving={isSavingReservation}
+            seatings={reservationSeatings}
+            reservations={reservations}
+            onClose={() => setIsDashboardReservationQuickCreateOpen(false)}
+            onSubmit={async (form) => {
+              const created = await handleMobileHostReservationCreate(form)
+              if (created !== false) {
+                setIsDashboardReservationQuickCreateOpen(false)
+              }
+              return created
+            }}
+          />
         ) : null}
 
         {isQuickReservationOpen && canManageReservationsRole ? (
