@@ -444,7 +444,6 @@ import {
 } from './lib/scheduleCoverageUtils'
 import {
   formatAttentionCollapsedSummary,
-  formatQuickActionsCollapsedSummary,
   formatTeamTodayCollapsedSummary,
   formatTodayTimelineCollapsedSummary,
   hasUrgentAttentionItems,
@@ -469,6 +468,8 @@ import { TeamPeopleView } from './components/team/TeamPeopleView'
 import { StockDashboardView } from './components/stock/StockDashboardView'
 import { StockOrdersView } from './components/stock/StockOrdersView'
 import { StockSuppliersView } from './components/stock/StockSuppliersView'
+import { StockCreateOrderModal } from './components/stock/StockCreateOrderModal'
+import { OperationsAnnouncementFormModal } from './components/operations/OperationsAnnouncementFormModal'
 import { OperationsDashboardView } from './components/operations/OperationsDashboardView'
 import { OperationsChecklistsView } from './components/operations/OperationsChecklistsView'
 import { OperationsChecklistExecutionView } from './components/operations/OperationsChecklistExecutionView'
@@ -1058,8 +1059,6 @@ function CommandCenterView({
   isScheduleLoading,
   now = new Date(),
   todayKey = '',
-  onQuickAction,
-  quickActions = [],
   onViewStock,
   onViewSchedule,
   onViewTasks,
@@ -1164,34 +1163,6 @@ function CommandCenterView({
               onViewSchedule={onViewSchedule}
             />
           </TodayCollapsiblePanel>
-
-          {quickActions.some((action) => action.available) ? (
-          <TodayCollapsiblePanel
-            panelId={TODAY_PANEL_IDS.QUICK_ACTIONS}
-            defaultExpanded={getDefaultTodayPanelExpanded(TODAY_PANEL_IDS.QUICK_ACTIONS)}
-            title="Quick Actions"
-            ariaLabel="Quick actions"
-            summary={formatQuickActionsCollapsedSummary(quickActions)}
-            className="today-quick-actions"
-          >
-            <div className="today-quick-actions-grid">
-              {quickActions.map((action) => (
-                <button
-                  key={action.id}
-                  type="button"
-                  className={`today-quick-action${action.available ? '' : ' is-disabled'}`}
-                  onClick={() => action.available && onQuickAction(action.id)}
-                  disabled={!action.available}
-                  title={action.available ? action.label : action.hint}
-                >
-                  <span className="today-quick-action-icon" aria-hidden="true">{action.icon}</span>
-                  <span>{action.label}</span>
-                  {!action.available ? <small>{action.hint}</small> : null}
-                </button>
-              ))}
-            </div>
-          </TodayCollapsiblePanel>
-          ) : null}
         </aside>
       </div>
     </div>
@@ -13882,6 +13853,8 @@ function App() {
   const [isReservationsLoading, setIsReservationsLoading] = useState(true)
   const [isReservationModalOpen, setIsReservationModalOpen] = useState(false)
   const [isDashboardReservationQuickCreateOpen, setIsDashboardReservationQuickCreateOpen] = useState(false)
+  const [isDashboardAnnouncementFormOpen, setIsDashboardAnnouncementFormOpen] = useState(false)
+  const [isDashboardStockCreateOrderOpen, setIsDashboardStockCreateOrderOpen] = useState(false)
   const [isQuickReservationOpen, setIsQuickReservationOpen] = useState(false)
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false)
   const [editingReservation, setEditingReservation] = useState(null)
@@ -19490,6 +19463,20 @@ function App() {
       handleActiveViewChange('operations')
       handleOperationsSectionChange('tasks')
       setOpenTasksCreateModal(true)
+      return
+    }
+
+    if (actionId === 'add-announcement') {
+      if (!canManageAnnouncementsRole) return
+      setIsDashboardAnnouncementFormOpen(true)
+      return
+    }
+
+    if (actionId === 'create-order') {
+      if (!canManageStockRole) return
+      handleActiveViewChange('stock')
+      handleStockSectionChange('dashboard')
+      setIsDashboardStockCreateOrderOpen(true)
     }
   }
 
@@ -21873,8 +21860,6 @@ function App() {
             isScheduleLoading={isDashboardScheduleLoading}
             now={localNow}
             todayKey={currentDateKey}
-            onQuickAction={handleDashboardQuickAction}
-            quickActions={permittedTodayQuickActions}
             onViewStock={canAccessModule(role, 'stock') ? handleDashboardViewStock : undefined}
             onViewSchedule={canAccessTeamSection(role, 'schedule') ? handleDashboardViewSchedule : undefined}
             onViewTasks={canAccessModule(role, 'operations') ? handleDashboardViewTasks : undefined}
@@ -23253,6 +23238,24 @@ function App() {
               </form>
             </div>
           </div>
+        ) : null}
+
+        {isDashboardAnnouncementFormOpen && canManageAnnouncementsRole ? (
+          <OperationsAnnouncementFormModal
+            isOpen
+            isSaving={isSavingOperations}
+            onClose={() => setIsDashboardAnnouncementFormOpen(false)}
+            onSubmit={handleCreateOperationsAnnouncement}
+          />
+        ) : null}
+
+        {isDashboardStockCreateOrderOpen && canManageStockRole ? (
+          <StockCreateOrderModal
+            stockItems={stockItems}
+            onClose={() => setIsDashboardStockCreateOrderOpen(false)}
+            onSubmit={handleCreateStockOrders}
+            isSaving={isSavingStockOrder}
+          />
         ) : null}
 
         {isDashboardReservationQuickCreateOpen && canManageReservationsRole ? (

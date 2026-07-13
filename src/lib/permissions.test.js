@@ -263,6 +263,7 @@ describe('permissions', () => {
       expect(quickActionAvailability('staff')).toEqual({
         'add-reservation': false,
         'add-task': false,
+        'add-announcement': false,
         'create-order': false,
       })
     })
@@ -271,6 +272,7 @@ describe('permissions', () => {
       expect(quickActionAvailability('host')).toEqual({
         'add-reservation': true,
         'add-task': false,
+        'add-announcement': false,
         'create-order': false,
       })
     })
@@ -279,7 +281,8 @@ describe('permissions', () => {
       expect(quickActionAvailability(role)).toEqual({
         'add-reservation': true,
         'add-task': true,
-        'create-order': false,
+        'add-announcement': true,
+        'create-order': true,
       })
     })
   })

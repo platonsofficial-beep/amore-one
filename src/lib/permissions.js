@@ -341,11 +341,16 @@ export function getTodayQuickActions(role) {
       available: canAccessModule(role, 'operations') && canManageOperations(role),
     },
     {
+      id: 'add-announcement',
+      label: 'Announcement',
+      icon: '📢',
+      available: canManageAnnouncements(role),
+    },
+    {
       id: 'create-order',
       label: 'Order',
       icon: '📦',
-      available: false,
-      hint: 'Coming soon',
+      available: canAccessModule(role, 'stock') && canManageStock(role),
     },
   ]
 }
