@@ -8074,15 +8074,22 @@
   color: #f7efe1;
 }
 
-.floor-plan-zoom-reset {
-  font-size: 0.62rem;
-  font-weight: 600;
-  letter-spacing: 0.02em;
+.floor-plan-zoom-lock {
+  min-width: 44px;
+  min-height: 44px;
   padding-inline: 8px;
-  min-height: 36px;
+  font-size: 1rem;
+  line-height: 1;
   border-radius: 7px;
   border: 1px solid rgba(255, 255, 255, 0.05);
   background: rgba(255, 255, 255, 0.02);
+}
+
+.floor-plan-zoom-lock.is-active {
+  border-color: rgba(212, 175, 55, 0.72);
+  background: rgba(212, 175, 55, 0.16);
+  color: #f3e3b0;
+  box-shadow: inset 0 0 0 1px rgba(212, 175, 55, 0.18);
 }
 
 .floor-plan-zoom-fit {
@@ -8114,8 +8121,16 @@
     linear-gradient(180deg, rgba(255, 255, 255, 0.02), rgba(255, 255, 255, 0.01));
 }
 
+.floor-plan-viewport.is-host-viewport.is-floor-interaction-locked {
+  touch-action: pan-y pinch-zoom;
+}
+
 .floor-plan-viewport.is-host-viewport.is-zoomed {
   cursor: grab;
+}
+
+.floor-plan-viewport.is-host-viewport.is-floor-interaction-locked.is-zoomed {
+  cursor: default;
 }
 
 .floor-plan-viewport.is-host-viewport.is-panning {

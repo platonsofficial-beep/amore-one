@@ -7993,6 +7993,7 @@ function FloorPlanView({
   const [scheduleCardAssignmentMode, setScheduleCardAssignmentMode] = useState(false)
   const [scheduleCardAssignmentSeatingId, setScheduleCardAssignmentSeatingId] = useState(null)
   const [showDiningTimers, setShowDiningTimers] = useState(false)
+  const [floorInteractionLocked, setFloorInteractionLocked] = useState(true)
   const isHeatmap = viewMode === 'heatmap'
   const scheduleCardLifecycleRef = useRef(createHostScheduleCardLifecycleState())
   const hostTableTapRegistryRef = useRef(createHostFloorTableTapRegistry())
@@ -8364,13 +8365,6 @@ function FloorPlanView({
     closeScheduleCardTable('zoom-fit')
     applyHostFloorAutoFit()
   }, [applyHostFloorAutoFit, closeScheduleCardTable])
-
-  const handleFloorZoomReset = useCallback(() => {
-    closeScheduleCardTable('zoom-reset')
-    setFloorZoom(1)
-    setFloorPan({ x: 0, y: 0 })
-    isManualFloorZoomRef.current = true
-  }, [closeScheduleCardTable])
 
   const hostFloorContextRef = useRef(null)
 
@@ -8794,6 +8788,7 @@ function FloorPlanView({
     const nextState = beginHostFloorPointerInteraction(event, {
       originX: pan.x,
       originY: pan.y,
+      interactionLocked: floorInteractionLocked,
     })
     floorPointerRef.current = nextState
 
@@ -8816,7 +8811,7 @@ function FloorPlanView({
     if (shouldCaptureHostFloorPointer(nextState)) {
       event.currentTarget.setPointerCapture?.(event.pointerId)
     }
-  }, [isCompact, isHeatmap])
+  }, [floorInteractionLocked, isCompact, isHeatmap])
 
   const handleViewportPointerMove = useCallback((event) => {
     if (!isCompact || isHeatmap) return
@@ -8826,7 +8821,8 @@ function FloorPlanView({
     floorPointerRef.current = nextState
 
     if (
-      previousState.mode === HOST_FLOOR_POINTER_MODE.PAN_PENDING
+      !floorInteractionLocked
+      && previousState.mode === HOST_FLOOR_POINTER_MODE.PAN_PENDING
       && nextState.mode === HOST_FLOOR_POINTER_MODE.PANNING
     ) {
       dismissFloorTooltips()
@@ -8834,12 +8830,12 @@ function FloorPlanView({
       isManualFloorZoomRef.current = true
     }
 
-    const panOffset = getHostFloorPanOffset(nextState, event)
+    const panOffset = floorInteractionLocked ? null : getHostFloorPanOffset(nextState, event)
     if (panOffset) {
       event.preventDefault()
       setFloorPan(panOffset)
     }
-  }, [dismissFloorTooltips, isCompact, isHeatmap])
+  }, [dismissFloorTooltips, floorInteractionLocked, isCompact, isHeatmap])
 
   const handleViewportPointerUp = useCallback((event) => {
     if (!isCompact || isHeatmap) return
@@ -8890,6 +8886,7 @@ function FloorPlanView({
     const nextState = beginHostFloorPointerInteraction(pointerLike, {
       originX: pan.x,
       originY: pan.y,
+      interactionLocked: floorInteractionLocked,
     })
     floorPointerRef.current = nextState
 
@@ -8905,7 +8902,7 @@ function FloorPlanView({
         lastEvent: 'touchstart',
       })
     }
-  }, [isCompact, isHeatmap])
+  }, [floorInteractionLocked, isCompact, isHeatmap])
 
   const handleViewportTouchEnd = useCallback((event) => {
     if (!isCompact || isHeatmap) return
@@ -9285,8 +9282,15 @@ function FloorPlanView({
                 </button>
                 <button type="button" className="floor-plan-zoom-btn" onClick={handleFloorZoomIn} aria-label="Zoom in">+</button>
               </div>
-              <button type="button" className="floor-plan-zoom-btn floor-plan-zoom-reset" onClick={handleFloorZoomReset}>
-                Reset
+              <button
+                type="button"
+                className={`floor-plan-zoom-btn floor-plan-zoom-lock${floorInteractionLocked ? ' is-active' : ''}`}
+                onClick={() => setFloorInteractionLocked((current) => !current)}
+                aria-pressed={floorInteractionLocked}
+                aria-label={floorInteractionLocked ? 'Unlock floor plan pan' : 'Lock floor plan pan'}
+                data-testid="host-floor-interaction-lock"
+              >
+                {floorInteractionLocked ? '🔒' : '🔓'}
               </button>
               </div>
             </div>
@@ -9349,7 +9353,7 @@ function FloorPlanView({
       ) : null}
 
       <div
-        className={`floor-plan-viewport${isCompact ? ' is-host-viewport' : ''}${floorZoom > 1.01 || Math.abs(floorPan.x) > 1 || Math.abs(floorPan.y) > 1 ? ' is-zoomed' : ''}`}
+        className={`floor-plan-viewport${isCompact ? ' is-host-viewport' : ''}${isCompact && floorInteractionLocked ? ' is-floor-interaction-locked' : ''}${floorZoom > 1.01 || Math.abs(floorPan.x) > 1 || Math.abs(floorPan.y) > 1 ? ' is-zoomed' : ''}`}
         ref={isCompact ? viewportRef : undefined}
         onPointerDown={isCompact ? handleViewportPointerDown : undefined}
         onPointerMove={isCompact ? handleViewportPointerMove : undefined}

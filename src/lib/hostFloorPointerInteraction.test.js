@@ -197,6 +197,27 @@ describe('hostFloorPointerInteraction', () => {
     expect(state.mode).toBe(HOST_FLOOR_POINTER_MODE.PANNING)
   })
 
+  it('blocks empty-canvas pan when interaction is locked but keeps table taps', () => {
+    const canvas = document.createElement('div')
+    const { node } = buildTableDom('t14')
+
+    const canvasState = beginHostFloorPointerInteraction(
+      { pointerId: 5, clientX: 100, clientY: 100, target: canvas },
+      { interactionLocked: true },
+    )
+    expect(canvasState).toEqual(createIdleHostFloorPointerState())
+    expect(shouldCaptureHostFloorPointer(canvasState)).toBe(false)
+
+    const tableState = beginHostFloorPointerInteraction(
+      { pointerId: 6, clientX: 40, clientY: 50, target: node },
+      { interactionLocked: true },
+    )
+    expect(tableState.mode).toBe(HOST_FLOOR_POINTER_MODE.TABLE_PENDING)
+    expect(tableState.tableId).toBe('t14')
+
+    node.remove()
+  })
+
   it('invokes the table callback once for a completed viewport tap', () => {
     const onTableClick = vi.fn()
     const tableStates = [{ table: { id: 't14' }, reservation: null }]

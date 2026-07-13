@@ -123,7 +123,10 @@ export function isInteractiveHostFloorTarget(target) {
   )
 }
 
-export function beginHostFloorPointerInteraction(event, { originX = 0, originY = 0 } = {}) {
+export function beginHostFloorPointerInteraction(
+  event,
+  { originX = 0, originY = 0, interactionLocked = false } = {},
+) {
   const tableTarget = findHostFloorTableFromEvent(event)
   if (tableTarget) {
     return {
@@ -137,6 +140,10 @@ export function beginHostFloorPointerInteraction(event, { originX = 0, originY =
   }
 
   if (isInteractiveHostFloorTarget(event.target)) {
+    return createIdleHostFloorPointerState()
+  }
+
+  if (interactionLocked) {
     return createIdleHostFloorPointerState()
   }
 
