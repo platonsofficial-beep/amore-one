@@ -13852,6 +13852,7 @@ function App() {
   const [isShiftOverlapConfirmOpen, setIsShiftOverlapConfirmOpen] = useState(false)
   const shiftOverlapConfirmResolverRef = useRef(null)
   const [isEmployeeModalOpen, setIsEmployeeModalOpen] = useState(false)
+  const employeePremiumFormModalRef = useRef(null)
   const [editingEmployee, setEditingEmployee] = useState(null)
   const [employeeForm, setEmployeeForm] = useState(() => buildEmployeeForm())
   const [positions, setPositions] = useState([])
@@ -17556,6 +17557,20 @@ function App() {
     setSaveError('')
     setEmployeeForm(buildEmployeeForm())
   }
+
+  useEffect(() => {
+    if (!isEmployeeModalOpen) return
+
+    const resetModalScroll = () => {
+      const modal = employeePremiumFormModalRef.current
+      if (modal) {
+        modal.scrollTop = 0
+      }
+    }
+
+    resetModalScroll()
+    requestAnimationFrame(resetModalScroll)
+  }, [isEmployeeModalOpen, editingEmployee?.id])
 
   const handleAddCustomPositionToEmployee = async () => {
     const customName = `${employeeForm.customPositionName ?? ''}`.trim()
@@ -22681,7 +22696,7 @@ function App() {
 
         {isEmployeeModalOpen ? (
           <div className="employee-modal-backdrop employee-premium-form-backdrop" onClick={handleCloseEmployeeModal}>
-            <div className="employee-modal employee-premium-form-modal" onClick={(event) => event.stopPropagation()}>
+            <div ref={employeePremiumFormModalRef} className="employee-modal employee-premium-form-modal" onClick={(event) => event.stopPropagation()}>
               <div className="drawer-header employee-premium-form-header">
                 <div>
                   <p className="eyebrow">Employee</p>
