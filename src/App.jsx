@@ -439,18 +439,11 @@ import {
   getShiftsCoveringTemplateCell,
 } from './lib/scheduleCoverageUtils'
 import {
-  buildTimelineEventRows,
   formatAttentionCollapsedSummary,
   formatQuickActionsCollapsedSummary,
   formatTeamTodayCollapsedSummary,
-  formatTimelineEventRow,
   formatTodayTimelineCollapsedSummary,
   hasUrgentAttentionItems,
-  partitionTimelineEvents,
-  shouldShowTimelineNowMarker,
-  TIMELINE_LEGEND_ITEMS,
-  TIMELINE_PREVIEW_LIMIT,
-  TIMELINE_SCROLL_LIMIT,
 } from './lib/todayDashboardUtils'
 import {
   getDefaultTodayPanelExpanded,
@@ -475,6 +468,7 @@ import { OperationsDashboardView } from './components/operations/OperationsDashb
 import { OperationsChecklistsView } from './components/operations/OperationsChecklistsView'
 import { OperationsChecklistExecutionView } from './components/operations/OperationsChecklistExecutionView'
 import { TodayAnnouncementsPanel } from './components/today/TodayAnnouncementsPanel'
+import { TodayTimeline } from './components/today/TodayServiceTimeline'
 import { TodayCommandHeader } from './components/today/TodayCommandHeader'
 import { TodayStatusCards } from './components/today/TodayStatusCards'
 import {
@@ -991,119 +985,6 @@ function formatDashboardHeroDate(date, timeZone = '') {
   const monthDay = new Intl.DateTimeFormat('en-US', { month: 'long', day: 'numeric', ...options }).format(date)
 
   return `${weekday} • ${monthDay}`
-}
-
-function renderTodayTimelineRow(row, nowMinutes) {
-  if (row.kind === 'now') {
-    return (
-      <li key={row.key} className="today-timeline-now-row" aria-label={`Current time ${row.label}`}>
-        <div className="today-timeline-now">
-          <span>Now {row.label}</span>
-        </div>
-      </li>
-    )
-  }
-
-  const eventRow = formatTimelineEventRow(row.event, nowMinutes)
-  const itemClassName = [
-    'today-timeline-item',
-    `type-${eventRow.type}`,
-    eventRow.isFinishedShift ? 'is-finished-shift' : '',
-    eventRow.isCompletedItem ? 'is-completed-item' : '',
-    eventRow.status?.state === 'working' ? 'is-working-shift' : '',
-    eventRow.isCompactRow ? 'is-compact-row' : '',
-  ].filter(Boolean).join(' ')
-
-  return (
-    <li key={row.key} className={itemClassName}>
-      <span className="today-timeline-status" aria-hidden="true">{eventRow.status.icon}</span>
-      {eventRow.timeLabel ? (
-        <span className="today-timeline-time">{eventRow.timeLabel}</span>
-      ) : (
-        <span className="today-timeline-time is-empty" aria-hidden="true" />
-      )}
-      <div className="today-timeline-copy">
-        <strong>{eventRow.title}</strong>
-        {eventRow.detail ? <span className="today-timeline-detail">{eventRow.detail}</span> : null}
-        {eventRow.meta ? <span className="today-timeline-meta">{eventRow.meta}</span> : null}
-        {!eventRow.detail && !eventRow.meta && eventRow.subtitle ? (
-          <span>{eventRow.subtitle}</span>
-        ) : null}
-      </div>
-    </li>
-  )
-}
-
-function TodayTimeline({ events, isLoading, now = new Date(), todayKey = '' }) {
-  const [showAll, setShowAll] = useState(false)
-  const [showCompleted, setShowCompleted] = useState(false)
-  const { activeAndUpcoming, completed } = partitionTimelineEvents(events, now)
-  const totalActiveCount = activeAndUpcoming.length
-  const completedCount = completed.length
-  const nowMinutes = now.getHours() * 60 + now.getMinutes()
-  const visibleActiveEvents = showAll
-    ? activeAndUpcoming
-    : activeAndUpcoming.slice(0, TIMELINE_PREVIEW_LIMIT)
-  const showNowMarker = shouldShowTimelineNowMarker({ todayKey, currentDateKey: todayKey })
-  const activeRows = buildTimelineEventRows(visibleActiveEvents, { now, showNow: showNowMarker })
-  const completedRows = showCompleted
-    ? buildTimelineEventRows(completed, { now, showNow: false })
-    : []
-  const isScrollable = showAll && totalActiveCount > TIMELINE_SCROLL_LIMIT
-
-  if (isLoading) {
-    return <p className="today-empty-note">Loading timeline…</p>
-  }
-
-  if (totalActiveCount === 0 && completedCount === 0) {
-    return <p className="today-empty-note">No upcoming events for today.</p>
-  }
-
-  const hasActiveRows = activeRows.length > 0
-
-  return (
-    <div className={`today-timeline-scroll${isScrollable ? ' is-scrollable' : ''}`}>
-      {hasActiveRows ? (
-        <ul className="today-timeline-list today-timeline-flow">
-          {activeRows.map((row) => renderTodayTimelineRow(row, nowMinutes))}
-        </ul>
-      ) : (
-        <p className="today-empty-note">Nothing active right now.</p>
-      )}
-      {completedCount > 0 ? (
-        <button
-          type="button"
-          className="today-timeline-completed-toggle"
-          onClick={() => setShowCompleted((current) => !current)}
-          aria-expanded={showCompleted}
-        >
-          {showCompleted ? 'Hide completed' : `Show completed (${completedCount})`}
-        </button>
-      ) : null}
-      {showCompleted && completedRows.length > 0 ? (
-        <ul className="today-timeline-list today-timeline-flow today-timeline-completed-list">
-          {completedRows.map((row) => renderTodayTimelineRow(row, nowMinutes))}
-        </ul>
-      ) : null}
-      {totalActiveCount > TIMELINE_PREVIEW_LIMIT && !showAll ? (
-        <button
-          type="button"
-          className="today-timeline-show-all"
-          onClick={() => setShowAll(true)}
-        >
-          Show all ({totalActiveCount})
-        </button>
-      ) : null}
-      <div className="today-timeline-legend" aria-label="Timeline legend">
-        {TIMELINE_LEGEND_ITEMS.map((item) => (
-          <span key={item.key} className="today-timeline-legend-item">
-            <span className="today-timeline-legend-icon" aria-hidden="true">{item.icon}</span>
-            {item.label}
-          </span>
-        ))}
-      </div>
-    </div>
-  )
 }
 
 function TodayCollapsiblePanel({
