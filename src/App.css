@@ -18166,49 +18166,236 @@
   }
 }
 
+.employee-premium-phone-field-wrap {
+  width: 100%;
+  min-width: 0;
+}
+
 .employee-premium-form .employee-premium-phone-field.reservation-phone-field {
+  display: flex;
+  align-items: stretch;
+  width: 100%;
+  height: 44px;
+  min-height: 44px;
   gap: 0;
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 12px;
   background: rgba(12, 12, 13, 0.62);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
   overflow: hidden;
+  transition: border-color 160ms ease, background 160ms ease;
 }
 
-.employee-premium-form .employee-premium-phone-field .reservation-phone-field-country-picker {
-  min-width: 7.5rem;
-  border-right: 1px solid rgba(255, 255, 255, 0.08);
+.employee-premium-form .employee-premium-phone-field:focus-within {
+  border-color: rgba(212, 175, 55, 0.42);
+  background: rgba(212, 175, 55, 0.08);
 }
 
-.employee-premium-form .employee-premium-phone-field .phone-country-picker-trigger {
-  min-height: 44px;
+.employee-premium-form .employee-premium-phone-field > div[class*='country-picker'] {
+  position: relative;
+  flex: 0 0 142px;
+  width: 142px;
+  min-width: 132px;
+  max-width: 150px;
+  border-right: 1px solid rgba(167, 158, 145, 0.14);
+}
+
+.employee-premium-form .employee-premium-phone-field button[class*='country-picker-trigger'] {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  width: 100%;
+  min-width: 0;
   height: 44px;
-  padding: 0 10px;
+  min-height: 44px;
+  padding: 0 8px 0 10px;
   border: 0;
-  border-radius: 0;
+  border-radius: 12px 0 0 12px;
   background: transparent;
   box-shadow: none;
+  color: #f7efe1;
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 500;
+  line-height: 1.2;
+  cursor: pointer;
+  transition: background 160ms ease, color 160ms ease;
 }
 
-.employee-premium-form .employee-premium-phone-field .phone-country-picker-trigger-label {
-  font-size: 0.88rem;
+.employee-premium-form .employee-premium-phone-field button[class*='country-picker-trigger'][aria-expanded='true'] {
+  background: rgba(212, 175, 55, 0.1);
+}
+
+.employee-premium-form .employee-premium-phone-field [class*='country-picker-trigger-label'] {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
   white-space: nowrap;
-}
-
-.employee-premium-form .employee-premium-phone-field .reservation-phone-field-input {
-  min-height: 44px;
-  height: 44px;
-  padding: 0 12px;
-  border: 0;
-  border-radius: 0;
-  background: transparent;
   font-size: 0.9rem;
 }
 
-.employee-premium-form .employee-premium-phone-field .phone-country-picker-trigger:focus-visible,
-.employee-premium-form .employee-premium-phone-field .reservation-phone-field-input:focus-visible {
+.employee-premium-form .employee-premium-phone-field [class*='country-picker-trigger-chevron'] {
+  flex-shrink: 0;
+  color: #c89d42;
+  font-size: 0.72rem;
+  line-height: 1;
+}
+
+.employee-premium-form .employee-premium-phone-field > input[type='tel'] {
+  flex: 1 1 auto;
+  min-width: 0;
+  width: auto;
+  height: 44px;
+  min-height: 44px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 0 12px 12px 0;
+  background: transparent;
+  color: #f7efe1;
+  font: inherit;
+  font-size: 0.9rem;
+  line-height: 1.2;
   outline: 0;
-  box-shadow: inset 0 0 0 2px rgba(212, 175, 55, 0.42);
+  box-shadow: none;
+}
+
+.employee-premium-form .employee-premium-phone-field > input[type='tel']::placeholder {
+  color: rgba(247, 239, 225, 0.45);
+}
+
+.employee-premium-form .employee-premium-phone-field button[class*='country-picker-trigger']:focus-visible,
+.employee-premium-form .employee-premium-phone-field > input[type='tel']:focus-visible {
+  outline: 0;
+  box-shadow: none;
+}
+
+@media (hover: hover) {
+  .employee-premium-form .employee-premium-phone-field button[class*='country-picker-trigger']:not([aria-expanded='true']):hover {
+    background: rgba(255, 255, 255, 0.04);
+  }
+}
+
+body:has(.employee-premium-form-modal) .phone-country-picker-portal.is-dropdown .phone-country-picker-menu {
+  border-radius: 12px;
+  border: 1px solid rgba(212, 175, 55, 0.2);
+  background: rgba(10, 10, 11, 0.98);
+  backdrop-filter: blur(16px);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45);
+}
+
+body:has(.employee-premium-form-modal) .phone-country-picker-portal.is-dropdown .phone-country-picker-search-wrap {
+  padding: 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+body:has(.employee-premium-form-modal) .phone-country-picker-portal.is-dropdown .phone-country-picker-search {
+  height: 44px;
+  min-height: 44px;
+  padding: 0 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(12, 12, 13, 0.62);
+  color: #f7efe1;
+  font-size: 0.9rem;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+}
+
+body:has(.employee-premium-form-modal) .phone-country-picker-portal.is-dropdown .phone-country-picker-search:focus-visible {
+  outline: 0;
+  border-color: rgba(212, 175, 55, 0.42);
+  background: rgba(212, 175, 55, 0.08);
+}
+
+body:has(.employee-premium-form-modal) .phone-country-picker-portal.is-dropdown .phone-country-picker-list {
+  padding: 4px;
+}
+
+body:has(.employee-premium-form-modal) .phone-country-picker-portal.is-dropdown .phone-country-picker-option {
+  min-height: 44px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  color: #e8dcc6;
+  font-size: 0.9rem;
+}
+
+body:has(.employee-premium-form-modal) .phone-country-picker-portal.is-dropdown .phone-country-picker-option.is-selected {
+  background: rgba(212, 175, 55, 0.14);
+  color: #f6dca2;
+  font-weight: 600;
+}
+
+body:has(.employee-premium-form-modal) .phone-country-picker-portal.is-dropdown .phone-country-picker-option-flag {
+  font-size: 1rem;
+  line-height: 1;
+}
+
+body:has(.employee-premium-form-modal) .phone-country-picker-portal.is-dropdown .phone-country-picker-option-code {
+  color: #c89d42;
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+@media (hover: hover) {
+  body:has(.employee-premium-form-modal) .phone-country-picker-portal.is-dropdown .phone-country-picker-option:not(.is-selected):hover {
+    background: rgba(255, 255, 255, 0.05);
+  }
+}
+
+body:has(.employee-premium-form-modal) .phone-country-picker-portal.is-sheet .phone-country-picker-sheet {
+  border: 1px solid rgba(212, 175, 55, 0.2);
+  background: rgba(10, 10, 11, 0.98);
+  backdrop-filter: blur(16px);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45);
+}
+
+body:has(.employee-premium-form-modal) .phone-country-picker-portal.is-sheet .phone-country-picker-search {
+  height: 44px;
+  min-height: 44px;
+  padding: 0 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(12, 12, 13, 0.62);
+  color: #f7efe1;
+  font-size: 0.9rem;
+}
+
+body:has(.employee-premium-form-modal) .phone-country-picker-portal.is-sheet .phone-country-picker-option {
+  min-height: 44px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  color: #e8dcc6;
+  font-size: 0.9rem;
+}
+
+body:has(.employee-premium-form-modal) .phone-country-picker-portal.is-sheet .phone-country-picker-option.is-selected {
+  background: rgba(212, 175, 55, 0.14);
+  color: #f6dca2;
+  font-weight: 600;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  body:has(.employee-premium-form-modal) .phone-country-picker-portal.is-dropdown .phone-country-picker-menu {
+    animation: employee-premium-phone-picker-in 140ms ease-out;
+  }
+}
+
+@keyframes employee-premium-phone-picker-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body:has(.employee-premium-form-modal) .phone-country-picker-portal.is-dropdown .phone-country-picker-menu {
+    animation: none;
+  }
 }
 
 .employee-premium-form-section:has(.employee-premium-position-grid) {
