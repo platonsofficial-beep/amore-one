@@ -29,7 +29,7 @@ describe('todayExecutiveMessage', () => {
       hasStockProblems: true,
     }), {
       tone: 'critical',
-      message: 'Immediate attention is required during service.',
+      message: 'Service requires immediate attention.',
     })
 
     expectExecutivePresentation(buildTodayExecutiveMessage({
@@ -37,7 +37,7 @@ describe('todayExecutiveMessage', () => {
       isServiceInProgress: false,
     }), {
       tone: 'critical',
-      message: 'Immediate attention is required before service.',
+      message: 'Attention is required before service.',
     })
 
     expectExecutivePresentation(buildTodayExecutiveMessage({

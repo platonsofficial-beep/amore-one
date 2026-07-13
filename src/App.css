@@ -1692,31 +1692,27 @@
 }
 
 .today-executive-indicator {
-  width: 6px;
-  height: 6px;
+  width: 8px;
+  height: 8px;
   border-radius: 999px;
-  flex: 0 0 6px;
+  flex: 0 0 8px;
   background: rgba(156, 176, 198, 0.82);
 }
 
 .today-executive-message.tone-critical .today-executive-indicator {
   background: rgba(224, 132, 118, 0.9);
-  box-shadow: 0 0 0 1px rgba(224, 132, 118, 0.18);
 }
 
 .today-executive-message.tone-warning .today-executive-indicator {
   background: rgba(206, 162, 84, 0.92);
-  box-shadow: 0 0 0 1px rgba(206, 162, 84, 0.16);
 }
 
 .today-executive-message.tone-positive .today-executive-indicator {
   background: rgba(118, 186, 138, 0.9);
-  box-shadow: 0 0 0 1px rgba(118, 186, 138, 0.16);
 }
 
 .today-executive-message.tone-neutral .today-executive-indicator {
   background: rgba(156, 176, 198, 0.82);
-  box-shadow: 0 0 0 1px rgba(156, 176, 198, 0.14);
 }
 
 .today-executive-copy {

@@ -41,8 +41,8 @@ export function buildTodayExecutiveMessage({
 } = {}) {
   if (hasUrgentAttention) {
     const urgentMessage = isServiceInProgress
-      ? 'Immediate attention is required during service.'
-      : 'Immediate attention is required before service.'
+      ? 'Service requires immediate attention.'
+      : 'Attention is required before service.'
     return buildExecutivePresentation({
       tone: 'critical',
       message: urgentMessage,
