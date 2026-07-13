@@ -22950,7 +22950,7 @@ function App() {
                         className="reservation-date-field employee-premium-date-field"
                         value={employeeForm.hireDate}
                         onChange={(hireDate) => setEmployeeForm((current) => ({ ...current, hireDate }))}
-                        todayKey={workspaceTodayKey}
+                        todayKey={currentDateKey}
                       />
                     </label>
                     <label className="form-field">
