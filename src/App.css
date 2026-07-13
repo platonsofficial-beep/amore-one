@@ -1678,6 +1678,18 @@
   word-break: break-word;
 }
 
+.today-executive-message {
+  margin: 4px 0 0;
+  color: rgba(212, 175, 55, 0.72);
+  font-size: 0.78rem;
+  font-weight: 400;
+  letter-spacing: 0.02em;
+  line-height: 1.35;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
 .today-command-venue {
   margin: 0;
   text-transform: uppercase;

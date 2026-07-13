@@ -425,6 +425,10 @@ import {
   buildTeamTodayGroups,
 } from './lib/todayViewUtils'
 import { buildTodayCommandHeaderChips } from './lib/todayCommandHeaderUtils'
+import {
+  buildTodayExecutiveMessage,
+  hasTodayStockProblems,
+} from './lib/todayExecutiveMessage'
 import { buildTodayCommandCenterAttentionItems } from './lib/mobileManagerTodayUtils'
 import {
   resolveTodayAttentionDestination,
@@ -15108,6 +15112,35 @@ function App() {
     [localNow, workspaceTimeZone],
   )
 
+  const todayExecutiveMessage = useMemo(() => buildTodayExecutiveMessage({
+    hasUrgentAttention: hasUrgentAttentionItems(todayAttentionItems),
+    overdueTaskCount: dashboardTaskOverview?.overdue ?? 0,
+    hasScheduleGaps: (Number(operationalSnapshot?.coverageGaps) || 0) > 0
+      || todayAttentionItems.some((item) => item.key === 'schedule-issues'),
+    reservationsTodayCount: isReservationsModuleConnected
+      ? Number(todayReservationsSummary?.bookings) || 0
+      : 0,
+    firstShiftStartLabel: liveFloorState.nextShiftStartLabel,
+    isServiceInProgress: liveFloorState.state === 'live',
+    hasStockProblems: canAccessStockModule && hasTodayStockProblems({
+      stockSummary: managerMobileStockSummary,
+      stockSummaryLine: todayStatusSummary.stockSummaryLine,
+      hasStockModuleData: stockItems.length > 0,
+    }),
+  }), [
+    todayAttentionItems,
+    dashboardTaskOverview?.overdue,
+    operationalSnapshot?.coverageGaps,
+    isReservationsModuleConnected,
+    todayReservationsSummary?.bookings,
+    liveFloorState.nextShiftStartLabel,
+    liveFloorState.state,
+    canAccessStockModule,
+    managerMobileStockSummary,
+    todayStatusSummary.stockSummaryLine,
+    stockItems.length,
+  ])
+
   const todayCommandHeaderChips = useMemo(() => buildTodayCommandHeaderChips({
     dashboardLiveStatus,
     todayStatusSummary,
@@ -22575,6 +22608,7 @@ function App() {
                   useCommandTopbar ? (
                   <TodayCommandHeader
                     greeting={mobileGreeting}
+                    executiveMessage={todayExecutiveMessage}
                     businessName={brandDisplay.businessName}
                     dateLabel={dashboardHeroDateLabel}
                     workspaceBadge={todayWorkspaceBadge}

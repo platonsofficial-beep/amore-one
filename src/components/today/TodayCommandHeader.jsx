@@ -2,6 +2,7 @@ import { UserMenu } from '../auth/UserMenu'
 
 export function TodayCommandHeader({
   greeting = '',
+  executiveMessage = '',
   businessName = '',
   dateLabel = '',
   workspaceBadge = '',
@@ -22,6 +23,9 @@ export function TodayCommandHeader({
           <div className="today-command-row today-command-row-identity">
             <div className="today-command-identity">
               <h2 className="today-command-greeting">{greeting}</h2>
+              {executiveMessage ? (
+                <p className="today-executive-message">{executiveMessage}</p>
+              ) : null}
               <div className="today-command-venue-row">
                 {workspaceBadge ? (
                   <span className="today-command-workspace-badge" aria-label="Workspace">
