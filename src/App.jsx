@@ -476,6 +476,7 @@ import { OperationsChecklistsView } from './components/operations/OperationsChec
 import { OperationsChecklistExecutionView } from './components/operations/OperationsChecklistExecutionView'
 import { TodayAnnouncementsPanel } from './components/today/TodayAnnouncementsPanel'
 import { TodayCommandHeader } from './components/today/TodayCommandHeader'
+import { TodayStatusCards } from './components/today/TodayStatusCards'
 import {
   supplierHasHistory,
 } from './lib/stockSupplierUtils'
@@ -1202,30 +1203,10 @@ function CommandCenterView({
         onMarkSeen={onMarkAnnouncementSeen}
       />
 
-      <section className="today-status-card" aria-label="Today status">
-        <div className="today-status-row">
-          <span className="today-status-label">On shift</span>
-          <span className="today-status-value">{statusSummary.onShiftSummary}</span>
-        </div>
-        <div className="today-status-row">
-          <span className="today-status-label">Team</span>
-          <span className="today-status-value">{statusSummary.teamScheduledSummary}</span>
-        </div>
-        <div className="today-status-row">
-          <span className="today-status-label">Reservations</span>
-          <span className="today-status-value">{statusSummary.reservationsSummaryLine}</span>
-        </div>
-        <div className="today-status-row">
-          <span className="today-status-label">Tasks</span>
-          <span className="today-status-value">{statusSummary.tasksSummary}</span>
-        </div>
-        {showStockStatus ? (
-          <div className="today-status-row">
-            <span className="today-status-label">Stock</span>
-            <span className="today-status-value">{statusSummary.stockSummaryLine}</span>
-          </div>
-        ) : null}
-      </section>
+      <TodayStatusCards
+        statusSummary={statusSummary}
+        showStock={showStockStatus}
+      />
 
       <div className="today-layout">
         <div className="today-main">
