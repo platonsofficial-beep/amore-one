@@ -38,8 +38,33 @@ function handleEmployeeCardKeyDown(event, employee, onSelectEmployee) {
   onSelectEmployee(employee)
 }
 
+function isEmployeeWorkingNow(employee) {
+  const status = `${employee?.status ?? ''}`.trim().toLowerCase()
+  if (!status) return true
+  return status === 'working' || status === 'active'
+}
+
+function countUniqueDepartments(employeeList = []) {
+  const departments = new Set()
+
+  employeeList.forEach((employee) => {
+    const department = `${employee?.department ?? ''}`.trim()
+    if (department) departments.add(department)
+  })
+
+  return departments.size
+}
+
+function formatTeamPeopleMetrics(employeeCount, workingCount, departmentCount) {
+  const employeeLabel = employeeCount === 1 ? 'Employee' : 'Employees'
+  const departmentLabel = departmentCount === 1 ? 'Department' : 'Departments'
+
+  return `${employeeCount} ${employeeLabel} • ${workingCount} Working now • ${departmentCount} ${departmentLabel}`
+}
+
 export function TeamPeopleView({
   employees,
+  rosterEmployees = [],
   totalEmployeeCount = 0,
   employeeTodayShifts = {},
   selectedEmployee,
@@ -55,35 +80,62 @@ export function TeamPeopleView({
   workspaceId = '',
   canManageInvites = false,
   canAssignManagerInviteRole = false,
+  searchTerm = '',
+  onSearchTermChange,
+  searchPlaceholder = 'Search employee',
 }) {
   const hasActiveFilter = activeFilter !== 'All'
   const isRosterEmpty = !isLoading && totalEmployeeCount === 0
   const isFilteredEmpty = !isLoading && totalEmployeeCount > 0 && employees.length === 0
+  const metricsSource = rosterEmployees.length > 0 ? rosterEmployees : employees
+  const employeeCount = totalEmployeeCount
+  const workingCount = metricsSource.filter(isEmployeeWorkingNow).length
+  const departmentCount = countUniqueDepartments(metricsSource)
+  const metricsLine = formatTeamPeopleMetrics(employeeCount, workingCount, departmentCount)
+  const showSearch = typeof onSearchTermChange === 'function'
+
   return (
     <section className="team-people-page" aria-label="Team people">
       <div className="team-people-header">
-        <div>
+        <div className="team-people-header-copy">
           <p className="eyebrow">People</p>
           <h3>Your team</h3>
-          <p className="staff-subtitle">Tap a person to view details, edit, or remove.</p>
+          <p className="team-people-metrics">{metricsLine}</p>
         </div>
-        <button type="button" className="primary-btn" onClick={onOpenAddEmployee} disabled={isSaving}>
-          {isSaving ? 'Saving…' : '+ Add Employee'}
-        </button>
+        <div className="team-people-header-actions">
+          <button type="button" className="primary-btn team-people-add-btn" onClick={onOpenAddEmployee} disabled={isSaving}>
+            {isSaving ? 'Saving…' : '+ Add Employee'}
+          </button>
+        </div>
       </div>
 
-      <div className="staff-toolbar team-people-toolbar">
-        <div className="filter-group">
-          {DEPARTMENT_FILTERS.map((filter) => (
-            <button
-              key={filter}
-              type="button"
-              className={`filter-chip ${activeFilter === filter ? 'active' : ''}`}
-              onClick={() => onFilterChange(filter)}
-            >
-              {filter}
-            </button>
-          ))}
+      <div className="team-people-controls">
+        {showSearch ? (
+          <label className="team-people-search search-bar" aria-label="Search employees">
+            <span className="team-people-search-icon" aria-hidden="true">⌕</span>
+            <input
+              type="search"
+              className="team-people-search-input"
+              placeholder={searchPlaceholder}
+              value={searchTerm}
+              onChange={(event) => onSearchTermChange(event.target.value)}
+            />
+          </label>
+        ) : null}
+
+        <div className="staff-toolbar team-people-toolbar">
+          <div className="filter-group team-people-filter-group">
+            {DEPARTMENT_FILTERS.map((filter) => (
+              <button
+                key={filter}
+                type="button"
+                className={`filter-chip team-people-filter-chip ${activeFilter === filter ? 'active' : ''}`}
+                onClick={() => onFilterChange(filter)}
+              >
+                {filter}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 

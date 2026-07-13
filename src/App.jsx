@@ -21882,8 +21882,12 @@ function App() {
         {isActiveViewAllowed && activeView === 'team' && teamSection === 'members' ? (
           <TeamPeopleView
             employees={filteredEmployees}
+            rosterEmployees={employees}
             totalEmployeeCount={employees.length}
             employeeTodayShifts={employeeTodayShifts}
+            searchTerm={searchTerm}
+            onSearchTermChange={setSearchTerm}
+            searchPlaceholder={moduleSearchPlaceholder}
             selectedEmployee={selectedEmployee}
             onSelectEmployee={setSelectedEmployee}
             activeFilter={activeFilter}
