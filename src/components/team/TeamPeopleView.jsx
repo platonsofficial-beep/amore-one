@@ -62,6 +62,91 @@ function formatTeamPeopleMetrics(employeeCount, workingCount, departmentCount) {
   return `${employeeCount} ${employeeLabel} • ${workingCount} Working now • ${departmentCount} ${departmentLabel}`
 }
 
+function formatDrawerFieldValue(value) {
+  const raw = `${value ?? ''}`.trim()
+  if (!raw) return '—'
+
+  const normalized = raw.toLowerCase()
+  if (
+    normalized === 'not provided'
+    || normalized === 'no notes yet'
+    || normalized === 'n/a'
+    || normalized === 'tbd'
+  ) {
+    return '—'
+  }
+
+  return raw
+}
+
+function getPrimaryPositionLabel(employee) {
+  const primary = `${employee?.primaryPosition ?? ''}`.trim()
+  if (primary) return primary
+
+  const positions = Array.isArray(employee?.positions)
+    ? employee.positions.map((position) => `${position?.name ?? ''}`.trim()).filter(Boolean)
+    : []
+
+  if (positions.length > 0) return positions[0]
+
+  const legacyPosition = `${employee?.position ?? ''}`.trim()
+  if (!legacyPosition) return ''
+
+  return legacyPosition.split(',')[0].trim()
+}
+
+function getAdditionalPositionsLabel(employee) {
+  const additional = Array.isArray(employee?.additionalPositions)
+    ? employee.additionalPositions.map((name) => `${name ?? ''}`.trim()).filter(Boolean)
+    : []
+
+  if (additional.length > 0) {
+    return additional.join(' · ')
+  }
+
+  const positions = Array.isArray(employee?.positions)
+    ? employee.positions.map((position) => `${position?.name ?? ''}`.trim()).filter(Boolean)
+    : []
+
+  const primary = getPrimaryPositionLabel(employee).toLowerCase()
+  const rest = positions.filter((name) => name.toLowerCase() !== primary)
+
+  if (rest.length > 0) return rest.join(' · ')
+
+  const legacyPosition = `${employee?.position ?? ''}`.trim()
+  if (!legacyPosition.includes(',')) return ''
+
+  return legacyPosition
+    .split(',')
+    .map((name) => name.trim())
+    .filter((name) => name && name.toLowerCase() !== primary)
+    .join(' · ')
+}
+
+function getStatusClassName(status) {
+  return `status-pill ${`${status ?? ''}`.trim().toLowerCase().replace(/\s+/g, '-')}`
+}
+
+function EmployeeProfileDrawerField({ label, children }) {
+  return (
+    <div className="employee-profile-drawer-field">
+      <dt>{label}</dt>
+      <dd>{children}</dd>
+    </div>
+  )
+}
+
+function EmployeeProfileDrawerSection({ title, children }) {
+  return (
+    <section className="employee-profile-drawer-section">
+      <h4 className="employee-profile-drawer-section-title">{title}</h4>
+      <dl className="employee-profile-drawer-fields">
+        {children}
+      </dl>
+    </section>
+  )
+}
+
 export function TeamPeopleView({
   employees,
   rosterEmployees = [],
@@ -202,51 +287,110 @@ export function TeamPeopleView({
       ) : null}
 
       {selectedEmployee ? (
-        <aside className="employee-drawer">
-          <div className="drawer-header">
-            <div>
-              <p className="eyebrow">Employee details</p>
-              <h3>{selectedEmployee.name}</h3>
-            </div>
-            <button type="button" className="icon-btn" onClick={() => onSelectEmployee(null)}>✕</button>
+        <aside className="employee-drawer employee-profile-drawer" aria-label={`${selectedEmployee.name} profile`}>
+          <div className="employee-profile-drawer-top">
+            <p className="eyebrow">Employee profile</p>
+            <button
+              type="button"
+              className="icon-btn employee-profile-drawer-close"
+              onClick={() => onSelectEmployee(null)}
+              aria-label="Close employee profile"
+            >
+              ✕
+            </button>
           </div>
 
-          <div className="drawer-profile">
+          <header className="employee-profile-drawer-identity">
             <div className="employee-photo large">{getInitials(selectedEmployee.name)}</div>
-            <div>
-              <strong>{getEmployeePositionsLabel(selectedEmployee)}</strong>
-              <p>{selectedEmployee.department}</p>
+            <div className="employee-profile-drawer-identity-copy">
+              <h3 className="employee-profile-drawer-name">{selectedEmployee.name}</h3>
+              <p className="employee-profile-drawer-role">{formatDrawerFieldValue(getPrimaryPositionLabel(selectedEmployee))}</p>
+              <p className="employee-profile-drawer-department">{formatDrawerFieldValue(selectedEmployee.department)}</p>
+              <div className="employee-profile-drawer-identity-meta">
+                <span className={getStatusClassName(selectedEmployee.status)}>
+                  {formatDrawerFieldValue(selectedEmployee.status)}
+                </span>
+                <span className="employee-profile-drawer-today">
+                  Today · {formatEmployeeTodayShift(selectedEmployee, employeeTodayShifts)}
+                </span>
+              </div>
             </div>
+          </header>
+
+          <div className="employee-profile-drawer-body">
+            <EmployeeProfileDrawerSection title="Profile">
+              <EmployeeProfileDrawerField label="Primary position">
+                {formatDrawerFieldValue(getPrimaryPositionLabel(selectedEmployee))}
+              </EmployeeProfileDrawerField>
+              <EmployeeProfileDrawerField label="Additional positions">
+                {formatDrawerFieldValue(getAdditionalPositionsLabel(selectedEmployee))}
+              </EmployeeProfileDrawerField>
+              <EmployeeProfileDrawerField label="Department">
+                {formatDrawerFieldValue(selectedEmployee.department)}
+              </EmployeeProfileDrawerField>
+              <EmployeeProfileDrawerField label="Status">
+                <span className={getStatusClassName(selectedEmployee.status)}>
+                  {formatDrawerFieldValue(selectedEmployee.status)}
+                </span>
+              </EmployeeProfileDrawerField>
+            </EmployeeProfileDrawerSection>
+
+            <EmployeeProfileDrawerSection title="Employment">
+              <EmployeeProfileDrawerField label="Start date">
+                {formatDrawerFieldValue(selectedEmployee.hireDate)}
+              </EmployeeProfileDrawerField>
+              <EmployeeProfileDrawerField label="Salary">
+                {formatDrawerFieldValue(selectedEmployee.salary)}
+              </EmployeeProfileDrawerField>
+              <EmployeeProfileDrawerField label="Weekly hours">
+                {formatDrawerFieldValue(selectedEmployee.weeklyHours)}
+              </EmployeeProfileDrawerField>
+            </EmployeeProfileDrawerSection>
+
+            <EmployeeProfileDrawerSection title="Contact">
+              <EmployeeProfileDrawerField label="Phone">
+                {formatDrawerFieldValue(selectedEmployee.phone)}
+              </EmployeeProfileDrawerField>
+              <EmployeeProfileDrawerField label="Email">
+                {formatDrawerFieldValue(selectedEmployee.email)}
+              </EmployeeProfileDrawerField>
+              <EmployeeProfileDrawerField label="Emergency contact">
+                {formatDrawerFieldValue(selectedEmployee.emergencyContact)}
+              </EmployeeProfileDrawerField>
+            </EmployeeProfileDrawerSection>
+
+            <section className="employee-profile-drawer-section employee-profile-drawer-notes-section">
+              <h4 className="employee-profile-drawer-section-title">Notes</h4>
+              <p className="employee-profile-drawer-notes">
+                {formatDrawerFieldValue(selectedEmployee.notes)}
+              </p>
+            </section>
+
+            <section className="employee-profile-drawer-section employee-profile-drawer-account-section">
+              <EmployeeAccountConnectionSection
+                employee={selectedEmployee}
+                workspaceId={workspaceId}
+                canManageInvites={canManageInvites}
+                canAssignManagerRole={canAssignManagerInviteRole}
+              />
+            </section>
           </div>
 
-          <div className="drawer-grid">
-            <div className="drawer-row"><span>Full Name</span><strong>{selectedEmployee.name}</strong></div>
-            <div className="drawer-row"><span>Positions</span><strong>{getEmployeePositionsLabel(selectedEmployee)}</strong></div>
-            <div className="drawer-row"><span>Phone</span><strong>{selectedEmployee.phone}</strong></div>
-            <div className="drawer-row"><span>Email</span><strong>{selectedEmployee.email}</strong></div>
-            <div className="drawer-row"><span>Hire Date</span><strong>{selectedEmployee.hireDate}</strong></div>
-            <div className="drawer-row"><span>Salary</span><strong>{selectedEmployee.salary}</strong></div>
-            <div className="drawer-row"><span>Emergency Contact</span><strong>{selectedEmployee.emergencyContact}</strong></div>
-            <div className="drawer-row"><span>Weekly Hours</span><strong>{selectedEmployee.weeklyHours}</strong></div>
-            <div className="drawer-row"><span>Today</span><strong>{formatEmployeeTodayShift(selectedEmployee, employeeTodayShifts)}</strong></div>
-            <div className="drawer-row"><span>Status</span><strong>{selectedEmployee.status}</strong></div>
-          </div>
-
-          <div className="drawer-notes">
-            <p className="eyebrow">Notes</p>
-            <p>{selectedEmployee.notes}</p>
-          </div>
-
-          <EmployeeAccountConnectionSection
-            employee={selectedEmployee}
-            workspaceId={workspaceId}
-            canManageInvites={canManageInvites}
-            canAssignManagerRole={canAssignManagerInviteRole}
-          />
-
-          <div className="action-group" style={{ marginTop: '16px' }}>
-            <button type="button" className="ghost-btn" onClick={() => onOpenEditEmployee(selectedEmployee)}>Edit</button>
-            <button type="button" className="ghost-btn" onClick={() => onRequestDeleteEmployee(selectedEmployee)}>Delete</button>
+          <div className="employee-profile-drawer-actions">
+            <button
+              type="button"
+              className="primary-btn employee-profile-drawer-edit-btn"
+              onClick={() => onOpenEditEmployee(selectedEmployee)}
+            >
+              Edit
+            </button>
+            <button
+              type="button"
+              className="ghost-btn employee-profile-drawer-delete-btn"
+              onClick={() => onRequestDeleteEmployee(selectedEmployee)}
+            >
+              Delete
+            </button>
           </div>
         </aside>
       ) : null}

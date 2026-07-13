@@ -15021,6 +15021,209 @@
   white-space: nowrap;
 }
 
+.employee-profile-drawer.employee-drawer {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.employee-profile-drawer-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.employee-profile-drawer-top .eyebrow {
+  margin: 0;
+}
+
+.employee-profile-drawer-close {
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  min-height: 44px;
+  flex-shrink: 0;
+}
+
+.employee-profile-drawer-identity {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding-bottom: 18px;
+  margin-bottom: 18px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.employee-profile-drawer-identity-copy {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.employee-profile-drawer-name {
+  margin: 0 0 6px;
+  color: #fff7e8;
+  font-size: 1.2rem;
+  font-weight: 600;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.employee-profile-drawer-role {
+  margin: 0 0 4px;
+  color: #e8dcc6;
+  font-size: 0.92rem;
+  line-height: 1.4;
+}
+
+.employee-profile-drawer-department {
+  margin: 0 0 12px;
+  color: #8f8778;
+  font-size: 0.84rem;
+}
+
+.employee-profile-drawer-identity-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 10px;
+}
+
+.employee-profile-drawer-today {
+  color: #a79e91;
+  font-size: 0.82rem;
+}
+
+.employee-profile-drawer-body {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  flex: 1 1 auto;
+  padding-bottom: 8px;
+}
+
+.employee-profile-drawer-section {
+  padding-bottom: 18px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.employee-profile-drawer-section:last-child {
+  border-bottom: 0;
+  padding-bottom: 0;
+}
+
+.employee-profile-drawer-section-title {
+  margin: 0 0 12px;
+  color: #c89d42;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.employee-profile-drawer-fields {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.employee-profile-drawer-field {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.employee-profile-drawer-field dt {
+  margin: 0;
+  color: #8f8778;
+  font-size: 0.82rem;
+  font-weight: 500;
+  flex: 0 0 auto;
+}
+
+.employee-profile-drawer-field dd {
+  margin: 0;
+  color: #e8dcc6;
+  font-size: 0.9rem;
+  text-align: right;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.employee-profile-drawer-notes-section {
+  border-bottom: 0;
+  padding-bottom: 0;
+}
+
+.employee-profile-drawer-notes {
+  margin: 0;
+  color: #d5c8ae;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  padding: 14px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.employee-profile-drawer-account-section .employee-account-connection {
+  margin-top: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+.employee-profile-drawer-account-section .employee-account-connection-header .eyebrow {
+  display: none;
+}
+
+.employee-profile-drawer-account-section .employee-account-connection-header h4 {
+  margin: 0;
+  font-size: 0.72rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #c89d42;
+  font-weight: 600;
+}
+
+.employee-profile-drawer-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.employee-profile-drawer-edit-btn,
+.employee-profile-drawer-delete-btn {
+  min-height: 44px;
+  width: 100%;
+  justify-content: center;
+}
+
+.employee-profile-drawer-delete-btn {
+  border: 1px solid rgba(244, 67, 54, 0.28);
+  background: rgba(244, 67, 54, 0.08);
+  color: #f2b8b0;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .employee-profile-drawer-delete-btn:hover {
+    background: rgba(244, 67, 54, 0.14);
+    color: #ffd4ce;
+  }
+}
+
+.employee-profile-drawer-account-section .employee-account-connection-btn {
+  min-height: 44px;
+}
+
 .team-people-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
