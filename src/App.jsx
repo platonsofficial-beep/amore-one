@@ -1,4 +1,5 @@
 import { Fragment, createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import './App.css'
 import { createEmployee, deleteEmployee, getEmployees, updateEmployee, updateLinkedEmployeePhone } from './services/staffService'
 import { updateMembershipDisplayName } from './services/membershipService'
@@ -1256,6 +1257,184 @@ function mergeEmployeeFullName(firstName = '', lastName = '') {
     .map((part) => `${part ?? ''}`.trim())
     .filter(Boolean)
     .join(' ')
+}
+
+const EMPLOYEE_FORM_SELECT_Z_INDEX = 1300
+
+const EMPLOYEE_DEPARTMENT_OPTIONS = [
+  { value: 'Service', label: 'Service' },
+  { value: 'Bar', label: 'Bar' },
+  { value: 'Kitchen', label: 'Kitchen' },
+  { value: 'Management', label: 'Management' },
+]
+
+const EMPLOYEE_SHIFT_OPTIONS = [
+  { value: 'Flexible / Rotating', label: 'Flexible / Rotating' },
+  { value: 'Morning', label: 'Morning' },
+  { value: 'Evening', label: 'Evening' },
+  { value: 'Night', label: 'Night' },
+]
+
+const EMPLOYEE_STATUS_OPTIONS = [
+  { value: 'Working', label: 'Working' },
+  { value: 'Break', label: 'Break' },
+  { value: 'Day Off', label: 'Day Off' },
+  { value: 'Leave', label: 'Leave' },
+]
+
+function computeEmployeePremiumSelectPosition(anchorRect) {
+  const viewportPadding = 16
+  const menuWidth = Math.min(Math.max(anchorRect.width, 200), window.innerWidth - viewportPadding * 2)
+  const maxLeft = window.innerWidth - menuWidth - viewportPadding
+  const left = Math.max(viewportPadding, Math.min(anchorRect.left, maxLeft))
+  const menuMaxHeight = 280
+  let top = anchorRect.bottom + 6
+
+  if (top + menuMaxHeight > window.innerHeight - viewportPadding) {
+    top = Math.max(viewportPadding, anchorRect.top - menuMaxHeight - 6)
+  }
+
+  return { top, left, width: menuWidth }
+}
+
+function EmployeePremiumFieldSelect({
+  value,
+  onChange,
+  options,
+  ariaLabel,
+  id,
+}) {
+  const [isOpen, setIsOpen] = useState(false)
+  const [menuPosition, setMenuPosition] = useState(null)
+  const [activeIndex, setActiveIndex] = useState(-1)
+  const rootRef = useRef(null)
+  const triggerRef = useRef(null)
+  const selectedOption = options.find((option) => option.value === value) ?? options[0]
+
+  const updateMenuPosition = useCallback(() => {
+    if (!triggerRef.current) return
+    setMenuPosition(computeEmployeePremiumSelectPosition(triggerRef.current.getBoundingClientRect()))
+  }, [])
+
+  useEffect(() => {
+    if (!isOpen) {
+      setActiveIndex(-1)
+      setMenuPosition(null)
+      return undefined
+    }
+
+    const selectedIndex = options.findIndex((option) => option.value === value)
+    setActiveIndex(selectedIndex >= 0 ? selectedIndex : 0)
+    updateMenuPosition()
+
+    const handlePointerDown = (event) => {
+      if (rootRef.current?.contains(event.target)) return
+      if (event.target instanceof Element && event.target.closest('.employee-premium-field-select-portal')) return
+      setIsOpen(false)
+    }
+
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') {
+        setIsOpen(false)
+        return
+      }
+
+      if (event.key === 'ArrowDown') {
+        event.preventDefault()
+        setActiveIndex((current) => Math.min(options.length - 1, Math.max(0, current) + 1))
+        return
+      }
+
+      if (event.key === 'ArrowUp') {
+        event.preventDefault()
+        setActiveIndex((current) => Math.max(0, current - 1))
+        return
+      }
+
+      if (event.key === 'Enter' && activeIndex >= 0) {
+        event.preventDefault()
+        onChange(options[activeIndex].value)
+        setIsOpen(false)
+      }
+    }
+
+    const handleReposition = () => updateMenuPosition()
+
+    document.addEventListener('pointerdown', handlePointerDown)
+    document.addEventListener('keydown', handleKeyDown)
+    window.addEventListener('resize', handleReposition)
+    window.addEventListener('scroll', handleReposition, true)
+
+    return () => {
+      document.removeEventListener('pointerdown', handlePointerDown)
+      document.removeEventListener('keydown', handleKeyDown)
+      window.removeEventListener('resize', handleReposition)
+      window.removeEventListener('scroll', handleReposition, true)
+    }
+  }, [isOpen, activeIndex, onChange, options, updateMenuPosition, value])
+
+  const menuPortal = isOpen && menuPosition && typeof document !== 'undefined'
+    ? createPortal(
+      <ul
+        className="employee-premium-field-select-menu employee-premium-field-select-portal"
+        role="listbox"
+        aria-label={ariaLabel}
+        style={{
+          position: 'fixed',
+          top: `${menuPosition.top}px`,
+          left: `${menuPosition.left}px`,
+          width: `${menuPosition.width}px`,
+          zIndex: EMPLOYEE_FORM_SELECT_Z_INDEX,
+        }}
+      >
+        {options.map((option, index) => (
+          <li key={option.value} role="presentation">
+            <button
+              type="button"
+              role="option"
+              className={`employee-premium-field-select-option${option.value === value ? ' is-selected' : ''}${index === activeIndex ? ' is-active' : ''}`}
+              aria-selected={option.value === value}
+              onMouseEnter={() => setActiveIndex(index)}
+              onClick={() => {
+                onChange(option.value)
+                setIsOpen(false)
+              }}
+            >
+              {option.label}
+            </button>
+          </li>
+        ))}
+      </ul>,
+      document.body,
+    )
+    : null
+
+  return (
+    <>
+      <div className={`employee-premium-field-select${isOpen ? ' is-open' : ''}`} ref={rootRef}>
+        <button
+          ref={triggerRef}
+          id={id}
+          type="button"
+          className="employee-premium-field-select-trigger"
+          onClick={() => setIsOpen((current) => !current)}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter' || event.key === ' ') {
+              event.preventDefault()
+              setIsOpen((current) => !current)
+            }
+          }}
+          aria-haspopup="listbox"
+          aria-expanded={isOpen}
+          aria-label={ariaLabel}
+        >
+          <span className="employee-premium-field-select-value">{selectedOption?.label ?? ''}</span>
+          <span className="employee-premium-field-select-chevron" aria-hidden="true">▾</span>
+        </button>
+      </div>
+      {menuPortal}
+    </>
+  )
 }
 
 function buildEmployeeForm(employee = null) {
@@ -22728,16 +22907,18 @@ function App() {
                     </label>
                     <label className="form-field">
                       <span>Department</span>
-                      <select value={employeeForm.department} onChange={(event) => setEmployeeForm((current) => ({ ...current, department: event.target.value }))}>
-                        <option value="Service">Service</option>
-                        <option value="Bar">Bar</option>
-                        <option value="Kitchen">Kitchen</option>
-                        <option value="Management">Management</option>
-                      </select>
+                      <EmployeePremiumFieldSelect
+                        id="employee-form-department"
+                        ariaLabel="Department"
+                        value={employeeForm.department}
+                        options={EMPLOYEE_DEPARTMENT_OPTIONS}
+                        onChange={(department) => setEmployeeForm((current) => ({ ...current, department }))}
+                      />
                     </label>
                     <label className="form-field">
                       <span>Primary Position</span>
                       <input
+                        className="employee-premium-primary-position-input"
                         list="employee-primary-position-options"
                         value={employeeForm.primaryPosition}
                         onChange={(event) => setEmployeeForm((current) => {
@@ -22765,7 +22946,12 @@ function App() {
                   <div className="employee-premium-form-grid">
                     <label className="form-field">
                       <span>Start Date</span>
-                      <input type="date" value={employeeForm.hireDate ? new Date(employeeForm.hireDate).toISOString().split('T')[0] : ''} onChange={(event) => setEmployeeForm((current) => ({ ...current, hireDate: event.target.value }))} />
+                      <ReservationDateField
+                        className="reservation-date-field employee-premium-date-field"
+                        value={employeeForm.hireDate}
+                        onChange={(hireDate) => setEmployeeForm((current) => ({ ...current, hireDate }))}
+                        todayKey={workspaceTodayKey}
+                      />
                     </label>
                     <label className="form-field">
                       <span>Weekly Hours</span>
@@ -22777,21 +22963,23 @@ function App() {
                     </label>
                     <label className="form-field">
                       <span>Shift</span>
-                      <select value={employeeForm.shift} onChange={(event) => setEmployeeForm((current) => ({ ...current, shift: event.target.value }))}>
-                        <option value="Flexible / Rotating">Flexible / Rotating</option>
-                        <option value="Morning">Morning</option>
-                        <option value="Evening">Evening</option>
-                        <option value="Night">Night</option>
-                      </select>
+                      <EmployeePremiumFieldSelect
+                        id="employee-form-shift"
+                        ariaLabel="Shift"
+                        value={employeeForm.shift}
+                        options={EMPLOYEE_SHIFT_OPTIONS}
+                        onChange={(shift) => setEmployeeForm((current) => ({ ...current, shift }))}
+                      />
                     </label>
                     <label className="form-field">
                       <span>Status</span>
-                      <select value={employeeForm.status} onChange={(event) => setEmployeeForm((current) => ({ ...current, status: event.target.value }))}>
-                        <option value="Working">Working</option>
-                        <option value="Break">Break</option>
-                        <option value="Day Off">Day Off</option>
-                        <option value="Leave">Leave</option>
-                      </select>
+                      <EmployeePremiumFieldSelect
+                        id="employee-form-status"
+                        ariaLabel="Status"
+                        value={employeeForm.status}
+                        options={EMPLOYEE_STATUS_OPTIONS}
+                        onChange={(status) => setEmployeeForm((current) => ({ ...current, status }))}
+                      />
                     </label>
                   </div>
                 </section>
