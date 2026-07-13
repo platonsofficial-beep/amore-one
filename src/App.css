@@ -18204,7 +18204,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 6px;
+  gap: 8px;
   width: 100%;
   min-width: 0;
   height: 44px;
@@ -18228,14 +18228,21 @@
 }
 
 .employee-premium-form .employee-premium-phone-field [class*='country-picker-trigger-label'] {
-  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex: 1 1 auto;
+  min-width: min-content;
+  max-width: calc(100% - 14px);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   font-size: 0.9rem;
+  color: inherit;
 }
 
 .employee-premium-form .employee-premium-phone-field [class*='country-picker-trigger-chevron'] {
+  flex: 0 0 auto;
   flex-shrink: 0;
   color: #c89d42;
   font-size: 0.72rem;
