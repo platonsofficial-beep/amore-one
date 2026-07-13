@@ -1,6 +1,7 @@
 const STORAGE_KEY = 'one.today.panels.v1'
 
 export const TODAY_PANEL_IDS = {
+  ANNOUNCEMENTS: 'announcements',
   SERVICE_TIMELINE: 'service-timeline',
   TEAM_TODAY: 'team-today',
   ATTENTION: 'attention',
@@ -9,6 +10,7 @@ export const TODAY_PANEL_IDS = {
 
 export function getDefaultTodayPanelExpanded(panelId, { hasUrgentAttention = false } = {}) {
   switch (panelId) {
+    case TODAY_PANEL_IDS.ANNOUNCEMENTS:
     case TODAY_PANEL_IDS.SERVICE_TIMELINE:
       return true
     case TODAY_PANEL_IDS.ATTENTION:

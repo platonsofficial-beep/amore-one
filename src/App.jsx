@@ -1083,6 +1083,7 @@ function CommandCenterView({
         employeeDepartment={announcementEmployeeDepartment}
         isSaving={isAnnouncementsSaving}
         onMarkSeen={onMarkAnnouncementSeen}
+        collapsible
       />
 
       <TodayStatusCards
