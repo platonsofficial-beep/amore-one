@@ -187,8 +187,8 @@ describe('todayViewUtils', () => {
 describe('buildTodayCommandCenterAttentionItems', () => {
   it('merges reservations, stock orders, and tasks into one prioritized feed', () => {
     const items = buildTodayCommandCenterAttentionItems({
-      tasks: [
-        { id: 't1', title: 'Count safe', status: 'active', dueDate: '2026-07-07' },
+      operationsTasks: [
+        { id: 't1', title: 'Count safe', status: 'pending', dueDate: '2026-07-07' },
       ],
       todayKey: TODAY,
       reservationsConnected: true,

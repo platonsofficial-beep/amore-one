@@ -1,3 +1,6 @@
+import { isOperationsTaskOverdue } from './operationsBrowse'
+import { normalizeOperationsStatus, normalizeOperationsTaskDate } from './operationsUtils'
+
 export const TODAY_ATTENTION_DESTINATION_VIEWS = new Set([
   'today',
   'stock',
@@ -5,6 +8,8 @@ export const TODAY_ATTENTION_DESTINATION_VIEWS = new Set([
   'team',
   'reservations',
 ])
+
+const DUE_TODAY_OPERATIONS_TASK_LIMIT = 3
 
 function extractAttentionKeyId(key, prefix) {
   const raw = `${key ?? ''}`.slice(prefix.length).trim()
@@ -35,7 +40,7 @@ export function resolveTodayAttentionDestination(item, permissions = {}) {
       key,
       key.startsWith('task-due:') ? 'task-due:' : 'task:',
     )
-    return { view: 'operations', section: 'tasks', taskId }
+    return { view: 'operations', section: 'dashboard', taskId }
   }
 
   if (key === 'schedule-issues') {
@@ -81,7 +86,7 @@ function formatDestinationAction(destination) {
     return 'Open stock'
   }
 
-  if (destination.view === 'operations' && destination.section === 'tasks') {
+  if (destination.view === 'operations' && destination.section === 'dashboard' && destination.taskId) {
     return 'Open task'
   }
 
@@ -106,6 +111,55 @@ export function formatTodayAttentionActionLabel(item, destination = null) {
   const action = formatDestinationAction(destination)
 
   return detail ? `${action}: ${label}. ${detail}` : `${action}: ${label}`
+}
+
+export function buildOperationsTaskAttentionItems(tasks = [], todayKey = '') {
+  const items = []
+  let dueTodayCount = 0
+
+  ;(tasks ?? []).forEach((task) => {
+    if (normalizeOperationsStatus(task?.status) !== 'pending') return
+
+    const dueDate = normalizeOperationsTaskDate(task?.dueDate ?? task?.due_date)
+    const title = `${task?.title ?? ''}`.trim() || 'Task'
+
+    if (isOperationsTaskOverdue(task, todayKey)) {
+      items.push({
+        key: `task:${task.id}`,
+        category: 'task',
+        tone: 'warning',
+        priority: 'urgent',
+        label: title,
+        detail: 'Overdue task',
+      })
+      return
+    }
+
+    if (dueDate === todayKey && dueTodayCount < DUE_TODAY_OPERATIONS_TASK_LIMIT) {
+      dueTodayCount += 1
+      items.push({
+        key: `task-due:${task.id}`,
+        category: 'task',
+        tone: 'info',
+        priority: 'reminder',
+        label: title,
+        detail: 'Due today',
+      })
+    }
+  })
+
+  const overdueTaskItems = items.filter((item) => item.key.startsWith('task:'))
+  if (overdueTaskItems.length > 5) {
+    const keep = new Set(overdueTaskItems.slice(0, 5).map((item) => item.key))
+    for (let index = items.length - 1; index >= 0; index -= 1) {
+      const item = items[index]
+      if (item.key.startsWith('task:') && !keep.has(item.key)) {
+        items.splice(index, 1)
+      }
+    }
+  }
+
+  return items
 }
 
 export function getTodayAttentionItemA11y(item, permissions = {}) {

@@ -14121,6 +14121,7 @@ function App() {
   const [operationsNotice, setOperationsNotice] = useState('')
   const [isOperationsLoading, setIsOperationsLoading] = useState(false)
   const [isSavingOperations, setIsSavingOperations] = useState(false)
+  const [operationsFocusTaskId, setOperationsFocusTaskId] = useState(null)
   const [tasksError, setTasksError] = useState('')
   const [isTasksLoading, setIsTasksLoading] = useState(false)
   const [isSavingTask, setIsSavingTask] = useState(false)
@@ -15063,10 +15064,17 @@ function App() {
     }))
   ), [dashboardShifts, currentDateKey])
 
+  const todayAttentionOperationsTasks = useMemo(() => (
+    filterTasksExcludingAnnouncementDuplicates(
+      filterStandaloneOperationsTasks(operationsTasks),
+      operationsAnnouncements,
+    )
+  ), [operationsTasks, operationsAnnouncements])
+
   const todayAttentionItems = useMemo(() => buildTodayCommandCenterAttentionItems({
     stockAlerts: dashboardStockAlerts,
     inventoryConnected: isInventoryModuleConnected,
-    tasks: todayActionableTasks,
+    operationsTasks: todayAttentionOperationsTasks,
     todayKey: currentDateKey,
     issuesSummary: dashboardIssuesSummary,
     snapshot: operationalSnapshot,
@@ -15085,7 +15093,7 @@ function App() {
   }), [
     dashboardStockAlerts,
     isInventoryModuleConnected,
-    todayActionableTasks,
+    todayAttentionOperationsTasks,
     currentDateKey,
     dashboardIssuesSummary,
     operationalSnapshot,
@@ -16212,6 +16220,7 @@ function App() {
   useEffect(() => {
     if (activeView !== 'operations') {
       setActiveChecklistRunTemplateId(null)
+      setOperationsFocusTaskId(null)
     }
   }, [activeView])
 
@@ -19632,6 +19641,10 @@ function App() {
 
     if (destination.view === 'operations' && destination.section) {
       handleOperationsSectionChange(destination.section)
+      if (destination.taskId) {
+        setActiveChecklistRunTemplateId(null)
+        setOperationsFocusTaskId(`${destination.taskId}`)
+      }
     }
 
     if (destination.view === 'team' && destination.section) {
@@ -19642,6 +19655,8 @@ function App() {
       if (isManagementMobileRole(role)) {
         setMobileExpandedView('workspace')
       } else if (destination.view === 'stock' && todayAttentionPermissions.canViewStock) {
+        setMobileExpandedView('workspace')
+      } else if (destination.view === 'operations' && todayAttentionPermissions.canViewTasks) {
         setMobileExpandedView('workspace')
       }
     }
@@ -22269,6 +22284,8 @@ function App() {
             onPublishAnnouncement={handlePublishOperationsAnnouncement}
             onStartChecklist={handleStartOperationsChecklist}
             onOpenChecklistRun={setActiveChecklistRunTemplateId}
+            focusTaskId={operationsFocusTaskId}
+            onFocusTaskHandled={() => setOperationsFocusTaskId(null)}
           />
         ) : null}
 

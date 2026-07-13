@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   buildChecklistProgressRows,
   filterStandaloneOperationsTasks,
@@ -77,6 +77,7 @@ function OperationsTaskRow({
   assigneeName,
   canManage,
   canComplete,
+  isFocused = false,
   onToggleComplete,
   onEdit,
   onDelete,
@@ -85,7 +86,10 @@ function OperationsTaskRow({
   const priorityTone = getOperationsPriorityTone(task.priority)
 
   return (
-    <li className={`operations-task-row${isDone ? ' is-done' : ''}`}>
+    <li
+      className={`operations-task-row${isDone ? ' is-done' : ''}${isFocused ? ' is-focused' : ''}`}
+      data-operations-task-id={task.id}
+    >
       <button
         type="button"
         className={`operations-task-checkbox${isDone ? ' is-checked' : ''}`}
@@ -231,6 +235,8 @@ export function OperationsDashboardView({
   canManageAnnouncements = false,
   onStartChecklist,
   onOpenChecklistRun,
+  focusTaskId = null,
+  onFocusTaskHandled,
 }) {
   const [isTaskFormOpen, setIsTaskFormOpen] = useState(false)
   const [editingTask, setEditingTask] = useState(null)
@@ -239,6 +245,8 @@ export function OperationsDashboardView({
   const [editingLog, setEditingLog] = useState(null)
   const [logTypeFilter, setLogTypeFilter] = useState('all')
   const [isStartChecklistOpen, setIsStartChecklistOpen] = useState(false)
+  const [activeFocusTaskId, setActiveFocusTaskId] = useState(null)
+  const focusHandledRef = useRef(false)
 
   const assigneeNameById = useMemo(() => (employeeId) => (
     resolveEmployeeName(employeeId, employees)
@@ -287,8 +295,71 @@ export function OperationsDashboardView({
       searchTerm,
       assigneeNameById,
     })
-    return sortOperationsTasks(filtered)
-  }, [todayStandaloneTasks, searchTerm, assigneeNameById])
+    const sorted = sortOperationsTasks(filtered)
+    const normalizedFocusTaskId = `${focusTaskId ?? ''}`.trim()
+    if (!normalizedFocusTaskId) return sorted
+    if (sorted.some((task) => `${task.id}` === normalizedFocusTaskId)) return sorted
+
+    const focusedTask = staffScopedStandaloneTasks.find(
+      (task) => `${task.id}` === normalizedFocusTaskId,
+    )
+    if (!focusedTask) return sorted
+
+    return sortOperationsTasks([...sorted, focusedTask])
+  }, [todayStandaloneTasks, searchTerm, assigneeNameById, focusTaskId, staffScopedStandaloneTasks])
+
+  const focusedTask = useMemo(() => {
+    const normalizedFocusTaskId = `${focusTaskId ?? ''}`.trim()
+    if (!normalizedFocusTaskId) return null
+    return staffScopedStandaloneTasks.find(
+      (task) => `${task.id}` === normalizedFocusTaskId,
+    ) ?? null
+  }, [focusTaskId, staffScopedStandaloneTasks])
+
+  useEffect(() => {
+    focusHandledRef.current = false
+    setActiveFocusTaskId(null)
+  }, [focusTaskId])
+
+  useEffect(() => {
+    const normalizedFocusTaskId = `${focusTaskId ?? ''}`.trim()
+    if (!normalizedFocusTaskId || isLoading || focusHandledRef.current) return undefined
+
+    const taskExists = staffScopedStandaloneTasks.some(
+      (task) => `${task.id}` === normalizedFocusTaskId,
+    )
+    if (!taskExists) {
+      focusHandledRef.current = true
+      onFocusTaskHandled?.()
+      return undefined
+    }
+
+    let clearFocusTimer = null
+    const frameId = window.requestAnimationFrame(() => {
+      const taskNode = document.querySelector(`[data-operations-task-id="${normalizedFocusTaskId}"]`)
+      if (!taskNode) return
+
+      taskNode.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      setActiveFocusTaskId(normalizedFocusTaskId)
+      focusHandledRef.current = true
+
+      clearFocusTimer = window.setTimeout(() => {
+        setActiveFocusTaskId(null)
+        onFocusTaskHandled?.()
+      }, 2200)
+    })
+
+    return () => {
+      window.cancelAnimationFrame(frameId)
+      if (clearFocusTimer) window.clearTimeout(clearFocusTimer)
+    }
+  }, [
+    focusTaskId,
+    isLoading,
+    staffScopedStandaloneTasks,
+    visibleTasks,
+    onFocusTaskHandled,
+  ])
 
   const visibleLogs = useMemo(() => {
     return filterOperationsLogs(logs, { searchTerm, typeFilter: logTypeFilter })
@@ -439,6 +510,29 @@ export function OperationsDashboardView({
               Start checklist
             </button>
           </div>
+        ) : null}
+
+        {focusedTask ? (
+          <section className="operations-mobile-section" aria-label="Focused task">
+            <header className="operations-mobile-section-header">
+              <h4>Task</h4>
+            </header>
+            <ul className="operations-task-list">
+              <OperationsTaskRow
+                task={focusedTask}
+                assigneeName={assigneeNameById(focusedTask.assignedTo)}
+                canManage={canManage}
+                canComplete={canManage || canStaffCompleteTask(focusedTask, currentEmployeeId)}
+                isFocused={`${activeFocusTaskId ?? ''}` === `${focusedTask.id}`}
+                onToggleComplete={handleToggleComplete}
+                onEdit={(item) => {
+                  setEditingTask(item)
+                  setIsTaskFormOpen(true)
+                }}
+                onDelete={onDeleteTask}
+              />
+            </ul>
+          </section>
         ) : null}
 
         <section className="operations-mobile-section" aria-label="Team communication">
@@ -649,6 +743,7 @@ export function OperationsDashboardView({
                 assigneeName={assigneeNameById(task.assignedTo)}
                 canManage={canManage}
                 canComplete={canManage || canStaffCompleteTask(task, currentEmployeeId)}
+                isFocused={`${activeFocusTaskId ?? ''}` === `${task.id}`}
                 onToggleComplete={handleToggleComplete}
                 onEdit={(item) => {
                   setEditingTask(item)

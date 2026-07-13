@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
+  buildOperationsTaskAttentionItems,
   formatTodayAttentionActionLabel,
   getTodayAttentionItemA11y,
   isTodayAttentionItemActionable,
@@ -53,12 +54,39 @@ describe('todayAttentionNavigation', () => {
     expect(resolveTodayAttentionDestination(
       { key: 'task:42' },
       fullPermissions,
-    )).toEqual({ view: 'operations', section: 'tasks', taskId: '42' })
+    )).toEqual({ view: 'operations', section: 'dashboard', taskId: '42' })
 
     expect(resolveTodayAttentionDestination(
       { key: 'task-due:7' },
       fullPermissions,
-    )).toEqual({ view: 'operations', section: 'tasks', taskId: '7' })
+    )).toEqual({ view: 'operations', section: 'dashboard', taskId: '7' })
+  })
+
+  it('builds operations task attention items from operations tasks', () => {
+    const items = buildOperationsTaskAttentionItems([
+      { id: 'o1', title: 'Overdue prep', status: 'pending', dueDate: '2026-07-07' },
+      { id: 'o2', title: 'Count safe', status: 'pending', dueDate: '2026-07-08' },
+      { id: 'o3', title: 'Done task', status: 'completed', dueDate: '2026-07-08' },
+    ], '2026-07-08')
+
+    expect(items).toEqual([
+      {
+        key: 'task:o1',
+        category: 'task',
+        tone: 'warning',
+        priority: 'urgent',
+        label: 'Overdue prep',
+        detail: 'Overdue task',
+      },
+      {
+        key: 'task-due:o2',
+        category: 'task',
+        tone: 'info',
+        priority: 'reminder',
+        label: 'Count safe',
+        detail: 'Due today',
+      },
+    ])
   })
 
   it('resolves schedule and reservation destinations', () => {
@@ -120,7 +148,7 @@ describe('todayAttentionNavigation', () => {
 
     expect(formatTodayAttentionActionLabel(
       { label: 'Close checklist', detail: 'Overdue task' },
-      { view: 'operations', section: 'tasks', taskId: '7' },
+      { view: 'operations', section: 'dashboard', taskId: '7' },
     )).toBe('Open task: Close checklist. Overdue task')
   })
 

@@ -4,6 +4,7 @@ import {
   buildTodayAttentionItems,
   sortTodayAttentionItems,
 } from './todayViewUtils'
+import { buildOperationsTaskAttentionItems } from './todayAttentionNavigation'
 import { compareOperationsTasksByWorkflow } from './operationsBrowse'
 
 export function buildManagerMobileAttentionItems({
@@ -84,7 +85,7 @@ export function buildManagerMobileAttentionItems({
 export function buildTodayCommandCenterAttentionItems({
   stockAlerts = [],
   inventoryConnected = false,
-  tasks = [],
+  operationsTasks = [],
   todayKey = '',
   issuesSummary = {},
   snapshot = {},
@@ -105,12 +106,14 @@ export function buildTodayCommandCenterAttentionItems({
     stockAlerts,
     inventoryConnected,
     hasStockModuleData,
-    tasks,
+    tasks: [],
     todayKey,
     issuesSummary,
     snapshot,
     coverageBreakdown,
   })
+
+  const taskItems = buildOperationsTaskAttentionItems(operationsTasks, todayKey)
 
   const reservationItems = buildReservationAttentionItems({
     reservations,
@@ -129,7 +132,7 @@ export function buildTodayCommandCenterAttentionItems({
   })
 
   const merged = buildManagerMobileAttentionItems({
-    attentionItems: [...reservationItems, ...baseItems, ...announcementItems],
+    attentionItems: [...reservationItems, ...baseItems, ...taskItems, ...announcementItems],
     stockOrdersSummary,
     stockSummary,
     hasStockModuleData,
