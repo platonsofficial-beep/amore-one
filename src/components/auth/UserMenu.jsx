@@ -54,7 +54,9 @@ export function UserMenu({
     || (isAuthDisabled ? 'Development mode' : 'Signed in')
   const chipInitials = getProfileInitials(memberDisplayName)
 
-  const chipClassName = variant === 'command'
+  const chipClassName = variant === 'today-compact'
+    ? `profile-chip profile-chip-today-compact user-menu-trigger${profileChipDisplay.isConfigured || memberDisplayName ? '' : ' profile-chip-unconfigured'}`
+    : variant === 'command'
     ? `profile-chip profile-chip-command user-menu-trigger${profileChipDisplay.isConfigured || memberDisplayName ? '' : ' profile-chip-unconfigured'}`
     : `profile-chip user-menu-trigger${profileChipDisplay.isConfigured || memberDisplayName ? '' : ' profile-chip-unconfigured'}`
 
@@ -85,7 +87,7 @@ export function UserMenu({
         onClick={() => setIsOpen((current) => !current)}
       >
         <div className="profile-avatar">{chipInitials}</div>
-        {variant === 'command' ? (
+        {variant === 'command' || variant === 'today-compact' ? (
           <div className="profile-chip-copy">
             <strong>{memberDisplayName}</strong>
             <p className="user-menu-chip-meta">

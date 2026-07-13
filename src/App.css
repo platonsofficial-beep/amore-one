@@ -1276,6 +1276,277 @@
     inset 0 1px 0 rgba(255, 255, 255, 0.05);
 }
 
+.today-command-header {
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 16px;
+  margin-bottom: 0;
+  border-color: rgba(212, 175, 55, 0.14);
+  background:
+    linear-gradient(135deg, rgba(212, 175, 55, 0.06), transparent 48%),
+    rgba(12, 12, 13, 0.96);
+  box-shadow:
+    0 10px 28px rgba(0, 0, 0, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+.today-command-header-body {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.today-command-profile-slot {
+  flex: 0 0 auto;
+  align-self: flex-start;
+}
+
+.today-command-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.today-command-row-identity {
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.today-command-identity {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.today-command-greeting {
+  margin: 0;
+  color: #fff7e8;
+  font-size: 1.08rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  line-height: 1.15;
+  text-transform: uppercase;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.today-command-venue {
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  font-size: 0.58rem;
+  font-weight: 600;
+  color: #d4af37;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.today-command-date {
+  margin: 0;
+  color: #7d7468;
+  font-size: 0.72rem;
+  letter-spacing: 0.03em;
+  line-height: 1.3;
+}
+
+.today-command-workspace-badge {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 0 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(212, 175, 55, 0.22);
+  background: rgba(212, 175, 55, 0.08);
+  color: #e8d7a8;
+  font-size: 0.64rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  max-width: min(42vw, 220px);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.today-command-row-chips {
+  align-items: stretch;
+}
+
+.today-command-chip-strip {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: stretch;
+  gap: 8px;
+  min-width: 0;
+}
+
+.today-command-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 8px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.03);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+.today-command-chip.tone-live {
+  border-color: rgba(76, 175, 80, 0.28);
+  background: rgba(76, 175, 80, 0.08);
+}
+
+.today-command-chip.tone-draft,
+.today-command-chip.tone-warning {
+  border-color: rgba(255, 193, 94, 0.24);
+  background: rgba(255, 193, 94, 0.08);
+}
+
+.today-command-chip.tone-standby {
+  border-color: rgba(212, 175, 55, 0.22);
+  background: rgba(212, 175, 55, 0.08);
+}
+
+.today-command-chip.tone-alert {
+  border-color: rgba(244, 67, 54, 0.28);
+  background: rgba(244, 67, 54, 0.08);
+}
+
+.today-command-chip.tone-muted {
+  opacity: 0.82;
+}
+
+.today-command-chip-icon {
+  flex: 0 0 auto;
+  font-size: 0.92rem;
+  line-height: 1;
+}
+
+.today-command-chip-copy {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  min-width: 0;
+}
+
+.today-command-chip-label {
+  color: rgba(232, 215, 168, 0.62);
+  font-size: 0.62rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  line-height: 1.1;
+  white-space: nowrap;
+}
+
+.today-command-chip-value {
+  color: #f7efe1;
+  font-size: 0.84rem;
+  font-weight: 700;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.today-command-chip.tone-alert .today-command-chip-value {
+  color: #ffb4aa;
+}
+
+.today-command-row-actions {
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.today-command-action-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 0 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(212, 175, 55, 0.24);
+  background: rgba(212, 175, 55, 0.08);
+  color: #f3e4bc;
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  transition: background 0.16s ease, border-color 0.16s ease, transform 0.12s ease;
+}
+
+.today-command-action-pill:hover {
+  background: rgba(212, 175, 55, 0.14);
+  border-color: rgba(212, 175, 55, 0.36);
+}
+
+.today-command-action-pill:active {
+  transform: scale(0.98);
+}
+
+.today-command-action-pill:focus-visible {
+  outline: 2px solid rgba(212, 175, 55, 0.55);
+  outline-offset: 2px;
+}
+
+.today-command-action-plus {
+  color: #d4af37;
+  font-size: 0.92rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.profile-chip-today-compact {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 6px 10px 6px 6px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.profile-chip-today-compact .profile-avatar {
+  width: 32px;
+  height: 32px;
+  font-size: 0.72rem;
+}
+
+.profile-chip-today-compact .profile-chip-copy {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.profile-chip-today-compact .profile-chip-copy strong {
+  display: inline;
+  font-size: 0.78rem;
+  max-width: 9rem;
+}
+
+.profile-chip-today-compact .user-menu-chip-meta {
+  margin: 0;
+  display: inline-flex;
+  align-items: center;
+}
+
+.profile-chip-today-compact .user-menu-role-badge {
+  font-size: 0.62rem;
+  padding: 2px 7px;
+}
+
 .command-topbar-intro {
   display: flex;
   flex-direction: column;
@@ -21820,6 +22091,20 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
     gap: 12px;
   }
 
+  .today-command-header {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .today-command-profile-slot {
+    align-self: stretch;
+  }
+
+  .profile-chip-today-compact {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
   .command-topbar-meta {
     justify-content: flex-start;
     width: 100%;
@@ -21853,6 +22138,19 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 
   .topbar-command {
     padding: 14px 16px;
+  }
+
+  .today-command-header {
+    padding: 10px 12px;
+    gap: 8px;
+  }
+
+  .today-command-greeting {
+    font-size: 1rem;
+  }
+
+  .today-command-chip-strip {
+    gap: 6px;
   }
 
   .command-topbar-greeting {

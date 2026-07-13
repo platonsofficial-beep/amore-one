@@ -424,6 +424,7 @@ import {
   buildTodayStatusSummary,
   buildTeamTodayGroups,
 } from './lib/todayViewUtils'
+import { buildTodayCommandHeaderChips } from './lib/todayCommandHeaderUtils'
 import { buildTodayCommandCenterAttentionItems } from './lib/mobileManagerTodayUtils'
 import {
   resolveTodayAttentionDestination,
@@ -474,6 +475,7 @@ import { OperationsDashboardView } from './components/operations/OperationsDashb
 import { OperationsChecklistsView } from './components/operations/OperationsChecklistsView'
 import { OperationsChecklistExecutionView } from './components/operations/OperationsChecklistExecutionView'
 import { TodayAnnouncementsPanel } from './components/today/TodayAnnouncementsPanel'
+import { TodayCommandHeader } from './components/today/TodayCommandHeader'
 import {
   supplierHasHistory,
 } from './lib/stockSupplierUtils'
@@ -15211,11 +15213,6 @@ function App() {
     isTasksModuleConnected,
   ])
 
-  const dashboardHeroDateLabel = useMemo(
-    () => formatDashboardHeroDate(localNow, workspaceTimeZone),
-    [localNow, workspaceTimeZone],
-  )
-
   const dashboardLiveStatus = useMemo(() => {
     if (liveFloorState.state === 'live') {
       const count = liveFloorState.onShiftCount
@@ -15252,6 +15249,35 @@ function App() {
       tone: 'standby',
     }
   }, [liveFloorState])
+
+  const dashboardHeroDateLabel = useMemo(
+    () => formatDashboardHeroDate(localNow, workspaceTimeZone),
+    [localNow, workspaceTimeZone],
+  )
+
+  const todayCommandHeaderChips = useMemo(() => buildTodayCommandHeaderChips({
+    dashboardLiveStatus,
+    todayStatusSummary,
+    dashboardTaskOverview,
+    todayReservationsSummary,
+    reservationsConnected: isReservationsModuleConnected,
+    liveFloorState,
+    showStock: canAccessStockModule,
+  }), [
+    dashboardLiveStatus,
+    todayStatusSummary,
+    dashboardTaskOverview,
+    todayReservationsSummary,
+    isReservationsModuleConnected,
+    liveFloorState,
+    canAccessStockModule,
+  ])
+
+  const todayWorkspaceBadge = useMemo(() => {
+    const workspaceName = `${workspace?.name ?? ''}`.trim()
+    if (workspaceName) return workspaceName
+    return `${brandDisplay.businessNameLabel ?? ''}`.trim()
+  }, [workspace?.name, brandDisplay.businessNameLabel])
 
   const refreshReservations = useCallback(async () => {
     if (!activeWorkspaceId) {
@@ -22685,34 +22711,19 @@ function App() {
                 <>
                   {!hideStandardTopbar ? (
                   useCommandTopbar ? (
-                  <header className="topbar topbar-command topbar-command-hero">
-                    <div className="command-topbar-intro">
-                      <h2 className="command-topbar-greeting">
-                        {buildDashboardGreeting(currentTimeGreeting, workspaceProfile.managerName)}
-                      </h2>
-                      {brandDisplay.businessName ? (
-                        <p className="command-topbar-business">{brandDisplay.businessName}</p>
-                      ) : null}
-                      <p className="command-topbar-date">{dashboardHeroDateLabel}</p>
-                    </div>
-                    <div className="command-topbar-meta">
-                      <div className={`command-status-chip tone-${dashboardLiveStatus.tone}`} aria-label="Live operations status">
-                        <span className="command-status-chip-dot" aria-hidden="true" />
-                        <div className="command-status-chip-copy">
-                          <p className="command-status-chip-label">{dashboardLiveStatus.chipLabel}</p>
-                          <p className="command-status-chip-value">{dashboardLiveStatus.chipValue}</p>
-                          <p className="command-status-chip-status">{dashboardLiveStatus.chipStatus}</p>
-                        </div>
-                      </div>
-                      <UserMenu
-                        profileChipDisplay={profileChipDisplay}
-                        employees={scheduleEmployees}
-                        onOpenWorkspaceProfile={handleOpenWorkspaceProfile}
-                        canOpenWorkspaceProfile={canOpenWorkspaceProfile}
-                        variant="command"
-                      />
-                    </div>
-                  </header>
+                  <TodayCommandHeader
+                    greeting={mobileGreeting}
+                    businessName={brandDisplay.businessName}
+                    dateLabel={dashboardHeroDateLabel}
+                    workspaceBadge={todayWorkspaceBadge}
+                    chips={todayCommandHeaderChips}
+                    quickActions={permittedTodayQuickActions}
+                    profileChipDisplay={profileChipDisplay}
+                    employees={scheduleEmployees}
+                    onQuickAction={handleDashboardQuickAction}
+                    onOpenWorkspaceProfile={handleOpenWorkspaceProfile}
+                    canOpenWorkspaceProfile={canOpenWorkspaceProfile}
+                  />
                   ) : (
                   <header className="topbar">
                     <div className="topbar-title-block">
