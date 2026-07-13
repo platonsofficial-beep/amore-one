@@ -174,6 +174,20 @@ export function shouldShowReservationsHostView({
   return Boolean(useMobileExperience && mobileReservationsHostMode)
 }
 
+export function shouldUseReservationsHostDedicatedShell({
+  role,
+  activeView = '',
+  useMobileExperience = false,
+  mobileReservationsHostMode = false,
+} = {}) {
+  if (`${activeView ?? ''}`.trim() !== 'reservations') return false
+  return shouldShowReservationsHostView({
+    role,
+    useMobileExperience,
+    mobileReservationsHostMode,
+  })
+}
+
 export function resolveHostMobileTabChange(tab, role) {
   if (!isHostRole(role)) {
     return {

@@ -34,6 +34,7 @@ import {
   shouldShowReservationsHostView,
   shouldUseHostStationLanding,
   shouldUseHostStationShell,
+  shouldUseReservationsHostDedicatedShell,
 } from './permissions'
 
 const OPERATIONS_SECTIONS = [
@@ -194,6 +195,37 @@ describe('permissions', () => {
       expect(shouldUseHostStationShell('host')).toBe(true)
       expect(shouldUseHostStationShell('owner')).toBe(false)
       expect(shouldUseHostStationLanding('host')).toBe(true)
+    })
+
+    it('uses reservations host dedicated shell for host-capable roles on reservations', () => {
+      const desktopContext = {
+        activeView: 'reservations',
+        useMobileExperience: false,
+        mobileReservationsHostMode: false,
+      }
+
+      expect(shouldUseReservationsHostDedicatedShell({ role: 'owner', ...desktopContext })).toBe(true)
+      expect(shouldUseReservationsHostDedicatedShell({ role: 'general_manager', ...desktopContext })).toBe(true)
+      expect(shouldUseReservationsHostDedicatedShell({ role: 'manager', ...desktopContext })).toBe(true)
+      expect(shouldUseReservationsHostDedicatedShell({ role: 'host', ...desktopContext })).toBe(true)
+    })
+
+    it('does not use reservations host dedicated shell outside reservations', () => {
+      expect(shouldUseReservationsHostDedicatedShell({
+        role: 'owner',
+        activeView: 'today',
+        useMobileExperience: false,
+        mobileReservationsHostMode: false,
+      })).toBe(false)
+    })
+
+    it('keeps staff on the standard shell outside mobile host mode', () => {
+      expect(shouldUseReservationsHostDedicatedShell({
+        role: 'staff',
+        activeView: 'reservations',
+        useMobileExperience: false,
+        mobileReservationsHostMode: true,
+      })).toBe(false)
     })
   })
 

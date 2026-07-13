@@ -562,6 +562,7 @@ import {
   resolveMobileShellVariant,
   resolvePermittedActiveView,
   shouldShowReservationsHostView,
+  shouldUseReservationsHostDedicatedShell,
   shouldUseHostStationLanding,
   resolvePermittedOperationsSection,
   resolvePermittedTeamSection,
@@ -14283,6 +14284,15 @@ function App() {
     }),
     [role, useMobileExperience, mobileReservationsHostMode],
   )
+  const useReservationsHostDedicatedShell = useMemo(
+    () => shouldUseReservationsHostDedicatedShell({
+      role,
+      activeView,
+      useMobileExperience,
+      mobileReservationsHostMode,
+    }),
+    [role, activeView, useMobileExperience, mobileReservationsHostMode],
+  )
   const isActiveViewPendingPermissionRedirect = useMemo(() => {
     if (isAuthLoading) return false
     return resolvePermittedActiveView(role, activeView) !== activeView
@@ -14968,8 +14978,9 @@ function App() {
 
   const isManagerMobileShell = !isAuthLoading && isManagementMobileRole(role)
   const isHostMobileShell = !isAuthLoading && isHostMobileRole(role)
-  const useHostStationShell = isHostMobileShell
-  const useDedicatedShell = useMobileExperience || useHostStationShell
+  const useHostStationShell = isHostMobileShell || useReservationsHostDedicatedShell
+  const useDedicatedShell = useMobileExperience || isHostMobileShell
+  const hideGlobalAppSidebar = useDedicatedShell || useReservationsHostDedicatedShell
   const activeMobileTab = isManagerMobileShell ? mobileManagerTab : mobileStaffTab
   const isManagerMobileStockLoading = isManagerMobileBootstrapLoading || isStockItemsLoading || isStockOrdersLoading
   const isManagerMobileTasksLoading = isManagerMobileBootstrapLoading || isOperationsLoading
@@ -21697,7 +21708,7 @@ function App() {
     <PublishedFloorPlanProvider workspaceId={workspace?.id ?? ''}>
     <div className={`app-shell${useDedicatedShell ? ' is-mobile-shell' : ''}${useHostStationShell ? ' is-host-station-shell is-host-only-station' : ''}${useDedicatedShell && mobileExpandedView ? ' is-mobile-expanded' : ''}${(useDedicatedShell && mobileReservationsHostMode) || useHostStationShell ? ' is-reservations-host-mode' : ''}`}>
       <ViewportDebugOverlay isMobileViewport={useDedicatedShell} />
-      {!useDedicatedShell ? (
+      {!hideGlobalAppSidebar ? (
       <aside className="sidebar">
         <div className="brand-block">
           <div className="brand-avatar" aria-hidden="true">
@@ -22447,9 +22458,7 @@ function App() {
                         expandedTitle={mobileExpandedTitle}
                         onBackFromExpanded={handleMobileBack}
                         expandedModuleContent={mobileExpandedView ? workspaceModules : null}
-                        isReservationsHostMode={
-                          mobileReservationsHostMode && activeView === 'reservations'
-                        }
+                        isReservationsHostMode={shouldRenderReservationsHostView && activeView === 'reservations'}
                         bottomTabs={mobileBottomTabs}
                       />
                     )

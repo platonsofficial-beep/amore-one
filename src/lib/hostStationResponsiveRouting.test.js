@@ -138,6 +138,13 @@ describe('host station responsive routing', () => {
       expect(appSource).toContain('<ReservationsView')
     })
 
+    it('hides the global sidebar for host-capable reservations shell roles', () => {
+      expect(appSource).toContain('shouldUseReservationsHostDedicatedShell')
+      expect(appSource).toContain('hideGlobalAppSidebar')
+      expect(appSource).toContain('useHostStationShell = isHostMobileShell || useReservationsHostDedicatedShell')
+      expect(appSource).toContain('onExitHostMode={isHostMobileRole(role) ? undefined : handleMobileExitReservationsHostMode}')
+    })
+
     it('does not duplicate a separate desktop Host Station component', () => {
       expect(appSource).not.toMatch(/function\s+DesktopReservationsHost/)
       expect(appSource).not.toMatch(/function\s+DesktopHostStation/)
