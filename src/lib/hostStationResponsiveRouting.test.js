@@ -157,6 +157,12 @@ describe('host station responsive routing', () => {
       expect(mobileShellCss).toContain('--host-station-shell-mode: desktop')
     })
 
+    it('collapses the desktop sidebar grid when host station shell is active without mobile shell', () => {
+      expect(mobileShellCss).toMatch(/\.app-shell\.is-host-station-shell\s*\{[\s\S]*?display:\s*block;/)
+      expect(mobileShellCss).toContain('.app-shell.is-host-station-shell .main-panel-reservations')
+      expect(mobileShellCss).toMatch(/minmax\(280px, clamp\(320px, 34vw, 420px\)\) minmax\(0, 1fr\)/)
+    })
+
     it('bounds desktop left pane width while letting floor plan fill remaining space', () => {
       expect(mobileShellCss).toMatch(/minmax\(280px, clamp\(320px, 34vw, 420px\)\) minmax\(0, 1fr\)/)
       expect(appCss).toContain('.main-panel-reservations .mobile-host-reservations.is-host-mode')
