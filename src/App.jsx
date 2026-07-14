@@ -1713,6 +1713,31 @@ function EmployeePremiumFieldSelect({
   )
 }
 
+function filterEmployeePrimaryPositionPickerOptions(options, searchQuery) {
+  if (!Array.isArray(options)) return []
+
+  const needle = `${searchQuery ?? ''}`.trim().toLowerCase()
+  if (!needle) return options
+
+  return options.filter((option) => {
+    const searchTokens = []
+    const name = `${option?.name ?? ''}`.trim()
+    const label = `${option?.label ?? ''}`.trim()
+    const value = `${option?.value ?? ''}`.trim()
+
+    if (name) searchTokens.push(name)
+    if (label) searchTokens.push(label)
+    if (value) searchTokens.push(value)
+
+    for (const alias of option?.aliases ?? []) {
+      const trimmed = `${alias ?? ''}`.trim()
+      if (trimmed) searchTokens.push(trimmed)
+    }
+
+    return searchTokens.some((token) => token.toLowerCase().includes(needle))
+  })
+}
+
 function EmployeePremiumPositionField({
   value,
   onChange,
@@ -1721,20 +1746,23 @@ function EmployeePremiumPositionField({
   openMenuId,
   setOpenMenuId,
   id,
-  placeholder = 'Search and select primary position',
+  placeholder = 'Select primary position',
+  valuesMatch = (left, right) => left === right,
 }) {
   const isOpen = openMenuId === menuId
   const [menuPosition, setMenuPosition] = useState(null)
   const [activeIndex, setActiveIndex] = useState(-1)
+  const [searchQuery, setSearchQuery] = useState('')
   const rootRef = useRef(null)
-  const inputRef = useRef(null)
+  const triggerRef = useRef(null)
+  const searchInputRef = useRef(null)
 
-  const filteredOptions = useMemo(() => {
-    const needle = `${value ?? ''}`.trim().toLowerCase()
-    return options
-      .map((position) => ({ value: position.name, label: position.name }))
-      .filter((option) => !needle || option.label.toLowerCase().includes(needle))
-  }, [options, value])
+  const filteredOptions = useMemo(
+    () => filterEmployeePrimaryPositionPickerOptions(options, searchQuery),
+    [options, searchQuery],
+  )
+
+  const displayLabel = `${value ?? ''}`.trim()
 
   const setIsOpen = useCallback((nextOpen) => {
     if (nextOpen) {
@@ -1744,29 +1772,51 @@ function EmployeePremiumPositionField({
   }, [menuId, setOpenMenuId])
 
   const updateMenuPosition = useCallback(() => {
-    if (!inputRef.current) return
-    setMenuPosition(computeEmployeePremiumSelectPosition(inputRef.current.getBoundingClientRect()))
+    if (!triggerRef.current) return
+    setMenuPosition(computeEmployeePremiumSelectPosition(triggerRef.current.getBoundingClientRect()))
   }, [])
+
+  const handleSelectOption = useCallback((optionValue) => {
+    onChange(optionValue)
+    setIsOpen(false)
+    requestAnimationFrame(() => {
+      if (triggerRef.current) {
+        focusNextEmployeeFormField(triggerRef.current)
+      }
+    })
+  }, [onChange, setIsOpen])
 
   useEffect(() => {
     if (!isOpen) {
+      setSearchQuery('')
       setActiveIndex(-1)
       setMenuPosition(null)
       return undefined
     }
 
-    setActiveIndex(filteredOptions.length > 0 ? 0 : -1)
+    const selectedIndex = filteredOptions.findIndex((option) => valuesMatch(option.name, value))
+    setActiveIndex(selectedIndex >= 0 ? selectedIndex : (filteredOptions.length > 0 ? 0 : -1))
     updateMenuPosition()
 
-    const handlePointerDown = (event) => {
+    const handleClickOutside = (event) => {
       if (rootRef.current?.contains(event.target)) return
-      if (event.target instanceof Element && event.target.closest('.employee-premium-field-select-portal')) return
+      if (event.target instanceof Element && event.target.closest('.employee-premium-position-picker-portal')) return
       setIsOpen(false)
     }
 
     const handleKeyDown = (event) => {
       if (event.key === 'Escape') {
+        event.preventDefault()
         setIsOpen(false)
+        requestAnimationFrame(() => triggerRef.current?.focus())
+        return
+      }
+
+      if (event.target instanceof HTMLInputElement && event.target.classList.contains('employee-premium-position-picker-search')) {
+        if (event.key === 'ArrowDown' && filteredOptions.length > 0) {
+          event.preventDefault()
+          setActiveIndex(0)
+        }
         return
       }
 
@@ -1786,37 +1836,33 @@ function EmployeePremiumPositionField({
 
       if (event.key === 'Enter' && activeIndex >= 0) {
         event.preventDefault()
-        onChange(filteredOptions[activeIndex].value)
-        setIsOpen(false)
-        requestAnimationFrame(() => {
-          if (inputRef.current) {
-            focusNextEmployeeFormField(inputRef.current)
-          }
-        })
+        handleSelectOption(filteredOptions[activeIndex].name)
       }
     }
 
     const handleReposition = () => updateMenuPosition()
 
-    document.addEventListener('pointerdown', handlePointerDown)
+    document.addEventListener('click', handleClickOutside, true)
     document.addEventListener('keydown', handleKeyDown)
     window.addEventListener('resize', handleReposition)
     window.addEventListener('scroll', handleReposition, true)
 
+    const modalScrollContainer = triggerRef.current?.closest('.employee-premium-form-modal')
+    modalScrollContainer?.addEventListener('scroll', handleReposition, { passive: true })
+
     return () => {
-      document.removeEventListener('pointerdown', handlePointerDown)
+      document.removeEventListener('click', handleClickOutside, true)
       document.removeEventListener('keydown', handleKeyDown)
       window.removeEventListener('resize', handleReposition)
       window.removeEventListener('scroll', handleReposition, true)
+      modalScrollContainer?.removeEventListener('scroll', handleReposition)
     }
-  }, [activeIndex, filteredOptions, isOpen, onChange, setIsOpen, updateMenuPosition])
+  }, [activeIndex, filteredOptions, handleSelectOption, isOpen, setIsOpen, updateMenuPosition, value, valuesMatch])
 
-  const menuPortal = isOpen && menuPosition && filteredOptions.length > 0 && typeof document !== 'undefined'
+  const menuPortal = isOpen && menuPosition && typeof document !== 'undefined'
     ? createPortal(
-      <ul
-        className="employee-premium-field-select-menu employee-premium-field-select-portal"
-        role="listbox"
-        aria-label="Primary position options"
+      <div
+        className="employee-premium-position-picker-portal employee-premium-field-select-portal"
         style={{
           position: 'fixed',
           top: `${menuPosition.top}px`,
@@ -1825,24 +1871,47 @@ function EmployeePremiumPositionField({
           zIndex: EMPLOYEE_FORM_SELECT_Z_INDEX,
         }}
       >
-        {filteredOptions.map((option, index) => (
-          <li key={option.value} role="presentation">
-            <button
-              type="button"
-              role="option"
-              className={`employee-premium-field-select-option${option.value === value ? ' is-selected' : ''}${index === activeIndex ? ' is-active' : ''}`}
-              aria-selected={option.value === value}
-              onMouseEnter={() => setActiveIndex(index)}
-              onClick={() => {
-                onChange(option.value)
-                setIsOpen(false)
-              }}
-            >
-              {option.label}
-            </button>
-          </li>
-        ))}
-      </ul>,
+        <div className="employee-premium-position-picker-search-wrap">
+          <input
+            ref={searchInputRef}
+            type="search"
+            className="employee-premium-position-picker-search"
+            value={searchQuery}
+            placeholder="Search positions"
+            aria-label="Search positions"
+            autoComplete="off"
+            enterKeyHint="search"
+            onChange={(event) => {
+              setSearchQuery(event.target.value)
+              setActiveIndex(0)
+            }}
+          />
+        </div>
+        <ul
+          className="employee-premium-field-select-menu employee-premium-position-picker-menu"
+          role="listbox"
+          aria-label="Primary position options"
+        >
+          {filteredOptions.length > 0 ? filteredOptions.map((option, index) => (
+            <li key={option.name} role="presentation">
+              <button
+                type="button"
+                role="option"
+                className={`employee-premium-field-select-option${valuesMatch(option.name, value) ? ' is-selected' : ''}${index === activeIndex ? ' is-active' : ''}`}
+                aria-selected={valuesMatch(option.name, value)}
+                onMouseEnter={() => setActiveIndex(index)}
+                onClick={() => handleSelectOption(option.name)}
+              >
+                {option.name}
+              </button>
+            </li>
+          )) : (
+            <li className="employee-premium-position-picker-empty" role="presentation">
+              No matching positions
+            </li>
+          )}
+        </ul>
+      </div>,
       document.body,
     )
     : null
@@ -1850,42 +1919,33 @@ function EmployeePremiumPositionField({
   return (
     <>
       <div className={`employee-premium-position-field${isOpen ? ' is-open' : ''}`} ref={rootRef}>
-        <input
-          ref={inputRef}
+        <button
+          ref={triggerRef}
           id={id}
-          className="employee-premium-position-input"
-          value={value}
-          placeholder={placeholder}
-          onChange={(event) => onChange(event.target.value)}
-          onFocus={() => setIsOpen(true)}
-          onClick={() => setIsOpen(true)}
+          type="button"
+          className="employee-premium-position-trigger"
+          onClick={() => setIsOpen(!isOpen)}
           onKeyDown={(event) => {
-            if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+            if (event.key === 'Enter' || event.key === ' ') {
               event.preventDefault()
               setIsOpen(true)
               return
             }
 
-            if (event.key === 'Enter') {
-              if (!isOpen) {
-                event.preventDefault()
-                focusNextEmployeeFormField(event.currentTarget)
-                return
-              }
-
-              if (filteredOptions.length === 0) {
-                event.preventDefault()
-                setIsOpen(false)
-                focusNextEmployeeFormField(event.currentTarget)
-              }
+            if (event.key === 'ArrowDown') {
+              event.preventDefault()
+              setIsOpen(true)
             }
           }}
-          aria-autocomplete="list"
-          aria-expanded={isOpen}
           aria-haspopup="listbox"
+          aria-expanded={isOpen}
           aria-label="Primary position"
-          required
-        />
+        >
+          <span className={`employee-premium-field-select-value${displayLabel ? '' : ' is-placeholder'}`}>
+            {displayLabel || placeholder}
+          </span>
+          <span className="employee-premium-field-select-chevron" aria-hidden="true">▾</span>
+        </button>
       </div>
       {menuPortal}
     </>
@@ -23413,6 +23473,7 @@ function App() {
                         setOpenMenuId={setEmployeeFormOpenMenuId}
                         value={employeeForm.primaryPosition}
                         options={employeeCatalogPrimaryPositionOptions}
+                        valuesMatch={employeePositionOptionValuesMatch}
                         onChange={(nextPrimary) => setEmployeeForm((current) => ({
                           ...current,
                           primaryPosition: nextPrimary,

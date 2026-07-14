@@ -13,7 +13,7 @@ function createEmployeeFormMarkup() {
       <input id="first-name" type="text" />
       <input id="last-name" type="text" />
       <button type="button" class="employee-premium-field-select-trigger" id="department">Department</button>
-      <input id="primary-position" class="employee-premium-position-input" type="text" />
+      <button type="button" class="employee-premium-position-trigger" id="primary-position" aria-expanded="false">Primary Position</button>
       <button type="button" class="employee-premium-date-trigger" id="start-date">Start Date</button>
       <input id="weekly-hours" type="text" />
       <input id="phone-local" type="tel" />
@@ -88,7 +88,7 @@ describe('handleEmployeeFormEnterKey', () => {
     expect(event.defaultPrevented).toBe(false)
   })
 
-  it('does not advance when primary position suggestions are open', () => {
+  it('does not advance when primary position picker is open', () => {
     createEmployeeFormMarkup()
     const primaryPosition = document.getElementById('primary-position')
     primaryPosition.setAttribute('aria-expanded', 'true')
@@ -96,6 +96,23 @@ describe('handleEmployeeFormEnterKey', () => {
 
     const event = new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true })
     Object.defineProperty(event, 'target', { value: primaryPosition })
+
+    expect(handleEmployeeFormEnterKey(event)).toBe(false)
+    expect(event.defaultPrevented).toBe(false)
+  })
+
+  it('does not advance when focus is inside the position picker portal', () => {
+    createEmployeeFormMarkup()
+    document.body.insertAdjacentHTML('beforeend', `
+      <div class="employee-premium-position-picker-portal">
+        <input class="employee-premium-position-picker-search" id="position-search" type="search" />
+      </div>
+    `)
+    const searchInput = document.getElementById('position-search')
+    searchInput.focus()
+
+    const event = new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true })
+    Object.defineProperty(event, 'target', { value: searchInput })
 
     expect(handleEmployeeFormEnterKey(event)).toBe(false)
     expect(event.defaultPrevented).toBe(false)

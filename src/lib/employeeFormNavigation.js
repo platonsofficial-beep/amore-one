@@ -3,6 +3,7 @@ const EMPLOYEE_FORM_FOCUSABLE_SELECTOR = [
   'textarea:not([disabled]):not([tabindex="-1"])',
   'button.employee-premium-field-select-trigger:not([disabled])',
   'button.employee-premium-date-trigger:not([disabled])',
+  'button.employee-premium-position-trigger:not([disabled])',
   'button[class*="country-picker-trigger"]:not([disabled])',
   'button.employee-premium-position-chip:not([disabled])',
   'button.employee-premium-form-save-btn:not([disabled])',
@@ -52,6 +53,7 @@ export function handleEmployeeFormEnterKey(event) {
   if (target.tagName === 'TEXTAREA') return false
 
   if (target.closest('.employee-premium-field-select-portal')) return false
+  if (target.closest('.employee-premium-position-picker-portal')) return false
   if (target.closest('.employee-premium-date-picker-portal')) return false
   if (target.closest('.phone-country-picker-portal')) return false
 
@@ -61,6 +63,7 @@ export function handleEmployeeFormEnterKey(event) {
     if (
       target.classList.contains('employee-premium-field-select-trigger')
       || target.classList.contains('employee-premium-date-trigger')
+      || target.classList.contains('employee-premium-position-trigger')
       || `${target.className}`.includes('country-picker-trigger')
     ) {
       return false
@@ -72,13 +75,6 @@ export function handleEmployeeFormEnterKey(event) {
   if (target.tagName === 'INPUT') {
     const inputType = `${target.getAttribute('type') ?? 'text'}`.toLowerCase()
     if (inputType === 'submit' || inputType === 'button') return false
-
-    if (
-      target.classList.contains('employee-premium-position-input')
-      && target.getAttribute('aria-expanded') === 'true'
-    ) {
-      return false
-    }
 
     event.preventDefault()
     return focusNextEmployeeFormField(target)

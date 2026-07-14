@@ -18037,7 +18037,7 @@
 
 .employee-premium-field-select-trigger,
 .employee-premium-date-trigger,
-.employee-premium-position-input {
+.employee-premium-position-trigger {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -18059,15 +18059,11 @@
   transition: border-color 160ms ease, background 160ms ease, color 160ms ease;
 }
 
-.employee-premium-position-input {
-  cursor: text;
-}
-
-.employee-premium-position-field.is-open .employee-premium-position-input,
+.employee-premium-position-field.is-open .employee-premium-position-trigger,
 .employee-premium-field-select.is-open .employee-premium-field-select-trigger,
 .employee-premium-field-select-trigger:focus-visible,
 .employee-premium-date-trigger:focus-visible,
-.employee-premium-position-input:focus-visible {
+.employee-premium-position-trigger:focus-visible {
   border-color: rgba(212, 175, 55, 0.42);
   background: rgba(212, 175, 55, 0.08);
   outline: 0;
@@ -18111,6 +18107,64 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.employee-premium-field-select-value.is-placeholder {
+  color: rgba(247, 239, 225, 0.45);
+}
+
+.employee-premium-position-picker-portal {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 4px;
+  border-radius: 12px;
+  border: 1px solid rgba(212, 175, 55, 0.2);
+  background: rgba(10, 10, 11, 0.98);
+  backdrop-filter: blur(16px);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45);
+}
+
+.employee-premium-position-picker-search-wrap {
+  padding: 4px 4px 0;
+}
+
+.employee-premium-position-picker-search {
+  width: 100%;
+  min-height: 44px;
+  padding: 0 12px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  background: rgba(12, 12, 13, 0.72);
+  color: #f7efe1;
+  font: inherit;
+  font-size: 0.9rem;
+  line-height: 1.2;
+}
+
+.employee-premium-position-picker-search::placeholder {
+  color: rgba(247, 239, 225, 0.45);
+}
+
+.employee-premium-position-picker-search:focus-visible {
+  border-color: rgba(212, 175, 55, 0.42);
+  background: rgba(212, 175, 55, 0.08);
+  outline: 0;
+}
+
+.employee-premium-position-picker-menu {
+  max-height: min(240px, 42vh);
+  border: 0;
+  box-shadow: none;
+  background: transparent;
+  backdrop-filter: none;
+}
+
+.employee-premium-position-picker-empty {
+  min-height: 44px;
+  padding: 10px 12px;
+  color: rgba(247, 239, 225, 0.55);
+  font-size: 0.86rem;
 }
 
 .employee-premium-field-select-chevron {
