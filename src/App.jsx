@@ -408,6 +408,12 @@ import {
   preserveLegacyCatalogOption,
 } from './lib/departmentCatalogUtils'
 import {
+  clearPendingEmployeePositionDeletions,
+  getPendingEmployeePositionDeletionsForCatalogCleanup,
+  prunePendingEmployeePositionDeletionsForSelection,
+  queuePendingEmployeePositionDeletion,
+} from './lib/employeeCustomPositionDeletionUtils'
+import {
   findDepartment,
   findPosition,
   getDepartmentsForVenueType,
@@ -1965,7 +1971,7 @@ function employeeAdditionalPositionMatchesSearch(position, searchQuery) {
   return tokens.some((token) => token.toLowerCase().includes(needle))
 }
 
-function buildEmployeeAdditionalPositionCatalogGroups(additionalPositionNames = []) {
+function buildEmployeeAdditionalPositionCatalogGroups(additionalPositionNames = [], workspacePositions = []) {
   const departments = getDepartmentsForVenueType(EMPLOYEE_CATALOG_VENUE_TYPE, { includeOptional: true })
 
   const groups = departments.map((department) => ({
@@ -1981,25 +1987,45 @@ function buildEmployeeAdditionalPositionCatalogGroups(additionalPositionNames = 
       aliases: entry.aliases,
       departmentKey: entry.departmentKey,
       custom: false,
+      workspacePositionId: null,
     })),
   }))
 
-  const customPositions = []
-  for (const name of additionalPositionNames) {
-    const trimmed = `${name ?? ''}`.trim()
-    if (!trimmed) continue
-    if (findPosition(trimmed)) continue
-    if (customPositions.some((entry) => entry.label.toLowerCase() === trimmed.toLowerCase())) continue
+  const customByKey = new Map()
 
-    customPositions.push({
-      key: `custom:${trimmed}`,
+  for (const workspacePosition of workspacePositions ?? []) {
+    const trimmed = `${workspacePosition?.name ?? ''}`.trim()
+    if (!isWorkspaceCustomPositionLabel(trimmed)) continue
+
+    customByKey.set(trimmed.toLowerCase(), {
+      key: `custom:${workspacePosition.id ?? trimmed}`,
       label: trimmed,
       aliases: [],
       departmentKey: 'custom',
       custom: true,
+      workspacePositionId: workspacePosition.id ?? null,
     })
   }
 
+  for (const name of additionalPositionNames) {
+    const trimmed = `${name ?? ''}`.trim()
+    if (!isWorkspaceCustomPositionLabel(trimmed)) continue
+
+    const normalized = trimmed.toLowerCase()
+    if (customByKey.has(normalized)) continue
+
+    const workspaceMatch = resolveWorkspacePositionByLabel(trimmed, workspacePositions)
+    customByKey.set(normalized, {
+      key: `custom:${workspaceMatch?.id ?? trimmed}`,
+      label: trimmed,
+      aliases: [],
+      departmentKey: 'custom',
+      custom: true,
+      workspacePositionId: workspaceMatch?.id ?? null,
+    })
+  }
+
+  const customPositions = [...customByKey.values()]
   if (customPositions.length > 0) {
     groups.push({
       departmentKey: 'custom',
@@ -2045,6 +2071,62 @@ function employeeAdditionalSelectionIncludesPrimary(selection, primaryPosition) 
   return selection.some((entry) => employeePositionOptionValuesMatch(entry, trimmedPrimary))
 }
 
+function isWorkspaceCustomPositionLabel(label) {
+  const trimmed = `${label ?? ''}`.trim()
+  if (!trimmed) return false
+  return findPosition(trimmed) === null
+}
+
+function removeAdditionalPositionValue(selection, label) {
+  if (!Array.isArray(selection)) return []
+
+  return selection.filter((entry) => !employeePositionOptionValuesMatch(entry, label))
+}
+
+function resolveWorkspacePositionByLabel(label, workspacePositions = []) {
+  const normalized = `${label ?? ''}`.trim().toLowerCase()
+  if (!normalized) return null
+
+  return (workspacePositions ?? []).find(
+    (position) => `${position?.name ?? ''}`.trim().toLowerCase() === normalized,
+  ) ?? null
+}
+
+function employeeRecordReferencesPosition(employee, label, workspacePositionId) {
+  if (!employee) return false
+
+  const normalizedLabel = `${label ?? ''}`.trim().toLowerCase()
+  if (!normalizedLabel && !workspacePositionId) return false
+
+  if (`${employee.primaryPosition ?? ''}`.trim().toLowerCase() === normalizedLabel) return true
+
+  const additional = Array.isArray(employee.additionalPositions) ? employee.additionalPositions : []
+  if (additional.some((entry) => `${entry ?? ''}`.trim().toLowerCase() === normalizedLabel)) return true
+
+  if (!Array.isArray(employee.positions)) return false
+
+  return employee.positions.some((item) => (
+    (workspacePositionId && String(item.id ?? '') === String(workspacePositionId))
+    || `${item.name ?? ''}`.trim().toLowerCase() === normalizedLabel
+  ))
+}
+
+function countOtherEmployeePositionUsage(label, workspacePositionId, employees = [], currentEmployeeId) {
+  return (employees ?? []).filter((employee) => {
+    if (currentEmployeeId && String(employee.id) === String(currentEmployeeId)) return false
+    return employeeRecordReferencesPosition(employee, label, workspacePositionId)
+  }).length
+}
+
+function buildEmployeeAdditionalPositionClosedDisplayLabel(selectedValues, emptyLabel = 'No additional positions') {
+  if (!Array.isArray(selectedValues) || selectedValues.length === 0) return emptyLabel
+
+  const joined = selectedValues.join(', ')
+  if (joined.length <= 64) return joined
+
+  return `${joined.slice(0, 61)}…`
+}
+
 function EmployeePremiumAdditionalPositionsField({
   value,
   onChange,
@@ -2055,23 +2137,32 @@ function EmployeePremiumAdditionalPositionsField({
   setOpenMenuId,
   id,
   emptyLabel = 'No additional positions',
+  onConfirmRemoveCustomPosition,
 }) {
   const selectedValues = Array.isArray(value) ? value : []
   const isOpen = openMenuId === menuId
   const [menuPosition, setMenuPosition] = useState(null)
   const [searchQuery, setSearchQuery] = useState('')
   const [draftSelection, setDraftSelection] = useState(selectedValues)
+  const [removePending, setRemovePending] = useState(null)
+  const [removeBlockNotice, setRemoveBlockNotice] = useState('')
+  const [removeError, setRemoveError] = useState('')
   const rootRef = useRef(null)
   const triggerRef = useRef(null)
+  const removeDialogRef = useRef(null)
+  const removeTriggerRef = useRef(null)
 
   const filteredGroups = useMemo(
     () => filterEmployeeAdditionalPositionGroups(groups, searchQuery),
     [groups, searchQuery],
   )
 
-  const closedDisplayLabel = selectedValues.length > 0
-    ? selectedValues.join(', ')
-    : emptyLabel
+  const closedDisplayLabel = useMemo(
+    () => buildEmployeeAdditionalPositionClosedDisplayLabel(selectedValues, emptyLabel),
+    [emptyLabel, selectedValues],
+  )
+
+  const closedDisplayTitle = selectedValues.length > 0 ? selectedValues.join(', ') : undefined
 
   const setIsOpen = useCallback((nextOpen) => {
     if (nextOpen) {
@@ -2112,6 +2203,78 @@ function EmployeePremiumAdditionalPositionsField({
     })
   }, [])
 
+  const cancelRemoveDialog = useCallback(() => {
+    setRemovePending(null)
+    setRemoveError('')
+    requestAnimationFrame(() => removeTriggerRef.current?.focus())
+  }, [])
+
+  const requestRemoveCustomPosition = useCallback((position) => {
+    setRemoveBlockNotice('')
+    setRemoveError('')
+
+    if (employeePositionOptionValuesMatch(position.label, primaryPosition)) {
+      setRemoveBlockNotice('This position is currently the employee\'s Primary Position. Select a different Primary Position before removing it.')
+      return
+    }
+
+    removeTriggerRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null
+    setRemovePending({
+      label: position.label,
+      workspacePositionId: position.workspacePositionId ?? null,
+    })
+  }, [primaryPosition])
+
+  const confirmRemoveCustomPosition = useCallback(async () => {
+    if (!removePending || !onConfirmRemoveCustomPosition) return
+
+    setRemoveError('')
+
+    try {
+      const result = await onConfirmRemoveCustomPosition(removePending)
+      if (result?.blocked) {
+        setRemoveBlockNotice(result.message || 'Unable to remove this custom position right now.')
+        setRemovePending(null)
+        return
+      }
+
+      setDraftSelection((current) => removeAdditionalPositionValue(current, removePending.label))
+
+      if (result?.message) {
+        setRemoveBlockNotice(result.message)
+      }
+
+      setRemovePending(null)
+    } catch (error) {
+      setRemoveError(error?.message || 'Unable to remove custom position right now.')
+    }
+  }, [onConfirmRemoveCustomPosition, removePending])
+
+  useEffect(() => {
+    if (!isOpen) return
+
+    setDraftSelection(selectedValues)
+  }, [isOpen, selectedValues])
+
+  useEffect(() => {
+    if (!removePending) return undefined
+
+    requestAnimationFrame(() => {
+      removeDialogRef.current?.querySelector('button')?.focus()
+    })
+
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') {
+        event.preventDefault()
+        event.stopPropagation()
+        cancelRemoveDialog()
+      }
+    }
+
+    document.addEventListener('keydown', handleKeyDown, true)
+    return () => document.removeEventListener('keydown', handleKeyDown, true)
+  }, [cancelRemoveDialog, removePending])
+
   useEffect(() => {
     if (!isOpen) {
       setSearchQuery('')
@@ -2125,10 +2288,13 @@ function EmployeePremiumAdditionalPositionsField({
     const handleClickOutside = (event) => {
       if (rootRef.current?.contains(event.target)) return
       if (event.target instanceof Element && event.target.closest('.employee-premium-additional-positions-picker-portal')) return
+      if (event.target instanceof Element && event.target.closest('.employee-premium-custom-position-remove-backdrop')) return
       cancelPicker()
     }
 
     const handleKeyDown = (event) => {
+      if (removePending) return
+
       if (event.key === 'Escape') {
         event.preventDefault()
         cancelPicker()
@@ -2152,7 +2318,52 @@ function EmployeePremiumAdditionalPositionsField({
       window.removeEventListener('scroll', handleReposition, true)
       modalScrollContainer?.removeEventListener('scroll', handleReposition)
     }
-  }, [cancelPicker, isOpen, selectedValues, updateMenuPosition])
+  }, [cancelPicker, isOpen, removePending, selectedValues, updateMenuPosition])
+
+  const removeDialogPortal = removePending && typeof document !== 'undefined'
+    ? createPortal(
+      <div
+        className="employee-premium-custom-position-remove-backdrop"
+        onClick={cancelRemoveDialog}
+      >
+        <div
+          ref={removeDialogRef}
+          className="employee-premium-custom-position-remove-dialog"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="employee-custom-position-remove-title"
+          onClick={(event) => event.stopPropagation()}
+        >
+          <h4 id="employee-custom-position-remove-title" className="employee-premium-custom-position-remove-title">
+            Remove custom position?
+          </h4>
+          <p className="employee-premium-custom-position-remove-body">
+            &ldquo;{removePending.label}&rdquo; will be removed from this employee. When safe, the workspace catalog entry will be removed after you save the employee.
+          </p>
+          {removeError ? (
+            <p className="employee-premium-custom-position-remove-error" role="alert">{removeError}</p>
+          ) : null}
+          <div className="employee-premium-custom-position-remove-actions">
+            <button
+              type="button"
+              className="ghost-btn employee-premium-custom-position-remove-cancel-btn"
+              onClick={cancelRemoveDialog}
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              className="primary-btn employee-premium-custom-position-remove-confirm-btn"
+              onClick={confirmRemoveCustomPosition}
+            >
+              Remove from Employee
+            </button>
+          </div>
+        </div>
+      </div>,
+      document.body,
+    )
+    : null
 
   const menuPortal = isOpen && menuPosition && typeof document !== 'undefined'
     ? createPortal(
@@ -2180,6 +2391,9 @@ function EmployeePremiumAdditionalPositionsField({
         </div>
 
         <div className="employee-premium-additional-positions-picker-body">
+          {removeBlockNotice ? (
+            <p className="employee-premium-custom-position-remove-notice" role="status">{removeBlockNotice}</p>
+          ) : null}
           {filteredGroups.length > 0 ? filteredGroups.map((group) => (
             <section key={group.departmentKey} className="employee-premium-additional-positions-group">
               <h5 className="employee-premium-additional-positions-group-header">{group.departmentLabel}</h5>
@@ -2212,7 +2426,7 @@ function EmployeePremiumAdditionalPositionsField({
                   const isSelected = employeeAdditionalPositionIsSelected(draftSelection, position.label)
 
                   return (
-                    <li key={`${group.departmentKey}-${position.key}`} role="presentation">
+                    <li key={`${group.departmentKey}-${position.key}`} className="employee-premium-additional-positions-option-row" role="presentation">
                       <button
                         type="button"
                         className={`employee-premium-additional-positions-option${isSelected ? ' is-selected' : ''}`}
@@ -2224,6 +2438,20 @@ function EmployeePremiumAdditionalPositionsField({
                           <span className="employee-premium-additional-positions-option-meta">Custom</span>
                         ) : null}
                       </button>
+                      {position.custom ? (
+                        <button
+                          type="button"
+                          className="employee-premium-additional-positions-remove-btn"
+                          aria-label={`Remove custom position ${position.label}`}
+                          onPointerDown={(event) => event.stopPropagation()}
+                          onClick={(event) => {
+                            event.stopPropagation()
+                            requestRemoveCustomPosition(position)
+                          }}
+                        >
+                          Remove
+                        </button>
+                      ) : null}
                     </li>
                   )
                 })}
@@ -2272,13 +2500,17 @@ function EmployeePremiumAdditionalPositionsField({
           aria-expanded={isOpen}
           aria-label="Additional positions"
         >
-          <span className={`employee-premium-field-select-value${selectedValues.length > 0 ? '' : ' is-placeholder'}`}>
+          <span
+            className={`employee-premium-field-select-value${selectedValues.length > 0 ? '' : ' is-placeholder'}`}
+            title={closedDisplayTitle}
+          >
             {closedDisplayLabel}
           </span>
           <span className="employee-premium-field-select-chevron" aria-hidden="true">▾</span>
         </button>
       </div>
       {menuPortal}
+      {removeDialogPortal}
     </>
   )
 }
@@ -14886,6 +15118,7 @@ function App() {
     setEditingEmployee(null)
     setSaveError('')
     setEmployeeFormOpenMenuId(null)
+    setPendingEmployeePositionDeletions(clearPendingEmployeePositionDeletions())
     setEmployeeForm(buildEmployeeForm())
   }, [])
   const [positions, setPositions] = useState([])
@@ -14908,6 +15141,8 @@ function App() {
   const [isLoadingStaff, setIsLoadingStaff] = useState(true)
   const [staffNotice, setStaffNotice] = useState('')
   const [isSavingEmployee, setIsSavingEmployee] = useState(false)
+  const [isCreatingEmployeeCustomPosition, setIsCreatingEmployeeCustomPosition] = useState(false)
+  const [pendingEmployeePositionDeletions, setPendingEmployeePositionDeletions] = useState([])
   const [saveError, setSaveError] = useState('')
   const [reservations, setReservations] = useState([])
   const [reservationNotice, setReservationNotice] = useState('')
@@ -17422,8 +17657,8 @@ function App() {
   )
 
   const employeeAdditionalPositionGroups = useMemo(
-    () => buildEmployeeAdditionalPositionCatalogGroups(employeeForm.additionalPositions),
-    [employeeForm.additionalPositions],
+    () => buildEmployeeAdditionalPositionCatalogGroups(employeeForm.additionalPositions, positions),
+    [employeeForm.additionalPositions, positions],
   )
 
   const isValidEmail = (value) => {
@@ -18606,6 +18841,7 @@ function App() {
     setEditingEmployee(null)
     setSaveError('')
     setEmployeeFormOpenMenuId(null)
+    setPendingEmployeePositionDeletions(clearPendingEmployeePositionDeletions())
     setEmployeeForm(buildEmployeeForm())
     setIsEmployeeModalOpen(true)
   }
@@ -18614,8 +18850,34 @@ function App() {
     setEditingEmployee(employee)
     setSaveError('')
     setEmployeeFormOpenMenuId(null)
+    setPendingEmployeePositionDeletions(clearPendingEmployeePositionDeletions())
     setEmployeeForm(buildEmployeeForm(employee))
     setIsEmployeeModalOpen(true)
+  }
+
+  const handleEmployeeAdditionalPositionsChange = (additionalPositions) => {
+    setPendingEmployeePositionDeletions((current) => (
+      prunePendingEmployeePositionDeletionsForSelection(
+        current,
+        additionalPositions,
+        employeePositionOptionValuesMatch,
+      )
+    ))
+
+    setEmployeeForm((current) => ({
+      ...current,
+      additionalPositions,
+    }))
+  }
+
+  const cancelPendingDeletionForAssignedPosition = (assignLabel) => {
+    setPendingEmployeePositionDeletions((current) => (
+      prunePendingEmployeePositionDeletionsForSelection(
+        current,
+        [assignLabel],
+        employeePositionOptionValuesMatch,
+      )
+    ))
   }
 
   useEffect(() => {
@@ -18641,20 +18903,102 @@ function App() {
       return
     }
 
-    const existing = employeePositionOptions.find((position) => position.name.toLowerCase() === customName.toLowerCase())
+    const canonicalEntry = findPosition(customName)
+    if (canonicalEntry) {
+      const message = 'This position already exists in the standard catalog.'
+      setSaveError(message)
+      setStaffNotice(message)
 
-    setIsSavingEmployee(true)
+      cancelPendingDeletionForAssignedPosition(canonicalEntry.label)
+
+      setEmployeeForm((current) => {
+        const assignLabel = canonicalEntry.label
+        if (!`${current.primaryPosition ?? ''}`.trim()) {
+          return {
+            ...current,
+            primaryPosition: assignLabel,
+            customPositionName: '',
+          }
+        }
+
+        if (current.primaryPosition.trim().toLowerCase() === assignLabel.toLowerCase()) {
+          return {
+            ...current,
+            customPositionName: '',
+          }
+        }
+
+        const nextAdditional = Array.from(new Set([
+          ...current.additionalPositions,
+          assignLabel,
+        ]))
+
+        return {
+          ...current,
+          additionalPositions: nextAdditional,
+          customPositionName: '',
+        }
+      })
+
+      return
+    }
+
+    const existingWorkspaceCustom = positions.find((position) => (
+      `${position.name ?? ''}`.trim().toLowerCase() === customName.toLowerCase()
+      && findPosition(position.name) === null
+    ))
+
+    if (existingWorkspaceCustom) {
+      const message = 'This custom position already exists.'
+      setSaveError(message)
+      setStaffNotice(message)
+
+      cancelPendingDeletionForAssignedPosition(existingWorkspaceCustom.name)
+
+      setEmployeeForm((current) => {
+        const assignLabel = existingWorkspaceCustom.name
+        if (!`${current.primaryPosition ?? ''}`.trim()) {
+          return {
+            ...current,
+            primaryPosition: assignLabel,
+            customPositionName: '',
+          }
+        }
+
+        if (current.primaryPosition.trim().toLowerCase() === assignLabel.toLowerCase()) {
+          return {
+            ...current,
+            customPositionName: '',
+          }
+        }
+
+        const nextAdditional = Array.from(new Set([
+          ...current.additionalPositions,
+          assignLabel,
+        ]))
+
+        return {
+          ...current,
+          additionalPositions: nextAdditional,
+          customPositionName: '',
+        }
+      })
+
+      return
+    }
+
+    setIsCreatingEmployeeCustomPosition(true)
     setSaveError('')
 
     try {
-      if (!existing) {
-        await createPosition(activeWorkspaceId, {
-          name: customName,
-          department: employeeForm.department || inferPositionDepartment(customName),
-          sortOrder: positions.length + 1,
-        })
-        await refreshPositions()
-      }
+      await createPosition(activeWorkspaceId, {
+        name: customName,
+        department: employeeForm.department || inferPositionDepartment(customName),
+        sortOrder: positions.length + 1,
+      })
+      await refreshPositions()
+
+      cancelPendingDeletionForAssignedPosition(customName)
 
       setEmployeeForm((current) => {
         const normalizedCustom = `${current.customPositionName ?? ''}`.trim()
@@ -18693,8 +19037,96 @@ function App() {
       setSaveError(message)
       setStaffNotice(message)
     } finally {
-      setIsSavingEmployee(false)
+      setIsCreatingEmployeeCustomPosition(false)
     }
+  }
+
+  const handleConfirmRemoveCustomPosition = async ({ label, workspacePositionId }) => {
+    const trimmedLabel = `${label ?? ''}`.trim()
+    if (!trimmedLabel) {
+      throw new Error('Unable to remove custom position right now.')
+    }
+
+    if (employeePositionOptionValuesMatch(trimmedLabel, employeeForm.primaryPosition)) {
+      return {
+        blocked: true,
+        message: 'This position is currently the employee\'s Primary Position. Select a different Primary Position before removing it.',
+      }
+    }
+
+    setEmployeeForm((current) => ({
+      ...current,
+      additionalPositions: removeAdditionalPositionValue(current.additionalPositions, trimmedLabel),
+    }))
+
+    if (!workspacePositionId) {
+      return { success: true }
+    }
+
+    if (findPosition(trimmedLabel)) {
+      return { success: true }
+    }
+
+    const otherUsage = countOtherEmployeePositionUsage(
+      trimmedLabel,
+      workspacePositionId,
+      employees,
+      editingEmployee?.id,
+    )
+
+    if (otherUsage > 0) {
+      return {
+        success: true,
+        message: 'Removed from this employee. The position remains available because it is used elsewhere.',
+      }
+    }
+
+    setPendingEmployeePositionDeletions((current) => (
+      queuePendingEmployeePositionDeletion(current, {
+        id: workspacePositionId,
+        name: trimmedLabel,
+      })
+    ))
+
+    return {
+      success: true,
+      message: 'The position will be removed from the workspace catalog after the employee is saved.',
+    }
+  }
+
+  const processPendingEmployeePositionDeletions = async (pendingDeletions, refreshedEmployees) => {
+    if (!Array.isArray(pendingDeletions) || pendingDeletions.length === 0) {
+      return 0
+    }
+
+    const deletionsToAttempt = getPendingEmployeePositionDeletionsForCatalogCleanup(
+      pendingDeletions,
+      refreshedEmployees,
+      (name) => findPosition(name) !== null,
+    )
+
+    if (deletionsToAttempt.length === 0) {
+      return 0
+    }
+
+    let failureCount = 0
+
+    for (const entry of deletionsToAttempt) {
+      try {
+        await deletePosition(activeWorkspaceId, entry.id)
+      } catch (error) {
+        console.error('[App] post-save custom position deletion failed:', error)
+        failureCount += 1
+      }
+    }
+
+    try {
+      await refreshPositions()
+    } catch (error) {
+      console.error('[App] post-save positions refresh failed:', error)
+    }
+
+    return failureCount
   }
 
   const handleEmployeeSubmit = async (event) => {
@@ -18787,19 +19219,37 @@ function App() {
     }
 
     try {
+      const pendingDeletions = [...pendingEmployeePositionDeletions]
+
       const savedEmployee = editingEmployee
         ? await updateEmployee(activeWorkspaceId, editingEmployee.id, payload)
         : await createEmployee(activeWorkspaceId, payload)
 
       await refreshPositions()
       const refreshedEmployees = await refreshStaffEmployees()
+      const cleanupFailureCount = await processPendingEmployeePositionDeletions(
+        pendingDeletions,
+        refreshedEmployees,
+      )
+
       const nextEmployee = refreshedEmployees.find((employee) => employee.id === savedEmployee.id) ?? {
         ...savedEmployee,
         hireDate: formatHireDate(savedEmployee.hireDate),
       }
 
+      setPendingEmployeePositionDeletions(clearPendingEmployeePositionDeletions())
       setSelectedEmployee(nextEmployee)
-      setStaffNotice(editingEmployee ? 'Employee updated successfully.' : 'Employee added successfully.')
+
+      if (cleanupFailureCount > 0) {
+        setStaffNotice(
+          cleanupFailureCount === 1
+            ? 'Employee saved, but one custom position could not be removed from the workspace catalog.'
+            : `Employee saved, but ${cleanupFailureCount} custom positions could not be removed from the workspace catalog.`,
+        )
+      } else {
+        setStaffNotice(editingEmployee ? 'Employee updated successfully.' : 'Employee added successfully.')
+      }
+
       handleCloseEmployeeModal()
     } catch (error) {
       const message = error.message || 'Unable to save employee right now. Please try again.'
@@ -23914,25 +24364,49 @@ function App() {
                       value={employeeForm.additionalPositions}
                       groups={employeeAdditionalPositionGroups}
                       primaryPosition={employeeForm.primaryPosition}
-                      onChange={(additionalPositions) => setEmployeeForm((current) => ({
-                        ...current,
-                        additionalPositions,
-                      }))}
+                      onChange={handleEmployeeAdditionalPositionsChange}
+                      onConfirmRemoveCustomPosition={handleConfirmRemoveCustomPosition}
                     />
                   </label>
 
-                  <div className="employee-premium-custom-position">
-                    <label className="form-field full-width">
-                      <span>Create Custom Position</span>
-                      <input
-                        value={employeeForm.customPositionName}
-                        onChange={(event) => setEmployeeForm((current) => ({ ...current, customPositionName: event.target.value }))}
-                        placeholder="e.g. Sommelier, VIP Host, Pizza Chef"
-                      />
-                    </label>
-                    <button type="button" className="ghost-btn employee-premium-custom-position-btn" onClick={handleAddCustomPositionToEmployee} disabled={isSavingEmployee}>
-                      Create custom position
-                    </button>
+                  <div className="employee-premium-custom-position-panel">
+                    <div className="employee-premium-custom-position-panel-header">
+                      <span className="employee-premium-custom-position-panel-icon" aria-hidden="true">✦</span>
+                      <div>
+                        <h5 className="employee-premium-custom-position-panel-title">Create Custom Position</h5>
+                        <p className="employee-premium-custom-position-panel-helper">
+                          Add a workspace-specific role that is not in the standard catalog.
+                        </p>
+                      </div>
+                    </div>
+                    <div className="employee-premium-custom-position-panel-controls">
+                      <label className="form-field employee-premium-custom-position-input-field">
+                        <span className="sr-only">Custom position name</span>
+                        <input
+                          className="employee-premium-custom-position-input"
+                          value={employeeForm.customPositionName}
+                          onChange={(event) => setEmployeeForm((current) => ({ ...current, customPositionName: event.target.value }))}
+                          onKeyDown={(event) => {
+                            if (event.key !== 'Enter') return
+                            event.preventDefault()
+                            if (`${employeeForm.customPositionName ?? ''}`.trim() && !isCreatingEmployeeCustomPosition) {
+                              handleAddCustomPositionToEmployee()
+                            }
+                          }}
+                          placeholder="e.g. Sommelier, VIP Host, Pizza Chef"
+                          autoComplete="off"
+                          enterKeyHint="done"
+                        />
+                      </label>
+                      <button
+                        type="button"
+                        className="primary-btn employee-premium-custom-position-create-btn"
+                        onClick={handleAddCustomPositionToEmployee}
+                        disabled={!`${employeeForm.customPositionName ?? ''}`.trim() || isCreatingEmployeeCustomPosition}
+                      >
+                        {isCreatingEmployeeCustomPosition ? 'Creating…' : '+ Create Position'}
+                      </button>
+                    </div>
                   </div>
                 </section>
 
