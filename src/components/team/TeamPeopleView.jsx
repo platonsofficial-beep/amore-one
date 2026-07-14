@@ -1,4 +1,11 @@
 import { EmployeeAccountConnectionSection } from './EmployeeAccountConnectionSection'
+import {
+  buildEmployeeTodayStatusCardPresentation,
+  buildEmployeeTodayStatusDrawerIdentity,
+  countEmployeesWorkingNow,
+  formatEmployeeTodayShiftSummary,
+  getEmployeeTodayStatusPillClass,
+} from '../../lib/employeeTodayStatusPresentation'
 
 const DEPARTMENT_FILTERS = ['All', 'Bar', 'Service', 'Kitchen', 'Management']
 
@@ -26,22 +33,11 @@ function getEmployeePositionsLabel(employee) {
   return 'No position assigned'
 }
 
-function formatEmployeeTodayShift(employee, employeeTodayShifts = {}) {
-  const todayShift = employeeTodayShifts[String(employee.id)]
-  return todayShift || 'Not scheduled'
-}
-
 function handleEmployeeCardKeyDown(event, employee, onSelectEmployee) {
   if (event.key !== 'Enter' && event.key !== ' ') return
 
   event.preventDefault()
   onSelectEmployee(employee)
-}
-
-function isEmployeeWorkingNow(employee) {
-  const status = `${employee?.status ?? ''}`.trim().toLowerCase()
-  if (!status) return true
-  return status === 'working' || status === 'active'
 }
 
 function countUniqueDepartments(employeeList = []) {
@@ -123,8 +119,14 @@ function getAdditionalPositionsLabel(employee) {
     .join(' · ')
 }
 
-function getStatusClassName(status) {
+function getEmploymentStatusClassName(status) {
   return `status-pill ${`${status ?? ''}`.trim().toLowerCase().replace(/\s+/g, '-')}`
+}
+
+function readEmployeeTodayStatus(employee, employeeTodayStatusById = {}) {
+  const employeeId = `${employee?.id ?? ''}`.trim()
+  if (!employeeId) return null
+  return employeeTodayStatusById[employeeId] ?? null
 }
 
 function EmployeeProfileDrawerField({ label, children }) {
@@ -151,7 +153,8 @@ export function TeamPeopleView({
   employees,
   rosterEmployees = [],
   totalEmployeeCount = 0,
-  employeeTodayShifts = {},
+  employeeTodayStatusById = {},
+  isTodayStatusLoading = false,
   selectedEmployee,
   onSelectEmployee,
   activeFilter,
@@ -174,10 +177,20 @@ export function TeamPeopleView({
   const isFilteredEmpty = !isLoading && totalEmployeeCount > 0 && employees.length === 0
   const metricsSource = rosterEmployees.length > 0 ? rosterEmployees : employees
   const employeeCount = totalEmployeeCount
-  const workingCount = metricsSource.filter(isEmployeeWorkingNow).length
+  const workingCount = countEmployeesWorkingNow(metricsSource, employeeTodayStatusById)
   const departmentCount = countUniqueDepartments(metricsSource)
   const metricsLine = formatTeamPeopleMetrics(employeeCount, workingCount, departmentCount)
   const showSearch = typeof onSearchTermChange === 'function'
+  const selectedEmployeeTodayStatus = selectedEmployee
+    ? readEmployeeTodayStatus(selectedEmployee, employeeTodayStatusById)
+    : null
+  const selectedDrawerIdentity = buildEmployeeTodayStatusDrawerIdentity(
+    selectedEmployeeTodayStatus,
+    { isLoading: isTodayStatusLoading },
+  )
+  const selectedTodayShiftSummary = isTodayStatusLoading
+    ? 'Loading today status…'
+    : formatEmployeeTodayShiftSummary(selectedEmployeeTodayStatus)
 
   return (
     <section className="team-people-page" aria-label="Team people">
@@ -240,45 +253,58 @@ export function TeamPeopleView({
         </p>
       ) : (
         <div className="team-people-grid">
-          {employees.map((employee) => (
-            <article
-              key={employee.id}
-              className="team-people-card"
-              role="button"
-              tabIndex={0}
-              aria-label={`View ${employee.name}`}
-              onClick={() => onSelectEmployee(employee)}
-              onKeyDown={(event) => handleEmployeeCardKeyDown(event, employee, onSelectEmployee)}
-            >
-              <div className="team-people-card-top">
-                <div className="employee-photo">{getInitials(employee.name)}</div>
-                <div className="team-people-card-identity">
-                  <h4 className="team-people-card-name">{employee.name}</h4>
-                  <p className="team-people-card-role">{getEmployeePositionsLabel(employee)}</p>
-                  <p className="team-people-card-department">{employee.department}</p>
-                </div>
-              </div>
+          {employees.map((employee) => {
+            const todayStatus = readEmployeeTodayStatus(employee, employeeTodayStatusById)
+            const cardPresentation = buildEmployeeTodayStatusCardPresentation(
+              todayStatus,
+              { isLoading: isTodayStatusLoading },
+            )
 
-              <dl className="team-people-card-meta">
-                <div className="team-people-card-meta-row">
-                  <dt>Today</dt>
-                  <dd>{formatEmployeeTodayShift(employee, employeeTodayShifts)}</dd>
+            return (
+              <article
+                key={employee.id}
+                className="team-people-card"
+                role="button"
+                tabIndex={0}
+                aria-label={`View ${employee.name}, ${cardPresentation.pillLabel}`}
+                onClick={() => onSelectEmployee(employee)}
+                onKeyDown={(event) => handleEmployeeCardKeyDown(event, employee, onSelectEmployee)}
+              >
+                <div className="team-people-card-top">
+                  <div className="employee-photo">{getInitials(employee.name)}</div>
+                  <div className="team-people-card-identity">
+                    <h4 className="team-people-card-name">{employee.name}</h4>
+                    <p className="team-people-card-role">{getEmployeePositionsLabel(employee)}</p>
+                    <p className="team-people-card-department">{employee.department}</p>
+                  </div>
                 </div>
-                <div className="team-people-card-meta-row">
-                  <dt>Status</dt>
-                  <dd>
-                    <span className={`status-pill ${employee.status.toLowerCase().replace(/\s+/g, '-')}`}>
-                      {employee.status}
-                    </span>
-                  </dd>
-                </div>
-              </dl>
 
-              <span className="team-people-card-action" aria-hidden="true">
-                Open
-              </span>
-            </article>
-          ))}
+                <dl className="team-people-card-meta">
+                  <div className="team-people-card-meta-row team-people-card-meta-row--today">
+                    <dt>Today</dt>
+                    <dd className="team-people-card-today">
+                      <span className="team-people-card-today-primary">{cardPresentation.primaryLabel}</span>
+                      {cardPresentation.secondaryLabel ? (
+                        <span className="team-people-card-today-secondary">{cardPresentation.secondaryLabel}</span>
+                      ) : null}
+                    </dd>
+                  </div>
+                  <div className="team-people-card-meta-row">
+                    <dt>Status</dt>
+                    <dd>
+                      <span className={getEmployeeTodayStatusPillClass(cardPresentation.toneKey)}>
+                        {cardPresentation.pillLabel}
+                      </span>
+                    </dd>
+                  </div>
+                </dl>
+
+                <span className="team-people-card-action" aria-hidden="true">
+                  Open
+                </span>
+              </article>
+            )
+          })}
         </div>
       )}
 
@@ -307,11 +333,11 @@ export function TeamPeopleView({
               <p className="employee-profile-drawer-role">{formatDrawerFieldValue(getPrimaryPositionLabel(selectedEmployee))}</p>
               <p className="employee-profile-drawer-department">{formatDrawerFieldValue(selectedEmployee.department)}</p>
               <div className="employee-profile-drawer-identity-meta">
-                <span className={getStatusClassName(selectedEmployee.status)}>
-                  {formatDrawerFieldValue(selectedEmployee.status)}
+                <span className={getEmployeeTodayStatusPillClass(selectedDrawerIdentity.toneKey)}>
+                  {selectedDrawerIdentity.statusLabel}
                 </span>
                 <span className="employee-profile-drawer-today">
-                  Today · {formatEmployeeTodayShift(selectedEmployee, employeeTodayShifts)}
+                  {selectedDrawerIdentity.todaySubtitle}
                 </span>
               </div>
             </div>
@@ -328,10 +354,18 @@ export function TeamPeopleView({
               <EmployeeProfileDrawerField label="Department">
                 {formatDrawerFieldValue(selectedEmployee.department)}
               </EmployeeProfileDrawerField>
-              <EmployeeProfileDrawerField label="Status">
-                <span className={getStatusClassName(selectedEmployee.status)}>
+              <EmployeeProfileDrawerField label="Employment Status">
+                <span className={getEmploymentStatusClassName(selectedEmployee.status)}>
                   {formatDrawerFieldValue(selectedEmployee.status)}
                 </span>
+              </EmployeeProfileDrawerField>
+              <EmployeeProfileDrawerField label="Today Status">
+                {isTodayStatusLoading
+                  ? 'Loading today status…'
+                  : formatDrawerFieldValue(selectedEmployeeTodayStatus?.label)}
+              </EmployeeProfileDrawerField>
+              <EmployeeProfileDrawerField label="Today Shift">
+                {selectedTodayShiftSummary}
               </EmployeeProfileDrawerField>
             </EmployeeProfileDrawerSection>
 

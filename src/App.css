@@ -15349,6 +15349,69 @@
   text-align: right;
 }
 
+.team-people-card-meta-row--today dd {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+
+.team-people-card-today-primary {
+  color: #e8dcc6;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.team-people-card-today-secondary {
+  color: #a79e91;
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+.team-people-today-status-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.team-people-today-status-pill--working-now {
+  color: #d9f6cf;
+  background: rgba(76, 175, 80, 0.14);
+}
+
+.team-people-today-status-pill--scheduled-later {
+  color: #f3ddb0;
+  background: rgba(200, 157, 66, 0.16);
+}
+
+.team-people-today-status-pill--shift-completed {
+  color: #c8d7ef;
+  background: rgba(96, 125, 139, 0.18);
+}
+
+.team-people-today-status-pill--day-off {
+  color: #c9c3b8;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.team-people-today-status-pill--not-scheduled {
+  color: #b0a89c;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.team-people-today-status-pill--on-leave {
+  color: #d6cbff;
+  background: rgba(126, 87, 194, 0.16);
+}
+
+.employee-profile-drawer-identity-meta .team-people-today-status-pill {
+  flex-shrink: 0;
+}
+
 .team-people-card-action {
   align-self: flex-end;
   min-height: 44px;

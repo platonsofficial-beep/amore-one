@@ -480,7 +480,8 @@ import {
   TODAY_PANEL_IDS,
   writeTodayPanelExpanded,
 } from './lib/todayPanelCollapse'
-import { buildEmployeeTodayShiftLookup, applyCoverageHintsToGroups, buildTeamTodayStatus, enrichTeamTodayGroups } from './lib/teamViewUtils'
+import { applyCoverageHintsToGroups, buildTeamTodayStatus, enrichTeamTodayGroups } from './lib/teamViewUtils'
+import { getWorkspaceNowMinutes, resolveEmployeeTodayStatus } from './lib/employeeTodayStatusUtils'
 import {
   groupScheduleGridRowsByArea,
   readCollapsedScheduleAreaKeys,
@@ -16217,12 +16218,37 @@ function App() {
     coverageBreakdown: teamTodayDisplayCoverageBreakdown,
   }), [liveFloorState, operationalSnapshot, teamTodayDisplayCoverageBreakdown])
 
-  const employeeTodayShifts = useMemo(() => (
-    Object.fromEntries(buildEmployeeTodayShiftLookup({
-      shifts: dashboardShifts,
-      todayKey: currentDateKey,
-    }))
-  ), [dashboardShifts, currentDateKey])
+  const peopleWorkspaceNow = useMemo(
+    () => getWorkspaceNowMinutes(localNow, workspaceTimeZone),
+    [localNow, workspaceTimeZone],
+  )
+
+  const employeeTodayStatusById = useMemo(() => {
+    const map = {}
+    const nowMinutes = peopleWorkspaceNow.minutes ?? 0
+
+    employees.forEach((employee) => {
+      const employeeId = `${employee?.id ?? ''}`.trim()
+      if (!employeeId) return
+
+      map[employeeId] = resolveEmployeeTodayStatus({
+        employeeId,
+        publishedShifts: dashboardPublishedShifts,
+        todayKey: currentDateKey,
+        nowMinutes,
+        isWeekPublished: isTodayWeekPublished,
+        approvedLeave: null,
+      })
+    })
+
+    return map
+  }, [
+    employees,
+    dashboardPublishedShifts,
+    currentDateKey,
+    peopleWorkspaceNow.minutes,
+    isTodayWeekPublished,
+  ])
 
   const todayAttentionOperationsTasks = useMemo(() => (
     filterTasksExcludingAnnouncementDuplicates(
@@ -23457,7 +23483,8 @@ function App() {
             employees={filteredEmployees}
             rosterEmployees={employees}
             totalEmployeeCount={employees.length}
-            employeeTodayShifts={employeeTodayShifts}
+            employeeTodayStatusById={employeeTodayStatusById}
+            isTodayStatusLoading={isDashboardScheduleLoading}
             searchTerm={searchTerm}
             onSearchTermChange={setSearchTerm}
             searchPlaceholder={moduleSearchPlaceholder}
