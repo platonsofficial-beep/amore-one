@@ -295,6 +295,30 @@ export async function upsertAvailabilityDay({
   return mapAvailabilityRecord(data)
 }
 
+export async function resolveEmployeeWorkspaceId(employeeId) {
+  const normalizedEmployeeId = normalizeIdentifier(employeeId, 'Employee')
+
+  const { data, error } = await supabase
+    .from('employees')
+    .select('workspace_id')
+    .eq('id', normalizedEmployeeId)
+    .maybeSingle()
+
+  if (error) {
+    if (isTableUnavailableError(error)) {
+      throw buildAvailabilityUnavailableError()
+    }
+    throw new Error('Unable to load your workspace right now.')
+  }
+
+  const workspaceId = `${data?.workspace_id ?? ''}`.trim()
+  if (!workspaceId) {
+    throw new Error('Unable to find your workspace.')
+  }
+
+  return workspaceId
+}
+
 export async function deleteAvailabilityWeek({
   workspaceId,
   employeeId,

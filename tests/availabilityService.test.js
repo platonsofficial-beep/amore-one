@@ -12,6 +12,7 @@ const supabaseMocks = vi.hoisted(() => {
     upsert: vi.fn(() => builder),
     delete: vi.fn(() => builder),
     single: vi.fn(() => builder),
+    maybeSingle: vi.fn(() => builder),
     then(onFulfilled, onRejected) {
       return Promise.resolve(queryResult).then(onFulfilled, onRejected)
     },
@@ -32,6 +33,7 @@ const supabaseMocks = vi.hoisted(() => {
       builder.upsert.mockImplementation(() => builder)
       builder.delete.mockImplementation(() => builder)
       builder.single.mockImplementation(() => builder)
+      builder.maybeSingle.mockImplementation(() => builder)
     },
   }
 })
@@ -46,6 +48,7 @@ import {
   deleteAvailabilityWeek,
   getEmployeeAvailabilityWeek,
   normalizeBeforeSave,
+  resolveEmployeeWorkspaceId,
   saveEmployeeAvailabilityWeek,
   upsertAvailabilityDay,
 } from '../src/services/availabilityService'
@@ -341,6 +344,21 @@ describe('availabilityService', () => {
         weekStartDate: WEEK_START,
         day: { dayOfWeek: 'notaday', status: 'UNAVAILABLE' },
       })).rejects.toThrow('Availability day is required.')
+    })
+  })
+
+  describe('resolveEmployeeWorkspaceId', () => {
+    it('returns the workspace id for a linked employee', async () => {
+      supabaseMocks.setQueryResult({
+        data: { workspace_id: WORKSPACE_ID },
+        error: null,
+      })
+
+      await expect(resolveEmployeeWorkspaceId(EMPLOYEE_ID)).resolves.toBe(WORKSPACE_ID)
+    })
+
+    it('requires a linked employee id', async () => {
+      await expect(resolveEmployeeWorkspaceId('')).rejects.toThrow('Employee is required.')
     })
   })
 

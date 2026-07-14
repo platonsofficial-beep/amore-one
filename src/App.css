@@ -33099,3 +33099,161 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 .unified-floor-editor-return-host-btn { min-height: 44px; }
 .host-station-error-actions { display: flex; gap: 0.65rem; flex-wrap: wrap; justify-content: center; }
 .host-station-error-return-editor { min-height: 44px; }
+
+.mobile-availability-days {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.mobile-availability-day-card {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.mobile-availability-day-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.mobile-availability-day-title {
+  margin: 0;
+  color: #fff7e8;
+  font-size: 1.05rem;
+  font-weight: 600;
+}
+
+.mobile-availability-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.mobile-availability-field-label {
+  color: #a79e91;
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.mobile-availability-select,
+.mobile-availability-input,
+.mobile-availability-textarea {
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.04);
+  color: #fff7e8;
+  font: inherit;
+}
+
+.mobile-availability-textarea {
+  min-height: 88px;
+  resize: vertical;
+}
+
+.mobile-availability-time-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.mobile-availability-day-hint {
+  margin: 0;
+  color: #8f8679;
+  font-size: 0.82rem;
+}
+
+.mobile-availability-actions {
+  position: sticky;
+  bottom: 0;
+  margin-top: 16px;
+  padding-top: 12px;
+  background: linear-gradient(180deg, rgba(17, 17, 17, 0) 0%, rgba(17, 17, 17, 0.92) 32%, rgba(17, 17, 17, 1) 100%);
+}
+
+.mobile-availability-save-btn {
+  width: 100%;
+  min-height: 48px;
+}
+
+.mobile-availability-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+  padding: 12px 14px;
+  border-radius: 14px;
+}
+
+.mobile-availability-banner p {
+  margin: 0;
+  font-size: 0.92rem;
+}
+
+.mobile-availability-banner-error {
+  color: #ffd7d7;
+  background: rgba(244, 67, 54, 0.12);
+  border: 1px solid rgba(244, 67, 54, 0.24);
+}
+
+.mobile-availability-banner-success {
+  color: #d9f6cf;
+  background: rgba(76, 175, 80, 0.12);
+  border: 1px solid rgba(76, 175, 80, 0.24);
+}
+
+.mobile-availability-leave-dialog {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(0, 0, 0, 0.56);
+}
+
+.mobile-availability-leave-dialog-card {
+  width: min(100%, 24rem);
+  padding: 18px;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: #171411;
+}
+
+.mobile-availability-leave-dialog-card h2 {
+  margin: 0 0 8px;
+  color: #fff7e8;
+  font-size: 1.05rem;
+}
+
+.mobile-availability-leave-dialog-card p {
+  margin: 0 0 16px;
+  color: #a79e91;
+  font-size: 0.92rem;
+}
+
+.mobile-availability-leave-dialog-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.mobile-availability-leave-dialog-actions .mobile-secondary-btn,
+.mobile-availability-leave-dialog-actions .mobile-primary-btn {
+  min-height: 44px;
+}
+
+@media (max-width: 420px) {
+  .mobile-availability-time-grid {
+    grid-template-columns: 1fr;
+  }
+}
