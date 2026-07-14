@@ -18007,6 +18007,14 @@
   letter-spacing: 0.02em;
 }
 
+.employee-premium-field-warning {
+  display: block;
+  margin-top: 6px;
+  font-size: 0.8125rem;
+  line-height: 1.35;
+  color: rgba(255, 196, 120, 0.95);
+}
+
 .employee-premium-form .form-field input,
 .employee-premium-form .form-field select,
 .employee-premium-form .form-field textarea {

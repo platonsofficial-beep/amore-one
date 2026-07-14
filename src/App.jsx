@@ -403,6 +403,17 @@ import {
   handleEmployeeFormEnterKey,
 } from './lib/employeeFormNavigation'
 import {
+  departmentLabelsMatch,
+  positionLabelsMatch,
+  preserveLegacyCatalogOption,
+} from './lib/departmentCatalogUtils'
+import {
+  findDepartment,
+  findPosition,
+  getDepartmentsForVenueType,
+  getPositionsForDepartment,
+} from './lib/venueCatalogTemplates'
+import {
   buildEmployeeWeeklyHoursMap,
   calculateShiftDurationHours,
   formatHoursLabel,
@@ -1282,12 +1293,78 @@ const EMPLOYEE_FORM_SELECT_Z_INDEX = 1300
 const EMPLOYEE_DATE_PICKER_Z_INDEX = 1250
 const EMPLOYEE_DATE_PICKER_WIDTH = 300
 
-const EMPLOYEE_DEPARTMENT_OPTIONS = [
-  { value: 'Service', label: 'Service' },
-  { value: 'Bar', label: 'Bar' },
-  { value: 'Kitchen', label: 'Kitchen' },
-  { value: 'Management', label: 'Management' },
-]
+const EMPLOYEE_CATALOG_VENUE_TYPE = 'restaurant'
+
+function buildEmployeeCatalogDepartmentOptions(currentDepartment) {
+  const catalogDepartments = getDepartmentsForVenueType(EMPLOYEE_CATALOG_VENUE_TYPE)
+  const catalogOptions = catalogDepartments.map((entry) => ({
+    key: entry.key,
+    label: entry.label,
+    aliases: entry.aliases,
+  }))
+
+  return preserveLegacyCatalogOption(currentDepartment, catalogOptions).map((entry) => ({
+    value: entry.label,
+    label: entry.label,
+  }))
+}
+
+function buildEmployeeCatalogPrimaryPositionOptions(department, primaryPosition) {
+  const departmentEntry = findDepartment(department)
+  const catalogPositions = departmentEntry
+    ? getPositionsForDepartment(departmentEntry.key, {
+      venueTypeKey: EMPLOYEE_CATALOG_VENUE_TYPE,
+      includeOptional: true,
+    })
+    : []
+
+  const catalogOptions = catalogPositions.map((entry) => ({
+    key: entry.key,
+    label: entry.label,
+    aliases: entry.aliases,
+    departmentKey: entry.departmentKey,
+  }))
+
+  return preserveLegacyCatalogOption(primaryPosition, catalogOptions, {
+    type: 'position',
+    departmentKey: departmentEntry?.key ?? '',
+  }).map((entry) => ({
+    name: entry.label,
+  }))
+}
+
+function getEmployeePrimaryPositionDepartmentMismatch(department, primaryPosition) {
+  const trimmedPosition = `${primaryPosition ?? ''}`.trim()
+  if (!trimmedPosition) return false
+
+  const departmentEntry = findDepartment(department)
+  if (!departmentEntry) return false
+
+  if (findPosition(trimmedPosition, departmentEntry.key)) return false
+
+  const positionEntry = findPosition(trimmedPosition)
+  return positionEntry !== null && positionEntry.departmentKey !== departmentEntry.key
+}
+
+function employeeDepartmentOptionValuesMatch(left, right) {
+  if (left === right) return true
+
+  const leftEntry = findDepartment(left)
+  const rightEntry = findDepartment(right)
+  if (leftEntry && rightEntry) return leftEntry.key === rightEntry.key
+
+  return departmentLabelsMatch(left, right)
+}
+
+function employeePositionOptionValuesMatch(left, right) {
+  if (left === right) return true
+
+  const leftEntry = findPosition(left)
+  const rightEntry = findPosition(right)
+  if (leftEntry && rightEntry) return leftEntry.key === rightEntry.key
+
+  return positionLabelsMatch(left, right)
+}
 
 const EMPLOYEE_SHIFT_OPTIONS = [
   { value: 'Flexible / Rotating', label: 'Flexible / Rotating' },
@@ -1482,13 +1559,14 @@ function EmployeePremiumFieldSelect({
   menuId,
   openMenuId,
   setOpenMenuId,
+  valuesMatch = (left, right) => left === right,
 }) {
   const isOpen = openMenuId === menuId
   const [menuPosition, setMenuPosition] = useState(null)
   const [activeIndex, setActiveIndex] = useState(-1)
   const rootRef = useRef(null)
   const triggerRef = useRef(null)
-  const selectedOption = options.find((option) => option.value === value) ?? options[0]
+  const selectedOption = options.find((option) => valuesMatch(option.value, value)) ?? options[0]
 
   const setIsOpen = useCallback((nextOpen) => {
     if (nextOpen) {
@@ -1509,7 +1587,7 @@ function EmployeePremiumFieldSelect({
       return undefined
     }
 
-    const selectedIndex = options.findIndex((option) => option.value === value)
+    const selectedIndex = options.findIndex((option) => valuesMatch(option.value, value))
     setActiveIndex(selectedIndex >= 0 ? selectedIndex : 0)
     updateMenuPosition()
 
@@ -1562,7 +1640,7 @@ function EmployeePremiumFieldSelect({
       window.removeEventListener('resize', handleReposition)
       window.removeEventListener('scroll', handleReposition, true)
     }
-  }, [activeIndex, isOpen, onChange, options, setIsOpen, updateMenuPosition, value])
+  }, [activeIndex, isOpen, onChange, options, setIsOpen, updateMenuPosition, value, valuesMatch])
 
   const menuPortal = isOpen && menuPosition && typeof document !== 'undefined'
     ? createPortal(
@@ -1583,8 +1661,8 @@ function EmployeePremiumFieldSelect({
             <button
               type="button"
               role="option"
-              className={`employee-premium-field-select-option${option.value === value ? ' is-selected' : ''}${index === activeIndex ? ' is-active' : ''}`}
-              aria-selected={option.value === value}
+              className={`employee-premium-field-select-option${valuesMatch(option.value, value) ? ' is-selected' : ''}${index === activeIndex ? ' is-active' : ''}`}
+              aria-selected={valuesMatch(option.value, value)}
               onMouseEnter={() => setActiveIndex(index)}
               onClick={() => {
                 onChange(option.value)
@@ -16937,6 +17015,21 @@ function App() {
 
   const employeePositionOptions = useMemo(() => buildEmployeePositionOptions(positions), [positions])
 
+  const employeeCatalogDepartmentOptions = useMemo(
+    () => buildEmployeeCatalogDepartmentOptions(employeeForm.department),
+    [employeeForm.department],
+  )
+
+  const employeeCatalogPrimaryPositionOptions = useMemo(
+    () => buildEmployeeCatalogPrimaryPositionOptions(employeeForm.department, employeeForm.primaryPosition),
+    [employeeForm.department, employeeForm.primaryPosition],
+  )
+
+  const employeePrimaryPositionDepartmentMismatch = useMemo(
+    () => getEmployeePrimaryPositionDepartmentMismatch(employeeForm.department, employeeForm.primaryPosition),
+    [employeeForm.department, employeeForm.primaryPosition],
+  )
+
   const isValidEmail = (value) => {
     if (!value) return true
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)
@@ -23306,7 +23399,8 @@ function App() {
                         openMenuId={employeeFormOpenMenuId}
                         setOpenMenuId={setEmployeeFormOpenMenuId}
                         value={employeeForm.department}
-                        options={EMPLOYEE_DEPARTMENT_OPTIONS}
+                        options={employeeCatalogDepartmentOptions}
+                        valuesMatch={employeeDepartmentOptionValuesMatch}
                         onChange={(department) => setEmployeeForm((current) => ({ ...current, department }))}
                       />
                     </label>
@@ -23318,13 +23412,18 @@ function App() {
                         openMenuId={employeeFormOpenMenuId}
                         setOpenMenuId={setEmployeeFormOpenMenuId}
                         value={employeeForm.primaryPosition}
-                        options={employeePositionOptions}
+                        options={employeeCatalogPrimaryPositionOptions}
                         onChange={(nextPrimary) => setEmployeeForm((current) => ({
                           ...current,
                           primaryPosition: nextPrimary,
                           additionalPositions: current.additionalPositions.filter((name) => name.toLowerCase() !== `${nextPrimary}`.trim().toLowerCase()),
                         }))}
                       />
+                      {employeePrimaryPositionDepartmentMismatch ? (
+                        <small className="employee-premium-field-warning" role="status">
+                          This position belongs to another department.
+                        </small>
+                      ) : null}
                     </label>
                   </div>
                 </section>
