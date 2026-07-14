@@ -497,6 +497,12 @@ import {
 import { TeamTodayView } from './components/team/TeamTodayView'
 import { TeamTodayGroupsList } from './components/team/TeamTodayGroupsList'
 import { TeamPeopleView } from './components/team/TeamPeopleView'
+import { EmployeeIdentity } from './components/identity/EmployeeIdentity'
+import { IDENTITY_COLOR_PALETTE, isPaletteColorId } from './lib/identity/identityColorPalette'
+import {
+  assignEmployeeIdentityColor,
+  getAvailableIdentityColorsForWorkspace,
+} from './services/employeeIdentityService'
 import { StockDashboardView } from './components/stock/StockDashboardView'
 import { StockOrdersView } from './components/stock/StockOrdersView'
 import { StockSuppliersView } from './components/stock/StockSuppliersView'
@@ -2543,6 +2549,100 @@ function EmployeePremiumAdditionalPositionsField({
   )
 }
 
+function formatEmployeeIdentityOccupantLabel(fullName) {
+  const parts = `${fullName ?? ''}`.trim().split(/\s+/).filter(Boolean)
+  if (parts.length === 0) return 'another employee'
+  if (parts.length === 1) return parts[0]
+  return `${parts[0]} ${parts[parts.length - 1].charAt(0).toUpperCase()}.`
+}
+
+function EmployeePremiumIdentitySection({
+  previewEmployee,
+  selectedColorId,
+  assignmentsByColorId,
+  availableColorIds,
+  isLoading,
+  onSelectColor,
+  onClearColor,
+}) {
+  return (
+    <section className="employee-premium-form-section employee-premium-form-section-identity">
+      <h4 className="employee-premium-form-section-title">Identity</h4>
+      <div className="employee-premium-identity-layout">
+        <div className="employee-premium-identity-preview" aria-live="polite">
+          <EmployeeIdentity employee={previewEmployee} size="xl" />
+        </div>
+
+        <div className="employee-premium-identity-controls">
+          {isLoading ? (
+            <p className="employee-premium-identity-loading" role="status">Loading color availability…</p>
+          ) : null}
+
+          <div
+            className="employee-premium-identity-picker"
+            role="listbox"
+            aria-label="Personal identity colors"
+          >
+            {IDENTITY_COLOR_PALETTE.map((color) => {
+              const isSelected = selectedColorId === color.id
+              const isAvailable = availableColorIds.has(color.id)
+              const assignment = assignmentsByColorId.get(color.id)
+              const isOccupied = Boolean(assignment) && !isAvailable
+              const isDisabled = isOccupied
+              const occupantLabel = assignment
+                ? formatEmployeeIdentityOccupantLabel(assignment.employeeName)
+                : ''
+
+              return (
+                <div key={color.id} className="employee-premium-identity-swatch-cell">
+                  <button
+                    type="button"
+                    role="option"
+                    className={`employee-premium-identity-swatch${isSelected ? ' is-selected' : ''}${isOccupied ? ' is-occupied' : ''}`}
+                    style={{
+                      '--identity-swatch-ring': color.ring,
+                      '--identity-swatch-background': color.background,
+                    }}
+                    aria-label={`${color.name}${isOccupied ? `, used by ${occupantLabel}` : ''}${isSelected ? ', selected' : ''}`}
+                    aria-pressed={isSelected}
+                    aria-disabled={isDisabled || undefined}
+                    disabled={isDisabled}
+                    onClick={() => {
+                      if (isDisabled) return
+                      onSelectColor(color.id)
+                    }}
+                  >
+                    <span className="employee-premium-identity-swatch-circle" aria-hidden="true" />
+                    {isSelected ? (
+                      <span className="employee-premium-identity-swatch-check" aria-hidden="true">✓</span>
+                    ) : null}
+                    {isOccupied ? (
+                      <span className="employee-premium-identity-swatch-lock" aria-hidden="true">🔒</span>
+                    ) : null}
+                  </button>
+                  {isOccupied ? (
+                    <span className="employee-premium-identity-swatch-occupied-label">
+                      Used by {occupantLabel}
+                    </span>
+                  ) : null}
+                </div>
+              )
+            })}
+          </div>
+
+          <button
+            type="button"
+            className="ghost-btn employee-premium-identity-clear-btn"
+            onClick={onClearColor}
+          >
+            Remove personal color
+          </button>
+        </div>
+      </div>
+    </section>
+  )
+}
+
 function buildEmployeeForm(employee = null) {
   const normalizeProfileShift = (shift) => {
     if (!shift) return 'Flexible / Rotating'
@@ -2589,6 +2689,7 @@ function buildEmployeeForm(employee = null) {
     status: employee?.status ?? 'Working',
     emergencyContact: employee?.emergencyContact ?? '',
     notes: employee?.notes ?? '',
+    identityColor: employee?.identityColor ?? null,
   }
 }
 
@@ -15299,6 +15400,11 @@ function App() {
   const employeePremiumFormModalRef = useRef(null)
   const [editingEmployee, setEditingEmployee] = useState(null)
   const [employeeForm, setEmployeeForm] = useState(() => buildEmployeeForm())
+  const [employeeIdentityAvailability, setEmployeeIdentityAvailability] = useState({
+    assignments: [],
+    availableColors: [],
+  })
+  const [isEmployeeIdentityLoading, setIsEmployeeIdentityLoading] = useState(false)
   const handleCloseEmployeeModal = useCallback(() => {
     setIsEmployeeModalOpen(false)
     setEditingEmployee(null)
@@ -15306,6 +15412,8 @@ function App() {
     setEmployeeFormOpenMenuId(null)
     setPendingEmployeePositionDeletions(clearPendingEmployeePositionDeletions())
     setEmployeeForm(buildEmployeeForm())
+    setEmployeeIdentityAvailability({ assignments: [], availableColors: [] })
+    setIsEmployeeIdentityLoading(false)
   }, [])
   const [positions, setPositions] = useState([])
   const [positionsNotice, setPositionsNotice] = useState('')
@@ -17873,6 +17981,24 @@ function App() {
     [employeeForm.additionalPositions, positions],
   )
 
+  const employeeIdentityPreviewEmployee = useMemo(() => ({
+    name: mergeEmployeeFullName(employeeForm.firstName, employeeForm.lastName) || 'New employee',
+    identityColor: employeeForm.identityColor ?? null,
+  }), [employeeForm.firstName, employeeForm.lastName, employeeForm.identityColor])
+
+  const employeeIdentityAssignmentByColorId = useMemo(() => {
+    const map = new Map()
+    employeeIdentityAvailability.assignments.forEach((assignment) => {
+      map.set(assignment.colorId, assignment)
+    })
+    return map
+  }, [employeeIdentityAvailability.assignments])
+
+  const employeeIdentityAvailableColorIds = useMemo(
+    () => new Set(employeeIdentityAvailability.availableColors.map((color) => color.id)),
+    [employeeIdentityAvailability.availableColors],
+  )
+
   const isValidEmail = (value) => {
     if (!value) return true
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)
@@ -19106,6 +19232,40 @@ function App() {
     requestAnimationFrame(resetModalScroll)
   }, [isEmployeeModalOpen, editingEmployee?.id])
 
+  useEffect(() => {
+    if (!isEmployeeModalOpen || !activeWorkspaceId) {
+      return undefined
+    }
+
+    let cancelled = false
+    setIsEmployeeIdentityLoading(true)
+
+    getAvailableIdentityColorsForWorkspace({
+      workspaceId: activeWorkspaceId,
+      exceptEmployeeId: editingEmployee?.id ?? null,
+    })
+      .then((result) => {
+        if (!cancelled) {
+          setEmployeeIdentityAvailability(result)
+        }
+      })
+      .catch((error) => {
+        if (!cancelled) {
+          console.error('[App] employee identity availability error:', error)
+          setEmployeeIdentityAvailability({ assignments: [], availableColors: [] })
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setIsEmployeeIdentityLoading(false)
+        }
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [isEmployeeModalOpen, activeWorkspaceId, editingEmployee?.id])
+
   const handleAddCustomPositionToEmployee = async () => {
     const customName = `${employeeForm.customPositionName ?? ''}`.trim()
     if (!customName) {
@@ -19386,6 +19546,17 @@ function App() {
       return
     }
 
+    const identityColorDraft = employeeForm.identityColor ?? null
+    const identityColorBaseline = editingEmployee?.identityColor ?? null
+    const identityColorChanged = identityColorDraft !== identityColorBaseline
+
+    if (identityColorDraft !== null && !isPaletteColorId(identityColorDraft)) {
+      const message = 'This color is not available in the ONE identity palette.'
+      setSaveError(message)
+      setStaffNotice(message)
+      return
+    }
+
     setIsSavingEmployee(true)
     setSaveError('')
 
@@ -19449,8 +19620,52 @@ function App() {
         hireDate: formatHireDate(savedEmployee.hireDate),
       }
 
+      let finalEmployee = nextEmployee
+
+      if (identityColorChanged) {
+        try {
+          await assignEmployeeIdentityColor({
+            workspaceId: activeWorkspaceId,
+            employeeId: savedEmployee.id,
+            colorId: identityColorDraft,
+          })
+
+          finalEmployee = {
+            ...nextEmployee,
+            identityColor: identityColorDraft,
+          }
+
+          const postIdentityEmployees = await refreshStaffEmployees()
+          finalEmployee = postIdentityEmployees.find((employee) => employee.id === savedEmployee.id) ?? finalEmployee
+        } catch (identityError) {
+          const identityMessage = identityError.message || 'Unable to update the employee color. Please try again.'
+          const combinedMessage = `Employee saved, but ${identityMessage.charAt(0).toLowerCase()}${identityMessage.slice(1)}`
+
+          setStaffNotice(combinedMessage)
+          setSaveError(identityMessage)
+          setEditingEmployee({
+            ...nextEmployee,
+            identityColor: identityColorBaseline,
+          })
+          setSelectedEmployee(nextEmployee)
+
+          try {
+            const refreshedAvailability = await getAvailableIdentityColorsForWorkspace({
+              workspaceId: activeWorkspaceId,
+              exceptEmployeeId: savedEmployee.id,
+            })
+            setEmployeeIdentityAvailability(refreshedAvailability)
+          } catch (availabilityError) {
+            console.error('[App] employee identity refresh after conflict error:', availabilityError)
+          }
+
+          setIsSavingEmployee(false)
+          return
+        }
+      }
+
       setPendingEmployeePositionDeletions(clearPendingEmployeePositionDeletions())
-      setSelectedEmployee(nextEmployee)
+      setSelectedEmployee(finalEmployee)
 
       if (cleanupFailureCount > 0) {
         setStaffNotice(
@@ -24493,6 +24708,26 @@ function App() {
                     </label>
                   </div>
                 </section>
+
+                <EmployeePremiumIdentitySection
+                  previewEmployee={employeeIdentityPreviewEmployee}
+                  selectedColorId={employeeForm.identityColor ?? null}
+                  assignmentsByColorId={employeeIdentityAssignmentByColorId}
+                  availableColorIds={employeeIdentityAvailableColorIds}
+                  isLoading={isEmployeeIdentityLoading}
+                  onSelectColor={(colorId) => {
+                    setEmployeeForm((current) => ({
+                      ...current,
+                      identityColor: colorId,
+                    }))
+                  }}
+                  onClearColor={() => {
+                    setEmployeeForm((current) => ({
+                      ...current,
+                      identityColor: null,
+                    }))
+                  }}
+                />
 
                 <section className="employee-premium-form-section">
                   <h4 className="employee-premium-form-section-title">Employment</h4>
