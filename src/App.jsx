@@ -571,6 +571,7 @@ import {
   getModuleTitle,
   getSearchPlaceholder,
   resolveInsightsModuleLink,
+  isTeamScheduleView,
   shouldHideStandardTopbar,
   shouldShowModuleSearch,
   shouldUseCommandTopbar,
@@ -2684,6 +2685,8 @@ function ScheduleView({
   workspaceId = '',
   canEditSchedule = true,
   isMobileScheduleShell = false,
+  isScheduleSectionActive = true,
+  onExitSchedule,
 }) {
   const [selectedDay, setSelectedDay] = useState(null)
   const [scheduleAvailabilityOverlay, setScheduleAvailabilityOverlay] = useState({
@@ -2787,7 +2790,7 @@ function ScheduleView({
   const employeeChipClickGuardRef = useRef(false)
   const [collapsedScheduleAreaKeys, setCollapsedScheduleAreaKeys] = useState(() => readCollapsedScheduleAreaKeys())
   const [isScheduleCompactLandscape, setIsScheduleCompactLandscape] = useState(() => isMobileScheduleCompactLandscape())
-  const [isTemplatesPanelOpen, setIsTemplatesPanelOpen] = useState(() => !isMobileScheduleCompactLandscape())
+  const [isShiftTemplatesOpen, setIsShiftTemplatesOpen] = useState(false)
   const [scheduleViewportWidth, setScheduleViewportWidth] = useState(() => (
     typeof window !== 'undefined' ? window.innerWidth : 0
   ))
@@ -2815,9 +2818,9 @@ function ScheduleView({
       dayCount: weekDays.length,
       viewportWidth: scheduleViewportWidth,
       isCompactLandscape: isScheduleCompactLandscape,
-      isTemplatesPanelOpen,
+      isTemplatesPanelOpen: false,
     }),
-    [weekDays.length, scheduleViewportWidth, isScheduleCompactLandscape, isTemplatesPanelOpen],
+    [weekDays.length, scheduleViewportWidth, isScheduleCompactLandscape],
   )
 
   const scheduleGridTableMinWidth = useMemo(
@@ -2835,7 +2838,7 @@ function ScheduleView({
       setIsScheduleCompactLandscape(compact)
       setScheduleViewportWidth(window.innerWidth)
       if (compact && !wasCompact) {
-        setIsTemplatesPanelOpen(false)
+        setIsShiftTemplatesOpen(false)
       }
     }
 
@@ -2855,6 +2858,26 @@ function ScheduleView({
       landscapeQuery?.removeEventListener?.('change', updateScheduleViewport)
     }
   }, [])
+
+  useEffect(() => {
+    if (isScheduleSectionActive) return
+    setIsShiftTemplatesOpen(false)
+  }, [isScheduleSectionActive])
+
+  useEffect(() => {
+    if (!isShiftTemplatesOpen) return undefined
+
+    const handleEscapeKey = (event) => {
+      if (event.key === 'Escape') {
+        setIsShiftTemplatesOpen(false)
+      }
+    }
+
+    window.addEventListener('keydown', handleEscapeKey)
+    return () => {
+      window.removeEventListener('keydown', handleEscapeKey)
+    }
+  }, [isShiftTemplatesOpen])
 
   useEffect(() => {
     setCapacityDraftMap({})
@@ -5023,21 +5046,70 @@ function ScheduleView({
   const scheduleWorkspaceClassName = [
     'staff-page',
     'schedule-workspace',
+    'schedule-focus-workspace',
     isMobileScheduleShell ? 'is-mobile-schedule-shell' : '',
     isScheduleCompactLandscape ? 'is-compact-landscape' : '',
-    isScheduleCompactLandscape && !isTemplatesPanelOpen ? 'is-templates-collapsed' : '',
-    isScheduleCompactLandscape && isTemplatesPanelOpen ? 'is-templates-open' : '',
+    !isShiftTemplatesOpen ? 'is-templates-collapsed' : '',
+    isShiftTemplatesOpen ? 'is-templates-open' : '',
   ].filter(Boolean).join(' ')
+
+  const handleExitSchedule = () => {
+    setIsShiftTemplatesOpen(false)
+    onExitSchedule?.()
+  }
+
+  const renderShiftTemplatesToggle = () => {
+    if (scheduleGridTemplates.length === 0) return null
+
+    return (
+      <button
+        type="button"
+        className="schedule-templates-toggle schedule-templates-header-toggle"
+        onClick={(event) => {
+          event.stopPropagation()
+          setIsShiftTemplatesOpen((current) => !current)
+        }}
+        aria-expanded={isShiftTemplatesOpen}
+        aria-controls="schedule-templates-panel"
+      >
+        <span className="schedule-templates-toggle-label">
+          {isShiftTemplatesOpen ? '‹ Hide Templates' : 'Shift Templates ›'}
+        </span>
+      </button>
+    )
+  }
+
+  const renderScheduleExitButton = () => {
+    if (!onExitSchedule) return null
+
+    return (
+      <button
+        type="button"
+        className="ghost-btn schedule-focus-exit-btn"
+        onClick={(event) => {
+          event.stopPropagation()
+          handleExitSchedule()
+        }}
+        aria-label="Exit Schedule"
+      >
+        Exit
+      </button>
+    )
+  }
 
   const isScheduleWeekNavigationDisabled = isLoading || isSaving || isPublishing
   const isViewingCurrentScheduleWeek = isCurrentWeek(weekStartDate)
 
   const scheduleHeader = isMobileScheduleShell ? (
-    <header className="mobile-manager-schedule-toolbar panel" aria-label="Schedule controls">
+    <header className="mobile-manager-schedule-toolbar panel schedule-focus-header" aria-label="Schedule controls">
       <div className="mobile-manager-schedule-toolbar-top">
         <div className="mobile-manager-schedule-toolbar-copy">
           <p className="eyebrow">Schedule</p>
           <h2 className="mobile-manager-schedule-week-label">{formatScheduleHeaderWeekRange(weekDays)}</h2>
+        </div>
+        <div className="schedule-focus-header-actions">
+          {renderShiftTemplatesToggle()}
+          {renderScheduleExitButton()}
         </div>
         <span
           className={`schedule-status-badge mobile-manager-schedule-status ${isWeekPublished ? (hasUnpublishedChanges ? 'pending' : 'published') : 'draft'}`}
@@ -5085,7 +5157,7 @@ function ScheduleView({
       ) : null}
     </header>
   ) : (
-    <header className="schedule-header panel">
+    <header className="schedule-header panel schedule-focus-header">
       <div className="schedule-header-copy">
         <p className="eyebrow schedule-header-eyebrow">Schedule</p>
         <h2 className="schedule-header-title">{formatScheduleHeaderWeekRange(weekDays)}</h2>
@@ -5181,6 +5253,11 @@ function ScheduleView({
             Unpublish
           </button>
         ) : null}
+        </div>
+
+        <div className="schedule-focus-header-actions">
+          {renderShiftTemplatesToggle()}
+          {renderScheduleExitButton()}
         </div>
       </div>
     </header>
@@ -5319,25 +5396,6 @@ function ScheduleView({
           </details>
 
       <div className={`schedule-grid-section panel staff-panel blend-grid-panel schedule-grid-hero ${isScheduleVisualFilterActive ? 'schedule-visual-filter-active' : ''}`}>
-        {isScheduleCompactLandscape && scheduleGridTemplates.length > 0 ? (
-          <button
-            type="button"
-            className="schedule-templates-toggle"
-            onClick={(event) => {
-              event.stopPropagation()
-              setIsTemplatesPanelOpen((current) => !current)
-            }}
-            aria-expanded={isTemplatesPanelOpen}
-            aria-controls="schedule-templates-panel"
-          >
-            <span className="schedule-templates-toggle-chevron" aria-hidden="true">
-              {isTemplatesPanelOpen ? '›' : '‹'}
-            </span>
-            <span className="schedule-templates-toggle-label">
-              {isTemplatesPanelOpen ? 'Hide' : 'Templates'}
-            </span>
-          </button>
-        ) : null}
         {scheduleGridTemplates.length === 0 ? (
           <div className="schedule-empty-state">
             <h4>No shift templates available.</h4>
@@ -5649,31 +5707,29 @@ function ScheduleView({
         {scheduleGridTemplates.length > 0 ? (
           <aside
             id="schedule-templates-panel"
-            className={`schedule-templates-panel panel staff-panel${isScheduleCompactLandscape && isTemplatesPanelOpen ? ' is-overlay-open' : ''}`}
+            className={`schedule-templates-panel schedule-templates-overlay panel staff-panel${isShiftTemplatesOpen ? ' is-overlay-open' : ''}`}
             aria-label="Shift templates"
-            aria-hidden={isScheduleCompactLandscape && !isTemplatesPanelOpen}
+            aria-hidden={!isShiftTemplatesOpen}
           >
-            <header className="schedule-templates-panel-header">
+            <header className="schedule-templates-overlay-header schedule-templates-panel-header">
               <div className="schedule-templates-panel-header-copy">
                 <p className="eyebrow">Tools</p>
                 <h3>Shift templates</h3>
                 <p className="schedule-templates-panel-note">Assign employees to day cells in the week grid.</p>
               </div>
-              {isScheduleCompactLandscape ? (
-                <button
-                  type="button"
-                  className="schedule-templates-panel-close"
-                  onClick={(event) => {
-                    event.stopPropagation()
-                    setIsTemplatesPanelOpen(false)
-                  }}
-                  aria-label="Hide shift templates"
-                >
-                  ›
-                </button>
-              ) : null}
+              <button
+                type="button"
+                className="schedule-templates-panel-close"
+                onClick={(event) => {
+                  event.stopPropagation()
+                  setIsShiftTemplatesOpen(false)
+                }}
+                aria-label="Hide shift templates"
+              >
+                ›
+              </button>
             </header>
-            <div className="schedule-templates-list">
+            <div className="schedule-templates-overlay-body schedule-templates-list">
               {blendGridAreaGroups.map((group) => {
                 const isAreaExpanded = !collapsedScheduleAreaKeys.has(group.areaKey)
 
@@ -16431,7 +16487,8 @@ function App() {
   const isHostMobileShell = !isAuthLoading && isHostMobileRole(role)
   const useHostStationShell = isHostMobileShell || useReservationsHostDedicatedShell
   const useDedicatedShell = useMobileExperience || isHostMobileShell
-  const hideGlobalAppSidebar = useDedicatedShell || useReservationsHostDedicatedShell
+  const isScheduleFocusMode = isTeamScheduleView(activeView, teamSection) && !useDedicatedShell
+  const hideGlobalAppSidebar = useDedicatedShell || useReservationsHostDedicatedShell || isScheduleFocusMode
   const activeMobileTab = isManagerMobileShell ? mobileManagerTab : mobileStaffTab
   const isManagerMobileStockLoading = isManagerMobileBootstrapLoading || isStockItemsLoading || isStockOrdersLoading
   const isManagerMobileTasksLoading = isManagerMobileBootstrapLoading || isOperationsLoading
@@ -23301,6 +23358,10 @@ function App() {
     ))
   }, [role, handleActiveViewChange])
 
+  const handleExitScheduleFocusMode = useCallback(() => {
+    handleTeamSectionChange('members')
+  }, [handleTeamSectionChange])
+
   const handleMobileHostReservationCreate = async (form) => {
     if (!canManageReservationsRole) return false
 
@@ -23457,7 +23518,7 @@ function App() {
 
   return (
     <PublishedFloorPlanProvider workspaceId={workspace?.id ?? ''}>
-    <div className={`app-shell${useDedicatedShell ? ' is-mobile-shell' : ''}${useHostStationShell ? ' is-host-station-shell is-host-only-station' : ''}${useDedicatedShell && mobileExpandedView ? ' is-mobile-expanded' : ''}${(useDedicatedShell && mobileReservationsHostMode) || useHostStationShell ? ' is-reservations-host-mode' : ''}`}>
+    <div className={`app-shell${useDedicatedShell ? ' is-mobile-shell' : ''}${useHostStationShell ? ' is-host-station-shell is-host-only-station' : ''}${useDedicatedShell && mobileExpandedView ? ' is-mobile-expanded' : ''}${(useDedicatedShell && mobileReservationsHostMode) || useHostStationShell ? ' is-reservations-host-mode' : ''}${isScheduleFocusMode ? ' schedule-focus-mode' : ''}`}>
       <ViewportDebugOverlay isMobileViewport={useDedicatedShell} />
       {!hideGlobalAppSidebar ? (
       <aside className="sidebar">
@@ -23675,6 +23736,8 @@ function App() {
                 && activeView === 'team'
                 && teamSection === 'schedule'
               }
+              isScheduleSectionActive={teamSection === 'schedule'}
+              onExitSchedule={handleExitScheduleFocusMode}
             />
           </div>
         ) : null}
