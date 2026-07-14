@@ -5064,7 +5064,7 @@ function ScheduleView({
     return (
       <button
         type="button"
-        className={`ghost-btn schedule-header-templates-btn schedule-header-tertiary-btn schedule-header-control-surface${isShiftTemplatesOpen ? ' is-active' : ''}`}
+        className={`ghost-btn schedule-more-menu-btn schedule-header-tertiary-btn schedule-header-control-surface${isShiftTemplatesOpen ? ' is-active' : ''}`}
         onClick={(event) => {
           event.stopPropagation()
           setIsShiftTemplatesOpen((current) => !current)
