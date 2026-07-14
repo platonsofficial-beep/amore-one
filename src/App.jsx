@@ -5813,9 +5813,6 @@ function ScheduleView({
                                       handleOpenAssignmentActions(shift)
                                     }}
                                   >
-                                    <span className="schedule-assigned-pill-identity">
-                                      <EmployeeIdentity employee={identityEmployee} size="xs" showName={false} />
-                                    </span>
                                     <span className="schedule-assigned-pill-name">{employeeName}</span>
                                   </button>
                                 </li>
