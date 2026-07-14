@@ -499,6 +499,7 @@ import { TeamTodayGroupsList } from './components/team/TeamTodayGroupsList'
 import { TeamPeopleView } from './components/team/TeamPeopleView'
 import { EmployeeIdentity } from './components/identity/EmployeeIdentity'
 import { IDENTITY_COLOR_PALETTE, isPaletteColorId } from './lib/identity/identityColorPalette'
+import { getEmployeeIdentityColor } from './lib/identity/employeeIdentityColor'
 import {
   assignEmployeeIdentityColor,
   getAvailableIdentityColorsForWorkspace,
@@ -5788,6 +5789,8 @@ function ScheduleView({
                           <ul className="schedule-shift-assigned-list">
                             {cell.shifts.map((shift) => {
                               const employeeName = shift.employees?.full_name || shift.employeeName || shift.employeeRecord?.name || 'Unassigned'
+                              const identityEmployee = resolveScheduleIdentityEmployee(shift, employeeName)
+                              const identityPresentation = getEmployeeIdentityColor(identityEmployee)
                               const pillIsEmphasized = doesShiftMatchScheduleVisualFilter(shift, employeeName, {
                                 focusedEmployeeId,
                                 searchNeedle: scheduleVisualSearchNeedle,
@@ -5797,7 +5800,11 @@ function ScheduleView({
                                 <li key={`shift-assigned-${shift.id}`}>
                                   <button
                                     type="button"
-                                    className={`schedule-shift-assigned-item ${dragPayload?.shiftId === shift.id ? 'dragging' : ''} ${isScheduleVisualFilterActive ? (pillIsEmphasized ? 'visual-emphasis' : 'visual-faded') : ''}`}
+                                    className={`schedule-shift-assigned-item schedule-assigned-pill schedule-assigned-pill--identity ${dragPayload?.shiftId === shift.id ? 'dragging' : ''} ${isScheduleVisualFilterActive ? (pillIsEmphasized ? 'visual-emphasis' : 'visual-faded') : ''}`}
+                                    style={{
+                                      '--schedule-pill-identity-ring': identityPresentation.ring,
+                                      '--schedule-pill-identity-background': identityPresentation.background,
+                                    }}
                                     draggable={!isDragDropDisabled}
                                     onDragStart={(event) => handleShiftDragStart(event, shift)}
                                     onDragEnd={handleDragEnd}
@@ -5806,7 +5813,10 @@ function ScheduleView({
                                       handleOpenAssignmentActions(shift)
                                     }}
                                   >
-                                    {employeeName}
+                                    <span className="schedule-assigned-pill-identity">
+                                      <EmployeeIdentity employee={identityEmployee} size="xs" showName={false} />
+                                    </span>
+                                    <span className="schedule-assigned-pill-name">{employeeName}</span>
                                   </button>
                                 </li>
                               )

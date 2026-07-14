@@ -16369,7 +16369,8 @@
   gap: 3px;
 }
 
-.schedule-shift-assigned-item {
+.schedule-shift-assigned-item,
+.schedule-assigned-pill {
   width: 100%;
   min-height: 30px;
   padding: 4px 10px;
@@ -16388,12 +16389,58 @@
     color 160ms ease;
 }
 
+.schedule-assigned-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.schedule-assigned-pill--identity {
+  border-left: 2px solid var(--schedule-pill-identity-ring, rgba(255, 255, 255, 0.16));
+  background:
+    linear-gradient(
+      0deg,
+      color-mix(in srgb, var(--schedule-pill-identity-background, rgba(255, 255, 255, 0.07)) 10%, transparent),
+      color-mix(in srgb, var(--schedule-pill-identity-background, rgba(255, 255, 255, 0.07)) 10%, transparent)
+    ),
+    rgba(255, 255, 255, 0.04);
+}
+
+.schedule-assigned-pill-identity {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+}
+
+.schedule-assigned-pill-name {
+  min-width: 0;
+  flex: 1 1 auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #f7efe1;
+}
+
 .schedule-shift-assigned-item:hover,
-.schedule-shift-assigned-item:focus-visible {
+.schedule-shift-assigned-item:focus-visible,
+.schedule-assigned-pill:hover,
+.schedule-assigned-pill:focus-visible {
   border-color: rgba(212, 175, 55, 0.28);
   background: rgba(212, 175, 55, 0.08);
   color: #fff7e8;
   outline: none;
+}
+
+.schedule-assigned-pill--identity:hover,
+.schedule-assigned-pill--identity:focus-visible {
+  border-left-color: var(--schedule-pill-identity-ring, rgba(255, 255, 255, 0.16));
+  background:
+    linear-gradient(
+      0deg,
+      color-mix(in srgb, var(--schedule-pill-identity-background, rgba(255, 255, 255, 0.07)) 12%, transparent),
+      color-mix(in srgb, var(--schedule-pill-identity-background, rgba(255, 255, 255, 0.07)) 12%, transparent)
+    ),
+    rgba(212, 175, 55, 0.08);
 }
 
 .schedule-shift-coverage-status {
@@ -16815,10 +16862,15 @@
   gap: 3px;
 }
 
-.schedule-workspace.is-compact-landscape .schedule-shift-assigned-item {
+.schedule-workspace.is-compact-landscape .schedule-shift-assigned-item,
+.schedule-workspace.is-compact-landscape .schedule-assigned-pill {
   min-height: 28px;
   padding: 4px 6px;
   font-size: 0.68rem;
+}
+
+.schedule-workspace.is-compact-landscape .schedule-assigned-pill {
+  gap: 5px;
 }
 
 .schedule-workspace.is-compact-landscape .schedule-assign-btn {
