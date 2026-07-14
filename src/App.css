@@ -16395,17 +16395,54 @@
   justify-content: flex-start;
 }
 
+/* Assigned employee identity pill — visual calibration (P6.8.6.6)
+   Temporary QA presets. Switch by editing only the two active percentages below.
+
+   OPTION A (Current production baseline)
+   Resting: 22% identity / 78% dark surface
+   Hover:   27% identity / 73% dark surface
+
+   OPTION B (Active for QA)
+   Resting: 30% identity / 70% dark surface
+   Hover:   35% identity / 65% dark surface
+
+   OPTION C (Stronger recognition)
+   Resting: 38% identity / 62% dark surface
+   Hover:   43% identity / 57% dark surface
+*/
+
 .schedule-assigned-pill--identity {
   border: 1px solid color-mix(in srgb, var(--schedule-pill-identity-ring, rgba(255, 255, 255, 0.16)) 40%, rgba(255, 255, 255, 0.07));
   border-left: 2px solid var(--schedule-pill-identity-ring, rgba(255, 255, 255, 0.16));
   border-top-left-radius: 8px;
   border-bottom-left-radius: 8px;
+  /* OPTION B resting (active): 30% / 70% */
+  background: color-mix(
+    in srgb,
+    var(--schedule-pill-identity-ring, rgba(255, 255, 255, 0.16)) 30%,
+    rgba(12, 14, 18, 0.96) 70%
+  );
+}
+
+/* OPTION A resting (inactive)
+.schedule-assigned-pill--identity {
   background: color-mix(
     in srgb,
     var(--schedule-pill-identity-ring, rgba(255, 255, 255, 0.16)) 22%,
     rgba(12, 14, 18, 0.96) 78%
   );
 }
+*/
+
+/* OPTION C resting (inactive)
+.schedule-assigned-pill--identity {
+  background: color-mix(
+    in srgb,
+    var(--schedule-pill-identity-ring, rgba(255, 255, 255, 0.16)) 38%,
+    rgba(12, 14, 18, 0.96) 62%
+  );
+}
+*/
 
 .schedule-assigned-pill--neutral {
   border: 1px solid rgba(255, 255, 255, 0.07);
@@ -16439,14 +16476,37 @@
 .schedule-assigned-pill--identity:focus-visible {
   border-color: color-mix(in srgb, var(--schedule-pill-identity-ring, rgba(255, 255, 255, 0.16)) 46%, rgba(255, 255, 255, 0.07));
   border-left-color: var(--schedule-pill-identity-ring, rgba(255, 255, 255, 0.16));
+  /* OPTION B hover (active): 35% / 65% */
+  background: color-mix(
+    in srgb,
+    var(--schedule-pill-identity-ring, rgba(255, 255, 255, 0.16)) 35%,
+    rgba(12, 14, 18, 0.96) 65%
+  );
+  color: #fff7e8;
+  outline: none;
+}
+
+/* OPTION A hover (inactive)
+.schedule-assigned-pill--identity:hover,
+.schedule-assigned-pill--identity:focus-visible {
   background: color-mix(
     in srgb,
     var(--schedule-pill-identity-ring, rgba(255, 255, 255, 0.16)) 27%,
     rgba(12, 14, 18, 0.96) 73%
   );
-  color: #fff7e8;
-  outline: none;
 }
+*/
+
+/* OPTION C hover (inactive)
+.schedule-assigned-pill--identity:hover,
+.schedule-assigned-pill--identity:focus-visible {
+  background: color-mix(
+    in srgb,
+    var(--schedule-pill-identity-ring, rgba(255, 255, 255, 0.16)) 43%,
+    rgba(12, 14, 18, 0.96) 57%
+  );
+}
+*/
 
 .schedule-assigned-pill--neutral:hover,
 .schedule-assigned-pill--neutral:focus-visible {
