@@ -16396,14 +16396,20 @@
 }
 
 .schedule-assigned-pill--identity {
+  border: 1px solid color-mix(in srgb, var(--schedule-pill-identity-ring, rgba(255, 255, 255, 0.16)) 28%, rgba(255, 255, 255, 0.07));
   border-left: 2px solid var(--schedule-pill-identity-ring, rgba(255, 255, 255, 0.16));
-  background:
-    linear-gradient(
-      0deg,
-      color-mix(in srgb, var(--schedule-pill-identity-background, rgba(255, 255, 255, 0.07)) 10%, transparent),
-      color-mix(in srgb, var(--schedule-pill-identity-background, rgba(255, 255, 255, 0.07)) 10%, transparent)
-    ),
-    rgba(255, 255, 255, 0.04);
+  border-top-left-radius: 8px;
+  border-bottom-left-radius: 8px;
+  background: color-mix(
+    in srgb,
+    var(--schedule-pill-identity-background, rgba(255, 255, 255, 0.07)) 20%,
+    rgba(255, 255, 255, 0.04)
+  );
+}
+
+.schedule-assigned-pill--neutral {
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  background: color-mix(in srgb, rgba(255, 255, 255, 0.07) 6%, rgba(255, 255, 255, 0.04));
 }
 
 .schedule-assigned-pill-name {
@@ -16431,14 +16437,23 @@
 
 .schedule-assigned-pill--identity:hover,
 .schedule-assigned-pill--identity:focus-visible {
+  border-color: color-mix(in srgb, var(--schedule-pill-identity-ring, rgba(255, 255, 255, 0.16)) 32%, rgba(212, 175, 55, 0.28));
   border-left-color: var(--schedule-pill-identity-ring, rgba(255, 255, 255, 0.16));
-  background:
-    linear-gradient(
-      0deg,
-      color-mix(in srgb, var(--schedule-pill-identity-background, rgba(255, 255, 255, 0.07)) 12%, transparent),
-      color-mix(in srgb, var(--schedule-pill-identity-background, rgba(255, 255, 255, 0.07)) 12%, transparent)
-    ),
-    rgba(212, 175, 55, 0.08);
+  background: color-mix(
+    in srgb,
+    var(--schedule-pill-identity-background, rgba(255, 255, 255, 0.07)) 22%,
+    rgba(212, 175, 55, 0.08)
+  );
+  color: #fff7e8;
+  outline: none;
+}
+
+.schedule-assigned-pill--neutral:hover,
+.schedule-assigned-pill--neutral:focus-visible {
+  border-color: rgba(212, 175, 55, 0.28);
+  background: rgba(212, 175, 55, 0.08);
+  color: #fff7e8;
+  outline: none;
 }
 
 .schedule-shift-coverage-status {

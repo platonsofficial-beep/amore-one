@@ -5791,6 +5791,7 @@ function ScheduleView({
                               const employeeName = shift.employees?.full_name || shift.employeeName || shift.employeeRecord?.name || 'Unassigned'
                               const identityEmployee = resolveScheduleIdentityEmployee(shift, employeeName)
                               const identityPresentation = getEmployeeIdentityColor(identityEmployee)
+                              const hasPersonalIdentityColor = Boolean(`${identityEmployee?.identityColor ?? ''}`.trim())
                               const pillIsEmphasized = doesShiftMatchScheduleVisualFilter(shift, employeeName, {
                                 focusedEmployeeId,
                                 searchNeedle: scheduleVisualSearchNeedle,
@@ -5800,11 +5801,11 @@ function ScheduleView({
                                 <li key={`shift-assigned-${shift.id}`}>
                                   <button
                                     type="button"
-                                    className={`schedule-shift-assigned-item schedule-assigned-pill schedule-assigned-pill--identity ${dragPayload?.shiftId === shift.id ? 'dragging' : ''} ${isScheduleVisualFilterActive ? (pillIsEmphasized ? 'visual-emphasis' : 'visual-faded') : ''}`}
-                                    style={{
+                                    className={`schedule-shift-assigned-item schedule-assigned-pill ${hasPersonalIdentityColor ? 'schedule-assigned-pill--identity' : 'schedule-assigned-pill--neutral'} ${dragPayload?.shiftId === shift.id ? 'dragging' : ''} ${isScheduleVisualFilterActive ? (pillIsEmphasized ? 'visual-emphasis' : 'visual-faded') : ''}`}
+                                    style={hasPersonalIdentityColor ? {
                                       '--schedule-pill-identity-ring': identityPresentation.ring,
                                       '--schedule-pill-identity-background': identityPresentation.background,
-                                    }}
+                                    } : undefined}
                                     draggable={!isDragDropDisabled}
                                     onDragStart={(event) => handleShiftDragStart(event, shift)}
                                     onDragEnd={handleDragEnd}
