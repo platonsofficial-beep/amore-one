@@ -59,7 +59,7 @@ describe('employeeIdentitySize', () => {
 
 describe('identityColorPalette', () => {
   it('freezes a curated palette of premium colors', () => {
-    expect(IDENTITY_COLOR_PALETTE).toHaveLength(30)
+    expect(IDENTITY_COLOR_PALETTE).toHaveLength(48)
     expect(Object.isFrozen(IDENTITY_COLOR_PALETTE)).toBe(true)
     expect(Object.isFrozen(IDENTITY_COLOR_PALETTE[0])).toBe(true)
     expect(Object.isFrozen(IDENTITY_NEUTRAL_COLOR)).toBe(true)
@@ -108,7 +108,7 @@ describe('employeeIdentityColor helpers', () => {
     expect(available.some((color) => color.id === 'emerald')).toBe(false)
     expect(available.some((color) => color.id === 'ruby')).toBe(false)
     expect(available.some((color) => color.id === 'champagne')).toBe(true)
-    expect(available).toHaveLength(28)
+    expect(available).toHaveLength(46)
   })
 })
 
