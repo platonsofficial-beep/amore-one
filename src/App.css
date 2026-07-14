@@ -16396,13 +16396,13 @@
 }
 
 .schedule-assigned-pill--identity {
-  border: 1px solid color-mix(in srgb, var(--schedule-pill-identity-ring, rgba(255, 255, 255, 0.16)) 28%, rgba(255, 255, 255, 0.07));
+  border: 1px solid color-mix(in srgb, var(--schedule-pill-identity-ring, rgba(255, 255, 255, 0.16)) 40%, rgba(255, 255, 255, 0.07));
   border-left: 2px solid var(--schedule-pill-identity-ring, rgba(255, 255, 255, 0.16));
   border-top-left-radius: 8px;
   border-bottom-left-radius: 8px;
   background: color-mix(
     in srgb,
-    var(--schedule-pill-identity-background, rgba(255, 255, 255, 0.07)) 20%,
+    var(--schedule-pill-identity-background, rgba(255, 255, 255, 0.07)) 25%,
     rgba(255, 255, 255, 0.04)
   );
 }
@@ -16437,12 +16437,12 @@
 
 .schedule-assigned-pill--identity:hover,
 .schedule-assigned-pill--identity:focus-visible {
-  border-color: color-mix(in srgb, var(--schedule-pill-identity-ring, rgba(255, 255, 255, 0.16)) 32%, rgba(212, 175, 55, 0.28));
+  border-color: color-mix(in srgb, var(--schedule-pill-identity-ring, rgba(255, 255, 255, 0.16)) 46%, rgba(255, 255, 255, 0.07));
   border-left-color: var(--schedule-pill-identity-ring, rgba(255, 255, 255, 0.16));
   background: color-mix(
     in srgb,
-    var(--schedule-pill-identity-background, rgba(255, 255, 255, 0.07)) 22%,
-    rgba(212, 175, 55, 0.08)
+    var(--schedule-pill-identity-background, rgba(255, 255, 255, 0.07)) 28%,
+    rgba(255, 255, 255, 0.04)
   );
   color: #fff7e8;
   outline: none;
