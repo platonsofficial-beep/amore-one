@@ -16402,7 +16402,7 @@
   border-bottom-left-radius: 8px;
   background: color-mix(
     in srgb,
-    var(--schedule-pill-identity-background, rgba(255, 255, 255, 0.07)) 25%,
+    var(--schedule-pill-identity-background, rgba(255, 255, 255, 0.07)) 35%,
     rgba(255, 255, 255, 0.04)
   );
 }
@@ -16441,7 +16441,7 @@
   border-left-color: var(--schedule-pill-identity-ring, rgba(255, 255, 255, 0.16));
   background: color-mix(
     in srgb,
-    var(--schedule-pill-identity-background, rgba(255, 255, 255, 0.07)) 28%,
+    var(--schedule-pill-identity-background, rgba(255, 255, 255, 0.07)) 40%,
     rgba(255, 255, 255, 0.04)
   );
   color: #fff7e8;
