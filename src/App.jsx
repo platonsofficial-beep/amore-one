@@ -1952,6 +1952,337 @@ function EmployeePremiumPositionField({
   )
 }
 
+function employeeAdditionalPositionMatchesSearch(position, searchQuery) {
+  const needle = `${searchQuery ?? ''}`.trim().toLowerCase()
+  if (!needle) return true
+
+  const tokens = [`${position?.label ?? ''}`.trim()]
+  for (const alias of position?.aliases ?? []) {
+    const trimmed = `${alias ?? ''}`.trim()
+    if (trimmed) tokens.push(trimmed)
+  }
+
+  return tokens.some((token) => token.toLowerCase().includes(needle))
+}
+
+function buildEmployeeAdditionalPositionCatalogGroups(additionalPositionNames = []) {
+  const departments = getDepartmentsForVenueType(EMPLOYEE_CATALOG_VENUE_TYPE, { includeOptional: true })
+
+  const groups = departments.map((department) => ({
+    departmentKey: department.key,
+    departmentLabel: department.label,
+    sortOrder: department.sortOrder,
+    positions: getPositionsForDepartment(department.key, {
+      venueTypeKey: EMPLOYEE_CATALOG_VENUE_TYPE,
+      includeOptional: true,
+    }).map((entry) => ({
+      key: entry.key,
+      label: entry.label,
+      aliases: entry.aliases,
+      departmentKey: entry.departmentKey,
+      custom: false,
+    })),
+  }))
+
+  const customPositions = []
+  for (const name of additionalPositionNames) {
+    const trimmed = `${name ?? ''}`.trim()
+    if (!trimmed) continue
+    if (findPosition(trimmed)) continue
+    if (customPositions.some((entry) => entry.label.toLowerCase() === trimmed.toLowerCase())) continue
+
+    customPositions.push({
+      key: `custom:${trimmed}`,
+      label: trimmed,
+      aliases: [],
+      departmentKey: 'custom',
+      custom: true,
+    })
+  }
+
+  if (customPositions.length > 0) {
+    groups.push({
+      departmentKey: 'custom',
+      departmentLabel: 'Custom',
+      sortOrder: Number.MAX_SAFE_INTEGER,
+      positions: customPositions,
+    })
+  }
+
+  return groups
+}
+
+function filterEmployeeAdditionalPositionGroups(groups, searchQuery) {
+  if (!Array.isArray(groups)) return []
+
+  const needle = `${searchQuery ?? ''}`.trim().toLowerCase()
+  if (!needle) return groups
+
+  return groups
+    .map((group) => ({
+      ...group,
+      positions: group.positions.filter((position) => employeeAdditionalPositionMatchesSearch(position, needle)),
+    }))
+    .filter((group) => group.positions.length > 0)
+}
+
+function employeeAdditionalPositionIsSelected(selection, positionLabel) {
+  return selection.some((entry) => employeePositionOptionValuesMatch(entry, positionLabel))
+}
+
+function employeeAdditionalPositionMatchesPrimary(position, primaryPosition) {
+  const trimmedPrimary = `${primaryPosition ?? ''}`.trim()
+  if (!trimmedPrimary) return false
+
+  if (employeePositionOptionValuesMatch(position.label, trimmedPrimary)) return true
+  return (position.aliases ?? []).some((alias) => employeePositionOptionValuesMatch(alias, trimmedPrimary))
+}
+
+function employeeAdditionalSelectionIncludesPrimary(selection, primaryPosition) {
+  const trimmedPrimary = `${primaryPosition ?? ''}`.trim()
+  if (!trimmedPrimary) return false
+
+  return selection.some((entry) => employeePositionOptionValuesMatch(entry, trimmedPrimary))
+}
+
+function EmployeePremiumAdditionalPositionsField({
+  value,
+  onChange,
+  groups,
+  primaryPosition,
+  menuId,
+  openMenuId,
+  setOpenMenuId,
+  id,
+  emptyLabel = 'No additional positions',
+}) {
+  const selectedValues = Array.isArray(value) ? value : []
+  const isOpen = openMenuId === menuId
+  const [menuPosition, setMenuPosition] = useState(null)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [draftSelection, setDraftSelection] = useState(selectedValues)
+  const rootRef = useRef(null)
+  const triggerRef = useRef(null)
+
+  const filteredGroups = useMemo(
+    () => filterEmployeeAdditionalPositionGroups(groups, searchQuery),
+    [groups, searchQuery],
+  )
+
+  const closedDisplayLabel = selectedValues.length > 0
+    ? selectedValues.join(', ')
+    : emptyLabel
+
+  const setIsOpen = useCallback((nextOpen) => {
+    if (nextOpen) {
+      dismissEmployeeFormOverlayPickers()
+    }
+    setOpenMenuId(nextOpen ? menuId : null)
+  }, [menuId, setOpenMenuId])
+
+  const updateMenuPosition = useCallback(() => {
+    if (!triggerRef.current) return
+    setMenuPosition(computeEmployeePremiumSelectPosition(triggerRef.current.getBoundingClientRect()))
+  }, [])
+
+  const cancelPicker = useCallback(() => {
+    setDraftSelection(selectedValues)
+    setSearchQuery('')
+    setIsOpen(false)
+    requestAnimationFrame(() => triggerRef.current?.focus())
+  }, [selectedValues, setIsOpen])
+
+  const applyPicker = useCallback(() => {
+    onChange([...draftSelection])
+    setSearchQuery('')
+    setIsOpen(false)
+    requestAnimationFrame(() => triggerRef.current?.focus())
+  }, [draftSelection, onChange, setIsOpen])
+
+  const toggleDraftPosition = useCallback((positionLabel) => {
+    const trimmedLabel = `${positionLabel ?? ''}`.trim()
+    if (!trimmedLabel) return
+
+    setDraftSelection((current) => {
+      if (current.some((entry) => employeePositionOptionValuesMatch(entry, trimmedLabel))) {
+        return current.filter((entry) => !employeePositionOptionValuesMatch(entry, trimmedLabel))
+      }
+
+      return [...current, trimmedLabel]
+    })
+  }, [])
+
+  useEffect(() => {
+    if (!isOpen) {
+      setSearchQuery('')
+      setMenuPosition(null)
+      return undefined
+    }
+
+    setDraftSelection(selectedValues)
+    updateMenuPosition()
+
+    const handleClickOutside = (event) => {
+      if (rootRef.current?.contains(event.target)) return
+      if (event.target instanceof Element && event.target.closest('.employee-premium-additional-positions-picker-portal')) return
+      cancelPicker()
+    }
+
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') {
+        event.preventDefault()
+        cancelPicker()
+      }
+    }
+
+    const handleReposition = () => updateMenuPosition()
+
+    document.addEventListener('click', handleClickOutside, true)
+    document.addEventListener('keydown', handleKeyDown)
+    window.addEventListener('resize', handleReposition)
+    window.addEventListener('scroll', handleReposition, true)
+
+    const modalScrollContainer = triggerRef.current?.closest('.employee-premium-form-modal')
+    modalScrollContainer?.addEventListener('scroll', handleReposition, { passive: true })
+
+    return () => {
+      document.removeEventListener('click', handleClickOutside, true)
+      document.removeEventListener('keydown', handleKeyDown)
+      window.removeEventListener('resize', handleReposition)
+      window.removeEventListener('scroll', handleReposition, true)
+      modalScrollContainer?.removeEventListener('scroll', handleReposition)
+    }
+  }, [cancelPicker, isOpen, selectedValues, updateMenuPosition])
+
+  const menuPortal = isOpen && menuPosition && typeof document !== 'undefined'
+    ? createPortal(
+      <div
+        className="employee-premium-additional-positions-picker-portal employee-premium-field-select-portal"
+        style={{
+          position: 'fixed',
+          top: `${menuPosition.top}px`,
+          left: `${menuPosition.left}px`,
+          width: `${menuPosition.width}px`,
+          zIndex: EMPLOYEE_FORM_SELECT_Z_INDEX,
+        }}
+      >
+        <div className="employee-premium-position-picker-search-wrap">
+          <input
+            type="search"
+            className="employee-premium-position-picker-search"
+            value={searchQuery}
+            placeholder="Search positions"
+            aria-label="Search positions"
+            autoComplete="off"
+            enterKeyHint="search"
+            onChange={(event) => setSearchQuery(event.target.value)}
+          />
+        </div>
+
+        <div className="employee-premium-additional-positions-picker-body">
+          {filteredGroups.length > 0 ? filteredGroups.map((group) => (
+            <section key={group.departmentKey} className="employee-premium-additional-positions-group">
+              <h5 className="employee-premium-additional-positions-group-header">{group.departmentLabel}</h5>
+              <ul className="employee-premium-additional-positions-group-list" role="group" aria-label={group.departmentLabel}>
+                {group.positions.map((position) => {
+                  const isPrimaryLocked = employeeAdditionalPositionMatchesPrimary(position, primaryPosition)
+                  if (isPrimaryLocked && !employeeAdditionalSelectionIncludesPrimary(draftSelection, primaryPosition)) {
+                    return null
+                  }
+
+                  if (isPrimaryLocked) {
+                    const storedLabel = draftSelection.find((entry) => employeePositionOptionValuesMatch(entry, primaryPosition))
+                      ?? position.label
+
+                    return (
+                      <li key={`${group.departmentKey}-${position.key}-primary`} role="presentation">
+                        <button
+                          type="button"
+                          className="employee-premium-additional-positions-option is-disabled is-primary-locked"
+                          disabled
+                          aria-disabled="true"
+                        >
+                          <span className="employee-premium-additional-positions-option-label">{storedLabel}</span>
+                          <span className="employee-premium-additional-positions-option-meta">Primary Position</span>
+                        </button>
+                      </li>
+                    )
+                  }
+
+                  const isSelected = employeeAdditionalPositionIsSelected(draftSelection, position.label)
+
+                  return (
+                    <li key={`${group.departmentKey}-${position.key}`} role="presentation">
+                      <button
+                        type="button"
+                        className={`employee-premium-additional-positions-option${isSelected ? ' is-selected' : ''}`}
+                        aria-pressed={isSelected}
+                        onClick={() => toggleDraftPosition(position.label)}
+                      >
+                        <span className="employee-premium-additional-positions-option-label">{position.label}</span>
+                        {position.custom ? (
+                          <span className="employee-premium-additional-positions-option-meta">Custom</span>
+                        ) : null}
+                      </button>
+                    </li>
+                  )
+                })}
+              </ul>
+            </section>
+          )) : (
+            <p className="employee-premium-position-picker-empty">No matching positions</p>
+          )}
+        </div>
+
+        <div className="employee-premium-additional-positions-picker-footer">
+          <button type="button" className="ghost-btn employee-premium-additional-positions-cancel-btn" onClick={cancelPicker}>
+            Cancel
+          </button>
+          <button type="button" className="primary-btn employee-premium-additional-positions-done-btn" onClick={applyPicker}>
+            Done
+          </button>
+        </div>
+      </div>,
+      document.body,
+    )
+    : null
+
+  return (
+    <>
+      <div className={`employee-premium-additional-positions-field${isOpen ? ' is-open' : ''}`} ref={rootRef}>
+        <button
+          ref={triggerRef}
+          id={id}
+          type="button"
+          className="employee-premium-position-trigger employee-premium-additional-positions-trigger"
+          onClick={() => setIsOpen(!isOpen)}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter' || event.key === ' ') {
+              event.preventDefault()
+              setIsOpen(true)
+              return
+            }
+
+            if (event.key === 'ArrowDown') {
+              event.preventDefault()
+              setIsOpen(true)
+            }
+          }}
+          aria-haspopup="dialog"
+          aria-expanded={isOpen}
+          aria-label="Additional positions"
+        >
+          <span className={`employee-premium-field-select-value${selectedValues.length > 0 ? '' : ' is-placeholder'}`}>
+            {closedDisplayLabel}
+          </span>
+          <span className="employee-premium-field-select-chevron" aria-hidden="true">▾</span>
+        </button>
+      </div>
+      {menuPortal}
+    </>
+  )
+}
+
 function buildEmployeeForm(employee = null) {
   const normalizeProfileShift = (shift) => {
     if (!shift) return 'Flexible / Rotating'
@@ -17090,6 +17421,11 @@ function App() {
     [employeeForm.department, employeeForm.primaryPosition],
   )
 
+  const employeeAdditionalPositionGroups = useMemo(
+    () => buildEmployeeAdditionalPositionCatalogGroups(employeeForm.additionalPositions),
+    [employeeForm.additionalPositions],
+  )
+
   const isValidEmail = (value) => {
     if (!value) return true
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)
@@ -23568,37 +23904,22 @@ function App() {
 
                 <section className="employee-premium-form-section">
                   <h4 className="employee-premium-form-section-title">Additional Positions</h4>
-                  <div className="employee-premium-position-grid">
-                    {employeePositionOptions
-                      .filter((position) => position.name.toLowerCase() !== `${employeeForm.primaryPosition ?? ''}`.trim().toLowerCase())
-                      .map((position) => {
-                        const checked = employeeForm.additionalPositions.some((name) => name.toLowerCase() === position.name.toLowerCase())
-
-                        return (
-                          <button
-                            key={`employee-position-chip-${position.name}`}
-                            type="button"
-                            className={`employee-premium-position-chip ${checked ? 'is-selected' : ''}`}
-                            aria-pressed={checked}
-                            onClick={() => {
-                              setEmployeeForm((current) => {
-                                const alreadySelected = current.additionalPositions.some((name) => name.toLowerCase() === position.name.toLowerCase())
-                                const nextAdditional = alreadySelected
-                                  ? current.additionalPositions.filter((name) => name.toLowerCase() !== position.name.toLowerCase())
-                                  : [...current.additionalPositions, position.name]
-
-                                return {
-                                  ...current,
-                                  additionalPositions: nextAdditional,
-                                }
-                              })
-                            }}
-                          >
-                            {position.name}
-                          </button>
-                        )
-                      })}
-                  </div>
+                  <label className="form-field full-width">
+                    <span className="sr-only">Additional positions</span>
+                    <EmployeePremiumAdditionalPositionsField
+                      id="employee-form-additional-positions"
+                      menuId="employee-additional-positions"
+                      openMenuId={employeeFormOpenMenuId}
+                      setOpenMenuId={setEmployeeFormOpenMenuId}
+                      value={employeeForm.additionalPositions}
+                      groups={employeeAdditionalPositionGroups}
+                      primaryPosition={employeeForm.primaryPosition}
+                      onChange={(additionalPositions) => setEmployeeForm((current) => ({
+                        ...current,
+                        additionalPositions,
+                      }))}
+                    />
+                  </label>
 
                   <div className="employee-premium-custom-position">
                     <label className="form-field full-width">
