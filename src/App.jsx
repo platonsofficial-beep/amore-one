@@ -1025,6 +1025,48 @@ function getInitials(name) {
   return (parts[0]?.[0] ?? 'G').toUpperCase()
 }
 
+function resolveScheduleIdentityEmployee(source, fallbackName = '') {
+  if (!source) {
+    return {
+      name: fallbackName,
+      identityColor: null,
+    }
+  }
+
+  const employeeRecord = source.employeeRecord ?? null
+  const joinedEmployee = Array.isArray(source.employees) ? source.employees[0] : (source.employees ?? null)
+  const isPlainEmployee = !employeeRecord && !joinedEmployee && (source.id || source.name || source.full_name)
+
+  if (isPlainEmployee) {
+    return {
+      name: source.name ?? source.full_name ?? fallbackName,
+      identityColor: source.identityColor ?? source.identity_color ?? null,
+      photoUrl: source.photoUrl ?? source.photo_url ?? null,
+    }
+  }
+
+  return {
+    name: joinedEmployee?.full_name
+      ?? employeeRecord?.name
+      ?? employeeRecord?.full_name
+      ?? source.employeeName
+      ?? source.full_name
+      ?? source.name
+      ?? fallbackName,
+    identityColor: employeeRecord?.identityColor
+      ?? employeeRecord?.identity_color
+      ?? joinedEmployee?.identity_color
+      ?? source.identityColor
+      ?? source.identity_color
+      ?? null,
+    photoUrl: employeeRecord?.photoUrl
+      ?? employeeRecord?.photo_url
+      ?? joinedEmployee?.photo_url
+      ?? source.photoUrl
+      ?? null,
+  }
+}
+
 function formatDashboardHeroDate(date, timeZone = '') {
   const resolvedTimeZone = `${timeZone ?? ''}`.trim() || undefined
   const options = resolvedTimeZone ? { timeZone: resolvedTimeZone } : {}
@@ -5474,7 +5516,9 @@ function ScheduleView({
                             aria-label={`${isEmployeeFocused ? 'Clear focus for' : 'Focus'} ${employeeName}, ${workloadStatus.label}, ${positionLabel}`}
                             aria-pressed={isEmployeeFocused}
                           >
-                            <span className="schedule-staff-chip-avatar">{getInitials(employeeName)}</span>
+                            <span className="schedule-staff-chip-identity">
+                              <EmployeeIdentity employee={resolveScheduleIdentityEmployee(employee, employeeName)} size="sm" />
+                            </span>
                             <span className="schedule-staff-chip-body">
                               <strong className="schedule-staff-chip-name">{firstName}</strong>
                               <span className="schedule-staff-chip-role">{positionLabel}</span>
@@ -6026,6 +6070,9 @@ function ScheduleView({
           ) : (
             employeeWeekScheduleView.map((employeeSchedule) => {
               const employeeAvailability = scheduleAvailabilityOverlay.byEmployeeId[String(employeeSchedule.employeeId)] ?? null
+              const overviewEmployee = employees.find((employee) => (
+                String(employee.id) === String(employeeSchedule.employeeId)
+              )) ?? { name: employeeSchedule.employeeName }
               const availabilityIndicators = buildScheduleAvailabilityDayIndicators({
                 weekDays,
                 employeeAvailability,
@@ -6039,7 +6086,10 @@ function ScheduleView({
               return (
               <article key={`employee-week-${employeeSchedule.employeeId}`} className="employee-week-card">
                 <div className="employee-week-card-header">
-                  <h4>{employeeSchedule.employeeName}</h4>
+                  <div className="schedule-employee-overview-heading">
+                    <EmployeeIdentity employee={overviewEmployee} size="md" />
+                    <h4>{employeeSchedule.employeeName}</h4>
+                  </div>
                   <div className="schedule-availability-row-indicators" aria-label="Weekly availability">
                     {availabilityIndicators.map((entry) => (
                       <ScheduleAvailabilityDot
@@ -6129,12 +6179,16 @@ function ScheduleView({
                     const indicator = getShiftIndicator(shift)
                     const employeeName = shift.employees?.full_name || shift.employeeName || shift.employeeRecord?.name || 'Unassigned'
                     const employeePosition = shift.role || shift.employeeRecord?.position || 'Team member'
-                    const employeeAvatar = getInitials(employeeName)
 
                     return (
                       <button key={shift.id} type="button" className="roster-shift-card" onClick={() => handleOpenShiftDetails(shift)}>
                         <div className="roster-shift-main">
-                          <div className="roster-avatar">{employeeAvatar}</div>
+                          <div className="schedule-roster-identity">
+                            <EmployeeIdentity
+                              employee={resolveScheduleIdentityEmployee(shift, employeeName)}
+                              size="sm"
+                            />
+                          </div>
                           <div className="roster-shift-copy">
                             <strong>{employeeName}</strong>
                             <p>{employeePosition}</p>
@@ -7036,7 +7090,16 @@ function ScheduleView({
             </div>
 
             <div className="drawer-profile">
-              <div className="employee-photo large">{getInitials(selectedShift.employees?.full_name || selectedShift.employeeName || selectedShift.employeeRecord?.name || 'Unassigned')}</div>
+              <div className="schedule-shift-detail-identity">
+                <EmployeeIdentity
+                  employee={resolveScheduleIdentityEmployee(
+                    selectedShift,
+                    selectedShift.employees?.full_name || selectedShift.employeeName || selectedShift.employeeRecord?.name || 'Unassigned',
+                  )}
+                  size="lg"
+                  showName={false}
+                />
+              </div>
               <div>
                 <strong>{selectedShift.role || selectedShift.employeeRecord?.position || 'Team member'}</strong>
                 <p>{selectedShift.employeeRecord?.department || 'Service'}</p>
