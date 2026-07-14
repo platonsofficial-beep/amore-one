@@ -1,3 +1,4 @@
+import { isPaletteColorId } from '../lib/identity/identityColorPalette'
 import { supabase } from '../lib/supabaseClient'
 import { ensurePositionByName, getPositions } from './positionsService'
 
@@ -105,6 +106,7 @@ const mapEmployee = (record) => {
     shift: record.shift ?? 'Evening',
     status: `${record.status ?? ''}`.trim() || 'Working',
     department: record.department ?? effectivePositions[0]?.department ?? 'Service',
+    identityColor: record.identity_color ?? null,
   }
 }
 
@@ -132,7 +134,7 @@ const serializeEmployee = (employee) => {
     ...fallbackPositionNames.filter((name) => name.toLowerCase() !== primaryPosition.toLowerCase()),
   ]))
 
-  return {
+  const payload = {
     full_name: employee.name ?? employee.fullName ?? '',
     position: [primaryPosition, ...additionalPositions].filter(Boolean).join(', '),
     primary_position: primaryPosition,
@@ -148,6 +150,20 @@ const serializeEmployee = (employee) => {
     status: employee.status ?? 'Working',
     department: employee.department ?? 'Service',
   }
+
+  if (Object.prototype.hasOwnProperty.call(employee, 'identityColor')) {
+    const identityColor = employee.identityColor
+
+    if (identityColor === null || identityColor === undefined || identityColor === '') {
+      payload.identity_color = null
+    } else if (isPaletteColorId(identityColor)) {
+      payload.identity_color = `${identityColor}`.trim()
+    } else {
+      throw new Error('Invalid employee identity color.')
+    }
+  }
+
+  return payload
 }
 
 const isMissingColumnError = (error, columns) => {
