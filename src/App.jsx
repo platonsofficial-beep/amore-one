@@ -1995,7 +1995,7 @@ function buildEmployeeAdditionalPositionCatalogGroups(additionalPositionNames = 
 
   for (const workspacePosition of workspacePositions ?? []) {
     const trimmed = `${workspacePosition?.name ?? ''}`.trim()
-    if (!isWorkspaceCustomPositionLabel(trimmed)) continue
+    if (!isEligibleEmployeeCustomGroupPositionLabel(trimmed)) continue
 
     customByKey.set(trimmed.toLowerCase(), {
       key: `custom:${workspacePosition.id ?? trimmed}`,
@@ -2009,7 +2009,7 @@ function buildEmployeeAdditionalPositionCatalogGroups(additionalPositionNames = 
 
   for (const name of additionalPositionNames) {
     const trimmed = `${name ?? ''}`.trim()
-    if (!isWorkspaceCustomPositionLabel(trimmed)) continue
+    if (!isEligibleEmployeeCustomGroupPositionLabel(trimmed)) continue
 
     const normalized = trimmed.toLowerCase()
     if (customByKey.has(normalized)) continue
@@ -2075,6 +2075,14 @@ function isWorkspaceCustomPositionLabel(label) {
   const trimmed = `${label ?? ''}`.trim()
   if (!trimmed) return false
   return findPosition(trimmed) === null
+}
+
+function isEligibleEmployeeCustomGroupPositionLabel(label) {
+  const trimmed = `${label ?? ''}`.trim()
+  if (!trimmed) return false
+  if (!isWorkspaceCustomPositionLabel(trimmed)) return false
+  if (findDepartment(trimmed)) return false
+  return true
 }
 
 function removeAdditionalPositionValue(selection, label) {
@@ -2335,11 +2343,16 @@ function EmployeePremiumAdditionalPositionsField({
           onClick={(event) => event.stopPropagation()}
         >
           <h4 id="employee-custom-position-remove-title" className="employee-premium-custom-position-remove-title">
-            Remove custom position?
+            Remove Custom Position
           </h4>
-          <p className="employee-premium-custom-position-remove-body">
-            &ldquo;{removePending.label}&rdquo; will be removed from this employee. When safe, the workspace catalog entry will be removed after you save the employee.
-          </p>
+          <div className="employee-premium-custom-position-remove-body">
+            <p className="employee-premium-custom-position-remove-lead">
+              &ldquo;{removePending.label}&rdquo; will be removed from this employee.
+            </p>
+            <p className="employee-premium-custom-position-remove-followup">
+              If no other employee uses this position, it will also be removed from the workspace catalog after you save this employee.
+            </p>
+          </div>
           {removeError ? (
             <p className="employee-premium-custom-position-remove-error" role="alert">{removeError}</p>
           ) : null}
@@ -2449,7 +2462,13 @@ function EmployeePremiumAdditionalPositionsField({
                             requestRemoveCustomPosition(position)
                           }}
                         >
-                          Remove
+                          <span className="employee-premium-additional-positions-remove-btn-icon" aria-hidden="true">
+                            <svg viewBox="0 0 16 16" focusable="false">
+                              <path d="M6.25 2.5h3.5l.5 1h3.25v1H2.5v-1H5.75l.5-1Z" />
+                              <path d="M3.5 5.5h9l-.75 8.25H4.25L3.5 5.5Zm2 1.5v5.75h1V7h-1Zm2.5 0v5.75h1V7h-1Z" />
+                            </svg>
+                          </span>
+                          <span className="employee-premium-additional-positions-remove-btn-label">Remove</span>
                         </button>
                       ) : null}
                     </li>

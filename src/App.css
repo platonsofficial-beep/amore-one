@@ -18639,8 +18639,9 @@ body:has(.employee-premium-form-modal) .phone-country-picker-portal.is-sheet .ph
 
 .employee-premium-additional-positions-option-row {
   display: flex;
-  align-items: stretch;
-  gap: 4px;
+  align-items: center;
+  gap: 6px;
+  padding-right: 4px;
 }
 
 .employee-premium-additional-positions-option-row .employee-premium-additional-positions-option {
@@ -18649,19 +18650,43 @@ body:has(.employee-premium-form-modal) .phone-country-picker-portal.is-sheet .ph
 }
 
 .employee-premium-additional-positions-remove-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
   flex-shrink: 0;
   min-width: 44px;
   min-height: 44px;
-  padding: 0 10px;
+  padding: 0 12px 0 10px;
   border: 0;
-  border-radius: 8px;
+  border-radius: 10px;
   background: transparent;
-  color: rgba(247, 239, 225, 0.62);
+  color: rgba(247, 239, 225, 0.58);
   font: inherit;
-  font-size: 0.78rem;
+  font-size: 0.76rem;
   font-weight: 500;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
   cursor: pointer;
+}
+
+.employee-premium-additional-positions-remove-btn-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  color: rgba(200, 157, 66, 0.72);
+}
+
+.employee-premium-additional-positions-remove-btn-icon svg {
+  width: 14px;
+  height: 14px;
+  fill: currentColor;
+}
+
+.employee-premium-additional-positions-remove-btn-label {
+  line-height: 1;
 }
 
 .employee-premium-additional-positions-remove-btn:focus-visible {
@@ -18672,7 +18697,11 @@ body:has(.employee-premium-form-modal) .phone-country-picker-portal.is-sheet .ph
 @media (hover: hover) {
   .employee-premium-additional-positions-remove-btn:hover {
     background: rgba(255, 255, 255, 0.05);
-    color: rgba(247, 239, 225, 0.88);
+    color: rgba(247, 239, 225, 0.86);
+  }
+
+  .employee-premium-additional-positions-remove-btn:hover .employee-premium-additional-positions-remove-btn-icon {
+    color: rgba(214, 181, 106, 0.92);
   }
 }
 
@@ -18697,17 +18726,31 @@ body:has(.employee-premium-form-modal) .phone-country-picker-portal.is-sheet .ph
 }
 
 .employee-premium-custom-position-remove-title {
-  margin: 0 0 10px;
+  margin: 0 0 12px;
   color: #f6dca2;
-  font-size: 1.02rem;
+  font-size: 1.04rem;
   font-weight: 600;
+  letter-spacing: 0.01em;
 }
 
 .employee-premium-custom-position-remove-body {
-  margin: 0 0 16px;
-  color: rgba(247, 239, 225, 0.82);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0 0 18px;
+}
+
+.employee-premium-custom-position-remove-lead,
+.employee-premium-custom-position-remove-followup {
+  margin: 0;
+  color: rgba(247, 239, 225, 0.84);
   font-size: 0.9rem;
-  line-height: 1.45;
+  line-height: 1.5;
+}
+
+.employee-premium-custom-position-remove-followup {
+  color: rgba(247, 239, 225, 0.68);
+  font-size: 0.86rem;
 }
 
 .employee-premium-custom-position-remove-error {
