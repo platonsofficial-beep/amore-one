@@ -9,6 +9,7 @@ const supabaseMocks = vi.hoisted(() => {
   const builder = {
     select: vi.fn(() => builder),
     eq: vi.fn(() => builder),
+    in: vi.fn(() => builder),
     upsert: vi.fn(() => builder),
     delete: vi.fn(() => builder),
     single: vi.fn(() => builder),
@@ -30,6 +31,7 @@ const supabaseMocks = vi.hoisted(() => {
       })
       builder.select.mockImplementation(() => builder)
       builder.eq.mockImplementation(() => builder)
+      builder.in.mockImplementation(() => builder)
       builder.upsert.mockImplementation(() => builder)
       builder.delete.mockImplementation(() => builder)
       builder.single.mockImplementation(() => builder)
@@ -47,6 +49,7 @@ vi.mock('../src/lib/supabaseClient', () => ({
 import {
   deleteAvailabilityWeek,
   getEmployeeAvailabilityWeek,
+  getWorkspaceScheduleAvailabilityByEmployee,
   normalizeBeforeSave,
   resolveEmployeeWorkspaceId,
   saveEmployeeAvailabilityWeek,
@@ -344,6 +347,49 @@ describe('availabilityService', () => {
         weekStartDate: WEEK_START,
         day: { dayOfWeek: 'notaday', status: 'UNAVAILABLE' },
       })).rejects.toThrow('Availability day is required.')
+    })
+  })
+
+  describe('getWorkspaceScheduleAvailabilityByEmployee', () => {
+    it('groups submitted availability rows by employee without assuming available defaults', async () => {
+      supabaseMocks.setQueryResult({
+        data: [
+          buildRecord('tuesday', {
+            status: 'UNAVAILABLE',
+          }),
+        ],
+        error: null,
+      })
+
+      const result = await getWorkspaceScheduleAvailabilityByEmployee({
+        workspaceId: WORKSPACE_ID,
+        weekStartDate: WEEK_START,
+        employeeIds: [EMPLOYEE_ID, 'emp-2'],
+      })
+
+      expect(result.byEmployeeId[EMPLOYEE_ID]?.hasSubmitted).toBe(true)
+      expect(result.byEmployeeId[EMPLOYEE_ID]?.week?.days?.find((day) => day.dayOfWeek === 'tuesday')?.status)
+        .toBe('UNAVAILABLE')
+      expect(result.byEmployeeId['emp-2']).toEqual({
+        hasSubmitted: false,
+        week: null,
+      })
+    })
+
+    it('returns a soft failure when the table is unavailable', async () => {
+      supabaseMocks.setQueryResult({
+        data: null,
+        error: { code: '42P01', message: 'relation does not exist' },
+      })
+
+      await expect(getWorkspaceScheduleAvailabilityByEmployee({
+        workspaceId: WORKSPACE_ID,
+        weekStartDate: WEEK_START,
+        employeeIds: [EMPLOYEE_ID],
+      })).resolves.toEqual({
+        byEmployeeId: {},
+        loadFailed: true,
+      })
     })
   })
 

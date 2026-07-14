@@ -208,6 +208,63 @@ export async function getEmployeeAvailabilityWeek({
   return mapAvailabilityRecordsToWeek(sortRowsByDay(data ?? []))
 }
 
+export async function getWorkspaceScheduleAvailabilityByEmployee({
+  workspaceId,
+  weekStartDate,
+  employeeIds = [],
+}) {
+  const normalizedWorkspaceId = normalizeIdentifier(workspaceId, 'Workspace')
+  const normalizedWeekStartDate = normalizeWeekStartDate(weekStartDate)
+  const normalizedEmployeeIds = [...new Set(
+    (employeeIds ?? []).map((employeeId) => `${employeeId ?? ''}`.trim()).filter(Boolean),
+  )]
+
+  if (!normalizedWeekStartDate || normalizedEmployeeIds.length === 0) {
+    return { byEmployeeId: {}, loadFailed: false }
+  }
+
+  const { data, error } = await supabase
+    .from(EMPLOYEE_AVAILABILITY_TABLE)
+    .select(AVAILABILITY_SELECT)
+    .eq('workspace_id', normalizedWorkspaceId)
+    .eq('week_start_date', normalizedWeekStartDate)
+    .in('employee_id', normalizedEmployeeIds)
+
+  if (error) {
+    if (isTableUnavailableError(error)) {
+      return { byEmployeeId: {}, loadFailed: true }
+    }
+    throw new Error('Unable to load employee availability right now.')
+  }
+
+  const rowsByEmployeeId = new Map()
+
+  ;(data ?? []).forEach((record) => {
+    const employeeId = `${record?.employee_id ?? record?.employeeId ?? ''}`.trim()
+    if (!employeeId) return
+
+    if (!rowsByEmployeeId.has(employeeId)) {
+      rowsByEmployeeId.set(employeeId, [])
+    }
+
+    rowsByEmployeeId.get(employeeId).push(record)
+  })
+
+  const byEmployeeId = {}
+
+  normalizedEmployeeIds.forEach((employeeId) => {
+    const rows = rowsByEmployeeId.get(employeeId) ?? []
+    const hasSubmitted = rows.length > 0
+
+    byEmployeeId[employeeId] = {
+      hasSubmitted,
+      week: hasSubmitted ? mapAvailabilityRecordsToWeek(sortRowsByDay(rows)) : null,
+    }
+  })
+
+  return { byEmployeeId, loadFailed: false }
+}
+
 export async function saveEmployeeAvailabilityWeek({
   workspaceId,
   employeeId,

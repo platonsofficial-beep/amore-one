@@ -430,6 +430,13 @@ import {
   parseTimeToMinutes,
 } from './lib/shiftHoursUtils'
 import { buildEmployeeWeekScheduleView } from './lib/employeeWeekScheduleView'
+import { getWorkspaceScheduleAvailabilityByEmployee } from './services/availabilityService'
+import {
+  buildScheduleAvailabilityDayIndicators,
+  buildScheduleAvailabilityLookupKey,
+  getAvailabilityDayOfWeekFromDateKey,
+  resolveScheduleAvailabilityDayIndicator,
+} from './lib/scheduleAvailabilityPresentation'
 import {
   getRestOfWeekDateKeys,
   getShiftSchedulingConflictType,
@@ -2613,6 +2620,19 @@ function ScheduleCollapsibleSection({ eyebrow, title, meta, children, className 
   )
 }
 
+function ScheduleAvailabilityDot({ indicator, className = '' }) {
+  if (!indicator) return null
+
+  return (
+    <span
+      className={`schedule-availability-dot tone-${indicator.tone} ${className}`.trim()}
+      title={indicator.label}
+      aria-label={indicator.label}
+      role="img"
+    />
+  )
+}
+
 function ScheduleView({
   shifts = [],
   scheduleCapacities = [],
@@ -2666,6 +2686,11 @@ function ScheduleView({
   isMobileScheduleShell = false,
 }) {
   const [selectedDay, setSelectedDay] = useState(null)
+  const [scheduleAvailabilityOverlay, setScheduleAvailabilityOverlay] = useState({
+    byEmployeeId: {},
+    loadFailed: false,
+  })
+  const [isScheduleAvailabilityLoading, setIsScheduleAvailabilityLoading] = useState(false)
   const [selectedShift, setSelectedShift] = useState(null)
   const [filters, setFilters] = useState({
     department: 'All',
@@ -3872,6 +3897,58 @@ function ScheduleView({
     }),
     [employees, weekDays, visibleWeekShifts],
   )
+
+  const scheduleAvailabilityEmployeeIdsKey = useMemo(
+    () => buildScheduleAvailabilityLookupKey(
+      workspaceId,
+      weekStartDate,
+      employees.map((employee) => employee.id),
+    ),
+    [employees, weekStartDate, workspaceId],
+  )
+
+  useEffect(() => {
+    let cancelled = false
+    const employeeIds = employees
+      .map((employee) => `${employee?.id ?? ''}`.trim())
+      .filter(Boolean)
+
+    if (!`${workspaceId ?? ''}`.trim() || !`${weekStartDate ?? ''}`.trim() || employeeIds.length === 0) {
+      setScheduleAvailabilityOverlay({ byEmployeeId: {}, loadFailed: false })
+      setIsScheduleAvailabilityLoading(false)
+      return () => {
+        cancelled = true
+      }
+    }
+
+    setIsScheduleAvailabilityLoading(true)
+
+    getWorkspaceScheduleAvailabilityByEmployee({
+      workspaceId,
+      weekStartDate,
+      employeeIds,
+    })
+      .then((result) => {
+        if (cancelled) return
+        setScheduleAvailabilityOverlay({
+          byEmployeeId: result?.byEmployeeId ?? {},
+          loadFailed: Boolean(result?.loadFailed),
+        })
+      })
+      .catch(() => {
+        if (cancelled) return
+        setScheduleAvailabilityOverlay({ byEmployeeId: {}, loadFailed: true })
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setIsScheduleAvailabilityLoading(false)
+        }
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [scheduleAvailabilityEmployeeIdsKey, weekStartDate, workspaceId, employees])
 
   const blendGridRows = useMemo(() => {
     const shiftsByDayKey = {}
@@ -5793,18 +5870,52 @@ function ScheduleView({
           {employeeWeekScheduleView.length === 0 ? (
             <p className="staff-subtitle">No employees available for this week.</p>
           ) : (
-            employeeWeekScheduleView.map((employeeSchedule) => (
+            employeeWeekScheduleView.map((employeeSchedule) => {
+              const employeeAvailability = scheduleAvailabilityOverlay.byEmployeeId[String(employeeSchedule.employeeId)] ?? null
+              const availabilityIndicators = buildScheduleAvailabilityDayIndicators({
+                weekDays,
+                employeeAvailability,
+                isLoading: isScheduleAvailabilityLoading,
+                loadFailed: scheduleAvailabilityOverlay.loadFailed,
+              })
+              const availabilityIndicatorMap = new Map(
+                availabilityIndicators.map((entry) => [entry.dateKey, entry.indicator]),
+              )
+
+              return (
               <article key={`employee-week-${employeeSchedule.employeeId}`} className="employee-week-card">
-                <h4>{employeeSchedule.employeeName}</h4>
+                <div className="employee-week-card-header">
+                  <h4>{employeeSchedule.employeeName}</h4>
+                  <div className="schedule-availability-row-indicators" aria-label="Weekly availability">
+                    {availabilityIndicators.map((entry) => (
+                      <ScheduleAvailabilityDot
+                        key={`availability-row-${employeeSchedule.employeeId}-${entry.dateKey}`}
+                        indicator={entry.indicator}
+                      />
+                    ))}
+                  </div>
+                </div>
                 <div className="employee-week-days">
-                  {employeeSchedule.days.map((day) => (
+                  {employeeSchedule.days.map((day) => {
+                    const dayIndicator = availabilityIndicatorMap.get(day.date)
+                      ?? resolveScheduleAvailabilityDayIndicator({
+                        dayOfWeek: getAvailabilityDayOfWeekFromDateKey(day.date),
+                        employeeAvailability,
+                        isLoading: isScheduleAvailabilityLoading,
+                        loadFailed: scheduleAvailabilityOverlay.loadFailed,
+                      })
+
+                    return (
                     <div
                       key={`employee-week-day-${employeeSchedule.employeeId}-${day.date}`}
                       className={`employee-week-day ${day.isDayOff ? 'is-day-off' : 'has-shifts'}`}
                     >
                       <div className="employee-week-day-header">
-                        <strong>{day.dayLabel}</strong>
-                        <span>{day.shortDate}</span>
+                        <div className="employee-week-day-heading">
+                          <strong>{day.dayLabel}</strong>
+                          <span>{day.shortDate}</span>
+                        </div>
+                        <ScheduleAvailabilityDot indicator={dayIndicator} />
                       </div>
                       {day.isDayOff ? (
                         <p className="employee-week-day-off">DAY OFF</p>
@@ -5827,10 +5938,12 @@ function ScheduleView({
                         </div>
                       )}
                     </div>
-                  ))}
+                    )
+                  })}
                 </div>
               </article>
-            ))
+              )
+            })
           )}
         </div>
           </div>

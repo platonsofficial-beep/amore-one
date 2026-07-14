@@ -21575,6 +21575,56 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   font-size: 0.95rem;
 }
 
+.employee-week-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.schedule-availability-row-indicators {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.schedule-availability-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  flex-shrink: 0;
+}
+
+.schedule-availability-dot.tone-available {
+  background: rgba(76, 175, 80, 0.95);
+  box-shadow: 0 0 0 1px rgba(76, 175, 80, 0.28);
+}
+
+.schedule-availability-dot.tone-preferred {
+  background: rgba(200, 157, 66, 0.95);
+  box-shadow: 0 0 0 1px rgba(200, 157, 66, 0.28);
+}
+
+.schedule-availability-dot.tone-unavailable {
+  background: rgba(198, 92, 92, 0.95);
+  box-shadow: 0 0 0 1px rgba(198, 92, 92, 0.28);
+}
+
+.schedule-availability-dot.tone-empty,
+.schedule-availability-dot.tone-loading {
+  background: rgba(143, 134, 121, 0.55);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.08);
+}
+
+.employee-week-day-heading {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
 .employee-week-days {
   display: flex;
   flex-direction: column;
@@ -21594,7 +21644,7 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 
 .employee-week-day-header {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   justify-content: space-between;
   gap: 8px;
   margin-bottom: 6px;
