@@ -5064,7 +5064,7 @@ function ScheduleView({
     return (
       <button
         type="button"
-        className="schedule-templates-toggle schedule-templates-header-toggle"
+        className={`ghost-btn schedule-header-templates-btn schedule-header-tertiary-btn schedule-header-control-surface${isShiftTemplatesOpen ? ' is-active' : ''}`}
         onClick={(event) => {
           event.stopPropagation()
           setIsShiftTemplatesOpen((current) => !current)
@@ -5072,9 +5072,7 @@ function ScheduleView({
         aria-expanded={isShiftTemplatesOpen}
         aria-controls="schedule-templates-panel"
       >
-        <span className="schedule-templates-toggle-label">
-          {isShiftTemplatesOpen ? '‹ Hide Templates' : 'Shift Templates ›'}
-        </span>
+        {isShiftTemplatesOpen ? 'Hide Templates' : 'Templates'}
       </button>
     )
   }
@@ -5228,6 +5226,8 @@ function ScheduleView({
         </div>
         ) : null}
 
+        {renderShiftTemplatesToggle()}
+
         {canEditSchedule && (hasUnpublishedChanges || !isWeekPublished) ? (
           <button
             type="button"
@@ -5253,11 +5253,8 @@ function ScheduleView({
             Unpublish
           </button>
         ) : null}
-        </div>
 
-        <div className="schedule-focus-header-actions">
-          {renderShiftTemplatesToggle()}
-          {renderScheduleExitButton()}
+        {renderScheduleExitButton()}
         </div>
       </div>
     </header>
