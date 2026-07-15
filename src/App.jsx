@@ -5528,15 +5528,17 @@ function ScheduleView({
                             aria-pressed={isEmployeeFocused}
                           >
                             <span className="schedule-staff-chip-identity">
-                              <EmployeeIdentity employee={resolveScheduleIdentityEmployee(employee, employeeName)} size="sm" />
+                              <EmployeeIdentity employee={resolveScheduleIdentityEmployee(employee, employeeName)} size="xs" />
                             </span>
                             <span className="schedule-staff-chip-body">
-                              <strong className="schedule-staff-chip-name">{firstName}</strong>
+                              <strong className="schedule-staff-chip-name" title={employeeName}>{firstName}</strong>
                               <span className="schedule-staff-chip-role">{positionLabel}</span>
-                              <span className={`schedule-staff-workload-status tone-${workloadStatus.tone}`}>
-                                {workloadStatus.label}
+                              <span className="schedule-staff-chip-meta">
+                                <span className={`schedule-staff-workload-status tone-${workloadStatus.tone}`}>
+                                  {workloadStatus.label}
+                                </span>
+                                <span className="schedule-staff-hours-primary">{hoursTracker.primaryLabel}</span>
                               </span>
-                              <span className="schedule-staff-hours-primary">{hoursTracker.primaryLabel}</span>
                             </span>
                           </button>
                         )

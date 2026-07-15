@@ -16132,8 +16132,8 @@
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  min-height: 44px;
-  padding: 14px 18px;
+  min-height: 40px;
+  padding: 10px 16px;
   cursor: pointer;
   list-style: none;
   color: #e8dcc6;
@@ -16147,8 +16147,8 @@
 .schedule-staff-availability-body {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  padding: 0 18px 18px;
+  gap: 8px;
+  padding: 0 16px 12px;
 }
 
 .schedule-filters-bar-compact {
@@ -16157,6 +16157,37 @@
   border: 0;
   background: transparent;
   box-shadow: none;
+  gap: 8px 10px;
+}
+
+.schedule-filters-bar-compact .schedule-filter-field {
+  gap: 2px;
+}
+
+.schedule-filters-bar-compact .schedule-filter-label {
+  font-size: 0.62rem;
+  letter-spacing: 0.06em;
+}
+
+.schedule-filters-bar-compact .schedule-filter-field input,
+.schedule-filters-bar-compact .schedule-filter-field select {
+  min-height: 34px;
+  min-width: 128px;
+  padding: 0 12px;
+  font-size: 0.8rem;
+  line-height: 34px;
+  border-radius: 8px;
+}
+
+.schedule-filters-bar-compact .schedule-filter-search {
+  flex: 1 1 180px;
+}
+
+.schedule-filters-bar-compact .schedule-filter-toggle {
+  min-height: 34px;
+  padding: 0 10px;
+  font-size: 0.78rem;
+  gap: 6px;
 }
 
 .schedule-day-grid .blend-grid-header-day {
@@ -16802,13 +16833,77 @@
 }
 
 .schedule-workspace.is-compact-landscape .schedule-staff-availability-summary {
-  min-height: 40px;
-  padding: 8px 12px;
+  min-height: 36px;
+  padding: 6px 10px;
+  font-size: 0.88rem;
 }
 
 .schedule-workspace.is-compact-landscape .schedule-staff-availability-body {
-  gap: 8px;
-  padding: 0 12px 12px;
+  gap: 6px;
+  padding: 0 10px 8px;
+}
+
+.schedule-workspace.is-compact-landscape .schedule-filters-bar-compact {
+  gap: 6px 8px;
+}
+
+.schedule-workspace.is-compact-landscape .schedule-filters-bar-compact .schedule-filter-field input,
+.schedule-workspace.is-compact-landscape .schedule-filters-bar-compact .schedule-filter-field select {
+  min-height: 32px;
+  min-width: 112px;
+  padding: 0 10px;
+  font-size: 0.76rem;
+  line-height: 32px;
+}
+
+.schedule-workspace.is-compact-landscape .schedule-filters-bar-compact .schedule-filter-toggle {
+  min-height: 32px;
+  padding: 0 8px;
+  font-size: 0.74rem;
+}
+
+.schedule-workspace.is-compact-landscape .schedule-roster-bar {
+  padding: 4px 6px;
+  border-radius: 10px;
+}
+
+.schedule-workspace.is-compact-landscape .schedule-staff-strip-scroll {
+  gap: 6px;
+  padding: 2px 4px;
+}
+
+.schedule-workspace.is-compact-landscape .schedule-staff-chip {
+  gap: 5px;
+  min-width: 96px;
+  max-width: 128px;
+  min-height: 44px;
+  padding: 4px 7px;
+  border-radius: 8px;
+}
+
+.schedule-workspace.is-compact-landscape .schedule-staff-chip-body {
+  gap: 1px;
+}
+
+.schedule-workspace.is-compact-landscape .schedule-staff-chip-name {
+  font-size: 0.68rem;
+}
+
+.schedule-workspace.is-compact-landscape .schedule-staff-chip-role {
+  font-size: 0.54rem;
+}
+
+.schedule-workspace.is-compact-landscape .schedule-staff-chip-meta {
+  gap: 4px;
+  margin-top: 1px;
+}
+
+.schedule-workspace.is-compact-landscape .schedule-staff-workload-status {
+  font-size: 0.52rem;
+}
+
+.schedule-workspace.is-compact-landscape .schedule-staff-hours-primary {
+  font-size: 0.54rem;
 }
 
 .schedule-workspace.is-compact-landscape .schedule-grid-hero {
@@ -20026,7 +20121,7 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   background:
     linear-gradient(180deg, rgba(212, 175, 55, 0.04), rgba(12, 12, 13, 0.96));
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
-  padding: 8px 10px;
+  padding: 6px 8px;
   overflow: hidden;
 }
 
@@ -20039,10 +20134,12 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 
 .schedule-staff-strip-scroll {
   display: flex;
-  gap: 16px;
+  gap: 8px;
   overflow-x: auto;
-  padding: 4px 8px;
+  overflow-y: hidden;
+  padding: 2px 4px;
   scrollbar-width: thin;
+  -webkit-overflow-scrolling: touch;
 }
 
 .schedule-staff-strip-empty {
@@ -20056,20 +20153,25 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   flex: 0 0 auto;
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  min-width: 124px;
-  max-width: 168px;
-  min-height: 64px;
+  gap: 6px;
+  min-width: 108px;
+  max-width: 148px;
+  min-height: 48px;
   border: 1px solid rgba(255, 255, 255, 0.05);
-  border-radius: 11px;
+  border-radius: 9px;
   background: rgba(255, 255, 255, 0.015);
-  padding: 9px 12px;
+  padding: 5px 8px;
   cursor: grab;
   color: inherit;
   font: inherit;
   text-align: left;
   box-shadow: none;
   transition: background 180ms ease, box-shadow 180ms ease, transform 180ms ease, filter 180ms ease, border-color 180ms ease;
+}
+
+.schedule-staff-chip:focus-visible {
+  outline: 2px solid rgba(212, 175, 55, 0.55);
+  outline-offset: 2px;
 }
 
 .schedule-staff-chip:last-child {
@@ -20114,6 +20216,7 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   font-weight: 600;
   line-height: 1;
   letter-spacing: 0.01em;
+  flex-shrink: 0;
 }
 
 .schedule-staff-workload-icon {
@@ -20141,8 +20244,8 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 }
 
 .schedule-staff-chip-avatar {
-  width: 32px;
-  height: 32px;
+  width: 24px;
+  height: 24px;
   flex: 0 0 auto;
   display: grid;
   place-items: center;
@@ -20150,7 +20253,7 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   background: linear-gradient(135deg, #f3d28d 0%, #c9982d 100%);
   color: #170f04;
   font-weight: 700;
-  font-size: 0.68rem;
+  font-size: 0.58rem;
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.18);
 }
 
@@ -20176,16 +20279,16 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 .schedule-staff-chip-body {
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: 1px;
   min-width: 0;
   flex: 1 1 auto;
 }
 
 .schedule-staff-chip-name {
   color: #fff7e8;
-  font-size: 0.74rem;
+  font-size: 0.72rem;
   font-weight: 600;
-  line-height: 1.15;
+  line-height: 1.1;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -20194,11 +20297,19 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 
 .schedule-staff-chip-role {
   color: #6f675c;
-  font-size: 0.6rem;
+  font-size: 0.56rem;
   line-height: 1.1;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.schedule-staff-chip-meta {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  min-width: 0;
+  margin-top: 1px;
 }
 
 .schedule-staff-hours-row {
@@ -20237,12 +20348,18 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   background: linear-gradient(90deg, #d47a6a 0%, #f0a89a 100%);
 }
 
+.schedule-staff-chip-meta .schedule-staff-hours-primary,
 .schedule-staff-hours-primary {
-  color: #f5e2bc;
-  font-size: 0.7rem;
-  font-weight: 700;
+  color: #8f8778;
+  font-size: 0.58rem;
+  font-weight: 600;
   letter-spacing: 0.01em;
   font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex-shrink: 1;
+  min-width: 0;
 }
 
 .schedule-staff-hours-percent {
