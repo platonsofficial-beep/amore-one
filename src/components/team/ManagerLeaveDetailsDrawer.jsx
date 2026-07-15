@@ -1,17 +1,37 @@
-import { useEffect } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { approveLeaveRequest } from '../../services/leaveService'
 
 export function ManagerLeaveDetailsDrawer({
   leaveDetail,
+  workspaceId = '',
   onClose,
+  onApproved,
 }) {
+  const [isConfirmOpen, setIsConfirmOpen] = useState(false)
+  const [isApproving, setIsApproving] = useState(false)
+  const [errorMessage, setErrorMessage] = useState('')
+  const approveInFlightRef = useRef(false)
+
   useEffect(() => {
-    if (!leaveDetail) return undefined
+    if (!leaveDetail) {
+      setIsConfirmOpen(false)
+      setIsApproving(false)
+      setErrorMessage('')
+      approveInFlightRef.current = false
+      return undefined
+    }
 
     const handleKeyDown = (event) => {
-      if (event.key === 'Escape') {
-        event.preventDefault()
-        onClose?.()
+      if (event.key !== 'Escape' || isApproving) return
+
+      event.preventDefault()
+
+      if (isConfirmOpen) {
+        setIsConfirmOpen(false)
+        return
       }
+
+      onClose?.()
     }
 
     const previousOverflow = document.body.style.overflow
@@ -22,15 +42,52 @@ export function ManagerLeaveDetailsDrawer({
       document.body.style.overflow = previousOverflow
       document.removeEventListener('keydown', handleKeyDown)
     }
-  }, [leaveDetail, onClose])
+  }, [isApproving, isConfirmOpen, leaveDetail, onClose])
 
   if (!leaveDetail) return null
 
   const noteText = `${leaveDetail.note ?? ''}`.trim()
+  const isPending = `${leaveDetail.status ?? leaveDetail.statusLabel ?? ''}`.trim().toLowerCase() === 'pending'
+
+  const handleClose = () => {
+    if (isApproving) return
+    onClose?.()
+  }
+
+  const handleApproveClick = () => {
+    if (isApproving) return
+    setErrorMessage('')
+    setIsConfirmOpen(true)
+  }
+
+  const handleConfirmCancel = () => {
+    if (isApproving) return
+    setIsConfirmOpen(false)
+  }
+
+  const handleConfirmApprove = async () => {
+    if (isApproving || approveInFlightRef.current) return
+
+    approveInFlightRef.current = true
+    setIsApproving(true)
+    setErrorMessage('')
+
+    try {
+      await approveLeaveRequest(workspaceId, leaveDetail.id)
+      setIsConfirmOpen(false)
+      onApproved?.()
+      onClose?.()
+    } catch (error) {
+      approveInFlightRef.current = false
+      setIsApproving(false)
+      setIsConfirmOpen(false)
+      setErrorMessage(error?.message || 'Unable to approve the leave request right now.')
+    }
+  }
 
   return (
     <>
-      <div className="drawer-backdrop" onClick={onClose} />
+      <div className="drawer-backdrop" onClick={handleClose} />
       <aside
         className="employee-drawer manager-leave-details-drawer"
         role="dialog"
@@ -112,6 +169,16 @@ export function ManagerLeaveDetailsDrawer({
             color: var(--text-muted, #9aa3b2);
             font-style: italic;
           }
+
+          .manager-leave-details-drawer-footer {
+            margin-top: auto;
+            padding-top: 0.5rem;
+          }
+
+          .manager-leave-details-drawer-footer .primary-btn {
+            min-height: 44px;
+            width: 100%;
+          }
         `}</style>
 
         <div className="manager-leave-details-drawer-top">
@@ -119,7 +186,8 @@ export function ManagerLeaveDetailsDrawer({
           <button
             type="button"
             className="icon-btn"
-            onClick={onClose}
+            onClick={handleClose}
+            disabled={isApproving}
             aria-label="Close leave request details"
           >
             ✕
@@ -168,8 +236,77 @@ export function ManagerLeaveDetailsDrawer({
               {noteText || 'No note provided.'}
             </p>
           </section>
+
+          {errorMessage ? (
+            <div className="staff-status-banner" role="alert">{errorMessage}</div>
+          ) : null}
+
+          {isPending ? (
+            <div className="manager-leave-details-drawer-footer">
+              <button
+                type="button"
+                className="primary-btn"
+                onClick={handleApproveClick}
+                disabled={isApproving}
+              >
+                Approve Leave
+              </button>
+            </div>
+          ) : null}
         </div>
       </aside>
+
+      {isConfirmOpen ? (
+        <div className="employee-modal-backdrop" onClick={handleConfirmCancel}>
+          <div
+            className="employee-modal blend-compact-modal manager-leave-approve-confirm-modal is-responsive-sheet"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="manager-leave-approve-confirm-title"
+            aria-busy={isApproving}
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="drawer-header">
+              <div>
+                <p className="eyebrow">Leave approval</p>
+                <h3 id="manager-leave-approve-confirm-title">Approve leave request?</h3>
+              </div>
+              <button
+                type="button"
+                className="icon-btn"
+                onClick={handleConfirmCancel}
+                disabled={isApproving}
+                aria-label="Close approval confirmation"
+              >
+                ✕
+              </button>
+            </div>
+
+            <p className="manager-leave-approve-confirm-copy">
+              This will approve the leave request and cannot be undone from this screen.
+            </p>
+
+            <div className="modal-actions">
+              <button
+                type="button"
+                className="ghost-btn"
+                onClick={handleConfirmCancel}
+                disabled={isApproving}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="primary-btn"
+                onClick={handleConfirmApprove}
+                disabled={isApproving}
+              >
+                {isApproving ? 'Approving…' : 'Approve'}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </>
   )
 }

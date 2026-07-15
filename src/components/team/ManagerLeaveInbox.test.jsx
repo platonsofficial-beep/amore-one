@@ -6,12 +6,15 @@ import { createElement } from 'react'
 import { createRoot } from 'react-dom/client'
 import { act } from 'react'
 import { ManagerLeaveInbox } from './ManagerLeaveInbox'
+import { ManagerLeaveDetailsDrawer } from './ManagerLeaveDetailsDrawer'
 import { TeamPeopleView } from './TeamPeopleView'
 
 const fetchPendingLeaveMock = vi.hoisted(() => vi.fn())
+const approveLeaveRequestMock = vi.hoisted(() => vi.fn())
 
 vi.mock('../../services/leaveService', () => ({
   fetchPendingLeaveForWorkspace: fetchPendingLeaveMock,
+  approveLeaveRequest: approveLeaveRequestMock,
 }))
 
 const WORKSPACE_ID = 'ws-11111111-1111-1111-1111-111111111111'
@@ -107,6 +110,15 @@ describe('ManagerLeaveInbox', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     fetchPendingLeaveMock.mockResolvedValue(PENDING_LEAVE)
+    approveLeaveRequestMock.mockResolvedValue({
+      id: 'leave-1',
+      workspaceId: WORKSPACE_ID,
+      employeeId: 'emp-1',
+      status: 'approved',
+      leaveType: 'vacation',
+      startDate: '2026-08-01',
+      endDate: '2026-08-05',
+    })
   })
 
   it('is visible for managers when Team People enables the inbox', async () => {
@@ -212,16 +224,15 @@ describe('ManagerLeaveInbox', () => {
     cleanup()
   })
 
-  it('does not render any action buttons', async () => {
+  it('does not render any inbox list action buttons', async () => {
     const { container, cleanup } = renderInbox()
 
     await act(async () => {
       await Promise.resolve()
     })
 
-    expect(container.querySelector('.primary-btn')).toBeNull()
-    expect(container.querySelector('.ghost-btn')).toBeNull()
-    expect(container.textContent).not.toMatch(/approve|reject|cancel|edit/i)
+    expect(container.querySelector('.manager-leave-inbox-list .primary-btn')).toBeNull()
+    expect(container.querySelector('.manager-leave-inbox-list .ghost-btn')).toBeNull()
     cleanup()
   })
 
@@ -243,6 +254,15 @@ describe('ManagerLeaveDetailsDrawer', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     fetchPendingLeaveMock.mockResolvedValue(PENDING_LEAVE)
+    approveLeaveRequestMock.mockResolvedValue({
+      id: 'leave-1',
+      workspaceId: WORKSPACE_ID,
+      employeeId: 'emp-1',
+      status: 'approved',
+      leaveType: 'vacation',
+      startDate: '2026-08-01',
+      endDate: '2026-08-05',
+    })
   })
 
   async function openDrawer(container) {
@@ -337,15 +357,14 @@ describe('ManagerLeaveDetailsDrawer', () => {
     cleanup()
   })
 
-  it('does not render approve, reject, cancel, or edit actions in the drawer', async () => {
+  it('does not render reject, cancel, or edit actions in the drawer', async () => {
     const { container, cleanup } = renderInbox()
 
     await openDrawer(container)
 
     const drawer = container.querySelector('.manager-leave-details-drawer')
-    expect(drawer?.querySelector('.primary-btn')).toBeNull()
-    expect(drawer?.querySelector('.ghost-btn')).toBeNull()
-    expect(drawer?.textContent).not.toMatch(/approve|reject|cancel|edit|delete/i)
+    expect(drawer?.textContent).toMatch(/Approve Leave/)
+    expect(drawer?.textContent).not.toMatch(/reject|cancel request|edit|delete/i)
     cleanup()
   })
 
@@ -380,7 +399,250 @@ describe('ManagerLeaveDetailsDrawer', () => {
     await openDrawer(container)
 
     expect(fetchPendingLeaveMock).toHaveBeenCalledTimes(1)
-    expect(fetchPendingLeaveMock.mock.calls.every((call) => call.length === 1)).toBe(true)
+    expect(approveLeaveRequestMock).not.toHaveBeenCalled()
+    cleanup()
+  })
+
+  it('shows the Approve Leave button for pending requests', async () => {
+    const { container, cleanup } = renderInbox()
+
+    await openDrawer(container)
+
+    const approveButton = container.querySelector('.manager-leave-details-drawer .primary-btn')
+    expect(approveButton?.textContent).toBe('Approve Leave')
+    cleanup()
+  })
+
+  it('hides the Approve Leave button for non-pending requests', async () => {
+    const container = document.createElement('div')
+    document.body.appendChild(container)
+    const root = createRoot(container)
+
+    act(() => {
+      root.render(createElement(ManagerLeaveDetailsDrawer, {
+        leaveDetail: {
+          id: 'leave-approved',
+          status: 'approved',
+          statusLabel: 'Approved',
+          employeeName: 'Alex Rivera',
+          leaveTypeLabel: 'Vacation',
+          startDate: '2026-08-01',
+          endDate: '2026-08-05',
+          durationLabel: '5 days',
+          submittedDate: '2026-07-20',
+          note: '',
+        },
+        workspaceId: WORKSPACE_ID,
+        onClose: vi.fn(),
+        onApproved: vi.fn(),
+      }))
+    })
+
+    expect(container.querySelector('.manager-leave-details-drawer .primary-btn')).toBeNull()
+
+    act(() => root.unmount())
+    container.remove()
+  })
+
+  it('opens the approval confirmation dialog', async () => {
+    const { container, cleanup } = renderInbox()
+
+    await openDrawer(container)
+
+    await act(async () => {
+      container.querySelector('.manager-leave-details-drawer .primary-btn')?.click()
+    })
+
+    expect(container.querySelector('.manager-leave-approve-confirm-modal')).not.toBeNull()
+    expect(container.textContent).toContain('Approve leave request?')
+    expect(container.textContent).toContain(
+      'This will approve the leave request and cannot be undone from this screen.',
+    )
+    cleanup()
+  })
+
+  it('closes the confirmation dialog when Cancel is clicked', async () => {
+    const { container, cleanup } = renderInbox()
+
+    await openDrawer(container)
+
+    await act(async () => {
+      container.querySelector('.manager-leave-details-drawer .primary-btn')?.click()
+    })
+
+    await act(async () => {
+      container.querySelector('.manager-leave-approve-confirm-modal .ghost-btn')?.click()
+    })
+
+    expect(container.querySelector('.manager-leave-approve-confirm-modal')).toBeNull()
+    expect(container.querySelector('.manager-leave-details-drawer')).not.toBeNull()
+    cleanup()
+  })
+
+  it('calls approveLeaveRequest with the active workspace and leave request ids', async () => {
+    fetchPendingLeaveMock.mockResolvedValueOnce(PENDING_LEAVE)
+    fetchPendingLeaveMock.mockResolvedValueOnce([])
+    const { container, cleanup } = renderInbox()
+
+    await openDrawer(container)
+
+    await act(async () => {
+      container.querySelector('.manager-leave-details-drawer .primary-btn')?.click()
+    })
+
+    await act(async () => {
+      container.querySelector('.manager-leave-approve-confirm-modal .primary-btn')?.click()
+      await Promise.resolve()
+    })
+
+    expect(approveLeaveRequestMock).toHaveBeenCalledWith(WORKSPACE_ID, 'leave-1')
+    cleanup()
+  })
+
+  it('prevents duplicate approval calls on rapid confirm clicks', async () => {
+    let resolveApprove
+    approveLeaveRequestMock.mockImplementation(() => new Promise((resolve) => {
+      resolveApprove = resolve
+    }))
+    const { container, cleanup } = renderInbox()
+
+    await openDrawer(container)
+
+    await act(async () => {
+      container.querySelector('.manager-leave-details-drawer .primary-btn')?.click()
+    })
+
+    const confirmButton = container.querySelector('.manager-leave-approve-confirm-modal .primary-btn')
+
+    await act(async () => {
+      confirmButton?.click()
+      confirmButton?.click()
+    })
+
+    expect(approveLeaveRequestMock).toHaveBeenCalledTimes(1)
+
+    await act(async () => {
+      resolveApprove({
+        id: 'leave-1',
+        workspaceId: WORKSPACE_ID,
+        employeeId: 'emp-1',
+        status: 'approved',
+        leaveType: 'vacation',
+        startDate: '2026-08-01',
+        endDate: '2026-08-05',
+      })
+      await Promise.resolve()
+    })
+
+    cleanup()
+  })
+
+  it('disables drawer and confirmation controls while approval is running', async () => {
+    let resolveApprove
+    approveLeaveRequestMock.mockImplementation(() => new Promise((resolve) => {
+      resolveApprove = resolve
+    }))
+    const { container, cleanup } = renderInbox()
+
+    await openDrawer(container)
+
+    await act(async () => {
+      container.querySelector('.manager-leave-details-drawer .primary-btn')?.click()
+    })
+
+    await act(async () => {
+      container.querySelector('.manager-leave-approve-confirm-modal .primary-btn')?.click()
+    })
+
+    expect(container.querySelector('.manager-leave-approve-confirm-modal .primary-btn')?.textContent)
+      .toBe('Approving…')
+    expect(container.querySelector('.manager-leave-approve-confirm-modal .ghost-btn')?.disabled).toBe(true)
+    expect(container.querySelector('.manager-leave-details-drawer .icon-btn')?.disabled).toBe(true)
+
+    await act(async () => {
+      resolveApprove({
+        id: 'leave-1',
+        workspaceId: WORKSPACE_ID,
+        employeeId: 'emp-1',
+        status: 'approved',
+        leaveType: 'vacation',
+        startDate: '2026-08-01',
+        endDate: '2026-08-05',
+      })
+      await Promise.resolve()
+    })
+
+    cleanup()
+  })
+
+  it('refreshes the inbox and shows a success banner after approval', async () => {
+    fetchPendingLeaveMock.mockResolvedValueOnce(PENDING_LEAVE)
+    fetchPendingLeaveMock.mockResolvedValueOnce([])
+    const { container, cleanup } = renderInbox()
+
+    await openDrawer(container)
+
+    await act(async () => {
+      container.querySelector('.manager-leave-details-drawer .primary-btn')?.click()
+    })
+
+    await act(async () => {
+      container.querySelector('.manager-leave-approve-confirm-modal .primary-btn')?.click()
+      await Promise.resolve()
+    })
+
+    await act(async () => {
+      await Promise.resolve()
+    })
+
+    expect(fetchPendingLeaveMock).toHaveBeenCalledTimes(2)
+    expect(container.textContent).toContain('Leave request approved.')
+    cleanup()
+  })
+
+  it('closes the drawer after a successful approval', async () => {
+    const { container, cleanup } = renderInbox()
+
+    await openDrawer(container)
+
+    await act(async () => {
+      container.querySelector('.manager-leave-details-drawer .primary-btn')?.click()
+    })
+
+    await act(async () => {
+      container.querySelector('.manager-leave-approve-confirm-modal .primary-btn')?.click()
+      await Promise.resolve()
+    })
+
+    expect(container.querySelector('.manager-leave-details-drawer')).toBeNull()
+    cleanup()
+  })
+
+  it('keeps the drawer open and shows a friendly error when approval fails', async () => {
+    approveLeaveRequestMock.mockRejectedValue(
+      new Error('This leave request has already been approved.'),
+    )
+    const { container, cleanup } = renderInbox()
+
+    await openDrawer(container)
+
+    await act(async () => {
+      container.querySelector('.manager-leave-details-drawer .primary-btn')?.click()
+    })
+
+    await act(async () => {
+      container.querySelector('.manager-leave-approve-confirm-modal .primary-btn')?.click()
+      await Promise.resolve()
+    })
+
+    const drawer = container.querySelector('.manager-leave-details-drawer')
+    expect(container.querySelector('.manager-leave-approve-confirm-modal')).toBeNull()
+    expect(drawer).not.toBeNull()
+    expect(drawer?.querySelector('.staff-status-banner')?.textContent)
+      .toBe('This leave request has already been approved.')
+    expect(drawer?.querySelector('.primary-btn')?.disabled).toBe(false)
+    expect(fetchPendingLeaveMock).toHaveBeenCalledTimes(1)
+    expect(approveLeaveRequestMock).toHaveBeenCalledTimes(1)
     cleanup()
   })
 })

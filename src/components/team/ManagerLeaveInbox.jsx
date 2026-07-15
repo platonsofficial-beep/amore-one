@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { validateLeaveDates } from '../../lib/leave/leaveValidation'
 import { fetchPendingLeaveForWorkspace } from '../../services/leaveService'
 import { ManagerLeaveDetailsDrawer } from './ManagerLeaveDetailsDrawer'
@@ -39,6 +39,8 @@ function resolveEmployeeName(employeeId, employees = []) {
 
 function buildInboxRows(pendingLeave = [], employees = []) {
   return pendingLeave.map((entry) => ({
+    id: entry.id,
+    status: entry.status,
     key: `${entry.startDate}-${entry.endDate}-${entry.leaveType}-${entry.employeeId}`,
     employeeName: resolveEmployeeName(entry.employeeId, employees),
     leaveTypeLabel: formatLeaveTypeLabel(entry.leaveType),
@@ -65,9 +67,11 @@ export function ManagerLeaveInbox({
   const [pendingLeave, setPendingLeave] = useState([])
   const [isLoading, setIsLoading] = useState(true)
   const [errorMessage, setErrorMessage] = useState('')
+  const [successMessage, setSuccessMessage] = useState('')
   const [selectedLeave, setSelectedLeave] = useState(null)
+  const pendingLeaveRequestIdRef = useRef(0)
 
-  useEffect(() => {
+  const loadPendingLeave = useCallback(async () => {
     const normalizedWorkspaceId = `${workspaceId ?? ''}`.trim()
     if (!normalizedWorkspaceId) {
       setPendingLeave([])
@@ -76,33 +80,36 @@ export function ManagerLeaveInbox({
       return
     }
 
-    let isCancelled = false
+    const requestId = pendingLeaveRequestIdRef.current + 1
+    pendingLeaveRequestIdRef.current = requestId
 
-    const loadPendingLeave = async () => {
-      setIsLoading(true)
-      setErrorMessage('')
+    setIsLoading(true)
+    setErrorMessage('')
 
-      try {
-        const records = await fetchPendingLeaveForWorkspace(normalizedWorkspaceId)
-        if (isCancelled) return
-        setPendingLeave(records)
-      } catch (error) {
-        if (isCancelled) return
-        setPendingLeave([])
-        setErrorMessage(error?.message || 'Unable to load pending leave requests right now.')
-      } finally {
-        if (!isCancelled) {
-          setIsLoading(false)
-        }
+    try {
+      const records = await fetchPendingLeaveForWorkspace(normalizedWorkspaceId)
+      if (pendingLeaveRequestIdRef.current !== requestId) return
+      setPendingLeave(records)
+    } catch (error) {
+      if (pendingLeaveRequestIdRef.current !== requestId) return
+      setPendingLeave([])
+      setErrorMessage(error?.message || 'Unable to load pending leave requests right now.')
+    } finally {
+      if (pendingLeaveRequestIdRef.current === requestId) {
+        setIsLoading(false)
       }
     }
-
-    loadPendingLeave()
-
-    return () => {
-      isCancelled = true
-    }
   }, [workspaceId])
+
+  useEffect(() => {
+    loadPendingLeave()
+  }, [loadPendingLeave])
+
+  const handleLeaveApproved = () => {
+    setSuccessMessage('Leave request approved.')
+    setSelectedLeave(null)
+    void loadPendingLeave()
+  }
 
   const rows = useMemo(
     () => buildInboxRows(pendingLeave, employees),
@@ -201,6 +208,10 @@ export function ManagerLeaveInbox({
         <div className="staff-status-banner" role="alert">{errorMessage}</div>
       ) : null}
 
+      {!isLoading && successMessage ? (
+        <div className="staff-status-banner auth-banner-success" role="status">{successMessage}</div>
+      ) : null}
+
       {!isLoading && !errorMessage && rows.length === 0 ? (
         <p className="manager-leave-inbox-empty">No pending leave requests.</p>
       ) : null}
@@ -254,7 +265,9 @@ export function ManagerLeaveInbox({
 
       <ManagerLeaveDetailsDrawer
         leaveDetail={selectedLeave}
+        workspaceId={workspaceId}
         onClose={() => setSelectedLeave(null)}
+        onApproved={handleLeaveApproved}
       />
     </section>
   )
