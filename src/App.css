@@ -16874,8 +16874,8 @@
 
 .schedule-workspace.is-compact-landscape .schedule-staff-chip {
   gap: 5px;
-  min-width: 96px;
-  max-width: 128px;
+  min-width: 124px;
+  max-width: 164px;
   min-height: 44px;
   padding: 4px 7px;
   border-radius: 8px;
@@ -20154,8 +20154,8 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  min-width: 108px;
-  max-width: 148px;
+  min-width: 136px;
+  max-width: 176px;
   min-height: 48px;
   border: 1px solid rgba(255, 255, 255, 0.05);
   border-radius: 9px;
@@ -20280,7 +20280,7 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   display: flex;
   flex-direction: column;
   gap: 1px;
-  min-width: 0;
+  min-width: 5.75rem;
   flex: 1 1 auto;
 }
 
@@ -20290,14 +20290,17 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   font-weight: 600;
   line-height: 1.15;
   max-width: 100%;
+  min-width: 0;
+  flex-shrink: 0;
   display: -webkit-box;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: normal;
-  overflow-wrap: anywhere;
-  word-break: break-word;
+  overflow-wrap: normal;
+  word-break: normal;
+  hyphens: none;
 }
 
 .schedule-staff-chip-role {
