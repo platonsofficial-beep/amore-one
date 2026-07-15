@@ -498,6 +498,8 @@ import {
 import { TeamTodayView } from './components/team/TeamTodayView'
 import { TeamTodayGroupsList } from './components/team/TeamTodayGroupsList'
 import { TeamPeopleView } from './components/team/TeamPeopleView'
+import { RequestLeaveActionButton, RequestLeaveModal } from './components/team/RequestLeaveModal'
+import { canCreateLeave } from './lib/leave/leavePermissionUtils'
 import { EmployeeIdentity } from './components/identity/EmployeeIdentity'
 import { IDENTITY_COLOR_PALETTE, isPaletteColorId } from './lib/identity/identityColorPalette'
 import { getEmployeeIdentityColor } from './lib/identity/employeeIdentityColor'
@@ -2832,6 +2834,8 @@ function ScheduleView({
   isMobileScheduleShell = false,
   isScheduleSectionActive = true,
   onExitSchedule,
+  canRequestLeave = false,
+  onOpenRequestLeave,
 }) {
   const [selectedDay, setSelectedDay] = useState(null)
   const [scheduleAvailabilityOverlay, setScheduleAvailabilityOverlay] = useState({
@@ -5335,6 +5339,11 @@ function ScheduleView({
         </div>
 
         <div className="schedule-header-controls">
+        <RequestLeaveActionButton
+          isVisible={canRequestLeave}
+          onOpen={onOpenRequestLeave}
+        />
+
         <span className={`schedule-status-badge schedule-header-control-surface ${isWeekPublished ? (hasUnpublishedChanges ? 'pending' : 'published') : 'draft'}`}>
           {schedulePublicationLabel}
         </span>
@@ -15469,6 +15478,7 @@ function App() {
   const [isShiftOverlapConfirmOpen, setIsShiftOverlapConfirmOpen] = useState(false)
   const shiftOverlapConfirmResolverRef = useRef(null)
   const [isEmployeeModalOpen, setIsEmployeeModalOpen] = useState(false)
+  const [isRequestLeaveModalOpen, setIsRequestLeaveModalOpen] = useState(false)
   const [employeeFormOpenMenuId, setEmployeeFormOpenMenuId] = useState(null)
   const employeePremiumFormModalRef = useRef(null)
   const [editingEmployee, setEditingEmployee] = useState(null)
@@ -16304,6 +16314,11 @@ function App() {
   }, [membership?.employeeId])
 
   const mobileNeedsEmployeeLink = !mobileEmployeeId
+
+  const canRequestOwnLeave = useMemo(
+    () => canCreateLeave(role) && Boolean(mobileEmployeeId) && Boolean(activeWorkspaceId),
+    [role, mobileEmployeeId, activeWorkspaceId],
+  )
 
   const mobileLinkedEmployee = useMemo(() => {
     const employeeId = `${membership?.employeeId ?? ''}`.trim()
@@ -24057,6 +24072,8 @@ function App() {
               }
               isScheduleSectionActive={teamSection === 'schedule'}
               onExitSchedule={handleExitScheduleFocusMode}
+              canRequestLeave={canRequestOwnLeave}
+              onOpenRequestLeave={() => setIsRequestLeaveModalOpen(true)}
             />
           </div>
         ) : null}
@@ -25948,6 +25965,12 @@ function App() {
             </div>
           </div>
         ) : null}
+
+        <RequestLeaveModal
+          isOpen={isRequestLeaveModalOpen}
+          workspaceId={activeWorkspaceId}
+          onClose={() => setIsRequestLeaveModalOpen(false)}
+        />
       </main>
     </div>
     </PublishedFloorPlanProvider>
