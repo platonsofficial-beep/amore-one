@@ -431,6 +431,7 @@ import {
 } from './lib/shiftHoursUtils'
 import { buildEmployeeWeekScheduleView } from './lib/employeeWeekScheduleView'
 import { getWorkspaceScheduleAvailabilityByEmployee } from './services/availabilityService'
+import { fetchApprovedLeaveForWorkspace } from './services/leaveService'
 import {
   buildScheduleAvailabilityDayIndicators,
   buildScheduleAvailabilityLookupKey,
@@ -15418,6 +15419,7 @@ function App() {
   const [searchTerm, setSearchTerm] = useState('')
   const [activeFilter, setActiveFilter] = useState('All')
   const [employees, setEmployees] = useState([])
+  const [approvedLeave, setApprovedLeave] = useState([])
   const [selectedEmployee, setSelectedEmployee] = useState(null)
   const [shifts, setShifts] = useState([])
   const [scheduleCapacities, setScheduleCapacities] = useState([])
@@ -17612,6 +17614,39 @@ function App() {
       isMounted = false
     }
   }, [activeWorkspaceId])
+
+  useEffect(() => {
+    let cancelled = false
+    const normalizedDateKey = `${currentDateKey ?? ''}`.trim()
+
+    const loadApprovedLeave = async () => {
+      if (!activeWorkspaceId || isAuthLoading || isAuthBootstrapping || !normalizedDateKey) {
+        if (!cancelled) {
+          setApprovedLeave([])
+        }
+        return
+      }
+
+      try {
+        const records = await fetchApprovedLeaveForWorkspace(activeWorkspaceId, {
+          startDate: normalizedDateKey,
+          endDate: normalizedDateKey,
+        })
+        if (cancelled) return
+        setApprovedLeave(records)
+      } catch (error) {
+        if (cancelled) return
+        console.error('[App] approved leave hydration error:', error)
+        setApprovedLeave([])
+      }
+    }
+
+    loadApprovedLeave()
+
+    return () => {
+      cancelled = true
+    }
+  }, [activeWorkspaceId, currentDateKey, isAuthLoading, isAuthBootstrapping])
 
   useEffect(() => {
     let isMounted = true
