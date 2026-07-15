@@ -8,12 +8,49 @@ import { act } from 'react'
 import { RequestLeaveActionButton, RequestLeaveModal } from './RequestLeaveModal'
 
 const requestLeaveMock = vi.hoisted(() => vi.fn())
+const fetchEmployeeLeaveHistoryMock = vi.hoisted(() => vi.fn())
+const approveLeaveRequestMock = vi.hoisted(() => vi.fn())
+const rejectLeaveRequestMock = vi.hoisted(() => vi.fn())
+const useAuthMock = vi.hoisted(() => vi.fn())
 
 vi.mock('../../services/leaveService', () => ({
   requestLeave: requestLeaveMock,
+  fetchEmployeeLeaveHistory: fetchEmployeeLeaveHistoryMock,
+  approveLeaveRequest: approveLeaveRequestMock,
+  rejectLeaveRequest: rejectLeaveRequestMock,
+}))
+
+vi.mock('../../context/AuthContext', () => ({
+  useAuth: () => useAuthMock(),
 }))
 
 const WORKSPACE_ID = 'ws-11111111-1111-1111-1111-111111111111'
+const EMPLOYEE_ID = 'emp-1'
+
+const LEAVE_HISTORY = [
+  {
+    id: 'leave-new',
+    workspaceId: WORKSPACE_ID,
+    employeeId: EMPLOYEE_ID,
+    leaveType: 'vacation',
+    status: 'approved',
+    startDate: '2026-08-01',
+    endDate: '2026-08-05',
+    note: 'Family trip',
+    createdAt: '2026-07-20T10:00:00.000Z',
+  },
+  {
+    id: 'leave-old',
+    workspaceId: WORKSPACE_ID,
+    employeeId: EMPLOYEE_ID,
+    leaveType: 'sick',
+    status: 'pending',
+    startDate: '2026-06-01',
+    endDate: '2026-06-02',
+    note: '',
+    createdAt: '2026-05-15T09:00:00.000Z',
+  },
+]
 
 function setNativeValue(element, value) {
   const prototype = Object.getPrototypeOf(element)
@@ -103,6 +140,10 @@ async function submitForm(container) {
 describe('RequestLeave staff UI', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    useAuthMock.mockReturnValue({
+      membership: { employeeId: EMPLOYEE_ID },
+    })
+    fetchEmployeeLeaveHistoryMock.mockResolvedValue([])
     requestLeaveMock.mockResolvedValue({
       id: 'leave-1',
       workspaceId: WORKSPACE_ID,
@@ -386,5 +427,208 @@ describe('RequestLeave staff UI', () => {
       shiftState: 'scheduled',
       shiftStateLabel: 'Scheduled',
     })
+  })
+
+  it('shows a loading banner while leave history is loading', async () => {
+    let resolveHistory
+    fetchEmployeeLeaveHistoryMock.mockImplementation(() => new Promise((resolve) => {
+      resolveHistory = resolve
+    }))
+
+    const { container, cleanup } = renderModal()
+
+    expect(container.textContent).toContain('Loading leave history…')
+
+    await act(async () => {
+      resolveHistory([])
+      await Promise.resolve()
+    })
+
+    cleanup()
+  })
+
+  it('shows the empty leave history state', async () => {
+    fetchEmployeeLeaveHistoryMock.mockResolvedValue([])
+    const { container, cleanup } = renderModal()
+
+    await act(async () => {
+      await Promise.resolve()
+    })
+
+    expect(container.textContent).toContain('You haven\'t submitted any leave requests yet.')
+    cleanup()
+  })
+
+  it('shows a friendly error when leave history fails to load', async () => {
+    fetchEmployeeLeaveHistoryMock.mockRejectedValue(new Error('leave_requests table is not ready yet.'))
+    const { container, cleanup } = renderModal()
+
+    await act(async () => {
+      await Promise.resolve()
+    })
+
+    expect(container.querySelector('.leave-history-panel .staff-status-banner')?.textContent)
+      .toBe('leave_requests table is not ready yet.')
+    cleanup()
+  })
+
+  it('renders leave history rows newest first', async () => {
+    fetchEmployeeLeaveHistoryMock.mockResolvedValue(LEAVE_HISTORY)
+    const { container, cleanup } = renderModal()
+
+    await act(async () => {
+      await Promise.resolve()
+    })
+
+    const rows = container.querySelectorAll('.leave-history-row')
+    expect(rows).toHaveLength(2)
+    expect(rows[0]?.textContent).toContain('Vacation')
+    expect(rows[0]?.textContent).toContain('2026-08-01')
+    expect(rows[1]?.textContent).toContain('Sick')
+    expect(rows[1]?.textContent).toContain('2026-06-01')
+    cleanup()
+  })
+
+  it('renders a pending status badge in leave history', async () => {
+    fetchEmployeeLeaveHistoryMock.mockResolvedValue([
+      {
+        ...LEAVE_HISTORY[1],
+        status: 'pending',
+      },
+    ])
+    const { container, cleanup } = renderModal()
+
+    await act(async () => {
+      await Promise.resolve()
+    })
+
+    const badge = container.querySelector('.leave-history-panel .status-pill.pending')
+    expect(badge?.textContent).toBe('Pending')
+    cleanup()
+  })
+
+  it('renders an approved status badge in leave history', async () => {
+    fetchEmployeeLeaveHistoryMock.mockResolvedValue([
+      {
+        ...LEAVE_HISTORY[0],
+        status: 'approved',
+      },
+    ])
+    const { container, cleanup } = renderModal()
+
+    await act(async () => {
+      await Promise.resolve()
+    })
+
+    const badge = container.querySelector('.leave-history-panel .status-pill.approved')
+    expect(badge?.textContent).toBe('Approved')
+    cleanup()
+  })
+
+  it('renders a rejected status badge in leave history', async () => {
+    fetchEmployeeLeaveHistoryMock.mockResolvedValue([
+      {
+        ...LEAVE_HISTORY[0],
+        status: 'rejected',
+      },
+    ])
+    const { container, cleanup } = renderModal()
+
+    await act(async () => {
+      await Promise.resolve()
+    })
+
+    const badge = container.querySelector('.leave-history-panel .status-pill.rejected')
+    expect(badge?.textContent).toBe('Rejected')
+    cleanup()
+  })
+
+  it('renders a cancelled status badge in leave history', async () => {
+    fetchEmployeeLeaveHistoryMock.mockResolvedValue([
+      {
+        ...LEAVE_HISTORY[0],
+        status: 'cancelled',
+      },
+    ])
+    const { container, cleanup } = renderModal()
+
+    await act(async () => {
+      await Promise.resolve()
+    })
+
+    const badge = container.querySelector('.leave-history-panel .status-pill.cancelled')
+    expect(badge?.textContent).toBe('Cancelled')
+    cleanup()
+  })
+
+  it('loads leave history using the authenticated membership employee id without calling write services', async () => {
+    fetchEmployeeLeaveHistoryMock.mockResolvedValue(LEAVE_HISTORY)
+    const { container, cleanup } = renderModal()
+
+    await act(async () => {
+      await Promise.resolve()
+    })
+
+    expect(fetchEmployeeLeaveHistoryMock).toHaveBeenCalledWith(WORKSPACE_ID, EMPLOYEE_ID)
+    expect(fetchEmployeeLeaveHistoryMock).toHaveBeenCalledTimes(1)
+    expect(requestLeaveMock).not.toHaveBeenCalled()
+    expect(approveLeaveRequestMock).not.toHaveBeenCalled()
+    expect(rejectLeaveRequestMock).not.toHaveBeenCalled()
+    expect(container.textContent).not.toContain('leave-new')
+    expect(container.textContent).not.toContain('leave-old')
+    cleanup()
+  })
+
+  it('does not fetch leave history when the authenticated membership has no linked employee', async () => {
+    useAuthMock.mockReturnValue({
+      membership: { employeeId: null },
+    })
+
+    const { container, cleanup } = renderModal()
+
+    await act(async () => {
+      await Promise.resolve()
+    })
+
+    expect(fetchEmployeeLeaveHistoryMock).not.toHaveBeenCalled()
+    expect(container.textContent).toContain('You haven\'t submitted any leave requests yet.')
+    cleanup()
+  })
+
+  it('does not accept an employee id prop for leave history', async () => {
+    fetchEmployeeLeaveHistoryMock.mockResolvedValue(LEAVE_HISTORY)
+
+    const { container, cleanup } = renderModal({
+      employeeId: 'emp-other',
+    })
+
+    await act(async () => {
+      await Promise.resolve()
+    })
+
+    expect(fetchEmployeeLeaveHistoryMock).toHaveBeenCalledWith(WORKSPACE_ID, EMPLOYEE_ID)
+    expect(fetchEmployeeLeaveHistoryMock).not.toHaveBeenCalledWith(WORKSPACE_ID, 'emp-other')
+    cleanup()
+  })
+
+  it('keeps the existing request submission flow unchanged with history present', async () => {
+    fetchEmployeeLeaveHistoryMock.mockResolvedValue(LEAVE_HISTORY)
+    const { container, cleanup } = renderModal()
+    fillValidForm(container)
+
+    await act(async () => {
+      await Promise.resolve()
+    })
+
+    await submitForm(container)
+
+    expect(requestLeaveMock).toHaveBeenCalledWith(WORKSPACE_ID, {
+      leaveType: 'vacation',
+      startDate: '2026-08-01',
+      endDate: '2026-08-05',
+      note: 'Family trip',
+    })
+    expect(container.textContent).toContain('Leave request submitted and pending approval.')
+    cleanup()
   })
 })

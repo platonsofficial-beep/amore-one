@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { LEAVE_TYPES } from '../../lib/leave/leaveConstants'
 import { validateLeaveDates } from '../../lib/leave/leaveValidation'
 import { requestLeave } from '../../services/leaveService'
+import { LeaveHistoryPanel } from './LeaveHistoryPanel'
 
 const LEAVE_TYPE_OPTIONS = LEAVE_TYPES.map((type) => ({
   value: type,
@@ -262,6 +263,8 @@ export function RequestLeaveModal({
             </button>
           </div>
         </form>
+
+        <LeaveHistoryPanel workspaceId={workspaceId} isActive={isOpen} />
       </div>
     </div>
   )
