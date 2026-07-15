@@ -16485,6 +16485,12 @@
   text-overflow: clip;
 }
 
+.schedule-day-grid.is-fluid-day-columns .schedule-shift-assigned-item,
+.schedule-day-grid.is-fluid-day-columns .schedule-assigned-pill {
+  padding-left: 4px;
+  padding-right: 4px;
+}
+
 .schedule-shift-assigned-item:hover,
 .schedule-shift-assigned-item:focus-visible,
 .schedule-assigned-pill:hover,
