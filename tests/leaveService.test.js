@@ -1,5 +1,6 @@
 // @vitest-environment node
 
+import { execSync } from 'node:child_process'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const supabaseMocks = vi.hoisted(() => {
@@ -59,6 +60,7 @@ import {
   fetchPendingLeaveForWorkspace,
   rejectLeaveRequest,
   requestLeave,
+  withdrawLeaveRequest,
 } from '../src/services/leaveService'
 
 const WORKSPACE_ID = 'ws-1'
@@ -162,6 +164,34 @@ const REJECT_LEAVE_RPC_ERROR_CASES = [
   ['leave_rejection_already_rejected', 'This leave request has already been rejected.'],
   ['leave_rejection_already_cancelled', 'This leave request has already been cancelled.'],
   ['leave_rejection_invalid_status', 'This leave request cannot be rejected in its current state.'],
+]
+
+const EXPECTED_WITHDRAW_LEAVE_RPC_RESULT = {
+  id: LEAVE_REQUEST_ID,
+  workspaceId: WORKSPACE_ID,
+  employeeId: EMPLOYEE_ID,
+  status: 'cancelled',
+  leaveType: 'vacation',
+  startDate: '2026-08-01',
+  endDate: '2026-08-05',
+}
+
+const WITHDRAW_LEAVE_RPC_ERROR_CASES = [
+  ['leave_withdrawal_unauthenticated', 'Sign in is required to withdraw leave.'],
+  ['leave_withdrawal_workspace_required', 'Workspace is required to withdraw leave.'],
+  ['leave_withdrawal_request_required', 'Leave request is required to withdraw leave.'],
+  ['leave_withdrawal_workspace_not_found', 'This workspace could not be found.'],
+  ['leave_withdrawal_membership_not_found', 'You are not a member of this workspace.'],
+  ['leave_withdrawal_duplicate_workspace_membership', 'Your workspace membership could not be resolved.'],
+  ['leave_withdrawal_employee_not_linked', 'Your employee profile is not linked.'],
+  ['leave_withdrawal_employee_not_found', 'Your employee profile could not be found in this workspace.'],
+  ['leave_withdrawal_request_not_found', 'This leave request could not be found.'],
+  ['leave_withdrawal_workspace_mismatch', 'This leave request does not belong to the selected workspace.'],
+  ['leave_withdrawal_forbidden', 'You can only withdraw your own pending leave requests.'],
+  ['leave_withdrawal_already_approved', 'This leave request has already been approved.'],
+  ['leave_withdrawal_already_rejected', 'This leave request has already been rejected.'],
+  ['leave_withdrawal_already_cancelled', 'This leave request has already been cancelled.'],
+  ['leave_withdrawal_invalid_status', 'This leave request cannot be withdrawn in its current state.'],
 ]
 
 describe('leaveService', () => {
@@ -1033,6 +1063,243 @@ describe('leaveService', () => {
 
       expect(supabase.from).not.toHaveBeenCalled()
       expect(supabaseMocks.rpc).toHaveBeenCalledTimes(1)
+    })
+  })
+
+  describe('withdrawLeaveRequest', () => {
+    it('is exported from leaveService', () => {
+      expect(typeof withdrawLeaveRequest).toBe('function')
+    })
+
+    it('calls withdraw_leave_request with the exact RPC name', async () => {
+      supabaseMocks.setRpcResult({
+        data: [buildLeaveRpcRecord({ id: LEAVE_REQUEST_ID, status: 'cancelled' })],
+        error: null,
+      })
+
+      await withdrawLeaveRequest(WORKSPACE_ID, LEAVE_REQUEST_ID)
+
+      expect(supabaseMocks.rpc).toHaveBeenCalledWith('withdraw_leave_request', expect.any(Object))
+    })
+
+    it('sends exact two-parameter RPC payload', async () => {
+      supabaseMocks.setRpcResult({
+        data: [buildLeaveRpcRecord({ id: LEAVE_REQUEST_ID, status: 'cancelled' })],
+        error: null,
+      })
+
+      await withdrawLeaveRequest(WORKSPACE_ID, LEAVE_REQUEST_ID)
+
+      expect(supabaseMocks.rpc).toHaveBeenCalledWith('withdraw_leave_request', {
+        p_workspace_id: WORKSPACE_ID,
+        p_leave_request_id: LEAVE_REQUEST_ID,
+      })
+    })
+
+    it('does not send employee, role, status, or decision metadata', async () => {
+      supabaseMocks.setRpcResult({
+        data: [buildLeaveRpcRecord({ id: LEAVE_REQUEST_ID, status: 'cancelled' })],
+        error: null,
+      })
+
+      await withdrawLeaveRequest(WORKSPACE_ID, LEAVE_REQUEST_ID)
+
+      const [, rpcParams] = supabaseMocks.rpc.mock.calls[0]
+      expect(rpcParams).toEqual({
+        p_workspace_id: WORKSPACE_ID,
+        p_leave_request_id: LEAVE_REQUEST_ID,
+      })
+      expect(Object.keys(rpcParams)).toEqual(['p_workspace_id', 'p_leave_request_id'])
+    })
+
+    it('trims workspace id', async () => {
+      supabaseMocks.setRpcResult({
+        data: [buildLeaveRpcRecord({ id: LEAVE_REQUEST_ID, status: 'cancelled' })],
+        error: null,
+      })
+
+      await withdrawLeaveRequest(`  ${WORKSPACE_ID}  `, LEAVE_REQUEST_ID)
+
+      expect(supabaseMocks.rpc).toHaveBeenCalledWith('withdraw_leave_request', expect.objectContaining({
+        p_workspace_id: WORKSPACE_ID,
+      }))
+    })
+
+    it('trims leave request id', async () => {
+      supabaseMocks.setRpcResult({
+        data: [buildLeaveRpcRecord({ id: LEAVE_REQUEST_ID, status: 'cancelled' })],
+        error: null,
+      })
+
+      await withdrawLeaveRequest(WORKSPACE_ID, `  ${LEAVE_REQUEST_ID}  `)
+
+      expect(supabaseMocks.rpc).toHaveBeenCalledWith('withdraw_leave_request', expect.objectContaining({
+        p_leave_request_id: LEAVE_REQUEST_ID,
+      }))
+    })
+
+    it('maps a one-row array response to camelCase', async () => {
+      supabaseMocks.setRpcResult({
+        data: [buildLeaveRpcRecord({ id: LEAVE_REQUEST_ID, status: 'cancelled' })],
+        error: null,
+      })
+
+      const result = await withdrawLeaveRequest(WORKSPACE_ID, LEAVE_REQUEST_ID)
+
+      expect(result).toEqual(EXPECTED_WITHDRAW_LEAVE_RPC_RESULT)
+      expect(result).not.toHaveProperty('decidedBy')
+      expect(result).not.toHaveProperty('decidedAt')
+      expect(result).not.toHaveProperty('decisionNote')
+    })
+
+    it('maps a single-object response to camelCase', async () => {
+      supabaseMocks.setRpcResult({
+        data: buildLeaveRpcRecord({ id: LEAVE_REQUEST_ID, status: 'cancelled' }),
+        error: null,
+      })
+
+      const result = await withdrawLeaveRequest(WORKSPACE_ID, LEAVE_REQUEST_ID)
+
+      expect(result).toEqual(EXPECTED_WITHDRAW_LEAVE_RPC_RESULT)
+      expect(Object.keys(result)).toEqual([
+        'id',
+        'workspaceId',
+        'employeeId',
+        'status',
+        'leaveType',
+        'startDate',
+        'endDate',
+      ])
+    })
+
+    it('rejects missing workspace before RPC', async () => {
+      await expect(withdrawLeaveRequest('', LEAVE_REQUEST_ID)).rejects.toThrow(
+        'Workspace is required to withdraw leave.',
+      )
+
+      expect(supabaseMocks.rpc).not.toHaveBeenCalled()
+    })
+
+    it('rejects blank workspace before RPC', async () => {
+      await expect(withdrawLeaveRequest('   ', LEAVE_REQUEST_ID)).rejects.toThrow(
+        'Workspace is required to withdraw leave.',
+      )
+
+      expect(supabaseMocks.rpc).not.toHaveBeenCalled()
+    })
+
+    it('rejects missing leave request id before RPC', async () => {
+      await expect(withdrawLeaveRequest(WORKSPACE_ID, '')).rejects.toThrow(
+        'Leave request is required to withdraw leave.',
+      )
+
+      expect(supabaseMocks.rpc).not.toHaveBeenCalled()
+    })
+
+    it('rejects blank leave request id before RPC', async () => {
+      await expect(withdrawLeaveRequest(WORKSPACE_ID, '   ')).rejects.toThrow(
+        'Leave request is required to withdraw leave.',
+      )
+
+      expect(supabaseMocks.rpc).not.toHaveBeenCalled()
+    })
+
+    it('throws when RPC returns an empty array', async () => {
+      supabaseMocks.setRpcResult({ data: [], error: null })
+
+      await expect(withdrawLeaveRequest(WORKSPACE_ID, LEAVE_REQUEST_ID)).rejects.toThrow(
+        'Leave request could not be withdrawn.',
+      )
+    })
+
+    it('throws when RPC returns null', async () => {
+      supabaseMocks.setRpcResult({ data: null, error: null })
+
+      await expect(withdrawLeaveRequest(WORKSPACE_ID, LEAVE_REQUEST_ID)).rejects.toThrow(
+        'Leave request could not be withdrawn.',
+      )
+    })
+
+    it.each(WITHDRAW_LEAVE_RPC_ERROR_CASES)(
+      'maps %s to a clear service error',
+      async (rpcCode, friendlyMessage) => {
+        supabaseMocks.setRpcResult({
+          data: null,
+          error: { message: rpcCode },
+        })
+
+        await expect(withdrawLeaveRequest(WORKSPACE_ID, LEAVE_REQUEST_ID)).rejects.toThrow(friendlyMessage)
+      },
+    )
+
+    it('logs and throws unknown Supabase RPC errors with a message', async () => {
+      const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
+      supabaseMocks.setRpcResult({
+        data: null,
+        error: { message: 'unexpected database failure' },
+      })
+
+      await expect(withdrawLeaveRequest(WORKSPACE_ID, LEAVE_REQUEST_ID)).rejects.toThrow(
+        'unexpected database failure',
+      )
+
+      expect(consoleError).toHaveBeenCalledWith(
+        '[leaveService] withdrawLeaveRequest error:',
+        expect.objectContaining({ message: 'unexpected database failure' }),
+      )
+
+      consoleError.mockRestore()
+    })
+
+    it('logs and throws a fallback when unknown Supabase RPC errors have no message', async () => {
+      const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
+      supabaseMocks.setRpcResult({
+        data: null,
+        error: {},
+      })
+
+      await expect(withdrawLeaveRequest(WORKSPACE_ID, LEAVE_REQUEST_ID)).rejects.toThrow(
+        'Unable to withdraw the leave request right now.',
+      )
+
+      expect(consoleError).toHaveBeenCalledWith(
+        '[leaveService] withdrawLeaveRequest error:',
+        expect.any(Object),
+      )
+
+      consoleError.mockRestore()
+    })
+
+    it('does not perform direct table writes', async () => {
+      const { supabase } = await import('../src/lib/supabaseClient')
+      supabase.from.mockClear()
+      supabaseMocks.setRpcResult({
+        data: [buildLeaveRpcRecord({ id: LEAVE_REQUEST_ID, status: 'cancelled' })],
+        error: null,
+      })
+
+      await withdrawLeaveRequest(WORKSPACE_ID, LEAVE_REQUEST_ID)
+
+      expect(supabase.from).not.toHaveBeenCalled()
+      expect(supabaseMocks.rpc).toHaveBeenCalledTimes(1)
+    })
+
+    it('has only approved production consumers for withdrawLeaveRequest', () => {
+      const approvedReferenceFiles = [
+        'src/services/leaveService.js',
+        'src/components/team/LeaveHistoryDetailsModal.jsx',
+        'tests/leaveService.test.js',
+      ].sort()
+
+      const repoMatches = execSync(
+        'grep -rl "withdrawLeaveRequest" . --include="*.js" --include="*.jsx" --exclude-dir=node_modules --exclude-dir=dist 2>/dev/null || true',
+        { encoding: 'utf8' },
+      ).trim().split('\n').filter(Boolean).map((filePath) => filePath.replace(/^\.\//, '')).sort()
+
+      const uiWithdrawTestFile = 'src/components/team/RequestLeaveModal.test.jsx'
+      const nonUiTestMatches = repoMatches.filter((filePath) => filePath !== uiWithdrawTestFile)
+
+      expect(nonUiTestMatches).toEqual(approvedReferenceFiles)
     })
   })
 })

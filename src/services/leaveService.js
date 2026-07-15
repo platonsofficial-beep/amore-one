@@ -7,6 +7,7 @@ const LEAVE_REQUESTS_TABLE = 'leave_requests'
 const REQUEST_LEAVE_RPC = 'request_leave'
 const APPROVE_LEAVE_RPC = 'approve_leave_request'
 const REJECT_LEAVE_RPC = 'reject_leave_request'
+const WITHDRAW_LEAVE_RPC = 'withdraw_leave_request'
 
 const LEAVE_REQUEST_SELECT = `
   id,
@@ -89,6 +90,22 @@ function requireRejectionDecisionNote(decisionNote) {
     throw new Error('A rejection reason is required.')
   }
   return normalizedDecisionNote
+}
+
+function requireWithdrawalWorkspaceId(workspaceId) {
+  const normalizedWorkspaceId = `${workspaceId ?? ''}`.trim()
+  if (!normalizedWorkspaceId) {
+    throw new Error('Workspace is required to withdraw leave.')
+  }
+  return normalizedWorkspaceId
+}
+
+function requireWithdrawalLeaveRequestId(leaveRequestId) {
+  const normalizedLeaveRequestId = `${leaveRequestId ?? ''}`.trim()
+  if (!normalizedLeaveRequestId) {
+    throw new Error('Leave request is required to withdraw leave.')
+  }
+  return normalizedLeaveRequestId
 }
 
 const REQUEST_LEAVE_RPC_ERROR_MESSAGES = {
@@ -200,6 +217,44 @@ function getFriendlyRejectLeaveError(error) {
   }
 
   return 'Unable to reject the leave request right now.'
+}
+
+const WITHDRAW_LEAVE_RPC_ERROR_MESSAGES = {
+  leave_withdrawal_unauthenticated: 'Sign in is required to withdraw leave.',
+  leave_withdrawal_workspace_required: 'Workspace is required to withdraw leave.',
+  leave_withdrawal_request_required: 'Leave request is required to withdraw leave.',
+  leave_withdrawal_workspace_not_found: 'This workspace could not be found.',
+  leave_withdrawal_membership_not_found: 'You are not a member of this workspace.',
+  leave_withdrawal_duplicate_workspace_membership: 'Your workspace membership could not be resolved.',
+  leave_withdrawal_employee_not_linked: 'Your employee profile is not linked.',
+  leave_withdrawal_employee_not_found: 'Your employee profile could not be found in this workspace.',
+  leave_withdrawal_request_not_found: 'This leave request could not be found.',
+  leave_withdrawal_workspace_mismatch: 'This leave request does not belong to the selected workspace.',
+  leave_withdrawal_forbidden: 'You can only withdraw your own pending leave requests.',
+  leave_withdrawal_already_approved: 'This leave request has already been approved.',
+  leave_withdrawal_already_rejected: 'This leave request has already been rejected.',
+  leave_withdrawal_already_cancelled: 'This leave request has already been cancelled.',
+  leave_withdrawal_invalid_status: 'This leave request cannot be withdrawn in its current state.',
+}
+
+function extractWithdrawLeaveRpcCode(error) {
+  const haystack = `${error?.message ?? ''} ${error?.code ?? ''}`.trim()
+  const match = haystack.match(/leave_withdrawal_[a-z_]+/)
+  return match?.[0] ?? ''
+}
+
+function getFriendlyWithdrawLeaveError(error) {
+  const rpcCode = extractWithdrawLeaveRpcCode(error)
+  if (rpcCode && WITHDRAW_LEAVE_RPC_ERROR_MESSAGES[rpcCode]) {
+    return WITHDRAW_LEAVE_RPC_ERROR_MESSAGES[rpcCode]
+  }
+
+  const message = `${error?.message ?? ''}`.trim()
+  if (message) {
+    return message
+  }
+
+  return 'Unable to withdraw the leave request right now.'
 }
 
 function normalizeLeaveTypeForRequest(leaveType) {
@@ -439,6 +494,30 @@ export async function rejectLeaveRequest(workspaceId, leaveRequestId, decisionNo
 
   if (!mapped) {
     throw new Error('Leave request could not be rejected.')
+  }
+
+  return mapped
+}
+
+export async function withdrawLeaveRequest(workspaceId, leaveRequestId) {
+  const normalizedWorkspaceId = requireWithdrawalWorkspaceId(workspaceId)
+  const normalizedLeaveRequestId = requireWithdrawalLeaveRequestId(leaveRequestId)
+
+  const { data, error } = await supabase.rpc(WITHDRAW_LEAVE_RPC, {
+    p_workspace_id: normalizedWorkspaceId,
+    p_leave_request_id: normalizedLeaveRequestId,
+  })
+
+  if (error) {
+    console.error('[leaveService] withdrawLeaveRequest error:', error)
+    throw new Error(getFriendlyWithdrawLeaveError(error))
+  }
+
+  const row = Array.isArray(data) ? data[0] : data
+  const mapped = mapLeaveRequestRpcResult(row)
+
+  if (!mapped) {
+    throw new Error('Leave request could not be withdrawn.')
   }
 
   return mapped

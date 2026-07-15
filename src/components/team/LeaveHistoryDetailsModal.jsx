@@ -1,6 +1,7 @@
-import { useEffect } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { LEAVE_STATUS } from '../../lib/leave/leaveConstants'
 import { validateLeaveDates } from '../../lib/leave/leaveValidation'
+import { withdrawLeaveRequest } from '../../services/leaveService'
 
 function formatLeaveTypeLabel(leaveType) {
   const normalized = `${leaveType ?? ''}`.trim().toLowerCase()
@@ -60,16 +61,44 @@ function resolveStatusPillClass(status) {
 
 export function LeaveHistoryDetailsModal({
   entry,
+  workspaceId = '',
   onClose,
+  onWithdrawn,
 }) {
+  const [confirmWithdraw, setConfirmWithdraw] = useState(false)
+  const [isWithdrawPending, setIsWithdrawPending] = useState(false)
+  const [errorMessage, setErrorMessage] = useState('')
+  const withdrawInFlightRef = useRef(false)
+
+  useEffect(() => {
+    if (!entry) {
+      setConfirmWithdraw(false)
+      setIsWithdrawPending(false)
+      setErrorMessage('')
+      withdrawInFlightRef.current = false
+      return undefined
+    }
+
+    setConfirmWithdraw(false)
+    setIsWithdrawPending(false)
+    setErrorMessage('')
+    withdrawInFlightRef.current = false
+  }, [entry])
+
   useEffect(() => {
     if (!entry) return undefined
 
     const handleKeyDown = (event) => {
-      if (event.key !== 'Escape') return
+      if (event.key !== 'Escape' || isWithdrawPending) return
 
       event.preventDefault()
       event.stopPropagation()
+
+      if (confirmWithdraw) {
+        setConfirmWithdraw(false)
+        return
+      }
+
       onClose?.()
     }
 
@@ -78,7 +107,7 @@ export function LeaveHistoryDetailsModal({
     return () => {
       document.removeEventListener('keydown', handleKeyDown, true)
     }
-  }, [entry, onClose])
+  }, [confirmWithdraw, entry, isWithdrawPending, onClose])
 
   if (!entry) return null
 
@@ -86,12 +115,45 @@ export function LeaveHistoryDetailsModal({
   const noteText = `${entry.note ?? ''}`.trim()
   const decisionDate = formatDecisionDate(entry.decidedAt)
   const rejectionReason = `${entry.decisionNote ?? ''}`.trim()
+  const isPending = status === LEAVE_STATUS.PENDING
 
   const handleClose = () => {
+    if (isWithdrawPending) return
     onClose?.()
   }
 
+  const handleConfirmCancel = () => {
+    if (isWithdrawPending) return
+    setConfirmWithdraw(false)
+  }
+
+  const handleWithdrawClick = () => {
+    if (isWithdrawPending) return
+    setErrorMessage('')
+    setConfirmWithdraw(true)
+  }
+
+  const handleConfirmWithdraw = async () => {
+    if (isWithdrawPending || withdrawInFlightRef.current) return
+
+    withdrawInFlightRef.current = true
+    setIsWithdrawPending(true)
+    setErrorMessage('')
+
+    try {
+      await withdrawLeaveRequest(workspaceId, entry.id)
+      setConfirmWithdraw(false)
+      onWithdrawn?.()
+    } catch (error) {
+      withdrawInFlightRef.current = false
+      setIsWithdrawPending(false)
+      setConfirmWithdraw(false)
+      setErrorMessage(error?.message || 'Unable to withdraw the leave request right now.')
+    }
+  }
+
   return (
+    <>
     <div className="employee-modal-backdrop leave-history-details-backdrop" onClick={handleClose}>
       <div
         className="employee-modal blend-compact-modal leave-history-details-modal is-responsive-sheet"
@@ -203,6 +265,13 @@ export function LeaveHistoryDetailsModal({
             color: #d6e4ff;
             background: rgba(66, 133, 244, 0.16);
           }
+
+          .leave-history-details-footer {
+            display: flex;
+            justify-content: flex-end;
+            gap: 0.75rem;
+            padding-top: 0.25rem;
+          }
         `}</style>
 
         <div className="drawer-header leave-history-details-header">
@@ -214,6 +283,7 @@ export function LeaveHistoryDetailsModal({
             type="button"
             className="icon-btn"
             onClick={handleClose}
+            disabled={isWithdrawPending}
             aria-label="Close leave request details"
           >
             ✕
@@ -309,8 +379,78 @@ export function LeaveHistoryDetailsModal({
               ) : null}
             </section>
           ) : null}
+
+          {errorMessage ? (
+            <div className="staff-status-banner" role="alert">{errorMessage}</div>
+          ) : null}
+
+          {isPending ? (
+            <div className="leave-history-details-footer">
+              <button
+                type="button"
+                className="ghost-btn leave-history-withdraw-btn"
+                onClick={handleWithdrawClick}
+                disabled={isWithdrawPending}
+              >
+                Withdraw Request
+              </button>
+            </div>
+          ) : null}
         </div>
       </div>
     </div>
+
+    {confirmWithdraw ? (
+      <div className="employee-modal-backdrop" onClick={handleConfirmCancel}>
+        <div
+          className="employee-modal blend-compact-modal leave-history-withdraw-confirm-modal is-responsive-sheet"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="leave-history-withdraw-confirm-title"
+          aria-busy={isWithdrawPending}
+          onClick={(event) => event.stopPropagation()}
+        >
+          <div className="drawer-header">
+            <div>
+              <p className="eyebrow">Leave withdrawal</p>
+              <h3 id="leave-history-withdraw-confirm-title">Withdraw leave request?</h3>
+            </div>
+            <button
+              type="button"
+              className="icon-btn"
+              onClick={handleConfirmCancel}
+              disabled={isWithdrawPending}
+              aria-label="Close withdrawal confirmation"
+            >
+              ✕
+            </button>
+          </div>
+
+          <p className="leave-history-withdraw-confirm-copy">
+            This will withdraw your pending leave request and cannot be undone from this screen.
+          </p>
+
+          <div className="modal-actions">
+            <button
+              type="button"
+              className="ghost-btn"
+              onClick={handleConfirmCancel}
+              disabled={isWithdrawPending}
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              className="primary-btn"
+              onClick={handleConfirmWithdraw}
+              disabled={isWithdrawPending}
+            >
+              {isWithdrawPending ? 'Withdrawing…' : 'Withdraw'}
+            </button>
+          </div>
+        </div>
+      </div>
+    ) : null}
+    </>
   )
 }

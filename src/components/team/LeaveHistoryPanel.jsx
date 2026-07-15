@@ -77,6 +77,7 @@ export function LeaveHistoryPanel({
   const [records, setRecords] = useState([])
   const [isLoading, setIsLoading] = useState(false)
   const [errorMessage, setErrorMessage] = useState('')
+  const [successMessage, setSuccessMessage] = useState('')
   const [selectedEntry, setSelectedEntry] = useState(null)
   const historyRequestIdRef = useRef(0)
 
@@ -110,6 +111,12 @@ export function LeaveHistoryPanel({
       }
     }
   }, [employeeId, isActive, workspaceId])
+
+  const handleWithdrawn = useCallback(() => {
+    setSelectedEntry(null)
+    setSuccessMessage('Leave request withdrawn.')
+    void loadHistory()
+  }, [loadHistory])
 
   useEffect(() => {
     void loadHistory()
@@ -238,6 +245,10 @@ export function LeaveHistoryPanel({
         <div className="staff-status-banner" role="alert">{errorMessage}</div>
       ) : null}
 
+      {!isLoading && successMessage ? (
+        <div className="staff-status-banner auth-banner-success" role="status">{successMessage}</div>
+      ) : null}
+
       {!isLoading && !errorMessage && records.length === 0 ? (
         <p className="leave-history-empty">You haven&apos;t submitted any leave requests yet.</p>
       ) : null}
@@ -295,7 +306,9 @@ export function LeaveHistoryPanel({
 
       <LeaveHistoryDetailsModal
         entry={selectedEntry}
+        workspaceId={workspaceId}
         onClose={() => setSelectedEntry(null)}
+        onWithdrawn={handleWithdrawn}
       />
     </section>
   )

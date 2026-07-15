@@ -11,6 +11,7 @@ const requestLeaveMock = vi.hoisted(() => vi.fn())
 const fetchEmployeeLeaveHistoryMock = vi.hoisted(() => vi.fn())
 const approveLeaveRequestMock = vi.hoisted(() => vi.fn())
 const rejectLeaveRequestMock = vi.hoisted(() => vi.fn())
+const withdrawLeaveRequestMock = vi.hoisted(() => vi.fn())
 const useAuthMock = vi.hoisted(() => vi.fn())
 
 vi.mock('../../services/leaveService', () => ({
@@ -18,6 +19,7 @@ vi.mock('../../services/leaveService', () => ({
   fetchEmployeeLeaveHistory: fetchEmployeeLeaveHistoryMock,
   approveLeaveRequest: approveLeaveRequestMock,
   rejectLeaveRequest: rejectLeaveRequestMock,
+  withdrawLeaveRequest: withdrawLeaveRequestMock,
 }))
 
 vi.mock('../../context/AuthContext', () => ({
@@ -26,6 +28,7 @@ vi.mock('../../context/AuthContext', () => ({
 
 const WORKSPACE_ID = 'ws-11111111-1111-1111-1111-111111111111'
 const EMPLOYEE_ID = 'emp-1'
+const PENDING_LEAVE_ID = 'leave-old'
 
 const LEAVE_HISTORY = [
   {
@@ -188,6 +191,23 @@ async function openHistoryDetails(container, rowIndex = 0) {
   })
 }
 
+async function openPendingHistoryDetails(container) {
+  await openHistoryDetails(container, 1)
+}
+
+async function openWithdrawConfirmation(container) {
+  await act(async () => {
+    container.querySelector('.leave-history-withdraw-btn')?.click()
+  })
+}
+
+async function confirmWithdraw(container) {
+  await act(async () => {
+    container.querySelector('.leave-history-withdraw-confirm-modal .primary-btn')?.click()
+    await Promise.resolve()
+  })
+}
+
 describe('RequestLeave staff UI', () => {
   beforeEach(() => {
     vi.clearAllMocks()
@@ -203,6 +223,15 @@ describe('RequestLeave staff UI', () => {
       leaveType: 'vacation',
       startDate: '2026-08-01',
       endDate: '2026-08-05',
+    })
+    withdrawLeaveRequestMock.mockResolvedValue({
+      id: PENDING_LEAVE_ID,
+      workspaceId: WORKSPACE_ID,
+      employeeId: EMPLOYEE_ID,
+      status: 'cancelled',
+      leaveType: 'sick',
+      startDate: '2026-06-01',
+      endDate: '2026-06-02',
     })
     vi.useFakeTimers()
   })
@@ -930,6 +959,305 @@ describe('RequestLeave staff UI', () => {
     await openHistoryDetails(container, 0)
 
     expect(requestLeaveMock).not.toHaveBeenCalled()
+    expect(approveLeaveRequestMock).not.toHaveBeenCalled()
+    expect(rejectLeaveRequestMock).not.toHaveBeenCalled()
+    expect(withdrawLeaveRequestMock).not.toHaveBeenCalled()
+    cleanup()
+  })
+
+  it('shows Withdraw Request only for pending leave history details', async () => {
+    fetchEmployeeLeaveHistoryMock.mockResolvedValue(LEAVE_HISTORY)
+    const { container, cleanup } = renderModal()
+
+    await loadHistory(container)
+    await openPendingHistoryDetails(container)
+
+    expect(container.querySelector('.leave-history-withdraw-btn')?.textContent).toBe('Withdraw Request')
+    cleanup()
+  })
+
+  it('hides Withdraw Request for approved leave history details', async () => {
+    fetchEmployeeLeaveHistoryMock.mockResolvedValue(LEAVE_HISTORY)
+    const { container, cleanup } = renderModal()
+
+    await loadHistory(container)
+    await openHistoryDetails(container, 0)
+
+    expect(container.querySelector('.leave-history-withdraw-btn')).toBeNull()
+    cleanup()
+  })
+
+  it('hides Withdraw Request for rejected leave history details', async () => {
+    fetchEmployeeLeaveHistoryMock.mockResolvedValue([REJECTED_LEAVE])
+    const { container, cleanup } = renderModal()
+
+    await loadHistory(container)
+    await openHistoryDetails(container, 0)
+
+    expect(container.querySelector('.leave-history-withdraw-btn')).toBeNull()
+    cleanup()
+  })
+
+  it('hides Withdraw Request for cancelled leave history details', async () => {
+    fetchEmployeeLeaveHistoryMock.mockResolvedValue([CANCELLED_LEAVE])
+    const { container, cleanup } = renderModal()
+
+    await loadHistory(container)
+    await openHistoryDetails(container, 0)
+
+    expect(container.querySelector('.leave-history-withdraw-btn')).toBeNull()
+    cleanup()
+  })
+
+  it('opens the withdraw confirmation modal from pending details', async () => {
+    fetchEmployeeLeaveHistoryMock.mockResolvedValue(LEAVE_HISTORY)
+    const { container, cleanup } = renderModal()
+
+    await loadHistory(container)
+    await openPendingHistoryDetails(container)
+    await openWithdrawConfirmation(container)
+
+    expect(container.querySelector('.leave-history-withdraw-confirm-modal')).not.toBeNull()
+    expect(container.textContent).toContain('Withdraw leave request?')
+    expect(container.textContent).toContain(
+      'This will withdraw your pending leave request and cannot be undone from this screen.',
+    )
+    cleanup()
+  })
+
+  it('closes withdraw confirmation from cancel without calling withdrawLeaveRequest', async () => {
+    fetchEmployeeLeaveHistoryMock.mockResolvedValue(LEAVE_HISTORY)
+    const { container, cleanup } = renderModal()
+
+    await loadHistory(container)
+    await openPendingHistoryDetails(container)
+    await openWithdrawConfirmation(container)
+
+    await act(async () => {
+      container.querySelector('.leave-history-withdraw-confirm-modal .ghost-btn')?.click()
+    })
+
+    expect(container.querySelector('.leave-history-withdraw-confirm-modal')).toBeNull()
+    expect(container.querySelector('.leave-history-details-modal')).not.toBeNull()
+    expect(withdrawLeaveRequestMock).not.toHaveBeenCalled()
+    cleanup()
+  })
+
+  it('calls withdrawLeaveRequest with the active workspace and leave request ids', async () => {
+    fetchEmployeeLeaveHistoryMock.mockResolvedValueOnce(LEAVE_HISTORY)
+    fetchEmployeeLeaveHistoryMock.mockResolvedValueOnce(LEAVE_HISTORY)
+    const { container, cleanup } = renderModal()
+
+    await loadHistory(container)
+    await openPendingHistoryDetails(container)
+    await openWithdrawConfirmation(container)
+    await confirmWithdraw(container)
+
+    expect(withdrawLeaveRequestMock).toHaveBeenCalledWith(WORKSPACE_ID, PENDING_LEAVE_ID)
+    cleanup()
+  })
+
+  it('prevents duplicate withdraw calls on rapid confirm clicks', async () => {
+    let resolveWithdraw
+    withdrawLeaveRequestMock.mockImplementation(() => new Promise((resolve) => {
+      resolveWithdraw = resolve
+    }))
+    fetchEmployeeLeaveHistoryMock.mockResolvedValue(LEAVE_HISTORY)
+    const { container, cleanup } = renderModal()
+
+    await loadHistory(container)
+    await openPendingHistoryDetails(container)
+    await openWithdrawConfirmation(container)
+
+    const confirmButton = container.querySelector('.leave-history-withdraw-confirm-modal .primary-btn')
+
+    await act(async () => {
+      confirmButton?.click()
+      confirmButton?.click()
+    })
+
+    expect(withdrawLeaveRequestMock).toHaveBeenCalledTimes(1)
+
+    await act(async () => {
+      resolveWithdraw({
+        id: PENDING_LEAVE_ID,
+        workspaceId: WORKSPACE_ID,
+        employeeId: EMPLOYEE_ID,
+        status: 'cancelled',
+        leaveType: 'sick',
+        startDate: '2026-06-01',
+        endDate: '2026-06-02',
+      })
+      await Promise.resolve()
+    })
+
+    cleanup()
+  })
+
+  it('disables details and confirmation controls while withdrawal is running', async () => {
+    let resolveWithdraw
+    withdrawLeaveRequestMock.mockImplementation(() => new Promise((resolve) => {
+      resolveWithdraw = resolve
+    }))
+    fetchEmployeeLeaveHistoryMock.mockResolvedValue(LEAVE_HISTORY)
+    const { container, cleanup } = renderModal()
+
+    await loadHistory(container)
+    await openPendingHistoryDetails(container)
+    await openWithdrawConfirmation(container)
+
+    await act(async () => {
+      container.querySelector('.leave-history-withdraw-confirm-modal .primary-btn')?.click()
+    })
+
+    expect(container.querySelector('.leave-history-withdraw-confirm-modal .primary-btn')?.textContent)
+      .toBe('Withdrawing…')
+    expect(container.querySelector('.leave-history-withdraw-confirm-modal .ghost-btn')?.disabled).toBe(true)
+    expect(container.querySelector('.leave-history-details-modal .icon-btn')?.disabled).toBe(true)
+    expect(container.querySelector('.leave-history-withdraw-btn')?.disabled).toBe(true)
+
+    await act(async () => {
+      resolveWithdraw({
+        id: PENDING_LEAVE_ID,
+        workspaceId: WORKSPACE_ID,
+        employeeId: EMPLOYEE_ID,
+        status: 'cancelled',
+        leaveType: 'sick',
+        startDate: '2026-06-01',
+        endDate: '2026-06-02',
+      })
+      await Promise.resolve()
+    })
+
+    cleanup()
+  })
+
+  it('refreshes leave history after a successful withdrawal', async () => {
+    fetchEmployeeLeaveHistoryMock.mockResolvedValueOnce(LEAVE_HISTORY)
+    fetchEmployeeLeaveHistoryMock.mockResolvedValueOnce(LEAVE_HISTORY)
+    const { container, cleanup } = renderModal()
+
+    await loadHistory(container)
+    await openPendingHistoryDetails(container)
+    await openWithdrawConfirmation(container)
+    await confirmWithdraw(container)
+
+    expect(fetchEmployeeLeaveHistoryMock).toHaveBeenCalledTimes(2)
+    expect(fetchEmployeeLeaveHistoryMock).toHaveBeenNthCalledWith(1, WORKSPACE_ID, EMPLOYEE_ID)
+    expect(fetchEmployeeLeaveHistoryMock).toHaveBeenNthCalledWith(2, WORKSPACE_ID, EMPLOYEE_ID)
+    cleanup()
+  })
+
+  it('shows a success banner after a successful withdrawal', async () => {
+    fetchEmployeeLeaveHistoryMock.mockResolvedValueOnce(LEAVE_HISTORY)
+    fetchEmployeeLeaveHistoryMock.mockResolvedValueOnce(LEAVE_HISTORY)
+    const { container, cleanup } = renderModal()
+
+    await loadHistory(container)
+    await openPendingHistoryDetails(container)
+    await openWithdrawConfirmation(container)
+    await confirmWithdraw(container)
+
+    await act(async () => {
+      await Promise.resolve()
+    })
+
+    expect(container.querySelector('.leave-history-panel .auth-banner-success')?.textContent)
+      .toBe('Leave request withdrawn.')
+    cleanup()
+  })
+
+  it('closes leave history details after a successful withdrawal', async () => {
+    fetchEmployeeLeaveHistoryMock.mockResolvedValueOnce(LEAVE_HISTORY)
+    fetchEmployeeLeaveHistoryMock.mockResolvedValueOnce(LEAVE_HISTORY)
+    const { container, cleanup } = renderModal()
+
+    await loadHistory(container)
+    await openPendingHistoryDetails(container)
+    await openWithdrawConfirmation(container)
+    await confirmWithdraw(container)
+
+    await act(async () => {
+      await Promise.resolve()
+    })
+
+    expect(container.querySelector('.leave-history-details-modal')).toBeNull()
+    expect(container.querySelector('.leave-history-withdraw-confirm-modal')).toBeNull()
+    cleanup()
+  })
+
+  it('shows a friendly error banner and keeps details open when withdrawal fails', async () => {
+    withdrawLeaveRequestMock.mockRejectedValue(
+      new Error('You can only withdraw your own pending leave requests.'),
+    )
+    fetchEmployeeLeaveHistoryMock.mockResolvedValue(LEAVE_HISTORY)
+    const { container, cleanup } = renderModal()
+
+    await loadHistory(container)
+    await openPendingHistoryDetails(container)
+    await openWithdrawConfirmation(container)
+    await confirmWithdraw(container)
+
+    expect(container.querySelector('.leave-history-details-modal .staff-status-banner')?.textContent)
+      .toBe('You can only withdraw your own pending leave requests.')
+    expect(container.querySelector('.leave-history-details-modal')).not.toBeNull()
+    expect(container.querySelector('.leave-history-withdraw-confirm-modal')).toBeNull()
+    expect(container.querySelector('.leave-history-withdraw-btn')?.disabled).toBe(false)
+    cleanup()
+  })
+
+  it('does not refresh leave history when withdrawal fails', async () => {
+    withdrawLeaveRequestMock.mockRejectedValue(new Error('Unable to withdraw the leave request right now.'))
+    fetchEmployeeLeaveHistoryMock.mockResolvedValue(LEAVE_HISTORY)
+    const { container, cleanup } = renderModal()
+
+    await loadHistory(container)
+    await openPendingHistoryDetails(container)
+    await openWithdrawConfirmation(container)
+    await confirmWithdraw(container)
+
+    expect(fetchEmployeeLeaveHistoryMock).toHaveBeenCalledTimes(1)
+    cleanup()
+  })
+
+  it('keeps the existing leave history loading behavior unchanged after withdrawal wiring', async () => {
+    fetchEmployeeLeaveHistoryMock.mockResolvedValue(LEAVE_HISTORY)
+    const { container, cleanup } = renderModal()
+
+    await loadHistory(container)
+
+    expect(fetchEmployeeLeaveHistoryMock).toHaveBeenCalledWith(WORKSPACE_ID, EMPLOYEE_ID)
+    expect(container.querySelectorAll('.leave-history-row')).toHaveLength(2)
+    cleanup()
+  })
+
+  it('keeps the existing request submission flow unchanged after withdrawal wiring', async () => {
+    fetchEmployeeLeaveHistoryMock.mockResolvedValue(LEAVE_HISTORY)
+    const { container, cleanup } = renderModal()
+    fillValidForm(container)
+
+    await submitForm(container)
+
+    expect(requestLeaveMock).toHaveBeenCalledWith(WORKSPACE_ID, {
+      leaveType: 'vacation',
+      startDate: '2026-08-01',
+      endDate: '2026-08-05',
+      note: 'Family trip',
+    })
+    expect(withdrawLeaveRequestMock).not.toHaveBeenCalled()
+    cleanup()
+  })
+
+  it('does not call manager decision services during staff withdrawal', async () => {
+    fetchEmployeeLeaveHistoryMock.mockResolvedValueOnce(LEAVE_HISTORY)
+    fetchEmployeeLeaveHistoryMock.mockResolvedValueOnce(LEAVE_HISTORY)
+    const { container, cleanup } = renderModal()
+
+    await loadHistory(container)
+    await openPendingHistoryDetails(container)
+    await openWithdrawConfirmation(container)
+    await confirmWithdraw(container)
+
     expect(approveLeaveRequestMock).not.toHaveBeenCalled()
     expect(rejectLeaveRequestMock).not.toHaveBeenCalled()
     cleanup()
