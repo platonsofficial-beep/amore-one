@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { validateLeaveDates } from '../../lib/leave/leaveValidation'
 import { fetchPendingLeaveForWorkspace } from '../../services/leaveService'
+import { ManagerLeaveDetailsDrawer } from './ManagerLeaveDetailsDrawer'
 
 function formatLeaveTypeLabel(leaveType) {
   const normalized = `${leaveType ?? ''}`.trim().toLowerCase()
@@ -46,7 +47,15 @@ function buildInboxRows(pendingLeave = [], employees = []) {
     durationLabel: formatDurationLabel(entry.startDate, entry.endDate),
     submittedDate: formatSubmittedDate(entry.createdAt),
     statusLabel: 'Pending',
+    note: `${entry.note ?? ''}`.trim(),
   }))
+}
+
+function handleLeaveRowKeyDown(event, row, onSelectLeave) {
+  if (event.key !== 'Enter' && event.key !== ' ') return
+
+  event.preventDefault()
+  onSelectLeave(row)
 }
 
 export function ManagerLeaveInbox({
@@ -56,6 +65,7 @@ export function ManagerLeaveInbox({
   const [pendingLeave, setPendingLeave] = useState([])
   const [isLoading, setIsLoading] = useState(true)
   const [errorMessage, setErrorMessage] = useState('')
+  const [selectedLeave, setSelectedLeave] = useState(null)
 
   useEffect(() => {
     const normalizedWorkspaceId = `${workspaceId ?? ''}`.trim()
@@ -124,6 +134,15 @@ export function ManagerLeaveInbox({
           padding: 0.875rem 1rem;
         }
 
+        .manager-leave-inbox-row.is-actionable {
+          cursor: pointer;
+        }
+
+        .manager-leave-inbox-row.is-actionable:focus-visible {
+          outline: 2px solid var(--focus-ring, #7aa2ff);
+          outline-offset: 2px;
+        }
+
         .manager-leave-inbox-row-top {
           display: flex;
           align-items: flex-start;
@@ -190,7 +209,14 @@ export function ManagerLeaveInbox({
         <ul className="manager-leave-inbox-list">
           {rows.map((row) => (
             <li key={row.key}>
-              <article className="manager-leave-inbox-row">
+              <article
+                className="manager-leave-inbox-row is-actionable"
+                role="button"
+                tabIndex={0}
+                aria-label={`View leave request for ${row.employeeName}`}
+                onClick={() => setSelectedLeave(row)}
+                onKeyDown={(event) => handleLeaveRowKeyDown(event, row, setSelectedLeave)}
+              >
                 <div className="manager-leave-inbox-row-top">
                   <h4 className="manager-leave-inbox-employee">{row.employeeName}</h4>
                   <span className="status-pill pending">{row.statusLabel}</span>
@@ -225,6 +251,11 @@ export function ManagerLeaveInbox({
           ))}
         </ul>
       ) : null}
+
+      <ManagerLeaveDetailsDrawer
+        leaveDetail={selectedLeave}
+        onClose={() => setSelectedLeave(null)}
+      />
     </section>
   )
 }

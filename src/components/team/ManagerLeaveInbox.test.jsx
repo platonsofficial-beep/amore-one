@@ -30,7 +30,22 @@ const PENDING_LEAVE = [
     status: 'pending',
     startDate: '2026-08-01',
     endDate: '2026-08-05',
+    note: 'Family trip abroad',
     createdAt: '2026-07-20T09:15:00.000Z',
+  },
+]
+
+const PENDING_LEAVE_WITHOUT_NOTE = [
+  {
+    id: 'leave-2',
+    workspaceId: WORKSPACE_ID,
+    employeeId: 'emp-2',
+    leaveType: 'sick',
+    status: 'pending',
+    startDate: '2026-08-10',
+    endDate: '2026-08-11',
+    note: '',
+    createdAt: '2026-07-21T11:00:00.000Z',
   },
 ]
 
@@ -220,6 +235,152 @@ describe('ManagerLeaveInbox', () => {
     expect(container.querySelector('.team-people-page')).not.toBeNull()
     expect(container.querySelector('.team-people-add-btn')?.textContent).toContain('Add Employee')
     expect(container.querySelectorAll('.team-people-card')).toHaveLength(2)
+    cleanup()
+  })
+})
+
+describe('ManagerLeaveDetailsDrawer', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    fetchPendingLeaveMock.mockResolvedValue(PENDING_LEAVE)
+  })
+
+  async function openDrawer(container) {
+    await act(async () => {
+      await Promise.resolve()
+    })
+
+    await act(async () => {
+      container.querySelector('.manager-leave-inbox-row')?.click()
+    })
+  }
+
+  it('opens the drawer from a pending leave row click', async () => {
+    const { container, cleanup } = renderInbox()
+
+    await openDrawer(container)
+
+    expect(container.querySelector('.manager-leave-details-drawer')).not.toBeNull()
+    cleanup()
+  })
+
+  it('closes the drawer from the close button, backdrop, and Escape', async () => {
+    const { container, cleanup } = renderInbox()
+
+    await openDrawer(container)
+    expect(container.querySelector('.manager-leave-details-drawer')).not.toBeNull()
+
+    await act(async () => {
+      container.querySelector('.manager-leave-details-drawer .icon-btn')?.click()
+    })
+    expect(container.querySelector('.manager-leave-details-drawer')).toBeNull()
+
+    await openDrawer(container)
+    await act(async () => {
+      container.querySelector('.drawer-backdrop')?.click()
+    })
+    expect(container.querySelector('.manager-leave-details-drawer')).toBeNull()
+
+    await openDrawer(container)
+    await act(async () => {
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))
+    })
+    expect(container.querySelector('.manager-leave-details-drawer')).toBeNull()
+
+    cleanup()
+  })
+
+  it('renders the correct leave information in the drawer', async () => {
+    const { container, cleanup } = renderInbox()
+
+    await openDrawer(container)
+
+    const drawer = container.querySelector('.manager-leave-details-drawer')
+    expect(drawer?.textContent).toContain('Alex Rivera')
+    expect(drawer?.textContent).toContain('Vacation')
+    expect(drawer?.textContent).toContain('2026-08-01')
+    expect(drawer?.textContent).toContain('2026-08-05')
+    expect(drawer?.textContent).toContain('5 days')
+    expect(drawer?.textContent).toContain('2026-07-20')
+    cleanup()
+  })
+
+  it('displays the note when one is present', async () => {
+    const { container, cleanup } = renderInbox()
+
+    await openDrawer(container)
+
+    expect(container.querySelector('.manager-leave-details-drawer')?.textContent)
+      .toContain('Family trip abroad')
+    cleanup()
+  })
+
+  it('shows the muted placeholder when no note is provided', async () => {
+    fetchPendingLeaveMock.mockResolvedValue(PENDING_LEAVE_WITHOUT_NOTE)
+    const { container, cleanup } = renderInbox()
+
+    await openDrawer(container)
+
+    const note = container.querySelector('.manager-leave-details-drawer-note')
+    expect(note?.textContent).toBe('No note provided.')
+    expect(note?.className).toContain('is-empty')
+    cleanup()
+  })
+
+  it('renders a pending badge in the drawer', async () => {
+    const { container, cleanup } = renderInbox()
+
+    await openDrawer(container)
+
+    const badge = container.querySelector('.manager-leave-details-drawer .status-pill.pending')
+    expect(badge?.textContent).toBe('Pending')
+    cleanup()
+  })
+
+  it('does not render approve, reject, cancel, or edit actions in the drawer', async () => {
+    const { container, cleanup } = renderInbox()
+
+    await openDrawer(container)
+
+    const drawer = container.querySelector('.manager-leave-details-drawer')
+    expect(drawer?.querySelector('.primary-btn')).toBeNull()
+    expect(drawer?.querySelector('.ghost-btn')).toBeNull()
+    expect(drawer?.textContent).not.toMatch(/approve|reject|cancel|edit|delete/i)
+    cleanup()
+  })
+
+  it('keeps existing inbox list behavior unchanged after adding the drawer', async () => {
+    const { container, cleanup } = renderInbox()
+
+    await act(async () => {
+      await Promise.resolve()
+    })
+
+    expect(container.querySelector('.manager-leave-inbox-list')).not.toBeNull()
+    expect(container.querySelectorAll('.manager-leave-inbox-row')).toHaveLength(1)
+    expect(fetchPendingLeaveMock).toHaveBeenCalledTimes(1)
+    cleanup()
+  })
+
+  it('maintains manager-only inbox visibility through Team People', async () => {
+    const hidden = renderTeamPeople({ showLeaveInbox: false })
+    await act(async () => { await Promise.resolve() })
+    expect(hidden.container.querySelector('.manager-leave-inbox')).toBeNull()
+    hidden.cleanup()
+
+    const visible = renderTeamPeople({ showLeaveInbox: true })
+    await act(async () => { await Promise.resolve() })
+    expect(visible.container.querySelector('.manager-leave-inbox')).not.toBeNull()
+    visible.cleanup()
+  })
+
+  it('does not perform any write operations when opening the drawer', async () => {
+    const { container, cleanup } = renderInbox()
+
+    await openDrawer(container)
+
+    expect(fetchPendingLeaveMock).toHaveBeenCalledTimes(1)
+    expect(fetchPendingLeaveMock.mock.calls.every((call) => call.length === 1)).toBe(true)
     cleanup()
   })
 })
