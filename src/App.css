@@ -16191,14 +16191,14 @@
 }
 
 .schedule-day-grid .blend-grid-header-day {
-  min-height: 58px;
-  height: 58px;
+  min-height: 52px;
+  height: 52px;
   box-sizing: border-box;
 }
 
 .schedule-day-grid {
   column-gap: 6px;
-  row-gap: 6px;
+  row-gap: 5px;
 }
 
 .schedule-day-grid.is-fluid-day-columns {
@@ -16219,7 +16219,7 @@
 }
 
 .schedule-day-status-label {
-  font-size: 0.64rem;
+  font-size: 0.58rem;
   font-weight: 700;
   letter-spacing: 0.03em;
   line-height: 1.2;
@@ -16249,14 +16249,14 @@
 .schedule-day-cell {
   display: flex;
   flex-direction: column;
-  gap: 7px;
-  min-height: 90px;
+  gap: 6px;
+  min-height: 82px;
 }
 
 .schedule-shift-instance-card {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 5px;
   min-height: 0;
 }
 
@@ -16264,13 +16264,13 @@
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 6px;
+  gap: 5px;
 }
 
 .schedule-shift-instance-copy {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 1px;
   min-width: 0;
 }
 
@@ -16278,9 +16278,9 @@
   display: block;
   margin: 0;
   color: #c89d42;
-  font-size: 0.62rem;
+  font-size: 0.56rem;
   font-weight: 700;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.09em;
   text-transform: uppercase;
   line-height: 1.2;
 }
@@ -16288,7 +16288,7 @@
 .schedule-shift-instance-name {
   margin: 0;
   color: #fff7e8;
-  font-size: 0.9rem;
+  font-size: 0.82rem;
   font-weight: 700;
   line-height: 1.2;
   letter-spacing: 0.01em;
@@ -16297,7 +16297,7 @@
 .schedule-shift-instance-time {
   margin: 0;
   color: #b8aa94;
-  font-size: 0.74rem;
+  font-size: 0.68rem;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
   line-height: 1.25;
@@ -16307,14 +16307,14 @@
   display: flex;
   align-items: center;
   margin: 0;
-  padding: 5px 8px;
-  border-radius: 8px;
+  padding: 4px 7px;
+  border-radius: 7px;
   border: 1px solid rgba(255, 255, 255, 0.05);
   background: rgba(255, 255, 255, 0.025);
   color: #d4c5ad;
-  font-size: 0.76rem;
+  font-size: 0.7rem;
   font-weight: 700;
-  line-height: 1.3;
+  line-height: 1.25;
 }
 
 .schedule-shift-staff-ratio-value {
@@ -16404,7 +16404,7 @@
 .schedule-shift-assigned-block {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 5px;
 }
 
 .schedule-shift-assigned-list {
@@ -16413,7 +16413,7 @@
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: 2px;
   min-width: 0;
   max-width: 100%;
 }
@@ -16429,10 +16429,10 @@
   max-width: 100%;
   min-width: 0;
   box-sizing: border-box;
-  min-height: 36px;
-  padding: 6px 10px;
+  min-height: 32px;
+  padding: 5px 8px;
   border: 1px solid rgba(255, 255, 255, 0.07);
-  border-radius: 8px;
+  border-radius: 7px;
   background: rgba(255, 255, 255, 0.04);
   color: #f7efe1;
   font-size: 0.76rem;
@@ -16524,9 +16524,9 @@
 
 .schedule-shift-coverage-status {
   margin: 0;
-  padding: 6px 2px 2px;
+  padding: 5px 2px 1px;
   border-top: 1px solid rgba(255, 255, 255, 0.06);
-  font-size: 0.74rem;
+  font-size: 0.68rem;
   font-weight: 700;
   letter-spacing: 0.03em;
   line-height: 1.25;
@@ -16557,12 +16557,12 @@
   width: 100%;
   min-width: 44px;
   min-height: 44px;
-  padding: 8px 10px;
+  padding: 6px 9px;
   border: 1px dashed rgba(212, 175, 55, 0.22);
-  border-radius: 8px;
+  border-radius: 7px;
   background: rgba(255, 255, 255, 0.02);
   color: #c9beb0;
-  font-size: 0.76rem;
+  font-size: 0.7rem;
   font-weight: 600;
   cursor: pointer;
   transition:
@@ -17416,15 +17416,15 @@
 .schedule-template-area-group-header {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 7px;
   width: 100%;
   min-height: 44px;
-  padding: 8px 12px;
+  padding: 7px 10px;
   border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 10px;
+  border-radius: 9px;
   background: rgba(255, 255, 255, 0.04);
   color: #d6b26a;
-  font-size: 0.78rem;
+  font-size: 0.72rem;
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -20560,10 +20560,10 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   display: flex;
   flex-direction: column;
   justify-content: center;
-  gap: 3px;
+  gap: 2px;
   align-items: flex-start;
   text-align: left;
-  padding: 6px 32px 6px 9px;
+  padding: 5px 30px 5px 8px;
   width: 100%;
   height: 100%;
   min-height: 0;
@@ -20598,7 +20598,7 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 }
 
 .blend-grid-header-day-name {
-  font-size: 0.9rem;
+  font-size: 0.82rem;
   letter-spacing: 0.05em;
   color: #fff7e8;
   font-weight: 800;
@@ -20614,7 +20614,7 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 }
 
 .blend-grid-header-day-date {
-  font-size: 0.62rem;
+  font-size: 0.58rem;
   color: #8f8778;
   line-height: 1.15;
   letter-spacing: 0.05em;
@@ -21209,20 +21209,20 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 }
 
 .blend-grid-assignment-cell.schedule-shift-instance-card {
-  padding: 7px 8px;
+  padding: 6px 7px;
   min-height: 0;
-  gap: 7px;
+  gap: 6px;
 }
 
 .blend-grid-assignment-cell {
-  border-radius: 12px;
+  border-radius: 10px;
   border: 1px solid rgba(255, 255, 255, 0.06);
   background: rgba(255, 255, 255, 0.03);
-  padding: 11px 13px;
-  min-height: 96px;
+  padding: 10px 11px;
+  min-height: 86px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 7px;
   cursor: pointer;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03), 0 1px 3px rgba(0, 0, 0, 0.08);
   transition: border-color 180ms ease, background 180ms ease, box-shadow 180ms ease, filter 180ms ease;
