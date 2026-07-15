@@ -26,28 +26,28 @@ export function SeatingConfirmPanel({
   seating = null,
 }) {
   const { layout } = usePublishedFloorPlan()
-  if (!reservation) return null
-  if (variant !== 'host-drawer' && selectedUnitIds.length === 0) return null
 
   const assignedUnits = selectedUnitIds
     .map((unitId) => toSeatingUnitFromLayoutUnit(getHostUnitById(unitId, layout)))
     .filter(Boolean)
 
+  const partySize = reservation?.guests ?? 0
+
   const draftAssignment = buildSeatingAssignment({
     assignedUnits,
     extraChairs,
     standingGuests,
-    partySize: reservation.guests,
+    partySize,
   })
 
-  const totals = computeSeatingAssignmentTotals(draftAssignment, reservation.guests)
+  const totals = computeSeatingAssignmentTotals(draftAssignment, partySize)
   const canUseStanding = assignmentAllowsStanding(draftAssignment)
   const unitLabels = formatSeatingAssignmentLabels(draftAssignment)
   const drawerLabels = formatSeatingAssignmentDrawerLabels(draftAssignment)
   const isHostDrawer = variant === 'host-drawer'
   const hasSelection = assignedUnits.length > 0
   const chairsNeeded = Math.max(0, totals.capacityGap)
-  const timeLabel = formatTime24(reservation.time)
+  const timeLabel = reservation ? formatTime24(reservation.time) : ''
   const normalizedSeating = seating
     ? (normalizeReservationSeating(seating) ?? normalizeReservationSeatingInput(seating))
     : null
@@ -66,6 +66,9 @@ export function SeatingConfirmPanel({
     totals.isOverCapacity,
     drawerLabels,
   ])
+
+  if (!reservation) return null
+  if (variant !== 'host-drawer' && selectedUnitIds.length === 0) return null
 
   if (isHostDrawer) {
     return (
