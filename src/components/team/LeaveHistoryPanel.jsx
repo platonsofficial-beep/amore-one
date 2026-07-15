@@ -3,6 +3,7 @@ import { useAuth } from '../../context/AuthContext'
 import { LEAVE_STATUS } from '../../lib/leave/leaveConstants'
 import { validateLeaveDates } from '../../lib/leave/leaveValidation'
 import { fetchEmployeeLeaveHistory } from '../../services/leaveService'
+import { LeaveHistoryDetailsModal } from './LeaveHistoryDetailsModal'
 
 function formatLeaveTypeLabel(leaveType) {
   const normalized = `${leaveType ?? ''}`.trim().toLowerCase()
@@ -59,6 +60,13 @@ function buildHistoryRowKey(entry) {
   ].join('-')
 }
 
+function handleHistoryRowKeyDown(event, entry, onSelectEntry) {
+  if (event.key !== 'Enter' && event.key !== ' ') return
+
+  event.preventDefault()
+  onSelectEntry(entry)
+}
+
 export function LeaveHistoryPanel({
   workspaceId = '',
   isActive = true,
@@ -69,6 +77,7 @@ export function LeaveHistoryPanel({
   const [records, setRecords] = useState([])
   const [isLoading, setIsLoading] = useState(false)
   const [errorMessage, setErrorMessage] = useState('')
+  const [selectedEntry, setSelectedEntry] = useState(null)
   const historyRequestIdRef = useRef(0)
 
   const loadHistory = useCallback(async () => {
@@ -137,6 +146,15 @@ export function LeaveHistoryPanel({
           border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.08));
           border-radius: 12px;
           padding: 0.875rem 1rem;
+        }
+
+        .leave-history-row.is-actionable {
+          cursor: pointer;
+        }
+
+        .leave-history-row.is-actionable:focus-visible {
+          outline: 2px solid var(--focus-ring, #7aa2ff);
+          outline-offset: 2px;
         }
 
         .leave-history-row-top {
@@ -231,7 +249,14 @@ export function LeaveHistoryPanel({
 
             return (
               <li key={buildHistoryRowKey(entry)}>
-                <article className="leave-history-row">
+                <article
+                  className="leave-history-row is-actionable"
+                  role="button"
+                  tabIndex={0}
+                  aria-label={`View leave request details for ${formatLeaveTypeLabel(entry.leaveType)}`}
+                  onClick={() => setSelectedEntry(entry)}
+                  onKeyDown={(event) => handleHistoryRowKeyDown(event, entry, setSelectedEntry)}
+                >
                   <div className="leave-history-row-top">
                     <h5 className="leave-history-leave-type">{formatLeaveTypeLabel(entry.leaveType)}</h5>
                     <span className={`status-pill ${resolveStatusPillClass(entry.status)}`}>
@@ -267,6 +292,11 @@ export function LeaveHistoryPanel({
           })}
         </ul>
       ) : null}
+
+      <LeaveHistoryDetailsModal
+        entry={selectedEntry}
+        onClose={() => setSelectedEntry(null)}
+      />
     </section>
   )
 }

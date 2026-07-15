@@ -38,6 +38,8 @@ const LEAVE_HISTORY = [
     endDate: '2026-08-05',
     note: 'Family trip',
     createdAt: '2026-07-20T10:00:00.000Z',
+    decidedAt: '2026-07-21T14:00:00.000Z',
+    decisionNote: '',
   },
   {
     id: 'leave-old',
@@ -49,8 +51,43 @@ const LEAVE_HISTORY = [
     endDate: '2026-06-02',
     note: '',
     createdAt: '2026-05-15T09:00:00.000Z',
+    decidedAt: null,
+    decisionNote: '',
   },
 ]
+
+const REJECTED_LEAVE = {
+  id: 'leave-rejected',
+  workspaceId: WORKSPACE_ID,
+  employeeId: EMPLOYEE_ID,
+  leaveType: 'personal',
+  status: 'rejected',
+  startDate: '2026-05-10',
+  endDate: '2026-05-11',
+  note: 'Doctor appointment',
+  createdAt: '2026-05-01T08:00:00.000Z',
+  decidedAt: '2026-05-02T16:30:00.000Z',
+  decisionNote: 'Coverage unavailable',
+}
+
+const REJECTED_LEAVE_EMPTY_REASON = {
+  ...REJECTED_LEAVE,
+  decisionNote: '',
+}
+
+const CANCELLED_LEAVE = {
+  id: 'leave-cancelled',
+  workspaceId: WORKSPACE_ID,
+  employeeId: EMPLOYEE_ID,
+  leaveType: 'unpaid',
+  status: 'cancelled',
+  startDate: '2026-04-01',
+  endDate: '2026-04-02',
+  note: '',
+  createdAt: '2026-03-28T12:00:00.000Z',
+  decidedAt: '2026-03-29T09:15:00.000Z',
+  decisionNote: '',
+}
 
 function setNativeValue(element, value) {
   const prototype = Object.getPrototypeOf(element)
@@ -132,8 +169,22 @@ function fillValidForm(container) {
 
 async function submitForm(container) {
   await act(async () => {
-    container.querySelector('.primary-btn')?.click()
+    container.querySelector('.request-leave-modal-footer .primary-btn')?.click()
     await Promise.resolve()
+  })
+}
+
+async function loadHistory(container) {
+  await act(async () => {
+    await Promise.resolve()
+  })
+}
+
+async function openHistoryDetails(container, rowIndex = 0) {
+  const rows = container.querySelectorAll('.leave-history-row.is-actionable')
+
+  await act(async () => {
+    rows[rowIndex]?.click()
   })
 }
 
@@ -616,9 +667,7 @@ describe('RequestLeave staff UI', () => {
     const { container, cleanup } = renderModal()
     fillValidForm(container)
 
-    await act(async () => {
-      await Promise.resolve()
-    })
+    await loadHistory(container)
 
     await submitForm(container)
 
@@ -629,6 +678,260 @@ describe('RequestLeave staff UI', () => {
       note: 'Family trip',
     })
     expect(container.textContent).toContain('Leave request submitted and pending approval.')
+    cleanup()
+  })
+
+  it('opens leave history details from a row click', async () => {
+    fetchEmployeeLeaveHistoryMock.mockResolvedValue(LEAVE_HISTORY)
+    const { container, cleanup } = renderModal()
+
+    await loadHistory(container)
+    await openHistoryDetails(container, 0)
+
+    expect(container.querySelector('.leave-history-details-modal')).not.toBeNull()
+    expect(container.textContent).toContain('Leave request details')
+    cleanup()
+  })
+
+  it('opens leave history details from Enter on a row', async () => {
+    fetchEmployeeLeaveHistoryMock.mockResolvedValue(LEAVE_HISTORY)
+    const { container, cleanup } = renderModal()
+
+    await loadHistory(container)
+
+    const row = container.querySelector('.leave-history-row.is-actionable')
+    await act(async () => {
+      row?.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }))
+    })
+
+    expect(container.querySelector('.leave-history-details-modal')).not.toBeNull()
+    cleanup()
+  })
+
+  it('opens leave history details from Space on a row', async () => {
+    fetchEmployeeLeaveHistoryMock.mockResolvedValue(LEAVE_HISTORY)
+    const { container, cleanup } = renderModal()
+
+    await loadHistory(container)
+
+    const row = container.querySelector('.leave-history-row.is-actionable')
+    await act(async () => {
+      row?.dispatchEvent(new KeyboardEvent('keydown', { key: ' ', bubbles: true }))
+    })
+
+    expect(container.querySelector('.leave-history-details-modal')).not.toBeNull()
+    cleanup()
+  })
+
+  it('closes leave history details from the close button', async () => {
+    fetchEmployeeLeaveHistoryMock.mockResolvedValue(LEAVE_HISTORY)
+    const { container, cleanup } = renderModal()
+
+    await loadHistory(container)
+    await openHistoryDetails(container, 0)
+
+    await act(async () => {
+      container.querySelector('.leave-history-details-modal .icon-btn')?.click()
+    })
+
+    expect(container.querySelector('.leave-history-details-modal')).toBeNull()
+    expect(container.querySelector('.request-leave-modal')).not.toBeNull()
+    cleanup()
+  })
+
+  it('closes leave history details from the backdrop', async () => {
+    fetchEmployeeLeaveHistoryMock.mockResolvedValue(LEAVE_HISTORY)
+    const { container, cleanup } = renderModal()
+
+    await loadHistory(container)
+    await openHistoryDetails(container, 0)
+
+    await act(async () => {
+      container.querySelector('.leave-history-details-backdrop')?.click()
+    })
+
+    expect(container.querySelector('.leave-history-details-modal')).toBeNull()
+    expect(container.querySelector('.request-leave-modal')).not.toBeNull()
+    cleanup()
+  })
+
+  it('closes leave history details from Escape', async () => {
+    fetchEmployeeLeaveHistoryMock.mockResolvedValue(LEAVE_HISTORY)
+    const { container, cleanup } = renderModal()
+
+    await loadHistory(container)
+    await openHistoryDetails(container, 0)
+
+    await act(async () => {
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))
+    })
+
+    expect(container.querySelector('.leave-history-details-modal')).toBeNull()
+    expect(container.querySelector('.request-leave-modal')).not.toBeNull()
+    cleanup()
+  })
+
+  it('keeps the parent Request Leave modal and form state after closing details', async () => {
+    fetchEmployeeLeaveHistoryMock.mockResolvedValue(LEAVE_HISTORY)
+    const { container, cleanup } = renderModal()
+    fillValidForm(container)
+
+    await loadHistory(container)
+    await openHistoryDetails(container, 0)
+
+    await act(async () => {
+      container.querySelector('.leave-history-details-modal .icon-btn')?.click()
+    })
+
+    expect(container.querySelector('.request-leave-modal')).not.toBeNull()
+    expect(container.querySelector('select')?.value).toBe('vacation')
+    expect(container.querySelector('textarea')?.value).toBe('Family trip')
+    cleanup()
+  })
+
+  it('shows pending review copy in leave history details', async () => {
+    fetchEmployeeLeaveHistoryMock.mockResolvedValue([LEAVE_HISTORY[1]])
+    const { container, cleanup } = renderModal()
+
+    await loadHistory(container)
+    await openHistoryDetails(container, 0)
+
+    expect(container.querySelector('.leave-history-details-modal .status-pill.pending')?.textContent)
+      .toBe('Pending')
+    expect(container.textContent).toContain('Awaiting manager review.')
+    cleanup()
+  })
+
+  it('shows approved leave history details without a rejection reason', async () => {
+    fetchEmployeeLeaveHistoryMock.mockResolvedValue([LEAVE_HISTORY[0]])
+    const { container, cleanup } = renderModal()
+
+    await loadHistory(container)
+    await openHistoryDetails(container, 0)
+
+    expect(container.querySelector('.leave-history-details-modal .status-pill.approved')?.textContent)
+      .toBe('Approved')
+    expect(container.textContent).toContain('Decision date')
+    expect(container.textContent).toContain('2026-07-21')
+    expect(container.textContent).not.toContain('Rejection reason')
+    cleanup()
+  })
+
+  it('shows the full rejection reason in rejected leave history details', async () => {
+    fetchEmployeeLeaveHistoryMock.mockResolvedValue([REJECTED_LEAVE])
+    const { container, cleanup } = renderModal()
+
+    await loadHistory(container)
+    await openHistoryDetails(container, 0)
+
+    expect(container.querySelector('.leave-history-details-modal .status-pill.rejected')?.textContent)
+      .toBe('Rejected')
+    expect(container.textContent).toContain('Coverage unavailable')
+    expect(container.textContent).toContain('2026-05-02')
+    cleanup()
+  })
+
+  it('shows the rejection reason fallback when the decision note is empty', async () => {
+    fetchEmployeeLeaveHistoryMock.mockResolvedValue([REJECTED_LEAVE_EMPTY_REASON])
+    const { container, cleanup } = renderModal()
+
+    await loadHistory(container)
+    await openHistoryDetails(container, 0)
+
+    expect(container.textContent).toContain('No rejection reason provided.')
+    cleanup()
+  })
+
+  it('renders cancelled leave history details correctly', async () => {
+    fetchEmployeeLeaveHistoryMock.mockResolvedValue([CANCELLED_LEAVE])
+    const { container, cleanup } = renderModal()
+
+    await loadHistory(container)
+    await openHistoryDetails(container, 0)
+
+    expect(container.querySelector('.leave-history-details-modal .status-pill.cancelled')?.textContent)
+      .toBe('Cancelled')
+    expect(container.textContent).toContain('2026-03-29')
+    cleanup()
+  })
+
+  it('shows the employee note in leave history details when present', async () => {
+    fetchEmployeeLeaveHistoryMock.mockResolvedValue([REJECTED_LEAVE])
+    const { container, cleanup } = renderModal()
+
+    await loadHistory(container)
+    await openHistoryDetails(container, 0)
+
+    expect(container.textContent).toContain('Doctor appointment')
+    cleanup()
+  })
+
+  it('shows the empty employee note placeholder in leave history details', async () => {
+    fetchEmployeeLeaveHistoryMock.mockResolvedValue([LEAVE_HISTORY[1]])
+    const { container, cleanup } = renderModal()
+
+    await loadHistory(container)
+    await openHistoryDetails(container, 0)
+
+    const details = container.querySelector('.leave-history-details-modal')
+    expect(details?.textContent).toContain('No note provided.')
+    cleanup()
+  })
+
+  it('shows the decision date only when it is available', async () => {
+    fetchEmployeeLeaveHistoryMock.mockResolvedValue([
+      {
+        ...LEAVE_HISTORY[1],
+        status: 'approved',
+        decidedAt: null,
+      },
+    ])
+    const { container, cleanup } = renderModal()
+
+    await loadHistory(container)
+    await openHistoryDetails(container, 0)
+
+    expect(container.textContent).not.toContain('Decision date')
+    cleanup()
+  })
+
+  it('does not render internal ids or actor metadata in leave history details', async () => {
+    fetchEmployeeLeaveHistoryMock.mockResolvedValue([REJECTED_LEAVE])
+    const { container, cleanup } = renderModal()
+
+    await loadHistory(container)
+    await openHistoryDetails(container, 0)
+
+    const detailsText = container.querySelector('.leave-history-details-modal')?.textContent ?? ''
+    expect(detailsText).not.toContain('leave-rejected')
+    expect(detailsText).not.toContain('emp-1')
+    expect(detailsText).not.toContain(WORKSPACE_ID)
+    expect(detailsText).not.toContain('decided_by')
+    expect(detailsText).not.toContain('created_by')
+    cleanup()
+  })
+
+  it('does not perform a second history fetch when opening details', async () => {
+    fetchEmployeeLeaveHistoryMock.mockResolvedValue(LEAVE_HISTORY)
+    const { container, cleanup } = renderModal()
+
+    await loadHistory(container)
+    await openHistoryDetails(container, 0)
+
+    expect(fetchEmployeeLeaveHistoryMock).toHaveBeenCalledTimes(1)
+    cleanup()
+  })
+
+  it('does not call write services when opening leave history details', async () => {
+    fetchEmployeeLeaveHistoryMock.mockResolvedValue(LEAVE_HISTORY)
+    const { container, cleanup } = renderModal()
+
+    await loadHistory(container)
+    await openHistoryDetails(container, 0)
+
+    expect(requestLeaveMock).not.toHaveBeenCalled()
+    expect(approveLeaveRequestMock).not.toHaveBeenCalled()
+    expect(rejectLeaveRequestMock).not.toHaveBeenCalled()
     cleanup()
   })
 })
