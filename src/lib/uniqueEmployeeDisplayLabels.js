@@ -3,8 +3,8 @@
  * full first name + shortest unique surname prefix.
  *
  * Comparison-only normalization: trim, collapse whitespace, case-fold,
- * and strip combining marks (accents/diacritics). Display preserves
- * original spelling and capitalization.
+ * and strip combining marks (accents/diacritics).
+ * Presentation: Proper Case first name + Proper Case surname prefix + ".".
  */
 
 function toCodePoints(value) {
@@ -49,9 +49,15 @@ function resolveEmployeeKey(employee, index) {
   return `__idx_${index}`
 }
 
+function toProperCaseWord(value) {
+  const points = toCodePoints(`${value ?? ''}`.trim())
+  if (points.length === 0) return ''
+  const [first, ...rest] = points
+  return `${first.toLocaleUpperCase()}${rest.join('').toLocaleLowerCase()}`
+}
+
 function buildLabel(firstName, surname, prefixLength) {
-  const safeFirst = `${firstName ?? ''}`.trim()
-  if (!safeFirst) return 'Staff'
+  const safeFirst = toProperCaseWord(firstName) || 'Staff'
 
   const surnamePoints = toCodePoints(surname)
   if (surnamePoints.length === 0 || prefixLength <= 0) {
@@ -59,8 +65,8 @@ function buildLabel(firstName, surname, prefixLength) {
   }
 
   const clamped = Math.min(prefixLength, surnamePoints.length)
-  const prefix = surnamePoints.slice(0, clamped).join('')
-  return `${safeFirst} ${prefix}`
+  const prefix = toProperCaseWord(surnamePoints.slice(0, clamped).join(''))
+  return `${safeFirst} ${prefix}.`
 }
 
 function resolvePrefixLengths(entries) {

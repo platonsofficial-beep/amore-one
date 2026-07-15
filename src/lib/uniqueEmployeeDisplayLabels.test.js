@@ -18,8 +18,22 @@ describe('uniqueEmployeeDisplayLabels', () => {
       'Evie Samaridi',
     ]))
 
-    expect(labels.get('emp-1')).toBe('Sofia V')
-    expect(labels.get('emp-2')).toBe('Evie S')
+    expect(labels.get('emp-1')).toBe('Sofia V.')
+    expect(labels.get('emp-2')).toBe('Evie S.')
+  })
+
+  it('formats ALL CAPS source names as Proper Case with surname period', () => {
+    const labels = buildUniqueEmployeeDisplayLabels(employeesFromNames([
+      'KONSTANTINOS PAPADOPOULOS',
+      'SOFIA VICTORATOU',
+      'EVIE SAMARIDI',
+      'LEFTERIS PSILOS',
+    ]))
+
+    expect(labels.get('emp-1')).toBe('Konstantinos P.')
+    expect(labels.get('emp-2')).toBe('Sofia V.')
+    expect(labels.get('emp-3')).toBe('Evie S.')
+    expect(labels.get('emp-4')).toBe('Lefteris P.')
   })
 
   it('disambiguates matching first names with different surname initials', () => {
@@ -28,8 +42,8 @@ describe('uniqueEmployeeDisplayLabels', () => {
       'Maria Stone',
     ]))
 
-    expect(labels.get('emp-1')).toBe('Maria Sm')
-    expect(labels.get('emp-2')).toBe('Maria St')
+    expect(labels.get('emp-1')).toBe('Maria Sm.')
+    expect(labels.get('emp-2')).toBe('Maria St.')
   })
 
   it('expands prefix when surname initials match', () => {
@@ -38,8 +52,8 @@ describe('uniqueEmployeeDisplayLabels', () => {
       'Maria Sandowski',
     ]))
 
-    expect(labels.get('emp-1')).toBe('Maria Sam')
-    expect(labels.get('emp-2')).toBe('Maria San')
+    expect(labels.get('emp-1')).toBe('Maria Sam.')
+    expect(labels.get('emp-2')).toBe('Maria San.')
   })
 
   it('distinguishes Παπαδόπουλος and Πασιόπουλος with shortest unique prefixes', () => {
@@ -48,8 +62,8 @@ describe('uniqueEmployeeDisplayLabels', () => {
       'Κωνσταντίνος Παπαδόπουλος',
     ]))
 
-    expect(labels.get('emp-1')).toBe('Κωνσταντίνος Πασ')
-    expect(labels.get('emp-2')).toBe('Κωνσταντίνος Παπ')
+    expect(labels.get('emp-1')).toBe('Κωνσταντίνος Πασ.')
+    expect(labels.get('emp-2')).toBe('Κωνσταντίνος Παπ.')
   })
 
   it('expands prefix only as far as necessary', () => {
@@ -59,8 +73,8 @@ describe('uniqueEmployeeDisplayLabels', () => {
     ]))
 
     // Length 4 distinguishes Ande vs Andr; length 5 is unnecessary.
-    expect(labels.get('emp-1')).toBe('Alex Ande')
-    expect(labels.get('emp-2')).toBe('Alex Andr')
+    expect(labels.get('emp-1')).toBe('Alex Ande.')
+    expect(labels.get('emp-2')).toBe('Alex Andr.')
   })
 
   it('supports three employees requiring different prefix lengths', () => {
@@ -70,20 +84,19 @@ describe('uniqueEmployeeDisplayLabels', () => {
       'Nikolaos Pappas',
     ]))
 
-    expect(labels.get('emp-1')).toBe('Nikolaos Papad')
-    expect(labels.get('emp-2')).toBe('Nikolaos Papat')
-    expect(labels.get('emp-3')).toBe('Nikolaos Papp')
+    expect(labels.get('emp-1')).toBe('Nikolaos Papad.')
+    expect(labels.get('emp-2')).toBe('Nikolaos Papat.')
+    expect(labels.get('emp-3')).toBe('Nikolaos Papp.')
   })
 
-  it('compares first names case-insensitively', () => {
+  it('compares first names case-insensitively and renders Proper Case', () => {
     const labels = buildUniqueEmployeeDisplayLabels(employeesFromNames([
       'maria stone',
       'MARIA SMITH',
     ]))
 
-    // Original casing is preserved in the displayed label.
-    expect(labels.get('emp-1')).toBe('maria st')
-    expect(labels.get('emp-2')).toBe('MARIA SM')
+    expect(labels.get('emp-1')).toBe('Maria St.')
+    expect(labels.get('emp-2')).toBe('Maria Sm.')
   })
 
   it('normalizes leading and trailing whitespace', () => {
@@ -92,8 +105,8 @@ describe('uniqueEmployeeDisplayLabels', () => {
       { id: 'b', name: '\tLefteris\tPsilos\n' },
     ])
 
-    expect(labels.get('a')).toBe('Sofia V')
-    expect(labels.get('b')).toBe('Lefteris P')
+    expect(labels.get('a')).toBe('Sofia V.')
+    expect(labels.get('b')).toBe('Lefteris P.')
     expect(splitEmployeeDisplayNameParts('  Sofia   Victoratou  ')).toEqual({
       firstName: 'Sofia',
       surname: 'Victoratou',
@@ -110,18 +123,18 @@ describe('uniqueEmployeeDisplayLabels', () => {
       'Νικος Παπαδόπουλος',
     ]))
 
-    expect(labels.get('emp-1')).toBe('Νίκος Πασ')
-    expect(labels.get('emp-2')).toBe('Νικος Παπ')
+    expect(labels.get('emp-1')).toBe('Νίκος Πασ.')
+    expect(labels.get('emp-2')).toBe('Νικος Παπ.')
   })
 
-  it('handles Latin names without altering original casing', () => {
+  it('handles Latin names with Proper Case presentation', () => {
     const labels = buildUniqueEmployeeDisplayLabels(employeesFromNames([
       'McKenzie OBrien',
       'Lefteris Psilos',
     ]))
 
-    expect(labels.get('emp-1')).toBe('McKenzie O')
-    expect(labels.get('emp-2')).toBe('Lefteris P')
+    expect(labels.get('emp-1')).toBe('Mckenzie O.')
+    expect(labels.get('emp-2')).toBe('Lefteris P.')
   })
 
   it('shows the full available name when surname is missing', () => {
@@ -131,7 +144,7 @@ describe('uniqueEmployeeDisplayLabels', () => {
     ]))
 
     expect(labels.get('emp-1')).toBe('Sofia')
-    expect(labels.get('emp-2')).toBe('Evie S')
+    expect(labels.get('emp-2')).toBe('Evie S.')
   })
 
   it('handles single-word employee names without fabricating initials', () => {
@@ -145,8 +158,8 @@ describe('uniqueEmployeeDisplayLabels', () => {
       'Maria Smith',
     ]))
 
-    expect(labels.get('emp-1')).toBe('Maria Smith')
-    expect(labels.get('emp-2')).toBe('Maria Smith')
+    expect(labels.get('emp-1')).toBe('Maria Smith.')
+    expect(labels.get('emp-2')).toBe('Maria Smith.')
   })
 
   it('does not mutate the input collection or employee objects', () => {
@@ -178,8 +191,8 @@ describe('uniqueEmployeeDisplayLabels', () => {
     ])
 
     // Shortest unique surname prefixes are Ri / Ro.
-    expect(labels.get('uuid-secret-99')).toBe('Alex Ri')
-    expect(labels.get('uuid-secret-12')).toBe('Alex Ro')
+    expect(labels.get('uuid-secret-99')).toBe('Alex Ri.')
+    expect(labels.get('uuid-secret-12')).toBe('Alex Ro.')
     expect(labels.get('uuid-secret-99')).not.toContain('uuid')
     expect(labels.get('uuid-secret-12')).not.toContain('12')
   })
