@@ -5,6 +5,7 @@ import { validateLeaveDates } from '../lib/leave/leaveValidation'
 
 const LEAVE_REQUESTS_TABLE = 'leave_requests'
 const REQUEST_LEAVE_RPC = 'request_leave'
+const APPROVE_LEAVE_RPC = 'approve_leave_request'
 
 const LEAVE_REQUEST_SELECT = `
   id,
@@ -49,6 +50,22 @@ function requireRequestWorkspaceId(workspaceId) {
   return normalizedWorkspaceId
 }
 
+function requireApprovalWorkspaceId(workspaceId) {
+  const normalizedWorkspaceId = `${workspaceId ?? ''}`.trim()
+  if (!normalizedWorkspaceId) {
+    throw new Error('Workspace is required to approve leave.')
+  }
+  return normalizedWorkspaceId
+}
+
+function requireLeaveRequestId(leaveRequestId) {
+  const normalizedLeaveRequestId = `${leaveRequestId ?? ''}`.trim()
+  if (!normalizedLeaveRequestId) {
+    throw new Error('Leave request is required to approve leave.')
+  }
+  return normalizedLeaveRequestId
+}
+
 const REQUEST_LEAVE_RPC_ERROR_MESSAGES = {
   leave_request_unauthenticated: 'Sign in is required to request leave.',
   leave_request_workspace_required: 'Workspace is required to request leave.',
@@ -85,6 +102,42 @@ function getFriendlyRequestLeaveError(error) {
   }
 
   return 'Unable to submit the leave request right now.'
+}
+
+const APPROVE_LEAVE_RPC_ERROR_MESSAGES = {
+  leave_approval_unauthenticated: 'Sign in is required to approve leave.',
+  leave_approval_workspace_required: 'Workspace is required to approve leave.',
+  leave_approval_request_required: 'Leave request is required to approve leave.',
+  leave_approval_workspace_not_found: 'This workspace could not be found.',
+  leave_approval_membership_not_found: 'You are not a member of this workspace.',
+  leave_approval_duplicate_workspace_membership: 'Your workspace membership could not be resolved.',
+  leave_approval_forbidden: 'You do not have permission to approve leave requests.',
+  leave_approval_request_not_found: 'This leave request could not be found.',
+  leave_approval_workspace_mismatch: 'This leave request does not belong to the selected workspace.',
+  leave_approval_already_approved: 'This leave request has already been approved.',
+  leave_approval_already_rejected: 'This leave request has already been rejected.',
+  leave_approval_already_cancelled: 'This leave request has already been cancelled.',
+  leave_approval_invalid_status: 'This leave request cannot be approved in its current state.',
+}
+
+function extractApproveLeaveRpcCode(error) {
+  const haystack = `${error?.message ?? ''} ${error?.code ?? ''}`.trim()
+  const match = haystack.match(/leave_approval_[a-z_]+/)
+  return match?.[0] ?? ''
+}
+
+function getFriendlyApproveLeaveError(error) {
+  const rpcCode = extractApproveLeaveRpcCode(error)
+  if (rpcCode && APPROVE_LEAVE_RPC_ERROR_MESSAGES[rpcCode]) {
+    return APPROVE_LEAVE_RPC_ERROR_MESSAGES[rpcCode]
+  }
+
+  const message = `${error?.message ?? ''}`.trim()
+  if (message) {
+    return message
+  }
+
+  return 'Unable to approve the leave request right now.'
 }
 
 function normalizeLeaveTypeForRequest(leaveType) {
@@ -274,6 +327,30 @@ export async function requestLeave(workspaceId, {
 
   if (!mapped) {
     throw new Error('Leave request could not be created.')
+  }
+
+  return mapped
+}
+
+export async function approveLeaveRequest(workspaceId, leaveRequestId) {
+  const normalizedWorkspaceId = requireApprovalWorkspaceId(workspaceId)
+  const normalizedLeaveRequestId = requireLeaveRequestId(leaveRequestId)
+
+  const { data, error } = await supabase.rpc(APPROVE_LEAVE_RPC, {
+    p_workspace_id: normalizedWorkspaceId,
+    p_leave_request_id: normalizedLeaveRequestId,
+  })
+
+  if (error) {
+    console.error('[leaveService] approveLeaveRequest error:', error)
+    throw new Error(getFriendlyApproveLeaveError(error))
+  }
+
+  const row = Array.isArray(data) ? data[0] : data
+  const mapped = mapLeaveRequestRpcResult(row)
+
+  if (!mapped) {
+    throw new Error('Leave request could not be approved.')
   }
 
   return mapped

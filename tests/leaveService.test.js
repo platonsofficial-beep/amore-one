@@ -53,6 +53,7 @@ vi.mock('../src/lib/supabaseClient', () => ({
 }))
 
 import {
+  approveLeaveRequest,
   fetchApprovedLeaveForWorkspace,
   fetchEmployeeLeaveHistory,
   fetchPendingLeaveForWorkspace,
@@ -104,6 +105,34 @@ const EXPECTED_LEAVE_RPC_RESULT = {
   startDate: '2026-08-01',
   endDate: '2026-08-05',
 }
+
+const LEAVE_REQUEST_ID = 'leave-pending-1'
+
+const EXPECTED_APPROVE_LEAVE_RPC_RESULT = {
+  id: LEAVE_REQUEST_ID,
+  workspaceId: WORKSPACE_ID,
+  employeeId: EMPLOYEE_ID,
+  status: 'approved',
+  leaveType: 'vacation',
+  startDate: '2026-08-01',
+  endDate: '2026-08-05',
+}
+
+const APPROVE_LEAVE_RPC_ERROR_CASES = [
+  ['leave_approval_unauthenticated', 'Sign in is required to approve leave.'],
+  ['leave_approval_workspace_required', 'Workspace is required to approve leave.'],
+  ['leave_approval_request_required', 'Leave request is required to approve leave.'],
+  ['leave_approval_workspace_not_found', 'This workspace could not be found.'],
+  ['leave_approval_membership_not_found', 'You are not a member of this workspace.'],
+  ['leave_approval_duplicate_workspace_membership', 'Your workspace membership could not be resolved.'],
+  ['leave_approval_forbidden', 'You do not have permission to approve leave requests.'],
+  ['leave_approval_request_not_found', 'This leave request could not be found.'],
+  ['leave_approval_workspace_mismatch', 'This leave request does not belong to the selected workspace.'],
+  ['leave_approval_already_approved', 'This leave request has already been approved.'],
+  ['leave_approval_already_rejected', 'This leave request has already been rejected.'],
+  ['leave_approval_already_cancelled', 'This leave request has already been cancelled.'],
+  ['leave_approval_invalid_status', 'This leave request cannot be approved in its current state.'],
+]
 
 describe('leaveService', () => {
   beforeEach(() => {
@@ -501,6 +530,225 @@ describe('leaveService', () => {
       )
 
       consoleError.mockRestore()
+    })
+  })
+
+  describe('approveLeaveRequest', () => {
+    it('is exported from leaveService', () => {
+      expect(typeof approveLeaveRequest).toBe('function')
+    })
+
+    it('calls approve_leave_request with the exact RPC name', async () => {
+      supabaseMocks.setRpcResult({
+        data: [buildLeaveRpcRecord({ id: LEAVE_REQUEST_ID, status: 'approved' })],
+        error: null,
+      })
+
+      await approveLeaveRequest(WORKSPACE_ID, LEAVE_REQUEST_ID)
+
+      expect(supabaseMocks.rpc).toHaveBeenCalledWith('approve_leave_request', expect.any(Object))
+    })
+
+    it('sends exact two-parameter RPC payload', async () => {
+      supabaseMocks.setRpcResult({
+        data: [buildLeaveRpcRecord({ id: LEAVE_REQUEST_ID, status: 'approved' })],
+        error: null,
+      })
+
+      await approveLeaveRequest(WORKSPACE_ID, LEAVE_REQUEST_ID)
+
+      expect(supabaseMocks.rpc).toHaveBeenCalledWith('approve_leave_request', {
+        p_workspace_id: WORKSPACE_ID,
+        p_leave_request_id: LEAVE_REQUEST_ID,
+      })
+    })
+
+    it('does not send employee, role, status, or decision metadata', async () => {
+      supabaseMocks.setRpcResult({
+        data: [buildLeaveRpcRecord({ id: LEAVE_REQUEST_ID, status: 'approved' })],
+        error: null,
+      })
+
+      await approveLeaveRequest(WORKSPACE_ID, LEAVE_REQUEST_ID)
+
+      const [, rpcParams] = supabaseMocks.rpc.mock.calls[0]
+      expect(rpcParams).toEqual({
+        p_workspace_id: WORKSPACE_ID,
+        p_leave_request_id: LEAVE_REQUEST_ID,
+      })
+      expect(Object.keys(rpcParams)).toEqual(['p_workspace_id', 'p_leave_request_id'])
+    })
+
+    it('trims workspace id', async () => {
+      supabaseMocks.setRpcResult({
+        data: [buildLeaveRpcRecord({ id: LEAVE_REQUEST_ID, status: 'approved' })],
+        error: null,
+      })
+
+      await approveLeaveRequest(`  ${WORKSPACE_ID}  `, LEAVE_REQUEST_ID)
+
+      expect(supabaseMocks.rpc).toHaveBeenCalledWith('approve_leave_request', expect.objectContaining({
+        p_workspace_id: WORKSPACE_ID,
+      }))
+    })
+
+    it('trims leave request id', async () => {
+      supabaseMocks.setRpcResult({
+        data: [buildLeaveRpcRecord({ id: LEAVE_REQUEST_ID, status: 'approved' })],
+        error: null,
+      })
+
+      await approveLeaveRequest(WORKSPACE_ID, `  ${LEAVE_REQUEST_ID}  `)
+
+      expect(supabaseMocks.rpc).toHaveBeenCalledWith('approve_leave_request', expect.objectContaining({
+        p_leave_request_id: LEAVE_REQUEST_ID,
+      }))
+    })
+
+    it('maps a one-row array response to camelCase', async () => {
+      supabaseMocks.setRpcResult({
+        data: [buildLeaveRpcRecord({ id: LEAVE_REQUEST_ID, status: 'approved' })],
+        error: null,
+      })
+
+      const result = await approveLeaveRequest(WORKSPACE_ID, LEAVE_REQUEST_ID)
+
+      expect(result).toEqual(EXPECTED_APPROVE_LEAVE_RPC_RESULT)
+      expect(result).not.toHaveProperty('decidedBy')
+      expect(result).not.toHaveProperty('decidedAt')
+      expect(result).not.toHaveProperty('decisionNote')
+    })
+
+    it('maps a single-object response to camelCase', async () => {
+      supabaseMocks.setRpcResult({
+        data: buildLeaveRpcRecord({ id: LEAVE_REQUEST_ID, status: 'approved' }),
+        error: null,
+      })
+
+      const result = await approveLeaveRequest(WORKSPACE_ID, LEAVE_REQUEST_ID)
+
+      expect(result).toEqual(EXPECTED_APPROVE_LEAVE_RPC_RESULT)
+      expect(Object.keys(result)).toEqual([
+        'id',
+        'workspaceId',
+        'employeeId',
+        'status',
+        'leaveType',
+        'startDate',
+        'endDate',
+      ])
+    })
+
+    it('rejects missing workspace before RPC', async () => {
+      await expect(approveLeaveRequest('', LEAVE_REQUEST_ID)).rejects.toThrow(
+        'Workspace is required to approve leave.',
+      )
+
+      expect(supabaseMocks.rpc).not.toHaveBeenCalled()
+    })
+
+    it('rejects blank workspace before RPC', async () => {
+      await expect(approveLeaveRequest('   ', LEAVE_REQUEST_ID)).rejects.toThrow(
+        'Workspace is required to approve leave.',
+      )
+
+      expect(supabaseMocks.rpc).not.toHaveBeenCalled()
+    })
+
+    it('rejects missing leave request id before RPC', async () => {
+      await expect(approveLeaveRequest(WORKSPACE_ID, '')).rejects.toThrow(
+        'Leave request is required to approve leave.',
+      )
+
+      expect(supabaseMocks.rpc).not.toHaveBeenCalled()
+    })
+
+    it('rejects blank leave request id before RPC', async () => {
+      await expect(approveLeaveRequest(WORKSPACE_ID, '   ')).rejects.toThrow(
+        'Leave request is required to approve leave.',
+      )
+
+      expect(supabaseMocks.rpc).not.toHaveBeenCalled()
+    })
+
+    it('throws when RPC returns an empty array', async () => {
+      supabaseMocks.setRpcResult({ data: [], error: null })
+
+      await expect(approveLeaveRequest(WORKSPACE_ID, LEAVE_REQUEST_ID)).rejects.toThrow(
+        'Leave request could not be approved.',
+      )
+    })
+
+    it('throws when RPC returns null', async () => {
+      supabaseMocks.setRpcResult({ data: null, error: null })
+
+      await expect(approveLeaveRequest(WORKSPACE_ID, LEAVE_REQUEST_ID)).rejects.toThrow(
+        'Leave request could not be approved.',
+      )
+    })
+
+    it.each(APPROVE_LEAVE_RPC_ERROR_CASES)(
+      'maps %s to a clear service error',
+      async (rpcCode, friendlyMessage) => {
+        supabaseMocks.setRpcResult({
+          data: null,
+          error: { message: rpcCode },
+        })
+
+        await expect(approveLeaveRequest(WORKSPACE_ID, LEAVE_REQUEST_ID)).rejects.toThrow(friendlyMessage)
+      },
+    )
+
+    it('logs and throws unknown Supabase RPC errors with a message', async () => {
+      const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
+      supabaseMocks.setRpcResult({
+        data: null,
+        error: { message: 'unexpected database failure' },
+      })
+
+      await expect(approveLeaveRequest(WORKSPACE_ID, LEAVE_REQUEST_ID)).rejects.toThrow(
+        'unexpected database failure',
+      )
+
+      expect(consoleError).toHaveBeenCalledWith(
+        '[leaveService] approveLeaveRequest error:',
+        expect.objectContaining({ message: 'unexpected database failure' }),
+      )
+
+      consoleError.mockRestore()
+    })
+
+    it('logs and throws a fallback when unknown Supabase RPC errors have no message', async () => {
+      const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
+      supabaseMocks.setRpcResult({
+        data: null,
+        error: {},
+      })
+
+      await expect(approveLeaveRequest(WORKSPACE_ID, LEAVE_REQUEST_ID)).rejects.toThrow(
+        'Unable to approve the leave request right now.',
+      )
+
+      expect(consoleError).toHaveBeenCalledWith(
+        '[leaveService] approveLeaveRequest error:',
+        expect.any(Object),
+      )
+
+      consoleError.mockRestore()
+    })
+
+    it('does not perform direct table writes', async () => {
+      const { supabase } = await import('../src/lib/supabaseClient')
+      supabase.from.mockClear()
+      supabaseMocks.setRpcResult({
+        data: [buildLeaveRpcRecord({ id: LEAVE_REQUEST_ID, status: 'approved' })],
+        error: null,
+      })
+
+      await approveLeaveRequest(WORKSPACE_ID, LEAVE_REQUEST_ID)
+
+      expect(supabase.from).not.toHaveBeenCalled()
+      expect(supabaseMocks.rpc).toHaveBeenCalledTimes(1)
     })
   })
 })
