@@ -556,6 +556,7 @@ import {
   getScheduleGridDayColumnWidth,
   getScheduleGridTableMinWidth,
   isMobileScheduleCompactLandscape,
+  shouldUseFluidScheduleDayColumns,
 } from './lib/mobileScheduleUtils'
 import {
   isMobileScrollDebugEnabled,
@@ -2971,6 +2972,8 @@ function ScheduleView({
     }),
     [weekDays.length, scheduleViewportWidth, isScheduleCompactLandscape],
   )
+
+  const scheduleUsesFluidDayColumns = shouldUseFluidScheduleDayColumns(scheduleDayColumnWidth)
 
   const scheduleGridTableMinWidth = useMemo(
     () => getScheduleGridTableMinWidth(weekDays.length, scheduleDayColumnWidth),
@@ -5564,11 +5567,17 @@ function ScheduleView({
         ) : (
           <div className="blend-grid-scroll">
             <div
-              className="blend-grid-table schedule-day-grid"
-              style={{
-                gridTemplateColumns: `repeat(${weekDays.length}, ${scheduleDayColumnWidth}px)`,
-                minWidth: `${scheduleGridTableMinWidth}px`,
-              }}
+              className={`blend-grid-table schedule-day-grid${scheduleUsesFluidDayColumns ? ' is-fluid-day-columns' : ''}`}
+              style={scheduleUsesFluidDayColumns
+                ? {
+                    gridTemplateColumns: `repeat(${weekDays.length}, minmax(0, 1fr))`,
+                    width: '100%',
+                    minWidth: 0,
+                  }
+                : {
+                    gridTemplateColumns: `repeat(${weekDays.length}, ${scheduleDayColumnWidth}px)`,
+                    minWidth: `${scheduleGridTableMinWidth}px`,
+                  }}
             >
               {weekDays.map((day) => {
                 const daySummary = dayHeaderSummariesByKey[day.key] ?? {

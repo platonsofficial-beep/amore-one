@@ -16197,8 +16197,19 @@
 }
 
 .schedule-day-grid {
-  column-gap: 7px;
-  row-gap: 7px;
+  column-gap: 6px;
+  row-gap: 6px;
+}
+
+.schedule-day-grid.is-fluid-day-columns {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.schedule-day-grid.is-fluid-day-columns > * {
+  min-width: 0;
 }
 
 .schedule-day-coverage-label {
@@ -16926,6 +16937,16 @@
 .schedule-workspace.is-compact-landscape .schedule-day-grid {
   column-gap: 5px;
   row-gap: 5px;
+}
+
+.schedule-workspace.is-compact-landscape .schedule-day-grid.is-fluid-day-columns {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.schedule-workspace.is-compact-landscape .blend-grid-scroll:has(.schedule-day-grid.is-fluid-day-columns) {
+  overflow-x: auto;
 }
 
 .schedule-workspace.is-compact-landscape .schedule-day-grid .blend-grid-header-day {

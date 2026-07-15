@@ -97,6 +97,44 @@ describe('mobileScheduleUtils', () => {
     expect(getScheduleGridTableMinWidth(7, columnWidth)).toBeLessThanOrEqual(844)
   })
 
+  it('fits seven day columns on iPad Landscape desktop-shell widths without compact mode', async () => {
+    const {
+      getScheduleGridDayColumnWidth,
+      getScheduleGridTableMinWidth,
+      shouldUseFluidScheduleDayColumns,
+      SCHEDULE_GRID_DEFAULT_DAY_COLUMN_WIDTH,
+    } = await import('./mobileScheduleUtils')
+
+    const columnWidth = getScheduleGridDayColumnWidth({
+      dayCount: 7,
+      viewportWidth: 1024,
+      isCompactLandscape: false,
+      isTemplatesPanelOpen: false,
+    })
+
+    expect(columnWidth).toBeLessThan(SCHEDULE_GRID_DEFAULT_DAY_COLUMN_WIDTH)
+    expect(shouldUseFluidScheduleDayColumns(columnWidth)).toBe(true)
+    expect(getScheduleGridTableMinWidth(7, columnWidth)).toBeLessThanOrEqual(1024)
+  })
+
+  it('keeps default column width on wide desktop viewports', async () => {
+    const {
+      getScheduleGridDayColumnWidth,
+      shouldUseFluidScheduleDayColumns,
+      SCHEDULE_GRID_DEFAULT_DAY_COLUMN_WIDTH,
+    } = await import('./mobileScheduleUtils')
+
+    const columnWidth = getScheduleGridDayColumnWidth({
+      dayCount: 7,
+      viewportWidth: 1440,
+      isCompactLandscape: false,
+      isTemplatesPanelOpen: false,
+    })
+
+    expect(columnWidth).toBe(SCHEDULE_GRID_DEFAULT_DAY_COLUMN_WIDTH)
+    expect(shouldUseFluidScheduleDayColumns(columnWidth)).toBe(false)
+  })
+
   it('keeps default column width when templates panel is open', async () => {
     const { getScheduleGridDayColumnWidth, SCHEDULE_GRID_DEFAULT_DAY_COLUMN_WIDTH } = await import('./mobileScheduleUtils')
 
