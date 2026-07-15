@@ -6,6 +6,7 @@ import { validateLeaveDates } from '../lib/leave/leaveValidation'
 const LEAVE_REQUESTS_TABLE = 'leave_requests'
 const REQUEST_LEAVE_RPC = 'request_leave'
 const APPROVE_LEAVE_RPC = 'approve_leave_request'
+const REJECT_LEAVE_RPC = 'reject_leave_request'
 
 const LEAVE_REQUEST_SELECT = `
   id,
@@ -64,6 +65,30 @@ function requireLeaveRequestId(leaveRequestId) {
     throw new Error('Leave request is required to approve leave.')
   }
   return normalizedLeaveRequestId
+}
+
+function requireRejectionWorkspaceId(workspaceId) {
+  const normalizedWorkspaceId = `${workspaceId ?? ''}`.trim()
+  if (!normalizedWorkspaceId) {
+    throw new Error('Workspace is required to reject leave.')
+  }
+  return normalizedWorkspaceId
+}
+
+function requireRejectionLeaveRequestId(leaveRequestId) {
+  const normalizedLeaveRequestId = `${leaveRequestId ?? ''}`.trim()
+  if (!normalizedLeaveRequestId) {
+    throw new Error('Leave request is required to reject leave.')
+  }
+  return normalizedLeaveRequestId
+}
+
+function requireRejectionDecisionNote(decisionNote) {
+  const normalizedDecisionNote = `${decisionNote ?? ''}`.trim()
+  if (!normalizedDecisionNote) {
+    throw new Error('A rejection reason is required.')
+  }
+  return normalizedDecisionNote
 }
 
 const REQUEST_LEAVE_RPC_ERROR_MESSAGES = {
@@ -138,6 +163,43 @@ function getFriendlyApproveLeaveError(error) {
   }
 
   return 'Unable to approve the leave request right now.'
+}
+
+const REJECT_LEAVE_RPC_ERROR_MESSAGES = {
+  leave_rejection_unauthenticated: 'Sign in is required to reject leave.',
+  leave_rejection_workspace_required: 'Workspace is required to reject leave.',
+  leave_rejection_request_required: 'Leave request is required to reject leave.',
+  leave_rejection_reason_required: 'A rejection reason is required.',
+  leave_rejection_workspace_not_found: 'This workspace could not be found.',
+  leave_rejection_membership_not_found: 'You are not a member of this workspace.',
+  leave_rejection_duplicate_workspace_membership: 'Your workspace membership could not be resolved.',
+  leave_rejection_forbidden: 'You do not have permission to reject leave requests.',
+  leave_rejection_request_not_found: 'This leave request could not be found.',
+  leave_rejection_workspace_mismatch: 'This leave request does not belong to the selected workspace.',
+  leave_rejection_already_approved: 'This leave request has already been approved.',
+  leave_rejection_already_rejected: 'This leave request has already been rejected.',
+  leave_rejection_already_cancelled: 'This leave request has already been cancelled.',
+  leave_rejection_invalid_status: 'This leave request cannot be rejected in its current state.',
+}
+
+function extractRejectLeaveRpcCode(error) {
+  const haystack = `${error?.message ?? ''} ${error?.code ?? ''}`.trim()
+  const match = haystack.match(/leave_rejection_[a-z_]+/)
+  return match?.[0] ?? ''
+}
+
+function getFriendlyRejectLeaveError(error) {
+  const rpcCode = extractRejectLeaveRpcCode(error)
+  if (rpcCode && REJECT_LEAVE_RPC_ERROR_MESSAGES[rpcCode]) {
+    return REJECT_LEAVE_RPC_ERROR_MESSAGES[rpcCode]
+  }
+
+  const message = `${error?.message ?? ''}`.trim()
+  if (message) {
+    return message
+  }
+
+  return 'Unable to reject the leave request right now.'
 }
 
 function normalizeLeaveTypeForRequest(leaveType) {
@@ -351,6 +413,32 @@ export async function approveLeaveRequest(workspaceId, leaveRequestId) {
 
   if (!mapped) {
     throw new Error('Leave request could not be approved.')
+  }
+
+  return mapped
+}
+
+export async function rejectLeaveRequest(workspaceId, leaveRequestId, decisionNote) {
+  const normalizedWorkspaceId = requireRejectionWorkspaceId(workspaceId)
+  const normalizedLeaveRequestId = requireRejectionLeaveRequestId(leaveRequestId)
+  const normalizedDecisionNote = requireRejectionDecisionNote(decisionNote)
+
+  const { data, error } = await supabase.rpc(REJECT_LEAVE_RPC, {
+    p_workspace_id: normalizedWorkspaceId,
+    p_leave_request_id: normalizedLeaveRequestId,
+    p_decision_note: normalizedDecisionNote,
+  })
+
+  if (error) {
+    console.error('[leaveService] rejectLeaveRequest error:', error)
+    throw new Error(getFriendlyRejectLeaveError(error))
+  }
+
+  const row = Array.isArray(data) ? data[0] : data
+  const mapped = mapLeaveRequestRpcResult(row)
+
+  if (!mapped) {
+    throw new Error('Leave request could not be rejected.')
   }
 
   return mapped
