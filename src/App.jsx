@@ -16584,7 +16584,7 @@ function App() {
         todayKey: currentDateKey,
         nowMinutes,
         isWeekPublished: isTodayWeekPublished,
-        approvedLeave: null,
+        approvedLeave,
       })
     })
 
@@ -16595,6 +16595,7 @@ function App() {
     currentDateKey,
     peopleWorkspaceNow.minutes,
     isTodayWeekPublished,
+    approvedLeave,
   ])
 
   const todayAttentionOperationsTasks = useMemo(() => (
