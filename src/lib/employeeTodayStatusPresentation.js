@@ -1,3 +1,9 @@
+import { EMPLOYEE_TODAY_STATUS } from './employeeTodayStatusUtils'
+
+export function isResolvedEmployeeOnLeaveToday(result) {
+  return result?.key === EMPLOYEE_TODAY_STATUS.on_leave.key
+}
+
 export function getEmployeeTodayStatusPillClass(key) {
   const normalized = `${key ?? 'not_scheduled'}`.trim().replace(/_/g, '-') || 'not-scheduled'
   return `team-people-today-status-pill team-people-today-status-pill--${normalized}`
@@ -38,7 +44,7 @@ export function formatEmployeeTodayShiftSummary(result) {
 }
 
 export function buildEmployeeTodayStatusCardPresentation(result, { isLoading = false } = {}) {
-  if (isLoading) {
+  if (isLoading && !isResolvedEmployeeOnLeaveToday(result)) {
     return {
       primaryLabel: 'Loading today status…',
       secondaryLabel: '',
@@ -92,7 +98,7 @@ export function buildEmployeeTodayStatusCardPresentation(result, { isLoading = f
 }
 
 export function buildEmployeeTodayStatusDrawerIdentity(result, { isLoading = false } = {}) {
-  if (isLoading) {
+  if (isLoading && !isResolvedEmployeeOnLeaveToday(result)) {
     return {
       statusLabel: 'Loading today status…',
       todaySubtitle: 'Loading schedule…',

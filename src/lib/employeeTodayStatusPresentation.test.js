@@ -8,6 +8,7 @@ import {
   countEmployeesWorkingNow,
   formatEmployeeTodayShiftSummary,
   getEmployeeTodayStatusPillClass,
+  isResolvedEmployeeOnLeaveToday,
 } from './employeeTodayStatusPresentation'
 
 const EMPLOYEE_ID = 'emp-1'
@@ -37,6 +38,32 @@ function resolveStatus(overrides = {}) {
   })
 }
 
+const LOADING_CARD_PRESENTATION = {
+  primaryLabel: 'Loading today status…',
+  secondaryLabel: '',
+  pillLabel: 'Loading…',
+  toneKey: 'not_scheduled',
+}
+
+const LOADING_DRAWER_IDENTITY = {
+  statusLabel: 'Loading today status…',
+  todaySubtitle: 'Loading schedule…',
+  pillLabel: 'Loading…',
+  toneKey: 'not_scheduled',
+}
+
+function buildOnLeaveResult() {
+  return resolveStatus({
+    approvedLeave: {
+      employeeId: EMPLOYEE_ID,
+      status: 'approved',
+      startDate: TODAY_KEY,
+      endDate: TODAY_KEY,
+    },
+    isWeekPublished: true,
+  })
+}
+
 describe('employeeTodayStatusPresentation', () => {
   describe('getEmployeeTodayStatusPillClass', () => {
     it('maps resolver keys to scoped pill classes', () => {
@@ -55,15 +82,47 @@ describe('employeeTodayStatusPresentation', () => {
 
   describe('buildEmployeeTodayStatusCardPresentation', () => {
     it('shows loading copy without schedule assumptions', () => {
-      expect(buildEmployeeTodayStatusCardPresentation(null, { isLoading: true })).toEqual({
-        primaryLabel: 'Loading today status…',
+      expect(buildEmployeeTodayStatusCardPresentation(null, { isLoading: true })).toEqual(
+        LOADING_CARD_PRESENTATION,
+      )
+    })
+
+    it('shows on leave presentation while schedule loading', () => {
+      const result = buildOnLeaveResult()
+
+      expect(buildEmployeeTodayStatusCardPresentation(result, { isLoading: true })).toEqual({
+        primaryLabel: 'On leave today',
         secondaryLabel: '',
-        pillLabel: 'Loading…',
-        toneKey: 'not_scheduled',
+        pillLabel: 'On leave today',
+        toneKey: 'on_leave',
       })
     })
 
-    it('shows working now detail without duplicating the primary label', () => {
+    it('masks working now while schedule loading', () => {
+      const result = resolveStatus({
+        publishedShifts: [buildShift({ startTime: '09:00', endTime: '17:00' })],
+        nowMinutes: 600,
+        isWeekPublished: true,
+      })
+
+      expect(buildEmployeeTodayStatusCardPresentation(result, { isLoading: true })).toEqual(
+        LOADING_CARD_PRESENTATION,
+      )
+    })
+
+    it('masks scheduled later while schedule loading', () => {
+      const result = resolveStatus({
+        publishedShifts: [buildShift({ startTime: '18:00', endTime: '22:00' })],
+        nowMinutes: 600,
+        isWeekPublished: true,
+      })
+
+      expect(buildEmployeeTodayStatusCardPresentation(result, { isLoading: true })).toEqual(
+        LOADING_CARD_PRESENTATION,
+      )
+    })
+
+    it('shows working now when schedule loading is complete', () => {
       const result = resolveStatus({
         publishedShifts: [buildShift({ startTime: '09:00', endTime: '17:00' })],
         nowMinutes: 600,
@@ -150,15 +209,7 @@ describe('employeeTodayStatusPresentation', () => {
     })
 
     it('supports on leave tone mapping', () => {
-      const result = resolveStatus({
-        approvedLeave: {
-          employeeId: EMPLOYEE_ID,
-          status: 'approved',
-          startDate: TODAY_KEY,
-          endDate: TODAY_KEY,
-        },
-        isWeekPublished: true,
-      })
+      const result = buildOnLeaveResult()
 
       expect(buildEmployeeTodayStatusCardPresentation(result)).toEqual({
         primaryLabel: 'On leave today',
@@ -179,6 +230,29 @@ describe('employeeTodayStatusPresentation', () => {
   })
 
   describe('buildEmployeeTodayStatusDrawerIdentity', () => {
+    it('shows on leave identity while schedule loading', () => {
+      const result = buildOnLeaveResult()
+
+      expect(buildEmployeeTodayStatusDrawerIdentity(result, { isLoading: true })).toEqual({
+        statusLabel: 'On leave today',
+        todaySubtitle: 'Approved leave today',
+        pillLabel: 'On leave today',
+        toneKey: 'on_leave',
+      })
+    })
+
+    it('masks working now identity while schedule loading', () => {
+      const result = resolveStatus({
+        publishedShifts: [buildShift({ startTime: '16:30', endTime: '00:30' })],
+        nowMinutes: 1000,
+        isWeekPublished: true,
+      })
+
+      expect(buildEmployeeTodayStatusDrawerIdentity(result, { isLoading: true })).toEqual(
+        LOADING_DRAWER_IDENTITY,
+      )
+    })
+
     it('shows active shift range in the identity header', () => {
       const result = resolveStatus({
         publishedShifts: [buildShift({ startTime: '16:30', endTime: '00:30' })],
@@ -207,6 +281,18 @@ describe('employeeTodayStatusPresentation', () => {
         pillLabel: 'Scheduled later',
         toneKey: 'scheduled_later',
       })
+    })
+  })
+
+  describe('isResolvedEmployeeOnLeaveToday', () => {
+    it('returns true only for resolved on_leave results', () => {
+      expect(isResolvedEmployeeOnLeaveToday(buildOnLeaveResult())).toBe(true)
+      expect(isResolvedEmployeeOnLeaveToday(resolveStatus({
+        publishedShifts: [buildShift()],
+        nowMinutes: 600,
+        isWeekPublished: true,
+      }))).toBe(false)
+      expect(isResolvedEmployeeOnLeaveToday(null)).toBe(false)
     })
   })
 

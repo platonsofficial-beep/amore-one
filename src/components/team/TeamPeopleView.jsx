@@ -5,6 +5,7 @@ import {
   countEmployeesWorkingNow,
   formatEmployeeTodayShiftSummary,
   getEmployeeTodayStatusPillClass,
+  isResolvedEmployeeOnLeaveToday,
 } from '../../lib/employeeTodayStatusPresentation'
 
 const DEPARTMENT_FILTERS = ['All', 'Bar', 'Service', 'Kitchen', 'Management']
@@ -184,11 +185,12 @@ export function TeamPeopleView({
   const selectedEmployeeTodayStatus = selectedEmployee
     ? readEmployeeTodayStatus(selectedEmployee, employeeTodayStatusById)
     : null
+  const isSelectedEmployeeOnLeave = isResolvedEmployeeOnLeaveToday(selectedEmployeeTodayStatus)
   const selectedDrawerIdentity = buildEmployeeTodayStatusDrawerIdentity(
     selectedEmployeeTodayStatus,
     { isLoading: isTodayStatusLoading },
   )
-  const selectedTodayShiftSummary = isTodayStatusLoading
+  const selectedTodayShiftSummary = isTodayStatusLoading && !isSelectedEmployeeOnLeave
     ? 'Loading today status…'
     : formatEmployeeTodayShiftSummary(selectedEmployeeTodayStatus)
 
@@ -360,7 +362,7 @@ export function TeamPeopleView({
                 </span>
               </EmployeeProfileDrawerField>
               <EmployeeProfileDrawerField label="Today Status">
-                {isTodayStatusLoading
+                {isTodayStatusLoading && !isSelectedEmployeeOnLeave
                   ? 'Loading today status…'
                   : formatDrawerFieldValue(selectedEmployeeTodayStatus?.label)}
               </EmployeeProfileDrawerField>
