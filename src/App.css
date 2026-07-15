@@ -16414,11 +16414,21 @@
   display: flex;
   flex-direction: column;
   gap: 3px;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.schedule-shift-assigned-list > li {
+  min-width: 0;
+  max-width: 100%;
 }
 
 .schedule-shift-assigned-item,
 .schedule-assigned-pill {
   width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
   min-height: 36px;
   padding: 6px 10px;
   border: 1px solid rgba(255, 255, 255, 0.07);
@@ -16437,7 +16447,7 @@
 }
 
 .schedule-assigned-pill {
-  display: inline-flex;
+  display: flex;
   align-items: center;
   justify-content: flex-start;
 }
@@ -16460,19 +16470,19 @@
 }
 
 .schedule-assigned-pill-name {
-  display: -webkit-box;
+  display: block;
+  flex: 1 1 auto;
   width: 100%;
   min-width: 0;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  max-width: 100%;
   white-space: normal;
   overflow-wrap: normal;
   word-break: normal;
   hyphens: none;
   line-height: 1.25;
   color: #f7efe1;
+  overflow: visible;
+  text-overflow: clip;
 }
 
 .schedule-shift-assigned-item:hover,
