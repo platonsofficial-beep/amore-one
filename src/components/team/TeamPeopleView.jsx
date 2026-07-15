@@ -1,4 +1,5 @@
 import { EmployeeAccountConnectionSection } from './EmployeeAccountConnectionSection'
+import { ManagerLeaveInbox } from './ManagerLeaveInbox'
 import {
   buildEmployeeTodayStatusCardPresentation,
   buildEmployeeTodayStatusDrawerIdentity,
@@ -172,6 +173,7 @@ export function TeamPeopleView({
   searchTerm = '',
   onSearchTermChange,
   searchPlaceholder = 'Search employee',
+  showLeaveInbox = false,
 }) {
   const hasActiveFilter = activeFilter !== 'All'
   const isRosterEmpty = !isLoading && totalEmployeeCount === 0
@@ -208,6 +210,10 @@ export function TeamPeopleView({
           </button>
         </div>
       </div>
+
+      {showLeaveInbox ? (
+        <ManagerLeaveInbox workspaceId={workspaceId} employees={rosterEmployees} />
+      ) : null}
 
       <div className="team-people-controls">
         {showSearch ? (

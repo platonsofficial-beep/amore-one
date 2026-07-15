@@ -499,7 +499,7 @@ import { TeamTodayView } from './components/team/TeamTodayView'
 import { TeamTodayGroupsList } from './components/team/TeamTodayGroupsList'
 import { TeamPeopleView } from './components/team/TeamPeopleView'
 import { RequestLeaveActionButton, RequestLeaveModal } from './components/team/RequestLeaveModal'
-import { canCreateLeave } from './lib/leave/leavePermissionUtils'
+import { canCreateLeave, canViewLeaveQueue } from './lib/leave/leavePermissionUtils'
 import { EmployeeIdentity } from './components/identity/EmployeeIdentity'
 import { IDENTITY_COLOR_PALETTE, isPaletteColorId } from './lib/identity/identityColorPalette'
 import { getEmployeeIdentityColor } from './lib/identity/employeeIdentityColor'
@@ -16320,6 +16320,11 @@ function App() {
     [role, mobileEmployeeId, activeWorkspaceId],
   )
 
+  const canViewLeaveQueueRole = useMemo(
+    () => canViewLeaveQueue(role),
+    [role],
+  )
+
   const mobileLinkedEmployee = useMemo(() => {
     const employeeId = `${membership?.employeeId ?? ''}`.trim()
     if (!employeeId) return null
@@ -24009,6 +24014,7 @@ function App() {
             workspaceId={activeWorkspaceId}
             canManageInvites={canManageEmployeeInvitesRole}
             canAssignManagerInviteRole={canAssignManagerInviteRoleFlag}
+            showLeaveInbox={canViewLeaveQueueRole && !useDedicatedShell}
           />
         ) : null}
 
