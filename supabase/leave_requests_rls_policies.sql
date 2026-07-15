@@ -27,10 +27,11 @@ $$;
 revoke all on function public.can_manage_workspace_leave(uuid) from public;
 grant execute on function public.can_manage_workspace_leave(uuid) to authenticated;
 
+revoke all on table public.leave_requests from public;
+revoke all on table public.leave_requests from anon;
+revoke all on table public.leave_requests from authenticated;
+
 grant select on table public.leave_requests to authenticated;
-revoke insert, update, delete, truncate, references, trigger
-  on table public.leave_requests
-  from authenticated;
 
 alter table public.leave_requests enable row level security;
 
@@ -43,12 +44,12 @@ create policy leave_requests_select_members
     public.is_workspace_member(workspace_id)
     and (
       public.can_manage_workspace_leave(workspace_id)
-      or employee_id = (
-        select wm.employee_id
+      or exists (
+        select 1
         from public.workspace_members wm
         where wm.workspace_id = leave_requests.workspace_id
           and wm.auth_user_id = auth.uid()
-        limit 1
+          and wm.employee_id = leave_requests.employee_id
       )
     )
   );
