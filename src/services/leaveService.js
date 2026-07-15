@@ -1,8 +1,10 @@
 import { supabase } from '../lib/supabaseClient'
-import { LEAVE_STATUS } from '../lib/leave/leaveConstants'
+import { isValidLeaveType, LEAVE_STATUS } from '../lib/leave/leaveConstants'
 import { normalizeLeaveDateKey } from '../lib/leave/leaveDateUtils'
+import { validateLeaveDates } from '../lib/leave/leaveValidation'
 
 const LEAVE_REQUESTS_TABLE = 'leave_requests'
+const REQUEST_LEAVE_RPC = 'request_leave'
 
 const LEAVE_REQUEST_SELECT = `
   id,
@@ -37,6 +39,79 @@ function requireEmployeeId(employeeId) {
     throw new Error('Employee is required for leave history.')
   }
   return normalizedEmployeeId
+}
+
+function requireRequestWorkspaceId(workspaceId) {
+  const normalizedWorkspaceId = `${workspaceId ?? ''}`.trim()
+  if (!normalizedWorkspaceId) {
+    throw new Error('Workspace is required to request leave.')
+  }
+  return normalizedWorkspaceId
+}
+
+const REQUEST_LEAVE_RPC_ERROR_MESSAGES = {
+  leave_request_unauthenticated: 'Sign in is required to request leave.',
+  leave_request_workspace_required: 'Workspace is required to request leave.',
+  leave_request_workspace_not_found: 'This workspace could not be found.',
+  leave_request_membership_not_found: 'You are not a member of this workspace.',
+  leave_request_duplicate_workspace_membership: 'Your workspace membership could not be resolved.',
+  leave_request_employee_not_linked: 'Your employee profile is not linked to this account.',
+  leave_request_employee_not_found: 'Your employee profile could not be found in this workspace.',
+  leave_request_workspace_mismatch: 'This leave request does not match the selected workspace.',
+  leave_request_invalid_leave_type: 'A valid leave type is required.',
+  leave_request_invalid_date_range: 'Start and end dates must form a valid leave range.',
+  leave_request_duration_exceeds_limit: 'Leave duration exceeds the maximum allowed range.',
+  leave_request_workspace_timezone_missing: 'Workspace timezone is not configured.',
+  leave_request_workspace_timezone_invalid: 'Workspace timezone configuration is invalid.',
+  leave_request_past_date_range: 'Leave cannot be requested for past dates.',
+  leave_request_overlap: 'You already have a pending or approved leave request for this date range.',
+}
+
+function extractRequestLeaveRpcCode(error) {
+  const haystack = `${error?.message ?? ''} ${error?.code ?? ''}`.trim()
+  const match = haystack.match(/leave_request_[a-z_]+/)
+  return match?.[0] ?? ''
+}
+
+function getFriendlyRequestLeaveError(error) {
+  const rpcCode = extractRequestLeaveRpcCode(error)
+  if (rpcCode && REQUEST_LEAVE_RPC_ERROR_MESSAGES[rpcCode]) {
+    return REQUEST_LEAVE_RPC_ERROR_MESSAGES[rpcCode]
+  }
+
+  const message = `${error?.message ?? ''}`.trim()
+  if (message) {
+    return message
+  }
+
+  return 'Unable to submit the leave request right now.'
+}
+
+function normalizeLeaveTypeForRequest(leaveType) {
+  const normalizedLeaveType = `${leaveType ?? ''}`.trim().toLowerCase()
+  if (!isValidLeaveType(normalizedLeaveType)) {
+    throw new Error('A valid leave type is required.')
+  }
+  return normalizedLeaveType
+}
+
+function normalizeNoteForRequest(note) {
+  return `${note ?? ''}`.trim()
+}
+
+function mapLeaveRequestRpcResult(record) {
+  const mapped = mapLeaveRequest(record)
+  if (!mapped?.id) return null
+
+  return {
+    id: mapped.id,
+    workspaceId: mapped.workspaceId,
+    employeeId: mapped.employeeId,
+    status: mapped.status,
+    leaveType: mapped.leaveType,
+    startDate: mapped.startDate,
+    endDate: mapped.endDate,
+  }
 }
 
 function isTableUnavailableError(error) {
@@ -163,4 +238,43 @@ export async function fetchEmployeeLeaveHistory(workspaceId, employeeId) {
   ))
 
   return sortLeaveRequestsByStartDateDesc(records)
+}
+
+export async function requestLeave(workspaceId, {
+  leaveType,
+  startDate,
+  endDate,
+  note,
+} = {}) {
+  const normalizedWorkspaceId = requireRequestWorkspaceId(workspaceId)
+  const normalizedLeaveType = normalizeLeaveTypeForRequest(leaveType)
+
+  const dateValidation = validateLeaveDates({ startDate, endDate })
+  if (!dateValidation.ok) {
+    throw new Error(dateValidation.error)
+  }
+
+  const normalizedNote = normalizeNoteForRequest(note)
+
+  const { data, error } = await supabase.rpc(REQUEST_LEAVE_RPC, {
+    p_workspace_id: normalizedWorkspaceId,
+    p_leave_type: normalizedLeaveType,
+    p_start_date: dateValidation.startDate,
+    p_end_date: dateValidation.endDate,
+    p_note: normalizedNote,
+  })
+
+  if (error) {
+    console.error('[leaveService] requestLeave error:', error)
+    throw new Error(getFriendlyRequestLeaveError(error))
+  }
+
+  const row = Array.isArray(data) ? data[0] : data
+  const mapped = mapLeaveRequestRpcResult(row)
+
+  if (!mapped) {
+    throw new Error('Leave request could not be created.')
+  }
+
+  return mapped
 }

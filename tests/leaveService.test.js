@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const supabaseMocks = vi.hoisted(() => {
   let queryResult = { data: [], error: null }
+  let rpcResult = { data: null, error: null }
 
   const builder = {
     select: vi.fn(() => builder),
@@ -16,13 +17,19 @@ const supabaseMocks = vi.hoisted(() => {
     },
   }
 
+  const rpc = vi.fn(async () => rpcResult)
+
   return {
     builder,
     setQueryResult(result) {
       queryResult = result
     },
+    setRpcResult(result) {
+      rpcResult = result
+    },
     reset() {
       queryResult = { data: [], error: null }
+      rpcResult = { data: null, error: null }
       Object.values(builder).forEach((mock) => {
         if (typeof mock?.mockReset === 'function') mock.mockReset()
       })
@@ -31,13 +38,17 @@ const supabaseMocks = vi.hoisted(() => {
       builder.lte.mockImplementation(() => builder)
       builder.gte.mockImplementation(() => builder)
       builder.order.mockImplementation(() => builder)
+      rpc.mockReset()
+      rpc.mockImplementation(async () => rpcResult)
     },
+    rpc,
   }
 })
 
 vi.mock('../src/lib/supabaseClient', () => ({
   supabase: {
     from: vi.fn(() => supabaseMocks.builder),
+    rpc: supabaseMocks.rpc,
   },
 }))
 
@@ -45,6 +56,7 @@ import {
   fetchApprovedLeaveForWorkspace,
   fetchEmployeeLeaveHistory,
   fetchPendingLeaveForWorkspace,
+  requestLeave,
 } from '../src/services/leaveService'
 
 const WORKSPACE_ID = 'ws-1'
@@ -68,6 +80,29 @@ function buildLeaveRecord(overrides = {}) {
     updated_at: '2026-07-01T10:00:00.000Z',
     ...overrides,
   }
+}
+
+function buildLeaveRpcRecord(overrides = {}) {
+  return {
+    id: 'leave-new',
+    workspace_id: WORKSPACE_ID,
+    employee_id: EMPLOYEE_ID,
+    leave_type: 'vacation',
+    status: 'pending',
+    start_date: '2026-08-01',
+    end_date: '2026-08-05',
+    ...overrides,
+  }
+}
+
+const EXPECTED_LEAVE_RPC_RESULT = {
+  id: 'leave-new',
+  workspaceId: WORKSPACE_ID,
+  employeeId: EMPLOYEE_ID,
+  status: 'pending',
+  leaveType: 'vacation',
+  startDate: '2026-08-01',
+  endDate: '2026-08-05',
 }
 
 describe('leaveService', () => {
@@ -169,6 +204,303 @@ describe('leaveService', () => {
       await expect(fetchEmployeeLeaveHistory(WORKSPACE_ID, '')).rejects.toThrow(
         'Employee is required for leave history.',
       )
+    })
+  })
+
+  describe('requestLeave', () => {
+    it('calls request_leave with the exact RPC name', async () => {
+      supabaseMocks.setRpcResult({ data: [buildLeaveRpcRecord()], error: null })
+
+      await requestLeave(WORKSPACE_ID, {
+        leaveType: 'vacation',
+        startDate: '2026-08-01',
+        endDate: '2026-08-05',
+        note: 'Trip',
+      })
+
+      expect(supabaseMocks.rpc).toHaveBeenCalledWith('request_leave', expect.any(Object))
+    })
+
+    it('sends exact RPC parameter names', async () => {
+      supabaseMocks.setRpcResult({ data: [buildLeaveRpcRecord()], error: null })
+
+      await requestLeave(WORKSPACE_ID, {
+        leaveType: 'vacation',
+        startDate: '2026-08-01',
+        endDate: '2026-08-05',
+        note: 'Trip',
+      })
+
+      expect(supabaseMocks.rpc).toHaveBeenCalledWith('request_leave', {
+        p_workspace_id: WORKSPACE_ID,
+        p_leave_type: 'vacation',
+        p_start_date: '2026-08-01',
+        p_end_date: '2026-08-05',
+        p_note: 'Trip',
+      })
+    })
+
+    it('does not send employee, creator, status, or decision fields', async () => {
+      supabaseMocks.setRpcResult({ data: [buildLeaveRpcRecord()], error: null })
+
+      await requestLeave(WORKSPACE_ID, {
+        leaveType: 'vacation',
+        startDate: '2026-08-01',
+        endDate: '2026-08-05',
+        note: '',
+      })
+
+      const [, rpcParams] = supabaseMocks.rpc.mock.calls[0]
+      expect(rpcParams).toEqual({
+        p_workspace_id: WORKSPACE_ID,
+        p_leave_type: 'vacation',
+        p_start_date: '2026-08-01',
+        p_end_date: '2026-08-05',
+        p_note: '',
+      })
+      expect(Object.keys(rpcParams)).toEqual([
+        'p_workspace_id',
+        'p_leave_type',
+        'p_start_date',
+        'p_end_date',
+        'p_note',
+      ])
+    })
+
+    it('trims workspace id', async () => {
+      supabaseMocks.setRpcResult({ data: [buildLeaveRpcRecord()], error: null })
+
+      await requestLeave(`  ${WORKSPACE_ID}  `, {
+        leaveType: 'vacation',
+        startDate: '2026-08-01',
+        endDate: '2026-08-05',
+      })
+
+      expect(supabaseMocks.rpc).toHaveBeenCalledWith('request_leave', expect.objectContaining({
+        p_workspace_id: WORKSPACE_ID,
+      }))
+    })
+
+    it('normalizes leave type to lowercase', async () => {
+      supabaseMocks.setRpcResult({ data: [buildLeaveRpcRecord()], error: null })
+
+      await requestLeave(WORKSPACE_ID, {
+        leaveType: '  VACATION ',
+        startDate: '2026-08-01',
+        endDate: '2026-08-05',
+      })
+
+      expect(supabaseMocks.rpc).toHaveBeenCalledWith('request_leave', expect.objectContaining({
+        p_leave_type: 'vacation',
+      }))
+    })
+
+    it('trims note', async () => {
+      supabaseMocks.setRpcResult({ data: [buildLeaveRpcRecord()], error: null })
+
+      await requestLeave(WORKSPACE_ID, {
+        leaveType: 'vacation',
+        startDate: '2026-08-01',
+        endDate: '2026-08-05',
+        note: '  Family trip  ',
+      })
+
+      expect(supabaseMocks.rpc).toHaveBeenCalledWith('request_leave', expect.objectContaining({
+        p_note: 'Family trip',
+      }))
+    })
+
+    it('converts null note to an empty string', async () => {
+      supabaseMocks.setRpcResult({ data: [buildLeaveRpcRecord()], error: null })
+
+      await requestLeave(WORKSPACE_ID, {
+        leaveType: 'vacation',
+        startDate: '2026-08-01',
+        endDate: '2026-08-05',
+        note: null,
+      })
+
+      expect(supabaseMocks.rpc).toHaveBeenCalledWith('request_leave', expect.objectContaining({
+        p_note: '',
+      }))
+    })
+
+    it('maps a one-row array response to camelCase', async () => {
+      supabaseMocks.setRpcResult({ data: [buildLeaveRpcRecord()], error: null })
+
+      const result = await requestLeave(WORKSPACE_ID, {
+        leaveType: 'vacation',
+        startDate: '2026-08-01',
+        endDate: '2026-08-05',
+      })
+
+      expect(result).toEqual(EXPECTED_LEAVE_RPC_RESULT)
+      expect(result).not.toHaveProperty('note')
+      expect(result).not.toHaveProperty('createdBy')
+    })
+
+    it('maps a single-object response to camelCase', async () => {
+      supabaseMocks.setRpcResult({ data: buildLeaveRpcRecord(), error: null })
+
+      const result = await requestLeave(WORKSPACE_ID, {
+        leaveType: 'vacation',
+        startDate: '2026-08-01',
+        endDate: '2026-08-05',
+      })
+
+      expect(result).toEqual(EXPECTED_LEAVE_RPC_RESULT)
+    })
+
+    it('rejects missing workspace before RPC', async () => {
+      await expect(requestLeave('', {
+        leaveType: 'vacation',
+        startDate: '2026-08-01',
+        endDate: '2026-08-05',
+      })).rejects.toThrow('Workspace is required to request leave.')
+
+      expect(supabaseMocks.rpc).not.toHaveBeenCalled()
+    })
+
+    it('rejects invalid leave type before RPC', async () => {
+      await expect(requestLeave(WORKSPACE_ID, {
+        leaveType: 'sabbatical',
+        startDate: '2026-08-01',
+        endDate: '2026-08-05',
+      })).rejects.toThrow('A valid leave type is required.')
+
+      expect(supabaseMocks.rpc).not.toHaveBeenCalled()
+    })
+
+    it('rejects missing start date before RPC', async () => {
+      await expect(requestLeave(WORKSPACE_ID, {
+        leaveType: 'vacation',
+        endDate: '2026-08-05',
+      })).rejects.toThrow('Start date is required.')
+
+      expect(supabaseMocks.rpc).not.toHaveBeenCalled()
+    })
+
+    it('rejects missing end date before RPC', async () => {
+      await expect(requestLeave(WORKSPACE_ID, {
+        leaveType: 'vacation',
+        startDate: '2026-08-01',
+      })).rejects.toThrow('End date is required.')
+
+      expect(supabaseMocks.rpc).not.toHaveBeenCalled()
+    })
+
+    it('rejects end date before start date before RPC', async () => {
+      await expect(requestLeave(WORKSPACE_ID, {
+        leaveType: 'vacation',
+        startDate: '2026-08-10',
+        endDate: '2026-08-05',
+      })).rejects.toThrow('End date must be on or after start date.')
+
+      expect(supabaseMocks.rpc).not.toHaveBeenCalled()
+    })
+
+    it('rejects invalid calendar date before RPC', async () => {
+      await expect(requestLeave(WORKSPACE_ID, {
+        leaveType: 'vacation',
+        startDate: '2026-02-30',
+        endDate: '2026-08-05',
+      })).rejects.toThrow('Start date is required.')
+
+      expect(supabaseMocks.rpc).not.toHaveBeenCalled()
+    })
+
+    it('throws when RPC returns no row', async () => {
+      supabaseMocks.setRpcResult({ data: [], error: null })
+
+      await expect(requestLeave(WORKSPACE_ID, {
+        leaveType: 'vacation',
+        startDate: '2026-08-01',
+        endDate: '2026-08-05',
+      })).rejects.toThrow('Leave request could not be created.')
+    })
+
+    it('maps leave_request_overlap to a clear service error', async () => {
+      supabaseMocks.setRpcResult({
+        data: null,
+        error: { message: 'leave_request_overlap' },
+      })
+
+      await expect(requestLeave(WORKSPACE_ID, {
+        leaveType: 'vacation',
+        startDate: '2026-08-01',
+        endDate: '2026-08-05',
+      })).rejects.toThrow('You already have a pending or approved leave request for this date range.')
+    })
+
+    it('maps leave_request_past_date_range correctly', async () => {
+      supabaseMocks.setRpcResult({
+        data: null,
+        error: { message: 'leave_request_past_date_range' },
+      })
+
+      await expect(requestLeave(WORKSPACE_ID, {
+        leaveType: 'vacation',
+        startDate: '2026-08-01',
+        endDate: '2026-08-05',
+      })).rejects.toThrow('Leave cannot be requested for past dates.')
+    })
+
+    it('maps leave_request_employee_not_linked correctly', async () => {
+      supabaseMocks.setRpcResult({
+        data: null,
+        error: { message: 'leave_request_employee_not_linked' },
+      })
+
+      await expect(requestLeave(WORKSPACE_ID, {
+        leaveType: 'vacation',
+        startDate: '2026-08-01',
+        endDate: '2026-08-05',
+      })).rejects.toThrow('Your employee profile is not linked to this account.')
+    })
+
+    it('maps timezone configuration errors correctly', async () => {
+      supabaseMocks.setRpcResult({
+        data: null,
+        error: { message: 'leave_request_workspace_timezone_missing' },
+      })
+
+      await expect(requestLeave(WORKSPACE_ID, {
+        leaveType: 'vacation',
+        startDate: '2026-08-01',
+        endDate: '2026-08-05',
+      })).rejects.toThrow('Workspace timezone is not configured.')
+
+      supabaseMocks.setRpcResult({
+        data: null,
+        error: { message: 'leave_request_workspace_timezone_invalid' },
+      })
+
+      await expect(requestLeave(WORKSPACE_ID, {
+        leaveType: 'vacation',
+        startDate: '2026-08-01',
+        endDate: '2026-08-05',
+      })).rejects.toThrow('Workspace timezone configuration is invalid.')
+    })
+
+    it('logs and throws unknown Supabase RPC errors', async () => {
+      const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
+      supabaseMocks.setRpcResult({
+        data: null,
+        error: { message: 'unexpected database failure' },
+      })
+
+      await expect(requestLeave(WORKSPACE_ID, {
+        leaveType: 'vacation',
+        startDate: '2026-08-01',
+        endDate: '2026-08-05',
+      })).rejects.toThrow('unexpected database failure')
+
+      expect(consoleError).toHaveBeenCalledWith(
+        '[leaveService] requestLeave error:',
+        expect.objectContaining({ message: 'unexpected database failure' }),
+      )
+
+      consoleError.mockRestore()
     })
   })
 })
