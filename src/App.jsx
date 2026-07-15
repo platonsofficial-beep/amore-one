@@ -4272,7 +4272,7 @@ function ScheduleView({
         statusIcon = '⚪'
       } else if (issueCount > 0) {
         status = 'understaffed'
-        statusLabel = issueCount === 1 ? '1 issue' : `${issueCount} issues`
+        statusLabel = 'Alerts'
         statusIcon = '⚠️'
       } else if (hasOverstaffed) {
         status = 'overstaffed'
@@ -5813,6 +5813,15 @@ function ScheduleView({
                           <ul className="schedule-shift-assigned-list">
                             {cell.shifts.map((shift) => {
                               const employeeName = shift.employees?.full_name || shift.employeeName || shift.employeeRecord?.name || 'Unassigned'
+                              const employeeKey = String(
+                                shift.employeeId
+                                  ?? shift.employeeRecord?.id
+                                  ?? shift.employees?.id
+                                  ?? '',
+                              )
+                              const displayNameLabel = (
+                                staffAvailabilityDisplayLabels.get(employeeKey) || employeeName
+                              )
                               const identityEmployee = resolveScheduleIdentityEmployee(shift, employeeName)
                               const identityPresentation = getEmployeeIdentityColor(identityEmployee)
                               const hasPersonalIdentityColor = Boolean(`${identityEmployee?.identityColor ?? ''}`.trim())
@@ -5837,8 +5846,10 @@ function ScheduleView({
                                       event.stopPropagation()
                                       handleOpenAssignmentActions(shift)
                                     }}
+                                    title={employeeName}
+                                    aria-label={employeeName}
                                   >
-                                    <span className="schedule-assigned-pill-name">{employeeName}</span>
+                                    <span className="schedule-assigned-pill-name">{displayNameLabel}</span>
                                   </button>
                                 </li>
                               )

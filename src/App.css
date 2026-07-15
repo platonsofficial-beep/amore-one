@@ -16466,8 +16466,11 @@
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
   overflow: hidden;
+  text-overflow: ellipsis;
   white-space: normal;
-  overflow-wrap: anywhere;
+  overflow-wrap: normal;
+  word-break: normal;
+  hyphens: none;
   line-height: 1.25;
   color: #f7efe1;
 }
