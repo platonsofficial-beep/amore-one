@@ -363,7 +363,6 @@ import {
   resolveShiftTemplateId,
 } from './lib/shiftIntegrity'
 import {
-  getEmployeeFirstName,
   getEmployeePositionNames,
   getEmployeePrimaryPosition,
   inferAreaFromTemplate,
@@ -371,6 +370,7 @@ import {
   isEmployeeUnavailable,
   resolvePositionForDrop,
 } from './lib/scheduleDropUtils'
+import { buildUniqueEmployeeDisplayLabels } from './lib/uniqueEmployeeDisplayLabels'
 import {
   buildCloneRawPayload,
   buildShiftCellKeyFromParts,
@@ -4340,6 +4340,11 @@ function ScheduleView({
       ))
   ), [employees])
 
+  const staffAvailabilityDisplayLabels = useMemo(
+    () => buildUniqueEmployeeDisplayLabels(activeStaffMembers),
+    [activeStaffMembers],
+  )
+
   const employeeWeeklyHoursMap = useMemo(
     () => buildEmployeeWeeklyHoursMap(visibleWeekShifts),
     [visibleWeekShifts],
@@ -5501,13 +5506,13 @@ function ScheduleView({
                     ) : (
                       activeStaffMembers.map((employee) => {
                         const employeeName = employee.full_name || employee.name || 'Staff'
-                        const firstName = getEmployeeFirstName(employee)
+                        const employeeKey = String(employee.id)
+                        const displayNameLabel = staffAvailabilityDisplayLabels.get(employeeKey) || employeeName
                         const positionLabel = getEmployeePrimaryPosition(employee)
                         const scheduledHours = employeeWeeklyHoursMap.get(String(employee.id)) ?? 0
                         const weeklyTarget = parseWeeklyHoursTarget(employee.weeklyHours ?? employee.weekly_hours)
                         const hoursTracker = getEmployeeHoursTrackerState(scheduledHours, weeklyTarget)
                         const workloadStatus = getEmployeeWorkloadStatus(scheduledHours, weeklyTarget)
-                        const employeeKey = String(employee.id)
                         const isEmployeeFocused = focusedEmployeeId === employeeKey
                         const chipMatchesSearch = !scheduleVisualSearchNeedle
                           || employeeName.toLowerCase().includes(scheduleVisualSearchNeedle)
@@ -5531,7 +5536,7 @@ function ScheduleView({
                               <EmployeeIdentity employee={resolveScheduleIdentityEmployee(employee, employeeName)} size="xs" />
                             </span>
                             <span className="schedule-staff-chip-body">
-                              <strong className="schedule-staff-chip-name" title={employeeName}>{firstName}</strong>
+                              <strong className="schedule-staff-chip-name" title={employeeName}>{displayNameLabel}</strong>
                               <span className="schedule-staff-chip-role">{positionLabel}</span>
                               <span className="schedule-staff-chip-meta">
                                 <span className={`schedule-staff-workload-status tone-${workloadStatus.tone}`}>

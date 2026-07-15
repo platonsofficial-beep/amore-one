@@ -20288,11 +20288,16 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   color: #fff7e8;
   font-size: 0.72rem;
   font-weight: 600;
-  line-height: 1.1;
-  white-space: nowrap;
+  line-height: 1.15;
+  max-width: 100%;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .schedule-staff-chip-role {
