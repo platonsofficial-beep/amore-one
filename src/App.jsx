@@ -768,12 +768,6 @@ function formatScheduleCellCoverageDetail(cell) {
   })
 }
 
-function formatDayCoverageBadgeLabel(summary) {
-  if (summary?.statusLabel) return summary.statusLabel
-  if (summary?.status === 'covered' || summary?.status === 'overstaffed') return 'Covered'
-  return 'Empty'
-}
-
 function formatTemplateRequiredCount(minRequired, maxRequired) {
   if (minRequired === null) return null
   if (minRequired === maxRequired) {
@@ -5580,10 +5574,6 @@ function ScheduleView({
                   }}
             >
               {weekDays.map((day) => {
-                const daySummary = dayHeaderSummariesByKey[day.key] ?? {
-                  status: 'empty',
-                  statusLabel: 'Empty',
-                }
                 const dayHeader = formatScheduleDayHeader(day.key)
                 const isTodayColumn = day.key === todayDateKey
                 return (
@@ -5599,9 +5589,6 @@ function ScheduleView({
                     <strong className="blend-grid-header-day-name">{dayHeader.weekdayLabel}</strong>
                     <div className="blend-grid-header-day-meta">
                       <span className="blend-grid-header-day-date">{dayHeader.calendarLabel}</span>
-                      <span className={`schedule-day-status-label tone-${daySummary.status}`}>
-                        {formatDayCoverageBadgeLabel(daySummary)}
-                      </span>
                     </div>
                   </button>
                   <button
