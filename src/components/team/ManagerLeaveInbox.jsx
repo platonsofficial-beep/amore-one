@@ -111,6 +111,12 @@ export function ManagerLeaveInbox({
     void loadPendingLeave()
   }
 
+  const handleLeaveRejected = () => {
+    setSuccessMessage('Leave request rejected.')
+    setSelectedLeave(null)
+    void loadPendingLeave()
+  }
+
   const rows = useMemo(
     () => buildInboxRows(pendingLeave, employees),
     [pendingLeave, employees],
@@ -268,6 +274,7 @@ export function ManagerLeaveInbox({
         workspaceId={workspaceId}
         onClose={() => setSelectedLeave(null)}
         onApproved={handleLeaveApproved}
+        onRejected={handleLeaveRejected}
       />
     </section>
   )

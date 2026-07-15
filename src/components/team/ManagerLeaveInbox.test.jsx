@@ -11,10 +11,12 @@ import { TeamPeopleView } from './TeamPeopleView'
 
 const fetchPendingLeaveMock = vi.hoisted(() => vi.fn())
 const approveLeaveRequestMock = vi.hoisted(() => vi.fn())
+const rejectLeaveRequestMock = vi.hoisted(() => vi.fn())
 
 vi.mock('../../services/leaveService', () => ({
   fetchPendingLeaveForWorkspace: fetchPendingLeaveMock,
   approveLeaveRequest: approveLeaveRequestMock,
+  rejectLeaveRequest: rejectLeaveRequestMock,
 }))
 
 const WORKSPACE_ID = 'ws-11111111-1111-1111-1111-111111111111'
@@ -51,6 +53,40 @@ const PENDING_LEAVE_WITHOUT_NOTE = [
     createdAt: '2026-07-21T11:00:00.000Z',
   },
 ]
+
+const DECISION_NOTE = 'Coverage unavailable'
+
+function getDrawerFooterApproveButton(container) {
+  return container.querySelector('.manager-leave-details-drawer-footer .primary-btn')
+}
+
+function getDrawerFooterRejectButton(container) {
+  return container.querySelector('.manager-leave-details-drawer-footer .ghost-btn')
+}
+
+function getRejectionReasonInput(container) {
+  return container.querySelector('.manager-leave-rejection-reason')
+}
+
+function setNativeValue(element, value) {
+  const prototype = Object.getPrototypeOf(element)
+  const descriptor = Object.getOwnPropertyDescriptor(prototype, 'value')
+  const setValue = descriptor?.set
+
+  if (setValue) {
+    setValue.call(element, value)
+  } else {
+    element.value = value
+  }
+
+  element.dispatchEvent(new Event('input', { bubbles: true }))
+  element.dispatchEvent(new Event('change', { bubbles: true }))
+}
+
+function setRejectionReasonValue(container, value) {
+  const textarea = getRejectionReasonInput(container)
+  setNativeValue(textarea, value)
+}
 
 function renderInbox(props = {}) {
   const container = document.createElement('div')
@@ -115,6 +151,15 @@ describe('ManagerLeaveInbox', () => {
       workspaceId: WORKSPACE_ID,
       employeeId: 'emp-1',
       status: 'approved',
+      leaveType: 'vacation',
+      startDate: '2026-08-01',
+      endDate: '2026-08-05',
+    })
+    rejectLeaveRequestMock.mockResolvedValue({
+      id: 'leave-1',
+      workspaceId: WORKSPACE_ID,
+      employeeId: 'emp-1',
+      status: 'rejected',
       leaveType: 'vacation',
       startDate: '2026-08-01',
       endDate: '2026-08-05',
@@ -263,6 +308,15 @@ describe('ManagerLeaveDetailsDrawer', () => {
       startDate: '2026-08-01',
       endDate: '2026-08-05',
     })
+    rejectLeaveRequestMock.mockResolvedValue({
+      id: 'leave-1',
+      workspaceId: WORKSPACE_ID,
+      employeeId: 'emp-1',
+      status: 'rejected',
+      leaveType: 'vacation',
+      startDate: '2026-08-01',
+      endDate: '2026-08-05',
+    })
   })
 
   async function openDrawer(container) {
@@ -357,14 +411,15 @@ describe('ManagerLeaveDetailsDrawer', () => {
     cleanup()
   })
 
-  it('does not render reject, cancel, or edit actions in the drawer', async () => {
+  it('does not render cancel request, edit, or delete actions in the drawer', async () => {
     const { container, cleanup } = renderInbox()
 
     await openDrawer(container)
 
     const drawer = container.querySelector('.manager-leave-details-drawer')
     expect(drawer?.textContent).toMatch(/Approve Leave/)
-    expect(drawer?.textContent).not.toMatch(/reject|cancel request|edit|delete/i)
+    expect(drawer?.textContent).toMatch(/Reject Leave/)
+    expect(drawer?.textContent).not.toMatch(/cancel request|edit|delete/i)
     cleanup()
   })
 
@@ -400,6 +455,7 @@ describe('ManagerLeaveDetailsDrawer', () => {
 
     expect(fetchPendingLeaveMock).toHaveBeenCalledTimes(1)
     expect(approveLeaveRequestMock).not.toHaveBeenCalled()
+    expect(rejectLeaveRequestMock).not.toHaveBeenCalled()
     cleanup()
   })
 
@@ -408,7 +464,7 @@ describe('ManagerLeaveDetailsDrawer', () => {
 
     await openDrawer(container)
 
-    const approveButton = container.querySelector('.manager-leave-details-drawer .primary-btn')
+    const approveButton = getDrawerFooterApproveButton(container)
     expect(approveButton?.textContent).toBe('Approve Leave')
     cleanup()
   })
@@ -435,10 +491,11 @@ describe('ManagerLeaveDetailsDrawer', () => {
         workspaceId: WORKSPACE_ID,
         onClose: vi.fn(),
         onApproved: vi.fn(),
+        onRejected: vi.fn(),
       }))
     })
 
-    expect(container.querySelector('.manager-leave-details-drawer .primary-btn')).toBeNull()
+    expect(container.querySelector('.manager-leave-details-drawer-footer')).toBeNull()
 
     act(() => root.unmount())
     container.remove()
@@ -450,7 +507,7 @@ describe('ManagerLeaveDetailsDrawer', () => {
     await openDrawer(container)
 
     await act(async () => {
-      container.querySelector('.manager-leave-details-drawer .primary-btn')?.click()
+      container.querySelector('.manager-leave-details-drawer-footer .primary-btn')?.click()
     })
 
     expect(container.querySelector('.manager-leave-approve-confirm-modal')).not.toBeNull()
@@ -467,7 +524,7 @@ describe('ManagerLeaveDetailsDrawer', () => {
     await openDrawer(container)
 
     await act(async () => {
-      container.querySelector('.manager-leave-details-drawer .primary-btn')?.click()
+      container.querySelector('.manager-leave-details-drawer-footer .primary-btn')?.click()
     })
 
     await act(async () => {
@@ -487,7 +544,7 @@ describe('ManagerLeaveDetailsDrawer', () => {
     await openDrawer(container)
 
     await act(async () => {
-      container.querySelector('.manager-leave-details-drawer .primary-btn')?.click()
+      container.querySelector('.manager-leave-details-drawer-footer .primary-btn')?.click()
     })
 
     await act(async () => {
@@ -509,7 +566,7 @@ describe('ManagerLeaveDetailsDrawer', () => {
     await openDrawer(container)
 
     await act(async () => {
-      container.querySelector('.manager-leave-details-drawer .primary-btn')?.click()
+      container.querySelector('.manager-leave-details-drawer-footer .primary-btn')?.click()
     })
 
     const confirmButton = container.querySelector('.manager-leave-approve-confirm-modal .primary-btn')
@@ -547,7 +604,7 @@ describe('ManagerLeaveDetailsDrawer', () => {
     await openDrawer(container)
 
     await act(async () => {
-      container.querySelector('.manager-leave-details-drawer .primary-btn')?.click()
+      container.querySelector('.manager-leave-details-drawer-footer .primary-btn')?.click()
     })
 
     await act(async () => {
@@ -583,7 +640,7 @@ describe('ManagerLeaveDetailsDrawer', () => {
     await openDrawer(container)
 
     await act(async () => {
-      container.querySelector('.manager-leave-details-drawer .primary-btn')?.click()
+      container.querySelector('.manager-leave-details-drawer-footer .primary-btn')?.click()
     })
 
     await act(async () => {
@@ -606,7 +663,7 @@ describe('ManagerLeaveDetailsDrawer', () => {
     await openDrawer(container)
 
     await act(async () => {
-      container.querySelector('.manager-leave-details-drawer .primary-btn')?.click()
+      container.querySelector('.manager-leave-details-drawer-footer .primary-btn')?.click()
     })
 
     await act(async () => {
@@ -627,7 +684,7 @@ describe('ManagerLeaveDetailsDrawer', () => {
     await openDrawer(container)
 
     await act(async () => {
-      container.querySelector('.manager-leave-details-drawer .primary-btn')?.click()
+      container.querySelector('.manager-leave-details-drawer-footer .primary-btn')?.click()
     })
 
     await act(async () => {
@@ -640,9 +697,311 @@ describe('ManagerLeaveDetailsDrawer', () => {
     expect(drawer).not.toBeNull()
     expect(drawer?.querySelector('.staff-status-banner')?.textContent)
       .toBe('This leave request has already been approved.')
-    expect(drawer?.querySelector('.primary-btn')?.disabled).toBe(false)
+    expect(drawer?.querySelector('.manager-leave-details-drawer-footer .primary-btn')?.disabled).toBe(false)
     expect(fetchPendingLeaveMock).toHaveBeenCalledTimes(1)
     expect(approveLeaveRequestMock).toHaveBeenCalledTimes(1)
+    cleanup()
+  })
+
+  it('shows the Reject Leave button for pending requests', async () => {
+    const { container, cleanup } = renderInbox()
+
+    await openDrawer(container)
+
+    expect(getDrawerFooterRejectButton(container)?.textContent).toBe('Reject Leave')
+    cleanup()
+  })
+
+  it('hides reject and approve actions for non-pending requests', async () => {
+    const container = document.createElement('div')
+    document.body.appendChild(container)
+    const root = createRoot(container)
+
+    act(() => {
+      root.render(createElement(ManagerLeaveDetailsDrawer, {
+        leaveDetail: {
+          id: 'leave-approved',
+          status: 'approved',
+          statusLabel: 'Approved',
+          employeeName: 'Alex Rivera',
+          leaveTypeLabel: 'Vacation',
+          startDate: '2026-08-01',
+          endDate: '2026-08-05',
+          durationLabel: '5 days',
+          submittedDate: '2026-07-20',
+          note: '',
+        },
+        workspaceId: WORKSPACE_ID,
+        onClose: vi.fn(),
+        onApproved: vi.fn(),
+        onRejected: vi.fn(),
+      }))
+    })
+
+    expect(container.querySelector('.manager-leave-details-drawer-footer')).toBeNull()
+    expect(container.querySelector('.manager-leave-rejection-reason')).toBeNull()
+
+    act(() => root.unmount())
+    container.remove()
+  })
+
+  it('disables Reject Leave until a reason is provided', async () => {
+    const { container, cleanup } = renderInbox()
+
+    await openDrawer(container)
+
+    expect(getDrawerFooterRejectButton(container)?.disabled).toBe(true)
+    cleanup()
+  })
+
+  it('rejects whitespace-only rejection reasons', async () => {
+    const { container, cleanup } = renderInbox()
+
+    await openDrawer(container)
+
+    await act(async () => {
+      setRejectionReasonValue(container, '   ')
+    })
+
+    expect(getDrawerFooterRejectButton(container)?.disabled).toBe(true)
+    cleanup()
+  })
+
+  it('opens the rejection confirmation dialog', async () => {
+    const { container, cleanup } = renderInbox()
+
+    await openDrawer(container)
+
+    await act(async () => {
+      setRejectionReasonValue(container, DECISION_NOTE)
+    })
+
+    await act(async () => {
+      getDrawerFooterRejectButton(container)?.click()
+    })
+
+    expect(container.querySelector('.manager-leave-reject-confirm-modal')).not.toBeNull()
+    expect(container.textContent).toContain('Reject leave request?')
+    expect(container.textContent).toContain(
+      'This will reject the leave request and cannot be undone from this screen.',
+    )
+    cleanup()
+  })
+
+  it('closes the rejection confirmation dialog when Cancel is clicked', async () => {
+    const { container, cleanup } = renderInbox()
+
+    await openDrawer(container)
+
+    await act(async () => {
+      setRejectionReasonValue(container, DECISION_NOTE)
+      getDrawerFooterRejectButton(container)?.click()
+    })
+
+    await act(async () => {
+      container.querySelector('.manager-leave-reject-confirm-modal .ghost-btn')?.click()
+    })
+
+    expect(container.querySelector('.manager-leave-reject-confirm-modal')).toBeNull()
+    expect(container.querySelector('.manager-leave-details-drawer')).not.toBeNull()
+    cleanup()
+  })
+
+  it('calls rejectLeaveRequest with workspace, leave request, and decision note', async () => {
+    fetchPendingLeaveMock.mockResolvedValueOnce(PENDING_LEAVE)
+    fetchPendingLeaveMock.mockResolvedValueOnce([])
+    const { container, cleanup } = renderInbox()
+
+    await openDrawer(container)
+
+    await act(async () => {
+      setRejectionReasonValue(container, `  ${DECISION_NOTE}  `)
+      getDrawerFooterRejectButton(container)?.click()
+    })
+
+    await act(async () => {
+      container.querySelector('.manager-leave-reject-confirm-modal .primary-btn')?.click()
+      await Promise.resolve()
+    })
+
+    expect(rejectLeaveRequestMock).toHaveBeenCalledWith(WORKSPACE_ID, 'leave-1', DECISION_NOTE)
+    cleanup()
+  })
+
+  it('prevents duplicate rejection calls on rapid confirm clicks', async () => {
+    let resolveReject
+    rejectLeaveRequestMock.mockImplementation(() => new Promise((resolve) => {
+      resolveReject = resolve
+    }))
+    const { container, cleanup } = renderInbox()
+
+    await openDrawer(container)
+
+    await act(async () => {
+      setRejectionReasonValue(container, DECISION_NOTE)
+      getDrawerFooterRejectButton(container)?.click()
+    })
+
+    const confirmButton = container.querySelector('.manager-leave-reject-confirm-modal .primary-btn')
+
+    await act(async () => {
+      confirmButton?.click()
+      confirmButton?.click()
+    })
+
+    expect(rejectLeaveRequestMock).toHaveBeenCalledTimes(1)
+
+    await act(async () => {
+      resolveReject({
+        id: 'leave-1',
+        workspaceId: WORKSPACE_ID,
+        employeeId: 'emp-1',
+        status: 'rejected',
+        leaveType: 'vacation',
+        startDate: '2026-08-01',
+        endDate: '2026-08-05',
+      })
+      await Promise.resolve()
+    })
+
+    cleanup()
+  })
+
+  it('disables drawer and confirmation controls while rejection is running', async () => {
+    let resolveReject
+    rejectLeaveRequestMock.mockImplementation(() => new Promise((resolve) => {
+      resolveReject = resolve
+    }))
+    const { container, cleanup } = renderInbox()
+
+    await openDrawer(container)
+
+    await act(async () => {
+      setRejectionReasonValue(container, DECISION_NOTE)
+      getDrawerFooterRejectButton(container)?.click()
+    })
+
+    await act(async () => {
+      container.querySelector('.manager-leave-reject-confirm-modal .primary-btn')?.click()
+    })
+
+    expect(container.querySelector('.manager-leave-reject-confirm-modal .primary-btn')?.textContent)
+      .toBe('Rejecting…')
+    expect(container.querySelector('.manager-leave-reject-confirm-modal .ghost-btn')?.disabled).toBe(true)
+    expect(getDrawerFooterApproveButton(container)?.disabled).toBe(true)
+    expect(container.querySelector('.manager-leave-details-drawer .icon-btn')?.disabled).toBe(true)
+
+    await act(async () => {
+      resolveReject({
+        id: 'leave-1',
+        workspaceId: WORKSPACE_ID,
+        employeeId: 'emp-1',
+        status: 'rejected',
+        leaveType: 'vacation',
+        startDate: '2026-08-01',
+        endDate: '2026-08-05',
+      })
+      await Promise.resolve()
+    })
+
+    cleanup()
+  })
+
+  it('refreshes the inbox and shows a success banner after rejection', async () => {
+    fetchPendingLeaveMock.mockResolvedValueOnce(PENDING_LEAVE)
+    fetchPendingLeaveMock.mockResolvedValueOnce([])
+    const { container, cleanup } = renderInbox()
+
+    await openDrawer(container)
+
+    await act(async () => {
+      setRejectionReasonValue(container, DECISION_NOTE)
+      getDrawerFooterRejectButton(container)?.click()
+    })
+
+    await act(async () => {
+      container.querySelector('.manager-leave-reject-confirm-modal .primary-btn')?.click()
+      await Promise.resolve()
+    })
+
+    await act(async () => {
+      await Promise.resolve()
+    })
+
+    expect(fetchPendingLeaveMock).toHaveBeenCalledTimes(2)
+    expect(container.textContent).toContain('Leave request rejected.')
+    cleanup()
+  })
+
+  it('closes the drawer after a successful rejection', async () => {
+    const { container, cleanup } = renderInbox()
+
+    await openDrawer(container)
+
+    await act(async () => {
+      setRejectionReasonValue(container, DECISION_NOTE)
+      getDrawerFooterRejectButton(container)?.click()
+    })
+
+    await act(async () => {
+      container.querySelector('.manager-leave-reject-confirm-modal .primary-btn')?.click()
+      await Promise.resolve()
+    })
+
+    expect(container.querySelector('.manager-leave-details-drawer')).toBeNull()
+    cleanup()
+  })
+
+  it('closes confirmation and keeps the drawer open with the reason preserved when rejection fails', async () => {
+    rejectLeaveRequestMock.mockRejectedValue(
+      new Error('This leave request has already been rejected.'),
+    )
+    const { container, cleanup } = renderInbox()
+
+    await openDrawer(container)
+
+    await act(async () => {
+      setRejectionReasonValue(container, DECISION_NOTE)
+      getDrawerFooterRejectButton(container)?.click()
+    })
+
+    await act(async () => {
+      container.querySelector('.manager-leave-reject-confirm-modal .primary-btn')?.click()
+      await Promise.resolve()
+    })
+
+    const drawer = container.querySelector('.manager-leave-details-drawer')
+    expect(container.querySelector('.manager-leave-reject-confirm-modal')).toBeNull()
+    expect(drawer).not.toBeNull()
+    expect(getRejectionReasonInput(container)?.value).toBe(DECISION_NOTE)
+    expect(drawer?.querySelector('.staff-status-banner')?.textContent)
+      .toBe('This leave request has already been rejected.')
+    expect(getDrawerFooterRejectButton(container)?.disabled).toBe(false)
+    expect(getDrawerFooterApproveButton(container)?.disabled).toBe(false)
+    expect(fetchPendingLeaveMock).toHaveBeenCalledTimes(1)
+    expect(rejectLeaveRequestMock).toHaveBeenCalledTimes(1)
+    cleanup()
+  })
+
+  it('keeps the existing approval flow unchanged', async () => {
+    fetchPendingLeaveMock.mockResolvedValueOnce(PENDING_LEAVE)
+    fetchPendingLeaveMock.mockResolvedValueOnce([])
+    const { container, cleanup } = renderInbox()
+
+    await openDrawer(container)
+
+    await act(async () => {
+      getDrawerFooterApproveButton(container)?.click()
+    })
+
+    await act(async () => {
+      container.querySelector('.manager-leave-approve-confirm-modal .primary-btn')?.click()
+      await Promise.resolve()
+    })
+
+    expect(approveLeaveRequestMock).toHaveBeenCalledWith(WORKSPACE_ID, 'leave-1')
+    expect(rejectLeaveRequestMock).not.toHaveBeenCalled()
+    expect(container.textContent).toContain('Leave request approved.')
     cleanup()
   })
 })

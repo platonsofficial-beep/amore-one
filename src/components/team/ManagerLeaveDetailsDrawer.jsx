@@ -1,33 +1,53 @@
 import { useEffect, useRef, useState } from 'react'
-import { approveLeaveRequest } from '../../services/leaveService'
+import { approveLeaveRequest, rejectLeaveRequest } from '../../services/leaveService'
+
+function normalizeRejectionReason(value) {
+  return `${value ?? ''}`.trim()
+}
 
 export function ManagerLeaveDetailsDrawer({
   leaveDetail,
   workspaceId = '',
   onClose,
   onApproved,
+  onRejected,
 }) {
-  const [isConfirmOpen, setIsConfirmOpen] = useState(false)
-  const [isApproving, setIsApproving] = useState(false)
+  const [confirmAction, setConfirmAction] = useState(null)
+  const [isActionPending, setIsActionPending] = useState(false)
   const [errorMessage, setErrorMessage] = useState('')
-  const approveInFlightRef = useRef(false)
+  const [rejectionReason, setRejectionReason] = useState('')
+  const [rejectionReasonError, setRejectionReasonError] = useState('')
+  const actionInFlightRef = useRef(false)
 
   useEffect(() => {
     if (!leaveDetail) {
-      setIsConfirmOpen(false)
-      setIsApproving(false)
+      setConfirmAction(null)
+      setIsActionPending(false)
       setErrorMessage('')
-      approveInFlightRef.current = false
+      setRejectionReason('')
+      setRejectionReasonError('')
+      actionInFlightRef.current = false
       return undefined
     }
 
+    setConfirmAction(null)
+    setIsActionPending(false)
+    setErrorMessage('')
+    setRejectionReason('')
+    setRejectionReasonError('')
+    actionInFlightRef.current = false
+  }, [leaveDetail])
+
+  useEffect(() => {
+    if (!leaveDetail) return undefined
+
     const handleKeyDown = (event) => {
-      if (event.key !== 'Escape' || isApproving) return
+      if (event.key !== 'Escape' || isActionPending) return
 
       event.preventDefault()
 
-      if (isConfirmOpen) {
-        setIsConfirmOpen(false)
+      if (confirmAction) {
+        setConfirmAction(null)
         return
       }
 
@@ -42,46 +62,89 @@ export function ManagerLeaveDetailsDrawer({
       document.body.style.overflow = previousOverflow
       document.removeEventListener('keydown', handleKeyDown)
     }
-  }, [isApproving, isConfirmOpen, leaveDetail, onClose])
+  }, [confirmAction, isActionPending, leaveDetail, onClose])
 
   if (!leaveDetail) return null
 
   const noteText = `${leaveDetail.note ?? ''}`.trim()
   const isPending = `${leaveDetail.status ?? leaveDetail.statusLabel ?? ''}`.trim().toLowerCase() === 'pending'
+  const normalizedRejectionReason = normalizeRejectionReason(rejectionReason)
+  const hasRejectionReason = Boolean(normalizedRejectionReason)
 
   const handleClose = () => {
-    if (isApproving) return
+    if (isActionPending) return
     onClose?.()
   }
 
-  const handleApproveClick = () => {
-    if (isApproving) return
-    setErrorMessage('')
-    setIsConfirmOpen(true)
+  const handleConfirmCancel = () => {
+    if (isActionPending) return
+    setConfirmAction(null)
   }
 
-  const handleConfirmCancel = () => {
-    if (isApproving) return
-    setIsConfirmOpen(false)
+  const handleApproveClick = () => {
+    if (isActionPending) return
+    setErrorMessage('')
+    setRejectionReasonError('')
+    setConfirmAction('approve')
+  }
+
+  const handleRejectClick = () => {
+    if (isActionPending) return
+    setErrorMessage('')
+
+    if (!hasRejectionReason) {
+      setRejectionReasonError('A rejection reason is required.')
+      return
+    }
+
+    setRejectionReasonError('')
+    setConfirmAction('reject')
   }
 
   const handleConfirmApprove = async () => {
-    if (isApproving || approveInFlightRef.current) return
+    if (isActionPending || actionInFlightRef.current) return
 
-    approveInFlightRef.current = true
-    setIsApproving(true)
+    actionInFlightRef.current = true
+    setIsActionPending(true)
     setErrorMessage('')
 
     try {
       await approveLeaveRequest(workspaceId, leaveDetail.id)
-      setIsConfirmOpen(false)
+      setConfirmAction(null)
       onApproved?.()
       onClose?.()
     } catch (error) {
-      approveInFlightRef.current = false
-      setIsApproving(false)
-      setIsConfirmOpen(false)
+      actionInFlightRef.current = false
+      setIsActionPending(false)
+      setConfirmAction(null)
       setErrorMessage(error?.message || 'Unable to approve the leave request right now.')
+    }
+  }
+
+  const handleConfirmReject = async () => {
+    if (isActionPending || actionInFlightRef.current) return
+
+    const trimmedReason = normalizeRejectionReason(rejectionReason)
+    if (!trimmedReason) {
+      setRejectionReasonError('A rejection reason is required.')
+      setConfirmAction(null)
+      return
+    }
+
+    actionInFlightRef.current = true
+    setIsActionPending(true)
+    setErrorMessage('')
+
+    try {
+      await rejectLeaveRequest(workspaceId, leaveDetail.id, trimmedReason)
+      setConfirmAction(null)
+      onRejected?.()
+      onClose?.()
+    } catch (error) {
+      actionInFlightRef.current = false
+      setIsActionPending(false)
+      setConfirmAction(null)
+      setErrorMessage(error?.message || 'Unable to reject the leave request right now.')
     }
   }
 
@@ -170,11 +233,35 @@ export function ManagerLeaveDetailsDrawer({
             font-style: italic;
           }
 
+          .manager-leave-rejection-reason-field {
+            display: grid;
+            gap: 0.5rem;
+          }
+
+          .manager-leave-rejection-reason-field span {
+            font-size: 0.875rem;
+          }
+
+          .manager-leave-rejection-reason {
+            min-height: 88px;
+            resize: vertical;
+          }
+
+          .manager-leave-rejection-reason-error {
+            margin: 0;
+            color: var(--danger-text, #ff8f8f);
+            font-size: 0.8125rem;
+          }
+
           .manager-leave-details-drawer-footer {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.75rem;
             margin-top: auto;
             padding-top: 0.5rem;
           }
 
+          .manager-leave-details-drawer-footer .ghost-btn,
           .manager-leave-details-drawer-footer .primary-btn {
             min-height: 44px;
             width: 100%;
@@ -187,7 +274,7 @@ export function ManagerLeaveDetailsDrawer({
             type="button"
             className="icon-btn"
             onClick={handleClose}
-            disabled={isApproving}
+            disabled={isActionPending}
             aria-label="Close leave request details"
           >
             ✕
@@ -237,6 +324,31 @@ export function ManagerLeaveDetailsDrawer({
             </p>
           </section>
 
+          {isPending ? (
+            <section>
+              <label className="manager-leave-rejection-reason-field form-field full-width">
+                <span>Rejection reason</span>
+                <textarea
+                  className="manager-leave-rejection-reason"
+                  value={rejectionReason}
+                  onChange={(event) => {
+                    setRejectionReason(event.target.value)
+                    if (rejectionReasonError) {
+                      setRejectionReasonError('')
+                    }
+                  }}
+                  placeholder="Enter the reason for rejecting this leave request..."
+                  rows={3}
+                  disabled={isActionPending}
+                  aria-invalid={rejectionReasonError ? 'true' : 'false'}
+                />
+                {rejectionReasonError ? (
+                  <p className="manager-leave-rejection-reason-error" role="alert">{rejectionReasonError}</p>
+                ) : null}
+              </label>
+            </section>
+          ) : null}
+
           {errorMessage ? (
             <div className="staff-status-banner" role="alert">{errorMessage}</div>
           ) : null}
@@ -245,9 +357,17 @@ export function ManagerLeaveDetailsDrawer({
             <div className="manager-leave-details-drawer-footer">
               <button
                 type="button"
+                className="ghost-btn"
+                onClick={handleRejectClick}
+                disabled={isActionPending || !hasRejectionReason}
+              >
+                Reject Leave
+              </button>
+              <button
+                type="button"
                 className="primary-btn"
                 onClick={handleApproveClick}
-                disabled={isApproving}
+                disabled={isActionPending}
               >
                 Approve Leave
               </button>
@@ -256,14 +376,14 @@ export function ManagerLeaveDetailsDrawer({
         </div>
       </aside>
 
-      {isConfirmOpen ? (
+      {confirmAction === 'approve' ? (
         <div className="employee-modal-backdrop" onClick={handleConfirmCancel}>
           <div
             className="employee-modal blend-compact-modal manager-leave-approve-confirm-modal is-responsive-sheet"
             role="dialog"
             aria-modal="true"
             aria-labelledby="manager-leave-approve-confirm-title"
-            aria-busy={isApproving}
+            aria-busy={isActionPending}
             onClick={(event) => event.stopPropagation()}
           >
             <div className="drawer-header">
@@ -275,7 +395,7 @@ export function ManagerLeaveDetailsDrawer({
                 type="button"
                 className="icon-btn"
                 onClick={handleConfirmCancel}
-                disabled={isApproving}
+                disabled={isActionPending}
                 aria-label="Close approval confirmation"
               >
                 ✕
@@ -291,7 +411,7 @@ export function ManagerLeaveDetailsDrawer({
                 type="button"
                 className="ghost-btn"
                 onClick={handleConfirmCancel}
-                disabled={isApproving}
+                disabled={isActionPending}
               >
                 Cancel
               </button>
@@ -299,9 +419,61 @@ export function ManagerLeaveDetailsDrawer({
                 type="button"
                 className="primary-btn"
                 onClick={handleConfirmApprove}
-                disabled={isApproving}
+                disabled={isActionPending}
               >
-                {isApproving ? 'Approving…' : 'Approve'}
+                {isActionPending ? 'Approving…' : 'Approve'}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {confirmAction === 'reject' ? (
+        <div className="employee-modal-backdrop" onClick={handleConfirmCancel}>
+          <div
+            className="employee-modal blend-compact-modal manager-leave-reject-confirm-modal is-responsive-sheet"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="manager-leave-reject-confirm-title"
+            aria-busy={isActionPending}
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="drawer-header">
+              <div>
+                <p className="eyebrow">Leave rejection</p>
+                <h3 id="manager-leave-reject-confirm-title">Reject leave request?</h3>
+              </div>
+              <button
+                type="button"
+                className="icon-btn"
+                onClick={handleConfirmCancel}
+                disabled={isActionPending}
+                aria-label="Close rejection confirmation"
+              >
+                ✕
+              </button>
+            </div>
+
+            <p className="manager-leave-reject-confirm-copy">
+              This will reject the leave request and cannot be undone from this screen.
+            </p>
+
+            <div className="modal-actions">
+              <button
+                type="button"
+                className="ghost-btn"
+                onClick={handleConfirmCancel}
+                disabled={isActionPending}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="primary-btn"
+                onClick={handleConfirmReject}
+                disabled={isActionPending}
+              >
+                {isActionPending ? 'Rejecting…' : 'Reject'}
               </button>
             </div>
           </div>
