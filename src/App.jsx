@@ -5581,10 +5581,12 @@ function ScheduleView({
                     onClick={() => setSelectedDay(day.key)}
                   >
                     <strong className="blend-grid-header-day-name">{dayHeader.weekdayLabel}</strong>
-                    <span className="blend-grid-header-day-date">{dayHeader.calendarLabel}</span>
-                    <span className={`schedule-day-status-label tone-${daySummary.status}`}>
-                      {formatDayCoverageBadgeLabel(daySummary)}
-                    </span>
+                    <div className="blend-grid-header-day-meta">
+                      <span className="blend-grid-header-day-date">{dayHeader.calendarLabel}</span>
+                      <span className={`schedule-day-status-label tone-${daySummary.status}`}>
+                        {formatDayCoverageBadgeLabel(daySummary)}
+                      </span>
+                    </div>
                   </button>
                   <button
                     type="button"
@@ -5697,11 +5699,8 @@ function ScheduleView({
                     >
                       <header className="schedule-shift-instance-header">
                         <div className="schedule-shift-instance-copy">
-                          <h4 className="schedule-shift-instance-title">
-                            <span className="schedule-shift-instance-dept">{templateDepartment}</span>
-                            <span className="schedule-shift-instance-separator" aria-hidden="true">·</span>
-                            <span className="schedule-shift-instance-name">{templateShiftDisplayName}</span>
-                          </h4>
+                          <span className="schedule-shift-instance-dept">{templateDepartment}</span>
+                          <h4 className="schedule-shift-instance-name">{templateShiftDisplayName}</h4>
                           {templateTimeLabel ? (
                             <span className="schedule-shift-instance-time">{templateTimeLabel}</span>
                           ) : null}
@@ -5788,7 +5787,6 @@ function ScheduleView({
                       </header>
 
                       <p className="schedule-shift-staff-ratio" aria-label={`${cell.assignedCount} of ${cell.requiredCount} staff scheduled`}>
-                        <span className="schedule-shift-needed-icon" aria-hidden="true">👥</span>
                         <span className="schedule-shift-staff-ratio-value">
                           {cell.assignedCount} / {isCapacitySaving ? '…' : cell.requiredCount} scheduled
                         </span>
