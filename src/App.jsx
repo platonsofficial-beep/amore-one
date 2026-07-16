@@ -14032,6 +14032,7 @@ function InventoryReorderContent({
   onCopyNotice,
   showActions = true,
   canManage = false,
+  catalogReadOnly = false,
   onClose,
 }) {
   const summary = useMemo(() => buildInventoryReorderSummary(items), [items])
@@ -14108,6 +14109,7 @@ function InventoryReorderContent({
                             type="button"
                             className="ghost-btn inventory-reorder-row-edit"
                             onClick={() => onOpenEditItem?.(row.item)}
+                            disabled={catalogReadOnly}
                           >
                             Edit
                           </button>
@@ -14870,6 +14872,7 @@ function InventoryItemCard({
   onOpenEditItem,
   onRequestDeleteItem,
   canManage = false,
+  catalogReadOnly = false,
 }) {
   const hasUnit = hasSupplierField(item.unit)
   const hasSupplier = hasSupplierField(item.supplier)
@@ -14916,6 +14919,7 @@ function InventoryItemCard({
               type="button"
               className="ghost-btn inventory-item-card-action-btn"
               onClick={() => onOpenEditItem?.(item)}
+              disabled={catalogReadOnly}
             >
               Edit
             </button>
@@ -14923,6 +14927,7 @@ function InventoryItemCard({
               type="button"
               className="ghost-btn inventory-item-card-action-btn inventory-item-card-delete-btn"
               onClick={() => onRequestDeleteItem?.(item)}
+              disabled={catalogReadOnly}
             >
               Delete
             </button>
@@ -15008,6 +15013,9 @@ function InventoryItemCard({
   )
 }
 
+/** Phase 0: legacy inventory catalog is browse-only; new writes go to Stock Dashboard. */
+const INVENTORY_CATALOG_READ_ONLY = true
+
 function InventoryView({
   inventoryItems,
   barRefills,
@@ -15035,6 +15043,7 @@ function InventoryView({
   const [statusFilter, setStatusFilter] = useState('all')
   const [reorderCopyNotice, setReorderCopyNotice] = useState('')
   const [barRefillPendingComplete, setBarRefillPendingComplete] = useState(null)
+  const catalogReadOnly = INVENTORY_CATALOG_READ_ONLY
 
   const categoryFilters = useMemo(
     () => getInventoryCategoryFilters(inventoryItems),
@@ -15101,7 +15110,12 @@ function InventoryView({
         </div>
         <div className="inventory-header-actions">
           {stockTab === 'inventory' && canManage ? (
-            <button type="button" className="primary-btn" onClick={onOpenAddItem} disabled={isSaving}>
+            <button
+              type="button"
+              className="primary-btn"
+              onClick={onOpenAddItem}
+              disabled={catalogReadOnly || isSaving}
+            >
               {isSaving ? 'Saving…' : '+ Add Item'}
             </button>
           ) : null}
@@ -15142,6 +15156,16 @@ function InventoryView({
           Bar Refill
         </button>
       </div>
+
+      {stockTab === 'inventory' || stockTab === 'reorder' ? (
+        <div className="staff-status-banner" role="status" aria-live="polite">
+          <strong>Legacy Inventory</strong>
+          <p className="auth-invite-banner-copy">
+            This section is now in read-only mode.
+            Use Stock Dashboard for all new inventory management.
+          </p>
+        </div>
+      ) : null}
 
       {stockTab === 'inventory' ? (
         <>
@@ -15261,7 +15285,11 @@ function InventoryView({
         {visibleItems.length === 0 && !isLoading ? (
           <div className="schedule-empty-state">
             <h4>{inventoryItems.length === 0 ? 'No stock items yet.' : 'No items match this filter.'}</h4>
-            <p>{inventoryItems.length === 0 ? 'Add your first item to begin stock tracking.' : 'Try another status, category, or search term.'}</p>
+            <p>
+              {inventoryItems.length === 0
+                ? 'Use Stock Dashboard to add products.'
+                : 'Try another status, category, or search term.'}
+            </p>
           </div>
         ) : (
           <div className="inventory-grouped-list">
@@ -15280,6 +15308,7 @@ function InventoryView({
                             onOpenEditItem={onOpenEditItem}
                             onRequestDeleteItem={onRequestDeleteItem}
                             canManage={canManage}
+                            catalogReadOnly={catalogReadOnly}
                           />
                         ))}
                       </div>
@@ -15299,6 +15328,7 @@ function InventoryView({
                         onOpenEditItem={onOpenEditItem}
                         onRequestDeleteItem={onRequestDeleteItem}
                         canManage={canManage}
+                        catalogReadOnly={catalogReadOnly}
                       />
                     ))}
                   </div>
@@ -15327,6 +15357,7 @@ function InventoryView({
             onCopyNotice={setReorderCopyNotice}
             showActions
             canManage={canManage}
+            catalogReadOnly={catalogReadOnly}
           />
         </div>
       ) : null}
