@@ -31243,6 +31243,10 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   line-height: 1.45;
 }
 
+.stock-migration-session-list {
+  max-width: 520px;
+}
+
 .stock-migration-operator-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));

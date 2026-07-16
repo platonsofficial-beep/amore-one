@@ -9,11 +9,13 @@ import {
 } from '../../lib/inventoryMigrationMetrics'
 import { buildInventoryMigrationOperator } from '../../lib/inventoryMigrationOperator'
 import { buildInventoryMigrationAuditEvidence } from '../../lib/inventoryMigrationAuditEvidence'
+import { buildInventoryMigrationSessionPlaceholder } from '../../lib/inventoryMigrationSession'
 import { getInventoryMigrationMetrics } from '../../services/inventoryMigrationMetricsService'
 import { StockMigrationAttentionQueue } from './StockMigrationAttentionQueue'
 import { StockMigrationHealthPanel } from './StockMigrationHealthPanel'
 import { StockMigrationManualReviewQueue } from './StockMigrationManualReviewQueue'
 import { StockMigrationOperatorPanel } from './StockMigrationOperatorPanel'
+import { StockMigrationSessionCard } from './StockMigrationSessionCard'
 
 const EXECUTION_ACTIONS = [
   'Run Classification',
@@ -146,6 +148,13 @@ export function StockInventoryMigrationView({
     [metrics, metricsAvailable, tableReachable, auditEvidence],
   )
 
+  const sessionPlaceholder = useMemo(
+    () => buildInventoryMigrationSessionPlaceholder({
+      workspaceId: isWorkspaceReady ? workspaceId : null,
+    }),
+    [workspaceId, isWorkspaceReady],
+  )
+
   const summaryCards = [
     { id: 'legacy', label: 'Legacy Items', value: metricsAvailable ? formatMetricValue(metrics.legacyItems) : 'Unknown' },
     { id: 'classified', label: 'Classified', value: metricsAvailable ? formatMetricValue(metrics.classified) : 'Unknown' },
@@ -182,6 +191,8 @@ export function StockInventoryMigrationView({
         health={health}
         metricsAvailable={metricsAvailable}
       />
+
+      <StockMigrationSessionCard summary={sessionPlaceholder.summary} />
 
       <StockMigrationOperatorPanel operator={operator} />
 
