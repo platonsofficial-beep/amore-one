@@ -30955,7 +30955,7 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 
 .stock-migration-timeline-body {
   display: flex;
-  align-items: baseline;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 12px;
   padding-bottom: 14px;
@@ -30967,11 +30967,25 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   padding-bottom: 0;
 }
 
+.stock-migration-timeline-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
 .stock-migration-timeline-stage {
   margin: 0;
   color: #fff7e8;
   font-size: 0.95rem;
   font-weight: 600;
+}
+
+.stock-migration-timeline-description {
+  margin: 0;
+  color: rgba(255, 247, 232, 0.55);
+  font-size: 0.82rem;
+  line-height: 1.4;
 }
 
 .stock-migration-timeline-meta {
@@ -30981,6 +30995,58 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   text-transform: uppercase;
   letter-spacing: 0.06em;
   flex-shrink: 0;
+}
+
+.stock-migration-state-badge {
+  flex-shrink: 0;
+  min-height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.04);
+  color: rgba(255, 247, 232, 0.72);
+  font-size: 0.72rem;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.stock-migration-timeline-item.is-complete .stock-migration-timeline-dot,
+.stock-migration-state-badge.is-complete {
+  border-color: rgba(212, 175, 55, 0.55);
+  background: rgba(212, 175, 55, 0.16);
+  color: #d4af37;
+}
+
+.stock-migration-timeline-item.is-in-progress .stock-migration-timeline-dot,
+.stock-migration-state-badge.is-in-progress {
+  border-color: rgba(255, 152, 0, 0.5);
+  background: rgba(255, 152, 0, 0.14);
+  color: #ffb74d;
+}
+
+.stock-migration-timeline-item.is-waiting .stock-migration-timeline-dot,
+.stock-migration-state-badge.is-waiting {
+  border-color: rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.05);
+  color: rgba(255, 247, 232, 0.58);
+}
+
+.stock-migration-timeline-item.is-blocked .stock-migration-timeline-dot,
+.stock-migration-state-badge.is-blocked {
+  border-color: rgba(244, 67, 54, 0.5);
+  background: rgba(244, 67, 54, 0.14);
+  color: #ef9a9a;
+}
+
+.stock-migration-timeline-item.is-unknown .stock-migration-timeline-dot,
+.stock-migration-state-badge.is-unknown {
+  border-color: rgba(158, 158, 158, 0.4);
+  background: rgba(158, 158, 158, 0.12);
+  color: #bdbdbd;
 }
 
 .stock-migration-actions {

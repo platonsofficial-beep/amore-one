@@ -26,6 +26,9 @@ export async function getInventoryMigrationMetrics(workspaceId) {
       metrics: createEmptyInventoryMigrationMetrics(),
       error: null,
       unavailable: false,
+      tableReachable: false,
+      metricsAvailable: false,
+      fetchedAt: null,
     }
   }
 
@@ -34,12 +37,15 @@ export async function getInventoryMigrationMetrics(workspaceId) {
       metrics: createEmptyInventoryMigrationMetrics(),
       error: 'Supabase is not configured.',
       unavailable: true,
+      tableReachable: false,
+      metricsAvailable: false,
+      fetchedAt: null,
     }
   }
 
   const { data, error } = await supabase
     .from(MAP_TABLE)
-    .select('id, status, resolution_type')
+    .select('id, status, resolution_type, migrated_at')
     .eq('workspace_id', normalizedWorkspaceId)
 
   if (error) {
@@ -48,6 +54,9 @@ export async function getInventoryMigrationMetrics(workspaceId) {
       metrics: createEmptyInventoryMigrationMetrics(),
       error: error.message || 'Unable to load migration metrics.',
       unavailable: isTableUnavailableError(error),
+      tableReachable: false,
+      metricsAvailable: false,
+      fetchedAt: null,
     }
   }
 
@@ -55,5 +64,8 @@ export async function getInventoryMigrationMetrics(workspaceId) {
     metrics: aggregateInventoryMigrationMetrics(data ?? []),
     error: null,
     unavailable: false,
+    tableReachable: true,
+    metricsAvailable: true,
+    fetchedAt: new Date().toISOString(),
   }
 }

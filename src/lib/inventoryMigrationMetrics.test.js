@@ -1,7 +1,11 @@
 import { describe, expect, it } from 'vitest'
 import {
   aggregateInventoryMigrationMetrics,
+  buildInventoryMigrationPipeline,
   createEmptyInventoryMigrationMetrics,
+  PIPELINE_STATE,
+  resolveInventoryMigrationCurrentStage,
+  resolveInventoryMigrationProgressPercent,
   resolveInventoryMigrationStatus,
 } from './inventoryMigrationMetrics'
 
@@ -11,8 +15,8 @@ describe('inventoryMigrationMetrics', () => {
       { status: 'classified', resolution_type: 'auto_link' },
       { status: 'classified', resolution_type: 'auto_create' },
       { status: 'manual', resolution_type: null },
-      { status: 'created', resolution_type: 'auto_create' },
-      { status: 'linked', resolution_type: 'auto_link' },
+      { status: 'created', resolution_type: 'auto_create', migrated_at: null },
+      { status: 'linked', resolution_type: 'auto_link', migrated_at: '2026-07-16T10:00:00.000Z' },
       { status: 'skipped', resolution_type: 'skip' },
     ])
 
@@ -22,7 +26,11 @@ describe('inventoryMigrationMetrics', () => {
       autoLink: 2,
       autoCreate: 2,
       manualReview: 1,
+      skipped: 1,
       completed: 2,
+      migratedCompleted: 1,
+      remainingClassifiedAutoLink: 1,
+      remainingClassifiedAutoCreate: 1,
       total: 6,
     })
   })
@@ -32,5 +40,41 @@ describe('inventoryMigrationMetrics', () => {
     expect(resolveInventoryMigrationStatus({ completed: 0, total: 10 })).toBe('Not Started')
     expect(resolveInventoryMigrationStatus({ completed: 3, total: 10 })).toBe('In Progress')
     expect(resolveInventoryMigrationStatus({ completed: 10, total: 10 })).toBe('Completed')
+  })
+
+  it('returns Unknown pipeline when metrics are unavailable', () => {
+    const pipeline = buildInventoryMigrationPipeline({
+      metrics: createEmptyInventoryMigrationMetrics(),
+      metricsAvailable: false,
+      tableReachable: false,
+    })
+    expect(pipeline.every((stage) => stage.state === PIPELINE_STATE.UNKNOWN)).toBe(true)
+    expect(resolveInventoryMigrationCurrentStage(pipeline)).toBe('Unknown')
+    expect(resolveInventoryMigrationProgressPercent(null, false)).toBeNull()
+  })
+
+  it('builds live pipeline states from metrics', () => {
+    const metrics = aggregateInventoryMigrationMetrics([
+      { status: 'created', resolution_type: 'auto_create', migrated_at: '2026-07-16T10:00:00.000Z' },
+      { status: 'linked', resolution_type: 'auto_link', migrated_at: '2026-07-16T10:00:00.000Z' },
+    ])
+    const pipeline = buildInventoryMigrationPipeline({
+      metrics,
+      metricsAvailable: true,
+      tableReachable: true,
+    })
+    const byId = Object.fromEntries(pipeline.map((stage) => [stage.id, stage.state]))
+
+    expect(byId.foundation).toBe(PIPELINE_STATE.COMPLETE)
+    expect(byId.classification).toBe(PIPELINE_STATE.COMPLETE)
+    expect(byId['auto-link']).toBe(PIPELINE_STATE.COMPLETE)
+    expect(byId['auto-create']).toBe(PIPELINE_STATE.COMPLETE)
+    expect(byId['integrity-audit']).toBe(PIPELINE_STATE.WAITING)
+    expect(byId.preflight).toBe(PIPELINE_STATE.WAITING)
+    expect(byId.preview).toBe(PIPELINE_STATE.WAITING)
+    expect(byId['phase-1']).toBe(PIPELINE_STATE.COMPLETE)
+    expect(byId['phase-2']).toBe(PIPELINE_STATE.COMPLETE)
+    expect(byId.completed).toBe(PIPELINE_STATE.COMPLETE)
+    expect(resolveInventoryMigrationProgressPercent(metrics, true)).toBe(100)
   })
 })

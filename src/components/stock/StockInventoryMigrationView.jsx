@@ -1,22 +1,12 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import {
+  buildInventoryMigrationPipeline,
   createEmptyInventoryMigrationMetrics,
+  resolveInventoryMigrationCurrentStage,
+  resolveInventoryMigrationProgressPercent,
   resolveInventoryMigrationStatus,
 } from '../../lib/inventoryMigrationMetrics'
 import { getInventoryMigrationMetrics } from '../../services/inventoryMigrationMetricsService'
-
-const PIPELINE_STAGES = [
-  'Foundation',
-  'Classification',
-  'Auto Link',
-  'Auto Create',
-  'Integrity Audit',
-  'Preflight',
-  'Preview',
-  'Phase 1',
-  'Phase 2',
-  'Completed',
-]
 
 const EXECUTION_ACTIONS = [
   'Run Classification',
@@ -32,8 +22,20 @@ function formatMetricValue(value) {
   return Number.isFinite(n) ? `${n}` : '0'
 }
 
+function formatLastUpdated(iso) {
+  if (!iso) return 'Unknown'
+  const date = new Date(iso)
+  if (Number.isNaN(date.getTime())) return 'Unknown'
+  return date.toLocaleString()
+}
+
+function pipelineStateClass(state) {
+  const normalized = `${state ?? ''}`.toLowerCase().replace(/\s+/g, '-')
+  return `is-${normalized}`
+}
+
 /**
- * Inventory Migration dashboard — live read-only metrics.
+ * Inventory Migration dashboard — live read-only metrics and pipeline.
  * No mutation handlers. Execution buttons remain disabled.
  */
 export function StockInventoryMigrationView({
@@ -42,6 +44,9 @@ export function StockInventoryMigrationView({
   isWorkspaceReady = false,
 }) {
   const [metrics, setMetrics] = useState(createEmptyInventoryMigrationMetrics)
+  const [metricsAvailable, setMetricsAvailable] = useState(false)
+  const [tableReachable, setTableReachable] = useState(false)
+  const [fetchedAt, setFetchedAt] = useState(null)
   const [isLoading, setIsLoading] = useState(false)
   const [noticeMessage, setNoticeMessage] = useState('')
 
@@ -52,6 +57,9 @@ export function StockInventoryMigrationView({
       if (!isWorkspaceReady || !`${workspaceId ?? ''}`.trim()) {
         if (!cancelled) {
           setMetrics(createEmptyInventoryMigrationMetrics())
+          setMetricsAvailable(false)
+          setTableReachable(false)
+          setFetchedAt(null)
           setNoticeMessage('')
           setIsLoading(false)
         }
@@ -63,6 +71,9 @@ export function StockInventoryMigrationView({
       if (cancelled) return
 
       setMetrics(result.metrics)
+      setMetricsAvailable(Boolean(result.metricsAvailable))
+      setTableReachable(Boolean(result.tableReachable))
+      setFetchedAt(result.fetchedAt ?? null)
       setNoticeMessage(result.error ? result.error : '')
       setIsLoading(false)
     }
@@ -73,16 +84,30 @@ export function StockInventoryMigrationView({
     }
   }, [workspaceId, isWorkspaceReady])
 
-  const migrationStatus = resolveInventoryMigrationStatus(metrics)
+  const migrationStatus = metricsAvailable
+    ? resolveInventoryMigrationStatus(metrics)
+    : 'Unknown'
+
+  const pipeline = useMemo(
+    () => buildInventoryMigrationPipeline({
+      metrics,
+      metricsAvailable,
+      tableReachable,
+    }),
+    [metrics, metricsAvailable, tableReachable],
+  )
+
+  const progressPercent = resolveInventoryMigrationProgressPercent(metrics, metricsAvailable)
+  const currentStage = resolveInventoryMigrationCurrentStage(pipeline)
   const displayWorkspace = `${workspaceLabel ?? ''}`.trim() || '—'
 
   const summaryCards = [
-    { id: 'legacy', label: 'Legacy Items', value: formatMetricValue(metrics.legacyItems) },
-    { id: 'classified', label: 'Classified', value: formatMetricValue(metrics.classified) },
-    { id: 'auto-link', label: 'Auto Link', value: formatMetricValue(metrics.autoLink) },
-    { id: 'auto-create', label: 'Auto Create', value: formatMetricValue(metrics.autoCreate) },
-    { id: 'manual', label: 'Manual Review', value: formatMetricValue(metrics.manualReview) },
-    { id: 'completed', label: 'Completed', value: formatMetricValue(metrics.completed) },
+    { id: 'legacy', label: 'Legacy Items', value: metricsAvailable ? formatMetricValue(metrics.legacyItems) : 'Unknown' },
+    { id: 'classified', label: 'Classified', value: metricsAvailable ? formatMetricValue(metrics.classified) : 'Unknown' },
+    { id: 'auto-link', label: 'Auto Link', value: metricsAvailable ? formatMetricValue(metrics.autoLink) : 'Unknown' },
+    { id: 'auto-create', label: 'Auto Create', value: metricsAvailable ? formatMetricValue(metrics.autoCreate) : 'Unknown' },
+    { id: 'manual', label: 'Manual Review', value: metricsAvailable ? formatMetricValue(metrics.manualReview) : 'Unknown' },
+    { id: 'completed', label: 'Completed', value: metricsAvailable ? formatMetricValue(metrics.completed) : 'Unknown' },
   ]
 
   return (
@@ -114,22 +139,30 @@ export function StockInventoryMigrationView({
             <div className="stock-migration-panel-header">
               <h3 className="stock-migration-panel-title">Pipeline</h3>
               <p className="stock-migration-panel-copy">
-                Controlled stages from foundation through completion.
+                Live stage status from the current workspace migration map.
               </p>
             </div>
 
             <ol className="stock-migration-timeline">
-              {PIPELINE_STAGES.map((stage, index) => (
-                <li key={stage} className="stock-migration-timeline-item">
+              {pipeline.map((item, index) => (
+                <li
+                  key={item.id}
+                  className={`stock-migration-timeline-item ${pipelineStateClass(item.state)}`}
+                >
                   <div className="stock-migration-timeline-marker" aria-hidden="true">
                     <span className="stock-migration-timeline-dot" />
-                    {index < PIPELINE_STAGES.length - 1 ? (
+                    {index < pipeline.length - 1 ? (
                       <span className="stock-migration-timeline-connector" />
                     ) : null}
                   </div>
                   <div className="stock-migration-timeline-body">
-                    <p className="stock-migration-timeline-stage">{stage}</p>
-                    <p className="stock-migration-timeline-meta">Pending</p>
+                    <div className="stock-migration-timeline-copy">
+                      <p className="stock-migration-timeline-stage">{item.title}</p>
+                      <p className="stock-migration-timeline-description">{item.description}</p>
+                    </div>
+                    <span className={`stock-migration-state-badge ${pipelineStateClass(item.state)}`}>
+                      {item.state}
+                    </span>
                   </div>
                 </li>
               ))}
@@ -170,6 +203,18 @@ export function StockInventoryMigrationView({
             <div className="stock-migration-status-row">
               <dt>Status</dt>
               <dd>{migrationStatus}</dd>
+            </div>
+            <div className="stock-migration-status-row">
+              <dt>Total Progress</dt>
+              <dd>{progressPercent === null ? 'Unknown' : `${progressPercent}%`}</dd>
+            </div>
+            <div className="stock-migration-status-row">
+              <dt>Current Stage</dt>
+              <dd>{currentStage}</dd>
+            </div>
+            <div className="stock-migration-status-row">
+              <dt>Last Updated</dt>
+              <dd>{formatLastUpdated(fetchedAt)}</dd>
             </div>
             <div className="stock-migration-status-row">
               <dt>Environment</dt>
