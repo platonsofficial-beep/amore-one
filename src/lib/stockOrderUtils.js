@@ -74,26 +74,74 @@ export function buildSuggestedOrderLine(item) {
   }
 }
 
-export function buildSupplierOrderGroups(stockItems = []) {
+function normalizeOrderSupplierId(value) {
+  if (value === null || value === undefined || `${value}`.trim() === '') return null
+  const parsed = Number(value)
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : null
+}
+
+/**
+ * Create-order group identity (P7.3.6).
+ * supplier_id wins; legacy text only when FK missing; Unassigned preserved.
+ */
+export function resolveOrderGroupIdentity(item, suppliers = []) {
+  const supplierId = normalizeOrderSupplierId(item?.supplierId ?? item?.supplier_id)
+  const supplierText = `${item?.supplier ?? ''}`.trim()
+
+  if (supplierId != null) {
+    const list = Array.isArray(suppliers) ? suppliers : []
+    const matched = list.find((supplier) => Number(supplier?.id) === supplierId)
+    const directoryName = `${matched?.companyName ?? matched?.company_name ?? ''}`.trim()
+    const displayName = directoryName || supplierText || `Supplier #${supplierId}`
+
+    return {
+      groupKey: `id:${supplierId}`,
+      supplierId,
+      supplier: displayName,
+    }
+  }
+
+  if (!supplierText) {
+    return {
+      groupKey: `name:${UNASSIGNED_SUPPLIER}`,
+      supplierId: null,
+      supplier: UNASSIGNED_SUPPLIER,
+    }
+  }
+
+  return {
+    groupKey: `name:${supplierText}`,
+    supplierId: null,
+    supplier: supplierText,
+  }
+}
+
+/**
+ * Group suggested order lines by supplier.
+ * FK-first (supplier_id); legacy text fallback when FK missing.
+ */
+export function buildSupplierOrderGroups(stockItems = [], suppliers = []) {
   const groups = new Map()
 
   ;(stockItems ?? []).forEach((item) => {
     if (item.active === false) return
     if (!itemNeedsOrder(item)) return
 
-    const supplier = `${item.supplier ?? ''}`.trim() || UNASSIGNED_SUPPLIER
+    const identity = resolveOrderGroupIdentity(item, suppliers)
     const line = buildSuggestedOrderLine(item)
 
     if (line.quantity <= 0) return
 
-    if (!groups.has(supplier)) {
-      groups.set(supplier, {
-        supplier,
+    if (!groups.has(identity.groupKey)) {
+      groups.set(identity.groupKey, {
+        groupKey: identity.groupKey,
+        supplier: identity.supplier,
+        supplierId: identity.supplierId,
         items: [],
       })
     }
 
-    groups.get(supplier).items.push(line)
+    groups.get(identity.groupKey).items.push(line)
   })
 
   return Array.from(groups.values())

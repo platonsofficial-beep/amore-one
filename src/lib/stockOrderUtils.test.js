@@ -1,5 +1,26 @@
 import { describe, expect, it } from 'vitest'
-import { buildStockOrdersOperationsSummary } from './stockOrderUtils'
+import {
+  buildStockOrdersOperationsSummary,
+  buildSupplierOrderGroups,
+  resolveOrderGroupIdentity,
+  UNASSIGNED_SUPPLIER,
+} from './stockOrderUtils'
+
+function needsOrderItem(overrides = {}) {
+  return {
+    id: 'item-1',
+    name: 'Ketel One',
+    active: true,
+    currentQuantity: 2,
+    minimumQuantity: 6,
+    targetQuantity: null,
+    unit: 'bottle',
+    costPrice: 24.5,
+    supplier: '',
+    supplierId: null,
+    ...overrides,
+  }
+}
 
 describe('stockOrderUtils', () => {
   it('counts draft, awaiting, and partial orders for manager workflow', () => {
@@ -20,5 +41,124 @@ describe('stockOrderUtils', () => {
       partialCount: 1,
       pendingCount: 3,
     })
+  })
+})
+
+describe('buildSupplierOrderGroups (FK-first)', () => {
+  it('groups by supplier_id when present', () => {
+    const groups = buildSupplierOrderGroups([
+      needsOrderItem({
+        id: 'a',
+        supplierId: 10,
+        supplier: 'Wrong Text',
+        name: 'A',
+      }),
+      needsOrderItem({
+        id: 'b',
+        supplierId: 10,
+        supplier: 'Malakakos AE',
+        name: 'B',
+      }),
+    ], [{ id: 10, companyName: 'Malakakos AE' }])
+
+    expect(groups).toHaveLength(1)
+    expect(groups[0].supplierId).toBe(10)
+    expect(groups[0].supplier).toBe('Malakakos AE')
+    expect(groups[0].groupKey).toBe('id:10')
+    expect(groups[0].items).toHaveLength(2)
+  })
+
+  it('falls back to legacy text when FK missing', () => {
+    const groups = buildSupplierOrderGroups([
+      needsOrderItem({
+        id: 'a',
+        supplierId: null,
+        supplier: 'Wine House',
+      }),
+    ])
+
+    expect(groups).toHaveLength(1)
+    expect(groups[0].supplierId).toBeNull()
+    expect(groups[0].supplier).toBe('Wine House')
+    expect(groups[0].groupKey).toBe('name:Wine House')
+  })
+
+  it('supports mixed FK + legacy datasets without merging', () => {
+    const groups = buildSupplierOrderGroups([
+      needsOrderItem({
+        id: 'fk',
+        supplierId: 10,
+        supplier: 'Malakakos AE',
+      }),
+      needsOrderItem({
+        id: 'legacy',
+        supplierId: null,
+        supplier: 'Malakakos AE',
+      }),
+    ], [{ id: 10, companyName: 'Malakakos AE' }])
+
+    expect(groups).toHaveLength(2)
+    const keys = groups.map((group) => group.groupKey).sort()
+    expect(keys).toEqual(['id:10', 'name:Malakakos AE'])
+  })
+
+  it('preserves Unassigned supplier', () => {
+    const groups = buildSupplierOrderGroups([
+      needsOrderItem({
+        id: 'u',
+        supplierId: null,
+        supplier: '  ',
+      }),
+    ])
+
+    expect(groups).toHaveLength(1)
+    expect(groups[0].supplier).toBe(UNASSIGNED_SUPPLIER)
+    expect(groups[0].supplierId).toBeNull()
+    expect(groups[0].groupKey).toBe(`name:${UNASSIGNED_SUPPLIER}`)
+  })
+
+  it('supplier_id precedence: text does not split or reassign FK groups', () => {
+    const groups = buildSupplierOrderGroups([
+      needsOrderItem({
+        id: 'a',
+        supplierId: 20,
+        supplier: 'Malakakos AE',
+      }),
+      needsOrderItem({
+        id: 'b',
+        supplierId: 20,
+        supplier: 'Totally Different Text',
+      }),
+    ], [{ id: 20, companyName: 'Wine House' }])
+
+    expect(groups).toHaveLength(1)
+    expect(groups[0].supplierId).toBe(20)
+    expect(groups[0].supplier).toBe('Wine House')
+  })
+
+  it('never creates duplicate groups for the same supplier_id', () => {
+    const groups = buildSupplierOrderGroups([
+      needsOrderItem({ id: '1', supplierId: 7, supplier: 'A' }),
+      needsOrderItem({ id: '2', supplierId: 7, supplier: 'B' }),
+      needsOrderItem({ id: '3', supplierId: 7, supplier: 'C' }),
+    ])
+
+    expect(groups).toHaveLength(1)
+    expect(groups[0].items).toHaveLength(3)
+  })
+
+  it('keeps different supplier ids separate even with identical text', () => {
+    const identityA = resolveOrderGroupIdentity(
+      { supplierId: 1, supplier: 'Acme' },
+      [{ id: 1, companyName: 'Acme' }, { id: 2, companyName: 'Acme' }],
+    )
+    const identityB = resolveOrderGroupIdentity(
+      { supplierId: 2, supplier: 'Acme' },
+      [{ id: 1, companyName: 'Acme' }, { id: 2, companyName: 'Acme' }],
+    )
+
+    expect(identityA.groupKey).not.toBe(identityB.groupKey)
+    expect(identityA.supplierId).toBe(1)
+    expect(identityB.supplierId).toBe(2)
   })
 })

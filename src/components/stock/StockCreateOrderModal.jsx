@@ -14,6 +14,7 @@ function SupplierOrderGroup({
   onUpdateExpectedDeliveryDate,
   onRemoveGroup,
 }) {
+  const groupKey = group?.groupKey ?? (`${group?.supplier ?? ''}`.trim() || UNASSIGNED_SUPPLIER)
   const supplier = `${group?.supplier ?? ''}`.trim() || UNASSIGNED_SUPPLIER
   const items = Array.isArray(group?.items) ? group.items : []
 
@@ -37,7 +38,7 @@ function SupplierOrderGroup({
         <button
           type="button"
           className="ghost-btn stock-create-order-remove-group"
-          onClick={() => onRemoveGroup(supplier)}
+          onClick={() => onRemoveGroup(groupKey)}
         >
           Remove supplier
         </button>
@@ -60,7 +61,7 @@ function SupplierOrderGroup({
                   className="stock-create-order-qty-input"
                   value={item.quantity}
                   onChange={(event) => onUpdateItemQuantity(
-                    supplier,
+                    groupKey,
                     item.stockItemId,
                     event.target.value,
                   )}
@@ -70,7 +71,7 @@ function SupplierOrderGroup({
               <button
                 type="button"
                 className="icon-btn stock-create-order-remove-item"
-                onClick={() => onRemoveItem(supplier, item.stockItemId)}
+                onClick={() => onRemoveItem(groupKey, item.stockItemId)}
                 aria-label={`Remove ${item.itemName}`}
               >
                 ✕
@@ -86,7 +87,7 @@ function SupplierOrderGroup({
           type="date"
           className="stock-order-date-input"
           value={group?.expectedDeliveryDate ?? ''}
-          onChange={(event) => onUpdateExpectedDeliveryDate(supplier, event.target.value)}
+          onChange={(event) => onUpdateExpectedDeliveryDate(groupKey, event.target.value)}
         />
       </label>
 
@@ -96,7 +97,7 @@ function SupplierOrderGroup({
           rows={2}
           value={group?.notes ?? ''}
           placeholder="Delivery notes, reference, or instructions"
-          onChange={(event) => onUpdateNotes(supplier, event.target.value)}
+          onChange={(event) => onUpdateNotes(groupKey, event.target.value)}
         />
       </label>
     </section>
@@ -144,16 +145,16 @@ export function StockCreateOrderModal({
     onClose()
   }
 
-  const updateGroup = (supplier, updater) => {
+  const updateGroup = (groupKey, updater) => {
     setGroups((current) => current.map((group) => (
-      group.supplier === supplier ? updater(group) : group
+      (group.groupKey ?? group.supplier) === groupKey ? updater(group) : group
     )))
   }
 
-  const handleUpdateItemQuantity = (supplier, stockItemId, rawValue) => {
+  const handleUpdateItemQuantity = (groupKey, stockItemId, rawValue) => {
     const quantity = Math.max(0, Number(rawValue) || 0)
 
-    updateGroup(supplier, (group) => ({
+    updateGroup(groupKey, (group) => ({
       ...group,
       items: group.items.map((item) => (
         item.stockItemId === stockItemId
@@ -167,8 +168,8 @@ export function StockCreateOrderModal({
     }))
   }
 
-  const handleRemoveItem = (supplier, stockItemId) => {
-    updateGroup(supplier, (group) => ({
+  const handleRemoveItem = (groupKey, stockItemId) => {
+    updateGroup(groupKey, (group) => ({
       ...group,
       items: group.items.filter((item) => item.stockItemId !== stockItemId),
     }))
@@ -176,16 +177,18 @@ export function StockCreateOrderModal({
     setGroups((current) => current.filter((group) => group.items.length > 0))
   }
 
-  const handleRemoveGroup = (supplier) => {
-    setGroups((current) => current.filter((group) => group.supplier !== supplier))
+  const handleRemoveGroup = (groupKey) => {
+    setGroups((current) => current.filter((group) => (
+      (group.groupKey ?? group.supplier) !== groupKey
+    )))
   }
 
-  const handleUpdateNotes = (supplier, notes) => {
-    updateGroup(supplier, (group) => ({ ...group, notes }))
+  const handleUpdateNotes = (groupKey, notes) => {
+    updateGroup(groupKey, (group) => ({ ...group, notes }))
   }
 
-  const handleUpdateExpectedDeliveryDate = (supplier, expectedDeliveryDate) => {
-    updateGroup(supplier, (group) => ({ ...group, expectedDeliveryDate }))
+  const handleUpdateExpectedDeliveryDate = (groupKey, expectedDeliveryDate) => {
+    updateGroup(groupKey, (group) => ({ ...group, expectedDeliveryDate }))
   }
 
   const handleSubmit = async (event) => {
@@ -260,7 +263,7 @@ export function StockCreateOrderModal({
           ) : (
             groups.map((group) => (
               <SupplierOrderGroup
-                key={`${group?.supplier ?? UNASSIGNED_SUPPLIER}-${group?.items?.[0]?.stockItemId ?? 'group'}`}
+                key={`${group?.groupKey ?? group?.supplier ?? UNASSIGNED_SUPPLIER}-${group?.items?.[0]?.stockItemId ?? 'group'}`}
                 group={group}
                 onUpdateItemQuantity={handleUpdateItemQuantity}
                 onRemoveItem={handleRemoveItem}

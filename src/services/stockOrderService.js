@@ -300,6 +300,7 @@ export async function createStockOrdersFromGroups(workspaceId, groups = [], { cr
   for (const group of groups) {
     const order = await createStockOrder(workspaceId, {
       supplier: group.supplier,
+      supplierId: group.supplierId ?? group.supplier_id ?? null,
       notes: group.notes ?? '',
       expectedDeliveryDate: group.expectedDeliveryDate ?? null,
       status: 'draft',
