@@ -57,7 +57,7 @@ describe('inventory_migration_finish_session_rpc.sql source review', () => {
     expect(completeBody).toContain("status is distinct from 'running'")
     expect(completeBody).toContain("status = 'completed'")
     expect(completeBody).toContain('finished_at = now()')
-    expect(completeBody).toContain('returning *')
+    expect(completeBody).toContain('returning * into v_session')
     expect(completeBody).not.toContain('started_by =')
     expect(completeBody).not.toContain('operator_display_name =')
     expect(completeBody).not.toContain('started_at =')
@@ -67,10 +67,48 @@ describe('inventory_migration_finish_session_rpc.sql source review', () => {
     expect(cancelBody).toContain("status is distinct from 'running'")
     expect(cancelBody).toContain("status = 'cancelled'")
     expect(cancelBody).toContain('finished_at = now()')
-    expect(cancelBody).toContain('returning *')
+    expect(cancelBody).toContain('returning * into v_session')
     expect(cancelBody).not.toContain('started_by =')
     expect(cancelBody).not.toContain('operator_display_name =')
     expect(cancelBody).not.toContain('started_at =')
+  })
+
+  it('appends session_completed activity after successful complete update', () => {
+    const updateAt = completeBody.indexOf("status = 'completed'")
+    const activityAt = completeBody.indexOf('insert into public.inventory_migration_activity')
+
+    expect(updateAt).toBeGreaterThan(-1)
+    expect(activityAt).toBeGreaterThan(updateAt)
+    expect(completeBody).toContain("'session_completed'")
+    expect(completeBody).toContain("'Migration session completed.'")
+    expect(completeBody).toContain('v_auth_user_id')
+    expect(completeBody).toContain('v_operator_display_name')
+    expect(completeBody.match(/insert into public\.inventory_migration_activity/g)?.length).toBe(1)
+  })
+
+  it('appends session_cancelled activity after successful cancel update', () => {
+    const updateAt = cancelBody.indexOf("status = 'cancelled'")
+    const activityAt = cancelBody.indexOf('insert into public.inventory_migration_activity')
+
+    expect(updateAt).toBeGreaterThan(-1)
+    expect(activityAt).toBeGreaterThan(updateAt)
+    expect(cancelBody).toContain("'session_cancelled'")
+    expect(cancelBody).toContain("'Migration session cancelled.'")
+    expect(cancelBody).toContain('v_auth_user_id')
+    expect(cancelBody).toContain('v_operator_display_name')
+    expect(cancelBody.match(/insert into public\.inventory_migration_activity/g)?.length).toBe(1)
+  })
+
+  it('keeps activity writes atomic with status updates (same function, no commit)', () => {
+    expect(completeBody).toMatch(/Same transaction: activity failure rolls back the status update/)
+    expect(cancelBody).toMatch(/Same transaction: activity failure rolls back the status update/)
+    expect(completeBody).not.toMatch(/\bcommit\b/i)
+    expect(cancelBody).not.toMatch(/\bcommit\b/i)
+    expect(sql).toContain('failed activity insert rolls back the session status update')
+    expect(sql).not.toMatch(/create trigger/i)
+    expect(sql.match(/create or replace function public\./gi)?.length).toBe(2)
+    expect(sql).toContain('create or replace function public.complete_inventory_migration_session')
+    expect(sql).toContain('create or replace function public.cancel_inventory_migration_session')
   })
 
   it('grants execute to authenticated only and revokes public/anon', () => {

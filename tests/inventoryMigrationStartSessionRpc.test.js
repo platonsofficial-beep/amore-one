@@ -12,6 +12,11 @@ describe('inventory_migration_start_session_rpc.sql source review', () => {
   )
   const sql = readFileSync(sqlPath, 'utf8')
 
+  const functionBody = sql.slice(
+    sql.indexOf('create or replace function public.start_inventory_migration_session'),
+    sql.indexOf('revoke all on function public.start_inventory_migration_session'),
+  )
+
   it('defines SECURITY DEFINER RPC with locked search_path', () => {
     expect(sql).toContain('create or replace function public.start_inventory_migration_session')
     expect(sql).toContain('p_workspace_id uuid')
@@ -52,7 +57,28 @@ describe('inventory_migration_start_session_rpc.sql source review', () => {
     expect(sql).toContain('operator_display_name')
     expect(sql).toContain('workspace_members')
     expect(sql).toContain('display_name')
-    expect(sql).toContain('returning *')
+    expect(sql).toContain('returning * into v_session')
+  })
+
+  it('appends one session_started activity after the session insert', () => {
+    const sessionInsertAt = functionBody.indexOf('insert into public.inventory_migration_sessions')
+    const activityInsertAt = functionBody.indexOf('insert into public.inventory_migration_activity')
+
+    expect(sessionInsertAt).toBeGreaterThan(-1)
+    expect(activityInsertAt).toBeGreaterThan(sessionInsertAt)
+    expect(functionBody).toContain("'session_started'")
+    expect(functionBody).toContain("'Migration session started.'")
+    expect(functionBody).toContain('v_session.id')
+    expect(functionBody).toContain('created_by')
+    expect(functionBody.match(/insert into public\.inventory_migration_activity/g)?.length).toBe(1)
+  })
+
+  it('keeps activity write atomic with the session insert (same function, no commit)', () => {
+    expect(functionBody).toMatch(/Same transaction: activity failure rolls back the session insert/)
+    expect(functionBody).not.toMatch(/\bcommit\b/i)
+    expect(sql.match(/create or replace function public\./gi)?.length).toBe(1)
+    expect(sql).not.toMatch(/create trigger/i)
+    expect(sql).toContain('failed activity insert rolls back the session row')
   })
 
   it('grants execute to authenticated only and does not execute migrations', () => {
