@@ -303,9 +303,17 @@ export function TeamPeopleView({
       {isLoading ? <div className="staff-status-banner">Loading staff roster…</div> : null}
 
       {isRosterEmpty ? (
-        <div className="team-people-empty">
+        <div className="team-people-empty team-people-empty-roster">
           <p>No employees yet.</p>
           <p className="team-people-empty-hint">Add your first team member, then assign a department and position.</p>
+          <button
+            type="button"
+            className="primary-btn team-people-add-btn team-people-empty-add-btn"
+            onClick={onOpenAddEmployee}
+            disabled={isSaving || !onOpenAddEmployee}
+          >
+            {isSaving ? 'Saving…' : '+ Add Employee'}
+          </button>
         </div>
       ) : isFilteredEmpty ? (
         <p className="team-people-empty">
