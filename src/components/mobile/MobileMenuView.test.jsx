@@ -97,3 +97,56 @@ describe('MobileMenuView Request Leave entry', () => {
     unmount()
   })
 })
+
+describe('MobileMenuView Leave inbox entry', () => {
+  it('shows Leave inbox for manager when canViewLeaveInbox is true', () => {
+    const onOpenLeaveInbox = vi.fn()
+    const { container, unmount } = renderMenu({
+      role: 'manager',
+      roleLabel: 'Manager',
+      menuVariant: 'manager',
+      canViewLeaveInbox: true,
+      onOpenLeaveInbox,
+    })
+
+    const button = Array.from(container.querySelectorAll('button.mobile-manager-menu-nav-card'))
+      .find((node) => node.textContent?.includes('Leave inbox'))
+
+    expect(button).toBeTruthy()
+    expect(button?.textContent).toContain('Pending leave requests')
+
+    act(() => {
+      button.click()
+    })
+
+    expect(onOpenLeaveInbox).toHaveBeenCalledTimes(1)
+    unmount()
+  })
+
+  it('hides Leave inbox when canViewLeaveInbox is false', () => {
+    const { container, unmount } = renderMenu({
+      role: 'manager',
+      roleLabel: 'Manager',
+      menuVariant: 'manager',
+      canViewLeaveInbox: false,
+      onOpenLeaveInbox: vi.fn(),
+    })
+
+    const titles = Array.from(container.querySelectorAll('.mobile-manager-menu-nav-title'))
+      .map((node) => node.textContent)
+
+    expect(titles).not.toContain('Leave inbox')
+    unmount()
+  })
+
+  it('does not show Leave inbox on staff menu even when gated true', () => {
+    const { container, unmount } = renderMenu({
+      menuVariant: 'staff',
+      canViewLeaveInbox: true,
+      onOpenLeaveInbox: vi.fn(),
+    })
+
+    expect(container.textContent).not.toContain('Leave inbox')
+    unmount()
+  })
+})

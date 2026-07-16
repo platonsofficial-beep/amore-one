@@ -1,5 +1,6 @@
 import { MobileBottomNav } from './MobileBottomNav'
 import { MobileManagerHomeView } from './MobileManagerHomeView'
+import { MobileManagerLeaveInboxView } from './MobileManagerLeaveInboxView'
 import { MobileManagerStockView } from './MobileManagerStockView'
 import { MobileManagerTasksView } from './MobileManagerTasksView'
 import { MobileMenuView } from './MobileMenuView'
@@ -77,7 +78,12 @@ export function MobileManagerApp({
         {activeTab === 'stock' ? <MobileManagerStockView {...stockProps} /> : null}
         {activeTab === 'tasks' ? <MobileManagerTasksView {...managerTasksProps} /> : null}
         {activeTab === 'menu' ? (
-          menuProps?.screen === 'profile' ? (
+          menuProps?.screen === 'leave-inbox' ? (
+            <MobileManagerLeaveInboxView
+              {...(menuProps.leaveInboxProps ?? {})}
+              onBack={menuProps.onBackFromLeaveInbox}
+            />
+          ) : menuProps?.screen === 'profile' ? (
             <MobileProfileView {...(menuProps.profileProps ?? {})} onBack={menuProps.onBackFromProfile} />
           ) : (
             <MobileMenuView {...menuProps} />

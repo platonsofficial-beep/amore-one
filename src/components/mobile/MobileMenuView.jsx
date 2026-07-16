@@ -56,11 +56,13 @@ export function MobileMenuView({
   venueName = '',
   menuVariant = 'staff',
   canRequestLeave = false,
+  canViewLeaveInbox = false,
   onOpenProfile,
   onNavigateModule,
   onOpenFullSchedule,
   onOpenSettings,
   onOpenRequestLeave,
+  onOpenLeaveInbox,
   onSignOut,
 }) {
   const visibleModules = menuVariant === 'manager'
@@ -118,7 +120,9 @@ export function MobileMenuView({
   }
 
   const showWorkspaceSection = showFullSchedule
-    || (menuVariant === 'manager' ? managerWorkspaceItems.length > 0 : visibleModules.length > 0 || showSettings)
+    || (menuVariant === 'manager'
+      ? managerWorkspaceItems.length > 0 || canViewLeaveInbox
+      : visibleModules.length > 0 || showSettings)
   const identityStatusLine = venueName ? 'Workspace ready' : 'Workspace profile loading'
 
   if (menuVariant === 'manager') {
@@ -147,6 +151,14 @@ export function MobileMenuView({
                   title="Full team schedule"
                   subtitle="Weekly shift planning"
                   onClick={onOpenFullSchedule}
+                />
+              ) : null}
+              {canViewLeaveInbox ? (
+                <ManagerNavCard
+                  icon="◷"
+                  title="Leave inbox"
+                  subtitle="Pending leave requests"
+                  onClick={onOpenLeaveInbox}
                 />
               ) : null}
               {managerWorkspaceItems.map((item) => (

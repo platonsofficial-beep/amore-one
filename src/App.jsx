@@ -23835,6 +23835,14 @@ function App() {
     setMobileMenuScreen('main')
   }
 
+  const handleMobileOpenLeaveInbox = () => {
+    setMobileMenuScreen('leave-inbox')
+  }
+
+  const handleMobileBackFromLeaveInbox = () => {
+    setMobileMenuScreen('main')
+  }
+
   const handleMobileProfileSave = useCallback(async ({ displayName, phone }) => {
     const userId = `${user?.id ?? ''}`.trim()
     if (!userId) {
@@ -24547,6 +24555,13 @@ function App() {
                       isSaving: isSavingMobileProfile,
                       errorMessage: mobileProfileError,
                       onSave: handleMobileProfileSave,
+                    },
+                    canViewLeaveInbox: canViewLeaveQueueRole,
+                    onOpenLeaveInbox: handleMobileOpenLeaveInbox,
+                    onBackFromLeaveInbox: handleMobileBackFromLeaveInbox,
+                    leaveInboxProps: {
+                      workspaceId: activeWorkspaceId,
+                      employees,
                     },
                     onNavigateModule: handleMobileNavigateModule,
                     onOpenFullSchedule: handleMobileOpenFullSchedule,
