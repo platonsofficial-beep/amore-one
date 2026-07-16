@@ -16119,7 +16119,7 @@
 .schedule-workspace-main {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 12px;
   min-width: 0;
 }
 
@@ -16127,16 +16127,21 @@
   overflow: hidden;
 }
 
+.schedule-staff-availability.staff-panel {
+  padding: 0;
+}
+
 .schedule-staff-availability-summary {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  min-height: 40px;
-  padding: 10px 16px;
+  gap: 10px;
+  min-height: 36px;
+  padding: 7px 14px;
   cursor: pointer;
   list-style: none;
   color: #e8dcc6;
+  font-size: 0.9rem;
   font-weight: 600;
 }
 
@@ -16147,8 +16152,8 @@
 .schedule-staff-availability-body {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  padding: 0 16px 12px;
+  gap: 6px;
+  padding: 0 14px 8px;
 }
 
 .schedule-filters-bar-compact {
