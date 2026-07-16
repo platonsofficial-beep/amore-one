@@ -7,10 +7,12 @@ import {
   resolveInventoryMigrationProgressPercent,
   resolveInventoryMigrationStatus,
 } from '../../lib/inventoryMigrationMetrics'
+import { buildInventoryMigrationOperator } from '../../lib/inventoryMigrationOperator'
 import { getInventoryMigrationMetrics } from '../../services/inventoryMigrationMetricsService'
 import { StockMigrationAttentionQueue } from './StockMigrationAttentionQueue'
 import { StockMigrationHealthPanel } from './StockMigrationHealthPanel'
 import { StockMigrationManualReviewQueue } from './StockMigrationManualReviewQueue'
+import { StockMigrationOperatorPanel } from './StockMigrationOperatorPanel'
 
 const EXECUTION_ACTIONS = [
   'Run Classification',
@@ -123,6 +125,15 @@ export function StockInventoryMigrationView({
     [metrics, metricsAvailable, tableReachable, pipeline, attentionRows.length],
   )
 
+  const operator = useMemo(
+    () => buildInventoryMigrationOperator({
+      metrics,
+      metricsAvailable,
+      tableReachable,
+    }),
+    [metrics, metricsAvailable, tableReachable],
+  )
+
   const summaryCards = [
     { id: 'legacy', label: 'Legacy Items', value: metricsAvailable ? formatMetricValue(metrics.legacyItems) : 'Unknown' },
     { id: 'classified', label: 'Classified', value: metricsAvailable ? formatMetricValue(metrics.classified) : 'Unknown' },
@@ -159,6 +170,8 @@ export function StockInventoryMigrationView({
         health={health}
         metricsAvailable={metricsAvailable}
       />
+
+      <StockMigrationOperatorPanel operator={operator} />
 
       <div className="stock-migration-main">
         <div className="stock-migration-main-column">
