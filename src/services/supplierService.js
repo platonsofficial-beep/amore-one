@@ -36,14 +36,49 @@ function serializeSupplier(supplier) {
     payload.active = supplier.active
   }
 
-  // Optional Phase 1 field: only written when callers pass it.
-  // Current App.jsx create/update paths omit workspaceId → behaviour unchanged.
+  // Only write workspace_id when non-empty — never send null (preserves legacy / avoids wipe).
   const workspaceId = `${supplier.workspaceId ?? supplier.workspace_id ?? ''}`.trim()
   if (workspaceId) {
     payload.workspace_id = workspaceId
   }
 
   return payload
+}
+
+/** Normalize workspace id for CREATE. Empty/boot → null (omit from payload). */
+export function resolveSupplierWorkspaceIdForCreate(workspaceId) {
+  const normalized = `${workspaceId ?? ''}`.trim()
+  return normalized || null
+}
+
+/**
+ * Preserve ownership on UPDATE.
+ * Returns existing workspace id when set; otherwise null (legacy stays null).
+ * Never invents a workspace for legacy rows.
+ */
+export function resolveSupplierWorkspaceIdForUpdate(existingWorkspaceId) {
+  const existing = `${existingWorkspaceId ?? ''}`.trim()
+  return existing || null
+}
+
+export function serializeSupplierForCreate(supplier) {
+  const workspaceId = resolveSupplierWorkspaceIdForCreate(
+    supplier?.workspaceId ?? supplier?.workspace_id,
+  )
+  return serializeSupplier({
+    ...supplier,
+    workspaceId: workspaceId ?? undefined,
+  })
+}
+
+export function serializeSupplierForUpdate(supplier, existingWorkspaceId) {
+  const workspaceId = resolveSupplierWorkspaceIdForUpdate(
+    existingWorkspaceId ?? supplier?.workspaceId ?? supplier?.workspace_id,
+  )
+  return serializeSupplier({
+    ...supplier,
+    workspaceId: workspaceId ?? undefined,
+  })
 }
 
 function isTableUnavailableError(error) {
@@ -158,7 +193,7 @@ export async function getSuppliers(workspaceId) {
 }
 
 export async function createSupplier(supplier) {
-  const payload = serializeSupplier(supplier)
+  const payload = serializeSupplierForCreate(supplier)
 
   const { data, error } = await supabase
     .from('suppliers')
@@ -179,10 +214,15 @@ export async function createSupplier(supplier) {
   return mapSupplier(data)
 }
 
-export async function updateSupplier(id, supplier) {
+export async function updateSupplier(id, supplier, options = {}) {
+  const existingWorkspaceId = options.existingWorkspaceId
+    ?? supplier?.workspaceId
+    ?? supplier?.workspace_id
+  const payload = serializeSupplierForUpdate(supplier, existingWorkspaceId)
+
   const { data, error } = await supabase
     .from('suppliers')
-    .update(serializeSupplier(supplier))
+    .update(payload)
     .eq('id', id)
     .select('*')
     .single()

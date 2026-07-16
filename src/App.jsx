@@ -23162,7 +23162,10 @@ function App() {
     setSuppliersNotice('')
 
     try {
-      await createSupplier(payload)
+      await createSupplier({
+        ...payload,
+        workspaceId: activeWorkspaceId,
+      })
       await refreshSuppliers()
       setSuppliersNotice('Supplier created.')
     } catch (error) {
@@ -23196,6 +23199,9 @@ function App() {
         taxId: existingSupplier?.taxId ?? '',
         paymentTerms: existingSupplier?.paymentTerms ?? '',
         deliveryDays: existingSupplier?.deliveryDays ?? '',
+        workspaceId: existingSupplier?.workspaceId ?? null,
+      }, {
+        existingWorkspaceId: existingSupplier?.workspaceId ?? null,
       })
       await refreshSuppliers()
       setSuppliersNotice('Supplier updated.')
@@ -23250,6 +23256,9 @@ function App() {
         deliveryDays: supplier.deliveryDays,
         notes: supplier.notes,
         active: nextActive,
+        workspaceId: supplier.workspaceId ?? null,
+      }, {
+        existingWorkspaceId: supplier.workspaceId ?? null,
       })
       await refreshSuppliers()
       setSuppliersNotice(nextActive ? 'Supplier activated.' : 'Supplier deactivated.')
@@ -23290,9 +23299,17 @@ function App() {
       const stockOrigin = supplierModalOrigin === 'stock'
 
       if (editingSupplier) {
-        await updateSupplier(editingSupplier.id, payload)
+        await updateSupplier(editingSupplier.id, {
+          ...payload,
+          workspaceId: editingSupplier.workspaceId ?? null,
+        }, {
+          existingWorkspaceId: editingSupplier.workspaceId ?? null,
+        })
       } else {
-        const createdSupplier = await createSupplier(payload)
+        const createdSupplier = await createSupplier({
+          ...payload,
+          workspaceId: activeWorkspaceId,
+        })
         await refreshSuppliers()
         handleCloseSupplierModal()
 
