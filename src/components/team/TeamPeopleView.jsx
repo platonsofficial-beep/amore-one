@@ -189,6 +189,7 @@ export function TeamPeopleView({
   workspaceId = '',
   canManageInvites = false,
   canAssignManagerInviteRole = false,
+  canViewSalary = false,
   searchTerm = '',
   onSearchTermChange,
   searchPlaceholder = 'Search employee',
@@ -400,9 +401,11 @@ export function TeamPeopleView({
               <EmployeeProfileDrawerField label="Start date">
                 {formatDrawerFieldValue(selectedEmployee.hireDate)}
               </EmployeeProfileDrawerField>
-              <EmployeeProfileDrawerField label="Salary">
-                {formatDrawerFieldValue(selectedEmployee.salary)}
-              </EmployeeProfileDrawerField>
+              {canViewSalary ? (
+                <EmployeeProfileDrawerField label="Salary">
+                  {formatDrawerFieldValue(selectedEmployee.salary)}
+                </EmployeeProfileDrawerField>
+              ) : null}
               <EmployeeProfileDrawerField label="Weekly hours">
                 {formatDrawerFieldValue(selectedEmployee.weeklyHours)}
               </EmployeeProfileDrawerField>

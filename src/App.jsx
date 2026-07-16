@@ -24034,6 +24034,7 @@ function App() {
             workspaceId={activeWorkspaceId}
             canManageInvites={canManageEmployeeInvitesRole}
             canAssignManagerInviteRole={canAssignManagerInviteRoleFlag}
+            canViewSalary={canAssignManagerInviteRoleFlag}
             showLeaveInbox={canViewLeaveQueueRole && !useDedicatedShell}
           />
         ) : null}
