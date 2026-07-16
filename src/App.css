@@ -16314,8 +16314,9 @@
   margin: 0;
   padding: 3px 6px;
   border-radius: 6px;
-  border: 1px solid rgba(255, 255, 255, 0.04);
-  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  background: rgba(255, 255, 255, 0.03);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
   color: #d4c5ad;
   font-size: 0.64rem;
   font-weight: 700;
@@ -16550,7 +16551,7 @@
 .schedule-shift-coverage-status {
   margin: 0;
   padding: 1px 2px 0;
-  border-top: 1px solid rgba(255, 255, 255, 0.045);
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
   font-size: 0.62rem;
   font-weight: 700;
   letter-spacing: 0.03em;
@@ -16565,12 +16566,12 @@
 .schedule-shift-coverage-status.tone-understaffed,
 .schedule-shift-coverage-status.tone-conflict {
   color: #f2a8a2;
-  border-top-color: rgba(224, 113, 104, 0.18);
+  border-top-color: rgba(224, 113, 104, 0.16);
 }
 
 .schedule-shift-coverage-status.tone-overstaffed {
   color: #9fd4a8;
-  border-top-color: rgba(76, 175, 80, 0.14);
+  border-top-color: rgba(76, 175, 80, 0.16);
 }
 
 .schedule-shift-coverage-status.tone-empty {
@@ -16583,9 +16584,9 @@
   min-width: 44px;
   min-height: 44px;
   padding: 4px 7px;
-  border: 1px dashed rgba(212, 175, 55, 0.12);
+  border: 1px dashed rgba(212, 175, 55, 0.14);
   border-radius: 6px;
-  background: rgba(255, 255, 255, 0.01);
+  background: rgba(255, 255, 255, 0.02);
   color: #a89e90;
   font-size: 0.6rem;
   font-weight: 500;
@@ -16599,7 +16600,7 @@
 .schedule-assign-btn:hover,
 .schedule-assign-btn:focus-visible {
   color: #fff7e8;
-  border-color: rgba(212, 175, 55, 0.35);
+  border-color: rgba(212, 175, 55, 0.28);
   background: rgba(212, 175, 55, 0.08);
   outline: none;
 }
@@ -17461,12 +17462,22 @@
   gap: 5px;
   padding: 5px 10px;
   font-size: 0.64rem;
+  border-radius: 9px;
+  border-color: rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.03);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
 }
 
 .schedule-grid-area-group-header:hover,
 .schedule-template-area-group-header:hover {
   border-color: rgba(212, 175, 55, 0.24);
   background: rgba(255, 255, 255, 0.06);
+}
+
+.schedule-grid-area-group-header:hover {
+  border-color: rgba(212, 175, 55, 0.22);
+  background: rgba(255, 255, 255, 0.02);
+  box-shadow: inset 0 0 0 1px rgba(212, 175, 55, 0.08);
 }
 
 .schedule-grid-area-chevron {
@@ -20840,7 +20851,7 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   border: 0;
   background: transparent;
   color: #cfc4b2;
-  opacity: 0.32;
+  opacity: 0.34;
   display: grid;
   place-items: center;
   font-size: 0.85rem;
@@ -20854,7 +20865,7 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 .blend-grid-header-day-menu-btn:hover,
 .blend-grid-header-day-menu-btn:focus-visible {
   opacity: 1;
-  background: rgba(212, 175, 55, 0.1);
+  background: rgba(212, 175, 55, 0.08);
   color: #f5e2bc;
   outline: none;
 }
@@ -21255,7 +21266,7 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   flex-direction: column;
   gap: 6px;
   cursor: pointer;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03), 0 1px 3px rgba(0, 0, 0, 0.08);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04), 0 1px 3px rgba(0, 0, 0, 0.06);
   transition: border-color 180ms ease, background 180ms ease, box-shadow 180ms ease, filter 180ms ease;
 }
 
@@ -21493,7 +21504,7 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   border-radius: 6px;
   border: 1px solid transparent;
   background: transparent;
-  color: #d8cdb8;
+  color: #cfc4b2;
   opacity: 0.34;
   display: grid;
   place-items: center;
@@ -21507,8 +21518,8 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 .blend-grid-cell-menu-btn:hover,
 .blend-grid-cell-menu-btn:focus-visible {
   opacity: 1;
-  border-color: rgba(212, 175, 55, 0.4);
-  background: rgba(212, 175, 55, 0.1);
+  border-color: rgba(212, 175, 55, 0.28);
+  background: rgba(212, 175, 55, 0.08);
   color: #f5e2bc;
   outline: none;
 }
