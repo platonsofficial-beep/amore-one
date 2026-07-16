@@ -24713,7 +24713,11 @@ function App() {
                           ? handleMobileOpenTasksWorkspace
                           : undefined,
                       }}
-                      menuProps={sharedMenuProps}
+                      menuProps={{
+                        ...sharedMenuProps,
+                        canRequestLeave: canRequestOwnLeave,
+                        onOpenRequestLeave: () => setIsRequestLeaveModalOpen(true),
+                      }}
                       expandedView={mobileExpandedView}
                       expandedTitle={mobileExpandedTitle}
                       onBackFromExpanded={handleMobileBack}

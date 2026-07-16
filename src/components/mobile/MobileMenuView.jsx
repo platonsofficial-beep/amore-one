@@ -55,10 +55,12 @@ export function MobileMenuView({
   profileName = '',
   venueName = '',
   menuVariant = 'staff',
+  canRequestLeave = false,
   onOpenProfile,
   onNavigateModule,
   onOpenFullSchedule,
   onOpenSettings,
+  onOpenRequestLeave,
   onSignOut,
 }) {
   const visibleModules = menuVariant === 'manager'
@@ -224,6 +226,16 @@ export function MobileMenuView({
       <section className="mobile-menu-section" aria-label="Account">
         <h2 className="mobile-menu-section-title">Account</h2>
         <div className="mobile-menu-actions">
+          {canRequestLeave ? (
+            <button
+              type="button"
+              className="mobile-menu-btn"
+              onClick={() => onOpenRequestLeave?.()}
+              aria-haspopup="dialog"
+            >
+              Request Leave
+            </button>
+          ) : null}
           <button type="button" className="mobile-menu-btn" onClick={onOpenProfile}>
             Profile
           </button>
