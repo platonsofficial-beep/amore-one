@@ -102,16 +102,78 @@ export function isSupplierActive(supplier) {
   return supplier?.active !== false
 }
 
-export function getStockItemsForSupplier(stockItems = [], companyName = '') {
-  return (stockItems ?? []).filter((item) => supplierNameMatches(companyName, item.supplier))
+function normalizeSupplierId(value) {
+  if (value === null || value === undefined || `${value}`.trim() === '') return null
+  const parsed = Number(value)
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : null
 }
 
-export function getStockOrdersForSupplier(stockOrders = [], companyName = '') {
-  return (stockOrders ?? []).filter((order) => supplierNameMatches(companyName, order.supplier))
+/**
+ * FK-first link for history/metrics/delete protection (P7.3.5).
+ * - If record has supplier_id → match by supplier.id only (never also by text)
+ * - If record FK missing → legacy text match only
+ * Never throws.
+ */
+export function stockRecordMatchesSupplier(record, supplier) {
+  try {
+    if (!record || !supplier) return false
+
+    const supplierId = normalizeSupplierId(supplier.id)
+    const recordSupplierId = normalizeSupplierId(record.supplierId ?? record.supplier_id)
+    const companyName = supplier.companyName ?? supplier.company_name ?? ''
+
+    if (recordSupplierId != null) {
+      return supplierId != null && recordSupplierId === supplierId
+    }
+
+    return supplierNameMatches(companyName, record.supplier)
+  } catch {
+    return false
+  }
 }
 
-export function countInventoryItemsForSupplier(inventoryItems = [], companyName = '') {
-  return (inventoryItems ?? []).filter((item) => supplierNameMatches(companyName, item.supplier)).length
+/**
+ * Stock items linked to a supplier.
+ * - Pass a supplier object → FK-first (history/metrics/delete)
+ * - Pass a company name string → text-only (reports / legacy callers)
+ */
+export function getStockItemsForSupplier(stockItems = [], supplierOrCompanyName = '') {
+  if (typeof supplierOrCompanyName === 'string' || supplierOrCompanyName == null) {
+    return (stockItems ?? []).filter((item) => (
+      supplierNameMatches(supplierOrCompanyName, item.supplier)
+    ))
+  }
+
+  return (stockItems ?? []).filter((item) => stockRecordMatchesSupplier(item, supplierOrCompanyName))
+}
+
+/**
+ * Stock orders linked to a supplier.
+ * - Pass a supplier object → FK-first
+ * - Pass a company name string → text-only
+ */
+export function getStockOrdersForSupplier(stockOrders = [], supplierOrCompanyName = '') {
+  if (typeof supplierOrCompanyName === 'string' || supplierOrCompanyName == null) {
+    return (stockOrders ?? []).filter((order) => (
+      supplierNameMatches(supplierOrCompanyName, order.supplier)
+    ))
+  }
+
+  return (stockOrders ?? []).filter((order) => stockRecordMatchesSupplier(order, supplierOrCompanyName))
+}
+
+/**
+ * Legacy inventory_items are text-linked only (no supplier_id yet).
+ * Accepts supplier object or company name string.
+ */
+export function countInventoryItemsForSupplier(inventoryItems = [], supplierOrCompanyName = '') {
+  const companyName = typeof supplierOrCompanyName === 'string' || supplierOrCompanyName == null
+    ? supplierOrCompanyName
+    : (supplierOrCompanyName.companyName ?? supplierOrCompanyName.company_name ?? '')
+
+  return (inventoryItems ?? []).filter((item) => (
+    supplierNameMatches(companyName, item.supplier)
+  )).length
 }
 
 export function isOpenStockOrder(order) {
@@ -131,8 +193,8 @@ export function getOrderTotalValue(order) {
 }
 
 export function buildSupplierMetrics(supplier, stockItems = [], stockOrders = []) {
-  const linkedItems = getStockItemsForSupplier(stockItems, supplier?.companyName)
-  const linkedOrders = getStockOrdersForSupplier(stockOrders, supplier?.companyName)
+  const linkedItems = getStockItemsForSupplier(stockItems, supplier)
+  const linkedOrders = getStockOrdersForSupplier(stockOrders, supplier)
   const openOrders = linkedOrders.filter(isOpenStockOrder)
   const receivedOrders = linkedOrders.filter(
     (order) => normalizeStockOrderStatus(order.status) === 'received',
@@ -175,7 +237,7 @@ export function buildSuppliersDashboardSummary(suppliers = [], stockItems = [], 
   const linkedProductIds = new Set()
 
   suppliers.forEach((supplier) => {
-    getStockItemsForSupplier(stockItems, supplier.companyName).forEach((item) => {
+    getStockItemsForSupplier(stockItems, supplier).forEach((item) => {
       if (item?.id != null) linkedProductIds.add(item.id)
     })
   })
@@ -205,7 +267,7 @@ export function supplierHasHistory(supplier, {
   inventoryItems = [],
 } = {}) {
   const metrics = buildSupplierMetrics(supplier, stockItems, stockOrders)
-  const inventoryCount = countInventoryItemsForSupplier(inventoryItems, supplier?.companyName)
+  const inventoryCount = countInventoryItemsForSupplier(inventoryItems, supplier)
 
   return metrics.productsCount > 0 || metrics.totalOrders > 0 || inventoryCount > 0
 }
@@ -233,7 +295,7 @@ export function formatSupplierProductLine(item) {
 }
 
 export function buildSupplierSearchHaystack(supplier, stockItems = []) {
-  const linkedItems = getStockItemsForSupplier(stockItems, supplier?.companyName)
+  const linkedItems = getStockItemsForSupplier(stockItems, supplier)
   const productNames = linkedItems.map((item) => item.name ?? '').join(' ')
 
   return [
