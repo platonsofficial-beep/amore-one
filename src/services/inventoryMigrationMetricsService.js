@@ -2,6 +2,7 @@ import { supabase } from '../lib/supabaseClient'
 import {
   aggregateInventoryMigrationMetrics,
   createEmptyInventoryMigrationMetrics,
+  mapManualReviewQueueRows,
 } from '../lib/inventoryMigrationMetrics'
 
 const MAP_TABLE = 'inventory_stock_item_map'
@@ -24,6 +25,7 @@ export async function getInventoryMigrationMetrics(workspaceId) {
   if (!normalizedWorkspaceId) {
     return {
       metrics: createEmptyInventoryMigrationMetrics(),
+      manualReviewRows: [],
       error: null,
       unavailable: false,
       tableReachable: false,
@@ -35,6 +37,7 @@ export async function getInventoryMigrationMetrics(workspaceId) {
   if (!supabase) {
     return {
       metrics: createEmptyInventoryMigrationMetrics(),
+      manualReviewRows: [],
       error: 'Supabase is not configured.',
       unavailable: true,
       tableReachable: false,
@@ -45,13 +48,14 @@ export async function getInventoryMigrationMetrics(workspaceId) {
 
   const { data, error } = await supabase
     .from(MAP_TABLE)
-    .select('id, status, resolution_type, migrated_at')
+    .select('id, status, resolution_type, migrated_at, legacy_inventory_item_id, source_snapshot, conflict_reason, created_at')
     .eq('workspace_id', normalizedWorkspaceId)
 
   if (error) {
     console.warn('[inventoryMigrationMetricsService] getInventoryMigrationMetrics error:', error)
     return {
       metrics: createEmptyInventoryMigrationMetrics(),
+      manualReviewRows: [],
       error: error.message || 'Unable to load migration metrics.',
       unavailable: isTableUnavailableError(error),
       tableReachable: false,
@@ -60,8 +64,11 @@ export async function getInventoryMigrationMetrics(workspaceId) {
     }
   }
 
+  const rows = data ?? []
+
   return {
-    metrics: aggregateInventoryMigrationMetrics(data ?? []),
+    metrics: aggregateInventoryMigrationMetrics(rows),
+    manualReviewRows: mapManualReviewQueueRows(rows),
     error: null,
     unavailable: false,
     tableReachable: true,

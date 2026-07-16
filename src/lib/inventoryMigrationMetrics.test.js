@@ -3,6 +3,7 @@ import {
   aggregateInventoryMigrationMetrics,
   buildInventoryMigrationPipeline,
   createEmptyInventoryMigrationMetrics,
+  mapManualReviewQueueRows,
   PIPELINE_STATE,
   resolveInventoryMigrationCurrentStage,
   resolveInventoryMigrationProgressPercent,
@@ -76,5 +77,52 @@ describe('inventoryMigrationMetrics', () => {
     expect(byId['phase-2']).toBe(PIPELINE_STATE.COMPLETE)
     expect(byId.completed).toBe(PIPELINE_STATE.COMPLETE)
     expect(resolveInventoryMigrationProgressPercent(metrics, true)).toBe(100)
+  })
+
+  it('maps manual review queue rows without inventing values', () => {
+    const rows = mapManualReviewQueueRows([
+      {
+        id: 'a',
+        status: 'manual',
+        legacy_inventory_item_id: 42,
+        resolution_type: null,
+        conflict_reason: 'ambiguous match',
+        created_at: '2026-07-16T12:00:00.000Z',
+        source_snapshot: { item_name: 'House Gin', category: 'Spirits' },
+      },
+      {
+        id: 'b',
+        status: 'classified',
+        legacy_inventory_item_id: 99,
+        source_snapshot: { item_name: 'Skip Me' },
+      },
+      {
+        id: 'c',
+        status: 'manual',
+        legacy_inventory_item_id: null,
+        conflict_reason: '',
+        resolution_type: '',
+        created_at: 'not-a-date',
+        source_snapshot: {},
+      },
+    ])
+
+    expect(rows).toHaveLength(2)
+    expect(rows[0]).toMatchObject({
+      legacyItemId: '42',
+      legacyName: 'House Gin',
+      category: 'Spirits',
+      conflictReason: 'ambiguous match',
+      currentResolution: '—',
+    })
+    expect(rows[0].createdAt).not.toBe('—')
+    expect(rows[1]).toMatchObject({
+      legacyItemId: '—',
+      legacyName: '—',
+      category: '—',
+      conflictReason: '—',
+      currentResolution: '—',
+      createdAt: '—',
+    })
   })
 })

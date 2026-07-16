@@ -31136,6 +31136,14 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   padding: 28px 16px !important;
 }
 
+.stock-migration-queue-empty {
+  margin: 0;
+}
+
+.stock-migration-queue-table {
+  min-width: 860px;
+}
+
 @media (max-width: 1100px) {
   .stock-summary-grid-six {
     grid-template-columns: repeat(3, minmax(0, 1fr));

@@ -7,6 +7,7 @@ import {
   resolveInventoryMigrationStatus,
 } from '../../lib/inventoryMigrationMetrics'
 import { getInventoryMigrationMetrics } from '../../services/inventoryMigrationMetricsService'
+import { StockMigrationManualReviewQueue } from './StockMigrationManualReviewQueue'
 
 const EXECUTION_ACTIONS = [
   'Run Classification',
@@ -44,6 +45,7 @@ export function StockInventoryMigrationView({
   isWorkspaceReady = false,
 }) {
   const [metrics, setMetrics] = useState(createEmptyInventoryMigrationMetrics)
+  const [manualReviewRows, setManualReviewRows] = useState([])
   const [metricsAvailable, setMetricsAvailable] = useState(false)
   const [tableReachable, setTableReachable] = useState(false)
   const [fetchedAt, setFetchedAt] = useState(null)
@@ -57,6 +59,7 @@ export function StockInventoryMigrationView({
       if (!isWorkspaceReady || !`${workspaceId ?? ''}`.trim()) {
         if (!cancelled) {
           setMetrics(createEmptyInventoryMigrationMetrics())
+          setManualReviewRows([])
           setMetricsAvailable(false)
           setTableReachable(false)
           setFetchedAt(null)
@@ -71,6 +74,7 @@ export function StockInventoryMigrationView({
       if (cancelled) return
 
       setMetrics(result.metrics)
+      setManualReviewRows(Array.isArray(result.manualReviewRows) ? result.manualReviewRows : [])
       setMetricsAvailable(Boolean(result.metricsAvailable))
       setTableReachable(Boolean(result.tableReachable))
       setFetchedAt(result.fetchedAt ?? null)
@@ -217,6 +221,10 @@ export function StockInventoryMigrationView({
               <dd>{formatLastUpdated(fetchedAt)}</dd>
             </div>
             <div className="stock-migration-status-row">
+              <dt>Manual Queue Size</dt>
+              <dd>{metricsAvailable ? formatMetricValue(metrics.manualReview) : 'Unknown'}</dd>
+            </div>
+            <div className="stock-migration-status-row">
               <dt>Environment</dt>
               <dd>Production</dd>
             </div>
@@ -227,6 +235,11 @@ export function StockInventoryMigrationView({
           </dl>
         </aside>
       </div>
+
+      <StockMigrationManualReviewQueue
+        rows={manualReviewRows}
+        metricsAvailable={metricsAvailable}
+      />
 
       <section className="panel staff-panel stock-migration-panel" aria-label="Future activity log">
         <div className="stock-migration-panel-header">

@@ -220,3 +220,47 @@ export function resolveInventoryMigrationCurrentStage(pipeline = []) {
   if (allComplete) return 'Completed'
   return 'Unknown'
 }
+
+function displayOrDash(value) {
+  if (value === null || value === undefined) return '—'
+  const text = `${value}`.trim()
+  return text ? text : '—'
+}
+
+function readSnapshotField(snapshot, key) {
+  if (!snapshot || typeof snapshot !== 'object' || Array.isArray(snapshot)) return null
+  const value = snapshot[key]
+  if (value === null || value === undefined) return null
+  const text = `${value}`.trim()
+  return text ? text : null
+}
+
+/**
+ * Map status=manual rows into read-only queue display records.
+ * Missing fields become "—". Never invent values.
+ */
+export function mapManualReviewQueueRows(rows = []) {
+  const list = Array.isArray(rows) ? rows : []
+
+  return list
+    .filter((row) => `${row?.status ?? ''}`.trim() === 'manual')
+    .map((row) => {
+      const snapshot = row?.source_snapshot ?? row?.sourceSnapshot ?? null
+      const createdAtRaw = row?.created_at ?? row?.createdAt ?? null
+      let createdAt = '—'
+      if (createdAtRaw) {
+        const date = new Date(createdAtRaw)
+        createdAt = Number.isNaN(date.getTime()) ? '—' : date.toLocaleString()
+      }
+
+      return {
+        id: row?.id ?? null,
+        legacyItemId: displayOrDash(row?.legacy_inventory_item_id ?? row?.legacyInventoryItemId),
+        legacyName: displayOrDash(readSnapshotField(snapshot, 'item_name')),
+        category: displayOrDash(readSnapshotField(snapshot, 'category')),
+        conflictReason: displayOrDash(row?.conflict_reason ?? row?.conflictReason),
+        currentResolution: displayOrDash(row?.resolution_type ?? row?.resolutionType),
+        createdAt,
+      }
+    })
+}
