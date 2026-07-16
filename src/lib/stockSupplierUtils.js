@@ -47,6 +47,57 @@ export function resolveSupplierIdForWrite({
   return resolved
 }
 
+/**
+ * Resolve a supplier entity for dual-read (P7.3.4).
+ * Prefer supplier_id; fall back to normalized supplier text; never throw.
+ */
+export function resolveSupplierForRead({
+  supplierId = null,
+  supplierName = '',
+  suppliers = [],
+} = {}) {
+  try {
+    const list = Array.isArray(suppliers) ? suppliers : []
+
+    const explicitRaw = supplierId
+    if (explicitRaw !== null && explicitRaw !== undefined && `${explicitRaw}`.trim() !== '') {
+      const explicit = Number(explicitRaw)
+      if (Number.isFinite(explicit) && explicit > 0) {
+        const byId = list.find((supplier) => Number(supplier?.id) === explicit)
+        if (byId) return byId
+      }
+    }
+
+    const name = normalizeSupplierName(supplierName)
+    if (!name) return null
+
+    const byName = list.find((supplier) => (
+      supplierNameMatches(supplier?.companyName ?? supplier?.company_name, name)
+    ))
+    return byName ?? null
+  } catch {
+    return null
+  }
+}
+
+/** Identity read: resolve supplier for a stock item (id preferred, text fallback). */
+export function resolveSupplierForStockItem(item, suppliers = []) {
+  return resolveSupplierForRead({
+    supplierId: item?.supplierId ?? item?.supplier_id ?? null,
+    supplierName: item?.supplier ?? '',
+    suppliers,
+  })
+}
+
+/** Identity read: resolve supplier for a stock order (id preferred, text fallback). */
+export function resolveSupplierForStockOrder(order, suppliers = []) {
+  return resolveSupplierForRead({
+    supplierId: order?.supplierId ?? order?.supplier_id ?? null,
+    supplierName: order?.supplier ?? '',
+    suppliers,
+  })
+}
+
 export function isSupplierActive(supplier) {
   return supplier?.active !== false
 }
@@ -202,15 +253,13 @@ export function getSupplierInitials(name = '') {
   return `${parts[0][0] ?? ''}${parts[1][0] ?? ''}`.toUpperCase()
 }
 
-export function buildStockItemSupplierOptions(suppliers = [], selectedSupplier = '') {
+export function buildStockItemSupplierOptions(suppliers = [], selectedSupplier = '', selectedSupplierId = null) {
   const trimmedSelected = normalizeSupplierName(selectedSupplier)
   const activeNameSet = new Set()
-  const supplierByName = new Map()
 
   ;(suppliers ?? []).forEach((supplier) => {
     const name = normalizeSupplierName(supplier.companyName)
     if (!name) return
-    supplierByName.set(name, supplier)
     if (isSupplierActive(supplier)) {
       activeNameSet.add(name)
     }
@@ -218,8 +267,13 @@ export function buildStockItemSupplierOptions(suppliers = [], selectedSupplier =
 
   const options = [{ value: '', label: 'No supplier', disabled: false }]
 
+  const matchedSupplier = resolveSupplierForRead({
+    supplierId: selectedSupplierId,
+    supplierName: trimmedSelected,
+    suppliers,
+  })
+
   if (trimmedSelected && !activeNameSet.has(trimmedSelected)) {
-    const matchedSupplier = supplierByName.get(trimmedSelected)
     if (matchedSupplier && !isSupplierActive(matchedSupplier)) {
       options.push({
         value: trimmedSelected,

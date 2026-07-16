@@ -49,6 +49,12 @@ function mapStockOrder(record, items = []) {
     id: record.id,
     workspaceId: record.workspace_id ?? record.workspaceId ?? '',
     supplier: record.supplier ?? '',
+    supplierId: (() => {
+      const raw = record.supplier_id ?? record.supplierId ?? null
+      if (raw === null || raw === undefined || `${raw}`.trim() === '') return null
+      const parsed = Number(raw)
+      return Number.isFinite(parsed) && parsed > 0 ? parsed : null
+    })(),
     status: normalizeStockOrderStatus(record.status),
     totalCost: Number(record.total_cost ?? record.totalCost ?? 0),
     notes: record.notes ?? '',
