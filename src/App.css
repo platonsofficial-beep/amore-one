@@ -21863,12 +21863,36 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   background: rgba(212, 175, 55, 0.15);
 }
 
-.assignment-employee-item input[type='checkbox'] {
+/* P6.14.19 — Safari-safe assignment checkbox (appearance:none; no native ring scaling) */
+.schedule-assignment-modal .assignment-employee-item input[type='checkbox'] {
+  -webkit-appearance: none;
+  appearance: none;
   width: 16px;
   height: 16px;
-  margin-top: 3px;
+  margin: 3px 0 0;
+  padding: 0;
   flex-shrink: 0;
-  accent-color: #d4af37;
+  box-sizing: border-box;
+  border: 1.5px solid rgba(232, 224, 208, 0.42);
+  border-radius: 4px;
+  background-color: rgba(255, 255, 255, 0.05);
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 10px 10px;
+  accent-color: auto;
+  cursor: pointer;
+  vertical-align: top;
+}
+
+.schedule-assignment-modal .assignment-employee-item input[type='checkbox']:checked {
+  border-color: #d4af37;
+  background-color: #d4af37;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath fill='none' stroke='%231c1810' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round' d='M2.5 6.2L5 8.7l4.5-5'/%3E%3C/svg%3E");
+}
+
+.schedule-assignment-modal .assignment-employee-item input[type='checkbox']:focus-visible {
+  outline: 2px solid rgba(212, 175, 55, 0.72);
+  outline-offset: 2px;
 }
 
 .assignment-employee-meta {
