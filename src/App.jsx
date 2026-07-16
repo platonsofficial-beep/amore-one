@@ -413,6 +413,7 @@ import {
   prunePendingEmployeePositionDeletionsForSelection,
   queuePendingEmployeePositionDeletion,
 } from './lib/employeeCustomPositionDeletionUtils'
+import { resolveEmployeeSalaryForSave } from './lib/employeeSalaryFormUtils'
 import {
   findDepartment,
   findPosition,
@@ -19669,7 +19670,7 @@ function App() {
       return
     }
 
-    if (!isNumericOrEmpty(employeeForm.salary)) {
+    if (canAssignManagerInviteRoleFlag && !isNumericOrEmpty(employeeForm.salary)) {
       const message = 'Salary must be numeric or empty.'
       setSaveError(message)
       setStaffNotice(message)
@@ -19729,7 +19730,12 @@ function App() {
       phone: employeeForm.phone.trim(),
       email: employeeForm.email.trim(),
       hireDate: employeeForm.hireDate,
-      salary: normalizeNumericValue(employeeForm.salary),
+      salary: resolveEmployeeSalaryForSave({
+        canViewSalary: canAssignManagerInviteRoleFlag,
+        formSalary: employeeForm.salary,
+        existingSalary: editingEmployee?.salary,
+        isEditing: Boolean(editingEmployee),
+      }),
       emergencyContact: employeeForm.emergencyContact.trim() || 'Not provided',
       weeklyHours: normalizeNumericValue(employeeForm.weeklyHours),
       notes: employeeForm.notes.trim() || 'No notes yet.',
@@ -24917,10 +24923,12 @@ function App() {
                       <span>Weekly Hours</span>
                       <input value={employeeForm.weeklyHours} onChange={(event) => setEmployeeForm((current) => ({ ...current, weeklyHours: event.target.value }))} placeholder="Weekly hours" />
                     </label>
-                    <label className="form-field">
-                      <span>Salary</span>
-                      <input value={employeeForm.salary} onChange={(event) => setEmployeeForm((current) => ({ ...current, salary: event.target.value }))} placeholder="Salary" />
-                    </label>
+                    {canAssignManagerInviteRoleFlag ? (
+                      <label className="form-field">
+                        <span>Salary</span>
+                        <input value={employeeForm.salary} onChange={(event) => setEmployeeForm((current) => ({ ...current, salary: event.target.value }))} placeholder="Salary" />
+                      </label>
+                    ) : null}
                     <label className="form-field">
                       <span>Shift</span>
                       <EmployeePremiumFieldSelect
