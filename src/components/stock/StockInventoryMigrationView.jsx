@@ -8,6 +8,7 @@ import {
   resolveInventoryMigrationStatus,
 } from '../../lib/inventoryMigrationMetrics'
 import { buildInventoryMigrationOperator } from '../../lib/inventoryMigrationOperator'
+import { buildInventoryMigrationAuditEvidence } from '../../lib/inventoryMigrationAuditEvidence'
 import { getInventoryMigrationMetrics } from '../../services/inventoryMigrationMetricsService'
 import { StockMigrationAttentionQueue } from './StockMigrationAttentionQueue'
 import { StockMigrationHealthPanel } from './StockMigrationHealthPanel'
@@ -113,6 +114,15 @@ export function StockInventoryMigrationView({
   const currentStage = resolveInventoryMigrationCurrentStage(pipeline)
   const displayWorkspace = `${workspaceLabel ?? ''}`.trim() || '—'
 
+  const auditEvidence = useMemo(
+    () => buildInventoryMigrationAuditEvidence({
+      metrics,
+      metricsAvailable,
+      tableReachable,
+    }),
+    [metrics, metricsAvailable, tableReachable],
+  )
+
   const health = useMemo(
     () => buildInventoryMigrationHealth({
       metrics,
@@ -121,8 +131,9 @@ export function StockInventoryMigrationView({
       pipeline,
       manualQueueSize: metricsAvailable ? metrics.manualReview : 0,
       attentionQueueSize: metricsAvailable ? attentionRows.length : 0,
+      auditEvidence,
     }),
-    [metrics, metricsAvailable, tableReachable, pipeline, attentionRows.length],
+    [metrics, metricsAvailable, tableReachable, pipeline, attentionRows.length, auditEvidence],
   )
 
   const operator = useMemo(
@@ -130,8 +141,9 @@ export function StockInventoryMigrationView({
       metrics,
       metricsAvailable,
       tableReachable,
+      auditEvidence,
     }),
-    [metrics, metricsAvailable, tableReachable],
+    [metrics, metricsAvailable, tableReachable, auditEvidence],
   )
 
   const summaryCards = [

@@ -3,6 +3,11 @@
  * Read-only workflow guidance only — no execution, no writes.
  */
 
+import {
+  AUDIT_EVIDENCE_STATUS,
+  buildInventoryMigrationAuditEvidence,
+} from './inventoryMigrationAuditEvidence'
+
 export const OPERATOR_STATUS = {
   COMPLETED: 'Completed',
   READY: 'Ready',
@@ -15,6 +20,7 @@ export const OPERATOR_NOTES = [
   'Phase 2 should only follow Phase 1',
   'Dashboard never executes SQL',
   'SQL Editor remains authoritative',
+  'Audit stages require operator confirmation before execution stages.',
 ]
 
 export const OPERATOR_EXECUTION_BUTTONS = [
@@ -90,22 +96,44 @@ const OPERATOR_STEP_DEFS = [
   },
 ]
 
+const AUDIT_STEP_IDS = new Set([
+  'integrity-audit',
+  'preflight',
+  'preview',
+  'post-audit',
+])
+
 function requiredActionForStep(title) {
   if (!title || title === 'Unknown') return 'Migration cannot yet continue.'
   if (title === 'Completed') return 'Migration Complete.'
   return `Run ${title}.`
 }
 
+function auditStatusForStep(stepId, evidence) {
+  if (stepId === 'integrity-audit') return evidence.integrityAudit
+  if (stepId === 'preflight') return evidence.preflight
+  if (stepId === 'preview') return evidence.preview
+  if (stepId === 'post-audit') return evidence.postAudit
+  return AUDIT_EVIDENCE_STATUS.UNKNOWN
+}
+
 /**
- * Derive operator checklist + current step + required action from live metrics only.
- * Ops-only stages without map evidence never become Completed.
+ * Derive operator checklist + current step + required action from live metrics
+ * and audit evidence. Never skips audit stages without proof.
  */
 export function buildInventoryMigrationOperator({
   metrics,
   metricsAvailable = false,
   tableReachable = false,
+  auditEvidence = null,
 } = {}) {
-  if (!metricsAvailable) {
+  const evidence = auditEvidence ?? buildInventoryMigrationAuditEvidence({
+    metrics,
+    metricsAvailable,
+    tableReachable,
+  })
+
+  if (!metricsAvailable || evidence.hasUnknown) {
     const checklist = OPERATOR_STEP_DEFS.map((step) => ({
       ...step,
       status: OPERATOR_STATUS.UNKNOWN,
@@ -116,6 +144,7 @@ export function buildInventoryMigrationOperator({
       requiredAction: 'Migration cannot yet continue.',
       notes: OPERATOR_NOTES,
       buttons: OPERATOR_EXECUTION_BUTTONS,
+      auditEvidence: evidence,
     }
   }
 
@@ -132,28 +161,32 @@ export function buildInventoryMigrationOperator({
   const persistComplete = (classified + manual + skipped + completed) === total
   const autoLinkComplete = remainingAutoLink === 0
   const autoCreateComplete = remainingAutoCreate === 0
-  const phase1Complete = total > 0 && completed === total
-  const phase1InProgress = completed > 0 && completed < total
-  const phase2Complete = completed > 0 && migratedCompleted === completed
-  const phase2InProgress = migratedCompleted > 0 && migratedCompleted < completed
-  const laterPhaseEvidence = phase1Complete || phase1InProgress || phase2Complete || phase2InProgress
-  const migrationComplete = phase2Complete && phase1Complete
+  const integrityComplete = evidence.integrityAudit === AUDIT_EVIDENCE_STATUS.COMPLETED
+  const preflightComplete = evidence.preflight === AUDIT_EVIDENCE_STATUS.COMPLETED
+  const previewComplete = evidence.preview === AUDIT_EVIDENCE_STATUS.COMPLETED
+  const metricsPhase1Complete = total > 0 && completed === total
+  const metricsPhase2Complete = completed > 0 && migratedCompleted === completed
+  // Execution stages only count as complete after prior audit evidence is proven.
+  const phase1Complete = previewComplete && metricsPhase1Complete
+  const phase2Complete = phase1Complete && metricsPhase2Complete
+  const postAuditComplete = evidence.postAudit === AUDIT_EVIDENCE_STATUS.COMPLETED
+  const migrationComplete = phase2Complete && postAuditComplete
 
   const provenComplete = {
     foundation: foundationComplete,
     persist: foundationComplete && persistComplete,
     'auto-link': foundationComplete && persistComplete && autoLinkComplete,
     'auto-create': foundationComplete && persistComplete && autoLinkComplete && autoCreateComplete,
-    'integrity-audit': false,
-    preflight: false,
-    preview: false,
+    'integrity-audit': integrityComplete,
+    preflight: preflightComplete,
+    preview: previewComplete,
     'phase-1': phase1Complete,
     'phase-2': phase2Complete,
-    'post-audit': false,
+    'post-audit': postAuditComplete,
     completed: migrationComplete,
   }
 
-  // Frontier: first step that is not proven complete.
+  // Frontier: first step that is not proven complete. Never skip audits without proof.
   let frontierId = 'completed'
   for (const step of OPERATOR_STEP_DEFS) {
     if (!provenComplete[step.id]) {
@@ -162,22 +195,14 @@ export function buildInventoryMigrationOperator({
     }
   }
 
-  // If later phase evidence exists, skip unproven SQL-editor stages for current step.
-  if (
-    laterPhaseEvidence
-    && (frontierId === 'integrity-audit' || frontierId === 'preflight' || frontierId === 'preview')
-  ) {
-    if (phase2InProgress) frontierId = 'phase-2'
-    else if (!phase1Complete) frontierId = 'phase-1'
-    else if (!phase2Complete) frontierId = 'phase-2'
-    else frontierId = migrationComplete ? 'completed' : 'post-audit'
-  }
-
-  if (migrationComplete) {
-    frontierId = 'completed'
-  }
-
   const checklist = OPERATOR_STEP_DEFS.map((step) => {
+    if (AUDIT_STEP_IDS.has(step.id)) {
+      return {
+        ...step,
+        status: auditStatusForStep(step.id, evidence),
+      }
+    }
+
     if (provenComplete[step.id]) {
       return { ...step, status: OPERATOR_STATUS.COMPLETED }
     }
@@ -190,7 +215,6 @@ export function buildInventoryMigrationOperator({
       return { ...step, status: OPERATOR_STATUS.READY }
     }
 
-    // Unproven ops stages after later phase evidence remain Waiting (not invented Completed).
     return { ...step, status: OPERATOR_STATUS.WAITING }
   })
 
@@ -203,5 +227,6 @@ export function buildInventoryMigrationOperator({
     requiredAction: requiredActionForStep(currentStep),
     notes: OPERATOR_NOTES,
     buttons: OPERATOR_EXECUTION_BUTTONS,
+    auditEvidence: evidence,
   }
 }

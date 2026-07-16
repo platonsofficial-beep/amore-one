@@ -455,8 +455,20 @@ export function buildInventoryMigrationHealth({
   pipeline = [],
   manualQueueSize = 0,
   attentionQueueSize = 0,
+  auditEvidence = null,
 } = {}) {
-  if (!metricsAvailable) {
+  const evidenceUnknown = Boolean(auditEvidence?.hasUnknown)
+    || (
+      auditEvidence
+      && [
+        auditEvidence.integrityAudit,
+        auditEvidence.preflight,
+        auditEvidence.preview,
+        auditEvidence.postAudit,
+      ].some((status) => status === 'Unknown')
+    )
+
+  if (!metricsAvailable || evidenceUnknown) {
     return {
       score: null,
       status: MIGRATION_HEALTH_STATUS.UNKNOWN,
