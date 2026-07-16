@@ -13,6 +13,40 @@ export function supplierNameMatches(left, right) {
   return normalizedLeft === normalizedRight
 }
 
+/**
+ * Resolve suppliers.id for dual-write (P7.3.2).
+ * Text remains authority; FK is best-effort and may be null.
+ * Never throws.
+ */
+export function resolveSupplierIdForWrite({
+  supplierName = '',
+  supplierId = null,
+  suppliers = null,
+} = {}) {
+  const explicitRaw = supplierId
+  if (explicitRaw !== null && explicitRaw !== undefined && `${explicitRaw}`.trim() !== '') {
+    const explicit = Number(explicitRaw)
+    if (Number.isFinite(explicit) && explicit > 0) {
+      return explicit
+    }
+  }
+
+  const name = normalizeSupplierName(supplierName)
+  if (!name || !Array.isArray(suppliers) || suppliers.length === 0) {
+    return null
+  }
+
+  const match = suppliers.find((supplier) => (
+    supplierNameMatches(supplier?.companyName ?? supplier?.company_name, name)
+  ))
+
+  if (!match) return null
+
+  const resolved = Number(match.id)
+  if (!Number.isFinite(resolved) || resolved <= 0) return null
+  return resolved
+}
+
 export function isSupplierActive(supplier) {
   return supplier?.active !== false
 }

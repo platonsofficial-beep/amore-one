@@ -4,7 +4,9 @@ import {
   normalizeStockItemType,
   resolveStockStorageLocation,
 } from '../lib/stockCatalog'
+import { resolveSupplierIdForWrite } from '../lib/stockSupplierUtils'
 import { resolveStockItemStatus } from '../lib/stockUtils'
+import { getSuppliers } from './supplierService'
 
 const STOCK_ITEMS_TABLE = 'stock_items'
 
@@ -59,13 +61,15 @@ function mapStockItem(record) {
   }
 }
 
-function serializeStockItem(item, workspaceId) {
+export function serializeStockItem(item, workspaceId, { supplierId = null } = {}) {
+  const supplier = `${item.supplier ?? ''}`.trim()
   return {
     workspace_id: workspaceId,
     name: `${item.name ?? ''}`.trim(),
     category: `${item.category ?? 'Other'}`.trim() || 'Other',
     item_type: `${item.itemType ?? item.item_type ?? 'Other'}`.trim() || 'Other',
-    supplier: `${item.supplier ?? ''}`.trim(),
+    supplier,
+    supplier_id: supplierId,
     unit: `${item.unit ?? ''}`.trim(),
     current_quantity: Math.max(0, Number(item.currentQuantity ?? item.current_quantity ?? 0) || 0),
     minimum_quantity: Math.max(0, Number(item.minimumQuantity ?? item.minimum_quantity ?? 0) || 0),
@@ -78,6 +82,28 @@ function serializeStockItem(item, workspaceId) {
     cost_price: Math.max(0, Number(item.costPrice ?? item.cost_price ?? 0) || 0),
     storage_location: `${item.storageLocation ?? item.storage_location ?? 'Main Storage'}`.trim() || 'Main Storage',
     active: item.active ?? true,
+  }
+}
+
+async function resolveStockItemSupplierId(workspaceId, item) {
+  const supplier = `${item?.supplier ?? ''}`.trim()
+  const explicitId = item?.supplierId ?? item?.supplier_id ?? null
+  const fromExplicit = resolveSupplierIdForWrite({
+    supplierName: supplier,
+    supplierId: explicitId,
+  })
+  if (fromExplicit != null) return fromExplicit
+  if (!supplier) return null
+
+  try {
+    const suppliers = await getSuppliers(workspaceId)
+    return resolveSupplierIdForWrite({
+      supplierName: supplier,
+      suppliers,
+    })
+  } catch (error) {
+    console.warn('[stockItemService] supplier_id resolve skipped:', error)
+    return null
   }
 }
 
@@ -112,7 +138,8 @@ export async function createStockItem(workspaceId, item) {
     throw new Error('Workspace is required to create a stock item.')
   }
 
-  const payload = serializeStockItem(item, normalizedWorkspaceId)
+  const supplierId = await resolveStockItemSupplierId(normalizedWorkspaceId, item)
+  const payload = serializeStockItem(item, normalizedWorkspaceId, { supplierId })
 
   const { data, error } = await supabase
     .from(STOCK_ITEMS_TABLE)
@@ -137,7 +164,10 @@ export async function updateStockItem(id, item, workspaceId) {
     throw new Error('Workspace is required to update a stock item.')
   }
 
-  const { workspace_id: _workspaceId, ...payload } = serializeStockItem(item, normalizedWorkspaceId)
+  const supplierId = await resolveStockItemSupplierId(normalizedWorkspaceId, item)
+  const { workspace_id: _workspaceId, ...payload } = serializeStockItem(item, normalizedWorkspaceId, {
+    supplierId,
+  })
 
   const { data, error } = await supabase
     .from(STOCK_ITEMS_TABLE)

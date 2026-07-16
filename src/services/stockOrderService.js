@@ -5,10 +5,12 @@ import {
   normalizeStockOrderStatus,
   serializeDraftOrderItems,
 } from '../lib/stockOrderUtils'
+import { resolveSupplierIdForWrite } from '../lib/stockSupplierUtils'
 import { supabase } from '../lib/supabaseClient'
 import { getMemberDisplayNamesByAuthUserIds } from './membershipService'
 import { getStockItems } from './stockItemService'
 import { recordStockMovement } from './stockMovementService'
+import { getSuppliers } from './supplierService'
 
 const STOCK_ORDERS_TABLE = 'stock_orders'
 const STOCK_ORDER_ITEMS_TABLE = 'stock_order_items'
@@ -64,7 +66,7 @@ function mapStockOrder(record, items = []) {
   }
 }
 
-function serializeStockOrder(order, workspaceId) {
+export function serializeStockOrder(order, workspaceId, { supplierId = null } = {}) {
   const items = serializeDraftOrderItems(order.items)
   const totalCost = computeOrderTotalCost(items.map((item) => ({
     quantity: item.quantity,
@@ -72,9 +74,11 @@ function serializeStockOrder(order, workspaceId) {
     totalPrice: item.total_price,
   })))
 
+  const supplier = `${order.supplier ?? ''}`.trim()
   const payload = {
     workspace_id: workspaceId,
-    supplier: `${order.supplier ?? ''}`.trim(),
+    supplier,
+    supplier_id: supplierId,
     status: normalizeStockOrderStatus(order.status ?? 'draft'),
     total_cost: totalCost,
     notes: `${order.notes ?? ''}`.trim(),
@@ -87,6 +91,32 @@ function serializeStockOrder(order, workspaceId) {
   }
 
   return payload
+}
+
+async function resolveStockOrderSupplierId(workspaceId, {
+  supplier = '',
+  supplierId = null,
+  supplier_id = null,
+} = {}) {
+  const supplierName = `${supplier ?? ''}`.trim()
+  const explicitId = supplierId ?? supplier_id ?? null
+  const fromExplicit = resolveSupplierIdForWrite({
+    supplierName,
+    supplierId: explicitId,
+  })
+  if (fromExplicit != null) return fromExplicit
+  if (!supplierName) return null
+
+  try {
+    const suppliers = await getSuppliers(workspaceId)
+    return resolveSupplierIdForWrite({
+      supplierName,
+      suppliers,
+    })
+  } catch (error) {
+    console.warn('[stockOrderService] supplier_id resolve skipped:', error)
+    return null
+  }
 }
 
 async function fetchOrderItems(orderIds = []) {
@@ -223,7 +253,8 @@ export async function createStockOrder(workspaceId, order, { createdBy = null } 
     throw new Error('Add at least one product to create an order.')
   }
 
-  const payload = serializeStockOrder({ ...order, items }, normalizedWorkspaceId)
+  const supplierId = await resolveStockOrderSupplierId(normalizedWorkspaceId, order)
+  const payload = serializeStockOrder({ ...order, items }, normalizedWorkspaceId, { supplierId })
   payload.created_by = createdBy
 
   const { data, error } = await supabase
@@ -307,8 +338,14 @@ export async function updateStockOrderDraft(workspaceId, orderId, {
     totalPrice: item.total_price,
   })))
 
+  const nextSupplier = supplier !== undefined ? `${supplier}`.trim() : existing.supplier
+  const supplierId = await resolveStockOrderSupplierId(normalizedWorkspaceId, {
+    supplier: nextSupplier,
+  })
+
   const updatePayload = {
-    supplier: supplier !== undefined ? `${supplier}`.trim() : existing.supplier,
+    supplier: nextSupplier,
+    supplier_id: supplierId,
     notes: notes !== undefined ? `${notes}`.trim() : existing.notes,
     total_cost: totalCost,
   }
