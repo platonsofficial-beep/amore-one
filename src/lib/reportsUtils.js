@@ -5,7 +5,7 @@ import {
   normalizeReservationStatus,
 } from './reservationHostStatus'
 import { needsOrder } from './inventoryUtils'
-import { getStockItemsForSupplier } from './stockSupplierUtils'
+import { getStockItemsForSupplier, countInventoryItemsForSupplier } from './stockSupplierUtils'
 import { buildStockDashboardSummary } from './stockUtils'
 import { buildStockOrdersOperationsSummary } from './stockOrderUtils'
 import { calculateTaskOverview, buildTaskAlerts } from './taskUtils'
@@ -400,14 +400,18 @@ export function buildSuppliersReport(
 
   if (canLinkStock) {
     suppliers.forEach((supplier) => {
-      const companyName = `${supplier?.companyName ?? ''}`.trim()
-      if (!companyName) return
+      const companyName = `${supplier?.companyName ?? supplier?.company_name ?? ''}`.trim()
+      const supplierIdRaw = supplier?.id
+      const hasIdentity = Boolean(companyName)
+        || (supplierIdRaw !== null
+          && supplierIdRaw !== undefined
+          && `${supplierIdRaw}`.trim() !== '')
+      if (!hasIdentity) return
 
+      // FK-first for stock_items; inventory_items remain text-linked (no supplier_id).
       const hasLinkedItem = hasStockModuleData
-        ? getStockItemsForSupplier(stockItems, companyName).length > 0
-        : inventoryItems.some(
-          (item) => `${item?.supplier ?? ''}`.trim() === companyName,
-        )
+        ? getStockItemsForSupplier(stockItems, supplier).length > 0
+        : countInventoryItemsForSupplier(inventoryItems, supplier) > 0
       if (hasLinkedItem) linkedToStock += 1
     })
   }

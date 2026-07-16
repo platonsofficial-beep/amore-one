@@ -9,6 +9,7 @@ import {
   buildReportsOverview,
   buildReservationsReport,
   buildScheduleReport,
+  buildSuppliersReport,
   buildTasksReport,
 } from './reportsUtils'
 
@@ -305,5 +306,97 @@ describe('reportsUtils', () => {
     expect(bundle.stockReport.metrics.pendingOrders).toBe(1)
     expect(bundle.insightsAttention).toHaveLength(1)
     expect(bundle.healthSummary).toContain('attention')
+  })
+})
+
+describe('buildSuppliersReport (FK-first)', () => {
+  const supplierA = { id: 10, companyName: 'Malakakos AE' }
+  const supplierB = { id: 20, companyName: 'Wine House' }
+
+  it('counts linked suppliers via supplier_id', () => {
+    const report = buildSuppliersReport([supplierA, supplierB], [], {
+      inventoryConnected: true,
+      stockItems: [
+        { id: 'i1', supplierId: 10, supplier: 'Wrong Name' },
+      ],
+    })
+
+    expect(report.connected).toBe(true)
+    expect(report.metrics.totalSuppliers).toBe(2)
+    expect(report.metrics.linkedToStock).toBe(1)
+    expect(report.metrics.withoutStockItems).toBe(1)
+  })
+
+  it('falls back to legacy text when FK missing', () => {
+    const report = buildSuppliersReport([supplierA], [], {
+      inventoryConnected: true,
+      stockItems: [
+        { id: 'i1', supplierId: null, supplier: 'Malakakos AE' },
+      ],
+    })
+
+    expect(report.metrics.linkedToStock).toBe(1)
+    expect(report.metrics.withoutStockItems).toBe(0)
+  })
+
+  it('handles mixed FK + legacy datasets without merging unrelated suppliers', () => {
+    const report = buildSuppliersReport([supplierA, supplierB], [], {
+      inventoryConnected: true,
+      stockItems: [
+        { id: 'fk', supplierId: 10, supplier: 'Wine House' },
+        { id: 'legacy', supplierId: null, supplier: 'Wine House' },
+      ],
+    })
+
+    // A linked by FK despite wrong text; B linked by legacy text only
+    expect(report.metrics.linkedToStock).toBe(2)
+    expect(report.metrics.withoutStockItems).toBe(0)
+  })
+
+  it('does not double-count or attribute FK rows by text to another supplier', () => {
+    const report = buildSuppliersReport([supplierA, supplierB], [], {
+      inventoryConnected: true,
+      stockItems: [
+        { id: 'i1', supplierId: 20, supplier: 'Malakakos AE' },
+      ],
+    })
+
+    expect(report.metrics.linkedToStock).toBe(1)
+    expect(report.metrics.withoutStockItems).toBe(1)
+  })
+
+  it('preserves totals and metric shape', () => {
+    const report = buildSuppliersReport(
+      [supplierA, supplierB, { id: 30, companyName: 'Solo Co' }],
+      [],
+      {
+        inventoryConnected: true,
+        stockItems: [
+          { id: 'i1', supplierId: 10, supplier: 'Malakakos AE' },
+          { id: 'i2', supplierId: 10, supplier: 'Malakakos AE' },
+        ],
+      },
+    )
+
+    expect(Object.keys(report.metrics).sort()).toEqual([
+      'linkedToStock',
+      'totalSuppliers',
+      'withoutStockItems',
+    ])
+    expect(report.metrics.totalSuppliers).toBe(3)
+    expect(report.metrics.linkedToStock).toBe(1)
+    expect(report.metrics.withoutStockItems).toBe(2)
+  })
+
+  it('uses inventory text fallback when stock module data is empty', () => {
+    const report = buildSuppliersReport([supplierA, supplierB], [
+      { id: 'inv1', supplier: 'Malakakos AE' },
+    ], {
+      inventoryConnected: true,
+      stockItems: [],
+    })
+
+    expect(report.metrics.linkedToStock).toBe(1)
+    expect(report.metrics.withoutStockItems).toBe(1)
   })
 })
