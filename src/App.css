@@ -17457,6 +17457,12 @@
   text-align: left;
 }
 
+.schedule-grid-area-group-header {
+  gap: 5px;
+  padding: 5px 10px;
+  font-size: 0.64rem;
+}
+
 .schedule-grid-area-group-header:hover,
 .schedule-template-area-group-header:hover {
   border-color: rgba(212, 175, 55, 0.24);
