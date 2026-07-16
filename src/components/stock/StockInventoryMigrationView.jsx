@@ -11,6 +11,7 @@ import { buildInventoryMigrationOperator } from '../../lib/inventoryMigrationOpe
 import { buildInventoryMigrationAuditEvidence } from '../../lib/inventoryMigrationAuditEvidence'
 import { buildInventoryMigrationSessionPlaceholder } from '../../lib/inventoryMigrationSession'
 import { getInventoryMigrationMetrics } from '../../services/inventoryMigrationMetricsService'
+import { getInventoryMigrationSessionSummary } from '../../services/inventoryMigrationSessionService'
 import { StockMigrationAttentionQueue } from './StockMigrationAttentionQueue'
 import { StockMigrationHealthPanel } from './StockMigrationHealthPanel'
 import { StockMigrationManualReviewQueue } from './StockMigrationManualReviewQueue'
@@ -60,6 +61,9 @@ export function StockInventoryMigrationView({
   const [fetchedAt, setFetchedAt] = useState(null)
   const [isLoading, setIsLoading] = useState(false)
   const [noticeMessage, setNoticeMessage] = useState('')
+  const [sessionSummary, setSessionSummary] = useState(
+    () => buildInventoryMigrationSessionPlaceholder().summary,
+  )
 
   useEffect(() => {
     let cancelled = false
@@ -74,13 +78,17 @@ export function StockInventoryMigrationView({
           setTableReachable(false)
           setFetchedAt(null)
           setNoticeMessage('')
+          setSessionSummary(buildInventoryMigrationSessionPlaceholder().summary)
           setIsLoading(false)
         }
         return
       }
 
       setIsLoading(true)
-      const result = await getInventoryMigrationMetrics(workspaceId)
+      const [result, sessionResult] = await Promise.all([
+        getInventoryMigrationMetrics(workspaceId),
+        getInventoryMigrationSessionSummary(workspaceId),
+      ])
       if (cancelled) return
 
       setMetrics(result.metrics)
@@ -90,6 +98,10 @@ export function StockInventoryMigrationView({
       setTableReachable(Boolean(result.tableReachable))
       setFetchedAt(result.fetchedAt ?? null)
       setNoticeMessage(result.error ? result.error : '')
+      setSessionSummary(
+        sessionResult?.summary
+          ?? buildInventoryMigrationSessionPlaceholder({ workspaceId }).summary,
+      )
       setIsLoading(false)
     }
 
@@ -148,13 +160,6 @@ export function StockInventoryMigrationView({
     [metrics, metricsAvailable, tableReachable, auditEvidence],
   )
 
-  const sessionPlaceholder = useMemo(
-    () => buildInventoryMigrationSessionPlaceholder({
-      workspaceId: isWorkspaceReady ? workspaceId : null,
-    }),
-    [workspaceId, isWorkspaceReady],
-  )
-
   const summaryCards = [
     { id: 'legacy', label: 'Legacy Items', value: metricsAvailable ? formatMetricValue(metrics.legacyItems) : 'Unknown' },
     { id: 'classified', label: 'Classified', value: metricsAvailable ? formatMetricValue(metrics.classified) : 'Unknown' },
@@ -192,7 +197,7 @@ export function StockInventoryMigrationView({
         metricsAvailable={metricsAvailable}
       />
 
-      <StockMigrationSessionCard summary={sessionPlaceholder.summary} />
+      <StockMigrationSessionCard summary={sessionSummary} />
 
       <StockMigrationOperatorPanel operator={operator} />
 
