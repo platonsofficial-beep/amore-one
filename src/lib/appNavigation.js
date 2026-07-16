@@ -19,6 +19,7 @@ export const STOCK_SECTIONS = [
   { id: 'inventory', label: 'Inventory' },
   { id: 'suppliers', label: 'Suppliers' },
   { id: 'orders', label: 'Orders' },
+  { id: 'migration', label: 'Inventory Migration' },
 ]
 
 export const OPERATIONS_SECTIONS = [
@@ -111,6 +112,7 @@ export function getModuleTitle(activeView, {
     if (stockSection === 'suppliers') return 'Suppliers'
     if (stockSection === 'inventory') return 'Inventory'
     if (stockSection === 'orders') return 'Orders'
+    if (stockSection === 'migration') return 'Inventory Migration'
     return 'Stock'
   }
   if (activeView === 'operations') {
@@ -138,6 +140,9 @@ export function getModuleSubtitle(activeView, currentDateLabel, {
   if (activeView === 'stock' && stockSection === 'inventory') return 'Inventory levels and replenishment.'
   if (activeView === 'stock' && stockSection === 'suppliers') return 'Supplier contacts, products, and purchase history.'
   if (activeView === 'stock' && stockSection === 'orders') return 'Supplier purchase orders and receiving.'
+  if (activeView === 'stock' && stockSection === 'migration') {
+    return 'Safely migrate legacy inventory into the new Stock system.'
+  }
   if (activeView === 'operations' && operationsSection === 'checklists') return 'Build reusable opening, closing, and prep procedures.'
   if (activeView === 'operations') return 'Daily tasks, issues, and shift communication.'
   if (activeView === 'insights') return 'Business intelligence from live data.'
@@ -154,6 +159,7 @@ export function getSearchPlaceholder(activeView, {
   if (activeView === 'stock' && stockSection === 'orders') return 'Search order #, supplier, product'
   if (activeView === 'stock' && (stockSection === 'dashboard' || stockSection === 'inventory')) return 'Search stock item'
   if (activeView === 'stock' && stockSection === 'suppliers') return 'Search supplier'
+  if (activeView === 'stock' && stockSection === 'migration') return 'Search migration stages'
   if (activeView === 'operations' && operationsSection === 'checklists') return 'Search checklists'
   if (activeView === 'operations' && operationsSection === 'dashboard') return 'Search tasks and notes'
   if (activeView === 'insights') return 'Search insights'

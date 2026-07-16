@@ -513,6 +513,7 @@ import {
 import { StockDashboardView } from './components/stock/StockDashboardView'
 import { StockOrdersView } from './components/stock/StockOrdersView'
 import { StockSuppliersView } from './components/stock/StockSuppliersView'
+import { StockInventoryMigrationView } from './components/stock/StockInventoryMigrationView'
 import { StockCreateOrderModal } from './components/stock/StockCreateOrderModal'
 import { OperationsAnnouncementFormModal } from './components/operations/OperationsAnnouncementFormModal'
 import { OperationsDashboardView } from './components/operations/OperationsDashboardView'
@@ -24319,6 +24320,10 @@ function App() {
             onCancelBarRefill={handleCancelBarRefill}
             canManage={canManageStockRole}
           />
+        ) : null}
+
+        {isActiveViewAllowed && activeView === 'stock' && stockSection === 'migration' ? (
+          <StockInventoryMigrationView />
         ) : null}
 
         {isActiveViewAllowed && activeView === 'insights' ? (
