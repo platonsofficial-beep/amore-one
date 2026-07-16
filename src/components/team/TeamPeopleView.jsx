@@ -8,8 +8,27 @@ import {
   getEmployeeTodayStatusPillClass,
   isResolvedEmployeeOnLeaveToday,
 } from '../../lib/employeeTodayStatusPresentation'
+import { findDepartment } from '../../lib/venueCatalogTemplates'
 
-const DEPARTMENT_FILTERS = ['All', 'Bar', 'Service', 'Kitchen', 'Management']
+export const DEPARTMENT_FILTERS = ['All', 'Bar', 'Service', 'Kitchen', 'Management']
+
+/**
+ * People department chip matching via catalog key/label/alias resolution.
+ * Unknown / empty employee departments appear under All only.
+ */
+export function employeeMatchesPeopleDepartmentFilter(department, activeFilter) {
+  if (activeFilter === 'All') return true
+
+  const filterDepartment = findDepartment(activeFilter)
+  if (!filterDepartment) {
+    return `${department ?? ''}`.trim() === `${activeFilter ?? ''}`.trim()
+  }
+
+  const employeeDepartment = findDepartment(department)
+  if (!employeeDepartment) return false
+
+  return employeeDepartment.key === filterDepartment.key
+}
 
 function getInitials(name) {
   const parts = `${name || ''}`.trim().split(/\s+/).filter(Boolean)

@@ -497,7 +497,7 @@ import {
 } from './lib/scheduleAreaCollapseUtils'
 import { TeamTodayView } from './components/team/TeamTodayView'
 import { TeamTodayGroupsList } from './components/team/TeamTodayGroupsList'
-import { TeamPeopleView } from './components/team/TeamPeopleView'
+import { employeeMatchesPeopleDepartmentFilter, TeamPeopleView } from './components/team/TeamPeopleView'
 import { RequestLeaveActionButton, RequestLeaveModal } from './components/team/RequestLeaveModal'
 import { canCreateLeave, canViewLeaveQueue } from './lib/leave/leavePermissionUtils'
 import { EmployeeIdentity } from './components/identity/EmployeeIdentity'
@@ -18093,7 +18093,7 @@ function App() {
       const matchesSearch = `${employee.name} ${positionNames} ${employee.department}`
         .toLowerCase()
         .includes(searchTerm.toLowerCase())
-      const matchesFilter = activeFilter === 'All' || employee.department === activeFilter
+      const matchesFilter = employeeMatchesPeopleDepartmentFilter(employee.department, activeFilter)
       return matchesSearch && matchesFilter
     })
   }, [activeFilter, employees, searchTerm])
