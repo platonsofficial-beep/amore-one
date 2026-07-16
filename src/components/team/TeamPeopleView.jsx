@@ -353,18 +353,12 @@ export function TeamPeopleView({
                   <div className="team-people-card-meta-row team-people-card-meta-row--today">
                     <dt>Today</dt>
                     <dd className="team-people-card-today">
-                      <span className="team-people-card-today-primary">{cardPresentation.primaryLabel}</span>
-                      {cardPresentation.secondaryLabel ? (
-                        <span className="team-people-card-today-secondary">{cardPresentation.secondaryLabel}</span>
-                      ) : null}
-                    </dd>
-                  </div>
-                  <div className="team-people-card-meta-row">
-                    <dt>Status</dt>
-                    <dd>
                       <span className={getEmployeeTodayStatusPillClass(cardPresentation.toneKey)}>
                         {cardPresentation.pillLabel}
                       </span>
+                      {cardPresentation.secondaryLabel ? (
+                        <span className="team-people-card-today-secondary">{cardPresentation.secondaryLabel}</span>
+                      ) : null}
                     </dd>
                   </div>
                 </dl>
