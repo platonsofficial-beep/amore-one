@@ -16309,8 +16309,8 @@
   margin: 0;
   padding: 3px 6px;
   border-radius: 6px;
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  background: rgba(255, 255, 255, 0.025);
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  background: rgba(255, 255, 255, 0.02);
   color: #d4c5ad;
   font-size: 0.64rem;
   font-weight: 700;
@@ -16431,9 +16431,10 @@
   box-sizing: border-box;
   min-height: 30px;
   padding: 4px 7px;
-  border: 1px solid rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.05);
   border-radius: 6px;
-  background: rgba(255, 255, 255, 0.04);
+  background: rgba(255, 255, 255, 0.035);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
   color: #f7efe1;
   font-size: 0.76rem;
   font-weight: 600;
@@ -16443,7 +16444,8 @@
   transition:
     border-color 160ms ease,
     background 160ms ease,
-    color 160ms ease;
+    color 160ms ease,
+    box-shadow 160ms ease;
 }
 
 .schedule-assigned-pill {
@@ -16453,20 +16455,30 @@
 }
 
 .schedule-assigned-pill--identity {
-  border: 1px solid color-mix(in srgb, var(--schedule-pill-identity-ring, rgba(255, 255, 255, 0.16)) 40%, rgba(255, 255, 255, 0.07));
+  border: 1px solid color-mix(in srgb, var(--schedule-pill-identity-ring, rgba(255, 255, 255, 0.16)) 28%, rgba(255, 255, 255, 0.05));
   border-left: 2px solid var(--schedule-pill-identity-ring, rgba(255, 255, 255, 0.16));
   border-top-left-radius: 6px;
   border-bottom-left-radius: 6px;
-  background: color-mix(
-    in srgb,
-    var(--schedule-pill-identity-ring, rgba(255, 255, 255, 0.16)) 34%,
-    rgba(12, 14, 18, 0.96) 66%
+  background: linear-gradient(
+    180deg,
+    color-mix(
+      in srgb,
+      var(--schedule-pill-identity-ring, rgba(255, 255, 255, 0.16)) 36%,
+      rgba(12, 14, 18, 0.94) 64%
+    ),
+    color-mix(
+      in srgb,
+      var(--schedule-pill-identity-ring, rgba(255, 255, 255, 0.16)) 26%,
+      rgba(12, 14, 18, 0.98) 74%
+    )
   );
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--schedule-pill-identity-ring, rgba(255, 255, 255, 0.16)) 22%, transparent);
 }
 
 .schedule-assigned-pill--neutral {
-  border: 1px solid rgba(255, 255, 255, 0.07);
-  background: color-mix(in srgb, rgba(255, 255, 255, 0.07) 6%, rgba(255, 255, 255, 0.04));
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  background: color-mix(in srgb, rgba(255, 255, 255, 0.06) 8%, rgba(255, 255, 255, 0.03));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.035);
 }
 
 .schedule-assigned-pill-name {
@@ -16503,12 +16515,20 @@
 
 .schedule-assigned-pill--identity:hover,
 .schedule-assigned-pill--identity:focus-visible {
-  border-color: color-mix(in srgb, var(--schedule-pill-identity-ring, rgba(255, 255, 255, 0.16)) 46%, rgba(255, 255, 255, 0.07));
+  border-color: color-mix(in srgb, var(--schedule-pill-identity-ring, rgba(255, 255, 255, 0.16)) 40%, rgba(255, 255, 255, 0.05));
   border-left-color: var(--schedule-pill-identity-ring, rgba(255, 255, 255, 0.16));
-  background: color-mix(
-    in srgb,
-    var(--schedule-pill-identity-ring, rgba(255, 255, 255, 0.16)) 39%,
-    rgba(12, 14, 18, 0.96) 61%
+  background: linear-gradient(
+    180deg,
+    color-mix(
+      in srgb,
+      var(--schedule-pill-identity-ring, rgba(255, 255, 255, 0.16)) 40%,
+      rgba(12, 14, 18, 0.93) 60%
+    ),
+    color-mix(
+      in srgb,
+      var(--schedule-pill-identity-ring, rgba(255, 255, 255, 0.16)) 30%,
+      rgba(12, 14, 18, 0.97) 70%
+    )
   );
   color: #fff7e8;
   outline: none;
@@ -16525,7 +16545,7 @@
 .schedule-shift-coverage-status {
   margin: 0;
   padding: 1px 2px 0;
-  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  border-top: 1px solid rgba(255, 255, 255, 0.045);
   font-size: 0.62rem;
   font-weight: 700;
   letter-spacing: 0.03em;
@@ -16534,18 +16554,18 @@
 
 .schedule-shift-coverage-status.tone-covered {
   color: #9fd4a8;
-  border-top-color: rgba(76, 175, 80, 0.2);
+  border-top-color: rgba(76, 175, 80, 0.16);
 }
 
 .schedule-shift-coverage-status.tone-understaffed,
 .schedule-shift-coverage-status.tone-conflict {
   color: #f2a8a2;
-  border-top-color: rgba(224, 113, 104, 0.22);
+  border-top-color: rgba(224, 113, 104, 0.18);
 }
 
 .schedule-shift-coverage-status.tone-overstaffed {
   color: #9fd4a8;
-  border-top-color: rgba(76, 175, 80, 0.16);
+  border-top-color: rgba(76, 175, 80, 0.14);
 }
 
 .schedule-shift-coverage-status.tone-empty {
@@ -16558,10 +16578,10 @@
   min-width: 44px;
   min-height: 44px;
   padding: 4px 7px;
-  border: 1px dashed rgba(212, 175, 55, 0.18);
+  border: 1px dashed rgba(212, 175, 55, 0.12);
   border-radius: 6px;
-  background: rgba(255, 255, 255, 0.015);
-  color: #c9beb0;
+  background: rgba(255, 255, 255, 0.01);
+  color: #a89e90;
   font-size: 0.6rem;
   font-weight: 500;
   cursor: pointer;
@@ -20809,7 +20829,7 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   border: 0;
   background: transparent;
   color: #cfc4b2;
-  opacity: 0.45;
+  opacity: 0.32;
   display: grid;
   place-items: center;
   font-size: 0.85rem;
@@ -21463,7 +21483,7 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   border: 1px solid transparent;
   background: transparent;
   color: #d8cdb8;
-  opacity: 0.5;
+  opacity: 0.34;
   display: grid;
   place-items: center;
   font-size: 0.68rem;
