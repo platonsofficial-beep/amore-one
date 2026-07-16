@@ -1,33 +1,36 @@
 -- =============================================================================
--- P7.7.5 / P7.7.9 — Start Inventory Migration Session RPC
+-- P7.7.5 / P7.7.9 / P7.8.1 — Start Inventory Migration Session RPC
 -- =============================================================================
 -- Run manually in the Supabase SQL editor after:
 --   1. inventory_migration_sessions.sql (P7.7.4)
 --   2. inventory_migration_activity.sql (P7.7.8)
+--   3. inventory_migration_session_steps.sql (P7.8.0)
 -- Do NOT auto-run from the app.
 --
 -- Purpose:
 --   Atomic SECURITY DEFINER entry point to create one running migration session
---   for a workspace and append a session_started activity row in the same
---   transaction. Authenticated clients must not INSERT directly
---   (no client INSERT policy on sessions or activity).
+--   for a workspace, append a session_started activity row, and bootstrap the
+--   canonical session step rows in the same transaction.
+--   Authenticated clients must not INSERT directly
+--   (no client INSERT policy on sessions, activity, or steps).
 --
 -- Authorization:
 --   owner / general_manager / manager via public.can_manage_workspace_stock
 --
 -- Does NOT:
 --   - Complete or cancel sessions
---   - Execute migration SQL
+--   - Execute migration SQL / progress steps beyond foundation=running bootstrap
 --   - Touch inventory_stock_item_map
---   - Create migration-step rows
 --   - Change UI or Operator logic
 --   - Change signatures, grants, or RLS
+--   - UPSERT / UPDATE / DELETE step rows
 --
 -- Prerequisites:
 --   1. public.inventory_migration_sessions exists (P7.7.4)
 --   2. public.inventory_migration_activity exists (P7.7.8)
---   3. public.can_manage_workspace_stock(uuid) exists
---   4. public.workspace_members exists (display_name source)
+--   3. public.inventory_migration_session_steps exists (P7.8.0)
+--   4. public.can_manage_workspace_stock(uuid) exists
+--   5. public.workspace_members exists (display_name source)
 -- =============================================================================
 
 drop function if exists public.start_inventory_migration_session(uuid);
@@ -132,6 +135,29 @@ begin
     v_operator_display_name
   );
 
+  -- Same transaction: step bootstrap failure rolls back session + activity.
+  -- Exactly 10 rows. Insert only. No UPSERT / UPDATE / DELETE.
+  -- foundation = running with started_at; all others waiting; completed_at NULL.
+  insert into public.inventory_migration_session_steps (
+    session_id,
+    workspace_id,
+    step_name,
+    status,
+    started_at,
+    completed_at
+  )
+  values
+    (v_session.id, p_workspace_id, 'foundation', 'running', now(), null),
+    (v_session.id, p_workspace_id, 'persist', 'waiting', null, null),
+    (v_session.id, p_workspace_id, 'auto_link', 'waiting', null, null),
+    (v_session.id, p_workspace_id, 'auto_create', 'waiting', null, null),
+    (v_session.id, p_workspace_id, 'integrity_audit', 'waiting', null, null),
+    (v_session.id, p_workspace_id, 'preflight', 'waiting', null, null),
+    (v_session.id, p_workspace_id, 'preview', 'waiting', null, null),
+    (v_session.id, p_workspace_id, 'phase1', 'waiting', null, null),
+    (v_session.id, p_workspace_id, 'phase2', 'waiting', null, null),
+    (v_session.id, p_workspace_id, 'post_apply_audit', 'waiting', null, null);
+
   return next v_session;
 end;
 $$;
@@ -140,7 +166,7 @@ revoke all on function public.start_inventory_migration_session(uuid) from publi
 grant execute on function public.start_inventory_migration_session(uuid) to authenticated;
 
 comment on function public.start_inventory_migration_session(uuid) is
-  'P7.7.5/P7.7.9 SECURITY DEFINER start of one running inventory migration session and session_started activity. No migration execution.';
+  'P7.7.5/P7.7.9/P7.8.1 SECURITY DEFINER start session + activity + canonical step bootstrap. No migration execution.';
 
 -- =============================================================================
 -- Verification (commented — run after apply; do not auto-execute)
@@ -156,13 +182,15 @@ comment on function public.start_inventory_migration_session(uuid) is
 --   and routine_name = 'start_inventory_migration_session';
 
 -- Manual role matrix (authenticated client / SQL as that role):
---   owner / general_manager / manager → success, one running row + one session_started activity
+--   owner / general_manager / manager → success:
+--     one running session + one session_started activity + 10 step rows
 --   host / staff                     → inventory_migration_session_forbidden
 --   anonymous                        → inventory_migration_session_unauthenticated
 --   second start while running       → inventory_migration_session_already_running
 --   wrong workspace                  → inventory_migration_session_forbidden
 --                                     (or workspace_not_found)
--- Atomicity: failed activity insert rolls back the session row (same transaction).
+-- Atomicity: failed activity or step insert rolls back the session row
+--            (same transaction; no orphan session / partial steps / activity-only).
 
 -- Example:
 --   select * from public.start_inventory_migration_session('<workspace_uuid>');
