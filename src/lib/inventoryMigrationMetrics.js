@@ -370,3 +370,147 @@ export function mapAttentionQueueRows(rows = []) {
     })
     .filter(Boolean)
 }
+
+export const MIGRATION_HEALTH_STATUS = {
+  EXCELLENT: 'Excellent',
+  GOOD: 'Good',
+  NEEDS_ATTENTION: 'Needs Attention',
+  CRITICAL: 'Critical',
+  UNKNOWN: 'Unknown',
+}
+
+export const MIGRATION_READINESS = {
+  READY: 'Ready',
+  NOT_READY: 'Not Ready',
+  UNKNOWN: 'Unknown',
+}
+
+/** Deterministic score weights (sum = 100). */
+export const MIGRATION_HEALTH_WEIGHTS = {
+  foundationReachable: 15,
+  metricsAvailable: 20,
+  manualQueueClear: 20,
+  attentionQueueClear: 25,
+  completedRows: 15,
+  noUnknownPipeline: 5,
+}
+
+function clampScore(value) {
+  if (!Number.isFinite(value)) return 0
+  return Math.max(0, Math.min(100, Math.round(value)))
+}
+
+function countUnknownPipelineStages(pipeline = []) {
+  if (!Array.isArray(pipeline)) return 0
+  return pipeline.filter((item) => item?.state === PIPELINE_STATE.UNKNOWN).length
+}
+
+function resolveHealthStatusFromScore(score) {
+  if (score === null || score === undefined) return MIGRATION_HEALTH_STATUS.UNKNOWN
+  if (score >= 90) return MIGRATION_HEALTH_STATUS.EXCELLENT
+  if (score >= 75) return MIGRATION_HEALTH_STATUS.GOOD
+  if (score >= 50) return MIGRATION_HEALTH_STATUS.NEEDS_ATTENTION
+  return MIGRATION_HEALTH_STATUS.CRITICAL
+}
+
+function resolveExecutiveSummary({
+  metricsAvailable,
+  readiness,
+  manualQueueSize,
+  attentionQueueSize,
+  unknownPipelineStages,
+}) {
+  if (!metricsAvailable || readiness === MIGRATION_READINESS.UNKNOWN) {
+    return 'Migration health cannot yet be determined.'
+  }
+
+  if (readiness === MIGRATION_READINESS.READY) {
+    return 'Migration is ready for execution.'
+  }
+
+  if (manualQueueSize > 0 && attentionQueueSize > 0) {
+    return 'Migration requires manual review and attention before execution.'
+  }
+  if (manualQueueSize > 0) {
+    return 'Migration requires manual review before execution.'
+  }
+  if (attentionQueueSize > 0) {
+    return 'Migration requires attention before execution.'
+  }
+  if (unknownPipelineStages > 0) {
+    return 'Migration health cannot yet be determined.'
+  }
+
+  return 'Migration is not ready for execution.'
+}
+
+/**
+ * Build read-only Migration Health summary from live dashboard inputs only.
+ * Returns Unknown score/status/readiness when metrics are unavailable.
+ */
+export function buildInventoryMigrationHealth({
+  metrics,
+  metricsAvailable = false,
+  tableReachable = false,
+  pipeline = [],
+  manualQueueSize = 0,
+  attentionQueueSize = 0,
+} = {}) {
+  if (!metricsAvailable) {
+    return {
+      score: null,
+      status: MIGRATION_HEALTH_STATUS.UNKNOWN,
+      readiness: MIGRATION_READINESS.UNKNOWN,
+      summary: 'Migration health cannot yet be determined.',
+      unknownPipelineStages: countUnknownPipelineStages(pipeline),
+      manualQueueSize: 0,
+      attentionQueueSize: 0,
+    }
+  }
+
+  const manual = Math.max(0, Number(manualQueueSize) || 0)
+  const attention = Math.max(0, Number(attentionQueueSize) || 0)
+  const unknownPipelineStages = countUnknownPipelineStages(pipeline)
+  const total = Math.max(0, Number(metrics?.total ?? 0) || 0)
+  const completed = Math.max(0, Number(metrics?.completed ?? 0) || 0)
+  const weights = MIGRATION_HEALTH_WEIGHTS
+
+  let score = 0
+  if (tableReachable) score += weights.foundationReachable
+  score += weights.metricsAvailable
+  if (manual === 0) score += weights.manualQueueClear
+  if (attention === 0) score += weights.attentionQueueClear
+  if (total <= 0) {
+    score += weights.completedRows
+  } else {
+    score += weights.completedRows * (completed / total)
+  }
+  if (unknownPipelineStages === 0) {
+    score += weights.noUnknownPipeline
+  }
+
+  const normalizedScore = clampScore(score)
+  const readiness = (
+    manual === 0
+    && attention === 0
+    && unknownPipelineStages === 0
+  )
+    ? MIGRATION_READINESS.READY
+    : MIGRATION_READINESS.NOT_READY
+
+  return {
+    score: normalizedScore,
+    status: resolveHealthStatusFromScore(normalizedScore),
+    readiness,
+    summary: resolveExecutiveSummary({
+      metricsAvailable: true,
+      readiness,
+      manualQueueSize: manual,
+      attentionQueueSize: attention,
+      unknownPipelineStages,
+    }),
+    unknownPipelineStages,
+    manualQueueSize: manual,
+    attentionQueueSize: attention,
+  }
+}

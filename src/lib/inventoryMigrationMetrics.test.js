@@ -1,11 +1,14 @@
 import { describe, expect, it } from 'vitest'
 import {
   aggregateInventoryMigrationMetrics,
+  buildInventoryMigrationHealth,
   buildInventoryMigrationPipeline,
   classifyAttentionIssue,
   createEmptyInventoryMigrationMetrics,
   mapAttentionQueueRows,
   mapManualReviewQueueRows,
+  MIGRATION_HEALTH_STATUS,
+  MIGRATION_READINESS,
   PIPELINE_STATE,
   resolveInventoryMigrationCurrentStage,
   resolveInventoryMigrationProgressPercent,
@@ -228,5 +231,126 @@ describe('inventoryMigrationMetrics', () => {
       createdAt: '—',
       severity: 'Attention',
     })
+  })
+
+  it('returns Unknown health when metrics are unavailable', () => {
+    const health = buildInventoryMigrationHealth({
+      metrics: createEmptyInventoryMigrationMetrics(),
+      metricsAvailable: false,
+      tableReachable: false,
+      pipeline: buildInventoryMigrationPipeline({ metricsAvailable: false }),
+      manualQueueSize: 2,
+      attentionQueueSize: 1,
+    })
+
+    expect(health).toMatchObject({
+      score: null,
+      status: MIGRATION_HEALTH_STATUS.UNKNOWN,
+      readiness: MIGRATION_READINESS.UNKNOWN,
+      summary: 'Migration health cannot yet be determined.',
+    })
+  })
+
+  it('calculates Ready health from clear queues and known pipeline', () => {
+    const metrics = aggregateInventoryMigrationMetrics([
+      {
+        status: 'linked',
+        resolution_type: 'auto_link',
+        migrated_at: '2026-07-16T10:00:00.000Z',
+      },
+    ])
+    const pipeline = buildInventoryMigrationPipeline({
+      metrics,
+      metricsAvailable: true,
+      tableReachable: true,
+    })
+    const health = buildInventoryMigrationHealth({
+      metrics,
+      metricsAvailable: true,
+      tableReachable: true,
+      pipeline,
+      manualQueueSize: 0,
+      attentionQueueSize: 0,
+    })
+
+    expect(health.score).toBe(100)
+    expect(health.status).toBe(MIGRATION_HEALTH_STATUS.EXCELLENT)
+    expect(health.readiness).toBe(MIGRATION_READINESS.READY)
+    expect(health.summary).toBe('Migration is ready for execution.')
+  })
+
+  it('marks Not Ready when manual review remains', () => {
+    const metrics = aggregateInventoryMigrationMetrics([
+      { status: 'manual', resolution_type: null },
+      {
+        status: 'linked',
+        resolution_type: 'auto_link',
+        migrated_at: '2026-07-16T10:00:00.000Z',
+      },
+    ])
+    const pipeline = buildInventoryMigrationPipeline({
+      metrics,
+      metricsAvailable: true,
+      tableReachable: true,
+    })
+    const health = buildInventoryMigrationHealth({
+      metrics,
+      metricsAvailable: true,
+      tableReachable: true,
+      pipeline,
+      manualQueueSize: 1,
+      attentionQueueSize: 0,
+    })
+
+    expect(health.readiness).toBe(MIGRATION_READINESS.NOT_READY)
+    expect(health.summary).toBe('Migration requires manual review before execution.')
+    expect(health.score).toBeLessThan(100)
+    expect(health.score).toBeGreaterThanOrEqual(50)
+  })
+
+  it('marks Not Ready when attention items remain', () => {
+    const metrics = createEmptyInventoryMigrationMetrics()
+    metrics.total = 2
+    metrics.completed = 2
+    const pipeline = buildInventoryMigrationPipeline({
+      metrics,
+      metricsAvailable: true,
+      tableReachable: true,
+    })
+    const health = buildInventoryMigrationHealth({
+      metrics,
+      metricsAvailable: true,
+      tableReachable: true,
+      pipeline,
+      manualQueueSize: 0,
+      attentionQueueSize: 3,
+    })
+
+    expect(health.readiness).toBe(MIGRATION_READINESS.NOT_READY)
+    expect(health.summary).toBe('Migration requires attention before execution.')
+  })
+
+  it('builds executive summary for combined blockers', () => {
+    const metrics = createEmptyInventoryMigrationMetrics()
+    metrics.total = 4
+    metrics.completed = 1
+    const pipeline = buildInventoryMigrationPipeline({
+      metrics,
+      metricsAvailable: true,
+      tableReachable: true,
+    })
+    const health = buildInventoryMigrationHealth({
+      metrics,
+      metricsAvailable: true,
+      tableReachable: true,
+      pipeline,
+      manualQueueSize: 2,
+      attentionQueueSize: 1,
+    })
+
+    expect(health.summary).toBe(
+      'Migration requires manual review and attention before execution.',
+    )
+    expect(health.status).toBe(MIGRATION_HEALTH_STATUS.CRITICAL)
   })
 })

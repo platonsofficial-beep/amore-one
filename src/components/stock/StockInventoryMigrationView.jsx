@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import {
+  buildInventoryMigrationHealth,
   buildInventoryMigrationPipeline,
   createEmptyInventoryMigrationMetrics,
   resolveInventoryMigrationCurrentStage,
@@ -8,6 +9,7 @@ import {
 } from '../../lib/inventoryMigrationMetrics'
 import { getInventoryMigrationMetrics } from '../../services/inventoryMigrationMetricsService'
 import { StockMigrationAttentionQueue } from './StockMigrationAttentionQueue'
+import { StockMigrationHealthPanel } from './StockMigrationHealthPanel'
 import { StockMigrationManualReviewQueue } from './StockMigrationManualReviewQueue'
 
 const EXECUTION_ACTIONS = [
@@ -109,6 +111,18 @@ export function StockInventoryMigrationView({
   const currentStage = resolveInventoryMigrationCurrentStage(pipeline)
   const displayWorkspace = `${workspaceLabel ?? ''}`.trim() || '—'
 
+  const health = useMemo(
+    () => buildInventoryMigrationHealth({
+      metrics,
+      metricsAvailable,
+      tableReachable,
+      pipeline,
+      manualQueueSize: metricsAvailable ? metrics.manualReview : 0,
+      attentionQueueSize: metricsAvailable ? attentionRows.length : 0,
+    }),
+    [metrics, metricsAvailable, tableReachable, pipeline, attentionRows.length],
+  )
+
   const summaryCards = [
     { id: 'legacy', label: 'Legacy Items', value: metricsAvailable ? formatMetricValue(metrics.legacyItems) : 'Unknown' },
     { id: 'classified', label: 'Classified', value: metricsAvailable ? formatMetricValue(metrics.classified) : 'Unknown' },
@@ -140,6 +154,11 @@ export function StockInventoryMigrationView({
           </article>
         ))}
       </div>
+
+      <StockMigrationHealthPanel
+        health={health}
+        metricsAvailable={metricsAvailable}
+      />
 
       <div className="stock-migration-main">
         <div className="stock-migration-main-column">
@@ -221,7 +240,19 @@ export function StockInventoryMigrationView({
               <dd>{currentStage}</dd>
             </div>
             <div className="stock-migration-status-row">
-              <dt>Last Updated</dt>
+              <dt>Health Score</dt>
+              <dd>
+                {metricsAvailable && health?.score !== null && health?.score !== undefined
+                  ? `${health.score}%`
+                  : 'Unknown'}
+              </dd>
+            </div>
+            <div className="stock-migration-status-row">
+              <dt>Readiness</dt>
+              <dd>{metricsAvailable ? (health?.readiness ?? 'Unknown') : 'Unknown'}</dd>
+            </div>
+            <div className="stock-migration-status-row">
+              <dt>Last Refresh</dt>
               <dd>{formatLastUpdated(fetchedAt)}</dd>
             </div>
             <div className="stock-migration-status-row">
