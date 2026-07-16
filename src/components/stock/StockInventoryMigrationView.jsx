@@ -11,7 +11,9 @@ import { buildInventoryMigrationOperator } from '../../lib/inventoryMigrationOpe
 import { buildInventoryMigrationAuditEvidence } from '../../lib/inventoryMigrationAuditEvidence'
 import { buildInventoryMigrationSessionPlaceholder } from '../../lib/inventoryMigrationSession'
 import { getInventoryMigrationMetrics } from '../../services/inventoryMigrationMetricsService'
+import { getInventoryMigrationActivity } from '../../services/inventoryMigrationActivityService'
 import { getInventoryMigrationSessionSummary } from '../../services/inventoryMigrationSessionService'
+import { StockMigrationActivityLog } from './StockMigrationActivityLog'
 import { StockMigrationAttentionQueue } from './StockMigrationAttentionQueue'
 import { StockMigrationHealthPanel } from './StockMigrationHealthPanel'
 import { StockMigrationManualReviewQueue } from './StockMigrationManualReviewQueue'
@@ -68,6 +70,11 @@ export function StockInventoryMigrationView({
   const [sessionError, setSessionError] = useState('')
   const [sessionUnavailable, setSessionUnavailable] = useState(false)
   const [sessionAvailable, setSessionAvailable] = useState(false)
+  const [activityRows, setActivityRows] = useState([])
+  const [activityLoading, setActivityLoading] = useState(false)
+  const [activityError, setActivityError] = useState('')
+  const [activityUnavailable, setActivityUnavailable] = useState(false)
+  const [activityAvailable, setActivityAvailable] = useState(false)
 
   useEffect(() => {
     let cancelled = false
@@ -87,6 +94,11 @@ export function StockInventoryMigrationView({
           setSessionUnavailable(false)
           setSessionAvailable(false)
           setSessionLoading(false)
+          setActivityRows([])
+          setActivityError('')
+          setActivityUnavailable(false)
+          setActivityAvailable(false)
+          setActivityLoading(false)
           setIsLoading(false)
         }
         return
@@ -94,9 +106,11 @@ export function StockInventoryMigrationView({
 
       setIsLoading(true)
       setSessionLoading(true)
-      const [result, sessionResult] = await Promise.all([
+      setActivityLoading(true)
+      const [result, sessionResult, activityResult] = await Promise.all([
         getInventoryMigrationMetrics(workspaceId),
         getInventoryMigrationSessionSummary(workspaceId),
+        getInventoryMigrationActivity(workspaceId),
       ])
       if (cancelled) return
 
@@ -115,6 +129,11 @@ export function StockInventoryMigrationView({
       setSessionUnavailable(Boolean(sessionResult?.unavailable))
       setSessionAvailable(Boolean(sessionResult?.sessionAvailable))
       setSessionLoading(false)
+      setActivityRows(Array.isArray(activityResult?.rows) ? activityResult.rows : [])
+      setActivityError(activityResult?.error ? `${activityResult.error}` : '')
+      setActivityUnavailable(Boolean(activityResult?.unavailable))
+      setActivityAvailable(Boolean(activityResult?.activityAvailable))
+      setActivityLoading(false)
       setIsLoading(false)
     }
 
@@ -345,35 +364,13 @@ export function StockInventoryMigrationView({
         metricsAvailable={metricsAvailable}
       />
 
-      <section className="panel staff-panel stock-migration-panel" aria-label="Future activity log">
-        <div className="stock-migration-panel-header">
-          <h3 className="stock-migration-panel-title">Future Activity Log</h3>
-          <p className="stock-migration-panel-copy">
-            Operator actions and stage results will appear here.
-          </p>
-        </div>
-
-        <div className="stock-migration-log-wrap">
-          <table className="stock-migration-log-table">
-            <thead>
-              <tr>
-                <th scope="col">Time</th>
-                <th scope="col">Stage</th>
-                <th scope="col">Result</th>
-                <th scope="col">Operator</th>
-                <th scope="col">Message</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td colSpan={5} className="stock-migration-log-empty">
-                  No activity yet.
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </section>
+      <StockMigrationActivityLog
+        rows={activityRows}
+        isLoading={activityLoading}
+        errorMessage={activityError}
+        unavailable={activityUnavailable}
+        activityAvailable={activityAvailable}
+      />
     </section>
   )
 }
