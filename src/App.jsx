@@ -498,6 +498,7 @@ import {
 import { TeamTodayView } from './components/team/TeamTodayView'
 import { TeamTodayGroupsList } from './components/team/TeamTodayGroupsList'
 import { employeeMatchesPeopleDepartmentFilter, TeamPeopleView } from './components/team/TeamPeopleView'
+import { EmployeePostHireInvitePrompt } from './components/team/EmployeePostHireInvitePrompt'
 import { RequestLeaveActionButton, RequestLeaveModal } from './components/team/RequestLeaveModal'
 import { canCreateLeave, canViewLeaveQueue } from './lib/leave/leavePermissionUtils'
 import { EmployeeIdentity } from './components/identity/EmployeeIdentity'
@@ -15491,6 +15492,8 @@ function App() {
   const shiftOverlapConfirmResolverRef = useRef(null)
   const [isEmployeeModalOpen, setIsEmployeeModalOpen] = useState(false)
   const [isRequestLeaveModalOpen, setIsRequestLeaveModalOpen] = useState(false)
+  const [postHireInvitePromptEmployee, setPostHireInvitePromptEmployee] = useState(null)
+  const [autoOpenInviteEmployeeId, setAutoOpenInviteEmployeeId] = useState('')
   const [employeeFormOpenMenuId, setEmployeeFormOpenMenuId] = useState(null)
   const employeePremiumFormModalRef = useRef(null)
   const [editingEmployee, setEditingEmployee] = useState(null)
@@ -19806,14 +19809,20 @@ function App() {
       setPendingEmployeePositionDeletions(clearPendingEmployeePositionDeletions())
       setSelectedEmployee(finalEmployee)
 
+      const wasCreating = !editingEmployee
+
       if (cleanupFailureCount > 0) {
         setStaffNotice(
           cleanupFailureCount === 1
             ? 'Employee saved, but one custom position could not be removed from the workspace catalog.'
             : `Employee saved, but ${cleanupFailureCount} custom positions could not be removed from the workspace catalog.`,
         )
-      } else {
+      } else if (!(wasCreating && canManageEmployeeInvitesRole)) {
         setStaffNotice(editingEmployee ? 'Employee updated successfully.' : 'Employee added successfully.')
+      }
+
+      if (wasCreating && canManageEmployeeInvitesRole) {
+        setPostHireInvitePromptEmployee(finalEmployee)
       }
 
       handleCloseEmployeeModal()
@@ -24035,6 +24044,12 @@ function App() {
             canManageInvites={canManageEmployeeInvitesRole}
             canAssignManagerInviteRole={canAssignManagerInviteRoleFlag}
             canViewSalary={canAssignManagerInviteRoleFlag}
+            autoOpenInvite={Boolean(
+              selectedEmployee?.id
+              && autoOpenInviteEmployeeId
+              && selectedEmployee.id === autoOpenInviteEmployeeId
+            )}
+            onAutoOpenInviteConsumed={() => setAutoOpenInviteEmployeeId('')}
             showLeaveInbox={canViewLeaveQueueRole && !useDedicatedShell}
           />
         ) : null}
@@ -26003,6 +26018,19 @@ function App() {
             </div>
           </div>
         ) : null}
+
+        <EmployeePostHireInvitePrompt
+          isOpen={Boolean(postHireInvitePromptEmployee)}
+          employee={postHireInvitePromptEmployee}
+          onLater={() => setPostHireInvitePromptEmployee(null)}
+          onInviteNow={() => {
+            const employeeId = `${postHireInvitePromptEmployee?.id ?? ''}`.trim()
+            setPostHireInvitePromptEmployee(null)
+            if (employeeId) {
+              setAutoOpenInviteEmployeeId(employeeId)
+            }
+          }}
+        />
 
         <RequestLeaveModal
           isOpen={isRequestLeaveModalOpen}

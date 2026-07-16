@@ -190,6 +190,8 @@ export function TeamPeopleView({
   canManageInvites = false,
   canAssignManagerInviteRole = false,
   canViewSalary = false,
+  autoOpenInvite = false,
+  onAutoOpenInviteConsumed,
   searchTerm = '',
   onSearchTermChange,
   searchPlaceholder = 'Search employee',
@@ -436,6 +438,8 @@ export function TeamPeopleView({
                 workspaceId={workspaceId}
                 canManageInvites={canManageInvites}
                 canAssignManagerRole={canAssignManagerInviteRole}
+                autoOpenInvite={autoOpenInvite}
+                onAutoOpenInviteConsumed={onAutoOpenInviteConsumed}
               />
             </section>
           </div>

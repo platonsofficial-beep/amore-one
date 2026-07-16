@@ -54,6 +54,8 @@ export function EmployeeAccountConnectionSection({
   workspaceId,
   canManageInvites = false,
   canAssignManagerRole = false,
+  autoOpenInvite = false,
+  onAutoOpenInviteConsumed,
 }) {
   const [connectionStatus, setConnectionStatus] = useState({
     pendingInvite: null,
@@ -106,6 +108,13 @@ export function EmployeeAccountConnectionSection({
     setCopyNotice('')
     loadConnectionStatus()
   }, [loadConnectionStatus])
+
+  useEffect(() => {
+    if (!autoOpenInvite || !canManageInvites) return
+
+    setIsInviteModalOpen(true)
+    onAutoOpenInviteConsumed?.()
+  }, [autoOpenInvite, canManageInvites, onAutoOpenInviteConsumed])
 
   if (!employee) return null
 
