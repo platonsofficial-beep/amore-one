@@ -13,12 +13,14 @@ import { buildInventoryMigrationSessionPlaceholder } from '../../lib/inventoryMi
 import { getInventoryMigrationMetrics } from '../../services/inventoryMigrationMetricsService'
 import { getInventoryMigrationActivity } from '../../services/inventoryMigrationActivityService'
 import { getInventoryMigrationSessionSummary } from '../../services/inventoryMigrationSessionService'
+import { getInventoryMigrationSessionSteps } from '../../services/inventoryMigrationSessionStepsService'
 import { StockMigrationActivityLog } from './StockMigrationActivityLog'
 import { StockMigrationAttentionQueue } from './StockMigrationAttentionQueue'
 import { StockMigrationHealthPanel } from './StockMigrationHealthPanel'
 import { StockMigrationManualReviewQueue } from './StockMigrationManualReviewQueue'
 import { StockMigrationOperatorPanel } from './StockMigrationOperatorPanel'
 import { StockMigrationSessionCard } from './StockMigrationSessionCard'
+import { StockMigrationSessionSteps } from './StockMigrationSessionSteps'
 
 const EXECUTION_ACTIONS = [
   'Run Classification',
@@ -75,6 +77,11 @@ export function StockInventoryMigrationView({
   const [activityError, setActivityError] = useState('')
   const [activityUnavailable, setActivityUnavailable] = useState(false)
   const [activityAvailable, setActivityAvailable] = useState(false)
+  const [sessionStepRows, setSessionStepRows] = useState([])
+  const [sessionStepsLoading, setSessionStepsLoading] = useState(false)
+  const [sessionStepsError, setSessionStepsError] = useState('')
+  const [sessionStepsUnavailable, setSessionStepsUnavailable] = useState(false)
+  const [sessionStepsAvailable, setSessionStepsAvailable] = useState(false)
 
   useEffect(() => {
     let cancelled = false
@@ -99,6 +106,11 @@ export function StockInventoryMigrationView({
           setActivityUnavailable(false)
           setActivityAvailable(false)
           setActivityLoading(false)
+          setSessionStepRows([])
+          setSessionStepsError('')
+          setSessionStepsUnavailable(false)
+          setSessionStepsAvailable(false)
+          setSessionStepsLoading(false)
           setIsLoading(false)
         }
         return
@@ -107,10 +119,12 @@ export function StockInventoryMigrationView({
       setIsLoading(true)
       setSessionLoading(true)
       setActivityLoading(true)
-      const [result, sessionResult, activityResult] = await Promise.all([
+      setSessionStepsLoading(true)
+      const [result, sessionResult, activityResult, stepsResult] = await Promise.all([
         getInventoryMigrationMetrics(workspaceId),
         getInventoryMigrationSessionSummary(workspaceId),
         getInventoryMigrationActivity(workspaceId),
+        getInventoryMigrationSessionSteps(workspaceId),
       ])
       if (cancelled) return
 
@@ -134,6 +148,11 @@ export function StockInventoryMigrationView({
       setActivityUnavailable(Boolean(activityResult?.unavailable))
       setActivityAvailable(Boolean(activityResult?.activityAvailable))
       setActivityLoading(false)
+      setSessionStepRows(Array.isArray(stepsResult?.rows) ? stepsResult.rows : [])
+      setSessionStepsError(stepsResult?.error ? `${stepsResult.error}` : '')
+      setSessionStepsUnavailable(Boolean(stepsResult?.unavailable))
+      setSessionStepsAvailable(Boolean(stepsResult?.stepsAvailable))
+      setSessionStepsLoading(false)
       setIsLoading(false)
     }
 
@@ -362,6 +381,14 @@ export function StockInventoryMigrationView({
       <StockMigrationAttentionQueue
         rows={attentionRows}
         metricsAvailable={metricsAvailable}
+      />
+
+      <StockMigrationSessionSteps
+        rows={sessionStepRows}
+        isLoading={sessionStepsLoading}
+        errorMessage={sessionStepsError}
+        unavailable={sessionStepsUnavailable}
+        stepsAvailable={sessionStepsAvailable}
       />
 
       <StockMigrationActivityLog
