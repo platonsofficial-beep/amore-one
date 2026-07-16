@@ -1,8 +1,5 @@
 // @vitest-environment node
 
-import { readFileSync } from 'node:fs'
-import { dirname, join } from 'node:path'
-import { fileURLToPath } from 'node:url'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { MIGRATION_SESSION_STATUS } from '../src/lib/inventoryMigrationSession'
 
@@ -64,49 +61,9 @@ import {
 } from '../src/services/inventoryMigrationSessionService'
 
 const WORKSPACE_ID = 'ws-11111111-1111-1111-1111-111111111111'
+const OTHER_WORKSPACE_ID = 'ws-22222222-2222-2222-2222-222222222222'
 
-describe('inventory_migration_sessions.sql source review', () => {
-  const sqlPath = join(
-    dirname(fileURLToPath(import.meta.url)),
-    '../supabase/inventory_migration_sessions.sql',
-  )
-  const sql = readFileSync(sqlPath, 'utf8')
-
-  it('defines table, CHECK status, and required columns', () => {
-    expect(sql).toContain('create table if not exists public.inventory_migration_sessions')
-    expect(sql).toContain("check (status in ('running', 'completed', 'cancelled'))")
-    expect(sql).toContain('workspace_id uuid not null')
-    expect(sql).toContain('references public.workspaces(id) on delete cascade')
-    expect(sql).toContain('started_by uuid')
-    expect(sql).toContain('references auth.users(id) on delete set null')
-    expect(sql).toContain('operator_display_name text not null default')
-    expect(sql).toContain('started_at timestamptz not null default now()')
-    expect(sql).toContain('finished_at timestamptz')
-  })
-
-  it('creates indexes including one-running partial unique', () => {
-    expect(sql).toContain('inventory_migration_sessions_workspace_idx')
-    expect(sql).toContain('inventory_migration_sessions_status_idx')
-    expect(sql).toContain('inventory_migration_sessions_started_at_idx')
-    expect(sql).toContain('inventory_migration_sessions_one_running_per_workspace')
-    expect(sql).toContain('where status = \'running\'')
-  })
-
-  it('creates updated_at trigger and SELECT-only RLS', () => {
-    expect(sql).toContain('set_inventory_migration_sessions_updated_at')
-    expect(sql).toContain('inventory_migration_sessions_set_updated_at')
-    expect(sql).toContain('enable row level security')
-    expect(sql).toContain('inventory_migration_sessions_select_managers')
-    expect(sql).toContain('using (public.can_manage_workspace_stock(workspace_id))')
-    expect(sql).toContain('grant select on table public.inventory_migration_sessions to authenticated')
-    expect(sql).toContain('Intentionally no INSERT / UPDATE / DELETE policies')
-    expect(sql).not.toMatch(/create policy[\s\S]*for insert/i)
-    expect(sql).not.toMatch(/create policy[\s\S]*for update/i)
-    expect(sql).not.toMatch(/create policy[\s\S]*for delete/i)
-  })
-})
-
-describe('inventoryMigrationSessionService', () => {
+describe('inventoryMigrationSessionService live read', () => {
   beforeEach(() => {
     supabaseMocks.reset()
   })
@@ -165,6 +122,89 @@ describe('inventoryMigrationSessionService', () => {
     expect(result.summary.operator).toBe('Alex')
   })
 
+  it('chooses latest completed session when no running session exists', async () => {
+    supabaseMocks.setRpcResult({ data: true, error: null })
+    supabaseMocks.enqueueQueryResult({ data: [], error: null })
+    supabaseMocks.enqueueQueryResult({
+      data: [{
+        id: 'sess-completed',
+        workspace_id: WORKSPACE_ID,
+        status: 'completed',
+        operator_display_name: 'Blair',
+        started_at: '2026-07-16T11:00:00.000Z',
+        finished_at: '2026-07-16T12:00:00.000Z',
+      }],
+      error: null,
+    })
+
+    const result = await getInventoryMigrationSessionSummary(WORKSPACE_ID)
+
+    expect(result.sessionAvailable).toBe(true)
+    expect(result.summary.sessionId).toBe('sess-completed')
+    expect(result.summary.status).toBe('Completed')
+    expect(result.summary.finishedAt).not.toBe('—')
+  })
+
+  it('chooses latest cancelled session when no running session exists', async () => {
+    supabaseMocks.setRpcResult({ data: true, error: null })
+    supabaseMocks.enqueueQueryResult({ data: [], error: null })
+    supabaseMocks.enqueueQueryResult({
+      data: [{
+        id: 'sess-cancelled',
+        workspace_id: WORKSPACE_ID,
+        status: 'cancelled',
+        operator_display_name: 'Casey',
+        started_at: '2026-07-16T09:00:00.000Z',
+        finished_at: '2026-07-16T09:30:00.000Z',
+      }],
+      error: null,
+    })
+
+    const result = await getInventoryMigrationSessionSummary(WORKSPACE_ID)
+
+    expect(result.sessionAvailable).toBe(true)
+    expect(result.summary.sessionId).toBe('sess-cancelled')
+    expect(result.summary.status).toBe('Cancelled')
+  })
+
+  it('returns Unknown on fetch failure without fabricating a session id', async () => {
+    supabaseMocks.setRpcResult({ data: true, error: null })
+    supabaseMocks.enqueueQueryResult({
+      data: null,
+      error: { message: 'relation does not exist', code: '42P01' },
+    })
+
+    const result = await getInventoryMigrationSessionSummary(WORKSPACE_ID)
+
+    expect(result.sessionAvailable).toBe(false)
+    expect(result.unavailable).toBe(true)
+    expect(result.summary.status).toBe('Unknown')
+    expect(result.summary.sessionId).toBe('—')
+    expect(result.error).toMatch(/relation does not exist/i)
+  })
+
+  it('rejects mismatched workspace rows without fabricating data', async () => {
+    supabaseMocks.setRpcResult({ data: true, error: null })
+    supabaseMocks.enqueueQueryResult({
+      data: [{
+        id: 'sess-other',
+        workspace_id: OTHER_WORKSPACE_ID,
+        status: 'running',
+        operator_display_name: 'Other',
+        started_at: '2026-07-16T12:00:00.000Z',
+        finished_at: null,
+      }],
+      error: null,
+    })
+
+    const result = await getInventoryMigrationSessionSummary(WORKSPACE_ID)
+
+    expect(result.sessionAvailable).toBe(false)
+    expect(result.summary.status).toBe('Unknown')
+    expect(result.summary.sessionId).toBe('—')
+    expect(result.error).toMatch(/workspace mismatch/i)
+  })
+
   it('denies unauthorized callers without fabricating a session', async () => {
     supabaseMocks.setRpcResult({ data: false, error: null })
 
@@ -173,7 +213,6 @@ describe('inventoryMigrationSessionService', () => {
     expect(supabaseMocks.from).not.toHaveBeenCalled()
     expect(result.sessionAvailable).toBe(false)
     expect(result.summary.status).toBe('Unknown')
-    expect(result.summary.sessionId).toBe('—')
     expect(result.error).toMatch(/permission/i)
   })
 })

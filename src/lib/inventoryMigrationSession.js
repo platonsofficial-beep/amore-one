@@ -1,11 +1,8 @@
 /**
- * Inventory Migration Session — pure in-memory domain model.
+ * Inventory Migration Session — pure domain model + display mapping.
  *
- * No database table. No persistence. No writes. No RPC.
- *
- * Future contract:
- *   Future implementation will populate the session model from persisted
- *   migration session records. Do not implement persistence here.
+ * Persisted rows live in public.inventory_migration_sessions.
+ * This module maps DB ↔ UI without fabricating session identity.
  */
 
 export const MIGRATION_SESSION_STATUS = {
@@ -24,16 +21,28 @@ export const MIGRATION_SESSION_STATUS_LABELS = {
   [MIGRATION_SESSION_STATUS.UNKNOWN]: 'Unknown',
 }
 
+/** Map persisted DB status strings to domain status keys. */
+export const MIGRATION_SESSION_DB_STATUS_TO_DOMAIN = {
+  running: MIGRATION_SESSION_STATUS.RUNNING,
+  completed: MIGRATION_SESSION_STATUS.COMPLETED,
+  cancelled: MIGRATION_SESSION_STATUS.CANCELLED,
+}
+
 const EMPTY_DISPLAY = '—'
 
 /**
- * Create an empty session placeholder.
+ * Create an empty session placeholder (no persisted row).
  * Never fabricates ids, operators, or timestamps.
  */
 export function createEmptyInventoryMigrationSession({
   workspaceId = null,
+  status = MIGRATION_SESSION_STATUS.NOT_STARTED,
 } = {}) {
   const normalizedWorkspaceId = `${workspaceId ?? ''}`.trim()
+  const knownStatuses = new Set(Object.values(MIGRATION_SESSION_STATUS))
+  const resolvedStatus = knownStatuses.has(status)
+    ? status
+    : MIGRATION_SESSION_STATUS.UNKNOWN
 
   return {
     sessionId: null,
@@ -41,8 +50,23 @@ export function createEmptyInventoryMigrationSession({
     operator: null,
     startedAt: null,
     finishedAt: null,
-    status: MIGRATION_SESSION_STATUS.NOT_STARTED,
+    status: resolvedStatus,
   }
+}
+
+/**
+ * Normalize DB or domain status into a domain status key.
+ */
+export function resolveInventoryMigrationSessionStatus(status) {
+  const raw = `${status ?? ''}`.trim()
+  if (!raw) return MIGRATION_SESSION_STATUS.NOT_STARTED
+
+  if (Object.values(MIGRATION_SESSION_STATUS).includes(raw)) return raw
+
+  const fromDb = MIGRATION_SESSION_DB_STATUS_TO_DOMAIN[raw.toLowerCase()]
+  if (fromDb) return fromDb
+
+  return MIGRATION_SESSION_STATUS.UNKNOWN
 }
 
 /**
@@ -54,15 +78,9 @@ export function normalizeInventoryMigrationSession(input = null) {
     return createEmptyInventoryMigrationSession()
   }
 
-  const statusRaw = `${input.status ?? ''}`.trim()
-  const knownStatuses = new Set(Object.values(MIGRATION_SESSION_STATUS))
-  const status = knownStatuses.has(statusRaw)
-    ? statusRaw
-    : (statusRaw ? MIGRATION_SESSION_STATUS.UNKNOWN : MIGRATION_SESSION_STATUS.NOT_STARTED)
-
   const workspaceId = `${input.workspaceId ?? input.workspace_id ?? ''}`.trim() || null
-  const sessionId = `${input.sessionId ?? input.session_id ?? ''}`.trim() || null
-  const operator = `${input.operator ?? ''}`.trim() || null
+  const sessionId = `${input.sessionId ?? input.session_id ?? input.id ?? ''}`.trim() || null
+  const operator = `${input.operator ?? input.operator_display_name ?? input.operatorDisplayName ?? ''}`.trim() || null
   const startedAt = input.startedAt ?? input.started_at ?? null
   const finishedAt = input.finishedAt ?? input.finished_at ?? null
 
@@ -72,14 +90,13 @@ export function normalizeInventoryMigrationSession(input = null) {
     operator,
     startedAt: startedAt || null,
     finishedAt: finishedAt || null,
-    status,
+    status: resolveInventoryMigrationSessionStatus(input.status),
   }
 }
 
 export function formatMigrationSessionStatus(status) {
-  const normalized = `${status ?? ''}`.trim()
-  if (!normalized) return MIGRATION_SESSION_STATUS_LABELS[MIGRATION_SESSION_STATUS.NOT_STARTED]
-  return MIGRATION_SESSION_STATUS_LABELS[normalized]
+  const resolved = resolveInventoryMigrationSessionStatus(status)
+  return MIGRATION_SESSION_STATUS_LABELS[resolved]
     ?? MIGRATION_SESSION_STATUS_LABELS[MIGRATION_SESSION_STATUS.UNKNOWN]
 }
 
@@ -92,7 +109,7 @@ function formatSessionTimestamp(value) {
 
 /**
  * Map a session domain object into read-only summary display fields.
- * Unavailable values become "—". Status defaults to Not Started.
+ * Unavailable values become "—".
  */
 export function mapInventoryMigrationSessionSummary(session = null) {
   const normalized = normalizeInventoryMigrationSession(session)
@@ -108,13 +125,28 @@ export function mapInventoryMigrationSessionSummary(session = null) {
 }
 
 /**
- * Placeholder summary used by the dashboard until persistence exists.
- * Always Not Started with empty identity fields.
+ * Empty-state summary when no session rows exist for the workspace.
  */
 export function buildInventoryMigrationSessionPlaceholder({
   workspaceId = null,
 } = {}) {
   const session = createEmptyInventoryMigrationSession({ workspaceId })
+  return {
+    session,
+    summary: mapInventoryMigrationSessionSummary(session),
+  }
+}
+
+/**
+ * Unavailable / failed-fetch summary. Status is Unknown — never fabricate a session id.
+ */
+export function buildInventoryMigrationSessionUnavailable({
+  workspaceId = null,
+} = {}) {
+  const session = createEmptyInventoryMigrationSession({
+    workspaceId,
+    status: MIGRATION_SESSION_STATUS.UNKNOWN,
+  })
   return {
     session,
     summary: mapInventoryMigrationSessionSummary(session),

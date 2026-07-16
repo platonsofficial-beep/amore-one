@@ -1,20 +1,17 @@
 import { supabase } from '../lib/supabaseClient'
 import {
   buildInventoryMigrationSessionPlaceholder,
+  buildInventoryMigrationSessionUnavailable,
   createEmptyInventoryMigrationSession,
   mapInventoryMigrationSessionSummary,
   MIGRATION_SESSION_STATUS,
   normalizeInventoryMigrationSession,
+  resolveInventoryMigrationSessionStatus,
 } from '../lib/inventoryMigrationSession'
 
 const SESSIONS_TABLE = 'inventory_migration_sessions'
 const CAN_MANAGE_STOCK_RPC = 'can_manage_workspace_stock'
-
-const DB_STATUS_TO_DOMAIN = {
-  running: MIGRATION_SESSION_STATUS.RUNNING,
-  completed: MIGRATION_SESSION_STATUS.COMPLETED,
-  cancelled: MIGRATION_SESSION_STATUS.CANCELLED,
-}
+const SESSION_SELECT = 'id, workspace_id, status, started_by, operator_display_name, started_at, finished_at, created_at, updated_at'
 
 function isTableUnavailableError(error) {
   const message = `${error?.message ?? ''}`.toLowerCase()
@@ -23,6 +20,16 @@ function isTableUnavailableError(error) {
     || message.includes('does not exist')
     || message.includes('relation')
     || message.includes('could not find the table')
+}
+
+function failedResult(workspaceId, errorMessage, unavailable = false) {
+  const base = buildInventoryMigrationSessionUnavailable({ workspaceId })
+  return {
+    ...base,
+    error: errorMessage,
+    unavailable,
+    sessionAvailable: false,
+  }
 }
 
 /**
@@ -34,22 +41,25 @@ export function mapPersistedInventoryMigrationSessionRow(row) {
     return createEmptyInventoryMigrationSession()
   }
 
-  const dbStatus = `${row.status ?? ''}`.trim().toLowerCase()
-  const domainStatus = DB_STATUS_TO_DOMAIN[dbStatus] ?? MIGRATION_SESSION_STATUS.UNKNOWN
-
   return normalizeInventoryMigrationSession({
     sessionId: row.id ?? null,
     workspaceId: row.workspace_id ?? row.workspaceId ?? null,
     operator: row.operator_display_name ?? row.operatorDisplayName ?? null,
     startedAt: row.started_at ?? row.startedAt ?? null,
     finishedAt: row.finished_at ?? row.finishedAt ?? null,
-    status: domainStatus,
+    status: resolveInventoryMigrationSessionStatus(row.status),
   })
 }
 
 /**
  * Read-only: load the current running session, else the latest session by started_at.
- * Never inserts, updates, or deletes.
+ * Workspace-scoped. Never inserts, updates, or deletes.
+ *
+ * Priority:
+ *   1. status = running
+ *   2. latest by started_at DESC (completed or cancelled)
+ *   3. empty → Not Started placeholder
+ *   4. fetch failure → Unknown (no fabricated identity)
  */
 export async function getInventoryMigrationSessionSummary(workspaceId) {
   const normalizedWorkspaceId = `${workspaceId ?? ''}`.trim()
@@ -67,12 +77,11 @@ export async function getInventoryMigrationSessionSummary(workspaceId) {
   }
 
   if (!supabase) {
-    return {
-      ...placeholder,
-      error: 'Supabase is not configured.',
-      unavailable: true,
-      sessionAvailable: false,
-    }
+    return failedResult(
+      normalizedWorkspaceId,
+      'Supabase is not configured.',
+      true,
+    )
   }
 
   const { data: canManage, error: authError } = await supabase.rpc(CAN_MANAGE_STOCK_RPC, {
@@ -80,37 +89,34 @@ export async function getInventoryMigrationSessionSummary(workspaceId) {
   })
 
   if (authError) {
-    return {
-      ...placeholder,
-      error: authError.message || 'Unable to verify migration session read access.',
-      unavailable: false,
-      sessionAvailable: false,
-    }
+    return failedResult(
+      normalizedWorkspaceId,
+      authError.message || 'Unable to verify migration session read access.',
+      false,
+    )
   }
 
   if (canManage !== true) {
-    return {
-      ...placeholder,
-      error: 'You do not have permission to view migration sessions for this workspace.',
-      unavailable: false,
-      sessionAvailable: false,
-    }
+    return failedResult(
+      normalizedWorkspaceId,
+      'You do not have permission to view migration sessions for this workspace.',
+      false,
+    )
   }
 
   const { data: runningRows, error: runningError } = await supabase
     .from(SESSIONS_TABLE)
-    .select('id, workspace_id, status, started_by, operator_display_name, started_at, finished_at, created_at, updated_at')
+    .select(SESSION_SELECT)
     .eq('workspace_id', normalizedWorkspaceId)
     .eq('status', 'running')
     .limit(1)
 
   if (runningError) {
-    return {
-      ...placeholder,
-      error: runningError.message || 'Unable to load migration session.',
-      unavailable: isTableUnavailableError(runningError),
-      sessionAvailable: false,
-    }
+    return failedResult(
+      normalizedWorkspaceId,
+      runningError.message || 'Unable to load migration session.',
+      isTableUnavailableError(runningError),
+    )
   }
 
   let row = Array.isArray(runningRows) && runningRows.length > 0 ? runningRows[0] : null
@@ -118,18 +124,17 @@ export async function getInventoryMigrationSessionSummary(workspaceId) {
   if (!row) {
     const { data: latestRows, error: latestError } = await supabase
       .from(SESSIONS_TABLE)
-      .select('id, workspace_id, status, started_by, operator_display_name, started_at, finished_at, created_at, updated_at')
+      .select(SESSION_SELECT)
       .eq('workspace_id', normalizedWorkspaceId)
       .order('started_at', { ascending: false })
       .limit(1)
 
     if (latestError) {
-      return {
-        ...placeholder,
-        error: latestError.message || 'Unable to load migration session.',
-        unavailable: isTableUnavailableError(latestError),
-        sessionAvailable: false,
-      }
+      return failedResult(
+        normalizedWorkspaceId,
+        latestError.message || 'Unable to load migration session.',
+        isTableUnavailableError(latestError),
+      )
     }
 
     row = Array.isArray(latestRows) && latestRows.length > 0 ? latestRows[0] : null
@@ -144,6 +149,15 @@ export async function getInventoryMigrationSessionSummary(workspaceId) {
     }
   }
 
+  // Workspace isolation: never surface a row from another workspace.
+  if (`${row.workspace_id ?? ''}`.trim() !== normalizedWorkspaceId) {
+    return failedResult(
+      normalizedWorkspaceId,
+      'Migration session workspace mismatch.',
+      false,
+    )
+  }
+
   const session = mapPersistedInventoryMigrationSessionRow(row)
   return {
     session,
@@ -153,3 +167,5 @@ export async function getInventoryMigrationSessionSummary(workspaceId) {
     sessionAvailable: true,
   }
 }
+
+export { MIGRATION_SESSION_STATUS }

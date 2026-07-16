@@ -64,6 +64,10 @@ export function StockInventoryMigrationView({
   const [sessionSummary, setSessionSummary] = useState(
     () => buildInventoryMigrationSessionPlaceholder().summary,
   )
+  const [sessionLoading, setSessionLoading] = useState(false)
+  const [sessionError, setSessionError] = useState('')
+  const [sessionUnavailable, setSessionUnavailable] = useState(false)
+  const [sessionAvailable, setSessionAvailable] = useState(false)
 
   useEffect(() => {
     let cancelled = false
@@ -79,12 +83,17 @@ export function StockInventoryMigrationView({
           setFetchedAt(null)
           setNoticeMessage('')
           setSessionSummary(buildInventoryMigrationSessionPlaceholder().summary)
+          setSessionError('')
+          setSessionUnavailable(false)
+          setSessionAvailable(false)
+          setSessionLoading(false)
           setIsLoading(false)
         }
         return
       }
 
       setIsLoading(true)
+      setSessionLoading(true)
       const [result, sessionResult] = await Promise.all([
         getInventoryMigrationMetrics(workspaceId),
         getInventoryMigrationSessionSummary(workspaceId),
@@ -102,6 +111,10 @@ export function StockInventoryMigrationView({
         sessionResult?.summary
           ?? buildInventoryMigrationSessionPlaceholder({ workspaceId }).summary,
       )
+      setSessionError(sessionResult?.error ? `${sessionResult.error}` : '')
+      setSessionUnavailable(Boolean(sessionResult?.unavailable))
+      setSessionAvailable(Boolean(sessionResult?.sessionAvailable))
+      setSessionLoading(false)
       setIsLoading(false)
     }
 
@@ -197,7 +210,13 @@ export function StockInventoryMigrationView({
         metricsAvailable={metricsAvailable}
       />
 
-      <StockMigrationSessionCard summary={sessionSummary} />
+      <StockMigrationSessionCard
+        summary={sessionSummary}
+        isLoading={sessionLoading}
+        errorMessage={sessionError}
+        unavailable={sessionUnavailable}
+        sessionAvailable={sessionAvailable}
+      />
 
       <StockMigrationOperatorPanel operator={operator} />
 

@@ -1,11 +1,13 @@
 import { describe, expect, it } from 'vitest'
 import {
   buildInventoryMigrationSessionPlaceholder,
+  buildInventoryMigrationSessionUnavailable,
   createEmptyInventoryMigrationSession,
   formatMigrationSessionStatus,
   mapInventoryMigrationSessionSummary,
   MIGRATION_SESSION_STATUS,
   normalizeInventoryMigrationSession,
+  resolveInventoryMigrationSessionStatus,
 } from './inventoryMigrationSession'
 
 describe('inventoryMigrationSession', () => {
@@ -17,6 +19,14 @@ describe('inventoryMigrationSession', () => {
       CANCELLED: 'Cancelled',
       UNKNOWN: 'Unknown',
     })
+  })
+
+  it('maps database status strings to domain statuses', () => {
+    expect(resolveInventoryMigrationSessionStatus('running')).toBe(MIGRATION_SESSION_STATUS.RUNNING)
+    expect(resolveInventoryMigrationSessionStatus('completed')).toBe(MIGRATION_SESSION_STATUS.COMPLETED)
+    expect(resolveInventoryMigrationSessionStatus('cancelled')).toBe(MIGRATION_SESSION_STATUS.CANCELLED)
+    expect(resolveInventoryMigrationSessionStatus('')).toBe(MIGRATION_SESSION_STATUS.NOT_STARTED)
+    expect(resolveInventoryMigrationSessionStatus('weird')).toBe(MIGRATION_SESSION_STATUS.UNKNOWN)
   })
 
   it('creates empty session defaults without fabricating identity fields', () => {
@@ -49,22 +59,32 @@ describe('inventoryMigrationSession', () => {
     })
   })
 
-  it('normalizes unknown status values to Unknown', () => {
+  it('normalizes persisted-shaped rows including snake_case fields', () => {
     const session = normalizeInventoryMigrationSession({
+      id: 'sess-1',
+      workspace_id: 'ws-1',
+      operator_display_name: 'Alex',
+      started_at: '2026-07-16T10:00:00.000Z',
+      finished_at: null,
+      status: 'completed',
+    })
+
+    expect(session).toMatchObject({
       sessionId: 'sess-1',
       workspaceId: 'ws-1',
       operator: 'Alex',
-      startedAt: '2026-07-16T10:00:00.000Z',
+      status: MIGRATION_SESSION_STATUS.COMPLETED,
       finishedAt: null,
-      status: 'weird',
     })
-
-    expect(session.status).toBe(MIGRATION_SESSION_STATUS.UNKNOWN)
-    expect(formatMigrationSessionStatus(session.status)).toBe('Unknown')
-    expect(mapInventoryMigrationSessionSummary(session).sessionId).toBe('sess-1')
-    expect(mapInventoryMigrationSessionSummary(session).operator).toBe('Alex')
+    expect(mapInventoryMigrationSessionSummary(session).status).toBe('Completed')
     expect(mapInventoryMigrationSessionSummary(session).startedAt).not.toBe('—')
-    expect(mapInventoryMigrationSessionSummary(session).finishedAt).toBe('—')
+  })
+
+  it('builds unavailable Unknown summary for fetch failures', () => {
+    const unavailable = buildInventoryMigrationSessionUnavailable({ workspaceId: 'ws-2' })
+    expect(unavailable.session.status).toBe(MIGRATION_SESSION_STATUS.UNKNOWN)
+    expect(unavailable.summary.status).toBe('Unknown')
+    expect(unavailable.summary.sessionId).toBe('—')
   })
 
   it('builds a dashboard placeholder with Not Started status', () => {
@@ -83,5 +103,6 @@ describe('inventoryMigrationSession', () => {
       MIGRATION_SESSION_STATUS.NOT_STARTED,
     )
     expect(mapInventoryMigrationSessionSummary(null).status).toBe('Not Started')
+    expect(formatMigrationSessionStatus('running')).toBe('Running')
   })
 })
