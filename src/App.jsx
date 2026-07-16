@@ -499,6 +499,7 @@ import { TeamTodayView } from './components/team/TeamTodayView'
 import { TeamTodayGroupsList } from './components/team/TeamTodayGroupsList'
 import { employeeMatchesPeopleDepartmentFilter, TeamPeopleView } from './components/team/TeamPeopleView'
 import { EmployeePostHireInvitePrompt } from './components/team/EmployeePostHireInvitePrompt'
+import { EmployeeDeleteConfirmModal } from './components/team/EmployeeDeleteConfirmModal'
 import { RequestLeaveActionButton, RequestLeaveModal } from './components/team/RequestLeaveModal'
 import { canCreateLeave, canViewLeaveQueue } from './lib/leave/leavePermissionUtils'
 import { EmployeeIdentity } from './components/identity/EmployeeIdentity'
@@ -25940,30 +25941,12 @@ function App() {
         ) : null}
 
         {employeePendingDelete ? (
-          <div className="employee-modal-backdrop" onClick={handleCloseDeleteEmployeeModal}>
-            <div className="employee-modal" onClick={(event) => event.stopPropagation()}>
-              <div className="drawer-header">
-                <div>
-                  <p className="eyebrow">Delete confirmation</p>
-                  <h3>Delete employee?</h3>
-                </div>
-                <button type="button" className="icon-btn" onClick={handleCloseDeleteEmployeeModal}>✕</button>
-              </div>
-
-              <p className="welcome-subtitle" style={{ marginTop: 0 }}>
-                Are you sure you want to delete this employee? This action cannot be undone.
-              </p>
-
-              <div className="modal-actions">
-                <button type="button" className="ghost-btn" onClick={handleCloseDeleteEmployeeModal} disabled={isDeletingEmployee}>
-                  Cancel
-                </button>
-                <button type="button" className="primary-btn" onClick={handleDeleteEmployee} disabled={isDeletingEmployee}>
-                  {isDeletingEmployee ? 'Deleting…' : 'Delete Employee'}
-                </button>
-              </div>
-            </div>
-          </div>
+          <EmployeeDeleteConfirmModal
+            employee={employeePendingDelete}
+            isDeleting={isDeletingEmployee}
+            onCancel={handleCloseDeleteEmployeeModal}
+            onConfirm={handleDeleteEmployee}
+          />
         ) : null}
 
         {positionPendingDelete ? (
