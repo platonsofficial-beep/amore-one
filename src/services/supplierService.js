@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabaseClient'
 function mapSupplier(record) {
   return {
     id: record.id,
+    workspaceId: record.workspace_id ?? record.workspaceId ?? null,
     companyName: record.company_name ?? record.companyName ?? '',
     contactPerson: record.contact_person ?? record.contactPerson ?? '',
     phone: record.phone ?? '',
@@ -33,6 +34,13 @@ function serializeSupplier(supplier) {
 
   if (typeof supplier.active === 'boolean') {
     payload.active = supplier.active
+  }
+
+  // Optional Phase 1 field: only written when callers pass it.
+  // Current App.jsx create/update paths omit workspaceId → behaviour unchanged.
+  const workspaceId = `${supplier.workspaceId ?? supplier.workspace_id ?? ''}`.trim()
+  if (workspaceId) {
+    payload.workspace_id = workspaceId
   }
 
   return payload
