@@ -1,11 +1,9 @@
-const SUMMARY_CARDS = [
-  { id: 'legacy', label: 'Legacy Items', value: '—' },
-  { id: 'classified', label: 'Classified', value: '—' },
-  { id: 'auto-link', label: 'Auto Link', value: '—' },
-  { id: 'auto-create', label: 'Auto Create', value: '—' },
-  { id: 'manual', label: 'Manual Review', value: '—' },
-  { id: 'completed', label: 'Completed', value: '—' },
-]
+import { useEffect, useState } from 'react'
+import {
+  createEmptyInventoryMigrationMetrics,
+  resolveInventoryMigrationStatus,
+} from '../../lib/inventoryMigrationMetrics'
+import { getInventoryMigrationMetrics } from '../../services/inventoryMigrationMetricsService'
 
 const PIPELINE_STAGES = [
   'Foundation',
@@ -29,13 +27,69 @@ const EXECUTION_ACTIONS = [
   'Execute Phase 2',
 ]
 
+function formatMetricValue(value) {
+  const n = Number(value)
+  return Number.isFinite(n) ? `${n}` : '0'
+}
+
 /**
- * Read-only Inventory Migration dashboard skeleton.
- * No queries, no handlers, no migration execution.
+ * Inventory Migration dashboard — live read-only metrics.
+ * No mutation handlers. Execution buttons remain disabled.
  */
-export function StockInventoryMigrationView() {
+export function StockInventoryMigrationView({
+  workspaceId = '',
+  workspaceLabel = '',
+  isWorkspaceReady = false,
+}) {
+  const [metrics, setMetrics] = useState(createEmptyInventoryMigrationMetrics)
+  const [isLoading, setIsLoading] = useState(false)
+  const [noticeMessage, setNoticeMessage] = useState('')
+
+  useEffect(() => {
+    let cancelled = false
+
+    async function loadMetrics() {
+      if (!isWorkspaceReady || !`${workspaceId ?? ''}`.trim()) {
+        if (!cancelled) {
+          setMetrics(createEmptyInventoryMigrationMetrics())
+          setNoticeMessage('')
+          setIsLoading(false)
+        }
+        return
+      }
+
+      setIsLoading(true)
+      const result = await getInventoryMigrationMetrics(workspaceId)
+      if (cancelled) return
+
+      setMetrics(result.metrics)
+      setNoticeMessage(result.error ? result.error : '')
+      setIsLoading(false)
+    }
+
+    loadMetrics()
+    return () => {
+      cancelled = true
+    }
+  }, [workspaceId, isWorkspaceReady])
+
+  const migrationStatus = resolveInventoryMigrationStatus(metrics)
+  const displayWorkspace = `${workspaceLabel ?? ''}`.trim() || '—'
+
+  const summaryCards = [
+    { id: 'legacy', label: 'Legacy Items', value: formatMetricValue(metrics.legacyItems) },
+    { id: 'classified', label: 'Classified', value: formatMetricValue(metrics.classified) },
+    { id: 'auto-link', label: 'Auto Link', value: formatMetricValue(metrics.autoLink) },
+    { id: 'auto-create', label: 'Auto Create', value: formatMetricValue(metrics.autoCreate) },
+    { id: 'manual', label: 'Manual Review', value: formatMetricValue(metrics.manualReview) },
+    { id: 'completed', label: 'Completed', value: formatMetricValue(metrics.completed) },
+  ]
+
   return (
     <section className="stock-migration-page" aria-label="Inventory migration">
+      {noticeMessage ? <div className="staff-status-banner">{noticeMessage}</div> : null}
+      {isLoading ? <div className="staff-status-banner">Loading migration metrics…</div> : null}
+
       <header className="stock-migration-header">
         <div className="stock-migration-header-copy">
           <h2 className="stock-migration-title">Inventory Migration</h2>
@@ -46,7 +100,7 @@ export function StockInventoryMigrationView() {
       </header>
 
       <div className="stock-summary-grid stock-summary-grid-six" aria-label="Migration summary">
-        {SUMMARY_CARDS.map((card) => (
+        {summaryCards.map((card) => (
           <article key={card.id} className="stock-summary-card">
             <p className="stock-summary-label">{card.label}</p>
             <p className="stock-summary-value">{card.value}</p>
@@ -109,13 +163,13 @@ export function StockInventoryMigrationView() {
         <aside className="panel staff-panel stock-migration-panel stock-migration-status-panel" aria-label="Migration status">
           <div className="stock-migration-panel-header">
             <h3 className="stock-migration-panel-title">Migration Status</h3>
-            <p className="stock-migration-panel-copy">Placeholder status only. No live data.</p>
+            <p className="stock-migration-panel-copy">Live read-only status for the current workspace.</p>
           </div>
 
           <dl className="stock-migration-status-list">
             <div className="stock-migration-status-row">
               <dt>Status</dt>
-              <dd>Not Started</dd>
+              <dd>{migrationStatus}</dd>
             </div>
             <div className="stock-migration-status-row">
               <dt>Environment</dt>
@@ -123,7 +177,7 @@ export function StockInventoryMigrationView() {
             </div>
             <div className="stock-migration-status-row">
               <dt>Workspace</dt>
-              <dd>AMORE.NICOSIA</dd>
+              <dd>{displayWorkspace}</dd>
             </div>
           </dl>
         </aside>

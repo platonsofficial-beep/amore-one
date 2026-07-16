@@ -24323,7 +24323,11 @@ function App() {
         ) : null}
 
         {isActiveViewAllowed && activeView === 'stock' && stockSection === 'migration' ? (
-          <StockInventoryMigrationView />
+          <StockInventoryMigrationView
+            workspaceId={activeWorkspaceId}
+            workspaceLabel={`${workspace?.name ?? workspaceProfile.businessName ?? ''}`.trim()}
+            isWorkspaceReady={isStockWorkspaceReady}
+          />
         ) : null}
 
         {isActiveViewAllowed && activeView === 'insights' ? (
