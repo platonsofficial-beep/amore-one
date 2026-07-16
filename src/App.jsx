@@ -497,7 +497,7 @@ import {
 } from './lib/scheduleAreaCollapseUtils'
 import { TeamTodayView } from './components/team/TeamTodayView'
 import { TeamTodayGroupsList } from './components/team/TeamTodayGroupsList'
-import { employeeMatchesPeopleDepartmentFilter, TeamPeopleView } from './components/team/TeamPeopleView'
+import { employeeMatchesPeopleDepartmentFilter, employeeMatchesPeopleSearch, TeamPeopleView } from './components/team/TeamPeopleView'
 import { EmployeePostHireInvitePrompt } from './components/team/EmployeePostHireInvitePrompt'
 import { EmployeeDeleteConfirmModal } from './components/team/EmployeeDeleteConfirmModal'
 import { RequestLeaveActionButton, RequestLeaveModal } from './components/team/RequestLeaveModal'
@@ -18090,13 +18090,7 @@ function App() {
 
   const filteredEmployees = useMemo(() => {
     return employees.filter((employee) => {
-      const positionNames = Array.isArray(employee.positions)
-        ? employee.positions.map((position) => position.name).join(' ')
-        : employee.position
-
-      const matchesSearch = `${employee.name} ${positionNames} ${employee.department}`
-        .toLowerCase()
-        .includes(searchTerm.toLowerCase())
+      const matchesSearch = employeeMatchesPeopleSearch(employee, searchTerm)
       const matchesFilter = employeeMatchesPeopleDepartmentFilter(employee.department, activeFilter)
       return matchesSearch && matchesFilter
     })

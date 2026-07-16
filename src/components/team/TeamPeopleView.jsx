@@ -30,6 +30,38 @@ export function employeeMatchesPeopleDepartmentFilter(department, activeFilter) 
   return employeeDepartment.key === filterDepartment.key
 }
 
+/**
+ * People roster search — name, position, department, phone, and email.
+ * Optional mobile* fields are included when present; null/empty values are ignored.
+ */
+export function employeeMatchesPeopleSearch(employee, searchTerm) {
+  const rawQuery = `${searchTerm ?? ''}`
+  if (!rawQuery.trim()) return true
+
+  const query = rawQuery.toLowerCase()
+
+  const positionNames = Array.isArray(employee?.positions)
+    ? employee.positions.map((position) => position?.name).join(' ')
+    : employee?.position
+
+  const haystack = [
+    employee?.name,
+    positionNames,
+    employee?.department,
+    employee?.phone,
+    employee?.mobilePhone,
+    employee?.mobile_phone,
+    employee?.mobile,
+    employee?.email,
+  ]
+    .map((value) => `${value ?? ''}`.trim())
+    .filter(Boolean)
+    .join(' ')
+    .toLowerCase()
+
+  return haystack.includes(query)
+}
+
 function getInitials(name) {
   const parts = `${name || ''}`.trim().split(/\s+/).filter(Boolean)
 

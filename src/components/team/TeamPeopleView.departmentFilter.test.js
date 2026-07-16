@@ -2,17 +2,12 @@ import { describe, expect, it } from 'vitest'
 import {
   DEPARTMENT_FILTERS,
   employeeMatchesPeopleDepartmentFilter,
+  employeeMatchesPeopleSearch,
 } from './TeamPeopleView'
 
 function filterEmployees(employees, { activeFilter = 'All', searchTerm = '' } = {}) {
   return employees.filter((employee) => {
-    const positionNames = Array.isArray(employee.positions)
-      ? employee.positions.map((position) => position.name).join(' ')
-      : employee.position
-
-    const matchesSearch = `${employee.name} ${positionNames} ${employee.department}`
-      .toLowerCase()
-      .includes(searchTerm.toLowerCase())
+    const matchesSearch = employeeMatchesPeopleSearch(employee, searchTerm)
     const matchesFilter = employeeMatchesPeopleDepartmentFilter(employee.department, activeFilter)
     return matchesSearch && matchesFilter
   })
