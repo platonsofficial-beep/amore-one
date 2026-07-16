@@ -443,6 +443,9 @@ export function TeamPeopleView({
               <EmployeeProfileDrawerField label="Weekly hours">
                 {formatDrawerFieldValue(selectedEmployee.weeklyHours)}
               </EmployeeProfileDrawerField>
+              <EmployeeProfileDrawerField label="Preferred Shift">
+                {formatDrawerFieldValue(selectedEmployee.shift)}
+              </EmployeeProfileDrawerField>
             </EmployeeProfileDrawerSection>
 
             <EmployeeProfileDrawerSection title="Contact">

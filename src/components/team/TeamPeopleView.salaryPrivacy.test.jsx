@@ -70,6 +70,7 @@ describe('TeamPeopleView salary privacy', () => {
       'Start date',
       'Salary',
       'Weekly hours',
+      'Preferred Shift',
     ])
     expect(container.textContent).toContain('42000')
 
@@ -83,6 +84,7 @@ describe('TeamPeopleView salary privacy', () => {
     expect(labels).toEqual([
       'Start date',
       'Weekly hours',
+      'Preferred Shift',
     ])
     expect(labels).not.toContain('Salary')
     expect(container.textContent).not.toContain('42000')
