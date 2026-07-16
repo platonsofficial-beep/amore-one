@@ -18,6 +18,8 @@ const CANONICAL_STEPS = [
   'post_apply_audit',
 ]
 
+const EXECUTION_OWNED_STEPS = CANONICAL_STEPS.filter((step) => step !== 'foundation')
+
 describe('inventory_migration_step_transition_rpc.sql source review', () => {
   const sqlPath = join(
     dirname(fileURLToPath(import.meta.url)),
@@ -111,7 +113,7 @@ describe('inventory_migration_step_transition_rpc.sql source review', () => {
     expect(functionBody).toContain('inventory_migration_step_invalid_name')
   })
 
-  it('allows only waiting→running and running→completed', () => {
+  it('allows foundation waiting→running and running→completed only via transition', () => {
     expect(functionBody).toContain("v_target_status not in ('running', 'completed')")
     expect(functionBody).toContain('inventory_migration_step_invalid_target_status')
     expect(functionBody).toContain("v_target_status = 'running'")
@@ -120,15 +122,40 @@ describe('inventory_migration_step_transition_rpc.sql source review', () => {
     expect(functionBody).toContain("v_step.status is distinct from 'running'")
     expect(functionBody).toContain('inventory_migration_step_invalid_transition')
     expect(functionBody).not.toMatch(/status = 'waiting'/)
+    expect(functionBody).toContain("v_step_name is distinct from 'foundation'")
+    expect(sql).toContain('foundation: transition-managed')
+  })
+
+  it('rejects all generic transitions for execution-owned stages (Option B)', () => {
+    expect(functionBody).toContain('inventory_migration_execution_step_requires_stage_rpc')
+    expect(functionBody).toContain('P7.9.2 Option B')
+    expect(sql).toContain('Execution-owned stages')
+    expect(sql).toContain('execution-owned stage (any)')
+    for (const step of EXECUTION_OWNED_STEPS) {
+      expect(functionBody).toContain(`'${step}'`)
+    }
+    const ownershipGateAt = functionBody.indexOf('inventory_migration_execution_step_requires_stage_rpc')
+    const sessionLockAt = functionBody.indexOf('Lock order 1: session row')
+    expect(ownershipGateAt).toBeGreaterThan(-1)
+    expect(sessionLockAt).toBeGreaterThan(ownershipGateAt)
+  })
+
+  it('does not fabricate evidence, activity, or stage execution', () => {
+    expect(functionBody).not.toMatch(/\bp_force\b/)
+    expect(functionBody).not.toMatch(/\bp_override\b/)
+    expect(functionBody).not.toMatch(/\bp_result_status\b/)
+    expect(functionBody).not.toMatch(/\bp_result_summary\b/)
+    expect(functionBody).not.toMatch(/insert into public\.inventory_migration_step_results/i)
+    expect(functionBody).not.toMatch(/insert into public\.inventory_migration_activity/i)
+    expect(functionBody).not.toContain('run_inventory_migration_')
+    expect(sql).toContain('No migration execution')
   })
 
   it('enforces predecessor completion before waiting→running', () => {
     expect(functionBody).toContain('inventory_migration_step_prerequisite_incomplete')
     expect(functionBody).toContain('v_canonical_steps[1:v_step_index - 1]')
     expect(functionBody).toContain("st.status = 'completed'")
-    expect(sql).toContain('foundation may run first')
-    expect(sql).toMatch(/persist may run only after foundation/i)
-    expect(sql).toMatch(/phase2 may run only after every prior step/i)
+    expect(sql).toContain('foundation may complete first')
   })
 
   it('blocks another running step before waiting→running update', () => {
@@ -173,7 +200,7 @@ describe('inventory_migration_step_transition_rpc.sql source review', () => {
     expect(sql).not.toMatch(/create table/i)
   })
 
-  it('documents the stable error contract', () => {
+  it('documents the stable error contract including stage-ownership reject', () => {
     const errors = [
       'inventory_migration_step_unauthenticated',
       'inventory_migration_step_workspace_required',
@@ -182,6 +209,7 @@ describe('inventory_migration_step_transition_rpc.sql source review', () => {
       'inventory_migration_step_target_status_required',
       'inventory_migration_step_workspace_not_found',
       'inventory_migration_step_forbidden',
+      'inventory_migration_execution_step_requires_stage_rpc',
       'inventory_migration_step_session_not_found',
       'inventory_migration_step_session_not_running',
       'inventory_migration_step_invalid_name',

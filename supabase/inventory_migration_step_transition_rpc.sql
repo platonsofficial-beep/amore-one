@@ -1,5 +1,5 @@
 -- =============================================================================
--- P7.8.2 — Inventory Migration Session Step Transition RPC foundation
+-- P7.8.2 / P7.9.2 — Inventory Migration Session Step Transition RPC
 -- =============================================================================
 -- Run manually in the Supabase SQL editor after:
 --   1. inventory_migration_sessions.sql (P7.7.4)
@@ -8,22 +8,31 @@
 -- Do NOT auto-run from the app.
 --
 -- Purpose:
---   Atomic SECURITY DEFINER state transitions for one session step at a time:
+--   Atomic SECURITY DEFINER state transitions for the transition-owned
+--   foundation step only (P7.9.2 Option B):
 --     waiting → running
 --     running → completed
 --   Enforces canonical ordering and a single running step per session.
 --   Authenticated clients must not UPDATE steps directly (no client UPDATE policy).
+--
+-- P7.9.2 ownership (V1 Option B):
+--   - foundation: transition-managed (no stage-owned execution RPC).
+--   - Execution-owned stages (persist … post_apply_audit): all generic
+--     transitions rejected. Stage RPCs own waiting→running→completed.
+--   - No force / override / evidence parameters.
+--   - Transition remains state-only (no step_results, activity, or stage SQL).
 --
 -- Authorization:
 --   owner / general_manager / manager via public.can_manage_workspace_stock
 --
 -- Denied:
 --   host / staff / anonymous / wrong workspace
+--   any generic transition of an execution-owned stage
 --
 -- Does NOT:
 --   - Execute migration SQL
 --   - Touch inventory_stock_item_map / stock_items / stock_movements
---   - Write activity rows
+--   - Write activity rows or step_results
 --   - Start / complete / cancel sessions
 --   - Change UI, Operator, Health, Audit Evidence, or services
 --   - Change grants beyond this RPC / create client write policies
@@ -31,16 +40,15 @@
 -- Concurrency:
 --   1. Lock the session row FOR UPDATE (session-level mutex)
 --   2. Lock all session step rows FOR UPDATE in canonical order
---   3. Validate prerequisites + single-running-step
+--   3. Validate ownership + prerequisites + single-running-step
 --   4. Update the target step only
 --   Session FOR UPDATE serializes concurrent transitions for the same session,
 --   so two waiting→running races cannot both succeed without a partial unique index.
 --
 -- Ordering examples:
---   foundation may run first without a predecessor.
---   persist may run only after foundation = completed.
---   auto_link may run only after foundation and persist are completed.
---   phase2 may run only after every prior step through phase1 is completed.
+--   foundation may complete first (bootstrapped as running).
+--   Execution stages are advanced only by their stage-owned RPCs after
+--   foundation = completed.
 -- =============================================================================
 
 drop function if exists public.transition_inventory_migration_step(uuid, uuid, text, text);
@@ -127,6 +135,12 @@ begin
 
   if v_target_status not in ('running', 'completed') then
     raise exception 'inventory_migration_step_invalid_target_status';
+  end if;
+
+  -- P7.9.2 Option B: only foundation is transition-managed.
+  -- Execution-owned stages must use their stage-owned RPCs.
+  if v_step_name is distinct from 'foundation' then
+    raise exception 'inventory_migration_execution_step_requires_stage_rpc';
   end if;
 
   -- Lock order 1: session row (session-level mutex for all step transitions).
@@ -260,7 +274,7 @@ revoke all on function public.transition_inventory_migration_step(uuid, uuid, te
 grant execute on function public.transition_inventory_migration_step(uuid, uuid, text, text) to authenticated;
 
 comment on function public.transition_inventory_migration_step(uuid, uuid, text, text) is
-  'P7.8.2 SECURITY DEFINER waiting→running / running→completed for one session step. No migration execution. No activity writes.';
+  'P7.8.2/P7.9.2 SECURITY DEFINER foundation-only waiting→running / running→completed. Execution-owned stages require their stage RPCs. No migration execution. No activity or step_results writes.';
 
 -- =============================================================================
 -- Verification (commented — run after apply; do not auto-execute)
@@ -278,20 +292,26 @@ comment on function public.transition_inventory_migration_step(uuid, uuid, text,
 --   and routine_name = 'transition_inventory_migration_step';
 
 -- Manual matrix:
---   owner / general_manager / manager → valid transitions succeed
+--   owner / general_manager / manager → foundation transitions succeed
 --   host / staff                     → inventory_migration_step_forbidden
 --   anonymous                        → inventory_migration_step_unauthenticated
 --   completed/cancelled session      → inventory_migration_step_session_not_running
+--   execution-owned stage (any)      → inventory_migration_execution_step_requires_stage_rpc
 --   waiting → completed              → inventory_migration_step_invalid_transition
 --   predecessor incomplete           → inventory_migration_step_prerequisite_incomplete
 --   another step running             → inventory_migration_step_another_step_running
 --
--- Example:
+-- Example (foundation only):
 --   select * from public.transition_inventory_migration_step(
 --     '<workspace>', '<session>', 'foundation', 'completed'
 --   );
+--
+-- Rejected (execution-owned):
 --   select * from public.transition_inventory_migration_step(
 --     '<workspace>', '<session>', 'persist', 'running'
+--   );
+--   select * from public.transition_inventory_migration_step(
+--     '<workspace>', '<session>', 'persist', 'completed'
 --   );
 
 -- =============================================================================
