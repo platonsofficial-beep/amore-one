@@ -7,6 +7,7 @@ import {
 } from '../lib/inventoryMigrationMetrics'
 
 const MAP_TABLE = 'inventory_stock_item_map'
+const CAN_MANAGE_STOCK_RPC = 'can_manage_workspace_stock'
 
 function isTableUnavailableError(error) {
   const message = `${error?.message ?? ''}`.toLowerCase()
@@ -17,9 +18,25 @@ function isTableUnavailableError(error) {
     || message.includes('could not find the table')
 }
 
+function emptyDeniedResult(errorMessage) {
+  return {
+    metrics: createEmptyInventoryMigrationMetrics(),
+    manualReviewRows: [],
+    attentionRows: [],
+    error: errorMessage,
+    unavailable: false,
+    tableReachable: false,
+    metricsAvailable: false,
+    fetchedAt: null,
+  }
+}
+
 /**
  * Read-only: load migration-map rows for a workspace and aggregate dashboard metrics.
  * Never inserts, updates, or deletes.
+ *
+ * Authorization: requires can_manage_workspace_stock (owner / general_manager / manager)
+ * for the target workspace. Host, staff, anonymous, and wrong-workspace are denied.
  */
 export async function getInventoryMigrationMetrics(workspaceId) {
   const normalizedWorkspaceId = `${workspaceId ?? ''}`.trim()
@@ -47,6 +64,23 @@ export async function getInventoryMigrationMetrics(workspaceId) {
       metricsAvailable: false,
       fetchedAt: null,
     }
+  }
+
+  const { data: canManage, error: authError } = await supabase.rpc(CAN_MANAGE_STOCK_RPC, {
+    target_workspace_id: normalizedWorkspaceId,
+  })
+
+  if (authError) {
+    console.warn('[inventoryMigrationMetricsService] authorization check error:', authError)
+    return emptyDeniedResult(
+      authError.message || 'Unable to verify migration read access for this workspace.',
+    )
+  }
+
+  if (canManage !== true) {
+    return emptyDeniedResult(
+      'You do not have permission to view migration data for this workspace.',
+    )
   }
 
   const { data, error } = await supabase
