@@ -40,35 +40,12 @@ create trigger suppliers_set_updated_at
   for each row
   execute function public.set_suppliers_updated_at();
 
--- TEMP DEVELOPMENT ONLY — replace with workspace/auth policies before production.
+-- RLS: production policies live in supabase/suppliers_rls_policies.sql
+-- (same is_workspace_member / can_manage_workspace_stock model as stock_items).
+-- Do not reinstall open TEMP development policies from this schema file.
 alter table public.suppliers enable row level security;
 
 drop policy if exists suppliers_dev_select_all on public.suppliers;
 drop policy if exists suppliers_dev_insert_all on public.suppliers;
 drop policy if exists suppliers_dev_update_all on public.suppliers;
 drop policy if exists suppliers_dev_delete_all on public.suppliers;
-
-create policy suppliers_dev_select_all
-  on public.suppliers
-  for select
-  to anon, authenticated
-  using (true);
-
-create policy suppliers_dev_insert_all
-  on public.suppliers
-  for insert
-  to anon, authenticated
-  with check (true);
-
-create policy suppliers_dev_update_all
-  on public.suppliers
-  for update
-  to anon, authenticated
-  using (true)
-  with check (true);
-
-create policy suppliers_dev_delete_all
-  on public.suppliers
-  for delete
-  to anon, authenticated
-  using (true);

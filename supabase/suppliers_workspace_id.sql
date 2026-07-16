@@ -5,13 +5,12 @@
 -- - Adds nullable workspace_id only.
 -- - Does NOT backfill existing rows.
 -- - Does NOT set NOT NULL.
--- - Does NOT replace TEMP DEVELOPMENT RLS policies.
--- - Existing app queries (global select/insert/update/delete) keep working.
 --
--- NOT in this script (later Phase 1 cutover):
--- - Backfill workspace_id for existing suppliers
--- - Workspace-scoped RLS (member select / manager mutate)
--- - App-side filter by workspace_id on getSuppliers
+-- After this column exists:
+--   1. Run supabase/suppliers_workspace_backfill.sql (assign NULL rows)
+--   2. Run supabase/suppliers_rls_policies.sql (production member/manager RLS)
+--
+-- Still deferred:
 -- - supplier_id FK on stock_items / stock_orders
 
 alter table public.suppliers
