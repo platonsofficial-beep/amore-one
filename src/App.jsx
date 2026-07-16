@@ -5852,7 +5852,7 @@ function ScheduleView({
                           }}
                           disabled={isSaving}
                         >
-                          {cell.shifts.length === 0 ? '+ Add employee' : '+ Add'}
+                          + Add employee
                         </button>
                       </div>
 
