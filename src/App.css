@@ -16249,14 +16249,14 @@
 .schedule-day-cell {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  min-height: 82px;
+  gap: 5px;
+  min-height: 76px;
 }
 
 .schedule-shift-instance-card {
   display: flex;
   flex-direction: column;
-  gap: 5px;
+  gap: 4px;
   min-height: 0;
 }
 
@@ -16264,7 +16264,7 @@
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 5px;
+  gap: 4px;
 }
 
 .schedule-shift-instance-copy {
@@ -16278,43 +16278,43 @@
   display: block;
   margin: 0;
   color: #c89d42;
-  font-size: 0.56rem;
+  font-size: 0.48rem;
   font-weight: 700;
-  letter-spacing: 0.09em;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
-  line-height: 1.2;
+  line-height: 1.15;
 }
 
 .schedule-shift-instance-name {
   margin: 0;
   color: #fff7e8;
-  font-size: 0.82rem;
+  font-size: 0.78rem;
   font-weight: 700;
-  line-height: 1.2;
+  line-height: 1.15;
   letter-spacing: 0.01em;
 }
 
 .schedule-shift-instance-time {
   margin: 0;
   color: #b8aa94;
-  font-size: 0.68rem;
+  font-size: 0.62rem;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
-  line-height: 1.25;
+  line-height: 1.2;
 }
 
 .schedule-shift-staff-ratio {
   display: flex;
   align-items: center;
   margin: 0;
-  padding: 4px 7px;
-  border-radius: 7px;
+  padding: 3px 6px;
+  border-radius: 6px;
   border: 1px solid rgba(255, 255, 255, 0.05);
   background: rgba(255, 255, 255, 0.025);
   color: #d4c5ad;
-  font-size: 0.7rem;
+  font-size: 0.64rem;
   font-weight: 700;
-  line-height: 1.25;
+  line-height: 1.2;
 }
 
 .schedule-shift-staff-ratio-value {
@@ -16404,7 +16404,7 @@
 .schedule-shift-assigned-block {
   display: flex;
   flex-direction: column;
-  gap: 5px;
+  gap: 4px;
 }
 
 .schedule-shift-assigned-list {
@@ -16429,15 +16429,15 @@
   max-width: 100%;
   min-width: 0;
   box-sizing: border-box;
-  min-height: 32px;
-  padding: 5px 8px;
+  min-height: 30px;
+  padding: 4px 7px;
   border: 1px solid rgba(255, 255, 255, 0.07);
-  border-radius: 7px;
+  border-radius: 6px;
   background: rgba(255, 255, 255, 0.04);
   color: #f7efe1;
   font-size: 0.76rem;
   font-weight: 600;
-  line-height: 1.25;
+  line-height: 1.2;
   text-align: left;
   cursor: pointer;
   transition:
@@ -16455,8 +16455,8 @@
 .schedule-assigned-pill--identity {
   border: 1px solid color-mix(in srgb, var(--schedule-pill-identity-ring, rgba(255, 255, 255, 0.16)) 40%, rgba(255, 255, 255, 0.07));
   border-left: 2px solid var(--schedule-pill-identity-ring, rgba(255, 255, 255, 0.16));
-  border-top-left-radius: 8px;
-  border-bottom-left-radius: 8px;
+  border-top-left-radius: 6px;
+  border-bottom-left-radius: 6px;
   background: color-mix(
     in srgb,
     var(--schedule-pill-identity-ring, rgba(255, 255, 255, 0.16)) 34%,
@@ -16524,12 +16524,12 @@
 
 .schedule-shift-coverage-status {
   margin: 0;
-  padding: 5px 2px 1px;
+  padding: 4px 2px 0;
   border-top: 1px solid rgba(255, 255, 255, 0.06);
-  font-size: 0.68rem;
+  font-size: 0.62rem;
   font-weight: 700;
   letter-spacing: 0.03em;
-  line-height: 1.25;
+  line-height: 1.2;
 }
 
 .schedule-shift-coverage-status.tone-covered {
@@ -16557,12 +16557,12 @@
   width: 100%;
   min-width: 44px;
   min-height: 44px;
-  padding: 6px 9px;
+  padding: 5px 8px;
   border: 1px dashed rgba(212, 175, 55, 0.22);
-  border-radius: 7px;
+  border-radius: 6px;
   background: rgba(255, 255, 255, 0.02);
   color: #c9beb0;
-  font-size: 0.7rem;
+  font-size: 0.64rem;
   font-weight: 600;
   cursor: pointer;
   transition:
@@ -17416,15 +17416,15 @@
 .schedule-template-area-group-header {
   display: flex;
   align-items: center;
-  gap: 7px;
+  gap: 6px;
   width: 100%;
   min-height: 44px;
-  padding: 7px 10px;
+  padding: 6px 10px;
   border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 9px;
+  border-radius: 8px;
   background: rgba(255, 255, 255, 0.04);
   color: #d6b26a;
-  font-size: 0.72rem;
+  font-size: 0.68rem;
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -21209,20 +21209,20 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 }
 
 .blend-grid-assignment-cell.schedule-shift-instance-card {
-  padding: 6px 7px;
+  padding: 5px 6px;
   min-height: 0;
-  gap: 6px;
+  gap: 5px;
 }
 
 .blend-grid-assignment-cell {
-  border-radius: 10px;
+  border-radius: 9px;
   border: 1px solid rgba(255, 255, 255, 0.06);
   background: rgba(255, 255, 255, 0.03);
-  padding: 10px 11px;
-  min-height: 86px;
+  padding: 9px 10px;
+  min-height: 80px;
   display: flex;
   flex-direction: column;
-  gap: 7px;
+  gap: 6px;
   cursor: pointer;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03), 0 1px 3px rgba(0, 0, 0, 0.08);
   transition: border-color 180ms ease, background 180ms ease, box-shadow 180ms ease, filter 180ms ease;
