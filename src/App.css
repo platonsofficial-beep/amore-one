@@ -16249,14 +16249,14 @@
 .schedule-day-cell {
   display: flex;
   flex-direction: column;
-  gap: 5px;
-  min-height: 76px;
+  gap: 4px;
+  min-height: 72px;
 }
 
 .schedule-shift-instance-card {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 3px;
   min-height: 0;
 }
 
@@ -16404,7 +16404,7 @@
 .schedule-shift-assigned-block {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 3px;
 }
 
 .schedule-shift-assigned-list {
@@ -16524,7 +16524,7 @@
 
 .schedule-shift-coverage-status {
   margin: 0;
-  padding: 2px 2px 0;
+  padding: 1px 2px 0;
   border-top: 1px solid rgba(255, 255, 255, 0.06);
   font-size: 0.62rem;
   font-weight: 700;
@@ -21209,9 +21209,9 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 }
 
 .blend-grid-assignment-cell.schedule-shift-instance-card {
-  padding: 5px 6px;
+  padding: 4px 6px;
   min-height: 0;
-  gap: 5px;
+  gap: 4px;
 }
 
 .blend-grid-assignment-cell {
@@ -21219,7 +21219,7 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   border: 1px solid rgba(255, 255, 255, 0.06);
   background: rgba(255, 255, 255, 0.03);
   padding: 9px 10px;
-  min-height: 80px;
+  min-height: 76px;
   display: flex;
   flex-direction: column;
   gap: 6px;
