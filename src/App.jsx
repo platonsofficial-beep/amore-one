@@ -17091,9 +17091,9 @@ function App() {
   }, [])
 
   const refreshSuppliers = useCallback(async () => {
-    const remoteSuppliers = await getSuppliers()
+    const remoteSuppliers = await getSuppliers(activeWorkspaceId)
     setSuppliers(remoteSuppliers)
-  }, [])
+  }, [activeWorkspaceId])
 
   const refreshTaskChecklists = useCallback(async (remoteTasks = []) => {
     const taskIds = (remoteTasks ?? []).map((task) => task.id).filter(Boolean)
@@ -17725,7 +17725,7 @@ function App() {
       setSuppliersNotice('')
 
       try {
-        const remoteSuppliers = await getSuppliers()
+        const remoteSuppliers = await getSuppliers(activeWorkspaceId)
         if (!isMounted) return
         setSuppliers(remoteSuppliers)
       } catch (error) {
@@ -17744,7 +17744,7 @@ function App() {
     return () => {
       isMounted = false
     }
-  }, [])
+  }, [activeWorkspaceId])
 
   useEffect(() => {
     if (activeView !== 'operations') return undefined
