@@ -264,3 +264,109 @@ export function mapManualReviewQueueRows(rows = []) {
       }
     })
 }
+
+function formatCreatedAt(createdAtRaw) {
+  if (!createdAtRaw) return '—'
+  const date = new Date(createdAtRaw)
+  return Number.isNaN(date.getTime()) ? '—' : date.toLocaleString()
+}
+
+function hasNonEmptyConflictReason(row) {
+  const raw = row?.conflict_reason ?? row?.conflictReason
+  if (raw === null || raw === undefined) return false
+  return `${raw}`.trim().length > 0
+}
+
+/**
+ * Derive a single attention issue from existing map fields only.
+ * Returns null when no safe attention signal is present.
+ * Never invents classifications.
+ */
+export function classifyAttentionIssue(row) {
+  if (!row || typeof row !== 'object') return null
+
+  const status = `${row?.status ?? ''}`.trim()
+  const snapshot = row?.source_snapshot ?? row?.sourceSnapshot ?? null
+  const stockItemId = row?.stock_item_id ?? row?.stockItemId ?? null
+  const hasStockRef = stockItemId !== null && stockItemId !== undefined && `${stockItemId}`.trim() !== ''
+
+  if (hasNonEmptyConflictReason(row)) {
+    return {
+      issue: `${row?.conflict_reason ?? row?.conflictReason}`.trim(),
+      severity: 'Attention',
+    }
+  }
+
+  if ((status === 'created' || status === 'linked') && !hasStockRef) {
+    return {
+      issue: 'Missing stock reference',
+      severity: 'Attention',
+    }
+  }
+
+  if (status === 'failed') {
+    return {
+      issue: 'Failed',
+      severity: 'Attention',
+    }
+  }
+
+  if (snapshot === null || snapshot === undefined) {
+    return {
+      issue: 'Missing source snapshot',
+      severity: 'Warning',
+    }
+  }
+
+  if (typeof snapshot !== 'object' || Array.isArray(snapshot)) {
+    return {
+      issue: 'Invalid source snapshot',
+      severity: 'Warning',
+    }
+  }
+
+  if (Object.keys(snapshot).length === 0) {
+    return {
+      issue: 'Empty source snapshot',
+      severity: 'Warning',
+    }
+  }
+
+  if (!readSnapshotField(snapshot, 'item_name')) {
+    return {
+      issue: 'Missing item name in source snapshot',
+      severity: 'Warning',
+    }
+  }
+
+  return null
+}
+
+/**
+ * Map rows that require operator attention into read-only queue display records.
+ * Only includes rows with a safe, field-backed attention signal.
+ */
+export function mapAttentionQueueRows(rows = []) {
+  const list = Array.isArray(rows) ? rows : []
+
+  return list
+    .map((row) => {
+      const classification = classifyAttentionIssue(row)
+      if (!classification) return null
+
+      const snapshot = row?.source_snapshot ?? row?.sourceSnapshot ?? null
+      return {
+        id: row?.id ?? null,
+        legacyItemId: displayOrDash(row?.legacy_inventory_item_id ?? row?.legacyInventoryItemId),
+        legacyName: displayOrDash(readSnapshotField(snapshot, 'item_name')),
+        issue: displayOrDash(classification.issue),
+        currentStatus: displayOrDash(row?.status),
+        resolutionType: displayOrDash(row?.resolution_type ?? row?.resolutionType),
+        createdAt: formatCreatedAt(row?.created_at ?? row?.createdAt ?? null),
+        severity: classification.severity === 'Warning' || classification.severity === 'Attention'
+          ? classification.severity
+          : 'Unknown',
+      }
+    })
+    .filter(Boolean)
+}

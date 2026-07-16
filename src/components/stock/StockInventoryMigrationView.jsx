@@ -7,6 +7,7 @@ import {
   resolveInventoryMigrationStatus,
 } from '../../lib/inventoryMigrationMetrics'
 import { getInventoryMigrationMetrics } from '../../services/inventoryMigrationMetricsService'
+import { StockMigrationAttentionQueue } from './StockMigrationAttentionQueue'
 import { StockMigrationManualReviewQueue } from './StockMigrationManualReviewQueue'
 
 const EXECUTION_ACTIONS = [
@@ -46,6 +47,7 @@ export function StockInventoryMigrationView({
 }) {
   const [metrics, setMetrics] = useState(createEmptyInventoryMigrationMetrics)
   const [manualReviewRows, setManualReviewRows] = useState([])
+  const [attentionRows, setAttentionRows] = useState([])
   const [metricsAvailable, setMetricsAvailable] = useState(false)
   const [tableReachable, setTableReachable] = useState(false)
   const [fetchedAt, setFetchedAt] = useState(null)
@@ -60,6 +62,7 @@ export function StockInventoryMigrationView({
         if (!cancelled) {
           setMetrics(createEmptyInventoryMigrationMetrics())
           setManualReviewRows([])
+          setAttentionRows([])
           setMetricsAvailable(false)
           setTableReachable(false)
           setFetchedAt(null)
@@ -75,6 +78,7 @@ export function StockInventoryMigrationView({
 
       setMetrics(result.metrics)
       setManualReviewRows(Array.isArray(result.manualReviewRows) ? result.manualReviewRows : [])
+      setAttentionRows(Array.isArray(result.attentionRows) ? result.attentionRows : [])
       setMetricsAvailable(Boolean(result.metricsAvailable))
       setTableReachable(Boolean(result.tableReachable))
       setFetchedAt(result.fetchedAt ?? null)
@@ -225,6 +229,10 @@ export function StockInventoryMigrationView({
               <dd>{metricsAvailable ? formatMetricValue(metrics.manualReview) : 'Unknown'}</dd>
             </div>
             <div className="stock-migration-status-row">
+              <dt>Attention Items</dt>
+              <dd>{metricsAvailable ? formatMetricValue(attentionRows.length) : 'Unknown'}</dd>
+            </div>
+            <div className="stock-migration-status-row">
               <dt>Environment</dt>
               <dd>Production</dd>
             </div>
@@ -238,6 +246,11 @@ export function StockInventoryMigrationView({
 
       <StockMigrationManualReviewQueue
         rows={manualReviewRows}
+        metricsAvailable={metricsAvailable}
+      />
+
+      <StockMigrationAttentionQueue
+        rows={attentionRows}
         metricsAvailable={metricsAvailable}
       />
 

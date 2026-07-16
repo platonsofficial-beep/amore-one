@@ -2,7 +2,9 @@ import { describe, expect, it } from 'vitest'
 import {
   aggregateInventoryMigrationMetrics,
   buildInventoryMigrationPipeline,
+  classifyAttentionIssue,
   createEmptyInventoryMigrationMetrics,
+  mapAttentionQueueRows,
   mapManualReviewQueueRows,
   PIPELINE_STATE,
   resolveInventoryMigrationCurrentStage,
@@ -123,6 +125,108 @@ describe('inventoryMigrationMetrics', () => {
       conflictReason: '—',
       currentResolution: '—',
       createdAt: '—',
+    })
+  })
+
+  it('classifies attention issues from existing fields only', () => {
+    expect(classifyAttentionIssue({
+      status: 'manual',
+      conflict_reason: 'duplicate name',
+      source_snapshot: { item_name: 'Gin' },
+    })).toEqual({ issue: 'duplicate name', severity: 'Attention' })
+
+    expect(classifyAttentionIssue({
+      status: 'created',
+      stock_item_id: null,
+      source_snapshot: { item_name: 'Vodka' },
+    })).toEqual({ issue: 'Missing stock reference', severity: 'Attention' })
+
+    expect(classifyAttentionIssue({
+      status: 'failed',
+      source_snapshot: { item_name: 'Rum' },
+    })).toEqual({ issue: 'Failed', severity: 'Attention' })
+
+    expect(classifyAttentionIssue({
+      status: 'classified',
+      source_snapshot: null,
+    })).toEqual({ issue: 'Missing source snapshot', severity: 'Warning' })
+
+    expect(classifyAttentionIssue({
+      status: 'classified',
+      source_snapshot: 'bad',
+    })).toEqual({ issue: 'Invalid source snapshot', severity: 'Warning' })
+
+    expect(classifyAttentionIssue({
+      status: 'classified',
+      source_snapshot: {},
+    })).toEqual({ issue: 'Empty source snapshot', severity: 'Warning' })
+
+    expect(classifyAttentionIssue({
+      status: 'classified',
+      source_snapshot: { category: 'Spirits' },
+    })).toEqual({ issue: 'Missing item name in source snapshot', severity: 'Warning' })
+
+    expect(classifyAttentionIssue({
+      status: 'linked',
+      stock_item_id: 'stock-1',
+      source_snapshot: { item_name: 'Whiskey' },
+    })).toBeNull()
+
+    expect(classifyAttentionIssue({
+      status: 'manual',
+      conflict_reason: '',
+      source_snapshot: { item_name: 'Tequila' },
+    })).toBeNull()
+  })
+
+  it('maps attention queue rows without inventing values', () => {
+    const rows = mapAttentionQueueRows([
+      {
+        id: 'a',
+        status: 'manual',
+        legacy_inventory_item_id: 7,
+        resolution_type: null,
+        conflict_reason: 'ambiguous match',
+        created_at: '2026-07-16T12:00:00.000Z',
+        source_snapshot: { item_name: 'House Gin' },
+      },
+      {
+        id: 'b',
+        status: 'linked',
+        legacy_inventory_item_id: 8,
+        stock_item_id: 'stock-8',
+        resolution_type: 'auto_link',
+        source_snapshot: { item_name: 'Healthy Row' },
+      },
+      {
+        id: 'c',
+        status: 'created',
+        legacy_inventory_item_id: null,
+        stock_item_id: null,
+        resolution_type: 'auto_create',
+        created_at: 'not-a-date',
+        source_snapshot: { item_name: 'Broken Create' },
+      },
+    ])
+
+    expect(rows).toHaveLength(2)
+    expect(rows[0]).toMatchObject({
+      legacyItemId: '7',
+      legacyName: 'House Gin',
+      issue: 'ambiguous match',
+      currentStatus: 'manual',
+      resolutionType: '—',
+      severity: 'Attention',
+    })
+    expect(rows[0].createdAt).not.toBe('—')
+    expect(rows[1]).toMatchObject({
+      legacyItemId: '—',
+      legacyName: 'Broken Create',
+      issue: 'Missing stock reference',
+      currentStatus: 'created',
+      resolutionType: 'auto_create',
+      createdAt: '—',
+      severity: 'Attention',
     })
   })
 })
