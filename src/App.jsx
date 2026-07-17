@@ -586,7 +586,9 @@ import {
   getModuleTitle,
   getSearchPlaceholder,
   resolveInsightsModuleLink,
+  isStockWorkspaceView,
   isTeamScheduleView,
+  resolveExitStockDestination,
   shouldHideStandardTopbar,
   shouldShowModuleSearch,
   shouldUseCommandTopbar,
@@ -15704,6 +15706,7 @@ function App() {
   const [inviteAcceptedNotice, setInviteAcceptedNotice] = useState('')
   const previousActiveViewRef = useRef(activeView)
   const preReservationsHostViewRef = useRef('today')
+  const preStockViewRef = useRef('today')
 
   const {
     syncDevMembershipProfile,
@@ -16736,7 +16739,8 @@ function App() {
   const useHostStationShell = isHostMobileShell || useReservationsHostDedicatedShell
   const useDedicatedShell = useMobileExperience || isHostMobileShell
   const isScheduleFocusMode = isTeamScheduleView(activeView, teamSection) && !useDedicatedShell
-  const hideGlobalAppSidebar = useDedicatedShell || useReservationsHostDedicatedShell || isScheduleFocusMode
+  const isStockFocusMode = isStockWorkspaceView(activeView) && !useDedicatedShell
+  const hideGlobalAppSidebar = useDedicatedShell || useReservationsHostDedicatedShell || isScheduleFocusMode || isStockFocusMode
   const activeMobileTab = isManagerMobileShell ? mobileManagerTab : mobileStaffTab
   const isManagerMobileStockLoading = isManagerMobileBootstrapLoading || isStockItemsLoading || isStockOrdersLoading
   const isManagerMobileTasksLoading = isManagerMobileBootstrapLoading || isOperationsLoading
@@ -17410,6 +17414,12 @@ function App() {
   useEffect(() => {
     if (activeView !== 'reservations') {
       preReservationsHostViewRef.current = activeView
+    }
+  }, [activeView])
+
+  useEffect(() => {
+    if (activeView !== 'stock') {
+      preStockViewRef.current = activeView
     }
   }, [activeView])
 
@@ -23772,6 +23782,10 @@ function App() {
     handleTeamSectionChange('members')
   }, [handleTeamSectionChange])
 
+  const handleExitStockFocusMode = useCallback(() => {
+    handleActiveViewChange(resolveExitStockDestination(preStockViewRef.current))
+  }, [handleActiveViewChange])
+
   const handleMobileHostReservationCreate = async (form) => {
     if (!canManageReservationsRole) return false
 
@@ -23936,7 +23950,7 @@ function App() {
 
   return (
     <PublishedFloorPlanProvider workspaceId={workspace?.id ?? ''}>
-    <div className={`app-shell${useDedicatedShell ? ' is-mobile-shell' : ''}${useHostStationShell ? ' is-host-station-shell is-host-only-station' : ''}${useDedicatedShell && mobileExpandedView ? ' is-mobile-expanded' : ''}${(useDedicatedShell && mobileReservationsHostMode) || useHostStationShell ? ' is-reservations-host-mode' : ''}${isScheduleFocusMode ? ' schedule-focus-mode' : ''}`}>
+    <div className={`app-shell${useDedicatedShell ? ' is-mobile-shell' : ''}${useHostStationShell ? ' is-host-station-shell is-host-only-station' : ''}${useDedicatedShell && mobileExpandedView ? ' is-mobile-expanded' : ''}${(useDedicatedShell && mobileReservationsHostMode) || useHostStationShell ? ' is-reservations-host-mode' : ''}${isScheduleFocusMode ? ' schedule-focus-mode' : ''}${isStockFocusMode ? ' stock-focus-mode' : ''}`}>
       <ViewportDebugOverlay isMobileViewport={useDedicatedShell} />
       {!hideGlobalAppSidebar ? (
       <aside className="sidebar">
@@ -23975,7 +23989,7 @@ function App() {
       </aside>
       ) : null}
 
-      <main className={`main-panel${activeView === 'team' && teamSection === 'schedule' ? ' main-panel-schedule' : ''}${activeView === 'today' ? ' main-panel-dashboard' : ''}${activeView === 'floor-plan-builder' ? ' main-panel-floor-builder' : ''}${activeView === 'reservations' ? ' main-panel-reservations' : ''}`}>
+      <main className={`main-panel${activeView === 'team' && teamSection === 'schedule' ? ' main-panel-schedule' : ''}${activeView === 'today' ? ' main-panel-dashboard' : ''}${activeView === 'floor-plan-builder' ? ' main-panel-floor-builder' : ''}${activeView === 'reservations' ? ' main-panel-reservations' : ''}${isStockFocusMode ? ' main-panel-stock' : ''}`}>
         {(() => {
           const workspaceModules = (
             <>
@@ -24008,6 +24022,30 @@ function App() {
             onSectionChange={handleTeamSectionChange}
             ariaLabel="Team sections"
           />
+        ) : null}
+
+        {activeView === 'stock' && isActiveViewAllowed && isStockFocusMode ? (
+          <header className="stock-focus-header" aria-label="Stock workspace">
+            <button
+              type="button"
+              className="ghost-btn stock-focus-exit-btn"
+              onClick={handleExitStockFocusMode}
+              aria-label="Exit Stock"
+            >
+              ← Exit Stock
+            </button>
+            {showModuleSearch ? (
+              <label className="search-bar stock-focus-search" aria-label={`Search ${moduleTitle}`}>
+                <span>⌕</span>
+                <input
+                  type="text"
+                  placeholder={moduleSearchPlaceholder}
+                  value={searchTerm}
+                  onChange={(event) => setSearchTerm(event.target.value)}
+                />
+              </label>
+            ) : null}
+          </header>
         ) : null}
 
         {activeView === 'stock' && isActiveViewAllowed ? (

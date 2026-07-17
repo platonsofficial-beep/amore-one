@@ -86,10 +86,23 @@ export function isTeamScheduleView(activeView, teamSection) {
   return activeView === 'team' && teamSection === 'schedule'
 }
 
+export function isStockWorkspaceView(activeView) {
+  return activeView === 'stock'
+}
+
 export function shouldHideStandardTopbar(activeView, teamSection) {
   return isTeamScheduleView(activeView, teamSection)
     || activeView === 'floor-plan-builder'
     || activeView === 'reservations'
+    || isStockWorkspaceView(activeView)
+}
+
+export function resolveExitStockDestination(previousView) {
+  const normalized = `${previousView ?? ''}`.trim()
+  if (normalized && normalized !== 'stock') {
+    return normalized
+  }
+  return 'today'
 }
 
 export function shouldUseCommandTopbar(activeView) {
