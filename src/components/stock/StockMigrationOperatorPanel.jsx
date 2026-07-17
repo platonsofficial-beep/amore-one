@@ -62,6 +62,10 @@ export function StockMigrationOperatorPanel({
   operator = null,
   workspaceId = '',
   sessionId = '',
+  sessionRunning = false,
+  sessionStepRows = [],
+  sessionStepResults = [],
+  stageAttentionAcknowledgements = [],
   isWorkspaceReady = false,
   onRefresh = null,
 }) {
@@ -70,6 +74,11 @@ export function StockMigrationOperatorPanel({
   const requiredAction = operator?.requiredAction ?? 'Migration cannot yet continue.'
   const notes = Array.isArray(operator?.notes) ? operator.notes : []
   const buttons = Array.isArray(operator?.buttons) ? operator.buttons : []
+  const stepRows = Array.isArray(sessionStepRows) ? sessionStepRows : []
+  const stepResults = Array.isArray(sessionStepResults) ? sessionStepResults : []
+  const acknowledgements = Array.isArray(stageAttentionAcknowledgements)
+    ? stageAttentionAcknowledgements
+    : []
 
   const [pendingCommandId, setPendingCommandId] = useState(null)
   const [commandError, setCommandError] = useState('')
@@ -179,7 +188,14 @@ export function StockMigrationOperatorPanel({
   }
 
   return (
-    <section className="panel staff-panel stock-migration-panel stock-migration-operator-panel" aria-label="Migration operator">
+    <section
+      className="panel staff-panel stock-migration-panel stock-migration-operator-panel"
+      aria-label="Migration operator"
+      data-session-running={sessionRunning ? 'true' : 'false'}
+      data-session-step-rows={stepRows.length}
+      data-session-step-results={stepResults.length}
+      data-stage-attention-acknowledgements={acknowledgements.length}
+    >
       <div className="stock-migration-panel-header">
         <h3 className="stock-migration-panel-title">Migration Operator</h3>
         <p className="stock-migration-panel-copy">

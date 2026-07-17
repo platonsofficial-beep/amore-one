@@ -9,11 +9,13 @@ import {
 } from '../../lib/inventoryMigrationMetrics'
 import { buildInventoryMigrationOperator } from '../../lib/inventoryMigrationOperator'
 import { buildInventoryMigrationAuditEvidence } from '../../lib/inventoryMigrationAuditEvidence'
-import { buildInventoryMigrationSessionPlaceholder } from '../../lib/inventoryMigrationSession'
+import { buildInventoryMigrationSessionPlaceholder, MIGRATION_SESSION_STATUS } from '../../lib/inventoryMigrationSession'
 import { getInventoryMigrationMetrics } from '../../services/inventoryMigrationMetricsService'
 import { getInventoryMigrationActivity } from '../../services/inventoryMigrationActivityService'
 import { getInventoryMigrationSessionSummary } from '../../services/inventoryMigrationSessionService'
 import { getInventoryMigrationSessionSteps } from '../../services/inventoryMigrationSessionStepsService'
+import { getInventoryMigrationStepResults } from '../../services/inventoryMigrationStepResultsService'
+import { getInventoryMigrationStageAttentionAcknowledgements } from '../../services/inventoryMigrationStageAttentionAcknowledgementsService'
 import { StockMigrationActivityLog } from './StockMigrationActivityLog'
 import { StockMigrationAttentionQueue } from './StockMigrationAttentionQueue'
 import { StockMigrationHealthPanel } from './StockMigrationHealthPanel'
@@ -82,11 +84,20 @@ export function StockInventoryMigrationView({
   const [sessionStepsError, setSessionStepsError] = useState('')
   const [sessionStepsUnavailable, setSessionStepsUnavailable] = useState(false)
   const [sessionStepsAvailable, setSessionStepsAvailable] = useState(false)
+  const [sessionStepResults, setSessionStepResults] = useState([])
+  const [stageAttentionAcknowledgements, setStageAttentionAcknowledgements] = useState([])
   const [reloadNonce, setReloadNonce] = useState(0)
 
   const refreshMigrationState = useCallback(() => {
     setReloadNonce((current) => current + 1)
   }, [])
+
+  const resolvedSessionId = (
+    sessionSummary?.sessionId && sessionSummary.sessionId !== '—'
+      ? `${sessionSummary.sessionId}`
+      : ''
+  )
+  const sessionRunning = sessionSummary?.statusKey === MIGRATION_SESSION_STATUS.RUNNING
 
   useEffect(() => {
     let cancelled = false
@@ -116,6 +127,8 @@ export function StockInventoryMigrationView({
           setSessionStepsUnavailable(false)
           setSessionStepsAvailable(false)
           setSessionStepsLoading(false)
+          setSessionStepResults([])
+          setStageAttentionAcknowledgements([])
           setIsLoading(false)
         }
         return
@@ -158,6 +171,33 @@ export function StockInventoryMigrationView({
       setSessionStepsUnavailable(Boolean(stepsResult?.unavailable))
       setSessionStepsAvailable(Boolean(stepsResult?.stepsAvailable))
       setSessionStepsLoading(false)
+
+      const activeSessionId = `${sessionResult?.session?.sessionId ?? ''}`.trim()
+        || (
+          sessionResult?.summary?.sessionId && sessionResult.summary.sessionId !== '—'
+            ? `${sessionResult.summary.sessionId}`.trim()
+            : ''
+        )
+
+      if (!activeSessionId) {
+        setSessionStepResults([])
+        setStageAttentionAcknowledgements([])
+        setIsLoading(false)
+        return
+      }
+
+      const [stepResultsResult, acknowledgementsResult] = await Promise.all([
+        getInventoryMigrationStepResults(workspaceId, { sessionId: activeSessionId }),
+        getInventoryMigrationStageAttentionAcknowledgements(workspaceId, {
+          sessionId: activeSessionId,
+        }),
+      ])
+      if (cancelled) return
+
+      setSessionStepResults(Array.isArray(stepResultsResult?.rows) ? stepResultsResult.rows : [])
+      setStageAttentionAcknowledgements(
+        Array.isArray(acknowledgementsResult?.rows) ? acknowledgementsResult.rows : [],
+      )
       setIsLoading(false)
     }
 
@@ -264,11 +304,11 @@ export function StockInventoryMigrationView({
       <StockMigrationOperatorPanel
         operator={operator}
         workspaceId={workspaceId}
-        sessionId={
-          sessionSummary?.sessionId && sessionSummary.sessionId !== '—'
-            ? sessionSummary.sessionId
-            : ''
-        }
+        sessionId={resolvedSessionId}
+        sessionRunning={sessionRunning}
+        sessionStepRows={sessionStepRows}
+        sessionStepResults={sessionStepResults}
+        stageAttentionAcknowledgements={stageAttentionAcknowledgements}
         isWorkspaceReady={isWorkspaceReady}
         onRefresh={refreshMigrationState}
       />
