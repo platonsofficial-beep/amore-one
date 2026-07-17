@@ -420,4 +420,53 @@ describe('StockMigrationOperatorPanel command eligibility', () => {
     expect(executionMocks.runInventoryMigrationPersist).toHaveBeenCalledTimes(1)
     expect(executionMocks.runInventoryMigrationAutoLink).not.toHaveBeenCalled()
   })
+
+  it('renders activity timeline from activityRows with order and labels preserved', () => {
+    renderPanel({
+      activityRows: [
+        {
+          id: 'act-new',
+          activityType: 'note',
+          activity: 'Preflight completed: passed (result_id=1).',
+          createdAt: 'Newer',
+        },
+        {
+          id: 'act-old',
+          activityType: 'session_started',
+          activity: 'Session started',
+          createdAt: 'Older',
+        },
+      ],
+    })
+
+    const items = [...container.querySelectorAll('[data-activity-id]')]
+    expect(items.map((node) => node.getAttribute('data-activity-id'))).toEqual([
+      'act-new',
+      'act-old',
+    ])
+    expect(items[0].getAttribute('data-activity-label')).toBe('Stage Completed')
+    expect(items[0].getAttribute('data-activity-stage')).toBe('Preflight')
+    expect(items[0].textContent).toContain('Newer')
+    expect(items[0].textContent).toContain('Preflight completed')
+    expect(items[1].getAttribute('data-activity-label')).toBe('Session Started')
+  })
+
+  it('renders empty timeline state and unknown activity fallback', () => {
+    renderPanel({ activityRows: [] })
+    expect(container.textContent).toContain('No migration activity recorded yet.')
+
+    renderPanel({
+      activityRows: [
+        {
+          id: 'act-unknown',
+          activityType: 'mystery_event',
+          activity: 'Mystery detail',
+          createdAt: 'Now',
+        },
+      ],
+    })
+    const item = container.querySelector('[data-activity-id="act-unknown"]')
+    expect(item?.getAttribute('data-activity-label')).toBe('mystery_event')
+    expect(item?.textContent).toContain('Mystery detail')
+  })
 })

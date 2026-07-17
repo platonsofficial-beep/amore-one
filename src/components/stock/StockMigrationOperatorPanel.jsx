@@ -8,6 +8,7 @@ import {
   buildMigrationOperatorStageFeedback,
   formatMigrationOperatorCommandSuccess,
 } from '../../lib/inventoryMigrationOperatorFeedback'
+import { presentMigrationActivityTimeline } from '../../lib/inventoryMigrationActivityPresentation'
 import {
   acknowledgeInventoryMigrationStageAttention,
   cancelInventoryMigrationSession,
@@ -86,6 +87,7 @@ export function StockMigrationOperatorPanel({
     ? stageAttentionAcknowledgements
     : []
   const activityList = Array.isArray(activityRows) ? activityRows : []
+  const activityTimeline = presentMigrationActivityTimeline(activityList)
 
   const [pendingCommandId, setPendingCommandId] = useState(null)
   const [commandError, setCommandError] = useState('')
@@ -305,6 +307,43 @@ export function StockMigrationOperatorPanel({
             </li>
           ))}
         </ul>
+      </div>
+
+      <div className="stock-migration-operator-section">
+        <h4 className="stock-migration-operator-section-title">Activity Timeline</h4>
+        <p className="stock-migration-panel-copy">
+          Session activity for the current migration session.
+        </p>
+        {activityTimeline.length === 0 ? (
+          <div className="stock-migration-log-wrap">
+            <p className="stock-migration-log-empty stock-migration-queue-empty">
+              No migration activity recorded yet.
+            </p>
+          </div>
+        ) : (
+          <ul className="stock-migration-operator-checklist" aria-label="Migration activity timeline">
+            {activityTimeline.map((entry) => (
+              <li
+                key={entry.id}
+                className="stock-migration-operator-check-row"
+                data-activity-id={entry.id}
+                data-activity-label={entry.label}
+                data-activity-stage={entry.stage || undefined}
+              >
+                <div className="stock-migration-operator-check-copy">
+                  <p className="stock-migration-operator-check-title">{entry.label}</p>
+                  <p className="stock-migration-operator-check-description">
+                    {entry.stage ? `Stage: ${entry.stage}` : 'Stage: —'}
+                    {entry.description ? ` · ${entry.description}` : ''}
+                  </p>
+                </div>
+                <span className="stock-migration-operator-status">
+                  {entry.timestamp}
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
 
       <div className="stock-migration-operator-section">
