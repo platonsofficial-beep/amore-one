@@ -78,6 +78,22 @@ describe('inventory_migration_preflight_rpc.sql source review', () => {
     expect(functionBody).toContain("status is distinct from 'waiting'")
   })
 
+  it('enforces attention acknowledgement for integrity_audit → preflight', () => {
+    expect(functionBody).toContain("r.step_name = 'integrity_audit'")
+    expect(functionBody).toContain("v_prior_result_status = 'attention_required'")
+    expect(functionBody).toContain("a.next_step_name = 'preflight'")
+    expect(functionBody).toContain('inventory_migration_stage_attention_acknowledgements')
+    expect(functionBody).toContain('inventory_migration_preflight_attention_acknowledgement_required')
+    expect(functionBody).toContain('inventory_migration_preflight_prior_result_missing')
+    const ackGate = functionBody.slice(
+      functionBody.indexOf('P7.9.5: integrity_audit attention_required'),
+      functionBody.indexOf('inventory_migration_preflight_another_step_running'),
+    )
+    expect(ackGate).toContain("v_prior_result_status = 'attention_required'")
+    expect(ackGate).toContain('if not v_ack_exists')
+    expect(functionBody).not.toContain('acknowledge_inventory_migration_stage_attention')
+  })
+
   it('does not accept caller-controlled result status, evidence, or step name', () => {
     expect(functionBody).not.toMatch(/p_result_status/)
     expect(functionBody).not.toMatch(/p_result_summary/)

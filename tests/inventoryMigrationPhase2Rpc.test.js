@@ -81,6 +81,22 @@ describe('inventory_migration_phase2_rpc.sql source review', () => {
     expect(predBlock).not.toContain("'post_apply_audit'")
   })
 
+  it('enforces attention acknowledgement for phase1 → phase2', () => {
+    expect(functionBody).toContain("r.step_name = 'phase1'")
+    expect(functionBody).toContain("v_prior_result_status = 'attention_required'")
+    expect(functionBody).toContain("a.next_step_name = 'phase2'")
+    expect(functionBody).toContain('inventory_migration_stage_attention_acknowledgements')
+    expect(functionBody).toContain('inventory_migration_phase2_attention_acknowledgement_required')
+    expect(functionBody).toContain('inventory_migration_phase2_prior_result_missing')
+    const ackGate = functionBody.slice(
+      functionBody.indexOf('P7.9.5: phase1 attention_required'),
+      functionBody.indexOf('inventory_migration_phase2_another_step_running'),
+    )
+    expect(ackGate).toContain("v_prior_result_status = 'attention_required'")
+    expect(ackGate).toContain('if not v_ack_exists')
+    expect(functionBody).not.toContain('acknowledge_inventory_migration_stage_attention')
+  })
+
   it('does not accept force/overwrite, result status, or target rows', () => {
     expect(functionBody).not.toMatch(/\bp_force\b/)
     expect(functionBody).not.toMatch(/\bp_overwrite\b/)

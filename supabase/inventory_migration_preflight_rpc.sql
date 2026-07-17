@@ -8,6 +8,7 @@
 --   4. inventory_migration_step_results.sql (P7.8.5)
 --   5. inventory_migration_start_session_rpc.sql (bootstrap steps)
 --   6. inventory_migration_integrity_audit_rpc.sql (prior stage; not modified)
+--   7. inventory_migration_stage_attention_acknowledgements.sql (P7.9.4; read-only here)
 -- Do NOT auto-run from the app.
 --
 -- Purpose:
@@ -19,12 +20,17 @@
 -- Business data (map / stock / inventory / movements): READ-ONLY.
 -- Writes only: session_steps lifecycle, step_results, activity.
 --
+-- P7.9.5 attention gate (integrity_audit → preflight):
+--   If integrity_audit result_status = attention_required, require an
+--   acknowledgement for next_step_name = preflight. passed needs no ack.
+--
 -- Does NOT:
 --   - Call transition_inventory_migration_step
 --   - Accept caller-supplied metrics / result_status / evidence
 --   - Mutate inventory_stock_item_map / stock_items / stock_movements
 --   - Execute preview / phase1 / phase2
 --   - Change UI, services, or other stage RPCs
+--   - Create acknowledgements
 --
 -- Idempotency:
 --   If preflight is already completed or a result row exists → reject.
@@ -66,6 +72,9 @@ declare
   v_existing_result_id uuid := null;
   v_pred_incomplete boolean := false;
   v_other_running boolean := false;
+  v_prior_result_id uuid := null;
+  v_prior_result_status text := null;
+  v_ack_exists boolean := false;
 
   v_total bigint := 0;
   v_missing_stock bigint := 0;
@@ -205,7 +214,6 @@ begin
 
   -- Prerequisites: foundation → integrity_audit must be completed
   -- (same predecessor set as the generic state-only transition rule for preflight).
-  -- Result status of prior stages is not required (attention_required is allowed).
   select exists (
     select 1
     from unnest(array[
@@ -228,6 +236,35 @@ begin
 
   if v_pred_incomplete then
     raise exception 'inventory_migration_preflight_prerequisite_incomplete';
+  end if;
+
+  -- P7.9.5: integrity_audit attention_required requires acknowledgement for preflight.
+  select r.id, r.result_status
+  into v_prior_result_id, v_prior_result_status
+  from public.inventory_migration_step_results r
+  where r.session_id = p_session_id
+    and r.workspace_id = p_workspace_id
+    and r.step_name = 'integrity_audit'
+  limit 1;
+
+  if v_prior_result_id is null then
+    raise exception 'inventory_migration_preflight_prior_result_missing';
+  end if;
+
+  if v_prior_result_status = 'attention_required' then
+    select exists (
+      select 1
+      from public.inventory_migration_stage_attention_acknowledgements a
+      where a.prior_result_id = v_prior_result_id
+        and a.next_step_name = 'preflight'
+        and a.session_id = p_session_id
+        and a.workspace_id = p_workspace_id
+    )
+    into v_ack_exists;
+
+    if not v_ack_exists then
+      raise exception 'inventory_migration_preflight_attention_acknowledgement_required';
+    end if;
   end if;
 
   select exists (

@@ -25,7 +25,10 @@
 --   - Execute Phase 2 / post_apply_audit
 --   - Call the generic state-only step transition RPC
 --
--- Prerequisites: foundation → preview completed (result_status not required).
+-- Prerequisites: foundation → preview completed.
+-- P7.9.5 attention gate (preview → phase1):
+--   If preview result_status = attention_required, require acknowledgement
+--   for next_step_name = phase1. passed needs no ack.
 -- Idempotency (step): reject if already completed / result exists.
 -- Idempotency (movements): deterministic note; second run prevents duplicates.
 -- Per-row unexpected errors counted via subtransaction (P7.4.9).
@@ -62,6 +65,9 @@ declare
   v_existing_result_id uuid := null;
   v_pred_incomplete boolean := false;
   v_other_running boolean := false;
+  v_prior_result_id uuid := null;
+  v_prior_result_status text := null;
+  v_ack_exists boolean := false;
 
   cand record;
   locked record;
@@ -197,7 +203,7 @@ begin
     raise exception 'inventory_migration_phase1_invalid_step_state';
   end if;
 
-  -- Prerequisites: foundation → preview completed (result_status not required).
+  -- Prerequisites: foundation → preview completed.
   select exists (
     select 1
     from unnest(array[
@@ -222,6 +228,35 @@ begin
 
   if v_pred_incomplete then
     raise exception 'inventory_migration_phase1_prerequisite_incomplete';
+  end if;
+
+  -- P7.9.5: preview attention_required requires acknowledgement for phase1.
+  select r.id, r.result_status
+  into v_prior_result_id, v_prior_result_status
+  from public.inventory_migration_step_results r
+  where r.session_id = p_session_id
+    and r.workspace_id = p_workspace_id
+    and r.step_name = 'preview'
+  limit 1;
+
+  if v_prior_result_id is null then
+    raise exception 'inventory_migration_phase1_prior_result_missing';
+  end if;
+
+  if v_prior_result_status = 'attention_required' then
+    select exists (
+      select 1
+      from public.inventory_migration_stage_attention_acknowledgements a
+      where a.prior_result_id = v_prior_result_id
+        and a.next_step_name = 'phase1'
+        and a.session_id = p_session_id
+        and a.workspace_id = p_workspace_id
+    )
+    into v_ack_exists;
+
+    if not v_ack_exists then
+      raise exception 'inventory_migration_phase1_attention_acknowledgement_required';
+    end if;
   end if;
 
   select exists (

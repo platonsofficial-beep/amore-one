@@ -76,6 +76,22 @@ describe('inventory_migration_phase1_rpc.sql source review', () => {
     expect(predBlock).not.toContain("'post_apply_audit'")
   })
 
+  it('enforces attention acknowledgement for preview → phase1', () => {
+    expect(functionBody).toContain("r.step_name = 'preview'")
+    expect(functionBody).toContain("v_prior_result_status = 'attention_required'")
+    expect(functionBody).toContain("a.next_step_name = 'phase1'")
+    expect(functionBody).toContain('inventory_migration_stage_attention_acknowledgements')
+    expect(functionBody).toContain('inventory_migration_phase1_attention_acknowledgement_required')
+    expect(functionBody).toContain('inventory_migration_phase1_prior_result_missing')
+    const ackGate = functionBody.slice(
+      functionBody.indexOf('P7.9.5: preview attention_required'),
+      functionBody.indexOf('inventory_migration_phase1_another_step_running'),
+    )
+    expect(ackGate).toContain("v_prior_result_status = 'attention_required'")
+    expect(ackGate).toContain('if not v_ack_exists')
+    expect(functionBody).not.toContain('acknowledge_inventory_migration_stage_attention')
+  })
+
   it('does not accept caller-supplied rows, quantities, or evidence', () => {
     expect(functionBody).not.toMatch(/\bp_quantity\b/)
     expect(functionBody).not.toMatch(/\bp_stock_item_id\b/)
