@@ -270,8 +270,11 @@
 }
 
 .app-shell.stock-focus-mode .main-panel-stock {
-  padding: 12px 18px 16px;
-  gap: 8px;
+  padding:
+    max(8px, env(safe-area-inset-top, 0px))
+    20px
+    max(16px, env(safe-area-inset-bottom, 0px));
+  gap: 6px;
   width: 100%;
   max-width: none;
   min-width: 0;
@@ -283,8 +286,8 @@
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 12px;
-  padding: 4px 6px 8px;
+  gap: 10px 12px;
+  padding: 0 0 2px;
   flex-shrink: 0;
 }
 
@@ -299,15 +302,35 @@
 }
 
 .stock-focus-search {
+  display: flex;
+  align-items: center;
   margin-left: auto;
   max-width: min(360px, 100%);
-  flex: 1 1 220px;
+  flex: 1 1 240px;
+  min-height: 44px;
+  box-sizing: border-box;
+}
+
+.stock-focus-search input {
+  width: 100%;
+  min-width: 0;
 }
 
 .app-shell.stock-focus-mode .module-section-tabs {
-  padding-inline: 6px;
-  padding-bottom: 12px;
+  padding: 0 0 10px;
+  gap: 8px;
 }
+
+@media (max-width: 1180px) {
+  .app-shell.stock-focus-mode .main-panel-stock {
+    padding-inline: 16px;
+  }
+
+  .stock-focus-search {
+    max-width: none;
+  }
+}
+
 .main-panel-dashboard {
   padding: 18px 22px 24px;
   gap: 18px;
