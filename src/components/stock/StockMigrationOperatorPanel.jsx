@@ -71,6 +71,7 @@ export function StockMigrationOperatorPanel({
   sessionStepRows = [],
   sessionStepResults = [],
   stageAttentionAcknowledgements = [],
+  activityRows = [],
   isWorkspaceReady = false,
   onRefresh = null,
 }) {
@@ -84,6 +85,7 @@ export function StockMigrationOperatorPanel({
   const acknowledgements = Array.isArray(stageAttentionAcknowledgements)
     ? stageAttentionAcknowledgements
     : []
+  const activityList = Array.isArray(activityRows) ? activityRows : []
 
   const [pendingCommandId, setPendingCommandId] = useState(null)
   const [commandError, setCommandError] = useState('')
@@ -231,6 +233,7 @@ export function StockMigrationOperatorPanel({
       data-session-step-rows={stepRows.length}
       data-session-step-results={stepResults.length}
       data-stage-attention-acknowledgements={acknowledgements.length}
+      data-activity-rows={activityList.length}
     >
       <div className="stock-migration-panel-header">
         <h3 className="stock-migration-panel-title">Migration Operator</h3>

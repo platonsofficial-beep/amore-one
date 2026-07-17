@@ -99,6 +99,14 @@ export function StockInventoryMigrationView({
   )
   const sessionRunning = sessionSummary?.statusKey === MIGRATION_SESSION_STATUS.RUNNING
 
+  // Activity service is workspace-scoped; Operator Panel needs current-session rows only.
+  // Filter preserves row objects and existing newest-first order.
+  const operatorActivityRows = useMemo(() => {
+    const list = Array.isArray(activityRows) ? activityRows : []
+    if (!resolvedSessionId) return []
+    return list.filter((row) => `${row?.sessionId ?? ''}`.trim() === resolvedSessionId)
+  }, [activityRows, resolvedSessionId])
+
   useEffect(() => {
     let cancelled = false
 
@@ -309,6 +317,7 @@ export function StockInventoryMigrationView({
         sessionStepRows={sessionStepRows}
         sessionStepResults={sessionStepResults}
         stageAttentionAcknowledgements={stageAttentionAcknowledgements}
+        activityRows={operatorActivityRows}
         isWorkspaceReady={isWorkspaceReady}
         onRefresh={refreshMigrationState}
       />

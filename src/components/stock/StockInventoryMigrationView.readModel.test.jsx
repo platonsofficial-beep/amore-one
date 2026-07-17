@@ -33,6 +33,38 @@ const acknowledgementsFixture = Object.freeze([
   }),
 ])
 
+const OTHER_SESSION_ID = 'sess-99999999-9999-9999-9999-999999999999'
+
+const activityCurrentNewer = Object.freeze({
+  id: 'act-1',
+  sessionId: SESSION_ID,
+  activityType: 'session_started',
+  activity: 'Session started',
+  createdAt: '2026-07-17T12:00:00.000Z',
+})
+
+const activityOtherSession = Object.freeze({
+  id: 'act-2',
+  sessionId: OTHER_SESSION_ID,
+  activityType: 'session_cancelled',
+  activity: 'Session cancelled',
+  createdAt: '2026-07-17T11:00:00.000Z',
+})
+
+const activityCurrentOlder = Object.freeze({
+  id: 'act-3',
+  sessionId: SESSION_ID,
+  activityType: 'note',
+  activity: 'Foundation completed.',
+  createdAt: '2026-07-17T10:00:00.000Z',
+})
+
+const activityRowsFixture = Object.freeze([
+  activityCurrentNewer,
+  activityOtherSession,
+  activityCurrentOlder,
+])
+
 const serviceMocks = vi.hoisted(() => ({
   getInventoryMigrationMetrics: vi.fn(),
   getInventoryMigrationSessionSummary: vi.fn(),
@@ -83,6 +115,7 @@ vi.mock('./StockMigrationOperatorPanel', () => ({
       'data-acks': Array.isArray(props.stageAttentionAcknowledgements)
         ? props.stageAttentionAcknowledgements.length
         : 0,
+      'data-activity-rows': Array.isArray(props.activityRows) ? props.activityRows.length : 0,
     })
   },
 }))
@@ -142,7 +175,7 @@ function resetServiceMocks() {
   })
 
   serviceMocks.getInventoryMigrationActivity.mockResolvedValue({
-    rows: [],
+    rows: activityRowsFixture,
     error: null,
     unavailable: false,
     activityAvailable: true,
@@ -226,6 +259,25 @@ describe('StockInventoryMigrationView eligibility read model', () => {
     expect(operatorPanelProps.latest.sessionStepRows).toBe(stepRowsFixture)
     expect(operatorPanelProps.latest.sessionStepResults).toEqual(stepResultsFixture)
     expect(operatorPanelProps.latest.stageAttentionAcknowledgements).toEqual(acknowledgementsFixture)
+    expect(operatorPanelProps.latest.activityRows).toEqual([
+      activityCurrentNewer,
+      activityCurrentOlder,
+    ])
+    expect(operatorPanelProps.latest.activityRows[0]).toBe(activityCurrentNewer)
+    expect(operatorPanelProps.latest.activityRows[1]).toBe(activityCurrentOlder)
+  })
+
+  it('forwards an empty activity array when no current-session activity exists', async () => {
+    serviceMocks.getInventoryMigrationActivity.mockResolvedValue({
+      rows: [activityOtherSession],
+      error: null,
+      unavailable: false,
+      activityAvailable: true,
+    })
+
+    await renderView()
+
+    expect(operatorPanelProps.latest.activityRows).toEqual([])
   })
 
   it('skips results and acknowledgement loads when no session exists', async () => {
@@ -261,14 +313,16 @@ describe('StockInventoryMigrationView eligibility read model', () => {
     expect(operatorPanelProps.latest.sessionRunning).toBe(false)
     expect(operatorPanelProps.latest.sessionStepResults).toEqual([])
     expect(operatorPanelProps.latest.stageAttentionAcknowledgements).toEqual([])
+    expect(operatorPanelProps.latest.activityRows).toEqual([])
   })
 
-  it('reloads steps, results, and acknowledgements through the existing refresh flow', async () => {
+  it('reloads steps, results, acknowledgements, and activity through the existing refresh flow', async () => {
     await renderView()
 
     expect(serviceMocks.getInventoryMigrationSessionSteps).toHaveBeenCalledTimes(1)
     expect(serviceMocks.getInventoryMigrationStepResults).toHaveBeenCalledTimes(1)
     expect(serviceMocks.getInventoryMigrationStageAttentionAcknowledgements).toHaveBeenCalledTimes(1)
+    expect(serviceMocks.getInventoryMigrationActivity).toHaveBeenCalledTimes(1)
 
     await act(async () => {
       await operatorPanelProps.latest.onRefresh()
@@ -280,10 +334,15 @@ describe('StockInventoryMigrationView eligibility read model', () => {
     expect(serviceMocks.getInventoryMigrationSessionSteps).toHaveBeenCalledTimes(2)
     expect(serviceMocks.getInventoryMigrationStepResults).toHaveBeenCalledTimes(2)
     expect(serviceMocks.getInventoryMigrationStageAttentionAcknowledgements).toHaveBeenCalledTimes(2)
+    expect(serviceMocks.getInventoryMigrationActivity).toHaveBeenCalledTimes(2)
     expect(serviceMocks.getInventoryMigrationStepResults).toHaveBeenLastCalledWith(
       WORKSPACE_ID,
       { sessionId: SESSION_ID },
     )
+    expect(operatorPanelProps.latest.activityRows).toEqual([
+      activityCurrentNewer,
+      activityCurrentOlder,
+    ])
   })
 
   it('does not invoke execution wrappers while loading the read model', async () => {
