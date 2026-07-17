@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   buildInventoryMigrationHealth,
   buildInventoryMigrationPipeline,
@@ -82,6 +82,11 @@ export function StockInventoryMigrationView({
   const [sessionStepsError, setSessionStepsError] = useState('')
   const [sessionStepsUnavailable, setSessionStepsUnavailable] = useState(false)
   const [sessionStepsAvailable, setSessionStepsAvailable] = useState(false)
+  const [reloadNonce, setReloadNonce] = useState(0)
+
+  const refreshMigrationState = useCallback(() => {
+    setReloadNonce((current) => current + 1)
+  }, [])
 
   useEffect(() => {
     let cancelled = false
@@ -160,7 +165,7 @@ export function StockInventoryMigrationView({
     return () => {
       cancelled = true
     }
-  }, [workspaceId, isWorkspaceReady])
+  }, [workspaceId, isWorkspaceReady, reloadNonce])
 
   const migrationStatus = metricsAvailable
     ? resolveInventoryMigrationStatus(metrics)
@@ -256,7 +261,17 @@ export function StockInventoryMigrationView({
         sessionAvailable={sessionAvailable}
       />
 
-      <StockMigrationOperatorPanel operator={operator} />
+      <StockMigrationOperatorPanel
+        operator={operator}
+        workspaceId={workspaceId}
+        sessionId={
+          sessionSummary?.sessionId && sessionSummary.sessionId !== '—'
+            ? sessionSummary.sessionId
+            : ''
+        }
+        isWorkspaceReady={isWorkspaceReady}
+        onRefresh={refreshMigrationState}
+      />
 
       <div className="stock-migration-main">
         <div className="stock-migration-main-column">
