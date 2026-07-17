@@ -9,6 +9,7 @@ import {
   formatMigrationOperatorCommandSuccess,
 } from '../../lib/inventoryMigrationOperatorFeedback'
 import { presentMigrationActivityTimeline } from '../../lib/inventoryMigrationActivityPresentation'
+import { buildMigrationOperatorSessionSummary } from '../../lib/inventoryMigrationSessionSummary'
 import {
   acknowledgeInventoryMigrationStageAttention,
   cancelInventoryMigrationSession,
@@ -100,6 +101,14 @@ export function StockMigrationOperatorPanel({
   const resolvedWorkspaceId = `${workspaceId ?? ''}`.trim()
   const resolvedSessionId = resolveSessionId(sessionId)
   const workspaceReady = Boolean(isWorkspaceReady && resolvedWorkspaceId)
+
+  const sessionSummary = buildMigrationOperatorSessionSummary({
+    sessionId: resolvedSessionId,
+    sessionRunning: Boolean(sessionRunning),
+    sessionStepRows: stepRows,
+    sessionStepResults: stepResults,
+    stageAttentionAcknowledgements: acknowledgements,
+  })
 
   const stageFeedback = buildMigrationOperatorStageFeedback({
     sessionId: resolvedSessionId,
@@ -242,6 +251,67 @@ export function StockMigrationOperatorPanel({
         <p className="stock-migration-panel-copy">
           Explicit operator commands for the current workspace. One action runs one RPC.
         </p>
+      </div>
+
+      <div
+        className="stock-migration-operator-section"
+        aria-label="Session summary"
+        data-session-summary="true"
+      >
+        <h4 className="stock-migration-operator-section-title">Session Summary</h4>
+        <div className="stock-migration-operator-grid">
+          <div className="stock-migration-operator-current">
+            <p className="stock-migration-operator-label">Session</p>
+            <p className="stock-migration-operator-check-description">
+              Status: {sessionSummary.status}
+            </p>
+            <p className="stock-migration-operator-check-description">
+              Current stage: {sessionSummary.currentStage}
+            </p>
+            <p className="stock-migration-operator-check-description">
+              Started at: {sessionSummary.startedAt}
+            </p>
+            <p className="stock-migration-operator-check-description">
+              Completed at: {sessionSummary.completedAt}
+            </p>
+          </div>
+
+          <div className="stock-migration-operator-action-card">
+            <p className="stock-migration-operator-label">Progress</p>
+            <p className="stock-migration-operator-check-description">
+              Total stages: {sessionSummary.totalStages}
+            </p>
+            <p className="stock-migration-operator-check-description">
+              Completed: {sessionSummary.completedStages}
+            </p>
+            <p className="stock-migration-operator-check-description">
+              Waiting: {sessionSummary.waitingStages}
+            </p>
+            <p className="stock-migration-operator-check-description">
+              Running: {sessionSummary.runningStage}
+            </p>
+          </div>
+
+          <div className="stock-migration-operator-current">
+            <p className="stock-migration-operator-label">Results</p>
+            <p className="stock-migration-operator-check-description">
+              Passed: {sessionSummary.passedStages}
+            </p>
+            <p className="stock-migration-operator-check-description">
+              Attention required: {sessionSummary.attentionRequiredStages}
+            </p>
+            <p className="stock-migration-operator-check-description">
+              Acknowledged: {sessionSummary.acknowledgedAttentionItems}
+            </p>
+          </div>
+
+          <div className="stock-migration-operator-action-card">
+            <p className="stock-migration-operator-label">Execution</p>
+            <p className="stock-migration-operator-check-description">
+              Duration: {sessionSummary.duration}
+            </p>
+          </div>
+        </div>
       </div>
 
       <div className="stock-migration-operator-grid">
