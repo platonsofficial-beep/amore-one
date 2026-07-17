@@ -16,6 +16,7 @@ export const TEAM_SECTIONS = [
 
 export const STOCK_SECTIONS = [
   { id: 'dashboard', label: 'Dashboard' },
+  { id: 'count', label: 'Inventory Count' },
   { id: 'inventory', label: 'Inventory' },
   { id: 'suppliers', label: 'Suppliers' },
   { id: 'orders', label: 'Orders' },
@@ -44,7 +45,6 @@ const LEGACY_ACTIVE_VIEW_MAP = {
   schedule: { activeView: 'team', teamSection: 'schedule' },
   reservations: { activeView: 'reservations' },
   suppliers: { activeView: 'stock', stockSection: 'suppliers' },
-  stock: { activeView: 'stock', stockSection: 'dashboard' },
   tasks: { activeView: 'operations', operationsSection: 'dashboard' },
   reports: { activeView: 'insights' },
   settings: { activeView: 'settings' },
@@ -122,6 +122,7 @@ export function getModuleTitle(activeView, {
     return 'Team'
   }
   if (activeView === 'stock') {
+    if (stockSection === 'count') return 'Inventory Count'
     if (stockSection === 'suppliers') return 'Suppliers'
     if (stockSection === 'inventory') return 'Inventory'
     if (stockSection === 'orders') return 'Orders'
@@ -150,6 +151,9 @@ export function getModuleSubtitle(activeView, currentDateLabel, {
   if (activeView === 'team' && teamSection === 'members') return 'Manage your team.'
   if (activeView === 'team' && teamSection === 'schedule') return ''
   if (activeView === 'stock' && stockSection === 'dashboard') return 'Stock levels, movements, and alerts.'
+  if (activeView === 'stock' && stockSection === 'count') {
+    return 'Count inventory by location, review variances, and post verified stock levels.'
+  }
   if (activeView === 'stock' && stockSection === 'inventory') return 'Inventory levels and replenishment.'
   if (activeView === 'stock' && stockSection === 'suppliers') return 'Supplier contacts, products, and purchase history.'
   if (activeView === 'stock' && stockSection === 'orders') return 'Supplier purchase orders and receiving.'
@@ -171,6 +175,7 @@ export function getSearchPlaceholder(activeView, {
   if (activeView === 'team' && teamSection === 'members') return 'Search employee'
   if (activeView === 'stock' && stockSection === 'orders') return 'Search order #, supplier, product'
   if (activeView === 'stock' && (stockSection === 'dashboard' || stockSection === 'inventory')) return 'Search stock item'
+  if (activeView === 'stock' && stockSection === 'count') return 'Search counts'
   if (activeView === 'stock' && stockSection === 'suppliers') return 'Search supplier'
   if (activeView === 'stock' && stockSection === 'migration') return 'Search migration stages'
   if (activeView === 'operations' && operationsSection === 'checklists') return 'Search checklists'

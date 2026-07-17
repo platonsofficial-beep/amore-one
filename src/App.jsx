@@ -511,6 +511,7 @@ import {
   getAvailableIdentityColorsForWorkspace,
 } from './services/employeeIdentityService'
 import { StockDashboardView } from './components/stock/StockDashboardView'
+import { InventoryCountView } from './components/stock/InventoryCountView'
 import { StockOrdersView } from './components/stock/StockOrdersView'
 import { StockSuppliersView } from './components/stock/StockSuppliersView'
 import { StockInventoryMigrationView } from './components/stock/StockInventoryMigrationView'
@@ -24296,6 +24297,10 @@ function App() {
             onOpenOrders={handleOpenStockOrders}
             isSavingOrders={isSavingStockOrder}
           />
+        ) : null}
+
+        {isActiveViewAllowed && activeView === 'stock' && stockSection === 'count' ? (
+          <InventoryCountView />
         ) : null}
 
         {isActiveViewAllowed && activeView === 'stock' && stockSection === 'orders' ? (
