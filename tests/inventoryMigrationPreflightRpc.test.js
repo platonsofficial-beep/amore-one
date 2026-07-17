@@ -78,20 +78,89 @@ describe('inventory_migration_preflight_rpc.sql source review', () => {
     expect(functionBody).toContain("status is distinct from 'waiting'")
   })
 
-  it('enforces attention acknowledgement for integrity_audit → preflight', () => {
-    expect(functionBody).toContain("r.step_name = 'integrity_audit'")
-    expect(functionBody).toContain("v_prior_result_status = 'attention_required'")
-    expect(functionBody).toContain("a.next_step_name = 'preflight'")
-    expect(functionBody).toContain('inventory_migration_stage_attention_acknowledgements')
-    expect(functionBody).toContain('inventory_migration_preflight_attention_acknowledgement_required')
-    expect(functionBody).toContain('inventory_migration_preflight_prior_result_missing')
-    const ackGate = functionBody.slice(
-      functionBody.indexOf('P7.9.5: integrity_audit attention_required'),
-      functionBody.indexOf('inventory_migration_preflight_another_step_running'),
+  describe('P7.9.5 attention gate: integrity_audit → preflight', () => {
+    const prereqEndAt = functionBody.indexOf(
+      "raise exception 'inventory_migration_preflight_prerequisite_incomplete'",
     )
-    expect(ackGate).toContain("v_prior_result_status = 'attention_required'")
-    expect(ackGate).toContain('if not v_ack_exists')
-    expect(functionBody).not.toContain('acknowledge_inventory_migration_stage_attention')
+    const ackMarkerAt = functionBody.indexOf(
+      'P7.9.5: integrity_audit attention_required requires acknowledgement for preflight',
+    )
+    const runningAt = functionBody.indexOf('-- waiting → running')
+    const ackGate = functionBody.slice(ackMarkerAt, runningAt)
+    const attentionBranchStart = ackGate.indexOf(
+      "if v_prior_result_status = 'attention_required' then",
+    )
+    const attentionBranch = ackGate.slice(
+      attentionBranchStart,
+      ackGate.indexOf('end if;', attentionBranchStart),
+    )
+
+    it('runs after prerequisite completion and before waiting → running', () => {
+      expect(prereqEndAt).toBeGreaterThan(-1)
+      expect(ackMarkerAt).toBeGreaterThan(prereqEndAt)
+      expect(runningAt).toBeGreaterThan(ackMarkerAt)
+      expect(ackGate).toContain("r.step_name = 'integrity_audit'")
+    })
+
+    it('Case 1: prior result passed never requires acknowledgement and proceeds past the gate', () => {
+      expect(ackGate).toContain("if v_prior_result_status = 'attention_required' then")
+      expect(ackGate).not.toContain("v_prior_result_status = 'passed'")
+      expect(ackGate).not.toMatch(
+        /if v_prior_result_status = 'passed'[\s\S]*attention_acknowledgement_required/,
+      )
+      expect(attentionBranch).toContain('inventory_migration_stage_attention_acknowledgements')
+      expect(attentionBranch).toContain(
+        'inventory_migration_preflight_attention_acknowledgement_required',
+      )
+      const beforeBranch = ackGate.slice(0, attentionBranchStart)
+      expect(beforeBranch).not.toContain('attention_acknowledgement_required')
+      expect(beforeBranch).not.toContain('inventory_migration_stage_attention_acknowledgements')
+    })
+
+    it('Case 2: attention_required with matching acknowledgement proceeds (raise only when missing)', () => {
+      expect(attentionBranch).toContain('a.prior_result_id = v_prior_result_id')
+      expect(attentionBranch).toContain("a.next_step_name = 'preflight'")
+      expect(attentionBranch).toContain('a.session_id = p_session_id')
+      expect(attentionBranch).toContain('a.workspace_id = p_workspace_id')
+      expect(attentionBranch).toMatch(
+        /select exists \([\s\S]*into v_ack_exists[\s\S]*if not v_ack_exists then[\s\S]*inventory_migration_preflight_attention_acknowledgement_required/,
+      )
+      expect(attentionBranch).not.toMatch(
+        /if v_ack_exists then[\s\S]*attention_acknowledgement_required/,
+      )
+    })
+
+    it('Case 3: attention_required without acknowledgement raises acknowledgement_required', () => {
+      expect(attentionBranch).toContain('if not v_ack_exists')
+      expect(attentionBranch).toContain(
+        "raise exception 'inventory_migration_preflight_attention_acknowledgement_required'",
+      )
+    })
+
+    it('Case 4: missing prior integrity_audit result raises prior_result_missing', () => {
+      expect(ackGate).toContain('if v_prior_result_id is null then')
+      expect(ackGate).toContain(
+        "raise exception 'inventory_migration_preflight_prior_result_missing'",
+      )
+      const missingAt = ackGate.indexOf('inventory_migration_preflight_prior_result_missing')
+      expect(missingAt).toBeGreaterThan(-1)
+      expect(attentionBranchStart).toBeGreaterThan(missingAt)
+    })
+
+    it('looks up acknowledgement by prior_result_id and next_step_name only; never creates ack or mutates results', () => {
+      expect(attentionBranch).toContain('a.prior_result_id = v_prior_result_id')
+      expect(attentionBranch).toContain("a.next_step_name = 'preflight'")
+      expect(attentionBranch).not.toContain("a.next_step_name = 'phase1'")
+      expect(attentionBranch).not.toContain("a.next_step_name = 'phase2'")
+      expect(functionBody).not.toContain('acknowledge_inventory_migration_stage_attention')
+      expect(functionBody).not.toMatch(
+        /insert into public\.inventory_migration_stage_attention_acknowledgements/i,
+      )
+      expect(functionBody).not.toMatch(/update public\.inventory_migration_step_results/i)
+      expect(functionBody).not.toMatch(
+        /update public\.inventory_migration_stage_attention_acknowledgements/i,
+      )
+    })
   })
 
   it('does not accept caller-controlled result status, evidence, or step name', () => {
