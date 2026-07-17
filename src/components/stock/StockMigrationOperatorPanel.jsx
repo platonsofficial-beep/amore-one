@@ -5,6 +5,10 @@
 import { useState } from 'react'
 import { resolveMigrationOperatorCommandEligibility } from '../../lib/inventoryMigrationOperatorEligibility'
 import {
+  buildMigrationOperatorStageFeedback,
+  formatMigrationOperatorCommandSuccess,
+} from '../../lib/inventoryMigrationOperatorFeedback'
+import {
   acknowledgeInventoryMigrationStageAttention,
   cancelInventoryMigrationSession,
   completeInventoryMigrationFoundationStep,
@@ -83,6 +87,7 @@ export function StockMigrationOperatorPanel({
 
   const [pendingCommandId, setPendingCommandId] = useState(null)
   const [commandError, setCommandError] = useState('')
+  const [commandSuccess, setCommandSuccess] = useState('')
   const [confirmMaintenanceWindow, setConfirmMaintenanceWindow] = useState(false)
   const [ackPriorResultId, setAckPriorResultId] = useState('')
   const [ackNextStepName, setAckNextStepName] = useState('preflight')
@@ -91,6 +96,13 @@ export function StockMigrationOperatorPanel({
   const resolvedWorkspaceId = `${workspaceId ?? ''}`.trim()
   const resolvedSessionId = resolveSessionId(sessionId)
   const workspaceReady = Boolean(isWorkspaceReady && resolvedWorkspaceId)
+
+  const stageFeedback = buildMigrationOperatorStageFeedback({
+    sessionId: resolvedSessionId,
+    sessionStepRows: stepRows,
+    sessionStepResults: stepResults,
+    stageAttentionAcknowledgements: acknowledgements,
+  })
 
   const eligibilityContext = {
     workspaceId: workspaceReady ? resolvedWorkspaceId : '',
@@ -115,13 +127,16 @@ export function StockMigrationOperatorPanel({
     if (!eligibility.enabled) return
 
     setCommandError('')
+    setCommandSuccess('')
     setPendingCommandId(commandId)
     try {
       await execute()
+      setCommandSuccess(formatMigrationOperatorCommandSuccess(commandId))
       if (typeof onRefresh === 'function') {
         await onRefresh()
       }
     } catch (error) {
+      setCommandSuccess('')
       setCommandError(formatCommandError(error))
     } finally {
       setPendingCommandId(null)
@@ -254,6 +269,42 @@ export function StockMigrationOperatorPanel({
       </div>
 
       <div className="stock-migration-operator-section">
+        <h4 className="stock-migration-operator-section-title">Stage Execution State</h4>
+        <p className="stock-migration-panel-copy">
+          Live step, result, and acknowledgement state from the current session.
+        </p>
+        <ul className="stock-migration-operator-checklist" aria-label="Stage execution state">
+          {stageFeedback.map((stage) => (
+            <li
+              key={stage.id}
+              className="stock-migration-operator-check-row"
+              data-stage-id={stage.id}
+              data-step-status={stage.stepStatus}
+              data-result-status={stage.resultStatus}
+              data-acknowledgement={stage.acknowledgement}
+            >
+              <div className="stock-migration-operator-check-copy">
+                <p className="stock-migration-operator-check-title">{stage.title}</p>
+                <p className="stock-migration-operator-check-description">
+                  Result: {stage.resultStatus}
+                  {stage.acknowledgement === 'required'
+                    ? ' · Acknowledgement required'
+                    : stage.acknowledgement === 'acknowledged'
+                      ? ' · Acknowledgement recorded'
+                      : stage.acknowledgement === 'not required'
+                        ? ' · Acknowledgement not required'
+                        : ''}
+                </p>
+              </div>
+              <span className={`stock-migration-operator-status ${statusClass(stage.stepStatus)}`}>
+                {stage.stepStatus}
+              </span>
+            </li>
+          ))}
+        </ul>
+      </div>
+
+      <div className="stock-migration-operator-section">
         <h4 className="stock-migration-operator-section-title">Operator Notes</h4>
         <ul className="stock-migration-operator-notes">
           {notes.map((note) => (
@@ -271,6 +322,12 @@ export function StockMigrationOperatorPanel({
         {commandError ? (
           <div className="staff-status-banner" role="alert">
             {commandError}
+          </div>
+        ) : null}
+
+        {commandSuccess ? (
+          <div className="staff-status-banner auth-banner-success" role="status">
+            {commandSuccess}
           </div>
         ) : null}
 

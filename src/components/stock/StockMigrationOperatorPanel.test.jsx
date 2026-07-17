@@ -366,4 +366,58 @@ describe('StockMigrationOperatorPanel command eligibility', () => {
     expect(container.textContent).toContain('inventory_migration_persist_prerequisite_incomplete')
     expect(onRefresh).not.toHaveBeenCalled()
   })
+
+  it('renders stage step/result/acknowledgement feedback from the read model', () => {
+    renderPanel({
+      sessionStepRows: [
+        step('foundation', 'completed'),
+        step('persist', 'running'),
+        step('integrity_audit', 'completed'),
+        step('preflight', 'waiting'),
+      ],
+      sessionStepResults: [
+        result('persist', 'passed'),
+        result('integrity_audit', 'attention_required', PRIOR_RESULT_ID),
+      ],
+      stageAttentionAcknowledgements: [],
+    })
+
+    const persistRow = container.querySelector('[data-stage-id="persist"]')
+    const preflightRow = container.querySelector('[data-stage-id="preflight"]')
+    const previewRow = container.querySelector('[data-stage-id="preview"]')
+
+    expect(persistRow?.getAttribute('data-step-status')).toBe('running')
+    expect(persistRow?.getAttribute('data-result-status')).toBe('passed')
+    expect(persistRow?.getAttribute('data-acknowledgement')).toBe('not required')
+    expect(preflightRow?.getAttribute('data-acknowledgement')).toBe('required')
+    expect(preflightRow?.textContent).toContain('Acknowledgement required')
+    expect(previewRow?.getAttribute('data-step-status')).toBe('unavailable')
+    expect(previewRow?.getAttribute('data-result-status')).toBe('unavailable')
+  })
+
+  it('shows acknowledgement recorded when matching ack exists', () => {
+    renderPanel({
+      sessionStepRows: [
+        step('integrity_audit', 'completed'),
+        step('preflight', 'waiting'),
+      ],
+      sessionStepResults: [result('integrity_audit', 'attention_required', PRIOR_RESULT_ID)],
+      stageAttentionAcknowledgements: [ack(PRIOR_RESULT_ID, 'preflight')],
+    })
+    const preflightRow = container.querySelector('[data-stage-id="preflight"]')
+    expect(preflightRow?.getAttribute('data-acknowledgement')).toBe('acknowledged')
+    expect(preflightRow?.textContent).toContain('Acknowledgement recorded')
+  })
+
+  it('shows success feedback after a successful RPC without changing refresh behaviour', async () => {
+    renderPanel()
+    clickCommand('persist')
+    await flush()
+
+    expect(container.querySelector('.auth-banner-success')?.textContent)
+      .toBe('Persist completed successfully.')
+    expect(onRefresh).toHaveBeenCalledTimes(1)
+    expect(executionMocks.runInventoryMigrationPersist).toHaveBeenCalledTimes(1)
+    expect(executionMocks.runInventoryMigrationAutoLink).not.toHaveBeenCalled()
+  })
 })
