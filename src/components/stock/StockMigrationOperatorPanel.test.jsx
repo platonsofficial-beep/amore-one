@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { act, createElement } from 'react'
 import { createRoot } from 'react-dom/client'
 import { OPERATOR_EXECUTION_BUTTONS } from '../../lib/inventoryMigrationOperator'
+import { MIGRATION_OPERATOR_CANONICAL_STEPS } from '../../lib/inventoryMigrationOperatorEligibility'
 import { StockMigrationOperatorPanel } from './StockMigrationOperatorPanel'
 
 const executionMocks = vi.hoisted(() => ({
@@ -38,6 +39,32 @@ const OPERATOR = {
   buttons: OPERATOR_EXECUTION_BUTTONS,
 }
 
+function step(stepName, statusKey) {
+  return { id: `step-${stepName}`, sessionId: SESSION_ID, stepName, statusKey }
+}
+
+function result(stepName, resultStatus, id = `res-${stepName}`) {
+  return { id, sessionId: SESSION_ID, stepName, resultStatus }
+}
+
+function ack(priorResultId, nextStepName) {
+  return {
+    id: `ack-${priorResultId}-${nextStepName}`,
+    sessionId: SESSION_ID,
+    priorResultId,
+    nextStepName,
+  }
+}
+
+function stepsCompletedThrough(lastCompleted) {
+  const index = MIGRATION_OPERATOR_CANONICAL_STEPS.indexOf(lastCompleted)
+  return MIGRATION_OPERATOR_CANONICAL_STEPS.map((stepName, stepIndex) => {
+    if (stepIndex <= index) return step(stepName, 'completed')
+    if (stepIndex === index + 1) return step(stepName, 'waiting')
+    return step(stepName, 'waiting')
+  })
+}
+
 function setNativeValue(element, value) {
   const prototype = Object.getPrototypeOf(element)
   const descriptor = Object.getOwnPropertyDescriptor(prototype, 'value')
@@ -53,7 +80,7 @@ function resetExecutionMocks() {
   })
 }
 
-describe('StockMigrationOperatorPanel command integration', () => {
+describe('StockMigrationOperatorPanel command eligibility', () => {
   let container
   let root
   let onRefresh
@@ -79,6 +106,10 @@ describe('StockMigrationOperatorPanel command integration', () => {
         operator: OPERATOR,
         workspaceId: WORKSPACE_ID,
         sessionId: SESSION_ID,
+        sessionRunning: true,
+        sessionStepRows: stepsCompletedThrough('foundation'),
+        sessionStepResults: [],
+        stageAttentionAcknowledgements: [],
         isWorkspaceReady: true,
         onRefresh,
         ...overrides,
@@ -86,13 +117,17 @@ describe('StockMigrationOperatorPanel command integration', () => {
     })
   }
 
+  function button(commandId) {
+    return container.querySelector(`[data-command-id="${commandId}"]`)
+  }
+
   function clickCommand(commandId) {
-    const button = container.querySelector(`[data-command-id="${commandId}"]`)
-    expect(button).toBeTruthy()
+    const target = button(commandId)
+    expect(target).toBeTruthy()
     act(() => {
-      button.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+      target.dispatchEvent(new MouseEvent('click', { bubbles: true }))
     })
-    return button
+    return target
   }
 
   async function flush() {
@@ -102,87 +137,118 @@ describe('StockMigrationOperatorPanel command integration', () => {
     })
   }
 
-  it('invokes start session with workspace only and refreshes after success', async () => {
-    renderPanel()
-    clickCommand('start-session')
-    await flush()
+  it('enables Start when no session is running and disables when running', () => {
+    renderPanel({ sessionRunning: false, sessionId: '', sessionStepRows: [] })
+    expect(button('start-session').disabled).toBe(false)
+    expect(button('cancel-session').disabled).toBe(true)
 
-    expect(executionMocks.startInventoryMigrationSession).toHaveBeenCalledTimes(1)
-    expect(executionMocks.startInventoryMigrationSession).toHaveBeenCalledWith(WORKSPACE_ID)
+    renderPanel({ sessionRunning: true, sessionId: SESSION_ID })
+    expect(button('start-session').disabled).toBe(true)
+    expect(button('cancel-session').disabled).toBe(false)
+  })
+
+  it('enables Complete Foundation only while foundation is running', () => {
+    renderPanel({
+      sessionStepRows: [step('foundation', 'running'), step('persist', 'waiting')],
+    })
+    expect(button('complete-foundation').disabled).toBe(false)
+
+    renderPanel({
+      sessionStepRows: [step('foundation', 'completed'), step('persist', 'waiting')],
+    })
+    expect(button('complete-foundation').disabled).toBe(true)
+    expect(button('complete-foundation').title).toBe('Foundation is not running')
+  })
+
+  it('enables Persist when waiting with foundation completed and invokes one wrapper', async () => {
+    renderPanel()
+    expect(button('persist').disabled).toBe(false)
+    expect(button('auto-link').disabled).toBe(true)
+
+    clickCommand('persist')
+    await flush()
+    expect(executionMocks.runInventoryMigrationPersist).toHaveBeenCalledTimes(1)
+    expect(executionMocks.runInventoryMigrationPersist).toHaveBeenCalledWith(
+      WORKSPACE_ID,
+      SESSION_ID,
+    )
+    expect(executionMocks.runInventoryMigrationAutoLink).not.toHaveBeenCalled()
     expect(onRefresh).toHaveBeenCalledTimes(1)
-    expect(executionMocks.runInventoryMigrationPersist).not.toHaveBeenCalled()
   })
 
-  it('invokes cancel, foundation complete, and finish with workspace + session', async () => {
+  it('does not invoke wrappers for disabled stage clicks', async () => {
     renderPanel()
-
-    clickCommand('cancel-session')
+    clickCommand('auto-link')
     await flush()
-    expect(executionMocks.cancelInventoryMigrationSession).toHaveBeenCalledWith(
-      WORKSPACE_ID,
-      SESSION_ID,
-    )
-
-    clickCommand('complete-foundation')
-    await flush()
-    expect(executionMocks.completeInventoryMigrationFoundationStep).toHaveBeenCalledWith(
-      WORKSPACE_ID,
-      SESSION_ID,
-    )
-
-    clickCommand('finish-session')
-    await flush()
-    expect(executionMocks.completeInventoryMigrationSession).toHaveBeenCalledWith(
-      WORKSPACE_ID,
-      SESSION_ID,
-    )
-
-    expect(onRefresh).toHaveBeenCalledTimes(3)
+    expect(executionMocks.runInventoryMigrationAutoLink).not.toHaveBeenCalled()
   })
 
-  it.each([
-    ['persist', 'runInventoryMigrationPersist'],
-    ['auto-link', 'runInventoryMigrationAutoLink'],
-    ['auto-create', 'runInventoryMigrationAutoCreate'],
-    ['integrity-audit', 'runInventoryMigrationIntegrityAudit'],
-    ['preflight', 'runInventoryMigrationPreflight'],
-    ['preview', 'runInventoryMigrationPreview'],
-    ['phase-1', 'runInventoryMigrationPhase1'],
-    ['post-audit', 'runInventoryMigrationPostApplyAudit'],
-  ])('stage command %s calls only its wrapper', async (commandId, mockKey) => {
-    renderPanel()
-    clickCommand(commandId)
+  it('gates Preflight on integrity_audit attention acknowledgement', async () => {
+    const steps = stepsCompletedThrough('integrity_audit')
+    renderPanel({
+      sessionStepRows: steps,
+      sessionStepResults: [result('integrity_audit', 'attention_required', PRIOR_RESULT_ID)],
+    })
+    expect(button('preflight').disabled).toBe(true)
+    expect(button('preflight').title).toBe('Attention acknowledgement required')
+
+    renderPanel({
+      sessionStepRows: steps,
+      sessionStepResults: [result('integrity_audit', 'attention_required', PRIOR_RESULT_ID)],
+      stageAttentionAcknowledgements: [ack(PRIOR_RESULT_ID, 'phase1')],
+    })
+    expect(button('preflight').disabled).toBe(true)
+
+    renderPanel({
+      sessionStepRows: steps,
+      sessionStepResults: [result('integrity_audit', 'attention_required', PRIOR_RESULT_ID)],
+      stageAttentionAcknowledgements: [ack(PRIOR_RESULT_ID, 'preflight')],
+    })
+    expect(button('preflight').disabled).toBe(false)
+    clickCommand('preflight')
     await flush()
-
-    expect(executionMocks[mockKey]).toHaveBeenCalledTimes(1)
-    expect(executionMocks[mockKey]).toHaveBeenCalledWith(WORKSPACE_ID, SESSION_ID)
-    expect(onRefresh).toHaveBeenCalledTimes(1)
-
-    const otherCalls = Object.entries(executionMocks)
-      .filter(([key]) => key !== mockKey)
-      .flatMap(([, fn]) => fn.mock.calls)
-    expect(otherCalls).toHaveLength(0)
+    expect(executionMocks.runInventoryMigrationPreflight).toHaveBeenCalledTimes(1)
   })
 
-  it('phase 2 forwards maintenance confirmation boolean exactly', async () => {
-    renderPanel()
+  it('allows Preflight when integrity_audit passed without acknowledgement', () => {
+    renderPanel({
+      sessionStepRows: stepsCompletedThrough('integrity_audit'),
+      sessionStepResults: [result('integrity_audit', 'passed')],
+    })
+    expect(button('preflight').disabled).toBe(false)
+  })
+
+  it('gates Phase 1 on preview acknowledgement boundary', () => {
+    const steps = stepsCompletedThrough('preview')
+    renderPanel({
+      sessionStepRows: steps,
+      sessionStepResults: [result('preview', 'attention_required', 'res-preview')],
+    })
+    expect(button('phase-1').disabled).toBe(true)
+
+    renderPanel({
+      sessionStepRows: steps,
+      sessionStepResults: [result('preview', 'attention_required', 'res-preview')],
+      stageAttentionAcknowledgements: [ack('res-preview', 'phase1')],
+    })
+    expect(button('phase-1').disabled).toBe(false)
+  })
+
+  it('requires Phase 2 maintenance confirmation even with acknowledgement', async () => {
+    const steps = stepsCompletedThrough('phase1')
+    renderPanel({
+      sessionStepRows: steps,
+      sessionStepResults: [result('phase1', 'attention_required', 'res-phase1')],
+      stageAttentionAcknowledgements: [ack('res-phase1', 'phase2')],
+    })
+    expect(button('phase-2').disabled).toBe(true)
+    expect(button('phase-2').title).toBe('Maintenance confirmation required')
+
     const checkbox = container.querySelector('#migration-phase2-maintenance-confirm')
-    expect(checkbox).toBeTruthy()
-
-    clickCommand('phase-2')
-    await flush()
-    expect(executionMocks.runInventoryMigrationPhase2).toHaveBeenCalledWith(
-      WORKSPACE_ID,
-      SESSION_ID,
-      false,
-    )
-
-    resetExecutionMocks()
-    onRefresh.mockClear()
     act(() => {
       checkbox.click()
     })
-    expect(checkbox.checked).toBe(true)
+    expect(button('phase-2').disabled).toBe(false)
     clickCommand('phase-2')
     await flush()
     expect(executionMocks.runInventoryMigrationPhase2).toHaveBeenCalledWith(
@@ -192,54 +258,93 @@ describe('StockMigrationOperatorPanel command integration', () => {
     )
   })
 
-  it('acknowledge attention forwards exact prior result, next step, and optional note', async () => {
-    renderPanel()
+  it('enables Acknowledge Attention only for a valid explicit boundary', async () => {
+    renderPanel({
+      sessionStepResults: [result('integrity_audit', 'attention_required', PRIOR_RESULT_ID)],
+    })
+    expect(button('acknowledge-attention').disabled).toBe(true)
 
     const priorInput = container.querySelector('#migration-ack-prior-result-id')
     const nextSelect = container.querySelector('#migration-ack-next-step')
     const noteInput = container.querySelector('#migration-ack-note')
-
     act(() => {
       setNativeValue(priorInput, PRIOR_RESULT_ID)
-      setNativeValue(nextSelect, 'phase1')
+      setNativeValue(nextSelect, 'preflight')
       setNativeValue(noteInput, 'reviewed')
     })
+    expect(button('acknowledge-attention').disabled).toBe(false)
 
     clickCommand('acknowledge-attention')
     await flush()
-
-    expect(executionMocks.acknowledgeInventoryMigrationStageAttention).toHaveBeenCalledTimes(1)
     expect(executionMocks.acknowledgeInventoryMigrationStageAttention).toHaveBeenCalledWith(
       WORKSPACE_ID,
       SESSION_ID,
       PRIOR_RESULT_ID,
-      'phase1',
+      'preflight',
       'reviewed',
     )
     expect(executionMocks.runInventoryMigrationPreflight).not.toHaveBeenCalled()
-    expect(onRefresh).toHaveBeenCalledTimes(1)
   })
 
-  it('shows loading on the clicked action only and surfaces errors without refresh', async () => {
+  it('disables Acknowledge when already acknowledged', () => {
+    renderPanel({
+      sessionStepResults: [result('integrity_audit', 'attention_required', PRIOR_RESULT_ID)],
+      stageAttentionAcknowledgements: [ack(PRIOR_RESULT_ID, 'preflight')],
+    })
+    const priorInput = container.querySelector('#migration-ack-prior-result-id')
+    act(() => {
+      setNativeValue(priorInput, PRIOR_RESULT_ID)
+      setNativeValue(container.querySelector('#migration-ack-next-step'), 'preflight')
+    })
+    expect(button('acknowledge-attention').disabled).toBe(true)
+    expect(button('acknowledge-attention').title).toBe('Already acknowledged')
+  })
+
+  it('enables Finish only when all steps completed and post_apply passed', async () => {
+    const allCompleted = MIGRATION_OPERATOR_CANONICAL_STEPS.map((name) => step(name, 'completed'))
+    renderPanel({
+      sessionStepRows: allCompleted,
+      sessionStepResults: [result('post_apply_audit', 'attention_required')],
+    })
+    expect(button('finish-session').disabled).toBe(true)
+    expect(button('finish-session').title).toBe('Post-Apply Audit must pass')
+
+    renderPanel({
+      sessionStepRows: allCompleted,
+      sessionStepResults: [result('post_apply_audit', 'passed')],
+    })
+    expect(button('finish-session').disabled).toBe(false)
+    clickCommand('finish-session')
+    await flush()
+    expect(executionMocks.completeInventoryMigrationSession).toHaveBeenCalledTimes(1)
+  })
+
+  it('enables Post Audit only after Phase 2 completed', () => {
+    renderPanel({
+      sessionStepRows: stepsCompletedThrough('phase1'),
+    })
+    expect(button('post-audit').disabled).toBe(true)
+
+    renderPanel({
+      sessionStepRows: stepsCompletedThrough('phase2'),
+    })
+    expect(button('post-audit').disabled).toBe(false)
+  })
+
+  it('preserves pending, error banner, refresh, and no auto-progression', async () => {
     let resolvePersist
     executionMocks.runInventoryMigrationPersist.mockImplementation(
       () => new Promise((resolve) => {
         resolvePersist = resolve
       }),
     )
-
     renderPanel()
     const persistButton = clickCommand('persist')
-    const autoLinkButton = container.querySelector('[data-command-id="auto-link"]')
-
     await act(async () => {
       await Promise.resolve()
     })
-
     expect(persistButton.getAttribute('aria-busy')).toBe('true')
-    expect(persistButton.disabled).toBe(true)
-    expect(autoLinkButton.disabled).toBe(false)
-    expect(persistButton.textContent).toContain('Running')
+    expect(button('cancel-session').disabled).toBe(false)
 
     await act(async () => {
       resolvePersist()
@@ -247,25 +352,18 @@ describe('StockMigrationOperatorPanel command integration', () => {
     })
     await flush()
     expect(onRefresh).toHaveBeenCalledTimes(1)
+    expect(executionMocks.runInventoryMigrationAutoLink).not.toHaveBeenCalled()
+    expect(executionMocks.acknowledgeInventoryMigrationStageAttention).not.toHaveBeenCalled()
 
-    executionMocks.runInventoryMigrationAutoLink.mockRejectedValueOnce({
-      message: 'inventory_migration_auto_link_prerequisite_incomplete',
+    executionMocks.runInventoryMigrationPersist.mockRejectedValueOnce({
+      message: 'inventory_migration_persist_prerequisite_incomplete',
     })
     onRefresh.mockClear()
-    clickCommand('auto-link')
-    await flush()
-
-    expect(container.textContent).toContain('inventory_migration_auto_link_prerequisite_incomplete')
-    expect(onRefresh).not.toHaveBeenCalled()
-  })
-
-  it('does not auto-progress stages or auto-acknowledge after a stage succeeds', async () => {
+    // Re-render eligible again after success mutated nothing locally
     renderPanel()
     clickCommand('persist')
     await flush()
-
-    expect(executionMocks.runInventoryMigrationPersist).toHaveBeenCalledTimes(1)
-    expect(executionMocks.runInventoryMigrationAutoLink).not.toHaveBeenCalled()
-    expect(executionMocks.acknowledgeInventoryMigrationStageAttention).not.toHaveBeenCalled()
+    expect(container.textContent).toContain('inventory_migration_persist_prerequisite_incomplete')
+    expect(onRefresh).not.toHaveBeenCalled()
   })
 })

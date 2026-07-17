@@ -1,8 +1,9 @@
 /**
  * Migration Operator panel — explicit one-action → one-RPC command wiring.
- * No orchestration, no automatic stage progression, no auto-acknowledge.
+ * Eligibility is presentation-only; SQL remains authoritative.
  */
 import { useState } from 'react'
+import { resolveMigrationOperatorCommandEligibility } from '../../lib/inventoryMigrationOperatorEligibility'
 import {
   acknowledgeInventoryMigrationStageAttention,
   cancelInventoryMigrationSession,
@@ -89,10 +90,30 @@ export function StockMigrationOperatorPanel({
 
   const resolvedWorkspaceId = `${workspaceId ?? ''}`.trim()
   const resolvedSessionId = resolveSessionId(sessionId)
-  const commandsEnabled = Boolean(isWorkspaceReady && resolvedWorkspaceId)
+  const workspaceReady = Boolean(isWorkspaceReady && resolvedWorkspaceId)
+
+  const eligibilityContext = {
+    workspaceId: workspaceReady ? resolvedWorkspaceId : '',
+    sessionId: resolvedSessionId,
+    sessionRunning: Boolean(sessionRunning),
+    sessionStepRows: stepRows,
+    sessionStepResults: stepResults,
+    stageAttentionAcknowledgements: acknowledgements,
+    confirmMaintenanceWindow,
+    ackPriorResultId,
+    ackNextStepName,
+    pendingCommandId,
+  }
+
+  function eligibilityFor(commandId) {
+    return resolveMigrationOperatorCommandEligibility(commandId, eligibilityContext)
+  }
 
   async function runCommand(commandId, execute) {
     if (pendingCommandId) return
+    const eligibility = eligibilityFor(commandId)
+    if (!eligibility.enabled) return
+
     setCommandError('')
     setPendingCommandId(commandId)
     try {
@@ -254,34 +275,44 @@ export function StockMigrationOperatorPanel({
         ) : null}
 
         <div className="stock-migration-actions stock-migration-operator-actions">
-          {SESSION_COMMANDS.map((command) => (
-            <button
-              key={command.id}
-              type="button"
-              className="ghost-btn stock-migration-action-btn"
-              data-command-id={command.id}
-              disabled={!commandsEnabled || pendingCommandId === command.id}
-              aria-busy={pendingCommandId === command.id ? 'true' : undefined}
-              onClick={() => handleSessionCommand(command.id)}
-            >
-              {pendingCommandId === command.id ? 'Running…' : command.label}
-            </button>
-          ))}
+          {SESSION_COMMANDS.map((command) => {
+            const eligibility = eligibilityFor(command.id)
+            const isPending = pendingCommandId === command.id
+            const disabled = !eligibility.enabled || isPending
+            return (
+              <button
+                key={command.id}
+                type="button"
+                className="ghost-btn stock-migration-action-btn"
+                data-command-id={command.id}
+                disabled={disabled}
+                aria-busy={isPending ? 'true' : undefined}
+                title={disabled ? (eligibility.reason || undefined) : undefined}
+                onClick={() => handleSessionCommand(command.id)}
+              >
+                {isPending ? 'Running…' : command.label}
+              </button>
+            )
+          })}
 
           {buttons.map((label) => {
             const commandId = STAGE_BUTTON_COMMANDS[label]
             if (!commandId) return null
+            const eligibility = eligibilityFor(commandId)
+            const isPending = pendingCommandId === commandId
+            const disabled = !eligibility.enabled || isPending
             return (
               <button
                 key={label}
                 type="button"
                 className="ghost-btn stock-migration-action-btn"
                 data-command-id={commandId}
-                disabled={!commandsEnabled || pendingCommandId === commandId}
-                aria-busy={pendingCommandId === commandId ? 'true' : undefined}
+                disabled={disabled}
+                aria-busy={isPending ? 'true' : undefined}
+                title={disabled ? (eligibility.reason || undefined) : undefined}
                 onClick={() => handleStageCommand(label)}
               >
-                {pendingCommandId === commandId ? 'Running…' : label}
+                {isPending ? 'Running…' : label}
               </button>
             )
           })}
