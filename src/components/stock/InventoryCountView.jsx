@@ -1,4 +1,9 @@
+import { useState } from 'react'
+import { InventoryCountWizard } from './InventoryCountWizard'
+
 export function InventoryCountView() {
+  const [isWizardOpen, setIsWizardOpen] = useState(false)
+
   return (
     <section className="inventory-count-page" aria-label="Inventory Count">
       <header className="inventory-count-header">
@@ -11,8 +16,7 @@ export function InventoryCountView() {
         <button
           type="button"
           className="primary-btn inventory-count-start-btn"
-          disabled
-          aria-disabled="true"
+          onClick={() => setIsWizardOpen(true)}
         >
           Start new count
         </button>
@@ -52,6 +56,11 @@ export function InventoryCountView() {
           <li>Post verified stock levels</li>
         </ol>
       </aside>
+
+      <InventoryCountWizard
+        isOpen={isWizardOpen}
+        onClose={() => setIsWizardOpen(false)}
+      />
     </section>
   )
 }

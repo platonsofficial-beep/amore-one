@@ -72,11 +72,12 @@ describe('Inventory Count section foundation', () => {
     expect(appSource).toContain("activeView === 'stock' && stockSection === 'migration'")
   })
 
-  it('keeps the foundation read-only without session or posting wiring', () => {
+  it('keeps the foundation free of session creation, posting, and persistence', () => {
     expect(inventoryCountSource).toContain('Start new count')
-    expect(inventoryCountSource).toContain('disabled')
-    expect(inventoryCountSource).toContain('aria-disabled="true"')
-    expect(inventoryCountSource).not.toMatch(/onClick|useState|recordStockMovement|createCount|postCount|localStorage|supabase/i)
+    expect(inventoryCountSource).toContain('InventoryCountWizard')
+    expect(inventoryCountSource).toContain('onClick')
+    expect(inventoryCountSource).toContain('useState')
+    expect(inventoryCountSource).not.toMatch(/recordStockMovement|createCount|postCount|localStorage|supabase/i)
     expect(inventoryCountSource).toContain('No counts are currently in progress.')
     expect(inventoryCountSource).toContain('No paused counts.')
     expect(inventoryCountSource).toContain('Completed inventory counts will appear here.')
