@@ -237,7 +237,6 @@ export function InventoryCountSessionWorkspace({
   const { workspace } = useAuth()
   const [locations, setLocations] = useState([])
   const [selectedLocationId, setSelectedLocationId] = useState('')
-  const [completionMessage, setCompletionMessage] = useState('')
   const [isLoading, setIsLoading] = useState(true)
   const [loadError, setLoadError] = useState('')
   const [saveError, setSaveError] = useState('')
@@ -266,7 +265,6 @@ export function InventoryCountSessionWorkspace({
       setIsLoading(true)
       setLoadError('')
       setSaveError('')
-      setCompletionMessage('')
       setSessionStatus('in_progress')
       setIsCompletingLocation(false)
 
@@ -444,6 +442,7 @@ export function InventoryCountSessionWorkspace({
 
   const canGoPrevious = selectedIndex > 0
   const canGoNext = selectedIndex >= 0 && selectedIndex < locations.length - 1
+  // Empty locations (0 items / 0 pending) remain explicitly completable — never auto-completed.
   const canCompleteLocation = Boolean(selectedLocation)
     && selectedLocation.status === 'current'
     && sessionStatus === 'in_progress'
@@ -457,11 +456,11 @@ export function InventoryCountSessionWorkspace({
   const sessionStatusLabel = sessionStatus === 'counting_complete'
     ? 'Counting Complete'
     : 'In Progress'
+  const showCountingCompleteBanner = sessionStatus === 'counting_complete'
   const canOpenFinishCount = sessionStatus === 'counting_complete'
 
   const selectLocation = (locationId) => {
     setSelectedLocationId(locationId)
-    setCompletionMessage('')
   }
 
   const handlePrevious = () => {
@@ -486,7 +485,6 @@ export function InventoryCountSessionWorkspace({
 
     setIsCompletingLocation(true)
     setSaveError('')
-    setCompletionMessage('')
 
     try {
       const result = await completeInventoryCountLocation({
@@ -495,7 +493,8 @@ export function InventoryCountSessionWorkspace({
         locationId: selectedLocation.id,
       })
 
-      setSessionStatus(result.sessionStatus || 'in_progress')
+      const nextSessionStatus = `${result.sessionStatus || ''}`.trim() || 'in_progress'
+      setSessionStatus(nextSessionStatus)
       setLocations((current) => current.map((location) => {
         if (location.id === result.completedLocationId) {
           return {
@@ -524,11 +523,7 @@ export function InventoryCountSessionWorkspace({
 
       if (result.nextLocationId) {
         setSelectedLocationId(result.nextLocationId)
-        setCompletionMessage('')
-        return
       }
-
-      setCompletionMessage('All locations are complete. Finish Count will be added next.')
     } catch (error) {
       setSaveError(error?.message || 'Unable to complete inventory count location right now.')
     } finally {
@@ -767,9 +762,9 @@ export function InventoryCountSessionWorkspace({
         </>
       ) : null}
 
-      {completionMessage ? (
+      {showCountingCompleteBanner ? (
         <p className="inventory-count-session-completion-message" role="status">
-          {completionMessage}
+          All locations are complete. Finish Count will be added next.
         </p>
       ) : null}
     </section>

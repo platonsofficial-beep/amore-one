@@ -480,6 +480,12 @@ describe('InventoryCountSessionWorkspace real session items', () => {
 
     const { container, cleanup } = await renderWorkspace()
 
+    expect(container.querySelector('.inventory-count-session-pill')?.textContent).toBe('In Progress')
+    expect(container.textContent).not.toContain(
+      'All locations are complete. Finish Count will be added next.',
+    )
+    expect(getButtonByText(container, 'Finish Count')?.disabled).toBe(true)
+
     await act(async () => {
       getButtonByText(container, 'Complete Location').click()
       await Promise.resolve()
@@ -490,13 +496,69 @@ describe('InventoryCountSessionWorkspace real session items', () => {
       sessionId: 'session-real-1',
       locationId: 'loc-1',
     })
-    expect(container.textContent).toContain('Counting Complete')
+    expect(container.querySelector('.inventory-count-session-pill')?.textContent)
+      .toBe('Counting Complete')
+    expect(container.querySelector('.inventory-count-session-footer-value')?.textContent)
+      .toContain('Counting Complete')
     expect(container.textContent).toContain(
       'All locations are complete. Finish Count will be added next.',
     )
     expect(getButtonByText(container, 'Complete Location')?.disabled).toBe(true)
     expect(getButtonByText(container, 'Finish Count')?.disabled).toBe(false)
     expect(countCurrentLocations(container)).toBe(0)
+
+    act(() => {
+      getRailButton(container, 'Coffee Station').click()
+    })
+    expect(container.querySelector('.inventory-count-session-pill')?.textContent)
+      .toBe('Counting Complete')
+    expect(container.textContent).toContain(
+      'All locations are complete. Finish Count will be added next.',
+    )
+    expect(getButtonByText(container, 'Finish Count')?.disabled).toBe(false)
+
+    cleanup()
+  })
+
+  it('allows explicit Complete Location for an empty current location without auto-completing', async () => {
+    getInventoryCountSessionLocations.mockResolvedValueOnce([
+      sessionLocation('loc-1', 'Main Storage', 0, 'current'),
+      sessionLocation('loc-2', 'Coffee Station', 1, 'not_started'),
+    ])
+    getInventoryCountSessionItems.mockResolvedValueOnce([])
+    completeInventoryCountLocation.mockResolvedValueOnce({
+      sessionId: 'session-real-1',
+      completedLocationId: 'loc-1',
+      nextLocationId: 'loc-2',
+      sessionStatus: 'in_progress',
+      allLocationsCompleted: false,
+    })
+
+    const { container, cleanup } = await renderWorkspace()
+
+    expect(completeInventoryCountLocation).not.toHaveBeenCalled()
+    expect(container.textContent).toContain('No items in this location')
+    expect(getButtonByText(container, 'Complete Location')?.disabled).toBe(false)
+    expect(getRailButton(container, 'Main Storage')?.className).toContain('is-current')
+    expect(getButtonByText(container, 'Finish Count')?.disabled).toBe(true)
+
+    await act(async () => {
+      getButtonByText(container, 'Complete Location').click()
+      await Promise.resolve()
+    })
+
+    expect(completeInventoryCountLocation).toHaveBeenCalledTimes(1)
+    expect(completeInventoryCountLocation).toHaveBeenCalledWith({
+      workspaceId: 'workspace-test-id',
+      sessionId: 'session-real-1',
+      locationId: 'loc-1',
+    })
+    expect(getRailButton(container, 'Main Storage')?.className).toContain('is-completed')
+    expect(getRailButton(container, 'Coffee Station')?.className).toContain('is-current')
+    expect(container.querySelector('.inventory-count-session-pill')?.textContent).toBe('In Progress')
+    expect(container.textContent).not.toContain(
+      'All locations are complete. Finish Count will be added next.',
+    )
 
     cleanup()
   })
