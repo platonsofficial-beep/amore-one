@@ -83,8 +83,8 @@ const STEP_COPY = {
   },
   4: {
     label: 'Step 4 of 4',
-    name: 'Review',
-    subtitle: 'Review your inventory count setup before starting.',
+    name: 'Review & Start',
+    subtitle: 'Review the session details before starting.',
   },
 }
 
@@ -108,6 +108,7 @@ export function InventoryCountWizard({ isOpen, onClose }) {
   const [includeZeroStock, setIncludeZeroStock] = useState(true)
   const [includeInactive, setIncludeInactive] = useState(false)
   const [sessionNote, setSessionNote] = useState('')
+  const [startNotice, setStartNotice] = useState('')
 
   useEffect(() => {
     if (!isOpen) {
@@ -119,6 +120,7 @@ export function InventoryCountWizard({ isOpen, onClose }) {
       setIncludeZeroStock(initial.includeZeroStock)
       setIncludeInactive(initial.includeInactive)
       setSessionNote(initial.sessionNote)
+      setStartNotice('')
       return undefined
     }
 
@@ -135,11 +137,26 @@ export function InventoryCountWizard({ isOpen, onClose }) {
   if (!isOpen) return null
 
   const stepCopy = STEP_COPY[step] ?? STEP_COPY[1]
+  const selectedCountType = COUNT_TYPES.find((type) => type.id === selectedType) ?? null
+  const selectedVisibility = COUNT_VISIBILITY_OPTIONS.find((option) => option.id === countVisibility)
+    ?? COUNT_VISIBILITY_OPTIONS[0]
+  const selectedLocationItems = DEMO_LOCATIONS.filter((location) => (
+    selectedLocations.includes(location.id)
+  ))
+  const trimmedNote = sessionNote.trim()
+  const isStep4Valid = Boolean(selectedType)
+    && selectedLocations.length > 0
+    && (countVisibility === 'blind' || countVisibility === 'open')
+
   const canContinue = step === 1
     ? Boolean(selectedType)
     : step === 2
       ? selectedLocations.length > 0
       : step === 3
+        ? true
+        : isStep4Valid
+
+  const primaryActionLabel = step === 4 ? 'Start Inventory Count Session' : 'Continue'
 
   const toggleLocation = (locationId) => {
     setSelectedLocations((current) => (
@@ -151,6 +168,7 @@ export function InventoryCountWizard({ isOpen, onClose }) {
 
   const handleBack = () => {
     if (step > 1) {
+      setStartNotice('')
       setStep((current) => current - 1)
     }
   }
@@ -169,7 +187,14 @@ export function InventoryCountWizard({ isOpen, onClose }) {
     }
 
     if (step === 3) {
+      setStartNotice('')
       setStep(4)
+      return
+    }
+
+    if (step === 4) {
+      if (!isStep4Valid) return
+      setStartNotice('Session creation will be added next.')
     }
   }
 
@@ -396,9 +421,151 @@ export function InventoryCountWizard({ isOpen, onClose }) {
 
         {step === 4 ? (
           <div className="inventory-count-wizard-step4">
-            <p className="inventory-count-wizard-placeholder" role="status">
-              Step 4 coming next
-            </p>
+            <div className="inventory-count-review-grid">
+              <section className="inventory-count-review-card" aria-label="Count Type summary">
+                <div className="inventory-count-review-card-header">
+                  <h3 className="inventory-count-review-card-title">Count Type</h3>
+                  <button
+                    type="button"
+                    className="ghost-btn inventory-count-review-change-btn"
+                    onClick={() => {
+                      setStartNotice('')
+                      setStep(1)
+                    }}
+                  >
+                    Change
+                  </button>
+                </div>
+                {selectedCountType ? (
+                  <div className="inventory-count-review-type">
+                    <span className="inventory-count-type-card-icon" aria-hidden="true">
+                      {selectedCountType.icon}
+                    </span>
+                    <span className="inventory-count-type-card-copy">
+                      <span className="inventory-count-type-card-title">{selectedCountType.title}</span>
+                      <span className="inventory-count-type-card-description">
+                        {selectedCountType.description}
+                      </span>
+                    </span>
+                  </div>
+                ) : null}
+              </section>
+
+              <section className="inventory-count-review-card" aria-label="Locations summary">
+                <div className="inventory-count-review-card-header">
+                  <h3 className="inventory-count-review-card-title">Locations</h3>
+                  <button
+                    type="button"
+                    className="ghost-btn inventory-count-review-change-btn"
+                    onClick={() => {
+                      setStartNotice('')
+                      setStep(2)
+                    }}
+                  >
+                    Change
+                  </button>
+                </div>
+                <p className="inventory-count-review-meta">
+                  {selectedLocationItems.length} location{selectedLocationItems.length === 1 ? '' : 's'}
+                </p>
+                <div className="inventory-count-review-chips">
+                  {selectedLocationItems.map((location) => (
+                    <span key={location.id} className="inventory-count-review-chip">
+                      {location.title}
+                    </span>
+                  ))}
+                </div>
+              </section>
+
+              <section className="inventory-count-review-card" aria-label="Count Settings summary">
+                <div className="inventory-count-review-card-header">
+                  <h3 className="inventory-count-review-card-title">Count Settings</h3>
+                  <button
+                    type="button"
+                    className="ghost-btn inventory-count-review-change-btn"
+                    onClick={() => {
+                      setStartNotice('')
+                      setStep(3)
+                    }}
+                  >
+                    Change
+                  </button>
+                </div>
+                <dl className="inventory-count-review-dl">
+                  <div>
+                    <dt>Visibility</dt>
+                    <dd>{selectedVisibility.title}</dd>
+                  </div>
+                  <div>
+                    <dt>Include zero-stock items</dt>
+                    <dd>{includeZeroStock ? 'Yes' : 'No'}</dd>
+                  </div>
+                  <div>
+                    <dt>Include inactive items</dt>
+                    <dd>{includeInactive ? 'Yes' : 'No'}</dd>
+                  </div>
+                  {trimmedNote ? (
+                    <div className="inventory-count-review-note-row">
+                      <dt>Session note</dt>
+                      <dd>{trimmedNote}</dd>
+                    </div>
+                  ) : null}
+                </dl>
+              </section>
+
+              <section className="inventory-count-review-card inventory-count-review-card-meta" aria-label="Session meta">
+                <div className="inventory-count-review-meta-grid">
+                  <div>
+                    <p className="inventory-count-review-meta-label">Estimated items</p>
+                    <p className="inventory-count-review-meta-value">—</p>
+                    <p className="inventory-count-review-meta-hint">
+                      The exact item total will be calculated when the session starts.
+                    </p>
+                  </div>
+                  <div>
+                    <p className="inventory-count-review-meta-label">Operator</p>
+                    <p className="inventory-count-review-meta-value">Current signed-in operator</p>
+                  </div>
+                  <div>
+                    <p className="inventory-count-review-meta-label">Start time</p>
+                    <p className="inventory-count-review-meta-value">Starts when confirmed</p>
+                  </div>
+                </div>
+              </section>
+            </div>
+
+            <aside className="inventory-count-review-info" aria-label="Snapshot explanation">
+              <span className="inventory-count-review-info-icon" aria-hidden="true">ℹ</span>
+              <div className="inventory-count-review-info-copy">
+                <p>
+                  ONE will freeze the expected stock quantities when this session starts.
+                </p>
+                <p>
+                  Stock received or used while counting will be reconciled against the time each item is counted, so posting will not double-count or overwrite later movements.
+                </p>
+              </div>
+            </aside>
+
+            {countVisibility === 'open' || includeInactive ? (
+              <div className="inventory-count-review-warnings" aria-label="Session warnings">
+                {countVisibility === 'open' ? (
+                  <p className="inventory-count-review-warning">
+                    Expected quantities will be visible while counting.
+                  </p>
+                ) : null}
+                {includeInactive ? (
+                  <p className="inventory-count-review-warning">
+                    Inactive inventory items will be included.
+                  </p>
+                ) : null}
+              </div>
+            ) : null}
+
+            {startNotice ? (
+              <p className="inventory-count-wizard-placeholder" role="status">
+                {startNotice}
+              </p>
+            ) : null}
           </div>
         ) : null}
 
@@ -427,7 +594,7 @@ export function InventoryCountWizard({ isOpen, onClose }) {
               aria-disabled={!canContinue}
               onClick={handleContinue}
             >
-              Continue
+              {primaryActionLabel}
             </button>
           </div>
         </footer>

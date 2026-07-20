@@ -204,7 +204,7 @@ describe('InventoryCountWizard foundation', () => {
     cleanup()
   })
 
-  it('configures Step 3 settings and opens Step 4 placeholder without creating a session', () => {
+  it('configures Step 3 settings and opens Step 4 review without creating a session', () => {
     const onClose = vi.fn()
     const { container, cleanup } = render(
       createElement(InventoryCountWizard, { isOpen: true, onClose }),
@@ -262,9 +262,46 @@ describe('InventoryCountWizard foundation', () => {
     act(() => {
       continueBtn.click()
     })
+
     expect(container.textContent).toContain('Step 4 of 4')
-    expect(container.textContent).toContain('Step 4 coming next')
-    expect(continueBtn?.disabled).toBe(true)
+    expect(container.textContent).toContain('Review & Start')
+    expect(container.textContent).toContain('Review the session details before starting.')
+    expect(container.textContent).toContain('Quick Count')
+    expect(container.textContent).toContain('Main Bar')
+    expect(container.textContent).toContain('Main Storage')
+    expect(container.textContent).toContain('2 locations')
+    expect(container.textContent).toContain('Open Count')
+    expect(container.textContent).toContain('Include zero-stock items')
+    expect(container.textContent).toContain('Include inactive items')
+    expect(container.textContent).toContain('Yes')
+    expect(container.textContent).toContain('No')
+    expect(container.textContent).toContain('Month-end bar audit')
+    expect(container.textContent).toContain('Estimated items')
+    expect(container.textContent).toContain('—')
+    expect(container.textContent).toContain(
+      'The exact item total will be calculated when the session starts.',
+    )
+    expect(container.textContent).toContain('Current signed-in operator')
+    expect(container.textContent).toContain('Starts when confirmed')
+    expect(container.textContent).toContain(
+      'ONE will freeze the expected stock quantities when this session starts.',
+    )
+    expect(container.textContent).toContain(
+      'Stock received or used while counting will be reconciled against the time each item is counted, so posting will not double-count or overwrite later movements.',
+    )
+    expect(container.textContent).toContain('Expected quantities will be visible while counting.')
+    expect(container.textContent).toContain('Inactive inventory items will be included.')
+    expect(container.textContent).not.toContain('Step 4 coming next')
+
+    const startBtn = getButtonByText(container, 'Start Inventory Count Session')
+    expect(startBtn).toBeTruthy()
+    expect(startBtn?.disabled).toBe(false)
+
+    act(() => {
+      startBtn.click()
+    })
+    expect(container.textContent).toContain('Session creation will be added next.')
+    expect(container.querySelector('[role="dialog"]')).not.toBeNull()
     expect(onClose).not.toHaveBeenCalled()
 
     const backBtn = getButtonByText(container, 'Back')
@@ -286,6 +323,24 @@ describe('InventoryCountWizard foundation', () => {
     const restoredLocations = container.querySelectorAll('[role="checkbox"]')
     expect(restoredLocations[0].getAttribute('aria-checked')).toBe('true')
     expect(restoredLocations[2].getAttribute('aria-checked')).toBe('true')
+
+    cleanup()
+  })
+
+  it('hides Open Count and inactive warnings for default Blind configuration', () => {
+    const { container, cleanup } = render(
+      createElement(InventoryCountWizard, { isOpen: true, onClose: vi.fn() }),
+    )
+
+    const { continueBtn } = goToStep3(container)
+    act(() => {
+      continueBtn.click()
+    })
+
+    expect(container.textContent).toContain('Blind Count')
+    expect(container.textContent).not.toContain('Expected quantities will be visible while counting.')
+    expect(container.textContent).not.toContain('Inactive inventory items will be included.')
+    expect(container.textContent).not.toContain('Session note')
 
     cleanup()
   })
