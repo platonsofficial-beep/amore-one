@@ -9,12 +9,15 @@
 -- Purpose:
 --   Atomic SECURITY DEFINER entry point that creates one inventory_count_sessions
 --   row and its inventory_count_session_locations rows in a single transaction.
+--   The first validated location (input array order / sort_order 0) is inserted
+--   as status = current; every remaining location is not_started.
 --
 -- Does NOT:
 --   - Create inventory_count_session_items / snapshot lines
 --   - Mutate stock_items or stock_movements
 --   - Post counts
 --   - Wire UI / services
+--   - Repair or rewrite existing sessions
 --
 -- Authorization:
 --   owner / general_manager / manager via public.can_manage_workspace_stock
@@ -212,7 +215,10 @@ begin
     p_workspace_id,
     btrim(loc.location_key),
     (ordinality - 1)::integer,
-    'not_started'
+    case
+      when ordinality = 1 then 'current'
+      else 'not_started'
+    end
   from unnest(p_locations) with ordinality as loc(location_key, ordinality);
 
   return query
@@ -260,7 +266,7 @@ comment on function public.create_inventory_count_session(
   text,
   text[]
 ) is
-  'P8.3.1 SECURITY DEFINER create inventory count session + locations only. No snapshot items, stock mutations, or posting.';
+  'P8.3.1/P8.3.7a SECURITY DEFINER create inventory count session + locations. First location (input order / sort_order 0) is current; remaining are not_started. No snapshot items, stock mutations, or posting.';
 
 -- =============================================================================
 -- Verification (commented — run after apply; do not auto-execute)
@@ -294,6 +300,10 @@ comment on function public.create_inventory_count_session(
 --   invalid visibility           → inventory_count_session_invalid_visibility
 --   note > 250 chars             → inventory_count_session_note_too_long
 -- Atomicity: failed location insert rolls back the session row (same transaction).
+-- Location bootstrap (P8.3.7a):
+--   first p_locations element (ordinality 1 / sort_order 0) → status = current
+--   remaining locations → status = not_started
+--   exactly one current location per newly created session
 
 -- Example:
 --   select * from public.create_inventory_count_session(

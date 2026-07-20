@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useAuth } from '../../context/AuthContext'
 import {
+  completeInventoryCountLocation,
   getInventoryCountSessionItems,
   getInventoryCountSessionLocations,
   updateInventoryCountItem,
@@ -117,8 +118,9 @@ function buildLocationsFromSession(sessionLocations, sessionItems) {
     }
 
     locations.push({
-      id: locationKey,
+      id: sessionLocation?.id || locationKey,
       name: locationKey,
+      locationKey,
       status,
       countedItems,
       totalItems,
@@ -132,6 +134,7 @@ function buildLocationsFromSession(sessionLocations, sessionItems) {
     locations.push({
       id: locationKey,
       name: locationKey,
+      locationKey,
       status: 'not_started',
       countedItems,
       totalItems,
@@ -239,6 +242,8 @@ export function InventoryCountSessionWorkspace({
   const [loadError, setLoadError] = useState('')
   const [saveError, setSaveError] = useState('')
   const [isSaving, setIsSaving] = useState(false)
+  const [isCompletingLocation, setIsCompletingLocation] = useState(false)
+  const [sessionStatus, setSessionStatus] = useState('in_progress')
   const loadRequestIdRef = useRef(0)
   const locationsRef = useRef(locations)
   const debounceTimersRef = useRef(new Map())
@@ -262,6 +267,8 @@ export function InventoryCountSessionWorkspace({
       setLoadError('')
       setSaveError('')
       setCompletionMessage('')
+      setSessionStatus('in_progress')
+      setIsCompletingLocation(false)
 
       try {
         const sessionId = `${sessionIdProp || ''}`.trim()
@@ -437,13 +444,20 @@ export function InventoryCountSessionWorkspace({
 
   const canGoPrevious = selectedIndex > 0
   const canGoNext = selectedIndex >= 0 && selectedIndex < locations.length - 1
-  const canCompleteLocation = Boolean(selectedLocation) && selectedLocation.status !== 'completed'
+  const canCompleteLocation = Boolean(selectedLocation)
+    && selectedLocation.status === 'current'
+    && sessionStatus === 'in_progress'
+    && !isCompletingLocation
   const bannerError = saveError || loadError
   const unsavedLabel = isSaving
     ? 'Saving…'
     : saveError
       ? 'Save failed'
       : 'All changes saved'
+  const sessionStatusLabel = sessionStatus === 'counting_complete'
+    ? 'Counting Complete'
+    : 'In Progress'
+  const canOpenFinishCount = sessionStatus === 'counting_complete'
 
   const selectLocation = (locationId) => {
     setSelectedLocationId(locationId)
@@ -460,53 +474,66 @@ export function InventoryCountSessionWorkspace({
     selectLocation(locations[selectedIndex + 1].id)
   }
 
-  const handleCompleteLocation = () => {
-    if (!selectedLocation || selectedLocation.status === 'completed') return
+  const handleCompleteLocation = async () => {
+    if (!canCompleteLocation || !selectedLocation) return
 
-    const nextIncomplete = locations.find((location) => (
-      location.id !== selectedLocation.id && location.status !== 'completed'
-    ))
-
-    setLocations((current) => current.map((location) => {
-      if (location.id === selectedLocation.id) {
-        const items = location.items.map((item) => ({
-          ...item,
-          status: 'Counted',
-          lineStatus: 'counted',
-          counted: item.counted || '0',
-        }))
-        return {
-          ...location,
-          status: 'completed',
-          countedItems: location.totalItems,
-          items,
-        }
-      }
-
-      if (nextIncomplete && location.id === nextIncomplete.id) {
-        return {
-          ...location,
-          status: 'current',
-        }
-      }
-
-      if (location.status === 'current' && location.id !== nextIncomplete?.id) {
-        return {
-          ...location,
-          status: 'not_started',
-        }
-      }
-
-      return location
-    }))
-
-    if (nextIncomplete) {
-      setSelectedLocationId(nextIncomplete.id)
-      setCompletionMessage('')
+    const workspaceId = `${workspaceIdProp || workspace?.id || ''}`.trim()
+    const sessionId = `${sessionIdProp || ''}`.trim()
+    if (!workspaceId || !sessionId) {
+      setSaveError('Unable to complete inventory count location right now.')
       return
     }
 
-    setCompletionMessage('All locations are complete. Finish Count will be added next.')
+    setIsCompletingLocation(true)
+    setSaveError('')
+    setCompletionMessage('')
+
+    try {
+      const result = await completeInventoryCountLocation({
+        workspaceId,
+        sessionId,
+        locationId: selectedLocation.id,
+      })
+
+      setSessionStatus(result.sessionStatus || 'in_progress')
+      setLocations((current) => current.map((location) => {
+        if (location.id === result.completedLocationId) {
+          return {
+            ...location,
+            status: 'completed',
+          }
+        }
+        if (result.nextLocationId && location.id === result.nextLocationId) {
+          return {
+            ...location,
+            status: 'current',
+          }
+        }
+        if (
+          location.status === 'current'
+          && location.id !== result.completedLocationId
+          && location.id !== result.nextLocationId
+        ) {
+          return {
+            ...location,
+            status: 'not_started',
+          }
+        }
+        return location
+      }))
+
+      if (result.nextLocationId) {
+        setSelectedLocationId(result.nextLocationId)
+        setCompletionMessage('')
+        return
+      }
+
+      setCompletionMessage('All locations are complete. Finish Count will be added next.')
+    } catch (error) {
+      setSaveError(error?.message || 'Unable to complete inventory count location right now.')
+    } finally {
+      setIsCompletingLocation(false)
+    }
   }
 
   const selectedLocationName = selectedLocation?.name ?? 'Location'
@@ -517,7 +544,7 @@ export function InventoryCountSessionWorkspace({
         <div className="inventory-count-session-header-copy">
           <p className="inventory-count-session-eyebrow">Inventory Count Session</p>
           <div className="inventory-count-session-meta">
-            <span className="inventory-count-session-pill is-status">In Progress</span>
+            <span className="inventory-count-session-pill is-status">{sessionStatusLabel}</span>
             <span className="inventory-count-session-meta-item">
               <span className="inventory-count-session-meta-label">Count Type</span>
               <span className="inventory-count-session-meta-value">New Count</span>
@@ -540,7 +567,12 @@ export function InventoryCountSessionWorkspace({
           <button type="button" className="ghost-btn inventory-count-session-action-btn" disabled aria-disabled="true">
             Pause
           </button>
-          <button type="button" className="ghost-btn inventory-count-session-action-btn" disabled aria-disabled="true">
+          <button
+            type="button"
+            className="ghost-btn inventory-count-session-action-btn"
+            disabled={!canOpenFinishCount}
+            aria-disabled={!canOpenFinishCount}
+          >
             Finish Count
           </button>
           <button
@@ -693,7 +725,7 @@ export function InventoryCountSessionWorkspace({
             <div className="inventory-count-session-footer-left">
               <span className="inventory-count-session-footer-label">Session status</span>
               <span className="inventory-count-session-footer-value">
-                In Progress · {selectedLocationName}
+                {sessionStatusLabel} · {selectedLocationName}
               </span>
             </div>
             <div className="inventory-count-session-footer-middle">
@@ -724,9 +756,11 @@ export function InventoryCountSessionWorkspace({
                 className="primary-btn inventory-count-session-action-btn"
                 disabled={!canCompleteLocation}
                 aria-disabled={!canCompleteLocation}
-                onClick={handleCompleteLocation}
+                onClick={() => {
+                  void handleCompleteLocation()
+                }}
               >
-                Complete Location
+                {isCompletingLocation ? 'Completing…' : 'Complete Location'}
               </button>
             </div>
           </footer>

@@ -9,6 +9,7 @@ import { InventoryCountView } from './InventoryCountView'
 import { InventoryCountSessionWorkspace } from './InventoryCountSessionWorkspace'
 import {
   buildInventoryCountSnapshot,
+  completeInventoryCountLocation,
   createInventoryCountSession,
   getInventoryCountSessionItems,
   getInventoryCountSessionLocations,
@@ -27,6 +28,7 @@ vi.mock('../../services/inventoryCountService', () => ({
   getInventoryCountSessionLocations: vi.fn(),
   getInventoryCountSessionItems: vi.fn(),
   updateInventoryCountItem: vi.fn(),
+  completeInventoryCountLocation: vi.fn(),
 }))
 
 function render(ui) {
@@ -219,6 +221,7 @@ describe('InventoryCountSessionWorkspace real session items', () => {
     getInventoryCountSessionLocations.mockReset()
     getInventoryCountSessionItems.mockReset()
     updateInventoryCountItem.mockReset()
+    completeInventoryCountLocation.mockReset()
 
     createInventoryCountSession.mockResolvedValue({
       id: 'session-real-1',
@@ -254,6 +257,13 @@ describe('InventoryCountSessionWorkspace real session items', () => {
       lineStatus: countedQuantity === null || countedQuantity === undefined ? 'pending' : 'counted',
       note: '',
     }))
+    completeInventoryCountLocation.mockResolvedValue({
+      sessionId: 'session-real-1',
+      completedLocationId: 'loc-1',
+      nextLocationId: 'loc-2',
+      sessionStatus: 'in_progress',
+      allLocationsCompleted: false,
+    })
   })
 
   it('propagates the exact wizard sessionId through View into Workspace queries', async () => {
@@ -349,27 +359,163 @@ describe('InventoryCountSessionWorkspace real session items', () => {
     cleanup()
   })
 
-  it('completes the selected location, advances current, and updates progress', async () => {
+  it('completes the selected location via RPC and auto-selects the next location', async () => {
+    getInventoryCountSessionItems.mockResolvedValueOnce([
+      sessionItem({
+        id: 'ms-1',
+        itemName: 'Coca-Cola',
+        storageLocation: 'Main Storage',
+        expectedSnapshot: 10,
+        countedQuantity: 10,
+        lineStatus: 'counted',
+      }),
+      sessionItem({
+        id: 'ms-2',
+        itemName: 'Paper Straws',
+        unit: 'box',
+        storageLocation: 'Main Storage',
+        expectedSnapshot: 4,
+        countedQuantity: 4,
+        lineStatus: 'counted',
+      }),
+      sessionItem({
+        id: 'cs-1',
+        itemName: 'Espresso Beans',
+        unit: 'kg',
+        storageLocation: 'Coffee Station',
+        expectedSnapshot: 2,
+        countedQuantity: null,
+        lineStatus: 'pending',
+      }),
+      sessionItem({
+        id: 'cs-2',
+        itemName: 'Oat Milk',
+        unit: 'litre',
+        storageLocation: 'Coffee Station',
+        expectedSnapshot: 6,
+        countedQuantity: null,
+        lineStatus: 'pending',
+      }),
+      sessionItem({
+        id: 'k-1',
+        itemName: 'Olive Oil',
+        unit: 'litre',
+        storageLocation: 'Kitchen',
+        expectedSnapshot: 4,
+        countedQuantity: 4,
+        lineStatus: 'counted',
+      }),
+    ])
+
     const { container, cleanup } = await renderWorkspace()
 
-    expect(getProgressSnapshot(container)).toContain('2 / 5 counted')
+    expect(getProgressSnapshot(container)).toContain('3 / 5 counted')
     expect(getProgressSnapshot(container)).toContain('1 / 3 locations complete')
-    expect(container.textContent).toContain('All changes saved')
+    expect(getButtonByText(container, 'Finish Count')?.disabled).toBe(true)
 
     const completeBtn = getButtonByText(container, 'Complete Location')
     expect(completeBtn?.disabled).toBe(false)
 
-    act(() => {
+    await act(async () => {
       completeBtn.click()
+      await Promise.resolve()
     })
 
+    expect(completeInventoryCountLocation).toHaveBeenCalledWith({
+      workspaceId: 'workspace-test-id',
+      sessionId: 'session-real-1',
+      locationId: 'loc-1',
+    })
     expect(getRailButton(container, 'Main Storage')?.className).toContain('is-completed')
-    expect(getRailButton(container, 'Main Storage')?.textContent).toContain('2 / 2')
     expect(getRailButton(container, 'Coffee Station')?.className).toContain('is-current')
     expect(countCurrentLocations(container)).toBe(1)
     expect(container.textContent).toContain('Espresso Beans')
-    expect(getProgressSnapshot(container)).toContain('3 / 5 counted')
     expect(getProgressSnapshot(container)).toContain('2 / 3 locations complete')
+    expect(getButtonByText(container, 'Complete Location')?.disabled).toBe(false)
+
+    cleanup()
+  })
+
+  it('marks the session counting_complete when the final location is completed', async () => {
+    getInventoryCountSessionLocations.mockResolvedValueOnce([
+      sessionLocation('loc-1', 'Main Storage', 0, 'current'),
+      sessionLocation('loc-2', 'Coffee Station', 1, 'completed'),
+      sessionLocation('loc-3', 'Kitchen', 2, 'completed'),
+    ])
+    getInventoryCountSessionItems.mockResolvedValueOnce([
+      sessionItem({
+        id: 'ms-1',
+        itemName: 'Coca-Cola',
+        storageLocation: 'Main Storage',
+        expectedSnapshot: 10,
+        countedQuantity: 10,
+        lineStatus: 'counted',
+      }),
+      sessionItem({
+        id: 'cs-1',
+        itemName: 'Espresso Beans',
+        unit: 'kg',
+        storageLocation: 'Coffee Station',
+        expectedSnapshot: 2,
+        countedQuantity: 2,
+        lineStatus: 'counted',
+      }),
+      sessionItem({
+        id: 'k-1',
+        itemName: 'Olive Oil',
+        unit: 'litre',
+        storageLocation: 'Kitchen',
+        expectedSnapshot: 4,
+        countedQuantity: 4,
+        lineStatus: 'counted',
+      }),
+    ])
+    completeInventoryCountLocation.mockResolvedValueOnce({
+      sessionId: 'session-real-1',
+      completedLocationId: 'loc-1',
+      nextLocationId: null,
+      sessionStatus: 'counting_complete',
+      allLocationsCompleted: true,
+    })
+
+    const { container, cleanup } = await renderWorkspace()
+
+    await act(async () => {
+      getButtonByText(container, 'Complete Location').click()
+      await Promise.resolve()
+    })
+
+    expect(completeInventoryCountLocation).toHaveBeenCalledWith({
+      workspaceId: 'workspace-test-id',
+      sessionId: 'session-real-1',
+      locationId: 'loc-1',
+    })
+    expect(container.textContent).toContain('Counting Complete')
+    expect(container.textContent).toContain(
+      'All locations are complete. Finish Count will be added next.',
+    )
+    expect(getButtonByText(container, 'Complete Location')?.disabled).toBe(true)
+    expect(getButtonByText(container, 'Finish Count')?.disabled).toBe(false)
+    expect(countCurrentLocations(container)).toBe(0)
+
+    cleanup()
+  })
+
+  it('surfaces complete-location failures without advancing', async () => {
+    completeInventoryCountLocation.mockRejectedValueOnce(
+      new Error('Count or skip all items in this location before completing it.'),
+    )
+    const { container, cleanup } = await renderWorkspace()
+
+    await act(async () => {
+      getButtonByText(container, 'Complete Location').click()
+      await Promise.resolve()
+    })
+
+    expect(container.querySelector('.staff-status-banner')?.textContent)
+      .toBe('Count or skip all items in this location before completing it.')
+    expect(getRailButton(container, 'Main Storage')?.className).toContain('is-current')
+    expect(getRailButton(container, 'Coffee Station')?.className).not.toContain('is-current')
 
     cleanup()
   })
@@ -471,12 +617,15 @@ describe('InventoryCountSessionWorkspace real session items', () => {
       'utf8',
     )
 
+    expect(workspaceSource).toContain('completeInventoryCountLocation')
     expect(workspaceSource).toContain('getInventoryCountSessionItems')
     expect(workspaceSource).toContain('updateInventoryCountItem')
     expect(workspaceSource).toContain('sessionItemId:')
     expect(workspaceSource).not.toContain('getLatestInProgressInventoryCountSession')
     expect(serviceSource).not.toContain('getLatestInProgressInventoryCountSession')
     expect(serviceSource).toContain('update_inventory_count_session_item')
+    expect(serviceSource).toContain('complete_inventory_count_location')
+    expect(serviceSource).toContain('completeInventoryCountLocation')
     expect(serviceSource).toContain('sessionItemId')
     expect(serviceSource).not.toMatch(/\.update\(\s*\{\s*counted_quantity/)
     expect(viewSource).toContain('sessionId={activeSessionId}')

@@ -15,6 +15,7 @@ vi.mock('../lib/supabaseClient', () => ({
 }))
 
 import {
+  completeInventoryCountLocation,
   getInventoryCountSessionItems,
   mapInventoryCountSessionItemRow,
   updateInventoryCountItem,
@@ -350,5 +351,175 @@ describe('update_inventory_count_session_item SQL contract', () => {
     expect(sql).toContain('updated_at = v_now')
     expect(sql).not.toMatch(/p_counted_at|p_line_status/)
     expect(functionBody).not.toMatch(/from public\.stock_items|update public\.stock_items|from public\.stock_movements|insert into public\.stock_movements/i)
+  })
+})
+
+describe('completeInventoryCountLocation', () => {
+  beforeEach(() => {
+    fromMock.mockReset()
+    rpcMock.mockReset()
+  })
+
+  it('calls the complete-location RPC with session location id', async () => {
+    rpcMock.mockResolvedValue({
+      data: [{
+        session_id: 'session-1',
+        completed_location_id: 'loc-1',
+        next_location_id: 'loc-2',
+        session_status: 'in_progress',
+        all_locations_completed: false,
+      }],
+      error: null,
+    })
+
+    const result = await completeInventoryCountLocation({
+      workspaceId: 'workspace-1',
+      sessionId: 'session-1',
+      locationId: 'loc-1',
+    })
+
+    expect(fromMock).not.toHaveBeenCalled()
+    expect(rpcMock).toHaveBeenCalledWith('complete_inventory_count_location', {
+      p_workspace_id: 'workspace-1',
+      p_session_id: 'session-1',
+      p_location_id: 'loc-1',
+    })
+    expect(result).toEqual({
+      sessionId: 'session-1',
+      completedLocationId: 'loc-1',
+      nextLocationId: 'loc-2',
+      sessionStatus: 'in_progress',
+      allLocationsCompleted: false,
+    })
+  })
+
+  it('maps final-location completion to counting_complete', async () => {
+    rpcMock.mockResolvedValue({
+      data: [{
+        session_id: 'session-1',
+        completed_location_id: 'loc-3',
+        next_location_id: null,
+        session_status: 'counting_complete',
+        all_locations_completed: true,
+      }],
+      error: null,
+    })
+
+    const result = await completeInventoryCountLocation({
+      workspaceId: 'workspace-1',
+      sessionId: 'session-1',
+      locationId: 'loc-3',
+    })
+
+    expect(result.nextLocationId).toBeNull()
+    expect(result.sessionStatus).toBe('counting_complete')
+    expect(result.allLocationsCompleted).toBe(true)
+  })
+
+  it('maps pending-items and lifecycle RPC failures', async () => {
+    rpcMock.mockResolvedValueOnce({
+      data: null,
+      error: { message: 'inventory_count_location_items_pending' },
+    })
+
+    await expect(
+      completeInventoryCountLocation({
+        workspaceId: 'workspace-1',
+        sessionId: 'session-1',
+        locationId: 'loc-1',
+      }),
+    ).rejects.toThrow('Count or skip all items in this location before completing it.')
+
+    rpcMock.mockResolvedValueOnce({
+      data: null,
+      error: { message: 'inventory_count_location_session_not_in_progress' },
+    })
+
+    await expect(
+      completeInventoryCountLocation({
+        workspaceId: 'workspace-1',
+        sessionId: 'session-1',
+        locationId: 'loc-1',
+      }),
+    ).rejects.toThrow('Inventory count session must be in progress to complete a location.')
+  })
+})
+
+describe('complete_inventory_count_location SQL contract', () => {
+  const sql = readFileSync(
+    resolve(process.cwd(), 'supabase/inventory_count_complete_location_rpc.sql'),
+    'utf8',
+  )
+
+  it('defines a SECURITY DEFINER RPC with auth, manager checks, and authenticated grant', () => {
+    expect(sql).toContain('create or replace function public.complete_inventory_count_location(')
+    expect(sql).toContain('p_workspace_id uuid')
+    expect(sql).toContain('p_session_id uuid')
+    expect(sql).toContain('p_location_id uuid')
+    expect(sql).toMatch(/security definer/i)
+    expect(sql).toContain('set search_path = public')
+    expect(sql).toContain('auth.uid()')
+    expect(sql).toContain('inventory_count_location_unauthenticated')
+    expect(sql).toContain('can_manage_workspace_stock(p_workspace_id)')
+    expect(sql).toContain('inventory_count_location_forbidden')
+    expect(sql).toContain('grant execute on function public.complete_inventory_count_location(')
+    expect(sql).toContain('to authenticated')
+  })
+
+  it('enforces session lifecycle, current location, and no pending items', () => {
+    expect(sql).toContain('for update')
+    expect(sql).toContain("v_session.status is distinct from 'in_progress'")
+    expect(sql).toContain('inventory_count_location_session_not_in_progress')
+    expect(sql).toContain("v_location.status is distinct from 'current'")
+    expect(sql).toContain('inventory_count_location_not_current')
+    expect(sql).toContain('inventory_count_location_items_pending')
+    expect(sql).toContain("and i.line_status not in ('counted', 'skipped')")
+    expect(sql).toContain("set status = 'completed'")
+    expect(sql).toContain("set status = 'current'")
+    expect(sql).toContain("status = 'counting_complete'")
+    expect(sql).toContain('all_locations_completed')
+  })
+
+  it('does not mutate stock tables', () => {
+    const functionBody = sql.slice(sql.indexOf('as $$'), sql.indexOf('$$;') + 3)
+    expect(functionBody).not.toMatch(/from public\.stock_items|update public\.stock_items|from public\.stock_movements|insert into public\.stock_movements/i)
+  })
+})
+
+describe('create_inventory_count_session location bootstrap SQL contract', () => {
+  const sql = readFileSync(
+    resolve(process.cwd(), 'supabase/inventory_count_create_session_rpc.sql'),
+    'utf8',
+  )
+  const functionBody = sql.slice(sql.indexOf('as $$'), sql.indexOf('$$;') + 3)
+
+  it('inserts the first input location as current and remaining as not_started', () => {
+    expect(functionBody).toContain('unnest(p_locations) with ordinality')
+    expect(functionBody).toContain('(ordinality - 1)::integer')
+    expect(functionBody).toContain("when ordinality = 1 then 'current'")
+    expect(functionBody).toContain("else 'not_started'")
+    expect(functionBody).not.toMatch(
+      /insert into public\.inventory_count_session_locations[\s\S]*'not_started'\s*from unnest\(p_locations\)/,
+    )
+  })
+
+  it('keeps duplicate-location validation and atomic session+location insert', () => {
+    expect(functionBody).toContain('inventory_count_session_duplicate_locations')
+    expect(functionBody).toContain('inventory_count_session_locations_required')
+    expect(functionBody).toContain('insert into public.inventory_count_sessions')
+    expect(functionBody).toContain('insert into public.inventory_count_session_locations')
+    expect(functionBody).not.toMatch(/update public\.inventory_count_session_locations/)
+  })
+
+  it('does not add a frontend lifecycle write path in the service', () => {
+    const serviceSource = readFileSync(
+      resolve(process.cwd(), 'src/services/inventoryCountService.js'),
+      'utf8',
+    )
+    expect(serviceSource).toContain('create_inventory_count_session')
+    expect(serviceSource).toContain('complete_inventory_count_location')
+    expect(serviceSource).not.toMatch(
+      /\.from\(\s*['"]inventory_count_session_locations['"]\s*\)[\s\S]*\.update\(/,
+    )
   })
 })

@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabaseClient'
 const CREATE_SESSION_RPC = 'create_inventory_count_session'
 const BUILD_SNAPSHOT_RPC = 'build_inventory_count_snapshot'
 const UPDATE_SESSION_ITEM_RPC = 'update_inventory_count_session_item'
+const COMPLETE_LOCATION_RPC = 'complete_inventory_count_location'
 const SESSION_ITEMS_TABLE = 'inventory_count_session_items'
 const SESSION_LOCATIONS_TABLE = 'inventory_count_session_locations'
 
@@ -35,7 +36,7 @@ function isRpcUnavailableError(error) {
 
 function extractRpcErrorCode(error) {
   const message = `${error?.message ?? error?.details ?? error?.hint ?? ''}`.trim()
-  const match = message.match(/inventory_count_(?:session|snapshot|item)_[a-z0-9_]+/i)
+  const match = message.match(/inventory_count_(?:session|snapshot|item|location)_[a-z0-9_]+/i)
   return match?.[0]?.toLowerCase() ?? ''
 }
 
@@ -56,14 +57,17 @@ function mapInventoryCountRpcError(error, fallbackMessage) {
     case 'inventory_count_session_unauthenticated':
     case 'inventory_count_snapshot_unauthenticated':
     case 'inventory_count_item_unauthenticated':
+    case 'inventory_count_location_unauthenticated':
       return new Error('You must be signed in to manage inventory counts.')
     case 'inventory_count_session_forbidden':
     case 'inventory_count_snapshot_forbidden':
     case 'inventory_count_item_forbidden':
+    case 'inventory_count_location_forbidden':
       return new Error('You do not have permission to manage inventory counts for this workspace.')
     case 'inventory_count_session_workspace_required':
     case 'inventory_count_snapshot_workspace_required':
     case 'inventory_count_item_workspace_required':
+    case 'inventory_count_location_workspace_required':
       return new Error('Workspace is required.')
     case 'inventory_count_session_workspace_not_found':
       return new Error('Workspace was not found.')
@@ -82,17 +86,22 @@ function mapInventoryCountRpcError(error, fallbackMessage) {
       return new Error('Duplicate locations are not allowed.')
     case 'inventory_count_snapshot_session_required':
     case 'inventory_count_item_session_required':
+    case 'inventory_count_location_session_required':
       return new Error('Inventory count session is required.')
     case 'inventory_count_snapshot_session_not_found':
     case 'inventory_count_item_session_not_found':
+    case 'inventory_count_location_session_not_found':
       return new Error('Inventory count session was not found.')
     case 'inventory_count_snapshot_workspace_mismatch':
     case 'inventory_count_item_workspace_mismatch':
+    case 'inventory_count_location_workspace_mismatch':
       return new Error('Inventory count session does not belong to this workspace.')
     case 'inventory_count_snapshot_session_not_in_progress':
       return new Error('Inventory count session must be in progress to build a snapshot.')
     case 'inventory_count_item_session_not_in_progress':
       return new Error('Inventory count session must be in progress to update counted quantities.')
+    case 'inventory_count_location_session_not_in_progress':
+      return new Error('Inventory count session must be in progress to complete a location.')
     case 'inventory_count_snapshot_already_exists':
       return new Error('A snapshot has already been created for this inventory count session.')
     case 'inventory_count_item_session_item_required':
@@ -103,6 +112,16 @@ function mapInventoryCountRpcError(error, fallbackMessage) {
       return new Error('Inventory count item does not belong to this session.')
     case 'inventory_count_item_invalid_quantity':
       return new Error('Counted quantity must be a valid non-negative number.')
+    case 'inventory_count_location_location_required':
+      return new Error('Inventory count location is required.')
+    case 'inventory_count_location_not_found':
+      return new Error('Inventory count location was not found.')
+    case 'inventory_count_location_session_mismatch':
+      return new Error('Inventory count location does not belong to this session.')
+    case 'inventory_count_location_not_current':
+      return new Error('Only the current location can be completed.')
+    case 'inventory_count_location_items_pending':
+      return new Error('Count or skip all items in this location before completing it.')
     default:
       return new Error(error.message || fallbackMessage)
   }
@@ -435,6 +454,66 @@ export async function updateInventoryCountItem({
   const mapped = mapInventoryCountSessionItemRow(firstRpcRow(data))
   if (!mapped) {
     throw new Error('Inventory count item response was empty or invalid.')
+  }
+
+  return mapped
+}
+
+export function mapCompleteInventoryCountLocationResult(row) {
+  if (!row || typeof row !== 'object') {
+    return null
+  }
+
+  const sessionId = `${row.session_id ?? row.sessionId ?? ''}`.trim()
+  const completedLocationId = `${row.completed_location_id ?? row.completedLocationId ?? ''}`.trim()
+  if (!sessionId || !completedLocationId) {
+    return null
+  }
+
+  const nextLocationId = `${row.next_location_id ?? row.nextLocationId ?? ''}`.trim() || null
+  const sessionStatus = `${row.session_status ?? row.sessionStatus ?? ''}`.trim()
+  if (!sessionStatus) {
+    return null
+  }
+
+  return {
+    sessionId,
+    completedLocationId,
+    nextLocationId,
+    sessionStatus,
+    allLocationsCompleted: Boolean(row.all_locations_completed ?? row.allLocationsCompleted),
+  }
+}
+
+/**
+ * Complete the current inventory count location and advance the session lifecycle.
+ * Does not mutate stock quantities or movements and does not post.
+ */
+export async function completeInventoryCountLocation({
+  workspaceId,
+  sessionId,
+  locationId,
+} = {}) {
+  requireConfiguredSupabase()
+
+  const p_workspace_id = requireId(workspaceId, 'Workspace')
+  const p_session_id = requireId(sessionId, 'Session')
+  const p_location_id = requireId(locationId, 'Location')
+
+  const { data, error } = await supabase.rpc(COMPLETE_LOCATION_RPC, {
+    p_workspace_id,
+    p_session_id,
+    p_location_id,
+  })
+
+  if (error) {
+    console.error('[inventoryCountService] completeInventoryCountLocation error:', error)
+    throw mapInventoryCountRpcError(error, 'Unable to complete inventory count location right now.')
+  }
+
+  const mapped = mapCompleteInventoryCountLocationResult(firstRpcRow(data))
+  if (!mapped) {
+    throw new Error('Complete location response was empty or invalid.')
   }
 
   return mapped
