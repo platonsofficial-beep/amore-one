@@ -81,13 +81,6 @@ export function InventoryCountWizard({ isOpen, onClose }) {
           <div className="inventory-count-wizard-header-actions">
             <button
               type="button"
-              className="ghost-btn inventory-count-wizard-cancel-btn"
-              onClick={onClose}
-            >
-              Cancel
-            </button>
-            <button
-              type="button"
               className="icon-btn inventory-count-wizard-close-btn"
               onClick={onClose}
               aria-label="Close"
@@ -118,6 +111,11 @@ export function InventoryCountWizard({ isOpen, onClose }) {
                 className={`inventory-count-type-card${isSelected ? ' is-selected' : ''}`}
                 onClick={() => setSelectedType(countType.id)}
               >
+                {isSelected ? (
+                  <span className="inventory-count-type-card-badge" aria-hidden="true">
+                    ✓
+                  </span>
+                ) : null}
                 <span className="inventory-count-type-card-icon" aria-hidden="true">
                   {countType.icon}
                 </span>
@@ -151,7 +149,7 @@ export function InventoryCountWizard({ isOpen, onClose }) {
             </button>
             <button
               type="button"
-              className="primary-btn inventory-count-wizard-nav-btn"
+              className="primary-btn inventory-count-wizard-nav-btn inventory-count-wizard-continue-btn"
               disabled={!canContinue}
               aria-disabled={!canContinue}
             >

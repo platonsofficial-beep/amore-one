@@ -31023,9 +31023,9 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 16px;
+  gap: 18px;
   flex-shrink: 0;
-  padding: 22px 24px 18px;
+  padding: 24px 28px 20px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.06);
   background: linear-gradient(180deg, rgba(20, 20, 22, 0.98), rgba(14, 14, 15, 0.96));
 }
@@ -31033,34 +31033,36 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 .inventory-count-wizard-header-copy {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
   min-width: 0;
   flex: 1 1 auto;
+  padding-right: 8px;
 }
 
 .inventory-count-wizard-title {
   margin: 0;
   color: #fff7e8;
-  font-size: 1.4rem;
-  font-weight: 650;
-  letter-spacing: 0.01em;
+  font-size: 1.48rem;
+  font-weight: 680;
+  letter-spacing: 0.015em;
+  line-height: 1.2;
 }
 
 .inventory-count-wizard-subtitle {
   margin: 0;
-  color: rgba(255, 247, 232, 0.72);
-  font-size: 0.94rem;
-  line-height: 1.45;
+  color: rgba(255, 247, 232, 0.66);
+  font-size: 0.95rem;
+  line-height: 1.5;
+  max-width: 38rem;
 }
 
 .inventory-count-wizard-header-actions {
   display: flex;
   align-items: center;
-  gap: 10px;
   flex-shrink: 0;
+  padding-top: 2px;
 }
 
-.inventory-count-wizard-cancel-btn,
 .inventory-count-wizard-close-btn,
 .inventory-count-wizard-nav-btn {
   min-height: 44px;
@@ -31070,25 +31072,26 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 .inventory-count-wizard-step {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
   flex-shrink: 0;
-  padding: 16px 24px 8px;
+  padding: 18px 28px 10px;
 }
 
 .inventory-count-wizard-step-label {
   margin: 0;
-  color: rgba(212, 175, 55, 0.88);
-  font-size: 0.78rem;
-  font-weight: 600;
-  letter-spacing: 0.12em;
+  color: rgba(212, 175, 55, 0.9);
+  font-size: 0.74rem;
+  font-weight: 650;
+  letter-spacing: 0.16em;
   text-transform: uppercase;
 }
 
 .inventory-count-wizard-step-name {
   margin: 0;
-  color: #f3e6cf;
-  font-size: 1.05rem;
-  font-weight: 600;
+  color: #f6ead4;
+  font-size: 1.12rem;
+  font-weight: 650;
+  letter-spacing: 0.01em;
 }
 
 .inventory-count-wizard-body {
@@ -31098,11 +31101,12 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   flex: 1 1 auto;
   min-height: 0;
   overflow: auto;
-  padding: 12px 24px 20px;
+  padding: 12px 28px 22px;
   align-content: start;
 }
 
 .inventory-count-type-card {
+  position: relative;
   display: flex;
   align-items: flex-start;
   gap: 14px;
@@ -31116,7 +31120,11 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   font: inherit;
   text-align: left;
   cursor: pointer;
-  transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+  transition:
+    border-color 180ms ease,
+    box-shadow 180ms ease,
+    background 180ms ease,
+    transform 180ms ease;
 }
 
 .inventory-count-type-card:hover {
@@ -31131,9 +31139,45 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 }
 
 .inventory-count-type-card.is-selected {
-  border-color: rgba(212, 175, 55, 0.58);
-  box-shadow: 0 0 0 1px rgba(212, 175, 55, 0.24);
-  background: rgba(212, 175, 55, 0.1);
+  border-color: rgba(232, 196, 90, 0.78);
+  box-shadow:
+    0 0 0 1px rgba(212, 175, 55, 0.36),
+    0 10px 28px rgba(0, 0, 0, 0.28),
+    inset 0 1px 0 rgba(255, 232, 180, 0.08);
+  background:
+    linear-gradient(160deg, rgba(212, 175, 55, 0.16), rgba(212, 175, 55, 0.07) 55%, rgba(14, 14, 15, 0.96));
+}
+
+.inventory-count-type-card-badge {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  border: 1px solid rgba(212, 175, 55, 0.55);
+  background: rgba(18, 16, 12, 0.94);
+  color: #f6dca2;
+  font-size: 0.72rem;
+  font-weight: 700;
+  line-height: 1;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+  animation: inventory-count-badge-in 180ms ease-out;
+}
+
+@keyframes inventory-count-badge-in {
+  from {
+    opacity: 0;
+    transform: scale(0.72);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
 .inventory-count-type-card-icon {
@@ -31149,6 +31193,18 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   color: #f6dca2;
   font-size: 1.15rem;
   line-height: 1;
+  transition:
+    border-color 180ms ease,
+    background 180ms ease,
+    color 180ms ease,
+    box-shadow 180ms ease;
+}
+
+.inventory-count-type-card.is-selected .inventory-count-type-card-icon {
+  border-color: rgba(232, 196, 90, 0.62);
+  background: rgba(212, 175, 55, 0.2);
+  color: #ffe7a8;
+  box-shadow: 0 0 0 1px rgba(212, 175, 55, 0.18);
 }
 
 .inventory-count-type-card-copy {
@@ -31156,6 +31212,7 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   flex-direction: column;
   gap: 6px;
   min-width: 0;
+  padding-right: 18px;
 }
 
 .inventory-count-type-card-title {
@@ -31163,6 +31220,12 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   font-size: 1.02rem;
   font-weight: 650;
   letter-spacing: 0.01em;
+  transition: font-weight 180ms ease, color 180ms ease;
+}
+
+.inventory-count-type-card.is-selected .inventory-count-type-card-title {
+  color: #fffaf0;
+  font-weight: 720;
 }
 
 .inventory-count-type-card-description {
@@ -31177,7 +31240,7 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   justify-content: space-between;
   gap: 12px;
   flex-shrink: 0;
-  padding: 16px 24px 20px;
+  padding: 16px 28px 22px;
   border-top: 1px solid rgba(255, 255, 255, 0.06);
   background: rgba(10, 10, 11, 0.92);
 }
@@ -31188,6 +31251,51 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   gap: 10px;
   flex-wrap: wrap;
   justify-content: flex-end;
+}
+
+.inventory-count-wizard-continue-btn {
+  min-width: 132px;
+  padding-inline: 22px;
+  transition:
+    opacity 180ms ease,
+    transform 180ms ease,
+    box-shadow 180ms ease,
+    background 180ms ease,
+    border-color 180ms ease,
+    filter 180ms ease,
+    min-width 180ms ease,
+    padding 180ms ease;
+}
+
+.inventory-count-wizard-continue-btn:disabled,
+.inventory-count-wizard-continue-btn[aria-disabled='true'] {
+  min-width: 112px;
+  opacity: 0.42;
+  filter: grayscale(0.25);
+  box-shadow: none;
+  cursor: not-allowed;
+}
+
+.inventory-count-wizard-continue-btn:not(:disabled):not([aria-disabled='true']) {
+  min-width: 148px;
+  box-shadow:
+    0 8px 22px rgba(0, 0, 0, 0.35),
+    0 0 0 1px rgba(212, 175, 55, 0.18);
+}
+
+.inventory-count-wizard-continue-btn:not(:disabled):not([aria-disabled='true']):hover {
+  filter: brightness(1.06);
+  box-shadow:
+    0 10px 26px rgba(0, 0, 0, 0.4),
+    0 0 0 1px rgba(212, 175, 55, 0.28);
+}
+
+.inventory-count-wizard-continue-btn:not(:disabled):not([aria-disabled='true']):active {
+  transform: translateY(1px);
+  filter: brightness(0.98);
+  box-shadow:
+    0 4px 14px rgba(0, 0, 0, 0.3),
+    0 0 0 1px rgba(212, 175, 55, 0.22);
 }
 
 @media (max-width: 1100px) {
@@ -31234,6 +31342,10 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 
   .inventory-count-wizard-footer-end .inventory-count-wizard-nav-btn {
     flex: 1 1 auto;
+  }
+
+  .inventory-count-wizard-continue-btn:not(:disabled):not([aria-disabled='true']) {
+    min-width: 0;
   }
 }
 

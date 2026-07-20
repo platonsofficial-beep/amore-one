@@ -53,6 +53,8 @@ describe('InventoryCountWizard foundation', () => {
     const cancelBtn = Array.from(dialog.querySelectorAll('button')).find(
       (button) => button.textContent === 'Cancel',
     )
+    expect(dialog.querySelector('.inventory-count-wizard-header-actions .inventory-count-wizard-cancel-btn')).toBeNull()
+    expect(Array.from(dialog.querySelectorAll('button')).filter((button) => button.textContent === 'Cancel')).toHaveLength(1)
     act(() => {
       cancelBtn.click()
     })
@@ -93,6 +95,8 @@ describe('InventoryCountWizard foundation', () => {
     })
     expect(cards[0].getAttribute('aria-checked')).toBe('true')
     expect(continueBtn?.disabled).toBe(false)
+    expect(container.querySelectorAll('.inventory-count-type-card-badge')).toHaveLength(1)
+    expect(cards[0].querySelector('.inventory-count-type-card-badge')).not.toBeNull()
 
     act(() => {
       cards[2].click()
@@ -100,6 +104,9 @@ describe('InventoryCountWizard foundation', () => {
     expect(cards[0].getAttribute('aria-checked')).toBe('false')
     expect(cards[2].getAttribute('aria-checked')).toBe('true')
     expect(continueBtn?.disabled).toBe(false)
+    expect(container.querySelectorAll('.inventory-count-type-card-badge')).toHaveLength(1)
+    expect(cards[2].querySelector('.inventory-count-type-card-badge')).not.toBeNull()
+    expect(cards[0].querySelector('.inventory-count-type-card-badge')).toBeNull()
 
     act(() => {
       continueBtn.click()
