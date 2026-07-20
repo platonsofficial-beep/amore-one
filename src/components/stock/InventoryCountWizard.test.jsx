@@ -32,6 +32,31 @@ function getButtonByText(root, text) {
   return Array.from(root.querySelectorAll('button')).find((button) => button.textContent === text)
 }
 
+function goToStep3(container) {
+  const continueBtn = getButtonByText(container, 'Continue')
+  const typeCards = container.querySelectorAll('[role="radio"]')
+
+  act(() => {
+    typeCards[1].click()
+  })
+  act(() => {
+    continueBtn.click()
+  })
+
+  const locationCards = container.querySelectorAll('[role="checkbox"]')
+  act(() => {
+    locationCards[0].click()
+  })
+  act(() => {
+    locationCards[2].click()
+  })
+  act(() => {
+    continueBtn.click()
+  })
+
+  return { continueBtn, locationCards }
+}
+
 describe('InventoryCountWizard foundation', () => {
   it('opens from Start new count and closes via Cancel and Close', () => {
     const { container, cleanup } = render(createElement(InventoryCountView))
@@ -152,8 +177,8 @@ describe('InventoryCountWizard foundation', () => {
     act(() => {
       continueBtn.click()
     })
-    expect(container.textContent).toContain('Step 3 coming next')
-    expect(continueBtn?.disabled).toBe(true)
+    expect(container.textContent).toContain('Step 3 of 4')
+    expect(container.textContent).toContain('Count Settings')
     expect(onClose).not.toHaveBeenCalled()
 
     const backBtn = getButtonByText(container, 'Back')
@@ -161,18 +186,106 @@ describe('InventoryCountWizard foundation', () => {
       backBtn.click()
     })
 
+    expect(container.textContent).toContain('Step 2 of 4')
+    expect(container.textContent).toContain('Scope / Locations')
+    const restoredLocationCards = container.querySelectorAll('[role="checkbox"]')
+    expect(restoredLocationCards[0].getAttribute('aria-checked')).toBe('true')
+    expect(restoredLocationCards[2].getAttribute('aria-checked')).toBe('true')
+    expect(restoredLocationCards[6].getAttribute('aria-checked')).toBe('true')
+
+    act(() => {
+      backBtn.click()
+    })
     expect(container.textContent).toContain('Step 1 of 4')
     expect(container.textContent).toContain('Count Type')
     const restoredTypeCards = container.querySelectorAll('[role="radio"]')
     expect(restoredTypeCards[1].getAttribute('aria-checked')).toBe('true')
 
+    cleanup()
+  })
+
+  it('configures Step 3 settings and opens Step 4 placeholder without creating a session', () => {
+    const onClose = vi.fn()
+    const { container, cleanup } = render(
+      createElement(InventoryCountWizard, { isOpen: true, onClose }),
+    )
+
+    const { continueBtn } = goToStep3(container)
+
+    expect(container.textContent).toContain('Step 3 of 4')
+    expect(container.textContent).toContain('Count Settings')
+    expect(container.textContent).toContain(
+      'Configure how this inventory session will be performed.',
+    )
+
+    const visibilityCards = container.querySelectorAll(
+      '.inventory-count-wizard-body-visibility [role="radio"]',
+    )
+    expect(visibilityCards).toHaveLength(2)
+    expect(visibilityCards[0].getAttribute('aria-checked')).toBe('true')
+    expect(visibilityCards[0].textContent).toContain('Blind Count')
+    expect(visibilityCards[0].textContent).toContain('Recommended')
+    expect(continueBtn?.disabled).toBe(false)
+
+    act(() => {
+      visibilityCards[1].click()
+    })
+    expect(visibilityCards[0].getAttribute('aria-checked')).toBe('false')
+    expect(visibilityCards[1].getAttribute('aria-checked')).toBe('true')
+
+    const toggles = container.querySelectorAll('[role="switch"]')
+    expect(toggles).toHaveLength(2)
+    expect(toggles[0].getAttribute('aria-checked')).toBe('true')
+    expect(toggles[1].getAttribute('aria-checked')).toBe('false')
+
+    act(() => {
+      toggles[0].click()
+    })
+    act(() => {
+      toggles[1].click()
+    })
+    expect(toggles[0].getAttribute('aria-checked')).toBe('false')
+    expect(toggles[1].getAttribute('aria-checked')).toBe('true')
+
+    const noteInput = container.querySelector('.inventory-count-session-note-input')
+    expect(noteInput).not.toBeNull()
+    act(() => {
+      const nativeInputValueSetter = Object.getOwnPropertyDescriptor(
+        window.HTMLTextAreaElement.prototype,
+        'value',
+      )?.set
+      nativeInputValueSetter?.call(noteInput, 'Month-end bar audit')
+      noteInput.dispatchEvent(new Event('input', { bubbles: true }))
+    })
+    expect(noteInput.value).toBe('Month-end bar audit')
+
     act(() => {
       continueBtn.click()
     })
-    const restoredLocationCards = container.querySelectorAll('[role="checkbox"]')
-    expect(restoredLocationCards[0].getAttribute('aria-checked')).toBe('true')
-    expect(restoredLocationCards[2].getAttribute('aria-checked')).toBe('true')
-    expect(restoredLocationCards[6].getAttribute('aria-checked')).toBe('true')
+    expect(container.textContent).toContain('Step 4 of 4')
+    expect(container.textContent).toContain('Step 4 coming next')
+    expect(continueBtn?.disabled).toBe(true)
+    expect(onClose).not.toHaveBeenCalled()
+
+    const backBtn = getButtonByText(container, 'Back')
+    act(() => {
+      backBtn.click()
+    })
+    expect(container.textContent).toContain('Step 3 of 4')
+    expect(container.querySelector('.inventory-count-session-note-input')?.value).toBe('Month-end bar audit')
+    expect(container.querySelectorAll('[role="switch"]')[0].getAttribute('aria-checked')).toBe('false')
+    expect(container.querySelectorAll('[role="switch"]')[1].getAttribute('aria-checked')).toBe('true')
+    expect(
+      container.querySelectorAll('.inventory-count-wizard-body-visibility [role="radio"]')[1]
+        .getAttribute('aria-checked'),
+    ).toBe('true')
+
+    act(() => {
+      backBtn.click()
+    })
+    const restoredLocations = container.querySelectorAll('[role="checkbox"]')
+    expect(restoredLocations[0].getAttribute('aria-checked')).toBe('true')
+    expect(restoredLocations[2].getAttribute('aria-checked')).toBe('true')
 
     cleanup()
   })

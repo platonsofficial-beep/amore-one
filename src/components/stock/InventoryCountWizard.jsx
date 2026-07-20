@@ -44,18 +44,81 @@ const DEMO_LOCATIONS = [
   { id: 'other', title: 'Other', subtitle: 'Additional locations', icon: '▢' },
 ]
 
+const COUNT_VISIBILITY_OPTIONS = [
+  {
+    id: 'blind',
+    title: 'Blind Count',
+    description: 'Hide expected quantities while counting.',
+    helper: 'Recommended for accurate stock counts.',
+    icon: '◌',
+    recommended: true,
+  },
+  {
+    id: 'open',
+    title: 'Open Count',
+    description: 'Show expected quantities while counting.',
+    helper: 'Useful for training or quick verification.',
+    icon: '◎',
+    recommended: false,
+  },
+]
+
+const SESSION_NOTE_MAX_LENGTH = 250
+
+const STEP_COPY = {
+  1: {
+    label: 'Step 1 of 4',
+    name: 'Count Type',
+    subtitle: 'Create a new inventory counting session.',
+  },
+  2: {
+    label: 'Step 2 of 4',
+    name: 'Scope / Locations',
+    subtitle: 'Select the locations that will be included in this inventory count.',
+  },
+  3: {
+    label: 'Step 3 of 4',
+    name: 'Count Settings',
+    subtitle: 'Configure how this inventory session will be performed.',
+  },
+  4: {
+    label: 'Step 4 of 4',
+    name: 'Review',
+    subtitle: 'Review your inventory count setup before starting.',
+  },
+}
+
+function createInitialWizardState() {
+  return {
+    step: 1,
+    selectedType: null,
+    selectedLocations: [],
+    countVisibility: 'blind',
+    includeZeroStock: true,
+    includeInactive: false,
+    sessionNote: '',
+  }
+}
+
 export function InventoryCountWizard({ isOpen, onClose }) {
   const [step, setStep] = useState(1)
   const [selectedType, setSelectedType] = useState(null)
   const [selectedLocations, setSelectedLocations] = useState([])
-  const [showStep3Placeholder, setShowStep3Placeholder] = useState(false)
+  const [countVisibility, setCountVisibility] = useState('blind')
+  const [includeZeroStock, setIncludeZeroStock] = useState(true)
+  const [includeInactive, setIncludeInactive] = useState(false)
+  const [sessionNote, setSessionNote] = useState('')
 
   useEffect(() => {
     if (!isOpen) {
-      setStep(1)
-      setSelectedType(null)
-      setSelectedLocations([])
-      setShowStep3Placeholder(false)
+      const initial = createInitialWizardState()
+      setStep(initial.step)
+      setSelectedType(initial.selectedType)
+      setSelectedLocations(initial.selectedLocations)
+      setCountVisibility(initial.countVisibility)
+      setIncludeZeroStock(initial.includeZeroStock)
+      setIncludeInactive(initial.includeInactive)
+      setSessionNote(initial.sessionNote)
       return undefined
     }
 
@@ -71,13 +134,14 @@ export function InventoryCountWizard({ isOpen, onClose }) {
 
   if (!isOpen) return null
 
-  const isStep1 = step === 1
-  const canContinue = isStep1
+  const stepCopy = STEP_COPY[step] ?? STEP_COPY[1]
+  const canContinue = step === 1
     ? Boolean(selectedType)
-    : selectedLocations.length > 0 && !showStep3Placeholder
+    : step === 2
+      ? selectedLocations.length > 0
+      : step === 3
 
   const toggleLocation = (locationId) => {
-    setShowStep3Placeholder(false)
     setSelectedLocations((current) => (
       current.includes(locationId)
         ? current.filter((id) => id !== locationId)
@@ -86,26 +150,32 @@ export function InventoryCountWizard({ isOpen, onClose }) {
   }
 
   const handleBack = () => {
-    if (!isStep1) {
-      setShowStep3Placeholder(false)
-      setStep(1)
+    if (step > 1) {
+      setStep((current) => current - 1)
     }
   }
 
   const handleContinue = () => {
-    if (isStep1) {
+    if (step === 1) {
       if (!selectedType) return
       setStep(2)
       return
     }
 
-    if (selectedLocations.length === 0) return
-    setShowStep3Placeholder(true)
+    if (step === 2) {
+      if (selectedLocations.length === 0) return
+      setStep(3)
+      return
+    }
+
+    if (step === 3) {
+      setStep(4)
+    }
   }
 
-  const subtitle = isStep1
-    ? 'Create a new inventory counting session.'
-    : 'Select the locations that will be included in this inventory count.'
+  const handleSessionNoteChange = (event) => {
+    setSessionNote(event.target.value.slice(0, SESSION_NOTE_MAX_LENGTH))
+  }
 
   return (
     <div
@@ -126,7 +196,7 @@ export function InventoryCountWizard({ isOpen, onClose }) {
               Inventory Count
             </h2>
             <p id="inventory-count-wizard-subtitle" className="inventory-count-wizard-subtitle">
-              {subtitle}
+              {stepCopy.subtitle}
             </p>
           </div>
           <div className="inventory-count-wizard-header-actions">
@@ -142,15 +212,11 @@ export function InventoryCountWizard({ isOpen, onClose }) {
         </header>
 
         <div className="inventory-count-wizard-step" aria-label="Wizard progress">
-          <p className="inventory-count-wizard-step-label">
-            {isStep1 ? 'Step 1 of 4' : 'Step 2 of 4'}
-          </p>
-          <p className="inventory-count-wizard-step-name">
-            {isStep1 ? 'Count Type' : 'Scope / Locations'}
-          </p>
+          <p className="inventory-count-wizard-step-label">{stepCopy.label}</p>
+          <p className="inventory-count-wizard-step-name">{stepCopy.name}</p>
         </div>
 
-        {isStep1 ? (
+        {step === 1 ? (
           <div
             className="inventory-count-wizard-body"
             role="radiogroup"
@@ -185,13 +251,10 @@ export function InventoryCountWizard({ isOpen, onClose }) {
               )
             })}
           </div>
-        ) : (
+        ) : null}
+
+        {step === 2 ? (
           <div className="inventory-count-wizard-step2">
-            {showStep3Placeholder ? (
-              <p className="inventory-count-wizard-placeholder" role="status">
-                Step 3 coming next
-              </p>
-            ) : null}
             <div
               className="inventory-count-wizard-body inventory-count-wizard-body-locations"
               role="group"
@@ -229,14 +292,122 @@ export function InventoryCountWizard({ isOpen, onClose }) {
               })}
             </div>
           </div>
-        )}
+        ) : null}
+
+        {step === 3 ? (
+          <div className="inventory-count-wizard-step3">
+            <div
+              className="inventory-count-wizard-body inventory-count-wizard-body-visibility"
+              role="radiogroup"
+              aria-label="Count Visibility"
+            >
+              {COUNT_VISIBILITY_OPTIONS.map((option) => {
+                const isSelected = countVisibility === option.id
+                return (
+                  <button
+                    key={option.id}
+                    type="button"
+                    role="radio"
+                    aria-checked={isSelected}
+                    className={`inventory-count-type-card inventory-count-visibility-card${isSelected ? ' is-selected' : ''}${option.recommended ? ' is-recommended' : ''}`}
+                    onClick={() => setCountVisibility(option.id)}
+                  >
+                    {isSelected ? (
+                      <span className="inventory-count-type-card-badge" aria-hidden="true">
+                        ✓
+                      </span>
+                    ) : null}
+                    <span className="inventory-count-type-card-icon" aria-hidden="true">
+                      {option.icon}
+                    </span>
+                    <span className="inventory-count-type-card-copy">
+                      <span className="inventory-count-visibility-title-row">
+                        <span className="inventory-count-type-card-title">{option.title}</span>
+                        {option.recommended ? (
+                          <span className="inventory-count-recommended-pill">Recommended</span>
+                        ) : null}
+                      </span>
+                      <span className="inventory-count-type-card-description">
+                        {option.description}
+                      </span>
+                      <span className="inventory-count-visibility-helper">
+                        {option.helper}
+                      </span>
+                    </span>
+                  </button>
+                )
+              })}
+            </div>
+
+            <div className="inventory-count-wizard-options" aria-label="Inventory options">
+              <button
+                type="button"
+                role="switch"
+                aria-checked={includeZeroStock}
+                className={`inventory-count-option-toggle${includeZeroStock ? ' is-on' : ''}`}
+                onClick={() => setIncludeZeroStock((current) => !current)}
+              >
+                <span className="inventory-count-option-toggle-copy">
+                  <span className="inventory-count-option-toggle-title">Include zero-stock items</span>
+                  <span className="inventory-count-option-toggle-description">
+                    Include items currently expected to be zero.
+                  </span>
+                </span>
+                <span className="inventory-count-option-switch" aria-hidden="true">
+                  <span className="inventory-count-option-switch-thumb" />
+                </span>
+              </button>
+
+              <button
+                type="button"
+                role="switch"
+                aria-checked={includeInactive}
+                className={`inventory-count-option-toggle${includeInactive ? ' is-on' : ''}`}
+                onClick={() => setIncludeInactive((current) => !current)}
+              >
+                <span className="inventory-count-option-toggle-copy">
+                  <span className="inventory-count-option-toggle-title">Include inactive items</span>
+                  <span className="inventory-count-option-toggle-description">
+                    Include archived or inactive inventory items.
+                  </span>
+                </span>
+                <span className="inventory-count-option-switch" aria-hidden="true">
+                  <span className="inventory-count-option-switch-thumb" />
+                </span>
+              </button>
+            </div>
+
+            <label className="inventory-count-session-note">
+              <span className="inventory-count-session-note-label">Session note</span>
+              <textarea
+                className="inventory-count-session-note-input"
+                value={sessionNote}
+                onChange={handleSessionNoteChange}
+                maxLength={SESSION_NOTE_MAX_LENGTH}
+                rows={3}
+                placeholder="Add an optional note for this inventory session..."
+              />
+              <span className="inventory-count-session-note-count">
+                {sessionNote.length}/{SESSION_NOTE_MAX_LENGTH}
+              </span>
+            </label>
+          </div>
+        ) : null}
+
+        {step === 4 ? (
+          <div className="inventory-count-wizard-step4">
+            <p className="inventory-count-wizard-placeholder" role="status">
+              Step 4 coming next
+            </p>
+          </div>
+        ) : null}
 
         <footer className="inventory-count-wizard-footer">
           <button
             type="button"
             className="ghost-btn inventory-count-wizard-nav-btn"
-            disabled={isStep1}
-            aria-disabled={isStep1}
+            disabled={step === 1}
+            aria-disabled={step === 1}
             onClick={handleBack}
           >
             Back
