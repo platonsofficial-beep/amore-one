@@ -12,6 +12,7 @@ import {
   createInventoryCountSession,
   getInventoryCountSessionItems,
   getInventoryCountSessionLocations,
+  updateInventoryCountItem,
 } from '../../services/inventoryCountService'
 
 vi.mock('../../context/AuthContext', () => ({
@@ -25,6 +26,7 @@ vi.mock('../../services/inventoryCountService', () => ({
   buildInventoryCountSnapshot: vi.fn(),
   getInventoryCountSessionLocations: vi.fn(),
   getInventoryCountSessionItems: vi.fn(),
+  updateInventoryCountItem: vi.fn(),
 }))
 
 function render(ui) {
@@ -216,6 +218,7 @@ describe('InventoryCountSessionWorkspace real session items', () => {
     buildInventoryCountSnapshot.mockReset()
     getInventoryCountSessionLocations.mockReset()
     getInventoryCountSessionItems.mockReset()
+    updateInventoryCountItem.mockReset()
 
     createInventoryCountSession.mockResolvedValue({
       id: 'session-real-1',
@@ -234,6 +237,23 @@ describe('InventoryCountSessionWorkspace real session items', () => {
     })
     getInventoryCountSessionLocations.mockResolvedValue(FIXTURE_LOCATIONS)
     getInventoryCountSessionItems.mockResolvedValue(FIXTURE_ITEMS)
+    updateInventoryCountItem.mockImplementation(async ({ sessionItemId, countedQuantity }) => ({
+      id: sessionItemId,
+      sessionId: 'session-real-1',
+      workspaceId: 'workspace-test-id',
+      itemId: `stock-${sessionItemId}`,
+      itemName: 'Saved item',
+      category: 'Other',
+      itemType: 'Other',
+      unit: 'case',
+      storageLocation: 'Main Storage',
+      expectedSnapshot: 0,
+      countedQuantity: countedQuantity === null || countedQuantity === undefined
+        ? null
+        : Number(countedQuantity),
+      lineStatus: countedQuantity === null || countedQuantity === undefined ? 'pending' : 'counted',
+      note: '',
+    }))
   })
 
   it('propagates the exact wizard sessionId through View into Workspace queries', async () => {
@@ -452,10 +472,213 @@ describe('InventoryCountSessionWorkspace real session items', () => {
     )
 
     expect(workspaceSource).toContain('getInventoryCountSessionItems')
+    expect(workspaceSource).toContain('updateInventoryCountItem')
+    expect(workspaceSource).toContain('sessionItemId:')
     expect(workspaceSource).not.toContain('getLatestInProgressInventoryCountSession')
     expect(serviceSource).not.toContain('getLatestInProgressInventoryCountSession')
+    expect(serviceSource).toContain('update_inventory_count_session_item')
+    expect(serviceSource).toContain('sessionItemId')
+    expect(serviceSource).not.toMatch(/\.update\(\s*\{\s*counted_quantity/)
     expect(viewSource).toContain('sessionId={activeSessionId}')
     expect(viewSource).toContain('workspaceId={activeWorkspaceId}')
     expect(workspaceSource).not.toMatch(/localStorage|sessionStorage|recordStockMovement|postCount|fetch\(/i)
+  })
+
+  it('autosaves counted edits after debounce and updates progress', async () => {
+    const { container, cleanup } = await renderWorkspace()
+    vi.useFakeTimers()
+
+    const paperStrawsInput = container.querySelector(
+      'input[aria-label="Counted quantity for Paper Straws"]',
+    )
+    expect(paperStrawsInput).toBeTruthy()
+    expect(getProgressSnapshot(container)).toContain('2 / 5 counted')
+    expect(getRailButton(container, 'Main Storage')?.textContent).toContain('1 / 2')
+
+    await act(async () => {
+      const nativeInputValueSetter = Object.getOwnPropertyDescriptor(
+        window.HTMLInputElement.prototype,
+        'value',
+      )?.set
+      nativeInputValueSetter?.call(paperStrawsInput, '4')
+      paperStrawsInput.dispatchEvent(new Event('input', { bubbles: true }))
+    })
+
+    expect(paperStrawsInput.value).toBe('4')
+    expect(updateInventoryCountItem).not.toHaveBeenCalled()
+
+    await act(async () => {
+      vi.advanceTimersByTime(400)
+    })
+    await act(async () => {
+      await Promise.resolve()
+    })
+
+    expect(updateInventoryCountItem).toHaveBeenCalledTimes(1)
+    expect(updateInventoryCountItem).toHaveBeenCalledWith({
+      workspaceId: 'workspace-test-id',
+      sessionId: 'session-real-1',
+      sessionItemId: 'ms-2',
+      countedQuantity: 4,
+    })
+    expect(getProgressSnapshot(container)).toContain('3 / 5 counted')
+    expect(getRailButton(container, 'Main Storage')?.textContent).toContain('2 / 2')
+
+    cleanup()
+    vi.useRealTimers()
+  })
+
+  it('clears counted quantity back to pending on empty input', async () => {
+    const { container, cleanup } = await renderWorkspace()
+    vi.useFakeTimers()
+
+    const cokeInput = container.querySelector(
+      'input[aria-label="Counted quantity for Coca-Cola"]',
+    )
+    expect(cokeInput?.value).toBe('10')
+    expect(getProgressSnapshot(container)).toContain('2 / 5 counted')
+
+    await act(async () => {
+      const nativeInputValueSetter = Object.getOwnPropertyDescriptor(
+        window.HTMLInputElement.prototype,
+        'value',
+      )?.set
+      nativeInputValueSetter?.call(cokeInput, '')
+      cokeInput.dispatchEvent(new Event('input', { bubbles: true }))
+    })
+
+    await act(async () => {
+      vi.advanceTimersByTime(400)
+    })
+    await act(async () => {
+      await Promise.resolve()
+    })
+
+    expect(updateInventoryCountItem).toHaveBeenCalledWith({
+      workspaceId: 'workspace-test-id',
+      sessionId: 'session-real-1',
+      sessionItemId: 'ms-1',
+      countedQuantity: null,
+    })
+    expect(cokeInput.value).toBe('')
+    expect(getProgressSnapshot(container)).toContain('1 / 5 counted')
+    expect(getRailButton(container, 'Main Storage')?.textContent).toContain('0 / 2')
+
+    cleanup()
+    vi.useRealTimers()
+  })
+
+  it('rolls back optimistic edits when autosave fails', async () => {
+    updateInventoryCountItem.mockRejectedValueOnce(new Error('save failed'))
+    const { container, cleanup } = await renderWorkspace()
+    vi.useFakeTimers()
+
+    const paperStrawsInput = container.querySelector(
+      'input[aria-label="Counted quantity for Paper Straws"]',
+    )
+
+    await act(async () => {
+      const nativeInputValueSetter = Object.getOwnPropertyDescriptor(
+        window.HTMLInputElement.prototype,
+        'value',
+      )?.set
+      nativeInputValueSetter?.call(paperStrawsInput, '9')
+      paperStrawsInput.dispatchEvent(new Event('input', { bubbles: true }))
+    })
+
+    await act(async () => {
+      vi.advanceTimersByTime(400)
+    })
+    await act(async () => {
+      await Promise.resolve()
+    })
+
+    expect(paperStrawsInput.value).toBe('')
+    expect(container.querySelector('.staff-status-banner')?.textContent).toBe('save failed')
+    expect(getProgressSnapshot(container)).toContain('2 / 5 counted')
+
+    cleanup()
+    vi.useRealTimers()
+  })
+
+  it('prevents duplicate in-flight saves for the same row and queues the latest value', async () => {
+    let resolveFirst
+    updateInventoryCountItem.mockImplementationOnce(
+      () => new Promise((resolve) => {
+        resolveFirst = resolve
+      }),
+    )
+
+    const { container, cleanup } = await renderWorkspace()
+    vi.useFakeTimers()
+    const paperStrawsInput = container.querySelector(
+      'input[aria-label="Counted quantity for Paper Straws"]',
+    )
+
+    await act(async () => {
+      const nativeInputValueSetter = Object.getOwnPropertyDescriptor(
+        window.HTMLInputElement.prototype,
+        'value',
+      )?.set
+      nativeInputValueSetter?.call(paperStrawsInput, '1')
+      paperStrawsInput.dispatchEvent(new Event('input', { bubbles: true }))
+    })
+
+    await act(async () => {
+      vi.advanceTimersByTime(400)
+    })
+    await act(async () => {
+      await Promise.resolve()
+    })
+
+    expect(updateInventoryCountItem).toHaveBeenCalledTimes(1)
+
+    await act(async () => {
+      const nativeInputValueSetter = Object.getOwnPropertyDescriptor(
+        window.HTMLInputElement.prototype,
+        'value',
+      )?.set
+      nativeInputValueSetter?.call(paperStrawsInput, '7')
+      paperStrawsInput.dispatchEvent(new Event('input', { bubbles: true }))
+    })
+
+    await act(async () => {
+      vi.advanceTimersByTime(400)
+    })
+    await act(async () => {
+      await Promise.resolve()
+    })
+
+    expect(updateInventoryCountItem).toHaveBeenCalledTimes(1)
+
+    await act(async () => {
+      resolveFirst({
+        id: 'ms-2',
+        sessionId: 'session-real-1',
+        workspaceId: 'workspace-test-id',
+        itemId: 'stock-ms-2',
+        itemName: 'Paper Straws',
+        category: 'Other',
+        itemType: 'Other',
+        unit: 'box',
+        storageLocation: 'Main Storage',
+        expectedSnapshot: 4,
+        countedQuantity: 1,
+        lineStatus: 'counted',
+        note: '',
+      })
+      await Promise.resolve()
+    })
+
+    expect(updateInventoryCountItem).toHaveBeenCalledTimes(2)
+    expect(updateInventoryCountItem).toHaveBeenLastCalledWith({
+      workspaceId: 'workspace-test-id',
+      sessionId: 'session-real-1',
+      sessionItemId: 'ms-2',
+      countedQuantity: 7,
+    })
+
+    cleanup()
+    vi.useRealTimers()
   })
 })

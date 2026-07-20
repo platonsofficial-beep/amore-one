@@ -2,6 +2,7 @@ import { supabase } from '../lib/supabaseClient'
 
 const CREATE_SESSION_RPC = 'create_inventory_count_session'
 const BUILD_SNAPSHOT_RPC = 'build_inventory_count_snapshot'
+const UPDATE_SESSION_ITEM_RPC = 'update_inventory_count_session_item'
 const SESSION_ITEMS_TABLE = 'inventory_count_session_items'
 const SESSION_LOCATIONS_TABLE = 'inventory_count_session_locations'
 
@@ -34,7 +35,7 @@ function isRpcUnavailableError(error) {
 
 function extractRpcErrorCode(error) {
   const message = `${error?.message ?? error?.details ?? error?.hint ?? ''}`.trim()
-  const match = message.match(/inventory_count_(?:session|snapshot)_[a-z0-9_]+/i)
+  const match = message.match(/inventory_count_(?:session|snapshot|item)_[a-z0-9_]+/i)
   return match?.[0]?.toLowerCase() ?? ''
 }
 
@@ -54,12 +55,15 @@ function mapInventoryCountRpcError(error, fallbackMessage) {
   switch (code) {
     case 'inventory_count_session_unauthenticated':
     case 'inventory_count_snapshot_unauthenticated':
+    case 'inventory_count_item_unauthenticated':
       return new Error('You must be signed in to manage inventory counts.')
     case 'inventory_count_session_forbidden':
     case 'inventory_count_snapshot_forbidden':
+    case 'inventory_count_item_forbidden':
       return new Error('You do not have permission to manage inventory counts for this workspace.')
     case 'inventory_count_session_workspace_required':
     case 'inventory_count_snapshot_workspace_required':
+    case 'inventory_count_item_workspace_required':
       return new Error('Workspace is required.')
     case 'inventory_count_session_workspace_not_found':
       return new Error('Workspace was not found.')
@@ -77,15 +81,28 @@ function mapInventoryCountRpcError(error, fallbackMessage) {
     case 'inventory_count_session_duplicate_locations':
       return new Error('Duplicate locations are not allowed.')
     case 'inventory_count_snapshot_session_required':
+    case 'inventory_count_item_session_required':
       return new Error('Inventory count session is required.')
     case 'inventory_count_snapshot_session_not_found':
+    case 'inventory_count_item_session_not_found':
       return new Error('Inventory count session was not found.')
     case 'inventory_count_snapshot_workspace_mismatch':
+    case 'inventory_count_item_workspace_mismatch':
       return new Error('Inventory count session does not belong to this workspace.')
     case 'inventory_count_snapshot_session_not_in_progress':
       return new Error('Inventory count session must be in progress to build a snapshot.')
+    case 'inventory_count_item_session_not_in_progress':
+      return new Error('Inventory count session must be in progress to update counted quantities.')
     case 'inventory_count_snapshot_already_exists':
       return new Error('A snapshot has already been created for this inventory count session.')
+    case 'inventory_count_item_session_item_required':
+      return new Error('Inventory count item is required.')
+    case 'inventory_count_item_not_found':
+      return new Error('Inventory count item was not found.')
+    case 'inventory_count_item_session_mismatch':
+      return new Error('Inventory count item does not belong to this session.')
+    case 'inventory_count_item_invalid_quantity':
+      return new Error('Counted quantity must be a valid non-negative number.')
     default:
       return new Error(error.message || fallbackMessage)
   }
@@ -372,4 +389,53 @@ export async function getInventoryCountSessionItems({
   return (data ?? [])
     .map(mapInventoryCountSessionItemRow)
     .filter(Boolean)
+}
+
+/**
+ * Persist a counted quantity for one inventory count session line via SECURITY DEFINER RPC.
+ * Database owns counted_at and line_status. Does not mutate stock quantities or movements.
+ */
+export async function updateInventoryCountItem({
+  workspaceId,
+  sessionId,
+  sessionItemId,
+  countedQuantity,
+} = {}) {
+  requireConfiguredSupabase()
+
+  const p_workspace_id = requireId(workspaceId, 'Workspace')
+  const p_session_id = requireId(sessionId, 'Session')
+  const p_session_item_id = requireId(sessionItemId, 'Session item')
+
+  let p_counted_quantity = null
+  if (!(
+    countedQuantity === null
+    || countedQuantity === undefined
+    || `${countedQuantity}`.trim() === ''
+  )) {
+    const numeric = Number(countedQuantity)
+    if (!Number.isFinite(numeric) || numeric < 0) {
+      throw new Error('Counted quantity must be a valid non-negative number.')
+    }
+    p_counted_quantity = numeric
+  }
+
+  const { data, error } = await supabase.rpc(UPDATE_SESSION_ITEM_RPC, {
+    p_workspace_id,
+    p_session_id,
+    p_session_item_id,
+    p_counted_quantity,
+  })
+
+  if (error) {
+    console.error('[inventoryCountService] updateInventoryCountItem error:', error)
+    throw mapInventoryCountRpcError(error, 'Unable to save counted quantity right now.')
+  }
+
+  const mapped = mapInventoryCountSessionItemRow(firstRpcRow(data))
+  if (!mapped) {
+    throw new Error('Inventory count item response was empty or invalid.')
+  }
+
+  return mapped
 }

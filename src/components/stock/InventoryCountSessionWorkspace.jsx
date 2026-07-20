@@ -3,6 +3,7 @@ import { useAuth } from '../../context/AuthContext'
 import {
   getInventoryCountSessionItems,
   getInventoryCountSessionLocations,
+  updateInventoryCountItem,
 } from '../../services/inventoryCountService'
 
 const LOCATION_STATE_LABEL = {
@@ -15,6 +16,22 @@ const LINE_STATUS_LABEL = {
   pending: 'Pending',
   counted: 'Counted',
   skipped: 'Skipped',
+}
+
+const AUTOSAVE_DEBOUNCE_MS = 400
+
+const COUNTED_INPUT_STYLE = {
+  boxSizing: 'border-box',
+  width: '100%',
+  minWidth: '72px',
+  minHeight: '44px',
+  padding: '10px 12px',
+  borderRadius: '10px',
+  border: '1px solid rgba(255, 247, 232, 0.16)',
+  background: 'rgba(8, 8, 9, 0.72)',
+  color: '#fff7e8',
+  fontSize: '0.95rem',
+  fontWeight: 650,
 }
 
 function formatQuantity(value) {
@@ -37,7 +54,7 @@ function formatLineStatus(lineStatus) {
 }
 
 function mapItemForDisplay(item) {
-  const status = formatLineStatus(item.lineStatus)
+  const lineStatus = `${item.lineStatus ?? 'pending'}`.trim().toLowerCase() || 'pending'
   return {
     id: item.id,
     name: item.itemName || 'Untitled item',
@@ -46,9 +63,19 @@ function mapItemForDisplay(item) {
     counted: item.countedQuantity === null || item.countedQuantity === undefined
       ? ''
       : formatQuantity(item.countedQuantity),
-    status,
+    status: formatLineStatus(lineStatus),
     storageLocation: item.storageLocation || 'Other',
-    lineStatus: `${item.lineStatus ?? 'pending'}`.trim().toLowerCase() || 'pending',
+    lineStatus,
+  }
+}
+
+function recountLocationItems(items) {
+  const countedItems = items.filter((item) => (
+    item.lineStatus === 'counted' || item.lineStatus === 'skipped'
+  )).length
+  return {
+    countedItems,
+    totalItems: items.length,
   }
 }
 
@@ -76,10 +103,7 @@ function buildLocationsFromSession(sessionLocations, sessionItems) {
 
     const sessionLocation = sessionLocations.find((location) => location.locationKey === locationKey)
     const items = itemsByLocation.get(locationKey) ?? []
-    const countedItems = items.filter((item) => (
-      item.lineStatus === 'counted' || item.lineStatus === 'skipped'
-    )).length
-    const totalItems = items.length
+    const { countedItems, totalItems } = recountLocationItems(items)
 
     let status = sessionLocation?.status ?? 'not_started'
     if (!sessionLocation) {
@@ -104,15 +128,13 @@ function buildLocationsFromSession(sessionLocations, sessionItems) {
 
   itemsByLocation.forEach((items, locationKey) => {
     if (seen.has(locationKey)) return
-    const countedItems = items.filter((item) => (
-      item.lineStatus === 'counted' || item.lineStatus === 'skipped'
-    )).length
+    const { countedItems, totalItems } = recountLocationItems(items)
     locations.push({
       id: locationKey,
       name: locationKey,
       status: 'not_started',
       countedItems,
-      totalItems: items.length,
+      totalItems,
       items,
     })
   })
@@ -148,6 +170,62 @@ function pickInitialLocationId(locations) {
   return incomplete?.id ?? locations[0]?.id ?? ''
 }
 
+function findItemSnapshot(locations, itemId) {
+  for (const location of locations) {
+    const item = location.items.find((entry) => entry.id === itemId)
+    if (item) {
+      return {
+        counted: item.counted,
+        lineStatus: item.lineStatus,
+        status: item.status,
+      }
+    }
+  }
+  return null
+}
+
+function parseCountedDraft(rawValue) {
+  const trimmed = `${rawValue ?? ''}`.trim()
+  if (trimmed === '') {
+    return { ready: true, countedQuantity: null }
+  }
+
+  if (!/^\d*(\.\d*)?$/.test(trimmed)) {
+    return { ready: false, invalid: true }
+  }
+
+  if (trimmed === '.' || trimmed.endsWith('.')) {
+    return { ready: false, invalid: false }
+  }
+
+  const numeric = Number(trimmed)
+  if (!Number.isFinite(numeric) || numeric < 0) {
+    return { ready: false, invalid: true }
+  }
+
+  return { ready: true, countedQuantity: numeric }
+}
+
+function patchItemInLocations(locations, itemId, patch) {
+  return locations.map((location) => {
+    const itemIndex = location.items.findIndex((item) => item.id === itemId)
+    if (itemIndex < 0) return location
+
+    const items = location.items.map((item, index) => (
+      index === itemIndex
+        ? { ...item, ...patch }
+        : item
+    ))
+    const { countedItems, totalItems } = recountLocationItems(items)
+    return {
+      ...location,
+      items,
+      countedItems,
+      totalItems,
+    }
+  })
+}
+
 export function InventoryCountSessionWorkspace({
   onExit,
   sessionId: sessionIdProp = '',
@@ -159,7 +237,19 @@ export function InventoryCountSessionWorkspace({
   const [completionMessage, setCompletionMessage] = useState('')
   const [isLoading, setIsLoading] = useState(true)
   const [loadError, setLoadError] = useState('')
+  const [saveError, setSaveError] = useState('')
+  const [isSaving, setIsSaving] = useState(false)
   const loadRequestIdRef = useRef(0)
+  const locationsRef = useRef(locations)
+  const debounceTimersRef = useRef(new Map())
+  const inFlightRef = useRef(new Map())
+  const queuedSaveRef = useRef(new Map())
+  const rollbackRef = useRef(new Map())
+  const savingCountRef = useRef(0)
+
+  useEffect(() => {
+    locationsRef.current = locations
+  }, [locations])
 
   useEffect(() => {
     const requestId = loadRequestIdRef.current + 1
@@ -170,6 +260,7 @@ export function InventoryCountSessionWorkspace({
     const loadSessionItems = async () => {
       setIsLoading(true)
       setLoadError('')
+      setSaveError('')
       setCompletionMessage('')
 
       try {
@@ -210,10 +301,135 @@ export function InventoryCountSessionWorkspace({
 
     void loadSessionItems()
 
+    const debounceTimers = debounceTimersRef.current
+
     return () => {
       cancelled = true
+      debounceTimers.forEach((timerId) => clearTimeout(timerId))
+      debounceTimers.clear()
     }
   }, [sessionIdProp, workspaceIdProp, workspace?.id])
+
+  const beginSaving = () => {
+    savingCountRef.current += 1
+    setIsSaving(true)
+  }
+
+  const endSaving = () => {
+    savingCountRef.current = Math.max(0, savingCountRef.current - 1)
+    if (savingCountRef.current === 0) {
+      setIsSaving(false)
+    }
+  }
+
+  const persistCountedQuantity = async (itemId, countedQuantity) => {
+    if (inFlightRef.current.get(itemId)) {
+      queuedSaveRef.current.set(itemId, countedQuantity)
+      return
+    }
+
+    const workspaceId = `${workspaceIdProp || workspace?.id || ''}`.trim()
+    const sessionId = `${sessionIdProp || ''}`.trim()
+    if (!workspaceId || !sessionId) {
+      setSaveError('Unable to save counted quantity right now.')
+      return
+    }
+
+    inFlightRef.current.set(itemId, true)
+    beginSaving()
+    setSaveError('')
+
+    try {
+      const saved = await updateInventoryCountItem({
+        workspaceId,
+        sessionId,
+        sessionItemId: itemId,
+        countedQuantity,
+      })
+
+      const nextLineStatus = saved.lineStatus
+      const nextCounted = saved.countedQuantity === null || saved.countedQuantity === undefined
+        ? ''
+        : formatQuantity(saved.countedQuantity)
+
+      setLocations((current) => patchItemInLocations(current, itemId, {
+        counted: nextCounted,
+        lineStatus: nextLineStatus,
+        status: formatLineStatus(nextLineStatus),
+      }))
+      rollbackRef.current.delete(itemId)
+    } catch (error) {
+      const rollback = rollbackRef.current.get(itemId)
+      if (rollback) {
+        setLocations((current) => patchItemInLocations(current, itemId, rollback))
+      }
+      setSaveError(error?.message || 'Unable to save counted quantity right now.')
+    } finally {
+      inFlightRef.current.set(itemId, false)
+      endSaving()
+
+      if (queuedSaveRef.current.has(itemId)) {
+        const queuedValue = queuedSaveRef.current.get(itemId)
+        queuedSaveRef.current.delete(itemId)
+        void persistCountedQuantity(itemId, queuedValue)
+      }
+    }
+  }
+
+  const scheduleCountedSave = (itemId, rawValue) => {
+    const existingTimer = debounceTimersRef.current.get(itemId)
+    if (existingTimer) {
+      clearTimeout(existingTimer)
+    }
+
+    const timerId = setTimeout(() => {
+      debounceTimersRef.current.delete(itemId)
+      const parsed = parseCountedDraft(rawValue)
+      if (!parsed.ready) {
+        if (parsed.invalid) {
+          const rollback = rollbackRef.current.get(itemId)
+          if (rollback) {
+            setLocations((current) => patchItemInLocations(current, itemId, rollback))
+          }
+          setSaveError('Counted quantity must be a valid non-negative number.')
+        }
+        return
+      }
+
+      void persistCountedQuantity(itemId, parsed.countedQuantity)
+    }, AUTOSAVE_DEBOUNCE_MS)
+
+    debounceTimersRef.current.set(itemId, timerId)
+  }
+
+  const handleCountedChange = (itemId, nextValue) => {
+    if (!rollbackRef.current.has(itemId)) {
+      const snapshot = findItemSnapshot(locationsRef.current, itemId)
+      if (snapshot) {
+        rollbackRef.current.set(itemId, snapshot)
+      }
+    }
+
+    const trimmed = `${nextValue ?? ''}`
+    if (trimmed !== '' && !/^\d*\.?\d*$/.test(trimmed)) {
+      return
+    }
+
+    const parsed = parseCountedDraft(trimmed)
+    const optimisticLineStatus = parsed.ready && parsed.countedQuantity === null
+      ? 'pending'
+      : parsed.ready
+        ? 'counted'
+        : (findItemSnapshot(locationsRef.current, itemId)?.lineStatus ?? 'pending')
+
+    setLocations((current) => patchItemInLocations(current, itemId, {
+      counted: trimmed,
+      lineStatus: optimisticLineStatus,
+      status: formatLineStatus(optimisticLineStatus),
+    }))
+    setSaveError('')
+    scheduleCountedSave(itemId, trimmed)
+  }
 
   const selectedIndex = locations.findIndex((location) => location.id === selectedLocationId)
   const selectedLocation = locations[selectedIndex] ?? locations[0] ?? null
@@ -222,6 +438,12 @@ export function InventoryCountSessionWorkspace({
   const canGoPrevious = selectedIndex > 0
   const canGoNext = selectedIndex >= 0 && selectedIndex < locations.length - 1
   const canCompleteLocation = Boolean(selectedLocation) && selectedLocation.status !== 'completed'
+  const bannerError = saveError || loadError
+  const unsavedLabel = isSaving
+    ? 'Saving…'
+    : saveError
+      ? 'Save failed'
+      : 'All changes saved'
 
   const selectLocation = (locationId) => {
     setSelectedLocationId(locationId)
@@ -247,16 +469,17 @@ export function InventoryCountSessionWorkspace({
 
     setLocations((current) => current.map((location) => {
       if (location.id === selectedLocation.id) {
+        const items = location.items.map((item) => ({
+          ...item,
+          status: 'Counted',
+          lineStatus: 'counted',
+          counted: item.counted || '0',
+        }))
         return {
           ...location,
           status: 'completed',
           countedItems: location.totalItems,
-          items: location.items.map((item) => ({
-            ...item,
-            status: 'Counted',
-            lineStatus: 'counted',
-            counted: item.counted || '0',
-          })),
+          items,
         }
       }
 
@@ -336,9 +559,9 @@ export function InventoryCountSessionWorkspace({
         </div>
       ) : null}
 
-      {loadError ? (
+      {bannerError ? (
         <div className="staff-status-banner" role="alert">
-          {loadError}
+          {bannerError}
         </div>
       ) : null}
 
@@ -441,7 +664,17 @@ export function InventoryCountSessionWorkspace({
                           <td className="inventory-count-session-item-name">{item.name}</td>
                           <td>{item.unit}</td>
                           <td>{item.expected}</td>
-                          <td>{item.counted || '—'}</td>
+                          <td>
+                            <input
+                              type="text"
+                              inputMode="decimal"
+                              aria-label={`Counted quantity for ${item.name}`}
+                              value={item.counted}
+                              onChange={(event) => handleCountedChange(item.id, event.target.value)}
+                              style={COUNTED_INPUT_STYLE}
+                              autoComplete="off"
+                            />
+                          </td>
                           <td>
                             <span className={`inventory-count-session-status-pill is-${item.status.toLowerCase()}`}>
                               {item.status}
@@ -465,7 +698,7 @@ export function InventoryCountSessionWorkspace({
             </div>
             <div className="inventory-count-session-footer-middle">
               <span className="inventory-count-session-footer-label">Unsaved changes</span>
-              <span className="inventory-count-session-footer-value">All changes saved</span>
+              <span className="inventory-count-session-footer-value">{unsavedLabel}</span>
             </div>
             <div className="inventory-count-session-footer-right">
               <button
