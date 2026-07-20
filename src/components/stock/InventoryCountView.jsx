@@ -5,11 +5,21 @@ import { InventoryCountSessionWorkspace } from './InventoryCountSessionWorkspace
 export function InventoryCountView() {
   const [isWizardOpen, setIsWizardOpen] = useState(false)
   const [isSessionOpen, setIsSessionOpen] = useState(false)
+  const [activeSessionId, setActiveSessionId] = useState('')
+  const [activeWorkspaceId, setActiveWorkspaceId] = useState('')
+
+  const handleExitSession = () => {
+    setIsSessionOpen(false)
+    setActiveSessionId('')
+    setActiveWorkspaceId('')
+  }
 
   if (isSessionOpen) {
     return (
       <InventoryCountSessionWorkspace
-        onExit={() => setIsSessionOpen(false)}
+        sessionId={activeSessionId}
+        workspaceId={activeWorkspaceId}
+        onExit={handleExitSession}
       />
     )
   }
@@ -70,7 +80,11 @@ export function InventoryCountView() {
       <InventoryCountWizard
         isOpen={isWizardOpen}
         onClose={() => setIsWizardOpen(false)}
-        onStartSession={() => {
+        onStartSession={(result) => {
+          const sessionId = `${result?.sessionId ?? result?.session?.id ?? ''}`.trim()
+          const workspaceId = `${result?.workspaceId ?? result?.session?.workspaceId ?? ''}`.trim()
+          setActiveSessionId(sessionId)
+          setActiveWorkspaceId(workspaceId)
           setIsWizardOpen(false)
           setIsSessionOpen(true)
         }}

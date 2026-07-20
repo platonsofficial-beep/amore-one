@@ -1,4 +1,9 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { useAuth } from '../../context/AuthContext'
+import {
+  getInventoryCountSessionItems,
+  getInventoryCountSessionLocations,
+} from '../../services/inventoryCountService'
 
 const LOCATION_STATE_LABEL = {
   completed: 'Completed',
@@ -6,107 +11,113 @@ const LOCATION_STATE_LABEL = {
   not_started: 'Not started',
 }
 
-function createDemoLocations() {
-  return [
-    {
-      id: 'main-bar',
-      name: 'Main Bar',
-      status: 'completed',
-      countedItems: 5,
-      totalItems: 5,
-      items: [
-        { id: 'mb-1', name: 'Absolut Vodka', unit: 'bottle', expected: '—', counted: '6', status: 'Counted' },
-        { id: 'mb-2', name: 'Bombay Sapphire', unit: 'bottle', expected: '—', counted: '4', status: 'Counted' },
-        { id: 'mb-3', name: "Jack Daniel's", unit: 'bottle', expected: '—', counted: '3', status: 'Counted' },
-        { id: 'mb-4', name: 'Tonic Water', unit: 'case', expected: '—', counted: '8', status: 'Counted' },
-        { id: 'mb-5', name: 'Lime Juice', unit: 'litre', expected: '—', counted: '2', status: 'Counted' },
-      ],
-    },
-    {
-      id: 'main-storage',
-      name: 'Main Storage',
-      status: 'current',
-      countedItems: 2,
-      totalItems: 5,
-      items: [
-        { id: 'ms-1', name: 'Coca-Cola', unit: 'case', expected: '—', counted: '10', status: 'Counted' },
-        { id: 'ms-2', name: 'Sprite', unit: 'case', expected: '—', counted: '6', status: 'Counted' },
-        { id: 'ms-3', name: 'San Pellegrino', unit: 'case', expected: '—', counted: '', status: 'Pending' },
-        { id: 'ms-4', name: 'Napkins', unit: 'pack', expected: '—', counted: '', status: 'Pending' },
-        { id: 'ms-5', name: 'Paper Straws', unit: 'box', expected: '—', counted: '', status: 'Pending' },
-      ],
-    },
-    {
-      id: 'coffee-station',
-      name: 'Coffee Station',
+const LINE_STATUS_LABEL = {
+  pending: 'Pending',
+  counted: 'Counted',
+  skipped: 'Skipped',
+}
+
+function formatQuantity(value) {
+  if (value === null || value === undefined || value === '') {
+    return '—'
+  }
+  const numeric = Number(value)
+  if (!Number.isFinite(numeric)) {
+    return '—'
+  }
+  if (Number.isInteger(numeric)) {
+    return `${numeric}`
+  }
+  return `${numeric}`
+}
+
+function formatLineStatus(lineStatus) {
+  const normalized = `${lineStatus ?? 'pending'}`.trim().toLowerCase() || 'pending'
+  return LINE_STATUS_LABEL[normalized] ?? 'Pending'
+}
+
+function mapItemForDisplay(item) {
+  const status = formatLineStatus(item.lineStatus)
+  return {
+    id: item.id,
+    name: item.itemName || 'Untitled item',
+    unit: item.unit || '—',
+    expected: formatQuantity(item.expectedSnapshot),
+    counted: item.countedQuantity === null || item.countedQuantity === undefined
+      ? ''
+      : formatQuantity(item.countedQuantity),
+    status,
+    storageLocation: item.storageLocation || 'Other',
+    lineStatus: `${item.lineStatus ?? 'pending'}`.trim().toLowerCase() || 'pending',
+  }
+}
+
+function buildLocationsFromSession(sessionLocations, sessionItems) {
+  const itemsByLocation = new Map()
+
+  sessionItems.forEach((item) => {
+    const key = item.storageLocation || 'Other'
+    if (!itemsByLocation.has(key)) {
+      itemsByLocation.set(key, [])
+    }
+    itemsByLocation.get(key).push(mapItemForDisplay(item))
+  })
+
+  const orderedKeys = sessionLocations.length > 0
+    ? sessionLocations.map((location) => location.locationKey)
+    : Array.from(itemsByLocation.keys()).sort((a, b) => a.localeCompare(b))
+
+  const seen = new Set()
+  const locations = []
+
+  orderedKeys.forEach((locationKey, index) => {
+    if (!locationKey || seen.has(locationKey)) return
+    seen.add(locationKey)
+
+    const sessionLocation = sessionLocations.find((location) => location.locationKey === locationKey)
+    const items = itemsByLocation.get(locationKey) ?? []
+    const countedItems = items.filter((item) => (
+      item.lineStatus === 'counted' || item.lineStatus === 'skipped'
+    )).length
+    const totalItems = items.length
+
+    let status = sessionLocation?.status ?? 'not_started'
+    if (!sessionLocation) {
+      if (totalItems > 0 && countedItems >= totalItems) {
+        status = 'completed'
+      } else if (index === 0) {
+        status = 'current'
+      } else {
+        status = 'not_started'
+      }
+    }
+
+    locations.push({
+      id: locationKey,
+      name: locationKey,
+      status,
+      countedItems,
+      totalItems,
+      items,
+    })
+  })
+
+  itemsByLocation.forEach((items, locationKey) => {
+    if (seen.has(locationKey)) return
+    const countedItems = items.filter((item) => (
+      item.lineStatus === 'counted' || item.lineStatus === 'skipped'
+    )).length
+    locations.push({
+      id: locationKey,
+      name: locationKey,
       status: 'not_started',
-      countedItems: 0,
-      totalItems: 5,
-      items: [
-        { id: 'cs-1', name: 'Espresso Beans', unit: 'kg', expected: '—', counted: '', status: 'Pending' },
-        { id: 'cs-2', name: 'Decaf Beans', unit: 'kg', expected: '—', counted: '', status: 'Pending' },
-        { id: 'cs-3', name: 'Oat Milk', unit: 'litre', expected: '—', counted: '', status: 'Pending' },
-        { id: 'cs-4', name: 'Sugar Sachets', unit: 'box', expected: '—', counted: '', status: 'Pending' },
-        { id: 'cs-5', name: 'Tea Bags', unit: 'box', expected: '—', counted: '', status: 'Pending' },
-      ],
-    },
-    {
-      id: 'wine-storage',
-      name: 'Wine Storage',
-      status: 'not_started',
-      countedItems: 0,
-      totalItems: 5,
-      items: [
-        { id: 'ws-1', name: 'Prosecco', unit: 'bottle', expected: '—', counted: '', status: 'Pending' },
-        { id: 'ws-2', name: 'Sauvignon Blanc', unit: 'bottle', expected: '—', counted: '', status: 'Pending' },
-        { id: 'ws-3', name: 'Rosé', unit: 'bottle', expected: '—', counted: '', status: 'Pending' },
-        { id: 'ws-4', name: 'Cabernet Sauvignon', unit: 'bottle', expected: '—', counted: '', status: 'Pending' },
-        { id: 'ws-5', name: 'Champagne', unit: 'bottle', expected: '—', counted: '', status: 'Pending' },
-      ],
-    },
-    {
-      id: 'kitchen',
-      name: 'Kitchen',
-      status: 'completed',
-      countedItems: 5,
-      totalItems: 5,
-      items: [
-        { id: 'k-1', name: 'Olive Oil', unit: 'litre', expected: '—', counted: '4', status: 'Counted' },
-        { id: 'k-2', name: 'Sea Salt', unit: 'kg', expected: '—', counted: '2', status: 'Counted' },
-        { id: 'k-3', name: 'Chicken Fillet', unit: 'kg', expected: '—', counted: '8', status: 'Counted' },
-        { id: 'k-4', name: 'Potatoes', unit: 'kg', expected: '—', counted: '12', status: 'Counted' },
-        { id: 'k-5', name: 'Butter', unit: 'kg', expected: '—', counted: '3', status: 'Counted' },
-      ],
-    },
-    {
-      id: 'freezer',
-      name: 'Freezer',
-      status: 'completed',
-      countedItems: 5,
-      totalItems: 5,
-      items: [
-        { id: 'f-1', name: 'Frozen Berries', unit: 'kg', expected: '—', counted: '5', status: 'Counted' },
-        { id: 'f-2', name: 'Ice Cream', unit: 'tub', expected: '—', counted: '6', status: 'Counted' },
-        { id: 'f-3', name: 'Frozen Fries', unit: 'kg', expected: '—', counted: '10', status: 'Counted' },
-        { id: 'f-4', name: 'Ice Bags', unit: 'bag', expected: '—', counted: '20', status: 'Counted' },
-        { id: 'f-5', name: 'Frozen Bread', unit: 'loaf', expected: '—', counted: '8', status: 'Counted' },
-      ],
-    },
-    {
-      id: 'other',
-      name: 'Other',
-      status: 'not_started',
-      countedItems: 0,
-      totalItems: 5,
-      items: [
-        { id: 'o-1', name: 'Cleaning Liquid', unit: 'bottle', expected: '—', counted: '', status: 'Pending' },
-        { id: 'o-2', name: 'Gloves', unit: 'box', expected: '—', counted: '', status: 'Pending' },
-        { id: 'o-3', name: 'Bin Bags', unit: 'roll', expected: '—', counted: '', status: 'Pending' },
-        { id: 'o-4', name: 'Foil', unit: 'roll', expected: '—', counted: '', status: 'Pending' },
-        { id: 'o-5', name: 'Paper Towels', unit: 'pack', expected: '—', counted: '', status: 'Pending' },
-      ],
-    },
-  ]
+      countedItems,
+      totalItems: items.length,
+      items,
+    })
+  })
+
+  return locations
 }
 
 function getSessionProgress(locations) {
@@ -124,22 +135,93 @@ function getSessionProgress(locations) {
     totalLocations: locations.length,
     remainingItems: Math.max(0, totalIncluded - totalCounted),
     percentage,
-    skipped: 0,
+    skipped: locations.reduce((sum, location) => (
+      sum + location.items.filter((item) => item.lineStatus === 'skipped').length
+    ), 0),
   }
 }
 
-export function InventoryCountSessionWorkspace({ onExit }) {
-  const [locations, setLocations] = useState(createDemoLocations)
-  const [selectedLocationId, setSelectedLocationId] = useState('main-storage')
+function pickInitialLocationId(locations) {
+  const current = locations.find((location) => location.status === 'current')
+  if (current) return current.id
+  const incomplete = locations.find((location) => location.status !== 'completed')
+  return incomplete?.id ?? locations[0]?.id ?? ''
+}
+
+export function InventoryCountSessionWorkspace({
+  onExit,
+  sessionId: sessionIdProp = '',
+  workspaceId: workspaceIdProp = '',
+}) {
+  const { workspace } = useAuth()
+  const [locations, setLocations] = useState([])
+  const [selectedLocationId, setSelectedLocationId] = useState('')
   const [completionMessage, setCompletionMessage] = useState('')
+  const [isLoading, setIsLoading] = useState(true)
+  const [loadError, setLoadError] = useState('')
+  const loadRequestIdRef = useRef(0)
+
+  useEffect(() => {
+    const requestId = loadRequestIdRef.current + 1
+    loadRequestIdRef.current = requestId
+
+    let cancelled = false
+
+    const loadSessionItems = async () => {
+      setIsLoading(true)
+      setLoadError('')
+      setCompletionMessage('')
+
+      try {
+        const sessionId = `${sessionIdProp || ''}`.trim()
+        if (!sessionId) {
+          setLocations([])
+          setSelectedLocationId('')
+          setLoadError('Inventory count session was not found.')
+          return
+        }
+
+        const workspaceId = `${workspaceIdProp || workspace?.id || ''}`.trim()
+        if (!workspaceId) {
+          throw new Error('Workspace is required.')
+        }
+
+        const [sessionLocations, sessionItems] = await Promise.all([
+          getInventoryCountSessionLocations({ workspaceId, sessionId }),
+          getInventoryCountSessionItems({ workspaceId, sessionId }),
+        ])
+
+        if (cancelled || loadRequestIdRef.current !== requestId) return
+
+        const nextLocations = buildLocationsFromSession(sessionLocations, sessionItems)
+        setLocations(nextLocations)
+        setSelectedLocationId(pickInitialLocationId(nextLocations))
+      } catch (error) {
+        if (cancelled || loadRequestIdRef.current !== requestId) return
+        setLocations([])
+        setSelectedLocationId('')
+        setLoadError(error?.message || 'Unable to load inventory count items right now.')
+      } finally {
+        if (!cancelled && loadRequestIdRef.current === requestId) {
+          setIsLoading(false)
+        }
+      }
+    }
+
+    void loadSessionItems()
+
+    return () => {
+      cancelled = true
+    }
+  }, [sessionIdProp, workspaceIdProp, workspace?.id])
 
   const selectedIndex = locations.findIndex((location) => location.id === selectedLocationId)
-  const selectedLocation = locations[selectedIndex] ?? locations[0]
+  const selectedLocation = locations[selectedIndex] ?? locations[0] ?? null
   const progress = getSessionProgress(locations)
 
   const canGoPrevious = selectedIndex > 0
   const canGoNext = selectedIndex >= 0 && selectedIndex < locations.length - 1
-  const canCompleteLocation = selectedLocation?.status !== 'completed'
+  const canCompleteLocation = Boolean(selectedLocation) && selectedLocation.status !== 'completed'
 
   const selectLocation = (locationId) => {
     setSelectedLocationId(locationId)
@@ -172,6 +254,7 @@ export function InventoryCountSessionWorkspace({ onExit }) {
           items: location.items.map((item) => ({
             ...item,
             status: 'Counted',
+            lineStatus: 'counted',
             counted: item.counted || '0',
           })),
         }
@@ -202,6 +285,8 @@ export function InventoryCountSessionWorkspace({ onExit }) {
 
     setCompletionMessage('All locations are complete. Finish Count will be added next.')
   }
+
+  const selectedLocationName = selectedLocation?.name ?? 'Location'
 
   return (
     <section className="inventory-count-session" aria-label="Inventory Count Session Workspace">
@@ -245,145 +330,175 @@ export function InventoryCountSessionWorkspace({ onExit }) {
         </div>
       </header>
 
-      <div className="inventory-count-session-body">
-        <aside className="inventory-count-session-rail" aria-label="Locations">
-          {locations.map((location) => {
-            const isSelected = location.id === selectedLocation.id
-            return (
-              <button
-                key={location.id}
-                type="button"
-                className={`inventory-count-session-rail-item is-${location.status}${isSelected ? ' is-selected' : ''}`}
-                aria-current={isSelected ? 'true' : undefined}
-                aria-pressed={isSelected}
-                onClick={() => selectLocation(location.id)}
-              >
-                <span className={`inventory-count-session-rail-badge is-${location.status}`} aria-hidden="true">
-                  {location.status === 'completed' ? '✓' : location.status === 'current' ? '●' : '○'}
-                </span>
-                <span className="inventory-count-session-rail-copy">
-                  <span className="inventory-count-session-rail-title">{location.name}</span>
-                  <span className="inventory-count-session-rail-state">
-                    {LOCATION_STATE_LABEL[location.status]}
-                  </span>
-                </span>
-                <span className="inventory-count-session-rail-progress">
-                  {location.countedItems} / {location.totalItems}
-                </span>
-              </button>
-            )
-          })}
-        </aside>
+      {isLoading ? (
+        <div className="staff-status-banner" role="status">
+          Loading inventory count…
+        </div>
+      ) : null}
 
-        <div className="inventory-count-session-main">
-          <div className="inventory-count-session-toolbar">
-            <div className="inventory-count-session-toolbar-left">
-              <label className="inventory-count-session-search">
-                <span className="sr-only">Search items</span>
-                <input
-                  type="search"
-                  className="inventory-count-session-search-input"
-                  placeholder={`Search ${selectedLocation.name} items...`}
-                  disabled
-                  aria-disabled="true"
-                />
-              </label>
+      {loadError ? (
+        <div className="staff-status-banner" role="alert">
+          {loadError}
+        </div>
+      ) : null}
+
+      {!isLoading && !loadError && locations.length === 0 ? (
+        <div className="stock-empty-state">
+          <h4>No items in this session</h4>
+          <p>This inventory count has no snapshot items yet.</p>
+        </div>
+      ) : null}
+
+      {!isLoading && !loadError && locations.length > 0 ? (
+        <>
+          <div className="inventory-count-session-body">
+            <aside className="inventory-count-session-rail" aria-label="Locations">
+              {locations.map((location) => {
+                const isSelected = location.id === selectedLocation?.id
+                return (
+                  <button
+                    key={location.id}
+                    type="button"
+                    className={`inventory-count-session-rail-item is-${location.status}${isSelected ? ' is-selected' : ''}`}
+                    aria-current={isSelected ? 'true' : undefined}
+                    aria-pressed={isSelected}
+                    onClick={() => selectLocation(location.id)}
+                  >
+                    <span className={`inventory-count-session-rail-badge is-${location.status}`} aria-hidden="true">
+                      {location.status === 'completed' ? '✓' : location.status === 'current' ? '●' : '○'}
+                    </span>
+                    <span className="inventory-count-session-rail-copy">
+                      <span className="inventory-count-session-rail-title">{location.name}</span>
+                      <span className="inventory-count-session-rail-state">
+                        {LOCATION_STATE_LABEL[location.status]}
+                      </span>
+                    </span>
+                    <span className="inventory-count-session-rail-progress">
+                      {location.countedItems} / {location.totalItems}
+                    </span>
+                  </button>
+                )
+              })}
+            </aside>
+
+            <div className="inventory-count-session-main">
+              <div className="inventory-count-session-toolbar">
+                <div className="inventory-count-session-toolbar-left">
+                  <label className="inventory-count-session-search">
+                    <span className="sr-only">Search items</span>
+                    <input
+                      type="search"
+                      className="inventory-count-session-search-input"
+                      placeholder={`Search ${selectedLocationName} items...`}
+                      disabled
+                      aria-disabled="true"
+                    />
+                  </label>
+                  <button
+                    type="button"
+                    className="ghost-btn inventory-count-session-filter-btn"
+                    disabled
+                    aria-disabled="true"
+                  >
+                    Filter
+                  </button>
+                </div>
+
+                <article className="inventory-count-session-progress-card" aria-label="Session progress">
+                  <p className="inventory-count-session-progress-percent">{progress.percentage}%</p>
+                  <p className="inventory-count-session-progress-primary">
+                    {progress.totalCounted} / {progress.totalIncluded} counted
+                  </p>
+                  <p className="inventory-count-session-progress-secondary">
+                    {progress.completedLocations} / {progress.totalLocations} locations complete
+                  </p>
+                  <p className="inventory-count-session-progress-secondary">
+                    {progress.skipped} skipped
+                  </p>
+                </article>
+              </div>
+
+              <div className="inventory-count-session-table-wrap" aria-label={`${selectedLocationName} items`}>
+                {selectedLocation?.items.length === 0 ? (
+                  <div className="stock-empty-state">
+                    <h4>No items in this location</h4>
+                    <p>No snapshot items were found for {selectedLocationName}.</p>
+                  </div>
+                ) : (
+                  <table className="inventory-count-session-table">
+                    <thead>
+                      <tr>
+                        <th scope="col">Item</th>
+                        <th scope="col">Unit</th>
+                        <th scope="col">Expected</th>
+                        <th scope="col">Counted</th>
+                        <th scope="col">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {(selectedLocation?.items ?? []).map((item) => (
+                        <tr key={item.id} className={`is-status-${item.status.toLowerCase()}`}>
+                          <td className="inventory-count-session-item-name">{item.name}</td>
+                          <td>{item.unit}</td>
+                          <td>{item.expected}</td>
+                          <td>{item.counted || '—'}</td>
+                          <td>
+                            <span className={`inventory-count-session-status-pill is-${item.status.toLowerCase()}`}>
+                              {item.status}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <footer className="inventory-count-session-footer">
+            <div className="inventory-count-session-footer-left">
+              <span className="inventory-count-session-footer-label">Session status</span>
+              <span className="inventory-count-session-footer-value">
+                In Progress · {selectedLocationName}
+              </span>
+            </div>
+            <div className="inventory-count-session-footer-middle">
+              <span className="inventory-count-session-footer-label">Unsaved changes</span>
+              <span className="inventory-count-session-footer-value">All changes saved</span>
+            </div>
+            <div className="inventory-count-session-footer-right">
               <button
                 type="button"
-                className="ghost-btn inventory-count-session-filter-btn"
-                disabled
-                aria-disabled="true"
+                className="ghost-btn inventory-count-session-action-btn"
+                disabled={!canGoPrevious}
+                aria-disabled={!canGoPrevious}
+                onClick={handlePrevious}
               >
-                Filter
+                Previous
+              </button>
+              <button
+                type="button"
+                className="ghost-btn inventory-count-session-action-btn"
+                disabled={!canGoNext}
+                aria-disabled={!canGoNext}
+                onClick={handleNext}
+              >
+                Next
+              </button>
+              <button
+                type="button"
+                className="primary-btn inventory-count-session-action-btn"
+                disabled={!canCompleteLocation}
+                aria-disabled={!canCompleteLocation}
+                onClick={handleCompleteLocation}
+              >
+                Complete Location
               </button>
             </div>
-
-            <article className="inventory-count-session-progress-card" aria-label="Session progress">
-              <p className="inventory-count-session-progress-percent">{progress.percentage}%</p>
-              <p className="inventory-count-session-progress-primary">
-                {progress.totalCounted} / {progress.totalIncluded} counted
-              </p>
-              <p className="inventory-count-session-progress-secondary">
-                {progress.completedLocations} / {progress.totalLocations} locations complete
-              </p>
-              <p className="inventory-count-session-progress-secondary">
-                {progress.skipped} skipped
-              </p>
-            </article>
-          </div>
-
-          <div className="inventory-count-session-table-wrap" aria-label={`${selectedLocation.name} items`}>
-            <table className="inventory-count-session-table">
-              <thead>
-                <tr>
-                  <th scope="col">Item</th>
-                  <th scope="col">Unit</th>
-                  <th scope="col">Expected</th>
-                  <th scope="col">Counted</th>
-                  <th scope="col">Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {selectedLocation.items.map((item) => (
-                  <tr key={item.id} className={`is-status-${item.status.toLowerCase()}`}>
-                    <td className="inventory-count-session-item-name">{item.name}</td>
-                    <td>{item.unit}</td>
-                    <td>{item.expected}</td>
-                    <td>{item.counted || '—'}</td>
-                    <td>
-                      <span className={`inventory-count-session-status-pill is-${item.status.toLowerCase()}`}>
-                        {item.status}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-
-      <footer className="inventory-count-session-footer">
-        <div className="inventory-count-session-footer-left">
-          <span className="inventory-count-session-footer-label">Session status</span>
-          <span className="inventory-count-session-footer-value">
-            In Progress · {selectedLocation.name}
-          </span>
-        </div>
-        <div className="inventory-count-session-footer-middle">
-          <span className="inventory-count-session-footer-label">Unsaved changes</span>
-          <span className="inventory-count-session-footer-value">All changes saved</span>
-        </div>
-        <div className="inventory-count-session-footer-right">
-          <button
-            type="button"
-            className="ghost-btn inventory-count-session-action-btn"
-            disabled={!canGoPrevious}
-            aria-disabled={!canGoPrevious}
-            onClick={handlePrevious}
-          >
-            Previous
-          </button>
-          <button
-            type="button"
-            className="ghost-btn inventory-count-session-action-btn"
-            disabled={!canGoNext}
-            aria-disabled={!canGoNext}
-            onClick={handleNext}
-          >
-            Next
-          </button>
-          <button
-            type="button"
-            className="primary-btn inventory-count-session-action-btn"
-            disabled={!canCompleteLocation}
-            aria-disabled={!canCompleteLocation}
-            onClick={handleCompleteLocation}
-          >
-            Complete Location
-          </button>
-        </div>
-      </footer>
+          </footer>
+        </>
+      ) : null}
 
       {completionMessage ? (
         <p className="inventory-count-session-completion-message" role="status">
