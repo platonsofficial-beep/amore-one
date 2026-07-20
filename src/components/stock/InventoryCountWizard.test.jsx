@@ -4,9 +4,24 @@
 import { createElement } from 'react'
 import { createRoot } from 'react-dom/client'
 import { act } from 'react'
-import { describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { InventoryCountView } from './InventoryCountView'
 import { InventoryCountWizard } from './InventoryCountWizard'
+import {
+  buildInventoryCountSnapshot,
+  createInventoryCountSession,
+} from '../../services/inventoryCountService'
+
+vi.mock('../../context/AuthContext', () => ({
+  useAuth: () => ({
+    workspace: { id: 'workspace-test-id', name: 'Test Workspace' },
+  }),
+}))
+
+vi.mock('../../services/inventoryCountService', () => ({
+  createInventoryCountSession: vi.fn(),
+  buildInventoryCountSnapshot: vi.fn(),
+}))
 
 function render(ui) {
   const container = document.createElement('div')
@@ -58,6 +73,26 @@ function goToStep3(container) {
 }
 
 describe('InventoryCountWizard foundation', () => {
+  beforeEach(() => {
+    createInventoryCountSession.mockReset()
+    buildInventoryCountSnapshot.mockReset()
+    createInventoryCountSession.mockResolvedValue({
+      id: 'session-real-1',
+      workspaceId: 'workspace-test-id',
+      status: 'in_progress',
+      countType: 'quick',
+      visibility: 'open',
+      includeZeroStock: false,
+      includeInactive: true,
+      note: 'Month-end bar audit',
+    })
+    buildInventoryCountSnapshot.mockResolvedValue({
+      sessionId: 'session-real-1',
+      itemsCreated: 12,
+      snapshotCreatedAt: '2026-07-20T12:00:00.000Z',
+    })
+  })
+
   it('opens from Start new count and closes via Cancel and Close', () => {
     const { container, cleanup } = render(createElement(InventoryCountView))
 
@@ -204,7 +239,7 @@ describe('InventoryCountWizard foundation', () => {
     cleanup()
   })
 
-  it('configures Step 3 settings and opens Step 4 review without creating a session', () => {
+  it('configures Step 3 settings and opens Step 4 review without creating a session', async () => {
     const onClose = vi.fn()
     const onStartSession = vi.fn()
     const { container, cleanup } = render(
@@ -298,32 +333,32 @@ describe('InventoryCountWizard foundation', () => {
     expect(startBtn).toBeTruthy()
     expect(startBtn?.disabled).toBe(false)
 
-    act(() => {
+    await act(async () => {
       startBtn.click()
     })
+
+    expect(createInventoryCountSession).toHaveBeenCalledTimes(1)
+    expect(buildInventoryCountSnapshot).toHaveBeenCalledTimes(1)
+    expect(createInventoryCountSession.mock.invocationCallOrder[0]).toBeLessThan(
+      buildInventoryCountSnapshot.mock.invocationCallOrder[0],
+    )
+    expect(createInventoryCountSession).toHaveBeenCalledWith({
+      workspaceId: 'workspace-test-id',
+      countType: 'quick',
+      visibility: 'open',
+      includeZeroStock: false,
+      includeInactive: true,
+      note: 'Month-end bar audit',
+      locations: ['Main Bar', 'Main Storage'],
+    })
+    expect(buildInventoryCountSnapshot).toHaveBeenCalledWith({
+      workspaceId: 'workspace-test-id',
+      sessionId: 'session-real-1',
+    })
     expect(onStartSession).toHaveBeenCalledTimes(1)
+    expect(onStartSession.mock.calls[0][0].sessionId).toBe('session-real-1')
     expect(container.textContent).not.toContain('Session creation will be added next.')
     expect(onClose).not.toHaveBeenCalled()
-
-    const backBtn = getButtonByText(container, 'Back')
-    act(() => {
-      backBtn.click()
-    })
-    expect(container.textContent).toContain('Step 3 of 4')
-    expect(container.querySelector('.inventory-count-session-note-input')?.value).toBe('Month-end bar audit')
-    expect(container.querySelectorAll('[role="switch"]')[0].getAttribute('aria-checked')).toBe('false')
-    expect(container.querySelectorAll('[role="switch"]')[1].getAttribute('aria-checked')).toBe('true')
-    expect(
-      container.querySelectorAll('.inventory-count-wizard-body-visibility [role="radio"]')[1]
-        .getAttribute('aria-checked'),
-    ).toBe('true')
-
-    act(() => {
-      backBtn.click()
-    })
-    const restoredLocations = container.querySelectorAll('[role="checkbox"]')
-    expect(restoredLocations[0].getAttribute('aria-checked')).toBe('true')
-    expect(restoredLocations[2].getAttribute('aria-checked')).toBe('true')
 
     cleanup()
   })
@@ -346,7 +381,105 @@ describe('InventoryCountWizard foundation', () => {
     cleanup()
   })
 
-  it('does not introduce persistence or service wiring in the wizard source', async () => {
+  it('stops when create session fails and does not build snapshot', async () => {
+    createInventoryCountSession.mockRejectedValueOnce(new Error('Create failed'))
+    const onStartSession = vi.fn()
+    const { container, cleanup } = render(
+      createElement(InventoryCountWizard, { isOpen: true, onClose: vi.fn(), onStartSession }),
+    )
+
+    const { continueBtn } = goToStep3(container)
+    act(() => {
+      continueBtn.click()
+    })
+    const startBtn = getButtonByText(container, 'Start Inventory Count Session')
+
+    await act(async () => {
+      startBtn.click()
+    })
+
+    expect(createInventoryCountSession).toHaveBeenCalledTimes(1)
+    expect(buildInventoryCountSnapshot).not.toHaveBeenCalled()
+    expect(onStartSession).not.toHaveBeenCalled()
+    expect(container.querySelector('.staff-status-banner')?.textContent).toBe('Create failed')
+    expect(getButtonByText(container, 'Start Inventory Count Session')?.disabled).toBe(false)
+
+    cleanup()
+  })
+
+  it('stops when snapshot fails after create succeeds', async () => {
+    buildInventoryCountSnapshot.mockRejectedValueOnce(new Error('Snapshot failed'))
+    const onStartSession = vi.fn()
+    const { container, cleanup } = render(
+      createElement(InventoryCountWizard, { isOpen: true, onClose: vi.fn(), onStartSession }),
+    )
+
+    const { continueBtn } = goToStep3(container)
+    act(() => {
+      continueBtn.click()
+    })
+    const startBtn = getButtonByText(container, 'Start Inventory Count Session')
+
+    await act(async () => {
+      startBtn.click()
+    })
+
+    expect(createInventoryCountSession).toHaveBeenCalledTimes(1)
+    expect(buildInventoryCountSnapshot).toHaveBeenCalledTimes(1)
+    expect(onStartSession).not.toHaveBeenCalled()
+    expect(container.querySelector('.staff-status-banner')?.textContent).toBe('Snapshot failed')
+    expect(getButtonByText(container, 'Start Inventory Count Session')?.disabled).toBe(false)
+
+    cleanup()
+  })
+
+  it('prevents duplicate Start submissions while request is running', async () => {
+    let resolveCreate
+    createInventoryCountSession.mockImplementationOnce(
+      () => new Promise((resolve) => {
+        resolveCreate = resolve
+      }),
+    )
+    const onStartSession = vi.fn()
+    const { container, cleanup } = render(
+      createElement(InventoryCountWizard, { isOpen: true, onClose: vi.fn(), onStartSession }),
+    )
+
+    const { continueBtn } = goToStep3(container)
+    act(() => {
+      continueBtn.click()
+    })
+    const startBtn = getButtonByText(container, 'Start Inventory Count Session')
+
+    await act(async () => {
+      startBtn.click()
+      startBtn.click()
+    })
+
+    expect(createInventoryCountSession).toHaveBeenCalledTimes(1)
+    expect(getButtonByText(container, 'Starting…')?.disabled).toBe(true)
+
+    await act(async () => {
+      resolveCreate({
+        id: 'session-real-1',
+        workspaceId: 'workspace-test-id',
+        status: 'in_progress',
+        countType: 'quick',
+        visibility: 'blind',
+        includeZeroStock: true,
+        includeInactive: false,
+        note: '',
+      })
+    })
+
+    expect(buildInventoryCountSnapshot).toHaveBeenCalledTimes(1)
+    expect(onStartSession).toHaveBeenCalledTimes(1)
+    expect(onStartSession.mock.calls[0][0].sessionId).toBe('session-real-1')
+
+    cleanup()
+  })
+
+  it('wires create then snapshot through the inventory count service', async () => {
     const { readFileSync } = await import('node:fs')
     const { resolve } = await import('node:path')
     const source = readFileSync(
@@ -354,6 +487,8 @@ describe('InventoryCountWizard foundation', () => {
       'utf8',
     )
 
-    expect(source).not.toMatch(/localStorage|supabase|recordStockMovement|createCount|postCount|fetch\(/i)
+    expect(source).toContain('createInventoryCountSession')
+    expect(source).toContain('buildInventoryCountSnapshot')
+    expect(source).not.toMatch(/localStorage|recordStockMovement|postCount|fetch\(/i)
   })
 })

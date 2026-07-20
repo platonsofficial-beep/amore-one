@@ -1,4 +1,9 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { useAuth } from '../../context/AuthContext'
+import {
+  buildInventoryCountSnapshot,
+  createInventoryCountSession,
+} from '../../services/inventoryCountService'
 
 const COUNT_TYPES = [
   {
@@ -101,6 +106,7 @@ function createInitialWizardState() {
 }
 
 export function InventoryCountWizard({ isOpen, onClose, onStartSession }) {
+  const { workspace } = useAuth()
   const [step, setStep] = useState(1)
   const [selectedType, setSelectedType] = useState(null)
   const [selectedLocations, setSelectedLocations] = useState([])
@@ -108,9 +114,15 @@ export function InventoryCountWizard({ isOpen, onClose, onStartSession }) {
   const [includeZeroStock, setIncludeZeroStock] = useState(true)
   const [includeInactive, setIncludeInactive] = useState(false)
   const [sessionNote, setSessionNote] = useState('')
+  const [isStartingSession, setIsStartingSession] = useState(false)
+  const [startError, setStartError] = useState('')
+  const startRequestIdRef = useRef(0)
+  const startInFlightRef = useRef(false)
 
   useEffect(() => {
     if (!isOpen) {
+      startRequestIdRef.current += 1
+      startInFlightRef.current = false
       const initial = createInitialWizardState()
       setStep(initial.step)
       setSelectedType(initial.selectedType)
@@ -119,18 +131,20 @@ export function InventoryCountWizard({ isOpen, onClose, onStartSession }) {
       setIncludeZeroStock(initial.includeZeroStock)
       setIncludeInactive(initial.includeInactive)
       setSessionNote(initial.sessionNote)
+      setIsStartingSession(false)
+      setStartError('')
       return undefined
     }
 
     const handleKeyDown = (event) => {
-      if (event.key === 'Escape') {
+      if (event.key === 'Escape' && !isStartingSession) {
         onClose?.()
       }
     }
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [isOpen, onClose])
+  }, [isOpen, onClose, isStartingSession])
 
   if (!isOpen) return null
 
@@ -154,7 +168,15 @@ export function InventoryCountWizard({ isOpen, onClose, onStartSession }) {
         ? true
         : isStep4Valid
 
-  const primaryActionLabel = step === 4 ? 'Start Inventory Count Session' : 'Continue'
+  const primaryActionLabel = step === 4
+    ? (isStartingSession ? 'Starting…' : 'Start Inventory Count Session')
+    : 'Continue'
+  const isPrimaryDisabled = !canContinue || isStartingSession
+
+  const handleClose = () => {
+    if (isStartingSession) return
+    onClose?.()
+  }
 
   const toggleLocation = (locationId) => {
     setSelectedLocations((current) => (
@@ -165,12 +187,16 @@ export function InventoryCountWizard({ isOpen, onClose, onStartSession }) {
   }
 
   const handleBack = () => {
+    if (isStartingSession) return
     if (step > 1) {
+      setStartError('')
       setStep((current) => current - 1)
     }
   }
 
   const handleContinue = () => {
+    if (isStartingSession) return
+
     if (step === 1) {
       if (!selectedType) return
       setStep(2)
@@ -184,13 +210,65 @@ export function InventoryCountWizard({ isOpen, onClose, onStartSession }) {
     }
 
     if (step === 3) {
+      setStartError('')
       setStep(4)
       return
     }
 
     if (step === 4) {
       if (!isStep4Valid) return
-      onStartSession?.()
+      void startInventoryCountSession()
+    }
+  }
+
+  const startInventoryCountSession = async () => {
+    if (startInFlightRef.current || !isStep4Valid) return
+
+    const workspaceId = `${workspace?.id ?? ''}`.trim()
+    if (!workspaceId) {
+      setStartError('Workspace is required.')
+      return
+    }
+
+    const requestId = startRequestIdRef.current + 1
+    startRequestIdRef.current = requestId
+    startInFlightRef.current = true
+    setIsStartingSession(true)
+    setStartError('')
+
+    try {
+      const session = await createInventoryCountSession({
+        workspaceId,
+        countType: selectedType,
+        visibility: countVisibility,
+        includeZeroStock,
+        includeInactive,
+        note: trimmedNote,
+        locations: selectedLocationItems.map((location) => location.title),
+      })
+
+      if (startRequestIdRef.current !== requestId) return
+
+      const snapshot = await buildInventoryCountSnapshot({
+        workspaceId,
+        sessionId: session.id,
+      })
+
+      if (startRequestIdRef.current !== requestId) return
+
+      onStartSession?.({
+        sessionId: session.id,
+        session,
+        snapshot,
+      })
+    } catch (error) {
+      if (startRequestIdRef.current !== requestId) return
+      setStartError(error?.message || 'Unable to start inventory count session right now.')
+    } finally {
+      if (startRequestIdRef.current === requestId) {
+        startInFlightRef.current = false
+        setIsStartingSession(false)
+      }
     }
   }
 
@@ -201,7 +279,7 @@ export function InventoryCountWizard({ isOpen, onClose, onStartSession }) {
   return (
     <div
       className="employee-modal-backdrop inventory-count-wizard-backdrop"
-      onClick={onClose}
+      onClick={handleClose}
     >
       <div
         className="inventory-count-wizard"
@@ -224,8 +302,10 @@ export function InventoryCountWizard({ isOpen, onClose, onStartSession }) {
             <button
               type="button"
               className="icon-btn inventory-count-wizard-close-btn"
-              onClick={onClose}
+              onClick={handleClose}
               aria-label="Close"
+              disabled={isStartingSession}
+              aria-disabled={isStartingSession}
             >
               ✕
             </button>
@@ -236,6 +316,12 @@ export function InventoryCountWizard({ isOpen, onClose, onStartSession }) {
           <p className="inventory-count-wizard-step-label">{stepCopy.label}</p>
           <p className="inventory-count-wizard-step-name">{stepCopy.name}</p>
         </div>
+
+        {startError ? (
+          <div className="staff-status-banner" role="alert">
+            {startError}
+          </div>
+        ) : null}
 
         {step === 1 ? (
           <div
@@ -424,7 +510,11 @@ export function InventoryCountWizard({ isOpen, onClose, onStartSession }) {
                   <button
                     type="button"
                     className="ghost-btn inventory-count-review-change-btn"
+                    disabled={isStartingSession}
+                    aria-disabled={isStartingSession}
                     onClick={() => {
+                      if (isStartingSession) return
+                      setStartError('')
                       setStep(1)
                     }}
                   >
@@ -452,7 +542,11 @@ export function InventoryCountWizard({ isOpen, onClose, onStartSession }) {
                   <button
                     type="button"
                     className="ghost-btn inventory-count-review-change-btn"
+                    disabled={isStartingSession}
+                    aria-disabled={isStartingSession}
                     onClick={() => {
+                      if (isStartingSession) return
+                      setStartError('')
                       setStep(2)
                     }}
                   >
@@ -477,7 +571,11 @@ export function InventoryCountWizard({ isOpen, onClose, onStartSession }) {
                   <button
                     type="button"
                     className="ghost-btn inventory-count-review-change-btn"
+                    disabled={isStartingSession}
+                    aria-disabled={isStartingSession}
                     onClick={() => {
+                      if (isStartingSession) return
+                      setStartError('')
                       setStep(3)
                     }}
                   >
@@ -560,8 +658,8 @@ export function InventoryCountWizard({ isOpen, onClose, onStartSession }) {
           <button
             type="button"
             className="ghost-btn inventory-count-wizard-nav-btn"
-            disabled={step === 1}
-            aria-disabled={step === 1}
+            disabled={step === 1 || isStartingSession}
+            aria-disabled={step === 1 || isStartingSession}
             onClick={handleBack}
           >
             Back
@@ -570,15 +668,17 @@ export function InventoryCountWizard({ isOpen, onClose, onStartSession }) {
             <button
               type="button"
               className="ghost-btn inventory-count-wizard-nav-btn"
-              onClick={onClose}
+              onClick={handleClose}
+              disabled={isStartingSession}
+              aria-disabled={isStartingSession}
             >
               Cancel
             </button>
             <button
               type="button"
               className="primary-btn inventory-count-wizard-nav-btn inventory-count-wizard-continue-btn"
-              disabled={!canContinue}
-              aria-disabled={!canContinue}
+              disabled={isPrimaryDisabled}
+              aria-disabled={isPrimaryDisabled}
               onClick={handleContinue}
             >
               {primaryActionLabel}

@@ -4,9 +4,24 @@
 import { createElement } from 'react'
 import { createRoot } from 'react-dom/client'
 import { act } from 'react'
-import { describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { InventoryCountView } from './InventoryCountView'
 import { InventoryCountSessionWorkspace } from './InventoryCountSessionWorkspace'
+import {
+  buildInventoryCountSnapshot,
+  createInventoryCountSession,
+} from '../../services/inventoryCountService'
+
+vi.mock('../../context/AuthContext', () => ({
+  useAuth: () => ({
+    workspace: { id: 'workspace-test-id', name: 'Test Workspace' },
+  }),
+}))
+
+vi.mock('../../services/inventoryCountService', () => ({
+  createInventoryCountSession: vi.fn(),
+  buildInventoryCountSnapshot: vi.fn(),
+}))
 
 function render(ui) {
   const container = document.createElement('div')
@@ -47,7 +62,7 @@ function countCurrentLocations(container) {
   return container.querySelectorAll('.inventory-count-session-rail-item.is-current').length
 }
 
-function advanceWizardToSession(container) {
+async function advanceWizardToSession(container) {
   act(() => {
     getButtonByText(container, 'Start new count').click()
   })
@@ -75,17 +90,37 @@ function advanceWizardToSession(container) {
   })
 
   const startBtn = getButtonByText(dialog, 'Start Inventory Count Session')
-  act(() => {
+  await act(async () => {
     startBtn.click()
   })
 }
 
 describe('InventoryCountSessionWorkspace interactive foundation', () => {
-  it('opens from the wizard Start CTA and exits back to Inventory Count foundation', () => {
+  beforeEach(() => {
+    createInventoryCountSession.mockReset()
+    buildInventoryCountSnapshot.mockReset()
+    createInventoryCountSession.mockResolvedValue({
+      id: 'session-real-1',
+      workspaceId: 'workspace-test-id',
+      status: 'in_progress',
+      countType: 'new',
+      visibility: 'blind',
+      includeZeroStock: true,
+      includeInactive: false,
+      note: '',
+    })
+    buildInventoryCountSnapshot.mockResolvedValue({
+      sessionId: 'session-real-1',
+      itemsCreated: 5,
+      snapshotCreatedAt: '2026-07-20T12:00:00.000Z',
+    })
+  })
+
+  it('opens from the wizard Start CTA and exits back to Inventory Count foundation', async () => {
     const { container, cleanup } = render(createElement(InventoryCountView))
 
     expect(container.querySelector('.inventory-count-session')).toBeNull()
-    advanceWizardToSession(container)
+    await advanceWizardToSession(container)
 
     expect(container.querySelector('[role="dialog"]')).toBeNull()
     expect(container.querySelector('.inventory-count-session')).not.toBeNull()
