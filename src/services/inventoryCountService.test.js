@@ -18,6 +18,7 @@ import {
   completeInventoryCountLocation,
   getInventoryCountSessionItems,
   mapInventoryCountSessionItemRow,
+  setInventoryCountSessionPauseState,
   updateInventoryCountItem,
 } from './inventoryCountService'
 
@@ -521,5 +522,204 @@ describe('create_inventory_count_session location bootstrap SQL contract', () =>
     expect(serviceSource).not.toMatch(
       /\.from\(\s*['"]inventory_count_session_locations['"]\s*\)[\s\S]*\.update\(/,
     )
+  })
+})
+
+describe('setInventoryCountSessionPauseState', () => {
+  beforeEach(() => {
+    fromMock.mockReset()
+    rpcMock.mockReset()
+  })
+
+  it('calls the pause RPC with mapped parameters and maps the pause response', async () => {
+    rpcMock.mockResolvedValue({
+      data: [{
+        id: 'session-1',
+        workspace_id: 'workspace-1',
+        status: 'paused',
+        paused_at: '2026-07-20T15:00:00.000Z',
+        updated_at: '2026-07-20T15:00:00.000Z',
+      }],
+      error: null,
+    })
+
+    const result = await setInventoryCountSessionPauseState({
+      workspaceId: 'workspace-1',
+      sessionId: 'session-1',
+      pause: true,
+    })
+
+    expect(fromMock).not.toHaveBeenCalled()
+    expect(rpcMock).toHaveBeenCalledWith('set_inventory_count_session_pause_state', {
+      p_workspace_id: 'workspace-1',
+      p_session_id: 'session-1',
+      p_pause: true,
+    })
+    expect(result).toEqual({
+      id: 'session-1',
+      workspaceId: 'workspace-1',
+      status: 'paused',
+      pausedAt: '2026-07-20T15:00:00.000Z',
+      updatedAt: '2026-07-20T15:00:00.000Z',
+    })
+  })
+
+  it('maps the resume response and clears pausedAt', async () => {
+    rpcMock.mockResolvedValue({
+      data: [{
+        id: 'session-1',
+        workspace_id: 'workspace-1',
+        status: 'in_progress',
+        paused_at: null,
+        updated_at: '2026-07-20T15:05:00.000Z',
+      }],
+      error: null,
+    })
+
+    const result = await setInventoryCountSessionPauseState({
+      workspaceId: 'workspace-1',
+      sessionId: 'session-1',
+      pause: false,
+    })
+
+    expect(rpcMock).toHaveBeenCalledWith('set_inventory_count_session_pause_state', {
+      p_workspace_id: 'workspace-1',
+      p_session_id: 'session-1',
+      p_pause: false,
+    })
+    expect(result).toEqual({
+      id: 'session-1',
+      workspaceId: 'workspace-1',
+      status: 'in_progress',
+      pausedAt: null,
+      updatedAt: '2026-07-20T15:05:00.000Z',
+    })
+  })
+
+  it('rejects empty or invalid pause responses', async () => {
+    rpcMock.mockResolvedValueOnce({ data: [], error: null })
+
+    await expect(
+      setInventoryCountSessionPauseState({
+        workspaceId: 'workspace-1',
+        sessionId: 'session-1',
+        pause: true,
+      }),
+    ).rejects.toThrow('Pause state response was empty or invalid.')
+
+    rpcMock.mockResolvedValueOnce({
+      data: [{ id: 'session-1', workspace_id: 'workspace-1' }],
+      error: null,
+    })
+
+    await expect(
+      setInventoryCountSessionPauseState({
+        workspaceId: 'workspace-1',
+        sessionId: 'session-1',
+        pause: true,
+      }),
+    ).rejects.toThrow('Pause state response was empty or invalid.')
+  })
+
+  it('normalizes known pause/resume RPC errors', async () => {
+    rpcMock.mockResolvedValueOnce({
+      data: null,
+      error: { message: 'inventory_count_pause_cannot_pause' },
+    })
+
+    await expect(
+      setInventoryCountSessionPauseState({
+        workspaceId: 'workspace-1',
+        sessionId: 'session-1',
+        pause: true,
+      }),
+    ).rejects.toThrow('Inventory count session must be in progress to pause.')
+
+    rpcMock.mockResolvedValueOnce({
+      data: null,
+      error: { message: 'inventory_count_pause_cannot_resume' },
+    })
+
+    await expect(
+      setInventoryCountSessionPauseState({
+        workspaceId: 'workspace-1',
+        sessionId: 'session-1',
+        pause: false,
+      }),
+    ).rejects.toThrow('Inventory count session must be paused to resume.')
+
+    rpcMock.mockResolvedValueOnce({
+      data: null,
+      error: { message: 'inventory_count_pause_forbidden' },
+    })
+
+    await expect(
+      setInventoryCountSessionPauseState({
+        workspaceId: 'workspace-1',
+        sessionId: 'session-1',
+        pause: true,
+      }),
+    ).rejects.toThrow('You do not have permission to manage inventory counts for this workspace.')
+  })
+
+  it('does not write pause state through direct table updates', async () => {
+    const serviceSource = readFileSync(
+      resolve(process.cwd(), 'src/services/inventoryCountService.js'),
+      'utf8',
+    )
+    expect(serviceSource).toContain('set_inventory_count_session_pause_state')
+    expect(serviceSource).toContain('setInventoryCountSessionPauseState')
+    expect(serviceSource).not.toMatch(
+      /\.from\(\s*['"]inventory_count_sessions['"]\s*\)[\s\S]*\.update\(/,
+    )
+  })
+})
+
+describe('set_inventory_count_session_pause_state SQL contract', () => {
+  const sql = readFileSync(
+    resolve(process.cwd(), 'supabase/inventory_count_set_pause_state_rpc.sql'),
+    'utf8',
+  )
+  const functionBody = sql.slice(sql.indexOf('as $$'), sql.indexOf('$$;') + 3)
+
+  it('defines a SECURITY DEFINER RPC with restricted search_path and authenticated grant', () => {
+    expect(sql).toContain('create or replace function public.set_inventory_count_session_pause_state(')
+    expect(sql).toContain('p_workspace_id uuid')
+    expect(sql).toContain('p_session_id uuid')
+    expect(sql).toContain('p_pause boolean')
+    expect(sql).toMatch(/security definer/i)
+    expect(sql).toContain('set search_path = public')
+    expect(sql).toContain('auth.uid()')
+    expect(sql).toContain('inventory_count_pause_unauthenticated')
+    expect(sql).toContain('can_manage_workspace_stock(p_workspace_id)')
+    expect(sql).toContain('inventory_count_pause_forbidden')
+    expect(sql).toContain('grant execute on function public.set_inventory_count_session_pause_state(')
+    expect(sql).toContain('to authenticated')
+    expect(sql).toContain('revoke all on function public.set_inventory_count_session_pause_state(')
+  })
+
+  it('locks the session, rejects workspace mismatch, and owns paused_at', () => {
+    expect(functionBody).toContain('for update')
+    expect(functionBody).toContain('s.workspace_id = p_workspace_id')
+    expect(functionBody).toContain('inventory_count_pause_workspace_mismatch')
+    expect(functionBody).toContain('inventory_count_pause_session_not_found')
+    expect(functionBody).toContain('paused_at = v_now')
+    expect(functionBody).toContain('paused_at = null')
+    expect(functionBody).not.toMatch(/p_paused_at/)
+  })
+
+  it('enforces pause and resume transitions and rejects invalid statuses', () => {
+    expect(functionBody).toContain("v_session.status is distinct from 'in_progress'")
+    expect(functionBody).toContain('inventory_count_pause_cannot_pause')
+    expect(functionBody).toContain("status = 'paused'")
+    expect(functionBody).toContain("v_session.status is distinct from 'paused'")
+    expect(functionBody).toContain('inventory_count_pause_cannot_resume')
+    expect(functionBody).toContain("status = 'in_progress'")
+  })
+
+  it('preserves locations and items and does not mutate stock', () => {
+    expect(functionBody).not.toMatch(/inventory_count_session_locations/i)
+    expect(functionBody).not.toMatch(/inventory_count_session_items/i)
+    expect(functionBody).not.toMatch(/from public\.stock_items|update public\.stock_items|from public\.stock_movements|insert into public\.stock_movements/i)
   })
 })

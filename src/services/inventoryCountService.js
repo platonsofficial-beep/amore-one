@@ -4,6 +4,7 @@ const CREATE_SESSION_RPC = 'create_inventory_count_session'
 const BUILD_SNAPSHOT_RPC = 'build_inventory_count_snapshot'
 const UPDATE_SESSION_ITEM_RPC = 'update_inventory_count_session_item'
 const COMPLETE_LOCATION_RPC = 'complete_inventory_count_location'
+const SET_PAUSE_STATE_RPC = 'set_inventory_count_session_pause_state'
 const SESSION_ITEMS_TABLE = 'inventory_count_session_items'
 const SESSION_LOCATIONS_TABLE = 'inventory_count_session_locations'
 
@@ -36,7 +37,7 @@ function isRpcUnavailableError(error) {
 
 function extractRpcErrorCode(error) {
   const message = `${error?.message ?? error?.details ?? error?.hint ?? ''}`.trim()
-  const match = message.match(/inventory_count_(?:session|snapshot|item|location)_[a-z0-9_]+/i)
+  const match = message.match(/inventory_count_(?:session|snapshot|item|location|pause)_[a-z0-9_]+/i)
   return match?.[0]?.toLowerCase() ?? ''
 }
 
@@ -58,16 +59,19 @@ function mapInventoryCountRpcError(error, fallbackMessage) {
     case 'inventory_count_snapshot_unauthenticated':
     case 'inventory_count_item_unauthenticated':
     case 'inventory_count_location_unauthenticated':
+    case 'inventory_count_pause_unauthenticated':
       return new Error('You must be signed in to manage inventory counts.')
     case 'inventory_count_session_forbidden':
     case 'inventory_count_snapshot_forbidden':
     case 'inventory_count_item_forbidden':
     case 'inventory_count_location_forbidden':
+    case 'inventory_count_pause_forbidden':
       return new Error('You do not have permission to manage inventory counts for this workspace.')
     case 'inventory_count_session_workspace_required':
     case 'inventory_count_snapshot_workspace_required':
     case 'inventory_count_item_workspace_required':
     case 'inventory_count_location_workspace_required':
+    case 'inventory_count_pause_workspace_required':
       return new Error('Workspace is required.')
     case 'inventory_count_session_workspace_not_found':
       return new Error('Workspace was not found.')
@@ -87,14 +91,17 @@ function mapInventoryCountRpcError(error, fallbackMessage) {
     case 'inventory_count_snapshot_session_required':
     case 'inventory_count_item_session_required':
     case 'inventory_count_location_session_required':
+    case 'inventory_count_pause_session_required':
       return new Error('Inventory count session is required.')
     case 'inventory_count_snapshot_session_not_found':
     case 'inventory_count_item_session_not_found':
     case 'inventory_count_location_session_not_found':
+    case 'inventory_count_pause_session_not_found':
       return new Error('Inventory count session was not found.')
     case 'inventory_count_snapshot_workspace_mismatch':
     case 'inventory_count_item_workspace_mismatch':
     case 'inventory_count_location_workspace_mismatch':
+    case 'inventory_count_pause_workspace_mismatch':
       return new Error('Inventory count session does not belong to this workspace.')
     case 'inventory_count_snapshot_session_not_in_progress':
       return new Error('Inventory count session must be in progress to build a snapshot.')
@@ -102,6 +109,12 @@ function mapInventoryCountRpcError(error, fallbackMessage) {
       return new Error('Inventory count session must be in progress to update counted quantities.')
     case 'inventory_count_location_session_not_in_progress':
       return new Error('Inventory count session must be in progress to complete a location.')
+    case 'inventory_count_pause_cannot_pause':
+      return new Error('Inventory count session must be in progress to pause.')
+    case 'inventory_count_pause_cannot_resume':
+      return new Error('Inventory count session must be paused to resume.')
+    case 'inventory_count_pause_state_required':
+      return new Error('Pause state is required.')
     case 'inventory_count_snapshot_already_exists':
       return new Error('A snapshot has already been created for this inventory count session.')
     case 'inventory_count_item_session_item_required':
@@ -514,6 +527,72 @@ export async function completeInventoryCountLocation({
   const mapped = mapCompleteInventoryCountLocationResult(firstRpcRow(data))
   if (!mapped) {
     throw new Error('Complete location response was empty or invalid.')
+  }
+
+  return mapped
+}
+
+export function mapInventoryCountSessionPauseStateResult(row) {
+  if (!row || typeof row !== 'object') {
+    return null
+  }
+
+  const id = `${row.id ?? ''}`.trim()
+  const workspaceId = `${row.workspace_id ?? row.workspaceId ?? ''}`.trim()
+  const status = `${row.status ?? ''}`.trim()
+  if (!id || !workspaceId || !status) {
+    return null
+  }
+
+  const pausedAtRaw = row.paused_at ?? row.pausedAt
+  const updatedAtRaw = row.updated_at ?? row.updatedAt
+
+  return {
+    id,
+    workspaceId,
+    status,
+    pausedAt: pausedAtRaw == null || pausedAtRaw === '' ? null : `${pausedAtRaw}`,
+    updatedAt: updatedAtRaw == null || updatedAtRaw === '' ? null : `${updatedAtRaw}`,
+  }
+}
+
+/**
+ * Pause or resume an inventory count session via SECURITY DEFINER RPC.
+ * Does not mutate locations, items, stock quantities, or movements.
+ */
+export async function setInventoryCountSessionPauseState({
+  workspaceId,
+  sessionId,
+  pause,
+} = {}) {
+  requireConfiguredSupabase()
+
+  const p_workspace_id = requireId(workspaceId, 'Workspace')
+  const p_session_id = requireId(sessionId, 'Session')
+
+  if (typeof pause !== 'boolean') {
+    throw new Error('Pause state is required.')
+  }
+
+  const { data, error } = await supabase.rpc(SET_PAUSE_STATE_RPC, {
+    p_workspace_id,
+    p_session_id,
+    p_pause: pause,
+  })
+
+  if (error) {
+    console.error('[inventoryCountService] setInventoryCountSessionPauseState error:', error)
+    throw mapInventoryCountRpcError(
+      error,
+      pause
+        ? 'Unable to pause inventory count right now.'
+        : 'Unable to resume inventory count right now.',
+    )
+  }
+
+  const mapped = mapInventoryCountSessionPauseStateResult(firstRpcRow(data))
+  if (!mapped) {
+    throw new Error('Pause state response was empty or invalid.')
   }
 
   return mapped

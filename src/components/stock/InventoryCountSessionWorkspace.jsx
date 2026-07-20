@@ -4,6 +4,7 @@ import {
   completeInventoryCountLocation,
   getInventoryCountSessionItems,
   getInventoryCountSessionLocations,
+  setInventoryCountSessionPauseState,
   updateInventoryCountItem,
 } from '../../services/inventoryCountService'
 
@@ -243,8 +244,10 @@ export function InventoryCountSessionWorkspace({
   const [isSaving, setIsSaving] = useState(false)
   const [isCompletingLocation, setIsCompletingLocation] = useState(false)
   const [sessionStatus, setSessionStatus] = useState('in_progress')
+  const [isTogglingPause, setIsTogglingPause] = useState(false)
   const loadRequestIdRef = useRef(0)
   const locationsRef = useRef(locations)
+  const sessionStatusRef = useRef(sessionStatus)
   const debounceTimersRef = useRef(new Map())
   const inFlightRef = useRef(new Map())
   const queuedSaveRef = useRef(new Map())
@@ -254,6 +257,10 @@ export function InventoryCountSessionWorkspace({
   useEffect(() => {
     locationsRef.current = locations
   }, [locations])
+
+  useEffect(() => {
+    sessionStatusRef.current = sessionStatus
+  }, [sessionStatus])
 
   useEffect(() => {
     const requestId = loadRequestIdRef.current + 1
@@ -267,6 +274,7 @@ export function InventoryCountSessionWorkspace({
       setSaveError('')
       setSessionStatus('in_progress')
       setIsCompletingLocation(false)
+      setIsTogglingPause(false)
 
       try {
         const sessionId = `${sessionIdProp || ''}`.trim()
@@ -328,6 +336,10 @@ export function InventoryCountSessionWorkspace({
   }
 
   const persistCountedQuantity = async (itemId, countedQuantity) => {
+    if (sessionStatusRef.current !== 'in_progress') {
+      return
+    }
+
     if (inFlightRef.current.get(itemId)) {
       queuedSaveRef.current.set(itemId, countedQuantity)
       return
@@ -408,6 +420,10 @@ export function InventoryCountSessionWorkspace({
   }
 
   const handleCountedChange = (itemId, nextValue) => {
+    if (sessionStatus !== 'in_progress') {
+      return
+    }
+
     if (!rollbackRef.current.has(itemId)) {
       const snapshot = findItemSnapshot(locationsRef.current, itemId)
       if (snapshot) {
@@ -442,10 +458,12 @@ export function InventoryCountSessionWorkspace({
 
   const canGoPrevious = selectedIndex > 0
   const canGoNext = selectedIndex >= 0 && selectedIndex < locations.length - 1
+  const isSessionPaused = sessionStatus === 'paused'
+  const isCountEditable = sessionStatus === 'in_progress'
   // Empty locations (0 items / 0 pending) remain explicitly completable — never auto-completed.
   const canCompleteLocation = Boolean(selectedLocation)
     && selectedLocation.status === 'current'
-    && sessionStatus === 'in_progress'
+    && isCountEditable
     && !isCompletingLocation
   const bannerError = saveError || loadError
   const unsavedLabel = isSaving
@@ -455,9 +473,19 @@ export function InventoryCountSessionWorkspace({
       : 'All changes saved'
   const sessionStatusLabel = sessionStatus === 'counting_complete'
     ? 'Counting Complete'
-    : 'In Progress'
+    : sessionStatus === 'paused'
+      ? 'Paused'
+      : 'In Progress'
   const showCountingCompleteBanner = sessionStatus === 'counting_complete'
+  const showPausedBanner = isSessionPaused
   const canOpenFinishCount = sessionStatus === 'counting_complete'
+  const canTogglePause = (sessionStatus === 'in_progress' || sessionStatus === 'paused')
+    && !isTogglingPause
+    && !isCompletingLocation
+    && !(sessionStatus === 'in_progress' && isSaving)
+  const pauseButtonLabel = isTogglingPause
+    ? (sessionStatus === 'paused' ? 'Resuming…' : 'Pausing…')
+    : (isSessionPaused ? 'Resume' : 'Pause')
 
   const selectLocation = (locationId) => {
     setSelectedLocationId(locationId)
@@ -471,6 +499,91 @@ export function InventoryCountSessionWorkspace({
   const handleNext = () => {
     if (!canGoNext) return
     selectLocation(locations[selectedIndex + 1].id)
+  }
+
+  const waitForPendingAutosaves = async () => {
+    const pendingTimers = [...debounceTimersRef.current.entries()]
+    for (const [itemId, timerId] of pendingTimers) {
+      clearTimeout(timerId)
+      debounceTimersRef.current.delete(itemId)
+
+      const snapshot = findItemSnapshot(locationsRef.current, itemId)
+      if (!snapshot) continue
+
+      const parsed = parseCountedDraft(snapshot.counted)
+      if (!parsed.ready) {
+        if (parsed.invalid) {
+          const rollback = rollbackRef.current.get(itemId)
+          if (rollback) {
+            setLocations((current) => patchItemInLocations(current, itemId, rollback))
+          }
+          setSaveError('Counted quantity must be a valid non-negative number.')
+        }
+        continue
+      }
+
+      await persistCountedQuantity(itemId, parsed.countedQuantity)
+    }
+
+    const deadline = Date.now() + 10000
+    while (
+      Date.now() < deadline
+      && (
+        savingCountRef.current > 0
+        || [...inFlightRef.current.values()].some(Boolean)
+        || queuedSaveRef.current.size > 0
+        || debounceTimersRef.current.size > 0
+      )
+    ) {
+      await new Promise((resolve) => {
+        setTimeout(resolve, 25)
+      })
+    }
+  }
+
+  const handleTogglePause = async () => {
+    if (!canTogglePause) return
+
+    const shouldPause = sessionStatus === 'in_progress'
+    const workspaceId = `${workspaceIdProp || workspace?.id || ''}`.trim()
+    const sessionId = `${sessionIdProp || ''}`.trim()
+    if (!workspaceId || !sessionId) {
+      setSaveError(shouldPause
+        ? 'Unable to pause inventory count right now.'
+        : 'Unable to resume inventory count right now.')
+      return
+    }
+
+    setIsTogglingPause(true)
+    setSaveError('')
+
+    try {
+      if (shouldPause) {
+        await waitForPendingAutosaves()
+        if (sessionStatusRef.current !== 'in_progress') {
+          return
+        }
+      }
+
+      const result = await setInventoryCountSessionPauseState({
+        workspaceId,
+        sessionId,
+        pause: shouldPause,
+      })
+
+      const nextStatus = `${result.status || ''}`.trim()
+      if (nextStatus) {
+        setSessionStatus(nextStatus)
+      }
+    } catch (error) {
+      setSaveError(error?.message || (
+        shouldPause
+          ? 'Unable to pause inventory count right now.'
+          : 'Unable to resume inventory count right now.'
+      ))
+    } finally {
+      setIsTogglingPause(false)
+    }
   }
 
   const handleCompleteLocation = async () => {
@@ -559,8 +672,16 @@ export function InventoryCountSessionWorkspace({
           </div>
         </div>
         <div className="inventory-count-session-header-actions">
-          <button type="button" className="ghost-btn inventory-count-session-action-btn" disabled aria-disabled="true">
-            Pause
+          <button
+            type="button"
+            className="ghost-btn inventory-count-session-action-btn"
+            disabled={!canTogglePause}
+            aria-disabled={!canTogglePause}
+            onClick={() => {
+              void handleTogglePause()
+            }}
+          >
+            {pauseButtonLabel}
           </button>
           <button
             type="button"
@@ -589,6 +710,12 @@ export function InventoryCountSessionWorkspace({
       {bannerError ? (
         <div className="staff-status-banner" role="alert">
           {bannerError}
+        </div>
+      ) : null}
+
+      {showPausedBanner ? (
+        <div className="staff-status-banner" role="status">
+          This inventory count is paused. Resume to continue counting.
         </div>
       ) : null}
 
@@ -697,6 +824,8 @@ export function InventoryCountSessionWorkspace({
                               inputMode="decimal"
                               aria-label={`Counted quantity for ${item.name}`}
                               value={item.counted}
+                              disabled={!isCountEditable}
+                              aria-disabled={!isCountEditable}
                               onChange={(event) => handleCountedChange(item.id, event.target.value)}
                               style={COUNTED_INPUT_STYLE}
                               autoComplete="off"

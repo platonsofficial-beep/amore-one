@@ -13,6 +13,7 @@ import {
   createInventoryCountSession,
   getInventoryCountSessionItems,
   getInventoryCountSessionLocations,
+  setInventoryCountSessionPauseState,
   updateInventoryCountItem,
 } from '../../services/inventoryCountService'
 
@@ -29,6 +30,7 @@ vi.mock('../../services/inventoryCountService', () => ({
   getInventoryCountSessionItems: vi.fn(),
   updateInventoryCountItem: vi.fn(),
   completeInventoryCountLocation: vi.fn(),
+  setInventoryCountSessionPauseState: vi.fn(),
 }))
 
 function render(ui) {
@@ -222,6 +224,7 @@ describe('InventoryCountSessionWorkspace real session items', () => {
     getInventoryCountSessionItems.mockReset()
     updateInventoryCountItem.mockReset()
     completeInventoryCountLocation.mockReset()
+    setInventoryCountSessionPauseState.mockReset()
 
     createInventoryCountSession.mockResolvedValue({
       id: 'session-real-1',
@@ -888,6 +891,280 @@ describe('InventoryCountSessionWorkspace real session items', () => {
       sessionItemId: 'ms-2',
       countedQuantity: 7,
     })
+
+    cleanup()
+    vi.useRealTimers()
+  })
+})
+
+describe('InventoryCountSessionWorkspace pause and resume', () => {
+  beforeEach(() => {
+    createInventoryCountSession.mockReset()
+    buildInventoryCountSnapshot.mockReset()
+    getInventoryCountSessionLocations.mockReset()
+    getInventoryCountSessionItems.mockReset()
+    updateInventoryCountItem.mockReset()
+    completeInventoryCountLocation.mockReset()
+    setInventoryCountSessionPauseState.mockReset()
+
+    getInventoryCountSessionLocations.mockResolvedValue(FIXTURE_LOCATIONS)
+    getInventoryCountSessionItems.mockResolvedValue(FIXTURE_ITEMS)
+    updateInventoryCountItem.mockImplementation(async ({ sessionItemId, countedQuantity }) => ({
+      id: sessionItemId,
+      sessionId: 'session-real-1',
+      workspaceId: 'workspace-test-id',
+      itemId: `stock-${sessionItemId}`,
+      itemName: 'Saved item',
+      category: 'Other',
+      itemType: 'Other',
+      unit: 'box',
+      storageLocation: 'Main Storage',
+      expectedSnapshot: 4,
+      countedQuantity,
+      lineStatus: countedQuantity == null ? 'pending' : 'counted',
+      note: '',
+    }))
+    setInventoryCountSessionPauseState.mockResolvedValue({
+      id: 'session-real-1',
+      workspaceId: 'workspace-test-id',
+      status: 'paused',
+      pausedAt: '2026-07-20T15:00:00.000Z',
+      updatedAt: '2026-07-20T15:00:00.000Z',
+    })
+  })
+
+  it('pauses an in_progress session and disables count mutations while paused', async () => {
+    const { container, cleanup } = await renderWorkspace()
+
+    expect(getButtonByText(container, 'Pause')?.disabled).toBe(false)
+    expect(container.querySelector('.inventory-count-session-pill')?.textContent).toBe('In Progress')
+    expect(container.textContent).not.toContain(
+      'This inventory count is paused. Resume to continue counting.',
+    )
+
+    await act(async () => {
+      getButtonByText(container, 'Pause').click()
+      await Promise.resolve()
+    })
+
+    expect(setInventoryCountSessionPauseState).toHaveBeenCalledWith({
+      workspaceId: 'workspace-test-id',
+      sessionId: 'session-real-1',
+      pause: true,
+    })
+    expect(getButtonByText(container, 'Resume')).toBeTruthy()
+    expect(container.querySelector('.inventory-count-session-pill')?.textContent).toBe('Paused')
+    expect(container.textContent).toContain('Paused · Main Storage')
+    expect(container.textContent).toContain(
+      'This inventory count is paused. Resume to continue counting.',
+    )
+    expect(container.querySelector('input[aria-label="Counted quantity for Paper Straws"]')?.disabled)
+      .toBe(true)
+    expect(getButtonByText(container, 'Complete Location')?.disabled).toBe(true)
+    expect(getButtonByText(container, 'Finish Count')?.disabled).toBe(true)
+    expect(getButtonByText(container, 'Next')?.disabled).toBe(false)
+    expect(getButtonByText(container, 'Exit')?.disabled).toBe(false)
+
+    cleanup()
+  })
+
+  it('shows Pausing… while pause is pending and keeps prior state on failure', async () => {
+    let rejectPause
+    setInventoryCountSessionPauseState.mockImplementationOnce(() => new Promise((_, reject) => {
+      rejectPause = reject
+    }))
+
+    const { container, cleanup } = await renderWorkspace()
+
+    await act(async () => {
+      getButtonByText(container, 'Pause').click()
+      await Promise.resolve()
+    })
+
+    expect(getButtonByText(container, 'Pausing…')?.disabled).toBe(true)
+    expect(container.querySelector('.inventory-count-session-pill')?.textContent).toBe('In Progress')
+
+    await act(async () => {
+      rejectPause(new Error('Unable to pause inventory count right now.'))
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+
+    expect(getButtonByText(container, 'Pause')?.disabled).toBe(false)
+    expect(container.querySelector('.inventory-count-session-pill')?.textContent).toBe('In Progress')
+    expect(container.textContent).toContain('Unable to pause inventory count right now.')
+    expect(container.textContent).not.toContain(
+      'This inventory count is paused. Resume to continue counting.',
+    )
+
+    cleanup()
+  })
+
+  it('resumes a paused session and restores editing', async () => {
+    setInventoryCountSessionPauseState
+      .mockResolvedValueOnce({
+        id: 'session-real-1',
+        workspaceId: 'workspace-test-id',
+        status: 'paused',
+        pausedAt: '2026-07-20T15:00:00.000Z',
+        updatedAt: '2026-07-20T15:00:00.000Z',
+      })
+      .mockResolvedValueOnce({
+        id: 'session-real-1',
+        workspaceId: 'workspace-test-id',
+        status: 'in_progress',
+        pausedAt: null,
+        updatedAt: '2026-07-20T15:05:00.000Z',
+      })
+
+    const { container, cleanup } = await renderWorkspace()
+
+    await act(async () => {
+      getButtonByText(container, 'Pause').click()
+      await Promise.resolve()
+    })
+
+    expect(getButtonByText(container, 'Resume')).toBeTruthy()
+    expect(container.querySelector('input[aria-label="Counted quantity for Paper Straws"]')?.disabled)
+      .toBe(true)
+
+    await act(async () => {
+      getButtonByText(container, 'Resume').click()
+      await Promise.resolve()
+    })
+
+    expect(setInventoryCountSessionPauseState).toHaveBeenLastCalledWith({
+      workspaceId: 'workspace-test-id',
+      sessionId: 'session-real-1',
+      pause: false,
+    })
+    expect(getButtonByText(container, 'Pause')).toBeTruthy()
+    expect(container.querySelector('.inventory-count-session-pill')?.textContent).toBe('In Progress')
+    expect(container.textContent).not.toContain(
+      'This inventory count is paused. Resume to continue counting.',
+    )
+    expect(container.querySelector('input[aria-label="Counted quantity for Paper Straws"]')?.disabled)
+      .toBe(false)
+    expect(getButtonByText(container, 'Complete Location')?.disabled).toBe(false)
+
+    cleanup()
+  })
+
+  it('shows Resuming… while resume is pending', async () => {
+    setInventoryCountSessionPauseState.mockResolvedValueOnce({
+      id: 'session-real-1',
+      workspaceId: 'workspace-test-id',
+      status: 'paused',
+      pausedAt: '2026-07-20T15:00:00.000Z',
+      updatedAt: '2026-07-20T15:00:00.000Z',
+    })
+
+    let resolveResume
+    setInventoryCountSessionPauseState.mockImplementationOnce(() => new Promise((resolve) => {
+      resolveResume = resolve
+    }))
+
+    const { container, cleanup } = await renderWorkspace()
+
+    await act(async () => {
+      getButtonByText(container, 'Pause').click()
+      await Promise.resolve()
+    })
+
+    await act(async () => {
+      getButtonByText(container, 'Resume').click()
+      await Promise.resolve()
+    })
+
+    expect(getButtonByText(container, 'Resuming…')?.disabled).toBe(true)
+
+    await act(async () => {
+      resolveResume({
+        id: 'session-real-1',
+        workspaceId: 'workspace-test-id',
+        status: 'in_progress',
+        pausedAt: null,
+        updatedAt: '2026-07-20T15:05:00.000Z',
+      })
+      await Promise.resolve()
+    })
+
+    expect(getButtonByText(container, 'Pause')?.disabled).toBe(false)
+    cleanup()
+  })
+
+  it('flushes pending autosave before pausing', async () => {
+    vi.useFakeTimers()
+
+    let resolveSave
+    updateInventoryCountItem.mockImplementationOnce(() => new Promise((resolve) => {
+      resolveSave = resolve
+    }))
+
+    setInventoryCountSessionPauseState.mockResolvedValueOnce({
+      id: 'session-real-1',
+      workspaceId: 'workspace-test-id',
+      status: 'paused',
+      pausedAt: '2026-07-20T15:00:00.000Z',
+      updatedAt: '2026-07-20T15:00:00.000Z',
+    })
+
+    const { container, cleanup } = await renderWorkspace()
+    const paperStrawsInput = container.querySelector(
+      'input[aria-label="Counted quantity for Paper Straws"]',
+    )
+
+    await act(async () => {
+      const nativeInputValueSetter = Object.getOwnPropertyDescriptor(
+        window.HTMLInputElement.prototype,
+        'value',
+      )?.set
+      nativeInputValueSetter?.call(paperStrawsInput, '3')
+      paperStrawsInput.dispatchEvent(new Event('input', { bubbles: true }))
+    })
+
+    await act(async () => {
+      getButtonByText(container, 'Pause').click()
+      await Promise.resolve()
+    })
+
+    expect(updateInventoryCountItem).toHaveBeenCalledWith({
+      workspaceId: 'workspace-test-id',
+      sessionId: 'session-real-1',
+      sessionItemId: 'ms-2',
+      countedQuantity: 3,
+    })
+    expect(setInventoryCountSessionPauseState).not.toHaveBeenCalled()
+    expect(getButtonByText(container, 'Pausing…')?.disabled).toBe(true)
+
+    await act(async () => {
+      resolveSave({
+        id: 'ms-2',
+        sessionId: 'session-real-1',
+        workspaceId: 'workspace-test-id',
+        itemId: 'stock-ms-2',
+        itemName: 'Paper Straws',
+        category: 'Other',
+        itemType: 'Other',
+        unit: 'box',
+        storageLocation: 'Main Storage',
+        expectedSnapshot: 4,
+        countedQuantity: 3,
+        lineStatus: 'counted',
+        note: '',
+      })
+      await Promise.resolve()
+      await Promise.resolve()
+      await vi.advanceTimersByTimeAsync(50)
+      await Promise.resolve()
+    })
+
+    expect(setInventoryCountSessionPauseState).toHaveBeenCalledWith({
+      workspaceId: 'workspace-test-id',
+      sessionId: 'session-real-1',
+      pause: true,
+    })
+    expect(getButtonByText(container, 'Resume')).toBeTruthy()
 
     cleanup()
     vi.useRealTimers()
