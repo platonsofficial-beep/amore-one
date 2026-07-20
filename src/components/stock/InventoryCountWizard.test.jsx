@@ -28,15 +28,17 @@ function render(ui) {
   }
 }
 
+function getButtonByText(root, text) {
+  return Array.from(root.querySelectorAll('button')).find((button) => button.textContent === text)
+}
+
 describe('InventoryCountWizard foundation', () => {
   it('opens from Start new count and closes via Cancel and Close', () => {
     const { container, cleanup } = render(createElement(InventoryCountView))
 
     expect(container.querySelector('[role="dialog"]')).toBeNull()
 
-    const startBtn = Array.from(container.querySelectorAll('button')).find(
-      (button) => button.textContent === 'Start new count',
-    )
+    const startBtn = getButtonByText(container, 'Start new count')
     expect(startBtn).toBeTruthy()
 
     act(() => {
@@ -50,9 +52,7 @@ describe('InventoryCountWizard foundation', () => {
     expect(dialog?.textContent).toContain('Step 1 of 4')
     expect(dialog?.textContent).toContain('Count Type')
 
-    const cancelBtn = Array.from(dialog.querySelectorAll('button')).find(
-      (button) => button.textContent === 'Cancel',
-    )
+    const cancelBtn = getButtonByText(dialog, 'Cancel')
     expect(dialog.querySelector('.inventory-count-wizard-header-actions .inventory-count-wizard-cancel-btn')).toBeNull()
     expect(Array.from(dialog.querySelectorAll('button')).filter((button) => button.textContent === 'Cancel')).toHaveLength(1)
     act(() => {
@@ -78,12 +78,8 @@ describe('InventoryCountWizard foundation', () => {
       createElement(InventoryCountWizard, { isOpen: true, onClose }),
     )
 
-    const continueBtn = Array.from(container.querySelectorAll('button')).find(
-      (button) => button.textContent === 'Continue',
-    )
-    const backBtn = Array.from(container.querySelectorAll('button')).find(
-      (button) => button.textContent === 'Back',
-    )
+    const continueBtn = getButtonByText(container, 'Continue')
+    const backBtn = getButtonByText(container, 'Back')
     expect(continueBtn?.disabled).toBe(true)
     expect(backBtn?.disabled).toBe(true)
 
@@ -108,11 +104,75 @@ describe('InventoryCountWizard foundation', () => {
     expect(cards[2].querySelector('.inventory-count-type-card-badge')).not.toBeNull()
     expect(cards[0].querySelector('.inventory-count-type-card-badge')).toBeNull()
 
+    cleanup()
+  })
+
+  it('advances to Step 2, preserves count type, and supports multi-location selection', () => {
+    const onClose = vi.fn()
+    const { container, cleanup } = render(
+      createElement(InventoryCountWizard, { isOpen: true, onClose }),
+    )
+
+    const continueBtn = getButtonByText(container, 'Continue')
+    const typeCards = container.querySelectorAll('[role="radio"]')
+
+    act(() => {
+      typeCards[1].click()
+    })
     act(() => {
       continueBtn.click()
     })
+
+    expect(container.textContent).toContain('Step 2 of 4')
+    expect(container.textContent).toContain('Scope / Locations')
+    expect(container.textContent).toContain(
+      'Select the locations that will be included in this inventory count.',
+    )
+
+    const locationCards = container.querySelectorAll('[role="checkbox"]')
+    expect(locationCards).toHaveLength(8)
+    expect(continueBtn?.disabled).toBe(true)
+
+    act(() => {
+      locationCards[0].click()
+    })
+    act(() => {
+      locationCards[2].click()
+    })
+    act(() => {
+      locationCards[6].click()
+    })
+
+    expect(locationCards[0].getAttribute('aria-checked')).toBe('true')
+    expect(locationCards[2].getAttribute('aria-checked')).toBe('true')
+    expect(locationCards[6].getAttribute('aria-checked')).toBe('true')
+    expect(continueBtn?.disabled).toBe(false)
+    expect(container.querySelectorAll('.inventory-count-type-card-badge')).toHaveLength(3)
+
+    act(() => {
+      continueBtn.click()
+    })
+    expect(container.textContent).toContain('Step 3 coming next')
+    expect(continueBtn?.disabled).toBe(true)
     expect(onClose).not.toHaveBeenCalled()
-    expect(container.querySelector('[role="dialog"]')).not.toBeNull()
+
+    const backBtn = getButtonByText(container, 'Back')
+    act(() => {
+      backBtn.click()
+    })
+
+    expect(container.textContent).toContain('Step 1 of 4')
+    expect(container.textContent).toContain('Count Type')
+    const restoredTypeCards = container.querySelectorAll('[role="radio"]')
+    expect(restoredTypeCards[1].getAttribute('aria-checked')).toBe('true')
+
+    act(() => {
+      continueBtn.click()
+    })
+    const restoredLocationCards = container.querySelectorAll('[role="checkbox"]')
+    expect(restoredLocationCards[0].getAttribute('aria-checked')).toBe('true')
+    expect(restoredLocationCards[2].getAttribute('aria-checked')).toBe('true')
+    expect(restoredLocationCards[6].getAttribute('aria-checked')).toBe('true')
 
     cleanup()
   })
