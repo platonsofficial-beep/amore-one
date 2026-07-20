@@ -1,8 +1,18 @@
 import { useState } from 'react'
 import { InventoryCountWizard } from './InventoryCountWizard'
+import { InventoryCountSessionWorkspace } from './InventoryCountSessionWorkspace'
 
 export function InventoryCountView() {
   const [isWizardOpen, setIsWizardOpen] = useState(false)
+  const [isSessionOpen, setIsSessionOpen] = useState(false)
+
+  if (isSessionOpen) {
+    return (
+      <InventoryCountSessionWorkspace
+        onExit={() => setIsSessionOpen(false)}
+      />
+    )
+  }
 
   return (
     <section className="inventory-count-page" aria-label="Inventory Count">
@@ -60,6 +70,10 @@ export function InventoryCountView() {
       <InventoryCountWizard
         isOpen={isWizardOpen}
         onClose={() => setIsWizardOpen(false)}
+        onStartSession={() => {
+          setIsWizardOpen(false)
+          setIsSessionOpen(true)
+        }}
       />
     </section>
   )

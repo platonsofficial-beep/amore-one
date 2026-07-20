@@ -206,8 +206,9 @@ describe('InventoryCountWizard foundation', () => {
 
   it('configures Step 3 settings and opens Step 4 review without creating a session', () => {
     const onClose = vi.fn()
+    const onStartSession = vi.fn()
     const { container, cleanup } = render(
-      createElement(InventoryCountWizard, { isOpen: true, onClose }),
+      createElement(InventoryCountWizard, { isOpen: true, onClose, onStartSession }),
     )
 
     const { continueBtn } = goToStep3(container)
@@ -300,8 +301,8 @@ describe('InventoryCountWizard foundation', () => {
     act(() => {
       startBtn.click()
     })
-    expect(container.textContent).toContain('Session creation will be added next.')
-    expect(container.querySelector('[role="dialog"]')).not.toBeNull()
+    expect(onStartSession).toHaveBeenCalledTimes(1)
+    expect(container.textContent).not.toContain('Session creation will be added next.')
     expect(onClose).not.toHaveBeenCalled()
 
     const backBtn = getButtonByText(container, 'Back')

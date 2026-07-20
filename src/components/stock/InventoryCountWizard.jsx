@@ -100,7 +100,7 @@ function createInitialWizardState() {
   }
 }
 
-export function InventoryCountWizard({ isOpen, onClose }) {
+export function InventoryCountWizard({ isOpen, onClose, onStartSession }) {
   const [step, setStep] = useState(1)
   const [selectedType, setSelectedType] = useState(null)
   const [selectedLocations, setSelectedLocations] = useState([])
@@ -108,7 +108,6 @@ export function InventoryCountWizard({ isOpen, onClose }) {
   const [includeZeroStock, setIncludeZeroStock] = useState(true)
   const [includeInactive, setIncludeInactive] = useState(false)
   const [sessionNote, setSessionNote] = useState('')
-  const [startNotice, setStartNotice] = useState('')
 
   useEffect(() => {
     if (!isOpen) {
@@ -120,7 +119,6 @@ export function InventoryCountWizard({ isOpen, onClose }) {
       setIncludeZeroStock(initial.includeZeroStock)
       setIncludeInactive(initial.includeInactive)
       setSessionNote(initial.sessionNote)
-      setStartNotice('')
       return undefined
     }
 
@@ -168,7 +166,6 @@ export function InventoryCountWizard({ isOpen, onClose }) {
 
   const handleBack = () => {
     if (step > 1) {
-      setStartNotice('')
       setStep((current) => current - 1)
     }
   }
@@ -187,14 +184,13 @@ export function InventoryCountWizard({ isOpen, onClose }) {
     }
 
     if (step === 3) {
-      setStartNotice('')
       setStep(4)
       return
     }
 
     if (step === 4) {
       if (!isStep4Valid) return
-      setStartNotice('Session creation will be added next.')
+      onStartSession?.()
     }
   }
 
@@ -429,7 +425,6 @@ export function InventoryCountWizard({ isOpen, onClose }) {
                     type="button"
                     className="ghost-btn inventory-count-review-change-btn"
                     onClick={() => {
-                      setStartNotice('')
                       setStep(1)
                     }}
                   >
@@ -458,7 +453,6 @@ export function InventoryCountWizard({ isOpen, onClose }) {
                     type="button"
                     className="ghost-btn inventory-count-review-change-btn"
                     onClick={() => {
-                      setStartNotice('')
                       setStep(2)
                     }}
                   >
@@ -484,7 +478,6 @@ export function InventoryCountWizard({ isOpen, onClose }) {
                     type="button"
                     className="ghost-btn inventory-count-review-change-btn"
                     onClick={() => {
-                      setStartNotice('')
                       setStep(3)
                     }}
                   >
@@ -559,12 +552,6 @@ export function InventoryCountWizard({ isOpen, onClose }) {
                   </p>
                 ) : null}
               </div>
-            ) : null}
-
-            {startNotice ? (
-              <p className="inventory-count-wizard-placeholder" role="status">
-                {startNotice}
-              </p>
             ) : null}
           </div>
         ) : null}
