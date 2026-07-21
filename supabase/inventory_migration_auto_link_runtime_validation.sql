@@ -1,5 +1,5 @@
 -- =============================================================================
--- P8.6.1b — Transaction-Rolled-Back Auto-link Runtime Validation Harness
+-- P8.6.1c — One-Click Auto-link Runtime Validation Harness
 -- =============================================================================
 -- MANUAL EXECUTION ONLY — Supabase SQL Editor.
 --
@@ -13,52 +13,51 @@
 --   - executed entirely inside BEGIN … ROLLBACK
 --   - must NEVER be changed to COMMIT
 --
--- OPERATOR INSTRUCTIONS
+-- ONE-CLICK OPERATOR WORKFLOW
 -- -----------------------------------------------------------------------------
--- 1. Replace v_target_workspace_id below with an approved controlled workspace UUID.
--- 2. Replace v_manager_auth_user_id below with an auth.users UUID that is
---    owner / general_manager / manager for that workspace.
--- 3. Confirm the workspace is approved for temporary transactional validation.
--- 4. Confirm no inventory migration session is already running for that workspace
---    (start RPC will raise if one exists).
--- 5. Run this entire file as ONE execution in the SQL Editor.
--- 6. Confirm the evidence SELECTs and the final summary row:
---      ALL P8.6.1B ASSERTIONS PASSED — TRANSACTION WILL ROLLBACK
--- 7. Confirm the final command is ROLLBACK (never COMMIT).
--- 8. After the transaction ends, run the post-run cleanup verification queries
---    at the bottom of this file (outside the harness transaction).
+-- 1. Open this complete file.
+-- 2. Confirm it starts with BEGIN.
+-- 3. Confirm the final executable harness statement is ROLLBACK.
+-- 4. Paste the full file into Supabase SQL Editor.
+-- 5. Run it once.
+-- 6. Confirm the final PASS result:
+--      ALL P8.6.1C ASSERTIONS PASSED — TRANSACTION ROLLED BACK
 --
--- Do not automatically choose the first workspace.
--- Do not automatically choose the first manager.
--- Do not use AMORE.NICOSIA implicitly.
+-- No UUID lookup. No manual editing. No credential handling.
+--
+-- Auto-resolves:
+--   - workspace by authoritative identity name=AMORE.NICOSIA / slug=amore-nicosia
+--   - manager by role precedence owner → general_manager → manager
 --
 -- If an assertion raises mid-run, the transaction aborts. In the SQL Editor,
 -- execute:  ROLLBACK;  if a failed transaction remains open.
 --
 -- NOTE: Persist classifies the full legacy inventory_items catalog for the
--- selected workspace. All writes in this script (including incidental map
+-- resolved workspace. All writes in this script (including incidental map
 -- UPSERTs for non-fixture rows) are rolled back with the transaction.
 -- =============================================================================
 
 begin;
 
--- ---------------------------------------------------------------------------
--- OPERATOR INPUTS (required — do not leave placeholders)
--- ---------------------------------------------------------------------------
-do $p861b_config$
+do $p861c_harness$
 declare
-  -- >>> REPLACE THESE TWO UUIDS BEFORE RUNNING <<<
-  v_target_workspace_id uuid := null; -- e.g. '________-____-____-____-____________'
-  v_manager_auth_user_id uuid := null; -- e.g. '________-____-____-____-____________'
+  v_target_workspace_id uuid;
+  v_workspace_name text;
+  v_workspace_slug text;
+  v_workspace_match_count bigint := 0;
 
-  v_nil uuid := '00000000-0000-0000-0000-000000000000';
-  v_workspace_exists boolean := false;
-  v_user_exists boolean := false;
+  v_manager_auth_user_id uuid;
+  v_manager_role text;
+  v_manager_email text;
+
   v_can_manage boolean := false;
   v_auth_uid uuid;
   v_run_marker text;
   v_collision bigint := 0;
-  v_running_sessions bigint := 0;
+
+  v_running_session_id uuid;
+  v_running_started_at timestamptz;
+  v_running_started_by uuid;
 
   v_case_a_legacy_id bigint;
   v_case_b_legacy_id bigint;
@@ -91,40 +90,78 @@ declare
   v_phase1_status text;
   v_phase2_status text;
   v_auto_create_status text;
+  v_post_apply_status text;
 
   v_case_a_passed boolean := false;
   v_case_b_passed boolean := false;
   v_case_c_passed boolean := false;
   v_quantities_unchanged boolean := false;
   v_movements_unchanged boolean := false;
+  v_no_apply_stages_executed boolean := false;
 begin
-  -- Reject null / nil placeholder UUIDs before any fixtures.
-  if v_target_workspace_id is null or v_target_workspace_id = v_nil then
-    raise exception 'P8.6.1b: set v_target_workspace_id to a real workspace UUID (null/nil placeholder rejected)';
+  -- -------------------------------------------------------------------------
+  -- PART 1 — Resolve exactly one AMORE.NICOSIA workspace (no LIMIT 1 guess)
+  -- Authoritative app identity: name='AMORE.NICOSIA', slug='amore-nicosia'
+  -- -------------------------------------------------------------------------
+  select count(*)::bigint
+  into v_workspace_match_count
+  from public.workspaces w
+  where w.slug = 'amore-nicosia'
+     or w.name = 'AMORE.NICOSIA';
+
+  if v_workspace_match_count = 0 then
+    raise exception
+      'P8.6.1c: no workspace matched authoritative identity name=AMORE.NICOSIA / slug=amore-nicosia';
   end if;
 
-  if v_manager_auth_user_id is null or v_manager_auth_user_id = v_nil then
-    raise exception 'P8.6.1b: set v_manager_auth_user_id to a real auth.users UUID (null/nil placeholder rejected)';
+  if v_workspace_match_count > 1 then
+    raise exception
+      'P8.6.1c: % workspaces matched AMORE.NICOSIA / amore-nicosia — expected exactly one',
+      v_workspace_match_count;
   end if;
 
-  select exists (
-    select 1 from public.workspaces w where w.id = v_target_workspace_id
-  ) into v_workspace_exists;
+  select w.id, w.name, w.slug
+  into v_target_workspace_id, v_workspace_name, v_workspace_slug
+  from public.workspaces w
+  where w.slug = 'amore-nicosia'
+     or w.name = 'AMORE.NICOSIA';
 
-  if not v_workspace_exists then
-    raise exception 'P8.6.1b: workspace % does not exist', v_target_workspace_id;
+  -- -------------------------------------------------------------------------
+  -- PART 2 — Deterministic authorized manager (owner → GM → manager)
+  -- -------------------------------------------------------------------------
+  select
+    wm.auth_user_id,
+    wm.role,
+    coalesce(nullif(btrim(u.email), ''), nullif(btrim(wm.email), ''), '')
+  into
+    v_manager_auth_user_id,
+    v_manager_role,
+    v_manager_email
+  from public.workspace_members wm
+  join auth.users u on u.id = wm.auth_user_id
+  where wm.workspace_id = v_target_workspace_id
+    and wm.role in ('owner', 'general_manager', 'manager')
+  order by
+    case wm.role
+      when 'owner' then 1
+      when 'general_manager' then 2
+      when 'manager' then 3
+      else 99
+    end,
+    wm.created_at asc nulls last,
+    wm.auth_user_id asc
+  limit 1;
+
+  if v_manager_auth_user_id is null then
+    raise exception
+      'P8.6.1c: no eligible owner/general_manager/manager found for workspace % (%)',
+      v_target_workspace_id,
+      v_workspace_slug;
   end if;
 
-  select exists (
-    select 1 from auth.users u where u.id = v_manager_auth_user_id
-  ) into v_user_exists;
-
-  if not v_user_exists then
-    raise exception 'P8.6.1b: auth.users % does not exist', v_manager_auth_user_id;
-  end if;
-
-  -- Authenticated RPC context (transaction-local). Mirrors Supabase/PostgREST
-  -- claim wiring so auth.uid() resolves to the selected manager.
+  -- -------------------------------------------------------------------------
+  -- PART 3 — Authenticated RPC context (transaction-local JWT claims)
+  -- -------------------------------------------------------------------------
   perform set_config('request.jwt.claim.sub', v_manager_auth_user_id::text, true);
   perform set_config(
     'request.jwt.claims',
@@ -139,7 +176,7 @@ begin
   v_auth_uid := auth.uid();
   if v_auth_uid is distinct from v_manager_auth_user_id then
     raise exception
-      'P8.6.1b: auth.uid()=% did not equal selected manager % after JWT claim setup',
+      'P8.6.1c: auth.uid()=% did not equal selected manager % after JWT claim setup',
       v_auth_uid,
       v_manager_auth_user_id;
   end if;
@@ -149,12 +186,33 @@ begin
 
   if v_can_manage is distinct from true then
     raise exception
-      'P8.6.1b: can_manage_workspace_stock(%) is not true for manager %',
+      'P8.6.1c: can_manage_workspace_stock(%) is not true for manager % (role=%)',
       v_target_workspace_id,
-      v_manager_auth_user_id;
+      v_manager_auth_user_id,
+      v_manager_role;
   end if;
 
-  v_run_marker := 'P861B_' || substr(replace(gen_random_uuid()::text, '-', ''), 1, 12);
+  -- -------------------------------------------------------------------------
+  -- PART 5 — Running session safety (do not cancel/reuse)
+  -- -------------------------------------------------------------------------
+  select s.id, s.started_at, s.started_by
+  into v_running_session_id, v_running_started_at, v_running_started_by
+  from public.inventory_migration_sessions s
+  where s.workspace_id = v_target_workspace_id
+    and s.status = 'running'
+  order by s.started_at asc nulls last, s.id asc
+  limit 1;
+
+  if v_running_session_id is not null then
+    raise exception
+      'P8.6.1c: workspace % already has a running migration session id=% started_at=% started_by=% — aborting (no cancel)',
+      v_target_workspace_id,
+      v_running_session_id,
+      v_running_started_at,
+      v_running_started_by;
+  end if;
+
+  v_run_marker := 'P861C_' || substr(replace(gen_random_uuid()::text, '-', ''), 1, 12);
 
   -- Collision guard: marker must be absent from fixture-bearing tables.
   select
@@ -184,79 +242,69 @@ begin
   into v_collision;
 
   if v_collision > 0 then
-    raise exception 'P8.6.1b: collision — marker % already present in data', v_run_marker;
-  end if;
-
-  select count(*)::bigint
-  into v_running_sessions
-  from public.inventory_migration_sessions s
-  where s.workspace_id = v_target_workspace_id
-    and s.status = 'running';
-
-  if v_running_sessions > 0 then
-    raise exception
-      'P8.6.1b: workspace % already has a running migration session — aborting (no cancel)',
-      v_target_workspace_id;
+    raise exception 'P8.6.1c: collision — marker % already present in data', v_run_marker;
   end if;
 
   -- Evidence scratch tables (transaction-local).
-  create temporary table p861b_meta (
-    run_marker text,
+  create temporary table p861c_environment (
     workspace_id uuid,
+    workspace_name text,
+    workspace_slug text,
     manager_auth_user_id uuid,
+    manager_role text,
+    manager_email text,
+    run_marker text,
     session_id uuid
   ) on commit drop;
 
-  create temporary table p861b_map_results (
+  create temporary table p861c_case_results (
     test_case text,
-    legacy_inventory_item_id bigint,
     map_status text,
     resolution_type text,
     stock_item_id uuid,
     expected_stock_item_id uuid,
-    migrated_at timestamptz
+    migrated_at timestamptz,
+    passed boolean
   ) on commit drop;
 
-  create temporary table p861b_steps (
+  create temporary table p861c_steps (
     step_name text,
     status text
   ) on commit drop;
 
-  create temporary table p861b_step_results (
+  create temporary table p861c_step_results (
     step_name text,
     result_status text,
     result_summary jsonb
   ) on commit drop;
 
-  create temporary table p861b_qty_proof (
+  create temporary table p861c_qty_proof (
     stock_item_id uuid,
     label text,
     quantity_before numeric,
     quantity_after numeric
   ) on commit drop;
 
-  create temporary table p861b_movement_proof (
+  create temporary table p861c_movement_proof (
     movement_count_before bigint,
     movement_count_after bigint,
     marker_movement_count_before bigint,
     marker_movement_count_after bigint
   ) on commit drop;
 
-  create temporary table p861b_summary (
+  create temporary table p861c_summary (
     case_a_passed boolean,
     case_b_passed boolean,
     case_c_passed boolean,
     quantities_unchanged boolean,
     movements_unchanged boolean,
+    no_apply_stages_executed boolean,
     rollback_pending boolean,
     final_message text
   ) on commit drop;
 
   -- -------------------------------------------------------------------------
-  -- Fixtures (collision-safe names include run marker)
-  -- Case A: one legacy + one exact stock candidate (qty-equal auto_link path)
-  -- Case B: one legacy with zero stock candidates (auto_create)
-  -- Case C: one legacy + two identical stock candidates (manual)
+  -- Fixtures (P861C marker; new rows only)
   -- -------------------------------------------------------------------------
   insert into public.inventory_items (
     item_name, category, subcategory, supplier, unit,
@@ -321,13 +369,11 @@ begin
   )
   returning id into v_case_c_stock_2;
 
-  -- Baseline capture
+  -- Baseline capture (before product RPCs)
   select s.current_quantity into v_qty_a_before
   from public.stock_items s where s.id = v_case_a_stock_id;
-
   select s.current_quantity into v_qty_c1_before
   from public.stock_items s where s.id = v_case_c_stock_1;
-
   select s.current_quantity into v_qty_c2_before
   from public.stock_items s where s.id = v_case_c_stock_2;
 
@@ -340,7 +386,7 @@ begin
   where sm.note like ('%' || v_run_marker || '%');
 
   if v_marker_movements_before <> 0 then
-    raise exception 'P8.6.1b: unexpected pre-existing marker movements';
+    raise exception 'P8.6.1c: unexpected pre-existing marker movements';
   end if;
 
   if exists (
@@ -351,11 +397,11 @@ begin
         v_case_a_legacy_id, v_case_b_legacy_id, v_case_c_legacy_id
       )
   ) then
-    raise exception 'P8.6.1b: map rows already exist for fixture legacy ids';
+    raise exception 'P8.6.1c: map rows already exist for fixture legacy ids';
   end if;
 
   -- -----------------------------------------------------------------------
-  -- Product session path (actual deployed RPCs only)
+  -- Product session path (actual deployed RPCs only; stop after Auto-link)
   -- -----------------------------------------------------------------------
   select s.id
   into v_session_id
@@ -363,7 +409,7 @@ begin
   limit 1;
 
   if v_session_id is null then
-    raise exception 'P8.6.1b: start_inventory_migration_session returned no session';
+    raise exception 'P8.6.1c: start_inventory_migration_session returned no session';
   end if;
 
   perform 1
@@ -388,7 +434,7 @@ begin
     and m.legacy_inventory_item_id = v_case_a_legacy_id;
 
   if not found then
-    raise exception 'P8.6.1b Case A: map row missing after Persist';
+    raise exception 'P8.6.1c Case A: map row missing after Persist';
   end if;
 
   if v_map_status is distinct from 'classified'
@@ -397,21 +443,20 @@ begin
      or v_map_stock_id is distinct from v_case_a_stock_id
      or v_map_migrated_at is not null then
     raise exception
-      'P8.6.1b Case A Persist failed: status=%, resolution=%, stock_item_id=%, expected=%, migrated_at=%',
+      'P8.6.1c Case A Persist failed: status=%, resolution=%, stock_item_id=%, expected=%, migrated_at=%',
       v_map_status, v_map_resolution, v_map_stock_id, v_case_a_stock_id, v_map_migrated_at;
   end if;
 
   v_case_a_stock_after_persist := v_map_stock_id;
 
-  insert into p861b_map_results
-  values (
+  insert into p861c_case_results values (
     'A_after_persist',
-    v_case_a_legacy_id,
     v_map_status,
     v_map_resolution,
     v_map_stock_id,
     v_case_a_stock_id,
-    v_map_migrated_at
+    v_map_migrated_at,
+    true
   );
 
   -- Case B after Persist
@@ -422,7 +467,7 @@ begin
     and m.legacy_inventory_item_id = v_case_b_legacy_id;
 
   if not found then
-    raise exception 'P8.6.1b Case B: map row missing after Persist';
+    raise exception 'P8.6.1c Case B: map row missing after Persist';
   end if;
 
   if v_map_status is distinct from 'classified'
@@ -431,21 +476,20 @@ begin
      or v_map_status = 'linked'
      or v_map_migrated_at is not null then
     raise exception
-      'P8.6.1b Case B Persist failed: status=%, resolution=%, stock_item_id=%, migrated_at=%',
+      'P8.6.1c Case B Persist failed: status=%, resolution=%, stock_item_id=%, migrated_at=%',
       v_map_status, v_map_resolution, v_map_stock_id, v_map_migrated_at;
   end if;
 
   v_case_b_passed := true;
 
-  insert into p861b_map_results
-  values (
+  insert into p861c_case_results values (
     'B_after_persist',
-    v_case_b_legacy_id,
     v_map_status,
     v_map_resolution,
     v_map_stock_id,
     null,
-    v_map_migrated_at
+    v_map_migrated_at,
+    true
   );
 
   -- Case C after Persist
@@ -456,7 +500,7 @@ begin
     and m.legacy_inventory_item_id = v_case_c_legacy_id;
 
   if not found then
-    raise exception 'P8.6.1b Case C: map row missing after Persist';
+    raise exception 'P8.6.1c Case C: map row missing after Persist';
   end if;
 
   if v_map_status is distinct from 'manual'
@@ -465,24 +509,23 @@ begin
      or v_map_status = 'linked'
      or v_map_migrated_at is not null then
     raise exception
-      'P8.6.1b Case C Persist failed: status=%, resolution=%, stock_item_id=%, migrated_at=%',
+      'P8.6.1c Case C Persist failed: status=%, resolution=%, stock_item_id=%, migrated_at=%',
       v_map_status, v_map_resolution, v_map_stock_id, v_map_migrated_at;
   end if;
 
   v_case_c_passed := true;
 
-  insert into p861b_map_results
-  values (
+  insert into p861c_case_results values (
     'C_after_persist',
-    v_case_c_legacy_id,
     v_map_status,
     v_map_resolution,
     v_map_stock_id,
     null,
-    v_map_migrated_at
+    v_map_migrated_at,
+    true
   );
 
-  -- Auto-link (actual RPC). Do NOT call auto_create / phase1 / phase2.
+  -- Auto-link only (no auto_create / phase1 / phase2 / post_apply / complete)
   perform 1
   from public.run_inventory_migration_auto_link(
     v_target_workspace_id,
@@ -500,24 +543,22 @@ begin
      or v_map_stock_id is distinct from v_case_a_stock_id
      or v_map_migrated_at is not null then
     raise exception
-      'P8.6.1b Case A Auto-link failed: status=%, resolution=%, stock_item_id=%, expected=%, migrated_at=%',
+      'P8.6.1c Case A Auto-link failed: status=%, resolution=%, stock_item_id=%, expected=%, migrated_at=%',
       v_map_status, v_map_resolution, v_map_stock_id, v_case_a_stock_id, v_map_migrated_at;
   end if;
 
   v_case_a_passed := true;
 
-  insert into p861b_map_results
-  values (
+  insert into p861c_case_results values (
     'A_after_auto_link',
-    v_case_a_legacy_id,
     v_map_status,
     v_map_resolution,
     v_map_stock_id,
     v_case_a_stock_id,
-    v_map_migrated_at
+    v_map_migrated_at,
+    true
   );
 
-  -- B/C must remain unlinked after Auto-link
   if exists (
     select 1
     from public.inventory_stock_item_map m
@@ -529,7 +570,7 @@ begin
         or m.migrated_at is not null
       )
   ) then
-    raise exception 'P8.6.1b: Case B/C unexpectedly linked or received stock_item_id/migrated_at';
+    raise exception 'P8.6.1c: Case B/C unexpectedly linked or received stock_item_id/migrated_at';
   end if;
 
   -- Non-mutation proofs
@@ -543,7 +584,7 @@ begin
   if v_qty_a_after is distinct from v_qty_a_before
      or v_qty_c1_after is distinct from v_qty_c1_before
      or v_qty_c2_after is distinct from v_qty_c2_before then
-    raise exception 'P8.6.1b: stock quantities changed during Persist/Auto-link';
+    raise exception 'P8.6.1c: stock quantities changed during Persist/Auto-link';
   end if;
 
   v_quantities_unchanged := true;
@@ -559,7 +600,7 @@ begin
   if v_movements_after is distinct from v_movements_before
      or v_marker_movements_after <> 0 then
     raise exception
-      'P8.6.1b: stock_movements changed (before=%, after=%, marker=%)',
+      'P8.6.1c: stock_movements changed (before=%, after=%, marker=%)',
       v_movements_before, v_movements_after, v_marker_movements_after;
   end if;
 
@@ -569,7 +610,7 @@ begin
     where sm.workspace_id = v_target_workspace_id
       and sm.note like ('INITIAL_IMPORT|map_id=' || v_case_a_map_id::text)
   ) then
-    raise exception 'P8.6.1b: unexpected INITIAL_IMPORT movement for Case A map';
+    raise exception 'P8.6.1c: unexpected INITIAL_IMPORT movement for Case A map';
   end if;
 
   v_movements_unchanged := true;
@@ -583,7 +624,7 @@ begin
       )
       and m.migrated_at is not null
   ) then
-    raise exception 'P8.6.1b: migrated_at set on fixture map rows';
+    raise exception 'P8.6.1c: migrated_at set on fixture map rows';
   end if;
 
   select st.status into v_auto_create_status
@@ -598,19 +639,33 @@ begin
   from public.inventory_migration_session_steps st
   where st.session_id = v_session_id and st.step_name = 'phase2';
 
+  select st.status into v_post_apply_status
+  from public.inventory_migration_session_steps st
+  where st.session_id = v_session_id and st.step_name = 'post_apply_audit';
+
   if v_auto_create_status is distinct from 'waiting'
      or v_phase1_status is distinct from 'waiting'
-     or v_phase2_status is distinct from 'waiting' then
+     or v_phase2_status is distinct from 'waiting'
+     or v_post_apply_status is distinct from 'waiting' then
     raise exception
-      'P8.6.1b: unexpected later-stage progress (auto_create=%, phase1=%, phase2=%)',
-      v_auto_create_status, v_phase1_status, v_phase2_status;
+      'P8.6.1c: unexpected later-stage progress (auto_create=%, phase1=%, phase2=%, post_apply=%)',
+      v_auto_create_status, v_phase1_status, v_phase2_status, v_post_apply_status;
   end if;
 
-  insert into p861b_meta values (
-    v_run_marker, v_target_workspace_id, v_manager_auth_user_id, v_session_id
+  v_no_apply_stages_executed := true;
+
+  insert into p861c_environment values (
+    v_target_workspace_id,
+    v_workspace_name,
+    v_workspace_slug,
+    v_manager_auth_user_id,
+    v_manager_role,
+    v_manager_email,
+    v_run_marker,
+    v_session_id
   );
 
-  insert into p861b_steps (step_name, status)
+  insert into p861c_steps (step_name, status)
   select st.step_name, st.status
   from public.inventory_migration_session_steps st
   where st.session_id = v_session_id
@@ -629,82 +684,82 @@ begin
       else 11
     end;
 
-  insert into p861b_step_results (step_name, result_status, result_summary)
+  insert into p861c_step_results (step_name, result_status, result_summary)
   select r.step_name, r.result_status, r.result_summary
   from public.inventory_migration_step_results r
   where r.session_id = v_session_id
   order by r.executed_at;
 
-  insert into p861b_qty_proof values
+  insert into p861c_qty_proof values
     (v_case_a_stock_id, 'case_a', v_qty_a_before, v_qty_a_after),
     (v_case_c_stock_1, 'case_c_1', v_qty_c1_before, v_qty_c1_after),
     (v_case_c_stock_2, 'case_c_2', v_qty_c2_before, v_qty_c2_after);
 
-  insert into p861b_movement_proof values (
+  insert into p861c_movement_proof values (
     v_movements_before,
     v_movements_after,
     v_marker_movements_before,
     v_marker_movements_after
   );
 
-  insert into p861b_summary values (
+  insert into p861c_summary values (
     v_case_a_passed,
     v_case_b_passed,
     v_case_c_passed,
     v_quantities_unchanged,
     v_movements_unchanged,
+    v_no_apply_stages_executed,
     true,
-    'ALL P8.6.1B ASSERTIONS PASSED — TRANSACTION WILL ROLLBACK'
+    'ALL P8.6.1C ASSERTIONS PASSED — TRANSACTION ROLLED BACK'
   );
 end;
-$p861b_config$;
+$p861c_harness$;
 
 -- ---------------------------------------------------------------------------
 -- Evidence result sets (visible in SQL Editor before ROLLBACK)
 -- ---------------------------------------------------------------------------
-select '1_meta' as evidence, * from p861b_meta;
-select '2_map_results' as evidence, * from p861b_map_results order by test_case;
-select '3_session_steps' as evidence, * from p861b_steps;
-select '4_step_results' as evidence, * from p861b_step_results;
-select '5_quantity_proof' as evidence, * from p861b_qty_proof;
-select '6_movement_proof' as evidence, * from p861b_movement_proof;
-select '7_summary' as evidence, * from p861b_summary;
+select '1_environment' as evidence, * from p861c_environment;
+select '2_case_results' as evidence, * from p861c_case_results order by test_case;
+select '3_session_steps' as evidence, * from p861c_steps;
+select '4_step_results' as evidence, * from p861c_step_results;
+select '5_quantity_proof' as evidence, * from p861c_qty_proof;
+select '6_movement_proof' as evidence, * from p861c_movement_proof;
+select '7_summary' as evidence, * from p861c_summary;
 
 -- Guaranteed rollback — NEVER change this to COMMIT.
 rollback;
 
 -- =============================================================================
 -- POST-RUN CLEANUP VERIFICATION (run AFTER the harness transaction ends)
--- Read-only. Do not DELETE. Expect zero rows for the run marker you observed.
--- Replace :run_marker with the run_marker from evidence set 1_meta.
+-- Read-only. Do not DELETE. Expect zero leftover P861C rows.
 -- =============================================================================
 
 -- select count(*) as leftover_legacy
 -- from public.inventory_items
--- where item_name like 'P861B_%' or notes like '%P861B_%';
+-- where item_name like 'P861C_%' or notes like '%P861C_%';
 
 -- select count(*) as leftover_stock
 -- from public.stock_items
--- where name like 'P861B_%' or storage_location like '%P861B_%';
+-- where name like 'P861C_%' or storage_location like '%P861C_%';
 
 -- select count(*) as leftover_map
 -- from public.inventory_stock_item_map
--- where source_snapshot::text like '%P861B_%'
---    or conflict_reason like '%P861B_%';
+-- where source_snapshot::text like '%P861C_%'
+--    or conflict_reason like '%P861C_%';
 
 -- select count(*) as leftover_sessions
 -- from public.inventory_migration_sessions s
 -- join public.inventory_migration_activity a on a.session_id = s.id
--- where a.activity_text like '%P861B_%';
+-- where a.activity_text like '%P861C_%';
 
 -- select count(*) as leftover_activity
 -- from public.inventory_migration_activity
--- where activity_text like '%P861B_%';
+-- where activity_text like '%P861C_%';
 
 -- select count(*) as leftover_step_results
 -- from public.inventory_migration_step_results
--- where result_summary::text like '%P861B_%';
+-- where result_summary::text like '%P861C_%';
 
 -- select count(*) as leftover_movements
 -- from public.stock_movements
--- where note like '%P861B_%';
+-- where note like '%P861C_%';
