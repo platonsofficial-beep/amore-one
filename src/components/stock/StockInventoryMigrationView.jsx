@@ -18,6 +18,7 @@ import { getInventoryMigrationStepResults } from '../../services/inventoryMigrat
 import { getInventoryMigrationStageAttentionAcknowledgements } from '../../services/inventoryMigrationStageAttentionAcknowledgementsService'
 import { StockMigrationActivityLog } from './StockMigrationActivityLog'
 import { StockMigrationAttentionQueue } from './StockMigrationAttentionQueue'
+import { StockMigrationGuidedWorkflow } from './StockMigrationGuidedWorkflow'
 import { StockMigrationHealthPanel } from './StockMigrationHealthPanel'
 import { StockMigrationManualReviewWorkspace } from './StockMigrationManualReviewWorkspace'
 import { StockMigrationOperatorPanel } from './StockMigrationOperatorPanel'
@@ -286,6 +287,16 @@ export function StockInventoryMigrationView({
           </p>
         </div>
       </header>
+
+      <StockMigrationGuidedWorkflow
+        operator={operator}
+        sessionSummary={sessionSummary}
+        health={health}
+        metrics={metrics}
+        metricsAvailable={metricsAvailable}
+        manualReviewCount={Array.isArray(manualReviewRows) ? manualReviewRows.length : 0}
+        attentionCount={metricsAvailable ? attentionRows.length : 0}
+      />
 
       <div className="stock-summary-grid stock-summary-grid-six" aria-label="Migration summary">
         {summaryCards.map((card) => (

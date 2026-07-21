@@ -32644,6 +32644,295 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   max-width: 52rem;
 }
 
+/* P8.7.1 — Guided Migration Workflow Shell (scoped) */
+.stock-migration-guided-workflow {
+  gap: 18px;
+}
+
+.stock-migration-guided-workflow-header {
+  margin-bottom: 0;
+}
+
+.stock-migration-guided-header {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.stock-migration-guided-header-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px 14px;
+}
+
+.stock-migration-guided-metric {
+  min-width: 0;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 247, 232, 0.1);
+  background: rgba(8, 8, 9, 0.28);
+}
+
+.stock-migration-guided-metric--alert {
+  border-color: rgba(255, 214, 150, 0.28);
+  background: rgba(180, 120, 40, 0.14);
+}
+
+.stock-migration-guided-metric-label {
+  margin: 0 0 4px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgba(255, 247, 232, 0.48);
+}
+
+.stock-migration-guided-metric-value {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 650;
+  color: rgba(255, 247, 232, 0.94);
+  line-height: 1.3;
+}
+
+.stock-migration-guided-metric-sub {
+  margin: 4px 0 0;
+  font-size: 0.78rem;
+  color: rgba(255, 247, 232, 0.52);
+}
+
+.stock-migration-guided-next {
+  padding: 14px 16px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 247, 232, 0.14);
+  background: rgba(255, 247, 232, 0.05);
+}
+
+.stock-migration-guided-next-label {
+  margin: 0 0 4px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgba(255, 247, 232, 0.48);
+}
+
+.stock-migration-guided-next-value {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #fff7e8;
+  line-height: 1.35;
+}
+
+.stock-migration-guided-navigator {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.stock-migration-guided-navigator-header {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.stock-migration-guided-navigator-title {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: rgba(255, 247, 232, 0.92);
+}
+
+.stock-migration-guided-navigator-copy {
+  margin: 0;
+  font-size: 0.84rem;
+  color: rgba(255, 247, 232, 0.55);
+  line-height: 1.4;
+}
+
+.stock-migration-guided-checkpoint {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 214, 150, 0.28);
+  background: rgba(180, 120, 40, 0.16);
+}
+
+.stock-migration-guided-checkpoint.is-clear {
+  border-color: rgba(140, 200, 150, 0.22);
+  background: rgba(40, 90, 55, 0.16);
+}
+
+.stock-migration-guided-checkpoint.is-clear .stock-migration-guided-checkpoint-title {
+  color: rgba(190, 230, 200, 0.95);
+}
+
+.stock-migration-guided-checkpoint-title {
+  margin: 0 0 4px;
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: rgba(255, 230, 180, 0.95);
+}
+
+.stock-migration-guided-checkpoint-body {
+  margin: 0;
+  font-size: 0.84rem;
+  color: rgba(255, 247, 232, 0.7);
+  line-height: 1.4;
+}
+
+.stock-migration-guided-checkpoint-link {
+  flex-shrink: 0;
+  min-height: 44px;
+  white-space: nowrap;
+}
+
+.stock-migration-guided-stages {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.stock-migration-guided-stage {
+  display: flex;
+  gap: 10px;
+  min-width: 0;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 247, 232, 0.08);
+  background: rgba(8, 8, 9, 0.22);
+}
+
+.stock-migration-guided-stage.is-current,
+.stock-migration-guided-stage.is-emphasized {
+  border-color: rgba(255, 247, 232, 0.28);
+  background: rgba(255, 247, 232, 0.07);
+}
+
+.stock-migration-guided-stage.is-completed {
+  border-color: rgba(140, 200, 150, 0.18);
+}
+
+.stock-migration-guided-stage.is-attention {
+  border-color: rgba(255, 180, 120, 0.3);
+  background: rgba(180, 90, 40, 0.12);
+}
+
+.stock-migration-guided-stage.is-unavailable,
+.stock-migration-guided-stage.is-cancelled {
+  opacity: 0.72;
+}
+
+.stock-migration-guided-stage-marker {
+  display: flex;
+  padding-top: 5px;
+}
+
+.stock-migration-guided-stage-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: rgba(255, 247, 232, 0.28);
+  box-shadow: 0 0 0 3px rgba(255, 247, 232, 0.06);
+}
+
+.stock-migration-guided-stage.is-completed .stock-migration-guided-stage-dot {
+  background: rgba(150, 210, 160, 0.9);
+}
+
+.stock-migration-guided-stage.is-current .stock-migration-guided-stage-dot,
+.stock-migration-guided-stage.is-ready .stock-migration-guided-stage-dot {
+  background: rgba(255, 247, 232, 0.92);
+}
+
+.stock-migration-guided-stage.is-attention .stock-migration-guided-stage-dot {
+  background: rgba(255, 180, 120, 0.95);
+}
+
+.stock-migration-guided-stage-body {
+  min-width: 0;
+  flex: 1;
+}
+
+.stock-migration-guided-stage-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.stock-migration-guided-stage-name {
+  margin: 0;
+  font-size: 0.9rem;
+  font-weight: 650;
+  color: rgba(255, 247, 232, 0.92);
+  line-height: 1.3;
+}
+
+.stock-migration-guided-stage-description {
+  margin: 0;
+  font-size: 0.78rem;
+  color: rgba(255, 247, 232, 0.52);
+  line-height: 1.35;
+}
+
+.stock-migration-guided-stage-badge {
+  flex-shrink: 0;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: rgba(255, 247, 232, 0.75);
+  border: 1px solid rgba(255, 247, 232, 0.14);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.stock-migration-guided-stage-badge.is-completed {
+  color: rgba(180, 230, 190, 0.95);
+  border-color: rgba(150, 210, 160, 0.28);
+}
+
+.stock-migration-guided-stage-badge.is-current,
+.stock-migration-guided-stage-badge.is-ready {
+  color: rgba(255, 247, 232, 0.95);
+  border-color: rgba(255, 247, 232, 0.28);
+}
+
+.stock-migration-guided-stage-badge.is-attention {
+  color: rgba(255, 210, 160, 0.95);
+  border-color: rgba(255, 180, 120, 0.32);
+}
+
+.stock-migration-guided-stage-badge.is-unavailable,
+.stock-migration-guided-stage-badge.is-cancelled {
+  color: rgba(255, 247, 232, 0.45);
+}
+
+@media (max-width: 980px) {
+  .stock-migration-guided-header-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .stock-migration-guided-stages {
+    grid-template-columns: 1fr;
+  }
+
+  .stock-migration-guided-checkpoint {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
+
 .stock-migration-main {
   display: grid;
   grid-template-columns: minmax(0, 1.7fr) minmax(280px, 0.9fr);
