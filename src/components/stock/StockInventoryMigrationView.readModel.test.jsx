@@ -126,8 +126,8 @@ vi.mock('./StockMigrationHealthPanel', () => ({
 vi.mock('./StockMigrationSessionCard', () => ({
   StockMigrationSessionCard: () => null,
 }))
-vi.mock('./StockMigrationManualReviewQueue', () => ({
-  StockMigrationManualReviewQueue: () => null,
+vi.mock('./StockMigrationManualReviewWorkspace', () => ({
+  StockMigrationManualReviewWorkspace: () => null,
 }))
 vi.mock('./StockMigrationAttentionQueue', () => ({
   StockMigrationAttentionQueue: () => null,

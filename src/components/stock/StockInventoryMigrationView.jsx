@@ -19,7 +19,7 @@ import { getInventoryMigrationStageAttentionAcknowledgements } from '../../servi
 import { StockMigrationActivityLog } from './StockMigrationActivityLog'
 import { StockMigrationAttentionQueue } from './StockMigrationAttentionQueue'
 import { StockMigrationHealthPanel } from './StockMigrationHealthPanel'
-import { StockMigrationManualReviewQueue } from './StockMigrationManualReviewQueue'
+import { StockMigrationManualReviewWorkspace } from './StockMigrationManualReviewWorkspace'
 import { StockMigrationOperatorPanel } from './StockMigrationOperatorPanel'
 import { StockMigrationSessionCard } from './StockMigrationSessionCard'
 import { StockMigrationSessionSteps } from './StockMigrationSessionSteps'
@@ -437,9 +437,10 @@ export function StockInventoryMigrationView({
         </aside>
       </div>
 
-      <StockMigrationManualReviewQueue
+      <StockMigrationManualReviewWorkspace
         rows={manualReviewRows}
         metricsAvailable={metricsAvailable}
+        isLoading={isLoading}
       />
 
       <StockMigrationAttentionQueue
