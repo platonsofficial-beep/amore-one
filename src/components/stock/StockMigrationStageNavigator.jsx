@@ -8,7 +8,7 @@ function scrollToManualReview() {
 }
 
 /**
- * Canonical stage navigator for the guided workflow shell.
+ * Canonical stage journey for the guided workflow hero.
  * Presentation only — no mutation controls.
  * Manual Review is an intervention checkpoint, not a canonical stage.
  */
@@ -20,9 +20,9 @@ export function StockMigrationStageNavigator({ model }) {
   return (
     <div className="stock-migration-guided-navigator">
       <div className="stock-migration-guided-navigator-header">
-        <h3 className="stock-migration-guided-navigator-title">Workflow stages</h3>
+        <h3 className="stock-migration-guided-navigator-title">Workflow journey</h3>
         <p className="stock-migration-guided-navigator-copy">
-          Guided view of the canonical migration sequence. Detailed controls remain below.
+          Follow the canonical sequence. The current stage is emphasized; completed stages recede.
         </p>
       </div>
 
@@ -58,7 +58,7 @@ export function StockMigrationStageNavigator({ model }) {
       </div>
 
       <ol className="stock-migration-guided-stages" aria-label="Migration stages">
-        {stages.map((stage) => {
+        {stages.map((stage, index) => {
           const visual = stage.visualState ?? GUIDED_STAGE_VISUAL.WAITING
           return (
             <li
@@ -70,8 +70,11 @@ export function StockMigrationStageNavigator({ model }) {
               ].filter(Boolean).join(' ')}
               aria-current={stage.isCurrent ? 'step' : undefined}
             >
-              <div className="stock-migration-guided-stage-marker" aria-hidden="true">
-                <span className="stock-migration-guided-stage-dot" />
+              <div className="stock-migration-guided-stage-rail" aria-hidden="true">
+                <span className="stock-migration-guided-stage-index">{index + 1}</span>
+                {index < stages.length - 1 ? (
+                  <span className="stock-migration-guided-stage-connector" />
+                ) : null}
               </div>
               <div className="stock-migration-guided-stage-body">
                 <div className="stock-migration-guided-stage-top">

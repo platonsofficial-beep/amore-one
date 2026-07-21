@@ -304,6 +304,13 @@ describe('StockMigrationGuidedWorkflow', () => {
     renderGuided(modelProps)
 
     expect(container.querySelector('[aria-label="Guided migration workflow"]')).toBeTruthy()
+    expect(container.querySelector('.stock-migration-guided-hero-stage')).toBeTruthy()
+    expect(container.querySelector('.stock-migration-guided-next')).toBeTruthy()
+    expect(container.querySelector('.stock-migration-guided-progress')).toBeTruthy()
+    expect(container.querySelector('[role="progressbar"]')).toBeTruthy()
+    expect(container.textContent).toContain('Completed')
+    expect(container.textContent).toContain('Current')
+    expect(container.textContent).toContain('Remaining')
     expect(container.textContent).toContain('Running')
     expect(container.textContent).toContain(operator.currentStep)
     expect(container.textContent).toMatch(/\d+ of \d+ stages complete/)
@@ -316,6 +323,7 @@ describe('StockMigrationGuidedWorkflow', () => {
     expect(container.textContent).toContain('No attention required')
     expect(container.textContent).not.toMatch(/\bContinue\b/)
     expect(container.textContent.toLowerCase()).not.toContain('approve')
+    expect(container.querySelector('.stock-migration-guided-next button')).toBeNull()
   })
 
   it('renders unavailable state and Manual Review attention/clear checkpoints', () => {

@@ -32644,9 +32644,13 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   max-width: 52rem;
 }
 
-/* P8.7.1 — Guided Migration Workflow Shell (scoped) */
+/* P8.7.1 / P8.7.2 — Guided Migration Workflow Hero (scoped) */
 .stock-migration-guided-workflow {
-  gap: 18px;
+  gap: 22px;
+  padding: 22px 22px 24px;
+  border-color: rgba(255, 247, 232, 0.14);
+  background:
+    linear-gradient(180deg, rgba(255, 247, 232, 0.045) 0%, rgba(8, 8, 9, 0.18) 42%, rgba(8, 8, 9, 0.28) 100%);
 }
 
 .stock-migration-guided-workflow-header {
@@ -32656,79 +32660,208 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 .stock-migration-guided-header {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 18px;
 }
 
-.stock-migration-guided-header-grid {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 10px 14px;
-}
-
-.stock-migration-guided-metric {
+.stock-migration-guided-hero {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
   min-width: 0;
-  padding: 12px 14px;
-  border-radius: 12px;
-  border: 1px solid rgba(255, 247, 232, 0.1);
-  background: rgba(8, 8, 9, 0.28);
 }
 
-.stock-migration-guided-metric--alert {
-  border-color: rgba(255, 214, 150, 0.28);
-  background: rgba(180, 120, 40, 0.14);
-}
-
-.stock-migration-guided-metric-label {
-  margin: 0 0 4px;
-  font-size: 0.7rem;
+.stock-migration-guided-hero-eyebrow {
+  margin: 0;
+  font-size: 0.72rem;
   font-weight: 700;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
   color: rgba(255, 247, 232, 0.48);
 }
 
-.stock-migration-guided-metric-value {
+.stock-migration-guided-hero-stage {
   margin: 0;
-  font-size: 1rem;
-  font-weight: 650;
-  color: rgba(255, 247, 232, 0.94);
-  line-height: 1.3;
+  font-size: clamp(1.7rem, 2.4vw, 2.35rem);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+  color: #fff7e8;
 }
 
-.stock-migration-guided-metric-sub {
-  margin: 4px 0 0;
-  font-size: 0.78rem;
-  color: rgba(255, 247, 232, 0.52);
+.stock-migration-guided-hero-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 18px;
+  margin-top: 4px;
+}
+
+.stock-migration-guided-meta-item {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+}
+
+.stock-migration-guided-meta-item--alert .stock-migration-guided-meta-value {
+  color: rgba(255, 214, 150, 0.95);
+}
+
+.stock-migration-guided-meta-label {
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgba(255, 247, 232, 0.42);
+}
+
+.stock-migration-guided-meta-value {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: rgba(255, 247, 232, 0.82);
+}
+
+.stock-migration-guided-meta-sub {
+  margin-left: 4px;
+  font-weight: 500;
+  color: rgba(255, 247, 232, 0.5);
 }
 
 .stock-migration-guided-next {
-  padding: 14px 16px;
-  border-radius: 12px;
-  border: 1px solid rgba(255, 247, 232, 0.14);
-  background: rgba(255, 247, 232, 0.05);
+  padding: 20px 22px;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 247, 232, 0.2);
+  background:
+    linear-gradient(135deg, rgba(255, 247, 232, 0.1) 0%, rgba(255, 247, 232, 0.03) 55%, rgba(8, 8, 9, 0.35) 100%);
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.22);
 }
 
 .stock-migration-guided-next-label {
-  margin: 0 0 4px;
-  font-size: 0.7rem;
+  margin: 0 0 8px;
+  font-size: 0.72rem;
   font-weight: 700;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: rgba(255, 247, 232, 0.48);
+  color: rgba(255, 247, 232, 0.52);
 }
 
 .stock-migration-guided-next-value {
   margin: 0;
+  font-size: clamp(1.25rem, 2vw, 1.65rem);
+  font-weight: 700;
+  letter-spacing: -0.015em;
+  color: #fff7e8;
+  line-height: 1.25;
+}
+
+.stock-migration-guided-next-hint {
+  margin: 10px 0 0;
+  font-size: 0.8rem;
+  color: rgba(255, 247, 232, 0.48);
+  line-height: 1.4;
+}
+
+.stock-migration-guided-progress {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px 18px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 247, 232, 0.1);
+  background: rgba(8, 8, 9, 0.28);
+}
+
+.stock-migration-guided-progress-top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.stock-migration-guided-progress-title {
+  margin: 0;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(255, 247, 232, 0.48);
+}
+
+.stock-migration-guided-progress-percent {
+  margin: 0;
   font-size: 1.05rem;
   font-weight: 700;
+  color: rgba(255, 247, 232, 0.92);
+}
+
+.stock-migration-guided-progress-track {
+  width: 100%;
+  height: 10px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: rgba(255, 247, 232, 0.08);
+}
+
+.stock-migration-guided-progress-fill {
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, rgba(210, 190, 150, 0.75), rgba(255, 247, 232, 0.92));
+  min-width: 0;
+  transition: width 180ms ease;
+}
+
+.stock-migration-guided-progress-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.stock-migration-guided-progress-stat {
+  min-width: 0;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 247, 232, 0.08);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.stock-migration-guided-progress-stat-label {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgba(255, 247, 232, 0.42);
+}
+
+.stock-migration-guided-progress-stat-value {
+  display: block;
+  font-size: 0.95rem;
+  font-weight: 650;
+  color: rgba(255, 247, 232, 0.9);
+  line-height: 1.3;
+  word-break: break-word;
+}
+
+.stock-migration-guided-progress-stat.is-completed .stock-migration-guided-progress-stat-value {
+  color: rgba(180, 230, 190, 0.95);
+}
+
+.stock-migration-guided-progress-stat.is-current .stock-migration-guided-progress-stat-value {
   color: #fff7e8;
-  line-height: 1.35;
+}
+
+.stock-migration-guided-progress-caption {
+  margin: 0;
+  font-size: 0.8rem;
+  color: rgba(255, 247, 232, 0.5);
 }
 
 .stock-migration-guided-navigator {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 14px;
+  padding-top: 4px;
+  border-top: 1px solid rgba(255, 247, 232, 0.08);
 }
 
 .stock-migration-guided-navigator-header {
@@ -32795,70 +32928,96 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   list-style: none;
   margin: 0;
   padding: 0;
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
 }
 
 .stock-migration-guided-stage {
-  display: flex;
-  gap: 10px;
+  display: grid;
+  grid-template-columns: 36px minmax(0, 1fr);
+  gap: 12px;
   min-width: 0;
-  padding: 10px 12px;
-  border-radius: 12px;
-  border: 1px solid rgba(255, 247, 232, 0.08);
-  background: rgba(8, 8, 9, 0.22);
+  padding: 8px 10px 8px 4px;
+  border-radius: 14px;
+  border: 1px solid transparent;
+  background: transparent;
+  transition: background 140ms ease, border-color 140ms ease, opacity 140ms ease;
+}
+
+.stock-migration-guided-stage.is-completed {
+  opacity: 0.55;
+}
+
+.stock-migration-guided-stage.is-waiting,
+.stock-migration-guided-stage.is-ready,
+.stock-migration-guided-stage.is-unavailable,
+.stock-migration-guided-stage.is-cancelled {
+  opacity: 0.62;
 }
 
 .stock-migration-guided-stage.is-current,
 .stock-migration-guided-stage.is-emphasized {
-  border-color: rgba(255, 247, 232, 0.28);
+  opacity: 1;
+  border-color: rgba(255, 247, 232, 0.22);
   background: rgba(255, 247, 232, 0.07);
-}
-
-.stock-migration-guided-stage.is-completed {
-  border-color: rgba(140, 200, 150, 0.18);
+  padding-top: 14px;
+  padding-bottom: 14px;
+  margin: 4px 0;
 }
 
 .stock-migration-guided-stage.is-attention {
+  opacity: 1;
   border-color: rgba(255, 180, 120, 0.3);
   background: rgba(180, 90, 40, 0.12);
 }
 
-.stock-migration-guided-stage.is-unavailable,
-.stock-migration-guided-stage.is-cancelled {
-  opacity: 0.72;
-}
-
-.stock-migration-guided-stage-marker {
+.stock-migration-guided-stage-rail {
   display: flex;
-  padding-top: 5px;
+  flex-direction: column;
+  align-items: center;
+  min-height: 100%;
 }
 
-.stock-migration-guided-stage-dot {
-  width: 10px;
-  height: 10px;
+.stock-migration-guided-stage-index {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
   border-radius: 50%;
-  background: rgba(255, 247, 232, 0.28);
-  box-shadow: 0 0 0 3px rgba(255, 247, 232, 0.06);
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: rgba(255, 247, 232, 0.55);
+  border: 1px solid rgba(255, 247, 232, 0.14);
+  background: rgba(8, 8, 9, 0.45);
+  flex-shrink: 0;
 }
 
-.stock-migration-guided-stage.is-completed .stock-migration-guided-stage-dot {
-  background: rgba(150, 210, 160, 0.9);
+.stock-migration-guided-stage.is-completed .stock-migration-guided-stage-index {
+  color: rgba(180, 230, 190, 0.9);
+  border-color: rgba(150, 210, 160, 0.28);
 }
 
-.stock-migration-guided-stage.is-current .stock-migration-guided-stage-dot,
-.stock-migration-guided-stage.is-ready .stock-migration-guided-stage-dot {
-  background: rgba(255, 247, 232, 0.92);
+.stock-migration-guided-stage.is-current .stock-migration-guided-stage-index,
+.stock-migration-guided-stage.is-emphasized .stock-migration-guided-stage-index {
+  color: #1a1814;
+  background: #fff7e8;
+  border-color: #fff7e8;
 }
 
-.stock-migration-guided-stage.is-attention .stock-migration-guided-stage-dot {
-  background: rgba(255, 180, 120, 0.95);
+.stock-migration-guided-stage-connector {
+  flex: 1;
+  width: 1px;
+  min-height: 12px;
+  margin-top: 6px;
+  background: rgba(255, 247, 232, 0.12);
 }
 
 .stock-migration-guided-stage-body {
   min-width: 0;
   flex: 1;
+  padding-top: 2px;
 }
 
 .stock-migration-guided-stage-top {
@@ -32873,15 +33032,26 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   margin: 0;
   font-size: 0.9rem;
   font-weight: 650;
-  color: rgba(255, 247, 232, 0.92);
+  color: rgba(255, 247, 232, 0.78);
   line-height: 1.3;
+}
+
+.stock-migration-guided-stage.is-current .stock-migration-guided-stage-name,
+.stock-migration-guided-stage.is-emphasized .stock-migration-guided-stage-name {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #fff7e8;
 }
 
 .stock-migration-guided-stage-description {
   margin: 0;
   font-size: 0.78rem;
-  color: rgba(255, 247, 232, 0.52);
+  color: rgba(255, 247, 232, 0.42);
   line-height: 1.35;
+}
+
+.stock-migration-guided-stage.is-current .stock-migration-guided-stage-description {
+  color: rgba(255, 247, 232, 0.62);
 }
 
 .stock-migration-guided-stage-badge {
@@ -32892,14 +33062,14 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: uppercase;
-  color: rgba(255, 247, 232, 0.75);
+  color: rgba(255, 247, 232, 0.65);
   border: 1px solid rgba(255, 247, 232, 0.14);
   background: rgba(255, 255, 255, 0.04);
 }
 
 .stock-migration-guided-stage-badge.is-completed {
-  color: rgba(180, 230, 190, 0.95);
-  border-color: rgba(150, 210, 160, 0.28);
+  color: rgba(180, 230, 190, 0.85);
+  border-color: rgba(150, 210, 160, 0.24);
 }
 
 .stock-migration-guided-stage-badge.is-current,
@@ -32919,17 +33089,17 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 }
 
 @media (max-width: 980px) {
-  .stock-migration-guided-header-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .stock-migration-guided-stages {
+  .stock-migration-guided-progress-stats {
     grid-template-columns: 1fr;
   }
 
   .stock-migration-guided-checkpoint {
     flex-direction: column;
     align-items: stretch;
+  }
+
+  .stock-migration-guided-hero-stage {
+    font-size: 1.7rem;
   }
 }
 

@@ -45,7 +45,7 @@ export function StockMigrationGuidedWorkflow({
       <div className="stock-migration-panel-header stock-migration-guided-workflow-header">
         <h3 className="stock-migration-panel-title">Guided workflow</h3>
         <p className="stock-migration-panel-copy">
-          Orientation for the current migration session. Existing operator controls stay below.
+          Primary operator path for this migration. Detailed panels remain below.
         </p>
       </div>
 
