@@ -5,6 +5,7 @@ const BUILD_SNAPSHOT_RPC = 'build_inventory_count_snapshot'
 const UPDATE_SESSION_ITEM_RPC = 'update_inventory_count_session_item'
 const COMPLETE_LOCATION_RPC = 'complete_inventory_count_location'
 const SET_PAUSE_STATE_RPC = 'set_inventory_count_session_pause_state'
+const PREVIEW_FINISH_RPC = 'preview_inventory_count_finish'
 const SESSION_ITEMS_TABLE = 'inventory_count_session_items'
 const SESSION_LOCATIONS_TABLE = 'inventory_count_session_locations'
 
@@ -37,7 +38,7 @@ function isRpcUnavailableError(error) {
 
 function extractRpcErrorCode(error) {
   const message = `${error?.message ?? error?.details ?? error?.hint ?? ''}`.trim()
-  const match = message.match(/inventory_count_(?:session|snapshot|item|location|pause)_[a-z0-9_]+/i)
+  const match = message.match(/inventory_count_(?:session|snapshot|item|location|pause|preview)_[a-z0-9_]+/i)
   return match?.[0]?.toLowerCase() ?? ''
 }
 
@@ -60,18 +61,21 @@ function mapInventoryCountRpcError(error, fallbackMessage) {
     case 'inventory_count_item_unauthenticated':
     case 'inventory_count_location_unauthenticated':
     case 'inventory_count_pause_unauthenticated':
+    case 'inventory_count_preview_unauthenticated':
       return new Error('You must be signed in to manage inventory counts.')
     case 'inventory_count_session_forbidden':
     case 'inventory_count_snapshot_forbidden':
     case 'inventory_count_item_forbidden':
     case 'inventory_count_location_forbidden':
     case 'inventory_count_pause_forbidden':
+    case 'inventory_count_preview_forbidden':
       return new Error('You do not have permission to manage inventory counts for this workspace.')
     case 'inventory_count_session_workspace_required':
     case 'inventory_count_snapshot_workspace_required':
     case 'inventory_count_item_workspace_required':
     case 'inventory_count_location_workspace_required':
     case 'inventory_count_pause_workspace_required':
+    case 'inventory_count_preview_workspace_required':
       return new Error('Workspace is required.')
     case 'inventory_count_session_workspace_not_found':
       return new Error('Workspace was not found.')
@@ -92,16 +96,19 @@ function mapInventoryCountRpcError(error, fallbackMessage) {
     case 'inventory_count_item_session_required':
     case 'inventory_count_location_session_required':
     case 'inventory_count_pause_session_required':
+    case 'inventory_count_preview_session_required':
       return new Error('Inventory count session is required.')
     case 'inventory_count_snapshot_session_not_found':
     case 'inventory_count_item_session_not_found':
     case 'inventory_count_location_session_not_found':
     case 'inventory_count_pause_session_not_found':
+    case 'inventory_count_preview_session_not_found':
       return new Error('Inventory count session was not found.')
     case 'inventory_count_snapshot_workspace_mismatch':
     case 'inventory_count_item_workspace_mismatch':
     case 'inventory_count_location_workspace_mismatch':
     case 'inventory_count_pause_workspace_mismatch':
+    case 'inventory_count_preview_workspace_mismatch':
       return new Error('Inventory count session does not belong to this workspace.')
     case 'inventory_count_snapshot_session_not_in_progress':
       return new Error('Inventory count session must be in progress to build a snapshot.')
@@ -115,6 +122,14 @@ function mapInventoryCountRpcError(error, fallbackMessage) {
       return new Error('Inventory count session must be paused to resume.')
     case 'inventory_count_pause_state_required':
       return new Error('Pause state is required.')
+    case 'inventory_count_preview_session_not_complete':
+      return new Error('Inventory count session must be counting complete to preview finish.')
+    case 'inventory_count_preview_snapshot_missing':
+      return new Error('Inventory count snapshot was not found for this session.')
+    case 'inventory_count_session_snapshot_at_immutable':
+      return new Error('Inventory count snapshot timestamp cannot be changed.')
+    case 'inventory_count_item_frozen_field':
+      return new Error('Inventory count snapshot fields cannot be changed.')
     case 'inventory_count_snapshot_already_exists':
       return new Error('A snapshot has already been created for this inventory count session.')
     case 'inventory_count_item_session_item_required':
@@ -593,6 +608,255 @@ export async function setInventoryCountSessionPauseState({
   const mapped = mapInventoryCountSessionPauseStateResult(firstRpcRow(data))
   if (!mapped) {
     throw new Error('Pause state response was empty or invalid.')
+  }
+
+  return mapped
+}
+
+function mapPreviewNumeric(value) {
+  if (value === null || value === undefined || value === '') {
+    return null
+  }
+  const numeric = Number(value)
+  return Number.isFinite(numeric) ? numeric : null
+}
+
+function mapPreviewInteger(value) {
+  const numeric = Number(value)
+  return Number.isFinite(numeric) ? numeric : null
+}
+
+export function mapInventoryCountFinishPreviewLine(row) {
+  if (!row || typeof row !== 'object') {
+    return null
+  }
+
+  const sessionItemId = `${row.session_item_id ?? row.sessionItemId ?? ''}`.trim()
+  const itemName = `${row.item_name ?? row.itemName ?? ''}`.trim()
+  const itemId = `${row.item_id ?? row.itemId ?? ''}`.trim()
+  if (!sessionItemId || !itemName || !itemId) {
+    return null
+  }
+
+  const expectedSnapshot = mapPreviewNumeric(row.expected_snapshot ?? row.expectedSnapshot)
+  const movementDeltaSinceSnapshot = mapPreviewNumeric(
+    row.movement_delta_since_snapshot ?? row.movementDeltaSinceSnapshot,
+  )
+  const expectedAtCount = mapPreviewNumeric(row.expected_at_count ?? row.expectedAtCount)
+  const countedQuantity = mapPreviewNumeric(row.counted_quantity ?? row.countedQuantity)
+  const varianceQuantity = mapPreviewNumeric(row.variance_quantity ?? row.varianceQuantity ?? row.variance)
+  const currentLiveQuantity = mapPreviewNumeric(row.current_live_quantity ?? row.currentLiveQuantity)
+  const resultingQuantityAfterPost = mapPreviewNumeric(
+    row.resulting_quantity_after_post ?? row.resultingQuantityAfterPost,
+  )
+  const countedAt = row.counted_at ?? row.countedAt ?? null
+
+  if (
+    expectedSnapshot === null
+    || movementDeltaSinceSnapshot === null
+    || expectedAtCount === null
+    || countedQuantity === null
+    || varianceQuantity === null
+    || currentLiveQuantity === null
+    || resultingQuantityAfterPost === null
+    || !countedAt
+  ) {
+    return null
+  }
+
+  return {
+    sessionItemId,
+    itemId,
+    itemName,
+    storageLocation: `${row.storage_location ?? row.storageLocation ?? ''}`.trim() || 'Other',
+    unit: `${row.unit ?? ''}`.trim(),
+    expectedSnapshot,
+    movementDeltaSinceSnapshot,
+    expectedAtCount,
+    countedQuantity,
+    countedAt: `${countedAt}`,
+    varianceQuantity,
+    currentLiveQuantity,
+    resultingQuantityAfterPost,
+  }
+}
+
+export function mapInventoryCountFinishPreviewSkippedLine(row) {
+  if (!row || typeof row !== 'object') {
+    return null
+  }
+
+  const sessionItemId = `${row.session_item_id ?? row.sessionItemId ?? ''}`.trim()
+  const itemName = `${row.item_name ?? row.itemName ?? ''}`.trim()
+  if (!sessionItemId || !itemName) {
+    return null
+  }
+
+  return {
+    sessionItemId,
+    itemId: `${row.item_id ?? row.itemId ?? ''}`.trim() || null,
+    itemName,
+    storageLocation: `${row.storage_location ?? row.storageLocation ?? ''}`.trim() || 'Other',
+    unit: `${row.unit ?? ''}`.trim(),
+    lineStatus: `${row.line_status ?? row.lineStatus ?? 'skipped'}`.trim() || 'skipped',
+    warning: `${row.warning ?? ''}`.trim()
+      || 'Skipped lines are not posted and keep live quantity unchanged.',
+  }
+}
+
+export function mapInventoryCountFinishPreviewBlockingIssue(row) {
+  if (!row || typeof row !== 'object') {
+    return null
+  }
+
+  const code = `${row.code ?? ''}`.trim()
+  const message = `${row.message ?? ''}`.trim()
+  if (!code || !message) {
+    return null
+  }
+
+  return {
+    code,
+    sessionItemId: `${row.session_item_id ?? row.sessionItemId ?? ''}`.trim() || null,
+    itemId: `${row.item_id ?? row.itemId ?? ''}`.trim() || null,
+    itemName: `${row.item_name ?? row.itemName ?? ''}`.trim() || null,
+    message,
+  }
+}
+
+export function mapInventoryCountFinishPreviewResult(payload) {
+  if (!payload || typeof payload !== 'object') {
+    return null
+  }
+
+  const sessionId = `${payload.session_id ?? payload.sessionId ?? ''}`.trim()
+  const workspaceId = `${payload.workspace_id ?? payload.workspaceId ?? ''}`.trim()
+  if (!sessionId || !workspaceId) {
+    return null
+  }
+
+  const summaryRaw = payload.summary
+  if (!summaryRaw || typeof summaryRaw !== 'object') {
+    return null
+  }
+
+  const totalLines = mapPreviewInteger(summaryRaw.total_lines ?? summaryRaw.totalLines)
+  const countedLines = mapPreviewInteger(summaryRaw.counted_lines ?? summaryRaw.countedLines)
+  const skippedLines = mapPreviewInteger(summaryRaw.skipped_lines ?? summaryRaw.skippedLines)
+  const changedItems = mapPreviewInteger(summaryRaw.changed_items ?? summaryRaw.changedItems)
+  const unchangedItems = mapPreviewInteger(summaryRaw.unchanged_items ?? summaryRaw.unchangedItems)
+  const positiveVariances = mapPreviewInteger(summaryRaw.positive_variances ?? summaryRaw.positiveVariances)
+  const negativeVariances = mapPreviewInteger(summaryRaw.negative_variances ?? summaryRaw.negativeVariances)
+  const zeroVariances = mapPreviewInteger(summaryRaw.zero_variances ?? summaryRaw.zeroVariances)
+  const blockingIssueCount = mapPreviewInteger(
+    summaryRaw.blocking_issue_count ?? summaryRaw.blockingIssueCount,
+  )
+
+  if ([
+    totalLines,
+    countedLines,
+    skippedLines,
+    changedItems,
+    unchangedItems,
+    positiveVariances,
+    negativeVariances,
+    zeroVariances,
+    blockingIssueCount,
+  ].some((value) => value === null)) {
+    return null
+  }
+
+  const linesRaw = Array.isArray(payload.lines) ? payload.lines : null
+  const skippedRaw = Array.isArray(payload.skipped) ? payload.skipped : []
+  const blockingRaw = Array.isArray(payload.blocking_issues ?? payload.blockingIssues)
+    ? (payload.blocking_issues ?? payload.blockingIssues)
+    : []
+  if (!linesRaw) {
+    return null
+  }
+
+  const lines = linesRaw.map(mapInventoryCountFinishPreviewLine)
+  if (lines.some((line) => line === null)) {
+    return null
+  }
+
+  const skipped = skippedRaw.map(mapInventoryCountFinishPreviewSkippedLine)
+  if (skipped.some((line) => line === null)) {
+    return null
+  }
+
+  const blockingIssues = blockingRaw.map(mapInventoryCountFinishPreviewBlockingIssue)
+  if (blockingIssues.some((issue) => issue === null)) {
+    return null
+  }
+
+  const snapshotAt = payload.snapshot_at ?? payload.snapshotAt ?? null
+  const previewGeneratedAt = payload.preview_generated_at ?? payload.previewGeneratedAt ?? null
+  if (!snapshotAt || !previewGeneratedAt) {
+    return null
+  }
+
+  const canPost = Boolean(
+    payload.can_post
+    ?? payload.canPost
+    ?? summaryRaw.can_post
+    ?? summaryRaw.canPost
+    ?? false,
+  )
+
+  return {
+    sessionId,
+    workspaceId,
+    sessionStatus: `${payload.session_status ?? payload.sessionStatus ?? payload.status ?? ''}`.trim()
+      || 'counting_complete',
+    snapshotAt: `${snapshotAt}`,
+    previewGeneratedAt: `${previewGeneratedAt}`,
+    canPost,
+    summary: {
+      totalLines,
+      countedLines,
+      skippedLines,
+      changedItems,
+      unchangedItems,
+      positiveVariances,
+      negativeVariances,
+      zeroVariances,
+      blockingIssueCount,
+      canPost,
+    },
+    lines,
+    skipped,
+    blockingIssues,
+  }
+}
+
+/**
+ * Preview Finish Count reconciliation for a counting_complete session.
+ * Read-only: does not post, mutate stock, or change session status.
+ * All reconciliation math is owned by the database RPC.
+ */
+export async function previewInventoryCountFinish({
+  workspaceId,
+  sessionId,
+} = {}) {
+  requireConfiguredSupabase()
+
+  const p_workspace_id = requireId(workspaceId, 'Workspace')
+  const p_session_id = requireId(sessionId, 'Session')
+
+  const { data, error } = await supabase.rpc(PREVIEW_FINISH_RPC, {
+    p_workspace_id,
+    p_session_id,
+  })
+
+  if (error) {
+    console.error('[inventoryCountService] previewInventoryCountFinish error:', error)
+    throw mapInventoryCountRpcError(error, 'Unable to preview inventory count finish right now.')
+  }
+
+  const mapped = mapInventoryCountFinishPreviewResult(firstRpcRow(data) ?? data)
+  if (!mapped) {
+    throw new Error('Finish count preview response was empty or invalid.')
   }
 
   return mapped

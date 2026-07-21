@@ -4,6 +4,7 @@ import {
   completeInventoryCountLocation,
   getInventoryCountSessionItems,
   getInventoryCountSessionLocations,
+  previewInventoryCountFinish,
   setInventoryCountSessionPauseState,
   updateInventoryCountItem,
 } from '../../services/inventoryCountService'
@@ -21,6 +22,66 @@ const LINE_STATUS_LABEL = {
 }
 
 const AUTOSAVE_DEBOUNCE_MS = 400
+
+const PREVIEW_OVERLAY_STYLE = {
+  position: 'fixed',
+  inset: 0,
+  zIndex: 90,
+  display: 'flex',
+  alignItems: 'stretch',
+  justifyContent: 'center',
+  padding: '12px',
+  background: 'rgba(4, 4, 5, 0.86)',
+  backdropFilter: 'blur(10px)',
+}
+
+const PREVIEW_PANEL_STYLE = {
+  width: 'min(100vw - 24px, 1180px)',
+  height: 'min(100vh - 24px, 920px)',
+  maxHeight: 'calc(100vh - 24px)',
+  display: 'flex',
+  flexDirection: 'column',
+  overflow: 'hidden',
+  borderRadius: '22px',
+  border: '1px solid rgba(212, 175, 55, 0.24)',
+  background: 'linear-gradient(165deg, rgba(18, 18, 20, 0.99), rgba(9, 9, 10, 0.99))',
+  boxShadow: '0 28px 90px rgba(0, 0, 0, 0.62)',
+}
+
+const PREVIEW_SUMMARY_GRID_STYLE = {
+  display: 'grid',
+  gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
+  gap: '12px',
+  padding: '0 28px 18px',
+}
+
+const PREVIEW_SUMMARY_CARD_STYLE = {
+  display: 'flex',
+  flexDirection: 'column',
+  gap: '6px',
+  minHeight: '72px',
+  padding: '14px 16px',
+  borderRadius: '14px',
+  border: '1px solid rgba(255, 247, 232, 0.1)',
+  background: 'rgba(8, 8, 9, 0.72)',
+}
+
+const PREVIEW_BODY_STYLE = {
+  flex: '1 1 auto',
+  minHeight: 0,
+  overflow: 'auto',
+  padding: '0 28px 20px',
+}
+
+const PREVIEW_FOOTER_STYLE = {
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'flex-end',
+  gap: '12px',
+  flexShrink: 0,
+  padding: '18px 28px 22px',
+  borderTop: '1px solid rgba(255, 255, 255, 0.06)',
+}
 
 const COUNTED_INPUT_STYLE = {
   boxSizing: 'border-box',
@@ -48,6 +109,31 @@ function formatQuantity(value) {
     return `${numeric}`
   }
   return `${numeric}`
+}
+
+function formatVariance(value) {
+  const numeric = Number(value)
+  if (!Number.isFinite(numeric)) {
+    return '—'
+  }
+  if (numeric > 0) {
+    return `+${formatQuantity(numeric)}`
+  }
+  return formatQuantity(numeric)
+}
+
+function varianceTone(value) {
+  const numeric = Number(value)
+  if (!Number.isFinite(numeric) || numeric === 0) {
+    return 'neutral'
+  }
+  return numeric > 0 ? 'positive' : 'negative'
+}
+
+function varianceColor(tone) {
+  if (tone === 'positive') return '#6fcf97'
+  if (tone === 'negative') return '#f07178'
+  return 'rgba(255, 247, 232, 0.78)'
 }
 
 function formatLineStatus(lineStatus) {
@@ -245,6 +331,10 @@ export function InventoryCountSessionWorkspace({
   const [isCompletingLocation, setIsCompletingLocation] = useState(false)
   const [sessionStatus, setSessionStatus] = useState('in_progress')
   const [isTogglingPause, setIsTogglingPause] = useState(false)
+  const [isFinishPreviewOpen, setIsFinishPreviewOpen] = useState(false)
+  const [isLoadingFinishPreview, setIsLoadingFinishPreview] = useState(false)
+  const [finishPreview, setFinishPreview] = useState(null)
+  const [finishPreviewError, setFinishPreviewError] = useState('')
   const loadRequestIdRef = useRef(0)
   const locationsRef = useRef(locations)
   const sessionStatusRef = useRef(sessionStatus)
@@ -275,6 +365,10 @@ export function InventoryCountSessionWorkspace({
       setSessionStatus('in_progress')
       setIsCompletingLocation(false)
       setIsTogglingPause(false)
+      setIsFinishPreviewOpen(false)
+      setIsLoadingFinishPreview(false)
+      setFinishPreview(null)
+      setFinishPreviewError('')
 
       try {
         const sessionId = `${sessionIdProp || ''}`.trim()
@@ -644,6 +738,42 @@ export function InventoryCountSessionWorkspace({
     }
   }
 
+  const handleOpenFinishPreview = async () => {
+    if (!canOpenFinishCount || isLoadingFinishPreview) return
+
+    const workspaceId = `${workspaceIdProp || workspace?.id || ''}`.trim()
+    const sessionId = `${sessionIdProp || ''}`.trim()
+    if (!workspaceId || !sessionId) {
+      setSaveError('Unable to preview inventory count finish right now.')
+      return
+    }
+
+    setIsFinishPreviewOpen(true)
+    setIsLoadingFinishPreview(true)
+    setFinishPreviewError('')
+    setFinishPreview(null)
+    setSaveError('')
+
+    try {
+      const preview = await previewInventoryCountFinish({
+        workspaceId,
+        sessionId,
+      })
+      setFinishPreview(preview)
+    } catch (error) {
+      setFinishPreviewError(error?.message || 'Unable to preview inventory count finish right now.')
+    } finally {
+      setIsLoadingFinishPreview(false)
+    }
+  }
+
+  const handleCloseFinishPreview = () => {
+    if (isLoadingFinishPreview) return
+    setIsFinishPreviewOpen(false)
+    setFinishPreview(null)
+    setFinishPreviewError('')
+  }
+
   const selectedLocationName = selectedLocation?.name ?? 'Location'
 
   return (
@@ -686,10 +816,13 @@ export function InventoryCountSessionWorkspace({
           <button
             type="button"
             className="ghost-btn inventory-count-session-action-btn"
-            disabled={!canOpenFinishCount}
-            aria-disabled={!canOpenFinishCount}
+            disabled={!canOpenFinishCount || isLoadingFinishPreview}
+            aria-disabled={!canOpenFinishCount || isLoadingFinishPreview}
+            onClick={() => {
+              void handleOpenFinishPreview()
+            }}
           >
-            Finish Count
+            {isLoadingFinishPreview ? 'Loading…' : 'Finish Count'}
           </button>
           <button
             type="button"
@@ -893,8 +1026,174 @@ export function InventoryCountSessionWorkspace({
 
       {showCountingCompleteBanner ? (
         <p className="inventory-count-session-completion-message" role="status">
-          All locations are complete. Finish Count will be added next.
+          All locations are complete. Review variances with Finish Count.
         </p>
+      ) : null}
+
+      {isFinishPreviewOpen ? (
+        <div
+          className="employee-modal-backdrop inventory-count-wizard-backdrop"
+          style={PREVIEW_OVERLAY_STYLE}
+          role="presentation"
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-label="Finish Count Preview"
+            style={PREVIEW_PANEL_STYLE}
+          >
+            <header className="inventory-count-wizard-header">
+              <div className="inventory-count-wizard-header-copy">
+                <p className="inventory-count-wizard-step-label">Session</p>
+                <h2 className="inventory-count-wizard-title">Finish Count Preview</h2>
+                <p className="inventory-count-wizard-subtitle">
+                  Counting Complete · Review variances before posting. No stock changes yet.
+                </p>
+              </div>
+              <div className="inventory-count-wizard-header-actions">
+                <span className="inventory-count-session-pill is-status">Counting Complete</span>
+              </div>
+            </header>
+
+            {finishPreview?.summary ? (
+              <div style={PREVIEW_SUMMARY_GRID_STYLE} aria-label="Finish count summary">
+                {[
+                  ['Total lines', finishPreview.summary.totalLines],
+                  ['Counted', finishPreview.summary.countedLines],
+                  ['Skipped', finishPreview.summary.skippedLines],
+                  ['Changed', finishPreview.summary.changedItems],
+                  ['Unchanged', finishPreview.summary.unchangedItems],
+                  ['Positive', finishPreview.summary.positiveVariances],
+                  ['Negative', finishPreview.summary.negativeVariances],
+                  ['Zero', finishPreview.summary.zeroVariances],
+                ].map(([label, value]) => (
+                  <article key={label} style={PREVIEW_SUMMARY_CARD_STYLE}>
+                    <span className="inventory-count-session-meta-label">{label}</span>
+                    <span className="inventory-count-session-meta-value" style={{ fontSize: '1.2rem' }}>
+                      {value}
+                    </span>
+                  </article>
+                ))}
+              </div>
+            ) : null}
+
+            <div style={PREVIEW_BODY_STYLE}>
+              {isLoadingFinishPreview ? (
+                <div className="staff-status-banner" role="status">
+                  Loading finish preview…
+                </div>
+              ) : null}
+
+              {finishPreviewError ? (
+                <div className="staff-status-banner" role="alert">
+                  {finishPreviewError}
+                </div>
+              ) : null}
+
+              {!isLoadingFinishPreview && !finishPreviewError && finishPreview ? (
+                <>
+                  <p className="inventory-count-wizard-subtitle" style={{ marginBottom: '14px' }}>
+                    Expected at Count includes stock activity recorded after the snapshot and before this item was counted.
+                  </p>
+
+                  {(finishPreview.blockingIssues ?? []).map((issue) => (
+                    <div
+                      key={`${issue.code}-${issue.sessionItemId || issue.message}`}
+                      className="staff-status-banner"
+                      role="alert"
+                    >
+                      {issue.message}
+                    </div>
+                  ))}
+
+                  {(finishPreview.skipped ?? []).map((line) => (
+                    <div
+                      key={`skipped-${line.sessionItemId}`}
+                      className="staff-status-banner"
+                      role="status"
+                    >
+                      Skipped: {line.itemName}
+                      {line.storageLocation ? ` · ${line.storageLocation}` : ''}
+                      . {line.warning}
+                    </div>
+                  ))}
+
+                  {finishPreview.lines.length === 0 ? (
+                    <div className="stock-empty-state">
+                      <h4>No counted items</h4>
+                      <p>There are no counted lines to preview for this session.</p>
+                    </div>
+                  ) : (
+                    <div className="inventory-count-session-table-wrap">
+                      <table className="inventory-count-session-table">
+                        <thead>
+                          <tr>
+                            <th scope="col">Item</th>
+                            <th scope="col">Location</th>
+                            <th scope="col">Snapshot</th>
+                            <th scope="col">Activity Since Snapshot</th>
+                            <th scope="col">Expected at Count</th>
+                            <th scope="col">Counted</th>
+                            <th scope="col">Variance</th>
+                            <th scope="col">Current Live</th>
+                            <th scope="col">Result After Post</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {finishPreview.lines.map((line) => {
+                            const tone = varianceTone(line.varianceQuantity)
+                            return (
+                              <tr key={line.sessionItemId}>
+                                <td className="inventory-count-session-item-name">
+                                  {line.itemName}
+                                  {line.unit ? (
+                                    <span style={{ display: 'block', opacity: 0.62, fontWeight: 500 }}>
+                                      {line.unit}
+                                    </span>
+                                  ) : null}
+                                </td>
+                                <td>{line.storageLocation}</td>
+                                <td>{formatQuantity(line.expectedSnapshot)}</td>
+                                <td>{formatVariance(line.movementDeltaSinceSnapshot)}</td>
+                                <td>{formatQuantity(line.expectedAtCount)}</td>
+                                <td>{formatQuantity(line.countedQuantity)}</td>
+                                <td style={{ color: varianceColor(tone), fontWeight: 700 }}>
+                                  {formatVariance(line.varianceQuantity)}
+                                </td>
+                                <td>{formatQuantity(line.currentLiveQuantity)}</td>
+                                <td>{formatQuantity(line.resultingQuantityAfterPost)}</td>
+                              </tr>
+                            )
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </>
+              ) : null}
+            </div>
+
+            <footer style={PREVIEW_FOOTER_STYLE}>
+              <button
+                type="button"
+                className="ghost-btn inventory-count-session-action-btn"
+                disabled={isLoadingFinishPreview}
+                aria-disabled={isLoadingFinishPreview}
+                onClick={handleCloseFinishPreview}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="primary-btn inventory-count-session-action-btn"
+                disabled
+                aria-disabled="true"
+              >
+                Confirm Finish Count
+              </button>
+            </footer>
+          </div>
+        </div>
       ) : null}
     </section>
   )

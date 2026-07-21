@@ -18,6 +18,7 @@ import {
   completeInventoryCountLocation,
   getInventoryCountSessionItems,
   mapInventoryCountSessionItemRow,
+  previewInventoryCountFinish,
   setInventoryCountSessionPauseState,
   updateInventoryCountItem,
 } from './inventoryCountService'
@@ -721,5 +722,642 @@ describe('set_inventory_count_session_pause_state SQL contract', () => {
     expect(functionBody).not.toMatch(/inventory_count_session_locations/i)
     expect(functionBody).not.toMatch(/inventory_count_session_items/i)
     expect(functionBody).not.toMatch(/from public\.stock_items|update public\.stock_items|from public\.stock_movements|insert into public\.stock_movements/i)
+  })
+})
+
+describe('previewInventoryCountFinish', () => {
+  beforeEach(() => {
+    fromMock.mockReset()
+    rpcMock.mockReset()
+  })
+
+  function previewPayload(overrides = {}) {
+    return {
+      session_id: 'session-1',
+      workspace_id: 'workspace-1',
+      session_status: 'counting_complete',
+      snapshot_at: '2026-07-21T10:00:00.000Z',
+      preview_generated_at: '2026-07-21T12:00:00.000Z',
+      can_post: true,
+      summary: {
+        total_lines: 1,
+        counted_lines: 1,
+        skipped_lines: 0,
+        changed_items: 1,
+        unchanged_items: 0,
+        positive_variances: 0,
+        negative_variances: 1,
+        zero_variances: 0,
+        blocking_issue_count: 0,
+        can_post: true,
+      },
+      lines: [],
+      skipped: [],
+      blocking_issues: [],
+      ...overrides,
+    }
+  }
+
+  it('maps Strategy 4 no-intervening-movement scenario without JS calculation', async () => {
+    rpcMock.mockResolvedValue({
+      data: previewPayload({
+        summary: {
+          total_lines: 1,
+          counted_lines: 1,
+          skipped_lines: 0,
+          changed_items: 1,
+          unchanged_items: 0,
+          positive_variances: 0,
+          negative_variances: 1,
+          zero_variances: 0,
+          blocking_issue_count: 0,
+          can_post: true,
+        },
+        lines: [{
+          session_item_id: 'line-1',
+          item_id: 'item-1',
+          item_name: 'Coca-Cola',
+          storage_location: 'Main Storage',
+          unit: 'case',
+          expected_snapshot: 10,
+          movement_delta_since_snapshot: 0,
+          expected_at_count: 10,
+          counted_quantity: 8,
+          counted_at: '2026-07-21T11:00:00.000Z',
+          variance_quantity: -2,
+          current_live_quantity: 10,
+          resulting_quantity_after_post: 8,
+        }],
+      }),
+      error: null,
+    })
+
+    const result = await previewInventoryCountFinish({
+      workspaceId: 'workspace-1',
+      sessionId: 'session-1',
+    })
+
+    expect(fromMock).not.toHaveBeenCalled()
+    expect(rpcMock).toHaveBeenCalledWith('preview_inventory_count_finish', {
+      p_workspace_id: 'workspace-1',
+      p_session_id: 'session-1',
+    })
+    expect(result.snapshotAt).toBe('2026-07-21T10:00:00.000Z')
+    expect(result.lines[0]).toMatchObject({
+      expectedSnapshot: 10,
+      movementDeltaSinceSnapshot: 0,
+      expectedAtCount: 10,
+      countedQuantity: 8,
+      varianceQuantity: -2,
+      currentLiveQuantity: 10,
+      resultingQuantityAfterPost: 8,
+    })
+    expect(result.canPost).toBe(true)
+  })
+
+  it('maps signed positive/negative adjustments, mixed and zero-movement lines', async () => {
+    rpcMock.mockResolvedValueOnce({
+      data: previewPayload({
+        lines: [{
+          session_item_id: 'line-adj-pos',
+          item_id: 'item-1',
+          item_name: 'Coca-Cola',
+          storage_location: 'Main Storage',
+          unit: 'case',
+          expected_snapshot: 10,
+          movement_delta_since_snapshot: 3,
+          expected_at_count: 13,
+          counted_quantity: 12,
+          counted_at: '2026-07-21T11:00:00.000Z',
+          variance_quantity: -1,
+          current_live_quantity: 13,
+          resulting_quantity_after_post: 12,
+        }],
+      }),
+      error: null,
+    })
+
+    const positiveAdj = await previewInventoryCountFinish({
+      workspaceId: 'workspace-1',
+      sessionId: 'session-1',
+    })
+    expect(positiveAdj.lines[0]).toMatchObject({
+      movementDeltaSinceSnapshot: 3,
+      expectedAtCount: 13,
+      varianceQuantity: -1,
+      resultingQuantityAfterPost: 12,
+    })
+
+    rpcMock.mockResolvedValueOnce({
+      data: previewPayload({
+        lines: [{
+          session_item_id: 'line-adj-neg',
+          item_id: 'item-1',
+          item_name: 'Coca-Cola',
+          storage_location: 'Main Storage',
+          unit: 'case',
+          expected_snapshot: 10,
+          movement_delta_since_snapshot: -4,
+          expected_at_count: 6,
+          counted_quantity: 6,
+          counted_at: '2026-07-21T11:00:00.000Z',
+          variance_quantity: 0,
+          current_live_quantity: 6,
+          resulting_quantity_after_post: 6,
+        }],
+      }),
+      error: null,
+    })
+
+    const negativeAdj = await previewInventoryCountFinish({
+      workspaceId: 'workspace-1',
+      sessionId: 'session-1',
+    })
+    expect(negativeAdj.lines[0]).toMatchObject({
+      movementDeltaSinceSnapshot: -4,
+      expectedAtCount: 6,
+      varianceQuantity: 0,
+      resultingQuantityAfterPost: 6,
+    })
+
+    rpcMock.mockResolvedValueOnce({
+      data: previewPayload({
+        lines: [{
+          session_item_id: 'line-mixed',
+          item_id: 'item-1',
+          item_name: 'Coca-Cola',
+          storage_location: 'Main Storage',
+          unit: 'case',
+          expected_snapshot: 10,
+          movement_delta_since_snapshot: 1,
+          expected_at_count: 11,
+          counted_quantity: 9,
+          counted_at: '2026-07-21T11:00:00.000Z',
+          variance_quantity: -2,
+          current_live_quantity: 11,
+          resulting_quantity_after_post: 9,
+        }],
+      }),
+      error: null,
+    })
+
+    const mixed = await previewInventoryCountFinish({
+      workspaceId: 'workspace-1',
+      sessionId: 'session-1',
+    })
+    expect(mixed.lines[0]).toMatchObject({
+      movementDeltaSinceSnapshot: 1,
+      expectedAtCount: 11,
+      varianceQuantity: -2,
+      resultingQuantityAfterPost: 9,
+    })
+
+    rpcMock.mockResolvedValueOnce({
+      data: previewPayload({
+        lines: [{
+          session_item_id: 'line-zero-move',
+          item_id: 'item-1',
+          item_name: 'Coca-Cola',
+          storage_location: 'Main Storage',
+          unit: 'case',
+          expected_snapshot: 10,
+          movement_delta_since_snapshot: 0,
+          expected_at_count: 10,
+          counted_quantity: 0,
+          counted_at: '2026-07-21T11:00:00.000Z',
+          variance_quantity: -10,
+          current_live_quantity: 10,
+          resulting_quantity_after_post: 0,
+        }],
+      }),
+      error: null,
+    })
+
+    const countedZero = await previewInventoryCountFinish({
+      workspaceId: 'workspace-1',
+      sessionId: 'session-1',
+    })
+    expect(countedZero.lines[0]).toMatchObject({
+      countedQuantity: 0,
+      movementDeltaSinceSnapshot: 0,
+      varianceQuantity: -10,
+      resultingQuantityAfterPost: 0,
+    })
+  })
+
+  it('maps stock_count blocker responses without inventing reconciliation values', async () => {
+    rpcMock.mockResolvedValueOnce({
+      data: previewPayload({
+        can_post: false,
+        lines: [],
+        blocking_issues: [{
+          code: 'unsupported_stock_count_in_window',
+      session_item_id: 'line-1',
+      item_id: 'item-1',
+      item_name: 'Coca-Cola',
+      message: 'A stock_count movement exists between snapshot and counted_at. Absolute-set movements cannot be reconciled as deltas.',
+    }],
+        summary: {
+          total_lines: 1,
+          counted_lines: 0,
+          skipped_lines: 0,
+          changed_items: 0,
+          unchanged_items: 0,
+          positive_variances: 0,
+          negative_variances: 0,
+          zero_variances: 0,
+          blocking_issue_count: 1,
+          can_post: false,
+        },
+      }),
+      error: null,
+    })
+
+    const blocked = await previewInventoryCountFinish({
+      workspaceId: 'workspace-1',
+      sessionId: 'session-1',
+    })
+    expect(blocked.canPost).toBe(false)
+    expect(blocked.lines).toEqual([])
+    expect(blocked.blockingIssues[0].code).toBe('unsupported_stock_count_in_window')
+    expect(blocked.snapshotAt).toBe('2026-07-21T10:00:00.000Z')
+  })
+
+  it('maps sale-before-counting and receipt-before-counting scenarios', async () => {
+    rpcMock.mockResolvedValueOnce({
+      data: previewPayload({
+        lines: [{
+          session_item_id: 'line-sale',
+          item_id: 'item-1',
+          item_name: 'Coca-Cola',
+          storage_location: 'Main Storage',
+          unit: 'case',
+          expected_snapshot: 10,
+          movement_delta_since_snapshot: -2,
+          expected_at_count: 8,
+          counted_quantity: 8,
+          counted_at: '2026-07-21T11:00:00.000Z',
+          variance_quantity: 0,
+          current_live_quantity: 8,
+          resulting_quantity_after_post: 8,
+        }],
+        summary: {
+          total_lines: 1,
+          counted_lines: 1,
+          skipped_lines: 0,
+          changed_items: 0,
+          unchanged_items: 1,
+          positive_variances: 0,
+          negative_variances: 0,
+          zero_variances: 1,
+          blocking_issue_count: 0,
+          can_post: true,
+        },
+      }),
+      error: null,
+    })
+
+    const sale = await previewInventoryCountFinish({
+      workspaceId: 'workspace-1',
+      sessionId: 'session-1',
+    })
+    expect(sale.lines[0]).toMatchObject({
+      movementDeltaSinceSnapshot: -2,
+      expectedAtCount: 8,
+      varianceQuantity: 0,
+      resultingQuantityAfterPost: 8,
+    })
+
+    rpcMock.mockResolvedValueOnce({
+      data: previewPayload({
+        lines: [{
+          session_item_id: 'line-receipt',
+          item_id: 'item-1',
+          item_name: 'Coca-Cola',
+          storage_location: 'Main Storage',
+          unit: 'case',
+          expected_snapshot: 10,
+          movement_delta_since_snapshot: 5,
+          expected_at_count: 15,
+          counted_quantity: 14,
+          counted_at: '2026-07-21T11:00:00.000Z',
+          variance_quantity: -1,
+          current_live_quantity: 15,
+          resulting_quantity_after_post: 14,
+        }],
+        summary: {
+          total_lines: 1,
+          counted_lines: 1,
+          skipped_lines: 0,
+          changed_items: 1,
+          unchanged_items: 0,
+          positive_variances: 0,
+          negative_variances: 1,
+          zero_variances: 0,
+          blocking_issue_count: 0,
+          can_post: true,
+        },
+      }),
+      error: null,
+    })
+
+    const receipt = await previewInventoryCountFinish({
+      workspaceId: 'workspace-1',
+      sessionId: 'session-1',
+    })
+    expect(receipt.lines[0]).toMatchObject({
+      movementDeltaSinceSnapshot: 5,
+      expectedAtCount: 15,
+      varianceQuantity: -1,
+      currentLiveQuantity: 15,
+      resultingQuantityAfterPost: 14,
+    })
+  })
+
+  it('maps movement-after-counting and skipped/blocking readiness', async () => {
+    rpcMock.mockResolvedValueOnce({
+      data: previewPayload({
+        lines: [{
+          session_item_id: 'line-after',
+          item_id: 'item-1',
+          item_name: 'Coca-Cola',
+          storage_location: 'Main Storage',
+          unit: 'case',
+          expected_snapshot: 10,
+          movement_delta_since_snapshot: 0,
+          expected_at_count: 10,
+          counted_quantity: 10,
+          counted_at: '2026-07-21T11:00:00.000Z',
+          variance_quantity: 0,
+          current_live_quantity: 15,
+          resulting_quantity_after_post: 15,
+        }],
+        summary: {
+          total_lines: 1,
+          counted_lines: 1,
+          skipped_lines: 0,
+          changed_items: 0,
+          unchanged_items: 1,
+          positive_variances: 0,
+          negative_variances: 0,
+          zero_variances: 1,
+          blocking_issue_count: 0,
+          can_post: true,
+        },
+      }),
+      error: null,
+    })
+
+    const after = await previewInventoryCountFinish({
+      workspaceId: 'workspace-1',
+      sessionId: 'session-1',
+    })
+    expect(after.lines[0]).toMatchObject({
+      expectedAtCount: 10,
+      varianceQuantity: 0,
+      currentLiveQuantity: 15,
+      resultingQuantityAfterPost: 15,
+    })
+
+    rpcMock.mockResolvedValueOnce({
+      data: previewPayload({
+        can_post: false,
+        lines: [],
+        skipped: [{
+          session_item_id: 'skip-1',
+          item_id: 'item-2',
+          item_name: 'Oat Milk',
+          storage_location: 'Coffee Station',
+          unit: 'litre',
+          line_status: 'skipped',
+          warning: 'Skipped lines are not posted and keep live quantity unchanged.',
+        }],
+        blocking_issues: [{
+          code: 'skipped_lines_present',
+          session_item_id: null,
+          item_id: null,
+          item_name: null,
+          message: '1 skipped line(s) must be counted before posting. Skipped lines are not treated as zero.',
+        }, {
+          code: 'missing_counted_at',
+          session_item_id: 'line-bad',
+          item_id: 'item-3',
+          item_name: 'Olive Oil',
+          message: 'Counted line is missing counted_at and cannot be reconciled.',
+        }, {
+          code: 'missing_stock_item',
+          session_item_id: 'line-orphan',
+          item_id: null,
+          item_name: 'Ghost Item',
+          message: 'Counted line is missing a linked stock item and cannot be posted.',
+        }],
+        summary: {
+          total_lines: 3,
+          counted_lines: 0,
+          skipped_lines: 1,
+          changed_items: 0,
+          unchanged_items: 0,
+          positive_variances: 0,
+          negative_variances: 0,
+          zero_variances: 0,
+          blocking_issue_count: 3,
+          can_post: false,
+        },
+      }),
+      error: null,
+    })
+
+    const blocked = await previewInventoryCountFinish({
+      workspaceId: 'workspace-1',
+      sessionId: 'session-1',
+    })
+    expect(blocked.canPost).toBe(false)
+    expect(blocked.summary.canPost).toBe(false)
+    expect(blocked.skipped).toHaveLength(1)
+    expect(blocked.blockingIssues.map((issue) => issue.code)).toEqual([
+      'skipped_lines_present',
+      'missing_counted_at',
+      'missing_stock_item',
+    ])
+  })
+
+  it('rejects empty or invalid preview responses and performs no table reads', async () => {
+    rpcMock.mockResolvedValueOnce({ data: null, error: null })
+
+    await expect(
+      previewInventoryCountFinish({
+        workspaceId: 'workspace-1',
+        sessionId: 'session-1',
+      }),
+    ).rejects.toThrow('Finish count preview response was empty or invalid.')
+
+    expect(fromMock).not.toHaveBeenCalled()
+    const serviceSource = readFileSync(
+      resolve(process.cwd(), 'src/services/inventoryCountService.js'),
+      'utf8',
+    )
+    expect(serviceSource).toContain("const PREVIEW_FINISH_RPC = 'preview_inventory_count_finish'")
+    expect(serviceSource).toContain('mapInventoryCountFinishPreviewResult')
+    expect(serviceSource).not.toMatch(
+      /previewInventoryCountFinish[\s\S]*expectedSnapshot\s*\+|previewInventoryCountFinish[\s\S]*countedQuantity\s*-/,
+    )
+  })
+
+  it('normalizes known preview authorization and status errors', async () => {
+    rpcMock.mockResolvedValueOnce({
+      data: null,
+      error: { message: 'inventory_count_preview_forbidden' },
+    })
+
+    await expect(
+      previewInventoryCountFinish({
+        workspaceId: 'workspace-1',
+        sessionId: 'session-1',
+      }),
+    ).rejects.toThrow('You do not have permission to manage inventory counts for this workspace.')
+
+    rpcMock.mockResolvedValueOnce({
+      data: null,
+      error: { message: 'inventory_count_preview_session_not_complete' },
+    })
+
+    await expect(
+      previewInventoryCountFinish({
+        workspaceId: 'workspace-1',
+        sessionId: 'session-1',
+      }),
+    ).rejects.toThrow('Inventory count session must be counting complete to preview finish.')
+
+    rpcMock.mockResolvedValueOnce({
+      data: null,
+      error: { message: 'inventory_count_preview_workspace_mismatch' },
+    })
+
+    await expect(
+      previewInventoryCountFinish({
+        workspaceId: 'workspace-1',
+        sessionId: 'session-1',
+      }),
+    ).rejects.toThrow('Inventory count session does not belong to this workspace.')
+
+    rpcMock.mockResolvedValueOnce({
+      data: null,
+      error: { message: 'inventory_count_preview_snapshot_missing' },
+    })
+
+    await expect(
+      previewInventoryCountFinish({
+        workspaceId: 'workspace-1',
+        sessionId: 'session-1',
+      }),
+    ).rejects.toThrow('Inventory count snapshot was not found for this session.')
+  })
+})
+
+describe('preview_inventory_count_finish SQL contract', () => {
+  const sql = readFileSync(
+    resolve(process.cwd(), 'supabase/inventory_count_preview_finish_rpc.sql'),
+    'utf8',
+  )
+  const functionBody = sql.slice(sql.indexOf('as $$'), sql.indexOf('$$;') + 3)
+
+  it('defines a read-only SECURITY DEFINER RPC with auth and authenticated grant', () => {
+    expect(sql).toContain('create or replace function public.preview_inventory_count_finish(')
+    expect(sql).toContain('p_workspace_id uuid')
+    expect(sql).toContain('p_session_id uuid')
+    expect(sql).toContain('returns jsonb')
+    expect(sql).toMatch(/security definer/i)
+    expect(sql).toContain('set search_path = public')
+    expect(sql).toContain('auth.uid()')
+    expect(sql).toContain('inventory_count_preview_unauthenticated')
+    expect(sql).toContain('can_manage_workspace_stock(p_workspace_id)')
+    expect(sql).toContain('inventory_count_preview_forbidden')
+    expect(sql).toContain('grant execute on function public.preview_inventory_count_finish(')
+    expect(sql).toContain('to authenticated')
+  })
+
+  it('implements Strategy 4 window, deltas, and result-after-post formula', () => {
+    expect(functionBody).toContain("v_session.status is distinct from 'counting_complete'")
+    expect(functionBody).toContain('inventory_count_preview_session_not_complete')
+    expect(functionBody).toContain('v_snapshot_at := v_session.snapshot_at')
+    expect(functionBody).toContain('inventory_count_preview_snapshot_missing')
+    expect(functionBody).not.toContain('select min(i.created_at)')
+    expect(functionBody).not.toContain('min(i.created_at)')
+    expect(functionBody).toContain('m.created_at > v_snapshot_at')
+    expect(functionBody).toContain('m.created_at <= i.counted_at')
+    expect(functionBody).toContain("when 'receive' then abs(m.quantity)")
+    expect(functionBody).toContain("when 'usage' then -abs(m.quantity)")
+    expect(functionBody).toContain("when 'adjustment' then m.quantity")
+    expect(functionBody).toContain("m.type in ('receive', 'usage', 'adjustment')")
+    expect(functionBody).toContain("m.type = 'stock_count'")
+    expect(functionBody).toContain("'expected_at_count', (i.expected_snapshot + coalesce(deltas.net_delta, 0))")
+    expect(functionBody).toContain("'variance_quantity', (i.counted_quantity - (i.expected_snapshot + coalesce(deltas.net_delta, 0)))")
+    expect(functionBody).toContain('si.current_quantity')
+    expect(functionBody).toContain('+ (i.counted_quantity - (i.expected_snapshot + coalesce(deltas.net_delta, 0)))')
+    expect(functionBody).not.toContain("'resulting_quantity_after_post', i.counted_quantity")
+    expect(functionBody).not.toContain('(i.counted_quantity - i.expected_snapshot)')
+  })
+
+  it('exposes skipped warnings and remains read-only for writes', () => {
+    expect(functionBody).toContain("i.line_status = 'skipped'")
+    expect(functionBody).toContain('skipped_lines_present')
+    expect(functionBody).toContain('missing_counted_at')
+    expect(functionBody).toContain('missing_stock_item')
+    expect(functionBody).toContain('can_post')
+    expect(functionBody).not.toMatch(/\binsert\b/i)
+    expect(functionBody).not.toMatch(/\bupdate\b/i)
+    expect(functionBody).not.toMatch(/\bdelete\b/i)
+  })
+})
+
+describe('inventory_count_snapshot_at_hardening SQL contract', () => {
+  const sql = readFileSync(
+    resolve(process.cwd(), 'supabase/inventory_count_snapshot_at_hardening.sql'),
+    'utf8',
+  )
+
+  it('adds snapshot_at, backfills from item created_at, and revokes authenticated writes', () => {
+    expect(sql).toContain('add column if not exists snapshot_at timestamptz')
+    expect(sql).toContain('min(i.created_at) as min_created_at')
+    expect(sql).toContain('and s.snapshot_at is null')
+    expect(sql).toContain(
+      'revoke insert, update, delete on table public.inventory_count_session_items from authenticated',
+    )
+    expect(sql).toContain(
+      'grant select on table public.inventory_count_session_items to authenticated',
+    )
+    expect(sql).not.toMatch(/revoke\s+select\b/i)
+  })
+
+  it('defines freeze-field and snapshot_at immutability triggers', () => {
+    expect(sql).toContain('protect_inventory_count_session_item_freeze_fields')
+    expect(sql).toContain('inventory_count_session_items_protect_freeze_fields')
+    expect(sql).toContain('before update on public.inventory_count_session_items')
+    expect(sql).toContain('inventory_count_item_frozen_field')
+    expect(sql).toContain('new.expected_snapshot is distinct from old.expected_snapshot')
+    expect(sql).toContain('new.created_at is distinct from old.created_at')
+    expect(sql).toContain('protect_inventory_count_session_snapshot_at')
+    expect(sql).toContain('inventory_count_sessions_protect_snapshot_at')
+    expect(sql).toContain('before update on public.inventory_count_sessions')
+    expect(sql).toContain('inventory_count_session_snapshot_at_immutable')
+    expect(sql).toContain('old.snapshot_at is not null')
+    expect(sql).toContain('new.snapshot_at is distinct from old.snapshot_at')
+  })
+})
+
+describe('build_inventory_count_snapshot SQL contract (P8.3.9c)', () => {
+  const sql = readFileSync(
+    resolve(process.cwd(), 'supabase/inventory_count_build_snapshot_rpc.sql'),
+    'utf8',
+  )
+  const functionBody = sql.slice(sql.indexOf('as $$'), sql.indexOf('$$;') + 3)
+
+  it('uses one v_snapshot_created_at for item rows and session.snapshot_at', () => {
+    expect(functionBody).toContain('v_snapshot_created_at timestamptz := now()')
+    expect((functionBody.match(/v_snapshot_created_at\s+timestamptz\s*:=\s*now\(\)/g) || []).length).toBe(1)
+    expect(functionBody).toContain('v_session.snapshot_at is not null')
+    expect(functionBody).toContain('inventory_count_snapshot_already_exists')
+    expect(functionBody).toContain('snapshot_at = v_snapshot_created_at')
+    expect(functionBody).toContain('and s.snapshot_at is null')
   })
 })

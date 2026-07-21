@@ -1,15 +1,17 @@
 -- =============================================================================
--- P8.3.2 — Build Inventory Count Snapshot RPC
+-- P8.3.2 / P8.3.9c — Build Inventory Count Snapshot RPC
 -- =============================================================================
 -- Run manually in the Supabase SQL editor after:
 --   1. inventory_count_schema.sql (P8.3.0)
 --   2. inventory_count_rls_policies.sql (P8.3.0)
 --   3. inventory_count_create_session_rpc.sql (P8.3.1)
+--   4. inventory_count_snapshot_at_hardening.sql (P8.3.9c) — adds sessions.snapshot_at
 -- Do NOT auto-run from the app.
 --
 -- Purpose:
 --   Atomic SECURITY DEFINER entry point that freezes eligible stock_items into
---   inventory_count_session_items for an in_progress inventory count session.
+--   inventory_count_session_items and sets inventory_count_sessions.snapshot_at
+--   to one authoritative freeze timestamp.
 --
 -- Does NOT:
 --   - Accept snapshot values / quantities / items from the client
@@ -20,13 +22,6 @@
 --
 -- Authorization:
 --   owner / general_manager / manager via public.can_manage_workspace_stock
---
--- Prerequisites:
---   1. public.inventory_count_sessions exists
---   2. public.inventory_count_session_locations exists
---   3. public.inventory_count_session_items exists
---   4. public.stock_items exists
---   5. public.can_manage_workspace_stock(uuid) exists
 -- =============================================================================
 
 drop function if exists public.build_inventory_count_snapshot(uuid, uuid);
@@ -89,7 +84,11 @@ begin
     raise exception 'inventory_count_snapshot_session_not_in_progress';
   end if;
 
-  -- Duplicate snapshot prevention
+  -- Duplicate snapshot prevention (authoritative timestamp or existing rows)
+  if v_session.snapshot_at is not null then
+    raise exception 'inventory_count_snapshot_already_exists';
+  end if;
+
   select count(*)::integer
   into v_existing_item_count
   from public.inventory_count_session_items i
@@ -171,6 +170,19 @@ begin
 
   get diagnostics v_items_created = row_count;
 
+  -- Authoritative freeze timestamp (same transaction; null → timestamp allowed)
+  update public.inventory_count_sessions s
+  set
+    snapshot_at = v_snapshot_created_at,
+    updated_at = v_snapshot_created_at
+  where s.id = p_session_id
+    and s.workspace_id = p_workspace_id
+    and s.snapshot_at is null;
+
+  if not found then
+    raise exception 'inventory_count_snapshot_already_exists';
+  end if;
+
   return query
   select
     p_session_id,
@@ -183,41 +195,8 @@ revoke all on function public.build_inventory_count_snapshot(uuid, uuid) from pu
 grant execute on function public.build_inventory_count_snapshot(uuid, uuid) to authenticated;
 
 comment on function public.build_inventory_count_snapshot(uuid, uuid) is
-  'P8.3.2 SECURITY DEFINER freeze stock_items into inventory_count_session_items. No counting, posting, or stock mutations.';
+  'P8.3.2/P8.3.9c SECURITY DEFINER freeze stock_items into session items and set sessions.snapshot_at. No counting, posting, or stock mutations.';
 
--- =============================================================================
--- Verification (commented — run after apply; do not auto-execute)
--- =============================================================================
-
--- Function present / SECURITY DEFINER
--- select prosecdef
--- from pg_proc
--- where oid = 'public.build_inventory_count_snapshot(uuid, uuid)'::regprocedure;
-
--- Grants (expect authenticated EXECUTE; no public)
--- select grantee, privilege_type
--- from information_schema.routine_privileges
--- where routine_schema = 'public'
---   and routine_name = 'build_inventory_count_snapshot';
-
--- Manual role matrix:
---   unauthenticated     → inventory_count_snapshot_unauthenticated
---   staff / host        → inventory_count_snapshot_forbidden
---   manager+            → success when session in_progress and empty items
---   second call         → inventory_count_snapshot_already_exists
---   wrong workspace     → inventory_count_snapshot_workspace_mismatch
---   paused/posted/etc.  → inventory_count_snapshot_session_not_in_progress
--- Filtering:
---   include_inactive=false  → inactive stock_items excluded
---   include_zero_stock=false → current_quantity = 0 excluded
---   only session location_key values included
--- Atomicity: failed insert rolls back (no partial snapshot rows).
-
--- Example:
---   select * from public.build_inventory_count_snapshot(
---     '<workspace_uuid>',
---     '<session_uuid>'
---   );
 -- =============================================================================
 -- Rollback (emergency only)
 -- =============================================================================

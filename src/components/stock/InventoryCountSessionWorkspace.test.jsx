@@ -13,6 +13,7 @@ import {
   createInventoryCountSession,
   getInventoryCountSessionItems,
   getInventoryCountSessionLocations,
+  previewInventoryCountFinish,
   setInventoryCountSessionPauseState,
   updateInventoryCountItem,
 } from '../../services/inventoryCountService'
@@ -31,6 +32,7 @@ vi.mock('../../services/inventoryCountService', () => ({
   updateInventoryCountItem: vi.fn(),
   completeInventoryCountLocation: vi.fn(),
   setInventoryCountSessionPauseState: vi.fn(),
+  previewInventoryCountFinish: vi.fn(),
 }))
 
 function render(ui) {
@@ -225,6 +227,7 @@ describe('InventoryCountSessionWorkspace real session items', () => {
     updateInventoryCountItem.mockReset()
     completeInventoryCountLocation.mockReset()
     setInventoryCountSessionPauseState.mockReset()
+    previewInventoryCountFinish.mockReset()
 
     createInventoryCountSession.mockResolvedValue({
       id: 'session-real-1',
@@ -266,6 +269,29 @@ describe('InventoryCountSessionWorkspace real session items', () => {
       nextLocationId: 'loc-2',
       sessionStatus: 'in_progress',
       allLocationsCompleted: false,
+    })
+    previewInventoryCountFinish.mockResolvedValue({
+      sessionId: 'session-real-1',
+      workspaceId: 'workspace-test-id',
+      sessionStatus: 'counting_complete',
+      snapshotAt: '2026-07-21T10:00:00.000Z',
+      previewGeneratedAt: '2026-07-21T12:00:00.000Z',
+      canPost: true,
+      summary: {
+        totalLines: 0,
+        countedLines: 0,
+        skippedLines: 0,
+        changedItems: 0,
+        unchangedItems: 0,
+        positiveVariances: 0,
+        negativeVariances: 0,
+        zeroVariances: 0,
+        blockingIssueCount: 0,
+        canPost: true,
+      },
+      lines: [],
+      skipped: [],
+      blockingIssues: [],
     })
   })
 
@@ -485,7 +511,7 @@ describe('InventoryCountSessionWorkspace real session items', () => {
 
     expect(container.querySelector('.inventory-count-session-pill')?.textContent).toBe('In Progress')
     expect(container.textContent).not.toContain(
-      'All locations are complete. Finish Count will be added next.',
+      'All locations are complete. Review variances with Finish Count.',
     )
     expect(getButtonByText(container, 'Finish Count')?.disabled).toBe(true)
 
@@ -504,7 +530,7 @@ describe('InventoryCountSessionWorkspace real session items', () => {
     expect(container.querySelector('.inventory-count-session-footer-value')?.textContent)
       .toContain('Counting Complete')
     expect(container.textContent).toContain(
-      'All locations are complete. Finish Count will be added next.',
+      'All locations are complete. Review variances with Finish Count.',
     )
     expect(getButtonByText(container, 'Complete Location')?.disabled).toBe(true)
     expect(getButtonByText(container, 'Finish Count')?.disabled).toBe(false)
@@ -516,7 +542,7 @@ describe('InventoryCountSessionWorkspace real session items', () => {
     expect(container.querySelector('.inventory-count-session-pill')?.textContent)
       .toBe('Counting Complete')
     expect(container.textContent).toContain(
-      'All locations are complete. Finish Count will be added next.',
+      'All locations are complete. Review variances with Finish Count.',
     )
     expect(getButtonByText(container, 'Finish Count')?.disabled).toBe(false)
 
@@ -560,7 +586,7 @@ describe('InventoryCountSessionWorkspace real session items', () => {
     expect(getRailButton(container, 'Coffee Station')?.className).toContain('is-current')
     expect(container.querySelector('.inventory-count-session-pill')?.textContent).toBe('In Progress')
     expect(container.textContent).not.toContain(
-      'All locations are complete. Finish Count will be added next.',
+      'All locations are complete. Review variances with Finish Count.',
     )
 
     cleanup()
@@ -906,6 +932,7 @@ describe('InventoryCountSessionWorkspace pause and resume', () => {
     updateInventoryCountItem.mockReset()
     completeInventoryCountLocation.mockReset()
     setInventoryCountSessionPauseState.mockReset()
+    previewInventoryCountFinish.mockReset()
 
     getInventoryCountSessionLocations.mockResolvedValue(FIXTURE_LOCATIONS)
     getInventoryCountSessionItems.mockResolvedValue(FIXTURE_ITEMS)
@@ -1168,5 +1195,442 @@ describe('InventoryCountSessionWorkspace pause and resume', () => {
 
     cleanup()
     vi.useRealTimers()
+  })
+})
+
+describe('InventoryCountSessionWorkspace finish count preview', () => {
+  beforeEach(() => {
+    createInventoryCountSession.mockReset()
+    buildInventoryCountSnapshot.mockReset()
+    getInventoryCountSessionLocations.mockReset()
+    getInventoryCountSessionItems.mockReset()
+    updateInventoryCountItem.mockReset()
+    completeInventoryCountLocation.mockReset()
+    setInventoryCountSessionPauseState.mockReset()
+    previewInventoryCountFinish.mockReset()
+
+    getInventoryCountSessionLocations.mockResolvedValue([
+      sessionLocation('loc-1', 'Main Storage', 0, 'current'),
+      sessionLocation('loc-2', 'Coffee Station', 1, 'completed'),
+      sessionLocation('loc-3', 'Kitchen', 2, 'completed'),
+    ])
+    getInventoryCountSessionItems.mockResolvedValue([
+      sessionItem({
+        id: 'ms-1',
+        itemName: 'Coca-Cola',
+        storageLocation: 'Main Storage',
+        expectedSnapshot: 10,
+        countedQuantity: 10,
+        lineStatus: 'counted',
+      }),
+      sessionItem({
+        id: 'cs-1',
+        itemName: 'Espresso Beans',
+        unit: 'kg',
+        storageLocation: 'Coffee Station',
+        expectedSnapshot: 2,
+        countedQuantity: 2,
+        lineStatus: 'counted',
+      }),
+      sessionItem({
+        id: 'k-1',
+        itemName: 'Olive Oil',
+        unit: 'litre',
+        storageLocation: 'Kitchen',
+        expectedSnapshot: 4,
+        countedQuantity: 4,
+        lineStatus: 'counted',
+      }),
+    ])
+    completeInventoryCountLocation.mockResolvedValue({
+      sessionId: 'session-real-1',
+      completedLocationId: 'loc-1',
+      nextLocationId: null,
+      sessionStatus: 'counting_complete',
+      allLocationsCompleted: true,
+    })
+    previewInventoryCountFinish.mockResolvedValue({
+      sessionId: 'session-real-1',
+      workspaceId: 'workspace-test-id',
+      sessionStatus: 'counting_complete',
+      snapshotAt: '2026-07-21T10:00:00.000Z',
+      previewGeneratedAt: '2026-07-21T12:00:00.000Z',
+      canPost: true,
+      summary: {
+        totalLines: 3,
+        countedLines: 3,
+        skippedLines: 0,
+        changedItems: 2,
+        unchangedItems: 1,
+        positiveVariances: 1,
+        negativeVariances: 1,
+        zeroVariances: 1,
+        blockingIssueCount: 0,
+        canPost: true,
+      },
+      lines: [
+        {
+          sessionItemId: 'ms-1',
+          itemId: 'stock-ms-1',
+          itemName: 'Coca-Cola',
+          storageLocation: 'Main Storage',
+          unit: 'case',
+          expectedSnapshot: 10,
+          movementDeltaSinceSnapshot: 0,
+          expectedAtCount: 10,
+          countedQuantity: 8,
+          countedAt: '2026-07-21T11:00:00.000Z',
+          varianceQuantity: -2,
+          currentLiveQuantity: 10,
+          resultingQuantityAfterPost: 8,
+        },
+        {
+          sessionItemId: 'cs-1',
+          itemId: 'stock-cs-1',
+          itemName: 'Espresso Beans',
+          storageLocation: 'Coffee Station',
+          unit: 'kg',
+          expectedSnapshot: 2,
+          movementDeltaSinceSnapshot: -1,
+          expectedAtCount: 1,
+          countedQuantity: 1,
+          countedAt: '2026-07-21T11:05:00.000Z',
+          varianceQuantity: 0,
+          currentLiveQuantity: 1,
+          resultingQuantityAfterPost: 1,
+        },
+        {
+          sessionItemId: 'k-1',
+          itemId: 'stock-k-1',
+          itemName: 'Olive Oil',
+          storageLocation: 'Kitchen',
+          unit: 'litre',
+          expectedSnapshot: 4,
+          movementDeltaSinceSnapshot: 5,
+          expectedAtCount: 9,
+          countedQuantity: 10,
+          countedAt: '2026-07-21T11:10:00.000Z',
+          varianceQuantity: 1,
+          currentLiveQuantity: 9,
+          resultingQuantityAfterPost: 10,
+        },
+      ],
+      skipped: [],
+      blockingIssues: [],
+    })
+  })
+
+  async function openFinishPreview() {
+    const rendered = await renderWorkspace()
+
+    await act(async () => {
+      getButtonByText(rendered.container, 'Complete Location').click()
+      await Promise.resolve()
+    })
+
+    await act(async () => {
+      getButtonByText(rendered.container, 'Finish Count').click()
+      await Promise.resolve()
+    })
+
+    return rendered
+  }
+
+  it('opens a finish preview dialog with reconciled Strategy 4 columns', async () => {
+    const { container, cleanup } = await openFinishPreview()
+
+    expect(previewInventoryCountFinish).toHaveBeenCalledWith({
+      workspaceId: 'workspace-test-id',
+      sessionId: 'session-real-1',
+    })
+
+    const dialog = container.querySelector('[role="dialog"][aria-label="Finish Count Preview"]')
+    expect(dialog).not.toBeNull()
+    expect(dialog.textContent).toContain('Finish Count Preview')
+    expect(dialog.textContent).toContain('Counting Complete')
+    expect(dialog.textContent).toContain('Expected at Count includes stock activity recorded after the snapshot')
+    expect(dialog.textContent).toContain('Total lines')
+    expect(dialog.textContent).toContain('Snapshot')
+    expect(dialog.textContent).toContain('Activity Since Snapshot')
+    expect(dialog.textContent).toContain('Expected at Count')
+    expect(dialog.textContent).toContain('Coca-Cola')
+    expect(dialog.textContent).toContain('-2')
+    expect(dialog.textContent).toContain('+1')
+    expect(dialog.textContent).toContain('Current Live')
+    expect(dialog.textContent).toContain('Result After Post')
+
+    cleanup()
+  })
+
+  it('shows skipped warnings, keeps Confirm disabled, and Cancel closes', async () => {
+    previewInventoryCountFinish.mockResolvedValueOnce({
+      sessionId: 'session-real-1',
+      workspaceId: 'workspace-test-id',
+      sessionStatus: 'counting_complete',
+      snapshotAt: '2026-07-21T10:00:00.000Z',
+      previewGeneratedAt: '2026-07-21T12:00:00.000Z',
+      canPost: false,
+      summary: {
+        totalLines: 2,
+        countedLines: 1,
+        skippedLines: 1,
+        changedItems: 0,
+        unchangedItems: 1,
+        positiveVariances: 0,
+        negativeVariances: 0,
+        zeroVariances: 1,
+        blockingIssueCount: 1,
+        canPost: false,
+      },
+      lines: [{
+        sessionItemId: 'ms-1',
+        itemId: 'stock-ms-1',
+        itemName: 'Coca-Cola',
+        storageLocation: 'Main Storage',
+        unit: 'case',
+        expectedSnapshot: 10,
+        movementDeltaSinceSnapshot: 0,
+        expectedAtCount: 10,
+        countedQuantity: 10,
+        countedAt: '2026-07-21T11:00:00.000Z',
+        varianceQuantity: 0,
+        currentLiveQuantity: 10,
+        resultingQuantityAfterPost: 10,
+      }],
+      skipped: [{
+        sessionItemId: 'cs-1',
+        itemId: 'stock-cs-1',
+        itemName: 'Espresso Beans',
+        storageLocation: 'Coffee Station',
+        unit: 'kg',
+        lineStatus: 'skipped',
+        warning: 'Skipped lines are not posted and keep live quantity unchanged.',
+      }],
+      blockingIssues: [{
+        code: 'skipped_lines_present',
+        sessionItemId: null,
+        itemId: null,
+        itemName: null,
+        message: '1 skipped line(s) must be counted before posting. Skipped lines are not treated as zero.',
+      }],
+    })
+
+    const { container, cleanup } = await openFinishPreview()
+
+    expect(container.textContent).toContain('Skipped: Espresso Beans')
+    expect(container.textContent).toContain('must be counted before posting')
+    expect(container.textContent).not.toMatch(/Skipped: Espresso Beans[\s\S]*Variance[\s\S]*0\b/)
+
+    const confirmBtn = getButtonByText(container, 'Confirm Finish Count')
+    expect(confirmBtn?.disabled).toBe(true)
+
+    await act(async () => {
+      confirmBtn.click()
+      await Promise.resolve()
+    })
+
+    expect(container.querySelector('[role="dialog"][aria-label="Finish Count Preview"]')).not.toBeNull()
+    expect(previewInventoryCountFinish).toHaveBeenCalledTimes(1)
+
+    await act(async () => {
+      getButtonByText(container, 'Cancel').click()
+      await Promise.resolve()
+    })
+
+    expect(container.querySelector('[role="dialog"][aria-label="Finish Count Preview"]')).toBeNull()
+    cleanup()
+  })
+
+  it('shows loading state while Finish Preview RPC is pending', async () => {
+    let resolvePreview
+    previewInventoryCountFinish.mockImplementationOnce(
+      () => new Promise((resolve) => {
+        resolvePreview = resolve
+      }),
+    )
+
+    const rendered = await renderWorkspace()
+
+    await act(async () => {
+      getButtonByText(rendered.container, 'Complete Location').click()
+      await Promise.resolve()
+    })
+
+    await act(async () => {
+      getButtonByText(rendered.container, 'Finish Count').click()
+      await Promise.resolve()
+    })
+
+    const dialog = rendered.container.querySelector('[role="dialog"][aria-label="Finish Count Preview"]')
+    expect(dialog).not.toBeNull()
+    expect(dialog.textContent).toContain('Loading finish preview…')
+    expect(getButtonByText(rendered.container, 'Confirm Finish Count')?.disabled).toBe(true)
+
+    await act(async () => {
+      resolvePreview({
+        sessionId: 'session-real-1',
+        workspaceId: 'workspace-test-id',
+        sessionStatus: 'counting_complete',
+        snapshotAt: '2026-07-21T10:00:00.000Z',
+        previewGeneratedAt: '2026-07-21T12:00:00.000Z',
+        canPost: true,
+        summary: {
+          totalLines: 1,
+          countedLines: 1,
+          skippedLines: 0,
+          changedItems: 0,
+          unchangedItems: 1,
+          positiveVariances: 0,
+          negativeVariances: 0,
+          zeroVariances: 1,
+          blockingIssueCount: 0,
+          canPost: true,
+        },
+        lines: [{
+          sessionItemId: 'ms-1',
+          itemId: 'stock-ms-1',
+          itemName: 'Coca-Cola',
+          storageLocation: 'Main Storage',
+          unit: 'case',
+          expectedSnapshot: 10,
+          movementDeltaSinceSnapshot: 0,
+          expectedAtCount: 10,
+          countedQuantity: 10,
+          countedAt: '2026-07-21T11:00:00.000Z',
+          varianceQuantity: 0,
+          currentLiveQuantity: 10,
+          resultingQuantityAfterPost: 10,
+        }],
+        skipped: [],
+        blockingIssues: [],
+      })
+      await Promise.resolve()
+    })
+
+    expect(dialog.textContent).not.toContain('Loading finish preview…')
+    expect(dialog.textContent).toContain('Coca-Cola')
+    rendered.cleanup()
+  })
+
+  it('shows Finish Preview RPC errors and keeps Confirm disabled', async () => {
+    previewInventoryCountFinish.mockRejectedValueOnce(
+      new Error('Inventory count snapshot was not found for this session.'),
+    )
+
+    const { container, cleanup } = await openFinishPreview()
+
+    expect(container.textContent).toContain('Inventory count snapshot was not found for this session.')
+    expect(getButtonByText(container, 'Confirm Finish Count')?.disabled).toBe(true)
+    cleanup()
+  })
+
+  it('renders stock_count blocker, counted zero, and refreshes RPC after cancel/reopen', async () => {
+    previewInventoryCountFinish.mockResolvedValueOnce({
+      sessionId: 'session-real-1',
+      workspaceId: 'workspace-test-id',
+      sessionStatus: 'counting_complete',
+      snapshotAt: '2026-07-21T10:00:00.000Z',
+      previewGeneratedAt: '2026-07-21T12:00:00.000Z',
+      canPost: false,
+      summary: {
+        totalLines: 1,
+        countedLines: 1,
+        skippedLines: 0,
+        changedItems: 1,
+        unchangedItems: 0,
+        positiveVariances: 0,
+        negativeVariances: 1,
+        zeroVariances: 0,
+        blockingIssueCount: 1,
+        canPost: false,
+      },
+      lines: [{
+        sessionItemId: 'ms-1',
+        itemId: 'stock-ms-1',
+        itemName: 'Coca-Cola',
+        storageLocation: 'Main Storage',
+        unit: 'case',
+        expectedSnapshot: 10,
+        movementDeltaSinceSnapshot: 0,
+        expectedAtCount: 10,
+        countedQuantity: 0,
+        countedAt: '2026-07-21T11:00:00.000Z',
+        varianceQuantity: -10,
+        currentLiveQuantity: 10,
+        resultingQuantityAfterPost: 0,
+      }],
+      skipped: [],
+      blockingIssues: [{
+        code: 'unsupported_stock_count_in_window',
+        sessionItemId: 'ms-1',
+        itemId: 'stock-ms-1',
+        itemName: 'Coca-Cola',
+        message: 'A stock_count movement exists between snapshot and counted_at. Absolute-set movements cannot be reconciled as deltas.',
+      }],
+    })
+
+    const { container, cleanup } = await openFinishPreview()
+    const dialog = container.querySelector('[role="dialog"][aria-label="Finish Count Preview"]')
+
+    expect(dialog?.textContent).toContain(
+      'A stock_count movement exists between snapshot and counted_at. Absolute-set movements cannot be reconciled as deltas.',
+    )
+    expect(dialog?.textContent).toContain('Coca-Cola')
+    expect(dialog?.textContent).toContain('Counted')
+    expect(dialog?.querySelector('tbody')?.textContent || '').toMatch(/Coca-ColacaseMain Storage100100-10100/)
+    expect(getButtonByText(container, 'Confirm Finish Count')?.disabled).toBe(true)
+    expect(previewInventoryCountFinish).toHaveBeenCalledTimes(1)
+
+    await act(async () => {
+      getButtonByText(container, 'Cancel').click()
+      await Promise.resolve()
+    })
+
+    previewInventoryCountFinish.mockResolvedValueOnce({
+      sessionId: 'session-real-1',
+      workspaceId: 'workspace-test-id',
+      sessionStatus: 'counting_complete',
+      snapshotAt: '2026-07-21T10:00:00.000Z',
+      previewGeneratedAt: '2026-07-21T12:05:00.000Z',
+      canPost: true,
+      summary: {
+        totalLines: 1,
+        countedLines: 1,
+        skippedLines: 0,
+        changedItems: 0,
+        unchangedItems: 1,
+        positiveVariances: 0,
+        negativeVariances: 0,
+        zeroVariances: 1,
+        blockingIssueCount: 0,
+        canPost: true,
+      },
+      lines: [{
+        sessionItemId: 'ms-1',
+        itemId: 'stock-ms-1',
+        itemName: 'Coca-Cola',
+        storageLocation: 'Main Storage',
+        unit: 'case',
+        expectedSnapshot: 10,
+        movementDeltaSinceSnapshot: 0,
+        expectedAtCount: 10,
+        countedQuantity: 10,
+        countedAt: '2026-07-21T11:00:00.000Z',
+        varianceQuantity: 0,
+        currentLiveQuantity: 10,
+        resultingQuantityAfterPost: 10,
+      }],
+      skipped: [],
+      blockingIssues: [],
+    })
+
+    await act(async () => {
+      getButtonByText(container, 'Finish Count').click()
+      await Promise.resolve()
+    })
+
+    expect(previewInventoryCountFinish).toHaveBeenCalledTimes(2)
+    expect(container.querySelector('[role="dialog"][aria-label="Finish Count Preview"]')).not.toBeNull()
+    cleanup()
   })
 })
