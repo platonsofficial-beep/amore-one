@@ -18,6 +18,10 @@
 -- Business writes:
 --   - INSERT public.stock_items (from source_snapshot only; supplier_id NULL)
 --   - UPDATE inventory_stock_item_map: stock_item_id + status='created' only
+--   - Does NOT rewrite resolution_type (preserves auto_create / manual_create)
+--
+-- P8.6.2a eligibility: classified + resolution_type in ('auto_create','manual_create')
+--   so Manual Resolution force_create rows are consumed by this same stage.
 --
 -- Does NOT:
 --   - Set migrated_at
@@ -250,13 +254,13 @@ begin
   from public.inventory_stock_item_map m
   where m.workspace_id = p_workspace_id
     and m.status = 'created'
-    and m.resolution_type = 'auto_create';
+    and m.resolution_type in ('auto_create', 'manual_create');
 
   select count(*)::bigint into v_eligible
   from public.inventory_stock_item_map m
   where m.workspace_id = p_workspace_id
     and m.status = 'classified'
-    and m.resolution_type = 'auto_create'
+    and m.resolution_type in ('auto_create', 'manual_create')
     and m.stock_item_id is null
     and m.source_snapshot is not null
     and m.source_snapshot <> '{}'::jsonb;
@@ -266,7 +270,7 @@ begin
     from public.inventory_stock_item_map m
     where m.workspace_id = p_workspace_id
       and m.status = 'classified'
-      and m.resolution_type = 'auto_create'
+      and m.resolution_type in ('auto_create', 'manual_create')
       and m.stock_item_id is null
       and m.source_snapshot is not null
       and m.source_snapshot <> '{}'::jsonb
@@ -292,7 +296,7 @@ begin
       end if;
 
       if locked.status is distinct from 'classified'
-         or locked.resolution_type is distinct from 'auto_create' then
+         or locked.resolution_type not in ('auto_create', 'manual_create') then
         v_race_skipped := v_race_skipped + 1;
         v_skipped := v_skipped + 1;
         continue;
@@ -437,7 +441,7 @@ begin
         status = 'created'
       where m.id = locked.id
         and m.status = 'classified'
-        and m.resolution_type = 'auto_create'
+        and m.resolution_type in ('auto_create', 'manual_create')
         and m.stock_item_id is null;
 
       if not found then
@@ -453,13 +457,13 @@ begin
     end;
   end loop;
 
-  -- Remaining classified auto_create rows + per-row errors require attention.
+  -- Remaining classified create-eligible rows + per-row errors require attention.
   v_critical_count := v_errors;
   select count(*)::bigint into v_attention_count
   from public.inventory_stock_item_map m
   where m.workspace_id = p_workspace_id
     and m.status = 'classified'
-    and m.resolution_type = 'auto_create';
+    and m.resolution_type in ('auto_create', 'manual_create');
 
   v_attention_count := v_attention_count + v_errors;
   v_total_findings := v_attention_count;
@@ -475,7 +479,7 @@ begin
     'groups', jsonb_build_array(
       jsonb_build_object(
         'key', 'eligible',
-        'label', 'Eligible classified auto_create rows',
+        'label', 'Eligible classified auto_create/manual_create rows',
         'count', v_eligible,
         'requires_attention', false
       ),
@@ -621,7 +625,7 @@ revoke all on function public.run_inventory_migration_auto_create(uuid, uuid) fr
 grant execute on function public.run_inventory_migration_auto_create(uuid, uuid) to authenticated;
 
 comment on function public.run_inventory_migration_auto_create(uuid, uuid) is
-  'P7.8.11 stage-owned Auto Create: locks session/step, creates stock_items from map source_snapshot for classified+auto_create rows, sets map stock_item_id+created. No migrated_at; no supplier_id; no movements.';
+  'P7.8.11/P8.6.2a stage-owned Auto Create: locks session/step, creates stock_items from map source_snapshot for classified+auto_create|manual_create rows, sets map stock_item_id+created. Preserves resolution_type. No migrated_at; no supplier_id; no movements.';
 
 -- =============================================================================
 -- Verification (commented — run after apply; do not auto-execute)

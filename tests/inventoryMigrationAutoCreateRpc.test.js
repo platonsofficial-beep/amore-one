@@ -85,12 +85,20 @@ describe('inventory_migration_auto_create_rpc.sql source review', () => {
     expect(functionBody).toContain("v_result_status := 'passed'")
   })
 
-  it('restricts eligibility to classified+auto_create with null stock_item_id and snapshot', () => {
+  it('restricts eligibility to classified+auto_create|manual_create with null stock_item_id and snapshot', () => {
     expect(functionBody).toContain("m.status = 'classified'")
-    expect(functionBody).toContain("m.resolution_type = 'auto_create'")
+    expect(functionBody).toContain(
+      "m.resolution_type in ('auto_create', 'manual_create')",
+    )
     expect(functionBody).toContain('m.stock_item_id is null')
     expect(functionBody).toContain("m.source_snapshot <> '{}'::jsonb")
     expect(functionBody).toContain('m.workspace_id = p_workspace_id')
+    // Same create path for both resolution types; no rewrite to auto_create.
+    expect(functionBody).toContain(
+      "locked.resolution_type not in ('auto_create', 'manual_create')",
+    )
+    const setClause = mapUpdate.slice(mapUpdate.indexOf('set'), mapUpdate.indexOf('where'))
+    expect(setClause).not.toContain('resolution_type')
   })
 
   it('inserts stock_items from source_snapshot with repository field shape', () => {
@@ -121,8 +129,26 @@ describe('inventory_migration_auto_create_rpc.sql source review', () => {
     expect(setClause).not.toContain('resolution_type')
     expect(setClause).not.toContain('source_snapshot')
     expect(mapUpdate).toContain("m.status = 'classified'")
-    expect(mapUpdate).toContain("m.resolution_type = 'auto_create'")
+    expect(mapUpdate).toContain(
+      "m.resolution_type in ('auto_create', 'manual_create')",
+    )
     expect(mapUpdate).toContain('m.stock_item_id is null')
+  })
+
+  it('P8.6.2a consumes manual_create with the same protections as auto_create', () => {
+    const eligibleMentions = functionBody.split(
+      "resolution_type in ('auto_create', 'manual_create')",
+    ).length - 1
+    expect(eligibleMentions).toBeGreaterThanOrEqual(4)
+    expect(functionBody).toContain('insert into public.stock_items')
+    expect(functionBody).toContain("status = 'created'")
+    expect(functionBody).not.toMatch(/resolution_type\s*=\s*'auto_create'\s*where/i)
+    expect(functionBody).toContain('for update')
+    expect(functionBody).toContain('m.workspace_id = p_workspace_id')
+    expect(functionBody).toContain('m.stock_item_id is null')
+    expect(functionBody).not.toMatch(/insert\s+into\s+public\.stock_movements/i)
+    expect(functionBody).not.toMatch(/set\s+current_quantity/i)
+    expect(functionBody).not.toMatch(/migrated_at\s*=/i)
   })
 
   it('records versioned evidence and derives attention from remaining/errors', () => {
