@@ -1408,3 +1408,55 @@ describe('build_inventory_count_snapshot SQL contract (P8.3.9c)', () => {
     expect(functionBody).toContain('and s.snapshot_at is null')
   })
 })
+
+describe('post_inventory_count_finish SQL contract (P8.5.2 foundation)', () => {
+  const sql = readFileSync(
+    resolve(process.cwd(), 'supabase/inventory_count_post_finish_rpc.sql'),
+    'utf8',
+  )
+  const functionBody = sql.slice(sql.indexOf('as $$'), sql.indexOf('$$;') + 3)
+
+  it('defines a SECURITY DEFINER RPC with search_path, auth, and authenticated grant', () => {
+    expect(sql).toContain('create or replace function public.post_inventory_count_finish(')
+    expect(sql).toContain('p_workspace_id uuid')
+    expect(sql).toContain('p_session_id uuid')
+    expect(sql).toContain('returns jsonb')
+    expect(sql).toMatch(/security definer/i)
+    expect(sql).toContain('set search_path = public')
+    expect(sql).toContain('auth.uid()')
+    expect(sql).toContain('inventory_count_post_unauthenticated')
+    expect(sql).toContain('can_manage_workspace_stock(p_workspace_id)')
+    expect(sql).toContain('inventory_count_post_forbidden')
+    expect(sql).toContain('grant execute on function public.post_inventory_count_finish(')
+    expect(sql).toContain('to authenticated')
+  })
+
+  it('validates session state, snapshot, and can_post via shared reconciliation', () => {
+    expect(functionBody).toContain('inventory_count_post_session_cancelled')
+    expect(functionBody).toContain('inventory_count_post_already_posted')
+    expect(functionBody).toContain("v_session.status is distinct from 'counting_complete'")
+    expect(functionBody).toContain('inventory_count_post_session_not_complete')
+    expect(functionBody).toContain('v_session.snapshot_at is null')
+    expect(functionBody).toContain('inventory_count_post_snapshot_missing')
+    expect(functionBody).toContain('public.reconcile_inventory_count_finish(p_workspace_id, p_session_id)')
+    expect(functionBody).toContain("v_reconcile ->> 'can_post'")
+    expect(functionBody).toContain('inventory_count_post_blocked')
+    expect(functionBody).toContain("'posting_enabled', false")
+    expect(functionBody).toContain('Posting engine foundation complete. Stock mutations not implemented.')
+  })
+
+  it('contains no writes, stock mutations, or movement creation', () => {
+    expect(functionBody).not.toMatch(/\binsert\b/i)
+    expect(functionBody).not.toMatch(/\bupdate\b/i)
+    expect(functionBody).not.toMatch(/\bdelete\b/i)
+    expect(functionBody).not.toMatch(/\bmerge\b/i)
+    expect(functionBody).not.toMatch(/\bfor update\b/i)
+    expect(functionBody).not.toContain('stock_movements')
+    expect(functionBody).not.toContain('current_quantity')
+    expect(functionBody).not.toContain('set status')
+    expect(functionBody).not.toContain('posted_at =')
+    expect(functionBody).not.toContain('posted_movement_id')
+    expect(functionBody).toContain("v_session.status = 'posted'")
+    expect(functionBody).not.toMatch(/\bexecute\s+/i)
+  })
+})
