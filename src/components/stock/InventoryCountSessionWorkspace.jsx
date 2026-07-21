@@ -23,66 +23,6 @@ const LINE_STATUS_LABEL = {
 
 const AUTOSAVE_DEBOUNCE_MS = 400
 
-const PREVIEW_OVERLAY_STYLE = {
-  position: 'fixed',
-  inset: 0,
-  zIndex: 90,
-  display: 'flex',
-  alignItems: 'stretch',
-  justifyContent: 'center',
-  padding: '12px',
-  background: 'rgba(4, 4, 5, 0.86)',
-  backdropFilter: 'blur(10px)',
-}
-
-const PREVIEW_PANEL_STYLE = {
-  width: 'min(100vw - 24px, 1180px)',
-  height: 'min(100vh - 24px, 920px)',
-  maxHeight: 'calc(100vh - 24px)',
-  display: 'flex',
-  flexDirection: 'column',
-  overflow: 'hidden',
-  borderRadius: '22px',
-  border: '1px solid rgba(212, 175, 55, 0.24)',
-  background: 'linear-gradient(165deg, rgba(18, 18, 20, 0.99), rgba(9, 9, 10, 0.99))',
-  boxShadow: '0 28px 90px rgba(0, 0, 0, 0.62)',
-}
-
-const PREVIEW_SUMMARY_GRID_STYLE = {
-  display: 'grid',
-  gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
-  gap: '12px',
-  padding: '0 28px 18px',
-}
-
-const PREVIEW_SUMMARY_CARD_STYLE = {
-  display: 'flex',
-  flexDirection: 'column',
-  gap: '6px',
-  minHeight: '72px',
-  padding: '14px 16px',
-  borderRadius: '14px',
-  border: '1px solid rgba(255, 247, 232, 0.1)',
-  background: 'rgba(8, 8, 9, 0.72)',
-}
-
-const PREVIEW_BODY_STYLE = {
-  flex: '1 1 auto',
-  minHeight: 0,
-  overflow: 'auto',
-  padding: '0 28px 20px',
-}
-
-const PREVIEW_FOOTER_STYLE = {
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'flex-end',
-  gap: '12px',
-  flexShrink: 0,
-  padding: '18px 28px 22px',
-  borderTop: '1px solid rgba(255, 255, 255, 0.06)',
-}
-
 const COUNTED_INPUT_STYLE = {
   boxSizing: 'border-box',
   width: '100%',
@@ -128,12 +68,6 @@ function varianceTone(value) {
     return 'neutral'
   }
   return numeric > 0 ? 'positive' : 'negative'
-}
-
-function varianceColor(tone) {
-  if (tone === 'positive') return '#6fcf97'
-  if (tone === 'negative') return '#f07178'
-  return 'rgba(255, 247, 232, 0.78)'
 }
 
 function formatLineStatus(lineStatus) {
@@ -1032,17 +966,16 @@ export function InventoryCountSessionWorkspace({
 
       {isFinishPreviewOpen ? (
         <div
-          className="employee-modal-backdrop inventory-count-wizard-backdrop"
-          style={PREVIEW_OVERLAY_STYLE}
+          className="employee-modal-backdrop inventory-count-wizard-backdrop inventory-count-finish-preview-overlay"
           role="presentation"
         >
           <div
             role="dialog"
             aria-modal="true"
             aria-label="Finish Count Preview"
-            style={PREVIEW_PANEL_STYLE}
+            className="inventory-count-finish-preview"
           >
-            <header className="inventory-count-wizard-header">
+            <header className="inventory-count-wizard-header inventory-count-finish-preview-header">
               <div className="inventory-count-wizard-header-copy">
                 <p className="inventory-count-wizard-step-label">Session</p>
                 <h2 className="inventory-count-wizard-title">Finish Count Preview</h2>
@@ -1056,20 +989,26 @@ export function InventoryCountSessionWorkspace({
             </header>
 
             {finishPreview?.summary ? (
-              <div style={PREVIEW_SUMMARY_GRID_STYLE} aria-label="Finish count summary">
+              <div
+                className="inventory-count-finish-preview-summary"
+                aria-label="Finish count summary"
+              >
                 {[
-                  ['Total lines', finishPreview.summary.totalLines],
-                  ['Counted', finishPreview.summary.countedLines],
-                  ['Skipped', finishPreview.summary.skippedLines],
-                  ['Changed', finishPreview.summary.changedItems],
-                  ['Unchanged', finishPreview.summary.unchangedItems],
-                  ['Positive', finishPreview.summary.positiveVariances],
-                  ['Negative', finishPreview.summary.negativeVariances],
-                  ['Zero', finishPreview.summary.zeroVariances],
-                ].map(([label, value]) => (
-                  <article key={label} style={PREVIEW_SUMMARY_CARD_STYLE}>
+                  ['Total lines', finishPreview.summary.totalLines, ''],
+                  ['Counted', finishPreview.summary.countedLines, ''],
+                  ['Skipped', finishPreview.summary.skippedLines, finishPreview.summary.skippedLines > 0 ? 'is-warning' : ''],
+                  ['Changed', finishPreview.summary.changedItems, ''],
+                  ['Unchanged', finishPreview.summary.unchangedItems, ''],
+                  ['Positive', finishPreview.summary.positiveVariances, 'is-positive'],
+                  ['Negative', finishPreview.summary.negativeVariances, 'is-negative'],
+                  ['Zero', finishPreview.summary.zeroVariances, 'is-neutral'],
+                ].map(([label, value, toneClass]) => (
+                  <article
+                    key={label}
+                    className={`inventory-count-finish-preview-summary-card ${toneClass}`.trim()}
+                  >
                     <span className="inventory-count-session-meta-label">{label}</span>
-                    <span className="inventory-count-session-meta-value" style={{ fontSize: '1.2rem' }}>
+                    <span className="inventory-count-finish-preview-summary-value">
                       {value}
                     </span>
                   </article>
@@ -1077,91 +1016,132 @@ export function InventoryCountSessionWorkspace({
               </div>
             ) : null}
 
-            <div style={PREVIEW_BODY_STYLE}>
+            <div className="inventory-count-finish-preview-body">
               {isLoadingFinishPreview ? (
-                <div className="staff-status-banner" role="status">
+                <div className="staff-status-banner inventory-count-finish-preview-banner" role="status">
                   Loading finish preview…
                 </div>
               ) : null}
 
               {finishPreviewError ? (
-                <div className="staff-status-banner" role="alert">
+                <div
+                  className="staff-status-banner inventory-count-finish-preview-banner is-error"
+                  role="alert"
+                >
                   {finishPreviewError}
                 </div>
               ) : null}
 
               {!isLoadingFinishPreview && !finishPreviewError && finishPreview ? (
                 <>
-                  <p className="inventory-count-wizard-subtitle" style={{ marginBottom: '14px' }}>
-                    Expected at Count includes stock activity recorded after the snapshot and before this item was counted.
-                  </p>
+                  <div className="inventory-count-finish-preview-intro">
+                    <p className="inventory-count-wizard-subtitle">
+                      Expected at Count includes stock activity recorded after the snapshot and before this item was counted.
+                    </p>
+                    <ol className="inventory-count-finish-preview-flow" aria-label="Reconciliation column flow">
+                      <li>Snapshot</li>
+                      <li>Activity</li>
+                      <li>Expected at Count</li>
+                      <li>Counted</li>
+                      <li>Variance</li>
+                      <li>Current Live</li>
+                      <li>Result After Post</li>
+                    </ol>
+                  </div>
 
-                  {(finishPreview.blockingIssues ?? []).map((issue) => (
-                    <div
-                      key={`${issue.code}-${issue.sessionItemId || issue.message}`}
-                      className="staff-status-banner"
-                      role="alert"
-                    >
-                      {issue.message}
+                  {(finishPreview.blockingIssues ?? []).length > 0 ? (
+                    <div className="inventory-count-finish-preview-alerts" aria-label="Blocking issues">
+                      {(finishPreview.blockingIssues ?? []).map((issue) => (
+                        <div
+                          key={`${issue.code}-${issue.sessionItemId || issue.message}`}
+                          className="staff-status-banner inventory-count-finish-preview-banner is-blocker"
+                          role="alert"
+                        >
+                          {issue.message}
+                        </div>
+                      ))}
                     </div>
-                  ))}
+                  ) : null}
 
-                  {(finishPreview.skipped ?? []).map((line) => (
-                    <div
-                      key={`skipped-${line.sessionItemId}`}
-                      className="staff-status-banner"
-                      role="status"
-                    >
-                      Skipped: {line.itemName}
-                      {line.storageLocation ? ` · ${line.storageLocation}` : ''}
-                      . {line.warning}
+                  {(finishPreview.skipped ?? []).length > 0 ? (
+                    <div className="inventory-count-finish-preview-alerts" aria-label="Skipped lines">
+                      {(finishPreview.skipped ?? []).map((line) => (
+                        <div
+                          key={`skipped-${line.sessionItemId}`}
+                          className="staff-status-banner inventory-count-finish-preview-banner is-skipped"
+                          role="status"
+                        >
+                          Skipped: {line.itemName}
+                          {line.storageLocation ? ` · ${line.storageLocation}` : ''}
+                          . {line.warning}
+                        </div>
+                      ))}
                     </div>
-                  ))}
+                  ) : null}
 
                   {finishPreview.lines.length === 0 ? (
-                    <div className="stock-empty-state">
+                    <div className="stock-empty-state inventory-count-finish-preview-empty">
                       <h4>No counted items</h4>
                       <p>There are no counted lines to preview for this session.</p>
                     </div>
                   ) : (
-                    <div className="inventory-count-session-table-wrap">
-                      <table className="inventory-count-session-table">
+                    <div className="inventory-count-finish-preview-table-wrap">
+                      <table className="inventory-count-session-table inventory-count-finish-preview-table">
                         <thead>
                           <tr>
                             <th scope="col">Item</th>
                             <th scope="col">Location</th>
-                            <th scope="col">Snapshot</th>
-                            <th scope="col">Activity Since Snapshot</th>
-                            <th scope="col">Expected at Count</th>
-                            <th scope="col">Counted</th>
-                            <th scope="col">Variance</th>
-                            <th scope="col">Current Live</th>
-                            <th scope="col">Result After Post</th>
+                            <th scope="col" className="is-numeric" title="Snapshot quantity">Snapshot</th>
+                            <th scope="col" className="is-numeric" title="Activity since snapshot">Activity</th>
+                            <th scope="col" className="is-numeric" title="Expected at count">Expected at Count</th>
+                            <th scope="col" className="is-numeric">Counted</th>
+                            <th scope="col" className="is-numeric">Variance</th>
+                            <th scope="col" className="is-numeric" title="Current live quantity">Current Live</th>
+                            <th scope="col" className="is-numeric" title="Result after post">Result After Post</th>
                           </tr>
                         </thead>
                         <tbody>
                           {finishPreview.lines.map((line) => {
-                            const tone = varianceTone(line.varianceQuantity)
+                            const varianceToneClass = varianceTone(line.varianceQuantity)
+                            const activityToneClass = varianceTone(line.movementDeltaSinceSnapshot)
                             return (
                               <tr key={line.sessionItemId}>
                                 <td className="inventory-count-session-item-name">
-                                  {line.itemName}
+                                  <span className="inventory-count-finish-preview-item-name">
+                                    {line.itemName}
+                                  </span>
                                   {line.unit ? (
-                                    <span style={{ display: 'block', opacity: 0.62, fontWeight: 500 }}>
+                                    <span className="inventory-count-finish-preview-item-unit">
                                       {line.unit}
                                     </span>
                                   ) : null}
                                 </td>
-                                <td>{line.storageLocation}</td>
-                                <td>{formatQuantity(line.expectedSnapshot)}</td>
-                                <td>{formatVariance(line.movementDeltaSinceSnapshot)}</td>
-                                <td>{formatQuantity(line.expectedAtCount)}</td>
-                                <td>{formatQuantity(line.countedQuantity)}</td>
-                                <td style={{ color: varianceColor(tone), fontWeight: 700 }}>
-                                  {formatVariance(line.varianceQuantity)}
+                                <td className="inventory-count-finish-preview-location">
+                                  {line.storageLocation || '—'}
                                 </td>
-                                <td>{formatQuantity(line.currentLiveQuantity)}</td>
-                                <td>{formatQuantity(line.resultingQuantityAfterPost)}</td>
+                                <td className="is-numeric">
+                                  {formatQuantity(line.expectedSnapshot)}
+                                </td>
+                                <td className={`is-numeric is-activity is-${activityToneClass}`}>
+                                  {formatVariance(line.movementDeltaSinceSnapshot)}
+                                </td>
+                                <td className="is-numeric">
+                                  {formatQuantity(line.expectedAtCount)}
+                                </td>
+                                <td className="is-numeric">
+                                  {formatQuantity(line.countedQuantity)}
+                                </td>
+                                <td className="is-numeric is-variance">
+                                  <span className={`inventory-count-finish-preview-variance is-${varianceToneClass}`}>
+                                    {formatVariance(line.varianceQuantity)}
+                                  </span>
+                                </td>
+                                <td className="is-numeric">
+                                  {formatQuantity(line.currentLiveQuantity)}
+                                </td>
+                                <td className="is-numeric is-result">
+                                  {formatQuantity(line.resultingQuantityAfterPost)}
+                                </td>
                               </tr>
                             )
                           })}
@@ -1173,24 +1153,31 @@ export function InventoryCountSessionWorkspace({
               ) : null}
             </div>
 
-            <footer style={PREVIEW_FOOTER_STYLE}>
-              <button
-                type="button"
-                className="ghost-btn inventory-count-session-action-btn"
-                disabled={isLoadingFinishPreview}
-                aria-disabled={isLoadingFinishPreview}
-                onClick={handleCloseFinishPreview}
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                className="primary-btn inventory-count-session-action-btn"
-                disabled
-                aria-disabled="true"
-              >
-                Confirm Finish Count
-              </button>
+            <footer className="inventory-count-finish-preview-footer">
+              <p className="inventory-count-finish-preview-footer-note">
+                Confirm Finish Count stays unavailable until posting is enabled.
+              </p>
+              <div className="inventory-count-finish-preview-footer-actions">
+                <button
+                  type="button"
+                  className="ghost-btn inventory-count-session-action-btn"
+                  disabled={isLoadingFinishPreview}
+                  aria-disabled={isLoadingFinishPreview}
+                  onClick={handleCloseFinishPreview}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  className="primary-btn inventory-count-session-action-btn inventory-count-finish-preview-confirm"
+                  disabled
+                  aria-disabled="true"
+                  title="Posting is not available yet"
+                  aria-label="Confirm Finish Count unavailable until posting is enabled"
+                >
+                  Confirm Finish Count
+                </button>
+              </div>
             </footer>
           </div>
         </div>
