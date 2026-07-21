@@ -1276,11 +1276,53 @@ describe('preview_inventory_count_finish SQL contract', () => {
     expect(sql).toContain('to authenticated')
   })
 
-  it('implements Strategy 4 window, deltas, and result-after-post formula', () => {
+  it('is a thin wrapper that delegates Strategy 4 to the shared reconcile function', () => {
     expect(functionBody).toContain("v_session.status is distinct from 'counting_complete'")
     expect(functionBody).toContain('inventory_count_preview_session_not_complete')
-    expect(functionBody).toContain('v_snapshot_at := v_session.snapshot_at')
     expect(functionBody).toContain('inventory_count_preview_snapshot_missing')
+    expect(functionBody).toContain('public.reconcile_inventory_count_finish(p_workspace_id, p_session_id)')
+    expect(functionBody).not.toContain('v_snapshot_at := v_session.snapshot_at')
+    expect(functionBody).not.toContain('select min(i.created_at)')
+    expect(functionBody).not.toContain('min(i.created_at)')
+    expect(functionBody).not.toContain("when 'receive' then abs(m.quantity)")
+    expect(functionBody).not.toContain("'expected_at_count', (i.expected_snapshot + coalesce(deltas.net_delta, 0))")
+    expect(functionBody).not.toContain("'variance_quantity', (i.counted_quantity - (i.expected_snapshot + coalesce(deltas.net_delta, 0)))")
+    expect(functionBody).not.toContain('resulting_quantity_after_post')
+    expect(functionBody).not.toMatch(/\binsert\b/i)
+    expect(functionBody).not.toMatch(/\bupdate\b/i)
+    expect(functionBody).not.toMatch(/\bdelete\b/i)
+    expect(functionBody).not.toMatch(/\bmerge\b/i)
+  })
+})
+
+describe('reconcile_inventory_count_finish SQL contract', () => {
+  const sql = readFileSync(
+    resolve(process.cwd(), 'supabase/inventory_count_reconcile_finish.sql'),
+    'utf8',
+  )
+  const functionBody = sql.slice(sql.indexOf('as $$'), sql.indexOf('$$;') + 3)
+
+  it('defines an internal read-only shared reconciliation function without client execute grant', () => {
+    expect(sql).toContain('create or replace function public.reconcile_inventory_count_finish(')
+    expect(sql).toContain('p_workspace_id uuid')
+    expect(sql).toContain('p_session_id uuid')
+    expect(sql).toContain('returns jsonb')
+    expect(sql).toMatch(/security invoker/i)
+    expect(sql).toContain('set search_path = public')
+    expect(sql).toContain(
+      'revoke all on function public.reconcile_inventory_count_finish(uuid, uuid) from authenticated',
+    )
+    expect(sql).toContain(
+      'revoke all on function public.reconcile_inventory_count_finish(uuid, uuid) from anon',
+    )
+    expect(sql).not.toMatch(
+      /grant execute on function public\.reconcile_inventory_count_finish\([^)]*\)\s+to authenticated/i,
+    )
+  })
+
+  it('implements Strategy 4 using sessions.snapshot_at with no item-created_at fallback', () => {
+    expect(functionBody).toContain('v_snapshot_at := v_session.snapshot_at')
+    expect(functionBody).toContain('inventory_count_reconcile_snapshot_missing')
     expect(functionBody).not.toContain('select min(i.created_at)')
     expect(functionBody).not.toContain('min(i.created_at)')
     expect(functionBody).toContain('m.created_at > v_snapshot_at')
@@ -1290,6 +1332,7 @@ describe('preview_inventory_count_finish SQL contract', () => {
     expect(functionBody).toContain("when 'adjustment' then m.quantity")
     expect(functionBody).toContain("m.type in ('receive', 'usage', 'adjustment')")
     expect(functionBody).toContain("m.type = 'stock_count'")
+    expect(functionBody).toContain('unsupported_stock_count_in_window')
     expect(functionBody).toContain("'expected_at_count', (i.expected_snapshot + coalesce(deltas.net_delta, 0))")
     expect(functionBody).toContain("'variance_quantity', (i.counted_quantity - (i.expected_snapshot + coalesce(deltas.net_delta, 0)))")
     expect(functionBody).toContain('si.current_quantity')
@@ -1298,15 +1341,19 @@ describe('preview_inventory_count_finish SQL contract', () => {
     expect(functionBody).not.toContain('(i.counted_quantity - i.expected_snapshot)')
   })
 
-  it('exposes skipped warnings and remains read-only for writes', () => {
+  it('preserves blockers and remains write-free with no dynamic SQL', () => {
     expect(functionBody).toContain("i.line_status = 'skipped'")
     expect(functionBody).toContain('skipped_lines_present')
+    expect(functionBody).toContain('pending_lines_present')
     expect(functionBody).toContain('missing_counted_at')
     expect(functionBody).toContain('missing_stock_item')
     expect(functionBody).toContain('can_post')
     expect(functionBody).not.toMatch(/\binsert\b/i)
     expect(functionBody).not.toMatch(/\bupdate\b/i)
     expect(functionBody).not.toMatch(/\bdelete\b/i)
+    expect(functionBody).not.toMatch(/\bmerge\b/i)
+    expect(functionBody).not.toMatch(/\bexecute\s+/i)
+    expect(functionBody).not.toMatch(/format\s*\(\s*'[^']*(insert|update|delete)/i)
   })
 })
 
