@@ -32924,6 +32924,17 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   white-space: nowrap;
 }
 
+/* P8.8.0 — Mission Timeline */
+.stock-migration-mission-timeline {
+  list-style: none;
+  margin: 0;
+  padding: 4px 0 2px;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  position: relative;
+}
+
 .stock-migration-guided-stages {
   list-style: none;
   margin: 0;
@@ -32933,88 +32944,158 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   gap: 0;
 }
 
+.stock-migration-mission-step,
 .stock-migration-guided-stage {
   display: grid;
-  grid-template-columns: 36px minmax(0, 1fr);
-  gap: 12px;
+  grid-template-columns: 40px minmax(0, 1fr);
+  gap: 14px;
   min-width: 0;
-  padding: 8px 10px 8px 4px;
-  border-radius: 14px;
-  border: 1px solid transparent;
+  min-height: 44px;
+  padding: 6px 4px 6px 0;
+  border-radius: 0;
+  border: none;
   background: transparent;
-  transition: background 140ms ease, border-color 140ms ease, opacity 140ms ease;
+  position: relative;
 }
 
 .stock-migration-guided-stage.is-completed {
-  opacity: 0.55;
+  opacity: 0.52;
 }
 
 .stock-migration-guided-stage.is-waiting,
 .stock-migration-guided-stage.is-ready,
 .stock-migration-guided-stage.is-unavailable,
 .stock-migration-guided-stage.is-cancelled {
-  opacity: 0.62;
+  opacity: 0.58;
 }
 
 .stock-migration-guided-stage.is-current,
 .stock-migration-guided-stage.is-emphasized {
   opacity: 1;
-  border-color: rgba(255, 247, 232, 0.22);
-  background: rgba(255, 247, 232, 0.07);
-  padding-top: 14px;
-  padding-bottom: 14px;
-  margin: 4px 0;
+  margin: 6px 0;
+  padding: 12px 12px 12px 0;
+  border-radius: 16px;
+  background: linear-gradient(
+    90deg,
+    rgba(255, 247, 232, 0.1) 0%,
+    rgba(255, 247, 232, 0.04) 55%,
+    transparent 100%
+  );
+  box-shadow: inset 3px 0 0 rgba(255, 247, 232, 0.85);
 }
 
 .stock-migration-guided-stage.is-attention {
   opacity: 1;
-  border-color: rgba(255, 180, 120, 0.3);
-  background: rgba(180, 90, 40, 0.12);
+  margin: 6px 0;
+  padding: 12px 12px 12px 0;
+  border-radius: 16px;
+  background: linear-gradient(
+    90deg,
+    rgba(180, 90, 40, 0.18) 0%,
+    rgba(180, 90, 40, 0.06) 60%,
+    transparent 100%
+  );
+  box-shadow: inset 3px 0 0 rgba(255, 180, 120, 0.9);
 }
 
-.stock-migration-guided-stage-rail {
+.stock-migration-mission-rail {
   display: flex;
   flex-direction: column;
   align-items: center;
   min-height: 100%;
+  position: relative;
 }
 
-.stock-migration-guided-stage-index {
+.stock-migration-mission-marker {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   width: 28px;
   height: 28px;
   border-radius: 50%;
+  flex-shrink: 0;
+  z-index: 1;
   font-size: 0.72rem;
   font-weight: 700;
   color: rgba(255, 247, 232, 0.55);
-  border: 1px solid rgba(255, 247, 232, 0.14);
-  background: rgba(8, 8, 9, 0.45);
-  flex-shrink: 0;
+  border: 1.5px solid rgba(255, 247, 232, 0.18);
+  background: rgba(12, 12, 14, 0.92);
+  box-shadow: 0 0 0 4px rgba(8, 8, 9, 0.55);
 }
 
-.stock-migration-guided-stage.is-completed .stock-migration-guided-stage-index {
-  color: rgba(180, 230, 190, 0.9);
-  border-color: rgba(150, 210, 160, 0.28);
+.stock-migration-mission-marker.is-completed {
+  color: rgba(24, 40, 28, 0.95);
+  border-color: rgba(150, 210, 160, 0.55);
+  background: rgba(160, 215, 170, 0.95);
 }
 
-.stock-migration-guided-stage.is-current .stock-migration-guided-stage-index,
-.stock-migration-guided-stage.is-emphasized .stock-migration-guided-stage-index {
+.stock-migration-mission-marker.is-current,
+.stock-migration-mission-marker.is-dominant {
+  width: 34px;
+  height: 34px;
   color: #1a1814;
-  background: #fff7e8;
   border-color: #fff7e8;
+  background: #fff7e8;
+  box-shadow:
+    0 0 0 4px rgba(8, 8, 9, 0.55),
+    0 0 0 8px rgba(255, 247, 232, 0.12);
 }
 
-.stock-migration-guided-stage-connector {
+.stock-migration-mission-marker.is-attention {
+  width: 34px;
+  height: 34px;
+  color: #2a180c;
+  border-color: rgba(255, 200, 140, 0.95);
+  background: rgba(255, 190, 120, 0.95);
+  box-shadow:
+    0 0 0 4px rgba(8, 8, 9, 0.55),
+    0 0 0 8px rgba(255, 180, 120, 0.14);
+}
+
+.stock-migration-mission-marker.is-ready {
+  border-color: rgba(255, 247, 232, 0.42);
+  color: rgba(255, 247, 232, 0.82);
+}
+
+.stock-migration-mission-marker.is-waiting,
+.stock-migration-mission-marker.is-unavailable,
+.stock-migration-mission-marker.is-cancelled {
+  border-color: rgba(255, 247, 232, 0.12);
+  color: rgba(255, 247, 232, 0.4);
+}
+
+.stock-migration-mission-marker-check {
+  font-size: 0.85rem;
+  line-height: 1;
+}
+
+.stock-migration-mission-marker-index {
+  line-height: 1;
+}
+
+.stock-migration-mission-connector {
   flex: 1;
-  width: 1px;
-  min-height: 12px;
-  margin-top: 6px;
+  width: 2px;
+  min-height: 18px;
+  margin: 4px 0 0;
+  border-radius: 999px;
   background: rgba(255, 247, 232, 0.12);
 }
 
-.stock-migration-guided-stage-body {
+.stock-migration-mission-connector.is-completed {
+  background: rgba(150, 210, 160, 0.42);
+}
+
+.stock-migration-mission-connector.is-active {
+  background: linear-gradient(
+    180deg,
+    rgba(255, 247, 232, 0.55) 0%,
+    rgba(255, 247, 232, 0.12) 100%
+  );
+}
+
+.stock-migration-guided-stage-body,
+.stock-migration-mission-body {
   min-width: 0;
   flex: 1;
   padding-top: 2px;
@@ -33032,26 +33113,29 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   margin: 0;
   font-size: 0.9rem;
   font-weight: 650;
-  color: rgba(255, 247, 232, 0.78);
+  color: rgba(255, 247, 232, 0.72);
   line-height: 1.3;
 }
 
 .stock-migration-guided-stage.is-current .stock-migration-guided-stage-name,
 .stock-migration-guided-stage.is-emphasized .stock-migration-guided-stage-name {
-  font-size: 1.05rem;
+  font-size: 1.12rem;
   font-weight: 700;
+  letter-spacing: -0.01em;
   color: #fff7e8;
 }
 
 .stock-migration-guided-stage-description {
   margin: 0;
   font-size: 0.78rem;
-  color: rgba(255, 247, 232, 0.42);
+  color: rgba(255, 247, 232, 0.38);
   line-height: 1.35;
 }
 
-.stock-migration-guided-stage.is-current .stock-migration-guided-stage-description {
+.stock-migration-guided-stage.is-current .stock-migration-guided-stage-description,
+.stock-migration-guided-stage.is-emphasized .stock-migration-guided-stage-description {
   color: rgba(255, 247, 232, 0.62);
+  font-size: 0.84rem;
 }
 
 .stock-migration-guided-stage-badge {

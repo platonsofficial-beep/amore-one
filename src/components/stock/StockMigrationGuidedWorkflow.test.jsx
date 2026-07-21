@@ -319,11 +319,54 @@ describe('StockMigrationGuidedWorkflow', () => {
     expect(container.querySelector('.stock-migration-guided-stage.is-current')).toBeTruthy()
     expect(container.querySelector('.stock-migration-guided-stage.is-waiting')).toBeTruthy()
     expect(container.textContent).toContain('Persist')
+    expect(container.querySelector('.stock-migration-mission-timeline')).toBeTruthy()
+    expect(container.querySelectorAll('[data-mission-marker="true"]').length).toBe(
+      container.querySelectorAll('.stock-migration-guided-stage').length,
+    )
+    expect(container.querySelectorAll('[data-mission-connector="true"]').length).toBe(
+      Math.max(0, container.querySelectorAll('.stock-migration-guided-stage').length - 1),
+    )
+    expect(container.querySelector('.stock-migration-mission-marker.is-dominant')).toBeTruthy()
     expect(container.querySelector('[aria-label="Manual review checkpoint"]')).toBeTruthy()
     expect(container.textContent).toContain('No attention required')
     expect(container.textContent).not.toMatch(/\bContinue\b/)
     expect(container.textContent.toLowerCase()).not.toContain('approve')
     expect(container.querySelector('.stock-migration-guided-next button')).toBeNull()
+    expect(container.querySelector('.stock-migration-mission-timeline button')).toBeNull()
+  })
+
+  it('preserves canonical mission stage order and Persist naming', () => {
+    const metrics = metricsFixture()
+    renderGuided({
+      operator: buildLiveOperator(metrics),
+      sessionSummary: sessionSummaryFixture(),
+      health: buildHealth(metrics),
+      metrics,
+      metricsAvailable: true,
+      manualReviewCount: 0,
+      attentionCount: 0,
+    })
+
+    const stageNames = [...container.querySelectorAll('.stock-migration-guided-stage-name')]
+      .map((node) => node.textContent)
+    expect(stageNames).toEqual([
+      'Foundation',
+      'Persist',
+      'Auto Link',
+      'Auto Create',
+      'Integrity Audit',
+      'Preflight',
+      'Preview',
+      'Phase 1',
+      'Phase 2',
+      'Post Audit',
+      'Completed',
+    ])
+    expect(stageNames).toContain('Persist')
+    expect(stageNames).not.toContain('Classification')
+    expect(stageNames).not.toContain('Manual Review')
+    expect(container.querySelectorAll('[data-mission-marker="true"]').length).toBe(11)
+    expect(container.querySelectorAll('[data-mission-connector="true"]').length).toBe(10)
   })
 
   it('renders unavailable state and Manual Review attention/clear checkpoints', () => {

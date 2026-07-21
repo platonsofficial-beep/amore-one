@@ -7,8 +7,43 @@ function scrollToManualReview() {
   }
 }
 
+function MissionMarker({ visual, index, isLast }) {
+  const completed = visual === GUIDED_STAGE_VISUAL.COMPLETED
+  const current = visual === GUIDED_STAGE_VISUAL.CURRENT
+  const attention = visual === GUIDED_STAGE_VISUAL.ATTENTION
+
+  return (
+    <div className="stock-migration-mission-rail" aria-hidden="true">
+      <span
+        className={[
+          'stock-migration-mission-marker',
+          `is-${visual}`,
+          current ? 'is-dominant' : '',
+        ].filter(Boolean).join(' ')}
+        data-mission-marker="true"
+      >
+        {completed ? (
+          <span className="stock-migration-mission-marker-check">✓</span>
+        ) : (
+          <span className="stock-migration-mission-marker-index">{index + 1}</span>
+        )}
+      </span>
+      {!isLast ? (
+        <span
+          className={[
+            'stock-migration-mission-connector',
+            completed ? 'is-completed' : '',
+            current || attention ? 'is-active' : '',
+          ].filter(Boolean).join(' ')}
+          data-mission-connector="true"
+        />
+      ) : null}
+    </div>
+  )
+}
+
 /**
- * Canonical stage journey for the guided workflow hero.
+ * Mission Timeline — canonical migration stage journey.
  * Presentation only — no mutation controls.
  * Manual Review is an intervention checkpoint, not a canonical stage.
  */
@@ -18,11 +53,11 @@ export function StockMigrationStageNavigator({ model }) {
   const needsAttention = Boolean(model?.manualReviewNeedsAttention ?? manualCount > 0)
 
   return (
-    <div className="stock-migration-guided-navigator">
+    <div className="stock-migration-guided-navigator stock-migration-mission">
       <div className="stock-migration-guided-navigator-header">
-        <h3 className="stock-migration-guided-navigator-title">Workflow journey</h3>
+        <h3 className="stock-migration-guided-navigator-title">Mission timeline</h3>
         <p className="stock-migration-guided-navigator-copy">
-          Follow the canonical sequence. The current stage is emphasized; completed stages recede.
+          Canonical migration sequence. The current stage leads; completed stages become history.
         </p>
       </div>
 
@@ -57,7 +92,10 @@ export function StockMigrationStageNavigator({ model }) {
         ) : null}
       </div>
 
-      <ol className="stock-migration-guided-stages" aria-label="Migration stages">
+      <ol
+        className="stock-migration-guided-stages stock-migration-mission-timeline"
+        aria-label="Migration stages"
+      >
         {stages.map((stage, index) => {
           const visual = stage.visualState ?? GUIDED_STAGE_VISUAL.WAITING
           return (
@@ -65,18 +103,18 @@ export function StockMigrationStageNavigator({ model }) {
               key={stage.id}
               className={[
                 'stock-migration-guided-stage',
+                'stock-migration-mission-step',
                 `is-${visual}`,
                 stage.isCurrent ? 'is-emphasized' : '',
               ].filter(Boolean).join(' ')}
               aria-current={stage.isCurrent ? 'step' : undefined}
             >
-              <div className="stock-migration-guided-stage-rail" aria-hidden="true">
-                <span className="stock-migration-guided-stage-index">{index + 1}</span>
-                {index < stages.length - 1 ? (
-                  <span className="stock-migration-guided-stage-connector" />
-                ) : null}
-              </div>
-              <div className="stock-migration-guided-stage-body">
+              <MissionMarker
+                visual={visual}
+                index={index}
+                isLast={index >= stages.length - 1}
+              />
+              <div className="stock-migration-guided-stage-body stock-migration-mission-body">
                 <div className="stock-migration-guided-stage-top">
                   <p className="stock-migration-guided-stage-name">{stage.title}</p>
                   <span className={`stock-migration-guided-stage-badge is-${visual}`}>
