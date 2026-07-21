@@ -467,8 +467,8 @@ v1_items as (
       else trim(s.unit)
     end as mapped_unit,
     coalesce(s.current_quantity, 0)::numeric as current_quantity,
-    coalesce(s.supplier, '') as stock_supplier,
-    s.supplier_id as stock_supplier_id
+    -- Authoritative live/greenfield stock supplier is text only (no live FK column).
+    coalesce(s.supplier, '') as stock_supplier
   from public.stock_items s
   cross join params p
   where p.target_workspace_id is not null
@@ -546,7 +546,6 @@ candidates as (
     v.current_quantity as candidate_quantity,
     coalesce(m.movement_count, 0)::bigint as candidate_movement_count,
     v.stock_supplier,
-    v.stock_supplier_id,
     v.mapped_unit as candidate_mapped_unit,
     v.mapped_category as candidate_mapped_category
   from legacy_enriched l
@@ -566,8 +565,7 @@ candidate_agg as (
     count(*)::bigint as candidate_count,
     max(candidate_quantity) as candidate_quantity,
     max(candidate_movement_count) as candidate_movement_count,
-    max(stock_supplier) as candidate_supplier_text,
-    max(stock_supplier_id) as candidate_supplier_id
+    max(stock_supplier) as candidate_supplier_text
   from candidates
   group by legacy_inventory_item_id
 ),
@@ -579,8 +577,7 @@ candidate_one as (
     (array_agg(c.stock_item_id order by c.stock_item_id::text))[1] as candidate_stock_item_id,
     (array_agg(c.candidate_quantity order by c.stock_item_id::text))[1] as candidate_quantity,
     (array_agg(c.candidate_movement_count order by c.stock_item_id::text))[1] as candidate_movement_count,
-    (array_agg(c.stock_supplier order by c.stock_item_id::text))[1] as candidate_supplier_text,
-    (array_agg(c.stock_supplier_id order by c.stock_item_id::text))[1] as candidate_supplier_id
+    (array_agg(c.stock_supplier order by c.stock_item_id::text))[1] as candidate_supplier_text
   from candidates c
   join candidate_agg a
     on a.legacy_inventory_item_id = c.legacy_inventory_item_id

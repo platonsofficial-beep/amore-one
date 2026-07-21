@@ -219,6 +219,32 @@ describe('inventory_migration_persist_rpc.sql source review', () => {
     expect(functionBody).toContain('insert into public.inventory_stock_item_map')
   })
 
+  it('P8.6.1i does not read missing stock_items.supplier_id', () => {
+    const executable = sql
+      .replace(/\/\*[\s\S]*?\*\//g, ' ')
+      .replace(/--[^\n]*/g, ' ')
+    const v1Items = executable.slice(
+      executable.indexOf('v1_items as ('),
+      executable.indexOf('v1_normalized as ('),
+    )
+    expect(v1Items).toContain("coalesce(s.supplier, '') as stock_supplier")
+    expect(v1Items).not.toMatch(/\bs\.supplier_id\b/)
+    expect(executable).not.toMatch(/\bstock_items\.supplier_id\b/)
+    expect(executable).not.toMatch(/\bas stock_supplier_id\b/)
+    expect(executable).not.toMatch(/\bas candidate_supplier_id\b/)
+    // Supplier ambiguity remains suppliers.company_name based.
+    expect(functionBody).toContain('from public.suppliers s')
+    expect(functionBody).toContain('lower(trim(s.company_name))')
+    expect(functionBody).toContain('when c.supplier_ambiguous then \'manual\'')
+    expect(functionBody).toContain("'ambiguous_supplier'")
+    // Name/unit/category candidate matching + auto outcomes intact.
+    expect(functionBody).toContain('v.mapped_unit_key = l.mapped_unit_key')
+    expect(functionBody).toContain('v.mapped_category_key = l.mapped_category_key')
+    expect(functionBody).toContain('as candidate_stock_item_id')
+    expect(functionBody).toContain("then 'auto_link'")
+    expect(functionBody).toContain("then 'auto_create'")
+  })
+
   it('returns a structured outcome row without schema changes', () => {
     expect(functionBody).toContain('result_id uuid')
     expect(functionBody).toContain('result_status text')
@@ -253,5 +279,20 @@ describe('inventory_stock_map_persist.sql P8.6.1 legacy parity', () => {
     expect(legacySql).not.toMatch(/insert into public\.stock_items/i)
     expect(legacySql).not.toMatch(/insert into public\.stock_movements/i)
     expect(legacySql).not.toMatch(/set\s+current_quantity/i)
+  })
+
+  it('P8.6.1i does not read missing stock_items.supplier_id', () => {
+    const executable = legacySql
+      .replace(/\/\*[\s\S]*?\*\//g, ' ')
+      .replace(/--[^\n]*/g, ' ')
+    expect(legacySql).toContain("coalesce(s.supplier, '') as stock_supplier")
+    expect(executable).not.toMatch(/s\.supplier_id\s+as\s+stock_supplier_id/)
+    expect(executable).not.toMatch(/\bstock_items\.supplier_id\b/)
+    expect(executable).not.toMatch(/\bas stock_supplier_id\b/)
+    expect(executable).not.toMatch(/\bas candidate_supplier_id\b/)
+    expect(legacySql).toContain('from public.suppliers s')
+    expect(legacySql).toContain('lower(trim(s.company_name))')
+    expect(legacySql).toContain('when c.supplier_ambiguous then \'manual\'')
+    expect(legacySql).toContain('on conflict (legacy_inventory_item_id, workspace_id)')
   })
 })
