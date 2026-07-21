@@ -172,4 +172,17 @@ describe('inventory_migration_auto_link_runtime_validation.sql P8.6.1c one-click
     expect(sql).toContain('Paste the full file into Supabase SQL Editor')
     expect(sql).toContain('No UUID lookup. No manual editing. No credential handling.')
   })
+
+  it('declares legacy fixture IDs as uuid matching live inventory_items.id', () => {
+    expect(sql).toContain('v_case_a_legacy_id uuid;')
+    expect(sql).toContain('v_case_b_legacy_id uuid;')
+    expect(sql).toContain('v_case_c_legacy_id uuid;')
+    expect(sql).not.toMatch(/v_case_[abc]_legacy_id\s+bigint\s*;/)
+    expect(sql).toContain('returning id into v_case_a_legacy_id')
+    expect(sql).toContain('returning id into v_case_b_legacy_id')
+    expect(sql).toContain('returning id into v_case_c_legacy_id')
+    expect(sql).toContain('m.legacy_inventory_item_id = v_case_a_legacy_id')
+    expect(sql).toContain('m.legacy_inventory_item_id = v_case_b_legacy_id')
+    expect(sql).toContain('m.legacy_inventory_item_id = v_case_c_legacy_id')
+  })
 })

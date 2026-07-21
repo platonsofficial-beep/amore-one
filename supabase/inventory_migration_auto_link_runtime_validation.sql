@@ -59,9 +59,11 @@ declare
   v_running_started_at timestamptz;
   v_running_started_by uuid;
 
-  v_case_a_legacy_id bigint;
-  v_case_b_legacy_id bigint;
-  v_case_c_legacy_id bigint;
+  -- Live/authoritative inventory_items.id is uuid (bar_refills FK + runtime probe).
+  -- Repo inventory_items_schema.sql still documents bigint (create-if-not-exists drift).
+  v_case_a_legacy_id uuid;
+  v_case_b_legacy_id uuid;
+  v_case_c_legacy_id uuid;
   v_case_a_stock_id uuid;
   v_case_c_stock_1 uuid;
   v_case_c_stock_2 uuid;
