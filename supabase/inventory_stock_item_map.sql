@@ -17,11 +17,11 @@
 --   - Does NOT alter inventory_items / bar_refills / stock_items
 --
 -- Type compatibility (repo schemas):
---   inventory_items.id                 = bigint
+--   inventory_items.id                 = uuid
 --   stock_items.id                     = uuid
 --   workspaces.id                      = uuid
 --   bar_refill_items.inventory_item_id = uuid in bar_refills_schema.sql
---     (PROBE LIVE — may disagree with bigint inventory_items.id)
+--   map.legacy_inventory_item_id       = uuid (aligned with inventory_items.id)
 --
 -- RLS:
 --   Enabled with NO client policies → anon/authenticated cannot access.
@@ -34,8 +34,8 @@
 create table if not exists public.inventory_stock_item_map (
   id uuid primary key default gen_random_uuid(),
 
-  -- Legacy identity preserved as bigint (no FK → inventory_items; survives retirement)
-  legacy_inventory_item_id bigint not null,
+  -- Legacy identity preserved as uuid (no FK → inventory_items; survives retirement)
+  legacy_inventory_item_id uuid not null,
 
   -- Target workspace for this migration attempt (required)
   workspace_id uuid not null
@@ -91,7 +91,7 @@ comment on table public.inventory_stock_item_map is
   'P7.4 durable audit map from legacy inventory_items into workspace stock_items. No FK to inventory_items so the map survives legacy retirement.';
 
 comment on column public.inventory_stock_item_map.legacy_inventory_item_id is
-  'Original inventory_items.id (bigint). Not FK-linked.';
+  'Original inventory_items.id (uuid). Not FK-linked.';
 
 comment on column public.inventory_stock_item_map.stock_item_id is
   'Nullable until auto/manual create or link completes.';
@@ -216,11 +216,12 @@ alter table public.inventory_stock_item_map enable row level security;
 -- order by c.table_name, c.column_name;
 --
 -- Repo expectation:
---   inventory_items.id                 → bigint / int8
+--   inventory_items.id                 → uuid
 --   stock_items.id                     → uuid
 --   workspaces.id                      → uuid
 --   bar_refill_items.inventory_item_id → uuid in checked-in schema
---     WARNING: if live type is bigint or text, record it before Bar Refill rewire.
+--   inventory_stock_item_map.legacy_inventory_item_id → uuid
+--     WARNING: if live map type is still bigint, run P8.6.1g alignment before Persist.
 
 -- -----------------------------------------------------------------------------
 -- B) Row counts

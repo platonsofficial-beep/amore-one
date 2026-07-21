@@ -60,7 +60,7 @@ declare
   v_running_started_by uuid;
 
   -- Live/authoritative inventory_items.id is uuid (bar_refills FK + runtime probe).
-  -- Repo inventory_items_schema.sql still documents bigint (create-if-not-exists drift).
+  -- Map legacy_inventory_item_id must also be uuid after P8.6.1g alignment.
   v_case_a_legacy_id uuid;
   v_case_b_legacy_id uuid;
   v_case_c_legacy_id uuid;
