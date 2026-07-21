@@ -281,7 +281,10 @@ v1_movements as (
 ),
 
 -- -----------------------------------------------------------------------------
--- E) Supplier resolution (workspace-scoped; unique name only)
+-- E) Supplier resolution (global catalog; unique company_name only)
+-- Live suppliers have no workspace_id (optional suppliers_workspace_id.sql undeployed).
+-- Duplicate names are evaluated globally; extra ambiguous → manual (safer than auto).
+-- Restore workspace scoping only in a dedicated Suppliers workspace foundation sprint.
 -- -----------------------------------------------------------------------------
 workspace_suppliers as (
   select
@@ -291,7 +294,6 @@ workspace_suppliers as (
   from public.suppliers s
   cross join params p
   where p.target_workspace_id is not null
-    and s.workspace_id = p.target_workspace_id
     and trim(coalesce(s.company_name, '')) <> ''
 ),
 

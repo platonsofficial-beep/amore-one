@@ -245,6 +245,44 @@ describe('inventory_migration_persist_rpc.sql source review', () => {
     expect(functionBody).toContain("then 'auto_create'")
   })
 
+  it('P8.6.1k treats suppliers as global (no suppliers.workspace_id filter)', () => {
+    const executable = sql
+      .replace(/\/\*[\s\S]*?\*\//g, ' ')
+      .replace(/--[^\n]*/g, ' ')
+    const suppliersCte = executable.slice(
+      executable.indexOf('workspace_suppliers as ('),
+      executable.indexOf('unique_suppliers as ('),
+    )
+    const v1Items = executable.slice(
+      executable.indexOf('v1_items as ('),
+      executable.indexOf('v1_normalized as ('),
+    )
+    const v1Movements = executable.slice(
+      executable.indexOf('v1_movements as ('),
+      executable.indexOf('workspace_suppliers as ('),
+    )
+
+    expect(suppliersCte).toContain('from public.suppliers s')
+    expect(suppliersCte).not.toMatch(/\bs\.workspace_id\b/)
+    expect(suppliersCte).not.toMatch(/\bsuppliers\.workspace_id\b/)
+    expect(suppliersCte).toContain('lower(trim(s.company_name))')
+    expect(suppliersCte).toContain(
+      'count(*) over (partition by lower(trim(s.company_name)))',
+    )
+    expect(suppliersCte).toContain('p.target_workspace_id is not null')
+
+    // Valid workspace filters remain on stock tables.
+    expect(v1Items).toContain('from public.stock_items s')
+    expect(v1Items).toContain('s.workspace_id = p.target_workspace_id')
+    expect(v1Movements).toContain('from public.stock_movements sm')
+    expect(v1Movements).toContain('sm.workspace_id = p.target_workspace_id')
+
+    expect(functionBody).toContain('unique_suppliers as (')
+    expect(functionBody).toContain('ambiguous_supplier_names as (')
+    expect(functionBody).toContain('when c.supplier_ambiguous then \'manual\'')
+    expect(functionBody).toContain('on conflict (legacy_inventory_item_id, workspace_id)')
+  })
+
   it('returns a structured outcome row without schema changes', () => {
     expect(functionBody).toContain('result_id uuid')
     expect(functionBody).toContain('result_status text')
@@ -294,5 +332,30 @@ describe('inventory_stock_map_persist.sql P8.6.1 legacy parity', () => {
     expect(legacySql).toContain('lower(trim(s.company_name))')
     expect(legacySql).toContain('when c.supplier_ambiguous then \'manual\'')
     expect(legacySql).toContain('on conflict (legacy_inventory_item_id, workspace_id)')
+  })
+
+  it('P8.6.1k treats suppliers as global (no suppliers.workspace_id filter)', () => {
+    const executable = legacySql
+      .replace(/\/\*[\s\S]*?\*\//g, ' ')
+      .replace(/--[^\n]*/g, ' ')
+    const suppliersCte = executable.slice(
+      executable.indexOf('workspace_suppliers as ('),
+      executable.indexOf('unique_suppliers as ('),
+    )
+    expect(suppliersCte).toContain('from public.suppliers s')
+    expect(suppliersCte).not.toMatch(/\bs\.workspace_id\b/)
+    expect(suppliersCte).not.toMatch(/\bsuppliers\.workspace_id\b/)
+    expect(suppliersCte).toContain(
+      'count(*) over (partition by lower(trim(s.company_name)))',
+    )
+    expect(executable).toContain('from public.stock_items s')
+    expect(executable).toMatch(
+      /from public\.stock_items s[\s\S]*?s\.workspace_id = p\.target_workspace_id/,
+    )
+    expect(executable).toMatch(
+      /from public\.stock_movements sm[\s\S]*?sm\.workspace_id = p\.target_workspace_id/,
+    )
+    expect(legacySql).toContain('ambiguous_supplier_names as (')
+    expect(legacySql).toContain('when c.supplier_ambiguous then \'manual\'')
   })
 })

@@ -58,6 +58,28 @@ describe('inventory_stock_dry_run_classifier.sql P8.6.1i supplier contract', () 
     expect(sql).toContain("'ambiguous_supplier'")
   })
 
+  it('P8.6.1k treats suppliers as global (no suppliers.workspace_id filter)', () => {
+    const suppliersCte = executable.slice(
+      executable.indexOf('workspace_suppliers as ('),
+      executable.indexOf('unique_suppliers as ('),
+    )
+    expect(suppliersCte).toContain('from public.suppliers s')
+    expect(suppliersCte).not.toMatch(/\bs\.workspace_id\b/)
+    expect(suppliersCte).not.toMatch(/\bsuppliers\.workspace_id\b/)
+    expect(suppliersCte).toContain(
+      'count(*) over (partition by lower(trim(s.company_name)))',
+    )
+    expect(executable).toMatch(
+      /from public\.stock_items s[\s\S]*?s\.workspace_id = p\.target_workspace_id/,
+    )
+    expect(executable).toMatch(
+      /from public\.stock_movements sm[\s\S]*?sm\.workspace_id = p\.target_workspace_id/,
+    )
+    expect(sql).toContain('unique_suppliers as (')
+    expect(sql).toContain('ambiguous_supplier_names as (')
+    expect(sql).toContain('us.supplier_id as resolved_supplier_id')
+  })
+
   it('does not change stock_items schema or deploy supplier FK', () => {
     expect(stockItemsSchema).toContain('supplier text not null default \'\'')
     expect(stockItemsSchema).not.toMatch(/supplier_id\s+bigint/)
