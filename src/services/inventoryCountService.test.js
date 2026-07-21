@@ -1409,12 +1409,28 @@ describe('build_inventory_count_snapshot SQL contract (P8.3.9c)', () => {
   })
 })
 
-describe('post_inventory_count_finish SQL contract (P8.5.2 foundation)', () => {
+describe('post_inventory_count_finish SQL contract (P8.5.3 atomic post)', () => {
   const sql = readFileSync(
     resolve(process.cwd(), 'supabase/inventory_count_post_finish_rpc.sql'),
     'utf8',
   )
   const functionBody = sql.slice(sql.indexOf('as $$'), sql.indexOf('$$;') + 3)
+  const reconcileSql = readFileSync(
+    resolve(process.cwd(), 'supabase/inventory_count_reconcile_finish.sql'),
+    'utf8',
+  )
+  const previewSql = readFileSync(
+    resolve(process.cwd(), 'supabase/inventory_count_preview_finish_rpc.sql'),
+    'utf8',
+  )
+  const workspaceSource = readFileSync(
+    resolve(process.cwd(), 'src/components/stock/InventoryCountSessionWorkspace.jsx'),
+    'utf8',
+  )
+  const serviceSource = readFileSync(
+    resolve(process.cwd(), 'src/services/inventoryCountService.js'),
+    'utf8',
+  )
 
   it('defines a SECURITY DEFINER RPC with search_path, auth, and authenticated grant', () => {
     expect(sql).toContain('create or replace function public.post_inventory_count_finish(')
@@ -1431,43 +1447,75 @@ describe('post_inventory_count_finish SQL contract (P8.5.2 foundation)', () => {
     expect(sql).toContain('to authenticated')
   })
 
-  it('validates session state, snapshot, and can_post via shared reconciliation', () => {
+  it('locks session and stock items, then reconciles via shared Strategy 4 only', () => {
+    expect(functionBody).toContain('for update of s')
+    expect(functionBody).toContain('for update of si')
+    expect(functionBody).toContain('order by i.item_id')
+    expect(functionBody).toContain('select distinct i.item_id')
+    expect(functionBody).toMatch(
+      /for v_item_id in[\s\S]*order by i\.item_id[\s\S]*for update of si[\s\S]*reconcile_inventory_count_finish/,
+    )
+    expect(functionBody).toContain('public.reconcile_inventory_count_finish(p_workspace_id, p_session_id)')
+    expect(functionBody).toContain("v_session.status is distinct from 'counting_complete'")
     expect(functionBody).toContain('inventory_count_post_session_cancelled')
     expect(functionBody).toContain('inventory_count_post_already_posted')
-    expect(functionBody).toContain("v_session.status is distinct from 'counting_complete'")
     expect(functionBody).toContain('inventory_count_post_session_not_complete')
-    expect(functionBody).toContain('v_session.snapshot_at is null')
     expect(functionBody).toContain('inventory_count_post_snapshot_missing')
-    expect(functionBody).toContain('public.reconcile_inventory_count_finish(p_workspace_id, p_session_id)')
-    expect(functionBody).toContain("v_reconcile ->> 'can_post'")
     expect(functionBody).toContain('inventory_count_post_blocked')
-    expect(functionBody).toContain("'posting_enabled', false")
-    expect(functionBody).toContain('Posting engine foundation complete. Stock mutations not implemented.')
+    expect(functionBody).toContain("v_reconcile ->> 'can_post'")
+    expect(functionBody).toContain('blocking_issues')
+    expect(functionBody).not.toContain("when 'receive' then abs(m.quantity)")
+    expect(functionBody).not.toContain('expected_snapshot + coalesce(deltas.net_delta')
   })
 
-  it('contains no writes, stock mutations, or movement creation', () => {
-    expect(functionBody).not.toMatch(/\binsert\b/i)
-    expect(functionBody).not.toMatch(/\bupdate\b/i)
-    expect(functionBody).not.toMatch(/\bdelete\b/i)
-    expect(functionBody).not.toMatch(/\bmerge\b/i)
-    expect(functionBody).not.toMatch(/\bfor update\b/i)
-    expect(functionBody).not.toContain('stock_movements')
-    expect(functionBody).not.toContain('current_quantity')
-    expect(functionBody).not.toContain('set status')
-    expect(functionBody).not.toContain('posted_at =')
-    expect(functionBody).not.toContain('posted_movement_id')
-    expect(functionBody).toContain("v_session.status = 'posted'")
-    expect(functionBody).not.toMatch(/\bexecute\s+/i)
+  it('applies adjustment movements, quantity updates, audit fields, and session finalization', () => {
+    expect(functionBody).toContain("'adjustment'")
+    expect(functionBody).toContain('v_variance_quantity')
+    expect(functionBody).toContain('insert into public.stock_movements')
+    expect(functionBody).toContain('if v_variance_quantity <> 0 then')
+    expect(functionBody).toContain('current_quantity = v_resulting_quantity_after_post')
+    expect(functionBody).toContain('inventory_count_post_live_quantity_mismatch')
+    expect(functionBody).toContain('v_locked_qty is distinct from v_current_live_quantity')
+    expect(functionBody).toContain("v_line ->> 'resulting_quantity_after_post'")
+    expect(functionBody).toContain("v_line ->> 'session_item_id'")
+    expect(functionBody).toContain("v_line ->> 'expected_at_count'")
+    expect(functionBody).toContain("v_line ->> 'current_live_quantity'")
+    expect(functionBody).toContain('expected_at_count = v_expected_at_count')
+    expect(functionBody).toContain('variance_quantity = v_variance_quantity')
+    expect(functionBody).toContain('live_quantity_at_post = v_current_live_quantity')
+    expect(functionBody).toContain('posted_movement_id = v_movement_id')
+    expect(functionBody).toContain("status = 'posted'")
+    expect(functionBody).toContain('posted_at = v_posted_at')
+    expect(functionBody).toContain('posted_by = v_auth_user_id')
+    expect(functionBody).toContain("v_idempotency_key := 'inventory_count_post:' || p_session_id::text")
+    expect(functionBody).toContain('post_idempotency_key = v_idempotency_key')
+    expect(functionBody).toContain("'posting_enabled', true")
+    expect(functionBody).toContain('Inventory count posted successfully.')
+    expect(functionBody).not.toContain('Stock mutations not implemented')
+    expect(functionBody).not.toContain("'stock_count'")
+    expect(functionBody).not.toMatch(/type\s*=\s*'stock_count'/)
+    expect(functionBody).not.toContain('inventory_count_post_negative_quantity')
+    expect(functionBody).toContain('inventory_count_post_duplicate_item')
+    expect(functionBody).toContain('inventory_count_post_line_audit_failed')
+    expect(functionBody).toContain('inventory_count_post_quantity_update_failed')
+    expect(functionBody).toContain('inventory_count_post_session_finalize_failed')
+  })
+
+  it('keeps shared reconcile, preview, and frontend Confirm wiring untouched', () => {
+    expect(reconcileSql).toContain('create or replace function public.reconcile_inventory_count_finish(')
+    expect(previewSql).toContain('public.reconcile_inventory_count_finish(p_workspace_id, p_session_id)')
+    expect(previewSql).not.toContain('insert into public.stock_movements')
+    expect(serviceSource).not.toContain('post_inventory_count_finish')
+    expect(workspaceSource).toContain('inventory-count-finish-preview-confirm')
+    expect(workspaceSource).toMatch(
+      /inventory-count-finish-preview-confirm[\s\S]*?\bdisabled\b[\s\S]*?aria-disabled="true"/,
+    )
   })
 })
 
 describe('inventory_count_posted_by_foundation SQL contract (P8.5.2a)', () => {
   const sql = readFileSync(
     resolve(process.cwd(), 'supabase/inventory_count_posted_by_foundation.sql'),
-    'utf8',
-  )
-  const postRpc = readFileSync(
-    resolve(process.cwd(), 'supabase/inventory_count_post_finish_rpc.sql'),
     'utf8',
   )
   const workspaceSource = readFileSync(
@@ -1484,7 +1532,7 @@ describe('inventory_count_posted_by_foundation SQL contract (P8.5.2a)', () => {
     expect(sql).not.toMatch(/default\s+auth\.uid\(\)/i)
   })
 
-  it('does not fabricate backfill or change stock / posting mutation surfaces', () => {
+  it('does not fabricate backfill or change stock schemas in the migration', () => {
     const executableSql = sql
       .split('\n')
       .filter((line) => !line.trim().startsWith('--'))
@@ -1496,9 +1544,6 @@ describe('inventory_count_posted_by_foundation SQL contract (P8.5.2a)', () => {
     expect(executableSql).not.toContain('stock_items')
     expect(executableSql).not.toContain('stock_movements')
     expect(executableSql).not.toContain('create index')
-    expect(postRpc).toContain("'posting_enabled', false")
-    expect(postRpc).not.toMatch(/\binsert into\b/i)
-    expect(postRpc).not.toMatch(/\bupdate\s+public\./i)
     expect(workspaceSource).toContain('inventory-count-finish-preview-confirm')
     expect(workspaceSource).toMatch(
       /inventory-count-finish-preview-confirm[\s\S]*?\bdisabled\b[\s\S]*?aria-disabled="true"/,
