@@ -105,18 +105,71 @@ describe('inventory_migration_persist_rpc.sql source review', () => {
     expect(functionBody).toContain("'key', 'auto_create'")
   })
 
-  it('UPSERTs on (legacy_inventory_item_id, workspace_id) without overwriting protected fields', () => {
+  it('UPSERTs on (legacy_inventory_item_id, workspace_id) and protects finalized identity', () => {
     expect(functionBody).toContain('on conflict (legacy_inventory_item_id, workspace_id)')
     expect(functionBody).toContain('do update set')
     expect(functionBody).toContain("status not in ('created', 'linked')")
+    expect(functionBody).toContain('migrated_at is null')
     expect(upsertBranch).toContain('status = excluded.status')
     expect(upsertBranch).toContain('resolution_type = excluded.resolution_type')
     expect(upsertBranch).toContain('conflict_reason = excluded.conflict_reason')
     expect(upsertBranch).toContain('source_snapshot = excluded.source_snapshot')
     expect(upsertBranch).toContain('source_hash = excluded.source_hash')
-    expect(upsertBranch).not.toContain('stock_item_id')
-    expect(upsertBranch).not.toContain('migrated_at')
+    expect(upsertBranch).toContain('stock_item_id = excluded.stock_item_id')
+    expect(upsertBranch).not.toContain('migrated_at =')
     expect(functionBody).toContain('p_workspace_id as target_workspace_id')
+  })
+
+  it('P8.6.1 persists auto_link candidate_stock_item_id into map.stock_item_id only', () => {
+    const finalRows = functionBody.slice(
+      functionBody.indexOf('final_rows as ('),
+      functionBody.indexOf('persist_rows as ('),
+    )
+    const persistRows = functionBody.slice(
+      functionBody.indexOf('persist_rows as ('),
+      functionBody.indexOf('class_counts as ('),
+    )
+    const insertCols = functionBody.slice(
+      functionBody.indexOf('insert into public.inventory_stock_item_map ('),
+      functionBody.indexOf('on conflict (legacy_inventory_item_id, workspace_id)'),
+    )
+
+    // Candidate derived from DB CTEs (candidate_one), not RPC params.
+    expect(functionBody).toContain('candidate_one as (')
+    expect(functionBody).toContain('as candidate_stock_item_id')
+    expect(functionBody).not.toMatch(/\bp_candidate\b/)
+    expect(functionBody).not.toMatch(/\bp_stock_item_id\b/)
+    expect(functionBody).not.toMatch(/p_stock_item_id\s+uuid/)
+
+    // auto_link with exactly one candidate writes identity; others null.
+    expect(finalRows).toContain("when d.classification = 'auto_link'")
+    expect(finalRows).toContain('d.candidate_count = 1')
+    expect(finalRows).toContain('d.candidate_stock_item_id is not null')
+    expect(finalRows).toContain('then d.candidate_stock_item_id')
+    expect(finalRows).toContain('else null')
+    expect(finalRows).toContain('end as stock_item_id')
+
+    expect(persistRows).toContain('f.stock_item_id')
+    expect(insertCols).toContain('stock_item_id')
+
+    // Ambiguous / zero candidates cannot become auto_link (precedence unchanged).
+    expect(functionBody).toContain('when c.candidate_count > 1 then \'manual\'')
+    expect(functionBody).toContain("when c.candidate_count = 1")
+    expect(functionBody).toContain("then 'auto_link'")
+
+    // Workspace ownership proven via v1_items filter (same as classifier).
+    expect(functionBody).toContain('and s.workspace_id = p.target_workspace_id')
+  })
+
+  it('P8.6.1 locks map rows before identity UPSERT and never mutates quantities/movements', () => {
+    expect(functionBody).toContain('Lock order 3: existing map rows')
+    expect(functionBody).toContain('order by m.id')
+    expect(functionBody).toContain('for update')
+    expect(functionBody).not.toMatch(/insert into public\.stock_items/i)
+    expect(functionBody).not.toMatch(/update public\.stock_items/i)
+    expect(functionBody).not.toMatch(/set\s+current_quantity/i)
+    expect(functionBody).not.toMatch(/insert into public\.stock_movements/i)
+    expect(functionBody).not.toMatch(/update public\.stock_movements/i)
   })
 
   it('derives attention_required from manual/other classifications only', () => {
@@ -177,5 +230,28 @@ describe('inventory_migration_persist_rpc.sql source review', () => {
     expect(sql).not.toMatch(/alter table public\.inventory_stock_item_map/i)
     expect(sql).not.toMatch(/alter table public\.inventory_migration_session_steps/i)
     expect(sql).not.toContain("step_name = 'dry_run'")
+  })
+})
+
+describe('inventory_stock_map_persist.sql P8.6.1 legacy parity', () => {
+  const legacyPath = join(
+    dirname(fileURLToPath(import.meta.url)),
+    '../supabase/inventory_stock_map_persist.sql',
+  )
+  const legacySql = readFileSync(legacyPath, 'utf8')
+
+  it('persists auto_link candidate identity with the same UPSERT protections', () => {
+    expect(legacySql).toContain("when d.classification = 'auto_link'")
+    expect(legacySql).toContain('d.candidate_count = 1')
+    expect(legacySql).toContain('d.candidate_stock_item_id is not null')
+    expect(legacySql).toContain('then d.candidate_stock_item_id')
+    expect(legacySql).toContain('stock_item_id = excluded.stock_item_id')
+    expect(legacySql).toContain("status not in ('created', 'linked')")
+    expect(legacySql).toContain('migrated_at is null')
+    expect(legacySql).toContain('order by m.id')
+    expect(legacySql).toContain('for update')
+    expect(legacySql).not.toMatch(/insert into public\.stock_items/i)
+    expect(legacySql).not.toMatch(/insert into public\.stock_movements/i)
+    expect(legacySql).not.toMatch(/set\s+current_quantity/i)
   })
 })

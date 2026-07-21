@@ -4,12 +4,14 @@
 -- Run manually in the Supabase SQL editor when ready.
 -- Do NOT auto-run from the app.
 --
--- Scope (corrected):
+-- Scope (P8.6.1):
 --   - Finalize status classified + auto_link → linked
---   - ONLY when stock_item_id is already persisted and valid in the same workspace
---   - Does NOT resolve / match / write stock_item_id
+--   - ONLY when stock_item_id is already persisted (by Persist) and valid in
+--     the same workspace
+--   - Does NOT resolve / match / discover / write stock_item_id
 --   - Does NOT write migrated_at / snapshots / hashes / resolution_type
---   - Does NOT touch stock_items, inventory_items, bar_refills, movements, orders
+--   - Does NOT touch stock_items quantities, inventory_items, bar_refills,
+--     movements, or orders
 --
 -- Idempotent: already-linked rows are not selected; second run links 0 rows.
 -- =============================================================================

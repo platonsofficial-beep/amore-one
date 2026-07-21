@@ -18,13 +18,20 @@
 --
 -- Business writes: ONLY public.inventory_stock_item_map per P7.4.3 contract.
 -- Does NOT create/update stock_items, stock_movements, or run auto_link/auto_create.
--- NEVER overwrites stock_item_id or migrated_at.
+-- P8.6.1: for resolution_type=auto_link only, persists the authoritative
+--   candidate_stock_item_id (derived in this RPC from live DB state) into
+--   inventory_stock_item_map.stock_item_id. Non-auto_link rows write null.
+-- NEVER overwrites stock_item_id or migrated_at on created / linked / migrated rows.
 -- NEVER downgrades status created / linked.
 --
 -- Prerequisites: foundation completed only (early pipeline stage).
 -- Idempotency (step): reject if already completed / result exists.
 -- Idempotency (map): ON CONFLICT (legacy_inventory_item_id, workspace_id) DO UPDATE
---   with created/linked protection and hash/status change gate.
+--   with created/linked/migrated_at protection and hash/status/identity change gate.
+--
+-- Classifier duplication note (P8.6.1): P7.4.2 classification CTEs remain embedded
+-- here (byte-for-byte semantic alignment with dry-run / legacy persist). No shared
+-- internal function introduced in this sprint.
 -- =============================================================================
 
 drop function if exists public.run_inventory_migration_persist(uuid, uuid);
@@ -225,6 +232,15 @@ begin
   where st.id = v_step.id
   returning * into v_step;
 
+  -- Lock order 3: existing map rows for this workspace (deterministic id order)
+  -- before identity/status UPSERT. Serializes against concurrent map writers
+  -- (legacy SQL path remains a residual unlocked peer — dual-path policy later).
+  perform 1
+  from public.inventory_stock_item_map m
+  where m.workspace_id = p_workspace_id
+  order by m.id
+  for update;
+
   select count(*)::bigint into v_protected
   from public.inventory_stock_item_map m
   where m.workspace_id = p_workspace_id
@@ -232,6 +248,7 @@ begin
 
   -- ---------------------------------------------------------------------------
   -- P7.4.3 classification persistence (embedded; meanings unchanged)
+  -- P8.6.1: auto_link also persists candidate_stock_item_id → stock_item_id
   -- ---------------------------------------------------------------------------
   with params as (
     select
@@ -766,7 +783,16 @@ final_rows as (
         then 'quantity_not_safe_for_auto_link' end
     )) as conflict_reason,
     d.source_snapshot,
-    d.source_hash
+    d.source_hash,
+    -- P8.6.1: only auto_link with exactly one authoritative candidate may carry identity.
+    -- candidate_one is empty when candidate_count <> 1; auto_link requires count = 1.
+    case
+      when d.classification = 'auto_link'
+        and d.candidate_count = 1
+        and d.candidate_stock_item_id is not null
+      then d.candidate_stock_item_id
+      else null
+    end as stock_item_id
   from decided d
 ),
 
@@ -784,7 +810,8 @@ persist_rows as (
     f.resolution_type,
     coalesce(f.conflict_reason, '') as conflict_reason,
     f.source_snapshot,
-    f.source_hash
+    f.source_hash,
+    f.stock_item_id
   from final_rows f
   where f.target_workspace_id is not null
 ),
@@ -803,6 +830,7 @@ upserted as (
   insert into public.inventory_stock_item_map (
     legacy_inventory_item_id,
     workspace_id,
+    stock_item_id,
     status,
     resolution_type,
     conflict_reason,
@@ -812,6 +840,7 @@ upserted as (
   select
     p.legacy_inventory_item_id,
     p.workspace_id,
+    p.stock_item_id,
     p.status,
     p.resolution_type,
     p.conflict_reason,
@@ -825,13 +854,18 @@ upserted as (
     conflict_reason = excluded.conflict_reason,
     source_snapshot = excluded.source_snapshot,
     source_hash = excluded.source_hash,
+    -- P8.6.1: set/clear identity only on non-finalized rows (WHERE below).
+    -- auto_link → authoritative candidate; non-auto_link → null (no fabricated id).
+    stock_item_id = excluded.stock_item_id,
     updated_at = now()
   where public.inventory_stock_item_map.status not in ('created', 'linked')
+    and public.inventory_stock_item_map.migrated_at is null
     and (
       public.inventory_stock_item_map.source_hash is distinct from excluded.source_hash
       or public.inventory_stock_item_map.status is distinct from excluded.status
       or public.inventory_stock_item_map.resolution_type is distinct from excluded.resolution_type
       or public.inventory_stock_item_map.conflict_reason is distinct from excluded.conflict_reason
+      or public.inventory_stock_item_map.stock_item_id is distinct from excluded.stock_item_id
     )
   returning (xmax = 0) as was_inserted
 )
@@ -990,7 +1024,7 @@ revoke all on function public.run_inventory_migration_persist(uuid, uuid) from a
 grant execute on function public.run_inventory_migration_persist(uuid, uuid) to authenticated;
 
 comment on function public.run_inventory_migration_persist(uuid, uuid) is
-  'P7.8.9 stage-owned Persist: locks session/step, runs P7.4.3 classification UPSERT into inventory_stock_item_map, persists step result, completes step, writes activity note. Protects created/linked; never writes stock_items/movements.';
+  'P7.8.9/P8.6.1 stage-owned Persist: locks session/steps/map rows, runs P7.4.3 classification UPSERT into inventory_stock_item_map (auto_link writes validated candidate stock_item_id), persists step result, completes step, writes activity note. Protects created/linked/migrated_at; never writes stock_items/movements.';
 
 -- =============================================================================
 -- Verification (commented — run after apply; do not auto-execute)

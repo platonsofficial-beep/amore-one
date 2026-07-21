@@ -99,6 +99,17 @@ describe('inventory_migration_auto_link_rpc.sql source review', () => {
     expect(mapUpdate).toContain('m.workspace_id = p_workspace_id')
   })
 
+  it('P8.6.1 uses persisted stock_item_id only and never discovers candidates', () => {
+    expect(functionBody).not.toContain('candidate_stock_item_id')
+    expect(functionBody).not.toContain('candidate_one')
+    expect(functionBody).not.toContain('normalized_name')
+    expect(functionBody).not.toMatch(/p_stock_item_id/)
+    expect(functionBody).not.toMatch(/p_candidate/)
+    // Status-only mutation; identity comes from Persist.
+    expect(mapUpdate).toMatch(/set\s+status\s*=\s*'linked'/)
+    expect(sql).toContain('Does not discover/write stock_item_id')
+  })
+
   it('records null/missing/mismatch attention metrics without inventing matches', () => {
     expect(functionBody).toContain('v_null_stock_id')
     expect(functionBody).toContain('v_missing_stock')

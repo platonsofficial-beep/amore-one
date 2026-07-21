@@ -10,7 +10,9 @@
 --   - Does NOT create stock_movements / stock_orders
 --   - Does NOT touch inventory_items / suppliers / bar_refills
 --   - UPSERT on (legacy_inventory_item_id, workspace_id)
---   - NEVER overwrites stock_item_id or migrated_at
+--   - P8.6.1: auto_link persists authoritative candidate_stock_item_id → stock_item_id
+--     (derived from live DB in this script; non-auto_link writes null)
+--   - NEVER overwrites stock_item_id or migrated_at on created / linked / migrated rows
 --   - NEVER downgrades status created / linked
 --
 -- Prerequisites:
@@ -18,10 +20,13 @@
 --   2. Dry-run classifier rules from P7.4.2 (embedded below)
 --
 -- Status persistence mapping:
---   auto_create → status=classified, resolution_type=auto_create
---   auto_link   → status=classified, resolution_type=auto_link
---   manual      → status=manual,     resolution_type=NULL
---   skip        → status=skipped,    resolution_type=skip
+--   auto_create → status=classified, resolution_type=auto_create, stock_item_id=null
+--   auto_link   → status=classified, resolution_type=auto_link, stock_item_id=candidate
+--   manual      → status=manual,     resolution_type=NULL, stock_item_id=null
+--   skip        → status=skipped,    resolution_type=skip, stock_item_id=null
+--
+-- Classifier duplication note (P8.6.1): P7.4.2 CTEs remain embedded (semantic
+-- alignment with dry-run / session persist RPC). No shared subsystem this sprint.
 --
 -- Hash: md5(to_jsonb(legacy_row)::text) — same as dry-run
 -- Snapshot: full to_jsonb(inventory_items row)
@@ -48,6 +53,13 @@ begin
   ) then
     raise exception 'P7.4.3: workspace % does not exist', v_target_workspace_id;
   end if;
+
+  -- Lock existing map rows for this workspace before identity/status UPSERT.
+  perform 1
+  from public.inventory_stock_item_map m
+  where m.workspace_id = v_target_workspace_id
+  order by m.id
+  for update;
 
   select count(*)::bigint into v_protected
   from public.inventory_stock_item_map m
@@ -587,7 +599,15 @@ final_rows as (
         then 'quantity_not_safe_for_auto_link' end
     )) as conflict_reason,
     d.source_snapshot,
-    d.source_hash
+    d.source_hash,
+    -- P8.6.1: only auto_link with exactly one authoritative candidate may carry identity.
+    case
+      when d.classification = 'auto_link'
+        and d.candidate_count = 1
+        and d.candidate_stock_item_id is not null
+      then d.candidate_stock_item_id
+      else null
+    end as stock_item_id
   from decided d
 ),
 
@@ -605,7 +625,8 @@ persist_rows as (
     f.resolution_type,
     coalesce(f.conflict_reason, '') as conflict_reason,
     f.source_snapshot,
-    f.source_hash
+    f.source_hash,
+    f.stock_item_id
   from final_rows f
   where f.target_workspace_id is not null
 ),
@@ -614,6 +635,7 @@ upserted as (
   insert into public.inventory_stock_item_map (
     legacy_inventory_item_id,
     workspace_id,
+    stock_item_id,
     status,
     resolution_type,
     conflict_reason,
@@ -623,6 +645,7 @@ upserted as (
   select
     p.legacy_inventory_item_id,
     p.workspace_id,
+    p.stock_item_id,
     p.status,
     p.resolution_type,
     p.conflict_reason,
@@ -636,13 +659,16 @@ upserted as (
     conflict_reason = excluded.conflict_reason,
     source_snapshot = excluded.source_snapshot,
     source_hash = excluded.source_hash,
+    stock_item_id = excluded.stock_item_id,
     updated_at = now()
   where public.inventory_stock_item_map.status not in ('created', 'linked')
+    and public.inventory_stock_item_map.migrated_at is null
     and (
       public.inventory_stock_item_map.source_hash is distinct from excluded.source_hash
       or public.inventory_stock_item_map.status is distinct from excluded.status
       or public.inventory_stock_item_map.resolution_type is distinct from excluded.resolution_type
       or public.inventory_stock_item_map.conflict_reason is distinct from excluded.conflict_reason
+      or public.inventory_stock_item_map.stock_item_id is distinct from excluded.stock_item_id
     )
   returning (xmax = 0) as was_inserted
 )

@@ -17,12 +17,13 @@
 --
 -- Business writes: ONLY inventory_stock_item_map.status
 --   classified + auto_link → linked
---   ONLY when stock_item_id is already set and valid in the same workspace.
+--   ONLY when stock_item_id is already set (by Persist P8.6.1) and valid
+--   in the same workspace.
 --
 -- Does NOT:
---   - Resolve / match / write stock_item_id
+--   - Resolve / match / discover / write stock_item_id (no fuzzy matching)
 --   - Write migrated_at / snapshots / hashes / resolution_type
---   - Create/update stock_items
+--   - Create/update stock_items (including quantities)
 --   - Create stock_movements
 --   - Execute auto_create / phase1 / phase2
 --   - Call the generic state-only step transition RPC
@@ -453,7 +454,7 @@ revoke all on function public.run_inventory_migration_auto_link(uuid, uuid) from
 grant execute on function public.run_inventory_migration_auto_link(uuid, uuid) to authenticated;
 
 comment on function public.run_inventory_migration_auto_link(uuid, uuid) is
-  'P7.8.10 stage-owned Auto Link: locks session/step/map rows, finalizes classified+auto_link → linked when stock_item_id already valid in-workspace. Does not write stock_item_id or create stock items.';
+  'P7.8.10/P8.6.1 stage-owned Auto Link: locks session/step/map rows, finalizes classified+auto_link → linked when Persist-written stock_item_id is valid in-workspace. Does not discover/write stock_item_id, quantities, or movements.';
 
 -- =============================================================================
 -- Verification (commented — run after apply; do not auto-execute)
