@@ -1460,3 +1460,48 @@ describe('post_inventory_count_finish SQL contract (P8.5.2 foundation)', () => {
     expect(functionBody).not.toMatch(/\bexecute\s+/i)
   })
 })
+
+describe('inventory_count_posted_by_foundation SQL contract (P8.5.2a)', () => {
+  const sql = readFileSync(
+    resolve(process.cwd(), 'supabase/inventory_count_posted_by_foundation.sql'),
+    'utf8',
+  )
+  const postRpc = readFileSync(
+    resolve(process.cwd(), 'supabase/inventory_count_post_finish_rpc.sql'),
+    'utf8',
+  )
+  const workspaceSource = readFileSync(
+    resolve(process.cwd(), 'src/components/stock/InventoryCountSessionWorkspace.jsx'),
+    'utf8',
+  )
+
+  it('adds nullable posted_by uuid referencing auth.users with ON DELETE SET NULL', () => {
+    expect(sql).toContain('alter table public.inventory_count_sessions')
+    expect(sql).toContain('add column if not exists posted_by uuid')
+    expect(sql).toContain('references auth.users(id) on delete set null')
+    expect(sql).not.toMatch(/posted_by[^\n]*not null/i)
+    expect(sql).not.toMatch(/posted_by[^\n]*default\s+auth\.uid\(\)/i)
+    expect(sql).not.toMatch(/default\s+auth\.uid\(\)/i)
+  })
+
+  it('does not fabricate backfill or change stock / posting mutation surfaces', () => {
+    const executableSql = sql
+      .split('\n')
+      .filter((line) => !line.trim().startsWith('--'))
+      .join('\n')
+
+    expect(executableSql).not.toMatch(/\bupdate\b/i)
+    expect(executableSql).not.toMatch(/\binsert\b/i)
+    expect(executableSql).not.toMatch(/\bbackfill\b/i)
+    expect(executableSql).not.toContain('stock_items')
+    expect(executableSql).not.toContain('stock_movements')
+    expect(executableSql).not.toContain('create index')
+    expect(postRpc).toContain("'posting_enabled', false")
+    expect(postRpc).not.toMatch(/\binsert into\b/i)
+    expect(postRpc).not.toMatch(/\bupdate\s+public\./i)
+    expect(workspaceSource).toContain('inventory-count-finish-preview-confirm')
+    expect(workspaceSource).toMatch(
+      /inventory-count-finish-preview-confirm[\s\S]*?\bdisabled\b[\s\S]*?aria-disabled="true"/,
+    )
+  })
+})
