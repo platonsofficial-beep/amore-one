@@ -18,6 +18,7 @@ import {
   completeInventoryCountLocation,
   getInventoryCountSessionItems,
   mapInventoryCountSessionItemRow,
+  postInventoryCountFinish,
   previewInventoryCountFinish,
   setInventoryCountSessionPauseState,
   updateInventoryCountItem,
@@ -1254,6 +1255,123 @@ describe('previewInventoryCountFinish', () => {
   })
 })
 
+describe('postInventoryCountFinish', () => {
+  beforeEach(() => {
+    fromMock.mockReset()
+    rpcMock.mockReset()
+  })
+
+  function postPayload(overrides = {}) {
+    return {
+      session_id: 'session-1',
+      workspace_id: 'workspace-1',
+      status: 'posted',
+      posted_at: '2026-07-21T12:30:00.000Z',
+      posted_by: 'user-1',
+      can_post: true,
+      posting_enabled: true,
+      counted_line_count: 3,
+      adjusted_line_count: 2,
+      zero_variance_line_count: 1,
+      movement_count: 2,
+      total_positive_variance: 1,
+      total_negative_variance: -2,
+      reconciliation_summary: null,
+      message: 'Inventory count posted successfully.',
+      ...overrides,
+    }
+  }
+
+  it('calls post_inventory_count_finish once and maps the posted result', async () => {
+    rpcMock.mockResolvedValue({
+      data: postPayload(),
+      error: null,
+    })
+
+    const result = await postInventoryCountFinish({
+      workspaceId: 'workspace-1',
+      sessionId: 'session-1',
+    })
+
+    expect(fromMock).not.toHaveBeenCalled()
+    expect(rpcMock).toHaveBeenCalledTimes(1)
+    expect(rpcMock).toHaveBeenCalledWith('post_inventory_count_finish', {
+      p_workspace_id: 'workspace-1',
+      p_session_id: 'session-1',
+    })
+    expect(result).toMatchObject({
+      sessionId: 'session-1',
+      workspaceId: 'workspace-1',
+      status: 'posted',
+      postedAt: '2026-07-21T12:30:00.000Z',
+      postedBy: 'user-1',
+      postingEnabled: true,
+      countedLineCount: 3,
+      adjustedLineCount: 2,
+      movementCount: 2,
+      message: 'Inventory count posted successfully.',
+    })
+  })
+
+  it('rejects empty or non-posted payloads without mutating client state', async () => {
+    rpcMock.mockResolvedValueOnce({ data: null, error: null })
+    await expect(
+      postInventoryCountFinish({
+        workspaceId: 'workspace-1',
+        sessionId: 'session-1',
+      }),
+    ).rejects.toThrow('Finish count post response was empty or invalid.')
+
+    rpcMock.mockResolvedValueOnce({
+      data: postPayload({ status: 'counting_complete' }),
+      error: null,
+    })
+    await expect(
+      postInventoryCountFinish({
+        workspaceId: 'workspace-1',
+        sessionId: 'session-1',
+      }),
+    ).rejects.toThrow('Finish count post response was empty or invalid.')
+
+    expect(fromMock).not.toHaveBeenCalled()
+  })
+
+  it('maps inventory_count_post_* RPC errors with existing conventions', async () => {
+    rpcMock.mockResolvedValueOnce({
+      data: null,
+      error: { message: 'inventory_count_post_session_not_complete' },
+    })
+    await expect(
+      postInventoryCountFinish({
+        workspaceId: 'workspace-1',
+        sessionId: 'session-1',
+      }),
+    ).rejects.toThrow('Inventory count session must be counting complete to post.')
+
+    rpcMock.mockResolvedValueOnce({
+      data: null,
+      error: { message: 'inventory_count_post_blocked' },
+    })
+    await expect(
+      postInventoryCountFinish({
+        workspaceId: 'workspace-1',
+        sessionId: 'session-1',
+      }),
+    ).rejects.toThrow('Inventory count cannot be posted until all blocking issues are resolved.')
+
+    rpcMock.mockResolvedValueOnce({
+      data: null,
+      error: { message: 'inventory_count_post_forbidden' },
+    })
+    await expect(
+      postInventoryCountFinish({
+        workspaceId: 'workspace-1',
+        sessionId: 'session-1',
+      }),
+    ).rejects.toThrow('You do not have permission to manage inventory counts for this workspace.')
+  })
+})
+
 describe('preview_inventory_count_finish SQL contract', () => {
   const sql = readFileSync(
     resolve(process.cwd(), 'supabase/inventory_count_preview_finish_rpc.sql'),
@@ -1501,15 +1619,15 @@ describe('post_inventory_count_finish SQL contract (P8.5.3 atomic post)', () => 
     expect(functionBody).toContain('inventory_count_post_session_finalize_failed')
   })
 
-  it('keeps shared reconcile, preview, and frontend Confirm wiring untouched', () => {
+  it('keeps shared reconcile and preview SQL untouched while frontend posts via service', () => {
     expect(reconcileSql).toContain('create or replace function public.reconcile_inventory_count_finish(')
     expect(previewSql).toContain('public.reconcile_inventory_count_finish(p_workspace_id, p_session_id)')
     expect(previewSql).not.toContain('insert into public.stock_movements')
-    expect(serviceSource).not.toContain('post_inventory_count_finish')
+    expect(serviceSource).toContain("const POST_FINISH_RPC = 'post_inventory_count_finish'")
+    expect(serviceSource).toContain('postInventoryCountFinish')
     expect(workspaceSource).toContain('inventory-count-finish-preview-confirm')
-    expect(workspaceSource).toMatch(
-      /inventory-count-finish-preview-confirm[\s\S]*?\bdisabled\b[\s\S]*?aria-disabled="true"/,
-    )
+    expect(workspaceSource).toContain('postInventoryCountFinish')
+    expect(workspaceSource).toContain('canConfirmFinish')
   })
 })
 
@@ -1545,8 +1663,6 @@ describe('inventory_count_posted_by_foundation SQL contract (P8.5.2a)', () => {
     expect(executableSql).not.toContain('stock_movements')
     expect(executableSql).not.toContain('create index')
     expect(workspaceSource).toContain('inventory-count-finish-preview-confirm')
-    expect(workspaceSource).toMatch(
-      /inventory-count-finish-preview-confirm[\s\S]*?\bdisabled\b[\s\S]*?aria-disabled="true"/,
-    )
+    expect(workspaceSource).toContain('postInventoryCountFinish')
   })
 })

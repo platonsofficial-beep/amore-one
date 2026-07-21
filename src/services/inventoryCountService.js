@@ -6,6 +6,7 @@ const UPDATE_SESSION_ITEM_RPC = 'update_inventory_count_session_item'
 const COMPLETE_LOCATION_RPC = 'complete_inventory_count_location'
 const SET_PAUSE_STATE_RPC = 'set_inventory_count_session_pause_state'
 const PREVIEW_FINISH_RPC = 'preview_inventory_count_finish'
+const POST_FINISH_RPC = 'post_inventory_count_finish'
 const SESSION_ITEMS_TABLE = 'inventory_count_session_items'
 const SESSION_LOCATIONS_TABLE = 'inventory_count_session_locations'
 
@@ -38,7 +39,7 @@ function isRpcUnavailableError(error) {
 
 function extractRpcErrorCode(error) {
   const message = `${error?.message ?? error?.details ?? error?.hint ?? ''}`.trim()
-  const match = message.match(/inventory_count_(?:session|snapshot|item|location|pause|preview)_[a-z0-9_]+/i)
+  const match = message.match(/inventory_count_(?:session|snapshot|item|location|pause|preview|post|reconcile)_[a-z0-9_]+/i)
   return match?.[0]?.toLowerCase() ?? ''
 }
 
@@ -62,6 +63,7 @@ function mapInventoryCountRpcError(error, fallbackMessage) {
     case 'inventory_count_location_unauthenticated':
     case 'inventory_count_pause_unauthenticated':
     case 'inventory_count_preview_unauthenticated':
+    case 'inventory_count_post_unauthenticated':
       return new Error('You must be signed in to manage inventory counts.')
     case 'inventory_count_session_forbidden':
     case 'inventory_count_snapshot_forbidden':
@@ -69,6 +71,7 @@ function mapInventoryCountRpcError(error, fallbackMessage) {
     case 'inventory_count_location_forbidden':
     case 'inventory_count_pause_forbidden':
     case 'inventory_count_preview_forbidden':
+    case 'inventory_count_post_forbidden':
       return new Error('You do not have permission to manage inventory counts for this workspace.')
     case 'inventory_count_session_workspace_required':
     case 'inventory_count_snapshot_workspace_required':
@@ -76,6 +79,7 @@ function mapInventoryCountRpcError(error, fallbackMessage) {
     case 'inventory_count_location_workspace_required':
     case 'inventory_count_pause_workspace_required':
     case 'inventory_count_preview_workspace_required':
+    case 'inventory_count_post_workspace_required':
       return new Error('Workspace is required.')
     case 'inventory_count_session_workspace_not_found':
       return new Error('Workspace was not found.')
@@ -97,18 +101,21 @@ function mapInventoryCountRpcError(error, fallbackMessage) {
     case 'inventory_count_location_session_required':
     case 'inventory_count_pause_session_required':
     case 'inventory_count_preview_session_required':
+    case 'inventory_count_post_session_required':
       return new Error('Inventory count session is required.')
     case 'inventory_count_snapshot_session_not_found':
     case 'inventory_count_item_session_not_found':
     case 'inventory_count_location_session_not_found':
     case 'inventory_count_pause_session_not_found':
     case 'inventory_count_preview_session_not_found':
+    case 'inventory_count_post_session_not_found':
       return new Error('Inventory count session was not found.')
     case 'inventory_count_snapshot_workspace_mismatch':
     case 'inventory_count_item_workspace_mismatch':
     case 'inventory_count_location_workspace_mismatch':
     case 'inventory_count_pause_workspace_mismatch':
     case 'inventory_count_preview_workspace_mismatch':
+    case 'inventory_count_post_workspace_mismatch':
       return new Error('Inventory count session does not belong to this workspace.')
     case 'inventory_count_snapshot_session_not_in_progress':
       return new Error('Inventory count session must be in progress to build a snapshot.')
@@ -125,7 +132,16 @@ function mapInventoryCountRpcError(error, fallbackMessage) {
     case 'inventory_count_preview_session_not_complete':
       return new Error('Inventory count session must be counting complete to preview finish.')
     case 'inventory_count_preview_snapshot_missing':
+    case 'inventory_count_post_snapshot_missing':
       return new Error('Inventory count snapshot was not found for this session.')
+    case 'inventory_count_post_session_cancelled':
+      return new Error('Inventory count session was cancelled and cannot be posted.')
+    case 'inventory_count_post_already_posted':
+      return new Error('Inventory count session has already been posted.')
+    case 'inventory_count_post_session_not_complete':
+      return new Error('Inventory count session must be counting complete to post.')
+    case 'inventory_count_post_blocked':
+      return new Error('Inventory count cannot be posted until all blocking issues are resolved.')
     case 'inventory_count_session_snapshot_at_immutable':
       return new Error('Inventory count snapshot timestamp cannot be changed.')
     case 'inventory_count_item_frozen_field':
@@ -857,6 +873,74 @@ export async function previewInventoryCountFinish({
   const mapped = mapInventoryCountFinishPreviewResult(firstRpcRow(data) ?? data)
   if (!mapped) {
     throw new Error('Finish count preview response was empty or invalid.')
+  }
+
+  return mapped
+}
+
+export function mapInventoryCountFinishPostResult(payload) {
+  if (!payload || typeof payload !== 'object') {
+    return null
+  }
+
+  const sessionId = `${payload.session_id ?? payload.sessionId ?? ''}`.trim()
+  const workspaceId = `${payload.workspace_id ?? payload.workspaceId ?? ''}`.trim()
+  const status = `${payload.status ?? payload.session_status ?? payload.sessionStatus ?? ''}`.trim()
+  if (!sessionId || !workspaceId || status !== 'posted') {
+    return null
+  }
+
+  const mapCount = (value) => {
+    const numeric = Number(value)
+    return Number.isFinite(numeric) ? numeric : 0
+  }
+
+  return {
+    sessionId,
+    workspaceId,
+    status,
+    postedAt: payload.posted_at ?? payload.postedAt ?? null,
+    postedBy: payload.posted_by ?? payload.postedBy ?? null,
+    canPost: Boolean(payload.can_post ?? payload.canPost ?? true),
+    postingEnabled: Boolean(payload.posting_enabled ?? payload.postingEnabled ?? true),
+    countedLineCount: mapCount(payload.counted_line_count ?? payload.countedLineCount),
+    adjustedLineCount: mapCount(payload.adjusted_line_count ?? payload.adjustedLineCount),
+    zeroVarianceLineCount: mapCount(payload.zero_variance_line_count ?? payload.zeroVarianceLineCount),
+    movementCount: mapCount(payload.movement_count ?? payload.movementCount),
+    totalPositiveVariance: mapCount(payload.total_positive_variance ?? payload.totalPositiveVariance),
+    totalNegativeVariance: mapCount(payload.total_negative_variance ?? payload.totalNegativeVariance),
+    reconciliationSummary: payload.reconciliation_summary ?? payload.reconciliationSummary ?? null,
+    message: `${payload.message ?? 'Inventory count posted successfully.'}`.trim()
+      || 'Inventory count posted successfully.',
+  }
+}
+
+/**
+ * Post a counting_complete inventory count session.
+ * Mutates stock via the database RPC only. Frontend maps the response.
+ */
+export async function postInventoryCountFinish({
+  workspaceId,
+  sessionId,
+} = {}) {
+  requireConfiguredSupabase()
+
+  const p_workspace_id = requireId(workspaceId, 'Workspace')
+  const p_session_id = requireId(sessionId, 'Session')
+
+  const { data, error } = await supabase.rpc(POST_FINISH_RPC, {
+    p_workspace_id,
+    p_session_id,
+  })
+
+  if (error) {
+    console.error('[inventoryCountService] postInventoryCountFinish error:', error)
+    throw mapInventoryCountRpcError(error, 'Unable to post inventory count right now.')
+  }
+
+  const mapped = mapInventoryCountFinishPostResult(firstRpcRow(data) ?? data)
+  if (!mapped) {
+    throw new Error('Finish count post response was empty or invalid.')
   }
 
   return mapped

@@ -14,6 +14,7 @@ import {
   getInventoryCountSessionItems,
   getInventoryCountSessionLocations,
   previewInventoryCountFinish,
+  postInventoryCountFinish,
   setInventoryCountSessionPauseState,
   updateInventoryCountItem,
 } from '../../services/inventoryCountService'
@@ -33,6 +34,7 @@ vi.mock('../../services/inventoryCountService', () => ({
   completeInventoryCountLocation: vi.fn(),
   setInventoryCountSessionPauseState: vi.fn(),
   previewInventoryCountFinish: vi.fn(),
+  postInventoryCountFinish: vi.fn(),
 }))
 
 function render(ui) {
@@ -228,6 +230,7 @@ describe('InventoryCountSessionWorkspace real session items', () => {
     completeInventoryCountLocation.mockReset()
     setInventoryCountSessionPauseState.mockReset()
     previewInventoryCountFinish.mockReset()
+    postInventoryCountFinish.mockReset()
 
     createInventoryCountSession.mockResolvedValue({
       id: 'session-real-1',
@@ -933,6 +936,7 @@ describe('InventoryCountSessionWorkspace pause and resume', () => {
     completeInventoryCountLocation.mockReset()
     setInventoryCountSessionPauseState.mockReset()
     previewInventoryCountFinish.mockReset()
+    postInventoryCountFinish.mockReset()
 
     getInventoryCountSessionLocations.mockResolvedValue(FIXTURE_LOCATIONS)
     getInventoryCountSessionItems.mockResolvedValue(FIXTURE_ITEMS)
@@ -1208,6 +1212,7 @@ describe('InventoryCountSessionWorkspace finish count preview', () => {
     completeInventoryCountLocation.mockReset()
     setInventoryCountSessionPauseState.mockReset()
     previewInventoryCountFinish.mockReset()
+    postInventoryCountFinish.mockReset()
 
     getInventoryCountSessionLocations.mockResolvedValue([
       sessionLocation('loc-1', 'Main Storage', 0, 'current'),
@@ -1358,11 +1363,11 @@ describe('InventoryCountSessionWorkspace finish count preview', () => {
     expect(dialog.textContent).toContain('+1')
     expect(dialog.textContent).toContain('Current Live')
     expect(dialog.textContent).toContain('Result After Post')
-    expect(dialog.textContent).toContain('Confirm Finish Count stays unavailable until posting is enabled.')
+    expect(dialog.textContent).toContain('Confirm posts stock adjustments and finalizes this count.')
 
     const confirmBtn = getButtonByText(container, 'Confirm Finish Count')
-    expect(confirmBtn?.disabled).toBe(true)
-    expect(confirmBtn?.getAttribute('aria-disabled')).toBe('true')
+    expect(confirmBtn?.disabled).toBe(false)
+    expect(confirmBtn?.getAttribute('aria-disabled')).toBe('false')
     expect(confirmBtn?.className).toContain('inventory-count-finish-preview-confirm')
     expect(dialog.querySelector('.inventory-count-finish-preview-flow')).not.toBeNull()
     expect(dialog.querySelector('.inventory-count-finish-preview-variance')).not.toBeNull()
@@ -1639,6 +1644,114 @@ describe('InventoryCountSessionWorkspace finish count preview', () => {
 
     expect(previewInventoryCountFinish).toHaveBeenCalledTimes(2)
     expect(container.querySelector('[role="dialog"][aria-label="Finish Count Preview"]')).not.toBeNull()
+    cleanup()
+  })
+
+  it('posts once, shows loading, refreshes, disables confirm after success, and notifies parent', async () => {
+    const onPosted = vi.fn()
+    let resolvePost
+    postInventoryCountFinish.mockImplementationOnce(
+      () => new Promise((resolve) => {
+        resolvePost = resolve
+      }),
+    )
+
+    const rendered = await renderWorkspace({ onPosted })
+
+    await act(async () => {
+      getButtonByText(rendered.container, 'Complete Location').click()
+      await Promise.resolve()
+    })
+    await act(async () => {
+      getButtonByText(rendered.container, 'Finish Count').click()
+      await Promise.resolve()
+    })
+
+    const confirmBtn = getButtonByText(rendered.container, 'Confirm Finish Count')
+    expect(confirmBtn?.disabled).toBe(false)
+
+    await act(async () => {
+      confirmBtn.click()
+      confirmBtn.click()
+      await Promise.resolve()
+    })
+
+    expect(postInventoryCountFinish).toHaveBeenCalledTimes(1)
+    expect(postInventoryCountFinish).toHaveBeenCalledWith({
+      workspaceId: 'workspace-test-id',
+      sessionId: 'session-real-1',
+    })
+    expect(getButtonByText(rendered.container, 'Posting…')?.disabled).toBe(true)
+    expect(rendered.container.textContent).toContain('Posting inventory count…')
+
+    getInventoryCountSessionLocations.mockResolvedValueOnce([
+      sessionLocation('loc-1', 'Main Storage', 0, 'completed'),
+      sessionLocation('loc-2', 'Coffee Station', 1, 'completed'),
+      sessionLocation('loc-3', 'Kitchen', 2, 'completed'),
+    ])
+    getInventoryCountSessionItems.mockResolvedValueOnce([
+      sessionItem({
+        id: 'ms-1',
+        itemName: 'Coca-Cola',
+        storageLocation: 'Main Storage',
+        expectedSnapshot: 10,
+        countedQuantity: 8,
+        lineStatus: 'counted',
+      }),
+    ])
+
+    await act(async () => {
+      resolvePost({
+        sessionId: 'session-real-1',
+        workspaceId: 'workspace-test-id',
+        status: 'posted',
+        postedAt: '2026-07-21T12:30:00.000Z',
+        postedBy: 'user-1',
+        canPost: true,
+        postingEnabled: true,
+        countedLineCount: 3,
+        adjustedLineCount: 2,
+        zeroVarianceLineCount: 1,
+        movementCount: 2,
+        totalPositiveVariance: 1,
+        totalNegativeVariance: -2,
+        reconciliationSummary: null,
+        message: 'Inventory count posted successfully.',
+      })
+      await Promise.resolve()
+    })
+
+    expect(onPosted).toHaveBeenCalledWith({
+      sessionId: 'session-real-1',
+      workspaceId: 'workspace-test-id',
+      status: 'posted',
+      message: 'Inventory count posted successfully.',
+    })
+    expect(rendered.container.querySelector('[role="dialog"][aria-label="Finish Count Preview"]')).toBeNull()
+    expect(getInventoryCountSessionLocations.mock.calls.length).toBeGreaterThan(1)
+    expect(getInventoryCountSessionItems.mock.calls.length).toBeGreaterThan(1)
+    rendered.cleanup()
+  })
+
+  it('keeps preview open and re-enables confirm after a failed post', async () => {
+    postInventoryCountFinish.mockRejectedValueOnce(
+      new Error('Inventory count cannot be posted until all blocking issues are resolved.'),
+    )
+
+    const { container, cleanup } = await openFinishPreview()
+    const confirmBtn = getButtonByText(container, 'Confirm Finish Count')
+
+    await act(async () => {
+      confirmBtn.click()
+      await Promise.resolve()
+    })
+
+    expect(postInventoryCountFinish).toHaveBeenCalledTimes(1)
+    expect(container.querySelector('[role="dialog"][aria-label="Finish Count Preview"]')).not.toBeNull()
+    expect(container.textContent).toContain(
+      'Inventory count cannot be posted until all blocking issues are resolved.',
+    )
+    expect(getButtonByText(container, 'Confirm Finish Count')?.disabled).toBe(false)
     cleanup()
   })
 })

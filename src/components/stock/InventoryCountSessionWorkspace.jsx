@@ -4,6 +4,7 @@ import {
   completeInventoryCountLocation,
   getInventoryCountSessionItems,
   getInventoryCountSessionLocations,
+  postInventoryCountFinish,
   previewInventoryCountFinish,
   setInventoryCountSessionPauseState,
   updateInventoryCountItem,
@@ -252,6 +253,7 @@ function patchItemInLocations(locations, itemId, patch) {
 
 export function InventoryCountSessionWorkspace({
   onExit,
+  onPosted,
   sessionId: sessionIdProp = '',
   workspaceId: workspaceIdProp = '',
 }) {
@@ -267,6 +269,8 @@ export function InventoryCountSessionWorkspace({
   const [isTogglingPause, setIsTogglingPause] = useState(false)
   const [isFinishPreviewOpen, setIsFinishPreviewOpen] = useState(false)
   const [isLoadingFinishPreview, setIsLoadingFinishPreview] = useState(false)
+  const [isPostingFinish, setIsPostingFinish] = useState(false)
+  const [hasPostedFinish, setHasPostedFinish] = useState(false)
   const [finishPreview, setFinishPreview] = useState(null)
   const [finishPreviewError, setFinishPreviewError] = useState('')
   const loadRequestIdRef = useRef(0)
@@ -277,6 +281,7 @@ export function InventoryCountSessionWorkspace({
   const queuedSaveRef = useRef(new Map())
   const rollbackRef = useRef(new Map())
   const savingCountRef = useRef(0)
+  const isPostingFinishRef = useRef(false)
 
   useEffect(() => {
     locationsRef.current = locations
@@ -301,8 +306,11 @@ export function InventoryCountSessionWorkspace({
       setIsTogglingPause(false)
       setIsFinishPreviewOpen(false)
       setIsLoadingFinishPreview(false)
+      setIsPostingFinish(false)
+      setHasPostedFinish(false)
       setFinishPreview(null)
       setFinishPreviewError('')
+      isPostingFinishRef.current = false
 
       try {
         const sessionId = `${sessionIdProp || ''}`.trim()
@@ -702,13 +710,93 @@ export function InventoryCountSessionWorkspace({
   }
 
   const handleCloseFinishPreview = () => {
-    if (isLoadingFinishPreview) return
+    if (isLoadingFinishPreview || isPostingFinish) return
     setIsFinishPreviewOpen(false)
     setFinishPreview(null)
     setFinishPreviewError('')
   }
 
+  const refreshSessionAfterPost = async ({ workspaceId, sessionId }) => {
+    const [sessionLocations, sessionItems] = await Promise.all([
+      getInventoryCountSessionLocations({ workspaceId, sessionId }),
+      getInventoryCountSessionItems({ workspaceId, sessionId }),
+    ])
+    const nextLocations = buildLocationsFromSession(sessionLocations, sessionItems)
+    setLocations(nextLocations)
+    setSelectedLocationId((current) => {
+      if (current && nextLocations.some((location) => location.id === current)) {
+        return current
+      }
+      return nextLocations[0]?.id || ''
+    })
+  }
+
+  const handleConfirmFinishCount = async () => {
+    if (
+      isPostingFinishRef.current
+      || isPostingFinish
+      || hasPostedFinish
+      || isLoadingFinishPreview
+      || !finishPreview?.canPost
+    ) {
+      return
+    }
+
+    const workspaceId = `${workspaceIdProp || workspace?.id || ''}`.trim()
+    const sessionId = `${sessionIdProp || ''}`.trim()
+    if (!workspaceId || !sessionId) {
+      setFinishPreviewError('Unable to post inventory count right now.')
+      return
+    }
+
+    isPostingFinishRef.current = true
+    setIsPostingFinish(true)
+    setFinishPreviewError('')
+    setSaveError('')
+
+    try {
+      const result = await postInventoryCountFinish({
+        workspaceId,
+        sessionId,
+      })
+
+      setHasPostedFinish(true)
+      setSessionStatus(result.status || 'posted')
+
+      try {
+        await refreshSessionAfterPost({ workspaceId, sessionId })
+      } catch {
+        // Session is already posted; refresh is best-effort before exit.
+      }
+
+      setIsFinishPreviewOpen(false)
+      setFinishPreview(null)
+      setFinishPreviewError('')
+
+      if (typeof onPosted === 'function') {
+        onPosted({
+          sessionId: result.sessionId,
+          workspaceId: result.workspaceId,
+          status: result.status,
+          message: result.message,
+        })
+      } else if (typeof onExit === 'function') {
+        onExit()
+      }
+    } catch (error) {
+      setFinishPreviewError(error?.message || 'Unable to post inventory count right now.')
+      setIsPostingFinish(false)
+      isPostingFinishRef.current = false
+    }
+  }
+
   const selectedLocationName = selectedLocation?.name ?? 'Location'
+  const canConfirmFinish = Boolean(
+    finishPreview?.canPost
+    && !isLoadingFinishPreview
+    && !isPostingFinish
+    && !hasPostedFinish,
+  )
 
   return (
     <section className="inventory-count-session" aria-label="Inventory Count Session Workspace">
@@ -1155,14 +1243,20 @@ export function InventoryCountSessionWorkspace({
 
             <footer className="inventory-count-finish-preview-footer">
               <p className="inventory-count-finish-preview-footer-note">
-                Confirm Finish Count stays unavailable until posting is enabled.
+                {isPostingFinish
+                  ? 'Posting inventory count…'
+                  : hasPostedFinish
+                    ? 'Inventory count posted.'
+                    : finishPreview?.canPost
+                      ? 'Confirm posts stock adjustments and finalizes this count.'
+                      : 'Resolve blocking issues before Confirm Finish Count is available.'}
               </p>
               <div className="inventory-count-finish-preview-footer-actions">
                 <button
                   type="button"
                   className="ghost-btn inventory-count-session-action-btn"
-                  disabled={isLoadingFinishPreview}
-                  aria-disabled={isLoadingFinishPreview}
+                  disabled={isLoadingFinishPreview || isPostingFinish}
+                  aria-disabled={isLoadingFinishPreview || isPostingFinish}
                   onClick={handleCloseFinishPreview}
                 >
                   Cancel
@@ -1170,12 +1264,25 @@ export function InventoryCountSessionWorkspace({
                 <button
                   type="button"
                   className="primary-btn inventory-count-session-action-btn inventory-count-finish-preview-confirm"
-                  disabled
-                  aria-disabled="true"
-                  title="Posting is not available yet"
-                  aria-label="Confirm Finish Count unavailable until posting is enabled"
+                  disabled={!canConfirmFinish}
+                  aria-disabled={!canConfirmFinish}
+                  title={
+                    hasPostedFinish
+                      ? 'Inventory count already posted'
+                      : finishPreview?.canPost
+                        ? 'Post inventory count'
+                        : 'Posting unavailable until blockers are resolved'
+                  }
+                  aria-label={
+                    isPostingFinish
+                      ? 'Posting inventory count'
+                      : 'Confirm Finish Count'
+                  }
+                  onClick={() => {
+                    void handleConfirmFinishCount()
+                  }}
                 >
-                  Confirm Finish Count
+                  {isPostingFinish ? 'Posting…' : 'Confirm Finish Count'}
                 </button>
               </div>
             </footer>

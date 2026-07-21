@@ -7,11 +7,18 @@ export function InventoryCountView() {
   const [isSessionOpen, setIsSessionOpen] = useState(false)
   const [activeSessionId, setActiveSessionId] = useState('')
   const [activeWorkspaceId, setActiveWorkspaceId] = useState('')
+  const [pageNotice, setPageNotice] = useState('')
 
   const handleExitSession = () => {
     setIsSessionOpen(false)
     setActiveSessionId('')
     setActiveWorkspaceId('')
+  }
+
+  const handleSessionPosted = ({ message } = {}) => {
+    handleExitSession()
+    setPageNotice(`${message || 'Inventory count posted successfully.'}`.trim()
+      || 'Inventory count posted successfully.')
   }
 
   if (isSessionOpen) {
@@ -20,6 +27,7 @@ export function InventoryCountView() {
         sessionId={activeSessionId}
         workspaceId={activeWorkspaceId}
         onExit={handleExitSession}
+        onPosted={handleSessionPosted}
       />
     )
   }
@@ -41,6 +49,12 @@ export function InventoryCountView() {
           Start new count
         </button>
       </header>
+
+      {pageNotice ? (
+        <div className="staff-status-banner auth-banner-success" role="status">
+          {pageNotice}
+        </div>
+      ) : null}
 
       <div className="inventory-count-foundation-grid" aria-label="Inventory count status">
         <article className="panel staff-panel inventory-count-panel">
@@ -83,6 +97,7 @@ export function InventoryCountView() {
         onStartSession={(result) => {
           const sessionId = `${result?.sessionId ?? result?.session?.id ?? ''}`.trim()
           const workspaceId = `${result?.workspaceId ?? result?.session?.workspaceId ?? ''}`.trim()
+          setPageNotice('')
           setActiveSessionId(sessionId)
           setActiveWorkspaceId(workspaceId)
           setIsWizardOpen(false)
