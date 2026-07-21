@@ -32924,6 +32924,99 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   white-space: nowrap;
 }
 
+/* P8.8.1 — Advanced Diagnostics collapse (scoped) */
+.stock-migration-diagnostics {
+  gap: 0;
+  padding: 0;
+  overflow: hidden;
+  border-color: rgba(255, 247, 232, 0.14);
+  background:
+    linear-gradient(180deg, rgba(255, 247, 232, 0.04) 0%, rgba(8, 8, 9, 0.32) 100%);
+}
+
+.stock-migration-diagnostics-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  width: 100%;
+  min-height: 56px;
+  padding: 16px 18px;
+  margin: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.stock-migration-diagnostics-toggle:focus-visible {
+  outline: 2px solid rgba(255, 247, 232, 0.45);
+  outline-offset: -2px;
+}
+
+.stock-migration-diagnostics-toggle-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.stock-migration-diagnostics-title {
+  font-size: 1.02rem;
+  font-weight: 700;
+  color: #fff7e8;
+  letter-spacing: 0.01em;
+}
+
+.stock-migration-diagnostics-subtitle {
+  font-size: 0.84rem;
+  color: rgba(255, 247, 232, 0.55);
+  line-height: 1.4;
+}
+
+.stock-migration-diagnostics-chevron {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 247, 232, 0.16);
+  background: rgba(255, 247, 232, 0.05);
+  color: rgba(255, 247, 232, 0.82);
+  font-size: 0.75rem;
+}
+
+.stock-migration-diagnostics-panel {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 220ms ease;
+}
+
+.stock-migration-diagnostics.is-open .stock-migration-diagnostics-panel {
+  grid-template-rows: 1fr;
+}
+
+.stock-migration-diagnostics-panel-inner {
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 0 18px;
+  opacity: 0;
+  transition: opacity 160ms ease, padding 220ms ease;
+}
+
+.stock-migration-diagnostics.is-open .stock-migration-diagnostics-panel-inner {
+  padding: 4px 18px 18px;
+  opacity: 1;
+  overflow: visible;
+}
+
 /* P8.8.0 — Mission Timeline */
 .stock-migration-mission-timeline {
   list-style: none;

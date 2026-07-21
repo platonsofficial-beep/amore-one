@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   buildInventoryMigrationHealth,
   buildInventoryMigrationPipeline,
@@ -17,6 +17,7 @@ import { getInventoryMigrationSessionSteps } from '../../services/inventoryMigra
 import { getInventoryMigrationStepResults } from '../../services/inventoryMigrationStepResultsService'
 import { getInventoryMigrationStageAttentionAcknowledgements } from '../../services/inventoryMigrationStageAttentionAcknowledgementsService'
 import { StockMigrationActivityLog } from './StockMigrationActivityLog'
+import { StockMigrationAdvancedDiagnostics } from './StockMigrationAdvancedDiagnostics'
 import { StockMigrationAttentionQueue } from './StockMigrationAttentionQueue'
 import { StockMigrationGuidedWorkflow } from './StockMigrationGuidedWorkflow'
 import { StockMigrationHealthPanel } from './StockMigrationHealthPanel'
@@ -88,9 +89,44 @@ export function StockInventoryMigrationView({
   const [sessionStepResults, setSessionStepResults] = useState([])
   const [stageAttentionAcknowledgements, setStageAttentionAcknowledgements] = useState([])
   const [reloadNonce, setReloadNonce] = useState(0)
+  const [diagnosticsOpen, setDiagnosticsOpen] = useState(false)
+  const pageRef = useRef(null)
+  const diagnosticsOpenRef = useRef(false)
+
+  diagnosticsOpenRef.current = diagnosticsOpen
 
   const refreshMigrationState = useCallback(() => {
     setReloadNonce((current) => current + 1)
+  }, [])
+
+  // Expand diagnostics before Manual Review checkpoint scroll (StageNavigator untouched).
+  useEffect(() => {
+    const root = pageRef.current
+    if (!root) return undefined
+
+    function onCheckpointClickCapture(event) {
+      const target = event.target
+      if (!target || typeof target.closest !== 'function') return
+      const link = target.closest('.stock-migration-guided-checkpoint-link')
+      if (!link || !root.contains(link)) return
+      if (diagnosticsOpenRef.current) return
+
+      event.preventDefault()
+      event.stopPropagation()
+      setDiagnosticsOpen(true)
+
+      window.setTimeout(() => {
+        const workspace = document.querySelector('.stock-migration-review-workspace')
+        if (workspace && typeof workspace.scrollIntoView === 'function') {
+          workspace.scrollIntoView({ behavior: 'smooth', block: 'start' })
+        }
+      }, 240)
+    }
+
+    root.addEventListener('click', onCheckpointClickCapture, true)
+    return () => {
+      root.removeEventListener('click', onCheckpointClickCapture, true)
+    }
   }, [])
 
   const resolvedSessionId = (
@@ -275,7 +311,11 @@ export function StockInventoryMigrationView({
   ]
 
   return (
-    <section className="stock-migration-page" aria-label="Inventory migration">
+    <section
+      ref={pageRef}
+      className="stock-migration-page"
+      aria-label="Inventory migration"
+    >
       {noticeMessage ? <div className="staff-status-banner">{noticeMessage}</div> : null}
       {isLoading ? <div className="staff-status-banner">Loading migration metrics…</div> : null}
 
@@ -298,182 +338,187 @@ export function StockInventoryMigrationView({
         attentionCount={metricsAvailable ? attentionRows.length : 0}
       />
 
-      <div className="stock-summary-grid stock-summary-grid-six" aria-label="Migration summary">
-        {summaryCards.map((card) => (
-          <article key={card.id} className="stock-summary-card">
-            <p className="stock-summary-label">{card.label}</p>
-            <p className="stock-summary-value">{card.value}</p>
-          </article>
-        ))}
-      </div>
-
-      <StockMigrationHealthPanel
-        health={health}
-        metricsAvailable={metricsAvailable}
-      />
-
-      <StockMigrationSessionCard
-        summary={sessionSummary}
-        isLoading={sessionLoading}
-        errorMessage={sessionError}
-        unavailable={sessionUnavailable}
-        sessionAvailable={sessionAvailable}
-      />
-
-      <StockMigrationOperatorPanel
-        operator={operator}
-        workspaceId={workspaceId}
-        sessionId={resolvedSessionId}
-        sessionRunning={sessionRunning}
-        sessionStepRows={sessionStepRows}
-        sessionStepResults={sessionStepResults}
-        stageAttentionAcknowledgements={stageAttentionAcknowledgements}
-        activityRows={operatorActivityRows}
-        isWorkspaceReady={isWorkspaceReady}
-        onRefresh={refreshMigrationState}
-      />
-
-      <div className="stock-migration-main">
-        <div className="stock-migration-main-column">
-          <section className="panel staff-panel stock-migration-panel" aria-label="Migration pipeline">
-            <div className="stock-migration-panel-header">
-              <h3 className="stock-migration-panel-title">Pipeline</h3>
-              <p className="stock-migration-panel-copy">
-                Live stage status from the current workspace migration map.
-              </p>
-            </div>
-
-            <ol className="stock-migration-timeline">
-              {pipeline.map((item, index) => (
-                <li
-                  key={item.id}
-                  className={`stock-migration-timeline-item ${pipelineStateClass(item.state)}`}
-                >
-                  <div className="stock-migration-timeline-marker" aria-hidden="true">
-                    <span className="stock-migration-timeline-dot" />
-                    {index < pipeline.length - 1 ? (
-                      <span className="stock-migration-timeline-connector" />
-                    ) : null}
-                  </div>
-                  <div className="stock-migration-timeline-body">
-                    <div className="stock-migration-timeline-copy">
-                      <p className="stock-migration-timeline-stage">{item.title}</p>
-                      <p className="stock-migration-timeline-description">{item.description}</p>
-                    </div>
-                    <span className={`stock-migration-state-badge ${pipelineStateClass(item.state)}`}>
-                      {item.state}
-                    </span>
-                  </div>
-                </li>
-              ))}
-            </ol>
-          </section>
-
-          <section className="panel staff-panel stock-migration-panel" aria-label="Execution controls">
-            <div className="stock-migration-panel-header">
-              <h3 className="stock-migration-panel-title">Execution</h3>
-              <p className="stock-migration-panel-copy">
-                Operator actions stay disabled until live controls are wired.
-              </p>
-            </div>
-
-            <div className="stock-migration-actions">
-              {EXECUTION_ACTIONS.map((label) => (
-                <button
-                  key={label}
-                  type="button"
-                  className="ghost-btn stock-migration-action-btn"
-                  disabled
-                  aria-disabled="true"
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
-          </section>
+      <StockMigrationAdvancedDiagnostics
+        open={diagnosticsOpen}
+        onOpenChange={setDiagnosticsOpen}
+      >
+        <div className="stock-summary-grid stock-summary-grid-six" aria-label="Migration summary">
+          {summaryCards.map((card) => (
+            <article key={card.id} className="stock-summary-card">
+              <p className="stock-summary-label">{card.label}</p>
+              <p className="stock-summary-value">{card.value}</p>
+            </article>
+          ))}
         </div>
 
-        <aside className="panel staff-panel stock-migration-panel stock-migration-status-panel" aria-label="Migration status">
-          <div className="stock-migration-panel-header">
-            <h3 className="stock-migration-panel-title">Migration Status</h3>
-            <p className="stock-migration-panel-copy">Live read-only status for the current workspace.</p>
+        <StockMigrationHealthPanel
+          health={health}
+          metricsAvailable={metricsAvailable}
+        />
+
+        <StockMigrationSessionCard
+          summary={sessionSummary}
+          isLoading={sessionLoading}
+          errorMessage={sessionError}
+          unavailable={sessionUnavailable}
+          sessionAvailable={sessionAvailable}
+        />
+
+        <StockMigrationOperatorPanel
+          operator={operator}
+          workspaceId={workspaceId}
+          sessionId={resolvedSessionId}
+          sessionRunning={sessionRunning}
+          sessionStepRows={sessionStepRows}
+          sessionStepResults={sessionStepResults}
+          stageAttentionAcknowledgements={stageAttentionAcknowledgements}
+          activityRows={operatorActivityRows}
+          isWorkspaceReady={isWorkspaceReady}
+          onRefresh={refreshMigrationState}
+        />
+
+        <div className="stock-migration-main">
+          <div className="stock-migration-main-column">
+            <section className="panel staff-panel stock-migration-panel" aria-label="Migration pipeline">
+              <div className="stock-migration-panel-header">
+                <h3 className="stock-migration-panel-title">Pipeline</h3>
+                <p className="stock-migration-panel-copy">
+                  Live stage status from the current workspace migration map.
+                </p>
+              </div>
+
+              <ol className="stock-migration-timeline">
+                {pipeline.map((item, index) => (
+                  <li
+                    key={item.id}
+                    className={`stock-migration-timeline-item ${pipelineStateClass(item.state)}`}
+                  >
+                    <div className="stock-migration-timeline-marker" aria-hidden="true">
+                      <span className="stock-migration-timeline-dot" />
+                      {index < pipeline.length - 1 ? (
+                        <span className="stock-migration-timeline-connector" />
+                      ) : null}
+                    </div>
+                    <div className="stock-migration-timeline-body">
+                      <div className="stock-migration-timeline-copy">
+                        <p className="stock-migration-timeline-stage">{item.title}</p>
+                        <p className="stock-migration-timeline-description">{item.description}</p>
+                      </div>
+                      <span className={`stock-migration-state-badge ${pipelineStateClass(item.state)}`}>
+                        {item.state}
+                      </span>
+                    </div>
+                  </li>
+                ))}
+              </ol>
+            </section>
+
+            <section className="panel staff-panel stock-migration-panel" aria-label="Execution controls">
+              <div className="stock-migration-panel-header">
+                <h3 className="stock-migration-panel-title">Execution</h3>
+                <p className="stock-migration-panel-copy">
+                  Operator actions stay disabled until live controls are wired.
+                </p>
+              </div>
+
+              <div className="stock-migration-actions">
+                {EXECUTION_ACTIONS.map((label) => (
+                  <button
+                    key={label}
+                    type="button"
+                    className="ghost-btn stock-migration-action-btn"
+                    disabled
+                    aria-disabled="true"
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </section>
           </div>
 
-          <dl className="stock-migration-status-list">
-            <div className="stock-migration-status-row">
-              <dt>Status</dt>
-              <dd>{migrationStatus}</dd>
+          <aside className="panel staff-panel stock-migration-panel stock-migration-status-panel" aria-label="Migration status">
+            <div className="stock-migration-panel-header">
+              <h3 className="stock-migration-panel-title">Migration Status</h3>
+              <p className="stock-migration-panel-copy">Live read-only status for the current workspace.</p>
             </div>
-            <div className="stock-migration-status-row">
-              <dt>Total Progress</dt>
-              <dd>{progressPercent === null ? 'Unknown' : `${progressPercent}%`}</dd>
-            </div>
-            <div className="stock-migration-status-row">
-              <dt>Current Stage</dt>
-              <dd>{currentStage}</dd>
-            </div>
-            <div className="stock-migration-status-row">
-              <dt>Health Score</dt>
-              <dd>
-                {metricsAvailable && health?.score !== null && health?.score !== undefined
-                  ? `${health.score}%`
-                  : 'Unknown'}
-              </dd>
-            </div>
-            <div className="stock-migration-status-row">
-              <dt>Readiness</dt>
-              <dd>{metricsAvailable ? (health?.readiness ?? 'Unknown') : 'Unknown'}</dd>
-            </div>
-            <div className="stock-migration-status-row">
-              <dt>Last Refresh</dt>
-              <dd>{formatLastUpdated(fetchedAt)}</dd>
-            </div>
-            <div className="stock-migration-status-row">
-              <dt>Manual Queue Size</dt>
-              <dd>{metricsAvailable ? formatMetricValue(metrics.manualReview) : 'Unknown'}</dd>
-            </div>
-            <div className="stock-migration-status-row">
-              <dt>Attention Items</dt>
-              <dd>{metricsAvailable ? formatMetricValue(attentionRows.length) : 'Unknown'}</dd>
-            </div>
-            <div className="stock-migration-status-row">
-              <dt>Environment</dt>
-              <dd>Production</dd>
-            </div>
-            <div className="stock-migration-status-row">
-              <dt>Workspace</dt>
-              <dd>{displayWorkspace}</dd>
-            </div>
-          </dl>
-        </aside>
-      </div>
 
-      <StockMigrationManualReviewWorkspace
-        rows={manualReviewRows}
-        metricsAvailable={metricsAvailable}
-        isLoading={isLoading}
-      />
+            <dl className="stock-migration-status-list">
+              <div className="stock-migration-status-row">
+                <dt>Status</dt>
+                <dd>{migrationStatus}</dd>
+              </div>
+              <div className="stock-migration-status-row">
+                <dt>Total Progress</dt>
+                <dd>{progressPercent === null ? 'Unknown' : `${progressPercent}%`}</dd>
+              </div>
+              <div className="stock-migration-status-row">
+                <dt>Current Stage</dt>
+                <dd>{currentStage}</dd>
+              </div>
+              <div className="stock-migration-status-row">
+                <dt>Health Score</dt>
+                <dd>
+                  {metricsAvailable && health?.score !== null && health?.score !== undefined
+                    ? `${health.score}%`
+                    : 'Unknown'}
+                </dd>
+              </div>
+              <div className="stock-migration-status-row">
+                <dt>Readiness</dt>
+                <dd>{metricsAvailable ? (health?.readiness ?? 'Unknown') : 'Unknown'}</dd>
+              </div>
+              <div className="stock-migration-status-row">
+                <dt>Last Refresh</dt>
+                <dd>{formatLastUpdated(fetchedAt)}</dd>
+              </div>
+              <div className="stock-migration-status-row">
+                <dt>Manual Queue Size</dt>
+                <dd>{metricsAvailable ? formatMetricValue(metrics.manualReview) : 'Unknown'}</dd>
+              </div>
+              <div className="stock-migration-status-row">
+                <dt>Attention Items</dt>
+                <dd>{metricsAvailable ? formatMetricValue(attentionRows.length) : 'Unknown'}</dd>
+              </div>
+              <div className="stock-migration-status-row">
+                <dt>Environment</dt>
+                <dd>Production</dd>
+              </div>
+              <div className="stock-migration-status-row">
+                <dt>Workspace</dt>
+                <dd>{displayWorkspace}</dd>
+              </div>
+            </dl>
+          </aside>
+        </div>
 
-      <StockMigrationAttentionQueue
-        rows={attentionRows}
-        metricsAvailable={metricsAvailable}
-      />
+        <StockMigrationManualReviewWorkspace
+          rows={manualReviewRows}
+          metricsAvailable={metricsAvailable}
+          isLoading={isLoading}
+        />
 
-      <StockMigrationSessionSteps
-        rows={sessionStepRows}
-        isLoading={sessionStepsLoading}
-        errorMessage={sessionStepsError}
-        unavailable={sessionStepsUnavailable}
-        stepsAvailable={sessionStepsAvailable}
-      />
+        <StockMigrationAttentionQueue
+          rows={attentionRows}
+          metricsAvailable={metricsAvailable}
+        />
 
-      <StockMigrationActivityLog
-        rows={activityRows}
-        isLoading={activityLoading}
-        errorMessage={activityError}
-        unavailable={activityUnavailable}
-        activityAvailable={activityAvailable}
-      />
+        <StockMigrationSessionSteps
+          rows={sessionStepRows}
+          isLoading={sessionStepsLoading}
+          errorMessage={sessionStepsError}
+          unavailable={sessionStepsUnavailable}
+          stepsAvailable={sessionStepsAvailable}
+        />
+
+        <StockMigrationActivityLog
+          rows={activityRows}
+          isLoading={activityLoading}
+          errorMessage={activityError}
+          unavailable={activityUnavailable}
+          activityAvailable={activityAvailable}
+        />
+      </StockMigrationAdvancedDiagnostics>
     </section>
   )
 }
