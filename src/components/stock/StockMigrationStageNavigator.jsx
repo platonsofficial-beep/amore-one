@@ -42,8 +42,18 @@ function MissionMarker({ visual, index, isLast }) {
   )
 }
 
+function densityClass(visual, isCurrent) {
+  if (isCurrent || visual === GUIDED_STAGE_VISUAL.CURRENT || visual === GUIDED_STAGE_VISUAL.ATTENTION) {
+    return 'is-density-current'
+  }
+  if (visual === GUIDED_STAGE_VISUAL.COMPLETED) {
+    return 'is-density-history'
+  }
+  return 'is-density-future'
+}
+
 /**
- * Mission Timeline — canonical migration stage journey.
+ * Mission Timeline — compact premium canonical stage journey.
  * Presentation only — no mutation controls.
  * Manual Review is an intervention checkpoint, not a canonical stage.
  */
@@ -98,6 +108,7 @@ export function StockMigrationStageNavigator({ model }) {
       >
         {stages.map((stage, index) => {
           const visual = stage.visualState ?? GUIDED_STAGE_VISUAL.WAITING
+          const isCurrent = Boolean(stage.isCurrent)
           return (
             <li
               key={stage.id}
@@ -105,9 +116,10 @@ export function StockMigrationStageNavigator({ model }) {
                 'stock-migration-guided-stage',
                 'stock-migration-mission-step',
                 `is-${visual}`,
-                stage.isCurrent ? 'is-emphasized' : '',
+                densityClass(visual, isCurrent),
+                isCurrent ? 'is-emphasized' : '',
               ].filter(Boolean).join(' ')}
-              aria-current={stage.isCurrent ? 'step' : undefined}
+              aria-current={isCurrent ? 'step' : undefined}
             >
               <MissionMarker
                 visual={visual}
@@ -115,6 +127,9 @@ export function StockMigrationStageNavigator({ model }) {
                 isLast={index >= stages.length - 1}
               />
               <div className="stock-migration-guided-stage-body stock-migration-mission-body">
+                {isCurrent ? (
+                  <p className="stock-migration-mission-eyebrow">Current Mission</p>
+                ) : null}
                 <div className="stock-migration-guided-stage-top">
                   <p className="stock-migration-guided-stage-name">{stage.title}</p>
                   <span className={`stock-migration-guided-stage-badge is-${visual}`}>

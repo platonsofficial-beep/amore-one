@@ -316,9 +316,15 @@ describe('StockMigrationGuidedWorkflow', () => {
     expect(container.textContent).toMatch(/\d+ of \d+ stages complete/)
     expect(container.textContent).toMatch(/\d+%/)
     expect(container.querySelector('.stock-migration-guided-stage.is-completed')).toBeTruthy()
+    expect(container.querySelector('.stock-migration-guided-stage.is-density-history')).toBeTruthy()
     expect(container.querySelector('.stock-migration-guided-stage.is-current')).toBeTruthy()
+    expect(container.querySelector('.stock-migration-guided-stage.is-density-current')).toBeTruthy()
     expect(container.querySelector('.stock-migration-guided-stage.is-waiting')).toBeTruthy()
+    expect(container.querySelector('.stock-migration-guided-stage.is-density-future')).toBeTruthy()
     expect(container.textContent).toContain('Persist')
+    expect(container.textContent).toContain('Current Mission')
+    expect(container.querySelector('.stock-migration-mission-eyebrow')).toBeTruthy()
+    expect(container.querySelector('.stock-migration-guided-stage.is-current[aria-current="step"]')).toBeTruthy()
     expect(container.querySelector('.stock-migration-mission-timeline')).toBeTruthy()
     expect(container.querySelectorAll('[data-mission-marker="true"]').length).toBe(
       container.querySelectorAll('.stock-migration-guided-stage').length,
@@ -433,6 +439,42 @@ describe('StockMigrationGuidedWorkflow', () => {
     expect(container.querySelector('.stock-migration-guided-stage.is-attention')).toBeTruthy()
     expect(container.textContent).toContain('Attention required')
     expect(container.textContent).toContain('Acknowledge attention')
+  })
+
+  it('renders cancelled stage visual when session is cancelled', () => {
+    const metrics = metricsFixture()
+    renderGuided({
+      operator: buildLiveOperator(metrics),
+      sessionSummary: sessionSummaryFixture({
+        status: 'Cancelled',
+        statusKey: MIGRATION_SESSION_STATUS.CANCELLED,
+      }),
+      health: buildHealth(metrics),
+      metrics,
+      metricsAvailable: true,
+      manualReviewCount: 0,
+      attentionCount: 0,
+    })
+    expect(container.querySelector('.stock-migration-guided-stage.is-cancelled')).toBeTruthy()
+    expect(container.textContent).toContain('Cancelled')
+  })
+
+  it('renders ready stage visual when frontier is ready without attention', () => {
+    const metrics = metricsFixture()
+    const operator = buildLiveOperator(metrics)
+    expect(operator.checklist.some((step) => step.status === 'Ready')).toBe(true)
+    renderGuided({
+      operator,
+      sessionSummary: sessionSummaryFixture(),
+      health: buildHealth(metrics),
+      metrics,
+      metricsAvailable: true,
+      manualReviewCount: 0,
+      attentionCount: 0,
+    })
+    // Ready maps to current when it is the frontier; badge/status text still preserved.
+    expect(container.textContent).toMatch(/Current|Ready/)
+    expect(container.querySelector('.stock-migration-guided-stage-badge')).toBeTruthy()
   })
 
   it('does not import or call migration mutation RPCs', () => {
@@ -558,6 +600,9 @@ describe('StockInventoryMigrationView mounts guided workflow', () => {
     expect(container.querySelector('.stock-migration-review-workspace')).toBeTruthy()
     expect(container.textContent).toContain('Manual Resolution Review')
     expect(container.querySelector('[aria-label="Guided migration workflow"]')).toBeTruthy()
+    expect(container.querySelector('[aria-label="Advanced diagnostics"]')).toBeTruthy()
+    expect(container.querySelector('[data-diagnostics-open]')).toBeTruthy()
+    expect(container.textContent).toContain('Current Mission')
     expect(container.textContent).not.toMatch(/\bContinue\b/)
   })
 })
