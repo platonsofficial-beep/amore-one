@@ -148,13 +148,40 @@ function buildColumnMap(headers) {
 }
 
 /**
+ * AMORE-style inventory categories are short ALL-CAPS labels without ages or
+ * bottle sizes (e.g. VODKA, SOFT DRINKS). Product-family headings such as
+ * "Glenfidich 12" / "Chivas 12 70cl" often have blank metric cells and must
+ * not be treated as category separators.
+ *
+ * @param {string} name
+ * @returns {boolean}
+ */
+function looksLikeCategoryLabel(name) {
+  const trimmed = name.trim()
+  if (!trimmed) return false
+
+  // Ages, bottle sizes, and volume fragments mark product / family headings.
+  if (/\d/.test(trimmed)) return false
+  if (/(?:^|[^a-z])(?:cl|ml|ltr|liter|litre)(?:$|[^a-z])/i.test(trimmed)) return false
+
+  const letters = trimmed.replace(/[^A-Za-z]/g, '')
+  if (!letters) return false
+
+  // Inventory categories in this workbook family are uppercase labels.
+  return letters === letters.toUpperCase()
+}
+
+/**
  * @param {unknown[]} row
  * @param {number} columnCount
  */
 function isCategoryRow(row, columnCount) {
   if (!Array.isArray(row) || row.length === 0) return false
   if (isBlankCell(row[0])) return false
-  if (typeof normalizeCellValue(row[0]) !== 'string') return false
+
+  const label = normalizeCellValue(row[0])
+  if (typeof label !== 'string') return false
+  if (!looksLikeCategoryLabel(label)) return false
 
   let blankTail = 0
   let inspectedTail = 0

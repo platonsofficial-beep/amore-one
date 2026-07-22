@@ -170,6 +170,82 @@ describe('parseInventoryOperationalSheet', () => {
     })
   })
 
+  it('keeps WHISKEY as one category and treats age/size family headings as products', () => {
+    const result = parseInventoryOperationalSheet({
+      headers: OPERATIONAL_HEADERS,
+      rows: [
+        ['VODKA', '', '', '', '', '', '', '', '', '', '', ''],
+        ['Absolut Blue', 6, 1.8, '', '', '', '', '', '', '', '', ''],
+        ['GIN', '', '', '', '', '', '', '', '', '', '', ''],
+        ['Tanqueray', 2, 1, '', '', '', '', '', '', '', '', ''],
+        ['TEQUILA', '', '', '', '', '', '', '', '', '', '', ''],
+        ['Patron Silver', 1, 0, '', '', '', '', '', '', '', '', ''],
+        ['WHISKEY', '', '', '', '', '', '', '', '', '', '', ''],
+        ['Glenfidich 12', '', '', '', '', '', '', '', '', '', '', ''],
+        ['Chivas 12 70cl', '', '', '', '', '', '', '', '', '', '', ''],
+        ['Johnnie Walker Black', 3, 1, '', '', '', '', '', '', '', 1, ''],
+        ['RUM', '', '', '', '', '', '', '', '', '', '', ''],
+        ['Bacardi White', 2, 0, '', '', '', '', '', '', '', '', ''],
+        ['LIQUEURS', '', '', '', '', '', '', '', '', '', '', ''],
+        ['Aperol', 4, 2, '', '', '', '', '', '', '', '', ''],
+        ['SOFT DRINKS', '', '', '', '', '', '', '', '', '', '', ''],
+        ['Coca-Cola', 10, 4, '', '', '', '', '', '', '', '', ''],
+      ],
+      headerRowNumber: 1,
+      sourceFormat: 'xlsx',
+    })
+
+    expect(result.categories.map((category) => category.name)).toEqual([
+      'VODKA',
+      'GIN',
+      'TEQUILA',
+      'WHISKEY',
+      'RUM',
+      'LIQUEURS',
+      'SOFT DRINKS',
+    ])
+
+    const whiskey = result.categories.find((category) => category.name === 'WHISKEY')
+    expect(whiskey).toBeTruthy()
+    expect(whiskey.products.map((product) => product.name)).toEqual([
+      'Glenfidich 12',
+      'Chivas 12 70cl',
+      'Johnnie Walker Black',
+    ])
+    expect(whiskey.products[0]).toMatchObject({
+      name: 'Glenfidich 12',
+      storage: null,
+      bar: null,
+    })
+    expect(whiskey.products[1]).toMatchObject({
+      name: 'Chivas 12 70cl',
+      storage: null,
+      bar: null,
+    })
+    expect(result.categories.some((category) => category.name === 'Glenfidich 12')).toBe(false)
+    expect(result.categories.some((category) => category.name === 'Chivas 12 70cl')).toBe(false)
+  })
+
+  it('does not treat title-case blank-metric rows as categories', () => {
+    const result = parseInventoryOperationalSheet({
+      headers: OPERATIONAL_HEADERS,
+      rows: [
+        ['WHISKEY', '', '', '', '', '', '', '', '', '', '', ''],
+        ['Family Reserve', '', '', '', '', '', '', '', '', '', '', ''],
+        ['Cask Strength', 1, 0, '', '', '', '', '', '', '', '', ''],
+      ],
+      headerRowNumber: 1,
+      sourceFormat: 'xlsx',
+    })
+
+    expect(result.categories).toHaveLength(1)
+    expect(result.categories[0].name).toBe('WHISKEY')
+    expect(result.categories[0].products.map((product) => product.name)).toEqual([
+      'Family Reserve',
+      'Cask Strength',
+    ])
+  })
+
   it('has no decoder, detector, parser, validator, mapper, classifier, or service imports', () => {
     const source = readFileSync(join(HERE, 'inventoryOperationalSheetParser.js'), 'utf8')
     expect(source).not.toMatch(/inventoryImportFileDecoder/)
