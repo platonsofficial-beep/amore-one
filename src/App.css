@@ -38574,6 +38574,49 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   background: rgba(10, 10, 11, 0.92);
 }
 
+.inventory-import-wizard-footer-stack {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 12px;
+}
+
+.inventory-import-wizard-footer-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+}
+
+.inventory-import-wizard-validation-panel {
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: 14px;
+  border: 1px solid rgba(212, 175, 55, 0.28);
+  background:
+    linear-gradient(180deg, rgba(212, 175, 55, 0.12), rgba(14, 14, 15, 0.9));
+}
+
+.inventory-import-wizard-validation-title {
+  margin: 0 0 8px;
+  color: rgba(255, 231, 168, 0.95);
+  font-size: 0.86rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+
+.inventory-import-wizard-validation-list {
+  margin: 0;
+  padding: 0 0 0 1.1rem;
+  color: rgba(255, 247, 232, 0.86);
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+
+.inventory-import-wizard-validation-list li + li {
+  margin-top: 4px;
+}
+
 .inventory-import-wizard-nav-btn {
   min-height: 44px;
   min-width: 112px;

@@ -39,6 +39,71 @@ const INVENTORY_IMPORT_FILE_ACCEPT = '.csv,.xlsx,.xls'
 const INVENTORY_IMPORT_FILE_INPUT_ID = 'inventory-import-file-input'
 
 /**
+ * Presentational messages for a disabled Review Data Continue control.
+ * Derived only from existing gate inputs — does not invent validation rules.
+ *
+ * @param {{
+ *   canContinue?: boolean,
+ *   previewStatus?: string,
+ *   unresolvedPossibleMatches?: number|null,
+ * }} [input]
+ * @returns {string[]}
+ */
+export function listInventoryImportReviewDataContinueMessages({
+  canContinue = false,
+  previewStatus = 'idle',
+  unresolvedPossibleMatches = null,
+} = {}) {
+  if (canContinue) return []
+
+  /** @type {string[]} */
+  const messages = []
+
+  if (previewStatus !== 'ready' && previewStatus !== 'error') {
+    messages.push('Review remaining products.')
+  }
+
+  if (Number.isFinite(unresolvedPossibleMatches) && unresolvedPossibleMatches > 0) {
+    messages.push(
+      unresolvedPossibleMatches === 1
+        ? '1 possible match requires review'
+        : `${unresolvedPossibleMatches} possible matches require review`,
+    )
+  }
+
+  if (messages.length === 0) {
+    messages.push('Finish required validation before continuing.')
+  }
+
+  messages.push('Finish all required validations to continue')
+  return messages
+}
+
+/**
+ * @param {{ messages: string[] }} props
+ */
+function InventoryImportContinueValidationPanel({ messages }) {
+  if (!Array.isArray(messages) || messages.length === 0) return null
+
+  return (
+    <div
+      className="inventory-import-wizard-validation-panel"
+      role="status"
+      aria-live="polite"
+    >
+      <p className="inventory-import-wizard-validation-title">
+        Continue is unavailable
+      </p>
+      <ul className="inventory-import-wizard-validation-list">
+        {messages.map((message) => (
+          <li key={message}>{message}</li>
+        ))}
+      </ul>
+    </div>
+  )
+}
+
+/**
  * @param {string} filename
  * @returns {string}
  */
@@ -536,6 +601,12 @@ export function InventoryImportWizardShell({
   const canContinueFromColumns = canContinueFromColumnsToReviewData()
   const canContinueFromData = canContinueFromDataToImportPreview()
   const canContinueFromPreview = canContinueFromPreviewToReady()
+  const reviewDataContinueMessages = listInventoryImportReviewDataContinueMessages({
+    canContinue: canContinueFromData,
+    previewStatus: operationalImportPreviewState.status,
+    unresolvedPossibleMatches:
+      resolvedOperationalImportPreview?.summary?.unresolvedPossibleMatches ?? null,
+  })
 
   return (
     <div
@@ -1166,23 +1237,26 @@ export function InventoryImportWizardShell({
         ) : null}
 
         {showDataFooter ? (
-          <footer className="inventory-import-wizard-footer">
-            <button
-              type="button"
-              className="ghost-btn inventory-import-wizard-nav-btn"
-              onClick={handleBackFromData}
-            >
-              Back
-            </button>
-            <button
-              type="button"
-              className="primary-btn inventory-import-wizard-nav-btn inventory-import-wizard-continue-btn"
-              onClick={handleContinueFromData}
-              disabled={!canContinueFromData}
-              aria-disabled={!canContinueFromData ? 'true' : undefined}
-            >
-              Continue
-            </button>
+          <footer className="inventory-import-wizard-footer inventory-import-wizard-footer-stack">
+            <InventoryImportContinueValidationPanel messages={reviewDataContinueMessages} />
+            <div className="inventory-import-wizard-footer-actions">
+              <button
+                type="button"
+                className="ghost-btn inventory-import-wizard-nav-btn"
+                onClick={handleBackFromData}
+              >
+                Back
+              </button>
+              <button
+                type="button"
+                className="primary-btn inventory-import-wizard-nav-btn inventory-import-wizard-continue-btn"
+                onClick={handleContinueFromData}
+                disabled={!canContinueFromData}
+                aria-disabled={!canContinueFromData ? 'true' : undefined}
+              >
+                Continue
+              </button>
+            </div>
           </footer>
         ) : null}
 

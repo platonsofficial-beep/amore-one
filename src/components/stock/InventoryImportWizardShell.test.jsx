@@ -21,6 +21,7 @@ import {
   InventoryImportWizardShell,
   formatInventoryImportFileSize,
   getInventoryImportFileExtension,
+  listInventoryImportReviewDataContinueMessages,
 } from './InventoryImportWizardShell'
 
 const HERE = dirname(fileURLToPath(import.meta.url))
@@ -137,6 +138,32 @@ describe('InventoryImportWizardShell', () => {
     for (let index = 1; index < steps.length; index += 1) {
       expect(steps[index].className).toContain('is-upcoming')
     }
+  })
+
+  it('builds Review Data continue messages only when blocked', () => {
+    expect(listInventoryImportReviewDataContinueMessages({
+      canContinue: true,
+      previewStatus: 'ready',
+      unresolvedPossibleMatches: 0,
+    })).toEqual([])
+
+    expect(listInventoryImportReviewDataContinueMessages({
+      canContinue: false,
+      previewStatus: 'loading',
+      unresolvedPossibleMatches: null,
+    })).toEqual([
+      'Review remaining products.',
+      'Finish all required validations to continue',
+    ])
+
+    expect(listInventoryImportReviewDataContinueMessages({
+      canContinue: false,
+      previewStatus: 'ready',
+      unresolvedPossibleMatches: 2,
+    })).toEqual([
+      '2 possible matches require review',
+      'Finish all required validations to continue',
+    ])
   })
 
   it('exposes a hidden file picker input with accepted extensions', () => {
@@ -1332,6 +1359,8 @@ describe('InventoryImportWizardShell', () => {
     expect(container.textContent).toContain('Brand New Spirit')
     expect(container.textContent).toContain('Unit: Missing')
     expect(getButton('Continue')?.disabled).toBe(true)
+    expect(container.querySelector('.inventory-import-wizard-validation-panel')).toBeNull()
+    expect(container.textContent).not.toContain('1 product still requires unit assignment')
 
     const matchCalls = matchSpy.mock.calls.length
     const parseCalls = parseSpy.mock.calls.length
@@ -1546,6 +1575,9 @@ describe('InventoryImportWizardShell', () => {
     expect(container.querySelector('.inventory-operational-match-resolution')
       ?.getAttribute('data-possible-count')).toBe('2')
     expect(getButton('Continue')?.disabled).toBe(true)
+    expect(container.querySelector('.inventory-import-wizard-validation-panel')).toBeTruthy()
+    expect(container.textContent).toContain('2 possible matches require review')
+    expect(container.textContent).toContain('Finish all required validations to continue')
 
     const candidateRadios = Array.from(
       container.querySelectorAll('input[name^="match-resolution-candidate-"]'),
@@ -1566,6 +1598,7 @@ describe('InventoryImportWizardShell', () => {
     expect(container.querySelector('.inventory-operational-match-resolution')
       ?.getAttribute('data-resolved-count')).toBe('2')
     expect(getButton('Continue')?.disabled).toBe(false)
+    expect(container.querySelector('.inventory-import-wizard-validation-panel')).toBeNull()
 
     act(() => {
       getButton('Continue').dispatchEvent(new MouseEvent('click', { bubbles: true }))
