@@ -10,6 +10,7 @@ import { fileURLToPath } from 'node:url'
 import * as XLSX from 'xlsx'
 import * as decoderModule from '../../lib/inventoryImportFileDecoder'
 import * as formatDetectorModule from '../../lib/inventoryImportFormatDetector'
+import * as operationalParserModule from '../../lib/inventoryOperationalSheetParser'
 import * as parserModule from '../../lib/inventoryImportTabularParser'
 import {
   INVENTORY_IMPORT_ACCEPTED_EXTENSIONS,
@@ -509,6 +510,7 @@ describe('InventoryImportWizardShell', () => {
     expect(source).toMatch(/inventoryImportFileDecoder/)
     expect(source).toMatch(/inventoryImportTabularParser/)
     expect(source).toMatch(/inventoryImportFormatDetector/)
+    expect(source).toMatch(/inventoryOperationalSheetParser/)
     expect(source).not.toMatch(/inventoryImportTableValidator/)
     expect(source).not.toMatch(/inventoryImportFieldMapper/)
     expect(source).not.toMatch(/inventoryImportClassifier/)
@@ -590,6 +592,60 @@ describe('InventoryImportWizardShell', () => {
     )
     expect(container.textContent).toContain('Review Columns')
     expect(getButton('Continue')?.disabled).toBe(true)
+  })
+
+  it('runs the operational sheet parser only for operational layouts and stores the model', async () => {
+    renderShell()
+    const operationalSpy = vi.spyOn(operationalParserModule, 'parseInventoryOperationalSheet')
+
+    selectFile(createMultiSheetFile('multi.xlsx', [
+      {
+        sheetName: 'Orders',
+        matrix: [['A'], ['1']],
+      },
+      {
+        sheetName: 'Inventory',
+        matrix: [
+          ['', 'Storage Tasos', 'BAR', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday', 'Order', 'Stock Control'],
+          ['VODKA', '', '', '', '', '', '', '', '', '', '', ''],
+          ['Item One', 1, 0, '', '', '', '', '', '', '', '', ''],
+          ['GIN', '', '', '', '', '', '', '', '', '', '', ''],
+          ['Item Two', 2, 1, '', '', '', '', '', '', '', 3, 4],
+        ],
+      },
+    ]))
+    await continueToColumnReview()
+
+    expect(operationalSpy).not.toHaveBeenCalled()
+
+    const inventoryBtn = Array.from(container.querySelectorAll('[role="radio"]'))
+      .find((button) => button.textContent.includes('Inventory'))
+    act(() => {
+      inventoryBtn.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    })
+    await continueToColumnReview()
+
+    expect(operationalSpy).toHaveBeenCalledTimes(1)
+    const card = container.querySelector('.inventory-import-wizard-format-card')
+    expect(card?.getAttribute('data-operational-category-count')).toBe('2')
+    expect(card?.getAttribute('data-operational-product-count')).toBe('2')
+    expect(container.querySelector('.inventory-import-wizard-review-table')).toBeTruthy()
+  })
+
+  it('does not run the operational parser for standard inventory tables', async () => {
+    renderShell()
+    const operationalSpy = vi.spyOn(operationalParserModule, 'parseInventoryOperationalSheet')
+
+    selectFile(new File(
+      ['Name,Quantity,Unit\nFlour,10,kg\n'],
+      'flat.csv',
+      { type: 'text/csv' },
+    ))
+    await continueToColumnReview()
+
+    expect(operationalSpy).not.toHaveBeenCalled()
+    expect(container.querySelector('.inventory-import-wizard-format-card')
+      ?.getAttribute('data-operational-product-count')).toBe('')
   })
 
   it('renders unknown layout notice without fake confidence percentages', async () => {

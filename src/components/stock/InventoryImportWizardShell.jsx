@@ -8,6 +8,7 @@
 import { useRef, useState } from 'react'
 import * as inventoryImportFileDecoder from '../../lib/inventoryImportFileDecoder'
 import * as inventoryImportFormatDetector from '../../lib/inventoryImportFormatDetector'
+import * as inventoryOperationalSheetParser from '../../lib/inventoryOperationalSheetParser'
 import * as inventoryImportTabularParser from '../../lib/inventoryImportTabularParser'
 
 export const INVENTORY_IMPORT_WIZARD_STEPS = Object.freeze([
@@ -93,6 +94,7 @@ function getSafeProcessErrorMessage(error) {
     error instanceof inventoryImportFileDecoder.InventoryImportDecoderError
     || error instanceof inventoryImportTabularParser.InventoryImportParserError
     || error instanceof inventoryImportFormatDetector.InventoryImportFormatDetectorError
+    || error instanceof inventoryOperationalSheetParser.InventoryOperationalSheetParserError
   ) {
     return error.message
   }
@@ -119,7 +121,18 @@ function detectAndParseDecodedTable(decoded) {
     rows: decoded.rows,
     headerRowNumber: decoded.headerRowNumber,
   })
-  return { detection, parsed }
+
+  let operationalModel = null
+  if (detection.format === inventoryImportFormatDetector.INVENTORY_IMPORT_FORMAT.OPERATIONAL) {
+    operationalModel = inventoryOperationalSheetParser.parseInventoryOperationalSheet({
+      headers: decoded.headers,
+      rows: decoded.rows,
+      headerRowNumber: decoded.headerRowNumber,
+      sourceFormat: decoded.sourceFormat,
+    })
+  }
+
+  return { detection, parsed, operationalModel }
 }
 
 /**
@@ -135,6 +148,7 @@ export function InventoryImportWizardShell({ onClose = undefined } = {}) {
   const [selectionError, setSelectionError] = useState('')
   const [parseResult, setParseResult] = useState(null)
   const [formatDetection, setFormatDetection] = useState(null)
+  const [operationalModel, setOperationalModel] = useState(null)
   const [isProcessing, setIsProcessing] = useState(false)
   const [worksheetOptions, setWorksheetOptions] = useState([])
   const [selectedWorksheetName, setSelectedWorksheetName] = useState('')
@@ -149,6 +163,7 @@ export function InventoryImportWizardShell({ onClose = undefined } = {}) {
   function clearDetectionAndParse() {
     setParseResult(null)
     setFormatDetection(null)
+    setOperationalModel(null)
   }
 
   function openFilePicker() {
@@ -215,9 +230,10 @@ export function InventoryImportWizardShell({ onClose = undefined } = {}) {
         const decoded = await inventoryImportFileDecoder.decodeInventoryImportFile(
           selectedFile.file,
         )
-        const { detection, parsed } = detectAndParseDecodedTable(decoded)
+        const { detection, parsed, operationalModel: nextOperationalModel } = detectAndParseDecodedTable(decoded)
         setFormatDetection(detection)
         setParseResult(parsed)
+        setOperationalModel(nextOperationalModel)
         resetWorksheetState()
         setWizardView('columns')
         return
@@ -232,9 +248,10 @@ export function InventoryImportWizardShell({ onClose = undefined } = {}) {
           selectedFile.file,
           inspection.worksheets[0].name,
         )
-        const { detection, parsed } = detectAndParseDecodedTable(decoded)
+        const { detection, parsed, operationalModel: nextOperationalModel } = detectAndParseDecodedTable(decoded)
         setFormatDetection(detection)
         setParseResult(parsed)
+        setOperationalModel(nextOperationalModel)
         resetWorksheetState()
         setWizardView('columns')
         return
@@ -274,9 +291,10 @@ export function InventoryImportWizardShell({ onClose = undefined } = {}) {
         selectedFile.file,
         selectedWorksheetName,
       )
-      const { detection, parsed } = detectAndParseDecodedTable(decoded)
+      const { detection, parsed, operationalModel: nextOperationalModel } = detectAndParseDecodedTable(decoded)
       setFormatDetection(detection)
       setParseResult(parsed)
+      setOperationalModel(nextOperationalModel)
       setWizardView('columns')
     } catch (error) {
       clearDetectionAndParse()
@@ -399,6 +417,8 @@ export function InventoryImportWizardShell({ onClose = undefined } = {}) {
                 <section
                   className={`inventory-import-wizard-format-card is-${formatDetection.format}`}
                   aria-label="Detected worksheet format"
+                  data-operational-category-count={operationalModel?.summary.categoryCount ?? ''}
+                  data-operational-product-count={operationalModel?.summary.productCount ?? ''}
                 >
                   <div className="inventory-import-wizard-format-card-head">
                     <h4 className="inventory-import-wizard-format-label">
