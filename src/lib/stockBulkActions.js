@@ -36,6 +36,7 @@ export function buildStockItemUpdatePayload(item, changes = {}) {
 export function buildStockItemDeactivatePayload(item) {
   return {
     ...buildStockItemUpdatePayload(item),
+    supplierId: item?.supplierId ?? item?.supplier_id ?? null,
     active: false,
   }
 }

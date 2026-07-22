@@ -265,6 +265,46 @@ describe('StockDashboardView deactivate confirmation UI (P8.16.14h)', () => {
     cleanup()
   })
 
+  it('Close (X) and backdrop dismiss do not call onUpdateItem', () => {
+    vi.useFakeTimers()
+    const onUpdateItem = vi.fn(async () => {})
+    const item = stock({ id: 'ko', name: 'KETEL ONE' })
+
+    const { container, cleanup } = render(createElement(StockDashboardView, {
+      stockItems: [item],
+      canManage: true,
+      onUpdateItem,
+      isSaving: false,
+    }))
+
+    openDeactivateFromCard(container, 'KETEL ONE')
+
+    act(() => {
+      vi.runAllTimers()
+    })
+
+    const closeBtn = getDeactivateDialog()?.querySelector('[aria-label="Close"]')
+    act(() => {
+      closeBtn.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    })
+    expect(getDeactivateDialog()).toBeNull()
+    expect(onUpdateItem).not.toHaveBeenCalled()
+
+    openDeactivateFromCard(container, 'KETEL ONE')
+    act(() => {
+      vi.runAllTimers()
+    })
+
+    const backdrop = document.querySelector('.stock-item-deactivate-backdrop')
+    act(() => {
+      backdrop.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    })
+    expect(getDeactivateDialog()).toBeNull()
+    expect(onUpdateItem).not.toHaveBeenCalled()
+
+    cleanup()
+  })
+
   it('Confirm sends the selected item id with active:false', async () => {
     vi.useFakeTimers()
     const onUpdateItem = vi.fn(async () => {})
@@ -299,6 +339,100 @@ describe('StockDashboardView deactivate confirmation UI (P8.16.14h)', () => {
     )
     expect(getDeactivateDialog()).toBeNull()
 
+    cleanup()
+  })
+
+  it('keeps the modal open and shows an error when confirm update rejects', async () => {
+    vi.useFakeTimers()
+    const onUpdateItem = vi.fn(async () => {
+      throw new Error('Unable to update stock item right now.')
+    })
+    const item = stock({ id: 'ko', name: 'KETEL ONE' })
+
+    const { container, cleanup } = render(createElement(StockDashboardView, {
+      stockItems: [item],
+      canManage: true,
+      onUpdateItem,
+      isSaving: false,
+    }))
+
+    openDeactivateFromCard(container, 'KETEL ONE')
+
+    act(() => {
+      vi.runAllTimers()
+    })
+
+    const dialog = getDeactivateDialog()
+    const confirmBtn = Array.from(dialog.querySelectorAll('button'))
+      .find((node) => node.textContent === 'Deactivate')
+
+    await act(async () => {
+      confirmBtn.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+
+    expect(onUpdateItem).toHaveBeenCalledTimes(1)
+    expect(getDeactivateDialog()).toBeTruthy()
+    expect(getDeactivateDialog()?.textContent).toContain('Unable to update stock item right now.')
+    expect(container.textContent).toContain('KETEL ONE')
+
+    const retryBtn = Array.from(getDeactivateDialog().querySelectorAll('button'))
+      .find((node) => node.textContent === 'Deactivate')
+    expect(retryBtn?.disabled).toBe(false)
+
+    cleanup()
+  })
+
+  it('shows saving state and ignores duplicate confirm clicks while pending', async () => {
+    vi.useFakeTimers()
+    let resolveUpdate
+    const onUpdateItem = vi.fn(() => new Promise((resolve) => {
+      resolveUpdate = resolve
+    }))
+    const item = stock({ id: 'ko', name: 'KETEL ONE' })
+
+    const { container, cleanup } = render(createElement(StockDashboardView, {
+      stockItems: [item],
+      canManage: true,
+      onUpdateItem,
+      isSaving: false,
+    }))
+
+    openDeactivateFromCard(container, 'KETEL ONE')
+
+    act(() => {
+      vi.runAllTimers()
+    })
+
+    const dialog = getDeactivateDialog()
+    const confirmBtn = Array.from(dialog.querySelectorAll('button'))
+      .find((node) => node.textContent === 'Deactivate')
+
+    await act(async () => {
+      confirmBtn.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+      await Promise.resolve()
+    })
+
+    expect(onUpdateItem).toHaveBeenCalledTimes(1)
+    expect(getDeactivateDialog()?.textContent).toContain('Saving')
+
+    const busyBtn = Array.from(getDeactivateDialog().querySelectorAll('button'))
+      .find((node) => node.textContent === 'Saving…' || node.textContent === 'Saving...')
+    expect(busyBtn?.disabled).toBe(true)
+
+    await act(async () => {
+      busyBtn.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+      await Promise.resolve()
+    })
+    expect(onUpdateItem).toHaveBeenCalledTimes(1)
+
+    await act(async () => {
+      resolveUpdate()
+      await Promise.resolve()
+    })
+
+    expect(getDeactivateDialog()).toBeNull()
     cleanup()
   })
 

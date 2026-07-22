@@ -1120,6 +1120,8 @@ function StockItemDeactivateConfirmModal({
   onConfirm,
 }) {
   const [canDismiss, setCanDismiss] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [submitError, setSubmitError] = useState('')
 
   useEffect(() => {
     // Ignore the same pointer/click that opened this modal from the ⋯ menu
@@ -1130,9 +1132,27 @@ function StockItemDeactivateConfirmModal({
 
   if (!item || typeof document === 'undefined') return null
 
+  const isBusy = isSaving || isSubmitting
+
   const handleDismiss = () => {
-    if (isSaving || !canDismiss) return
+    if (isBusy || !canDismiss) return
     onClose?.()
+  }
+
+  const handleConfirm = async (event) => {
+    event?.preventDefault?.()
+    event?.stopPropagation?.()
+    if (isBusy || !canDismiss || !item?.id) return
+
+    setSubmitError('')
+    setIsSubmitting(true)
+    try {
+      await onConfirm?.(item)
+    } catch (error) {
+      setSubmitError(error?.message || 'Unable to deactivate right now.')
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   return createPortal(
@@ -1146,6 +1166,7 @@ function StockItemDeactivateConfirmModal({
         role="dialog"
         aria-modal="true"
         aria-labelledby="stock-item-deactivate-title"
+        aria-busy={isBusy}
       >
         <div className="drawer-header">
           <div>
@@ -1155,7 +1176,7 @@ function StockItemDeactivateConfirmModal({
             type="button"
             className="icon-btn"
             onClick={handleDismiss}
-            disabled={isSaving || !canDismiss}
+            disabled={isBusy || !canDismiss}
             aria-label="Close"
           >
             ✕
@@ -1171,6 +1192,9 @@ function StockItemDeactivateConfirmModal({
               <strong>{item.name}</strong>
             </p>
           ) : null}
+          {submitError ? (
+            <p className="staff-status-banner" role="alert">{submitError}</p>
+          ) : null}
         </div>
 
         <div className="modal-actions">
@@ -1178,17 +1202,17 @@ function StockItemDeactivateConfirmModal({
             type="button"
             className="ghost-btn"
             onClick={handleDismiss}
-            disabled={isSaving || !canDismiss}
+            disabled={isBusy || !canDismiss}
           >
             Cancel
           </button>
           <button
             type="button"
             className="primary-btn"
-            onClick={() => onConfirm?.(item)}
-            disabled={isSaving}
+            onClick={handleConfirm}
+            disabled={isBusy || !canDismiss}
           >
-            {isSaving ? 'Saving…' : 'Deactivate'}
+            {isBusy ? 'Saving…' : 'Deactivate'}
           </button>
         </div>
       </div>
@@ -1402,7 +1426,12 @@ export function StockDashboardView({
   }
 
   const handleConfirmDeactivateItem = async (item) => {
-    if (!item?.id || !onUpdateItem) return
+    if (!item?.id) {
+      throw new Error('Unable to deactivate this product right now.')
+    }
+    if (!onUpdateItem) {
+      throw new Error('Unable to deactivate stock items right now.')
+    }
 
     await onUpdateItem(item.id, buildStockItemDeactivatePayload(item))
     setPendingDeactivateItem(null)
