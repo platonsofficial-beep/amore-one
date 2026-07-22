@@ -24,6 +24,7 @@ import { StockMigrationHealthPanel } from './StockMigrationHealthPanel'
 import { StockMigrationManualReviewWorkspace } from './StockMigrationManualReviewWorkspace'
 import { StockMigrationOperatorPanel } from './StockMigrationOperatorPanel'
 import { StockMigrationPreflightWorkspace } from './StockMigrationPreflightWorkspace'
+import { StockMigrationPreviewWorkspace } from './StockMigrationPreviewWorkspace'
 import { StockMigrationSessionCard } from './StockMigrationSessionCard'
 import { StockMigrationSessionSteps } from './StockMigrationSessionSteps'
 
@@ -352,6 +353,12 @@ export function StockInventoryMigrationView({
             ? stageAttentionAcknowledgements.length
             : 0
         }
+        isLoading={isLoading}
+      />
+
+      <StockMigrationPreviewWorkspace
+        metrics={metrics}
+        metricsAvailable={metricsAvailable}
         isLoading={isLoading}
       />
 
