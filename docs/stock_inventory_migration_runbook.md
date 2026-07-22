@@ -1,10 +1,62 @@
 # Stock Inventory Migration Runbook
 
-**Pipeline:** P7.4.x → P7.5.0  
-**Document:** P7.5.1 — Production operator runbook  
-**Audience:** Operators running migration SQL in the Supabase SQL editor  
+**Pipeline:** P7.4.x → P7.5.0 → P7.8.x session stages → **P8.13.0 Phase 1 production verification**
+**Document:** Production operator runbook
+**Audience:** Operators running migration via ONE Operator Panel and/or Supabase SQL editor
 
 This document is documentation only. It does not execute migrations.
+
+---
+
+## Canonical production Phase 1 path (REQUIRED)
+
+**Production Phase 1 uses only the session-owned RPC:**
+
+`public.run_inventory_migration_phase1(p_workspace_id, p_session_id)`
+
+**ONE Operator flow (canonical):**
+
+1. Preview / Preflight workspaces (read-only readiness)
+2. Operator Panel eligibility (session running, `phase1` waiting, preview completed)
+3. Acknowledge attention if preview → phase1 requires acknowledgement
+4. Operator Panel **Phase 1** → `runInventoryMigrationPhase1` → RPC above
+5. Refresh metrics / session steps
+6. Run read-only verification: `supabase/inventory_migration_phase1_runtime_validation.sql`
+
+**Do not** run the legacy DO-block for production:
+
+| Status | File |
+|--------|------|
+| **DEPRECATED — not production** | `supabase/inventory_movement_execute_phase1.sql` |
+| **Canonical Phase 1 RPC** | `supabase/inventory_migration_phase1_rpc.sql` |
+| **Read-only post-run verification** | `supabase/inventory_migration_phase1_runtime_validation.sql` |
+
+Deploy check (expected: non-null OID):
+
+```sql
+select to_regprocedure('public.run_inventory_migration_phase1(uuid,uuid)');
+```
+
+Grants (expected: EXECUTE for `authenticated` only; not `public` / `anon`):
+
+```sql
+select
+  has_function_privilege(
+    'authenticated',
+    'public.run_inventory_migration_phase1(uuid,uuid)'::regprocedure,
+    'EXECUTE'
+  ) as authenticated_execute,
+  has_function_privilege(
+    'public',
+    'public.run_inventory_migration_phase1(uuid,uuid)'::regprocedure,
+    'EXECUTE'
+  ) as public_execute,
+  has_function_privilege(
+    'anon',
+    'public.run_inventory_migration_phase1(uuid,uuid)'::regprocedure,
+    'EXECUTE'
+  ) as anon_execute;
+```
 
 ---
 
@@ -20,10 +72,9 @@ Migrate legacy `inventory_items` into the workspace-scoped Stock V1 catalog (`st
 
 Out of scope for this pipeline:
 
-- UI / React / services changes
 - Supplier catalog mutation
 - Bar Refill schema changes
-- Automatic app-triggered execution
+- Rewriting Phase 1 movement semantics
 
 ### Preconditions
 
@@ -31,30 +82,31 @@ Before any write step:
 
 1. `public.workspaces`, `public.stock_items`, and `public.stock_movements` exist (Stock V1 schemas applied).
 2. Foundation map applied once: `supabase/inventory_stock_item_map.sql`.
-3. Orchestrator dry-run reports **READY FOR CONTROLLED EXECUTION**:  
-   `supabase/inventory_migration_orchestrator.sql`.
-4. Database backup completed and confirmed restorable.
-5. A controlled maintenance window is scheduled for Phase 1 + Phase 2 (see below).
-6. Operators have reviewed optional dry-run classifier output if used:  
-   `supabase/inventory_stock_dry_run_classifier.sql`.
+3. Session migration RPCs applied (including `inventory_migration_phase1_rpc.sql`).
+4. Part A of `inventory_migration_phase1_runtime_validation.sql` PASSes (RPC deployed + grants).
+5. Database backup completed and confirmed restorable.
+6. A controlled maintenance window is scheduled for Phase 1 + Phase 2 (see below).
 
 ### Supported version
 
-This runbook matches the repository migration scripts on `main` for the P7.4 / P7.5 inventory→stock pipeline:
+This runbook matches the repository migration scripts on `main`.
 
-| Step | Script |
-|------|--------|
-| Foundation | `supabase/inventory_stock_item_map.sql` |
-| Orchestrator (read-only) | `supabase/inventory_migration_orchestrator.sql` |
-| Persist | `supabase/inventory_stock_map_persist.sql` |
-| Auto-link | `supabase/inventory_stock_map_auto_link.sql` |
-| Auto-create | `supabase/inventory_stock_map_auto_create.sql` |
-| Integrity audit | `supabase/inventory_stock_integrity_audit.sql` |
-| Movement preflight | `supabase/inventory_movement_preflight.sql` |
-| Movement preview | `supabase/inventory_movement_preview.sql` |
-| Phase 1 | `supabase/inventory_movement_execute_phase1.sql` |
-| Phase 2 | `supabase/inventory_movement_apply_phase2.sql` |
-| Post-apply audit | `supabase/inventory_post_apply_audit.sql` |
+**Legacy SQL editor pipeline (historical / non-session)** — retained for reference only. Prefer ONE Operator Panel + session RPCs for production.
+
+| Step | Script | Notes |
+|------|--------|--------|
+| Foundation | `supabase/inventory_stock_item_map.sql` | Still required |
+| Orchestrator (read-only) | `supabase/inventory_migration_orchestrator.sql` | Optional dry-run |
+| Persist (legacy) | `supabase/inventory_stock_map_persist.sql` | Prefer session `run_inventory_migration_persist` |
+| Auto-link (legacy) | `supabase/inventory_stock_map_auto_link.sql` | Prefer session RPC |
+| Auto-create (legacy) | `supabase/inventory_stock_map_auto_create.sql` | Prefer session RPC |
+| Integrity audit (legacy) | `supabase/inventory_stock_integrity_audit.sql` | Prefer session RPC |
+| Movement preflight (legacy) | `supabase/inventory_movement_preflight.sql` | Prefer session RPC |
+| Movement preview (legacy) | `supabase/inventory_movement_preview.sql` | Prefer session RPC |
+| Phase 1 | **`supabase/inventory_migration_phase1_rpc.sql`** | **Canonical** |
+| Phase 1 (legacy DO-block) | `supabase/inventory_movement_execute_phase1.sql` | **DEPRECATED** |
+| Phase 2 | Prefer `supabase/inventory_migration_phase2_rpc.sql` | Session-owned |
+| Post-apply audit | Prefer session post-apply RPC / `inventory_post_apply_audit.sql` | Read-only proof |
 
 Do not mix scripts from divergent branches without re-validating the runbook.
 
@@ -103,9 +155,10 @@ Run scripts **manually** in the Supabase SQL editor in this exact order:
 4. Integrity audit — `inventory_stock_integrity_audit.sql`
 5. Movement preflight — `inventory_movement_preflight.sql`
 6. Movement preview — `inventory_movement_preview.sql`
-7. Phase 1 movement creation — `inventory_movement_execute_phase1.sql`
-8. Phase 2 quantity apply — `inventory_movement_apply_phase2.sql`
-9. Post-apply audit — `inventory_post_apply_audit.sql`
+7. Phase 1 movement creation — **canonical:** Operator Panel / `run_inventory_migration_phase1` (NOT legacy `inventory_movement_execute_phase1.sql`)
+8. Phase 2 quantity apply — prefer session `run_inventory_migration_phase2`
+9. Post-apply audit — session post-apply / `inventory_post_apply_audit.sql`
+10. Phase 1 read-only verification — `inventory_migration_phase1_runtime_validation.sql` (after step 7; safe anytime)
 
 Optional before step 1: orchestrator dry-run and/or dry-run classifier (read-only).
 
@@ -180,10 +233,13 @@ Optional before step 1: orchestrator dry-run and/or dry-run classifier (read-onl
 
 | | |
 |---|---|
-| **SQL file** | `supabase/inventory_movement_execute_phase1.sql` |
-| **Expected outcome** | `stock_movements` rows with note `INITIAL_IMPORT\|map_id=<uuid>`; no quantity apply |
-| **Pass criteria** | `EXECUTION PHASE 1 COMPLETE`; second run mostly `duplicate_prevented`; stock quantities unchanged |
-| **Stop conditions** | High `errors` / `blocked`; do not start Phase 2 until investigated |
+| **Canonical path** | ONE Operator Panel → **Phase 1** → `public.run_inventory_migration_phase1(workspace, session)` |
+| **RPC source** | `supabase/inventory_migration_phase1_rpc.sql` |
+| **Post-run verification** | `supabase/inventory_migration_phase1_runtime_validation.sql` (read-only) |
+| **Expected outcome** | `stock_movements` with note `INITIAL_IMPORT\|map_id=<uuid>`; step `phase1` completed; **no** quantity apply; **no** `migrated_at` |
+| **Pass criteria** | Operator Panel success; validation Part A+B PASS; second Phase 1 run mostly `duplicate_prevented`; stock quantities unchanged |
+| **Stop conditions** | High `errors` / `blocked` in step result; duplicate INITIAL_IMPORT notes; do not start Phase 2 until investigated |
+| **DEPRECATED** | `supabase/inventory_movement_execute_phase1.sql` — legacy DO-block; **do not use for production** |
 
 ### Step 8 — Phase 2 quantity apply
 
@@ -220,7 +276,9 @@ Optional before step 1: orchestrator dry-run and/or dry-run classifier (read-onl
 | Persist | Idempotent upsert; protects created/linked and `migrated_at` |
 | Auto-link | Idempotent status finalization |
 | Auto-create | Idempotent; skips rows that already have `stock_item_id` |
-| Phase 1 | Idempotent via deterministic note `INITIAL_IMPORT\|map_id=<id>` |
+| Phase 1 (session RPC) | Idempotent via deterministic note `INITIAL_IMPORT\|map_id=<id>` + step completion gate |
+| Phase 1 (legacy DO-block) | **DEPRECATED** — do not rerun in production |
+| Phase 1 verification SQL | Read-only — safe anytime |
 | Phase 2 | Idempotent via `migrated_at IS NULL` gate under map row lock |
 
 ### Which steps require investigation before retry
