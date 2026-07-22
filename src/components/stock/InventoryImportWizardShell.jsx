@@ -174,7 +174,7 @@ export function InventoryImportWizardShell({
     === inventoryImportFormatDetector.INVENTORY_IMPORT_FORMAT.OPERATIONAL
   const workspaceStockCatalog = useWorkspaceStockCatalog({
     workspaceId,
-    enabled: (wizardView === 'columns' || wizardView === 'data')
+    enabled: (wizardView === 'columns' || wizardView === 'data' || wizardView === 'preview')
       && isOperationalFormat
       && Boolean(operationalModel),
     ...(loadWorkspaceStockItems ? { loadItems: loadWorkspaceStockItems } : {}),
@@ -243,11 +243,15 @@ export function InventoryImportWizardShell({
     }
   }, [operationalImportPreviewState, matchResolutions])
 
-  const progressStep = wizardView === 'data'
-    ? 3
-    : wizardView === 'columns'
-      ? 2
-      : 1
+  const progressStep = wizardView === 'ready'
+    ? 5
+    : wizardView === 'preview'
+      ? 4
+      : wizardView === 'data'
+        ? 3
+        : wizardView === 'columns'
+          ? 2
+          : 1
 
   function resetWorksheetState() {
     setWorksheetOptions([])
@@ -449,12 +453,32 @@ export function InventoryImportWizardShell({
     setWizardView('columns')
   }
 
+  function canContinueFromDataToImportPreview() {
+    if (operationalImportPreviewState.status === 'error') return true
+    if (operationalImportPreviewState.status !== 'ready') return false
+    if (!resolvedOperationalImportPreview?.summary) return false
+    return resolvedOperationalImportPreview.summary.unresolvedPossibleMatches === 0
+  }
+
+  function handleContinueFromData() {
+    if (wizardView !== 'data') return
+    if (!canContinueFromDataToImportPreview()) return
+    setWizardView('preview')
+  }
+
+  function handleBackFromPreview() {
+    if (isProcessing) return
+    setWizardView('data')
+  }
+
   const hasSelectedFile = selectedFile != null
   const showUploadFooter = hasSelectedFile && wizardView === 'upload'
   const showWorksheetFooter = wizardView === 'worksheets'
   const showColumnsFooter = wizardView === 'columns'
   const showDataFooter = wizardView === 'data'
+  const showPreviewFooter = wizardView === 'preview'
   const canContinueFromColumns = canContinueFromColumnsToReviewData()
+  const canContinueFromData = canContinueFromDataToImportPreview()
 
   return (
     <div
@@ -648,15 +672,6 @@ export function InventoryImportWizardShell({
                 <InventoryOperationalMatchingSummary result={operationalMatchingResult} />
               ) : null}
 
-              {operationalImportPreviewState.status === 'ready'
-                || operationalImportPreviewState.status === 'error'
-                ? (
-                  <InventoryOperationalImportPreview
-                    preview={resolvedOperationalImportPreview}
-                    errorMessage={operationalImportPreviewState.errorMessage}
-                  />
-                ) : null}
-
               <div className="inventory-import-wizard-review-table-wrap">
                 <table className="inventory-import-wizard-review-table">
                   <thead>
@@ -800,6 +815,36 @@ export function InventoryImportWizardShell({
                   onChangeResolution={handleMatchResolutionChange}
                 />
               ) : null}
+            </div>
+          ) : null}
+
+          {wizardView === 'preview' && operationalModel ? (
+            <div className="inventory-import-wizard-import-preview">
+              <div className="inventory-import-wizard-review-summary">
+                <h3 className="inventory-import-wizard-review-title">
+                  Import Preview
+                </h3>
+                <p className="inventory-import-wizard-review-meta">
+                  <span>{selectedFile?.name}</span>
+                  {selectedWorksheetName ? (
+                    <span>
+                      Sheet:
+                      {' '}
+                      {selectedWorksheetName}
+                    </span>
+                  ) : null}
+                  <span>
+                    {operationalModel.summary.categoryCount}
+                    {' '}
+                    categories
+                  </span>
+                  <span>
+                    {operationalModel.summary.productCount}
+                    {' '}
+                    products
+                  </span>
+                </p>
+              </div>
 
               {operationalImportPreviewState.status === 'ready'
                 || operationalImportPreviewState.status === 'error'
@@ -1038,6 +1083,27 @@ export function InventoryImportWizardShell({
               type="button"
               className="ghost-btn inventory-import-wizard-nav-btn"
               onClick={handleBackFromData}
+            >
+              Back
+            </button>
+            <button
+              type="button"
+              className="primary-btn inventory-import-wizard-nav-btn inventory-import-wizard-continue-btn"
+              onClick={handleContinueFromData}
+              disabled={!canContinueFromData}
+              aria-disabled={!canContinueFromData ? 'true' : undefined}
+            >
+              Continue
+            </button>
+          </footer>
+        ) : null}
+
+        {showPreviewFooter ? (
+          <footer className="inventory-import-wizard-footer">
+            <button
+              type="button"
+              className="ghost-btn inventory-import-wizard-nav-btn"
+              onClick={handleBackFromPreview}
             >
               Back
             </button>

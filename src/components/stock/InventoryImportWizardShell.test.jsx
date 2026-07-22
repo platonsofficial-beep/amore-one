@@ -993,6 +993,25 @@ describe('InventoryImportWizardShell', () => {
     })
 
     expect(previewSpy).toHaveBeenCalledTimes(1)
+    expect(container.querySelector('.inventory-operational-import-preview')).toBeNull()
+    expect(container.textContent).toContain('Review Columns')
+
+    act(() => {
+      getButton('Continue').dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    })
+
+    expect(container.querySelector('.inventory-import-wizard-review-title')?.textContent)
+      .toBe('Review Data')
+    expect(container.querySelector('.inventory-operational-import-preview')).toBeNull()
+    expect(container.querySelector('.inventory-operational-match-resolution')).toBeTruthy()
+    expect(getButton('Continue')?.disabled).toBe(false)
+
+    act(() => {
+      getButton('Continue').dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    })
+
+    expect(container.querySelector('.inventory-import-wizard-review-title')?.textContent)
+      .toBe('Import Preview')
     expect(container.querySelector('.inventory-operational-import-preview')).toBeTruthy()
     expect(container.textContent).toContain('Operational Import Preview')
     expect(container.textContent).toContain('Existing product')
@@ -1001,6 +1020,7 @@ describe('InventoryImportWizardShell', () => {
     expect(container.textContent).toContain('1.8')
     expect(container.querySelector('.inventory-operational-import-preview button')).toBeNull()
     expect(container.querySelector('.inventory-operational-import-preview input')).toBeNull()
+    expect(container.querySelector('.inventory-operational-match-resolution')).toBeNull()
     expect(container.textContent).not.toMatch(/\bApply\b/)
 
     act(() => {
@@ -1045,9 +1065,24 @@ describe('InventoryImportWizardShell', () => {
       await Promise.resolve()
     })
 
+    expect(container.querySelector('.inventory-operational-matching')).toBeTruthy()
+    expect(container.textContent).not.toContain('Unable to build import preview')
+
+    act(() => {
+      getButton('Continue').dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    })
+    expect(container.querySelector('.inventory-import-wizard-review-title')?.textContent)
+      .toBe('Review Data')
+    expect(getButton('Continue')?.disabled).toBe(false)
+
+    act(() => {
+      getButton('Continue').dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    })
+
+    expect(container.querySelector('.inventory-import-wizard-review-title')?.textContent)
+      .toBe('Import Preview')
     expect(container.textContent).toContain('Unable to build import preview')
     expect(container.textContent).toContain('Preview alignment failed for test.')
-    expect(container.querySelector('.inventory-operational-matching')).toBeTruthy()
   })
 
   it('navigates valid operational Review Columns to Review Data without skipping Import Preview', async () => {
@@ -1112,11 +1147,13 @@ describe('InventoryImportWizardShell', () => {
       .toBe('Review Data')
     expect(container.querySelector('.inventory-import-wizard-review-data')).toBeTruthy()
     expect(container.querySelector('.inventory-import-wizard-review-columns')).toBeNull()
+    expect(container.querySelector('.inventory-operational-import-preview')).toBeNull()
     expect(container.textContent).toContain('Sheet: Inventory')
     expect(container.textContent).toContain('3 categories')
     expect(container.textContent).toContain('5 products')
     expect(container.textContent).toContain('VODKA')
     expect(container.textContent).toContain('Glenfidich 12')
+    expect(container.textContent).toContain('Resolve Possible Matches')
 
     const steps = container.querySelectorAll('.inventory-import-wizard-step')
     expect(steps[0].className).toContain('is-completed')
@@ -1125,7 +1162,32 @@ describe('InventoryImportWizardShell', () => {
     expect(steps[3].className).toContain('is-upcoming')
     expect(steps[4].className).toContain('is-upcoming')
 
+    // No possible matches against this catalog → Continue to Import Preview is enabled.
+    expect(getButton('Continue')?.disabled).toBe(false)
+
+    act(() => {
+      getButton('Continue').dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    })
+
+    expect(container.querySelector('.inventory-import-wizard-review-title')?.textContent)
+      .toBe('Import Preview')
+    expect(container.querySelector('.inventory-operational-import-preview')).toBeTruthy()
+    expect(container.querySelector('.inventory-operational-match-resolution')).toBeNull()
+    expect(container.querySelectorAll('.inventory-operational-import-preview')).toHaveLength(1)
+
+    const previewSteps = container.querySelectorAll('.inventory-import-wizard-step')
+    expect(previewSteps[2].className).toContain('is-completed')
+    expect(previewSteps[3].className).toContain('is-active')
+    expect(previewSteps[4].className).toContain('is-upcoming')
     expect(getButton('Continue')?.disabled).toBe(true)
+
+    act(() => {
+      getButton('Back').dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    })
+
+    expect(container.querySelector('.inventory-import-wizard-review-title')?.textContent)
+      .toBe('Review Data')
+    expect(container.querySelector('.inventory-operational-import-preview')).toBeNull()
 
     act(() => {
       getButton('Back').dispatchEvent(new MouseEvent('click', { bubbles: true }))
@@ -1196,6 +1258,8 @@ describe('InventoryImportWizardShell', () => {
 
   it('resolves possible matches locally and keeps decisions across Back navigation', async () => {
     const applySpy = vi.spyOn(resolutionModule, 'applyInventoryOperationalMatchResolutions')
+    const matchSpy = vi.spyOn(matcherModule, 'matchInventoryOperationalProducts')
+    const parseSpy = vi.spyOn(operationalParserModule, 'parseInventoryOperationalSheet')
     const loadWorkspaceStockItems = vi.fn(async () => [
       {
         id: 'ko',
@@ -1230,22 +1294,66 @@ describe('InventoryImportWizardShell', () => {
       await Promise.resolve()
     })
 
+    const matchCallsAfterData = matchSpy.mock.calls.length
+    const parseCallsAfterData = parseSpy.mock.calls.length
+
     expect(container.textContent).toContain('Resolve Possible Matches')
     expect(container.textContent).toContain('Ketel One 70cl')
     expect(container.textContent).toContain('KETEL ONE')
+    expect(container.querySelector('.inventory-operational-import-preview')).toBeNull()
     expect(container.querySelector('.inventory-operational-match-resolution')
       ?.getAttribute('data-possible-count')).toBe('2')
+    expect(getButton('Continue')?.disabled).toBe(true)
 
-    const firstCandidate = container.querySelector('input[name^="match-resolution-candidate-"]')
-    expect(firstCandidate).toBeTruthy()
+    const candidateRadios = Array.from(
+      container.querySelectorAll('input[name^="match-resolution-candidate-"]'),
+    )
+    expect(candidateRadios).toHaveLength(2)
     act(() => {
-      firstCandidate.click()
+      candidateRadios[0].click()
     })
 
     expect(applySpy.mock.calls.length).toBeGreaterThan(0)
-    expect(container.textContent).toContain('Existing product')
     expect(container.querySelector('.inventory-operational-match-resolution')
       ?.getAttribute('data-resolved-count')).toBe('1')
+    expect(getButton('Continue')?.disabled).toBe(true)
+
+    act(() => {
+      candidateRadios[1].click()
+    })
+    expect(container.querySelector('.inventory-operational-match-resolution')
+      ?.getAttribute('data-resolved-count')).toBe('2')
+    expect(getButton('Continue')?.disabled).toBe(false)
+
+    act(() => {
+      getButton('Continue').dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    })
+
+    expect(container.querySelector('.inventory-import-wizard-review-title')?.textContent)
+      .toBe('Import Preview')
+    expect(container.querySelector('.inventory-operational-import-preview')).toBeTruthy()
+    expect(container.querySelector('.inventory-operational-match-resolution')).toBeNull()
+    expect(container.textContent).toContain('Existing product')
+    expect(container.textContent).not.toMatch(/\bApply\b/)
+    expect(getButton('Continue')?.disabled).toBe(true)
+
+    const steps = container.querySelectorAll('.inventory-import-wizard-step')
+    expect(steps[2].className).toContain('is-completed')
+    expect(steps[3].className).toContain('is-active')
+    expect(steps[4].className).toContain('is-upcoming')
+
+    act(() => {
+      getButton('Back').dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    })
+    expect(container.querySelector('.inventory-import-wizard-review-title')?.textContent)
+      .toBe('Review Data')
+    expect(container.querySelector('.inventory-operational-match-resolution')
+      ?.getAttribute('data-resolved-count')).toBe('2')
+    expect(container.querySelectorAll('input[name^="match-resolution-candidate-"]:checked'))
+      .toHaveLength(2)
+    expect(container.querySelector('.inventory-operational-import-preview')).toBeNull()
+    expect(matchSpy.mock.calls.length).toBe(matchCallsAfterData)
+    expect(parseSpy.mock.calls.length).toBe(parseCallsAfterData)
 
     act(() => {
       getButton('Back').dispatchEvent(new MouseEvent('click', { bubbles: true }))
@@ -1258,9 +1366,9 @@ describe('InventoryImportWizardShell', () => {
     })
 
     expect(container.querySelector('.inventory-operational-match-resolution')
-      ?.getAttribute('data-resolved-count')).toBe('1')
-    expect(container.querySelector('input[name^="match-resolution-candidate-"]:checked')).toBeTruthy()
-    expect(container.textContent).not.toMatch(/\bApply\b/)
+      ?.getAttribute('data-resolved-count')).toBe('2')
+    expect(container.querySelectorAll('input[name^="match-resolution-candidate-"]:checked'))
+      .toHaveLength(2)
   })
 
   it('resets match resolutions when a different file is selected', async () => {
