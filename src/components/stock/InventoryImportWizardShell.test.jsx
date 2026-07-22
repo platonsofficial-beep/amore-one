@@ -42,14 +42,13 @@ describe('InventoryImportWizardShell', () => {
     expect(container.querySelector('[role="dialog"]')).toBeTruthy()
     expect(container.textContent).toContain('Inventory Import')
     expect(container.textContent).toContain('Import inventory from CSV or Excel')
-    expect(container.textContent).toContain('Upload inventory file')
+    expect(container.textContent).toContain('Upload Inventory File')
     expect(container.textContent).toContain(
       'Choose a CSV or Excel file to begin importing your inventory.',
     )
-    expect(container.textContent).toContain('Drag & drop coming soon')
   })
 
-  it('shows five locked steps with only Step 1 active', () => {
+  it('shows five steps with only Step 1 active and others upcoming', () => {
     renderShell()
 
     expect(INVENTORY_IMPORT_WIZARD_STEPS).toHaveLength(5)
@@ -65,30 +64,38 @@ describe('InventoryImportWizardShell', () => {
     expect(steps[0].getAttribute('aria-current')).toBe('step')
 
     for (let index = 1; index < steps.length; index += 1) {
-      expect(steps[index].className).toContain('is-disabled')
+      expect(steps[index].className).toContain('is-upcoming')
+      expect(steps[index].className).not.toContain('is-disabled')
       expect(steps[index].getAttribute('aria-current')).toBeNull()
     }
   })
 
-  it('keeps Choose File, Back, and Continue disabled with no runtime actions', () => {
+  it('hides the footer before file selection', () => {
+    renderShell()
+
+    expect(container.querySelector('.inventory-import-wizard-footer')).toBeNull()
+    expect(container.textContent).not.toContain('Back')
+    expect(container.textContent).not.toContain('Continue')
+  })
+
+  it('removes the drag and drop placeholder completely', () => {
+    renderShell()
+
+    expect(container.textContent).not.toContain('Drag & drop coming soon')
+    expect(container.querySelector('.inventory-import-wizard-dropzone')).toBeNull()
+  })
+
+  it('keeps Choose File disabled with no runtime action', () => {
     renderShell()
 
     const chooseBtn = Array.from(container.querySelectorAll('button'))
       .find((button) => button.textContent === 'Choose File')
-    const backBtn = Array.from(container.querySelectorAll('button'))
-      .find((button) => button.textContent === 'Back')
-    const continueBtn = Array.from(container.querySelectorAll('button'))
-      .find((button) => button.textContent === 'Continue')
 
     expect(chooseBtn?.disabled).toBe(true)
-    expect(backBtn?.disabled).toBe(true)
-    expect(continueBtn?.disabled).toBe(true)
     expect(chooseBtn?.onclick).toBeNull()
-    expect(backBtn?.onclick).toBeNull()
-    expect(continueBtn?.onclick).toBeNull()
   })
 
-  it('invokes onClose from Close (Exit) only', () => {
+  it('invokes onClose from Close (Exit)', () => {
     const onClose = vi.fn()
     renderShell({ onClose })
 

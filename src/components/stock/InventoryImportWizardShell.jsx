@@ -1,5 +1,5 @@
 /**
- * P8.16.0 — Inventory Import Wizard Shell Foundation.
+ * P8.16.0 / P8.16.0a — Inventory Import Wizard Shell.
  *
  * Premium fullscreen layout shell only. No upload, parse, validate, map,
  * classify, persistence, or Apply wiring.
@@ -69,7 +69,7 @@ export function InventoryImportWizardShell({ onClose = undefined } = {}) {
               return (
                 <li
                   key={step.id}
-                  className={`inventory-import-wizard-step${isActive ? ' is-active' : ' is-disabled'}`}
+                  className={`inventory-import-wizard-step${isActive ? ' is-active' : ' is-upcoming'}`}
                   aria-current={isActive ? 'step' : undefined}
                 >
                   <span className="inventory-import-wizard-step-index" aria-hidden="true">
@@ -84,13 +84,17 @@ export function InventoryImportWizardShell({ onClose = undefined } = {}) {
 
         <div className="inventory-import-wizard-body">
           <div className="inventory-import-wizard-upload-card">
-            <span className="inventory-import-wizard-upload-icon" aria-hidden="true">
-              ▤
-            </span>
-            <h3 className="inventory-import-wizard-upload-title">Upload inventory file</h3>
-            <p className="inventory-import-wizard-upload-description">
-              Choose a CSV or Excel file to begin importing your inventory.
-            </p>
+            <div className="inventory-import-wizard-upload-visual" aria-hidden="true">
+              <span className="inventory-import-wizard-upload-icon">▤</span>
+            </div>
+            <div className="inventory-import-wizard-upload-copy">
+              <h3 className="inventory-import-wizard-upload-title">
+                Upload Inventory File
+              </h3>
+              <p className="inventory-import-wizard-upload-description">
+                Choose a CSV or Excel file to begin importing your inventory.
+              </p>
+            </div>
             <button
               type="button"
               className="primary-btn inventory-import-wizard-choose-btn"
@@ -99,33 +103,8 @@ export function InventoryImportWizardShell({ onClose = undefined } = {}) {
             >
               Choose File
             </button>
-            <div
-              className="inventory-import-wizard-dropzone"
-              aria-disabled="true"
-            >
-              Drag & drop coming soon
-            </div>
           </div>
         </div>
-
-        <footer className="inventory-import-wizard-footer">
-          <button
-            type="button"
-            className="ghost-btn inventory-import-wizard-nav-btn"
-            disabled
-            aria-disabled="true"
-          >
-            Back
-          </button>
-          <button
-            type="button"
-            className="primary-btn inventory-import-wizard-nav-btn inventory-import-wizard-continue-btn"
-            disabled
-            aria-disabled="true"
-          >
-            Continue
-          </button>
-        </footer>
       </div>
     </div>
   )

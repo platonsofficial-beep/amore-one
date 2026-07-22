@@ -38255,34 +38255,35 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   }
 }
 /* =============================================================================
-   P8.16.0 — Inventory Import Wizard Shell
-   Fullscreen layout shell only. No upload/runtime wiring.
+   P8.16.0 / P8.16.0a — Inventory Import Wizard Shell
+   Premium fullscreen layout shell. No upload/runtime wiring.
    ============================================================================= */
 
 .inventory-import-wizard-backdrop {
   z-index: 82;
-  padding: 16px;
+  padding: 18px;
   overflow: hidden;
   overscroll-behavior: contain;
-  background: rgba(4, 4, 5, 0.82);
-  backdrop-filter: blur(12px);
+  background: rgba(4, 4, 5, 0.84);
+  backdrop-filter: blur(14px);
 }
 
 .inventory-import-wizard {
-  width: min(98vw, 1280px);
-  height: min(94vh, 900px);
-  max-height: calc(100vh - 32px);
+  width: min(98vw, 1320px);
+  height: min(94vh, 920px);
+  max-height: calc(100vh - 36px);
   display: flex;
   flex-direction: column;
   gap: 0;
   padding: 0;
-  border-radius: 22px;
-  border: 1px solid rgba(212, 175, 55, 0.24);
+  border-radius: 24px;
+  border: 1px solid rgba(212, 175, 55, 0.26);
   background:
-    linear-gradient(165deg, rgba(18, 18, 20, 0.99), rgba(9, 9, 10, 0.99));
+    radial-gradient(ellipse 90% 55% at 50% 0%, rgba(212, 175, 55, 0.07), transparent 58%),
+    linear-gradient(165deg, rgba(18, 18, 20, 0.995), rgba(9, 9, 10, 0.995));
   box-shadow:
-    0 28px 90px rgba(0, 0, 0, 0.62),
-    inset 0 1px 0 rgba(255, 255, 255, 0.04);
+    0 30px 96px rgba(0, 0, 0, 0.64),
+    inset 0 1px 0 rgba(255, 255, 255, 0.045);
   overflow: hidden;
 }
 
@@ -38292,9 +38293,9 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   justify-content: space-between;
   gap: 18px;
   flex-shrink: 0;
-  padding: 24px 28px 20px;
+  padding: 26px 32px 22px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-  background: linear-gradient(180deg, rgba(20, 20, 22, 0.98), rgba(14, 14, 15, 0.96));
+  background: linear-gradient(180deg, rgba(20, 20, 22, 0.98), rgba(14, 14, 15, 0.94));
 }
 
 .inventory-import-wizard-header-copy {
@@ -38309,7 +38310,7 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 .inventory-import-wizard-title {
   margin: 0;
   color: #fff7e8;
-  font-size: 1.48rem;
+  font-size: 1.52rem;
   font-weight: 680;
   letter-spacing: 0.015em;
   line-height: 1.2;
@@ -38318,9 +38319,9 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 .inventory-import-wizard-subtitle {
   margin: 0;
   color: rgba(255, 247, 232, 0.66);
-  font-size: 0.95rem;
+  font-size: 0.96rem;
   line-height: 1.5;
-  max-width: 38rem;
+  max-width: 40rem;
 }
 
 .inventory-import-wizard-header-actions {
@@ -38338,7 +38339,7 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 
 .inventory-import-wizard-progress {
   flex-shrink: 0;
-  padding: 18px 28px 8px;
+  padding: 22px 32px 6px;
 }
 
 .inventory-import-wizard-steps {
@@ -38347,55 +38348,72 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   padding: 0;
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
-  gap: 10px;
+  gap: 14px;
 }
 
 .inventory-import-wizard-step {
   display: flex;
   align-items: center;
-  gap: 10px;
-  min-height: 44px;
-  padding: 10px 12px;
-  border-radius: 14px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(12, 12, 13, 0.72);
-  color: rgba(255, 247, 232, 0.55);
+  gap: 12px;
+  min-height: 56px;
+  padding: 14px 16px;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  background: rgba(14, 14, 15, 0.55);
+  color: rgba(255, 247, 232, 0.72);
+  transition:
+    border-color 180ms ease,
+    background 180ms ease,
+    color 180ms ease,
+    box-shadow 180ms ease;
 }
 
 .inventory-import-wizard-step.is-active {
-  border-color: rgba(212, 175, 55, 0.42);
-  background: rgba(212, 175, 55, 0.1);
+  border-color: rgba(212, 175, 55, 0.48);
+  background: rgba(212, 175, 55, 0.12);
   color: #fff7e8;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.05),
+    0 0 0 1px rgba(212, 175, 55, 0.08);
 }
 
-.inventory-import-wizard-step.is-disabled {
-  opacity: 0.55;
+.inventory-import-wizard-step.is-upcoming {
+  opacity: 1;
+  border-color: rgba(255, 255, 255, 0.05);
+  background: rgba(12, 12, 13, 0.42);
+  color: rgba(255, 247, 232, 0.42);
 }
 
 .inventory-import-wizard-step-index {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 28px;
-  height: 28px;
+  width: 32px;
+  height: 32px;
   border-radius: 999px;
   border: 1px solid rgba(255, 255, 255, 0.12);
-  font-size: 0.82rem;
+  font-size: 0.84rem;
   font-weight: 700;
   flex-shrink: 0;
 }
 
 .inventory-import-wizard-step.is-active .inventory-import-wizard-step-index {
-  border-color: rgba(212, 175, 55, 0.55);
-  background: rgba(212, 175, 55, 0.18);
+  border-color: rgba(212, 175, 55, 0.58);
+  background: rgba(212, 175, 55, 0.2);
   color: #ffe7a8;
 }
 
+.inventory-import-wizard-step.is-upcoming .inventory-import-wizard-step-index {
+  border-color: rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.03);
+  color: rgba(255, 247, 232, 0.4);
+}
+
 .inventory-import-wizard-step-label {
-  font-size: 0.82rem;
+  font-size: 0.88rem;
   font-weight: 600;
   line-height: 1.3;
+  letter-spacing: 0.01em;
 }
 
 .inventory-import-wizard-body {
@@ -38403,108 +38421,113 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 24px 28px;
+  padding: 20px 32px 36px;
   overflow: auto;
 }
 
 .inventory-import-wizard-upload-card {
-  width: min(100%, 520px);
+  width: min(100%, 640px);
   display: flex;
   flex-direction: column;
   align-items: center;
   text-align: center;
-  gap: 14px;
-  padding: 36px 28px;
-  border-radius: 20px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  gap: 0;
+  padding: 48px 44px 44px;
+  border-radius: 24px;
+  border: 1px solid rgba(212, 175, 55, 0.18);
   background:
-    linear-gradient(180deg, rgba(22, 22, 24, 0.96), rgba(12, 12, 13, 0.94));
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+    radial-gradient(circle at 50% 18%, rgba(212, 175, 55, 0.12), transparent 46%),
+    linear-gradient(180deg, rgba(24, 24, 26, 0.98), rgba(12, 12, 13, 0.96));
+  box-shadow:
+    0 18px 48px rgba(0, 0, 0, 0.28),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+.inventory-import-wizard-upload-visual {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 28px;
 }
 
 .inventory-import-wizard-upload-icon {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 64px;
-  height: 64px;
-  border-radius: 18px;
-  border: 1px solid rgba(212, 175, 55, 0.28);
-  background: rgba(212, 175, 55, 0.1);
+  width: 96px;
+  height: 96px;
+  border-radius: 28px;
+  border: 1px solid rgba(212, 175, 55, 0.36);
+  background:
+    linear-gradient(160deg, rgba(212, 175, 55, 0.2), rgba(212, 175, 55, 0.06));
   color: #ffe7a8;
-  font-size: 1.6rem;
+  font-size: 2.35rem;
+  box-shadow:
+    0 12px 28px rgba(0, 0, 0, 0.28),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+.inventory-import-wizard-upload-copy {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 28px;
+  max-width: 28rem;
 }
 
 .inventory-import-wizard-upload-title {
   margin: 0;
   color: #fff7e8;
-  font-size: 1.22rem;
-  font-weight: 680;
-  line-height: 1.25;
+  font-size: 1.56rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  line-height: 1.2;
 }
 
 .inventory-import-wizard-upload-description {
   margin: 0;
-  color: rgba(255, 247, 232, 0.66);
-  font-size: 0.95rem;
-  line-height: 1.5;
-  max-width: 28rem;
+  color: rgba(255, 247, 232, 0.68);
+  font-size: 1rem;
+  line-height: 1.55;
 }
 
 .inventory-import-wizard-choose-btn {
-  min-height: 44px;
-  min-width: 160px;
-  margin-top: 4px;
+  min-height: 48px;
+  min-width: 188px;
+  padding-inline: 28px;
+  font-size: 0.98rem;
 }
 
 .inventory-import-wizard-choose-btn:disabled,
 .inventory-import-wizard-choose-btn[aria-disabled='true'] {
-  opacity: 0.45;
+  opacity: 0.48;
   cursor: not-allowed;
 }
 
-.inventory-import-wizard-dropzone {
-  width: 100%;
-  min-height: 72px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-top: 4px;
-  padding: 16px;
-  border-radius: 14px;
-  border: 1px dashed rgba(255, 255, 255, 0.16);
-  background: rgba(8, 8, 9, 0.55);
-  color: rgba(255, 247, 232, 0.48);
-  font-size: 0.9rem;
-}
+@media (max-width: 1100px) {
+  .inventory-import-wizard-steps {
+    gap: 12px;
+  }
 
-.inventory-import-wizard-footer {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  flex-shrink: 0;
-  padding: 16px 28px 22px;
-  border-top: 1px solid rgba(255, 255, 255, 0.06);
-  background: rgba(10, 10, 11, 0.92);
-}
+  .inventory-import-wizard-step {
+    min-height: 52px;
+    padding: 12px 14px;
+  }
 
-.inventory-import-wizard-nav-btn {
-  min-height: 44px;
-  min-width: 112px;
-}
+  .inventory-import-wizard-step-label {
+    font-size: 0.82rem;
+  }
 
-.inventory-import-wizard-continue-btn:disabled,
-.inventory-import-wizard-continue-btn[aria-disabled='true'],
-.inventory-import-wizard-nav-btn:disabled,
-.inventory-import-wizard-nav-btn[aria-disabled='true'] {
-  opacity: 0.42;
-  cursor: not-allowed;
+  .inventory-import-wizard-upload-card {
+    width: min(100%, 600px);
+    padding: 42px 36px 38px;
+  }
 }
 
 @media (max-width: 900px) {
-  .inventory-import-wizard-steps {
-    grid-template-columns: 1fr;
+  .inventory-import-wizard-backdrop {
+    padding: 0;
   }
 
   .inventory-import-wizard {
@@ -38514,7 +38537,54 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
     border-radius: 0;
   }
 
-  .inventory-import-wizard-backdrop {
-    padding: 0;
+  .inventory-import-wizard-header,
+  .inventory-import-wizard-progress,
+  .inventory-import-wizard-body {
+    padding-left: 22px;
+    padding-right: 22px;
+  }
+
+  .inventory-import-wizard-steps {
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+
+  .inventory-import-wizard-step:last-child {
+    grid-column: 1 / -1;
+  }
+
+  .inventory-import-wizard-upload-card {
+    width: min(100%, 560px);
+    padding: 40px 28px 34px;
+  }
+
+  .inventory-import-wizard-upload-icon {
+    width: 88px;
+    height: 88px;
+    font-size: 2.1rem;
+  }
+
+  .inventory-import-wizard-upload-title {
+    font-size: 1.4rem;
+  }
+}
+
+@media (min-width: 901px) and (max-width: 1180px) and (orientation: landscape) {
+  .inventory-import-wizard {
+    width: min(98vw, 1180px);
+    height: min(94vh, 820px);
+  }
+
+  .inventory-import-wizard-body {
+    padding-top: 12px;
+    padding-bottom: 28px;
+  }
+
+  .inventory-import-wizard-upload-card {
+    padding: 40px 40px 36px;
+  }
+
+  .inventory-import-wizard-steps {
+    gap: 12px;
   }
 }
