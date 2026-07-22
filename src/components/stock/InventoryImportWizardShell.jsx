@@ -10,6 +10,7 @@ import * as inventoryImportFileDecoder from '../../lib/inventoryImportFileDecode
 import * as inventoryImportFormatDetector from '../../lib/inventoryImportFormatDetector'
 import * as inventoryOperationalSheetParser from '../../lib/inventoryOperationalSheetParser'
 import * as inventoryImportTabularParser from '../../lib/inventoryImportTabularParser'
+import { InventoryOperationalReview } from './InventoryOperationalReview'
 
 export const INVENTORY_IMPORT_WIZARD_STEPS = Object.freeze([
   { id: 'upload', label: 'Upload File', number: 1 },
@@ -457,6 +458,12 @@ export function InventoryImportWizardShell({ onClose = undefined } = {}) {
                   ) : null}
                 </section>
               ) : null}
+
+              {formatDetection?.format === inventoryImportFormatDetector.INVENTORY_IMPORT_FORMAT.OPERATIONAL
+                && operationalModel
+                ? (
+                  <InventoryOperationalReview model={operationalModel} />
+                ) : null}
 
               <div className="inventory-import-wizard-review-table-wrap">
                 <table className="inventory-import-wizard-review-table">

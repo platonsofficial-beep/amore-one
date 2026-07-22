@@ -630,6 +630,14 @@ describe('InventoryImportWizardShell', () => {
     expect(card?.getAttribute('data-operational-category-count')).toBe('2')
     expect(card?.getAttribute('data-operational-product-count')).toBe('2')
     expect(container.querySelector('.inventory-import-wizard-review-table')).toBeTruthy()
+    expect(container.querySelector('.inventory-operational-review')).toBeTruthy()
+    expect(container.textContent).toContain('Categories: 2')
+    expect(container.textContent).toContain('Products: 2')
+    expect(container.textContent).toContain('VODKA')
+    expect(container.textContent).toContain('Item One')
+    const operationalReview = container.querySelector('.inventory-operational-review')
+    expect(operationalReview?.textContent).not.toContain('Monday')
+    expect(operationalReview?.textContent).not.toContain('Tuesday')
   })
 
   it('does not run the operational parser for standard inventory tables', async () => {
@@ -646,6 +654,7 @@ describe('InventoryImportWizardShell', () => {
     expect(operationalSpy).not.toHaveBeenCalled()
     expect(container.querySelector('.inventory-import-wizard-format-card')
       ?.getAttribute('data-operational-product-count')).toBe('')
+    expect(container.querySelector('.inventory-operational-review')).toBeNull()
   })
 
   it('renders unknown layout notice without fake confidence percentages', async () => {
