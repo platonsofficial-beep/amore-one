@@ -171,7 +171,9 @@ export function InventoryImportWizardShell({
     === inventoryImportFormatDetector.INVENTORY_IMPORT_FORMAT.OPERATIONAL
   const workspaceStockCatalog = useWorkspaceStockCatalog({
     workspaceId,
-    enabled: wizardView === 'columns' && isOperationalFormat && Boolean(operationalModel),
+    enabled: (wizardView === 'columns' || wizardView === 'data')
+      && isOperationalFormat
+      && Boolean(operationalModel),
     ...(loadWorkspaceStockItems ? { loadItems: loadWorkspaceStockItems } : {}),
   })
 
@@ -224,7 +226,11 @@ export function InventoryImportWizardShell({
     workspaceStockCatalog.items,
   ])
 
-  const progressStep = wizardView === 'columns' ? 2 : 1
+  const progressStep = wizardView === 'data'
+    ? 3
+    : wizardView === 'columns'
+      ? 2
+      : 1
 
   function resetWorksheetState() {
     setWorksheetOptions([])
@@ -392,10 +398,35 @@ export function InventoryImportWizardShell({
     resetWorksheetState()
   }
 
+  function canContinueFromColumnsToReviewData() {
+    if (
+      formatDetection?.format
+      !== inventoryImportFormatDetector.INVENTORY_IMPORT_FORMAT.OPERATIONAL
+    ) {
+      return false
+    }
+    if (!operationalModel) return false
+    const productCount = operationalModel.summary?.productCount
+    return Number.isFinite(productCount) && productCount > 0
+  }
+
+  function handleContinueFromColumns() {
+    if (wizardView !== 'columns') return
+    if (!canContinueFromColumnsToReviewData()) return
+    setWizardView('data')
+  }
+
+  function handleBackFromData() {
+    if (isProcessing) return
+    setWizardView('columns')
+  }
+
   const hasSelectedFile = selectedFile != null
   const showUploadFooter = hasSelectedFile && wizardView === 'upload'
   const showWorksheetFooter = wizardView === 'worksheets'
   const showColumnsFooter = wizardView === 'columns'
+  const showDataFooter = wizardView === 'data'
+  const canContinueFromColumns = canContinueFromColumnsToReviewData()
 
   return (
     <div
@@ -650,6 +681,101 @@ export function InventoryImportWizardShell({
             </div>
           ) : null}
 
+          {wizardView === 'data' && operationalModel ? (
+            <div className="inventory-import-wizard-review-data">
+              <div className="inventory-import-wizard-review-summary">
+                <h3 className="inventory-import-wizard-review-title">
+                  Review Data
+                </h3>
+                <p className="inventory-import-wizard-review-meta">
+                  <span>{selectedFile?.name}</span>
+                  {selectedWorksheetName ? (
+                    <span>
+                      Sheet:
+                      {' '}
+                      {selectedWorksheetName}
+                    </span>
+                  ) : null}
+                  <span>
+                    {operationalModel.summary.categoryCount}
+                    {' '}
+                    categories
+                  </span>
+                  <span>
+                    {operationalModel.summary.productCount}
+                    {' '}
+                    products
+                  </span>
+                </p>
+              </div>
+
+              <InventoryOperationalReview model={operationalModel} />
+
+              {isOperationalFormat ? (
+                <section
+                  className="inventory-workspace-stock-card"
+                  aria-label="Workspace stock"
+                  data-workspace-stock-status={workspaceStockCatalog.status}
+                  data-workspace-stock-count={
+                    workspaceStockCatalog.status === 'success'
+                      ? workspaceStockCatalog.productCount
+                      : ''
+                  }
+                >
+                  {workspaceStockCatalog.status === 'loading' ? (
+                    <p className="inventory-workspace-stock-loading" role="status">
+                      Loading workspace stock…
+                    </p>
+                  ) : null}
+
+                  {workspaceStockCatalog.status === 'success' ? (
+                    <div className="inventory-operational-review-summary">
+                      <h3 className="inventory-operational-review-title">
+                        Workspace Stock
+                      </h3>
+                      <p className="inventory-operational-review-meta">
+                        <span>
+                          Loaded products:
+                          {' '}
+                          {workspaceStockCatalog.productCount}
+                        </span>
+                        <span>Read-only</span>
+                      </p>
+                    </div>
+                  ) : null}
+
+                  {workspaceStockCatalog.status === 'error' ? (
+                    <div
+                      className="inventory-operational-review-empty inventory-workspace-stock-error"
+                      role="alert"
+                    >
+                      <p className="inventory-operational-review-empty-title">
+                        Unable to load workspace stock
+                      </p>
+                      <p className="inventory-operational-review-empty-copy">
+                        {workspaceStockCatalog.errorMessage
+                          || 'Something went wrong while reading stock items for this workspace.'}
+                      </p>
+                    </div>
+                  ) : null}
+                </section>
+              ) : null}
+
+              {operationalMatchingResult ? (
+                <InventoryOperationalMatchingSummary result={operationalMatchingResult} />
+              ) : null}
+
+              {operationalImportPreviewState.status === 'ready'
+                || operationalImportPreviewState.status === 'error'
+                ? (
+                  <InventoryOperationalImportPreview
+                    preview={operationalImportPreviewState.preview}
+                    errorMessage={operationalImportPreviewState.errorMessage}
+                  />
+                ) : null}
+            </div>
+          ) : null}
+
           {wizardView === 'worksheets' ? (
             <div className="inventory-import-wizard-worksheet-card">
               <div className="inventory-import-wizard-worksheet-copy">
@@ -855,6 +981,27 @@ export function InventoryImportWizardShell({
               type="button"
               className="ghost-btn inventory-import-wizard-nav-btn"
               onClick={handleBackFromColumns}
+            >
+              Back
+            </button>
+            <button
+              type="button"
+              className="primary-btn inventory-import-wizard-nav-btn inventory-import-wizard-continue-btn"
+              onClick={handleContinueFromColumns}
+              disabled={!canContinueFromColumns}
+              aria-disabled={!canContinueFromColumns ? 'true' : undefined}
+            >
+              Continue
+            </button>
+          </footer>
+        ) : null}
+
+        {showDataFooter ? (
+          <footer className="inventory-import-wizard-footer">
+            <button
+              type="button"
+              className="ghost-btn inventory-import-wizard-nav-btn"
+              onClick={handleBackFromData}
             >
               Back
             </button>

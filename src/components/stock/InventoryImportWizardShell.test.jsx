@@ -598,7 +598,7 @@ describe('InventoryImportWizardShell', () => {
       'A specialized operational-stock import flow will handle this layout in a later step.',
     )
     expect(container.textContent).toContain('Review Columns')
-    expect(getButton('Continue')?.disabled).toBe(true)
+    expect(getButton('Continue')?.disabled).toBe(false)
   })
 
   it('runs the operational sheet parser only for operational layouts and stores the model', async () => {
@@ -1045,6 +1045,150 @@ describe('InventoryImportWizardShell', () => {
     expect(container.textContent).toContain('Unable to build import preview')
     expect(container.textContent).toContain('Preview alignment failed for test.')
     expect(container.querySelector('.inventory-operational-matching')).toBeTruthy()
+  })
+
+  it('navigates valid operational Review Columns to Review Data without skipping Import Preview', async () => {
+    const loadWorkspaceStockItems = vi.fn(async () => [
+      {
+        id: '1',
+        name: 'Item One',
+        category: 'Vodka',
+        unit: 'Bottle',
+        sku: null,
+        active: true,
+      },
+    ])
+
+    renderShell({
+      workspaceId: 'ws-ops',
+      loadWorkspaceStockItems,
+    })
+
+    selectFile(createMultiSheetFile('amore-ops.xlsx', [
+      {
+        sheetName: 'Cover',
+        matrix: [['Notes'], ['ignore']],
+      },
+      {
+        sheetName: 'Inventory',
+        matrix: [
+          ['', 'Storage Tasos', 'BAR', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday', 'Order', 'Stock Control'],
+          ['VODKA', '', '', '', '', '', '', '', '', '', '', ''],
+          ['Absolut Blue', 6, 1.8, '', '', '', '', '', '', '', '', ''],
+          ['Belvedere', 2, 1, '', '', '', '', '', '', '', '', ''],
+          ['GIN', '', '', '', '', '', '', '', '', '', '', ''],
+          ['Tanqueray', 3, 1, '', '', '', '', '', '', '', '', ''],
+          ['WHISKEY', '', '', '', '', '', '', '', '', '', '', ''],
+          ['Glenfidich 12', '', '', '', '', '', '', '', '', '', '', ''],
+          ['Chivas 12 70cl', 1, 0, '', '', '', '', '', '', '', '', ''],
+        ],
+      },
+    ]))
+    await continueToColumnReview()
+
+    const inventoryBtn = Array.from(container.querySelectorAll('[role="radio"]'))
+      .find((button) => button.textContent.includes('Inventory'))
+    act(() => {
+      inventoryBtn.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    })
+    await continueToColumnReview()
+
+    expect(container.textContent).toContain('Review Columns')
+    expect(getButton('Continue')?.disabled).toBe(false)
+
+    await act(async () => {
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+
+    act(() => {
+      getButton('Continue').dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    })
+
+    expect(container.querySelector('.inventory-import-wizard-review-title')?.textContent)
+      .toBe('Review Data')
+    expect(container.querySelector('.inventory-import-wizard-review-data')).toBeTruthy()
+    expect(container.querySelector('.inventory-import-wizard-review-columns')).toBeNull()
+    expect(container.textContent).toContain('Sheet: Inventory')
+    expect(container.textContent).toContain('3 categories')
+    expect(container.textContent).toContain('5 products')
+    expect(container.textContent).toContain('VODKA')
+    expect(container.textContent).toContain('Glenfidich 12')
+
+    const steps = container.querySelectorAll('.inventory-import-wizard-step')
+    expect(steps[0].className).toContain('is-completed')
+    expect(steps[1].className).toContain('is-completed')
+    expect(steps[2].className).toContain('is-active')
+    expect(steps[3].className).toContain('is-upcoming')
+    expect(steps[4].className).toContain('is-upcoming')
+
+    expect(getButton('Continue')?.disabled).toBe(true)
+
+    act(() => {
+      getButton('Back').dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    })
+
+    expect(container.querySelector('.inventory-import-wizard-review-title')?.textContent)
+      .toBe('Review Columns')
+    expect(container.textContent).toContain('Operational Weekly Stock Sheet')
+    expect(getButton('Continue')?.disabled).toBe(false)
+  })
+
+  it('keeps Continue disabled for operational sheets with zero products', async () => {
+    renderShell({
+      workspaceId: 'ws-ops',
+      loadWorkspaceStockItems: vi.fn(async () => []),
+    })
+
+    selectFile(createSpreadsheetFile('empty-ops.xlsx', [
+      ['', 'Storage Tasos', 'BAR', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday', 'Order', 'Stock Control'],
+      ['VODKA', '', '', '', '', '', '', '', '', '', '', ''],
+      ['GIN', '', '', '', '', '', '', '', '', '', '', ''],
+    ]))
+    await continueToColumnReview()
+
+    expect(container.textContent).toContain('Operational Weekly Stock Sheet')
+    expect(getButton('Continue')?.disabled).toBe(true)
+
+    act(() => {
+      getButton('Continue').dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    })
+
+    expect(container.querySelector('.inventory-import-wizard-review-columns')).toBeTruthy()
+    expect(container.querySelector('.inventory-import-wizard-review-data')).toBeNull()
+  })
+
+  it('keeps Continue disabled for standard and unknown layouts', async () => {
+    renderShell()
+
+    selectFile(new File(
+      ['Name,Quantity,Unit\nFlour,10,kg\n'],
+      'flat.csv',
+      { type: 'text/csv' },
+    ))
+    await continueToColumnReview()
+    expect(container.textContent).toContain('Standard Inventory Table')
+    expect(getButton('Continue')?.disabled).toBe(true)
+
+    act(() => {
+      getButton('Continue').dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    })
+    expect(container.querySelector('.inventory-import-wizard-review-columns')).toBeTruthy()
+    expect(container.querySelector('.inventory-import-wizard-review-data')).toBeNull()
+
+    act(() => {
+      getButton('Back').dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    })
+
+    selectFile(new File(
+      ['Alpha,Beta\nx,y\n'],
+      'odd.csv',
+      { type: 'text/csv' },
+    ))
+    await continueToColumnReview()
+    expect(container.textContent).toContain('Unknown Worksheet Layout')
+    expect(getButton('Continue')?.disabled).toBe(true)
+    expect(container.querySelector('.inventory-import-wizard-review-data')).toBeNull()
   })
 
   it('does not build import preview for standard inventory tables', async () => {
