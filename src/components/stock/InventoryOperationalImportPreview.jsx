@@ -417,7 +417,11 @@ function renderMatchPanel(row) {
           {' '}
           {formatOperationalImportPreviewValue(row.metadataProposal?.proposedCategory)}
           {' · '}
-          Unit: Missing
+          Unit:
+          {' '}
+          {row.metadataProposal?.proposedUnit
+            ? formatOperationalImportPreviewValue(row.metadataProposal.proposedUnit)
+            : 'Missing'}
         </p>
       </div>
     )

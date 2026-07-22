@@ -517,10 +517,12 @@ describe('InventoryImportWizardShell', () => {
     expect(source).toMatch(/inventoryOperationalProductMatcher/)
     expect(source).toMatch(/inventoryOperationalImportPreview/)
     expect(source).toMatch(/inventoryOperationalMatchResolutions/)
+    expect(source).toMatch(/inventoryNewProductDrafts/)
     expect(source).toMatch(/useWorkspaceStockCatalog/)
     expect(source).toMatch(/InventoryOperationalMatchingSummary/)
     expect(source).toMatch(/InventoryOperationalImportPreview/)
     expect(source).toMatch(/InventoryOperationalMatchResolution/)
+    expect(source).toMatch(/InventoryNewProductReview/)
     expect(source).not.toMatch(/inventoryImportTableValidator/)
     expect(source).not.toMatch(/inventoryImportFieldMapper/)
     expect(source).not.toMatch(/inventoryImportClassifier/)
@@ -1015,6 +1017,8 @@ describe('InventoryImportWizardShell', () => {
     expect(container.querySelector('.inventory-operational-import-preview')).toBeTruthy()
     expect(container.textContent).toContain('Operational Import Preview')
     expect(container.textContent).toContain('Existing product')
+    expect(container.textContent).toContain('New Products')
+    expect(container.textContent).toContain('No new products')
     expect(container.textContent).toContain('Storage')
     expect(container.textContent).toContain('6')
     expect(container.textContent).toContain('1.8')
@@ -1022,6 +1026,7 @@ describe('InventoryImportWizardShell', () => {
     expect(container.querySelector('.inventory-operational-import-preview input')).toBeNull()
     expect(container.querySelector('.inventory-operational-match-resolution')).toBeNull()
     expect(container.textContent).not.toMatch(/\bApply\b/)
+    expect(getButton('Continue')?.disabled).toBe(false)
 
     act(() => {
       root.render(createElement(InventoryImportWizardShell, {
@@ -1179,6 +1184,8 @@ describe('InventoryImportWizardShell', () => {
     expect(previewSteps[2].className).toContain('is-completed')
     expect(previewSteps[3].className).toContain('is-active')
     expect(previewSteps[4].className).toContain('is-upcoming')
+    expect(container.textContent).toContain('New Products')
+    // Sheet has create_new rows without units → Continue stays disabled.
     expect(getButton('Continue')?.disabled).toBe(true)
 
     act(() => {
@@ -1197,6 +1204,159 @@ describe('InventoryImportWizardShell', () => {
       .toBe('Review Columns')
     expect(container.textContent).toContain('Operational Weekly Stock Sheet')
     expect(getButton('Continue')?.disabled).toBe(false)
+  })
+
+  it('reviews new products with unit assignment, updates preview, and preserves drafts on Back', async () => {
+    const matchSpy = vi.spyOn(matcherModule, 'matchInventoryOperationalProducts')
+    const parseSpy = vi.spyOn(operationalParserModule, 'parseInventoryOperationalSheet')
+    const loadWorkspaceStockItems = vi.fn(async () => [
+      {
+        id: 'ko',
+        name: 'KETEL ONE',
+        category: 'Vodka',
+        unit: 'Bottle',
+        sku: null,
+        active: true,
+      },
+    ])
+
+    renderShell({
+      workspaceId: 'ws-ops',
+      loadWorkspaceStockItems,
+    })
+
+    selectFile(createSpreadsheetFile('new-products.xlsx', [
+      ['', 'Storage Tasos', 'BAR', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday', 'Order', 'Stock Control'],
+      ['VODKA', '', '', '', '', '', '', '', '', '', '', ''],
+      ['Brand New Spirit', 3, 1, '', '', '', '', '', '', '', '', ''],
+    ]))
+    await continueToColumnReview()
+    act(() => {
+      getButton('Continue').dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    })
+    await act(async () => {
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+
+    expect(getButton('Continue')?.disabled).toBe(false)
+    act(() => {
+      getButton('Continue').dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    })
+
+    expect(container.querySelector('.inventory-import-wizard-review-title')?.textContent)
+      .toBe('Import Preview')
+    expect(container.textContent).toContain('New Products')
+    expect(container.textContent).toContain('Brand New Spirit')
+    expect(container.textContent).toContain('Unit: Missing')
+    expect(getButton('Continue')?.disabled).toBe(true)
+
+    const matchCalls = matchSpy.mock.calls.length
+    const parseCalls = parseSpy.mock.calls.length
+
+    const unitSelect = Array.from(container.querySelectorAll('.inventory-new-product-review select'))
+      .find((select) => Array.from(select.options).some((option) => option.value === 'Bottle 700ml'))
+    expect(unitSelect).toBeTruthy()
+    act(() => {
+      const descriptor = Object.getOwnPropertyDescriptor(window.HTMLSelectElement.prototype, 'value')
+      descriptor?.set?.call(unitSelect, 'Bottle 700ml')
+      unitSelect.dispatchEvent(new Event('change', { bubbles: true }))
+    })
+
+    expect(container.textContent).toContain('Unit:')
+    expect(container.textContent).toContain('Bottle 700ml')
+    expect(container.textContent).not.toContain('Unit: Missing')
+    expect(getButton('Continue')?.disabled).toBe(false)
+
+    act(() => {
+      getButton('Back').dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    })
+    expect(container.querySelector('.inventory-import-wizard-review-title')?.textContent)
+      .toBe('Review Data')
+
+    act(() => {
+      getButton('Continue').dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    })
+    const preservedUnit = Array.from(container.querySelectorAll('.inventory-new-product-review select'))
+      .find((select) => Array.from(select.options).some((option) => option.value === 'Bottle 700ml'))
+    expect(preservedUnit?.value).toBe('Bottle 700ml')
+    expect(container.textContent).toContain('Bottle 700ml')
+    expect(matchSpy.mock.calls.length).toBe(matchCalls)
+    expect(parseSpy.mock.calls.length).toBe(parseCalls)
+
+    act(() => {
+      getButton('Continue').dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    })
+    expect(container.querySelector('.inventory-import-wizard-review-title')?.textContent)
+      .toBe('Ready to Import')
+    expect(getButton('Apply Import')?.disabled).toBe(true)
+  })
+
+  it('resets new product drafts when a different file is selected', async () => {
+    const loadWorkspaceStockItems = vi.fn(async () => [])
+
+    renderShell({
+      workspaceId: 'ws-ops',
+      loadWorkspaceStockItems,
+    })
+
+    selectFile(createSpreadsheetFile('draft-a.xlsx', [
+      ['', 'Storage Tasos', 'BAR', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday', 'Order', 'Stock Control'],
+      ['VODKA', '', '', '', '', '', '', '', '', '', '', ''],
+      ['Brand New Spirit', 1, 0, '', '', '', '', '', '', '', '', ''],
+    ]))
+    await continueToColumnReview()
+    act(() => {
+      getButton('Continue').dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    })
+    await act(async () => {
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+    act(() => {
+      getButton('Continue').dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    })
+
+    const unitSelect = Array.from(container.querySelectorAll('.inventory-new-product-review select'))
+      .find((select) => Array.from(select.options).some((option) => option.value === 'Bottle 1L'))
+    act(() => {
+      const descriptor = Object.getOwnPropertyDescriptor(window.HTMLSelectElement.prototype, 'value')
+      descriptor?.set?.call(unitSelect, 'Bottle 1L')
+      unitSelect.dispatchEvent(new Event('change', { bubbles: true }))
+    })
+    expect(unitSelect.value).toBe('Bottle 1L')
+
+    act(() => {
+      getButton('Back').dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    })
+    act(() => {
+      getButton('Back').dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    })
+    act(() => {
+      getButton('Back').dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    })
+
+    selectFile(createSpreadsheetFile('draft-b.xlsx', [
+      ['', 'Storage Tasos', 'BAR', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday', 'Order', 'Stock Control'],
+      ['VODKA', '', '', '', '', '', '', '', '', '', '', ''],
+      ['Another New Spirit', 2, 0, '', '', '', '', '', '', '', '', ''],
+    ]))
+    await continueToColumnReview()
+    act(() => {
+      getButton('Continue').dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    })
+    await act(async () => {
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+    act(() => {
+      getButton('Continue').dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    })
+
+    const resetSelect = Array.from(container.querySelectorAll('.inventory-new-product-review select'))
+      .find((select) => Array.from(select.options).some((option) => option.value === 'Bottle 1L'))
+    expect(resetSelect?.value).toBe('')
+    expect(container.textContent).toContain('Another New Spirit')
   })
 
   it('keeps Continue disabled for operational sheets with zero products', async () => {
@@ -1334,8 +1494,9 @@ describe('InventoryImportWizardShell', () => {
     expect(container.querySelector('.inventory-operational-import-preview')).toBeTruthy()
     expect(container.querySelector('.inventory-operational-match-resolution')).toBeNull()
     expect(container.textContent).toContain('Existing product')
+    expect(container.textContent).toContain('No new products')
     expect(container.textContent).not.toMatch(/\bApply\b/)
-    expect(getButton('Continue')?.disabled).toBe(true)
+    expect(getButton('Continue')?.disabled).toBe(false)
 
     const steps = container.querySelectorAll('.inventory-import-wizard-step')
     expect(steps[2].className).toContain('is-completed')

@@ -14,9 +14,11 @@ import * as inventoryImportTabularParser from '../../lib/inventoryImportTabularP
 import * as inventoryOperationalProductMatcher from '../../lib/inventoryOperationalProductMatcher'
 import * as inventoryOperationalImportPreview from '../../lib/inventoryOperationalImportPreview'
 import * as inventoryOperationalMatchResolutions from '../../lib/inventoryOperationalMatchResolutions'
+import * as inventoryNewProductDrafts from '../../lib/inventoryNewProductDrafts'
 import { InventoryOperationalImportPreview } from './InventoryOperationalImportPreview'
 import { InventoryOperationalMatchResolution } from './InventoryOperationalMatchResolution'
 import { InventoryOperationalMatchingSummary } from './InventoryOperationalMatchingSummary'
+import { InventoryNewProductReview } from './InventoryNewProductReview'
 import { InventoryOperationalReview } from './InventoryOperationalReview'
 
 export const INVENTORY_IMPORT_WIZARD_STEPS = Object.freeze([
@@ -169,6 +171,7 @@ export function InventoryImportWizardShell({
   const [worksheetOptions, setWorksheetOptions] = useState([])
   const [selectedWorksheetName, setSelectedWorksheetName] = useState('')
   const [matchResolutions, setMatchResolutions] = useState({})
+  const [newProductDrafts, setNewProductDrafts] = useState({})
 
   const isOperationalFormat = formatDetection?.format
     === inventoryImportFormatDetector.INVENTORY_IMPORT_FORMAT.OPERATIONAL
@@ -229,7 +232,7 @@ export function InventoryImportWizardShell({
     workspaceStockCatalog.items,
   ])
 
-  const resolvedOperationalImportPreview = useMemo(() => {
+  const resolutionOperationalImportPreview = useMemo(() => {
     if (operationalImportPreviewState.status !== 'ready' || !operationalImportPreviewState.preview) {
       return null
     }
@@ -242,6 +245,25 @@ export function InventoryImportWizardShell({
       return operationalImportPreviewState.preview
     }
   }, [operationalImportPreviewState, matchResolutions])
+
+  const resolvedOperationalImportPreview = useMemo(() => {
+    if (!resolutionOperationalImportPreview) return null
+    try {
+      return inventoryNewProductDrafts.applyInventoryNewProductDrafts({
+        preview: resolutionOperationalImportPreview,
+        drafts: newProductDrafts,
+      })
+    } catch {
+      return resolutionOperationalImportPreview
+    }
+  }, [resolutionOperationalImportPreview, newProductDrafts])
+
+  const newProductCategoryOptions = useMemo(() => (
+    inventoryNewProductDrafts.listNewProductCategoryOptions({
+      catalogItems: workspaceStockCatalog.items,
+      preview: resolutionOperationalImportPreview,
+    })
+  ), [workspaceStockCatalog.items, resolutionOperationalImportPreview])
 
   const progressStep = wizardView === 'ready'
     ? 5
@@ -263,6 +285,7 @@ export function InventoryImportWizardShell({
     setFormatDetection(null)
     setOperationalModel(null)
     setMatchResolutions({})
+    setNewProductDrafts({})
   }
 
   function handleMatchResolutionChange(rowKey, next) {
@@ -271,6 +294,17 @@ export function InventoryImportWizardShell({
       [rowKey]: {
         decision: next.decision,
         selectedStockItemId: next.selectedStockItemId ?? null,
+      },
+    }))
+  }
+
+  function handleNewProductDraftChange(rowKey, next) {
+    setNewProductDrafts((current) => ({
+      ...current,
+      [rowKey]: {
+        productName: next.productName,
+        category: next.category,
+        unit: next.unit ?? null,
       },
     }))
   }
@@ -471,14 +505,37 @@ export function InventoryImportWizardShell({
     setWizardView('data')
   }
 
+  function canContinueFromPreviewToReady() {
+    if (operationalImportPreviewState.status === 'error') return false
+    if (operationalImportPreviewState.status !== 'ready') return false
+    if (!resolutionOperationalImportPreview) return false
+    return inventoryNewProductDrafts.areAllNewProductDraftsValid({
+      preview: resolutionOperationalImportPreview,
+      drafts: newProductDrafts,
+    })
+  }
+
+  function handleContinueFromPreview() {
+    if (wizardView !== 'preview') return
+    if (!canContinueFromPreviewToReady()) return
+    setWizardView('ready')
+  }
+
+  function handleBackFromReady() {
+    if (isProcessing) return
+    setWizardView('preview')
+  }
+
   const hasSelectedFile = selectedFile != null
   const showUploadFooter = hasSelectedFile && wizardView === 'upload'
   const showWorksheetFooter = wizardView === 'worksheets'
   const showColumnsFooter = wizardView === 'columns'
   const showDataFooter = wizardView === 'data'
   const showPreviewFooter = wizardView === 'preview'
+  const showReadyFooter = wizardView === 'ready'
   const canContinueFromColumns = canContinueFromColumnsToReviewData()
   const canContinueFromData = canContinueFromDataToImportPreview()
+  const canContinueFromPreview = canContinueFromPreviewToReady()
 
   return (
     <div
@@ -846,6 +903,15 @@ export function InventoryImportWizardShell({
                 </p>
               </div>
 
+              {operationalImportPreviewState.status === 'ready' ? (
+                <InventoryNewProductReview
+                  preview={resolutionOperationalImportPreview}
+                  drafts={newProductDrafts}
+                  categoryOptions={newProductCategoryOptions}
+                  onChangeDraft={handleNewProductDraftChange}
+                />
+              ) : null}
+
               {operationalImportPreviewState.status === 'ready'
                 || operationalImportPreviewState.status === 'error'
                 ? (
@@ -854,6 +920,28 @@ export function InventoryImportWizardShell({
                     errorMessage={operationalImportPreviewState.errorMessage}
                   />
                 ) : null}
+            </div>
+          ) : null}
+
+          {wizardView === 'ready' && operationalModel ? (
+            <div className="inventory-import-wizard-ready">
+              <div className="inventory-import-wizard-review-summary">
+                <h3 className="inventory-import-wizard-review-title">
+                  Ready to Import
+                </h3>
+                <p className="inventory-import-wizard-review-meta">
+                  <span>{selectedFile?.name}</span>
+                  <span>Apply Import is not available yet</span>
+                </p>
+              </div>
+              <div className="inventory-operational-review-empty" role="status">
+                <p className="inventory-operational-review-empty-title">
+                  Ready to Import
+                </p>
+                <p className="inventory-operational-review-empty-copy">
+                  Review is complete. Applying this import will be enabled in a later step.
+                </p>
+              </div>
             </div>
           ) : null}
 
@@ -1110,10 +1198,31 @@ export function InventoryImportWizardShell({
             <button
               type="button"
               className="primary-btn inventory-import-wizard-nav-btn inventory-import-wizard-continue-btn"
+              onClick={handleContinueFromPreview}
+              disabled={!canContinueFromPreview}
+              aria-disabled={!canContinueFromPreview ? 'true' : undefined}
+            >
+              Continue
+            </button>
+          </footer>
+        ) : null}
+
+        {showReadyFooter ? (
+          <footer className="inventory-import-wizard-footer">
+            <button
+              type="button"
+              className="ghost-btn inventory-import-wizard-nav-btn"
+              onClick={handleBackFromReady}
+            >
+              Back
+            </button>
+            <button
+              type="button"
+              className="primary-btn inventory-import-wizard-nav-btn inventory-import-wizard-continue-btn"
               disabled
               aria-disabled="true"
             >
-              Continue
+              Apply Import
             </button>
           </footer>
         ) : null}
