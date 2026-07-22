@@ -32888,33 +32888,47 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  padding: 12px 14px;
-  border-radius: 12px;
-  border: 1px solid rgba(255, 214, 150, 0.28);
-  background: rgba(180, 120, 40, 0.16);
+  gap: 14px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 214, 150, 0.2);
+  background:
+    linear-gradient(
+      135deg,
+      rgba(180, 120, 40, 0.12) 0%,
+      rgba(22, 18, 14, 0.42) 100%
+    );
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 247, 232, 0.04),
+    0 10px 24px rgba(0, 0, 0, 0.14);
 }
 
 .stock-migration-guided-checkpoint.is-clear {
-  border-color: rgba(140, 200, 150, 0.22);
-  background: rgba(40, 90, 55, 0.16);
+  border-color: rgba(140, 200, 150, 0.18);
+  background:
+    linear-gradient(
+      135deg,
+      rgba(40, 90, 55, 0.11) 0%,
+      rgba(12, 16, 14, 0.4) 100%
+    );
 }
 
 .stock-migration-guided-checkpoint.is-clear .stock-migration-guided-checkpoint-title {
-  color: rgba(190, 230, 200, 0.95);
+  color: rgba(198, 232, 208, 0.96);
 }
 
 .stock-migration-guided-checkpoint-title {
-  margin: 0 0 4px;
-  font-size: 0.92rem;
+  margin: 0 0 5px;
+  font-size: 0.94rem;
   font-weight: 700;
-  color: rgba(255, 230, 180, 0.95);
+  letter-spacing: 0.01em;
+  color: rgba(255, 232, 190, 0.96);
 }
 
 .stock-migration-guided-checkpoint-body {
   margin: 0;
   font-size: 0.84rem;
-  color: rgba(255, 247, 232, 0.7);
+  color: rgba(255, 247, 232, 0.68);
   line-height: 1.4;
 }
 
@@ -33017,7 +33031,7 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   overflow: visible;
 }
 
-/* P8.8.0 / P8.8.2 / P8.8.3 — Mission Timeline (premium compact polish) */
+/* P8.8.0 / P8.8.2 / P8.8.3 / P8.8.4 — Mission Timeline (final premium pass) */
 .stock-migration-mission-timeline {
   list-style: none;
   margin: 0;
@@ -33040,8 +33054,8 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 .stock-migration-mission-step,
 .stock-migration-guided-stage {
   display: grid;
-  grid-template-columns: 32px minmax(0, 1fr);
-  gap: 10px;
+  grid-template-columns: 34px minmax(0, 1fr);
+  gap: 11px;
   min-width: 0;
   min-height: 0;
   padding: 2px 2px 2px 0;
@@ -33051,7 +33065,7 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   position: relative;
 }
 
-/* History: confirmed, not disabled — mute copy, keep marker full strength */
+/* History: quieter support role — readable, confirmed, never competing */
 .stock-migration-guided-stage.is-density-history,
 .stock-migration-guided-stage.is-completed {
   opacity: 1;
@@ -33061,13 +33075,13 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 
 .stock-migration-guided-stage.is-density-history .stock-migration-guided-stage-name,
 .stock-migration-guided-stage.is-completed .stock-migration-guided-stage-name {
-  color: rgba(255, 247, 232, 0.84);
+  color: rgba(255, 247, 232, 0.76);
   font-weight: 600;
 }
 
 .stock-migration-guided-stage.is-density-history .stock-migration-guided-stage-description,
 .stock-migration-guided-stage.is-completed .stock-migration-guided-stage-description {
-  color: rgba(255, 247, 232, 0.52);
+  color: rgba(255, 247, 232, 0.46);
   opacity: 1;
 }
 
@@ -33077,8 +33091,8 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 .stock-migration-guided-stage.is-unavailable,
 .stock-migration-guided-stage.is-cancelled {
   opacity: 1;
-  padding-top: 1px;
-  padding-bottom: 1px;
+  padding-top: 2px;
+  padding-bottom: 2px;
 }
 
 .stock-migration-guided-stage.is-density-future .stock-migration-guided-stage-name,
@@ -33086,7 +33100,8 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 .stock-migration-guided-stage.is-ready .stock-migration-guided-stage-name,
 .stock-migration-guided-stage.is-unavailable .stock-migration-guided-stage-name,
 .stock-migration-guided-stage.is-cancelled .stock-migration-guided-stage-name {
-  color: rgba(255, 247, 232, 0.62);
+  color: rgba(255, 247, 232, 0.58);
+  font-weight: 600;
 }
 
 .stock-migration-guided-stage.is-density-future .stock-migration-guided-stage-description,
@@ -33094,28 +33109,58 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 .stock-migration-guided-stage.is-ready .stock-migration-guided-stage-description,
 .stock-migration-guided-stage.is-unavailable .stock-migration-guided-stage-description,
 .stock-migration-guided-stage.is-cancelled .stock-migration-guided-stage-description {
-  color: rgba(255, 247, 232, 0.4);
+  color: rgba(255, 247, 232, 0.38);
   opacity: 1;
+}
+
+/* Immediate next after Current — gentle journey cue without new section */
+.stock-migration-guided-stage.is-density-current + .stock-migration-guided-stage.is-density-future,
+.stock-migration-guided-stage.is-current + .stock-migration-guided-stage.is-waiting,
+.stock-migration-guided-stage.is-current + .stock-migration-guided-stage.is-ready,
+.stock-migration-guided-stage.is-emphasized + .stock-migration-guided-stage.is-density-future,
+.stock-migration-guided-stage.is-attention + .stock-migration-guided-stage.is-density-future {
+  padding-top: 4px;
+  padding-bottom: 3px;
+}
+
+.stock-migration-guided-stage.is-density-current + .stock-migration-guided-stage.is-density-future .stock-migration-guided-stage-name,
+.stock-migration-guided-stage.is-current + .stock-migration-guided-stage.is-waiting .stock-migration-guided-stage-name,
+.stock-migration-guided-stage.is-current + .stock-migration-guided-stage.is-ready .stock-migration-guided-stage-name,
+.stock-migration-guided-stage.is-emphasized + .stock-migration-guided-stage.is-density-future .stock-migration-guided-stage-name,
+.stock-migration-guided-stage.is-attention + .stock-migration-guided-stage.is-density-future .stock-migration-guided-stage-name {
+  color: rgba(255, 247, 232, 0.78);
+}
+
+.stock-migration-guided-stage.is-density-current + .stock-migration-guided-stage.is-density-future .stock-migration-mission-marker,
+.stock-migration-guided-stage.is-current + .stock-migration-guided-stage.is-waiting .stock-migration-mission-marker,
+.stock-migration-guided-stage.is-current + .stock-migration-guided-stage.is-ready .stock-migration-mission-marker,
+.stock-migration-guided-stage.is-emphasized + .stock-migration-guided-stage.is-density-future .stock-migration-mission-marker,
+.stock-migration-guided-stage.is-attention + .stock-migration-guided-stage.is-density-future .stock-migration-mission-marker {
+  border-color: rgba(255, 247, 232, 0.32);
+  color: rgba(255, 247, 232, 0.72);
 }
 
 .stock-migration-guided-stage.is-density-current,
 .stock-migration-guided-stage.is-current,
 .stock-migration-guided-stage.is-emphasized {
   opacity: 1;
-  margin: 8px 0;
-  padding: 14px 14px 14px 6px;
-  border-radius: 16px;
-  background: linear-gradient(
-    90deg,
-    rgba(255, 247, 232, 0.2) 0%,
-    rgba(255, 247, 232, 0.08) 48%,
-    rgba(255, 247, 232, 0.02) 100%
-  );
+  margin: 10px 0 8px;
+  padding: 15px 15px 15px 7px;
+  border-radius: 18px;
+  background:
+    linear-gradient(
+      105deg,
+      rgba(255, 247, 232, 0.24) 0%,
+      rgba(255, 247, 232, 0.1) 42%,
+      rgba(255, 247, 232, 0.03) 78%,
+      transparent 100%
+    );
   box-shadow:
-    inset 4px 0 0 rgba(255, 247, 232, 0.98),
-    0 0 0 1px rgba(255, 247, 232, 0.18),
-    0 0 22px rgba(255, 247, 232, 0.08),
-    0 12px 30px rgba(0, 0, 0, 0.22);
+    inset 4px 0 0 #fff7e8,
+    inset 0 1px 0 rgba(255, 247, 232, 0.12),
+    0 0 0 1px rgba(255, 247, 232, 0.22),
+    0 0 28px rgba(255, 247, 232, 0.1),
+    0 14px 34px rgba(0, 0, 0, 0.26);
 }
 
 /* Soft history → current handoff without blank gap */
@@ -33125,7 +33170,7 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 .stock-migration-guided-stage.is-completed + .stock-migration-guided-stage.is-emphasized,
 .stock-migration-guided-stage.is-density-history + .stock-migration-guided-stage.is-attention,
 .stock-migration-guided-stage.is-completed + .stock-migration-guided-stage.is-attention {
-  margin-top: 12px;
+  margin-top: 14px;
 }
 
 .stock-migration-guided-stage.is-density-history:has(+ .stock-migration-guided-stage.is-density-current) .stock-migration-mission-connector.is-completed,
@@ -33134,39 +33179,42 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 .stock-migration-guided-stage.is-completed:has(+ .stock-migration-guided-stage.is-emphasized) .stock-migration-mission-connector.is-completed,
 .stock-migration-guided-stage.is-density-history:has(+ .stock-migration-guided-stage.is-attention) .stock-migration-mission-connector.is-completed,
 .stock-migration-guided-stage.is-completed:has(+ .stock-migration-guided-stage.is-attention) .stock-migration-mission-connector.is-completed {
-  min-height: 10px;
+  min-height: 12px;
+  width: 2.5px;
   background: linear-gradient(
     180deg,
-    rgba(150, 210, 160, 0.78) 0%,
-    rgba(255, 247, 232, 0.45) 100%
+    rgba(150, 210, 160, 0.82) 0%,
+    rgba(255, 247, 232, 0.62) 100%
   );
 }
 
 .stock-migration-guided-stage.is-attention {
   opacity: 1;
-  margin: 8px 0;
-  padding: 14px 14px 14px 6px;
-  border-radius: 16px;
-  background: linear-gradient(
-    90deg,
-    rgba(180, 90, 40, 0.26) 0%,
-    rgba(180, 90, 40, 0.1) 54%,
-    rgba(180, 90, 40, 0.02) 100%
-  );
+  margin: 10px 0 8px;
+  padding: 15px 15px 15px 7px;
+  border-radius: 18px;
+  background:
+    linear-gradient(
+      105deg,
+      rgba(180, 90, 40, 0.3) 0%,
+      rgba(180, 90, 40, 0.12) 48%,
+      rgba(180, 90, 40, 0.03) 100%
+    );
   box-shadow:
-    inset 4px 0 0 rgba(255, 180, 120, 0.98),
-    0 0 0 1px rgba(255, 180, 120, 0.22),
-    0 0 20px rgba(255, 180, 120, 0.08),
-    0 12px 28px rgba(0, 0, 0, 0.2);
+    inset 4px 0 0 rgba(255, 190, 130, 1),
+    inset 0 1px 0 rgba(255, 200, 150, 0.12),
+    0 0 0 1px rgba(255, 180, 120, 0.26),
+    0 0 24px rgba(255, 180, 120, 0.1),
+    0 14px 32px rgba(0, 0, 0, 0.24);
 }
 
 .stock-migration-mission-eyebrow {
-  margin: 0 0 5px;
-  font-size: 0.68rem;
+  margin: 0 0 6px;
+  font-size: 0.7rem;
   font-weight: 700;
-  letter-spacing: 0.11em;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: rgba(255, 247, 232, 0.74);
+  color: rgba(255, 247, 232, 0.82);
 }
 
 .stock-migration-mission-rail {
@@ -33175,6 +33223,7 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   align-items: center;
   min-height: 100%;
   position: relative;
+  padding-top: 1px;
 }
 
 .stock-migration-mission-marker {
@@ -33198,38 +33247,38 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   width: 20px;
   height: 20px;
   color: rgba(24, 40, 28, 0.98);
-  border-color: rgba(170, 220, 180, 0.85);
-  background: rgba(168, 220, 178, 0.98);
+  border-color: rgba(176, 224, 186, 0.92);
+  background: rgba(170, 222, 180, 1);
   box-shadow:
-    0 0 0 3px rgba(8, 8, 9, 0.55),
-    0 0 0 1px rgba(150, 210, 160, 0.35);
+    0 0 0 3px rgba(8, 8, 9, 0.58),
+    0 0 0 1px rgba(150, 210, 160, 0.4);
 }
 
 .stock-migration-mission-marker.is-current,
 .stock-migration-mission-marker.is-dominant {
-  width: 36px;
-  height: 36px;
-  font-size: 0.8rem;
+  width: 38px;
+  height: 38px;
+  font-size: 0.82rem;
   color: #1a1814;
-  border-color: #fff7e8;
+  border: 2px solid #fff7e8;
   background: #fff7e8;
   box-shadow:
-    0 0 0 4px rgba(8, 8, 9, 0.58),
-    0 0 0 10px rgba(255, 247, 232, 0.16),
-    0 0 18px rgba(255, 247, 232, 0.2);
+    0 0 0 4px rgba(8, 8, 9, 0.62),
+    0 0 0 11px rgba(255, 247, 232, 0.18),
+    0 0 22px rgba(255, 247, 232, 0.24);
 }
 
 .stock-migration-mission-marker.is-attention {
-  width: 36px;
-  height: 36px;
-  font-size: 0.8rem;
+  width: 38px;
+  height: 38px;
+  font-size: 0.82rem;
   color: #2a180c;
-  border-color: rgba(255, 200, 140, 0.98);
-  background: rgba(255, 190, 120, 0.98);
+  border: 2px solid rgba(255, 205, 150, 1);
+  background: rgba(255, 192, 124, 1);
   box-shadow:
-    0 0 0 4px rgba(8, 8, 9, 0.58),
-    0 0 0 10px rgba(255, 180, 120, 0.16),
-    0 0 16px rgba(255, 180, 120, 0.16);
+    0 0 0 4px rgba(8, 8, 9, 0.62),
+    0 0 0 11px rgba(255, 180, 120, 0.18),
+    0 0 20px rgba(255, 180, 120, 0.2);
 }
 
 .stock-migration-mission-marker.is-ready {
@@ -33257,26 +33306,32 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   flex: 1;
   width: 2px;
   min-height: 8px;
-  margin: 2px 0 0;
+  margin: 3px 0 0;
   border-radius: 999px;
-  background: rgba(255, 247, 232, 0.16);
+  background: rgba(255, 247, 232, 0.18);
 }
 
-.stock-migration-guided-stage.is-density-history .stock-migration-mission-connector,
-.stock-migration-guided-stage.is-density-future .stock-migration-mission-connector {
+.stock-migration-guided-stage.is-density-history .stock-migration-mission-connector {
   min-height: 6px;
 }
 
+.stock-migration-guided-stage.is-density-future .stock-migration-mission-connector {
+  min-height: 8px;
+  background: rgba(255, 247, 232, 0.2);
+}
+
 .stock-migration-mission-connector.is-completed {
-  background: rgba(150, 210, 160, 0.68);
+  background: rgba(150, 210, 160, 0.72);
 }
 
 .stock-migration-mission-connector.is-active {
-  min-height: 14px;
+  min-height: 16px;
+  width: 2.5px;
   background: linear-gradient(
     180deg,
-    rgba(255, 247, 232, 0.78) 0%,
-    rgba(255, 247, 232, 0.2) 100%
+    rgba(255, 247, 232, 0.9) 0%,
+    rgba(255, 247, 232, 0.42) 55%,
+    rgba(255, 247, 232, 0.18) 100%
   );
 }
 
@@ -33308,11 +33363,11 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 .stock-migration-guided-stage.is-current .stock-migration-guided-stage-name,
 .stock-migration-guided-stage.is-emphasized .stock-migration-guided-stage-name,
 .stock-migration-guided-stage.is-density-current .stock-migration-guided-stage-name {
-  font-size: 1.18rem;
+  font-size: 1.2rem;
   font-weight: 750;
-  letter-spacing: -0.015em;
+  letter-spacing: -0.018em;
   color: #fff7e8;
-  line-height: 1.18;
+  line-height: 1.16;
 }
 
 .stock-migration-guided-stage-description {
@@ -33330,8 +33385,8 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 .stock-migration-guided-stage.is-emphasized .stock-migration-guided-stage-description,
 .stock-migration-guided-stage.is-density-current .stock-migration-guided-stage-description {
   margin-top: 5px;
-  font-size: 0.86rem;
-  color: rgba(255, 247, 232, 0.68);
+  font-size: 0.87rem;
+  color: rgba(255, 247, 232, 0.72);
   -webkit-line-clamp: 2;
   opacity: 1;
 }
@@ -33357,16 +33412,16 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 }
 
 .stock-migration-guided-stage-badge.is-completed {
-  color: rgba(205, 236, 212, 0.95);
-  border-color: rgba(150, 210, 160, 0.42);
-  background: rgba(150, 210, 160, 0.1);
+  color: rgba(200, 232, 208, 0.92);
+  border-color: rgba(150, 210, 160, 0.38);
+  background: rgba(150, 210, 160, 0.08);
 }
 
 .stock-migration-guided-stage-badge.is-current,
 .stock-migration-guided-stage-badge.is-ready {
   color: rgba(255, 247, 232, 0.98);
-  border-color: rgba(255, 247, 232, 0.34);
-  background: rgba(255, 247, 232, 0.08);
+  border-color: rgba(255, 247, 232, 0.38);
+  background: rgba(255, 247, 232, 0.1);
 }
 
 .stock-migration-guided-stage-badge.is-attention {
@@ -33376,12 +33431,12 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 }
 
 .stock-migration-guided-stage-badge.is-waiting {
-  color: rgba(255, 247, 232, 0.7);
+  color: rgba(255, 247, 232, 0.66);
 }
 
 .stock-migration-guided-stage-badge.is-unavailable,
 .stock-migration-guided-stage-badge.is-cancelled {
-  color: rgba(255, 247, 232, 0.55);
+  color: rgba(255, 247, 232, 0.52);
   border-color: rgba(255, 247, 232, 0.16);
 }
 
@@ -33397,8 +33452,8 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   .stock-migration-mission-marker.is-dominant,
   .stock-migration-mission-marker.is-attention {
     box-shadow:
-      0 0 0 4px rgba(8, 8, 9, 0.58),
-      0 0 0 10px rgba(255, 247, 232, 0.14);
+      0 0 0 4px rgba(8, 8, 9, 0.62),
+      0 0 0 11px rgba(255, 247, 232, 0.14);
   }
 }
 

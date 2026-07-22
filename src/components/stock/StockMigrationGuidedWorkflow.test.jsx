@@ -356,8 +356,9 @@ describe('StockMigrationGuidedWorkflow', () => {
 
   it('keeps premium mission presentation hooks without JSX structure changes', () => {
     const css = readFileSync(join(process.cwd(), 'src/App.css'), 'utf8')
-    expect(css).toContain('P8.8.3')
+    expect(css).toContain('P8.8.4')
     expect(css).toContain('.stock-migration-guided-stage.is-density-history + .stock-migration-guided-stage.is-density-current')
+    expect(css).toContain('.stock-migration-guided-stage.is-density-current + .stock-migration-guided-stage.is-density-future')
     expect(css).not.toMatch(
       /\.stock-migration-guided-stage\.is-density-history,\s*\n\.stock-migration-guided-stage\.is-completed \{\s*\n\s*opacity:\s*0\.48/,
     )
