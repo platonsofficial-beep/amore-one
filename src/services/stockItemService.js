@@ -138,6 +138,85 @@ export async function getStockItems(workspaceId, { includeInactive = true } = {}
   return (data ?? []).map(mapStockItem)
 }
 
+/**
+ * P8.16.8 — Read-only workspace stock catalog for operational import matching.
+ *
+ * Selects only matcher-relevant fields. Does not write, match, or import.
+ * `sku` is always null until a stock_items.sku column exists.
+ */
+export class WorkspaceStockCatalogError extends Error {
+  /**
+   * @param {string} code
+   * @param {string} message
+   */
+  constructor(code, message) {
+    super(message)
+    this.name = 'WorkspaceStockCatalogError'
+    this.code = code
+  }
+}
+
+/** Narrow select list — never expand without an explicit sprint. */
+export const WORKSPACE_STOCK_CATALOG_COLUMNS = 'id, name, category, unit, active'
+
+/**
+ * @param {Record<string, unknown>|null|undefined} record
+ * @returns {{
+ *   id: unknown,
+ *   name: string,
+ *   category: string|null,
+ *   unit: string,
+ *   sku: null,
+ *   active: boolean,
+ * }}
+ */
+export function mapWorkspaceStockCatalogItem(record) {
+  return {
+    id: record?.id,
+    name: typeof record?.name === 'string' ? record.name : `${record?.name ?? ''}`,
+    category: record?.category == null
+      ? null
+      : typeof record.category === 'string'
+        ? record.category
+        : `${record.category}`,
+    unit: typeof record?.unit === 'string' ? record.unit : `${record?.unit ?? ''}`,
+    sku: null,
+    active: record?.active ?? true,
+  }
+}
+
+/**
+ * Load workspace-scoped stock items for operational review (read-only).
+ *
+ * @param {string} workspaceId
+ * @returns {Promise<Array<ReturnType<typeof mapWorkspaceStockCatalogItem>>>}
+ */
+export async function getWorkspaceStockCatalogItems(workspaceId) {
+  const normalizedWorkspaceId = `${workspaceId ?? ''}`.trim()
+  if (!normalizedWorkspaceId) {
+    throw new WorkspaceStockCatalogError(
+      'WORKSPACE_REQUIRED',
+      'Workspace is required to load stock items.',
+    )
+  }
+
+  const { data, error } = await supabase
+    .from(STOCK_ITEMS_TABLE)
+    .select(WORKSPACE_STOCK_CATALOG_COLUMNS)
+    .eq('workspace_id', normalizedWorkspaceId)
+    .order('name', { ascending: true })
+
+  if (error) {
+    console.warn('[stockItemService] getWorkspaceStockCatalogItems error:', error)
+    throw new WorkspaceStockCatalogError(
+      isTableUnavailableError(error) ? 'TABLE_UNAVAILABLE' : 'LOAD_FAILED',
+      error.message || 'Unable to load workspace stock items.',
+    )
+  }
+
+  return (data ?? []).map(mapWorkspaceStockCatalogItem)
+}
+
 export async function createStockItem(workspaceId, item) {
   const normalizedWorkspaceId = `${workspaceId ?? ''}`.trim()
   if (!normalizedWorkspaceId) {

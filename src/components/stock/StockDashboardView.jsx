@@ -1761,6 +1761,7 @@ export function StockDashboardView({
 
       {isInventoryImportWizardOpen ? (
         <InventoryImportWizardShell
+          workspaceId={workspaceId}
           onClose={() => setIsInventoryImportWizardOpen(false)}
         />
       ) : null}

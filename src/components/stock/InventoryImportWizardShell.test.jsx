@@ -504,16 +504,18 @@ describe('InventoryImportWizardShell', () => {
     expect(onClose).toHaveBeenCalledTimes(1)
   })
 
-  it('does not import validator, mapper, classifier, services, RPCs, or FileReader', () => {
+  it('does not import validator, mapper, classifier, matcher, services, RPCs, or FileReader', () => {
     const source = readFileSync(join(HERE, 'InventoryImportWizardShell.jsx'), 'utf8')
 
     expect(source).toMatch(/inventoryImportFileDecoder/)
     expect(source).toMatch(/inventoryImportTabularParser/)
     expect(source).toMatch(/inventoryImportFormatDetector/)
     expect(source).toMatch(/inventoryOperationalSheetParser/)
+    expect(source).toMatch(/useWorkspaceStockCatalog/)
     expect(source).not.toMatch(/inventoryImportTableValidator/)
     expect(source).not.toMatch(/inventoryImportFieldMapper/)
     expect(source).not.toMatch(/inventoryImportClassifier/)
+    expect(source).not.toMatch(/inventoryOperationalProductMatcher/)
     expect(source).not.toMatch(/stockCsvImport/)
     expect(source).not.toMatch(/from ['"].*services\//)
     expect(source).not.toMatch(/supabase/i)
@@ -655,6 +657,174 @@ describe('InventoryImportWizardShell', () => {
     expect(container.querySelector('.inventory-import-wizard-format-card')
       ?.getAttribute('data-operational-product-count')).toBe('')
     expect(container.querySelector('.inventory-operational-review')).toBeNull()
+    expect(container.querySelector('.inventory-workspace-stock-card')).toBeNull()
+  })
+
+  it('loads workspace stock only for operational layouts and shows the summary card', async () => {
+    const loadWorkspaceStockItems = vi.fn(async (id) => {
+      expect(id).toBe('ws-ops')
+      return [
+        {
+          id: '1',
+          name: 'Belvedere',
+          category: 'Vodka',
+          unit: 'Bottle',
+          sku: null,
+          active: true,
+        },
+        {
+          id: '2',
+          name: 'Tanqueray',
+          category: 'Gin',
+          unit: 'Bottle',
+          sku: null,
+          active: false,
+        },
+      ]
+    })
+    const matcherSpy = vi.fn()
+
+    renderShell({
+      workspaceId: 'ws-ops',
+      loadWorkspaceStockItems,
+    })
+
+    selectFile(createSpreadsheetFile('ops.xlsx', [
+      ['', 'Storage Tasos', 'BAR', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday', 'Order', 'Stock Control'],
+      ['VODKA', '', '', '', '', '', '', '', '', '', '', ''],
+      ['Item One', 1, 0, '', '', '', '', '', '', '', '', ''],
+    ]))
+    await continueToColumnReview()
+
+    expect(loadWorkspaceStockItems).toHaveBeenCalledTimes(1)
+    expect(loadWorkspaceStockItems).toHaveBeenCalledWith('ws-ops')
+
+    await act(async () => {
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+
+    const stockCard = container.querySelector('.inventory-workspace-stock-card')
+    expect(stockCard?.getAttribute('data-workspace-stock-status')).toBe('success')
+    expect(stockCard?.getAttribute('data-workspace-stock-count')).toBe('2')
+    expect(container.textContent).toContain('Workspace Stock')
+    expect(container.textContent).toContain('Loaded products: 2')
+    expect(container.textContent).toContain('Read-only')
+    expect(matcherSpy).not.toHaveBeenCalled()
+  })
+
+  it('shows a loading state while workspace stock is fetching', async () => {
+    let resolveLoad
+    const loadWorkspaceStockItems = vi.fn(() => new Promise((resolve) => {
+      resolveLoad = resolve
+    }))
+
+    renderShell({
+      workspaceId: 'ws-ops',
+      loadWorkspaceStockItems,
+    })
+
+    selectFile(createSpreadsheetFile('ops.xlsx', [
+      ['', 'Storage Tasos', 'BAR', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday', 'Order', 'Stock Control'],
+      ['VODKA', '', '', '', '', '', '', '', '', '', '', ''],
+      ['Item One', 1, 0, '', '', '', '', '', '', '', '', ''],
+    ]))
+    await continueToColumnReview()
+
+    expect(container.querySelector('.inventory-workspace-stock-card')
+      ?.getAttribute('data-workspace-stock-status')).toBe('loading')
+    expect(container.textContent).toContain('Loading workspace stock')
+
+    await act(async () => {
+      resolveLoad([])
+      await Promise.resolve()
+    })
+
+    expect(container.querySelector('.inventory-workspace-stock-card')
+      ?.getAttribute('data-workspace-stock-status')).toBe('success')
+    expect(container.textContent).toContain('Loaded products: 0')
+  })
+
+  it('shows a premium error state when workspace stock loading fails', async () => {
+    const loadWorkspaceStockItems = vi.fn(async () => {
+      throw new Error('catalog unavailable')
+    })
+
+    renderShell({
+      workspaceId: 'ws-ops',
+      loadWorkspaceStockItems,
+    })
+
+    selectFile(createSpreadsheetFile('ops.xlsx', [
+      ['', 'Storage Tasos', 'BAR', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday', 'Order', 'Stock Control'],
+      ['VODKA', '', '', '', '', '', '', '', '', '', '', ''],
+      ['Item One', 1, 0, '', '', '', '', '', '', '', '', ''],
+    ]))
+    await continueToColumnReview()
+
+    await act(async () => {
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+
+    expect(container.querySelector('.inventory-workspace-stock-card')
+      ?.getAttribute('data-workspace-stock-status')).toBe('error')
+    expect(container.textContent).toContain('Unable to load workspace stock')
+    expect(container.textContent).toContain('catalog unavailable')
+    expect(container.querySelector('.inventory-operational-review')).toBeTruthy()
+  })
+
+  it('does not load workspace stock for standard inventory tables', async () => {
+    const loadWorkspaceStockItems = vi.fn(async () => [])
+
+    renderShell({
+      workspaceId: 'ws-ops',
+      loadWorkspaceStockItems,
+    })
+
+    selectFile(new File(
+      ['Name,Quantity,Unit\nFlour,10,kg\n'],
+      'flat.csv',
+      { type: 'text/csv' },
+    ))
+    await continueToColumnReview()
+
+    expect(loadWorkspaceStockItems).not.toHaveBeenCalled()
+    expect(container.querySelector('.inventory-workspace-stock-card')).toBeNull()
+  })
+
+  it('isolates workspace stock loading by workspace id', async () => {
+    const loadWorkspaceStockItems = vi.fn(async (workspaceId) => [
+      {
+        id: workspaceId,
+        name: workspaceId,
+        category: null,
+        unit: '',
+        sku: null,
+        active: true,
+      },
+    ])
+
+    renderShell({
+      workspaceId: 'ws-a',
+      loadWorkspaceStockItems,
+    })
+
+    selectFile(createSpreadsheetFile('ops.xlsx', [
+      ['', 'Storage Tasos', 'BAR', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday', 'Order', 'Stock Control'],
+      ['VODKA', '', '', '', '', '', '', '', '', '', '', ''],
+      ['Item One', 1, 0, '', '', '', '', '', '', '', '', ''],
+    ]))
+    await continueToColumnReview()
+
+    await act(async () => {
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+
+    expect(loadWorkspaceStockItems).toHaveBeenCalledWith('ws-a')
+    expect(container.querySelector('.inventory-workspace-stock-card')
+      ?.getAttribute('data-workspace-stock-count')).toBe('1')
   })
 
   it('renders unknown layout notice without fake confidence percentages', async () => {

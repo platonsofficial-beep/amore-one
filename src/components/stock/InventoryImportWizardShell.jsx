@@ -6,6 +6,7 @@
  */
 
 import { useRef, useState } from 'react'
+import { useWorkspaceStockCatalog } from '../../hooks/useWorkspaceStockCatalog'
 import * as inventoryImportFileDecoder from '../../lib/inventoryImportFileDecoder'
 import * as inventoryImportFormatDetector from '../../lib/inventoryImportFormatDetector'
 import * as inventoryOperationalSheetParser from '../../lib/inventoryOperationalSheetParser'
@@ -139,9 +140,17 @@ function detectAndParseDecodedTable(decoded) {
 /**
  * Fullscreen Inventory Import wizard shell.
  *
- * @param {{ onClose?: () => void }} props
+ * @param {{
+ *   onClose?: () => void,
+ *   workspaceId?: string,
+ *   loadWorkspaceStockItems?: (workspaceId: string) => Promise<object[]>,
+ * }} props
  */
-export function InventoryImportWizardShell({ onClose = undefined } = {}) {
+export function InventoryImportWizardShell({
+  onClose = undefined,
+  workspaceId = '',
+  loadWorkspaceStockItems = undefined,
+} = {}) {
   const fileInputRef = useRef(null)
   const processingLockRef = useRef(false)
   const [wizardView, setWizardView] = useState('upload')
@@ -153,6 +162,14 @@ export function InventoryImportWizardShell({ onClose = undefined } = {}) {
   const [isProcessing, setIsProcessing] = useState(false)
   const [worksheetOptions, setWorksheetOptions] = useState([])
   const [selectedWorksheetName, setSelectedWorksheetName] = useState('')
+
+  const isOperationalFormat = formatDetection?.format
+    === inventoryImportFormatDetector.INVENTORY_IMPORT_FORMAT.OPERATIONAL
+  const workspaceStockCatalog = useWorkspaceStockCatalog({
+    workspaceId,
+    enabled: wizardView === 'columns' && isOperationalFormat && Boolean(operationalModel),
+    ...(loadWorkspaceStockItems ? { loadItems: loadWorkspaceStockItems } : {}),
+  })
 
   const progressStep = wizardView === 'columns' ? 2 : 1
 
@@ -464,6 +481,56 @@ export function InventoryImportWizardShell({ onClose = undefined } = {}) {
                 ? (
                   <InventoryOperationalReview model={operationalModel} />
                 ) : null}
+
+              {isOperationalFormat && operationalModel ? (
+                <section
+                  className="inventory-workspace-stock-card"
+                  aria-label="Workspace stock"
+                  data-workspace-stock-status={workspaceStockCatalog.status}
+                  data-workspace-stock-count={
+                    workspaceStockCatalog.status === 'success'
+                      ? workspaceStockCatalog.productCount
+                      : ''
+                  }
+                >
+                  {workspaceStockCatalog.status === 'loading' ? (
+                    <p className="inventory-workspace-stock-loading" role="status">
+                      Loading workspace stock…
+                    </p>
+                  ) : null}
+
+                  {workspaceStockCatalog.status === 'success' ? (
+                    <div className="inventory-operational-review-summary">
+                      <h3 className="inventory-operational-review-title">
+                        Workspace Stock
+                      </h3>
+                      <p className="inventory-operational-review-meta">
+                        <span>
+                          Loaded products:
+                          {' '}
+                          {workspaceStockCatalog.productCount}
+                        </span>
+                        <span>Read-only</span>
+                      </p>
+                    </div>
+                  ) : null}
+
+                  {workspaceStockCatalog.status === 'error' ? (
+                    <div
+                      className="inventory-operational-review-empty inventory-workspace-stock-error"
+                      role="alert"
+                    >
+                      <p className="inventory-operational-review-empty-title">
+                        Unable to load workspace stock
+                      </p>
+                      <p className="inventory-operational-review-empty-copy">
+                        {workspaceStockCatalog.errorMessage
+                          || 'Something went wrong while reading stock items for this workspace.'}
+                      </p>
+                    </div>
+                  ) : null}
+                </section>
+              ) : null}
 
               <div className="inventory-import-wizard-review-table-wrap">
                 <table className="inventory-import-wizard-review-table">
