@@ -1,7 +1,7 @@
 /**
- * P8.16.0–P8.16.2 — Inventory Import Wizard Shell.
+ * P8.16.0–P8.16.3 — Inventory Import Wizard Shell.
  *
- * File selection + decoder/parser integration for Review Columns.
+ * File selection, optional worksheet selection, decoder/parser → Review Columns.
  * No validator, mapper, classifier, persistence, upload, or Apply wiring.
  */
 
@@ -98,6 +98,21 @@ function getSafeProcessErrorMessage(error) {
 }
 
 /**
+ * @param {{
+ *   headers: unknown[],
+ *   rows: unknown[][],
+ *   headerRowNumber: number,
+ * }} decoded
+ */
+function parseDecodedTable(decoded) {
+  return inventoryImportTabularParser.parseInventoryImportTable({
+    headers: decoded.headers,
+    rows: decoded.rows,
+    headerRowNumber: decoded.headerRowNumber,
+  })
+}
+
+/**
  * Fullscreen Inventory Import wizard shell.
  *
  * @param {{ onClose?: () => void }} props
@@ -105,11 +120,20 @@ function getSafeProcessErrorMessage(error) {
 export function InventoryImportWizardShell({ onClose = undefined } = {}) {
   const fileInputRef = useRef(null)
   const processingLockRef = useRef(false)
-  const [wizardStep, setWizardStep] = useState(1)
+  const [wizardView, setWizardView] = useState('upload')
   const [selectedFile, setSelectedFile] = useState(null)
   const [selectionError, setSelectionError] = useState('')
   const [parseResult, setParseResult] = useState(null)
   const [isProcessing, setIsProcessing] = useState(false)
+  const [worksheetOptions, setWorksheetOptions] = useState([])
+  const [selectedWorksheetName, setSelectedWorksheetName] = useState('')
+
+  const progressStep = wizardView === 'columns' ? 2 : 1
+
+  function resetWorksheetState() {
+    setWorksheetOptions([])
+    setSelectedWorksheetName('')
+  }
 
   function openFilePicker() {
     if (isProcessing) return
@@ -121,7 +145,8 @@ export function InventoryImportWizardShell({ onClose = undefined } = {}) {
     setSelectedFile(null)
     setSelectionError('')
     setParseResult(null)
-    setWizardStep(1)
+    resetWorksheetState()
+    setWizardView('upload')
     if (fileInputRef.current) {
       fileInputRef.current.value = ''
     }
@@ -136,7 +161,8 @@ export function InventoryImportWizardShell({ onClose = undefined } = {}) {
     if (!isAcceptedInventoryImportExtension(extension)) {
       setSelectedFile(null)
       setParseResult(null)
-      setWizardStep(1)
+      resetWorksheetState()
+      setWizardView('upload')
       setSelectionError(
         'Unsupported file type. Choose a .csv, .xlsx, or .xls file.',
       )
@@ -146,7 +172,8 @@ export function InventoryImportWizardShell({ onClose = undefined } = {}) {
 
     setSelectionError('')
     setParseResult(null)
-    setWizardStep(1)
+    resetWorksheetState()
+    setWizardView('upload')
     setSelectedFile({
       file,
       name: file.name,
@@ -156,25 +183,48 @@ export function InventoryImportWizardShell({ onClose = undefined } = {}) {
     event.target.value = ''
   }
 
-  async function handleContinueToColumnReview() {
+  async function handleContinueFromUpload() {
     if (processingLockRef.current) return
-    if (wizardStep !== 1 || !selectedFile?.file || isProcessing) return
+    if (wizardView !== 'upload' || !selectedFile?.file || isProcessing) return
 
     processingLockRef.current = true
     setIsProcessing(true)
     setSelectionError('')
 
     try {
-      const decoded = await inventoryImportFileDecoder.decodeInventoryImportFile(
+      const extension = selectedFile.extension
+
+      if (extension === 'csv') {
+        const decoded = await inventoryImportFileDecoder.decodeInventoryImportFile(
+          selectedFile.file,
+        )
+        const parsed = parseDecodedTable(decoded)
+        setParseResult(parsed)
+        resetWorksheetState()
+        setWizardView('columns')
+        return
+      }
+
+      const inspection = await inventoryImportFileDecoder.inspectInventoryImportWorkbook(
         selectedFile.file,
       )
-      const parsed = inventoryImportTabularParser.parseInventoryImportTable({
-        headers: decoded.headers,
-        rows: decoded.rows,
-        headerRowNumber: decoded.headerRowNumber,
-      })
-      setParseResult(parsed)
-      setWizardStep(2)
+
+      if (inspection.worksheetCount === 1) {
+        const decoded = await inventoryImportFileDecoder.decodeInventoryImportWorksheet(
+          selectedFile.file,
+          inspection.worksheets[0].name,
+        )
+        const parsed = parseDecodedTable(decoded)
+        setParseResult(parsed)
+        resetWorksheetState()
+        setWizardView('columns')
+        return
+      }
+
+      setWorksheetOptions(inspection.worksheets)
+      setSelectedWorksheetName('')
+      setParseResult(null)
+      setWizardView('worksheets')
     } catch (error) {
       setSelectionError(getSafeProcessErrorMessage(error))
     } finally {
@@ -183,15 +233,55 @@ export function InventoryImportWizardShell({ onClose = undefined } = {}) {
     }
   }
 
-  function handleBackFromStep2() {
-    if (isProcessing) return
-    setWizardStep(1)
+  async function handleContinueFromWorksheetSelection() {
+    if (processingLockRef.current) return
+    if (
+      wizardView !== 'worksheets'
+      || !selectedFile?.file
+      || !selectedWorksheetName
+      || isProcessing
+    ) {
+      return
+    }
+
+    processingLockRef.current = true
+    setIsProcessing(true)
     setSelectionError('')
+
+    try {
+      const decoded = await inventoryImportFileDecoder.decodeInventoryImportWorksheet(
+        selectedFile.file,
+        selectedWorksheetName,
+      )
+      const parsed = parseDecodedTable(decoded)
+      setParseResult(parsed)
+      setWizardView('columns')
+    } catch (error) {
+      setSelectionError(getSafeProcessErrorMessage(error))
+    } finally {
+      setIsProcessing(false)
+      processingLockRef.current = false
+    }
+  }
+
+  function handleBackFromWorksheets() {
+    if (isProcessing) return
+    resetWorksheetState()
+    setSelectionError('')
+    setWizardView('upload')
+  }
+
+  function handleBackFromColumns() {
+    if (isProcessing) return
+    setWizardView('upload')
+    setSelectionError('')
+    resetWorksheetState()
   }
 
   const hasSelectedFile = selectedFile != null
-  const showStep1Footer = hasSelectedFile && wizardStep === 1
-  const showStep2Footer = wizardStep === 2
+  const showUploadFooter = hasSelectedFile && wizardView === 'upload'
+  const showWorksheetFooter = wizardView === 'worksheets'
+  const showColumnsFooter = wizardView === 'columns'
 
   return (
     <div
@@ -240,17 +330,17 @@ export function InventoryImportWizardShell({ onClose = undefined } = {}) {
           <ol className="inventory-import-wizard-steps">
             {INVENTORY_IMPORT_WIZARD_STEPS.map((step) => {
               let stateClass = ' is-upcoming'
-              if (step.number < wizardStep) stateClass = ' is-completed'
-              else if (step.number === wizardStep) stateClass = ' is-active'
+              if (step.number < progressStep) stateClass = ' is-completed'
+              else if (step.number === progressStep) stateClass = ' is-active'
 
               return (
                 <li
                   key={step.id}
                   className={`inventory-import-wizard-step${stateClass}`}
-                  aria-current={step.number === wizardStep ? 'step' : undefined}
+                  aria-current={step.number === progressStep ? 'step' : undefined}
                 >
                   <span className="inventory-import-wizard-step-index" aria-hidden="true">
-                    {step.number < wizardStep ? '✓' : step.number}
+                    {step.number < progressStep ? '✓' : step.number}
                   </span>
                   <span className="inventory-import-wizard-step-label">{step.label}</span>
                 </li>
@@ -260,7 +350,7 @@ export function InventoryImportWizardShell({ onClose = undefined } = {}) {
         </nav>
 
         <div className="inventory-import-wizard-body">
-          {wizardStep === 2 && parseResult ? (
+          {wizardView === 'columns' && parseResult ? (
             <div className="inventory-import-wizard-review-columns">
               <div className="inventory-import-wizard-review-summary">
                 <h3 className="inventory-import-wizard-review-title">
@@ -330,7 +420,71 @@ export function InventoryImportWizardShell({ onClose = undefined } = {}) {
                 </table>
               </div>
             </div>
-          ) : (
+          ) : null}
+
+          {wizardView === 'worksheets' ? (
+            <div className="inventory-import-wizard-worksheet-card">
+              <div className="inventory-import-wizard-worksheet-copy">
+                <h3 className="inventory-import-wizard-worksheet-title">
+                  Choose Worksheet
+                </h3>
+                <p className="inventory-import-wizard-worksheet-subtitle">
+                  This workbook contains multiple worksheets.
+                </p>
+                <p className="inventory-import-wizard-worksheet-hint">
+                  Select the worksheet you want to import.
+                </p>
+              </div>
+
+              <div
+                className="inventory-import-wizard-worksheet-list"
+                role="radiogroup"
+                aria-label="Worksheets"
+              >
+                {worksheetOptions.map((sheet) => {
+                  const isSelected = selectedWorksheetName === sheet.name
+                  return (
+                    <button
+                      key={sheet.name}
+                      type="button"
+                      role="radio"
+                      aria-checked={isSelected}
+                      className={`inventory-import-wizard-worksheet-option${isSelected ? ' is-selected' : ''}`}
+                      disabled={isProcessing}
+                      onClick={() => setSelectedWorksheetName(sheet.name)}
+                    >
+                      <span className="inventory-import-wizard-worksheet-name">
+                        {sheet.name}
+                      </span>
+                      <span className="inventory-import-wizard-worksheet-meta">
+                        {sheet.estimatedRowCount} estimated rows · {sheet.estimatedColumnCount} estimated columns
+                      </span>
+                    </button>
+                  )
+                })}
+              </div>
+
+              {isProcessing ? (
+                <p
+                  className="inventory-import-wizard-processing"
+                  aria-live="polite"
+                >
+                  Reading file…
+                </p>
+              ) : null}
+
+              {selectionError ? (
+                <p
+                  className="inventory-import-wizard-selection-error"
+                  role="alert"
+                >
+                  {selectionError}
+                </p>
+              ) : null}
+            </div>
+          ) : null}
+
+          {wizardView === 'upload' ? (
             <div
               className={`inventory-import-wizard-upload-card${hasSelectedFile ? ' is-selected' : ''}`}
             >
@@ -422,10 +576,10 @@ export function InventoryImportWizardShell({ onClose = undefined } = {}) {
                 </p>
               ) : null}
             </div>
-          )}
+          ) : null}
         </div>
 
-        {showStep1Footer ? (
+        {showUploadFooter ? (
           <footer className="inventory-import-wizard-footer">
             <button
               type="button"
@@ -438,7 +592,7 @@ export function InventoryImportWizardShell({ onClose = undefined } = {}) {
             <button
               type="button"
               className="primary-btn inventory-import-wizard-nav-btn inventory-import-wizard-continue-btn"
-              onClick={handleContinueToColumnReview}
+              onClick={handleContinueFromUpload}
               disabled={isProcessing}
             >
               Continue to Column Review
@@ -446,12 +600,33 @@ export function InventoryImportWizardShell({ onClose = undefined } = {}) {
           </footer>
         ) : null}
 
-        {showStep2Footer ? (
+        {showWorksheetFooter ? (
           <footer className="inventory-import-wizard-footer">
             <button
               type="button"
               className="ghost-btn inventory-import-wizard-nav-btn"
-              onClick={handleBackFromStep2}
+              onClick={handleBackFromWorksheets}
+              disabled={isProcessing}
+            >
+              Back
+            </button>
+            <button
+              type="button"
+              className="primary-btn inventory-import-wizard-nav-btn inventory-import-wizard-continue-btn"
+              onClick={handleContinueFromWorksheetSelection}
+              disabled={isProcessing || !selectedWorksheetName}
+            >
+              Continue to Column Review
+            </button>
+          </footer>
+        ) : null}
+
+        {showColumnsFooter ? (
+          <footer className="inventory-import-wizard-footer">
+            <button
+              type="button"
+              className="ghost-btn inventory-import-wizard-nav-btn"
+              onClick={handleBackFromColumns}
             >
               Back
             </button>

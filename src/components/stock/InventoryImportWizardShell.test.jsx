@@ -37,6 +37,25 @@ function createSpreadsheetFile(name, matrix, bookType = 'xlsx') {
   })
 }
 
+/**
+ * @param {string} name
+ * @param {Array<{ sheetName: string, matrix: unknown[][] }>} sheets
+ */
+function createMultiSheetFile(name, sheets) {
+  const workbook = XLSX.utils.book_new()
+  for (const sheet of sheets) {
+    XLSX.utils.book_append_sheet(
+      workbook,
+      XLSX.utils.aoa_to_sheet(sheet.matrix),
+      sheet.sheetName,
+    )
+  }
+  const bytes = XLSX.write(workbook, { type: 'array', bookType: 'xlsx' })
+  return new File([bytes], name, {
+    type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  })
+}
+
 describe('InventoryImportWizardShell', () => {
   let container
   let root
@@ -222,8 +241,10 @@ describe('InventoryImportWizardShell', () => {
     expect(getButton('Continue')?.disabled).toBe(true)
   })
 
-  it('decodes XLSX once and supplies correct parser input', async () => {
+  it('decodes single-sheet XLSX once and supplies correct parser input', async () => {
     renderShell()
+    const inspectSpy = vi.spyOn(decoderModule, 'inspectInventoryImportWorkbook')
+    const worksheetSpy = vi.spyOn(decoderModule, 'decodeInventoryImportWorksheet')
     const parseSpy = vi.spyOn(parserModule, 'parseInventoryImportTable')
 
     selectFile(createSpreadsheetFile('inventory.xlsx', [
@@ -232,6 +253,8 @@ describe('InventoryImportWizardShell', () => {
     ]))
     await continueToColumnReview()
 
+    expect(inspectSpy).toHaveBeenCalledTimes(1)
+    expect(worksheetSpy).toHaveBeenCalledTimes(1)
     expect(parseSpy).toHaveBeenCalledTimes(1)
     expect(parseSpy.mock.calls[0][0]).toEqual({
       headers: ['Product', 'Qty'],
@@ -242,6 +265,95 @@ describe('InventoryImportWizardShell', () => {
     expect(container.textContent).toContain('Product')
     expect(container.textContent).toContain('product')
     expect(container.textContent).toContain('Ready')
+  })
+
+  it('shows worksheet selection for multi-sheet workbooks and keeps Continue disabled until a sheet is chosen', async () => {
+    renderShell()
+    const parseSpy = vi.spyOn(parserModule, 'parseInventoryImportTable')
+    const worksheetSpy = vi.spyOn(decoderModule, 'decodeInventoryImportWorksheet')
+
+    selectFile(createMultiSheetFile('multi.xlsx', [
+      {
+        sheetName: 'Stock',
+        matrix: [['Name', 'Qty'], ['Flour', 1]],
+      },
+      {
+        sheetName: 'Extras',
+        matrix: [['Product', 'Amount'], ['Salt', 4], ['Oil', 2]],
+      },
+    ]))
+    await continueToColumnReview()
+
+    expect(container.textContent).toContain('Choose Worksheet')
+    expect(container.textContent).toContain('Stock')
+    expect(container.textContent).toContain('Extras')
+    expect(parseSpy).not.toHaveBeenCalled()
+    expect(worksheetSpy).not.toHaveBeenCalled()
+    expect(getButton('Continue to Column Review')?.disabled).toBe(true)
+
+    const steps = container.querySelectorAll('.inventory-import-wizard-step')
+    expect(steps[0].className).toContain('is-active')
+    expect(steps[1].className).toContain('is-upcoming')
+  })
+
+  it('decodes only the selected worksheet after multi-sheet Continue', async () => {
+    renderShell()
+    const parseSpy = vi.spyOn(parserModule, 'parseInventoryImportTable')
+    const worksheetSpy = vi.spyOn(decoderModule, 'decodeInventoryImportWorksheet')
+
+    selectFile(createMultiSheetFile('multi.xlsx', [
+      {
+        sheetName: 'Stock',
+        matrix: [['Name', 'Qty'], ['Flour', 1]],
+      },
+      {
+        sheetName: 'Extras',
+        matrix: [['Product', 'Amount'], ['Salt', 4]],
+      },
+    ]))
+    await continueToColumnReview()
+
+    const extrasBtn = Array.from(container.querySelectorAll('[role="radio"]'))
+      .find((button) => button.textContent.includes('Extras'))
+    expect(extrasBtn).toBeTruthy()
+
+    act(() => {
+      extrasBtn.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    })
+
+    expect(getButton('Continue to Column Review')?.disabled).toBe(false)
+    await continueToColumnReview()
+
+    expect(worksheetSpy).toHaveBeenCalledTimes(1)
+    expect(worksheetSpy.mock.calls[0][1]).toBe('Extras')
+    expect(parseSpy).toHaveBeenCalledTimes(1)
+    expect(parseSpy.mock.calls[0][0]).toEqual({
+      headers: ['Product', 'Amount'],
+      rows: [['Salt', 4]],
+      headerRowNumber: 1,
+    })
+    expect(container.textContent).toContain('Review Columns')
+    expect(container.textContent).toContain('Product')
+    expect(container.textContent).not.toContain('Flour')
+  })
+
+  it('returns to Step 1 from worksheet selection and keeps the selected file', async () => {
+    renderShell()
+
+    selectFile(createMultiSheetFile('multi.xlsx', [
+      { sheetName: 'A', matrix: [['H'], ['1']] },
+      { sheetName: 'B', matrix: [['H'], ['2']] },
+    ]))
+    await continueToColumnReview()
+    expect(container.textContent).toContain('Choose Worksheet')
+
+    act(() => {
+      getButton('Back').dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    })
+
+    expect(container.textContent).toContain('File selected')
+    expect(container.textContent).toContain('multi.xlsx')
+    expect(getButton('Continue to Column Review')).toBeTruthy()
   })
 
   it('shows loading state and disables controls while processing', async () => {

@@ -1,5 +1,5 @@
 /**
- * P8.16.2 — Inventory Import browser-side file decoder.
+ * P8.16.2 / P8.16.3 — Inventory Import browser-side file decoder.
  *
  * Decodes a local CSV / XLS / XLSX File into tabular arrays compatible with
  * the locked Inventory Import tabular parser input contract. Does not call
@@ -7,17 +7,24 @@
  *
  * SheetJS (`xlsx`) is loaded only for spreadsheet paths via dynamic import so
  * the main app bundle stays under the existing Workbox precache size limit.
+ *
+ * P8.16.3: multi-worksheet workbooks require explicit sheet selection via
+ * `inspectInventoryImportWorkbook` + `decodeInventoryImportWorksheet`.
  */
 
 export class InventoryImportDecoderError extends Error {
   /**
    * @param {string} code
    * @param {string} message
+   * @param {Record<string, unknown>} [details]
    */
-  constructor(code, message) {
+  constructor(code, message, details = undefined) {
     super(message)
     this.name = 'InventoryImportDecoderError'
     this.code = code
+    if (details && typeof details === 'object') {
+      this.details = details
+    }
   }
 }
 
@@ -37,6 +44,32 @@ async function loadXlsx() {
 function getExtension(filename) {
   const match = /\.([^.]+)$/.exec(String(filename || '').trim())
   return match ? match[1].toLowerCase() : ''
+}
+
+/**
+ * @param {File} file
+ */
+function assertBrowserFile(file) {
+  if (typeof File === 'undefined' || !(file instanceof File)) {
+    throw new InventoryImportDecoderError(
+      'INVALID_FILE',
+      'Inventory import decoder expects a browser File.',
+    )
+  }
+}
+
+/**
+ * @param {string} extension
+ * @returns {'xlsx'|'xls'}
+ */
+function assertSpreadsheetExtension(extension) {
+  if (extension !== 'xlsx' && extension !== 'xls') {
+    throw new InventoryImportDecoderError(
+      'UNSUPPORTED_EXTENSION',
+      'Unsupported file type. Choose a .csv, .xlsx, or .xls file.',
+    )
+  }
+  return extension
 }
 
 /**
@@ -155,14 +188,16 @@ export function parseInventoryImportCsvText(text) {
 /**
  * @param {unknown[][]} matrix
  * @param {'csv'|'xlsx'|'xls'} sourceFormat
+ * @param {{ worksheetName?: string }} [meta]
  * @returns {{
  *   headers: unknown[],
  *   rows: unknown[][],
  *   headerRowNumber: number,
  *   sourceFormat: 'csv'|'xlsx'|'xls',
+ *   worksheetName?: string,
  * }}
  */
-function toParserCompatibleTable(matrix, sourceFormat) {
+function toParserCompatibleTable(matrix, sourceFormat, meta = {}) {
   if (!Array.isArray(matrix) || matrix.length === 0) {
     throw new InventoryImportDecoderError(
       'EMPTY_WORKSHEET',
@@ -194,12 +229,18 @@ function toParserCompatibleTable(matrix, sourceFormat) {
     return next
   })
 
-  return {
+  const result = {
     headers,
     rows,
     headerRowNumber: 1,
     sourceFormat,
   }
+
+  if (typeof meta.worksheetName === 'string' && meta.worksheetName) {
+    result.worksheetName = meta.worksheetName
+  }
+
+  return result
 }
 
 /**
@@ -217,10 +258,67 @@ async function readWorkbookFromArrayBuffer(buffer) {
 }
 
 /**
+ * @param {File} file
+ * @param {{ readWorkbook?: (buffer: ArrayBuffer) => import('xlsx').WorkBook | Promise<import('xlsx').WorkBook> }} [options]
+ */
+async function readWorkbookFromFile(file, options = {}) {
+  let buffer
+  try {
+    buffer = await file.arrayBuffer()
+  } catch {
+    throw new InventoryImportDecoderError(
+      'FILE_READ_FAILED',
+      'Unable to read the selected spreadsheet file.',
+    )
+  }
+
+  const readWorkbook = typeof options.readWorkbook === 'function'
+    ? options.readWorkbook
+    : readWorkbookFromArrayBuffer
+
+  try {
+    return await readWorkbook(buffer)
+  } catch (error) {
+    if (error instanceof InventoryImportDecoderError) throw error
+    throw new InventoryImportDecoderError(
+      'INVALID_WORKBOOK',
+      'Unable to read the selected spreadsheet file.',
+    )
+  }
+}
+
+/**
+ * @param {import('xlsx').WorkSheet | undefined} sheet
+ * @param {typeof import('xlsx')} XLSX
+ * @returns {{ estimatedRowCount: number, estimatedColumnCount: number }}
+ */
+function estimateSheetDimensions(sheet, XLSX) {
+  if (!sheet || typeof sheet !== 'object') {
+    return { estimatedRowCount: 0, estimatedColumnCount: 0 }
+  }
+
+  const ref = sheet['!ref']
+  if (typeof ref !== 'string' || !ref) {
+    return { estimatedRowCount: 0, estimatedColumnCount: 0 }
+  }
+
+  try {
+    const range = XLSX.utils.decode_range(ref)
+    return {
+      estimatedRowCount: Math.max(0, range.e.r - range.s.r + 1),
+      estimatedColumnCount: Math.max(0, range.e.c - range.s.c + 1),
+    }
+  } catch {
+    return { estimatedRowCount: 0, estimatedColumnCount: 0 }
+  }
+}
+
+/**
  * @param {import('xlsx').WorkBook} workbook
+ * @param {string} worksheetName
  * @param {'xlsx'|'xls'} sourceFormat
  */
-async function decodeWorkbook(workbook, sourceFormat) {
+async function decodeNamedWorksheet(workbook, worksheetName, sourceFormat) {
   const sheetNames = workbook?.SheetNames
   if (!Array.isArray(sheetNames) || sheetNames.length === 0) {
     throw new InventoryImportDecoderError(
@@ -229,12 +327,18 @@ async function decodeWorkbook(workbook, sourceFormat) {
     )
   }
 
-  const firstSheetName = sheetNames[0]
-  const sheet = workbook.Sheets?.[firstSheetName]
+  if (!sheetNames.includes(worksheetName)) {
+    throw new InventoryImportDecoderError(
+      'WORKSHEET_NOT_FOUND',
+      `Worksheet "${worksheetName}" was not found in the workbook.`,
+    )
+  }
+
+  const sheet = workbook.Sheets?.[worksheetName]
   if (!sheet) {
     throw new InventoryImportDecoderError(
-      'NO_WORKSHEETS',
-      'The selected workbook has no worksheets.',
+      'WORKSHEET_NOT_FOUND',
+      `Worksheet "${worksheetName}" was not found in the workbook.`,
     )
   }
 
@@ -245,28 +349,94 @@ async function decodeWorkbook(workbook, sourceFormat) {
     blankrows: true,
   })
 
-  return toParserCompatibleTable(matrix, sourceFormat)
+  return toParserCompatibleTable(matrix, sourceFormat, { worksheetName })
+}
+
+/**
+ * Inspect an Excel workbook without decoding sheet cell matrices when
+ * multiple worksheets are present.
+ *
+ * @param {File} file
+ * @param {{ readWorkbook?: (buffer: ArrayBuffer) => import('xlsx').WorkBook | Promise<import('xlsx').WorkBook> }} [options]
+ * @returns {Promise<{
+ *   sourceFormat: 'xlsx'|'xls',
+ *   worksheetCount: number,
+ *   worksheets: Array<{
+ *     name: string,
+ *     estimatedRowCount: number,
+ *     estimatedColumnCount: number,
+ *   }>,
+ * }>}
+ */
+export async function inspectInventoryImportWorkbook(file, options = {}) {
+  assertBrowserFile(file)
+  const extension = assertSpreadsheetExtension(getExtension(file.name))
+  const workbook = await readWorkbookFromFile(file, options)
+  const sheetNames = workbook?.SheetNames
+
+  if (!Array.isArray(sheetNames) || sheetNames.length === 0) {
+    throw new InventoryImportDecoderError(
+      'NO_WORKSHEETS',
+      'The selected workbook has no worksheets.',
+    )
+  }
+
+  const XLSX = await loadXlsx()
+  const worksheets = sheetNames.map((name) => {
+    const dims = estimateSheetDimensions(workbook.Sheets?.[name], XLSX)
+    return {
+      name,
+      estimatedRowCount: dims.estimatedRowCount,
+      estimatedColumnCount: dims.estimatedColumnCount,
+    }
+  })
+
+  return {
+    sourceFormat: extension,
+    worksheetCount: worksheets.length,
+    worksheets,
+  }
+}
+
+/**
+ * Decode one named worksheet from an Excel workbook.
+ *
+ * @param {File} file
+ * @param {string} worksheetName
+ * @param {{ readWorkbook?: (buffer: ArrayBuffer) => import('xlsx').WorkBook | Promise<import('xlsx').WorkBook> }} [options]
+ */
+export async function decodeInventoryImportWorksheet(
+  file,
+  worksheetName,
+  options = {},
+) {
+  assertBrowserFile(file)
+
+  if (typeof worksheetName !== 'string' || !worksheetName.trim()) {
+    throw new InventoryImportDecoderError(
+      'INVALID_WORKSHEET_NAME',
+      'A worksheet name is required.',
+    )
+  }
+
+  const extension = assertSpreadsheetExtension(getExtension(file.name))
+  const workbook = await readWorkbookFromFile(file, options)
+  return decodeNamedWorksheet(workbook, worksheetName.trim(), extension)
 }
 
 /**
  * Decode a browser File into parser-compatible tabular data.
  *
+ * CSV: always decodes immediately.
+ * Excel with exactly one worksheet: decodes that sheet.
+ * Excel with multiple worksheets: fails with MULTIPLE_WORKSHEETS — use
+ * inspect + decodeInventoryImportWorksheet instead.
+ *
  * @param {File} file
  * @param {{ readWorkbook?: (buffer: ArrayBuffer) => import('xlsx').WorkBook | Promise<import('xlsx').WorkBook> }} [options]
- * @returns {Promise<{
- *   headers: unknown[],
- *   rows: unknown[][],
- *   headerRowNumber: number,
- *   sourceFormat: 'csv'|'xlsx'|'xls',
- * }>}
  */
 export async function decodeInventoryImportFile(file, options = {}) {
-  if (typeof File === 'undefined' || !(file instanceof File)) {
-    throw new InventoryImportDecoderError(
-      'INVALID_FILE',
-      'Inventory import decoder expects a browser File.',
-    )
-  }
+  assertBrowserFile(file)
 
   const extension = getExtension(file.name)
   if (!ACCEPTED_EXTENSIONS.has(extension)) {
@@ -290,30 +460,23 @@ export async function decodeInventoryImportFile(file, options = {}) {
     return toParserCompatibleTable(matrix, 'csv')
   }
 
-  let buffer
-  try {
-    buffer = await file.arrayBuffer()
-  } catch {
+  const workbook = await readWorkbookFromFile(file, options)
+  const sheetNames = workbook?.SheetNames
+
+  if (!Array.isArray(sheetNames) || sheetNames.length === 0) {
     throw new InventoryImportDecoderError(
-      'FILE_READ_FAILED',
-      'Unable to read the selected spreadsheet file.',
+      'NO_WORKSHEETS',
+      'The selected workbook has no worksheets.',
     )
   }
 
-  const readWorkbook = typeof options.readWorkbook === 'function'
-    ? options.readWorkbook
-    : readWorkbookFromArrayBuffer
-
-  let workbook
-  try {
-    workbook = await readWorkbook(buffer)
-  } catch (error) {
-    if (error instanceof InventoryImportDecoderError) throw error
+  if (sheetNames.length > 1) {
     throw new InventoryImportDecoderError(
-      'INVALID_WORKBOOK',
-      'Unable to read the selected spreadsheet file.',
+      'MULTIPLE_WORKSHEETS',
+      'This workbook contains multiple worksheets. Choose one worksheet to import.',
+      { worksheetNames: sheetNames.slice() },
     )
   }
 
-  return decodeWorkbook(workbook, extension)
+  return decodeNamedWorksheet(workbook, sheetNames[0], extension)
 }

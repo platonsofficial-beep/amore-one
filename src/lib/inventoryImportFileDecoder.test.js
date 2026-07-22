@@ -9,6 +9,8 @@ import * as XLSX from 'xlsx'
 import {
   InventoryImportDecoderError,
   decodeInventoryImportFile,
+  decodeInventoryImportWorksheet,
+  inspectInventoryImportWorkbook,
   parseInventoryImportCsvText,
 } from './inventoryImportFileDecoder'
 
@@ -98,7 +100,7 @@ describe('decodeInventoryImportFile', () => {
     })
   })
 
-  it('decodes a valid XLSX workbook using the first worksheet only', async () => {
+  it('decodes a single-worksheet XLSX workbook', async () => {
     const workbook = XLSX.utils.book_new()
     XLSX.utils.book_append_sheet(
       workbook,
@@ -107,15 +109,7 @@ describe('decodeInventoryImportFile', () => {
         ['Flour', 10],
         ['Sugar', 2],
       ]),
-      'First',
-    )
-    XLSX.utils.book_append_sheet(
-      workbook,
-      XLSX.utils.aoa_to_sheet([
-        ['Ignored', 'Sheet'],
-        ['Nope', 99],
-      ]),
-      'Second',
+      'Inventory',
     )
     const bytes = XLSX.write(workbook, { type: 'array', bookType: 'xlsx' })
     const file = new File([bytes], 'inventory.xlsx', {
@@ -125,11 +119,96 @@ describe('decodeInventoryImportFile', () => {
     const decoded = await decodeInventoryImportFile(file)
     expect(decoded.sourceFormat).toBe('xlsx')
     expect(decoded.headerRowNumber).toBe(1)
+    expect(decoded.worksheetName).toBe('Inventory')
     expect(decoded.headers).toEqual(['Name', 'Qty'])
     expect(decoded.rows).toEqual([
       ['Flour', 10],
       ['Sugar', 2],
     ])
+  })
+
+  it('rejects multi-worksheet decode without an explicit sheet selection', async () => {
+    const workbook = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(
+      workbook,
+      XLSX.utils.aoa_to_sheet([['Name'], ['A']]),
+      'First',
+    )
+    XLSX.utils.book_append_sheet(
+      workbook,
+      XLSX.utils.aoa_to_sheet([['Ignored'], ['B']]),
+      'Second',
+    )
+    const bytes = XLSX.write(workbook, { type: 'array', bookType: 'xlsx' })
+    const file = new File([bytes], 'multi.xlsx', {
+      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    })
+
+    await expect(decodeInventoryImportFile(file)).rejects.toMatchObject({
+      code: 'MULTIPLE_WORKSHEETS',
+    })
+  })
+
+  it('inspects worksheet names and estimates without decoding multi-sheet data', async () => {
+    const workbook = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(
+      workbook,
+      XLSX.utils.aoa_to_sheet([
+        ['Name', 'Qty'],
+        ['Flour', 1],
+        ['Sugar', 2],
+      ]),
+      'Stock',
+    )
+    XLSX.utils.book_append_sheet(
+      workbook,
+      XLSX.utils.aoa_to_sheet([
+        ['A', 'B', 'C'],
+        [1, 2, 3],
+      ]),
+      'Extras',
+    )
+    const bytes = XLSX.write(workbook, { type: 'array', bookType: 'xlsx' })
+    const file = new File([bytes], 'multi.xlsx', {
+      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    })
+
+    const inspection = await inspectInventoryImportWorkbook(file)
+    expect(inspection.worksheetCount).toBe(2)
+    expect(inspection.worksheets.map((sheet) => sheet.name)).toEqual(['Stock', 'Extras'])
+    expect(inspection.worksheets[0].estimatedRowCount).toBeGreaterThanOrEqual(3)
+    expect(inspection.worksheets[0].estimatedColumnCount).toBeGreaterThanOrEqual(2)
+  })
+
+  it('decodes only the selected worksheet and not the other sheets', async () => {
+    const workbook = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(
+      workbook,
+      XLSX.utils.aoa_to_sheet([
+        ['Name', 'Qty'],
+        ['Flour', 10],
+      ]),
+      'First',
+    )
+    XLSX.utils.book_append_sheet(
+      workbook,
+      XLSX.utils.aoa_to_sheet([
+        ['Product', 'Amount'],
+        ['Salt', 4],
+      ]),
+      'Second',
+    )
+    const bytes = XLSX.write(workbook, { type: 'array', bookType: 'xlsx' })
+    const file = new File([bytes], 'multi.xlsx', {
+      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    })
+
+    const decoded = await decodeInventoryImportWorksheet(file, 'Second')
+    expect(decoded.worksheetName).toBe('Second')
+    expect(decoded.headers).toEqual(['Product', 'Amount'])
+    expect(decoded.rows).toEqual([['Salt', 4]])
+    expect(decoded.headers).not.toContain('Name')
+    expect(JSON.stringify(decoded.rows)).not.toContain('Flour')
   })
 
   it('decodes a valid XLS workbook path with the same SheetJS API', async () => {
