@@ -121,11 +121,71 @@ describe('inventory_import_schema.sql — Import V1 foundation contract', () => 
     expect(sql).toContain('using (public.is_workspace_member(workspace_id))')
     expect(sql).toContain('with check (public.can_manage_workspace_stock(workspace_id))')
     expect(sql).toContain('public.can_manage_workspace_stock(s.workspace_id)')
+    expect(sql).toContain('public.is_workspace_member(s.workspace_id)')
     expect(sql).toContain('from public.inventory_import_sessions s')
     expect(sql).toContain('revoke all on table public.inventory_import_sessions from anon')
     expect(sql).toContain('revoke all on table public.inventory_import_rows from anon')
     expect(sql).not.toMatch(/using\s*\(\s*true\s*\)/i)
     expect(sql).not.toMatch(/to anon/i)
+  })
+
+  it('qualifies inventory_import_rows workspace/session in every row RLS subquery', () => {
+    const rowsPolicySection = sql.slice(
+      sql.indexOf('drop policy if exists inventory_import_rows_select_members'),
+    )
+
+    expect(rowsPolicySection).not.toContain('s.workspace_id = s.workspace_id')
+    expect(rowsPolicySection).not.toMatch(
+      /from public\.inventory_import_sessions s\s+where s\.id = session_id/,
+    )
+    expect(rowsPolicySection).not.toMatch(
+      /s\.workspace_id = workspace_id(?!\.)/,
+    )
+
+    const expectedRowPredicate = [
+      'where s.id = inventory_import_rows.session_id',
+      'and s.workspace_id = inventory_import_rows.workspace_id',
+    ].join('\n')
+
+    const selectBlock = rowsPolicySection.slice(
+      rowsPolicySection.indexOf('create policy inventory_import_rows_select_members'),
+      rowsPolicySection.indexOf('create policy inventory_import_rows_insert_managers'),
+    )
+    const insertBlock = rowsPolicySection.slice(
+      rowsPolicySection.indexOf('create policy inventory_import_rows_insert_managers'),
+      rowsPolicySection.indexOf('create policy inventory_import_rows_update_managers'),
+    )
+    const updateBlock = rowsPolicySection.slice(
+      rowsPolicySection.indexOf('create policy inventory_import_rows_update_managers'),
+      rowsPolicySection.indexOf('create policy inventory_import_rows_delete_managers'),
+    )
+    const deleteBlock = rowsPolicySection.slice(
+      rowsPolicySection.indexOf('create policy inventory_import_rows_delete_managers'),
+    )
+
+    for (const block of [selectBlock, insertBlock, updateBlock, deleteBlock]) {
+      expect(block).toContain('inventory_import_rows.workspace_id')
+      expect(block).toContain('inventory_import_rows.session_id')
+      expect(block.replace(/\s+/g, ' ')).toContain(
+        expectedRowPredicate.replace(/\s+/g, ' '),
+      )
+    }
+
+    expect(selectBlock).toContain('public.is_workspace_member(s.workspace_id)')
+    expect(insertBlock).toContain('public.can_manage_workspace_stock(s.workspace_id)')
+    expect(updateBlock).toContain('public.can_manage_workspace_stock(s.workspace_id)')
+    expect(deleteBlock).toContain('public.can_manage_workspace_stock(s.workspace_id)')
+
+    const usingIdx = updateBlock.indexOf('using (')
+    const withCheckIdx = updateBlock.indexOf('with check (')
+    expect(usingIdx).toBeGreaterThan(-1)
+    expect(withCheckIdx).toBeGreaterThan(usingIdx)
+    expect(updateBlock.slice(usingIdx, withCheckIdx)).toContain(
+      'inventory_import_rows.workspace_id',
+    )
+    expect(updateBlock.slice(withCheckIdx)).toContain(
+      'inventory_import_rows.workspace_id',
+    )
   })
 
   it('does not create Apply RPC, parser, or couple to migration/legacy stock writes', () => {

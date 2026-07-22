@@ -546,8 +546,8 @@ create policy inventory_import_rows_insert_managers
     exists (
       select 1
       from public.inventory_import_sessions s
-      where s.id = session_id
-        and s.workspace_id = workspace_id
+      where s.id = inventory_import_rows.session_id
+        and s.workspace_id = inventory_import_rows.workspace_id
         and public.can_manage_workspace_stock(s.workspace_id)
     )
   );
@@ -571,8 +571,8 @@ create policy inventory_import_rows_update_managers
     exists (
       select 1
       from public.inventory_import_sessions s
-      where s.id = session_id
-        and s.workspace_id = workspace_id
+      where s.id = inventory_import_rows.session_id
+        and s.workspace_id = inventory_import_rows.workspace_id
         and public.can_manage_workspace_stock(s.workspace_id)
     )
   );
