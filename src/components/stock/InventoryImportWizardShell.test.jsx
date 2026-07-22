@@ -8,8 +8,11 @@ import { readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import {
+  INVENTORY_IMPORT_ACCEPTED_EXTENSIONS,
   INVENTORY_IMPORT_WIZARD_STEPS,
   InventoryImportWizardShell,
+  formatInventoryImportFileSize,
+  getInventoryImportFileExtension,
 } from './InventoryImportWizardShell'
 
 const HERE = dirname(fileURLToPath(import.meta.url))
@@ -36,7 +39,34 @@ describe('InventoryImportWizardShell', () => {
     })
   }
 
-  it('renders the Inventory Import wizard shell', () => {
+  function getFileInput() {
+    return container.querySelector('#inventory-import-file-input')
+  }
+
+  function getChooseButton() {
+    return Array.from(container.querySelectorAll('button'))
+      .find((button) => (
+        button.textContent === 'Choose File'
+        || button.textContent === 'Choose Different File'
+      ))
+  }
+
+  function selectFile(file) {
+    const input = getFileInput()
+    Object.defineProperty(input, 'files', {
+      configurable: true,
+      value: {
+        0: file,
+        length: 1,
+        item: (index) => (index === 0 ? file : null),
+      },
+    })
+    act(() => {
+      input.dispatchEvent(new Event('change', { bubbles: true }))
+    })
+  }
+
+  it('renders the initial Inventory Import wizard state', () => {
     renderShell()
 
     expect(container.querySelector('[role="dialog"]')).toBeTruthy()
@@ -46,6 +76,8 @@ describe('InventoryImportWizardShell', () => {
     expect(container.textContent).toContain(
       'Choose a CSV or Excel file to begin importing your inventory.',
     )
+    expect(container.querySelector('.inventory-import-wizard-footer')).toBeNull()
+    expect(container.textContent).not.toContain('Drag & drop coming soon')
   })
 
   it('shows five steps with only Step 1 active and others upcoming', () => {
@@ -65,34 +97,109 @@ describe('InventoryImportWizardShell', () => {
 
     for (let index = 1; index < steps.length; index += 1) {
       expect(steps[index].className).toContain('is-upcoming')
-      expect(steps[index].className).not.toContain('is-disabled')
       expect(steps[index].getAttribute('aria-current')).toBeNull()
     }
   })
 
-  it('hides the footer before file selection', () => {
+  it('exposes a hidden file picker input with accepted extensions', () => {
     renderShell()
+
+    const input = getFileInput()
+    expect(input).toBeTruthy()
+    expect(input.getAttribute('type')).toBe('file')
+    expect(input.getAttribute('accept')).toBe('.csv,.xlsx,.xls')
+    expect(INVENTORY_IMPORT_ACCEPTED_EXTENSIONS).toEqual(['csv', 'xlsx', 'xls'])
+    expect(container.querySelector(`label[for="${input.id}"]`)).toBeTruthy()
+  })
+
+  it('opens the native file picker when Choose File is activated', () => {
+    renderShell()
+
+    const input = getFileInput()
+    const clickSpy = vi.spyOn(input, 'click').mockImplementation(() => {})
+    const chooseBtn = getChooseButton()
+
+    expect(chooseBtn).toBeTruthy()
+    expect(chooseBtn.disabled).toBe(false)
+
+    act(() => {
+      chooseBtn.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    })
+    expect(clickSpy).toHaveBeenCalledTimes(1)
+  })
+
+  it('displays filename, size, and footer after a valid CSV selection', () => {
+    renderShell()
+
+    const csvBytes = 1024 * 100
+    selectFile(new File([new Uint8Array(csvBytes)], 'products.csv', {
+      type: 'text/csv',
+    }))
+
+    expect(container.textContent).toContain('File selected')
+    expect(container.textContent).toContain('products.csv')
+    expect(container.textContent).toContain('.csv')
+    expect(container.textContent).toContain(formatInventoryImportFileSize(csvBytes))
+    expect(container.querySelector('.inventory-import-wizard-footer')).toBeTruthy()
+
+    const continueBtn = Array.from(container.querySelectorAll('button'))
+      .find((button) => button.textContent === 'Continue')
+    expect(continueBtn?.disabled).toBe(false)
+
+    const steps = container.querySelectorAll('.inventory-import-wizard-step')
+    expect(steps[0].className).toContain('is-active')
+    expect(container.textContent).toContain('Upload File')
+  })
+
+  it('displays filename, size, and extension after a valid XLSX selection', () => {
+    renderShell()
+
+    const xlsxBytes = Math.round(1.8 * 1024 * 1024)
+    selectFile(new File(
+      [new Uint8Array(xlsxBytes)],
+      'Inventory_July.xlsx',
+      {
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      },
+    ))
+
+    expect(container.textContent).toContain('Inventory_July.xlsx')
+    expect(container.textContent).toContain('.xlsx')
+    expect(container.textContent).toContain('1.8 MB')
+    expect(container.textContent).toContain('Choose Different File')
+  })
+
+  it('clears selection when Back is pressed', () => {
+    renderShell()
+
+    selectFile(new File(['name,unit'], 'stock.csv', { type: 'text/csv' }))
+    expect(container.querySelector('.inventory-import-wizard-footer')).toBeTruthy()
+
+    const backBtn = Array.from(container.querySelectorAll('button'))
+      .find((button) => button.textContent === 'Back')
+
+    act(() => {
+      backBtn.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    })
 
     expect(container.querySelector('.inventory-import-wizard-footer')).toBeNull()
-    expect(container.textContent).not.toContain('Back')
-    expect(container.textContent).not.toContain('Continue')
+    expect(container.textContent).toContain('Upload Inventory File')
+    expect(container.textContent).toContain('Choose File')
+    expect(container.textContent).not.toContain('stock.csv')
   })
 
-  it('removes the drag and drop placeholder completely', () => {
+  it('shows an inline error for unsupported extensions and stays on step 1', () => {
     renderShell()
 
-    expect(container.textContent).not.toContain('Drag & drop coming soon')
-    expect(container.querySelector('.inventory-import-wizard-dropzone')).toBeNull()
-  })
+    selectFile(new File(['{}'], 'notes.json', { type: 'application/json' }))
 
-  it('keeps Choose File disabled with no runtime action', () => {
-    renderShell()
+    expect(container.textContent).toContain('Unsupported file type')
+    expect(container.querySelector('.inventory-import-wizard-footer')).toBeNull()
+    expect(container.textContent).toContain('Upload Inventory File')
 
-    const chooseBtn = Array.from(container.querySelectorAll('button'))
-      .find((button) => button.textContent === 'Choose File')
-
-    expect(chooseBtn?.disabled).toBe(true)
-    expect(chooseBtn?.onclick).toBeNull()
+    const steps = container.querySelectorAll('.inventory-import-wizard-step')
+    expect(steps[0].className).toContain('is-active')
+    expect(steps[0].getAttribute('aria-current')).toBe('step')
   })
 
   it('invokes onClose from Close (Exit)', () => {
@@ -109,7 +216,7 @@ describe('InventoryImportWizardShell', () => {
     expect(onClose).toHaveBeenCalledTimes(1)
   })
 
-  it('does not import parser, validator, mapper, classifier, or services', () => {
+  it('does not import parser, validator, mapper, classifier, services, or FileReader', () => {
     const source = readFileSync(join(HERE, 'InventoryImportWizardShell.jsx'), 'utf8')
 
     expect(source).not.toMatch(/inventoryImportTabularParser/)
@@ -119,6 +226,23 @@ describe('InventoryImportWizardShell', () => {
     expect(source).not.toMatch(/stockCsvImport/)
     expect(source).not.toMatch(/from ['"].*services\//)
     expect(source).not.toMatch(/supabase/i)
-    expect(source).not.toMatch(/createObjectURL|FileReader|input type=["']file["']/i)
+    expect(source).not.toMatch(/\.rpc\(/i)
+    expect(source).not.toMatch(/FileReader/)
+    expect(source).not.toMatch(/createObjectURL/)
+    expect(source).not.toMatch(/file\.text\(|arrayBuffer\(|readAs/)
+  })
+})
+
+describe('inventory import file helpers', () => {
+  it('extracts lowercase file extensions', () => {
+    expect(getInventoryImportFileExtension('Inventory_July.XLSX')).toBe('xlsx')
+    expect(getInventoryImportFileExtension('a.b.csv')).toBe('csv')
+    expect(getInventoryImportFileExtension('noext')).toBe('')
+  })
+
+  it('formats readable file sizes', () => {
+    expect(formatInventoryImportFileSize(512)).toBe('512 B')
+    expect(formatInventoryImportFileSize(1536)).toBe('1.5 KB')
+    expect(formatInventoryImportFileSize(Math.round(1.8 * 1024 * 1024))).toBe('1.8 MB')
   })
 })
