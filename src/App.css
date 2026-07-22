@@ -38254,3 +38254,267 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
     min-height: 44px;
   }
 }
+/* =============================================================================
+   P8.16.0 — Inventory Import Wizard Shell
+   Fullscreen layout shell only. No upload/runtime wiring.
+   ============================================================================= */
+
+.inventory-import-wizard-backdrop {
+  z-index: 82;
+  padding: 16px;
+  overflow: hidden;
+  overscroll-behavior: contain;
+  background: rgba(4, 4, 5, 0.82);
+  backdrop-filter: blur(12px);
+}
+
+.inventory-import-wizard {
+  width: min(98vw, 1280px);
+  height: min(94vh, 900px);
+  max-height: calc(100vh - 32px);
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  padding: 0;
+  border-radius: 22px;
+  border: 1px solid rgba(212, 175, 55, 0.24);
+  background:
+    linear-gradient(165deg, rgba(18, 18, 20, 0.99), rgba(9, 9, 10, 0.99));
+  box-shadow:
+    0 28px 90px rgba(0, 0, 0, 0.62),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  overflow: hidden;
+}
+
+.inventory-import-wizard-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+  flex-shrink: 0;
+  padding: 24px 28px 20px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  background: linear-gradient(180deg, rgba(20, 20, 22, 0.98), rgba(14, 14, 15, 0.96));
+}
+
+.inventory-import-wizard-header-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+  flex: 1 1 auto;
+  padding-right: 8px;
+}
+
+.inventory-import-wizard-title {
+  margin: 0;
+  color: #fff7e8;
+  font-size: 1.48rem;
+  font-weight: 680;
+  letter-spacing: 0.015em;
+  line-height: 1.2;
+}
+
+.inventory-import-wizard-subtitle {
+  margin: 0;
+  color: rgba(255, 247, 232, 0.66);
+  font-size: 0.95rem;
+  line-height: 1.5;
+  max-width: 38rem;
+}
+
+.inventory-import-wizard-header-actions {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  padding-top: 2px;
+}
+
+.inventory-import-wizard-exit-btn {
+  min-height: 44px;
+  min-width: 44px;
+  padding-inline: 16px;
+}
+
+.inventory-import-wizard-progress {
+  flex-shrink: 0;
+  padding: 18px 28px 8px;
+}
+
+.inventory-import-wizard-steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.inventory-import-wizard-step {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(12, 12, 13, 0.72);
+  color: rgba(255, 247, 232, 0.55);
+}
+
+.inventory-import-wizard-step.is-active {
+  border-color: rgba(212, 175, 55, 0.42);
+  background: rgba(212, 175, 55, 0.1);
+  color: #fff7e8;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+.inventory-import-wizard-step.is-disabled {
+  opacity: 0.55;
+}
+
+.inventory-import-wizard-step-index {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  font-size: 0.82rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.inventory-import-wizard-step.is-active .inventory-import-wizard-step-index {
+  border-color: rgba(212, 175, 55, 0.55);
+  background: rgba(212, 175, 55, 0.18);
+  color: #ffe7a8;
+}
+
+.inventory-import-wizard-step-label {
+  font-size: 0.82rem;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.inventory-import-wizard-body {
+  flex: 1 1 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 28px;
+  overflow: auto;
+}
+
+.inventory-import-wizard-upload-card {
+  width: min(100%, 520px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 14px;
+  padding: 36px 28px;
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background:
+    linear-gradient(180deg, rgba(22, 22, 24, 0.96), rgba(12, 12, 13, 0.94));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+.inventory-import-wizard-upload-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 64px;
+  height: 64px;
+  border-radius: 18px;
+  border: 1px solid rgba(212, 175, 55, 0.28);
+  background: rgba(212, 175, 55, 0.1);
+  color: #ffe7a8;
+  font-size: 1.6rem;
+}
+
+.inventory-import-wizard-upload-title {
+  margin: 0;
+  color: #fff7e8;
+  font-size: 1.22rem;
+  font-weight: 680;
+  line-height: 1.25;
+}
+
+.inventory-import-wizard-upload-description {
+  margin: 0;
+  color: rgba(255, 247, 232, 0.66);
+  font-size: 0.95rem;
+  line-height: 1.5;
+  max-width: 28rem;
+}
+
+.inventory-import-wizard-choose-btn {
+  min-height: 44px;
+  min-width: 160px;
+  margin-top: 4px;
+}
+
+.inventory-import-wizard-choose-btn:disabled,
+.inventory-import-wizard-choose-btn[aria-disabled='true'] {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.inventory-import-wizard-dropzone {
+  width: 100%;
+  min-height: 72px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 4px;
+  padding: 16px;
+  border-radius: 14px;
+  border: 1px dashed rgba(255, 255, 255, 0.16);
+  background: rgba(8, 8, 9, 0.55);
+  color: rgba(255, 247, 232, 0.48);
+  font-size: 0.9rem;
+}
+
+.inventory-import-wizard-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-shrink: 0;
+  padding: 16px 28px 22px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(10, 10, 11, 0.92);
+}
+
+.inventory-import-wizard-nav-btn {
+  min-height: 44px;
+  min-width: 112px;
+}
+
+.inventory-import-wizard-continue-btn:disabled,
+.inventory-import-wizard-continue-btn[aria-disabled='true'],
+.inventory-import-wizard-nav-btn:disabled,
+.inventory-import-wizard-nav-btn[aria-disabled='true'] {
+  opacity: 0.42;
+  cursor: not-allowed;
+}
+
+@media (max-width: 900px) {
+  .inventory-import-wizard-steps {
+    grid-template-columns: 1fr;
+  }
+
+  .inventory-import-wizard {
+    width: 100%;
+    height: 100%;
+    max-height: none;
+    border-radius: 0;
+  }
+
+  .inventory-import-wizard-backdrop {
+    padding: 0;
+  }
+}

@@ -47,6 +47,7 @@ import { buildStockOrdersOperationsSummary } from '../../lib/stockOrderUtils'
 import { StockCreateOrderModal } from './StockCreateOrderModal'
 import { StockItemFormModal } from './StockItemFormModal'
 import { StockImportModal } from './StockImportModal'
+import { InventoryImportWizardShell } from './InventoryImportWizardShell'
 import { StockItemMoreMenu } from './StockItemMoreMenu'
 import { StockProductHistoryDrawer } from './StockProductHistoryDrawer'
 
@@ -1146,6 +1147,7 @@ export function StockDashboardView({
   const [movementModal, setMovementModal] = useState(null)
   const [historyItem, setHistoryItem] = useState(null)
   const [isImportModalOpen, setIsImportModalOpen] = useState(false)
+  const [isInventoryImportWizardOpen, setIsInventoryImportWizardOpen] = useState(false)
   const [isCreateOrderModalOpen, setIsCreateOrderModalOpen] = useState(false)
   const [isItemModalOpen, setIsItemModalOpen] = useState(false)
   const [editingItem, setEditingItem] = useState(null)
@@ -1572,6 +1574,14 @@ export function StockDashboardView({
             </button>
             <button
               type="button"
+              className="ghost-btn stock-inventory-import-btn"
+              onClick={() => setIsInventoryImportWizardOpen(true)}
+              disabled={!isWorkspaceReady || isStockActionBusy}
+            >
+              Inventory Import
+            </button>
+            <button
+              type="button"
               className={`ghost-btn stock-select-mode-btn${selectionMode ? ' active' : ''}`}
               onClick={toggleSelectionMode}
               disabled={isStockActionBusy}
@@ -1746,6 +1756,12 @@ export function StockDashboardView({
           isSaving={isSaving}
           onClose={() => setIsImportModalOpen(false)}
           onImport={onImportStockItems}
+        />
+      ) : null}
+
+      {isInventoryImportWizardOpen ? (
+        <InventoryImportWizardShell
+          onClose={() => setIsInventoryImportWizardOpen(false)}
         />
       ) : null}
 
