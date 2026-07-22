@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import {
   formatStockCategoryTypeLine,
   resolveStockItemType,
@@ -1118,15 +1119,27 @@ function StockItemDeactivateConfirmModal({
   onClose,
   onConfirm,
 }) {
-  if (!item) return null
+  const [canDismiss, setCanDismiss] = useState(false)
+
+  useEffect(() => {
+    // Ignore the same pointer/click that opened this modal from the ⋯ menu
+    // (menu unmounts under the cursor; a ghost click can hit the new backdrop).
+    const timer = window.setTimeout(() => setCanDismiss(true), 0)
+    return () => window.clearTimeout(timer)
+  }, [])
+
+  if (!item || typeof document === 'undefined') return null
 
   const handleDismiss = () => {
-    if (isSaving) return
+    if (isSaving || !canDismiss) return
     onClose?.()
   }
 
-  return (
-    <div className="employee-modal-backdrop task-modal-backdrop" onClick={handleDismiss}>
+  return createPortal(
+    <div
+      className="employee-modal-backdrop task-modal-backdrop stock-item-deactivate-backdrop"
+      onClick={handleDismiss}
+    >
       <div
         className="employee-modal stock-dashboard-modal task-form-modal is-responsive-sheet"
         onClick={(event) => event.stopPropagation()}
@@ -1142,7 +1155,7 @@ function StockItemDeactivateConfirmModal({
             type="button"
             className="icon-btn"
             onClick={handleDismiss}
-            disabled={isSaving}
+            disabled={isSaving || !canDismiss}
             aria-label="Close"
           >
             ✕
@@ -1161,7 +1174,12 @@ function StockItemDeactivateConfirmModal({
         </div>
 
         <div className="modal-actions">
-          <button type="button" className="ghost-btn" onClick={handleDismiss} disabled={isSaving}>
+          <button
+            type="button"
+            className="ghost-btn"
+            onClick={handleDismiss}
+            disabled={isSaving || !canDismiss}
+          >
             Cancel
           </button>
           <button
@@ -1174,7 +1192,8 @@ function StockItemDeactivateConfirmModal({
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   )
 }
 
@@ -1375,8 +1394,11 @@ export function StockDashboardView({
   }
 
   const openDeactivateItem = (item) => {
-    closeStockItemMenu()
+    if (!item?.id) return
+    // Store the immutable selection before clearing menu state so confirm
+    // does not depend on activeMenuItem (derived from openCardMenuId).
     setPendingDeactivateItem(item)
+    closeStockItemMenu()
   }
 
   const handleConfirmDeactivateItem = async (item) => {
@@ -1861,13 +1883,14 @@ export function StockDashboardView({
           isOpen
           anchorEl={menuAnchorEl}
           onClose={closeStockItemMenu}
+          item={activeMenuItem}
           itemName={activeMenuItem.name}
           onUsage={() => openMovement(activeMenuItem, 'usage')}
           onAdjust={() => openMovement(activeMenuItem, 'adjustment')}
           onEdit={() => openEditItem(activeMenuItem)}
           onDuplicate={() => openDuplicateItem(activeMenuItem)}
           onHistory={() => openHistory(activeMenuItem)}
-          onDeactivate={() => openDeactivateItem(activeMenuItem)}
+          onDeactivate={openDeactivateItem}
         />
       ) : null}
 

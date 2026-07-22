@@ -35305,6 +35305,10 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   z-index: 12060;
 }
 
+.stock-item-deactivate-backdrop {
+  z-index: 12050;
+}
+
 .stock-supplier-form-modal {
   max-width: min(560px, 100%);
 }

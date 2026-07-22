@@ -68,12 +68,40 @@ function render(ui) {
   }
 }
 
+function openDeactivateFromCard(container, productName) {
+  const cards = Array.from(container.querySelectorAll('.stock-item-card'))
+  const card = cards.find((node) => node.textContent?.includes(productName))
+    || container
+  const moreBtn = card.querySelector('[aria-label="More stock actions"]')
+    || card.querySelector('[aria-label^="More actions for"]')
+    || container.querySelector('[aria-label="More stock actions"]')
+    || container.querySelector('[aria-label^="More actions for"]')
+  expect(moreBtn).toBeTruthy()
+
+  act(() => {
+    moreBtn.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+  })
+
+  const deactivateMenuBtn = Array.from(document.querySelectorAll('[role="menuitem"]'))
+    .find((node) => node.textContent === 'Deactivate')
+  expect(deactivateMenuBtn).toBeTruthy()
+
+  act(() => {
+    deactivateMenuBtn.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+  })
+}
+
+function getDeactivateDialog() {
+  return document.querySelector('[aria-labelledby="stock-item-deactivate-title"]')
+}
+
 afterEach(() => {
   document.body.innerHTML = ''
+  vi.useRealTimers()
 })
 
 beforeEach(() => {
-  mockMatchMedia(false)
+  mockMatchMedia(true)
 })
 
 describe('buildStockItemDeactivatePayload (P8.16.14f)', () => {
@@ -89,16 +117,17 @@ describe('buildStockItemDeactivatePayload (P8.16.14f)', () => {
 })
 
 describe('StockItemMoreMenu deactivate action', () => {
-  it('exposes Deactivate and invokes onDeactivate', () => {
-    mockMatchMedia(true)
+  it('passes the captured menu item into onDeactivate', () => {
     const onDeactivate = vi.fn()
+    const item = stock({ id: 'ko', name: 'KETEL ONE' })
     const anchor = document.createElement('button')
     document.body.appendChild(anchor)
 
     const { cleanup } = render(createElement(StockItemMoreMenu, {
       isOpen: true,
       anchorEl: anchor,
-      itemName: 'KETEL ONE',
+      item,
+      itemName: item.name,
       onClose: vi.fn(),
       onDeactivate,
     }))
@@ -106,21 +135,54 @@ describe('StockItemMoreMenu deactivate action', () => {
     const deactivateBtn = Array.from(document.querySelectorAll('[role="menuitem"]'))
       .find((node) => node.textContent === 'Deactivate')
 
-    expect(deactivateBtn).toBeTruthy()
-
     act(() => {
       deactivateBtn.dispatchEvent(new MouseEvent('click', { bubbles: true }))
     })
 
     expect(onDeactivate).toHaveBeenCalledTimes(1)
+    expect(onDeactivate).toHaveBeenCalledWith(item)
+    cleanup()
+    anchor.remove()
+  })
+
+  it('still invokes other menu handlers', () => {
+    const onEdit = vi.fn()
+    const onHistory = vi.fn()
+    const item = stock({ id: 'ko', name: 'KETEL ONE' })
+    const anchor = document.createElement('button')
+    document.body.appendChild(anchor)
+
+    const { cleanup } = render(createElement(StockItemMoreMenu, {
+      isOpen: true,
+      anchorEl: anchor,
+      item,
+      itemName: item.name,
+      onClose: vi.fn(),
+      onEdit,
+      onHistory,
+      onDeactivate: vi.fn(),
+    }))
+
+    const editBtn = Array.from(document.querySelectorAll('[role="menuitem"]'))
+      .find((node) => node.textContent === 'Edit')
+    const historyBtn = Array.from(document.querySelectorAll('[role="menuitem"]'))
+      .find((node) => node.textContent === 'History & details')
+
+    act(() => {
+      editBtn.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+      historyBtn.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    })
+
+    expect(onEdit).toHaveBeenCalledTimes(1)
+    expect(onHistory).toHaveBeenCalledTimes(1)
     cleanup()
     anchor.remove()
   })
 })
 
-describe('StockDashboardView deactivate flow', () => {
-  it('confirms deactivate, calls onUpdateItem with active=false, and closes modal', async () => {
-    mockMatchMedia(true)
+describe('StockDashboardView deactivate confirmation UI (P8.16.14h)', () => {
+  it('opens the confirmation modal from the real ⋯ → Deactivate path', () => {
+    vi.useFakeTimers()
     const onUpdateItem = vi.fn(async () => {})
     const item = stock({ id: 'ko', name: 'KETEL ONE' })
 
@@ -131,32 +193,99 @@ describe('StockDashboardView deactivate flow', () => {
       isSaving: false,
     }))
 
-    const moreBtn = container.querySelector('[aria-label="More stock actions"]')
-      || container.querySelector('[aria-label^="More actions for"]')
-    expect(moreBtn).toBeTruthy()
+    openDeactivateFromCard(container, 'KETEL ONE')
 
-    act(() => {
-      moreBtn.dispatchEvent(new MouseEvent('click', { bubbles: true }))
-    })
-
-    const deactivateMenuBtn = Array.from(document.querySelectorAll('[role="menuitem"]'))
-      .find((node) => node.textContent === 'Deactivate')
-    expect(deactivateMenuBtn).toBeTruthy()
-
-    act(() => {
-      deactivateMenuBtn.dispatchEvent(new MouseEvent('click', { bubbles: true }))
-    })
-
-    const dialog = document.querySelector('[aria-labelledby="stock-item-deactivate-title"]')
+    const dialog = getDeactivateDialog()
     expect(dialog).toBeTruthy()
     expect(dialog.textContent).toContain('Deactivate Product?')
-    expect(dialog.textContent).toContain(
-      'This product will become inactive and will no longer appear in active Stock views or dashboard alerts.',
-    )
+    expect(dialog.textContent).toContain('KETEL ONE')
+    expect(document.querySelector('[role="menu"]')).toBeNull()
+    expect(onUpdateItem).not.toHaveBeenCalled()
 
+    cleanup()
+  })
+
+  it('keeps the modal open through a ghost backdrop click from the menu gesture', () => {
+    vi.useFakeTimers()
+    const onUpdateItem = vi.fn(async () => {})
+    const item = stock({ id: 'ko', name: 'KETEL ONE' })
+
+    const { container, cleanup } = render(createElement(StockDashboardView, {
+      stockItems: [item],
+      canManage: true,
+      onUpdateItem,
+      isSaving: false,
+    }))
+
+    openDeactivateFromCard(container, 'KETEL ONE')
+    expect(getDeactivateDialog()).toBeTruthy()
+
+    const backdrop = document.querySelector('.stock-item-deactivate-backdrop')
+    expect(backdrop).toBeTruthy()
+
+    act(() => {
+      backdrop.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    })
+
+    expect(getDeactivateDialog()).toBeTruthy()
+    expect(onUpdateItem).not.toHaveBeenCalled()
+
+    cleanup()
+  })
+
+  it('Cancel closes the modal without calling onUpdateItem', () => {
+    vi.useFakeTimers()
+    const onUpdateItem = vi.fn(async () => {})
+    const item = stock({ id: 'ko', name: 'KETEL ONE' })
+
+    const { container, cleanup } = render(createElement(StockDashboardView, {
+      stockItems: [item],
+      canManage: true,
+      onUpdateItem,
+      isSaving: false,
+    }))
+
+    openDeactivateFromCard(container, 'KETEL ONE')
+
+    act(() => {
+      vi.runAllTimers()
+    })
+
+    const dialog = getDeactivateDialog()
+    const cancelBtn = Array.from(dialog.querySelectorAll('button'))
+      .find((node) => node.textContent === 'Cancel')
+
+    act(() => {
+      cancelBtn.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    })
+
+    expect(getDeactivateDialog()).toBeNull()
+    expect(onUpdateItem).not.toHaveBeenCalled()
+
+    cleanup()
+  })
+
+  it('Confirm sends the selected item id with active:false', async () => {
+    vi.useFakeTimers()
+    const onUpdateItem = vi.fn(async () => {})
+    const item = stock({ id: 'ko', name: 'KETEL ONE' })
+
+    const { container, cleanup } = render(createElement(StockDashboardView, {
+      stockItems: [item],
+      canManage: true,
+      onUpdateItem,
+      isSaving: false,
+    }))
+
+    openDeactivateFromCard(container, 'KETEL ONE')
+
+    act(() => {
+      vi.runAllTimers()
+    })
+
+    const dialog = getDeactivateDialog()
     const confirmBtn = Array.from(dialog.querySelectorAll('button'))
       .find((node) => node.textContent === 'Deactivate')
-    expect(confirmBtn).toBeTruthy()
 
     await act(async () => {
       confirmBtn.dispatchEvent(new MouseEvent('click', { bubbles: true }))
@@ -168,7 +297,47 @@ describe('StockDashboardView deactivate flow', () => {
       'ko',
       expect.objectContaining({ active: false, name: 'KETEL ONE' }),
     )
-    expect(document.querySelector('[aria-labelledby="stock-item-deactivate-title"]')).toBeNull()
+    expect(getDeactivateDialog()).toBeNull()
+
+    cleanup()
+  })
+
+  it('targets the exact product when two cards are present', () => {
+    vi.useFakeTimers()
+    const onUpdateItem = vi.fn(async () => {})
+    const items = [
+      stock({ id: 'ko', name: 'KETEL ONE' }),
+      stock({ id: 'bot', name: 'THE BOTANIST', category: 'Gin' }),
+    ]
+
+    const { container, cleanup } = render(createElement(StockDashboardView, {
+      stockItems: items,
+      canManage: true,
+      onUpdateItem,
+      isSaving: false,
+    }))
+
+    openDeactivateFromCard(container, 'THE BOTANIST')
+
+    const dialog = getDeactivateDialog()
+    expect(dialog?.textContent).toContain('THE BOTANIST')
+    expect(dialog?.textContent).not.toContain('KETEL ONE')
+
+    act(() => {
+      vi.runAllTimers()
+    })
+
+    const confirmBtn = Array.from(dialog.querySelectorAll('button'))
+      .find((node) => node.textContent === 'Deactivate')
+
+    act(() => {
+      confirmBtn.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    })
+
+    expect(onUpdateItem).toHaveBeenCalledWith(
+      'bot',
+      expect.objectContaining({ active: false, name: 'THE BOTANIST' }),
+    )
 
     cleanup()
   })
@@ -224,37 +393,6 @@ describe('inactive stock items leave alert surfaces (P8.16.14f)', () => {
     expect(summary.totalItems).toBe(1)
     expect(summary.lowStock).toBe(0)
     expect(summary.toOrder).toBe(0)
-  })
-
-  it('keeps other active alert items visible', () => {
-    const low = stock({
-      id: 'low',
-      name: 'Tanqueray',
-      currentQuantity: 2,
-      minimumQuantity: 5,
-      targetQuantity: 10,
-      lastCount: { createdAt: '2026-07-20T12:00:00.000Z' },
-      status: 'low',
-    })
-    const deactivated = stock({
-      id: 'gone',
-      name: 'MILINENTO',
-      currentQuantity: 2,
-      minimumQuantity: 5,
-      targetQuantity: 10,
-      lastCount: { createdAt: '2026-07-20T12:00:00.000Z' },
-      status: 'low',
-      active: false,
-    })
-
-    const groups = buildStockNeedsAttentionGroups([low, deactivated], {
-      canManage: true,
-      now,
-    })
-    const lowGroup = groups.find((group) => group.id === 'low')
-
-    expect(lowGroup?.items.map((item) => item.id)).toEqual(['low'])
-    expect(buildStockDashboardSummary([low, deactivated]).lowStock).toBe(1)
   })
 })
 

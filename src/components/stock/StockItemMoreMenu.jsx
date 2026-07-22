@@ -45,6 +45,7 @@ export function StockItemMoreMenu({
   isOpen,
   onClose,
   anchorEl = null,
+  item = null,
   itemName = 'product',
   onUsage,
   onAdjust,
@@ -140,10 +141,15 @@ export function StockItemMoreMenu({
     edit: onEdit,
     duplicate: onDuplicate,
     history: onHistory,
-    deactivate: onDeactivate,
   }
 
   const handleItemClick = (id) => {
+    if (id === 'deactivate') {
+      // Pass the menu's captured item — do not re-read parent derived menu state
+      // after closeStockItemMenu clears openCardMenuId / activeMenuItem.
+      onDeactivate?.(item)
+      return
+    }
     handlers[id]?.()
   }
 
@@ -188,6 +194,7 @@ export function StockItemMoreMenu({
               className="stock-item-more-menu-btn"
               role="menuitem"
               onClick={(event) => {
+                event.preventDefault()
                 event.stopPropagation()
                 handleItemClick(id)
               }}
