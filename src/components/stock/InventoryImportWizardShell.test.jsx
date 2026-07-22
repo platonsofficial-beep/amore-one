@@ -13,6 +13,7 @@ import * as formatDetectorModule from '../../lib/inventoryImportFormatDetector'
 import * as operationalParserModule from '../../lib/inventoryOperationalSheetParser'
 import * as parserModule from '../../lib/inventoryImportTabularParser'
 import * as matcherModule from '../../lib/inventoryOperationalProductMatcher'
+import * as previewModule from '../../lib/inventoryOperationalImportPreview'
 import {
   INVENTORY_IMPORT_ACCEPTED_EXTENSIONS,
   INVENTORY_IMPORT_WIZARD_STEPS,
@@ -513,8 +514,10 @@ describe('InventoryImportWizardShell', () => {
     expect(source).toMatch(/inventoryImportFormatDetector/)
     expect(source).toMatch(/inventoryOperationalSheetParser/)
     expect(source).toMatch(/inventoryOperationalProductMatcher/)
+    expect(source).toMatch(/inventoryOperationalImportPreview/)
     expect(source).toMatch(/useWorkspaceStockCatalog/)
     expect(source).toMatch(/InventoryOperationalMatchingSummary/)
+    expect(source).toMatch(/InventoryOperationalImportPreview/)
     expect(source).not.toMatch(/inventoryImportTableValidator/)
     expect(source).not.toMatch(/inventoryImportFieldMapper/)
     expect(source).not.toMatch(/inventoryImportClassifier/)
@@ -947,6 +950,127 @@ describe('InventoryImportWizardShell', () => {
 
     expect(matchSpy).not.toHaveBeenCalled()
     expect(container.querySelector('.inventory-operational-matching')).toBeNull()
+  })
+
+  it('builds the operational import preview after catalog success and memoizes it', async () => {
+    const previewSpy = vi.spyOn(previewModule, 'buildInventoryOperationalImportPreview')
+    let resolveLoad
+    const catalog = [
+      {
+        id: '1',
+        name: 'Item One',
+        category: 'Vodka',
+        unit: 'Bottle',
+        sku: null,
+        active: true,
+      },
+    ]
+    const loadWorkspaceStockItems = vi.fn(() => new Promise((resolve) => {
+      resolveLoad = resolve
+    }))
+
+    renderShell({
+      workspaceId: 'ws-ops',
+      loadWorkspaceStockItems,
+    })
+
+    selectFile(createSpreadsheetFile('ops.xlsx', [
+      ['', 'Storage Tasos', 'BAR', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday', 'Order', 'Stock Control'],
+      ['VODKA', '', '', '', '', '', '', '', '', '', '', ''],
+      ['Item One', 6, 1.8, '', '', '', '', '', '', '', 2, 4],
+    ]))
+    await continueToColumnReview()
+
+    expect(previewSpy).not.toHaveBeenCalled()
+    expect(container.querySelector('.inventory-operational-import-preview')).toBeNull()
+
+    await act(async () => {
+      resolveLoad(catalog)
+      await Promise.resolve()
+    })
+
+    expect(previewSpy).toHaveBeenCalledTimes(1)
+    expect(container.querySelector('.inventory-operational-import-preview')).toBeTruthy()
+    expect(container.textContent).toContain('Operational Import Preview')
+    expect(container.textContent).toContain('Existing link')
+    expect(container.textContent).toContain('Storage')
+    expect(container.textContent).toContain('6')
+    expect(container.textContent).toContain('1.8')
+    expect(container.querySelector('.inventory-operational-import-preview button')).toBeNull()
+    expect(container.querySelector('.inventory-operational-import-preview input')).toBeNull()
+    expect(container.textContent).not.toMatch(/\bApply\b/)
+
+    act(() => {
+      root.render(createElement(InventoryImportWizardShell, {
+        workspaceId: 'ws-ops',
+        loadWorkspaceStockItems,
+      }))
+    })
+
+    await act(async () => {
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+
+    expect(previewSpy).toHaveBeenCalledTimes(1)
+  })
+
+  it('shows a premium preview error state when preview construction fails', async () => {
+    vi.spyOn(previewModule, 'buildInventoryOperationalImportPreview').mockImplementation(() => {
+      throw new previewModule.InventoryOperationalImportPreviewError(
+        'SOURCE_MATCH_ALIGNMENT',
+        'Preview alignment failed for test.',
+      )
+    })
+
+    const loadWorkspaceStockItems = vi.fn(async () => [])
+
+    renderShell({
+      workspaceId: 'ws-ops',
+      loadWorkspaceStockItems,
+    })
+
+    selectFile(createSpreadsheetFile('ops.xlsx', [
+      ['', 'Storage Tasos', 'BAR', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday', 'Order', 'Stock Control'],
+      ['VODKA', '', '', '', '', '', '', '', '', '', '', ''],
+      ['Item One', 1, 0, '', '', '', '', '', '', '', '', ''],
+    ]))
+    await continueToColumnReview()
+
+    await act(async () => {
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+
+    expect(container.textContent).toContain('Unable to build import preview')
+    expect(container.textContent).toContain('Preview alignment failed for test.')
+    expect(container.querySelector('.inventory-operational-matching')).toBeTruthy()
+  })
+
+  it('does not build import preview for standard inventory tables', async () => {
+    const previewSpy = vi.spyOn(previewModule, 'buildInventoryOperationalImportPreview')
+    const loadWorkspaceStockItems = vi.fn(async () => [
+      { id: '1', name: 'Flour', category: null, unit: 'kg', sku: null, active: true },
+    ])
+
+    renderShell({
+      workspaceId: 'ws-ops',
+      loadWorkspaceStockItems,
+    })
+
+    selectFile(new File(
+      ['Name,Quantity,Unit\nFlour,10,kg\n'],
+      'flat.csv',
+      { type: 'text/csv' },
+    ))
+    await continueToColumnReview()
+    await act(async () => {
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+
+    expect(previewSpy).not.toHaveBeenCalled()
+    expect(container.querySelector('.inventory-operational-import-preview')).toBeNull()
   })
 
   it('renders unknown layout notice without fake confidence percentages', async () => {

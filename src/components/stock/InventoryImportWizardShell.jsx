@@ -12,6 +12,8 @@ import * as inventoryImportFormatDetector from '../../lib/inventoryImportFormatD
 import * as inventoryOperationalSheetParser from '../../lib/inventoryOperationalSheetParser'
 import * as inventoryImportTabularParser from '../../lib/inventoryImportTabularParser'
 import * as inventoryOperationalProductMatcher from '../../lib/inventoryOperationalProductMatcher'
+import * as inventoryOperationalImportPreview from '../../lib/inventoryOperationalImportPreview'
+import { InventoryOperationalImportPreview } from './InventoryOperationalImportPreview'
 import { InventoryOperationalMatchingSummary } from './InventoryOperationalMatchingSummary'
 import { InventoryOperationalReview } from './InventoryOperationalReview'
 
@@ -186,6 +188,41 @@ export function InventoryImportWizardShell({
       return null
     }
   }, [operationalModel, workspaceStockCatalog.status, workspaceStockCatalog.items])
+
+  const operationalImportPreviewState = useMemo(() => {
+    if (!operationalModel || !operationalMatchingResult) {
+      return { status: 'idle', preview: null, errorMessage: '' }
+    }
+    if (workspaceStockCatalog.status !== 'success') {
+      return { status: 'idle', preview: null, errorMessage: '' }
+    }
+
+    try {
+      return {
+        status: 'ready',
+        preview: inventoryOperationalImportPreview.buildInventoryOperationalImportPreview({
+          operationalModel,
+          matchingResult: operationalMatchingResult,
+          existingStockItems: workspaceStockCatalog.items,
+        }),
+        errorMessage: '',
+      }
+    } catch (error) {
+      const message = error instanceof inventoryOperationalImportPreview.InventoryOperationalImportPreviewError
+        ? error.message
+        : 'Unable to build the operational import preview.'
+      return {
+        status: 'error',
+        preview: null,
+        errorMessage: message,
+      }
+    }
+  }, [
+    operationalModel,
+    operationalMatchingResult,
+    workspaceStockCatalog.status,
+    workspaceStockCatalog.items,
+  ])
 
   const progressStep = wizardView === 'columns' ? 2 : 1
 
@@ -551,6 +588,15 @@ export function InventoryImportWizardShell({
               {operationalMatchingResult ? (
                 <InventoryOperationalMatchingSummary result={operationalMatchingResult} />
               ) : null}
+
+              {operationalImportPreviewState.status === 'ready'
+                || operationalImportPreviewState.status === 'error'
+                ? (
+                  <InventoryOperationalImportPreview
+                    preview={operationalImportPreviewState.preview}
+                    errorMessage={operationalImportPreviewState.errorMessage}
+                  />
+                ) : null}
 
               <div className="inventory-import-wizard-review-table-wrap">
                 <table className="inventory-import-wizard-review-table">
