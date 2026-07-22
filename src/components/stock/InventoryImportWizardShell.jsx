@@ -13,7 +13,9 @@ import * as inventoryOperationalSheetParser from '../../lib/inventoryOperational
 import * as inventoryImportTabularParser from '../../lib/inventoryImportTabularParser'
 import * as inventoryOperationalProductMatcher from '../../lib/inventoryOperationalProductMatcher'
 import * as inventoryOperationalImportPreview from '../../lib/inventoryOperationalImportPreview'
+import * as inventoryOperationalMatchResolutions from '../../lib/inventoryOperationalMatchResolutions'
 import { InventoryOperationalImportPreview } from './InventoryOperationalImportPreview'
+import { InventoryOperationalMatchResolution } from './InventoryOperationalMatchResolution'
 import { InventoryOperationalMatchingSummary } from './InventoryOperationalMatchingSummary'
 import { InventoryOperationalReview } from './InventoryOperationalReview'
 
@@ -166,6 +168,7 @@ export function InventoryImportWizardShell({
   const [isProcessing, setIsProcessing] = useState(false)
   const [worksheetOptions, setWorksheetOptions] = useState([])
   const [selectedWorksheetName, setSelectedWorksheetName] = useState('')
+  const [matchResolutions, setMatchResolutions] = useState({})
 
   const isOperationalFormat = formatDetection?.format
     === inventoryImportFormatDetector.INVENTORY_IMPORT_FORMAT.OPERATIONAL
@@ -226,6 +229,20 @@ export function InventoryImportWizardShell({
     workspaceStockCatalog.items,
   ])
 
+  const resolvedOperationalImportPreview = useMemo(() => {
+    if (operationalImportPreviewState.status !== 'ready' || !operationalImportPreviewState.preview) {
+      return null
+    }
+    try {
+      return inventoryOperationalMatchResolutions.applyInventoryOperationalMatchResolutions({
+        preview: operationalImportPreviewState.preview,
+        resolutions: matchResolutions,
+      })
+    } catch {
+      return operationalImportPreviewState.preview
+    }
+  }, [operationalImportPreviewState, matchResolutions])
+
   const progressStep = wizardView === 'data'
     ? 3
     : wizardView === 'columns'
@@ -241,6 +258,17 @@ export function InventoryImportWizardShell({
     setParseResult(null)
     setFormatDetection(null)
     setOperationalModel(null)
+    setMatchResolutions({})
+  }
+
+  function handleMatchResolutionChange(rowKey, next) {
+    setMatchResolutions((current) => ({
+      ...current,
+      [rowKey]: {
+        decision: next.decision,
+        selectedStockItemId: next.selectedStockItemId ?? null,
+      },
+    }))
   }
 
   function openFilePicker() {
@@ -624,7 +652,7 @@ export function InventoryImportWizardShell({
                 || operationalImportPreviewState.status === 'error'
                 ? (
                   <InventoryOperationalImportPreview
-                    preview={operationalImportPreviewState.preview}
+                    preview={resolvedOperationalImportPreview}
                     errorMessage={operationalImportPreviewState.errorMessage}
                   />
                 ) : null}
@@ -765,11 +793,19 @@ export function InventoryImportWizardShell({
                 <InventoryOperationalMatchingSummary result={operationalMatchingResult} />
               ) : null}
 
+              {operationalImportPreviewState.status === 'ready' ? (
+                <InventoryOperationalMatchResolution
+                  basePreview={operationalImportPreviewState.preview}
+                  resolutions={matchResolutions}
+                  onChangeResolution={handleMatchResolutionChange}
+                />
+              ) : null}
+
               {operationalImportPreviewState.status === 'ready'
                 || operationalImportPreviewState.status === 'error'
                 ? (
                   <InventoryOperationalImportPreview
-                    preview={operationalImportPreviewState.preview}
+                    preview={resolvedOperationalImportPreview}
                     errorMessage={operationalImportPreviewState.errorMessage}
                   />
                 ) : null}

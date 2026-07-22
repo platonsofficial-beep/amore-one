@@ -14,6 +14,7 @@ import * as operationalParserModule from '../../lib/inventoryOperationalSheetPar
 import * as parserModule from '../../lib/inventoryImportTabularParser'
 import * as matcherModule from '../../lib/inventoryOperationalProductMatcher'
 import * as previewModule from '../../lib/inventoryOperationalImportPreview'
+import * as resolutionModule from '../../lib/inventoryOperationalMatchResolutions'
 import {
   INVENTORY_IMPORT_ACCEPTED_EXTENSIONS,
   INVENTORY_IMPORT_WIZARD_STEPS,
@@ -515,9 +516,11 @@ describe('InventoryImportWizardShell', () => {
     expect(source).toMatch(/inventoryOperationalSheetParser/)
     expect(source).toMatch(/inventoryOperationalProductMatcher/)
     expect(source).toMatch(/inventoryOperationalImportPreview/)
+    expect(source).toMatch(/inventoryOperationalMatchResolutions/)
     expect(source).toMatch(/useWorkspaceStockCatalog/)
     expect(source).toMatch(/InventoryOperationalMatchingSummary/)
     expect(source).toMatch(/InventoryOperationalImportPreview/)
+    expect(source).toMatch(/InventoryOperationalMatchResolution/)
     expect(source).not.toMatch(/inventoryImportTableValidator/)
     expect(source).not.toMatch(/inventoryImportFieldMapper/)
     expect(source).not.toMatch(/inventoryImportClassifier/)
@@ -992,7 +995,7 @@ describe('InventoryImportWizardShell', () => {
     expect(previewSpy).toHaveBeenCalledTimes(1)
     expect(container.querySelector('.inventory-operational-import-preview')).toBeTruthy()
     expect(container.textContent).toContain('Operational Import Preview')
-    expect(container.textContent).toContain('Existing link')
+    expect(container.textContent).toContain('Existing product')
     expect(container.textContent).toContain('Storage')
     expect(container.textContent).toContain('6')
     expect(container.textContent).toContain('1.8')
@@ -1189,6 +1192,140 @@ describe('InventoryImportWizardShell', () => {
     expect(container.textContent).toContain('Unknown Worksheet Layout')
     expect(getButton('Continue')?.disabled).toBe(true)
     expect(container.querySelector('.inventory-import-wizard-review-data')).toBeNull()
+  })
+
+  it('resolves possible matches locally and keeps decisions across Back navigation', async () => {
+    const applySpy = vi.spyOn(resolutionModule, 'applyInventoryOperationalMatchResolutions')
+    const loadWorkspaceStockItems = vi.fn(async () => [
+      {
+        id: 'ko',
+        name: 'KETEL ONE',
+        category: 'Vodka',
+        unit: 'Bottle 0.7L',
+        sku: null,
+        active: true,
+      },
+    ])
+
+    renderShell({
+      workspaceId: 'ws-ops',
+      loadWorkspaceStockItems,
+    })
+
+    selectFile(createSpreadsheetFile('ketel.xlsx', [
+      ['', 'Storage Tasos', 'BAR', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday', 'Order', 'Stock Control'],
+      ['VODKA', '', '', '', '', '', '', '', '', '', '', ''],
+      ['Ketel One 70cl', 4, 1, '', '', '', '', '', '', '', '', ''],
+      ['Ketel One 1lt', 2, 0, '', '', '', '', '', '', '', '', ''],
+    ]))
+    await continueToColumnReview()
+
+    expect(getButton('Continue')?.disabled).toBe(false)
+    act(() => {
+      getButton('Continue').dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    })
+
+    await act(async () => {
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+
+    expect(container.textContent).toContain('Resolve Possible Matches')
+    expect(container.textContent).toContain('Ketel One 70cl')
+    expect(container.textContent).toContain('KETEL ONE')
+    expect(container.querySelector('.inventory-operational-match-resolution')
+      ?.getAttribute('data-possible-count')).toBe('2')
+
+    const firstCandidate = container.querySelector('input[name^="match-resolution-candidate-"]')
+    expect(firstCandidate).toBeTruthy()
+    act(() => {
+      firstCandidate.click()
+    })
+
+    expect(applySpy.mock.calls.length).toBeGreaterThan(0)
+    expect(container.textContent).toContain('Existing product')
+    expect(container.querySelector('.inventory-operational-match-resolution')
+      ?.getAttribute('data-resolved-count')).toBe('1')
+
+    act(() => {
+      getButton('Back').dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    })
+    expect(container.querySelector('.inventory-import-wizard-review-title')?.textContent)
+      .toBe('Review Columns')
+
+    act(() => {
+      getButton('Continue').dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    })
+
+    expect(container.querySelector('.inventory-operational-match-resolution')
+      ?.getAttribute('data-resolved-count')).toBe('1')
+    expect(container.querySelector('input[name^="match-resolution-candidate-"]:checked')).toBeTruthy()
+    expect(container.textContent).not.toMatch(/\bApply\b/)
+  })
+
+  it('resets match resolutions when a different file is selected', async () => {
+    const loadWorkspaceStockItems = vi.fn(async () => [
+      {
+        id: 'ko',
+        name: 'KETEL ONE',
+        category: 'Vodka',
+        unit: 'Bottle',
+        sku: null,
+        active: true,
+      },
+    ])
+
+    renderShell({
+      workspaceId: 'ws-ops',
+      loadWorkspaceStockItems,
+    })
+
+    selectFile(createSpreadsheetFile('ketel.xlsx', [
+      ['', 'Storage Tasos', 'BAR', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday', 'Order', 'Stock Control'],
+      ['VODKA', '', '', '', '', '', '', '', '', '', '', ''],
+      ['Ketel One 70cl', 4, 1, '', '', '', '', '', '', '', '', ''],
+    ]))
+    await continueToColumnReview()
+    act(() => {
+      getButton('Continue').dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    })
+    await act(async () => {
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+
+    const candidate = container.querySelector('input[name^="match-resolution-candidate-"]')
+    expect(candidate).toBeTruthy()
+    act(() => {
+      candidate.click()
+    })
+    expect(container.querySelector('.inventory-operational-match-resolution')
+      ?.getAttribute('data-resolved-count')).toBe('1')
+
+    act(() => {
+      getButton('Back').dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    })
+    act(() => {
+      getButton('Back').dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    })
+
+    selectFile(createSpreadsheetFile('ketel-2.xlsx', [
+      ['', 'Storage Tasos', 'BAR', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday', 'Order', 'Stock Control'],
+      ['VODKA', '', '', '', '', '', '', '', '', '', '', ''],
+      ['Ketel One 1lt', 2, 0, '', '', '', '', '', '', '', '', ''],
+    ]))
+    await continueToColumnReview()
+    act(() => {
+      getButton('Continue').dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    })
+    await act(async () => {
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+
+    expect(container.querySelector('.inventory-operational-match-resolution')
+      ?.getAttribute('data-resolved-count')).toBe('0')
+    expect(container.querySelectorAll('input[type="radio"]:checked')).toHaveLength(0)
   })
 
   it('does not build import preview for standard inventory tables', async () => {

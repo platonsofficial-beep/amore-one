@@ -38,6 +38,7 @@ const BLOCKER_LABELS = Object.freeze({
   invalid_source_name: 'Product name is invalid',
   quantity_policy_unset: 'Quantity policy is not set',
   location_policy_unset: 'Location policy is not set',
+  selected_match_candidate_invalid: 'Selected ONE product is not a valid candidate',
 })
 
 /**
@@ -82,7 +83,7 @@ export function getOperationalImportPreviewBlockerLabel(code) {
 export function getOperationalImportPreviewActionPresentation(action) {
   switch (action) {
     case INVENTORY_OPERATIONAL_IMPORT_PREVIEW_ACTION.LINK_EXISTING:
-      return { label: 'Existing link', className: 'is-link' }
+      return { label: 'Existing product', className: 'is-link' }
     case INVENTORY_OPERATIONAL_IMPORT_PREVIEW_ACTION.CREATE_NEW:
       return { label: 'New product', className: 'is-create' }
     case INVENTORY_OPERATIONAL_IMPORT_PREVIEW_ACTION.REQUIRES_RESOLUTION:
@@ -91,6 +92,8 @@ export function getOperationalImportPreviewActionPresentation(action) {
       return { label: 'Blocked', className: 'is-blocked' }
     case INVENTORY_OPERATIONAL_IMPORT_PREVIEW_ACTION.SKIP_INVALID:
       return { label: 'Invalid', className: 'is-invalid' }
+    case 'skip':
+      return { label: 'Skipped', className: 'is-skipped' }
     default:
       return { label: action ? String(action) : 'Unknown', className: 'is-unknown' }
   }
@@ -425,6 +428,19 @@ function renderMatchPanel(row) {
       <div className="inventory-operational-import-preview-match-panel">
         <p className="inventory-operational-import-preview-match-title">
           Invalid source row
+        </p>
+      </div>
+    )
+  }
+
+  if (action === 'skip') {
+    return (
+      <div className="inventory-operational-import-preview-match-panel">
+        <p className="inventory-operational-import-preview-match-title">
+          Skipped
+        </p>
+        <p className="inventory-operational-import-preview-match-body">
+          This source row will not be imported.
         </p>
       </div>
     )

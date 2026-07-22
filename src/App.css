@@ -38908,6 +38908,167 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   gap: 16px;
 }
 
+.inventory-operational-match-resolution {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.inventory-operational-match-resolution-header {
+  padding: 18px 20px;
+  border-radius: 16px;
+  border: 1px solid rgba(212, 175, 55, 0.26);
+  background:
+    linear-gradient(180deg, rgba(212, 175, 55, 0.12), rgba(14, 14, 15, 0.88));
+}
+
+.inventory-operational-match-resolution-subtext {
+  margin: 8px 0 0;
+  color: rgba(255, 247, 232, 0.68);
+  font-size: 0.92rem;
+  line-height: 1.45;
+}
+
+.inventory-operational-match-resolution-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 16px;
+  margin: 0;
+  color: rgba(255, 247, 232, 0.72);
+  font-size: 0.9rem;
+}
+
+.inventory-operational-match-resolution-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.inventory-operational-match-resolution-row {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(12, 12, 13, 0.78);
+}
+
+.inventory-operational-match-resolution-row-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.inventory-operational-match-resolution-product {
+  margin: 0;
+  color: #fff7e8;
+  font-size: 1.02rem;
+  font-weight: 650;
+}
+
+.inventory-operational-match-resolution-category {
+  margin: 4px 0 0;
+  color: rgba(255, 247, 232, 0.58);
+  font-size: 0.88rem;
+}
+
+.inventory-operational-match-resolution-status {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  min-height: 32px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 650;
+}
+
+.inventory-operational-match-resolution-status.is-resolved {
+  color: rgba(180, 255, 210, 0.92);
+  background: rgba(46, 160, 100, 0.18);
+  border: 1px solid rgba(46, 160, 100, 0.28);
+}
+
+.inventory-operational-match-resolution-status.is-pending {
+  color: rgba(255, 220, 150, 0.95);
+  background: rgba(212, 175, 55, 0.16);
+  border: 1px solid rgba(212, 175, 55, 0.28);
+}
+
+.inventory-operational-match-resolution-facts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin: 0;
+}
+
+.inventory-operational-match-resolution-facts div {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.inventory-operational-match-resolution-facts dt {
+  color: rgba(255, 247, 232, 0.52);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.inventory-operational-match-resolution-facts dd {
+  margin: 0;
+  color: #fff7e8;
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.inventory-operational-match-resolution-candidates,
+.inventory-operational-match-resolution-decisions {
+  margin: 0;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.03);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.inventory-operational-match-resolution-candidates legend,
+.inventory-operational-match-resolution-decisions legend {
+  padding: 0 4px;
+  color: rgba(255, 231, 168, 0.9);
+  font-size: 0.86rem;
+  font-weight: 650;
+}
+
+.inventory-operational-match-resolution-candidate,
+.inventory-operational-match-resolution-decisions label {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  min-height: 44px;
+  color: rgba(255, 247, 232, 0.86);
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.inventory-operational-match-resolution-candidate input,
+.inventory-operational-match-resolution-decisions input {
+  margin-top: 4px;
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
 .inventory-operational-import-preview-header {
   display: flex;
   align-items: flex-start;
@@ -39053,7 +39214,8 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 }
 
 .inventory-operational-import-preview-action.is-blocked,
-.inventory-operational-import-preview-action.is-invalid {
+.inventory-operational-import-preview-action.is-invalid,
+.inventory-operational-import-preview-action.is-skipped {
   color: rgba(255, 190, 190, 0.95);
   background: rgba(180, 70, 70, 0.16);
   border: 1px solid rgba(180, 70, 70, 0.28);

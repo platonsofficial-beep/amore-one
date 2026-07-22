@@ -202,7 +202,7 @@ describe('InventoryOperationalImportPreview', () => {
     expect(rows[0].getAttribute('data-proposed-action')).toBe('link_existing')
     expect(rows[0].textContent).toContain('Tanqueray')
     expect(rows[0].textContent).toContain('SPIRITS')
-    expect(rows[0].textContent).toContain('Existing link')
+    expect(rows[0].textContent).toContain('Existing product')
     expect(rows[0].textContent).toContain('Inactive')
     expect(rows[0].textContent).toContain('Existing ONE product is inactive')
     expect(rows[0].textContent).toContain('4')
