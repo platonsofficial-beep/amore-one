@@ -12,6 +12,10 @@ import {
   INVENTORY_OPERATIONAL_IMPORT_PREVIEW_PROPOSAL_STATUS,
 } from './inventoryOperationalImportPreview.js'
 import { getOperationalMatchResolutionRowKey } from './inventoryOperationalMatchResolutions.js'
+import {
+  INVENTORY_UNIT_INFERENCE_STATUS,
+  inferInventoryUnitFromProductName,
+} from './inventoryUnitInference.js'
 
 export const INVENTORY_NEW_PRODUCT_UNITS = Object.freeze([
   'Bottle 700ml',
@@ -108,9 +112,15 @@ export function listCreateNewPreviewRows(preview) {
 
 /**
  * Defaults for a create_new preview row.
+ * Unit may be initialized from deterministic name inference; operators override via drafts.
  *
  * @param {object} row
- * @returns {{ productName: string, category: string, unit: string|null }}
+ * @returns {{
+ *   productName: string,
+ *   category: string,
+ *   unit: string|null,
+ *   unitInference: ReturnType<typeof inferInventoryUnitFromProductName>,
+ * }}
  */
 export function getNewProductDraftDefaults(row) {
   const productName = row?.source?.productName == null
@@ -123,19 +133,29 @@ export function getNewProductDraftDefaults(row) {
     : isMeaningfullyPopulated(sourceCategory)
       ? String(sourceCategory).trim()
       : 'Other'
+  const unitInference = inferInventoryUnitFromProductName(productName)
   return {
     productName,
     category,
-    unit: null,
+    unit: unitInference.status === INVENTORY_UNIT_INFERENCE_STATUS.INFERRED
+      ? unitInference.proposedUnit
+      : null,
+    unitInference,
   }
 }
 
 /**
  * Merge stored draft over defaults. Unknown/partial drafts are safe.
+ * Explicit draft.unit (including null) is never replaced by inference.
  *
  * @param {object} row
  * @param {{ productName?: unknown, category?: unknown, unit?: unknown }|null|undefined} draft
- * @returns {{ productName: string, category: string, unit: string|null }}
+ * @returns {{
+ *   productName: string,
+ *   category: string,
+ *   unit: string|null,
+ *   unitInference: ReturnType<typeof inferInventoryUnitFromProductName>,
+ * }}
  */
 export function mergeNewProductDraft(row, draft) {
   const defaults = getNewProductDraftDefaults(row)
@@ -157,7 +177,12 @@ export function mergeNewProductDraft(row, draft) {
       ? null
       : String(draft.unit)
 
-  return { productName, category, unit }
+  return {
+    productName,
+    category,
+    unit,
+    unitInference: defaults.unitInference,
+  }
 }
 
 /**

@@ -101,13 +101,75 @@ describe('inventoryNewProductDrafts', () => {
     expect(createRows.every(({ row }) => row.proposedAction === 'create_new')).toBe(true)
   })
 
-  it('defaults product name and category with unit unselected', () => {
+  it('defaults product name and category with unit unselected when no volume token', () => {
     const preview = buildResolvedPreview({ resolvePossibleAs: 'link' })
     const { row } = listCreateNewPreviewRows(preview)[0]
     const defaults = getNewProductDraftDefaults(row)
     expect(defaults.productName).toBe('Brand New Spirit')
     expect(defaults.category).toBe('VODKA')
     expect(defaults.unit).toBeNull()
+  })
+
+  it('initializes inferred units from product name and keeps manual overrides', () => {
+    const preview = buildResolvedPreview({
+      resolvePossibleAs: 'link',
+      operationalModel: {
+        categories: [{
+          name: 'APERITIVO',
+          products: [
+            {
+              name: 'Campari 1lt',
+              storage: 2,
+              bar: 1,
+              weekdays: null,
+              order: null,
+              stockControl: null,
+            },
+            {
+              name: 'Soda 330ml',
+              storage: 1,
+              bar: 0,
+              weekdays: null,
+              order: null,
+              stockControl: null,
+            },
+            {
+              name: 'Coke Can 330ml',
+              storage: 1,
+              bar: 0,
+              weekdays: null,
+              order: null,
+              stockControl: null,
+            },
+          ],
+        }],
+      },
+      existingStockItems: [],
+    })
+
+    const rows = listCreateNewPreviewRows(preview)
+    const campari = rows.find(({ row }) => row.source.productName === 'Campari 1lt')
+    const soda = rows.find(({ row }) => row.source.productName === 'Soda 330ml')
+    const coke = rows.find(({ row }) => row.source.productName === 'Coke Can 330ml')
+
+    expect(getNewProductDraftDefaults(campari.row).unit).toBe('Bottle 1L')
+    expect(getNewProductDraftDefaults(soda.row).unit).toBeNull()
+    expect(getNewProductDraftDefaults(coke.row).unit).toBeNull()
+
+    const overridden = mergeNewProductDraft(campari.row, {
+      productName: 'Campari 1lt',
+      category: 'APERITIVO',
+      unit: 'Liter',
+    })
+    expect(overridden.unit).toBe('Liter')
+    expect(validateNewProductDraft(getNewProductDraftDefaults(campari.row)).valid).toBe(true)
+
+    const derived = applyInventoryNewProductDrafts({ preview, drafts: {} })
+    const derivedCampari = listCreateNewPreviewRows(derived)
+      .find(({ row }) => row.source.productName === 'Campari 1lt')
+      ?.row
+    expect(derivedCampari?.metadataProposal.proposedUnit).toBe('Bottle 1L')
+    expect(derivedCampari?.blockers).not.toContain('unit_missing')
   })
 
   it('validates required trimmed name, category, and unit', () => {

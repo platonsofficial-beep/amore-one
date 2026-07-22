@@ -131,7 +131,99 @@ describe('InventoryNewProductReview', () => {
     expect(container.querySelector('input[type="text"]')).toBeTruthy()
     expect(container.querySelectorAll('select')).toHaveLength(2)
     expect(container.textContent).toContain('Unit is required')
+    expect(container.textContent).not.toContain('Suggested from product name')
     expect(onChangeDraft).not.toHaveBeenCalled()
+  })
+
+  it('preselects inferred units and shows suggestion helper until overridden', () => {
+    const operationalModel = {
+      categories: [{
+        name: 'APERITIVO',
+        products: [
+          {
+            name: 'Campari 1lt',
+            storage: 2,
+            bar: 1,
+            weekdays: null,
+            order: null,
+            stockControl: null,
+          },
+          {
+            name: 'Ketel One 70cl',
+            storage: 1,
+            bar: 0,
+            weekdays: null,
+            order: null,
+            stockControl: null,
+          },
+          {
+            name: 'Bitter Truth Apricot Liqueur',
+            storage: 1,
+            bar: 0,
+            weekdays: null,
+            order: null,
+            stockControl: null,
+          },
+        ],
+      }],
+    }
+    const existingStockItems = []
+    const matchingResult = matchInventoryOperationalProducts({
+      operationalModel,
+      existingStockItems,
+    })
+    const preview = buildInventoryOperationalImportPreview({
+      operationalModel,
+      matchingResult,
+      existingStockItems,
+    })
+
+    /** @type {Record<string, object>} */
+    let drafts = {}
+    const onChangeDraft = vi.fn((rowKey, next) => {
+      drafts = { ...drafts, [rowKey]: next }
+      act(() => {
+        root.render(createElement(InventoryNewProductReview, {
+          preview,
+          drafts,
+          categoryOptions: ['APERITIVO'],
+          onChangeDraft,
+        }))
+      })
+    })
+
+    renderReview({
+      preview,
+      drafts,
+      categoryOptions: ['APERITIVO'],
+      onChangeDraft,
+    })
+
+    expect(container.textContent).toContain('Campari 1lt')
+    expect(container.textContent).toContain('Ketel One 70cl')
+    expect(container.textContent).toContain('Suggested from product name')
+    expect(container.querySelector('[data-units-suggested]')?.getAttribute('data-units-suggested'))
+      .toBe('2')
+    expect(container.querySelector('[data-need-unit-selection]')?.getAttribute('data-need-unit-selection'))
+      .toBe('1')
+
+    const unitSelects = Array.from(container.querySelectorAll('.inventory-new-product-review select'))
+      .filter((select) => Array.from(select.options).some((option) => option.value === 'Bottle 1L'))
+    expect(unitSelects[0].value).toBe('Bottle 1L')
+    expect(unitSelects[1].value).toBe('Bottle 700ml')
+    expect(unitSelects[2].value).toBe('')
+
+    const setNativeValue = (element, value) => {
+      const descriptor = Object.getOwnPropertyDescriptor(window.HTMLSelectElement.prototype, 'value')
+      descriptor?.set?.call(element, value)
+    }
+    act(() => {
+      setNativeValue(unitSelects[0], 'Liter')
+      unitSelects[0].dispatchEvent(new Event('change', { bubbles: true }))
+    })
+    expect(onChangeDraft).toHaveBeenCalled()
+    expect(container.textContent).toContain('Suggested from product name')
+    expect(unitSelects[0].value).toBe('Liter')
   })
 
   it('emits draft updates for name, category, and unit', () => {

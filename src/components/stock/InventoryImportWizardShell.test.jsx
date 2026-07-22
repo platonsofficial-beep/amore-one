@@ -1206,6 +1206,88 @@ describe('InventoryImportWizardShell', () => {
     expect(getButton('Continue')?.disabled).toBe(false)
   })
 
+  it('infers units for AMORE volume names and keeps manual overrides across Back', async () => {
+    const matchSpy = vi.spyOn(matcherModule, 'matchInventoryOperationalProducts')
+    const parseSpy = vi.spyOn(operationalParserModule, 'parseInventoryOperationalSheet')
+    const loadWorkspaceStockItems = vi.fn(async () => [])
+
+    renderShell({
+      workspaceId: 'ws-ops',
+      loadWorkspaceStockItems,
+    })
+
+    selectFile(createSpreadsheetFile('amore-units.xlsx', [
+      ['', 'Storage Tasos', 'BAR', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday', 'Order', 'Stock Control'],
+      ['APERITIVO', '', '', '', '', '', '', '', '', '', '', ''],
+      ['Campari 1lt', 2, 1, '', '', '', '', '', '', '', '', ''],
+      ['Aperol 1lt', 1, 0, '', '', '', '', '', '', '', '', ''],
+      ['Cynar 1lt', 1, 0, '', '', '', '', '', '', '', '', ''],
+      ['Disaronno 1lt', 1, 0, '', '', '', '', '', '', '', '', ''],
+      ['Ketel One 70cl', 4, 1, '', '', '', '', '', '', '', '', ''],
+      ['Ketel One 1lt', 2, 0, '', '', '', '', '', '', '', '', ''],
+      ['Bitter Truth Apricot Liqueur', 1, 0, '', '', '', '', '', '', '', '', ''],
+    ]))
+    await continueToColumnReview()
+    act(() => {
+      getButton('Continue').dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    })
+    await act(async () => {
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+    act(() => {
+      getButton('Continue').dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    })
+
+    expect(container.textContent).toContain('Campari 1lt')
+    expect(container.textContent).toContain('Suggested from product name')
+    expect(container.textContent).toContain('Bottle 1L')
+    expect(container.textContent).toContain('Bottle 700ml')
+    expect(container.textContent).toContain('Bitter Truth Apricot Liqueur')
+    expect(container.querySelector('[data-units-suggested]')?.getAttribute('data-units-suggested'))
+      .toBe('6')
+    expect(container.querySelector('[data-need-unit-selection]')?.getAttribute('data-need-unit-selection'))
+      .toBe('1')
+    expect(getButton('Continue')?.disabled).toBe(true)
+
+    const matchCalls = matchSpy.mock.calls.length
+    const parseCalls = parseSpy.mock.calls.length
+
+    const unitSelects = Array.from(container.querySelectorAll('.inventory-new-product-review select'))
+      .filter((select) => Array.from(select.options).some((option) => option.value === 'Bottle 1L'))
+    const bitterSelect = unitSelects.find((select) => select.value === '')
+    expect(bitterSelect).toBeTruthy()
+
+    const campariSelect = unitSelects.find((select) => select.value === 'Bottle 1L')
+    act(() => {
+      const descriptor = Object.getOwnPropertyDescriptor(window.HTMLSelectElement.prototype, 'value')
+      descriptor?.set?.call(campariSelect, 'Liter')
+      campariSelect.dispatchEvent(new Event('change', { bubbles: true }))
+    })
+    expect(campariSelect.value).toBe('Liter')
+
+    act(() => {
+      const descriptor = Object.getOwnPropertyDescriptor(window.HTMLSelectElement.prototype, 'value')
+      descriptor?.set?.call(bitterSelect, 'Bottle 700ml')
+      bitterSelect.dispatchEvent(new Event('change', { bubbles: true }))
+    })
+    expect(getButton('Continue')?.disabled).toBe(false)
+    expect(matchSpy.mock.calls.length).toBe(matchCalls)
+    expect(parseSpy.mock.calls.length).toBe(parseCalls)
+
+    act(() => {
+      getButton('Back').dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    })
+    act(() => {
+      getButton('Continue').dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    })
+    const preservedCampari = Array.from(container.querySelectorAll('.inventory-new-product-review select'))
+      .find((select) => select.value === 'Liter')
+    expect(preservedCampari).toBeTruthy()
+    expect(getButton('Continue')?.disabled).toBe(false)
+    expect(getButton('Apply Import')).toBeFalsy()
+  })
+
   it('reviews new products with unit assignment, updates preview, and preserves drafts on Back', async () => {
     const matchSpy = vi.spyOn(matcherModule, 'matchInventoryOperationalProducts')
     const parseSpy = vi.spyOn(operationalParserModule, 'parseInventoryOperationalSheet')
