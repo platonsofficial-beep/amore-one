@@ -32,6 +32,14 @@ export function buildStockItemUpdatePayload(item, changes = {}) {
   }
 }
 
+/** P8.16.14f — Soft-deactivate a stock product via existing update payload shape. */
+export function buildStockItemDeactivatePayload(item) {
+  return {
+    ...buildStockItemUpdatePayload(item),
+    active: false,
+  }
+}
+
 function escapeCsvValue(value) {
   const text = `${value ?? ''}`
   if (text.includes(',') || text.includes('"') || text.includes('\n')) {

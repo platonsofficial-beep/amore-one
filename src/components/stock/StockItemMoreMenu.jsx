@@ -11,6 +11,7 @@ const MENU_ITEMS = [
   { id: 'edit', label: 'Edit' },
   { id: 'duplicate', label: 'Duplicate' },
   { id: 'history', label: 'History & details' },
+  { id: 'deactivate', label: 'Deactivate' },
 ]
 
 function computeMenuPosition(anchorRect, menuWidth, menuHeight) {
@@ -50,6 +51,7 @@ export function StockItemMoreMenu({
   onEdit,
   onDuplicate,
   onHistory,
+  onDeactivate,
 }) {
   const panelRef = useRef(null)
   const [position, setPosition] = useState({ top: 0, left: 0, placement: 'below' })
@@ -138,6 +140,7 @@ export function StockItemMoreMenu({
     edit: onEdit,
     duplicate: onDuplicate,
     history: onHistory,
+    deactivate: onDeactivate,
   }
 
   const handleItemClick = (id) => {

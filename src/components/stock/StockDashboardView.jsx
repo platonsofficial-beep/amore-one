@@ -8,6 +8,7 @@ import {
   STOCK_LOCATIONS,
 } from '../../lib/stockCatalog'
 import {
+  buildStockItemDeactivatePayload,
   buildStockItemUpdatePayload,
   exportStockItemsToCsv,
   getBulkTypeOptionsForItems,
@@ -1111,6 +1112,72 @@ function StockBulkFieldModal({
   )
 }
 
+function StockItemDeactivateConfirmModal({
+  item,
+  isSaving = false,
+  onClose,
+  onConfirm,
+}) {
+  if (!item) return null
+
+  const handleDismiss = () => {
+    if (isSaving) return
+    onClose?.()
+  }
+
+  return (
+    <div className="employee-modal-backdrop task-modal-backdrop" onClick={handleDismiss}>
+      <div
+        className="employee-modal stock-dashboard-modal task-form-modal is-responsive-sheet"
+        onClick={(event) => event.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="stock-item-deactivate-title"
+      >
+        <div className="drawer-header">
+          <div>
+            <h3 id="stock-item-deactivate-title">Deactivate Product?</h3>
+          </div>
+          <button
+            type="button"
+            className="icon-btn"
+            onClick={handleDismiss}
+            disabled={isSaving}
+            aria-label="Close"
+          >
+            ✕
+          </button>
+        </div>
+
+        <div className="stock-supplier-delete-body">
+          <p>
+            This product will become inactive and will no longer appear in active Stock views or dashboard alerts.
+          </p>
+          {item.name ? (
+            <p>
+              <strong>{item.name}</strong>
+            </p>
+          ) : null}
+        </div>
+
+        <div className="modal-actions">
+          <button type="button" className="ghost-btn" onClick={handleDismiss} disabled={isSaving}>
+            Cancel
+          </button>
+          <button
+            type="button"
+            className="primary-btn"
+            onClick={() => onConfirm?.(item)}
+            disabled={isSaving}
+          >
+            {isSaving ? 'Saving…' : 'Deactivate'}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export function StockDashboardView({
   stockItems = [],
   stockOrders = [],
@@ -1154,6 +1221,7 @@ export function StockDashboardView({
   const [duplicateForm, setDuplicateForm] = useState(null)
   const [openCardMenuId, setOpenCardMenuId] = useState(null)
   const [menuAnchorEl, setMenuAnchorEl] = useState(null)
+  const [pendingDeactivateItem, setPendingDeactivateItem] = useState(null)
 
   useEffect(() => {
     persistStockBrowsePreferences({ layoutMode, groupBy, sortKey })
@@ -1304,6 +1372,18 @@ export function StockDashboardView({
   const openHistory = (item) => {
     closeStockItemMenu()
     setHistoryItem(item)
+  }
+
+  const openDeactivateItem = (item) => {
+    closeStockItemMenu()
+    setPendingDeactivateItem(item)
+  }
+
+  const handleConfirmDeactivateItem = async (item) => {
+    if (!item?.id || !onUpdateItem) return
+
+    await onUpdateItem(item.id, buildStockItemDeactivatePayload(item))
+    setPendingDeactivateItem(null)
   }
 
   const openMovement = (item, type) => {
@@ -1787,6 +1867,19 @@ export function StockDashboardView({
           onEdit={() => openEditItem(activeMenuItem)}
           onDuplicate={() => openDuplicateItem(activeMenuItem)}
           onHistory={() => openHistory(activeMenuItem)}
+          onDeactivate={() => openDeactivateItem(activeMenuItem)}
+        />
+      ) : null}
+
+      {pendingDeactivateItem ? (
+        <StockItemDeactivateConfirmModal
+          item={pendingDeactivateItem}
+          isSaving={isSaving}
+          onClose={() => {
+            if (isSaving) return
+            setPendingDeactivateItem(null)
+          }}
+          onConfirm={handleConfirmDeactivateItem}
         />
       ) : null}
 
