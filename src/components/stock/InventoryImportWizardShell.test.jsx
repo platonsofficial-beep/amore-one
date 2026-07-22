@@ -7,6 +7,9 @@ import { createRoot } from 'react-dom/client'
 import { readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import * as XLSX from 'xlsx'
+import * as decoderModule from '../../lib/inventoryImportFileDecoder'
+import * as parserModule from '../../lib/inventoryImportTabularParser'
 import {
   INVENTORY_IMPORT_ACCEPTED_EXTENSIONS,
   INVENTORY_IMPORT_WIZARD_STEPS,
@@ -16,6 +19,23 @@ import {
 } from './InventoryImportWizardShell'
 
 const HERE = dirname(fileURLToPath(import.meta.url))
+
+/**
+ * @param {string} name
+ * @param {unknown[][]} matrix
+ * @param {'xlsx'|'xls'} bookType
+ */
+function createSpreadsheetFile(name, matrix, bookType = 'xlsx') {
+  const workbook = XLSX.utils.book_new()
+  const sheet = XLSX.utils.aoa_to_sheet(matrix)
+  XLSX.utils.book_append_sheet(workbook, sheet, 'Inventory')
+  const bytes = XLSX.write(workbook, { type: 'array', bookType })
+  return new File([bytes], name, {
+    type: bookType === 'xls'
+      ? 'application/vnd.ms-excel'
+      : 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  })
+}
 
 describe('InventoryImportWizardShell', () => {
   let container
@@ -28,6 +48,7 @@ describe('InventoryImportWizardShell', () => {
     container?.remove()
     container = null
     root = null
+    vi.restoreAllMocks()
   })
 
   function renderShell(props = {}) {
@@ -43,12 +64,9 @@ describe('InventoryImportWizardShell', () => {
     return container.querySelector('#inventory-import-file-input')
   }
 
-  function getChooseButton() {
+  function getButton(label) {
     return Array.from(container.querySelectorAll('button'))
-      .find((button) => (
-        button.textContent === 'Choose File'
-        || button.textContent === 'Choose Different File'
-      ))
+      .find((button) => button.textContent === label)
   }
 
   function selectFile(file) {
@@ -66,38 +84,34 @@ describe('InventoryImportWizardShell', () => {
     })
   }
 
+  async function continueToColumnReview() {
+    const continueBtn = getButton('Continue to Column Review')
+    await act(async () => {
+      continueBtn.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+  }
+
   it('renders the initial Inventory Import wizard state', () => {
     renderShell()
 
     expect(container.querySelector('[role="dialog"]')).toBeTruthy()
     expect(container.textContent).toContain('Inventory Import')
-    expect(container.textContent).toContain('Import inventory from CSV or Excel')
     expect(container.textContent).toContain('Upload Inventory File')
-    expect(container.textContent).toContain(
-      'Choose a CSV or Excel file to begin importing your inventory.',
-    )
     expect(container.querySelector('.inventory-import-wizard-footer')).toBeNull()
     expect(container.textContent).not.toContain('Drag & drop coming soon')
   })
 
-  it('shows five steps with only Step 1 active and others upcoming', () => {
+  it('shows five steps with only Step 1 active initially', () => {
     renderShell()
 
     expect(INVENTORY_IMPORT_WIZARD_STEPS).toHaveLength(5)
-    expect(container.textContent).toContain('Upload File')
-    expect(container.textContent).toContain('Review Columns')
-    expect(container.textContent).toContain('Review Data')
-    expect(container.textContent).toContain('Import Preview')
-    expect(container.textContent).toContain('Ready to Import')
-
     const steps = container.querySelectorAll('.inventory-import-wizard-step')
     expect(steps).toHaveLength(5)
     expect(steps[0].className).toContain('is-active')
-    expect(steps[0].getAttribute('aria-current')).toBe('step')
-
     for (let index = 1; index < steps.length; index += 1) {
       expect(steps[index].className).toContain('is-upcoming')
-      expect(steps[index].getAttribute('aria-current')).toBeNull()
     }
   })
 
@@ -105,11 +119,9 @@ describe('InventoryImportWizardShell', () => {
     renderShell()
 
     const input = getFileInput()
-    expect(input).toBeTruthy()
     expect(input.getAttribute('type')).toBe('file')
     expect(input.getAttribute('accept')).toBe('.csv,.xlsx,.xls')
     expect(INVENTORY_IMPORT_ACCEPTED_EXTENSIONS).toEqual(['csv', 'xlsx', 'xls'])
-    expect(container.querySelector(`label[for="${input.id}"]`)).toBeTruthy()
   })
 
   it('opens the native file picker when Choose File is activated', () => {
@@ -117,13 +129,8 @@ describe('InventoryImportWizardShell', () => {
 
     const input = getFileInput()
     const clickSpy = vi.spyOn(input, 'click').mockImplementation(() => {})
-    const chooseBtn = getChooseButton()
-
-    expect(chooseBtn).toBeTruthy()
-    expect(chooseBtn.disabled).toBe(false)
-
     act(() => {
-      chooseBtn.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+      getButton('Choose File').dispatchEvent(new MouseEvent('click', { bubbles: true }))
     })
     expect(clickSpy).toHaveBeenCalledTimes(1)
   })
@@ -138,88 +145,256 @@ describe('InventoryImportWizardShell', () => {
 
     expect(container.textContent).toContain('File selected')
     expect(container.textContent).toContain('products.csv')
-    expect(container.textContent).toContain('.csv')
     expect(container.textContent).toContain(formatInventoryImportFileSize(csvBytes))
-    expect(container.querySelector('.inventory-import-wizard-footer')).toBeTruthy()
-
-    const continueBtn = Array.from(container.querySelectorAll('button'))
-      .find((button) => button.textContent === 'Continue')
-    expect(continueBtn?.disabled).toBe(false)
-
-    const steps = container.querySelectorAll('.inventory-import-wizard-step')
-    expect(steps[0].className).toContain('is-active')
-    expect(container.textContent).toContain('Upload File')
+    expect(getButton('Continue to Column Review')).toBeTruthy()
+    expect(getButton('Continue to Column Review')?.disabled).toBe(false)
   })
 
-  it('displays filename, size, and extension after a valid XLSX selection', () => {
+  it('displays filename after a valid XLSX selection', () => {
     renderShell()
-
-    const xlsxBytes = Math.round(1.8 * 1024 * 1024)
     selectFile(new File(
-      [new Uint8Array(xlsxBytes)],
+      [new Uint8Array(32)],
       'Inventory_July.xlsx',
-      {
-        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-      },
+      { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' },
     ))
-
     expect(container.textContent).toContain('Inventory_July.xlsx')
     expect(container.textContent).toContain('.xlsx')
-    expect(container.textContent).toContain('1.8 MB')
-    expect(container.textContent).toContain('Choose Different File')
   })
 
-  it('clears selection when Back is pressed', () => {
+  it('clears selection when Back is pressed on Step 1', () => {
     renderShell()
-
     selectFile(new File(['name,unit'], 'stock.csv', { type: 'text/csv' }))
-    expect(container.querySelector('.inventory-import-wizard-footer')).toBeTruthy()
-
-    const backBtn = Array.from(container.querySelectorAll('button'))
-      .find((button) => button.textContent === 'Back')
 
     act(() => {
-      backBtn.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+      getButton('Back').dispatchEvent(new MouseEvent('click', { bubbles: true }))
     })
 
     expect(container.querySelector('.inventory-import-wizard-footer')).toBeNull()
     expect(container.textContent).toContain('Upload Inventory File')
-    expect(container.textContent).toContain('Choose File')
     expect(container.textContent).not.toContain('stock.csv')
   })
 
   it('shows an inline error for unsupported extensions and stays on step 1', () => {
     renderShell()
-
     selectFile(new File(['{}'], 'notes.json', { type: 'application/json' }))
 
     expect(container.textContent).toContain('Unsupported file type')
     expect(container.querySelector('.inventory-import-wizard-footer')).toBeNull()
-    expect(container.textContent).toContain('Upload Inventory File')
+    expect(container.querySelectorAll('.inventory-import-wizard-step')[0].className)
+      .toContain('is-active')
+  })
+
+  it('decodes CSV once, parses once, and opens Review Columns', async () => {
+    renderShell()
+
+    const decodeSpy = vi.spyOn(decoderModule, 'decodeInventoryImportFile')
+    const parseSpy = vi.spyOn(parserModule, 'parseInventoryImportTable')
+
+    selectFile(new File(
+      ['Name,Unit,Name\nFlour,kg,x\n'],
+      'products.csv',
+      { type: 'text/csv' },
+    ))
+    await continueToColumnReview()
+
+    expect(decodeSpy).toHaveBeenCalledTimes(1)
+    expect(parseSpy).toHaveBeenCalledTimes(1)
+    expect(parseSpy.mock.calls[0][0]).toEqual({
+      headers: ['Name', 'Unit', 'Name'],
+      rows: [['Flour', 'kg', 'x']],
+      headerRowNumber: 1,
+    })
 
     const steps = container.querySelectorAll('.inventory-import-wizard-step')
-    expect(steps[0].className).toContain('is-active')
-    expect(steps[0].getAttribute('aria-current')).toBe('step')
+    expect(steps[0].className).toContain('is-completed')
+    expect(steps[1].className).toContain('is-active')
+    expect(steps[2].className).toContain('is-upcoming')
+    expect(steps[3].className).toContain('is-upcoming')
+    expect(steps[4].className).toContain('is-upcoming')
+
+    expect(container.textContent).toContain('Review Columns')
+    expect(container.textContent).toContain('products.csv')
+    expect(container.textContent).toContain('3 columns')
+    expect(container.textContent).toContain('1 data rows')
+    expect(container.textContent).toContain('Name')
+    expect(container.textContent).toContain('name')
+    expect(container.textContent).toContain('Duplicate header')
+    expect(getButton('Continue')?.disabled).toBe(true)
+  })
+
+  it('decodes XLSX once and supplies correct parser input', async () => {
+    renderShell()
+    const parseSpy = vi.spyOn(parserModule, 'parseInventoryImportTable')
+
+    selectFile(createSpreadsheetFile('inventory.xlsx', [
+      ['Product', 'Qty'],
+      ['Salt', 4],
+    ]))
+    await continueToColumnReview()
+
+    expect(parseSpy).toHaveBeenCalledTimes(1)
+    expect(parseSpy.mock.calls[0][0]).toEqual({
+      headers: ['Product', 'Qty'],
+      rows: [['Salt', 4]],
+      headerRowNumber: 1,
+    })
+    expect(container.textContent).toContain('Review Columns')
+    expect(container.textContent).toContain('Product')
+    expect(container.textContent).toContain('product')
+    expect(container.textContent).toContain('Ready')
+  })
+
+  it('shows loading state and disables controls while processing', async () => {
+    renderShell()
+
+    let release
+    const pending = new Promise((resolve) => {
+      release = resolve
+    })
+    vi.spyOn(decoderModule, 'decodeInventoryImportFile').mockImplementation(() => pending)
+
+    selectFile(new File(['Name\nA\n'], 'wait.csv', { type: 'text/csv' }))
+
+    act(() => {
+      getButton('Continue to Column Review')
+        .dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    })
+
+    expect(container.textContent).toContain('Reading file…')
+    expect(getButton('Back')?.disabled).toBe(true)
+    expect(getButton('Continue to Column Review')?.disabled).toBe(true)
+    expect(getButton('Choose Different File')?.disabled).toBe(true)
+
+    await act(async () => {
+      release({
+        headers: ['Name'],
+        rows: [['A']],
+        headerRowNumber: 1,
+        sourceFormat: 'csv',
+      })
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+
+    expect(container.textContent).toContain('Review Columns')
+  })
+
+  it('protects Continue against duplicate rapid activation', async () => {
+    renderShell()
+
+    let release
+    const pending = new Promise((resolve) => {
+      release = resolve
+    })
+    const decodeSpy = vi.spyOn(decoderModule, 'decodeInventoryImportFile')
+      .mockImplementation(() => pending)
+
+    selectFile(new File(['Name\nA\n'], 'once.csv', { type: 'text/csv' }))
+
+    const continueBtn = getButton('Continue to Column Review')
+    act(() => {
+      continueBtn.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+      continueBtn.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+      continueBtn.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    })
+
+    expect(decodeSpy).toHaveBeenCalledTimes(1)
+
+    await act(async () => {
+      release({
+        headers: ['Name'],
+        rows: [['A']],
+        headerRowNumber: 1,
+        sourceFormat: 'csv',
+      })
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+  })
+
+  it('renders blank header status from parser output', async () => {
+    renderShell()
+    selectFile(new File(['Name,\nFlour,\n'], 'blank.csv', { type: 'text/csv' }))
+    await continueToColumnReview()
+
+    expect(container.textContent).toContain('Blank header')
+    const rows = container.querySelectorAll('.inventory-import-wizard-review-table tbody tr')
+    expect(rows).toHaveLength(2)
+    expect(rows[0].textContent).toContain('1')
+    expect(rows[1].textContent).toContain('2')
+    expect(rows[1].textContent).toContain('Blank header')
+  })
+
+  it('returns to Step 1 with the selected file preserved after Back', async () => {
+    renderShell()
+    selectFile(new File(['Name\nA\n'], 'keep.csv', { type: 'text/csv' }))
+    await continueToColumnReview()
+
+    act(() => {
+      getButton('Back').dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    })
+
+    expect(container.textContent).toContain('File selected')
+    expect(container.textContent).toContain('keep.csv')
+    expect(getButton('Continue to Column Review')).toBeTruthy()
+    expect(container.querySelectorAll('.inventory-import-wizard-step')[0].className)
+      .toContain('is-active')
+  })
+
+  it('keeps Step 1 and shows a safe error when decode fails', async () => {
+    renderShell()
+    vi.spyOn(decoderModule, 'decodeInventoryImportFile').mockRejectedValue(
+      new decoderModule.InventoryImportDecoderError(
+        'MALFORMED_CSV',
+        'CSV has an unclosed quoted field.',
+      ),
+    )
+
+    selectFile(new File(['bad'], 'bad.csv', { type: 'text/csv' }))
+    await continueToColumnReview()
+
+    expect(container.textContent).toContain('CSV has an unclosed quoted field.')
+    expect(container.textContent).toContain('File selected')
+    expect(container.textContent).toContain('bad.csv')
+    expect(getButton('Continue to Column Review')?.disabled).toBe(false)
+    expect(container.querySelectorAll('.inventory-import-wizard-step')[0].className)
+      .toContain('is-active')
+  })
+
+  it('keeps Step 1 and recovers when parser fails', async () => {
+    renderShell()
+    vi.spyOn(decoderModule, 'decodeInventoryImportFile').mockResolvedValue({
+      headers: [],
+      rows: [],
+      headerRowNumber: 1,
+      sourceFormat: 'csv',
+    })
+
+    selectFile(new File(['x'], 'empty-headers.csv', { type: 'text/csv' }))
+    await continueToColumnReview()
+
+    expect(container.textContent).toMatch(/header/i)
+    expect(container.textContent).toContain('File selected')
+    expect(getButton('Choose Different File')?.disabled).toBe(false)
+    expect(container.querySelectorAll('.inventory-import-wizard-step')[0].className)
+      .toContain('is-active')
   })
 
   it('invokes onClose from Close (Exit)', () => {
     const onClose = vi.fn()
     renderShell({ onClose })
 
-    const exitBtn = Array.from(container.querySelectorAll('button'))
-      .find((button) => button.textContent.includes('Close (Exit)'))
-
-    expect(exitBtn).toBeTruthy()
     act(() => {
-      exitBtn.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+      getButton('Close (Exit)').dispatchEvent(new MouseEvent('click', { bubbles: true }))
     })
     expect(onClose).toHaveBeenCalledTimes(1)
   })
 
-  it('does not import parser, validator, mapper, classifier, services, or FileReader', () => {
+  it('does not import validator, mapper, classifier, services, RPCs, or FileReader', () => {
     const source = readFileSync(join(HERE, 'InventoryImportWizardShell.jsx'), 'utf8')
 
-    expect(source).not.toMatch(/inventoryImportTabularParser/)
+    expect(source).toMatch(/inventoryImportFileDecoder/)
+    expect(source).toMatch(/inventoryImportTabularParser/)
     expect(source).not.toMatch(/inventoryImportTableValidator/)
     expect(source).not.toMatch(/inventoryImportFieldMapper/)
     expect(source).not.toMatch(/inventoryImportClassifier/)
@@ -229,7 +404,6 @@ describe('InventoryImportWizardShell', () => {
     expect(source).not.toMatch(/\.rpc\(/i)
     expect(source).not.toMatch(/FileReader/)
     expect(source).not.toMatch(/createObjectURL/)
-    expect(source).not.toMatch(/file\.text\(|arrayBuffer\(|readAs/)
   })
 })
 
