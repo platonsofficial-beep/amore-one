@@ -9,6 +9,7 @@ import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import * as XLSX from 'xlsx'
 import * as decoderModule from '../../lib/inventoryImportFileDecoder'
+import * as formatDetectorModule from '../../lib/inventoryImportFormatDetector'
 import * as parserModule from '../../lib/inventoryImportTabularParser'
 import {
   INVENTORY_IMPORT_ACCEPTED_EXTENSIONS,
@@ -507,6 +508,7 @@ describe('InventoryImportWizardShell', () => {
 
     expect(source).toMatch(/inventoryImportFileDecoder/)
     expect(source).toMatch(/inventoryImportTabularParser/)
+    expect(source).toMatch(/inventoryImportFormatDetector/)
     expect(source).not.toMatch(/inventoryImportTableValidator/)
     expect(source).not.toMatch(/inventoryImportFieldMapper/)
     expect(source).not.toMatch(/inventoryImportClassifier/)
@@ -516,6 +518,131 @@ describe('InventoryImportWizardShell', () => {
     expect(source).not.toMatch(/\.rpc\(/i)
     expect(source).not.toMatch(/FileReader/)
     expect(source).not.toMatch(/createObjectURL/)
+  })
+
+  it('runs the format detector once after CSV decode and renders the standard format card', async () => {
+    renderShell()
+    const detectSpy = vi.spyOn(formatDetectorModule, 'detectInventoryImportFormat')
+    const parseSpy = vi.spyOn(parserModule, 'parseInventoryImportTable')
+
+    selectFile(new File(
+      ['Name,Quantity,Unit\nFlour,10,kg\n'],
+      'flat.csv',
+      { type: 'text/csv' },
+    ))
+    await continueToColumnReview()
+
+    expect(detectSpy).toHaveBeenCalledTimes(1)
+    expect(parseSpy).toHaveBeenCalledTimes(1)
+    expect(detectSpy.mock.calls[0][0]).toMatchObject({
+      headers: ['Name', 'Quantity', 'Unit'],
+      rows: [['Flour', '10', 'kg']],
+      headerRowNumber: 1,
+      sourceFormat: 'csv',
+    })
+    expect(parseSpy.mock.calls[0][0]).toEqual({
+      headers: ['Name', 'Quantity', 'Unit'],
+      rows: [['Flour', '10', 'kg']],
+      headerRowNumber: 1,
+    })
+    expect(container.textContent).toContain('Standard Inventory Table')
+    expect(container.textContent).toContain('Product-name column pattern detected')
+    expect(container.textContent).not.toMatch(/\d{2,3}%/)
+  })
+
+  it('does not run the detector during multi-sheet inspection, then runs once after sheet selection', async () => {
+    renderShell()
+    const detectSpy = vi.spyOn(formatDetectorModule, 'detectInventoryImportFormat')
+    const inspectSpy = vi.spyOn(decoderModule, 'inspectInventoryImportWorkbook')
+
+    selectFile(createMultiSheetFile('multi.xlsx', [
+      {
+        sheetName: 'Orders',
+        matrix: [['A'], ['1']],
+      },
+      {
+        sheetName: 'Inventory',
+        matrix: [
+          ['', 'Storage Tasos', 'BAR', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday', 'Order', 'Stock Control'],
+          ['VODKA', '', '', '', '', '', '', '', '', '', '', ''],
+          ['Item One', 1, 0, '', '', '', '', '', '', '', '', ''],
+        ],
+      },
+    ]))
+    await continueToColumnReview()
+
+    expect(inspectSpy).toHaveBeenCalledTimes(1)
+    expect(detectSpy).not.toHaveBeenCalled()
+    expect(container.textContent).toContain('Choose Worksheet')
+
+    const inventoryBtn = Array.from(container.querySelectorAll('[role="radio"]'))
+      .find((button) => button.textContent.includes('Inventory'))
+    act(() => {
+      inventoryBtn.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    })
+    await continueToColumnReview()
+
+    expect(detectSpy).toHaveBeenCalledTimes(1)
+    expect(container.textContent).toContain('Operational Weekly Stock Sheet')
+    expect(container.textContent).toContain('weekday columns detected')
+    expect(container.textContent).toContain(
+      'A specialized operational-stock import flow will handle this layout in a later step.',
+    )
+    expect(container.textContent).toContain('Review Columns')
+    expect(getButton('Continue')?.disabled).toBe(true)
+  })
+
+  it('renders unknown layout notice without fake confidence percentages', async () => {
+    renderShell()
+
+    selectFile(new File(
+      ['Alpha,Beta\nx,y\n'],
+      'odd.csv',
+      { type: 'text/csv' },
+    ))
+    await continueToColumnReview()
+
+    expect(container.textContent).toContain('Unknown Worksheet Layout')
+    expect(container.textContent).toContain('You can still review the detected columns below.')
+    expect(container.textContent).not.toMatch(/\d{2,3}%/)
+  })
+
+  it('keeps Step 1 and clears detection UI when the detector fails', async () => {
+    renderShell()
+    vi.spyOn(formatDetectorModule, 'detectInventoryImportFormat').mockImplementation(() => {
+      throw new formatDetectorModule.InventoryImportFormatDetectorError(
+        'INVALID_INPUT',
+        'Format detector expects an object with headers and rows.',
+      )
+    })
+
+    selectFile(new File(['Name\nA\n'], 'fail.csv', { type: 'text/csv' }))
+    await continueToColumnReview()
+
+    expect(container.textContent).toContain('Format detector expects an object with headers and rows.')
+    expect(container.textContent).toContain('File selected')
+    expect(container.textContent).not.toContain('Standard Inventory Table')
+    expect(container.querySelector('.inventory-import-wizard-review-table')).toBeNull()
+    expect(container.querySelector('.inventory-import-wizard-format-card')).toBeNull()
+    expect(container.querySelectorAll('.inventory-import-wizard-step')[0].className)
+      .toContain('is-active')
+  })
+
+  it('does not run the detector when decode fails', async () => {
+    renderShell()
+    const detectSpy = vi.spyOn(formatDetectorModule, 'detectInventoryImportFormat')
+    vi.spyOn(decoderModule, 'decodeInventoryImportFile').mockRejectedValue(
+      new decoderModule.InventoryImportDecoderError(
+        'MALFORMED_CSV',
+        'CSV has an unclosed quoted field.',
+      ),
+    )
+
+    selectFile(new File(['bad'], 'bad.csv', { type: 'text/csv' }))
+    await continueToColumnReview()
+
+    expect(detectSpy).not.toHaveBeenCalled()
+    expect(container.textContent).toContain('CSV has an unclosed quoted field.')
   })
 })
 

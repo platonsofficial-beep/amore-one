@@ -1,12 +1,13 @@
 /**
- * P8.16.0–P8.16.3 — Inventory Import Wizard Shell.
+ * P8.16.0–P8.16.4 — Inventory Import Wizard Shell.
  *
- * File selection, optional worksheet selection, decoder/parser → Review Columns.
- * No validator, mapper, classifier, persistence, upload, or Apply wiring.
+ * File selection, optional worksheet selection, format detection, parser →
+ * Review Columns. No validator, mapper, classifier, persistence, upload, or Apply.
  */
 
 import { useRef, useState } from 'react'
 import * as inventoryImportFileDecoder from '../../lib/inventoryImportFileDecoder'
+import * as inventoryImportFormatDetector from '../../lib/inventoryImportFormatDetector'
 import * as inventoryImportTabularParser from '../../lib/inventoryImportTabularParser'
 
 export const INVENTORY_IMPORT_WIZARD_STEPS = Object.freeze([
@@ -91,6 +92,7 @@ function getSafeProcessErrorMessage(error) {
   if (
     error instanceof inventoryImportFileDecoder.InventoryImportDecoderError
     || error instanceof inventoryImportTabularParser.InventoryImportParserError
+    || error instanceof inventoryImportFormatDetector.InventoryImportFormatDetectorError
   ) {
     return error.message
   }
@@ -102,14 +104,22 @@ function getSafeProcessErrorMessage(error) {
  *   headers: unknown[],
  *   rows: unknown[][],
  *   headerRowNumber: number,
+ *   sourceFormat?: string,
  * }} decoded
  */
-function parseDecodedTable(decoded) {
-  return inventoryImportTabularParser.parseInventoryImportTable({
+function detectAndParseDecodedTable(decoded) {
+  const detection = inventoryImportFormatDetector.detectInventoryImportFormat({
+    headers: decoded.headers,
+    rows: decoded.rows,
+    headerRowNumber: decoded.headerRowNumber,
+    sourceFormat: decoded.sourceFormat,
+  })
+  const parsed = inventoryImportTabularParser.parseInventoryImportTable({
     headers: decoded.headers,
     rows: decoded.rows,
     headerRowNumber: decoded.headerRowNumber,
   })
+  return { detection, parsed }
 }
 
 /**
@@ -124,6 +134,7 @@ export function InventoryImportWizardShell({ onClose = undefined } = {}) {
   const [selectedFile, setSelectedFile] = useState(null)
   const [selectionError, setSelectionError] = useState('')
   const [parseResult, setParseResult] = useState(null)
+  const [formatDetection, setFormatDetection] = useState(null)
   const [isProcessing, setIsProcessing] = useState(false)
   const [worksheetOptions, setWorksheetOptions] = useState([])
   const [selectedWorksheetName, setSelectedWorksheetName] = useState('')
@@ -135,6 +146,11 @@ export function InventoryImportWizardShell({ onClose = undefined } = {}) {
     setSelectedWorksheetName('')
   }
 
+  function clearDetectionAndParse() {
+    setParseResult(null)
+    setFormatDetection(null)
+  }
+
   function openFilePicker() {
     if (isProcessing) return
     fileInputRef.current?.click()
@@ -144,7 +160,7 @@ export function InventoryImportWizardShell({ onClose = undefined } = {}) {
     if (isProcessing) return
     setSelectedFile(null)
     setSelectionError('')
-    setParseResult(null)
+    clearDetectionAndParse()
     resetWorksheetState()
     setWizardView('upload')
     if (fileInputRef.current) {
@@ -160,7 +176,7 @@ export function InventoryImportWizardShell({ onClose = undefined } = {}) {
     const extension = getInventoryImportFileExtension(file.name)
     if (!isAcceptedInventoryImportExtension(extension)) {
       setSelectedFile(null)
-      setParseResult(null)
+      clearDetectionAndParse()
       resetWorksheetState()
       setWizardView('upload')
       setSelectionError(
@@ -171,7 +187,7 @@ export function InventoryImportWizardShell({ onClose = undefined } = {}) {
     }
 
     setSelectionError('')
-    setParseResult(null)
+    clearDetectionAndParse()
     resetWorksheetState()
     setWizardView('upload')
     setSelectedFile({
@@ -190,6 +206,7 @@ export function InventoryImportWizardShell({ onClose = undefined } = {}) {
     processingLockRef.current = true
     setIsProcessing(true)
     setSelectionError('')
+    clearDetectionAndParse()
 
     try {
       const extension = selectedFile.extension
@@ -198,7 +215,8 @@ export function InventoryImportWizardShell({ onClose = undefined } = {}) {
         const decoded = await inventoryImportFileDecoder.decodeInventoryImportFile(
           selectedFile.file,
         )
-        const parsed = parseDecodedTable(decoded)
+        const { detection, parsed } = detectAndParseDecodedTable(decoded)
+        setFormatDetection(detection)
         setParseResult(parsed)
         resetWorksheetState()
         setWizardView('columns')
@@ -214,7 +232,8 @@ export function InventoryImportWizardShell({ onClose = undefined } = {}) {
           selectedFile.file,
           inspection.worksheets[0].name,
         )
-        const parsed = parseDecodedTable(decoded)
+        const { detection, parsed } = detectAndParseDecodedTable(decoded)
+        setFormatDetection(detection)
         setParseResult(parsed)
         resetWorksheetState()
         setWizardView('columns')
@@ -223,9 +242,10 @@ export function InventoryImportWizardShell({ onClose = undefined } = {}) {
 
       setWorksheetOptions(inspection.worksheets)
       setSelectedWorksheetName('')
-      setParseResult(null)
+      clearDetectionAndParse()
       setWizardView('worksheets')
     } catch (error) {
+      clearDetectionAndParse()
       setSelectionError(getSafeProcessErrorMessage(error))
     } finally {
       setIsProcessing(false)
@@ -247,16 +267,19 @@ export function InventoryImportWizardShell({ onClose = undefined } = {}) {
     processingLockRef.current = true
     setIsProcessing(true)
     setSelectionError('')
+    clearDetectionAndParse()
 
     try {
       const decoded = await inventoryImportFileDecoder.decodeInventoryImportWorksheet(
         selectedFile.file,
         selectedWorksheetName,
       )
-      const parsed = parseDecodedTable(decoded)
+      const { detection, parsed } = detectAndParseDecodedTable(decoded)
+      setFormatDetection(detection)
       setParseResult(parsed)
       setWizardView('columns')
     } catch (error) {
+      clearDetectionAndParse()
       setSelectionError(getSafeProcessErrorMessage(error))
     } finally {
       setIsProcessing(false)
@@ -268,6 +291,7 @@ export function InventoryImportWizardShell({ onClose = undefined } = {}) {
     if (isProcessing) return
     resetWorksheetState()
     setSelectionError('')
+    clearDetectionAndParse()
     setWizardView('upload')
   }
 
@@ -275,6 +299,7 @@ export function InventoryImportWizardShell({ onClose = undefined } = {}) {
     if (isProcessing) return
     setWizardView('upload')
     setSelectionError('')
+    clearDetectionAndParse()
     resetWorksheetState()
   }
 
@@ -369,6 +394,49 @@ export function InventoryImportWizardShell({ onClose = undefined } = {}) {
                   </span>
                 </p>
               </div>
+
+              {formatDetection ? (
+                <section
+                  className={`inventory-import-wizard-format-card is-${formatDetection.format}`}
+                  aria-label="Detected worksheet format"
+                >
+                  <div className="inventory-import-wizard-format-card-head">
+                    <h4 className="inventory-import-wizard-format-label">
+                      {formatDetection.label}
+                    </h4>
+                    {formatDetection.matchStrength === 'strong' ? (
+                      <span className="inventory-import-wizard-format-strength">
+                        Strong match
+                      </span>
+                    ) : null}
+                    {formatDetection.matchStrength === 'possible' ? (
+                      <span className="inventory-import-wizard-format-strength">
+                        Possible match
+                      </span>
+                    ) : null}
+                  </div>
+                  <p className="inventory-import-wizard-format-summary">
+                    {formatDetection.summary}
+                  </p>
+                  {formatDetection.evidence.length > 0 ? (
+                    <ul className="inventory-import-wizard-format-evidence">
+                      {formatDetection.evidence.map((item) => (
+                        <li key={item}>{item}</li>
+                      ))}
+                    </ul>
+                  ) : null}
+                  {formatDetection.format === inventoryImportFormatDetector.INVENTORY_IMPORT_FORMAT.OPERATIONAL ? (
+                    <p className="inventory-import-wizard-format-notice">
+                      A specialized operational-stock import flow will handle this layout in a later step.
+                    </p>
+                  ) : null}
+                  {formatDetection.format === inventoryImportFormatDetector.INVENTORY_IMPORT_FORMAT.UNKNOWN ? (
+                    <p className="inventory-import-wizard-format-notice">
+                      You can still review the detected columns below.
+                    </p>
+                  ) : null}
+                </section>
+              ) : null}
 
               <div className="inventory-import-wizard-review-table-wrap">
                 <table className="inventory-import-wizard-review-table">
