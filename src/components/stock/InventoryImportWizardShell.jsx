@@ -5,12 +5,14 @@
  * Review Columns. No validator, mapper, classifier, persistence, upload, or Apply.
  */
 
-import { useRef, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { useWorkspaceStockCatalog } from '../../hooks/useWorkspaceStockCatalog'
 import * as inventoryImportFileDecoder from '../../lib/inventoryImportFileDecoder'
 import * as inventoryImportFormatDetector from '../../lib/inventoryImportFormatDetector'
 import * as inventoryOperationalSheetParser from '../../lib/inventoryOperationalSheetParser'
 import * as inventoryImportTabularParser from '../../lib/inventoryImportTabularParser'
+import * as inventoryOperationalProductMatcher from '../../lib/inventoryOperationalProductMatcher'
+import { InventoryOperationalMatchingSummary } from './InventoryOperationalMatchingSummary'
 import { InventoryOperationalReview } from './InventoryOperationalReview'
 
 export const INVENTORY_IMPORT_WIZARD_STEPS = Object.freeze([
@@ -170,6 +172,20 @@ export function InventoryImportWizardShell({
     enabled: wizardView === 'columns' && isOperationalFormat && Boolean(operationalModel),
     ...(loadWorkspaceStockItems ? { loadItems: loadWorkspaceStockItems } : {}),
   })
+
+  const operationalMatchingResult = useMemo(() => {
+    if (!operationalModel) return null
+    if (workspaceStockCatalog.status !== 'success') return null
+
+    try {
+      return inventoryOperationalProductMatcher.matchInventoryOperationalProducts({
+        operationalModel,
+        existingStockItems: workspaceStockCatalog.items,
+      })
+    } catch {
+      return null
+    }
+  }, [operationalModel, workspaceStockCatalog.status, workspaceStockCatalog.items])
 
   const progressStep = wizardView === 'columns' ? 2 : 1
 
@@ -530,6 +546,10 @@ export function InventoryImportWizardShell({
                     </div>
                   ) : null}
                 </section>
+              ) : null}
+
+              {operationalMatchingResult ? (
+                <InventoryOperationalMatchingSummary result={operationalMatchingResult} />
               ) : null}
 
               <div className="inventory-import-wizard-review-table-wrap">

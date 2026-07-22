@@ -12,6 +12,7 @@ import * as decoderModule from '../../lib/inventoryImportFileDecoder'
 import * as formatDetectorModule from '../../lib/inventoryImportFormatDetector'
 import * as operationalParserModule from '../../lib/inventoryOperationalSheetParser'
 import * as parserModule from '../../lib/inventoryImportTabularParser'
+import * as matcherModule from '../../lib/inventoryOperationalProductMatcher'
 import {
   INVENTORY_IMPORT_ACCEPTED_EXTENSIONS,
   INVENTORY_IMPORT_WIZARD_STEPS,
@@ -504,18 +505,19 @@ describe('InventoryImportWizardShell', () => {
     expect(onClose).toHaveBeenCalledTimes(1)
   })
 
-  it('does not import validator, mapper, classifier, matcher, services, RPCs, or FileReader', () => {
+  it('does not import validator, mapper, classifier, services, RPCs, or FileReader', () => {
     const source = readFileSync(join(HERE, 'InventoryImportWizardShell.jsx'), 'utf8')
 
     expect(source).toMatch(/inventoryImportFileDecoder/)
     expect(source).toMatch(/inventoryImportTabularParser/)
     expect(source).toMatch(/inventoryImportFormatDetector/)
     expect(source).toMatch(/inventoryOperationalSheetParser/)
+    expect(source).toMatch(/inventoryOperationalProductMatcher/)
     expect(source).toMatch(/useWorkspaceStockCatalog/)
+    expect(source).toMatch(/InventoryOperationalMatchingSummary/)
     expect(source).not.toMatch(/inventoryImportTableValidator/)
     expect(source).not.toMatch(/inventoryImportFieldMapper/)
     expect(source).not.toMatch(/inventoryImportClassifier/)
-    expect(source).not.toMatch(/inventoryOperationalProductMatcher/)
     expect(source).not.toMatch(/stockCsvImport/)
     expect(source).not.toMatch(/from ['"].*services\//)
     expect(source).not.toMatch(/supabase/i)
@@ -682,7 +684,6 @@ describe('InventoryImportWizardShell', () => {
         },
       ]
     })
-    const matcherSpy = vi.fn()
 
     renderShell({
       workspaceId: 'ws-ops',
@@ -710,7 +711,6 @@ describe('InventoryImportWizardShell', () => {
     expect(container.textContent).toContain('Workspace Stock')
     expect(container.textContent).toContain('Loaded products: 2')
     expect(container.textContent).toContain('Read-only')
-    expect(matcherSpy).not.toHaveBeenCalled()
   })
 
   it('shows a loading state while workspace stock is fetching', async () => {
@@ -825,6 +825,128 @@ describe('InventoryImportWizardShell', () => {
     expect(loadWorkspaceStockItems).toHaveBeenCalledWith('ws-a')
     expect(container.querySelector('.inventory-workspace-stock-card')
       ?.getAttribute('data-workspace-stock-count')).toBe('1')
+  })
+
+  it('runs the operational matcher once when model and catalog are ready', async () => {
+    const matchSpy = vi.spyOn(matcherModule, 'matchInventoryOperationalProducts')
+    let resolveLoad
+    const catalog = [
+      {
+        id: '1',
+        name: 'Item One',
+        category: 'Vodka',
+        unit: 'Bottle',
+        sku: null,
+        active: true,
+      },
+      {
+        id: '2',
+        name: 'Other Spirit',
+        category: 'Vodka',
+        unit: 'Bottle',
+        sku: null,
+        active: true,
+      },
+    ]
+    const loadWorkspaceStockItems = vi.fn(() => new Promise((resolve) => {
+      resolveLoad = resolve
+    }))
+
+    renderShell({
+      workspaceId: 'ws-ops',
+      loadWorkspaceStockItems,
+    })
+
+    selectFile(createSpreadsheetFile('ops.xlsx', [
+      ['', 'Storage Tasos', 'BAR', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday', 'Order', 'Stock Control'],
+      ['VODKA', '', '', '', '', '', '', '', '', '', '', ''],
+      ['Item One', 1, 0, '', '', '', '', '', '', '', '', ''],
+      ['Brand New', 2, 1, '', '', '', '', '', '', '', '', ''],
+    ]))
+    await continueToColumnReview()
+
+    expect(matchSpy).not.toHaveBeenCalled()
+    expect(container.querySelector('.inventory-operational-matching')).toBeNull()
+
+    await act(async () => {
+      resolveLoad(catalog)
+      await Promise.resolve()
+    })
+
+    expect(matchSpy).toHaveBeenCalledTimes(1)
+    expect(matchSpy.mock.calls[0][0].existingStockItems).toEqual(catalog)
+    expect(container.querySelector('.inventory-operational-matching')).toBeTruthy()
+    expect(container.textContent).toContain('Operational Matching')
+    expect(container.textContent).toContain('✓ Exact Matches: 1')
+    expect(container.textContent).toContain('➕ New Products: 1')
+    expect(container.textContent).toContain('✓ Exact Match')
+    expect(container.textContent).toContain('➕ New Product')
+    expect(container.querySelector('.inventory-operational-matching button')).toBeNull()
+
+    act(() => {
+      root.render(createElement(InventoryImportWizardShell, {
+        workspaceId: 'ws-ops',
+        loadWorkspaceStockItems,
+      }))
+    })
+
+    await act(async () => {
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+
+    expect(matchSpy).toHaveBeenCalledTimes(1)
+  })
+
+  it('does not run the matcher before catalog success or for standard tables', async () => {
+    const matchSpy = vi.spyOn(matcherModule, 'matchInventoryOperationalProducts')
+    let resolveLoad
+    const loadWorkspaceStockItems = vi.fn(() => new Promise((resolve) => {
+      resolveLoad = resolve
+    }))
+
+    renderShell({
+      workspaceId: 'ws-ops',
+      loadWorkspaceStockItems,
+    })
+
+    selectFile(createSpreadsheetFile('ops.xlsx', [
+      ['', 'Storage Tasos', 'BAR', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday', 'Order', 'Stock Control'],
+      ['VODKA', '', '', '', '', '', '', '', '', '', '', ''],
+      ['Item One', 1, 0, '', '', '', '', '', '', '', '', ''],
+    ]))
+    await continueToColumnReview()
+    expect(matchSpy).not.toHaveBeenCalled()
+    expect(container.querySelector('.inventory-operational-matching')).toBeNull()
+
+    await act(async () => {
+      resolveLoad([])
+      await Promise.resolve()
+    })
+    expect(matchSpy).toHaveBeenCalledTimes(1)
+
+    act(() => {
+      root.unmount()
+    })
+    matchSpy.mockClear()
+
+    renderShell({
+      workspaceId: 'ws-ops',
+      loadWorkspaceStockItems: vi.fn(async () => [{ id: '1', name: 'Flour', category: null, unit: 'kg', sku: null, active: true }]),
+    })
+    selectFile(new File(
+      ['Name,Quantity,Unit\nFlour,10,kg\n'],
+      'flat.csv',
+      { type: 'text/csv' },
+    ))
+    await continueToColumnReview()
+    await act(async () => {
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+
+    expect(matchSpy).not.toHaveBeenCalled()
+    expect(container.querySelector('.inventory-operational-matching')).toBeNull()
   })
 
   it('renders unknown layout notice without fake confidence percentages', async () => {
