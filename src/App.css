@@ -33017,7 +33017,7 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   overflow: visible;
 }
 
-/* P8.8.0 / P8.8.2 — Mission Timeline (compact polish) */
+/* P8.8.0 / P8.8.2 / P8.8.3 — Mission Timeline (premium compact polish) */
 .stock-migration-mission-timeline {
   list-style: none;
   margin: 0;
@@ -33051,11 +33051,24 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   position: relative;
 }
 
+/* History: confirmed, not disabled — mute copy, keep marker full strength */
 .stock-migration-guided-stage.is-density-history,
 .stock-migration-guided-stage.is-completed {
-  opacity: 0.48;
+  opacity: 1;
   padding-top: 1px;
   padding-bottom: 1px;
+}
+
+.stock-migration-guided-stage.is-density-history .stock-migration-guided-stage-name,
+.stock-migration-guided-stage.is-completed .stock-migration-guided-stage-name {
+  color: rgba(255, 247, 232, 0.84);
+  font-weight: 600;
+}
+
+.stock-migration-guided-stage.is-density-history .stock-migration-guided-stage-description,
+.stock-migration-guided-stage.is-completed .stock-migration-guided-stage-description {
+  color: rgba(255, 247, 232, 0.52);
+  opacity: 1;
 }
 
 .stock-migration-guided-stage.is-density-future,
@@ -33063,9 +33076,26 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 .stock-migration-guided-stage.is-ready,
 .stock-migration-guided-stage.is-unavailable,
 .stock-migration-guided-stage.is-cancelled {
-  opacity: 0.56;
+  opacity: 1;
   padding-top: 1px;
   padding-bottom: 1px;
+}
+
+.stock-migration-guided-stage.is-density-future .stock-migration-guided-stage-name,
+.stock-migration-guided-stage.is-waiting .stock-migration-guided-stage-name,
+.stock-migration-guided-stage.is-ready .stock-migration-guided-stage-name,
+.stock-migration-guided-stage.is-unavailable .stock-migration-guided-stage-name,
+.stock-migration-guided-stage.is-cancelled .stock-migration-guided-stage-name {
+  color: rgba(255, 247, 232, 0.62);
+}
+
+.stock-migration-guided-stage.is-density-future .stock-migration-guided-stage-description,
+.stock-migration-guided-stage.is-waiting .stock-migration-guided-stage-description,
+.stock-migration-guided-stage.is-ready .stock-migration-guided-stage-description,
+.stock-migration-guided-stage.is-unavailable .stock-migration-guided-stage-description,
+.stock-migration-guided-stage.is-cancelled .stock-migration-guided-stage-description {
+  color: rgba(255, 247, 232, 0.4);
+  opacity: 1;
 }
 
 .stock-migration-guided-stage.is-density-current,
@@ -33073,43 +33103,70 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 .stock-migration-guided-stage.is-emphasized {
   opacity: 1;
   margin: 8px 0;
-  padding: 12px 12px 12px 4px;
+  padding: 14px 14px 14px 6px;
   border-radius: 16px;
   background: linear-gradient(
     90deg,
-    rgba(255, 247, 232, 0.14) 0%,
-    rgba(255, 247, 232, 0.05) 52%,
-    transparent 100%
+    rgba(255, 247, 232, 0.2) 0%,
+    rgba(255, 247, 232, 0.08) 48%,
+    rgba(255, 247, 232, 0.02) 100%
   );
   box-shadow:
-    inset 3px 0 0 rgba(255, 247, 232, 0.92),
-    0 0 0 1px rgba(255, 247, 232, 0.1),
-    0 10px 28px rgba(0, 0, 0, 0.18);
+    inset 4px 0 0 rgba(255, 247, 232, 0.98),
+    0 0 0 1px rgba(255, 247, 232, 0.18),
+    0 0 22px rgba(255, 247, 232, 0.08),
+    0 12px 30px rgba(0, 0, 0, 0.22);
+}
+
+/* Soft history → current handoff without blank gap */
+.stock-migration-guided-stage.is-density-history + .stock-migration-guided-stage.is-density-current,
+.stock-migration-guided-stage.is-completed + .stock-migration-guided-stage.is-current,
+.stock-migration-guided-stage.is-density-history + .stock-migration-guided-stage.is-emphasized,
+.stock-migration-guided-stage.is-completed + .stock-migration-guided-stage.is-emphasized,
+.stock-migration-guided-stage.is-density-history + .stock-migration-guided-stage.is-attention,
+.stock-migration-guided-stage.is-completed + .stock-migration-guided-stage.is-attention {
+  margin-top: 12px;
+}
+
+.stock-migration-guided-stage.is-density-history:has(+ .stock-migration-guided-stage.is-density-current) .stock-migration-mission-connector.is-completed,
+.stock-migration-guided-stage.is-completed:has(+ .stock-migration-guided-stage.is-current) .stock-migration-mission-connector.is-completed,
+.stock-migration-guided-stage.is-density-history:has(+ .stock-migration-guided-stage.is-emphasized) .stock-migration-mission-connector.is-completed,
+.stock-migration-guided-stage.is-completed:has(+ .stock-migration-guided-stage.is-emphasized) .stock-migration-mission-connector.is-completed,
+.stock-migration-guided-stage.is-density-history:has(+ .stock-migration-guided-stage.is-attention) .stock-migration-mission-connector.is-completed,
+.stock-migration-guided-stage.is-completed:has(+ .stock-migration-guided-stage.is-attention) .stock-migration-mission-connector.is-completed {
+  min-height: 10px;
+  background: linear-gradient(
+    180deg,
+    rgba(150, 210, 160, 0.78) 0%,
+    rgba(255, 247, 232, 0.45) 100%
+  );
 }
 
 .stock-migration-guided-stage.is-attention {
   opacity: 1;
   margin: 8px 0;
-  padding: 12px 12px 12px 4px;
+  padding: 14px 14px 14px 6px;
   border-radius: 16px;
   background: linear-gradient(
     90deg,
-    rgba(180, 90, 40, 0.2) 0%,
-    rgba(180, 90, 40, 0.07) 58%,
-    transparent 100%
+    rgba(180, 90, 40, 0.26) 0%,
+    rgba(180, 90, 40, 0.1) 54%,
+    rgba(180, 90, 40, 0.02) 100%
   );
   box-shadow:
-    inset 3px 0 0 rgba(255, 180, 120, 0.95),
-    0 0 0 1px rgba(255, 180, 120, 0.14);
+    inset 4px 0 0 rgba(255, 180, 120, 0.98),
+    0 0 0 1px rgba(255, 180, 120, 0.22),
+    0 0 20px rgba(255, 180, 120, 0.08),
+    0 12px 28px rgba(0, 0, 0, 0.2);
 }
 
 .stock-migration-mission-eyebrow {
-  margin: 0 0 4px;
-  font-size: 0.66rem;
+  margin: 0 0 5px;
+  font-size: 0.68rem;
   font-weight: 700;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.11em;
   text-transform: uppercase;
-  color: rgba(255, 247, 232, 0.55);
+  color: rgba(255, 247, 232, 0.74);
 }
 
 .stock-migration-mission-rail {
@@ -33140,34 +33197,39 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 .stock-migration-mission-marker.is-completed {
   width: 20px;
   height: 20px;
-  color: rgba(24, 40, 28, 0.95);
-  border-color: rgba(150, 210, 160, 0.55);
-  background: rgba(160, 215, 170, 0.95);
+  color: rgba(24, 40, 28, 0.98);
+  border-color: rgba(170, 220, 180, 0.85);
+  background: rgba(168, 220, 178, 0.98);
+  box-shadow:
+    0 0 0 3px rgba(8, 8, 9, 0.55),
+    0 0 0 1px rgba(150, 210, 160, 0.35);
 }
 
 .stock-migration-mission-marker.is-current,
 .stock-migration-mission-marker.is-dominant {
-  width: 34px;
-  height: 34px;
-  font-size: 0.78rem;
+  width: 36px;
+  height: 36px;
+  font-size: 0.8rem;
   color: #1a1814;
   border-color: #fff7e8;
   background: #fff7e8;
   box-shadow:
-    0 0 0 4px rgba(8, 8, 9, 0.55),
-    0 0 0 9px rgba(255, 247, 232, 0.12);
+    0 0 0 4px rgba(8, 8, 9, 0.58),
+    0 0 0 10px rgba(255, 247, 232, 0.16),
+    0 0 18px rgba(255, 247, 232, 0.2);
 }
 
 .stock-migration-mission-marker.is-attention {
-  width: 34px;
-  height: 34px;
-  font-size: 0.78rem;
+  width: 36px;
+  height: 36px;
+  font-size: 0.8rem;
   color: #2a180c;
-  border-color: rgba(255, 200, 140, 0.95);
-  background: rgba(255, 190, 120, 0.95);
+  border-color: rgba(255, 200, 140, 0.98);
+  background: rgba(255, 190, 120, 0.98);
   box-shadow:
-    0 0 0 4px rgba(8, 8, 9, 0.55),
-    0 0 0 9px rgba(255, 180, 120, 0.14);
+    0 0 0 4px rgba(8, 8, 9, 0.58),
+    0 0 0 10px rgba(255, 180, 120, 0.16),
+    0 0 16px rgba(255, 180, 120, 0.16);
 }
 
 .stock-migration-mission-marker.is-ready {
@@ -33178,12 +33240,12 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 .stock-migration-mission-marker.is-waiting,
 .stock-migration-mission-marker.is-unavailable,
 .stock-migration-mission-marker.is-cancelled {
-  border-color: rgba(255, 247, 232, 0.12);
-  color: rgba(255, 247, 232, 0.4);
+  border-color: rgba(255, 247, 232, 0.14);
+  color: rgba(255, 247, 232, 0.42);
 }
 
 .stock-migration-mission-marker-check {
-  font-size: 0.72rem;
+  font-size: 0.74rem;
   line-height: 1;
 }
 
@@ -33197,7 +33259,7 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   min-height: 8px;
   margin: 2px 0 0;
   border-radius: 999px;
-  background: rgba(255, 247, 232, 0.12);
+  background: rgba(255, 247, 232, 0.16);
 }
 
 .stock-migration-guided-stage.is-density-history .stock-migration-mission-connector,
@@ -33206,15 +33268,15 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 }
 
 .stock-migration-mission-connector.is-completed {
-  background: rgba(150, 210, 160, 0.42);
+  background: rgba(150, 210, 160, 0.68);
 }
 
 .stock-migration-mission-connector.is-active {
-  min-height: 12px;
+  min-height: 14px;
   background: linear-gradient(
     180deg,
-    rgba(255, 247, 232, 0.55) 0%,
-    rgba(255, 247, 232, 0.12) 100%
+    rgba(255, 247, 232, 0.78) 0%,
+    rgba(255, 247, 232, 0.2) 100%
   );
 }
 
@@ -33227,14 +33289,16 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 
 .stock-migration-guided-stage-top {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: 10px;
   margin-bottom: 0;
+  min-width: 0;
 }
 
 .stock-migration-guided-stage-name {
   margin: 0;
+  min-width: 0;
   font-size: 0.84rem;
   font-weight: 650;
   color: rgba(255, 247, 232, 0.72);
@@ -33244,11 +33308,11 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 .stock-migration-guided-stage.is-current .stock-migration-guided-stage-name,
 .stock-migration-guided-stage.is-emphasized .stock-migration-guided-stage-name,
 .stock-migration-guided-stage.is-density-current .stock-migration-guided-stage-name {
-  font-size: 1.12rem;
-  font-weight: 700;
-  letter-spacing: -0.01em;
+  font-size: 1.18rem;
+  font-weight: 750;
+  letter-spacing: -0.015em;
   color: #fff7e8;
-  line-height: 1.2;
+  line-height: 1.18;
 }
 
 .stock-migration-guided-stage-description {
@@ -33262,53 +33326,63 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   overflow: hidden;
 }
 
-.stock-migration-guided-stage.is-density-history .stock-migration-guided-stage-description,
-.stock-migration-guided-stage.is-density-future .stock-migration-guided-stage-description {
-  opacity: 0.72;
-}
-
 .stock-migration-guided-stage.is-current .stock-migration-guided-stage-description,
 .stock-migration-guided-stage.is-emphasized .stock-migration-guided-stage-description,
 .stock-migration-guided-stage.is-density-current .stock-migration-guided-stage-description {
-  margin-top: 4px;
-  font-size: 0.84rem;
-  color: rgba(255, 247, 232, 0.62);
+  margin-top: 5px;
+  font-size: 0.86rem;
+  color: rgba(255, 247, 232, 0.68);
   -webkit-line-clamp: 2;
   opacity: 1;
 }
 
 .stock-migration-guided-stage-badge {
   flex-shrink: 0;
-  padding: 1px 7px;
+  align-self: center;
+  max-width: 42%;
+  padding: 2px 8px;
   border-radius: 999px;
-  font-size: 0.62rem;
+  font-size: 0.6rem;
   font-weight: 700;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.035em;
   text-transform: uppercase;
-  color: rgba(255, 247, 232, 0.65);
-  border: 1px solid rgba(255, 247, 232, 0.14);
-  background: rgba(255, 255, 255, 0.04);
+  line-height: 1.25;
+  text-align: center;
+  color: rgba(255, 247, 232, 0.72);
+  border: 1px solid rgba(255, 247, 232, 0.16);
+  background: rgba(255, 255, 255, 0.05);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .stock-migration-guided-stage-badge.is-completed {
-  color: rgba(180, 230, 190, 0.85);
-  border-color: rgba(150, 210, 160, 0.24);
+  color: rgba(205, 236, 212, 0.95);
+  border-color: rgba(150, 210, 160, 0.42);
+  background: rgba(150, 210, 160, 0.1);
 }
 
 .stock-migration-guided-stage-badge.is-current,
 .stock-migration-guided-stage-badge.is-ready {
-  color: rgba(255, 247, 232, 0.95);
-  border-color: rgba(255, 247, 232, 0.28);
+  color: rgba(255, 247, 232, 0.98);
+  border-color: rgba(255, 247, 232, 0.34);
+  background: rgba(255, 247, 232, 0.08);
 }
 
 .stock-migration-guided-stage-badge.is-attention {
-  color: rgba(255, 210, 160, 0.95);
-  border-color: rgba(255, 180, 120, 0.32);
+  color: rgba(255, 214, 168, 0.98);
+  border-color: rgba(255, 180, 120, 0.4);
+  background: rgba(255, 180, 120, 0.1);
+}
+
+.stock-migration-guided-stage-badge.is-waiting {
+  color: rgba(255, 247, 232, 0.7);
 }
 
 .stock-migration-guided-stage-badge.is-unavailable,
 .stock-migration-guided-stage-badge.is-cancelled {
-  color: rgba(255, 247, 232, 0.45);
+  color: rgba(255, 247, 232, 0.55);
+  border-color: rgba(255, 247, 232, 0.16);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -33317,6 +33391,14 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   .stock-migration-guided-stage.is-emphasized,
   .stock-migration-guided-stage.is-attention {
     transition: none;
+  }
+
+  .stock-migration-mission-marker.is-current,
+  .stock-migration-mission-marker.is-dominant,
+  .stock-migration-mission-marker.is-attention {
+    box-shadow:
+      0 0 0 4px rgba(8, 8, 9, 0.58),
+      0 0 0 10px rgba(255, 247, 232, 0.14);
   }
 }
 

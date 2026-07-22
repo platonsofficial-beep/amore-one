@@ -319,6 +319,7 @@ describe('StockMigrationGuidedWorkflow', () => {
     expect(container.querySelector('.stock-migration-guided-stage.is-density-history')).toBeTruthy()
     expect(container.querySelector('.stock-migration-guided-stage.is-current')).toBeTruthy()
     expect(container.querySelector('.stock-migration-guided-stage.is-density-current')).toBeTruthy()
+    expect(container.querySelector('.stock-migration-guided-stage.is-emphasized')).toBeTruthy()
     expect(container.querySelector('.stock-migration-guided-stage.is-waiting')).toBeTruthy()
     expect(container.querySelector('.stock-migration-guided-stage.is-density-future')).toBeTruthy()
     expect(container.textContent).toContain('Persist')
@@ -333,12 +334,57 @@ describe('StockMigrationGuidedWorkflow', () => {
       Math.max(0, container.querySelectorAll('.stock-migration-guided-stage').length - 1),
     )
     expect(container.querySelector('.stock-migration-mission-marker.is-dominant')).toBeTruthy()
+    expect(container.querySelector('.stock-migration-mission-marker.is-completed')).toBeTruthy()
+    expect(container.querySelector('.stock-migration-mission-connector.is-completed')).toBeTruthy()
+    expect(container.querySelector(
+      '.stock-migration-guided-stage.is-density-history + .stock-migration-guided-stage.is-density-current, '
+      + '.stock-migration-guided-stage.is-completed + .stock-migration-guided-stage.is-current, '
+      + '.stock-migration-guided-stage.is-completed + .stock-migration-guided-stage.is-emphasized',
+    )).toBeTruthy()
+    const badges = [...container.querySelectorAll('.stock-migration-guided-stage-badge')]
+    expect(badges.length).toBe(container.querySelectorAll('.stock-migration-guided-stage').length)
+    expect(badges.every((badge) => `${badge.textContent || ''}`.trim().length > 0)).toBe(true)
+    expect(badges.some((badge) => badge.className.includes('is-completed'))).toBe(true)
+    expect(badges.some((badge) => badge.className.includes('is-current') || badge.className.includes('is-ready'))).toBe(true)
     expect(container.querySelector('[aria-label="Manual review checkpoint"]')).toBeTruthy()
     expect(container.textContent).toContain('No attention required')
     expect(container.textContent).not.toMatch(/\bContinue\b/)
     expect(container.textContent.toLowerCase()).not.toContain('approve')
     expect(container.querySelector('.stock-migration-guided-next button')).toBeNull()
     expect(container.querySelector('.stock-migration-mission-timeline button')).toBeNull()
+  })
+
+  it('keeps premium mission presentation hooks without JSX structure changes', () => {
+    const css = readFileSync(join(process.cwd(), 'src/App.css'), 'utf8')
+    expect(css).toContain('P8.8.3')
+    expect(css).toContain('.stock-migration-guided-stage.is-density-history + .stock-migration-guided-stage.is-density-current')
+    expect(css).not.toMatch(
+      /\.stock-migration-guided-stage\.is-density-history,\s*\n\.stock-migration-guided-stage\.is-completed \{\s*\n\s*opacity:\s*0\.48/,
+    )
+
+    const navigatorSource = readFileSync(join(HERE, 'StockMigrationStageNavigator.jsx'), 'utf8')
+    expect(navigatorSource).toContain('Current Mission')
+    expect(navigatorSource).toContain('aria-current')
+    expect(navigatorSource).toContain('data-mission-connector')
+    expect(navigatorSource).not.toMatch(/Continue|approve_candidate|run_inventory_migration_/i)
+
+    const metrics = metricsFixture()
+    renderGuided({
+      operator: buildLiveOperator(metrics),
+      sessionSummary: sessionSummaryFixture(),
+      health: buildHealth(metrics),
+      metrics,
+      metricsAvailable: true,
+      manualReviewCount: 0,
+      attentionCount: 0,
+    })
+
+    expect(container.querySelector('.stock-migration-guided-stage.is-emphasized')).toBeTruthy()
+    expect(container.querySelector('.stock-migration-guided-hero-stage')).toBeTruthy()
+    expect(container.querySelector('.stock-migration-guided-next')).toBeTruthy()
+    expect(container.querySelector('[aria-label="Manual review checkpoint"]')).toBeTruthy()
+    expect(container.querySelectorAll('[data-mission-marker="true"]').length).toBe(11)
+    expect(container.querySelectorAll('[data-mission-connector="true"]').length).toBe(10)
   })
 
   it('preserves canonical mission stage order and Persist naming', () => {
