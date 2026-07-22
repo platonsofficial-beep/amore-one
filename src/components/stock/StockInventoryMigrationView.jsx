@@ -23,6 +23,7 @@ import { StockMigrationGuidedWorkflow } from './StockMigrationGuidedWorkflow'
 import { StockMigrationHealthPanel } from './StockMigrationHealthPanel'
 import { StockMigrationManualReviewWorkspace } from './StockMigrationManualReviewWorkspace'
 import { StockMigrationOperatorPanel } from './StockMigrationOperatorPanel'
+import { StockMigrationPreflightWorkspace } from './StockMigrationPreflightWorkspace'
 import { StockMigrationSessionCard } from './StockMigrationSessionCard'
 import { StockMigrationSessionSteps } from './StockMigrationSessionSteps'
 
@@ -336,6 +337,22 @@ export function StockInventoryMigrationView({
         metricsAvailable={metricsAvailable}
         manualReviewCount={Array.isArray(manualReviewRows) ? manualReviewRows.length : 0}
         attentionCount={metricsAvailable ? attentionRows.length : 0}
+      />
+
+      <StockMigrationPreflightWorkspace
+        workspaceLabel={displayWorkspace}
+        metrics={metrics}
+        metricsAvailable={metricsAvailable}
+        tableReachable={tableReachable}
+        health={health}
+        auditEvidence={auditEvidence}
+        attentionCount={metricsAvailable ? attentionRows.length : 0}
+        acknowledgementCount={
+          Array.isArray(stageAttentionAcknowledgements)
+            ? stageAttentionAcknowledgements.length
+            : 0
+        }
+        isLoading={isLoading}
       />
 
       <StockMigrationAdvancedDiagnostics
