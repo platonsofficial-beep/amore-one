@@ -15017,8 +15017,8 @@ function InventoryItemCard({
   )
 }
 
-/** Phase 0: legacy inventory catalog is browse-only; new writes go to Stock Dashboard. */
-const INVENTORY_CATALOG_READ_ONLY = true
+/** Legacy Stock Control Center catalog writes follow canManageStock (owner/GM/manager). */
+const INVENTORY_CATALOG_READ_ONLY = false
 
 function InventoryView({
   inventoryItems,
@@ -15161,7 +15161,7 @@ function InventoryView({
         </button>
       </div>
 
-      {stockTab === 'inventory' || stockTab === 'reorder' ? (
+      {catalogReadOnly && (stockTab === 'inventory' || stockTab === 'reorder') ? (
         <div className="staff-status-banner" role="status" aria-live="polite">
           <strong>Legacy Inventory</strong>
           <p className="auth-invite-banner-copy">
