@@ -18,6 +18,11 @@ import {
 } from './inventoryUnitInference.js'
 
 export const INVENTORY_NEW_PRODUCT_UNITS = Object.freeze([
+  'Bottle 200ml',
+  'Bottle 250ml',
+  'Bottle 275ml',
+  'Bottle 330ml',
+  'Bottle 500ml',
   'Bottle 700ml',
   'Bottle 750ml',
   'Bottle 1L',

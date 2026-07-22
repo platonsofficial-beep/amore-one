@@ -208,6 +208,37 @@ describe('inventoryNewProductDrafts', () => {
 
     expect(INVENTORY_NEW_PRODUCT_UNITS).toContain('Bottle 700ml')
     expect(INVENTORY_NEW_PRODUCT_UNITS).toContain('Milliliter')
+    expect(INVENTORY_NEW_PRODUCT_UNITS).toEqual([
+      'Bottle 200ml',
+      'Bottle 250ml',
+      'Bottle 275ml',
+      'Bottle 330ml',
+      'Bottle 500ml',
+      'Bottle 700ml',
+      'Bottle 750ml',
+      'Bottle 1L',
+      'Bottle 1.5L',
+      'Bottle 2L',
+      'Can',
+      'Case',
+      'Pack',
+      'Piece',
+      'Kg',
+      'Gram',
+      'Liter',
+      'Milliliter',
+    ])
+    expect(new Set(INVENTORY_NEW_PRODUCT_UNITS).size).toBe(INVENTORY_NEW_PRODUCT_UNITS.length)
+    expect(validateNewProductDraft({
+      productName: 'Latina Beer',
+      category: 'Beverages',
+      unit: 'Bottle 330ml',
+    }).valid).toBe(true)
+    expect(validateNewProductDraft({
+      productName: 'Mixer',
+      category: 'Beverages',
+      unit: 'Bottle 200ml',
+    }).valid).toBe(true)
   })
 
   it('applies drafts into derived preview unit/category/name without mutating inputs', () => {
