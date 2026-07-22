@@ -8,6 +8,7 @@ import { readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import {
+  buildPreviewExecutionData,
   buildPreviewExpectedActions,
   buildPreviewSummaryCards,
   StockMigrationPreviewWorkspace,
@@ -38,7 +39,7 @@ describe('StockMigrationPreviewWorkspace', () => {
     })
   }
 
-  it('renders preview summary and expected actions from existing metrics', () => {
+  it('renders real migration-map metrics for expected actions and remaining unresolved', () => {
     const metrics = {
       ...createEmptyInventoryMigrationMetrics(),
       legacyItems: 40,
@@ -58,41 +59,61 @@ describe('StockMigrationPreviewWorkspace', () => {
 
     expect(container.querySelector('[aria-label="Migration preview workspace"]')).toBeTruthy()
     expect(container.textContent).toContain('Preview Workspace')
-    expect(container.textContent).toContain('Migration summary')
-    expect(container.textContent).toContain('Expected actions')
     expect(container.textContent).toContain('Will Link')
     expect(container.textContent).toContain('Will Create')
     expect(container.textContent).toContain('Needs Review')
     expect(container.textContent).toContain('Skipped')
-    expect(container.textContent).toContain('Preview notes')
+    expect(container.textContent).toContain('Remaining unresolved')
     expect(container.textContent).toContain('No data has been changed.')
-    expect(container.textContent).toContain('40')
-    expect(container.textContent).toContain('5')
-    expect(container.textContent).toContain('3')
     expect(container.querySelector('button')).toBeNull()
-    expect(container.textContent).not.toMatch(/\bContinue\b/)
-    expect(container.textContent).not.toMatch(/Execute Phase/i)
+
+    const data = buildPreviewExecutionData({ metrics, metricsAvailable: true })
+    expect(data).toEqual({
+      legacyRows: '40',
+      autoLink: '18',
+      autoCreate: '12',
+      manualReview: '4',
+      remainingUnresolved: '12',
+      willLink: '5',
+      willCreate: '3',
+      needsReview: '4',
+      skipped: '2',
+    })
+
+    const actions = buildPreviewExpectedActions({ metrics, metricsAvailable: true })
+    expect(actions.map((item) => [item.title, item.value])).toEqual([
+      ['Will Link', '5'],
+      ['Will Create', '3'],
+      ['Needs Review', '4'],
+      ['Skipped', '2'],
+    ])
   })
 
-  it('shows Unknown placeholders when metrics are unavailable', () => {
+  it('keeps action row structure and shows Unknown when metrics are unavailable', () => {
     renderPreview({
       metrics: createEmptyInventoryMigrationMetrics(),
       metricsAvailable: false,
     })
 
+    expect(container.textContent).toContain('Will Link')
+    expect(container.textContent).toContain('Will Create')
+    expect(container.textContent).toContain('Needs Review')
+    expect(container.textContent).toContain('Skipped')
     expect(container.textContent).toContain('Unknown')
-    expect(container.textContent).toContain('No data has been changed.')
     expect(container.textContent).not.toMatch(/\bNaN\b/)
+
+    const data = buildPreviewExecutionData({ metricsAvailable: false })
+    expect(Object.values(data).every((value) => value === 'Unknown')).toBe(true)
 
     const cards = buildPreviewSummaryCards({ metricsAvailable: false })
     expect(cards.every((card) => card.value === 'Unknown')).toBe(true)
 
     const actions = buildPreviewExpectedActions({ metricsAvailable: false })
-    expect(actions).toHaveLength(1)
-    expect(actions[0].title).toBe('Unknown')
+    expect(actions).toHaveLength(4)
+    expect(actions.every((item) => item.value === 'Unknown')).toBe(true)
   })
 
-  it('computes remaining unresolved only from existing metric fields', () => {
+  it('computes remaining unresolved only from existing remaining/manual metric fields', () => {
     const cards = buildPreviewSummaryCards({
       metricsAvailable: true,
       metrics: {
@@ -112,7 +133,10 @@ describe('StockMigrationPreviewWorkspace', () => {
     expect(source).not.toMatch(/inventoryMigrationExecutionService/i)
     expect(source).not.toContain('supabase')
     expect(source).not.toContain('Continue')
-    expect(source).toContain('Read-only')
+    expect(source).toContain('remainingClassifiedAutoLink')
+    expect(source).toContain('remainingClassifiedAutoCreate')
+    expect(source).toContain('manualReview')
+    expect(source).toContain('skipped')
     expect(source).toContain('No data has been changed.')
   })
 })

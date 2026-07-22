@@ -6,96 +6,103 @@
 
 function asCount(value) {
   const n = Number(value)
-  return Number.isFinite(n) ? Math.max(0, n) : 0
+  return Number.isFinite(n) ? Math.max(0, n) : null
 }
 
-function formatCount(value, available) {
-  if (!available) return 'Unknown'
-  return `${asCount(value)}`
+/**
+ * Map existing migration metrics into Preview execution fields.
+ * Does not invent estimates — only reads exposed metric keys.
+ * Remaining unresolved is the sum of three existing remaining/manual fields.
+ */
+export function buildPreviewExecutionData({ metrics = null, metricsAvailable = false } = {}) {
+  if (!metricsAvailable) {
+    return {
+      legacyRows: 'Unknown',
+      autoLink: 'Unknown',
+      autoCreate: 'Unknown',
+      manualReview: 'Unknown',
+      remainingUnresolved: 'Unknown',
+      willLink: 'Unknown',
+      willCreate: 'Unknown',
+      needsReview: 'Unknown',
+      skipped: 'Unknown',
+    }
+  }
+
+  const willLink = asCount(metrics?.remainingClassifiedAutoLink)
+  const willCreate = asCount(metrics?.remainingClassifiedAutoCreate)
+  const needsReview = asCount(metrics?.manualReview)
+  const skipped = asCount(metrics?.skipped)
+  const legacyRows = asCount(metrics?.legacyItems ?? metrics?.total)
+  const autoLink = asCount(metrics?.autoLink)
+  const autoCreate = asCount(metrics?.autoCreate)
+
+  const remainingParts = [willLink, willCreate, needsReview]
+  const remainingUnresolved = remainingParts.every((part) => part !== null)
+    ? remainingParts.reduce((sum, part) => sum + part, 0)
+    : null
+
+  return {
+    legacyRows: legacyRows === null ? 'Unknown' : `${legacyRows}`,
+    autoLink: autoLink === null ? 'Unknown' : `${autoLink}`,
+    autoCreate: autoCreate === null ? 'Unknown' : `${autoCreate}`,
+    manualReview: needsReview === null ? 'Unknown' : `${needsReview}`,
+    remainingUnresolved: remainingUnresolved === null ? 'Unknown' : `${remainingUnresolved}`,
+    willLink: willLink === null ? 'Unknown' : `${willLink}`,
+    willCreate: willCreate === null ? 'Unknown' : `${willCreate}`,
+    needsReview: needsReview === null ? 'Unknown' : `${needsReview}`,
+    skipped: skipped === null ? 'Unknown' : `${skipped}`,
+  }
 }
 
 /**
  * Build preview summary cards from existing metrics only.
  */
 export function buildPreviewSummaryCards({ metrics = null, metricsAvailable = false } = {}) {
-  const remainingUnresolved = metricsAvailable
-    ? asCount(metrics?.remainingClassifiedAutoLink)
-      + asCount(metrics?.remainingClassifiedAutoCreate)
-      + asCount(metrics?.manualReview)
-    : null
-
+  const data = buildPreviewExecutionData({ metrics, metricsAvailable })
   return [
-    {
-      id: 'legacy',
-      label: 'Legacy rows',
-      value: formatCount(metrics?.legacyItems ?? metrics?.total, metricsAvailable),
-    },
-    {
-      id: 'auto-link',
-      label: 'Auto-link',
-      value: formatCount(metrics?.autoLink, metricsAvailable),
-    },
-    {
-      id: 'auto-create',
-      label: 'Auto-create',
-      value: formatCount(metrics?.autoCreate, metricsAvailable),
-    },
-    {
-      id: 'manual',
-      label: 'Manual review',
-      value: formatCount(metrics?.manualReview, metricsAvailable),
-    },
-    {
-      id: 'remaining',
-      label: 'Remaining unresolved',
-      value: remainingUnresolved === null ? 'Unknown' : `${remainingUnresolved}`,
-    },
+    { id: 'legacy', label: 'Legacy rows', value: data.legacyRows },
+    { id: 'auto-link', label: 'Auto-link', value: data.autoLink },
+    { id: 'auto-create', label: 'Auto-create', value: data.autoCreate },
+    { id: 'manual', label: 'Manual review', value: data.manualReview },
+    { id: 'remaining', label: 'Remaining unresolved', value: data.remainingUnresolved },
   ]
 }
 
 /**
  * Build expected Phase 1 action groups from existing metrics only.
+ * Row structure is stable; values are real counts or Unknown.
  */
 export function buildPreviewExpectedActions({ metrics = null, metricsAvailable = false } = {}) {
-  if (!metricsAvailable) {
-    return [
-      {
-        id: 'unknown',
-        title: 'Unknown',
-        description: 'Expected Phase 1 actions cannot be determined without live metrics.',
-        value: 'Unknown',
-        tone: 'unknown',
-      },
-    ]
-  }
+  const data = buildPreviewExecutionData({ metrics, metricsAvailable })
 
   return [
     {
       id: 'will-link',
       title: 'Will Link',
       description: 'Classified auto-link rows still waiting to be linked in Phase 1.',
-      value: `${asCount(metrics?.remainingClassifiedAutoLink)}`,
+      value: data.willLink,
       tone: 'link',
     },
     {
       id: 'will-create',
       title: 'Will Create',
       description: 'Classified auto-create rows still waiting to be created in Phase 1.',
-      value: `${asCount(metrics?.remainingClassifiedAutoCreate)}`,
+      value: data.willCreate,
       tone: 'create',
     },
     {
       id: 'needs-review',
       title: 'Needs Review',
       description: 'Manual review map rows that will not auto-execute.',
-      value: `${asCount(metrics?.manualReview)}`,
+      value: data.needsReview,
       tone: 'review',
     },
     {
       id: 'skipped',
       title: 'Skipped',
       description: 'Map rows already marked skipped.',
-      value: `${asCount(metrics?.skipped)}`,
+      value: data.skipped,
       tone: 'skipped',
     },
   ]
