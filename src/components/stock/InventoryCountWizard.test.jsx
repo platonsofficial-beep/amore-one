@@ -21,6 +21,11 @@ vi.mock('../../context/AuthContext', () => ({
 vi.mock('../../services/inventoryCountService', () => ({
   createInventoryCountSession: vi.fn(),
   buildInventoryCountSnapshot: vi.fn(),
+  listInventoryCountHomeSessions: vi.fn(async () => ({
+    active: [],
+    paused: [],
+    recent: [],
+  })),
 }))
 
 function render(ui) {

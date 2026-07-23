@@ -1,18 +1,181 @@
-import { useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
+import { useAuth } from '../../context/AuthContext'
+import { listInventoryCountHomeSessions } from '../../services/inventoryCountService'
 import { InventoryCountWizard } from './InventoryCountWizard'
 import { InventoryCountSessionWorkspace } from './InventoryCountSessionWorkspace'
 
+const OPENABLE_STATUSES = new Set(['in_progress', 'paused', 'counting_complete'])
+
+function formatSessionDate(value) {
+  if (!value) return '—'
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return '—'
+  return date.toLocaleString(undefined, {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  })
+}
+
+function formatProgress(session) {
+  const total = Number(session?.totalLocations) || 0
+  const completed = Number(session?.completedLocations) || 0
+  if (total <= 0) return 'No locations'
+  return `${completed} / ${total} locations`
+}
+
+function formatLocations(session) {
+  const keys = Array.isArray(session?.locations) ? session.locations.filter(Boolean) : []
+  if (keys.length === 0) return '—'
+  if (keys.length <= 3) return keys.join(', ')
+  return `${keys.slice(0, 3).join(', ')} +${keys.length - 3}`
+}
+
+function InventoryCountSessionCard({ session, onOpen }) {
+  const canOpen = OPENABLE_STATUSES.has(session.status)
+  const lastUpdate = session.updatedAt || session.postedAt || session.pausedAt || session.startedAt
+  const operator = `${session.operatorName ?? ''}`.trim() || '—'
+
+  return (
+    <button
+      type="button"
+      className={`inventory-count-session-card is-${session.status}${canOpen ? '' : ' is-readonly'}`}
+      onClick={() => {
+        if (canOpen) onOpen?.(session)
+      }}
+      disabled={!canOpen}
+      aria-label={`${session.countTypeLabel}, ${session.statusLabel}`}
+    >
+      <div className="inventory-count-session-card-top">
+        <strong className="inventory-count-session-card-title">{session.countTypeLabel}</strong>
+        <span className="inventory-count-session-pill is-status">
+          {session.statusLabel}
+        </span>
+      </div>
+      <dl className="inventory-count-session-card-meta">
+        <div>
+          <dt>Started</dt>
+          <dd>{formatSessionDate(session.startedAt)}</dd>
+        </div>
+        <div>
+          <dt>Operator</dt>
+          <dd>{operator}</dd>
+        </div>
+        <div>
+          <dt>Locations</dt>
+          <dd>{formatLocations(session)}</dd>
+        </div>
+        <div>
+          <dt>Progress</dt>
+          <dd>{formatProgress(session)}</dd>
+        </div>
+        <div>
+          <dt>Last update</dt>
+          <dd>{formatSessionDate(lastUpdate)}</dd>
+        </div>
+      </dl>
+    </button>
+  )
+}
+
+function InventoryCountSessionPanel({
+  title,
+  sessions,
+  emptyTitle,
+  emptyCopy,
+  isLoading,
+  onOpenSession,
+}) {
+  const hasSessions = sessions.length > 0
+
+  return (
+    <article className="panel staff-panel inventory-count-panel">
+      <h3 className="inventory-count-panel-title">{title}</h3>
+      {isLoading ? (
+        <p className="inventory-count-panel-loading" role="status">Loading…</p>
+      ) : hasSessions ? (
+        <div className="inventory-count-session-list" role="list">
+          {sessions.map((session) => (
+            <div key={session.id} role="listitem">
+              <InventoryCountSessionCard session={session} onOpen={onOpenSession} />
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="stock-empty-state">
+          <h4>{emptyTitle}</h4>
+          {emptyCopy ? <p>{emptyCopy}</p> : null}
+        </div>
+      )}
+    </article>
+  )
+}
+
 export function InventoryCountView() {
+  const { workspace } = useAuth()
+  const workspaceId = `${workspace?.id ?? ''}`.trim()
+
   const [isWizardOpen, setIsWizardOpen] = useState(false)
   const [isSessionOpen, setIsSessionOpen] = useState(false)
   const [activeSessionId, setActiveSessionId] = useState('')
   const [activeWorkspaceId, setActiveWorkspaceId] = useState('')
   const [pageNotice, setPageNotice] = useState('')
+  const [isLoadingSessions, setIsLoadingSessions] = useState(Boolean(workspaceId))
+  const [loadError, setLoadError] = useState('')
+  const [activeSessions, setActiveSessions] = useState([])
+  const [pausedSessions, setPausedSessions] = useState([])
+  const [recentSessions, setRecentSessions] = useState([])
+
+  const loadHomeSessions = useCallback(async () => {
+    if (!workspaceId) {
+      setActiveSessions([])
+      setPausedSessions([])
+      setRecentSessions([])
+      setIsLoadingSessions(false)
+      setLoadError('')
+      return
+    }
+
+    setIsLoadingSessions(true)
+    setLoadError('')
+    try {
+      const next = await listInventoryCountHomeSessions({ workspaceId })
+      setActiveSessions(next.active ?? [])
+      setPausedSessions(next.paused ?? [])
+      setRecentSessions(next.recent ?? [])
+    } catch (error) {
+      setActiveSessions([])
+      setPausedSessions([])
+      setRecentSessions([])
+      setLoadError(error?.message || 'Unable to load inventory count sessions right now.')
+    } finally {
+      setIsLoadingSessions(false)
+    }
+  }, [workspaceId])
+
+  useEffect(() => {
+    void loadHomeSessions()
+  }, [loadHomeSessions])
+
+  const openSession = (session) => {
+    const sessionId = `${session?.id ?? ''}`.trim()
+    const nextWorkspaceId = `${session?.workspaceId ?? workspaceId}`.trim()
+    if (!sessionId || !nextWorkspaceId) return
+    if (!OPENABLE_STATUSES.has(session.status)) return
+
+    setPageNotice('')
+    setActiveSessionId(sessionId)
+    setActiveWorkspaceId(nextWorkspaceId)
+    setIsSessionOpen(true)
+  }
 
   const handleExitSession = () => {
     setIsSessionOpen(false)
     setActiveSessionId('')
     setActiveWorkspaceId('')
+    void loadHomeSessions()
   }
 
   const handleSessionPosted = ({ message } = {}) => {
@@ -56,30 +219,37 @@ export function InventoryCountView() {
         </div>
       ) : null}
 
+      {loadError ? (
+        <div className="staff-status-banner auth-banner-error" role="alert">
+          {loadError}
+        </div>
+      ) : null}
+
       <div className="inventory-count-foundation-grid" aria-label="Inventory count status">
-        <article className="panel staff-panel inventory-count-panel">
-          <h3 className="inventory-count-panel-title">Active counts</h3>
-          <div className="stock-empty-state">
-            <h4>No active counts</h4>
-            <p>No counts are currently in progress.</p>
-          </div>
-        </article>
-
-        <article className="panel staff-panel inventory-count-panel">
-          <h3 className="inventory-count-panel-title">Paused counts</h3>
-          <div className="stock-empty-state">
-            <h4>No paused counts</h4>
-            <p>No paused counts.</p>
-          </div>
-        </article>
-
-        <article className="panel staff-panel inventory-count-panel">
-          <h3 className="inventory-count-panel-title">Recent counts</h3>
-          <div className="stock-empty-state">
-            <h4>No recent counts</h4>
-            <p>Completed inventory counts will appear here.</p>
-          </div>
-        </article>
+        <InventoryCountSessionPanel
+          title="Active counts"
+          sessions={activeSessions}
+          emptyTitle="No active counts."
+          emptyCopy=""
+          isLoading={isLoadingSessions}
+          onOpenSession={openSession}
+        />
+        <InventoryCountSessionPanel
+          title="Paused counts"
+          sessions={pausedSessions}
+          emptyTitle="No paused counts."
+          emptyCopy=""
+          isLoading={isLoadingSessions}
+          onOpenSession={openSession}
+        />
+        <InventoryCountSessionPanel
+          title="Recent counts"
+          sessions={recentSessions}
+          emptyTitle="No completed counts yet."
+          emptyCopy=""
+          isLoading={isLoadingSessions}
+          onOpenSession={openSession}
+        />
       </div>
 
       <aside className="panel staff-panel inventory-count-howto" aria-label="How Inventory Count will work">
@@ -96,10 +266,10 @@ export function InventoryCountView() {
         onClose={() => setIsWizardOpen(false)}
         onStartSession={(result) => {
           const sessionId = `${result?.sessionId ?? result?.session?.id ?? ''}`.trim()
-          const workspaceId = `${result?.workspaceId ?? result?.session?.workspaceId ?? ''}`.trim()
+          const nextWorkspaceId = `${result?.workspaceId ?? result?.session?.workspaceId ?? ''}`.trim()
           setPageNotice('')
           setActiveSessionId(sessionId)
-          setActiveWorkspaceId(workspaceId)
+          setActiveWorkspaceId(nextWorkspaceId)
           setIsWizardOpen(false)
           setIsSessionOpen(true)
         }}

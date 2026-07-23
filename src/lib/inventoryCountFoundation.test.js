@@ -72,15 +72,16 @@ describe('Inventory Count section foundation', () => {
     expect(appSource).toContain("activeView === 'stock' && stockSection === 'migration'")
   })
 
-  it('keeps the foundation free of session creation, posting, and persistence', () => {
+  it('keeps the foundation free of session creation, posting, and local persistence', () => {
     expect(inventoryCountSource).toContain('Start new count')
     expect(inventoryCountSource).toContain('InventoryCountWizard')
     expect(inventoryCountSource).toContain('onClick')
     expect(inventoryCountSource).toContain('useState')
-    expect(inventoryCountSource).not.toMatch(/recordStockMovement|createCount|postCount|localStorage|supabase/i)
-    expect(inventoryCountSource).toContain('No counts are currently in progress.')
+    expect(inventoryCountSource).toContain('listInventoryCountHomeSessions')
+    expect(inventoryCountSource).not.toMatch(/recordStockMovement|createCount|postCount|localStorage/i)
+    expect(inventoryCountSource).toContain('No active counts.')
     expect(inventoryCountSource).toContain('No paused counts.')
-    expect(inventoryCountSource).toContain('Completed inventory counts will appear here.')
+    expect(inventoryCountSource).toContain('No completed counts yet.')
   })
 
   it('exposes Inventory Count module chrome copy', () => {

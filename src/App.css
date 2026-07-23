@@ -31282,6 +31282,86 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   font-weight: 600;
 }
 
+.inventory-count-panel-loading {
+  margin: 0;
+  color: #bfb3a0;
+  font-size: 0.9rem;
+}
+
+.inventory-count-session-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.inventory-count-session-card {
+  width: 100%;
+  min-height: 44px;
+  margin: 0;
+  padding: 12px 14px;
+  border-radius: 14px;
+  border: 1px solid rgba(212, 175, 55, 0.18);
+  background: rgba(255, 255, 255, 0.03);
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.inventory-count-session-card:hover:not(:disabled),
+.inventory-count-session-card:focus-visible {
+  border-color: rgba(212, 175, 55, 0.42);
+  outline: none;
+}
+
+.inventory-count-session-card:disabled,
+.inventory-count-session-card.is-readonly {
+  cursor: default;
+  opacity: 0.95;
+}
+
+.inventory-count-session-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.inventory-count-session-card-title {
+  color: #fff7e8;
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.inventory-count-session-card-meta {
+  margin: 0;
+  display: grid;
+  gap: 6px;
+}
+
+.inventory-count-session-card-meta > div {
+  display: grid;
+  grid-template-columns: 88px minmax(0, 1fr);
+  gap: 8px;
+  align-items: start;
+}
+
+.inventory-count-session-card-meta dt {
+  margin: 0;
+  color: #9f9383;
+  font-size: 0.78rem;
+}
+
+.inventory-count-session-card-meta dd {
+  margin: 0;
+  color: #d8cbb8;
+  font-size: 0.84rem;
+  line-height: 1.35;
+  word-break: break-word;
+}
+
 .inventory-count-howto {
   display: flex;
   flex-direction: column;

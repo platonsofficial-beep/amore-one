@@ -1,4 +1,5 @@
 import { supabase } from '../lib/supabaseClient'
+import { getMemberDisplayNamesByAuthUserIds } from './membershipService'
 
 const CREATE_SESSION_RPC = 'create_inventory_count_session'
 const BUILD_SNAPSHOT_RPC = 'build_inventory_count_snapshot'
@@ -7,12 +8,48 @@ const COMPLETE_LOCATION_RPC = 'complete_inventory_count_location'
 const SET_PAUSE_STATE_RPC = 'set_inventory_count_session_pause_state'
 const PREVIEW_FINISH_RPC = 'preview_inventory_count_finish'
 const POST_FINISH_RPC = 'post_inventory_count_finish'
+const SESSIONS_TABLE = 'inventory_count_sessions'
 const SESSION_ITEMS_TABLE = 'inventory_count_session_items'
 const SESSION_LOCATIONS_TABLE = 'inventory_count_session_locations'
 
 const VALID_COUNT_TYPES = new Set(['new', 'quick', 'partial', 'scheduled', 'emergency'])
 const VALID_VISIBILITY = new Set(['blind', 'open'])
 const NOTE_MAX_LENGTH = 250
+
+const COUNT_TYPE_LABELS = {
+  new: 'New Count',
+  quick: 'Quick Count',
+  partial: 'Partial Count',
+  scheduled: 'Scheduled Count',
+  emergency: 'Emergency Count',
+}
+
+const SESSION_STATUS_LABELS = {
+  in_progress: 'In progress',
+  paused: 'Paused',
+  counting_complete: 'Counting complete',
+  posted: 'Posted',
+  cancelled: 'Cancelled',
+}
+
+const HOME_SESSION_SELECT = [
+  'id',
+  'workspace_id',
+  'status',
+  'count_type',
+  'visibility',
+  'include_zero_stock',
+  'include_inactive',
+  'note',
+  'started_by',
+  'started_at',
+  'paused_at',
+  'completed_at',
+  'posted_at',
+  'cancelled_at',
+  'created_at',
+  'updated_at',
+].join(', ')
 
 function requireConfiguredSupabase() {
   if (!supabase) {
@@ -192,19 +229,57 @@ export function mapInventoryCountSessionRow(row) {
     return null
   }
 
+  const countType = `${row.count_type ?? row.countType ?? ''}`.trim()
+  const status = `${row.status ?? ''}`.trim() || 'in_progress'
+  const pausedAtRaw = row.paused_at ?? row.pausedAt
+  const completedAtRaw = row.completed_at ?? row.completedAt
+  const postedAtRaw = row.posted_at ?? row.postedAt
+  const cancelledAtRaw = row.cancelled_at ?? row.cancelledAt
+  const updatedAtRaw = row.updated_at ?? row.updatedAt
+
   return {
     id,
     workspaceId,
-    status: `${row.status ?? ''}`.trim() || 'in_progress',
-    countType: `${row.count_type ?? row.countType ?? ''}`.trim(),
+    status,
+    statusLabel: SESSION_STATUS_LABELS[status] || status,
+    countType,
+    countTypeLabel: COUNT_TYPE_LABELS[countType] || countType || 'Inventory Count',
     visibility: `${row.visibility ?? ''}`.trim(),
     includeZeroStock: row.include_zero_stock ?? row.includeZeroStock ?? true,
     includeInactive: row.include_inactive ?? row.includeInactive ?? false,
     note: `${row.note ?? ''}`,
     startedBy: row.started_by ?? row.startedBy ?? null,
     startedAt: row.started_at ?? row.startedAt ?? null,
+    pausedAt: pausedAtRaw == null || pausedAtRaw === '' ? null : `${pausedAtRaw}`,
+    completedAt: completedAtRaw == null || completedAtRaw === '' ? null : `${completedAtRaw}`,
+    postedAt: postedAtRaw == null || postedAtRaw === '' ? null : `${postedAtRaw}`,
+    cancelledAt: cancelledAtRaw == null || cancelledAtRaw === '' ? null : `${cancelledAtRaw}`,
     createdAt: row.created_at ?? row.createdAt ?? null,
+    updatedAt: updatedAtRaw == null || updatedAtRaw === '' ? null : `${updatedAtRaw}`,
   }
+}
+
+/**
+ * Partition workspace sessions for Inventory Count home panels.
+ * Active includes counting_complete so open (delete-blocking) sessions stay visible.
+ */
+export function partitionInventoryCountHomeSessions(sessions = []) {
+  const active = []
+  const paused = []
+  const recent = []
+
+  for (const session of sessions) {
+    if (!session?.id) continue
+    if (session.status === 'in_progress' || session.status === 'counting_complete') {
+      active.push(session)
+    } else if (session.status === 'paused') {
+      paused.push(session)
+    } else if (session.status === 'posted') {
+      recent.push(session)
+    }
+  }
+
+  return { active, paused, recent }
 }
 
 export function mapInventoryCountSnapshotResult(row) {
@@ -389,6 +464,104 @@ export async function buildInventoryCountSnapshot({
   }
 
   return mapped
+}
+
+function buildLocationProgressBySession(locationRows = []) {
+  const progressBySessionId = new Map()
+
+  for (const row of locationRows) {
+    const mapped = mapInventoryCountSessionLocationRow(row)
+    if (!mapped) continue
+
+    const current = progressBySessionId.get(mapped.sessionId) || {
+      locationKeys: [],
+      completedLocations: 0,
+      totalLocations: 0,
+    }
+    current.locationKeys.push(mapped.locationKey)
+    current.totalLocations += 1
+    if (mapped.status === 'completed') {
+      current.completedLocations += 1
+    }
+    progressBySessionId.set(mapped.sessionId, current)
+  }
+
+  return progressBySessionId
+}
+
+/**
+ * Read-only home list of inventory count sessions for a workspace.
+ * Includes location progress and operator display names when available.
+ */
+export async function listInventoryCountHomeSessions({ workspaceId } = {}) {
+  requireConfiguredSupabase()
+
+  const normalizedWorkspaceId = requireId(workspaceId, 'Workspace')
+
+  const { data, error } = await supabase
+    .from(SESSIONS_TABLE)
+    .select(HOME_SESSION_SELECT)
+    .eq('workspace_id', normalizedWorkspaceId)
+    .order('started_at', { ascending: false })
+
+  if (error) {
+    console.error('[inventoryCountService] listInventoryCountHomeSessions error:', error)
+    throw new Error(error.message || 'Unable to load inventory count sessions right now.')
+  }
+
+  const sessions = (data ?? [])
+    .map(mapInventoryCountSessionRow)
+    .filter(Boolean)
+
+  if (sessions.length === 0) {
+    return partitionInventoryCountHomeSessions([])
+  }
+
+  const sessionIds = sessions.map((session) => session.id)
+  const operatorIds = [...new Set(sessions.map((session) => session.startedBy).filter(Boolean))]
+
+  const [locationsResult, operatorNames] = await Promise.all([
+    supabase
+      .from(SESSION_LOCATIONS_TABLE)
+      .select('id, session_id, workspace_id, location_key, sort_order, status')
+      .eq('workspace_id', normalizedWorkspaceId)
+      .in('session_id', sessionIds)
+      .order('sort_order', { ascending: true }),
+    getMemberDisplayNamesByAuthUserIds(normalizedWorkspaceId, operatorIds),
+  ])
+
+  if (locationsResult.error) {
+    console.error(
+      '[inventoryCountService] listInventoryCountHomeSessions locations error:',
+      locationsResult.error,
+    )
+    throw new Error(
+      locationsResult.error.message || 'Unable to load inventory count locations right now.',
+    )
+  }
+
+  const progressBySessionId = buildLocationProgressBySession(locationsResult.data ?? [])
+
+  const enriched = sessions.map((session) => {
+    const progress = progressBySessionId.get(session.id) || {
+      locationKeys: [],
+      completedLocations: 0,
+      totalLocations: 0,
+    }
+    const operatorName = session.startedBy
+      ? (operatorNames[session.startedBy] || null)
+      : null
+
+    return {
+      ...session,
+      operatorName,
+      locations: progress.locationKeys,
+      completedLocations: progress.completedLocations,
+      totalLocations: progress.totalLocations,
+    }
+  })
+
+  return partitionInventoryCountHomeSessions(enriched)
 }
 
 /**

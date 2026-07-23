@@ -35,6 +35,11 @@ vi.mock('../../services/inventoryCountService', () => ({
   setInventoryCountSessionPauseState: vi.fn(),
   previewInventoryCountFinish: vi.fn(),
   postInventoryCountFinish: vi.fn(),
+  listInventoryCountHomeSessions: vi.fn(async () => ({
+    active: [],
+    paused: [],
+    recent: [],
+  })),
 }))
 
 function render(ui) {

@@ -14,20 +14,29 @@ vi.mock('../lib/supabaseClient', () => ({
   },
 }))
 
+vi.mock('./membershipService', () => ({
+  getMemberDisplayNamesByAuthUserIds: vi.fn(async () => ({})),
+}))
+
 import {
   completeInventoryCountLocation,
   getInventoryCountSessionItems,
+  listInventoryCountHomeSessions,
+  mapInventoryCountSessionRow,
+  partitionInventoryCountHomeSessions,
   mapInventoryCountSessionItemRow,
   postInventoryCountFinish,
   previewInventoryCountFinish,
   setInventoryCountSessionPauseState,
   updateInventoryCountItem,
 } from './inventoryCountService'
+import { getMemberDisplayNamesByAuthUserIds } from './membershipService'
 
 function createQuery(result) {
   const query = {
     select: vi.fn(() => query),
     eq: vi.fn(() => query),
+    in: vi.fn(() => query),
     order: vi.fn(() => query),
     limit: vi.fn(() => query),
     update: vi.fn(() => query),
@@ -77,6 +86,155 @@ describe('mapInventoryCountSessionItemRow', () => {
   it('returns null for incomplete rows', () => {
     expect(mapInventoryCountSessionItemRow(null)).toBeNull()
     expect(mapInventoryCountSessionItemRow({ id: 'line-1' })).toBeNull()
+  })
+})
+
+describe('inventory count home session mapping (P8.16.27)', () => {
+  beforeEach(() => {
+    fromMock.mockReset()
+    rpcMock.mockReset()
+    getMemberDisplayNamesByAuthUserIds.mockReset()
+    getMemberDisplayNamesByAuthUserIds.mockResolvedValue({})
+  })
+
+  it('maps session status labels and timestamps', () => {
+    const mapped = mapInventoryCountSessionRow({
+      id: 'session-1',
+      workspace_id: 'workspace-1',
+      status: 'paused',
+      count_type: 'quick',
+      visibility: 'blind',
+      started_by: 'user-1',
+      started_at: '2026-07-21T10:00:00.000Z',
+      paused_at: '2026-07-21T11:00:00.000Z',
+      updated_at: '2026-07-21T11:00:00.000Z',
+    })
+
+    expect(mapped).toMatchObject({
+      id: 'session-1',
+      workspaceId: 'workspace-1',
+      status: 'paused',
+      statusLabel: 'Paused',
+      countType: 'quick',
+      countTypeLabel: 'Quick Count',
+      startedBy: 'user-1',
+      pausedAt: '2026-07-21T11:00:00.000Z',
+      updatedAt: '2026-07-21T11:00:00.000Z',
+    })
+  })
+
+  it('partitions active, paused, and posted sessions and excludes cancelled', () => {
+    const partitioned = partitionInventoryCountHomeSessions([
+      { id: 'a', status: 'in_progress' },
+      { id: 'b', status: 'counting_complete' },
+      { id: 'c', status: 'paused' },
+      { id: 'd', status: 'posted' },
+      { id: 'e', status: 'cancelled' },
+      { id: 'f', status: 'mystery' },
+    ])
+
+    expect(partitioned.active.map((row) => row.id)).toEqual(['a', 'b'])
+    expect(partitioned.paused.map((row) => row.id)).toEqual(['c'])
+    expect(partitioned.recent.map((row) => row.id)).toEqual(['d'])
+  })
+
+  it('lists home sessions scoped to workspace with progress and operator names', async () => {
+    getMemberDisplayNamesByAuthUserIds.mockResolvedValueOnce({
+      'user-1': 'Alex Manager',
+    })
+
+    const sessionsQuery = createQuery({
+      data: [
+        {
+          id: 'session-active',
+          workspace_id: 'workspace-1',
+          status: 'in_progress',
+          count_type: 'quick',
+          visibility: 'blind',
+          started_by: 'user-1',
+          started_at: '2026-07-21T10:00:00.000Z',
+          updated_at: '2026-07-21T10:30:00.000Z',
+        },
+        {
+          id: 'session-paused',
+          workspace_id: 'workspace-1',
+          status: 'paused',
+          count_type: 'partial',
+          visibility: 'open',
+          started_by: 'user-1',
+          started_at: '2026-07-20T10:00:00.000Z',
+          paused_at: '2026-07-20T12:00:00.000Z',
+          updated_at: '2026-07-20T12:00:00.000Z',
+        },
+        {
+          id: 'session-posted',
+          workspace_id: 'workspace-1',
+          status: 'posted',
+          count_type: 'new',
+          visibility: 'blind',
+          started_by: null,
+          started_at: '2026-07-19T10:00:00.000Z',
+          posted_at: '2026-07-19T18:00:00.000Z',
+          updated_at: '2026-07-19T18:00:00.000Z',
+        },
+      ],
+      error: null,
+    })
+    const locationsQuery = createQuery({
+      data: [
+        {
+          id: 'loc-1',
+          session_id: 'session-active',
+          workspace_id: 'workspace-1',
+          location_key: 'Main Storage',
+          sort_order: 0,
+          status: 'completed',
+        },
+        {
+          id: 'loc-2',
+          session_id: 'session-active',
+          workspace_id: 'workspace-1',
+          location_key: 'Bar',
+          sort_order: 1,
+          status: 'current',
+        },
+      ],
+      error: null,
+    })
+
+    fromMock.mockImplementation((table) => {
+      if (table === 'inventory_count_sessions') return sessionsQuery
+      if (table === 'inventory_count_session_locations') return locationsQuery
+      return createQuery({ data: [], error: null })
+    })
+
+    const result = await listInventoryCountHomeSessions({ workspaceId: 'workspace-1' })
+
+    expect(sessionsQuery.eq).toHaveBeenCalledWith('workspace_id', 'workspace-1')
+    expect(locationsQuery.eq).toHaveBeenCalledWith('workspace_id', 'workspace-1')
+    expect(locationsQuery.in).toHaveBeenCalledWith(
+      'session_id',
+      ['session-active', 'session-paused', 'session-posted'],
+    )
+    expect(getMemberDisplayNamesByAuthUserIds).toHaveBeenCalledWith('workspace-1', ['user-1'])
+    expect(result.active).toHaveLength(1)
+    expect(result.active[0]).toMatchObject({
+      id: 'session-active',
+      operatorName: 'Alex Manager',
+      locations: ['Main Storage', 'Bar'],
+      completedLocations: 1,
+      totalLocations: 2,
+      statusLabel: 'In progress',
+    })
+    expect(result.paused).toHaveLength(1)
+    expect(result.recent).toHaveLength(1)
+  })
+
+  it('returns empty partitions when the workspace has no sessions', async () => {
+    fromMock.mockReturnValue(createQuery({ data: [], error: null }))
+
+    const result = await listInventoryCountHomeSessions({ workspaceId: 'workspace-empty' })
+    expect(result).toEqual({ active: [], paused: [], recent: [] })
   })
 })
 
