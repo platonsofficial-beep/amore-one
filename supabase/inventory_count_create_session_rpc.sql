@@ -80,6 +80,7 @@ declare
   v_empty_location_count integer := 0;
   v_session public.inventory_count_sessions%rowtype;
   v_note_max_length constant integer := 250;
+  v_current_location_count integer := 0;
 begin
   -- Authentication
   if v_auth_user_id is null then
@@ -221,6 +222,19 @@ begin
     end
   from unnest(p_locations) with ordinality as loc(location_key, ordinality);
 
+  -- P8.16.34: in_progress create must leave exactly one current location.
+  select count(*)::integer
+  into v_current_location_count
+  from public.inventory_count_session_locations l
+  where l.session_id = v_session.id
+    and l.workspace_id = p_workspace_id
+    and l.status = 'current';
+
+  if v_current_location_count is distinct from 1 then
+    raise exception 'inventory_count_session_current_invariant'
+      using hint = 'Created in_progress session must have exactly one current location.';
+  end if;
+
   return query
   select
     v_session.id,
@@ -266,7 +280,7 @@ comment on function public.create_inventory_count_session(
   text,
   text[]
 ) is
-  'P8.3.1/P8.3.7a SECURITY DEFINER create inventory count session + locations. First location (input order / sort_order 0) is current; remaining are not_started. No snapshot items, stock mutations, or posting.';
+  'P8.3.1/P8.3.7a/P8.16.34 SECURITY DEFINER create inventory count session + locations. First location (input order / sort_order 0) is current; remaining are not_started. Asserts exactly one current location. No snapshot items, stock mutations, or posting.';
 
 -- =============================================================================
 -- Verification (commented — run after apply; do not auto-execute)

@@ -9,6 +9,7 @@ const SET_PAUSE_STATE_RPC = 'set_inventory_count_session_pause_state'
 const PREVIEW_FINISH_RPC = 'preview_inventory_count_finish'
 const POST_FINISH_RPC = 'post_inventory_count_finish'
 const CANCEL_COMPLETION_RPC = 'cancel_inventory_count_completion'
+const REPAIR_CURRENT_LOCATION_RPC = 'repair_inventory_count_current_location'
 const SESSIONS_TABLE = 'inventory_count_sessions'
 const SESSION_ITEMS_TABLE = 'inventory_count_session_items'
 const SESSION_LOCATIONS_TABLE = 'inventory_count_session_locations'
@@ -77,7 +78,7 @@ function isRpcUnavailableError(error) {
 
 function extractRpcErrorCode(error) {
   const message = `${error?.message ?? error?.details ?? error?.hint ?? ''}`.trim()
-  const match = message.match(/inventory_count_(?:session|snapshot|item|location|pause|preview|post|reconcile|cancel)_[a-z0-9_]+/i)
+  const match = message.match(/inventory_count_(?:session|snapshot|item|location|pause|preview|post|reconcile|cancel|repair)_[a-z0-9_]+/i)
   return match?.[0]?.toLowerCase() ?? ''
 }
 
@@ -195,6 +196,29 @@ function mapInventoryCountRpcError(error, fallbackMessage) {
     case 'inventory_count_cancel_not_counting_complete':
     case 'inventory_count_cancel_stale_status':
       return new Error('Only counting-complete sessions can be cancelled. Refresh and try again.')
+    case 'inventory_count_repair_forbidden':
+      return new Error('You do not have permission to repair inventory counts for this workspace.')
+    case 'inventory_count_repair_unauthenticated':
+      return new Error('Sign in required to repair inventory counts.')
+    case 'inventory_count_repair_workspace_required':
+    case 'inventory_count_repair_session_required':
+      return new Error('Workspace and session are required to repair inventory count.')
+    case 'inventory_count_repair_workspace_mismatch':
+      return new Error('Inventory count session does not belong to this workspace.')
+    case 'inventory_count_repair_session_not_found':
+      return new Error('Inventory count session was not found.')
+    case 'inventory_count_repair_session_counting_complete':
+      return new Error('Counting-complete sessions cannot be repaired.')
+    case 'inventory_count_repair_session_posted':
+      return new Error('Posted inventory counts cannot be repaired.')
+    case 'inventory_count_repair_session_cancelled':
+      return new Error('Cancelled inventory counts cannot be repaired.')
+    case 'inventory_count_repair_session_status_invalid':
+      return new Error('Only in-progress or paused inventory counts can be repaired.')
+    case 'inventory_count_repair_multiple_current_locations':
+      return new Error('Session has more than one current location; repair refused.')
+    case 'inventory_count_repair_postcondition_failed':
+      return new Error('Repair did not leave exactly one current location.')
     case 'inventory_count_post_blocked':
       return new Error('Inventory count cannot be posted until all blocking issues are resolved.')
     case 'inventory_count_session_snapshot_at_immutable':
@@ -821,6 +845,69 @@ export async function cancelInventoryCountSession({
     cancelledAt: payload.cancelled_at ?? payload.cancelledAt ?? null,
     updatedAt: payload.updated_at ?? payload.updatedAt ?? null,
     preserved: payload.preserved ?? null,
+    mutations: payload.mutations ?? null,
+  }
+}
+
+/**
+ * Ops-only: preview or repair a session with zero current locations.
+ * Does not mutate items, counted quantities, stock, or session status.
+ */
+export async function repairInventoryCountCurrentLocation({
+  workspaceId,
+  sessionId,
+  preview = true,
+} = {}) {
+  requireConfiguredSupabase()
+
+  const p_workspace_id = requireId(workspaceId, 'Workspace')
+  const p_session_id = requireId(sessionId, 'Session')
+  const p_preview = preview !== false
+
+  const { data, error } = await supabase.rpc(REPAIR_CURRENT_LOCATION_RPC, {
+    p_workspace_id,
+    p_session_id,
+    p_preview,
+  })
+
+  if (error) {
+    console.error('[inventoryCountService] repairInventoryCountCurrentLocation error:', error)
+    throw mapInventoryCountRpcError(error, 'Unable to repair inventory count current location right now.')
+  }
+
+  const payload = firstRpcRow(data) ?? data
+  if (!payload || typeof payload !== 'object') {
+    throw new Error('Repair inventory count response was empty or invalid.')
+  }
+
+  const blockersRaw = payload.blockers
+  const blockers = Array.isArray(blockersRaw)
+    ? blockersRaw.map((entry) => `${entry ?? ''}`.trim()).filter(Boolean)
+    : []
+
+  return {
+    success: Boolean(payload.success),
+    outcome: `${payload.outcome ?? ''}`.trim() || null,
+    eligible: Boolean(payload.eligible),
+    blockers,
+    mutationPerformed: Boolean(payload.mutation_performed ?? payload.mutationPerformed),
+    preview: Boolean(payload.preview ?? p_preview),
+    sessionId: `${payload.session_id ?? payload.sessionId ?? ''}`.trim() || null,
+    workspaceId: `${payload.workspace_id ?? payload.workspaceId ?? ''}`.trim() || null,
+    sessionStatus: `${payload.session_status ?? payload.sessionStatus ?? ''}`.trim() || null,
+    totalLocations: Number(payload.total_locations ?? payload.totalLocations) || 0,
+    currentCount: Number(payload.current_count ?? payload.currentCount) || 0,
+    completedCount: Number(payload.completed_count ?? payload.completedCount) || 0,
+    notStartedCount: Number(payload.not_started_count ?? payload.notStartedCount) || 0,
+    proposedLocationId: `${payload.proposed_location_id ?? payload.proposedLocationId ?? ''}`.trim() || null,
+    proposedLocationKey: `${payload.proposed_location_key ?? payload.proposedLocationKey ?? ''}`.trim() || null,
+    proposedPreviousStatus: `${payload.proposed_previous_status ?? payload.proposedPreviousStatus ?? ''}`.trim() || null,
+    proposedNewStatus: `${payload.proposed_new_status ?? payload.proposedNewStatus ?? ''}`.trim() || null,
+    repairedLocationId: `${payload.repaired_location_id ?? payload.repairedLocationId ?? ''}`.trim() || null,
+    repairedLocationKey: `${payload.repaired_location_key ?? payload.repairedLocationKey ?? ''}`.trim() || null,
+    previousStatus: `${payload.previous_status ?? payload.previousStatus ?? ''}`.trim() || null,
+    newStatus: `${payload.new_status ?? payload.newStatus ?? ''}`.trim() || null,
+    currentCountAfter: Number(payload.current_count_after ?? payload.currentCountAfter) || 0,
     mutations: payload.mutations ?? null,
   }
 }
