@@ -773,3 +773,93 @@ describe('Permanent Delete open inventory count guidance (P8.16.29)', () => {
     cleanup()
   })
 })
+
+describe('Permanent Delete open inventory count deep link (P8.16.30)', () => {
+  it('renders Open Inventory Count and navigates with the blocking session id', async () => {
+    const onClose = vi.fn()
+    const onOpenBlockingInventoryCount = vi.fn()
+
+    previewMock.mockResolvedValue(previewPayload({
+      inventory_count: {
+        posted_references: 0,
+        open_references: 1,
+      },
+    }))
+    openCountBlockerMock.mockResolvedValue({
+      sessionId: 'session-open-1',
+      countTypeLabel: 'New Count',
+      statusLabel: 'In Progress',
+      storageLocation: 'Main Storage',
+      startedAt: '2026-07-20T10:00:00.000Z',
+      operatorName: 'PLATON SACHINIS',
+    })
+
+    const { cleanup } = render(createElement(StockItemPermanentDeleteDialog, {
+      workspaceId: 'ws-1',
+      item: { id: 'item-1', name: 'KETEL ONE' },
+      onClose,
+      onOpenBlockingInventoryCount,
+    }))
+
+    await waitForPreview()
+    await act(async () => {
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+
+    const openBtn = Array.from(getDialog()?.querySelectorAll('button') ?? [])
+      .find((node) => node.textContent === 'Open Inventory Count')
+    expect(openBtn).toBeTruthy()
+
+    await act(async () => {
+      openBtn.click()
+    })
+
+    expect(onOpenBlockingInventoryCount).toHaveBeenCalledWith('session-open-1')
+    expect(onClose).toHaveBeenCalled()
+    expect(deleteMock).not.toHaveBeenCalled()
+
+    cleanup()
+  })
+
+  it('does not change the successful delete path when open-count guidance is unused', async () => {
+    const onCompleted = vi.fn()
+    const onClose = vi.fn()
+
+    const { cleanup } = render(createElement(StockItemPermanentDeleteDialog, {
+      workspaceId: 'ws-1',
+      item: { id: 'item-1', name: 'KETEL ONE' },
+      onClose,
+      onCompleted,
+      onOpenBlockingInventoryCount: vi.fn(),
+    }))
+
+    await waitForPreview()
+    expect(getDialog()?.textContent).not.toContain('Open Inventory Count')
+
+    await act(async () => {
+      setNativeValue(
+        getDialog().querySelector('input[aria-label="Typed confirmation phrase"]'),
+        'DELETE KETEL ONE',
+      )
+      setNativeValue(
+        getDialog().querySelector('input[aria-label="Account password"]'),
+        'secret',
+      )
+    })
+
+    await act(async () => {
+      getDialog().querySelector('form')?.dispatchEvent(
+        new Event('submit', { bubbles: true, cancelable: true }),
+      )
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+
+    expect(deleteMock).toHaveBeenCalled()
+    expect(onCompleted).toHaveBeenCalled()
+    expect(getDialog()?.textContent).toContain('Successfully deleted')
+
+    cleanup()
+  })
+})

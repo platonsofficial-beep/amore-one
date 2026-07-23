@@ -35870,6 +35870,12 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   word-break: break-word;
 }
 
+.stock-item-permanent-delete-open-count-btn {
+  align-self: flex-start;
+  min-height: 44px;
+  min-width: 44px;
+}
+
 .stock-item-permanent-delete-product-card p {
   margin: 0;
   color: #bfb3a0;

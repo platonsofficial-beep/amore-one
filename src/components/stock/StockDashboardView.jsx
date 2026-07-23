@@ -1252,6 +1252,7 @@ export function StockDashboardView({
   onRecordMovement,
   onCreateOrders,
   onOpenOrders,
+  onOpenInventoryCountSession,
   isSavingOrders = false,
 }) {
   const [categoryFilter, setCategoryFilter] = useState('All')
@@ -2046,6 +2047,7 @@ export function StockDashboardView({
             setPermanentDeleteFocusEl(null)
           }}
           onCompleted={handlePermanentDeleteCompleted}
+          onOpenBlockingInventoryCount={onOpenInventoryCountSession}
         />
       ) : null}
 

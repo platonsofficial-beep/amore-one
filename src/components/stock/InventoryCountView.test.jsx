@@ -8,6 +8,7 @@ import { createRoot } from 'react-dom/client'
 import { InventoryCountView } from './InventoryCountView'
 
 const listHomeSessionsMock = vi.fn()
+const getSessionMock = vi.fn()
 const previewFinishMock = vi.fn()
 const postFinishMock = vi.fn()
 const cancelSessionMock = vi.fn()
@@ -19,6 +20,7 @@ vi.mock('../../context/AuthContext', () => ({
 
 vi.mock('../../services/inventoryCountService', () => ({
   listInventoryCountHomeSessions: (...args) => listHomeSessionsMock(...args),
+  getInventoryCountSession: (...args) => getSessionMock(...args),
   previewInventoryCountFinish: (...args) => previewFinishMock(...args),
   postInventoryCountFinish: (...args) => postFinishMock(...args),
   cancelInventoryCountSession: (...args) => cancelSessionMock(...args),
@@ -92,6 +94,7 @@ beforeEach(() => {
     workspace: { id: 'workspace-test-id', name: 'Test Workspace' },
   })
   listHomeSessionsMock.mockReset()
+  getSessionMock.mockReset()
   previewFinishMock.mockReset()
   postFinishMock.mockReset()
   cancelSessionMock.mockReset()
@@ -100,6 +103,7 @@ beforeEach(() => {
     paused: [],
     recent: [],
   })
+  getSessionMock.mockResolvedValue(sessionFixture({ id: 'session-1' }))
   previewFinishMock.mockResolvedValue({ canPost: true })
   postFinishMock.mockResolvedValue({
     sessionId: 'complete-1',
@@ -397,6 +401,88 @@ describe('InventoryCountView completion actions (P8.16.28)', () => {
     expect(cancelSessionMock).not.toHaveBeenCalled()
     expect(listHomeSessionsMock).toHaveBeenCalledTimes(1)
     expect(container.textContent).toContain('Counting complete')
+
+    cleanup()
+  })
+})
+
+describe('InventoryCountView deep link open (P8.16.30)', () => {
+  it('opens the exact session workspace from initialOpenSessionId', async () => {
+    const onApplied = vi.fn()
+    getSessionMock.mockResolvedValue(sessionFixture({
+      id: 'deep-link-session',
+      status: 'in_progress',
+      workspaceId: 'workspace-test-id',
+    }))
+
+    const { container, cleanup } = render(createElement(InventoryCountView, {
+      initialOpenSessionId: 'deep-link-session',
+      onInitialOpenSessionApplied: onApplied,
+    }))
+
+    await flush()
+    await act(async () => {
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+
+    expect(onApplied).toHaveBeenCalled()
+    expect(getSessionMock).toHaveBeenCalledWith({
+      workspaceId: 'workspace-test-id',
+      sessionId: 'deep-link-session',
+    })
+    expect(container.querySelector('.inventory-count-session')?.getAttribute('data-session-id'))
+      .toBe('deep-link-session')
+    expect(container.querySelector('.inventory-count-page')).toBeNull()
+
+    cleanup()
+  })
+
+  it('falls back to Inventory Count home with a notice when the session is missing', async () => {
+    const onApplied = vi.fn()
+    getSessionMock.mockRejectedValue(new Error('Inventory count session was not found.'))
+
+    const { container, cleanup } = render(createElement(InventoryCountView, {
+      initialOpenSessionId: 'missing-session',
+      onInitialOpenSessionApplied: onApplied,
+    }))
+
+    await flush()
+    await act(async () => {
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+
+    expect(onApplied).toHaveBeenCalled()
+    expect(container.querySelector('.inventory-count-session')).toBeNull()
+    expect(container.querySelector('.inventory-count-page')).toBeTruthy()
+    expect(container.textContent).toContain(
+      'That inventory count could not be found. It may already be closed.',
+    )
+
+    cleanup()
+  })
+
+  it('falls back safely when the linked session is no longer open', async () => {
+    getSessionMock.mockResolvedValue(sessionFixture({
+      id: 'posted-session',
+      status: 'posted',
+      statusLabel: 'Posted',
+    }))
+
+    const { container, cleanup } = render(createElement(InventoryCountView, {
+      initialOpenSessionId: 'posted-session',
+      onInitialOpenSessionApplied: vi.fn(),
+    }))
+
+    await flush()
+    await act(async () => {
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+
+    expect(container.querySelector('.inventory-count-session')).toBeNull()
+    expect(container.textContent).toContain('That inventory count is no longer open.')
 
     cleanup()
   })

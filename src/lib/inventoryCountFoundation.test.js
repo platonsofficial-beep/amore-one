@@ -67,7 +67,9 @@ describe('Inventory Count section foundation', () => {
   it('wires InventoryCountView into the Stock workspace section switch', () => {
     expect(appSource).toContain("import { InventoryCountView } from './components/stock/InventoryCountView'")
     expect(appSource).toContain("activeView === 'stock' && stockSection === 'count'")
-    expect(appSource).toContain('<InventoryCountView />')
+    expect(appSource).toContain('<InventoryCountView')
+    expect(appSource).toContain('initialOpenSessionId={inventoryCountOpenSessionId}')
+    expect(appSource).toContain('onOpenInventoryCountSession={handleOpenInventoryCountSession}')
     expect(appSource).toContain("activeView === 'stock' && stockSection === 'dashboard'")
     expect(appSource).toContain("activeView === 'stock' && stockSection === 'migration'")
   })

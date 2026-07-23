@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useAuth } from '../../context/AuthContext'
 import {
   cancelInventoryCountSession,
+  getInventoryCountSession,
   listInventoryCountHomeSessions,
   postInventoryCountFinish,
   previewInventoryCountFinish,
@@ -193,7 +194,10 @@ function InventoryCountSessionPanel({
   )
 }
 
-export function InventoryCountView() {
+export function InventoryCountView({
+  initialOpenSessionId = null,
+  onInitialOpenSessionApplied,
+} = {}) {
   const { workspace } = useAuth()
   const workspaceId = `${workspace?.id ?? ''}`.trim()
 
@@ -210,6 +214,7 @@ export function InventoryCountView() {
   const [busySessionId, setBusySessionId] = useState('')
   const [busyAction, setBusyAction] = useState('')
   const [actionErrors, setActionErrors] = useState({})
+  const pendingOpenSessionIdRef = useRef('')
 
   const loadHomeSessions = useCallback(async () => {
     if (!workspaceId) {
@@ -241,6 +246,69 @@ export function InventoryCountView() {
   useEffect(() => {
     void loadHomeSessions()
   }, [loadHomeSessions])
+
+  useEffect(() => {
+    const fromProp = `${initialOpenSessionId ?? ''}`.trim()
+    if (fromProp) {
+      pendingOpenSessionIdRef.current = fromProp
+      onInitialOpenSessionApplied?.()
+    }
+
+    const sessionId = pendingOpenSessionIdRef.current
+    if (!sessionId) return undefined
+
+    if (!workspaceId) {
+      pendingOpenSessionIdRef.current = ''
+      setPageNotice('That inventory count could not be opened right now.')
+      return undefined
+    }
+
+    let cancelled = false
+
+    const openLinkedSession = async () => {
+      try {
+        const session = await getInventoryCountSession({
+          workspaceId,
+          sessionId,
+        })
+        if (cancelled) return
+
+        if (!OPENABLE_STATUSES.has(session.status)) {
+          pendingOpenSessionIdRef.current = ''
+          setIsSessionOpen(false)
+          setActiveSessionId('')
+          setActiveWorkspaceId('')
+          setPageNotice('That inventory count is no longer open.')
+          void loadHomeSessions()
+          return
+        }
+
+        pendingOpenSessionIdRef.current = ''
+        setPageNotice('')
+        setActiveSessionId(session.id)
+        setActiveWorkspaceId(`${session.workspaceId || workspaceId}`)
+        setIsSessionOpen(true)
+      } catch {
+        if (cancelled) return
+        pendingOpenSessionIdRef.current = ''
+        setIsSessionOpen(false)
+        setActiveSessionId('')
+        setActiveWorkspaceId('')
+        setPageNotice('That inventory count could not be found. It may already be closed.')
+        void loadHomeSessions()
+      }
+    }
+
+    void openLinkedSession()
+    return () => {
+      cancelled = true
+    }
+  }, [
+    initialOpenSessionId,
+    workspaceId,
+    loadHomeSessions,
+    onInitialOpenSessionApplied,
+  ])
 
   const clearActionError = (sessionId) => {
     setActionErrors((current) => {

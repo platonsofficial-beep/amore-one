@@ -15639,6 +15639,7 @@ function App() {
   const [stockOrders, setStockOrders] = useState([])
   const [stockOrdersNotice, setStockOrdersNotice] = useState('')
   const [stockOrdersFilterHint, setStockOrdersFilterHint] = useState(null)
+  const [inventoryCountOpenSessionId, setInventoryCountOpenSessionId] = useState(null)
   const [isStockOrdersLoading, setIsStockOrdersLoading] = useState(false)
   const [isSavingStockOrder, setIsSavingStockOrder] = useState(false)
   const isCreatingStockOrdersRef = useRef(false)
@@ -16152,6 +16153,16 @@ function App() {
     }
     handleStockSectionChange('orders')
   }, [handleStockSectionChange])
+
+  const handleOpenInventoryCountSession = useCallback((sessionId = '') => {
+    const nextSessionId = `${sessionId ?? ''}`.trim()
+    setInventoryCountOpenSessionId(nextSessionId || null)
+    handleStockSectionChange('count')
+  }, [handleStockSectionChange])
+
+  const handleInventoryCountOpenSessionApplied = useCallback(() => {
+    setInventoryCountOpenSessionId(null)
+  }, [])
 
   const handleOperationsSectionChange = useCallback((nextSection) => {
     const permittedSection = resolvePermittedOperationsSection(role, nextSection)
@@ -24366,12 +24377,16 @@ function App() {
             onRecordMovement={handleRecordStockMovement}
             onCreateOrders={handleCreateStockOrders}
             onOpenOrders={handleOpenStockOrders}
+            onOpenInventoryCountSession={handleOpenInventoryCountSession}
             isSavingOrders={isSavingStockOrder}
           />
         ) : null}
 
         {isActiveViewAllowed && activeView === 'stock' && stockSection === 'count' ? (
-          <InventoryCountView />
+          <InventoryCountView
+            initialOpenSessionId={inventoryCountOpenSessionId}
+            onInitialOpenSessionApplied={handleInventoryCountOpenSessionApplied}
+          />
         ) : null}
 
         {isActiveViewAllowed && activeView === 'stock' && stockSection === 'orders' ? (

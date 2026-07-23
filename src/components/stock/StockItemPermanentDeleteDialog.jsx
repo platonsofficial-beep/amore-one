@@ -35,6 +35,7 @@ export function StockItemPermanentDeleteDialog({
   item,
   onClose,
   onCompleted,
+  onOpenBlockingInventoryCount,
   returnFocusEl = null,
 }) {
   const { user, session } = useAuth()
@@ -453,6 +454,20 @@ export function StockItemPermanentDeleteDialog({
                       <p className="stock-item-permanent-delete-copy">
                         {openCountBlockDetails.guidance}
                       </p>
+                      {typeof onOpenBlockingInventoryCount === 'function' ? (
+                        <button
+                          type="button"
+                          className="ghost-btn stock-item-permanent-delete-open-count-btn"
+                          onClick={() => {
+                            const sessionId = `${openCountBlocker?.sessionId ?? ''}`.trim()
+                            onOpenBlockingInventoryCount(sessionId)
+                            onClose?.()
+                          }}
+                          disabled={isBusy}
+                        >
+                          Open Inventory Count
+                        </button>
+                      ) : null}
                     </section>
                   ) : null}
 
