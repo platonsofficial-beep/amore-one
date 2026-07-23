@@ -1,6 +1,11 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useAuth } from '../../context/AuthContext'
-import { listInventoryCountHomeSessions } from '../../services/inventoryCountService'
+import {
+  cancelInventoryCountSession,
+  listInventoryCountHomeSessions,
+  postInventoryCountFinish,
+  previewInventoryCountFinish,
+} from '../../services/inventoryCountService'
 import { InventoryCountWizard } from './InventoryCountWizard'
 import { InventoryCountSessionWorkspace } from './InventoryCountSessionWorkspace'
 
@@ -33,21 +38,12 @@ function formatLocations(session) {
   return `${keys.slice(0, 3).join(', ')} +${keys.length - 3}`
 }
 
-function InventoryCountSessionCard({ session, onOpen }) {
-  const canOpen = OPENABLE_STATUSES.has(session.status)
+function InventoryCountSessionCardMeta({ session }) {
   const lastUpdate = session.updatedAt || session.postedAt || session.pausedAt || session.startedAt
   const operator = `${session.operatorName ?? ''}`.trim() || '—'
 
   return (
-    <button
-      type="button"
-      className={`inventory-count-session-card is-${session.status}${canOpen ? '' : ' is-readonly'}`}
-      onClick={() => {
-        if (canOpen) onOpen?.(session)
-      }}
-      disabled={!canOpen}
-      aria-label={`${session.countTypeLabel}, ${session.statusLabel}`}
-    >
+    <>
       <div className="inventory-count-session-card-top">
         <strong className="inventory-count-session-card-title">{session.countTypeLabel}</strong>
         <span className="inventory-count-session-pill is-status">
@@ -76,6 +72,74 @@ function InventoryCountSessionCard({ session, onOpen }) {
           <dd>{formatSessionDate(lastUpdate)}</dd>
         </div>
       </dl>
+    </>
+  )
+}
+
+function InventoryCountSessionCard({
+  session,
+  onOpen,
+  onReview,
+  onPost,
+  onCancel,
+  busyAction,
+  actionError,
+}) {
+  const isCountingComplete = session.status === 'counting_complete'
+  const canOpen = OPENABLE_STATUSES.has(session.status) && !isCountingComplete
+  const isBusy = Boolean(busyAction)
+
+  if (isCountingComplete) {
+    return (
+      <div
+        className={`inventory-count-session-card is-${session.status} has-actions`}
+        aria-label={`${session.countTypeLabel}, ${session.statusLabel}`}
+      >
+        <InventoryCountSessionCardMeta session={session} />
+        <div className="inventory-count-session-card-actions">
+          <button
+            type="button"
+            className="ghost-btn inventory-count-home-action-btn"
+            onClick={() => onReview?.(session)}
+            disabled={isBusy}
+          >
+            Review
+          </button>
+          <button
+            type="button"
+            className="primary-btn inventory-count-home-action-btn"
+            onClick={() => onPost?.(session)}
+            disabled={isBusy}
+          >
+            {busyAction === 'post' ? 'Posting…' : 'Post Count'}
+          </button>
+          <button
+            type="button"
+            className="ghost-btn danger-text inventory-count-home-action-btn"
+            onClick={() => onCancel?.(session)}
+            disabled={isBusy}
+          >
+            {busyAction === 'cancel' ? 'Cancelling…' : 'Cancel Count'}
+          </button>
+        </div>
+        {actionError ? (
+          <p className="inventory-count-session-card-error" role="alert">{actionError}</p>
+        ) : null}
+      </div>
+    )
+  }
+
+  return (
+    <button
+      type="button"
+      className={`inventory-count-session-card is-${session.status}${canOpen ? '' : ' is-readonly'}`}
+      onClick={() => {
+        if (canOpen) onOpen?.(session)
+      }}
+      disabled={!canOpen}
+      aria-label={`${session.countTypeLabel}, ${session.statusLabel}`}
+    >
+      <InventoryCountSessionCardMeta session={session} />
     </button>
   )
 }
@@ -87,6 +151,12 @@ function InventoryCountSessionPanel({
   emptyCopy,
   isLoading,
   onOpenSession,
+  onReviewSession,
+  onPostSession,
+  onCancelSession,
+  busySessionId,
+  busyAction,
+  actionErrors,
 }) {
   const hasSessions = sessions.length > 0
 
@@ -99,7 +169,15 @@ function InventoryCountSessionPanel({
         <div className="inventory-count-session-list" role="list">
           {sessions.map((session) => (
             <div key={session.id} role="listitem">
-              <InventoryCountSessionCard session={session} onOpen={onOpenSession} />
+              <InventoryCountSessionCard
+                session={session}
+                onOpen={onOpenSession}
+                onReview={onReviewSession}
+                onPost={onPostSession}
+                onCancel={onCancelSession}
+                busyAction={busySessionId === session.id ? busyAction : ''}
+                actionError={actionErrors?.[session.id] || ''}
+              />
             </div>
           ))}
         </div>
@@ -127,6 +205,9 @@ export function InventoryCountView() {
   const [activeSessions, setActiveSessions] = useState([])
   const [pausedSessions, setPausedSessions] = useState([])
   const [recentSessions, setRecentSessions] = useState([])
+  const [busySessionId, setBusySessionId] = useState('')
+  const [busyAction, setBusyAction] = useState('')
+  const [actionErrors, setActionErrors] = useState({})
 
   const loadHomeSessions = useCallback(async () => {
     if (!workspaceId) {
@@ -159,6 +240,22 @@ export function InventoryCountView() {
     void loadHomeSessions()
   }, [loadHomeSessions])
 
+  const clearActionError = (sessionId) => {
+    setActionErrors((current) => {
+      if (!current[sessionId]) return current
+      const next = { ...current }
+      delete next[sessionId]
+      return next
+    })
+  }
+
+  const setActionError = (sessionId, message) => {
+    setActionErrors((current) => ({
+      ...current,
+      [sessionId]: message,
+    }))
+  }
+
   const openSession = (session) => {
     const sessionId = `${session?.id ?? ''}`.trim()
     const nextWorkspaceId = `${session?.workspaceId ?? workspaceId}`.trim()
@@ -166,6 +263,7 @@ export function InventoryCountView() {
     if (!OPENABLE_STATUSES.has(session.status)) return
 
     setPageNotice('')
+    clearActionError(sessionId)
     setActiveSessionId(sessionId)
     setActiveWorkspaceId(nextWorkspaceId)
     setIsSessionOpen(true)
@@ -182,6 +280,73 @@ export function InventoryCountView() {
     handleExitSession()
     setPageNotice(`${message || 'Inventory count posted successfully.'}`.trim()
       || 'Inventory count posted successfully.')
+  }
+
+  const handlePostSession = async (session) => {
+    const sessionId = `${session?.id ?? ''}`.trim()
+    const nextWorkspaceId = `${session?.workspaceId ?? workspaceId}`.trim()
+    if (!sessionId || !nextWorkspaceId || busySessionId) return
+
+    setBusySessionId(sessionId)
+    setBusyAction('post')
+    clearActionError(sessionId)
+    setPageNotice('')
+
+    try {
+      const preview = await previewInventoryCountFinish({
+        workspaceId: nextWorkspaceId,
+        sessionId,
+      })
+      if (!preview?.canPost) {
+        throw new Error(
+          'This count has blocking issues. Open Review to resolve them before posting.',
+        )
+      }
+
+      const result = await postInventoryCountFinish({
+        workspaceId: nextWorkspaceId,
+        sessionId,
+      })
+
+      setPageNotice(`${result?.message || 'Inventory count posted successfully.'}`.trim()
+        || 'Inventory count posted successfully.')
+      await loadHomeSessions()
+    } catch (error) {
+      setActionError(sessionId, error?.message || 'Unable to post inventory count right now.')
+    } finally {
+      setBusySessionId('')
+      setBusyAction('')
+    }
+  }
+
+  const handleCancelSession = async (session) => {
+    const sessionId = `${session?.id ?? ''}`.trim()
+    const nextWorkspaceId = `${session?.workspaceId ?? workspaceId}`.trim()
+    if (!sessionId || !nextWorkspaceId || busySessionId) return
+
+    const confirmed = window.confirm(
+      'Cancel this inventory count? Counted values will be discarded and the session will close without posting.',
+    )
+    if (!confirmed) return
+
+    setBusySessionId(sessionId)
+    setBusyAction('cancel')
+    clearActionError(sessionId)
+    setPageNotice('')
+
+    try {
+      await cancelInventoryCountSession({
+        workspaceId: nextWorkspaceId,
+        sessionId,
+      })
+      setPageNotice('Inventory count cancelled.')
+      await loadHomeSessions()
+    } catch (error) {
+      setActionError(sessionId, error?.message || 'Unable to cancel inventory count right now.')
+    } finally {
+      setBusySessionId('')
+      setBusyAction('')
+    }
   }
 
   if (isSessionOpen) {
@@ -233,6 +398,12 @@ export function InventoryCountView() {
           emptyCopy=""
           isLoading={isLoadingSessions}
           onOpenSession={openSession}
+          onReviewSession={openSession}
+          onPostSession={handlePostSession}
+          onCancelSession={handleCancelSession}
+          busySessionId={busySessionId}
+          busyAction={busyAction}
+          actionErrors={actionErrors}
         />
         <InventoryCountSessionPanel
           title="Paused counts"

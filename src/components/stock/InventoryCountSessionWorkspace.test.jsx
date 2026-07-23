@@ -11,6 +11,7 @@ import {
   buildInventoryCountSnapshot,
   completeInventoryCountLocation,
   createInventoryCountSession,
+  getInventoryCountSession,
   getInventoryCountSessionItems,
   getInventoryCountSessionLocations,
   previewInventoryCountFinish,
@@ -28,6 +29,11 @@ vi.mock('../../context/AuthContext', () => ({
 vi.mock('../../services/inventoryCountService', () => ({
   createInventoryCountSession: vi.fn(),
   buildInventoryCountSnapshot: vi.fn(),
+  getInventoryCountSession: vi.fn(async () => ({
+    id: 'session-real-1',
+    workspaceId: 'workspace-test-id',
+    status: 'in_progress',
+  })),
   getInventoryCountSessionLocations: vi.fn(),
   getInventoryCountSessionItems: vi.fn(),
   updateInventoryCountItem: vi.fn(),
@@ -229,6 +235,7 @@ describe('InventoryCountSessionWorkspace real session items', () => {
   beforeEach(() => {
     createInventoryCountSession.mockReset()
     buildInventoryCountSnapshot.mockReset()
+    getInventoryCountSession.mockReset()
     getInventoryCountSessionLocations.mockReset()
     getInventoryCountSessionItems.mockReset()
     updateInventoryCountItem.mockReset()
@@ -251,6 +258,11 @@ describe('InventoryCountSessionWorkspace real session items', () => {
       sessionId: 'session-real-1',
       itemsCreated: 5,
       snapshotCreatedAt: '2026-07-20T12:00:00.000Z',
+    })
+    getInventoryCountSession.mockResolvedValue({
+      id: 'session-real-1',
+      workspaceId: 'workspace-test-id',
+      status: 'in_progress',
     })
     getInventoryCountSessionLocations.mockResolvedValue(FIXTURE_LOCATIONS)
     getInventoryCountSessionItems.mockResolvedValue(FIXTURE_ITEMS)
@@ -935,6 +947,7 @@ describe('InventoryCountSessionWorkspace pause and resume', () => {
   beforeEach(() => {
     createInventoryCountSession.mockReset()
     buildInventoryCountSnapshot.mockReset()
+    getInventoryCountSession.mockReset()
     getInventoryCountSessionLocations.mockReset()
     getInventoryCountSessionItems.mockReset()
     updateInventoryCountItem.mockReset()
@@ -943,6 +956,11 @@ describe('InventoryCountSessionWorkspace pause and resume', () => {
     previewInventoryCountFinish.mockReset()
     postInventoryCountFinish.mockReset()
 
+    getInventoryCountSession.mockResolvedValue({
+      id: 'session-real-1',
+      workspaceId: 'workspace-test-id',
+      status: 'in_progress',
+    })
     getInventoryCountSessionLocations.mockResolvedValue(FIXTURE_LOCATIONS)
     getInventoryCountSessionItems.mockResolvedValue(FIXTURE_ITEMS)
     updateInventoryCountItem.mockImplementation(async ({ sessionItemId, countedQuantity }) => ({
@@ -1211,6 +1229,7 @@ describe('InventoryCountSessionWorkspace finish count preview', () => {
   beforeEach(() => {
     createInventoryCountSession.mockReset()
     buildInventoryCountSnapshot.mockReset()
+    getInventoryCountSession.mockReset()
     getInventoryCountSessionLocations.mockReset()
     getInventoryCountSessionItems.mockReset()
     updateInventoryCountItem.mockReset()
@@ -1219,6 +1238,11 @@ describe('InventoryCountSessionWorkspace finish count preview', () => {
     previewInventoryCountFinish.mockReset()
     postInventoryCountFinish.mockReset()
 
+    getInventoryCountSession.mockResolvedValue({
+      id: 'session-real-1',
+      workspaceId: 'workspace-test-id',
+      status: 'counting_complete',
+    })
     getInventoryCountSessionLocations.mockResolvedValue([
       sessionLocation('loc-1', 'Main Storage', 0, 'current'),
       sessionLocation('loc-2', 'Coffee Station', 1, 'completed'),

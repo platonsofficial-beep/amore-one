@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useAuth } from '../../context/AuthContext'
 import {
   completeInventoryCountLocation,
+  getInventoryCountSession,
   getInventoryCountSessionItems,
   getInventoryCountSessionLocations,
   postInventoryCountFinish,
@@ -326,12 +327,17 @@ export function InventoryCountSessionWorkspace({
           throw new Error('Workspace is required.')
         }
 
-        const [sessionLocations, sessionItems] = await Promise.all([
+        const [session, sessionLocations, sessionItems] = await Promise.all([
+          getInventoryCountSession({ workspaceId, sessionId }),
           getInventoryCountSessionLocations({ workspaceId, sessionId }),
           getInventoryCountSessionItems({ workspaceId, sessionId }),
         ])
 
         if (cancelled || loadRequestIdRef.current !== requestId) return
+
+        const nextStatus = `${session?.status || ''}`.trim() || 'in_progress'
+        setSessionStatus(nextStatus)
+        setHasPostedFinish(nextStatus === 'posted')
 
         const nextLocations = buildLocationsFromSession(sessionLocations, sessionItems)
         setLocations(nextLocations)

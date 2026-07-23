@@ -20,6 +20,8 @@ vi.mock('./membershipService', () => ({
 
 import {
   completeInventoryCountLocation,
+  cancelInventoryCountSession,
+  getInventoryCountSession,
   getInventoryCountSessionItems,
   listInventoryCountHomeSessions,
   mapInventoryCountSessionRow,
@@ -235,6 +237,231 @@ describe('inventory count home session mapping (P8.16.27)', () => {
 
     const result = await listInventoryCountHomeSessions({ workspaceId: 'workspace-empty' })
     expect(result).toEqual({ active: [], paused: [], recent: [] })
+  })
+
+  it('loads one session by workspace and id', async () => {
+    const query = createQuery({
+      data: {
+        id: 'session-1',
+        workspace_id: 'workspace-1',
+        status: 'counting_complete',
+        count_type: 'quick',
+        visibility: 'blind',
+        started_at: '2026-07-21T10:00:00.000Z',
+        updated_at: '2026-07-21T12:00:00.000Z',
+      },
+      error: null,
+    })
+    fromMock.mockReturnValue(query)
+
+    const session = await getInventoryCountSession({
+      workspaceId: 'workspace-1',
+      sessionId: 'session-1',
+    })
+
+    expect(query.eq).toHaveBeenCalledWith('workspace_id', 'workspace-1')
+    expect(query.eq).toHaveBeenCalledWith('id', 'session-1')
+    expect(session).toMatchObject({
+      id: 'session-1',
+      status: 'counting_complete',
+      statusLabel: 'Counting complete',
+    })
+  })
+})
+
+describe('cancelInventoryCountSession (P8.16.28a)', () => {
+  beforeEach(() => {
+    fromMock.mockReset()
+    rpcMock.mockReset()
+  })
+
+  it('calls cancel_inventory_count_completion RPC and maps the cancelled payload', async () => {
+    rpcMock.mockResolvedValue({
+      data: {
+        session_id: 'session-1',
+        workspace_id: 'workspace-1',
+        status: 'cancelled',
+        cancelled_at: '2026-07-23T12:00:00.000Z',
+        updated_at: '2026-07-23T12:00:00.000Z',
+        preserved: {
+          session_items: true,
+          session_locations: true,
+          stock_items: true,
+          stock_movements: true,
+        },
+        mutations: {
+          stock_quantity_changed: false,
+          stock_movements_created: false,
+          stock_movements_deleted: false,
+          session_items_deleted: false,
+        },
+      },
+      error: null,
+    })
+
+    const result = await cancelInventoryCountSession({
+      workspaceId: 'workspace-1',
+      sessionId: 'session-1',
+    })
+
+    expect(rpcMock).toHaveBeenCalledWith('cancel_inventory_count_completion', {
+      p_workspace_id: 'workspace-1',
+      p_session_id: 'session-1',
+    })
+    expect(fromMock).not.toHaveBeenCalled()
+    expect(result).toMatchObject({
+      id: 'session-1',
+      workspaceId: 'workspace-1',
+      status: 'cancelled',
+      statusLabel: 'Cancelled',
+      cancelledAt: '2026-07-23T12:00:00.000Z',
+      mutations: {
+        stock_quantity_changed: false,
+        stock_movements_created: false,
+        stock_movements_deleted: false,
+        session_items_deleted: false,
+      },
+    })
+  })
+
+  it('maps forbidden and lifecycle rejection errors', async () => {
+    rpcMock.mockResolvedValueOnce({
+      data: null,
+      error: { message: 'inventory_count_cancel_forbidden' },
+    })
+    await expect(
+      cancelInventoryCountSession({ workspaceId: 'workspace-1', sessionId: 'session-1' }),
+    ).rejects.toThrow('You do not have permission to manage inventory counts for this workspace.')
+
+    rpcMock.mockResolvedValueOnce({
+      data: null,
+      error: { message: 'inventory_count_cancel_session_in_progress' },
+    })
+    await expect(
+      cancelInventoryCountSession({ workspaceId: 'workspace-1', sessionId: 'session-1' }),
+    ).rejects.toThrow('In-progress inventory counts cannot be cancelled')
+
+    rpcMock.mockResolvedValueOnce({
+      data: null,
+      error: { message: 'inventory_count_cancel_session_paused' },
+    })
+    await expect(
+      cancelInventoryCountSession({ workspaceId: 'workspace-1', sessionId: 'session-1' }),
+    ).rejects.toThrow('Paused inventory counts cannot be cancelled')
+
+    rpcMock.mockResolvedValueOnce({
+      data: null,
+      error: { message: 'inventory_count_cancel_session_posted' },
+    })
+    await expect(
+      cancelInventoryCountSession({ workspaceId: 'workspace-1', sessionId: 'session-1' }),
+    ).rejects.toThrow('Posted inventory counts cannot be cancelled')
+
+    rpcMock.mockResolvedValueOnce({
+      data: null,
+      error: { message: 'inventory_count_cancel_session_cancelled' },
+    })
+    await expect(
+      cancelInventoryCountSession({ workspaceId: 'workspace-1', sessionId: 'session-1' }),
+    ).rejects.toThrow('already cancelled')
+
+    rpcMock.mockResolvedValueOnce({
+      data: null,
+      error: { message: 'inventory_count_cancel_workspace_mismatch' },
+    })
+    await expect(
+      cancelInventoryCountSession({ workspaceId: 'workspace-1', sessionId: 'session-1' }),
+    ).rejects.toThrow('does not belong to this workspace')
+
+    rpcMock.mockResolvedValueOnce({
+      data: null,
+      error: { message: 'inventory_count_cancel_session_not_found' },
+    })
+    await expect(
+      cancelInventoryCountSession({ workspaceId: 'workspace-1', sessionId: 'session-1' }),
+    ).rejects.toThrow('was not found')
+
+    rpcMock.mockResolvedValueOnce({
+      data: null,
+      error: { message: 'inventory_count_cancel_stale_status' },
+    })
+    await expect(
+      cancelInventoryCountSession({ workspaceId: 'workspace-1', sessionId: 'session-1' }),
+    ).rejects.toThrow('Only counting-complete sessions can be cancelled')
+  })
+
+  it('does not use a direct sessions table update path', () => {
+    const serviceSource = readFileSync(
+      resolve(process.cwd(), 'src/services/inventoryCountService.js'),
+      'utf8',
+    )
+    expect(serviceSource).toContain('cancel_inventory_count_completion')
+    expect(serviceSource).toContain('cancelInventoryCountSession')
+    expect(serviceSource).not.toMatch(
+      /cancelInventoryCountSession[\s\S]*?\.from\(\s*SESSIONS_TABLE\s*\)[\s\S]*?\.update\(/,
+    )
+  })
+})
+
+describe('cancel_inventory_count_completion SQL contract (P8.16.28a)', () => {
+  const sql = readFileSync(
+    resolve(process.cwd(), 'supabase/inventory_count_cancel_completion_rpc.sql'),
+    'utf8',
+  )
+  const functionBody = sql.slice(sql.indexOf('as $$'), sql.lastIndexOf('$$;') + 3)
+
+  it('defines SECURITY DEFINER RPC with manager authorization', () => {
+    expect(sql).toContain('create or replace function public.cancel_inventory_count_completion(')
+    expect(sql).toContain('p_workspace_id uuid')
+    expect(sql).toContain('p_session_id uuid')
+    expect(sql).toContain('returns jsonb')
+    expect(sql).toMatch(/security definer/i)
+    expect(sql).toContain('set search_path = public')
+    expect(sql).toContain('auth.uid()')
+    expect(sql).toContain('inventory_count_cancel_unauthenticated')
+    expect(sql).toContain('can_manage_workspace_stock(p_workspace_id)')
+    expect(sql).toContain('inventory_count_cancel_forbidden')
+    expect(sql).toContain('grant execute on function public.cancel_inventory_count_completion(')
+    expect(sql).toContain('to authenticated')
+    expect(sql).toContain('revoke all on function public.cancel_inventory_count_completion(uuid, uuid) from anon')
+  })
+
+  it('locks the session, scopes workspace, and requires counting_complete', () => {
+    expect(functionBody).toContain('for update of s')
+    expect(functionBody).toContain('s.id = p_session_id')
+    expect(functionBody).toContain('s.workspace_id = p_workspace_id')
+    expect(functionBody).toContain('inventory_count_cancel_session_not_found')
+    expect(functionBody).toContain('inventory_count_cancel_workspace_mismatch')
+    expect(functionBody).toContain("status = 'cancelled'")
+    expect(functionBody).toContain('cancelled_at = v_now')
+    expect(functionBody).toContain("and s.status = 'counting_complete'")
+    expect(functionBody).toContain('inventory_count_cancel_session_in_progress')
+    expect(functionBody).toContain('inventory_count_cancel_session_paused')
+    expect(functionBody).toContain('inventory_count_cancel_session_posted')
+    expect(functionBody).toContain('inventory_count_cancel_session_cancelled')
+    expect(functionBody).toContain('inventory_count_cancel_not_counting_complete')
+    expect(functionBody).toContain('inventory_count_cancel_stale_status')
+  })
+
+  it('preserves session items/snapshots and never mutates stock', () => {
+    expect(functionBody).not.toMatch(/delete\s+from\s+public\.inventory_count_session_items/i)
+    expect(functionBody).not.toMatch(/delete\s+from\s+public\.inventory_count_sessions/i)
+    expect(functionBody).not.toMatch(/delete\s+from\s+public\.inventory_count_session_locations/i)
+    expect(functionBody).not.toMatch(/insert\s+into\s+public\.stock_movements/i)
+    expect(functionBody).not.toMatch(/delete\s+from\s+public\.stock_movements/i)
+    expect(functionBody).not.toMatch(/update\s+public\.stock_items/i)
+    expect(functionBody).not.toMatch(/from\s+public\.stock_items/i)
+    expect(functionBody).toContain("'session_items', true")
+    expect(functionBody).toContain("'stock_quantity_changed', false")
+    expect(functionBody).toContain("'stock_movements_created', false")
+    expect(functionBody).toContain("'stock_movements_deleted', false")
+    expect(functionBody).toContain("'session_items_deleted', false")
+  })
+
+  it('documents Post-versus-Cancel race protection via FOR UPDATE', () => {
+    expect(sql).toContain('Post-versus-Cancel race')
+    expect(functionBody).toContain('for update of s')
+    expect(functionBody).toContain('inventory_count_cancel_stale_status')
   })
 })
 

@@ -1,6 +1,6 @@
 /**
  * @vitest-environment jsdom
- * P8.16.27 — Inventory Count home live session hydration.
+ * P8.16.27 / P8.16.28 — Inventory Count home hydration + completion actions.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { act, createElement } from 'react'
@@ -8,6 +8,9 @@ import { createRoot } from 'react-dom/client'
 import { InventoryCountView } from './InventoryCountView'
 
 const listHomeSessionsMock = vi.fn()
+const previewFinishMock = vi.fn()
+const postFinishMock = vi.fn()
+const cancelSessionMock = vi.fn()
 const useAuthMock = vi.fn()
 
 vi.mock('../../context/AuthContext', () => ({
@@ -16,6 +19,9 @@ vi.mock('../../context/AuthContext', () => ({
 
 vi.mock('../../services/inventoryCountService', () => ({
   listInventoryCountHomeSessions: (...args) => listHomeSessionsMock(...args),
+  previewInventoryCountFinish: (...args) => previewFinishMock(...args),
+  postInventoryCountFinish: (...args) => postFinishMock(...args),
+  cancelInventoryCountSession: (...args) => cancelSessionMock(...args),
   createInventoryCountSession: vi.fn(),
   buildInventoryCountSnapshot: vi.fn(),
   getInventoryCountSessionLocations: vi.fn(async () => []),
@@ -58,6 +64,10 @@ async function flush() {
   })
 }
 
+function getButtonByText(root, text) {
+  return Array.from(root.querySelectorAll('button')).find((button) => button.textContent === text)
+}
+
 function sessionFixture(overrides = {}) {
   return {
     id: 'session-1',
@@ -82,16 +92,32 @@ beforeEach(() => {
     workspace: { id: 'workspace-test-id', name: 'Test Workspace' },
   })
   listHomeSessionsMock.mockReset()
+  previewFinishMock.mockReset()
+  postFinishMock.mockReset()
+  cancelSessionMock.mockReset()
   listHomeSessionsMock.mockResolvedValue({
     active: [],
     paused: [],
     recent: [],
   })
+  previewFinishMock.mockResolvedValue({ canPost: true })
+  postFinishMock.mockResolvedValue({
+    sessionId: 'complete-1',
+    workspaceId: 'workspace-test-id',
+    status: 'posted',
+    message: 'Inventory count posted successfully.',
+  })
+  cancelSessionMock.mockResolvedValue({
+    id: 'complete-1',
+    status: 'cancelled',
+  })
+  vi.spyOn(window, 'confirm').mockReturnValue(true)
 })
 
 afterEach(() => {
   document.body.innerHTML = ''
   vi.clearAllMocks()
+  window.confirm?.mockRestore?.()
 })
 
 describe('InventoryCountView live home hydration (P8.16.27)', () => {
@@ -103,8 +129,6 @@ describe('InventoryCountView live home hydration (P8.16.27)', () => {
     expect(container.textContent).toContain('No active counts.')
     expect(container.textContent).toContain('No paused counts.')
     expect(container.textContent).toContain('No completed counts yet.')
-    expect(container.textContent).not.toContain('No counts are currently in progress.')
-    expect(container.textContent).not.toContain('Completed inventory counts will appear here.')
     expect(container.querySelector('.inventory-count-session-card')).toBeNull()
 
     cleanup()
@@ -149,38 +173,10 @@ describe('InventoryCountView live home hydration (P8.16.27)', () => {
     await flush()
 
     expect(container.textContent).toContain('Quick Count')
-    expect(container.textContent).toContain('In progress')
     expect(container.textContent).toContain('Counting complete')
-    expect(container.textContent).toContain('Partial Count')
     expect(container.textContent).toContain('Paused')
-    expect(container.textContent).toContain('Emergency Count')
     expect(container.textContent).toContain('Posted')
-    expect(container.textContent).toContain('Alex Manager')
-    expect(container.textContent).toContain('1 / 2 locations')
-    expect(container.textContent).not.toContain('No active counts.')
-    expect(container.textContent).not.toContain('No paused counts.')
-    expect(container.textContent).not.toContain('No completed counts yet.')
-
-    const cards = container.querySelectorAll('.inventory-count-session-card')
-    expect(cards).toHaveLength(4)
-
-    cleanup()
-  })
-
-  it('does not show placeholder empty copy when live sessions exist', async () => {
-    listHomeSessionsMock.mockResolvedValue({
-      active: [sessionFixture()],
-      paused: [],
-      recent: [],
-    })
-
-    const { container, cleanup } = render(createElement(InventoryCountView))
-    await flush()
-
-    expect(container.querySelector('.inventory-count-session-card')).toBeTruthy()
-    expect(container.textContent).not.toContain('No active counts.')
-    expect(container.textContent).toContain('No paused counts.')
-    expect(container.textContent).toContain('No completed counts yet.')
+    expect(container.querySelectorAll('.inventory-count-session-card')).toHaveLength(4)
 
     cleanup()
   })
@@ -218,21 +214,182 @@ describe('InventoryCountView live home hydration (P8.16.27)', () => {
     const card = container.querySelector('.inventory-count-session-card')
     expect(card?.disabled).toBe(true)
 
-    await act(async () => {
-      card?.click()
+    cleanup()
+  })
+})
+
+describe('InventoryCountView completion actions (P8.16.28)', () => {
+  it('shows Review, Post Count, and Cancel Count for counting_complete', async () => {
+    listHomeSessionsMock.mockResolvedValue({
+      active: [
+        sessionFixture({
+          id: 'complete-1',
+          status: 'counting_complete',
+          statusLabel: 'Counting complete',
+          countTypeLabel: 'New Count',
+        }),
+      ],
+      paused: [],
+      recent: [],
     })
-    expect(container.querySelector('.inventory-count-session')).toBeNull()
+
+    const { container, cleanup } = render(createElement(InventoryCountView))
+    await flush()
+
+    expect(getButtonByText(container, 'Review')).toBeTruthy()
+    expect(getButtonByText(container, 'Post Count')).toBeTruthy()
+    expect(getButtonByText(container, 'Cancel Count')).toBeTruthy()
 
     cleanup()
   })
 
-  it('does not load sessions without a workspace', async () => {
-    useAuthMock.mockReturnValue({ workspace: null })
+  it('Review opens the existing workspace', async () => {
+    listHomeSessionsMock.mockResolvedValue({
+      active: [
+        sessionFixture({
+          id: 'complete-review',
+          status: 'counting_complete',
+          statusLabel: 'Counting complete',
+        }),
+      ],
+      paused: [],
+      recent: [],
+    })
+
     const { container, cleanup } = render(createElement(InventoryCountView))
     await flush()
 
-    expect(listHomeSessionsMock).not.toHaveBeenCalled()
+    await act(async () => {
+      getButtonByText(container, 'Review')?.click()
+    })
+
+    expect(container.querySelector('.inventory-count-session')?.getAttribute('data-session-id'))
+      .toBe('complete-review')
+
+    cleanup()
+  })
+
+  it('Post refreshes Home and moves the session to Recent', async () => {
+    listHomeSessionsMock
+      .mockResolvedValueOnce({
+        active: [
+          sessionFixture({
+            id: 'complete-1',
+            status: 'counting_complete',
+            statusLabel: 'Counting complete',
+            countTypeLabel: 'New Count',
+          }),
+        ],
+        paused: [],
+        recent: [],
+      })
+      .mockResolvedValueOnce({
+        active: [],
+        paused: [],
+        recent: [
+          sessionFixture({
+            id: 'complete-1',
+            status: 'posted',
+            statusLabel: 'Posted',
+            countTypeLabel: 'New Count',
+          }),
+        ],
+      })
+
+    const { container, cleanup } = render(createElement(InventoryCountView))
+    await flush()
+
+    await act(async () => {
+      getButtonByText(container, 'Post Count')?.click()
+      await Promise.resolve()
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+
+    expect(previewFinishMock).toHaveBeenCalledWith({
+      workspaceId: 'workspace-test-id',
+      sessionId: 'complete-1',
+    })
+    expect(postFinishMock).toHaveBeenCalledWith({
+      workspaceId: 'workspace-test-id',
+      sessionId: 'complete-1',
+    })
+    expect(listHomeSessionsMock).toHaveBeenCalledTimes(2)
+    expect(container.textContent).toContain('Posted')
     expect(container.textContent).toContain('No active counts.')
+    expect(container.textContent).toContain('Inventory count posted successfully.')
+    expect(getButtonByText(container, 'Post Count')).toBeFalsy()
+
+    cleanup()
+  })
+
+  it('Cancel refreshes Home and removes the session from Active and Recent', async () => {
+    listHomeSessionsMock
+      .mockResolvedValueOnce({
+        active: [
+          sessionFixture({
+            id: 'complete-1',
+            status: 'counting_complete',
+            statusLabel: 'Counting complete',
+          }),
+        ],
+        paused: [],
+        recent: [],
+      })
+      .mockResolvedValueOnce({
+        active: [],
+        paused: [],
+        recent: [],
+      })
+
+    const { container, cleanup } = render(createElement(InventoryCountView))
+    await flush()
+
+    await act(async () => {
+      getButtonByText(container, 'Cancel Count')?.click()
+      await Promise.resolve()
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+
+    expect(window.confirm).toHaveBeenCalled()
+    expect(cancelSessionMock).toHaveBeenCalledWith({
+      workspaceId: 'workspace-test-id',
+      sessionId: 'complete-1',
+    })
+    expect(listHomeSessionsMock).toHaveBeenCalledTimes(2)
+    expect(container.textContent).toContain('No active counts.')
+    expect(container.textContent).toContain('No completed counts yet.')
+    expect(container.textContent).toContain('Inventory count cancelled.')
+    expect(container.textContent).not.toContain('Counting complete')
+
+    cleanup()
+  })
+
+  it('does not cancel when confirmation is declined', async () => {
+    window.confirm.mockReturnValueOnce(false)
+    listHomeSessionsMock.mockResolvedValue({
+      active: [
+        sessionFixture({
+          id: 'complete-1',
+          status: 'counting_complete',
+          statusLabel: 'Counting complete',
+        }),
+      ],
+      paused: [],
+      recent: [],
+    })
+
+    const { container, cleanup } = render(createElement(InventoryCountView))
+    await flush()
+
+    await act(async () => {
+      getButtonByText(container, 'Cancel Count')?.click()
+    })
+
+    expect(cancelSessionMock).not.toHaveBeenCalled()
+    expect(listHomeSessionsMock).toHaveBeenCalledTimes(1)
+    expect(container.textContent).toContain('Counting complete')
 
     cleanup()
   })

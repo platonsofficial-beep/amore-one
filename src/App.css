@@ -31322,6 +31322,29 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   opacity: 0.95;
 }
 
+.inventory-count-session-card.has-actions {
+  cursor: default;
+}
+
+.inventory-count-session-card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.inventory-count-home-action-btn {
+  min-height: 44px;
+  min-width: 44px;
+  flex: 1 1 auto;
+}
+
+.inventory-count-session-card-error {
+  margin: 0;
+  color: #f0b4b4;
+  font-size: 0.82rem;
+  line-height: 1.35;
+}
+
 .inventory-count-session-card-top {
   display: flex;
   align-items: center;
