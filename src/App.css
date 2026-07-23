@@ -29876,6 +29876,17 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   flex-wrap: wrap;
 }
 
+.stock-orders-toolbar-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.stock-order-cleanup-open-btn {
+  min-height: 44px;
+}
+
 .stock-orders-toolbar-copy {
   margin: 0;
   color: #bfb3a0;
@@ -30424,6 +30435,125 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 
 .stock-order-receive-confirm-backdrop {
   z-index: 12100;
+}
+
+.stock-order-cleanup-backdrop {
+  z-index: 12150;
+}
+
+.stock-order-cleanup-dialog {
+  width: min(94vw, 640px);
+  max-width: 640px;
+  max-height: calc(100vh - 32px);
+  padding: 0;
+  border-radius: 22px;
+  border: 1px solid rgba(212, 175, 55, 0.22);
+  background: linear-gradient(165deg, rgba(18, 18, 20, 0.98), rgba(10, 10, 11, 0.98));
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.55);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.stock-order-cleanup-body {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 0 24px 8px;
+  overflow: auto;
+}
+
+.stock-order-cleanup-copy {
+  margin: 0;
+  color: #bfb3a0;
+  line-height: 1.5;
+}
+
+.stock-order-cleanup-copy strong {
+  color: #fff7e8;
+}
+
+.stock-order-cleanup-stats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin: 0;
+}
+
+.stock-order-cleanup-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.stock-order-cleanup-stat dt {
+  margin: 0;
+  color: #8f8475;
+  font-size: 0.78rem;
+}
+
+.stock-order-cleanup-stat dd {
+  margin: 0;
+  color: #fff7e8;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.stock-order-cleanup-warning {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  border: 1px solid rgba(212, 175, 55, 0.32);
+  background: rgba(212, 175, 55, 0.1);
+}
+
+.stock-order-cleanup-warning strong {
+  color: #f6dca2;
+}
+
+.stock-order-cleanup-warning p {
+  margin: 0;
+  color: #d4c4a8;
+  line-height: 1.45;
+}
+
+.stock-order-cleanup-empty h4 {
+  margin: 0 0 8px;
+  color: #fff7e8;
+}
+
+.stock-order-cleanup-empty p {
+  margin: 0;
+  color: #bfb3a0;
+}
+
+.stock-order-cleanup-success-list {
+  margin: 0;
+  padding-left: 1.2rem;
+  color: #fff7e8;
+}
+
+.stock-order-cleanup-confirm-field input,
+.stock-order-cleanup-password-field input {
+  min-height: 44px;
+}
+
+.stock-order-cleanup-actions {
+  padding: 16px 24px 24px;
+}
+
+.stock-order-cleanup-delete-btn:disabled {
+  opacity: 0.45;
+}
+
+.stock-order-cleanup-error {
+  margin: 0;
 }
 
 .stock-order-detail-footer-error {

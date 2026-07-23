@@ -18,6 +18,7 @@ import {
 } from '../../lib/stockOrderUtils'
 import { formatStockPurchasePrice } from '../../lib/stockUtils'
 import { StockCreateOrderModal } from './StockCreateOrderModal'
+import { StockOrderCleanupDialog } from './StockOrderCleanupDialog'
 import { StockOrderDetailDrawer } from './StockOrderDetailDrawer'
 
 function StockOrderSortDropdown({ value, options, onChange }) {
@@ -155,6 +156,7 @@ export function StockOrdersView({
   canManage = false,
   isSaving = false,
   isWorkspaceReady = false,
+  workspaceId = '',
   initialStatusFilter = null,
   onStatusFilterApplied,
   onCreateOrders,
@@ -162,8 +164,10 @@ export function StockOrdersView({
   onMarkSent,
   onReceiveOrder,
   onCancelOrder,
+  onOrdersChanged,
 }) {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
+  const [isCleanupDialogOpen, setIsCleanupDialogOpen] = useState(false)
   const [selectedOrder, setSelectedOrder] = useState(null)
   const [statusFilter, setStatusFilter] = useState('all')
   const [sortKey, setSortKey] = useState('newest')
@@ -228,14 +232,24 @@ export function StockOrdersView({
           Track supplier orders from draft through receiving.
         </p>
         {canManage ? (
-          <button
-            type="button"
-            className="primary-btn stock-create-order-btn"
-            onClick={() => setIsCreateModalOpen(true)}
-            disabled={!isWorkspaceReady || isActionBusy}
-          >
-            {isSaving ? 'Creating…' : 'Create order'}
-          </button>
+          <div className="stock-orders-toolbar-actions">
+            <button
+              type="button"
+              className="ghost-btn stock-order-cleanup-open-btn"
+              onClick={() => setIsCleanupDialogOpen(true)}
+              disabled={!isWorkspaceReady || isActionBusy || !workspaceId}
+            >
+              Delete purchase orders…
+            </button>
+            <button
+              type="button"
+              className="primary-btn stock-create-order-btn"
+              onClick={() => setIsCreateModalOpen(true)}
+              disabled={!isWorkspaceReady || isActionBusy}
+            >
+              {isSaving ? 'Creating…' : 'Create order'}
+            </button>
+          </div>
         ) : null}
       </div>
 
@@ -340,6 +354,17 @@ export function StockOrdersView({
             orderNumber: selectedOrderRecord.orderNumber,
           })}
           onCancel={() => onCancelOrder(selectedOrderRecord.id)}
+        />
+      ) : null}
+
+      {isCleanupDialogOpen && canManage && workspaceId ? (
+        <StockOrderCleanupDialog
+          workspaceId={workspaceId}
+          onClose={() => setIsCleanupDialogOpen(false)}
+          onCompleted={async () => {
+            setSelectedOrder(null)
+            await onOrdersChanged?.()
+          }}
         />
       ) : null}
     </section>

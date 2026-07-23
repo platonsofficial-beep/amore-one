@@ -24359,6 +24359,7 @@ function App() {
             canManage={canManageStockRole}
             isSaving={isSavingStockOrder}
             isWorkspaceReady={isStockWorkspaceReady}
+            workspaceId={activeWorkspaceId}
             initialStatusFilter={stockOrdersFilterHint}
             onStatusFilterApplied={() => setStockOrdersFilterHint(null)}
             onCreateOrders={handleCreateStockOrders}
@@ -24366,6 +24367,10 @@ function App() {
             onMarkSent={handleMarkStockOrderSent}
             onReceiveOrder={handleReceiveStockOrder}
             onCancelOrder={handleCancelStockOrder}
+            onOrdersChanged={async () => {
+              setStockOrdersNotice('Purchase order documents deleted. Inventory quantities were not changed.')
+              await refreshStockOrders()
+            }}
           />
         ) : null}
 

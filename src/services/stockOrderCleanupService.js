@@ -3,7 +3,7 @@
  *
  * Calls SECURITY DEFINER RPC cleanup_purchase_order_documents.
  * Document-only: never mutates stock_items / stock_movements / quantities.
- * No UI wiring in this sprint.
+ * UI: StockOrderCleanupDialog (P8.16.21).
  */
 import { supabase } from '../lib/supabaseClient'
 
