@@ -14108,12 +14108,11 @@ function InventoryReorderContent({
                             </div>
                           </dl>
                         </div>
-                        {canManage ? (
+                        {canManage && !catalogReadOnly ? (
                           <button
                             type="button"
                             className="ghost-btn inventory-reorder-row-edit"
                             onClick={() => onOpenEditItem?.(row.item)}
-                            disabled={catalogReadOnly}
                           >
                             Edit
                           </button>
@@ -14757,6 +14756,7 @@ function BarRefillView({
   onRequestCompleteRefill,
   onCancelRefill,
   canManage = false,
+  catalogReadOnly = false,
 }) {
   const [isNewModalOpen, setIsNewModalOpen] = useState(false)
   const activeDraft = useMemo(
@@ -14767,6 +14767,7 @@ function BarRefillView({
     () => (barRefills ?? []).filter((refill) => refill.status !== 'draft'),
     [barRefills],
   )
+  const canMutateRefills = canManage && !catalogReadOnly
 
   return (
     <>
@@ -14776,7 +14777,7 @@ function BarRefillView({
           <h3>Bar Refill</h3>
           <p className="staff-subtitle">Warehouse / storage → bar pickup workflow.</p>
         </div>
-        {canManage ? (
+        {canMutateRefills ? (
           <button
             type="button"
             className="primary-btn"
@@ -14805,13 +14806,17 @@ function BarRefillView({
             onSaveChanges={onSaveRefillChanges}
             onCompletePickup={onRequestCompleteRefill}
             onCancelRefill={onCancelRefill}
-            canManage={canManage}
+            canManage={canMutateRefills}
           />
         </section>
       ) : (
         <div className="schedule-empty-state bar-refill-empty-draft">
           <h4>No active bar refill draft.</h4>
-          <p>Start a new refill after shift to record what the bar needs from storage.</p>
+          <p>
+            {catalogReadOnly
+              ? 'Bar Refill writes are closed with Legacy Inventory. Historical refills remain below.'
+              : 'Start a new refill after shift to record what the bar needs from storage.'}
+          </p>
         </div>
       )}
 
@@ -14837,7 +14842,7 @@ function BarRefillView({
         )}
       </section>
 
-      {canManage ? (
+      {canMutateRefills ? (
         <BarRefillNewModal
           isOpen={isNewModalOpen}
           onClose={() => setIsNewModalOpen(false)}
@@ -14917,13 +14922,12 @@ function InventoryItemCard({
             </div>
           ) : null}
           <span className={`status-pill inventory-item-status-pill ${statusClass}`}>{item.status}</span>
-          {canManage ? (
+          {canManage && !catalogReadOnly ? (
           <div className="inventory-item-card-header-actions">
             <button
               type="button"
               className="ghost-btn inventory-item-card-action-btn"
               onClick={() => onOpenEditItem?.(item)}
-              disabled={catalogReadOnly}
             >
               Edit
             </button>
@@ -14931,7 +14935,6 @@ function InventoryItemCard({
               type="button"
               className="ghost-btn inventory-item-card-action-btn inventory-item-card-delete-btn"
               onClick={() => onRequestDeleteItem?.(item)}
-              disabled={catalogReadOnly}
             >
               Delete
             </button>
@@ -15017,8 +15020,8 @@ function InventoryItemCard({
   )
 }
 
-/** Legacy Stock Control Center catalog writes follow canManageStock (owner/GM/manager). */
-const INVENTORY_CATALOG_READ_ONLY = false
+/** Legacy Inventory catalog is read-only (P8.16.18). Live Stock writes belong on Dashboard. */
+const INVENTORY_CATALOG_READ_ONLY = true
 
 function InventoryView({
   inventoryItems,
@@ -15115,12 +15118,12 @@ function InventoryView({
           </p>
         </div>
         <div className="inventory-header-actions">
-          {stockTab === 'inventory' && canManage ? (
+          {stockTab === 'inventory' && canManage && !catalogReadOnly ? (
             <button
               type="button"
               className="primary-btn"
               onClick={onOpenAddItem}
-              disabled={catalogReadOnly || isSaving}
+              disabled={isSaving}
             >
               {isSaving ? 'Saving…' : '+ Add Item'}
             </button>
@@ -15134,6 +15137,16 @@ function InventoryView({
           These products belong to the previous inventory catalog. Live stock products are managed from Dashboard, and changes here do not automatically update Dashboard products.
         </p>
       </div>
+
+      {catalogReadOnly ? (
+        <div className="staff-status-banner inventory-legacy-readonly-notice" role="status" aria-live="polite">
+          <strong>Read-only</strong>
+          <p className="auth-invite-banner-copy">
+            This legacy catalog is now read-only.
+            Manage active stock products from Dashboard.
+          </p>
+        </div>
+      ) : null}
 
       <div className="inventory-workspace-tabs" role="tablist" aria-label="Legacy Inventory sections">
         <button
@@ -15169,16 +15182,6 @@ function InventoryView({
           Bar Refill
         </button>
       </div>
-
-      {catalogReadOnly && (stockTab === 'inventory' || stockTab === 'reorder') ? (
-        <div className="staff-status-banner" role="status" aria-live="polite">
-          <strong>Legacy Inventory</strong>
-          <p className="auth-invite-banner-copy">
-            This section is now in read-only mode.
-            Use Stock Dashboard for all new inventory management.
-          </p>
-        </div>
-      ) : null}
 
       {stockTab === 'inventory' ? (
         <>
@@ -15389,6 +15392,7 @@ function InventoryView({
           onRequestCompleteRefill={(refillId, payload) => setBarRefillPendingComplete({ refillId, payload })}
           onCancelRefill={onCancelBarRefill}
           canManage={canManage}
+          catalogReadOnly={catalogReadOnly}
         />
       ) : null}
 
@@ -22132,12 +22136,14 @@ function App() {
   }
 
   const handleOpenAddInventoryItem = () => {
+    if (INVENTORY_CATALOG_READ_ONLY) return
     setEditingInventoryItem(null)
     setInventoryForm(buildDefaultInventoryForm())
     setIsInventoryModalOpen(true)
   }
 
   const handleOpenEditInventoryItem = (item) => {
+    if (INVENTORY_CATALOG_READ_ONLY) return
     const categoryFields = resolveInventoryCategoryForForm(item.category ?? 'Other')
     const subcategoryFields = resolveInventorySubcategoryForForm(
       item.category ?? 'Other',
@@ -22166,6 +22172,7 @@ function App() {
   }
 
   const handleRequestDeleteInventoryItem = (item) => {
+    if (INVENTORY_CATALOG_READ_ONLY) return
     if (!item?.id) return
     setInventoryPendingDelete(item)
   }
@@ -22176,6 +22183,7 @@ function App() {
   }
 
   const handleConfirmDeleteInventoryItem = async () => {
+    if (INVENTORY_CATALOG_READ_ONLY) return
     if (!inventoryPendingDelete?.id) return
 
     setIsDeletingInventoryItem(true)
@@ -22195,6 +22203,7 @@ function App() {
 
   const handleInventorySubmit = async (event) => {
     event.preventDefault()
+    if (INVENTORY_CATALOG_READ_ONLY) return
 
     if (!inventoryForm.itemName.trim()) {
       setInventoryNotice('Please provide an item name.')
@@ -23016,6 +23025,7 @@ function App() {
   }
 
   const handleCreateBarRefill = async (payload) => {
+    if (INVENTORY_CATALOG_READ_ONLY) return
     setIsSavingBarRefill(true)
     setBarRefillsNotice('')
 
@@ -23031,6 +23041,7 @@ function App() {
   }
 
   const handleSaveBarRefillChanges = async (refillId, payload) => {
+    if (INVENTORY_CATALOG_READ_ONLY) return
     setIsSavingBarRefill(true)
     setBarRefillsNotice('')
 
@@ -23046,6 +23057,7 @@ function App() {
   }
 
   const handleCompleteBarRefill = async (refillId, payload) => {
+    if (INVENTORY_CATALOG_READ_ONLY) return
     setIsSavingBarRefill(true)
     setBarRefillsNotice('')
 
@@ -23062,6 +23074,7 @@ function App() {
   }
 
   const handleCancelBarRefill = async (refillId) => {
+    if (INVENTORY_CATALOG_READ_ONLY) return
     setIsSavingBarRefill(true)
     setBarRefillsNotice('')
 
@@ -25760,7 +25773,7 @@ function App() {
           </div>
         ) : null}
 
-        {isInventoryModalOpen ? (
+        {isInventoryModalOpen && !INVENTORY_CATALOG_READ_ONLY ? (
           <div className="employee-modal-backdrop task-modal-backdrop" onClick={handleCloseInventoryModal}>
             <div className="employee-modal task-form-modal is-responsive-sheet" onClick={(event) => event.stopPropagation()}>
               <div className="drawer-header">
@@ -25926,7 +25939,7 @@ function App() {
           </div>
         ) : null}
 
-        {inventoryPendingDelete ? (
+        {inventoryPendingDelete && !INVENTORY_CATALOG_READ_ONLY ? (
           <div className="employee-modal-backdrop task-modal-backdrop" onClick={handleCloseDeleteInventoryModal}>
             <div
               className="employee-modal task-form-modal is-responsive-sheet"

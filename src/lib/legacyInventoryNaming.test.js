@@ -69,7 +69,7 @@ describe('Legacy Inventory naming (P8.16.17)', () => {
     expect(appSource).toContain('onOpenAddItem')
     expect(appSource).toContain('onOpenEditItem')
     expect(appSource).toContain('onRequestDeleteItem')
-    expect(appSource).toMatch(/const INVENTORY_CATALOG_READ_ONLY = false/)
+    expect(appSource).toMatch(/const INVENTORY_CATALOG_READ_ONLY = true/)
   })
 
   it('keeps Stock section tabs wrapping so longer Legacy Inventory nav can reflow on iPad landscape', () => {
