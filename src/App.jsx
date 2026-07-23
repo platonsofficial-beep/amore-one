@@ -15108,9 +15108,11 @@ function InventoryView({
     <section className="staff-page">
       <div className="staff-header-card">
         <div>
-          <p className="eyebrow">Stock management</p>
-          <h3>Stock Control Center</h3>
-          <p className="staff-subtitle">Track quantity, suppliers, and purchasing risk in real time.</p>
+          <p className="eyebrow">Legacy Inventory</p>
+          <h3>Legacy Inventory</h3>
+          <p className="staff-subtitle">
+            Legacy product records retained for migration and historical reference. Live stock products are managed from Dashboard.
+          </p>
         </div>
         <div className="inventory-header-actions">
           {stockTab === 'inventory' && canManage ? (
@@ -15126,7 +15128,14 @@ function InventoryView({
         </div>
       </div>
 
-      <div className="inventory-workspace-tabs" role="tablist" aria-label="Stock sections">
+      <div className="staff-status-banner inventory-legacy-context-notice" role="status" aria-live="polite">
+        <strong>Legacy records</strong>
+        <p className="auth-invite-banner-copy">
+          These products belong to the previous inventory catalog. Live stock products are managed from Dashboard, and changes here do not automatically update Dashboard products.
+        </p>
+      </div>
+
+      <div className="inventory-workspace-tabs" role="tablist" aria-label="Legacy Inventory sections">
         <button
           type="button"
           role="tab"
@@ -15134,7 +15143,7 @@ function InventoryView({
           className={`filter-chip inventory-workspace-tab${stockTab === 'inventory' ? ' active' : ''}`}
           onClick={() => setStockTab('inventory')}
         >
-          Stock
+          Records
         </button>
         <button
           type="button"
@@ -15197,7 +15206,7 @@ function InventoryView({
       </div>
 
       {noticeMessage ? <div className="staff-status-banner">{noticeMessage}</div> : null}
-      {isLoading ? <div className="staff-status-banner">Loading stock…</div> : null}
+      {isLoading ? <div className="staff-status-banner">Loading legacy inventory…</div> : null}
 
       <div className="inventory-status-filters" role="group" aria-label="Filter by stock status">
         <button
@@ -15281,17 +15290,17 @@ function InventoryView({
       <div className="panel staff-panel">
         <div className="panel-heading">
           <div>
-            <p className="eyebrow">Stock list</p>
-            <h3>Current stock</h3>
+            <p className="eyebrow">Legacy Inventory</p>
+            <h3>Legacy records</h3>
           </div>
         </div>
 
         {visibleItems.length === 0 && !isLoading ? (
           <div className="schedule-empty-state">
-            <h4>{inventoryItems.length === 0 ? 'No stock items yet.' : 'No items match this filter.'}</h4>
+            <h4>{inventoryItems.length === 0 ? 'No legacy inventory records yet.' : 'No items match this filter.'}</h4>
             <p>
               {inventoryItems.length === 0
-                ? 'Use Stock Dashboard to add products.'
+                ? 'Live stock products are managed from Dashboard.'
                 : 'Try another status, category, or search term.'}
             </p>
           </div>
@@ -22175,7 +22184,7 @@ function App() {
     try {
       await deleteInventoryItem(inventoryPendingDelete.id)
       await refreshInventory()
-      setInventoryNotice('Stock item removed.')
+      setInventoryNotice('Legacy inventory record removed.')
       setInventoryPendingDelete(null)
     } catch (error) {
       setInventoryNotice(error.message || 'Unable to delete stock item right now.')
@@ -22241,7 +22250,7 @@ function App() {
       }
 
       await refreshInventory()
-      setInventoryNotice(editingInventoryItem ? 'Stock item updated.' : 'Stock item created.')
+      setInventoryNotice(editingInventoryItem ? 'Legacy inventory record updated.' : 'Legacy inventory record created.')
       handleCloseInventoryModal()
     } catch (error) {
       setInventoryNotice(error.message || 'Unable to save stock item right now.')
@@ -25756,10 +25765,10 @@ function App() {
             <div className="employee-modal task-form-modal is-responsive-sheet" onClick={(event) => event.stopPropagation()}>
               <div className="drawer-header">
                 <div>
-                  <p className="eyebrow">Stock form</p>
-                  <h3>{editingInventoryItem ? 'Edit item' : 'Add item'}</h3>
+                  <p className="eyebrow">Legacy Inventory</p>
+                  <h3>{editingInventoryItem ? 'Edit legacy record' : 'Add legacy record'}</h3>
                 </div>
-                <button type="button" className="icon-btn" onClick={handleCloseInventoryModal}>✕</button>
+                <button type="button" className="icon-btn" onClick={handleCloseInventoryModal} aria-label="Close legacy inventory form">✕</button>
               </div>
 
               <form className="employee-form" onSubmit={handleInventorySubmit}>
@@ -25929,14 +25938,17 @@ function App() {
               <div className="drawer-header">
                 <div>
                   <p className="eyebrow">Delete confirmation</p>
-                  <h3 id="delete-inventory-title">Delete stock item?</h3>
+                  <h3 id="delete-inventory-title">Delete legacy inventory record?</h3>
                 </div>
-                <button type="button" className="icon-btn" onClick={handleCloseDeleteInventoryModal} aria-label="Close delete stock item dialog">
+                <button type="button" className="icon-btn" onClick={handleCloseDeleteInventoryModal} aria-label="Close delete legacy inventory dialog">
                   ✕
                 </button>
               </div>
 
               <div className="inventory-delete-modal-body">
+                <p>
+                  This removes only the legacy Inventory record. It does not delete or deactivate a Dashboard product.
+                </p>
                 <p>This cannot be undone.</p>
                 {inventoryPendingDelete.itemName ? (
                   <p className="inventory-delete-item-name">

@@ -20311,6 +20311,15 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   word-break: break-word;
 }
 
+.staff-status-banner.inventory-legacy-context-notice {
+  display: grid;
+  gap: 6px;
+}
+
+.staff-status-banner.inventory-legacy-context-notice .auth-invite-banner-copy {
+  margin: 0;
+}
+
 .schedule-week-scroll {
   overflow-x: auto;
   padding-bottom: 4px;

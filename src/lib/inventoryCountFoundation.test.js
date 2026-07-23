@@ -22,7 +22,7 @@ describe('Inventory Count section foundation', () => {
     expect(STOCK_SECTIONS).toEqual(expect.arrayContaining([
       { id: 'dashboard', label: 'Dashboard' },
       { id: 'count', label: 'Inventory Count' },
-      { id: 'inventory', label: 'Inventory' },
+      { id: 'inventory', label: 'Legacy Inventory' },
       { id: 'suppliers', label: 'Suppliers' },
       { id: 'orders', label: 'Orders' },
       { id: 'migration', label: 'Inventory Migration' },

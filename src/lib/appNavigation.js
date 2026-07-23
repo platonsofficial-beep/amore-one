@@ -17,7 +17,7 @@ export const TEAM_SECTIONS = [
 export const STOCK_SECTIONS = [
   { id: 'dashboard', label: 'Dashboard' },
   { id: 'count', label: 'Inventory Count' },
-  { id: 'inventory', label: 'Inventory' },
+  { id: 'inventory', label: 'Legacy Inventory' },
   { id: 'suppliers', label: 'Suppliers' },
   { id: 'orders', label: 'Orders' },
   { id: 'migration', label: 'Inventory Migration' },
@@ -124,7 +124,7 @@ export function getModuleTitle(activeView, {
   if (activeView === 'stock') {
     if (stockSection === 'count') return 'Inventory Count'
     if (stockSection === 'suppliers') return 'Suppliers'
-    if (stockSection === 'inventory') return 'Inventory'
+    if (stockSection === 'inventory') return 'Legacy Inventory'
     if (stockSection === 'orders') return 'Orders'
     if (stockSection === 'migration') return 'Inventory Migration'
     return 'Stock'
@@ -154,7 +154,9 @@ export function getModuleSubtitle(activeView, currentDateLabel, {
   if (activeView === 'stock' && stockSection === 'count') {
     return 'Count inventory by location, review variances, and post verified stock levels.'
   }
-  if (activeView === 'stock' && stockSection === 'inventory') return 'Inventory levels and replenishment.'
+  if (activeView === 'stock' && stockSection === 'inventory') {
+    return 'Legacy product records retained for migration and historical reference. Live stock products are managed from Dashboard.'
+  }
   if (activeView === 'stock' && stockSection === 'suppliers') return 'Supplier contacts, products, and purchase history.'
   if (activeView === 'stock' && stockSection === 'orders') return 'Supplier purchase orders and receiving.'
   if (activeView === 'stock' && stockSection === 'migration') {
@@ -174,7 +176,8 @@ export function getSearchPlaceholder(activeView, {
 } = {}) {
   if (activeView === 'team' && teamSection === 'members') return 'Search employee'
   if (activeView === 'stock' && stockSection === 'orders') return 'Search order #, supplier, product'
-  if (activeView === 'stock' && (stockSection === 'dashboard' || stockSection === 'inventory')) return 'Search stock item'
+  if (activeView === 'stock' && stockSection === 'dashboard') return 'Search stock item'
+  if (activeView === 'stock' && stockSection === 'inventory') return 'Search legacy inventory'
   if (activeView === 'stock' && stockSection === 'count') return 'Search counts'
   if (activeView === 'stock' && stockSection === 'suppliers') return 'Search supplier'
   if (activeView === 'stock' && stockSection === 'migration') return 'Search migration stages'
