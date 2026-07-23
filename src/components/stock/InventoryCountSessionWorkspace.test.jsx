@@ -6,7 +6,10 @@ import { createRoot } from 'react-dom/client'
 import { act } from 'react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { InventoryCountView } from './InventoryCountView'
-import { InventoryCountSessionWorkspace } from './InventoryCountSessionWorkspace'
+import {
+  getFinishCountDisabledReason,
+  InventoryCountSessionWorkspace,
+} from './InventoryCountSessionWorkspace'
 import {
   buildInventoryCountSnapshot,
   completeInventoryCountLocation,
@@ -461,6 +464,8 @@ describe('InventoryCountSessionWorkspace real session items', () => {
     expect(getProgressSnapshot(container)).toContain('3 / 5 counted')
     expect(getProgressSnapshot(container)).toContain('1 / 3 locations complete')
     expect(getButtonByText(container, 'Finish Count')?.disabled).toBe(true)
+    expect(container.querySelector('.inventory-count-finish-disabled-reason')?.textContent)
+      .toContain('2 items are still pending.')
 
     const completeBtn = getButtonByText(container, 'Complete Location')
     expect(completeBtn?.disabled).toBe(false)
@@ -1782,5 +1787,23 @@ describe('InventoryCountSessionWorkspace finish count preview', () => {
     )
     expect(getButtonByText(container, 'Confirm Finish Count')?.disabled).toBe(false)
     cleanup()
+  })
+})
+
+describe('getFinishCountDisabledReason (P8.16.29)', () => {
+  it('explains pending items and incomplete locations', () => {
+    expect(getFinishCountDisabledReason('paused', [])).toBe('Resume this count before finishing.')
+    expect(getFinishCountDisabledReason('in_progress', [
+      { status: 'current', countedItems: 0, totalItems: 1, items: [] },
+      { status: 'not_started', countedItems: 0, totalItems: 1, items: [] },
+    ])).toBe('2 items are still pending.')
+    expect(getFinishCountDisabledReason('in_progress', [
+      { status: 'current', countedItems: 0, totalItems: 1, items: [] },
+    ])).toBe('1 item is still pending.')
+    expect(getFinishCountDisabledReason('in_progress', [
+      { status: 'completed', countedItems: 1, totalItems: 1, items: [] },
+      { status: 'current', countedItems: 0, totalItems: 0, items: [] },
+    ])).toBe('Complete all locations before finishing this count.')
+    expect(getFinishCountDisabledReason('counting_complete', [])).toBe('')
   })
 })

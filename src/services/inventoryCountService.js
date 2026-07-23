@@ -507,9 +507,62 @@ function buildLocationProgressBySession(locationRows = []) {
   return progressBySessionId
 }
 
+function buildItemProgressBySession(itemRows = []) {
+  const progressBySessionId = new Map()
+
+  for (const row of itemRows) {
+    const sessionId = `${row?.session_id ?? row?.sessionId ?? ''}`.trim()
+    if (!sessionId) continue
+    const lineStatus = `${row?.line_status ?? row?.lineStatus ?? 'pending'}`.trim().toLowerCase() || 'pending'
+    const current = progressBySessionId.get(sessionId) || {
+      countedItems: 0,
+      pendingItems: 0,
+      totalItems: 0,
+    }
+    current.totalItems += 1
+    if (lineStatus === 'counted' || lineStatus === 'skipped') {
+      current.countedItems += 1
+    } else {
+      current.pendingItems += 1
+    }
+    progressBySessionId.set(sessionId, current)
+  }
+
+  return progressBySessionId
+}
+
+/**
+ * Home-card progress copy (UX only).
+ */
+export function formatInventoryCountHomeProgress(session) {
+  const status = `${session?.status ?? ''}`.trim()
+  const countedItems = Number(session?.countedItems) || 0
+  const totalItems = Number(session?.totalItems) || 0
+  const completedLocations = Number(session?.completedLocations) || 0
+  const totalLocations = Number(session?.totalLocations) || 0
+
+  if (status === 'counting_complete') {
+    return 'All locations completed · Waiting for Finish'
+  }
+
+  if (totalItems > 0) {
+    return `${countedItems} / ${totalItems} items counted`
+  }
+
+  if (totalLocations > 0 && completedLocations >= totalLocations) {
+    return 'All locations completed'
+  }
+
+  if (totalLocations > 0) {
+    return `${completedLocations} / ${totalLocations} locations`
+  }
+
+  return 'No items yet'
+}
+
 /**
  * Read-only home list of inventory count sessions for a workspace.
- * Includes location progress and operator display names when available.
+ * Includes location/item progress and operator display names when available.
  */
 export async function listInventoryCountHomeSessions({ workspaceId } = {}) {
   requireConfiguredSupabase()
@@ -538,13 +591,18 @@ export async function listInventoryCountHomeSessions({ workspaceId } = {}) {
   const sessionIds = sessions.map((session) => session.id)
   const operatorIds = [...new Set(sessions.map((session) => session.startedBy).filter(Boolean))]
 
-  const [locationsResult, operatorNames] = await Promise.all([
+  const [locationsResult, itemsResult, operatorNames] = await Promise.all([
     supabase
       .from(SESSION_LOCATIONS_TABLE)
       .select('id, session_id, workspace_id, location_key, sort_order, status')
       .eq('workspace_id', normalizedWorkspaceId)
       .in('session_id', sessionIds)
       .order('sort_order', { ascending: true }),
+    supabase
+      .from(SESSION_ITEMS_TABLE)
+      .select('session_id, line_status')
+      .eq('workspace_id', normalizedWorkspaceId)
+      .in('session_id', sessionIds),
     getMemberDisplayNamesByAuthUserIds(normalizedWorkspaceId, operatorIds),
   ])
 
@@ -558,13 +616,29 @@ export async function listInventoryCountHomeSessions({ workspaceId } = {}) {
     )
   }
 
+  if (itemsResult.error) {
+    console.error(
+      '[inventoryCountService] listInventoryCountHomeSessions items error:',
+      itemsResult.error,
+    )
+    throw new Error(
+      itemsResult.error.message || 'Unable to load inventory count items right now.',
+    )
+  }
+
   const progressBySessionId = buildLocationProgressBySession(locationsResult.data ?? [])
+  const itemProgressBySessionId = buildItemProgressBySession(itemsResult.data ?? [])
 
   const enriched = sessions.map((session) => {
     const progress = progressBySessionId.get(session.id) || {
       locationKeys: [],
       completedLocations: 0,
       totalLocations: 0,
+    }
+    const itemProgress = itemProgressBySessionId.get(session.id) || {
+      countedItems: 0,
+      pendingItems: 0,
+      totalItems: 0,
     }
     const operatorName = session.startedBy
       ? (operatorNames[session.startedBy] || null)
@@ -576,6 +650,16 @@ export async function listInventoryCountHomeSessions({ workspaceId } = {}) {
       locations: progress.locationKeys,
       completedLocations: progress.completedLocations,
       totalLocations: progress.totalLocations,
+      countedItems: itemProgress.countedItems,
+      pendingItems: itemProgress.pendingItems,
+      totalItems: itemProgress.totalItems,
+      progressLabel: formatInventoryCountHomeProgress({
+        ...session,
+        completedLocations: progress.completedLocations,
+        totalLocations: progress.totalLocations,
+        countedItems: itemProgress.countedItems,
+        totalItems: itemProgress.totalItems,
+      }),
     }
   })
 
@@ -612,6 +696,89 @@ export async function getInventoryCountSession({
   }
 
   return mapped
+}
+
+const OPEN_COUNT_STATUSES = ['in_progress', 'paused', 'counting_complete']
+
+/**
+ * Read-only: resolve the open inventory count session blocking a stock product.
+ * Used for Permanent Delete UX guidance only — does not change delete rules.
+ */
+export async function getOpenInventoryCountBlockerForStockItem({
+  workspaceId,
+  stockItemId,
+} = {}) {
+  requireConfiguredSupabase()
+
+  const normalizedWorkspaceId = requireId(workspaceId, 'Workspace')
+  const normalizedStockItemId = requireId(stockItemId, 'Stock item')
+
+  const { data: itemRows, error: itemError } = await supabase
+    .from(SESSION_ITEMS_TABLE)
+    .select('session_id, storage_location')
+    .eq('workspace_id', normalizedWorkspaceId)
+    .eq('item_id', normalizedStockItemId)
+
+  if (itemError) {
+    console.error('[inventoryCountService] getOpenInventoryCountBlockerForStockItem items error:', itemError)
+    throw new Error(itemError.message || 'Unable to load inventory count references right now.')
+  }
+
+  const sessionIds = [...new Set(
+    (itemRows ?? [])
+      .map((row) => `${row?.session_id ?? ''}`.trim())
+      .filter(Boolean),
+  )]
+
+  if (sessionIds.length === 0) {
+    return null
+  }
+
+  const { data: sessionRows, error: sessionError } = await supabase
+    .from(SESSIONS_TABLE)
+    .select(HOME_SESSION_SELECT)
+    .eq('workspace_id', normalizedWorkspaceId)
+    .in('id', sessionIds)
+    .in('status', OPEN_COUNT_STATUSES)
+    .order('started_at', { ascending: false })
+    .limit(1)
+
+  if (sessionError) {
+    console.error(
+      '[inventoryCountService] getOpenInventoryCountBlockerForStockItem sessions error:',
+      sessionError,
+    )
+    throw new Error(sessionError.message || 'Unable to load inventory count sessions right now.')
+  }
+
+  const session = mapInventoryCountSessionRow((sessionRows ?? [])[0])
+  if (!session) {
+    return null
+  }
+
+  const locationRow = (itemRows ?? []).find((row) => `${row.session_id ?? ''}`.trim() === session.id)
+  const storageLocation = `${locationRow?.storage_location ?? ''}`.trim() || '—'
+
+  let operatorName = null
+  if (session.startedBy) {
+    const names = await getMemberDisplayNamesByAuthUserIds(
+      normalizedWorkspaceId,
+      [session.startedBy],
+    )
+    operatorName = names[session.startedBy] || null
+  }
+
+  return {
+    sessionId: session.id,
+    workspaceId: session.workspaceId,
+    status: session.status,
+    statusLabel: session.statusLabel,
+    countType: session.countType,
+    countTypeLabel: session.countTypeLabel,
+    startedAt: session.startedAt,
+    operatorName,
+    storageLocation,
+  }
 }
 
 /**

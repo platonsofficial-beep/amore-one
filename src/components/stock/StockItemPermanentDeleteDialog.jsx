@@ -9,10 +9,12 @@ import { signInWithPassword } from '../../services/authService'
 import { previewStockItemPermanentDelete } from '../../services/stockItemPermanentDeletePreviewService'
 import { deleteStockItemPermanently } from '../../services/stockItemPermanentDeleteService'
 import {
+  buildOpenInventoryCountBlockDetails,
   buildStockItemPermanentDeletePhrase,
   friendlyStockItemPermanentDeleteError,
   matchesStockItemPermanentDeletePhrase,
 } from '../../lib/stockItemPermanentDeleteUi'
+import { getOpenInventoryCountBlockerForStockItem } from '../../services/inventoryCountService'
 
 function readInputValue(ref) {
   return `${ref.current?.value ?? ''}`.trim()
@@ -42,6 +44,7 @@ export function StockItemPermanentDeleteDialog({
   const [confirmText, setConfirmText] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
+  const [openCountBlocker, setOpenCountBlocker] = useState(null)
   const [isBusy, setIsBusy] = useState(false)
   const [canDismiss, setCanDismiss] = useState(false)
   const passwordRef = useRef(null)
@@ -50,6 +53,12 @@ export function StockItemPermanentDeleteDialog({
 
   const productName = `${preview?.product?.name ?? item?.name ?? ''}`.trim()
   const confirmPhrase = buildStockItemPermanentDeletePhrase(productName)
+  const openCountBlockDetails = buildOpenInventoryCountBlockDetails({
+    productName,
+    blocker: openCountBlocker,
+  })
+  const hasOpenCountBlock = countOrZero(preview?.inventory_count?.open_references) > 0
+    || Boolean(openCountBlocker)
 
   const syncPasswordFromDom = () => {
     const domValue = readInputValue(passwordRef)
@@ -82,16 +91,31 @@ export function StockItemPermanentDeleteDialog({
       setPhase('loading')
       setError('')
       setPreview(null)
+      setOpenCountBlocker(null)
       try {
         const next = await previewStockItemPermanentDelete(workspaceId, stockItemId)
         if (cancelled) return
         setPreview(next)
         setPhase('ready')
+
+        if (countOrZero(next?.inventory_count?.open_references) > 0) {
+          try {
+            const blocker = await getOpenInventoryCountBlockerForStockItem({
+              workspaceId,
+              stockItemId,
+            })
+            if (!cancelled) setOpenCountBlocker(blocker)
+          } catch (blockerError) {
+            console.warn('[StockItemPermanentDeleteDialog] Open count blocker lookup failed:', blockerError)
+            if (!cancelled) setOpenCountBlocker(null)
+          }
+        }
       } catch (loadError) {
         if (cancelled) return
         setError(friendlyStockItemPermanentDeleteError(loadError))
         setPhase('preview_error')
         setPreview(null)
+        setOpenCountBlocker(null)
       }
     }
 
@@ -224,7 +248,19 @@ export function StockItemPermanentDeleteDialog({
         console.warn('[StockItemPermanentDeleteDialog] Refresh after delete failed:', refreshError)
       }
     } catch (deleteError) {
-      setError(friendlyStockItemPermanentDeleteError(deleteError))
+      const friendly = friendlyStockItemPermanentDeleteError(deleteError)
+      if (`${deleteError?.code ?? ''}`.toUpperCase() === 'BLOCKED_OPEN_COUNT' && !openCountBlocker) {
+        try {
+          const blocker = await getOpenInventoryCountBlockerForStockItem({
+            workspaceId,
+            stockItemId: preview.product.id,
+          })
+          setOpenCountBlocker(blocker)
+        } catch (blockerError) {
+          console.warn('[StockItemPermanentDeleteDialog] Open count blocker lookup failed:', blockerError)
+        }
+      }
+      setError(friendly)
       setPhase('ready')
       setIsBusy(false)
       inFlightRef.current = false
@@ -393,6 +429,32 @@ export function StockItemPermanentDeleteDialog({
                       Historical documents remain readable.
                     </p>
                   </section>
+
+                  {hasOpenCountBlock ? (
+                    <section
+                      className="stock-item-permanent-delete-block-card"
+                      aria-label="Blocked by Inventory Count"
+                    >
+                      <h4>{openCountBlockDetails.title}</h4>
+                      {openCountBlockDetails.fields ? (
+                        <dl className="stock-item-permanent-delete-block-meta">
+                          {openCountBlockDetails.fields.map((field) => (
+                            <div key={field.label}>
+                              <dt>{field.label}</dt>
+                              <dd>{field.value}</dd>
+                            </div>
+                          ))}
+                        </dl>
+                      ) : (
+                        <p className="stock-item-permanent-delete-copy">
+                          {openCountBlockDetails.fallbackMessage}
+                        </p>
+                      )}
+                      <p className="stock-item-permanent-delete-copy">
+                        {openCountBlockDetails.guidance}
+                      </p>
+                    </section>
+                  ) : null}
 
                   <label className="form-field stock-item-permanent-delete-confirm-field">
                     <span>

@@ -189,6 +189,30 @@ function getSessionProgress(locations) {
   }
 }
 
+/**
+ * Visible reason when Finish Count is disabled (UX only).
+ */
+export function getFinishCountDisabledReason(sessionStatus, locations = []) {
+  const status = `${sessionStatus ?? ''}`.trim()
+  if (status === 'counting_complete') return ''
+  if (status === 'paused') {
+    return 'Resume this count before finishing.'
+  }
+
+  const progress = getSessionProgress(locations)
+  if (progress.remainingItems > 0) {
+    return progress.remainingItems === 1
+      ? '1 item is still pending.'
+      : `${progress.remainingItems} items are still pending.`
+  }
+
+  if (progress.totalLocations > 0 && progress.completedLocations < progress.totalLocations) {
+    return 'Complete all locations before finishing this count.'
+  }
+
+  return 'Complete all locations before finishing this count.'
+}
+
 function pickInitialLocationId(locations) {
   const current = locations.find((location) => location.status === 'current')
   if (current) return current.id
@@ -521,6 +545,9 @@ export function InventoryCountSessionWorkspace({
   const showCountingCompleteBanner = sessionStatus === 'counting_complete'
   const showPausedBanner = isSessionPaused
   const canOpenFinishCount = sessionStatus === 'counting_complete'
+  const finishCountDisabledReason = canOpenFinishCount
+    ? ''
+    : getFinishCountDisabledReason(sessionStatus, locations)
   const canTogglePause = (sessionStatus === 'in_progress' || sessionStatus === 'paused')
     && !isTogglingPause
     && !isCompletingLocation
@@ -846,6 +873,7 @@ export function InventoryCountSessionWorkspace({
             className="ghost-btn inventory-count-session-action-btn"
             disabled={!canOpenFinishCount || isLoadingFinishPreview}
             aria-disabled={!canOpenFinishCount || isLoadingFinishPreview}
+            title={finishCountDisabledReason || undefined}
             onClick={() => {
               void handleOpenFinishPreview()
             }}
@@ -861,6 +889,14 @@ export function InventoryCountSessionWorkspace({
           </button>
         </div>
       </header>
+
+      {finishCountDisabledReason ? (
+        <p className="inventory-count-finish-disabled-reason" role="status">
+          <strong>Finish Count</strong>
+          {' '}
+          {finishCountDisabledReason}
+        </p>
+      ) : null}
 
       {isLoading ? (
         <div className="staff-status-banner" role="status">

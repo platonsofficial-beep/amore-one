@@ -142,12 +142,14 @@ describe('InventoryCountView live home hydration (P8.16.27)', () => {
           status: 'in_progress',
           statusLabel: 'In progress',
           countTypeLabel: 'Quick Count',
+          progressLabel: '1 / 8 items counted',
         }),
         sessionFixture({
           id: 'complete-1',
           status: 'counting_complete',
           statusLabel: 'Counting complete',
           countTypeLabel: 'New Count',
+          progressLabel: 'All locations completed · Waiting for Finish',
         }),
       ],
       paused: [
@@ -156,6 +158,7 @@ describe('InventoryCountView live home hydration (P8.16.27)', () => {
           status: 'paused',
           statusLabel: 'Paused',
           countTypeLabel: 'Partial Count',
+          progressLabel: '0 / 2 items counted',
         }),
       ],
       recent: [
@@ -165,6 +168,7 @@ describe('InventoryCountView live home hydration (P8.16.27)', () => {
           statusLabel: 'Posted',
           countTypeLabel: 'Emergency Count',
           postedAt: '2026-07-22T12:00:00.000Z',
+          progressLabel: '8 / 8 items counted',
         }),
       ],
     })
@@ -176,6 +180,9 @@ describe('InventoryCountView live home hydration (P8.16.27)', () => {
     expect(container.textContent).toContain('Counting complete')
     expect(container.textContent).toContain('Paused')
     expect(container.textContent).toContain('Posted')
+    expect(container.textContent).toContain('1 / 8 items counted')
+    expect(container.textContent).toContain('All locations completed · Waiting for Finish')
+    expect(container.textContent).toContain('0 / 2 items counted')
     expect(container.querySelectorAll('.inventory-count-session-card')).toHaveLength(4)
 
     cleanup()

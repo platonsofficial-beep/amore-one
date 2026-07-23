@@ -9,6 +9,7 @@ import { StockItemPermanentDeleteDialog } from './StockItemPermanentDeleteDialog
 import { StockItemMoreMenu } from './StockItemMoreMenu'
 import { StockDashboardView } from './StockDashboardView'
 import {
+  buildOpenInventoryCountBlockDetails,
   buildStockItemPermanentDeletePhrase,
   matchesStockItemPermanentDeletePhrase,
   normalizeStockItemPermanentDeletePhrase,
@@ -20,6 +21,7 @@ const previewMock = vi.fn()
 const deleteMock = vi.fn()
 const signInMock = vi.fn()
 const useAuthMock = vi.fn()
+const openCountBlockerMock = vi.fn()
 
 vi.mock('../../services/stockItemPermanentDeletePreviewService', async () => {
   const actual = await vi.importActual('../../services/stockItemPermanentDeletePreviewService')
@@ -43,6 +45,10 @@ vi.mock('../../services/authService', () => ({
 
 vi.mock('../../context/AuthContext', () => ({
   useAuth: () => useAuthMock(),
+}))
+
+vi.mock('../../services/inventoryCountService', () => ({
+  getOpenInventoryCountBlockerForStockItem: (...args) => openCountBlockerMock(...args),
 }))
 
 function mockMatchMedia(matches = false) {
@@ -158,6 +164,7 @@ beforeEach(() => {
     session: { user: { email: 'owner@amore.test' } },
   })
   previewMock.mockResolvedValue(previewPayload())
+  openCountBlockerMock.mockResolvedValue(null)
   deleteMock.mockResolvedValue({
     success: true,
     deleted: {
@@ -171,6 +178,43 @@ beforeEach(() => {
 
 describe('stockItemPermanentDeleteUi helpers', () => {
   const product = 'THE BOTANIST'
+
+  it('builds contextual open-count block details from session metadata', () => {
+    const details = buildOpenInventoryCountBlockDetails({
+      productName: product,
+      blocker: {
+        sessionId: 'session-1',
+        countTypeLabel: 'New Count',
+        statusLabel: 'In Progress',
+        storageLocation: 'Main Storage',
+        startedAt: '2026-07-20T10:00:00.000Z',
+        operatorName: 'PLATON SACHINIS',
+      },
+    })
+
+    expect(details.title).toBe('Blocked by Inventory Count')
+    expect(details.fallbackMessage).toBeNull()
+    expect(details.fields).toEqual([
+      { label: 'Product', value: 'THE BOTANIST' },
+      { label: 'Session', value: 'New Count' },
+      { label: 'Status', value: 'In Progress' },
+      { label: 'Location', value: 'Main Storage' },
+      { label: 'Started', value: expect.stringMatching(/20.*Jul.*2026|Jul.*20.*2026/) },
+      { label: 'Operator', value: 'PLATON SACHINIS' },
+    ])
+    expect(details.guidance).toContain('Finish or cancel this count')
+  })
+
+  it('falls back to the generic open-count message when metadata is unavailable', () => {
+    const details = buildOpenInventoryCountBlockDetails({
+      productName: product,
+      blocker: null,
+    })
+
+    expect(details.title).toBe('Blocked by Inventory Count')
+    expect(details.fields).toBeNull()
+    expect(details.fallbackMessage).toContain('open inventory count')
+  })
 
   it('builds DELETE <NAME> display phrase', () => {
     expect(buildStockItemPermanentDeletePhrase(product)).toBe('DELETE THE BOTANIST')
@@ -639,6 +683,92 @@ describe('StockDashboardView permanent delete wiring', () => {
 
     expect(onStockItemsChanged).toHaveBeenCalledTimes(1)
     expect(container.textContent).not.toContain('KETEL ONE')
+
+    cleanup()
+  })
+})
+
+describe('Permanent Delete open inventory count guidance (P8.16.29)', () => {
+  it('shows contextual blocking session details when open references exist', async () => {
+    previewMock.mockResolvedValue(previewPayload({
+      product: {
+        id: 'item-1',
+        name: 'THE BOTANIST',
+        active: false,
+        current_quantity: 2,
+        unit: 'btl',
+        storage_location: 'Bar',
+      },
+      inventory_count: {
+        posted_references: 0,
+        open_references: 1,
+      },
+    }))
+    openCountBlockerMock.mockResolvedValue({
+      sessionId: 'session-open-1',
+      countTypeLabel: 'New Count',
+      statusLabel: 'In Progress',
+      storageLocation: 'Main Storage',
+      startedAt: '2026-07-20T10:00:00.000Z',
+      operatorName: 'PLATON SACHINIS',
+    })
+
+    const { cleanup } = render(createElement(StockItemPermanentDeleteDialog, {
+      workspaceId: 'ws-1',
+      item: { id: 'item-1', name: 'THE BOTANIST' },
+      onClose: vi.fn(),
+    }))
+
+    await waitForPreview()
+    await act(async () => {
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+
+    expect(openCountBlockerMock).toHaveBeenCalledWith({
+      workspaceId: 'ws-1',
+      stockItemId: 'item-1',
+    })
+
+    const block = getDialog()?.querySelector('[aria-label="Blocked by Inventory Count"]')
+    expect(block).toBeTruthy()
+    expect(block.textContent).toContain('Blocked by Inventory Count')
+    expect(block.textContent).toContain('THE BOTANIST')
+    expect(block.textContent).toContain('New Count')
+    expect(block.textContent).toContain('In Progress')
+    expect(block.textContent).toContain('Main Storage')
+    expect(block.textContent).toContain('PLATON SACHINIS')
+    expect(block.textContent).toMatch(/20.*Jul.*2026|Jul.*20.*2026/)
+    expect(block.textContent).toContain('Finish or cancel this count before permanently deleting this product.')
+
+    cleanup()
+  })
+
+  it('keeps the generic open-count fallback when blocker metadata is unavailable', async () => {
+    previewMock.mockResolvedValue(previewPayload({
+      inventory_count: {
+        posted_references: 0,
+        open_references: 1,
+      },
+    }))
+    openCountBlockerMock.mockResolvedValue(null)
+
+    const { cleanup } = render(createElement(StockItemPermanentDeleteDialog, {
+      workspaceId: 'ws-1',
+      item: { id: 'item-1', name: 'KETEL ONE' },
+      onClose: vi.fn(),
+    }))
+
+    await waitForPreview()
+    await act(async () => {
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+
+    const block = getDialog()?.querySelector('[aria-label="Blocked by Inventory Count"]')
+    expect(block).toBeTruthy()
+    expect(block.textContent).toContain('This product is in an open inventory count')
+    expect(block.textContent).not.toContain('Session')
 
     cleanup()
   })

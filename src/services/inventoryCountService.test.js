@@ -21,8 +21,10 @@ vi.mock('./membershipService', () => ({
 import {
   completeInventoryCountLocation,
   cancelInventoryCountSession,
+  formatInventoryCountHomeProgress,
   getInventoryCountSession,
   getInventoryCountSessionItems,
+  getOpenInventoryCountBlockerForStockItem,
   listInventoryCountHomeSessions,
   mapInventoryCountSessionRow,
   partitionInventoryCountHomeSessions,
@@ -203,10 +205,21 @@ describe('inventory count home session mapping (P8.16.27)', () => {
       ],
       error: null,
     })
+    const itemsQuery = createQuery({
+      data: [
+        { session_id: 'session-active', line_status: 'counted' },
+        { session_id: 'session-active', line_status: 'pending' },
+        { session_id: 'session-active', line_status: 'pending' },
+        { session_id: 'session-paused', line_status: 'counted' },
+        { session_id: 'session-paused', line_status: 'counted' },
+      ],
+      error: null,
+    })
 
     fromMock.mockImplementation((table) => {
       if (table === 'inventory_count_sessions') return sessionsQuery
       if (table === 'inventory_count_session_locations') return locationsQuery
+      if (table === 'inventory_count_session_items') return itemsQuery
       return createQuery({ data: [], error: null })
     })
 
@@ -218,6 +231,10 @@ describe('inventory count home session mapping (P8.16.27)', () => {
       'session_id',
       ['session-active', 'session-paused', 'session-posted'],
     )
+    expect(itemsQuery.in).toHaveBeenCalledWith(
+      'session_id',
+      ['session-active', 'session-paused', 'session-posted'],
+    )
     expect(getMemberDisplayNamesByAuthUserIds).toHaveBeenCalledWith('workspace-1', ['user-1'])
     expect(result.active).toHaveLength(1)
     expect(result.active[0]).toMatchObject({
@@ -226,10 +243,45 @@ describe('inventory count home session mapping (P8.16.27)', () => {
       locations: ['Main Storage', 'Bar'],
       completedLocations: 1,
       totalLocations: 2,
+      countedItems: 1,
+      totalItems: 3,
+      progressLabel: '1 / 3 items counted',
       statusLabel: 'In progress',
     })
     expect(result.paused).toHaveLength(1)
+    expect(result.paused[0]).toMatchObject({
+      countedItems: 2,
+      totalItems: 2,
+      progressLabel: '2 / 2 items counted',
+    })
     expect(result.recent).toHaveLength(1)
+  })
+
+  it('formats home progress for item counts and waiting-for-finish', () => {
+    expect(formatInventoryCountHomeProgress({
+      status: 'in_progress',
+      countedItems: 0,
+      totalItems: 2,
+    })).toBe('0 / 2 items counted')
+    expect(formatInventoryCountHomeProgress({
+      status: 'in_progress',
+      countedItems: 1,
+      totalItems: 8,
+    })).toBe('1 / 8 items counted')
+    expect(formatInventoryCountHomeProgress({
+      status: 'counting_complete',
+      countedItems: 8,
+      totalItems: 8,
+      completedLocations: 2,
+      totalLocations: 2,
+    })).toBe('All locations completed · Waiting for Finish')
+    expect(formatInventoryCountHomeProgress({
+      status: 'in_progress',
+      countedItems: 0,
+      totalItems: 0,
+      completedLocations: 2,
+      totalLocations: 2,
+    })).toBe('All locations completed')
   })
 
   it('returns empty partitions when the workspace has no sessions', async () => {
@@ -265,6 +317,66 @@ describe('inventory count home session mapping (P8.16.27)', () => {
       id: 'session-1',
       status: 'counting_complete',
       statusLabel: 'Counting complete',
+    })
+  })
+})
+
+describe('getOpenInventoryCountBlockerForStockItem (P8.16.29)', () => {
+  beforeEach(() => {
+    fromMock.mockReset()
+    getMemberDisplayNamesByAuthUserIds.mockReset()
+    getMemberDisplayNamesByAuthUserIds.mockResolvedValue({
+      'user-op': 'PLATON SACHINIS',
+    })
+  })
+
+  it('resolves the newest open session blocking a stock item', async () => {
+    const itemsQuery = createQuery({
+      data: [
+        { session_id: 'session-open', storage_location: 'Main Storage' },
+        { session_id: 'session-posted', storage_location: 'Bar' },
+      ],
+      error: null,
+    })
+    const sessionsQuery = createQuery({
+      data: [
+        {
+          id: 'session-open',
+          workspace_id: 'workspace-1',
+          status: 'in_progress',
+          count_type: 'new',
+          started_by: 'user-op',
+          started_at: '2026-07-20T10:00:00.000Z',
+          updated_at: '2026-07-20T11:00:00.000Z',
+        },
+      ],
+      error: null,
+    })
+
+    fromMock.mockImplementation((table) => {
+      if (table === 'inventory_count_session_items') return itemsQuery
+      if (table === 'inventory_count_sessions') return sessionsQuery
+      return createQuery({ data: [], error: null })
+    })
+
+    const blocker = await getOpenInventoryCountBlockerForStockItem({
+      workspaceId: 'workspace-1',
+      stockItemId: 'item-1',
+    })
+
+    expect(itemsQuery.eq).toHaveBeenCalledWith('item_id', 'item-1')
+    expect(sessionsQuery.in).toHaveBeenCalledWith('status', [
+      'in_progress',
+      'paused',
+      'counting_complete',
+    ])
+    expect(blocker).toMatchObject({
+      sessionId: 'session-open',
+      countTypeLabel: 'New Count',
+      statusLabel: 'In progress',
+      storageLocation: 'Main Storage',
+      operatorName: 'PLATON SACHINIS',
+      startedAt: '2026-07-20T10:00:00.000Z',
     })
   })
 })

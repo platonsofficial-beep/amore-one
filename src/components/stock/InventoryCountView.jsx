@@ -25,6 +25,8 @@ function formatSessionDate(value) {
 }
 
 function formatProgress(session) {
+  if (session?.progressLabel) return session.progressLabel
+  // Fallback for older payloads
   const total = Number(session?.totalLocations) || 0
   const completed = Number(session?.completedLocations) || 0
   if (total <= 0) return 'No locations'

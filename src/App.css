@@ -32324,6 +32324,18 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   flex-shrink: 0;
 }
 
+.inventory-count-finish-disabled-reason {
+  margin: 0;
+  padding: 0 4px;
+  color: #d8cbb8;
+  font-size: 0.88rem;
+  line-height: 1.45;
+}
+
+.inventory-count-finish-disabled-reason strong {
+  color: #fff7e8;
+}
+
 .inventory-count-session-action-btn {
   min-height: 44px;
   min-width: 44px;
@@ -35815,6 +35827,47 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 .stock-item-permanent-delete-product-card strong {
   color: #fff7e8;
   font-size: 1.05rem;
+}
+
+.stock-item-permanent-delete-block-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  border: 1px solid rgba(232, 160, 120, 0.35);
+  background: rgba(120, 60, 40, 0.18);
+}
+
+.stock-item-permanent-delete-block-card h4 {
+  margin: 0;
+  color: #fff7e8;
+  font-size: 0.95rem;
+}
+
+.stock-item-permanent-delete-block-meta {
+  margin: 0;
+  display: grid;
+  gap: 6px;
+}
+
+.stock-item-permanent-delete-block-meta > div {
+  display: grid;
+  grid-template-columns: 88px minmax(0, 1fr);
+  gap: 8px;
+}
+
+.stock-item-permanent-delete-block-meta dt {
+  margin: 0;
+  color: #9f9383;
+  font-size: 0.78rem;
+}
+
+.stock-item-permanent-delete-block-meta dd {
+  margin: 0;
+  color: #fff7e8;
+  font-size: 0.88rem;
+  word-break: break-word;
 }
 
 .stock-item-permanent-delete-product-card p {
