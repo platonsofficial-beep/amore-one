@@ -329,6 +329,7 @@ export function StockOrdersView({
       {selectedOrderRecord ? (
         <StockOrderDetailDrawer
           order={selectedOrderRecord}
+          stockItems={stockItems}
           onClose={() => setSelectedOrder(null)}
           canManage={canManage}
           isSaving={isSaving}

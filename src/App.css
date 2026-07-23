@@ -30737,6 +30737,13 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   gap: 4px;
 }
 
+.stock-order-detail-line-title-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
 .stock-order-detail-line-copy strong {
   color: #fff7e8;
 }
@@ -30744,6 +30751,56 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 .stock-order-detail-line-copy span {
   color: #bfb3a0;
   font-size: 0.86rem;
+}
+
+.stock-order-detail-line.is-inactive-product {
+  border-color: rgba(212, 175, 55, 0.28);
+  background: rgba(212, 175, 55, 0.06);
+}
+
+.stock-order-inactive-notice {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.stock-order-inactive-warning {
+  margin: 0;
+  color: #f6dca2;
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
+.stock-order-inactive-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.stock-order-inactive-action-btn {
+  min-height: 44px;
+  min-width: 44px;
+}
+
+.stock-order-inactive-replace {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.stock-order-inactive-replace span {
+  color: #8f8475;
+  font-size: 0.82rem;
+}
+
+.stock-order-inactive-replace-select {
+  min-height: 44px;
+  width: 100%;
+  padding: 0 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.04);
+  color: #fff7e8;
 }
 
 .stock-order-detail-line-total {

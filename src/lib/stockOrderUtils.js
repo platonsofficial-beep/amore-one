@@ -74,6 +74,54 @@ export function buildSuggestedOrderLine(item) {
   }
 }
 
+/**
+ * P8.16.15 — Live catalog lookup for draft lines that may reference deactivated products.
+ * Missing catalog rows / null stockItemId are treated as unknown (not inactive).
+ */
+export function isStockOrderLineInactive(line, stockItems = []) {
+  const stockItemId = line?.stockItemId ?? line?.stock_item_id ?? null
+  if (stockItemId == null || `${stockItemId}`.trim() === '') return false
+
+  const catalogItem = (stockItems ?? []).find((item) => `${item?.id}` === `${stockItemId}`)
+  if (!catalogItem) return false
+  return catalogItem.active === false
+}
+
+/**
+ * Active catalog products available to replace a deactivated draft line.
+ * Excludes inactive items and other stock items already on the draft.
+ */
+export function getActiveStockItemsForDraftReplace(stockItems = [], {
+  excludeStockItemIds = [],
+} = {}) {
+  const excluded = new Set(
+    (excludeStockItemIds ?? [])
+      .filter((id) => id != null && `${id}`.trim() !== '')
+      .map((id) => `${id}`),
+  )
+
+  return (stockItems ?? [])
+    .filter((item) => item && item.active !== false)
+    .filter((item) => !excluded.has(`${item.id}`))
+    .slice()
+    .sort((a, b) => `${a.name ?? ''}`.localeCompare(`${b.name ?? ''}`))
+}
+
+/** Apply a catalog product onto an existing draft line, preserving line id + quantity. */
+export function replaceDraftOrderLineProduct(line, catalogItem) {
+  const quantity = Math.max(0, Number(line?.quantity) || 0)
+  const costPrice = Math.max(0, Number(catalogItem?.costPrice ?? catalogItem?.cost_price) || 0)
+
+  return {
+    ...line,
+    stockItemId: catalogItem?.id ?? null,
+    itemName: catalogItem?.name ?? '',
+    unit: catalogItem?.unit ?? '',
+    costPrice,
+    totalPrice: computeOrderLineTotal(quantity, costPrice),
+  }
+}
+
 function normalizeOrderSupplierId(value) {
   if (value === null || value === undefined || `${value}`.trim() === '') return null
   const parsed = Number(value)

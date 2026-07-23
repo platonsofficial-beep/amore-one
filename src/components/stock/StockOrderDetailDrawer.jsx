@@ -10,6 +10,7 @@ import {
   formatStockOrderDeliveryDate,
   formatStockOrderLineSummary,
   formatStockOrderNumber,
+  getActiveStockItemsForDraftReplace,
   getOrderLineReceiveProgress,
   getOrderLineReceivedQuantity,
   getOrderLineRemainingQuantity,
@@ -18,7 +19,9 @@ import {
   getStockOrderStatusLabel,
   getStockOrderStatusTone,
   isOrderPartiallyReceived,
+  isStockOrderLineInactive,
   normalizeStockOrderStatus,
+  replaceDraftOrderLineProduct,
 } from '../../lib/stockOrderUtils'
 import { formatStockPurchasePrice, formatStockQuantity } from '../../lib/stockUtils'
 import { LoadingButton } from '../LoadingButton'
@@ -87,17 +90,74 @@ function OrderTimeline({ order }) {
 
 function DraftOrderItem({
   item,
+  isInactive = false,
+  replaceOptions = [],
+  isReplaceOpen = false,
   onQuantityChange,
   onRemove,
+  onToggleReplace,
+  onReplace,
 }) {
   const summary = formatStockOrderLineSummary(item)
 
   return (
-    <article className="stock-order-detail-line is-editable">
+    <article className={`stock-order-detail-line is-editable${isInactive ? ' is-inactive-product' : ''}`}>
       <div className="stock-order-detail-line-copy">
-        <strong>{item.itemName}</strong>
+        <div className="stock-order-detail-line-title-row">
+          <strong>{item.itemName}</strong>
+          {isInactive ? (
+            <span className="stock-order-status-badge tone-muted">Inactive</span>
+          ) : null}
+        </div>
         <span>{item.unit || 'units'}</span>
       </div>
+
+      {isInactive ? (
+        <div className="stock-order-inactive-notice" role="status">
+          <p className="stock-order-inactive-warning">This product has been deactivated.</p>
+          <div className="stock-order-inactive-actions">
+            <button
+              type="button"
+              className="ghost-btn stock-order-inactive-action-btn"
+              onClick={() => onRemove(item.id)}
+            >
+              Remove from order
+            </button>
+            <button
+              type="button"
+              className="ghost-btn stock-order-inactive-action-btn"
+              onClick={() => onToggleReplace(item.id)}
+              aria-expanded={isReplaceOpen}
+            >
+              {isReplaceOpen ? 'Cancel replace' : 'Replace product'}
+            </button>
+          </div>
+          {isReplaceOpen ? (
+            <label className="stock-order-inactive-replace">
+              <span>Replace with</span>
+              <select
+                className="stock-order-inactive-replace-select"
+                defaultValue=""
+                aria-label={`Replace ${item.itemName}`}
+                onChange={(event) => {
+                  const nextId = event.target.value
+                  if (!nextId) return
+                  onReplace(item.id, nextId)
+                }}
+              >
+                <option value="">Select a product…</option>
+                {replaceOptions.map((option) => (
+                  <option key={option.id} value={option.id}>
+                    {option.name}
+                    {option.unit ? ` · ${option.unit}` : ''}
+                  </option>
+                ))}
+              </select>
+            </label>
+          ) : null}
+        </div>
+      ) : null}
+
       <div className="stock-order-detail-line-controls">
         <input
           type="number"
@@ -305,6 +365,7 @@ function CompletedOrderItem({ item }) {
 
 export function StockOrderDetailDrawer({
   order,
+  stockItems = [],
   onClose,
   canManage = false,
   isSaving = false,
@@ -322,6 +383,7 @@ export function StockOrderDetailDrawer({
   const [expectedDeliveryDate, setExpectedDeliveryDate] = useState(order.expectedDeliveryDate ?? '')
   const [receiveNowByItemId, setReceiveNowByItemId] = useState({})
   const [isReceiveConfirmOpen, setIsReceiveConfirmOpen] = useState(false)
+  const [replacingItemId, setReplacingItemId] = useState(null)
   const [error, setError] = useState('')
 
   useEffect(() => {
@@ -330,6 +392,7 @@ export function StockOrderDetailDrawer({
     setExpectedDeliveryDate(order.expectedDeliveryDate ?? '')
     setReceiveNowByItemId({})
     setIsReceiveConfirmOpen(false)
+    setReplacingItemId(null)
     setError('')
   }, [order])
 
@@ -382,6 +445,23 @@ export function StockOrderDetailDrawer({
 
   const handleRemoveItem = (itemId) => {
     setDraftItems((current) => current.filter((item) => item.id !== itemId))
+    setReplacingItemId((current) => (current === itemId ? null : current))
+  }
+
+  const handleToggleReplaceItem = (itemId) => {
+    setReplacingItemId((current) => (current === itemId ? null : itemId))
+  }
+
+  const handleReplaceItem = (itemId, nextStockItemId) => {
+    const catalogItem = (stockItems ?? []).find((item) => `${item.id}` === `${nextStockItemId}`)
+    if (!catalogItem || catalogItem.active === false) return
+
+    setDraftItems((current) => current.map((item) => (
+      item.id === itemId
+        ? replaceDraftOrderLineProduct(item, catalogItem)
+        : item
+    )))
+    setReplacingItemId(null)
   }
 
   const handleReceiveNowChange = (itemId, rawValue, maxRemaining) => {
@@ -670,14 +750,30 @@ export function StockOrderDetailDrawer({
                   </div>
                 ) : null}
 
-                {isEditable ? displayItems.map((item) => (
-                  <DraftOrderItem
-                    key={item.id}
-                    item={item}
-                    onQuantityChange={handleQuantityChange}
-                    onRemove={handleRemoveItem}
-                  />
-                )) : null}
+                {isEditable ? displayItems.map((item) => {
+                  const isInactive = isStockOrderLineInactive(item, stockItems)
+                  const excludeStockItemIds = displayItems
+                    .filter((line) => line.id !== item.id)
+                    .map((line) => line.stockItemId)
+                    .filter(Boolean)
+                  const replaceOptions = isInactive
+                    ? getActiveStockItemsForDraftReplace(stockItems, { excludeStockItemIds })
+                    : []
+
+                  return (
+                    <DraftOrderItem
+                      key={item.id}
+                      item={item}
+                      isInactive={isInactive}
+                      replaceOptions={replaceOptions}
+                      isReplaceOpen={replacingItemId === item.id}
+                      onQuantityChange={handleQuantityChange}
+                      onRemove={handleRemoveItem}
+                      onToggleReplace={handleToggleReplaceItem}
+                      onReplace={handleReplaceItem}
+                    />
+                  )
+                }) : null}
 
                 {showReceivingMode ? displayItems.map((item) => (
                   <ReceivingOrderItem

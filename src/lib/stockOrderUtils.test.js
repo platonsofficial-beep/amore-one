@@ -2,6 +2,9 @@ import { describe, expect, it } from 'vitest'
 import {
   buildStockOrdersOperationsSummary,
   buildSupplierOrderGroups,
+  getActiveStockItemsForDraftReplace,
+  isStockOrderLineInactive,
+  replaceDraftOrderLineProduct,
   resolveOrderGroupIdentity,
   UNASSIGNED_SUPPLIER,
 } from './stockOrderUtils'
@@ -160,5 +163,76 @@ describe('buildSupplierOrderGroups (FK-first)', () => {
     expect(identityA.groupKey).not.toBe(identityB.groupKey)
     expect(identityA.supplierId).toBe(1)
     expect(identityB.supplierId).toBe(2)
+  })
+
+  it('excludes inactive products from new purchase order suggestions', () => {
+    const groups = buildSupplierOrderGroups([
+      needsOrderItem({ id: 'active', name: 'Belvedere', active: true }),
+      needsOrderItem({ id: 'gone', name: 'KETEL ONE', active: false }),
+    ], [{ id: 10, companyName: 'Malakakos AE' }])
+
+    expect(groups).toHaveLength(1)
+    expect(groups[0].items.map((item) => item.stockItemId)).toEqual(['active'])
+  })
+})
+
+describe('draft inactive line helpers (P8.16.15)', () => {
+  it('detects inactive lines from live catalog only', () => {
+    expect(isStockOrderLineInactive(
+      { stockItemId: 'ko' },
+      [{ id: 'ko', active: false }],
+    )).toBe(true)
+
+    expect(isStockOrderLineInactive(
+      { stockItemId: 'ko' },
+      [{ id: 'ko', active: true }],
+    )).toBe(false)
+
+    expect(isStockOrderLineInactive(
+      { stockItemId: 'missing' },
+      [{ id: 'ko', active: false }],
+    )).toBe(false)
+
+    expect(isStockOrderLineInactive({ stockItemId: null }, [{ id: 'ko', active: false }])).toBe(false)
+  })
+
+  it('lists only active unused products for replace', () => {
+    const options = getActiveStockItemsForDraftReplace([
+      { id: 'a', name: 'Absolut', active: true },
+      { id: 'b', name: 'Belvedere', active: true },
+      { id: 'c', name: 'KETEL ONE', active: false },
+    ], { excludeStockItemIds: ['a'] })
+
+    expect(options.map((item) => item.id)).toEqual(['b'])
+  })
+
+  it('replace preserves draft line id and quantity', () => {
+    const next = replaceDraftOrderLineProduct(
+      {
+        id: 'line-1',
+        stockItemId: 'ko',
+        itemName: 'KETEL ONE',
+        quantity: 7,
+        unit: 'Bottle',
+        costPrice: 22,
+        totalPrice: 154,
+      },
+      {
+        id: 'bel',
+        name: 'Belvedere',
+        unit: 'Bottle',
+        costPrice: 30,
+      },
+    )
+
+    expect(next).toMatchObject({
+      id: 'line-1',
+      stockItemId: 'bel',
+      itemName: 'Belvedere',
+      quantity: 7,
+      unit: 'Bottle',
+      costPrice: 30,
+      totalPrice: 210,
+    })
   })
 })
