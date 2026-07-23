@@ -1,5 +1,5 @@
 -- =============================================================================
--- P8.16.24 / P8.16.26b — Single Product Permanent Delete RPC
+-- P8.16.24 / P8.16.26b / P8.16.26d — Single Product Permanent Delete RPC
 -- =============================================================================
 -- Run manually in the Supabase SQL editor after:
 --   1. supabase/stock_item_permanent_delete_preview_rpc.sql (P8.16.23 / P8.16.26a)
@@ -17,6 +17,11 @@
 --   Prefer supplier_id when the column exists; otherwise use text supplier.
 --   Missing supplier must never abort deletion.
 --
+-- P8.16.26d:
+--   Open inventory-count blocking requires a join to inventory_count_sessions
+--   and a genuine open lifecycle status. Do NOT block merely because
+--   inventory_count_session_items / posted / cancelled / historical rows exist.
+--
 -- Does NOT:
 --   - Manually DELETE stock_movements (CASCADE only)
 --   - DELETE purchase orders / order lines
@@ -27,8 +32,9 @@
 --
 -- Blocks when:
 --   - draft or sent Purchase Order lines reference the product
---   - open Inventory Count session lines reference the product
---     (status NOT in posted / cancelled)
+--   - product belongs to an Inventory Count session whose status is open:
+--       in_progress | paused | counting_complete
+--     posted and cancelled sessions must NOT block
 --
 -- Authorization:
 --   owner / general_manager / manager via public.can_manage_workspace_stock
@@ -200,27 +206,51 @@ begin
             detail = format('sent_order_refs=%s', v_order_sent);
   end if;
 
-  -- 4) Block open inventory count references (not posted / cancelled)
+  -- 4) Inventory count references
+  -- Gate: block ONLY when the product is on a session with a genuine open
+  -- lifecycle status (matches Inventory Count: in_progress | paused | counting_complete).
+  -- Mere session_items existence, posted snapshots, or cancelled sessions must NOT block.
+  if exists (
+    select 1
+    from public.inventory_count_session_items csi
+    inner join public.inventory_count_sessions cs
+      on cs.id = csi.session_id
+     and cs.workspace_id = csi.workspace_id
+    where csi.workspace_id = p_workspace_id
+      and cs.workspace_id = p_workspace_id
+      and csi.item_id = p_stock_item_id
+      and cs.status in ('in_progress', 'paused', 'counting_complete')
+  ) then
+    select count(*)::integer
+    into v_count_open
+    from public.inventory_count_session_items csi
+    inner join public.inventory_count_sessions cs
+      on cs.id = csi.session_id
+     and cs.workspace_id = csi.workspace_id
+    where csi.workspace_id = p_workspace_id
+      and cs.workspace_id = p_workspace_id
+      and csi.item_id = p_stock_item_id
+      and cs.status in ('in_progress', 'paused', 'counting_complete');
+
+    raise exception 'stock_item_permanent_delete_blocked_open_count'
+      using hint = 'Finish or cancel open inventory count sessions referencing this product first.',
+            detail = format('open_count_refs=%s', coalesce(v_count_open, 0));
+  end if;
+
+  -- Preserved snapshot stats only (never used as a delete gate)
   select
     count(*) filter (where cs.status = 'posted')::integer,
-    count(*) filter (
-      where cs.status in ('in_progress', 'paused', 'counting_complete')
-    )::integer,
     count(*) filter (where cs.status = 'cancelled')::integer
   into
     v_count_posted,
-    v_count_open,
     v_count_cancelled
   from public.inventory_count_session_items csi
-  inner join public.inventory_count_sessions cs on cs.id = csi.session_id
+  inner join public.inventory_count_sessions cs
+    on cs.id = csi.session_id
+   and cs.workspace_id = csi.workspace_id
   where csi.workspace_id = p_workspace_id
+    and cs.workspace_id = p_workspace_id
     and csi.item_id = p_stock_item_id;
-
-  if coalesce(v_count_open, 0) > 0 then
-    raise exception 'stock_item_permanent_delete_blocked_open_count'
-      using hint = 'Finish or cancel open inventory count sessions referencing this product first.',
-            detail = format('open_count_refs=%s', v_count_open);
-  end if;
 
   -- 5) Collect deletion statistics BEFORE delete
   select
@@ -323,7 +353,7 @@ end;
 $$;
 
 comment on function public.delete_stock_item_permanently(uuid, uuid) is
-  'P8.16.24/P8.16.26b Permanently delete one stock_items row. Supplier optional; never requires stock_items.supplier_id. Movements CASCADE. Blocks draft/sent orders and open counts.';
+  'P8.16.24/P8.16.26b/P8.16.26d Permanently delete one stock_items row. Supplier optional. Movements CASCADE. Blocks draft/sent orders and genuine open inventory counts (in_progress|paused|counting_complete only).';
 
 revoke all on function public.delete_stock_item_permanently(uuid, uuid) from public;
 grant execute on function public.delete_stock_item_permanently(uuid, uuid) to authenticated;

@@ -77,6 +77,71 @@ describe('delete_stock_item_permanently SQL contract (P8.16.24)', () => {
     expect(FUNCTION_BODY).toContain("'in_progress', 'paused', 'counting_complete'")
   })
 
+  describe('open inventory count gate (P8.16.26d)', () => {
+    const openGate = FUNCTION_BODY.slice(
+      FUNCTION_BODY.indexOf('-- 4) Inventory count references'),
+      FUNCTION_BODY.indexOf('-- 5) Collect deletion statistics'),
+    )
+
+    it('blocks only via EXISTS joined to inventory_count_sessions', () => {
+      expect(openGate).toMatch(/if exists\s*\(/i)
+      expect(openGate).toContain('from public.inventory_count_session_items csi')
+      expect(openGate).toContain('inner join public.inventory_count_sessions cs')
+      expect(openGate).toContain('stock_item_permanent_delete_blocked_open_count')
+    })
+
+    it('requires workspace match on session items and sessions', () => {
+      expect(openGate).toContain('csi.workspace_id = p_workspace_id')
+      expect(openGate).toContain('cs.workspace_id = p_workspace_id')
+      expect(openGate).toContain('cs.workspace_id = csi.workspace_id')
+    })
+
+    it('blocks in_progress, paused, and counting_complete', () => {
+      expect(openGate).toContain("cs.status in ('in_progress', 'paused', 'counting_complete')")
+      expect(openGate).toMatch(/if exists[\s\S]*'in_progress', 'paused', 'counting_complete'[\s\S]*blocked_open_count/)
+    })
+
+    it('does not treat posted sessions as open', () => {
+      expect(openGate).not.toMatch(/if exists[\s\S]*cs\.status\s*=\s*'posted'[\s\S]*blocked_open_count/)
+      expect(openGate).toContain("cs.status = 'posted'")
+      expect(openGate).toMatch(/Preserved snapshot stats only[\s\S]*cs\.status = 'posted'/)
+    })
+
+    it('does not treat cancelled sessions as open', () => {
+      expect(openGate).not.toMatch(/if exists[\s\S]*cs\.status\s*=\s*'cancelled'[\s\S]*blocked_open_count/)
+      expect(openGate).toContain("cs.status = 'cancelled'")
+      expect(openGate).toMatch(/Preserved snapshot stats only[\s\S]*cs\.status = 'cancelled'/)
+    })
+
+    it('does not block merely because inventory_count_session_items rows exist', () => {
+      expect(openGate).not.toMatch(/if exists\s*\(\s*select 1\s+from public\.inventory_count_session_items csi\s+where/i)
+      expect(openGate).toMatch(/inner join public\.inventory_count_sessions cs[\s\S]*cs\.status in/)
+    })
+
+    it('scopes the product match to item_id and never uses line_status as openness', () => {
+      expect(openGate).toContain('csi.item_id = p_stock_item_id')
+      expect(openGate).not.toContain('line_status')
+      expect(openGate).not.toMatch(/status\s+not\s+in\s*\(\s*'posted'/i)
+    })
+
+    it('locks the status matrix: open block vs historical allow', () => {
+      // Block set (open lifecycle)
+      for (const status of ['in_progress', 'paused', 'counting_complete']) {
+        expect(openGate).toContain(`'${status}'`)
+      }
+      // Allow set (historical / closed) — counted for preserve stats only, not EXISTS gate
+      const existsBlock = openGate.slice(
+        openGate.search(/if exists/i),
+        openGate.indexOf('raise exception'),
+      )
+      expect(existsBlock).not.toContain("'posted'")
+      expect(existsBlock).not.toContain("'cancelled'")
+      expect(existsBlock).toContain("'in_progress'")
+      expect(existsBlock).toContain("'paused'")
+      expect(existsBlock).toContain("'counting_complete'")
+    })
+  })
+
   it('collects movement/order/count/import/migration stats before delete', () => {
     expect(FUNCTION_BODY).toContain('from public.stock_movements m')
     expect(FUNCTION_BODY).toContain("'receive'")
