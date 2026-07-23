@@ -24336,6 +24336,7 @@ function App() {
             onCreateItem={handleCreateStockItem}
             onUpdateItem={handleUpdateStockItem}
             onDeactivateItem={handleDeactivateStockItem}
+            onStockItemsChanged={refreshStockItems}
             onBulkUpdateItems={handleBulkUpdateStockItems}
             onImportStockItems={handleImportStockItems}
             onRecordMovement={handleRecordStockMovement}

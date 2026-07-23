@@ -35607,6 +35607,197 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   z-index: 12050;
 }
 
+.stock-item-more-menu-separator {
+  height: 1px;
+  margin: 6px 10px;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.stock-item-more-menu-btn.is-danger {
+  color: #ff8a80;
+}
+
+.stock-item-permanent-delete-backdrop {
+  z-index: 12160;
+}
+
+.stock-item-permanent-delete-dialog {
+  width: min(94vw, 560px);
+  max-width: 560px;
+  max-height: calc(100vh - 32px);
+  max-height: calc(100dvh - 32px);
+  padding: 0;
+  border-radius: 22px;
+  border: 1px solid rgba(255, 138, 128, 0.28);
+  background: linear-gradient(165deg, rgba(18, 18, 20, 0.98), rgba(10, 10, 11, 0.98));
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.55);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.stock-item-permanent-delete-dialog .drawer-header {
+  align-items: flex-start;
+  gap: 12px;
+  margin: 0;
+  padding: 22px 24px 14px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  flex-shrink: 0;
+}
+
+.stock-item-permanent-delete-dialog .drawer-header .eyebrow {
+  margin: 0 0 8px;
+  color: #ff8a80;
+  letter-spacing: 0.22em;
+}
+
+.stock-item-permanent-delete-dialog .drawer-header h3 {
+  margin: 0;
+  color: #fff7e8;
+  line-height: 1.3;
+}
+
+.stock-item-permanent-delete-subtitle {
+  margin: 8px 0 0;
+  color: #bfb3a0;
+  line-height: 1.45;
+}
+
+.stock-item-permanent-delete-body {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 18px 24px 12px;
+  overflow: auto;
+  min-height: 0;
+}
+
+.stock-item-permanent-delete-copy {
+  margin: 0;
+  color: #bfb3a0;
+  line-height: 1.5;
+}
+
+.stock-item-permanent-delete-copy strong {
+  color: #fff7e8;
+}
+
+.stock-item-permanent-delete-product-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.stock-item-permanent-delete-product-card strong {
+  color: #fff7e8;
+  font-size: 1.05rem;
+}
+
+.stock-item-permanent-delete-product-card p {
+  margin: 0;
+  color: #bfb3a0;
+}
+
+.stock-item-permanent-delete-section h4 {
+  margin: 0 0 10px;
+  color: #fff7e8;
+  font-size: 0.95rem;
+}
+
+.stock-item-permanent-delete-list {
+  margin: 0;
+  padding-left: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  color: #fff7e8;
+  line-height: 1.45;
+}
+
+.stock-item-permanent-delete-stats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin: 12px 0 0;
+}
+
+.stock-item-permanent-delete-stats > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.stock-item-permanent-delete-stats dt {
+  margin: 0;
+  color: #8f8475;
+  font-size: 0.78rem;
+}
+
+.stock-item-permanent-delete-stats dd {
+  margin: 0;
+  color: #fff7e8;
+  font-weight: 600;
+}
+
+.stock-item-permanent-delete-confirm-field input,
+.stock-item-permanent-delete-password-field input {
+  min-height: 44px;
+}
+
+.stock-item-permanent-delete-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin: 0;
+  padding: 16px 24px calc(20px + env(safe-area-inset-bottom, 0px));
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  flex-shrink: 0;
+}
+
+.stock-item-permanent-delete-actions .primary-btn,
+.stock-item-permanent-delete-actions .ghost-btn {
+  min-height: 44px;
+}
+
+.stock-item-permanent-delete-submit {
+  background: linear-gradient(180deg, #c4574d, #a33f37);
+  border-color: rgba(255, 138, 128, 0.35);
+}
+
+.stock-item-permanent-delete-submit:disabled {
+  opacity: 0.45;
+}
+
+.stock-item-permanent-delete-error {
+  margin: 0;
+}
+
+@media (max-width: 1100px) {
+  .stock-item-permanent-delete-dialog {
+    width: min(96vw, 560px);
+  }
+
+  .stock-item-permanent-delete-dialog .drawer-header,
+  .stock-item-permanent-delete-body {
+    padding-left: 22px;
+    padding-right: 22px;
+  }
+
+  .stock-item-permanent-delete-actions {
+    padding-left: 22px;
+    padding-right: 22px;
+  }
+}
+
 .stock-supplier-form-modal {
   max-width: min(560px, 100%);
 }

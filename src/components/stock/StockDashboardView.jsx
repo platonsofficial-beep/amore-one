@@ -50,6 +50,7 @@ import { StockItemFormModal } from './StockItemFormModal'
 import { StockImportModal } from './StockImportModal'
 import { InventoryImportWizardShell } from './InventoryImportWizardShell'
 import { StockItemMoreMenu } from './StockItemMoreMenu'
+import { StockItemPermanentDeleteDialog } from './StockItemPermanentDeleteDialog'
 import { StockProductHistoryDrawer } from './StockProductHistoryDrawer'
 
 function StockLayoutModeIcon({ icon }) {
@@ -1239,6 +1240,7 @@ export function StockDashboardView({
   onCreateItem,
   onUpdateItem,
   onDeactivateItem,
+  onStockItemsChanged,
   onBulkUpdateItems,
   onImportStockItems,
   onRecordMovement,
@@ -1265,6 +1267,9 @@ export function StockDashboardView({
   const [openCardMenuId, setOpenCardMenuId] = useState(null)
   const [menuAnchorEl, setMenuAnchorEl] = useState(null)
   const [pendingDeactivateItem, setPendingDeactivateItem] = useState(null)
+  const [pendingPermanentDeleteItem, setPendingPermanentDeleteItem] = useState(null)
+  const [permanentDeleteFocusEl, setPermanentDeleteFocusEl] = useState(null)
+  const [removedItemIds, setRemovedItemIds] = useState(() => new Set())
 
   useEffect(() => {
     persistStockBrowsePreferences({ layoutMode, groupBy, sortKey })
@@ -1274,48 +1279,53 @@ export function StockDashboardView({
     onItemModalOpenChange?.(isItemModalOpen)
   }, [isItemModalOpen, onItemModalOpenChange])
 
-  const summary = useMemo(() => buildStockDashboardSummary(stockItems), [stockItems])
+  const catalogItems = useMemo(
+    () => stockItems.filter((entry) => !removedItemIds.has(entry.id)),
+    [stockItems, removedItemIds],
+  )
+
+  const summary = useMemo(() => buildStockDashboardSummary(catalogItems), [catalogItems])
   const ordersSummary = useMemo(() => buildStockOrdersOperationsSummary(stockOrders), [stockOrders])
   const todayActivityLine = useMemo(() => {
-    const activity = buildTodayStockActivitySummary(stockItems, getCurrentDateKey())
+    const activity = buildTodayStockActivitySummary(catalogItems, getCurrentDateKey())
     return formatTodayStockActivityLine(activity)
-  }, [stockItems])
+  }, [catalogItems])
   const criticalStockCount = summary.lowStock + summary.outOfStock
-  const categoryFilters = useMemo(() => getStockCategoryFilters(stockItems), [stockItems])
+  const categoryFilters = useMemo(() => getStockCategoryFilters(catalogItems), [catalogItems])
 
   const visibleItems = useMemo(() => {
-    const filtered = filterStockDashboardItems(stockItems, {
+    const filtered = filterStockDashboardItems(catalogItems, {
       categoryFilter,
       statusFilter,
       searchTerm,
     })
     return sortStockDashboardItems(filtered, sortKey)
-  }, [stockItems, categoryFilter, statusFilter, searchTerm, sortKey])
+  }, [catalogItems, categoryFilter, statusFilter, searchTerm, sortKey])
 
   const browseMatchCount = useMemo(() => {
-    return filterStockDashboardItems(stockItems, {
+    return filterStockDashboardItems(catalogItems, {
       categoryFilter,
       statusFilter: 'all',
       searchTerm,
     }).length
-  }, [stockItems, categoryFilter, searchTerm])
+  }, [catalogItems, categoryFilter, searchTerm])
 
   const itemGroups = useMemo(() => {
     return groupStockDashboardItems(visibleItems, groupBy)
   }, [visibleItems, groupBy])
 
   const needsAttentionGroups = useMemo(() => {
-    return buildStockNeedsAttentionGroups(stockItems, { canManage, searchTerm })
-  }, [stockItems, canManage, searchTerm])
+    return buildStockNeedsAttentionGroups(catalogItems, { canManage, searchTerm })
+  }, [catalogItems, canManage, searchTerm])
 
   const hasNeedsAttention = needsAttentionGroups.length > 0
 
   const activeMenuItem = useMemo(() => {
     if (!openCardMenuId) return null
-    return stockItems.find((item) => item.id === openCardMenuId) ?? null
-  }, [openCardMenuId, stockItems])
+    return catalogItems.find((item) => item.id === openCardMenuId) ?? null
+  }, [openCardMenuId, catalogItems])
 
-  const hasNoItems = stockItems.length === 0
+  const hasNoItems = catalogItems.length === 0
   const hasNoMatches = !hasNoItems && visibleItems.length === 0
 
   const selectedItems = useMemo(() => {
@@ -1423,6 +1433,30 @@ export function StockDashboardView({
     // does not depend on activeMenuItem (derived from openCardMenuId).
     setPendingDeactivateItem(item)
     closeStockItemMenu()
+  }
+
+  const openPermanentDeleteItem = (item) => {
+    if (!item?.id || !canManage) return
+    setPermanentDeleteFocusEl(menuAnchorEl)
+    setPendingPermanentDeleteItem(item)
+    closeStockItemMenu()
+  }
+
+  const handlePermanentDeleteCompleted = async (deleteResult) => {
+    const deletedId = `${deleteResult?.deleted?.product?.id ?? pendingPermanentDeleteItem?.id ?? ''}`.trim()
+    if (deletedId) {
+      setRemovedItemIds((current) => {
+        const next = new Set(current)
+        next.add(deletedId)
+        return next
+      })
+    }
+
+    try {
+      await onStockItemsChanged?.(deleteResult)
+    } catch (refreshError) {
+      console.warn('[StockDashboardView] Stock refresh after permanent delete failed:', refreshError)
+    }
   }
 
   const handleConfirmDeactivateItem = async (item) => {
@@ -1920,6 +1954,7 @@ export function StockDashboardView({
           onDuplicate={() => openDuplicateItem(activeMenuItem)}
           onHistory={() => openHistory(activeMenuItem)}
           onDeactivate={openDeactivateItem}
+          onPermanentlyDelete={openPermanentDeleteItem}
         />
       ) : null}
 
@@ -1932,6 +1967,19 @@ export function StockDashboardView({
             setPendingDeactivateItem(null)
           }}
           onConfirm={handleConfirmDeactivateItem}
+        />
+      ) : null}
+
+      {pendingPermanentDeleteItem && canManage && workspaceId ? (
+        <StockItemPermanentDeleteDialog
+          workspaceId={workspaceId}
+          item={pendingPermanentDeleteItem}
+          returnFocusEl={permanentDeleteFocusEl}
+          onClose={() => {
+            setPendingPermanentDeleteItem(null)
+            setPermanentDeleteFocusEl(null)
+          }}
+          onCompleted={handlePermanentDeleteCompleted}
         />
       ) : null}
 

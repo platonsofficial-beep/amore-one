@@ -12,6 +12,8 @@ const MENU_ITEMS = [
   { id: 'duplicate', label: 'Duplicate' },
   { id: 'history', label: 'History & details' },
   { id: 'deactivate', label: 'Deactivate' },
+  { id: 'separator', type: 'separator' },
+  { id: 'permanently_delete', label: 'Permanently Delete…', danger: true },
 ]
 
 function computeMenuPosition(anchorRect, menuWidth, menuHeight) {
@@ -53,6 +55,7 @@ export function StockItemMoreMenu({
   onDuplicate,
   onHistory,
   onDeactivate,
+  onPermanentlyDelete,
 }) {
   const panelRef = useRef(null)
   const [position, setPosition] = useState({ top: 0, left: 0, placement: 'below' })
@@ -150,8 +153,14 @@ export function StockItemMoreMenu({
       onDeactivate?.(item)
       return
     }
+    if (id === 'permanently_delete') {
+      onPermanentlyDelete?.(item)
+      return
+    }
     handlers[id]?.()
   }
+
+  const deactivateLabel = item?.active === false ? 'Reactivate' : 'Deactivate'
 
   const isPopoverReady = isMobileSheet || isPositioned
 
@@ -187,21 +196,34 @@ export function StockItemMoreMenu({
         ) : null}
 
         <div className="stock-item-more-menu-list">
-          {MENU_ITEMS.map(({ id, label }) => (
-            <button
-              key={id}
-              type="button"
-              className="stock-item-more-menu-btn"
-              role="menuitem"
-              onClick={(event) => {
-                event.preventDefault()
-                event.stopPropagation()
-                handleItemClick(id)
-              }}
-            >
-              {label}
-            </button>
-          ))}
+          {MENU_ITEMS.map((entry) => {
+            if (entry.type === 'separator') {
+              return (
+                <div
+                  key={entry.id}
+                  className="stock-item-more-menu-separator"
+                  role="separator"
+                />
+              )
+            }
+
+            const label = entry.id === 'deactivate' ? deactivateLabel : entry.label
+            return (
+              <button
+                key={entry.id}
+                type="button"
+                className={`stock-item-more-menu-btn${entry.danger ? ' is-danger' : ''}`}
+                role="menuitem"
+                onClick={(event) => {
+                  event.preventDefault()
+                  event.stopPropagation()
+                  handleItemClick(entry.id)
+                }}
+              >
+                {label}
+              </button>
+            )
+          })}
         </div>
       </div>
     </>,
