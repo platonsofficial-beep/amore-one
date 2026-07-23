@@ -90,6 +90,18 @@ describe('delete_stock_item_permanently SQL contract (P8.16.24)', () => {
     expect(FUNCTION_BODY).toContain('applied_stock_item_id')
     expect(FUNCTION_BODY).toContain('from public.inventory_stock_item_map m')
     expect(FUNCTION_BODY).toContain("'supplier_id'")
+    expect(FUNCTION_BODY).toContain("'supplier_name'")
+  })
+
+  it('never reads supplier_id via %rowtype (P8.16.26b)', () => {
+    expect(FUNCTION_BODY).not.toContain('stock_items%rowtype')
+    expect(FUNCTION_BODY).not.toContain('v_item.supplier_id')
+    expect(FUNCTION_BODY).not.toMatch(/v_item\s+public\.stock_items%rowtype/i)
+    expect(FUNCTION_BODY).toContain('information_schema.columns')
+    expect(FUNCTION_BODY).toContain("column_name = 'supplier_id'")
+    expect(FUNCTION_BODY).toContain('v_item_supplier_text')
+    expect(FUNCTION_BODY).toContain('s.supplier')
+    expect(FUNCTION_BODY).toContain('for update')
   })
 
   it('deletes only stock_items and relies on movement CASCADE; preserves snapshots', () => {
@@ -119,7 +131,7 @@ describe('delete_stock_item_permanently SQL contract (P8.16.24)', () => {
   })
 })
 
-describe('stockItemPermanentDeleteService (P8.16.24)', () => {
+describe('stockItemPermanentDeleteService (P8.16.24 / P8.16.26b)', () => {
   beforeEach(() => {
     rpcMock.mockReset()
   })
@@ -144,7 +156,7 @@ describe('stockItemPermanentDeleteService (P8.16.24)', () => {
         inventory_count_snapshots: { posted_refs: 2, cancelled_refs: 0, open_refs: 0 },
         import_rows: { matched_refs: 1, applied_refs: 0 },
         migration_rows: { map_refs: 1 },
-        supplier: { supplier_id: 9 },
+        supplier: { supplier_id: 9, supplier_name: 'Demo Supplier' },
       },
       cascade: {
         stock_movements: true,
@@ -167,6 +179,66 @@ describe('stockItemPermanentDeleteService (P8.16.24)', () => {
     expect(result.preserved.inventory_count_snapshots.posted_refs).toBe(2)
     expect(result.preserved.purchase_orders.received_line_refs).toBe(1)
     expect(result.cascade.stock_movements).toBe(true)
+  })
+
+  it('accepts install WITH supplier_id and WITH legacy/null supplier payloads', async () => {
+    const withFk = {
+      success: true,
+      workspace_id: 'ws-1',
+      deleted: {
+        product: { id: 'item-1', name: 'KETEL ONE', active: false, current_quantity: 2, unit: 'btl', storage_location: 'Bar' },
+        movements: { receive: 1, usage: 0, adjustment: 0, stock_count: 0, total: 1 },
+        stock_items_rows: 1,
+      },
+      preserved: {
+        purchase_orders: { received_line_refs: 0, cancelled_line_refs: 0 },
+        inventory_count_snapshots: { posted_refs: 0, cancelled_refs: 0, open_refs: 0 },
+        import_rows: { matched_refs: 0, applied_refs: 0 },
+        migration_rows: { map_refs: 0 },
+        supplier: { supplier_id: 42, supplier_name: 'Malakakos' },
+      },
+      cascade: { stock_movements: true, manual_movement_delete: false },
+    }
+    rpcMock.mockResolvedValueOnce({ data: withFk, error: null })
+    await expect(deleteStockItemPermanently('ws-1', 'item-1')).resolves.toEqual(withFk)
+
+    const withoutFk = {
+      ...withFk,
+      deleted: {
+        ...withFk.deleted,
+        product: { ...withFk.deleted.product, id: 'item-2', name: 'LIME' },
+      },
+      preserved: {
+        ...withFk.preserved,
+        supplier: { supplier_id: null, supplier_name: null },
+      },
+    }
+    rpcMock.mockResolvedValueOnce({ data: withoutFk, error: null })
+    await expect(deleteStockItemPermanently('ws-1', 'item-2')).resolves.toMatchObject({
+      success: true,
+      preserved: { supplier: { supplier_id: null, supplier_name: null } },
+      cascade: { stock_movements: true },
+    })
+
+    const legacyText = {
+      ...withFk,
+      deleted: {
+        ...withFk.deleted,
+        product: { ...withFk.deleted.product, id: 'item-3', name: 'MIONENTO' },
+        movements: { receive: 2, usage: 1, adjustment: 0, stock_count: 0, total: 3 },
+      },
+      preserved: {
+        ...withFk.preserved,
+        supplier: { supplier_id: null, supplier_name: 'Legacy Text Supplier' },
+      },
+    }
+    rpcMock.mockResolvedValueOnce({ data: legacyText, error: null })
+    const legacyResult = await deleteStockItemPermanently('ws-1', 'item-3')
+    expect(legacyResult.preserved.supplier).toEqual({
+      supplier_id: null,
+      supplier_name: 'Legacy Text Supplier',
+    })
+    expect(legacyResult.deleted.movements.total).toBe(3)
   })
 
   it('maps missing product and authorization errors', async () => {

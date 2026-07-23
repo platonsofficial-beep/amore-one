@@ -1,8 +1,8 @@
 -- =============================================================================
--- P8.16.24 — Single Product Permanent Delete RPC
+-- P8.16.24 / P8.16.26b — Single Product Permanent Delete RPC
 -- =============================================================================
 -- Run manually in the Supabase SQL editor after:
---   1. supabase/stock_item_permanent_delete_preview_rpc.sql (P8.16.23)
+--   1. supabase/stock_item_permanent_delete_preview_rpc.sql (P8.16.23 / P8.16.26a)
 --   2. stock_items / stock_movements / stock_orders / inventory_count /
 --      inventory_import / inventory_stock_item_map schemas
 --   3. public.can_manage_workspace_stock(uuid) available
@@ -11,6 +11,11 @@
 -- Purpose:
 --   SECURITY DEFINER transactional permanent delete for ONE stock_items row.
 --   Movements cascade via FK. Related snapshot FKs SET NULL and are preserved.
+--
+-- P8.16.26b:
+--   Supplier is optional. Never fail if stock_items.supplier_id is absent.
+--   Prefer supplier_id when the column exists; otherwise use text supplier.
+--   Missing supplier must never abort deletion.
 --
 -- Does NOT:
 --   - Manually DELETE stock_movements (CASCADE only)
@@ -42,7 +47,16 @@ set search_path = public
 as $$
 declare
   v_auth_user_id uuid := auth.uid();
-  v_item public.stock_items%rowtype;
+  v_item_id uuid;
+  v_item_name text;
+  v_item_active boolean;
+  v_item_qty numeric(12, 3);
+  v_item_unit text;
+  v_item_location text;
+  v_item_supplier_text text := null;
+  v_supplier_id bigint := null;
+  v_supplier_name text := null;
+  v_has_supplier_id_column boolean := false;
   v_mov_receive integer := 0;
   v_mov_usage integer := 0;
   v_mov_adjustment integer := 0;
@@ -91,9 +105,24 @@ begin
       using hint = 'owner / general_manager / manager required. host / staff / anonymous denied.';
   end if;
 
-  -- 1–2) Workspace-scoped lock
-  select *
-  into v_item
+  -- 1–2) Workspace-scoped lock using only core columns (always present).
+  -- Avoid composite rowtype supplier_id access — that column may be absent in production.
+  select
+    s.id,
+    s.name,
+    s.active,
+    s.current_quantity,
+    s.unit,
+    s.storage_location,
+    s.supplier
+  into
+    v_item_id,
+    v_item_name,
+    v_item_active,
+    v_item_qty,
+    v_item_unit,
+    v_item_location,
+    v_item_supplier_text
   from public.stock_items s
   where s.id = p_stock_item_id
     and s.workspace_id = p_workspace_id
@@ -102,6 +131,45 @@ begin
   if not found then
     raise exception 'stock_item_permanent_delete_item_not_found'
       using hint = 'Stock item was not found in this workspace.';
+  end if;
+
+  -- Optional supplier_id when the FK column has been applied (P7.3.1).
+  select exists (
+    select 1
+    from information_schema.columns c
+    where c.table_schema = 'public'
+      and c.table_name = 'stock_items'
+      and c.column_name = 'supplier_id'
+  )
+  into v_has_supplier_id_column;
+
+  if v_has_supplier_id_column then
+    execute
+      'select s.supplier_id
+       from public.stock_items s
+       where s.id = $1
+         and s.workspace_id = $2'
+      into v_supplier_id
+      using p_stock_item_id, p_workspace_id;
+  end if;
+
+  -- Supplier name: FK company_name first, then legacy text supplier.
+  -- Missing supplier must never abort deletion.
+  if v_supplier_id is not null then
+    begin
+      select sp.company_name
+      into v_supplier_name
+      from public.suppliers sp
+      where sp.id = v_supplier_id
+      limit 1;
+    exception
+      when undefined_table then
+        v_supplier_name := null;
+    end;
+  end if;
+
+  if v_supplier_name is null and coalesce(v_item_supplier_text, '') <> '' then
+    v_supplier_name := v_item_supplier_text;
   end if;
 
   -- 3) Block draft / sent purchase order references
@@ -208,12 +276,12 @@ begin
     'workspace_id', p_workspace_id,
     'deleted', jsonb_build_object(
       'product', jsonb_build_object(
-        'id', v_item.id,
-        'name', v_item.name,
-        'active', v_item.active,
-        'current_quantity', v_item.current_quantity,
-        'unit', v_item.unit,
-        'storage_location', v_item.storage_location
+        'id', v_item_id,
+        'name', v_item_name,
+        'active', v_item_active,
+        'current_quantity', v_item_qty,
+        'unit', v_item_unit,
+        'storage_location', v_item_location
       ),
       'movements', jsonb_build_object(
         'receive', coalesce(v_mov_receive, 0),
@@ -242,7 +310,8 @@ begin
         'map_refs', coalesce(v_migration_map, 0)
       ),
       'supplier', jsonb_build_object(
-        'supplier_id', v_item.supplier_id
+        'supplier_id', v_supplier_id,
+        'supplier_name', v_supplier_name
       )
     ),
     'cascade', jsonb_build_object(
@@ -254,7 +323,7 @@ end;
 $$;
 
 comment on function public.delete_stock_item_permanently(uuid, uuid) is
-  'P8.16.24 Permanently delete one stock_items row. Movements CASCADE. Snapshot FKs SET NULL. Blocks draft/sent orders and open counts.';
+  'P8.16.24/P8.16.26b Permanently delete one stock_items row. Supplier optional; never requires stock_items.supplier_id. Movements CASCADE. Blocks draft/sent orders and open counts.';
 
 revoke all on function public.delete_stock_item_permanently(uuid, uuid) from public;
 grant execute on function public.delete_stock_item_permanently(uuid, uuid) to authenticated;
