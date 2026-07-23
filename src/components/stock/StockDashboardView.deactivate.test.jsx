@@ -7,7 +7,6 @@ import { createRoot } from 'react-dom/client'
 import { readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { buildStockItemDeactivatePayload } from '../../lib/stockBulkActions'
 import { buildStockNeedsAttentionGroups } from '../../lib/stockInsights'
 import { filterStockDashboardItems } from '../../lib/stockDashboardBrowse'
 import { buildStockDashboardSummary } from '../../lib/stockUtils'
@@ -16,6 +15,14 @@ import { StockDashboardView } from './StockDashboardView'
 
 const APP_SOURCE = readFileSync(
   join(dirname(fileURLToPath(import.meta.url)), '../../App.jsx'),
+  'utf8',
+)
+const DASHBOARD_SOURCE = readFileSync(
+  join(dirname(fileURLToPath(import.meta.url)), './StockDashboardView.jsx'),
+  'utf8',
+)
+const SERVICE_SOURCE = readFileSync(
+  join(dirname(fileURLToPath(import.meta.url)), '../../services/stockItemService.js'),
   'utf8',
 )
 
@@ -39,6 +46,7 @@ function stock(partial) {
     category: partial.category ?? 'Vodka',
     itemType: partial.itemType ?? 'Spirit',
     supplier: partial.supplier ?? 'Supplier',
+    supplierId: partial.supplierId ?? 10,
     storageLocation: partial.storageLocation ?? 'Main Storage',
     unit: partial.unit ?? 'Bottle',
     currentQuantity: partial.currentQuantity ?? 2,
@@ -104,15 +112,30 @@ beforeEach(() => {
   mockMatchMedia(true)
 })
 
-describe('buildStockItemDeactivatePayload (P8.16.14f)', () => {
-  it('sets active=false while preserving catalog fields', () => {
-    const item = stock({ id: 'ko', name: 'KETEL ONE', currentQuantity: 4 })
-    const payload = buildStockItemDeactivatePayload(item)
+describe('P8.16.14k narrow deactivate contract', () => {
+  it('dashboard confirm uses onDeactivateItem(id) not full catalog update', () => {
+    expect(DASHBOARD_SOURCE).toContain('await onDeactivateItem(item.id)')
+    expect(DASHBOARD_SOURCE).not.toContain('buildStockItemDeactivatePayload')
+    expect(DASHBOARD_SOURCE).not.toContain('onUpdateItem(item.id, buildStockItemDeactivatePayload')
+  })
 
-    expect(payload.active).toBe(false)
-    expect(payload.name).toBe('KETEL ONE')
-    expect(payload.currentQuantity).toBe(4)
-    expect(payload.minimumQuantity).toBe(5)
+  it('App wires deactivate to updateStockItemActive', () => {
+    expect(APP_SOURCE).toContain('updateStockItemActive')
+    expect(APP_SOURCE).toContain('handleDeactivateStockItem')
+    expect(APP_SOURCE).toContain('onDeactivateItem={handleDeactivateStockItem}')
+  })
+
+  it('lifecycle helper updates only active', () => {
+    expect(SERVICE_SOURCE).toContain('export async function updateStockItemActive')
+    const bodyStart = SERVICE_SOURCE.indexOf('export async function updateStockItemActive')
+    const bodyEnd = SERVICE_SOURCE.indexOf('export async function deleteStockItem', bodyStart)
+    const body = SERVICE_SOURCE.slice(bodyStart, bodyEnd)
+    expect(body).toContain('.update({ active: active === true })')
+    expect(body).not.toContain('serializeStockItem')
+    expect(body).not.toContain('resolveStockItemSupplierId')
+    expect(body).not.toContain('supplier_id')
+    expect(body).not.toContain('current_quantity')
+    expect(body).not.toContain('category')
   })
 })
 
@@ -180,16 +203,16 @@ describe('StockItemMoreMenu deactivate action', () => {
   })
 })
 
-describe('StockDashboardView deactivate confirmation UI (P8.16.14h)', () => {
+describe('StockDashboardView deactivate confirmation UI (P8.16.14k)', () => {
   it('opens the confirmation modal from the real ⋯ → Deactivate path', () => {
     vi.useFakeTimers()
-    const onUpdateItem = vi.fn(async () => {})
+    const onDeactivateItem = vi.fn(async () => {})
     const item = stock({ id: 'ko', name: 'KETEL ONE' })
 
     const { container, cleanup } = render(createElement(StockDashboardView, {
       stockItems: [item],
       canManage: true,
-      onUpdateItem,
+      onDeactivateItem,
       isSaving: false,
     }))
 
@@ -200,48 +223,189 @@ describe('StockDashboardView deactivate confirmation UI (P8.16.14h)', () => {
     expect(dialog.textContent).toContain('Deactivate Product?')
     expect(dialog.textContent).toContain('KETEL ONE')
     expect(document.querySelector('[role="menu"]')).toBeNull()
-    expect(onUpdateItem).not.toHaveBeenCalled()
+    expect(onDeactivateItem).not.toHaveBeenCalled()
 
     cleanup()
   })
 
-  it('keeps the modal open through a ghost backdrop click from the menu gesture', () => {
+  it('Confirm calls onDeactivateItem once with the item id only', async () => {
     vi.useFakeTimers()
+    const onDeactivateItem = vi.fn(async () => {})
     const onUpdateItem = vi.fn(async () => {})
     const item = stock({ id: 'ko', name: 'KETEL ONE' })
 
     const { container, cleanup } = render(createElement(StockDashboardView, {
       stockItems: [item],
       canManage: true,
+      onDeactivateItem,
       onUpdateItem,
       isSaving: false,
     }))
 
     openDeactivateFromCard(container, 'KETEL ONE')
-    expect(getDeactivateDialog()).toBeTruthy()
-
-    const backdrop = document.querySelector('.stock-item-deactivate-backdrop')
-    expect(backdrop).toBeTruthy()
 
     act(() => {
-      backdrop.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+      vi.runAllTimers()
     })
 
-    expect(getDeactivateDialog()).toBeTruthy()
+    const dialog = getDeactivateDialog()
+    const confirmBtn = Array.from(dialog.querySelectorAll('button'))
+      .find((node) => node.textContent === 'Deactivate')
+
+    await act(async () => {
+      confirmBtn.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+      await Promise.resolve()
+    })
+
+    expect(onDeactivateItem).toHaveBeenCalledTimes(1)
+    expect(onDeactivateItem).toHaveBeenCalledWith('ko')
     expect(onUpdateItem).not.toHaveBeenCalled()
+    expect(getDeactivateDialog()).toBeNull()
 
     cleanup()
   })
 
-  it('Cancel closes the modal without calling onUpdateItem', () => {
+  it('keeps the modal open and shows an error when deactivate rejects', async () => {
     vi.useFakeTimers()
-    const onUpdateItem = vi.fn(async () => {})
+    const onDeactivateItem = vi.fn(async () => {
+      throw new Error('Unable to update stock item right now.')
+    })
     const item = stock({ id: 'ko', name: 'KETEL ONE' })
 
     const { container, cleanup } = render(createElement(StockDashboardView, {
       stockItems: [item],
       canManage: true,
-      onUpdateItem,
+      onDeactivateItem,
+      isSaving: false,
+    }))
+
+    openDeactivateFromCard(container, 'KETEL ONE')
+
+    act(() => {
+      vi.runAllTimers()
+    })
+
+    const dialog = getDeactivateDialog()
+    const confirmBtn = Array.from(dialog.querySelectorAll('button'))
+      .find((node) => node.textContent === 'Deactivate')
+
+    await act(async () => {
+      confirmBtn.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+
+    expect(onDeactivateItem).toHaveBeenCalledTimes(1)
+    expect(getDeactivateDialog()).toBeTruthy()
+    expect(getDeactivateDialog()?.textContent).toContain('Unable to update stock item right now.')
+    expect(container.textContent).toContain('KETEL ONE')
+
+    const retryBtn = Array.from(getDeactivateDialog().querySelectorAll('button'))
+      .find((node) => node.textContent === 'Deactivate')
+    expect(retryBtn?.disabled).toBe(false)
+
+    cleanup()
+  })
+
+  it('shows saving state and ignores duplicate confirm clicks while pending', async () => {
+    vi.useFakeTimers()
+    let resolveUpdate
+    const onDeactivateItem = vi.fn(() => new Promise((resolve) => {
+      resolveUpdate = resolve
+    }))
+    const item = stock({ id: 'ko', name: 'KETEL ONE' })
+
+    const { container, cleanup } = render(createElement(StockDashboardView, {
+      stockItems: [item],
+      canManage: true,
+      onDeactivateItem,
+      isSaving: false,
+    }))
+
+    openDeactivateFromCard(container, 'KETEL ONE')
+
+    act(() => {
+      vi.runAllTimers()
+    })
+
+    const dialog = getDeactivateDialog()
+    const confirmBtn = Array.from(dialog.querySelectorAll('button'))
+      .find((node) => node.textContent === 'Deactivate')
+
+    await act(async () => {
+      confirmBtn.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+      await Promise.resolve()
+    })
+
+    expect(onDeactivateItem).toHaveBeenCalledTimes(1)
+    expect(getDeactivateDialog()?.textContent).toContain('Saving')
+
+    const busyBtn = Array.from(getDeactivateDialog().querySelectorAll('button'))
+      .find((node) => node.textContent === 'Saving…' || node.textContent === 'Saving...')
+    expect(busyBtn?.disabled).toBe(true)
+
+    await act(async () => {
+      busyBtn.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+      await Promise.resolve()
+    })
+    expect(onDeactivateItem).toHaveBeenCalledTimes(1)
+
+    await act(async () => {
+      resolveUpdate()
+      await Promise.resolve()
+    })
+
+    expect(getDeactivateDialog()).toBeNull()
+    cleanup()
+  })
+
+  it('targets the exact product when two cards are present', async () => {
+    vi.useFakeTimers()
+    const onDeactivateItem = vi.fn(async () => {})
+    const items = [
+      stock({ id: 'ko', name: 'KETEL ONE' }),
+      stock({ id: 'bot', name: 'THE BOTANIST', category: 'Gin' }),
+    ]
+
+    const { container, cleanup } = render(createElement(StockDashboardView, {
+      stockItems: items,
+      canManage: true,
+      onDeactivateItem,
+      isSaving: false,
+    }))
+
+    openDeactivateFromCard(container, 'THE BOTANIST')
+
+    const dialog = getDeactivateDialog()
+    expect(dialog?.textContent).toContain('THE BOTANIST')
+    expect(dialog?.textContent).not.toContain('KETEL ONE')
+
+    act(() => {
+      vi.runAllTimers()
+    })
+
+    const confirmBtn = Array.from(dialog.querySelectorAll('button'))
+      .find((node) => node.textContent === 'Deactivate')
+
+    await act(async () => {
+      confirmBtn.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+      await Promise.resolve()
+    })
+
+    expect(onDeactivateItem).toHaveBeenCalledWith('bot')
+
+    cleanup()
+  })
+
+  it('Cancel closes the modal without calling onDeactivateItem', () => {
+    vi.useFakeTimers()
+    const onDeactivateItem = vi.fn(async () => {})
+    const item = stock({ id: 'ko', name: 'KETEL ONE' })
+
+    const { container, cleanup } = render(createElement(StockDashboardView, {
+      stockItems: [item],
+      canManage: true,
+      onDeactivateItem,
       isSaving: false,
     }))
 
@@ -260,240 +424,28 @@ describe('StockDashboardView deactivate confirmation UI (P8.16.14h)', () => {
     })
 
     expect(getDeactivateDialog()).toBeNull()
-    expect(onUpdateItem).not.toHaveBeenCalled()
-
-    cleanup()
-  })
-
-  it('Close (X) and backdrop dismiss do not call onUpdateItem', () => {
-    vi.useFakeTimers()
-    const onUpdateItem = vi.fn(async () => {})
-    const item = stock({ id: 'ko', name: 'KETEL ONE' })
-
-    const { container, cleanup } = render(createElement(StockDashboardView, {
-      stockItems: [item],
-      canManage: true,
-      onUpdateItem,
-      isSaving: false,
-    }))
-
-    openDeactivateFromCard(container, 'KETEL ONE')
-
-    act(() => {
-      vi.runAllTimers()
-    })
-
-    const closeBtn = getDeactivateDialog()?.querySelector('[aria-label="Close"]')
-    act(() => {
-      closeBtn.dispatchEvent(new MouseEvent('click', { bubbles: true }))
-    })
-    expect(getDeactivateDialog()).toBeNull()
-    expect(onUpdateItem).not.toHaveBeenCalled()
-
-    openDeactivateFromCard(container, 'KETEL ONE')
-    act(() => {
-      vi.runAllTimers()
-    })
-
-    const backdrop = document.querySelector('.stock-item-deactivate-backdrop')
-    act(() => {
-      backdrop.dispatchEvent(new MouseEvent('click', { bubbles: true }))
-    })
-    expect(getDeactivateDialog()).toBeNull()
-    expect(onUpdateItem).not.toHaveBeenCalled()
-
-    cleanup()
-  })
-
-  it('Confirm sends the selected item id with active:false', async () => {
-    vi.useFakeTimers()
-    const onUpdateItem = vi.fn(async () => {})
-    const item = stock({ id: 'ko', name: 'KETEL ONE' })
-
-    const { container, cleanup } = render(createElement(StockDashboardView, {
-      stockItems: [item],
-      canManage: true,
-      onUpdateItem,
-      isSaving: false,
-    }))
-
-    openDeactivateFromCard(container, 'KETEL ONE')
-
-    act(() => {
-      vi.runAllTimers()
-    })
-
-    const dialog = getDeactivateDialog()
-    const confirmBtn = Array.from(dialog.querySelectorAll('button'))
-      .find((node) => node.textContent === 'Deactivate')
-
-    await act(async () => {
-      confirmBtn.dispatchEvent(new MouseEvent('click', { bubbles: true }))
-      await Promise.resolve()
-    })
-
-    expect(onUpdateItem).toHaveBeenCalledTimes(1)
-    expect(onUpdateItem).toHaveBeenCalledWith(
-      'ko',
-      expect.objectContaining({ active: false, name: 'KETEL ONE' }),
-    )
-    expect(getDeactivateDialog()).toBeNull()
-
-    cleanup()
-  })
-
-  it('keeps the modal open and shows an error when confirm update rejects', async () => {
-    vi.useFakeTimers()
-    const onUpdateItem = vi.fn(async () => {
-      throw new Error('Unable to update stock item right now.')
-    })
-    const item = stock({ id: 'ko', name: 'KETEL ONE' })
-
-    const { container, cleanup } = render(createElement(StockDashboardView, {
-      stockItems: [item],
-      canManage: true,
-      onUpdateItem,
-      isSaving: false,
-    }))
-
-    openDeactivateFromCard(container, 'KETEL ONE')
-
-    act(() => {
-      vi.runAllTimers()
-    })
-
-    const dialog = getDeactivateDialog()
-    const confirmBtn = Array.from(dialog.querySelectorAll('button'))
-      .find((node) => node.textContent === 'Deactivate')
-
-    await act(async () => {
-      confirmBtn.dispatchEvent(new MouseEvent('click', { bubbles: true }))
-      await Promise.resolve()
-      await Promise.resolve()
-    })
-
-    expect(onUpdateItem).toHaveBeenCalledTimes(1)
-    expect(getDeactivateDialog()).toBeTruthy()
-    expect(getDeactivateDialog()?.textContent).toContain('Unable to update stock item right now.')
-    expect(container.textContent).toContain('KETEL ONE')
-
-    const retryBtn = Array.from(getDeactivateDialog().querySelectorAll('button'))
-      .find((node) => node.textContent === 'Deactivate')
-    expect(retryBtn?.disabled).toBe(false)
-
-    cleanup()
-  })
-
-  it('shows saving state and ignores duplicate confirm clicks while pending', async () => {
-    vi.useFakeTimers()
-    let resolveUpdate
-    const onUpdateItem = vi.fn(() => new Promise((resolve) => {
-      resolveUpdate = resolve
-    }))
-    const item = stock({ id: 'ko', name: 'KETEL ONE' })
-
-    const { container, cleanup } = render(createElement(StockDashboardView, {
-      stockItems: [item],
-      canManage: true,
-      onUpdateItem,
-      isSaving: false,
-    }))
-
-    openDeactivateFromCard(container, 'KETEL ONE')
-
-    act(() => {
-      vi.runAllTimers()
-    })
-
-    const dialog = getDeactivateDialog()
-    const confirmBtn = Array.from(dialog.querySelectorAll('button'))
-      .find((node) => node.textContent === 'Deactivate')
-
-    await act(async () => {
-      confirmBtn.dispatchEvent(new MouseEvent('click', { bubbles: true }))
-      await Promise.resolve()
-    })
-
-    expect(onUpdateItem).toHaveBeenCalledTimes(1)
-    expect(getDeactivateDialog()?.textContent).toContain('Saving')
-
-    const busyBtn = Array.from(getDeactivateDialog().querySelectorAll('button'))
-      .find((node) => node.textContent === 'Saving…' || node.textContent === 'Saving...')
-    expect(busyBtn?.disabled).toBe(true)
-
-    await act(async () => {
-      busyBtn.dispatchEvent(new MouseEvent('click', { bubbles: true }))
-      await Promise.resolve()
-    })
-    expect(onUpdateItem).toHaveBeenCalledTimes(1)
-
-    await act(async () => {
-      resolveUpdate()
-      await Promise.resolve()
-    })
-
-    expect(getDeactivateDialog()).toBeNull()
-    cleanup()
-  })
-
-  it('targets the exact product when two cards are present', () => {
-    vi.useFakeTimers()
-    const onUpdateItem = vi.fn(async () => {})
-    const items = [
-      stock({ id: 'ko', name: 'KETEL ONE' }),
-      stock({ id: 'bot', name: 'THE BOTANIST', category: 'Gin' }),
-    ]
-
-    const { container, cleanup } = render(createElement(StockDashboardView, {
-      stockItems: items,
-      canManage: true,
-      onUpdateItem,
-      isSaving: false,
-    }))
-
-    openDeactivateFromCard(container, 'THE BOTANIST')
-
-    const dialog = getDeactivateDialog()
-    expect(dialog?.textContent).toContain('THE BOTANIST')
-    expect(dialog?.textContent).not.toContain('KETEL ONE')
-
-    act(() => {
-      vi.runAllTimers()
-    })
-
-    const confirmBtn = Array.from(dialog.querySelectorAll('button'))
-      .find((node) => node.textContent === 'Deactivate')
-
-    act(() => {
-      confirmBtn.dispatchEvent(new MouseEvent('click', { bubbles: true }))
-    })
-
-    expect(onUpdateItem).toHaveBeenCalledWith(
-      'bot',
-      expect.objectContaining({ active: false, name: 'THE BOTANIST' }),
-    )
+    expect(onDeactivateItem).not.toHaveBeenCalled()
 
     cleanup()
   })
 
   it('does not expose deactivate controls when canManage is false', () => {
-    const onUpdateItem = vi.fn()
+    const onDeactivateItem = vi.fn()
     const { container, cleanup } = render(createElement(StockDashboardView, {
       stockItems: [stock({ id: 'ko', name: 'KETEL ONE' })],
       canManage: false,
-      onUpdateItem,
+      onDeactivateItem,
     }))
 
     expect(container.querySelector('[aria-label="More stock actions"]')).toBeNull()
-    expect(container.querySelector('[aria-label^="More actions for"]')).toBeNull()
     expect(document.querySelector('[role="menuitem"]')).toBeNull()
-    expect(onUpdateItem).not.toHaveBeenCalled()
+    expect(onDeactivateItem).not.toHaveBeenCalled()
 
     cleanup()
   })
 })
 
-describe('inactive stock items leave alert surfaces (P8.16.14f)', () => {
+describe('inactive stock items leave alert surfaces', () => {
   const now = new Date('2026-07-21T12:00:00.000Z')
 
   it('excludes deactivated items from Needs Count, Low Stock, To Order, and counts', () => {
@@ -534,6 +486,5 @@ describe('inventory catalog delete remains independent', () => {
   it('does not wire inventory delete to stock deactivate helpers', () => {
     expect(APP_SOURCE).toContain('await deleteInventoryItem(inventoryPendingDelete.id)')
     expect(APP_SOURCE).not.toContain('buildStockItemDeactivatePayload')
-    expect(APP_SOURCE).not.toContain('deactivateStockAlertItemsForDeletedInventoryItem')
   })
 })

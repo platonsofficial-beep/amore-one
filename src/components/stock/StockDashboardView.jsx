@@ -9,7 +9,6 @@ import {
   STOCK_LOCATIONS,
 } from '../../lib/stockCatalog'
 import {
-  buildStockItemDeactivatePayload,
   buildStockItemUpdatePayload,
   exportStockItemsToCsv,
   getBulkTypeOptionsForItems,
@@ -1239,6 +1238,7 @@ export function StockDashboardView({
   onItemModalOpenChange,
   onCreateItem,
   onUpdateItem,
+  onDeactivateItem,
   onBulkUpdateItems,
   onImportStockItems,
   onRecordMovement,
@@ -1429,11 +1429,11 @@ export function StockDashboardView({
     if (!item?.id) {
       throw new Error('Unable to deactivate this product right now.')
     }
-    if (!onUpdateItem) {
+    if (!onDeactivateItem) {
       throw new Error('Unable to deactivate stock items right now.')
     }
 
-    await onUpdateItem(item.id, buildStockItemDeactivatePayload(item))
+    await onDeactivateItem(item.id)
     setPendingDeactivateItem(null)
   }
 

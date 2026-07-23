@@ -295,6 +295,35 @@ export async function updateStockItemQuantity(id, workspaceId, nextQuantity) {
   return mapStockItem(data)
 }
 
+/**
+ * P8.16.14k — Narrow lifecycle update. Writes only `active` (updated_at via DB trigger).
+ * Does not serialize catalog fields or resolve supplier_id.
+ */
+export async function updateStockItemActive(id, workspaceId, active) {
+  const normalizedWorkspaceId = `${workspaceId ?? ''}`.trim()
+  if (!normalizedWorkspaceId) {
+    throw new Error('Workspace is required to update stock item lifecycle.')
+  }
+
+  const { data, error } = await supabase
+    .from(STOCK_ITEMS_TABLE)
+    .update({ active: active === true })
+    .eq('id', id)
+    .eq('workspace_id', normalizedWorkspaceId)
+    .select('*')
+    .single()
+
+  if (error) {
+    console.error('[stockItemService] updateStockItemActive error:', error)
+    if (isTableUnavailableError(error)) {
+      throw new Error('Stock tables are not ready yet. Run stock_items_schema.sql in Supabase.')
+    }
+    throw new Error(error.message || 'Unable to update stock item lifecycle right now.')
+  }
+
+  return mapStockItem(data)
+}
+
 export async function deleteStockItem(id, workspaceId) {
   const normalizedWorkspaceId = `${workspaceId ?? ''}`.trim()
   if (!normalizedWorkspaceId) {

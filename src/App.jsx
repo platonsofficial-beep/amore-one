@@ -280,7 +280,7 @@ import {
   sortInventoryItemsForBarRefill,
 } from './lib/inventoryCategories'
 import { createSupplier, deleteSupplier, getSuppliers, updateSupplier } from './services/supplierService'
-import { createStockItem, updateStockItem } from './services/stockItemService'
+import { createStockItem, updateStockItem, updateStockItemActive } from './services/stockItemService'
 import { getStockItemsWithLastMovement, recordStockMovement } from './services/stockMovementService'
 import {
   createStockOrdersFromGroups,
@@ -22296,6 +22296,29 @@ function App() {
     }
   }
 
+  const handleDeactivateStockItem = async (itemId) => {
+    if (!activeWorkspaceId) {
+      throw new Error(stockWorkspaceSetupMessage || 'Workspace is required to update stock items.')
+    }
+    if (isSavingStockItemRef.current) return
+
+    isSavingStockItemRef.current = true
+    setIsSavingStockItem(true)
+    setStockItemsNotice('')
+
+    try {
+      await updateStockItemActive(itemId, activeWorkspaceId, false)
+      await refreshStockItems()
+      setStockItemsNotice('Stock item updated.')
+    } catch (error) {
+      setStockItemsNotice(error.message || 'Unable to update stock item right now.')
+      throw error
+    } finally {
+      isSavingStockItemRef.current = false
+      setIsSavingStockItem(false)
+    }
+  }
+
   const handleBulkUpdateStockItems = async (updates = []) => {
     if (!activeWorkspaceId) {
       throw new Error(stockWorkspaceSetupMessage || 'Workspace is required to update stock items.')
@@ -24290,6 +24313,7 @@ function App() {
             onItemModalOpenChange={setIsStockItemModalOpen}
             onCreateItem={handleCreateStockItem}
             onUpdateItem={handleUpdateStockItem}
+            onDeactivateItem={handleDeactivateStockItem}
             onBulkUpdateItems={handleBulkUpdateStockItems}
             onImportStockItems={handleImportStockItems}
             onRecordMovement={handleRecordStockMovement}
