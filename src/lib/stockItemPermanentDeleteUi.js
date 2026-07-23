@@ -1,5 +1,5 @@
 /**
- * P8.16.25 — Single product permanent delete confirmation helpers.
+ * P8.16.25 / P8.16.26c — Single product permanent delete confirmation helpers.
  */
 
 /**
@@ -12,13 +12,31 @@ export function buildStockItemPermanentDeletePhrase(productName) {
 }
 
 /**
- * Case-insensitive, trimmed phrase match.
+ * Normalize confirmation text for comparison only.
+ * Does not alter the live input value while typing.
+ *
+ * @param {string} value
+ * @returns {string}
+ */
+export function normalizeStockItemPermanentDeletePhrase(value) {
+  return `${value ?? ''}`
+    .trim()
+    .toUpperCase()
+    .replace(/[\s\-_]+/g, '')
+}
+
+/**
+ * Intentional phrase match after normalization.
+ * Requires the full product name; formatting differences are ignored.
+ *
  * @param {string} value
  * @param {string} productName
  */
 export function matchesStockItemPermanentDeletePhrase(value, productName) {
-  const expected = buildStockItemPermanentDeletePhrase(productName).toUpperCase()
-  const actual = `${value ?? ''}`.trim().toUpperCase()
+  const expected = normalizeStockItemPermanentDeletePhrase(
+    buildStockItemPermanentDeletePhrase(productName),
+  )
+  const actual = normalizeStockItemPermanentDeletePhrase(value)
   return expected.length > 0 && actual === expected
 }
 

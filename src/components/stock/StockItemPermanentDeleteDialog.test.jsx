@@ -1,6 +1,6 @@
 /**
  * @vitest-environment jsdom
- * P8.16.25 — Single product permanent delete UI.
+ * P8.16.25 / P8.16.26c — Single product permanent delete UI.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { act, createElement } from 'react'
@@ -11,6 +11,7 @@ import { StockDashboardView } from './StockDashboardView'
 import {
   buildStockItemPermanentDeletePhrase,
   matchesStockItemPermanentDeletePhrase,
+  normalizeStockItemPermanentDeletePhrase,
 } from '../../lib/stockItemPermanentDeleteUi'
 import { StockItemPermanentDeleteError } from '../../services/stockItemPermanentDeleteService'
 import { StockItemPermanentDeletePreviewError } from '../../services/stockItemPermanentDeletePreviewService'
@@ -169,10 +170,61 @@ beforeEach(() => {
 })
 
 describe('stockItemPermanentDeleteUi helpers', () => {
-  it('builds and matches DELETE <NAME> case-insensitively with trim', () => {
-    expect(buildStockItemPermanentDeletePhrase('KETEL ONE')).toBe('DELETE KETEL ONE')
-    expect(matchesStockItemPermanentDeletePhrase(' delete ketel one ', 'KETEL ONE')).toBe(true)
-    expect(matchesStockItemPermanentDeletePhrase('DELETE KETEL', 'KETEL ONE')).toBe(false)
+  const product = 'THE BOTANIST'
+
+  it('builds DELETE <NAME> display phrase', () => {
+    expect(buildStockItemPermanentDeletePhrase(product)).toBe('DELETE THE BOTANIST')
+  })
+
+  it('normalizes by trim, uppercase, and removing whitespace / - / _', () => {
+    expect(normalizeStockItemPermanentDeletePhrase('  delete the botanist  '))
+      .toBe('DELETETHEBOTANIST')
+    expect(normalizeStockItemPermanentDeletePhrase('DELETE   THE   BOTANIST'))
+      .toBe('DELETETHEBOTANIST')
+    expect(normalizeStockItemPermanentDeletePhrase('delete-the-botanist'))
+      .toBe('DELETETHEBOTANIST')
+    expect(normalizeStockItemPermanentDeletePhrase('delete_the_botanist'))
+      .toBe('DELETETHEBOTANIST')
+  })
+
+  it('accepts exact phrase', () => {
+    expect(matchesStockItemPermanentDeletePhrase('DELETE THE BOTANIST', product)).toBe(true)
+  })
+
+  it('accepts lowercase', () => {
+    expect(matchesStockItemPermanentDeletePhrase('delete the botanist', product)).toBe(true)
+  })
+
+  it('accepts mixed case', () => {
+    expect(matchesStockItemPermanentDeletePhrase('Delete The Botanist', product)).toBe(true)
+  })
+
+  it('accepts multiple spaces', () => {
+    expect(matchesStockItemPermanentDeletePhrase('DELETE   THE   BOTANIST', product)).toBe(true)
+  })
+
+  it('accepts no spaces', () => {
+    expect(matchesStockItemPermanentDeletePhrase('Deletethebotanist', product)).toBe(true)
+  })
+
+  it('accepts hyphens', () => {
+    expect(matchesStockItemPermanentDeletePhrase('delete-the-botanist', product)).toBe(true)
+  })
+
+  it('accepts underscores', () => {
+    expect(matchesStockItemPermanentDeletePhrase('delete_the_botanist', product)).toBe(true)
+  })
+
+  it('rejects partial phrase', () => {
+    expect(matchesStockItemPermanentDeletePhrase('DELETE BOTANIST', product)).toBe(false)
+    expect(matchesStockItemPermanentDeletePhrase('DELETE GIN', product)).toBe(false)
+    expect(matchesStockItemPermanentDeletePhrase('DELETE THE', product)).toBe(false)
+    expect(matchesStockItemPermanentDeletePhrase('BOTANIST', product)).toBe(false)
+    expect(matchesStockItemPermanentDeletePhrase('DELETE', product)).toBe(false)
+  })
+
+  it('rejects unrelated text', () => {
+    expect(matchesStockItemPermanentDeletePhrase('Random text', product)).toBe(false)
   })
 })
 
@@ -270,6 +322,101 @@ describe('StockItemPermanentDeleteDialog', () => {
         getDialog().querySelector('input[aria-label="Account password"]'),
         'secret',
       )
+    })
+    expect(getDeleteBtn()?.disabled).toBe(false)
+
+    cleanup()
+  })
+
+  it('preserves spaces while typing (iPad SPACE regression)', async () => {
+    vi.useFakeTimers()
+    previewMock.mockResolvedValue(previewPayload({
+      product: {
+        id: 'item-1',
+        name: 'THE BOTANIST',
+        active: false,
+        current_quantity: 2,
+        unit: 'btl',
+        storage_location: 'Bar',
+      },
+    }))
+
+    const { cleanup } = render(createElement(StockItemPermanentDeleteDialog, {
+      workspaceId: 'ws-1',
+      item: { id: 'item-1', name: 'THE BOTANIST' },
+      onClose: vi.fn(),
+    }))
+
+    await act(async () => {
+      await Promise.resolve()
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+
+    const confirmInput = getDialog().querySelector('input[aria-label="Typed confirmation phrase"]')
+    await act(async () => {
+      setNativeValue(confirmInput, 'DELETE ')
+    })
+    expect(confirmInput.value).toBe('DELETE ')
+
+    // Former bug: autofill poll trimmed confirm DOM → setConfirmText → trailing space vanished.
+    await act(async () => {
+      vi.advanceTimersByTime(500)
+    })
+    expect(confirmInput.value).toBe('DELETE ')
+
+    await act(async () => {
+      setNativeValue(confirmInput, 'DELETE THE ')
+    })
+    expect(confirmInput.value).toBe('DELETE THE ')
+
+    await act(async () => {
+      vi.advanceTimersByTime(500)
+    })
+    expect(confirmInput.value).toBe('DELETE THE ')
+
+    cleanup()
+    vi.useRealTimers()
+  })
+
+  it('enables delete for normalized phrase variants and rejects partials', async () => {
+    previewMock.mockResolvedValue(previewPayload({
+      product: {
+        id: 'item-1',
+        name: 'THE BOTANIST',
+        active: false,
+        current_quantity: 2,
+        unit: 'btl',
+        storage_location: 'Bar',
+      },
+    }))
+
+    const { cleanup } = render(createElement(StockItemPermanentDeleteDialog, {
+      workspaceId: 'ws-1',
+      item: { id: 'item-1', name: 'THE BOTANIST' },
+      onClose: vi.fn(),
+    }))
+
+    await waitForPreview()
+    const confirmInput = getDialog().querySelector('input[aria-label="Typed confirmation phrase"]')
+    const passwordInput = getDialog().querySelector('input[aria-label="Account password"]')
+
+    await act(async () => {
+      setNativeValue(passwordInput, 'secret')
+    })
+
+    await act(async () => {
+      setNativeValue(confirmInput, 'DELETE BOTANIST')
+    })
+    expect(getDeleteBtn()?.disabled).toBe(true)
+
+    await act(async () => {
+      setNativeValue(confirmInput, 'delete-the-botanist')
+    })
+    expect(getDeleteBtn()?.disabled).toBe(false)
+
+    await act(async () => {
+      setNativeValue(confirmInput, 'DELETE   THE   BOTANIST')
     })
     expect(getDeleteBtn()?.disabled).toBe(false)
 

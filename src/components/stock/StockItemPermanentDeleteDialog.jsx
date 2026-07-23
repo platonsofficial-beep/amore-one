@@ -18,6 +18,11 @@ function readInputValue(ref) {
   return `${ref.current?.value ?? ''}`.trim()
 }
 
+function readConfirmInputValue(ref) {
+  // Do not trim — trailing spaces must remain while typing (iPad SPACE regression).
+  return `${ref.current?.value ?? ''}`
+}
+
 function countOrZero(value) {
   const numeric = Number(value)
   return Number.isFinite(numeric) ? numeric : 0
@@ -55,7 +60,7 @@ export function StockItemPermanentDeleteDialog({
   }
 
   const confirmExact = matchesStockItemPermanentDeletePhrase(confirmText, productName)
-    || matchesStockItemPermanentDeletePhrase(readInputValue(confirmRef), productName)
+    || matchesStockItemPermanentDeletePhrase(readConfirmInputValue(confirmRef), productName)
   const effectivePassword = `${password}`.trim() || readInputValue(passwordRef)
   const canSubmit = phase === 'ready'
     && Boolean(preview?.product?.id)
@@ -102,22 +107,21 @@ export function StockItemPermanentDeleteDialog({
     }
   }, [workspaceId, item?.id])
 
+  // Password managers often fill the DOM without firing React onChange.
+  // Poll password only — never rewrite the confirm phrase from a trimmed DOM read
+  // (that erased trailing spaces on iPad while typing).
   useEffect(() => {
     if (phase !== 'ready' || isBusy) return undefined
 
     const timer = window.setInterval(() => {
       const domPassword = readInputValue(passwordRef)
-      const domConfirm = readInputValue(confirmRef)
       if (domPassword && domPassword !== password) {
         setPassword(domPassword)
-      }
-      if (domConfirm && domConfirm !== confirmText) {
-        setConfirmText(domConfirm)
       }
     }, 250)
 
     return () => window.clearInterval(timer)
-  }, [phase, isBusy, password, confirmText])
+  }, [phase, isBusy, password])
 
   useEffect(() => {
     if (phase !== 'ready') return undefined
@@ -168,7 +172,7 @@ export function StockItemPermanentDeleteDialog({
       return
     }
 
-    const liveConfirm = readInputValue(confirmRef) || `${confirmText}`.trim()
+    const liveConfirm = readConfirmInputValue(confirmRef) || confirmText
     const livePassword = syncPasswordFromDom()
 
     if (phase !== 'ready' || !preview?.product?.id) {
@@ -406,7 +410,6 @@ export function StockItemPermanentDeleteDialog({
                       value={confirmText}
                       onChange={(event) => {
                         setConfirmText(event.target.value)
-                        syncPasswordFromDom()
                       }}
                       disabled={isBusy}
                       aria-label="Typed confirmation phrase"
