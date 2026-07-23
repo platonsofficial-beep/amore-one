@@ -20,6 +20,7 @@ import {
   STOCK_GROUP_BY_OPTIONS,
   STOCK_LAYOUT_MODES,
   STOCK_SORT_OPTIONS,
+  STOCK_VISIBILITY_OPTIONS,
 } from '../../lib/stockDashboardBrowse'
 import {
   persistStockBrowsePreferences,
@@ -166,7 +167,7 @@ function StockItemCard({
 
   return (
     <article
-      className={`stock-item-card panel staff-panel tone-${item.status}${item.status === 'low' || item.status === 'out' ? ' is-alert' : ''}${selectionMode ? ' is-selectable' : ''}${isSelected ? ' is-selected' : ''}${isMenuOpen ? ' is-menu-open' : ''}`}
+      className={`stock-item-card panel staff-panel tone-${item.status}${item.status === 'low' || item.status === 'out' ? ' is-alert' : ''}${item.active === false ? ' is-inactive' : ''}${selectionMode ? ' is-selectable' : ''}${isSelected ? ' is-selected' : ''}${isMenuOpen ? ' is-menu-open' : ''}`}
       onClick={selectionMode ? handleCardClick : undefined}
     >
       <header className="stock-item-card-header">
@@ -185,9 +186,13 @@ function StockItemCard({
           </button>
         ) : null}
         <h3 className="stock-item-name">{item.name}</h3>
-        <span className={`stock-item-status-badge tone-${item.status}`}>
-          {getStockStatusShortLabel(item.status)}
-        </span>
+        {item.active === false ? (
+          <span className="stock-item-status-badge tone-muted">Inactive</span>
+        ) : (
+          <span className={`stock-item-status-badge tone-${item.status}`}>
+            {getStockStatusShortLabel(item.status)}
+          </span>
+        )}
       </header>
 
       <p className="stock-item-category-type">
@@ -349,7 +354,7 @@ function StockListRow({
   const supplierLabel = `${item.supplier ?? ''}`.trim() || '—'
 
   return (
-    <tr className={`stock-list-row tone-${item.status}${isSelected ? ' is-selected' : ''}${isMenuOpen ? ' is-menu-open' : ''}`}>
+    <tr className={`stock-list-row tone-${item.status}${item.active === false ? ' is-inactive' : ''}${isSelected ? ' is-selected' : ''}${isMenuOpen ? ' is-menu-open' : ''}`}>
       {selectionMode && canManage ? (
         <td className="stock-list-cell stock-list-cell-select">
           <button
@@ -1240,6 +1245,7 @@ export function StockDashboardView({
   onCreateItem,
   onUpdateItem,
   onDeactivateItem,
+  onReactivateItem,
   onStockItemsChanged,
   onBulkUpdateItems,
   onImportStockItems,
@@ -1250,6 +1256,9 @@ export function StockDashboardView({
 }) {
   const [categoryFilter, setCategoryFilter] = useState('All')
   const [statusFilter, setStatusFilter] = useState('all')
+  const [visibilityFilter, setVisibilityFilter] = useState(
+    () => readStockBrowsePreferences().visibilityFilter,
+  )
   const [sortKey, setSortKey] = useState(() => readStockBrowsePreferences().sortKey)
   const [layoutMode, setLayoutMode] = useState(() => readStockBrowsePreferences().layoutMode)
   const [groupBy, setGroupBy] = useState(() => readStockBrowsePreferences().groupBy)
@@ -1272,8 +1281,14 @@ export function StockDashboardView({
   const [removedItemIds, setRemovedItemIds] = useState(() => new Set())
 
   useEffect(() => {
-    persistStockBrowsePreferences({ layoutMode, groupBy, sortKey })
-  }, [layoutMode, groupBy, sortKey])
+    persistStockBrowsePreferences({ layoutMode, groupBy, sortKey, visibilityFilter })
+  }, [layoutMode, groupBy, sortKey, visibilityFilter])
+
+  useEffect(() => {
+    if (!canManage && visibilityFilter !== 'active') {
+      setVisibilityFilter('active')
+    }
+  }, [canManage, visibilityFilter])
 
   useEffect(() => {
     onItemModalOpenChange?.(isItemModalOpen)
@@ -1283,13 +1298,23 @@ export function StockDashboardView({
     () => stockItems.filter((entry) => !removedItemIds.has(entry.id)),
     [stockItems, removedItemIds],
   )
+  const activeCatalogItems = useMemo(
+    () => catalogItems.filter((entry) => entry.active !== false),
+    [catalogItems],
+  )
+  const hasInactiveProducts = useMemo(
+    () => catalogItems.some((entry) => entry.active === false),
+    [catalogItems],
+  )
+  const effectiveVisibilityFilter = canManage ? visibilityFilter : 'active'
 
-  const summary = useMemo(() => buildStockDashboardSummary(catalogItems), [catalogItems])
+  // KPIs / needs-attention stay on active catalog only (unchanged dashboard math).
+  const summary = useMemo(() => buildStockDashboardSummary(activeCatalogItems), [activeCatalogItems])
   const ordersSummary = useMemo(() => buildStockOrdersOperationsSummary(stockOrders), [stockOrders])
   const todayActivityLine = useMemo(() => {
-    const activity = buildTodayStockActivitySummary(catalogItems, getCurrentDateKey())
+    const activity = buildTodayStockActivitySummary(activeCatalogItems, getCurrentDateKey())
     return formatTodayStockActivityLine(activity)
-  }, [catalogItems])
+  }, [activeCatalogItems])
   const criticalStockCount = summary.lowStock + summary.outOfStock
   const categoryFilters = useMemo(() => getStockCategoryFilters(catalogItems), [catalogItems])
 
@@ -1297,26 +1322,28 @@ export function StockDashboardView({
     const filtered = filterStockDashboardItems(catalogItems, {
       categoryFilter,
       statusFilter,
+      visibilityFilter: effectiveVisibilityFilter,
       searchTerm,
     })
     return sortStockDashboardItems(filtered, sortKey)
-  }, [catalogItems, categoryFilter, statusFilter, searchTerm, sortKey])
+  }, [catalogItems, categoryFilter, statusFilter, effectiveVisibilityFilter, searchTerm, sortKey])
 
   const browseMatchCount = useMemo(() => {
     return filterStockDashboardItems(catalogItems, {
       categoryFilter,
       statusFilter: 'all',
+      visibilityFilter: effectiveVisibilityFilter,
       searchTerm,
     }).length
-  }, [catalogItems, categoryFilter, searchTerm])
+  }, [catalogItems, categoryFilter, effectiveVisibilityFilter, searchTerm])
 
   const itemGroups = useMemo(() => {
     return groupStockDashboardItems(visibleItems, groupBy)
   }, [visibleItems, groupBy])
 
   const needsAttentionGroups = useMemo(() => {
-    return buildStockNeedsAttentionGroups(catalogItems, { canManage, searchTerm })
-  }, [catalogItems, canManage, searchTerm])
+    return buildStockNeedsAttentionGroups(activeCatalogItems, { canManage, searchTerm })
+  }, [activeCatalogItems, canManage, searchTerm])
 
   const hasNeedsAttention = needsAttentionGroups.length > 0
 
@@ -1341,8 +1368,17 @@ export function StockDashboardView({
     hasNoItems,
     hasNoMatches,
     statusFilter,
+    visibilityFilter: effectiveVisibilityFilter,
+    hasInactiveProducts,
     canManage,
-  }), [hasNoItems, hasNoMatches, statusFilter, canManage])
+  }), [
+    hasNoItems,
+    hasNoMatches,
+    statusFilter,
+    effectiveVisibilityFilter,
+    hasInactiveProducts,
+    canManage,
+  ])
 
   const exitSelectionMode = () => {
     setSelectionMode(false)
@@ -1429,6 +1465,16 @@ export function StockDashboardView({
 
   const openDeactivateItem = (item) => {
     if (!item?.id) return
+    // Reactivate inactive products immediately (no deactivate confirm).
+    if (item.active === false) {
+      closeStockItemMenu()
+      if (onReactivateItem) {
+        Promise.resolve(onReactivateItem(item.id)).catch((error) => {
+          console.warn('[StockDashboardView] Reactivate failed:', error)
+        })
+      }
+      return
+    }
     // Store the immutable selection before clearing menu state so confirm
     // does not depend on activeMenuItem (derived from openCardMenuId).
     setPendingDeactivateItem(item)
@@ -1658,7 +1704,7 @@ export function StockDashboardView({
         />
       ) : null}
 
-      <div className="stock-dashboard-toolbar">
+      <div className={`stock-dashboard-toolbar${canManage ? ' has-visibility' : ''}`}>
         <div className="stock-filter-group stock-filter-group-category">
           <span className="stock-filter-group-label">Category</span>
           <div className="stock-category-filters" role="tablist" aria-label="Stock categories">
@@ -1718,6 +1764,26 @@ export function StockDashboardView({
             </button>
           </div>
         </div>
+
+        {canManage ? (
+          <div className="stock-filter-group stock-filter-group-visibility">
+            <span className="stock-filter-group-label">Visibility</span>
+            <div className="stock-status-filters" role="tablist" aria-label="Product visibility">
+              {STOCK_VISIBILITY_OPTIONS.map((option) => (
+                <button
+                  key={option.id}
+                  type="button"
+                  role="tab"
+                  aria-selected={visibilityFilter === option.id}
+                  className={`stock-status-filter stock-visibility-filter${visibilityFilter === option.id ? ' active' : ''}`}
+                  onClick={() => setVisibilityFilter(option.id)}
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        ) : null}
 
         {canManage ? (
           <div className="stock-toolbar-actions">

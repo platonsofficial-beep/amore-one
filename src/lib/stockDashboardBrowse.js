@@ -26,6 +26,12 @@ export const STOCK_SORT_OPTIONS = [
   { id: 'recent', label: 'Recently updated' },
 ]
 
+export const STOCK_VISIBILITY_OPTIONS = [
+  { id: 'active', label: 'Active' },
+  { id: 'inactive', label: 'Inactive' },
+  { id: 'all', label: 'All' },
+]
+
 const STATUS_SORT_PRIORITY = {
   out: 0,
   low: 1,
@@ -51,18 +57,26 @@ function compareStrings(left, right) {
   return `${left ?? ''}`.localeCompare(`${right ?? ''}`, undefined, { sensitivity: 'base' })
 }
 
+function matchesVisibilityFilter(item, visibilityFilter = 'active') {
+  const isActive = item?.active !== false
+  if (visibilityFilter === 'inactive') return !isActive
+  if (visibilityFilter === 'all') return true
+  return isActive
+}
+
 export function filterStockDashboardItems(
   items = [],
   {
     categoryFilter = 'All',
     statusFilter = 'all',
+    visibilityFilter = 'active',
     searchTerm = '',
   } = {},
 ) {
   const normalizedSearch = `${searchTerm ?? ''}`.trim().toLowerCase()
 
   return (items ?? []).filter((item) => {
-    if (item.active === false) return false
+    if (!matchesVisibilityFilter(item, visibilityFilter)) return false
 
     const matchesCategory = categoryFilter === 'All' || item.category === categoryFilter
     const matchesStatus = statusFilter === 'all'

@@ -22337,6 +22337,29 @@ function App() {
     }
   }
 
+  const handleReactivateStockItem = async (itemId) => {
+    if (!activeWorkspaceId) {
+      throw new Error(stockWorkspaceSetupMessage || 'Workspace is required to update stock items.')
+    }
+    if (isSavingStockItemRef.current) return
+
+    isSavingStockItemRef.current = true
+    setIsSavingStockItem(true)
+    setStockItemsNotice('')
+
+    try {
+      await updateStockItemActive(itemId, activeWorkspaceId, true)
+      await refreshStockItems()
+      setStockItemsNotice('Stock item updated.')
+    } catch (error) {
+      setStockItemsNotice(error.message || 'Unable to update stock item right now.')
+      throw error
+    } finally {
+      isSavingStockItemRef.current = false
+      setIsSavingStockItem(false)
+    }
+  }
+
   const handleBulkUpdateStockItems = async (updates = []) => {
     if (!activeWorkspaceId) {
       throw new Error(stockWorkspaceSetupMessage || 'Workspace is required to update stock items.')
@@ -24336,6 +24359,7 @@ function App() {
             onCreateItem={handleCreateStockItem}
             onUpdateItem={handleUpdateStockItem}
             onDeactivateItem={handleDeactivateStockItem}
+            onReactivateItem={handleReactivateStockItem}
             onStockItemsChanged={refreshStockItems}
             onBulkUpdateItems={handleBulkUpdateStockItems}
             onImportStockItems={handleImportStockItems}

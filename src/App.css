@@ -27599,11 +27599,23 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   gap: 12px 16px;
 }
 
+.stock-dashboard-toolbar.has-visibility {
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) minmax(0, 0.9fr) auto;
+}
+
 .stock-filter-group {
   display: flex;
   flex-direction: column;
   gap: 8px;
   min-width: 0;
+}
+
+.stock-filter-group-visibility {
+  min-width: 0;
+}
+
+.stock-visibility-filter {
+  min-height: 44px;
 }
 
 .stock-filter-group-label {
@@ -28293,6 +28305,11 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 
 .stock-item-card.is-alert {
   border-color: rgba(255, 152, 0, 0.28);
+}
+
+.stock-item-card.is-inactive {
+  opacity: 0.82;
+  border-color: rgba(255, 255, 255, 0.08);
 }
 
 .stock-item-card.tone-out.is-alert {

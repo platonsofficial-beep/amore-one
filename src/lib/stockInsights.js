@@ -117,6 +117,8 @@ export function getStockDashboardEmptyState({
   hasNoItems = false,
   hasNoMatches = false,
   statusFilter = 'all',
+  visibilityFilter = 'active',
+  hasInactiveProducts = false,
   canManage = false,
 } = {}) {
   if (hasNoItems) {
@@ -130,6 +132,22 @@ export function getStockDashboardEmptyState({
   }
 
   if (!hasNoMatches) return null
+
+  if (visibilityFilter === 'inactive') {
+    return {
+      title: 'No inactive products found',
+      message: 'Deactivated products will appear here.',
+      showAddButton: false,
+    }
+  }
+
+  if (visibilityFilter === 'active' && hasInactiveProducts) {
+    return {
+      title: 'No active products found',
+      message: 'Try switching Visibility to Inactive or All.',
+      showAddButton: false,
+    }
+  }
 
   if (statusFilter === 'low') {
     return {
