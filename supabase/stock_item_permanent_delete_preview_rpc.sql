@@ -1,5 +1,5 @@
 -- =============================================================================
--- P8.16.23 — Permanent Stock Item Delete Preview Foundation (READ-ONLY)
+-- P8.16.23 / P8.16.26a — Permanent Stock Item Delete Preview Foundation (READ-ONLY)
 -- =============================================================================
 -- Run manually in the Supabase SQL editor after:
 --   1. supabase/stock_items_schema.sql
@@ -14,6 +14,10 @@
 -- Purpose:
 --   SECURITY DEFINER read-only dependency preview for a single stock_items row.
 --   Prepares the permanent-delete contract. Does NOT delete.
+--
+-- P8.16.26a:
+--   Supplier is optional. Never fail if stock_items.supplier_id is absent.
+--   Prefer supplier_id when the column exists; otherwise use text supplier.
 --
 -- Does NOT:
 --   - DELETE / UPDATE / INSERT any table
@@ -38,8 +42,16 @@ set search_path = public
 as $$
 declare
   v_auth_user_id uuid := auth.uid();
-  v_item public.stock_items%rowtype;
+  v_item_id uuid;
+  v_item_name text;
+  v_item_active boolean;
+  v_item_qty numeric(12, 3);
+  v_item_unit text;
+  v_item_location text;
+  v_item_supplier_text text := null;
+  v_supplier_id bigint := null;
   v_supplier_name text := null;
+  v_has_supplier_id_column boolean := false;
   v_mov_receive integer := 0;
   v_mov_usage integer := 0;
   v_mov_adjustment integer := 0;
@@ -88,9 +100,24 @@ begin
       using hint = 'owner / general_manager / manager required. host / staff / anonymous denied.';
   end if;
 
-  -- Workspace-scoped item lookup (no cross-workspace leakage)
-  select *
-  into v_item
+  -- Workspace-scoped item lookup using only core columns (always present).
+  -- Avoid composite rowtype supplier_id access — that column may be absent in production.
+  select
+    s.id,
+    s.name,
+    s.active,
+    s.current_quantity,
+    s.unit,
+    s.storage_location,
+    s.supplier
+  into
+    v_item_id,
+    v_item_name,
+    v_item_active,
+    v_item_qty,
+    v_item_unit,
+    v_item_location,
+    v_item_supplier_text
   from public.stock_items s
   where s.id = p_stock_item_id
     and s.workspace_id = p_workspace_id;
@@ -100,17 +127,37 @@ begin
       using hint = 'Stock item was not found in this workspace.';
   end if;
 
-  -- Supplier (optional FK + text fallback name from suppliers.company_name)
-  if v_item.supplier_id is not null then
+  -- Optional supplier_id when the FK column has been applied (P7.3.1).
+  select exists (
+    select 1
+    from information_schema.columns c
+    where c.table_schema = 'public'
+      and c.table_name = 'stock_items'
+      and c.column_name = 'supplier_id'
+  )
+  into v_has_supplier_id_column;
+
+  if v_has_supplier_id_column then
+    execute
+      'select s.supplier_id
+       from public.stock_items s
+       where s.id = $1
+         and s.workspace_id = $2'
+      into v_supplier_id
+      using p_stock_item_id, p_workspace_id;
+  end if;
+
+  -- Supplier name: FK company_name first, then legacy text supplier.
+  if v_supplier_id is not null then
     select sp.company_name
     into v_supplier_name
     from public.suppliers sp
-    where sp.id = v_item.supplier_id
+    where sp.id = v_supplier_id
     limit 1;
   end if;
 
-  if v_supplier_name is null and coalesce(v_item.supplier, '') <> '' then
-    v_supplier_name := v_item.supplier;
+  if v_supplier_name is null and coalesce(v_item_supplier_text, '') <> '' then
+    v_supplier_name := v_item_supplier_text;
   end if;
 
   -- Movement counts by type (workspace + item scoped)
@@ -189,12 +236,12 @@ begin
     'workspace_id', p_workspace_id,
     'preview_only', true,
     'product', jsonb_build_object(
-      'id', v_item.id,
-      'name', v_item.name,
-      'active', v_item.active,
-      'current_quantity', v_item.current_quantity,
-      'unit', v_item.unit,
-      'storage_location', v_item.storage_location
+      'id', v_item_id,
+      'name', v_item_name,
+      'active', v_item_active,
+      'current_quantity', v_item_qty,
+      'unit', v_item_unit,
+      'storage_location', v_item_location
     ),
     'movements', jsonb_build_object(
       'receive', coalesce(v_mov_receive, 0),
@@ -222,7 +269,7 @@ begin
       'map_refs', coalesce(v_migration_map, 0)
     ),
     'supplier', jsonb_build_object(
-      'supplier_id', v_item.supplier_id,
+      'supplier_id', v_supplier_id,
       'supplier_name', v_supplier_name
     ),
     'mutation', jsonb_build_object(
@@ -235,7 +282,7 @@ end;
 $$;
 
 comment on function public.preview_stock_item_permanent_delete(uuid, uuid) is
-  'P8.16.23 Read-only permanent-delete dependency preview for one stock_items row. Never mutates data.';
+  'P8.16.23/P8.16.26a Read-only permanent-delete dependency preview. Supplier optional; never requires stock_items.supplier_id.';
 
 revoke all on function public.preview_stock_item_permanent_delete(uuid, uuid) from public;
 grant execute on function public.preview_stock_item_permanent_delete(uuid, uuid) to authenticated;

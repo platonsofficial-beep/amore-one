@@ -134,9 +134,19 @@ describe('preview_stock_item_permanent_delete SQL contract (P8.16.23)', () => {
     expect(FUNCTION_BODY).not.toMatch(/\bupdate\s+public\./i)
     expect(FUNCTION_BODY).not.toMatch(/\binsert\s+into\b/i)
   })
+
+  it('never reads v_item.supplier_id from %rowtype (P8.16.26a)', () => {
+    expect(FUNCTION_BODY).not.toContain('stock_items%rowtype')
+    expect(FUNCTION_BODY).not.toContain('v_item.supplier_id')
+    expect(FUNCTION_BODY).not.toMatch(/v_item\s+public\.stock_items%rowtype/i)
+    expect(FUNCTION_BODY).toContain('information_schema.columns')
+    expect(FUNCTION_BODY).toContain("column_name = 'supplier_id'")
+    expect(FUNCTION_BODY).toContain('v_item_supplier_text')
+    expect(FUNCTION_BODY).toContain('s.supplier')
+  })
 })
 
-describe('stockItemPermanentDeletePreviewService (P8.16.23)', () => {
+describe('stockItemPermanentDeletePreviewService (P8.16.23 / P8.16.26a)', () => {
   beforeEach(() => {
     rpcMock.mockReset()
   })
@@ -203,6 +213,73 @@ describe('stockItemPermanentDeletePreviewService (P8.16.23)', () => {
     expect(result.import.matched_refs).toBe(1)
     expect(result.migration.map_refs).toBe(1)
     expect(result.inventory_count.posted_references).toBe(1)
+  })
+
+  it('accepts product with supplier in returned JSON shape', async () => {
+    const payload = {
+      workspace_id: 'ws-1',
+      preview_only: true,
+      product: { id: 'item-1', name: 'KETEL ONE', active: true, current_quantity: 2, unit: 'btl', storage_location: 'Bar' },
+      movements: { receive: 1, usage: 0, adjustment: 0, stock_count: 0, total: 1 },
+      orders: { draft: 0, sent: 0, received: 0, cancelled: 0, total: 0 },
+      inventory_count: { posted_references: 0, open_references: 0 },
+      import: { matched_refs: 0, applied_refs: 0 },
+      migration: { map_refs: 0 },
+      supplier: { supplier_id: 42, supplier_name: 'Malakakos' },
+      mutation: { deletes_records: false, updates_records: false, inserts_records: false },
+    }
+    rpcMock.mockResolvedValueOnce({ data: payload, error: null })
+
+    const result = await previewStockItemPermanentDelete('ws-1', 'item-1')
+    expect(result.supplier).toEqual({ supplier_id: 42, supplier_name: 'Malakakos' })
+    expect(result.movements).toEqual(payload.movements)
+    expect(result.orders).toEqual(payload.orders)
+  })
+
+  it('accepts product without supplier / null supplier without failing', async () => {
+    const payload = {
+      workspace_id: 'ws-1',
+      preview_only: true,
+      product: { id: 'item-2', name: 'LIME', active: false, current_quantity: 2, unit: 'kg', storage_location: 'Kitchen' },
+      movements: { receive: 0, usage: 0, adjustment: 0, stock_count: 0, total: 0 },
+      orders: { draft: 0, sent: 0, received: 0, cancelled: 0, total: 0 },
+      inventory_count: { posted_references: 0, open_references: 0 },
+      import: { matched_refs: 0, applied_refs: 0 },
+      migration: { map_refs: 0 },
+      supplier: { supplier_id: null, supplier_name: null },
+      mutation: { deletes_records: false, updates_records: false, inserts_records: false },
+    }
+    rpcMock.mockResolvedValueOnce({ data: payload, error: null })
+
+    const result = await previewStockItemPermanentDelete('ws-1', 'item-2')
+    expect(result.supplier.supplier_id).toBeNull()
+    expect(result.supplier.supplier_name).toBeNull()
+    expect(result.preview_only).toBe(true)
+    expect(result.product.name).toBe('LIME')
+  })
+
+  it('accepts text-only supplier_name when supplier_id is null', async () => {
+    const payload = {
+      workspace_id: 'ws-1',
+      preview_only: true,
+      product: { id: 'item-3', name: 'MIONENTO', active: false, current_quantity: 6, unit: 'btl', storage_location: 'Bar' },
+      movements: { receive: 2, usage: 1, adjustment: 0, stock_count: 0, total: 3 },
+      orders: { draft: 0, sent: 0, received: 1, cancelled: 0, total: 1 },
+      inventory_count: { posted_references: 0, open_references: 0 },
+      import: { matched_refs: 0, applied_refs: 0 },
+      migration: { map_refs: 0 },
+      supplier: { supplier_id: null, supplier_name: 'Legacy Text Supplier' },
+      mutation: { deletes_records: false, updates_records: false, inserts_records: false },
+    }
+    rpcMock.mockResolvedValueOnce({ data: payload, error: null })
+
+    const result = await previewStockItemPermanentDelete('ws-1', 'item-3')
+    expect(result.supplier).toEqual({
+      supplier_id: null,
+      supplier_name: 'Legacy Text Supplier',
+    })
+    expect(result.movements.total).toBe(3)
+    expect(result.orders.received).toBe(1)
   })
 
   it('requires workspace and stock item ids before calling RPC', async () => {
