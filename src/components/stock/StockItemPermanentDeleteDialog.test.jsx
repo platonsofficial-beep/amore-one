@@ -774,6 +774,80 @@ describe('Permanent Delete open inventory count guidance (P8.16.29)', () => {
   })
 })
 
+describe('Permanent Delete dialog viewport layout (P8.16.30a)', () => {
+  it('uses viewport-constrained shell with internal scroll body and sticky footer', async () => {
+    const { cleanup } = render(createElement(StockItemPermanentDeleteDialog, {
+      workspaceId: 'ws-1',
+      item: { id: 'item-1', name: 'KETEL ONE' },
+      onClose: vi.fn(),
+    }))
+
+    await waitForPreview()
+
+    const dialog = getDialog()
+    expect(dialog?.className).toContain('has-viewport-max-height')
+    expect(dialog?.className).toContain('stock-item-permanent-delete-dialog')
+    expect(dialog?.querySelector('.stock-item-permanent-delete-body.is-internal-scroll')).toBeTruthy()
+    expect(dialog?.querySelector('.stock-item-permanent-delete-actions.is-dialog-footer')).toBeTruthy()
+    expect(dialog?.querySelector('.stock-item-permanent-delete-form')).toBeTruthy()
+    expect(dialog?.querySelector('input[aria-label="Typed confirmation phrase"]')).toBeTruthy()
+    expect(dialog?.querySelector('input[aria-label="Account password"]')).toBeTruthy()
+
+    cleanup()
+  })
+
+  it('keeps blocker metadata and Open Inventory Count inside the scrollable body', async () => {
+    previewMock.mockResolvedValue(previewPayload({
+      inventory_count: {
+        posted_references: 0,
+        open_references: 1,
+      },
+    }))
+    openCountBlockerMock.mockResolvedValue({
+      sessionId: 'session-open-1',
+      countTypeLabel: 'New Count',
+      statusLabel: 'In Progress',
+      storageLocation: 'Main Storage',
+      startedAt: '2026-07-20T10:00:00.000Z',
+      operatorName: 'PLATON SACHINIS',
+    })
+
+    const { cleanup } = render(createElement(StockItemPermanentDeleteDialog, {
+      workspaceId: 'ws-1',
+      item: { id: 'item-1', name: 'KETEL ONE' },
+      onClose: vi.fn(),
+      onOpenBlockingInventoryCount: vi.fn(),
+    }))
+
+    await waitForPreview()
+    await act(async () => {
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+
+    const body = getDialog()?.querySelector('.stock-item-permanent-delete-body.is-internal-scroll')
+    const block = body?.querySelector('[aria-label="Blocked by Inventory Count"]')
+    expect(block).toBeTruthy()
+    expect(block.textContent).toContain('Product')
+    expect(block.textContent).toContain('Session')
+    expect(block.textContent).toContain('Status')
+    expect(block.textContent).toContain('Location')
+    expect(block.textContent).toContain('Started')
+    expect(block.textContent).toContain('Operator')
+    expect(block.textContent).toContain('New Count')
+    expect(block.textContent).toContain('PLATON SACHINIS')
+    expect(
+      Array.from(block.querySelectorAll('button'))
+        .some((node) => node.textContent === 'Open Inventory Count'),
+    ).toBe(true)
+    expect(getDialog()?.querySelector('.stock-item-permanent-delete-actions.is-dialog-footer')).toBeTruthy()
+    expect(getDialog()?.querySelector('input[aria-label="Typed confirmation phrase"]')).toBeTruthy()
+    expect(getDialog()?.querySelector('input[aria-label="Account password"]')).toBeTruthy()
+
+    cleanup()
+  })
+})
+
 describe('Permanent Delete open inventory count deep link (P8.16.30)', () => {
   it('renders Open Inventory Count and navigates with the blocking session id', async () => {
     const onClose = vi.fn()

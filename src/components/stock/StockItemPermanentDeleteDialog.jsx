@@ -284,7 +284,7 @@ export function StockItemPermanentDeleteDialog({
       onClick={handleDismiss}
     >
       <div
-        className="employee-modal stock-item-permanent-delete-dialog task-form-modal is-responsive-sheet"
+        className="employee-modal stock-item-permanent-delete-dialog task-form-modal is-responsive-sheet has-viewport-max-height"
         onClick={(event) => event.stopPropagation()}
         role="dialog"
         aria-modal="true"
@@ -316,7 +316,7 @@ export function StockItemPermanentDeleteDialog({
 
         {phase === 'success' && result ? (
           <>
-            <div className="stock-item-permanent-delete-body">
+            <div className="stock-item-permanent-delete-body is-internal-scroll">
               <div className="stock-item-permanent-delete-success" role="status">
                 <p className="stock-item-permanent-delete-copy">
                   <strong>Successfully deleted:</strong>
@@ -343,7 +343,7 @@ export function StockItemPermanentDeleteDialog({
                 </ul>
               </div>
             </div>
-            <div className="modal-actions stock-item-permanent-delete-actions">
+            <div className="modal-actions stock-item-permanent-delete-actions is-dialog-footer">
               <button type="button" className="primary-btn" onClick={handleDismiss}>
                 Done
               </button>
@@ -351,7 +351,7 @@ export function StockItemPermanentDeleteDialog({
           </>
         ) : (
           <form className="stock-item-permanent-delete-form" onSubmit={handleSubmit}>
-            <div className="stock-item-permanent-delete-body">
+            <div className="stock-item-permanent-delete-body is-internal-scroll">
               {phase === 'loading' ? (
                 <p className="stock-item-permanent-delete-copy" role="status">
                   Loading permanent delete preview…
@@ -520,7 +520,7 @@ export function StockItemPermanentDeleteDialog({
               ) : null}
             </div>
 
-            <div className="modal-actions stock-item-permanent-delete-actions">
+            <div className="modal-actions stock-item-permanent-delete-actions is-dialog-footer">
               <button
                 type="button"
                 className="ghost-btn"

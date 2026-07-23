@@ -35751,13 +35751,20 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 
 .stock-item-permanent-delete-backdrop {
   z-index: 12160;
+  padding:
+    max(12px, env(safe-area-inset-top, 0px))
+    max(12px, env(safe-area-inset-right, 0px))
+    max(12px, env(safe-area-inset-bottom, 0px))
+    max(12px, env(safe-area-inset-left, 0px));
+  overflow: hidden;
 }
 
-.stock-item-permanent-delete-dialog {
+.stock-item-permanent-delete-dialog,
+.stock-item-permanent-delete-dialog.has-viewport-max-height {
   width: min(94vw, 560px);
   max-width: 560px;
-  max-height: calc(100vh - 32px);
-  max-height: calc(100dvh - 32px);
+  max-height: calc(100vh - 24px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
+  max-height: calc(100dvh - 24px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
   padding: 0;
   border-radius: 22px;
   border: 1px solid rgba(255, 138, 128, 0.28);
@@ -35766,6 +35773,15 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  min-height: 0;
+}
+
+.stock-item-permanent-delete-form {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
 }
 
 .stock-item-permanent-delete-dialog .drawer-header {
@@ -35775,6 +35791,7 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   padding: 22px 24px 14px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.06);
   flex-shrink: 0;
+  background: linear-gradient(165deg, rgba(18, 18, 20, 0.98), rgba(14, 14, 16, 0.98));
 }
 
 .stock-item-permanent-delete-dialog .drawer-header .eyebrow {
@@ -35795,13 +35812,18 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   line-height: 1.45;
 }
 
-.stock-item-permanent-delete-body {
+.stock-item-permanent-delete-body,
+.stock-item-permanent-delete-body.is-internal-scroll {
   display: flex;
   flex-direction: column;
   gap: 16px;
   padding: 18px 24px 12px;
-  overflow: auto;
+  overflow-x: hidden;
+  overflow-y: auto;
   min-height: 0;
+  flex: 1 1 auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
 }
 
 .stock-item-permanent-delete-copy {
@@ -35871,7 +35893,7 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 }
 
 .stock-item-permanent-delete-open-count-btn {
-  align-self: flex-start;
+  align-self: flex-end;
   min-height: 44px;
   min-width: 44px;
 }
@@ -35927,19 +35949,30 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   font-weight: 600;
 }
 
+.stock-item-permanent-delete-confirm-field,
+.stock-item-permanent-delete-password-field {
+  margin: 0;
+}
+
 .stock-item-permanent-delete-confirm-field input,
 .stock-item-permanent-delete-password-field input {
   min-height: 44px;
 }
 
-.stock-item-permanent-delete-actions {
+.stock-item-permanent-delete-actions,
+.stock-item-permanent-delete-actions.is-dialog-footer {
   display: flex;
   justify-content: flex-end;
   gap: 10px;
   margin: 0;
-  padding: 16px 24px calc(20px + env(safe-area-inset-bottom, 0px));
+  padding: 14px 24px calc(16px + env(safe-area-inset-bottom, 0px));
   border-top: 1px solid rgba(255, 255, 255, 0.06);
   flex-shrink: 0;
+  position: sticky;
+  bottom: 0;
+  background: rgba(10, 10, 11, 0.98);
+  box-shadow: 0 -10px 24px rgba(0, 0, 0, 0.28);
+  z-index: 2;
 }
 
 .stock-item-permanent-delete-actions .primary-btn,
@@ -35961,7 +35994,8 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 }
 
 @media (max-width: 1100px) {
-  .stock-item-permanent-delete-dialog {
+  .stock-item-permanent-delete-dialog,
+  .stock-item-permanent-delete-dialog.has-viewport-max-height {
     width: min(96vw, 560px);
   }
 
@@ -35974,6 +36008,86 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   .stock-item-permanent-delete-actions {
     padding-left: 22px;
     padding-right: 22px;
+  }
+}
+
+/* Short viewports: iPad landscape / compact laptop */
+@media (max-height: 750px) {
+  .stock-item-permanent-delete-dialog .drawer-header {
+    padding: 14px 20px 10px;
+    gap: 8px;
+  }
+
+  .stock-item-permanent-delete-dialog .drawer-header .eyebrow {
+    margin-bottom: 4px;
+  }
+
+  .stock-item-permanent-delete-subtitle {
+    margin-top: 4px;
+  }
+
+  .stock-item-permanent-delete-body,
+  .stock-item-permanent-delete-body.is-internal-scroll {
+    gap: 10px;
+    padding: 12px 20px 8px;
+  }
+
+  .stock-item-permanent-delete-product-card,
+  .stock-item-permanent-delete-block-card {
+    gap: 6px;
+    padding: 10px 12px;
+  }
+
+  .stock-item-permanent-delete-section h4 {
+    margin-bottom: 6px;
+  }
+
+  .stock-item-permanent-delete-list {
+    gap: 4px;
+  }
+
+  .stock-item-permanent-delete-stats {
+    gap: 6px;
+    margin-top: 8px;
+  }
+
+  .stock-item-permanent-delete-stats > div {
+    padding: 8px 10px;
+  }
+
+  .stock-item-permanent-delete-block-meta {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 4px 12px;
+  }
+
+  .stock-item-permanent-delete-block-meta > div {
+    grid-template-columns: 72px minmax(0, 1fr);
+    gap: 4px 6px;
+  }
+
+  .stock-item-permanent-delete-confirm-field,
+  .stock-item-permanent-delete-password-field {
+    gap: 6px;
+  }
+
+  .stock-item-permanent-delete-actions,
+  .stock-item-permanent-delete-actions.is-dialog-footer {
+    padding: 10px 20px calc(12px + env(safe-area-inset-bottom, 0px));
+  }
+}
+
+@media (max-width: 768px) {
+  .stock-item-permanent-delete-dialog.task-form-modal.is-responsive-sheet,
+  .stock-item-permanent-delete-dialog.has-viewport-max-height {
+    width: 100%;
+    max-height: min(92dvh, 92vh);
+    border-radius: 24px 24px 0 0;
+    margin-top: auto;
+    padding-bottom: 0;
+  }
+
+  .stock-item-permanent-delete-block-meta {
+    grid-template-columns: 1fr;
   }
 }
 
