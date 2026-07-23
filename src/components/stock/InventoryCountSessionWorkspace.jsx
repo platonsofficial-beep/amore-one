@@ -207,10 +207,78 @@ export function getFinishCountDisabledReason(sessionStatus, locations = []) {
   }
 
   if (progress.totalLocations > 0 && progress.completedLocations < progress.totalLocations) {
+    const currentName = `${locations.find((location) => location.status === 'current')?.name ?? ''}`.trim()
+    if (currentName) {
+      return `Complete all locations before finishing this count. Current location: ${currentName}.`
+    }
     return 'Complete all locations before finishing this count.'
   }
 
   return 'Complete all locations before finishing this count.'
+}
+
+/**
+ * Location readiness copy (UX only). Does not change stored progress.
+ */
+export function getLocationReadinessLabel(location) {
+  if (!location) return ''
+  const status = `${location.status ?? ''}`.trim()
+  if (status === 'completed') return 'Location completed'
+
+  const totalItems = Number(location.totalItems) || 0
+  const countedItems = Number(location.countedItems) || 0
+  const allItemsCounted = totalItems > 0 && countedItems >= totalItems
+
+  if (allItemsCounted && status === 'current') {
+    return 'All items counted · Ready to complete location'
+  }
+  if (allItemsCounted && status !== 'current') {
+    return 'All items counted · Waiting to become current'
+  }
+
+  return LOCATION_STATE_LABEL[status] || 'Not started'
+}
+
+/**
+ * Visible reason when Complete Location is disabled (UX only).
+ */
+export function getCompleteLocationDisabledReason({
+  sessionStatus,
+  selectedLocation,
+  currentLocationName = '',
+  isCompletingLocation = false,
+} = {}) {
+  if (isCompletingLocation) return 'Completing location…'
+
+  const status = `${sessionStatus ?? ''}`.trim()
+  if (status === 'paused') {
+    return 'Resume this count before completing locations.'
+  }
+  if (status === 'counting_complete') {
+    return 'This location is already complete.'
+  }
+  if (!selectedLocation) return ''
+
+  const locationStatus = `${selectedLocation.status ?? ''}`.trim()
+  if (locationStatus === 'completed') {
+    return 'This location is already complete.'
+  }
+  if (locationStatus !== 'current') {
+    const name = `${currentLocationName || 'the current location'}`.trim() || 'the current location'
+    return `Complete “${name}” first.`
+  }
+
+  const remaining = Math.max(
+    0,
+    (Number(selectedLocation.totalItems) || 0) - (Number(selectedLocation.countedItems) || 0),
+  )
+  if (remaining > 0) {
+    return remaining === 1
+      ? '1 item is still pending.'
+      : `${remaining} items are still pending.`
+  }
+
+  return ''
 }
 
 function pickInitialLocationId(locations) {
@@ -520,6 +588,7 @@ export function InventoryCountSessionWorkspace({
 
   const selectedIndex = locations.findIndex((location) => location.id === selectedLocationId)
   const selectedLocation = locations[selectedIndex] ?? locations[0] ?? null
+  const currentLocation = locations.find((location) => location.status === 'current') ?? null
   const progress = getSessionProgress(locations)
 
   const canGoPrevious = selectedIndex > 0
@@ -531,6 +600,19 @@ export function InventoryCountSessionWorkspace({
     && selectedLocation.status === 'current'
     && isCountEditable
     && !isCompletingLocation
+  const completeLocationDisabledReason = getCompleteLocationDisabledReason({
+    sessionStatus,
+    selectedLocation,
+    currentLocationName: currentLocation?.name || '',
+    isCompletingLocation,
+  })
+  const showInactiveLocationGuidance = Boolean(
+    selectedLocation
+    && currentLocation
+    && selectedLocation.id !== currentLocation.id
+    && selectedLocation.status !== 'completed'
+    && sessionStatus !== 'counting_complete',
+  )
   const bannerError = saveError || loadError
   const unsavedLabel = isSaving
     ? 'Saving…'
@@ -558,6 +640,11 @@ export function InventoryCountSessionWorkspace({
 
   const selectLocation = (locationId) => {
     setSelectedLocationId(locationId)
+  }
+
+  const handleGoToCurrentLocation = () => {
+    if (!currentLocation?.id) return
+    selectLocation(currentLocation.id)
   }
 
   const handlePrevious = () => {
@@ -929,6 +1016,7 @@ export function InventoryCountSessionWorkspace({
             <aside className="inventory-count-session-rail" aria-label="Locations">
               {locations.map((location) => {
                 const isSelected = location.id === selectedLocation?.id
+                const readinessLabel = getLocationReadinessLabel(location)
                 return (
                   <button
                     key={location.id}
@@ -942,9 +1030,14 @@ export function InventoryCountSessionWorkspace({
                       {location.status === 'completed' ? '✓' : location.status === 'current' ? '●' : '○'}
                     </span>
                     <span className="inventory-count-session-rail-copy">
-                      <span className="inventory-count-session-rail-title">{location.name}</span>
+                      <span className="inventory-count-session-rail-title-row">
+                        <span className="inventory-count-session-rail-title">{location.name}</span>
+                        {location.status === 'current' ? (
+                          <span className="inventory-count-session-rail-current-badge">Current</span>
+                        ) : null}
+                      </span>
                       <span className="inventory-count-session-rail-state">
-                        {LOCATION_STATE_LABEL[location.status]}
+                        {readinessLabel}
                       </span>
                     </span>
                     <span className="inventory-count-session-rail-progress">
@@ -991,6 +1084,44 @@ export function InventoryCountSessionWorkspace({
                   </p>
                 </article>
               </div>
+
+              {selectedLocation ? (
+                <p
+                  className="inventory-count-session-location-readiness"
+                  role="status"
+                  aria-label="Selected location readiness"
+                >
+                  {getLocationReadinessLabel(selectedLocation)}
+                </p>
+              ) : null}
+
+              {showInactiveLocationGuidance ? (
+                <div
+                  className="inventory-count-inactive-location-guidance"
+                  role="status"
+                  aria-label="Location not active yet"
+                >
+                  <div className="inventory-count-inactive-location-guidance-copy">
+                    <strong>Location not active yet</strong>
+                    <p>
+                      You may review or count items here, but this location cannot be completed
+                      until the current location is finished.
+                    </p>
+                    <p>
+                      <span className="inventory-count-inactive-location-guidance-label">Current location:</span>
+                      {' '}
+                      {currentLocation?.name || '—'}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    className="primary-btn inventory-count-session-action-btn"
+                    onClick={handleGoToCurrentLocation}
+                  >
+                    Go to Current Location
+                  </button>
+                </div>
+              ) : null}
 
               <div className="inventory-count-session-table-wrap" aria-label={`${selectedLocationName} items`}>
                 {selectedLocation?.items.length === 0 ? (
@@ -1077,6 +1208,7 @@ export function InventoryCountSessionWorkspace({
                 className="primary-btn inventory-count-session-action-btn"
                 disabled={!canCompleteLocation}
                 aria-disabled={!canCompleteLocation}
+                title={completeLocationDisabledReason || undefined}
                 onClick={() => {
                   void handleCompleteLocation()
                 }}
@@ -1085,6 +1217,13 @@ export function InventoryCountSessionWorkspace({
               </button>
             </div>
           </footer>
+          {completeLocationDisabledReason ? (
+            <p className="inventory-count-complete-disabled-reason" role="status">
+              <strong>Complete Location</strong>
+              {' '}
+              {completeLocationDisabledReason}
+            </p>
+          ) : null}
         </>
       ) : null}
 

@@ -32336,6 +32336,62 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   color: #fff7e8;
 }
 
+.inventory-count-complete-disabled-reason {
+  margin: 0;
+  padding: 8px 16px 0;
+  color: #d8cbb8;
+  font-size: 0.88rem;
+  line-height: 1.45;
+}
+
+.inventory-count-complete-disabled-reason strong {
+  color: #fff7e8;
+}
+
+.inventory-count-inactive-location-guidance {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0 16px 10px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  border: 1px solid rgba(212, 175, 55, 0.28);
+  background: rgba(212, 175, 55, 0.08);
+}
+
+.inventory-count-inactive-location-guidance-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  flex: 1 1 220px;
+}
+
+.inventory-count-inactive-location-guidance-copy strong {
+  color: #fff7e8;
+  font-size: 0.95rem;
+}
+
+.inventory-count-inactive-location-guidance-copy p {
+  margin: 0;
+  color: #d8cbb8;
+  font-size: 0.88rem;
+  line-height: 1.45;
+}
+
+.inventory-count-inactive-location-guidance-label {
+  color: #9f9383;
+}
+
+.inventory-count-session-location-readiness {
+  margin: 0 16px 8px;
+  color: #ffe7a8;
+  font-size: 0.84rem;
+  line-height: 1.4;
+}
+
 .inventory-count-session-action-btn {
   min-height: 44px;
   min-width: 44px;
@@ -32440,15 +32496,42 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   min-width: 0;
 }
 
+.inventory-count-session-rail-title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
 .inventory-count-session-rail-title {
   color: #fff7e8;
   font-size: 0.9rem;
   font-weight: 650;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.inventory-count-session-rail-current-badge {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  min-height: 22px;
+  padding: 0 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(232, 196, 90, 0.45);
+  background: rgba(212, 175, 55, 0.18);
+  color: #ffe7a8;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
 
 .inventory-count-session-rail-state {
-  color: rgba(255, 247, 232, 0.55);
+  color: rgba(255, 247, 232, 0.62);
   font-size: 0.74rem;
+  line-height: 1.35;
 }
 
 .inventory-count-session-rail-progress {

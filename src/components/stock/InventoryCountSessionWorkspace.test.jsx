@@ -7,7 +7,9 @@ import { act } from 'react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { InventoryCountView } from './InventoryCountView'
 import {
+  getCompleteLocationDisabledReason,
   getFinishCountDisabledReason,
+  getLocationReadinessLabel,
   InventoryCountSessionWorkspace,
 } from './InventoryCountSessionWorkspace'
 import {
@@ -1801,9 +1803,230 @@ describe('getFinishCountDisabledReason (P8.16.29)', () => {
       { status: 'current', countedItems: 0, totalItems: 1, items: [] },
     ])).toBe('1 item is still pending.')
     expect(getFinishCountDisabledReason('in_progress', [
-      { status: 'completed', countedItems: 1, totalItems: 1, items: [] },
-      { status: 'current', countedItems: 0, totalItems: 0, items: [] },
-    ])).toBe('Complete all locations before finishing this count.')
+      { status: 'completed', countedItems: 1, totalItems: 1, items: [], name: 'Main Storage' },
+      { status: 'current', countedItems: 0, totalItems: 0, items: [], name: 'Main Bar' },
+    ])).toBe('Complete all locations before finishing this count. Current location: Main Bar.')
     expect(getFinishCountDisabledReason('counting_complete', [])).toBe('')
+  })
+})
+
+describe('current location guidance helpers (P8.16.32)', () => {
+  it('formats readiness copy for counted current, waiting, and completed locations', () => {
+    expect(getLocationReadinessLabel({
+      status: 'not_started',
+      countedItems: 2,
+      totalItems: 2,
+    })).toBe('All items counted · Waiting to become current')
+    expect(getLocationReadinessLabel({
+      status: 'current',
+      countedItems: 2,
+      totalItems: 2,
+    })).toBe('All items counted · Ready to complete location')
+    expect(getLocationReadinessLabel({
+      status: 'completed',
+      countedItems: 2,
+      totalItems: 2,
+    })).toBe('Location completed')
+    expect(getLocationReadinessLabel({
+      status: 'current',
+      countedItems: 1,
+      totalItems: 2,
+    })).toBe('Current')
+  })
+
+  it('explains Complete Location disabled states', () => {
+    expect(getCompleteLocationDisabledReason({
+      sessionStatus: 'paused',
+      selectedLocation: { status: 'current', countedItems: 2, totalItems: 2 },
+      currentLocationName: 'Main Bar',
+    })).toBe('Resume this count before completing locations.')
+    expect(getCompleteLocationDisabledReason({
+      sessionStatus: 'in_progress',
+      selectedLocation: { status: 'not_started', countedItems: 2, totalItems: 2 },
+      currentLocationName: 'Main Bar',
+    })).toBe('Complete “Main Bar” first.')
+    expect(getCompleteLocationDisabledReason({
+      sessionStatus: 'in_progress',
+      selectedLocation: { status: 'completed', countedItems: 2, totalItems: 2 },
+      currentLocationName: 'Main Bar',
+    })).toBe('This location is already complete.')
+    expect(getCompleteLocationDisabledReason({
+      sessionStatus: 'in_progress',
+      selectedLocation: { status: 'current', countedItems: 1, totalItems: 2 },
+      currentLocationName: 'Main Bar',
+    })).toBe('1 item is still pending.')
+    expect(getCompleteLocationDisabledReason({
+      sessionStatus: 'in_progress',
+      selectedLocation: { status: 'current', countedItems: 0, totalItems: 2 },
+      currentLocationName: 'Main Bar',
+    })).toBe('2 items are still pending.')
+  })
+})
+
+describe('InventoryCountSessionWorkspace current location guidance (P8.16.32)', () => {
+  beforeEach(() => {
+    getInventoryCountSession.mockResolvedValue({
+      id: 'session-real-1',
+      workspaceId: 'workspace-test-id',
+      status: 'in_progress',
+    })
+    getInventoryCountSessionLocations.mockResolvedValue(FIXTURE_LOCATIONS)
+    getInventoryCountSessionItems.mockResolvedValue(FIXTURE_ITEMS)
+    completeInventoryCountLocation.mockClear()
+  })
+
+  it('shows inactive guidance and navigates to the current location without lifecycle mutation', async () => {
+    getInventoryCountSessionItems.mockResolvedValueOnce([
+      sessionItem({
+        id: 'ms-1',
+        itemName: 'Coca-Cola',
+        storageLocation: 'Main Storage',
+        expectedSnapshot: 10,
+        countedQuantity: null,
+        lineStatus: 'pending',
+      }),
+      sessionItem({
+        id: 'cs-1',
+        itemName: 'Espresso Beans',
+        unit: 'kg',
+        storageLocation: 'Coffee Station',
+        expectedSnapshot: 2,
+        countedQuantity: 2,
+        lineStatus: 'counted',
+      }),
+      sessionItem({
+        id: 'cs-2',
+        itemName: 'Oat Milk',
+        unit: 'litre',
+        storageLocation: 'Coffee Station',
+        expectedSnapshot: 6,
+        countedQuantity: 6,
+        lineStatus: 'counted',
+      }),
+    ])
+
+    const { container, cleanup } = await renderWorkspace()
+
+    act(() => {
+      getRailButton(container, 'Coffee Station').click()
+    })
+
+    const guidance = container.querySelector('[aria-label="Location not active yet"]')
+    expect(guidance).toBeTruthy()
+    expect(guidance.textContent).toContain('Location not active yet')
+    expect(guidance.textContent).toContain('Current location:')
+    expect(guidance.textContent).toContain('Main Storage')
+    expect(getRailButton(container, 'Coffee Station')?.textContent)
+      .toContain('All items counted · Waiting to become current')
+    expect(container.querySelector('.inventory-count-complete-disabled-reason')?.textContent)
+      .toContain('Complete “Main Storage” first.')
+    expect(getButtonByText(container, 'Complete Location')?.disabled).toBe(true)
+    expect(getButtonByText(container, 'Finish Count')?.disabled).toBe(true)
+
+    const oatInput = container.querySelector('input[aria-label="Counted quantity for Oat Milk"]')
+    expect(oatInput?.value).toBe('6')
+
+    await act(async () => {
+      const nativeInputValueSetter = Object.getOwnPropertyDescriptor(
+        window.HTMLInputElement.prototype,
+        'value',
+      )?.set
+      nativeInputValueSetter?.call(oatInput, '9')
+      oatInput.dispatchEvent(new Event('input', { bubbles: true }))
+    })
+    expect(oatInput.value).toBe('9')
+
+    await act(async () => {
+      getButtonByText(guidance, 'Go to Current Location').click()
+    })
+
+    expect(completeInventoryCountLocation).not.toHaveBeenCalled()
+    expect(getRailButton(container, 'Main Storage')?.className).toContain('is-selected')
+    expect(getRailButton(container, 'Main Storage')?.textContent).toContain('Current')
+    expect(container.textContent).toContain('Coca-Cola')
+    expect(container.querySelector('[aria-label="Location not active yet"]')).toBeNull()
+
+    act(() => {
+      getRailButton(container, 'Coffee Station').click()
+    })
+    expect(container.querySelector('input[aria-label="Counted quantity for Oat Milk"]')?.value).toBe('9')
+
+    cleanup()
+  })
+
+  it('shows ready-to-complete copy on the current location when all items are counted', async () => {
+    getInventoryCountSessionItems.mockResolvedValueOnce([
+      sessionItem({
+        id: 'ms-1',
+        itemName: 'Coca-Cola',
+        storageLocation: 'Main Storage',
+        expectedSnapshot: 10,
+        countedQuantity: 10,
+        lineStatus: 'counted',
+      }),
+      sessionItem({
+        id: 'ms-2',
+        itemName: 'Paper Straws',
+        unit: 'box',
+        storageLocation: 'Main Storage',
+        expectedSnapshot: 4,
+        countedQuantity: 4,
+        lineStatus: 'counted',
+      }),
+    ])
+    getInventoryCountSessionLocations.mockResolvedValueOnce([
+      sessionLocation('loc-1', 'Main Storage', 0, 'current'),
+      sessionLocation('loc-2', 'Coffee Station', 1, 'not_started'),
+    ])
+
+    const { container, cleanup } = await renderWorkspace()
+
+    expect(getRailButton(container, 'Main Storage')?.textContent)
+      .toContain('All items counted · Ready to complete location')
+    expect(container.querySelector('[aria-label="Selected location readiness"]')?.textContent)
+      .toContain('All items counted · Ready to complete location')
+    expect(getButtonByText(container, 'Complete Location')?.disabled).toBe(false)
+    expect(getButtonByText(container, 'Finish Count')?.disabled).toBe(true)
+
+    cleanup()
+  })
+
+  it('shows completed location copy and keeps Finish Count disabled until counting_complete', async () => {
+    getInventoryCountSessionLocations.mockResolvedValueOnce([
+      sessionLocation('loc-1', 'Main Storage', 0, 'completed'),
+      sessionLocation('loc-2', 'Coffee Station', 1, 'current'),
+    ])
+    getInventoryCountSessionItems.mockResolvedValueOnce([
+      sessionItem({
+        id: 'ms-1',
+        itemName: 'Coca-Cola',
+        storageLocation: 'Main Storage',
+        expectedSnapshot: 10,
+        countedQuantity: 10,
+        lineStatus: 'counted',
+      }),
+      sessionItem({
+        id: 'cs-1',
+        itemName: 'Espresso Beans',
+        unit: 'kg',
+        storageLocation: 'Coffee Station',
+        expectedSnapshot: 2,
+        countedQuantity: null,
+        lineStatus: 'pending',
+      }),
+    ])
+
+    const { container, cleanup } = await renderWorkspace()
+
+    act(() => {
+      getRailButton(container, 'Main Storage').click()
+    })
+
+    expect(getRailButton(container, 'Main Storage')?.textContent).toContain('Location completed')
+    expect(container.querySelector('.inventory-count-complete-disabled-reason')?.textContent)
+      .toContain('This location is already complete.')
+    expect(getButtonByText(container, 'Finish Count')?.disabled).toBe(true)
+
+    cleanup()
   })
 })
