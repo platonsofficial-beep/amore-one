@@ -612,91 +612,14 @@ export function InventoryCountSessionWorkspace({
     }
   }, [])
 
-  // P8.18.4 — Local document/body lock while the active session is mounted.
-  // Prevents iPad Safari from panning the outer Stock/application shell on keyboard focus.
-  useEffect(() => {
-    if (typeof document === 'undefined' || typeof window === 'undefined') return undefined
-
-    const html = document.documentElement
-    const body = document.body
-    const scrollingElement = document.scrollingElement || html
-    const scrollX = window.scrollX ?? window.pageXOffset ?? 0
-    const scrollY = window.scrollY ?? window.pageYOffset ?? scrollingElement.scrollTop ?? 0
-
-    const previous = {
-      htmlOverflow: html.style.overflow,
-      htmlHeight: html.style.height,
-      htmlPosition: html.style.position,
-      bodyOverflow: body.style.overflow,
-      bodyHeight: body.style.height,
-      bodyPosition: body.style.position,
-      bodyWidth: body.style.width,
-      bodyTop: body.style.top,
-      bodyLeft: body.style.left,
-      bodyRight: body.style.right,
-    }
-
-    html.style.overflow = 'hidden'
-    html.style.height = '100%'
-    body.style.overflow = 'hidden'
-    body.style.position = 'fixed'
-    body.style.top = `-${scrollY}px`
-    body.style.left = '0'
-    body.style.right = '0'
-    body.style.width = '100%'
-
-    return () => {
-      html.style.overflow = previous.htmlOverflow
-      html.style.height = previous.htmlHeight
-      html.style.position = previous.htmlPosition
-      body.style.overflow = previous.bodyOverflow
-      body.style.height = previous.bodyHeight
-      body.style.position = previous.bodyPosition
-      body.style.width = previous.bodyWidth
-      body.style.top = previous.bodyTop
-      body.style.left = previous.bodyLeft
-      body.style.right = previous.bodyRight
-      if (typeof window.scrollTo === 'function') {
-        window.scrollTo(scrollX, scrollY)
-      }
-    }
-  }, [])
-
-  // P8.18.4 — Pin the session to visualViewport geometry; compact chrome when keyboard opens.
-  // Do not write sheet-scroll scrollTop during VV updates. After layout settles, reveal the
-  // focused Counted input only when it sits outside the usable row-scroller bounds.
+  // P8.17.4a / P8.18.3 — Keyboard-open height from session top → visualViewport bottom.
+  // Do not restore stale scrollTop (fights Safari momentum / max-scroll clamp).
+  // After layout settles, reveal the focused Counted input only when outside usable bounds.
   useEffect(() => {
     if (typeof window === 'undefined') return undefined
 
-    const sessionRoot = sessionRootRef.current
     const viewport = window.visualViewport
     let frameId = 0
-
-    const clearLegacyAvailableHeight = (root) => {
-      if (keyboardHeightCssRef.current !== '') {
-        root.style.removeProperty('--inventory-count-session-available-height')
-        keyboardHeightCssRef.current = ''
-      }
-    }
-
-    const applyVisualViewportShell = (root) => {
-      const top = viewport ? (Number(viewport.offsetTop) || 0) : 0
-      const left = viewport ? (Number(viewport.offsetLeft) || 0) : 0
-      const width = viewport
-        ? (Number(viewport.width) || window.innerWidth || 0)
-        : (window.innerWidth || 0)
-      const height = viewport
-        ? (Number(viewport.height) || window.innerHeight || 0)
-        : (window.innerHeight || 0)
-
-      root.style.setProperty('--inventory-count-vv-top', `${top}px`)
-      root.style.setProperty('--inventory-count-vv-left', `${left}px`)
-      root.style.setProperty('--inventory-count-vv-width', `${width}px`)
-      root.style.setProperty('--inventory-count-vv-height', `${height}px`)
-      clearLegacyAvailableHeight(root)
-
-      return height
-    }
 
     const revealFocusedCountedInputIfNeeded = () => {
       const scrollOwner = tableWrapRef.current
@@ -714,20 +637,38 @@ export function InventoryCountSessionWorkspace({
       scrollInventoryCountCountedInputIntoView(active, scrollOwner)
     }
 
-    const updateVisualViewportWorkspace = () => {
+    const updateKeyboardCompact = () => {
       window.cancelAnimationFrame(frameId)
       window.cancelAnimationFrame(resizeRevealFrameRef.current)
       frameId = window.requestAnimationFrame(() => {
-        const root = sessionRootRef.current || sessionRoot
-        if (!root) return
-
-        const visibleHeight = applyVisualViewportShell(root)
+        const root = sessionRootRef.current
         const layoutHeight = window.innerHeight || 0
+        const visibleHeight = viewport?.height ?? layoutHeight
         const keyboardOpen = layoutHeight > 0 && (layoutHeight - visibleHeight) > 120
 
         if (keyboardCompactRef.current !== keyboardOpen) {
           keyboardCompactRef.current = keyboardOpen
           setIsKeyboardCompact(keyboardOpen)
+        }
+
+        if (!root) return
+
+        if (!keyboardOpen) {
+          if (keyboardHeightCssRef.current !== '') {
+            root.style.removeProperty('--inventory-count-session-available-height')
+            keyboardHeightCssRef.current = ''
+          }
+        } else {
+          const available = getInventoryCountKeyboardAvailableHeight({
+            sessionTop: root.getBoundingClientRect().top,
+            visualViewportOffsetTop: viewport?.offsetTop ?? 0,
+            visualViewportHeight: visibleHeight,
+          })
+          const nextHeight = `${available}px`
+          if (keyboardHeightCssRef.current !== nextHeight) {
+            root.style.setProperty('--inventory-count-session-available-height', nextHeight)
+            keyboardHeightCssRef.current = nextHeight
+          }
         }
 
         // One settled-layout check only — never rewrite scrollTop blindly.
@@ -737,27 +678,17 @@ export function InventoryCountSessionWorkspace({
       })
     }
 
-    updateVisualViewportWorkspace()
-    window.addEventListener('resize', updateVisualViewportWorkspace)
-    window.addEventListener('orientationchange', updateVisualViewportWorkspace)
-    viewport?.addEventListener('resize', updateVisualViewportWorkspace)
-    viewport?.addEventListener('scroll', updateVisualViewportWorkspace)
+    updateKeyboardCompact()
+    window.addEventListener('resize', updateKeyboardCompact)
+    viewport?.addEventListener('resize', updateKeyboardCompact)
 
     return () => {
       window.cancelAnimationFrame(frameId)
       window.cancelAnimationFrame(resizeRevealFrameRef.current)
       window.cancelAnimationFrame(settleRevealFrameRef.current)
-      window.removeEventListener('resize', updateVisualViewportWorkspace)
-      window.removeEventListener('orientationchange', updateVisualViewportWorkspace)
-      viewport?.removeEventListener('resize', updateVisualViewportWorkspace)
-      viewport?.removeEventListener('scroll', updateVisualViewportWorkspace)
-      if (sessionRoot) {
-        sessionRoot.style.removeProperty('--inventory-count-vv-top')
-        sessionRoot.style.removeProperty('--inventory-count-vv-left')
-        sessionRoot.style.removeProperty('--inventory-count-vv-width')
-        sessionRoot.style.removeProperty('--inventory-count-vv-height')
-        sessionRoot.style.removeProperty('--inventory-count-session-available-height')
-      }
+      window.removeEventListener('resize', updateKeyboardCompact)
+      viewport?.removeEventListener('resize', updateKeyboardCompact)
+      sessionRootRef.current?.style.removeProperty('--inventory-count-session-available-height')
       keyboardHeightCssRef.current = ''
       keyboardCompactRef.current = false
     }
@@ -1423,7 +1354,6 @@ export function InventoryCountSessionWorkspace({
   const sessionClassName = [
     'inventory-count-session',
     'is-high-density',
-    'is-viewport-isolated',
     isKeyboardCompact ? 'is-keyboard-compact' : '',
   ].filter(Boolean).join(' ')
 
@@ -1434,115 +1364,106 @@ export function InventoryCountSessionWorkspace({
       aria-label="Inventory Count Session Workspace"
       data-inventory-count-session="true"
       data-inventory-count-scroll-shell="locked"
-      data-inventory-count-viewport-isolated="true"
     >
-      <div
-        className="inventory-count-session-chrome"
-        data-inventory-count-session-chrome="true"
-      >
-        <header className="inventory-count-session-header">
-          <div className="inventory-count-session-header-copy">
-            <p className="inventory-count-session-eyebrow">Inventory Count Session</p>
-            <div className="inventory-count-session-meta">
-              <span className="inventory-count-session-pill is-status">{sessionStatusLabel}</span>
-              <span className="inventory-count-session-meta-item">
-                <span className="inventory-count-session-meta-label">Count Type</span>
-                <span className="inventory-count-session-meta-value">New Count</span>
+      <header className="inventory-count-session-header">
+        <div className="inventory-count-session-header-copy">
+          <p className="inventory-count-session-eyebrow">Inventory Count Session</p>
+          <div className="inventory-count-session-meta">
+            <span className="inventory-count-session-pill is-status">{sessionStatusLabel}</span>
+            <span className="inventory-count-session-meta-item">
+              <span className="inventory-count-session-meta-label">Count Type</span>
+              <span className="inventory-count-session-meta-value">New Count</span>
+            </span>
+            <span className="inventory-count-session-meta-item">
+              <span className="inventory-count-session-meta-label">Mode</span>
+              <span className="inventory-count-session-meta-value">Blind Count</span>
+            </span>
+            <span className="inventory-count-session-meta-item inventory-count-session-meta-progress">
+              <span className="inventory-count-session-meta-label">Progress</span>
+              <span className="inventory-count-session-meta-value">
+                {progress.totalCounted}/{progress.totalIncluded} · {progress.percentage}%
               </span>
-              <span className="inventory-count-session-meta-item">
-                <span className="inventory-count-session-meta-label">Mode</span>
-                <span className="inventory-count-session-meta-value">Blind Count</span>
-              </span>
-              <span className="inventory-count-session-meta-item inventory-count-session-meta-progress">
-                <span className="inventory-count-session-meta-label">Progress</span>
-                <span className="inventory-count-session-meta-value">
-                  {progress.totalCounted}/{progress.totalIncluded} · {progress.percentage}%
-                </span>
-              </span>
-              <span className="inventory-count-session-meta-item inventory-count-session-meta-secondary">
-                <span className="inventory-count-session-meta-label">Started</span>
-                <span className="inventory-count-session-meta-value">Just now</span>
-              </span>
-              <span className="inventory-count-session-meta-item inventory-count-session-meta-secondary">
-                <span className="inventory-count-session-meta-label">Operator</span>
-                <span className="inventory-count-session-meta-value">Current signed-in operator</span>
-              </span>
-            </div>
+            </span>
+            <span className="inventory-count-session-meta-item inventory-count-session-meta-secondary">
+              <span className="inventory-count-session-meta-label">Started</span>
+              <span className="inventory-count-session-meta-value">Just now</span>
+            </span>
+            <span className="inventory-count-session-meta-item inventory-count-session-meta-secondary">
+              <span className="inventory-count-session-meta-label">Operator</span>
+              <span className="inventory-count-session-meta-value">Current signed-in operator</span>
+            </span>
           </div>
-          <div className="inventory-count-session-header-actions">
-            <button
-              type="button"
-              className="ghost-btn inventory-count-session-action-btn"
-              disabled={!canTogglePause}
-              aria-disabled={!canTogglePause}
-              onClick={() => {
-                void handleTogglePause()
-              }}
-            >
-              {pauseButtonLabel}
-            </button>
-            <button
-              type="button"
-              className="ghost-btn inventory-count-session-action-btn"
-              disabled={!canOpenFinishCount || isLoadingFinishPreview}
-              aria-disabled={!canOpenFinishCount || isLoadingFinishPreview}
-              title={finishCountDisabledReason || undefined}
-              onClick={() => {
-                void handleOpenFinishPreview()
-              }}
-            >
-              {isLoadingFinishPreview ? 'Loading…' : 'Finish Count'}
-            </button>
-            <button
-              type="button"
-              className="ghost-btn inventory-count-session-action-btn"
-              onClick={onExit}
-            >
-              Exit
-            </button>
-          </div>
-        </header>
+        </div>
+        <div className="inventory-count-session-header-actions">
+          <button
+            type="button"
+            className="ghost-btn inventory-count-session-action-btn"
+            disabled={!canTogglePause}
+            aria-disabled={!canTogglePause}
+            onClick={() => {
+              void handleTogglePause()
+            }}
+          >
+            {pauseButtonLabel}
+          </button>
+          <button
+            type="button"
+            className="ghost-btn inventory-count-session-action-btn"
+            disabled={!canOpenFinishCount || isLoadingFinishPreview}
+            aria-disabled={!canOpenFinishCount || isLoadingFinishPreview}
+            title={finishCountDisabledReason || undefined}
+            onClick={() => {
+              void handleOpenFinishPreview()
+            }}
+          >
+            {isLoadingFinishPreview ? 'Loading…' : 'Finish Count'}
+          </button>
+          <button
+            type="button"
+            className="ghost-btn inventory-count-session-action-btn"
+            onClick={onExit}
+          >
+            Exit
+          </button>
+        </div>
+      </header>
 
-        {finishCountDisabledReason ? (
-          <p className="inventory-count-finish-disabled-reason" role="status">
-            <strong>Finish Count</strong>
-            {' '}
-            {finishCountDisabledReason}
-          </p>
-        ) : null}
+      {finishCountDisabledReason ? (
+        <p className="inventory-count-finish-disabled-reason" role="status">
+          <strong>Finish Count</strong>
+          {' '}
+          {finishCountDisabledReason}
+        </p>
+      ) : null}
 
-        {isLoading ? (
-          <div className="staff-status-banner" role="status">
-            Loading inventory count…
-          </div>
-        ) : null}
+      {isLoading ? (
+        <div className="staff-status-banner" role="status">
+          Loading inventory count…
+        </div>
+      ) : null}
 
-        {bannerError ? (
-          <div className="staff-status-banner" role="alert">
-            {bannerError}
-          </div>
-        ) : null}
+      {bannerError ? (
+        <div className="staff-status-banner" role="alert">
+          {bannerError}
+        </div>
+      ) : null}
 
-        {showPausedBanner ? (
-          <div className="staff-status-banner" role="status">
-            This inventory count is paused. Resume to continue counting.
-          </div>
-        ) : null}
+      {showPausedBanner ? (
+        <div className="staff-status-banner" role="status">
+          This inventory count is paused. Resume to continue counting.
+        </div>
+      ) : null}
 
-        {!isLoading && !loadError && locations.length === 0 ? (
-          <div className="stock-empty-state">
-            <h4>No items in this session</h4>
-            <p>This inventory count has no snapshot items yet.</p>
-          </div>
-        ) : null}
-      </div>
+      {!isLoading && !loadError && locations.length === 0 ? (
+        <div className="stock-empty-state">
+          <h4>No items in this session</h4>
+          <p>This inventory count has no snapshot items yet.</p>
+        </div>
+      ) : null}
 
       {!isLoading && !loadError && locations.length > 0 ? (
         <>
-          <div
-            className="inventory-count-session-body"
-            data-inventory-count-session-body="true"
-          >
+          <div className="inventory-count-session-body">
             <aside className="inventory-count-session-rail" aria-label="Locations">
               {locations.map((location) => {
                 const isSelected = location.id === selectedLocation?.id
