@@ -380,6 +380,84 @@ export function getInventoryCountKeyboardAvailableHeight({
   return Math.max(minimum, Math.floor(viewportBottom - top - padding))
 }
 
+/** Keep Counted inputs clear of the frozen-header edge inside the row scroller. */
+export const INVENTORY_COUNT_USABLE_TOP_INSET_PX = 8
+/** Keep Counted inputs clear of the raw scroller bottom (footer already excluded by flex). */
+export const INVENTORY_COUNT_USABLE_BOTTOM_INSET_PX = 16
+/**
+ * End clearance inside the row scroller (~one row + bottom inset).
+ * Applied via --inventory-count-sheet-end-clearance in App.css.
+ */
+export const INVENTORY_COUNT_SHEET_END_CLEARANCE_PX = 56
+/** Initial Enter reveal + nested settled-layout verification frames. */
+export const INVENTORY_COUNT_ENTER_REVEAL_MAX_LAYOUT_FRAMES = 2
+
+/** Usable band inside the dedicated row scroller (does not subtract footer). */
+export function getInventoryCountUsableViewportRect(container, options = {}) {
+  const rect = container.getBoundingClientRect()
+  const topInset = Number.isFinite(Number(options.topInset))
+    ? Math.max(0, Number(options.topInset))
+    : INVENTORY_COUNT_USABLE_TOP_INSET_PX
+  const bottomInset = Number.isFinite(Number(options.bottomInset))
+    ? Math.max(0, Number(options.bottomInset))
+    : INVENTORY_COUNT_USABLE_BOTTOM_INSET_PX
+  return {
+    top: rect.top + topInset,
+    bottom: rect.bottom - bottomInset,
+    left: rect.left,
+    right: rect.right,
+  }
+}
+
+/** True when the Counted input is outside the usable row-scroller band. */
+export function isInventoryCountCountedInputOutsideUsableViewport(input, container, options = {}) {
+  if (!input || !container) return false
+  const slack = Number.isFinite(Number(options.slack)) ? Math.max(0, Number(options.slack)) : 1
+  const usable = getInventoryCountUsableViewportRect(container, options)
+  const inputRect = input.getBoundingClientRect()
+  return inputRect.top < (usable.top - slack) || inputRect.bottom > (usable.bottom + slack)
+}
+
+function clampInventoryCountScrollTop(container, nextScrollTop) {
+  const scrollHeight = Number(container.scrollHeight)
+  const clientHeight = Number(container.clientHeight)
+  let next = Number(nextScrollTop)
+  if (!Number.isFinite(next)) return container.scrollTop
+  if (Number.isFinite(scrollHeight) && Number.isFinite(clientHeight)) {
+    const maxScroll = Math.max(0, scrollHeight - clientHeight)
+    next = Math.min(maxScroll, Math.max(0, next))
+  } else {
+    next = Math.max(0, next)
+  }
+  return next
+}
+
+/**
+ * Scroll only enough to place a Counted input inside the usable row-scroller band.
+ * No-ops when already usable. Clamps to [0, scrollHeight - clientHeight].
+ */
+export function scrollInventoryCountCountedInputIntoView(input, container, options = {}) {
+  if (!input || !container) return false
+  if (!options.force && !isInventoryCountCountedInputOutsideUsableViewport(input, container, options)) {
+    return false
+  }
+
+  const usable = getInventoryCountUsableViewportRect(container, options)
+  const inputRect = input.getBoundingClientRect()
+  let nextScrollTop = container.scrollTop
+
+  if (inputRect.top < usable.top) {
+    nextScrollTop -= (usable.top - inputRect.top)
+  } else if (inputRect.bottom > usable.bottom) {
+    nextScrollTop += (inputRect.bottom - usable.bottom)
+  }
+
+  nextScrollTop = clampInventoryCountScrollTop(container, nextScrollTop)
+  if (nextScrollTop === container.scrollTop) return false
+  container.scrollTop = nextScrollTop
+  return true
+}
+
 /** True when the row is outside the visible band of the dedicated row scroll owner. */
 export function isInventoryCountRowOutsideViewport(row, container, options = {}) {
   if (!row || !container) return false
@@ -402,6 +480,7 @@ export function isInventoryCountRowOutsideViewport(row, container, options = {})
 /**
  * Scroll a row inside the dedicated item workspace without moving the page.
  * No-ops when the row is already fully visible in the row scroll owner.
+ * Prefer scrollInventoryCountCountedInputIntoView for Enter/focus navigation.
  */
 export function scrollInventoryCountRowIntoView(row, container, options = {}) {
   if (!row || !container) return false
@@ -422,9 +501,15 @@ export function scrollInventoryCountRowIntoView(row, container, options = {}) {
   const visibleTop = containerRect.top + stickyOffset
 
   if (rowRect.top < visibleTop) {
-    container.scrollTop -= (visibleTop - rowRect.top)
+    container.scrollTop = clampInventoryCountScrollTop(
+      container,
+      container.scrollTop - (visibleTop - rowRect.top),
+    )
   } else if (rowRect.bottom > containerRect.bottom) {
-    container.scrollTop += (rowRect.bottom - containerRect.bottom)
+    container.scrollTop = clampInventoryCountScrollTop(
+      container,
+      container.scrollTop + (rowRect.bottom - containerRect.bottom),
+    )
   }
   return true
 }
@@ -491,6 +576,8 @@ export function InventoryCountSessionWorkspace({
   const selectedLocationIdRef = useRef(selectedLocationId)
   const keyboardCompactRef = useRef(false)
   const keyboardHeightCssRef = useRef('')
+  const settleRevealFrameRef = useRef(0)
+  const resizeRevealFrameRef = useRef(0)
 
   useEffect(() => {
     locationsRef.current = locations
@@ -525,20 +612,36 @@ export function InventoryCountSessionWorkspace({
     }
   }, [])
 
-  // P8.17.4a / P8.18.2a — Keyboard-open height from session top → visualViewport bottom.
-  // Preserve row scrollTop across layout resizes; avoid VV scroll thrash and redundant setState.
+  // P8.17.4a / P8.18.3 — Keyboard-open height from session top → visualViewport bottom.
+  // Do not restore stale scrollTop (fights Safari momentum / max-scroll clamp).
+  // After layout settles, reveal the focused Counted input only when outside usable bounds.
   useEffect(() => {
     if (typeof window === 'undefined') return undefined
 
     const viewport = window.visualViewport
     let frameId = 0
 
+    const revealFocusedCountedInputIfNeeded = () => {
+      const scrollOwner = tableWrapRef.current
+      const active = typeof document !== 'undefined' ? document.activeElement : null
+      const itemId = active?.getAttribute?.('data-count-item-id')
+      if (
+        !scrollOwner
+        || !active
+        || !itemId
+        || !active.classList?.contains('inventory-count-session-counted-input')
+        || !scrollOwner.contains(active)
+      ) {
+        return
+      }
+      scrollInventoryCountCountedInputIntoView(active, scrollOwner)
+    }
+
     const updateKeyboardCompact = () => {
       window.cancelAnimationFrame(frameId)
+      window.cancelAnimationFrame(resizeRevealFrameRef.current)
       frameId = window.requestAnimationFrame(() => {
         const root = sessionRootRef.current
-        const scrollOwner = tableWrapRef.current
-        const preservedScrollTop = scrollOwner ? scrollOwner.scrollTop : null
         const layoutHeight = window.innerHeight || 0
         const visibleHeight = viewport?.height ?? layoutHeight
         const keyboardOpen = layoutHeight > 0 && (layoutHeight - visibleHeight) > 120
@@ -568,21 +671,21 @@ export function InventoryCountSessionWorkspace({
           }
         }
 
-        // Keyboard/layout resize must not reset the operator's row scroll position.
-        if (scrollOwner && Number.isFinite(preservedScrollTop)) {
-          scrollOwner.scrollTop = preservedScrollTop
-        }
+        // One settled-layout check only — never rewrite scrollTop blindly.
+        resizeRevealFrameRef.current = window.requestAnimationFrame(() => {
+          revealFocusedCountedInputIfNeeded()
+        })
       })
     }
 
     updateKeyboardCompact()
     window.addEventListener('resize', updateKeyboardCompact)
     viewport?.addEventListener('resize', updateKeyboardCompact)
-    // Intentionally no visualViewport `scroll` listener — iOS fires it during touch pans
-    // and height thrash was snapping the product list upward after finger release.
 
     return () => {
       window.cancelAnimationFrame(frameId)
+      window.cancelAnimationFrame(resizeRevealFrameRef.current)
+      window.cancelAnimationFrame(settleRevealFrameRef.current)
       window.removeEventListener('resize', updateKeyboardCompact)
       viewport?.removeEventListener('resize', updateKeyboardCompact)
       sessionRootRef.current?.style.removeProperty('--inventory-count-session-available-height')
@@ -748,7 +851,43 @@ export function InventoryCountSessionWorkspace({
     }
   }
 
-  const focusCountedInput = (itemId) => {
+  const revealCountedInputById = (itemId) => {
+    const container = tableWrapRef.current
+    const input = container?.querySelector(`input[data-count-item-id="${itemId}"]`)
+    if (!input || !container) return false
+    return scrollInventoryCountCountedInputIntoView(input, container)
+  }
+
+  const scheduleSettledCountedInputReveal = (itemId) => {
+    if (typeof window === 'undefined' || typeof window.requestAnimationFrame !== 'function') {
+      revealCountedInputById(itemId)
+      return
+    }
+
+    window.cancelAnimationFrame(settleRevealFrameRef.current)
+    let layoutFrames = 0
+
+    const runSettledFrame = () => {
+      layoutFrames += 1
+      const container = tableWrapRef.current
+      const input = container?.querySelector(`input[data-count-item-id="${itemId}"]`)
+      if (!input || !container) return
+
+      if (!isInventoryCountCountedInputOutsideUsableViewport(input, container)) {
+        return
+      }
+
+      scrollInventoryCountCountedInputIntoView(input, container)
+
+      if (layoutFrames < INVENTORY_COUNT_ENTER_REVEAL_MAX_LAYOUT_FRAMES) {
+        settleRevealFrameRef.current = window.requestAnimationFrame(runSettledFrame)
+      }
+    }
+
+    settleRevealFrameRef.current = window.requestAnimationFrame(runSettledFrame)
+  }
+
+  const focusCountedInput = (itemId, options = {}) => {
     const container = tableWrapRef.current
     const input = container?.querySelector(`input[data-count-item-id="${itemId}"]`)
     if (!input) return
@@ -760,8 +899,10 @@ export function InventoryCountSessionWorkspace({
         input.focus()
       }
     }
-    const row = input.closest('[data-count-item-id].inventory-count-session-spreadsheet-row, tr')
-    scrollInventoryCountRowIntoView(row, container)
+    scrollInventoryCountCountedInputIntoView(input, container)
+    if (options.verifyAfterLayout) {
+      scheduleSettledCountedInputReveal(itemId)
+    }
   }
 
   const handleCountedKeyDown = async (event, itemId) => {
@@ -811,7 +952,7 @@ export function InventoryCountSessionWorkspace({
       }
 
       queueMicrotask(() => {
-        focusCountedInput(nextItem.id)
+        focusCountedInput(nextItem.id, { verifyAfterLayout: true })
       })
     } finally {
       enterLockRef.current = null

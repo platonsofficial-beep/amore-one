@@ -12,9 +12,16 @@ import {
   findNextEligibleCountItem,
   getFinishCountDisabledReason,
   getInventoryCountKeyboardAvailableHeight,
+  getInventoryCountUsableViewportRect,
   getLocationReadinessLabel,
+  INVENTORY_COUNT_ENTER_REVEAL_MAX_LAYOUT_FRAMES,
+  INVENTORY_COUNT_SHEET_END_CLEARANCE_PX,
+  INVENTORY_COUNT_USABLE_BOTTOM_INSET_PX,
+  INVENTORY_COUNT_USABLE_TOP_INSET_PX,
   InventoryCountSessionWorkspace,
+  isInventoryCountCountedInputOutsideUsableViewport,
   isInventoryCountRowOutsideViewport,
+  scrollInventoryCountCountedInputIntoView,
   scrollInventoryCountRowIntoView,
 } from './InventoryCountSessionWorkspace'
 import {
@@ -3458,7 +3465,7 @@ describe('InventoryCountSessionWorkspace iPad scroll ownership (P8.18.2a)', () =
     Object.defineProperty(window, 'visualViewport', { configurable: true, value: originalViewport })
   })
 
-  it('visualViewport resize preserves existing row scrollTop', async () => {
+  it('visualViewport resize does not blindly restore stale row scrollTop', async () => {
     const fakeViewport = {
       height: 420,
       offsetTop: 0,
@@ -3478,6 +3485,8 @@ describe('InventoryCountSessionWorkspace iPad scroll ownership (P8.18.2a)', () =
       writable: true,
       value: 180,
     })
+    Object.defineProperty(scroll, 'scrollHeight', { configurable: true, value: 800 })
+    Object.defineProperty(scroll, 'clientHeight', { configurable: true, value: 300 })
     vi.spyOn(session, 'getBoundingClientRect').mockReturnValue({
       top: 120,
       bottom: 700,
@@ -3489,16 +3498,23 @@ describe('InventoryCountSessionWorkspace iPad scroll ownership (P8.18.2a)', () =
       y: 120,
       toJSON: () => ({}),
     })
+    // No Counted input focused → resize must leave scrollTop alone.
+    if (typeof document !== 'undefined' && document.activeElement?.blur) {
+      document.activeElement.blur()
+    }
 
     await act(async () => {
       fakeViewport.addEventListener.mock.calls
         .filter((call) => call[0] === 'resize')
         .forEach((call) => call[1]())
       await new Promise((resolve) => {
-        requestAnimationFrame(() => resolve())
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => resolve())
+        })
       })
     })
 
+    expect(session.className).toContain('is-keyboard-compact')
     expect(scroll.scrollTop).toBe(180)
 
     cleanup()
@@ -3593,6 +3609,329 @@ describe('InventoryCountSessionWorkspace iPad scroll ownership (P8.18.2a)', () =
     const scroll = container.querySelector('[data-inventory-count-row-scroll="true"]')
     expect(scroll.className).toContain('inventory-count-session-sheet-scroll')
     expect(container.querySelector('[data-inventory-count-footer="true"]')).toBeTruthy()
+    cleanup()
+  })
+})
+
+describe('InventoryCountSessionWorkspace usable viewport & Enter reveal (P8.18.3)', () => {
+  beforeEach(() => {
+    getInventoryCountSession.mockReset()
+    getInventoryCountSessionLocations.mockReset()
+    getInventoryCountSessionItems.mockReset()
+    updateInventoryCountItem.mockReset()
+    completeInventoryCountLocation.mockReset()
+
+    getInventoryCountSession.mockResolvedValue({
+      id: 'session-real-1',
+      workspaceId: 'workspace-test-id',
+      status: 'in_progress',
+    })
+    getInventoryCountSessionLocations.mockResolvedValue(FIXTURE_LOCATIONS)
+    getInventoryCountSessionItems.mockResolvedValue(FIXTURE_ITEMS)
+    updateInventoryCountItem.mockImplementation(async ({ sessionItemId, countedQuantity }) => ({
+      id: sessionItemId,
+      countedQuantity,
+      lineStatus: countedQuantity === null || countedQuantity === undefined ? 'pending' : 'counted',
+    }))
+  })
+
+  it('A. Counted-input visibility uses usable insets, not raw scroller flush edges', () => {
+    const container = {
+      getBoundingClientRect: () => ({ top: 100, bottom: 400, left: 0, right: 400 }),
+    }
+    const usable = getInventoryCountUsableViewportRect(container)
+    expect(usable.top).toBe(100 + INVENTORY_COUNT_USABLE_TOP_INSET_PX)
+    expect(usable.bottom).toBe(400 - INVENTORY_COUNT_USABLE_BOTTOM_INSET_PX)
+
+    const insideRawButInBottomInset = {
+      getBoundingClientRect: () => ({
+        top: 380,
+        bottom: 396,
+        left: 0,
+        right: 100,
+      }),
+    }
+    expect(isInventoryCountCountedInputOutsideUsableViewport(insideRawButInBottomInset, container)).toBe(true)
+
+    const fullyUsable = {
+      getBoundingClientRect: () => ({
+        top: 160,
+        bottom: 194,
+        left: 0,
+        right: 100,
+      }),
+    }
+    expect(isInventoryCountCountedInputOutsideUsableViewport(fullyUsable, container)).toBe(false)
+    expect(scrollInventoryCountCountedInputIntoView(fullyUsable, {
+      ...container,
+      scrollTop: 40,
+      scrollHeight: 900,
+      clientHeight: 300,
+    })).toBe(false)
+  })
+
+  it('B. Minimum scroll correction clamps within scroll range', () => {
+    const container = {
+      scrollTop: 10,
+      scrollHeight: 500,
+      clientHeight: 300,
+      getBoundingClientRect: () => ({ top: 100, bottom: 400, left: 0, right: 400 }),
+    }
+    const below = {
+      getBoundingClientRect: () => ({ top: 390, bottom: 424, left: 0, right: 100 }),
+    }
+    expect(scrollInventoryCountCountedInputIntoView(below, container)).toBe(true)
+    // usable bottom = 384; input bottom 424 → delta 40 → scrollTop 50
+    expect(container.scrollTop).toBe(50)
+
+    container.scrollTop = 80
+    const above = {
+      getBoundingClientRect: () => ({ top: 90, bottom: 120, left: 0, right: 100 }),
+    }
+    expect(scrollInventoryCountCountedInputIntoView(above, container)).toBe(true)
+    // usable top = 108; input top 90 → delta 18 → scrollTop 62
+    expect(container.scrollTop).toBe(62)
+
+    container.scrollTop = 190
+    container.scrollHeight = 500
+    container.clientHeight = 300
+    const farBelow = {
+      getBoundingClientRect: () => ({ top: 700, bottom: 740, left: 0, right: 100 }),
+    }
+    expect(scrollInventoryCountCountedInputIntoView(farBelow, container)).toBe(true)
+    expect(container.scrollTop).toBe(200)
+
+    container.scrollTop = 5
+    const farAbove = {
+      getBoundingClientRect: () => ({ top: -200, bottom: -160, left: 0, right: 100 }),
+    }
+    expect(scrollInventoryCountCountedInputIntoView(farAbove, container)).toBe(true)
+    expect(container.scrollTop).toBe(0)
+  })
+
+  it('C. Enter focuses next Counted input with preventScroll and bounded post-layout reveal', async () => {
+    const frames = []
+    const originalRaf = window.requestAnimationFrame
+    window.requestAnimationFrame = (cb) => {
+      frames.push(cb)
+      return frames.length
+    }
+
+    getInventoryCountSessionItems.mockResolvedValue([
+      sessionItem({
+        id: 'ms-1',
+        itemName: 'Coca-Cola',
+        storageLocation: 'Main Storage',
+        countedQuantity: null,
+        lineStatus: 'pending',
+      }),
+      sessionItem({
+        id: 'ms-2',
+        itemName: 'Paper Straws',
+        storageLocation: 'Main Storage',
+        countedQuantity: null,
+        lineStatus: 'pending',
+      }),
+    ])
+    getInventoryCountSessionLocations.mockResolvedValue([
+      sessionLocation('loc-1', 'Main Storage', 0, 'current'),
+    ])
+
+    const { container, cleanup } = await renderWorkspace()
+    const scroll = container.querySelector('[data-inventory-count-row-scroll="true"]')
+    Object.defineProperty(scroll, 'scrollTop', { configurable: true, writable: true, value: 0 })
+    Object.defineProperty(scroll, 'scrollHeight', { configurable: true, value: 900 })
+    Object.defineProperty(scroll, 'clientHeight', { configurable: true, value: 300 })
+    vi.spyOn(scroll, 'getBoundingClientRect').mockReturnValue({
+      top: 100,
+      bottom: 400,
+      left: 0,
+      right: 400,
+      width: 400,
+      height: 300,
+      x: 0,
+      y: 100,
+      toJSON: () => ({}),
+    })
+
+    const first = container.querySelector('input[aria-label="Counted quantity for Coca-Cola"]')
+    const second = container.querySelector('input[aria-label="Counted quantity for Paper Straws"]')
+    const focusSpy = vi.spyOn(second, 'focus')
+    vi.spyOn(second, 'getBoundingClientRect').mockReturnValue({
+      top: 390,
+      bottom: 424,
+      left: 40,
+      right: 140,
+      width: 100,
+      height: 34,
+      x: 40,
+      y: 390,
+      toJSON: () => ({}),
+    })
+
+    await act(async () => {
+      const nativeInputValueSetter = Object.getOwnPropertyDescriptor(
+        window.HTMLInputElement.prototype,
+        'value',
+      )?.set
+      nativeInputValueSetter?.call(first, '5')
+      first.dispatchEvent(new Event('input', { bubbles: true }))
+    })
+    await act(async () => {
+      first.dispatchEvent(new KeyboardEvent('keydown', {
+        key: 'Enter',
+        bubbles: true,
+        cancelable: true,
+      }))
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+
+    expect(updateInventoryCountItem).toHaveBeenCalledTimes(1)
+    expect(focusSpy).toHaveBeenCalled()
+    const focusArg = focusSpy.mock.calls[0]?.[0]
+    if (focusArg && typeof focusArg === 'object') {
+      expect(focusArg.preventScroll).toBe(true)
+    }
+    expect(scroll.scrollTop).toBeGreaterThan(0)
+
+    await act(async () => {
+      const pending = frames.splice(0, frames.length)
+      pending.forEach((cb) => cb())
+    })
+    expect(frames.length).toBeLessThanOrEqual(INVENTORY_COUNT_ENTER_REVEAL_MAX_LAYOUT_FRAMES)
+
+    window.requestAnimationFrame = originalRaf
+    focusSpy.mockRestore()
+    cleanup()
+  })
+
+  it('D. Sheet end clearance exceeds the old 16px-only runway', async () => {
+    const { container, cleanup } = await renderWorkspace()
+    const session = container.querySelector('.inventory-count-session.is-high-density')
+    expect(INVENTORY_COUNT_SHEET_END_CLEARANCE_PX).toBeGreaterThan(16)
+    expect(INVENTORY_COUNT_SHEET_END_CLEARANCE_PX)
+      .toBeGreaterThanOrEqual(40 + INVENTORY_COUNT_USABLE_BOTTOM_INSET_PX)
+    // Contract is owned by the high-density session custom property.
+    expect(session).toBeTruthy()
+    cleanup()
+  })
+
+  it('E. Resize corrects focused Counted input only when outside usable bounds', async () => {
+    const frames = []
+    const originalRaf = window.requestAnimationFrame
+    window.requestAnimationFrame = (cb) => {
+      frames.push(cb)
+      return frames.length
+    }
+
+    const fakeViewport = {
+      height: 420,
+      offsetTop: 0,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    }
+    const originalInnerHeight = window.innerHeight
+    const originalViewport = window.visualViewport
+    Object.defineProperty(window, 'innerHeight', { configurable: true, value: 768 })
+    Object.defineProperty(window, 'visualViewport', { configurable: true, value: fakeViewport })
+
+    const { container, cleanup } = await renderWorkspace()
+    const session = container.querySelector('.inventory-count-session')
+    const scroll = container.querySelector('[data-inventory-count-row-scroll="true"]')
+    const input = container.querySelector('input[aria-label="Counted quantity for Paper Straws"]')
+    Object.defineProperty(scroll, 'scrollTop', { configurable: true, writable: true, value: 20 })
+    Object.defineProperty(scroll, 'scrollHeight', { configurable: true, value: 900 })
+    Object.defineProperty(scroll, 'clientHeight', { configurable: true, value: 300 })
+    vi.spyOn(session, 'getBoundingClientRect').mockReturnValue({
+      top: 120,
+      bottom: 700,
+      left: 0,
+      right: 1000,
+      width: 1000,
+      height: 580,
+      x: 0,
+      y: 120,
+      toJSON: () => ({}),
+    })
+    vi.spyOn(scroll, 'getBoundingClientRect').mockReturnValue({
+      top: 100,
+      bottom: 400,
+      left: 0,
+      right: 400,
+      width: 400,
+      height: 300,
+      x: 0,
+      y: 100,
+      toJSON: () => ({}),
+    })
+    vi.spyOn(input, 'getBoundingClientRect').mockReturnValue({
+      top: 160,
+      bottom: 194,
+      left: 40,
+      right: 140,
+      width: 100,
+      height: 34,
+      x: 40,
+      y: 160,
+      toJSON: () => ({}),
+    })
+
+    await act(async () => {
+      input.focus({ preventScroll: true })
+    })
+
+    await act(async () => {
+      fakeViewport.addEventListener.mock.calls
+        .filter((call) => call[0] === 'resize')
+        .forEach((call) => call[1]())
+      const pending = frames.splice(0, frames.length)
+      pending.forEach((cb) => cb())
+      const nested = frames.splice(0, frames.length)
+      nested.forEach((cb) => cb())
+    })
+
+    expect(session.className).toContain('is-keyboard-compact')
+    expect(scroll.scrollTop).toBe(20)
+
+    vi.spyOn(input, 'getBoundingClientRect').mockReturnValue({
+      top: 390,
+      bottom: 424,
+      left: 40,
+      right: 140,
+      width: 100,
+      height: 34,
+      x: 40,
+      y: 390,
+      toJSON: () => ({}),
+    })
+
+    await act(async () => {
+      fakeViewport.addEventListener.mock.calls
+        .filter((call) => call[0] === 'resize')
+        .forEach((call) => call[1]())
+      const pending = frames.splice(0, frames.length)
+      pending.forEach((cb) => cb())
+      const nested = frames.splice(0, frames.length)
+      nested.forEach((cb) => cb())
+    })
+
+    expect(scroll.scrollTop).toBeGreaterThan(20)
+
+    window.requestAnimationFrame = originalRaf
+    cleanup()
+    Object.defineProperty(window, 'innerHeight', { configurable: true, value: originalInnerHeight })
+    Object.defineProperty(window, 'visualViewport', { configurable: true, value: originalViewport })
+  })
+
+  it('F. Progress rerenders do not auto-scroll the row viewport', async () => {
+    const { container, cleanup } = await renderWorkspace()
+    const scroll = container.querySelector('[data-inventory-count-row-scroll="true"]')
+    Object.defineProperty(scroll, 'scrollTop', { configurable: true, writable: true, value: 77 })
+    await act(async () => {
+      await Promise.resolve()
+    })
+    expect(scroll.scrollTop).toBe(77)
     cleanup()
   })
 })

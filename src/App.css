@@ -32518,6 +32518,7 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 /* P8.17.4 — High-density active counting workspace (iPad landscape first) */
 .inventory-count-session.is-high-density {
   --inventory-count-visible-height: 100dvh;
+  --inventory-count-sheet-end-clearance: 56px;
   height: min(calc(var(--inventory-count-visible-height) - 28px), 960px);
   min-height: min(calc(var(--inventory-count-visible-height) - 28px), 640px);
   overscroll-behavior: none;
@@ -32714,7 +32715,7 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   overflow-x: hidden;
   overflow-y: auto;
   overscroll-behavior: contain;
-  padding: 0 0 16px;
+  padding: 0 0 var(--inventory-count-sheet-end-clearance, 56px);
   -webkit-overflow-scrolling: touch;
   touch-action: pan-y;
 }
@@ -33253,7 +33254,7 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   overflow-x: hidden;
   overflow-y: auto;
   overscroll-behavior: contain;
-  padding: 0 0 16px;
+  padding: 0 0 var(--inventory-count-sheet-end-clearance, 56px);
   -webkit-overflow-scrolling: touch;
   touch-action: pan-y;
 }
