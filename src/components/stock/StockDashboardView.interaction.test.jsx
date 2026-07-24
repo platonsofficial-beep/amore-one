@@ -1,6 +1,6 @@
 /**
  * @vitest-environment jsdom
- * P8.17.3 — Dashboard interaction hardening (KPI toggle, layout, search Enter).
+ * P8.17.3 / P8.17.3a — Dashboard KPI interaction repair.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { act, createElement } from 'react'
@@ -64,6 +64,17 @@ function summaryCard(container, label) {
     .find((node) => node.textContent.includes(label))
 }
 
+function productCardNames(container) {
+  return Array.from(container.querySelectorAll('.stock-item-card .stock-item-name'))
+    .map((node) => node.textContent)
+}
+
+function click(node) {
+  act(() => {
+    node.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+  })
+}
+
 beforeEach(() => {
   mockMatchMedia(true)
   window.localStorage.clear()
@@ -96,58 +107,156 @@ describe('dismissStockSearchKeyboardOnEnter (P8.17.3)', () => {
   })
 })
 
-describe('StockDashboardView KPI interaction (P8.17.3)', () => {
+describe('StockDashboardView KPI interaction (P8.17.3a)', () => {
   const catalog = [
-    stock({ id: 'ok-1', name: 'HEALTHY', status: 'ok', currentQuantity: 40, minimumQuantity: 5 }),
-    stock({ id: 'low-1', name: 'LOW ITEM', status: 'low', currentQuantity: 2, minimumQuantity: 5 }),
-    stock({ id: 'out-1', name: 'OUT ITEM', status: 'out', currentQuantity: 0, minimumQuantity: 5 }),
+    stock({
+      id: 'ok-1',
+      name: 'HEALTHY',
+      status: 'ok',
+      currentQuantity: 40,
+      minimumQuantity: 5,
+      targetQuantity: 30,
+    }),
+    stock({
+      id: 'low-1',
+      name: 'LOW ITEM',
+      status: 'low',
+      currentQuantity: 2,
+      minimumQuantity: 5,
+      targetQuantity: 10,
+    }),
+    stock({
+      id: 'out-1',
+      name: 'OUT ITEM',
+      status: 'out',
+      currentQuantity: 0,
+      minimumQuantity: 5,
+      targetQuantity: 10,
+    }),
+    stock({
+      id: 'order-1',
+      name: 'ORDER ITEM',
+      status: 'ok',
+      currentQuantity: 8,
+      minimumQuantity: 5,
+      targetQuantity: 20,
+    }),
   ]
 
-  it('toggles Low / Out / To order filters on second tap and keeps selected state', () => {
-    const { container, cleanup } = render(createElement(StockDashboardView, {
+  function mount(extraProps = {}) {
+    return render(createElement(StockDashboardView, {
       stockItems: catalog,
       canManage: true,
       workspaceId: 'ws-1',
       isWorkspaceReady: true,
       isLoading: false,
       catalogLoadFailed: false,
+      ...extraProps,
     }))
+  }
 
+  it('uses phrasing content inside interactive KPI buttons (no nested paragraphs)', () => {
+    const { container, cleanup } = mount()
+    const interactiveButtons = Array.from(container.querySelectorAll('button.stock-summary-card'))
+    expect(interactiveButtons.length).toBeGreaterThanOrEqual(4)
+    interactiveButtons.forEach((button) => {
+      expect(button.querySelector('p')).toBeNull()
+      expect(button.querySelector('.stock-summary-label')).toBeTruthy()
+      expect(button.querySelector('.stock-summary-value')).toBeTruthy()
+    })
+    cleanup()
+  })
+
+  it('filters All Products when Low Stock KPI is tapped and clears on second tap', () => {
+    const { container, cleanup } = mount()
     const lowCard = summaryCard(container, 'Low stock')
-    const outCard = summaryCard(container, 'Out of stock')
-    expect(lowCard).toBeTruthy()
-    expect(outCard).toBeTruthy()
+    expect(lowCard?.tagName).toBe('BUTTON')
     expect(lowCard.getAttribute('aria-pressed')).toBe('false')
 
-    act(() => {
-      lowCard.dispatchEvent(new MouseEvent('click', { bubbles: true }))
-    })
+    click(lowCard)
     expect(lowCard.getAttribute('aria-pressed')).toBe('true')
     expect(lowCard.className).toContain('is-selected')
     expect(container.querySelector('.stock-status-filter.active')?.textContent).toBe('Low')
-    const cardNamesAfterLow = Array.from(container.querySelectorAll('.stock-item-card .stock-item-name'))
-      .map((node) => node.textContent)
-    expect(cardNamesAfterLow).toEqual(['LOW ITEM'])
+    expect(productCardNames(container)).toEqual(['LOW ITEM'])
 
-    act(() => {
-      lowCard.dispatchEvent(new MouseEvent('click', { bubbles: true }))
-    })
+    click(lowCard)
     expect(lowCard.getAttribute('aria-pressed')).toBe('false')
     expect(container.querySelector('.stock-status-filter.active')?.textContent).toBe('All')
-    const cardNamesAfterClear = Array.from(container.querySelectorAll('.stock-item-card .stock-item-name'))
-      .map((node) => node.textContent)
-    expect(cardNamesAfterClear).toEqual(expect.arrayContaining(['HEALTHY', 'LOW ITEM', 'OUT ITEM']))
-    expect(cardNamesAfterClear).toHaveLength(3)
+    expect(productCardNames(container)).toEqual(
+      expect.arrayContaining(['HEALTHY', 'LOW ITEM', 'OUT ITEM', 'ORDER ITEM']),
+    )
+    expect(productCardNames(container)).toHaveLength(4)
+    cleanup()
+  })
 
-    act(() => {
-      outCard.dispatchEvent(new MouseEvent('click', { bubbles: true }))
-    })
+  it('filters All Products when Out of Stock KPI is tapped', () => {
+    const { container, cleanup } = mount()
+    const outCard = summaryCard(container, 'Out of stock')
+    click(outCard)
     expect(outCard.getAttribute('aria-pressed')).toBe('true')
     expect(container.querySelector('.stock-status-filter.active')?.textContent).toBe('Out')
-    const cardNamesAfterOut = Array.from(container.querySelectorAll('.stock-item-card .stock-item-name'))
-      .map((node) => node.textContent)
-    expect(cardNamesAfterOut).toEqual(['OUT ITEM'])
+    expect(productCardNames(container)).toEqual(['OUT ITEM'])
+    cleanup()
+  })
 
+  it('filters All Products with the existing To Order definition', () => {
+    const { container, cleanup } = mount()
+    const orderCard = summaryCard(container, 'To order')
+    click(orderCard)
+    expect(orderCard.getAttribute('aria-pressed')).toBe('true')
+    expect(container.querySelector('.stock-status-filter.active')?.textContent).toBe('To order')
+    // existing itemNeedsOrder: current < target → LOW, OUT, ORDER (not HEALTHY at 40>=30)
+    expect(productCardNames(container)).toEqual(
+      expect.arrayContaining(['LOW ITEM', 'OUT ITEM', 'ORDER ITEM']),
+    )
+    expect(productCardNames(container)).not.toContain('HEALTHY')
+    expect(productCardNames(container)).toHaveLength(3)
+    cleanup()
+  })
+
+  it('replaces the active KPI filter when switching cards', () => {
+    const { container, cleanup } = mount()
+    const lowCard = summaryCard(container, 'Low stock')
+    const outCard = summaryCard(container, 'Out of stock')
+
+    click(lowCard)
+    expect(lowCard.getAttribute('aria-pressed')).toBe('true')
+    expect(productCardNames(container)).toEqual(['LOW ITEM'])
+
+    click(outCard)
+    expect(outCard.getAttribute('aria-pressed')).toBe('true')
+    expect(lowCard.getAttribute('aria-pressed')).toBe('false')
+    expect(container.querySelectorAll('.stock-summary-card.is-selected')).toHaveLength(1)
+    expect(productCardNames(container)).toEqual(['OUT ITEM'])
+    cleanup()
+  })
+
+  it('keeps search compatible with an active KPI filter', () => {
+    const { container, cleanup } = mount({ searchTerm: 'OUT' })
+    const outCard = summaryCard(container, 'Out of stock')
+    click(outCard)
+    expect(productCardNames(container)).toEqual(['OUT ITEM'])
+
+    // Search alone already narrows; KPI must not clear search semantics.
+    expect(container.querySelector('input')).toBeNull()
+    cleanup()
+  })
+
+  it('leaves Total Items interactive reset and Inventory Cost non-interactive', () => {
+    const { container, cleanup } = mount()
+    const totalCard = summaryCard(container, 'Total items')
+    const costCard = summaryCard(container, 'Inventory cost')
+    const lowCard = summaryCard(container, 'Low stock')
+
+    expect(totalCard?.tagName).toBe('BUTTON')
+    expect(costCard?.tagName).toBe('ARTICLE')
+    expect(costCard.className).not.toContain('is-interactive')
+
+    click(lowCard)
+    expect(productCardNames(container)).toEqual(['LOW ITEM'])
+    click(totalCard)
+    expect(totalCard.getAttribute('aria-pressed')).toBe('true')
+    expect(productCardNames(container)).toHaveLength(4)
     cleanup()
   })
 })

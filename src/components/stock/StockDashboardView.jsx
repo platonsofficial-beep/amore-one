@@ -629,15 +629,17 @@ function StockSummaryCard({
   const isValueFirst = layout === 'value-first'
   const className = `stock-summary-card tone-${tone}${isValueFirst ? ' layout-value-first' : ''}${isInteractive ? ' is-interactive' : ''}${isSelected ? ' is-selected' : ''}`
 
+  // P8.17.3a — Use phrasing content only inside <button>. Nested <p> is invalid HTML and
+  // WebKit/iPad may hoist those nodes outside the button so taps never reach onClick.
   const content = isValueFirst ? (
     <>
-      <p className="stock-summary-value">{value}</p>
-      <p className="stock-summary-label">{subtitle || label}</p>
+      <span className="stock-summary-value">{value}</span>
+      <span className="stock-summary-label">{subtitle || label}</span>
     </>
   ) : (
     <>
-      <p className="stock-summary-label">{label}</p>
-      <p className="stock-summary-value">{value}</p>
+      <span className="stock-summary-label">{label}</span>
+      <span className="stock-summary-value">{value}</span>
     </>
   )
 
@@ -1676,6 +1678,14 @@ export function StockDashboardView({
   const allVisibleSelected = visibleItems.length > 0 && visibleItems.every((item) => selectedIds.has(item.id))
   const isStockActionBusy = isSaving || isSavingOrders
 
+  // P8.17.3a — KPI cards toggle the same statusFilter used by All Products.
+  // Use the current render value (not a functional flip) so a single tap maps
+  // deterministically: inactive → activate, active → clear to all.
+  const applyKpiStatusFilter = (nextStatus) => {
+    setCategoryFilter('All')
+    setStatusFilter(statusFilter === nextStatus ? 'all' : nextStatus)
+  }
+
   return (
     <section className="stock-dashboard-page" aria-label="Stock dashboard">
       {noticeMessage && !catalogLoadFailed ? <div className="staff-status-banner">{noticeMessage}</div> : null}
@@ -1716,10 +1726,7 @@ export function StockDashboardView({
           tone={summary.lowStock > 0 ? 'warning' : 'default'}
           isInteractive
           isSelected={statusFilter === 'low'}
-          onClick={() => {
-            setCategoryFilter('All')
-            setStatusFilter((current) => (current === 'low' ? 'all' : 'low'))
-          }}
+          onClick={() => applyKpiStatusFilter('low')}
         />
         <StockSummaryCard
           label="Out of stock"
@@ -1727,10 +1734,7 @@ export function StockDashboardView({
           tone={summary.outOfStock > 0 ? 'danger' : 'default'}
           isInteractive
           isSelected={statusFilter === 'out'}
-          onClick={() => {
-            setCategoryFilter('All')
-            setStatusFilter((current) => (current === 'out' ? 'all' : 'out'))
-          }}
+          onClick={() => applyKpiStatusFilter('out')}
         />
         <StockSummaryCard
           label="To order"
@@ -1738,10 +1742,7 @@ export function StockDashboardView({
           tone={summary.toOrder > 0 ? 'warning' : 'default'}
           isInteractive
           isSelected={statusFilter === 'order'}
-          onClick={() => {
-            setCategoryFilter('All')
-            setStatusFilter((current) => (current === 'order' ? 'all' : 'order'))
-          }}
+          onClick={() => applyKpiStatusFilter('order')}
         />
         {canManage ? (
           <StockSummaryCard
