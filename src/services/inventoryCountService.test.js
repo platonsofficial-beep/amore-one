@@ -1998,6 +1998,10 @@ describe('inventory_count_snapshot_at_hardening SQL contract', () => {
     expect(sql).toContain('inventory_count_item_frozen_field')
     expect(sql).toContain('new.expected_snapshot is distinct from old.expected_snapshot')
     expect(sql).toContain('new.created_at is distinct from old.created_at')
+    expect(sql).toContain('new.item_name is distinct from old.item_name')
+    // P8.16.38: item_id is guarded separately to allow only non-null → NULL
+    expect(sql).toContain('old.item_id is not null and new.item_id is null')
+    expect(sql).toContain('new.item_id is distinct from old.item_id')
     expect(sql).toContain('protect_inventory_count_session_snapshot_at')
     expect(sql).toContain('inventory_count_sessions_protect_snapshot_at')
     expect(sql).toContain('before update on public.inventory_count_sessions')

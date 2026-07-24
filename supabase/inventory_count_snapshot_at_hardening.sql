@@ -64,6 +64,9 @@ drop policy if exists inventory_count_session_items_delete_managers
 
 -- -----------------------------------------------------------------------------
 -- 4. Immutable session item freeze fields
+-- P8.16.38: item_id remains frozen for ordinary updates, but the FK-driven
+-- transition non-null → NULL is allowed so Permanent Delete can preserve
+-- historical inventory_count_session_items via ON DELETE SET NULL.
 -- -----------------------------------------------------------------------------
 create or replace function public.protect_inventory_count_session_item_freeze_fields()
 returns trigger
@@ -75,9 +78,9 @@ begin
     return new;
   end if;
 
+  -- Copied snapshot identity fields remain immutable.
   if new.session_id is distinct from old.session_id
      or new.workspace_id is distinct from old.workspace_id
-     or new.item_id is distinct from old.item_id
      or new.item_name is distinct from old.item_name
      or new.category is distinct from old.category
      or new.item_type is distinct from old.item_type
@@ -85,6 +88,13 @@ begin
      or new.storage_location is distinct from old.storage_location
      or new.expected_snapshot is distinct from old.expected_snapshot
      or new.created_at is distinct from old.created_at then
+    raise exception 'inventory_count_item_frozen_field';
+  end if;
+
+  -- item_id: allow only non-null → NULL (stock_items ON DELETE SET NULL).
+  -- Forbid NULL → non-null and non-null A → non-null B.
+  if new.item_id is distinct from old.item_id
+     and not (old.item_id is not null and new.item_id is null) then
     raise exception 'inventory_count_item_frozen_field';
   end if;
 
