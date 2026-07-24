@@ -28001,10 +28001,10 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 }
 
 .stock-list-mobile-title-wrap {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
   flex: 1;
-  align-items: flex-start;
-  justify-content: space-between;
+  align-items: start;
   gap: 10px;
   min-width: 0;
 }
@@ -28014,6 +28014,12 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   color: #fff7e8;
   font-size: 1rem;
   line-height: 1.3;
+  overflow-wrap: anywhere;
+  min-width: 0;
+}
+
+.stock-list-mobile-status-badge {
+  justify-self: end;
 }
 
 .stock-list-mobile-meta {
@@ -28218,11 +28224,16 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 }
 
 .stock-compact-row {
-  display: flex;
-  align-items: center;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
   gap: 12px;
   min-height: 64px;
   padding: 12px 14px;
+}
+
+.stock-compact-row:has(> .stock-item-select-btn) {
+  grid-template-columns: auto minmax(0, 1fr) auto;
 }
 
 .stock-compact-row.is-selected {
@@ -28231,7 +28242,10 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 }
 
 .stock-compact-copy {
-  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
   min-width: 0;
 }
 
@@ -28240,17 +28254,16 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   color: #fff7e8;
   font-size: 1rem;
   line-height: 1.3;
+  overflow-wrap: anywhere;
+  max-width: 100%;
 }
 
-.stock-compact-title-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
+.stock-compact-status-badge {
+  align-self: flex-start;
 }
 
 .stock-compact-meta {
-  margin: 4px 0 0;
+  margin: 0;
   color: #9f9588;
   font-size: 0.82rem;
   line-height: 1.35;
@@ -28277,18 +28290,24 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 }
 
 .stock-compact-qty {
-  margin: 4px 0 0;
+  margin: 0;
   color: #f6dca2;
   font-size: 1.1rem;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
 }
 
+.stock-compact-actions {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: flex-start;
+}
+
 .stock-compact-count-btn {
   min-height: 44px;
   min-width: 88px;
-  flex: 0 0 auto;
   font-weight: 600;
+  white-space: nowrap;
 }
 
 .stock-item-grid {
@@ -28331,10 +28350,22 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 }
 
 .stock-item-card-header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: start;
   gap: 10px;
+}
+
+.stock-item-card-header:has(> .stock-item-select-btn) {
+  grid-template-columns: auto minmax(0, 1fr);
+}
+
+.stock-item-card-title-block {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 10px;
+  min-width: 0;
 }
 
 .stock-item-select-btn {
@@ -28387,16 +28418,17 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 
 .stock-item-name {
   margin: 0;
-  flex: 1;
   min-width: 0;
   color: #fff7e8;
   font-size: 1.12rem;
   line-height: 1.25;
   letter-spacing: 0.01em;
+  overflow-wrap: anywhere;
 }
 
 .stock-item-status-badge {
   flex-shrink: 0;
+  justify-self: end;
   min-height: 28px;
   padding: 4px 10px;
   border-radius: 999px;
@@ -28655,21 +28687,24 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 }
 
 .stock-item-card-footer {
-  margin-top: 10px;
+  margin-top: auto;
   padding-top: 12px;
   border-top: 1px solid rgba(255, 255, 255, 0.06);
+  flex-shrink: 0;
 }
 
 .stock-item-actions-wrap {
   display: flex;
   flex-direction: column;
   gap: 6px;
+  min-width: 0;
 }
 
 .stock-item-actions {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 44px;
   gap: 6px;
+  width: 100%;
 }
 
 .stock-item-actions-wrap.is-menu-open .stock-item-action-primary,
@@ -29112,17 +29147,10 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   font-size: 0.86rem;
 }
 
-.stock-needs-attention-toggle {
+.stock-attention-group-toggle {
   min-height: 44px;
-  min-width: 44px;
-  flex-shrink: 0;
   align-self: flex-start;
-}
-
-.stock-attention-group-more {
-  margin: 0;
-  color: #9f9588;
-  font-size: 0.78rem;
+  margin-top: 2px;
 }
 
 .stock-operations-banner {
@@ -29181,13 +29209,6 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   margin: 0;
   color: #fff7e8;
   font-size: 0.95rem;
-}
-
-.stock-attention-title-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
 }
 
 .stock-attention-qty-current.tone-low {
@@ -29259,9 +29280,9 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 }
 
 .stock-attention-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
   gap: 12px;
   padding: 10px 12px;
   border-radius: 12px;
@@ -29278,6 +29299,10 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 }
 
 .stock-attention-copy {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
   min-width: 0;
 }
 
@@ -29286,16 +29311,22 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   color: #f3ead8;
   font-size: 0.92rem;
   font-weight: 600;
+  overflow-wrap: anywhere;
+  max-width: 100%;
+}
+
+.stock-attention-status-badge {
+  align-self: flex-start;
 }
 
 .stock-attention-meta {
-  margin: 2px 0 0;
+  margin: 0;
   color: #9f9588;
   font-size: 0.78rem;
 }
 
 .stock-attention-qty {
-  margin: 4px 0 0;
+  margin: 0;
   color: #fff7e8;
   font-size: 0.86rem;
   font-weight: 600;
@@ -29305,8 +29336,11 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   display: flex;
   flex-wrap: wrap;
   justify-content: flex-end;
+  align-content: flex-start;
   gap: 8px;
   flex: 0 0 auto;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .stock-attention-action-btn {
@@ -29751,12 +29785,24 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   }
 
   .stock-attention-row {
-    flex-direction: column;
-    align-items: stretch;
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .stock-attention-actions {
     justify-content: flex-start;
+  }
+
+  .stock-compact-row,
+  .stock-compact-row:has(> .stock-item-select-btn) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .stock-compact-actions {
+    width: 100%;
+  }
+
+  .stock-compact-count-btn {
+    width: 100%;
   }
 }
 

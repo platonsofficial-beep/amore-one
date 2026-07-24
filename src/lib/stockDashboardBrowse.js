@@ -168,3 +168,14 @@ export function groupStockDashboardItems(items = [], groupBy = 'none') {
       items: groupItems,
     }))
 }
+
+/**
+ * P8.17.3 — Enter on Stock search dismisses the iPad/soft keyboard
+ * without changing the live-filtered search results.
+ */
+export function dismissStockSearchKeyboardOnEnter(event) {
+  if (!event || event.key !== 'Enter') return false
+  event.preventDefault?.()
+  event.currentTarget?.blur?.()
+  return true
+}

@@ -113,13 +113,20 @@ describe('sliceStockNeedsAttentionGroupItems (P8.17.2)', () => {
   })
 })
 
-describe('StockDashboardView Needs Attention density (P8.17.2)', () => {
+describe('StockDashboardView Needs Attention density (P8.17.2 / P8.17.3)', () => {
   function buildLargeAttentionCatalog() {
     const outItems = Array.from({ length: 7 }, (_, index) => stock({
       id: `out-${index}`,
       name: `OUT ${String(index).padStart(2, '0')}`,
       status: 'out',
       currentQuantity: 0,
+    }))
+    const lowItems = Array.from({ length: 6 }, (_, index) => stock({
+      id: `low-${index}`,
+      name: `LOW ${String(index).padStart(2, '0')}`,
+      status: 'low',
+      currentQuantity: 1,
+      minimumQuantity: 5,
     }))
     const okItem = stock({
       id: 'ok-1',
@@ -129,10 +136,10 @@ describe('StockDashboardView Needs Attention density (P8.17.2)', () => {
       minimumQuantity: 5,
       lastCount: { createdAt: '2026-07-20T10:00:00.000Z' },
     })
-    return [...outItems, okItem]
+    return [...outItems, ...lowItems, okItem]
   }
 
-  it('shows Needs Attention with a deterministic preview and expand control', () => {
+  it('shows Needs Attention with a deterministic preview and per-group expand control', () => {
     const catalog = buildLargeAttentionCatalog()
     const { container, cleanup } = render(createElement(StockDashboardView, {
       stockItems: catalog,
@@ -145,29 +152,39 @@ describe('StockDashboardView Needs Attention density (P8.17.2)', () => {
 
     const section = container.querySelector('[aria-label="Needs attention"]')
     expect(section).toBeTruthy()
-    expect(section.textContent).toContain('7 products may need attention')
+    expect(section.textContent).toContain('13 products may need attention')
     expect(section.textContent).toContain('Showing top 5 per group')
 
     const outGroup = section.querySelector('[aria-label="Out of stock"]')
+    const lowGroup = section.querySelector('[aria-label="Low stock"]')
     const previewNames = Array.from(outGroup.querySelectorAll('.stock-attention-name'))
       .map((node) => node.textContent)
     expect(previewNames).toEqual(['OUT 00', 'OUT 01', 'OUT 02', 'OUT 03', 'OUT 04'])
-    expect(section.textContent).toContain('+2 more in out of stock')
+    expect(outGroup.querySelectorAll('.stock-attention-name')).toHaveLength(5)
+    expect(lowGroup.querySelectorAll('.stock-attention-name')).toHaveLength(5)
 
-    const toggle = Array.from(section.querySelectorAll('button'))
+    const outToggle = Array.from(outGroup.querySelectorAll('button'))
       .find((node) => node.textContent === 'Show all 7')
-    expect(toggle).toBeTruthy()
-    expect(toggle.getAttribute('aria-expanded')).toBe('false')
+    const lowToggle = Array.from(lowGroup.querySelectorAll('button'))
+      .find((node) => node.textContent === 'Show all 6')
+    expect(outToggle).toBeTruthy()
+    expect(lowToggle).toBeTruthy()
+    expect(outToggle.getAttribute('aria-expanded')).toBe('false')
+    expect(section.querySelector('.stock-needs-attention-toggle')).toBeNull()
+    expect(section.textContent).not.toContain('Show all 13')
 
     act(() => {
-      toggle.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+      outToggle.dispatchEvent(new MouseEvent('click', { bubbles: true }))
     })
 
-    expect(toggle.getAttribute('aria-expanded')).toBe('true')
-    expect(toggle.textContent).toBe('Show less')
+    expect(outToggle.getAttribute('aria-expanded')).toBe('true')
+    expect(outToggle.textContent).toBe('Show less')
     expect(Array.from(outGroup.querySelectorAll('.stock-attention-name')).map((node) => node.textContent))
       .toEqual(['OUT 00', 'OUT 01', 'OUT 02', 'OUT 03', 'OUT 04', 'OUT 05', 'OUT 06'])
-    expect(section.textContent).not.toContain('+2 more')
+    // Low group stays collapsed independently
+    expect(lowGroup.querySelectorAll('.stock-attention-name')).toHaveLength(5)
+    expect(lowToggle.textContent).toBe('Show all 6')
+    expect(lowToggle.getAttribute('aria-expanded')).toBe('false')
 
     cleanup()
   })

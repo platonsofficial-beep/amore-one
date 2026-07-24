@@ -187,14 +187,16 @@ function StockItemCard({
             {isSelected ? '✓' : ''}
           </button>
         ) : null}
-        <h3 className="stock-item-name">{item.name}</h3>
-        {item.active === false ? (
-          <span className="stock-item-status-badge tone-muted">Inactive</span>
-        ) : (
-          <span className={`stock-item-status-badge tone-${item.status}`}>
-            {getStockStatusShortLabel(item.status)}
-          </span>
-        )}
+        <div className="stock-item-card-title-block">
+          <h3 className="stock-item-name">{item.name}</h3>
+          {item.active === false ? (
+            <span className="stock-item-status-badge tone-muted">Inactive</span>
+          ) : (
+            <span className={`stock-item-status-badge tone-${item.status}`}>
+              {getStockStatusShortLabel(item.status)}
+            </span>
+          )}
+        </div>
       </header>
 
       <p className="stock-item-category-type">
@@ -435,7 +437,7 @@ function StockListMobileCard({
         ) : null}
         <div className="stock-list-mobile-title-wrap">
           <h3 className="stock-list-mobile-name">{item.name}</h3>
-          <span className={`stock-item-status-badge tone-${item.status}`}>
+          <span className={`stock-item-status-badge stock-list-mobile-status-badge tone-${item.status}`}>
             {getStockStatusShortLabel(item.status)}
           </span>
         </div>
@@ -586,12 +588,10 @@ function StockCompactRow({
         </button>
       ) : null}
       <div className="stock-compact-copy">
-        <div className="stock-compact-title-row">
-          <h3 className="stock-compact-name">{item.name}</h3>
-          <span className={`stock-item-status-badge tone-${item.status}`}>
-            {getStockStatusShortLabel(item.status)}
-          </span>
-        </div>
+        <h3 className="stock-compact-name">{item.name}</h3>
+        <span className={`stock-item-status-badge stock-compact-status-badge tone-${item.status}`}>
+          {getStockStatusShortLabel(item.status)}
+        </span>
         <p className="stock-compact-meta">{supplierLabel} · {location}</p>
         <p className="stock-compact-qty">
           <span className={item.status === 'out' || item.status === 'low' ? `tone-${item.status}` : ''}>
@@ -601,15 +601,17 @@ function StockCompactRow({
           <span className="stock-compact-qty-min">min {formatStockQuantity(item.minimumQuantity, item.unit)}</span>
         </p>
       </div>
-      {canManage ? (
-        <button type="button" className="ghost-btn stock-compact-count-btn" onClick={onCount}>
-          Quick stock count
-        </button>
-      ) : (
-        <button type="button" className="ghost-btn stock-compact-count-btn" onClick={onOpenHistory}>
-          Details
-        </button>
-      )}
+      <div className="stock-compact-actions">
+        {canManage ? (
+          <button type="button" className="ghost-btn stock-compact-count-btn" onClick={onCount}>
+            Quick stock count
+          </button>
+        ) : (
+          <button type="button" className="ghost-btn stock-compact-count-btn" onClick={onOpenHistory}>
+            Details
+          </button>
+        )}
+      </div>
     </article>
   )
 }
@@ -677,14 +679,12 @@ function StockAttentionRow({
   return (
     <li className={`stock-attention-row tone-${item.status}`}>
       <div className="stock-attention-copy">
-        <div className="stock-attention-title-row">
-          <p className="stock-attention-name">{item.name}</p>
-          {showStockLevels ? (
-            <span className={`stock-item-status-badge tone-${item.status}`}>
-              {getStockStatusLabel(item.status)}
-            </span>
-          ) : null}
-        </div>
+        <p className="stock-attention-name">{item.name}</p>
+        {showStockLevels ? (
+          <span className={`stock-item-status-badge stock-attention-status-badge tone-${item.status}`}>
+            {getStockStatusLabel(item.status)}
+          </span>
+        ) : null}
         <p className="stock-attention-meta">
           {formatStockCategoryTypeLine(item.category, itemType)} · {location}
         </p>
@@ -706,7 +706,7 @@ function StockAttentionRow({
       </div>
 
       {canManage ? (
-        <div className="stock-attention-actions">
+        <div className="stock-attention-actions" aria-label={`Actions for ${item.name}`}>
           {showReceive ? (
             <button type="button" className="ghost-btn stock-attention-action-btn" onClick={onReceive}>
               Receive
@@ -815,22 +815,37 @@ function StockNeedsAttentionSection({
   onCount,
   onEdit,
 }) {
-  const [isExpanded, setIsExpanded] = useState(false)
+  // P8.17.3 — each attention group owns its own expand/collapse state.
+  const [expandedGroupIds, setExpandedGroupIds] = useState(() => new Set())
   const totalCount = groups.reduce((sum, group) => sum + group.items.length, 0)
+
+  const toggleGroupExpanded = (groupId) => {
+    setExpandedGroupIds((current) => {
+      const next = new Set(current)
+      if (next.has(groupId)) next.delete(groupId)
+      else next.add(groupId)
+      return next
+    })
+  }
+
   const presentedGroups = groups.map((group) => {
+    const expanded = expandedGroupIds.has(group.id)
     const { visibleItems, hiddenCount } = sliceStockNeedsAttentionGroupItems(group.items, {
       limit: STOCK_NEEDS_ATTENTION_PREVIEW_LIMIT,
-      expanded: isExpanded,
+      expanded,
     })
+    const canToggle = (group.items?.length ?? 0) > STOCK_NEEDS_ATTENTION_PREVIEW_LIMIT
     return {
       ...group,
+      expanded,
       visibleItems,
       hiddenCount,
+      canToggle,
     }
   })
-  const hiddenTotal = presentedGroups.reduce((sum, group) => sum + group.hiddenCount, 0)
-  const canToggleDensity = groups.some(
-    (group) => (group.items?.length ?? 0) > STOCK_NEEDS_ATTENTION_PREVIEW_LIMIT,
+
+  const anyCollapsedWithHidden = presentedGroups.some(
+    (group) => !group.expanded && group.hiddenCount > 0,
   )
 
   return (
@@ -840,23 +855,11 @@ function StockNeedsAttentionSection({
           <h3 className="stock-needs-attention-title">Needs attention</h3>
           <p className="stock-needs-attention-subtitle">
             {totalCount} product{totalCount === 1 ? '' : 's'} may need attention.
-            {!isExpanded && hiddenTotal > 0
+            {anyCollapsedWithHidden
               ? ` Showing top ${STOCK_NEEDS_ATTENTION_PREVIEW_LIMIT} per group.`
               : ''}
           </p>
         </div>
-        {canToggleDensity ? (
-          <button
-            type="button"
-            className="ghost-btn stock-needs-attention-toggle"
-            aria-expanded={isExpanded}
-            onClick={() => setIsExpanded((current) => !current)}
-          >
-            {isExpanded
-              ? 'Show less'
-              : `Show all ${totalCount}`}
-          </button>
-        ) : null}
       </header>
 
       <div className="stock-attention-groups">
@@ -879,10 +882,17 @@ function StockNeedsAttentionSection({
                 />
               ))}
             </ul>
-            {!isExpanded && group.hiddenCount > 0 ? (
-              <p className="stock-attention-group-more">
-                +{group.hiddenCount} more in {group.label.toLowerCase()}
-              </p>
+            {group.canToggle ? (
+              <button
+                type="button"
+                className="ghost-btn stock-attention-group-toggle"
+                aria-expanded={group.expanded}
+                onClick={() => toggleGroupExpanded(group.id)}
+              >
+                {group.expanded
+                  ? 'Show less'
+                  : `Show all ${group.items.length}`}
+              </button>
             ) : null}
           </section>
         ))}
@@ -1708,7 +1718,7 @@ export function StockDashboardView({
           isSelected={statusFilter === 'low'}
           onClick={() => {
             setCategoryFilter('All')
-            setStatusFilter('low')
+            setStatusFilter((current) => (current === 'low' ? 'all' : 'low'))
           }}
         />
         <StockSummaryCard
@@ -1719,7 +1729,7 @@ export function StockDashboardView({
           isSelected={statusFilter === 'out'}
           onClick={() => {
             setCategoryFilter('All')
-            setStatusFilter('out')
+            setStatusFilter((current) => (current === 'out' ? 'all' : 'out'))
           }}
         />
         <StockSummaryCard
@@ -1730,7 +1740,7 @@ export function StockDashboardView({
           isSelected={statusFilter === 'order'}
           onClick={() => {
             setCategoryFilter('All')
-            setStatusFilter('order')
+            setStatusFilter((current) => (current === 'order' ? 'all' : 'order'))
           }}
         />
         {canManage ? (

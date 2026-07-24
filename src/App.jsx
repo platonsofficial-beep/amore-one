@@ -469,6 +469,7 @@ import {
 import { TodayAttentionPanel } from './components/today/TodayAttentionPanel'
 import { buildStockOrdersOperationsSummary } from './lib/stockOrderUtils'
 import { buildStockDashboardSummary, resolveDashboardStockAlerts } from './lib/stockUtils'
+import { dismissStockSearchKeyboardOnEnter } from './lib/stockDashboardBrowse'
 import { filterTasksExcludingAnnouncementDuplicates } from './lib/operationsAnnouncementUtils'
 import {
   countShiftsCoveringTemplateCell,
@@ -24114,10 +24115,12 @@ function App() {
               <label className="search-bar stock-focus-search" aria-label={`Search ${moduleTitle}`}>
                 <span>⌕</span>
                 <input
-                  type="text"
+                  type="search"
                   placeholder={moduleSearchPlaceholder}
                   value={searchTerm}
                   onChange={(event) => setSearchTerm(event.target.value)}
+                  enterKeyHint="search"
+                  onKeyDown={dismissStockSearchKeyboardOnEnter}
                 />
               </label>
             ) : null}
