@@ -9,8 +9,10 @@ import { STOCK_NEEDS_ATTENTION_PREVIEW_LIMIT } from '../../lib/stockInsights'
 import {
   dismissStockSearchKeyboardOnEnter,
   filterStockDashboardItems,
+  getStockStatusFilterLabel,
 } from '../../lib/stockDashboardBrowse'
 import { StockDashboardView } from './StockDashboardView'
+import { MobileManagerStockView } from '../mobile/MobileManagerStockView'
 
 function mockMatchMedia(matches = true) {
   window.matchMedia = vi.fn().mockImplementation((query) => ({
@@ -365,5 +367,146 @@ describe('StockDashboardView KPI → All Products pipeline (P8.17.3b)', () => {
 
   it('preserves Needs Attention preview limit constant', () => {
     expect(STOCK_NEEDS_ATTENTION_PREVIEW_LIMIT).toBe(5)
+  })
+})
+
+describe('StockDashboardView filtered catalog layout (P8.17.3c)', () => {
+  function mount(extraProps = {}) {
+    return render(createElement(StockDashboardView, {
+      stockItems: CATALOG,
+      canManage: true,
+      workspaceId: 'ws-1',
+      isWorkspaceReady: true,
+      isLoading: false,
+      catalogLoadFailed: false,
+      ...extraProps,
+    }))
+  }
+
+  it('1–2. Active KPI renders filtered-context header with the correct product count', () => {
+    expect(getStockStatusFilterLabel('low')).toBe('Low stock')
+    expect(getStockStatusFilterLabel('out')).toBe('Out of stock')
+    expect(getStockStatusFilterLabel('order')).toBe('To order')
+
+    const { container, cleanup } = mount()
+    expect(container.querySelector('#stock-filtered-context')).toBeNull()
+
+    click(summaryCard(container, 'Low stock'))
+    const context = container.querySelector('#stock-filtered-context')
+    expect(context).toBeTruthy()
+    expect(context.querySelector('.stock-filtered-context-title')?.textContent).toBe('Low stock')
+    expect(context.querySelector('.stock-filtered-context-count')?.textContent).toBe('1 product')
+    expect(catalogRoot(container).className).toContain('is-filtered-mode')
+    cleanup()
+  })
+
+  it('3–4. Clear filter and KPI second tap both return to unfiltered mode', () => {
+    const { container, cleanup } = mount()
+    const lowCard = summaryCard(container, 'Low stock')
+    click(lowCard)
+    expect(container.querySelector('#stock-filtered-context')).toBeTruthy()
+
+    const clearBtn = Array.from(container.querySelectorAll('button'))
+      .find((node) => node.textContent === 'Clear filter')
+    expect(clearBtn).toBeTruthy()
+    click(clearBtn)
+    expect(container.querySelector('#stock-filtered-context')).toBeNull()
+    expect(catalogRoot(container).className).not.toContain('is-filtered-mode')
+    expect(catalogProductNames(container)).toHaveLength(4)
+    // Unfiltered mode restores Needs Attention above the catalog again.
+    const attention = container.querySelector('[aria-label="Needs attention"]')
+    expect(attention).toBeTruthy()
+    expect(
+      attention.compareDocumentPosition(catalogRoot(container)) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy()
+
+    click(lowCard)
+    expect(container.querySelector('#stock-filtered-context')).toBeTruthy()
+    click(lowCard)
+    expect(container.querySelector('#stock-filtered-context')).toBeNull()
+    expect(lowCard.getAttribute('aria-pressed')).toBe('false')
+    cleanup()
+  })
+
+  it('5 / 11. Active status control matches KPI with no contradictory selected states', () => {
+    const { container, cleanup } = mount()
+    const lowCard = summaryCard(container, 'Low stock')
+    click(lowCard)
+
+    expect(lowCard.getAttribute('aria-pressed')).toBe('true')
+    const statusTabs = container.querySelector('[aria-label="Stock status"]')
+    const activeStatus = statusTabs.querySelector('.stock-status-filter.active')
+    expect(activeStatus?.textContent).toBe('Low')
+    expect(statusTabs.querySelectorAll('.stock-status-filter.active')).toHaveLength(1)
+    expect(container.querySelectorAll('.stock-summary-card.is-selected')).toHaveLength(1)
+    cleanup()
+  })
+
+  it('6–7. Filtered catalog precedes Needs Attention; unfiltered order keeps Needs Attention first', () => {
+    const { container, cleanup } = mount()
+    const catalog = catalogRoot(container)
+    const attentionBefore = container.querySelector('[aria-label="Needs attention"]')
+    expect(attentionBefore).toBeTruthy()
+    expect(
+      attentionBefore.compareDocumentPosition(catalog) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy()
+
+    click(summaryCard(container, 'Out of stock'))
+    const attentionAfter = container.querySelector('[aria-label="Needs attention"]')
+    const context = container.querySelector('#stock-filtered-context')
+    const toolbar = catalog.querySelector('.stock-dashboard-toolbar')
+    expect(context).toBeTruthy()
+    expect(
+      context.compareDocumentPosition(toolbar) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy()
+    expect(
+      catalog.compareDocumentPosition(attentionAfter) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy()
+    expect(container.querySelector('.stock-operations-banner')).toBeNull()
+    expect(container.querySelector('.stock-today-activity')).toBeNull()
+    cleanup()
+  })
+
+  it('8–9. Cards/List/Count and category/visibility remain available in filtered mode', () => {
+    const { container, cleanup } = mount()
+    click(summaryCard(container, 'To order'))
+
+    expect(container.querySelectorAll('.stock-layout-mode-btn')).toHaveLength(3)
+    expect(container.querySelector('[aria-label="Stock categories"]')).toBeTruthy()
+    expect(container.querySelector('[aria-label="Product visibility"]')).toBeTruthy()
+    expect(container.querySelector('[aria-label="Stock status"]')).toBeTruthy()
+
+    setLayoutMode(container, 'List')
+    expect(catalogProductNames(container)).toHaveLength(3)
+    setLayoutMode(container, 'Count')
+    expect(catalogProductNames(container)).toHaveLength(3)
+    cleanup()
+  })
+
+  it('10. Search remains compatible with filtered-mode layout', () => {
+    const { container, cleanup } = mount({ searchTerm: 'OUT' })
+    click(summaryCard(container, 'Out of stock'))
+    expect(container.querySelector('#stock-filtered-context .stock-filtered-context-count')?.textContent)
+      .toBe('1 product')
+    expect(catalogProductNames(container)).toEqual(['OUT ITEM'])
+    cleanup()
+  })
+})
+
+describe('MobileManagerStockView unchanged (P8.17.3c)', () => {
+  it('12. Dedicated mobile shell does not gain filtered-context chrome', () => {
+    const { container, cleanup } = render(createElement(MobileManagerStockView, {
+      stockItems: CATALOG,
+      stockSummary: { totalItems: 4, lowStock: 1, outOfStock: 1, toOrder: 3 },
+      isLoading: false,
+      catalogLoadFailed: false,
+      canManageStock: true,
+      isWorkspaceReady: true,
+    }))
+
+    expect(container.querySelector('#stock-filtered-context')).toBeNull()
+    expect(container.querySelector('.stock-all-products-catalog')).toBeNull()
+    expect(container.textContent).toContain('LOW ITEM')
+    cleanup()
   })
 })

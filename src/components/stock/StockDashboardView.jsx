@@ -15,6 +15,7 @@ import {
 } from '../../lib/stockBulkActions'
 import {
   filterStockDashboardItems,
+  getStockStatusFilterLabel,
   groupStockDashboardItems,
   sortStockDashboardItems,
   STOCK_GROUP_BY_OPTIONS,
@@ -1678,21 +1679,28 @@ export function StockDashboardView({
   const allVisibleSelected = visibleItems.length > 0 && visibleItems.every((item) => selectedIds.has(item.id))
   const isStockActionBusy = isSaving || isSavingOrders
 
-  // P8.17.3a / P8.17.3b — KPI cards toggle the same statusFilter used by All Products.
-  // After activating a filter, scroll the All Products catalog into view so iPad operators
-  // are not left looking at the unfiltered Needs Attention list above.
+  // P8.17.3a / P8.17.3b / P8.17.3c — KPI cards toggle the same statusFilter used by All Products.
+  // Scroll lands on the filtered-context header so the title/count stay visible on iPad.
   const applyKpiStatusFilter = (nextStatus) => {
     const nextFilter = statusFilter === nextStatus ? 'all' : nextStatus
     setCategoryFilter('All')
     setStatusFilter(nextFilter)
     if (nextFilter === 'all') return
     queueMicrotask(() => {
-      document.getElementById('stock-all-products-catalog')?.scrollIntoView({
+      document.getElementById('stock-filtered-context')?.scrollIntoView({
         behavior: 'smooth',
         block: 'start',
       })
     })
   }
+
+  const clearStatusFilter = () => {
+    setStatusFilter('all')
+  }
+
+  const isFilteredMode = statusFilter !== 'all'
+  const filteredContextLabel = getStockStatusFilterLabel(statusFilter)
+  const filteredProductCount = visibleItems.length
 
   const needsAttentionSection = hasNeedsAttention && !isLoading ? (
     <StockNeedsAttentionSection
@@ -1772,7 +1780,7 @@ export function StockDashboardView({
         ) : null}
       </section>
 
-      {!isLoading && (criticalStockCount > 0 || ordersSummary.pendingCount > 0) ? (
+      {!isFilteredMode && !isLoading && (criticalStockCount > 0 || ordersSummary.pendingCount > 0) ? (
         <StockOperationsBanner
           ordersSummary={ordersSummary}
           criticalStockCount={criticalStockCount}
@@ -1781,18 +1789,43 @@ export function StockDashboardView({
         />
       ) : null}
 
-      {!isLoading && stockItems.length > 0 ? (
+      {!isFilteredMode && !isLoading && stockItems.length > 0 ? (
         <StockTodayActivitySection activityLine={todayActivityLine} />
       ) : null}
 
       {/*
-        P8.17.3b — While a KPI/status filter is active, render the filtered All Products
-        catalog before Needs Attention so the operator sees the filtered dataset first.
-        Needs Attention grouping/expansion stays unchanged; only document order shifts.
+        P8.17.3b/c — While a KPI/status filter is active, render the filtered catalog
+        before Needs Attention and skip banner/activity so results sit near the KPI.
+        Needs Attention grouping/expansion stays unchanged.
       */}
-      {statusFilter === 'all' ? needsAttentionSection : null}
+      {!isFilteredMode ? needsAttentionSection : null}
 
-      <div id="stock-all-products-catalog" className="stock-all-products-catalog" aria-label="All products catalog">
+      <div
+        id="stock-all-products-catalog"
+        className={`stock-all-products-catalog${isFilteredMode ? ' is-filtered-mode' : ''}`}
+        aria-label="All products catalog"
+      >
+      {isFilteredMode ? (
+        <header
+          id="stock-filtered-context"
+          className="stock-filtered-context"
+          aria-label="Filtered stock results"
+        >
+          <div className="stock-filtered-context-copy">
+            <h3 className="stock-filtered-context-title">{filteredContextLabel}</h3>
+            <p className="stock-filtered-context-count">
+              {filteredProductCount} product{filteredProductCount === 1 ? '' : 's'}
+            </p>
+          </div>
+          <button
+            type="button"
+            className="ghost-btn stock-filtered-context-clear"
+            onClick={clearStatusFilter}
+          >
+            Clear filter
+          </button>
+        </header>
+      ) : null}
       <div className={`stock-dashboard-toolbar${canManage ? ' has-visibility' : ''}`}>
         <div className="stock-filter-group stock-filter-group-category">
           <span className="stock-filter-group-label">Category</span>
@@ -2028,7 +2061,7 @@ export function StockDashboardView({
         </div>
       ) : null}
 
-      {!emptyState && visibleItems.length > 0 && !isLoading ? (
+      {!isFilteredMode && !emptyState && visibleItems.length > 0 && !isLoading ? (
         <header className="stock-all-products-header">
           <h3 className="stock-all-products-title">All products</h3>
         </header>
@@ -2037,7 +2070,7 @@ export function StockDashboardView({
       {renderGroupedItems()}
       </div>
 
-      {statusFilter !== 'all' ? needsAttentionSection : null}
+      {isFilteredMode ? needsAttentionSection : null}
 
       {bulkModalField ? (
         <StockBulkFieldModal

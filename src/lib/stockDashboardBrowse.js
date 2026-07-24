@@ -183,3 +183,14 @@ export function dismissStockSearchKeyboardOnEnter(event) {
   event.currentTarget?.blur?.()
   return true
 }
+
+/**
+ * P8.17.3c — Human labels for the existing statusFilter values.
+ * Matches KPI card wording; does not invent new terminology.
+ */
+export function getStockStatusFilterLabel(statusFilter = 'all') {
+  if (statusFilter === 'low') return 'Low stock'
+  if (statusFilter === 'out') return 'Out of stock'
+  if (statusFilter === 'order') return 'To order'
+  return 'All products'
+}
