@@ -50,6 +50,8 @@ export function StockItemPermanentDeleteDialog({
   const [canDismiss, setCanDismiss] = useState(false)
   const passwordRef = useRef(null)
   const confirmRef = useRef(null)
+  const executionErrorRef = useRef(null)
+  const shouldAutoFocusConfirmRef = useRef(true)
   const inFlightRef = useRef(false)
 
   const productName = `${preview?.product?.name ?? item?.name ?? ''}`.trim()
@@ -148,13 +150,31 @@ export function StockItemPermanentDeleteDialog({
     return () => window.clearInterval(timer)
   }, [phase, isBusy, password])
 
+  // Focus confirm once when preview first becomes ready — never after execution failure
+  // (that scrolled the sticky-footer alert out of view on iPad landscape).
   useEffect(() => {
-    if (phase !== 'ready') return undefined
+    if (phase === 'loading') {
+      shouldAutoFocusConfirmRef.current = true
+      return undefined
+    }
+    if (phase !== 'ready' || !shouldAutoFocusConfirmRef.current) return undefined
+    shouldAutoFocusConfirmRef.current = false
     const frame = window.requestAnimationFrame(() => {
       confirmRef.current?.focus?.()
     })
     return () => window.cancelAnimationFrame(frame)
   }, [phase])
+
+  // Keep execution / password / validation failures visible and focused in the sticky footer.
+  useEffect(() => {
+    if (!error || phase === 'preview_error' || phase === 'loading' || phase === 'success') {
+      return undefined
+    }
+    const frame = window.requestAnimationFrame(() => {
+      executionErrorRef.current?.focus?.()
+    })
+    return () => window.cancelAnimationFrame(frame)
+  }, [error, phase])
 
   useEffect(() => {
     const handleKeyDown = (event) => {
@@ -512,30 +532,36 @@ export function StockItemPermanentDeleteDialog({
                   </label>
                 </>
               ) : null}
-
-              {error && phase !== 'preview_error' ? (
-                <p className="staff-status-banner stock-item-permanent-delete-error" role="alert">
-                  {error}
-                </p>
-              ) : null}
             </div>
 
             <div className="modal-actions stock-item-permanent-delete-actions is-dialog-footer">
-              <button
-                type="button"
-                className="ghost-btn"
-                onClick={handleDismiss}
-                disabled={isBusy || phase === 'executing'}
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                className="primary-btn stock-item-permanent-delete-submit"
-                disabled={!canSubmit || phase === 'loading' || phase === 'preview_error'}
-              >
-                {phase === 'executing' || isBusy ? 'Deleting…' : 'Permanently delete'}
-              </button>
+              {error && phase !== 'preview_error' ? (
+                <p
+                  ref={executionErrorRef}
+                  className="staff-status-banner stock-item-permanent-delete-error stock-item-permanent-delete-execution-error"
+                  role="alert"
+                  tabIndex={-1}
+                >
+                  {error}
+                </p>
+              ) : null}
+              <div className="stock-item-permanent-delete-action-row">
+                <button
+                  type="button"
+                  className="ghost-btn"
+                  onClick={handleDismiss}
+                  disabled={isBusy || phase === 'executing'}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="primary-btn stock-item-permanent-delete-submit"
+                  disabled={!canSubmit || phase === 'loading' || phase === 'preview_error'}
+                >
+                  {phase === 'executing' || isBusy ? 'Deleting…' : 'Permanently delete'}
+                </button>
+              </div>
             </div>
           </form>
         )}

@@ -937,3 +937,239 @@ describe('Permanent Delete open inventory count deep link (P8.16.30)', () => {
     cleanup()
   })
 })
+
+describe('Permanent Delete execution error visibility (P8.16.36)', () => {
+  async function fillAndSubmit(phrase = 'DELETE KETEL ONE', password = 'secret') {
+    await waitForPreview()
+    await act(async () => {
+      setNativeValue(
+        getDialog().querySelector('input[aria-label="Typed confirmation phrase"]'),
+        phrase,
+      )
+      setNativeValue(
+        getDialog().querySelector('input[aria-label="Account password"]'),
+        password,
+      )
+    })
+
+    await act(async () => {
+      getDialog().querySelector('form')?.dispatchEvent(
+        new Event('submit', { bubbles: true, cancelable: true }),
+      )
+      await Promise.resolve()
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+  }
+
+  function getFooterExecutionAlert() {
+    return getDialog()?.querySelector(
+      '.stock-item-permanent-delete-actions.is-dialog-footer [role="alert"].stock-item-permanent-delete-execution-error',
+    )
+  }
+
+  it('shows delete/RPC failure in the sticky footer alert without body scroll reliance', async () => {
+    const onCompleted = vi.fn()
+    deleteMock.mockRejectedValueOnce(
+      new StockItemPermanentDeleteError('INTERNAL', 'boom'),
+    )
+
+    const { cleanup } = render(createElement(StockItemPermanentDeleteDialog, {
+      workspaceId: 'ws-1',
+      item: { id: 'item-1', name: 'KETEL ONE' },
+      onClose: vi.fn(),
+      onCompleted,
+    }))
+
+    await fillAndSubmit()
+
+    expect(deleteMock).toHaveBeenCalledTimes(1)
+    expect(onCompleted).not.toHaveBeenCalled()
+    expect(getDialog()?.textContent).toContain('Permanently Delete Product')
+    expect(getDeleteBtn()?.textContent).toBe('Permanently delete')
+    expect(getDeleteBtn()?.disabled).toBe(false)
+
+    const alert = getFooterExecutionAlert()
+    expect(alert).toBeTruthy()
+    expect(alert.textContent.length).toBeGreaterThan(0)
+    expect(
+      getDialog()?.querySelector('.stock-item-permanent-delete-body.is-internal-scroll [role="alert"]'),
+    ).toBeNull()
+    expect(alert.parentElement?.className).toContain('is-dialog-footer')
+
+    cleanup()
+  })
+
+  it('shows password failure in the sticky footer and never calls delete', async () => {
+    signInMock.mockRejectedValueOnce(new Error('Invalid login'))
+
+    const { cleanup } = render(createElement(StockItemPermanentDeleteDialog, {
+      workspaceId: 'ws-1',
+      item: { id: 'item-1', name: 'KETEL ONE' },
+      onClose: vi.fn(),
+    }))
+
+    await fillAndSubmit('DELETE KETEL ONE', 'wrong')
+
+    expect(signInMock).toHaveBeenCalled()
+    expect(deleteMock).not.toHaveBeenCalled()
+    expect(getDeleteBtn()?.textContent).toBe('Permanently delete')
+
+    const alert = getFooterExecutionAlert()
+    expect(alert).toBeTruthy()
+    expect(alert.textContent).toContain('Incorrect password')
+
+    cleanup()
+  })
+
+  it('moves focus to the footer alert after execution failure, not the confirm input', async () => {
+    deleteMock.mockRejectedValueOnce(
+      new StockItemPermanentDeleteError('INTERNAL', 'boom'),
+    )
+
+    const { cleanup } = render(createElement(StockItemPermanentDeleteDialog, {
+      workspaceId: 'ws-1',
+      item: { id: 'item-1', name: 'KETEL ONE' },
+      onClose: vi.fn(),
+    }))
+
+    await fillAndSubmit()
+
+    await act(async () => {
+      await Promise.resolve()
+      await new Promise((resolve) => {
+        window.requestAnimationFrame(() => resolve())
+      })
+    })
+
+    const alert = getFooterExecutionAlert()
+    const confirmInput = getDialog()?.querySelector('input[aria-label="Typed confirmation phrase"]')
+    expect(alert).toBeTruthy()
+    expect(document.activeElement).toBe(alert)
+    expect(document.activeElement).not.toBe(confirmInput)
+
+    cleanup()
+  })
+
+  it('allows retry after failure without duplicate in-flight requests from one click', async () => {
+    deleteMock
+      .mockRejectedValueOnce(new StockItemPermanentDeleteError('INTERNAL', 'boom'))
+      .mockResolvedValueOnce({
+        success: true,
+        deleted: {
+          product: { id: 'item-1', name: 'KETEL ONE' },
+          movements: { total: 6 },
+        },
+        preserved: {},
+      })
+
+    const onCompleted = vi.fn(async () => {})
+    const { cleanup } = render(createElement(StockItemPermanentDeleteDialog, {
+      workspaceId: 'ws-1',
+      item: { id: 'item-1', name: 'KETEL ONE' },
+      onClose: vi.fn(),
+      onCompleted,
+    }))
+
+    await fillAndSubmit()
+    expect(deleteMock).toHaveBeenCalledTimes(1)
+    expect(getFooterExecutionAlert()).toBeTruthy()
+    expect(getDeleteBtn()?.disabled).toBe(false)
+
+    await act(async () => {
+      getDialog().querySelector('form')?.dispatchEvent(
+        new Event('submit', { bubbles: true, cancelable: true }),
+      )
+      getDialog().querySelector('form')?.dispatchEvent(
+        new Event('submit', { bubbles: true, cancelable: true }),
+      )
+      await Promise.resolve()
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+
+    expect(deleteMock).toHaveBeenCalledTimes(2)
+    expect(onCompleted).toHaveBeenCalledTimes(1)
+    expect(getDialog()?.textContent).toContain('Successfully deleted')
+    expect(getFooterExecutionAlert()).toBeNull()
+
+    cleanup()
+  })
+
+  it('keeps successful delete free of failure alerts and still runs onCompleted', async () => {
+    const onCompleted = vi.fn(async () => {})
+
+    const { cleanup } = render(createElement(StockItemPermanentDeleteDialog, {
+      workspaceId: 'ws-1',
+      item: { id: 'item-1', name: 'KETEL ONE' },
+      onClose: vi.fn(),
+      onCompleted,
+    }))
+
+    await fillAndSubmit()
+
+    expect(onCompleted).toHaveBeenCalledTimes(1)
+    expect(getDialog()?.textContent).toContain('Successfully deleted')
+    expect(getFooterExecutionAlert()).toBeNull()
+    expect(getDialog()?.querySelector('[role="alert"]')).toBeNull()
+
+    cleanup()
+  })
+
+  it('keeps preview-error behavior in the scroll body unchanged', async () => {
+    previewMock.mockRejectedValueOnce(
+      new StockItemPermanentDeletePreviewError('FORBIDDEN', 'nope'),
+    )
+
+    const { cleanup } = render(createElement(StockItemPermanentDeleteDialog, {
+      workspaceId: 'ws-1',
+      item: { id: 'item-1', name: 'KETEL ONE' },
+      onClose: vi.fn(),
+    }))
+
+    await waitForPreview()
+
+    const bodyAlert = getDialog()?.querySelector(
+      '.stock-item-permanent-delete-body [role="alert"]',
+    )
+    expect(bodyAlert).toBeTruthy()
+    expect(bodyAlert.textContent).toContain('permission')
+    expect(getFooterExecutionAlert()).toBeNull()
+    expect(getDeleteBtn()?.disabled).toBe(true)
+
+    cleanup()
+  })
+
+  it('keeps confirmation phrase, password, and button enable rules unchanged', async () => {
+    const { cleanup } = render(createElement(StockItemPermanentDeleteDialog, {
+      workspaceId: 'ws-1',
+      item: { id: 'item-1', name: 'KETEL ONE' },
+      onClose: vi.fn(),
+    }))
+
+    await waitForPreview()
+    expect(getDeleteBtn()?.disabled).toBe(true)
+
+    await act(async () => {
+      setNativeValue(
+        getDialog().querySelector('input[aria-label="Typed confirmation phrase"]'),
+        'DELETE KETEL',
+      )
+      setNativeValue(
+        getDialog().querySelector('input[aria-label="Account password"]'),
+        'secret',
+      )
+    })
+    expect(getDeleteBtn()?.disabled).toBe(true)
+
+    await act(async () => {
+      setNativeValue(
+        getDialog().querySelector('input[aria-label="Typed confirmation phrase"]'),
+        'DELETE KETEL ONE',
+      )
+    })
+    expect(getDeleteBtn()?.disabled).toBe(false)
+
+    cleanup()
+  })
+})
