@@ -1,6 +1,8 @@
 /**
  * @vitest-environment jsdom
  */
+import { readFileSync } from 'node:fs'
+import { resolve } from 'node:path'
 import { createElement } from 'react'
 import { createRoot } from 'react-dom/client'
 import { act } from 'react'
@@ -2504,10 +2506,12 @@ describe('InventoryCountSessionWorkspace keyboard viewport repair (P8.17.4a)', (
     expect(available).toBeLessThan(400)
   })
 
-  it('3–6. Keyboard-open compact state sizes from available height and keeps item scroll + essential actions', async () => {
+  it('3–6. Keyboard-open compact state tracks visualViewport height and keeps item scroll + essential actions', async () => {
     const fakeViewport = {
       height: 420,
-      offsetTop: 0,
+      offsetTop: 12,
+      offsetLeft: 4,
+      width: 980,
       addEventListener: vi.fn(),
       removeEventListener: vi.fn(),
     }
@@ -2520,19 +2524,6 @@ describe('InventoryCountSessionWorkspace keyboard viewport repair (P8.17.4a)', (
     const session = container.querySelector('.inventory-count-session')
     expect(session).toBeTruthy()
 
-    // Nested offset below Stock chrome.
-    vi.spyOn(session, 'getBoundingClientRect').mockReturnValue({
-      top: 120,
-      bottom: 700,
-      left: 0,
-      right: 1000,
-      width: 1000,
-      height: 580,
-      x: 0,
-      y: 120,
-      toJSON: () => ({}),
-    })
-
     await act(async () => {
       fakeViewport.addEventListener.mock.calls
         .filter((call) => call[0] === 'resize')
@@ -2543,9 +2534,11 @@ describe('InventoryCountSessionWorkspace keyboard viewport repair (P8.17.4a)', (
     })
 
     expect(session.className).toContain('is-keyboard-compact')
-    const available = session.style.getPropertyValue('--inventory-count-session-available-height')
-    expect(available).toBe('292px')
-    expect(available).not.toBe('420px')
+    expect(session.style.getPropertyValue('--inventory-count-vv-top')).toBe('12px')
+    expect(session.style.getPropertyValue('--inventory-count-vv-left')).toBe('4px')
+    expect(session.style.getPropertyValue('--inventory-count-vv-width')).toBe('980px')
+    expect(session.style.getPropertyValue('--inventory-count-vv-height')).toBe('420px')
+    expect(session.style.getPropertyValue('--inventory-count-session-available-height')).toBe('')
     expect(container.querySelector('.inventory-count-session-table-wrap')).toBeTruthy()
     expect(getButtonByText(container, 'Previous')).toBeTruthy()
     expect(getButtonByText(container, 'Next')).toBeTruthy()
@@ -2601,7 +2594,7 @@ describe('InventoryCountSessionWorkspace keyboard viewport repair (P8.17.4a)', (
     expect(container.scrollTop).toBe(220)
   })
 
-  it('7–8. Keyboard close clears compact height; repeated open/close does not accumulate stale values', async () => {
+  it('7–8. Keyboard close restores full visualViewport height; repeated open/close does not accumulate stale values', async () => {
     let vvHeight = 768
     const listeners = new Map()
     const fakeViewport = {
@@ -2609,6 +2602,8 @@ describe('InventoryCountSessionWorkspace keyboard viewport repair (P8.17.4a)', (
         return vvHeight
       },
       offsetTop: 0,
+      offsetLeft: 0,
+      width: 1024,
       addEventListener: vi.fn((type, handler) => {
         listeners.set(type, handler)
       }),
@@ -2623,17 +2618,6 @@ describe('InventoryCountSessionWorkspace keyboard viewport repair (P8.17.4a)', (
 
     const { container, cleanup } = await renderWorkspace()
     const session = container.querySelector('.inventory-count-session')
-    vi.spyOn(session, 'getBoundingClientRect').mockReturnValue({
-      top: 100,
-      bottom: 700,
-      left: 0,
-      right: 1000,
-      width: 1000,
-      height: 600,
-      x: 0,
-      y: 100,
-      toJSON: () => ({}),
-    })
 
     const fireResize = async () => {
       await act(async () => {
@@ -2647,20 +2631,23 @@ describe('InventoryCountSessionWorkspace keyboard viewport repair (P8.17.4a)', (
     vvHeight = 400
     await fireResize()
     expect(session.className).toContain('is-keyboard-compact')
-    expect(session.style.getPropertyValue('--inventory-count-session-available-height')).toBe('292px')
+    expect(session.style.getPropertyValue('--inventory-count-vv-height')).toBe('400px')
+    expect(session.style.getPropertyValue('--inventory-count-session-available-height')).toBe('')
 
     vvHeight = 768
     await fireResize()
     expect(session.className).not.toContain('is-keyboard-compact')
+    expect(session.style.getPropertyValue('--inventory-count-vv-height')).toBe('768px')
     expect(session.style.getPropertyValue('--inventory-count-session-available-height')).toBe('')
 
     vvHeight = 390
     await fireResize()
     expect(session.className).toContain('is-keyboard-compact')
-    expect(session.style.getPropertyValue('--inventory-count-session-available-height')).toBe('282px')
+    expect(session.style.getPropertyValue('--inventory-count-vv-height')).toBe('390px')
 
     vvHeight = 768
     await fireResize()
+    expect(session.className).not.toContain('is-keyboard-compact')
     expect(session.style.getPropertyValue('--inventory-count-session-available-height')).toBe('')
 
     cleanup()
@@ -3458,7 +3445,7 @@ describe('InventoryCountSessionWorkspace iPad scroll ownership (P8.18.2a)', () =
     const scroll = container.querySelector('[data-inventory-count-row-scroll="true"]')
     expect(head).toBeTruthy()
     expect(scroll.contains(head)).toBe(false)
-    expect(fakeViewport.addEventListener.mock.calls.some((call) => call[0] === 'scroll')).toBe(false)
+    expect(fakeViewport.addEventListener.mock.calls.some((call) => call[0] === 'scroll')).toBe(true)
 
     cleanup()
     Object.defineProperty(window, 'innerHeight', { configurable: true, value: originalInnerHeight })
@@ -3933,5 +3920,426 @@ describe('InventoryCountSessionWorkspace usable viewport & Enter reveal (P8.18.3
     })
     expect(scroll.scrollTop).toBe(77)
     cleanup()
+  })
+})
+
+describe('InventoryCountSessionWorkspace visual-viewport isolation (P8.18.4)', () => {
+  const appCss = readFileSync(resolve(process.cwd(), 'src/App.css'), 'utf8')
+
+  beforeEach(() => {
+    getInventoryCountSession.mockReset()
+    getInventoryCountSessionLocations.mockReset()
+    getInventoryCountSessionItems.mockReset()
+    updateInventoryCountItem.mockReset()
+    completeInventoryCountLocation.mockReset()
+
+    getInventoryCountSession.mockResolvedValue({
+      id: 'session-real-1',
+      workspaceId: 'workspace-test-id',
+      status: 'in_progress',
+    })
+    getInventoryCountSessionLocations.mockResolvedValue(FIXTURE_LOCATIONS)
+    getInventoryCountSessionItems.mockResolvedValue(FIXTURE_ITEMS)
+    updateInventoryCountItem.mockImplementation(async ({ sessionItemId, countedQuantity }) => ({
+      id: sessionItemId,
+      countedQuantity,
+      lineStatus: countedQuantity === null || countedQuantity === undefined ? 'pending' : 'counted',
+    }))
+  })
+
+  it('A. Document lock lifecycle captures, applies, and restores html/body inline styles', async () => {
+    const html = document.documentElement
+    const body = document.body
+    html.style.overflow = 'auto'
+    html.style.height = '90%'
+    body.style.overflow = 'scroll'
+    body.style.height = '88%'
+    body.style.position = 'static'
+    body.style.width = '97%'
+    body.style.top = '3px'
+
+    const scrollToSpy = vi.spyOn(window, 'scrollTo').mockImplementation(() => {})
+    Object.defineProperty(window, 'scrollY', { configurable: true, value: 140 })
+    Object.defineProperty(window, 'scrollX', { configurable: true, value: 12 })
+
+    const { cleanup } = await renderWorkspace()
+
+    expect(html.style.overflow).toBe('hidden')
+    expect(html.style.height).toBe('100%')
+    expect(body.style.overflow).toBe('hidden')
+    expect(body.style.position).toBe('fixed')
+    expect(body.style.width).toBe('100%')
+    expect(body.style.top).toBe('-140px')
+
+    cleanup()
+
+    expect(html.style.overflow).toBe('auto')
+    expect(html.style.height).toBe('90%')
+    expect(body.style.overflow).toBe('scroll')
+    expect(body.style.height).toBe('88%')
+    expect(body.style.position).toBe('static')
+    expect(body.style.width).toBe('97%')
+    expect(body.style.top).toBe('3px')
+    expect(scrollToSpy).toHaveBeenCalledWith(12, 140)
+
+    scrollToSpy.mockRestore()
+    html.style.overflow = ''
+    html.style.height = ''
+    body.style.overflow = ''
+    body.style.height = ''
+    body.style.position = ''
+    body.style.width = ''
+    body.style.top = ''
+    body.style.left = ''
+    body.style.right = ''
+  })
+
+  it('B. visualViewport variables update on resize/scroll and fall back to window size', async () => {
+    let vvHeight = 640
+    let vvTop = 0
+    const listeners = new Map()
+    const fakeViewport = {
+      get height() { return vvHeight },
+      get offsetTop() { return vvTop },
+      offsetLeft: 8,
+      width: 1100,
+      addEventListener: vi.fn((type, handler) => {
+        listeners.set(type, handler)
+      }),
+      removeEventListener: vi.fn((type) => {
+        listeners.delete(type)
+      }),
+    }
+    const originalInnerHeight = window.innerHeight
+    const originalInnerWidth = window.innerWidth
+    const originalViewport = window.visualViewport
+    Object.defineProperty(window, 'innerHeight', { configurable: true, value: 800 })
+    Object.defineProperty(window, 'innerWidth', { configurable: true, value: 1200 })
+    Object.defineProperty(window, 'visualViewport', { configurable: true, value: fakeViewport })
+
+    const { container, cleanup } = await renderWorkspace()
+    const session = container.querySelector('.inventory-count-session')
+
+    await act(async () => {
+      listeners.get('resize')?.()
+      await new Promise((resolve) => {
+        requestAnimationFrame(() => resolve())
+      })
+    })
+    expect(session.style.getPropertyValue('--inventory-count-vv-top')).toBe('0px')
+    expect(session.style.getPropertyValue('--inventory-count-vv-left')).toBe('8px')
+    expect(session.style.getPropertyValue('--inventory-count-vv-width')).toBe('1100px')
+    expect(session.style.getPropertyValue('--inventory-count-vv-height')).toBe('640px')
+
+    vvHeight = 420
+    vvTop = 24
+    await act(async () => {
+      listeners.get('scroll')?.()
+      await new Promise((resolve) => {
+        requestAnimationFrame(() => resolve())
+      })
+    })
+    expect(session.style.getPropertyValue('--inventory-count-vv-top')).toBe('24px')
+    expect(session.style.getPropertyValue('--inventory-count-vv-height')).toBe('420px')
+
+    cleanup()
+    Object.defineProperty(window, 'visualViewport', { configurable: true, value: undefined })
+
+    const fallback = await renderWorkspace()
+    await act(async () => {
+      window.dispatchEvent(new Event('resize'))
+      await new Promise((resolve) => {
+        requestAnimationFrame(() => resolve())
+      })
+    })
+    const fallbackSession = fallback.container.querySelector('.inventory-count-session')
+    expect(fallbackSession.style.getPropertyValue('--inventory-count-vv-top')).toBe('0px')
+    expect(fallbackSession.style.getPropertyValue('--inventory-count-vv-left')).toBe('0px')
+    expect(fallbackSession.style.getPropertyValue('--inventory-count-vv-width')).toBe('1200px')
+    expect(fallbackSession.style.getPropertyValue('--inventory-count-vv-height')).toBe('800px')
+
+    fallback.cleanup()
+    Object.defineProperty(window, 'innerHeight', { configurable: true, value: originalInnerHeight })
+    Object.defineProperty(window, 'innerWidth', { configurable: true, value: originalInnerWidth })
+    Object.defineProperty(window, 'visualViewport', { configurable: true, value: originalViewport })
+  })
+
+  it('C. Fixed session contract uses visual-viewport CSS geometry', () => {
+    expect(appCss).toMatch(
+      /\.inventory-count-session\.is-high-density\s*\{[^}]*position:\s*fixed/s,
+    )
+    expect(appCss).toContain('top: var(--inventory-count-vv-top)')
+    expect(appCss).toContain('left: var(--inventory-count-vv-left)')
+    expect(appCss).toContain('width: var(--inventory-count-vv-width)')
+    expect(appCss).toContain('height: var(--inventory-count-vv-height)')
+    expect(appCss).toContain('max-height: none')
+    expect(appCss).toContain('overflow: hidden')
+    expect(appCss).toContain('grid-template-rows: auto minmax(0, 1fr) auto auto auto')
+  })
+
+  it('D. Deterministic body sizing markers: fixed root, min-height zero chain, sheet-scroll owns rows', async () => {
+    const { container, cleanup } = await renderWorkspace()
+    const session = container.querySelector('[data-inventory-count-viewport-isolated="true"]')
+    expect(session?.className).toContain('is-viewport-isolated')
+    expect(session?.className).toContain('is-high-density')
+    expect(container.querySelector('[data-inventory-count-session-chrome="true"]')).toBeTruthy()
+    expect(container.querySelector('[data-inventory-count-session-body="true"]')).toBeTruthy()
+    const scroll = container.querySelector('[data-inventory-count-row-scroll="true"]')
+    const footer = container.querySelector('[data-inventory-count-footer="true"]')
+    expect(scroll).toBeTruthy()
+    expect(footer).toBeTruthy()
+    expect(scroll.contains(footer)).toBe(false)
+    expect(appCss).toMatch(
+      /\.inventory-count-session\.is-high-density\s+\.inventory-count-session-body\s*\{[^}]*min-height:\s*0/s,
+    )
+    expect(appCss).toMatch(
+      /\.inventory-count-session\.is-high-density\s+\.inventory-count-session-spreadsheet\s*\{[^}]*min-height:\s*0/s,
+    )
+    expect(appCss).toMatch(
+      /\.inventory-count-session\.is-high-density\s+\.inventory-count-session-sheet-scroll[\s\S]*?overflow-y:\s*auto/s,
+    )
+    cleanup()
+  })
+
+  it('E. Document/Stock panel do not move on visualViewport resize, focus, or Enter', async () => {
+    const frames = []
+    const originalRaf = window.requestAnimationFrame
+    window.requestAnimationFrame = (cb) => {
+      frames.push(cb)
+      return frames.length
+    }
+
+    const fakeViewport = {
+      height: 420,
+      offsetTop: 0,
+      offsetLeft: 0,
+      width: 1024,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    }
+    const originalInnerHeight = window.innerHeight
+    const originalViewport = window.visualViewport
+    Object.defineProperty(window, 'innerHeight', { configurable: true, value: 768 })
+    Object.defineProperty(window, 'visualViewport', { configurable: true, value: fakeViewport })
+
+    const scrollToSpy = vi.spyOn(window, 'scrollTo').mockImplementation(() => {})
+    const panel = document.createElement('div')
+    panel.className = 'main-panel-stock'
+    Object.defineProperty(panel, 'scrollTop', { configurable: true, writable: true, value: 55 })
+    document.body.appendChild(panel)
+
+    const scrollingElement = document.scrollingElement || document.documentElement
+    Object.defineProperty(scrollingElement, 'scrollTop', {
+      configurable: true,
+      writable: true,
+      value: 90,
+    })
+    Object.defineProperty(window, 'scrollY', { configurable: true, value: 90 })
+
+    getInventoryCountSessionItems.mockResolvedValue([
+      sessionItem({
+        id: 'ms-1',
+        itemName: 'Coca-Cola',
+        storageLocation: 'Main Storage',
+        countedQuantity: null,
+        lineStatus: 'pending',
+      }),
+      sessionItem({
+        id: 'ms-2',
+        itemName: 'Paper Straws',
+        storageLocation: 'Main Storage',
+        countedQuantity: null,
+        lineStatus: 'pending',
+      }),
+    ])
+    getInventoryCountSessionLocations.mockResolvedValue([
+      sessionLocation('loc-1', 'Main Storage', 0, 'current'),
+    ])
+
+    const { container, cleanup } = await renderWorkspace()
+    const scroll = container.querySelector('[data-inventory-count-row-scroll="true"]')
+    Object.defineProperty(scroll, 'scrollTop', { configurable: true, writable: true, value: 10 })
+    Object.defineProperty(scroll, 'scrollHeight', { configurable: true, value: 900 })
+    Object.defineProperty(scroll, 'clientHeight', { configurable: true, value: 300 })
+    vi.spyOn(scroll, 'getBoundingClientRect').mockReturnValue({
+      top: 100,
+      bottom: 400,
+      left: 0,
+      right: 400,
+      width: 400,
+      height: 300,
+      x: 0,
+      y: 100,
+      toJSON: () => ({}),
+    })
+
+    const first = container.querySelector('input[aria-label="Counted quantity for Coca-Cola"]')
+    const second = container.querySelector('input[aria-label="Counted quantity for Paper Straws"]')
+    vi.spyOn(second, 'getBoundingClientRect').mockReturnValue({
+      top: 390,
+      bottom: 424,
+      left: 40,
+      right: 140,
+      width: 100,
+      height: 34,
+      x: 40,
+      y: 390,
+      toJSON: () => ({}),
+    })
+
+    scrollToSpy.mockClear()
+
+    await act(async () => {
+      fakeViewport.addEventListener.mock.calls
+        .filter((call) => call[0] === 'resize')
+        .forEach((call) => call[1]())
+      const pending = frames.splice(0, frames.length)
+      pending.forEach((cb) => cb())
+      const nested = frames.splice(0, frames.length)
+      nested.forEach((cb) => cb())
+    })
+
+    await act(async () => {
+      first.focus({ preventScroll: true })
+    })
+
+    await act(async () => {
+      const nativeInputValueSetter = Object.getOwnPropertyDescriptor(
+        window.HTMLInputElement.prototype,
+        'value',
+      )?.set
+      nativeInputValueSetter?.call(first, '3')
+      first.dispatchEvent(new Event('input', { bubbles: true }))
+    })
+    await act(async () => {
+      first.dispatchEvent(new KeyboardEvent('keydown', {
+        key: 'Enter',
+        bubbles: true,
+        cancelable: true,
+      }))
+      await Promise.resolve()
+      await Promise.resolve()
+      const pending = frames.splice(0, frames.length)
+      pending.forEach((cb) => cb())
+    })
+
+    expect(scrollToSpy).not.toHaveBeenCalled()
+    expect(scrollingElement.scrollTop).toBe(90)
+    expect(panel.scrollTop).toBe(55)
+    expect(scroll.scrollTop).toBeGreaterThan(10)
+
+    window.requestAnimationFrame = originalRaf
+    cleanup()
+    panel.remove()
+    scrollToSpy.mockRestore()
+    Object.defineProperty(window, 'innerHeight', { configurable: true, value: originalInnerHeight })
+    Object.defineProperty(window, 'visualViewport', { configurable: true, value: originalViewport })
+  })
+
+  it('F. Reducing visualViewport height updates session height without stale row scrollTop restore', async () => {
+    const frames = []
+    const originalRaf = window.requestAnimationFrame
+    window.requestAnimationFrame = (cb) => {
+      frames.push(cb)
+      return frames.length
+    }
+
+    const fakeViewport = {
+      height: 500,
+      offsetTop: 0,
+      offsetLeft: 0,
+      width: 1024,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    }
+    const originalInnerHeight = window.innerHeight
+    const originalViewport = window.visualViewport
+    Object.defineProperty(window, 'innerHeight', { configurable: true, value: 768 })
+    Object.defineProperty(window, 'visualViewport', { configurable: true, value: fakeViewport })
+
+    const { container, cleanup } = await renderWorkspace()
+    const session = container.querySelector('.inventory-count-session')
+    const scroll = container.querySelector('[data-inventory-count-row-scroll="true"]')
+    Object.defineProperty(scroll, 'scrollTop', { configurable: true, writable: true, value: 160 })
+    Object.defineProperty(scroll, 'scrollHeight', { configurable: true, value: 900 })
+    Object.defineProperty(scroll, 'clientHeight', { configurable: true, value: 300 })
+    if (typeof document !== 'undefined' && document.activeElement?.blur) {
+      document.activeElement.blur()
+    }
+
+    await act(async () => {
+      fakeViewport.height = 360
+      fakeViewport.addEventListener.mock.calls
+        .filter((call) => call[0] === 'resize')
+        .forEach((call) => call[1]())
+      const pending = frames.splice(0, frames.length)
+      pending.forEach((cb) => cb())
+      const nested = frames.splice(0, frames.length)
+      nested.forEach((cb) => cb())
+    })
+
+    expect(session.style.getPropertyValue('--inventory-count-vv-height')).toBe('360px')
+    expect(session.className).toContain('is-keyboard-compact')
+    expect(scroll.scrollTop).toBe(160)
+
+    window.requestAnimationFrame = originalRaf
+    cleanup()
+    Object.defineProperty(window, 'innerHeight', { configurable: true, value: originalInnerHeight })
+    Object.defineProperty(window, 'visualViewport', { configurable: true, value: originalViewport })
+  })
+
+  it('G. Final row / footer separation keeps 56px end clearance and in-flow footer', async () => {
+    const { container, cleanup } = await renderWorkspace()
+    const scroll = container.querySelector('[data-inventory-count-row-scroll="true"]')
+    const footer = container.querySelector('[data-inventory-count-footer="true"]')
+    expect(INVENTORY_COUNT_SHEET_END_CLEARANCE_PX).toBe(56)
+    expect(scroll.contains(footer)).toBe(false)
+    expect(appCss).toMatch(
+      /\.inventory-count-session\.is-high-density\s+\.inventory-count-session-footer\s*\{[^}]*position:\s*static/s,
+    )
+    expect(appCss).toContain('--inventory-count-sheet-end-clearance: 56px')
+    expect(appCss).toContain('padding: 0 0 var(--inventory-count-sheet-end-clearance, 56px)')
+
+    vi.spyOn(scroll, 'getBoundingClientRect').mockReturnValue({
+      top: 120,
+      bottom: 520,
+      left: 0,
+      right: 800,
+      width: 800,
+      height: 400,
+      x: 0,
+      y: 120,
+      toJSON: () => ({}),
+    })
+    vi.spyOn(footer, 'getBoundingClientRect').mockReturnValue({
+      top: 520,
+      bottom: 568,
+      left: 0,
+      right: 800,
+      width: 800,
+      height: 48,
+      x: 0,
+      y: 520,
+      toJSON: () => ({}),
+    })
+    expect(scroll.getBoundingClientRect().bottom).toBeLessThanOrEqual(footer.getBoundingClientRect().top)
+
+    const lastInput = {
+      getBoundingClientRect: () => ({
+        top: 488,
+        bottom: 504,
+        left: 40,
+        right: 140,
+      }),
+    }
+    expect(isInventoryCountCountedInputOutsideUsableViewport(lastInput, scroll)).toBe(false)
+
+    cleanup()
+  })
+
+  it('H. Counted inputs use iPad-safe 16px font size on touch/tablet workspace', () => {
+    expect(appCss).toMatch(
+      /@media \(hover: none\),\s*\(pointer: coarse\)\s*\{[^}]*\.inventory-count-session\.is-high-density\s+\.inventory-count-session-counted-input\s*\{[^}]*font-size:\s*16px/s,
+    )
   })
 })

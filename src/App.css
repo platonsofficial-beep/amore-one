@@ -282,7 +282,8 @@
   overflow-y: auto;
 }
 
-/* P8.18.2 / P8.18.2a — Active counting: Stock chrome must not own vertical scroll */
+/* P8.18.2 / P8.18.2a / P8.18.4 — Active counting: Stock chrome must not own vertical scroll.
+   The high-density session is a fixed visual-viewport workspace; the shell only stays locked. */
 .app-shell.stock-focus-mode .main-panel-stock:has(.inventory-count-session.is-high-density),
 .main-panel-stock.is-inventory-count-session-lock,
 .main-panel.is-inventory-count-session-lock {
@@ -303,7 +304,8 @@
 .app-shell.stock-focus-mode .main-panel-stock:has(.inventory-count-session.is-high-density) > .inventory-count-session.is-high-density,
 .main-panel-stock.is-inventory-count-session-lock > .inventory-count-session.is-high-density,
 .main-panel.is-inventory-count-session-lock > .inventory-count-session.is-high-density {
-  flex: 1 1 0%;
+  /* Geometry is owned by the fixed visual-viewport shell (P8.18.4). */
+  flex: 0 0 auto;
   min-height: 0;
   height: auto;
   max-height: none;
@@ -311,10 +313,10 @@
 
 .main-panel-stock.is-inventory-count-session-lock > .inventory-count-session.is-high-density.is-keyboard-compact,
 .main-panel.is-inventory-count-session-lock > .inventory-count-session.is-high-density.is-keyboard-compact {
-  flex: 1 1 0%;
-  height: var(--inventory-count-session-available-height);
+  flex: 0 0 auto;
+  height: auto;
   min-height: 0;
-  max-height: var(--inventory-count-session-available-height);
+  max-height: none;
 }
 
 .stock-focus-header {
@@ -32515,20 +32517,44 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   overflow: hidden;
 }
 
-/* P8.17.4 — High-density active counting workspace (iPad landscape first) */
+/* P8.17.4 / P8.18.4 — High-density active counting: fixed visual-viewport workspace */
 .inventory-count-session.is-high-density {
-  --inventory-count-visible-height: 100dvh;
+  --inventory-count-vv-top: 0px;
+  --inventory-count-vv-left: 0px;
+  --inventory-count-vv-width: 100%;
+  --inventory-count-vv-height: 100%;
   --inventory-count-sheet-end-clearance: 56px;
-  height: min(calc(var(--inventory-count-visible-height) - 28px), 960px);
-  min-height: min(calc(var(--inventory-count-visible-height) - 28px), 640px);
+  position: fixed;
+  top: var(--inventory-count-vv-top);
+  left: var(--inventory-count-vv-left);
+  width: var(--inventory-count-vv-width);
+  height: var(--inventory-count-vv-height);
+  max-height: none;
+  min-height: 0;
+  margin: 0;
+  box-sizing: border-box;
+  overflow: hidden;
+  z-index: 40;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto auto auto;
   overscroll-behavior: none;
+  border-radius: 0;
 }
 
-/* P8.17.4a — Keyboard-open: size from session-top → visualViewport bottom, never raw VV height */
+/* Keyboard-open: chrome compaction only — height remains visualViewport-driven */
 .inventory-count-session.is-high-density.is-keyboard-compact {
-  height: var(--inventory-count-session-available-height);
+  height: var(--inventory-count-vv-height);
   min-height: 0;
-  max-height: var(--inventory-count-session-available-height);
+  max-height: none;
+}
+
+.inventory-count-session.is-high-density .inventory-count-session-chrome {
+  grid-row: 1;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 
 .inventory-count-session.is-high-density .inventory-count-session-header {
@@ -32601,11 +32627,14 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   font-size: 0.78rem;
 }
 
-/* P8.18.2 — Spreadsheet-first width: ~80% main / compact location rail */
+/* P8.18.2 / P8.18.4 — Spreadsheet-first width: ~80% main / compact location rail */
 .inventory-count-session.is-high-density .inventory-count-session-body {
+  grid-row: 2;
   grid-template-columns: minmax(132px, 18%) minmax(0, 1fr);
-  flex: 1 1 0%;
+  display: grid;
+  flex: unset;
   min-height: 0;
+  height: 100%;
   overflow: hidden;
 }
 
@@ -32706,6 +32735,8 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   flex: 1 1 0%;
   min-height: 0;
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 
 .inventory-count-session.is-high-density .inventory-count-session-sheet-scroll,
@@ -32714,6 +32745,7 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   min-height: 0;
   overflow-x: hidden;
   overflow-y: auto;
+  overscroll-behavior-y: contain;
   overscroll-behavior: contain;
   padding: 0 0 var(--inventory-count-sheet-end-clearance, 56px);
   -webkit-overflow-scrolling: touch;
@@ -32731,12 +32763,27 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  height: 100%;
 }
 
 .inventory-count-session.is-high-density .inventory-count-session-footer {
+  grid-row: 3;
   gap: 10px;
   padding: 8px 12px;
   flex: 0 0 auto;
+  position: static;
+}
+
+.inventory-count-session.is-high-density .inventory-count-complete-disabled-reason {
+  grid-row: 4;
+  margin: 0;
+  padding: 0 12px 6px;
+}
+
+.inventory-count-session.is-high-density .inventory-count-session-completion-message {
+  grid-row: 5;
+  margin: 0;
+  padding: 0 12px 8px;
 }
 
 .inventory-count-session.is-high-density.is-keyboard-compact .inventory-count-session-rail {
@@ -32786,9 +32833,10 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 
 @media (min-width: 901px) and (max-width: 1180px) and (orientation: landscape) {
   .inventory-count-session.is-high-density {
-    height: min(calc(var(--inventory-count-visible-height) - 20px), 100%);
-    min-height: min(calc(var(--inventory-count-visible-height) - 20px), 560px);
-    border-radius: 16px;
+    height: var(--inventory-count-vv-height);
+    min-height: 0;
+    max-height: none;
+    border-radius: 0;
   }
 
   .app-shell.stock-focus-mode .main-panel-stock:has(.inventory-count-session.is-high-density) > .inventory-count-session.is-high-density {
@@ -32798,9 +32846,9 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   }
 
   .inventory-count-session.is-high-density.is-keyboard-compact {
-    height: var(--inventory-count-session-available-height);
+    height: var(--inventory-count-vv-height);
     min-height: 0;
-    max-height: var(--inventory-count-session-available-height);
+    max-height: none;
   }
 
   .inventory-count-session.is-high-density .inventory-count-session-body {
@@ -32810,6 +32858,17 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   .inventory-count-session.is-high-density .inventory-count-session-rail-item {
     min-height: 44px;
     padding: 6px 8px;
+  }
+
+  /* iPad/touch: prevent Safari input zoom on Counted focus */
+  .inventory-count-session.is-high-density .inventory-count-session-counted-input {
+    font-size: 16px;
+  }
+}
+
+@media (hover: none), (pointer: coarse) {
+  .inventory-count-session.is-high-density .inventory-count-session-counted-input {
+    font-size: 16px;
   }
 }
 
