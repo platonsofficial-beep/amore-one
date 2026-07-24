@@ -282,6 +282,25 @@
   overflow-y: auto;
 }
 
+/* P8.18.2 — Active counting session owns the viewport; do not let Stock chrome scroll the sheet away */
+.app-shell.stock-focus-mode .main-panel-stock:has(.inventory-count-session.is-high-density) {
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.app-shell.stock-focus-mode .main-panel-stock:has(.inventory-count-session.is-high-density) > * {
+  flex-shrink: 0;
+}
+
+.app-shell.stock-focus-mode .main-panel-stock:has(.inventory-count-session.is-high-density) > .inventory-count-session.is-high-density {
+  flex: 1 1 0%;
+  min-height: 0;
+  height: auto;
+  max-height: none;
+}
+
 .stock-focus-header {
   display: flex;
   flex-wrap: wrap;
@@ -32485,6 +32504,7 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   --inventory-count-visible-height: 100dvh;
   height: min(calc(var(--inventory-count-visible-height) - 28px), 960px);
   min-height: min(calc(var(--inventory-count-visible-height) - 28px), 640px);
+  overscroll-behavior: none;
 }
 
 /* P8.17.4a — Keyboard-open: size from session-top → visualViewport bottom, never raw VV height */
@@ -32496,12 +32516,14 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 
 .inventory-count-session.is-high-density .inventory-count-session-header {
   align-items: center;
-  gap: 10px 14px;
-  padding: 8px 14px;
+  gap: 8px 12px;
+  padding: 6px 12px;
 }
 
 .inventory-count-session.is-high-density .inventory-count-session-header-copy {
   gap: 0;
+  min-width: 0;
+  flex: 1 1 auto;
 }
 
 .inventory-count-session.is-high-density .inventory-count-session-eyebrow {
@@ -32517,53 +32539,163 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 }
 
 .inventory-count-session.is-high-density .inventory-count-session-meta {
-  flex-wrap: wrap;
-  gap: 6px 12px;
+  flex-wrap: nowrap;
+  gap: 4px 10px;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+.inventory-count-session.is-high-density .inventory-count-session-pill {
+  min-height: 24px;
+  padding: 0 8px;
+  font-size: 0.68rem;
 }
 
 .inventory-count-session.is-high-density .inventory-count-session-meta-item {
   flex-direction: row;
   align-items: baseline;
-  gap: 6px;
+  gap: 5px;
+  flex-shrink: 0;
+}
+
+.inventory-count-session.is-high-density .inventory-count-session-meta-label {
+  font-size: 0.62rem;
+  letter-spacing: 0.08em;
+  color: rgba(255, 247, 232, 0.42);
+}
+
+.inventory-count-session.is-high-density .inventory-count-session-meta-value {
+  font-size: 0.78rem;
+  font-weight: 650;
 }
 
 .inventory-count-session.is-high-density .inventory-count-session-meta-secondary {
   display: none;
 }
 
+.inventory-count-session.is-high-density .inventory-count-session-header-actions {
+  gap: 6px;
+}
+
+.inventory-count-session.is-high-density .inventory-count-session-header-actions .inventory-count-session-action-btn {
+  min-height: 36px;
+  padding-inline: 10px;
+  font-size: 0.78rem;
+}
+
+/* P8.18.2 — Spreadsheet-first width: ~80% main / compact location rail */
+.inventory-count-session.is-high-density .inventory-count-session-body {
+  grid-template-columns: minmax(132px, 18%) minmax(0, 1fr);
+}
+
+.inventory-count-session.is-high-density .inventory-count-session-rail {
+  gap: 6px;
+  padding: 8px 8px;
+}
+
+.inventory-count-session.is-high-density .inventory-count-session-rail-item {
+  grid-template-columns: 22px minmax(0, 1fr);
+  gap: 8px;
+  min-height: 48px;
+  padding: 7px 8px;
+  border-radius: 12px;
+}
+
+.inventory-count-session.is-high-density .inventory-count-session-rail-item .inventory-count-session-rail-progress {
+  display: none;
+}
+
+.inventory-count-session.is-high-density .inventory-count-session-rail-badge {
+  width: 22px;
+  height: 22px;
+  font-size: 0.7rem;
+}
+
+.inventory-count-session.is-high-density .inventory-count-session-rail-title {
+  font-size: 0.78rem;
+}
+
+.inventory-count-session.is-high-density .inventory-count-session-rail-state {
+  font-size: 0.66rem;
+}
+
+.inventory-count-session.is-high-density .inventory-count-session-rail-current-badge {
+  font-size: 0.58rem;
+  padding: 0 5px;
+  min-height: 16px;
+}
+
 .inventory-count-session.is-high-density .inventory-count-session-toolbar {
   align-items: center;
-  gap: 10px 12px;
-  padding: 8px 12px;
+  gap: 8px 10px;
+  padding: 6px 10px 6px;
+}
+
+.inventory-count-session.is-high-density .inventory-count-session-search {
+  max-width: none;
+  flex: 1 1 auto;
+}
+
+.inventory-count-session.is-high-density .inventory-count-session-search-input,
+.inventory-count-session.is-high-density .inventory-count-session-filter-btn {
+  min-height: 36px;
 }
 
 .inventory-count-session.is-high-density .inventory-count-session-progress-card {
-  min-width: 150px;
-  padding: 8px 10px;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-rows: auto auto;
+  column-gap: 8px;
+  row-gap: 0;
+  align-items: center;
+  min-width: 0;
+  max-width: 168px;
+  flex: 0 1 168px;
+  padding: 5px 8px;
+  border-radius: 10px;
 }
 
 .inventory-count-session.is-high-density .inventory-count-session-progress-percent {
-  font-size: 1.15rem;
+  grid-row: 1 / span 2;
+  font-size: 0.98rem;
+  line-height: 1;
+}
+
+.inventory-count-session.is-high-density .inventory-count-session-progress-primary {
+  font-size: 0.72rem;
+  line-height: 1.2;
+}
+
+.inventory-count-session.is-high-density .inventory-count-session-progress-secondary {
+  font-size: 0.64rem;
+  line-height: 1.2;
+}
+
+.inventory-count-session.is-high-density .inventory-count-session-progress-secondary + .inventory-count-session-progress-secondary {
+  display: none;
 }
 
 .inventory-count-session.is-high-density .inventory-count-session-location-readiness {
   margin: 0;
-  padding: 0 12px 6px;
-  font-size: 0.8rem;
+  padding: 0 10px 4px;
+  font-size: 0.72rem;
 }
 
+.inventory-count-session.is-high-density .inventory-count-session-spreadsheet {
+  flex: 1 1 0%;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.inventory-count-session.is-high-density .inventory-count-session-sheet-scroll,
 .inventory-count-session.is-high-density .inventory-count-session-table-wrap {
-  flex: 1 1 auto;
+  flex: 1 1 0%;
   min-height: 0;
   overflow: auto;
   overscroll-behavior: contain;
   padding: 0;
   -webkit-overflow-scrolling: touch;
-}
-
-.inventory-count-session.is-high-density .inventory-count-session-spreadsheet {
-  flex: 1 1 auto;
-  min-height: 0;
 }
 
 .inventory-count-session.is-high-density .inventory-count-session-footer {
@@ -32599,12 +32731,14 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   display: none;
 }
 
+.inventory-count-session.is-high-density.is-keyboard-compact .inventory-count-session-sheet-scroll,
 .inventory-count-session.is-high-density.is-keyboard-compact .inventory-count-session-table-wrap {
-  flex: 1 1 auto;
+  flex: 1 1 0%;
   min-height: 140px;
 }
 
-.inventory-count-session.is-high-density.is-keyboard-compact .inventory-count-session-table-head {
+.inventory-count-session.is-high-density.is-keyboard-compact .inventory-count-session-table-head,
+.inventory-count-session.is-high-density.is-keyboard-compact .inventory-count-session-sheet-frozen-head {
   flex-shrink: 0;
 }
 
@@ -32615,15 +32749,25 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
     border-radius: 16px;
   }
 
+  .app-shell.stock-focus-mode .main-panel-stock:has(.inventory-count-session.is-high-density) > .inventory-count-session.is-high-density {
+    height: auto;
+    min-height: 0;
+    max-height: none;
+  }
+
   .inventory-count-session.is-high-density.is-keyboard-compact {
     height: var(--inventory-count-session-available-height);
     min-height: 0;
     max-height: var(--inventory-count-session-available-height);
   }
 
+  .inventory-count-session.is-high-density .inventory-count-session-body {
+    grid-template-columns: minmax(124px, 16%) minmax(0, 1fr);
+  }
+
   .inventory-count-session.is-high-density .inventory-count-session-rail-item {
-    min-height: 52px;
-    padding: 8px 10px;
+    min-height: 44px;
+    padding: 6px 8px;
   }
 }
 
@@ -33016,16 +33160,19 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 
 /* P8.18.0 — Premium spreadsheet foundation (active counting workspace) */
 /* P8.18.1 — Visual refinement (columns, product meta, quiet status, focus, footer) */
+/* P8.18.2 — True frozen head + spreadsheet-first rebalancing */
 .inventory-count-session-spreadsheet {
   display: flex;
   flex-direction: column;
-  flex: 1 1 auto;
+  flex: 1 1 0%;
   min-width: 0;
   min-height: 0;
+  overflow: hidden;
   padding: 0 10px 8px;
 }
 
 .inventory-count-session-spreadsheet > .inventory-count-session-table-head,
+.inventory-count-session-spreadsheet > .inventory-count-session-sheet-frozen-head,
 .inventory-count-session-spreadsheet-row {
   display: grid;
   grid-template-columns: var(--ic-cols);
@@ -33034,7 +33181,8 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   min-width: 0;
 }
 
-.inventory-count-session-spreadsheet > .inventory-count-session-table-head {
+.inventory-count-session-spreadsheet > .inventory-count-session-table-head,
+.inventory-count-session-spreadsheet > .inventory-count-session-sheet-frozen-head {
   position: relative;
   z-index: 4;
   flex: 0 0 auto;
@@ -33054,13 +33202,15 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   white-space: nowrap;
 }
 
-.inventory-count-session-spreadsheet .inventory-count-session-table-wrap {
-  flex: 1 1 auto;
+.inventory-count-session-spreadsheet .inventory-count-session-table-wrap,
+.inventory-count-session-spreadsheet .inventory-count-session-sheet-scroll {
+  flex: 1 1 0%;
   min-height: 0;
   overflow: auto;
   overscroll-behavior: contain;
   padding: 0;
   -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
 }
 
 .inventory-count-session-spreadsheet-row {
@@ -33098,6 +33248,8 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 .inventory-count-session-spreadsheet-cell.is-expected {
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .inventory-count-session-spreadsheet-cell.is-expected {
@@ -33674,7 +33826,11 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 
 @media (max-width: 1100px) {
   .inventory-count-session-body {
-    grid-template-columns: 200px minmax(0, 1fr);
+    grid-template-columns: minmax(132px, 18%) minmax(0, 1fr);
+  }
+
+  .inventory-count-session.is-high-density .inventory-count-session-body {
+    grid-template-columns: minmax(124px, 16%) minmax(0, 1fr);
   }
 }
 

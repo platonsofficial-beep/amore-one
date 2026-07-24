@@ -3161,11 +3161,12 @@ describe('InventoryCountSessionWorkspace spreadsheet visual refinement (P8.18.1)
   it('rebalances columns toward Item while keeping Expected/Counted shares', async () => {
     const { container, cleanup } = await renderWorkspace()
     const sheet = container.querySelector('.inventory-count-session-spreadsheet')
-    expect(sheet.style.getPropertyValue('--ic-col-item')).toContain('3.6fr')
-    expect(sheet.style.getPropertyValue('--ic-col-unit')).toContain('0.48fr')
-    expect(sheet.style.getPropertyValue('--ic-col-status')).toContain('0.52fr')
-    expect(sheet.style.getPropertyValue('--ic-col-expected')).toContain('0.8fr')
-    expect(sheet.style.getPropertyValue('--ic-col-counted')).toContain('1.15fr')
+    expect(sheet.style.getPropertyValue('--ic-col-item')).toContain('3.2fr')
+    expect(sheet.style.getPropertyValue('--ic-col-unit')).toContain('1fr')
+    expect(sheet.style.getPropertyValue('--ic-col-unit')).toContain('7rem')
+    expect(sheet.style.getPropertyValue('--ic-col-status')).toContain('0.48fr')
+    expect(sheet.style.getPropertyValue('--ic-col-expected')).toContain('0.75fr')
+    expect(sheet.style.getPropertyValue('--ic-col-counted')).toContain('1.1fr')
     cleanup()
   })
 
@@ -3238,6 +3239,86 @@ describe('InventoryCountSessionWorkspace spreadsheet visual refinement (P8.18.1)
     expect(focusSpy).toHaveBeenCalled()
 
     focusSpy.mockRestore()
+    cleanup()
+  })
+})
+
+describe('InventoryCountSessionWorkspace rebalancing & true frozen header (P8.18.2)', () => {
+  beforeEach(() => {
+    getInventoryCountSession.mockReset()
+    getInventoryCountSessionLocations.mockReset()
+    getInventoryCountSessionItems.mockReset()
+    updateInventoryCountItem.mockReset()
+    completeInventoryCountLocation.mockReset()
+
+    getInventoryCountSession.mockResolvedValue({
+      id: 'session-real-1',
+      workspaceId: 'workspace-test-id',
+      status: 'in_progress',
+    })
+    getInventoryCountSessionLocations.mockResolvedValue(FIXTURE_LOCATIONS)
+    getInventoryCountSessionItems.mockResolvedValue(FIXTURE_ITEMS)
+    updateInventoryCountItem.mockImplementation(async ({ sessionItemId, countedQuantity }) => ({
+      id: sessionItemId,
+      countedQuantity,
+      lineStatus: countedQuantity === null || countedQuantity === undefined ? 'pending' : 'counted',
+    }))
+  })
+
+  it('frozen column head is a sibling above the dedicated sheet scroll region', async () => {
+    const { container, cleanup } = await renderWorkspace()
+    const sheet = container.querySelector('.inventory-count-session-spreadsheet')
+    const head = sheet.querySelector('.inventory-count-session-sheet-frozen-head')
+    const scroll = sheet.querySelector('.inventory-count-session-sheet-scroll')
+    expect(head).toBeTruthy()
+    expect(scroll).toBeTruthy()
+    expect(scroll.contains(head)).toBe(false)
+    expect(scroll.querySelector('.inventory-count-session-spreadsheet-row')).toBeTruthy()
+    expect(head.compareDocumentPosition(scroll) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    cleanup()
+  })
+
+  it('unit column contract is wide enough for long unit labels', async () => {
+    getInventoryCountSessionItems.mockResolvedValue([
+      sessionItem({
+        id: 'ms-1',
+        itemName: 'Grey Goose',
+        unit: 'Bottle 750ml',
+        storageLocation: 'Main Storage',
+        countedQuantity: null,
+        lineStatus: 'pending',
+      }),
+    ])
+    getInventoryCountSessionLocations.mockResolvedValue([
+      sessionLocation('loc-1', 'Main Storage', 0, 'current'),
+    ])
+    const { container, cleanup } = await renderWorkspace()
+    const sheet = container.querySelector('.inventory-count-session-spreadsheet')
+    expect(sheet.style.getPropertyValue('--ic-col-unit')).toContain('7rem')
+    expect(container.querySelector('.inventory-count-session-spreadsheet-cell.is-unit')?.textContent)
+      .toBe('Bottle 750ml')
+    cleanup()
+  })
+
+  it('spreadsheet remains the primary workspace region beside a compact location rail', async () => {
+    const { container, cleanup } = await renderWorkspace()
+    expect(container.querySelector('.inventory-count-session-rail')).toBeTruthy()
+    expect(container.querySelector('.inventory-count-session-spreadsheet')).toBeTruthy()
+    expect(container.querySelector('.inventory-count-session-progress-card')).toBeTruthy()
+    expect(getProgressSnapshot(container)).toContain('counted')
+    cleanup()
+  })
+
+  it('session toolbar still exposes status/type/mode/progress without dropping actions', async () => {
+    const { container, cleanup } = await renderWorkspace()
+    const header = container.querySelector('.inventory-count-session-header')
+    expect(header?.textContent).toContain('In Progress')
+    expect(header?.textContent).toContain('Count Type')
+    expect(header?.textContent).toContain('Mode')
+    expect(header?.textContent).toContain('Progress')
+    expect(getButtonByText(header, 'Pause')).toBeTruthy()
+    expect(getButtonByText(header, 'Finish Count')).toBeTruthy()
+    expect(getButtonByText(header, 'Exit')).toBeTruthy()
     cleanup()
   })
 })

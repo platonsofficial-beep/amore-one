@@ -27,11 +27,11 @@ const AUTOSAVE_DEBOUNCE_MS = 400
 
 /** Shared column contract for the active counting spreadsheet (header + rows). */
 export const INVENTORY_COUNT_SPREADSHEET_COLUMNS = {
-  '--ic-col-item': 'minmax(0, 3.6fr)',
-  '--ic-col-unit': 'minmax(44px, 0.48fr)',
-  '--ic-col-expected': 'minmax(64px, 0.8fr)',
-  '--ic-col-counted': 'minmax(88px, 1.15fr)',
-  '--ic-col-status': 'minmax(52px, 0.52fr)',
+  '--ic-col-item': 'minmax(0, 3.2fr)',
+  '--ic-col-unit': 'minmax(7rem, 1fr)',
+  '--ic-col-expected': 'minmax(64px, 0.75fr)',
+  '--ic-col-counted': 'minmax(88px, 1.1fr)',
+  '--ic-col-status': 'minmax(52px, 0.48fr)',
   '--ic-cols':
     'var(--ic-col-item) var(--ic-col-unit) var(--ic-col-expected) var(--ic-col-counted) var(--ic-col-status)',
 }
@@ -1379,7 +1379,7 @@ export function InventoryCountSessionWorkspace({
                 ) : (
                   <>
                     <div
-                      className="inventory-count-session-table-head"
+                      className="inventory-count-session-table-head inventory-count-session-sheet-frozen-head"
                       role="row"
                     >
                       <div className="inventory-count-session-spreadsheet-cell is-head" role="columnheader">
@@ -1400,7 +1400,7 @@ export function InventoryCountSessionWorkspace({
                     </div>
                     <div
                       ref={tableWrapRef}
-                      className="inventory-count-session-table-wrap"
+                      className="inventory-count-session-table-wrap inventory-count-session-sheet-scroll"
                       role="rowgroup"
                     >
                       {displayedLocationItems.map((item) => (
