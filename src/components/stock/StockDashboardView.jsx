@@ -1712,6 +1712,141 @@ export function StockDashboardView({
     />
   ) : null
 
+  const toolbarActionButtons = canManage ? (
+    <>
+      <button
+        type="button"
+        className="ghost-btn stock-create-order-btn"
+        onClick={() => setIsCreateOrderModalOpen(true)}
+        disabled={!isWorkspaceReady || isStockActionBusy}
+      >
+        {isSavingOrders ? 'Creating…' : 'Create order'}
+      </button>
+      <button
+        type="button"
+        className="ghost-btn stock-import-btn"
+        onClick={() => setIsImportModalOpen(true)}
+        disabled={!isWorkspaceReady || isStockActionBusy}
+      >
+        Import CSV
+      </button>
+      <button
+        type="button"
+        className="ghost-btn stock-inventory-import-btn"
+        onClick={() => setIsInventoryImportWizardOpen(true)}
+        disabled={!isWorkspaceReady || isStockActionBusy}
+      >
+        Inventory Import
+      </button>
+      <button
+        type="button"
+        className={`ghost-btn stock-select-mode-btn${selectionMode ? ' active' : ''}`}
+        onClick={toggleSelectionMode}
+        disabled={isStockActionBusy}
+      >
+        {selectionMode ? 'Done' : 'Select'}
+      </button>
+      <button
+        type="button"
+        className="primary-btn stock-add-item-btn"
+        onClick={openCreateItem}
+        disabled={!isWorkspaceReady || isStockActionBusy}
+      >
+        + Add item
+      </button>
+    </>
+  ) : null
+
+  const categoryFilterControls = (
+    <div className="stock-filter-group stock-filter-group-category">
+      <span className="stock-filter-group-label">Category</span>
+      <div className="stock-category-filters" role="tablist" aria-label="Stock categories">
+        {categoryFilters.map((category) => (
+          <button
+            key={category}
+            type="button"
+            role="tab"
+            aria-selected={categoryFilter === category}
+            className={`stock-category-filter${categoryFilter === category ? ' active' : ''}`}
+            onClick={() => setCategoryFilter(category)}
+          >
+            {category}
+          </button>
+        ))}
+      </div>
+    </div>
+  )
+
+  const visibilityFilterControls = canManage ? (
+    <div className="stock-filter-group stock-filter-group-visibility">
+      <span className="stock-filter-group-label">Visibility</span>
+      <div className="stock-status-filters" role="tablist" aria-label="Product visibility">
+        {STOCK_VISIBILITY_OPTIONS.map((option) => (
+          <button
+            key={option.id}
+            type="button"
+            role="tab"
+            aria-selected={visibilityFilter === option.id}
+            className={`stock-status-filter stock-visibility-filter${visibilityFilter === option.id ? ' active' : ''}`}
+            onClick={() => setVisibilityFilter(option.id)}
+          >
+            {option.label}
+          </button>
+        ))}
+      </div>
+    </div>
+  ) : null
+
+  const browseControlFields = (
+    <>
+      <div className="stock-browse-control stock-browse-layout">
+        <span className="stock-browse-control-label" id="stock-layout-label">View mode</span>
+        <div
+          className="stock-layout-mode-control"
+          role="group"
+          aria-labelledby="stock-layout-label"
+        >
+          {STOCK_LAYOUT_MODES.map((mode) => (
+            <button
+              key={mode.id}
+              type="button"
+              className={`stock-layout-mode-btn${layoutMode === mode.id ? ' active' : ''}`}
+              aria-pressed={layoutMode === mode.id}
+              onClick={() => setLayoutMode(mode.id)}
+            >
+              <StockLayoutModeIcon icon={mode.icon} />
+              <span>{mode.label}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="stock-browse-control stock-browse-group">
+        <span className="stock-browse-control-label">Group by</span>
+        <StockSortDropdown
+          value={groupBy}
+          options={STOCK_GROUP_BY_OPTIONS}
+          onChange={setGroupBy}
+        />
+      </div>
+
+      <div className="stock-browse-control stock-browse-sort">
+        <span className="stock-browse-control-label">Sort</span>
+        <StockSortDropdown
+          value={sortKey}
+          options={STOCK_SORT_OPTIONS}
+          onChange={setSortKey}
+        />
+      </div>
+
+      {!isLoading && browseMatchCount > 0 ? (
+        <p className="stock-browse-result-count" aria-live="polite">
+          Showing {visibleItems.length} of {browseMatchCount} product{browseMatchCount === 1 ? '' : 's'}
+        </p>
+      ) : null}
+    </>
+  )
+
   return (
     <section className="stock-dashboard-page" aria-label="Stock dashboard">
       {noticeMessage && !catalogLoadFailed ? <div className="staff-status-banner">{noticeMessage}</div> : null}
@@ -1811,195 +1946,96 @@ export function StockDashboardView({
           className="stock-filtered-context"
           aria-label="Filtered stock results"
         >
-          <div className="stock-filtered-context-copy">
-            <h3 className="stock-filtered-context-title">{filteredContextLabel}</h3>
-            <p className="stock-filtered-context-count">
-              {filteredProductCount} product{filteredProductCount === 1 ? '' : 's'}
-            </p>
+          <div className="stock-filtered-context-main">
+            <div className="stock-filtered-context-copy">
+              <h3 className="stock-filtered-context-title">{filteredContextLabel}</h3>
+              <p className="stock-filtered-context-count">
+                {filteredProductCount} product{filteredProductCount === 1 ? '' : 's'}
+              </p>
+            </div>
+            <button
+              type="button"
+              className="ghost-btn stock-filtered-context-clear"
+              onClick={clearStatusFilter}
+            >
+              Clear filter
+            </button>
           </div>
-          <button
-            type="button"
-            className="ghost-btn stock-filtered-context-clear"
-            onClick={clearStatusFilter}
-          >
-            Clear filter
-          </button>
         </header>
       ) : null}
-      <div className={`stock-dashboard-toolbar${canManage ? ' has-visibility' : ''}`}>
-        <div className="stock-filter-group stock-filter-group-category">
-          <span className="stock-filter-group-label">Category</span>
-          <div className="stock-category-filters" role="tablist" aria-label="Stock categories">
-            {categoryFilters.map((category) => (
-              <button
-                key={category}
-                type="button"
-                role="tab"
-                aria-selected={categoryFilter === category}
-                className={`stock-category-filter${categoryFilter === category ? ' active' : ''}`}
-                onClick={() => setCategoryFilter(category)}
-              >
-                {category}
-              </button>
-            ))}
-          </div>
-        </div>
 
-        <div className="stock-filter-group stock-filter-group-status">
-          <span className="stock-filter-group-label">Status</span>
-          <div className="stock-status-filters" role="tablist" aria-label="Stock status">
-            <button
-              type="button"
-              role="tab"
-              aria-selected={statusFilter === 'all'}
-              className={`stock-status-filter${statusFilter === 'all' ? ' active' : ''}`}
-              onClick={() => setStatusFilter('all')}
-            >
-              All
-            </button>
-            <button
-              type="button"
-              role="tab"
-              aria-selected={statusFilter === 'low'}
-              className={`stock-status-filter${statusFilter === 'low' ? ' active' : ''}`}
-              onClick={() => setStatusFilter('low')}
-            >
-              Low
-            </button>
-            <button
-              type="button"
-              role="tab"
-              aria-selected={statusFilter === 'out'}
-              className={`stock-status-filter${statusFilter === 'out' ? ' active' : ''}`}
-              onClick={() => setStatusFilter('out')}
-            >
-              Out
-            </button>
-            <button
-              type="button"
-              role="tab"
-              aria-selected={statusFilter === 'order'}
-              className={`stock-status-filter${statusFilter === 'order' ? ' active' : ''}`}
-              onClick={() => setStatusFilter('order')}
-            >
-              To order
-            </button>
+      {/*
+        P8.17.3d — Same controls; filtered mode swaps wrappers, omits status chips,
+        and groups browse + actions into a denser stack (KPI + Clear remain status paths).
+      */}
+      {isFilteredMode ? (
+        <div className="stock-filtered-controls" aria-label="Filtered catalog controls">
+          <div className={`stock-filtered-primary-toolbar${canManage ? ' has-visibility' : ''}`}>
+            {categoryFilterControls}
+            {visibilityFilterControls}
+            {browseControlFields}
           </div>
+          {toolbarActionButtons ? (
+            <div className="stock-filtered-actions stock-toolbar-actions">{toolbarActionButtons}</div>
+          ) : null}
         </div>
+      ) : (
+        <>
+          <div className={`stock-dashboard-toolbar${canManage ? ' has-visibility' : ''}`}>
+            {categoryFilterControls}
 
-        {canManage ? (
-          <div className="stock-filter-group stock-filter-group-visibility">
-            <span className="stock-filter-group-label">Visibility</span>
-            <div className="stock-status-filters" role="tablist" aria-label="Product visibility">
-              {STOCK_VISIBILITY_OPTIONS.map((option) => (
+            <div className="stock-filter-group stock-filter-group-status">
+              <span className="stock-filter-group-label">Status</span>
+              <div className="stock-status-filters" role="tablist" aria-label="Stock status">
                 <button
-                  key={option.id}
                   type="button"
                   role="tab"
-                  aria-selected={visibilityFilter === option.id}
-                  className={`stock-status-filter stock-visibility-filter${visibilityFilter === option.id ? ' active' : ''}`}
-                  onClick={() => setVisibilityFilter(option.id)}
+                  aria-selected={statusFilter === 'all'}
+                  className={`stock-status-filter${statusFilter === 'all' ? ' active' : ''}`}
+                  onClick={() => setStatusFilter('all')}
                 >
-                  {option.label}
+                  All
                 </button>
-              ))}
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={statusFilter === 'low'}
+                  className={`stock-status-filter${statusFilter === 'low' ? ' active' : ''}`}
+                  onClick={() => setStatusFilter('low')}
+                >
+                  Low
+                </button>
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={statusFilter === 'out'}
+                  className={`stock-status-filter${statusFilter === 'out' ? ' active' : ''}`}
+                  onClick={() => setStatusFilter('out')}
+                >
+                  Out
+                </button>
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={statusFilter === 'order'}
+                  className={`stock-status-filter${statusFilter === 'order' ? ' active' : ''}`}
+                  onClick={() => setStatusFilter('order')}
+                >
+                  To order
+                </button>
+              </div>
             </div>
+
+            {visibilityFilterControls}
+
+            {toolbarActionButtons ? (
+              <div className="stock-toolbar-actions">{toolbarActionButtons}</div>
+            ) : null}
           </div>
-        ) : null}
 
-        {canManage ? (
-          <div className="stock-toolbar-actions">
-            <button
-              type="button"
-              className="ghost-btn stock-create-order-btn"
-              onClick={() => setIsCreateOrderModalOpen(true)}
-              disabled={!isWorkspaceReady || isStockActionBusy}
-            >
-              {isSavingOrders ? 'Creating…' : 'Create order'}
-            </button>
-            <button
-              type="button"
-              className="ghost-btn stock-import-btn"
-              onClick={() => setIsImportModalOpen(true)}
-              disabled={!isWorkspaceReady || isStockActionBusy}
-            >
-              Import CSV
-            </button>
-            <button
-              type="button"
-              className="ghost-btn stock-inventory-import-btn"
-              onClick={() => setIsInventoryImportWizardOpen(true)}
-              disabled={!isWorkspaceReady || isStockActionBusy}
-            >
-              Inventory Import
-            </button>
-            <button
-              type="button"
-              className={`ghost-btn stock-select-mode-btn${selectionMode ? ' active' : ''}`}
-              onClick={toggleSelectionMode}
-              disabled={isStockActionBusy}
-            >
-              {selectionMode ? 'Done' : 'Select'}
-            </button>
-            <button
-              type="button"
-              className="primary-btn stock-add-item-btn"
-              onClick={openCreateItem}
-              disabled={!isWorkspaceReady || isStockActionBusy}
-            >
-              + Add item
-            </button>
-          </div>
-        ) : null}
-      </div>
-
-      <div className="stock-browse-controls">
-        <div className="stock-browse-control stock-browse-layout">
-          <span className="stock-browse-control-label" id="stock-layout-label">View mode</span>
-          <div
-            className="stock-layout-mode-control"
-            role="group"
-            aria-labelledby="stock-layout-label"
-          >
-            {STOCK_LAYOUT_MODES.map((mode) => (
-              <button
-                key={mode.id}
-                type="button"
-                className={`stock-layout-mode-btn${layoutMode === mode.id ? ' active' : ''}`}
-                aria-pressed={layoutMode === mode.id}
-                onClick={() => setLayoutMode(mode.id)}
-              >
-                <StockLayoutModeIcon icon={mode.icon} />
-                <span>{mode.label}</span>
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div className="stock-browse-control stock-browse-group">
-          <span className="stock-browse-control-label">Group by</span>
-          <StockSortDropdown
-            value={groupBy}
-            options={STOCK_GROUP_BY_OPTIONS}
-            onChange={setGroupBy}
-          />
-        </div>
-
-        <div className="stock-browse-control stock-browse-sort">
-          <span className="stock-browse-control-label">Sort</span>
-          <StockSortDropdown
-            value={sortKey}
-            options={STOCK_SORT_OPTIONS}
-            onChange={setSortKey}
-          />
-        </div>
-
-        {!isLoading && browseMatchCount > 0 ? (
-          <p className="stock-browse-result-count" aria-live="polite">
-            Showing {visibleItems.length} of {browseMatchCount} product{browseMatchCount === 1 ? '' : 's'}
-          </p>
-        ) : null}
-      </div>
+          <div className="stock-browse-controls">{browseControlFields}</div>
+        </>
+      )}
 
       {selectionMode && canManage ? (
         <div className="stock-selection-bar">

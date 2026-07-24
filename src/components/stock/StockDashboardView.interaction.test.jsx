@@ -370,7 +370,7 @@ describe('StockDashboardView KPI → All Products pipeline (P8.17.3b)', () => {
   })
 })
 
-describe('StockDashboardView filtered catalog layout (P8.17.3c)', () => {
+describe('StockDashboardView filtered catalog density (P8.17.3d)', () => {
   function mount(extraProps = {}) {
     return render(createElement(StockDashboardView, {
       stockItems: CATALOG,
@@ -383,7 +383,12 @@ describe('StockDashboardView filtered catalog layout (P8.17.3c)', () => {
     }))
   }
 
-  it('1–2. Active KPI renders filtered-context header with the correct product count', () => {
+  function buttonByText(container, text) {
+    return Array.from(container.querySelectorAll('button'))
+      .find((node) => node.textContent === text)
+  }
+
+  it('1. Filtered context label, count, and Clear filter share one coherent wrapper', () => {
     expect(getStockStatusFilterLabel('low')).toBe('Low stock')
     expect(getStockStatusFilterLabel('out')).toBe('Out of stock')
     expect(getStockStatusFilterLabel('order')).toBe('To order')
@@ -393,27 +398,27 @@ describe('StockDashboardView filtered catalog layout (P8.17.3c)', () => {
 
     click(summaryCard(container, 'Low stock'))
     const context = container.querySelector('#stock-filtered-context')
+    const main = context?.querySelector('.stock-filtered-context-main')
     expect(context).toBeTruthy()
-    expect(context.querySelector('.stock-filtered-context-title')?.textContent).toBe('Low stock')
-    expect(context.querySelector('.stock-filtered-context-count')?.textContent).toBe('1 product')
+    expect(main).toBeTruthy()
+    expect(main.querySelector('.stock-filtered-context-title')?.textContent).toBe('Low stock')
+    expect(main.querySelector('.stock-filtered-context-count')?.textContent).toBe('1 product')
+    expect(main.querySelector('.stock-filtered-context-clear')?.textContent).toBe('Clear filter')
     expect(catalogRoot(container).className).toContain('is-filtered-mode')
     cleanup()
   })
 
-  it('3–4. Clear filter and KPI second tap both return to unfiltered mode', () => {
+  it('2 / 16. Clear filter and KPI second-tap both clear the active KPI filter', () => {
     const { container, cleanup } = mount()
     const lowCard = summaryCard(container, 'Low stock')
     click(lowCard)
     expect(container.querySelector('#stock-filtered-context')).toBeTruthy()
 
-    const clearBtn = Array.from(container.querySelectorAll('button'))
-      .find((node) => node.textContent === 'Clear filter')
-    expect(clearBtn).toBeTruthy()
-    click(clearBtn)
+    click(buttonByText(container, 'Clear filter'))
     expect(container.querySelector('#stock-filtered-context')).toBeNull()
     expect(catalogRoot(container).className).not.toContain('is-filtered-mode')
     expect(catalogProductNames(container)).toHaveLength(4)
-    // Unfiltered mode restores Needs Attention above the catalog again.
+
     const attention = container.querySelector('[aria-label="Needs attention"]')
     expect(attention).toBeTruthy()
     expect(
@@ -428,53 +433,28 @@ describe('StockDashboardView filtered catalog layout (P8.17.3c)', () => {
     cleanup()
   })
 
-  it('5 / 11. Active status control matches KPI with no contradictory selected states', () => {
-    const { container, cleanup } = mount()
-    const lowCard = summaryCard(container, 'Low stock')
-    click(lowCard)
-
-    expect(lowCard.getAttribute('aria-pressed')).toBe('true')
-    const statusTabs = container.querySelector('[aria-label="Stock status"]')
-    const activeStatus = statusTabs.querySelector('.stock-status-filter.active')
-    expect(activeStatus?.textContent).toBe('Low')
-    expect(statusTabs.querySelectorAll('.stock-status-filter.active')).toHaveLength(1)
-    expect(container.querySelectorAll('.stock-summary-card.is-selected')).toHaveLength(1)
-    cleanup()
-  })
-
-  it('6–7. Filtered catalog precedes Needs Attention; unfiltered order keeps Needs Attention first', () => {
-    const { container, cleanup } = mount()
-    const catalog = catalogRoot(container)
-    const attentionBefore = container.querySelector('[aria-label="Needs attention"]')
-    expect(attentionBefore).toBeTruthy()
-    expect(
-      attentionBefore.compareDocumentPosition(catalog) & Node.DOCUMENT_POSITION_FOLLOWING,
-    ).toBeTruthy()
-
-    click(summaryCard(container, 'Out of stock'))
-    const attentionAfter = container.querySelector('[aria-label="Needs attention"]')
-    const context = container.querySelector('#stock-filtered-context')
-    const toolbar = catalog.querySelector('.stock-dashboard-toolbar')
-    expect(context).toBeTruthy()
-    expect(
-      context.compareDocumentPosition(toolbar) & Node.DOCUMENT_POSITION_FOLLOWING,
-    ).toBeTruthy()
-    expect(
-      catalog.compareDocumentPosition(attentionAfter) & Node.DOCUMENT_POSITION_FOLLOWING,
-    ).toBeTruthy()
-    expect(container.querySelector('.stock-operations-banner')).toBeNull()
-    expect(container.querySelector('.stock-today-activity')).toBeNull()
-    cleanup()
-  })
-
-  it('8–9. Cards/List/Count and category/visibility remain available in filtered mode', () => {
+  it('3–8. Filtered primary toolbar keeps category, visibility, view, group, sort, and actions', () => {
     const { container, cleanup } = mount()
     click(summaryCard(container, 'To order'))
 
-    expect(container.querySelectorAll('.stock-layout-mode-btn')).toHaveLength(3)
-    expect(container.querySelector('[aria-label="Stock categories"]')).toBeTruthy()
-    expect(container.querySelector('[aria-label="Product visibility"]')).toBeTruthy()
-    expect(container.querySelector('[aria-label="Stock status"]')).toBeTruthy()
+    const controls = container.querySelector('.stock-filtered-controls')
+    const primary = controls?.querySelector('.stock-filtered-primary-toolbar')
+    const actions = controls?.querySelector('.stock-filtered-actions')
+    expect(controls).toBeTruthy()
+    expect(primary).toBeTruthy()
+    expect(actions).toBeTruthy()
+
+    expect(primary.querySelector('[aria-label="Stock categories"]')).toBeTruthy()
+    expect(primary.querySelector('[aria-label="Product visibility"]')).toBeTruthy()
+    expect(primary.querySelectorAll('.stock-layout-mode-btn')).toHaveLength(3)
+    expect(primary.querySelector('.stock-browse-group')).toBeTruthy()
+    expect(primary.querySelector('.stock-browse-sort')).toBeTruthy()
+
+    expect(buttonByText(actions, 'Create order')).toBeTruthy()
+    expect(buttonByText(actions, 'Import CSV')).toBeTruthy()
+    expect(buttonByText(actions, 'Inventory Import')).toBeTruthy()
+    expect(buttonByText(actions, 'Select')).toBeTruthy()
+    expect(buttonByText(actions, '+ Add item')).toBeTruthy()
 
     setLayoutMode(container, 'List')
     expect(catalogProductNames(container)).toHaveLength(3)
@@ -483,7 +463,60 @@ describe('StockDashboardView filtered catalog layout (P8.17.3c)', () => {
     cleanup()
   })
 
-  it('10. Search remains compatible with filtered-mode layout', () => {
+  it('9–10. Active status stays KPI-synced without a contradictory second status chooser', () => {
+    const { container, cleanup } = mount()
+    const lowCard = summaryCard(container, 'Low stock')
+    click(lowCard)
+
+    expect(lowCard.getAttribute('aria-pressed')).toBe('true')
+    expect(container.querySelector('#stock-filtered-context .stock-filtered-context-title')?.textContent)
+      .toBe('Low stock')
+    expect(container.querySelector('[aria-label="Stock status"]')).toBeNull()
+    expect(container.querySelectorAll('.stock-summary-card.is-selected')).toHaveLength(1)
+    expect(catalogProductNames(container)).toEqual(['LOW ITEM'])
+    cleanup()
+  })
+
+  it('11–13. Catalog follows filtered toolbar; Needs Attention stays after; unfiltered structure unchanged', () => {
+    const { container, cleanup } = mount()
+    const catalog = catalogRoot(container)
+    const attentionBefore = container.querySelector('[aria-label="Needs attention"]')
+    expect(attentionBefore).toBeTruthy()
+    expect(
+      attentionBefore.compareDocumentPosition(catalog) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy()
+    expect(container.querySelector('.stock-dashboard-toolbar')).toBeTruthy()
+    expect(container.querySelector('.stock-browse-controls')).toBeTruthy()
+    expect(container.querySelector('.stock-filtered-controls')).toBeNull()
+    expect(container.querySelector('[aria-label="Stock status"]')).toBeTruthy()
+
+    click(summaryCard(container, 'Out of stock'))
+    const attentionAfter = container.querySelector('[aria-label="Needs attention"]')
+    const context = container.querySelector('#stock-filtered-context')
+    const controls = catalog.querySelector('.stock-filtered-controls')
+    const firstProduct = catalog.querySelector('.stock-item-card, .stock-list-product-name, .stock-compact-name')
+
+    expect(context).toBeTruthy()
+    expect(controls).toBeTruthy()
+    expect(firstProduct).toBeTruthy()
+    expect(container.querySelector('.stock-dashboard-toolbar')).toBeNull()
+    expect(container.querySelector('.stock-browse-controls')).toBeNull()
+    expect(
+      context.compareDocumentPosition(controls) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy()
+    expect(
+      controls.compareDocumentPosition(firstProduct) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy()
+    expect(
+      catalog.compareDocumentPosition(attentionAfter) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy()
+    expect(container.querySelector('.stock-operations-banner')).toBeNull()
+    expect(container.querySelector('.stock-today-activity')).toBeNull()
+    expect(catalogProductNames(container)).toEqual(['OUT ITEM'])
+    cleanup()
+  })
+
+  it('15. Search remains compatible with filtered-mode density layout', () => {
     const { container, cleanup } = mount({ searchTerm: 'OUT' })
     click(summaryCard(container, 'Out of stock'))
     expect(container.querySelector('#stock-filtered-context .stock-filtered-context-count')?.textContent)
@@ -493,8 +526,8 @@ describe('StockDashboardView filtered catalog layout (P8.17.3c)', () => {
   })
 })
 
-describe('MobileManagerStockView unchanged (P8.17.3c)', () => {
-  it('12. Dedicated mobile shell does not gain filtered-context chrome', () => {
+describe('MobileManagerStockView unchanged (P8.17.3d)', () => {
+  it('14. Dedicated mobile shell does not gain filtered-mode chrome', () => {
     const { container, cleanup } = render(createElement(MobileManagerStockView, {
       stockItems: CATALOG,
       stockSummary: { totalItems: 4, lowStock: 1, outOfStock: 1, toOrder: 3 },
@@ -505,6 +538,7 @@ describe('MobileManagerStockView unchanged (P8.17.3c)', () => {
     }))
 
     expect(container.querySelector('#stock-filtered-context')).toBeNull()
+    expect(container.querySelector('.stock-filtered-controls')).toBeNull()
     expect(container.querySelector('.stock-all-products-catalog')).toBeNull()
     expect(container.textContent).toContain('LOW ITEM')
     cleanup()
