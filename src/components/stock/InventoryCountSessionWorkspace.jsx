@@ -370,12 +370,21 @@ export function getInventoryCountKeyboardAvailableHeight({
 }
 
 /** Scroll a row inside the dedicated item workspace without moving the page. */
-export function scrollInventoryCountRowIntoView(row, container) {
+export function scrollInventoryCountRowIntoView(row, container, options = {}) {
   if (!row || !container) return
+
+  const explicitOffset = Number(options.stickyOffset)
+  const stickyHeader = container.querySelector('.inventory-count-session-table-head')
+  const stickyOffset = Number.isFinite(explicitOffset)
+    ? Math.max(0, explicitOffset)
+    : (stickyHeader?.getBoundingClientRect().height ?? 0)
+
   const rowRect = row.getBoundingClientRect()
   const containerRect = container.getBoundingClientRect()
-  if (rowRect.top < containerRect.top) {
-    container.scrollTop -= (containerRect.top - rowRect.top)
+  const visibleTop = containerRect.top + stickyOffset
+
+  if (rowRect.top < visibleTop) {
+    container.scrollTop -= (visibleTop - rowRect.top)
   } else if (rowRect.bottom > containerRect.bottom) {
     container.scrollTop += (rowRect.bottom - containerRect.bottom)
   }
@@ -1353,7 +1362,7 @@ export function InventoryCountSessionWorkspace({
                   </div>
                 ) : (
                   <table className="inventory-count-session-table">
-                    <thead>
+                    <thead className="inventory-count-session-table-head">
                       <tr>
                         <th scope="col">Item</th>
                         <th scope="col">Unit</th>

@@ -32604,6 +32604,15 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   min-height: 140px;
 }
 
+.inventory-count-session.is-high-density.is-keyboard-compact .inventory-count-session-table-head,
+.inventory-count-session.is-high-density.is-keyboard-compact .inventory-count-session-table-head th {
+  position: -webkit-sticky;
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  background: #100f0e;
+}
+
 @media (min-width: 901px) and (max-width: 1180px) and (orientation: landscape) {
   .inventory-count-session.is-high-density {
     height: min(calc(var(--inventory-count-visible-height) - 20px), 100%);
@@ -33014,6 +33023,7 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   width: 100%;
   border-collapse: separate;
   border-spacing: 0;
+  table-layout: fixed;
 }
 
 .inventory-count-session-table th,
@@ -33023,16 +33033,52 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   border-bottom: 1px solid rgba(255, 255, 255, 0.05);
 }
 
-.inventory-count-session-table th {
+/* P8.17.4b — Sticky column header inside the local item scroll container */
+.inventory-count-session-table-wrap .inventory-count-session-table-head {
+  position: -webkit-sticky;
   position: sticky;
   top: 0;
-  z-index: 1;
-  background: rgba(14, 14, 15, 0.98);
+  z-index: 3;
+}
+
+.inventory-count-session-table-wrap .inventory-count-session-table-head th,
+.inventory-count-session-table th {
+  position: -webkit-sticky;
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  background: #100f0e;
   color: rgba(255, 247, 232, 0.55);
   font-size: 0.74rem;
   font-weight: 650;
   letter-spacing: 0.1em;
   text-transform: uppercase;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+.inventory-count-session-table-wrap .inventory-count-session-table-head th:nth-child(1),
+.inventory-count-session-table-wrap .inventory-count-session-table td:nth-child(1) {
+  width: 34%;
+}
+
+.inventory-count-session-table-wrap .inventory-count-session-table-head th:nth-child(2),
+.inventory-count-session-table-wrap .inventory-count-session-table td:nth-child(2) {
+  width: 12%;
+}
+
+.inventory-count-session-table-wrap .inventory-count-session-table-head th:nth-child(3),
+.inventory-count-session-table-wrap .inventory-count-session-table td:nth-child(3) {
+  width: 14%;
+}
+
+.inventory-count-session-table-wrap .inventory-count-session-table-head th:nth-child(4),
+.inventory-count-session-table-wrap .inventory-count-session-table td:nth-child(4) {
+  width: 22%;
+}
+
+.inventory-count-session-table-wrap .inventory-count-session-table-head th:nth-child(5),
+.inventory-count-session-table-wrap .inventory-count-session-table td:nth-child(5) {
+  width: 18%;
 }
 
 .inventory-count-session-table td {

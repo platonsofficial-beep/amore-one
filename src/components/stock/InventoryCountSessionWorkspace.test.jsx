@@ -2541,6 +2541,9 @@ describe('InventoryCountSessionWorkspace keyboard viewport repair (P8.17.4a)', (
   it('5. Local row scrolling adjusts the item workspace scrollTop, not page scrollIntoView', () => {
     const container = {
       scrollTop: 0,
+      querySelector: () => ({
+        getBoundingClientRect: () => ({ height: 40 }),
+      }),
       getBoundingClientRect: () => ({ top: 100, bottom: 300, left: 0, right: 400 }),
     }
     const row = {
@@ -2548,6 +2551,20 @@ describe('InventoryCountSessionWorkspace keyboard viewport repair (P8.17.4a)', (
     }
     scrollInventoryCountRowIntoView(row, container)
     expect(container.scrollTop).toBe(60)
+  })
+
+  it('5b. Local scrolling accounts for sticky header height when row is above the visible band', () => {
+    const container = {
+      scrollTop: 80,
+      querySelector: () => null,
+      getBoundingClientRect: () => ({ top: 100, bottom: 400, left: 0, right: 400 }),
+    }
+    const row = {
+      getBoundingClientRect: () => ({ top: 110, bottom: 150, left: 0, right: 400 }),
+    }
+    scrollInventoryCountRowIntoView(row, container, { stickyOffset: 36 })
+    // visibleTop = 100 + 36 = 136; row.top 110 is 26px under the header
+    expect(container.scrollTop).toBe(54)
   })
 
   it('7–8. Keyboard close clears compact height; repeated open/close does not accumulate stale values', async () => {
@@ -2721,6 +2738,248 @@ describe('InventoryCountSessionWorkspace keyboard viewport repair (P8.17.4a)', (
     })
     expect(landing.container.querySelector('.inventory-count-page')).toBeTruthy()
     expect(landing.container.querySelector('.inventory-count-session.is-high-density')).toBeNull()
+    landing.cleanup()
+  })
+})
+
+describe('InventoryCountSessionWorkspace sticky column header (P8.17.4b)', () => {
+  beforeEach(() => {
+    getInventoryCountSession.mockReset()
+    getInventoryCountSessionLocations.mockReset()
+    getInventoryCountSessionItems.mockReset()
+    updateInventoryCountItem.mockReset()
+    completeInventoryCountLocation.mockReset()
+
+    getInventoryCountSession.mockResolvedValue({
+      id: 'session-real-1',
+      workspaceId: 'workspace-test-id',
+      status: 'in_progress',
+    })
+    getInventoryCountSessionLocations.mockResolvedValue(FIXTURE_LOCATIONS)
+    getInventoryCountSessionItems.mockResolvedValue(FIXTURE_ITEMS)
+    updateInventoryCountItem.mockImplementation(async ({ sessionItemId, countedQuantity }) => ({
+      id: sessionItemId,
+      countedQuantity,
+      lineStatus: countedQuantity === null || countedQuantity === undefined ? 'pending' : 'counted',
+    }))
+  })
+
+  it('1–5. Sticky header lives in the item workspace with shared column labels', async () => {
+    const { container, cleanup } = await renderWorkspace()
+    const wrap = container.querySelector('.inventory-count-session-table-wrap')
+    const head = wrap?.querySelector('.inventory-count-session-table-head')
+    const labels = Array.from(head?.querySelectorAll('th') ?? []).map((node) => node.textContent)
+    expect(wrap).toBeTruthy()
+    expect(head).toBeTruthy()
+    expect(labels).toEqual(['Item', 'Unit', 'Expected', 'Counted', 'Status'])
+    expect(wrap.querySelector('tbody tr')).toBeTruthy()
+    expect(wrap.contains(head)).toBe(true)
+    expect(wrap.contains(wrap.querySelector('tbody'))).toBe(true)
+    cleanup()
+  })
+
+  it('6–7. Enter navigation still focuses next input via the local table-wrap scroll helper', async () => {
+    getInventoryCountSessionItems.mockResolvedValue([
+      sessionItem({
+        id: 'ms-1',
+        itemName: 'Coca-Cola',
+        storageLocation: 'Main Storage',
+        countedQuantity: null,
+        lineStatus: 'pending',
+      }),
+      sessionItem({
+        id: 'ms-2',
+        itemName: 'Paper Straws',
+        storageLocation: 'Main Storage',
+        countedQuantity: null,
+        lineStatus: 'pending',
+      }),
+    ])
+    getInventoryCountSessionLocations.mockResolvedValue([
+      sessionLocation('loc-1', 'Main Storage', 0, 'current'),
+    ])
+
+    const { container, cleanup } = await renderWorkspace()
+    const wrap = container.querySelector('.inventory-count-session-table-wrap')
+    const first = container.querySelector('input[aria-label="Counted quantity for Coca-Cola"]')
+    const second = container.querySelector('input[aria-label="Counted quantity for Paper Straws"]')
+    const focusSpy = vi.spyOn(second, 'focus')
+
+    await act(async () => {
+      const nativeInputValueSetter = Object.getOwnPropertyDescriptor(
+        window.HTMLInputElement.prototype,
+        'value',
+      )?.set
+      nativeInputValueSetter?.call(first, '3')
+      first.dispatchEvent(new Event('input', { bubbles: true }))
+    })
+    await act(async () => {
+      first.dispatchEvent(new KeyboardEvent('keydown', {
+        key: 'Enter',
+        bubbles: true,
+        cancelable: true,
+      }))
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+
+    expect(updateInventoryCountItem).toHaveBeenCalledWith({
+      workspaceId: 'workspace-test-id',
+      sessionId: 'session-real-1',
+      sessionItemId: 'ms-1',
+      countedQuantity: 3,
+    })
+    expect(focusSpy).toHaveBeenCalled()
+    expect(wrap?.querySelector('.inventory-count-session-table-head')).toBeTruthy()
+
+    focusSpy.mockRestore()
+    cleanup()
+  })
+
+  it('8–9. Sticky header remains present in keyboard-compact and after keyboard close', async () => {
+    let vvHeight = 768
+    const listeners = new Map()
+    const fakeViewport = {
+      get height() {
+        return vvHeight
+      },
+      offsetTop: 0,
+      addEventListener: vi.fn((type, handler) => {
+        listeners.set(type, handler)
+      }),
+      removeEventListener: vi.fn((type) => {
+        listeners.delete(type)
+      }),
+    }
+    const originalInnerHeight = window.innerHeight
+    const originalViewport = window.visualViewport
+    Object.defineProperty(window, 'innerHeight', { configurable: true, value: 768 })
+    Object.defineProperty(window, 'visualViewport', { configurable: true, value: fakeViewport })
+
+    const { container, cleanup } = await renderWorkspace()
+    const session = container.querySelector('.inventory-count-session')
+    vi.spyOn(session, 'getBoundingClientRect').mockReturnValue({
+      top: 100,
+      bottom: 700,
+      left: 0,
+      right: 1000,
+      width: 1000,
+      height: 600,
+      x: 0,
+      y: 100,
+      toJSON: () => ({}),
+    })
+
+    const fireResize = async () => {
+      await act(async () => {
+        listeners.get('resize')?.()
+        await new Promise((resolve) => {
+          requestAnimationFrame(() => resolve())
+        })
+      })
+    }
+
+    vvHeight = 400
+    await fireResize()
+    expect(session.className).toContain('is-keyboard-compact')
+    expect(container.querySelector('.inventory-count-session-table-head')).toBeTruthy()
+
+    vvHeight = 768
+    await fireResize()
+    expect(session.className).not.toContain('is-keyboard-compact')
+    expect(container.querySelector('.inventory-count-session-table-head')).toBeTruthy()
+
+    cleanup()
+    Object.defineProperty(window, 'innerHeight', { configurable: true, value: originalInnerHeight })
+    Object.defineProperty(window, 'visualViewport', { configurable: true, value: originalViewport })
+  })
+
+  it('10. Empty location does not render a sticky header', async () => {
+    getInventoryCountSessionItems.mockResolvedValue([])
+    getInventoryCountSessionLocations.mockResolvedValue([
+      sessionLocation('loc-1', 'Main Storage', 0, 'current'),
+    ])
+
+    const { container, cleanup } = await renderWorkspace()
+    expect(container.querySelector('.inventory-count-session-table-head')).toBeNull()
+    expect(container.textContent).toContain('No items in this location')
+    cleanup()
+  })
+
+  it('11–13. Save success/failure and last-item behavior remain unchanged with sticky header', async () => {
+    getInventoryCountSessionItems.mockResolvedValue([
+      sessionItem({
+        id: 'ms-1',
+        itemName: 'Coca-Cola',
+        storageLocation: 'Main Storage',
+        countedQuantity: null,
+        lineStatus: 'pending',
+      }),
+    ])
+    getInventoryCountSessionLocations.mockResolvedValue([
+      sessionLocation('loc-1', 'Main Storage', 0, 'current'),
+    ])
+
+    const { container, cleanup } = await renderWorkspace()
+    const first = container.querySelector('input[aria-label="Counted quantity for Coca-Cola"]')
+    const blurSpy = vi.spyOn(first, 'blur')
+
+    await act(async () => {
+      const nativeInputValueSetter = Object.getOwnPropertyDescriptor(
+        window.HTMLInputElement.prototype,
+        'value',
+      )?.set
+      nativeInputValueSetter?.call(first, '2')
+      first.dispatchEvent(new Event('input', { bubbles: true }))
+    })
+    await act(async () => {
+      first.dispatchEvent(new KeyboardEvent('keydown', {
+        key: 'Enter',
+        bubbles: true,
+        cancelable: true,
+      }))
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+
+    expect(updateInventoryCountItem).toHaveBeenCalledTimes(1)
+    expect(completeInventoryCountLocation).not.toHaveBeenCalled()
+    expect(blurSpy).toHaveBeenCalled()
+    expect(container.querySelector('.inventory-count-session-table-head')).toBeTruthy()
+
+    updateInventoryCountItem.mockRejectedValueOnce(new Error('Save failed'))
+    await act(async () => {
+      const nativeInputValueSetter = Object.getOwnPropertyDescriptor(
+        window.HTMLInputElement.prototype,
+        'value',
+      )?.set
+      nativeInputValueSetter?.call(first, '8')
+      first.dispatchEvent(new Event('input', { bubbles: true }))
+    })
+    await act(async () => {
+      first.dispatchEvent(new KeyboardEvent('keydown', {
+        key: 'Enter',
+        bubbles: true,
+        cancelable: true,
+      }))
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+    expect(first.value).toBe('8')
+    expect(container.textContent).toMatch(/Save failed|Unable to save/i)
+
+    blurSpy.mockRestore()
+    cleanup()
+  })
+
+  it('14–15. Landing page and mobile shell remain unchanged', async () => {
+    const landing = render(createElement(InventoryCountView, {}))
+    await act(async () => {
+      await Promise.resolve()
+    })
+    expect(landing.container.querySelector('.inventory-count-page')).toBeTruthy()
+    expect(landing.container.querySelector('.inventory-count-session-table-head')).toBeNull()
+    expect(landing.container.querySelector('.mobile-manager-stock')).toBeNull()
     landing.cleanup()
   })
 })
