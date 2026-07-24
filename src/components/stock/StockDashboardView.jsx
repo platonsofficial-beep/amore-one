@@ -1678,13 +1678,31 @@ export function StockDashboardView({
   const allVisibleSelected = visibleItems.length > 0 && visibleItems.every((item) => selectedIds.has(item.id))
   const isStockActionBusy = isSaving || isSavingOrders
 
-  // P8.17.3a — KPI cards toggle the same statusFilter used by All Products.
-  // Use the current render value (not a functional flip) so a single tap maps
-  // deterministically: inactive → activate, active → clear to all.
+  // P8.17.3a / P8.17.3b — KPI cards toggle the same statusFilter used by All Products.
+  // After activating a filter, scroll the All Products catalog into view so iPad operators
+  // are not left looking at the unfiltered Needs Attention list above.
   const applyKpiStatusFilter = (nextStatus) => {
+    const nextFilter = statusFilter === nextStatus ? 'all' : nextStatus
     setCategoryFilter('All')
-    setStatusFilter(statusFilter === nextStatus ? 'all' : nextStatus)
+    setStatusFilter(nextFilter)
+    if (nextFilter === 'all') return
+    queueMicrotask(() => {
+      document.getElementById('stock-all-products-catalog')?.scrollIntoView({
+        behavior: 'smooth',
+        block: 'start',
+      })
+    })
   }
+
+  const needsAttentionSection = hasNeedsAttention && !isLoading ? (
+    <StockNeedsAttentionSection
+      groups={needsAttentionGroups}
+      canManage={canManage}
+      onReceive={(item) => openMovement(item, 'receive')}
+      onCount={(item) => openMovement(item, 'stock_count')}
+      onEdit={openEditItem}
+    />
+  ) : null
 
   return (
     <section className="stock-dashboard-page" aria-label="Stock dashboard">
@@ -1767,16 +1785,14 @@ export function StockDashboardView({
         <StockTodayActivitySection activityLine={todayActivityLine} />
       ) : null}
 
-      {hasNeedsAttention && !isLoading ? (
-        <StockNeedsAttentionSection
-          groups={needsAttentionGroups}
-          canManage={canManage}
-          onReceive={(item) => openMovement(item, 'receive')}
-          onCount={(item) => openMovement(item, 'stock_count')}
-          onEdit={openEditItem}
-        />
-      ) : null}
+      {/*
+        P8.17.3b — While a KPI/status filter is active, render the filtered All Products
+        catalog before Needs Attention so the operator sees the filtered dataset first.
+        Needs Attention grouping/expansion stays unchanged; only document order shifts.
+      */}
+      {statusFilter === 'all' ? needsAttentionSection : null}
 
+      <div id="stock-all-products-catalog" className="stock-all-products-catalog" aria-label="All products catalog">
       <div className={`stock-dashboard-toolbar${canManage ? ' has-visibility' : ''}`}>
         <div className="stock-filter-group stock-filter-group-category">
           <span className="stock-filter-group-label">Category</span>
@@ -2019,6 +2035,9 @@ export function StockDashboardView({
       ) : null}
 
       {renderGroupedItems()}
+      </div>
+
+      {statusFilter !== 'all' ? needsAttentionSection : null}
 
       {bulkModalField ? (
         <StockBulkFieldModal

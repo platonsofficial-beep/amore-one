@@ -3,6 +3,7 @@ import {
   resolveStockItemType,
   resolveStockStorageLocation,
 } from './stockCatalog'
+import { resolveStockItemStatus } from './stockUtils'
 
 export const STOCK_LAYOUT_MODES = [
   { id: 'cards', label: 'Cards', icon: 'grid' },
@@ -79,10 +80,13 @@ export function filterStockDashboardItems(
     if (!matchesVisibilityFilter(item, visibilityFilter)) return false
 
     const matchesCategory = categoryFilter === 'All' || item.category === categoryFilter
+    // P8.17.3b — Match KPI math: use resolveStockItemStatus, not a possibly stale item.status.
+    // KPI cards count via resolveStockItemStatus; All Products must use the same definition.
+    const resolvedStatus = resolveStockItemStatus(item)
     const matchesStatus = statusFilter === 'all'
-      || (statusFilter === 'low' && item.status === 'low')
-      || (statusFilter === 'out' && item.status === 'out')
-      || (statusFilter === 'ok' && item.status === 'ok')
+      || (statusFilter === 'low' && resolvedStatus === 'low')
+      || (statusFilter === 'out' && resolvedStatus === 'out')
+      || (statusFilter === 'ok' && resolvedStatus === 'ok')
       || (statusFilter === 'order' && itemNeedsOrder(item))
     const matchesSearch = !normalizedSearch || getItemSearchHaystack(item).includes(normalizedSearch)
 
