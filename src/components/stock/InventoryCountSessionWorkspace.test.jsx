@@ -8,6 +8,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { InventoryCountView } from './InventoryCountView'
 import {
   getCompleteLocationDisabledReason,
+  getDisplayedLocationItems,
+  findNextEligibleCountItem,
   getFinishCountDisabledReason,
   getLocationReadinessLabel,
   InventoryCountSessionWorkspace,
@@ -46,6 +48,7 @@ vi.mock('../../services/inventoryCountService', () => ({
   setInventoryCountSessionPauseState: vi.fn(),
   previewInventoryCountFinish: vi.fn(),
   postInventoryCountFinish: vi.fn(),
+  cancelInventoryCountSession: vi.fn(),
   listInventoryCountHomeSessions: vi.fn(async () => ({
     active: [],
     paused: [],
@@ -2027,6 +2030,421 @@ describe('InventoryCountSessionWorkspace current location guidance (P8.16.32)', 
       .toContain('This location is already complete.')
     expect(getButtonByText(container, 'Finish Count')?.disabled).toBe(true)
 
+    cleanup()
+  })
+})
+
+describe('InventoryCountSessionWorkspace high-density workspace (P8.17.4)', () => {
+  function setInputValue(input, value) {
+    const nativeInputValueSetter = Object.getOwnPropertyDescriptor(
+      window.HTMLInputElement.prototype,
+      'value',
+    )?.set
+    nativeInputValueSetter?.call(input, value)
+    input.dispatchEvent(new Event('input', { bubbles: true }))
+  }
+
+  async function pressEnter(input) {
+    await act(async () => {
+      input.dispatchEvent(new KeyboardEvent('keydown', {
+        key: 'Enter',
+        code: 'Enter',
+        bubbles: true,
+        cancelable: true,
+      }))
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+  }
+
+  beforeEach(() => {
+    HTMLElement.prototype.scrollIntoView = vi.fn()
+    getInventoryCountSession.mockReset()
+    getInventoryCountSessionLocations.mockReset()
+    getInventoryCountSessionItems.mockReset()
+    updateInventoryCountItem.mockReset()
+    completeInventoryCountLocation.mockReset()
+    setInventoryCountSessionPauseState.mockReset()
+    previewInventoryCountFinish.mockReset()
+    postInventoryCountFinish.mockReset()
+
+    getInventoryCountSession.mockResolvedValue({
+      id: 'session-real-1',
+      workspaceId: 'workspace-test-id',
+      status: 'in_progress',
+    })
+    getInventoryCountSessionLocations.mockResolvedValue(FIXTURE_LOCATIONS)
+    getInventoryCountSessionItems.mockResolvedValue(FIXTURE_ITEMS)
+    updateInventoryCountItem.mockImplementation(async ({ sessionItemId, countedQuantity }) => ({
+      id: sessionItemId,
+      countedQuantity,
+      lineStatus: countedQuantity === null || countedQuantity === undefined ? 'pending' : 'counted',
+    }))
+  })
+
+  it('1 / 4. Active session uses high-density structure with a dedicated item scroll container', async () => {
+    const { container, cleanup } = await renderWorkspace()
+    const session = container.querySelector('.inventory-count-session')
+    expect(session?.className).toContain('is-high-density')
+    expect(container.querySelector('.inventory-count-session-table-wrap')).toBeTruthy()
+    expect(container.querySelector('.inventory-count-session-header')).toBeTruthy()
+    cleanup()
+  })
+
+  it('2. Landing page and wizard remain unchanged', async () => {
+    const { container, cleanup } = render(createElement(InventoryCountView, {}))
+    await act(async () => {
+      await Promise.resolve()
+    })
+    expect(container.querySelector('.inventory-count-page')).toBeTruthy()
+    expect(container.querySelector('.inventory-count-session.is-high-density')).toBeNull()
+    expect(getButtonByText(container, 'Start new count')).toBeTruthy()
+    cleanup()
+  })
+
+  it('3 / 16 / 17. Compact header keeps status, mode, progress, Pause, Finish, Exit; footer keeps Previous/Next', async () => {
+    const { container, cleanup } = await renderWorkspace()
+    const header = container.querySelector('.inventory-count-session-header')
+    expect(header?.textContent).toContain('In Progress')
+    expect(header?.textContent).toContain('Blind Count')
+    expect(header?.textContent).toContain('Progress')
+    expect(getButtonByText(header, 'Pause')).toBeTruthy()
+    expect(getButtonByText(header, 'Finish Count')).toBeTruthy()
+    expect(getButtonByText(header, 'Exit')).toBeTruthy()
+    expect(getButtonByText(container, 'Previous')).toBeTruthy()
+    expect(getButtonByText(container, 'Next')).toBeTruthy()
+    expect(getButtonByText(container, 'Complete Location')).toBeTruthy()
+    cleanup()
+  })
+
+  it('5 / 15. Displayed order helpers preserve list order and search filtering', () => {
+    const items = [
+      { id: 'a', name: 'Alpha', lineStatus: 'counted' },
+      { id: 'b', name: 'Beta Milk', lineStatus: 'pending' },
+      { id: 'c', name: 'Gamma', lineStatus: 'pending' },
+    ]
+    expect(getDisplayedLocationItems(items, '').map((item) => item.id)).toEqual(['a', 'b', 'c'])
+    expect(getDisplayedLocationItems(items, 'milk').map((item) => item.id)).toEqual(['b'])
+    expect(findNextEligibleCountItem(items, 'a')?.id).toBe('b')
+    expect(findNextEligibleCountItem(getDisplayedLocationItems(items, 'g'), 'c')).toBeNull()
+  })
+
+  it('6–11. Enter prevents default, saves via existing path, then focuses the next pending input', async () => {
+    HTMLElement.prototype.scrollIntoView = vi.fn()
+    getInventoryCountSessionItems.mockResolvedValue([
+      sessionItem({
+        id: 'ms-1',
+        itemName: 'Coca-Cola',
+        storageLocation: 'Main Storage',
+        expectedSnapshot: 10,
+        countedQuantity: null,
+        lineStatus: 'pending',
+      }),
+      sessionItem({
+        id: 'ms-2',
+        itemName: 'Paper Straws',
+        unit: 'box',
+        storageLocation: 'Main Storage',
+        expectedSnapshot: 4,
+        countedQuantity: null,
+        lineStatus: 'pending',
+      }),
+      sessionItem({
+        id: 'ms-3',
+        itemName: 'Napkins',
+        unit: 'pack',
+        storageLocation: 'Main Storage',
+        expectedSnapshot: 2,
+        countedQuantity: null,
+        lineStatus: 'pending',
+      }),
+    ])
+    getInventoryCountSessionLocations.mockResolvedValue([
+      sessionLocation('loc-1', 'Main Storage', 0, 'current'),
+    ])
+
+    const { container, cleanup } = await renderWorkspace()
+    const first = container.querySelector('input[aria-label="Counted quantity for Coca-Cola"]')
+    const second = container.querySelector('input[aria-label="Counted quantity for Paper Straws"]')
+    expect(first).toBeTruthy()
+    expect(second).toBeTruthy()
+
+    const focusSpy = vi.spyOn(second, 'focus')
+
+    await act(async () => {
+      setInputValue(first, '7')
+    })
+
+    const keyEvent = new KeyboardEvent('keydown', {
+      key: 'Enter',
+      code: 'Enter',
+      bubbles: true,
+      cancelable: true,
+    })
+    const preventSpy = vi.spyOn(keyEvent, 'preventDefault')
+
+    await act(async () => {
+      first.dispatchEvent(keyEvent)
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+
+    expect(preventSpy).toHaveBeenCalled()
+    expect(updateInventoryCountItem).toHaveBeenCalledWith({
+      workspaceId: 'workspace-test-id',
+      sessionId: 'session-real-1',
+      sessionItemId: 'ms-1',
+      countedQuantity: 7,
+    })
+    expect(focusSpy).toHaveBeenCalled()
+    expect(HTMLElement.prototype.scrollIntoView).toHaveBeenCalled()
+
+    focusSpy.mockRestore()
+    cleanup()
+  })
+
+  it('8. Enter does not start a second save while enter-lock is held', async () => {
+    let releaseSave
+    const saveGate = new Promise((resolve) => {
+      releaseSave = resolve
+    })
+    updateInventoryCountItem.mockImplementation(async ({ sessionItemId, countedQuantity }) => {
+      await saveGate
+      return {
+        id: sessionItemId,
+        countedQuantity,
+        lineStatus: 'counted',
+      }
+    })
+    getInventoryCountSessionItems.mockResolvedValue([
+      sessionItem({
+        id: 'ms-1',
+        itemName: 'Coca-Cola',
+        storageLocation: 'Main Storage',
+        countedQuantity: null,
+        lineStatus: 'pending',
+      }),
+      sessionItem({
+        id: 'ms-2',
+        itemName: 'Paper Straws',
+        storageLocation: 'Main Storage',
+        countedQuantity: null,
+        lineStatus: 'pending',
+      }),
+    ])
+    getInventoryCountSessionLocations.mockResolvedValue([
+      sessionLocation('loc-1', 'Main Storage', 0, 'current'),
+    ])
+
+    const { container, cleanup } = await renderWorkspace()
+    const first = container.querySelector('input[aria-label="Counted quantity for Coca-Cola"]')
+    expect(first).toBeTruthy()
+
+    await act(async () => {
+      setInputValue(first, '3')
+    })
+
+    const firstEnterPromise = pressEnter(first)
+    await act(async () => {
+      await Promise.resolve()
+    })
+    await pressEnter(first)
+
+    expect(updateInventoryCountItem).toHaveBeenCalledTimes(1)
+
+    await act(async () => {
+      releaseSave()
+      await firstEnterPromise
+    })
+
+    cleanup()
+  })
+
+  it('12. Save failure keeps focus/value and shows Save failed', async () => {
+    updateInventoryCountItem.mockRejectedValueOnce(new Error('Save failed'))
+    getInventoryCountSessionItems.mockResolvedValue([
+      sessionItem({
+        id: 'ms-1',
+        itemName: 'Coca-Cola',
+        storageLocation: 'Main Storage',
+        countedQuantity: null,
+        lineStatus: 'pending',
+      }),
+      sessionItem({
+        id: 'ms-2',
+        itemName: 'Paper Straws',
+        storageLocation: 'Main Storage',
+        countedQuantity: null,
+        lineStatus: 'pending',
+      }),
+    ])
+    getInventoryCountSessionLocations.mockResolvedValue([
+      sessionLocation('loc-1', 'Main Storage', 0, 'current'),
+    ])
+
+    const { container, cleanup } = await renderWorkspace()
+    const first = container.querySelector('input[aria-label="Counted quantity for Coca-Cola"]')
+    const second = container.querySelector('input[aria-label="Counted quantity for Paper Straws"]')
+    const focusSpy = vi.spyOn(second, 'focus')
+
+    await act(async () => {
+      setInputValue(first, '5')
+    })
+    await pressEnter(first)
+
+    expect(focusSpy).not.toHaveBeenCalled()
+    expect(first.value).toBe('5')
+    expect(container.textContent).toMatch(/Save failed|Unable to save/i)
+    expect(completeInventoryCountLocation).not.toHaveBeenCalled()
+
+    focusSpy.mockRestore()
+    cleanup()
+  })
+
+  it('13. Validation failure does not advance', async () => {
+    getInventoryCountSessionItems.mockResolvedValue([
+      sessionItem({
+        id: 'ms-1',
+        itemName: 'Coca-Cola',
+        storageLocation: 'Main Storage',
+        countedQuantity: null,
+        lineStatus: 'pending',
+      }),
+      sessionItem({
+        id: 'ms-2',
+        itemName: 'Paper Straws',
+        storageLocation: 'Main Storage',
+        countedQuantity: null,
+        lineStatus: 'pending',
+      }),
+    ])
+    getInventoryCountSessionLocations.mockResolvedValue([
+      sessionLocation('loc-1', 'Main Storage', 0, 'current'),
+    ])
+
+    const { container, cleanup } = await renderWorkspace()
+    const first = container.querySelector('input[aria-label="Counted quantity for Coca-Cola"]')
+    const second = container.querySelector('input[aria-label="Counted quantity for Paper Straws"]')
+    const focusSpy = vi.spyOn(second, 'focus')
+
+    // Incomplete decimal is not ready — Enter must not save or advance.
+    await act(async () => {
+      setInputValue(first, '4.')
+    })
+    await pressEnter(first)
+
+    expect(updateInventoryCountItem).not.toHaveBeenCalled()
+    expect(focusSpy).not.toHaveBeenCalled()
+
+    focusSpy.mockRestore()
+    cleanup()
+  })
+
+  it('14. Final eligible item does not auto-complete location or session', async () => {
+    getInventoryCountSessionItems.mockResolvedValue([
+      sessionItem({
+        id: 'ms-1',
+        itemName: 'Coca-Cola',
+        storageLocation: 'Main Storage',
+        countedQuantity: null,
+        lineStatus: 'pending',
+      }),
+    ])
+    getInventoryCountSessionLocations.mockResolvedValue([
+      sessionLocation('loc-1', 'Main Storage', 0, 'current'),
+    ])
+
+    const { container, cleanup } = await renderWorkspace()
+    const first = container.querySelector('input[aria-label="Counted quantity for Coca-Cola"]')
+    const blurSpy = vi.spyOn(first, 'blur')
+
+    await act(async () => {
+      setInputValue(first, '2')
+    })
+    await pressEnter(first)
+
+    expect(updateInventoryCountItem).toHaveBeenCalledTimes(1)
+    expect(completeInventoryCountLocation).not.toHaveBeenCalled()
+    expect(blurSpy).toHaveBeenCalled()
+    expect(getButtonByText(container, 'Complete Location')).toBeTruthy()
+
+    blurSpy.mockRestore()
+    cleanup()
+  })
+
+  it('15b. Search-filtered displayed order drives next eligible item', async () => {
+    getInventoryCountSessionItems.mockResolvedValue([
+      sessionItem({
+        id: 'ms-1',
+        itemName: 'Alpha Tea',
+        storageLocation: 'Main Storage',
+        countedQuantity: null,
+        lineStatus: 'pending',
+      }),
+      sessionItem({
+        id: 'ms-2',
+        itemName: 'Beta Coffee',
+        storageLocation: 'Main Storage',
+        countedQuantity: null,
+        lineStatus: 'pending',
+      }),
+      sessionItem({
+        id: 'ms-3',
+        itemName: 'Alpha Sugar',
+        storageLocation: 'Main Storage',
+        countedQuantity: null,
+        lineStatus: 'pending',
+      }),
+    ])
+    getInventoryCountSessionLocations.mockResolvedValue([
+      sessionLocation('loc-1', 'Main Storage', 0, 'current'),
+    ])
+
+    const { container, cleanup } = await renderWorkspace()
+    const search = container.querySelector('.inventory-count-session-search-input')
+    expect(search).toBeTruthy()
+    await act(async () => {
+      setInputValue(search, 'Alpha')
+    })
+
+    const first = container.querySelector('input[aria-label="Counted quantity for Alpha Tea"]')
+    const nextAlpha = container.querySelector('input[aria-label="Counted quantity for Alpha Sugar"]')
+    expect(first).toBeTruthy()
+    expect(nextAlpha).toBeTruthy()
+    expect(container.querySelector('input[aria-label="Counted quantity for Beta Coffee"]')).toBeNull()
+    const focusSpy = vi.spyOn(nextAlpha, 'focus')
+
+    await act(async () => {
+      setInputValue(first, '1')
+    })
+    await pressEnter(first)
+
+    expect(focusSpy).toHaveBeenCalled()
+    focusSpy.mockRestore()
+    cleanup()
+  })
+
+  it('18. visualViewport listeners are cleaned up on unmount', async () => {
+    const addSpy = vi.spyOn(window, 'addEventListener')
+    const removeSpy = vi.spyOn(window, 'removeEventListener')
+
+    const { cleanup } = await renderWorkspace()
+    expect(addSpy.mock.calls.some((call) => call[0] === 'resize')).toBe(true)
+    cleanup()
+    expect(removeSpy.mock.calls.some((call) => call[0] === 'resize')).toBe(true)
+
+    addSpy.mockRestore()
+    removeSpy.mockRestore()
+  })
+
+  it('19–22. Blind mode labels, Complete Location, Pause/Exit remain; no mobile shell coupling', async () => {
+    const { container, cleanup } = await renderWorkspace()
+    const headerText = container.querySelector('.inventory-count-session-header')?.textContent || ''
+    expect(headerText).toContain('Blind Count')
+    expect(getButtonByText(container, 'Complete Location')).toBeTruthy()
+    expect(getButtonByText(container, 'Pause')).toBeTruthy()
+    expect(getButtonByText(container, 'Exit')).toBeTruthy()
+    expect(container.querySelector('.mobile-manager-stock')).toBeNull()
     cleanup()
   })
 })

@@ -324,6 +324,30 @@ function parseCountedDraft(rawValue) {
   return { ready: true, countedQuantity: numeric }
 }
 
+/** Displayed item order after location search (exact list order, name substring match). */
+export function getDisplayedLocationItems(items, searchTerm = '') {
+  const list = Array.isArray(items) ? items : []
+  const query = `${searchTerm ?? ''}`.trim().toLowerCase()
+  if (!query) return list
+  return list.filter((item) => `${item.name ?? ''}`.toLowerCase().includes(query))
+}
+
+/**
+ * Next eligible item for Enter navigation:
+ * first pending item after the current row in the currently displayed list.
+ */
+export function findNextEligibleCountItem(displayedItems, currentItemId) {
+  const list = Array.isArray(displayedItems) ? displayedItems : []
+  const currentIndex = list.findIndex((item) => item.id === currentItemId)
+  if (currentIndex < 0) return null
+  for (let index = currentIndex + 1; index < list.length; index += 1) {
+    if (list[index].lineStatus === 'pending') {
+      return list[index]
+    }
+  }
+  return null
+}
+
 function patchItemInLocations(locations, itemId, patch) {
   return locations.map((location) => {
     const itemIndex = location.items.findIndex((item) => item.id === itemId)
@@ -366,15 +390,22 @@ export function InventoryCountSessionWorkspace({
   const [hasPostedFinish, setHasPostedFinish] = useState(false)
   const [finishPreview, setFinishPreview] = useState(null)
   const [finishPreviewError, setFinishPreviewError] = useState('')
+  const [itemSearch, setItemSearch] = useState('')
+  const [isKeyboardCompact, setIsKeyboardCompact] = useState(false)
   const loadRequestIdRef = useRef(0)
   const locationsRef = useRef(locations)
   const sessionStatusRef = useRef(sessionStatus)
+  const itemSearchRef = useRef(itemSearch)
   const debounceTimersRef = useRef(new Map())
   const inFlightRef = useRef(new Map())
   const queuedSaveRef = useRef(new Map())
   const rollbackRef = useRef(new Map())
   const savingCountRef = useRef(0)
   const isPostingFinishRef = useRef(false)
+  const enterLockRef = useRef(null)
+  const tableWrapRef = useRef(null)
+  const sessionRootRef = useRef(null)
+  const selectedLocationIdRef = useRef(selectedLocationId)
 
   useEffect(() => {
     locationsRef.current = locations
@@ -383,6 +414,52 @@ export function InventoryCountSessionWorkspace({
   useEffect(() => {
     sessionStatusRef.current = sessionStatus
   }, [sessionStatus])
+
+  useEffect(() => {
+    itemSearchRef.current = itemSearch
+  }, [itemSearch])
+
+  useEffect(() => {
+    selectedLocationIdRef.current = selectedLocationId
+  }, [selectedLocationId])
+
+  // P8.17.4 — Local keyboard-compact mode from visualViewport shrinkage (iPad soft keyboard).
+  useEffect(() => {
+    if (typeof window === 'undefined') return undefined
+
+    const viewport = window.visualViewport
+    let frameId = 0
+
+    const updateKeyboardCompact = () => {
+      window.cancelAnimationFrame(frameId)
+      frameId = window.requestAnimationFrame(() => {
+        const root = sessionRootRef.current
+        const layoutHeight = window.innerHeight || 0
+        const visibleHeight = viewport?.height ?? layoutHeight
+        const keyboardOpen = layoutHeight > 0 && (layoutHeight - visibleHeight) > 120
+        setIsKeyboardCompact(keyboardOpen)
+        if (root) {
+          root.style.setProperty(
+            '--inventory-count-visible-height',
+            `${Math.max(320, Math.floor(visibleHeight))}px`,
+          )
+        }
+      })
+    }
+
+    updateKeyboardCompact()
+    window.addEventListener('resize', updateKeyboardCompact)
+    viewport?.addEventListener('resize', updateKeyboardCompact)
+    viewport?.addEventListener('scroll', updateKeyboardCompact)
+
+    return () => {
+      window.cancelAnimationFrame(frameId)
+      window.removeEventListener('resize', updateKeyboardCompact)
+      viewport?.removeEventListener('resize', updateKeyboardCompact)
+      viewport?.removeEventListener('scroll', updateKeyboardCompact)
+      sessionRootRef.current?.style.removeProperty('--inventory-count-visible-height')
+    }
+  }, [])
 
   useEffect(() => {
     const requestId = loadRequestIdRef.current + 1
@@ -471,19 +548,19 @@ export function InventoryCountSessionWorkspace({
 
   const persistCountedQuantity = async (itemId, countedQuantity) => {
     if (sessionStatusRef.current !== 'in_progress') {
-      return
+      return false
     }
 
     if (inFlightRef.current.get(itemId)) {
       queuedSaveRef.current.set(itemId, countedQuantity)
-      return
+      return false
     }
 
     const workspaceId = `${workspaceIdProp || workspace?.id || ''}`.trim()
     const sessionId = `${sessionIdProp || ''}`.trim()
     if (!workspaceId || !sessionId) {
       setSaveError('Unable to save counted quantity right now.')
-      return
+      return false
     }
 
     inFlightRef.current.set(itemId, true)
@@ -509,12 +586,14 @@ export function InventoryCountSessionWorkspace({
         status: formatLineStatus(nextLineStatus),
       }))
       rollbackRef.current.delete(itemId)
+      return true
     } catch (error) {
       const rollback = rollbackRef.current.get(itemId)
       if (rollback) {
         setLocations((current) => patchItemInLocations(current, itemId, rollback))
       }
       setSaveError(error?.message || 'Unable to save counted quantity right now.')
+      return false
     } finally {
       inFlightRef.current.set(itemId, false)
       endSaving()
@@ -524,6 +603,82 @@ export function InventoryCountSessionWorkspace({
         queuedSaveRef.current.delete(itemId)
         void persistCountedQuantity(itemId, queuedValue)
       }
+    }
+  }
+
+  const waitForItemSaveIdle = async (itemId) => {
+    const deadline = Date.now() + 10000
+    while (
+      Date.now() < deadline
+      && (inFlightRef.current.get(itemId) || queuedSaveRef.current.has(itemId))
+    ) {
+      await new Promise((resolve) => {
+        setTimeout(resolve, 25)
+      })
+    }
+  }
+
+  const focusCountedInput = (itemId) => {
+    const input = tableWrapRef.current?.querySelector(`input[data-count-item-id="${itemId}"]`)
+    if (!input) return
+    input.focus()
+    input.closest('tr')?.scrollIntoView({
+      block: 'nearest',
+      inline: 'nearest',
+    })
+  }
+
+  const handleCountedKeyDown = async (event, itemId) => {
+    if (event.key !== 'Enter') return
+    event.preventDefault()
+
+    if (sessionStatusRef.current !== 'in_progress') return
+    if (enterLockRef.current) return
+
+    const inputEl = event.currentTarget
+    const existingTimer = debounceTimersRef.current.get(itemId)
+    if (existingTimer) {
+      clearTimeout(existingTimer)
+      debounceTimersRef.current.delete(itemId)
+    }
+
+    const rawValue = `${inputEl?.value ?? ''}`
+    const parsed = parseCountedDraft(rawValue)
+    if (!parsed.ready) {
+      if (parsed.invalid) {
+        setSaveError('Counted quantity must be a valid non-negative number.')
+      }
+      return
+    }
+
+    enterLockRef.current = itemId
+    try {
+      await waitForItemSaveIdle(itemId)
+      // Keep the typed value if save fails (Enter must not wipe the operator's entry).
+      rollbackRef.current.set(itemId, {
+        counted: rawValue,
+        lineStatus: parsed.countedQuantity === null ? 'pending' : 'counted',
+        status: formatLineStatus(parsed.countedQuantity === null ? 'pending' : 'counted'),
+      })
+      const saved = await persistCountedQuantity(itemId, parsed.countedQuantity)
+      if (!saved) return
+
+      const selected = locationsRef.current.find((location) => location.id === selectedLocationIdRef.current)
+        ?? locationsRef.current.find((location) => location.status === 'current')
+        ?? locationsRef.current[0]
+        ?? null
+      const displayed = getDisplayedLocationItems(selected?.items ?? [], itemSearchRef.current)
+      const nextItem = findNextEligibleCountItem(displayed, itemId)
+      if (!nextItem) {
+        inputEl?.blur?.()
+        return
+      }
+
+      queueMicrotask(() => {
+        focusCountedInput(nextItem.id)
+      })
+    } finally {
+      enterLockRef.current = null
     }
   }
 
@@ -640,6 +795,7 @@ export function InventoryCountSessionWorkspace({
 
   const selectLocation = (locationId) => {
     setSelectedLocationId(locationId)
+    setItemSearch('')
   }
 
   const handleGoToCurrentLocation = () => {
@@ -911,15 +1067,25 @@ export function InventoryCountSessionWorkspace({
   }
 
   const selectedLocationName = selectedLocation?.name ?? 'Location'
+  const displayedLocationItems = getDisplayedLocationItems(selectedLocation?.items ?? [], itemSearch)
   const canConfirmFinish = Boolean(
     finishPreview?.canPost
     && !isLoadingFinishPreview
     && !isPostingFinish
     && !hasPostedFinish,
   )
+  const sessionClassName = [
+    'inventory-count-session',
+    'is-high-density',
+    isKeyboardCompact ? 'is-keyboard-compact' : '',
+  ].filter(Boolean).join(' ')
 
   return (
-    <section className="inventory-count-session" aria-label="Inventory Count Session Workspace">
+    <section
+      ref={sessionRootRef}
+      className={sessionClassName}
+      aria-label="Inventory Count Session Workspace"
+    >
       <header className="inventory-count-session-header">
         <div className="inventory-count-session-header-copy">
           <p className="inventory-count-session-eyebrow">Inventory Count Session</p>
@@ -933,11 +1099,17 @@ export function InventoryCountSessionWorkspace({
               <span className="inventory-count-session-meta-label">Mode</span>
               <span className="inventory-count-session-meta-value">Blind Count</span>
             </span>
-            <span className="inventory-count-session-meta-item">
+            <span className="inventory-count-session-meta-item inventory-count-session-meta-progress">
+              <span className="inventory-count-session-meta-label">Progress</span>
+              <span className="inventory-count-session-meta-value">
+                {progress.totalCounted}/{progress.totalIncluded} · {progress.percentage}%
+              </span>
+            </span>
+            <span className="inventory-count-session-meta-item inventory-count-session-meta-secondary">
               <span className="inventory-count-session-meta-label">Started</span>
               <span className="inventory-count-session-meta-value">Just now</span>
             </span>
-            <span className="inventory-count-session-meta-item">
+            <span className="inventory-count-session-meta-item inventory-count-session-meta-secondary">
               <span className="inventory-count-session-meta-label">Operator</span>
               <span className="inventory-count-session-meta-value">Current signed-in operator</span>
             </span>
@@ -1057,8 +1229,9 @@ export function InventoryCountSessionWorkspace({
                       type="search"
                       className="inventory-count-session-search-input"
                       placeholder={`Search ${selectedLocationName} items...`}
-                      disabled
-                      aria-disabled="true"
+                      value={itemSearch}
+                      onChange={(event) => setItemSearch(event.target.value)}
+                      autoComplete="off"
                     />
                   </label>
                   <button
@@ -1123,11 +1296,20 @@ export function InventoryCountSessionWorkspace({
                 </div>
               ) : null}
 
-              <div className="inventory-count-session-table-wrap" aria-label={`${selectedLocationName} items`}>
+              <div
+                ref={tableWrapRef}
+                className="inventory-count-session-table-wrap"
+                aria-label={`${selectedLocationName} items`}
+              >
                 {selectedLocation?.items.length === 0 ? (
                   <div className="stock-empty-state">
                     <h4>No items in this location</h4>
                     <p>No snapshot items were found for {selectedLocationName}.</p>
+                  </div>
+                ) : displayedLocationItems.length === 0 ? (
+                  <div className="stock-empty-state">
+                    <h4>No matching items</h4>
+                    <p>No items match the current search in {selectedLocationName}.</p>
                   </div>
                 ) : (
                   <table className="inventory-count-session-table">
@@ -1141,8 +1323,12 @@ export function InventoryCountSessionWorkspace({
                       </tr>
                     </thead>
                     <tbody>
-                      {(selectedLocation?.items ?? []).map((item) => (
-                        <tr key={item.id} className={`is-status-${item.status.toLowerCase()}`}>
+                      {displayedLocationItems.map((item) => (
+                        <tr
+                          key={item.id}
+                          className={`is-status-${item.status.toLowerCase()}`}
+                          data-count-item-id={item.id}
+                        >
                           <td className="inventory-count-session-item-name">{item.name}</td>
                           <td>{item.unit}</td>
                           <td>{item.expected}</td>
@@ -1150,11 +1336,22 @@ export function InventoryCountSessionWorkspace({
                             <input
                               type="text"
                               inputMode="decimal"
+                              enterKeyHint="next"
+                              data-count-item-id={item.id}
                               aria-label={`Counted quantity for ${item.name}`}
                               value={item.counted}
                               disabled={!isCountEditable}
                               aria-disabled={!isCountEditable}
                               onChange={(event) => handleCountedChange(item.id, event.target.value)}
+                              onKeyDown={(event) => {
+                                void handleCountedKeyDown(event, item.id)
+                              }}
+                              onFocus={(event) => {
+                                event.currentTarget.closest('tr')?.scrollIntoView({
+                                  block: 'nearest',
+                                  inline: 'nearest',
+                                })
+                              }}
                               style={COUNTED_INPUT_STYLE}
                               autoComplete="off"
                             />
