@@ -282,23 +282,39 @@
   overflow-y: auto;
 }
 
-/* P8.18.2 — Active counting session owns the viewport; do not let Stock chrome scroll the sheet away */
-.app-shell.stock-focus-mode .main-panel-stock:has(.inventory-count-session.is-high-density) {
+/* P8.18.2 / P8.18.2a — Active counting: Stock chrome must not own vertical scroll */
+.app-shell.stock-focus-mode .main-panel-stock:has(.inventory-count-session.is-high-density),
+.main-panel-stock.is-inventory-count-session-lock,
+.main-panel.is-inventory-count-session-lock {
   overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: hidden;
   display: flex;
   flex-direction: column;
   min-height: 0;
 }
 
-.app-shell.stock-focus-mode .main-panel-stock:has(.inventory-count-session.is-high-density) > * {
+.app-shell.stock-focus-mode .main-panel-stock:has(.inventory-count-session.is-high-density) > *,
+.main-panel-stock.is-inventory-count-session-lock > *,
+.main-panel.is-inventory-count-session-lock > * {
   flex-shrink: 0;
 }
 
-.app-shell.stock-focus-mode .main-panel-stock:has(.inventory-count-session.is-high-density) > .inventory-count-session.is-high-density {
+.app-shell.stock-focus-mode .main-panel-stock:has(.inventory-count-session.is-high-density) > .inventory-count-session.is-high-density,
+.main-panel-stock.is-inventory-count-session-lock > .inventory-count-session.is-high-density,
+.main-panel.is-inventory-count-session-lock > .inventory-count-session.is-high-density {
   flex: 1 1 0%;
   min-height: 0;
   height: auto;
   max-height: none;
+}
+
+.main-panel-stock.is-inventory-count-session-lock > .inventory-count-session.is-high-density.is-keyboard-compact,
+.main-panel.is-inventory-count-session-lock > .inventory-count-session.is-high-density.is-keyboard-compact {
+  flex: 1 1 0%;
+  height: var(--inventory-count-session-available-height);
+  min-height: 0;
+  max-height: var(--inventory-count-session-available-height);
 }
 
 .stock-focus-header {
@@ -32587,6 +32603,9 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 /* P8.18.2 — Spreadsheet-first width: ~80% main / compact location rail */
 .inventory-count-session.is-high-density .inventory-count-session-body {
   grid-template-columns: minmax(132px, 18%) minmax(0, 1fr);
+  flex: 1 1 0%;
+  min-height: 0;
+  overflow: hidden;
 }
 
 .inventory-count-session.is-high-density .inventory-count-session-rail {
@@ -32692,15 +32711,31 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 .inventory-count-session.is-high-density .inventory-count-session-table-wrap {
   flex: 1 1 0%;
   min-height: 0;
-  overflow: auto;
+  overflow-x: hidden;
+  overflow-y: auto;
   overscroll-behavior: contain;
-  padding: 0;
+  padding: 0 0 16px;
   -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
+}
+
+.inventory-count-session.is-high-density .inventory-count-session-sheet-frozen-head,
+.inventory-count-session.is-high-density .inventory-count-session-table-head {
+  flex: 0 0 auto;
+  flex-shrink: 0;
+}
+
+.inventory-count-session.is-high-density .inventory-count-session-main {
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 
 .inventory-count-session.is-high-density .inventory-count-session-footer {
   gap: 10px;
   padding: 8px 12px;
+  flex: 0 0 auto;
 }
 
 .inventory-count-session.is-high-density.is-keyboard-compact .inventory-count-session-rail {
@@ -32734,12 +32769,18 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 .inventory-count-session.is-high-density.is-keyboard-compact .inventory-count-session-sheet-scroll,
 .inventory-count-session.is-high-density.is-keyboard-compact .inventory-count-session-table-wrap {
   flex: 1 1 0%;
-  min-height: 140px;
+  min-height: 120px;
+  overflow-x: hidden;
+  overflow-y: auto;
 }
 
 .inventory-count-session.is-high-density.is-keyboard-compact .inventory-count-session-table-head,
 .inventory-count-session.is-high-density.is-keyboard-compact .inventory-count-session-sheet-frozen-head {
+  display: grid;
+  flex: 0 0 auto;
   flex-shrink: 0;
+  visibility: visible;
+  opacity: 1;
 }
 
 @media (min-width: 901px) and (max-width: 1180px) and (orientation: landscape) {
@@ -32937,7 +32978,10 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   padding: 14px 12px;
   border-right: 1px solid rgba(255, 255, 255, 0.06);
   background: rgba(10, 10, 11, 0.88);
-  overflow: auto;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  min-height: 0;
 }
 
 .inventory-count-session-rail-item {
@@ -33206,9 +33250,10 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 .inventory-count-session-spreadsheet .inventory-count-session-sheet-scroll {
   flex: 1 1 0%;
   min-height: 0;
-  overflow: auto;
+  overflow-x: hidden;
+  overflow-y: auto;
   overscroll-behavior: contain;
-  padding: 0;
+  padding: 0 0 16px;
   -webkit-overflow-scrolling: touch;
   touch-action: pan-y;
 }

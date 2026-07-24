@@ -380,9 +380,34 @@ export function getInventoryCountKeyboardAvailableHeight({
   return Math.max(minimum, Math.floor(viewportBottom - top - padding))
 }
 
-/** Scroll a row inside the dedicated item workspace without moving the page. */
+/** True when the row is outside the visible band of the dedicated row scroll owner. */
+export function isInventoryCountRowOutsideViewport(row, container, options = {}) {
+  if (!row || !container) return false
+
+  const explicitOffset = Number(options.stickyOffset)
+  const stickyHeader = container.querySelector?.('.inventory-count-session-table-head')
+  const stickyOffset = Number.isFinite(explicitOffset)
+    ? Math.max(0, explicitOffset)
+    : (stickyHeader?.getBoundingClientRect().height ?? 0)
+  const slack = Number.isFinite(Number(options.slack)) ? Math.max(0, Number(options.slack)) : 1
+
+  const rowRect = row.getBoundingClientRect()
+  const containerRect = container.getBoundingClientRect()
+  const visibleTop = containerRect.top + stickyOffset
+  const visibleBottom = containerRect.bottom
+
+  return rowRect.top < (visibleTop - slack) || rowRect.bottom > (visibleBottom + slack)
+}
+
+/**
+ * Scroll a row inside the dedicated item workspace without moving the page.
+ * No-ops when the row is already fully visible in the row scroll owner.
+ */
 export function scrollInventoryCountRowIntoView(row, container, options = {}) {
-  if (!row || !container) return
+  if (!row || !container) return false
+  if (!options.force && !isInventoryCountRowOutsideViewport(row, container, options)) {
+    return false
+  }
 
   const explicitOffset = Number(options.stickyOffset)
   // Frozen spreadsheet head sits outside the scroll body → default offset 0.
@@ -401,7 +426,10 @@ export function scrollInventoryCountRowIntoView(row, container, options = {}) {
   } else if (rowRect.bottom > containerRect.bottom) {
     container.scrollTop += (rowRect.bottom - containerRect.bottom)
   }
+  return true
 }
+
+const STOCK_SCROLL_LOCK_CLASS = 'is-inventory-count-session-lock'
 
 function patchItemInLocations(locations, itemId, patch) {
   return locations.map((location) => {
@@ -461,6 +489,8 @@ export function InventoryCountSessionWorkspace({
   const tableWrapRef = useRef(null)
   const sessionRootRef = useRef(null)
   const selectedLocationIdRef = useRef(selectedLocationId)
+  const keyboardCompactRef = useRef(false)
+  const keyboardHeightCssRef = useRef('')
 
   useEffect(() => {
     locationsRef.current = locations
@@ -478,7 +508,25 @@ export function InventoryCountSessionWorkspace({
     selectedLocationIdRef.current = selectedLocationId
   }, [selectedLocationId])
 
-  // P8.17.4a — Keyboard-open height from session top → visualViewport bottom (not raw VV height).
+  // P8.18.2a — Explicit Stock shell scroll lock (do not rely only on :has()).
+  useEffect(() => {
+    const root = sessionRootRef.current
+    if (!root || typeof document === 'undefined') return undefined
+
+    const shell = root.closest('.main-panel-stock, .main-panel')
+    if (!shell) return undefined
+
+    shell.classList.add(STOCK_SCROLL_LOCK_CLASS)
+    shell.setAttribute('data-inventory-count-scroll-lock', 'true')
+
+    return () => {
+      shell.classList.remove(STOCK_SCROLL_LOCK_CLASS)
+      shell.removeAttribute('data-inventory-count-scroll-lock')
+    }
+  }, [])
+
+  // P8.17.4a / P8.18.2a — Keyboard-open height from session top → visualViewport bottom.
+  // Preserve row scrollTop across layout resizes; avoid VV scroll thrash and redundant setState.
   useEffect(() => {
     if (typeof window === 'undefined') return undefined
 
@@ -489,39 +537,57 @@ export function InventoryCountSessionWorkspace({
       window.cancelAnimationFrame(frameId)
       frameId = window.requestAnimationFrame(() => {
         const root = sessionRootRef.current
+        const scrollOwner = tableWrapRef.current
+        const preservedScrollTop = scrollOwner ? scrollOwner.scrollTop : null
         const layoutHeight = window.innerHeight || 0
         const visibleHeight = viewport?.height ?? layoutHeight
         const keyboardOpen = layoutHeight > 0 && (layoutHeight - visibleHeight) > 120
-        setIsKeyboardCompact(keyboardOpen)
+
+        if (keyboardCompactRef.current !== keyboardOpen) {
+          keyboardCompactRef.current = keyboardOpen
+          setIsKeyboardCompact(keyboardOpen)
+        }
 
         if (!root) return
 
-        // Keyboard-closed: clear compact height so static high-density CSS owns sizing.
         if (!keyboardOpen) {
-          root.style.removeProperty('--inventory-count-session-available-height')
-          return
+          if (keyboardHeightCssRef.current !== '') {
+            root.style.removeProperty('--inventory-count-session-available-height')
+            keyboardHeightCssRef.current = ''
+          }
+        } else {
+          const available = getInventoryCountKeyboardAvailableHeight({
+            sessionTop: root.getBoundingClientRect().top,
+            visualViewportOffsetTop: viewport?.offsetTop ?? 0,
+            visualViewportHeight: visibleHeight,
+          })
+          const nextHeight = `${available}px`
+          if (keyboardHeightCssRef.current !== nextHeight) {
+            root.style.setProperty('--inventory-count-session-available-height', nextHeight)
+            keyboardHeightCssRef.current = nextHeight
+          }
         }
 
-        const available = getInventoryCountKeyboardAvailableHeight({
-          sessionTop: root.getBoundingClientRect().top,
-          visualViewportOffsetTop: viewport?.offsetTop ?? 0,
-          visualViewportHeight: visibleHeight,
-        })
-        root.style.setProperty('--inventory-count-session-available-height', `${available}px`)
+        // Keyboard/layout resize must not reset the operator's row scroll position.
+        if (scrollOwner && Number.isFinite(preservedScrollTop)) {
+          scrollOwner.scrollTop = preservedScrollTop
+        }
       })
     }
 
     updateKeyboardCompact()
     window.addEventListener('resize', updateKeyboardCompact)
     viewport?.addEventListener('resize', updateKeyboardCompact)
-    viewport?.addEventListener('scroll', updateKeyboardCompact)
+    // Intentionally no visualViewport `scroll` listener — iOS fires it during touch pans
+    // and height thrash was snapping the product list upward after finger release.
 
     return () => {
       window.cancelAnimationFrame(frameId)
       window.removeEventListener('resize', updateKeyboardCompact)
       viewport?.removeEventListener('resize', updateKeyboardCompact)
-      viewport?.removeEventListener('scroll', updateKeyboardCompact)
       sessionRootRef.current?.style.removeProperty('--inventory-count-session-available-height')
+      keyboardHeightCssRef.current = ''
+      keyboardCompactRef.current = false
     }
   }, [])
 
@@ -686,11 +752,16 @@ export function InventoryCountSessionWorkspace({
     const container = tableWrapRef.current
     const input = container?.querySelector(`input[data-count-item-id="${itemId}"]`)
     if (!input) return
-    input.focus()
-    scrollInventoryCountRowIntoView(
-      input.closest('[data-count-item-id].inventory-count-session-spreadsheet-row, tr'),
-      container,
-    )
+    // preventScroll stops iOS from scrolling outer Stock/session ancestors on focus.
+    if (typeof input.focus === 'function') {
+      try {
+        input.focus({ preventScroll: true })
+      } catch {
+        input.focus()
+      }
+    }
+    const row = input.closest('[data-count-item-id].inventory-count-session-spreadsheet-row, tr')
+    scrollInventoryCountRowIntoView(row, container)
   }
 
   const handleCountedKeyDown = async (event, itemId) => {
@@ -1150,6 +1221,8 @@ export function InventoryCountSessionWorkspace({
       ref={sessionRootRef}
       className={sessionClassName}
       aria-label="Inventory Count Session Workspace"
+      data-inventory-count-session="true"
+      data-inventory-count-scroll-shell="locked"
     >
       <header className="inventory-count-session-header">
         <div className="inventory-count-session-header-copy">
@@ -1381,6 +1454,7 @@ export function InventoryCountSessionWorkspace({
                     <div
                       className="inventory-count-session-table-head inventory-count-session-sheet-frozen-head"
                       role="row"
+                      data-inventory-count-frozen-header="true"
                     >
                       <div className="inventory-count-session-spreadsheet-cell is-head" role="columnheader">
                         Item
@@ -1402,6 +1476,7 @@ export function InventoryCountSessionWorkspace({
                       ref={tableWrapRef}
                       className="inventory-count-session-table-wrap inventory-count-session-sheet-scroll"
                       role="rowgroup"
+                      data-inventory-count-row-scroll="true"
                     >
                       {displayedLocationItems.map((item) => (
                         <div
@@ -1433,12 +1508,6 @@ export function InventoryCountSessionWorkspace({
                               onKeyDown={(event) => {
                                 void handleCountedKeyDown(event, item.id)
                               }}
-                              onFocus={(event) => {
-                                scrollInventoryCountRowIntoView(
-                                  event.currentTarget.closest('[data-count-item-id]'),
-                                  tableWrapRef.current,
-                                )
-                              }}
                               autoComplete="off"
                             />
                           </div>
@@ -1456,7 +1525,10 @@ export function InventoryCountSessionWorkspace({
             </div>
           </div>
 
-          <footer className="inventory-count-session-footer">
+          <footer
+            className="inventory-count-session-footer"
+            data-inventory-count-footer="true"
+          >
             <div className="inventory-count-session-footer-left">
               <span className="inventory-count-session-footer-label">Session status</span>
               <span className="inventory-count-session-footer-value">
