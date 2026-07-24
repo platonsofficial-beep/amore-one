@@ -25,18 +25,15 @@ const LINE_STATUS_LABEL = {
 
 const AUTOSAVE_DEBOUNCE_MS = 400
 
-const COUNTED_INPUT_STYLE = {
-  boxSizing: 'border-box',
-  width: '100%',
-  minWidth: '72px',
-  minHeight: '44px',
-  padding: '10px 12px',
-  borderRadius: '10px',
-  border: '1px solid rgba(255, 247, 232, 0.16)',
-  background: 'rgba(8, 8, 9, 0.72)',
-  color: '#fff7e8',
-  fontSize: '0.95rem',
-  fontWeight: 650,
+/** Shared column contract for the active counting spreadsheet (header + rows). */
+export const INVENTORY_COUNT_SPREADSHEET_COLUMNS = {
+  '--ic-col-item': 'minmax(0, 2.6fr)',
+  '--ic-col-unit': 'minmax(52px, 0.7fr)',
+  '--ic-col-expected': 'minmax(64px, 0.8fr)',
+  '--ic-col-counted': 'minmax(88px, 1.15fr)',
+  '--ic-col-status': 'minmax(72px, 0.9fr)',
+  '--ic-cols':
+    'var(--ic-col-item) var(--ic-col-unit) var(--ic-col-expected) var(--ic-col-counted) var(--ic-col-status)',
 }
 
 function formatQuantity(value) {
@@ -374,7 +371,9 @@ export function scrollInventoryCountRowIntoView(row, container, options = {}) {
   if (!row || !container) return
 
   const explicitOffset = Number(options.stickyOffset)
-  const stickyHeader = container.querySelector('.inventory-count-session-table-head')
+  // Frozen spreadsheet head sits outside the scroll body → default offset 0.
+  // Legacy sticky-in-scroll mode still measures `.inventory-count-session-table-head` when present inside.
+  const stickyHeader = container.querySelector?.('.inventory-count-session-table-head')
   const stickyOffset = Number.isFinite(explicitOffset)
     ? Math.max(0, explicitOffset)
     : (stickyHeader?.getBoundingClientRect().height ?? 0)
@@ -674,7 +673,10 @@ export function InventoryCountSessionWorkspace({
     const input = container?.querySelector(`input[data-count-item-id="${itemId}"]`)
     if (!input) return
     input.focus()
-    scrollInventoryCountRowIntoView(input.closest('tr'), container)
+    scrollInventoryCountRowIntoView(
+      input.closest('[data-count-item-id].inventory-count-session-spreadsheet-row, tr'),
+      container,
+    )
   }
 
   const handleCountedKeyDown = async (event, itemId) => {
@@ -1346,44 +1348,63 @@ export function InventoryCountSessionWorkspace({
               ) : null}
 
               <div
-                ref={tableWrapRef}
-                className="inventory-count-session-table-wrap"
+                className="inventory-count-session-spreadsheet"
+                style={INVENTORY_COUNT_SPREADSHEET_COLUMNS}
                 aria-label={`${selectedLocationName} items`}
               >
                 {selectedLocation?.items.length === 0 ? (
-                  <div className="stock-empty-state">
+                  <div className="stock-empty-state inventory-count-session-table-wrap">
                     <h4>No items in this location</h4>
                     <p>No snapshot items were found for {selectedLocationName}.</p>
                   </div>
                 ) : displayedLocationItems.length === 0 ? (
-                  <div className="stock-empty-state">
+                  <div className="stock-empty-state inventory-count-session-table-wrap">
                     <h4>No matching items</h4>
                     <p>No items match the current search in {selectedLocationName}.</p>
                   </div>
                 ) : (
-                  <table className="inventory-count-session-table">
-                    <thead className="inventory-count-session-table-head">
-                      <tr>
-                        <th scope="col">Item</th>
-                        <th scope="col">Unit</th>
-                        <th scope="col">Expected</th>
-                        <th scope="col">Counted</th>
-                        <th scope="col">Status</th>
-                      </tr>
-                    </thead>
-                    <tbody>
+                  <>
+                    <div
+                      className="inventory-count-session-table-head"
+                      role="row"
+                    >
+                      <div className="inventory-count-session-spreadsheet-cell is-head" role="columnheader">
+                        Item
+                      </div>
+                      <div className="inventory-count-session-spreadsheet-cell is-head" role="columnheader">
+                        Unit
+                      </div>
+                      <div className="inventory-count-session-spreadsheet-cell is-head" role="columnheader">
+                        Expected
+                      </div>
+                      <div className="inventory-count-session-spreadsheet-cell is-head" role="columnheader">
+                        Counted
+                      </div>
+                      <div className="inventory-count-session-spreadsheet-cell is-head" role="columnheader">
+                        Status
+                      </div>
+                    </div>
+                    <div
+                      ref={tableWrapRef}
+                      className="inventory-count-session-table-wrap"
+                      role="rowgroup"
+                    >
                       {displayedLocationItems.map((item) => (
-                        <tr
+                        <div
                           key={item.id}
-                          className={`is-status-${item.status.toLowerCase()}`}
+                          role="row"
+                          className={`inventory-count-session-spreadsheet-row is-status-${item.status.toLowerCase()}`}
                           data-count-item-id={item.id}
                         >
-                          <td className="inventory-count-session-item-name">{item.name}</td>
-                          <td>{item.unit}</td>
-                          <td>{item.expected}</td>
-                          <td>
+                          <div className="inventory-count-session-spreadsheet-cell inventory-count-session-item-name">
+                            {item.name}
+                          </div>
+                          <div className="inventory-count-session-spreadsheet-cell">{item.unit}</div>
+                          <div className="inventory-count-session-spreadsheet-cell">{item.expected}</div>
+                          <div className="inventory-count-session-spreadsheet-cell is-counted">
                             <input
                               type="text"
+                              className="inventory-count-session-counted-input"
                               inputMode="decimal"
                               enterKeyHint="next"
                               data-count-item-id={item.id}
@@ -1397,23 +1418,22 @@ export function InventoryCountSessionWorkspace({
                               }}
                               onFocus={(event) => {
                                 scrollInventoryCountRowIntoView(
-                                  event.currentTarget.closest('tr'),
+                                  event.currentTarget.closest('[data-count-item-id]'),
                                   tableWrapRef.current,
                                 )
                               }}
-                              style={COUNTED_INPUT_STYLE}
                               autoComplete="off"
                             />
-                          </td>
-                          <td>
+                          </div>
+                          <div className="inventory-count-session-spreadsheet-cell is-status">
                             <span className={`inventory-count-session-status-pill is-${item.status.toLowerCase()}`}>
                               {item.status}
                             </span>
-                          </td>
-                        </tr>
+                          </div>
+                        </div>
                       ))}
-                    </tbody>
-                  </table>
+                    </div>
+                  </>
                 )}
               </div>
             </div>

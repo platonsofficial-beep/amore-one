@@ -32557,13 +32557,13 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   min-height: 0;
   overflow: auto;
   overscroll-behavior: contain;
-  padding: 0 12px 8px;
+  padding: 0;
   -webkit-overflow-scrolling: touch;
 }
 
-.inventory-count-session.is-high-density .inventory-count-session-table th,
-.inventory-count-session.is-high-density .inventory-count-session-table td {
-  padding: 8px 10px;
+.inventory-count-session.is-high-density .inventory-count-session-spreadsheet {
+  flex: 1 1 auto;
+  min-height: 0;
 }
 
 .inventory-count-session.is-high-density .inventory-count-session-footer {
@@ -32604,13 +32604,8 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   min-height: 140px;
 }
 
-.inventory-count-session.is-high-density.is-keyboard-compact .inventory-count-session-table-head,
-.inventory-count-session.is-high-density.is-keyboard-compact .inventory-count-session-table-head th {
-  position: -webkit-sticky;
-  position: sticky;
-  top: 0;
-  z-index: 3;
-  background: #100f0e;
+.inventory-count-session.is-high-density.is-keyboard-compact .inventory-count-session-table-head {
+  flex-shrink: 0;
 }
 
 @media (min-width: 901px) and (max-width: 1180px) and (orientation: landscape) {
@@ -33019,6 +33014,115 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   padding: 0 16px 14px;
 }
 
+/* P8.18.0 — Premium spreadsheet foundation (active counting workspace) */
+.inventory-count-session-spreadsheet {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+  padding: 0 10px 8px;
+}
+
+.inventory-count-session-spreadsheet > .inventory-count-session-table-head,
+.inventory-count-session-spreadsheet-row {
+  display: grid;
+  grid-template-columns: var(--ic-cols);
+  align-items: center;
+  column-gap: 8px;
+  min-width: 0;
+}
+
+.inventory-count-session-spreadsheet > .inventory-count-session-table-head {
+  position: relative;
+  z-index: 4;
+  flex: 0 0 auto;
+  padding: 6px 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  background: #100f0e;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+.inventory-count-session-spreadsheet-cell.is-head {
+  color: rgba(255, 247, 232, 0.55);
+  font-size: 0.66rem;
+  font-weight: 650;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.inventory-count-session-spreadsheet .inventory-count-session-table-wrap {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  padding: 0;
+  -webkit-overflow-scrolling: touch;
+}
+
+.inventory-count-session-spreadsheet-row {
+  min-height: 36px;
+  padding: 3px 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.045);
+  background: transparent;
+  transition: background 120ms ease;
+}
+
+.inventory-count-session-spreadsheet-row:focus-within,
+.inventory-count-session-spreadsheet-row.is-active {
+  background: rgba(212, 175, 55, 0.08);
+  box-shadow: inset 2px 0 0 rgba(212, 175, 55, 0.55);
+}
+
+.inventory-count-session-spreadsheet-cell {
+  min-width: 0;
+  color: rgba(255, 247, 232, 0.84);
+  font-size: 0.8rem;
+  line-height: 1.25;
+}
+
+.inventory-count-session-spreadsheet .inventory-count-session-item-name {
+  color: #fff7e8 !important;
+  font-weight: 650;
+  font-size: 0.8rem;
+  line-height: 1.25;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  word-break: normal;
+  overflow-wrap: break-word;
+}
+
+.inventory-count-session-counted-input {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  min-height: 36px;
+  padding: 5px 8px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 247, 232, 0.16);
+  background: rgba(8, 8, 9, 0.72);
+  color: #fff7e8;
+  font-size: 0.84rem;
+  font-weight: 650;
+}
+
+.inventory-count-session-counted-input:focus {
+  outline: none;
+  border-color: rgba(212, 175, 55, 0.55);
+  box-shadow: 0 0 0 2px rgba(212, 175, 55, 0.18);
+}
+
+.inventory-count-session-spreadsheet .inventory-count-session-status-pill {
+  min-height: 22px;
+  padding: 0 8px;
+  font-size: 0.68rem;
+}
+
+/* Finish Preview / legacy HTML table (unchanged contract) */
 .inventory-count-session-table {
   width: 100%;
   border-collapse: separate;
@@ -33033,52 +33137,13 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   border-bottom: 1px solid rgba(255, 255, 255, 0.05);
 }
 
-/* P8.17.4b — Sticky column header inside the local item scroll container */
-.inventory-count-session-table-wrap .inventory-count-session-table-head {
-  position: -webkit-sticky;
-  position: sticky;
-  top: 0;
-  z-index: 3;
-}
-
-.inventory-count-session-table-wrap .inventory-count-session-table-head th,
 .inventory-count-session-table th {
-  position: -webkit-sticky;
-  position: sticky;
-  top: 0;
-  z-index: 3;
   background: #100f0e;
   color: rgba(255, 247, 232, 0.55);
   font-size: 0.74rem;
   font-weight: 650;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.06);
-}
-
-.inventory-count-session-table-wrap .inventory-count-session-table-head th:nth-child(1),
-.inventory-count-session-table-wrap .inventory-count-session-table td:nth-child(1) {
-  width: 34%;
-}
-
-.inventory-count-session-table-wrap .inventory-count-session-table-head th:nth-child(2),
-.inventory-count-session-table-wrap .inventory-count-session-table td:nth-child(2) {
-  width: 12%;
-}
-
-.inventory-count-session-table-wrap .inventory-count-session-table-head th:nth-child(3),
-.inventory-count-session-table-wrap .inventory-count-session-table td:nth-child(3) {
-  width: 14%;
-}
-
-.inventory-count-session-table-wrap .inventory-count-session-table-head th:nth-child(4),
-.inventory-count-session-table-wrap .inventory-count-session-table td:nth-child(4) {
-  width: 22%;
-}
-
-.inventory-count-session-table-wrap .inventory-count-session-table-head th:nth-child(5),
-.inventory-count-session-table-wrap .inventory-count-session-table td:nth-child(5) {
-  width: 18%;
 }
 
 .inventory-count-session-table td {

@@ -368,7 +368,7 @@ describe('InventoryCountSessionWorkspace real session items', () => {
     expect(container.textContent).toContain('Coca-Cola')
     expect(container.textContent).toContain('Paper Straws')
     expect(container.textContent).toContain('10')
-    expect(container.querySelectorAll('.inventory-count-session-table tbody tr')).toHaveLength(2)
+    expect(container.querySelectorAll('.inventory-count-session-spreadsheet-row')).toHaveLength(2)
 
     const progressBefore = getProgressSnapshot(container)
 
@@ -2764,17 +2764,20 @@ describe('InventoryCountSessionWorkspace sticky column header (P8.17.4b)', () =>
     }))
   })
 
-  it('1–5. Sticky header lives in the item workspace with shared column labels', async () => {
+  it('1–5. Frozen spreadsheet header sits above the local row scroll region', async () => {
     const { container, cleanup } = await renderWorkspace()
-    const wrap = container.querySelector('.inventory-count-session-table-wrap')
-    const head = wrap?.querySelector('.inventory-count-session-table-head')
-    const labels = Array.from(head?.querySelectorAll('th') ?? []).map((node) => node.textContent)
-    expect(wrap).toBeTruthy()
+    const sheet = container.querySelector('.inventory-count-session-spreadsheet')
+    const head = sheet?.querySelector('.inventory-count-session-table-head')
+    const wrap = sheet?.querySelector('.inventory-count-session-table-wrap')
+    const labels = Array.from(head?.querySelectorAll('[role="columnheader"]') ?? [])
+      .map((node) => node.textContent)
+    expect(sheet).toBeTruthy()
     expect(head).toBeTruthy()
+    expect(wrap).toBeTruthy()
     expect(labels).toEqual(['Item', 'Unit', 'Expected', 'Counted', 'Status'])
-    expect(wrap.querySelector('tbody tr')).toBeTruthy()
-    expect(wrap.contains(head)).toBe(true)
-    expect(wrap.contains(wrap.querySelector('tbody'))).toBe(true)
+    expect(wrap.contains(head)).toBe(false)
+    expect(wrap.querySelector('.inventory-count-session-spreadsheet-row')).toBeTruthy()
+    expect(sheet.style.getPropertyValue('--ic-cols')).toContain('var(--ic-col-item)')
     cleanup()
   })
 
@@ -2830,7 +2833,8 @@ describe('InventoryCountSessionWorkspace sticky column header (P8.17.4b)', () =>
       countedQuantity: 3,
     })
     expect(focusSpy).toHaveBeenCalled()
-    expect(wrap?.querySelector('.inventory-count-session-table-head')).toBeTruthy()
+    expect(container.querySelector('.inventory-count-session-table-head')).toBeTruthy()
+    expect(wrap?.contains(container.querySelector('.inventory-count-session-table-head'))).toBe(false)
 
     focusSpy.mockRestore()
     cleanup()
@@ -2980,6 +2984,142 @@ describe('InventoryCountSessionWorkspace sticky column header (P8.17.4b)', () =>
     expect(landing.container.querySelector('.inventory-count-page')).toBeTruthy()
     expect(landing.container.querySelector('.inventory-count-session-table-head')).toBeNull()
     expect(landing.container.querySelector('.mobile-manager-stock')).toBeNull()
+    landing.cleanup()
+  })
+})
+
+describe('InventoryCountSessionWorkspace spreadsheet foundation (P8.18.0)', () => {
+  beforeEach(() => {
+    getInventoryCountSession.mockReset()
+    getInventoryCountSessionLocations.mockReset()
+    getInventoryCountSessionItems.mockReset()
+    updateInventoryCountItem.mockReset()
+    completeInventoryCountLocation.mockReset()
+
+    getInventoryCountSession.mockResolvedValue({
+      id: 'session-real-1',
+      workspaceId: 'workspace-test-id',
+      status: 'in_progress',
+    })
+    getInventoryCountSessionLocations.mockResolvedValue(FIXTURE_LOCATIONS)
+    getInventoryCountSessionItems.mockResolvedValue(FIXTURE_ITEMS)
+    updateInventoryCountItem.mockImplementation(async ({ sessionItemId, countedQuantity }) => ({
+      id: sessionItemId,
+      countedQuantity,
+      lineStatus: countedQuantity === null || countedQuantity === undefined ? 'pending' : 'counted',
+    }))
+  })
+
+  it('frozen header never lives inside the row scroll container', async () => {
+    const { container, cleanup } = await renderWorkspace()
+    const sheet = container.querySelector('.inventory-count-session-spreadsheet')
+    const head = sheet.querySelector('.inventory-count-session-table-head')
+    const body = sheet.querySelector('.inventory-count-session-table-wrap')
+    expect(body.contains(head)).toBe(false)
+    expect(
+      head.compareDocumentPosition(body) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy()
+    cleanup()
+  })
+
+  it('shared column contract is defined once on the spreadsheet root', async () => {
+    const { container, cleanup } = await renderWorkspace()
+    const sheet = container.querySelector('.inventory-count-session-spreadsheet')
+    expect(sheet.style.getPropertyValue('--ic-cols')).toContain('var(--ic-col-item)')
+    expect(sheet.style.getPropertyValue('--ic-cols')).toContain('var(--ic-col-unit)')
+    expect(sheet.style.getPropertyValue('--ic-cols')).toContain('var(--ic-col-expected)')
+    expect(sheet.style.getPropertyValue('--ic-cols')).toContain('var(--ic-col-counted)')
+    expect(sheet.style.getPropertyValue('--ic-cols')).toContain('var(--ic-col-status)')
+    expect(sheet.style.getPropertyValue('--ic-col-item')).toBeTruthy()
+    cleanup()
+  })
+
+  it('compact density uses spreadsheet row and counted input classes', async () => {
+    const { container, cleanup } = await renderWorkspace()
+    expect(container.querySelector('.inventory-count-session-spreadsheet-row')).toBeTruthy()
+    expect(container.querySelector('.inventory-count-session-counted-input')).toBeTruthy()
+    expect(container.querySelector('.inventory-count-session-item-name')).toBeTruthy()
+    cleanup()
+  })
+
+  it('focused row receives active highlight via :focus-within', async () => {
+    const { container, cleanup } = await renderWorkspace()
+    const input = container.querySelector('input[aria-label="Counted quantity for Paper Straws"]')
+    const row = input?.closest('.inventory-count-session-spreadsheet-row')
+    expect(row).toBeTruthy()
+    await act(async () => {
+      input.focus()
+    })
+    expect(row.matches(':focus-within')).toBe(true)
+    cleanup()
+  })
+
+  it('footer remains outside the spreadsheet scroll region', async () => {
+    const { container, cleanup } = await renderWorkspace()
+    const sheet = container.querySelector('.inventory-count-session-spreadsheet')
+    const footer = container.querySelector('.inventory-count-session-footer')
+    expect(footer).toBeTruthy()
+    expect(sheet.contains(footer)).toBe(false)
+    cleanup()
+  })
+
+  it('Enter → next remains available with spreadsheet layout', async () => {
+    getInventoryCountSessionItems.mockResolvedValue([
+      sessionItem({
+        id: 'ms-1',
+        itemName: 'Coca-Cola',
+        storageLocation: 'Main Storage',
+        countedQuantity: null,
+        lineStatus: 'pending',
+      }),
+      sessionItem({
+        id: 'ms-2',
+        itemName: 'Paper Straws',
+        storageLocation: 'Main Storage',
+        countedQuantity: null,
+        lineStatus: 'pending',
+      }),
+    ])
+    getInventoryCountSessionLocations.mockResolvedValue([
+      sessionLocation('loc-1', 'Main Storage', 0, 'current'),
+    ])
+
+    const { container, cleanup } = await renderWorkspace()
+    const first = container.querySelector('input[aria-label="Counted quantity for Coca-Cola"]')
+    const second = container.querySelector('input[aria-label="Counted quantity for Paper Straws"]')
+    const focusSpy = vi.spyOn(second, 'focus')
+
+    await act(async () => {
+      const nativeInputValueSetter = Object.getOwnPropertyDescriptor(
+        window.HTMLInputElement.prototype,
+        'value',
+      )?.set
+      nativeInputValueSetter?.call(first, '5')
+      first.dispatchEvent(new Event('input', { bubbles: true }))
+    })
+    await act(async () => {
+      first.dispatchEvent(new KeyboardEvent('keydown', {
+        key: 'Enter',
+        bubbles: true,
+        cancelable: true,
+      }))
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+    expect(updateInventoryCountItem).toHaveBeenCalledTimes(1)
+    expect(focusSpy).toHaveBeenCalled()
+
+    focusSpy.mockRestore()
+    cleanup()
+  })
+
+  it('Finish Preview / landing remain outside spreadsheet foundation', async () => {
+    const landing = render(createElement(InventoryCountView, {}))
+    await act(async () => {
+      await Promise.resolve()
+    })
+    expect(landing.container.querySelector('.inventory-count-page')).toBeTruthy()
+    expect(landing.container.querySelector('.inventory-count-session-spreadsheet')).toBeNull()
     landing.cleanup()
   })
 })
