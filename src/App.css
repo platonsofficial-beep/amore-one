@@ -32487,6 +32487,13 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   min-height: min(calc(var(--inventory-count-visible-height) - 28px), 640px);
 }
 
+/* P8.17.4a — Keyboard-open: size from session-top → visualViewport bottom, never raw VV height */
+.inventory-count-session.is-high-density.is-keyboard-compact {
+  height: var(--inventory-count-session-available-height);
+  min-height: 0;
+  max-height: var(--inventory-count-session-available-height);
+}
+
 .inventory-count-session.is-high-density .inventory-count-session-header {
   align-items: center;
   gap: 10px 14px;
@@ -32570,14 +32577,31 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 
 .inventory-count-session.is-high-density.is-keyboard-compact .inventory-count-session-body {
   grid-template-columns: minmax(0, 1fr);
+  min-height: 0;
 }
 
-.inventory-count-session.is-high-density.is-keyboard-compact .inventory-count-session-progress-secondary {
+.inventory-count-session.is-high-density.is-keyboard-compact .inventory-count-session-main {
+  min-height: 0;
+}
+
+.inventory-count-session.is-high-density.is-keyboard-compact .inventory-count-session-progress-card,
+.inventory-count-session.is-high-density.is-keyboard-compact .inventory-count-session-progress-secondary,
+.inventory-count-session.is-high-density.is-keyboard-compact .inventory-count-session-location-readiness,
+.inventory-count-session.is-high-density.is-keyboard-compact .inventory-count-inactive-location-guidance {
   display: none;
+}
+
+.inventory-count-session.is-high-density.is-keyboard-compact .inventory-count-session-toolbar {
+  padding: 6px 10px;
 }
 
 .inventory-count-session.is-high-density.is-keyboard-compact .inventory-count-session-footer-left {
   display: none;
+}
+
+.inventory-count-session.is-high-density.is-keyboard-compact .inventory-count-session-table-wrap {
+  flex: 1 1 auto;
+  min-height: 140px;
 }
 
 @media (min-width: 901px) and (max-width: 1180px) and (orientation: landscape) {
@@ -32585,6 +32609,12 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
     height: min(calc(var(--inventory-count-visible-height) - 20px), 100%);
     min-height: min(calc(var(--inventory-count-visible-height) - 20px), 560px);
     border-radius: 16px;
+  }
+
+  .inventory-count-session.is-high-density.is-keyboard-compact {
+    height: var(--inventory-count-session-available-height);
+    min-height: 0;
+    max-height: var(--inventory-count-session-available-height);
   }
 
   .inventory-count-session.is-high-density .inventory-count-session-rail-item {

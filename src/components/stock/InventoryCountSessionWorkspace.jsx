@@ -348,6 +348,39 @@ export function findNextEligibleCountItem(displayedItems, currentItemId) {
   return null
 }
 
+/**
+ * Available height for the nested Inventory Count session while the soft keyboard is open.
+ * Uses visual-viewport bottom minus the session's top — never raw visualViewport.height alone.
+ */
+export function getInventoryCountKeyboardAvailableHeight({
+  sessionTop,
+  visualViewportOffsetTop = 0,
+  visualViewportHeight,
+  padding = 8,
+  minimum = 200,
+}) {
+  const top = Number(sessionTop)
+  const offsetTop = Number(visualViewportOffsetTop) || 0
+  const height = Number(visualViewportHeight)
+  if (!Number.isFinite(top) || !Number.isFinite(height) || height <= 0) {
+    return minimum
+  }
+  const viewportBottom = offsetTop + height
+  return Math.max(minimum, Math.floor(viewportBottom - top - padding))
+}
+
+/** Scroll a row inside the dedicated item workspace without moving the page. */
+export function scrollInventoryCountRowIntoView(row, container) {
+  if (!row || !container) return
+  const rowRect = row.getBoundingClientRect()
+  const containerRect = container.getBoundingClientRect()
+  if (rowRect.top < containerRect.top) {
+    container.scrollTop -= (containerRect.top - rowRect.top)
+  } else if (rowRect.bottom > containerRect.bottom) {
+    container.scrollTop += (rowRect.bottom - containerRect.bottom)
+  }
+}
+
 function patchItemInLocations(locations, itemId, patch) {
   return locations.map((location) => {
     const itemIndex = location.items.findIndex((item) => item.id === itemId)
@@ -423,7 +456,7 @@ export function InventoryCountSessionWorkspace({
     selectedLocationIdRef.current = selectedLocationId
   }, [selectedLocationId])
 
-  // P8.17.4 — Local keyboard-compact mode from visualViewport shrinkage (iPad soft keyboard).
+  // P8.17.4a — Keyboard-open height from session top → visualViewport bottom (not raw VV height).
   useEffect(() => {
     if (typeof window === 'undefined') return undefined
 
@@ -438,12 +471,21 @@ export function InventoryCountSessionWorkspace({
         const visibleHeight = viewport?.height ?? layoutHeight
         const keyboardOpen = layoutHeight > 0 && (layoutHeight - visibleHeight) > 120
         setIsKeyboardCompact(keyboardOpen)
-        if (root) {
-          root.style.setProperty(
-            '--inventory-count-visible-height',
-            `${Math.max(320, Math.floor(visibleHeight))}px`,
-          )
+
+        if (!root) return
+
+        // Keyboard-closed: clear compact height so static high-density CSS owns sizing.
+        if (!keyboardOpen) {
+          root.style.removeProperty('--inventory-count-session-available-height')
+          return
         }
+
+        const available = getInventoryCountKeyboardAvailableHeight({
+          sessionTop: root.getBoundingClientRect().top,
+          visualViewportOffsetTop: viewport?.offsetTop ?? 0,
+          visualViewportHeight: visibleHeight,
+        })
+        root.style.setProperty('--inventory-count-session-available-height', `${available}px`)
       })
     }
 
@@ -457,7 +499,7 @@ export function InventoryCountSessionWorkspace({
       window.removeEventListener('resize', updateKeyboardCompact)
       viewport?.removeEventListener('resize', updateKeyboardCompact)
       viewport?.removeEventListener('scroll', updateKeyboardCompact)
-      sessionRootRef.current?.style.removeProperty('--inventory-count-visible-height')
+      sessionRootRef.current?.style.removeProperty('--inventory-count-session-available-height')
     }
   }, [])
 
@@ -619,13 +661,11 @@ export function InventoryCountSessionWorkspace({
   }
 
   const focusCountedInput = (itemId) => {
-    const input = tableWrapRef.current?.querySelector(`input[data-count-item-id="${itemId}"]`)
+    const container = tableWrapRef.current
+    const input = container?.querySelector(`input[data-count-item-id="${itemId}"]`)
     if (!input) return
     input.focus()
-    input.closest('tr')?.scrollIntoView({
-      block: 'nearest',
-      inline: 'nearest',
-    })
+    scrollInventoryCountRowIntoView(input.closest('tr'), container)
   }
 
   const handleCountedKeyDown = async (event, itemId) => {
@@ -1347,10 +1387,10 @@ export function InventoryCountSessionWorkspace({
                                 void handleCountedKeyDown(event, item.id)
                               }}
                               onFocus={(event) => {
-                                event.currentTarget.closest('tr')?.scrollIntoView({
-                                  block: 'nearest',
-                                  inline: 'nearest',
-                                })
+                                scrollInventoryCountRowIntoView(
+                                  event.currentTarget.closest('tr'),
+                                  tableWrapRef.current,
+                                )
                               }}
                               style={COUNTED_INPUT_STYLE}
                               autoComplete="off"

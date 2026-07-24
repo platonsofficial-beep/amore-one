@@ -11,8 +11,10 @@ import {
   getDisplayedLocationItems,
   findNextEligibleCountItem,
   getFinishCountDisabledReason,
+  getInventoryCountKeyboardAvailableHeight,
   getLocationReadinessLabel,
   InventoryCountSessionWorkspace,
+  scrollInventoryCountRowIntoView,
 } from './InventoryCountSessionWorkspace'
 import {
   buildInventoryCountSnapshot,
@@ -2130,7 +2132,6 @@ describe('InventoryCountSessionWorkspace high-density workspace (P8.17.4)', () =
   })
 
   it('6–11. Enter prevents default, saves via existing path, then focuses the next pending input', async () => {
-    HTMLElement.prototype.scrollIntoView = vi.fn()
     getInventoryCountSessionItems.mockResolvedValue([
       sessionItem({
         id: 'ms-1',
@@ -2197,7 +2198,6 @@ describe('InventoryCountSessionWorkspace high-density workspace (P8.17.4)', () =
       countedQuantity: 7,
     })
     expect(focusSpy).toHaveBeenCalled()
-    expect(HTMLElement.prototype.scrollIntoView).toHaveBeenCalled()
 
     focusSpy.mockRestore()
     cleanup()
@@ -2446,5 +2446,281 @@ describe('InventoryCountSessionWorkspace high-density workspace (P8.17.4)', () =
     expect(getButtonByText(container, 'Exit')).toBeTruthy()
     expect(container.querySelector('.mobile-manager-stock')).toBeNull()
     cleanup()
+  })
+})
+
+describe('InventoryCountSessionWorkspace keyboard viewport repair (P8.17.4a)', () => {
+  beforeEach(() => {
+    getInventoryCountSession.mockReset()
+    getInventoryCountSessionLocations.mockReset()
+    getInventoryCountSessionItems.mockReset()
+    updateInventoryCountItem.mockReset()
+    completeInventoryCountLocation.mockReset()
+
+    getInventoryCountSession.mockResolvedValue({
+      id: 'session-real-1',
+      workspaceId: 'workspace-test-id',
+      status: 'in_progress',
+    })
+    getInventoryCountSessionLocations.mockResolvedValue(FIXTURE_LOCATIONS)
+    getInventoryCountSessionItems.mockResolvedValue(FIXTURE_ITEMS)
+    updateInventoryCountItem.mockImplementation(async ({ sessionItemId, countedQuantity }) => ({
+      id: sessionItemId,
+      countedQuantity,
+      lineStatus: countedQuantity === null || countedQuantity === undefined ? 'pending' : 'counted',
+    }))
+  })
+
+  it('1–2. Available height subtracts nested session top; never equals raw visualViewport.height', () => {
+    const available = getInventoryCountKeyboardAvailableHeight({
+      sessionTop: 140,
+      visualViewportOffsetTop: 0,
+      visualViewportHeight: 400,
+      padding: 8,
+      minimum: 200,
+    })
+    expect(available).toBe(252)
+    expect(available).not.toBe(400)
+    expect(available).toBeLessThan(400)
+  })
+
+  it('3–6. Keyboard-open compact state sizes from available height and keeps item scroll + essential actions', async () => {
+    const fakeViewport = {
+      height: 420,
+      offsetTop: 0,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    }
+    const originalInnerHeight = window.innerHeight
+    const originalViewport = window.visualViewport
+    Object.defineProperty(window, 'innerHeight', { configurable: true, value: 768 })
+    Object.defineProperty(window, 'visualViewport', { configurable: true, value: fakeViewport })
+
+    const { container, cleanup } = await renderWorkspace()
+    const session = container.querySelector('.inventory-count-session')
+    expect(session).toBeTruthy()
+
+    // Nested offset below Stock chrome.
+    vi.spyOn(session, 'getBoundingClientRect').mockReturnValue({
+      top: 120,
+      bottom: 700,
+      left: 0,
+      right: 1000,
+      width: 1000,
+      height: 580,
+      x: 0,
+      y: 120,
+      toJSON: () => ({}),
+    })
+
+    await act(async () => {
+      fakeViewport.addEventListener.mock.calls
+        .filter((call) => call[0] === 'resize')
+        .forEach((call) => call[1]())
+      await new Promise((resolve) => {
+        requestAnimationFrame(() => resolve())
+      })
+    })
+
+    expect(session.className).toContain('is-keyboard-compact')
+    const available = session.style.getPropertyValue('--inventory-count-session-available-height')
+    expect(available).toBe('292px')
+    expect(available).not.toBe('420px')
+    expect(container.querySelector('.inventory-count-session-table-wrap')).toBeTruthy()
+    expect(getButtonByText(container, 'Previous')).toBeTruthy()
+    expect(getButtonByText(container, 'Next')).toBeTruthy()
+    expect(getButtonByText(container, 'Complete Location')).toBeTruthy()
+    expect(getButtonByText(container, 'Pause')).toBeTruthy()
+    expect(getButtonByText(container, 'Exit')).toBeTruthy()
+
+    cleanup()
+    Object.defineProperty(window, 'innerHeight', { configurable: true, value: originalInnerHeight })
+    Object.defineProperty(window, 'visualViewport', { configurable: true, value: originalViewport })
+  })
+
+  it('5. Local row scrolling adjusts the item workspace scrollTop, not page scrollIntoView', () => {
+    const container = {
+      scrollTop: 0,
+      getBoundingClientRect: () => ({ top: 100, bottom: 300, left: 0, right: 400 }),
+    }
+    const row = {
+      getBoundingClientRect: () => ({ top: 320, bottom: 360, left: 0, right: 400 }),
+    }
+    scrollInventoryCountRowIntoView(row, container)
+    expect(container.scrollTop).toBe(60)
+  })
+
+  it('7–8. Keyboard close clears compact height; repeated open/close does not accumulate stale values', async () => {
+    let vvHeight = 768
+    const listeners = new Map()
+    const fakeViewport = {
+      get height() {
+        return vvHeight
+      },
+      offsetTop: 0,
+      addEventListener: vi.fn((type, handler) => {
+        listeners.set(type, handler)
+      }),
+      removeEventListener: vi.fn((type) => {
+        listeners.delete(type)
+      }),
+    }
+    const originalInnerHeight = window.innerHeight
+    const originalViewport = window.visualViewport
+    Object.defineProperty(window, 'innerHeight', { configurable: true, value: 768 })
+    Object.defineProperty(window, 'visualViewport', { configurable: true, value: fakeViewport })
+
+    const { container, cleanup } = await renderWorkspace()
+    const session = container.querySelector('.inventory-count-session')
+    vi.spyOn(session, 'getBoundingClientRect').mockReturnValue({
+      top: 100,
+      bottom: 700,
+      left: 0,
+      right: 1000,
+      width: 1000,
+      height: 600,
+      x: 0,
+      y: 100,
+      toJSON: () => ({}),
+    })
+
+    const fireResize = async () => {
+      await act(async () => {
+        listeners.get('resize')?.()
+        await new Promise((resolve) => {
+          requestAnimationFrame(() => resolve())
+        })
+      })
+    }
+
+    vvHeight = 400
+    await fireResize()
+    expect(session.className).toContain('is-keyboard-compact')
+    expect(session.style.getPropertyValue('--inventory-count-session-available-height')).toBe('292px')
+
+    vvHeight = 768
+    await fireResize()
+    expect(session.className).not.toContain('is-keyboard-compact')
+    expect(session.style.getPropertyValue('--inventory-count-session-available-height')).toBe('')
+
+    vvHeight = 390
+    await fireResize()
+    expect(session.className).toContain('is-keyboard-compact')
+    expect(session.style.getPropertyValue('--inventory-count-session-available-height')).toBe('282px')
+
+    vvHeight = 768
+    await fireResize()
+    expect(session.style.getPropertyValue('--inventory-count-session-available-height')).toBe('')
+
+    cleanup()
+    Object.defineProperty(window, 'innerHeight', { configurable: true, value: originalInnerHeight })
+    Object.defineProperty(window, 'visualViewport', { configurable: true, value: originalViewport })
+  })
+
+  it('9. Listener cleanup still occurs on unmount', async () => {
+    const addSpy = vi.spyOn(window, 'addEventListener')
+    const removeSpy = vi.spyOn(window, 'removeEventListener')
+    const { cleanup } = await renderWorkspace()
+    expect(addSpy.mock.calls.some((call) => call[0] === 'resize')).toBe(true)
+    cleanup()
+    expect(removeSpy.mock.calls.some((call) => call[0] === 'resize')).toBe(true)
+    addSpy.mockRestore()
+    removeSpy.mockRestore()
+  })
+
+  it('10–12. Enter save/next, save failure, and last-item blur remain unchanged', async () => {
+    getInventoryCountSessionItems.mockResolvedValue([
+      sessionItem({
+        id: 'ms-1',
+        itemName: 'Coca-Cola',
+        storageLocation: 'Main Storage',
+        countedQuantity: null,
+        lineStatus: 'pending',
+      }),
+      sessionItem({
+        id: 'ms-2',
+        itemName: 'Paper Straws',
+        storageLocation: 'Main Storage',
+        countedQuantity: null,
+        lineStatus: 'pending',
+      }),
+    ])
+    getInventoryCountSessionLocations.mockResolvedValue([
+      sessionLocation('loc-1', 'Main Storage', 0, 'current'),
+    ])
+
+    const { container, cleanup } = await renderWorkspace()
+    const first = container.querySelector('input[aria-label="Counted quantity for Coca-Cola"]')
+    const second = container.querySelector('input[aria-label="Counted quantity for Paper Straws"]')
+    const focusSpy = vi.spyOn(second, 'focus')
+
+    await act(async () => {
+      const nativeInputValueSetter = Object.getOwnPropertyDescriptor(
+        window.HTMLInputElement.prototype,
+        'value',
+      )?.set
+      nativeInputValueSetter?.call(first, '4')
+      first.dispatchEvent(new Event('input', { bubbles: true }))
+    })
+    await act(async () => {
+      first.dispatchEvent(new KeyboardEvent('keydown', {
+        key: 'Enter',
+        bubbles: true,
+        cancelable: true,
+      }))
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+    expect(updateInventoryCountItem).toHaveBeenCalledWith({
+      workspaceId: 'workspace-test-id',
+      sessionId: 'session-real-1',
+      sessionItemId: 'ms-1',
+      countedQuantity: 4,
+    })
+    expect(focusSpy).toHaveBeenCalled()
+    expect(completeInventoryCountLocation).not.toHaveBeenCalled()
+
+    updateInventoryCountItem.mockRejectedValueOnce(new Error('Save failed'))
+    await act(async () => {
+      const nativeInputValueSetter = Object.getOwnPropertyDescriptor(
+        window.HTMLInputElement.prototype,
+        'value',
+      )?.set
+      nativeInputValueSetter?.call(second, '9')
+      second.dispatchEvent(new Event('input', { bubbles: true }))
+    })
+    await act(async () => {
+      second.dispatchEvent(new KeyboardEvent('keydown', {
+        key: 'Enter',
+        bubbles: true,
+        cancelable: true,
+      }))
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+    expect(second.value).toBe('9')
+    expect(container.textContent).toMatch(/Save failed|Unable to save/i)
+    expect(completeInventoryCountLocation).not.toHaveBeenCalled()
+
+    focusSpy.mockRestore()
+    cleanup()
+  })
+
+  it('13–15. Keyboard-closed high-density, landing page, and mobile shell remain intact', async () => {
+    const { container, cleanup } = await renderWorkspace()
+    const session = container.querySelector('.inventory-count-session')
+    expect(session?.className).toContain('is-high-density')
+    expect(session?.className).not.toContain('is-keyboard-compact')
+    expect(session?.style.getPropertyValue('--inventory-count-session-available-height')).toBe('')
+    expect(container.querySelector('.mobile-manager-stock')).toBeNull()
+    cleanup()
+
+    const landing = render(createElement(InventoryCountView, {}))
+    await act(async () => {
+      await Promise.resolve()
+    })
+    expect(landing.container.querySelector('.inventory-count-page')).toBeTruthy()
+    expect(landing.container.querySelector('.inventory-count-session.is-high-density')).toBeNull()
+    landing.cleanup()
   })
 })
