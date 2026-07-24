@@ -189,6 +189,8 @@ export function MobileManagerStockView({
   stockSummary = null,
   stockOrdersSummary = null,
   isLoading = false,
+  catalogLoadFailed = false,
+  onRetryCatalogLoad,
   canManageStock = false,
   isWorkspaceReady = false,
   isSavingOrders = false,
@@ -223,6 +225,9 @@ export function MobileManagerStockView({
   const hasNoMatches = !hasNoItems && visibleItems.length === 0
 
   const emptyState = useMemo(() => {
+    // P8.17.1 — Never treat a failed load as a successful empty catalog.
+    if (catalogLoadFailed) return null
+
     const base = getStockDashboardEmptyState({
       hasNoItems,
       hasNoMatches,
@@ -247,7 +252,7 @@ export function MobileManagerStockView({
     }
 
     return base
-  }, [hasNoItems, hasNoMatches, statusFilter, canManageStock])
+  }, [catalogLoadFailed, hasNoItems, hasNoMatches, statusFilter, canManageStock])
 
   const handleStatusChip = (nextStatus) => {
     setStatusFilter(nextStatus)
@@ -404,6 +409,19 @@ export function MobileManagerStockView({
       <div className="mobile-manager-stock-scroll-body">
       {isLoading ? (
         <p className="mobile-manager-stock-loading">Loading stock…</p>
+      ) : catalogLoadFailed ? (
+        <div className="mobile-manager-stock-empty stock-catalog-load-failed" role="alert">
+          <p className="mobile-manager-stock-empty-title">Stock couldn&apos;t be loaded</p>
+          <p className="mobile-manager-stock-empty-message">Check your connection and try again.</p>
+          <button
+            type="button"
+            className="primary-btn"
+            onClick={() => onRetryCatalogLoad?.()}
+            disabled={typeof onRetryCatalogLoad !== 'function'}
+          >
+            Retry
+          </button>
+        </div>
       ) : emptyState ? (
         <MobileManagerStockEmptyState title={emptyState.title} message={emptyState.message} />
       ) : (

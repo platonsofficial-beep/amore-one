@@ -1230,6 +1230,8 @@ export function StockDashboardView({
   stockItems = [],
   stockOrders = [],
   isLoading = false,
+  catalogLoadFailed = false,
+  onRetryCatalogLoad,
   noticeMessage = '',
   isSaving = false,
   canManage = false,
@@ -1365,14 +1367,20 @@ export function StockDashboardView({
     return stockItems.find((item) => item.id === historyItem.id) ?? historyItem
   }, [historyItem, stockItems])
 
-  const emptyState = useMemo(() => getStockDashboardEmptyState({
-    hasNoItems,
-    hasNoMatches,
-    statusFilter,
-    visibilityFilter: effectiveVisibilityFilter,
-    hasInactiveProducts,
-    canManage,
-  }), [
+  const emptyState = useMemo(() => {
+    // P8.17.1 — Never treat a failed load as a successful empty catalog.
+    if (catalogLoadFailed) return null
+
+    return getStockDashboardEmptyState({
+      hasNoItems,
+      hasNoMatches,
+      statusFilter,
+      visibilityFilter: effectiveVisibilityFilter,
+      hasInactiveProducts,
+      canManage,
+    })
+  }, [
+    catalogLoadFailed,
     hasNoItems,
     hasNoMatches,
     statusFilter,
@@ -1622,11 +1630,26 @@ export function StockDashboardView({
 
   return (
     <section className="stock-dashboard-page" aria-label="Stock dashboard">
-      {noticeMessage ? <div className="staff-status-banner">{noticeMessage}</div> : null}
+      {noticeMessage && !catalogLoadFailed ? <div className="staff-status-banner">{noticeMessage}</div> : null}
       {!isWorkspaceReady && workspaceSetupMessage ? (
         <div className="staff-status-banner">{workspaceSetupMessage}</div>
       ) : null}
       {isLoading ? <div className="staff-status-banner">Loading stock…</div> : null}
+
+      {catalogLoadFailed && !isLoading ? (
+        <div className="stock-empty-state panel staff-panel stock-catalog-load-failed" role="alert">
+          <h4>Stock couldn&apos;t be loaded</h4>
+          <p>Check your connection and try again.</p>
+          <button
+            type="button"
+            className="primary-btn"
+            onClick={() => onRetryCatalogLoad?.()}
+            disabled={typeof onRetryCatalogLoad !== 'function'}
+          >
+            Retry
+          </button>
+        </div>
+      ) : null}
 
       <section className={`stock-summary-grid${canManage ? ' stock-summary-grid-five' : ''}`} aria-label="Stock summary">
         <StockSummaryCard

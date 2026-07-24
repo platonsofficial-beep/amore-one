@@ -15633,6 +15633,7 @@ function App() {
   const [stockItems, setStockItems] = useState([])
   const [stockItemsNotice, setStockItemsNotice] = useState('')
   const [isStockItemsLoading, setIsStockItemsLoading] = useState(false)
+  const [stockCatalogLoadFailed, setStockCatalogLoadFailed] = useState(false)
   const [isSavingStockItem, setIsSavingStockItem] = useState(false)
   const [isStockItemModalOpen, setIsStockItemModalOpen] = useState(false)
   const [stockSupplierPrefill, setStockSupplierPrefill] = useState('')
@@ -17003,6 +17004,22 @@ function App() {
     }
   }, [activeWorkspaceId])
 
+  // P8.17.1 — Shared catalog load path for initial mount and Retry (not a second fetch implementation).
+  const loadStockCatalog = useCallback(async () => {
+    setIsStockItemsLoading(true)
+    setStockCatalogLoadFailed(false)
+    setStockItemsNotice('')
+
+    try {
+      await refreshStockItems()
+      setStockCatalogLoadFailed(false)
+    } catch {
+      setStockCatalogLoadFailed(true)
+    } finally {
+      setIsStockItemsLoading(false)
+    }
+  }, [refreshStockItems])
+
   const refreshStockOrders = useCallback(async () => {
     if (!activeWorkspaceId) {
       setStockOrders([])
@@ -17827,30 +17844,9 @@ function App() {
 
     if (!isDesktopStockCatalogView && !isManagerMobileStockTab && !isMobileStockWorkspace) return undefined
 
-    let isMounted = true
-
-    const loadStockItems = async () => {
-      setIsStockItemsLoading(true)
-      setStockItemsNotice('')
-
-      try {
-        await refreshStockItems()
-      } catch (error) {
-        if (!isMounted) return
-        setStockItemsNotice(error.message || 'Unable to load stock right now.')
-      } finally {
-        if (isMounted) {
-          setIsStockItemsLoading(false)
-        }
-      }
-    }
-
-    loadStockItems()
-
-    return () => {
-      isMounted = false
-    }
-  }, [activeView, stockSection, refreshStockItems, isManagerMobileShell, mobileManagerTab, mobileExpandedView, useMobileExperience])
+    loadStockCatalog()
+    return undefined
+  }, [activeView, stockSection, loadStockCatalog, isManagerMobileShell, mobileManagerTab, mobileExpandedView, useMobileExperience])
 
   useEffect(() => {
     const isDesktopStockOrdersView = activeView === 'stock'
@@ -24355,6 +24351,8 @@ function App() {
             stockItems={stockItems}
             stockOrders={stockOrders}
             isLoading={isStockItemsLoading}
+            catalogLoadFailed={stockCatalogLoadFailed}
+            onRetryCatalogLoad={loadStockCatalog}
             noticeMessage={stockItemsNotice}
             isSaving={isSavingStockItem}
             canManage={canManageStockRole}
@@ -24824,6 +24822,8 @@ function App() {
                           stockSummary: managerMobileStockSummary,
                           stockOrdersSummary: managerMobileOrdersSummary,
                           isLoading: isManagerMobileStockLoading,
+                          catalogLoadFailed: stockCatalogLoadFailed,
+                          onRetryCatalogLoad: loadStockCatalog,
                           canManageStock: canManageStockRole,
                           isWorkspaceReady: isStockWorkspaceReady,
                           isSavingOrders: isSavingStockOrder,
