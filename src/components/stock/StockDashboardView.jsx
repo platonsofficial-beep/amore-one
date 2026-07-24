@@ -30,6 +30,8 @@ import {
   buildStockNeedsAttentionGroups,
   getStockDashboardEmptyState,
   getStockItemInsights,
+  sliceStockNeedsAttentionGroupItems,
+  STOCK_NEEDS_ATTENTION_PREVIEW_LIMIT,
 } from '../../lib/stockInsights'
 import {
   buildStockDashboardSummary,
@@ -813,7 +815,23 @@ function StockNeedsAttentionSection({
   onCount,
   onEdit,
 }) {
+  const [isExpanded, setIsExpanded] = useState(false)
   const totalCount = groups.reduce((sum, group) => sum + group.items.length, 0)
+  const presentedGroups = groups.map((group) => {
+    const { visibleItems, hiddenCount } = sliceStockNeedsAttentionGroupItems(group.items, {
+      limit: STOCK_NEEDS_ATTENTION_PREVIEW_LIMIT,
+      expanded: isExpanded,
+    })
+    return {
+      ...group,
+      visibleItems,
+      hiddenCount,
+    }
+  })
+  const hiddenTotal = presentedGroups.reduce((sum, group) => sum + group.hiddenCount, 0)
+  const canToggleDensity = groups.some(
+    (group) => (group.items?.length ?? 0) > STOCK_NEEDS_ATTENTION_PREVIEW_LIMIT,
+  )
 
   return (
     <section className="stock-needs-attention panel staff-panel" aria-label="Needs attention">
@@ -822,19 +840,34 @@ function StockNeedsAttentionSection({
           <h3 className="stock-needs-attention-title">Needs attention</h3>
           <p className="stock-needs-attention-subtitle">
             {totalCount} product{totalCount === 1 ? '' : 's'} may need attention.
+            {!isExpanded && hiddenTotal > 0
+              ? ` Showing top ${STOCK_NEEDS_ATTENTION_PREVIEW_LIMIT} per group.`
+              : ''}
           </p>
         </div>
+        {canToggleDensity ? (
+          <button
+            type="button"
+            className="ghost-btn stock-needs-attention-toggle"
+            aria-expanded={isExpanded}
+            onClick={() => setIsExpanded((current) => !current)}
+          >
+            {isExpanded
+              ? 'Show less'
+              : `Show all ${totalCount}`}
+          </button>
+        ) : null}
       </header>
 
       <div className="stock-attention-groups">
-        {groups.map((group) => (
+        {presentedGroups.map((group) => (
           <section key={group.id} className={`stock-attention-group tone-${group.tone}`} aria-label={group.label}>
             <h4 className="stock-attention-group-title">
               {group.label}
               <span className="stock-attention-group-count">({group.items.length})</span>
             </h4>
             <ul className="stock-attention-list">
-              {group.items.map((item) => (
+              {group.visibleItems.map((item) => (
                 <StockAttentionRow
                   key={item.id}
                   item={item}
@@ -846,6 +879,11 @@ function StockNeedsAttentionSection({
                 />
               ))}
             </ul>
+            {!isExpanded && group.hiddenCount > 0 ? (
+              <p className="stock-attention-group-more">
+                +{group.hiddenCount} more in {group.label.toLowerCase()}
+              </p>
+            ) : null}
           </section>
         ))}
       </div>

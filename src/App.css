@@ -29112,6 +29112,19 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   font-size: 0.86rem;
 }
 
+.stock-needs-attention-toggle {
+  min-height: 44px;
+  min-width: 44px;
+  flex-shrink: 0;
+  align-self: flex-start;
+}
+
+.stock-attention-group-more {
+  margin: 0;
+  color: #9f9588;
+  font-size: 0.78rem;
+}
+
 .stock-operations-banner {
   display: flex;
   flex-direction: column;

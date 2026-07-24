@@ -113,6 +113,37 @@ export function buildStockNeedsAttentionGroups(
   return groups.filter((group) => group.items.length > 0)
 }
 
+/**
+ * P8.17.2 — Presentation-only preview limit for Needs Attention rows.
+ * Does not change grouping, severity, or which products need attention.
+ */
+export const STOCK_NEEDS_ATTENTION_PREVIEW_LIMIT = 5
+
+export function sliceStockNeedsAttentionGroupItems(
+  items = [],
+  {
+    limit = STOCK_NEEDS_ATTENTION_PREVIEW_LIMIT,
+    expanded = false,
+  } = {},
+) {
+  const list = Array.isArray(items) ? items : []
+  const safeLimit = Number.isFinite(Number(limit)) && Number(limit) > 0
+    ? Math.floor(Number(limit))
+    : STOCK_NEEDS_ATTENTION_PREVIEW_LIMIT
+
+  if (expanded || list.length <= safeLimit) {
+    return {
+      visibleItems: list,
+      hiddenCount: 0,
+    }
+  }
+
+  return {
+    visibleItems: list.slice(0, safeLimit),
+    hiddenCount: list.length - safeLimit,
+  }
+}
+
 export function getStockDashboardEmptyState({
   hasNoItems = false,
   hasNoMatches = false,
