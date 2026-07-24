@@ -27,13 +27,24 @@ const AUTOSAVE_DEBOUNCE_MS = 400
 
 /** Shared column contract for the active counting spreadsheet (header + rows). */
 export const INVENTORY_COUNT_SPREADSHEET_COLUMNS = {
-  '--ic-col-item': 'minmax(0, 2.6fr)',
-  '--ic-col-unit': 'minmax(52px, 0.7fr)',
+  '--ic-col-item': 'minmax(0, 3.6fr)',
+  '--ic-col-unit': 'minmax(44px, 0.48fr)',
   '--ic-col-expected': 'minmax(64px, 0.8fr)',
   '--ic-col-counted': 'minmax(88px, 1.15fr)',
-  '--ic-col-status': 'minmax(72px, 0.9fr)',
+  '--ic-col-status': 'minmax(52px, 0.52fr)',
   '--ic-cols':
     'var(--ic-col-item) var(--ic-col-unit) var(--ic-col-expected) var(--ic-col-counted) var(--ic-col-status)',
+}
+
+function formatItemMetaLine(category, itemType) {
+  const parts = []
+  const normalizedCategory = `${category ?? ''}`.trim()
+  const normalizedType = `${itemType ?? ''}`.trim()
+  if (normalizedCategory) parts.push(normalizedCategory)
+  if (normalizedType && normalizedType.toLowerCase() !== normalizedCategory.toLowerCase()) {
+    parts.push(normalizedType)
+  }
+  return parts.join(' • ')
 }
 
 function formatQuantity(value) {
@@ -76,9 +87,12 @@ function formatLineStatus(lineStatus) {
 
 function mapItemForDisplay(item) {
   const lineStatus = `${item.lineStatus ?? 'pending'}`.trim().toLowerCase() || 'pending'
+  const category = `${item.category ?? ''}`.trim() || 'Other'
+  const itemType = `${item.itemType ?? ''}`.trim() || 'Other'
   return {
     id: item.id,
     name: item.itemName || 'Untitled item',
+    meta: formatItemMetaLine(category, itemType),
     unit: item.unit || '—',
     expected: formatQuantity(item.expectedSnapshot),
     counted: item.countedQuantity === null || item.countedQuantity === undefined
@@ -1396,11 +1410,14 @@ export function InventoryCountSessionWorkspace({
                           className={`inventory-count-session-spreadsheet-row is-status-${item.status.toLowerCase()}`}
                           data-count-item-id={item.id}
                         >
-                          <div className="inventory-count-session-spreadsheet-cell inventory-count-session-item-name">
-                            {item.name}
+                          <div className="inventory-count-session-spreadsheet-cell inventory-count-session-item-cell">
+                            <span className="inventory-count-session-item-name">{item.name}</span>
+                            {item.meta ? (
+                              <span className="inventory-count-session-item-meta">{item.meta}</span>
+                            ) : null}
                           </div>
-                          <div className="inventory-count-session-spreadsheet-cell">{item.unit}</div>
-                          <div className="inventory-count-session-spreadsheet-cell">{item.expected}</div>
+                          <div className="inventory-count-session-spreadsheet-cell is-unit">{item.unit}</div>
+                          <div className="inventory-count-session-spreadsheet-cell is-expected">{item.expected}</div>
                           <div className="inventory-count-session-spreadsheet-cell is-counted">
                             <input
                               type="text"
@@ -1453,7 +1470,7 @@ export function InventoryCountSessionWorkspace({
             <div className="inventory-count-session-footer-right">
               <button
                 type="button"
-                className="ghost-btn inventory-count-session-action-btn"
+                className="ghost-btn inventory-count-session-action-btn inventory-count-session-nav-btn"
                 disabled={!canGoPrevious}
                 aria-disabled={!canGoPrevious}
                 onClick={handlePrevious}
@@ -1462,7 +1479,7 @@ export function InventoryCountSessionWorkspace({
               </button>
               <button
                 type="button"
-                className="ghost-btn inventory-count-session-action-btn"
+                className="ghost-btn inventory-count-session-action-btn inventory-count-session-nav-btn"
                 disabled={!canGoNext}
                 aria-disabled={!canGoNext}
                 onClick={handleNext}
@@ -1471,7 +1488,7 @@ export function InventoryCountSessionWorkspace({
               </button>
               <button
                 type="button"
-                className="primary-btn inventory-count-session-action-btn"
+                className="primary-btn inventory-count-session-action-btn inventory-count-session-complete-btn"
                 disabled={!canCompleteLocation}
                 aria-disabled={!canCompleteLocation}
                 title={completeLocationDisabledReason || undefined}

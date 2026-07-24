@@ -116,6 +116,8 @@ function sessionItem({
   expectedSnapshot = 0,
   countedQuantity = null,
   lineStatus = 'pending',
+  category = 'Other',
+  itemType = 'Other',
 }) {
   return {
     id,
@@ -123,8 +125,8 @@ function sessionItem({
     workspaceId: 'workspace-test-id',
     itemId: `stock-${id}`,
     itemName,
-    category: 'Other',
-    itemType: 'Other',
+    category,
+    itemType,
     unit,
     storageLocation,
     expectedSnapshot,
@@ -144,6 +146,8 @@ const FIXTURE_ITEMS = [
   sessionItem({
     id: 'ms-1',
     itemName: 'Coca-Cola',
+    category: 'Beverage',
+    itemType: 'Soft Drink',
     storageLocation: 'Main Storage',
     expectedSnapshot: 10,
     countedQuantity: 10,
@@ -152,6 +156,8 @@ const FIXTURE_ITEMS = [
   sessionItem({
     id: 'ms-2',
     itemName: 'Paper Straws',
+    category: 'Consumables',
+    itemType: 'Disposable',
     unit: 'box',
     storageLocation: 'Main Storage',
     expectedSnapshot: 4,
@@ -161,6 +167,8 @@ const FIXTURE_ITEMS = [
   sessionItem({
     id: 'cs-1',
     itemName: 'Espresso Beans',
+    category: 'Coffee',
+    itemType: 'Dry Goods',
     unit: 'kg',
     storageLocation: 'Coffee Station',
     expectedSnapshot: 2,
@@ -170,6 +178,8 @@ const FIXTURE_ITEMS = [
   sessionItem({
     id: 'cs-2',
     itemName: 'Oat Milk',
+    category: 'Dairy Alternative',
+    itemType: 'Chilled',
     unit: 'litre',
     storageLocation: 'Coffee Station',
     expectedSnapshot: 6,
@@ -179,6 +189,8 @@ const FIXTURE_ITEMS = [
   sessionItem({
     id: 'k-1',
     itemName: 'Olive Oil',
+    category: 'Kitchen',
+    itemType: 'Oil',
     unit: 'litre',
     storageLocation: 'Kitchen',
     expectedSnapshot: 4,
@@ -3121,5 +3133,111 @@ describe('InventoryCountSessionWorkspace spreadsheet foundation (P8.18.0)', () =
     expect(landing.container.querySelector('.inventory-count-page')).toBeTruthy()
     expect(landing.container.querySelector('.inventory-count-session-spreadsheet')).toBeNull()
     landing.cleanup()
+  })
+})
+
+describe('InventoryCountSessionWorkspace spreadsheet visual refinement (P8.18.1)', () => {
+  beforeEach(() => {
+    getInventoryCountSession.mockReset()
+    getInventoryCountSessionLocations.mockReset()
+    getInventoryCountSessionItems.mockReset()
+    updateInventoryCountItem.mockReset()
+    completeInventoryCountLocation.mockReset()
+
+    getInventoryCountSession.mockResolvedValue({
+      id: 'session-real-1',
+      workspaceId: 'workspace-test-id',
+      status: 'in_progress',
+    })
+    getInventoryCountSessionLocations.mockResolvedValue(FIXTURE_LOCATIONS)
+    getInventoryCountSessionItems.mockResolvedValue(FIXTURE_ITEMS)
+    updateInventoryCountItem.mockImplementation(async ({ sessionItemId, countedQuantity }) => ({
+      id: sessionItemId,
+      countedQuantity,
+      lineStatus: countedQuantity === null || countedQuantity === undefined ? 'pending' : 'counted',
+    }))
+  })
+
+  it('rebalances columns toward Item while keeping Expected/Counted shares', async () => {
+    const { container, cleanup } = await renderWorkspace()
+    const sheet = container.querySelector('.inventory-count-session-spreadsheet')
+    expect(sheet.style.getPropertyValue('--ic-col-item')).toContain('3.6fr')
+    expect(sheet.style.getPropertyValue('--ic-col-unit')).toContain('0.48fr')
+    expect(sheet.style.getPropertyValue('--ic-col-status')).toContain('0.52fr')
+    expect(sheet.style.getPropertyValue('--ic-col-expected')).toContain('0.8fr')
+    expect(sheet.style.getPropertyValue('--ic-col-counted')).toContain('1.15fr')
+    cleanup()
+  })
+
+  it('renders product name plus quieter category • type meta line', async () => {
+    const { container, cleanup } = await renderWorkspace()
+    const cell = container.querySelector('.inventory-count-session-item-cell')
+    expect(cell.querySelector('.inventory-count-session-item-name')?.textContent).toBe('Coca-Cola')
+    expect(cell.querySelector('.inventory-count-session-item-meta')?.textContent)
+      .toBe('Beverage • Soft Drink')
+    cleanup()
+  })
+
+  it('keeps Complete Location primary while demoting Previous/Next classes', async () => {
+    const { container, cleanup } = await renderWorkspace()
+    const footer = container.querySelector('.inventory-count-session-footer-right')
+    expect(footer.querySelectorAll('.inventory-count-session-nav-btn')).toHaveLength(2)
+    expect(footer.querySelector('.inventory-count-session-complete-btn')?.textContent)
+      .toMatch(/Complete Location/)
+    cleanup()
+  })
+
+  it('preserves Enter → Save → Next after visual refinement', async () => {
+    getInventoryCountSessionItems.mockResolvedValue([
+      sessionItem({
+        id: 'ms-1',
+        itemName: 'Coca-Cola',
+        category: 'Beverage',
+        itemType: 'Soft Drink',
+        storageLocation: 'Main Storage',
+        countedQuantity: null,
+        lineStatus: 'pending',
+      }),
+      sessionItem({
+        id: 'ms-2',
+        itemName: 'Paper Straws',
+        category: 'Consumables',
+        itemType: 'Disposable',
+        storageLocation: 'Main Storage',
+        countedQuantity: null,
+        lineStatus: 'pending',
+      }),
+    ])
+    getInventoryCountSessionLocations.mockResolvedValue([
+      sessionLocation('loc-1', 'Main Storage', 0, 'current'),
+    ])
+
+    const { container, cleanup } = await renderWorkspace()
+    const first = container.querySelector('input[aria-label="Counted quantity for Coca-Cola"]')
+    const second = container.querySelector('input[aria-label="Counted quantity for Paper Straws"]')
+    const focusSpy = vi.spyOn(second, 'focus')
+
+    await act(async () => {
+      const nativeInputValueSetter = Object.getOwnPropertyDescriptor(
+        window.HTMLInputElement.prototype,
+        'value',
+      )?.set
+      nativeInputValueSetter?.call(first, '5')
+      first.dispatchEvent(new Event('input', { bubbles: true }))
+    })
+    await act(async () => {
+      first.dispatchEvent(new KeyboardEvent('keydown', {
+        key: 'Enter',
+        bubbles: true,
+        cancelable: true,
+      }))
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+    expect(updateInventoryCountItem).toHaveBeenCalledTimes(1)
+    expect(focusSpy).toHaveBeenCalled()
+
+    focusSpy.mockRestore()
+    cleanup()
   })
 })
