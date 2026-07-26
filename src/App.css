@@ -32526,7 +32526,10 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 /* P8.17.4 — High-density active counting workspace (iPad landscape first) */
 .inventory-count-session.is-high-density {
   --inventory-count-visible-height: 100dvh;
+  /* P8.18.3 default (~1 compact row). P8.18.7 raises this on iPad/touch below. */
   --inventory-count-sheet-end-clearance: 56px;
+  /* ~3 compact product rows (min-height 40px + row padding) for final-row scroll runway */
+  --inventory-count-sheet-end-runway: 144px;
   height: min(calc(var(--inventory-count-visible-height) - 28px), 960px);
   min-height: min(calc(var(--inventory-count-visible-height) - 28px), 640px);
   overscroll-behavior: none;
@@ -32797,6 +32800,8 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
     height: min(calc(var(--inventory-count-visible-height) - 20px), 100%);
     min-height: min(calc(var(--inventory-count-visible-height) - 20px), 560px);
     border-radius: 16px;
+    /* P8.18.7 — iPad landscape: ~3 empty rows after the last product */
+    --inventory-count-sheet-end-clearance: var(--inventory-count-sheet-end-runway, 144px);
   }
 
   .app-shell.stock-focus-mode .main-panel-stock:has(.inventory-count-session.is-high-density) > .inventory-count-session.is-high-density {
@@ -32818,6 +32823,13 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   .inventory-count-session.is-high-density .inventory-count-session-rail-item {
     min-height: 44px;
     padding: 6px 8px;
+  }
+}
+
+/* P8.18.7 — Coarse pointer / touch tablets (incl. wider iPads outside 1180 CSS width) */
+@media (hover: none), (pointer: coarse) {
+  .inventory-count-session.is-high-density {
+    --inventory-count-sheet-end-clearance: var(--inventory-count-sheet-end-runway, 144px);
   }
 }
 

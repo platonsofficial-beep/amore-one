@@ -4011,3 +4011,99 @@ describe('InventoryCountSessionWorkspace locked panel bottom padding (P8.18.6)',
     )
   })
 })
+
+describe('InventoryCountSessionWorkspace final-row scroll runway (P8.18.7)', () => {
+  const appCss = readFileSync(resolve(process.cwd(), 'src/App.css'), 'utf8')
+  const workspaceSource = readFileSync(
+    resolve(process.cwd(), 'src/components/stock/InventoryCountSessionWorkspace.jsx'),
+    'utf8',
+  )
+
+  beforeEach(() => {
+    getInventoryCountSession.mockReset()
+    getInventoryCountSessionLocations.mockReset()
+    getInventoryCountSessionItems.mockReset()
+
+    getInventoryCountSession.mockResolvedValue({
+      id: 'session-real-1',
+      workspaceId: 'workspace-test-id',
+      status: 'in_progress',
+    })
+    getInventoryCountSessionLocations.mockResolvedValue(FIXTURE_LOCATIONS)
+    getInventoryCountSessionItems.mockResolvedValue(FIXTURE_ITEMS)
+  })
+
+  it('runway is bottom padding on the sole product-row scroll owner', async () => {
+    const { container, cleanup } = await renderWorkspace()
+    const session = container.querySelector('.inventory-count-session.is-high-density')
+    const scroll = container.querySelector('[data-inventory-count-row-scroll="true"]')
+    const footer = container.querySelector('[data-inventory-count-footer="true"]')
+    const frozenHead = container.querySelector('.inventory-count-session-sheet-frozen-head')
+
+    expect(scroll).toBeTruthy()
+    expect(scroll.classList.contains('inventory-count-session-sheet-scroll')).toBe(true)
+    expect(scroll.classList.contains('inventory-count-session-table-wrap')).toBe(true)
+    expect(container.querySelectorAll('[data-inventory-count-row-scroll="true"]')).toHaveLength(1)
+
+    expect(footer).toBeTruthy()
+    expect(scroll.contains(footer)).toBe(false)
+    expect(session.contains(footer)).toBe(true)
+    expect(frozenHead).toBeTruthy()
+    expect(scroll.contains(frozenHead)).toBe(false)
+
+    expect(appCss).toMatch(
+      /\.inventory-count-session\.is-high-density\s+\.inventory-count-session-sheet-scroll[\s\S]{0,280}?padding:\s*0\s+0\s+var\(--inventory-count-sheet-end-clearance/s,
+    )
+    expect(appCss).not.toMatch(
+      /\.main-panel-stock\s*\{[^}]*--inventory-count-sheet-end-runway/s,
+    )
+    expect(appCss).not.toMatch(
+      /\.inventory-count-session-footer[\s\S]{0,120}?--inventory-count-sheet-end-runway/s,
+    )
+
+    cleanup()
+  })
+
+  it('iPad/touch runway is ~3 compact rows (120–180px) and larger than the prior 56px clearance', () => {
+    expect(appCss).toMatch(
+      /\.inventory-count-session\.is-high-density\s*\{[^}]*--inventory-count-sheet-end-clearance:\s*56px/s,
+    )
+    expect(appCss).toMatch(
+      /--inventory-count-sheet-end-runway:\s*144px/,
+    )
+
+    const runwayMatch = appCss.match(/--inventory-count-sheet-end-runway:\s*(\d+)px/)
+    expect(runwayMatch).toBeTruthy()
+    const runwayPx = Number(runwayMatch[1])
+    expect(runwayPx).toBeGreaterThanOrEqual(120)
+    expect(runwayPx).toBeLessThanOrEqual(180)
+    expect(runwayPx).toBeGreaterThan(INVENTORY_COUNT_SHEET_END_CLEARANCE_PX)
+
+    expect(appCss).toMatch(
+      /@media\s*\(min-width:\s*901px\)\s*and\s*\(max-width:\s*1180px\)\s*and\s*\(orientation:\s*landscape\)\s*\{[\s\S]*?--inventory-count-sheet-end-clearance:\s*var\(--inventory-count-sheet-end-runway,\s*144px\)/s,
+    )
+    expect(appCss).toMatch(
+      /@media\s*\(hover:\s*none\),\s*\(pointer:\s*coarse\)\s*\{[\s\S]*?--inventory-count-sheet-end-clearance:\s*var\(--inventory-count-sheet-end-runway,\s*144px\)/s,
+    )
+  })
+
+  it('does not introduce fixed shells, outer padding workarounds, or a second vertical scroller', async () => {
+    const { container, cleanup } = await renderWorkspace()
+    const scrollOwners = container.querySelectorAll('[data-inventory-count-row-scroll="true"]')
+    expect(scrollOwners).toHaveLength(1)
+
+    expect(appCss).not.toMatch(
+      /\.inventory-count-session\.is-high-density\s*\{[^}]*position:\s*fixed/s,
+    )
+    expect(appCss).not.toMatch(
+      /\.main-panel-stock[\s\S]{0,80}?padding-bottom:\s*var\(--inventory-count-sheet-end-runway/s,
+    )
+    // Runway is CSS padding only — no JSX spacer / scroll listener / document lock added for P8.18.7
+    expect(workspaceSource).not.toMatch(/inventory-count-sheet-end-runway/)
+    expect(workspaceSource).not.toMatch(/data-inventory-count-scroll-runway/)
+    expect(workspaceSource).not.toMatch(/addEventListener\(\s*['"]scroll['"]/)
+    expect(container.querySelector('[data-inventory-count-scroll-runway]')).toBeNull()
+
+    cleanup()
+  })
+})
