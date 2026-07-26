@@ -4301,3 +4301,73 @@ describe('InventoryCountSessionWorkspace header metadata hierarchy (P8.19.3)', (
     )
   })
 })
+
+describe('InventoryCountSessionWorkspace footer action hierarchy (P8.19.4)', () => {
+  const appCss = readFileSync(resolve(process.cwd(), 'src/App.css'), 'utf8')
+
+  beforeEach(() => {
+    getInventoryCountSession.mockReset()
+    getInventoryCountSessionLocations.mockReset()
+    getInventoryCountSessionItems.mockReset()
+
+    getInventoryCountSession.mockResolvedValue({
+      id: 'session-real-1',
+      workspaceId: 'workspace-test-id',
+      status: 'in_progress',
+    })
+    getInventoryCountSessionLocations.mockResolvedValue(FIXTURE_LOCATIONS)
+    getInventoryCountSessionItems.mockResolvedValue(FIXTURE_ITEMS)
+  })
+
+  it('keeps Complete Location as the primary CTA with Previous/Next as secondary nav', async () => {
+    const { container, cleanup } = await renderWorkspace()
+    const footer = container.querySelector('[data-inventory-count-footer="true"]')
+    const footerRight = container.querySelector('.inventory-count-session-footer-right')
+    const previous = Array.from(footerRight.querySelectorAll('button'))
+      .find((button) => button.textContent.trim() === 'Previous')
+    const next = Array.from(footerRight.querySelectorAll('button'))
+      .find((button) => button.textContent.trim() === 'Next')
+    const complete = Array.from(footerRight.querySelectorAll('button'))
+      .find((button) => /Complete Location|Completing/.test(button.textContent))
+    const scroll = container.querySelector('[data-inventory-count-row-scroll="true"]')
+    const meta = container.querySelector('.inventory-count-session-meta')
+
+    expect(footer).toBeTruthy()
+    expect(previous).toBeTruthy()
+    expect(next).toBeTruthy()
+    expect(complete).toBeTruthy()
+    expect(previous.className).toContain('inventory-count-session-nav-btn')
+    expect(previous.className).toContain('ghost-btn')
+    expect(next.className).toContain('inventory-count-session-nav-btn')
+    expect(next.className).toContain('ghost-btn')
+    expect(complete.className).toContain('inventory-count-session-complete-btn')
+    expect(complete.className).toContain('primary-btn')
+    expect(meta).toBeTruthy()
+    expect(scroll).toBeTruthy()
+    expect(container.querySelectorAll('[data-inventory-count-row-scroll="true"]')).toHaveLength(1)
+
+    cleanup()
+  })
+
+  it('raises secondary nav contrast while Complete Location stays the heavier CTA', () => {
+    expect(appCss).toMatch(
+      /\.inventory-count-session-footer\s+\.inventory-count-session-nav-btn\s*\{[^}]*color:\s*rgba\(255,\s*247,\s*232,\s*0\.78\)/s,
+    )
+    expect(appCss).toMatch(
+      /\.inventory-count-session-footer\s+\.inventory-count-session-nav-btn\s*\{[^}]*font-weight:\s*600/s,
+    )
+    expect(appCss).toMatch(
+      /\.inventory-count-session-footer\s+\.inventory-count-session-complete-btn\s*\{[^}]*font-weight:\s*700/s,
+    )
+    expect(appCss).toMatch(
+      /\.inventory-count-session-footer\s+\.inventory-count-session-complete-btn\s*\{[^}]*min-height:\s*40px/s,
+    )
+    expect(appCss).toMatch(
+      /\.inventory-count-session-footer\s+\.inventory-count-session-nav-btn\s*\{[^}]*min-height:\s*36px/s,
+    )
+    expect(appCss).toMatch(/--inventory-count-sheet-end-runway:\s*320px/)
+    expect(appCss).toMatch(
+      /\.inventory-count-session\.is-high-density\s+\.inventory-count-session-meta-item\s*\{[^}]*flex-direction:\s*column/s,
+    )
+  })
+})

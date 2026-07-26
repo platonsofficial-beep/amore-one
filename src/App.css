@@ -33458,21 +33458,28 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   color: rgba(255, 247, 232, 0.4);
 }
 
+/* P8.19.4 — Secondary nav readable, still below Complete Location CTA */
 .inventory-count-session-footer .inventory-count-session-nav-btn {
   min-height: 36px;
-  padding: 0 12px;
-  border-color: rgba(255, 247, 232, 0.1);
-  background: transparent;
-  color: rgba(255, 247, 232, 0.62);
-  font-size: 0.82rem;
-  font-weight: 550;
-  opacity: 0.88;
+  padding: 0 14px;
+  border-color: rgba(255, 247, 232, 0.16);
+  background: rgba(255, 255, 255, 0.03);
+  color: rgba(255, 247, 232, 0.78);
+  font-size: 0.84rem;
+  font-weight: 600;
+  opacity: 1;
 }
 
 .inventory-count-session-footer .inventory-count-session-nav-btn:hover:not(:disabled):not([aria-disabled='true']) {
-  border-color: rgba(255, 247, 232, 0.18);
-  color: rgba(255, 247, 232, 0.82);
-  background: rgba(255, 255, 255, 0.03);
+  border-color: rgba(255, 247, 232, 0.28);
+  color: rgba(255, 247, 232, 0.92);
+  background: rgba(255, 255, 255, 0.055);
+}
+
+.inventory-count-session-footer .inventory-count-session-nav-btn:focus-visible {
+  outline: none;
+  border-color: rgba(212, 175, 55, 0.45);
+  box-shadow: 0 0 0 2px rgba(212, 175, 55, 0.22);
 }
 
 .inventory-count-session-footer .inventory-count-session-complete-btn {
