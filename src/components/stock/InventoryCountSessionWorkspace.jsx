@@ -240,6 +240,43 @@ export function shouldShowFinishCountDisabledBanner(reason) {
 }
 
 /**
+ * P8.20.2 — Finish Preview Ready / Blocked hero copy (presentation only).
+ * Uses existing canPost + blockingIssues; does not invent posting rules.
+ */
+export function getFinishPreviewPostingHero(finishPreview) {
+  if (!finishPreview || typeof finishPreview !== 'object') return null
+
+  if (finishPreview.canPost) {
+    return {
+      state: 'ready',
+      title: 'Ready to post',
+      detail: 'No blocking issues were found. Review the summary below and confirm to post this count.',
+    }
+  }
+
+  const issues = Array.isArray(finishPreview.blockingIssues) ? finishPreview.blockingIssues : []
+  const primary = issues[0]
+  const primaryCode = `${primary?.code ?? ''}`.trim()
+  const primaryMessage = `${primary?.message ?? ''}`.trim()
+  const skippedLines = Number(finishPreview.summary?.skippedLines) || 0
+
+  let detail = 'Finish the remaining requirements before posting.'
+  if (primaryCode === 'skipped_lines_present' || (skippedLines > 0 && !primaryMessage)) {
+    detail = 'Some items are still skipped.'
+  } else if (primaryMessage) {
+    detail = primaryMessage
+  } else {
+    detail = 'Review required before posting.'
+  }
+
+  return {
+    state: 'blocked',
+    title: 'Cannot post yet',
+    detail,
+  }
+}
+
+/**
  * Location readiness copy (UX only). Does not change stored progress.
  */
 export function getLocationReadinessLabel(location) {
@@ -1363,6 +1400,9 @@ export function InventoryCountSessionWorkspace({
     && !isPostingFinish
     && !hasPostedFinish,
   )
+  const postingHero = !isLoadingFinishPreview && !finishPreviewError
+    ? getFinishPreviewPostingHero(finishPreview)
+    : null
   const sessionClassName = [
     'inventory-count-session',
     'is-high-density',
@@ -1752,6 +1792,21 @@ export function InventoryCountSessionWorkspace({
                 <span className="inventory-count-session-pill is-status">Counting Complete</span>
               </div>
             </header>
+
+            {!postingHero ? null : (
+              <section
+                className={`inventory-count-finish-preview-hero is-${postingHero.state}`}
+                aria-label="Posting readiness"
+                role="status"
+              >
+                <p className="inventory-count-finish-preview-hero-title">
+                  {postingHero.title}
+                </p>
+                <p className="inventory-count-finish-preview-hero-detail">
+                  {postingHero.detail}
+                </p>
+              </section>
+            )}
 
             {finishPreview?.summary ? (
               <div

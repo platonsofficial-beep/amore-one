@@ -13,6 +13,7 @@ import {
   getDisplayedLocationItems,
   findNextEligibleCountItem,
   getFinishCountDisabledReason,
+  getFinishPreviewPostingHero,
   getInventoryCountKeyboardAvailableHeight,
   getInventoryCountUsableViewportRect,
   getLocationReadinessLabel,
@@ -1419,6 +1420,9 @@ describe('InventoryCountSessionWorkspace finish count preview', () => {
     expect(dialog).not.toBeNull()
     expect(dialog.textContent).toContain('Finish Count Preview')
     expect(dialog.textContent).toContain('Counting Complete')
+    expect(dialog.textContent).toContain('Ready to post')
+    expect(dialog.textContent).toContain('No blocking issues were found')
+    expect(dialog.querySelector('.inventory-count-finish-preview-hero.is-ready')).toBeTruthy()
     expect(dialog.textContent).toContain('Expected at Count includes stock activity recorded after the snapshot')
     expect(dialog.textContent).toContain('Total lines')
     expect(dialog.textContent).toContain('Snapshot')
@@ -1438,6 +1442,38 @@ describe('InventoryCountSessionWorkspace finish count preview', () => {
     expect(dialog.querySelector('.inventory-count-finish-preview-flow')).not.toBeNull()
     expect(dialog.querySelector('.inventory-count-finish-preview-variance')).not.toBeNull()
 
+    cleanup()
+  })
+
+  it('shows Ready / Blocked hero from canPost without changing posting rules', async () => {
+    expect(getFinishPreviewPostingHero({
+      canPost: true,
+      blockingIssues: [],
+      summary: { skippedLines: 0 },
+    })).toEqual({
+      state: 'ready',
+      title: 'Ready to post',
+      detail: 'No blocking issues were found. Review the summary below and confirm to post this count.',
+    })
+
+    expect(getFinishPreviewPostingHero({
+      canPost: false,
+      blockingIssues: [{
+        code: 'skipped_lines_present',
+        message: '1 skipped line(s) must be counted before posting. Skipped lines are not treated as zero.',
+      }],
+      summary: { skippedLines: 1 },
+    })).toEqual({
+      state: 'blocked',
+      title: 'Cannot post yet',
+      detail: 'Some items are still skipped.',
+    })
+
+    const { container, cleanup } = await openFinishPreview()
+    const hero = container.querySelector('[aria-label="Posting readiness"]')
+    expect(hero?.className).toContain('inventory-count-finish-preview-hero')
+    expect(hero?.className).toContain('is-ready')
+    expect(hero?.textContent).toMatch(/Ready to post/i)
     cleanup()
   })
 
@@ -1498,6 +1534,9 @@ describe('InventoryCountSessionWorkspace finish count preview', () => {
 
     expect(container.textContent).toContain('Skipped: Espresso Beans')
     expect(container.textContent).toContain('must be counted before posting')
+    expect(container.textContent).toContain('Cannot post yet')
+    expect(container.textContent).toContain('Some items are still skipped.')
+    expect(container.querySelector('.inventory-count-finish-preview-hero.is-blocked')).toBeTruthy()
     expect(container.textContent).not.toMatch(/Skipped: Espresso Beans[\s\S]*Variance[\s\S]*0\b/)
 
     const confirmBtn = getButtonByText(container, 'Confirm Finish Count')
