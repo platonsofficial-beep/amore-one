@@ -229,6 +229,17 @@ export function getFinishCountDisabledReason(sessionStatus, locations = []) {
 }
 
 /**
+ * P8.19.5 — Show Finish Count banner only for actionable/blocking copy.
+ * Routine pending-item text duplicates the progress KPI and stays on the button title.
+ */
+export function shouldShowFinishCountDisabledBanner(reason) {
+  const text = `${reason ?? ''}`.trim()
+  if (!text) return false
+  if (/^\d+ items? (?:is|are) still pending\.$/.test(text)) return false
+  return true
+}
+
+/**
  * Location readiness copy (UX only). Does not change stored progress.
  */
 export function getLocationReadinessLabel(location) {
@@ -1062,6 +1073,7 @@ export function InventoryCountSessionWorkspace({
   const finishCountDisabledReason = canOpenFinishCount
     ? ''
     : getFinishCountDisabledReason(sessionStatus, locations)
+  const showFinishCountDisabledBanner = shouldShowFinishCountDisabledBanner(finishCountDisabledReason)
   const canTogglePause = (sessionStatus === 'in_progress' || sessionStatus === 'paused')
     && !isTogglingPause
     && !isCompletingLocation
@@ -1378,12 +1390,6 @@ export function InventoryCountSessionWorkspace({
               <span className="inventory-count-session-meta-label">Mode</span>
               <span className="inventory-count-session-meta-value">Blind Count</span>
             </span>
-            <span className="inventory-count-session-meta-item inventory-count-session-meta-progress">
-              <span className="inventory-count-session-meta-label">Progress</span>
-              <span className="inventory-count-session-meta-value">
-                {progress.totalCounted}/{progress.totalIncluded} · {progress.percentage}%
-              </span>
-            </span>
             <span className="inventory-count-session-meta-item inventory-count-session-meta-secondary">
               <span className="inventory-count-session-meta-label">Started</span>
               <span className="inventory-count-session-meta-value">Just now</span>
@@ -1428,7 +1434,7 @@ export function InventoryCountSessionWorkspace({
         </div>
       </header>
 
-      {finishCountDisabledReason ? (
+      {showFinishCountDisabledBanner ? (
         <p className="inventory-count-finish-disabled-reason" role="status">
           <strong>Finish Count</strong>
           {' '}
@@ -1670,12 +1676,6 @@ export function InventoryCountSessionWorkspace({
             className="inventory-count-session-footer"
             data-inventory-count-footer="true"
           >
-            <div className="inventory-count-session-footer-left">
-              <span className="inventory-count-session-footer-label">Session status</span>
-              <span className="inventory-count-session-footer-value">
-                {sessionStatusLabel} · {selectedLocationName}
-              </span>
-            </div>
             <div className="inventory-count-session-footer-middle">
               <span className="inventory-count-session-footer-label">Unsaved changes</span>
               <span className="inventory-count-session-footer-value">{unsavedLabel}</span>

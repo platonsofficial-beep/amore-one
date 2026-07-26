@@ -25,6 +25,7 @@ import {
   isInventoryCountRowOutsideViewport,
   scrollInventoryCountCountedInputIntoView,
   scrollInventoryCountRowIntoView,
+  shouldShowFinishCountDisabledBanner,
 } from './InventoryCountSessionWorkspace'
 import {
   buildInventoryCountSnapshot,
@@ -493,7 +494,9 @@ describe('InventoryCountSessionWorkspace real session items', () => {
     expect(getProgressSnapshot(container)).toContain('3 / 5 counted')
     expect(getProgressSnapshot(container)).toContain('1 / 3 locations complete')
     expect(getButtonByText(container, 'Finish Count')?.disabled).toBe(true)
-    expect(container.querySelector('.inventory-count-finish-disabled-reason')?.textContent)
+    // P8.19.5 — routine pending copy stays on the button title, not a duplicate banner
+    expect(container.querySelector('.inventory-count-finish-disabled-reason')).toBeNull()
+    expect(getButtonByText(container, 'Finish Count')?.getAttribute('title'))
       .toContain('2 items are still pending.')
 
     const completeBtn = getButtonByText(container, 'Complete Location')
@@ -582,7 +585,7 @@ describe('InventoryCountSessionWorkspace real session items', () => {
     expect(container.querySelector('.inventory-count-session-pill')?.textContent)
       .toBe('Counting Complete')
     expect(container.querySelector('.inventory-count-session-footer-value')?.textContent)
-      .toContain('Counting Complete')
+      .toMatch(/All changes saved|Saving|Save failed/)
     expect(container.textContent).toContain(
       'All locations are complete. Review variances with Finish Count.',
     )
@@ -1042,7 +1045,7 @@ describe('InventoryCountSessionWorkspace pause and resume', () => {
     })
     expect(getButtonByText(container, 'Resume')).toBeTruthy()
     expect(container.querySelector('.inventory-count-session-pill')?.textContent).toBe('Paused')
-    expect(container.textContent).toContain('Paused · Main Storage')
+    expect(getRailButton(container, 'Main Storage')?.className).toContain('is-selected')
     expect(container.textContent).toContain(
       'This inventory count is paused. Resume to continue counting.',
     )
@@ -1834,6 +1837,16 @@ describe('getFinishCountDisabledReason (P8.16.29)', () => {
       { status: 'current', countedItems: 0, totalItems: 0, items: [], name: 'Main Bar' },
     ])).toBe('Complete all locations before finishing this count. Current location: Main Bar.')
     expect(getFinishCountDisabledReason('counting_complete', [])).toBe('')
+  })
+
+  it('P8.19.5 suppresses only routine pending copy from the Finish Count banner', () => {
+    expect(shouldShowFinishCountDisabledBanner('2 items are still pending.')).toBe(false)
+    expect(shouldShowFinishCountDisabledBanner('1 item is still pending.')).toBe(false)
+    expect(shouldShowFinishCountDisabledBanner('Resume this count before finishing.')).toBe(true)
+    expect(shouldShowFinishCountDisabledBanner(
+      'Complete all locations before finishing this count. Current location: Main Bar.',
+    )).toBe(true)
+    expect(shouldShowFinishCountDisabledBanner('')).toBe(false)
   })
 })
 
@@ -4270,10 +4283,10 @@ describe('InventoryCountSessionWorkspace header metadata hierarchy (P8.19.3)', (
 
     expect(meta).toBeTruthy()
     expect(pill).toBeTruthy()
-    expect(labels).toEqual(expect.arrayContaining(['Count Type', 'Mode', 'Progress']))
+    expect(labels).toEqual(expect.arrayContaining(['Count Type', 'Mode']))
+    expect(labels).not.toContain('Progress')
     expect(values.some((value) => /New Count/i.test(value))).toBe(true)
     expect(values.some((value) => /Blind Count/i.test(value))).toBe(true)
-    expect(values.some((value) => /\d/.test(value))).toBe(true)
     expect(progressCard).toBeTruthy()
     expect(footer).toBeTruthy()
     expect(scroll).toBeTruthy()
@@ -4369,5 +4382,85 @@ describe('InventoryCountSessionWorkspace footer action hierarchy (P8.19.4)', () 
     expect(appCss).toMatch(
       /\.inventory-count-session\.is-high-density\s+\.inventory-count-session-meta-item\s*\{[^}]*flex-direction:\s*column/s,
     )
+  })
+})
+
+describe('InventoryCountSessionWorkspace information redundancy cleanup (P8.19.5)', () => {
+  const appCss = readFileSync(resolve(process.cwd(), 'src/App.css'), 'utf8')
+  const workspaceSource = readFileSync(
+    resolve(process.cwd(), 'src/components/stock/InventoryCountSessionWorkspace.jsx'),
+    'utf8',
+  )
+
+  beforeEach(() => {
+    getInventoryCountSession.mockReset()
+    getInventoryCountSessionLocations.mockReset()
+    getInventoryCountSessionItems.mockReset()
+
+    getInventoryCountSession.mockResolvedValue({
+      id: 'session-real-1',
+      workspaceId: 'workspace-test-id',
+      status: 'in_progress',
+    })
+    getInventoryCountSessionLocations.mockResolvedValue(FIXTURE_LOCATIONS)
+    getInventoryCountSessionItems.mockResolvedValue(FIXTURE_ITEMS)
+  })
+
+  it('keeps one session product search, header lifecycle badge, Count Type/Mode, and KPI progress', async () => {
+    const { container, cleanup } = await renderWorkspace()
+    const sessionSearch = container.querySelector('.inventory-count-session-search-input')
+    const pill = container.querySelector('.inventory-count-session-pill.is-status')
+    const labels = Array.from(container.querySelectorAll('.inventory-count-session-meta-label'))
+      .map((node) => node.textContent.trim())
+    const progressCard = container.querySelector('.inventory-count-session-progress-card')
+    const percent = container.querySelector('.inventory-count-session-progress-percent')
+    const primary = container.querySelector('.inventory-count-session-progress-primary')
+    const secondary = container.querySelector('.inventory-count-session-progress-secondary')
+    const footer = container.querySelector('[data-inventory-count-footer="true"]')
+    const scroll = container.querySelector('[data-inventory-count-row-scroll="true"]')
+    const rail = container.querySelector('.inventory-count-session-rail')
+
+    expect(sessionSearch).toBeTruthy()
+    expect(sessionSearch.getAttribute('placeholder') || '').toMatch(/items/i)
+    expect(container.querySelectorAll('.inventory-count-session-search-input')).toHaveLength(1)
+    expect(pill).toBeTruthy()
+    expect(pill.textContent).toMatch(/In Progress/i)
+    expect(labels).toEqual(expect.arrayContaining(['Count Type', 'Mode']))
+    expect(labels).not.toContain('Progress')
+    expect(container.querySelector('.inventory-count-session-meta-progress')).toBeNull()
+    expect(progressCard).toBeTruthy()
+    expect(percent?.textContent).toMatch(/%/)
+    expect(primary?.textContent).toMatch(/counted/i)
+    expect(secondary?.textContent).toMatch(/locations complete/i)
+    expect(footer).toBeTruthy()
+    expect(footer.textContent).not.toMatch(/Session status/i)
+    expect(container.querySelector('.inventory-count-session-footer-left')).toBeNull()
+    expect(footer.textContent).toMatch(/Unsaved changes/i)
+    expect(getButtonByText(container, 'Previous')).toBeTruthy()
+    expect(getButtonByText(container, 'Next')).toBeTruthy()
+    expect(getButtonByText(container, 'Complete Location')).toBeTruthy()
+    expect(rail).toBeTruthy()
+    expect(scroll).toBeTruthy()
+    expect(container.querySelectorAll('[data-inventory-count-row-scroll="true"]')).toHaveLength(1)
+    expect(container.querySelector('.inventory-count-finish-disabled-reason')).toBeNull()
+
+    cleanup()
+  })
+
+  it('hides Stock-level search with display:none during active session and preserves blocking Finish banners', () => {
+    expect(appCss).toContain(
+      '.app-shell.stock-focus-mode:has(.inventory-count-session.is-high-density) .stock-focus-search',
+    )
+    expect(appCss).toMatch(
+      /\.app-shell\.stock-focus-mode:has\(\.inventory-count-session\.is-high-density\)\s+\.stock-focus-search,[\s\S]{0,280}?display:\s*none/s,
+    )
+    expect(appCss).toMatch(/--inventory-count-sheet-end-runway:\s*320px/)
+    expect(appCss).toMatch(
+      /\.inventory-count-session-footer-middle\s*\{[^}]*flex:\s*1\s+1\s+auto/s,
+    )
+    expect(workspaceSource).not.toContain('inventory-count-session-meta-progress')
+    expect(workspaceSource).not.toContain('Session status')
+    expect(shouldShowFinishCountDisabledBanner('Resume this count before finishing.')).toBe(true)
+    expect(shouldShowFinishCountDisabledBanner('23 items are still pending.')).toBe(false)
   })
 })

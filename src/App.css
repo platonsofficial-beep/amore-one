@@ -359,6 +359,13 @@
   min-width: 0;
 }
 
+/* P8.19.5 — One search during active count: hide Stock-level Search counts (not focusable) */
+.app-shell.stock-focus-mode:has(.inventory-count-session.is-high-density) .stock-focus-search,
+.app-shell.stock-focus-mode:has(.main-panel-stock.is-inventory-count-session-lock) .stock-focus-search,
+.app-shell.stock-focus-mode:has(.main-panel.is-inventory-count-session-lock) .stock-focus-search {
+  display: none;
+}
+
 .app-shell.stock-focus-mode .module-section-tabs {
   padding: 0 0 10px;
   gap: 8px;
@@ -32808,10 +32815,6 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   padding: 6px 10px;
 }
 
-.inventory-count-session.is-high-density.is-keyboard-compact .inventory-count-session-footer-left {
-  display: none;
-}
-
 .inventory-count-session.is-high-density.is-keyboard-compact .inventory-count-session-sheet-scroll,
 .inventory-count-session.is-high-density.is-keyboard-compact .inventory-count-session-table-wrap {
   flex: 1 1 0%;
@@ -33561,12 +33564,14 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   background: rgba(10, 10, 11, 0.94);
 }
 
-.inventory-count-session-footer-left,
+/* P8.19.5 — Session status removed; save-state keeps the leading footer slot */
 .inventory-count-session-footer-middle {
   display: flex;
   flex-direction: column;
   gap: 2px;
   min-width: 0;
+  flex: 1 1 auto;
+  margin-right: auto;
 }
 
 .inventory-count-session-footer-label {
