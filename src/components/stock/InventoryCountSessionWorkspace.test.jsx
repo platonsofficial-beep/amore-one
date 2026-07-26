@@ -4064,26 +4064,26 @@ describe('InventoryCountSessionWorkspace final-row scroll runway (P8.18.7)', () 
     cleanup()
   })
 
-  it('iPad/touch runway is ~3 compact rows (120–180px) and larger than the prior 56px clearance', () => {
+  it('iPad/touch runway is ~5 compact rows (208–240px) and larger than the prior 56px clearance', () => {
     expect(appCss).toMatch(
       /\.inventory-count-session\.is-high-density\s*\{[^}]*--inventory-count-sheet-end-clearance:\s*56px/s,
     )
     expect(appCss).toMatch(
-      /--inventory-count-sheet-end-runway:\s*144px/,
+      /--inventory-count-sheet-end-runway:\s*224px/,
     )
 
     const runwayMatch = appCss.match(/--inventory-count-sheet-end-runway:\s*(\d+)px/)
     expect(runwayMatch).toBeTruthy()
     const runwayPx = Number(runwayMatch[1])
-    expect(runwayPx).toBeGreaterThanOrEqual(120)
-    expect(runwayPx).toBeLessThanOrEqual(180)
+    expect(runwayPx).toBeGreaterThanOrEqual(208)
+    expect(runwayPx).toBeLessThanOrEqual(240)
     expect(runwayPx).toBeGreaterThan(INVENTORY_COUNT_SHEET_END_CLEARANCE_PX)
 
     expect(appCss).toMatch(
-      /@media\s*\(min-width:\s*901px\)\s*and\s*\(max-width:\s*1180px\)\s*and\s*\(orientation:\s*landscape\)\s*\{[\s\S]*?--inventory-count-sheet-end-clearance:\s*var\(--inventory-count-sheet-end-runway,\s*144px\)/s,
+      /@media\s*\(min-width:\s*901px\)\s*and\s*\(max-width:\s*1180px\)\s*and\s*\(orientation:\s*landscape\)\s*\{[\s\S]*?--inventory-count-sheet-end-clearance:\s*var\(--inventory-count-sheet-end-runway,\s*224px\)/s,
     )
     expect(appCss).toMatch(
-      /@media\s*\(hover:\s*none\),\s*\(pointer:\s*coarse\)\s*\{[\s\S]*?--inventory-count-sheet-end-clearance:\s*var\(--inventory-count-sheet-end-runway,\s*144px\)/s,
+      /@media\s*\(hover:\s*none\),\s*\(pointer:\s*coarse\)\s*\{[\s\S]*?--inventory-count-sheet-end-clearance:\s*var\(--inventory-count-sheet-end-runway,\s*224px\)/s,
     )
   })
 
