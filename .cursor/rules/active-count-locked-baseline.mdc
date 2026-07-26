@@ -1,0 +1,41 @@
+---
+description: LOCKED Active Count keyboard/scroll/runway baseline — protect layout contracts
+alwaysApply: true
+---
+
+# Active Count — LOCKED baseline (P8.19.8)
+
+Active Inventory Count keyboard / scroll / runway behavior is an **approved production baseline**. Do not change it unless a sprint **explicitly** authorizes modifying this contract.
+
+Baseline reference: P8.19.8 (post P8.19.9 rollback). Permanent until a newer approved baseline replaces it.
+
+## Protected (must not change)
+
+- Keyboard behavior and VisualViewport handling
+- Scroll ownership; **320px** bottom runway (`--inventory-count-sheet-end-runway`)
+- Frozen table header; footer position / visibility above keyboard
+- Previous / Next / Complete Location positioning
+- Active input auto-reveal; Enter → Save → Next
+- Body height chain; iPad landscape layout; desktop mirror
+
+## Before any Inventory Count CSS / layout edit
+
+Inspect whether the change touches selectors that participate in:
+
+`keyboard` · `visualViewport` · `overflow` · `height` · `min-height` · `max-height` · `flex` · `grid` · `grid-template` · `sticky` · `bottom` · `inset` · viewport calculations
+
+**If yes → STOP.** Report why. Do not implement unless the sprint explicitly authorizes locked-baseline changes.
+
+## Allowed without baseline authorization
+
+Typography, spacing, colors, borders, shadows, icons, copy, button styling, information hierarchy — **only if** they do **not** alter layout flow, grid/flex contracts, viewport math, keyboard, scrolling, footer geometry, or runway.
+
+## Mandatory end-of-sprint regression checklist
+
+- Keyboard opens correctly; footer remains visible
+- Scroll owner unchanged; 320px runway preserved
+- Frozen header preserved; Enter → Save → Next works
+- Final rows reachable; no page scroll; no layout jump
+- iPad landscape identical to locked baseline
+
+**If any regress → STOP.** Rollback the sprint. Do not “repair” in the same sprint. Restore the locked baseline first; only then start a new isolated sprint.
