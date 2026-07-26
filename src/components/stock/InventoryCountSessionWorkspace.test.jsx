@@ -4238,3 +4238,66 @@ describe('InventoryCountSessionWorkspace progress summary polish (P8.19.2)', () 
     )
   })
 })
+
+describe('InventoryCountSessionWorkspace header metadata hierarchy (P8.19.3)', () => {
+  const appCss = readFileSync(resolve(process.cwd(), 'src/App.css'), 'utf8')
+
+  beforeEach(() => {
+    getInventoryCountSession.mockReset()
+    getInventoryCountSessionLocations.mockReset()
+    getInventoryCountSessionItems.mockReset()
+
+    getInventoryCountSession.mockResolvedValue({
+      id: 'session-real-1',
+      workspaceId: 'workspace-test-id',
+      status: 'in_progress',
+    })
+    getInventoryCountSessionLocations.mockResolvedValue(FIXTURE_LOCATIONS)
+    getInventoryCountSessionItems.mockResolvedValue(FIXTURE_ITEMS)
+  })
+
+  it('preserves metadata labels and values with label/value hierarchy classes', async () => {
+    const { container, cleanup } = await renderWorkspace()
+    const meta = container.querySelector('.inventory-count-session-meta')
+    const labels = Array.from(container.querySelectorAll('.inventory-count-session-meta-label'))
+      .map((node) => node.textContent.trim())
+    const values = Array.from(container.querySelectorAll('.inventory-count-session-meta-value'))
+      .map((node) => node.textContent.trim())
+    const pill = container.querySelector('.inventory-count-session-pill.is-status')
+    const progressCard = container.querySelector('.inventory-count-session-progress-card')
+    const footer = container.querySelector('[data-inventory-count-footer="true"]')
+    const scroll = container.querySelector('[data-inventory-count-row-scroll="true"]')
+
+    expect(meta).toBeTruthy()
+    expect(pill).toBeTruthy()
+    expect(labels).toEqual(expect.arrayContaining(['Count Type', 'Mode', 'Progress']))
+    expect(values.some((value) => /New Count/i.test(value))).toBe(true)
+    expect(values.some((value) => /Blind Count/i.test(value))).toBe(true)
+    expect(values.some((value) => /\d/.test(value))).toBe(true)
+    expect(progressCard).toBeTruthy()
+    expect(footer).toBeTruthy()
+    expect(scroll).toBeTruthy()
+    expect(container.querySelectorAll('[data-inventory-count-row-scroll="true"]')).toHaveLength(1)
+
+    cleanup()
+  })
+
+  it('stacks high-density meta labels above stronger values without runway or progress-card regressions', () => {
+    expect(appCss).toMatch(
+      /\.inventory-count-session\.is-high-density\s+\.inventory-count-session-meta-item\s*\{[^}]*flex-direction:\s*column/s,
+    )
+    expect(appCss).toMatch(
+      /\.inventory-count-session\.is-high-density\s+\.inventory-count-session-meta-label\s*\{[^}]*color:\s*rgba\(255,\s*247,\s*232,\s*0\.38\)/s,
+    )
+    expect(appCss).toMatch(
+      /\.inventory-count-session\.is-high-density\s+\.inventory-count-session-meta-value\s*\{[^}]*font-size:\s*0\.84rem/s,
+    )
+    expect(appCss).not.toMatch(
+      /\.inventory-count-session\.is-high-density\s+\.inventory-count-session-meta-item\s*\{[^}]*flex-direction:\s*row/s,
+    )
+    expect(appCss).toMatch(/--inventory-count-sheet-end-runway:\s*320px/)
+    expect(appCss).toMatch(
+      /\.inventory-count-session\.is-high-density\s+\.inventory-count-session-progress-percent\s*\{[^}]*font-size:\s*1\.28rem/s,
+    )
+  })
+})
