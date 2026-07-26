@@ -32612,9 +32612,9 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   font-size: 0.78rem;
 }
 
-/* P8.18.2 — Spreadsheet-first width: ~80% main / compact location rail */
+/* P8.18.2 / P8.19.1 — Spreadsheet-first width; rail wide enough for readable location names */
 .inventory-count-session.is-high-density .inventory-count-session-body {
-  grid-template-columns: minmax(132px, 18%) minmax(0, 1fr);
+  grid-template-columns: minmax(160px, 20%) minmax(0, 1fr);
   flex: 1 1 0%;
   min-height: 0;
   overflow: hidden;
@@ -32628,7 +32628,7 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 .inventory-count-session.is-high-density .inventory-count-session-rail-item {
   grid-template-columns: 22px minmax(0, 1fr);
   gap: 8px;
-  min-height: 48px;
+  min-height: 56px;
   padding: 7px 8px;
   border-radius: 12px;
 }
@@ -32643,8 +32643,24 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   font-size: 0.7rem;
 }
 
+/* P8.19.1 — Name above CURRENT badge so the title keeps the full rail width */
+.inventory-count-session.is-high-density .inventory-count-session-rail-title-row {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 3px;
+}
+
 .inventory-count-session.is-high-density .inventory-count-session-rail-title {
   font-size: 0.78rem;
+  line-height: 1.25;
+  white-space: normal;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-height: calc(1.25em * 2);
 }
 
 .inventory-count-session.is-high-density .inventory-count-session-rail-state {
@@ -32817,11 +32833,11 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   }
 
   .inventory-count-session.is-high-density .inventory-count-session-body {
-    grid-template-columns: minmax(124px, 16%) minmax(0, 1fr);
+    grid-template-columns: minmax(160px, 20%) minmax(0, 1fr);
   }
 
   .inventory-count-session.is-high-density .inventory-count-session-rail-item {
-    min-height: 44px;
+    min-height: 52px;
     padding: 6px 8px;
   }
 }
@@ -33896,7 +33912,7 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   }
 
   .inventory-count-session.is-high-density .inventory-count-session-body {
-    grid-template-columns: minmax(124px, 16%) minmax(0, 1fr);
+    grid-template-columns: minmax(160px, 20%) minmax(0, 1fr);
   }
 }
 

@@ -4107,3 +4107,74 @@ describe('InventoryCountSessionWorkspace final-row scroll runway (P8.18.7)', () 
     cleanup()
   })
 })
+
+describe('InventoryCountSessionWorkspace location rail readability (P8.19.1)', () => {
+  const appCss = readFileSync(resolve(process.cwd(), 'src/App.css'), 'utf8')
+
+  beforeEach(() => {
+    getInventoryCountSession.mockReset()
+    getInventoryCountSessionLocations.mockReset()
+    getInventoryCountSessionItems.mockReset()
+
+    getInventoryCountSession.mockResolvedValue({
+      id: 'session-real-1',
+      workspaceId: 'workspace-test-id',
+      status: 'in_progress',
+    })
+    getInventoryCountSessionLocations.mockResolvedValue(FIXTURE_LOCATIONS)
+    getInventoryCountSessionItems.mockResolvedValue(FIXTURE_ITEMS)
+  })
+
+  it('gives the high-density rail a readable tablet width while the spreadsheet stays the flexible remainder', async () => {
+    const { container, cleanup } = await renderWorkspace()
+    const rail = container.querySelector('.inventory-count-session-rail')
+    const scroll = container.querySelector('[data-inventory-count-row-scroll="true"]')
+    const title = container.querySelector('.inventory-count-session-rail-title')
+    const footer = container.querySelector('[data-inventory-count-footer="true"]')
+
+    expect(rail).toBeTruthy()
+    expect(scroll).toBeTruthy()
+    expect(rail.contains(scroll)).toBe(false)
+    expect(container.querySelectorAll('[data-inventory-count-row-scroll="true"]')).toHaveLength(1)
+    expect(footer).toBeTruthy()
+    expect(title).toBeTruthy()
+    expect(title.textContent).toMatch(/\S/)
+
+    expect(appCss).toMatch(
+      /\.inventory-count-session\.is-high-density\s+\.inventory-count-session-body\s*\{[^}]*grid-template-columns:\s*minmax\(160px,\s*20%\)\s+minmax\(0,\s*1fr\)/s,
+    )
+    expect(appCss).toMatch(
+      /@media\s*\(min-width:\s*901px\)\s*and\s*\(max-width:\s*1180px\)\s*and\s*\(orientation:\s*landscape\)\s*\{[\s\S]*?\.inventory-count-session\.is-high-density\s+\.inventory-count-session-body\s*\{[^}]*grid-template-columns:\s*minmax\(160px,\s*20%\)\s+minmax\(0,\s*1fr\)/s,
+    )
+    expect(appCss).not.toMatch(
+      /\.inventory-count-session\.is-high-density\s+\.inventory-count-session-body\s*\{[^}]*minmax\(124px,\s*16%\)/s,
+    )
+
+    cleanup()
+  })
+
+  it('bounds location names to two readable lines without unbounded height', () => {
+    expect(appCss).toMatch(
+      /\.inventory-count-session\.is-high-density\s+\.inventory-count-session-rail-title\s*\{[^}]*-webkit-line-clamp:\s*2/s,
+    )
+    expect(appCss).toMatch(
+      /\.inventory-count-session\.is-high-density\s+\.inventory-count-session-rail-title\s*\{[^}]*max-height:\s*calc\(1\.25em\s*\*\s*2\)/s,
+    )
+    expect(appCss).toMatch(
+      /\.inventory-count-session\.is-high-density\s+\.inventory-count-session-rail-title-row\s*\{[^}]*flex-direction:\s*column/s,
+    )
+  })
+
+  it('preserves the 320px runway, footer contract, and avoids fixed/mobile-shell overrides', () => {
+    expect(appCss).toMatch(/--inventory-count-sheet-end-runway:\s*320px/)
+    expect(appCss).not.toMatch(
+      /\.inventory-count-session\.is-high-density\s*\{[^}]*position:\s*fixed/s,
+    )
+    expect(appCss).not.toMatch(
+      /\.mobile-shell[\s\S]{0,120}?inventory-count-session-rail-title/s,
+    )
+    expect(appCss).not.toMatch(
+      /\.inventory-count-session\.is-high-density\s+\.inventory-count-session-body\s*\{[^}]*overflow-x:\s*auto/s,
+    )
+  })
+})
