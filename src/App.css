@@ -33341,19 +33341,24 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   position: relative;
   z-index: 4;
   flex: 0 0 auto;
-  padding: 6px 8px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 7px 8px 9px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.16);
   background: #100f0e;
-  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.04);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.06),
+    0 8px 12px -10px rgba(0, 0, 0, 0.55);
 }
 
+/* P8.19.8 — Premium table header hierarchy */
 .inventory-count-session-spreadsheet-cell.is-head {
-  color: rgba(255, 247, 232, 0.55);
-  font-size: 0.66rem;
+  display: flex;
+  align-items: center;
+  color: rgba(255, 247, 232, 0.72);
+  font-size: 0.7rem;
   font-weight: 650;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
-  line-height: 1.2;
+  line-height: 1;
   white-space: nowrap;
 }
 
@@ -33369,10 +33374,11 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   touch-action: pan-y;
 }
 
+/* P8.19.8 — Subtle row rhythm for long counting sessions */
 .inventory-count-session-spreadsheet-row {
-  min-height: 40px;
-  padding: 4px 8px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.045);
+  min-height: 42px;
+  padding: 5px 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.055);
   background: transparent;
   transition: background 120ms ease, box-shadow 120ms ease;
 }
@@ -33408,15 +33414,30 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   text-overflow: ellipsis;
 }
 
+/* P8.19.8 — Spreadsheet-like numeric columns */
 .inventory-count-session-spreadsheet-cell.is-expected {
+  justify-content: flex-end;
+  text-align: right;
   font-weight: 600;
-  color: rgba(255, 247, 232, 0.78);
+  font-size: 0.82rem;
+  letter-spacing: 0.01em;
+  color: rgba(255, 247, 232, 0.8);
+  padding-inline: 2px;
+}
+
+.inventory-count-session-spreadsheet > .inventory-count-session-sheet-frozen-head > .inventory-count-session-spreadsheet-cell.is-head:nth-child(3),
+.inventory-count-session-spreadsheet > .inventory-count-session-table-head > .inventory-count-session-spreadsheet-cell.is-head:nth-child(3),
+.inventory-count-session-spreadsheet > .inventory-count-session-sheet-frozen-head > .inventory-count-session-spreadsheet-cell.is-head:nth-child(4),
+.inventory-count-session-spreadsheet > .inventory-count-session-table-head > .inventory-count-session-spreadsheet-cell.is-head:nth-child(4) {
+  justify-content: flex-end;
+  text-align: right;
 }
 
 .inventory-count-session-spreadsheet-cell.is-counted {
   display: flex;
   align-items: center;
   align-self: stretch;
+  justify-content: flex-end;
 }
 
 .inventory-count-session-spreadsheet-cell.is-status {
@@ -33427,16 +33448,18 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   display: flex;
   flex-direction: column;
   justify-content: center;
-  gap: 1px;
+  gap: 2px;
   min-width: 0;
   padding: 1px 0;
 }
 
+/* P8.19.8 — Product name primary, category secondary */
 .inventory-count-session-spreadsheet .inventory-count-session-item-name {
   color: #fff7e8 !important;
-  font-weight: 650;
-  font-size: 0.8rem;
+  font-weight: 700;
+  font-size: 0.82rem;
   line-height: 1.2;
+  letter-spacing: -0.01em;
   display: block;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -33450,48 +33473,58 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  color: rgba(255, 247, 232, 0.42);
-  font-size: 0.66rem;
-  font-weight: 500;
+  color: rgba(255, 247, 232, 0.34);
+  font-size: 0.64rem;
+  font-weight: 450;
   line-height: 1.2;
-  letter-spacing: 0.01em;
+  letter-spacing: 0.02em;
 }
 
+/* P8.19.8 — Counted input idle / focus polish (visual only) */
 .inventory-count-session-counted-input {
   box-sizing: border-box;
   width: 100%;
   min-width: 0;
   min-height: 34px;
-  padding: 4px 8px;
+  padding: 4px 10px;
   border-radius: 8px;
-  border: 1px solid rgba(255, 247, 232, 0.16);
-  background: rgba(8, 8, 9, 0.78);
+  border: 1px solid rgba(255, 247, 232, 0.24);
+  background: rgba(8, 8, 9, 0.86);
   color: #fff7e8;
   font-size: 0.84rem;
   font-weight: 650;
   font-variant-numeric: tabular-nums;
+  text-align: right;
   transition: border-color 120ms ease, box-shadow 120ms ease, background 120ms ease;
 }
 
 .inventory-count-session-counted-input:focus {
   outline: none;
-  border-color: rgba(212, 175, 55, 0.72);
-  background: rgba(18, 16, 12, 0.92);
+  border-color: rgba(212, 175, 55, 0.88);
+  background: rgba(18, 16, 12, 0.94);
   box-shadow:
-    0 0 0 2px rgba(212, 175, 55, 0.22),
-    0 0 14px rgba(212, 175, 55, 0.16);
+    0 0 0 2px rgba(212, 175, 55, 0.28),
+    0 0 12px rgba(212, 175, 55, 0.18);
 }
 
+.inventory-count-session-counted-input:active:not(:disabled) {
+  border-color: rgba(212, 175, 55, 0.55);
+  background: rgba(18, 16, 12, 0.9);
+}
+
+/* P8.19.8 — Status pill balance (colors / logic unchanged) */
 .inventory-count-session-spreadsheet .inventory-count-session-status-pill {
-  min-height: 18px;
-  max-height: 18px;
-  padding: 0 6px;
+  box-sizing: border-box;
+  min-height: 20px;
+  max-height: 22px;
+  padding: 0 8px;
   border-radius: 999px;
-  border-color: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.14);
   background: rgba(255, 255, 255, 0.03);
-  font-size: 0.6rem;
-  font-weight: 600;
-  letter-spacing: 0.04em;
+  font-size: 0.62rem;
+  font-weight: 650;
+  letter-spacing: 0.06em;
+  line-height: 1;
   text-transform: uppercase;
   color: rgba(255, 247, 232, 0.55);
 }
@@ -33503,13 +33536,13 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 }
 
 .inventory-count-session-spreadsheet .inventory-count-session-status-pill.is-pending {
-  border-color: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.14);
   background: transparent;
   color: rgba(255, 247, 232, 0.45);
 }
 
 .inventory-count-session-spreadsheet .inventory-count-session-status-pill.is-skipped {
-  border-color: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.14);
   background: transparent;
   color: rgba(255, 247, 232, 0.4);
 }

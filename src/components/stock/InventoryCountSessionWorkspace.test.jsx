@@ -4596,3 +4596,105 @@ describe('InventoryCountSessionWorkspace search & filter premium toolbar (P8.19.
     )
   })
 })
+
+describe('InventoryCountSessionWorkspace active count table premium typography (P8.19.8)', () => {
+  const appCss = readFileSync(resolve(process.cwd(), 'src/App.css'), 'utf8')
+
+  beforeEach(() => {
+    getInventoryCountSession.mockReset()
+    getInventoryCountSessionLocations.mockReset()
+    getInventoryCountSessionItems.mockReset()
+
+    getInventoryCountSession.mockResolvedValue({
+      id: 'session-real-1',
+      workspaceId: 'workspace-test-id',
+      status: 'in_progress',
+    })
+    getInventoryCountSessionLocations.mockResolvedValue(FIXTURE_LOCATIONS)
+    getInventoryCountSessionItems.mockResolvedValue(FIXTURE_ITEMS)
+  })
+
+  it('keeps table structure, scroll ownership, runway, and status colors unchanged', async () => {
+    const { container, cleanup } = await renderWorkspace()
+    const sheet = container.querySelector('.inventory-count-session-spreadsheet')
+    const frozen = container.querySelector('[data-inventory-count-frozen-header="true"]')
+    const scroll = container.querySelector('[data-inventory-count-row-scroll="true"]')
+    const row = container.querySelector('.inventory-count-session-spreadsheet-row')
+    const input = container.querySelector('.inventory-count-session-counted-input')
+    const pill = container.querySelector('.inventory-count-session-status-pill')
+
+    expect(sheet).toBeTruthy()
+    expect(frozen).toBeTruthy()
+    expect(scroll).toBeTruthy()
+    expect(container.querySelectorAll('[data-inventory-count-row-scroll="true"]')).toHaveLength(1)
+    expect(row).toBeTruthy()
+    expect(row.querySelector('.inventory-count-session-item-name')).toBeTruthy()
+    expect(row.querySelector('.inventory-count-session-item-meta')).toBeTruthy()
+    expect(input).toBeTruthy()
+    expect(pill).toBeTruthy()
+    expect(pill.className).toMatch(/is-(pending|counted|skipped)/)
+    expect(appCss).toMatch(/--inventory-count-sheet-end-runway:\s*320px/)
+    expect(appCss).toMatch(
+      /\.inventory-count-session-spreadsheet\s+\.inventory-count-session-status-pill\.is-counted\s*\{[^}]*border-color:\s*rgba\(212,\s*175,\s*55,\s*0\.22\)/s,
+    )
+    expect(appCss).toMatch(
+      /\.inventory-count-session-spreadsheet\s+\.inventory-count-session-status-pill\.is-pending\s*\{[^}]*color:\s*rgba\(255,\s*247,\s*232,\s*0\.45\)/s,
+    )
+
+    cleanup()
+  })
+
+  it('raises header hierarchy and strengthens separation from the first row', () => {
+    expect(appCss).toMatch(
+      /\.inventory-count-session-spreadsheet-cell\.is-head\s*\{[^}]*color:\s*rgba\(255,\s*247,\s*232,\s*0\.72\)/s,
+    )
+    expect(appCss).toMatch(
+      /\.inventory-count-session-spreadsheet-cell\.is-head\s*\{[^}]*font-size:\s*0\.7rem/s,
+    )
+    expect(appCss).toMatch(
+      /\.inventory-count-session-spreadsheet-cell\.is-head\s*\{[^}]*letter-spacing:\s*0\.12em/s,
+    )
+    expect(appCss).toMatch(
+      /\.inventory-count-session-spreadsheet\s*>\s*\.inventory-count-session-sheet-frozen-head\s*\{[^}]*border-bottom:\s*1px solid rgba\(255,\s*255,\s*255,\s*0\.16\)/s,
+    )
+  })
+
+  it('strengthens product name vs softer category meta without large row growth', () => {
+    expect(appCss).toMatch(
+      /\.inventory-count-session-spreadsheet\s+\.inventory-count-session-item-name\s*\{[^}]*font-weight:\s*700/s,
+    )
+    expect(appCss).toMatch(
+      /\.inventory-count-session-spreadsheet\s+\.inventory-count-session-item-name\s*\{[^}]*font-size:\s*0\.82rem/s,
+    )
+    expect(appCss).toMatch(
+      /\.inventory-count-session-spreadsheet\s+\.inventory-count-session-item-meta\s*\{[^}]*color:\s*rgba\(255,\s*247,\s*232,\s*0\.34\)/s,
+    )
+    expect(appCss).toMatch(
+      /\.inventory-count-session-spreadsheet-row\s*\{[^}]*min-height:\s*42px/s,
+    )
+  })
+
+  it('aligns Expected/Counted as spreadsheet values and polishes counted inputs + status pills', () => {
+    expect(appCss).toMatch(
+      /\.inventory-count-session-spreadsheet-cell\.is-expected\s*\{[^}]*justify-content:\s*flex-end/s,
+    )
+    expect(appCss).toMatch(
+      /\.inventory-count-session-spreadsheet-cell\.is-expected\s*\{[^}]*text-align:\s*right/s,
+    )
+    expect(appCss).toMatch(
+      /\.inventory-count-session-counted-input\s*\{[^}]*text-align:\s*right/s,
+    )
+    expect(appCss).toMatch(
+      /\.inventory-count-session-counted-input\s*\{[^}]*border:\s*1px solid rgba\(255,\s*247,\s*232,\s*0\.24\)/s,
+    )
+    expect(appCss).toMatch(
+      /\.inventory-count-session-counted-input:focus\s*\{[^}]*border-color:\s*rgba\(212,\s*175,\s*55,\s*0\.88\)/s,
+    )
+    expect(appCss).toMatch(
+      /\.inventory-count-session-spreadsheet\s+\.inventory-count-session-status-pill\s*\{[^}]*padding:\s*0 8px/s,
+    )
+    expect(appCss).toMatch(
+      /\.inventory-count-session-spreadsheet\s+\.inventory-count-session-status-pill\s*\{[^}]*letter-spacing:\s*0\.06em/s,
+    )
+  })
+})
