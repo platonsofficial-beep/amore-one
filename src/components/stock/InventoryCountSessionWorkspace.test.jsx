@@ -4295,18 +4295,18 @@ describe('InventoryCountSessionWorkspace header metadata hierarchy (P8.19.3)', (
     cleanup()
   })
 
-  it('stacks high-density meta labels above stronger values without runway or progress-card regressions', () => {
+  it('compacts high-density meta into a single strip with sr-only labels and no runway regressions', () => {
     expect(appCss).toMatch(
-      /\.inventory-count-session\.is-high-density\s+\.inventory-count-session-meta-item\s*\{[^}]*flex-direction:\s*column/s,
+      /\.inventory-count-session\.is-high-density\s+\.inventory-count-session-meta-item\s*\{[^}]*flex-direction:\s*row/s,
     )
     expect(appCss).toMatch(
-      /\.inventory-count-session\.is-high-density\s+\.inventory-count-session-meta-label\s*\{[^}]*color:\s*rgba\(255,\s*247,\s*232,\s*0\.32\)/s,
+      /\.inventory-count-session\.is-high-density\s+\.inventory-count-session-meta-label\s*\{[^}]*clip:\s*rect\(0,\s*0,\s*0,\s*0\)/s,
     )
     expect(appCss).toMatch(
-      /\.inventory-count-session\.is-high-density\s+\.inventory-count-session-meta-value\s*\{[^}]*font-size:\s*0\.9rem/s,
+      /\.inventory-count-session\.is-high-density\s+\.inventory-count-session-meta-value\s*\{[^}]*font-size:\s*0\.86rem/s,
     )
     expect(appCss).not.toMatch(
-      /\.inventory-count-session\.is-high-density\s+\.inventory-count-session-meta-item\s*\{[^}]*flex-direction:\s*row/s,
+      /\.inventory-count-session\.is-high-density\s+\.inventory-count-session-meta-item\s*\{[^}]*flex-direction:\s*column/s,
     )
     expect(appCss).toMatch(/--inventory-count-sheet-end-runway:\s*320px/)
     expect(appCss).toMatch(
@@ -4380,7 +4380,7 @@ describe('InventoryCountSessionWorkspace footer action hierarchy (P8.19.4)', () 
     )
     expect(appCss).toMatch(/--inventory-count-sheet-end-runway:\s*320px/)
     expect(appCss).toMatch(
-      /\.inventory-count-session\.is-high-density\s+\.inventory-count-session-meta-item\s*\{[^}]*flex-direction:\s*column/s,
+      /\.inventory-count-session\.is-high-density\s+\.inventory-count-session-meta-item\s*\{[^}]*flex-direction:\s*row/s,
     )
   })
 })
@@ -4505,7 +4505,7 @@ describe('InventoryCountSessionWorkspace header premium hierarchy (P8.19.6)', ()
 
   it('applies premium header spacing, toolbar baseline alignment, and stronger KPI proportions', () => {
     expect(appCss).toMatch(
-      /\.inventory-count-session\.is-high-density\s+\.inventory-count-session-meta\s*\{[^}]*gap:\s*8px\s+24px/s,
+      /\.inventory-count-session\.is-high-density\s+\.inventory-count-session-meta\s*\{[^}]*gap:\s*8px\s+14px/s,
     )
     expect(appCss).toMatch(
       /\.inventory-count-session\.is-high-density\s+\.inventory-count-session-meta-value\s*\{[^}]*font-weight:\s*700/s,
@@ -4696,5 +4696,107 @@ describe('InventoryCountSessionWorkspace active count table premium typography (
     expect(appCss).toMatch(
       /\.inventory-count-session-spreadsheet\s+\.inventory-count-session-status-pill\s*\{[^}]*letter-spacing:\s*0\.06em/s,
     )
+  })
+})
+
+describe('InventoryCountSessionWorkspace final visual polish (P8.19.9)', () => {
+  const appCss = readFileSync(resolve(process.cwd(), 'src/App.css'), 'utf8')
+
+  beforeEach(() => {
+    getInventoryCountSession.mockReset()
+    getInventoryCountSessionLocations.mockReset()
+    getInventoryCountSessionItems.mockReset()
+
+    getInventoryCountSession.mockResolvedValue({
+      id: 'session-real-1',
+      workspaceId: 'workspace-test-id',
+      status: 'in_progress',
+    })
+    getInventoryCountSessionLocations.mockResolvedValue(FIXTURE_LOCATIONS)
+    getInventoryCountSessionItems.mockResolvedValue(FIXTURE_ITEMS)
+  })
+
+  it('keeps Count Type/Mode in the DOM, KPI wording, runway, footer, and scroll ownership', async () => {
+    const { container, cleanup } = await renderWorkspace()
+    const labels = Array.from(container.querySelectorAll('.inventory-count-session-meta-label'))
+      .map((node) => node.textContent.trim())
+    const values = Array.from(container.querySelectorAll('.inventory-count-session-meta-value'))
+      .map((node) => node.textContent.trim())
+    const pill = container.querySelector('.inventory-count-session-pill.is-status')
+    const primary = container.querySelector('.inventory-count-session-progress-primary')
+    const secondary = container.querySelector('.inventory-count-session-progress-secondary')
+    const footer = container.querySelector('[data-inventory-count-footer="true"]')
+    const scroll = container.querySelector('[data-inventory-count-row-scroll="true"]')
+
+    expect(pill).toBeTruthy()
+    expect(labels).toEqual(expect.arrayContaining(['Count Type', 'Mode']))
+    expect(values.some((value) => /New Count/i.test(value))).toBe(true)
+    expect(values.some((value) => /Blind Count/i.test(value))).toBe(true)
+    expect(primary?.textContent).toMatch(/counted/i)
+    expect(secondary?.textContent).toMatch(/locations complete/i)
+    expect(footer).toBeTruthy()
+    expect(scroll).toBeTruthy()
+    expect(container.querySelectorAll('[data-inventory-count-row-scroll="true"]')).toHaveLength(1)
+    expect(getButtonByText(container, 'Complete Location')?.className).toContain('primary-btn')
+    expect(appCss).toMatch(/--inventory-count-sheet-end-runway:\s*320px/)
+
+    cleanup()
+  })
+
+  it('compacts the high-density metadata strip with sr-only labels', () => {
+    expect(appCss).toMatch(
+      /\.inventory-count-session\.is-high-density\s+\.inventory-count-session-meta\s*\{[^}]*gap:\s*8px\s+14px/s,
+    )
+    expect(appCss).toMatch(
+      /\.inventory-count-session\.is-high-density\s+\.inventory-count-session-meta-item\s*\{[^}]*flex-direction:\s*row/s,
+    )
+    expect(appCss).toMatch(
+      /\.inventory-count-session\.is-high-density\s+\.inventory-count-session-meta-label\s*\{[^}]*clip:\s*rect\(0,\s*0,\s*0,\s*0\)/s,
+    )
+    expect(appCss).toMatch(
+      /\.inventory-count-session\.is-high-density\s+\.inventory-count-session-header\s*\{[^}]*padding:\s*6px 12px 8px/s,
+    )
+  })
+
+  it('densifies KPI card hierarchy while locking max-width at 176px', () => {
+    expect(appCss).toMatch(
+      /\.inventory-count-session\.is-high-density\s+\.inventory-count-session-progress-card\s*\{[^}]*max-width:\s*176px/s,
+    )
+    expect(appCss).toMatch(
+      /\.inventory-count-session\.is-high-density\s+\.inventory-count-session-progress-card\s*\{[^}]*padding:\s*6px 10px/s,
+    )
+    expect(appCss).toMatch(
+      /\.inventory-count-session\.is-high-density\s+\.inventory-count-session-progress-percent\s*\{[^}]*font-size:\s*1\.47rem/s,
+    )
+    expect(appCss).toMatch(
+      /\.inventory-count-session\.is-high-density\s+\.inventory-count-session-progress-primary\s*\{[^}]*font-size:\s*0\.76rem/s,
+    )
+    expect(appCss).toMatch(
+      /\.inventory-count-session\.is-high-density\s+\.inventory-count-session-progress-secondary\s*\{[^}]*font-size:\s*0\.62rem/s,
+    )
+  })
+
+  it('narrows the rail only when a single location exists; multi-location default stays 160px/20%', async () => {
+    expect(appCss).toMatch(
+      /\.inventory-count-session\.is-high-density\s+\.inventory-count-session-body\s*\{[^}]*grid-template-columns:\s*minmax\(160px,\s*20%\)\s+minmax\(0,\s*1fr\)/s,
+    )
+    expect(appCss).toMatch(
+      /\.inventory-count-session\.is-high-density\s+\.inventory-count-session-body:has\(\.inventory-count-session-rail-item:only-child\)\s*\{[^}]*grid-template-columns:\s*minmax\(144px,\s*15%\)\s+minmax\(0,\s*1fr\)/s,
+    )
+
+    const multi = await renderWorkspace()
+    expect(multi.container.querySelectorAll('.inventory-count-session-rail-item')).toHaveLength(3)
+    multi.cleanup()
+
+    getInventoryCountSessionLocations.mockResolvedValue([
+      sessionLocation('loc-1', 'Main Storage', 0, 'current'),
+    ])
+    getInventoryCountSessionItems.mockResolvedValue(
+      FIXTURE_ITEMS.filter((item) => item.storageLocation === 'Main Storage'),
+    )
+    const single = await renderWorkspace()
+    expect(single.container.querySelectorAll('.inventory-count-session-rail-item')).toHaveLength(1)
+    expect(single.container.querySelector('.inventory-count-session-body')).toBeTruthy()
+    single.cleanup()
   })
 })

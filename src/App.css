@@ -32549,11 +32549,11 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   max-height: var(--inventory-count-session-available-height);
 }
 
-/* P8.19.6 — Premium header hierarchy: breathing room, label/value contrast, toolbar baseline */
+/* P8.19.6 / P8.19.9 — Compact premium header strip; toolbar baseline */
 .inventory-count-session.is-high-density .inventory-count-session-header {
   align-items: center;
   gap: 10px 16px;
-  padding: 8px 12px 10px;
+  padding: 6px 12px 8px;
 }
 
 .inventory-count-session.is-high-density .inventory-count-session-header-copy {
@@ -32574,10 +32574,11 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   border: 0;
 }
 
+/* P8.19.9 — Compact metadata strip: [status] value value */
 .inventory-count-session.is-high-density .inventory-count-session-meta {
   flex-wrap: nowrap;
   align-items: center;
-  gap: 8px 24px;
+  gap: 8px 14px;
   overflow-x: auto;
   overscroll-behavior-x: contain;
   -webkit-overflow-scrolling: touch;
@@ -32589,26 +32590,30 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   font-size: 0.68rem;
 }
 
-/* P8.19.3 / P8.19.6 — Labels support; values lead */
 .inventory-count-session.is-high-density .inventory-count-session-meta-item {
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 2px;
+  flex-direction: row;
+  align-items: center;
+  gap: 0;
   flex-shrink: 0;
 }
 
+/* Labels stay in DOM for a11y; visually implicit */
 .inventory-count-session.is-high-density .inventory-count-session-meta-label {
-  font-size: 0.56rem;
-  font-weight: 500;
-  letter-spacing: 0.1em;
-  line-height: 1.2;
-  color: rgba(255, 247, 232, 0.32);
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 
 .inventory-count-session.is-high-density .inventory-count-session-meta-value {
-  font-size: 0.9rem;
+  font-size: 0.86rem;
   font-weight: 700;
-  line-height: 1.2;
+  line-height: 1;
   letter-spacing: 0;
   color: #fff7e8;
 }
@@ -32636,6 +32641,11 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   flex: 1 1 0%;
   min-height: 0;
   overflow: hidden;
+}
+
+/* P8.19.9 — Single location only: reclaim horizontal space for the spreadsheet */
+.inventory-count-session.is-high-density .inventory-count-session-body:has(.inventory-count-session-rail-item:only-child) {
+  grid-template-columns: minmax(144px, 15%) minmax(0, 1fr);
 }
 
 .inventory-count-session.is-high-density .inventory-count-session-rail {
@@ -32755,45 +32765,46 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   box-shadow: 0 0 0 2px rgba(212, 175, 55, 0.22);
 }
 
+/* P8.19.9 — Denser KPI hierarchy; max-width locked at 176px */
 .inventory-count-session.is-high-density .inventory-count-session-progress-card {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
   grid-template-rows: auto auto;
-  column-gap: 11px;
-  row-gap: 2px;
+  column-gap: 10px;
+  row-gap: 1px;
   align-items: center;
   align-self: center;
   min-width: 0;
   max-width: 176px;
   flex: 0 1 176px;
-  padding: 7px 11px;
+  padding: 6px 10px;
   border-radius: 10px;
 }
 
-/* P8.19.2 / P8.19.6 — KPI hierarchy with ~15% stronger visual weight */
 .inventory-count-session.is-high-density .inventory-count-session-progress-percent {
   grid-row: 1 / span 2;
   align-self: center;
   font-size: 1.47rem;
   font-weight: 750;
-  line-height: 0.95;
-  letter-spacing: -0.02em;
+  line-height: 0.9;
+  letter-spacing: -0.025em;
+  color: #fff7e8;
 }
 
 .inventory-count-session.is-high-density .inventory-count-session-progress-primary {
-  font-size: 0.78rem;
+  font-size: 0.76rem;
   font-weight: 650;
-  line-height: 1.25;
-  color: rgba(255, 247, 232, 0.92);
+  line-height: 1.2;
+  color: rgba(255, 247, 232, 0.94);
 }
 
 .inventory-count-session.is-high-density .inventory-count-session-progress-secondary {
-  font-size: 0.64rem;
+  font-size: 0.62rem;
   font-weight: 500;
-  line-height: 1.25;
-  color: rgba(255, 247, 232, 0.52);
-  padding-top: 3px;
-  margin-top: 1px;
+  line-height: 1.2;
+  color: rgba(255, 247, 232, 0.5);
+  padding-top: 2px;
+  margin-top: 0;
   border-top: 1px solid rgba(255, 247, 232, 0.1);
 }
 
@@ -32908,6 +32919,10 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 
   .inventory-count-session.is-high-density .inventory-count-session-body {
     grid-template-columns: minmax(160px, 20%) minmax(0, 1fr);
+  }
+
+  .inventory-count-session.is-high-density .inventory-count-session-body:has(.inventory-count-session-rail-item:only-child) {
+    grid-template-columns: minmax(144px, 15%) minmax(0, 1fr);
   }
 
   .inventory-count-session.is-high-density .inventory-count-session-rail-item {
