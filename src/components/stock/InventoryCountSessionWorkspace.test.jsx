@@ -1,6 +1,8 @@
 /**
  * @vitest-environment jsdom
  */
+import { readFileSync } from 'node:fs'
+import { resolve } from 'node:path'
 import { createElement } from 'react'
 import { createRoot } from 'react-dom/client'
 import { act } from 'react'
@@ -3933,5 +3935,79 @@ describe('InventoryCountSessionWorkspace usable viewport & Enter reveal (P8.18.3
     })
     expect(scroll.scrollTop).toBe(77)
     cleanup()
+  })
+})
+
+describe('InventoryCountSessionWorkspace locked panel bottom padding (P8.18.6)', () => {
+  const appCss = readFileSync(resolve(process.cwd(), 'src/App.css'), 'utf8')
+
+  beforeEach(() => {
+    getInventoryCountSession.mockReset()
+    getInventoryCountSessionLocations.mockReset()
+    getInventoryCountSessionItems.mockReset()
+
+    getInventoryCountSession.mockResolvedValue({
+      id: 'session-real-1',
+      workspaceId: 'workspace-test-id',
+      status: 'in_progress',
+    })
+    getInventoryCountSessionLocations.mockResolvedValue(FIXTURE_LOCATIONS)
+    getInventoryCountSessionItems.mockResolvedValue(FIXTURE_ITEMS)
+  })
+
+  it('locks the Stock panel and keeps the session as a direct child when mounted into the panel', async () => {
+    const panel = document.createElement('main')
+    panel.className = 'main-panel main-panel-stock'
+    document.body.appendChild(panel)
+    const root = createRoot(panel)
+
+    await act(async () => {
+      root.render(createElement(InventoryCountSessionWorkspace, {
+        onExit: vi.fn(),
+        sessionId: 'session-real-1',
+        workspaceId: 'workspace-test-id',
+      }))
+      await Promise.resolve()
+    })
+
+    const session = panel.querySelector('.inventory-count-session.is-high-density')
+    expect(panel.classList.contains('is-inventory-count-session-lock')).toBe(true)
+    expect(session).toBeTruthy()
+    expect(session.parentElement).toBe(panel)
+
+    act(() => {
+      root.unmount()
+    })
+    panel.remove()
+  })
+
+  it('CSS drops the 16px bottom-padding floor for both lock-class and :has session paths', () => {
+    expect(appCss).toMatch(
+      /\.app-shell\.stock-focus-mode\s+\.main-panel-stock\s*\{[^}]*max\(16px,\s*env\(safe-area-inset-bottom/s,
+    )
+
+    const lockedPaddingBlock = appCss.match(
+      /\.app-shell\.stock-focus-mode\s+\.main-panel-stock:has\(\.inventory-count-session\.is-high-density\),\s*\n\.app-shell\.stock-focus-mode\s+\.main-panel-stock\.is-inventory-count-session-lock,\s*\n\.app-shell\.stock-focus-mode\s+\.main-panel\.is-inventory-count-session-lock\s*\{[^}]*padding-bottom:\s*env\(safe-area-inset-bottom,\s*0px\);/s,
+    )
+    expect(lockedPaddingBlock).toBeTruthy()
+    expect(lockedPaddingBlock[0]).not.toMatch(/max\(16px/)
+    expect(appCss).toContain(
+      '.app-shell.stock-focus-mode .main-panel-stock:has(.inventory-count-session.is-high-density)',
+    )
+    expect(appCss).toContain(
+      '.app-shell.stock-focus-mode .main-panel-stock.is-inventory-count-session-lock',
+    )
+  })
+
+  it('locked closed session fill contract remains flex 1 / height auto / min-height 0 / max-height none', () => {
+    expect(appCss).toContain(
+      '.main-panel-stock.is-inventory-count-session-lock > .inventory-count-session.is-high-density',
+    )
+    expect(appCss).toMatch(
+      /\.main-panel-stock\.is-inventory-count-session-lock\s*>\s*\.inventory-count-session\.is-high-density[\s\S]{0,220}?\{\s*flex:\s*1\s+1\s+0%;\s*min-height:\s*0;\s*height:\s*auto;\s*max-height:\s*none;/s,
+    )
+    expect(appCss).not.toMatch(
+      /\.inventory-count-session\.is-high-density\s*\{[^}]*position:\s*fixed/s,
+    )
   })
 })

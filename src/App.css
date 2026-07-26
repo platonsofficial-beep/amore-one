@@ -317,6 +317,14 @@
   max-height: var(--inventory-count-session-available-height);
 }
 
+/* P8.18.6 — Locked active count: drop the 16px bottom-padding floor; keep real safe-area only.
+   Must beat `.app-shell.stock-focus-mode .main-panel-stock` padding shorthand specificity. */
+.app-shell.stock-focus-mode .main-panel-stock:has(.inventory-count-session.is-high-density),
+.app-shell.stock-focus-mode .main-panel-stock.is-inventory-count-session-lock,
+.app-shell.stock-focus-mode .main-panel.is-inventory-count-session-lock {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
 .stock-focus-header {
   display: flex;
   flex-wrap: wrap;
