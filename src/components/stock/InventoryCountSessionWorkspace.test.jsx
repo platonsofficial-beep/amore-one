@@ -4178,3 +4178,63 @@ describe('InventoryCountSessionWorkspace location rail readability (P8.19.1)', (
     )
   })
 })
+
+describe('InventoryCountSessionWorkspace progress summary polish (P8.19.2)', () => {
+  const appCss = readFileSync(resolve(process.cwd(), 'src/App.css'), 'utf8')
+
+  beforeEach(() => {
+    getInventoryCountSession.mockReset()
+    getInventoryCountSessionLocations.mockReset()
+    getInventoryCountSessionItems.mockReset()
+
+    getInventoryCountSession.mockResolvedValue({
+      id: 'session-real-1',
+      workspaceId: 'workspace-test-id',
+      status: 'in_progress',
+    })
+    getInventoryCountSessionLocations.mockResolvedValue(FIXTURE_LOCATIONS)
+    getInventoryCountSessionItems.mockResolvedValue(FIXTURE_ITEMS)
+  })
+
+  it('keeps percentage as the primary metric with counted and location summaries present', async () => {
+    const { container, cleanup } = await renderWorkspace()
+    const card = container.querySelector('.inventory-count-session-progress-card')
+    const percent = container.querySelector('.inventory-count-session-progress-percent')
+    const primary = container.querySelector('.inventory-count-session-progress-primary')
+    const secondary = container.querySelector('.inventory-count-session-progress-secondary')
+    const footer = container.querySelector('[data-inventory-count-footer="true"]')
+    const scroll = container.querySelector('[data-inventory-count-row-scroll="true"]')
+
+    expect(card).toBeTruthy()
+    expect(percent).toBeTruthy()
+    expect(percent.textContent).toMatch(/%/)
+    expect(primary).toBeTruthy()
+    expect(primary.textContent).toMatch(/counted/i)
+    expect(secondary).toBeTruthy()
+    expect(secondary.textContent).toMatch(/locations complete/i)
+    expect(footer).toBeTruthy()
+    expect(scroll).toBeTruthy()
+    expect(container.querySelectorAll('[data-inventory-count-row-scroll="true"]')).toHaveLength(1)
+
+    cleanup()
+  })
+
+  it('styles high-density progress as a KPI hierarchy without changing width or runway', () => {
+    expect(appCss).toMatch(
+      /\.inventory-count-session\.is-high-density\s+\.inventory-count-session-progress-percent\s*\{[^}]*font-size:\s*1\.28rem/s,
+    )
+    expect(appCss).toMatch(
+      /\.inventory-count-session\.is-high-density\s+\.inventory-count-session-progress-percent\s*\{[^}]*font-weight:\s*750/s,
+    )
+    expect(appCss).toMatch(
+      /\.inventory-count-session\.is-high-density\s+\.inventory-count-session-progress-card\s*\{[^}]*max-width:\s*168px/s,
+    )
+    expect(appCss).toMatch(
+      /\.inventory-count-session\.is-high-density\s+\.inventory-count-session-progress-secondary\s*\{[^}]*border-top:\s*1px\s+solid/s,
+    )
+    expect(appCss).toMatch(/--inventory-count-sheet-end-runway:\s*320px/)
+    expect(appCss).not.toMatch(
+      /\.inventory-count-session\.is-high-density\s*\{[^}]*position:\s*fixed/s,
+    )
+  })
+})
