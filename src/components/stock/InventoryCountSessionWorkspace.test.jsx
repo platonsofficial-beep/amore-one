@@ -4517,11 +4517,82 @@ describe('InventoryCountSessionWorkspace header premium hierarchy (P8.19.6)', ()
       /\.inventory-count-session\.is-high-density\s+\.inventory-count-session-toolbar\s*\{[^}]*align-items:\s*center/s,
     )
     expect(appCss).toMatch(
-      /\.inventory-count-session\.is-high-density\s+\.inventory-count-session-search-input,\s*\n\.inventory-count-session\.is-high-density\s+\.inventory-count-session-filter-btn\s*\{[^}]*min-height:\s*40px/s,
+      /\.inventory-count-session\.is-high-density\s+\.inventory-count-session-search-input\s*\{[^}]*min-height:\s*36px/s,
     )
     expect(appCss).toMatch(
       /\.inventory-count-session\.is-high-density\s+\.inventory-count-session-progress-percent\s*\{[^}]*font-size:\s*1\.47rem/s,
     )
     expect(appCss).toMatch(/--inventory-count-sheet-end-runway:\s*320px/)
+  })
+})
+
+describe('InventoryCountSessionWorkspace search & filter premium toolbar (P8.19.7)', () => {
+  const appCss = readFileSync(resolve(process.cwd(), 'src/App.css'), 'utf8')
+
+  beforeEach(() => {
+    getInventoryCountSession.mockReset()
+    getInventoryCountSessionLocations.mockReset()
+    getInventoryCountSessionItems.mockReset()
+
+    getInventoryCountSession.mockResolvedValue({
+      id: 'session-real-1',
+      workspaceId: 'workspace-test-id',
+      status: 'in_progress',
+    })
+    getInventoryCountSessionLocations.mockResolvedValue(FIXTURE_LOCATIONS)
+    getInventoryCountSessionItems.mockResolvedValue(FIXTURE_ITEMS)
+  })
+
+  it('keeps session search, Filter control, and KPI unchanged in structure', async () => {
+    const { container, cleanup } = await renderWorkspace()
+    const search = container.querySelector('.inventory-count-session-search-input')
+    const filter = Array.from(container.querySelectorAll('button'))
+      .find((button) => button.textContent.trim() === 'Filter')
+    const kpi = container.querySelector('.inventory-count-session-progress-card')
+    const scroll = container.querySelector('[data-inventory-count-row-scroll="true"]')
+
+    expect(search).toBeTruthy()
+    expect(filter).toBeTruthy()
+    expect(filter.className).toContain('inventory-count-session-filter-btn')
+    expect(kpi).toBeTruthy()
+    expect(container.querySelector('.inventory-count-session-progress-percent')).toBeTruthy()
+    expect(scroll).toBeTruthy()
+    expect(container.querySelectorAll('[data-inventory-count-row-scroll="true"]')).toHaveLength(1)
+    expect(appCss).toMatch(/--inventory-count-sheet-end-runway:\s*320px/)
+
+    cleanup()
+  })
+
+  it('reduces search dominance and pairs Search with Filter on a shared toolbar baseline', () => {
+    expect(appCss).toMatch(
+      /\.inventory-count-session\.is-high-density\s+\.inventory-count-session-search\s*\{[^}]*max-width:\s*min\(420px,\s*85%\)/s,
+    )
+    expect(appCss).toMatch(
+      /\.inventory-count-session\.is-high-density\s+\.inventory-count-session-search-input\s*\{[^}]*min-height:\s*36px/s,
+    )
+    expect(appCss).toMatch(
+      /\.inventory-count-session\.is-high-density\s+\.inventory-count-session-search-input\s*\{[^}]*border-radius:\s*10px/s,
+    )
+    expect(appCss).toMatch(
+      /\.inventory-count-session\.is-high-density\s+\.inventory-count-session-search-input::placeholder\s*\{[^}]*color:\s*rgba\(255,\s*247,\s*232,\s*0\.4\)/s,
+    )
+    expect(appCss).toMatch(
+      /\.inventory-count-session\.is-high-density\s+\.inventory-count-session-filter-btn\s*\{[^}]*min-height:\s*36px/s,
+    )
+    expect(appCss).toMatch(
+      /\.inventory-count-session\.is-high-density\s+\.inventory-count-session-filter-btn\s*\{[^}]*border-radius:\s*10px/s,
+    )
+    expect(appCss).toMatch(
+      /\.inventory-count-session\.is-high-density\s+\.inventory-count-session-toolbar-left\s*\{[^}]*gap:\s*6px/s,
+    )
+    expect(appCss).toMatch(
+      /\.inventory-count-session\.is-high-density\s+\.inventory-count-session-toolbar\s*\{[^}]*align-items:\s*center/s,
+    )
+    expect(appCss).toMatch(
+      /\.inventory-count-session\.is-high-density\s+\.inventory-count-session-progress-card\s*\{[^}]*align-self:\s*center/s,
+    )
+    expect(appCss).toMatch(
+      /\.inventory-count-session\.is-high-density\s+\.inventory-count-session-progress-percent\s*\{[^}]*font-size:\s*1\.47rem/s,
+    )
   })
 })
