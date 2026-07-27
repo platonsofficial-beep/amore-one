@@ -665,15 +665,15 @@ export function InventoryCountPostedReview({
               <table className="inventory-count-posted-review-table">
                 <thead>
                   <tr>
-                    <th scope="col">Item</th>
-                    <th scope="col">Location</th>
-                    <th scope="col">Expected</th>
-                    <th scope="col">Counted</th>
-                    <th scope="col">Variance</th>
-                    <th scope="col">Posted Qty</th>
-                    <th scope="col">Current Effective</th>
-                    <th scope="col">Δ Since Posted</th>
-                    <th scope="col">Posted Movement</th>
+                    <th scope="col" className="is-item">Item</th>
+                    <th scope="col" className="is-location">Location</th>
+                    <th scope="col" className="is-num">Expected</th>
+                    <th scope="col" className="is-num">Counted</th>
+                    <th scope="col" className="is-num">Variance</th>
+                    <th scope="col" className="is-num">Posted</th>
+                    <th scope="col" className="is-num">Current</th>
+                    <th scope="col" className="is-num">Δ</th>
+                    <th scope="col" className="is-movement">Movement</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -685,7 +685,7 @@ export function InventoryCountPostedReview({
                     const deltaTone = deltaToneClass(deltaSincePosted)
                     return (
                       <tr key={item.id}>
-                        <td>
+                        <td className="is-item">
                           <div className="inventory-count-posted-review-item-name">
                             {item.itemName || '—'}
                           </div>
@@ -694,27 +694,27 @@ export function InventoryCountPostedReview({
                             {item.lineStatus === 'skipped' ? ' · Skipped' : ''}
                           </div>
                         </td>
-                        <td>{item.storageLocation || '—'}</td>
-                        <td>{formatQuantity(item.expectedAtCount)}</td>
-                        <td>{formatQuantity(item.countedQuantity)}</td>
-                        <td className={varianceTone}>{formatVariance(variance)}</td>
-                        <td data-posted-qty="true">
+                        <td className="is-location">{item.storageLocation || '—'}</td>
+                        <td className="is-num">{formatQuantity(item.expectedAtCount)}</td>
+                        <td className="is-num">{formatQuantity(item.countedQuantity)}</td>
+                        <td className={`is-num ${varianceTone}`.trim()}>{formatVariance(variance)}</td>
+                        <td className="is-num inventory-count-posted-review-posted-qty" data-posted-qty="true">
                           {formatQuantity(lineAudit?.postedQuantity ?? item.resultAfterPost)}
                         </td>
                         <td
-                          className="inventory-count-posted-review-effective-qty"
+                          className="is-num inventory-count-posted-review-effective-qty"
                           data-current-effective="true"
                         >
                           {formatQuantity(lineAudit?.currentEffectiveQuantity)}
                         </td>
-                        <td data-delta-since-posted="true">
+                        <td className="is-num" data-delta-since-posted="true">
                           <span
-                            className={`inventory-count-posted-review-delta-badge ${deltaTone}`.trim()}
+                            className={`inventory-count-posted-review-delta-badge is-compact ${deltaTone}`.trim()}
                           >
                             {formatDeltaBadge(deltaSincePosted)}
                           </span>
                         </td>
-                        <td>
+                        <td className="is-movement">
                           <code
                             className="inventory-count-posted-review-movement"
                             title={item.postedMovementId || undefined}
