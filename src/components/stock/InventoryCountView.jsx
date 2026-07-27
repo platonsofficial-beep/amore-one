@@ -10,6 +10,7 @@ import {
 } from '../../services/inventoryCountService'
 import { InventoryCountWizard } from './InventoryCountWizard'
 import { InventoryCountSessionWorkspace } from './InventoryCountSessionWorkspace'
+import { InventoryCountPostedReview } from './InventoryCountPostedReview'
 
 const OPENABLE_STATUSES = new Set(['in_progress', 'paused', 'counting_complete'])
 
@@ -165,7 +166,9 @@ function InventoryCountSessionCard({
   actionError,
 }) {
   const isCountingComplete = session.status === 'counting_complete'
-  const canOpen = OPENABLE_STATUSES.has(session.status) && !isCountingComplete
+  const isPosted = session.status === 'posted'
+  const canOpenActive = OPENABLE_STATUSES.has(session.status) && !isCountingComplete
+  const canOpen = canOpenActive || isPosted
   const isBusy = Boolean(busyAction)
 
   if (isCountingComplete) {
@@ -301,8 +304,11 @@ export function InventoryCountView({
 
   const [isWizardOpen, setIsWizardOpen] = useState(false)
   const [isSessionOpen, setIsSessionOpen] = useState(false)
+  const [isPostedReviewOpen, setIsPostedReviewOpen] = useState(false)
   const [activeSessionId, setActiveSessionId] = useState('')
   const [activeWorkspaceId, setActiveWorkspaceId] = useState('')
+  const [postedReviewSessionId, setPostedReviewSessionId] = useState('')
+  const [postedReviewWorkspaceId, setPostedReviewWorkspaceId] = useState('')
   const [pageNotice, setPageNotice] = useState('')
   const [isLoadingSessions, setIsLoadingSessions] = useState(Boolean(workspaceId))
   const [loadError, setLoadError] = useState('')
@@ -373,11 +379,26 @@ export function InventoryCountView({
         })
         if (cancelled) return
 
+        if (session.status === 'posted') {
+          pendingOpenSessionIdRef.current = ''
+          setIsSessionOpen(false)
+          setActiveSessionId('')
+          setActiveWorkspaceId('')
+          setPostedReviewSessionId(session.id)
+          setPostedReviewWorkspaceId(`${session.workspaceId || workspaceId}`)
+          setIsPostedReviewOpen(true)
+          setPageNotice('')
+          return
+        }
+
         if (!OPENABLE_STATUSES.has(session.status)) {
           pendingOpenSessionIdRef.current = ''
           setIsSessionOpen(false)
           setActiveSessionId('')
           setActiveWorkspaceId('')
+          setIsPostedReviewOpen(false)
+          setPostedReviewSessionId('')
+          setPostedReviewWorkspaceId('')
           setPageNotice('That inventory count is no longer open.')
           void loadHomeSessions()
           return
@@ -385,6 +406,9 @@ export function InventoryCountView({
 
         pendingOpenSessionIdRef.current = ''
         setPageNotice('')
+        setIsPostedReviewOpen(false)
+        setPostedReviewSessionId('')
+        setPostedReviewWorkspaceId('')
         setActiveSessionId(session.id)
         setActiveWorkspaceId(`${session.workspaceId || workspaceId}`)
         setIsSessionOpen(true)
@@ -434,15 +458,49 @@ export function InventoryCountView({
 
     setPageNotice('')
     clearActionError(sessionId)
+    setIsPostedReviewOpen(false)
+    setPostedReviewSessionId('')
+    setPostedReviewWorkspaceId('')
     setActiveSessionId(sessionId)
     setActiveWorkspaceId(nextWorkspaceId)
     setIsSessionOpen(true)
+  }
+
+  const openPostedReview = (session) => {
+    const sessionId = `${session?.id ?? ''}`.trim()
+    const nextWorkspaceId = `${session?.workspaceId ?? workspaceId}`.trim()
+    if (!sessionId || !nextWorkspaceId) return
+    if (session.status !== 'posted') return
+
+    setPageNotice('')
+    clearActionError(sessionId)
+    setIsSessionOpen(false)
+    setActiveSessionId('')
+    setActiveWorkspaceId('')
+    setPostedReviewSessionId(sessionId)
+    setPostedReviewWorkspaceId(nextWorkspaceId)
+    setIsPostedReviewOpen(true)
+  }
+
+  const handleOpenHomeCard = (session) => {
+    if (session?.status === 'posted') {
+      openPostedReview(session)
+      return
+    }
+    openSession(session)
   }
 
   const handleExitSession = () => {
     setIsSessionOpen(false)
     setActiveSessionId('')
     setActiveWorkspaceId('')
+    void loadHomeSessions()
+  }
+
+  const handleExitPostedReview = () => {
+    setIsPostedReviewOpen(false)
+    setPostedReviewSessionId('')
+    setPostedReviewWorkspaceId('')
     void loadHomeSessions()
   }
 
@@ -560,6 +618,16 @@ export function InventoryCountView({
     }
   }
 
+  if (isPostedReviewOpen) {
+    return (
+      <InventoryCountPostedReview
+        sessionId={postedReviewSessionId}
+        workspaceId={postedReviewWorkspaceId || workspaceId}
+        onClose={handleExitPostedReview}
+      />
+    )
+  }
+
   if (isSessionOpen) {
     return (
       <InventoryCountSessionWorkspace
@@ -635,7 +703,7 @@ export function InventoryCountView({
           emptyTitle="No completed counts yet."
           emptyCopy=""
           isLoading={isLoadingSessions}
-          onOpenSession={openSession}
+          onOpenSession={handleOpenHomeCard}
           onDeleteSession={handleRequestDeleteSession}
           busySessionId={busySessionId}
           busyAction={busyAction}

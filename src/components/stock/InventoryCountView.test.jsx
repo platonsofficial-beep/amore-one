@@ -13,6 +13,7 @@ const previewFinishMock = vi.fn()
 const postFinishMock = vi.fn()
 const cancelSessionMock = vi.fn()
 const deleteSessionMock = vi.fn()
+const getPostedReviewMock = vi.fn()
 const useAuthMock = vi.fn()
 
 vi.mock('../../context/AuthContext', () => ({
@@ -26,6 +27,7 @@ vi.mock('../../services/inventoryCountService', () => ({
   postInventoryCountFinish: (...args) => postFinishMock(...args),
   cancelInventoryCountSession: (...args) => cancelSessionMock(...args),
   deleteInventoryCountSession: (...args) => deleteSessionMock(...args),
+  getInventoryCountPostedReview: (...args) => getPostedReviewMock(...args),
   createInventoryCountSession: vi.fn(),
   buildInventoryCountSnapshot: vi.fn(),
   getInventoryCountSessionLocations: vi.fn(async () => []),
@@ -41,6 +43,15 @@ vi.mock('./InventoryCountSessionWorkspace', () => ({
     'div',
     { className: 'inventory-count-session', 'data-session-id': sessionId },
     'Inventory Count Session',
+  ),
+}))
+
+vi.mock('./InventoryCountPostedReview', () => ({
+  InventoryCountPostedReview: ({ sessionId, onClose }) => createElement(
+    'div',
+    { className: 'inventory-count-posted-review', 'data-session-id': sessionId },
+    createElement('button', { type: 'button', onClick: onClose }, 'Back'),
+    'Posted Count Review',
   ),
 }))
 
@@ -101,6 +112,7 @@ beforeEach(() => {
   postFinishMock.mockReset()
   cancelSessionMock.mockReset()
   deleteSessionMock.mockReset()
+  getPostedReviewMock.mockReset()
   listHomeSessionsMock.mockResolvedValue({
     active: [],
     paused: [],
@@ -122,6 +134,21 @@ beforeEach(() => {
     id: 'session-1',
     workspaceId: 'workspace-test-id',
     deleted: true,
+  })
+  getPostedReviewMock.mockResolvedValue({
+    session: sessionFixture({ id: 'posted-1', status: 'posted', statusLabel: 'Posted' }),
+    locations: [],
+    items: [],
+    summary: {
+      totalLines: 0,
+      countedLines: 0,
+      skippedLines: 0,
+      pendingLines: 0,
+      changedItems: 0,
+      unchangedItems: 0,
+      positiveVariances: 0,
+      negativeVariances: 0,
+    },
   })
   vi.spyOn(window, 'confirm').mockReturnValue(true)
 })
@@ -220,7 +247,7 @@ describe('InventoryCountView live home hydration (P8.16.27)', () => {
     cleanup()
   })
 
-  it('keeps posted sessions read-only on the home card', async () => {
+  it('opens posted Recent cards into historical review', async () => {
     listHomeSessionsMock.mockResolvedValue({
       active: [],
       paused: [],
@@ -231,9 +258,39 @@ describe('InventoryCountView live home hydration (P8.16.27)', () => {
     await flush()
 
     const card = container.querySelector('.inventory-count-session-card')
-    expect(card?.className).toContain('is-readonly')
-    expect(card?.getAttribute('data-inventory-count-card-openable')).toBe('false')
-    expect(card?.getAttribute('role')).toBeNull()
+    expect(card?.className).not.toContain('is-readonly')
+    expect(card?.getAttribute('data-inventory-count-card-openable')).toBe('true')
+    expect(card?.getAttribute('role')).toBe('button')
+
+    await act(async () => {
+      card?.click()
+    })
+
+    expect(container.querySelector('.inventory-count-session')).toBeNull()
+    expect(container.querySelector('.inventory-count-posted-review')?.getAttribute('data-session-id'))
+      .toBe('posted-1')
+    expect(previewFinishMock).not.toHaveBeenCalled()
+
+    cleanup()
+  })
+
+  it('delete control on posted cards does not open historical review', async () => {
+    listHomeSessionsMock.mockResolvedValue({
+      active: [],
+      paused: [],
+      recent: [sessionFixture({ id: 'posted-1', status: 'posted', statusLabel: 'Posted' })],
+    })
+
+    const { container, cleanup } = render(createElement(InventoryCountView))
+    await flush()
+
+    await act(async () => {
+      container.querySelector('.inventory-count-session-delete-btn')?.click()
+    })
+
+    expect(container.querySelector('.inventory-count-posted-review')).toBeNull()
+    expect(container.querySelector('[aria-labelledby="inventory-count-delete-title"]')).toBeTruthy()
+    expect(previewFinishMock).not.toHaveBeenCalled()
 
     cleanup()
   })
@@ -473,7 +530,7 @@ describe('InventoryCountView deep link open (P8.16.30)', () => {
     cleanup()
   })
 
-  it('falls back safely when the linked session is no longer open', async () => {
+  it('opens linked posted sessions into historical review', async () => {
     getSessionMock.mockResolvedValue(sessionFixture({
       id: 'posted-session',
       status: 'posted',
@@ -492,7 +549,37 @@ describe('InventoryCountView deep link open (P8.16.30)', () => {
     })
 
     expect(container.querySelector('.inventory-count-session')).toBeNull()
-    expect(container.textContent).toContain('That inventory count is no longer open.')
+    expect(container.querySelector('.inventory-count-posted-review')?.getAttribute('data-session-id'))
+      .toBe('posted-session')
+    expect(container.textContent).not.toContain('That inventory count is no longer open.')
+    expect(previewFinishMock).not.toHaveBeenCalled()
+
+    cleanup()
+  })
+
+  it('returns from posted review to Inventory Count home', async () => {
+    listHomeSessionsMock.mockResolvedValue({
+      active: [],
+      paused: [],
+      recent: [sessionFixture({ id: 'posted-1', status: 'posted', statusLabel: 'Posted' })],
+    })
+
+    const { container, cleanup } = render(createElement(InventoryCountView))
+    await flush()
+
+    await act(async () => {
+      container.querySelector('.inventory-count-session-card')?.click()
+    })
+
+    expect(container.querySelector('.inventory-count-posted-review')).toBeTruthy()
+
+    await act(async () => {
+      getButtonByText(container, 'Back')?.click()
+      await Promise.resolve()
+    })
+
+    expect(container.querySelector('.inventory-count-posted-review')).toBeNull()
+    expect(container.querySelector('.inventory-count-page')).toBeTruthy()
 
     cleanup()
   })

@@ -23,6 +23,7 @@ import {
   cancelInventoryCountSession,
   deleteInventoryCountSession,
   formatInventoryCountHomeProgress,
+  getInventoryCountPostedReview,
   getInventoryCountSession,
   getInventoryCountSessionItems,
   getOpenInventoryCountBlockerForStockItem,
@@ -32,7 +33,9 @@ import {
   mapInventoryCountSessionItemRow,
   postInventoryCountFinish,
   previewInventoryCountFinish,
+  reconstructInventoryCountResultAfterPost,
   setInventoryCountSessionPauseState,
+  summarizeInventoryCountPostedReview,
   updateInventoryCountItem,
 } from './inventoryCountService'
 import { getMemberDisplayNamesByAuthUserIds } from './membershipService'
@@ -83,6 +86,11 @@ describe('mapInventoryCountSessionItemRow', () => {
       storageLocation: 'Main Storage',
       expectedSnapshot: 12.5,
       countedQuantity: null,
+      countedAt: null,
+      expectedAtCount: null,
+      varianceQuantity: null,
+      liveQuantityAtPost: null,
+      postedMovementId: null,
       lineStatus: 'pending',
       note: 'check fridge',
     })
@@ -777,6 +785,195 @@ describe('getInventoryCountSessionItems', () => {
       .rejects.toThrow('Workspace is required.')
     await expect(getInventoryCountSessionItems({ workspaceId: 'workspace-1' }))
       .rejects.toThrow('Session is required.')
+  })
+})
+
+describe('posted count historical review helpers (P8.20.4)', () => {
+  beforeEach(() => {
+    fromMock.mockReset()
+    rpcMock.mockReset()
+    getMemberDisplayNamesByAuthUserIds.mockReset()
+    getMemberDisplayNamesByAuthUserIds.mockResolvedValue({})
+  })
+
+  it('reconstructs result after post from stored post-time fields only', () => {
+    expect(reconstructInventoryCountResultAfterPost({
+      liveQuantityAtPost: 10,
+      varianceQuantity: -2,
+    })).toBe(8)
+    expect(reconstructInventoryCountResultAfterPost({
+      liveQuantityAtPost: 4,
+      varianceQuantity: 1.5,
+    })).toBe(5.5)
+    expect(reconstructInventoryCountResultAfterPost({
+      liveQuantityAtPost: null,
+      varianceQuantity: 1,
+    })).toBeNull()
+  })
+
+  it('summarizes posted review from persisted variance fields', () => {
+    expect(summarizeInventoryCountPostedReview([
+      { lineStatus: 'counted', varianceQuantity: 2 },
+      { lineStatus: 'counted', varianceQuantity: -1 },
+      { lineStatus: 'counted', varianceQuantity: 0 },
+      { lineStatus: 'skipped', varianceQuantity: null },
+      { lineStatus: 'pending', varianceQuantity: null },
+    ])).toEqual({
+      totalLines: 5,
+      countedLines: 3,
+      skippedLines: 1,
+      pendingLines: 1,
+      changedItems: 2,
+      unchangedItems: 1,
+      positiveVariances: 1,
+      negativeVariances: 1,
+    })
+  })
+
+  it('maps persisted post-audit item fields', () => {
+    const mapped = mapInventoryCountSessionItemRow({
+      id: 'line-1',
+      session_id: 'session-1',
+      workspace_id: 'workspace-1',
+      item_id: 'item-1',
+      item_name: 'Coca-Cola',
+      category: 'Beverage',
+      item_type: 'Soft Drink',
+      unit: 'case',
+      storage_location: 'Main Storage',
+      expected_snapshot: 10,
+      counted_quantity: 8,
+      counted_at: '2026-07-21T11:00:00.000Z',
+      expected_at_count: 9,
+      variance_quantity: -1,
+      live_quantity_at_post: 9,
+      posted_movement_id: 'movement-1',
+      line_status: 'counted',
+      note: '',
+    })
+
+    expect(mapped).toMatchObject({
+      expectedAtCount: 9,
+      varianceQuantity: -1,
+      liveQuantityAtPost: 9,
+      postedMovementId: 'movement-1',
+      countedAt: '2026-07-21T11:00:00.000Z',
+    })
+  })
+
+  it('loads posted review without calling finish preview RPC', async () => {
+    getMemberDisplayNamesByAuthUserIds.mockResolvedValueOnce({
+      'user-1': 'Alex Manager',
+      'user-2': 'Blake Owner',
+    })
+
+    fromMock.mockImplementation((table) => {
+      if (table === 'inventory_count_sessions') {
+        return createQuery({
+          data: {
+            id: 'session-posted',
+            workspace_id: 'workspace-1',
+            status: 'posted',
+            count_type: 'quick',
+            visibility: 'blind',
+            note: 'Bar close',
+            started_by: 'user-1',
+            started_at: '2026-07-21T10:00:00.000Z',
+            posted_at: '2026-07-21T12:00:00.000Z',
+            posted_by: 'user-2',
+            snapshot_at: '2026-07-21T10:01:00.000Z',
+          },
+          error: null,
+        })
+      }
+      if (table === 'inventory_count_session_locations') {
+        return createQuery({
+          data: [{
+            id: 'loc-1',
+            session_id: 'session-posted',
+            workspace_id: 'workspace-1',
+            location_key: 'Bar',
+            sort_order: 0,
+            status: 'completed',
+          }],
+          error: null,
+        })
+      }
+      return createQuery({
+        data: [{
+          id: 'line-1',
+          session_id: 'session-posted',
+          workspace_id: 'workspace-1',
+          item_id: 'item-1',
+          item_name: 'Coca-Cola',
+          category: 'Beverage',
+          item_type: 'Soft Drink',
+          unit: 'case',
+          storage_location: 'Bar',
+          expected_snapshot: 10,
+          counted_quantity: 8,
+          expected_at_count: 9,
+          variance_quantity: -1,
+          live_quantity_at_post: 9,
+          posted_movement_id: 'movement-abc',
+          line_status: 'counted',
+          note: '',
+        }],
+        error: null,
+      })
+    })
+
+    const review = await getInventoryCountPostedReview({
+      workspaceId: 'workspace-1',
+      sessionId: 'session-posted',
+    })
+
+    expect(rpcMock).not.toHaveBeenCalled()
+    expect(review.session.status).toBe('posted')
+    expect(review.session.operatorName).toBe('Alex Manager')
+    expect(review.session.postedByName).toBe('Blake Owner')
+    expect(review.items[0]).toMatchObject({
+      expectedAtCount: 9,
+      countedQuantity: 8,
+      varianceQuantity: -1,
+      liveQuantityAtPost: 9,
+      resultAfterPost: 8,
+      postedMovementId: 'movement-abc',
+    })
+    expect(review.summary).toMatchObject({
+      totalLines: 1,
+      countedLines: 1,
+      changedItems: 1,
+      negativeVariances: 1,
+    })
+  })
+
+  it('rejects non-posted sessions for historical review', async () => {
+    fromMock.mockImplementation((table) => {
+      if (table === 'inventory_count_sessions') {
+        return createQuery({
+          data: {
+            id: 'session-1',
+            workspace_id: 'workspace-1',
+            status: 'counting_complete',
+            count_type: 'quick',
+            visibility: 'blind',
+            started_at: '2026-07-21T10:00:00.000Z',
+          },
+          error: null,
+        })
+      }
+      if (table === 'inventory_count_session_locations') {
+        return createQuery({ data: [], error: null })
+      }
+      return createQuery({ data: [], error: null })
+    })
+
+    await expect(getInventoryCountPostedReview({
+      workspaceId: 'workspace-1',
+      sessionId: 'session-1',
+    })).rejects.toThrow('Only posted inventory counts can be opened in historical review.')
+    expect(rpcMock).not.toHaveBeenCalled()
   })
 })
 

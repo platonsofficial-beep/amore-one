@@ -49,9 +49,32 @@ const HOME_SESSION_SELECT = [
   'paused_at',
   'completed_at',
   'posted_at',
+  'posted_by',
+  'snapshot_at',
   'cancelled_at',
   'created_at',
   'updated_at',
+].join(', ')
+
+const SESSION_ITEM_SELECT = [
+  'id',
+  'session_id',
+  'workspace_id',
+  'item_id',
+  'item_name',
+  'category',
+  'item_type',
+  'unit',
+  'storage_location',
+  'expected_snapshot',
+  'counted_quantity',
+  'counted_at',
+  'expected_at_count',
+  'variance_quantity',
+  'live_quantity_at_post',
+  'posted_movement_id',
+  'line_status',
+  'note',
 ].join(', ')
 
 function requireConfiguredSupabase() {
@@ -285,8 +308,10 @@ export function mapInventoryCountSessionRow(row) {
   const pausedAtRaw = row.paused_at ?? row.pausedAt
   const completedAtRaw = row.completed_at ?? row.completedAt
   const postedAtRaw = row.posted_at ?? row.postedAt
+  const snapshotAtRaw = row.snapshot_at ?? row.snapshotAt
   const cancelledAtRaw = row.cancelled_at ?? row.cancelledAt
   const updatedAtRaw = row.updated_at ?? row.updatedAt
+  const postedByRaw = row.posted_by ?? row.postedBy
 
   return {
     id,
@@ -304,6 +329,8 @@ export function mapInventoryCountSessionRow(row) {
     pausedAt: pausedAtRaw == null || pausedAtRaw === '' ? null : `${pausedAtRaw}`,
     completedAt: completedAtRaw == null || completedAtRaw === '' ? null : `${completedAtRaw}`,
     postedAt: postedAtRaw == null || postedAtRaw === '' ? null : `${postedAtRaw}`,
+    postedBy: postedByRaw == null || postedByRaw === '' ? null : `${postedByRaw}`,
+    snapshotAt: snapshotAtRaw == null || snapshotAtRaw === '' ? null : `${snapshotAtRaw}`,
     cancelledAt: cancelledAtRaw == null || cancelledAtRaw === '' ? null : `${cancelledAtRaw}`,
     createdAt: row.created_at ?? row.createdAt ?? null,
     updatedAt: updatedAtRaw == null || updatedAtRaw === '' ? null : `${updatedAtRaw}`,
@@ -377,6 +404,8 @@ export function mapInventoryCountSessionItemRow(row) {
 
   const itemId = `${row.item_id ?? row.itemId ?? ''}`.trim() || null
   const lineStatus = `${row.line_status ?? row.lineStatus ?? 'pending'}`.trim().toLowerCase() || 'pending'
+  const postedMovementIdRaw = row.posted_movement_id ?? row.postedMovementId
+  const countedAtRaw = row.counted_at ?? row.countedAt
 
   return {
     id,
@@ -390,8 +419,79 @@ export function mapInventoryCountSessionItemRow(row) {
     storageLocation: `${row.storage_location ?? row.storageLocation ?? ''}`.trim(),
     expectedSnapshot: mapNumericQuantity(row.expected_snapshot ?? row.expectedSnapshot) ?? 0,
     countedQuantity: mapNumericQuantity(row.counted_quantity ?? row.countedQuantity),
+    countedAt: countedAtRaw == null || countedAtRaw === '' ? null : `${countedAtRaw}`,
+    expectedAtCount: mapNumericQuantity(row.expected_at_count ?? row.expectedAtCount),
+    varianceQuantity: mapNumericQuantity(row.variance_quantity ?? row.varianceQuantity),
+    liveQuantityAtPost: mapNumericQuantity(row.live_quantity_at_post ?? row.liveQuantityAtPost),
+    postedMovementId: postedMovementIdRaw == null || postedMovementIdRaw === ''
+      ? null
+      : `${postedMovementIdRaw}`.trim() || null,
     lineStatus,
     note: `${row.note ?? ''}`,
+  }
+}
+
+/**
+ * Reconstruct as-posted result from frozen post-time fields only.
+ * Does not use current live stock.
+ */
+export function reconstructInventoryCountResultAfterPost({
+  liveQuantityAtPost,
+  varianceQuantity,
+} = {}) {
+  const live = mapNumericQuantity(liveQuantityAtPost)
+  const variance = mapNumericQuantity(varianceQuantity)
+  if (live === null || variance === null) return null
+  return live + variance
+}
+
+/**
+ * Summary cards for posted historical review from persisted line audit fields.
+ */
+export function summarizeInventoryCountPostedReview(items = []) {
+  let totalLines = 0
+  let countedLines = 0
+  let skippedLines = 0
+  let pendingLines = 0
+  let changedItems = 0
+  let unchangedItems = 0
+  let positiveVariances = 0
+  let negativeVariances = 0
+
+  for (const item of items) {
+    if (!item) continue
+    totalLines += 1
+    const lineStatus = `${item.lineStatus ?? ''}`.trim().toLowerCase()
+    if (lineStatus === 'skipped') {
+      skippedLines += 1
+      continue
+    }
+    if (lineStatus !== 'counted') {
+      pendingLines += 1
+      continue
+    }
+
+    countedLines += 1
+    const variance = mapNumericQuantity(item.varianceQuantity)
+    if (variance === null) continue
+    if (variance === 0) {
+      unchangedItems += 1
+    } else {
+      changedItems += 1
+      if (variance > 0) positiveVariances += 1
+      else negativeVariances += 1
+    }
+  }
+
+  return {
+    totalLines,
+    countedLines,
+    skippedLines,
+    pendingLines,
+    changedItems,
+    unchangedItems,
+    positiveVariances,
+    negativeVariances,
   }
 }
 
@@ -1009,9 +1109,7 @@ export async function getInventoryCountSessionItems({
 
   const { data, error } = await supabase
     .from(SESSION_ITEMS_TABLE)
-    .select(
-      'id, session_id, workspace_id, item_id, item_name, category, item_type, unit, storage_location, expected_snapshot, counted_quantity, line_status, note',
-    )
+    .select(SESSION_ITEM_SELECT)
     .eq('workspace_id', normalizedWorkspaceId)
     .eq('session_id', normalizedSessionId)
     .order('storage_location', { ascending: true })
@@ -1025,6 +1123,67 @@ export async function getInventoryCountSessionItems({
   return (data ?? [])
     .map(mapInventoryCountSessionItemRow)
     .filter(Boolean)
+}
+
+/**
+ * Read-only posted count historical review payload.
+ * Uses persisted post-audit fields only. Does not call finish preview or mutate stock.
+ */
+export async function getInventoryCountPostedReview({
+  workspaceId,
+  sessionId,
+} = {}) {
+  requireConfiguredSupabase()
+
+  const normalizedWorkspaceId = requireId(workspaceId, 'Workspace')
+  const normalizedSessionId = requireId(sessionId, 'Session')
+
+  const [session, locations, items] = await Promise.all([
+    getInventoryCountSession({
+      workspaceId: normalizedWorkspaceId,
+      sessionId: normalizedSessionId,
+    }),
+    getInventoryCountSessionLocations({
+      workspaceId: normalizedWorkspaceId,
+      sessionId: normalizedSessionId,
+    }),
+    getInventoryCountSessionItems({
+      workspaceId: normalizedWorkspaceId,
+      sessionId: normalizedSessionId,
+    }),
+  ])
+
+  if (session.status !== 'posted') {
+    throw new Error('Only posted inventory counts can be opened in historical review.')
+  }
+
+  const authUserIds = [session.startedBy, session.postedBy].filter(Boolean)
+  const displayNames = authUserIds.length > 0
+    ? await getMemberDisplayNamesByAuthUserIds(normalizedWorkspaceId, authUserIds)
+    : {}
+
+  const reviewItems = items.map((item) => ({
+    ...item,
+    resultAfterPost: reconstructInventoryCountResultAfterPost({
+      liveQuantityAtPost: item.liveQuantityAtPost,
+      varianceQuantity: item.varianceQuantity,
+    }),
+  }))
+
+  return {
+    session: {
+      ...session,
+      operatorName: session.startedBy
+        ? (displayNames[session.startedBy] || null)
+        : null,
+      postedByName: session.postedBy
+        ? (displayNames[session.postedBy] || null)
+        : null,
+    },
+    locations,
+    items: reviewItems,
+    summary: summarizeInventoryCountPostedReview(reviewItems),
+  }
 }
 
 /**
