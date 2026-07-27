@@ -176,4 +176,26 @@ describe('InventoryCountPostedReview (P8.20.4)', () => {
 
     cleanup()
   })
+
+  it('Suggest Correction invokes the correction entry callback', async () => {
+    const onSuggestCorrection = vi.fn()
+    const { container, cleanup } = render(createElement(InventoryCountPostedReview, {
+      sessionId: 'posted-1',
+      workspaceId: 'workspace-1',
+      onClose: vi.fn(),
+      onSuggestCorrection,
+    }))
+    await flush()
+
+    await act(async () => {
+      Array.from(container.querySelectorAll('button'))
+        .find((button) => button.textContent === 'Suggest Correction')
+        ?.click()
+    })
+
+    expect(onSuggestCorrection).toHaveBeenCalledTimes(1)
+    expect(container.querySelector('input')).toBeNull()
+
+    cleanup()
+  })
 })

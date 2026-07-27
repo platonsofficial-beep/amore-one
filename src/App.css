@@ -31841,6 +31841,11 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   min-height: 44px;
 }
 
+.inventory-count-posted-review-suggest-btn {
+  min-width: 44px;
+  min-height: 44px;
+}
+
 .inventory-count-posted-review-summary {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
@@ -31951,7 +31956,282 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
     width: 100%;
   }
 
-  .inventory-count-posted-review-back-btn {
+  .inventory-count-posted-review-back-btn,
+  .inventory-count-posted-review-suggest-btn {
+    width: 100%;
+  }
+}
+
+/* P8.20.5 — Correction Review foundation */
+.inventory-count-correction-review {
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+  padding-bottom: 88px;
+}
+
+.inventory-count-correction-review-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.inventory-count-correction-review-header-copy {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+  flex: 1 1 280px;
+}
+
+.inventory-count-correction-review-eyebrow {
+  margin: 0;
+  color: rgba(212, 175, 55, 0.78);
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.inventory-count-correction-review-title-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.inventory-count-correction-review-title {
+  margin: 0;
+  color: #fff7e8;
+  font-size: 1.28rem;
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.inventory-count-correction-review-subtitle {
+  margin: 0;
+  color: rgba(255, 247, 232, 0.62);
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
+.inventory-count-correction-review-header-actions {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.inventory-count-correction-mode-btn {
+  min-width: 44px;
+  min-height: 44px;
+}
+
+.inventory-count-correction-mode-badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(212, 175, 55, 0.35);
+  background: rgba(212, 175, 55, 0.12);
+  color: #f0dfb0;
+  font-size: 0.84rem;
+  font-weight: 600;
+}
+
+.inventory-count-correction-review-table-wrap {
+  overflow: auto;
+  border-radius: 16px;
+  border: 1px solid rgba(212, 175, 55, 0.16);
+  background: rgba(12, 12, 14, 0.88);
+}
+
+.inventory-count-correction-review-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 640px;
+}
+
+.inventory-count-correction-review-table th,
+.inventory-count-correction-review-table td {
+  padding: 12px 14px;
+  text-align: left;
+  vertical-align: top;
+  border-bottom: 1px solid rgba(255, 247, 232, 0.08);
+}
+
+.inventory-count-correction-review-table th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: rgba(18, 18, 20, 0.96);
+  color: #9f9383;
+  font-size: 0.74rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.inventory-count-correction-review-table td {
+  color: #d8cbb8;
+  font-size: 0.9rem;
+}
+
+.inventory-count-correction-review-table tr.is-changed {
+  background: rgba(212, 175, 55, 0.08);
+}
+
+.inventory-count-correction-review-table tr.is-changed td {
+  color: #fff7e8;
+}
+
+.inventory-count-correction-item-name {
+  color: #fff7e8;
+  font-weight: 600;
+}
+
+.inventory-count-correction-item-meta {
+  margin-top: 2px;
+  color: #8f8475;
+  font-size: 0.78rem;
+}
+
+.inventory-count-correction-qty-readonly {
+  color: #d8cbb8;
+}
+
+.inventory-count-correction-qty-input {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 96px;
+  max-width: 140px;
+  min-height: 44px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px solid rgba(212, 175, 55, 0.28);
+  background: rgba(0, 0, 0, 0.35);
+  color: #fff7e8;
+  font-size: 0.95rem;
+}
+
+.inventory-count-correction-qty-input:focus-visible {
+  outline: none;
+  border-color: rgba(212, 175, 55, 0.7);
+  box-shadow: 0 0 0 2px rgba(212, 175, 55, 0.18);
+}
+
+.inventory-count-correction-review-footer {
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 4px;
+  padding: 12px 0 4px;
+  background: linear-gradient(180deg, rgba(9, 9, 10, 0), rgba(9, 9, 10, 0.96) 28%);
+}
+
+.inventory-count-correction-footer-btn {
+  min-width: 44px;
+  min-height: 44px;
+}
+
+.inventory-count-correction-summary-overlay {
+  z-index: 96;
+}
+
+.inventory-count-correction-summary-dialog {
+  width: min(100vw - 32px, 640px);
+  max-height: min(80vh, 720px);
+  overflow: auto;
+  padding: 22px 22px 18px;
+  border-radius: 18px;
+  border: 1px solid rgba(212, 175, 55, 0.28);
+  background: linear-gradient(165deg, rgba(18, 18, 20, 0.99), rgba(9, 9, 10, 0.99));
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.55);
+}
+
+.inventory-count-correction-summary-title {
+  margin: 0;
+  color: #fff7e8;
+  font-size: 1.2rem;
+  font-weight: 700;
+}
+
+.inventory-count-correction-summary-copy {
+  margin: 8px 0 0;
+  color: rgba(255, 247, 232, 0.62);
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
+.inventory-count-correction-summary-empty {
+  margin-top: 16px;
+}
+
+.inventory-count-correction-summary-table-wrap {
+  margin-top: 16px;
+  overflow: auto;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 247, 232, 0.1);
+}
+
+.inventory-count-correction-summary-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 480px;
+}
+
+.inventory-count-correction-summary-table th,
+.inventory-count-correction-summary-table td {
+  padding: 10px 12px;
+  text-align: left;
+  border-bottom: 1px solid rgba(255, 247, 232, 0.08);
+}
+
+.inventory-count-correction-summary-table th {
+  color: #9f9383;
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.inventory-count-correction-summary-table td {
+  color: #d8cbb8;
+  font-size: 0.9rem;
+}
+
+.inventory-count-correction-summary-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 18px;
+}
+
+.inventory-count-correction-summary-actions .ghost-btn {
+  min-width: 44px;
+  min-height: 44px;
+}
+
+@media (max-width: 768px) {
+  .inventory-count-correction-review-header {
+    flex-direction: column;
+  }
+
+  .inventory-count-correction-review-header-actions,
+  .inventory-count-correction-mode-btn {
+    width: 100%;
+  }
+
+  .inventory-count-correction-review-footer {
+    flex-direction: column-reverse;
+  }
+
+  .inventory-count-correction-footer-btn {
     width: 100%;
   }
 }

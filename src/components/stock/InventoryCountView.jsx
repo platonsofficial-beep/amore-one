@@ -11,6 +11,7 @@ import {
 import { InventoryCountWizard } from './InventoryCountWizard'
 import { InventoryCountSessionWorkspace } from './InventoryCountSessionWorkspace'
 import { InventoryCountPostedReview } from './InventoryCountPostedReview'
+import { InventoryCountCorrectionReview } from './InventoryCountCorrectionReview'
 
 const OPENABLE_STATUSES = new Set(['in_progress', 'paused', 'counting_complete'])
 
@@ -305,6 +306,7 @@ export function InventoryCountView({
   const [isWizardOpen, setIsWizardOpen] = useState(false)
   const [isSessionOpen, setIsSessionOpen] = useState(false)
   const [isPostedReviewOpen, setIsPostedReviewOpen] = useState(false)
+  const [isCorrectionReviewOpen, setIsCorrectionReviewOpen] = useState(false)
   const [activeSessionId, setActiveSessionId] = useState('')
   const [activeWorkspaceId, setActiveWorkspaceId] = useState('')
   const [postedReviewSessionId, setPostedReviewSessionId] = useState('')
@@ -387,6 +389,7 @@ export function InventoryCountView({
           setPostedReviewSessionId(session.id)
           setPostedReviewWorkspaceId(`${session.workspaceId || workspaceId}`)
           setIsPostedReviewOpen(true)
+          setIsCorrectionReviewOpen(false)
           setPageNotice('')
           return
         }
@@ -397,6 +400,7 @@ export function InventoryCountView({
           setActiveSessionId('')
           setActiveWorkspaceId('')
           setIsPostedReviewOpen(false)
+          setIsCorrectionReviewOpen(false)
           setPostedReviewSessionId('')
           setPostedReviewWorkspaceId('')
           setPageNotice('That inventory count is no longer open.')
@@ -407,6 +411,7 @@ export function InventoryCountView({
         pendingOpenSessionIdRef.current = ''
         setPageNotice('')
         setIsPostedReviewOpen(false)
+        setIsCorrectionReviewOpen(false)
         setPostedReviewSessionId('')
         setPostedReviewWorkspaceId('')
         setActiveSessionId(session.id)
@@ -459,6 +464,7 @@ export function InventoryCountView({
     setPageNotice('')
     clearActionError(sessionId)
     setIsPostedReviewOpen(false)
+    setIsCorrectionReviewOpen(false)
     setPostedReviewSessionId('')
     setPostedReviewWorkspaceId('')
     setActiveSessionId(sessionId)
@@ -479,6 +485,7 @@ export function InventoryCountView({
     setActiveWorkspaceId('')
     setPostedReviewSessionId(sessionId)
     setPostedReviewWorkspaceId(nextWorkspaceId)
+    setIsCorrectionReviewOpen(false)
     setIsPostedReviewOpen(true)
   }
 
@@ -499,9 +506,19 @@ export function InventoryCountView({
 
   const handleExitPostedReview = () => {
     setIsPostedReviewOpen(false)
+    setIsCorrectionReviewOpen(false)
     setPostedReviewSessionId('')
     setPostedReviewWorkspaceId('')
     void loadHomeSessions()
+  }
+
+  const handleOpenCorrectionReview = () => {
+    if (!postedReviewSessionId) return
+    setIsCorrectionReviewOpen(true)
+  }
+
+  const handleCancelCorrectionReview = () => {
+    setIsCorrectionReviewOpen(false)
   }
 
   const handleSessionPosted = ({ message } = {}) => {
@@ -618,12 +635,23 @@ export function InventoryCountView({
     }
   }
 
+  if (isCorrectionReviewOpen) {
+    return (
+      <InventoryCountCorrectionReview
+        sessionId={postedReviewSessionId}
+        workspaceId={postedReviewWorkspaceId || workspaceId}
+        onCancel={handleCancelCorrectionReview}
+      />
+    )
+  }
+
   if (isPostedReviewOpen) {
     return (
       <InventoryCountPostedReview
         sessionId={postedReviewSessionId}
         workspaceId={postedReviewWorkspaceId || workspaceId}
         onClose={handleExitPostedReview}
+        onSuggestCorrection={handleOpenCorrectionReview}
       />
     )
   }

@@ -47,11 +47,21 @@ vi.mock('./InventoryCountSessionWorkspace', () => ({
 }))
 
 vi.mock('./InventoryCountPostedReview', () => ({
-  InventoryCountPostedReview: ({ sessionId, onClose }) => createElement(
+  InventoryCountPostedReview: ({ sessionId, onClose, onSuggestCorrection }) => createElement(
     'div',
     { className: 'inventory-count-posted-review', 'data-session-id': sessionId },
     createElement('button', { type: 'button', onClick: onClose }, 'Back'),
+    createElement('button', { type: 'button', onClick: onSuggestCorrection }, 'Suggest Correction'),
     'Posted Count Review',
+  ),
+}))
+
+vi.mock('./InventoryCountCorrectionReview', () => ({
+  InventoryCountCorrectionReview: ({ sessionId, onCancel }) => createElement(
+    'div',
+    { className: 'inventory-count-correction-review', 'data-session-id': sessionId },
+    createElement('button', { type: 'button', onClick: onCancel }, 'Cancel'),
+    'Correction Review Workspace',
   ),
 }))
 
@@ -580,6 +590,40 @@ describe('InventoryCountView deep link open (P8.16.30)', () => {
 
     expect(container.querySelector('.inventory-count-posted-review')).toBeNull()
     expect(container.querySelector('.inventory-count-page')).toBeTruthy()
+
+    cleanup()
+  })
+
+  it('Suggest Correction opens correction workspace and Cancel returns to posted review', async () => {
+    listHomeSessionsMock.mockResolvedValue({
+      active: [],
+      paused: [],
+      recent: [sessionFixture({ id: 'posted-1', status: 'posted', statusLabel: 'Posted' })],
+    })
+
+    const { container, cleanup } = render(createElement(InventoryCountView))
+    await flush()
+
+    await act(async () => {
+      container.querySelector('.inventory-count-session-card')?.click()
+    })
+
+    await act(async () => {
+      getButtonByText(container, 'Suggest Correction')?.click()
+    })
+
+    expect(container.querySelector('.inventory-count-posted-review')).toBeNull()
+    expect(container.querySelector('.inventory-count-correction-review')?.getAttribute('data-session-id'))
+      .toBe('posted-1')
+    expect(previewFinishMock).not.toHaveBeenCalled()
+
+    await act(async () => {
+      getButtonByText(container, 'Cancel')?.click()
+    })
+
+    expect(container.querySelector('.inventory-count-correction-review')).toBeNull()
+    expect(container.querySelector('.inventory-count-posted-review')?.getAttribute('data-session-id'))
+      .toBe('posted-1')
 
     cleanup()
   })

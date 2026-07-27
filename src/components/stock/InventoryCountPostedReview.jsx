@@ -57,6 +57,7 @@ export function InventoryCountPostedReview({
   sessionId,
   workspaceId,
   onClose,
+  onSuggestCorrection,
 }) {
   const [isLoading, setIsLoading] = useState(true)
   const [loadError, setLoadError] = useState('')
@@ -169,6 +170,14 @@ export function InventoryCountPostedReview({
             onClick={() => onClose?.()}
           >
             Back
+          </button>
+          <button
+            type="button"
+            className="primary-btn inventory-count-posted-review-suggest-btn"
+            disabled={isLoading || Boolean(loadError) || !review}
+            onClick={() => onSuggestCorrection?.()}
+          >
+            Suggest Correction
           </button>
         </div>
       </header>
