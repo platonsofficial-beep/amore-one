@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { getInventoryCountPostedReview } from '../../services/inventoryCountService'
+import { sumPriorCorrectionDeltasBySessionItemId } from './InventoryCountCorrectionReview'
 
 const AUDIT_ORIGINAL_ANCHOR_ID = 'inventory-count-audit-original'
 
@@ -218,6 +219,51 @@ export function buildPostedCorrectionAuditSummary(correctionVersions = []) {
 }
 
 /**
+ * Per-line Posted Qty / Current Effective / Δ Since Posted from loaded snapshot + corrections.
+ * Effective baseline matches the correction workspace: countedQuantity + Σ deltas.
+ */
+export function buildPostedLineAuditQuantities(items = [], corrections = []) {
+  const deltaBySessionItemId = sumPriorCorrectionDeltasBySessionItemId(corrections)
+  const byItemId = new Map()
+
+  for (const item of Array.isArray(items) ? items : []) {
+    const id = `${item?.id ?? ''}`.trim()
+    if (!id) continue
+
+    const postedQtyRaw = item?.resultAfterPost
+    const postedQty = postedQtyRaw === null || postedQtyRaw === undefined
+      ? null
+      : Number(postedQtyRaw)
+    const countedRaw = item?.countedQuantity
+    const countedQty = countedRaw === null || countedRaw === undefined
+      ? null
+      : Number(countedRaw)
+    const baseline = (
+      countedQty !== null && Number.isFinite(countedQty)
+    )
+      ? countedQty
+      : (postedQty !== null && Number.isFinite(postedQty) ? postedQty : null)
+    const priorDelta = deltaBySessionItemId.get(id) || 0
+    const currentEffective = baseline === null ? null : baseline + priorDelta
+    const deltaSincePosted = (
+      currentEffective !== null
+      && postedQty !== null
+      && Number.isFinite(postedQty)
+    )
+      ? currentEffective - postedQty
+      : null
+
+    byItemId.set(id, {
+      postedQuantity: postedQty !== null && Number.isFinite(postedQty) ? postedQty : null,
+      currentEffectiveQuantity: currentEffective,
+      deltaSincePosted,
+    })
+  }
+
+  return byItemId
+}
+
+/**
  * P8.20.4 / P8.20.7 — Dedicated read-only Posted Count historical review.
  * Uses persisted post-audit fields only. No Active Count workspace / Finish Preview.
  */
@@ -285,6 +331,10 @@ export function InventoryCountPostedReview({
   const auditSummary = useMemo(
     () => buildPostedCorrectionAuditSummary(correctionVersions),
     [correctionVersions],
+  )
+  const lineAuditByItemId = useMemo(
+    () => buildPostedLineAuditQuantities(items, corrections),
+    [items, corrections],
   )
   const appliedBadgeLabel = formatAppliedCorrectionBadge(correctionCount)
   const visibilityLabel = VISIBILITY_LABELS[session?.visibility] || session?.visibility || '—'
@@ -617,22 +667,22 @@ export function InventoryCountPostedReview({
                   <tr>
                     <th scope="col">Item</th>
                     <th scope="col">Location</th>
-                    <th scope="col">Expected at count</th>
+                    <th scope="col">Expected</th>
                     <th scope="col">Counted</th>
                     <th scope="col">Variance</th>
-                    <th scope="col">Live at post</th>
-                    <th scope="col">Result after post</th>
-                    <th scope="col">Posted movement</th>
+                    <th scope="col">Posted Qty</th>
+                    <th scope="col">Current Effective</th>
+                    <th scope="col">Δ Since Posted</th>
+                    <th scope="col">Posted Movement</th>
                   </tr>
                 </thead>
                 <tbody>
                   {items.map((item) => {
                     const variance = item.varianceQuantity
-                    const varianceTone = Number(variance) > 0
-                      ? 'is-positive'
-                      : Number(variance) < 0
-                        ? 'is-negative'
-                        : 'is-neutral'
+                    const varianceTone = deltaToneClass(variance)
+                    const lineAudit = lineAuditByItemId.get(`${item.id ?? ''}`.trim()) || null
+                    const deltaSincePosted = lineAudit?.deltaSincePosted
+                    const deltaTone = deltaToneClass(deltaSincePosted)
                     return (
                       <tr key={item.id}>
                         <td>
@@ -648,8 +698,22 @@ export function InventoryCountPostedReview({
                         <td>{formatQuantity(item.expectedAtCount)}</td>
                         <td>{formatQuantity(item.countedQuantity)}</td>
                         <td className={varianceTone}>{formatVariance(variance)}</td>
-                        <td>{formatQuantity(item.liveQuantityAtPost)}</td>
-                        <td>{formatQuantity(item.resultAfterPost)}</td>
+                        <td data-posted-qty="true">
+                          {formatQuantity(lineAudit?.postedQuantity ?? item.resultAfterPost)}
+                        </td>
+                        <td
+                          className="inventory-count-posted-review-effective-qty"
+                          data-current-effective="true"
+                        >
+                          {formatQuantity(lineAudit?.currentEffectiveQuantity)}
+                        </td>
+                        <td data-delta-since-posted="true">
+                          <span
+                            className={`inventory-count-posted-review-delta-badge ${deltaTone}`.trim()}
+                          >
+                            {formatDeltaBadge(deltaSincePosted)}
+                          </span>
+                        </td>
                         <td>
                           <code
                             className="inventory-count-posted-review-movement"

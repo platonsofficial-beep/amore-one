@@ -1,6 +1,6 @@
 /**
  * @vitest-environment jsdom
- * P8.20.4 / P8.20.7 / P8.20.9 — Posted Count historical review + audit timeline polish.
+ * P8.20.4 / P8.20.7 / P8.20.9 / P8.20.10 — Posted Count historical review + audit table.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { act, createElement } from 'react'
@@ -9,6 +9,7 @@ import {
   InventoryCountPostedReview,
   buildPostedCorrectionAuditSummary,
   buildPostedCorrectionVersionHistory,
+  buildPostedLineAuditQuantities,
 } from './InventoryCountPostedReview'
 
 const getPostedReviewMock = vi.fn()
@@ -193,7 +194,60 @@ describe('buildPostedCorrectionAuditSummary (P8.20.9)', () => {
   })
 })
 
-describe('InventoryCountPostedReview (P8.20.4 / P8.20.7 / P8.20.9)', () => {
+describe('buildPostedLineAuditQuantities (P8.20.10)', () => {
+  const items = [{
+    id: 'line-1',
+    countedQuantity: 6,
+    resultAfterPost: 6,
+  }]
+
+  it('keeps effective equal to posted qty with zero delta when there are no corrections', () => {
+    const byId = buildPostedLineAuditQuantities(items, [])
+    expect(byId.get('line-1')).toEqual({
+      postedQuantity: 6,
+      currentEffectiveQuantity: 6,
+      deltaSincePosted: 0,
+    })
+  })
+
+  it('derives effective from one correction delta', () => {
+    const byId = buildPostedLineAuditQuantities(items, [{
+      id: 'corr-1',
+      lines: [{ sessionItemId: 'line-1', deltaQuantity: 1 }],
+    }])
+    expect(byId.get('line-1')).toEqual({
+      postedQuantity: 6,
+      currentEffectiveQuantity: 7,
+      deltaSincePosted: 1,
+    })
+  })
+
+  it('sums multiple correction deltas including positive, negative, and zero net', () => {
+    const byId = buildPostedLineAuditQuantities(items, [
+      { id: 'c1', lines: [{ sessionItemId: 'line-1', deltaQuantity: 1 }] },
+      { id: 'c2', lines: [{ sessionItemId: 'line-1', deltaQuantity: -3 }] },
+      { id: 'c3', lines: [{ sessionItemId: 'line-1', deltaQuantity: 2 }] },
+    ])
+    expect(byId.get('line-1')).toEqual({
+      postedQuantity: 6,
+      currentEffectiveQuantity: 6,
+      deltaSincePosted: 0,
+    })
+  })
+
+  it('preserves posted quantity while reporting a negative delta since posted', () => {
+    const byId = buildPostedLineAuditQuantities(items, [
+      { id: 'c1', lines: [{ sessionItemId: 'line-1', deltaQuantity: -2 }] },
+    ])
+    expect(byId.get('line-1')).toEqual({
+      postedQuantity: 6,
+      currentEffectiveQuantity: 4,
+      deltaSincePosted: -2,
+    })
+  })
+})
+
+describe('InventoryCountPostedReview (P8.20.4 / P8.20.7 / P8.20.9 / P8.20.10)', () => {
   it('loads persisted audit fields and reconstructs result after post', async () => {
     const { container, cleanup } = render(createElement(InventoryCountPostedReview, {
       sessionId: 'posted-1',
@@ -212,11 +266,18 @@ describe('InventoryCountPostedReview (P8.20.4 / P8.20.7 / P8.20.9)', () => {
     expect(container.textContent).toContain('Blake Owner')
     expect(container.textContent).toContain('Closing bar')
     expect(container.textContent).toContain('Coca-Cola')
-    expect(container.textContent).toContain('Expected at count')
+    expect(container.textContent).toContain('Expected')
+    expect(container.textContent).toContain('Posted Qty')
+    expect(container.textContent).toContain('Current Effective')
+    expect(container.textContent).toContain('Δ Since Posted')
+    expect(container.textContent).not.toContain('Live at post')
+    expect(container.textContent).not.toContain('Result after post')
     expect(container.textContent).toContain('9')
     expect(container.textContent).toContain('8')
     expect(container.textContent).toContain('-1')
-    expect(container.textContent).toContain('Result after post')
+    expect(container.querySelector('[data-posted-qty="true"]')?.textContent).toBe('8')
+    expect(container.querySelector('[data-current-effective="true"]')?.textContent).toBe('8')
+    expect(container.querySelector('[data-delta-since-posted="true"]')?.textContent).toBe('0')
     expect(container.textContent).toContain('Corrections will be handled through a separate audited workflow.')
     expect(container.querySelector('input')).toBeNull()
     expect(container.querySelector('textarea')).toBeNull()
@@ -227,6 +288,167 @@ describe('InventoryCountPostedReview (P8.20.4 / P8.20.7 / P8.20.9)', () => {
     expect(container.textContent).not.toContain('Post Count')
     expect(container.textContent).not.toContain('Post again')
     expect(applyCorrectionsMock).not.toHaveBeenCalled()
+
+    cleanup()
+  })
+
+  it('renders posted qty, current effective, and delta after multiple corrections', async () => {
+    getPostedReviewMock.mockResolvedValueOnce(reviewFixture({
+      items: [{
+        id: 'line-1',
+        itemName: 'Coca-Cola',
+        unit: 'case',
+        storageLocation: 'Bar',
+        lineStatus: 'counted',
+        expectedAtCount: 6,
+        countedQuantity: 6,
+        varianceQuantity: 0,
+        liveQuantityAtPost: 6,
+        resultAfterPost: 6,
+        postedMovementId: 'mov-post-1',
+      }],
+      corrections: [
+        {
+          id: 'corr-1',
+          createdAt: '2026-07-27T12:00:00.000Z',
+          operatorName: 'Casey',
+          lines: [{
+            id: 'cline-1',
+            sessionItemId: 'line-1',
+            itemName: 'Coca-Cola',
+            originalQuantity: 6,
+            correctedQuantity: 7,
+            deltaQuantity: 1,
+            movementId: 'mov-1',
+          }],
+        },
+        {
+          id: 'corr-2',
+          createdAt: '2026-07-27T13:00:00.000Z',
+          operatorName: 'Casey',
+          lines: [{
+            id: 'cline-2',
+            sessionItemId: 'line-1',
+            itemName: 'Coca-Cola',
+            originalQuantity: 6,
+            correctedQuantity: 4,
+            deltaQuantity: -3,
+            movementId: 'mov-2',
+          }],
+        },
+        {
+          id: 'corr-3',
+          createdAt: '2026-07-27T14:00:00.000Z',
+          operatorName: 'Casey',
+          lines: [{
+            id: 'cline-3',
+            sessionItemId: 'line-1',
+            itemName: 'Coca-Cola',
+            originalQuantity: 6,
+            correctedQuantity: 6,
+            deltaQuantity: 2,
+            movementId: 'mov-3',
+          }],
+        },
+      ],
+      correctionCount: 3,
+      hasCorrections: true,
+    }))
+
+    const { container, cleanup } = render(createElement(InventoryCountPostedReview, {
+      sessionId: 'posted-1',
+      workspaceId: 'workspace-1',
+      onClose: vi.fn(),
+    }))
+    await flush()
+
+    expect(container.querySelector('[data-posted-qty="true"]')?.textContent).toBe('6')
+    expect(container.querySelector('[data-current-effective="true"]')?.textContent).toBe('6')
+    expect(container.querySelector('[data-delta-since-posted="true"]')?.textContent).toBe('0')
+    expect(
+      container.querySelector('[data-delta-since-posted="true"] .inventory-count-posted-review-delta-badge')
+        ?.className,
+    ).toContain('is-neutral')
+
+    cleanup()
+  })
+
+  it('renders positive and negative delta badges from correction history', async () => {
+    getPostedReviewMock.mockResolvedValueOnce(reviewFixture({
+      items: [
+        {
+          id: 'line-1',
+          itemName: 'Coca-Cola',
+          unit: 'case',
+          storageLocation: 'Bar',
+          lineStatus: 'counted',
+          expectedAtCount: 6,
+          countedQuantity: 6,
+          varianceQuantity: 0,
+          liveQuantityAtPost: 6,
+          resultAfterPost: 6,
+          postedMovementId: 'mov-a',
+        },
+        {
+          id: 'line-2',
+          itemName: 'Tonic',
+          unit: 'bottle',
+          storageLocation: 'Bar',
+          lineStatus: 'counted',
+          expectedAtCount: 3,
+          countedQuantity: 3,
+          varianceQuantity: 0,
+          liveQuantityAtPost: 3,
+          resultAfterPost: 3,
+          postedMovementId: 'mov-b',
+        },
+      ],
+      corrections: [{
+        id: 'corr-1',
+        createdAt: '2026-07-27T12:00:00.000Z',
+        operatorName: 'Casey',
+        lines: [
+          {
+            id: 'cline-1',
+            sessionItemId: 'line-1',
+            itemName: 'Coca-Cola',
+            originalQuantity: 6,
+            correctedQuantity: 8,
+            deltaQuantity: 2,
+            movementId: 'mov-1',
+          },
+          {
+            id: 'cline-2',
+            sessionItemId: 'line-2',
+            itemName: 'Tonic',
+            originalQuantity: 3,
+            correctedQuantity: 1,
+            deltaQuantity: -2,
+            movementId: 'mov-2',
+          },
+        ],
+      }],
+      correctionCount: 2,
+      hasCorrections: true,
+    }))
+
+    const { container, cleanup } = render(createElement(InventoryCountPostedReview, {
+      sessionId: 'posted-1',
+      workspaceId: 'workspace-1',
+      onClose: vi.fn(),
+    }))
+    await flush()
+
+    const rows = Array.from(container.querySelectorAll('.inventory-count-posted-review-table tbody tr'))
+    expect(rows[0].querySelector('[data-posted-qty="true"]')?.textContent).toBe('6')
+    expect(rows[0].querySelector('[data-current-effective="true"]')?.textContent).toBe('8')
+    expect(rows[0].querySelector('[data-delta-since-posted="true"]')?.textContent).toBe('+2')
+    expect(rows[0].querySelector('[data-delta-since-posted="true"] .is-positive')).toBeTruthy()
+
+    expect(rows[1].querySelector('[data-posted-qty="true"]')?.textContent).toBe('3')
+    expect(rows[1].querySelector('[data-current-effective="true"]')?.textContent).toBe('1')
+    expect(rows[1].querySelector('[data-delta-since-posted="true"]')?.textContent).toBe('−2')
+    expect(rows[1].querySelector('[data-delta-since-posted="true"] .is-negative')).toBeTruthy()
 
     cleanup()
   })
@@ -396,7 +618,8 @@ describe('InventoryCountPostedReview (P8.20.4 / P8.20.7 / P8.20.9)', () => {
     expect(versionTwo?.textContent).toContain('Tonic')
 
     expect(container.querySelector('.inventory-count-posted-review-table')).toBeTruthy()
-    expect(container.textContent).toContain('Expected at count')
+    expect(container.textContent).toContain('Expected')
+    expect(container.textContent).toContain('Posted Qty')
     expect(container.querySelector('input')).toBeNull()
     expect(applyCorrectionsMock).not.toHaveBeenCalled()
 

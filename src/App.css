@@ -31893,7 +31893,7 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 .inventory-count-posted-review-table {
   width: 100%;
   border-collapse: collapse;
-  min-width: 880px;
+  min-width: 920px;
 }
 
 .inventory-count-posted-review-table th,
@@ -31930,6 +31930,13 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   margin-top: 2px;
   color: #8f8475;
   font-size: 0.78rem;
+}
+
+.inventory-count-posted-review-effective-qty {
+  color: #fff7e8;
+  font-size: 1rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
 }
 
 .inventory-count-posted-review-table td.is-positive {
