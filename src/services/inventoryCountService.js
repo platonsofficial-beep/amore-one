@@ -1266,6 +1266,7 @@ export function mapInventoryCountCorrectionLineRow(row) {
     itemId: `${row.item_id ?? row.itemId ?? ''}`.trim() || null,
     itemName: `${row.item_name ?? row.itemName ?? ''}`.trim(),
     originalQuantity: mapNumericQuantity(row.original_quantity ?? row.originalQuantity),
+    baselineQuantity: mapNumericQuantity(row.baseline_quantity ?? row.baselineQuantity),
     correctedQuantity: mapNumericQuantity(row.corrected_quantity ?? row.correctedQuantity),
     deltaQuantity: mapNumericQuantity(row.delta_quantity ?? row.deltaQuantity),
     movementId: `${row.movement_id ?? row.movementId ?? ''}`.trim() || null,
@@ -1319,7 +1320,7 @@ export async function listInventoryCountCorrections({
       .order('created_at', { ascending: false }),
     supabase
       .from(CORRECTION_LINES_TABLE)
-      .select('id, correction_id, workspace_id, session_id, session_item_id, item_id, item_name, original_quantity, corrected_quantity, delta_quantity, movement_id, created_by, created_at')
+      .select('id, correction_id, workspace_id, session_id, session_item_id, item_id, item_name, original_quantity, baseline_quantity, corrected_quantity, delta_quantity, movement_id, created_by, created_at')
       .eq('workspace_id', normalizedWorkspaceId)
       .eq('session_id', normalizedSessionId)
       .order('created_at', { ascending: false }),
@@ -1382,17 +1383,21 @@ export async function applyInventoryCountCorrections({
       const correctedQuantity = mapNumericQuantity(
         row?.correctedQuantity ?? row?.corrected_quantity,
       )
-      const originalQuantity = mapNumericQuantity(
-        row?.originalCountedQuantity
-        ?? row?.originalQuantity
-        ?? row?.oldQuantity
-        ?? row?.original_quantity,
-      )
-      if (!sessionItemId || correctedQuantity === null || originalQuantity === null) {
+      if (!sessionItemId || correctedQuantity === null) {
         return null
       }
-      const delta = correctedQuantity - originalQuantity
-      if (delta === 0) return null
+      // Client preview filter only — RPC recalculates from counted + prior deltas.
+      const baselineQuantity = mapNumericQuantity(
+        row?.effectiveQuantity
+        ?? row?.baselineQuantity
+        ?? row?.oldQuantity
+        ?? row?.originalCountedQuantity
+        ?? row?.originalQuantity
+        ?? row?.original_quantity,
+      )
+      if (baselineQuantity !== null && correctedQuantity - baselineQuantity === 0) {
+        return null
+      }
       return {
         session_item_id: sessionItemId,
         corrected_quantity: correctedQuantity,
@@ -1429,7 +1434,28 @@ export async function applyInventoryCountCorrections({
     createdBy: result?.created_by ?? result?.createdBy ?? null,
     lineCount: Number(result?.line_count ?? result?.lineCount ?? 0) || 0,
     movementCount: Number(result?.movement_count ?? result?.movementCount ?? 0) || 0,
-    lines: Array.isArray(result?.lines) ? result.lines : [],
+    lines: (Array.isArray(result?.lines) ? result.lines : []).map((line) => {
+      if (!line || typeof line !== 'object') return line
+      return {
+        sessionItemId: `${line.session_item_id ?? line.sessionItemId ?? ''}`.trim() || null,
+        itemId: `${line.item_id ?? line.itemId ?? ''}`.trim() || null,
+        itemName: `${line.item_name ?? line.itemName ?? ''}`.trim(),
+        originalQuantity: mapNumericQuantity(line.original_quantity ?? line.originalQuantity),
+        baselineQuantity: mapNumericQuantity(line.baseline_quantity ?? line.baselineQuantity),
+        effectiveBeforeQuantity: mapNumericQuantity(
+          line.effective_before_quantity
+          ?? line.effectiveBeforeQuantity
+          ?? line.baseline_quantity
+          ?? line.baselineQuantity,
+        ),
+        correctedQuantity: mapNumericQuantity(line.corrected_quantity ?? line.correctedQuantity),
+        deltaQuantity: mapNumericQuantity(line.delta_quantity ?? line.deltaQuantity),
+        effectiveAfterQuantity: mapNumericQuantity(
+          line.effective_after_quantity ?? line.effectiveAfterQuantity,
+        ),
+        movementId: `${line.movement_id ?? line.movementId ?? ''}`.trim() || null,
+      }
+    }),
     preserved: result?.preserved ?? null,
     message: `${result?.message ?? 'Inventory count corrections applied successfully.'}`.trim()
       || 'Inventory count corrections applied successfully.',

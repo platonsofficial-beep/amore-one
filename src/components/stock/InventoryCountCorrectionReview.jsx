@@ -34,18 +34,88 @@ function parseDraftQuantity(value) {
 }
 
 /**
- * Build local correction draft rows from a posted review snapshot.
+ * Sum previously applied correction deltas per session item.
+ * effective = posted counted + sum(deltas)
  */
-export function buildInventoryCountCorrectionDraft(items = [], correctedSessionItemIds = []) {
-  const correctedSet = new Set(
-    (Array.isArray(correctedSessionItemIds) ? correctedSessionItemIds : [])
-      .map((id) => `${id ?? ''}`.trim())
-      .filter(Boolean),
-  )
+export function sumPriorCorrectionDeltasBySessionItemId(corrections = []) {
+  const deltaBySessionItemId = new Map()
+  for (const correction of Array.isArray(corrections) ? corrections : []) {
+    for (const line of correction?.lines ?? []) {
+      const sessionItemId = `${line?.sessionItemId ?? line?.session_item_id ?? ''}`.trim()
+      if (!sessionItemId) continue
+      const delta = Number(line?.deltaQuantity ?? line?.delta_quantity)
+      if (!Number.isFinite(delta)) continue
+      deltaBySessionItemId.set(
+        sessionItemId,
+        (deltaBySessionItemId.get(sessionItemId) || 0) + delta,
+      )
+    }
+  }
+  return deltaBySessionItemId
+}
+
+/**
+ * Pure apply math matching the RPC effective-baseline contract.
+ */
+export function computeInventoryCountCorrectionApplyMath({
+  countedQuantity,
+  priorDeltaQuantities = [],
+  correctedQuantity,
+} = {}) {
+  const counted = Number(countedQuantity)
+  const corrected = Number(correctedQuantity)
+  if (!Number.isFinite(counted) || !Number.isFinite(corrected)) {
+    return {
+      effectiveBefore: null,
+      appliedDelta: null,
+      effectiveAfter: null,
+    }
+  }
+  const priorSum = (Array.isArray(priorDeltaQuantities) ? priorDeltaQuantities : [])
+    .map((value) => Number(value))
+    .filter((value) => Number.isFinite(value))
+    .reduce((sum, value) => sum + value, 0)
+  const effectiveBefore = counted + priorSum
+  const appliedDelta = corrected - effectiveBefore
+  return {
+    effectiveBefore,
+    appliedDelta,
+    effectiveAfter: effectiveBefore + appliedDelta,
+  }
+}
+
+/**
+ * Build local correction draft rows from a posted review snapshot.
+ * Execution baseline = latest effective quantity (counted + prior deltas).
+ */
+export function buildInventoryCountCorrectionDraft(items = [], corrections = []) {
+  const priorDeltaBySessionItemId = sumPriorCorrectionDeltasBySessionItemId(corrections)
+  const correctedSet = new Set(priorDeltaBySessionItemId.keys())
+  // Also accept a legacy id list for older call sites/tests.
+  if (
+    Array.isArray(corrections)
+    && corrections.length > 0
+    && corrections.every((entry) => typeof entry === 'string' || typeof entry === 'number')
+  ) {
+    for (const id of corrections) {
+      const normalized = `${id ?? ''}`.trim()
+      if (normalized) correctedSet.add(normalized)
+    }
+  }
 
   return (Array.isArray(items) ? items : []).map((item) => {
     const originalCounted = item?.countedQuantity ?? null
     const id = `${item?.id ?? ''}`.trim()
+    const priorDeltaSum = priorDeltaBySessionItemId.get(id) || 0
+    const originalNumeric = originalCounted === null || originalCounted === undefined
+      ? null
+      : Number(originalCounted)
+    const effectiveQuantity = (
+      originalNumeric !== null
+      && Number.isFinite(originalNumeric)
+    )
+      ? originalNumeric + priorDeltaSum
+      : originalCounted
     return {
       id,
       itemId: `${item?.itemId ?? ''}`.trim() || null,
@@ -54,23 +124,27 @@ export function buildInventoryCountCorrectionDraft(items = [], correctedSessionI
       storageLocation: `${item?.storageLocation ?? ''}`.trim() || '—',
       lineStatus: `${item?.lineStatus ?? ''}`.trim().toLowerCase() || 'pending',
       originalCountedQuantity: originalCounted,
-      correctedQuantity: originalCounted,
-      correctedInput: originalCounted === null || originalCounted === undefined
+      effectiveQuantity,
+      correctedQuantity: effectiveQuantity,
+      correctedInput: effectiveQuantity === null || effectiveQuantity === undefined
         ? ''
-        : `${originalCounted}`,
+        : `${effectiveQuantity}`,
       hasAppliedCorrection: correctedSet.has(id),
     }
   }).filter((row) => row.id)
 }
 
 /**
- * Rows whose corrected quantity differs from the original counted quantity.
+ * Rows whose corrected quantity differs from the current effective quantity.
  */
 export function getInventoryCountCorrectionChanges(draftRows = []) {
   return (Array.isArray(draftRows) ? draftRows : [])
-    .filter((row) => !quantitiesEqual(row.originalCountedQuantity, row.correctedQuantity))
+    .filter((row) => !quantitiesEqual(
+      row.effectiveQuantity ?? row.originalCountedQuantity,
+      row.correctedQuantity,
+    ))
     .map((row) => {
-      const oldQuantity = row.originalCountedQuantity
+      const oldQuantity = row.effectiveQuantity ?? row.originalCountedQuantity
       const newQuantity = row.correctedQuantity
       const oldNumeric = oldQuantity === null || oldQuantity === undefined ? null : Number(oldQuantity)
       const newNumeric = newQuantity === null || newQuantity === undefined ? null : Number(newQuantity)
@@ -91,7 +165,8 @@ export function getInventoryCountCorrectionChanges(draftRows = []) {
         storageLocation: row.storageLocation,
         oldQuantity,
         newQuantity,
-        originalCountedQuantity: oldQuantity,
+        originalCountedQuantity: row.originalCountedQuantity ?? null,
+        effectiveQuantity: oldQuantity,
         correctedQuantity: newQuantity,
         difference,
       }
@@ -190,7 +265,7 @@ function CorrectionSummaryPanel({
           Review Corrections
         </h2>
         <p className="inventory-count-correction-summary-copy">
-          Review original, corrected, and delta values before applying.
+          Review current effective, corrected, and delta values before applying.
         </p>
 
         {changes.length === 0 ? (
@@ -204,7 +279,7 @@ function CorrectionSummaryPanel({
               <thead>
                 <tr>
                   <th scope="col">Product</th>
-                  <th scope="col">Original</th>
+                  <th scope="col">Current Effective</th>
                   <th scope="col">Corrected</th>
                   <th scope="col">Delta</th>
                 </tr>
@@ -304,11 +379,11 @@ export function InventoryCountCorrectionReview({
           sessionId: normalizedSessionId,
         })
         if (cancelled) return
-        const correctedIds = (payload?.corrections ?? [])
-          .flatMap((correction) => correction.lines ?? [])
-          .map((line) => line.sessionItemId)
         setSession(payload?.session ?? null)
-        setDraftRows(buildInventoryCountCorrectionDraft(payload?.items, correctedIds))
+        setDraftRows(buildInventoryCountCorrectionDraft(
+          payload?.items,
+          payload?.corrections ?? [],
+        ))
       } catch (error) {
         if (cancelled) return
         setSession(null)
@@ -445,7 +520,7 @@ export function InventoryCountCorrectionReview({
                 <tr>
                   <th scope="col">Item</th>
                   <th scope="col">Location</th>
-                  <th scope="col">Original counted</th>
+                  <th scope="col">Current Effective</th>
                   <th scope="col">Corrected quantity</th>
                 </tr>
               </thead>
@@ -469,7 +544,15 @@ export function InventoryCountCorrectionReview({
                         </div>
                       </td>
                       <td>{row.storageLocation}</td>
-                      <td>{formatQuantity(row.originalCountedQuantity)}</td>
+                      <td>
+                        {formatQuantity(row.effectiveQuantity)}
+                        {row.hasAppliedCorrection
+                          && !quantitiesEqual(row.originalCountedQuantity, row.effectiveQuantity) ? (
+                          <div className="inventory-count-correction-item-meta">
+                            Posted {formatQuantity(row.originalCountedQuantity)}
+                          </div>
+                        ) : null}
+                      </td>
                       <td>
                         {isCorrectionMode ? (
                           <input

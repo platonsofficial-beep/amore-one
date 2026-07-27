@@ -1,8 +1,8 @@
 -- =============================================================================
--- P8.20.6 — Apply Inventory Count Corrections RPC
+-- P8.20.6 / P8.20.8 — Apply Inventory Count Corrections RPC
 -- =============================================================================
 -- Run manually in the Supabase SQL editor after:
---   1. inventory_count_corrections_schema.sql (P8.20.6)
+--   1. inventory_count_corrections_schema.sql (P8.20.6 + P8.20.8 baseline_quantity)
 --   2. stock_movements_schema.sql
 --   3. inventory_count_rls_policies.sql (can_manage_workspace_stock)
 -- Do NOT auto-run from the app.
@@ -13,11 +13,23 @@
 --   NEVER mutates original session / session item historical fields /
 --   original posted movements.
 --
+-- P8.20.8 effective baseline (server source of truth):
+--   effective_before = counted_quantity + sum(prior correction deltas)
+--   applied_delta    = requested_corrected_quantity − effective_before
+--   Client may preview; server ignores any client baseline/delta.
+--
 -- p_corrections jsonb array items:
 --   { "session_item_id": uuid, "corrected_quantity": number }
 --
 -- Authorization:
 --   owner / general_manager / manager via public.can_manage_workspace_stock
+--
+-- Lock order (deterministic, deadlock-safe):
+--   1. session row FOR UPDATE
+--   2. participating stock_items by ascending id
+--   3. each session_item FOR UPDATE (loop ordered by session_item_id)
+--   Session lock serializes concurrent applies for the same posted count so
+--   prior-delta sums cannot share a stale effective baseline.
 -- =============================================================================
 
 drop function if exists public.apply_inventory_count_corrections(uuid, uuid, jsonb);
@@ -41,7 +53,10 @@ declare
   v_session_item_id uuid;
   v_corrected_quantity numeric(12, 3);
   v_original_quantity numeric(12, 3);
+  v_previous_delta_sum numeric(12, 3);
+  v_baseline_quantity numeric(12, 3);
   v_delta numeric(12, 3);
+  v_effective_after numeric(12, 3);
   v_item_id uuid;
   v_item_name text;
   v_locked_qty numeric(12, 3);
@@ -83,6 +98,7 @@ begin
       using hint = 'owner / general_manager / manager required.';
   end if;
 
+  -- 1) Lock posted session (serializes concurrent applies for this session).
   select s.*
     into v_session
   from public.inventory_count_sessions s
@@ -109,7 +125,7 @@ begin
       using hint = 'Only posted inventory counts can receive corrections.';
   end if;
 
-  -- Lock participating stock items in ascending id order (deadlock avoidance).
+  -- 2) Lock participating stock items in ascending id order (deadlock avoidance).
   for v_item_id in
     select distinct i.item_id
     from public.inventory_count_session_items i
@@ -152,14 +168,20 @@ begin
   )
   returning id into v_correction_id;
 
+  -- 3) Process lines in deterministic session_item_id order.
   for v_line in
     select value
     from jsonb_array_elements(p_corrections) as t(value)
     order by (t.value ->> 'session_item_id')
   loop
     v_session_item_id := nullif(v_line ->> 'session_item_id', '')::uuid;
+    -- Server trusts only corrected_quantity; ignore any client baseline/delta fields.
     v_corrected_quantity := nullif(v_line ->> 'corrected_quantity', '')::numeric;
     v_movement_id := null;
+    v_previous_delta_sum := 0;
+    v_baseline_quantity := null;
+    v_delta := null;
+    v_effective_after := null;
 
     if v_session_item_id is null or v_corrected_quantity is null then
       raise exception 'inventory_count_correction_invalid_line'
@@ -201,7 +223,17 @@ begin
     end if;
     v_seen_item_ids := array_append(v_seen_item_ids, v_item_id);
 
-    v_delta := v_corrected_quantity - v_original_quantity;
+    -- Effective baseline = immutable posted counted + all previously applied deltas.
+    select coalesce(sum(l.delta_quantity), 0)
+      into v_previous_delta_sum
+    from public.inventory_count_correction_lines l
+    where l.session_item_id = v_session_item_id
+      and l.session_id = p_session_id
+      and l.workspace_id = p_workspace_id;
+
+    v_baseline_quantity := v_original_quantity + v_previous_delta_sum;
+    v_delta := v_corrected_quantity - v_baseline_quantity;
+    v_effective_after := v_baseline_quantity + v_delta;
 
     -- Zero delta: skip movement and audit line.
     if v_delta = 0 then
@@ -235,10 +267,10 @@ begin
       'adjustment',
       v_delta,
       format(
-        'Inventory count correction session %s line %s (original %s → corrected %s)',
+        'Inventory count correction session %s line %s (effective %s → corrected %s)',
         p_session_id,
         v_session_item_id,
-        v_original_quantity,
+        v_baseline_quantity,
         v_corrected_quantity
       ),
       v_auth_user_id
@@ -270,6 +302,7 @@ begin
       item_id,
       item_name,
       original_quantity,
+      baseline_quantity,
       corrected_quantity,
       delta_quantity,
       movement_id,
@@ -284,6 +317,7 @@ begin
       v_item_id,
       coalesce(v_item_name, ''),
       v_original_quantity,
+      v_baseline_quantity,
       v_corrected_quantity,
       v_delta,
       v_movement_id,
@@ -300,8 +334,11 @@ begin
         'item_id', v_item_id,
         'item_name', coalesce(v_item_name, ''),
         'original_quantity', v_original_quantity,
+        'baseline_quantity', v_baseline_quantity,
+        'effective_before_quantity', v_baseline_quantity,
         'corrected_quantity', v_corrected_quantity,
         'delta_quantity', v_delta,
+        'effective_after_quantity', v_effective_after,
         'movement_id', v_movement_id
       )
     );
@@ -343,4 +380,4 @@ revoke all on function public.apply_inventory_count_corrections(uuid, uuid, json
 grant execute on function public.apply_inventory_count_corrections(uuid, uuid, jsonb) to authenticated;
 
 comment on function public.apply_inventory_count_corrections(uuid, uuid, jsonb) is
-  'P8.20.6 SECURITY DEFINER append-only corrections: new adjustment movements + live qty updates + audit. Never mutates posted session history.';
+  'P8.20.8 SECURITY DEFINER append-only corrections using effective baseline (counted + prior deltas). Never mutates posted session history.';

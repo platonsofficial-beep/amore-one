@@ -1,6 +1,6 @@
 /**
  * @vitest-environment jsdom
- * P8.20.5 / P8.20.6 — Inventory Count Correction Review + Apply.
+ * P8.20.5 / P8.20.6 / P8.20.8 — Inventory Count Correction Review + Apply.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { act, createElement } from 'react'
@@ -8,7 +8,9 @@ import { createRoot } from 'react-dom/client'
 import {
   InventoryCountCorrectionReview,
   buildInventoryCountCorrectionDraft,
+  computeInventoryCountCorrectionApplyMath,
   getInventoryCountCorrectionChanges,
+  sumPriorCorrectionDeltasBySessionItemId,
 } from './InventoryCountCorrectionReview'
 
 const getPostedReviewMock = vi.fn()
@@ -116,7 +118,113 @@ afterEach(() => {
   vi.clearAllMocks()
 })
 
-describe('correction draft helpers (P8.20.5/P8.20.6)', () => {
+describe('effective baseline math (P8.20.8)', () => {
+  it('computes first correction from posted counted with no prior deltas', () => {
+    expect(computeInventoryCountCorrectionApplyMath({
+      countedQuantity: 6,
+      priorDeltaQuantities: [],
+      correctedQuantity: 7,
+    })).toEqual({
+      effectiveBefore: 6,
+      appliedDelta: 1,
+      effectiveAfter: 7,
+    })
+  })
+
+  it('computes repeated correction from latest effective quantity', () => {
+    expect(computeInventoryCountCorrectionApplyMath({
+      countedQuantity: 6,
+      priorDeltaQuantities: [1],
+      correctedQuantity: 4,
+    })).toEqual({
+      effectiveBefore: 7,
+      appliedDelta: -3,
+      effectiveAfter: 4,
+    })
+  })
+
+  it('repairs existing production history 6 +1 −2 → effective 5 → 4', () => {
+    expect(computeInventoryCountCorrectionApplyMath({
+      countedQuantity: 6,
+      priorDeltaQuantities: [1, -2],
+      correctedQuantity: 4,
+    })).toEqual({
+      effectiveBefore: 5,
+      appliedDelta: -1,
+      effectiveAfter: 4,
+    })
+  })
+
+  it('treats zero-delta repeated correction as no-op math', () => {
+    expect(computeInventoryCountCorrectionApplyMath({
+      countedQuantity: 6,
+      priorDeltaQuantities: [1, -2],
+      correctedQuantity: 5,
+    })).toEqual({
+      effectiveBefore: 5,
+      appliedDelta: 0,
+      effectiveAfter: 5,
+    })
+  })
+
+  it('supports positive and negative repeated corrections independently per item', () => {
+    const cola = computeInventoryCountCorrectionApplyMath({
+      countedQuantity: 10,
+      priorDeltaQuantities: [-2],
+      correctedQuantity: 12,
+    })
+    const tonic = computeInventoryCountCorrectionApplyMath({
+      countedQuantity: 3,
+      priorDeltaQuantities: [4],
+      correctedQuantity: 2,
+    })
+    expect(cola).toEqual({ effectiveBefore: 8, appliedDelta: 4, effectiveAfter: 12 })
+    expect(tonic).toEqual({ effectiveBefore: 7, appliedDelta: -5, effectiveAfter: 2 })
+  })
+
+  it('sums prior deltas by session item for reconstruction of null-baseline rows', () => {
+    const deltas = sumPriorCorrectionDeltasBySessionItemId([
+      {
+        id: 'corr-1',
+        lines: [
+          { sessionItemId: 'line-1', deltaQuantity: 1, baselineQuantity: null },
+          { sessionItemId: 'line-2', deltaQuantity: 4 },
+        ],
+      },
+      {
+        id: 'corr-2',
+        lines: [
+          { sessionItemId: 'line-1', deltaQuantity: -2, baselineQuantity: null },
+        ],
+      },
+    ])
+    expect(deltas.get('line-1')).toBe(-1)
+    expect(deltas.get('line-2')).toBe(4)
+  })
+})
+
+describe('correction draft helpers (P8.20.5/P8.20.6/P8.20.8)', () => {
+  it('initializes corrected input from latest effective quantity', () => {
+    const draft = buildInventoryCountCorrectionDraft(
+      [{ id: 'line-1', itemName: 'Coca-Cola', countedQuantity: 6, storageLocation: 'Bar' }],
+      [{
+        id: 'corr-1',
+        lines: [{ sessionItemId: 'line-1', deltaQuantity: 1 }],
+      }, {
+        id: 'corr-2',
+        lines: [{ sessionItemId: 'line-1', deltaQuantity: -2 }],
+      }],
+    )
+    expect(draft[0]).toMatchObject({
+      id: 'line-1',
+      originalCountedQuantity: 6,
+      effectiveQuantity: 5,
+      correctedQuantity: 5,
+      correctedInput: '5',
+      hasAppliedCorrection: true,
+    })
+  })
+
   it('builds draft rows and marks previously corrected lines', () => {
     const draft = buildInventoryCountCorrectionDraft(
       [{ id: 'line-1', itemName: 'Coca-Cola', countedQuantity: 8, storageLocation: 'Bar' }],
@@ -125,24 +233,27 @@ describe('correction draft helpers (P8.20.5/P8.20.6)', () => {
     expect(draft[0]).toMatchObject({
       id: 'line-1',
       originalCountedQuantity: 8,
+      effectiveQuantity: 8,
       hasAppliedCorrection: true,
     })
   })
 
-  it('lists only non-zero changed rows with differences', () => {
+  it('lists only non-zero changed rows with differences from effective baseline', () => {
     const changes = getInventoryCountCorrectionChanges([
       {
         id: 'line-1',
         itemName: 'Coca-Cola',
         storageLocation: 'Bar',
-        originalCountedQuantity: 8,
-        correctedQuantity: 10,
+        originalCountedQuantity: 6,
+        effectiveQuantity: 5,
+        correctedQuantity: 4,
       },
       {
         id: 'line-2',
         itemName: 'Tonic',
         storageLocation: 'Bar',
         originalCountedQuantity: 12,
+        effectiveQuantity: 12,
         correctedQuantity: 12,
       },
     ])
@@ -152,16 +263,27 @@ describe('correction draft helpers (P8.20.5/P8.20.6)', () => {
       itemId: null,
       itemName: 'Coca-Cola',
       storageLocation: 'Bar',
-      oldQuantity: 8,
-      newQuantity: 10,
-      originalCountedQuantity: 8,
-      correctedQuantity: 10,
-      difference: 2,
+      oldQuantity: 5,
+      newQuantity: 4,
+      originalCountedQuantity: 6,
+      effectiveQuantity: 5,
+      correctedQuantity: 4,
+      difference: -1,
     }])
+  })
+
+  it('keeps original posted quantity available while execution uses effective', () => {
+    const draft = buildInventoryCountCorrectionDraft(
+      [{ id: 'line-1', itemName: 'Coca-Cola', countedQuantity: 6 }],
+      [{ lines: [{ sessionItemId: 'line-1', deltaQuantity: 1 }] }],
+    )
+    expect(draft[0].originalCountedQuantity).toBe(6)
+    expect(draft[0].effectiveQuantity).toBe(7)
+    expect(draft[0].correctedInput).toBe('7')
   })
 })
 
-describe('InventoryCountCorrectionReview apply (P8.20.6)', () => {
+describe('InventoryCountCorrectionReview apply (P8.20.6/P8.20.8)', () => {
   it('loads posted snapshot with read-only lines until Correction Mode', async () => {
     const { container, cleanup } = render(createElement(InventoryCountCorrectionReview, {
       sessionId: 'posted-1',
@@ -178,6 +300,7 @@ describe('InventoryCountCorrectionReview apply (P8.20.6)', () => {
     expect(container.querySelector('input')).toBeNull()
     expect(container.textContent).not.toContain('Save')
     expect(container.textContent).not.toContain('Update')
+    expect(container.textContent).toContain('Current Effective')
 
     cleanup()
   })
@@ -203,7 +326,7 @@ describe('InventoryCountCorrectionReview apply (P8.20.6)', () => {
     })
 
     const summary = container.querySelector('[aria-labelledby="inventory-count-correction-summary-title"]')
-    expect(summary?.textContent).toContain('Original')
+    expect(summary?.textContent).toContain('Current Effective')
     expect(summary?.textContent).toContain('Corrected')
     expect(summary?.textContent).toContain('Delta')
     expect(summary?.textContent).toContain('Coca-Cola')
@@ -229,6 +352,7 @@ describe('InventoryCountCorrectionReview apply (P8.20.6)', () => {
       corrections: [
         expect.objectContaining({
           id: 'line-1',
+          effectiveQuantity: 8,
           originalCountedQuantity: 8,
           correctedQuantity: 10,
           difference: 2,
@@ -241,12 +365,65 @@ describe('InventoryCountCorrectionReview apply (P8.20.6)', () => {
     cleanup()
   })
 
+  it('initializes previously corrected rows from reconstructed effective quantity', async () => {
+    getPostedReviewMock.mockResolvedValueOnce({
+      ...reviewFixture(),
+      items: [{
+        id: 'line-1',
+        itemName: 'Coca-Cola',
+        unit: 'case',
+        storageLocation: 'Bar',
+        lineStatus: 'counted',
+        countedQuantity: 6,
+      }],
+      corrections: [{
+        id: 'corr-1',
+        lines: [{ sessionItemId: 'line-1', deltaQuantity: 1 }],
+      }, {
+        id: 'corr-2',
+        lines: [{ sessionItemId: 'line-1', deltaQuantity: -2 }],
+      }],
+      correctionCount: 2,
+      hasCorrections: true,
+    })
+
+    const { container, cleanup } = render(createElement(InventoryCountCorrectionReview, {
+      sessionId: 'posted-1',
+      workspaceId: 'workspace-1',
+      onCancel: vi.fn(),
+    }))
+    await flush()
+
+    const appliedRow = container.querySelector('[data-correction-applied="true"]')
+    expect(appliedRow).toBeTruthy()
+    expect(appliedRow?.textContent).toContain('5')
+    expect(appliedRow?.textContent).toContain('Posted 6')
+
+    await act(async () => {
+      getButtonByText(container, 'Enter Correction Mode')?.click()
+    })
+    const input = container.querySelector('.inventory-count-correction-qty-input')
+    expect(input?.value).toBe('5')
+
+    await act(async () => {
+      setInputValue(input, '4')
+    })
+    await act(async () => {
+      getButtonByText(container, 'Review Corrections')?.click()
+    })
+
+    const summary = container.querySelector('[aria-labelledby="inventory-count-correction-summary-title"]')
+    expect(summary?.textContent).toContain('-1')
+
+    cleanup()
+  })
+
   it('highlights previously applied correction lines permanently', async () => {
     getPostedReviewMock.mockResolvedValueOnce({
       ...reviewFixture(),
       corrections: [{
         id: 'corr-1',
-        lines: [{ sessionItemId: 'line-1' }],
+        lines: [{ sessionItemId: 'line-1', deltaQuantity: 2 }],
       }],
       correctionCount: 1,
       hasCorrections: true,

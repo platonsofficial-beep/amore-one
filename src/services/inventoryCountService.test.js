@@ -994,7 +994,7 @@ describe('posted count historical review helpers (P8.20.4)', () => {
   })
 })
 
-describe('applyInventoryCountCorrections (P8.20.6)', () => {
+describe('applyInventoryCountCorrections (P8.20.6 / P8.20.8)', () => {
   beforeEach(() => {
     fromMock.mockReset()
     rpcMock.mockReset()
@@ -1002,7 +1002,7 @@ describe('applyInventoryCountCorrections (P8.20.6)', () => {
     getMemberDisplayNamesByAuthUserIds.mockResolvedValue({})
   })
 
-  it('calls apply RPC with non-zero deltas only and maps the result', async () => {
+  it('calls apply RPC with session item + corrected quantity only (no client delta/baseline)', async () => {
     rpcMock.mockResolvedValueOnce({
       data: {
         correction_id: 'corr-1',
@@ -1015,9 +1015,12 @@ describe('applyInventoryCountCorrections (P8.20.6)', () => {
         lines: [{
           session_item_id: 'line-1',
           item_id: 'item-1',
-          original_quantity: 8,
-          corrected_quantity: 10,
-          delta_quantity: 2,
+          original_quantity: 6,
+          baseline_quantity: 7,
+          effective_before_quantity: 7,
+          corrected_quantity: 4,
+          delta_quantity: -3,
+          effective_after_quantity: 4,
           movement_id: 'mov-1',
         }],
         preserved: {
@@ -1034,8 +1037,16 @@ describe('applyInventoryCountCorrections (P8.20.6)', () => {
       workspaceId: 'workspace-1',
       sessionId: 'session-1',
       corrections: [
-        { id: 'line-1', originalCountedQuantity: 8, correctedQuantity: 10 },
-        { id: 'line-2', originalCountedQuantity: 12, correctedQuantity: 12 },
+        {
+          id: 'line-1',
+          originalCountedQuantity: 6,
+          effectiveQuantity: 7,
+          correctedQuantity: 4,
+          // Spoofed client baseline/delta must not be sent to RPC.
+          baselineQuantity: 999,
+          deltaQuantity: -999,
+        },
+        { id: 'line-2', effectiveQuantity: 12, correctedQuantity: 12 },
       ],
     })
 
@@ -1044,14 +1055,28 @@ describe('applyInventoryCountCorrections (P8.20.6)', () => {
       p_session_id: 'session-1',
       p_corrections: [{
         session_item_id: 'line-1',
-        corrected_quantity: 10,
+        corrected_quantity: 4,
       }],
     })
+    const sent = rpcMock.mock.calls[0][1].p_corrections[0]
+    expect(sent).not.toHaveProperty('baseline_quantity')
+    expect(sent).not.toHaveProperty('delta_quantity')
+    expect(sent).not.toHaveProperty('original_quantity')
     expect(fromMock).not.toHaveBeenCalled()
     expect(result).toMatchObject({
       correctionId: 'corr-1',
       lineCount: 1,
       movementCount: 1,
+      lines: [{
+        sessionItemId: 'line-1',
+        originalQuantity: 6,
+        baselineQuantity: 7,
+        effectiveBeforeQuantity: 7,
+        correctedQuantity: 4,
+        deltaQuantity: -3,
+        effectiveAfterQuantity: 4,
+        movementId: 'mov-1',
+      }],
       preserved: {
         session_unchanged: true,
         session_items_unchanged: true,
@@ -1060,15 +1085,97 @@ describe('applyInventoryCountCorrections (P8.20.6)', () => {
     })
   })
 
-  it('skips apply when all deltas are zero', async () => {
+  it('skips apply when all deltas against effective baseline are zero', async () => {
     await expect(applyInventoryCountCorrections({
       workspaceId: 'workspace-1',
       sessionId: 'session-1',
       corrections: [
-        { id: 'line-1', originalCountedQuantity: 8, correctedQuantity: 8 },
+        { id: 'line-1', effectiveQuantity: 5, correctedQuantity: 5 },
       ],
     })).rejects.toThrow('Add at least one non-zero correction before applying.')
     expect(rpcMock).not.toHaveBeenCalled()
+  })
+
+  it('maps baseline_quantity on listed correction lines including null legacy rows', async () => {
+    getMemberDisplayNamesByAuthUserIds.mockResolvedValueOnce({
+      'user-9': 'Casey Corrector',
+    })
+
+    fromMock.mockImplementation((table) => {
+      if (table === 'inventory_count_corrections') {
+        return createQuery({
+          data: [{
+            id: 'corr-1',
+            workspace_id: 'workspace-1',
+            session_id: 'session-1',
+            created_by: 'user-9',
+            created_at: '2026-07-27T12:00:00.000Z',
+            line_count: 2,
+            movement_count: 2,
+          }],
+          error: null,
+        })
+      }
+      if (table === 'inventory_count_correction_lines') {
+        return createQuery({
+          data: [{
+            id: 'cline-1',
+            correction_id: 'corr-1',
+            workspace_id: 'workspace-1',
+            session_id: 'session-1',
+            session_item_id: 'line-1',
+            item_id: 'item-1',
+            item_name: 'Coca-Cola',
+            original_quantity: 6,
+            baseline_quantity: null,
+            corrected_quantity: 7,
+            delta_quantity: 1,
+            movement_id: 'mov-1',
+            created_by: 'user-9',
+            created_at: '2026-07-27T12:00:00.000Z',
+          }, {
+            id: 'cline-2',
+            correction_id: 'corr-1',
+            workspace_id: 'workspace-1',
+            session_id: 'session-1',
+            session_item_id: 'line-2',
+            item_id: 'item-2',
+            item_name: 'Tonic',
+            original_quantity: 3,
+            baseline_quantity: 7,
+            corrected_quantity: 4,
+            delta_quantity: -3,
+            movement_id: 'mov-2',
+            created_by: 'user-9',
+            created_at: '2026-07-27T12:01:00.000Z',
+          }],
+          error: null,
+        })
+      }
+      return createQuery({ data: [], error: null })
+    })
+
+    const corrections = await listInventoryCountCorrections({
+      workspaceId: 'workspace-1',
+      sessionId: 'session-1',
+    })
+
+    expect(corrections).toHaveLength(1)
+    expect(corrections[0].lines[0]).toMatchObject({
+      sessionItemId: 'line-1',
+      originalQuantity: 6,
+      baselineQuantity: null,
+      correctedQuantity: 7,
+      deltaQuantity: 1,
+      movementId: 'mov-1',
+    })
+    expect(corrections[0].lines[1]).toMatchObject({
+      sessionItemId: 'line-2',
+      originalQuantity: 3,
+      baselineQuantity: 7,
+      correctedQuantity: 4,
+      deltaQuantity: -3,
+    })
   })
 
   it('lists correction history for a posted session', async () => {
