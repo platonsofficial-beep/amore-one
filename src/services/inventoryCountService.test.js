@@ -21,6 +21,7 @@ vi.mock('./membershipService', () => ({
 import {
   completeInventoryCountLocation,
   cancelInventoryCountSession,
+  deleteInventoryCountSession,
   formatInventoryCountHomeProgress,
   getInventoryCountSession,
   getInventoryCountSessionItems,
@@ -512,6 +513,126 @@ describe('cancelInventoryCountSession (P8.16.28a)', () => {
     expect(serviceSource).not.toMatch(
       /cancelInventoryCountSession[\s\S]*?\.from\(\s*SESSIONS_TABLE\s*\)[\s\S]*?\.update\(/,
     )
+  })
+})
+
+describe('deleteInventoryCountSession (P8.20.3)', () => {
+  beforeEach(() => {
+    rpcMock.mockReset()
+    fromMock.mockReset()
+  })
+
+  it('calls delete_inventory_count_session RPC and maps the payload', async () => {
+    rpcMock.mockResolvedValueOnce({
+      data: {
+        session_id: 'session-1',
+        workspace_id: 'workspace-1',
+        deleted: true,
+        previous_status: 'posted',
+        deleted_at: '2026-07-24T12:00:00.000Z',
+        preserved: { stock_items: true, stock_movements: true },
+        mutations: {
+          session_deleted: true,
+          session_locations_cascaded: true,
+          session_items_cascaded: true,
+          stock_quantity_changed: false,
+          stock_movements_deleted: false,
+        },
+      },
+      error: null,
+    })
+
+    const result = await deleteInventoryCountSession({
+      workspaceId: 'workspace-1',
+      sessionId: 'session-1',
+    })
+
+    expect(rpcMock).toHaveBeenCalledWith('delete_inventory_count_session', {
+      p_workspace_id: 'workspace-1',
+      p_session_id: 'session-1',
+    })
+    expect(fromMock).not.toHaveBeenCalled()
+    expect(result).toEqual({
+      id: 'session-1',
+      workspaceId: 'workspace-1',
+      deleted: true,
+      previousStatus: 'posted',
+      deletedAt: '2026-07-24T12:00:00.000Z',
+      preserved: { stock_items: true, stock_movements: true },
+      mutations: {
+        session_deleted: true,
+        session_locations_cascaded: true,
+        session_items_cascaded: true,
+        stock_quantity_changed: false,
+        stock_movements_deleted: false,
+      },
+    })
+  })
+
+  it('maps delete RPC error codes', async () => {
+    rpcMock.mockResolvedValueOnce({
+      data: null,
+      error: { message: 'inventory_count_delete_forbidden' },
+    })
+    await expect(
+      deleteInventoryCountSession({ workspaceId: 'workspace-1', sessionId: 'session-1' }),
+    ).rejects.toThrow('You do not have permission to manage inventory counts')
+
+    rpcMock.mockResolvedValueOnce({
+      data: null,
+      error: { message: 'inventory_count_delete_session_not_found' },
+    })
+    await expect(
+      deleteInventoryCountSession({ workspaceId: 'workspace-1', sessionId: 'session-1' }),
+    ).rejects.toThrow('was not found')
+
+    rpcMock.mockResolvedValueOnce({
+      data: null,
+      error: { message: 'inventory_count_delete_workspace_mismatch' },
+    })
+    await expect(
+      deleteInventoryCountSession({ workspaceId: 'workspace-1', sessionId: 'session-1' }),
+    ).rejects.toThrow('does not belong to this workspace')
+  })
+
+  it('does not use a direct sessions table delete path', () => {
+    const serviceSource = readFileSync(
+      resolve(process.cwd(), 'src/services/inventoryCountService.js'),
+      'utf8',
+    )
+    expect(serviceSource).toContain('delete_inventory_count_session')
+    expect(serviceSource).toContain('deleteInventoryCountSession')
+    expect(serviceSource).not.toMatch(
+      /deleteInventoryCountSession[\s\S]*?\.from\(\s*SESSIONS_TABLE\s*\)[\s\S]*?\.delete\(/,
+    )
+  })
+})
+
+describe('delete_inventory_count_session SQL contract (P8.20.3)', () => {
+  const sql = readFileSync(
+    resolve(process.cwd(), 'supabase/inventory_count_delete_session_rpc.sql'),
+    'utf8',
+  )
+  const functionBody = sql.slice(sql.indexOf('as $$'), sql.lastIndexOf('$$;') + 3)
+
+  it('defines SECURITY DEFINER RPC with manager authorization', () => {
+    expect(sql).toContain('create or replace function public.delete_inventory_count_session(')
+    expect(sql).toContain('p_workspace_id uuid')
+    expect(sql).toContain('p_session_id uuid')
+    expect(sql).toContain('returns jsonb')
+    expect(sql).toContain('security definer')
+    expect(sql).toContain('can_manage_workspace_stock')
+    expect(sql).toContain('inventory_count_delete_unauthenticated')
+    expect(sql).toContain('inventory_count_delete_forbidden')
+  })
+
+  it('deletes the session and does not mutate stock', () => {
+    expect(functionBody).toContain('delete from public.inventory_count_sessions')
+    expect(functionBody).toContain("stock_quantity_changed', false")
+    expect(functionBody).toContain("stock_movements_deleted', false")
+    expect(functionBody).not.toMatch(/update\s+public\.stock_items/i)
+    expect(functionBody).not.toMatch(/delete\s+from\s+public\.stock_movements/i)
+    expect(functionBody).not.toMatch(/delete\s+from\s+public\.stock_items/i)
   })
 })
 

@@ -9,6 +9,7 @@ const SET_PAUSE_STATE_RPC = 'set_inventory_count_session_pause_state'
 const PREVIEW_FINISH_RPC = 'preview_inventory_count_finish'
 const POST_FINISH_RPC = 'post_inventory_count_finish'
 const CANCEL_COMPLETION_RPC = 'cancel_inventory_count_completion'
+const DELETE_SESSION_RPC = 'delete_inventory_count_session'
 const REPAIR_CURRENT_LOCATION_RPC = 'repair_inventory_count_current_location'
 const SESSIONS_TABLE = 'inventory_count_sessions'
 const SESSION_ITEMS_TABLE = 'inventory_count_session_items'
@@ -78,7 +79,7 @@ function isRpcUnavailableError(error) {
 
 function extractRpcErrorCode(error) {
   const message = `${error?.message ?? error?.details ?? error?.hint ?? ''}`.trim()
-  const match = message.match(/inventory_count_(?:session|snapshot|item|location|pause|preview|post|reconcile|cancel|repair)_[a-z0-9_]+/i)
+  const match = message.match(/inventory_count_(?:session|snapshot|item|location|pause|preview|post|reconcile|cancel|repair|delete)_[a-z0-9_]+/i)
   return match?.[0]?.toLowerCase() ?? ''
 }
 
@@ -104,6 +105,7 @@ function mapInventoryCountRpcError(error, fallbackMessage) {
     case 'inventory_count_preview_unauthenticated':
     case 'inventory_count_post_unauthenticated':
     case 'inventory_count_cancel_unauthenticated':
+    case 'inventory_count_delete_unauthenticated':
       return new Error('You must be signed in to manage inventory counts.')
     case 'inventory_count_session_forbidden':
     case 'inventory_count_snapshot_forbidden':
@@ -113,6 +115,7 @@ function mapInventoryCountRpcError(error, fallbackMessage) {
     case 'inventory_count_preview_forbidden':
     case 'inventory_count_post_forbidden':
     case 'inventory_count_cancel_forbidden':
+    case 'inventory_count_delete_forbidden':
       return new Error('You do not have permission to manage inventory counts for this workspace.')
     case 'inventory_count_session_workspace_required':
     case 'inventory_count_snapshot_workspace_required':
@@ -122,6 +125,7 @@ function mapInventoryCountRpcError(error, fallbackMessage) {
     case 'inventory_count_preview_workspace_required':
     case 'inventory_count_post_workspace_required':
     case 'inventory_count_cancel_workspace_required':
+    case 'inventory_count_delete_workspace_required':
       return new Error('Workspace is required.')
     case 'inventory_count_session_workspace_not_found':
       return new Error('Workspace was not found.')
@@ -145,6 +149,7 @@ function mapInventoryCountRpcError(error, fallbackMessage) {
     case 'inventory_count_preview_session_required':
     case 'inventory_count_post_session_required':
     case 'inventory_count_cancel_session_required':
+    case 'inventory_count_delete_session_required':
       return new Error('Inventory count session is required.')
     case 'inventory_count_snapshot_session_not_found':
     case 'inventory_count_item_session_not_found':
@@ -153,6 +158,7 @@ function mapInventoryCountRpcError(error, fallbackMessage) {
     case 'inventory_count_preview_session_not_found':
     case 'inventory_count_post_session_not_found':
     case 'inventory_count_cancel_session_not_found':
+    case 'inventory_count_delete_session_not_found':
       return new Error('Inventory count session was not found.')
     case 'inventory_count_snapshot_workspace_mismatch':
     case 'inventory_count_item_workspace_mismatch':
@@ -161,7 +167,10 @@ function mapInventoryCountRpcError(error, fallbackMessage) {
     case 'inventory_count_preview_workspace_mismatch':
     case 'inventory_count_post_workspace_mismatch':
     case 'inventory_count_cancel_workspace_mismatch':
+    case 'inventory_count_delete_workspace_mismatch':
       return new Error('Inventory count session does not belong to this workspace.')
+    case 'inventory_count_delete_failed':
+      return new Error('Unable to delete inventory count right now.')
     case 'inventory_count_snapshot_session_not_in_progress':
       return new Error('Inventory count session must be in progress to build a snapshot.')
     case 'inventory_count_item_session_not_in_progress':
@@ -846,6 +855,49 @@ export async function cancelInventoryCountSession({
     updatedAt: payload.updated_at ?? payload.updatedAt ?? null,
     preserved: payload.preserved ?? null,
     mutations: payload.mutations ?? null,
+  }
+}
+
+/**
+ * Permanently delete an inventory count session via SECURITY DEFINER RPC.
+ * Cascades session locations + items. Does not mutate stock quantities or movements.
+ */
+export async function deleteInventoryCountSession({
+  workspaceId,
+  sessionId,
+} = {}) {
+  requireConfiguredSupabase()
+
+  const p_workspace_id = requireId(workspaceId, 'Workspace')
+  const p_session_id = requireId(sessionId, 'Session')
+
+  const { data, error } = await supabase.rpc(DELETE_SESSION_RPC, {
+    p_workspace_id,
+    p_session_id,
+  })
+
+  if (error) {
+    console.error('[inventoryCountService] deleteInventoryCountSession error:', error)
+    throw mapInventoryCountRpcError(error, 'Unable to delete inventory count right now.')
+  }
+
+  const payload = firstRpcRow(data) ?? data
+  const sessionIdResult = `${payload?.session_id ?? payload?.sessionId ?? ''}`.trim()
+  const workspaceIdResult = `${payload?.workspace_id ?? payload?.workspaceId ?? ''}`.trim()
+  const deleted = Boolean(payload?.deleted)
+
+  if (!sessionIdResult || !workspaceIdResult || !deleted) {
+    throw new Error('Delete inventory count response was empty or invalid.')
+  }
+
+  return {
+    id: sessionIdResult,
+    workspaceId: workspaceIdResult,
+    deleted: true,
+    previousStatus: `${payload?.previous_status ?? payload?.previousStatus ?? ''}`.trim() || null,
+    deletedAt: payload?.deleted_at ?? payload?.deletedAt ?? null,
+    preserved: payload?.preserved ?? null,
+    mutations: payload?.mutations ?? null,
   }
 }
 

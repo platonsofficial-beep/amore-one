@@ -12,6 +12,7 @@ const getSessionMock = vi.fn()
 const previewFinishMock = vi.fn()
 const postFinishMock = vi.fn()
 const cancelSessionMock = vi.fn()
+const deleteSessionMock = vi.fn()
 const useAuthMock = vi.fn()
 
 vi.mock('../../context/AuthContext', () => ({
@@ -24,6 +25,7 @@ vi.mock('../../services/inventoryCountService', () => ({
   previewInventoryCountFinish: (...args) => previewFinishMock(...args),
   postInventoryCountFinish: (...args) => postFinishMock(...args),
   cancelInventoryCountSession: (...args) => cancelSessionMock(...args),
+  deleteInventoryCountSession: (...args) => deleteSessionMock(...args),
   createInventoryCountSession: vi.fn(),
   buildInventoryCountSnapshot: vi.fn(),
   getInventoryCountSessionLocations: vi.fn(async () => []),
@@ -98,6 +100,7 @@ beforeEach(() => {
   previewFinishMock.mockReset()
   postFinishMock.mockReset()
   cancelSessionMock.mockReset()
+  deleteSessionMock.mockReset()
   listHomeSessionsMock.mockResolvedValue({
     active: [],
     paused: [],
@@ -114,6 +117,11 @@ beforeEach(() => {
   cancelSessionMock.mockResolvedValue({
     id: 'complete-1',
     status: 'cancelled',
+  })
+  deleteSessionMock.mockResolvedValue({
+    id: 'session-1',
+    workspaceId: 'workspace-test-id',
+    deleted: true,
   })
   vi.spyOn(window, 'confirm').mockReturnValue(true)
 })
@@ -223,7 +231,9 @@ describe('InventoryCountView live home hydration (P8.16.27)', () => {
     await flush()
 
     const card = container.querySelector('.inventory-count-session-card')
-    expect(card?.disabled).toBe(true)
+    expect(card?.className).toContain('is-readonly')
+    expect(card?.getAttribute('data-inventory-count-card-openable')).toBe('false')
+    expect(card?.getAttribute('role')).toBeNull()
 
     cleanup()
   })
@@ -483,6 +493,99 @@ describe('InventoryCountView deep link open (P8.16.30)', () => {
 
     expect(container.querySelector('.inventory-count-session')).toBeNull()
     expect(container.textContent).toContain('That inventory count is no longer open.')
+
+    cleanup()
+  })
+})
+
+describe('InventoryCountView delete session (P8.20.3)', () => {
+  it('shows a delete control on every card without opening the session', async () => {
+    listHomeSessionsMock.mockResolvedValue({
+      active: [sessionFixture({ id: 'active-1', status: 'in_progress', statusLabel: 'In progress' })],
+      paused: [sessionFixture({ id: 'paused-1', status: 'paused', statusLabel: 'Paused' })],
+      recent: [sessionFixture({ id: 'posted-1', status: 'posted', statusLabel: 'Posted' })],
+    })
+
+    const { container, cleanup } = render(createElement(InventoryCountView))
+    await flush()
+
+    const deleteButtons = container.querySelectorAll('.inventory-count-session-delete-btn')
+    expect(deleteButtons).toHaveLength(3)
+
+    await act(async () => {
+      deleteButtons[0].click()
+    })
+
+    expect(container.querySelector('.inventory-count-session')).toBeNull()
+    expect(container.querySelector('[aria-labelledby="inventory-count-delete-title"]')).toBeTruthy()
+    expect(container.textContent).toContain('Delete Inventory Count?')
+    expect(container.textContent).toContain('This action cannot be undone.')
+    expect(deleteSessionMock).not.toHaveBeenCalled()
+
+    cleanup()
+  })
+
+  it('deletes only after confirmation and refreshes home', async () => {
+    listHomeSessionsMock
+      .mockResolvedValueOnce({
+        active: [sessionFixture({ id: 'active-1', status: 'in_progress', statusLabel: 'In progress' })],
+        paused: [],
+        recent: [],
+      })
+      .mockResolvedValueOnce({
+        active: [],
+        paused: [],
+        recent: [],
+      })
+
+    const { container, cleanup } = render(createElement(InventoryCountView))
+    await flush()
+
+    await act(async () => {
+      container.querySelector('.inventory-count-session-delete-btn')?.click()
+    })
+
+    await act(async () => {
+      getButtonByText(container, 'Delete Count')?.click()
+      await Promise.resolve()
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+
+    expect(deleteSessionMock).toHaveBeenCalledWith({
+      workspaceId: 'workspace-test-id',
+      sessionId: 'active-1',
+    })
+    expect(container.textContent).toContain('Inventory count deleted.')
+    expect(container.querySelector('[aria-labelledby="inventory-count-delete-title"]')).toBeNull()
+    expect(listHomeSessionsMock).toHaveBeenCalledTimes(2)
+
+    cleanup()
+  })
+
+  it('Cancel closes the delete dialog without calling delete', async () => {
+    listHomeSessionsMock.mockResolvedValue({
+      active: [sessionFixture({ id: 'active-1' })],
+      paused: [],
+      recent: [],
+    })
+
+    const { container, cleanup } = render(createElement(InventoryCountView))
+    await flush()
+
+    await act(async () => {
+      container.querySelector('.inventory-count-session-delete-btn')?.click()
+    })
+
+    const dialog = container.querySelector('[aria-labelledby="inventory-count-delete-title"]')
+    await act(async () => {
+      Array.from(dialog.querySelectorAll('button'))
+        .find((button) => button.textContent === 'Cancel')
+        ?.click()
+    })
+
+    expect(deleteSessionMock).not.toHaveBeenCalled()
+    expect(container.querySelector('[aria-labelledby="inventory-count-delete-title"]')).toBeNull()
 
     cleanup()
   })
