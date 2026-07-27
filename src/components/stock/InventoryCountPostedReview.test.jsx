@@ -1,12 +1,13 @@
 /**
  * @vitest-environment jsdom
- * P8.20.4 / P8.20.7 — Posted Count historical review + correction history UX.
+ * P8.20.4 / P8.20.7 / P8.20.9 — Posted Count historical review + audit timeline polish.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { act, createElement } from 'react'
 import { createRoot } from 'react-dom/client'
 import {
   InventoryCountPostedReview,
+  buildPostedCorrectionAuditSummary,
   buildPostedCorrectionVersionHistory,
 } from './InventoryCountPostedReview'
 
@@ -137,10 +138,62 @@ describe('buildPostedCorrectionVersionHistory (P8.20.7)', () => {
     expect(versions[1].id).toBe('corr-newer')
     expect(versions[0].netDelta).toBe(2)
     expect(versions[1].netDelta).toBe(-1)
+    expect(versions[0].detailAnchorId).toBe('inventory-count-audit-correction-1')
+    expect(versions[1].detailAnchorId).toBe('inventory-count-audit-correction-2')
   })
 })
 
-describe('InventoryCountPostedReview (P8.20.4 / P8.20.7)', () => {
+describe('buildPostedCorrectionAuditSummary (P8.20.9)', () => {
+  it('reconstructs original, effective, corrections, and net from loaded history', () => {
+    const versions = buildPostedCorrectionVersionHistory([
+      {
+        id: 'corr-1',
+        createdAt: '2026-07-27T12:00:00.000Z',
+        lines: [{
+          id: 'cline-1',
+          sessionItemId: 'line-1',
+          itemName: 'Coca-Cola',
+          originalQuantity: 6,
+          correctedQuantity: 7,
+          deltaQuantity: 1,
+        }],
+      },
+      {
+        id: 'corr-2',
+        createdAt: '2026-07-27T13:00:00.000Z',
+        lines: [{
+          id: 'cline-2',
+          sessionItemId: 'line-1',
+          itemName: 'Coca-Cola',
+          originalQuantity: 6,
+          correctedQuantity: 4,
+          deltaQuantity: -2,
+        }],
+      },
+      {
+        id: 'corr-3',
+        createdAt: '2026-07-27T14:00:00.000Z',
+        lines: [{
+          id: 'cline-3',
+          sessionItemId: 'line-1',
+          itemName: 'Coca-Cola',
+          originalQuantity: 6,
+          correctedQuantity: 7,
+          deltaQuantity: 2,
+        }],
+      },
+    ])
+
+    expect(buildPostedCorrectionAuditSummary(versions)).toEqual({
+      originalPostedQuantity: 6,
+      currentEffectiveQuantity: 7,
+      totalCorrections: 3,
+      netAdjustment: 1,
+    })
+  })
+})
+
+describe('InventoryCountPostedReview (P8.20.4 / P8.20.7 / P8.20.9)', () => {
   it('loads persisted audit fields and reconstructs result after post', async () => {
     const { container, cleanup } = render(createElement(InventoryCountPostedReview, {
       sessionId: 'posted-1',
@@ -346,6 +399,105 @@ describe('InventoryCountPostedReview (P8.20.4 / P8.20.7)', () => {
     expect(container.textContent).toContain('Expected at count')
     expect(container.querySelector('input')).toBeNull()
     expect(applyCorrectionsMock).not.toHaveBeenCalled()
+
+    cleanup()
+  })
+
+  it('renders audit timeline, summary values, anchors, and delta badges in chronological order', async () => {
+    const scrollIntoViewMock = vi.fn()
+    Element.prototype.scrollIntoView = scrollIntoViewMock
+
+    getPostedReviewMock.mockResolvedValueOnce(reviewFixture({
+      corrections: [
+        {
+          id: 'corr-2',
+          operatorName: 'Blake Owner',
+          createdAt: '2026-07-27T15:00:00.000Z',
+          lines: [{
+            id: 'cline-2',
+            sessionItemId: 'line-1',
+            itemName: 'Coca-Cola',
+            originalQuantity: 6,
+            correctedQuantity: 4,
+            deltaQuantity: -2,
+            movementId: 'mov-2',
+            createdAt: '2026-07-27T15:00:00.000Z',
+          }],
+        },
+        {
+          id: 'corr-1',
+          operatorName: 'Casey Corrector',
+          createdAt: '2026-07-27T12:00:00.000Z',
+          lines: [{
+            id: 'cline-1',
+            sessionItemId: 'line-1',
+            itemName: 'Coca-Cola',
+            originalQuantity: 6,
+            correctedQuantity: 7,
+            deltaQuantity: 1,
+            movementId: 'mov-1',
+            createdAt: '2026-07-27T12:00:00.000Z',
+          }],
+        },
+      ],
+      correctionCount: 2,
+      hasCorrections: true,
+    }))
+
+    const { container, cleanup } = render(createElement(InventoryCountPostedReview, {
+      sessionId: 'posted-1',
+      workspaceId: 'workspace-1',
+      onClose: vi.fn(),
+    }))
+    await flush()
+
+    const timeline = container.querySelector('[data-inventory-count-correction-timeline="true"]')
+    expect(timeline).toBeTruthy()
+    expect(timeline.textContent).toContain('Posted Count')
+    expect(timeline.textContent).toContain('Correction 1')
+    expect(timeline.textContent).toContain('Correction 2')
+
+    const timelineLabels = Array.from(
+      timeline.querySelectorAll('.inventory-count-posted-review-timeline-label'),
+    ).map((node) => node.textContent)
+    expect(timelineLabels).toEqual(['Posted Count', 'Correction 1', 'Correction 2'])
+
+    const summary = container.querySelector('[data-inventory-count-audit-summary="true"]')
+    expect(summary?.textContent).toContain('Original Posted')
+    expect(summary?.textContent).toContain('Current Effective')
+    expect(summary?.textContent).toContain('Corrections')
+    expect(summary?.textContent).toContain('Net Adjustment')
+    expect(summary?.textContent).toContain('6')
+    expect(summary?.textContent).toContain('5')
+    expect(summary?.textContent).toContain('2')
+    expect(summary?.textContent).toContain('−1')
+    expect(summary.querySelector('.is-effective')).toBeTruthy()
+
+    expect(container.querySelector('#inventory-count-audit-original')).toBeTruthy()
+    expect(container.querySelector('#inventory-count-audit-correction-1')).toBeTruthy()
+    expect(container.querySelector('#inventory-count-audit-correction-2')).toBeTruthy()
+
+    const badges = Array.from(container.querySelectorAll('[data-correction-delta-badge="true"]'))
+      .map((node) => node.textContent)
+    expect(badges).toContain('+1')
+    expect(badges).toContain('−2')
+    expect(
+      container.querySelector('[data-correction-version="1"] [data-correction-delta-badge="true"]')
+        ?.className,
+    ).toContain('is-positive')
+    expect(
+      container.querySelector('[data-correction-version="2"] [data-correction-delta-badge="true"]')
+        ?.className,
+    ).toContain('is-negative')
+
+    await act(async () => {
+      timeline.querySelector('[data-timeline-target="2"]')?.click()
+    })
+    expect(scrollIntoViewMock).toHaveBeenCalled()
+    expect(scrollIntoViewMock.mock.calls[0][0]).toMatchObject({
+      behavior: 'smooth',
+      block: 'start',
+    })
 
     cleanup()
   })

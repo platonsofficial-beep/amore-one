@@ -1,6 +1,38 @@
 import { useEffect, useMemo, useState } from 'react'
 import { getInventoryCountPostedReview } from '../../services/inventoryCountService'
 
+const AUDIT_ORIGINAL_ANCHOR_ID = 'inventory-count-audit-original'
+
+function getCorrectionDetailAnchorId(version) {
+  return `inventory-count-audit-correction-${version}`
+}
+
+function scrollToAuditAnchor(anchorId) {
+  if (typeof document === 'undefined') return
+  const node = document.getElementById(anchorId)
+  if (!node || typeof node.scrollIntoView !== 'function') return
+  node.scrollIntoView({ behavior: 'smooth', block: 'start' })
+}
+
+function correctionLineGroupKey(line) {
+  return `${line?.sessionItemId ?? line?.itemId ?? line?.itemName ?? line?.id ?? ''}`.trim()
+}
+
+function formatDeltaBadge(value) {
+  if (value === null || value === undefined || value === '') return '0'
+  const numeric = Number(value)
+  if (!Number.isFinite(numeric)) return '—'
+  if (numeric > 0) return `+${numeric}`
+  if (numeric < 0) return `−${Math.abs(numeric)}`
+  return '0'
+}
+
+function deltaToneClass(value) {
+  const numeric = Number(value)
+  if (!Number.isFinite(numeric) || numeric === 0) return 'is-neutral'
+  return numeric > 0 ? 'is-positive' : 'is-negative'
+}
+
 const VISIBILITY_LABELS = {
   blind: 'Blind Count',
   open: 'Open Count',
@@ -130,6 +162,7 @@ export function buildPostedCorrectionVersionHistory(corrections = []) {
       id: batch.id,
       version: index + 1,
       versionLabel: `Correction ${index + 1}`,
+      detailAnchorId: getCorrectionDetailAnchorId(index + 1),
       createdAt: batch.createdAt || null,
       operatorName: `${batch.operatorName ?? ''}`.trim() || '—',
       productCount,
@@ -137,6 +170,51 @@ export function buildPostedCorrectionVersionHistory(corrections = []) {
       lines,
     }
   })
+}
+
+/**
+ * Compact audit summary from already-loaded correction versions.
+ * Original / effective are reconstructed per corrected product from history lines.
+ */
+export function buildPostedCorrectionAuditSummary(correctionVersions = []) {
+  const byKey = new Map()
+
+  for (const version of Array.isArray(correctionVersions) ? correctionVersions : []) {
+    for (const line of version?.lines ?? []) {
+      const key = correctionLineGroupKey(line)
+      if (!key) continue
+      const current = byKey.get(key) || { original: null, deltaSum: 0 }
+      const original = Number(line?.originalQuantity)
+      if (current.original === null && Number.isFinite(original)) {
+        current.original = original
+      }
+      const delta = Number(line?.deltaQuantity)
+      if (Number.isFinite(delta)) {
+        current.deltaSum += delta
+      }
+      byKey.set(key, current)
+    }
+  }
+
+  let originalPostedQuantity = 0
+  let currentEffectiveQuantity = 0
+  let netAdjustment = 0
+  let hasQuantity = false
+
+  for (const entry of byKey.values()) {
+    if (entry.original === null) continue
+    hasQuantity = true
+    originalPostedQuantity += entry.original
+    currentEffectiveQuantity += entry.original + entry.deltaSum
+    netAdjustment += entry.deltaSum
+  }
+
+  return {
+    originalPostedQuantity: hasQuantity ? originalPostedQuantity : null,
+    currentEffectiveQuantity: hasQuantity ? currentEffectiveQuantity : null,
+    totalCorrections: (Array.isArray(correctionVersions) ? correctionVersions : []).length,
+    netAdjustment: hasQuantity ? netAdjustment : null,
+  }
 }
 
 /**
@@ -203,6 +281,10 @@ export function InventoryCountPostedReview({
   const correctionVersions = useMemo(
     () => buildPostedCorrectionVersionHistory(corrections),
     [corrections],
+  )
+  const auditSummary = useMemo(
+    () => buildPostedCorrectionAuditSummary(correctionVersions),
+    [correctionVersions],
   )
   const appliedBadgeLabel = formatAppliedCorrectionBadge(correctionCount)
   const visibilityLabel = VISIBILITY_LABELS[session?.visibility] || session?.visibility || '—'
@@ -344,84 +426,179 @@ export function InventoryCountPostedReview({
                 </p>
               </div>
 
-              <article
-                className="inventory-count-posted-review-version-card is-original"
-                data-correction-version="original"
+              <div
+                className="inventory-count-posted-review-audit-summary"
+                data-inventory-count-audit-summary="true"
+                aria-label="Audit summary"
               >
-                <div className="inventory-count-posted-review-version-label">Original</div>
-                <p className="inventory-count-posted-review-version-summary">
-                  Posted inventory count ·
-                  {' '}
-                  {formatSessionDate(session?.postedAt)}
-                  {' · '}
-                  {postedByName}
-                </p>
-                <p className="inventory-count-posted-review-version-copy">
-                  Immutable historical record. Corrections below are append-only adjustments.
-                </p>
-              </article>
+                <div className="inventory-count-posted-review-audit-summary-item">
+                  <span className="inventory-count-posted-review-audit-summary-label">
+                    Original Posted
+                  </span>
+                  <span className="inventory-count-posted-review-audit-summary-value">
+                    {formatQuantity(auditSummary.originalPostedQuantity)}
+                  </span>
+                </div>
+                <div className="inventory-count-posted-review-audit-summary-item is-effective">
+                  <span className="inventory-count-posted-review-audit-summary-label">
+                    Current Effective
+                  </span>
+                  <span className="inventory-count-posted-review-audit-summary-value">
+                    {formatQuantity(auditSummary.currentEffectiveQuantity)}
+                  </span>
+                </div>
+                <div className="inventory-count-posted-review-audit-summary-item">
+                  <span className="inventory-count-posted-review-audit-summary-label">
+                    Corrections
+                  </span>
+                  <span className="inventory-count-posted-review-audit-summary-value">
+                    {auditSummary.totalCorrections}
+                  </span>
+                </div>
+                <div className="inventory-count-posted-review-audit-summary-item">
+                  <span className="inventory-count-posted-review-audit-summary-label">
+                    Net Adjustment
+                  </span>
+                  <span
+                    className={`inventory-count-posted-review-audit-summary-value ${deltaToneClass(auditSummary.netAdjustment)}`.trim()}
+                  >
+                    {formatDeltaBadge(auditSummary.netAdjustment)}
+                  </span>
+                </div>
+              </div>
 
-              <ol className="inventory-count-posted-review-version-list">
-                {correctionVersions.map((version) => {
-                  const netImpact = formatNetStockImpact(version.netDelta)
-                  const productLabel = version.productCount === 1
-                    ? '1 product corrected'
-                    : `${version.productCount} products corrected`
-                  return (
-                    <li
-                      key={version.id}
-                      className="inventory-count-posted-review-version-card"
-                      data-correction-version={version.version}
+              <nav
+                className="inventory-count-posted-review-timeline"
+                aria-label="Correction timeline"
+                data-inventory-count-correction-timeline="true"
+              >
+                <ol className="inventory-count-posted-review-timeline-list">
+                  <li className="inventory-count-posted-review-timeline-item is-original">
+                    <button
+                      type="button"
+                      className="inventory-count-posted-review-timeline-node"
+                      data-timeline-target="original"
+                      onClick={() => scrollToAuditAnchor(AUDIT_ORIGINAL_ANCHOR_ID)}
                     >
-                      <div className="inventory-count-posted-review-version-label">
-                        {version.versionLabel}
-                      </div>
-                      <p className="inventory-count-posted-review-version-summary">
-                        Applied
-                        {' '}
-                        {formatAppliedAt(version.createdAt)}
-                        {' · '}
-                        {version.operatorName}
-                      </p>
-                      <p className="inventory-count-posted-review-version-meta">
-                        {productLabel}
-                        {netImpact ? ` · ${netImpact}` : ''}
-                      </p>
-                      <ul className="inventory-count-posted-review-version-lines">
-                        {version.lines.map((line) => {
-                          const deltaTone = Number(line.deltaQuantity) > 0
-                            ? 'is-positive'
-                            : Number(line.deltaQuantity) < 0
-                              ? 'is-negative'
-                              : 'is-neutral'
-                          return (
-                            <li
-                              key={line.id}
-                              className="inventory-count-posted-review-version-line"
-                            >
-                              <div className="inventory-count-posted-review-version-line-name">
-                                {line.itemName || 'Product'}
-                              </div>
-                              <div className="inventory-count-posted-review-version-line-qty">
-                                Original
-                                {' '}
-                                {formatQuantity(line.originalQuantity)}
-                                {' → Corrected '}
-                                {formatQuantity(line.correctedQuantity)}
-                              </div>
-                              <div
-                                className={`inventory-count-posted-review-version-line-impact ${deltaTone}`.trim()}
-                              >
-                                {formatAdjustmentState(line)}
-                              </div>
-                            </li>
-                          )
-                        })}
-                      </ul>
+                      <span className="inventory-count-posted-review-timeline-dot" aria-hidden="true" />
+                      <span className="inventory-count-posted-review-timeline-label">
+                        Posted Count
+                      </span>
+                    </button>
+                  </li>
+                  {correctionVersions.map((version) => (
+                    <li
+                      key={`timeline-${version.id}`}
+                      className="inventory-count-posted-review-timeline-item"
+                    >
+                      <button
+                        type="button"
+                        className="inventory-count-posted-review-timeline-node"
+                        data-timeline-target={version.version}
+                        onClick={() => scrollToAuditAnchor(version.detailAnchorId)}
+                      >
+                        <span className="inventory-count-posted-review-timeline-dot" aria-hidden="true" />
+                        <span className="inventory-count-posted-review-timeline-label">
+                          {version.versionLabel}
+                        </span>
+                        <span
+                          className={`inventory-count-posted-review-delta-badge ${deltaToneClass(version.netDelta)}`.trim()}
+                          data-correction-delta-badge="true"
+                        >
+                          {formatDeltaBadge(version.netDelta)}
+                        </span>
+                      </button>
                     </li>
-                  )
-                })}
-              </ol>
+                  ))}
+                </ol>
+              </nav>
+
+              <div className="inventory-count-posted-review-timeline-details">
+                <article
+                  id={AUDIT_ORIGINAL_ANCHOR_ID}
+                  className="inventory-count-posted-review-version-card is-original"
+                  data-correction-version="original"
+                >
+                  <div className="inventory-count-posted-review-version-label">Original</div>
+                  <p className="inventory-count-posted-review-version-summary">
+                    Posted inventory count ·
+                    {' '}
+                    {formatSessionDate(session?.postedAt)}
+                    {' · '}
+                    {postedByName}
+                  </p>
+                  <p className="inventory-count-posted-review-version-copy">
+                    Immutable historical record. Corrections below are append-only adjustments.
+                  </p>
+                </article>
+
+                <ol className="inventory-count-posted-review-version-list">
+                  {correctionVersions.map((version) => {
+                    const netImpact = formatNetStockImpact(version.netDelta)
+                    const productLabel = version.productCount === 1
+                      ? '1 product corrected'
+                      : `${version.productCount} products corrected`
+                    return (
+                      <li
+                        key={version.id}
+                        id={version.detailAnchorId}
+                        className="inventory-count-posted-review-version-card"
+                        data-correction-version={version.version}
+                      >
+                        <div className="inventory-count-posted-review-version-card-header">
+                          <div className="inventory-count-posted-review-version-label">
+                            {version.versionLabel}
+                          </div>
+                          <span
+                            className={`inventory-count-posted-review-delta-badge ${deltaToneClass(version.netDelta)}`.trim()}
+                            data-correction-delta-badge="true"
+                          >
+                            {formatDeltaBadge(version.netDelta)}
+                          </span>
+                        </div>
+                        <p className="inventory-count-posted-review-version-summary">
+                          Applied
+                          {' '}
+                          {formatAppliedAt(version.createdAt)}
+                          {' · '}
+                          {version.operatorName}
+                        </p>
+                        <p className="inventory-count-posted-review-version-meta">
+                          {productLabel}
+                          {netImpact ? ` · ${netImpact}` : ''}
+                        </p>
+                        <ul className="inventory-count-posted-review-version-lines">
+                          {version.lines.map((line) => {
+                            const lineTone = deltaToneClass(line.deltaQuantity)
+                            return (
+                              <li
+                                key={line.id}
+                                className="inventory-count-posted-review-version-line"
+                              >
+                                <div className="inventory-count-posted-review-version-line-name">
+                                  {line.itemName || 'Product'}
+                                </div>
+                                <div className="inventory-count-posted-review-version-line-qty">
+                                  Original
+                                  {' '}
+                                  {formatQuantity(line.originalQuantity)}
+                                  {' → Corrected '}
+                                  {formatQuantity(line.correctedQuantity)}
+                                </div>
+                                <div
+                                  className={`inventory-count-posted-review-version-line-impact ${lineTone}`.trim()}
+                                >
+                                  {formatAdjustmentState(line)}
+                                </div>
+                              </li>
+                            )
+                          })}
+                        </ul>
+                      </li>
+                    )
+                  })}
+                </ol>
+              </div>
             </section>
           ) : null}
 
