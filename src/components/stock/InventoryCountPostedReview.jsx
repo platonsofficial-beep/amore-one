@@ -58,6 +58,7 @@ export function InventoryCountPostedReview({
   workspaceId,
   onClose,
   onSuggestCorrection,
+  notice = '',
 }) {
   const [isLoading, setIsLoading] = useState(true)
   const [loadError, setLoadError] = useState('')
@@ -106,6 +107,9 @@ export function InventoryCountPostedReview({
   const summary = review?.summary
   const items = Array.isArray(review?.items) ? review.items : []
   const locations = Array.isArray(review?.locations) ? review.locations : []
+  const corrections = Array.isArray(review?.corrections) ? review.corrections : []
+  const correctionCount = Number(review?.correctionCount) || 0
+  const hasCorrections = Boolean(review?.hasCorrections) || correctionCount > 0
   const visibilityLabel = VISIBILITY_LABELS[session?.visibility] || session?.visibility || '—'
   const operatorName = `${session?.operatorName ?? ''}`.trim() || '—'
   const postedByName = `${session?.postedByName ?? ''}`.trim()
@@ -129,6 +133,14 @@ export function InventoryCountPostedReview({
             <span className="inventory-count-session-pill is-status is-posted">
               {session?.statusLabel || 'Posted'}
             </span>
+            {hasCorrections ? (
+              <span
+                className="inventory-count-session-pill is-corrected"
+                data-inventory-count-corrected-badge="true"
+              >
+                {correctionCount === 1 ? 'CORRECTED' : `${correctionCount} Corrections`}
+              </span>
+            ) : null}
           </div>
           <dl className="inventory-count-posted-review-meta">
             <div>
@@ -181,6 +193,12 @@ export function InventoryCountPostedReview({
           </button>
         </div>
       </header>
+
+      {notice ? (
+        <div className="staff-status-banner auth-banner-success" role="status">
+          {notice}
+        </div>
+      ) : null}
 
       {isLoading ? (
         <div className="staff-status-banner" role="status">Loading posted count…</div>
@@ -276,6 +294,51 @@ export function InventoryCountPostedReview({
               </table>
             )}
           </div>
+
+          {hasCorrections ? (
+            <section
+              className="inventory-count-posted-review-corrections"
+              aria-label="Correction history"
+            >
+              <h3 className="inventory-count-posted-review-corrections-title">
+                Correction history
+              </h3>
+              <ul className="inventory-count-posted-review-corrections-list">
+                {corrections.flatMap((correction) => (
+                  (Array.isArray(correction.lines) ? correction.lines : []).map((line) => (
+                    <li
+                      key={line.id}
+                      className="inventory-count-posted-review-corrections-item"
+                    >
+                      <div className="inventory-count-posted-review-corrections-item-main">
+                        <strong>{line.itemName || 'Product'}</strong>
+                        <span className="inventory-count-posted-review-corrections-delta">
+                          {formatVariance(line.deltaQuantity)}
+                        </span>
+                      </div>
+                      <div className="inventory-count-posted-review-corrections-item-meta">
+                        <span>
+                          Operator:
+                          {' '}
+                          {`${correction.operatorName ?? ''}`.trim() || '—'}
+                        </span>
+                        <span>
+                          Date:
+                          {' '}
+                          {formatSessionDate(line.createdAt || correction.createdAt)}
+                        </span>
+                        <span>
+                          {formatQuantity(line.originalQuantity)}
+                          {' → '}
+                          {formatQuantity(line.correctedQuantity)}
+                        </span>
+                      </div>
+                    </li>
+                  ))
+                ))}
+              </ul>
+            </section>
+          ) : null}
 
           <p className="inventory-count-posted-review-footnote" role="note">
             Corrections will be handled through a separate audited workflow.

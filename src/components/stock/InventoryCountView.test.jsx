@@ -47,20 +47,25 @@ vi.mock('./InventoryCountSessionWorkspace', () => ({
 }))
 
 vi.mock('./InventoryCountPostedReview', () => ({
-  InventoryCountPostedReview: ({ sessionId, onClose, onSuggestCorrection }) => createElement(
+  InventoryCountPostedReview: ({ sessionId, onClose, onSuggestCorrection, notice }) => createElement(
     'div',
     { className: 'inventory-count-posted-review', 'data-session-id': sessionId },
     createElement('button', { type: 'button', onClick: onClose }, 'Back'),
     createElement('button', { type: 'button', onClick: onSuggestCorrection }, 'Suggest Correction'),
+    notice ? createElement('div', { role: 'status' }, notice) : null,
     'Posted Count Review',
   ),
 }))
 
 vi.mock('./InventoryCountCorrectionReview', () => ({
-  InventoryCountCorrectionReview: ({ sessionId, onCancel }) => createElement(
+  InventoryCountCorrectionReview: ({ sessionId, onCancel, onApplied }) => createElement(
     'div',
     { className: 'inventory-count-correction-review', 'data-session-id': sessionId },
     createElement('button', { type: 'button', onClick: onCancel }, 'Cancel'),
+    createElement('button', {
+      type: 'button',
+      onClick: () => onApplied?.({ message: 'Inventory count corrections applied successfully.' }),
+    }, 'Apply Corrections'),
     'Correction Review Workspace',
   ),
 }))
@@ -624,6 +629,33 @@ describe('InventoryCountView deep link open (P8.16.30)', () => {
     expect(container.querySelector('.inventory-count-correction-review')).toBeNull()
     expect(container.querySelector('.inventory-count-posted-review')?.getAttribute('data-session-id'))
       .toBe('posted-1')
+
+    cleanup()
+  })
+
+  it('Apply Corrections returns to posted review with success notice', async () => {
+    listHomeSessionsMock.mockResolvedValue({
+      active: [],
+      paused: [],
+      recent: [sessionFixture({ id: 'posted-1', status: 'posted', statusLabel: 'Posted' })],
+    })
+
+    const { container, cleanup } = render(createElement(InventoryCountView))
+    await flush()
+
+    await act(async () => {
+      container.querySelector('.inventory-count-session-card')?.click()
+    })
+    await act(async () => {
+      getButtonByText(container, 'Suggest Correction')?.click()
+    })
+    await act(async () => {
+      getButtonByText(container, 'Apply Corrections')?.click()
+    })
+
+    expect(container.querySelector('.inventory-count-correction-review')).toBeNull()
+    expect(container.querySelector('.inventory-count-posted-review')).toBeTruthy()
+    expect(container.textContent).toContain('Inventory count corrections applied successfully.')
 
     cleanup()
   })

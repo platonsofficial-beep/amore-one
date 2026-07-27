@@ -31775,6 +31775,12 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   gap: 10px;
 }
 
+.inventory-count-session-pill.is-corrected {
+  border-color: rgba(212, 175, 55, 0.45);
+  background: rgba(212, 175, 55, 0.16);
+  color: #f0dfb0;
+}
+
 .inventory-count-posted-review-title {
   margin: 0;
   color: #fff7e8;
@@ -31945,6 +31951,65 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   color: rgba(255, 247, 232, 0.55);
   font-size: 0.86rem;
   line-height: 1.4;
+}
+
+.inventory-count-posted-review-corrections {
+  display: grid;
+  gap: 10px;
+  padding: 14px 16px;
+  border-radius: 16px;
+  border: 1px solid rgba(212, 175, 55, 0.18);
+  background: rgba(18, 18, 20, 0.72);
+}
+
+.inventory-count-posted-review-corrections-title {
+  margin: 0;
+  color: #fff7e8;
+  font-size: 0.98rem;
+  font-weight: 700;
+}
+
+.inventory-count-posted-review-corrections-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 10px;
+}
+
+.inventory-count-posted-review-corrections-item {
+  display: grid;
+  gap: 4px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(255, 247, 232, 0.08);
+}
+
+.inventory-count-posted-review-corrections-item:first-child {
+  padding-top: 0;
+  border-top: 0;
+}
+
+.inventory-count-posted-review-corrections-item-main {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  color: #fff7e8;
+}
+
+.inventory-count-posted-review-corrections-delta {
+  color: #f0dfb0;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.inventory-count-posted-review-corrections-item-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  color: #8f8475;
+  font-size: 0.8rem;
 }
 
 @media (max-width: 768px) {
@@ -32213,6 +32278,59 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 }
 
 .inventory-count-correction-summary-actions .ghost-btn {
+  min-width: 44px;
+  min-height: 44px;
+}
+
+.inventory-count-correction-apply-btn,
+.inventory-count-correction-apply-confirm-btn {
+  min-width: 44px;
+  min-height: 44px;
+}
+
+.inventory-count-correction-confirm-overlay {
+  z-index: 97;
+}
+
+.inventory-count-correction-confirm-dialog {
+  width: min(100vw - 32px, 480px);
+  padding: 22px 22px 18px;
+  border-radius: 18px;
+  border: 1px solid rgba(212, 175, 55, 0.28);
+  background: linear-gradient(165deg, rgba(18, 18, 20, 0.99), rgba(9, 9, 10, 0.99));
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.55);
+}
+
+.inventory-count-correction-confirm-title {
+  margin: 0;
+  color: #fff7e8;
+  font-size: 1.2rem;
+  font-weight: 700;
+}
+
+.inventory-count-correction-confirm-body {
+  display: grid;
+  gap: 8px;
+  margin: 12px 0 0;
+}
+
+.inventory-count-correction-confirm-body p {
+  margin: 0;
+  color: rgba(255, 247, 232, 0.72);
+  font-size: 0.92rem;
+  line-height: 1.45;
+}
+
+.inventory-count-correction-confirm-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 18px;
+}
+
+.inventory-count-correction-confirm-actions .ghost-btn,
+.inventory-count-correction-confirm-actions .primary-btn {
   min-width: 44px;
   min-height: 44px;
 }

@@ -19,6 +19,7 @@ vi.mock('./membershipService', () => ({
 }))
 
 import {
+  applyInventoryCountCorrections,
   completeInventoryCountLocation,
   cancelInventoryCountSession,
   deleteInventoryCountSession,
@@ -27,6 +28,7 @@ import {
   getInventoryCountSession,
   getInventoryCountSessionItems,
   getOpenInventoryCountBlockerForStockItem,
+  listInventoryCountCorrections,
   listInventoryCountHomeSessions,
   mapInventoryCountSessionRow,
   partitionInventoryCountHomeSessions,
@@ -899,6 +901,12 @@ describe('posted count historical review helpers (P8.20.4)', () => {
           error: null,
         })
       }
+      if (
+        table === 'inventory_count_corrections'
+        || table === 'inventory_count_correction_lines'
+      ) {
+        return createQuery({ data: [], error: null })
+      }
       return createQuery({
         data: [{
           id: 'line-1',
@@ -932,6 +940,9 @@ describe('posted count historical review helpers (P8.20.4)', () => {
     expect(review.session.status).toBe('posted')
     expect(review.session.operatorName).toBe('Alex Manager')
     expect(review.session.postedByName).toBe('Blake Owner')
+    expect(review.hasCorrections).toBe(false)
+    expect(review.correctionCount).toBe(0)
+    expect(review.corrections).toEqual([])
     expect(review.items[0]).toMatchObject({
       expectedAtCount: 9,
       countedQuantity: 8,
@@ -966,6 +977,12 @@ describe('posted count historical review helpers (P8.20.4)', () => {
       if (table === 'inventory_count_session_locations') {
         return createQuery({ data: [], error: null })
       }
+      if (
+        table === 'inventory_count_corrections'
+        || table === 'inventory_count_correction_lines'
+      ) {
+        return createQuery({ data: [], error: null })
+      }
       return createQuery({ data: [], error: null })
     })
 
@@ -974,6 +991,147 @@ describe('posted count historical review helpers (P8.20.4)', () => {
       sessionId: 'session-1',
     })).rejects.toThrow('Only posted inventory counts can be opened in historical review.')
     expect(rpcMock).not.toHaveBeenCalled()
+  })
+})
+
+describe('applyInventoryCountCorrections (P8.20.6)', () => {
+  beforeEach(() => {
+    fromMock.mockReset()
+    rpcMock.mockReset()
+    getMemberDisplayNamesByAuthUserIds.mockReset()
+    getMemberDisplayNamesByAuthUserIds.mockResolvedValue({})
+  })
+
+  it('calls apply RPC with non-zero deltas only and maps the result', async () => {
+    rpcMock.mockResolvedValueOnce({
+      data: {
+        correction_id: 'corr-1',
+        session_id: 'session-1',
+        workspace_id: 'workspace-1',
+        created_at: '2026-07-27T12:00:00.000Z',
+        created_by: 'user-1',
+        line_count: 1,
+        movement_count: 1,
+        lines: [{
+          session_item_id: 'line-1',
+          item_id: 'item-1',
+          original_quantity: 8,
+          corrected_quantity: 10,
+          delta_quantity: 2,
+          movement_id: 'mov-1',
+        }],
+        preserved: {
+          session_unchanged: true,
+          session_items_unchanged: true,
+          original_posted_movements_unchanged: true,
+        },
+        message: 'Inventory count corrections applied successfully.',
+      },
+      error: null,
+    })
+
+    const result = await applyInventoryCountCorrections({
+      workspaceId: 'workspace-1',
+      sessionId: 'session-1',
+      corrections: [
+        { id: 'line-1', originalCountedQuantity: 8, correctedQuantity: 10 },
+        { id: 'line-2', originalCountedQuantity: 12, correctedQuantity: 12 },
+      ],
+    })
+
+    expect(rpcMock).toHaveBeenCalledWith('apply_inventory_count_corrections', {
+      p_workspace_id: 'workspace-1',
+      p_session_id: 'session-1',
+      p_corrections: [{
+        session_item_id: 'line-1',
+        corrected_quantity: 10,
+      }],
+    })
+    expect(fromMock).not.toHaveBeenCalled()
+    expect(result).toMatchObject({
+      correctionId: 'corr-1',
+      lineCount: 1,
+      movementCount: 1,
+      preserved: {
+        session_unchanged: true,
+        session_items_unchanged: true,
+        original_posted_movements_unchanged: true,
+      },
+    })
+  })
+
+  it('skips apply when all deltas are zero', async () => {
+    await expect(applyInventoryCountCorrections({
+      workspaceId: 'workspace-1',
+      sessionId: 'session-1',
+      corrections: [
+        { id: 'line-1', originalCountedQuantity: 8, correctedQuantity: 8 },
+      ],
+    })).rejects.toThrow('Add at least one non-zero correction before applying.')
+    expect(rpcMock).not.toHaveBeenCalled()
+  })
+
+  it('lists correction history for a posted session', async () => {
+    getMemberDisplayNamesByAuthUserIds.mockResolvedValueOnce({
+      'user-9': 'Casey Corrector',
+    })
+
+    fromMock.mockImplementation((table) => {
+      if (table === 'inventory_count_corrections') {
+        return createQuery({
+          data: [{
+            id: 'corr-1',
+            workspace_id: 'workspace-1',
+            session_id: 'session-1',
+            created_by: 'user-9',
+            created_at: '2026-07-27T12:00:00.000Z',
+            line_count: 1,
+            movement_count: 1,
+          }],
+          error: null,
+        })
+      }
+      if (table === 'inventory_count_correction_lines') {
+        return createQuery({
+          data: [{
+            id: 'cline-1',
+            correction_id: 'corr-1',
+            workspace_id: 'workspace-1',
+            session_id: 'session-1',
+            session_item_id: 'line-1',
+            item_id: 'item-1',
+            item_name: 'Coca-Cola',
+            original_quantity: 8,
+            corrected_quantity: 10,
+            delta_quantity: 2,
+            movement_id: 'mov-1',
+            created_by: 'user-9',
+            created_at: '2026-07-27T12:00:00.000Z',
+          }],
+          error: null,
+        })
+      }
+      return createQuery({ data: [], error: null })
+    })
+
+    const corrections = await listInventoryCountCorrections({
+      workspaceId: 'workspace-1',
+      sessionId: 'session-1',
+    })
+
+    expect(corrections).toHaveLength(1)
+    expect(corrections[0]).toMatchObject({
+      id: 'corr-1',
+      lineCount: 1,
+      movementCount: 1,
+    })
+    expect(corrections[0].lines[0]).toMatchObject({
+      sessionItemId: 'line-1',
+      originalQuantity: 8,
+      correctedQuantity: 10,
+      deltaQuantity: 2,
+      movementId: 'mov-1',
+    })
   })
 })
 

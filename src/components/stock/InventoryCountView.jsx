@@ -311,6 +311,7 @@ export function InventoryCountView({
   const [activeWorkspaceId, setActiveWorkspaceId] = useState('')
   const [postedReviewSessionId, setPostedReviewSessionId] = useState('')
   const [postedReviewWorkspaceId, setPostedReviewWorkspaceId] = useState('')
+  const [postedReviewNotice, setPostedReviewNotice] = useState('')
   const [pageNotice, setPageNotice] = useState('')
   const [isLoadingSessions, setIsLoadingSessions] = useState(Boolean(workspaceId))
   const [loadError, setLoadError] = useState('')
@@ -388,6 +389,7 @@ export function InventoryCountView({
           setActiveWorkspaceId('')
           setPostedReviewSessionId(session.id)
           setPostedReviewWorkspaceId(`${session.workspaceId || workspaceId}`)
+          setPostedReviewNotice('')
           setIsPostedReviewOpen(true)
           setIsCorrectionReviewOpen(false)
           setPageNotice('')
@@ -485,6 +487,7 @@ export function InventoryCountView({
     setActiveWorkspaceId('')
     setPostedReviewSessionId(sessionId)
     setPostedReviewWorkspaceId(nextWorkspaceId)
+    setPostedReviewNotice('')
     setIsCorrectionReviewOpen(false)
     setIsPostedReviewOpen(true)
   }
@@ -509,16 +512,26 @@ export function InventoryCountView({
     setIsCorrectionReviewOpen(false)
     setPostedReviewSessionId('')
     setPostedReviewWorkspaceId('')
+    setPostedReviewNotice('')
     void loadHomeSessions()
   }
 
   const handleOpenCorrectionReview = () => {
     if (!postedReviewSessionId) return
+    setPostedReviewNotice('')
     setIsCorrectionReviewOpen(true)
   }
 
   const handleCancelCorrectionReview = () => {
     setIsCorrectionReviewOpen(false)
+  }
+
+  const handleCorrectionApplied = ({ message } = {}) => {
+    setIsCorrectionReviewOpen(false)
+    setPostedReviewNotice(
+      `${message || 'Inventory count corrections applied successfully.'}`.trim()
+      || 'Inventory count corrections applied successfully.',
+    )
   }
 
   const handleSessionPosted = ({ message } = {}) => {
@@ -641,6 +654,7 @@ export function InventoryCountView({
         sessionId={postedReviewSessionId}
         workspaceId={postedReviewWorkspaceId || workspaceId}
         onCancel={handleCancelCorrectionReview}
+        onApplied={handleCorrectionApplied}
       />
     )
   }
@@ -652,6 +666,7 @@ export function InventoryCountView({
         workspaceId={postedReviewWorkspaceId || workspaceId}
         onClose={handleExitPostedReview}
         onSuggestCorrection={handleOpenCorrectionReview}
+        notice={postedReviewNotice}
       />
     )
   }

@@ -1,5 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
-import { getInventoryCountPostedReview } from '../../services/inventoryCountService'
+import {
+  applyInventoryCountCorrections,
+  getInventoryCountPostedReview,
+} from '../../services/inventoryCountService'
 
 function formatQuantity(value) {
   if (value === null || value === undefined || value === '') return '—'
@@ -32,13 +35,20 @@ function parseDraftQuantity(value) {
 
 /**
  * Build local correction draft rows from a posted review snapshot.
- * UI foundation only — does not mutate stock.
  */
-export function buildInventoryCountCorrectionDraft(items = []) {
+export function buildInventoryCountCorrectionDraft(items = [], correctedSessionItemIds = []) {
+  const correctedSet = new Set(
+    (Array.isArray(correctedSessionItemIds) ? correctedSessionItemIds : [])
+      .map((id) => `${id ?? ''}`.trim())
+      .filter(Boolean),
+  )
+
   return (Array.isArray(items) ? items : []).map((item) => {
     const originalCounted = item?.countedQuantity ?? null
+    const id = `${item?.id ?? ''}`.trim()
     return {
-      id: `${item?.id ?? ''}`.trim(),
+      id,
+      itemId: `${item?.itemId ?? ''}`.trim() || null,
       itemName: `${item?.itemName ?? ''}`.trim() || '—',
       unit: `${item?.unit ?? ''}`.trim(),
       storageLocation: `${item?.storageLocation ?? ''}`.trim() || '—',
@@ -48,6 +58,7 @@ export function buildInventoryCountCorrectionDraft(items = []) {
       correctedInput: originalCounted === null || originalCounted === undefined
         ? ''
         : `${originalCounted}`,
+      hasAppliedCorrection: correctedSet.has(id),
     }
   }).filter((row) => row.id)
 }
@@ -74,21 +85,96 @@ export function getInventoryCountCorrectionChanges(draftRows = []) {
 
       return {
         id: row.id,
+        sessionItemId: row.id,
+        itemId: row.itemId ?? null,
         itemName: row.itemName,
         storageLocation: row.storageLocation,
         oldQuantity,
         newQuantity,
+        originalCountedQuantity: oldQuantity,
+        correctedQuantity: newQuantity,
         difference,
       }
     })
+    .filter((row) => row.difference !== 0 && row.difference !== null)
 }
 
-function CorrectionSummaryPanel({ changes, onClose }) {
+function ApplyCorrectionsConfirmDialog({
+  isApplying,
+  error,
+  onCancel,
+  onConfirm,
+}) {
+  return (
+    <div
+      className="employee-modal-backdrop inventory-count-correction-confirm-overlay"
+      role="presentation"
+      onClick={() => {
+        if (!isApplying) onCancel?.()
+      }}
+    >
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="inventory-count-correction-apply-title"
+        aria-describedby="inventory-count-correction-apply-body"
+        className="inventory-count-correction-confirm-dialog"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <h2
+          id="inventory-count-correction-apply-title"
+          className="inventory-count-correction-confirm-title"
+        >
+          Apply Inventory Corrections?
+        </h2>
+        <div
+          id="inventory-count-correction-apply-body"
+          className="inventory-count-correction-confirm-body"
+        >
+          <p>These corrections will update the current stock.</p>
+          <p>The original posted inventory count will remain unchanged.</p>
+          <p>New adjustment movements will be created for every corrected product.</p>
+        </div>
+        {error ? (
+          <p className="inventory-count-session-card-error" role="alert">{error}</p>
+        ) : null}
+        <div className="inventory-count-correction-confirm-actions">
+          <button
+            type="button"
+            className="ghost-btn"
+            disabled={isApplying}
+            onClick={onCancel}
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            className="primary-btn inventory-count-correction-apply-confirm-btn"
+            disabled={isApplying}
+            onClick={onConfirm}
+          >
+            {isApplying ? 'Applying…' : 'Apply Corrections'}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function CorrectionSummaryPanel({
+  changes,
+  isApplying,
+  applyError,
+  onClose,
+  onRequestApply,
+}) {
   return (
     <div
       className="employee-modal-backdrop inventory-count-correction-summary-overlay"
       role="presentation"
-      onClick={onClose}
+      onClick={() => {
+        if (!isApplying) onClose?.()
+      }}
     >
       <div
         role="dialog"
@@ -104,7 +190,7 @@ function CorrectionSummaryPanel({ changes, onClose }) {
           Review Corrections
         </h2>
         <p className="inventory-count-correction-summary-copy">
-          Summary only. No stock updates are applied in this step.
+          Review original, corrected, and delta values before applying.
         </p>
 
         {changes.length === 0 ? (
@@ -118,9 +204,9 @@ function CorrectionSummaryPanel({ changes, onClose }) {
               <thead>
                 <tr>
                   <th scope="col">Product</th>
-                  <th scope="col">Old quantity</th>
-                  <th scope="col">New quantity</th>
-                  <th scope="col">Difference</th>
+                  <th scope="col">Original</th>
+                  <th scope="col">Corrected</th>
+                  <th scope="col">Delta</th>
                 </tr>
               </thead>
               <tbody>
@@ -142,9 +228,26 @@ function CorrectionSummaryPanel({ changes, onClose }) {
           </div>
         )}
 
+        {applyError ? (
+          <p className="inventory-count-session-card-error" role="alert">{applyError}</p>
+        ) : null}
+
         <div className="inventory-count-correction-summary-actions">
-          <button type="button" className="ghost-btn" onClick={onClose}>
+          <button
+            type="button"
+            className="ghost-btn"
+            disabled={isApplying}
+            onClick={onClose}
+          >
             Close
+          </button>
+          <button
+            type="button"
+            className="primary-btn inventory-count-correction-apply-btn"
+            disabled={isApplying || changes.length === 0}
+            onClick={onRequestApply}
+          >
+            Apply Corrections
           </button>
         </div>
       </div>
@@ -153,13 +256,14 @@ function CorrectionSummaryPanel({ changes, onClose }) {
 }
 
 /**
- * P8.20.5 — Correction Review workspace foundation.
- * Loads posted snapshot for draft corrections. No apply / RPC / stock mutation.
+ * P8.20.5 / P8.20.6 — Correction Review workspace + apply foundation.
+ * Apply creates append-only adjustments; original posted session stays immutable.
  */
 export function InventoryCountCorrectionReview({
   sessionId,
   workspaceId,
   onCancel,
+  onApplied,
 }) {
   const [isLoading, setIsLoading] = useState(true)
   const [loadError, setLoadError] = useState('')
@@ -167,6 +271,9 @@ export function InventoryCountCorrectionReview({
   const [draftRows, setDraftRows] = useState([])
   const [isCorrectionMode, setIsCorrectionMode] = useState(false)
   const [isSummaryOpen, setIsSummaryOpen] = useState(false)
+  const [isConfirmOpen, setIsConfirmOpen] = useState(false)
+  const [isApplying, setIsApplying] = useState(false)
+  const [applyError, setApplyError] = useState('')
 
   useEffect(() => {
     let cancelled = false
@@ -187,6 +294,8 @@ export function InventoryCountCorrectionReview({
     setDraftRows([])
     setIsCorrectionMode(false)
     setIsSummaryOpen(false)
+    setIsConfirmOpen(false)
+    setApplyError('')
 
     const loadSnapshot = async () => {
       try {
@@ -195,8 +304,11 @@ export function InventoryCountCorrectionReview({
           sessionId: normalizedSessionId,
         })
         if (cancelled) return
+        const correctedIds = (payload?.corrections ?? [])
+          .flatMap((correction) => correction.lines ?? [])
+          .map((line) => line.sessionItemId)
         setSession(payload?.session ?? null)
-        setDraftRows(buildInventoryCountCorrectionDraft(payload?.items))
+        setDraftRows(buildInventoryCountCorrectionDraft(payload?.items, correctedIds))
       } catch (error) {
         if (cancelled) return
         setSession(null)
@@ -223,7 +335,7 @@ export function InventoryCountCorrectionReview({
   )
 
   const handleCorrectedInputChange = (rowId, nextValue) => {
-    if (!isCorrectionMode) return
+    if (!isCorrectionMode || isApplying) return
     setDraftRows((current) => current.map((row) => {
       if (row.id !== rowId) return row
       return {
@@ -232,6 +344,40 @@ export function InventoryCountCorrectionReview({
         correctedQuantity: parseDraftQuantity(nextValue),
       }
     }))
+  }
+
+  const handleRequestApply = () => {
+    if (changes.length === 0 || isApplying) return
+    setApplyError('')
+    setIsConfirmOpen(true)
+  }
+
+  const handleConfirmApply = async () => {
+    if (changes.length === 0 || isApplying) return
+    const normalizedSessionId = `${sessionId ?? ''}`.trim()
+    const normalizedWorkspaceId = `${workspaceId ?? ''}`.trim()
+    if (!normalizedSessionId || !normalizedWorkspaceId) return
+
+    setIsApplying(true)
+    setApplyError('')
+
+    try {
+      const result = await applyInventoryCountCorrections({
+        workspaceId: normalizedWorkspaceId,
+        sessionId: normalizedSessionId,
+        corrections: changes,
+      })
+      setIsConfirmOpen(false)
+      setIsSummaryOpen(false)
+      onApplied?.({
+        message: result?.message,
+        lineCount: result?.lineCount,
+      })
+    } catch (error) {
+      setApplyError(error?.message || 'Unable to apply inventory count corrections right now.')
+    } finally {
+      setIsApplying(false)
+    }
   }
 
   return (
@@ -244,7 +390,7 @@ export function InventoryCountCorrectionReview({
     >
       <header className="inventory-count-correction-review-header">
         <div className="inventory-count-correction-review-header-copy">
-          <p className="inventory-count-correction-review-eyebrow">Correction Foundation</p>
+          <p className="inventory-count-correction-review-eyebrow">Correction Review</p>
           <div className="inventory-count-correction-review-title-row">
             <h2 className="inventory-count-correction-review-title">
               {session?.countTypeLabel || 'Inventory Count'} — Suggest Correction
@@ -254,7 +400,8 @@ export function InventoryCountCorrectionReview({
             </span>
           </div>
           <p className="inventory-count-correction-review-subtitle">
-            Draft corrections against the posted snapshot. Stock is not updated in this step.
+            Draft corrections against the posted snapshot. Applying creates new adjustment
+            movements only — the original posted count stays unchanged.
           </p>
         </div>
         <div className="inventory-count-correction-review-header-actions">
@@ -262,7 +409,7 @@ export function InventoryCountCorrectionReview({
             <button
               type="button"
               className="primary-btn inventory-count-correction-mode-btn"
-              disabled={isLoading || Boolean(loadError) || draftRows.length === 0}
+              disabled={isLoading || Boolean(loadError) || draftRows.length === 0 || isApplying}
               onClick={() => setIsCorrectionMode(true)}
             >
               Enter Correction Mode
@@ -304,18 +451,21 @@ export function InventoryCountCorrectionReview({
               </thead>
               <tbody>
                 {draftRows.map((row) => {
-                  const isChanged = changedIdSet.has(row.id)
+                  const isDraftChanged = changedIdSet.has(row.id)
+                  const isPermanentlyHighlighted = isDraftChanged || row.hasAppliedCorrection
                   return (
                     <tr
                       key={row.id}
-                      className={isChanged ? 'is-changed' : undefined}
-                      data-correction-changed={isChanged ? 'true' : 'false'}
+                      className={isPermanentlyHighlighted ? 'is-changed' : undefined}
+                      data-correction-changed={isDraftChanged ? 'true' : 'false'}
+                      data-correction-applied={row.hasAppliedCorrection ? 'true' : 'false'}
                     >
                       <td>
                         <div className="inventory-count-correction-item-name">{row.itemName}</div>
                         <div className="inventory-count-correction-item-meta">
                           {row.unit || '—'}
                           {row.lineStatus === 'skipped' ? ' · Skipped' : ''}
+                          {row.hasAppliedCorrection ? ' · Corrected' : ''}
                         </div>
                       </td>
                       <td>{row.storageLocation}</td>
@@ -328,6 +478,7 @@ export function InventoryCountCorrectionReview({
                             className="inventory-count-correction-qty-input"
                             aria-label={`Corrected quantity for ${row.itemName}`}
                             value={row.correctedInput}
+                            disabled={isApplying}
                             onChange={(event) => {
                               handleCorrectedInputChange(row.id, event.target.value)
                             }}
@@ -351,6 +502,7 @@ export function InventoryCountCorrectionReview({
         <button
           type="button"
           className="ghost-btn inventory-count-correction-footer-btn"
+          disabled={isApplying}
           onClick={() => onCancel?.()}
         >
           Cancel
@@ -358,8 +510,11 @@ export function InventoryCountCorrectionReview({
         <button
           type="button"
           className="primary-btn inventory-count-correction-footer-btn"
-          disabled={isLoading || Boolean(loadError)}
-          onClick={() => setIsSummaryOpen(true)}
+          disabled={isLoading || Boolean(loadError) || isApplying}
+          onClick={() => {
+            setApplyError('')
+            setIsSummaryOpen(true)
+          }}
         >
           Review Corrections
         </button>
@@ -368,7 +523,28 @@ export function InventoryCountCorrectionReview({
       {isSummaryOpen ? (
         <CorrectionSummaryPanel
           changes={changes}
-          onClose={() => setIsSummaryOpen(false)}
+          isApplying={isApplying}
+          applyError={isConfirmOpen ? '' : applyError}
+          onClose={() => {
+            if (isApplying) return
+            setIsSummaryOpen(false)
+            setApplyError('')
+          }}
+          onRequestApply={handleRequestApply}
+        />
+      ) : null}
+
+      {isConfirmOpen ? (
+        <ApplyCorrectionsConfirmDialog
+          isApplying={isApplying}
+          error={applyError}
+          onCancel={() => {
+            if (isApplying) return
+            setIsConfirmOpen(false)
+          }}
+          onConfirm={() => {
+            void handleConfirmApply()
+          }}
         />
       ) : null}
     </section>

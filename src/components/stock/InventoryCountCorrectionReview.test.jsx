@@ -1,6 +1,6 @@
 /**
  * @vitest-environment jsdom
- * P8.20.5 — Inventory Count Correction Review foundation.
+ * P8.20.5 / P8.20.6 — Inventory Count Correction Review + Apply.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { act, createElement } from 'react'
@@ -12,12 +12,14 @@ import {
 } from './InventoryCountCorrectionReview'
 
 const getPostedReviewMock = vi.fn()
+const applyCorrectionsMock = vi.fn()
 const previewFinishMock = vi.fn(() => {
   throw new Error('Finish Preview must not be called from correction review')
 })
 
 vi.mock('../../services/inventoryCountService', () => ({
   getInventoryCountPostedReview: (...args) => getPostedReviewMock(...args),
+  applyInventoryCountCorrections: (...args) => applyCorrectionsMock(...args),
   previewInventoryCountFinish: (...args) => previewFinishMock(...args),
   postInventoryCountFinish: vi.fn(() => {
     throw new Error('Post must not be called from correction review')
@@ -52,6 +54,15 @@ function getButtonByText(root, text) {
   return Array.from(root.querySelectorAll('button')).find((button) => button.textContent === text)
 }
 
+function setInputValue(input, value) {
+  const nativeInputValueSetter = Object.getOwnPropertyDescriptor(
+    window.HTMLInputElement.prototype,
+    'value',
+  )?.set
+  nativeInputValueSetter?.call(input, value)
+  input.dispatchEvent(new Event('input', { bubbles: true }))
+}
+
 function reviewFixture() {
   return {
     session: {
@@ -81,13 +92,23 @@ function reviewFixture() {
       },
     ],
     summary: {},
+    corrections: [],
+    correctionCount: 0,
+    hasCorrections: false,
   }
 }
 
 beforeEach(() => {
   getPostedReviewMock.mockReset()
+  applyCorrectionsMock.mockReset()
   previewFinishMock.mockClear()
   getPostedReviewMock.mockResolvedValue(reviewFixture())
+  applyCorrectionsMock.mockResolvedValue({
+    correctionId: 'corr-1',
+    lineCount: 1,
+    movementCount: 1,
+    message: 'Inventory count corrections applied successfully.',
+  })
 })
 
 afterEach(() => {
@@ -95,20 +116,20 @@ afterEach(() => {
   vi.clearAllMocks()
 })
 
-describe('correction draft helpers (P8.20.5)', () => {
-  it('builds draft rows from posted counted quantities', () => {
-    const draft = buildInventoryCountCorrectionDraft([
-      { id: 'line-1', itemName: 'Coca-Cola', countedQuantity: 8, storageLocation: 'Bar' },
-    ])
+describe('correction draft helpers (P8.20.5/P8.20.6)', () => {
+  it('builds draft rows and marks previously corrected lines', () => {
+    const draft = buildInventoryCountCorrectionDraft(
+      [{ id: 'line-1', itemName: 'Coca-Cola', countedQuantity: 8, storageLocation: 'Bar' }],
+      ['line-1'],
+    )
     expect(draft[0]).toMatchObject({
       id: 'line-1',
       originalCountedQuantity: 8,
-      correctedQuantity: 8,
-      correctedInput: '8',
+      hasAppliedCorrection: true,
     })
   })
 
-  it('lists only changed rows with differences', () => {
+  it('lists only non-zero changed rows with differences', () => {
     const changes = getInventoryCountCorrectionChanges([
       {
         id: 'line-1',
@@ -127,25 +148,20 @@ describe('correction draft helpers (P8.20.5)', () => {
     ])
     expect(changes).toEqual([{
       id: 'line-1',
+      sessionItemId: 'line-1',
+      itemId: null,
       itemName: 'Coca-Cola',
       storageLocation: 'Bar',
       oldQuantity: 8,
       newQuantity: 10,
+      originalCountedQuantity: 8,
+      correctedQuantity: 10,
       difference: 2,
     }])
   })
 })
 
-describe('InventoryCountCorrectionReview (P8.20.5)', () => {
-  function setInputValue(input, value) {
-    const nativeInputValueSetter = Object.getOwnPropertyDescriptor(
-      window.HTMLInputElement.prototype,
-      'value',
-    )?.set
-    nativeInputValueSetter?.call(input, value)
-    input.dispatchEvent(new Event('input', { bubbles: true }))
-  }
-
+describe('InventoryCountCorrectionReview apply (P8.20.6)', () => {
   it('loads posted snapshot with read-only lines until Correction Mode', async () => {
     const { container, cleanup } = render(createElement(InventoryCountCorrectionReview, {
       sessionId: 'posted-1',
@@ -159,91 +175,82 @@ describe('InventoryCountCorrectionReview (P8.20.5)', () => {
       sessionId: 'posted-1',
     })
     expect(previewFinishMock).not.toHaveBeenCalled()
-    expect(container.textContent).toContain('Suggest Correction')
-    expect(container.textContent).toContain('Original counted')
-    expect(container.textContent).toContain('Coca-Cola')
     expect(container.querySelector('input')).toBeNull()
-    expect(container.textContent).not.toContain('Apply')
-    expect(container.textContent).not.toContain('Post Count')
-    expect(container.textContent).not.toContain('Finish Count')
+    expect(container.textContent).not.toContain('Save')
+    expect(container.textContent).not.toContain('Update')
 
     cleanup()
   })
 
-  it('enables corrected quantity editing only in Correction Mode and highlights changes', async () => {
+  it('applies corrections after confirmation and skips zero deltas', async () => {
+    const onApplied = vi.fn()
     const { container, cleanup } = render(createElement(InventoryCountCorrectionReview, {
       sessionId: 'posted-1',
       workspaceId: 'workspace-1',
       onCancel: vi.fn(),
+      onApplied,
     }))
     await flush()
 
     await act(async () => {
       getButtonByText(container, 'Enter Correction Mode')?.click()
     })
-
-    expect(
-      container.querySelector('[data-correction-mode="true"]'),
-    ).toBeTruthy()
-    const inputs = container.querySelectorAll('.inventory-count-correction-qty-input')
-    expect(inputs).toHaveLength(2)
-    expect(container.textContent).toContain('8')
-
     await act(async () => {
-      setInputValue(inputs[0], '10')
+      setInputValue(container.querySelectorAll('.inventory-count-correction-qty-input')[0], '10')
     })
-
-    const changedRow = container.querySelector('[data-correction-changed="true"]')
-    expect(changedRow).toBeTruthy()
-    expect(changedRow?.textContent).toContain('Coca-Cola')
-    expect(changedRow?.textContent).toContain('8')
-    expect(changedRow?.className).toContain('is-changed')
-
-    cleanup()
-  })
-
-  it('Review Corrections shows summary without Apply and Cancel returns', async () => {
-    const onCancel = vi.fn()
-    const { container, cleanup } = render(createElement(InventoryCountCorrectionReview, {
-      sessionId: 'posted-1',
-      workspaceId: 'workspace-1',
-      onCancel,
-    }))
-    await flush()
-
-    await act(async () => {
-      getButtonByText(container, 'Enter Correction Mode')?.click()
-    })
-
-    await act(async () => {
-      setInputValue(container.querySelectorAll('.inventory-count-correction-qty-input')[0], '11')
-    })
-
     await act(async () => {
       getButtonByText(container, 'Review Corrections')?.click()
     })
 
-    const dialog = container.querySelector('[aria-labelledby="inventory-count-correction-summary-title"]')
-    expect(dialog).toBeTruthy()
-    expect(dialog?.textContent).toContain('Review Corrections')
-    expect(dialog?.textContent).toContain('Old quantity')
-    expect(dialog?.textContent).toContain('New quantity')
-    expect(dialog?.textContent).toContain('Difference')
-    expect(dialog?.textContent).toContain('Coca-Cola')
-    expect(dialog?.textContent).toContain('No stock updates are applied')
-    expect(container.textContent).not.toContain('Apply Corrections')
-    expect(previewFinishMock).not.toHaveBeenCalled()
+    const summary = container.querySelector('[aria-labelledby="inventory-count-correction-summary-title"]')
+    expect(summary?.textContent).toContain('Original')
+    expect(summary?.textContent).toContain('Corrected')
+    expect(summary?.textContent).toContain('Delta')
+    expect(summary?.textContent).toContain('Coca-Cola')
 
     await act(async () => {
-      getButtonByText(container, 'Cancel')?.click()
+      getButtonByText(summary, 'Apply Corrections')?.click()
     })
-    expect(onCancel).toHaveBeenCalledTimes(1)
+
+    const confirm = container.querySelector('[aria-labelledby="inventory-count-correction-apply-title"]')
+    expect(confirm?.textContent).toContain('Apply Inventory Corrections?')
+    expect(confirm?.textContent).toContain('original posted inventory count will remain unchanged')
+    expect(confirm?.textContent).toContain('New adjustment movements')
+
+    await act(async () => {
+      getButtonByText(confirm, 'Apply Corrections')?.click()
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+
+    expect(applyCorrectionsMock).toHaveBeenCalledWith({
+      workspaceId: 'workspace-1',
+      sessionId: 'posted-1',
+      corrections: [
+        expect.objectContaining({
+          id: 'line-1',
+          originalCountedQuantity: 8,
+          correctedQuantity: 10,
+          difference: 2,
+        }),
+      ],
+    })
+    expect(onApplied).toHaveBeenCalled()
+    expect(previewFinishMock).not.toHaveBeenCalled()
 
     cleanup()
   })
 
-  it('surfaces load errors without mutation actions', async () => {
-    getPostedReviewMock.mockRejectedValueOnce(new Error('permission denied for table'))
+  it('highlights previously applied correction lines permanently', async () => {
+    getPostedReviewMock.mockResolvedValueOnce({
+      ...reviewFixture(),
+      corrections: [{
+        id: 'corr-1',
+        lines: [{ sessionItemId: 'line-1' }],
+      }],
+      correctionCount: 1,
+      hasCorrections: true,
+    })
 
     const { container, cleanup } = render(createElement(InventoryCountCorrectionReview, {
       sessionId: 'posted-1',
@@ -252,9 +259,10 @@ describe('InventoryCountCorrectionReview (P8.20.5)', () => {
     }))
     await flush()
 
-    expect(container.textContent).toContain('permission denied for table')
-    expect(container.querySelector('input')).toBeNull()
-    expect(getButtonByText(container, 'Enter Correction Mode')?.disabled).toBe(true)
+    const appliedRow = container.querySelector('[data-correction-applied="true"]')
+    expect(appliedRow).toBeTruthy()
+    expect(appliedRow?.className).toContain('is-changed')
+    expect(appliedRow?.textContent).toContain('Coca-Cola')
 
     cleanup()
   })

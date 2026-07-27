@@ -11,9 +11,12 @@ const POST_FINISH_RPC = 'post_inventory_count_finish'
 const CANCEL_COMPLETION_RPC = 'cancel_inventory_count_completion'
 const DELETE_SESSION_RPC = 'delete_inventory_count_session'
 const REPAIR_CURRENT_LOCATION_RPC = 'repair_inventory_count_current_location'
+const APPLY_CORRECTIONS_RPC = 'apply_inventory_count_corrections'
 const SESSIONS_TABLE = 'inventory_count_sessions'
 const SESSION_ITEMS_TABLE = 'inventory_count_session_items'
 const SESSION_LOCATIONS_TABLE = 'inventory_count_session_locations'
+const CORRECTIONS_TABLE = 'inventory_count_corrections'
+const CORRECTION_LINES_TABLE = 'inventory_count_correction_lines'
 
 const VALID_COUNT_TYPES = new Set(['new', 'quick', 'partial', 'scheduled', 'emergency'])
 const VALID_VISIBILITY = new Set(['blind', 'open'])
@@ -100,9 +103,19 @@ function isRpcUnavailableError(error) {
     || (message.includes('function') && message.includes('does not exist'))
 }
 
+function isTableUnavailableError(error) {
+  const message = `${error?.message ?? ''}`.toLowerCase()
+  const code = `${error?.code ?? ''}`
+  return code === '42P01'
+    || code === 'PGRST205'
+    || message.includes('does not exist')
+    || message.includes('could not find the table')
+    || (message.includes('relation') && message.includes('does not exist'))
+}
+
 function extractRpcErrorCode(error) {
   const message = `${error?.message ?? error?.details ?? error?.hint ?? ''}`.trim()
-  const match = message.match(/inventory_count_(?:session|snapshot|item|location|pause|preview|post|reconcile|cancel|repair|delete)_[a-z0-9_]+/i)
+  const match = message.match(/inventory_count_(?:session|snapshot|item|location|pause|preview|post|reconcile|cancel|repair|delete|correction)_[a-z0-9_]+/i)
   return match?.[0]?.toLowerCase() ?? ''
 }
 
@@ -129,6 +142,7 @@ function mapInventoryCountRpcError(error, fallbackMessage) {
     case 'inventory_count_post_unauthenticated':
     case 'inventory_count_cancel_unauthenticated':
     case 'inventory_count_delete_unauthenticated':
+    case 'inventory_count_correction_unauthenticated':
       return new Error('You must be signed in to manage inventory counts.')
     case 'inventory_count_session_forbidden':
     case 'inventory_count_snapshot_forbidden':
@@ -139,6 +153,7 @@ function mapInventoryCountRpcError(error, fallbackMessage) {
     case 'inventory_count_post_forbidden':
     case 'inventory_count_cancel_forbidden':
     case 'inventory_count_delete_forbidden':
+    case 'inventory_count_correction_forbidden':
       return new Error('You do not have permission to manage inventory counts for this workspace.')
     case 'inventory_count_session_workspace_required':
     case 'inventory_count_snapshot_workspace_required':
@@ -149,6 +164,7 @@ function mapInventoryCountRpcError(error, fallbackMessage) {
     case 'inventory_count_post_workspace_required':
     case 'inventory_count_cancel_workspace_required':
     case 'inventory_count_delete_workspace_required':
+    case 'inventory_count_correction_workspace_required':
       return new Error('Workspace is required.')
     case 'inventory_count_session_workspace_not_found':
       return new Error('Workspace was not found.')
@@ -173,6 +189,7 @@ function mapInventoryCountRpcError(error, fallbackMessage) {
     case 'inventory_count_post_session_required':
     case 'inventory_count_cancel_session_required':
     case 'inventory_count_delete_session_required':
+    case 'inventory_count_correction_session_required':
       return new Error('Inventory count session is required.')
     case 'inventory_count_snapshot_session_not_found':
     case 'inventory_count_item_session_not_found':
@@ -182,6 +199,7 @@ function mapInventoryCountRpcError(error, fallbackMessage) {
     case 'inventory_count_post_session_not_found':
     case 'inventory_count_cancel_session_not_found':
     case 'inventory_count_delete_session_not_found':
+    case 'inventory_count_correction_session_not_found':
       return new Error('Inventory count session was not found.')
     case 'inventory_count_snapshot_workspace_mismatch':
     case 'inventory_count_item_workspace_mismatch':
@@ -191,9 +209,27 @@ function mapInventoryCountRpcError(error, fallbackMessage) {
     case 'inventory_count_post_workspace_mismatch':
     case 'inventory_count_cancel_workspace_mismatch':
     case 'inventory_count_delete_workspace_mismatch':
+    case 'inventory_count_correction_workspace_mismatch':
       return new Error('Inventory count session does not belong to this workspace.')
     case 'inventory_count_delete_failed':
       return new Error('Unable to delete inventory count right now.')
+    case 'inventory_count_correction_session_not_posted':
+      return new Error('Only posted inventory counts can receive corrections.')
+    case 'inventory_count_correction_empty':
+    case 'inventory_count_correction_payload_required':
+    case 'inventory_count_correction_no_changes':
+      return new Error('Add at least one non-zero correction before applying.')
+    case 'inventory_count_correction_invalid_line':
+    case 'inventory_count_correction_line_not_found':
+    case 'inventory_count_correction_original_missing':
+    case 'inventory_count_correction_item_unlinked':
+    case 'inventory_count_correction_duplicate_item':
+      return new Error('One or more correction lines are invalid.')
+    case 'inventory_count_correction_stock_item_missing':
+      return new Error('A stock item referenced by a correction was not found.')
+    case 'inventory_count_correction_movement_failed':
+    case 'inventory_count_correction_quantity_update_failed':
+      return new Error('Unable to apply inventory count corrections right now. Retry.')
     case 'inventory_count_snapshot_session_not_in_progress':
       return new Error('Inventory count session must be in progress to build a snapshot.')
     case 'inventory_count_item_session_not_in_progress':
@@ -1138,7 +1174,7 @@ export async function getInventoryCountPostedReview({
   const normalizedWorkspaceId = requireId(workspaceId, 'Workspace')
   const normalizedSessionId = requireId(sessionId, 'Session')
 
-  const [session, locations, items] = await Promise.all([
+  const [session, locations, items, corrections] = await Promise.all([
     getInventoryCountSession({
       workspaceId: normalizedWorkspaceId,
       sessionId: normalizedSessionId,
@@ -1151,13 +1187,21 @@ export async function getInventoryCountPostedReview({
       workspaceId: normalizedWorkspaceId,
       sessionId: normalizedSessionId,
     }),
+    listInventoryCountCorrections({
+      workspaceId: normalizedWorkspaceId,
+      sessionId: normalizedSessionId,
+    }),
   ])
 
   if (session.status !== 'posted') {
     throw new Error('Only posted inventory counts can be opened in historical review.')
   }
 
-  const authUserIds = [session.startedBy, session.postedBy].filter(Boolean)
+  const authUserIds = [
+    session.startedBy,
+    session.postedBy,
+    ...corrections.map((correction) => correction.createdBy),
+  ].filter(Boolean)
   const displayNames = authUserIds.length > 0
     ? await getMemberDisplayNamesByAuthUserIds(normalizedWorkspaceId, authUserIds)
     : {}
@@ -1169,6 +1213,18 @@ export async function getInventoryCountPostedReview({
       varianceQuantity: item.varianceQuantity,
     }),
   }))
+
+  const correctionsWithNames = corrections.map((correction) => ({
+    ...correction,
+    operatorName: correction.createdBy
+      ? (displayNames[correction.createdBy] || null)
+      : null,
+  }))
+
+  const correctionLineCount = correctionsWithNames.reduce(
+    (sum, correction) => sum + (Number(correction.lineCount) || 0),
+    0,
+  )
 
   return {
     session: {
@@ -1183,6 +1239,200 @@ export async function getInventoryCountPostedReview({
     locations,
     items: reviewItems,
     summary: summarizeInventoryCountPostedReview(reviewItems),
+    corrections: correctionsWithNames,
+    correctionCount: correctionLineCount,
+    hasCorrections: correctionLineCount > 0,
+  }
+}
+
+export function mapInventoryCountCorrectionLineRow(row) {
+  if (!row || typeof row !== 'object') return null
+
+  const id = `${row.id ?? ''}`.trim()
+  const correctionId = `${row.correction_id ?? row.correctionId ?? ''}`.trim()
+  const sessionId = `${row.session_id ?? row.sessionId ?? ''}`.trim()
+  const workspaceId = `${row.workspace_id ?? row.workspaceId ?? ''}`.trim()
+  const sessionItemId = `${row.session_item_id ?? row.sessionItemId ?? ''}`.trim()
+  if (!id || !correctionId || !sessionId || !workspaceId || !sessionItemId) {
+    return null
+  }
+
+  return {
+    id,
+    correctionId,
+    sessionId,
+    workspaceId,
+    sessionItemId,
+    itemId: `${row.item_id ?? row.itemId ?? ''}`.trim() || null,
+    itemName: `${row.item_name ?? row.itemName ?? ''}`.trim(),
+    originalQuantity: mapNumericQuantity(row.original_quantity ?? row.originalQuantity),
+    correctedQuantity: mapNumericQuantity(row.corrected_quantity ?? row.correctedQuantity),
+    deltaQuantity: mapNumericQuantity(row.delta_quantity ?? row.deltaQuantity),
+    movementId: `${row.movement_id ?? row.movementId ?? ''}`.trim() || null,
+    createdBy: row.created_by ?? row.createdBy ?? null,
+    createdAt: row.created_at ?? row.createdAt ?? null,
+  }
+}
+
+export function mapInventoryCountCorrectionRow(row, lines = []) {
+  if (!row || typeof row !== 'object') return null
+
+  const id = `${row.id ?? ''}`.trim()
+  const sessionId = `${row.session_id ?? row.sessionId ?? ''}`.trim()
+  const workspaceId = `${row.workspace_id ?? row.workspaceId ?? ''}`.trim()
+  if (!id || !sessionId || !workspaceId) return null
+
+  const mappedLines = (Array.isArray(lines) ? lines : [])
+    .map(mapInventoryCountCorrectionLineRow)
+    .filter(Boolean)
+
+  return {
+    id,
+    sessionId,
+    workspaceId,
+    createdBy: row.created_by ?? row.createdBy ?? null,
+    createdAt: row.created_at ?? row.createdAt ?? null,
+    lineCount: Number(row.line_count ?? row.lineCount ?? mappedLines.length) || 0,
+    movementCount: Number(row.movement_count ?? row.movementCount ?? mappedLines.length) || 0,
+    lines: mappedLines,
+  }
+}
+
+/**
+ * Read-only list of append-only corrections for a posted inventory count.
+ */
+export async function listInventoryCountCorrections({
+  workspaceId,
+  sessionId,
+} = {}) {
+  requireConfiguredSupabase()
+
+  const normalizedWorkspaceId = requireId(workspaceId, 'Workspace')
+  const normalizedSessionId = requireId(sessionId, 'Session')
+
+  const [correctionsResult, linesResult] = await Promise.all([
+    supabase
+      .from(CORRECTIONS_TABLE)
+      .select('id, workspace_id, session_id, created_by, created_at, line_count, movement_count')
+      .eq('workspace_id', normalizedWorkspaceId)
+      .eq('session_id', normalizedSessionId)
+      .order('created_at', { ascending: false }),
+    supabase
+      .from(CORRECTION_LINES_TABLE)
+      .select('id, correction_id, workspace_id, session_id, session_item_id, item_id, item_name, original_quantity, corrected_quantity, delta_quantity, movement_id, created_by, created_at')
+      .eq('workspace_id', normalizedWorkspaceId)
+      .eq('session_id', normalizedSessionId)
+      .order('created_at', { ascending: false }),
+  ])
+
+  if (correctionsResult.error) {
+    if (isTableUnavailableError(correctionsResult.error)) {
+      return []
+    }
+    console.error('[inventoryCountService] listInventoryCountCorrections error:', correctionsResult.error)
+    throw new Error(
+      correctionsResult.error.message || 'Unable to load inventory count corrections right now.',
+    )
+  }
+
+  if (linesResult.error) {
+    if (isTableUnavailableError(linesResult.error)) {
+      return []
+    }
+    console.error('[inventoryCountService] listInventoryCountCorrections lines error:', linesResult.error)
+    throw new Error(
+      linesResult.error.message || 'Unable to load inventory count corrections right now.',
+    )
+  }
+
+  const linesByCorrectionId = new Map()
+  for (const row of linesResult.data ?? []) {
+    const correctionId = `${row?.correction_id ?? ''}`.trim()
+    if (!correctionId) continue
+    const current = linesByCorrectionId.get(correctionId) || []
+    current.push(row)
+    linesByCorrectionId.set(correctionId, current)
+  }
+
+  return (correctionsResult.data ?? [])
+    .map((row) => mapInventoryCountCorrectionRow(
+      row,
+      linesByCorrectionId.get(`${row?.id ?? ''}`.trim()) || [],
+    ))
+    .filter(Boolean)
+}
+
+/**
+ * Apply append-only inventory count corrections via SECURITY DEFINER RPC.
+ * Creates new adjustment movements + updates live stock. Never mutates posted session history.
+ */
+export async function applyInventoryCountCorrections({
+  workspaceId,
+  sessionId,
+  corrections = [],
+} = {}) {
+  requireConfiguredSupabase()
+
+  const p_workspace_id = requireId(workspaceId, 'Workspace')
+  const p_session_id = requireId(sessionId, 'Session')
+
+  const payload = (Array.isArray(corrections) ? corrections : [])
+    .map((row) => {
+      const sessionItemId = `${row?.sessionItemId ?? row?.session_item_id ?? row?.id ?? ''}`.trim()
+      const correctedQuantity = mapNumericQuantity(
+        row?.correctedQuantity ?? row?.corrected_quantity,
+      )
+      const originalQuantity = mapNumericQuantity(
+        row?.originalCountedQuantity
+        ?? row?.originalQuantity
+        ?? row?.oldQuantity
+        ?? row?.original_quantity,
+      )
+      if (!sessionItemId || correctedQuantity === null || originalQuantity === null) {
+        return null
+      }
+      const delta = correctedQuantity - originalQuantity
+      if (delta === 0) return null
+      return {
+        session_item_id: sessionItemId,
+        corrected_quantity: correctedQuantity,
+      }
+    })
+    .filter(Boolean)
+
+  if (payload.length === 0) {
+    throw new Error('Add at least one non-zero correction before applying.')
+  }
+
+  const { data, error } = await supabase.rpc(APPLY_CORRECTIONS_RPC, {
+    p_workspace_id,
+    p_session_id,
+    p_corrections: payload,
+  })
+
+  if (error) {
+    console.error('[inventoryCountService] applyInventoryCountCorrections error:', error)
+    throw mapInventoryCountRpcError(error, 'Unable to apply inventory count corrections right now.')
+  }
+
+  const result = firstRpcRow(data) ?? data
+  const correctionId = `${result?.correction_id ?? result?.correctionId ?? ''}`.trim()
+  if (!correctionId) {
+    throw new Error('Apply corrections response was empty or invalid.')
+  }
+
+  return {
+    correctionId,
+    sessionId: `${result?.session_id ?? result?.sessionId ?? p_session_id}`.trim(),
+    workspaceId: `${result?.workspace_id ?? result?.workspaceId ?? p_workspace_id}`.trim(),
+    createdAt: result?.created_at ?? result?.createdAt ?? null,
+    createdBy: result?.created_by ?? result?.createdBy ?? null,
+    lineCount: Number(result?.line_count ?? result?.lineCount ?? 0) || 0,
+    movementCount: Number(result?.movement_count ?? result?.movementCount ?? 0) || 0,
+    lines: Array.isArray(result?.lines) ? result.lines : [],
+    preserved: result?.preserved ?? null,
+    message: `${result?.message ?? 'Inventory count corrections applied successfully.'}`.trim()
+      || 'Inventory count corrections applied successfully.',
   }
 }
 

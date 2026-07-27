@@ -89,6 +89,9 @@ function reviewFixture(overrides = {}) {
       positiveVariances: 0,
       negativeVariances: 1,
     },
+    corrections: [],
+    correctionCount: 0,
+    hasCorrections: false,
     ...overrides,
   }
 }
@@ -195,6 +198,42 @@ describe('InventoryCountPostedReview (P8.20.4)', () => {
 
     expect(onSuggestCorrection).toHaveBeenCalledTimes(1)
     expect(container.querySelector('input')).toBeNull()
+
+    cleanup()
+  })
+
+  it('shows CORRECTED badge and correction history when corrections exist', async () => {
+    getPostedReviewMock.mockResolvedValueOnce(reviewFixture({
+      corrections: [{
+        id: 'corr-1',
+        operatorName: 'Casey Corrector',
+        createdAt: '2026-07-27T12:00:00.000Z',
+        lines: [{
+          id: 'cline-1',
+          itemName: 'Coca-Cola',
+          originalQuantity: 8,
+          correctedQuantity: 10,
+          deltaQuantity: 2,
+          createdAt: '2026-07-27T12:00:00.000Z',
+        }],
+      }],
+      correctionCount: 1,
+      hasCorrections: true,
+    }))
+
+    const { container, cleanup } = render(createElement(InventoryCountPostedReview, {
+      sessionId: 'posted-1',
+      workspaceId: 'workspace-1',
+      onClose: vi.fn(),
+    }))
+    await flush()
+
+    expect(container.querySelector('[data-inventory-count-corrected-badge="true"]')?.textContent)
+      .toContain('CORRECTED')
+    expect(container.textContent).toContain('Correction history')
+    expect(container.textContent).toContain('Casey Corrector')
+    expect(container.textContent).toContain('Coca-Cola')
+    expect(container.textContent).toContain('+2')
 
     cleanup()
   })
