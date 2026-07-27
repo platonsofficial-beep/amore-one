@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { getInventoryCountPostedReview } from '../../services/inventoryCountService'
 
 const VISIBILITY_LABELS = {
@@ -19,6 +19,21 @@ function formatSessionDate(value) {
   })
 }
 
+function formatAppliedAt(value) {
+  if (!value) return '—'
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return '—'
+  const day = date.getDate()
+  const month = date.toLocaleString(undefined, { month: 'short' })
+  const year = date.getFullYear()
+  const time = date.toLocaleTimeString(undefined, {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  })
+  return `${day} ${month} ${year} at ${time}`
+}
+
 function formatQuantity(value) {
   if (value === null || value === undefined || value === '') return '—'
   const numeric = Number(value)
@@ -32,6 +47,14 @@ function formatVariance(value) {
   if (!Number.isFinite(numeric)) return '—'
   if (numeric > 0) return `+${numeric}`
   return `${numeric}`
+}
+
+function formatSignedImpact(value) {
+  if (value === null || value === undefined || value === '') return null
+  const numeric = Number(value)
+  if (!Number.isFinite(numeric) || numeric === 0) return null
+  if (numeric > 0) return `+${numeric}`
+  return `−${Math.abs(numeric)}`
 }
 
 function formatLocations(locations = []) {
@@ -49,8 +72,75 @@ function shortMovementId(value) {
   return `${id.slice(0, 8)}…`
 }
 
+function formatAppliedCorrectionBadge(correctionCount) {
+  const count = Number(correctionCount) || 0
+  if (count <= 0) return ''
+  return count === 1 ? '1 Applied Correction' : `${count} Applied Corrections`
+}
+
+function formatNetStockImpact(netDelta) {
+  if (netDelta === null || netDelta === undefined || !Number.isFinite(Number(netDelta))) {
+    return null
+  }
+  const numeric = Number(netDelta)
+  if (numeric === 0) return 'Net stock impact 0'
+  if (numeric > 0) return `Net stock impact +${numeric}`
+  return `Net stock impact −${Math.abs(numeric)}`
+}
+
+function formatAdjustmentState(line) {
+  const signed = formatSignedImpact(line?.deltaQuantity)
+  const hasMovement = Boolean(`${line?.movementId ?? ''}`.trim())
+  if (!signed) {
+    return hasMovement
+      ? 'Adjustment applied'
+      : 'No stock adjustment recorded'
+  }
+  if (hasMovement) {
+    return `${signed} stock adjustment applied`
+  }
+  return `${signed} recorded · adjustment reference unavailable`
+}
+
 /**
- * P8.20.4 — Dedicated read-only Posted Count historical review.
+ * Derive chronological correction versions from loaded batches.
+ * Oldest applied batch = Correction 1. Display order: Original → Correction 1 → …
+ * Does not persist a version field.
+ */
+export function buildPostedCorrectionVersionHistory(corrections = []) {
+  const batches = (Array.isArray(corrections) ? corrections : [])
+    .filter((batch) => batch?.id)
+    .slice()
+    .sort((left, right) => {
+      const leftTime = new Date(left.createdAt || 0).getTime()
+      const rightTime = new Date(right.createdAt || 0).getTime()
+      if (leftTime !== rightTime) return leftTime - rightTime
+      return `${left.id}`.localeCompare(`${right.id}`)
+    })
+
+  return batches.map((batch, index) => {
+    const lines = Array.isArray(batch.lines) ? batch.lines : []
+    const productCount = lines.length || Number(batch.lineCount) || 0
+    const netDelta = lines.reduce((sum, line) => {
+      const delta = Number(line?.deltaQuantity)
+      return Number.isFinite(delta) ? sum + delta : sum
+    }, 0)
+
+    return {
+      id: batch.id,
+      version: index + 1,
+      versionLabel: `Correction ${index + 1}`,
+      createdAt: batch.createdAt || null,
+      operatorName: `${batch.operatorName ?? ''}`.trim() || '—',
+      productCount,
+      netDelta: lines.length > 0 ? netDelta : null,
+      lines,
+    }
+  })
+}
+
+/**
+ * P8.20.4 / P8.20.7 — Dedicated read-only Posted Count historical review.
  * Uses persisted post-audit fields only. No Active Count workspace / Finish Preview.
  */
 export function InventoryCountPostedReview({
@@ -110,6 +200,11 @@ export function InventoryCountPostedReview({
   const corrections = Array.isArray(review?.corrections) ? review.corrections : []
   const correctionCount = Number(review?.correctionCount) || 0
   const hasCorrections = Boolean(review?.hasCorrections) || correctionCount > 0
+  const correctionVersions = useMemo(
+    () => buildPostedCorrectionVersionHistory(corrections),
+    [corrections],
+  )
+  const appliedBadgeLabel = formatAppliedCorrectionBadge(correctionCount)
   const visibilityLabel = VISIBILITY_LABELS[session?.visibility] || session?.visibility || '—'
   const operatorName = `${session?.operatorName ?? ''}`.trim() || '—'
   const postedByName = `${session?.postedByName ?? ''}`.trim()
@@ -133,12 +228,12 @@ export function InventoryCountPostedReview({
             <span className="inventory-count-session-pill is-status is-posted">
               {session?.statusLabel || 'Posted'}
             </span>
-            {hasCorrections ? (
+            {hasCorrections && appliedBadgeLabel ? (
               <span
                 className="inventory-count-session-pill is-corrected"
                 data-inventory-count-corrected-badge="true"
               >
-                {correctionCount === 1 ? 'CORRECTED' : `${correctionCount} Corrections`}
+                {appliedBadgeLabel}
               </span>
             ) : null}
           </div>
@@ -234,7 +329,106 @@ export function InventoryCountPostedReview({
             ))}
           </div>
 
-          <div className="inventory-count-posted-review-table-wrap">
+          {hasCorrections ? (
+            <section
+              className="inventory-count-posted-review-corrections"
+              aria-label="Correction history"
+              data-inventory-count-correction-history="true"
+            >
+              <div className="inventory-count-posted-review-corrections-header">
+                <h3 className="inventory-count-posted-review-corrections-title">
+                  Correction history
+                </h3>
+                <p className="inventory-count-posted-review-corrections-order-note">
+                  Chronological: Original, then Correction 1 (oldest) → newest.
+                </p>
+              </div>
+
+              <article
+                className="inventory-count-posted-review-version-card is-original"
+                data-correction-version="original"
+              >
+                <div className="inventory-count-posted-review-version-label">Original</div>
+                <p className="inventory-count-posted-review-version-summary">
+                  Posted inventory count ·
+                  {' '}
+                  {formatSessionDate(session?.postedAt)}
+                  {' · '}
+                  {postedByName}
+                </p>
+                <p className="inventory-count-posted-review-version-copy">
+                  Immutable historical record. Corrections below are append-only adjustments.
+                </p>
+              </article>
+
+              <ol className="inventory-count-posted-review-version-list">
+                {correctionVersions.map((version) => {
+                  const netImpact = formatNetStockImpact(version.netDelta)
+                  const productLabel = version.productCount === 1
+                    ? '1 product corrected'
+                    : `${version.productCount} products corrected`
+                  return (
+                    <li
+                      key={version.id}
+                      className="inventory-count-posted-review-version-card"
+                      data-correction-version={version.version}
+                    >
+                      <div className="inventory-count-posted-review-version-label">
+                        {version.versionLabel}
+                      </div>
+                      <p className="inventory-count-posted-review-version-summary">
+                        Applied
+                        {' '}
+                        {formatAppliedAt(version.createdAt)}
+                        {' · '}
+                        {version.operatorName}
+                      </p>
+                      <p className="inventory-count-posted-review-version-meta">
+                        {productLabel}
+                        {netImpact ? ` · ${netImpact}` : ''}
+                      </p>
+                      <ul className="inventory-count-posted-review-version-lines">
+                        {version.lines.map((line) => {
+                          const deltaTone = Number(line.deltaQuantity) > 0
+                            ? 'is-positive'
+                            : Number(line.deltaQuantity) < 0
+                              ? 'is-negative'
+                              : 'is-neutral'
+                          return (
+                            <li
+                              key={line.id}
+                              className="inventory-count-posted-review-version-line"
+                            >
+                              <div className="inventory-count-posted-review-version-line-name">
+                                {line.itemName || 'Product'}
+                              </div>
+                              <div className="inventory-count-posted-review-version-line-qty">
+                                Original
+                                {' '}
+                                {formatQuantity(line.originalQuantity)}
+                                {' → Corrected '}
+                                {formatQuantity(line.correctedQuantity)}
+                              </div>
+                              <div
+                                className={`inventory-count-posted-review-version-line-impact ${deltaTone}`.trim()}
+                              >
+                                {formatAdjustmentState(line)}
+                              </div>
+                            </li>
+                          )
+                        })}
+                      </ul>
+                    </li>
+                  )
+                })}
+              </ol>
+            </section>
+          ) : null}
+
+          <div
+            className="inventory-count-posted-review-table-wrap"
+            data-inventory-count-posted-lines="true"
+          >
             {items.length === 0 ? (
               <div className="stock-empty-state">
                 <h4>No posted lines</h4>
@@ -294,51 +488,6 @@ export function InventoryCountPostedReview({
               </table>
             )}
           </div>
-
-          {hasCorrections ? (
-            <section
-              className="inventory-count-posted-review-corrections"
-              aria-label="Correction history"
-            >
-              <h3 className="inventory-count-posted-review-corrections-title">
-                Correction history
-              </h3>
-              <ul className="inventory-count-posted-review-corrections-list">
-                {corrections.flatMap((correction) => (
-                  (Array.isArray(correction.lines) ? correction.lines : []).map((line) => (
-                    <li
-                      key={line.id}
-                      className="inventory-count-posted-review-corrections-item"
-                    >
-                      <div className="inventory-count-posted-review-corrections-item-main">
-                        <strong>{line.itemName || 'Product'}</strong>
-                        <span className="inventory-count-posted-review-corrections-delta">
-                          {formatVariance(line.deltaQuantity)}
-                        </span>
-                      </div>
-                      <div className="inventory-count-posted-review-corrections-item-meta">
-                        <span>
-                          Operator:
-                          {' '}
-                          {`${correction.operatorName ?? ''}`.trim() || '—'}
-                        </span>
-                        <span>
-                          Date:
-                          {' '}
-                          {formatSessionDate(line.createdAt || correction.createdAt)}
-                        </span>
-                        <span>
-                          {formatQuantity(line.originalQuantity)}
-                          {' → '}
-                          {formatQuantity(line.correctedQuantity)}
-                        </span>
-                      </div>
-                    </li>
-                  ))
-                ))}
-              </ul>
-            </section>
-          ) : null}
 
           <p className="inventory-count-posted-review-footnote" role="note">
             Corrections will be handled through a separate audited workflow.
