@@ -299,7 +299,10 @@ export function getLocationReadinessLabel(location) {
 }
 
 /**
- * Visible reason when Complete Location is disabled (UX only).
+ * Single source of truth for Complete Location eligibility (UX + click + tests).
+ * Empty string ⇒ allowed. Any non-empty string ⇒ disabled reason (tooltip / banner).
+ *
+ * Empty current locations (0 items / 0 pending) are explicitly completable.
  */
 export function getCompleteLocationDisabledReason({
   sessionStatus,
@@ -316,7 +319,12 @@ export function getCompleteLocationDisabledReason({
   if (status === 'counting_complete') {
     return 'This location is already complete.'
   }
-  if (!selectedLocation) return ''
+  if (status !== 'in_progress') {
+    return 'Resume this count before completing locations.'
+  }
+  if (!selectedLocation) {
+    return 'Select a location to complete.'
+  }
 
   const locationStatus = `${selectedLocation.status ?? ''}`.trim()
   if (locationStatus === 'completed') {
@@ -338,6 +346,11 @@ export function getCompleteLocationDisabledReason({
   }
 
   return ''
+}
+
+/** Derived from getCompleteLocationDisabledReason — do not duplicate eligibility rules. */
+export function canCompleteInventoryCountLocation(args) {
+  return getCompleteLocationDisabledReason(args) === ''
 }
 
 function pickInitialLocationId(locations) {
@@ -1076,16 +1089,17 @@ export function InventoryCountSessionWorkspace({
   const isSessionPaused = sessionStatus === 'paused'
   const isCountEditable = sessionStatus === 'in_progress'
   // Empty locations (0 items / 0 pending) remain explicitly completable — never auto-completed.
-  const canCompleteLocation = Boolean(selectedLocation)
-    && selectedLocation.status === 'current'
-    && isCountEditable
-    && !isCompletingLocation
-  const completeLocationDisabledReason = getCompleteLocationDisabledReason({
+  // P8.20.2b — disabled, tooltip, and click all use the same eligibility reason.
+  const completeLocationEligibilityArgs = {
     sessionStatus,
     selectedLocation,
     currentLocationName: currentLocation?.name || '',
     isCompletingLocation,
-  })
+  }
+  const completeLocationDisabledReason = getCompleteLocationDisabledReason(
+    completeLocationEligibilityArgs,
+  )
+  const canCompleteLocation = canCompleteInventoryCountLocation(completeLocationEligibilityArgs)
   const showInactiveLocationGuidance = Boolean(
     selectedLocation
     && currentLocation

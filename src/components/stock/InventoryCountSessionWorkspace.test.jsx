@@ -10,6 +10,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { InventoryCountView } from './InventoryCountView'
 import {
   getCompleteLocationDisabledReason,
+  canCompleteInventoryCountLocation,
   getDisplayedLocationItems,
   findNextEligibleCountItem,
   getFinishCountDisabledReason,
@@ -518,7 +519,10 @@ describe('InventoryCountSessionWorkspace real session items', () => {
     expect(countCurrentLocations(container)).toBe(1)
     expect(container.textContent).toContain('Espresso Beans')
     expect(getProgressSnapshot(container)).toContain('2 / 3 locations complete')
-    expect(getButtonByText(container, 'Complete Location')?.disabled).toBe(false)
+    // P8.20.2b — pending items disable Complete Location (matches tooltip / click gate)
+    expect(getButtonByText(container, 'Complete Location')?.disabled).toBe(true)
+    expect(getButtonByText(container, 'Complete Location')?.getAttribute('title'))
+      .toContain('2 items are still pending.')
 
     cleanup()
   })
@@ -651,10 +655,31 @@ describe('InventoryCountSessionWorkspace real session items', () => {
   })
 
   it('surfaces complete-location failures without advancing', async () => {
+    getInventoryCountSessionItems.mockResolvedValueOnce([
+      sessionItem({
+        id: 'ms-1',
+        itemName: 'Coca-Cola',
+        storageLocation: 'Main Storage',
+        expectedSnapshot: 10,
+        countedQuantity: 10,
+        lineStatus: 'counted',
+      }),
+      sessionItem({
+        id: 'ms-2',
+        itemName: 'Paper Straws',
+        unit: 'box',
+        storageLocation: 'Main Storage',
+        expectedSnapshot: 4,
+        countedQuantity: 4,
+        lineStatus: 'counted',
+      }),
+    ])
     completeInventoryCountLocation.mockRejectedValueOnce(
       new Error('Count or skip all items in this location before completing it.'),
     )
     const { container, cleanup } = await renderWorkspace()
+
+    expect(getButtonByText(container, 'Complete Location')?.disabled).toBe(false)
 
     await act(async () => {
       getButtonByText(container, 'Complete Location').click()
@@ -1137,7 +1162,10 @@ describe('InventoryCountSessionWorkspace pause and resume', () => {
     )
     expect(container.querySelector('input[aria-label="Counted quantity for Paper Straws"]')?.disabled)
       .toBe(false)
-    expect(getButtonByText(container, 'Complete Location')?.disabled).toBe(false)
+    // Current location still has a pending item — Complete stays disabled (eligibility SSOT)
+    expect(getButtonByText(container, 'Complete Location')?.disabled).toBe(true)
+    expect(getButtonByText(container, 'Complete Location')?.getAttribute('title'))
+      .toContain('1 item is still pending.')
 
     cleanup()
   })
@@ -1939,6 +1967,157 @@ describe('current location guidance helpers (P8.16.32)', () => {
       selectedLocation: { status: 'current', countedItems: 0, totalItems: 2 },
       currentLocationName: 'Main Bar',
     })).toBe('2 items are still pending.')
+    expect(getCompleteLocationDisabledReason({
+      sessionStatus: 'in_progress',
+      selectedLocation: { status: 'current', countedItems: 0, totalItems: 0 },
+      currentLocationName: 'Main Bar',
+    })).toBe('')
+    expect(canCompleteInventoryCountLocation({
+      sessionStatus: 'in_progress',
+      selectedLocation: { status: 'current', countedItems: 0, totalItems: 0 },
+      currentLocationName: 'Main Bar',
+    })).toBe(true)
+  })
+})
+
+describe('InventoryCountSessionWorkspace Complete Location eligibility consistency (P8.20.2b)', () => {
+  beforeEach(() => {
+    getInventoryCountSession.mockReset()
+    getInventoryCountSessionLocations.mockReset()
+    getInventoryCountSessionItems.mockReset()
+    completeInventoryCountLocation.mockReset()
+
+    getInventoryCountSession.mockResolvedValue({
+      id: 'session-real-1',
+      workspaceId: 'workspace-test-id',
+      status: 'in_progress',
+    })
+    getInventoryCountSessionLocations.mockResolvedValue([
+      sessionLocation('loc-1', 'Main Bar', 0, 'current'),
+    ])
+    getInventoryCountSessionItems.mockResolvedValue([])
+    completeInventoryCountLocation.mockResolvedValue({
+      sessionId: 'session-real-1',
+      completedLocationId: 'loc-1',
+      nextLocationId: null,
+      sessionStatus: 'counting_complete',
+      allLocationsCompleted: true,
+    })
+  })
+
+  it('disables Complete Location while paused with Resume tooltip', async () => {
+    getInventoryCountSession.mockResolvedValue({
+      id: 'session-real-1',
+      workspaceId: 'workspace-test-id',
+      status: 'paused',
+      pausedAt: '2026-07-20T15:00:00.000Z',
+    })
+
+    const { container, cleanup } = await renderWorkspace()
+    const completeBtn = getButtonByText(container, 'Complete Location')
+    const reason = 'Resume this count before completing locations.'
+
+    expect(completeBtn?.disabled).toBe(true)
+    expect(completeBtn?.getAttribute('title')).toBe(reason)
+    expect(container.textContent).toContain(reason)
+
+    await act(async () => {
+      completeBtn.click()
+      await Promise.resolve()
+    })
+    expect(completeInventoryCountLocation).not.toHaveBeenCalled()
+
+    cleanup()
+  })
+
+  it('enables Complete Location for empty current location and executes on click', async () => {
+    const { container, cleanup } = await renderWorkspace()
+    const completeBtn = getButtonByText(container, 'Complete Location')
+
+    expect(container.textContent).toContain('No items in this location')
+    expect(container.textContent).toContain('No snapshot items were found for Main Bar.')
+    expect(completeBtn?.disabled).toBe(false)
+    expect(completeBtn?.getAttribute('title')).toBeNull()
+    expect(container.querySelector('.inventory-count-complete-disabled-reason')).toBeNull()
+
+    await act(async () => {
+      completeBtn.click()
+      await Promise.resolve()
+    })
+
+    expect(completeInventoryCountLocation).toHaveBeenCalledTimes(1)
+    expect(completeInventoryCountLocation).toHaveBeenCalledWith({
+      workspaceId: 'workspace-test-id',
+      sessionId: 'session-real-1',
+      locationId: 'loc-1',
+    })
+
+    cleanup()
+  })
+
+  it('keeps disabled state, tooltip, and click gate on one eligibility source', () => {
+    const cases = [
+      {
+        args: {
+          sessionStatus: 'paused',
+          selectedLocation: { status: 'current', countedItems: 0, totalItems: 0 },
+          currentLocationName: 'Main Bar',
+        },
+        allowed: false,
+      },
+      {
+        args: {
+          sessionStatus: 'in_progress',
+          selectedLocation: { status: 'current', countedItems: 0, totalItems: 0 },
+          currentLocationName: 'Main Bar',
+        },
+        allowed: true,
+      },
+      {
+        args: {
+          sessionStatus: 'in_progress',
+          selectedLocation: { status: 'not_started', countedItems: 0, totalItems: 0 },
+          currentLocationName: 'Main Bar',
+        },
+        allowed: false,
+      },
+      {
+        args: {
+          sessionStatus: 'in_progress',
+          selectedLocation: { status: 'current', countedItems: 0, totalItems: 2 },
+          currentLocationName: 'Main Bar',
+        },
+        allowed: false,
+      },
+    ]
+
+    for (const entry of cases) {
+      const reason = getCompleteLocationDisabledReason(entry.args)
+      const allowed = canCompleteInventoryCountLocation(entry.args)
+      expect(allowed).toBe(entry.allowed)
+      expect(allowed).toBe(reason === '')
+      if (!allowed) {
+        expect(reason.length).toBeGreaterThan(0)
+      }
+    }
+  })
+
+  it('never allows enabled Complete Location while eligibility reason is set', async () => {
+    getInventoryCountSessionLocations.mockResolvedValue(FIXTURE_LOCATIONS)
+    getInventoryCountSessionItems.mockResolvedValue(FIXTURE_ITEMS)
+
+    const { container, cleanup } = await renderWorkspace()
+    const completeBtn = getButtonByText(container, 'Complete Location')
+    const title = completeBtn?.getAttribute('title')
+    const disabled = completeBtn?.disabled
+
+    if (disabled) {
+      expect(title).toBeTruthy()
+    } else {
+      expect(title).toBeNull()
+    }
+
+    cleanup()
   })
 })
 
