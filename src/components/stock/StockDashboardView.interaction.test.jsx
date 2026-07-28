@@ -433,28 +433,35 @@ describe('StockDashboardView filtered catalog density (P8.17.3d)', () => {
     cleanup()
   })
 
-  it('3–8. Filtered primary toolbar keeps category, visibility, view, group, sort, and actions', () => {
+  it('3–8. Shared compact toolbar keeps category, visibility, view, group, sort, and manager actions', () => {
     const { container, cleanup } = mount()
     click(summaryCard(container, 'To order'))
 
-    const controls = container.querySelector('.stock-filtered-controls')
-    const primary = controls?.querySelector('.stock-filtered-primary-toolbar')
-    const actions = controls?.querySelector('.stock-filtered-actions')
-    expect(controls).toBeTruthy()
-    expect(primary).toBeTruthy()
-    expect(actions).toBeTruthy()
+    const toolbar = container.querySelector('[data-stock-compact-browse-toolbar="true"]')
+    const browseRow = toolbar?.querySelector('[data-stock-compact-browse-row="true"]')
+    const actionsRow = toolbar?.querySelector('[data-stock-compact-actions-row="true"]')
+    expect(toolbar).toBeTruthy()
+    expect(browseRow).toBeTruthy()
+    expect(actionsRow).toBeTruthy()
+    expect(container.querySelectorAll('[data-stock-compact-browse-toolbar="true"]')).toHaveLength(1)
 
-    expect(primary.querySelector('[aria-label="Stock categories"]')).toBeTruthy()
-    expect(primary.querySelector('[aria-label="Product visibility"]')).toBeTruthy()
-    expect(primary.querySelectorAll('.stock-layout-mode-btn')).toHaveLength(3)
-    expect(primary.querySelector('.stock-browse-group')).toBeTruthy()
-    expect(primary.querySelector('.stock-browse-sort')).toBeTruthy()
+    expect(browseRow.querySelector('[aria-label="Stock categories"]')).toBeTruthy()
+    expect(browseRow.querySelector('[aria-label="Product visibility"]')).toBeTruthy()
+    expect(browseRow.querySelectorAll('.stock-layout-mode-btn')).toHaveLength(3)
+    expect(browseRow.querySelector('.stock-browse-group')).toBeTruthy()
+    expect(browseRow.querySelector('.stock-browse-sort')).toBeTruthy()
+    expect(browseRow.querySelector('[aria-label="Group stock items"]')).toBeTruthy()
+    expect(browseRow.querySelector('[aria-label="Sort stock items"]')).toBeTruthy()
 
-    expect(buttonByText(actions, 'Create order')).toBeTruthy()
-    expect(buttonByText(actions, 'Import CSV')).toBeTruthy()
-    expect(buttonByText(actions, 'Inventory Import')).toBeTruthy()
-    expect(buttonByText(actions, 'Select')).toBeTruthy()
-    expect(buttonByText(actions, '+ Add item')).toBeTruthy()
+    expect(buttonByText(actionsRow, 'Create order')).toBeTruthy()
+    expect(buttonByText(actionsRow, 'Select')).toBeTruthy()
+    expect(buttonByText(actionsRow, '+ Add item')).toBeTruthy()
+    expect(buttonByText(actionsRow, 'Import CSV')).toBeFalsy()
+    expect(buttonByText(actionsRow, 'Inventory Import')).toBeFalsy()
+
+    click(actionsRow.querySelector('[aria-label="More catalog actions"]'))
+    expect(container.querySelector('[data-stock-toolbar-overflow-import-csv="true"]')).toBeTruthy()
+    expect(container.querySelector('[data-stock-toolbar-overflow-inventory-import="true"]')).toBeTruthy()
 
     setLayoutMode(container, 'List')
     expect(catalogProductNames(container)).toHaveLength(3)
@@ -477,7 +484,7 @@ describe('StockDashboardView filtered catalog density (P8.17.3d)', () => {
     cleanup()
   })
 
-  it('11–13. Catalog follows filtered toolbar; Needs Attention stays after; unfiltered structure unchanged', () => {
+  it('11–13. Catalog follows compact toolbar; Needs Attention stays after; shared structure in both modes', () => {
     const { container, cleanup } = mount()
     const catalog = catalogRoot(container)
     const attentionBefore = container.querySelector('[aria-label="Needs attention"]')
@@ -485,27 +492,27 @@ describe('StockDashboardView filtered catalog density (P8.17.3d)', () => {
     expect(
       attentionBefore.compareDocumentPosition(catalog) & Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy()
-    expect(container.querySelector('.stock-dashboard-toolbar')).toBeTruthy()
-    expect(container.querySelector('.stock-browse-controls')).toBeTruthy()
+    expect(container.querySelector('[data-stock-compact-browse-toolbar="true"]')).toBeTruthy()
+    expect(container.querySelector('.stock-dashboard-toolbar')).toBeNull()
+    expect(container.querySelector('.stock-browse-controls')).toBeNull()
     expect(container.querySelector('.stock-filtered-controls')).toBeNull()
-    expect(container.querySelector('[aria-label="Stock status"]')).toBeTruthy()
+    expect(container.querySelector('[aria-label="Stock status"]')).toBeNull()
 
     click(summaryCard(container, 'Out of stock'))
     const attentionAfter = container.querySelector('[aria-label="Needs attention"]')
     const context = container.querySelector('#stock-filtered-context')
-    const controls = catalog.querySelector('.stock-filtered-controls')
+    const toolbar = catalog.querySelector('[data-stock-compact-browse-toolbar="true"]')
     const firstProduct = catalog.querySelector('.stock-item-card, .stock-list-product-name, .stock-compact-name')
 
     expect(context).toBeTruthy()
-    expect(controls).toBeTruthy()
+    expect(toolbar).toBeTruthy()
     expect(firstProduct).toBeTruthy()
-    expect(container.querySelector('.stock-dashboard-toolbar')).toBeNull()
-    expect(container.querySelector('.stock-browse-controls')).toBeNull()
+    expect(container.querySelectorAll('[data-stock-compact-browse-toolbar="true"]')).toHaveLength(1)
     expect(
-      context.compareDocumentPosition(controls) & Node.DOCUMENT_POSITION_FOLLOWING,
+      context.compareDocumentPosition(toolbar) & Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy()
     expect(
-      controls.compareDocumentPosition(firstProduct) & Node.DOCUMENT_POSITION_FOLLOWING,
+      toolbar.compareDocumentPosition(firstProduct) & Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy()
     expect(
       catalog.compareDocumentPosition(attentionAfter) & Node.DOCUMENT_POSITION_FOLLOWING,
@@ -541,6 +548,166 @@ describe('MobileManagerStockView unchanged (P8.17.3d)', () => {
     expect(container.querySelector('.stock-filtered-controls')).toBeNull()
     expect(container.querySelector('.stock-all-products-catalog')).toBeNull()
     expect(container.textContent).toContain('LOW ITEM')
+    cleanup()
+  })
+})
+
+describe('StockDashboardView compact browse workspace (P8.24.3)', () => {
+  function mount(extraProps = {}) {
+    return render(createElement(StockDashboardView, {
+      stockItems: [
+        stock({
+          id: 'list-1',
+          name: 'LIST PRODUCT',
+          category: 'Spirits',
+          itemType: 'Vodka',
+          supplier: 'Acme Supply',
+          storageLocation: 'Main Storage',
+          currentQuantity: 12,
+          minimumQuantity: 5,
+          unit: 'Bottle',
+          active: true,
+          lastMovement: {
+            type: 'receive',
+            createdAt: '2026-07-20T10:00:00.000Z',
+          },
+        }),
+        stock({
+          id: 'list-2',
+          name: 'INACTIVE LIST',
+          category: 'Wine',
+          itemType: 'Red',
+          supplier: 'Cellar Co',
+          storageLocation: 'Cellar',
+          currentQuantity: 1,
+          minimumQuantity: 4,
+          unit: 'Bottle',
+          active: false,
+          lastMovement: {
+            type: 'stock_count',
+            createdAt: '2026-07-19T08:00:00.000Z',
+          },
+        }),
+      ],
+      canManage: true,
+      workspaceId: 'ws-1',
+      isWorkspaceReady: true,
+      isLoading: false,
+      catalogLoadFailed: false,
+      ...extraProps,
+    }))
+  }
+
+  function buttonByText(root, text) {
+    return Array.from(root.querySelectorAll('button'))
+      .find((node) => node.textContent === text)
+  }
+
+  it('renders shared compact toolbar with browse controls and visible manager actions', () => {
+    const { container, cleanup } = mount()
+    const toolbar = container.querySelector('[data-stock-compact-browse-toolbar="true"]')
+    const browseRow = toolbar.querySelector('[data-stock-compact-browse-row="true"]')
+    const actionsRow = toolbar.querySelector('[data-stock-compact-actions-row="true"]')
+
+    expect(toolbar).toBeTruthy()
+    expect(container.querySelectorAll('[data-stock-compact-browse-toolbar="true"]')).toHaveLength(1)
+    expect(browseRow.querySelector('[aria-label="Stock categories"]')).toBeTruthy()
+    expect(browseRow.querySelector('[aria-label="Product visibility"]')).toBeTruthy()
+    expect(browseRow.querySelectorAll('.stock-layout-mode-btn')).toHaveLength(3)
+    expect(browseRow.querySelector('[aria-label="Group stock items"]')).toBeTruthy()
+    expect(browseRow.querySelector('[aria-label="Sort stock items"]')).toBeTruthy()
+    expect(resultCountText(container)).toMatch(/Showing 1 of 1/)
+
+    expect(buttonByText(actionsRow, '+ Add item')).toBeTruthy()
+    expect(buttonByText(actionsRow, 'Create order')).toBeTruthy()
+    expect(buttonByText(actionsRow, 'Select')).toBeTruthy()
+    expect(buttonByText(actionsRow, 'Import CSV')).toBeFalsy()
+    expect(buttonByText(actionsRow, 'Inventory Import')).toBeFalsy()
+
+    click(actionsRow.querySelector('[aria-label="More catalog actions"]'))
+    expect(container.querySelector('[data-stock-toolbar-overflow-import-csv="true"]')?.textContent)
+      .toBe('Import CSV')
+    expect(container.querySelector('[data-stock-toolbar-overflow-inventory-import="true"]')?.textContent)
+      .toBe('Inventory Import')
+    cleanup()
+  })
+
+  it('keeps filtered context + Clear filter and accurate result count', () => {
+    const { container, cleanup } = mount({
+      stockItems: CATALOG,
+    })
+    click(summaryCard(container, 'Low stock'))
+    expect(container.querySelector('#stock-filtered-context .stock-filtered-context-title')?.textContent)
+      .toBe('Low stock')
+    expect(buttonByText(container, 'Clear filter')).toBeTruthy()
+    expect(resultCountText(container)).toMatch(/Showing 1 of 4/)
+    expect(container.querySelectorAll('[data-stock-compact-browse-toolbar="true"]')).toHaveLength(1)
+    cleanup()
+  })
+
+  it('renders the six-column List contract with Details/Stock content and actions', () => {
+    const { container, cleanup } = mount()
+    setLayoutMode(container, 'List')
+
+    const headers = Array.from(container.querySelectorAll('.stock-list-table thead th'))
+      .map((node) => node.textContent.trim())
+      .filter(Boolean)
+    expect(headers).toEqual(['Product', 'Details', 'Stock', 'Status', 'Updated', 'Actions'])
+    expect(headers).not.toContain('Supplier')
+    expect(headers).not.toContain('Location')
+    expect(headers).not.toContain('Current Stock')
+    expect(headers).not.toContain('Minimum')
+    expect(headers).not.toContain('Last Movement')
+    expect(headers).not.toContain('Category / Type')
+
+    const row = container.querySelector('.stock-list-row')
+    expect(row.querySelector('.stock-list-details')?.textContent).toContain('Spirits')
+    expect(row.querySelector('.stock-list-details')?.textContent).toContain('Acme Supply')
+    expect(row.querySelector('.stock-list-details')?.textContent).toContain('Main Storage')
+    expect(row.querySelector('.stock-list-stock-current')?.textContent).toMatch(/12/)
+    expect(row.querySelector('.stock-list-stock-min')?.textContent).toMatch(/Min/)
+    expect(row.querySelector('.stock-list-stock-min')?.textContent).toMatch(/5/)
+    expect(row.querySelector('.stock-list-cell-status .stock-item-status-badge')).toBeTruthy()
+    expect(row.querySelector('.stock-list-cell-movement')?.textContent).not.toBe('')
+
+    const actions = row.querySelector('.stock-list-cell-actions')
+    expect(buttonByText(actions, 'Receive')).toBeTruthy()
+    expect(buttonByText(actions, 'Stock count')).toBeTruthy()
+    expect(buttonByText(actions, 'More')).toBeTruthy()
+    cleanup()
+  })
+
+  it('keeps selection mode functional without duplicating toolbar chrome', () => {
+    const { container, cleanup } = mount()
+    setLayoutMode(container, 'List')
+    click(buttonByText(container, 'Select'))
+    expect(buttonByText(container, 'Done')).toBeTruthy()
+    expect(container.querySelector('.stock-selection-bar')).toBeTruthy()
+    expect(container.querySelector('.stock-list-table.is-selection-mode')).toBeTruthy()
+    expect(container.querySelector('.stock-list-head-select')).toBeTruthy()
+    expect(container.querySelectorAll('[data-stock-compact-browse-toolbar="true"]')).toHaveLength(1)
+
+    click(container.querySelector('.stock-list-select-btn'))
+    expect(container.querySelector('.stock-bulk-toolbar')).toBeTruthy()
+    cleanup()
+  })
+
+  it('preserves Cards and Count modes with the shared toolbar', () => {
+    const { container, cleanup } = mount({ stockItems: CATALOG })
+    const toolbar = container.querySelector('[data-stock-compact-browse-toolbar="true"]')
+    expect(toolbar).toBeTruthy()
+
+    setLayoutMode(container, 'Cards')
+    expect(catalogProductNames(container).length).toBeGreaterThan(0)
+    expect(container.querySelector('.stock-item-card, .stock-item-grid')).toBeTruthy()
+
+    setLayoutMode(container, 'Count')
+    expect(catalogProductNames(container).length).toBeGreaterThan(0)
+    expect(container.querySelector('.stock-compact-row, .stock-compact-list')).toBeTruthy()
+
+    setLayoutMode(container, 'List')
+    expect(container.querySelector('.stock-list-table')).toBeTruthy()
+    expect(container.querySelectorAll('[data-stock-compact-browse-toolbar="true"]')).toHaveLength(1)
     cleanup()
   })
 })

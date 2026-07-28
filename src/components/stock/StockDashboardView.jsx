@@ -87,7 +87,12 @@ function StockLayoutModeIcon({ icon }) {
   )
 }
 
-function StockSortDropdown({ value, options, onChange }) {
+function StockSortDropdown({
+  value,
+  options,
+  onChange,
+  ariaLabel = 'Sort stock items',
+}) {
   const [isOpen, setIsOpen] = useState(false)
   const rootRef = useRef(null)
   const selectedOption = options.find((option) => option.id === value) ?? options[0]
@@ -115,14 +120,14 @@ function StockSortDropdown({ value, options, onChange }) {
         onClick={() => setIsOpen((current) => !current)}
         aria-haspopup="listbox"
         aria-expanded={isOpen}
-        aria-label="Sort stock items"
+        aria-label={ariaLabel}
       >
         <span className="stock-sort-dropdown-value">{selectedOption?.label}</span>
         <span className="stock-sort-dropdown-chevron" aria-hidden="true">▾</span>
       </button>
 
       {isOpen ? (
-        <ul className="stock-sort-dropdown-menu" role="listbox" aria-label="Sort options">
+        <ul className="stock-sort-dropdown-menu" role="listbox" aria-label={ariaLabel}>
           {options.map((option) => (
             <li key={option.id} role="presentation">
               <button
@@ -139,6 +144,86 @@ function StockSortDropdown({ value, options, onChange }) {
               </button>
             </li>
           ))}
+        </ul>
+      ) : null}
+    </div>
+  )
+}
+
+function StockToolbarOverflowMenu({
+  disabled = false,
+  onImportCsv,
+  onInventoryImport,
+}) {
+  const [isOpen, setIsOpen] = useState(false)
+  const rootRef = useRef(null)
+
+  useEffect(() => {
+    if (!isOpen) return undefined
+
+    const handlePointerDown = (event) => {
+      if (!rootRef.current?.contains(event.target)) {
+        setIsOpen(false)
+      }
+    }
+
+    document.addEventListener('mousedown', handlePointerDown)
+    document.addEventListener('touchstart', handlePointerDown, { passive: true })
+    return () => {
+      document.removeEventListener('mousedown', handlePointerDown)
+      document.removeEventListener('touchstart', handlePointerDown)
+    }
+  }, [isOpen])
+
+  return (
+    <div
+      className={`stock-toolbar-overflow${isOpen ? ' is-open' : ''}`}
+      ref={rootRef}
+      data-stock-toolbar-overflow="true"
+    >
+      <button
+        type="button"
+        className="ghost-btn stock-toolbar-overflow-trigger"
+        aria-haspopup="menu"
+        aria-expanded={isOpen}
+        aria-label="More catalog actions"
+        disabled={disabled}
+        onClick={() => setIsOpen((current) => !current)}
+      >
+        More
+      </button>
+      {isOpen ? (
+        <ul className="stock-toolbar-overflow-menu" role="menu" aria-label="More catalog actions">
+          <li role="presentation">
+            <button
+              type="button"
+              role="menuitem"
+              className="stock-toolbar-overflow-option"
+              data-stock-toolbar-overflow-import-csv="true"
+              disabled={disabled}
+              onClick={() => {
+                onImportCsv?.()
+                setIsOpen(false)
+              }}
+            >
+              Import CSV
+            </button>
+          </li>
+          <li role="presentation">
+            <button
+              type="button"
+              role="menuitem"
+              className="stock-toolbar-overflow-option"
+              data-stock-toolbar-overflow-inventory-import="true"
+              disabled={disabled}
+              onClick={() => {
+                onInventoryImport?.()
+                setIsOpen(false)
+              }}
+            >
+              Inventory Import
+            </button>
+          </li>
         </ul>
       ) : null}
     </div>
@@ -317,26 +402,22 @@ function StockItemRowActions({
   return (
     <div className={`stock-row-actions-wrap${isMenuOpen ? ' is-menu-open' : ''}${compact ? ' is-compact' : ''}`}>
       <div className={`stock-row-actions${compact ? ' is-compact' : ''}`}>
-        {!compact ? (
-          <button type="button" className="ghost-btn stock-row-action-btn" onClick={onReceive}>
-            Receive
-          </button>
-        ) : null}
+        <button type="button" className="ghost-btn stock-row-action-btn" onClick={onReceive}>
+          Receive
+        </button>
         <button type="button" className="ghost-btn stock-row-action-btn" onClick={onCount}>
           Stock count
         </button>
-        {!compact ? (
-          <button
-            type="button"
-            className={`ghost-btn stock-row-more-btn${isMenuOpen ? ' is-open' : ''}`}
-            onClick={onToggleMenu}
-            aria-expanded={isMenuOpen}
-            aria-haspopup="menu"
-            aria-label={`More actions for ${item.name}`}
-          >
-            ⋯
-          </button>
-        ) : null}
+        <button
+          type="button"
+          className={`ghost-btn stock-row-more-btn${isMenuOpen ? ' is-open' : ''}`}
+          onClick={onToggleMenu}
+          aria-expanded={isMenuOpen}
+          aria-haspopup="menu"
+          aria-label={`More actions for ${item.name}`}
+        >
+          More
+        </button>
       </div>
     </div>
   )
@@ -374,28 +455,54 @@ function StockListRow({
         </td>
       ) : null}
       <th scope="row" className="stock-list-cell stock-list-cell-product">
-        <span className="stock-list-product-name">{item.name}</span>
+        <div className="stock-list-product-block">
+          <span className="stock-list-product-name" title={item.name || undefined}>
+            {item.name}
+          </span>
+          {item.active === false ? (
+            <span className="stock-item-status-badge tone-muted stock-list-product-inactive">
+              Inactive
+            </span>
+          ) : null}
+        </div>
       </th>
-      <td className="stock-list-cell">{formatStockCategoryTypeLine(item.category, itemType)}</td>
-      <td className="stock-list-cell">{supplierLabel}</td>
-      <td className="stock-list-cell">{location}</td>
-      <td className={`stock-list-cell stock-list-cell-qty${item.status === 'out' || item.status === 'low' ? ` is-${item.status}` : ''}`}>
-        <strong>{formatStockQuantity(item.currentQuantity, item.unit)}</strong>
+      <td className="stock-list-cell stock-list-cell-details">
+        <div className="stock-list-details">
+          <p className="stock-list-details-line" title={formatStockCategoryTypeLine(item.category, itemType)}>
+            {formatStockCategoryTypeLine(item.category, itemType)}
+          </p>
+          <p className="stock-list-details-line" title={supplierLabel === '—' ? undefined : supplierLabel}>
+            {supplierLabel}
+          </p>
+          <p className="stock-list-details-line" title={location === '—' ? undefined : location}>
+            {location}
+          </p>
+        </div>
       </td>
-      <td className="stock-list-cell stock-list-cell-qty stock-list-cell-min">
-        {formatStockQuantity(item.minimumQuantity, item.unit)}
+      <td className={`stock-list-cell stock-list-cell-stock${item.status === 'out' || item.status === 'low' ? ` is-${item.status}` : ''}`}>
+        <div className="stock-list-stock">
+          <span className="stock-list-stock-current">
+            {formatStockQuantity(item.currentQuantity, item.unit)}
+          </span>
+          <span className="stock-list-stock-min">
+            Min {formatStockQuantity(item.minimumQuantity, item.unit)}
+          </span>
+        </div>
       </td>
-      <td className="stock-list-cell">
+      <td className="stock-list-cell stock-list-cell-status">
         <span className={`stock-item-status-badge tone-${item.status}`}>
           {getStockStatusShortLabel(item.status)}
         </span>
       </td>
-      <td className="stock-list-cell stock-list-cell-movement">{formatLastMovementCell(item)}</td>
+      <td className="stock-list-cell stock-list-cell-movement">
+        {formatLastMovementCell(item)}
+      </td>
       <td className="stock-list-cell stock-list-cell-actions">
         <StockItemRowActions
           item={item}
           canManage={canManage}
           isMenuOpen={isMenuOpen}
+          compact
           onReceive={onReceive}
           onCount={onCount}
           onToggleMenu={(event) => onToggleMenu(item.id, event.currentTarget)}
@@ -503,20 +610,17 @@ function StockListTable({
   return (
     <>
       <div className="stock-list-table-wrap stock-list-desktop">
-        <table className="stock-list-table">
+        <table className={`stock-list-table${selectionMode && canManage ? ' is-selection-mode' : ''}`}>
           <thead>
             <tr>
               {selectionMode && canManage ? (
                 <th scope="col" className="stock-list-head-select"><span className="sr-only">Select</span></th>
               ) : null}
-              <th scope="col">Product</th>
-              <th scope="col">Category / Type</th>
-              <th scope="col">Supplier</th>
-              <th scope="col">Location</th>
-              <th scope="col">Current stock</th>
-              <th scope="col">Minimum</th>
-              <th scope="col">Status</th>
-              <th scope="col">Last movement</th>
+              <th scope="col" className="stock-list-head-product">Product</th>
+              <th scope="col" className="stock-list-head-details">Details</th>
+              <th scope="col" className="stock-list-head-stock">Stock</th>
+              <th scope="col" className="stock-list-head-status">Status</th>
+              <th scope="col" className="stock-list-head-updated">Updated</th>
               <th scope="col" className="stock-list-head-actions">Actions</th>
             </tr>
           </thead>
@@ -1712,139 +1816,133 @@ export function StockDashboardView({
     />
   ) : null
 
-  const toolbarActionButtons = canManage ? (
-    <>
-      <button
-        type="button"
-        className="ghost-btn stock-create-order-btn"
-        onClick={() => setIsCreateOrderModalOpen(true)}
-        disabled={!isWorkspaceReady || isStockActionBusy}
-      >
-        {isSavingOrders ? 'Creating…' : 'Create order'}
-      </button>
-      <button
-        type="button"
-        className="ghost-btn stock-import-btn"
-        onClick={() => setIsImportModalOpen(true)}
-        disabled={!isWorkspaceReady || isStockActionBusy}
-      >
-        Import CSV
-      </button>
-      <button
-        type="button"
-        className="ghost-btn stock-inventory-import-btn"
-        onClick={() => setIsInventoryImportWizardOpen(true)}
-        disabled={!isWorkspaceReady || isStockActionBusy}
-      >
-        Inventory Import
-      </button>
-      <button
-        type="button"
-        className={`ghost-btn stock-select-mode-btn${selectionMode ? ' active' : ''}`}
-        onClick={toggleSelectionMode}
-        disabled={isStockActionBusy}
-      >
-        {selectionMode ? 'Done' : 'Select'}
-      </button>
-      <button
-        type="button"
-        className="primary-btn stock-add-item-btn"
-        onClick={openCreateItem}
-        disabled={!isWorkspaceReady || isStockActionBusy}
-      >
-        + Add item
-      </button>
-    </>
-  ) : null
-
-  const categoryFilterControls = (
-    <div className="stock-filter-group stock-filter-group-category">
-      <span className="stock-filter-group-label">Category</span>
-      <div className="stock-category-filters" role="tablist" aria-label="Stock categories">
-        {categoryFilters.map((category) => (
-          <button
-            key={category}
-            type="button"
-            role="tab"
-            aria-selected={categoryFilter === category}
-            className={`stock-category-filter${categoryFilter === category ? ' active' : ''}`}
-            onClick={() => setCategoryFilter(category)}
-          >
-            {category}
-          </button>
-        ))}
-      </div>
-    </div>
+  const categoryOptions = useMemo(
+    () => categoryFilters.map((category) => ({ id: category, label: category })),
+    [categoryFilters],
   )
 
-  const visibilityFilterControls = canManage ? (
-    <div className="stock-filter-group stock-filter-group-visibility">
-      <span className="stock-filter-group-label">Visibility</span>
-      <div className="stock-status-filters" role="tablist" aria-label="Product visibility">
-        {STOCK_VISIBILITY_OPTIONS.map((option) => (
-          <button
-            key={option.id}
-            type="button"
-            role="tab"
-            aria-selected={visibilityFilter === option.id}
-            className={`stock-status-filter stock-visibility-filter${visibilityFilter === option.id ? ' active' : ''}`}
-            onClick={() => setVisibilityFilter(option.id)}
-          >
-            {option.label}
-          </button>
-        ))}
-      </div>
-    </div>
-  ) : null
-
-  const browseControlFields = (
-    <>
-      <div className="stock-browse-control stock-browse-layout">
-        <span className="stock-browse-control-label" id="stock-layout-label">View mode</span>
-        <div
-          className="stock-layout-mode-control"
-          role="group"
-          aria-labelledby="stock-layout-label"
-        >
-          {STOCK_LAYOUT_MODES.map((mode) => (
-            <button
-              key={mode.id}
-              type="button"
-              className={`stock-layout-mode-btn${layoutMode === mode.id ? ' active' : ''}`}
-              aria-pressed={layoutMode === mode.id}
-              onClick={() => setLayoutMode(mode.id)}
-            >
-              <StockLayoutModeIcon icon={mode.icon} />
-              <span>{mode.label}</span>
-            </button>
-          ))}
+  const compactBrowseToolbar = (
+    <div
+      className="stock-compact-browse-toolbar"
+      data-stock-compact-browse-toolbar="true"
+      aria-label="Stock catalog controls"
+    >
+      <div className="stock-compact-browse-row" data-stock-compact-browse-row="true">
+        <div className="stock-browse-control stock-browse-category">
+          <span className="stock-browse-control-label">Category</span>
+          <StockSortDropdown
+            value={categoryFilter}
+            options={categoryOptions}
+            onChange={setCategoryFilter}
+            ariaLabel="Stock categories"
+          />
         </div>
+
+        {canManage ? (
+          <div className="stock-browse-control stock-browse-visibility">
+            <span className="stock-browse-control-label">Visibility</span>
+            <div className="stock-status-filters stock-visibility-segment" role="tablist" aria-label="Product visibility">
+              {STOCK_VISIBILITY_OPTIONS.map((option) => (
+                <button
+                  key={option.id}
+                  type="button"
+                  role="tab"
+                  aria-selected={visibilityFilter === option.id}
+                  className={`stock-status-filter stock-visibility-filter${visibilityFilter === option.id ? ' active' : ''}`}
+                  onClick={() => setVisibilityFilter(option.id)}
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        ) : null}
+
+        <div className="stock-browse-control stock-browse-layout">
+          <span className="stock-browse-control-label" id="stock-layout-label">View</span>
+          <div
+            className="stock-layout-mode-control"
+            role="group"
+            aria-labelledby="stock-layout-label"
+          >
+            {STOCK_LAYOUT_MODES.map((mode) => (
+              <button
+                key={mode.id}
+                type="button"
+                className={`stock-layout-mode-btn${layoutMode === mode.id ? ' active' : ''}`}
+                aria-pressed={layoutMode === mode.id}
+                aria-label={mode.label}
+                title={mode.label}
+                onClick={() => setLayoutMode(mode.id)}
+              >
+                <StockLayoutModeIcon icon={mode.icon} />
+                <span>{mode.label}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="stock-browse-control stock-browse-group">
+          <span className="stock-browse-control-label">Group by</span>
+          <StockSortDropdown
+            value={groupBy}
+            options={STOCK_GROUP_BY_OPTIONS}
+            onChange={setGroupBy}
+            ariaLabel="Group stock items"
+          />
+        </div>
+
+        <div className="stock-browse-control stock-browse-sort">
+          <span className="stock-browse-control-label">Sort</span>
+          <StockSortDropdown
+            value={sortKey}
+            options={STOCK_SORT_OPTIONS}
+            onChange={setSortKey}
+            ariaLabel="Sort stock items"
+          />
+        </div>
+
+        {!isLoading && browseMatchCount > 0 ? (
+          <p className="stock-browse-result-count" aria-live="polite">
+            Showing {visibleItems.length} of {browseMatchCount} product{browseMatchCount === 1 ? '' : 's'}
+          </p>
+        ) : null}
       </div>
 
-      <div className="stock-browse-control stock-browse-group">
-        <span className="stock-browse-control-label">Group by</span>
-        <StockSortDropdown
-          value={groupBy}
-          options={STOCK_GROUP_BY_OPTIONS}
-          onChange={setGroupBy}
-        />
-      </div>
-
-      <div className="stock-browse-control stock-browse-sort">
-        <span className="stock-browse-control-label">Sort</span>
-        <StockSortDropdown
-          value={sortKey}
-          options={STOCK_SORT_OPTIONS}
-          onChange={setSortKey}
-        />
-      </div>
-
-      {!isLoading && browseMatchCount > 0 ? (
-        <p className="stock-browse-result-count" aria-live="polite">
-          Showing {visibleItems.length} of {browseMatchCount} product{browseMatchCount === 1 ? '' : 's'}
-        </p>
+      {canManage ? (
+        <div className="stock-compact-actions-row stock-toolbar-actions" data-stock-compact-actions-row="true">
+          <button
+            type="button"
+            className="primary-btn stock-add-item-btn"
+            onClick={openCreateItem}
+            disabled={!isWorkspaceReady || isStockActionBusy}
+          >
+            + Add item
+          </button>
+          <button
+            type="button"
+            className="ghost-btn stock-create-order-btn"
+            onClick={() => setIsCreateOrderModalOpen(true)}
+            disabled={!isWorkspaceReady || isStockActionBusy}
+          >
+            {isSavingOrders ? 'Creating…' : 'Create order'}
+          </button>
+          <button
+            type="button"
+            className={`ghost-btn stock-select-mode-btn${selectionMode ? ' active' : ''}`}
+            onClick={toggleSelectionMode}
+            disabled={isStockActionBusy}
+          >
+            {selectionMode ? 'Done' : 'Select'}
+          </button>
+          <StockToolbarOverflowMenu
+            disabled={!isWorkspaceReady || isStockActionBusy}
+            onImportCsv={() => setIsImportModalOpen(true)}
+            onInventoryImport={() => setIsInventoryImportWizardOpen(true)}
+          />
+        </div>
       ) : null}
-    </>
+    </div>
   )
 
   return (
@@ -1965,77 +2063,10 @@ export function StockDashboardView({
       ) : null}
 
       {/*
-        P8.17.3d — Same controls; filtered mode swaps wrappers, omits status chips,
-        and groups browse + actions into a denser stack (KPI + Clear remain status paths).
+        P8.24.3 — Shared compact ≤2-row browse toolbar (filtered + unfiltered).
+        Status path remains KPI cards + filtered context Clear filter.
       */}
-      {isFilteredMode ? (
-        <div className="stock-filtered-controls" aria-label="Filtered catalog controls">
-          <div className={`stock-filtered-primary-toolbar${canManage ? ' has-visibility' : ''}`}>
-            {categoryFilterControls}
-            {visibilityFilterControls}
-            {browseControlFields}
-          </div>
-          {toolbarActionButtons ? (
-            <div className="stock-filtered-actions stock-toolbar-actions">{toolbarActionButtons}</div>
-          ) : null}
-        </div>
-      ) : (
-        <>
-          <div className={`stock-dashboard-toolbar${canManage ? ' has-visibility' : ''}`}>
-            {categoryFilterControls}
-
-            <div className="stock-filter-group stock-filter-group-status">
-              <span className="stock-filter-group-label">Status</span>
-              <div className="stock-status-filters" role="tablist" aria-label="Stock status">
-                <button
-                  type="button"
-                  role="tab"
-                  aria-selected={statusFilter === 'all'}
-                  className={`stock-status-filter${statusFilter === 'all' ? ' active' : ''}`}
-                  onClick={() => setStatusFilter('all')}
-                >
-                  All
-                </button>
-                <button
-                  type="button"
-                  role="tab"
-                  aria-selected={statusFilter === 'low'}
-                  className={`stock-status-filter${statusFilter === 'low' ? ' active' : ''}`}
-                  onClick={() => setStatusFilter('low')}
-                >
-                  Low
-                </button>
-                <button
-                  type="button"
-                  role="tab"
-                  aria-selected={statusFilter === 'out'}
-                  className={`stock-status-filter${statusFilter === 'out' ? ' active' : ''}`}
-                  onClick={() => setStatusFilter('out')}
-                >
-                  Out
-                </button>
-                <button
-                  type="button"
-                  role="tab"
-                  aria-selected={statusFilter === 'order'}
-                  className={`stock-status-filter${statusFilter === 'order' ? ' active' : ''}`}
-                  onClick={() => setStatusFilter('order')}
-                >
-                  To order
-                </button>
-              </div>
-            </div>
-
-            {visibilityFilterControls}
-
-            {toolbarActionButtons ? (
-              <div className="stock-toolbar-actions">{toolbarActionButtons}</div>
-            ) : null}
-          </div>
-
-          <div className="stock-browse-controls">{browseControlFields}</div>
-        </>
-      )}
+      {compactBrowseToolbar}
 
       {selectionMode && canManage ? (
         <div className="stock-selection-bar">
