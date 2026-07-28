@@ -284,7 +284,11 @@ describe('InventoryCountPostedReview (P8.20.4 / P8.20.7 / P8.20.9 / P8.20.10)', 
     expect(container.querySelector('[data-posted-qty="true"]')?.textContent).toBe('8')
     expect(container.querySelector('[data-current-effective="true"]')?.textContent).toBe('8')
     expect(container.querySelector('[data-delta-since-posted="true"]')?.textContent).toBe('0')
-    expect(container.textContent).toContain('Corrections will be handled through a separate audited workflow.')
+    expect(container.textContent).not.toContain(
+      'Corrections will be handled through a separate audited workflow.',
+    )
+    expect(container.querySelector('.inventory-count-posted-review-footnote')).toBeNull()
+    expect(container.textContent).toContain('Suggest Correction')
     expect(container.querySelector('input')).toBeNull()
     expect(container.querySelector('textarea')).toBeNull()
     expect(container.textContent).not.toContain('Pause')
@@ -694,16 +698,30 @@ describe('InventoryCountPostedReview (P8.20.4 / P8.20.7 / P8.20.9 / P8.20.10)', 
     expect(timelineLabels).toEqual(['Posted Count', 'Correction 1', 'Correction 2'])
 
     const summary = container.querySelector('[data-inventory-count-audit-summary="true"]')
-    expect(summary?.textContent).toContain('Original Posted')
-    expect(summary?.textContent).toContain('Current Effective')
-    expect(summary?.textContent).toContain('Corrections')
-    expect(summary?.textContent).toContain('Net Adjustment')
+    const summaryLabels = Array.from(
+      summary.querySelectorAll('.inventory-count-posted-review-audit-summary-label'),
+    ).map((node) => node.textContent)
+    expect(summaryLabels).toEqual([
+      'Posted Total',
+      'Current Total',
+      'Correction Batches',
+      'Net Adjustment',
+    ])
+    expect(summary?.textContent).not.toContain('Original Posted')
+    expect(summary?.textContent).not.toContain('Current Effective')
     expect(summary?.textContent).toContain('6')
     expect(summary?.textContent).toContain('5')
     expect(summary?.textContent).toContain('2')
     expect(summary?.textContent).toContain('−1')
     expect(summary.querySelector('.is-effective')).toBeTruthy()
+    expect(summary.querySelector('.is-effective .inventory-count-posted-review-audit-summary-label')?.textContent)
+      .toBe('Current Total')
 
+    expect(container.textContent).toContain('Immutable historical record')
+    expect(container.textContent).toContain('Suggest Correction')
+    expect(container.textContent).not.toContain(
+      'Corrections will be handled through a separate audited workflow.',
+    )
     expect(container.querySelector('#inventory-count-audit-original')).toBeTruthy()
     expect(container.querySelector('#inventory-count-audit-correction-1')).toBeTruthy()
     expect(container.querySelector('#inventory-count-audit-correction-2')).toBeTruthy()
@@ -837,11 +855,11 @@ describe('InventoryCountPostedReview (P8.20.4 / P8.20.7 / P8.20.9 / P8.20.10)', 
   })
 })
 
-describe('posted audit table CSS contracts (P8.20.11 / P8.20.12 / P8.20.13)', () => {
+describe('posted audit table CSS contracts (P8.20.11 / P8.20.12 / P8.20.13 / P8.20.14)', () => {
   it('keeps fixed layout, sticky opaque header, subtle zebra, clamp, and hierarchy', () => {
     const css = readFileSync(join(process.cwd(), 'src/App.css'), 'utf8')
     const tableCssStart = css.indexOf('.inventory-count-posted-review-table-wrap {')
-    const tableCssEnd = css.indexOf('.inventory-count-posted-review-footnote {')
+    const tableCssEnd = css.indexOf('.inventory-count-posted-review-corrections {')
     const tableCss = css.slice(tableCssStart, tableCssEnd)
 
     expect(tableCss).toContain('overflow-x: hidden')
@@ -870,6 +888,20 @@ describe('posted audit table CSS contracts (P8.20.11 / P8.20.12 / P8.20.13)', ()
     expect(tableCss).toContain('.inventory-count-posted-review-effective-qty')
     expect(tableCss).toContain('font-weight: 700')
     expect(tableCss).toContain('.inventory-count-posted-review-delta-badge.is-compact')
+  })
+
+  it('keeps a slightly stronger compact timeline contract', () => {
+    const css = readFileSync(join(process.cwd(), 'src/App.css'), 'utf8')
+    const timelineStart = css.indexOf('.inventory-count-posted-review-timeline {')
+    const timelineEnd = css.indexOf('.inventory-count-posted-review-timeline-details {')
+    const timelineCss = css.slice(timelineStart, timelineEnd)
+
+    expect(timelineCss).toContain('gap: 4px')
+    expect(timelineCss).toContain('width: 12px')
+    expect(timelineCss).toContain('height: 12px')
+    expect(timelineCss).toContain('width: 1.5px')
+    expect(timelineCss).toContain('rgba(212, 175, 55, 0.58)')
+    expect(css).not.toContain('.inventory-count-posted-review-footnote')
   })
 
   it('keeps posted audit table hooks and compact headers unchanged', async () => {

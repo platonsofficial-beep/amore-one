@@ -483,7 +483,7 @@ export function InventoryCountPostedReview({
               >
                 <div className="inventory-count-posted-review-audit-summary-item">
                   <span className="inventory-count-posted-review-audit-summary-label">
-                    Original Posted
+                    Posted Total
                   </span>
                   <span className="inventory-count-posted-review-audit-summary-value">
                     {formatQuantity(auditSummary.originalPostedQuantity)}
@@ -491,7 +491,7 @@ export function InventoryCountPostedReview({
                 </div>
                 <div className="inventory-count-posted-review-audit-summary-item is-effective">
                   <span className="inventory-count-posted-review-audit-summary-label">
-                    Current Effective
+                    Current Total
                   </span>
                   <span className="inventory-count-posted-review-audit-summary-value">
                     {formatQuantity(auditSummary.currentEffectiveQuantity)}
@@ -499,7 +499,7 @@ export function InventoryCountPostedReview({
                 </div>
                 <div className="inventory-count-posted-review-audit-summary-item">
                   <span className="inventory-count-posted-review-audit-summary-label">
-                    Corrections
+                    Correction Batches
                   </span>
                   <span className="inventory-count-posted-review-audit-summary-value">
                     {auditSummary.totalCorrections}
@@ -746,10 +746,6 @@ export function InventoryCountPostedReview({
               </table>
             )}
           </div>
-
-          <p className="inventory-count-posted-review-footnote" role="note">
-            Corrections will be handled through a separate audited workflow.
-          </p>
         </>
       ) : null}
     </section>

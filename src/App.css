@@ -32030,13 +32030,6 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   color: rgba(255, 247, 232, 0.62);
 }
 
-.inventory-count-posted-review-footnote {
-  margin: 0;
-  color: rgba(255, 247, 232, 0.55);
-  font-size: 0.86rem;
-  line-height: 1.4;
-}
-
 .inventory-count-posted-review-corrections {
   display: grid;
   gap: 14px;
@@ -32085,10 +32078,11 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 
 .inventory-count-posted-review-audit-summary-label {
   color: #9f9383;
-  font-size: 0.72rem;
+  font-size: 0.66rem;
   font-weight: 600;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.015em;
   text-transform: uppercase;
+  line-height: 1.2;
 }
 
 .inventory-count-posted-review-audit-summary-value {
@@ -32127,7 +32121,7 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   padding: 0;
   list-style: none;
   display: grid;
-  gap: 0;
+  gap: 4px;
 }
 
 .inventory-count-posted-review-timeline-item {
@@ -32138,20 +32132,20 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 .inventory-count-posted-review-timeline-item:not(:last-child)::before {
   content: '';
   position: absolute;
-  left: 21px;
-  top: 36px;
-  bottom: -2px;
-  width: 1px;
+  left: 22px;
+  top: 38px;
+  bottom: -4px;
+  width: 1.5px;
   background: linear-gradient(
     180deg,
-    rgba(212, 175, 55, 0.45) 0%,
-    rgba(212, 175, 55, 0.12) 100%
+    rgba(212, 175, 55, 0.58) 0%,
+    rgba(212, 175, 55, 0.2) 100%
   );
 }
 
 .inventory-count-posted-review-timeline-node {
   display: grid;
-  grid-template-columns: 20px minmax(0, 1fr) auto;
+  grid-template-columns: 22px minmax(0, 1fr) auto;
   align-items: center;
   gap: 10px;
   width: 100%;
@@ -32174,13 +32168,13 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 }
 
 .inventory-count-posted-review-timeline-dot {
-  width: 10px;
-  height: 10px;
+  width: 12px;
+  height: 12px;
   margin-left: 5px;
   border-radius: 50%;
-  border: 1.5px solid rgba(212, 175, 55, 0.7);
+  border: 1.5px solid rgba(212, 175, 55, 0.78);
   background: rgba(18, 18, 20, 0.95);
-  box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.08);
+  box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.1);
 }
 
 .inventory-count-posted-review-timeline-item.is-original .inventory-count-posted-review-timeline-dot {
