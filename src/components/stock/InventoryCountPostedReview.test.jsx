@@ -837,21 +837,67 @@ describe('InventoryCountPostedReview (P8.20.4 / P8.20.7 / P8.20.9 / P8.20.10)', 
   })
 })
 
-describe('posted audit table CSS contracts (P8.20.11 / P8.20.12)', () => {
-  it('keeps fixed layout, no wide min-width, two-line product clamp, and one-line location', () => {
+describe('posted audit table CSS contracts (P8.20.11 / P8.20.12 / P8.20.13)', () => {
+  it('keeps fixed layout, sticky opaque header, subtle zebra, clamp, and hierarchy', () => {
     const css = readFileSync(join(process.cwd(), 'src/App.css'), 'utf8')
     const tableCssStart = css.indexOf('.inventory-count-posted-review-table-wrap {')
     const tableCssEnd = css.indexOf('.inventory-count-posted-review-footnote {')
     const tableCss = css.slice(tableCssStart, tableCssEnd)
 
     expect(tableCss).toContain('overflow-x: hidden')
+    expect(tableCss).toContain('overflow-y: visible')
+    expect(tableCss).not.toContain('overflow-y: auto')
     expect(tableCss).toContain('table-layout: fixed')
     expect(tableCss).toContain('min-width: 0')
     expect(tableCss).not.toContain('min-width: 920px')
+
+    expect(tableCss).toContain('.inventory-count-posted-review-table thead th')
+    expect(tableCss).toMatch(/position:\s*sticky/)
+    expect(tableCss).toMatch(/top:\s*0/)
+    expect(tableCss).toMatch(/z-index:\s*2/)
+    expect(tableCss).toContain('background: #121214')
+    expect(tableCss).toMatch(/box-shadow:\s*inset 0 -1px 0/)
+
+    expect(tableCss).toContain('.inventory-count-posted-review-table tbody tr:nth-child(even) td')
+    expect(tableCss).toContain('rgba(255, 247, 232, 0.025)')
+    expect(tableCss).not.toMatch(/thead[^{]*nth-child\(even\)/)
+
     expect(tableCss).toMatch(/-webkit-line-clamp:\s*2/)
     expect(tableCss).toMatch(/line-clamp:\s*2/)
     expect(tableCss).toContain('.inventory-count-posted-review-table th.is-location')
     expect(tableCss).toContain('.inventory-count-posted-review-table td.is-location')
     expect(tableCss).toMatch(/white-space:\s*nowrap/)
+    expect(tableCss).toContain('.inventory-count-posted-review-effective-qty')
+    expect(tableCss).toContain('font-weight: 700')
+    expect(tableCss).toContain('.inventory-count-posted-review-delta-badge.is-compact')
+  })
+
+  it('keeps posted audit table hooks and compact headers unchanged', async () => {
+    const { container, cleanup } = render(createElement(InventoryCountPostedReview, {
+      sessionId: 'posted-1',
+      workspaceId: 'workspace-1',
+      onClose: vi.fn(),
+    }))
+    await flush()
+
+    expect(container.querySelector('[data-inventory-count-posted-review="true"]')).toBeTruthy()
+    expect(container.querySelector('.inventory-count-posted-review-table')).toBeTruthy()
+    expect(container.querySelector('[data-inventory-count-posted-lines="true"]')).toBeTruthy()
+    expect(
+      Array.from(container.querySelectorAll('.inventory-count-posted-review-table thead th'))
+        .map((node) => node.textContent),
+    ).toEqual([
+      'Item',
+      'Location',
+      'Expected',
+      'Counted',
+      'Variance',
+      'Posted',
+      'Current',
+      'Δ',
+      'Movement',
+    ])
+
+    cleanup()
   })
 })
