@@ -31983,8 +31983,8 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 }
 
 .inventory-count-posted-review-table-wrap {
-  overflow-x: hidden;
-  overflow-y: visible;
+  /* clip (not hidden) so sticky thead can use .main-panel as scroll owner */
+  overflow: clip;
   border-radius: 16px;
   border: 1px solid rgba(212, 175, 55, 0.16);
   background: rgba(12, 12, 14, 0.88);
@@ -31993,7 +31993,8 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 .inventory-count-posted-review-table {
   width: 100%;
   table-layout: fixed;
-  border-collapse: collapse;
+  border-collapse: separate;
+  border-spacing: 0;
   min-width: 0;
 }
 
@@ -32008,9 +32009,10 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 .inventory-count-posted-review-table thead th {
   position: sticky;
   top: 0;
-  z-index: 2;
+  z-index: 3;
   padding: 7px 8px;
   background: #121214;
+  background-clip: padding-box;
   color: #9f9383;
   font-size: 0.68rem;
   font-weight: 600;

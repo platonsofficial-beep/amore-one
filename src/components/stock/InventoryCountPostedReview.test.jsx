@@ -889,18 +889,21 @@ describe('posted audit table CSS contracts (P8.20.11 / P8.20.12 / P8.20.13 / P8.
     const tableCssEnd = css.indexOf('.inventory-count-posted-review-corrections {')
     const tableCss = css.slice(tableCssStart, tableCssEnd)
 
-    expect(tableCss).toContain('overflow-x: hidden')
-    expect(tableCss).toContain('overflow-y: visible')
+    expect(tableCss).toContain('overflow: clip')
+    expect(tableCss).not.toContain('overflow-x: hidden')
     expect(tableCss).not.toContain('overflow-y: auto')
     expect(tableCss).toContain('table-layout: fixed')
+    expect(tableCss).toContain('border-collapse: separate')
+    expect(tableCss).toContain('border-spacing: 0')
     expect(tableCss).toContain('min-width: 0')
     expect(tableCss).not.toContain('min-width: 920px')
 
     expect(tableCss).toContain('.inventory-count-posted-review-table thead th')
     expect(tableCss).toMatch(/position:\s*sticky/)
     expect(tableCss).toMatch(/top:\s*0/)
-    expect(tableCss).toMatch(/z-index:\s*2/)
+    expect(tableCss).toMatch(/z-index:\s*3/)
     expect(tableCss).toContain('background: #121214')
+    expect(tableCss).toContain('background-clip: padding-box')
     expect(tableCss).toMatch(/box-shadow:\s*inset 0 -1px 0/)
 
     expect(tableCss).toContain('.inventory-count-posted-review-table tbody tr:nth-child(even) td')
@@ -942,6 +945,9 @@ describe('posted audit table CSS contracts (P8.20.11 / P8.20.12 / P8.20.13 / P8.
     expect(container.querySelector('[data-inventory-count-posted-review="true"]')).toBeTruthy()
     expect(container.querySelector('.inventory-count-posted-review-table')).toBeTruthy()
     expect(container.querySelector('[data-inventory-count-posted-lines="true"]')).toBeTruthy()
+    expect(container.querySelector('[data-inventory-count-posted-table-sticky="true"]')).toBeTruthy()
+    expect(container.querySelectorAll('.inventory-count-posted-review-table thead')).toHaveLength(1)
+    expect(container.querySelectorAll('.inventory-count-posted-review-table tbody')).toHaveLength(1)
     expect(
       Array.from(container.querySelectorAll('.inventory-count-posted-review-table thead th'))
         .map((node) => node.textContent),
@@ -956,6 +962,7 @@ describe('posted audit table CSS contracts (P8.20.11 / P8.20.12 / P8.20.13 / P8.
       'Δ',
       'Movement',
     ])
+    expect(container.querySelectorAll('.inventory-count-posted-review-table tbody tr')).toHaveLength(1)
 
     cleanup()
   })
@@ -1398,7 +1405,47 @@ describe('posted review reversal audit note loading (P8.23.0a)', () => {
     expect(container.querySelector('[data-inventory-count-reverse-action="true"]')).toBeNull()
     expect(container.querySelector('.inventory-count-posted-review-suggest-btn')).toBeNull()
     expect(container.querySelector('[data-inventory-count-reverse-dialog="true"]')).toBeNull()
+    expect(container.querySelector('[data-inventory-count-posted-table-sticky="true"]')).toBeTruthy()
+    expect(container.querySelectorAll('.inventory-count-posted-review-table thead')).toHaveLength(1)
 
     cleanup()
+  })
+})
+
+describe('posted review sticky item table header (P8.23.3)', () => {
+  it('keeps one sticky thead contract for reversed and non-reversed reviews', async () => {
+    const { container, cleanup } = render(createElement(InventoryCountPostedReview, {
+      sessionId: 'posted-1',
+      workspaceId: 'workspace-1',
+      onClose: vi.fn(),
+    }))
+    await flush()
+
+    expect(container.querySelector('[data-inventory-count-posted-table-sticky="true"]')).toBeTruthy()
+    expect(container.querySelectorAll('.inventory-count-posted-review-table thead')).toHaveLength(1)
+    expect(container.querySelectorAll('.inventory-count-posted-review-table tbody tr').length).toBeGreaterThan(0)
+    expect(container.querySelector('[data-inventory-count-reverse-action="true"]')).toBeTruthy()
+    cleanup()
+
+    getPostedReviewMock.mockResolvedValue(reviewFixture({
+      session: {
+        reversedAt: '2026-07-28T18:00:00.000Z',
+        reversedBy: 'user-1',
+        reversalReason: 'Posted in error',
+      },
+    }))
+
+    const reversed = render(createElement(InventoryCountPostedReview, {
+      sessionId: 'posted-1',
+      workspaceId: 'workspace-1',
+      onClose: vi.fn(),
+    }))
+    await flush()
+
+    expect(reversed.container.querySelector('[data-inventory-count-reversed="true"]')).toBeTruthy()
+    expect(reversed.container.querySelector('[data-inventory-count-posted-table-sticky="true"]')).toBeTruthy()
+    expect(reversed.container.querySelectorAll('.inventory-count-posted-review-table thead')).toHaveLength(1)
+    expect(reversed.container.querySelector('[data-inventory-count-reverse-action="true"]')).toBeNull()
+    reversed.cleanup()
   })
 })

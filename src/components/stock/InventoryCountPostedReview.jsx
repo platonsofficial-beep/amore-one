@@ -889,7 +889,10 @@ export function InventoryCountPostedReview({
               </div>
             ) : (
               <table className="inventory-count-posted-review-table">
-                <thead>
+                <thead
+                  className="inventory-count-posted-review-table-head"
+                  data-inventory-count-posted-table-sticky="true"
+                >
                   <tr>
                     <th scope="col" className="is-item">Item</th>
                     <th scope="col" className="is-location">Location</th>
