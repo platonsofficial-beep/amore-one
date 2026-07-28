@@ -380,8 +380,15 @@ function formatLastMovementCell(item) {
   const movement = item.lastMovement
   if (!movement?.type) return '—'
   const label = getStockMovementLabel(movement.type)
-  const when = movement.createdAt ? formatStockMovementRelativeTime(movement.createdAt) : ''
+  const when = movement.createdAt ? formatStockListUpdatedWhen(movement.createdAt) : ''
   return when ? `${label} · ${when}` : label
+}
+
+/** Presentation-only Updated timestamp: "24 Jul · 15:35" / "Today · 15:35". */
+function formatStockListUpdatedWhen(value) {
+  const raw = formatStockMovementRelativeTime(value)
+  if (!raw) return ''
+  return raw.replace(/^(.+?)\s+(\d{1,2}:\d{2})$/u, '$1 · $2')
 }
 
 function StockListUpdatedCell({ item }) {
@@ -391,7 +398,7 @@ function StockListUpdatedCell({ item }) {
   }
 
   const label = getStockMovementLabel(movement.type)
-  const when = movement.createdAt ? formatStockMovementRelativeTime(movement.createdAt) : ''
+  const when = movement.createdAt ? formatStockListUpdatedWhen(movement.createdAt) : ''
 
   return (
     <div className="stock-list-updated" title={when ? `${label} · ${when}` : label}>
@@ -739,7 +746,7 @@ function StockCompactRow({
       <div className="stock-compact-actions">
         {canManage ? (
           <button type="button" className="ghost-btn stock-compact-count-btn" onClick={onCount}>
-            Quick stock count
+            Stock count
           </button>
         ) : (
           <button type="button" className="ghost-btn stock-compact-count-btn" onClick={onOpenHistory}>
@@ -869,7 +876,11 @@ function StockTodayActivitySection({ activityLine }) {
   if (!activityLine) return null
 
   return (
-    <section className="stock-today-activity panel staff-panel" aria-label="Today's stock activity">
+    <section
+      className="stock-today-activity panel staff-panel is-dense"
+      aria-label="Today's stock activity"
+      data-stock-widget-density="dense"
+    >
       <header className="stock-today-activity-header">
         <h3 className="stock-today-activity-title">What changed today</h3>
         <p className="stock-today-activity-line">{activityLine}</p>
@@ -890,8 +901,20 @@ function StockOperationsBanner({
 
   if (!hasCriticalStock && !hasPendingOrders) return null
 
+  const actionCount = [
+    canManage && awaitingDeliveryCount > 0,
+    canManage && partialCount > 0,
+    canManage && draftCount > 0,
+    hasPendingOrders,
+  ].filter(Boolean).length
+  const isDense = actionCount <= 2
+
   return (
-    <section className="stock-operations-banner panel staff-panel" aria-label="Today's stock actions">
+    <section
+      className={`stock-operations-banner panel staff-panel${isDense ? ' is-dense' : ''}`}
+      aria-label="Today's stock actions"
+      data-stock-widget-density={isDense ? 'dense' : 'expanded'}
+    >
       <header className="stock-operations-banner-header">
         <h3 className="stock-operations-banner-title">Today&apos;s stock actions</h3>
         <p className="stock-operations-banner-subtitle">
@@ -2119,24 +2142,36 @@ export function StockDashboardView({
             Selected: <strong>{selectedItems.length}</strong> product{selectedItems.length === 1 ? '' : 's'}
           </p>
           <div className="stock-bulk-toolbar-actions">
-            <button type="button" className="ghost-btn stock-bulk-action-btn" onClick={() => setBulkModalField('supplier')} disabled={isStockActionBusy}>
-              Change supplier
-            </button>
-            <button type="button" className="ghost-btn stock-bulk-action-btn" onClick={() => setBulkModalField('storageLocation')} disabled={isStockActionBusy}>
-              Change location
-            </button>
-            <button type="button" className="ghost-btn stock-bulk-action-btn" onClick={() => setBulkModalField('category')} disabled={isStockActionBusy}>
-              Change category
-            </button>
-            <button type="button" className="ghost-btn stock-bulk-action-btn" onClick={() => setBulkModalField('itemType')} disabled={isStockActionBusy}>
-              Change type
-            </button>
-            <button type="button" className="ghost-btn stock-bulk-action-btn" onClick={handleExportSelected} disabled={isStockActionBusy}>
-              Export selected
-            </button>
-            <button type="button" className="ghost-btn stock-bulk-action-btn" onClick={() => setSelectedIds(new Set())} disabled={isStockActionBusy}>
-              Clear
-            </button>
+            <div
+              className="stock-bulk-action-cluster"
+              data-stock-bulk-edit-cluster="true"
+              aria-label="Bulk edit fields"
+            >
+              <button type="button" className="ghost-btn stock-bulk-action-btn" onClick={() => setBulkModalField('supplier')} disabled={isStockActionBusy}>
+                Change supplier
+              </button>
+              <button type="button" className="ghost-btn stock-bulk-action-btn" onClick={() => setBulkModalField('storageLocation')} disabled={isStockActionBusy}>
+                Change location
+              </button>
+              <button type="button" className="ghost-btn stock-bulk-action-btn" onClick={() => setBulkModalField('category')} disabled={isStockActionBusy}>
+                Change category
+              </button>
+              <button type="button" className="ghost-btn stock-bulk-action-btn" onClick={() => setBulkModalField('itemType')} disabled={isStockActionBusy}>
+                Change type
+              </button>
+            </div>
+            <div
+              className="stock-bulk-action-cluster is-utility"
+              data-stock-bulk-utility-cluster="true"
+              aria-label="Bulk utilities"
+            >
+              <button type="button" className="ghost-btn stock-bulk-action-btn" onClick={handleExportSelected} disabled={isStockActionBusy}>
+                Export selected
+              </button>
+              <button type="button" className="ghost-btn stock-bulk-action-btn" onClick={() => setSelectedIds(new Set())} disabled={isStockActionBusy}>
+                Clear
+              </button>
+            </div>
           </div>
         </div>
       ) : null}

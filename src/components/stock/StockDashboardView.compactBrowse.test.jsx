@@ -65,6 +65,18 @@ describe('StockDashboardView compact browse CSS contract (P8.24.3)', () => {
     expect(APP_CSS).toContain('.stock-row-actions.is-compact .stock-row-action-btn.is-receive')
   })
 
+  it('locks P8.24.6 production polish contracts', () => {
+    expect(DASHBOARD_SOURCE).toContain('formatStockListUpdatedWhen')
+    expect(DASHBOARD_SOURCE).toContain('data-stock-bulk-edit-cluster')
+    expect(DASHBOARD_SOURCE).toContain('data-stock-bulk-utility-cluster')
+    expect(DASHBOARD_SOURCE).toContain('data-stock-widget-density')
+    expect(DASHBOARD_SOURCE).not.toContain('Quick stock count')
+    expect(DASHBOARD_SOURCE).toMatch(/stock-compact-count-btn[\s\S]{0,120}Stock count/)
+    expect(APP_CSS).toContain('.stock-operations-banner.is-dense')
+    expect(APP_CSS).toContain('.stock-today-activity.is-dense')
+    expect(APP_CSS).toContain('.stock-bulk-action-cluster')
+  })
+
   it('keeps the compact toolbar and six-column headers in source without legacy chip toolbar duplication', () => {
     expect(DASHBOARD_SOURCE).toContain('data-stock-compact-browse-toolbar')
     expect(DASHBOARD_SOURCE).toContain('StockToolbarOverflowMenu')

@@ -696,6 +696,11 @@ describe('StockDashboardView compact browse workspace (P8.24.3)', () => {
 
     click(container.querySelector('.stock-list-select-btn'))
     expect(container.querySelector('.stock-bulk-toolbar')).toBeTruthy()
+    expect(container.querySelector('[data-stock-bulk-edit-cluster="true"]')).toBeTruthy()
+    expect(container.querySelector('[data-stock-bulk-utility-cluster="true"]')).toBeTruthy()
+    expect(buttonByText(container, 'Change supplier')).toBeTruthy()
+    expect(buttonByText(container, 'Export selected')).toBeTruthy()
+    expect(buttonByText(container, 'Clear')).toBeTruthy()
     cleanup()
   })
 
