@@ -485,6 +485,63 @@ describe('InventoryCountWizard foundation', () => {
     cleanup()
   })
 
+  it('keeps the operator in the wizard when an empty snapshot is rejected (P8.21.2)', async () => {
+    buildInventoryCountSnapshot.mockRejectedValueOnce(
+      new Error('No inventory items were found for the selected location(s).'),
+    )
+    const onStartSession = vi.fn()
+    const onClose = vi.fn()
+    const { container, cleanup } = render(
+      createElement(InventoryCountWizard, { isOpen: true, onClose, onStartSession }),
+    )
+    await flushAsync()
+
+    const { continueBtn } = await goToStep3(container, ['Main Bar', 'Main Storage'])
+    await act(async () => {
+      continueBtn.click()
+    })
+
+    expect(container.textContent).toContain('Step 4 of 4')
+
+    await act(async () => {
+      getButtonByText(container, 'Start Inventory Count Session').click()
+    })
+
+    expect(onStartSession).not.toHaveBeenCalled()
+    expect(onClose).not.toHaveBeenCalled()
+    expect(container.querySelector('[role="dialog"]')).not.toBeNull()
+    expect(container.textContent).toContain('Step 4 of 4')
+    expect(container.querySelector('.staff-status-banner')?.textContent)
+      .toBe('No inventory items were found for the selected location(s).')
+    expect(container.textContent).toContain('Main Bar')
+    expect(container.textContent).toContain('Main Storage')
+
+    const backBtn = getButtonByText(container, 'Back')
+    await act(async () => {
+      backBtn.click()
+    })
+    await act(async () => {
+      backBtn.click()
+    })
+
+    expect(container.textContent).toContain('Step 2 of 4')
+    expect(getLocationCardByTitle(container, 'Main Bar').getAttribute('aria-checked')).toBe('true')
+    expect(getLocationCardByTitle(container, 'Main Storage').getAttribute('aria-checked')).toBe('true')
+
+    await act(async () => {
+      getLocationCardByTitle(container, 'Main Storage').click()
+    })
+    await act(async () => {
+      getLocationCardByTitle(container, 'Freezer').click()
+    })
+
+    expect(getLocationCardByTitle(container, 'Main Storage').getAttribute('aria-checked')).toBe('false')
+    expect(getLocationCardByTitle(container, 'Freezer').getAttribute('aria-checked')).toBe('true')
+    expect(getButtonByText(container, 'Continue')?.disabled).toBe(false)
+
+    cleanup()
+  })
+
   it('prevents duplicate Start submissions while request is running', async () => {
     let resolveCreate
     createInventoryCountSession.mockImplementationOnce(

@@ -20,6 +20,7 @@ vi.mock('./membershipService', () => ({
 
 import {
   applyInventoryCountCorrections,
+  buildInventoryCountSnapshot,
   collectDistinctInventoryCountStorageLocations,
   completeInventoryCountLocation,
   cancelInventoryCountSession,
@@ -2750,6 +2751,79 @@ describe('build_inventory_count_snapshot SQL contract (P8.3.9c)', () => {
     expect(functionBody).toContain('inventory_count_snapshot_already_exists')
     expect(functionBody).toContain('snapshot_at = v_snapshot_created_at')
     expect(functionBody).toContain('and s.snapshot_at is null')
+  })
+
+  it('rejects empty snapshots before writing snapshot_at (P8.21.2)', () => {
+    expect(functionBody).toContain('get diagnostics v_items_created = row_count')
+    expect(functionBody).toContain('inventory_count_snapshot_empty')
+    expect(functionBody).toMatch(
+      /get diagnostics v_items_created = row_count;[\s\S]*if v_items_created < 1 then[\s\S]*raise exception 'inventory_count_snapshot_empty';[\s\S]*snapshot_at = v_snapshot_created_at/,
+    )
+    const emptyGuardIndex = functionBody.indexOf("raise exception 'inventory_count_snapshot_empty'")
+    const snapshotAtIndex = functionBody.indexOf('snapshot_at = v_snapshot_created_at')
+    expect(emptyGuardIndex).toBeGreaterThan(-1)
+    expect(snapshotAtIndex).toBeGreaterThan(-1)
+    expect(emptyGuardIndex).toBeLessThan(snapshotAtIndex)
+  })
+})
+
+describe('buildInventoryCountSnapshot empty protection (P8.21.2)', () => {
+  beforeEach(() => {
+    fromMock.mockReset()
+    rpcMock.mockReset()
+  })
+
+  it('succeeds when the snapshot creates matching items', async () => {
+    rpcMock.mockResolvedValue({
+      data: [{
+        session_id: 'session-1',
+        items_created: 4,
+        snapshot_created_at: '2026-07-28T12:00:00.000Z',
+      }],
+      error: null,
+    })
+
+    await expect(buildInventoryCountSnapshot({
+      workspaceId: 'workspace-1',
+      sessionId: 'session-1',
+    })).resolves.toEqual({
+      sessionId: 'session-1',
+      itemsCreated: 4,
+      snapshotCreatedAt: '2026-07-28T12:00:00.000Z',
+    })
+
+    expect(rpcMock).toHaveBeenCalledWith('build_inventory_count_snapshot', {
+      p_workspace_id: 'workspace-1',
+      p_session_id: 'session-1',
+    })
+  })
+
+  it('maps empty-snapshot RPC rejection to the operator-facing message', async () => {
+    rpcMock.mockResolvedValue({
+      data: null,
+      error: { message: 'inventory_count_snapshot_empty' },
+    })
+
+    await expect(buildInventoryCountSnapshot({
+      workspaceId: 'workspace-1',
+      sessionId: 'session-1',
+    })).rejects.toThrow('No inventory items were found for the selected location(s).')
+  })
+
+  it('rejects a zero-item success payload so empty counts never become usable', async () => {
+    rpcMock.mockResolvedValue({
+      data: [{
+        session_id: 'session-1',
+        items_created: 0,
+        snapshot_created_at: '2026-07-28T12:00:00.000Z',
+      }],
+      error: null,
+    })
+
+    await expect(buildInventoryCountSnapshot({
+      workspaceId: 'workspace-1',
+      sessionId: 'session-1',
+    })).rejects.toThrow('No inventory items were found for the selected location(s).')
   })
 })
 

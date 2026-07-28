@@ -296,6 +296,8 @@ function mapInventoryCountRpcError(error, fallbackMessage) {
       return new Error('Inventory count snapshot fields cannot be changed.')
     case 'inventory_count_snapshot_already_exists':
       return new Error('A snapshot has already been created for this inventory count session.')
+    case 'inventory_count_snapshot_empty':
+      return new Error('No inventory items were found for the selected location(s).')
     case 'inventory_count_item_session_item_required':
       return new Error('Inventory count item is required.')
     case 'inventory_count_item_not_found':
@@ -702,6 +704,10 @@ export async function buildInventoryCountSnapshot({
   const mapped = mapInventoryCountSnapshotResult(firstRpcRow(data))
   if (!mapped) {
     throw new Error('Inventory count snapshot response was empty or invalid.')
+  }
+
+  if (mapped.itemsCreated < 1) {
+    throw new Error('No inventory items were found for the selected location(s).')
   }
 
   return mapped

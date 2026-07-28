@@ -12,6 +12,7 @@
 --   Atomic SECURITY DEFINER entry point that freezes eligible stock_items into
 --   inventory_count_session_items and sets inventory_count_sessions.snapshot_at
 --   to one authoritative freeze timestamp.
+--   P8.21.2: rejects empty snapshots (zero items) before writing snapshot_at.
 --
 -- Does NOT:
 --   - Accept snapshot values / quantities / items from the client
@@ -170,6 +171,12 @@ begin
 
   get diagnostics v_items_created = row_count;
 
+  -- P8.21.2: never freeze an empty inventory count. Raising here rolls back the
+  -- insert above and leaves sessions.snapshot_at unset.
+  if v_items_created < 1 then
+    raise exception 'inventory_count_snapshot_empty';
+  end if;
+
   -- Authoritative freeze timestamp (same transaction; null → timestamp allowed)
   update public.inventory_count_sessions s
   set
@@ -195,7 +202,7 @@ revoke all on function public.build_inventory_count_snapshot(uuid, uuid) from pu
 grant execute on function public.build_inventory_count_snapshot(uuid, uuid) to authenticated;
 
 comment on function public.build_inventory_count_snapshot(uuid, uuid) is
-  'P8.3.2/P8.3.9c SECURITY DEFINER freeze stock_items into session items and set sessions.snapshot_at. No counting, posting, or stock mutations.';
+  'P8.3.2/P8.3.9c/P8.21.2 SECURITY DEFINER freeze stock_items into session items and set sessions.snapshot_at. Rejects empty snapshots. No counting, posting, or stock mutations.';
 
 -- =============================================================================
 -- Rollback (emergency only)
