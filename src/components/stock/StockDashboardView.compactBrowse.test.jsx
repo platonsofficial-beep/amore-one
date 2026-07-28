@@ -77,6 +77,32 @@ describe('StockDashboardView compact browse CSS contract (P8.24.3)', () => {
     expect(APP_CSS).toContain('.stock-bulk-action-cluster')
   })
 
+  it('locks P8.24.7 motion, refine cluster, and More menu grouping contracts', () => {
+    expect(DASHBOARD_SOURCE).toContain('data-stock-browse-refine-cluster')
+    expect(APP_CSS).toContain('stockDashboardContentIn')
+    expect(APP_CSS).toContain('prefers-reduced-motion: reduce')
+    expect(APP_CSS).toContain('.stock-browse-refine-cluster')
+    expect(APP_CSS).toMatch(/\.stock-list-table\s*\{[^}]*table-layout:\s*fixed/)
+    expect(APP_CSS).not.toMatch(/\.stock-list-table\s*\{[^}]*min-width:\s*920px/)
+
+    const moreMenuSource = readFileSync(
+      resolve(process.cwd(), 'src/components/stock/StockItemMoreMenu.jsx'),
+      'utf8',
+    )
+    expect(moreMenuSource).toContain("id: 'usage'")
+    expect(moreMenuSource).toContain("id: 'adjust'")
+    expect(moreMenuSource).toContain("id: 'edit'")
+    expect(moreMenuSource).toContain("id: 'duplicate'")
+    expect(moreMenuSource).toContain("id: 'history'")
+    expect(moreMenuSource).toContain("id: 'deactivate'")
+    expect(moreMenuSource).toContain("id: 'permanently_delete'")
+    expect(moreMenuSource).toContain("id: 'sep-operations'")
+    expect(moreMenuSource).toContain("id: 'sep-management'")
+    expect(moreMenuSource).toContain("id: 'sep-lifecycle'")
+    expect(moreMenuSource.indexOf("id: 'sep-lifecycle'"))
+      .toBeLessThan(moreMenuSource.indexOf("id: 'permanently_delete'"))
+  })
+
   it('keeps the compact toolbar and six-column headers in source without legacy chip toolbar duplication', () => {
     expect(DASHBOARD_SOURCE).toContain('data-stock-compact-browse-toolbar')
     expect(DASHBOARD_SOURCE).toContain('StockToolbarOverflowMenu')

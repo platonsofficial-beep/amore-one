@@ -314,7 +314,16 @@ describe('StockDashboardView visibility UI', () => {
     }))
 
     const labels = Array.from(document.querySelectorAll('[role="menuitem"]')).map((node) => node.textContent)
-    expect(labels).toContain('Reactivate')
+    expect(labels).toEqual([
+      'Usage',
+      'Adjust',
+      'Edit',
+      'Duplicate',
+      'History & details',
+      'Reactivate',
+      'Permanently Delete…',
+    ])
+    expect(document.querySelectorAll('[role="separator"]')).toHaveLength(3)
     expect(labels).toContain('Permanently Delete…')
     expect(labels).toContain('Edit')
 

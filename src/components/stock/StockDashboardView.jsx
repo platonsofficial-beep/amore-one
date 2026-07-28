@@ -293,11 +293,11 @@ function StockItemCard({
       </p>
 
       <div className="stock-item-meta-lines">
-        <p className="stock-item-meta-line">
+        <p className="stock-item-meta-line is-supplier">
           <span className="stock-item-meta-label">Supplier</span>
           <span>{supplierLabel || '—'}</span>
         </p>
-        <p className="stock-item-meta-line">
+        <p className="stock-item-meta-line is-location">
           <span className="stock-item-meta-label">Location</span>
           <span>{location}</span>
         </p>
@@ -1935,31 +1935,36 @@ export function StockDashboardView({
           </div>
         </div>
 
-        <div className="stock-browse-control stock-browse-group">
-          <span className="stock-browse-control-label">Group by</span>
-          <StockSortDropdown
-            value={groupBy}
-            options={STOCK_GROUP_BY_OPTIONS}
-            onChange={setGroupBy}
-            ariaLabel="Group stock items"
-          />
-        </div>
+        <div
+          className="stock-browse-refine-cluster"
+          data-stock-browse-refine-cluster="true"
+        >
+          <div className="stock-browse-control stock-browse-group">
+            <span className="stock-browse-control-label">Group by</span>
+            <StockSortDropdown
+              value={groupBy}
+              options={STOCK_GROUP_BY_OPTIONS}
+              onChange={setGroupBy}
+              ariaLabel="Group stock items"
+            />
+          </div>
 
-        <div className="stock-browse-control stock-browse-sort">
-          <span className="stock-browse-control-label">Sort</span>
-          <StockSortDropdown
-            value={sortKey}
-            options={STOCK_SORT_OPTIONS}
-            onChange={setSortKey}
-            ariaLabel="Sort stock items"
-          />
-        </div>
+          <div className="stock-browse-control stock-browse-sort">
+            <span className="stock-browse-control-label">Sort</span>
+            <StockSortDropdown
+              value={sortKey}
+              options={STOCK_SORT_OPTIONS}
+              onChange={setSortKey}
+              ariaLabel="Sort stock items"
+            />
+          </div>
 
-        {!isLoading && browseMatchCount > 0 ? (
-          <p className="stock-browse-result-count" aria-live="polite">
-            Showing {visibleItems.length} of {browseMatchCount} product{browseMatchCount === 1 ? '' : 's'}
-          </p>
-        ) : null}
+          {!isLoading && browseMatchCount > 0 ? (
+            <p className="stock-browse-result-count" aria-live="polite">
+              Showing {visibleItems.length} of {browseMatchCount} product{browseMatchCount === 1 ? '' : 's'}
+            </p>
+          ) : null}
+        </div>
       </div>
 
       {canManage ? (

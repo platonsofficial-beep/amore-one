@@ -6,14 +6,16 @@ const MENU_MARGIN = 8
 const MOBILE_SHEET_QUERY = '(max-width: 900px)'
 
 const MENU_ITEMS = [
-  { id: 'usage', label: 'Usage' },
-  { id: 'adjust', label: 'Adjust' },
-  { id: 'edit', label: 'Edit' },
-  { id: 'duplicate', label: 'Duplicate' },
-  { id: 'history', label: 'History & details' },
-  { id: 'deactivate', label: 'Deactivate' },
-  { id: 'separator', type: 'separator' },
-  { id: 'permanently_delete', label: 'Permanently Delete…', danger: true },
+  { id: 'usage', label: 'Usage', group: 'operations' },
+  { id: 'adjust', label: 'Adjust', group: 'operations' },
+  { id: 'sep-operations', type: 'separator' },
+  { id: 'edit', label: 'Edit', group: 'management' },
+  { id: 'duplicate', label: 'Duplicate', group: 'management' },
+  { id: 'history', label: 'History & details', group: 'management' },
+  { id: 'sep-management', type: 'separator' },
+  { id: 'deactivate', label: 'Deactivate', group: 'lifecycle' },
+  { id: 'sep-lifecycle', type: 'separator' },
+  { id: 'permanently_delete', label: 'Permanently Delete…', danger: true, group: 'destructive' },
 ]
 
 function computeMenuPosition(anchorRect, menuWidth, menuHeight) {

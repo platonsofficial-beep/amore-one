@@ -614,6 +614,7 @@ describe('StockDashboardView compact browse workspace (P8.24.3)', () => {
     expect(browseRow.querySelector('[aria-label="Stock categories"]')).toBeTruthy()
     expect(browseRow.querySelector('[aria-label="Product visibility"]')).toBeTruthy()
     expect(browseRow.querySelectorAll('.stock-layout-mode-btn')).toHaveLength(3)
+    expect(browseRow.querySelector('[data-stock-browse-refine-cluster="true"]')).toBeTruthy()
     expect(browseRow.querySelector('[aria-label="Group stock items"]')).toBeTruthy()
     expect(browseRow.querySelector('[aria-label="Sort stock items"]')).toBeTruthy()
     expect(resultCountText(container)).toMatch(/Showing 1 of 1/)
