@@ -41,6 +41,7 @@ import {
   postInventoryCountFinish,
   previewInventoryCountFinish,
   reconstructInventoryCountResultAfterPost,
+  reverseInventoryCountSession,
   setInventoryCountSessionPauseState,
   summarizeInventoryCountPostedReview,
   updateInventoryCountItem,
@@ -2649,6 +2650,191 @@ describe('postInventoryCountFinish', () => {
   })
 })
 
+describe('reverseInventoryCountSession (P8.22.7)', () => {
+  beforeEach(() => {
+    fromMock.mockReset()
+    rpcMock.mockReset()
+  })
+
+  function reversePayload(overrides = {}) {
+    return {
+      reversal_id: 'reversal-1',
+      session_id: 'session-1',
+      workspace_id: 'workspace-1',
+      status: 'posted',
+      reversed_at: '2026-07-28T18:00:00.000Z',
+      reversed_by: 'user-1',
+      reason: 'Posted in error',
+      note: 'Ops note',
+      source_movement_count: 2,
+      reversal_movement_count: 2,
+      line_count: 2,
+      movements: [
+        {
+          original_movement_id: 'mov-1',
+          reversal_movement_id: 'mov-r1',
+          item_id: 'item-1',
+          original_quantity: 3,
+          reversal_quantity: -3,
+        },
+        {
+          original_movement_id: 'mov-2',
+          reversal_movement_id: 'mov-r2',
+          item_id: 'item-2',
+          original_quantity: -1.5,
+          reversal_quantity: 1.5,
+        },
+      ],
+      preserved: {
+        session_status_unchanged: true,
+        session_items_unchanged: true,
+        original_posted_movements_unchanged: true,
+        original_correction_movements_unchanged: true,
+      },
+      message: 'Inventory count reversed successfully.',
+      ...overrides,
+    }
+  }
+
+  it('calls reverse_inventory_count_session and maps the payload without altering ids or quantities', async () => {
+    rpcMock.mockResolvedValue({
+      data: reversePayload(),
+      error: null,
+    })
+
+    const result = await reverseInventoryCountSession({
+      workspaceId: 'workspace-1',
+      sessionId: 'session-1',
+      reason: '  Posted in error  ',
+      note: 'Ops note',
+    })
+
+    expect(fromMock).not.toHaveBeenCalled()
+    expect(rpcMock).toHaveBeenCalledTimes(1)
+    expect(rpcMock).toHaveBeenCalledWith('reverse_inventory_count_session', {
+      p_workspace_id: 'workspace-1',
+      p_session_id: 'session-1',
+      p_reason: 'Posted in error',
+      p_note: 'Ops note',
+    })
+    expect(result).toEqual({
+      reversalId: 'reversal-1',
+      sessionId: 'session-1',
+      workspaceId: 'workspace-1',
+      status: 'posted',
+      reversedAt: '2026-07-28T18:00:00.000Z',
+      reversedBy: 'user-1',
+      reason: 'Posted in error',
+      note: 'Ops note',
+      sourceMovementCount: 2,
+      reversalMovementCount: 2,
+      lineCount: 2,
+      movements: [
+        {
+          originalMovementId: 'mov-1',
+          reversalMovementId: 'mov-r1',
+          itemId: 'item-1',
+          originalQuantity: 3,
+          reversalQuantity: -3,
+        },
+        {
+          originalMovementId: 'mov-2',
+          reversalMovementId: 'mov-r2',
+          itemId: 'item-2',
+          originalQuantity: -1.5,
+          reversalQuantity: 1.5,
+        },
+      ],
+      preserved: {
+        session_status_unchanged: true,
+        session_items_unchanged: true,
+        original_posted_movements_unchanged: true,
+        original_correction_movements_unchanged: true,
+      },
+      message: 'Inventory count reversed successfully.',
+    })
+  })
+
+  it('validates workspace, session, and non-empty reason before RPC', async () => {
+    await expect(
+      reverseInventoryCountSession({
+        sessionId: 'session-1',
+        reason: 'Posted in error',
+      }),
+    ).rejects.toThrow(/workspace/i)
+
+    await expect(
+      reverseInventoryCountSession({
+        workspaceId: 'workspace-1',
+        reason: 'Posted in error',
+      }),
+    ).rejects.toThrow(/session/i)
+
+    await expect(
+      reverseInventoryCountSession({
+        workspaceId: 'workspace-1',
+        sessionId: 'session-1',
+        reason: '   ',
+      }),
+    ).rejects.toThrow('A reversal reason is required.')
+
+    expect(rpcMock).not.toHaveBeenCalled()
+  })
+
+  it('maps every deterministic inventory_count_reversal_* error', async () => {
+    const cases = [
+      ['inventory_count_reversal_forbidden', 'You do not have permission to manage inventory counts for this workspace.'],
+      ['inventory_count_reversal_not_posted', 'Only posted inventory counts can be reversed.'],
+      ['inventory_count_reversal_already_reversed', 'This inventory count has already been reversed.'],
+      ['inventory_count_reversal_reason_required', 'A reversal reason is required.'],
+      ['inventory_count_reversal_movement_missing', 'A required inventory count movement is missing. Reverse was aborted.'],
+      ['inventory_count_reversal_movement_workspace_mismatch', 'A reversal source movement does not belong to this workspace.'],
+      ['inventory_count_reversal_movement_item_mismatch', 'A reversal source movement does not match its stock item.'],
+      ['inventory_count_reversal_movement_quantity_mismatch', 'A reversal source movement quantity does not match the stored inventory count effect.'],
+      ['inventory_count_reversal_quantity_update_failed', 'Unable to reverse inventory count right now. Retry.'],
+    ]
+
+    for (const [code, message] of cases) {
+      rpcMock.mockResolvedValueOnce({
+        data: null,
+        error: { message: code },
+      })
+      await expect(
+        reverseInventoryCountSession({
+          workspaceId: 'workspace-1',
+          sessionId: 'session-1',
+          reason: 'Posted in error',
+        }),
+      ).rejects.toThrow(message)
+    }
+  })
+
+  it('surfaces unknown SQL errors through the generic handler', async () => {
+    rpcMock.mockResolvedValueOnce({
+      data: null,
+      error: { message: 'totally_unknown_database_failure' },
+    })
+    await expect(
+      reverseInventoryCountSession({
+        workspaceId: 'workspace-1',
+        sessionId: 'session-1',
+        reason: 'Posted in error',
+      }),
+    ).rejects.toThrow('totally_unknown_database_failure')
+  })
+
+  it('rejects empty reverse payloads', async () => {
+    rpcMock.mockResolvedValueOnce({ data: null, error: null })
+    await expect(
+      reverseInventoryCountSession({
+        workspaceId: 'workspace-1',
+        sessionId: 'session-1',
+        reason: 'Posted in error',
+      }),
+    ).rejects.toThrow('Reverse inventory count response was empty or invalid.')
+  })
+})
+
 describe('preview_inventory_count_finish SQL contract', () => {
   const sql = readFileSync(
     resolve(process.cwd(), 'supabase/inventory_count_preview_finish_rpc.sql'),
@@ -3386,6 +3572,9 @@ describe('inventory_count_reversal_foundation SQL contract (P8.22.2)', () => {
     expect(serviceSource).toContain('reversed_at')
     expect(serviceSource).toContain('reversed_by')
     expect(serviceSource).toContain('reversal_reason')
-    expect(serviceSource).not.toMatch(/reverseInventoryCount|createInventoryCountReversal/i)
+    // P8.22.2 foundation SQL remains metadata-only; P8.22.7 owns the service wrapper.
+    expect(sql).not.toContain('reverse_inventory_count_session')
+    expect(serviceSource).toContain('reverseInventoryCountSession')
+    expect(serviceSource).not.toMatch(/createInventoryCountReversal/i)
   })
 })

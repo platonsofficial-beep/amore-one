@@ -12,6 +12,7 @@ const CANCEL_COMPLETION_RPC = 'cancel_inventory_count_completion'
 const DELETE_SESSION_RPC = 'delete_inventory_count_session'
 const REPAIR_CURRENT_LOCATION_RPC = 'repair_inventory_count_current_location'
 const APPLY_CORRECTIONS_RPC = 'apply_inventory_count_corrections'
+const REVERSE_SESSION_RPC = 'reverse_inventory_count_session'
 const SESSIONS_TABLE = 'inventory_count_sessions'
 const SESSION_ITEMS_TABLE = 'inventory_count_session_items'
 const SESSION_LOCATIONS_TABLE = 'inventory_count_session_locations'
@@ -119,7 +120,7 @@ function isTableUnavailableError(error) {
 
 function extractRpcErrorCode(error) {
   const message = `${error?.message ?? error?.details ?? error?.hint ?? ''}`.trim()
-  const match = message.match(/inventory_count_(?:session|snapshot|item|location|pause|preview|posted|post|reconcile|cancel|repair|delete|correction)_[a-z0-9_]+/i)
+  const match = message.match(/inventory_count_(?:session|snapshot|item|location|pause|preview|posted|post|reconcile|cancel|repair|delete|correction|reversal)_[a-z0-9_]+/i)
   return match?.[0]?.toLowerCase() ?? ''
 }
 
@@ -147,6 +148,7 @@ function mapInventoryCountRpcError(error, fallbackMessage) {
     case 'inventory_count_cancel_unauthenticated':
     case 'inventory_count_delete_unauthenticated':
     case 'inventory_count_correction_unauthenticated':
+    case 'inventory_count_reversal_unauthenticated':
       return new Error('You must be signed in to manage inventory counts.')
     case 'inventory_count_session_forbidden':
     case 'inventory_count_snapshot_forbidden':
@@ -158,6 +160,7 @@ function mapInventoryCountRpcError(error, fallbackMessage) {
     case 'inventory_count_cancel_forbidden':
     case 'inventory_count_delete_forbidden':
     case 'inventory_count_correction_forbidden':
+    case 'inventory_count_reversal_forbidden':
       return new Error('You do not have permission to manage inventory counts for this workspace.')
     case 'inventory_count_session_workspace_required':
     case 'inventory_count_snapshot_workspace_required':
@@ -169,6 +172,7 @@ function mapInventoryCountRpcError(error, fallbackMessage) {
     case 'inventory_count_cancel_workspace_required':
     case 'inventory_count_delete_workspace_required':
     case 'inventory_count_correction_workspace_required':
+    case 'inventory_count_reversal_workspace_required':
       return new Error('Workspace is required.')
     case 'inventory_count_session_workspace_not_found':
       return new Error('Workspace was not found.')
@@ -194,6 +198,7 @@ function mapInventoryCountRpcError(error, fallbackMessage) {
     case 'inventory_count_cancel_session_required':
     case 'inventory_count_delete_session_required':
     case 'inventory_count_correction_session_required':
+    case 'inventory_count_reversal_session_required':
       return new Error('Inventory count session is required.')
     case 'inventory_count_snapshot_session_not_found':
     case 'inventory_count_item_session_not_found':
@@ -204,6 +209,7 @@ function mapInventoryCountRpcError(error, fallbackMessage) {
     case 'inventory_count_cancel_session_not_found':
     case 'inventory_count_delete_session_not_found':
     case 'inventory_count_correction_session_not_found':
+    case 'inventory_count_reversal_session_not_found':
       return new Error('Inventory count session was not found.')
     case 'inventory_count_snapshot_workspace_mismatch':
     case 'inventory_count_item_workspace_mismatch':
@@ -214,6 +220,7 @@ function mapInventoryCountRpcError(error, fallbackMessage) {
     case 'inventory_count_cancel_workspace_mismatch':
     case 'inventory_count_delete_workspace_mismatch':
     case 'inventory_count_correction_workspace_mismatch':
+    case 'inventory_count_reversal_workspace_mismatch':
       return new Error('Inventory count session does not belong to this workspace.')
     case 'inventory_count_delete_failed':
       return new Error('Unable to delete inventory count right now.')
@@ -221,6 +228,28 @@ function mapInventoryCountRpcError(error, fallbackMessage) {
       return new Error('This inventory count has already been posted and cannot be deleted. You can correct it, or reverse it once that feature becomes available.')
     case 'inventory_count_correction_session_not_posted':
       return new Error('Only posted inventory counts can receive corrections.')
+    case 'inventory_count_reversal_not_posted':
+      return new Error('Only posted inventory counts can be reversed.')
+    case 'inventory_count_reversal_already_reversed':
+      return new Error('This inventory count has already been reversed.')
+    case 'inventory_count_reversal_reason_required':
+      return new Error('A reversal reason is required.')
+    case 'inventory_count_reversal_movement_missing':
+      return new Error('A required inventory count movement is missing. Reverse was aborted.')
+    case 'inventory_count_reversal_movement_workspace_mismatch':
+      return new Error('A reversal source movement does not belong to this workspace.')
+    case 'inventory_count_reversal_movement_item_mismatch':
+      return new Error('A reversal source movement does not match its stock item.')
+    case 'inventory_count_reversal_movement_quantity_mismatch':
+      return new Error('A reversal source movement quantity does not match the stored inventory count effect.')
+    case 'inventory_count_reversal_stock_item_missing':
+      return new Error('A stock item referenced by the reversal was not found.')
+    case 'inventory_count_reversal_quantity_update_failed':
+    case 'inventory_count_reversal_movement_failed':
+    case 'inventory_count_reversal_audit_failed':
+    case 'inventory_count_reversal_movement_count_mismatch':
+    case 'inventory_count_reversal_session_finalize_failed':
+      return new Error('Unable to reverse inventory count right now. Retry.')
     case 'inventory_count_correction_empty':
     case 'inventory_count_correction_payload_required':
     case 'inventory_count_correction_no_changes':
@@ -2169,4 +2198,71 @@ export async function postInventoryCountFinish({
   }
 
   return mapped
+}
+
+/**
+ * Reverse a posted inventory count via SECURITY DEFINER RPC (P8.22.7).
+ * No UI consumer yet — service contract only.
+ */
+export async function reverseInventoryCountSession({
+  workspaceId,
+  sessionId,
+  reason,
+  note = '',
+} = {}) {
+  requireConfiguredSupabase()
+
+  const p_workspace_id = requireId(workspaceId, 'Workspace')
+  const p_session_id = requireId(sessionId, 'Session')
+  const p_reason = `${reason ?? ''}`.trim()
+  if (!p_reason) {
+    throw new Error('A reversal reason is required.')
+  }
+  const p_note = note == null ? '' : `${note}`
+
+  const { data, error } = await supabase.rpc(REVERSE_SESSION_RPC, {
+    p_workspace_id,
+    p_session_id,
+    p_reason,
+    p_note,
+  })
+
+  if (error) {
+    console.error('[inventoryCountService] reverseInventoryCountSession error:', error)
+    throw mapInventoryCountRpcError(error, 'Unable to reverse inventory count right now.')
+  }
+
+  const result = firstRpcRow(data) ?? data
+  const reversalId = `${result?.reversal_id ?? result?.reversalId ?? ''}`.trim()
+  if (!reversalId) {
+    throw new Error('Reverse inventory count response was empty or invalid.')
+  }
+
+  const movements = (Array.isArray(result?.movements) ? result.movements : []).map((row) => {
+    if (!row || typeof row !== 'object') return row
+    return {
+      originalMovementId: `${row.original_movement_id ?? row.originalMovementId ?? ''}`.trim() || null,
+      reversalMovementId: `${row.reversal_movement_id ?? row.reversalMovementId ?? ''}`.trim() || null,
+      itemId: `${row.item_id ?? row.itemId ?? ''}`.trim() || null,
+      originalQuantity: row.original_quantity ?? row.originalQuantity ?? null,
+      reversalQuantity: row.reversal_quantity ?? row.reversalQuantity ?? null,
+    }
+  })
+
+  return {
+    reversalId,
+    sessionId: `${result?.session_id ?? result?.sessionId ?? p_session_id}`.trim(),
+    workspaceId: `${result?.workspace_id ?? result?.workspaceId ?? p_workspace_id}`.trim(),
+    status: `${result?.status ?? 'posted'}`.trim() || 'posted',
+    reversedAt: result?.reversed_at ?? result?.reversedAt ?? null,
+    reversedBy: result?.reversed_by ?? result?.reversedBy ?? null,
+    reason: result?.reason ?? p_reason,
+    note: result?.note ?? p_note,
+    sourceMovementCount: Number(result?.source_movement_count ?? result?.sourceMovementCount ?? 0) || 0,
+    reversalMovementCount: Number(result?.reversal_movement_count ?? result?.reversalMovementCount ?? 0) || 0,
+    lineCount: Number(result?.line_count ?? result?.lineCount ?? 0) || 0,
+    movements,
+    preserved: result?.preserved ?? null,
+    message: `${result?.message ?? ''}`.trim() || 'Inventory count reversed successfully.',
+  }
 }
