@@ -35992,11 +35992,11 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   color: rgba(255, 247, 232, 0.48);
 }
 
-/* P8.25.1 — Import vs Legacy Migration ownership cards */
+/* P8.25.1 / P8.25.5 — Import ownership cards (primary Spreadsheet Import) */
 .stock-migration-ownership {
   display: grid;
   grid-template-columns: 1fr;
-  gap: 12px;
+  gap: 14px;
 }
 
 .stock-migration-ownership-card {
@@ -36011,8 +36011,57 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
     linear-gradient(180deg, rgba(255, 247, 232, 0.04) 0%, rgba(8, 8, 9, 0.22) 100%);
 }
 
-.stock-migration-ownership-card.is-legacy {
-  border-color: rgba(255, 247, 232, 0.14);
+.stock-migration-ownership-card.is-primary {
+  gap: 16px;
+  padding: 22px 22px 20px;
+  border-color: rgba(212, 175, 106, 0.42);
+  background:
+    linear-gradient(180deg, rgba(255, 247, 232, 0.07) 0%, rgba(8, 8, 9, 0.2) 100%);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.22);
+}
+
+.stock-migration-ownership-card.is-primary .stock-migration-ownership-title {
+  font-size: clamp(1.2rem, 1.8vw, 1.45rem);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.stock-migration-ownership-card.is-primary .stock-migration-ownership-description {
+  font-size: 0.95rem;
+  color: rgba(255, 247, 232, 0.8);
+  max-width: 40rem;
+}
+
+.stock-migration-ownership-card.is-legacy,
+.stock-migration-ownership-card.is-advanced {
+  gap: 10px;
+  padding: 14px 16px;
+  border-color: rgba(255, 247, 232, 0.1);
+  background:
+    linear-gradient(180deg, rgba(255, 247, 232, 0.025) 0%, rgba(8, 8, 9, 0.16) 100%);
+}
+
+.stock-migration-ownership-card.is-legacy .stock-migration-ownership-title,
+.stock-migration-ownership-card.is-advanced .stock-migration-ownership-title {
+  font-size: 0.98rem;
+  font-weight: 600;
+  color: rgba(255, 247, 232, 0.88);
+}
+
+.stock-migration-ownership-card.is-legacy .stock-migration-ownership-status,
+.stock-migration-ownership-card.is-advanced .stock-migration-ownership-status {
+  color: rgba(255, 247, 232, 0.48);
+}
+
+.stock-migration-ownership-card.is-legacy .stock-migration-ownership-description,
+.stock-migration-ownership-card.is-advanced .stock-migration-ownership-description {
+  font-size: 0.82rem;
+  color: rgba(255, 247, 232, 0.58);
+}
+
+.stock-migration-ownership-card.is-legacy .stock-migration-ownership-meta li,
+.stock-migration-ownership-card.is-advanced .stock-migration-ownership-meta li {
+  opacity: 0.82;
 }
 
 .stock-migration-ownership-card-copy {
@@ -36075,7 +36124,7 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 .stock-migration-ownership-open-import {
   min-height: 44px;
   min-width: 44px;
-  padding-inline: 14px;
+  padding-inline: 18px;
 }
 
 .stock-migration-ownership-action-note,
@@ -36084,6 +36133,12 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   color: rgba(255, 247, 232, 0.52);
   font-size: 0.78rem;
   line-height: 1.4;
+}
+
+.stock-migration-ownership-card.is-legacy .stock-migration-ownership-anchor-note,
+.stock-migration-ownership-card.is-advanced .stock-migration-ownership-anchor-note {
+  color: rgba(255, 247, 232, 0.42);
+  font-size: 0.74rem;
 }
 
 .stock-migration-legacy-workflow {
@@ -36150,8 +36205,12 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 
 @media (min-width: 900px) {
   .stock-migration-ownership {
-    grid-template-columns: 1fr 1fr;
-    align-items: stretch;
+    grid-template-columns: 1fr;
+    max-width: 52rem;
+  }
+
+  .stock-migration-ownership-card.is-primary {
+    padding: 24px 26px 22px;
   }
 }
 

@@ -212,7 +212,7 @@ describe('Import & Migration ownership + wiring (P8.25.1 / P8.25.2)', () => {
     expect(container.querySelector('.stock-migration-subtitle')?.textContent).toContain('Legacy Migration')
   })
 
-  it('renders both ownership cards with Spreadsheet Import control enabled', async () => {
+  it('renders both ownership cards with Spreadsheet Import as the primary control', async () => {
     await act(async () => {
       root.render(createElement(StockInventoryMigrationView, {
         workspaceId: WORKSPACE_ID,
@@ -224,18 +224,28 @@ describe('Import & Migration ownership + wiring (P8.25.1 / P8.25.2)', () => {
     const spreadsheetCard = container.querySelector('[data-stock-migration-ownership="spreadsheet-import"]')
     const legacyCard = container.querySelector('[data-stock-migration-ownership="legacy-migration"]')
     expect(spreadsheetCard?.textContent).toContain('Spreadsheet Import')
+    expect(spreadsheetCard?.className).toContain('is-primary')
+    expect(spreadsheetCard?.textContent).toContain('Primary onboarding workflow')
+    expect(spreadsheetCard?.textContent).toContain(
+      'Import your products from CSV or Excel using the guided import workflow.',
+    )
     expect(legacyCard?.textContent).toContain('Legacy Inventory Migration')
+    expect(legacyCard?.className).toContain('is-advanced')
+    expect(legacyCard?.textContent).toContain('One-time migration')
+    expect(legacyCard?.textContent).toContain(
+      'Only required when moving from a previous inventory system.',
+    )
 
     const openImport = container.querySelector('[data-stock-migration-open-import="true"]')
     expect(openImport).toBeTruthy()
     expect(openImport.disabled).toBe(false)
-    expect(spreadsheetCard?.textContent).toContain(
-      'Available from the Dashboard until the workspace move is completed.',
-    )
+    expect(openImport.textContent).toBe('Start Import')
+    expect(openImport.className).toContain('primary-btn')
 
     const openLegacy = container.querySelector('[data-stock-migration-open-legacy="true"]')
     expect(openLegacy).toBeTruthy()
     expect(openLegacy.disabled).toBe(false)
+    expect(openLegacy.textContent).toBe('Open Legacy Migration')
   })
 
   it('lands with ownership cards only and keeps the legacy workflow collapsed', async () => {
@@ -386,11 +396,13 @@ describe('Import & Migration ownership + wiring (P8.25.1 / P8.25.2)', () => {
     expect(dashboardSource).not.toContain('onImportStockItems')
   })
 
-  it('locks the iPad two-column ownership CSS contract', () => {
+  it('locks the primary Spreadsheet Import hierarchy CSS contract', () => {
     expect(appCss).toContain('.stock-migration-ownership')
     expect(appCss).toContain('.stock-migration-ownership-card')
+    expect(appCss).toContain('.stock-migration-ownership-card.is-primary')
+    expect(appCss).toContain('.stock-migration-ownership-card.is-advanced')
     expect(appCss).toMatch(
-      /@media\s*\(min-width:\s*900px\)\s*\{[\s\S]*?\.stock-migration-ownership\s*\{[\s\S]*?grid-template-columns:\s*1fr 1fr;/,
+      /@media\s*\(min-width:\s*900px\)\s*\{[\s\S]*?\.stock-migration-ownership\s*\{[\s\S]*?grid-template-columns:\s*1fr;/,
     )
   })
 })

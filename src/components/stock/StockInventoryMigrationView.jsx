@@ -377,15 +377,14 @@ export function StockInventoryMigrationView({
         data-stock-migration-landing="true"
       >
         <article
-          className="stock-migration-ownership-card"
+          className="stock-migration-ownership-card is-primary"
           data-stock-migration-ownership="spreadsheet-import"
         >
           <div className="stock-migration-ownership-card-copy">
-            <p className="stock-migration-ownership-status">Controlled import workflow</p>
+            <p className="stock-migration-ownership-status">Primary onboarding workflow</p>
             <h3 className="stock-migration-ownership-title">Spreadsheet Import</h3>
             <p className="stock-migration-ownership-description">
-              Import products from CSV or Excel, review matches, resolve issues, and prepare a
-              controlled catalog update.
+              Import your products from CSV or Excel using the guided import workflow.
             </p>
             <ul className="stock-migration-ownership-meta" aria-label="Spreadsheet Import capabilities">
               <li>CSV / XLSX</li>
@@ -397,28 +396,24 @@ export function StockInventoryMigrationView({
           <div className="stock-migration-ownership-card-action">
             <button
               type="button"
-              className="ghost-btn stock-migration-ownership-open-import"
+              className="primary-btn stock-migration-ownership-open-import"
               data-stock-migration-open-import="true"
               onClick={handleOpenSpreadsheetImport}
             >
-              Open Import
+              Start Import
             </button>
-            <p className="stock-migration-ownership-action-note">
-              Available from the Dashboard until the workspace move is completed.
-            </p>
           </div>
         </article>
 
         <article
-          className={`stock-migration-ownership-card is-legacy${isLegacyWorkflowOpen ? ' is-active' : ''}`}
+          className={`stock-migration-ownership-card is-legacy is-advanced${isLegacyWorkflowOpen ? ' is-active' : ''}`}
           data-stock-migration-ownership="legacy-migration"
         >
           <div className="stock-migration-ownership-card-copy">
-            <p className="stock-migration-ownership-status">One-time cutover workflow</p>
+            <p className="stock-migration-ownership-status">One-time migration</p>
             <h3 className="stock-migration-ownership-title">Legacy Inventory Migration</h3>
             <p className="stock-migration-ownership-description">
-              Move inventory from the previous legacy catalog into the live Stock system using
-              guided validation, mapping, apply, and audit steps.
+              Only required when moving from a previous inventory system.
             </p>
             <ul className="stock-migration-ownership-meta" aria-label="Legacy Migration capabilities">
               <li>Previous inventory catalog</li>
