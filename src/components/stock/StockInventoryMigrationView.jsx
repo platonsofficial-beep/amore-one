@@ -56,12 +56,13 @@ function pipelineStateClass(state) {
 
 /**
  * Import & Migration workspace — ownership introduction + legacy cutover surfaces.
- * Spreadsheet Import entry remains non-executing until a later mount sprint.
+ * Spreadsheet Import opens via the App-owned inventory import entry (Dashboard entry retained).
  */
 export function StockInventoryMigrationView({
   workspaceId = '',
   workspaceLabel = '',
   isWorkspaceReady = false,
+  onOpenInventoryImport = undefined,
 }) {
   const [metrics, setMetrics] = useState(createEmptyInventoryMigrationMetrics)
   const [manualReviewRows, setManualReviewRows] = useState([])
@@ -93,12 +94,29 @@ export function StockInventoryMigrationView({
   const [reloadNonce, setReloadNonce] = useState(0)
   const [diagnosticsOpen, setDiagnosticsOpen] = useState(false)
   const pageRef = useRef(null)
+  const legacyWorkflowRef = useRef(null)
+  const legacyWorkflowTitleRef = useRef(null)
   const diagnosticsOpenRef = useRef(false)
 
   diagnosticsOpenRef.current = diagnosticsOpen
 
   const refreshMigrationState = useCallback(() => {
     setReloadNonce((current) => current + 1)
+  }, [])
+
+  const handleOpenSpreadsheetImport = useCallback(() => {
+    onOpenInventoryImport?.()
+  }, [onOpenInventoryImport])
+
+  const handleOpenLegacyMigrationWorkflow = useCallback(() => {
+    const section = legacyWorkflowRef.current
+    if (section && typeof section.scrollIntoView === 'function') {
+      section.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }
+    const title = legacyWorkflowTitleRef.current
+    if (title && typeof title.focus === 'function') {
+      title.focus({ preventScroll: true })
+    }
   }, [])
 
   // Expand diagnostics before Manual Review checkpoint scroll (StageNavigator untouched).
@@ -358,9 +376,8 @@ export function StockInventoryMigrationView({
             <button
               type="button"
               className="ghost-btn stock-migration-ownership-open-import"
-              disabled
-              aria-disabled="true"
               data-stock-migration-open-import="true"
+              onClick={handleOpenSpreadsheetImport}
             >
               Open Import
             </button>
@@ -388,18 +405,35 @@ export function StockInventoryMigrationView({
               <li>Auditable apply</li>
             </ul>
           </div>
-          <p className="stock-migration-ownership-anchor-note">
-            Guided workflow and operator tools below belong to this cutover path.
-          </p>
+          <div className="stock-migration-ownership-card-action">
+            <button
+              type="button"
+              className="ghost-btn stock-migration-ownership-open-legacy"
+              data-stock-migration-open-legacy="true"
+              onClick={handleOpenLegacyMigrationWorkflow}
+            >
+              Open Legacy Migration
+            </button>
+            <p className="stock-migration-ownership-anchor-note">
+              Guided workflow and operator tools below belong to this cutover path.
+            </p>
+          </div>
         </article>
       </section>
 
       <section
+        ref={legacyWorkflowRef}
         className="stock-migration-legacy-workflow"
         aria-label="Legacy Inventory Migration workflow"
       >
         <header className="stock-migration-legacy-workflow-header">
-          <h3 className="stock-migration-legacy-workflow-title">Legacy Inventory Migration</h3>
+          <h3
+            ref={legacyWorkflowTitleRef}
+            className="stock-migration-legacy-workflow-title"
+            tabIndex={-1}
+          >
+            Legacy Inventory Migration
+          </h3>
           <p className="stock-migration-legacy-workflow-copy">
             Guided cutover from the previous inventory catalog into live Stock.
           </p>

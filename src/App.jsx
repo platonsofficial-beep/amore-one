@@ -516,6 +516,7 @@ import { InventoryCountView } from './components/stock/InventoryCountView'
 import { StockOrdersView } from './components/stock/StockOrdersView'
 import { StockSuppliersView } from './components/stock/StockSuppliersView'
 import { StockInventoryMigrationView } from './components/stock/StockInventoryMigrationView'
+import { InventoryImportWizardShell } from './components/stock/InventoryImportWizardShell'
 import { StockCreateOrderModal } from './components/stock/StockCreateOrderModal'
 import { OperationsAnnouncementFormModal } from './components/operations/OperationsAnnouncementFormModal'
 import { OperationsDashboardView } from './components/operations/OperationsDashboardView'
@@ -15642,6 +15643,7 @@ function App() {
   const [stockOrdersNotice, setStockOrdersNotice] = useState('')
   const [stockOrdersFilterHint, setStockOrdersFilterHint] = useState(null)
   const [inventoryCountOpenSessionId, setInventoryCountOpenSessionId] = useState(null)
+  const [isInventoryImportWizardOpen, setIsInventoryImportWizardOpen] = useState(false)
   const [isStockOrdersLoading, setIsStockOrdersLoading] = useState(false)
   const [isSavingStockOrder, setIsSavingStockOrder] = useState(false)
   const isCreatingStockOrdersRef = useRef(false)
@@ -24462,6 +24464,14 @@ function App() {
             workspaceId={activeWorkspaceId}
             workspaceLabel={`${workspace?.name ?? workspaceProfile.businessName ?? ''}`.trim()}
             isWorkspaceReady={isStockWorkspaceReady}
+            onOpenInventoryImport={() => setIsInventoryImportWizardOpen(true)}
+          />
+        ) : null}
+
+        {isInventoryImportWizardOpen ? (
+          <InventoryImportWizardShell
+            workspaceId={activeWorkspaceId}
+            onClose={() => setIsInventoryImportWizardOpen(false)}
           />
         ) : null}
 

@@ -1,6 +1,6 @@
 /**
  * @vitest-environment jsdom
- * P8.25.1 — Import vs Legacy Migration ownership & copy lock.
+ * P8.25.1 / P8.25.2 — Import & Migration ownership copy + workspace wiring.
  */
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
@@ -166,7 +166,7 @@ function resetServiceMocks() {
   })
 }
 
-describe('Import & Migration ownership copy (P8.25.1)', () => {
+describe('Import & Migration ownership + wiring (P8.25.1 / P8.25.2)', () => {
   let container
   let root
 
@@ -212,7 +212,7 @@ describe('Import & Migration ownership copy (P8.25.1)', () => {
     expect(container.querySelector('.stock-migration-subtitle')?.textContent).toContain('Legacy Migration')
   })
 
-  it('renders both ownership cards with Spreadsheet Import control disabled', async () => {
+  it('renders both ownership cards with Spreadsheet Import control enabled', async () => {
     await act(async () => {
       root.render(createElement(StockInventoryMigrationView, {
         workspaceId: WORKSPACE_ID,
@@ -228,11 +228,59 @@ describe('Import & Migration ownership copy (P8.25.1)', () => {
 
     const openImport = container.querySelector('[data-stock-migration-open-import="true"]')
     expect(openImport).toBeTruthy()
-    expect(openImport.disabled).toBe(true)
-    expect(openImport.getAttribute('aria-disabled')).toBe('true')
+    expect(openImport.disabled).toBe(false)
     expect(spreadsheetCard?.textContent).toContain(
       'Available from the Dashboard until the workspace move is completed.',
     )
+
+    const openLegacy = container.querySelector('[data-stock-migration-open-legacy="true"]')
+    expect(openLegacy).toBeTruthy()
+    expect(openLegacy.disabled).toBe(false)
+  })
+
+  it('opens Spreadsheet Import through the App-owned Inventory Import handler', async () => {
+    const onOpenInventoryImport = vi.fn()
+
+    await act(async () => {
+      root.render(createElement(StockInventoryMigrationView, {
+        workspaceId: WORKSPACE_ID,
+        workspaceLabel: 'AMORE.NICOSIA',
+        isWorkspaceReady: true,
+        onOpenInventoryImport,
+      }))
+    })
+
+    await act(async () => {
+      container.querySelector('[data-stock-migration-open-import="true"]').click()
+    })
+
+    expect(onOpenInventoryImport).toHaveBeenCalledTimes(1)
+    expect(container.querySelector('[data-testid="inventory-import-wizard-shell"]')).toBeNull()
+  })
+
+  it('takes Legacy Migration into the existing workflow section', async () => {
+    const scrollIntoView = vi.fn()
+    const focus = vi.fn()
+
+    await act(async () => {
+      root.render(createElement(StockInventoryMigrationView, {
+        workspaceId: WORKSPACE_ID,
+        workspaceLabel: 'AMORE.NICOSIA',
+        isWorkspaceReady: true,
+      }))
+    })
+
+    const legacySection = container.querySelector('.stock-migration-legacy-workflow')
+    const legacyTitle = container.querySelector('.stock-migration-legacy-workflow-title')
+    legacySection.scrollIntoView = scrollIntoView
+    legacyTitle.focus = focus
+
+    await act(async () => {
+      container.querySelector('[data-stock-migration-open-legacy="true"]').click()
+    })
+
+    expect(scrollIntoView).toHaveBeenCalled()
+    expect(focus).toHaveBeenCalled()
   })
 
   it('anchors existing Legacy Migration workflow content under the subsection heading', async () => {
@@ -256,12 +304,16 @@ describe('Import & Migration ownership copy (P8.25.1)', () => {
     expect(legacySection.querySelector('[data-testid="operator-panel-stub"]')).toBeTruthy()
   })
 
-  it('does not mount Inventory Import wizard or change Dashboard import behavior', () => {
-    expect(viewSource).not.toContain('InventoryImportWizardShell')
+  it('wires Spreadsheet Import through App without duplicating the wizard in Migration view', () => {
+    expect(viewSource).not.toMatch(/import\s*\{[^}]*InventoryImportWizardShell/)
+    expect(viewSource).toContain('onOpenInventoryImport')
     expect(viewSource).not.toContain('StockImportModal')
     expect(viewSource).not.toContain('stockCsvImport')
-    expect(viewSource).not.toMatch(/inventoryImport[A-Z]/)
     expect(viewSource).not.toContain('inventory_import_sessions')
+    expect(appSource).toContain("import { InventoryImportWizardShell } from './components/stock/InventoryImportWizardShell'")
+    expect(appSource).toContain('isInventoryImportWizardOpen')
+    expect(appSource).toContain('onOpenInventoryImport={() => setIsInventoryImportWizardOpen(true)}')
+    expect(appSource).toContain('<InventoryImportWizardShell')
     expect(dashboardSource).toContain('Import CSV')
     expect(dashboardSource).toContain('Inventory Import')
     expect(dashboardSource).toContain('isInventoryImportWizardOpen')
