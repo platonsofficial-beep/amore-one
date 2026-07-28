@@ -632,6 +632,14 @@ describe('StockInventoryMigrationView mounts guided workflow', () => {
       await Promise.resolve()
     })
 
+    await act(async () => {
+      container.querySelector('[data-stock-migration-open-legacy="true"]').click()
+    })
+    await act(async () => {
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+
     const page = container.querySelector('[aria-label="Import and migration"]')
     const guided = container.querySelector('[aria-label="Guided migration workflow"]')
     const summary = container.querySelector('[aria-label="Migration summary"]')

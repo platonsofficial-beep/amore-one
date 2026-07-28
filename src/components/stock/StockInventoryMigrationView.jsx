@@ -93,6 +93,7 @@ export function StockInventoryMigrationView({
   const [stageAttentionAcknowledgements, setStageAttentionAcknowledgements] = useState([])
   const [reloadNonce, setReloadNonce] = useState(0)
   const [diagnosticsOpen, setDiagnosticsOpen] = useState(false)
+  const [isLegacyWorkflowOpen, setIsLegacyWorkflowOpen] = useState(false)
   const pageRef = useRef(null)
   const legacyWorkflowRef = useRef(null)
   const legacyWorkflowTitleRef = useRef(null)
@@ -109,15 +110,31 @@ export function StockInventoryMigrationView({
   }, [onOpenInventoryImport])
 
   const handleOpenLegacyMigrationWorkflow = useCallback(() => {
-    const section = legacyWorkflowRef.current
-    if (section && typeof section.scrollIntoView === 'function') {
-      section.scrollIntoView({ behavior: 'smooth', block: 'start' })
-    }
-    const title = legacyWorkflowTitleRef.current
-    if (title && typeof title.focus === 'function') {
-      title.focus({ preventScroll: true })
-    }
+    setIsLegacyWorkflowOpen(true)
   }, [])
+
+  const handleHideLegacyMigrationWorkflow = useCallback(() => {
+    setIsLegacyWorkflowOpen(false)
+  }, [])
+
+  useEffect(() => {
+    if (!isLegacyWorkflowOpen) return undefined
+
+    const frame = window.requestAnimationFrame(() => {
+      const section = legacyWorkflowRef.current
+      if (section && typeof section.scrollIntoView === 'function') {
+        section.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      }
+      const title = legacyWorkflowTitleRef.current
+      if (title && typeof title.focus === 'function') {
+        title.focus({ preventScroll: true })
+      }
+    })
+
+    return () => {
+      window.cancelAnimationFrame(frame)
+    }
+  }, [isLegacyWorkflowOpen])
 
   // Expand diagnostics before Manual Review checkpoint scroll (StageNavigator untouched).
   useEffect(() => {
@@ -336,8 +353,12 @@ export function StockInventoryMigrationView({
       className="stock-migration-page"
       aria-label="Import and migration"
     >
-      {noticeMessage ? <div className="staff-status-banner">{noticeMessage}</div> : null}
-      {isLoading ? <div className="staff-status-banner">Loading migration metrics…</div> : null}
+      {noticeMessage && isLegacyWorkflowOpen ? (
+        <div className="staff-status-banner">{noticeMessage}</div>
+      ) : null}
+      {isLoading && isLegacyWorkflowOpen ? (
+        <div className="staff-status-banner">Loading migration metrics…</div>
+      ) : null}
 
       <header className="stock-migration-header">
         <div className="stock-migration-header-copy">
@@ -353,6 +374,7 @@ export function StockInventoryMigrationView({
       <section
         className="stock-migration-ownership"
         aria-label="Import and migration ownership"
+        data-stock-migration-landing="true"
       >
         <article
           className="stock-migration-ownership-card"
@@ -388,7 +410,7 @@ export function StockInventoryMigrationView({
         </article>
 
         <article
-          className="stock-migration-ownership-card is-legacy"
+          className={`stock-migration-ownership-card is-legacy${isLegacyWorkflowOpen ? ' is-active' : ''}`}
           data-stock-migration-ownership="legacy-migration"
         >
           <div className="stock-migration-ownership-card-copy">
@@ -410,9 +432,15 @@ export function StockInventoryMigrationView({
               type="button"
               className="ghost-btn stock-migration-ownership-open-legacy"
               data-stock-migration-open-legacy="true"
-              onClick={handleOpenLegacyMigrationWorkflow}
+              aria-expanded={isLegacyWorkflowOpen}
+              aria-controls="stock-migration-legacy-workflow-panel"
+              onClick={
+                isLegacyWorkflowOpen
+                  ? handleHideLegacyMigrationWorkflow
+                  : handleOpenLegacyMigrationWorkflow
+              }
             >
-              Open Legacy Migration
+              {isLegacyWorkflowOpen ? 'Hide Legacy Migration' : 'Open Legacy Migration'}
             </button>
             <p className="stock-migration-ownership-anchor-note">
               Guided workflow and operator tools below belong to this cutover path.
@@ -421,6 +449,13 @@ export function StockInventoryMigrationView({
         </article>
       </section>
 
+      <div
+        id="stock-migration-legacy-workflow-panel"
+        className={`stock-migration-legacy-workflow-shell${isLegacyWorkflowOpen ? ' is-open' : ''}`}
+        data-stock-migration-legacy-open={isLegacyWorkflowOpen ? 'true' : 'false'}
+        aria-hidden={!isLegacyWorkflowOpen}
+      >
+        <div className="stock-migration-legacy-workflow-shell-inner">
       <section
         ref={legacyWorkflowRef}
         className="stock-migration-legacy-workflow"
@@ -653,6 +688,8 @@ export function StockInventoryMigrationView({
         />
       </StockMigrationAdvancedDiagnostics>
       </section>
+        </div>
+      </div>
     </section>
   )
 }

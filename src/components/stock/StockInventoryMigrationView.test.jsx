@@ -238,6 +238,25 @@ describe('Import & Migration ownership + wiring (P8.25.1 / P8.25.2)', () => {
     expect(openLegacy.disabled).toBe(false)
   })
 
+  it('lands with ownership cards only and keeps the legacy workflow collapsed', async () => {
+    await act(async () => {
+      root.render(createElement(StockInventoryMigrationView, {
+        workspaceId: WORKSPACE_ID,
+        workspaceLabel: 'AMORE.NICOSIA',
+        isWorkspaceReady: true,
+      }))
+    })
+
+    expect(container.querySelector('[data-stock-migration-landing="true"]')).toBeTruthy()
+    expect(container.querySelector('[data-stock-migration-ownership="spreadsheet-import"]')).toBeTruthy()
+    expect(container.querySelector('[data-stock-migration-ownership="legacy-migration"]')).toBeTruthy()
+    expect(container.querySelector('[data-stock-migration-legacy-open="false"]')).toBeTruthy()
+    expect(container.querySelector('[data-stock-migration-open-legacy="true"]')?.getAttribute('aria-expanded'))
+      .toBe('false')
+    expect(container.querySelector('[data-stock-migration-open-legacy="true"]')?.textContent)
+      .toBe('Open Legacy Migration')
+  })
+
   it('opens Spreadsheet Import through the App-owned Inventory Import handler', async () => {
     const onOpenInventoryImport = vi.fn()
 
@@ -258,7 +277,7 @@ describe('Import & Migration ownership + wiring (P8.25.1 / P8.25.2)', () => {
     expect(container.querySelector('[data-testid="inventory-import-wizard-shell"]')).toBeNull()
   })
 
-  it('takes Legacy Migration into the existing workflow section', async () => {
+  it('expands and collapses the existing Legacy Migration workflow in place', async () => {
     const scrollIntoView = vi.fn()
     const focus = vi.fn()
 
@@ -278,9 +297,28 @@ describe('Import & Migration ownership + wiring (P8.25.1 / P8.25.2)', () => {
     await act(async () => {
       container.querySelector('[data-stock-migration-open-legacy="true"]').click()
     })
+    await act(async () => {
+      await new Promise((resolve) => {
+        window.requestAnimationFrame(() => resolve())
+      })
+    })
 
+    expect(container.querySelector('[data-stock-migration-legacy-open="true"]')).toBeTruthy()
+    expect(container.querySelector('[data-stock-migration-open-legacy="true"]')?.textContent)
+      .toBe('Hide Legacy Migration')
+    expect(container.querySelector('[data-stock-migration-open-legacy="true"]')?.getAttribute('aria-expanded'))
+      .toBe('true')
     expect(scrollIntoView).toHaveBeenCalled()
     expect(focus).toHaveBeenCalled()
+    expect(legacySection.querySelector('[data-testid="guided-workflow-stub"]')).toBeTruthy()
+
+    await act(async () => {
+      container.querySelector('[data-stock-migration-open-legacy="true"]').click()
+    })
+
+    expect(container.querySelector('[data-stock-migration-legacy-open="false"]')).toBeTruthy()
+    expect(container.querySelector('[data-stock-migration-open-legacy="true"]')?.textContent)
+      .toBe('Open Legacy Migration')
   })
 
   it('anchors existing Legacy Migration workflow content under the subsection heading', async () => {
@@ -290,6 +328,10 @@ describe('Import & Migration ownership + wiring (P8.25.1 / P8.25.2)', () => {
         workspaceLabel: 'AMORE.NICOSIA',
         isWorkspaceReady: true,
       }))
+    })
+
+    await act(async () => {
+      container.querySelector('[data-stock-migration-open-legacy="true"]').click()
     })
 
     const legacySection = container.querySelector('.stock-migration-legacy-workflow')
@@ -302,6 +344,13 @@ describe('Import & Migration ownership + wiring (P8.25.1 / P8.25.2)', () => {
     expect(legacySection.querySelector('[data-testid="preview-stub"]')).toBeTruthy()
     expect(legacySection.querySelector('[data-testid="diagnostics-stub"]')).toBeTruthy()
     expect(legacySection.querySelector('[data-testid="operator-panel-stub"]')).toBeTruthy()
+  })
+
+  it('locks the landing expand/collapse CSS contract', () => {
+    expect(appCss).toContain('.stock-migration-legacy-workflow-shell')
+    expect(appCss).toContain('.stock-migration-legacy-workflow-shell.is-open')
+    expect(appCss).toContain('grid-template-rows: 0fr')
+    expect(appCss).toContain('grid-template-rows: 1fr')
   })
 
   it('wires Spreadsheet Import through App without duplicating the wizard in Migration view', () => {

@@ -36093,6 +36093,37 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   min-width: 0;
 }
 
+.stock-migration-legacy-workflow-shell {
+  display: grid;
+  grid-template-rows: 0fr;
+  opacity: 0;
+  pointer-events: none;
+  transition:
+    grid-template-rows 0.22s ease,
+    opacity 0.18s ease;
+}
+
+.stock-migration-legacy-workflow-shell.is-open {
+  grid-template-rows: 1fr;
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.stock-migration-legacy-workflow-shell-inner {
+  overflow: hidden;
+  min-height: 0;
+}
+
+.stock-migration-ownership-card.is-legacy.is-active {
+  border-color: rgba(212, 175, 106, 0.38);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .stock-migration-legacy-workflow-shell {
+    transition: none;
+  }
+}
+
 .stock-migration-legacy-workflow-header {
   display: flex;
   flex-direction: column;
