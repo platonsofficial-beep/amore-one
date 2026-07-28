@@ -733,6 +733,7 @@ describe('InventoryCountPostedReview (P8.20.4 / P8.20.7 / P8.20.9 / P8.20.10)', 
       'Correction Batches',
       'Net Adjustment',
     ])
+    expect(container.querySelector('[data-inventory-count-audit-historical-note="true"]')).toBeNull()
     expect(summary?.textContent).not.toContain('Original Posted')
     expect(summary?.textContent).not.toContain('Current Effective')
     expect(summary?.textContent).toContain('6')
@@ -1248,6 +1249,14 @@ describe('posted review reversal completion & read-only lock (P8.23.0)', () => {
     expect(timelineLabels).toEqual(['Posted Count', 'Correction 1', 'Reversal'])
     expect(container.querySelector('[data-inventory-count-reversal-event="true"]')).toBeTruthy()
     expect(container.querySelector('[data-inventory-count-corrected-badge="true"]')).toBeTruthy()
+    expect(container.querySelector('[data-inventory-count-audit-historical-note="true"]')?.textContent)
+      .toContain('Reversal Applied')
+    expect(container.textContent).toContain('Inventory impact has been fully compensated.')
+    expect(container.textContent).toContain('Historical values are preserved for audit purposes.')
+    expect(container.querySelector('[data-inventory-count-audit-summary="true"]')?.textContent)
+      .toContain('Posted Total')
+    expect(container.querySelector('[data-inventory-count-audit-summary="true"]')?.textContent)
+      .toContain('Current Total')
 
     cleanup()
   })
@@ -1271,6 +1280,7 @@ describe('posted review reversal completion & read-only lock (P8.23.0)', () => {
     expect(container.querySelector('[data-inventory-count-reverse-action="true"]')).toBeTruthy()
     expect(container.querySelector('.inventory-count-posted-review-suggest-btn')).toBeTruthy()
     expect(container.textContent).toContain('Suggest Correction')
+    expect(container.querySelector('[data-inventory-count-audit-historical-note="true"]')).toBeNull()
 
     cleanup()
   })

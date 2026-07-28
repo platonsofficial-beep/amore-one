@@ -620,6 +620,22 @@ export function InventoryCountPostedReview({
               </div>
 
               {hasCorrections ? (
+              <>
+              {isAlreadyReversed ? (
+                <div
+                  className="inventory-count-posted-review-audit-historical-note"
+                  data-inventory-count-audit-historical-note="true"
+                  role="note"
+                >
+                  <span className="inventory-count-posted-review-audit-historical-badge">
+                    Reversal Applied
+                  </span>
+                  <p className="inventory-count-posted-review-audit-historical-copy">
+                    Inventory impact has been fully compensated.
+                    Historical values are preserved for audit purposes.
+                  </p>
+                </div>
+              ) : null}
               <div
                 className="inventory-count-posted-review-audit-summary"
                 data-inventory-count-audit-summary="true"
@@ -660,6 +676,7 @@ export function InventoryCountPostedReview({
                   </span>
                 </div>
               </div>
+              </>
               ) : null}
 
               <nav
@@ -826,19 +843,32 @@ export function InventoryCountPostedReview({
                       {' · '}
                       {reversedByLabel}
                     </p>
-                    <p className="inventory-count-posted-review-version-meta">
-                      <span data-inventory-count-reversal-event-reason="true">
-                        Reason: {reversalReason || '—'}
-                      </span>
-                    </p>
-                    {reversalNote ? (
-                      <p
-                        className="inventory-count-posted-review-version-meta"
-                        data-inventory-count-reversal-event-note="true"
+                    <div className="inventory-count-posted-review-reversal-fields">
+                      <div
+                        className="inventory-count-posted-review-reversal-field"
+                        data-inventory-count-reversal-event-reason="true"
                       >
-                        Note: {reversalNote}
-                      </p>
-                    ) : null}
+                        <span className="inventory-count-posted-review-reversal-field-label">
+                          Reason
+                        </span>
+                        <p className="inventory-count-posted-review-reversal-field-value">
+                          {reversalReason || '—'}
+                        </p>
+                      </div>
+                      {reversalNote ? (
+                        <div
+                          className="inventory-count-posted-review-reversal-field"
+                          data-inventory-count-reversal-event-note="true"
+                        >
+                          <span className="inventory-count-posted-review-reversal-field-label">
+                            Note
+                          </span>
+                          <p className="inventory-count-posted-review-reversal-field-value">
+                            {reversalNote}
+                          </p>
+                        </div>
+                      ) : null}
+                    </div>
                     <p className="inventory-count-posted-review-version-copy">
                       Compensating adjustments were appended. Original posted history remains unchanged.
                     </p>
