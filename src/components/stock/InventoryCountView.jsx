@@ -47,6 +47,7 @@ function formatLocations(session) {
 function InventoryCountSessionCardMeta({ session, onDelete, deleteDisabled = false }) {
   const lastUpdate = session.updatedAt || session.postedAt || session.pausedAt || session.startedAt
   const operator = `${session.operatorName ?? ''}`.trim() || '—'
+  const canDelete = typeof onDelete === 'function' && session?.status !== 'posted'
 
   return (
     <>
@@ -56,20 +57,22 @@ function InventoryCountSessionCardMeta({ session, onDelete, deleteDisabled = fal
           <span className="inventory-count-session-pill is-status">
             {session.statusLabel}
           </span>
-          <button
-            type="button"
-            className="inventory-count-session-delete-btn"
-            aria-label={`Delete ${session.countTypeLabel} inventory count`}
-            title="Delete inventory count"
-            disabled={deleteDisabled}
-            onClick={(event) => {
-              event.preventDefault()
-              event.stopPropagation()
-              onDelete?.(session)
-            }}
-          >
-            ×
-          </button>
+          {canDelete ? (
+            <button
+              type="button"
+              className="inventory-count-session-delete-btn"
+              aria-label={`Delete ${session.countTypeLabel} inventory count`}
+              title="Delete inventory count"
+              disabled={deleteDisabled}
+              onClick={(event) => {
+                event.preventDefault()
+                event.stopPropagation()
+                onDelete?.(session)
+              }}
+            >
+              ×
+            </button>
+          ) : null}
         </div>
       </div>
       <dl className="inventory-count-session-card-meta">
@@ -610,6 +613,8 @@ export function InventoryCountView({
   const handleRequestDeleteSession = (session) => {
     const sessionId = `${session?.id ?? ''}`.trim()
     if (!sessionId || busySessionId) return
+    // P8.22.1: posted sessions are not deletable (server also enforces).
+    if (`${session?.status ?? ''}`.trim() === 'posted') return
     clearActionError(sessionId)
     setDeleteDialogError('')
     setPendingDeleteSession(session)

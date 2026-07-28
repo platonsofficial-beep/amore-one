@@ -116,7 +116,7 @@ function isTableUnavailableError(error) {
 
 function extractRpcErrorCode(error) {
   const message = `${error?.message ?? error?.details ?? error?.hint ?? ''}`.trim()
-  const match = message.match(/inventory_count_(?:session|snapshot|item|location|pause|preview|post|reconcile|cancel|repair|delete|correction)_[a-z0-9_]+/i)
+  const match = message.match(/inventory_count_(?:session|snapshot|item|location|pause|preview|posted|post|reconcile|cancel|repair|delete|correction)_[a-z0-9_]+/i)
   return match?.[0]?.toLowerCase() ?? ''
 }
 
@@ -214,6 +214,8 @@ function mapInventoryCountRpcError(error, fallbackMessage) {
       return new Error('Inventory count session does not belong to this workspace.')
     case 'inventory_count_delete_failed':
       return new Error('Unable to delete inventory count right now.')
+    case 'inventory_count_posted_delete_forbidden':
+      return new Error('This inventory count has already been posted and cannot be deleted. You can correct it, or reverse it once that feature becomes available.')
     case 'inventory_count_correction_session_not_posted':
       return new Error('Only posted inventory counts can receive corrections.')
     case 'inventory_count_correction_empty':

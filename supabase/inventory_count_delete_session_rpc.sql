@@ -1,5 +1,5 @@
 -- =============================================================================
--- P8.20.3 — Delete Inventory Count Session RPC
+-- P8.20.3 / P8.22.1 — Delete Inventory Count Session RPC
 -- =============================================================================
 -- Run manually in the Supabase SQL editor after:
 --   1. inventory_count_schema.sql (P8.3.0)
@@ -9,6 +9,7 @@
 -- Purpose:
 --   Permanently delete one inventory_count_sessions row (and cascaded
 --   session locations / session items) without mutating stock.
+--   P8.22.1: posted sessions cannot be deleted (audit history protected).
 --
 -- Does NOT:
 --   - Delete or alter stock_items
@@ -77,6 +78,12 @@ begin
       using hint = 'Inventory count session was not found.';
   end if;
 
+  -- P8.22.1: posted audit history is immutable via delete.
+  if v_session.status is not distinct from 'posted' then
+    raise exception 'inventory_count_posted_delete_forbidden'
+      using hint = 'Posted inventory counts cannot be deleted.';
+  end if;
+
   delete from public.inventory_count_sessions s
   where s.id = p_session_id
     and s.workspace_id = p_workspace_id;
@@ -88,7 +95,7 @@ begin
       using hint = 'Inventory count session could not be deleted.';
   end if;
 
-  -- Cascades remove session_locations + session_items.
+  -- Cascades remove session_locations + session_items (+ correction audit via FK).
   -- stock_items / stock_movements are intentionally untouched.
 
   return jsonb_build_object(
@@ -116,4 +123,4 @@ revoke all on function public.delete_inventory_count_session(uuid, uuid) from pu
 grant execute on function public.delete_inventory_count_session(uuid, uuid) to authenticated;
 
 comment on function public.delete_inventory_count_session(uuid, uuid) is
-  'P8.20.3 SECURITY DEFINER permanent delete of inventory count session + cascaded locations/items. Does not mutate stock.';
+  'P8.20.3/P8.22.1 SECURITY DEFINER permanent delete of non-posted inventory count session + cascaded locations/items. Rejects posted. Does not mutate stock.';

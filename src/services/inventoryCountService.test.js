@@ -682,7 +682,7 @@ describe('deleteInventoryCountSession (P8.20.3)', () => {
         session_id: 'session-1',
         workspace_id: 'workspace-1',
         deleted: true,
-        previous_status: 'posted',
+        previous_status: 'in_progress',
         deleted_at: '2026-07-24T12:00:00.000Z',
         preserved: { stock_items: true, stock_movements: true },
         mutations: {
@@ -710,7 +710,7 @@ describe('deleteInventoryCountSession (P8.20.3)', () => {
       id: 'session-1',
       workspaceId: 'workspace-1',
       deleted: true,
-      previousStatus: 'posted',
+      previousStatus: 'in_progress',
       deletedAt: '2026-07-24T12:00:00.000Z',
       preserved: { stock_items: true, stock_movements: true },
       mutations: {
@@ -747,6 +747,14 @@ describe('deleteInventoryCountSession (P8.20.3)', () => {
     await expect(
       deleteInventoryCountSession({ workspaceId: 'workspace-1', sessionId: 'session-1' }),
     ).rejects.toThrow('does not belong to this workspace')
+
+    rpcMock.mockResolvedValueOnce({
+      data: null,
+      error: { message: 'inventory_count_posted_delete_forbidden' },
+    })
+    await expect(
+      deleteInventoryCountSession({ workspaceId: 'workspace-1', sessionId: 'session-posted' }),
+    ).rejects.toThrow('This inventory count has already been posted and cannot be deleted. You can correct it, or reverse it once that feature becomes available.')
   })
 
   it('does not use a direct sessions table delete path', () => {
@@ -762,7 +770,7 @@ describe('deleteInventoryCountSession (P8.20.3)', () => {
   })
 })
 
-describe('delete_inventory_count_session SQL contract (P8.20.3)', () => {
+describe('delete_inventory_count_session SQL contract (P8.20.3 / P8.22.1)', () => {
   const sql = readFileSync(
     resolve(process.cwd(), 'supabase/inventory_count_delete_session_rpc.sql'),
     'utf8',
@@ -780,6 +788,18 @@ describe('delete_inventory_count_session SQL contract (P8.20.3)', () => {
     expect(sql).toContain('inventory_count_delete_forbidden')
   })
 
+  it('rejects posted session delete before mutating any rows (P8.22.1)', () => {
+    expect(functionBody).toContain('inventory_count_posted_delete_forbidden')
+    expect(functionBody).toMatch(
+      /v_session\.status is not distinct from 'posted'[\s\S]*raise exception 'inventory_count_posted_delete_forbidden'[\s\S]*delete from public\.inventory_count_sessions/,
+    )
+    const postedGuardIndex = functionBody.indexOf("raise exception 'inventory_count_posted_delete_forbidden'")
+    const deleteIndex = functionBody.indexOf('delete from public.inventory_count_sessions')
+    expect(postedGuardIndex).toBeGreaterThan(-1)
+    expect(deleteIndex).toBeGreaterThan(-1)
+    expect(postedGuardIndex).toBeLessThan(deleteIndex)
+  })
+
   it('deletes the session and does not mutate stock', () => {
     expect(functionBody).toContain('delete from public.inventory_count_sessions')
     expect(functionBody).toContain("stock_quantity_changed', false")
@@ -787,6 +807,8 @@ describe('delete_inventory_count_session SQL contract (P8.20.3)', () => {
     expect(functionBody).not.toMatch(/update\s+public\.stock_items/i)
     expect(functionBody).not.toMatch(/delete\s+from\s+public\.stock_movements/i)
     expect(functionBody).not.toMatch(/delete\s+from\s+public\.stock_items/i)
+    expect(functionBody).not.toMatch(/delete\s+from\s+public\.inventory_count_corrections/i)
+    expect(functionBody).not.toMatch(/delete\s+from\s+public\.inventory_count_session_items/i)
   })
 })
 

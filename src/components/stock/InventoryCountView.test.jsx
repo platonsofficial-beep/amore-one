@@ -289,7 +289,7 @@ describe('InventoryCountView live home hydration (P8.16.27)', () => {
     cleanup()
   })
 
-  it('delete control on posted cards does not open historical review', async () => {
+  it('posted cards omit delete and open historical review on card activation', async () => {
     listHomeSessionsMock.mockResolvedValue({
       active: [],
       paused: [],
@@ -299,12 +299,16 @@ describe('InventoryCountView live home hydration (P8.16.27)', () => {
     const { container, cleanup } = render(createElement(InventoryCountView))
     await flush()
 
+    expect(container.querySelector('.inventory-count-session-delete-btn')).toBeNull()
+
+    const postedCard = container.querySelector('.inventory-count-session-card')
     await act(async () => {
-      container.querySelector('.inventory-count-session-delete-btn')?.click()
+      postedCard?.click()
     })
 
-    expect(container.querySelector('.inventory-count-posted-review')).toBeNull()
-    expect(container.querySelector('[aria-labelledby="inventory-count-delete-title"]')).toBeTruthy()
+    expect(container.querySelector('.inventory-count-posted-review')?.getAttribute('data-session-id'))
+      .toBe('posted-1')
+    expect(container.querySelector('[aria-labelledby="inventory-count-delete-title"]')).toBeNull()
     expect(previewFinishMock).not.toHaveBeenCalled()
 
     cleanup()
@@ -661,10 +665,13 @@ describe('InventoryCountView deep link open (P8.16.30)', () => {
   })
 })
 
-describe('InventoryCountView delete session (P8.20.3)', () => {
-  it('shows a delete control on every card without opening the session', async () => {
+describe('InventoryCountView delete session (P8.20.3 / P8.22.1)', () => {
+  it('shows delete on non-posted cards and hides delete on posted cards', async () => {
     listHomeSessionsMock.mockResolvedValue({
-      active: [sessionFixture({ id: 'active-1', status: 'in_progress', statusLabel: 'In progress' })],
+      active: [
+        sessionFixture({ id: 'active-1', status: 'in_progress', statusLabel: 'In progress' }),
+        sessionFixture({ id: 'complete-1', status: 'counting_complete', statusLabel: 'Counting complete' }),
+      ],
       paused: [sessionFixture({ id: 'paused-1', status: 'paused', statusLabel: 'Paused' })],
       recent: [sessionFixture({ id: 'posted-1', status: 'posted', statusLabel: 'Posted' })],
     })
@@ -674,6 +681,10 @@ describe('InventoryCountView delete session (P8.20.3)', () => {
 
     const deleteButtons = container.querySelectorAll('.inventory-count-session-delete-btn')
     expect(deleteButtons).toHaveLength(3)
+
+    const postedCard = Array.from(container.querySelectorAll('.inventory-count-session-card'))
+      .find((card) => card.textContent.includes('Posted') && card.textContent.includes('Quick Count'))
+    expect(postedCard?.querySelector('.inventory-count-session-delete-btn')).toBeNull()
 
     await act(async () => {
       deleteButtons[0].click()
@@ -749,6 +760,44 @@ describe('InventoryCountView delete session (P8.20.3)', () => {
 
     expect(deleteSessionMock).not.toHaveBeenCalled()
     expect(container.querySelector('[aria-labelledby="inventory-count-delete-title"]')).toBeNull()
+
+    cleanup()
+  })
+
+  it('does not remove home cards when delete is rejected with the posted-forbid message', async () => {
+    listHomeSessionsMock.mockResolvedValue({
+      active: [sessionFixture({ id: 'active-1', status: 'in_progress', statusLabel: 'In progress' })],
+      paused: [],
+      recent: [sessionFixture({ id: 'posted-1', status: 'posted', statusLabel: 'Posted' })],
+    })
+    deleteSessionMock.mockRejectedValueOnce(
+      new Error('This inventory count has already been posted and cannot be deleted. You can correct it, or reverse it once that feature becomes available.'),
+    )
+
+    const { container, cleanup } = render(createElement(InventoryCountView))
+    await flush()
+
+    expect(container.querySelectorAll('.inventory-count-session-delete-btn')).toHaveLength(1)
+    expect(container.textContent).toContain('Posted')
+
+    await act(async () => {
+      container.querySelector('.inventory-count-session-delete-btn')?.click()
+    })
+    await act(async () => {
+      getButtonByText(container, 'Delete Count')?.click()
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+
+    expect(deleteSessionMock).toHaveBeenCalledTimes(1)
+    expect(container.querySelector('[aria-labelledby="inventory-count-delete-title"]')).toBeTruthy()
+    expect(container.textContent).toContain(
+      'This inventory count has already been posted and cannot be deleted. You can correct it, or reverse it once that feature becomes available.',
+    )
+    expect(container.textContent).toContain('In progress')
+    expect(container.textContent).toContain('Posted')
+    expect(container.textContent).not.toContain('Inventory count deleted.')
+    expect(listHomeSessionsMock).toHaveBeenCalledTimes(1)
 
     cleanup()
   })
