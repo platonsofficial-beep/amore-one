@@ -32,10 +32,26 @@ describe('StockDashboardView compact browse CSS contract (P8.24.3)', () => {
     expect(wrapRule).toContain('overflow-x: hidden')
     expect(wrapRule).not.toContain('overflow-x: auto')
 
-    expect(APP_CSS).toMatch(/\.stock-list-cell-actions[\s\S]{0,180}?width:\s*150px/)
+    expect(APP_CSS).toMatch(/\.stock-list-cell-actions[\s\S]{0,180}?width:\s*168px/)
     expect(APP_CSS).not.toMatch(/\.stock-list-cell-actions\s*\{[^}]*min-width:\s*220px/)
     expect(APP_CSS).toContain('.stock-compact-browse-toolbar')
     expect(APP_CSS).toContain('.stock-toolbar-overflow')
+  })
+
+  it('keeps compact horizontal List row actions and Cards two-line name clamp (P8.24.4)', () => {
+    expect(APP_CSS).toMatch(/\.stock-row-actions\.is-compact\s*\{[^}]*flex-direction:\s*row/)
+    expect(APP_CSS).toMatch(/\.stock-row-actions\.is-compact\s*\{[^}]*flex-wrap:\s*nowrap/)
+    expect(APP_CSS).not.toMatch(/\.stock-row-actions\.is-compact\s*\{[^}]*flex-direction:\s*column/)
+
+    const nameRule = cssRuleBody('.stock-item-name')
+    expect(nameRule).toContain('-webkit-line-clamp: 2')
+    expect(nameRule).toContain('overflow: hidden')
+    expect(nameRule).toContain('min-height: calc(1.25em * 2)')
+
+    expect(DASHBOARD_SOURCE).toContain('className="sr-only" id="stock-layout-label"')
+    expect(DASHBOARD_SOURCE).not.toMatch(/stock-browse-control-label" id="stock-layout-label">View</)
+    expect(DASHBOARD_SOURCE).toContain("compact ? 'Count' : 'Stock count'")
+    expect(DASHBOARD_SOURCE).toContain('aria-label="Stock count"')
   })
 
   it('keeps the compact toolbar and six-column headers in source without legacy chip toolbar duplication', () => {

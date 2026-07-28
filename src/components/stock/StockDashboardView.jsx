@@ -121,6 +121,7 @@ function StockSortDropdown({
         aria-haspopup="listbox"
         aria-expanded={isOpen}
         aria-label={ariaLabel}
+        title={selectedOption?.label}
       >
         <span className="stock-sort-dropdown-value">{selectedOption?.label}</span>
         <span className="stock-sort-dropdown-chevron" aria-hidden="true">▾</span>
@@ -274,7 +275,9 @@ function StockItemCard({
           </button>
         ) : null}
         <div className="stock-item-card-title-block">
-          <h3 className="stock-item-name">{item.name}</h3>
+          <h3 className="stock-item-name" title={item.name || undefined}>
+            {item.name}
+          </h3>
           {item.active === false ? (
             <span className="stock-item-status-badge tone-muted">Inactive</span>
           ) : (
@@ -405,8 +408,14 @@ function StockItemRowActions({
         <button type="button" className="ghost-btn stock-row-action-btn" onClick={onReceive}>
           Receive
         </button>
-        <button type="button" className="ghost-btn stock-row-action-btn" onClick={onCount}>
-          Stock count
+        <button
+          type="button"
+          className="ghost-btn stock-row-action-btn"
+          onClick={onCount}
+          aria-label="Stock count"
+          data-stock-row-count-action="true"
+        >
+          {compact ? 'Count' : 'Stock count'}
         </button>
         <button
           type="button"
@@ -416,7 +425,7 @@ function StockItemRowActions({
           aria-haspopup="menu"
           aria-label={`More actions for ${item.name}`}
         >
-          More
+          {compact ? '⋯' : 'More'}
         </button>
       </div>
     </div>
@@ -1859,7 +1868,7 @@ export function StockDashboardView({
         ) : null}
 
         <div className="stock-browse-control stock-browse-layout">
-          <span className="stock-browse-control-label" id="stock-layout-label">View</span>
+          <span className="sr-only" id="stock-layout-label">View</span>
           <div
             className="stock-layout-mode-control"
             role="group"

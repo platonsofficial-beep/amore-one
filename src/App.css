@@ -27657,56 +27657,81 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) minmax(0, 0.9fr) auto;
 }
 
-/* P8.24.3 — Compact ≤2-row Stock Dashboard browse toolbar */
+/* P8.24.3 / P8.24.4 — Compact ≤2-row Stock Dashboard browse toolbar */
 .stock-compact-browse-toolbar {
   display: flex;
   flex-direction: column;
   gap: 8px;
   min-width: 0;
   padding: 10px 12px;
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(212, 175, 55, 0.14);
   border-radius: 14px;
-  background: rgba(255, 255, 255, 0.02);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0.01)),
+    rgba(12, 12, 13, 0.72);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
 }
 
 .stock-compact-browse-row {
   display: flex;
   flex-wrap: nowrap;
   align-items: flex-end;
-  gap: 8px 10px;
+  gap: 10px 12px;
   min-width: 0;
 }
 
 .stock-compact-browse-toolbar .stock-browse-control {
   flex: 0 1 auto;
-  gap: 4px;
+  gap: 5px;
 }
 
 .stock-compact-browse-toolbar .stock-browse-view,
 .stock-compact-browse-toolbar .stock-browse-layout,
-.stock-compact-browse-toolbar .stock-browse-group {
-  flex: 0 1 auto;
+.stock-compact-browse-toolbar .stock-browse-group,
+.stock-compact-browse-toolbar .stock-browse-sort {
+  flex: 0 0 auto;
+}
+
+.stock-compact-browse-toolbar .stock-browse-layout {
+  gap: 0;
 }
 
 .stock-compact-browse-toolbar .stock-browse-control-label {
-  font-size: 0.68rem;
-  letter-spacing: 0.04em;
+  font-size: 0.66rem;
+  letter-spacing: 0.06em;
+  color: #9f9588;
 }
 
 .stock-compact-browse-toolbar .stock-sort-dropdown,
-.stock-compact-browse-toolbar .stock-browse-group .stock-sort-dropdown {
-  min-width: 108px;
-  max-width: 148px;
-  width: 100%;
+.stock-compact-browse-toolbar .stock-browse-group .stock-sort-dropdown,
+.stock-compact-browse-toolbar .stock-browse-sort .stock-sort-dropdown {
+  min-width: 0;
+  max-width: none;
+  width: max-content;
 }
 
 .stock-compact-browse-toolbar .stock-browse-category .stock-sort-dropdown {
-  min-width: 120px;
-  max-width: 168px;
+  min-width: 116px;
+  max-width: 160px;
+  width: 100%;
 }
 
 .stock-compact-browse-toolbar .stock-sort-dropdown-trigger {
-  padding: 8px 10px;
+  width: auto;
+  min-width: 72px;
+  padding: 0 10px;
+  border-radius: 10px;
+  min-height: 44px;
+}
+
+.stock-compact-browse-toolbar .stock-browse-category .stock-sort-dropdown-trigger {
+  width: 100%;
+}
+
+.stock-compact-browse-toolbar .stock-browse-group .stock-sort-dropdown-trigger,
+.stock-compact-browse-toolbar .stock-browse-sort .stock-sort-dropdown-trigger {
+  gap: 8px;
+  padding-inline: 10px 8px;
 }
 
 .stock-compact-browse-toolbar .stock-visibility-segment {
@@ -27716,7 +27741,8 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 
 .stock-compact-browse-toolbar .stock-visibility-filter {
   min-height: 44px;
-  padding: 8px 10px;
+  padding: 0 11px;
+  border-radius: 10px;
 }
 
 .stock-compact-browse-toolbar .stock-layout-mode-control {
@@ -27726,16 +27752,21 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 
 .stock-compact-browse-toolbar .stock-layout-mode-btn {
   min-height: 44px;
-  padding: 8px 10px;
+  padding: 0 11px;
   gap: 6px;
+  border-radius: 10px;
 }
 
 .stock-compact-browse-toolbar .stock-browse-result-count {
-  margin: 0 0 10px auto;
-  color: #bfb3a0;
-  font-size: 0.8rem;
+  margin: 0 0 12px auto;
+  color: #8f8678;
+  font-size: 0.72rem;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  line-height: 1.2;
   white-space: nowrap;
   flex: 0 0 auto;
+  align-self: flex-end;
 }
 
 .stock-compact-actions-row {
@@ -27745,12 +27776,15 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   justify-content: flex-start;
   gap: 8px;
   min-width: 0;
+  padding-top: 2px;
+  border-top: 1px solid rgba(255, 255, 255, 0.04);
 }
 
 .stock-compact-actions-row .ghost-btn,
 .stock-compact-actions-row .primary-btn {
   min-height: 44px;
-  padding-inline: 12px;
+  padding-inline: 10px;
+  border-radius: 10px;
 }
 
 .stock-toolbar-overflow {
@@ -27761,7 +27795,8 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 .stock-toolbar-overflow-trigger {
   min-height: 44px;
   min-width: 44px;
-  padding-inline: 12px;
+  padding-inline: 10px;
+  border-radius: 10px;
 }
 
 .stock-toolbar-overflow-menu {
@@ -28274,7 +28309,7 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 }
 
 .stock-list-table thead th {
-  padding: 10px 8px;
+  padding: 9px 8px;
   border-bottom: 1px solid rgba(212, 175, 55, 0.16);
   color: #9f9588;
   font-size: 0.72rem;
@@ -28288,10 +28323,11 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 
 .stock-list-table tbody td,
 .stock-list-table tbody th {
-  padding: 10px 8px;
+  padding: 8px 8px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.05);
   color: #d8ccb8;
-  font-size: 0.86rem;
+  font-size: 0.84rem;
+  line-height: 1.25;
   vertical-align: middle;
   min-width: 0;
 }
@@ -28309,7 +28345,7 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 
 .stock-list-head-details,
 .stock-list-cell-details {
-  width: 24%;
+  width: 22%;
 }
 
 .stock-list-head-stock,
@@ -28324,7 +28360,7 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 
 .stock-list-head-updated,
 .stock-list-cell-movement {
-  width: 14%;
+  width: 13%;
 }
 
 .stock-list-table.is-selection-mode .stock-list-head-product,
@@ -28334,7 +28370,12 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 
 .stock-list-table.is-selection-mode .stock-list-head-details,
 .stock-list-table.is-selection-mode .stock-list-cell-details {
-  width: 22%;
+  width: 20%;
+}
+
+.stock-list-table.is-selection-mode .stock-list-head-updated,
+.stock-list-table.is-selection-mode .stock-list-cell-movement {
+  width: 12%;
 }
 
 .stock-list-product-block {
@@ -28351,9 +28392,9 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   -webkit-line-clamp: 2;
   overflow: hidden;
   color: #fff7e8;
-  font-size: 0.9rem;
+  font-size: 0.88rem;
   font-weight: 600;
-  line-height: 1.3;
+  line-height: 1.25;
   overflow-wrap: anywhere;
   word-break: break-word;
 }
@@ -28372,8 +28413,8 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 .stock-list-details-line {
   margin: 0;
   color: #9f9588;
-  font-size: 0.78rem;
-  line-height: 1.3;
+  font-size: 0.76rem;
+  line-height: 1.25;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -28389,15 +28430,15 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 
 .stock-list-stock-current {
   color: #fff7e8;
-  font-size: 0.9rem;
+  font-size: 0.88rem;
   font-weight: 600;
-  line-height: 1.25;
+  line-height: 1.2;
 }
 
 .stock-list-stock-min {
   color: #9f9588;
-  font-size: 0.76rem;
-  line-height: 1.25;
+  font-size: 0.74rem;
+  line-height: 1.2;
 }
 
 .stock-list-cell-stock.is-low .stock-list-stock-current {
@@ -28465,8 +28506,8 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 
 .stock-list-cell-movement {
   color: #8f8678;
-  font-size: 0.78rem;
-  line-height: 1.3;
+  font-size: 0.76rem;
+  line-height: 1.25;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -28474,9 +28515,9 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 
 .stock-list-cell-actions,
 .stock-list-head-actions {
-  width: 150px;
+  width: 168px;
   min-width: 0;
-  max-width: 160px;
+  max-width: 176px;
   overflow: visible;
   position: relative;
   z-index: 1;
@@ -28515,9 +28556,10 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 }
 
 .stock-row-actions.is-compact {
-  flex-direction: column;
+  flex-direction: row;
   align-items: stretch;
   flex-wrap: nowrap;
+  justify-content: flex-end;
   gap: 4px;
   width: 100%;
 }
@@ -28529,10 +28571,22 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 
 .stock-row-actions.is-compact .stock-row-action-btn,
 .stock-row-actions.is-compact .stock-row-more-btn {
-  width: 100%;
+  width: auto;
   min-width: 0;
-  padding: 0 8px;
-  font-size: 0.8rem;
+  flex: 1 1 0;
+  padding: 0 6px;
+  font-size: 0.74rem;
+  border-radius: 10px;
+  white-space: nowrap;
+}
+
+.stock-row-actions.is-compact .stock-row-more-btn {
+  flex: 0 0 44px;
+  max-width: 44px;
+  min-width: 44px;
+  padding: 0;
+  font-size: 1rem;
+  letter-spacing: 0.02em;
 }
 
 .stock-row-more-btn {
@@ -28752,7 +28806,13 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   font-size: 1.12rem;
   line-height: 1.25;
   letter-spacing: 0.01em;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
   overflow-wrap: anywhere;
+  word-break: break-word;
+  min-height: calc(1.25em * 2);
 }
 
 .stock-item-status-badge {

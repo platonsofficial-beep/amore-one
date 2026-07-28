@@ -672,8 +672,13 @@ describe('StockDashboardView compact browse workspace (P8.24.3)', () => {
 
     const actions = row.querySelector('.stock-list-cell-actions')
     expect(buttonByText(actions, 'Receive')).toBeTruthy()
-    expect(buttonByText(actions, 'Stock count')).toBeTruthy()
-    expect(buttonByText(actions, 'More')).toBeTruthy()
+    const countBtn = actions.querySelector('[data-stock-row-count-action="true"]')
+    expect(countBtn).toBeTruthy()
+    expect(countBtn.getAttribute('aria-label')).toBe('Stock count')
+    expect(countBtn.textContent).toBe('Count')
+    expect(actions.querySelector('[aria-label="More actions for LIST PRODUCT"]')).toBeTruthy()
+    expect(actions.querySelectorAll('.stock-row-action-btn, .stock-row-more-btn')).toHaveLength(3)
+    expect(actions.querySelectorAll('[data-stock-row-count-action="true"]')).toHaveLength(1)
     cleanup()
   })
 
@@ -708,6 +713,34 @@ describe('StockDashboardView compact browse workspace (P8.24.3)', () => {
     setLayoutMode(container, 'List')
     expect(container.querySelector('.stock-list-table')).toBeTruthy()
     expect(container.querySelectorAll('[data-stock-compact-browse-toolbar="true"]')).toHaveLength(1)
+    cleanup()
+  })
+
+  it('removes visible View label while keeping layout accessibility and card name clamp (P8.24.4)', () => {
+    const { container, cleanup } = mount({
+      stockItems: [
+        stock({
+          id: 'long-1',
+          name: 'VERY LONG PREMIUM PRODUCT NAME THAT SHOULD CLAMP AFTER TWO LINES IN CARDS MODE',
+          currentQuantity: 12,
+          minimumQuantity: 5,
+        }),
+      ],
+    })
+
+    const layoutLabel = container.querySelector('#stock-layout-label')
+    expect(layoutLabel).toBeTruthy()
+    expect(layoutLabel.classList.contains('sr-only')).toBe(true)
+    expect(container.querySelector('.stock-browse-layout .stock-browse-control-label')).toBeNull()
+    expect(container.querySelector('[aria-labelledby="stock-layout-label"]')).toBeTruthy()
+
+    setLayoutMode(container, 'Cards')
+    const cardName = container.querySelector('.stock-item-name')
+    expect(cardName?.textContent).toContain('VERY LONG PREMIUM PRODUCT NAME')
+    expect(cardName?.getAttribute('title')).toContain('VERY LONG PREMIUM PRODUCT NAME')
+
+    setLayoutMode(container, 'Count')
+    expect(container.querySelector('.stock-compact-count-btn, .stock-compact-row')).toBeTruthy()
     cleanup()
   })
 })
