@@ -458,10 +458,11 @@ describe('StockDashboardView filtered catalog density (P8.17.3d)', () => {
     expect(buttonByText(actionsRow, '+ Add item')).toBeTruthy()
     expect(buttonByText(actionsRow, 'Import CSV')).toBeFalsy()
     expect(buttonByText(actionsRow, 'Inventory Import')).toBeFalsy()
-
-    click(actionsRow.querySelector('[aria-label="More catalog actions"]'))
-    expect(container.querySelector('[data-stock-toolbar-overflow-import-csv="true"]')).toBeTruthy()
-    expect(container.querySelector('[data-stock-toolbar-overflow-inventory-import="true"]')).toBeTruthy()
+    expect(buttonByText(actionsRow, 'More')).toBeFalsy()
+    expect(actionsRow.querySelector('[aria-label="More catalog actions"]')).toBeNull()
+    expect(container.querySelector('[data-stock-toolbar-overflow="true"]')).toBeNull()
+    expect(container.querySelector('[data-stock-toolbar-overflow-import-csv="true"]')).toBeNull()
+    expect(container.querySelector('[data-stock-toolbar-overflow-inventory-import="true"]')).toBeNull()
 
     setLayoutMode(container, 'List')
     expect(catalogProductNames(container)).toHaveLength(3)
@@ -624,12 +625,11 @@ describe('StockDashboardView compact browse workspace (P8.24.3)', () => {
     expect(buttonByText(actionsRow, 'Select')).toBeTruthy()
     expect(buttonByText(actionsRow, 'Import CSV')).toBeFalsy()
     expect(buttonByText(actionsRow, 'Inventory Import')).toBeFalsy()
-
-    click(actionsRow.querySelector('[aria-label="More catalog actions"]'))
-    expect(container.querySelector('[data-stock-toolbar-overflow-import-csv="true"]')?.textContent)
-      .toBe('Import CSV')
-    expect(container.querySelector('[data-stock-toolbar-overflow-inventory-import="true"]')?.textContent)
-      .toBe('Inventory Import')
+    expect(buttonByText(actionsRow, 'More')).toBeFalsy()
+    expect(actionsRow.querySelector('[aria-label="More catalog actions"]')).toBeNull()
+    expect(container.querySelector('[data-stock-toolbar-overflow="true"]')).toBeNull()
+    expect(container.querySelector('[data-stock-toolbar-overflow-import-csv="true"]')).toBeNull()
+    expect(container.querySelector('[data-stock-toolbar-overflow-inventory-import="true"]')).toBeNull()
     cleanup()
   })
 

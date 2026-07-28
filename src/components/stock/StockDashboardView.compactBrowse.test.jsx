@@ -105,7 +105,9 @@ describe('StockDashboardView compact browse CSS contract (P8.24.3)', () => {
 
   it('keeps the compact toolbar and six-column headers in source without legacy chip toolbar duplication', () => {
     expect(DASHBOARD_SOURCE).toContain('data-stock-compact-browse-toolbar')
-    expect(DASHBOARD_SOURCE).toContain('StockToolbarOverflowMenu')
+    expect(DASHBOARD_SOURCE).not.toContain('StockToolbarOverflowMenu')
+    expect(DASHBOARD_SOURCE).not.toContain('Import CSV')
+    expect(DASHBOARD_SOURCE).not.toContain('Inventory Import')
     expect(DASHBOARD_SOURCE).toContain('stock-list-head-product')
     expect(DASHBOARD_SOURCE).toContain('stock-list-head-details')
     expect(DASHBOARD_SOURCE).toContain('stock-list-head-stock')
@@ -118,6 +120,19 @@ describe('StockDashboardView compact browse CSS contract (P8.24.3)', () => {
     expect(DASHBOARD_SOURCE).not.toContain('>Category / Type</th>')
     expect(DASHBOARD_SOURCE).not.toContain('>Current Stock</th>')
     expect(DASHBOARD_SOURCE).not.toContain('>Last Movement</th>')
+  })
+
+  it('removes Dashboard import entry points while preserving core manager actions (P8.25.3)', () => {
+    expect(DASHBOARD_SOURCE).toContain('+ Add item')
+    expect(DASHBOARD_SOURCE).toContain('Create order')
+    expect(DASHBOARD_SOURCE).toContain("selectionMode ? 'Done' : 'Select'")
+    expect(DASHBOARD_SOURCE).not.toContain('StockToolbarOverflowMenu')
+    expect(DASHBOARD_SOURCE).not.toContain('data-stock-toolbar-overflow')
+    expect(DASHBOARD_SOURCE).not.toContain('isImportModalOpen')
+    expect(DASHBOARD_SOURCE).not.toContain('isInventoryImportWizardOpen')
+    expect(DASHBOARD_SOURCE).not.toMatch(/import\s*\{[^}]*StockImportModal/)
+    expect(DASHBOARD_SOURCE).not.toMatch(/import\s*\{[^}]*InventoryImportWizardShell/)
+    expect(DASHBOARD_SOURCE).not.toContain('onImportStockItems')
   })
 
   it('does not reopen P8.24.1 Status × Visibility filter predicates', () => {

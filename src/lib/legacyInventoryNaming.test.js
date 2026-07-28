@@ -29,13 +29,14 @@ describe('Legacy Inventory naming (P8.16.17)', () => {
     expect(getModuleTitle('stock', { stockSection: 'inventory' })).toBe('Legacy Inventory')
   })
 
-  it('keeps Inventory Count and Inventory Import entry labels; shows Import & Migration for the migration section', () => {
+  it('keeps Inventory Count labels and Import & Migration ownership; Inventory Import stays off Stock nav', () => {
     expect(STOCK_SECTIONS.find((section) => section.id === 'count')?.label).toBe('Inventory Count')
     expect(STOCK_SECTIONS.find((section) => section.id === 'migration')?.label).toBe('Import & Migration')
     expect(STOCK_SECTIONS.find((section) => section.id === 'migration')?.id).toBe('migration')
     expect(getModuleTitle('stock', { stockSection: 'count' })).toBe('Inventory Count')
     expect(getModuleTitle('stock', { stockSection: 'migration' })).toBe('Import & Migration')
-    expect(dashboardSource).toContain('Inventory Import')
+    expect(dashboardSource).not.toContain('Inventory Import')
+    expect(dashboardSource).not.toContain('Import CSV')
     expect(STOCK_SECTIONS.map((section) => section.label)).not.toContain('Inventory Import')
   })
 

@@ -51,8 +51,6 @@ import { getCurrentDateKey } from '../../lib/currentDateUtils'
 import { buildStockOrdersOperationsSummary } from '../../lib/stockOrderUtils'
 import { StockCreateOrderModal } from './StockCreateOrderModal'
 import { StockItemFormModal } from './StockItemFormModal'
-import { StockImportModal } from './StockImportModal'
-import { InventoryImportWizardShell } from './InventoryImportWizardShell'
 import { StockItemMoreMenu } from './StockItemMoreMenu'
 import { StockItemPermanentDeleteDialog } from './StockItemPermanentDeleteDialog'
 import { StockProductHistoryDrawer } from './StockProductHistoryDrawer'
@@ -145,86 +143,6 @@ function StockSortDropdown({
               </button>
             </li>
           ))}
-        </ul>
-      ) : null}
-    </div>
-  )
-}
-
-function StockToolbarOverflowMenu({
-  disabled = false,
-  onImportCsv,
-  onInventoryImport,
-}) {
-  const [isOpen, setIsOpen] = useState(false)
-  const rootRef = useRef(null)
-
-  useEffect(() => {
-    if (!isOpen) return undefined
-
-    const handlePointerDown = (event) => {
-      if (!rootRef.current?.contains(event.target)) {
-        setIsOpen(false)
-      }
-    }
-
-    document.addEventListener('mousedown', handlePointerDown)
-    document.addEventListener('touchstart', handlePointerDown, { passive: true })
-    return () => {
-      document.removeEventListener('mousedown', handlePointerDown)
-      document.removeEventListener('touchstart', handlePointerDown)
-    }
-  }, [isOpen])
-
-  return (
-    <div
-      className={`stock-toolbar-overflow${isOpen ? ' is-open' : ''}`}
-      ref={rootRef}
-      data-stock-toolbar-overflow="true"
-    >
-      <button
-        type="button"
-        className="ghost-btn stock-toolbar-overflow-trigger"
-        aria-haspopup="menu"
-        aria-expanded={isOpen}
-        aria-label="More catalog actions"
-        disabled={disabled}
-        onClick={() => setIsOpen((current) => !current)}
-      >
-        More
-      </button>
-      {isOpen ? (
-        <ul className="stock-toolbar-overflow-menu" role="menu" aria-label="More catalog actions">
-          <li role="presentation">
-            <button
-              type="button"
-              role="menuitem"
-              className="stock-toolbar-overflow-option"
-              data-stock-toolbar-overflow-import-csv="true"
-              disabled={disabled}
-              onClick={() => {
-                onImportCsv?.()
-                setIsOpen(false)
-              }}
-            >
-              Import CSV
-            </button>
-          </li>
-          <li role="presentation">
-            <button
-              type="button"
-              role="menuitem"
-              className="stock-toolbar-overflow-option"
-              data-stock-toolbar-overflow-inventory-import="true"
-              disabled={disabled}
-              onClick={() => {
-                onInventoryImport?.()
-                setIsOpen(false)
-              }}
-            >
-              Inventory Import
-            </button>
-          </li>
         </ul>
       ) : null}
     </div>
@@ -1458,7 +1376,6 @@ export function StockDashboardView({
   onReactivateItem,
   onStockItemsChanged,
   onBulkUpdateItems,
-  onImportStockItems,
   onRecordMovement,
   onCreateOrders,
   onOpenOrders,
@@ -1478,8 +1395,6 @@ export function StockDashboardView({
   const [bulkModalField, setBulkModalField] = useState(null)
   const [movementModal, setMovementModal] = useState(null)
   const [historyItem, setHistoryItem] = useState(null)
-  const [isImportModalOpen, setIsImportModalOpen] = useState(false)
-  const [isInventoryImportWizardOpen, setIsInventoryImportWizardOpen] = useState(false)
   const [isCreateOrderModalOpen, setIsCreateOrderModalOpen] = useState(false)
   const [isItemModalOpen, setIsItemModalOpen] = useState(false)
   const [editingItem, setEditingItem] = useState(null)
@@ -1993,11 +1908,6 @@ export function StockDashboardView({
           >
             {selectionMode ? 'Done' : 'Select'}
           </button>
-          <StockToolbarOverflowMenu
-            disabled={!isWorkspaceReady || isStockActionBusy}
-            onImportCsv={() => setIsImportModalOpen(true)}
-            onInventoryImport={() => setIsInventoryImportWizardOpen(true)}
-          />
         </div>
       ) : null}
     </div>
@@ -2240,22 +2150,6 @@ export function StockDashboardView({
             setHistoryItem(null)
             openEditItem(item)
           }}
-        />
-      ) : null}
-
-      {isImportModalOpen ? (
-        <StockImportModal
-          stockItems={stockItems}
-          isSaving={isSaving}
-          onClose={() => setIsImportModalOpen(false)}
-          onImport={onImportStockItems}
-        />
-      ) : null}
-
-      {isInventoryImportWizardOpen ? (
-        <InventoryImportWizardShell
-          workspaceId={workspaceId}
-          onClose={() => setIsInventoryImportWizardOpen(false)}
         />
       ) : null}
 

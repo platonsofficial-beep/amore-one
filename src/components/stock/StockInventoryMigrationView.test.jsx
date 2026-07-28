@@ -314,11 +314,27 @@ describe('Import & Migration ownership + wiring (P8.25.1 / P8.25.2)', () => {
     expect(appSource).toContain('isInventoryImportWizardOpen')
     expect(appSource).toContain('onOpenInventoryImport={() => setIsInventoryImportWizardOpen(true)}')
     expect(appSource).toContain('<InventoryImportWizardShell')
-    expect(dashboardSource).toContain('Import CSV')
-    expect(dashboardSource).toContain('Inventory Import')
-    expect(dashboardSource).toContain('isInventoryImportWizardOpen')
-    expect(dashboardSource).toContain('InventoryImportWizardShell')
+    expect(appSource.match(/<InventoryImportWizardShell/g)?.length).toBe(1)
+    expect(dashboardSource).not.toContain('Import CSV')
+    expect(dashboardSource).not.toContain('Inventory Import')
+    expect(dashboardSource).not.toMatch(/import\s*\{[^}]*InventoryImportWizardShell/)
+    expect(dashboardSource).not.toMatch(/import\s*\{[^}]*StockImportModal/)
     expect(appSource).toContain('handleImportStockItems')
+  })
+
+  it('keeps deprecated Import CSV helpers present while Dashboard no longer exposes them', () => {
+    const stockImportModal = readFileSync(
+      resolve(process.cwd(), 'src/components/stock/StockImportModal.jsx'),
+      'utf8',
+    )
+    const stockCsvImport = readFileSync(
+      resolve(process.cwd(), 'src/lib/stockCsvImport.js'),
+      'utf8',
+    )
+    expect(stockImportModal).toContain('StockImportModal')
+    expect(stockCsvImport).toContain('parseStockImportCsv')
+    expect(appSource).toContain('handleImportStockItems')
+    expect(dashboardSource).not.toContain('onImportStockItems')
   })
 
   it('locks the iPad two-column ownership CSS contract', () => {
