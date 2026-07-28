@@ -31856,6 +31856,96 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   min-height: 44px;
 }
 
+.inventory-count-posted-review-reverse-btn {
+  min-width: 44px;
+  min-height: 44px;
+}
+
+.inventory-count-reverse-overlay {
+  z-index: 80;
+}
+
+.inventory-count-reverse-dialog {
+  width: min(520px, calc(100vw - 32px));
+  max-height: min(90vh, 720px);
+  overflow: auto;
+  padding: 22px 22px 18px;
+  border-radius: 18px;
+  background: #17171a;
+  border: 1px solid rgba(255, 247, 232, 0.12);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.45);
+  display: grid;
+  gap: 14px;
+}
+
+.inventory-count-reverse-dialog-title {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 650;
+  color: #fff7e8;
+}
+
+.inventory-count-reverse-dialog-body {
+  display: grid;
+  gap: 8px;
+}
+
+.inventory-count-reverse-dialog-body p {
+  margin: 0;
+  font-size: 0.92rem;
+  line-height: 1.45;
+  color: rgba(255, 247, 232, 0.78);
+}
+
+.inventory-count-reverse-field {
+  display: grid;
+  gap: 6px;
+}
+
+.inventory-count-reverse-field-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.78rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: rgba(255, 247, 232, 0.62);
+}
+
+.inventory-count-reverse-field-required,
+.inventory-count-reverse-field-optional {
+  font-size: 0.7rem;
+  letter-spacing: 0.02em;
+  text-transform: none;
+  color: rgba(255, 247, 232, 0.45);
+}
+
+.inventory-count-reverse-reason,
+.inventory-count-reverse-note {
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 247, 232, 0.14);
+  background: rgba(0, 0, 0, 0.28);
+  color: #fff7e8;
+  font: inherit;
+  resize: vertical;
+}
+
+.inventory-count-reverse-dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.inventory-count-reverse-dialog-actions .ghost-btn,
+.inventory-count-reverse-dialog-actions .primary-btn {
+  min-width: 44px;
+  min-height: 44px;
+}
+
 .inventory-count-posted-review-summary {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));

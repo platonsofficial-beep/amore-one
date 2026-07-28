@@ -1,6 +1,7 @@
 /**
  * @vitest-environment jsdom
  * P8.20.4 / P8.20.7 / P8.20.9 / P8.20.10 / P8.20.12 — Posted Count historical review + audit table.
+ * P8.22.8 — Reverse action foundation.
  */
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
@@ -16,13 +17,25 @@ import {
 
 const getPostedReviewMock = vi.fn()
 const applyCorrectionsMock = vi.fn()
+const reverseSessionMock = vi.fn()
+const useAuthMock = vi.fn()
+const canManageStockMock = vi.fn()
 
 vi.mock('../../services/inventoryCountService', () => ({
   getInventoryCountPostedReview: (...args) => getPostedReviewMock(...args),
   applyInventoryCountCorrections: (...args) => applyCorrectionsMock(...args),
+  reverseInventoryCountSession: (...args) => reverseSessionMock(...args),
   previewInventoryCountFinish: vi.fn(() => {
     throw new Error('Finish Preview must not be called from posted review')
   }),
+}))
+
+vi.mock('../../context/AuthContext', () => ({
+  useAuth: () => useAuthMock(),
+}))
+
+vi.mock('../../lib/permissions', () => ({
+  canManageStock: (...args) => canManageStockMock(...args),
 }))
 
 function render(ui) {
@@ -108,7 +121,18 @@ function reviewFixture(overrides = {}) {
 beforeEach(() => {
   getPostedReviewMock.mockReset()
   applyCorrectionsMock.mockReset()
+  reverseSessionMock.mockReset()
+  useAuthMock.mockReset()
+  canManageStockMock.mockReset()
   getPostedReviewMock.mockResolvedValue(reviewFixture())
+  useAuthMock.mockReturnValue({ role: 'manager' })
+  canManageStockMock.mockReturnValue(true)
+  reverseSessionMock.mockResolvedValue({
+    reversalId: 'reversal-1',
+    sessionId: 'posted-1',
+    workspaceId: 'workspace-1',
+    status: 'posted',
+  })
 })
 
 afterEach(() => {
@@ -930,6 +954,186 @@ describe('posted audit table CSS contracts (P8.20.11 / P8.20.12 / P8.20.13 / P8.
       'Movement',
     ])
 
+    cleanup()
+  })
+})
+
+describe('posted review reverse action foundation (P8.22.8)', () => {
+  function setTextareaValue(node, value) {
+    const nativeSetter = Object.getOwnPropertyDescriptor(
+      window.HTMLTextAreaElement.prototype,
+      'value',
+    )?.set
+    act(() => {
+      nativeSetter?.call(node, value)
+      node.dispatchEvent(new Event('input', { bubbles: true }))
+    })
+  }
+
+  it('hides Reverse when the operator cannot manage stock', async () => {
+    canManageStockMock.mockReturnValue(false)
+
+    const { container, cleanup } = render(createElement(InventoryCountPostedReview, {
+      sessionId: 'posted-1',
+      workspaceId: 'workspace-1',
+      onClose: vi.fn(),
+    }))
+    await flush()
+
+    expect(container.querySelector('[data-inventory-count-reverse-action="true"]')).toBeNull()
+    expect(container.querySelector('.inventory-count-posted-review-suggest-btn')).toBeTruthy()
+    cleanup()
+  })
+
+  it('hides Reverse when the session is already reversed', async () => {
+    getPostedReviewMock.mockResolvedValue(reviewFixture({
+      session: {
+        reversedAt: '2026-07-28T18:00:00.000Z',
+      },
+    }))
+
+    const { container, cleanup } = render(createElement(InventoryCountPostedReview, {
+      sessionId: 'posted-1',
+      workspaceId: 'workspace-1',
+      onClose: vi.fn(),
+    }))
+    await flush()
+
+    expect(container.querySelector('[data-inventory-count-reversed="true"]')).toBeTruthy()
+    expect(container.querySelector('[data-inventory-count-reverse-action="true"]')).toBeNull()
+    expect(container.querySelector('.inventory-count-posted-review-suggest-btn')).toBeNull()
+    cleanup()
+  })
+
+  it('opens the reverse dialog and requires a trimmed reason before submit', async () => {
+    const { container, cleanup } = render(createElement(InventoryCountPostedReview, {
+      sessionId: 'posted-1',
+      workspaceId: 'workspace-1',
+      onClose: vi.fn(),
+    }))
+    await flush()
+
+    const reverseBtn = container.querySelector('[data-inventory-count-reverse-action="true"]')
+    expect(reverseBtn).toBeTruthy()
+    act(() => {
+      reverseBtn.click()
+    })
+    await flush()
+
+    expect(container.querySelector('[data-inventory-count-reverse-dialog="true"]')).toBeTruthy()
+    expect(container.textContent).toContain('The original inventory count remains in history.')
+    expect(container.textContent).toContain('Later stock movements are not affected.')
+
+    const confirmBtn = container.querySelector('[data-inventory-count-reverse-confirm="true"]')
+    expect(confirmBtn?.disabled).toBe(true)
+
+    const reason = container.querySelector('[data-inventory-count-reverse-reason="true"]')
+    setTextareaValue(reason, '   ')
+    await flush()
+    expect(container.querySelector('[data-inventory-count-reverse-confirm="true"]')?.disabled).toBe(true)
+
+    setTextareaValue(reason, 'Posted in error')
+    await flush()
+    expect(container.querySelector('[data-inventory-count-reverse-confirm="true"]')?.disabled).toBe(false)
+
+    cleanup()
+  })
+
+  it('calls the reversal service once, shows loading, and reloads on success', async () => {
+    let resolveReverse
+    reverseSessionMock.mockImplementationOnce(() => new Promise((resolve) => {
+      resolveReverse = resolve
+    }))
+
+    const { container, cleanup } = render(createElement(InventoryCountPostedReview, {
+      sessionId: 'posted-1',
+      workspaceId: 'workspace-1',
+      onClose: vi.fn(),
+    }))
+    await flush()
+
+    act(() => {
+      container.querySelector('[data-inventory-count-reverse-action="true"]').click()
+    })
+    await flush()
+
+    const reason = container.querySelector('[data-inventory-count-reverse-reason="true"]')
+    const note = container.querySelector('[data-inventory-count-reverse-note="true"]')
+    setTextareaValue(reason, ' Posted in error ')
+    setTextareaValue(note, 'Ops note')
+    await flush()
+
+    const confirmBtn = container.querySelector('[data-inventory-count-reverse-confirm="true"]')
+    act(() => {
+      confirmBtn.click()
+      confirmBtn.click()
+    })
+    await flush()
+
+    expect(reverseSessionMock).toHaveBeenCalledTimes(1)
+    expect(reverseSessionMock).toHaveBeenCalledWith({
+      workspaceId: 'workspace-1',
+      sessionId: 'posted-1',
+      reason: 'Posted in error',
+      note: 'Ops note',
+    })
+    expect(container.textContent).toContain('Reversing…')
+    expect(container.querySelector('[data-inventory-count-reverse-confirm="true"]')?.disabled).toBe(true)
+
+    getPostedReviewMock.mockResolvedValueOnce(reviewFixture({
+      session: {
+        reversedAt: '2026-07-28T18:00:00.000Z',
+      },
+    }))
+
+    await act(async () => {
+      resolveReverse({
+        reversalId: 'reversal-1',
+        sessionId: 'posted-1',
+        workspaceId: 'workspace-1',
+        status: 'posted',
+      })
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+    await flush()
+
+    expect(container.querySelector('[data-inventory-count-reverse-dialog="true"]')).toBeNull()
+    expect(getPostedReviewMock.mock.calls.length).toBeGreaterThanOrEqual(2)
+    expect(container.querySelector('[data-inventory-count-reverse-action="true"]')).toBeNull()
+    cleanup()
+  })
+
+  it('renders mapped service errors inside the dialog', async () => {
+    reverseSessionMock.mockRejectedValueOnce(
+      new Error('This inventory count has already been reversed.'),
+    )
+
+    const { container, cleanup } = render(createElement(InventoryCountPostedReview, {
+      sessionId: 'posted-1',
+      workspaceId: 'workspace-1',
+      onClose: vi.fn(),
+    }))
+    await flush()
+
+    act(() => {
+      container.querySelector('[data-inventory-count-reverse-action="true"]').click()
+    })
+    await flush()
+
+    const reason = container.querySelector('[data-inventory-count-reverse-reason="true"]')
+    setTextareaValue(reason, 'Posted in error')
+    await flush()
+
+    await act(async () => {
+      container.querySelector('[data-inventory-count-reverse-confirm="true"]').click()
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+    await flush()
+
+    expect(container.textContent).toContain('This inventory count has already been reversed.')
+    expect(container.querySelector('[data-inventory-count-reverse-dialog="true"]')).toBeTruthy()
     cleanup()
   })
 })

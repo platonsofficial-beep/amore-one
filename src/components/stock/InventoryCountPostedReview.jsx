@@ -1,5 +1,10 @@
-import { useEffect, useMemo, useState } from 'react'
-import { getInventoryCountPostedReview } from '../../services/inventoryCountService'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { useAuth } from '../../context/AuthContext'
+import { canManageStock } from '../../lib/permissions'
+import {
+  getInventoryCountPostedReview,
+  reverseInventoryCountSession,
+} from '../../services/inventoryCountService'
 import { sumPriorCorrectionDeltasBySessionItemId } from './InventoryCountCorrectionReview'
 
 const AUDIT_ORIGINAL_ANCHOR_ID = 'inventory-count-audit-original'
@@ -266,6 +271,7 @@ export function buildPostedLineAuditQuantities(items = [], corrections = []) {
 /**
  * P8.20.4 / P8.20.7 — Dedicated read-only Posted Count historical review.
  * Uses persisted post-audit fields only. No Active Count workspace / Finish Preview.
+ * P8.22.8 — Reverse action foundation (managers only; no Home/Timeline badges).
  */
 export function InventoryCountPostedReview({
   sessionId,
@@ -274,27 +280,43 @@ export function InventoryCountPostedReview({
   onSuggestCorrection,
   notice = '',
 }) {
+  const { role } = useAuth()
+  const canManage = canManageStock(role)
+
   const [isLoading, setIsLoading] = useState(true)
   const [loadError, setLoadError] = useState('')
   const [review, setReview] = useState(null)
+  const [reloadKey, setReloadKey] = useState(0)
+
+  const [isReverseDialogOpen, setIsReverseDialogOpen] = useState(false)
+  const [reverseReason, setReverseReason] = useState('')
+  const [reverseNote, setReverseNote] = useState('')
+  const [isReversing, setIsReversing] = useState(false)
+  const [reverseError, setReverseError] = useState('')
+  const isReversingRef = useRef(false)
 
   useEffect(() => {
     let cancelled = false
-    const normalizedSessionId = `${sessionId ?? ''}`.trim()
-    const normalizedWorkspaceId = `${workspaceId ?? ''}`.trim()
 
-    if (!normalizedSessionId || !normalizedWorkspaceId) {
-      setIsLoading(false)
-      setLoadError('Unable to open posted inventory count review right now.')
-      setReview(null)
-      return undefined
-    }
+    const run = async () => {
+      const normalizedSessionId = `${sessionId ?? ''}`.trim()
+      const normalizedWorkspaceId = `${workspaceId ?? ''}`.trim()
 
-    setIsLoading(true)
-    setLoadError('')
-    setReview(null)
+      if (!normalizedSessionId || !normalizedWorkspaceId) {
+        if (!cancelled) {
+          setIsLoading(false)
+          setLoadError('Unable to open posted inventory count review right now.')
+          setReview(null)
+        }
+        return
+      }
 
-    const loadReview = async () => {
+      if (!cancelled) {
+        setIsLoading(true)
+        setLoadError('')
+        setReview(null)
+      }
+
       try {
         const payload = await getInventoryCountPostedReview({
           workspaceId: normalizedWorkspaceId,
@@ -311,11 +333,11 @@ export function InventoryCountPostedReview({
       }
     }
 
-    void loadReview()
+    void run()
     return () => {
       cancelled = true
     }
-  }, [sessionId, workspaceId])
+  }, [sessionId, workspaceId, reloadKey])
 
   const session = review?.session
   const summary = review?.summary
@@ -324,6 +346,23 @@ export function InventoryCountPostedReview({
   const corrections = Array.isArray(review?.corrections) ? review.corrections : []
   const correctionCount = Number(review?.correctionCount) || 0
   const hasCorrections = Boolean(review?.hasCorrections) || correctionCount > 0
+  const isAlreadyReversed = Boolean(`${session?.reversedAt ?? ''}`.trim())
+  const canShowReverse = (
+    canManage
+    && !isAlreadyReversed
+    && !isLoading
+    && Boolean(review)
+    && !loadError
+  )
+  const canShowSuggestCorrection = (
+    !isAlreadyReversed
+    && !isLoading
+    && Boolean(review)
+    && !loadError
+  )
+  const trimmedReverseReason = `${reverseReason}`.trim()
+  const canSubmitReverse = Boolean(trimmedReverseReason) && !isReversing
+
   const correctionVersions = useMemo(
     () => buildPostedCorrectionVersionHistory(corrections),
     [corrections],
@@ -343,12 +382,63 @@ export function InventoryCountPostedReview({
     || (session?.postedBy ? '—' : operatorName)
   const sessionNote = `${session?.note ?? ''}`.trim()
 
+  const closeReverseDialog = () => {
+    if (isReversing) return
+    setIsReverseDialogOpen(false)
+    setReverseReason('')
+    setReverseNote('')
+    setReverseError('')
+  }
+
+  const openReverseDialog = () => {
+    if (!canShowReverse || isReversing) return
+    setReverseError('')
+    setReverseReason('')
+    setReverseNote('')
+    setIsReverseDialogOpen(true)
+  }
+
+  const handleConfirmReverse = async () => {
+    if (!canSubmitReverse || isReversingRef.current) return
+
+    const normalizedSessionId = `${sessionId ?? ''}`.trim()
+    const normalizedWorkspaceId = `${workspaceId ?? ''}`.trim()
+    if (!normalizedSessionId || !normalizedWorkspaceId) {
+      setReverseError('Unable to reverse inventory count right now.')
+      return
+    }
+
+    isReversingRef.current = true
+    setIsReversing(true)
+    setReverseError('')
+
+    try {
+      await reverseInventoryCountSession({
+        workspaceId: normalizedWorkspaceId,
+        sessionId: normalizedSessionId,
+        reason: trimmedReverseReason,
+        note: reverseNote,
+      })
+      setIsReverseDialogOpen(false)
+      setReverseReason('')
+      setReverseNote('')
+      setReverseError('')
+      setReloadKey((value) => value + 1)
+    } catch (error) {
+      setReverseError(error?.message || 'Unable to reverse inventory count right now.')
+    } finally {
+      isReversingRef.current = false
+      setIsReversing(false)
+    }
+  }
+
   return (
     <section
       className="inventory-count-posted-review"
       aria-label="Posted inventory count review"
       data-inventory-count-posted-review="true"
       data-session-id={sessionId}
+      data-inventory-count-reversed={isAlreadyReversed ? 'true' : 'false'}
     >
       <header className="inventory-count-posted-review-header">
         <div className="inventory-count-posted-review-header-copy">
@@ -410,14 +500,27 @@ export function InventoryCountPostedReview({
           >
             Back
           </button>
-          <button
-            type="button"
-            className="primary-btn inventory-count-posted-review-suggest-btn"
-            disabled={isLoading || Boolean(loadError) || !review}
-            onClick={() => onSuggestCorrection?.()}
-          >
-            Suggest Correction
-          </button>
+          {canShowReverse ? (
+            <button
+              type="button"
+              className="ghost-btn inventory-count-posted-review-reverse-btn"
+              data-inventory-count-reverse-action="true"
+              disabled={isReversing}
+              onClick={openReverseDialog}
+            >
+              Reverse
+            </button>
+          ) : null}
+          {canShowSuggestCorrection ? (
+            <button
+              type="button"
+              className="primary-btn inventory-count-posted-review-suggest-btn"
+              disabled={isLoading || Boolean(loadError) || !review}
+              onClick={() => onSuggestCorrection?.()}
+            >
+              Suggest Correction
+            </button>
+          ) : null}
         </div>
       </header>
 
@@ -747,6 +850,106 @@ export function InventoryCountPostedReview({
             )}
           </div>
         </>
+      ) : null}
+
+      {isReverseDialogOpen ? (
+        <div
+          className="employee-modal-backdrop inventory-count-reverse-overlay"
+          role="presentation"
+          data-inventory-count-reverse-dialog="true"
+          onClick={() => {
+            if (!isReversing) closeReverseDialog()
+          }}
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="inventory-count-reverse-title"
+            aria-describedby="inventory-count-reverse-body"
+            className="inventory-count-reverse-dialog"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <h2
+              id="inventory-count-reverse-title"
+              className="inventory-count-reverse-dialog-title"
+            >
+              Reverse Inventory Count?
+            </h2>
+            <div
+              id="inventory-count-reverse-body"
+              className="inventory-count-reverse-dialog-body"
+            >
+              <p>The original inventory count remains in history.</p>
+              <p>
+                Stock changes created by this count and its corrections will be compensated
+                with new adjustment movements.
+              </p>
+              <p>Later stock movements are not affected.</p>
+              <p>This action cannot be undone from the app.</p>
+              <p>If another correction is needed later, start a new inventory count.</p>
+            </div>
+
+            <label className="inventory-count-reverse-field">
+              <span className="inventory-count-reverse-field-label">
+                Reason
+                <span className="inventory-count-reverse-field-required">Required</span>
+              </span>
+              <textarea
+                className="inventory-count-reverse-reason"
+                data-inventory-count-reverse-reason="true"
+                rows={3}
+                value={reverseReason}
+                disabled={isReversing}
+                onChange={(event) => setReverseReason(event.target.value)}
+                placeholder="Why is this posted count being reversed?"
+              />
+            </label>
+
+            <label className="inventory-count-reverse-field">
+              <span className="inventory-count-reverse-field-label">
+                Internal note
+                <span className="inventory-count-reverse-field-optional">Optional</span>
+              </span>
+              <textarea
+                className="inventory-count-reverse-note"
+                data-inventory-count-reverse-note="true"
+                rows={2}
+                value={reverseNote}
+                disabled={isReversing}
+                onChange={(event) => setReverseNote(event.target.value)}
+                placeholder="Optional internal note"
+              />
+            </label>
+
+            {reverseError ? (
+              <p className="inventory-count-session-card-error" role="alert">
+                {reverseError}
+              </p>
+            ) : null}
+
+            <div className="inventory-count-reverse-dialog-actions">
+              <button
+                type="button"
+                className="ghost-btn"
+                disabled={isReversing}
+                onClick={closeReverseDialog}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="primary-btn inventory-count-reverse-confirm-btn"
+                data-inventory-count-reverse-confirm="true"
+                disabled={!canSubmitReverse}
+                onClick={() => {
+                  void handleConfirmReverse()
+                }}
+              >
+                {isReversing ? 'Reversing…' : 'Reverse'}
+              </button>
+            </div>
+          </div>
+        </div>
       ) : null}
     </section>
   )
