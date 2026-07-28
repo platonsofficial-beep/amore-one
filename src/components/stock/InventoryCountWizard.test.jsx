@@ -8,8 +8,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { InventoryCountView } from './InventoryCountView'
 import { InventoryCountWizard } from './InventoryCountWizard'
 import {
-  buildInventoryCountSnapshot,
-  createInventoryCountSession,
+  createInventoryCountSessionWithSnapshot,
   listInventoryCountStorageLocations,
 } from '../../services/inventoryCountService'
 
@@ -20,8 +19,7 @@ vi.mock('../../context/AuthContext', () => ({
 }))
 
 vi.mock('../../services/inventoryCountService', () => ({
-  createInventoryCountSession: vi.fn(),
-  buildInventoryCountSnapshot: vi.fn(),
+  createInventoryCountSessionWithSnapshot: vi.fn(),
   listInventoryCountStorageLocations: vi.fn(),
   listInventoryCountHomeSessions: vi.fn(async () => ({
     active: [],
@@ -40,6 +38,24 @@ const DEFAULT_LIVE_LOCATIONS = [
   'Other',
   'Wine Storage',
 ]
+
+const DEFAULT_START_RESULT = {
+  session: {
+    id: 'session-real-1',
+    workspaceId: 'workspace-test-id',
+    status: 'in_progress',
+    countType: 'quick',
+    visibility: 'open',
+    includeZeroStock: false,
+    includeInactive: true,
+    note: 'Month-end bar audit',
+  },
+  snapshot: {
+    sessionId: 'session-real-1',
+    itemsCreated: 12,
+    snapshotCreatedAt: '2026-07-20T12:00:00.000Z',
+  },
+}
 
 function render(ui) {
   const container = document.createElement('div')
@@ -112,24 +128,12 @@ async function goToStep3(container, locationTitles = ['Main Bar', 'Main Storage'
 
 describe('InventoryCountWizard foundation', () => {
   beforeEach(() => {
-    createInventoryCountSession.mockReset()
-    buildInventoryCountSnapshot.mockReset()
+    createInventoryCountSessionWithSnapshot.mockReset()
     listInventoryCountStorageLocations.mockReset()
     listInventoryCountStorageLocations.mockResolvedValue([...DEFAULT_LIVE_LOCATIONS])
-    createInventoryCountSession.mockResolvedValue({
-      id: 'session-real-1',
-      workspaceId: 'workspace-test-id',
-      status: 'in_progress',
-      countType: 'quick',
-      visibility: 'open',
-      includeZeroStock: false,
-      includeInactive: true,
-      note: 'Month-end bar audit',
-    })
-    buildInventoryCountSnapshot.mockResolvedValue({
-      sessionId: 'session-real-1',
-      itemsCreated: 12,
-      snapshotCreatedAt: '2026-07-20T12:00:00.000Z',
+    createInventoryCountSessionWithSnapshot.mockResolvedValue({
+      session: { ...DEFAULT_START_RESULT.session },
+      snapshot: { ...DEFAULT_START_RESULT.snapshot },
     })
   })
 
@@ -386,12 +390,8 @@ describe('InventoryCountWizard foundation', () => {
       startBtn.click()
     })
 
-    expect(createInventoryCountSession).toHaveBeenCalledTimes(1)
-    expect(buildInventoryCountSnapshot).toHaveBeenCalledTimes(1)
-    expect(createInventoryCountSession.mock.invocationCallOrder[0]).toBeLessThan(
-      buildInventoryCountSnapshot.mock.invocationCallOrder[0],
-    )
-    expect(createInventoryCountSession).toHaveBeenCalledWith({
+    expect(createInventoryCountSessionWithSnapshot).toHaveBeenCalledTimes(1)
+    expect(createInventoryCountSessionWithSnapshot).toHaveBeenCalledWith({
       workspaceId: 'workspace-test-id',
       countType: 'quick',
       visibility: 'open',
@@ -399,10 +399,6 @@ describe('InventoryCountWizard foundation', () => {
       includeInactive: true,
       note: 'Month-end bar audit',
       locations: ['Main Bar', 'Main Storage'],
-    })
-    expect(buildInventoryCountSnapshot).toHaveBeenCalledWith({
-      workspaceId: 'workspace-test-id',
-      sessionId: 'session-real-1',
     })
     expect(onStartSession).toHaveBeenCalledTimes(1)
     expect(onStartSession.mock.calls[0][0].sessionId).toBe('session-real-1')
@@ -431,8 +427,8 @@ describe('InventoryCountWizard foundation', () => {
     cleanup()
   })
 
-  it('stops when create session fails and does not build snapshot', async () => {
-    createInventoryCountSession.mockRejectedValueOnce(new Error('Create failed'))
+  it('stops when start fails before a usable session is returned', async () => {
+    createInventoryCountSessionWithSnapshot.mockRejectedValueOnce(new Error('Create failed'))
     const onStartSession = vi.fn()
     const { container, cleanup } = render(
       createElement(InventoryCountWizard, { isOpen: true, onClose: vi.fn(), onStartSession }),
@@ -449,8 +445,7 @@ describe('InventoryCountWizard foundation', () => {
       startBtn.click()
     })
 
-    expect(createInventoryCountSession).toHaveBeenCalledTimes(1)
-    expect(buildInventoryCountSnapshot).not.toHaveBeenCalled()
+    expect(createInventoryCountSessionWithSnapshot).toHaveBeenCalledTimes(1)
     expect(onStartSession).not.toHaveBeenCalled()
     expect(container.querySelector('.staff-status-banner')?.textContent).toBe('Create failed')
     expect(getButtonByText(container, 'Start Inventory Count Session')?.disabled).toBe(false)
@@ -459,7 +454,7 @@ describe('InventoryCountWizard foundation', () => {
   })
 
   it('stops when snapshot fails after create succeeds', async () => {
-    buildInventoryCountSnapshot.mockRejectedValueOnce(new Error('Snapshot failed'))
+    createInventoryCountSessionWithSnapshot.mockRejectedValueOnce(new Error('Snapshot failed'))
     const onStartSession = vi.fn()
     const { container, cleanup } = render(
       createElement(InventoryCountWizard, { isOpen: true, onClose: vi.fn(), onStartSession }),
@@ -476,8 +471,7 @@ describe('InventoryCountWizard foundation', () => {
       startBtn.click()
     })
 
-    expect(createInventoryCountSession).toHaveBeenCalledTimes(1)
-    expect(buildInventoryCountSnapshot).toHaveBeenCalledTimes(1)
+    expect(createInventoryCountSessionWithSnapshot).toHaveBeenCalledTimes(1)
     expect(onStartSession).not.toHaveBeenCalled()
     expect(container.querySelector('.staff-status-banner')?.textContent).toBe('Snapshot failed')
     expect(getButtonByText(container, 'Start Inventory Count Session')?.disabled).toBe(false)
@@ -486,7 +480,7 @@ describe('InventoryCountWizard foundation', () => {
   })
 
   it('keeps the operator in the wizard when an empty snapshot is rejected (P8.21.2)', async () => {
-    buildInventoryCountSnapshot.mockRejectedValueOnce(
+    createInventoryCountSessionWithSnapshot.mockRejectedValueOnce(
       new Error('No inventory items were found for the selected location(s).'),
     )
     const onStartSession = vi.fn()
@@ -542,11 +536,42 @@ describe('InventoryCountWizard foundation', () => {
     cleanup()
   })
 
+  it('shows unverified start recovery guidance without entering Active Count (P8.21.3a)', async () => {
+    createInventoryCountSessionWithSnapshot.mockRejectedValueOnce(
+      new Error(
+        'We could not confirm whether the inventory count started. Please check the Inventory Count home before trying again.',
+      ),
+    )
+    const onStartSession = vi.fn()
+    const { container, cleanup } = render(
+      createElement(InventoryCountWizard, { isOpen: true, onClose: vi.fn(), onStartSession }),
+    )
+    await flushAsync()
+
+    const { continueBtn } = await goToStep3(container)
+    await act(async () => {
+      continueBtn.click()
+    })
+    await act(async () => {
+      getButtonByText(container, 'Start Inventory Count Session').click()
+    })
+
+    expect(onStartSession).not.toHaveBeenCalled()
+    expect(container.querySelector('[role="dialog"]')).not.toBeNull()
+    expect(container.querySelector('.staff-status-banner')?.textContent).toBe(
+      'We could not confirm whether the inventory count started. Please check the Inventory Count home before trying again.',
+    )
+    expect(container.textContent).toContain('Main Bar')
+    expect(container.textContent).toContain('Main Storage')
+
+    cleanup()
+  })
+
   it('prevents duplicate Start submissions while request is running', async () => {
-    let resolveCreate
-    createInventoryCountSession.mockImplementationOnce(
+    let resolveStart
+    createInventoryCountSessionWithSnapshot.mockImplementationOnce(
       () => new Promise((resolve) => {
-        resolveCreate = resolve
+        resolveStart = resolve
       }),
     )
     const onStartSession = vi.fn()
@@ -566,31 +591,37 @@ describe('InventoryCountWizard foundation', () => {
       startBtn.click()
     })
 
-    expect(createInventoryCountSession).toHaveBeenCalledTimes(1)
+    expect(createInventoryCountSessionWithSnapshot).toHaveBeenCalledTimes(1)
     expect(getButtonByText(container, 'Starting…')?.disabled).toBe(true)
 
     await act(async () => {
-      resolveCreate({
-        id: 'session-real-1',
-        workspaceId: 'workspace-test-id',
-        status: 'in_progress',
-        countType: 'quick',
-        visibility: 'blind',
-        includeZeroStock: true,
-        includeInactive: false,
-        note: '',
+      resolveStart({
+        session: {
+          id: 'session-real-1',
+          workspaceId: 'workspace-test-id',
+          status: 'in_progress',
+          countType: 'quick',
+          visibility: 'blind',
+          includeZeroStock: true,
+          includeInactive: false,
+          note: '',
+        },
+        snapshot: {
+          sessionId: 'session-real-1',
+          itemsCreated: 12,
+          snapshotCreatedAt: '2026-07-20T12:00:00.000Z',
+        },
       })
     })
 
     await flushAsync()
-    expect(buildInventoryCountSnapshot).toHaveBeenCalledTimes(1)
     expect(onStartSession).toHaveBeenCalledTimes(1)
     expect(onStartSession.mock.calls[0][0].sessionId).toBe('session-real-1')
 
     cleanup()
   })
 
-  it('wires create then snapshot through the inventory count service', async () => {
+  it('wires create-with-snapshot recovery through the inventory count service', async () => {
     const { readFileSync } = await import('node:fs')
     const { resolve } = await import('node:path')
     const source = readFileSync(
@@ -598,8 +629,7 @@ describe('InventoryCountWizard foundation', () => {
       'utf8',
     )
 
-    expect(source).toContain('createInventoryCountSession')
-    expect(source).toContain('buildInventoryCountSnapshot')
+    expect(source).toContain('createInventoryCountSessionWithSnapshot')
     expect(source).toContain('listInventoryCountStorageLocations')
     expect(source).not.toContain('DEMO_LOCATIONS')
     expect(source).not.toMatch(/localStorage|recordStockMovement|postCount|fetch\(/i)
@@ -608,23 +638,24 @@ describe('InventoryCountWizard foundation', () => {
 
 describe('InventoryCountWizard live location scope (P8.21.1)', () => {
   beforeEach(() => {
-    createInventoryCountSession.mockReset()
-    buildInventoryCountSnapshot.mockReset()
+    createInventoryCountSessionWithSnapshot.mockReset()
     listInventoryCountStorageLocations.mockReset()
-    createInventoryCountSession.mockResolvedValue({
-      id: 'session-real-1',
-      workspaceId: 'workspace-test-id',
-      status: 'in_progress',
-      countType: 'quick',
-      visibility: 'blind',
-      includeZeroStock: true,
-      includeInactive: false,
-      note: '',
-    })
-    buildInventoryCountSnapshot.mockResolvedValue({
-      sessionId: 'session-real-1',
-      itemsCreated: 4,
-      snapshotCreatedAt: '2026-07-20T12:00:00.000Z',
+    createInventoryCountSessionWithSnapshot.mockResolvedValue({
+      session: {
+        id: 'session-real-1',
+        workspaceId: 'workspace-test-id',
+        status: 'in_progress',
+        countType: 'quick',
+        visibility: 'blind',
+        includeZeroStock: true,
+        includeInactive: false,
+        note: '',
+      },
+      snapshot: {
+        sessionId: 'session-real-1',
+        itemsCreated: 4,
+        snapshotCreatedAt: '2026-07-20T12:00:00.000Z',
+      },
     })
   })
 
@@ -666,12 +697,12 @@ describe('InventoryCountWizard live location scope (P8.21.1)', () => {
       startBtn.click()
     })
 
-    expect(createInventoryCountSession).toHaveBeenCalledWith(
+    expect(createInventoryCountSessionWithSnapshot).toHaveBeenCalledWith(
       expect.objectContaining({
         locations: ['Cold  Room', 'bar'],
       }),
     )
-    const passedLocations = createInventoryCountSession.mock.calls[0][0].locations
+    const passedLocations = createInventoryCountSessionWithSnapshot.mock.calls[0][0].locations
     expect(passedLocations[0]).toBe('Cold  Room')
     expect(passedLocations[1]).toBe('bar')
     expect(passedLocations[0]).not.toBe(passedLocations[0].trim().toLowerCase())

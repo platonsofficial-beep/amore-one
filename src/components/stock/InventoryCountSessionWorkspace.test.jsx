@@ -33,6 +33,7 @@ import {
   buildInventoryCountSnapshot,
   completeInventoryCountLocation,
   createInventoryCountSession,
+  createInventoryCountSessionWithSnapshot,
   getInventoryCountSession,
   getInventoryCountSessionItems,
   getInventoryCountSessionLocations,
@@ -52,6 +53,23 @@ vi.mock('../../context/AuthContext', () => ({
 vi.mock('../../services/inventoryCountService', () => ({
   createInventoryCountSession: vi.fn(),
   buildInventoryCountSnapshot: vi.fn(),
+  createInventoryCountSessionWithSnapshot: vi.fn(async () => ({
+    session: {
+      id: 'session-real-1',
+      workspaceId: 'workspace-test-id',
+      status: 'in_progress',
+      countType: 'new',
+      visibility: 'blind',
+      includeZeroStock: true,
+      includeInactive: false,
+      note: '',
+    },
+    snapshot: {
+      sessionId: 'session-real-1',
+      itemsCreated: 5,
+      snapshotCreatedAt: '2026-07-20T12:00:00.000Z',
+    },
+  })),
   listInventoryCountStorageLocations: vi.fn(async () => ['Main Bar', 'Main Storage']),
   getInventoryCountSession: vi.fn(async () => ({
     id: 'session-real-1',
@@ -279,6 +297,7 @@ describe('InventoryCountSessionWorkspace real session items', () => {
   beforeEach(() => {
     createInventoryCountSession.mockReset()
     buildInventoryCountSnapshot.mockReset()
+    createInventoryCountSessionWithSnapshot.mockReset()
     listInventoryCountStorageLocations.mockReset()
     getInventoryCountSession.mockReset()
     getInventoryCountSessionLocations.mockReset()
@@ -304,6 +323,23 @@ describe('InventoryCountSessionWorkspace real session items', () => {
       sessionId: 'session-real-1',
       itemsCreated: 5,
       snapshotCreatedAt: '2026-07-20T12:00:00.000Z',
+    })
+    createInventoryCountSessionWithSnapshot.mockResolvedValue({
+      session: {
+        id: 'session-real-1',
+        workspaceId: 'workspace-test-id',
+        status: 'in_progress',
+        countType: 'new',
+        visibility: 'blind',
+        includeZeroStock: true,
+        includeInactive: false,
+        note: '',
+      },
+      snapshot: {
+        sessionId: 'session-real-1',
+        itemsCreated: 5,
+        snapshotCreatedAt: '2026-07-20T12:00:00.000Z',
+      },
     })
     getInventoryCountSession.mockResolvedValue({
       id: 'session-real-1',

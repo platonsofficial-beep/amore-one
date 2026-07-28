@@ -25,6 +25,7 @@ import {
   completeInventoryCountLocation,
   cancelInventoryCountSession,
   createInventoryCountSession,
+  createInventoryCountSessionWithSnapshot,
   deleteInventoryCountSession,
   formatInventoryCountHomeProgress,
   getInventoryCountPostedReview,
@@ -2824,6 +2825,326 @@ describe('buildInventoryCountSnapshot empty protection (P8.21.2)', () => {
       workspaceId: 'workspace-1',
       sessionId: 'session-1',
     })).rejects.toThrow('No inventory items were found for the selected location(s).')
+  })
+})
+
+describe('createInventoryCountSessionWithSnapshot start recovery (P8.21.3 / P8.21.3a)', () => {
+  const createSessionRow = {
+    id: 'session-new-1',
+    workspace_id: 'workspace-1',
+    status: 'in_progress',
+    count_type: 'quick',
+    visibility: 'blind',
+    include_zero_stock: true,
+    include_inactive: false,
+    note: '',
+    started_by: 'user-1',
+    started_at: '2026-07-28T12:00:00.000Z',
+    updated_at: '2026-07-28T12:00:00.000Z',
+    snapshot_at: null,
+  }
+
+  const UNVERIFIED_MESSAGE =
+    'We could not confirm whether the inventory count started. Please check the Inventory Count home before trying again.'
+
+  function mockSessionVerification({ sessionRow, items = [], sessionError = null, itemsError = null }) {
+    fromMock.mockImplementation((table) => {
+      if (table === 'inventory_count_sessions') {
+        return createQuery({
+          data: sessionError ? null : sessionRow,
+          error: sessionError,
+        })
+      }
+      if (table === 'inventory_count_session_items') {
+        return createQuery({
+          data: itemsError ? null : items,
+          error: itemsError,
+        })
+      }
+      return createQuery({ data: null, error: { message: `unexpected table ${table}` } })
+    })
+  }
+
+  beforeEach(() => {
+    fromMock.mockReset()
+    rpcMock.mockReset()
+  })
+
+  it('returns session and snapshot on normal create + snapshot success', async () => {
+    rpcMock
+      .mockResolvedValueOnce({
+        data: [createSessionRow],
+        error: null,
+      })
+      .mockResolvedValueOnce({
+        data: [{
+          session_id: 'session-new-1',
+          items_created: 3,
+          snapshot_created_at: '2026-07-28T12:00:01.000Z',
+        }],
+        error: null,
+      })
+
+    const result = await createInventoryCountSessionWithSnapshot({
+      workspaceId: 'workspace-1',
+      countType: 'quick',
+      visibility: 'blind',
+      locations: ['Bar'],
+    })
+
+    expect(rpcMock).toHaveBeenCalledTimes(2)
+    expect(rpcMock.mock.calls[0][0]).toBe('create_inventory_count_session')
+    expect(rpcMock.mock.calls[1][0]).toBe('build_inventory_count_snapshot')
+    expect(rpcMock.mock.calls[1][1]).toEqual({
+      p_workspace_id: 'workspace-1',
+      p_session_id: 'session-new-1',
+    })
+    expect(fromMock).not.toHaveBeenCalled()
+    expect(result.session.id).toBe('session-new-1')
+    expect(result.snapshot).toEqual({
+      sessionId: 'session-new-1',
+      itemsCreated: 3,
+      snapshotCreatedAt: '2026-07-28T12:00:01.000Z',
+    })
+  })
+
+  it('deletes only the newly created session when verification confirms no snapshot, then rethrows the original error', async () => {
+    rpcMock
+      .mockResolvedValueOnce({
+        data: [createSessionRow],
+        error: null,
+      })
+      .mockResolvedValueOnce({
+        data: null,
+        error: { message: 'inventory_count_snapshot_empty' },
+      })
+      .mockResolvedValueOnce({
+        data: {
+          session_id: 'session-new-1',
+          workspace_id: 'workspace-1',
+          deleted: true,
+          previous_status: 'in_progress',
+          deleted_at: '2026-07-28T12:00:02.000Z',
+        },
+        error: null,
+      })
+    mockSessionVerification({
+      sessionRow: { ...createSessionRow, snapshot_at: null },
+      items: [],
+    })
+
+    await expect(createInventoryCountSessionWithSnapshot({
+      workspaceId: 'workspace-1',
+      countType: 'quick',
+      visibility: 'blind',
+      locations: ['Bar'],
+    })).rejects.toThrow('No inventory items were found for the selected location(s).')
+
+    const deleteCalls = rpcMock.mock.calls.filter((call) => call[0] === 'delete_inventory_count_session')
+    expect(deleteCalls).toHaveLength(1)
+    expect(deleteCalls[0][1]).toEqual({
+      p_workspace_id: 'workspace-1',
+      p_session_id: 'session-new-1',
+    })
+    expect(fromMock).toHaveBeenCalledWith('inventory_count_sessions')
+    expect(fromMock).toHaveBeenCalledWith('inventory_count_session_items')
+  })
+
+  it('treats an ambiguous snapshot throw as success when verification finds a usable snapshot', async () => {
+    rpcMock
+      .mockResolvedValueOnce({
+        data: [createSessionRow],
+        error: null,
+      })
+      .mockResolvedValueOnce({
+        data: null,
+        error: { message: 'Failed to fetch' },
+      })
+    mockSessionVerification({
+      sessionRow: {
+        ...createSessionRow,
+        snapshot_at: '2026-07-28T12:00:01.000Z',
+        updated_at: '2026-07-28T12:00:01.000Z',
+      },
+      items: [{
+        id: 'line-1',
+        session_id: 'session-new-1',
+        workspace_id: 'workspace-1',
+        item_id: 'item-1',
+        item_name: 'Cola',
+        category: 'Beverage',
+        item_type: 'Soft Drink',
+        unit: 'case',
+        storage_location: 'Bar',
+        expected_snapshot: 2,
+        counted_quantity: null,
+        line_status: 'pending',
+        note: '',
+      }],
+    })
+
+    const result = await createInventoryCountSessionWithSnapshot({
+      workspaceId: 'workspace-1',
+      countType: 'quick',
+      visibility: 'blind',
+      locations: ['Bar'],
+    })
+
+    expect(rpcMock.mock.calls.some((call) => call[0] === 'delete_inventory_count_session')).toBe(false)
+    expect(result.session.id).toBe('session-new-1')
+    expect(result.session.snapshotAt).toBe('2026-07-28T12:00:01.000Z')
+    expect(result.snapshot).toEqual({
+      sessionId: 'session-new-1',
+      itemsCreated: 1,
+      snapshotCreatedAt: '2026-07-28T12:00:01.000Z',
+    })
+  })
+
+  it('does not delete when verification also fails and surfaces the recovery message', async () => {
+    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    rpcMock
+      .mockResolvedValueOnce({
+        data: [createSessionRow],
+        error: null,
+      })
+      .mockResolvedValueOnce({
+        data: null,
+        error: { message: 'Failed to fetch' },
+      })
+    mockSessionVerification({
+      sessionRow: null,
+      sessionError: { message: 'verification network down' },
+    })
+
+    await expect(createInventoryCountSessionWithSnapshot({
+      workspaceId: 'workspace-1',
+      countType: 'quick',
+      visibility: 'blind',
+      locations: ['Bar'],
+    })).rejects.toThrow(UNVERIFIED_MESSAGE)
+
+    expect(rpcMock.mock.calls.some((call) => call[0] === 'delete_inventory_count_session')).toBe(false)
+    expect(consoleErrorSpy).toHaveBeenCalled()
+    consoleErrorSpy.mockRestore()
+  })
+
+  it('does not enter Active Count for incomplete snapshot state and does not delete blindly', async () => {
+    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    rpcMock
+      .mockResolvedValueOnce({
+        data: [createSessionRow],
+        error: null,
+      })
+      .mockResolvedValueOnce({
+        data: null,
+        error: { message: 'Failed to fetch' },
+      })
+    mockSessionVerification({
+      sessionRow: {
+        ...createSessionRow,
+        snapshot_at: '2026-07-28T12:00:01.000Z',
+      },
+      items: [],
+    })
+
+    await expect(createInventoryCountSessionWithSnapshot({
+      workspaceId: 'workspace-1',
+      countType: 'quick',
+      visibility: 'blind',
+      locations: ['Bar'],
+    })).rejects.toThrow(UNVERIFIED_MESSAGE)
+
+    expect(rpcMock.mock.calls.some((call) => call[0] === 'delete_inventory_count_session')).toBe(false)
+    expect(consoleErrorSpy).toHaveBeenCalled()
+    consoleErrorSpy.mockRestore()
+  })
+
+  it('still rethrows the original confirmed snapshot error when cleanup fails', async () => {
+    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    rpcMock
+      .mockResolvedValueOnce({
+        data: [createSessionRow],
+        error: null,
+      })
+      .mockResolvedValueOnce({
+        data: null,
+        error: { message: 'inventory_count_snapshot_empty' },
+      })
+      .mockResolvedValueOnce({
+        data: null,
+        error: { message: 'inventory_count_delete_forbidden' },
+      })
+    mockSessionVerification({
+      sessionRow: { ...createSessionRow, snapshot_at: null },
+      items: [],
+    })
+
+    await expect(createInventoryCountSessionWithSnapshot({
+      workspaceId: 'workspace-1',
+      countType: 'quick',
+      visibility: 'blind',
+      locations: ['Bar'],
+    })).rejects.toThrow('No inventory items were found for the selected location(s).')
+
+    const deleteCalls = rpcMock.mock.calls.filter((call) => call[0] === 'delete_inventory_count_session')
+    expect(deleteCalls).toHaveLength(1)
+    expect(deleteCalls[0][1].p_session_id).toBe('session-new-1')
+    expect(consoleErrorSpy).toHaveBeenCalled()
+    consoleErrorSpy.mockRestore()
+  })
+
+  it('does not attempt cleanup more than once after confirmed absent snapshot', async () => {
+    rpcMock
+      .mockResolvedValueOnce({
+        data: [createSessionRow],
+        error: null,
+      })
+      .mockResolvedValueOnce({
+        data: null,
+        error: { message: 'inventory_count_snapshot_empty' },
+      })
+      .mockResolvedValueOnce({
+        data: {
+          session_id: 'session-new-1',
+          workspace_id: 'workspace-1',
+          deleted: true,
+          previous_status: 'in_progress',
+          deleted_at: '2026-07-28T12:00:02.000Z',
+        },
+        error: null,
+      })
+    mockSessionVerification({
+      sessionRow: { ...createSessionRow, snapshot_at: null },
+      items: [],
+    })
+
+    await expect(createInventoryCountSessionWithSnapshot({
+      workspaceId: 'workspace-1',
+      countType: 'quick',
+      visibility: 'blind',
+      locations: ['Bar'],
+    })).rejects.toThrow('No inventory items were found for the selected location(s).')
+
+    const deleteCalls = rpcMock.mock.calls.filter((call) => call[0] === 'delete_inventory_count_session')
+    expect(deleteCalls).toHaveLength(1)
+  })
+
+  it('does not verify or delete anything when create fails before a session exists', async () => {
+    rpcMock.mockResolvedValueOnce({
+      data: null,
+      error: { message: 'Create failed' },
+    })
+
+    await expect(createInventoryCountSessionWithSnapshot({
+      workspaceId: 'workspace-1',
+      countType: 'quick',
+      visibility: 'blind',
+      locations: ['Bar'],
+    })).rejects.toThrow('Create failed')
+
+    expect(rpcMock).toHaveBeenCalledTimes(1)
+    expect(rpcMock.mock.calls[0][0]).toBe('create_inventory_count_session')
+    expect(fromMock).not.toHaveBeenCalled()
   })
 })
 

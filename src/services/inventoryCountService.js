@@ -713,6 +713,148 @@ export async function buildInventoryCountSnapshot({
   return mapped
 }
 
+const INVENTORY_COUNT_START_UNVERIFIED_MESSAGE =
+  'We could not confirm whether the inventory count started. Please check the Inventory Count home before trying again.'
+
+/**
+ * Confirm whether a just-created session has a usable frozen snapshot.
+ * Used only for start recovery after buildInventoryCountSnapshot throws.
+ *
+ * usable  — snapshot_at set, ≥1 items, in_progress → safe to enter Active Count
+ * absent  — no snapshot_at and no items → safe to compensate-delete this session
+ * unusable — incomplete/inconsistent freeze → do not delete blindly, do not enter Active Count
+ */
+async function verifyInventoryCountStartSnapshot({ workspaceId, sessionId }) {
+  const session = await getInventoryCountSession({ workspaceId, sessionId })
+  const items = await getInventoryCountSessionItems({ workspaceId, sessionId })
+  const itemCount = items.length
+  const hasSnapshotAt = Boolean(session.snapshotAt)
+  const status = `${session.status ?? ''}`.trim()
+
+  if (hasSnapshotAt && itemCount > 0 && status === 'in_progress') {
+    return {
+      status: 'usable',
+      session,
+      snapshot: {
+        sessionId: session.id,
+        itemsCreated: itemCount,
+        snapshotCreatedAt: session.snapshotAt,
+      },
+    }
+  }
+
+  if (!hasSnapshotAt && itemCount === 0) {
+    return {
+      status: 'absent',
+      session,
+    }
+  }
+
+  return {
+    status: 'unusable',
+    session,
+    itemCount,
+    snapshotAt: session.snapshotAt,
+  }
+}
+
+/**
+ * Create a session then build its snapshot (P8.21.3 / P8.21.3a start recovery).
+ *
+ * If buildInventoryCountSnapshot throws, verify DB state for THAT session only before
+ * any compensating delete. Ambiguous transport failures must not delete a committed snapshot.
+ *
+ * Confirmed server rejections such as inventory_count_snapshot_empty raise inside the
+ * snapshot RPC before snapshot_at is written and roll back item inserts; verification
+ * then observes absent state and a single compensating delete is safe.
+ */
+export async function createInventoryCountSessionWithSnapshot({
+  workspaceId,
+  countType,
+  visibility,
+  includeZeroStock = true,
+  includeInactive = false,
+  note = '',
+  locations = [],
+} = {}) {
+  const session = await createInventoryCountSession({
+    workspaceId,
+    countType,
+    visibility,
+    includeZeroStock,
+    includeInactive,
+    note,
+    locations,
+  })
+
+  try {
+    const snapshot = await buildInventoryCountSnapshot({
+      workspaceId,
+      sessionId: session.id,
+    })
+    return { session, snapshot }
+  } catch (snapshotError) {
+    let verification
+    try {
+      verification = await verifyInventoryCountStartSnapshot({
+        workspaceId,
+        sessionId: session.id,
+      })
+    } catch (verificationError) {
+      console.error(
+        '[inventoryCountService] Failed to verify inventory count start outcome after snapshot error:',
+        {
+          workspaceId,
+          sessionId: session.id,
+          snapshotError,
+          verificationError,
+        },
+      )
+      throw new Error(INVENTORY_COUNT_START_UNVERIFIED_MESSAGE)
+    }
+
+    if (verification.status === 'usable') {
+      return {
+        session: verification.session,
+        snapshot: verification.snapshot,
+      }
+    }
+
+    if (verification.status === 'unusable') {
+      console.error(
+        '[inventoryCountService] Inventory count start left an unusable snapshot state:',
+        {
+          workspaceId,
+          sessionId: session.id,
+          snapshotError,
+          snapshotAt: verification.snapshotAt,
+          itemCount: verification.itemCount,
+        },
+      )
+      throw new Error(INVENTORY_COUNT_START_UNVERIFIED_MESSAGE)
+    }
+
+    // Confirmed absent snapshot — compensate-delete only this session id once.
+    try {
+      await deleteInventoryCountSession({
+        workspaceId,
+        sessionId: session.id,
+      })
+    } catch (cleanupError) {
+      console.error(
+        '[inventoryCountService] Failed to clean up inventory count session after confirmed snapshot failure:',
+        {
+          workspaceId,
+          sessionId: session.id,
+          snapshotError,
+          cleanupError,
+        },
+      )
+    }
+    throw snapshotError
+  }
+}
+
 function buildLocationProgressBySession(locationRows = []) {
   const progressBySessionId = new Map()
 

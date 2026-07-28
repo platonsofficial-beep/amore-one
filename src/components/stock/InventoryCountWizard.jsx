@@ -1,8 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useAuth } from '../../context/AuthContext'
 import {
-  buildInventoryCountSnapshot,
-  createInventoryCountSession,
+  createInventoryCountSessionWithSnapshot,
   listInventoryCountStorageLocations,
 } from '../../services/inventoryCountService'
 
@@ -277,7 +276,7 @@ export function InventoryCountWizard({ isOpen, onClose, onStartSession }) {
     setStartError('')
 
     try {
-      const session = await createInventoryCountSession({
+      const { session, snapshot } = await createInventoryCountSessionWithSnapshot({
         workspaceId,
         countType: selectedType,
         visibility: countVisibility,
@@ -285,13 +284,6 @@ export function InventoryCountWizard({ isOpen, onClose, onStartSession }) {
         includeInactive,
         note: trimmedNote,
         locations: selectedLocationItems.map((location) => location.id),
-      })
-
-      if (startRequestIdRef.current !== requestId) return
-
-      const snapshot = await buildInventoryCountSnapshot({
-        workspaceId,
-        sessionId: session.id,
       })
 
       if (startRequestIdRef.current !== requestId) return
