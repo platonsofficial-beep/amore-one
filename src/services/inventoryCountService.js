@@ -56,6 +56,9 @@ const HOME_SESSION_SELECT = [
   'posted_by',
   'snapshot_at',
   'cancelled_at',
+  'reversed_at',
+  'reversed_by',
+  'reversal_reason',
   'created_at',
   'updated_at',
 ].join(', ')
@@ -353,6 +356,9 @@ export function mapInventoryCountSessionRow(row) {
   const cancelledAtRaw = row.cancelled_at ?? row.cancelledAt
   const updatedAtRaw = row.updated_at ?? row.updatedAt
   const postedByRaw = row.posted_by ?? row.postedBy
+  const reversedAtRaw = row.reversed_at ?? row.reversedAt
+  const reversedByRaw = row.reversed_by ?? row.reversedBy
+  const reversalReasonRaw = row.reversal_reason ?? row.reversalReason
 
   return {
     id,
@@ -373,6 +379,13 @@ export function mapInventoryCountSessionRow(row) {
     postedBy: postedByRaw == null || postedByRaw === '' ? null : `${postedByRaw}`,
     snapshotAt: snapshotAtRaw == null || snapshotAtRaw === '' ? null : `${snapshotAtRaw}`,
     cancelledAt: cancelledAtRaw == null || cancelledAtRaw === '' ? null : `${cancelledAtRaw}`,
+    reversedAt: reversedAtRaw == null || reversedAtRaw === '' ? null : `${reversedAtRaw}`,
+    reversedBy: reversedByRaw == null || reversedByRaw === '' ? null : `${reversedByRaw}`,
+    reversalReason: (
+      reversalReasonRaw == null || `${reversalReasonRaw}`.trim() === ''
+        ? null
+        : `${reversalReasonRaw}`
+    ),
     createdAt: row.created_at ?? row.createdAt ?? null,
     updatedAt: updatedAtRaw == null || updatedAtRaw === '' ? null : `${updatedAtRaw}`,
   }

@@ -279,6 +279,37 @@ describe('inventory count home session mapping (P8.16.27)', () => {
       startedBy: 'user-1',
       pausedAt: '2026-07-21T11:00:00.000Z',
       updatedAt: '2026-07-21T11:00:00.000Z',
+      reversedAt: null,
+      reversedBy: null,
+      reversalReason: null,
+    })
+  })
+
+  it('keeps posted sessions valid with reversal metadata defaulting to null (P8.22.2)', () => {
+    const mapped = mapInventoryCountSessionRow({
+      id: 'session-posted',
+      workspace_id: 'workspace-1',
+      status: 'posted',
+      count_type: 'quick',
+      visibility: 'blind',
+      started_by: 'user-1',
+      started_at: '2026-07-21T10:00:00.000Z',
+      posted_at: '2026-07-21T12:00:00.000Z',
+      posted_by: 'user-2',
+      snapshot_at: '2026-07-21T10:01:00.000Z',
+      updated_at: '2026-07-21T12:00:00.000Z',
+    })
+
+    expect(mapped).toMatchObject({
+      id: 'session-posted',
+      status: 'posted',
+      statusLabel: 'Posted',
+      postedAt: '2026-07-21T12:00:00.000Z',
+      postedBy: 'user-2',
+      snapshotAt: '2026-07-21T10:01:00.000Z',
+      reversedAt: null,
+      reversedBy: null,
+      reversalReason: null,
     })
   })
 
@@ -3307,5 +3338,54 @@ describe('inventory_count_posted_by_foundation SQL contract (P8.5.2a)', () => {
     expect(executableSql).not.toContain('create index')
     expect(workspaceSource).toContain('inventory-count-finish-preview-confirm')
     expect(workspaceSource).toContain('postInventoryCountFinish')
+  })
+})
+
+describe('inventory_count_reversal_foundation SQL contract (P8.22.2)', () => {
+  const sql = readFileSync(
+    resolve(process.cwd(), 'supabase/inventory_count_reversal_foundation.sql'),
+    'utf8',
+  )
+  const schemaSql = readFileSync(
+    resolve(process.cwd(), 'supabase/inventory_count_schema.sql'),
+    'utf8',
+  )
+  const serviceSource = readFileSync(
+    resolve(process.cwd(), 'src/services/inventoryCountService.js'),
+    'utf8',
+  )
+
+  it('adds nullable reversed_at, reversed_by, and reversal_reason without defaults or backfill', () => {
+    expect(sql).toContain('alter table public.inventory_count_sessions')
+    expect(sql).toContain('add column if not exists reversed_at timestamptz')
+    expect(sql).toContain('add column if not exists reversed_by uuid')
+    expect(sql).toContain('add column if not exists reversal_reason text')
+    expect(sql).toContain('references auth.users(id) on delete set null')
+    expect(sql).not.toMatch(/reversed_at[^\n]*not null/i)
+    expect(sql).not.toMatch(/reversed_by[^\n]*not null/i)
+    expect(sql).not.toMatch(/reversal_reason[^\n]*not null/i)
+    expect(sql).not.toMatch(/reversed_at[^\n]*default\s+/i)
+    expect(sql).not.toMatch(/reversed_by[^\n]*default\s+/i)
+    expect(sql).not.toMatch(/reversal_reason[^\n]*default\s+/i)
+  })
+
+  it('does not introduce a reversed status or mutate stock / posting behavior', () => {
+    const executableSql = sql
+      .split('\n')
+      .filter((line) => !line.trim().startsWith('--'))
+      .join('\n')
+
+    expect(executableSql).not.toMatch(/\bupdate\b/i)
+    expect(executableSql).not.toMatch(/\binsert\b/i)
+    expect(executableSql).not.toMatch(/\bbackfill\b/i)
+    expect(executableSql).not.toContain('stock_items')
+    expect(executableSql).not.toContain('stock_movements')
+    expect(executableSql).not.toContain("'reversed'")
+    expect(schemaSql).toContain("'posted'")
+    expect(schemaSql).not.toContain("'reversed'")
+    expect(serviceSource).toContain('reversed_at')
+    expect(serviceSource).toContain('reversed_by')
+    expect(serviceSource).toContain('reversal_reason')
+    expect(serviceSource).not.toMatch(/reverseInventoryCount|createInventoryCountReversal/i)
   })
 })
