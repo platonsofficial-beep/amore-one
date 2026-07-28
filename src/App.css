@@ -35983,6 +35983,147 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   max-width: 52rem;
 }
 
+.stock-migration-eyebrow {
+  margin: 0;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(255, 247, 232, 0.48);
+}
+
+/* P8.25.1 — Import vs Legacy Migration ownership cards */
+.stock-migration-ownership {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+}
+
+.stock-migration-ownership-card {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+  padding: 16px 18px;
+  border-radius: 14px;
+  border: 1px solid rgba(212, 175, 106, 0.22);
+  background:
+    linear-gradient(180deg, rgba(255, 247, 232, 0.04) 0%, rgba(8, 8, 9, 0.22) 100%);
+}
+
+.stock-migration-ownership-card.is-legacy {
+  border-color: rgba(255, 247, 232, 0.14);
+}
+
+.stock-migration-ownership-card-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.stock-migration-ownership-status {
+  margin: 0;
+  font-size: 0.7rem;
+  font-weight: 650;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgba(212, 175, 106, 0.78);
+}
+
+.stock-migration-ownership-title {
+  margin: 0;
+  color: #fff7e8;
+  font-size: 1.05rem;
+  font-weight: 650;
+  letter-spacing: 0.01em;
+}
+
+.stock-migration-ownership-description {
+  margin: 0;
+  color: rgba(255, 247, 232, 0.72);
+  font-size: 0.88rem;
+  line-height: 1.45;
+}
+
+.stock-migration-ownership-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+  margin: 2px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.stock-migration-ownership-meta li {
+  padding: 4px 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 247, 232, 0.1);
+  background: rgba(255, 247, 232, 0.04);
+  color: rgba(255, 247, 232, 0.62);
+  font-size: 0.72rem;
+  line-height: 1.2;
+}
+
+.stock-migration-ownership-card-action {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+}
+
+.stock-migration-ownership-open-import {
+  min-height: 44px;
+  min-width: 44px;
+  padding-inline: 14px;
+}
+
+.stock-migration-ownership-action-note,
+.stock-migration-ownership-anchor-note {
+  margin: 0;
+  color: rgba(255, 247, 232, 0.52);
+  font-size: 0.78rem;
+  line-height: 1.4;
+}
+
+.stock-migration-legacy-workflow {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+
+.stock-migration-legacy-workflow-header {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  padding-top: 2px;
+}
+
+.stock-migration-legacy-workflow-title {
+  margin: 0;
+  color: #fff7e8;
+  font-size: 1.12rem;
+  font-weight: 650;
+  letter-spacing: 0.01em;
+}
+
+.stock-migration-legacy-workflow-copy {
+  margin: 0;
+  color: rgba(255, 247, 232, 0.68);
+  font-size: 0.88rem;
+  line-height: 1.45;
+  max-width: 48rem;
+}
+
+@media (min-width: 900px) {
+  .stock-migration-ownership {
+    grid-template-columns: 1fr 1fr;
+    align-items: stretch;
+  }
+}
+
 /* P8.7.1 / P8.7.2 — Guided Migration Workflow Hero (scoped) */
 .stock-migration-guided-workflow {
   gap: 22px;

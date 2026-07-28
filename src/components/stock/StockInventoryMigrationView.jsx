@@ -55,8 +55,8 @@ function pipelineStateClass(state) {
 }
 
 /**
- * Inventory Migration dashboard — live read-only metrics and pipeline.
- * No mutation handlers. Execution buttons remain disabled.
+ * Import & Migration workspace — ownership introduction + legacy cutover surfaces.
+ * Spreadsheet Import entry remains non-executing until a later mount sprint.
  */
 export function StockInventoryMigrationView({
   workspaceId = '',
@@ -316,19 +316,94 @@ export function StockInventoryMigrationView({
     <section
       ref={pageRef}
       className="stock-migration-page"
-      aria-label="Inventory migration"
+      aria-label="Import and migration"
     >
       {noticeMessage ? <div className="staff-status-banner">{noticeMessage}</div> : null}
       {isLoading ? <div className="staff-status-banner">Loading migration metrics…</div> : null}
 
       <header className="stock-migration-header">
         <div className="stock-migration-header-copy">
-          <h2 className="stock-migration-title">Inventory Migration</h2>
+          <p className="stock-migration-eyebrow">Import & Migration</p>
+          <h2 className="stock-migration-title">Import inventory or migrate legacy stock</h2>
           <p className="stock-migration-subtitle">
-            Safely migrate legacy inventory into the new Stock system.
+            Use Spreadsheet Import for controlled catalog onboarding. Use Legacy Migration for
+            one-time cutover from the previous inventory system.
           </p>
         </div>
       </header>
+
+      <section
+        className="stock-migration-ownership"
+        aria-label="Import and migration ownership"
+      >
+        <article
+          className="stock-migration-ownership-card"
+          data-stock-migration-ownership="spreadsheet-import"
+        >
+          <div className="stock-migration-ownership-card-copy">
+            <p className="stock-migration-ownership-status">Controlled import workflow</p>
+            <h3 className="stock-migration-ownership-title">Spreadsheet Import</h3>
+            <p className="stock-migration-ownership-description">
+              Import products from CSV or Excel, review matches, resolve issues, and prepare a
+              controlled catalog update.
+            </p>
+            <ul className="stock-migration-ownership-meta" aria-label="Spreadsheet Import capabilities">
+              <li>CSV / XLSX</li>
+              <li>Review before apply</li>
+              <li>Product matching</li>
+              <li>New product preparation</li>
+            </ul>
+          </div>
+          <div className="stock-migration-ownership-card-action">
+            <button
+              type="button"
+              className="ghost-btn stock-migration-ownership-open-import"
+              disabled
+              aria-disabled="true"
+              data-stock-migration-open-import="true"
+            >
+              Open Import
+            </button>
+            <p className="stock-migration-ownership-action-note">
+              Available from the Dashboard until the workspace move is completed.
+            </p>
+          </div>
+        </article>
+
+        <article
+          className="stock-migration-ownership-card is-legacy"
+          data-stock-migration-ownership="legacy-migration"
+        >
+          <div className="stock-migration-ownership-card-copy">
+            <p className="stock-migration-ownership-status">One-time cutover workflow</p>
+            <h3 className="stock-migration-ownership-title">Legacy Inventory Migration</h3>
+            <p className="stock-migration-ownership-description">
+              Move inventory from the previous legacy catalog into the live Stock system using
+              guided validation, mapping, apply, and audit steps.
+            </p>
+            <ul className="stock-migration-ownership-meta" aria-label="Legacy Migration capabilities">
+              <li>Previous inventory catalog</li>
+              <li>Preflight and preview</li>
+              <li>Mapping and manual review</li>
+              <li>Auditable apply</li>
+            </ul>
+          </div>
+          <p className="stock-migration-ownership-anchor-note">
+            Guided workflow and operator tools below belong to this cutover path.
+          </p>
+        </article>
+      </section>
+
+      <section
+        className="stock-migration-legacy-workflow"
+        aria-label="Legacy Inventory Migration workflow"
+      >
+        <header className="stock-migration-legacy-workflow-header">
+          <h3 className="stock-migration-legacy-workflow-title">Legacy Inventory Migration</h3>
+          <p className="stock-migration-legacy-workflow-copy">
+            Guided cutover from the previous inventory catalog into live Stock.
+          </p>
+        </header>
 
       <StockMigrationGuidedWorkflow
         operator={operator}
@@ -543,6 +618,7 @@ export function StockInventoryMigrationView({
           activityAvailable={activityAvailable}
         />
       </StockMigrationAdvancedDiagnostics>
+      </section>
     </section>
   )
 }

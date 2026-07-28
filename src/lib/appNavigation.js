@@ -20,7 +20,7 @@ export const STOCK_SECTIONS = [
   { id: 'inventory', label: 'Legacy Inventory' },
   { id: 'suppliers', label: 'Suppliers' },
   { id: 'orders', label: 'Orders' },
-  { id: 'migration', label: 'Inventory Migration' },
+  { id: 'migration', label: 'Import & Migration' },
 ]
 
 export const OPERATIONS_SECTIONS = [
@@ -126,7 +126,7 @@ export function getModuleTitle(activeView, {
     if (stockSection === 'suppliers') return 'Suppliers'
     if (stockSection === 'inventory') return 'Legacy Inventory'
     if (stockSection === 'orders') return 'Orders'
-    if (stockSection === 'migration') return 'Inventory Migration'
+    if (stockSection === 'migration') return 'Import & Migration'
     return 'Stock'
   }
   if (activeView === 'operations') {
@@ -160,7 +160,7 @@ export function getModuleSubtitle(activeView, currentDateLabel, {
   if (activeView === 'stock' && stockSection === 'suppliers') return 'Supplier contacts, products, and purchase history.'
   if (activeView === 'stock' && stockSection === 'orders') return 'Supplier purchase orders and receiving.'
   if (activeView === 'stock' && stockSection === 'migration') {
-    return 'Safely migrate legacy inventory into the new Stock system.'
+    return 'Spreadsheet import for catalog onboarding, or one-time legacy inventory cutover.'
   }
   if (activeView === 'operations' && operationsSection === 'checklists') return 'Build reusable opening, closing, and prep procedures.'
   if (activeView === 'operations') return 'Daily tasks, issues, and shift communication.'

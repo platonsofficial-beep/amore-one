@@ -632,9 +632,10 @@ describe('StockInventoryMigrationView mounts guided workflow', () => {
       await Promise.resolve()
     })
 
-    const page = container.querySelector('[aria-label="Inventory migration"]')
+    const page = container.querySelector('[aria-label="Import and migration"]')
     const guided = container.querySelector('[aria-label="Guided migration workflow"]')
     const summary = container.querySelector('[aria-label="Migration summary"]')
+    expect(page).toBeTruthy()
     expect(guided).toBeTruthy()
     expect(summary).toBeTruthy()
     expect(

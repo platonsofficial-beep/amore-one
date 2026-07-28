@@ -25,7 +25,7 @@ describe('Inventory Count section foundation', () => {
       { id: 'inventory', label: 'Legacy Inventory' },
       { id: 'suppliers', label: 'Suppliers' },
       { id: 'orders', label: 'Orders' },
-      { id: 'migration', label: 'Inventory Migration' },
+      { id: 'migration', label: 'Import & Migration' },
     ]))
     expect(STOCK_SECTIONS.map((section) => section.id)).toEqual([
       'dashboard',
@@ -35,6 +35,7 @@ describe('Inventory Count section foundation', () => {
       'orders',
       'migration',
     ])
+    expect(STOCK_SECTIONS.find((section) => section.id === 'migration')?.id).toBe('migration')
   })
 
   it('accepts count in Stock section persistence normalization', () => {
