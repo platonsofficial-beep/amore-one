@@ -662,12 +662,14 @@ describe('StockDashboardView compact browse workspace (P8.24.3)', () => {
 
     const row = container.querySelector('.stock-list-row')
     expect(row.querySelector('.stock-list-details')?.textContent).toContain('Spirits')
-    expect(row.querySelector('.stock-list-details')?.textContent).toContain('Acme Supply')
-    expect(row.querySelector('.stock-list-details')?.textContent).toContain('Main Storage')
+    expect(row.querySelector('.stock-list-details-line.is-category')).toBeTruthy()
+    expect(row.querySelector('.stock-list-details-line.is-supplier')?.textContent).toContain('Acme Supply')
+    expect(row.querySelector('.stock-list-details-line.is-location')?.textContent).toContain('Main Storage')
     expect(row.querySelector('.stock-list-stock-current')?.textContent).toMatch(/12/)
     expect(row.querySelector('.stock-list-stock-min')?.textContent).toMatch(/Min/)
     expect(row.querySelector('.stock-list-stock-min')?.textContent).toMatch(/5/)
     expect(row.querySelector('.stock-list-cell-status .stock-item-status-badge')).toBeTruthy()
+    expect(row.querySelector('.stock-list-updated')?.textContent).not.toBe('')
     expect(row.querySelector('.stock-list-cell-movement')?.textContent).not.toBe('')
 
     const actions = row.querySelector('.stock-list-cell-actions')

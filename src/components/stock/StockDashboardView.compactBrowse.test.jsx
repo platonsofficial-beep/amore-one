@@ -54,6 +54,17 @@ describe('StockDashboardView compact browse CSS contract (P8.24.3)', () => {
     expect(DASHBOARD_SOURCE).toContain('aria-label="Stock count"')
   })
 
+  it('preserves P8.24.5 visual hierarchy presentation hooks without layout redesign', () => {
+    expect(DASHBOARD_SOURCE).toContain('stock-list-details-line is-category')
+    expect(DASHBOARD_SOURCE).toContain('stock-list-details-line is-supplier')
+    expect(DASHBOARD_SOURCE).toContain('stock-list-details-line is-location')
+    expect(DASHBOARD_SOURCE).toContain('StockListUpdatedCell')
+    expect(APP_CSS).toContain('.stock-list-details-line.is-category')
+    expect(APP_CSS).toContain('.stock-list-updated')
+    expect(APP_CSS).toMatch(/\.stock-item-status-badge\s*\{[^}]*height:\s*28px/)
+    expect(APP_CSS).toContain('.stock-row-actions.is-compact .stock-row-action-btn.is-receive')
+  })
+
   it('keeps the compact toolbar and six-column headers in source without legacy chip toolbar duplication', () => {
     expect(DASHBOARD_SOURCE).toContain('data-stock-compact-browse-toolbar')
     expect(DASHBOARD_SOURCE).toContain('StockToolbarOverflowMenu')

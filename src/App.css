@@ -27544,7 +27544,7 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 .stock-dashboard-page {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 22px;
 }
 
 .stock-summary-grid {
@@ -27657,13 +27657,13 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) minmax(0, 0.9fr) auto;
 }
 
-/* P8.24.3 / P8.24.4 — Compact ≤2-row Stock Dashboard browse toolbar */
+/* P8.24.3 / P8.24.4 / P8.24.5 — Compact ≤2-row Stock Dashboard browse toolbar */
 .stock-compact-browse-toolbar {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 10px;
   min-width: 0;
-  padding: 10px 12px;
+  padding: 12px 14px;
   border: 1px solid rgba(212, 175, 55, 0.14);
   border-radius: 14px;
   background:
@@ -27676,7 +27676,7 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   display: flex;
   flex-wrap: nowrap;
   align-items: flex-end;
-  gap: 10px 12px;
+  gap: 12px 14px;
   min-width: 0;
 }
 
@@ -27774,9 +27774,9 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   flex-wrap: nowrap;
   align-items: center;
   justify-content: flex-start;
-  gap: 8px;
+  gap: 10px;
   min-width: 0;
-  padding-top: 2px;
+  padding-top: 4px;
   border-top: 1px solid rgba(255, 255, 255, 0.04);
 }
 
@@ -28382,7 +28382,7 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 4px;
+  gap: 5px;
   min-width: 0;
 }
 
@@ -28392,9 +28392,11 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   -webkit-line-clamp: 2;
   overflow: hidden;
   color: #fff7e8;
-  font-size: 0.88rem;
-  font-weight: 600;
-  line-height: 1.25;
+  font-size: 0.9rem;
+  font-weight: 700;
+  line-height: 1.3;
+  letter-spacing: 0.01em;
+  min-height: calc(1.3em * 2);
   overflow-wrap: anywhere;
   word-break: break-word;
 }
@@ -28406,38 +28408,56 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 .stock-list-details {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 1px;
   min-width: 0;
 }
 
 .stock-list-details-line {
   margin: 0;
-  color: #9f9588;
-  font-size: 0.76rem;
-  line-height: 1.25;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  line-height: 1.25;
+}
+
+.stock-list-details-line.is-category {
+  color: #e8dcc6;
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.stock-list-details-line.is-supplier {
+  color: #a89f90;
+  font-size: 0.74rem;
+  font-weight: 500;
+}
+
+.stock-list-details-line.is-location {
+  color: #7f776c;
+  font-size: 0.72rem;
+  font-weight: 400;
 }
 
 .stock-list-stock {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 5px;
   min-width: 0;
   font-variant-numeric: tabular-nums;
 }
 
 .stock-list-stock-current {
   color: #fff7e8;
-  font-size: 0.88rem;
-  font-weight: 600;
-  line-height: 1.2;
+  font-size: 0.96rem;
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: 0.01em;
 }
 
 .stock-list-stock-min {
-  color: #9f9588;
-  font-size: 0.74rem;
+  color: #8a8174;
+  font-size: 0.72rem;
+  font-weight: 500;
   line-height: 1.2;
 }
 
@@ -28508,9 +28528,42 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   color: #8f8678;
   font-size: 0.76rem;
   line-height: 1.25;
+  min-width: 0;
+  vertical-align: middle;
+}
+
+.stock-list-updated {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  min-width: 0;
+}
+
+.stock-list-updated-type {
+  color: #cfc4b4;
+  font-size: 0.76rem;
+  font-weight: 600;
+  line-height: 1.25;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  max-width: 100%;
+}
+
+.stock-list-updated-when {
+  color: #7f776c;
+  font-size: 0.7rem;
+  font-weight: 400;
+  line-height: 1.2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+}
+
+.stock-list-updated.is-empty {
+  color: #7f776c;
 }
 
 .stock-list-cell-actions,
@@ -28580,6 +28633,20 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   white-space: nowrap;
 }
 
+.stock-row-actions.is-compact .stock-row-action-btn.is-receive {
+  font-weight: 700;
+  color: #f6dca2;
+  border-color: rgba(212, 175, 55, 0.28);
+  background: rgba(212, 175, 55, 0.1);
+}
+
+.stock-row-actions.is-compact .stock-row-action-btn.is-count {
+  font-weight: 500;
+  color: #cfc4b4;
+  border-color: rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.03);
+}
+
 .stock-row-actions.is-compact .stock-row-more-btn {
   flex: 0 0 44px;
   max-width: 44px;
@@ -28587,6 +28654,10 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   padding: 0;
   font-size: 1rem;
   letter-spacing: 0.02em;
+  font-weight: 400;
+  color: #9f9588;
+  border-color: rgba(255, 255, 255, 0.06);
+  background: transparent;
 }
 
 .stock-row-more-btn {
@@ -28702,7 +28773,7 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 .stock-item-card {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 12px;
 }
 
 .stock-item-card.is-alert {
@@ -28747,7 +28818,7 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: start;
-  gap: 10px;
+  gap: 12px;
   min-width: 0;
 }
 
@@ -28804,6 +28875,7 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   min-width: 0;
   color: #fff7e8;
   font-size: 1.12rem;
+  font-weight: 700;
   line-height: 1.25;
   letter-spacing: 0.01em;
   display: -webkit-box;
@@ -28816,13 +28888,21 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 }
 
 .stock-item-status-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   flex-shrink: 0;
   justify-self: end;
+  box-sizing: border-box;
+  height: 28px;
   min-height: 28px;
-  padding: 4px 10px;
+  max-height: 28px;
+  padding: 0 10px;
   border-radius: 999px;
   font-size: 0.72rem;
+  font-weight: 600;
   letter-spacing: 0.04em;
+  line-height: 1;
   white-space: nowrap;
 }
 
@@ -28845,14 +28925,16 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   margin: 0;
   color: #d4af37;
   font-size: 0.82rem;
+  font-weight: 600;
   letter-spacing: 0.04em;
+  line-height: 1.3;
 }
 
 .stock-item-meta-lines {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  margin-top: 2px;
+  gap: 3px;
+  margin-top: 0;
 }
 
 .stock-item-meta-line {
@@ -28862,8 +28944,8 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   align-items: baseline;
   gap: 6px;
   color: #bfb3a0;
-  font-size: 0.84rem;
-  line-height: 1.35;
+  font-size: 0.82rem;
+  line-height: 1.3;
 }
 
 .stock-item-meta-label {
@@ -28899,7 +28981,7 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 
 .stock-item-hero-label {
   display: block;
-  margin-bottom: 4px;
+  margin-bottom: 6px;
   color: #9f9588;
   font-size: 0.72rem;
   text-transform: uppercase;
@@ -28909,9 +28991,9 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 .stock-item-hero-qty {
   margin: 0;
   color: #fff7e8;
-  font-size: 1.55rem;
-  font-weight: 600;
-  line-height: 1.15;
+  font-size: 1.6rem;
+  font-weight: 700;
+  line-height: 1.1;
 }
 
 .stock-item-hero-qty.tone-low {
@@ -28923,16 +29005,17 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 }
 
 .stock-item-qty-context {
-  margin: 4px 0 0;
-  color: #bfb3a0;
-  font-size: 0.82rem;
-  line-height: 1.35;
+  margin: 6px 0 0;
+  color: #9f9588;
+  font-size: 0.8rem;
+  line-height: 1.3;
 }
 
 .stock-item-secondary {
   display: flex;
   flex-direction: column;
   gap: 6px;
+  margin-top: 2px;
 }
 
 .stock-item-detail-line {
@@ -28957,20 +29040,21 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 .stock-item-minimum {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 5px;
 }
 
 .stock-item-minimum-label {
-  color: #9f9588;
-  font-size: 0.72rem;
+  color: #7f776c;
+  font-size: 0.7rem;
+  font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.12em;
 }
 
 .stock-item-minimum-value {
-  color: #f3ead8;
-  font-size: 0.92rem;
-  font-weight: 600;
+  color: #bfb3a0;
+  font-size: 0.88rem;
+  font-weight: 500;
 }
 
 .stock-item-target {
@@ -29077,7 +29161,7 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 
 .stock-item-card-footer {
   margin-top: auto;
-  padding-top: 12px;
+  padding-top: 14px;
   border-top: 1px solid rgba(255, 255, 255, 0.06);
   flex-shrink: 0;
 }
@@ -29092,7 +29176,7 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 .stock-item-actions {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 44px;
-  gap: 6px;
+  gap: 8px;
   width: 100%;
 }
 
@@ -29105,10 +29189,25 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   font-weight: 600;
 }
 
+.stock-item-action-primary.is-receive.ghost-btn {
+  font-weight: 700;
+  color: #f6dca2;
+  border-color: rgba(212, 175, 55, 0.28);
+  background: rgba(212, 175, 55, 0.1);
+}
+
+.stock-item-action-primary.is-count.ghost-btn {
+  font-weight: 500;
+  color: #cfc4b4;
+  border-color: rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.03);
+}
+
 .stock-item-action-primary.ghost-btn,
 .stock-item-more-btn.ghost-btn {
   min-height: 44px;
   margin: 0;
+  border-radius: 10px;
 }
 
 .stock-item-more-btn {
@@ -29116,6 +29215,10 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   padding: 0;
   font-size: 1.2rem;
   line-height: 1;
+  font-weight: 400;
+  color: #9f9588;
+  border-color: rgba(255, 255, 255, 0.06);
+  background: transparent;
 }
 
 .stock-item-more-btn.is-open {
@@ -29513,7 +29616,7 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   flex-direction: column;
   gap: 16px;
   padding: 16px 18px;
-  margin-bottom: 4px;
+  margin-bottom: 0;
 }
 
 .stock-needs-attention-header {
@@ -29547,7 +29650,7 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   flex-direction: column;
   gap: 14px;
   padding: 16px 18px;
-  margin-bottom: 4px;
+  margin-bottom: 0;
   border-color: rgba(212, 175, 55, 0.22);
   background: linear-gradient(165deg, rgba(36, 30, 18, 0.92), rgba(18, 16, 12, 0.96));
 }
@@ -29580,7 +29683,7 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   flex-direction: column;
   gap: 6px;
   padding: 14px 18px;
-  margin-bottom: 4px;
+  margin-bottom: 0;
   border-color: rgba(148, 163, 184, 0.16);
   background: rgba(18, 16, 12, 0.72);
 }

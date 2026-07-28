@@ -339,15 +339,15 @@ function StockItemCard({
         <div className="stock-item-card-footer">
           <div className={`stock-item-actions-wrap${isMenuOpen ? ' is-menu-open' : ''}`}>
           <div className="stock-item-actions">
-            <button type="button" className="ghost-btn stock-item-action-primary" onClick={(event) => { event.stopPropagation(); onReceive() }}>
+            <button type="button" className="ghost-btn stock-item-action-primary is-receive" onClick={(event) => { event.stopPropagation(); onReceive() }}>
               Receive
             </button>
-            <button type="button" className="ghost-btn stock-item-action-primary" onClick={(event) => { event.stopPropagation(); onCount() }}>
+            <button type="button" className="ghost-btn stock-item-action-primary is-count" onClick={(event) => { event.stopPropagation(); onCount() }}>
               Stock count
             </button>
             <button
               type="button"
-              className={`ghost-btn stock-item-more-btn${isMenuOpen ? ' is-open' : ''}`}
+              className={`ghost-btn stock-item-more-btn is-more${isMenuOpen ? ' is-open' : ''}`}
               onClick={(event) => { event.stopPropagation(); onToggleMenu(event) }}
               aria-expanded={isMenuOpen}
               aria-haspopup="menu"
@@ -384,6 +384,23 @@ function formatLastMovementCell(item) {
   return when ? `${label} · ${when}` : label
 }
 
+function StockListUpdatedCell({ item }) {
+  const movement = item.lastMovement
+  if (!movement?.type) {
+    return <span className="stock-list-updated is-empty">—</span>
+  }
+
+  const label = getStockMovementLabel(movement.type)
+  const when = movement.createdAt ? formatStockMovementRelativeTime(movement.createdAt) : ''
+
+  return (
+    <div className="stock-list-updated" title={when ? `${label} · ${when}` : label}>
+      <span className="stock-list-updated-type">{label}</span>
+      {when ? <span className="stock-list-updated-when">{when}</span> : null}
+    </div>
+  )
+}
+
 function StockItemRowActions({
   item,
   canManage,
@@ -405,12 +422,16 @@ function StockItemRowActions({
   return (
     <div className={`stock-row-actions-wrap${isMenuOpen ? ' is-menu-open' : ''}${compact ? ' is-compact' : ''}`}>
       <div className={`stock-row-actions${compact ? ' is-compact' : ''}`}>
-        <button type="button" className="ghost-btn stock-row-action-btn" onClick={onReceive}>
+        <button
+          type="button"
+          className="ghost-btn stock-row-action-btn is-receive"
+          onClick={onReceive}
+        >
           Receive
         </button>
         <button
           type="button"
-          className="ghost-btn stock-row-action-btn"
+          className="ghost-btn stock-row-action-btn is-count"
           onClick={onCount}
           aria-label="Stock count"
           data-stock-row-count-action="true"
@@ -419,7 +440,7 @@ function StockItemRowActions({
         </button>
         <button
           type="button"
-          className={`ghost-btn stock-row-more-btn${isMenuOpen ? ' is-open' : ''}`}
+          className={`ghost-btn stock-row-more-btn is-more${isMenuOpen ? ' is-open' : ''}`}
           onClick={onToggleMenu}
           aria-expanded={isMenuOpen}
           aria-haspopup="menu"
@@ -477,13 +498,13 @@ function StockListRow({
       </th>
       <td className="stock-list-cell stock-list-cell-details">
         <div className="stock-list-details">
-          <p className="stock-list-details-line" title={formatStockCategoryTypeLine(item.category, itemType)}>
+          <p className="stock-list-details-line is-category" title={formatStockCategoryTypeLine(item.category, itemType)}>
             {formatStockCategoryTypeLine(item.category, itemType)}
           </p>
-          <p className="stock-list-details-line" title={supplierLabel === '—' ? undefined : supplierLabel}>
+          <p className="stock-list-details-line is-supplier" title={supplierLabel === '—' ? undefined : supplierLabel}>
             {supplierLabel}
           </p>
-          <p className="stock-list-details-line" title={location === '—' ? undefined : location}>
+          <p className="stock-list-details-line is-location" title={location === '—' ? undefined : location}>
             {location}
           </p>
         </div>
@@ -504,7 +525,7 @@ function StockListRow({
         </span>
       </td>
       <td className="stock-list-cell stock-list-cell-movement">
-        {formatLastMovementCell(item)}
+        <StockListUpdatedCell item={item} />
       </td>
       <td className="stock-list-cell stock-list-cell-actions">
         <StockItemRowActions
