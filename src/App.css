@@ -31927,11 +31927,14 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 .inventory-count-posted-review-table .is-item {
   width: auto;
   text-align: left;
+  vertical-align: middle;
 }
 
-.inventory-count-posted-review-table .is-location {
+.inventory-count-posted-review-table th.is-location,
+.inventory-count-posted-review-table td.is-location {
   width: 6.5rem;
   text-align: left;
+  vertical-align: middle;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -31939,23 +31942,34 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   font-size: 0.8rem;
 }
 
-.inventory-count-posted-review-table .is-num {
+.inventory-count-posted-review-table th.is-num,
+.inventory-count-posted-review-table td.is-num {
   width: 4.1rem;
   text-align: center;
+  vertical-align: middle;
   font-variant-numeric: tabular-nums;
   padding-left: 4px;
   padding-right: 4px;
 }
 
-.inventory-count-posted-review-table .is-movement {
+.inventory-count-posted-review-table th.is-movement,
+.inventory-count-posted-review-table td.is-movement {
   width: 5.25rem;
-  text-align: left;
+  text-align: center;
+  vertical-align: middle;
   overflow: hidden;
 }
 
 .inventory-count-posted-review-item-name {
   color: #fff7e8;
   font-weight: 600;
+  font-size: 0.86rem;
+  line-height: 1.25;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
   overflow-wrap: anywhere;
 }
 
@@ -31963,6 +31977,10 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   margin-top: 1px;
   color: #8f8475;
   font-size: 0.72rem;
+  line-height: 1.2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .inventory-count-posted-review-posted-qty {

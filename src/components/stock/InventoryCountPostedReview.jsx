@@ -683,18 +683,35 @@ export function InventoryCountPostedReview({
                     const lineAudit = lineAuditByItemId.get(`${item.id ?? ''}`.trim()) || null
                     const deltaSincePosted = lineAudit?.deltaSincePosted
                     const deltaTone = deltaToneClass(deltaSincePosted)
+                    const itemName = `${item.itemName ?? ''}`.trim() || '—'
+                    const locationLabel = `${item.storageLocation ?? ''}`.trim() || '—'
+                    const unitMeta = [
+                      `${item.unit ?? ''}`.trim() || '—',
+                      item.lineStatus === 'skipped' ? 'Skipped' : '',
+                    ].filter(Boolean).join(' · ')
+                    const movementId = `${item.postedMovementId ?? ''}`.trim()
                     return (
                       <tr key={item.id}>
                         <td className="is-item">
-                          <div className="inventory-count-posted-review-item-name">
-                            {item.itemName || '—'}
+                          <div
+                            className="inventory-count-posted-review-item-name"
+                            title={itemName === '—' ? undefined : itemName}
+                          >
+                            {itemName}
                           </div>
-                          <div className="inventory-count-posted-review-item-meta">
-                            {item.unit || '—'}
-                            {item.lineStatus === 'skipped' ? ' · Skipped' : ''}
+                          <div
+                            className="inventory-count-posted-review-item-meta"
+                            title={unitMeta === '—' ? undefined : unitMeta}
+                          >
+                            {unitMeta}
                           </div>
                         </td>
-                        <td className="is-location">{item.storageLocation || '—'}</td>
+                        <td
+                          className="is-location"
+                          title={locationLabel === '—' ? undefined : locationLabel}
+                        >
+                          {locationLabel}
+                        </td>
                         <td className="is-num">{formatQuantity(item.expectedAtCount)}</td>
                         <td className="is-num">{formatQuantity(item.countedQuantity)}</td>
                         <td className={`is-num ${varianceTone}`.trim()}>{formatVariance(variance)}</td>
@@ -717,9 +734,9 @@ export function InventoryCountPostedReview({
                         <td className="is-movement">
                           <code
                             className="inventory-count-posted-review-movement"
-                            title={item.postedMovementId || undefined}
+                            title={movementId || undefined}
                           >
-                            {shortMovementId(item.postedMovementId)}
+                            {shortMovementId(movementId)}
                           </code>
                         </td>
                       </tr>

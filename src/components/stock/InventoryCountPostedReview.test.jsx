@@ -1,7 +1,9 @@
 /**
  * @vitest-environment jsdom
- * P8.20.4 / P8.20.7 / P8.20.9 / P8.20.10 — Posted Count historical review + audit table.
+ * P8.20.4 / P8.20.7 / P8.20.9 / P8.20.10 / P8.20.12 — Posted Count historical review + audit table.
  */
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { act, createElement } from 'react'
 import { createRoot } from 'react-dom/client'
@@ -762,5 +764,94 @@ describe('InventoryCountPostedReview (P8.20.4 / P8.20.7 / P8.20.9 / P8.20.10)', 
     expect(container.textContent).not.toContain('+2 stock adjustment applied')
 
     cleanup()
+  })
+
+  it('keeps full product/location text with native titles and quiet missing movement (P8.20.12)', async () => {
+    const fullName = 'Premium Extra Virgin Olive Oil Reserve Bottle 750ml Estate Selection'
+    const movementId = '11111111-2222-3333-4444-555555555555'
+    getPostedReviewMock.mockResolvedValueOnce(reviewFixture({
+      items: [{
+        id: 'line-1',
+        itemName: fullName,
+        unit: 'Bottle 750ml',
+        storageLocation: 'Main Storage',
+        lineStatus: 'counted',
+        expectedAtCount: 6,
+        countedQuantity: 6,
+        varianceQuantity: 0,
+        liveQuantityAtPost: 6,
+        resultAfterPost: 6,
+        postedMovementId: movementId,
+      }, {
+        id: 'line-2',
+        itemName: 'Tonic',
+        unit: 'bottle',
+        storageLocation: 'Bar',
+        lineStatus: 'counted',
+        expectedAtCount: 3,
+        countedQuantity: 3,
+        varianceQuantity: 0,
+        liveQuantityAtPost: 3,
+        resultAfterPost: 3,
+        postedMovementId: null,
+      }],
+    }))
+
+    const { container, cleanup } = render(createElement(InventoryCountPostedReview, {
+      sessionId: 'posted-1',
+      workspaceId: 'workspace-1',
+      onClose: vi.fn(),
+    }))
+    await flush()
+
+    const nameNode = container.querySelector('.inventory-count-posted-review-item-name')
+    expect(nameNode?.textContent).toBe(fullName)
+    expect(nameNode?.getAttribute('title')).toBe(fullName)
+
+    const locationNode = container.querySelector('td.is-location')
+    expect(locationNode?.textContent).toBe('Main Storage')
+    expect(locationNode?.getAttribute('title')).toBe('Main Storage')
+
+    const movementNodes = container.querySelectorAll('.inventory-count-posted-review-movement')
+    expect(movementNodes[0]?.getAttribute('title')).toBe(movementId)
+    expect(movementNodes[0]?.textContent).toContain('…')
+    expect(movementNodes[1]?.textContent).toBe('—')
+    expect(movementNodes[1]?.getAttribute('title')).toBeNull()
+
+    const headers = Array.from(
+      container.querySelectorAll('.inventory-count-posted-review-table thead th'),
+    ).map((node) => node.textContent)
+    expect(headers).toEqual([
+      'Item',
+      'Location',
+      'Expected',
+      'Counted',
+      'Variance',
+      'Posted',
+      'Current',
+      'Δ',
+      'Movement',
+    ])
+
+    cleanup()
+  })
+})
+
+describe('posted audit table CSS contracts (P8.20.11 / P8.20.12)', () => {
+  it('keeps fixed layout, no wide min-width, two-line product clamp, and one-line location', () => {
+    const css = readFileSync(join(process.cwd(), 'src/App.css'), 'utf8')
+    const tableCssStart = css.indexOf('.inventory-count-posted-review-table-wrap {')
+    const tableCssEnd = css.indexOf('.inventory-count-posted-review-footnote {')
+    const tableCss = css.slice(tableCssStart, tableCssEnd)
+
+    expect(tableCss).toContain('overflow-x: hidden')
+    expect(tableCss).toContain('table-layout: fixed')
+    expect(tableCss).toContain('min-width: 0')
+    expect(tableCss).not.toContain('min-width: 920px')
+    expect(tableCss).toMatch(/-webkit-line-clamp:\s*2/)
+    expect(tableCss).toMatch(/line-clamp:\s*2/)
+    expect(tableCss).toContain('.inventory-count-posted-review-table th.is-location')
+    expect(tableCss).toContain('.inventory-count-posted-review-table td.is-location')
+    expect(tableCss).toMatch(/white-space:\s*nowrap/)
   })
 })
