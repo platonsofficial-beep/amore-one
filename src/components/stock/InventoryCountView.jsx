@@ -103,9 +103,9 @@ function InventoryCountSessionCardMeta({ session, onDelete, deleteDisabled = fal
           <dt>Progress</dt>
           <dd>{formatProgress(session)}</dd>
         </div>
-        <div>
-          <dt>Last update</dt>
-          <dd>{formatSessionDate(lastUpdate)}</dd>
+        <div data-inventory-count-home-timestamp={isReversed ? 'reversed' : 'updated'}>
+          <dt>{isReversed ? 'Reversed on' : 'Last update'}</dt>
+          <dd>{formatSessionDate(isReversed ? session.reversedAt : lastUpdate)}</dd>
         </div>
       </dl>
     </>

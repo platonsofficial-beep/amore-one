@@ -803,7 +803,7 @@ describe('InventoryCountView delete session (P8.20.3 / P8.22.1)', () => {
   })
 })
 
-describe('InventoryCountView home reversed status (P8.23.0)', () => {
+describe('InventoryCountView home reversed status (P8.23.0 / P8.23.2)', () => {
   it('shows Reversed on home cards when reversedAt exists', async () => {
     listHomeSessionsMock.mockResolvedValue({
       active: [],
@@ -816,11 +816,15 @@ describe('InventoryCountView home reversed status (P8.23.0)', () => {
           reversedAt: '2026-07-28T18:00:00.000Z',
           reversedBy: 'user-1',
           reversalReason: 'Posted in error',
+          updatedAt: '2026-07-28T19:00:00.000Z',
+          postedAt: '2026-07-21T12:00:00.000Z',
         }),
         sessionFixture({
           id: 'posted-normal',
           status: 'posted',
           statusLabel: 'Posted',
+          postedAt: '2026-07-21T12:00:00.000Z',
+          updatedAt: '2026-07-21T12:00:00.000Z',
         }),
       ],
     })
@@ -833,12 +837,71 @@ describe('InventoryCountView home reversed status (P8.23.0)', () => {
     expect(reversedPill.textContent).toBe('Reversed')
     expect(reversedPill.className).toContain('is-reversed')
 
+    const reversedTimestamp = container.querySelector('[data-inventory-count-home-timestamp="reversed"]')
+    expect(reversedTimestamp).toBeTruthy()
+    expect(reversedTimestamp.querySelector('dt')?.textContent).toBe('Reversed on')
+    expect(reversedTimestamp.textContent).toContain('Reversed on')
+    expect(reversedTimestamp.textContent).not.toContain('Last update')
+    expect(reversedTimestamp.querySelector('dd')?.textContent).toContain(
+      new Date('2026-07-28T18:00:00.000Z').toLocaleString(undefined, {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+      }),
+    )
+
     const postedPills = Array.from(
       container.querySelectorAll('[data-inventory-count-home-status="posted"]'),
     )
     expect(postedPills).toHaveLength(1)
     expect(postedPills[0].textContent).toBe('Posted')
     expect(postedPills[0].className).not.toContain('is-reversed')
+
+    const postedTimestamp = container.querySelector('[data-inventory-count-home-timestamp="updated"]')
+    expect(postedTimestamp).toBeTruthy()
+    expect(postedTimestamp.querySelector('dt')?.textContent).toBe('Last update')
+    expect(postedTimestamp.textContent).not.toContain('Reversed on')
+
+    cleanup()
+  })
+
+  it('keeps Last update on active and paused home cards', async () => {
+    listHomeSessionsMock.mockResolvedValue({
+      active: [
+        sessionFixture({
+          id: 'active-1',
+          status: 'in_progress',
+          statusLabel: 'In progress',
+          updatedAt: '2026-07-21T11:00:00.000Z',
+        }),
+      ],
+      paused: [
+        sessionFixture({
+          id: 'paused-1',
+          status: 'paused',
+          statusLabel: 'Paused',
+          pausedAt: '2026-07-21T11:30:00.000Z',
+          updatedAt: '2026-07-21T11:30:00.000Z',
+        }),
+      ],
+      recent: [],
+    })
+
+    const { container, cleanup } = render(createElement(InventoryCountView))
+    await flush()
+
+    const timestamps = Array.from(
+      container.querySelectorAll('[data-inventory-count-home-timestamp]'),
+    )
+    expect(timestamps).toHaveLength(2)
+    timestamps.forEach((node) => {
+      expect(node.getAttribute('data-inventory-count-home-timestamp')).toBe('updated')
+      expect(node.querySelector('dt')?.textContent).toBe('Last update')
+      expect(node.textContent).not.toContain('Reversed on')
+    })
+    expect(container.querySelector('[data-inventory-count-home-status="reversed"]')).toBeNull()
 
     cleanup()
   })

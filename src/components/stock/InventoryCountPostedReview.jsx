@@ -735,7 +735,7 @@ export function InventoryCountPostedReview({
                       >
                         <span className="inventory-count-posted-review-timeline-dot" aria-hidden="true" />
                         <span className="inventory-count-posted-review-timeline-label">
-                          Reversal
+                          Final Reversal
                         </span>
                       </button>
                     </li>
@@ -835,7 +835,7 @@ export function InventoryCountPostedReview({
                     className="inventory-count-posted-review-version-card is-reversal"
                     data-inventory-count-reversal-event="true"
                   >
-                    <div className="inventory-count-posted-review-version-label">Reversal</div>
+                    <div className="inventory-count-posted-review-version-label">Final Reversal</div>
                     <p className="inventory-count-posted-review-version-summary">
                       Inventory count reversed ·
                       {' '}

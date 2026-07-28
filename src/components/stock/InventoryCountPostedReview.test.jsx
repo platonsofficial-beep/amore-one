@@ -1181,15 +1181,28 @@ describe('posted review reversal completion & read-only lock (P8.23.0)', () => {
     expect(container.querySelector('[data-inventory-count-reversal-reason="true"]')?.textContent)
       .toContain('Posted in error')
 
+    expect(container.querySelector('[data-inventory-count-reversed-at="true"] dt')?.textContent)
+      .toBe('Reversed at')
+    expect(container.querySelector('[data-inventory-count-reversed-by="true"] dt')?.textContent)
+      .toBe('Reversed by')
+    expect(container.textContent).toContain('Started')
+    expect(container.textContent).toContain('Posted')
+    expect(container.textContent).toContain('Operator')
+    expect(container.textContent).toContain('Posted by')
+    expect(container.textContent).toContain('Count mode')
+    expect(container.textContent).toContain('Locations')
+
     expect(container.querySelector('[data-inventory-count-audit-timeline="true"]')).toBeTruthy()
     expect(container.querySelector('[data-inventory-count-timeline-reversal="true"]')).toBeTruthy()
     const timelineLabels = Array.from(
       container.querySelectorAll('.inventory-count-posted-review-timeline-label'),
     ).map((node) => node.textContent)
-    expect(timelineLabels).toEqual(['Posted Count', 'Reversal'])
+    expect(timelineLabels).toEqual(['Posted Count', 'Final Reversal'])
 
     const reversalEvent = container.querySelector('[data-inventory-count-reversal-event="true"]')
     expect(reversalEvent).toBeTruthy()
+    expect(reversalEvent.querySelector('.inventory-count-posted-review-version-label')?.textContent)
+      .toBe('Final Reversal')
     expect(reversalEvent.textContent).toContain('Blake Owner')
     expect(reversalEvent.textContent).toContain('Posted in error')
     expect(container.querySelector('[data-inventory-count-reversal-event-note="true"]')?.textContent)
@@ -1246,8 +1259,10 @@ describe('posted review reversal completion & read-only lock (P8.23.0)', () => {
     const timelineLabels = Array.from(
       container.querySelectorAll('.inventory-count-posted-review-timeline-label'),
     ).map((node) => node.textContent)
-    expect(timelineLabels).toEqual(['Posted Count', 'Correction 1', 'Reversal'])
+    expect(timelineLabels).toEqual(['Posted Count', 'Correction 1', 'Final Reversal'])
     expect(container.querySelector('[data-inventory-count-reversal-event="true"]')).toBeTruthy()
+    expect(container.querySelector('[data-inventory-count-reversal-event="true"] .inventory-count-posted-review-version-label')?.textContent)
+      .toBe('Final Reversal')
     expect(container.querySelector('[data-inventory-count-corrected-badge="true"]')).toBeTruthy()
     expect(container.querySelector('[data-inventory-count-audit-historical-note="true"]')?.textContent)
       .toContain('Reversal Applied')
@@ -1277,6 +1292,7 @@ describe('posted review reversal completion & read-only lock (P8.23.0)', () => {
     expect(container.querySelector('[data-inventory-count-timeline-reversal="true"]')).toBeNull()
     expect(container.querySelector('[data-inventory-count-reversal-event="true"]')).toBeNull()
     expect(container.querySelector('[data-inventory-count-reversal-event-note="true"]')).toBeNull()
+    expect(container.textContent).not.toContain('Final Reversal')
     expect(container.querySelector('[data-inventory-count-reverse-action="true"]')).toBeTruthy()
     expect(container.querySelector('.inventory-count-posted-review-suggest-btn')).toBeTruthy()
     expect(container.textContent).toContain('Suggest Correction')
