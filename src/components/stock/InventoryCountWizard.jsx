@@ -3,6 +3,7 @@ import { useAuth } from '../../context/AuthContext'
 import {
   buildInventoryCountSnapshot,
   createInventoryCountSession,
+  listInventoryCountStorageLocations,
 } from '../../services/inventoryCountService'
 
 const COUNT_TYPES = [
@@ -38,16 +39,7 @@ const COUNT_TYPES = [
   },
 ]
 
-const DEMO_LOCATIONS = [
-  { id: 'main-bar', title: 'Main Bar', subtitle: 'Front-of-house bar stock', icon: '⌂' },
-  { id: 'back-bar', title: 'Back Bar', subtitle: 'Secondary bar storage', icon: '▥' },
-  { id: 'main-storage', title: 'Main Storage', subtitle: 'Primary dry storage', icon: '▦' },
-  { id: 'kitchen', title: 'Kitchen', subtitle: 'Prep and line inventory', icon: '◈' },
-  { id: 'coffee-station', title: 'Coffee Station', subtitle: 'Coffee and tea supplies', icon: '◎' },
-  { id: 'wine-storage', title: 'Wine Storage', subtitle: 'Cellar and wine fridge', icon: '◇' },
-  { id: 'freezer', title: 'Freezer', subtitle: 'Frozen goods', icon: '❅' },
-  { id: 'other', title: 'Other', subtitle: 'Additional locations', icon: '▢' },
-]
+const LOCATION_CARD_ICON = '▦'
 
 const COUNT_VISIBILITY_OPTIONS = [
   {
@@ -110,6 +102,9 @@ export function InventoryCountWizard({ isOpen, onClose, onStartSession }) {
   const [step, setStep] = useState(1)
   const [selectedType, setSelectedType] = useState(null)
   const [selectedLocations, setSelectedLocations] = useState([])
+  const [availableLocations, setAvailableLocations] = useState([])
+  const [locationsStatus, setLocationsStatus] = useState('idle')
+  const [locationsError, setLocationsError] = useState('')
   const [countVisibility, setCountVisibility] = useState('blind')
   const [includeZeroStock, setIncludeZeroStock] = useState(true)
   const [includeInactive, setIncludeInactive] = useState(false)
@@ -118,15 +113,20 @@ export function InventoryCountWizard({ isOpen, onClose, onStartSession }) {
   const [startError, setStartError] = useState('')
   const startRequestIdRef = useRef(0)
   const startInFlightRef = useRef(false)
+  const locationsRequestIdRef = useRef(0)
 
   useEffect(() => {
     if (!isOpen) {
       startRequestIdRef.current += 1
       startInFlightRef.current = false
+      locationsRequestIdRef.current += 1
       const initial = createInitialWizardState()
       setStep(initial.step)
       setSelectedType(initial.selectedType)
       setSelectedLocations(initial.selectedLocations)
+      setAvailableLocations([])
+      setLocationsStatus('idle')
+      setLocationsError('')
       setCountVisibility(initial.countVisibility)
       setIncludeZeroStock(initial.includeZeroStock)
       setIncludeInactive(initial.includeInactive)
@@ -146,24 +146,62 @@ export function InventoryCountWizard({ isOpen, onClose, onStartSession }) {
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [isOpen, onClose, isStartingSession])
 
+  useEffect(() => {
+    if (!isOpen) return undefined
+
+    const workspaceId = `${workspace?.id ?? ''}`.trim()
+    const requestId = locationsRequestIdRef.current + 1
+    locationsRequestIdRef.current = requestId
+    setLocationsStatus('loading')
+    setLocationsError('')
+
+    if (!workspaceId) {
+      setAvailableLocations([])
+      setSelectedLocations([])
+      setLocationsStatus('error')
+      setLocationsError('Workspace is required.')
+      return undefined
+    }
+
+    void listInventoryCountStorageLocations(workspaceId)
+      .then((locations) => {
+        if (locationsRequestIdRef.current !== requestId) return
+        const nextLocations = Array.isArray(locations) ? locations : []
+        setAvailableLocations(nextLocations)
+        setSelectedLocations((current) => current.filter((location) => nextLocations.includes(location)))
+        setLocationsStatus('ready')
+        setLocationsError('')
+      })
+      .catch((error) => {
+        if (locationsRequestIdRef.current !== requestId) return
+        setAvailableLocations([])
+        setSelectedLocations([])
+        setLocationsStatus('error')
+        setLocationsError(error?.message || 'Unable to load storage locations right now.')
+      })
+
+    return undefined
+  }, [isOpen, workspace?.id])
+
   if (!isOpen) return null
 
   const stepCopy = STEP_COPY[step] ?? STEP_COPY[1]
   const selectedCountType = COUNT_TYPES.find((type) => type.id === selectedType) ?? null
   const selectedVisibility = COUNT_VISIBILITY_OPTIONS.find((option) => option.id === countVisibility)
     ?? COUNT_VISIBILITY_OPTIONS[0]
-  const selectedLocationItems = DEMO_LOCATIONS.filter((location) => (
-    selectedLocations.includes(location.id)
-  ))
+  const selectedLocationItems = availableLocations
+    .filter((location) => selectedLocations.includes(location))
+    .map((location) => ({ id: location, title: location }))
   const trimmedNote = sessionNote.trim()
+  const locationsReady = locationsStatus === 'ready' && availableLocations.length > 0
   const isStep4Valid = Boolean(selectedType)
-    && selectedLocations.length > 0
+    && selectedLocationItems.length > 0
     && (countVisibility === 'blind' || countVisibility === 'open')
 
   const canContinue = step === 1
     ? Boolean(selectedType)
     : step === 2
-      ? selectedLocations.length > 0
+      ? locationsReady && selectedLocations.length > 0
       : step === 3
         ? true
         : isStep4Valid
@@ -204,7 +242,9 @@ export function InventoryCountWizard({ isOpen, onClose, onStartSession }) {
     }
 
     if (step === 2) {
-      if (selectedLocations.length === 0) return
+      if (!(locationsStatus === 'ready' && availableLocations.length > 0 && selectedLocations.length > 0)) {
+        return
+      }
       setStep(3)
       return
     }
@@ -244,7 +284,7 @@ export function InventoryCountWizard({ isOpen, onClose, onStartSession }) {
         includeZeroStock,
         includeInactive,
         note: trimmedNote,
-        locations: selectedLocationItems.map((location) => location.title),
+        locations: selectedLocationItems.map((location) => location.id),
       })
 
       if (startRequestIdRef.current !== requestId) return
@@ -362,42 +402,66 @@ export function InventoryCountWizard({ isOpen, onClose, onStartSession }) {
 
         {step === 2 ? (
           <div className="inventory-count-wizard-step2">
-            <div
-              className="inventory-count-wizard-body inventory-count-wizard-body-locations"
-              role="group"
-              aria-label="Scope / Locations"
-            >
-              {DEMO_LOCATIONS.map((location) => {
-                const isSelected = selectedLocations.includes(location.id)
-                return (
-                  <button
-                    key={location.id}
-                    type="button"
-                    role="checkbox"
-                    aria-checked={isSelected}
-                    className={`inventory-count-type-card inventory-count-location-card${isSelected ? ' is-selected' : ''}`}
-                    onClick={() => toggleLocation(location.id)}
-                  >
-                    {isSelected ? (
-                      <span className="inventory-count-type-card-badge" aria-hidden="true">
-                        ✓
+            {locationsStatus === 'loading' ? (
+              <div className="staff-status-banner" role="status">
+                Loading storage locations…
+              </div>
+            ) : null}
+
+            {locationsStatus === 'error' ? (
+              <div className="staff-status-banner" role="alert">
+                {locationsError || 'Unable to load storage locations right now.'}
+              </div>
+            ) : null}
+
+            {locationsStatus === 'ready' && availableLocations.length === 0 ? (
+              <div className="stock-empty-state inventory-count-wizard-locations-empty" role="status">
+                <h4>No storage locations available</h4>
+                <p>
+                  Stock items need a storage location before a count can begin.
+                  Add storage locations to your stock items, then start a new count.
+                </p>
+              </div>
+            ) : null}
+
+            {locationsStatus === 'ready' && availableLocations.length > 0 ? (
+              <div
+                className="inventory-count-wizard-body inventory-count-wizard-body-locations"
+                role="group"
+                aria-label="Scope / Locations"
+              >
+                {availableLocations.map((location) => {
+                  const isSelected = selectedLocations.includes(location)
+                  return (
+                    <button
+                      key={location}
+                      type="button"
+                      role="checkbox"
+                      aria-checked={isSelected}
+                      className={`inventory-count-type-card inventory-count-location-card${isSelected ? ' is-selected' : ''}`}
+                      onClick={() => toggleLocation(location)}
+                    >
+                      {isSelected ? (
+                        <span className="inventory-count-type-card-badge" aria-hidden="true">
+                          ✓
+                        </span>
+                      ) : (
+                        <span className="inventory-count-location-checkbox" aria-hidden="true" />
+                      )}
+                      <span className="inventory-count-type-card-icon" aria-hidden="true">
+                        {LOCATION_CARD_ICON}
                       </span>
-                    ) : (
-                      <span className="inventory-count-location-checkbox" aria-hidden="true" />
-                    )}
-                    <span className="inventory-count-type-card-icon" aria-hidden="true">
-                      {location.icon}
-                    </span>
-                    <span className="inventory-count-type-card-copy">
-                      <span className="inventory-count-type-card-title">{location.title}</span>
-                      <span className="inventory-count-type-card-description">
-                        {location.subtitle}
+                      <span className="inventory-count-type-card-copy">
+                        <span className="inventory-count-type-card-title">{location}</span>
+                        <span className="inventory-count-type-card-description">
+                          Workspace stock location
+                        </span>
                       </span>
-                    </span>
-                  </button>
-                )
-              })}
-            </div>
+                    </button>
+                  )
+                })}
+              </div>
+            ) : null}
           </div>
         ) : null}
 

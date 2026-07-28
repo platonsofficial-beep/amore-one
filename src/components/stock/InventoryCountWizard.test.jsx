@@ -10,6 +10,7 @@ import { InventoryCountWizard } from './InventoryCountWizard'
 import {
   buildInventoryCountSnapshot,
   createInventoryCountSession,
+  listInventoryCountStorageLocations,
 } from '../../services/inventoryCountService'
 
 vi.mock('../../context/AuthContext', () => ({
@@ -21,12 +22,24 @@ vi.mock('../../context/AuthContext', () => ({
 vi.mock('../../services/inventoryCountService', () => ({
   createInventoryCountSession: vi.fn(),
   buildInventoryCountSnapshot: vi.fn(),
+  listInventoryCountStorageLocations: vi.fn(),
   listInventoryCountHomeSessions: vi.fn(async () => ({
     active: [],
     paused: [],
     recent: [],
   })),
 }))
+
+const DEFAULT_LIVE_LOCATIONS = [
+  'Back Bar',
+  'Coffee Station',
+  'Freezer',
+  'Kitchen',
+  'Main Bar',
+  'Main Storage',
+  'Other',
+  'Wine Storage',
+]
 
 function render(ui) {
   const container = document.createElement('div')
@@ -52,35 +65,57 @@ function getButtonByText(root, text) {
   return Array.from(root.querySelectorAll('button')).find((button) => button.textContent === text)
 }
 
-function goToStep3(container) {
+function getLocationCardByTitle(root, title) {
+  return Array.from(root.querySelectorAll('[role="checkbox"]')).find((card) => (
+    card.querySelector('.inventory-count-type-card-title')?.textContent === title
+  ))
+}
+
+async function flushAsync() {
+  await act(async () => {
+    await Promise.resolve()
+  })
+}
+
+async function goToStep2(container) {
   const continueBtn = getButtonByText(container, 'Continue')
   const typeCards = container.querySelectorAll('[role="radio"]')
 
-  act(() => {
+  await act(async () => {
     typeCards[1].click()
   })
-  act(() => {
+  await act(async () => {
+    continueBtn.click()
+  })
+  await flushAsync()
+
+  return { continueBtn }
+}
+
+async function goToStep3(container, locationTitles = ['Main Bar', 'Main Storage']) {
+  const { continueBtn } = await goToStep2(container)
+
+  for (const title of locationTitles) {
+    const card = getLocationCardByTitle(container, title)
+    expect(card).toBeTruthy()
+    await act(async () => {
+      card.click()
+    })
+  }
+
+  await act(async () => {
     continueBtn.click()
   })
 
-  const locationCards = container.querySelectorAll('[role="checkbox"]')
-  act(() => {
-    locationCards[0].click()
-  })
-  act(() => {
-    locationCards[2].click()
-  })
-  act(() => {
-    continueBtn.click()
-  })
-
-  return { continueBtn, locationCards }
+  return { continueBtn }
 }
 
 describe('InventoryCountWizard foundation', () => {
   beforeEach(() => {
     createInventoryCountSession.mockReset()
     buildInventoryCountSnapshot.mockReset()
+    listInventoryCountStorageLocations.mockReset()
+    listInventoryCountStorageLocations.mockResolvedValue([...DEFAULT_LIVE_LOCATIONS])
     createInventoryCountSession.mockResolvedValue({
       id: 'session-real-1',
       workspaceId: 'workspace-test-id',
@@ -98,7 +133,7 @@ describe('InventoryCountWizard foundation', () => {
     })
   })
 
-  it('opens from Start new count and closes via Cancel and Close', () => {
+  it('opens from Start new count and closes via Cancel and Close', async () => {
     const { container, cleanup } = render(createElement(InventoryCountView))
 
     expect(container.querySelector('[role="dialog"]')).toBeNull()
@@ -106,9 +141,10 @@ describe('InventoryCountWizard foundation', () => {
     const startBtn = getButtonByText(container, 'Start new count')
     expect(startBtn).toBeTruthy()
 
-    act(() => {
+    await act(async () => {
       startBtn.click()
     })
+    await flushAsync()
 
     const dialog = container.querySelector('[role="dialog"]')
     expect(dialog).not.toBeNull()
@@ -120,16 +156,17 @@ describe('InventoryCountWizard foundation', () => {
     const cancelBtn = getButtonByText(dialog, 'Cancel')
     expect(dialog.querySelector('.inventory-count-wizard-header-actions .inventory-count-wizard-cancel-btn')).toBeNull()
     expect(Array.from(dialog.querySelectorAll('button')).filter((button) => button.textContent === 'Cancel')).toHaveLength(1)
-    act(() => {
+    await act(async () => {
       cancelBtn.click()
     })
     expect(container.querySelector('[role="dialog"]')).toBeNull()
 
-    act(() => {
+    await act(async () => {
       startBtn.click()
     })
+    await flushAsync()
     const closeBtn = container.querySelector('[aria-label="Close"]')
-    act(() => {
+    await act(async () => {
       closeBtn.click()
     })
     expect(container.querySelector('[role="dialog"]')).toBeNull()
@@ -137,11 +174,12 @@ describe('InventoryCountWizard foundation', () => {
     cleanup()
   })
 
-  it('selects one count type at a time and enables Continue only after selection', () => {
+  it('selects one count type at a time and enables Continue only after selection', async () => {
     const onClose = vi.fn()
     const { container, cleanup } = render(
       createElement(InventoryCountWizard, { isOpen: true, onClose }),
     )
+    await flushAsync()
 
     const continueBtn = getButtonByText(container, 'Continue')
     const backBtn = getButtonByText(container, 'Back')
@@ -151,7 +189,7 @@ describe('InventoryCountWizard foundation', () => {
     const cards = container.querySelectorAll('[role="radio"]')
     expect(cards).toHaveLength(5)
 
-    act(() => {
+    await act(async () => {
       cards[0].click()
     })
     expect(cards[0].getAttribute('aria-checked')).toBe('true')
@@ -159,7 +197,7 @@ describe('InventoryCountWizard foundation', () => {
     expect(container.querySelectorAll('.inventory-count-type-card-badge')).toHaveLength(1)
     expect(cards[0].querySelector('.inventory-count-type-card-badge')).not.toBeNull()
 
-    act(() => {
+    await act(async () => {
       cards[2].click()
     })
     expect(cards[0].getAttribute('aria-checked')).toBe('false')
@@ -172,21 +210,23 @@ describe('InventoryCountWizard foundation', () => {
     cleanup()
   })
 
-  it('advances to Step 2, preserves count type, and supports multi-location selection', () => {
+  it('advances to Step 2, preserves count type, and supports multi-location selection', async () => {
     const onClose = vi.fn()
     const { container, cleanup } = render(
       createElement(InventoryCountWizard, { isOpen: true, onClose }),
     )
+    await flushAsync()
 
     const continueBtn = getButtonByText(container, 'Continue')
     const typeCards = container.querySelectorAll('[role="radio"]')
 
-    act(() => {
+    await act(async () => {
       typeCards[1].click()
     })
-    act(() => {
+    await act(async () => {
       continueBtn.click()
     })
+    await flushAsync()
 
     expect(container.textContent).toContain('Step 2 of 4')
     expect(container.textContent).toContain('Scope / Locations')
@@ -198,23 +238,27 @@ describe('InventoryCountWizard foundation', () => {
     expect(locationCards).toHaveLength(8)
     expect(continueBtn?.disabled).toBe(true)
 
-    act(() => {
-      locationCards[0].click()
+    const mainBar = getLocationCardByTitle(container, 'Main Bar')
+    const mainStorage = getLocationCardByTitle(container, 'Main Storage')
+    const freezer = getLocationCardByTitle(container, 'Freezer')
+
+    await act(async () => {
+      mainBar.click()
     })
-    act(() => {
-      locationCards[2].click()
+    await act(async () => {
+      mainStorage.click()
     })
-    act(() => {
-      locationCards[6].click()
+    await act(async () => {
+      freezer.click()
     })
 
-    expect(locationCards[0].getAttribute('aria-checked')).toBe('true')
-    expect(locationCards[2].getAttribute('aria-checked')).toBe('true')
-    expect(locationCards[6].getAttribute('aria-checked')).toBe('true')
+    expect(mainBar.getAttribute('aria-checked')).toBe('true')
+    expect(mainStorage.getAttribute('aria-checked')).toBe('true')
+    expect(freezer.getAttribute('aria-checked')).toBe('true')
     expect(continueBtn?.disabled).toBe(false)
     expect(container.querySelectorAll('.inventory-count-type-card-badge')).toHaveLength(3)
 
-    act(() => {
+    await act(async () => {
       continueBtn.click()
     })
     expect(container.textContent).toContain('Step 3 of 4')
@@ -222,18 +266,17 @@ describe('InventoryCountWizard foundation', () => {
     expect(onClose).not.toHaveBeenCalled()
 
     const backBtn = getButtonByText(container, 'Back')
-    act(() => {
+    await act(async () => {
       backBtn.click()
     })
 
     expect(container.textContent).toContain('Step 2 of 4')
     expect(container.textContent).toContain('Scope / Locations')
-    const restoredLocationCards = container.querySelectorAll('[role="checkbox"]')
-    expect(restoredLocationCards[0].getAttribute('aria-checked')).toBe('true')
-    expect(restoredLocationCards[2].getAttribute('aria-checked')).toBe('true')
-    expect(restoredLocationCards[6].getAttribute('aria-checked')).toBe('true')
+    expect(getLocationCardByTitle(container, 'Main Bar').getAttribute('aria-checked')).toBe('true')
+    expect(getLocationCardByTitle(container, 'Main Storage').getAttribute('aria-checked')).toBe('true')
+    expect(getLocationCardByTitle(container, 'Freezer').getAttribute('aria-checked')).toBe('true')
 
-    act(() => {
+    await act(async () => {
       backBtn.click()
     })
     expect(container.textContent).toContain('Step 1 of 4')
@@ -250,8 +293,9 @@ describe('InventoryCountWizard foundation', () => {
     const { container, cleanup } = render(
       createElement(InventoryCountWizard, { isOpen: true, onClose, onStartSession }),
     )
+    await flushAsync()
 
-    const { continueBtn } = goToStep3(container)
+    const { continueBtn } = await goToStep3(container)
 
     expect(container.textContent).toContain('Step 3 of 4')
     expect(container.textContent).toContain('Count Settings')
@@ -268,7 +312,7 @@ describe('InventoryCountWizard foundation', () => {
     expect(visibilityCards[0].textContent).toContain('Recommended')
     expect(continueBtn?.disabled).toBe(false)
 
-    act(() => {
+    await act(async () => {
       visibilityCards[1].click()
     })
     expect(visibilityCards[0].getAttribute('aria-checked')).toBe('false')
@@ -279,10 +323,10 @@ describe('InventoryCountWizard foundation', () => {
     expect(toggles[0].getAttribute('aria-checked')).toBe('true')
     expect(toggles[1].getAttribute('aria-checked')).toBe('false')
 
-    act(() => {
+    await act(async () => {
       toggles[0].click()
     })
-    act(() => {
+    await act(async () => {
       toggles[1].click()
     })
     expect(toggles[0].getAttribute('aria-checked')).toBe('false')
@@ -290,7 +334,7 @@ describe('InventoryCountWizard foundation', () => {
 
     const noteInput = container.querySelector('.inventory-count-session-note-input')
     expect(noteInput).not.toBeNull()
-    act(() => {
+    await act(async () => {
       const nativeInputValueSetter = Object.getOwnPropertyDescriptor(
         window.HTMLTextAreaElement.prototype,
         'value',
@@ -300,7 +344,7 @@ describe('InventoryCountWizard foundation', () => {
     })
     expect(noteInput.value).toBe('Month-end bar audit')
 
-    act(() => {
+    await act(async () => {
       continueBtn.click()
     })
 
@@ -368,13 +412,14 @@ describe('InventoryCountWizard foundation', () => {
     cleanup()
   })
 
-  it('hides Open Count and inactive warnings for default Blind configuration', () => {
+  it('hides Open Count and inactive warnings for default Blind configuration', async () => {
     const { container, cleanup } = render(
       createElement(InventoryCountWizard, { isOpen: true, onClose: vi.fn() }),
     )
+    await flushAsync()
 
-    const { continueBtn } = goToStep3(container)
-    act(() => {
+    const { continueBtn } = await goToStep3(container)
+    await act(async () => {
       continueBtn.click()
     })
 
@@ -392,9 +437,10 @@ describe('InventoryCountWizard foundation', () => {
     const { container, cleanup } = render(
       createElement(InventoryCountWizard, { isOpen: true, onClose: vi.fn(), onStartSession }),
     )
+    await flushAsync()
 
-    const { continueBtn } = goToStep3(container)
-    act(() => {
+    const { continueBtn } = await goToStep3(container)
+    await act(async () => {
       continueBtn.click()
     })
     const startBtn = getButtonByText(container, 'Start Inventory Count Session')
@@ -418,9 +464,10 @@ describe('InventoryCountWizard foundation', () => {
     const { container, cleanup } = render(
       createElement(InventoryCountWizard, { isOpen: true, onClose: vi.fn(), onStartSession }),
     )
+    await flushAsync()
 
-    const { continueBtn } = goToStep3(container)
-    act(() => {
+    const { continueBtn } = await goToStep3(container)
+    await act(async () => {
       continueBtn.click()
     })
     const startBtn = getButtonByText(container, 'Start Inventory Count Session')
@@ -449,9 +496,10 @@ describe('InventoryCountWizard foundation', () => {
     const { container, cleanup } = render(
       createElement(InventoryCountWizard, { isOpen: true, onClose: vi.fn(), onStartSession }),
     )
+    await flushAsync()
 
-    const { continueBtn } = goToStep3(container)
-    act(() => {
+    const { continueBtn } = await goToStep3(container)
+    await act(async () => {
       continueBtn.click()
     })
     const startBtn = getButtonByText(container, 'Start Inventory Count Session')
@@ -477,6 +525,7 @@ describe('InventoryCountWizard foundation', () => {
       })
     })
 
+    await flushAsync()
     expect(buildInventoryCountSnapshot).toHaveBeenCalledTimes(1)
     expect(onStartSession).toHaveBeenCalledTimes(1)
     expect(onStartSession.mock.calls[0][0].sessionId).toBe('session-real-1')
@@ -494,6 +543,160 @@ describe('InventoryCountWizard foundation', () => {
 
     expect(source).toContain('createInventoryCountSession')
     expect(source).toContain('buildInventoryCountSnapshot')
+    expect(source).toContain('listInventoryCountStorageLocations')
+    expect(source).not.toContain('DEMO_LOCATIONS')
     expect(source).not.toMatch(/localStorage|recordStockMovement|postCount|fetch\(/i)
+  })
+})
+
+describe('InventoryCountWizard live location scope (P8.21.1)', () => {
+  beforeEach(() => {
+    createInventoryCountSession.mockReset()
+    buildInventoryCountSnapshot.mockReset()
+    listInventoryCountStorageLocations.mockReset()
+    createInventoryCountSession.mockResolvedValue({
+      id: 'session-real-1',
+      workspaceId: 'workspace-test-id',
+      status: 'in_progress',
+      countType: 'quick',
+      visibility: 'blind',
+      includeZeroStock: true,
+      includeInactive: false,
+      note: '',
+    })
+    buildInventoryCountSnapshot.mockResolvedValue({
+      sessionId: 'session-real-1',
+      itemsCreated: 4,
+      snapshotCreatedAt: '2026-07-20T12:00:00.000Z',
+    })
+  })
+
+  it('does not render demo locations and renders real workspace storage locations', async () => {
+    listInventoryCountStorageLocations.mockResolvedValue(['Bar', 'Fridge', 'Main Storage'])
+    const { container, cleanup } = render(
+      createElement(InventoryCountWizard, { isOpen: true, onClose: vi.fn() }),
+    )
+    await flushAsync()
+    await goToStep2(container)
+
+    expect(listInventoryCountStorageLocations).toHaveBeenCalledWith('workspace-test-id')
+    expect(container.textContent).toContain('Bar')
+    expect(container.textContent).toContain('Fridge')
+    expect(container.textContent).toContain('Main Storage')
+    expect(container.textContent).not.toContain('Front-of-house bar stock')
+    expect(container.textContent).not.toContain('Secondary bar storage')
+    expect(container.textContent).not.toContain('Coffee Station')
+    expect(container.textContent).not.toContain('Wine Storage')
+    expect(container.querySelectorAll('[role="checkbox"]')).toHaveLength(3)
+
+    cleanup()
+  })
+
+  it('preserves exact stored location values and passes them into create', async () => {
+    listInventoryCountStorageLocations.mockResolvedValue(['Cold  Room', 'Main Storage', 'bar'])
+    const onStartSession = vi.fn()
+    const { container, cleanup } = render(
+      createElement(InventoryCountWizard, { isOpen: true, onClose: vi.fn(), onStartSession }),
+    )
+    await flushAsync()
+    const { continueBtn } = await goToStep3(container, ['Cold  Room', 'bar'])
+    await act(async () => {
+      continueBtn.click()
+    })
+
+    const startBtn = getButtonByText(container, 'Start Inventory Count Session')
+    await act(async () => {
+      startBtn.click()
+    })
+
+    expect(createInventoryCountSession).toHaveBeenCalledWith(
+      expect.objectContaining({
+        locations: ['Cold  Room', 'bar'],
+      }),
+    )
+    const passedLocations = createInventoryCountSession.mock.calls[0][0].locations
+    expect(passedLocations[0]).toBe('Cold  Room')
+    expect(passedLocations[1]).toBe('bar')
+    expect(passedLocations[0]).not.toBe(passedLocations[0].trim().toLowerCase())
+    expect(onStartSession).toHaveBeenCalledTimes(1)
+
+    cleanup()
+  })
+
+  it('does not render outer-padded location keys when discovery returns only valid keys', async () => {
+    listInventoryCountStorageLocations.mockResolvedValue(['Bar', 'Main Storage'])
+    const { container, cleanup } = render(
+      createElement(InventoryCountWizard, { isOpen: true, onClose: vi.fn() }),
+    )
+    await flushAsync()
+    await goToStep2(container)
+
+    expect(getLocationCardByTitle(container, 'Bar')).toBeTruthy()
+    expect(getLocationCardByTitle(container, ' Bar')).toBeFalsy()
+    expect(getLocationCardByTitle(container, 'Bar ')).toBeFalsy()
+    expect(container.textContent).not.toMatch(/^\s+Bar\s+$/m)
+
+    cleanup()
+  })
+
+  it('shows loading state while storage locations resolve', async () => {
+    let resolveLocations
+    listInventoryCountStorageLocations.mockImplementationOnce(
+      () => new Promise((resolve) => {
+        resolveLocations = resolve
+      }),
+    )
+    const { container, cleanup } = render(
+      createElement(InventoryCountWizard, { isOpen: true, onClose: vi.fn() }),
+    )
+
+    await goToStep2(container)
+    expect(container.textContent).toContain('Loading storage locations…')
+    expect(container.querySelectorAll('[role="checkbox"]')).toHaveLength(0)
+    expect(getButtonByText(container, 'Continue')?.disabled).toBe(true)
+
+    await act(async () => {
+      resolveLocations(['Bar'])
+    })
+    await flushAsync()
+
+    expect(container.textContent).not.toContain('Loading storage locations…')
+    expect(getLocationCardByTitle(container, 'Bar')).toBeTruthy()
+
+    cleanup()
+  })
+
+  it('shows a safe failure state when location loading fails', async () => {
+    listInventoryCountStorageLocations.mockRejectedValueOnce(new Error('Locations unavailable'))
+    const { container, cleanup } = render(
+      createElement(InventoryCountWizard, { isOpen: true, onClose: vi.fn() }),
+    )
+    await flushAsync()
+    await goToStep2(container)
+
+    expect(container.querySelector('.staff-status-banner[role="alert"]')?.textContent)
+      .toBe('Locations unavailable')
+    expect(container.querySelectorAll('[role="checkbox"]')).toHaveLength(0)
+    expect(getButtonByText(container, 'Continue')?.disabled).toBe(true)
+
+    cleanup()
+  })
+
+  it('shows empty state and disables progression when no valid locations exist', async () => {
+    listInventoryCountStorageLocations.mockResolvedValue([])
+    const { container, cleanup } = render(
+      createElement(InventoryCountWizard, { isOpen: true, onClose: vi.fn() }),
+    )
+    await flushAsync()
+    await goToStep2(container)
+
+    expect(container.textContent).toContain('No storage locations available')
+    expect(container.textContent).toContain(
+      'Stock items need a storage location before a count can begin.',
+    )
+    expect(container.querySelectorAll('[role="checkbox"]')).toHaveLength(0)
+    expect(getButtonByText(container, 'Continue')?.disabled).toBe(true)
+
+    cleanup()
   })
 })

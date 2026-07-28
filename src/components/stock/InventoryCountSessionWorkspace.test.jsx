@@ -36,6 +36,7 @@ import {
   getInventoryCountSession,
   getInventoryCountSessionItems,
   getInventoryCountSessionLocations,
+  listInventoryCountStorageLocations,
   previewInventoryCountFinish,
   postInventoryCountFinish,
   setInventoryCountSessionPauseState,
@@ -51,6 +52,7 @@ vi.mock('../../context/AuthContext', () => ({
 vi.mock('../../services/inventoryCountService', () => ({
   createInventoryCountSession: vi.fn(),
   buildInventoryCountSnapshot: vi.fn(),
+  listInventoryCountStorageLocations: vi.fn(async () => ['Main Bar', 'Main Storage']),
   getInventoryCountSession: vi.fn(async () => ({
     id: 'session-real-1',
     workspaceId: 'workspace-test-id',
@@ -230,29 +232,36 @@ async function renderWorkspace(props = {}) {
 }
 
 async function advanceWizardToSession(container) {
-  act(() => {
+  await act(async () => {
     getButtonByText(container, 'Start new count').click()
+  })
+  await act(async () => {
+    await Promise.resolve()
   })
 
   const dialog = container.querySelector('[role="dialog"]')
   const continueBtn = getButtonByText(dialog, 'Continue')
   const typeCards = dialog.querySelectorAll('[role="radio"]')
 
-  act(() => {
+  await act(async () => {
     typeCards[0].click()
   })
-  act(() => {
+  await act(async () => {
     continueBtn.click()
+  })
+  await act(async () => {
+    await Promise.resolve()
   })
 
   const locationCards = dialog.querySelectorAll('[role="checkbox"]')
-  act(() => {
+  expect(locationCards.length).toBeGreaterThan(0)
+  await act(async () => {
     locationCards[0].click()
   })
-  act(() => {
+  await act(async () => {
     continueBtn.click()
   })
-  act(() => {
+  await act(async () => {
     continueBtn.click()
   })
 
@@ -270,6 +279,7 @@ describe('InventoryCountSessionWorkspace real session items', () => {
   beforeEach(() => {
     createInventoryCountSession.mockReset()
     buildInventoryCountSnapshot.mockReset()
+    listInventoryCountStorageLocations.mockReset()
     getInventoryCountSession.mockReset()
     getInventoryCountSessionLocations.mockReset()
     getInventoryCountSessionItems.mockReset()
@@ -279,6 +289,7 @@ describe('InventoryCountSessionWorkspace real session items', () => {
     previewInventoryCountFinish.mockReset()
     postInventoryCountFinish.mockReset()
 
+    listInventoryCountStorageLocations.mockResolvedValue(['Main Bar', 'Main Storage'])
     createInventoryCountSession.mockResolvedValue({
       id: 'session-real-1',
       workspaceId: 'workspace-test-id',

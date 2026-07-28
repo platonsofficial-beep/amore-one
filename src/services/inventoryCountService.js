@@ -17,6 +17,7 @@ const SESSION_ITEMS_TABLE = 'inventory_count_session_items'
 const SESSION_LOCATIONS_TABLE = 'inventory_count_session_locations'
 const CORRECTIONS_TABLE = 'inventory_count_corrections'
 const CORRECTION_LINES_TABLE = 'inventory_count_correction_lines'
+const STOCK_ITEMS_TABLE = 'stock_items'
 
 const VALID_COUNT_TYPES = new Set(['new', 'quick', 'partial', 'scheduled', 'emergency'])
 const VALID_VISIBILITY = new Set(['blind', 'open'])
@@ -557,6 +558,56 @@ export function mapInventoryCountSessionLocationRow(row) {
 }
 
 /**
+ * Distinct storage_location values from stock item rows for inventory count scope.
+ * Preserves exact stored strings (no rename/case/canonical transforms).
+ * Excludes null, empty, whitespace-only, and keys with leading/trailing whitespace
+ * so selectable keys remain identical through create-session SQL btrim + snapshot IN match.
+ */
+export function collectDistinctInventoryCountStorageLocations(rows = []) {
+  const seen = new Set()
+  const locations = []
+
+  for (const row of rows ?? []) {
+    const raw = row?.storage_location
+    if (typeof raw !== 'string') continue
+    if (!raw.trim()) continue
+    // Existing create-session SQL stores btrim(location_key); padded keys would not
+    // match stock_items.storage_location during snapshot. Reject before selection.
+    if (raw !== raw.trim()) continue
+    if (seen.has(raw)) continue
+    seen.add(raw)
+    locations.push(raw)
+  }
+
+  locations.sort((a, b) => (a === b ? 0 : a < b ? -1 : 1))
+  return locations
+}
+
+/**
+ * Load distinct storage locations currently used by stock items in a workspace.
+ * Returns exact stored location keys for inventory count scope selection.
+ */
+export async function listInventoryCountStorageLocations(workspaceId) {
+  requireConfiguredSupabase()
+
+  const normalizedWorkspaceId = requireId(workspaceId, 'Workspace')
+  const { data, error } = await supabase
+    .from(STOCK_ITEMS_TABLE)
+    .select('storage_location')
+    .eq('workspace_id', normalizedWorkspaceId)
+
+  if (error) {
+    console.error('[inventoryCountService] listInventoryCountStorageLocations error:', error)
+    if (isTableUnavailableError(error)) {
+      throw new Error('Stock items are not available right now.')
+    }
+    throw new Error(error.message || 'Unable to load storage locations right now.')
+  }
+
+  return collectDistinctInventoryCountStorageLocations(data ?? [])
+}
+
+/**
  * Create an inventory count session + locations via SECURITY DEFINER RPC.
  * Does not build snapshot items and does not mutate stock.
  */
@@ -575,9 +626,12 @@ export async function createInventoryCountSession({
   const p_count_type = `${countType ?? ''}`.trim().toLowerCase()
   const p_visibility = `${visibility ?? ''}`.trim().toLowerCase()
   const p_note = `${note ?? ''}`
+  // Pass location keys exactly as selected. Do not trim/canonicalize here:
+  // snapshot matches stock_items.storage_location to session location_key exactly.
+  // Whitespace-only values are rejected; outer-padded keys are excluded at discovery.
   const p_locations = (Array.isArray(locations) ? locations : [])
-    .map((location) => `${location ?? ''}`.trim())
-    .filter(Boolean)
+    .filter((location) => typeof location === 'string')
+    .filter((location) => location.trim() !== '')
 
   if (!VALID_COUNT_TYPES.has(p_count_type)) {
     throw new Error('Invalid inventory count type.')

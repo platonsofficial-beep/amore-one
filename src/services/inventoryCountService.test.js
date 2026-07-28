@@ -20,8 +20,10 @@ vi.mock('./membershipService', () => ({
 
 import {
   applyInventoryCountCorrections,
+  collectDistinctInventoryCountStorageLocations,
   completeInventoryCountLocation,
   cancelInventoryCountSession,
+  createInventoryCountSession,
   deleteInventoryCountSession,
   formatInventoryCountHomeProgress,
   getInventoryCountPostedReview,
@@ -30,6 +32,7 @@ import {
   getOpenInventoryCountBlockerForStockItem,
   listInventoryCountCorrections,
   listInventoryCountHomeSessions,
+  listInventoryCountStorageLocations,
   mapInventoryCountSessionRow,
   partitionInventoryCountHomeSessions,
   mapInventoryCountSessionItemRow,
@@ -101,6 +104,145 @@ describe('mapInventoryCountSessionItemRow', () => {
   it('returns null for incomplete rows', () => {
     expect(mapInventoryCountSessionItemRow(null)).toBeNull()
     expect(mapInventoryCountSessionItemRow({ id: 'line-1' })).toBeNull()
+  })
+})
+
+describe('listInventoryCountStorageLocations (P8.21.1)', () => {
+  beforeEach(() => {
+    fromMock.mockReset()
+    rpcMock.mockReset()
+  })
+
+  it('dedupes, excludes null/empty/whitespace, preserves exact keys, and sorts deterministically', () => {
+    expect(collectDistinctInventoryCountStorageLocations([
+      { storage_location: 'Main Storage' },
+      { storage_location: null },
+      { storage_location: '' },
+      { storage_location: '   ' },
+      { storage_location: 'Bar' },
+      { storage_location: 'Main Storage' },
+      { storage_location: 'Fridge' },
+      { storage_location: 'Bar' },
+      { storage_location: undefined },
+      { storage_location: 12 },
+    ])).toEqual(['Bar', 'Fridge', 'Main Storage'])
+  })
+
+  it('preserves exact stored casing and internal spacing; rejects outer-padded keys', () => {
+    expect(collectDistinctInventoryCountStorageLocations([
+      { storage_location: 'bar' },
+      { storage_location: 'Bar' },
+      { storage_location: ' Bar' },
+      { storage_location: 'Bar ' },
+      { storage_location: 'Cold  Room' },
+      { storage_location: '  ' },
+    ])).toEqual(['Bar', 'Cold  Room', 'bar'])
+  })
+
+  it('loads distinct workspace storage locations from stock_items', async () => {
+    const query = createQuery({
+      data: [
+        { storage_location: 'Fridge' },
+        { storage_location: null },
+        { storage_location: 'Bar' },
+        { storage_location: '' },
+        { storage_location: 'Fridge' },
+        { storage_location: '   ' },
+        { storage_location: 'Main Storage' },
+      ],
+      error: null,
+    })
+    fromMock.mockReturnValue(query)
+
+    const locations = await listInventoryCountStorageLocations('workspace-1')
+
+    expect(fromMock).toHaveBeenCalledWith('stock_items')
+    expect(query.select).toHaveBeenCalledWith('storage_location')
+    expect(query.eq).toHaveBeenCalledWith('workspace_id', 'workspace-1')
+    expect(locations).toEqual(['Bar', 'Fridge', 'Main Storage'])
+  })
+
+  it('surfaces a safe error when stock items cannot be loaded', async () => {
+    const query = createQuery({
+      data: null,
+      error: { message: 'permission denied', code: '42501' },
+    })
+    fromMock.mockReturnValue(query)
+
+    await expect(listInventoryCountStorageLocations('workspace-1'))
+      .rejects
+      .toThrow('permission denied')
+  })
+})
+
+describe('createInventoryCountSession location key contract (P8.21.1a)', () => {
+  beforeEach(() => {
+    fromMock.mockReset()
+    rpcMock.mockReset()
+  })
+
+  it('passes selected location keys to the RPC without client trim or case transforms', async () => {
+    rpcMock.mockResolvedValue({
+      data: [{
+        id: 'session-1',
+        workspace_id: 'workspace-1',
+        status: 'in_progress',
+        count_type: 'quick',
+        visibility: 'blind',
+        include_zero_stock: true,
+        include_inactive: false,
+        note: '',
+        started_by: 'user-1',
+        started_at: '2026-07-28T12:00:00.000Z',
+        updated_at: '2026-07-28T12:00:00.000Z',
+      }],
+      error: null,
+    })
+
+    await createInventoryCountSession({
+      workspaceId: 'workspace-1',
+      countType: 'quick',
+      visibility: 'blind',
+      locations: ['Cold  Room', 'Main Storage', 'bar'],
+    })
+
+    expect(rpcMock).toHaveBeenCalledWith('create_inventory_count_session', {
+      p_workspace_id: 'workspace-1',
+      p_count_type: 'quick',
+      p_visibility: 'blind',
+      p_include_zero_stock: true,
+      p_include_inactive: false,
+      p_note: '',
+      p_locations: ['Cold  Room', 'Main Storage', 'bar'],
+    })
+  })
+
+  it('excludes whitespace-only locations without trimming valid keys', async () => {
+    rpcMock.mockResolvedValue({
+      data: [{
+        id: 'session-1',
+        workspace_id: 'workspace-1',
+        status: 'in_progress',
+        count_type: 'new',
+        visibility: 'open',
+        include_zero_stock: true,
+        include_inactive: false,
+        note: '',
+        started_by: 'user-1',
+        started_at: '2026-07-28T12:00:00.000Z',
+        updated_at: '2026-07-28T12:00:00.000Z',
+      }],
+      error: null,
+    })
+
+    await createInventoryCountSession({
+      workspaceId: 'workspace-1',
+      countType: 'new',
+      visibility: 'open',
+      locations: ['Main Storage', '   ', '', 'Bar'],
+    })
+
+    expect(rpcMock.mock.calls[0][1].p_locations).toEqual(['Main Storage', 'Bar'])
   })
 })
 
