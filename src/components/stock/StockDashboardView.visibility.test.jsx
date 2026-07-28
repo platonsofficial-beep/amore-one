@@ -106,6 +106,34 @@ describe('filterStockDashboardItems visibility (P8.16.26)', () => {
       statusFilter: 'out',
       visibilityFilter: 'all',
     }).map((item) => item.id)).toEqual(['i2'])
+
+    expect(filterStockDashboardItems(CATALOG, {
+      statusFilter: 'ok',
+      visibilityFilter: 'inactive',
+    }).map((item) => item.id)).toEqual([])
+
+    expect(filterStockDashboardItems(CATALOG, {
+      statusFilter: 'out',
+      visibilityFilter: 'inactive',
+    }).map((item) => item.id)).toEqual(['i2'])
+  })
+
+  it('combines Status + Search and Visibility + Search deterministically', () => {
+    expect(filterStockDashboardItems(CATALOG, {
+      statusFilter: 'low',
+      searchTerm: 'ACTIVE',
+    }).map((item) => item.id)).toEqual(['a1'])
+
+    expect(filterStockDashboardItems(CATALOG, {
+      visibilityFilter: 'inactive',
+      searchTerm: 'OUT',
+    }).map((item) => item.id)).toEqual(['i2'])
+
+    expect(filterStockDashboardItems(CATALOG, {
+      statusFilter: 'low',
+      visibilityFilter: 'all',
+      searchTerm: 'INACTIVE',
+    }).map((item) => item.id)).toEqual(['i1'])
   })
 
   it('combines Search + Visibility', () => {

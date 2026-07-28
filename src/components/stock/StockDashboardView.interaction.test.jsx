@@ -190,7 +190,7 @@ afterEach(() => {
 })
 
 describe('filterStockDashboardItems status pipeline (P8.17.3b)', () => {
-  it('uses resolveStockItemStatus so stale item.status cannot leak OK products into Low', () => {
+  it('uses quantity status so stale item.status cannot leak OK products into Low', () => {
     const filtered = filterStockDashboardItems(STALE_STATUS_CATALOG, { statusFilter: 'low' })
     expect(filtered.map((item) => item.name)).toEqual(['STALE LOW'])
   })

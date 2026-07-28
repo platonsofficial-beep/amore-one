@@ -7,6 +7,7 @@ import {
   getStockModuleAlertItems,
   isStockMovementOnDate,
   resolveDashboardStockAlerts,
+  resolveStockItemQuantityStatus,
   resolveStockItemStatus,
 } from './stockUtils'
 
@@ -30,6 +31,24 @@ describe('stockUtils', () => {
     expect(resolveStockItemStatus(makeItem({ currentQuantity: 4, minimumQuantity: 10 }))).toBe('low')
     expect(resolveStockItemStatus(makeItem({ currentQuantity: 12, minimumQuantity: 10 }))).toBe('ok')
     expect(resolveStockItemStatus(makeItem({ active: false }))).toBe('inactive')
+  })
+
+  it('resolves quantity status independently of active lifecycle (P8.24.1)', () => {
+    expect(resolveStockItemQuantityStatus(makeItem({
+      active: false,
+      currentQuantity: 1,
+      minimumQuantity: 5,
+    }))).toBe('low')
+    expect(resolveStockItemQuantityStatus(makeItem({
+      active: false,
+      currentQuantity: 0,
+      minimumQuantity: 5,
+    }))).toBe('out')
+    expect(resolveStockItemQuantityStatus(makeItem({
+      active: false,
+      currentQuantity: 12,
+      minimumQuantity: 5,
+    }))).toBe('ok')
   })
 
   it('builds dashboard summary counts for manager daily view', () => {

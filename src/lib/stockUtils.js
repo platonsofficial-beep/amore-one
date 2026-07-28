@@ -4,14 +4,22 @@ import { formatTimestampTime24 } from './timeFormatUtils'
 
 export const STOCK_MOVEMENT_TYPES = ['receive', 'usage', 'adjustment', 'stock_count']
 
-export function resolveStockItemStatus(item) {
-  if (!item?.active) return 'inactive'
-  const quantity = Number(item.currentQuantity ?? item.current_quantity ?? 0)
-  const minimum = Number(item.minimumQuantity ?? item.minimum_quantity ?? 0)
+/**
+ * Quantity health only (out / low / ok). Ignores active/inactive lifecycle.
+ * Used when Status and Visibility filters must compose independently.
+ */
+export function resolveStockItemQuantityStatus(item) {
+  const quantity = Number(item?.currentQuantity ?? item?.current_quantity ?? 0)
+  const minimum = Number(item?.minimumQuantity ?? item?.minimum_quantity ?? 0)
 
   if (quantity <= 0) return 'out'
   if (quantity < minimum) return 'low'
   return 'ok'
+}
+
+export function resolveStockItemStatus(item) {
+  if (!item?.active) return 'inactive'
+  return resolveStockItemQuantityStatus(item)
 }
 
 export function getStockStatusLabel(status) {
