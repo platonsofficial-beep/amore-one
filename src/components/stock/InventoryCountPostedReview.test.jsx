@@ -63,6 +63,7 @@ async function flush() {
 }
 
 function reviewFixture(overrides = {}) {
+  const { session: sessionOverrides, ...rest } = overrides
   return {
     session: {
       id: 'posted-1',
@@ -77,7 +78,7 @@ function reviewFixture(overrides = {}) {
       postedAt: '2026-07-21T12:00:00.000Z',
       operatorName: 'Alex Manager',
       postedByName: 'Blake Owner',
-      ...overrides.session,
+      ...sessionOverrides,
     },
     locations: [
       {
@@ -114,7 +115,8 @@ function reviewFixture(overrides = {}) {
     corrections: [],
     correctionCount: 0,
     hasCorrections: false,
-    ...overrides,
+    reversal: null,
+    ...rest,
   }
 }
 
@@ -1134,6 +1136,243 @@ describe('posted review reverse action foundation (P8.22.8)', () => {
 
     expect(container.textContent).toContain('This inventory count has already been reversed.')
     expect(container.querySelector('[data-inventory-count-reverse-dialog="true"]')).toBeTruthy()
+    cleanup()
+  })
+})
+
+describe('posted review reversal completion & read-only lock (P8.23.0)', () => {
+  it('shows Reversed badge, metadata, timeline event, and hides all actions', async () => {
+    getPostedReviewMock.mockResolvedValue(reviewFixture({
+      session: {
+        reversedAt: '2026-07-28T18:00:00.000Z',
+        reversedBy: 'user-posted',
+        postedBy: 'user-posted',
+        postedByName: 'Blake Owner',
+        reversalReason: 'Posted in error',
+      },
+      reversal: {
+        id: 'reversal-1',
+        sessionId: 'posted-1',
+        workspaceId: 'workspace-1',
+        reason: 'Posted in error',
+        note: 'Ops follow-up',
+        createdBy: 'user-posted',
+        createdAt: '2026-07-28T18:00:00.000Z',
+        createdByName: 'Blake Owner',
+      },
+    }))
+
+    const { container, cleanup } = render(createElement(InventoryCountPostedReview, {
+      sessionId: 'posted-1',
+      workspaceId: 'workspace-1',
+      onClose: vi.fn(),
+      onSuggestCorrection: vi.fn(),
+    }))
+    await flush()
+
+    expect(container.querySelector('[data-inventory-count-review-status="reversed"]')?.textContent)
+      .toContain('Reversed')
+    expect(container.querySelector('[data-inventory-count-reversed="true"]')).toBeTruthy()
+    expect(container.querySelector('[data-inventory-count-reversed-at="true"]')?.textContent)
+      .toContain('Reversed at')
+    expect(container.querySelector('[data-inventory-count-reversed-by="true"]')?.textContent)
+      .toContain('Blake Owner')
+    expect(container.querySelector('[data-inventory-count-reversal-reason="true"]')?.textContent)
+      .toContain('Posted in error')
+
+    expect(container.querySelector('[data-inventory-count-audit-timeline="true"]')).toBeTruthy()
+    expect(container.querySelector('[data-inventory-count-timeline-reversal="true"]')).toBeTruthy()
+    const timelineLabels = Array.from(
+      container.querySelectorAll('.inventory-count-posted-review-timeline-label'),
+    ).map((node) => node.textContent)
+    expect(timelineLabels).toEqual(['Posted Count', 'Reversal'])
+
+    const reversalEvent = container.querySelector('[data-inventory-count-reversal-event="true"]')
+    expect(reversalEvent).toBeTruthy()
+    expect(reversalEvent.textContent).toContain('Blake Owner')
+    expect(reversalEvent.textContent).toContain('Posted in error')
+    expect(container.querySelector('[data-inventory-count-reversal-event-note="true"]')?.textContent)
+      .toContain('Ops follow-up')
+
+    expect(container.querySelector('[data-inventory-count-reverse-action="true"]')).toBeNull()
+    expect(container.querySelector('.inventory-count-posted-review-suggest-btn')).toBeNull()
+    expect(container.querySelector('[data-inventory-count-reverse-dialog="true"]')).toBeNull()
+    expect(container.textContent).not.toContain('Suggest Correction')
+    expect(
+      Array.from(container.querySelectorAll('button'))
+        .map((button) => button.textContent)
+        .filter((label) => label === 'Reverse' || label === 'Suggest Correction'),
+    ).toEqual([])
+
+    cleanup()
+  })
+
+  it('appends Reversal after correction batches on the audit timeline', async () => {
+    getPostedReviewMock.mockResolvedValue(reviewFixture({
+      session: {
+        reversedAt: '2026-07-28T19:00:00.000Z',
+        reversedBy: 'user-1',
+        reversalReason: 'Wrong location counted',
+      },
+      hasCorrections: true,
+      correctionCount: 1,
+      corrections: [
+        {
+          id: 'corr-1',
+          createdAt: '2026-07-21T13:00:00.000Z',
+          operatorName: 'Casey Ops',
+          lines: [
+            {
+              id: 'corr-line-1',
+              sessionItemId: 'line-1',
+              itemName: 'Coca-Cola',
+              originalQuantity: 8,
+              correctedQuantity: 9,
+              deltaQuantity: 1,
+            },
+          ],
+        },
+      ],
+    }))
+
+    const { container, cleanup } = render(createElement(InventoryCountPostedReview, {
+      sessionId: 'posted-1',
+      workspaceId: 'workspace-1',
+      onClose: vi.fn(),
+    }))
+    await flush()
+
+    const timelineLabels = Array.from(
+      container.querySelectorAll('.inventory-count-posted-review-timeline-label'),
+    ).map((node) => node.textContent)
+    expect(timelineLabels).toEqual(['Posted Count', 'Correction 1', 'Reversal'])
+    expect(container.querySelector('[data-inventory-count-reversal-event="true"]')).toBeTruthy()
+    expect(container.querySelector('[data-inventory-count-corrected-badge="true"]')).toBeTruthy()
+
+    cleanup()
+  })
+
+  it('keeps non-reversed posted review status and actions unchanged', async () => {
+    const { container, cleanup } = render(createElement(InventoryCountPostedReview, {
+      sessionId: 'posted-1',
+      workspaceId: 'workspace-1',
+      onClose: vi.fn(),
+      onSuggestCorrection: vi.fn(),
+    }))
+    await flush()
+
+    expect(container.querySelector('[data-inventory-count-review-status="posted"]')?.textContent)
+      .toContain('Posted')
+    expect(container.querySelector('[data-inventory-count-reversed="false"]')).toBeTruthy()
+    expect(container.querySelector('[data-inventory-count-reversed-at="true"]')).toBeNull()
+    expect(container.querySelector('[data-inventory-count-timeline-reversal="true"]')).toBeNull()
+    expect(container.querySelector('[data-inventory-count-reversal-event="true"]')).toBeNull()
+    expect(container.querySelector('[data-inventory-count-reversal-event-note="true"]')).toBeNull()
+    expect(container.querySelector('[data-inventory-count-reverse-action="true"]')).toBeTruthy()
+    expect(container.querySelector('.inventory-count-posted-review-suggest-btn')).toBeTruthy()
+    expect(container.textContent).toContain('Suggest Correction')
+
+    cleanup()
+  })
+})
+
+describe('posted review reversal audit note loading (P8.23.0a)', () => {
+  it('renders optional non-empty reversal note from the audit header only', async () => {
+    getPostedReviewMock.mockResolvedValue(reviewFixture({
+      session: {
+        reversedAt: '2026-07-28T18:00:00.000Z',
+        reversedBy: 'user-1',
+        startedBy: 'user-1',
+        reversalReason: 'Posted in error',
+        operatorName: 'Alex Manager',
+      },
+      reversal: {
+        id: 'reversal-1',
+        reason: 'Posted in error',
+        note: '  Desk note from audit header  ',
+        createdBy: 'user-1',
+        createdAt: '2026-07-28T18:00:00.000Z',
+      },
+    }))
+
+    const { container, cleanup } = render(createElement(InventoryCountPostedReview, {
+      sessionId: 'posted-1',
+      workspaceId: 'workspace-1',
+      onClose: vi.fn(),
+    }))
+    await flush()
+
+    const note = container.querySelector('[data-inventory-count-reversal-event-note="true"]')
+    expect(note?.textContent).toContain('Desk note from audit header')
+    expect(container.querySelector('[data-inventory-count-reversal-event-reason="true"]')?.textContent)
+      .toContain('Posted in error')
+    expect(container.querySelector('[data-inventory-count-reversal-event="true"]')?.textContent)
+      .toContain('Alex Manager')
+
+    cleanup()
+  })
+
+  it('does not render an empty Note row when audit note is blank', async () => {
+    getPostedReviewMock.mockResolvedValue(reviewFixture({
+      session: {
+        reversedAt: '2026-07-28T18:00:00.000Z',
+        reversedBy: 'user-1',
+        reversalReason: 'Wrong count',
+        operatorName: 'Alex Manager',
+      },
+      reversal: {
+        id: 'reversal-1',
+        reason: 'Wrong count',
+        note: '   ',
+        createdBy: 'user-1',
+        createdAt: '2026-07-28T18:00:00.000Z',
+      },
+    }))
+
+    const { container, cleanup } = render(createElement(InventoryCountPostedReview, {
+      sessionId: 'posted-1',
+      workspaceId: 'workspace-1',
+      onClose: vi.fn(),
+    }))
+    await flush()
+
+    expect(container.querySelector('[data-inventory-count-reversal-event="true"]')).toBeTruthy()
+    expect(container.querySelector('[data-inventory-count-reversal-event-note="true"]')).toBeNull()
+    expect(container.querySelector('[data-inventory-count-reversal-event-reason="true"]')?.textContent)
+      .toContain('Wrong count')
+    expect(container.textContent).not.toMatch(/\bNote:\s*$/m)
+
+    cleanup()
+  })
+
+  it('keeps REVERSED read-only state when reversal audit header is missing', async () => {
+    getPostedReviewMock.mockResolvedValue(reviewFixture({
+      session: {
+        reversedAt: '2026-07-28T18:00:00.000Z',
+        reversedBy: 'user-1',
+        reversalReason: 'Posted in error',
+        postedByName: 'Blake Owner',
+        operatorName: 'Alex Manager',
+      },
+      reversal: null,
+    }))
+
+    const { container, cleanup } = render(createElement(InventoryCountPostedReview, {
+      sessionId: 'posted-1',
+      workspaceId: 'workspace-1',
+      onClose: vi.fn(),
+      onSuggestCorrection: vi.fn(),
+    }))
+    await flush()
+
+    expect(container.querySelector('[data-inventory-count-review-status="reversed"]')).toBeTruthy()
+    expect(container.querySelector('[data-inventory-count-reversed="true"]')).toBeTruthy()
+    expect(container.querySelector('[data-inventory-count-reversal-event="true"]')).toBeTruthy()
+    expect(container.querySelector('[data-inventory-count-reversal-event-note="true"]')).toBeNull()
+    expect(container.querySelector('[data-inventory-count-reverse-action="true"]')).toBeNull()
+    expect(container.querySelector('.inventory-count-posted-review-suggest-btn')).toBeNull()
+    expect(container.querySelector('[data-inventory-count-reverse-dialog="true"]')).toBeNull()
+
     cleanup()
   })
 })

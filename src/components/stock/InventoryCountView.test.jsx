@@ -802,3 +802,44 @@ describe('InventoryCountView delete session (P8.20.3 / P8.22.1)', () => {
     cleanup()
   })
 })
+
+describe('InventoryCountView home reversed status (P8.23.0)', () => {
+  it('shows Reversed on home cards when reversedAt exists', async () => {
+    listHomeSessionsMock.mockResolvedValue({
+      active: [],
+      paused: [],
+      recent: [
+        sessionFixture({
+          id: 'posted-reversed',
+          status: 'posted',
+          statusLabel: 'Posted',
+          reversedAt: '2026-07-28T18:00:00.000Z',
+          reversedBy: 'user-1',
+          reversalReason: 'Posted in error',
+        }),
+        sessionFixture({
+          id: 'posted-normal',
+          status: 'posted',
+          statusLabel: 'Posted',
+        }),
+      ],
+    })
+
+    const { container, cleanup } = render(createElement(InventoryCountView))
+    await flush()
+
+    const reversedPill = container.querySelector('[data-inventory-count-home-status="reversed"]')
+    expect(reversedPill).toBeTruthy()
+    expect(reversedPill.textContent).toBe('Reversed')
+    expect(reversedPill.className).toContain('is-reversed')
+
+    const postedPills = Array.from(
+      container.querySelectorAll('[data-inventory-count-home-status="posted"]'),
+    )
+    expect(postedPills).toHaveLength(1)
+    expect(postedPills[0].textContent).toBe('Posted')
+    expect(postedPills[0].className).not.toContain('is-reversed')
+
+    cleanup()
+  })
+})

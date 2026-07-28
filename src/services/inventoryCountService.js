@@ -18,6 +18,7 @@ const SESSION_ITEMS_TABLE = 'inventory_count_session_items'
 const SESSION_LOCATIONS_TABLE = 'inventory_count_session_locations'
 const CORRECTIONS_TABLE = 'inventory_count_corrections'
 const CORRECTION_LINES_TABLE = 'inventory_count_correction_lines'
+const REVERSALS_TABLE = 'inventory_count_reversals'
 const STOCK_ITEMS_TABLE = 'stock_items'
 
 const VALID_COUNT_TYPES = new Set(['new', 'quick', 'partial', 'scheduled', 'emergency'])
@@ -1443,9 +1444,19 @@ export async function getInventoryCountPostedReview({
     throw new Error('Only posted inventory counts can be opened in historical review.')
   }
 
+  const isReversed = Boolean(`${session.reversedAt ?? ''}`.trim())
+  const reversal = isReversed
+    ? await getInventoryCountSessionReversal({
+      workspaceId: normalizedWorkspaceId,
+      sessionId: normalizedSessionId,
+    })
+    : null
+
   const authUserIds = [
     session.startedBy,
     session.postedBy,
+    session.reversedBy,
+    reversal?.createdBy,
     ...corrections.map((correction) => correction.createdBy),
   ].filter(Boolean)
   const displayNames = authUserIds.length > 0
@@ -1472,6 +1483,15 @@ export async function getInventoryCountPostedReview({
     0,
   )
 
+  const reversalWithName = reversal
+    ? {
+      ...reversal,
+      createdByName: reversal.createdBy
+        ? (displayNames[reversal.createdBy] || null)
+        : null,
+    }
+    : null
+
   return {
     session: {
       ...session,
@@ -1488,6 +1508,7 @@ export async function getInventoryCountPostedReview({
     corrections: correctionsWithNames,
     correctionCount: correctionLineCount,
     hasCorrections: correctionLineCount > 0,
+    reversal: reversalWithName,
   }
 }
 
@@ -1543,6 +1564,65 @@ export function mapInventoryCountCorrectionRow(row, lines = []) {
     movementCount: Number(row.movement_count ?? row.movementCount ?? mappedLines.length) || 0,
     lines: mappedLines,
   }
+}
+
+/**
+ * Map one inventory_count_reversals audit header row (P8.23.0a).
+ */
+export function mapInventoryCountReversalRow(row) {
+  if (!row || typeof row !== 'object') return null
+
+  const id = `${row.id ?? ''}`.trim()
+  const sessionId = `${row.session_id ?? row.sessionId ?? ''}`.trim()
+  const workspaceId = `${row.workspace_id ?? row.workspaceId ?? ''}`.trim()
+  const reason = `${row.reason ?? ''}`.trim()
+  if (!id || !sessionId || !workspaceId || !reason) return null
+
+  const createdByRaw = row.created_by ?? row.createdBy
+  const noteRaw = row.note ?? ''
+
+  return {
+    id,
+    sessionId,
+    workspaceId,
+    reason,
+    note: noteRaw == null ? '' : `${noteRaw}`,
+    createdBy: createdByRaw == null || `${createdByRaw}`.trim() === ''
+      ? null
+      : `${createdByRaw}`.trim(),
+    createdAt: row.created_at ?? row.createdAt ?? null,
+  }
+}
+
+/**
+ * Read the single reversal audit header for a session (unique session_id).
+ * Soft-fails to null so Posted Review stays usable when the header is missing.
+ */
+export async function getInventoryCountSessionReversal({
+  workspaceId,
+  sessionId,
+} = {}) {
+  requireConfiguredSupabase()
+
+  const normalizedWorkspaceId = requireId(workspaceId, 'Workspace')
+  const normalizedSessionId = requireId(sessionId, 'Session')
+
+  const { data, error } = await supabase
+    .from(REVERSALS_TABLE)
+    .select('id, workspace_id, session_id, reason, note, created_by, created_at')
+    .eq('workspace_id', normalizedWorkspaceId)
+    .eq('session_id', normalizedSessionId)
+    .maybeSingle()
+
+  if (error) {
+    if (isTableUnavailableError(error)) {
+      return null
+    }
+    console.error('[inventoryCountService] getInventoryCountSessionReversal error:', error)
+    return null
+  }
+
+  return mapInventoryCountReversalRow(data)
 }
 
 /**

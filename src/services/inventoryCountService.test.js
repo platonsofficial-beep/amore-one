@@ -31,10 +31,12 @@ import {
   getInventoryCountPostedReview,
   getInventoryCountSession,
   getInventoryCountSessionItems,
+  getInventoryCountSessionReversal,
   getOpenInventoryCountBlockerForStockItem,
   listInventoryCountCorrections,
   listInventoryCountHomeSessions,
   listInventoryCountStorageLocations,
+  mapInventoryCountReversalRow,
   mapInventoryCountSessionRow,
   partitionInventoryCountHomeSessions,
   mapInventoryCountSessionItemRow,
@@ -1141,6 +1143,8 @@ describe('posted count historical review helpers (P8.20.4)', () => {
     expect(review.hasCorrections).toBe(false)
     expect(review.correctionCount).toBe(0)
     expect(review.corrections).toEqual([])
+    expect(review.reversal).toBeNull()
+    expect(fromMock).not.toHaveBeenCalledWith('inventory_count_reversals')
     expect(review.items[0]).toMatchObject({
       expectedAtCount: 9,
       countedQuantity: 8,
@@ -3576,5 +3580,161 @@ describe('inventory_count_reversal_foundation SQL contract (P8.22.2)', () => {
     expect(sql).not.toContain('reverse_inventory_count_session')
     expect(serviceSource).toContain('reverseInventoryCountSession')
     expect(serviceSource).not.toMatch(/createInventoryCountReversal/i)
+  })
+})
+
+describe('inventory count reversal audit note loading (P8.23.0a)', () => {
+  beforeEach(() => {
+    fromMock.mockReset()
+    rpcMock.mockReset()
+    getMemberDisplayNamesByAuthUserIds.mockReset()
+    getMemberDisplayNamesByAuthUserIds.mockResolvedValue({})
+  })
+
+  it('maps inventory_count_reversals header fields including optional note', () => {
+    expect(mapInventoryCountReversalRow({
+      id: 'reversal-1',
+      workspace_id: 'workspace-1',
+      session_id: 'session-1',
+      reason: 'Posted in error',
+      note: 'Ops follow-up',
+      created_by: 'user-9',
+      created_at: '2026-07-28T18:00:00.000Z',
+    })).toEqual({
+      id: 'reversal-1',
+      workspaceId: 'workspace-1',
+      sessionId: 'session-1',
+      reason: 'Posted in error',
+      note: 'Ops follow-up',
+      createdBy: 'user-9',
+      createdAt: '2026-07-28T18:00:00.000Z',
+    })
+  })
+
+  it('loads reversal audit header for reversed posted review and exposes note', async () => {
+    getMemberDisplayNamesByAuthUserIds.mockResolvedValueOnce({
+      'user-1': 'Alex Manager',
+      'user-2': 'Blake Owner',
+      'user-9': 'Casey Ops',
+    })
+
+    fromMock.mockImplementation((table) => {
+      if (table === 'inventory_count_sessions') {
+        return createQuery({
+          data: {
+            id: 'session-posted',
+            workspace_id: 'workspace-1',
+            status: 'posted',
+            count_type: 'quick',
+            visibility: 'blind',
+            note: 'Bar close',
+            started_by: 'user-1',
+            started_at: '2026-07-21T10:00:00.000Z',
+            posted_at: '2026-07-21T12:00:00.000Z',
+            posted_by: 'user-2',
+            reversed_at: '2026-07-28T18:00:00.000Z',
+            reversed_by: 'user-9',
+            reversal_reason: 'Posted in error',
+            snapshot_at: '2026-07-21T10:01:00.000Z',
+          },
+          error: null,
+        })
+      }
+      if (table === 'inventory_count_session_locations') {
+        return createQuery({ data: [], error: null })
+      }
+      if (table === 'inventory_count_session_items') {
+        return createQuery({ data: [], error: null })
+      }
+      if (
+        table === 'inventory_count_corrections'
+        || table === 'inventory_count_correction_lines'
+      ) {
+        return createQuery({ data: [], error: null })
+      }
+      if (table === 'inventory_count_reversals') {
+        return createQuery({
+          data: {
+            id: 'reversal-1',
+            workspace_id: 'workspace-1',
+            session_id: 'session-posted',
+            reason: 'Posted in error',
+            note: 'Desk audit note',
+            created_by: 'user-9',
+            created_at: '2026-07-28T18:00:00.000Z',
+          },
+          error: null,
+        })
+      }
+      return createQuery({ data: [], error: null })
+    })
+
+    const review = await getInventoryCountPostedReview({
+      workspaceId: 'workspace-1',
+      sessionId: 'session-posted',
+    })
+
+    expect(fromMock).toHaveBeenCalledWith('inventory_count_reversals')
+    expect(review.session.reversedAt).toBe('2026-07-28T18:00:00.000Z')
+    expect(review.session.reversalReason).toBe('Posted in error')
+    expect(review.reversal).toMatchObject({
+      id: 'reversal-1',
+      reason: 'Posted in error',
+      note: 'Desk audit note',
+      createdBy: 'user-9',
+      createdAt: '2026-07-28T18:00:00.000Z',
+      createdByName: 'Casey Ops',
+    })
+  })
+
+  it('soft-fails reversal header read errors without throwing', async () => {
+    fromMock.mockImplementation((table) => {
+      if (table === 'inventory_count_sessions') {
+        return createQuery({
+          data: {
+            id: 'session-posted',
+            workspace_id: 'workspace-1',
+            status: 'posted',
+            count_type: 'quick',
+            visibility: 'blind',
+            started_by: 'user-1',
+            started_at: '2026-07-21T10:00:00.000Z',
+            posted_at: '2026-07-21T12:00:00.000Z',
+            posted_by: 'user-2',
+            reversed_at: '2026-07-28T18:00:00.000Z',
+            reversed_by: 'user-9',
+            reversal_reason: 'Posted in error',
+          },
+          error: null,
+        })
+      }
+      if (table === 'inventory_count_reversals') {
+        return createQuery({
+          data: null,
+          error: { message: 'permission denied', code: '42501' },
+        })
+      }
+      if (
+        table === 'inventory_count_corrections'
+        || table === 'inventory_count_correction_lines'
+      ) {
+        return createQuery({ data: [], error: null })
+      }
+      return createQuery({ data: [], error: null })
+    })
+
+    const review = await getInventoryCountPostedReview({
+      workspaceId: 'workspace-1',
+      sessionId: 'session-posted',
+    })
+
+    expect(review.session.reversedAt).toBe('2026-07-28T18:00:00.000Z')
+    expect(review.reversal).toBeNull()
+
+    const soft = await getInventoryCountSessionReversal({
+      workspaceId: 'workspace-1',
+      sessionId: 'session-posted',
+    })
+    expect(soft).toBeNull()
   })
 })

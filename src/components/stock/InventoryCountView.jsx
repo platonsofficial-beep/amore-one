@@ -44,18 +44,29 @@ function formatLocations(session) {
   return `${keys.slice(0, 3).join(', ')} +${keys.length - 3}`
 }
 
+/** P8.23.0 — Home/card status: Reversed replaces Posted when reversedAt is set. */
+export function formatInventoryCountSessionStatusLabel(session) {
+  if (`${session?.reversedAt ?? ''}`.trim()) return 'Reversed'
+  return `${session?.statusLabel ?? ''}`.trim() || '—'
+}
+
 function InventoryCountSessionCardMeta({ session, onDelete, deleteDisabled = false }) {
   const lastUpdate = session.updatedAt || session.postedAt || session.pausedAt || session.startedAt
   const operator = `${session.operatorName ?? ''}`.trim() || '—'
   const canDelete = typeof onDelete === 'function' && session?.status !== 'posted'
+  const statusLabel = formatInventoryCountSessionStatusLabel(session)
+  const isReversed = Boolean(`${session?.reversedAt ?? ''}`.trim())
 
   return (
     <>
       <div className="inventory-count-session-card-top">
         <strong className="inventory-count-session-card-title">{session.countTypeLabel}</strong>
         <div className="inventory-count-session-card-top-end">
-          <span className="inventory-count-session-pill is-status">
-            {session.statusLabel}
+          <span
+            className={`inventory-count-session-pill is-status${isReversed ? ' is-reversed' : ''}`.trim()}
+            data-inventory-count-home-status={isReversed ? 'reversed' : `${session?.status ?? ''}`.trim() || 'unknown'}
+          >
+            {statusLabel}
           </span>
           {canDelete ? (
             <button
@@ -174,12 +185,13 @@ function InventoryCountSessionCard({
   const canOpenActive = OPENABLE_STATUSES.has(session.status) && !isCountingComplete
   const canOpen = canOpenActive || isPosted
   const isBusy = Boolean(busyAction)
+  const displayStatusLabel = formatInventoryCountSessionStatusLabel(session)
 
   if (isCountingComplete) {
     return (
       <div
         className={`inventory-count-session-card is-${session.status} has-actions`}
-        aria-label={`${session.countTypeLabel}, ${session.statusLabel}`}
+        aria-label={`${session.countTypeLabel}, ${displayStatusLabel}`}
       >
         <InventoryCountSessionCardMeta
           session={session}
@@ -225,7 +237,7 @@ function InventoryCountSessionCard({
       role={canOpen ? 'button' : undefined}
       tabIndex={canOpen && !isBusy ? 0 : undefined}
       aria-disabled={canOpen ? undefined : true}
-      aria-label={`${session.countTypeLabel}, ${session.statusLabel}`}
+      aria-label={`${session.countTypeLabel}, ${displayStatusLabel}`}
       data-inventory-count-card-openable={canOpen ? 'true' : 'false'}
       onClick={() => {
         if (canOpen && !isBusy) onOpen?.(session)

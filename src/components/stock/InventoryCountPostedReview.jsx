@@ -8,6 +8,7 @@ import {
 import { sumPriorCorrectionDeltasBySessionItemId } from './InventoryCountCorrectionReview'
 
 const AUDIT_ORIGINAL_ANCHOR_ID = 'inventory-count-audit-original'
+const AUDIT_REVERSAL_ANCHOR_ID = 'inventory-count-audit-reversal'
 
 function getCorrectionDetailAnchorId(version) {
   return `inventory-count-audit-correction-${version}`
@@ -381,6 +382,23 @@ export function InventoryCountPostedReview({
   const postedByName = `${session?.postedByName ?? ''}`.trim()
     || (session?.postedBy ? '—' : operatorName)
   const sessionNote = `${session?.note ?? ''}`.trim()
+  const reversalReason = `${session?.reversalReason ?? ''}`.trim()
+  const reversalNote = `${review?.reversal?.note ?? ''}`.trim()
+  const reversedById = `${session?.reversedBy ?? ''}`.trim()
+  const reversedByLabel = (
+    reversedById && reversedById === `${session?.postedBy ?? ''}`.trim()
+      ? postedByName
+      : (
+        reversedById && reversedById === `${session?.startedBy ?? ''}`.trim()
+          ? operatorName
+          : (reversedById ? shortMovementId(reversedById) : '—')
+      )
+  )
+  const showAuditTimeline = hasCorrections || isAlreadyReversed
+  const statusPillLabel = isAlreadyReversed ? 'Reversed' : (session?.statusLabel || 'Posted')
+  const statusPillClass = isAlreadyReversed
+    ? 'inventory-count-session-pill is-status is-reversed'
+    : 'inventory-count-session-pill is-status is-posted'
 
   const closeReverseDialog = () => {
     if (isReversing) return
@@ -447,8 +465,11 @@ export function InventoryCountPostedReview({
             <h2 className="inventory-count-posted-review-title">
               {session?.countTypeLabel || 'Inventory Count'}
             </h2>
-            <span className="inventory-count-session-pill is-status is-posted">
-              {session?.statusLabel || 'Posted'}
+            <span
+              className={statusPillClass}
+              data-inventory-count-review-status={isAlreadyReversed ? 'reversed' : 'posted'}
+            >
+              {statusPillLabel}
             </span>
             {hasCorrections && appliedBadgeLabel ? (
               <span
@@ -484,6 +505,22 @@ export function InventoryCountPostedReview({
               <dt>Count mode</dt>
               <dd>{visibilityLabel}</dd>
             </div>
+            {isAlreadyReversed ? (
+              <>
+                <div data-inventory-count-reversed-at="true">
+                  <dt>Reversed at</dt>
+                  <dd>{formatSessionDate(session?.reversedAt)}</dd>
+                </div>
+                <div data-inventory-count-reversed-by="true">
+                  <dt>Reversed by</dt>
+                  <dd>{reversedByLabel}</dd>
+                </div>
+                <div data-inventory-count-reversal-reason="true">
+                  <dt>Reason</dt>
+                  <dd>{reversalReason || '—'}</dd>
+                </div>
+              </>
+            ) : null}
           </dl>
           {sessionNote ? (
             <p className="inventory-count-posted-review-note">
@@ -564,21 +601,25 @@ export function InventoryCountPostedReview({
             ))}
           </div>
 
-          {hasCorrections ? (
+          {showAuditTimeline ? (
             <section
               className="inventory-count-posted-review-corrections"
-              aria-label="Correction history"
-              data-inventory-count-correction-history="true"
+              aria-label={hasCorrections ? 'Correction history' : 'Posted count audit timeline'}
+              data-inventory-count-correction-history={hasCorrections ? 'true' : undefined}
+              data-inventory-count-audit-timeline="true"
             >
               <div className="inventory-count-posted-review-corrections-header">
                 <h3 className="inventory-count-posted-review-corrections-title">
-                  Correction history
+                  {hasCorrections ? 'Correction history' : 'Audit timeline'}
                 </h3>
                 <p className="inventory-count-posted-review-corrections-order-note">
-                  Chronological: Original, then Correction 1 (oldest) → newest.
+                  {isAlreadyReversed
+                    ? 'Chronological: Posted, then corrections (if any), then Reversal.'
+                    : 'Chronological: Original, then Correction 1 (oldest) → newest.'}
                 </p>
               </div>
 
+              {hasCorrections ? (
               <div
                 className="inventory-count-posted-review-audit-summary"
                 data-inventory-count-audit-summary="true"
@@ -619,10 +660,11 @@ export function InventoryCountPostedReview({
                   </span>
                 </div>
               </div>
+              ) : null}
 
               <nav
                 className="inventory-count-posted-review-timeline"
-                aria-label="Correction timeline"
+                aria-label="Posted count audit timeline"
                 data-inventory-count-correction-timeline="true"
               >
                 <ol className="inventory-count-posted-review-timeline-list">
@@ -663,6 +705,24 @@ export function InventoryCountPostedReview({
                       </button>
                     </li>
                   ))}
+                  {isAlreadyReversed ? (
+                    <li
+                      className="inventory-count-posted-review-timeline-item is-reversal"
+                      data-inventory-count-timeline-reversal="true"
+                    >
+                      <button
+                        type="button"
+                        className="inventory-count-posted-review-timeline-node"
+                        data-timeline-target="reversal"
+                        onClick={() => scrollToAuditAnchor(AUDIT_REVERSAL_ANCHOR_ID)}
+                      >
+                        <span className="inventory-count-posted-review-timeline-dot" aria-hidden="true" />
+                        <span className="inventory-count-posted-review-timeline-label">
+                          Reversal
+                        </span>
+                      </button>
+                    </li>
+                  ) : null}
                 </ol>
               </nav>
 
@@ -751,6 +811,39 @@ export function InventoryCountPostedReview({
                     )
                   })}
                 </ol>
+
+                {isAlreadyReversed ? (
+                  <article
+                    id={AUDIT_REVERSAL_ANCHOR_ID}
+                    className="inventory-count-posted-review-version-card is-reversal"
+                    data-inventory-count-reversal-event="true"
+                  >
+                    <div className="inventory-count-posted-review-version-label">Reversal</div>
+                    <p className="inventory-count-posted-review-version-summary">
+                      Inventory count reversed ·
+                      {' '}
+                      {formatSessionDate(session?.reversedAt)}
+                      {' · '}
+                      {reversedByLabel}
+                    </p>
+                    <p className="inventory-count-posted-review-version-meta">
+                      <span data-inventory-count-reversal-event-reason="true">
+                        Reason: {reversalReason || '—'}
+                      </span>
+                    </p>
+                    {reversalNote ? (
+                      <p
+                        className="inventory-count-posted-review-version-meta"
+                        data-inventory-count-reversal-event-note="true"
+                      >
+                        Note: {reversalNote}
+                      </p>
+                    ) : null}
+                    <p className="inventory-count-posted-review-version-copy">
+                      Compensating adjustments were appended. Original posted history remains unchanged.
+                    </p>
+                  </article>
+                ) : null}
               </div>
             </section>
           ) : null}
@@ -852,7 +945,7 @@ export function InventoryCountPostedReview({
         </>
       ) : null}
 
-      {isReverseDialogOpen ? (
+      {isReverseDialogOpen && !isAlreadyReversed ? (
         <div
           className="employee-modal-backdrop inventory-count-reverse-overlay"
           role="presentation"
