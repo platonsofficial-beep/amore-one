@@ -394,10 +394,19 @@ describe('inventoryImportEligibility — locations', () => {
     expect(result.location.fallbackLocation).toBe('Kitchen')
   })
 
-  it('blocks invalid fallback and never silently uses Main Storage', () => {
+  it('accepts exact workspace fallback keys and blocks empty/overlong fallback', () => {
+    const workspaceFallback = evaluateInventoryImportReadyEligibility({
+      preview: preview([baseCreate()]),
+      policy: policy({ newProductLocationFallback: 'Apothiki 2' }),
+    })
+    expect(workspaceFallback.isReady).toBe(true)
+    expect(workspaceFallback.location.fallbackInvalid).toBe(false)
+    expect(workspaceFallback.location.fallbackLocation).toBe('Apothiki 2')
+    expect(workspaceFallback.location.fallbackAffectedRowCount).toBe(1)
+
     const invalid = evaluateInventoryImportReadyEligibility({
       preview: preview([baseCreate()]),
-      policy: policy({ newProductLocationFallback: 'Cellar Closet' }),
+      policy: policy({ newProductLocationFallback: `${'x'.repeat(81)}` }),
     })
     expect(invalid.isReady).toBe(false)
     expect(invalid.location.fallbackInvalid).toBe(true)

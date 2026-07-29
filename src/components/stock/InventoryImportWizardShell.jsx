@@ -30,7 +30,6 @@ import {
   buildInventoryImportValidateGroups,
   mapInventoryImportHeaderToOneField,
 } from '../../lib/inventoryImportWizardUx'
-import { STOCK_LOCATIONS } from '../../lib/stockCatalog'
 import {
   applyInventoryImportSession as applyInventoryImportSessionDefault,
   createInventoryImportSession as createInventoryImportSessionDefault,
@@ -40,6 +39,7 @@ import {
 import { InventoryOperationalImportPreview } from './InventoryOperationalImportPreview'
 import { InventoryOperationalMatchResolution } from './InventoryOperationalMatchResolution'
 import { InventoryNewProductReview } from './InventoryNewProductReview'
+import { WorkspaceStorageSelector } from './WorkspaceStorageSelector'
 
 /**
  * @returns {string}
@@ -1395,21 +1395,17 @@ export function InventoryImportWizardShell({
                         Applies only to new products without a recognized location.
                         Existing linked products keep their current location.
                       </p>
-                      <select
+                      <WorkspaceStorageSelector
                         id="inventory-import-location-fallback"
                         className="inventory-import-policy-select"
+                        workspaceId={workspaceId}
                         value={importSessionPolicy.newProductLocationFallback ?? ''}
-                        onChange={(event) => {
-                          handleLocationFallbackChange(event.target.value)
+                        emptyLabel="No fallback selected"
+                        aria-label="Fallback location for unresolved new products"
+                        onChange={(locationKey) => {
+                          handleLocationFallbackChange(locationKey)
                         }}
-                      >
-                        <option value="">No fallback selected</option>
-                        {STOCK_LOCATIONS.map((location) => (
-                          <option key={location} value={location}>
-                            {location}
-                          </option>
-                        ))}
-                      </select>
+                      />
                       <p className="inventory-import-policy-affected" role="status">
                         {locationFallbackAffectedCount === 1
                           ? '1 unresolved new product will use this fallback'

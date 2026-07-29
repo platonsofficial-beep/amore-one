@@ -1,7 +1,7 @@
 /**
  * @vitest-environment jsdom
  */
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { act, createElement } from 'react'
 import { createRoot } from 'react-dom/client'
 import { readFileSync } from 'node:fs'
@@ -25,10 +25,20 @@ import {
   listInventoryImportPreviewContinueMessages,
   listInventoryImportReviewDataContinueMessages,
 } from './InventoryImportWizardShell'
-import { STOCK_LOCATIONS } from '../../lib/stockCatalog'
+import { STOCK_CREATE_STORAGE_OPTION_VALUE } from '../../lib/stockCatalog'
 import { INVENTORY_IMPORT_ELIGIBILITY_BLOCKER } from '../../lib/inventoryImportEligibility'
 
 const HERE = dirname(fileURLToPath(import.meta.url))
+
+const { listWorkspaceStoragesMock, createWorkspaceStorageMock } = vi.hoisted(() => ({
+  listWorkspaceStoragesMock: vi.fn(),
+  createWorkspaceStorageMock: vi.fn(),
+}))
+
+vi.mock('../../services/workspaceStorageService', () => ({
+  listWorkspaceStorages: (...args) => listWorkspaceStoragesMock(...args),
+  createWorkspaceStorage: (...args) => createWorkspaceStorageMock(...args),
+}))
 
 /**
  * @param {string} name
@@ -69,6 +79,18 @@ function createMultiSheetFile(name, sheets) {
 describe('InventoryImportWizardShell', () => {
   let container
   let root
+
+  beforeEach(() => {
+    listWorkspaceStoragesMock.mockReset()
+    createWorkspaceStorageMock.mockReset()
+    listWorkspaceStoragesMock.mockResolvedValue([
+      { id: '1', locationKey: 'Main Storage', name: 'Main Storage', active: true, sortOrder: 0 },
+      { id: '2', locationKey: 'Bar', name: 'Bar', active: true, sortOrder: 1 },
+      { id: '3', locationKey: 'Wine Cellar', name: 'Wine Cellar', active: true, sortOrder: 2 },
+      { id: '4', locationKey: 'Kitchen', name: 'Kitchen', active: true, sortOrder: 3 },
+      { id: '5', locationKey: 'Apothiki 2', name: 'Apothiki 2', active: true, sortOrder: 4 },
+    ])
+  })
 
   afterEach(() => {
     act(() => {
@@ -1436,8 +1458,21 @@ describe('InventoryImportWizardShell', () => {
     const fallbackSelect = container.querySelector('#inventory-import-location-fallback')
     expect(fallbackSelect).toBeTruthy()
     expect(fallbackSelect.value).toBe('')
+    await act(async () => {
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+    expect(listWorkspaceStoragesMock).toHaveBeenCalledWith('ws-ops')
     expect(Array.from(fallbackSelect.options).map((option) => option.value))
-      .toEqual(['', ...STOCK_LOCATIONS])
+      .toEqual([
+        '',
+        'Main Storage',
+        'Bar',
+        'Wine Cellar',
+        'Kitchen',
+        'Apothiki 2',
+        STOCK_CREATE_STORAGE_OPTION_VALUE,
+      ])
     expect(container.textContent).toContain('unresolved new product')
     setLocationFallback('Kitchen')
     expect(getButton('Continue')?.disabled).toBe(false)

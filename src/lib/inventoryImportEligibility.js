@@ -147,6 +147,19 @@ export function normalizeCanonicalStockLocation(value) {
 }
 
 /**
+ * Normalize fallback / workspace storage location keys for Import Ready.
+ * Accepts STOCK_LOCATIONS and exact workspace keys (trimmed, ≤80).
+ *
+ * @param {unknown} value
+ * @returns {string|null}
+ */
+export function normalizeImportFallbackStorageLocation(value) {
+  const trimmed = asTrimmedString(value)
+  if (!trimmed || trimmed.length > 80) return null
+  return normalizeCanonicalStockLocation(trimmed) ?? trimmed
+}
+
+/**
  * @param {unknown} value
  * @returns {boolean}
  */
@@ -446,7 +459,7 @@ export function evaluateInventoryImportReadyEligibility({
   /** @type {Map<string, string[]>} */
   const linkTargets = new Map()
 
-  const fallbackCanonical = normalizeCanonicalStockLocation(
+  const fallbackCanonical = normalizeImportFallbackStorageLocation(
     normalizedPolicy.newProductLocationFallback,
   )
   const fallbackProvided = normalizedPolicy.newProductLocationFallback != null

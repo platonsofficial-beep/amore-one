@@ -12,8 +12,24 @@ function buildFallbackOptions() {
   return STOCK_LOCATIONS.map((location) => ({ value: location, label: location }))
 }
 
+/** Shared invalidation so every mounted selector reloads after Create Storage. */
+let workspaceStorageListEpoch = 0
+/** @type {Set<(epoch: number) => void>} */
+const workspaceStorageListListeners = new Set()
+
 /**
- * Shared workspace storage selector with Create Storage entry (P8.26.6).
+ * Notify all mounted WorkspaceStorageSelector instances to reload.
+ * Does not introduce a second storage list — only bumps the shared reload epoch.
+ */
+export function notifyWorkspaceStorageListChanged() {
+  workspaceStorageListEpoch += 1
+  workspaceStorageListListeners.forEach((listener) => {
+    listener(workspaceStorageListEpoch)
+  })
+}
+
+/**
+ * Shared workspace storage selector with Create Storage entry (P8.26.6 / P8.27.7).
  *
  * @param {{
  *   workspaceId?: string,
@@ -24,6 +40,7 @@ function buildFallbackOptions() {
  *   required?: boolean,
  *   id?: string,
  *   emptyLabel?: string,
+ *   className?: string,
  *   'aria-label'?: string,
  *   'aria-invalid'?: string,
  * }} props
@@ -37,12 +54,23 @@ export function WorkspaceStorageSelector({
   required = false,
   id,
   emptyLabel = 'Select location',
+  className,
   'aria-label': ariaLabel = 'Storage location',
   'aria-invalid': ariaInvalid,
 }) {
   const [storageOptions, setStorageOptions] = useState(buildFallbackOptions)
   const [reloadToken, setReloadToken] = useState(0)
   const [isCreateOpen, setIsCreateOpen] = useState(false)
+
+  useEffect(() => {
+    const onSharedReload = (epoch) => {
+      setReloadToken(epoch)
+    }
+    workspaceStorageListListeners.add(onSharedReload)
+    return () => {
+      workspaceStorageListListeners.delete(onSharedReload)
+    }
+  }, [])
 
   useEffect(() => {
     let cancelled = false
@@ -84,7 +112,7 @@ export function WorkspaceStorageSelector({
   const handleCreated = (storage) => {
     const locationKey = `${storage?.locationKey ?? ''}`.trim()
     setIsCreateOpen(false)
-    setReloadToken((token) => token + 1)
+    notifyWorkspaceStorageListChanged()
     if (locationKey) {
       onChange?.(locationKey)
     }
@@ -128,6 +156,7 @@ export function WorkspaceStorageSelector({
       ) : (
         <select
           id={id}
+          className={className}
           value={value}
           disabled={disabled}
           required={required}
