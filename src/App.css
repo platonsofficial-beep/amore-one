@@ -42720,6 +42720,288 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   margin: 0 auto;
 }
 
+.inventory-import-wizard-map-columns,
+.inventory-import-wizard-validate,
+.inventory-import-wizard-import-preview,
+.inventory-import-wizard-ready {
+  width: min(100%, 960px);
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  align-self: stretch;
+  margin: 0 auto;
+}
+
+.inventory-import-wizard-step-hero {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 18px 18px 16px;
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(14, 14, 15, 0.72);
+}
+
+.inventory-import-wizard-step-hero.is-map {
+  border-color: rgba(120, 170, 220, 0.32);
+  background:
+    linear-gradient(180deg, rgba(90, 140, 200, 0.14), rgba(14, 14, 15, 0.86));
+}
+
+.inventory-import-wizard-step-hero.is-validate {
+  border-color: rgba(220, 170, 90, 0.34);
+  background:
+    linear-gradient(180deg, rgba(200, 140, 60, 0.14), rgba(14, 14, 15, 0.86));
+}
+
+.inventory-import-wizard-step-hero.is-preview {
+  border-color: rgba(140, 200, 140, 0.34);
+  background:
+    linear-gradient(180deg, rgba(90, 160, 100, 0.14), rgba(14, 14, 15, 0.86));
+}
+
+.inventory-import-wizard-step-hero.is-ready {
+  border-color: rgba(212, 175, 55, 0.36);
+  background:
+    linear-gradient(180deg, rgba(212, 175, 55, 0.14), rgba(14, 14, 15, 0.86));
+}
+
+.inventory-import-wizard-step-kicker {
+  margin: 0;
+  color: rgba(255, 247, 232, 0.62);
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.inventory-import-wizard-step-purpose {
+  margin: 0;
+  color: rgba(255, 247, 232, 0.78);
+  font-size: 0.96rem;
+  line-height: 1.45;
+  max-width: 42rem;
+}
+
+.inventory-import-map-field-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.inventory-import-map-field-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+@media (min-width: 720px) {
+  .inventory-import-map-field-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+.inventory-import-map-field-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 88px;
+  padding: 14px 14px 12px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(10, 10, 12, 0.55);
+}
+
+.inventory-import-map-field-card.is-warning {
+  border-color: rgba(220, 150, 80, 0.4);
+}
+
+.inventory-import-map-field-title {
+  margin: 0;
+  color: rgba(255, 247, 232, 0.62);
+  font-size: 0.76rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.inventory-import-map-field-value {
+  margin: 0;
+  color: #fff7e8;
+  font-size: 1.05rem;
+  font-weight: 650;
+  line-height: 1.35;
+}
+
+.inventory-import-map-field-value-list {
+  font-size: 0.88rem;
+  font-weight: 500;
+}
+
+.inventory-import-map-one-field {
+  color: rgba(255, 247, 232, 0.88);
+  font-size: 0.9rem;
+}
+
+.inventory-import-map-one-field.is-unmapped,
+.inventory-import-map-one-field.is-blank {
+  color: rgba(255, 247, 232, 0.45);
+}
+
+.inventory-import-map-sample {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  border-radius: 16px;
+  border: 1px dashed rgba(120, 170, 220, 0.28);
+  background: rgba(12, 16, 22, 0.55);
+}
+
+.inventory-import-map-sample-head {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.inventory-import-map-sample-title {
+  margin: 0;
+  color: #fff7e8;
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.inventory-import-map-sample-copy,
+.inventory-import-map-sample-empty {
+  margin: 0;
+  color: rgba(255, 247, 232, 0.68);
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
+.inventory-import-map-sample-table {
+  min-width: 100%;
+}
+
+.inventory-import-validate-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+@media (min-width: 720px) {
+  .inventory-import-validate-summary-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+.inventory-import-validate-summary-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 92px;
+  padding: 16px;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(14, 14, 15, 0.78);
+}
+
+.inventory-import-validate-summary-card.is-ready {
+  border-color: rgba(120, 190, 130, 0.34);
+}
+
+.inventory-import-validate-summary-card.is-warning {
+  border-color: rgba(220, 170, 90, 0.34);
+}
+
+.inventory-import-validate-summary-card.is-error {
+  border-color: rgba(210, 100, 100, 0.38);
+}
+
+.inventory-import-validate-summary-label {
+  color: rgba(255, 247, 232, 0.62);
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.inventory-import-validate-summary-value {
+  color: #fff7e8;
+  font-size: 1.7rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.inventory-import-validate-groups {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.inventory-import-validate-group {
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(12, 12, 14, 0.72);
+  overflow: hidden;
+}
+
+.inventory-import-validate-group.has-items {
+  border-color: rgba(220, 170, 90, 0.28);
+}
+
+.inventory-import-validate-group-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 48px;
+  padding: 12px 14px;
+  cursor: pointer;
+  list-style: none;
+  color: #fff7e8;
+}
+
+.inventory-import-validate-group-summary::-webkit-details-marker {
+  display: none;
+}
+
+.inventory-import-validate-group-title {
+  font-size: 0.98rem;
+  font-weight: 650;
+}
+
+.inventory-import-validate-group-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 32px;
+  min-height: 32px;
+  padding: 0 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: rgba(255, 247, 232, 0.82);
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.inventory-import-validate-group-empty,
+.inventory-import-validate-group-list {
+  margin: 0;
+  padding: 0 14px 14px;
+  color: rgba(255, 247, 232, 0.72);
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+
+.inventory-import-validate-group-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  list-style: disc;
+  padding-left: 1.35rem;
+}
+
 .inventory-import-wizard-review-summary {
   display: flex;
   flex-direction: column;

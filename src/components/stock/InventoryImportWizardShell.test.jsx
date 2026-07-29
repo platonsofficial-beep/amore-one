@@ -114,11 +114,28 @@ describe('InventoryImportWizardShell', () => {
   }
 
   async function continueToColumnReview() {
-    const continueBtn = getButton('Continue to Column Review')
+    const continueBtn = getButton('Continue to Map Columns')
     await act(async () => {
       continueBtn.dispatchEvent(new MouseEvent('click', { bubbles: true }))
       await Promise.resolve()
       await Promise.resolve()
+    })
+  }
+
+  async function continueToValidateImport() {
+    await continueToColumnReview()
+    await act(async () => {
+      getButton('Continue').dispatchEvent(new MouseEvent('click', { bubbles: true }))
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+  }
+
+  async function flushMicrotasks(times = 2) {
+    await act(async () => {
+      for (let index = 0; index < times; index += 1) {
+        await Promise.resolve()
+      }
     })
   }
 
@@ -163,7 +180,7 @@ describe('InventoryImportWizardShell', () => {
     }
   })
 
-  it('builds Review Data continue messages only when blocked', () => {
+  it('builds Validate Import continue messages only when blocked', () => {
     expect(listInventoryImportReviewDataContinueMessages({
       canContinue: true,
       previewStatus: 'ready',
@@ -245,8 +262,8 @@ describe('InventoryImportWizardShell', () => {
     expect(container.textContent).toContain('File selected')
     expect(container.textContent).toContain('products.csv')
     expect(container.textContent).toContain(formatInventoryImportFileSize(csvBytes))
-    expect(getButton('Continue to Column Review')).toBeTruthy()
-    expect(getButton('Continue to Column Review')?.disabled).toBe(false)
+    expect(getButton('Continue to Map Columns')).toBeTruthy()
+    expect(getButton('Continue to Map Columns')?.disabled).toBe(false)
   })
 
   it('displays filename after a valid XLSX selection', () => {
@@ -283,7 +300,7 @@ describe('InventoryImportWizardShell', () => {
       .toContain('is-active')
   })
 
-  it('decodes CSV once, parses once, and opens Review Columns', async () => {
+  it('decodes CSV once, parses once, and opens Map Columns', async () => {
     renderShell()
 
     const decodeSpy = vi.spyOn(decoderModule, 'decodeInventoryImportFile')
@@ -311,12 +328,12 @@ describe('InventoryImportWizardShell', () => {
     expect(steps[3].className).toContain('is-upcoming')
     expect(steps[4].className).toContain('is-upcoming')
 
-    expect(container.textContent).toContain('Review Columns')
+    expect(container.textContent).toContain('Map Columns')
     expect(container.textContent).toContain('products.csv')
     expect(container.textContent).toContain('3 columns')
     expect(container.textContent).toContain('1 data rows')
     expect(container.textContent).toContain('Name')
-    expect(container.textContent).toContain('name')
+    expect(container.textContent).toContain('Product name')
     expect(container.textContent).toContain('Duplicate header')
     expect(getButton('Continue')?.disabled).toBe(true)
   })
@@ -341,9 +358,9 @@ describe('InventoryImportWizardShell', () => {
       rows: [['Salt', 4]],
       headerRowNumber: 1,
     })
-    expect(container.textContent).toContain('Review Columns')
+    expect(container.textContent).toContain('Map Columns')
     expect(container.textContent).toContain('Product')
-    expect(container.textContent).toContain('product')
+    expect(container.textContent).toContain('Product name')
     expect(container.textContent).toContain('Ready')
   })
 
@@ -369,7 +386,7 @@ describe('InventoryImportWizardShell', () => {
     expect(container.textContent).toContain('Extras')
     expect(parseSpy).not.toHaveBeenCalled()
     expect(worksheetSpy).not.toHaveBeenCalled()
-    expect(getButton('Continue to Column Review')?.disabled).toBe(true)
+    expect(getButton('Continue to Map Columns')?.disabled).toBe(true)
 
     const steps = container.querySelectorAll('.inventory-import-wizard-step')
     expect(steps[0].className).toContain('is-active')
@@ -401,7 +418,7 @@ describe('InventoryImportWizardShell', () => {
       extrasBtn.dispatchEvent(new MouseEvent('click', { bubbles: true }))
     })
 
-    expect(getButton('Continue to Column Review')?.disabled).toBe(false)
+    expect(getButton('Continue to Map Columns')?.disabled).toBe(false)
     await continueToColumnReview()
 
     expect(worksheetSpy).toHaveBeenCalledTimes(1)
@@ -412,7 +429,7 @@ describe('InventoryImportWizardShell', () => {
       rows: [['Salt', 4]],
       headerRowNumber: 1,
     })
-    expect(container.textContent).toContain('Review Columns')
+    expect(container.textContent).toContain('Map Columns')
     expect(container.textContent).toContain('Product')
     expect(container.textContent).not.toContain('Flour')
   })
@@ -433,7 +450,7 @@ describe('InventoryImportWizardShell', () => {
 
     expect(container.textContent).toContain('File selected')
     expect(container.textContent).toContain('multi.xlsx')
-    expect(getButton('Continue to Column Review')).toBeTruthy()
+    expect(getButton('Continue to Map Columns')).toBeTruthy()
   })
 
   it('shows loading state and disables controls while processing', async () => {
@@ -448,13 +465,13 @@ describe('InventoryImportWizardShell', () => {
     selectFile(new File(['Name\nA\n'], 'wait.csv', { type: 'text/csv' }))
 
     act(() => {
-      getButton('Continue to Column Review')
+      getButton('Continue to Map Columns')
         .dispatchEvent(new MouseEvent('click', { bubbles: true }))
     })
 
     expect(container.textContent).toContain('Reading file…')
     expect(getButton('Back')?.disabled).toBe(true)
-    expect(getButton('Continue to Column Review')?.disabled).toBe(true)
+    expect(getButton('Continue to Map Columns')?.disabled).toBe(true)
     expect(getButton('Choose Different File')?.disabled).toBe(true)
 
     await act(async () => {
@@ -468,7 +485,7 @@ describe('InventoryImportWizardShell', () => {
       await Promise.resolve()
     })
 
-    expect(container.textContent).toContain('Review Columns')
+    expect(container.textContent).toContain('Map Columns')
   })
 
   it('protects Continue against duplicate rapid activation', async () => {
@@ -483,7 +500,7 @@ describe('InventoryImportWizardShell', () => {
 
     selectFile(new File(['Name\nA\n'], 'once.csv', { type: 'text/csv' }))
 
-    const continueBtn = getButton('Continue to Column Review')
+    const continueBtn = getButton('Continue to Map Columns')
     act(() => {
       continueBtn.dispatchEvent(new MouseEvent('click', { bubbles: true }))
       continueBtn.dispatchEvent(new MouseEvent('click', { bubbles: true }))
@@ -510,11 +527,13 @@ describe('InventoryImportWizardShell', () => {
     await continueToColumnReview()
 
     expect(container.textContent).toContain('Blank header')
-    const rows = container.querySelectorAll('.inventory-import-wizard-review-table tbody tr')
-    expect(rows).toHaveLength(2)
-    expect(rows[0].textContent).toContain('1')
-    expect(rows[1].textContent).toContain('2')
-    expect(rows[1].textContent).toContain('Blank header')
+    const mappingRows = container.querySelectorAll(
+      '.inventory-import-wizard-map-columns > .inventory-import-wizard-review-table-wrap tbody tr',
+    )
+    expect(mappingRows).toHaveLength(2)
+    expect(mappingRows[0].textContent).toContain('1')
+    expect(mappingRows[1].textContent).toContain('2')
+    expect(mappingRows[1].textContent).toContain('Blank header')
   })
 
   it('returns to Step 1 with the selected file preserved after Back', async () => {
@@ -528,7 +547,7 @@ describe('InventoryImportWizardShell', () => {
 
     expect(container.textContent).toContain('File selected')
     expect(container.textContent).toContain('keep.csv')
-    expect(getButton('Continue to Column Review')).toBeTruthy()
+    expect(getButton('Continue to Map Columns')).toBeTruthy()
     expect(container.querySelectorAll('.inventory-import-wizard-step')[0].className)
       .toContain('is-active')
   })
@@ -548,7 +567,7 @@ describe('InventoryImportWizardShell', () => {
     expect(container.textContent).toContain('CSV has an unclosed quoted field.')
     expect(container.textContent).toContain('File selected')
     expect(container.textContent).toContain('bad.csv')
-    expect(getButton('Continue to Column Review')?.disabled).toBe(false)
+    expect(getButton('Continue to Map Columns')?.disabled).toBe(false)
     expect(container.querySelectorAll('.inventory-import-wizard-step')[0].className)
       .toContain('is-active')
   })
@@ -593,13 +612,15 @@ describe('InventoryImportWizardShell', () => {
     expect(source).toMatch(/inventoryOperationalImportPreview/)
     expect(source).toMatch(/inventoryOperationalMatchResolutions/)
     expect(source).toMatch(/inventoryNewProductDrafts/)
+    expect(source).toMatch(/inventoryImportWizardUx/)
     expect(source).toMatch(/inventoryImportStagingPayload/)
     expect(source).toMatch(/inventoryImportService/)
     expect(source).toMatch(/useWorkspaceStockCatalog/)
-    expect(source).toMatch(/InventoryOperationalMatchingSummary/)
     expect(source).toMatch(/InventoryOperationalImportPreview/)
     expect(source).toMatch(/InventoryOperationalMatchResolution/)
     expect(source).toMatch(/InventoryNewProductReview/)
+    expect(source).not.toMatch(/InventoryOperationalMatchingSummary/)
+    expect(source).not.toMatch(/InventoryOperationalReview/)
     expect(source).not.toMatch(/inventoryImportTableValidator/)
     expect(source).not.toMatch(/inventoryImportFieldMapper/)
     expect(source).not.toMatch(/inventoryImportClassifier/)
@@ -674,12 +695,9 @@ describe('InventoryImportWizardShell', () => {
     await continueToColumnReview()
 
     expect(detectSpy).toHaveBeenCalledTimes(1)
-    expect(container.textContent).toContain('Operational Weekly Stock Sheet')
+    expect(container.textContent).toContain('Map Columns')
     expect(container.textContent).toContain('weekday columns detected')
-    expect(container.textContent).toContain(
-      'A specialized operational-stock import flow will handle this layout in a later step.',
-    )
-    expect(container.textContent).toContain('Review Columns')
+    expect(container.textContent).toContain('Sample preview')
     expect(getButton('Continue')?.disabled).toBe(false)
   })
 
@@ -719,14 +737,12 @@ describe('InventoryImportWizardShell', () => {
     expect(card?.getAttribute('data-operational-category-count')).toBe('2')
     expect(card?.getAttribute('data-operational-product-count')).toBe('2')
     expect(container.querySelector('.inventory-import-wizard-review-table')).toBeTruthy()
-    expect(container.querySelector('.inventory-operational-review')).toBeTruthy()
-    expect(container.textContent).toContain('Categories: 2')
-    expect(container.textContent).toContain('Products: 2')
-    expect(container.textContent).toContain('VODKA')
+    expect(container.querySelector('.inventory-import-wizard-map-columns')).toBeTruthy()
+    expect(container.querySelector('.inventory-operational-review')).toBeNull()
+    expect(container.textContent).toContain('Map Columns')
+    expect(container.textContent).toContain('Sample preview')
     expect(container.textContent).toContain('Item One')
-    const operationalReview = container.querySelector('.inventory-operational-review')
-    expect(operationalReview?.textContent).not.toContain('Monday')
-    expect(operationalReview?.textContent).not.toContain('Tuesday')
+    expect(container.textContent).toContain('Item Two')
   })
 
   it('does not run the operational parser for standard inventory tables', async () => {
@@ -744,7 +760,7 @@ describe('InventoryImportWizardShell', () => {
     expect(container.querySelector('.inventory-import-wizard-format-card')
       ?.getAttribute('data-operational-product-count')).toBe('')
     expect(container.querySelector('.inventory-operational-review')).toBeNull()
-    expect(container.querySelector('.inventory-workspace-stock-card')).toBeNull()
+    expect(container.querySelector('.inventory-import-validate-summary-grid')).toBeNull()
   })
 
   it('loads workspace stock only for operational layouts and shows the summary card', async () => {
@@ -780,22 +796,19 @@ describe('InventoryImportWizardShell', () => {
       ['VODKA', '', '', '', '', '', '', '', '', '', '', ''],
       ['Item One', 1, 0, '', '', '', '', '', '', '', '', ''],
     ]))
-    await continueToColumnReview()
+    await continueToValidateImport()
 
     expect(loadWorkspaceStockItems).toHaveBeenCalledTimes(1)
     expect(loadWorkspaceStockItems).toHaveBeenCalledWith('ws-ops')
 
-    await act(async () => {
-      await Promise.resolve()
-      await Promise.resolve()
-    })
+    await flushMicrotasks()
 
-    const stockCard = container.querySelector('.inventory-workspace-stock-card')
-    expect(stockCard?.getAttribute('data-workspace-stock-status')).toBe('success')
-    expect(stockCard?.getAttribute('data-workspace-stock-count')).toBe('2')
-    expect(container.textContent).toContain('Workspace Stock')
-    expect(container.textContent).toContain('Loaded products: 2')
-    expect(container.textContent).toContain('Read-only')
+    const summary = container.querySelector('.inventory-import-validate-summary-grid')
+    expect(summary?.getAttribute('data-workspace-stock-status')).toBe('success')
+    expect(summary?.getAttribute('data-workspace-stock-count')).toBe('2')
+    expect(container.textContent).toContain('Validate Import')
+    expect(container.textContent).toContain('Rows')
+    expect(container.textContent).toContain('Ready')
   })
 
   it('shows a loading state while workspace stock is fetching', async () => {
@@ -814,10 +827,8 @@ describe('InventoryImportWizardShell', () => {
       ['VODKA', '', '', '', '', '', '', '', '', '', '', ''],
       ['Item One', 1, 0, '', '', '', '', '', '', '', '', ''],
     ]))
-    await continueToColumnReview()
+    await continueToValidateImport()
 
-    expect(container.querySelector('.inventory-workspace-stock-card')
-      ?.getAttribute('data-workspace-stock-status')).toBe('loading')
     expect(container.textContent).toContain('Loading workspace stock')
 
     await act(async () => {
@@ -825,9 +836,9 @@ describe('InventoryImportWizardShell', () => {
       await Promise.resolve()
     })
 
-    expect(container.querySelector('.inventory-workspace-stock-card')
-      ?.getAttribute('data-workspace-stock-status')).toBe('success')
-    expect(container.textContent).toContain('Loaded products: 0')
+    const summary = container.querySelector('.inventory-import-validate-summary-grid')
+    expect(summary?.getAttribute('data-workspace-stock-status')).toBe('success')
+    expect(container.textContent).toContain('Rows')
   })
 
   it('shows a premium error state when workspace stock loading fails', async () => {
@@ -845,18 +856,14 @@ describe('InventoryImportWizardShell', () => {
       ['VODKA', '', '', '', '', '', '', '', '', '', '', ''],
       ['Item One', 1, 0, '', '', '', '', '', '', '', '', ''],
     ]))
-    await continueToColumnReview()
+    await continueToValidateImport()
 
-    await act(async () => {
-      await Promise.resolve()
-      await Promise.resolve()
-    })
+    await flushMicrotasks()
 
-    expect(container.querySelector('.inventory-workspace-stock-card')
-      ?.getAttribute('data-workspace-stock-status')).toBe('error')
+    expect(container.querySelector('[data-workspace-stock-status="error"]')).toBeTruthy()
     expect(container.textContent).toContain('Unable to load workspace stock')
     expect(container.textContent).toContain('catalog unavailable')
-    expect(container.querySelector('.inventory-operational-review')).toBeTruthy()
+    expect(container.textContent).toContain('Validate Import')
   })
 
   it('does not load workspace stock for standard inventory tables', async () => {
@@ -900,7 +907,7 @@ describe('InventoryImportWizardShell', () => {
       ['VODKA', '', '', '', '', '', '', '', '', '', '', ''],
       ['Item One', 1, 0, '', '', '', '', '', '', '', '', ''],
     ]))
-    await continueToColumnReview()
+    await continueToValidateImport()
 
     await act(async () => {
       await Promise.resolve()
@@ -908,7 +915,7 @@ describe('InventoryImportWizardShell', () => {
     })
 
     expect(loadWorkspaceStockItems).toHaveBeenCalledWith('ws-a')
-    expect(container.querySelector('.inventory-workspace-stock-card')
+    expect(container.querySelector('.inventory-import-validate-summary-grid')
       ?.getAttribute('data-workspace-stock-count')).toBe('1')
   })
 
@@ -948,10 +955,10 @@ describe('InventoryImportWizardShell', () => {
       ['Item One', 1, 0, '', '', '', '', '', '', '', '', ''],
       ['Brand New', 2, 1, '', '', '', '', '', '', '', '', ''],
     ]))
-    await continueToColumnReview()
+    await continueToValidateImport()
 
     expect(matchSpy).not.toHaveBeenCalled()
-    expect(container.querySelector('.inventory-operational-matching')).toBeNull()
+    expect(container.querySelector('.inventory-import-validate-summary-grid')).toBeNull()
 
     await act(async () => {
       resolveLoad(catalog)
@@ -960,13 +967,9 @@ describe('InventoryImportWizardShell', () => {
 
     expect(matchSpy).toHaveBeenCalledTimes(1)
     expect(matchSpy.mock.calls[0][0].existingStockItems).toEqual(catalog)
-    expect(container.querySelector('.inventory-operational-matching')).toBeTruthy()
-    expect(container.textContent).toContain('Operational Matching')
-    expect(container.textContent).toContain('✓ Exact Matches: 1')
-    expect(container.textContent).toContain('➕ New Products: 1')
-    expect(container.textContent).toContain('✓ Exact Match')
-    expect(container.textContent).toContain('➕ New Product')
-    expect(container.querySelector('.inventory-operational-matching button')).toBeNull()
+    expect(container.textContent).toContain('Validate Import')
+    expect(container.textContent).toContain('Missing Units')
+    expect(container.querySelector('.inventory-import-validate-summary-grid')).toBeTruthy()
 
     act(() => {
       root.render(createElement(InventoryImportWizardShell, {
@@ -1000,9 +1003,9 @@ describe('InventoryImportWizardShell', () => {
       ['VODKA', '', '', '', '', '', '', '', '', '', '', ''],
       ['Item One', 1, 0, '', '', '', '', '', '', '', '', ''],
     ]))
-    await continueToColumnReview()
+    await continueToValidateImport()
     expect(matchSpy).not.toHaveBeenCalled()
-    expect(container.querySelector('.inventory-operational-matching')).toBeNull()
+    expect(container.querySelector('.inventory-import-validate-summary-grid')).toBeNull()
 
     await act(async () => {
       resolveLoad([])
@@ -1031,7 +1034,7 @@ describe('InventoryImportWizardShell', () => {
     })
 
     expect(matchSpy).not.toHaveBeenCalled()
-    expect(container.querySelector('.inventory-operational-matching')).toBeNull()
+    expect(container.querySelector('.inventory-import-validate-summary-grid')).toBeNull()
   })
 
   it('builds the operational import preview after catalog success and memoizes it', async () => {
@@ -1061,7 +1064,7 @@ describe('InventoryImportWizardShell', () => {
       ['VODKA', '', '', '', '', '', '', '', '', '', '', ''],
       ['Item One', 6, 1.8, '', '', '', '', '', '', '', 2, 4],
     ]))
-    await continueToColumnReview()
+    await continueToValidateImport()
 
     expect(previewSpy).not.toHaveBeenCalled()
     expect(container.querySelector('.inventory-operational-import-preview')).toBeNull()
@@ -1072,15 +1075,8 @@ describe('InventoryImportWizardShell', () => {
     })
 
     expect(previewSpy).toHaveBeenCalledTimes(1)
-    expect(container.querySelector('.inventory-operational-import-preview')).toBeNull()
-    expect(container.textContent).toContain('Review Columns')
-
-    act(() => {
-      getButton('Continue').dispatchEvent(new MouseEvent('click', { bubbles: true }))
-    })
-
     expect(container.querySelector('.inventory-import-wizard-review-title')?.textContent)
-      .toBe('Review Data')
+      .toBe('Validate Import')
     expect(container.querySelector('.inventory-operational-import-preview')).toBeNull()
     expect(container.querySelector('.inventory-operational-match-resolution')).toBeTruthy()
     expect(getButton('Continue')?.disabled).toBe(false)
@@ -1092,10 +1088,9 @@ describe('InventoryImportWizardShell', () => {
     expect(container.querySelector('.inventory-import-wizard-review-title')?.textContent)
       .toBe('Import Preview')
     expect(container.querySelector('.inventory-operational-import-preview')).toBeTruthy()
-    expect(container.textContent).toContain('Operational Import Preview')
-    expect(container.textContent).toContain('Existing product')
-    expect(container.textContent).toContain('New Products')
-    expect(container.textContent).toContain('No new products')
+    expect(container.textContent).toContain('What ONE will do')
+    expect(container.textContent).toContain('LINK')
+    expect(container.textContent).toContain('CREATE')
     expect(container.textContent).toContain('Storage')
     expect(container.textContent).toContain('6')
     expect(container.textContent).toContain('1.8')
@@ -1140,21 +1135,15 @@ describe('InventoryImportWizardShell', () => {
       ['VODKA', '', '', '', '', '', '', '', '', '', '', ''],
       ['Item One', 1, 0, '', '', '', '', '', '', '', '', ''],
     ]))
-    await continueToColumnReview()
+    await continueToValidateImport()
 
     await act(async () => {
       await Promise.resolve()
       await Promise.resolve()
     })
 
-    expect(container.querySelector('.inventory-operational-matching')).toBeTruthy()
+    expect(container.textContent).toContain('Validate Import')
     expect(container.textContent).not.toContain('Unable to build import preview')
-
-    act(() => {
-      getButton('Continue').dispatchEvent(new MouseEvent('click', { bubbles: true }))
-    })
-    expect(container.querySelector('.inventory-import-wizard-review-title')?.textContent)
-      .toBe('Review Data')
     expect(getButton('Continue')?.disabled).toBe(false)
 
     act(() => {
@@ -1167,7 +1156,7 @@ describe('InventoryImportWizardShell', () => {
     expect(container.textContent).toContain('Preview alignment failed for test.')
   })
 
-  it('navigates valid operational Review Columns to Review Data without skipping Import Preview', async () => {
+  it('navigates valid operational Map Columns to Validate Import without skipping Import Preview', async () => {
     const loadWorkspaceStockItems = vi.fn(async () => [
       {
         id: '1',
@@ -1213,7 +1202,7 @@ describe('InventoryImportWizardShell', () => {
     })
     await continueToColumnReview()
 
-    expect(container.textContent).toContain('Review Columns')
+    expect(container.textContent).toContain('Map Columns')
     expect(getButton('Continue')?.disabled).toBe(false)
 
     await act(async () => {
@@ -1224,16 +1213,18 @@ describe('InventoryImportWizardShell', () => {
     act(() => {
       getButton('Continue').dispatchEvent(new MouseEvent('click', { bubbles: true }))
     })
+    await act(async () => {
+      await Promise.resolve()
+      await Promise.resolve()
+    })
 
     expect(container.querySelector('.inventory-import-wizard-review-title')?.textContent)
-      .toBe('Review Data')
-    expect(container.querySelector('.inventory-import-wizard-review-data')).toBeTruthy()
-    expect(container.querySelector('.inventory-import-wizard-review-columns')).toBeNull()
+      .toBe('Validate Import')
+    expect(container.querySelector('.inventory-import-wizard-validate')).toBeTruthy()
+    expect(container.querySelector('.inventory-import-wizard-map-columns')).toBeNull()
     expect(container.querySelector('.inventory-operational-import-preview')).toBeNull()
     expect(container.textContent).toContain('Sheet: Inventory')
-    expect(container.textContent).toContain('3 categories')
-    expect(container.textContent).toContain('5 products')
-    expect(container.textContent).toContain('VODKA')
+    expect(container.textContent).toContain('5 products detected')
     expect(container.textContent).toContain('Glenfidich 12')
     expect(container.textContent).toContain('Resolve Possible Matches')
 
@@ -1261,7 +1252,8 @@ describe('InventoryImportWizardShell', () => {
     expect(previewSteps[2].className).toContain('is-completed')
     expect(previewSteps[3].className).toContain('is-active')
     expect(previewSteps[4].className).toContain('is-upcoming')
-    expect(container.textContent).toContain('New Products')
+    expect(container.textContent).toContain('CREATE')
+    expect(container.textContent).toContain('What ONE will do')
     // Sheet has create_new rows without units → Continue stays disabled.
     expect(getButton('Continue')?.disabled).toBe(true)
 
@@ -1270,7 +1262,7 @@ describe('InventoryImportWizardShell', () => {
     })
 
     expect(container.querySelector('.inventory-import-wizard-review-title')?.textContent)
-      .toBe('Review Data')
+      .toBe('Validate Import')
     expect(container.querySelector('.inventory-operational-import-preview')).toBeNull()
 
     act(() => {
@@ -1278,8 +1270,8 @@ describe('InventoryImportWizardShell', () => {
     })
 
     expect(container.querySelector('.inventory-import-wizard-review-title')?.textContent)
-      .toBe('Review Columns')
-    expect(container.textContent).toContain('Operational Weekly Stock Sheet')
+      .toBe('Map Columns')
+    expect(container.textContent).toContain('Map Columns')
     expect(getButton('Continue')?.disabled).toBe(false)
   })
 
@@ -1312,9 +1304,6 @@ describe('InventoryImportWizardShell', () => {
       await Promise.resolve()
       await Promise.resolve()
     })
-    act(() => {
-      getButton('Continue').dispatchEvent(new MouseEvent('click', { bubbles: true }))
-    })
 
     expect(container.textContent).toContain('Campari 1lt')
     expect(container.textContent).toContain('Suggested from product name')
@@ -1325,7 +1314,6 @@ describe('InventoryImportWizardShell', () => {
       .toBe('6')
     expect(container.querySelector('[data-need-unit-selection]')?.getAttribute('data-need-unit-selection'))
       .toBe('1')
-    expect(getButton('Continue')?.disabled).toBe(true)
 
     const matchCalls = matchSpy.mock.calls.length
     const parseCalls = parseSpy.mock.calls.length
@@ -1340,6 +1328,12 @@ describe('InventoryImportWizardShell', () => {
     expect(campariSelect.value).toBe('Liter')
 
     setSelectValue(bitterSelect, 'Bottle 700ml')
+
+    act(() => {
+      getButton('Continue').dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    })
+    expect(container.querySelector('.inventory-import-wizard-review-title')?.textContent)
+      .toBe('Import Preview')
     expect(getButton('Continue')?.disabled).toBe(true)
     setLocationFallback('Bar')
     expect(getButton('Continue')?.disabled).toBe(false)
@@ -1349,12 +1343,15 @@ describe('InventoryImportWizardShell', () => {
     act(() => {
       getButton('Back').dispatchEvent(new MouseEvent('click', { bubbles: true }))
     })
-    act(() => {
-      getButton('Continue').dispatchEvent(new MouseEvent('click', { bubbles: true }))
-    })
+    expect(container.querySelector('.inventory-import-wizard-review-title')?.textContent)
+      .toBe('Validate Import')
     const preservedCampari = Array.from(container.querySelectorAll('.inventory-new-product-review select'))
       .find((select) => select.value === 'Liter')
     expect(preservedCampari).toBeTruthy()
+
+    act(() => {
+      getButton('Continue').dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    })
     expect(container.querySelector('#inventory-import-location-fallback')?.value).toBe('Bar')
     expect(getButton('Continue')?.disabled).toBe(false)
     expect(getButton('Apply Import')).toBeFalsy()
@@ -1393,23 +1390,11 @@ describe('InventoryImportWizardShell', () => {
       await Promise.resolve()
     })
 
-    expect(getButton('Continue')?.disabled).toBe(false)
-    act(() => {
-      getButton('Continue').dispatchEvent(new MouseEvent('click', { bubbles: true }))
-    })
-
     expect(container.querySelector('.inventory-import-wizard-review-title')?.textContent)
-      .toBe('Import Preview')
+      .toBe('Validate Import')
     expect(container.textContent).toContain('New Products')
     expect(container.textContent).toContain('Brand New Spirit')
-    expect(container.textContent).toContain('Unit: Missing')
-    expect(container.textContent).toContain('Do not change current stock quantities')
-    expect(getPolicyRadio('Do not change current stock quantities')?.getAttribute('aria-checked'))
-      .toBe('true')
-    expect(getButton('Continue')?.disabled).toBe(true)
-    expect(container.querySelector('.inventory-import-wizard-validation-panel')).toBeTruthy()
-    expect(container.textContent).toContain('New products need a unit')
-    expect(container.textContent).toContain('Choose a location or fallback for new products')
+    expect(container.textContent).toContain('Unit is required')
 
     const matchCalls = matchSpy.mock.calls.length
     const parseCalls = parseSpy.mock.calls.length
@@ -1419,10 +1404,22 @@ describe('InventoryImportWizardShell', () => {
     expect(unitSelect).toBeTruthy()
     setSelectValue(unitSelect, 'Bottle 700ml')
 
-    expect(container.textContent).toContain('Unit:')
+    expect(container.textContent).toContain('Unit')
     expect(container.textContent).toContain('Bottle 700ml')
-    expect(container.textContent).not.toContain('Unit: Missing')
+    expect(container.textContent).not.toContain('Unit is required')
+
+    act(() => {
+      getButton('Continue').dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    })
+
+    expect(container.querySelector('.inventory-import-wizard-review-title')?.textContent)
+      .toBe('Import Preview')
+    expect(container.textContent).toContain('Do not change current stock quantities')
+    expect(getPolicyRadio('Do not change current stock quantities')?.getAttribute('aria-checked'))
+      .toBe('true')
     expect(getButton('Continue')?.disabled).toBe(true)
+    expect(container.querySelector('.inventory-import-wizard-validation-panel')).toBeTruthy()
+    expect(container.textContent).toContain('Choose a location or fallback for new products')
 
     const fallbackSelect = container.querySelector('#inventory-import-location-fallback')
     expect(fallbackSelect).toBeTruthy()
@@ -1438,15 +1435,16 @@ describe('InventoryImportWizardShell', () => {
       getButton('Back').dispatchEvent(new MouseEvent('click', { bubbles: true }))
     })
     expect(container.querySelector('.inventory-import-wizard-review-title')?.textContent)
-      .toBe('Review Data')
+      .toBe('Validate Import')
 
-    act(() => {
-      getButton('Continue').dispatchEvent(new MouseEvent('click', { bubbles: true }))
-    })
     const preservedUnit = Array.from(container.querySelectorAll('.inventory-new-product-review select'))
       .find((select) => Array.from(select.options).some((option) => option.value === 'Bottle 700ml'))
     expect(preservedUnit?.value).toBe('Bottle 700ml')
     expect(container.textContent).toContain('Bottle 700ml')
+
+    act(() => {
+      getButton('Continue').dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    })
     expect(container.querySelector('#inventory-import-location-fallback')?.value).toBe('Kitchen')
     expect(matchSpy.mock.calls.length).toBe(matchCalls)
     expect(parseSpy.mock.calls.length).toBe(parseCalls)
@@ -1481,9 +1479,6 @@ describe('InventoryImportWizardShell', () => {
       await Promise.resolve()
       await Promise.resolve()
     })
-    act(() => {
-      getButton('Continue').dispatchEvent(new MouseEvent('click', { bubbles: true }))
-    })
 
     const unitSelect = Array.from(container.querySelectorAll('.inventory-new-product-review select'))
       .find((select) => Array.from(select.options).some((option) => option.value === 'Bottle 1L'))
@@ -1494,9 +1489,6 @@ describe('InventoryImportWizardShell', () => {
     })
     expect(unitSelect.value).toBe('Bottle 1L')
 
-    act(() => {
-      getButton('Back').dispatchEvent(new MouseEvent('click', { bubbles: true }))
-    })
     act(() => {
       getButton('Back').dispatchEvent(new MouseEvent('click', { bubbles: true }))
     })
@@ -1516,9 +1508,6 @@ describe('InventoryImportWizardShell', () => {
     await act(async () => {
       await Promise.resolve()
       await Promise.resolve()
-    })
-    act(() => {
-      getButton('Continue').dispatchEvent(new MouseEvent('click', { bubbles: true }))
     })
 
     const resetSelect = Array.from(container.querySelectorAll('.inventory-new-product-review select'))
@@ -1540,15 +1529,15 @@ describe('InventoryImportWizardShell', () => {
     ]))
     await continueToColumnReview()
 
-    expect(container.textContent).toContain('Operational Weekly Stock Sheet')
+    expect(container.textContent).toContain('Map Columns')
     expect(getButton('Continue')?.disabled).toBe(true)
 
     act(() => {
       getButton('Continue').dispatchEvent(new MouseEvent('click', { bubbles: true }))
     })
 
-    expect(container.querySelector('.inventory-import-wizard-review-columns')).toBeTruthy()
-    expect(container.querySelector('.inventory-import-wizard-review-data')).toBeNull()
+    expect(container.querySelector('.inventory-import-wizard-map-columns')).toBeTruthy()
+    expect(container.querySelector('.inventory-import-wizard-validate')).toBeNull()
   })
 
   it('keeps Continue disabled for standard and unknown layouts', async () => {
@@ -1566,8 +1555,8 @@ describe('InventoryImportWizardShell', () => {
     act(() => {
       getButton('Continue').dispatchEvent(new MouseEvent('click', { bubbles: true }))
     })
-    expect(container.querySelector('.inventory-import-wizard-review-columns')).toBeTruthy()
-    expect(container.querySelector('.inventory-import-wizard-review-data')).toBeNull()
+    expect(container.querySelector('.inventory-import-wizard-map-columns')).toBeTruthy()
+    expect(container.querySelector('.inventory-import-wizard-validate')).toBeNull()
 
     act(() => {
       getButton('Back').dispatchEvent(new MouseEvent('click', { bubbles: true }))
@@ -1581,7 +1570,7 @@ describe('InventoryImportWizardShell', () => {
     await continueToColumnReview()
     expect(container.textContent).toContain('Unknown Worksheet Layout')
     expect(getButton('Continue')?.disabled).toBe(true)
-    expect(container.querySelector('.inventory-import-wizard-review-data')).toBeNull()
+    expect(container.querySelector('.inventory-import-wizard-validate')).toBeNull()
   })
 
   it('resolves possible matches locally and keeps decisions across Back navigation', async () => {
@@ -1665,8 +1654,8 @@ describe('InventoryImportWizardShell', () => {
       .toBe('Import Preview')
     expect(container.querySelector('.inventory-operational-import-preview')).toBeTruthy()
     expect(container.querySelector('.inventory-operational-match-resolution')).toBeNull()
-    expect(container.textContent).toContain('Existing product')
-    expect(container.textContent).toContain('No new products')
+    expect(container.textContent).toContain('LINK')
+    expect(container.textContent).toContain('New products0')
     expect(getButton('Apply Import')).toBeFalsy()
     // Both possible matches linked to the same ONE product → Ready is blocked.
     expect(getButton('Continue')?.disabled).toBe(true)
@@ -1681,7 +1670,7 @@ describe('InventoryImportWizardShell', () => {
       getButton('Back').dispatchEvent(new MouseEvent('click', { bubbles: true }))
     })
     expect(container.querySelector('.inventory-import-wizard-review-title')?.textContent)
-      .toBe('Review Data')
+      .toBe('Validate Import')
     expect(container.querySelector('.inventory-operational-match-resolution')
       ?.getAttribute('data-resolved-count')).toBe('2')
     expect(container.querySelectorAll('input[name^="match-resolution-candidate-"]:checked'))
@@ -1713,10 +1702,14 @@ describe('InventoryImportWizardShell', () => {
       getButton('Back').dispatchEvent(new MouseEvent('click', { bubbles: true }))
     })
     expect(container.querySelector('.inventory-import-wizard-review-title')?.textContent)
-      .toBe('Review Columns')
+      .toBe('Map Columns')
 
     act(() => {
       getButton('Continue').dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    })
+    await act(async () => {
+      await Promise.resolve()
+      await Promise.resolve()
     })
 
     expect(container.querySelector('.inventory-operational-match-resolution')
@@ -1825,7 +1818,7 @@ describe('InventoryImportWizardShell', () => {
     await continueToColumnReview()
 
     expect(container.textContent).toContain('Unknown Worksheet Layout')
-    expect(container.textContent).toContain('You can still review the detected columns below.')
+    expect(container.textContent).toContain('You can still map the detected columns below.')
     expect(container.textContent).not.toMatch(/\d{2,3}%/)
   })
 
@@ -1886,6 +1879,11 @@ describe('InventoryImportWizardShell', () => {
       await Promise.resolve()
       await Promise.resolve()
     })
+
+    const unitSelect = Array.from(container.querySelectorAll('.inventory-new-product-review select'))
+      .find((select) => Array.from(select.options).some((option) => option.value === 'Bottle 700ml'))
+    setSelectValue(unitSelect, 'Bottle 700ml')
+
     act(() => {
       getButton('Continue').dispatchEvent(new MouseEvent('click', { bubbles: true }))
     })
@@ -1893,11 +1891,6 @@ describe('InventoryImportWizardShell', () => {
     expect(getPolicyRadio('Do not change current stock quantities')?.getAttribute('aria-checked'))
       .toBe('true')
     expect(container.textContent).not.toContain('existing products will be replaced')
-    expect(getButton('Continue')?.disabled).toBe(true)
-
-    const unitSelect = Array.from(container.querySelectorAll('.inventory-new-product-review select'))
-      .find((select) => Array.from(select.options).some((option) => option.value === 'Bottle 700ml'))
-    setSelectValue(unitSelect, 'Bottle 700ml')
     expect(getButton('Continue')?.disabled).toBe(true)
 
     setLocationFallback('Bar')
@@ -2046,12 +2039,12 @@ describe('InventoryImportWizardShell', () => {
       await Promise.resolve()
       await Promise.resolve()
     })
-    act(() => {
-      getButton('Continue').dispatchEvent(new MouseEvent('click', { bubbles: true }))
-    })
     const unitSelect = Array.from(container.querySelectorAll('.inventory-new-product-review select'))
       .find((select) => Array.from(select.options).some((option) => option.value === 'Bottle 700ml'))
     setSelectValue(unitSelect, 'Bottle 700ml')
+    act(() => {
+      getButton('Continue').dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    })
     setLocationFallback('Main Storage')
     act(() => {
       getButton('Continue').dispatchEvent(new MouseEvent('click', { bubbles: true }))

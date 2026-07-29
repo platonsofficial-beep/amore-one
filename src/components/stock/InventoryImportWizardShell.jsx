@@ -23,6 +23,12 @@ import {
   INVENTORY_IMPORT_QUANTITY_POLICY,
   evaluateInventoryImportReadyEligibility,
 } from '../../lib/inventoryImportEligibility'
+import {
+  buildInventoryImportColumnMappingSummary,
+  buildInventoryImportMapSamplePreview,
+  buildInventoryImportValidateGroups,
+  mapInventoryImportHeaderToOneField,
+} from '../../lib/inventoryImportWizardUx'
 import { STOCK_LOCATIONS } from '../../lib/stockCatalog'
 import {
   applyInventoryImportSession as applyInventoryImportSessionDefault,
@@ -32,9 +38,7 @@ import {
 } from '../../services/inventoryImportService'
 import { InventoryOperationalImportPreview } from './InventoryOperationalImportPreview'
 import { InventoryOperationalMatchResolution } from './InventoryOperationalMatchResolution'
-import { InventoryOperationalMatchingSummary } from './InventoryOperationalMatchingSummary'
 import { InventoryNewProductReview } from './InventoryNewProductReview'
-import { InventoryOperationalReview } from './InventoryOperationalReview'
 
 /**
  * @returns {string}
@@ -145,8 +149,8 @@ export function listInventoryImportPreviewContinueMessages({
 
 export const INVENTORY_IMPORT_WIZARD_STEPS = Object.freeze([
   { id: 'upload', label: 'Upload File', number: 1 },
-  { id: 'columns', label: 'Review Columns', number: 2 },
-  { id: 'data', label: 'Review Data', number: 3 },
+  { id: 'columns', label: 'Map Columns', number: 2 },
+  { id: 'data', label: 'Validate Import', number: 3 },
   { id: 'preview', label: 'Import Preview', number: 4 },
   { id: 'ready', label: 'Ready to Import', number: 5 },
 ])
@@ -381,8 +385,7 @@ export function InventoryImportWizardShell({
     === inventoryImportFormatDetector.INVENTORY_IMPORT_FORMAT.OPERATIONAL
   const workspaceStockCatalog = useWorkspaceStockCatalog({
     workspaceId,
-    enabled: (wizardView === 'columns'
-      || wizardView === 'data'
+    enabled: (wizardView === 'data'
       || wizardView === 'preview'
       || wizardView === 'ready'
       || wizardView === 'completed')
@@ -473,6 +476,19 @@ export function InventoryImportWizardShell({
       policy: importSessionPolicy,
     })
   }, [resolvedOperationalImportPreview, importSessionPolicy])
+
+  const columnMappingSummary = useMemo(
+    () => buildInventoryImportColumnMappingSummary(parseResult),
+    [parseResult],
+  )
+  const mapSamplePreview = useMemo(
+    () => buildInventoryImportMapSamplePreview(parseResult),
+    [parseResult],
+  )
+  const validateImportGroups = useMemo(
+    () => buildInventoryImportValidateGroups(resolvedOperationalImportPreview),
+    [resolvedOperationalImportPreview],
+  )
 
   const newProductCategoryOptions = useMemo(() => (
     inventoryNewProductDrafts.listNewProductCategoryOptions({
@@ -988,11 +1004,15 @@ export function InventoryImportWizardShell({
 
         <div className="inventory-import-wizard-body">
           {wizardView === 'columns' && parseResult ? (
-            <div className="inventory-import-wizard-review-columns">
-              <div className="inventory-import-wizard-review-summary">
+            <div className="inventory-import-wizard-map-columns">
+              <div className="inventory-import-wizard-step-hero is-map">
+                <p className="inventory-import-wizard-step-kicker">Step 2 · Map</p>
                 <h3 className="inventory-import-wizard-review-title">
-                  Review Columns
+                  Map Columns
                 </h3>
+                <p className="inventory-import-wizard-step-purpose">
+                  Match spreadsheet columns to ONE fields. This is not a product review.
+                </p>
                 <p className="inventory-import-wizard-review-meta">
                   <span>{selectedFile?.name}</span>
                   <span className="inventory-import-wizard-extension-badge">
@@ -1039,78 +1059,49 @@ export function InventoryImportWizardShell({
                       ))}
                     </ul>
                   ) : null}
-                  {formatDetection.format === inventoryImportFormatDetector.INVENTORY_IMPORT_FORMAT.OPERATIONAL ? (
-                    <p className="inventory-import-wizard-format-notice">
-                      A specialized operational-stock import flow will handle this layout in a later step.
-                    </p>
-                  ) : null}
                   {formatDetection.format === inventoryImportFormatDetector.INVENTORY_IMPORT_FORMAT.UNKNOWN ? (
                     <p className="inventory-import-wizard-format-notice">
-                      You can still review the detected columns below.
+                      You can still map the detected columns below.
                     </p>
                   ) : null}
                 </section>
               ) : null}
 
-              {formatDetection?.format === inventoryImportFormatDetector.INVENTORY_IMPORT_FORMAT.OPERATIONAL
-                && operationalModel
-                ? (
-                  <InventoryOperationalReview model={operationalModel} />
-                ) : null}
-
-              {isOperationalFormat && operationalModel ? (
-                <section
-                  className="inventory-workspace-stock-card"
-                  aria-label="Workspace stock"
-                  data-workspace-stock-status={workspaceStockCatalog.status}
-                  data-workspace-stock-count={
-                    workspaceStockCatalog.status === 'success'
-                      ? workspaceStockCatalog.productCount
-                      : ''
-                  }
-                >
-                  {workspaceStockCatalog.status === 'loading' ? (
-                    <p className="inventory-workspace-stock-loading" role="status">
-                      Loading workspace stock…
+              <section
+                className="inventory-import-map-field-panel"
+                aria-label="Column field mapping"
+              >
+                <div className="inventory-import-map-field-grid">
+                  <div className="inventory-import-map-field-card">
+                    <h4 className="inventory-import-map-field-title">Detected columns</h4>
+                    <p className="inventory-import-map-field-value">
+                      {columnMappingSummary.mapped.length}
                     </p>
-                  ) : null}
-
-                  {workspaceStockCatalog.status === 'success' ? (
-                    <div className="inventory-operational-review-summary">
-                      <h3 className="inventory-operational-review-title">
-                        Workspace Stock
-                      </h3>
-                      <p className="inventory-operational-review-meta">
-                        <span>
-                          Loaded products:
-                          {' '}
-                          {workspaceStockCatalog.productCount}
-                        </span>
-                        <span>Read-only</span>
-                      </p>
-                    </div>
-                  ) : null}
-
-                  {workspaceStockCatalog.status === 'error' ? (
-                    <div
-                      className="inventory-operational-review-empty inventory-workspace-stock-error"
-                      role="alert"
-                    >
-                      <p className="inventory-operational-review-empty-title">
-                        Unable to load workspace stock
-                      </p>
-                      <p className="inventory-operational-review-empty-copy">
-                        {workspaceStockCatalog.errorMessage
-                          || 'Something went wrong while reading stock items for this workspace.'}
-                      </p>
-                    </div>
-                  ) : null}
-                </section>
-              ) : null}
-
-              {operationalMatchingResult ? (
-                <InventoryOperationalMatchingSummary result={operationalMatchingResult} />
-              ) : null}
+                  </div>
+                  <div className="inventory-import-map-field-card">
+                    <h4 className="inventory-import-map-field-title">Mapped fields</h4>
+                    <p className="inventory-import-map-field-value">
+                      {columnMappingSummary.mapped.filter((item) => item.role !== 'unmapped' && item.role !== 'blank').length}
+                    </p>
+                  </div>
+                  <div className={`inventory-import-map-field-card${columnMappingSummary.missingRequired.length ? ' is-warning' : ''}`}>
+                    <h4 className="inventory-import-map-field-title">Missing required</h4>
+                    <p className="inventory-import-map-field-value">
+                      {columnMappingSummary.missingRequired.length === 0
+                        ? 'None'
+                        : columnMappingSummary.missingRequired.join(', ')}
+                    </p>
+                  </div>
+                  <div className="inventory-import-map-field-card">
+                    <h4 className="inventory-import-map-field-title">Optional fields</h4>
+                    <p className="inventory-import-map-field-value inventory-import-map-field-value-list">
+                      {columnMappingSummary.optionalMapped.length === 0
+                        ? 'None detected'
+                        : columnMappingSummary.optionalMapped.join(' · ')}
+                    </p>
+                  </div>
+                </div>
+              </section>
 
               <div className="inventory-import-wizard-review-table-wrap">
                 <table className="inventory-import-wizard-review-table">
@@ -1118,20 +1109,18 @@ export function InventoryImportWizardShell({
                     <tr>
                       <th scope="col">Column</th>
                       <th scope="col">Source Header</th>
-                      <th scope="col">Normalized Header</th>
+                      <th scope="col">ONE Field</th>
                       <th scope="col">Status</th>
                     </tr>
                   </thead>
                   <tbody>
                     {parseResult.headers.map((header) => {
                       const status = getInventoryImportHeaderStatusLabel(header)
+                      const field = mapInventoryImportHeaderToOneField(header)
                       const sourceDisplay = formatInventoryImportSourceHeaderDisplay(
                         header.sourceHeader,
                         header.isBlank,
                       )
-                      const normalizedDisplay = header.isBlank
-                        ? '—'
-                        : header.normalized
 
                       return (
                         <tr key={`col-${header.columnIndex}`}>
@@ -1147,7 +1136,12 @@ export function InventoryImportWizardShell({
                               {sourceDisplay}
                             </span>
                           </td>
-                          <td>{normalizedDisplay}</td>
+                          <td>
+                            <span className={`inventory-import-map-one-field is-${field.role}`}>
+                              {field.oneField}
+                              {field.required ? ' · required' : field.optional ? ' · optional' : ''}
+                            </span>
+                          </td>
                           <td>
                             <span
                               className={`inventory-import-wizard-status-pill is-${status === 'Ready' ? 'ready' : status === 'Blank header' ? 'blank' : 'duplicate'}`}
@@ -1161,15 +1155,57 @@ export function InventoryImportWizardShell({
                   </tbody>
                 </table>
               </div>
+
+              <section
+                className="inventory-import-map-sample"
+                aria-label="Sample rows preview"
+              >
+                <div className="inventory-import-map-sample-head">
+                  <h4 className="inventory-import-map-sample-title">Sample preview</h4>
+                  <p className="inventory-import-map-sample-copy">
+                    Up to 5 rows so you can confirm mapping — not the full product list.
+                  </p>
+                </div>
+                {mapSamplePreview.rows.length === 0 ? (
+                  <p className="inventory-import-map-sample-empty" role="status">
+                    No data rows to preview.
+                  </p>
+                ) : (
+                  <div className="inventory-import-wizard-review-table-wrap">
+                    <table className="inventory-import-wizard-review-table inventory-import-map-sample-table">
+                      <thead>
+                        <tr>
+                          {mapSamplePreview.headers.map((header, index) => (
+                            <th key={`sample-h-${index}`} scope="col">{header}</th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {mapSamplePreview.rows.map((row, rowIndex) => (
+                          <tr key={`sample-r-${rowIndex}`}>
+                            {row.map((cell, cellIndex) => (
+                              <td key={`sample-c-${rowIndex}-${cellIndex}`}>{cell}</td>
+                            ))}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </section>
             </div>
           ) : null}
 
           {wizardView === 'data' && operationalModel ? (
-            <div className="inventory-import-wizard-review-data">
-              <div className="inventory-import-wizard-review-summary">
+            <div className="inventory-import-wizard-validate">
+              <div className="inventory-import-wizard-step-hero is-validate">
+                <p className="inventory-import-wizard-step-kicker">Step 3 · Validate</p>
                 <h3 className="inventory-import-wizard-review-title">
-                  Review Data
+                  Validate Import
                 </h3>
+                <p className="inventory-import-wizard-step-purpose">
+                  Analyze import quality and fix blockers before previewing what ONE will do.
+                </p>
                 <p className="inventory-import-wizard-review-meta">
                   <span>{selectedFile?.name}</span>
                   {selectedWorksheetName ? (
@@ -1180,72 +1216,102 @@ export function InventoryImportWizardShell({
                     </span>
                   ) : null}
                   <span>
-                    {operationalModel.summary.categoryCount}
-                    {' '}
-                    categories
-                  </span>
-                  <span>
                     {operationalModel.summary.productCount}
                     {' '}
-                    products
+                    products detected
                   </span>
                 </p>
               </div>
 
-              <InventoryOperationalReview model={operationalModel} />
+              {workspaceStockCatalog.status === 'loading' ? (
+                <p className="inventory-workspace-stock-loading" role="status">
+                  Loading workspace stock for validation…
+                </p>
+              ) : null}
 
-              {isOperationalFormat ? (
-                <section
-                  className="inventory-workspace-stock-card"
-                  aria-label="Workspace stock"
-                  data-workspace-stock-status={workspaceStockCatalog.status}
-                  data-workspace-stock-count={
-                    workspaceStockCatalog.status === 'success'
-                      ? workspaceStockCatalog.productCount
-                      : ''
-                  }
+              {workspaceStockCatalog.status === 'error' ? (
+                <div
+                  className="inventory-operational-review-empty inventory-workspace-stock-error"
+                  role="alert"
+                  data-workspace-stock-status="error"
                 >
-                  {workspaceStockCatalog.status === 'loading' ? (
-                    <p className="inventory-workspace-stock-loading" role="status">
-                      Loading workspace stock…
-                    </p>
-                  ) : null}
+                  <p className="inventory-operational-review-empty-title">
+                    Unable to load workspace stock
+                  </p>
+                  <p className="inventory-operational-review-empty-copy">
+                    {workspaceStockCatalog.errorMessage
+                      || 'Something went wrong while reading stock items for this workspace.'}
+                  </p>
+                </div>
+              ) : null}
 
-                  {workspaceStockCatalog.status === 'success' ? (
-                    <div className="inventory-operational-review-summary">
-                      <h3 className="inventory-operational-review-title">
-                        Workspace Stock
-                      </h3>
-                      <p className="inventory-operational-review-meta">
-                        <span>
-                          Loaded products:
-                          {' '}
-                          {workspaceStockCatalog.productCount}
-                        </span>
-                        <span>Read-only</span>
-                      </p>
-                    </div>
-                  ) : null}
-
-                  {workspaceStockCatalog.status === 'error' ? (
-                    <div
-                      className="inventory-operational-review-empty inventory-workspace-stock-error"
-                      role="alert"
-                    >
-                      <p className="inventory-operational-review-empty-title">
-                        Unable to load workspace stock
-                      </p>
-                      <p className="inventory-operational-review-empty-copy">
-                        {workspaceStockCatalog.errorMessage
-                          || 'Something went wrong while reading stock items for this workspace.'}
-                      </p>
-                    </div>
-                  ) : null}
+              {workspaceStockCatalog.status === 'success' ? (
+                <section
+                  className="inventory-import-validate-summary-grid"
+                  aria-label="Validation summary"
+                  data-workspace-stock-status="success"
+                  data-workspace-stock-count={workspaceStockCatalog.productCount}
+                >
+                  <div className="inventory-import-validate-summary-card">
+                    <span className="inventory-import-validate-summary-label">Rows</span>
+                    <span className="inventory-import-validate-summary-value">
+                      {validateImportGroups.summary.rows}
+                    </span>
+                  </div>
+                  <div className="inventory-import-validate-summary-card is-ready">
+                    <span className="inventory-import-validate-summary-label">Ready</span>
+                    <span className="inventory-import-validate-summary-value">
+                      {validateImportGroups.summary.ready}
+                    </span>
+                  </div>
+                  <div className="inventory-import-validate-summary-card is-warning">
+                    <span className="inventory-import-validate-summary-label">Warnings</span>
+                    <span className="inventory-import-validate-summary-value">
+                      {validateImportGroups.summary.warnings}
+                    </span>
+                  </div>
+                  <div className="inventory-import-validate-summary-card is-error">
+                    <span className="inventory-import-validate-summary-label">Errors</span>
+                    <span className="inventory-import-validate-summary-value">
+                      {validateImportGroups.summary.errors}
+                    </span>
+                  </div>
                 </section>
               ) : null}
 
-              {operationalMatchingResult ? (
-                <InventoryOperationalMatchingSummary result={operationalMatchingResult} />
+              {workspaceStockCatalog.status === 'success' ? (
+                <section
+                  className="inventory-import-validate-groups"
+                  aria-label="Validation issue groups"
+                >
+                  {validateImportGroups.groups.map((group) => (
+                    <details
+                      key={group.id}
+                      className={`inventory-import-validate-group${group.count > 0 ? ' has-items' : ''}`}
+                      open={group.count > 0 && (group.id === 'manual_review' || group.id === 'missing_units')}
+                    >
+                      <summary className="inventory-import-validate-group-summary">
+                        <span className="inventory-import-validate-group-title">
+                          {group.title}
+                        </span>
+                        <span className="inventory-import-validate-group-count">
+                          {group.count}
+                        </span>
+                      </summary>
+                      {group.count === 0 ? (
+                        <p className="inventory-import-validate-group-empty">
+                          No rows in this group.
+                        </p>
+                      ) : (
+                        <ul className="inventory-import-validate-group-list">
+                          {group.items.map((item) => (
+                            <li key={`${group.id}-${item}`}>{item}</li>
+                          ))}
+                        </ul>
+                      )}
+                    </details>
+                  ))}
+                </section>
               ) : null}
 
               {operationalImportPreviewState.status === 'ready' ? (
@@ -1255,15 +1321,29 @@ export function InventoryImportWizardShell({
                   onChangeResolution={handleMatchResolutionChange}
                 />
               ) : null}
+
+              {operationalImportPreviewState.status === 'ready' ? (
+                <InventoryNewProductReview
+                  preview={resolutionOperationalImportPreview}
+                  drafts={newProductDrafts}
+                  categoryOptions={newProductCategoryOptions}
+                  workspaceId={workspaceId}
+                  onChangeDraft={handleNewProductDraftChange}
+                />
+              ) : null}
             </div>
           ) : null}
 
           {wizardView === 'preview' && operationalModel ? (
             <div className="inventory-import-wizard-import-preview">
-              <div className="inventory-import-wizard-review-summary">
+              <div className="inventory-import-wizard-step-hero is-preview">
+                <p className="inventory-import-wizard-step-kicker">Step 4 · Preview</p>
                 <h3 className="inventory-import-wizard-review-title">
                   Import Preview
                 </h3>
+                <p className="inventory-import-wizard-step-purpose">
+                  Review exactly what ONE will create, link, or skip.
+                </p>
                 <p className="inventory-import-wizard-review-meta">
                   <span>{selectedFile?.name}</span>
                   {selectedWorksheetName ? (
@@ -1273,11 +1353,6 @@ export function InventoryImportWizardShell({
                       {selectedWorksheetName}
                     </span>
                   ) : null}
-                  <span>
-                    {operationalModel.summary.categoryCount}
-                    {' '}
-                    categories
-                  </span>
                   <span>
                     {operationalModel.summary.productCount}
                     {' '}
@@ -1471,16 +1546,6 @@ export function InventoryImportWizardShell({
                 </section>
               ) : null}
 
-              {operationalImportPreviewState.status === 'ready' ? (
-                <InventoryNewProductReview
-                  preview={resolutionOperationalImportPreview}
-                  drafts={newProductDrafts}
-                  categoryOptions={newProductCategoryOptions}
-                  workspaceId={workspaceId}
-                  onChangeDraft={handleNewProductDraftChange}
-                />
-              ) : null}
-
               {operationalImportPreviewState.status === 'ready'
                 || operationalImportPreviewState.status === 'error'
                 ? (
@@ -1494,10 +1559,14 @@ export function InventoryImportWizardShell({
 
           {wizardView === 'ready' && operationalModel ? (
             <div className="inventory-import-wizard-ready">
-              <div className="inventory-import-wizard-review-summary">
+              <div className="inventory-import-wizard-step-hero is-ready">
+                <p className="inventory-import-wizard-step-kicker">Step 5 · Import</p>
                 <h3 className="inventory-import-wizard-review-title">
                   Ready to Import
                 </h3>
+                <p className="inventory-import-wizard-step-purpose">
+                  Summary only. Apply creates the staging session and writes stock.
+                </p>
                 <p className="inventory-import-wizard-review-meta">
                   <span>{selectedFile?.name}</span>
                   <span>
@@ -1744,7 +1813,7 @@ export function InventoryImportWizardShell({
               onClick={handleContinueFromUpload}
               disabled={isProcessing}
             >
-              Continue to Column Review
+              Continue to Map Columns
             </button>
           </footer>
         ) : null}
@@ -1765,7 +1834,7 @@ export function InventoryImportWizardShell({
               onClick={handleContinueFromWorksheetSelection}
               disabled={isProcessing || !selectedWorksheetName}
             >
-              Continue to Column Review
+              Continue to Map Columns
             </button>
           </footer>
         ) : null}

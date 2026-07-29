@@ -83,19 +83,19 @@ export function getOperationalImportPreviewBlockerLabel(code) {
 export function getOperationalImportPreviewActionPresentation(action) {
   switch (action) {
     case INVENTORY_OPERATIONAL_IMPORT_PREVIEW_ACTION.LINK_EXISTING:
-      return { label: 'Existing product', className: 'is-link' }
+      return { label: 'LINK', className: 'is-link' }
     case INVENTORY_OPERATIONAL_IMPORT_PREVIEW_ACTION.CREATE_NEW:
-      return { label: 'New product', className: 'is-create' }
+      return { label: 'CREATE', className: 'is-create' }
     case INVENTORY_OPERATIONAL_IMPORT_PREVIEW_ACTION.REQUIRES_RESOLUTION:
-      return { label: 'Needs resolution', className: 'is-resolve' }
+      return { label: 'REVIEW', className: 'is-resolve' }
     case INVENTORY_OPERATIONAL_IMPORT_PREVIEW_ACTION.BLOCKED:
-      return { label: 'Blocked', className: 'is-blocked' }
+      return { label: 'BLOCKED', className: 'is-blocked' }
     case INVENTORY_OPERATIONAL_IMPORT_PREVIEW_ACTION.SKIP_INVALID:
-      return { label: 'Invalid', className: 'is-invalid' }
+      return { label: 'SKIP', className: 'is-invalid' }
     case 'skip':
-      return { label: 'Skipped', className: 'is-skipped' }
+      return { label: 'SKIP', className: 'is-skipped' }
     default:
-      return { label: action ? String(action) : 'Unknown', className: 'is-unknown' }
+      return { label: action ? String(action).toUpperCase() : 'UNKNOWN', className: 'is-unknown' }
   }
 }
 
@@ -193,10 +193,10 @@ export function InventoryOperationalImportPreview({
       <header className="inventory-operational-import-preview-header">
         <div className="inventory-operational-import-preview-header-text">
           <h3 className="inventory-operational-review-title">
-            Operational Import Preview
+            What ONE will do
           </h3>
           <p className="inventory-operational-import-preview-subtext">
-            Review source data, existing ONE matches, proposed actions, warnings, and blockers before any import.
+            Full row review with CREATE, LINK, and SKIP outcomes.
           </p>
         </div>
         <span className="inventory-operational-import-preview-readonly-badge">

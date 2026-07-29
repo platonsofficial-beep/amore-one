@@ -147,9 +147,9 @@ describe('InventoryOperationalImportPreview', () => {
 
     renderPreview({ preview: withPossible })
 
-    expect(container.textContent).toContain('Operational Import Preview')
+    expect(container.textContent).toContain('What ONE will do')
     expect(container.textContent).toContain('Read-only')
-    expect(container.textContent).toContain('Review source data, existing ONE matches')
+    expect(container.textContent).toContain('CREATE, LINK, and SKIP')
     expect(container.textContent).toContain('Total rows')
     expect(container.textContent).toContain('Existing links')
     expect(container.textContent).toContain('New products')
@@ -202,7 +202,7 @@ describe('InventoryOperationalImportPreview', () => {
     expect(rows[0].getAttribute('data-proposed-action')).toBe('link_existing')
     expect(rows[0].textContent).toContain('Tanqueray')
     expect(rows[0].textContent).toContain('SPIRITS')
-    expect(rows[0].textContent).toContain('Existing product')
+    expect(rows[0].textContent).toContain('LINK')
     expect(rows[0].textContent).toContain('Inactive')
     expect(rows[0].textContent).toContain('Existing ONE product is inactive')
     expect(rows[0].textContent).toContain('4')
@@ -215,13 +215,14 @@ describe('InventoryOperationalImportPreview', () => {
     expect(rows[0].textContent).toContain('Quantity policy is not set')
 
     expect(rows[1].getAttribute('data-proposed-action')).toBe('requires_resolution')
-    expect(rows[1].textContent).toContain('Requires resolution')
+    expect(rows[1].textContent).toContain('REVIEW')
     expect(rows[1].textContent).toContain('2 candidates')
     expect(rows[1].textContent).toContain('First:')
     expect(rows[1].textContent).toContain('Match must be resolved')
     expect(rows[1].textContent).toContain('Not applicable')
 
     expect(rows[2].getAttribute('data-proposed-action')).toBe('create_new')
+    expect(rows[2].textContent).toContain('CREATE')
     expect(rows[2].textContent).toContain('Will create new product')
     expect(rows[2].textContent).toContain('Unit: Missing')
     expect(rows[2].textContent).toContain('SPIRITS')
@@ -229,6 +230,7 @@ describe('InventoryOperationalImportPreview', () => {
     expect(rows[2].textContent).toContain('Location policy is not set')
 
     expect(rows[3].getAttribute('data-proposed-action')).toBe('skip_invalid')
+    expect(rows[3].textContent).toContain('SKIP')
     expect(rows[3].textContent).toContain('Invalid source row')
     expect(rows[3].textContent).toContain('Product name is invalid')
 
