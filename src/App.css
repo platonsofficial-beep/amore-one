@@ -43017,6 +43017,157 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   line-height: 1;
 }
 
+.inventory-import-validate-assistant {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.inventory-import-validate-guidance {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 16px 18px;
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background:
+    linear-gradient(135deg, rgba(36, 32, 28, 0.92), rgba(18, 18, 20, 0.88));
+}
+
+.inventory-import-validate-guidance.is-blocked {
+  border-color: rgba(210, 110, 100, 0.36);
+}
+
+.inventory-import-validate-guidance.is-decisions_required {
+  border-color: rgba(220, 170, 90, 0.34);
+}
+
+.inventory-import-validate-guidance.is-warnings_only {
+  border-color: rgba(190, 160, 90, 0.28);
+}
+
+.inventory-import-validate-guidance.is-ready {
+  border-color: rgba(120, 190, 130, 0.34);
+}
+
+.inventory-import-validate-guidance-status {
+  margin: 0;
+  color: rgba(255, 247, 232, 0.62);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.inventory-import-validate-guidance-headline {
+  margin: 6px 0 0;
+  color: #fff7e8;
+  font-size: 1.12rem;
+  font-weight: 650;
+  line-height: 1.35;
+}
+
+.inventory-import-validate-guidance-supporting {
+  margin: 8px 0 0;
+  color: rgba(255, 247, 232, 0.7);
+  font-size: 0.92rem;
+  line-height: 1.45;
+}
+
+.inventory-import-validate-progress {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.inventory-import-validate-progress-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-height: 56px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(10, 10, 12, 0.55);
+}
+
+.inventory-import-validate-progress-label {
+  color: rgba(255, 247, 232, 0.58);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.inventory-import-validate-progress-value {
+  color: #fff7e8;
+  font-size: 1.2rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.inventory-import-validate-progress-item.is-ready .inventory-import-validate-progress-value {
+  color: rgba(160, 210, 165, 0.95);
+}
+
+.inventory-import-validate-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px 16px;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(12, 12, 14, 0.55);
+}
+
+.inventory-import-validate-section.is-blockers {
+  border-color: rgba(210, 110, 100, 0.22);
+}
+
+.inventory-import-validate-section.is-decisions {
+  border-color: rgba(220, 170, 90, 0.22);
+}
+
+.inventory-import-validate-section.is-warnings {
+  border-color: rgba(190, 160, 90, 0.18);
+}
+
+.inventory-import-validate-section-header {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.inventory-import-validate-section-title {
+  margin: 0;
+  color: #fff7e8;
+  font-size: 0.98rem;
+  font-weight: 700;
+}
+
+.inventory-import-validate-section-copy {
+  margin: 0;
+  color: rgba(255, 247, 232, 0.66);
+  font-size: 0.88rem;
+  line-height: 1.4;
+}
+
+.inventory-import-validate-section-empty {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px dashed rgba(255, 255, 255, 0.1);
+  color: rgba(255, 247, 232, 0.62);
+  font-size: 0.88rem;
+}
+
+.inventory-import-validate-section-empty.is-positive {
+  border-style: solid;
+  border-color: rgba(120, 190, 130, 0.22);
+  color: rgba(180, 220, 185, 0.9);
+  background: rgba(40, 70, 48, 0.18);
+}
+
 .inventory-import-validate-groups {
   display: flex;
   flex-direction: column;
@@ -43032,6 +43183,15 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 
 .inventory-import-validate-group.has-items {
   border-color: rgba(220, 170, 90, 0.28);
+}
+
+.inventory-import-validate-group.is-blocker.has-items {
+  border-color: rgba(210, 110, 100, 0.36);
+}
+
+.inventory-import-validate-group.is-warning.has-items {
+  border-color: rgba(190, 160, 90, 0.28);
+  background: rgba(28, 24, 16, 0.72);
 }
 
 .inventory-import-validate-group-summary {
@@ -43069,13 +43229,30 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   font-weight: 700;
 }
 
+.inventory-import-validate-group.is-blocker .inventory-import-validate-group-count {
+  border-color: rgba(210, 110, 100, 0.4);
+  color: rgba(255, 200, 190, 0.95);
+}
+
+.inventory-import-validate-group.is-warning .inventory-import-validate-group-count {
+  border-color: rgba(190, 160, 90, 0.4);
+  color: rgba(240, 210, 150, 0.95);
+}
+
 .inventory-import-validate-group-empty,
-.inventory-import-validate-group-list {
+.inventory-import-validate-group-list,
+.inventory-import-validate-group-explanation,
+.inventory-import-validate-group-hint {
   margin: 0;
-  padding: 0 14px 14px;
+  padding: 0 14px 10px;
   color: rgba(255, 247, 232, 0.72);
   font-size: 0.9rem;
   line-height: 1.45;
+}
+
+.inventory-import-validate-group-hint {
+  color: rgba(255, 247, 232, 0.58);
+  font-size: 0.84rem;
 }
 
 .inventory-import-validate-group-list {
@@ -43083,7 +43260,39 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   flex-direction: column;
   gap: 6px;
   list-style: disc;
+  padding-bottom: 14px;
   padding-left: 1.35rem;
+}
+
+.inventory-import-validate-decisions-body,
+.inventory-import-validate-new-products-body {
+  min-width: 0;
+}
+
+.inventory-new-product-review-guidance {
+  margin: 6px 0 0;
+  color: rgba(255, 247, 232, 0.68);
+  font-size: 0.88rem;
+  line-height: 1.4;
+}
+
+@media (min-width: 900px) {
+  .inventory-import-validate-guidance {
+    flex-direction: row;
+    align-items: stretch;
+    justify-content: space-between;
+    gap: 18px;
+  }
+
+  .inventory-import-validate-guidance-copy {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .inventory-import-validate-progress {
+    flex: 0 0 240px;
+    align-content: start;
+  }
 }
 
 .inventory-import-wizard-review-summary {

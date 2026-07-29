@@ -340,6 +340,255 @@ export function buildInventoryImportValidateGroups(preview) {
   }
 }
 
+/** @typedef {'blocked'|'decisions_required'|'warnings_only'|'ready'} InventoryImportValidateAssistantState */
+
+const VALIDATE_ASSISTANT_BLOCKER_DEFS = {
+  missing_units: {
+    title: 'Products need a unit',
+    explanation: 'Choose a unit for each new product before continuing.',
+    actionHint: 'Confirm units in New Products below.',
+  },
+  missing_storage: {
+    title: 'Products need a storage',
+    explanation: 'Choose a storage for each new product, or set a fallback later in Import Preview.',
+    actionHint: 'Confirm storage in New Products below.',
+  },
+  duplicate_products: {
+    title: 'Duplicate existing targets',
+    explanation: 'Multiple rows are set to link to the same existing product.',
+    actionHint: 'Review link decisions before applying.',
+  },
+  blocked_rows: {
+    title: 'Remaining blocked rows',
+    explanation: 'These products cannot continue until their data is fixed or they are skipped.',
+    actionHint: null,
+  },
+}
+
+const VALIDATE_ASSISTANT_WARNING_DEFS = {
+  missing_supplier: {
+    title: 'Missing supplier',
+    explanation: 'Supplier is not set. You may continue and assign suppliers later.',
+  },
+  unknown_category: {
+    title: 'Category set to Other',
+    explanation: 'ONE could not recognize the source category and used Other as a default.',
+  },
+  matched_item_inactive: {
+    title: 'Existing item inactive',
+    explanation: 'A matched ONE product is inactive. Review before linking.',
+  },
+  source_quantity_evidence: {
+    title: 'Source quantity retained as evidence',
+    explanation: 'Spreadsheet quantities are kept as evidence only until you choose a stock policy.',
+  },
+}
+
+/**
+ * @param {Array<{ id?: string, title?: string, count?: number, items?: string[] }>|null|undefined} groups
+ * @param {string} id
+ * @returns {{ id: string, title: string, count: number, items: string[] }}
+ */
+function findValidateGroup(groups, id) {
+  const found = Array.isArray(groups)
+    ? groups.find((group) => group?.id === id)
+    : null
+  return {
+    id,
+    title: `${found?.title ?? id}`,
+    count: Number(found?.count) || 0,
+    items: Array.isArray(found?.items) ? found.items.map((item) => `${item}`) : [],
+  }
+}
+
+/**
+ * Presentation-only warning labels from existing preview warning codes.
+ * Does not change preview, eligibility, or validate group counts.
+ *
+ * @param {object|null|undefined} preview
+ * @returns {Array<{ id: string, title: string, count: number, items: string[], explanation: string }>}
+ */
+function buildValidateAssistantWarningExtras(preview) {
+  const rows = Array.isArray(preview?.rows) ? preview.rows : []
+  /** @type {Record<string, string[]>} */
+  const buckets = {
+    matched_item_inactive: [],
+    source_quantity_evidence: [],
+  }
+
+  rows.forEach((row) => {
+    const label = rowProductLabel(row)
+    const warnings = Array.isArray(row?.warnings) ? row.warnings : []
+    if (warnings.includes('matched_item_inactive')) {
+      buckets.matched_item_inactive.push(label)
+    }
+    if (warnings.includes('source_quantity_requires_policy')) {
+      buckets.source_quantity_evidence.push(label)
+    }
+  })
+
+  return Object.entries(buckets)
+    .map(([id, items]) => {
+      const unique = [...new Set(items)]
+      const def = VALIDATE_ASSISTANT_WARNING_DEFS[id]
+      return {
+        id,
+        title: def.title,
+        explanation: def.explanation,
+        count: unique.length,
+        items: unique,
+      }
+    })
+    .filter((group) => group.count > 0)
+}
+
+/**
+ * Guided Validate Import assistant model (P8.28.0).
+ * Presentation only — consumes existing validate groups / preview / match counts.
+ *
+ * @param {{
+ *   validateImportGroups?: {
+ *     summary?: { rows?: number, ready?: number, warnings?: number, errors?: number },
+ *     groups?: Array<{ id?: string, title?: string, count?: number, items?: string[] }>,
+ *   }|null,
+ *   preview?: object|null,
+ *   unresolvedPossibleMatches?: number|null,
+ *   possibleMatchCount?: number|null,
+ * }} [input]
+ * @returns {{
+ *   state: InventoryImportValidateAssistantState,
+ *   guidance: { headline: string, supporting: string, status: string },
+ *   progress: { resolved: number, remaining: number, ready: number },
+ *   blockers: Array<{
+ *     id: string, title: string, count: number, items: string[],
+ *     explanation: string, actionHint: string|null,
+ *   }>,
+ *   decisions: { count: number, total: number, hasDecisions: boolean },
+ *   warnings: Array<{
+ *     id: string, title: string, count: number, items: string[], explanation: string,
+ *   }>,
+ * }}
+ */
+export function buildInventoryImportValidateAssistant({
+  validateImportGroups = null,
+  preview = null,
+  unresolvedPossibleMatches = null,
+  possibleMatchCount = null,
+} = {}) {
+  const groups = validateImportGroups?.groups
+  const summary = validateImportGroups?.summary ?? {}
+  const resolved = Number(summary.ready) || 0
+  const remaining = Number(summary.errors) || 0
+  const warningRowCount = Number(summary.warnings) || 0
+  const totalRows = Number(summary.rows) || 0
+
+  const unresolvedCount = Number.isFinite(unresolvedPossibleMatches)
+    ? Math.max(0, Number(unresolvedPossibleMatches))
+    : findValidateGroup(groups, 'manual_review').count
+  const totalPossibleMatches = Number.isFinite(possibleMatchCount)
+    ? Math.max(0, Number(possibleMatchCount))
+    : findValidateGroup(groups, 'manual_review').count
+
+  /** @type {Array<{ id: string, title: string, count: number, items: string[], explanation: string, actionHint: string|null }>} */
+  const blockers = []
+  for (const id of Object.keys(VALIDATE_ASSISTANT_BLOCKER_DEFS)) {
+    const group = findValidateGroup(groups, id)
+    if (group.count <= 0) continue
+    const def = VALIDATE_ASSISTANT_BLOCKER_DEFS[id]
+    blockers.push({
+      id,
+      title: def.title,
+      explanation: def.explanation,
+      actionHint: def.actionHint,
+      count: group.count,
+      items: group.items,
+    })
+  }
+
+  /** @type {Array<{ id: string, title: string, count: number, items: string[], explanation: string }>} */
+  const warnings = []
+  for (const id of ['missing_supplier', 'unknown_category']) {
+    const group = findValidateGroup(groups, id)
+    if (group.count <= 0) continue
+    const def = VALIDATE_ASSISTANT_WARNING_DEFS[id]
+    warnings.push({
+      id,
+      title: def.title,
+      explanation: def.explanation,
+      count: group.count,
+      items: group.items,
+    })
+  }
+  for (const extra of buildValidateAssistantWarningExtras(preview)) {
+    if (warnings.some((group) => group.id === extra.id)) continue
+    warnings.push(extra)
+  }
+
+  const blockerCount = blockers.reduce((sum, group) => sum + group.count, 0)
+  const warningIssueCount = warnings.reduce((sum, group) => sum + group.count, 0)
+
+  /** @type {InventoryImportValidateAssistantState} */
+  let state = 'ready'
+  if (blockerCount > 0) state = 'blocked'
+  else if (unresolvedCount > 0) state = 'decisions_required'
+  else if (warningIssueCount > 0 || warningRowCount > 0) state = 'warnings_only'
+
+  const progressReady = remaining === 0 ? resolved : 0
+
+  /** @type {{ headline: string, supporting: string, status: string }} */
+  let guidance
+  if (state === 'blocked') {
+    const attention = Math.max(blockerCount, remaining, totalRows - resolved)
+    guidance = {
+      headline: attention === 1
+        ? '1 product needs attention before this import can continue.'
+        : `${attention} products need attention before this import can continue.`,
+      supporting: 'Resolve required units, storage locations, and any invalid product data first.',
+      status: 'Blocked',
+    }
+  } else if (state === 'decisions_required') {
+    guidance = {
+      headline: unresolvedCount === 1
+        ? '1 product may already exist in ONE.'
+        : `${unresolvedCount} products may already exist in ONE.`,
+      supporting: 'Choose whether to link each row to an existing product, create a new product, or skip it.',
+      status: 'Decisions required',
+    }
+  } else if (state === 'warnings_only') {
+    const warnCount = Math.max(warningIssueCount, warningRowCount)
+    guidance = {
+      headline: warnCount === 1
+        ? 'The import is valid, but 1 warning should be reviewed.'
+        : `The import is valid, but ${warnCount} warnings should be reviewed.`,
+      supporting: 'You may continue after reviewing supplier or source-data warnings.',
+      status: 'Ready with warnings',
+    }
+  } else {
+    guidance = {
+      headline: 'All products are ready for preview.',
+      supporting: 'Review what ONE will create, link, and skip before applying the import.',
+      status: 'Ready',
+    }
+  }
+
+  return {
+    state,
+    guidance,
+    progress: {
+      resolved,
+      remaining,
+      ready: progressReady,
+    },
+    blockers,
+    decisions: {
+      count: unresolvedCount,
+      total: totalPossibleMatches,
+      hasDecisions: totalPossibleMatches > 0,
+    },
+    warnings,
+  }
+}
+
 /**
  * Compact persistent Step Summary Header items for wizard steps 2–5.
  *

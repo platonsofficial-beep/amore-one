@@ -27,6 +27,7 @@ import {
   buildInventoryImportColumnMappingSummary,
   buildInventoryImportMapSamplePreview,
   buildInventoryImportStepSummary,
+  buildInventoryImportValidateAssistant,
   buildInventoryImportValidateGroups,
   mapInventoryImportHeaderToOneField,
 } from '../../lib/inventoryImportWizardUx'
@@ -36,8 +37,12 @@ import {
   markInventoryImportSessionReady as markInventoryImportSessionReadyDefault,
   stageInventoryImportRows as stageInventoryImportRowsDefault,
 } from '../../services/inventoryImportService'
+import { InventoryImportValidateAssistant } from './InventoryImportValidateAssistant'
 import { InventoryOperationalImportPreview } from './InventoryOperationalImportPreview'
-import { InventoryOperationalMatchResolution } from './InventoryOperationalMatchResolution'
+import {
+  InventoryOperationalMatchResolution,
+  listOperationalPossibleMatchRows,
+} from './InventoryOperationalMatchResolution'
 import { InventoryNewProductReview } from './InventoryNewProductReview'
 import { WorkspaceStorageSelector } from './WorkspaceStorageSelector'
 
@@ -490,6 +495,22 @@ export function InventoryImportWizardShell({
     () => buildInventoryImportValidateGroups(resolvedOperationalImportPreview),
     [resolvedOperationalImportPreview],
   )
+  const validateAssistant = useMemo(() => {
+    const basePreview = operationalImportPreviewState.status === 'ready'
+      ? operationalImportPreviewState.preview
+      : null
+    return buildInventoryImportValidateAssistant({
+      validateImportGroups,
+      preview: resolvedOperationalImportPreview,
+      unresolvedPossibleMatches:
+        resolvedOperationalImportPreview?.summary?.unresolvedPossibleMatches ?? null,
+      possibleMatchCount: listOperationalPossibleMatchRows(basePreview).length,
+    })
+  }, [
+    validateImportGroups,
+    resolvedOperationalImportPreview,
+    operationalImportPreviewState,
+  ])
   const stepSummary = useMemo(() => buildInventoryImportStepSummary({
     wizardView,
     selectedFile,
@@ -1233,55 +1254,33 @@ export function InventoryImportWizardShell({
               ) : null}
 
               {workspaceStockCatalog.status === 'success' ? (
-                <section
-                  className="inventory-import-validate-groups"
-                  aria-label="Validation issue groups"
-                >
-                  {validateImportGroups.groups.map((group) => (
-                    <details
-                      key={group.id}
-                      className={`inventory-import-validate-group${group.count > 0 ? ' has-items' : ''}`}
-                      open={group.count > 0 && (group.id === 'manual_review' || group.id === 'missing_units')}
-                    >
-                      <summary className="inventory-import-validate-group-summary">
-                        <span className="inventory-import-validate-group-title">
-                          {group.title}
-                        </span>
-                        <span className="inventory-import-validate-group-count">
-                          {group.count}
-                        </span>
-                      </summary>
-                      {group.count === 0 ? (
-                        <p className="inventory-import-validate-group-empty">
-                          No rows in this group.
-                        </p>
-                      ) : (
-                        <ul className="inventory-import-validate-group-list">
-                          {group.items.map((item) => (
-                            <li key={`${group.id}-${item}`}>{item}</li>
-                          ))}
-                        </ul>
-                      )}
-                    </details>
-                  ))}
-                </section>
-              ) : null}
-
-              {operationalImportPreviewState.status === 'ready' ? (
-                <InventoryOperationalMatchResolution
-                  basePreview={operationalImportPreviewState.preview}
-                  resolutions={matchResolutions}
-                  onChangeResolution={handleMatchResolutionChange}
-                />
-              ) : null}
-
-              {operationalImportPreviewState.status === 'ready' ? (
-                <InventoryNewProductReview
-                  preview={resolutionOperationalImportPreview}
-                  drafts={newProductDrafts}
-                  categoryOptions={newProductCategoryOptions}
-                  workspaceId={workspaceId}
-                  onChangeDraft={handleNewProductDraftChange}
+                <InventoryImportValidateAssistant
+                  assistant={validateAssistant}
+                  decisionsContent={
+                    operationalImportPreviewState.status === 'ready'
+                    && validateAssistant.decisions.hasDecisions
+                      ? (
+                        <InventoryOperationalMatchResolution
+                          basePreview={operationalImportPreviewState.preview}
+                          resolutions={matchResolutions}
+                          onChangeResolution={handleMatchResolutionChange}
+                        />
+                      )
+                      : null
+                  }
+                  newProductsContent={
+                    operationalImportPreviewState.status === 'ready'
+                      ? (
+                        <InventoryNewProductReview
+                          preview={resolutionOperationalImportPreview}
+                          drafts={newProductDrafts}
+                          categoryOptions={newProductCategoryOptions}
+                          workspaceId={workspaceId}
+                          onChangeDraft={handleNewProductDraftChange}
+                        />
+                      )
+                      : null
+                  }
                 />
               ) : null}
             </div>

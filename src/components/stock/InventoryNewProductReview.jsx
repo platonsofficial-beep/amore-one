@@ -91,7 +91,10 @@ export function InventoryNewProductReview({
             New Products
           </h3>
           <p className="inventory-new-product-review-subtext">
-            Review every new product before importing it into ONE.
+            Review every new product before import.
+          </p>
+          <p className="inventory-new-product-review-guidance">
+            ONE has suggested units where possible. Confirm Product Name, Category, Unit, and Storage.
           </p>
         </div>
       </header>

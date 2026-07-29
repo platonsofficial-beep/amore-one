@@ -146,7 +146,10 @@ describe('InventoryNewProductReview', () => {
     })
 
     expect(container.textContent).toContain('New Products')
-    expect(container.textContent).toContain('Review every new product before importing it into ONE.')
+    expect(container.textContent).toContain('Review every new product before import.')
+    expect(container.textContent).toContain(
+      'ONE has suggested units where possible. Confirm Product Name, Category, Unit, and Storage.',
+    )
     expect(container.textContent).toContain('Brand New Spirit')
     expect(container.textContent).toContain('New Product')
     expect(container.textContent).toContain('Source storage')
