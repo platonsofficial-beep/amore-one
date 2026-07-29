@@ -17,6 +17,7 @@ export const TEAM_SECTIONS = [
 export const STOCK_SECTIONS = [
   { id: 'dashboard', label: 'Dashboard' },
   { id: 'count', label: 'Inventory Count' },
+  { id: 'storages', label: 'Storages' },
   { id: 'inventory', label: 'Legacy Inventory' },
   { id: 'suppliers', label: 'Suppliers' },
   { id: 'orders', label: 'Orders' },
@@ -123,6 +124,7 @@ export function getModuleTitle(activeView, {
   }
   if (activeView === 'stock') {
     if (stockSection === 'count') return 'Inventory Count'
+    if (stockSection === 'storages') return 'Storages'
     if (stockSection === 'suppliers') return 'Suppliers'
     if (stockSection === 'inventory') return 'Legacy Inventory'
     if (stockSection === 'orders') return 'Orders'
@@ -154,6 +156,9 @@ export function getModuleSubtitle(activeView, currentDateLabel, {
   if (activeView === 'stock' && stockSection === 'count') {
     return 'Count inventory by location, review variances, and post verified stock levels.'
   }
+  if (activeView === 'stock' && stockSection === 'storages') {
+    return 'Understand and manage stock by physical location.'
+  }
   if (activeView === 'stock' && stockSection === 'inventory') {
     return 'Legacy product records retained for migration and historical reference. Live stock products are managed from Dashboard.'
   }
@@ -179,6 +184,7 @@ export function getSearchPlaceholder(activeView, {
   if (activeView === 'stock' && stockSection === 'dashboard') return 'Search stock item'
   if (activeView === 'stock' && stockSection === 'inventory') return 'Search legacy inventory'
   if (activeView === 'stock' && stockSection === 'count') return 'Search counts'
+  if (activeView === 'stock' && stockSection === 'storages') return 'Search storages'
   if (activeView === 'stock' && stockSection === 'suppliers') return 'Search supplier'
   if (activeView === 'stock' && stockSection === 'migration') return 'Search migration stages'
   if (activeView === 'operations' && operationsSection === 'checklists') return 'Search checklists'

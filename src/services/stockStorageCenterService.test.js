@@ -1,0 +1,150 @@
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+import {
+  buildWorkspaceStorageSummaries,
+  getWorkspaceStorageSummaries,
+  STOCK_STORAGE_CENTER_BALANCE_COLUMNS,
+  STOCK_STORAGE_CENTER_COST_COLUMNS,
+} from './stockStorageCenterService.js'
+
+const { fromMock } = vi.hoisted(() => ({
+  fromMock: vi.fn(),
+}))
+
+vi.mock('../lib/supabaseClient', () => ({
+  supabase: {
+    from: (...args) => fromMock(...args),
+  },
+}))
+
+function createQuery(result) {
+  const query = {
+    select: vi.fn(() => query),
+    eq: vi.fn(() => query),
+    in: vi.fn(() => query),
+    order: vi.fn(() => query),
+    then: undefined,
+  }
+  query.then = (resolve, reject) => Promise.resolve(result).then(resolve, reject)
+  return query
+}
+
+describe('buildWorkspaceStorageSummaries', () => {
+  it('orders active before archived and aggregates products/qty/value', () => {
+    const result = buildWorkspaceStorageSummaries({
+      storages: [
+        { id: 's-arch', locationKey: 'Old Cellar', name: 'Old Cellar', active: false, sortOrder: 0 },
+        { id: 's-bar', locationKey: 'Bar', name: 'Bar', active: true, sortOrder: 2 },
+        { id: 's-main', locationKey: 'Main Storage', name: 'Main Storage', active: true, sortOrder: 1 },
+      ],
+      balances: [
+        { workspace_storage_id: 's-main', stock_item_id: 'i1', quantity: 10 },
+        { workspace_storage_id: 's-main', stock_item_id: 'i2', quantity: 0 },
+        { workspace_storage_id: 's-bar', stock_item_id: 'i1', quantity: 3 },
+        { workspace_storage_id: 's-arch', stock_item_id: 'i3', quantity: 2 },
+      ],
+      costByItemId: {
+        i1: 5,
+        i2: 2,
+        i3: 4,
+      },
+    })
+
+    expect(result.storages.map((storage) => storage.id)).toEqual(['s-main', 's-bar', 's-arch'])
+    expect(result.activeStorages).toHaveLength(2)
+    expect(result.archivedStorages).toHaveLength(1)
+    expect(result.storages[0]).toMatchObject({
+      productCount: 2,
+      totalQuantity: 10,
+      nonZeroBalanceCount: 1,
+      inventoryValue: 50,
+      status: 'active',
+    })
+    expect(result.summary).toEqual({
+      activeStorageCount: 2,
+      archivedStorageCount: 1,
+      totalProductsWithBalances: 3,
+      totalQuantity: 15,
+    })
+  })
+
+  it('returns graceful empty aggregates', () => {
+    const result = buildWorkspaceStorageSummaries({ storages: [], balances: [] })
+    expect(result.storages).toEqual([])
+    expect(result.summary.totalQuantity).toBe(0)
+  })
+})
+
+describe('getWorkspaceStorageSummaries', () => {
+  beforeEach(() => {
+    fromMock.mockReset()
+  })
+
+  it('queries workspace-scoped storages, balances, and costs without mutations', async () => {
+    const storagesQuery = createQuery({
+      data: [
+        {
+          id: 's-main',
+          workspace_id: 'ws-1',
+          location_key: 'Main Storage',
+          name: 'Main Storage',
+          active: true,
+          sort_order: 1,
+        },
+      ],
+      error: null,
+    })
+    const balancesQuery = createQuery({
+      data: [
+        {
+          stock_item_id: 'i1',
+          workspace_storage_id: 's-main',
+          location_key: 'Main Storage',
+          quantity: 4,
+        },
+      ],
+      error: null,
+    })
+    const costsQuery = createQuery({
+      data: [{ id: 'i1', cost_price: 2.5 }],
+      error: null,
+    })
+
+    fromMock.mockImplementation((table) => {
+      if (table === 'workspace_storages') return storagesQuery
+      if (table === 'stock_item_location_balances') return balancesQuery
+      if (table === 'stock_items') return costsQuery
+      throw new Error(`unexpected table ${table}`)
+    })
+
+    const result = await getWorkspaceStorageSummaries('ws-1')
+    expect(fromMock).toHaveBeenCalledWith('workspace_storages')
+    expect(fromMock).toHaveBeenCalledWith('stock_item_location_balances')
+    expect(fromMock).toHaveBeenCalledWith('stock_items')
+    expect(storagesQuery.eq).toHaveBeenCalledWith('workspace_id', 'ws-1')
+    expect(balancesQuery.eq).toHaveBeenCalledWith('workspace_id', 'ws-1')
+    expect(balancesQuery.select).toHaveBeenCalledWith(STOCK_STORAGE_CENTER_BALANCE_COLUMNS)
+    expect(costsQuery.select).toHaveBeenCalledWith(STOCK_STORAGE_CENTER_COST_COLUMNS)
+    expect(result.storages[0]).toMatchObject({
+      id: 's-main',
+      productCount: 1,
+      totalQuantity: 4,
+      inventoryValue: 10,
+    })
+    expect(fromMock.mock.calls.every(([table]) => (
+      table === 'workspace_storages'
+      || table === 'stock_item_location_balances'
+      || table === 'stock_items'
+    ))).toBe(true)
+  })
+
+  it('requires workspace id and propagates server errors', async () => {
+    await expect(getWorkspaceStorageSummaries('')).rejects.toThrow(/Workspace is required/i)
+
+    const failing = createQuery({
+      data: null,
+      error: { message: 'permission denied' },
+    })
+    fromMock.mockReturnValue(failing)
+    await expect(getWorkspaceStorageSummaries('ws-1')).rejects.toThrow(/permission denied/i)
+  })
+})

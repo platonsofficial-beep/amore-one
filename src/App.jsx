@@ -513,6 +513,7 @@ import {
 } from './services/employeeIdentityService'
 import { StockDashboardView } from './components/stock/StockDashboardView'
 import { InventoryCountView } from './components/stock/InventoryCountView'
+import { StockStorageCenter } from './components/stock/StockStorageCenter'
 import { StockOrdersView } from './components/stock/StockOrdersView'
 import { StockSuppliersView } from './components/stock/StockSuppliersView'
 import { StockInventoryMigrationView } from './components/stock/StockInventoryMigrationView'
@@ -24388,6 +24389,12 @@ function App() {
           <InventoryCountView
             initialOpenSessionId={inventoryCountOpenSessionId}
             onInitialOpenSessionApplied={handleInventoryCountOpenSessionApplied}
+          />
+        ) : null}
+
+        {isActiveViewAllowed && activeView === 'stock' && stockSection === 'storages' ? (
+          <StockStorageCenter
+            workspaceId={activeWorkspaceId}
           />
         ) : null}
 
