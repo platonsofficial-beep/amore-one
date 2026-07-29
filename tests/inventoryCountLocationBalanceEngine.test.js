@@ -68,8 +68,9 @@ describe('P8.29.8 — Inventory Count location balance engine', () => {
     expect(reverseSql).toContain('reversed_at = v_now')
   })
 
-  it('does not touch Import Apply or flip service capability', () => {
-    expect(importApplySql).not.toContain('stock_item_location_balances')
+  it('does not flip service capability flag (P8.29.8 scope)', () => {
+    // P8.29.9 intentionally extends Import Apply with stock_item_location_balances —
+    // that assertion is removed here. Only the service flag guard remains.
     expect(mutationService).toContain('let supportsLocationBalances = false')
   })
 })

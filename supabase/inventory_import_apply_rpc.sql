@@ -1,25 +1,40 @@
 -- =============================================================================
--- P8.27.3 — Inventory Import Apply RPC Foundation
+-- P8.29.9 — Spreadsheet Import Multi-Location Apply
 -- =============================================================================
 -- Run manually in the Supabase SQL editor after:
 --   1. supabase/inventory_import_schema.sql (P8.15.2)
 --   2. supabase/inventory_import_session_staging_rpcs.sql (P8.27.1)
 --   3. supabase/inventory_import_ready_rpc.sql (P8.27.2)
---   4. public.stock_items / public.stock_movements
---   5. public.can_manage_workspace_stock(uuid)
+--   4. supabase/stock_item_location_balances_schema.sql (P8.29.2)
+--   5. supabase/stock_movements_location_extension.sql (P8.29.3)
+--   6. public.stock_items / public.stock_movements
+--   7. public.can_manage_workspace_stock(uuid)
 -- Do NOT auto-run from the app.
 --
 -- Purpose:
---   SECURITY DEFINER transactional Apply:
+--   SECURITY DEFINER transactional Apply with multi-location opening stock:
 --     ready → applying → completed
 --   Creates/links/skips from staged inventory_import_rows.
---   Opening stock uses exactly one stock_count movement (absolute quantity).
+--
+--   Opening stock (opening_stock quantity policy):
+--     Reads locationQuantities[] from normalized_payload (P8.29.1 contract).
+--     Falls back to single resolvedQuantity + locationKey for legacy payloads.
+--     For each VALID location entry:
+--       - Resolves workspace_storages.id via (workspace_id, location_key)
+--       - Upserts stock_item_location_balances (ON CONFLICT DO NOTHING)
+--       - Inserts one stock_count movement (location-aware, spreadsheet_import origin)
+--       - Refreshes stock_items.current_quantity = SUM(balances)
+--
+-- Idempotency:
+--   Session-level: same apply_idempotency_key replays completed result.
+--   Balance-level: ON CONFLICT (workspace_id, stock_item_id, workspace_storage_id) DO NOTHING
+--   Movement-level: each movement has idempotent note with session+row+location
 --
 -- Does NOT:
---   - Wire wizard UI / Apply button
 --   - Mutate linked-item metadata (name/category/unit/supplier/storage/…)
 --   - Support update actions
 --   - Background retries
+--   - Change Wizard / Preview / Ready
 --
 -- Authorization:
 --   owner / general_manager / manager via public.can_manage_workspace_stock
@@ -73,6 +88,21 @@ declare
   v_completed_at timestamptz;
   v_result jsonb;
   v_row_result jsonb;
+  -- Multi-location
+  v_location_quantities jsonb;
+  v_loc_entry jsonb;
+  v_loc_dest_storage_id text;
+  v_loc_dest_location_key text;
+  v_loc_parsed_qty numeric(12, 3);
+  v_loc_validation_state text;
+  v_workspace_storage_id uuid;
+  v_existing_balance_id uuid;
+  v_loc_movement_ids uuid[] := array[]::uuid[];
+  v_loc_movement_count integer := 0;
+  v_aggregate_sum numeric(12, 3);
+  v_row_count integer := 0;
+  v_affected_item_id uuid;
+  v_has_location_quantities boolean := false;
 begin
   if v_auth_user_id is null then
     raise exception 'inventory_import_session_unauthenticated'
@@ -306,7 +336,7 @@ begin
         end;
       end if;
 
-      -- Create always starts at quantity 0; opening stock uses stock_count afterward.
+      -- Create always starts at quantity 0; opening stock uses balance inserts + stock_count movements afterward.
       if v_has_supplier_id_column then
         insert into public.stock_items (
           workspace_id,
@@ -371,62 +401,198 @@ begin
         returning id into v_new_item_id;
       end if;
 
-      v_movement_id := null;
+      v_affected_item_id := v_new_item_id;
+      v_loc_movement_ids := array[]::uuid[];
+      v_loc_movement_count := 0;
+
       if v_quantity_policy = 'opening_stock' then
-        v_qty_raw := nullif(btrim(coalesce(v_row.normalized_payload->>'resolvedQuantity', '')), '');
-        if v_qty_raw is null then
-          raise exception 'inventory_import_apply_missing_opening_quantity'
-            using hint = format('Row %s opening_stock requires resolvedQuantity.', v_row.source_row_number);
-        end if;
-        begin
-          v_qty := v_qty_raw::numeric;
-        exception
-          when others then
+        -- P8.29.9: prefer locationQuantities[] for multi-location; fallback legacy resolvedQuantity.
+        v_location_quantities := v_row.normalized_payload->'locationQuantities';
+        v_has_location_quantities := jsonb_typeof(v_location_quantities) = 'array'
+          and jsonb_array_length(v_location_quantities) > 0;
+
+        if v_has_location_quantities then
+          -- Multi-location: one balance + one stock_count per VALID location entry.
+          for v_loc_entry in
+            select value
+            from jsonb_array_elements(v_location_quantities) as t(value)
+          loop
+            v_loc_validation_state := nullif(btrim(coalesce(v_loc_entry->>'validationState', '')), '');
+            if v_loc_validation_state is distinct from 'valid' then
+              continue; -- skip warning/blocker entries
+            end if;
+
+            v_loc_dest_storage_id := nullif(btrim(coalesce(v_loc_entry->>'destinationStorageId', '')), '');
+            v_loc_dest_location_key := nullif(btrim(coalesce(v_loc_entry->>'destinationLocationKey', '')), '');
+            v_loc_parsed_qty := (v_loc_entry->>'parsedQuantity')::numeric;
+
+            if v_loc_dest_storage_id is null then
+              raise exception 'inventory_import_apply_location_storage_id_missing'
+                using hint = format('Row %s locationQuantity missing destinationStorageId.', v_row.source_row_number);
+            end if;
+
+            if v_loc_dest_location_key is null or char_length(v_loc_dest_location_key) > 80 then
+              raise exception 'inventory_import_apply_location_key_invalid'
+                using hint = format('Row %s locationQuantity destinationLocationKey invalid.', v_row.source_row_number);
+            end if;
+
+            if v_loc_parsed_qty is null or v_loc_parsed_qty < 0 then
+              raise exception 'inventory_import_apply_location_quantity_invalid'
+                using hint = format('Row %s locationQuantity parsedQuantity must be >= 0.', v_row.source_row_number);
+            end if;
+
+            -- Verify storage exists and belongs to workspace.
+            v_workspace_storage_id := v_loc_dest_storage_id::uuid;
+            if not exists (
+              select 1
+              from public.workspace_storages ws
+              where ws.id = v_workspace_storage_id
+                and ws.workspace_id = p_workspace_id
+            ) then
+              raise exception 'inventory_import_apply_location_storage_not_found'
+                using hint = format('Row %s destinationStorageId not found in workspace.', v_row.source_row_number);
+            end if;
+
+            -- Upsert balance: idempotent ON CONFLICT DO NOTHING.
+            insert into public.stock_item_location_balances (
+              workspace_id,
+              stock_item_id,
+              workspace_storage_id,
+              location_key,
+              quantity,
+              quantity_version,
+              updated_by
+            )
+            values (
+              p_workspace_id,
+              v_affected_item_id,
+              v_workspace_storage_id,
+              v_loc_dest_location_key,
+              v_loc_parsed_qty,
+              1,
+              v_auth_user_id
+            )
+            on conflict (workspace_id, stock_item_id, workspace_storage_id) do nothing;
+
+            v_movement_id := null;
+            insert into public.stock_movements (
+              workspace_id,
+              item_id,
+              type,
+              quantity,
+              note,
+              created_by,
+              destination_workspace_storage_id,
+              destination_location_key,
+              origin_workflow,
+              origin_ref_id
+            )
+            values (
+              p_workspace_id,
+              v_affected_item_id,
+              'stock_count',
+              v_loc_parsed_qty,
+              format(
+                'INVENTORY_IMPORT|session=%s|row=%s|action=create|location=%s',
+                p_session_id,
+                v_row.source_row_number,
+                v_loc_dest_location_key
+              ),
+              v_auth_user_id,
+              v_workspace_storage_id,
+              v_loc_dest_location_key,
+              'spreadsheet_import',
+              p_session_id
+            )
+            returning id into v_movement_id;
+
+            v_loc_movement_ids := array_append(v_loc_movement_ids, v_movement_id);
+            v_loc_movement_count := v_loc_movement_count + 1;
+          end loop;
+
+          -- Refresh aggregate cache after all location balances written.
+          select coalesce(sum(b.quantity), 0)::numeric(12, 3)
+          into v_aggregate_sum
+          from public.stock_item_location_balances b
+          where b.workspace_id = p_workspace_id
+            and b.stock_item_id = v_affected_item_id;
+
+          update public.stock_items si
+          set current_quantity = v_aggregate_sum
+          where si.id = v_affected_item_id
+            and si.workspace_id = p_workspace_id;
+
+          get diagnostics v_row_count = row_count;
+          if v_row_count <> 1 then
+            raise exception 'inventory_import_apply_quantity_update_failed'
+              using hint = format('Row %s aggregate cache refresh failed.', v_row.source_row_number);
+          end if;
+
+          v_movement_count := v_movement_count + v_loc_movement_count;
+
+        else
+          -- Legacy single-location fallback: resolvedQuantity + locationKey.
+          v_qty_raw := nullif(btrim(coalesce(v_row.normalized_payload->>'resolvedQuantity', '')), '');
+          if v_qty_raw is null then
+            raise exception 'inventory_import_apply_missing_opening_quantity'
+              using hint = format('Row %s opening_stock requires resolvedQuantity or locationQuantities.', v_row.source_row_number);
+          end if;
+          begin
+            v_qty := v_qty_raw::numeric;
+          exception
+            when others then
+              raise exception 'inventory_import_apply_invalid_opening_quantity'
+                using hint = format('Row %s resolvedQuantity is not numeric.', v_row.source_row_number);
+          end;
+          if v_qty is null or v_qty < 0 then
             raise exception 'inventory_import_apply_invalid_opening_quantity'
-              using hint = format('Row %s resolvedQuantity is not numeric.', v_row.source_row_number);
-        end;
-        if v_qty is null or v_qty < 0 then
-          raise exception 'inventory_import_apply_invalid_opening_quantity'
-            using hint = format('Row %s resolvedQuantity must be >= 0.', v_row.source_row_number);
-        end if;
+              using hint = format('Row %s resolvedQuantity must be >= 0.', v_row.source_row_number);
+          end if;
 
-        -- Exactly one absolute stock_count movement per affected item.
-        insert into public.stock_movements (
-          workspace_id,
-          item_id,
-          type,
-          quantity,
-          note,
-          created_by
-        )
-        values (
-          p_workspace_id,
-          v_new_item_id,
-          'stock_count',
-          v_qty,
-          format(
-            'INVENTORY_IMPORT|session=%s|row=%s|action=create',
-            p_session_id,
-            v_row.source_row_number
-          ),
-          v_auth_user_id
-        )
-        returning id into v_movement_id;
+          -- Legacy: one stock_count movement per item (location-blind).
+          insert into public.stock_movements (
+            workspace_id,
+            item_id,
+            type,
+            quantity,
+            note,
+            created_by,
+            origin_workflow,
+            origin_ref_id
+          )
+          values (
+            p_workspace_id,
+            v_affected_item_id,
+            'stock_count',
+            v_qty,
+            format(
+              'INVENTORY_IMPORT|session=%s|row=%s|action=create',
+              p_session_id,
+              v_row.source_row_number
+            ),
+            v_auth_user_id,
+            'spreadsheet_import',
+            p_session_id
+          )
+          returning id into v_movement_id;
 
-        update public.stock_items si
-        set current_quantity = v_qty
-        where si.id = v_new_item_id
-          and si.workspace_id = p_workspace_id;
+          update public.stock_items si
+          set current_quantity = v_qty
+          where si.id = v_affected_item_id
+            and si.workspace_id = p_workspace_id;
 
-        v_movement_count := v_movement_count + 1;
-      end if;
+          v_movement_count := v_movement_count + 1;
+        end if; -- has_location_quantities
+      end if; -- opening_stock policy
 
       v_row_result := jsonb_build_object(
         'action', 'create',
         'source_row_number', v_row.source_row_number,
         'stock_item_id', v_new_item_id,
-        'movement_id', v_movement_id,
-        'opening_quantity', case when v_quantity_policy = 'opening_stock' then v_qty else null end
+        'movement_id', case when v_loc_movement_count > 0 then null else v_movement_id end,
+        'location_movement_ids', to_jsonb(v_loc_movement_ids),
+        'location_count', v_loc_movement_count,
+        'opening_quantity', case when v_quantity_policy = 'opening_stock' then coalesce(v_aggregate_sum, v_qty) else null end
       );
 
       update public.inventory_import_rows r
@@ -466,61 +632,193 @@ begin
       end if;
 
       -- LINK never mutates metadata (name/category/unit/supplier/storage/cost/target/minimum).
-      v_movement_id := null;
+      v_affected_item_id := v_item.id;
+      v_loc_movement_ids := array[]::uuid[];
+      v_loc_movement_count := 0;
+      v_aggregate_sum := null;
+
       if v_quantity_policy = 'opening_stock' then
-        v_qty_raw := nullif(btrim(coalesce(v_row.normalized_payload->>'resolvedQuantity', '')), '');
-        if v_qty_raw is null then
-          raise exception 'inventory_import_apply_missing_opening_quantity'
-            using hint = format('Row %s opening_stock requires resolvedQuantity.', v_row.source_row_number);
-        end if;
-        begin
-          v_qty := v_qty_raw::numeric;
-        exception
-          when others then
+        v_location_quantities := v_row.normalized_payload->'locationQuantities';
+        v_has_location_quantities := jsonb_typeof(v_location_quantities) = 'array'
+          and jsonb_array_length(v_location_quantities) > 0;
+
+        if v_has_location_quantities then
+          for v_loc_entry in
+            select value
+            from jsonb_array_elements(v_location_quantities) as t(value)
+          loop
+            v_loc_validation_state := nullif(btrim(coalesce(v_loc_entry->>'validationState', '')), '');
+            if v_loc_validation_state is distinct from 'valid' then
+              continue;
+            end if;
+
+            v_loc_dest_storage_id := nullif(btrim(coalesce(v_loc_entry->>'destinationStorageId', '')), '');
+            v_loc_dest_location_key := nullif(btrim(coalesce(v_loc_entry->>'destinationLocationKey', '')), '');
+            v_loc_parsed_qty := (v_loc_entry->>'parsedQuantity')::numeric;
+
+            if v_loc_dest_storage_id is null then
+              raise exception 'inventory_import_apply_location_storage_id_missing'
+                using hint = format('Row %s locationQuantity missing destinationStorageId.', v_row.source_row_number);
+            end if;
+
+            if v_loc_dest_location_key is null or char_length(v_loc_dest_location_key) > 80 then
+              raise exception 'inventory_import_apply_location_key_invalid'
+                using hint = format('Row %s locationQuantity destinationLocationKey invalid.', v_row.source_row_number);
+            end if;
+
+            if v_loc_parsed_qty is null or v_loc_parsed_qty < 0 then
+              raise exception 'inventory_import_apply_location_quantity_invalid'
+                using hint = format('Row %s locationQuantity parsedQuantity must be >= 0.', v_row.source_row_number);
+            end if;
+
+            v_workspace_storage_id := v_loc_dest_storage_id::uuid;
+            if not exists (
+              select 1
+              from public.workspace_storages ws
+              where ws.id = v_workspace_storage_id
+                and ws.workspace_id = p_workspace_id
+            ) then
+              raise exception 'inventory_import_apply_location_storage_not_found'
+                using hint = format('Row %s destinationStorageId not found in workspace.', v_row.source_row_number);
+            end if;
+
+            insert into public.stock_item_location_balances (
+              workspace_id,
+              stock_item_id,
+              workspace_storage_id,
+              location_key,
+              quantity,
+              quantity_version,
+              updated_by
+            )
+            values (
+              p_workspace_id,
+              v_affected_item_id,
+              v_workspace_storage_id,
+              v_loc_dest_location_key,
+              v_loc_parsed_qty,
+              1,
+              v_auth_user_id
+            )
+            on conflict (workspace_id, stock_item_id, workspace_storage_id) do nothing;
+
+            v_movement_id := null;
+            insert into public.stock_movements (
+              workspace_id,
+              item_id,
+              type,
+              quantity,
+              note,
+              created_by,
+              destination_workspace_storage_id,
+              destination_location_key,
+              origin_workflow,
+              origin_ref_id
+            )
+            values (
+              p_workspace_id,
+              v_affected_item_id,
+              'stock_count',
+              v_loc_parsed_qty,
+              format(
+                'INVENTORY_IMPORT|session=%s|row=%s|action=link|location=%s',
+                p_session_id,
+                v_row.source_row_number,
+                v_loc_dest_location_key
+              ),
+              v_auth_user_id,
+              v_workspace_storage_id,
+              v_loc_dest_location_key,
+              'spreadsheet_import',
+              p_session_id
+            )
+            returning id into v_movement_id;
+
+            v_loc_movement_ids := array_append(v_loc_movement_ids, v_movement_id);
+            v_loc_movement_count := v_loc_movement_count + 1;
+          end loop;
+
+          select coalesce(sum(b.quantity), 0)::numeric(12, 3)
+          into v_aggregate_sum
+          from public.stock_item_location_balances b
+          where b.workspace_id = p_workspace_id
+            and b.stock_item_id = v_affected_item_id;
+
+          update public.stock_items si
+          set current_quantity = v_aggregate_sum
+          where si.id = v_affected_item_id
+            and si.workspace_id = p_workspace_id;
+
+          get diagnostics v_row_count = row_count;
+          if v_row_count <> 1 then
+            raise exception 'inventory_import_apply_quantity_update_failed'
+              using hint = format('Row %s aggregate cache refresh failed.', v_row.source_row_number);
+          end if;
+
+          v_movement_count := v_movement_count + v_loc_movement_count;
+
+        else
+          -- Legacy fallback for link.
+          v_qty_raw := nullif(btrim(coalesce(v_row.normalized_payload->>'resolvedQuantity', '')), '');
+          if v_qty_raw is null then
+            raise exception 'inventory_import_apply_missing_opening_quantity'
+              using hint = format('Row %s opening_stock requires resolvedQuantity.', v_row.source_row_number);
+          end if;
+          begin
+            v_qty := v_qty_raw::numeric;
+          exception
+            when others then
+              raise exception 'inventory_import_apply_invalid_opening_quantity'
+                using hint = format('Row %s resolvedQuantity is not numeric.', v_row.source_row_number);
+          end;
+          if v_qty is null or v_qty < 0 then
             raise exception 'inventory_import_apply_invalid_opening_quantity'
-              using hint = format('Row %s resolvedQuantity is not numeric.', v_row.source_row_number);
-        end;
-        if v_qty is null or v_qty < 0 then
-          raise exception 'inventory_import_apply_invalid_opening_quantity'
-            using hint = format('Row %s resolvedQuantity must be >= 0.', v_row.source_row_number);
-        end if;
+              using hint = format('Row %s resolvedQuantity must be >= 0.', v_row.source_row_number);
+          end if;
 
-        insert into public.stock_movements (
-          workspace_id,
-          item_id,
-          type,
-          quantity,
-          note,
-          created_by
-        )
-        values (
-          p_workspace_id,
-          v_item.id,
-          'stock_count',
-          v_qty,
-          format(
-            'INVENTORY_IMPORT|session=%s|row=%s|action=link',
-            p_session_id,
-            v_row.source_row_number
-          ),
-          v_auth_user_id
-        )
-        returning id into v_movement_id;
+          insert into public.stock_movements (
+            workspace_id,
+            item_id,
+            type,
+            quantity,
+            note,
+            created_by,
+            origin_workflow,
+            origin_ref_id
+          )
+          values (
+            p_workspace_id,
+            v_affected_item_id,
+            'stock_count',
+            v_qty,
+            format(
+              'INVENTORY_IMPORT|session=%s|row=%s|action=link',
+              p_session_id,
+              v_row.source_row_number
+            ),
+            v_auth_user_id,
+            'spreadsheet_import',
+            p_session_id
+          )
+          returning id into v_movement_id;
 
-        update public.stock_items si
-        set current_quantity = v_qty
-        where si.id = v_item.id
-          and si.workspace_id = p_workspace_id;
+          update public.stock_items si
+          set current_quantity = v_qty
+          where si.id = v_affected_item_id
+            and si.workspace_id = p_workspace_id;
 
-        v_movement_count := v_movement_count + 1;
-      end if;
+          v_movement_count := v_movement_count + 1;
+        end if; -- has_location_quantities
+      end if; -- opening_stock policy
 
       v_row_result := jsonb_build_object(
         'action', 'link',
         'source_row_number', v_row.source_row_number,
         'stock_item_id', v_item.id,
-        'movement_id', v_movement_id,
-        'opening_quantity', case when v_quantity_policy = 'opening_stock' then v_qty else null end
+        'movement_id', case when v_loc_movement_count > 0 then null else v_movement_id end,
+        'location_movement_ids', to_jsonb(v_loc_movement_ids),
+        'location_count', v_loc_movement_count,
+        'opening_quantity', case when v_quantity_policy = 'opening_stock' then coalesce(v_aggregate_sum, v_qty) else null end
       );
 
       update public.inventory_import_rows r
@@ -590,7 +888,7 @@ end;
 $$;
 
 comment on function public.apply_inventory_import_session(uuid, uuid, text) is
-  'P8.27.3 SECURITY DEFINER transactional Import Apply. ready→applying→completed. Create/link/skip only. Opening stock = one absolute stock_count. No UI.';
+  'P8.27.3/P8.29.9 SECURITY DEFINER transactional Import Apply. ready→applying→completed. Create/link/skip. Opening stock: locationQuantities[] multi-location (balance upsert + stock_count per location, SUM aggregate refresh) or legacy resolvedQuantity fallback. No UI.';
 
 revoke all on function public.apply_inventory_import_session(uuid, uuid, text) from public;
 revoke all on function public.apply_inventory_import_session(uuid, uuid, text) from anon;
