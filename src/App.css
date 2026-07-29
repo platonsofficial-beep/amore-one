@@ -43768,6 +43768,53 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   gap: 8px;
 }
 
+.inventory-new-product-filter-bar {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(14, 14, 16, 0.72);
+}
+
+.inventory-new-product-filter-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.inventory-new-product-filter-chip {
+  min-height: 44px;
+  padding: 0 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(20, 20, 22, 0.9);
+  color: rgba(255, 247, 232, 0.78);
+  font-size: 0.82rem;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.inventory-new-product-filter-chip.is-active {
+  border-color: rgba(212, 175, 55, 0.46);
+  background: rgba(212, 175, 55, 0.16);
+  color: #fff7e8;
+}
+
+.inventory-new-product-filter-status {
+  margin: 0;
+  color: rgba(255, 247, 232, 0.72);
+  font-size: 0.88rem;
+  font-weight: 600;
+}
+
+.inventory-new-product-filter-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
 .inventory-new-product-smart-btn,
 .inventory-new-product-clear-selection,
 .inventory-new-product-bulk-bar button,

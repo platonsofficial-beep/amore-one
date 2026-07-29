@@ -1,5 +1,6 @@
 /**
- * P8.16.14 / P8.26.6 / P8.28.1 — New product review with bulk resolution workspace.
+ * P8.16.14 / P8.26.6 / P8.28.1 / P8.28.2 — New product review with filtered
+ * bulk resolution workspace.
  *
  * Wizard-local drafts only. No database writes, product creation, or Apply.
  */
@@ -30,6 +31,17 @@ import { WorkspaceStorageSelector } from './WorkspaceStorageSelector'
  * }} NewProductDraftValue
  */
 
+/** @typedef {'all'|'missing_units'|'missing_storage'|'missing_supplier'|'new_products'|'duplicate_products'} NewProductFilterId */
+
+export const INVENTORY_NEW_PRODUCT_FILTERS = Object.freeze([
+  { id: 'all', label: 'All' },
+  { id: 'missing_units', label: 'Missing Units' },
+  { id: 'missing_storage', label: 'Missing Storage' },
+  { id: 'missing_supplier', label: 'Missing Supplier' },
+  { id: 'new_products', label: 'New Products' },
+  { id: 'duplicate_products', label: 'Duplicates' },
+])
+
 /**
  * @param {NewProductDraftValue} merged
  * @returns {NewProductDraftValue}
@@ -44,6 +56,33 @@ function toDraftPayload(merged) {
     supplierId: merged.supplierId ?? null,
     skipped: merged.skipped === true,
   }
+}
+
+/**
+ * @param {{
+ *   key: string,
+ *   merged: NewProductDraftValue,
+ * }} card
+ * @param {NewProductFilterId} filterId
+ * @param {Set<string>} duplicateNameKeys
+ * @returns {boolean}
+ */
+export function matchesNewProductFilter(card, filterId, duplicateNameKeys) {
+  const { key, merged } = card
+  if (filterId === 'all' || filterId === 'new_products') return true
+  if (filterId === 'missing_units') {
+    return !merged.skipped && !merged.unit
+  }
+  if (filterId === 'missing_storage') {
+    return !merged.skipped && !merged.storage
+  }
+  if (filterId === 'missing_supplier') {
+    return !merged.skipped && !`${merged.supplier ?? ''}`.trim()
+  }
+  if (filterId === 'duplicate_products') {
+    return duplicateNameKeys.has(key)
+  }
+  return true
 }
 
 /**
@@ -66,6 +105,7 @@ export function InventoryNewProductReview({
 } = {}) {
   const createRows = useMemo(() => listCreateNewPreviewRows(preview), [preview])
   const [selectedKeys, setSelectedKeys] = useState(() => new Set())
+  const [activeFilter, setActiveFilter] = useState(/** @type {NewProductFilterId} */ ('all'))
   const [bulkPanel, setBulkPanel] = useState(/** @type {null|'storage'|'unit'|'category'|'supplier'} */ (null))
   const [undoState, setUndoState] = useState(/** @type {{ message: string, drafts: Record<string, NewProductDraftValue> }|null} */ (null))
   const [suppliers, setSuppliers] = useState(/** @type {object[]} */ ([]))
@@ -123,8 +163,6 @@ export function InventoryNewProductReview({
 
   const allKeys = useMemo(() => cards.mapped.map((card) => card.key), [cards.mapped])
   const allKeysSignature = allKeys.join('\u0001')
-  const selectedCount = selectedKeys.size
-  const allSelected = allKeys.length > 0 && allKeys.every((key) => selectedKeys.has(key))
 
   const duplicateNameKeys = useMemo(() => {
     /** @type {Map<string, string[]>} */
@@ -143,6 +181,21 @@ export function InventoryNewProductReview({
     }
     return keys
   }, [cards.mapped])
+
+  const visibleCards = useMemo(
+    () => cards.mapped.filter((card) => matchesNewProductFilter(card, activeFilter, duplicateNameKeys)),
+    [cards.mapped, activeFilter, duplicateNameKeys],
+  )
+  const visibleKeys = useMemo(() => visibleCards.map((card) => card.key), [visibleCards])
+
+  /** Bulk + visible selection counts use selected ∩ visible only (no hidden mutations). */
+  const selectedVisibleKeys = useMemo(
+    () => visibleKeys.filter((key) => selectedKeys.has(key)),
+    [visibleKeys, selectedKeys],
+  )
+  const selectedVisibleCount = selectedVisibleKeys.length
+  const allVisibleSelected = visibleKeys.length > 0
+    && visibleKeys.every((key) => selectedKeys.has(key))
 
   useEffect(() => {
     const allowed = new Set(allKeysSignature ? allKeysSignature.split('\u0001') : [])
@@ -219,8 +272,8 @@ export function InventoryNewProductReview({
     })
   }
 
-  function selectKeys(keys) {
-    setSelectedKeys(new Set(keys))
+  function selectVisible() {
+    setSelectedKeys(new Set(visibleKeys))
   }
 
   function clearSelection() {
@@ -228,33 +281,40 @@ export function InventoryNewProductReview({
     setBulkPanel(null)
   }
 
-  function selectMissingUnits() {
-    selectKeys(cards.mapped.filter(({ merged }) => !merged.skipped && !merged.unit).map(({ key }) => key))
+  /**
+   * Deterministic filter contract (P8.28.2):
+   * - Activating a non-All filter: replace selection with matching visible rows.
+   * - Show All / All: restore full list and preserve existing selection keys.
+   * - Bulk actions apply only to selected ∩ visible rows.
+   *
+   * @param {NewProductFilterId} nextFilter
+   */
+  function applyFilter(nextFilter) {
+    setActiveFilter(nextFilter)
+    setBulkPanel(null)
+    if (nextFilter === 'all') {
+      return
+    }
+    const matching = cards.mapped
+      .filter((card) => matchesNewProductFilter(card, nextFilter, duplicateNameKeys))
+      .map((card) => card.key)
+    setSelectedKeys(new Set(matching))
   }
 
-  function selectMissingStorage() {
-    selectKeys(cards.mapped.filter(({ merged }) => !merged.skipped && !merged.storage).map(({ key }) => key))
+  function showAll() {
+    applyFilter('all')
   }
 
-  function selectMissingSupplier() {
-    selectKeys(cards.mapped.filter(({ merged }) => !merged.skipped && !`${merged.supplier ?? ''}`.trim()).map(({ key }) => key))
-  }
-
-  function selectNewProducts() {
-    selectKeys(allKeys)
-  }
-
-  function selectDuplicateProducts() {
-    selectKeys([...duplicateNameKeys])
-  }
-
-  const selectedKeyList = [...selectedKeys]
+  const totalCount = cards.mapped.length
+  const showingCount = visibleCards.length
   const sharedCategories = Array.from(new Set([
     ...categoryOptions,
     ...cards.mapped.map(({ merged }) => merged.category).filter(Boolean),
   ])).sort((a, b) => a.localeCompare(b))
 
   const supplierOptions = buildStockItemSupplierOptions(suppliers, '')
+  const bulkTargetKeys = selectedVisibleKeys
+  const bulkTargetCount = bulkTargetKeys.length
 
   return (
     <section
@@ -263,7 +323,10 @@ export function InventoryNewProductReview({
       data-new-product-count={createRows.length}
       data-units-suggested={cards.unitsSuggested}
       data-need-unit-selection={cards.needUnitSelection}
-      data-selected-count={selectedCount}
+      data-selected-count={selectedVisibleCount}
+      data-active-filter={activeFilter}
+      data-showing-count={showingCount}
+      data-total-count={totalCount}
     >
       <header className="inventory-new-product-review-header">
         <div>
@@ -301,54 +364,56 @@ export function InventoryNewProductReview({
               {' '}
               {cards.needUnitSelection}
             </span>
-            <span>
-              Selected:
-              {' '}
-              {selectedCount}
-            </span>
           </p>
 
-          <div className="inventory-new-product-smart-select" aria-label="Smart selection">
-            <button type="button" className="inventory-new-product-smart-btn" onClick={selectMissingUnits}>
-              Select Missing Units
-            </button>
-            <button type="button" className="inventory-new-product-smart-btn" onClick={selectMissingStorage}>
-              Select Missing Storage
-            </button>
-            <button type="button" className="inventory-new-product-smart-btn" onClick={selectMissingSupplier}>
-              Select Missing Supplier
-            </button>
-            <button type="button" className="inventory-new-product-smart-btn" onClick={selectNewProducts}>
-              Select New Products
-            </button>
-            <button type="button" className="inventory-new-product-smart-btn" onClick={selectDuplicateProducts}>
-              Select Duplicate Products
-            </button>
-            <button type="button" className="inventory-new-product-smart-btn" onClick={selectNewProducts}>
-              Select Current Page
-            </button>
-            <button type="button" className="inventory-new-product-smart-btn" onClick={selectNewProducts}>
-              Select All
-            </button>
-            <button type="button" className="inventory-new-product-smart-btn" onClick={clearSelection}>
-              Clear Selection
-            </button>
+          <div className="inventory-new-product-filter-bar" aria-label="Product filters">
+            <div className="inventory-new-product-filter-chips" role="tablist" aria-label="Filter products">
+              {INVENTORY_NEW_PRODUCT_FILTERS.map((filter) => (
+                <button
+                  key={filter.id}
+                  type="button"
+                  role="tab"
+                  aria-selected={activeFilter === filter.id}
+                  className={`inventory-new-product-filter-chip${activeFilter === filter.id ? ' is-active' : ''}`}
+                  data-filter={filter.id}
+                  onClick={() => applyFilter(/** @type {NewProductFilterId} */ (filter.id))}
+                >
+                  {filter.label}
+                </button>
+              ))}
+            </div>
+            <p className="inventory-new-product-filter-status" role="status">
+              {`Showing ${showingCount} of ${totalCount} · Selected ${selectedVisibleCount}`}
+            </p>
+            <div className="inventory-new-product-filter-actions">
+              <button type="button" className="inventory-new-product-smart-btn" onClick={selectVisible}>
+                Select Visible
+              </button>
+              <button type="button" className="inventory-new-product-smart-btn" onClick={clearSelection}>
+                Clear Selection
+              </button>
+              {activeFilter !== 'all' ? (
+                <button type="button" className="inventory-new-product-smart-btn" onClick={showAll}>
+                  Show All
+                </button>
+              ) : null}
+            </div>
           </div>
 
           <div className="inventory-new-product-select-all-row">
             <label className="inventory-new-product-select-control">
               <input
                 type="checkbox"
-                checked={allSelected}
-                aria-label="Select all new products"
+                checked={allVisibleSelected}
+                aria-label="Select visible new products"
                 onChange={() => {
-                  if (allSelected) clearSelection()
-                  else selectNewProducts()
+                  if (allVisibleSelected) clearSelection()
+                  else selectVisible()
                 }}
               />
-              <span>Select All</span>
+              <span>Select Visible</span>
             </label>
-            {selectedCount > 0 ? (
+            {selectedVisibleCount > 0 ? (
               <button type="button" className="inventory-new-product-clear-selection" onClick={clearSelection}>
                 Clear Selection
               </button>
@@ -364,194 +429,205 @@ export function InventoryNewProductReview({
             </div>
           ) : null}
 
-          <ul className="inventory-new-product-review-list">
-            {cards.mapped.map(({ key, row, merged, validation, showingSuggested }) => {
-              const categories = Array.from(new Set([
-                ...categoryOptions,
-                ...(merged.category ? [merged.category] : []),
-              ])).sort((a, b) => a.localeCompare(b))
-              const rowSupplierOptions = buildStockItemSupplierOptions(
-                suppliers,
-                merged.supplier ?? '',
-                merged.supplierId ?? null,
-              )
-              const isSelected = selectedKeys.has(key)
+          {visibleCards.length === 0 ? (
+            <div className="inventory-operational-review-empty" role="status">
+              <p className="inventory-operational-review-empty-title">
+                No products match this filter
+              </p>
+              <p className="inventory-operational-review-empty-copy">
+                Show All to return to the full new-product list.
+              </p>
+            </div>
+          ) : (
+            <ul className="inventory-new-product-review-list">
+              {visibleCards.map(({ key, row, merged, validation, showingSuggested }) => {
+                const categories = Array.from(new Set([
+                  ...categoryOptions,
+                  ...(merged.category ? [merged.category] : []),
+                ])).sort((a, b) => a.localeCompare(b))
+                const rowSupplierOptions = buildStockItemSupplierOptions(
+                  suppliers,
+                  merged.supplier ?? '',
+                  merged.supplierId ?? null,
+                )
+                const isSelected = selectedKeys.has(key)
 
-              return (
-                <li
-                  key={key}
-                  className={`inventory-new-product-review-card${isSelected ? ' is-selected' : ''}${merged.skipped ? ' is-skipped' : ''}`}
-                  data-row-key={key}
-                  data-draft-valid={validation.valid ? 'true' : 'false'}
-                  data-unit-suggested={showingSuggested ? 'true' : 'false'}
-                  data-storage={merged.storage ?? ''}
-                  data-selected={isSelected ? 'true' : 'false'}
-                  data-skipped={merged.skipped ? 'true' : 'false'}
-                >
-                  <div className="inventory-new-product-review-card-head">
-                    <label className="inventory-new-product-select-control">
-                      <input
-                        type="checkbox"
-                        checked={isSelected}
-                        aria-label={`Select ${merged.productName || 'product'}`}
-                        onChange={() => toggleKey(key)}
-                      />
-                    </label>
-                    <div>
-                      <h4 className="inventory-new-product-review-source-name">
-                        {formatOperationalImportPreviewValue(row.source?.productName)}
-                      </h4>
-                      <p className="inventory-new-product-review-source-category">
-                        {formatOperationalImportPreviewValue(row.source?.category)}
-                      </p>
+                return (
+                  <li
+                    key={key}
+                    className={`inventory-new-product-review-card${isSelected ? ' is-selected' : ''}${merged.skipped ? ' is-skipped' : ''}`}
+                    data-row-key={key}
+                    data-draft-valid={validation.valid ? 'true' : 'false'}
+                    data-unit-suggested={showingSuggested ? 'true' : 'false'}
+                    data-storage={merged.storage ?? ''}
+                    data-selected={isSelected ? 'true' : 'false'}
+                    data-skipped={merged.skipped ? 'true' : 'false'}
+                  >
+                    <div className="inventory-new-product-review-card-head">
+                      <label className="inventory-new-product-select-control">
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          aria-label={`Select ${merged.productName || 'product'}`}
+                          onChange={() => toggleKey(key)}
+                        />
+                      </label>
+                      <div>
+                        <h4 className="inventory-new-product-review-source-name">
+                          {formatOperationalImportPreviewValue(row.source?.productName)}
+                        </h4>
+                        <p className="inventory-new-product-review-source-category">
+                          {formatOperationalImportPreviewValue(row.source?.category)}
+                        </p>
+                      </div>
+                      <span className="inventory-new-product-review-badge">
+                        {merged.skipped ? 'Skipped' : 'New Product'}
+                      </span>
                     </div>
-                    <span className="inventory-new-product-review-badge">
-                      {merged.skipped ? 'Skipped' : 'New Product'}
-                    </span>
-                  </div>
 
-                  <dl className="inventory-new-product-review-facts">
-                    <div>
-                      <dt>Source storage</dt>
-                      <dd>{formatOperationalImportPreviewValue(row.source?.storage)}</dd>
-                    </div>
-                    <div>
-                      <dt>BAR</dt>
-                      <dd>{formatOperationalImportPreviewValue(row.source?.bar)}</dd>
-                    </div>
-                  </dl>
+                    <dl className="inventory-new-product-review-facts">
+                      <div>
+                        <dt>Source storage</dt>
+                        <dd>{formatOperationalImportPreviewValue(row.source?.storage)}</dd>
+                      </div>
+                      <div>
+                        <dt>BAR</dt>
+                        <dd>{formatOperationalImportPreviewValue(row.source?.bar)}</dd>
+                      </div>
+                    </dl>
 
-                  <div className="inventory-new-product-review-fields">
-                    <label className="inventory-new-product-review-field">
-                      <span>Product Name</span>
-                      <input
-                        type="text"
-                        value={merged.productName}
-                        disabled={merged.skipped}
-                        aria-invalid={validation.errors.productName ? 'true' : undefined}
-                        onChange={(event) => {
-                          emitDraft(key, merged, { productName: event.target.value })
-                        }}
-                      />
-                      {validation.errors.productName ? (
-                        <span className="inventory-new-product-review-error" role="alert">
-                          {validation.errors.productName}
-                        </span>
-                      ) : null}
-                    </label>
-
-                    <label className="inventory-new-product-review-field">
-                      <span>Category</span>
-                      <select
-                        value={merged.category}
-                        disabled={merged.skipped}
-                        aria-invalid={validation.errors.category ? 'true' : undefined}
-                        onChange={(event) => {
-                          emitDraft(key, merged, { category: event.target.value })
-                        }}
-                      >
-                        {categories.length === 0 ? (
-                          <option value="">Select category</option>
+                    <div className="inventory-new-product-review-fields">
+                      <label className="inventory-new-product-review-field">
+                        <span>Product Name</span>
+                        <input
+                          type="text"
+                          value={merged.productName}
+                          disabled={merged.skipped}
+                          aria-invalid={validation.errors.productName ? 'true' : undefined}
+                          onChange={(event) => {
+                            emitDraft(key, merged, { productName: event.target.value })
+                          }}
+                        />
+                        {validation.errors.productName ? (
+                          <span className="inventory-new-product-review-error" role="alert">
+                            {validation.errors.productName}
+                          </span>
                         ) : null}
-                        {categories.map((category) => (
-                          <option key={category} value={category}>
-                            {category}
-                          </option>
-                        ))}
-                      </select>
-                      {validation.errors.category ? (
-                        <span className="inventory-new-product-review-error" role="alert">
-                          {validation.errors.category}
-                        </span>
-                      ) : null}
-                    </label>
+                      </label>
 
-                    <label className="inventory-new-product-review-field">
-                      <span>Unit</span>
-                      <select
-                        value={merged.unit ?? ''}
-                        disabled={merged.skipped}
-                        aria-invalid={validation.errors.unit ? 'true' : undefined}
-                        onChange={(event) => {
-                          emitDraft(key, merged, {
-                            unit: event.target.value === '' ? null : event.target.value,
-                          })
-                        }}
-                      >
-                        <option value="">Select unit</option>
-                        {INVENTORY_NEW_PRODUCT_UNITS.map((unit) => (
-                          <option key={unit} value={unit}>
-                            {unit}
-                          </option>
-                        ))}
-                      </select>
-                      {showingSuggested ? (
-                        <span className="inventory-new-product-review-hint">
-                          Suggested from product name
-                        </span>
-                      ) : null}
-                      {validation.errors.unit ? (
-                        <span className="inventory-new-product-review-error" role="alert">
-                          {validation.errors.unit}
-                        </span>
-                      ) : null}
-                    </label>
+                      <label className="inventory-new-product-review-field">
+                        <span>Category</span>
+                        <select
+                          value={merged.category}
+                          disabled={merged.skipped}
+                          aria-invalid={validation.errors.category ? 'true' : undefined}
+                          onChange={(event) => {
+                            emitDraft(key, merged, { category: event.target.value })
+                          }}
+                        >
+                          {categories.length === 0 ? (
+                            <option value="">Select category</option>
+                          ) : null}
+                          {categories.map((category) => (
+                            <option key={category} value={category}>
+                              {category}
+                            </option>
+                          ))}
+                        </select>
+                        {validation.errors.category ? (
+                          <span className="inventory-new-product-review-error" role="alert">
+                            {validation.errors.category}
+                          </span>
+                        ) : null}
+                      </label>
 
-                    <label className="inventory-new-product-review-field">
-                      <span>Storage</span>
-                      <WorkspaceStorageSelector
-                        workspaceId={workspaceId}
-                        value={merged.storage ?? ''}
-                        variant="select"
-                        disabled={merged.skipped}
-                        emptyLabel="Select storage"
-                        aria-label="Storage"
-                        onChange={(locationKey) => {
-                          emitDraft(key, merged, {
-                            storage: locationKey === '' ? null : locationKey,
-                          })
-                        }}
-                      />
-                    </label>
+                      <label className="inventory-new-product-review-field">
+                        <span>Unit</span>
+                        <select
+                          value={merged.unit ?? ''}
+                          disabled={merged.skipped}
+                          aria-invalid={validation.errors.unit ? 'true' : undefined}
+                          onChange={(event) => {
+                            emitDraft(key, merged, {
+                              unit: event.target.value === '' ? null : event.target.value,
+                            })
+                          }}
+                        >
+                          <option value="">Select unit</option>
+                          {INVENTORY_NEW_PRODUCT_UNITS.map((unit) => (
+                            <option key={unit} value={unit}>
+                              {unit}
+                            </option>
+                          ))}
+                        </select>
+                        {showingSuggested ? (
+                          <span className="inventory-new-product-review-hint">
+                            Suggested from product name
+                          </span>
+                        ) : null}
+                        {validation.errors.unit ? (
+                          <span className="inventory-new-product-review-error" role="alert">
+                            {validation.errors.unit}
+                          </span>
+                        ) : null}
+                      </label>
 
-                    <label className="inventory-new-product-review-field">
-                      <span>Supplier</span>
-                      <select
-                        value={merged.supplier ?? ''}
-                        disabled={merged.skipped}
-                        aria-label="Supplier"
-                        onChange={(event) => {
-                          const nextName = normalizeSupplierName(event.target.value)
-                          const matched = suppliers.find(
-                            (supplier) => normalizeSupplierName(supplier.companyName) === nextName,
-                          )
-                          emitDraft(key, merged, {
-                            supplier: nextName,
-                            supplierId: matched?.id ?? null,
-                          })
-                        }}
-                      >
-                        {rowSupplierOptions.map((option) => (
-                          <option
-                            key={option.value || 'no-supplier'}
-                            value={option.value}
-                            disabled={option.disabled}
-                          >
-                            {option.label}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
-                  </div>
-                </li>
-              )
-            })}
-          </ul>
+                      <label className="inventory-new-product-review-field">
+                        <span>Storage</span>
+                        <WorkspaceStorageSelector
+                          workspaceId={workspaceId}
+                          value={merged.storage ?? ''}
+                          variant="select"
+                          disabled={merged.skipped}
+                          emptyLabel="Select storage"
+                          aria-label="Storage"
+                          onChange={(locationKey) => {
+                            emitDraft(key, merged, {
+                              storage: locationKey === '' ? null : locationKey,
+                            })
+                          }}
+                        />
+                      </label>
 
-          {selectedCount > 0 ? (
+                      <label className="inventory-new-product-review-field">
+                        <span>Supplier</span>
+                        <select
+                          value={merged.supplier ?? ''}
+                          disabled={merged.skipped}
+                          aria-label="Supplier"
+                          onChange={(event) => {
+                            const nextName = normalizeSupplierName(event.target.value)
+                            const matched = suppliers.find(
+                              (supplier) => normalizeSupplierName(supplier.companyName) === nextName,
+                            )
+                            emitDraft(key, merged, {
+                              supplier: nextName,
+                              supplierId: matched?.id ?? null,
+                            })
+                          }}
+                        >
+                          {rowSupplierOptions.map((option) => (
+                            <option
+                              key={option.value || 'no-supplier'}
+                              value={option.value}
+                              disabled={option.disabled}
+                            >
+                              {option.label}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                    </div>
+                  </li>
+                )
+              })}
+            </ul>
+          )}
+
+          {bulkTargetCount > 0 ? (
             <div className="inventory-new-product-bulk-bar" role="toolbar" aria-label="Bulk actions">
               <span className="inventory-new-product-bulk-count">
-                {selectedCount}
+                {bulkTargetCount}
                 {' '}
                 selected
               </span>
@@ -571,9 +647,9 @@ export function InventoryNewProductReview({
                 type="button"
                 onClick={() => {
                   applyBulk(
-                    selectedKeyList,
+                    bulkTargetKeys,
                     () => ({ skipped: true }),
-                    `Skipped ${selectedCount} product${selectedCount === 1 ? '' : 's'}.`,
+                    `Skipped ${bulkTargetCount} product${bulkTargetCount === 1 ? '' : 's'}.`,
                   )
                   clearSelection()
                 }}
@@ -595,9 +671,9 @@ export function InventoryNewProductReview({
                     onChange={(locationKey) => {
                       if (!locationKey) return
                       applyBulk(
-                        selectedKeyList,
+                        bulkTargetKeys,
                         () => ({ storage: locationKey, skipped: false }),
-                        `Storage assigned to ${selectedCount} product${selectedCount === 1 ? '' : 's'}.`,
+                        `Storage assigned to ${bulkTargetCount} product${bulkTargetCount === 1 ? '' : 's'}.`,
                       )
                     }}
                   />
@@ -613,9 +689,9 @@ export function InventoryNewProductReview({
                       const unit = event.target.value === '' ? null : event.target.value
                       if (!unit) return
                       applyBulk(
-                        selectedKeyList,
+                        bulkTargetKeys,
                         () => ({ unit, skipped: false }),
-                        `Unit assigned to ${selectedCount} product${selectedCount === 1 ? '' : 's'}.`,
+                        `Unit assigned to ${bulkTargetCount} product${bulkTargetCount === 1 ? '' : 's'}.`,
                       )
                     }}
                   >
@@ -636,9 +712,9 @@ export function InventoryNewProductReview({
                       const category = event.target.value
                       if (!category) return
                       applyBulk(
-                        selectedKeyList,
+                        bulkTargetKeys,
                         () => ({ category, skipped: false }),
-                        `Category assigned to ${selectedCount} product${selectedCount === 1 ? '' : 's'}.`,
+                        `Category assigned to ${bulkTargetCount} product${bulkTargetCount === 1 ? '' : 's'}.`,
                       )
                     }}
                   >
@@ -662,13 +738,13 @@ export function InventoryNewProductReview({
                         (supplier) => normalizeSupplierName(supplier.companyName) === nextName,
                       )
                       applyBulk(
-                        selectedKeyList,
+                        bulkTargetKeys,
                         () => ({
                           supplier: nextName,
                           supplierId: matched?.id ?? null,
                           skipped: false,
                         }),
-                        `Supplier assigned to ${selectedCount} product${selectedCount === 1 ? '' : 's'}.`,
+                        `Supplier assigned to ${bulkTargetCount} product${bulkTargetCount === 1 ? '' : 's'}.`,
                       )
                     }}
                   >
