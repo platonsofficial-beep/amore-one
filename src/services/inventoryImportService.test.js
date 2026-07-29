@@ -20,10 +20,12 @@ vi.mock('../lib/supabaseClient', () => ({
 
 import * as inventoryImportService from './inventoryImportService'
 import {
+  APPLY_INVENTORY_IMPORT_SESSION_RPC,
   CANCEL_INVENTORY_IMPORT_SESSION_RPC,
   CREATE_INVENTORY_IMPORT_SESSION_RPC,
   MARK_INVENTORY_IMPORT_SESSION_READY_RPC,
   STAGE_INVENTORY_IMPORT_ROWS_RPC,
+  applyInventoryImportSession,
   cancelInventoryImportSession,
   createInventoryImportSession,
   mapInventoryImportRpcError,
@@ -322,14 +324,94 @@ describe('markInventoryImportSessionReady', () => {
   })
 })
 
+describe('applyInventoryImportSession', () => {
+  beforeEach(() => {
+    rpcMock.mockReset()
+  })
+
+  it('requires workspace, session, and idempotency key', async () => {
+    await expect(applyInventoryImportSession({
+      workspaceId: '',
+      sessionId: 'sess-1',
+      applyIdempotencyKey: 'key-1',
+    })).rejects.toThrow(/Workspace is required/)
+
+    await expect(applyInventoryImportSession({
+      workspaceId: 'ws-1',
+      sessionId: '',
+      applyIdempotencyKey: 'key-1',
+    })).rejects.toThrow(/Import session is required/)
+
+    await expect(applyInventoryImportSession({
+      workspaceId: 'ws-1',
+      sessionId: 'sess-1',
+      applyIdempotencyKey: '  ',
+    })).rejects.toThrow(/idempotency key/i)
+
+    expect(rpcMock).not.toHaveBeenCalled()
+  })
+
+  it('calls apply RPC and maps summary fields', async () => {
+    rpcMock.mockResolvedValue({
+      data: {
+        session_id: 'sess-1',
+        workspace_id: 'ws-1',
+        status: 'completed',
+        idempotency_key: 'key-1',
+        idempotency_result: 'performed',
+        created_count: 1,
+        linked_count: 1,
+        skipped_count: 1,
+        failed_count: 0,
+        movement_count: 1,
+        created_stock_item_ids: ['item-new'],
+        linked_stock_item_ids: ['item-1'],
+        completed_at: '2026-07-29T13:00:00Z',
+      },
+      error: null,
+    })
+
+    const result = await applyInventoryImportSession({
+      workspaceId: 'ws-1',
+      sessionId: 'sess-1',
+      applyIdempotencyKey: 'key-1',
+    })
+
+    expect(rpcMock).toHaveBeenCalledWith(APPLY_INVENTORY_IMPORT_SESSION_RPC, {
+      p_workspace_id: 'ws-1',
+      p_session_id: 'sess-1',
+      p_apply_idempotency_key: 'key-1',
+    })
+    expect(result.status).toBe('completed')
+    expect(result.applyIdempotencyKey).toBe('key-1')
+    expect(result.idempotencyResult).toBe('performed')
+    expect(result.createdCount).toBe(1)
+    expect(result.linkedCount).toBe(1)
+    expect(result.skippedCount).toBe(1)
+    expect(result.movementCount).toBe(1)
+  })
+
+  it('propagates Supabase errors', async () => {
+    rpcMock.mockResolvedValue({
+      data: null,
+      error: { message: 'inventory_import_apply_not_ready' },
+    })
+    await expect(applyInventoryImportSession({
+      workspaceId: 'ws-1',
+      sessionId: 'sess-1',
+      applyIdempotencyKey: 'key-1',
+    })).rejects.toThrow('inventory_import_apply_not_ready')
+  })
+})
+
 describe('service scope guards', () => {
-  it('exports Ready wrapper but not Apply, and does not use direct table inserts', () => {
+  it('exports Ready/Apply wrappers but not direct table inserts', () => {
     expect(inventoryImportService).toHaveProperty('markInventoryImportSessionReady')
-    expect(inventoryImportService).not.toHaveProperty('applyInventoryImport')
-    expect(inventoryImportService).not.toHaveProperty('apply')
+    expect(inventoryImportService).toHaveProperty('applyInventoryImportSession')
     expect(SERVICE_SOURCE).not.toMatch(/\.from\(['"]inventory_import_/)
+    expect(SERVICE_SOURCE).not.toMatch(/\.from\(['"]stock_items/)
     expect(SERVICE_SOURCE).not.toMatch(/\.insert\(/)
     expect(SERVICE_SOURCE).toContain('supabase.rpc')
-    expect(SERVICE_SOURCE).toContain('mark_inventory_import_session_ready')
+    expect(SERVICE_SOURCE).toContain('apply_inventory_import_session')
   })
 })

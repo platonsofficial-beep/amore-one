@@ -1,8 +1,8 @@
 /**
- * P8.27.1 / P8.27.2 — Inventory Import Session Staging + Ready service.
+ * P8.27.1–P8.27.3 — Inventory Import session staging, Ready, and Apply service.
  *
- * Thin RPC wrappers for create / stage / cancel / mark ready.
- * No Apply, no UI.
+ * Thin RPC wrappers for create / stage / cancel / mark ready / apply.
+ * No UI.
  */
 
 import { supabase } from '../lib/supabaseClient'
@@ -11,6 +11,7 @@ export const CREATE_INVENTORY_IMPORT_SESSION_RPC = 'create_inventory_import_sess
 export const STAGE_INVENTORY_IMPORT_ROWS_RPC = 'stage_inventory_import_rows'
 export const CANCEL_INVENTORY_IMPORT_SESSION_RPC = 'cancel_inventory_import_session'
 export const MARK_INVENTORY_IMPORT_SESSION_READY_RPC = 'mark_inventory_import_session_ready'
+export const APPLY_INVENTORY_IMPORT_SESSION_RPC = 'apply_inventory_import_session'
 
 /**
  * @param {unknown} workspaceId
@@ -109,6 +110,27 @@ export function mapInventoryImportSessionResult(record) {
     cancelledAt: record.cancelled_at ?? record.cancelledAt ?? null,
     readyAt: record.ready_at ?? record.readyAt ?? null,
     quantityPolicy: record.quantity_policy ?? record.quantityPolicy ?? null,
+    applyIdempotencyKey: record.apply_idempotency_key
+      ?? record.idempotency_key
+      ?? record.applyIdempotencyKey
+      ?? record.idempotencyKey
+      ?? null,
+    idempotencyResult: record.idempotency_result ?? record.idempotencyResult ?? null,
+    eligibleRowCount: record.eligible_row_count ?? record.eligibleRowCount ?? null,
+    createdCount: record.created_count ?? record.createdCount ?? null,
+    linkedCount: record.linked_count ?? record.linkedCount ?? null,
+    updatedCount: record.updated_count ?? record.updatedCount ?? null,
+    skippedCount: record.skipped_count ?? record.skippedCount ?? null,
+    failedCount: record.failed_count ?? record.failedCount ?? null,
+    movementCount: record.movement_count ?? record.movementCount ?? null,
+    createdStockItemIds: record.created_stock_item_ids ?? record.createdStockItemIds ?? null,
+    linkedStockItemIds: record.linked_stock_item_ids ?? record.linkedStockItemIds ?? null,
+    applyStartedAt: record.started_at ?? record.apply_started_at ?? record.applyStartedAt ?? null,
+    applyCompletedAt: record.completed_at
+      ?? record.apply_completed_at
+      ?? record.applyCompletedAt
+      ?? null,
+    operatorUserId: record.operator_user_id ?? record.operatorUserId ?? null,
     idempotent: record.idempotent === true,
   }
 }
@@ -268,6 +290,43 @@ export async function markInventoryImportSessionReady(input = {}) {
   const mapped = mapInventoryImportSessionResult(firstRpcPayload(data))
   if (!mapped?.sessionId) {
     throw new Error('Mark inventory import session ready returned no session.')
+  }
+  return mapped
+}
+
+/**
+ * Apply a Ready import session transactionally.
+ *
+ * @param {{
+ *   workspaceId: string,
+ *   sessionId: string,
+ *   applyIdempotencyKey: string,
+ * }} input
+ */
+export async function applyInventoryImportSession(input = {}) {
+  const workspaceId = requireWorkspaceId(
+    input.workspaceId,
+    'Workspace is required to apply an import session.',
+  )
+  const sessionId = requireSessionId(input.sessionId)
+  const applyIdempotencyKey = `${input.applyIdempotencyKey ?? ''}`.trim()
+  if (!applyIdempotencyKey) {
+    throw new Error('Apply idempotency key is required.')
+  }
+
+  const { data, error } = await supabase.rpc(APPLY_INVENTORY_IMPORT_SESSION_RPC, {
+    p_workspace_id: workspaceId,
+    p_session_id: sessionId,
+    p_apply_idempotency_key: applyIdempotencyKey,
+  })
+
+  if (error) {
+    throw mapInventoryImportRpcError(error, 'Failed to apply inventory import session.')
+  }
+
+  const mapped = mapInventoryImportSessionResult(firstRpcPayload(data))
+  if (!mapped?.sessionId) {
+    throw new Error('Apply inventory import session returned no result.')
   }
   return mapped
 }
