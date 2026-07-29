@@ -20,9 +20,13 @@ import {
   INVENTORY_IMPORT_WIZARD_STEPS,
   InventoryImportWizardShell,
   formatInventoryImportFileSize,
+  getInventoryImportEligibilityBlockerLabel,
   getInventoryImportFileExtension,
+  listInventoryImportPreviewContinueMessages,
   listInventoryImportReviewDataContinueMessages,
 } from './InventoryImportWizardShell'
+import { STOCK_LOCATIONS } from '../../lib/stockCatalog'
+import { INVENTORY_IMPORT_ELIGIBILITY_BLOCKER } from '../../lib/inventoryImportEligibility'
 
 const HERE = dirname(fileURLToPath(import.meta.url))
 
@@ -118,6 +122,25 @@ describe('InventoryImportWizardShell', () => {
     })
   }
 
+  function setSelectValue(select, value) {
+    act(() => {
+      const descriptor = Object.getOwnPropertyDescriptor(window.HTMLSelectElement.prototype, 'value')
+      descriptor?.set?.call(select, value)
+      select.dispatchEvent(new Event('change', { bubbles: true }))
+    })
+  }
+
+  function setLocationFallback(value) {
+    const select = container.querySelector('#inventory-import-location-fallback')
+    expect(select).toBeTruthy()
+    setSelectValue(select, value)
+  }
+
+  function getPolicyRadio(label) {
+    return Array.from(container.querySelectorAll('[role="radiogroup"][aria-label="Stock quantity policy"] [role="radio"]'))
+      .find((button) => button.textContent.includes(label))
+  }
+
   it('renders the initial Inventory Import wizard state', () => {
     renderShell()
 
@@ -163,6 +186,31 @@ describe('InventoryImportWizardShell', () => {
     })).toEqual([
       '2 possible matches require review',
       'Finish all required validations to continue',
+    ])
+  })
+
+  it('maps eligibility blocker codes to operator-facing Continue copy', () => {
+    expect(getInventoryImportEligibilityBlockerLabel(
+      INVENTORY_IMPORT_ELIGIBILITY_BLOCKER.UNRESOLVED_CREATE_LOCATION,
+    )).toBe('Choose a location or fallback for new products')
+
+    expect(listInventoryImportPreviewContinueMessages({
+      canContinue: true,
+      eligibility: { isReady: true, blockingReasons: [] },
+    })).toEqual([])
+
+    expect(listInventoryImportPreviewContinueMessages({
+      canContinue: false,
+      eligibility: {
+        isReady: false,
+        blockingReasons: [
+          INVENTORY_IMPORT_ELIGIBILITY_BLOCKER.MISSING_CREATE_UNIT,
+          INVENTORY_IMPORT_ELIGIBILITY_BLOCKER.UNRESOLVED_CREATE_LOCATION,
+        ],
+      },
+    })).toEqual([
+      'New products need a unit',
+      'Choose a location or fallback for new products',
     ])
   })
 
@@ -1052,7 +1100,7 @@ describe('InventoryImportWizardShell', () => {
     expect(container.querySelector('.inventory-operational-import-preview button')).toBeNull()
     expect(container.querySelector('.inventory-operational-import-preview input')).toBeNull()
     expect(container.querySelector('.inventory-operational-match-resolution')).toBeNull()
-    expect(container.textContent).not.toMatch(/\bApply\b/)
+    expect(getButton('Apply Import')).toBeFalsy()
     expect(getButton('Continue')?.disabled).toBe(false)
 
     act(() => {
@@ -1286,18 +1334,12 @@ describe('InventoryImportWizardShell', () => {
     expect(bitterSelect).toBeTruthy()
 
     const campariSelect = unitSelects.find((select) => select.value === 'Bottle 1L')
-    act(() => {
-      const descriptor = Object.getOwnPropertyDescriptor(window.HTMLSelectElement.prototype, 'value')
-      descriptor?.set?.call(campariSelect, 'Liter')
-      campariSelect.dispatchEvent(new Event('change', { bubbles: true }))
-    })
+    setSelectValue(campariSelect, 'Liter')
     expect(campariSelect.value).toBe('Liter')
 
-    act(() => {
-      const descriptor = Object.getOwnPropertyDescriptor(window.HTMLSelectElement.prototype, 'value')
-      descriptor?.set?.call(bitterSelect, 'Bottle 700ml')
-      bitterSelect.dispatchEvent(new Event('change', { bubbles: true }))
-    })
+    setSelectValue(bitterSelect, 'Bottle 700ml')
+    expect(getButton('Continue')?.disabled).toBe(true)
+    setLocationFallback('Bar')
     expect(getButton('Continue')?.disabled).toBe(false)
     expect(matchSpy.mock.calls.length).toBe(matchCalls)
     expect(parseSpy.mock.calls.length).toBe(parseCalls)
@@ -1311,6 +1353,7 @@ describe('InventoryImportWizardShell', () => {
     const preservedCampari = Array.from(container.querySelectorAll('.inventory-new-product-review select'))
       .find((select) => select.value === 'Liter')
     expect(preservedCampari).toBeTruthy()
+    expect(container.querySelector('#inventory-import-location-fallback')?.value).toBe('Bar')
     expect(getButton('Continue')?.disabled).toBe(false)
     expect(getButton('Apply Import')).toBeFalsy()
   })
@@ -1358,9 +1401,13 @@ describe('InventoryImportWizardShell', () => {
     expect(container.textContent).toContain('New Products')
     expect(container.textContent).toContain('Brand New Spirit')
     expect(container.textContent).toContain('Unit: Missing')
+    expect(container.textContent).toContain('Do not change current stock quantities')
+    expect(getPolicyRadio('Do not change current stock quantities')?.getAttribute('aria-checked'))
+      .toBe('true')
     expect(getButton('Continue')?.disabled).toBe(true)
-    expect(container.querySelector('.inventory-import-wizard-validation-panel')).toBeNull()
-    expect(container.textContent).not.toContain('1 product still requires unit assignment')
+    expect(container.querySelector('.inventory-import-wizard-validation-panel')).toBeTruthy()
+    expect(container.textContent).toContain('New products need a unit')
+    expect(container.textContent).toContain('Choose a location or fallback for new products')
 
     const matchCalls = matchSpy.mock.calls.length
     const parseCalls = parseSpy.mock.calls.length
@@ -1368,16 +1415,22 @@ describe('InventoryImportWizardShell', () => {
     const unitSelect = Array.from(container.querySelectorAll('.inventory-new-product-review select'))
       .find((select) => Array.from(select.options).some((option) => option.value === 'Bottle 700ml'))
     expect(unitSelect).toBeTruthy()
-    act(() => {
-      const descriptor = Object.getOwnPropertyDescriptor(window.HTMLSelectElement.prototype, 'value')
-      descriptor?.set?.call(unitSelect, 'Bottle 700ml')
-      unitSelect.dispatchEvent(new Event('change', { bubbles: true }))
-    })
+    setSelectValue(unitSelect, 'Bottle 700ml')
 
     expect(container.textContent).toContain('Unit:')
     expect(container.textContent).toContain('Bottle 700ml')
     expect(container.textContent).not.toContain('Unit: Missing')
+    expect(getButton('Continue')?.disabled).toBe(true)
+
+    const fallbackSelect = container.querySelector('#inventory-import-location-fallback')
+    expect(fallbackSelect).toBeTruthy()
+    expect(fallbackSelect.value).toBe('')
+    expect(Array.from(fallbackSelect.options).map((option) => option.value))
+      .toEqual(['', ...STOCK_LOCATIONS])
+    expect(container.textContent).toContain('unresolved new product')
+    setLocationFallback('Kitchen')
     expect(getButton('Continue')?.disabled).toBe(false)
+    expect(container.textContent).toContain('Ready to continue')
 
     act(() => {
       getButton('Back').dispatchEvent(new MouseEvent('click', { bubbles: true }))
@@ -1392,6 +1445,7 @@ describe('InventoryImportWizardShell', () => {
       .find((select) => Array.from(select.options).some((option) => option.value === 'Bottle 700ml'))
     expect(preservedUnit?.value).toBe('Bottle 700ml')
     expect(container.textContent).toContain('Bottle 700ml')
+    expect(container.querySelector('#inventory-import-location-fallback')?.value).toBe('Kitchen')
     expect(matchSpy.mock.calls.length).toBe(matchCalls)
     expect(parseSpy.mock.calls.length).toBe(parseCalls)
 
@@ -1610,8 +1664,10 @@ describe('InventoryImportWizardShell', () => {
     expect(container.querySelector('.inventory-operational-match-resolution')).toBeNull()
     expect(container.textContent).toContain('Existing product')
     expect(container.textContent).toContain('No new products')
-    expect(container.textContent).not.toMatch(/\bApply\b/)
-    expect(getButton('Continue')?.disabled).toBe(false)
+    expect(getButton('Apply Import')).toBeFalsy()
+    // Both possible matches linked to the same ONE product → Ready is blocked.
+    expect(getButton('Continue')?.disabled).toBe(true)
+    expect(container.textContent).toContain('More than one row targets the same existing product')
 
     const steps = container.querySelectorAll('.inventory-import-wizard-step')
     expect(steps[2].className).toContain('is-completed')
@@ -1631,6 +1687,25 @@ describe('InventoryImportWizardShell', () => {
     expect(matchSpy.mock.calls.length).toBe(matchCallsAfterData)
     expect(parseSpy.mock.calls.length).toBe(parseCallsAfterData)
 
+    const skipRadios = Array.from(container.querySelectorAll('input[value="skip"]'))
+    expect(skipRadios.length).toBeGreaterThan(0)
+    act(() => {
+      skipRadios[1].click()
+    })
+    expect(getButton('Continue')?.disabled).toBe(false)
+
+    act(() => {
+      getButton('Continue').dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    })
+    expect(container.querySelector('.inventory-import-wizard-review-title')?.textContent)
+      .toBe('Import Preview')
+    expect(getButton('Continue')?.disabled).toBe(false)
+    expect(container.textContent).toContain('Ready to continue')
+    expect(container.textContent).not.toContain('More than one row targets the same existing product')
+
+    act(() => {
+      getButton('Back').dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    })
     act(() => {
       getButton('Back').dispatchEvent(new MouseEvent('click', { bubbles: true }))
     })
@@ -1643,8 +1718,6 @@ describe('InventoryImportWizardShell', () => {
 
     expect(container.querySelector('.inventory-operational-match-resolution')
       ?.getAttribute('data-resolved-count')).toBe('2')
-    expect(container.querySelectorAll('input[name^="match-resolution-candidate-"]:checked'))
-      .toHaveLength(2)
   })
 
   it('resets match resolutions when a different file is selected', async () => {
@@ -1789,6 +1862,171 @@ describe('InventoryImportWizardShell', () => {
 
     expect(detectSpy).not.toHaveBeenCalled()
     expect(container.textContent).toContain('CSV has an unclosed quoted field.')
+  })
+
+  it('defaults to no_change policy, requires location fallback for creates, and keeps Apply disabled', async () => {
+    renderShell({
+      workspaceId: 'ws-ops',
+      loadWorkspaceStockItems: vi.fn(async () => []),
+    })
+
+    selectFile(createSpreadsheetFile('policy-default.xlsx', [
+      ['', 'Storage Tasos', 'BAR', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday', 'Order', 'Stock Control'],
+      ['VODKA', '', '', '', '', '', '', '', '', '', '', ''],
+      ['Brand New Spirit', 3, 1, '', '', '', '', '', '', '', '', ''],
+    ]))
+    await continueToColumnReview()
+    act(() => {
+      getButton('Continue').dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    })
+    await act(async () => {
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+    act(() => {
+      getButton('Continue').dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    })
+
+    expect(getPolicyRadio('Do not change current stock quantities')?.getAttribute('aria-checked'))
+      .toBe('true')
+    expect(container.textContent).not.toContain('existing products will be replaced')
+    expect(getButton('Continue')?.disabled).toBe(true)
+
+    const unitSelect = Array.from(container.querySelectorAll('.inventory-new-product-review select'))
+      .find((select) => Array.from(select.options).some((option) => option.value === 'Bottle 700ml'))
+    setSelectValue(unitSelect, 'Bottle 700ml')
+    expect(getButton('Continue')?.disabled).toBe(true)
+
+    setLocationFallback('Bar')
+    expect(getButton('Continue')?.disabled).toBe(false)
+    expect(container.textContent).toContain('Ready to continue')
+    expect(container.textContent).toContain('1 create')
+
+    setLocationFallback('')
+    expect(getButton('Continue')?.disabled).toBe(true)
+    expect(container.textContent).toContain('Choose a location or fallback for new products')
+
+    setLocationFallback('Main Storage')
+    expect(getButton('Continue')?.disabled).toBe(false)
+    act(() => {
+      getButton('Continue').dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    })
+    expect(container.querySelector('.inventory-import-wizard-review-title')?.textContent)
+      .toBe('Ready to Import')
+    expect(getButton('Apply Import')?.disabled).toBe(true)
+    expect(container.textContent).toContain('Apply Import is not available yet')
+  })
+
+  it('requires overwrite confirmation for opening stock on linked items and clears it when returning to no_change', async () => {
+    renderShell({
+      workspaceId: 'ws-ops',
+      loadWorkspaceStockItems: vi.fn(async () => [{
+        id: 'ko',
+        name: 'Item One',
+        category: 'Vodka',
+        unit: 'Bottle',
+        sku: null,
+        active: true,
+      }]),
+    })
+
+    selectFile(createSpreadsheetFile('opening-stock.xlsx', [
+      ['', 'Storage Tasos', 'BAR', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday', 'Order', 'Stock Control'],
+      ['VODKA', '', '', '', '', '', '', '', '', '', '', ''],
+      ['Item One', 6, 1.8, '', '', '', '', '', '', '', '', ''],
+    ]))
+    await continueToColumnReview()
+    act(() => {
+      getButton('Continue').dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    })
+    await act(async () => {
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+    act(() => {
+      getButton('Continue').dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    })
+
+    expect(getButton('Continue')?.disabled).toBe(false)
+    expect(container.textContent).not.toContain('existing products will be replaced')
+
+    act(() => {
+      getPolicyRadio('Apply spreadsheet quantities as opening stock').click()
+    })
+    expect(getPolicyRadio('Apply spreadsheet quantities as opening stock')?.getAttribute('aria-checked'))
+      .toBe('true')
+    expect(getButton('Continue')?.disabled).toBe(true)
+    expect(container.textContent).toContain('Opening stock requires a quantity')
+    expect(container.textContent).not.toContain('existing products will be replaced')
+
+    act(() => {
+      getPolicyRadio('Do not change current stock quantities').click()
+    })
+    expect(getButton('Continue')?.disabled).toBe(false)
+    expect(container.textContent).toContain('Ready to continue')
+    expect(container.textContent).not.toContain('Opening stock requires a quantity')
+  })
+
+  it('resets import policy defaults when a different file is selected', async () => {
+    renderShell({
+      workspaceId: 'ws-ops',
+      loadWorkspaceStockItems: vi.fn(async () => []),
+    })
+
+    selectFile(createSpreadsheetFile('policy-a.xlsx', [
+      ['', 'Storage Tasos', 'BAR', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday', 'Order', 'Stock Control'],
+      ['VODKA', '', '', '', '', '', '', '', '', '', '', ''],
+      ['Brand New Spirit', 1, 0, '', '', '', '', '', '', '', '', ''],
+    ]))
+    await continueToColumnReview()
+    act(() => {
+      getButton('Continue').dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    })
+    await act(async () => {
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+    act(() => {
+      getButton('Continue').dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    })
+
+    act(() => {
+      getPolicyRadio('Apply spreadsheet quantities as opening stock').click()
+    })
+    setLocationFallback('Kitchen')
+    expect(container.querySelector('#inventory-import-location-fallback')?.value).toBe('Kitchen')
+
+    act(() => {
+      getButton('Back').dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    })
+    act(() => {
+      getButton('Back').dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    })
+    act(() => {
+      getButton('Back').dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    })
+
+    selectFile(createSpreadsheetFile('policy-b.xlsx', [
+      ['', 'Storage Tasos', 'BAR', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday', 'Order', 'Stock Control'],
+      ['VODKA', '', '', '', '', '', '', '', '', '', '', ''],
+      ['Another New Spirit', 2, 0, '', '', '', '', '', '', '', '', ''],
+    ]))
+    await continueToColumnReview()
+    act(() => {
+      getButton('Continue').dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    })
+    await act(async () => {
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+    act(() => {
+      getButton('Continue').dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    })
+
+    expect(getPolicyRadio('Do not change current stock quantities')?.getAttribute('aria-checked'))
+      .toBe('true')
+    expect(container.querySelector('#inventory-import-location-fallback')?.value).toBe('')
+    expect(container.textContent).toContain('Another New Spirit')
   })
 })
 

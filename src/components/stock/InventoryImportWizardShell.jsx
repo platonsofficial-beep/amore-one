@@ -15,11 +15,115 @@ import * as inventoryOperationalProductMatcher from '../../lib/inventoryOperatio
 import * as inventoryOperationalImportPreview from '../../lib/inventoryOperationalImportPreview'
 import * as inventoryOperationalMatchResolutions from '../../lib/inventoryOperationalMatchResolutions'
 import * as inventoryNewProductDrafts from '../../lib/inventoryNewProductDrafts'
+import {
+  INVENTORY_IMPORT_ELIGIBILITY_BLOCKER,
+  INVENTORY_IMPORT_ELIGIBILITY_WARNING,
+  INVENTORY_IMPORT_QUANTITY_POLICY,
+  evaluateInventoryImportReadyEligibility,
+} from '../../lib/inventoryImportEligibility'
+import { STOCK_LOCATIONS } from '../../lib/stockCatalog'
 import { InventoryOperationalImportPreview } from './InventoryOperationalImportPreview'
 import { InventoryOperationalMatchResolution } from './InventoryOperationalMatchResolution'
 import { InventoryOperationalMatchingSummary } from './InventoryOperationalMatchingSummary'
 import { InventoryNewProductReview } from './InventoryNewProductReview'
 import { InventoryOperationalReview } from './InventoryOperationalReview'
+
+const DEFAULT_IMPORT_SESSION_POLICY = Object.freeze({
+  quantityPolicy: INVENTORY_IMPORT_QUANTITY_POLICY.NO_CHANGE,
+  existingQuantityOverwriteConfirmed: false,
+  newProductLocationFallback: null,
+})
+
+const IMPORT_ELIGIBILITY_BLOCKER_LABELS = Object.freeze({
+  [INVENTORY_IMPORT_ELIGIBILITY_BLOCKER.QUANTITY_POLICY_UNSET]:
+    'Choose a stock quantity policy',
+  [INVENTORY_IMPORT_ELIGIBILITY_BLOCKER.UNRESOLVED_MATCHES]:
+    'Resolve remaining possible matches',
+  [INVENTORY_IMPORT_ELIGIBILITY_BLOCKER.FORBIDDEN_UPDATE_ACTION]:
+    'Metadata updates are not allowed in this import',
+  [INVENTORY_IMPORT_ELIGIBILITY_BLOCKER.MISSING_CREATE_NAME]:
+    'New products need a product name',
+  [INVENTORY_IMPORT_ELIGIBILITY_BLOCKER.MISSING_CREATE_UNIT]:
+    'New products need a unit',
+  [INVENTORY_IMPORT_ELIGIBILITY_BLOCKER.UNRESOLVED_CREATE_LOCATION]:
+    'Choose a location or fallback for new products',
+  [INVENTORY_IMPORT_ELIGIBILITY_BLOCKER.INVALID_LOCATION_FALLBACK]:
+    'Fallback location must be a valid Stock location',
+  [INVENTORY_IMPORT_ELIGIBILITY_BLOCKER.MISSING_OPENING_QUANTITY]:
+    'Opening stock requires a quantity on every applicable row',
+  [INVENTORY_IMPORT_ELIGIBILITY_BLOCKER.INVALID_OPENING_QUANTITY]:
+    'Opening stock quantities must be zero or greater',
+  [INVENTORY_IMPORT_ELIGIBILITY_BLOCKER.EXISTING_QUANTITY_OVERWRITE_UNCONFIRMED]:
+    'Confirm replacing quantities on existing products',
+  [INVENTORY_IMPORT_ELIGIBILITY_BLOCKER.DUPLICATE_EXISTING_TARGET]:
+    'More than one row targets the same existing product',
+  [INVENTORY_IMPORT_ELIGIBILITY_BLOCKER.REMAINING_OPERATIONAL_BLOCKER]:
+    'Resolve remaining review issues',
+})
+
+const IMPORT_ELIGIBILITY_WARNING_LABELS = Object.freeze({
+  [INVENTORY_IMPORT_ELIGIBILITY_WARNING.CATEGORY_DEFAULTED_TO_OTHER]:
+    'Some new products use category Other',
+  [INVENTORY_IMPORT_ELIGIBILITY_WARNING.EXISTING_LOCATION_CONFLICT]:
+    'Source location differs from an existing product location',
+  [INVENTORY_IMPORT_ELIGIBILITY_WARNING.MATCHED_ITEM_INACTIVE]:
+    'Some matched products are inactive',
+  [INVENTORY_IMPORT_ELIGIBILITY_WARNING.SOURCE_QUANTITY_EVIDENCE_ONLY]:
+    'Spreadsheet quantities are kept as evidence only',
+  [INVENTORY_IMPORT_ELIGIBILITY_WARNING.SOURCE_LOCATION_EVIDENCE_ONLY]:
+    'Some source locations still need a fallback',
+})
+
+/**
+ * @param {string|undefined} code
+ * @returns {string}
+ */
+export function getInventoryImportEligibilityBlockerLabel(code) {
+  if (typeof code !== 'string' || !code) return String(code ?? '')
+  return IMPORT_ELIGIBILITY_BLOCKER_LABELS[code] ?? code
+}
+
+/**
+ * @param {string|undefined} code
+ * @returns {string}
+ */
+export function getInventoryImportEligibilityWarningLabel(code) {
+  if (typeof code !== 'string' || !code) return String(code ?? '')
+  return IMPORT_ELIGIBILITY_WARNING_LABELS[code] ?? code
+}
+
+/**
+ * Presentational messages for a disabled Import Preview Continue control.
+ * Maps evaluator blocker codes only — does not re-implement eligibility rules.
+ *
+ * @param {{
+ *   canContinue?: boolean,
+ *   eligibility?: { isReady?: boolean, blockingReasons?: string[] }|null,
+ * }} [input]
+ * @returns {string[]}
+ */
+export function listInventoryImportPreviewContinueMessages({
+  canContinue = false,
+  eligibility = null,
+} = {}) {
+  if (canContinue) return []
+
+  /** @type {string[]} */
+  const messages = []
+  const reasons = Array.isArray(eligibility?.blockingReasons)
+    ? eligibility.blockingReasons
+    : []
+
+  for (const code of reasons) {
+    messages.push(getInventoryImportEligibilityBlockerLabel(code))
+  }
+
+  if (messages.length === 0) {
+    messages.push('Finish required validation before continuing.')
+  }
+
+  return messages
+}
 
 export const INVENTORY_IMPORT_WIZARD_STEPS = Object.freeze([
   { id: 'upload', label: 'Upload File', number: 1 },
@@ -237,6 +341,9 @@ export function InventoryImportWizardShell({
   const [selectedWorksheetName, setSelectedWorksheetName] = useState('')
   const [matchResolutions, setMatchResolutions] = useState({})
   const [newProductDrafts, setNewProductDrafts] = useState({})
+  const [importSessionPolicy, setImportSessionPolicy] = useState(() => ({
+    ...DEFAULT_IMPORT_SESSION_POLICY,
+  }))
 
   const isOperationalFormat = formatDetection?.format
     === inventoryImportFormatDetector.INVENTORY_IMPORT_FORMAT.OPERATIONAL
@@ -323,6 +430,14 @@ export function InventoryImportWizardShell({
     }
   }, [resolutionOperationalImportPreview, newProductDrafts])
 
+  const readyEligibility = useMemo(() => {
+    if (!resolvedOperationalImportPreview) return null
+    return evaluateInventoryImportReadyEligibility({
+      preview: resolvedOperationalImportPreview,
+      policy: importSessionPolicy,
+    })
+  }, [resolvedOperationalImportPreview, importSessionPolicy])
+
   const newProductCategoryOptions = useMemo(() => (
     inventoryNewProductDrafts.listNewProductCategoryOptions({
       catalogItems: workspaceStockCatalog.items,
@@ -351,6 +466,35 @@ export function InventoryImportWizardShell({
     setOperationalModel(null)
     setMatchResolutions({})
     setNewProductDrafts({})
+    setImportSessionPolicy({ ...DEFAULT_IMPORT_SESSION_POLICY })
+  }
+
+  function handleQuantityPolicyChange(nextPolicy) {
+    const normalized = nextPolicy === INVENTORY_IMPORT_QUANTITY_POLICY.OPENING_STOCK
+      ? INVENTORY_IMPORT_QUANTITY_POLICY.OPENING_STOCK
+      : INVENTORY_IMPORT_QUANTITY_POLICY.NO_CHANGE
+    setImportSessionPolicy((current) => ({
+      ...current,
+      quantityPolicy: normalized,
+      existingQuantityOverwriteConfirmed: normalized === INVENTORY_IMPORT_QUANTITY_POLICY.OPENING_STOCK
+        ? current.existingQuantityOverwriteConfirmed
+        : false,
+    }))
+  }
+
+  function handleOverwriteConfirmationChange(confirmed) {
+    setImportSessionPolicy((current) => ({
+      ...current,
+      existingQuantityOverwriteConfirmed: confirmed === true,
+    }))
+  }
+
+  function handleLocationFallbackChange(nextLocation) {
+    const trimmed = `${nextLocation ?? ''}`.trim()
+    setImportSessionPolicy((current) => ({
+      ...current,
+      newProductLocationFallback: trimmed === '' ? null : trimmed,
+    }))
   }
 
   function handleMatchResolutionChange(rowKey, next) {
@@ -573,11 +717,7 @@ export function InventoryImportWizardShell({
   function canContinueFromPreviewToReady() {
     if (operationalImportPreviewState.status === 'error') return false
     if (operationalImportPreviewState.status !== 'ready') return false
-    if (!resolutionOperationalImportPreview) return false
-    return inventoryNewProductDrafts.areAllNewProductDraftsValid({
-      preview: resolutionOperationalImportPreview,
-      drafts: newProductDrafts,
-    })
+    return readyEligibility?.isReady === true
   }
 
   function handleContinueFromPreview() {
@@ -607,6 +747,18 @@ export function InventoryImportWizardShell({
     unresolvedPossibleMatches:
       resolvedOperationalImportPreview?.summary?.unresolvedPossibleMatches ?? null,
   })
+  const previewContinueMessages = listInventoryImportPreviewContinueMessages({
+    canContinue: canContinueFromPreview,
+    eligibility: readyEligibility,
+  })
+  const showOverwriteConfirmation = (
+    importSessionPolicy.quantityPolicy === INVENTORY_IMPORT_QUANTITY_POLICY.OPENING_STOCK
+    && (readyEligibility?.quantity?.linkedItemsAffectedByOpeningStock ?? 0) > 0
+  )
+  const showLocationFallbackControl = (readyEligibility?.counts?.create ?? 0) > 0
+  const locationFallbackAffectedCount = importSessionPolicy.newProductLocationFallback
+    ? (readyEligibility?.location?.fallbackAffectedRowCount ?? 0)
+    : (readyEligibility?.location?.unresolvedCreateLocationCount ?? 0)
 
   return (
     <div
@@ -974,6 +1126,191 @@ export function InventoryImportWizardShell({
                 </p>
               </div>
 
+              {operationalImportPreviewState.status === 'ready' && readyEligibility ? (
+                <section
+                  className="inventory-import-policy-panel"
+                  aria-label="Import policies"
+                >
+                  <div className="inventory-import-policy-section">
+                    <h4 className="inventory-import-policy-title">
+                      Stock quantity policy
+                    </h4>
+                    <div
+                      className="inventory-import-policy-options"
+                      role="radiogroup"
+                      aria-label="Stock quantity policy"
+                    >
+                      <button
+                        type="button"
+                        role="radio"
+                        aria-checked={
+                          importSessionPolicy.quantityPolicy
+                          === INVENTORY_IMPORT_QUANTITY_POLICY.NO_CHANGE
+                        }
+                        className={`inventory-import-policy-option${
+                          importSessionPolicy.quantityPolicy
+                          === INVENTORY_IMPORT_QUANTITY_POLICY.NO_CHANGE
+                            ? ' is-selected'
+                            : ''
+                        }`}
+                        onClick={() => handleQuantityPolicyChange(
+                          INVENTORY_IMPORT_QUANTITY_POLICY.NO_CHANGE,
+                        )}
+                      >
+                        <span className="inventory-import-policy-option-label">
+                          Do not change current stock quantities
+                        </span>
+                        <span className="inventory-import-policy-option-copy">
+                          New products will start at 0. Existing quantities will remain unchanged. No stock movements will be created.
+                        </span>
+                      </button>
+                      <button
+                        type="button"
+                        role="radio"
+                        aria-checked={
+                          importSessionPolicy.quantityPolicy
+                          === INVENTORY_IMPORT_QUANTITY_POLICY.OPENING_STOCK
+                        }
+                        className={`inventory-import-policy-option${
+                          importSessionPolicy.quantityPolicy
+                          === INVENTORY_IMPORT_QUANTITY_POLICY.OPENING_STOCK
+                            ? ' is-selected'
+                            : ''
+                        }`}
+                        onClick={() => handleQuantityPolicyChange(
+                          INVENTORY_IMPORT_QUANTITY_POLICY.OPENING_STOCK,
+                        )}
+                      >
+                        <span className="inventory-import-policy-option-label">
+                          Apply spreadsheet quantities as opening stock
+                        </span>
+                        <span className="inventory-import-policy-option-copy">
+                          Quantities will replace current stock values. Values are absolute, not added. Intended for onboarding or controlled initialization.
+                        </span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {showOverwriteConfirmation ? (
+                    <label className="inventory-import-policy-confirm">
+                      <input
+                        type="checkbox"
+                        checked={importSessionPolicy.existingQuantityOverwriteConfirmed}
+                        onChange={(event) => {
+                          handleOverwriteConfirmationChange(event.target.checked)
+                        }}
+                      />
+                      <span>
+                        I understand that the current quantities of
+                        {' '}
+                        {readyEligibility.quantity.linkedItemsAffectedByOpeningStock}
+                        {' '}
+                        existing products will be replaced.
+                      </span>
+                    </label>
+                  ) : null}
+
+                  {showLocationFallbackControl ? (
+                    <div className="inventory-import-policy-section">
+                      <label
+                        className="inventory-import-policy-field-label"
+                        htmlFor="inventory-import-location-fallback"
+                      >
+                        Fallback location for unresolved new products
+                      </label>
+                      <p className="inventory-import-policy-field-copy">
+                        Applies only to new products without a recognized location.
+                        Existing linked products keep their current location.
+                      </p>
+                      <select
+                        id="inventory-import-location-fallback"
+                        className="inventory-import-policy-select"
+                        value={importSessionPolicy.newProductLocationFallback ?? ''}
+                        onChange={(event) => {
+                          handleLocationFallbackChange(event.target.value)
+                        }}
+                      >
+                        <option value="">No fallback selected</option>
+                        {STOCK_LOCATIONS.map((location) => (
+                          <option key={location} value={location}>
+                            {location}
+                          </option>
+                        ))}
+                      </select>
+                      <p className="inventory-import-policy-affected" role="status">
+                        {locationFallbackAffectedCount === 1
+                          ? '1 unresolved new product will use this fallback'
+                          : `${locationFallbackAffectedCount} unresolved new products will use this fallback`}
+                      </p>
+                    </div>
+                  ) : null}
+
+                  <div
+                    className={`inventory-import-eligibility-summary${
+                      readyEligibility.isReady ? ' is-ready' : ' is-blocked'
+                    }`}
+                    role="status"
+                    aria-live="polite"
+                  >
+                    {readyEligibility.isReady ? (
+                      <>
+                        <p className="inventory-import-eligibility-summary-title">
+                          Ready to continue
+                        </p>
+                        <p className="inventory-import-eligibility-summary-meta">
+                          {readyEligibility.counts.create}
+                          {' '}
+                          create ·
+                          {' '}
+                          {readyEligibility.counts.link}
+                          {' '}
+                          link ·
+                          {' '}
+                          {readyEligibility.counts.skip}
+                          {' '}
+                          skip
+                          {importSessionPolicy.quantityPolicy
+                          === INVENTORY_IMPORT_QUANTITY_POLICY.OPENING_STOCK
+                            ? (
+                              <>
+                                {' '}
+                                ·
+                                {' '}
+                                {readyEligibility.quantity.linkedItemsAffectedByOpeningStock}
+                                {' '}
+                                existing quantities replaced
+                              </>
+                            )
+                            : null}
+                        </p>
+                      </>
+                    ) : (
+                      <>
+                        <p className="inventory-import-eligibility-summary-title">
+                          Resolve the remaining items before continuing
+                        </p>
+                        <ul className="inventory-import-eligibility-summary-list">
+                          {readyEligibility.blockingReasons.map((code) => (
+                            <li key={code}>
+                              {getInventoryImportEligibilityBlockerLabel(code)}
+                            </li>
+                          ))}
+                        </ul>
+                      </>
+                    )}
+                    {readyEligibility.warningReasons.length > 0 ? (
+                      <ul className="inventory-import-eligibility-warning-list">
+                        {readyEligibility.warningReasons.map((code) => (
+                          <li key={code}>
+                            {getInventoryImportEligibilityWarningLabel(code)}
+                          </li>
+                        ))}
+                      </ul>
+                    ) : null}
+                  </div>
+                </section>
+              ) : null}
+
               {operationalImportPreviewState.status === 'ready' ? (
                 <InventoryNewProductReview
                   preview={resolutionOperationalImportPreview}
@@ -1261,23 +1598,26 @@ export function InventoryImportWizardShell({
         ) : null}
 
         {showPreviewFooter ? (
-          <footer className="inventory-import-wizard-footer">
-            <button
-              type="button"
-              className="ghost-btn inventory-import-wizard-nav-btn"
-              onClick={handleBackFromPreview}
-            >
-              Back
-            </button>
-            <button
-              type="button"
-              className="primary-btn inventory-import-wizard-nav-btn inventory-import-wizard-continue-btn"
-              onClick={handleContinueFromPreview}
-              disabled={!canContinueFromPreview}
-              aria-disabled={!canContinueFromPreview ? 'true' : undefined}
-            >
-              Continue
-            </button>
+          <footer className="inventory-import-wizard-footer inventory-import-wizard-footer-stack">
+            <InventoryImportContinueValidationPanel messages={previewContinueMessages} />
+            <div className="inventory-import-wizard-footer-actions">
+              <button
+                type="button"
+                className="ghost-btn inventory-import-wizard-nav-btn"
+                onClick={handleBackFromPreview}
+              >
+                Back
+              </button>
+              <button
+                type="button"
+                className="primary-btn inventory-import-wizard-nav-btn inventory-import-wizard-continue-btn"
+                onClick={handleContinueFromPreview}
+                disabled={!canContinueFromPreview}
+                aria-disabled={!canContinueFromPreview ? 'true' : undefined}
+              >
+                Continue
+              </button>
+            </div>
           </footer>
         ) : null}
 
