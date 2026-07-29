@@ -27,17 +27,19 @@
 --   - Create stock_movements
 --   - Accept client-supplied quantities, deltas, or timestamps
 --
--- Reconciliation (locked Strategy 4):
+-- Reconciliation (locked Strategy 4 / P8.29.8 location-aware):
 --   snapshot_at = inventory_count_sessions.snapshot_at (authoritative)
 --   Window (exclusive start, inclusive end):
 --     snapshot_at < stock_movements.created_at <= counted_at
---   Eligible movement deltas:
---     receive     → +abs(quantity)
---     usage       → -abs(quantity)
---     adjustment  → +quantity (signed)
---     stock_count → NOT an additive delta; in-window → blocker
+--   Eligible movement deltas (scoped to session line storage_location):
+--     receive / transfer_in at destination_location_key → +abs(quantity)
+--     usage / transfer_out at source_location_key → -abs(quantity)
+--     adjustment at destination or source location_key → +quantity (signed)
+--     legacy null location keys apply only when item.storage_location = line location
+--     stock_count → NOT an additive delta; in-window at location → blocker
 --   expected_at_count = expected_snapshot + net eligible delta
 --   variance_quantity = counted_quantity - expected_at_count
+--   current_live_quantity = stock_item_location_balances.quantity at line location
 --   resulting_quantity_after_post = current_live_quantity + variance_quantity
 -- =============================================================================
 
@@ -150,6 +152,7 @@ begin
   where issue_code is not null;
 
   -- Mid-window absolute stock_count movements cannot be treated as deltas.
+  -- P8.29.8: scoped to the session line location (or legacy primary match).
   select coalesce(v_blocking_issues, '[]'::jsonb) || coalesce(
     (
       select jsonb_agg(
@@ -169,12 +172,23 @@ begin
           i.item_name,
           'A stock_count movement exists between snapshot and counted_at. Absolute-set movements cannot be reconciled as deltas.' as message
         from public.inventory_count_session_items i
+        inner join public.stock_items si
+          on si.id = i.item_id
+         and si.workspace_id = i.workspace_id
         inner join public.stock_movements m
           on m.item_id = i.item_id
          and m.workspace_id = i.workspace_id
          and m.type = 'stock_count'
          and m.created_at > v_snapshot_at
          and m.created_at <= i.counted_at
+         and (
+           m.destination_location_key = i.storage_location
+           or (
+             m.destination_location_key is null
+             and m.source_location_key is null
+             and si.storage_location = i.storage_location
+           )
+         )
         where i.session_id = p_session_id
           and i.workspace_id = p_workspace_id
           and i.line_status = 'counted'
@@ -209,7 +223,7 @@ begin
     and i.workspace_id = p_workspace_id
     and i.line_status = 'skipped';
 
-  -- Counted lines eligible for reconciliation
+  -- Counted lines eligible for reconciliation (P8.29.8: live qty from location balance)
   select coalesce(
     jsonb_agg(line_row order by line_row ->> 'storage_location', line_row ->> 'item_name', line_row ->> 'session_item_id'),
     '[]'::jsonb
@@ -228,9 +242,9 @@ begin
       'counted_quantity', i.counted_quantity,
       'counted_at', i.counted_at,
       'variance_quantity', (i.counted_quantity - (i.expected_snapshot + coalesce(deltas.net_delta, 0))),
-      'current_live_quantity', si.current_quantity,
+      'current_live_quantity', coalesce(bal.quantity, 0),
       'resulting_quantity_after_post', (
-        si.current_quantity
+        coalesce(bal.quantity, 0)
         + (i.counted_quantity - (i.expected_snapshot + coalesce(deltas.net_delta, 0)))
       )
     ) as line_row
@@ -238,19 +252,51 @@ begin
     inner join public.stock_items si
       on si.id = i.item_id
      and si.workspace_id = i.workspace_id
+    left join public.stock_item_location_balances bal
+      on bal.workspace_id = i.workspace_id
+     and bal.stock_item_id = i.item_id
+     and bal.location_key = i.storage_location
     left join lateral (
       select coalesce(sum(
-        case m.type
-          when 'receive' then abs(m.quantity)
-          when 'usage' then -abs(m.quantity)
-          when 'adjustment' then m.quantity
+        case
+          when m.type in ('receive', 'transfer_in')
+               and (
+                 m.destination_location_key = i.storage_location
+                 or (
+                   m.destination_location_key is null
+                   and m.source_location_key is null
+                   and si.storage_location = i.storage_location
+                 )
+               )
+            then abs(m.quantity)
+          when m.type in ('usage', 'transfer_out')
+               and (
+                 m.source_location_key = i.storage_location
+                 or (
+                   m.destination_location_key is null
+                   and m.source_location_key is null
+                   and si.storage_location = i.storage_location
+                 )
+               )
+            then -abs(m.quantity)
+          when m.type = 'adjustment'
+               and (
+                 m.destination_location_key = i.storage_location
+                 or m.source_location_key = i.storage_location
+                 or (
+                   m.destination_location_key is null
+                   and m.source_location_key is null
+                   and si.storage_location = i.storage_location
+                 )
+               )
+            then m.quantity
           else 0
         end
       ), 0) as net_delta
       from public.stock_movements m
       where m.workspace_id = i.workspace_id
         and m.item_id = i.item_id
-        and m.type in ('receive', 'usage', 'adjustment')
+        and m.type in ('receive', 'usage', 'adjustment', 'transfer_out', 'transfer_in')
         and m.created_at > v_snapshot_at
         and m.created_at <= i.counted_at
     ) deltas on true
@@ -260,7 +306,7 @@ begin
       and i.counted_quantity is not null
       and i.counted_at is not null
       and i.item_id is not null
-      -- Exclude lines that already have stock_count blockers in-window
+      -- Exclude lines that already have stock_count blockers in-window at this location
       and not exists (
         select 1
         from public.stock_movements m
@@ -269,6 +315,14 @@ begin
           and m.type = 'stock_count'
           and m.created_at > v_snapshot_at
           and m.created_at <= i.counted_at
+          and (
+            m.destination_location_key = i.storage_location
+            or (
+              m.destination_location_key is null
+              and m.source_location_key is null
+              and si.storage_location = i.storage_location
+            )
+          )
       )
   ) counted;
 
@@ -377,7 +431,7 @@ revoke all on function public.reconcile_inventory_count_finish(uuid, uuid) from 
 revoke all on function public.reconcile_inventory_count_finish(uuid, uuid) from authenticated;
 
 comment on function public.reconcile_inventory_count_finish(uuid, uuid) is
-  'P8.5.1 Internal read-only Strategy 4 inventory count reconciliation. Not a client API. Called by preview_inventory_count_finish and future post RPC.';
+  'P8.5.1/P8.29.8 Internal read-only Strategy 4 inventory count reconciliation (live qty + deltas scoped to location balances). Not a client API. Called by preview_inventory_count_finish and post_inventory_count_finish.';
 
 -- =============================================================================
 -- Rollback (emergency only)

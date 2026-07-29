@@ -9,16 +9,17 @@
 -- Do NOT auto-run from the app.
 --
 -- Purpose:
---   Atomic SECURITY DEFINER entry point that freezes eligible stock_items into
---   inventory_count_session_items and sets inventory_count_sessions.snapshot_at
---   to one authoritative freeze timestamp.
+--   Atomic SECURITY DEFINER entry point that freezes eligible
+--   stock_item_location_balances into inventory_count_session_items and sets
+--   inventory_count_sessions.snapshot_at to one authoritative freeze timestamp.
+--   P8.29.8: expected_snapshot = per-location balance quantity (not item total).
 --   P8.21.2: rejects empty snapshots (zero items) before writing snapshot_at.
 --
 -- Does NOT:
 --   - Accept snapshot values / quantities / items from the client
 --   - Set counted_quantity / counted_at
 --   - Write posting fields
---   - Mutate stock_items or stock_movements
+--   - Mutate stock_items, balances, or stock_movements
 --   - Wire UI / services
 --
 -- Authorization:
@@ -110,7 +111,8 @@ begin
     raise exception 'inventory_count_snapshot_locations_required';
   end if;
 
-  -- Atomic snapshot insert from live stock_items (never from client)
+  -- Atomic snapshot insert from live location balances (never from client).
+  -- One session line per (item, location_key) balance in selected session locations.
   insert into public.inventory_count_session_items (
     session_id,
     workspace_id,
@@ -140,8 +142,8 @@ begin
     si.category,
     si.item_type,
     si.unit,
-    si.storage_location,
-    coalesce(si.current_quantity, 0),
+    b.location_key,
+    coalesce(b.quantity, 0),
     null,
     null,
     null,
@@ -152,9 +154,12 @@ begin
     '',
     v_snapshot_created_at,
     v_snapshot_created_at
-  from public.stock_items si
-  where si.workspace_id = p_workspace_id
-    and si.storage_location in (
+  from public.stock_item_location_balances b
+  inner join public.stock_items si
+    on si.id = b.stock_item_id
+   and si.workspace_id = b.workspace_id
+  where b.workspace_id = p_workspace_id
+    and b.location_key in (
       select l.location_key
       from public.inventory_count_session_locations l
       where l.session_id = p_session_id
@@ -166,7 +171,7 @@ begin
     )
     and (
       v_session.include_zero_stock
-      or coalesce(si.current_quantity, 0) <> 0
+      or coalesce(b.quantity, 0) <> 0
     );
 
   get diagnostics v_items_created = row_count;
@@ -202,7 +207,7 @@ revoke all on function public.build_inventory_count_snapshot(uuid, uuid) from pu
 grant execute on function public.build_inventory_count_snapshot(uuid, uuid) to authenticated;
 
 comment on function public.build_inventory_count_snapshot(uuid, uuid) is
-  'P8.3.2/P8.3.9c/P8.21.2 SECURITY DEFINER freeze stock_items into session items and set sessions.snapshot_at. Rejects empty snapshots. No counting, posting, or stock mutations.';
+  'P8.3.2/P8.3.9c/P8.21.2/P8.29.8 SECURITY DEFINER freeze location balances into session items (expected_snapshot=balance.quantity; storage_location=location_key) and set sessions.snapshot_at. Rejects empty snapshots. No counting, posting, or stock mutations.';
 
 -- =============================================================================
 -- Rollback (emergency only)

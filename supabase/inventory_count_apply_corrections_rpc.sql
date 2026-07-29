@@ -66,7 +66,16 @@ declare
   v_line_count integer := 0;
   v_movement_count integer := 0;
   v_lines jsonb := '[]'::jsonb;
-  v_seen_item_ids uuid[] := array[]::uuid[];
+  v_seen_session_item_ids uuid[] := array[]::uuid[];
+  v_storage_location text;
+  v_balance_id uuid;
+  v_workspace_storage_id uuid;
+  v_location_key text;
+  v_aggregate_sum numeric(12, 3);
+  v_source_storage_id uuid;
+  v_dest_storage_id uuid;
+  v_source_location_key text;
+  v_dest_location_key text;
 begin
   if v_auth_user_id is null then
     raise exception 'inventory_count_correction_unauthenticated'
@@ -125,9 +134,9 @@ begin
       using hint = 'Only posted inventory counts can receive corrections.';
   end if;
 
-  -- 2) Lock participating stock items in ascending id order (deadlock avoidance).
-  for v_item_id in
-    select distinct i.item_id
+  -- 2) Lock participating stock items + location balances (deadlock-safe order).
+  for v_item_id, v_storage_location in
+    select distinct i.item_id, i.storage_location
     from public.inventory_count_session_items i
     where i.session_id = p_session_id
       and i.workspace_id = p_workspace_id
@@ -136,7 +145,7 @@ begin
         select nullif(elem ->> 'session_item_id', '')::uuid
         from jsonb_array_elements(p_corrections) as t(elem)
       )
-    order by i.item_id
+    order by i.item_id, i.storage_location
   loop
     perform 1
     from public.stock_items si
@@ -147,6 +156,18 @@ begin
     if not found then
       raise exception 'inventory_count_correction_stock_item_missing'
         using hint = 'A stock item referenced by a correction was not found.';
+    end if;
+
+    perform 1
+    from public.stock_item_location_balances b
+    where b.workspace_id = p_workspace_id
+      and b.stock_item_id = v_item_id
+      and b.location_key = v_storage_location
+    for update of b;
+
+    if not found then
+      raise exception 'inventory_count_correction_balance_missing'
+        using hint = 'A location balance referenced by a correction was not found.';
     end if;
   end loop;
 
@@ -191,11 +212,13 @@ begin
     select
       i.item_id,
       i.item_name,
-      i.counted_quantity
+      i.counted_quantity,
+      i.storage_location
     into
       v_item_id,
       v_item_name,
-      v_original_quantity
+      v_original_quantity,
+      v_storage_location
     from public.inventory_count_session_items i
     where i.id = v_session_item_id
       and i.session_id = p_session_id
@@ -217,11 +240,11 @@ begin
         using hint = 'Correction line is not linked to a stock item.';
     end if;
 
-    if v_item_id = any (v_seen_item_ids) then
+    if v_session_item_id = any (v_seen_session_item_ids) then
       raise exception 'inventory_count_correction_duplicate_item'
-        using hint = 'Duplicate stock item corrections are not allowed in one apply.';
+        using hint = 'Duplicate session item corrections are not allowed in one apply.';
     end if;
-    v_seen_item_ids := array_append(v_seen_item_ids, v_item_id);
+    v_seen_session_item_ids := array_append(v_seen_session_item_ids, v_session_item_id);
 
     -- Effective baseline = immutable posted counted + all previously applied deltas.
     select coalesce(sum(l.delta_quantity), 0)
@@ -240,18 +263,37 @@ begin
       continue;
     end if;
 
-    select si.current_quantity
-      into v_locked_qty
-    from public.stock_items si
-    where si.id = v_item_id
-      and si.workspace_id = p_workspace_id;
+    select b.id, b.quantity, b.workspace_storage_id, b.location_key
+      into v_balance_id, v_locked_qty, v_workspace_storage_id, v_location_key
+    from public.stock_item_location_balances b
+    where b.workspace_id = p_workspace_id
+      and b.stock_item_id = v_item_id
+      and b.location_key = v_storage_location;
 
     if not found then
-      raise exception 'inventory_count_correction_stock_item_missing'
-        using hint = 'A stock item referenced by a correction was not found.';
+      raise exception 'inventory_count_correction_balance_missing'
+        using hint = 'A location balance referenced by a correction was not found.';
     end if;
 
     v_next_qty := v_locked_qty + v_delta;
+
+    if v_next_qty < 0 then
+      raise exception 'inventory_count_correction_negative_balance_rejected'
+        using hint = 'Correction would make the location balance negative.';
+    end if;
+
+    v_source_storage_id := null;
+    v_dest_storage_id := null;
+    v_source_location_key := null;
+    v_dest_location_key := null;
+
+    if v_delta > 0 then
+      v_dest_storage_id := v_workspace_storage_id;
+      v_dest_location_key := v_location_key;
+    else
+      v_source_storage_id := v_workspace_storage_id;
+      v_source_location_key := v_location_key;
+    end if;
 
     insert into public.stock_movements (
       workspace_id,
@@ -259,7 +301,13 @@ begin
       type,
       quantity,
       note,
-      created_by
+      created_by,
+      source_workspace_storage_id,
+      destination_workspace_storage_id,
+      source_location_key,
+      destination_location_key,
+      origin_workflow,
+      origin_ref_id
     )
     values (
       p_workspace_id,
@@ -273,7 +321,13 @@ begin
         v_baseline_quantity,
         v_corrected_quantity
       ),
-      v_auth_user_id
+      v_auth_user_id,
+      v_source_storage_id,
+      v_dest_storage_id,
+      v_source_location_key,
+      v_dest_location_key,
+      'inventory_count_correction',
+      p_session_id
     )
     returning id into v_movement_id;
 
@@ -282,16 +336,40 @@ begin
         using hint = 'Unable to create correction adjustment movement.';
     end if;
 
-    update public.stock_items si
-    set current_quantity = v_next_qty
-    where si.id = v_item_id
-      and si.workspace_id = p_workspace_id
-      and si.current_quantity is not distinct from v_locked_qty;
+    update public.stock_item_location_balances b
+    set
+      quantity = v_next_qty,
+      quantity_version = b.quantity_version + 1,
+      updated_by = v_auth_user_id
+    where b.id = v_balance_id
+      and b.workspace_id = p_workspace_id
+      and b.quantity is not distinct from v_locked_qty;
 
     get diagnostics v_row_count = row_count;
     if v_row_count is distinct from 1 then
       raise exception 'inventory_count_correction_quantity_update_failed'
-        using hint = 'Live stock changed while applying corrections. Retry.';
+        using hint = 'Live location balance changed while applying corrections. Retry.';
+    end if;
+
+    select coalesce(sum(b.quantity), 0)::numeric(12, 3)
+    into v_aggregate_sum
+    from public.stock_item_location_balances b
+    where b.workspace_id = p_workspace_id
+      and b.stock_item_id = v_item_id;
+
+    if v_aggregate_sum < 0 then
+      raise exception 'inventory_count_correction_aggregate_drift';
+    end if;
+
+    update public.stock_items si
+    set current_quantity = v_aggregate_sum
+    where si.id = v_item_id
+      and si.workspace_id = p_workspace_id;
+
+    get diagnostics v_row_count = row_count;
+    if v_row_count is distinct from 1 then
+      raise exception 'inventory_count_correction_quantity_update_failed'
+        using hint = 'Unable to refresh stock aggregate after correction.';
     end if;
 
     insert into public.inventory_count_correction_lines (
@@ -380,4 +458,4 @@ revoke all on function public.apply_inventory_count_corrections(uuid, uuid, json
 grant execute on function public.apply_inventory_count_corrections(uuid, uuid, jsonb) to authenticated;
 
 comment on function public.apply_inventory_count_corrections(uuid, uuid, jsonb) is
-  'P8.20.8 SECURITY DEFINER append-only corrections using effective baseline (counted + prior deltas). Never mutates posted session history.';
+  'P8.20.8/P8.29.8 SECURITY DEFINER append-only corrections using effective baseline (counted + prior deltas). Updates same-location balances + SUM cache; never mutates posted session history.';

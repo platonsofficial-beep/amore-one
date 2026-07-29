@@ -10,16 +10,18 @@
 -- Do NOT auto-run from the app.
 --
 -- Purpose:
---   Atomic SECURITY DEFINER posting transaction. Locks session + stock items,
---   reconciles via public.reconcile_inventory_count_finish (Strategy 4), then
---   applies adjustment movements, quantity updates, line audit, and session
---   finalization in one transaction.
+--   Atomic SECURITY DEFINER posting transaction. Locks session + location
+--   balances, reconciles via public.reconcile_inventory_count_finish (Strategy 4),
+--   then applies location-aware adjustment movements, balance updates, item
+--   aggregate cache refresh, line audit, and session finalization in one
+--   transaction (P8.29.8).
 --
 -- Does NOT:
 --   - Implement its own Strategy 4 formulas
 --   - Use stock_count absolute-set movements
 --   - Accept client quantities / reconciliation payloads
 --   - Enable Confirm Finish Count / wire frontend
+--   - Overwrite whole-item quantity except via SUM(balances) cache refresh
 --
 -- Idempotency (current signature: workspace + session only):
 --   At-most-once per session via FOR UPDATE + reject if already posted.
@@ -69,7 +71,16 @@ declare
   v_total_negative_variance numeric(12, 3) := 0;
   v_posted_at timestamptz;
   v_idempotency_key text;
-  v_seen_item_ids uuid[] := array[]::uuid[];
+  v_seen_line_keys text[] := array[]::text[];
+  v_storage_location text;
+  v_balance_id uuid;
+  v_workspace_storage_id uuid;
+  v_location_key text;
+  v_aggregate_sum numeric(12, 3);
+  v_source_storage_id uuid;
+  v_dest_storage_id uuid;
+  v_source_location_key text;
+  v_dest_location_key text;
 begin
   -- Authentication
   if v_auth_user_id is null then
@@ -140,18 +151,17 @@ begin
   -- Deterministic key assigned only on successful finalization below.
   v_idempotency_key := 'inventory_count_post:' || p_session_id::text;
 
-  -- STEP 3+4: Lock participating stock items one-by-one in ascending id order.
-  -- Explicit loop (not only ORDER BY + FOR UPDATE) so lock acquisition order is
-  -- deterministic for deadlock avoidance. Reconcile runs after all locks.
-  for v_item_id in
-    select distinct i.item_id
+  -- STEP 3+4: Lock participating location balances (and parent items) in
+  -- deterministic (item_id, location_key) order for deadlock avoidance.
+  for v_item_id, v_storage_location in
+    select distinct i.item_id, i.storage_location
     from public.inventory_count_session_items i
     where i.session_id = p_session_id
       and i.workspace_id = p_workspace_id
       and i.line_status = 'counted'
       and i.counted_quantity is not null
       and i.item_id is not null
-    order by i.item_id
+    order by i.item_id, i.storage_location
   loop
     perform 1
     from public.stock_items si
@@ -161,6 +171,17 @@ begin
 
     if not found then
       raise exception 'inventory_count_post_stock_item_missing';
+    end if;
+
+    perform 1
+    from public.stock_item_location_balances b
+    where b.workspace_id = p_workspace_id
+      and b.stock_item_id = v_item_id
+      and b.location_key = v_storage_location
+    for update of b;
+
+    if not found then
+      raise exception 'inventory_count_post_balance_missing';
     end if;
   end loop;
 
@@ -201,18 +222,24 @@ begin
   for v_line in
     select value
     from jsonb_array_elements(v_lines) as t(value)
-    order by (t.value ->> 'item_id')::uuid, (t.value ->> 'session_item_id')::uuid
+    order by (t.value ->> 'item_id')::uuid, (t.value ->> 'storage_location'), (t.value ->> 'session_item_id')::uuid
   loop
     v_session_item_id := nullif(v_line ->> 'session_item_id', '')::uuid;
     v_item_id := nullif(v_line ->> 'item_id', '')::uuid;
+    v_storage_location := nullif(v_line ->> 'storage_location', '');
     v_expected_at_count := nullif(v_line ->> 'expected_at_count', '')::numeric;
     v_variance_quantity := nullif(v_line ->> 'variance_quantity', '')::numeric;
     v_current_live_quantity := nullif(v_line ->> 'current_live_quantity', '')::numeric;
     v_resulting_quantity_after_post := nullif(v_line ->> 'resulting_quantity_after_post', '')::numeric;
     v_movement_id := null;
+    v_source_storage_id := null;
+    v_dest_storage_id := null;
+    v_source_location_key := null;
+    v_dest_location_key := null;
 
     if v_session_item_id is null
        or v_item_id is null
+       or v_storage_location is null
        or v_expected_at_count is null
        or v_variance_quantity is null
        or v_current_live_quantity is null
@@ -220,32 +247,47 @@ begin
       raise exception 'inventory_count_post_invalid_line';
     end if;
 
-    if v_item_id = any (v_seen_item_ids) then
+    -- Allow same product at multiple locations; reject duplicate line keys.
+    if (v_item_id::text || chr(1) || v_storage_location) = any (v_seen_line_keys) then
       raise exception 'inventory_count_post_duplicate_item';
     end if;
-    v_seen_item_ids := array_append(v_seen_item_ids, v_item_id);
+    v_seen_line_keys := array_append(
+      v_seen_line_keys,
+      v_item_id::text || chr(1) || v_storage_location
+    );
 
-    -- Stale-state safety: locked live qty must match reconciliation
-    select si.current_quantity
-    into v_locked_qty
-    from public.stock_items si
-    where si.id = v_item_id
-      and si.workspace_id = p_workspace_id;
+    -- Stale-state safety: locked location balance must match reconciliation
+    select b.id, b.quantity, b.workspace_storage_id, b.location_key
+    into v_balance_id, v_locked_qty, v_workspace_storage_id, v_location_key
+    from public.stock_item_location_balances b
+    where b.workspace_id = p_workspace_id
+      and b.stock_item_id = v_item_id
+      and b.location_key = v_storage_location;
 
     if not found then
-      raise exception 'inventory_count_post_stock_item_missing';
+      raise exception 'inventory_count_post_balance_missing';
     end if;
 
     if v_locked_qty is distinct from v_current_live_quantity then
       raise exception 'inventory_count_post_live_quantity_mismatch';
     end if;
 
+    if v_resulting_quantity_after_post < 0 then
+      raise exception 'inventory_count_post_negative_balance_rejected';
+    end if;
+
     if v_variance_quantity <> 0 then
       -- Defensive equality: result must equal live + variance (Strategy 4).
-      -- Do not reject negative results here: stock_items has no non-negative CHECK;
-      -- day-to-day stock UI clamps via applyStockMovementQuantity / updateStockItemQuantity.
       if v_resulting_quantity_after_post is distinct from (v_current_live_quantity + v_variance_quantity) then
         raise exception 'inventory_count_post_result_mismatch';
+      end if;
+
+      if v_variance_quantity > 0 then
+        v_dest_storage_id := v_workspace_storage_id;
+        v_dest_location_key := v_location_key;
+      else
+        v_source_storage_id := v_workspace_storage_id;
+        v_source_location_key := v_location_key;
       end if;
 
       insert into public.stock_movements (
@@ -254,7 +296,13 @@ begin
         type,
         quantity,
         note,
-        created_by
+        created_by,
+        source_workspace_storage_id,
+        destination_workspace_storage_id,
+        source_location_key,
+        destination_location_key,
+        origin_workflow,
+        origin_ref_id
       )
       values (
         p_workspace_id,
@@ -262,7 +310,13 @@ begin
         'adjustment',
         v_variance_quantity,
         format('Inventory count post session %s line %s', p_session_id, v_session_item_id),
-        v_auth_user_id
+        v_auth_user_id,
+        v_source_storage_id,
+        v_dest_storage_id,
+        v_source_location_key,
+        v_dest_location_key,
+        'inventory_count_post',
+        p_session_id
       )
       returning id into v_movement_id;
 
@@ -270,11 +324,36 @@ begin
         raise exception 'inventory_count_post_movement_failed';
       end if;
 
+      -- Update ONLY the affected location balance (not whole-item overwrite).
+      update public.stock_item_location_balances b
+      set
+        quantity = v_resulting_quantity_after_post,
+        quantity_version = b.quantity_version + 1,
+        updated_by = v_auth_user_id
+      where b.id = v_balance_id
+        and b.workspace_id = p_workspace_id
+        and b.quantity is not distinct from v_current_live_quantity;
+
+      get diagnostics v_row_count = row_count;
+      if v_row_count is distinct from 1 then
+        raise exception 'inventory_count_post_quantity_update_failed';
+      end if;
+
+      -- Refresh cached aggregate from SUM(location balances).
+      select coalesce(sum(b.quantity), 0)::numeric(12, 3)
+      into v_aggregate_sum
+      from public.stock_item_location_balances b
+      where b.workspace_id = p_workspace_id
+        and b.stock_item_id = v_item_id;
+
+      if v_aggregate_sum < 0 then
+        raise exception 'inventory_count_post_aggregate_drift';
+      end if;
+
       update public.stock_items si
-      set current_quantity = v_resulting_quantity_after_post
+      set current_quantity = v_aggregate_sum
       where si.id = v_item_id
-        and si.workspace_id = p_workspace_id
-        and si.current_quantity is not distinct from v_current_live_quantity;
+        and si.workspace_id = p_workspace_id;
 
       get diagnostics v_row_count = row_count;
       if v_row_count is distinct from 1 then
@@ -305,6 +384,7 @@ begin
       and i.session_id = p_session_id
       and i.workspace_id = p_workspace_id
       and i.item_id = v_item_id
+      and i.storage_location = v_storage_location
       and i.line_status = 'counted';
 
     get diagnostics v_row_count = row_count;
@@ -366,7 +446,7 @@ revoke all on function public.post_inventory_count_finish(uuid, uuid) from publi
 grant execute on function public.post_inventory_count_finish(uuid, uuid) to authenticated;
 
 comment on function public.post_inventory_count_finish(uuid, uuid) is
-  'P8.5.3 Atomic SECURITY DEFINER inventory count post. Locks session/items, reconciles via Strategy 4, applies adjustment movements + qty, finalizes posted. No frontend wiring.';
+  'P8.5.3/P8.29.8 Atomic SECURITY DEFINER inventory count post. Locks session/balances, reconciles via Strategy 4, applies location-aware adjustment movements + balance qty + SUM cache, finalizes posted. Snapshot history immutable.';
 
 -- =============================================================================
 -- Errors:

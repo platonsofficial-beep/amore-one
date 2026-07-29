@@ -80,6 +80,15 @@ declare
   v_reversal_movement_count integer := 0;
   v_line_count integer := 0;
   v_movements jsonb := '[]'::jsonb;
+  v_balance_id uuid;
+  v_workspace_storage_id uuid;
+  v_location_key text;
+  v_aggregate_sum numeric(12, 3);
+  v_source_storage_id uuid;
+  v_dest_storage_id uuid;
+  v_source_location_key text;
+  v_dest_location_key text;
+  v_primary_location text;
 begin
   if v_auth_user_id is null then
     raise exception 'inventory_count_reversal_unauthenticated'
@@ -247,7 +256,7 @@ begin
 
   v_source_movement_count := coalesce(cardinality(v_source_ids), 0);
 
-  -- 4) Lock participating stock items in ascending id order (deadlock avoidance).
+  -- 4) Lock participating stock items + balances in ascending order (deadlock avoidance).
   for v_item_id in
     select distinct m.item_id
     from public.stock_movements m
@@ -264,6 +273,12 @@ begin
       raise exception 'inventory_count_reversal_stock_item_missing'
         using hint = 'A stock item referenced by a reversal movement was not found.';
     end if;
+
+    perform 1
+    from public.stock_item_location_balances b
+    where b.workspace_id = p_workspace_id
+      and b.stock_item_id = v_item_id
+    for update of b;
   end loop;
 
   -- 5) Insert reversal audit header FIRST (before stock mutations).
@@ -300,19 +315,63 @@ begin
     v_item_id := v_orig.item_id;
     v_reversal_quantity := -v_orig.quantity;
     v_reversal_movement_id := null;
+    v_source_storage_id := null;
+    v_dest_storage_id := null;
+    v_source_location_key := null;
+    v_dest_location_key := null;
 
-    select si.current_quantity
-      into v_locked_qty
-    from public.stock_items si
-    where si.id = v_item_id
-      and si.workspace_id = p_workspace_id;
+    -- Resolve location from original movement (P8.29.8). Legacy null keys → item primary.
+    v_workspace_storage_id := coalesce(
+      v_orig.destination_workspace_storage_id,
+      v_orig.source_workspace_storage_id
+    );
+    v_location_key := coalesce(
+      v_orig.destination_location_key,
+      v_orig.source_location_key
+    );
+
+    if v_location_key is null then
+      select si.storage_location
+        into v_primary_location
+      from public.stock_items si
+      where si.id = v_item_id
+        and si.workspace_id = p_workspace_id;
+
+      v_location_key := v_primary_location;
+    end if;
+
+    if v_location_key is null then
+      raise exception 'inventory_count_reversal_balance_missing'
+        using hint = 'Unable to resolve location for reversal movement.';
+    end if;
+
+    select b.id, b.quantity, b.workspace_storage_id, b.location_key
+      into v_balance_id, v_locked_qty, v_workspace_storage_id, v_location_key
+    from public.stock_item_location_balances b
+    where b.workspace_id = p_workspace_id
+      and b.stock_item_id = v_item_id
+      and b.location_key = v_location_key
+    for update of b;
 
     if not found then
-      raise exception 'inventory_count_reversal_stock_item_missing'
-        using hint = 'A stock item referenced by a reversal movement was not found.';
+      raise exception 'inventory_count_reversal_balance_missing'
+        using hint = 'A location balance referenced by a reversal was not found.';
     end if;
 
     v_next_qty := v_locked_qty + v_reversal_quantity;
+
+    if v_next_qty < 0 then
+      raise exception 'inventory_count_reversal_negative_balance_rejected'
+        using hint = 'Reversal would make the location balance negative.';
+    end if;
+
+    if v_reversal_quantity > 0 then
+      v_dest_storage_id := v_workspace_storage_id;
+      v_dest_location_key := v_location_key;
+    else
+      v_source_storage_id := v_workspace_storage_id;
+      v_source_location_key := v_location_key;
+    end if;
 
     insert into public.stock_movements (
       workspace_id,
@@ -320,7 +379,13 @@ begin
       type,
       quantity,
       note,
-      created_by
+      created_by,
+      source_workspace_storage_id,
+      destination_workspace_storage_id,
+      source_location_key,
+      destination_location_key,
+      origin_workflow,
+      origin_ref_id
     )
     values (
       p_workspace_id,
@@ -333,7 +398,13 @@ begin
         v_orig.id,
         v_reversal_id
       ),
-      v_auth_user_id
+      v_auth_user_id,
+      v_source_storage_id,
+      v_dest_storage_id,
+      v_source_location_key,
+      v_dest_location_key,
+      'inventory_count_reversal',
+      p_session_id
     )
     returning id into v_reversal_movement_id;
 
@@ -342,16 +413,40 @@ begin
         using hint = 'Unable to create compensating reversal adjustment.';
     end if;
 
-    update public.stock_items si
-    set current_quantity = v_next_qty
-    where si.id = v_item_id
-      and si.workspace_id = p_workspace_id
-      and si.current_quantity is not distinct from v_locked_qty;
+    update public.stock_item_location_balances b
+    set
+      quantity = v_next_qty,
+      quantity_version = b.quantity_version + 1,
+      updated_by = v_auth_user_id
+    where b.id = v_balance_id
+      and b.workspace_id = p_workspace_id
+      and b.quantity is not distinct from v_locked_qty;
 
     get diagnostics v_row_count = row_count;
     if v_row_count is distinct from 1 then
       raise exception 'inventory_count_reversal_quantity_update_failed'
-        using hint = 'Live stock changed while reversing. Retry.';
+        using hint = 'Live location balance changed while reversing. Retry.';
+    end if;
+
+    select coalesce(sum(b.quantity), 0)::numeric(12, 3)
+    into v_aggregate_sum
+    from public.stock_item_location_balances b
+    where b.workspace_id = p_workspace_id
+      and b.stock_item_id = v_item_id;
+
+    if v_aggregate_sum < 0 then
+      raise exception 'inventory_count_reversal_aggregate_drift';
+    end if;
+
+    update public.stock_items si
+    set current_quantity = v_aggregate_sum
+    where si.id = v_item_id
+      and si.workspace_id = p_workspace_id;
+
+    get diagnostics v_row_count = row_count;
+    if v_row_count is distinct from 1 then
+      raise exception 'inventory_count_reversal_quantity_update_failed'
+        using hint = 'Unable to refresh stock aggregate after reversal.';
     end if;
 
     insert into public.inventory_count_reversal_lines (
