@@ -1,8 +1,9 @@
 /**
- * P8.16.0–P8.16.4 — Inventory Import Wizard Shell.
+ * P8.16.0–P8.27.4 — Inventory Import Wizard Shell.
  *
- * File selection, optional worksheet selection, format detection, parser →
- * Review Columns. No validator, mapper, classifier, persistence, upload, or Apply.
+ * File selection through Ready review, then staging session create → stage →
+ * mark ready → apply → completion summary. Uses existing import service wrappers
+ * and staging serializer only.
  */
 
 import { useMemo, useRef, useState } from 'react'
@@ -15,6 +16,7 @@ import * as inventoryOperationalProductMatcher from '../../lib/inventoryOperatio
 import * as inventoryOperationalImportPreview from '../../lib/inventoryOperationalImportPreview'
 import * as inventoryOperationalMatchResolutions from '../../lib/inventoryOperationalMatchResolutions'
 import * as inventoryNewProductDrafts from '../../lib/inventoryNewProductDrafts'
+import { buildInventoryImportStagingPayload } from '../../lib/inventoryImportStagingPayload'
 import {
   INVENTORY_IMPORT_ELIGIBILITY_BLOCKER,
   INVENTORY_IMPORT_ELIGIBILITY_WARNING,
@@ -22,11 +24,27 @@ import {
   evaluateInventoryImportReadyEligibility,
 } from '../../lib/inventoryImportEligibility'
 import { STOCK_LOCATIONS } from '../../lib/stockCatalog'
+import {
+  applyInventoryImportSession as applyInventoryImportSessionDefault,
+  createInventoryImportSession as createInventoryImportSessionDefault,
+  markInventoryImportSessionReady as markInventoryImportSessionReadyDefault,
+  stageInventoryImportRows as stageInventoryImportRowsDefault,
+} from '../../services/inventoryImportService'
 import { InventoryOperationalImportPreview } from './InventoryOperationalImportPreview'
 import { InventoryOperationalMatchResolution } from './InventoryOperationalMatchResolution'
 import { InventoryOperationalMatchingSummary } from './InventoryOperationalMatchingSummary'
 import { InventoryNewProductReview } from './InventoryNewProductReview'
 import { InventoryOperationalReview } from './InventoryOperationalReview'
+
+/**
+ * @returns {string}
+ */
+function createInventoryImportApplyIdempotencyKey() {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID()
+  }
+  return `import-apply-${Date.now()}-${Math.random().toString(36).slice(2, 12)}`
+}
 
 const DEFAULT_IMPORT_SESSION_POLICY = Object.freeze({
   quantityPolicy: INVENTORY_IMPORT_QUANTITY_POLICY.NO_CHANGE,
@@ -321,15 +339,26 @@ function detectAndParseDecodedTable(decoded) {
  *   onClose?: () => void,
  *   workspaceId?: string,
  *   loadWorkspaceStockItems?: (workspaceId: string) => Promise<object[]>,
+ *   createInventoryImportSession?: typeof createInventoryImportSessionDefault,
+ *   stageInventoryImportRows?: typeof stageInventoryImportRowsDefault,
+ *   markInventoryImportSessionReady?: typeof markInventoryImportSessionReadyDefault,
+ *   applyInventoryImportSession?: typeof applyInventoryImportSessionDefault,
  * }} props
  */
 export function InventoryImportWizardShell({
   onClose = undefined,
   workspaceId = '',
   loadWorkspaceStockItems = undefined,
+  createInventoryImportSession = createInventoryImportSessionDefault,
+  stageInventoryImportRows = stageInventoryImportRowsDefault,
+  markInventoryImportSessionReady = markInventoryImportSessionReadyDefault,
+  applyInventoryImportSession = applyInventoryImportSessionDefault,
 } = {}) {
   const fileInputRef = useRef(null)
   const processingLockRef = useRef(false)
+  const applyLockRef = useRef(false)
+  const importApplySessionIdRef = useRef(/** @type {string|null} */ (null))
+  const importApplySessionReadyRef = useRef(false)
   const [wizardView, setWizardView] = useState('upload')
   const [selectedFile, setSelectedFile] = useState(null)
   const [selectionError, setSelectionError] = useState('')
@@ -344,12 +373,19 @@ export function InventoryImportWizardShell({
   const [importSessionPolicy, setImportSessionPolicy] = useState(() => ({
     ...DEFAULT_IMPORT_SESSION_POLICY,
   }))
+  const [isApplyingImport, setIsApplyingImport] = useState(false)
+  const [applyImportError, setApplyImportError] = useState('')
+  const [applyImportResult, setApplyImportResult] = useState(null)
 
   const isOperationalFormat = formatDetection?.format
     === inventoryImportFormatDetector.INVENTORY_IMPORT_FORMAT.OPERATIONAL
   const workspaceStockCatalog = useWorkspaceStockCatalog({
     workspaceId,
-    enabled: (wizardView === 'columns' || wizardView === 'data' || wizardView === 'preview')
+    enabled: (wizardView === 'columns'
+      || wizardView === 'data'
+      || wizardView === 'preview'
+      || wizardView === 'ready'
+      || wizardView === 'completed')
       && isOperationalFormat
       && Boolean(operationalModel),
     ...(loadWorkspaceStockItems ? { loadItems: loadWorkspaceStockItems } : {}),
@@ -445,7 +481,7 @@ export function InventoryImportWizardShell({
     })
   ), [workspaceStockCatalog.items, resolutionOperationalImportPreview])
 
-  const progressStep = wizardView === 'ready'
+  const progressStep = wizardView === 'ready' || wizardView === 'completed'
     ? 5
     : wizardView === 'preview'
       ? 4
@@ -460,6 +496,15 @@ export function InventoryImportWizardShell({
     setSelectedWorksheetName('')
   }
 
+  function resetImportApplyState() {
+    importApplySessionIdRef.current = null
+    importApplySessionReadyRef.current = false
+    applyLockRef.current = false
+    setIsApplyingImport(false)
+    setApplyImportError('')
+    setApplyImportResult(null)
+  }
+
   function clearDetectionAndParse() {
     setParseResult(null)
     setFormatDetection(null)
@@ -467,6 +512,7 @@ export function InventoryImportWizardShell({
     setMatchResolutions({})
     setNewProductDrafts({})
     setImportSessionPolicy({ ...DEFAULT_IMPORT_SESSION_POLICY })
+    resetImportApplyState()
   }
 
   function handleQuantityPolicyChange(nextPolicy) {
@@ -724,12 +770,106 @@ export function InventoryImportWizardShell({
   function handleContinueFromPreview() {
     if (wizardView !== 'preview') return
     if (!canContinueFromPreviewToReady()) return
+    setApplyImportError('')
     setWizardView('ready')
   }
 
   function handleBackFromReady() {
-    if (isProcessing) return
+    if (isProcessing || isApplyingImport) return
+    // Abandon staged session identity so a later Apply can restage changed review.
+    importApplySessionIdRef.current = null
+    importApplySessionReadyRef.current = false
+    setApplyImportError('')
     setWizardView('preview')
+  }
+
+  /**
+   * Review → create (once) → stage → mark ready → apply → completion.
+   */
+  async function handleApplyImport() {
+    if (applyLockRef.current || isApplyingImport) return
+    if (wizardView !== 'ready') return
+    if (!readyEligibility?.isReady) return
+    if (!resolvedOperationalImportPreview || !selectedFile) return
+
+    const normalizedWorkspaceId = `${workspaceId ?? ''}`.trim()
+    if (!normalizedWorkspaceId) {
+      setApplyImportError('Workspace is required to apply this import.')
+      return
+    }
+
+    applyLockRef.current = true
+    setIsApplyingImport(true)
+    setApplyImportError('')
+
+    try {
+      const stagingPayload = buildInventoryImportStagingPayload({
+        workspaceId: normalizedWorkspaceId,
+        selectedFile,
+        selectedWorksheetName,
+        headerRowNumber: parseResult?.headerRowNumber ?? null,
+        sourceFormat: formatDetection?.signals?.sourceFormat ?? selectedFile.extension ?? null,
+        preview: resolvedOperationalImportPreview,
+        policy: importSessionPolicy,
+        eligibility: readyEligibility,
+      })
+
+      let sessionId = importApplySessionIdRef.current
+      if (!sessionId) {
+        const created = await createInventoryImportSession({
+          workspaceId: normalizedWorkspaceId,
+          sourceFilename: stagingPayload.session.source_filename,
+          sourceFormat: stagingPayload.session.source_format,
+          sourceFileSizeBytes: stagingPayload.session.source_file_size_bytes,
+          sourceFingerprint: stagingPayload.session.source_fingerprint,
+          selectedSheet: stagingPayload.session.selected_sheet,
+          headerRowNumber: stagingPayload.session.header_row_number,
+          parserVersion: stagingPayload.session.parser_version,
+          normalizationVersion: stagingPayload.session.normalization_version,
+          validationVersion: stagingPayload.session.validation_version,
+          contractVersion: stagingPayload.session.contract_version,
+          mapping: stagingPayload.session.mapping,
+          confirmations: stagingPayload.session.confirmations,
+          sourceMetadata: stagingPayload.session.source_metadata,
+          stagingVersion: stagingPayload.stagingVersion,
+        })
+        sessionId = `${created.sessionId ?? ''}`.trim()
+        if (!sessionId) {
+          throw new Error('Create inventory import session returned no session.')
+        }
+        importApplySessionIdRef.current = sessionId
+        importApplySessionReadyRef.current = false
+      }
+
+      if (!importApplySessionReadyRef.current) {
+        await stageInventoryImportRows({
+          workspaceId: normalizedWorkspaceId,
+          sessionId,
+          rows: stagingPayload.rows,
+        })
+        await markInventoryImportSessionReady({
+          workspaceId: normalizedWorkspaceId,
+          sessionId,
+        })
+        importApplySessionReadyRef.current = true
+      }
+
+      const applyIdempotencyKey = createInventoryImportApplyIdempotencyKey()
+      const result = await applyInventoryImportSession({
+        workspaceId: normalizedWorkspaceId,
+        sessionId,
+        applyIdempotencyKey,
+      })
+      setApplyImportResult(result)
+      setWizardView('completed')
+    } catch (error) {
+      const message = `${error?.message ?? ''}`.trim()
+        || 'Failed to apply inventory import.'
+      setApplyImportError(message)
+    } finally {
+      setIsApplyingImport(false)
+      applyLockRef.current = false
+    }
   }
 
   const hasSelectedFile = selectedFile != null
@@ -739,9 +879,27 @@ export function InventoryImportWizardShell({
   const showDataFooter = wizardView === 'data'
   const showPreviewFooter = wizardView === 'preview'
   const showReadyFooter = wizardView === 'ready'
+  const showCompletedFooter = wizardView === 'completed'
   const canContinueFromColumns = canContinueFromColumnsToReviewData()
   const canContinueFromData = canContinueFromDataToImportPreview()
   const canContinueFromPreview = canContinueFromPreviewToReady()
+  const canApplyImport = (
+    readyEligibility?.isReady === true
+    && !isApplyingImport
+    && Boolean(`${workspaceId ?? ''}`.trim())
+    && Boolean(resolvedOperationalImportPreview)
+    && Boolean(selectedFile)
+  )
+  const applyProcessedTotal = applyImportResult
+    ? (
+      applyImportResult.eligibleRowCount
+      ?? (
+        (Number(applyImportResult.createdCount) || 0)
+        + (Number(applyImportResult.linkedCount) || 0)
+        + (Number(applyImportResult.skippedCount) || 0)
+      )
+    )
+    : null
   const reviewDataContinueMessages = listInventoryImportReviewDataContinueMessages({
     canContinue: canContinueFromData,
     previewStatus: operationalImportPreviewState.status,
@@ -795,6 +953,7 @@ export function InventoryImportWizardShell({
               className="ghost-btn inventory-import-wizard-exit-btn"
               onClick={typeof onClose === 'function' ? onClose : undefined}
               aria-label="Close"
+              disabled={isApplyingImport}
             >
               Close (Exit)
             </button>
@@ -1341,7 +1500,13 @@ export function InventoryImportWizardShell({
                 </h3>
                 <p className="inventory-import-wizard-review-meta">
                   <span>{selectedFile?.name}</span>
-                  <span>Apply Import is not available yet</span>
+                  <span>
+                    {isApplyingImport
+                      ? 'Applying import…'
+                      : readyEligibility?.isReady
+                        ? 'Ready to apply'
+                        : 'Finish review before applying'}
+                  </span>
                 </p>
               </div>
               <div className="inventory-operational-review-empty" role="status">
@@ -1349,7 +1514,58 @@ export function InventoryImportWizardShell({
                   Ready to Import
                 </p>
                 <p className="inventory-operational-review-empty-copy">
-                  Review is complete. Applying this import will be enabled in a later step.
+                  Review is complete. Apply Import will create a staging session,
+                  mark it ready, and apply opening stock where selected.
+                </p>
+              </div>
+              {applyImportError ? (
+                <p
+                  className="inventory-import-wizard-selection-error"
+                  role="alert"
+                >
+                  {applyImportError}
+                </p>
+              ) : null}
+              {isApplyingImport ? (
+                <p
+                  className="inventory-import-wizard-processing"
+                  aria-live="polite"
+                >
+                  Applying import…
+                </p>
+              ) : null}
+            </div>
+          ) : null}
+
+          {wizardView === 'completed' && applyImportResult ? (
+            <div className="inventory-import-wizard-ready">
+              <div className="inventory-import-wizard-review-summary">
+                <h3 className="inventory-import-wizard-review-title">
+                  Import Complete
+                </h3>
+                <p className="inventory-import-wizard-review-meta">
+                  <span>{selectedFile?.name}</span>
+                  <span>Apply finished</span>
+                </p>
+              </div>
+              <div className="inventory-operational-review-empty" role="status">
+                <p className="inventory-operational-review-empty-title">
+                  Import Complete
+                </p>
+                <p className="inventory-operational-review-empty-copy">
+                  Products created: {applyImportResult.createdCount ?? 0}
+                </p>
+                <p className="inventory-operational-review-empty-copy">
+                  Products linked: {applyImportResult.linkedCount ?? 0}
+                </p>
+                <p className="inventory-operational-review-empty-copy">
+                  Skipped rows: {applyImportResult.skippedCount ?? 0}
+                </p>
+                <p className="inventory-operational-review-empty-copy">
+                  Opening stock movements: {applyImportResult.movementCount ?? 0}
+                </p>
+                <p className="inventory-operational-review-empty-copy">
+                  Total processed: {applyProcessedTotal ?? 0}
                 </p>
               </div>
             </div>
@@ -1629,16 +1845,32 @@ export function InventoryImportWizardShell({
               type="button"
               className="ghost-btn inventory-import-wizard-nav-btn"
               onClick={handleBackFromReady}
+              disabled={isApplyingImport}
             >
               Back
             </button>
             <button
               type="button"
               className="primary-btn inventory-import-wizard-nav-btn inventory-import-wizard-continue-btn"
-              disabled
-              aria-disabled="true"
+              onClick={handleApplyImport}
+              disabled={!canApplyImport}
+              aria-disabled={!canApplyImport ? 'true' : undefined}
             >
-              Apply Import
+              {isApplyingImport ? 'Applying…' : 'Apply Import'}
+            </button>
+          </footer>
+        ) : null}
+
+        {showCompletedFooter ? (
+          <footer className="inventory-import-wizard-footer">
+            <button
+              type="button"
+              className="primary-btn inventory-import-wizard-nav-btn inventory-import-wizard-continue-btn"
+              onClick={() => {
+                if (typeof onClose === 'function') onClose()
+              }}
+            >
+              Done
             </button>
           </footer>
         ) : null}

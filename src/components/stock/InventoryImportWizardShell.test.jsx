@@ -582,7 +582,7 @@ describe('InventoryImportWizardShell', () => {
     expect(onClose).toHaveBeenCalledTimes(1)
   })
 
-  it('does not import validator, mapper, classifier, services, RPCs, or FileReader', () => {
+  it('does not import validator, mapper, classifier, unrelated services, RPCs, or FileReader', () => {
     const source = readFileSync(join(HERE, 'InventoryImportWizardShell.jsx'), 'utf8')
 
     expect(source).toMatch(/inventoryImportFileDecoder/)
@@ -593,6 +593,8 @@ describe('InventoryImportWizardShell', () => {
     expect(source).toMatch(/inventoryOperationalImportPreview/)
     expect(source).toMatch(/inventoryOperationalMatchResolutions/)
     expect(source).toMatch(/inventoryNewProductDrafts/)
+    expect(source).toMatch(/inventoryImportStagingPayload/)
+    expect(source).toMatch(/inventoryImportService/)
     expect(source).toMatch(/useWorkspaceStockCatalog/)
     expect(source).toMatch(/InventoryOperationalMatchingSummary/)
     expect(source).toMatch(/InventoryOperationalImportPreview/)
@@ -602,7 +604,7 @@ describe('InventoryImportWizardShell', () => {
     expect(source).not.toMatch(/inventoryImportFieldMapper/)
     expect(source).not.toMatch(/inventoryImportClassifier/)
     expect(source).not.toMatch(/stockCsvImport/)
-    expect(source).not.toMatch(/from ['"].*services\//)
+    expect(source).not.toMatch(/from ['"].*services\/(?!inventoryImportService)/)
     expect(source).not.toMatch(/supabase/i)
     expect(source).not.toMatch(/\.rpc\(/i)
     expect(source).not.toMatch(/FileReader/)
@@ -1454,7 +1456,8 @@ describe('InventoryImportWizardShell', () => {
     })
     expect(container.querySelector('.inventory-import-wizard-review-title')?.textContent)
       .toBe('Ready to Import')
-    expect(getButton('Apply Import')?.disabled).toBe(true)
+    expect(getButton('Apply Import')?.disabled).toBe(false)
+    expect(container.textContent).toContain('Ready to apply')
   })
 
   it('resets new product drafts when a different file is selected', async () => {
@@ -1864,7 +1867,7 @@ describe('InventoryImportWizardShell', () => {
     expect(container.textContent).toContain('CSV has an unclosed quoted field.')
   })
 
-  it('defaults to no_change policy, requires location fallback for creates, and keeps Apply disabled', async () => {
+  it('defaults to no_change policy, requires location fallback for creates, and enables Apply when ready', async () => {
     renderShell({
       workspaceId: 'ws-ops',
       loadWorkspaceStockItems: vi.fn(async () => []),
@@ -1913,8 +1916,8 @@ describe('InventoryImportWizardShell', () => {
     })
     expect(container.querySelector('.inventory-import-wizard-review-title')?.textContent)
       .toBe('Ready to Import')
-    expect(getButton('Apply Import')?.disabled).toBe(true)
-    expect(container.textContent).toContain('Apply Import is not available yet')
+    expect(getButton('Apply Import')?.disabled).toBe(false)
+    expect(container.textContent).toContain('Ready to apply')
   })
 
   it('requires overwrite confirmation for opening stock on linked items and clears it when returning to no_change', async () => {
@@ -2027,6 +2030,231 @@ describe('InventoryImportWizardShell', () => {
       .toBe('true')
     expect(container.querySelector('#inventory-import-location-fallback')?.value).toBe('')
     expect(container.textContent).toContain('Another New Spirit')
+  })
+
+  async function continueReadyCreateOnlyFlow() {
+    selectFile(createSpreadsheetFile('apply-ready.xlsx', [
+      ['', 'Storage Tasos', 'BAR', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday', 'Order', 'Stock Control'],
+      ['VODKA', '', '', '', '', '', '', '', '', '', '', ''],
+      ['Brand New Spirit', 3, 1, '', '', '', '', '', '', '', '', ''],
+    ]))
+    await continueToColumnReview()
+    act(() => {
+      getButton('Continue').dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    })
+    await act(async () => {
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+    act(() => {
+      getButton('Continue').dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    })
+    const unitSelect = Array.from(container.querySelectorAll('.inventory-new-product-review select'))
+      .find((select) => Array.from(select.options).some((option) => option.value === 'Bottle 700ml'))
+    setSelectValue(unitSelect, 'Bottle 700ml')
+    setLocationFallback('Main Storage')
+    act(() => {
+      getButton('Continue').dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    })
+  }
+
+  it('applies import through create → stage → ready → apply and shows completion from RPC', async () => {
+    const createInventoryImportSession = vi.fn(async () => ({
+      sessionId: 'sess-apply-1',
+      status: 'draft',
+    }))
+    const stageInventoryImportRows = vi.fn(async () => ({
+      sessionId: 'sess-apply-1',
+      status: 'review',
+    }))
+    const markInventoryImportSessionReady = vi.fn(async () => ({
+      sessionId: 'sess-apply-1',
+      status: 'ready',
+    }))
+    const applyInventoryImportSession = vi.fn(async ({ applyIdempotencyKey }) => ({
+      sessionId: 'sess-apply-1',
+      status: 'completed',
+      createdCount: 1,
+      linkedCount: 2,
+      skippedCount: 3,
+      movementCount: 4,
+      eligibleRowCount: 6,
+      applyIdempotencyKey,
+    }))
+
+    renderShell({
+      workspaceId: 'ws-ops',
+      loadWorkspaceStockItems: vi.fn(async () => []),
+      createInventoryImportSession,
+      stageInventoryImportRows,
+      markInventoryImportSessionReady,
+      applyInventoryImportSession,
+    })
+
+    await continueReadyCreateOnlyFlow()
+    expect(getButton('Apply Import')?.disabled).toBe(false)
+
+    await act(async () => {
+      getButton('Apply Import').dispatchEvent(new MouseEvent('click', { bubbles: true }))
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+
+    expect(createInventoryImportSession).toHaveBeenCalledTimes(1)
+    expect(stageInventoryImportRows).toHaveBeenCalledTimes(1)
+    expect(markInventoryImportSessionReady).toHaveBeenCalledTimes(1)
+    expect(applyInventoryImportSession).toHaveBeenCalledTimes(1)
+    expect(applyInventoryImportSession.mock.calls[0][0].sessionId).toBe('sess-apply-1')
+    expect(applyInventoryImportSession.mock.calls[0][0].workspaceId).toBe('ws-ops')
+    expect(`${applyInventoryImportSession.mock.calls[0][0].applyIdempotencyKey ?? ''}`.length)
+      .toBeGreaterThan(0)
+    expect(stageInventoryImportRows.mock.calls[0][0].rows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ selected_action: 'create' }),
+      ]),
+    )
+
+    expect(container.querySelector('.inventory-import-wizard-review-title')?.textContent)
+      .toBe('Import Complete')
+    expect(container.textContent).toContain('Products created: 1')
+    expect(container.textContent).toContain('Products linked: 2')
+    expect(container.textContent).toContain('Skipped rows: 3')
+    expect(container.textContent).toContain('Opening stock movements: 4')
+    expect(container.textContent).toContain('Total processed: 6')
+    expect(getButton('Apply Import')).toBeFalsy()
+    expect(getButton('Done')).toBeTruthy()
+  })
+
+  it('keeps review state on apply failure, allows retry, and creates the session only once', async () => {
+    const createInventoryImportSession = vi.fn(async () => ({
+      sessionId: 'sess-retry-1',
+      status: 'draft',
+    }))
+    const stageInventoryImportRows = vi.fn(async () => ({
+      sessionId: 'sess-retry-1',
+      status: 'review',
+    }))
+    const markInventoryImportSessionReady = vi.fn(async () => ({
+      sessionId: 'sess-retry-1',
+      status: 'ready',
+    }))
+    const applyInventoryImportSession = vi.fn()
+      .mockRejectedValueOnce(new Error('Apply failed: stock write blocked'))
+      .mockResolvedValueOnce({
+        sessionId: 'sess-retry-1',
+        status: 'completed',
+        createdCount: 1,
+        linkedCount: 0,
+        skippedCount: 0,
+        movementCount: 0,
+        eligibleRowCount: 1,
+      })
+
+    renderShell({
+      workspaceId: 'ws-ops',
+      loadWorkspaceStockItems: vi.fn(async () => []),
+      createInventoryImportSession,
+      stageInventoryImportRows,
+      markInventoryImportSessionReady,
+      applyInventoryImportSession,
+    })
+
+    await continueReadyCreateOnlyFlow()
+
+    await act(async () => {
+      getButton('Apply Import').dispatchEvent(new MouseEvent('click', { bubbles: true }))
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+
+    expect(container.querySelector('.inventory-import-wizard-review-title')?.textContent)
+      .toBe('Ready to Import')
+    expect(container.textContent).toContain('Apply failed: stock write blocked')
+    expect(getButton('Apply Import')?.disabled).toBe(false)
+    expect(createInventoryImportSession).toHaveBeenCalledTimes(1)
+    expect(stageInventoryImportRows).toHaveBeenCalledTimes(1)
+    expect(markInventoryImportSessionReady).toHaveBeenCalledTimes(1)
+    expect(applyInventoryImportSession).toHaveBeenCalledTimes(1)
+
+    const firstKey = applyInventoryImportSession.mock.calls[0][0].applyIdempotencyKey
+
+    await act(async () => {
+      getButton('Apply Import').dispatchEvent(new MouseEvent('click', { bubbles: true }))
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+
+    expect(createInventoryImportSession).toHaveBeenCalledTimes(1)
+    expect(stageInventoryImportRows).toHaveBeenCalledTimes(1)
+    expect(markInventoryImportSessionReady).toHaveBeenCalledTimes(1)
+    expect(applyInventoryImportSession).toHaveBeenCalledTimes(2)
+    expect(applyInventoryImportSession.mock.calls[1][0].applyIdempotencyKey).not.toBe(firstKey)
+    expect(container.querySelector('.inventory-import-wizard-review-title')?.textContent)
+      .toBe('Import Complete')
+    expect(container.textContent).toContain('Products created: 1')
+  })
+
+  it('prevents double Apply while a request is running', async () => {
+    let resolveApply
+    const applyPromise = new Promise((resolve) => {
+      resolveApply = resolve
+    })
+    const createInventoryImportSession = vi.fn(async () => ({
+      sessionId: 'sess-lock-1',
+      status: 'draft',
+    }))
+    const stageInventoryImportRows = vi.fn(async () => ({
+      sessionId: 'sess-lock-1',
+      status: 'review',
+    }))
+    const markInventoryImportSessionReady = vi.fn(async () => ({
+      sessionId: 'sess-lock-1',
+      status: 'ready',
+    }))
+    const applyInventoryImportSession = vi.fn(async () => applyPromise)
+
+    renderShell({
+      workspaceId: 'ws-ops',
+      loadWorkspaceStockItems: vi.fn(async () => []),
+      createInventoryImportSession,
+      stageInventoryImportRows,
+      markInventoryImportSessionReady,
+      applyInventoryImportSession,
+    })
+
+    await continueReadyCreateOnlyFlow()
+
+    await act(async () => {
+      getButton('Apply Import').dispatchEvent(new MouseEvent('click', { bubbles: true }))
+      await Promise.resolve()
+    })
+
+    expect(getButton('Applying…')?.disabled).toBe(true)
+
+    await act(async () => {
+      getButton('Applying…').dispatchEvent(new MouseEvent('click', { bubbles: true }))
+      await Promise.resolve()
+    })
+
+    expect(createInventoryImportSession).toHaveBeenCalledTimes(1)
+    expect(applyInventoryImportSession).toHaveBeenCalledTimes(1)
+
+    await act(async () => {
+      resolveApply({
+        sessionId: 'sess-lock-1',
+        status: 'completed',
+        createdCount: 1,
+        linkedCount: 0,
+        skippedCount: 0,
+        movementCount: 0,
+        eligibleRowCount: 1,
+      })
+      await applyPromise
+      await Promise.resolve()
+    })
+
+    expect(container.querySelector('.inventory-import-wizard-review-title')?.textContent)
+      .toBe('Import Complete')
   })
 })
 
