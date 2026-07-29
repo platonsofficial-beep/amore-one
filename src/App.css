@@ -30276,6 +30276,28 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   line-height: 1.35;
 }
 
+.stock-location-balance-name {
+  display: inline;
+}
+
+.stock-location-balance-inactive-label {
+  margin-left: 8px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: rgba(243, 234, 216, 0.72);
+  font-size: 0.68rem;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.stock-location-balance-empty {
+  margin: 0;
+  color: rgba(243, 234, 216, 0.62);
+  font-size: 0.88rem;
+  line-height: 1.4;
+}
+
 .stock-product-history-timeline {
   display: flex;
   flex-direction: column;

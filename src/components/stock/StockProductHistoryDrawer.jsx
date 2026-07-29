@@ -21,6 +21,7 @@ import {
   formatStockQuantity,
   getStockStatusShortLabel,
 } from '../../lib/stockUtils'
+import { getStockItemLocationBalances } from '../../services/stockLocationBalanceService'
 import { getStockMovementsWithAuthors } from '../../services/stockMovementService'
 
 function OverviewRow({ label, value }) {
@@ -28,6 +29,20 @@ function OverviewRow({ label, value }) {
     <div className="stock-product-history-overview-row">
       <dt>{label}</dt>
       <dd>{value}</dd>
+    </div>
+  )
+}
+
+function LocationBalanceRow({ balance, unit }) {
+  return (
+    <div className="stock-product-history-overview-row stock-location-balance-row">
+      <dt>
+        <span className="stock-location-balance-name">{balance.locationName}</span>
+        {balance.storageActive === false ? (
+          <span className="stock-location-balance-inactive-label">Inactive</span>
+        ) : null}
+      </dt>
+      <dd>{formatStockQuantity(balance.quantity, unit)}</dd>
     </div>
   )
 }
@@ -89,6 +104,7 @@ export function StockProductHistoryDrawer({
   onEdit,
 }) {
   const [movements, setMovements] = useState([])
+  const [locationBalances, setLocationBalances] = useState([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState('')
 
@@ -100,12 +116,16 @@ export function StockProductHistoryDrawer({
       setError('')
 
       try {
-        const records = await getStockMovementsWithAuthors(workspaceId, {
-          itemId: item.id,
-          limit: 200,
-        })
+        const [records, balances] = await Promise.all([
+          getStockMovementsWithAuthors(workspaceId, {
+            itemId: item.id,
+            limit: 200,
+          }),
+          getStockItemLocationBalances(workspaceId, item.id),
+        ])
         if (isMounted) {
           setMovements(records)
+          setLocationBalances(Array.isArray(balances) ? balances : [])
         }
       } catch (loadError) {
         if (isMounted) {
@@ -217,7 +237,7 @@ export function StockProductHistoryDrawer({
                       ? 'Not set'
                       : formatStockQuantity(targetQuantity, item.unit)}
                   />
-                  <OverviewRow label="Location" value={location} />
+                  <OverviewRow label="Primary location" value={location} />
                   <OverviewRow label="Supplier" value={supplierLabel} />
                   <OverviewRow
                     label="Cost"
@@ -230,6 +250,33 @@ export function StockProductHistoryDrawer({
                     value={hasCost ? formatStockInventoryValue(inventoryValue) : '—'}
                   />
                 </dl>
+              </section>
+
+              <section
+                className="stock-product-history-section"
+                aria-label="Location balances"
+                data-testid="stock-location-balances"
+              >
+                <h3 className="stock-product-history-section-title">By location</h3>
+                {locationBalances.length > 0 ? (
+                  <dl className="stock-product-history-overview stock-location-balance-list">
+                    {locationBalances.map((balance) => (
+                      <LocationBalanceRow
+                        key={balance.workspaceStorageId || balance.locationKey}
+                        balance={balance}
+                        unit={item.unit}
+                      />
+                    ))}
+                    <OverviewRow
+                      label="Total"
+                      value={formatStockQuantity(item.currentQuantity, item.unit)}
+                    />
+                  </dl>
+                ) : (
+                  <p className="stock-location-balance-empty">
+                    No location balances above zero.
+                  </p>
+                )}
               </section>
 
               <section className="stock-product-history-section" aria-label="Product insights">
