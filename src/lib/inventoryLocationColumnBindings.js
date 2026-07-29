@@ -14,6 +14,7 @@ import {
   INVENTORY_LOCATION_QUANTITY_WARNING,
   parseInventoryLocationQuantity,
 } from './inventoryLocationQuantityParser.js'
+import { parseInventoryLocationHeader } from './inventoryLocationHeaderParser.js'
 
 export const INVENTORY_LOCATION_BINDING_STATUS = Object.freeze({
   MAPPED: 'mapped',
@@ -113,11 +114,14 @@ export function resolveWorkspaceStorageByLocationKey(workspaceStorages, location
  *   destinationStorageId?: string|null,
  *   destinationLocationKey?: string|null,
  *   bindingStatus?: string,
+ *   operatorLabel?: string|null,
+ *   locationKey?: string|null,
  * }} input
  */
 export function createInventoryLocationColumnBinding(input) {
   const sourceHeaderNormalized = asTrimmedString(input?.sourceHeaderNormalized)
   const sourceHeader = asTrimmedString(input?.sourceHeader) || sourceHeaderNormalized
+  const parsedHeader = parseInventoryLocationHeader(sourceHeader)
   const sourceColumnIndex = Number.isFinite(Number(input?.sourceColumnIndex))
     ? Math.floor(Number(input.sourceColumnIndex))
     : null
@@ -130,15 +134,23 @@ export function createInventoryLocationColumnBinding(input) {
         ? INVENTORY_LOCATION_BINDING_STATUS.MAPPED
         : INVENTORY_LOCATION_BINDING_STATUS.UNMAPPED
     )
+  const operatorLabel = input?.operatorLabel !== undefined
+    ? (asTrimmedString(input.operatorLabel) || null)
+    : parsedHeader.operatorLabel
+  const locationKey = asTrimmedString(input?.locationKey)
+    || parsedHeader.locationKey
+    || null
 
   return Object.freeze({
-    sourceHeaderNormalized,
+    sourceHeaderNormalized: parsedHeader.locationKeyNormalized || sourceHeaderNormalized,
     sourceHeader,
     sourceColumnIndex,
     sourceField,
     destinationStorageId,
     destinationLocationKey,
     bindingStatus,
+    operatorLabel,
+    locationKey,
   })
 }
 
@@ -198,14 +210,18 @@ export function buildOperationalLocationColumnBindings(input = {}) {
       }
     }
 
+    const storageHeader = asTrimmedString(input.storageHeader) || 'Storage'
+    const storageParsed = parseInventoryLocationHeader(storageHeader)
     bindings.push(createInventoryLocationColumnBinding({
-      sourceHeaderNormalized: 'storage',
-      sourceHeader: asTrimmedString(input.storageHeader) || 'Storage',
+      sourceHeaderNormalized: storageParsed.locationKeyNormalized || 'storage',
+      sourceHeader: storageHeader,
       sourceColumnIndex: input.storageColumnIndex ?? null,
       sourceField: INVENTORY_LOCATION_BINDING_SOURCE_FIELD.STORAGE,
       destinationStorageId: storageId,
       destinationLocationKey: storageKey,
       bindingStatus: storageStatus,
+      operatorLabel: storageParsed.operatorLabel,
+      locationKey: storageParsed.locationKey || 'Storage',
     }))
   }
 
@@ -232,14 +248,18 @@ export function buildOperationalLocationColumnBindings(input = {}) {
           : null)
     }
 
+    const barHeader = asTrimmedString(input.barHeader) || 'BAR'
+    const barParsed = parseInventoryLocationHeader(barHeader)
     bindings.push(createInventoryLocationColumnBinding({
-      sourceHeaderNormalized: 'bar',
-      sourceHeader: asTrimmedString(input.barHeader) || 'BAR',
+      sourceHeaderNormalized: barParsed.locationKeyNormalized || 'bar',
+      sourceHeader: barHeader,
       sourceColumnIndex: input.barColumnIndex ?? null,
       sourceField: INVENTORY_LOCATION_BINDING_SOURCE_FIELD.BAR,
       destinationStorageId: barId,
       destinationLocationKey: barKey,
       bindingStatus: barStatus,
+      operatorLabel: barParsed.operatorLabel,
+      locationKey: barParsed.locationKey || INVENTORY_OPERATIONAL_BAR_LOCATION_KEY,
     }))
   }
 
@@ -379,6 +399,7 @@ export function buildInventoryLocationQuantities(input = {}) {
         || null,
       destinationStorageId,
       destinationLocationKey,
+      operatorLabel: asTrimmedString(binding.operatorLabel) || null,
       rawEvidence: rawEvidence === undefined ? null : rawEvidence,
       parsedQuantity: parsed.parsedQuantity,
       parseStatus: parsed.parseStatus,

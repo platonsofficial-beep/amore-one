@@ -96,7 +96,15 @@ export function InventoryImportLocationAllocationEditor({
 
                 <label className="inventory-import-location-allocation-location">
                   <span className="inventory-import-location-allocation-source">
-                    {allocation.sourceHeader || allocation.sourceField}
+                    {allocation.locationKey || allocation.sourceHeader || allocation.sourceField}
+                  </span>
+                  <span
+                    className="inventory-import-location-allocation-operator"
+                    data-testid={`inventory-import-operator-${allocation.sourceField}`}
+                  >
+                    Operator:
+                    {' '}
+                    {allocation.operatorLabel ? allocation.operatorLabel : '—'}
                   </span>
                   <WorkspaceStorageSelector
                     workspaceId={workspaceId}
@@ -104,7 +112,7 @@ export function InventoryImportLocationAllocationEditor({
                     variant="select"
                     disabled={disabled}
                     emptyLabel="Select location"
-                    aria-label={`${allocation.sourceHeader || allocation.sourceField} destination`}
+                    aria-label={`${allocation.locationKey || allocation.sourceHeader || allocation.sourceField} destination`}
                     aria-invalid={isBlocker ? 'true' : undefined}
                     onChange={(locationKey) => {
                       onChangeAllocation?.(allocation.sourceField, {
@@ -123,7 +131,7 @@ export function InventoryImportLocationAllocationEditor({
                     inputMode="decimal"
                     value={allocation.quantityInput == null ? '' : `${allocation.quantityInput}`}
                     disabled={disabled}
-                    aria-label={`${allocation.sourceHeader || allocation.sourceField} quantity`}
+                    aria-label={`${allocation.locationKey || allocation.sourceHeader || allocation.sourceField} quantity`}
                     aria-invalid={isBlocker ? 'true' : undefined}
                     onChange={(event) => {
                       onChangeAllocation?.(allocation.sourceField, {
@@ -134,7 +142,7 @@ export function InventoryImportLocationAllocationEditor({
                   {evidence ? (
                     <span className="inventory-import-location-allocation-evidence">
                       (
-                      {evidence.startsWith('from ') ? evidence : evidence}
+                      {evidence}
                       )
                     </span>
                   ) : null}

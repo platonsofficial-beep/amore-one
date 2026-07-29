@@ -153,6 +153,7 @@ export function serializeLocationQuantitiesForApply(entries) {
       sourceHeader: entry.sourceHeader ?? null,
       destinationStorageId: String(entry.destinationStorageId),
       destinationLocationKey: String(entry.destinationLocationKey),
+      operatorLabel: asTrimmedString(entry.operatorLabel) || null,
       rawEvidence: entry.rawEvidence ?? null,
       parsedQuantity: entry.parsedQuantity,
       parseStatus: entry.parseStatus,

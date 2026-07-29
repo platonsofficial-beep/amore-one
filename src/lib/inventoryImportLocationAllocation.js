@@ -1,5 +1,5 @@
 /**
- * P8.29.14 — Import Review location allocation model.
+ * P8.29.14 / P8.29.15 — Import Review location allocation model.
  *
  * Pure helpers for multi-location quantity editing in Spreadsheet Import Review.
  * Serializes to Apply contract locationQuantities[]. No network / UI / SQL.
@@ -16,6 +16,7 @@ import {
   INVENTORY_LOCATION_QUANTITY_VALIDATION_STATE,
   parseInventoryLocationQuantity,
 } from './inventoryLocationQuantityParser.js'
+import { parseInventoryLocationHeader } from './inventoryLocationHeaderParser.js'
 import { mapInventoryImportHeaderToOneField } from './inventoryImportWizardUx.js'
 
 export const INVENTORY_LOCATION_ALLOCATION_SOURCE = Object.freeze({
@@ -53,7 +54,7 @@ export function isLocationAllocationQuantityPresent(value) {
 
 /**
  * Detect quantity-location columns from worksheet headers.
- * Generic: any storage or bar role (and future mapped roles) become allocation sources.
+ * Operator suffixes (e.g. "Storage Tasos") are stripped into operatorLabel.
  *
  * @param {unknown} parseResultOrHeaders
  * @returns {ReadonlyArray<{
@@ -61,6 +62,8 @@ export function isLocationAllocationQuantityPresent(value) {
  *   sourceHeader: string,
  *   sourceHeaderNormalized: string,
  *   sourceColumnIndex: number,
+ *   locationKey: string,
+ *   operatorLabel: string|null,
  * }>}
  */
 export function detectInventoryImportQuantitySourceColumns(parseResultOrHeaders) {
@@ -70,7 +73,14 @@ export function detectInventoryImportQuantitySourceColumns(parseResultOrHeaders)
       ? parseResultOrHeaders.headers
       : []
 
-  /** @type {Array<{ sourceField: string, sourceHeader: string, sourceHeaderNormalized: string, sourceColumnIndex: number }>} */
+  /** @type {Array<{
+   *   sourceField: string,
+   *   sourceHeader: string,
+   *   sourceHeaderNormalized: string,
+   *   sourceColumnIndex: number,
+   *   locationKey: string,
+   *   operatorLabel: string|null,
+   * }>} */
   const columns = []
   /** @type {Set<string>} */
   const seenFields = new Set()
@@ -80,37 +90,40 @@ export function detectInventoryImportQuantitySourceColumns(parseResultOrHeaders)
       ? ''
       : asTrimmedString(header?.sourceHeader ?? header)
     if (!sourceHeader) return
+
+    const parsedHeader = parseInventoryLocationHeader(header)
     const mapped = mapInventoryImportHeaderToOneField(header)
     const role = mapped?.role
+
     let sourceField = null
-    if (role === 'storage') sourceField = INVENTORY_LOCATION_ALLOCATION_SOURCE.STORAGE
-    else if (role === 'bar') sourceField = INVENTORY_LOCATION_ALLOCATION_SOURCE.BAR
-    else {
-      const normalized = asTrimmedString(header?.normalized ?? sourceHeader).toLowerCase()
-      if (
-        normalized === 'kitchen'
-        || normalized === 'fridge'
-        || normalized === 'freezer'
-        || normalized === 'terrace'
-        || normalized === 'pool'
-        || normalized === 'vip'
-        || normalized === 'restaurant'
-        || normalized.startsWith('wine')
-        || normalized.includes('cellar')
-      ) {
-        // Generic future columns: stable field key from normalized header.
-        sourceField = normalized.replace(/\s+/g, '_')
+    let locationKey = parsedHeader.locationKey
+    let operatorLabel = parsedHeader.operatorLabel
+
+    if (role === 'storage') {
+      sourceField = INVENTORY_LOCATION_ALLOCATION_SOURCE.STORAGE
+      if (!locationKey) {
+        locationKey = 'Storage'
+        operatorLabel = null
       }
+    } else if (role === 'bar') {
+      sourceField = INVENTORY_LOCATION_ALLOCATION_SOURCE.BAR
+      locationKey = locationKey || INVENTORY_OPERATIONAL_BAR_LOCATION_KEY
+    } else if (parsedHeader.matched && parsedHeader.sourceField) {
+      sourceField = parsedHeader.sourceField
     }
+
     if (!sourceField || seenFields.has(sourceField)) return
     seenFields.add(sourceField)
     columns.push({
       sourceField,
       sourceHeader,
-      sourceHeaderNormalized: asTrimmedString(header?.normalized ?? sourceHeader).toLowerCase(),
+      sourceHeaderNormalized: parsedHeader.locationKeyNormalized
+        || asTrimmedString(header?.normalized ?? sourceHeader).toLowerCase(),
       sourceColumnIndex: Number.isFinite(Number(header?.columnIndex))
         ? Math.floor(Number(header.columnIndex))
         : index,
+      locationKey: locationKey || sourceField,
+      operatorLabel: operatorLabel || null,
     })
   })
 
@@ -145,12 +158,16 @@ export function buildDefaultInventoryLocationAllocations(input = {}) {
         sourceHeader: 'Storage',
         sourceHeaderNormalized: 'storage',
         sourceColumnIndex: null,
+        locationKey: 'Storage',
+        operatorLabel: null,
       },
       {
         sourceField: INVENTORY_LOCATION_ALLOCATION_SOURCE.BAR,
         sourceHeader: 'BAR',
         sourceHeaderNormalized: 'bar',
         sourceColumnIndex: null,
+        locationKey: INVENTORY_OPERATIONAL_BAR_LOCATION_KEY,
+        operatorLabel: null,
       },
     ]
 
@@ -158,6 +175,13 @@ export function buildDefaultInventoryLocationAllocations(input = {}) {
 
   return Object.freeze(columns.map((column) => {
     const sourceField = asTrimmedString(column.sourceField)
+    const parsedHeader = parseInventoryLocationHeader(column.sourceHeader || column.locationKey)
+    const locationKey = asTrimmedString(column.locationKey)
+      || parsedHeader.locationKey
+      || sourceField
+    const operatorLabel = column.operatorLabel !== undefined
+      ? (asTrimmedString(column.operatorLabel) || null)
+      : parsedHeader.operatorLabel
     const rawEvidence = Object.prototype.hasOwnProperty.call(source, sourceField)
       ? source[sourceField]
       : null
@@ -175,11 +199,31 @@ export function buildDefaultInventoryLocationAllocations(input = {}) {
       destinationStorageId = resolved.storage?.id ?? null
       destinationLocationKey = resolved.storage?.locationKey
         ?? INVENTORY_OPERATIONAL_BAR_LOCATION_KEY
-    } else if (sourceField === INVENTORY_LOCATION_ALLOCATION_SOURCE.STORAGE && preferred) {
-      const resolved = findStorageByLocationKey(input.workspaceStorages, preferred)
+    } else if (sourceField === INVENTORY_LOCATION_ALLOCATION_SOURCE.STORAGE) {
+      // Prefer explicit product/fallback storage. Otherwise bind the canonical
+      // location type (e.g. "Storage" from "Storage Tasos") only when it exists.
+      const candidates = preferred ? [preferred, locationKey] : [locationKey]
+      for (const candidate of candidates) {
+        if (!candidate) continue
+        const resolved = findStorageByLocationKey(input.workspaceStorages, candidate)
+        if (resolved.status === INVENTORY_LOCATION_BINDING_STATUS.MAPPED && resolved.storage) {
+          bindingStatus = resolved.status
+          destinationStorageId = resolved.storage.id
+          destinationLocationKey = resolved.storage.locationKey
+          break
+        }
+        if (preferred && candidate === preferred) {
+          bindingStatus = resolved.status
+          destinationStorageId = resolved.storage?.id ?? null
+          destinationLocationKey = resolved.storage?.locationKey ?? preferred
+          break
+        }
+      }
+    } else if (locationKey) {
+      const resolved = findStorageByLocationKey(input.workspaceStorages, locationKey)
       bindingStatus = resolved.status
       destinationStorageId = resolved.storage?.id ?? null
-      destinationLocationKey = resolved.storage?.locationKey ?? preferred
+      destinationLocationKey = resolved.storage?.locationKey ?? locationKey
     }
 
     return Object.freeze({
@@ -189,6 +233,8 @@ export function buildDefaultInventoryLocationAllocations(input = {}) {
       sourceColumnIndex: Number.isFinite(Number(column.sourceColumnIndex))
         ? Math.floor(Number(column.sourceColumnIndex))
         : null,
+      locationKey,
+      operatorLabel,
       rawEvidence,
       quantityInput: rawEvidence == null ? '' : rawEvidence,
       destinationLocationKey,
@@ -233,6 +279,13 @@ export function mergeInventoryLocationAllocations(defaults, draftAllocations) {
       bindingStatus: override.bindingStatus !== undefined
         ? asTrimmedString(override.bindingStatus) || row.bindingStatus
         : row.bindingStatus,
+      // Operator label is header metadata — draft may preserve but never invent a destination.
+      operatorLabel: override.operatorLabel !== undefined
+        ? (asTrimmedString(override.operatorLabel) || null)
+        : row.operatorLabel,
+      locationKey: override.locationKey !== undefined
+        ? (asTrimmedString(override.locationKey) || row.locationKey)
+        : row.locationKey,
     })
   }))
 }
@@ -346,6 +399,10 @@ export function resolveInventoryLocationAllocations(input = {}) {
       sourceHeader: asTrimmedString(allocation.sourceHeader),
       sourceHeaderNormalized: asTrimmedString(allocation.sourceHeaderNormalized),
       sourceColumnIndex: allocation.sourceColumnIndex ?? null,
+      locationKey: asTrimmedString(allocation.locationKey)
+        || asTrimmedString(allocation.sourceHeader)
+        || asTrimmedString(allocation.sourceField),
+      operatorLabel: asTrimmedString(allocation.operatorLabel) || null,
       rawEvidence: allocation.rawEvidence ?? null,
       quantityInput,
       destinationLocationKey,
@@ -410,6 +467,7 @@ export function serializeAllocationsToLocationQuantities(resolvedAllocations) {
       sourceHeader: entry.sourceHeader ?? null,
       destinationStorageId: entry.destinationStorageId ?? null,
       destinationLocationKey: entry.destinationLocationKey ?? null,
+      operatorLabel: asTrimmedString(entry.operatorLabel) || null,
       rawEvidence: entry.quantityInput ?? entry.rawEvidence ?? null,
       parsedQuantity: entry.parsedQuantity,
       parseStatus: entry.parseStatus,
@@ -433,6 +491,10 @@ export function formatLocationAllocationEvidenceLabel(allocation) {
     && Array.isArray(allocation.evidence?.formulaParts)
   ) {
     return `from ${allocation.evidence.formulaParts.join(' + ')}`
+  }
+  const locationKey = asTrimmedString(allocation.locationKey)
+  if (locationKey && isLocationAllocationQuantityPresent(allocation.quantityInput)) {
+    return locationKey
   }
   const header = asTrimmedString(allocation.sourceHeader)
   if (header && isLocationAllocationQuantityPresent(allocation.quantityInput)) {

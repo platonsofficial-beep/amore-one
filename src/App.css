@@ -44095,6 +44095,12 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   color: rgba(255, 247, 232, 0.62);
 }
 
+.inventory-import-location-allocation-operator {
+  font-size: 0.74rem;
+  font-weight: 500;
+  color: rgba(255, 247, 232, 0.5);
+}
+
 .inventory-import-location-allocation-location select,
 .inventory-import-location-allocation-qty input {
   min-height: 44px;

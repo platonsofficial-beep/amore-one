@@ -66,7 +66,7 @@ describe('inventoryImportLocationAllocation', () => {
     expect(resolved.blockers).toEqual([])
     expect(formatLocationAllocationEvidenceLabel(resolved.allocations[0]))
       .toBe('from 288 + 180')
-    expect(formatLocationAllocationEvidenceLabel(resolved.allocations[1])).toBe('BAR')
+    expect(formatLocationAllocationEvidenceLabel(resolved.allocations[1])).toBe('Bar')
     expect(resolvePrimaryStorageLocationKeyFromAllocations(resolved.allocations))
       .toBe('Water Storage')
     expect(serializeAllocationsToLocationQuantities(resolved.allocations)).toEqual([

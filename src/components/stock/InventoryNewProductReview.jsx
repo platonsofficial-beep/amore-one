@@ -190,6 +190,9 @@ export function InventoryNewProductReview({
           destinationLocationKey: allocation.destinationLocationKey,
           destinationStorageId: allocation.destinationStorageId,
           bindingStatus: allocation.bindingStatus,
+          locationKey: allocation.locationKey,
+          operatorLabel: allocation.operatorLabel,
+          sourceHeader: allocation.sourceHeader,
         })),
       }
       const validation = validateNewProductDraft(merged)
