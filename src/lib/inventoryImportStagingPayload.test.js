@@ -628,6 +628,107 @@ describe('determinism and immutability', () => {
   })
 })
 
+describe('buildInventoryImportStagingPayload — P8.29.11 locationQuantities', () => {
+  const WORKSPACE_STORAGES = [
+    { id: 'stor-main', locationKey: 'Main Storage' },
+    { id: 'stor-bar', locationKey: 'Bar' },
+    { id: 'stor-apothiki', locationKey: 'Apothiki 2' },
+  ]
+
+  it('emits Apply-contract locationQuantities and preserves legacy resolvedQuantity', () => {
+    const result = buildInventoryImportStagingPayload({
+      workspaceId: 'ws-1',
+      selectedFile: selectedFile(),
+      preview: {
+        rows: [readyCreate({
+          source: {
+            category: null,
+            productName: 'Belvedere',
+            storage: '288+180',
+            bar: 66,
+            weekdays: null,
+            order: null,
+            stockControl: null,
+          },
+          resolvedStorageLocation: 'Apothiki 2',
+          draft: {
+            productName: 'Belvedere',
+            category: 'Other',
+            unit: 'Bottle',
+            storage: 'Apothiki 2',
+            valid: true,
+          },
+        })],
+      },
+      policy: policy({
+        quantityPolicy: INVENTORY_IMPORT_QUANTITY_POLICY.OPENING_STOCK,
+        workspaceStorages: WORKSPACE_STORAGES,
+      }),
+      eligibility: readyEligibility(),
+    })
+
+    const payload = result.rows[0].normalized_payload
+    expect(payload.locationQuantities).toHaveLength(2)
+    expect(payload.locationQuantities[0]).toMatchObject({
+      destinationStorageId: 'stor-apothiki',
+      destinationLocationKey: 'Apothiki 2',
+      parsedQuantity: 468,
+      parseStatus: 'expression_ok',
+      validationState: 'valid',
+      rawEvidence: '288+180',
+    })
+    expect(payload.locationQuantities[0].warnings).toContain('expression_summed')
+    expect(payload.locationQuantities[0].evidence).toEqual({ formulaParts: [288, 180] })
+    expect(payload.locationQuantities[1]).toMatchObject({
+      destinationStorageId: 'stor-bar',
+      destinationLocationKey: 'Bar',
+      parsedQuantity: 66,
+      parseStatus: 'ok',
+      validationState: 'valid',
+    })
+    expect(payload.resolvedQuantity).toBe(534)
+    expect(payload.locationKey).toBe('Apothiki 2')
+  })
+
+  it('rejects invalid location quantities from Ready staging for opening_stock', () => {
+    expect(() => buildInventoryImportStagingPayload({
+      workspaceId: 'ws-1',
+      selectedFile: selectedFile(),
+      preview: {
+        rows: [readyCreate({
+          source: {
+            category: null,
+            productName: 'Bad',
+            storage: '10++5',
+            bar: null,
+            weekdays: null,
+            order: null,
+            stockControl: null,
+          },
+          resolvedQuantity: 99,
+        })],
+      },
+      policy: policy({
+        quantityPolicy: INVENTORY_IMPORT_QUANTITY_POLICY.OPENING_STOCK,
+        workspaceStorages: WORKSPACE_STORAGES,
+      }),
+      eligibility: readyEligibility(),
+    })).toThrowError(/locationQuantities blocked/i)
+  })
+
+  it('keeps legacy single-location path when no workspace storages are provided', () => {
+    const result = buildInventoryImportStagingPayload({
+      workspaceId: 'ws-1',
+      selectedFile: selectedFile(),
+      preview: { rows: [readyCreate({ resolvedQuantity: 12 })] },
+      policy: policy({ quantityPolicy: INVENTORY_IMPORT_QUANTITY_POLICY.OPENING_STOCK }),
+      eligibility: readyEligibility(),
+    })
+    expect(result.rows[0].normalized_payload.resolvedQuantity).toBe(12)
+    expect(result.rows[0].normalized_payload).not.toHaveProperty('locationQuantities')
+  })
+})
+
 describe('buildInventoryImportRowPayload / session helpers', () => {
   it('allows single-row manual_review helper for tests but keeps apply pending', () => {
     const staged = buildInventoryImportRowPayload({

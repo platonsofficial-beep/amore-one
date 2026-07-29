@@ -649,7 +649,7 @@ describe('InventoryImportWizardShell', () => {
     expect(source).not.toMatch(/inventoryImportFieldMapper/)
     expect(source).not.toMatch(/inventoryImportClassifier/)
     expect(source).not.toMatch(/stockCsvImport/)
-    expect(source).not.toMatch(/from ['"].*services\/(?!inventoryImportService)/)
+    expect(source).not.toMatch(/from ['"].*services\/(?!inventoryImportService|workspaceStorageService)/)
     expect(source).not.toMatch(/supabase/i)
     expect(source).not.toMatch(/\.rpc\(/i)
     expect(source).not.toMatch(/FileReader/)
@@ -1984,6 +1984,7 @@ describe('InventoryImportWizardShell', () => {
         unit: 'Bottle',
         sku: null,
         active: true,
+        storageLocation: 'Main Storage',
       }]),
     })
 
@@ -2003,6 +2004,7 @@ describe('InventoryImportWizardShell', () => {
     act(() => {
       getButton('Continue').dispatchEvent(new MouseEvent('click', { bubbles: true }))
     })
+    await flushMicrotasks(6)
 
     expect(getButton('Continue')?.disabled).toBe(false)
     expect(container.textContent).not.toContain('existing products will be replaced')
@@ -2013,15 +2015,15 @@ describe('InventoryImportWizardShell', () => {
     expect(getPolicyRadio('Apply spreadsheet quantities as opening stock')?.getAttribute('aria-checked'))
       .toBe('true')
     expect(getButton('Continue')?.disabled).toBe(true)
-    expect(container.textContent).toContain('Opening stock requires a quantity')
-    expect(container.textContent).not.toContain('existing products will be replaced')
+    expect(container.textContent).toContain('Confirm replacing quantities on existing products')
+    expect(container.textContent).toContain('existing products will be replaced')
 
     act(() => {
       getPolicyRadio('Do not change current stock quantities').click()
     })
     expect(getButton('Continue')?.disabled).toBe(false)
     expect(container.textContent).toContain('Ready to continue')
-    expect(container.textContent).not.toContain('Opening stock requires a quantity')
+    expect(container.textContent).not.toContain('Confirm replacing quantities on existing products')
   })
 
   it('resets import policy defaults when a different file is selected', async () => {

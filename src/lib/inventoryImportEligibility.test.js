@@ -175,6 +175,10 @@ describe('inventoryImportEligibility — policy normalization', () => {
       quantityPolicy: 'opening_stock',
       existingQuantityOverwriteConfirmed: true,
       newProductLocationFallback: 'Kitchen',
+      workspaceStorages: null,
+      locationColumnBindings: null,
+      barDestination: null,
+      existingStockItems: null,
     })
   })
 })
@@ -656,5 +660,160 @@ describe('inventoryImportEligibility — determinism', () => {
     expect(inputPreview).toEqual(previewSnapshot)
     expect(inputPolicy).toEqual(policySnapshot)
     expect(Object.isFrozen(first)).toBe(true)
+  })
+})
+
+describe('inventoryImportEligibility — P8.29.11 locationQuantities', () => {
+  const WORKSPACE_STORAGES = [
+    { id: 'stor-bar', locationKey: 'Bar' },
+    { id: 'stor-main', locationKey: 'Main Storage' },
+  ]
+
+  it('allows valid multi-location opening stock to become Ready', () => {
+    const result = evaluateInventoryImportReadyEligibility({
+      preview: preview([
+        readyCreate({
+          source: { productName: 'Belvedere', category: 'Vodka', storage: '288+180', bar: 66 },
+          resolvedStorageLocation: 'Main Storage',
+          draft: {
+            productName: 'Belvedere',
+            category: 'Vodka',
+            unit: 'Bottle',
+            storage: 'Main Storage',
+            valid: true,
+          },
+        }),
+      ]),
+      policy: policy({
+        quantityPolicy: 'opening_stock',
+        workspaceStorages: WORKSPACE_STORAGES,
+      }),
+    })
+    expect(result.isReady).toBe(true)
+    expect(result.blockingReasons).not.toContain(
+      INVENTORY_IMPORT_ELIGIBILITY_BLOCKER.MISSING_OPENING_QUANTITY,
+    )
+  })
+
+  it('blocks malformed Storage and BAR, and unmapped BAR with non-empty value', () => {
+    const malformedStorage = evaluateInventoryImportReadyEligibility({
+      preview: preview([readyCreate({
+        source: { productName: 'X', category: null, storage: '10++5', bar: null },
+        resolvedStorageLocation: 'Main Storage',
+        draft: {
+          productName: 'X', category: 'Other', unit: 'Bottle', storage: 'Main Storage', valid: true,
+        },
+      })]),
+      policy: policy({
+        quantityPolicy: 'opening_stock',
+        workspaceStorages: WORKSPACE_STORAGES,
+      }),
+    })
+    expect(malformedStorage.blockingReasons).toContain(
+      INVENTORY_IMPORT_ELIGIBILITY_BLOCKER.LOCATION_QUANTITY_MALFORMED,
+    )
+
+    const malformedBar = evaluateInventoryImportReadyEligibility({
+      preview: preview([readyCreate({
+        source: { productName: 'X', category: null, storage: 1, bar: 'abc' },
+        resolvedStorageLocation: 'Main Storage',
+        draft: {
+          productName: 'X', category: 'Other', unit: 'Bottle', storage: 'Main Storage', valid: true,
+        },
+      })]),
+      policy: policy({
+        quantityPolicy: 'opening_stock',
+        workspaceStorages: WORKSPACE_STORAGES,
+      }),
+    })
+    expect(malformedBar.blockingReasons).toContain(
+      INVENTORY_IMPORT_ELIGIBILITY_BLOCKER.LOCATION_QUANTITY_MALFORMED,
+    )
+
+    const unmappedBar = evaluateInventoryImportReadyEligibility({
+      preview: preview([readyCreate({
+        source: { productName: 'X', category: null, storage: 1, bar: 4 },
+        resolvedStorageLocation: 'Main Storage',
+        draft: {
+          productName: 'X', category: 'Other', unit: 'Bottle', storage: 'Main Storage', valid: true,
+        },
+      })]),
+      policy: policy({
+        quantityPolicy: 'opening_stock',
+        workspaceStorages: [{ id: 'stor-main', locationKey: 'Main Storage' }],
+      }),
+    })
+    expect(unmappedBar.blockingReasons).toContain(
+      INVENTORY_IMPORT_ELIGIBILITY_BLOCKER.LOCATION_BINDING_UNMAPPED,
+    )
+  })
+
+  it('does not block empty BAR; keeps no_change compatible; blocks duplicate destinations', () => {
+    const emptyBar = evaluateInventoryImportReadyEligibility({
+      preview: preview([readyCreate({
+        source: { productName: 'X', category: null, storage: 8, bar: null },
+        resolvedStorageLocation: 'Main Storage',
+        draft: {
+          productName: 'X', category: 'Other', unit: 'Bottle', storage: 'Main Storage', valid: true,
+        },
+      })]),
+      policy: policy({
+        quantityPolicy: 'opening_stock',
+        workspaceStorages: [{ id: 'stor-main', locationKey: 'Main Storage' }],
+      }),
+    })
+    expect(emptyBar.isReady).toBe(true)
+
+    const noChange = evaluateInventoryImportReadyEligibility({
+      preview: preview([readyCreate({
+        source: { productName: 'X', category: null, storage: 'bad', bar: 1 },
+        resolvedStorageLocation: 'Main Storage',
+        draft: {
+          productName: 'X', category: 'Other', unit: 'Bottle', storage: 'Main Storage', valid: true,
+        },
+      })]),
+      policy: policy({
+        quantityPolicy: 'no_change',
+        workspaceStorages: WORKSPACE_STORAGES,
+      }),
+    })
+    expect(noChange.isReady).toBe(true)
+
+    const duplicate = evaluateInventoryImportReadyEligibility({
+      preview: preview([readyCreate({
+        source: { productName: 'X', category: null, storage: 2, bar: 3 },
+        resolvedStorageLocation: 'Bar',
+        draft: {
+          productName: 'X', category: 'Other', unit: 'Bottle', storage: 'Bar', valid: true,
+        },
+      })]),
+      policy: policy({
+        quantityPolicy: 'opening_stock',
+        workspaceStorages: WORKSPACE_STORAGES,
+        locationColumnBindings: [
+          {
+            sourceHeaderNormalized: 'storage',
+            sourceHeader: 'Storage',
+            sourceField: 'storage',
+            sourceColumnIndex: 1,
+            destinationStorageId: 'stor-bar',
+            destinationLocationKey: 'Bar',
+            bindingStatus: 'mapped',
+          },
+          {
+            sourceHeaderNormalized: 'bar',
+            sourceHeader: 'BAR',
+            sourceField: 'bar',
+            sourceColumnIndex: 2,
+            destinationStorageId: 'stor-bar',
+            destinationLocationKey: 'Bar',
+            bindingStatus: 'mapped',
+          },
+        ],
+      }),
+    })
+    expect(duplicate.blockingReasons).toContain(
+      INVENTORY_IMPORT_ELIGIBILITY_BLOCKER.DUPLICATE_LOCATION_DESTINATION,
+    )
   })
 })

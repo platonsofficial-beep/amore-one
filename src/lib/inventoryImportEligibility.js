@@ -15,6 +15,11 @@
  */
 
 import {
+  buildInventoryLocationQuantities,
+  buildOperationalInventoryLocationQuantities,
+  INVENTORY_LOCATION_QUANTITY_BLOCKER,
+} from './inventoryLocationColumnBindings.js'
+import {
   INVENTORY_OPERATIONAL_IMPORT_PREVIEW_ACTION,
 } from './inventoryOperationalImportPreview.js'
 import {
@@ -51,6 +56,11 @@ export const INVENTORY_IMPORT_ELIGIBILITY_BLOCKER = Object.freeze({
   EXISTING_QUANTITY_OVERWRITE_UNCONFIRMED: 'existing_quantity_overwrite_unconfirmed',
   DUPLICATE_EXISTING_TARGET: 'duplicate_existing_target',
   REMAINING_OPERATIONAL_BLOCKER: 'remaining_operational_blocker',
+  LOCATION_QUANTITY_MALFORMED: INVENTORY_LOCATION_QUANTITY_BLOCKER.LOCATION_QUANTITY_MALFORMED,
+  LOCATION_QUANTITY_NEGATIVE: INVENTORY_LOCATION_QUANTITY_BLOCKER.LOCATION_QUANTITY_NEGATIVE,
+  LOCATION_BINDING_UNMAPPED: INVENTORY_LOCATION_QUANTITY_BLOCKER.LOCATION_BINDING_UNMAPPED,
+  LOCATION_BINDING_AMBIGUOUS: INVENTORY_LOCATION_QUANTITY_BLOCKER.LOCATION_BINDING_AMBIGUOUS,
+  DUPLICATE_LOCATION_DESTINATION: INVENTORY_LOCATION_QUANTITY_BLOCKER.DUPLICATE_LOCATION_DESTINATION,
 })
 
 export const INVENTORY_IMPORT_ELIGIBILITY_WARNING = Object.freeze({
@@ -175,6 +185,9 @@ export function isCanonicalStockLocation(value) {
  *   quantityPolicy: 'unset'|'no_change'|'opening_stock',
  *   existingQuantityOverwriteConfirmed: boolean,
  *   newProductLocationFallback: string|null,
+ *   workspaceStorages: unknown[]|null,
+ *   locationColumnBindings: unknown[]|null,
+ *   barDestination: object|null,
  * }}
  */
 export function normalizeInventoryImportSessionPolicy(policy) {
@@ -185,12 +198,133 @@ export function normalizeInventoryImportSessionPolicy(policy) {
   const newProductLocationFallback = fallbackRaw == null || asTrimmedString(fallbackRaw) === ''
     ? null
     : asTrimmedString(fallbackRaw)
+  const workspaceStorages = Array.isArray(input.workspaceStorages)
+    ? input.workspaceStorages
+    : null
+  const locationColumnBindings = Array.isArray(input.locationColumnBindings)
+    ? input.locationColumnBindings
+    : null
+  const barDestination = isPlainObject(input.barDestination) ? input.barDestination : null
+  const existingStockItems = Array.isArray(input.existingStockItems)
+    ? input.existingStockItems
+    : null
 
   return {
     quantityPolicy,
     existingQuantityOverwriteConfirmed,
     newProductLocationFallback,
+    workspaceStorages,
+    locationColumnBindings,
+    barDestination,
+    existingStockItems,
   }
+}
+
+/**
+ * @param {object} row
+ * @param {ReturnType<typeof normalizeInventoryImportSessionPolicy>} normalizedPolicy
+ * @returns {boolean}
+ */
+function hasLocationQuantityBindingContext(row, normalizedPolicy) {
+  if (Array.isArray(row?.locationQuantities)) return true
+  if (Array.isArray(normalizedPolicy.locationColumnBindings)) return true
+  if (Array.isArray(normalizedPolicy.workspaceStorages)) return true
+  return false
+}
+
+/**
+ * Build locationQuantities for a preview row using policy bindings / storages.
+ *
+ * @param {object} row
+ * @param {ReturnType<typeof normalizeInventoryImportSessionPolicy>} normalizedPolicy
+ */
+export function resolveImportRowLocationQuantities(row, normalizedPolicy) {
+  if (Array.isArray(row?.locationQuantities) && row.locationQuantities.length > 0) {
+    /** @type {string[]} */
+    const blockers = []
+    /** @type {string[]} */
+    const warnings = []
+    let aggregateQuantity = null
+    let sawValid = false
+    for (const entry of row.locationQuantities) {
+      if (!isPlainObject(entry)) continue
+      if (entry.validationState === 'blocker') {
+        for (const code of Array.isArray(entry.warnings) ? entry.warnings : []) {
+          if (
+            typeof code === 'string'
+            && Object.values(INVENTORY_LOCATION_QUANTITY_BLOCKER).includes(code)
+            && !blockers.includes(code)
+          ) {
+            blockers.push(code)
+          }
+        }
+        continue
+      }
+      for (const code of Array.isArray(entry.warnings) ? entry.warnings : []) {
+        if (code === 'expression_summed' && !warnings.includes(code)) warnings.push(code)
+      }
+      if (
+        entry.parsedQuantity != null
+        && Number.isFinite(Number(entry.parsedQuantity))
+        && entry.parseStatus !== 'empty'
+        && entry.destinationStorageId
+      ) {
+        sawValid = true
+        aggregateQuantity = (aggregateQuantity ?? 0) + Number(entry.parsedQuantity)
+      }
+    }
+    return Object.freeze({
+      locationQuantities: Object.freeze([...row.locationQuantities]),
+      blockers: Object.freeze(blockers),
+      warnings: Object.freeze(warnings),
+      aggregateQuantity: sawValid ? aggregateQuantity : null,
+    })
+  }
+
+  const matchedId = isImportEligibilityLinkAction(getImportEligibilityRowAction(row))
+    ? getImportEligibilityMatchedStockItemId(row)
+    : null
+  /** @type {string|null} */
+  let catalogStorageLocation = null
+  if (matchedId && Array.isArray(normalizedPolicy.existingStockItems)) {
+    const matched = normalizedPolicy.existingStockItems.find((item) => (
+      isPlainObject(item) && asTrimmedString(item.id) === matchedId
+    ))
+    if (matched) {
+      catalogStorageLocation = normalizeImportFallbackStorageLocation(
+        matched.storageLocation ?? matched.storage_location,
+      )
+    }
+  }
+
+  const storageLocationKey = getResolvedImportStorageLocation(row)
+    ?? catalogStorageLocation
+    ?? (
+      matchedId
+        ? normalizeImportFallbackStorageLocation(
+          row?.existingOne?.storageLocation
+            ?? row?.match?.matchedStockItem?.storageLocation
+            ?? row?.match?.matchedStockItem?.storage_location,
+        )
+        : null
+    )
+    ?? normalizeImportFallbackStorageLocation(normalizedPolicy.newProductLocationFallback)
+
+  if (Array.isArray(normalizedPolicy.locationColumnBindings)
+    && normalizedPolicy.locationColumnBindings.length > 0
+  ) {
+    return buildInventoryLocationQuantities({
+      source: row?.source,
+      bindings: normalizedPolicy.locationColumnBindings,
+    })
+  }
+
+  return buildOperationalInventoryLocationQuantities({
+    source: row?.source,
+    workspaceStorages: normalizedPolicy.workspaceStorages,
+    storageLocationKey,
+    barDestination: normalizedPolicy.barDestination,
+  })
 }
 
 /**
@@ -566,15 +700,35 @@ export function evaluateInventoryImportReadyEligibility({
 
     if (normalizedPolicy.quantityPolicy === INVENTORY_IMPORT_QUANTITY_POLICY.OPENING_STOCK) {
       applicableQuantityRows += 1
-      const quantity = getResolvedImportQuantity(row)
-      if (quantity.status === 'missing') {
-        missingQuantityCount += 1
-        pushUnique(blockingReasons, INVENTORY_IMPORT_ELIGIBILITY_BLOCKER.MISSING_OPENING_QUANTITY)
-      } else if (quantity.status === 'invalid') {
-        invalidQuantityCount += 1
-        pushUnique(blockingReasons, INVENTORY_IMPORT_ELIGIBILITY_BLOCKER.INVALID_OPENING_QUANTITY)
-      } else if (isLink) {
-        linkedItemsAffectedByOpeningStock += 1
+      const useLocationQuantities = hasLocationQuantityBindingContext(row, normalizedPolicy)
+      if (useLocationQuantities) {
+        const locationResult = resolveImportRowLocationQuantities(row, normalizedPolicy)
+        for (const code of locationResult.blockers) {
+          pushUnique(blockingReasons, code)
+          if (
+            code === INVENTORY_IMPORT_ELIGIBILITY_BLOCKER.LOCATION_QUANTITY_MALFORMED
+            || code === INVENTORY_IMPORT_ELIGIBILITY_BLOCKER.LOCATION_QUANTITY_NEGATIVE
+          ) {
+            invalidQuantityCount += 1
+          }
+        }
+    if (locationResult.blockers.length === 0
+      && isLink
+      && locationResult.aggregateQuantity != null
+    ) {
+      linkedItemsAffectedByOpeningStock += 1
+    }
+      } else {
+        const quantity = getResolvedImportQuantity(row)
+        if (quantity.status === 'missing') {
+          missingQuantityCount += 1
+          pushUnique(blockingReasons, INVENTORY_IMPORT_ELIGIBILITY_BLOCKER.MISSING_OPENING_QUANTITY)
+        } else if (quantity.status === 'invalid') {
+          invalidQuantityCount += 1
+          pushUnique(blockingReasons, INVENTORY_IMPORT_ELIGIBILITY_BLOCKER.INVALID_OPENING_QUANTITY)
+        } else if (isLink) {
+          linkedItemsAffectedByOpeningStock += 1
+        }
       }
     } else if (
       normalizedPolicy.quantityPolicy === INVENTORY_IMPORT_QUANTITY_POLICY.NO_CHANGE

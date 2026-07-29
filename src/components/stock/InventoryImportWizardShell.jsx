@@ -6,7 +6,7 @@
  * and staging serializer only.
  */
 
-import { useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useWorkspaceStockCatalog } from '../../hooks/useWorkspaceStockCatalog'
 import * as inventoryImportFileDecoder from '../../lib/inventoryImportFileDecoder'
 import * as inventoryImportFormatDetector from '../../lib/inventoryImportFormatDetector'
@@ -24,6 +24,11 @@ import {
   evaluateInventoryImportReadyEligibility,
 } from '../../lib/inventoryImportEligibility'
 import {
+  buildOperationalLocationColumnBindings,
+  INVENTORY_OPERATIONAL_BAR_LOCATION_KEY,
+  resolveWorkspaceStorageByLocationKey,
+} from '../../lib/inventoryLocationColumnBindings'
+import {
   buildInventoryImportColumnMappingSummary,
   buildInventoryImportMapSamplePreview,
   buildInventoryImportStepSummary,
@@ -37,6 +42,7 @@ import {
   markInventoryImportSessionReady as markInventoryImportSessionReadyDefault,
   stageInventoryImportRows as stageInventoryImportRowsDefault,
 } from '../../services/inventoryImportService'
+import { listWorkspaceStorages } from '../../services/workspaceStorageService'
 import { InventoryImportValidateAssistant } from './InventoryImportValidateAssistant'
 import { InventoryOperationalImportPreview } from './InventoryOperationalImportPreview'
 import {
@@ -87,6 +93,16 @@ const IMPORT_ELIGIBILITY_BLOCKER_LABELS = Object.freeze({
     'More than one row targets the same existing product',
   [INVENTORY_IMPORT_ELIGIBILITY_BLOCKER.REMAINING_OPERATIONAL_BLOCKER]:
     'Resolve remaining review issues',
+  [INVENTORY_IMPORT_ELIGIBILITY_BLOCKER.LOCATION_QUANTITY_MALFORMED]:
+    'Fix malformed location quantities in the spreadsheet',
+  [INVENTORY_IMPORT_ELIGIBILITY_BLOCKER.LOCATION_QUANTITY_NEGATIVE]:
+    'Location quantities cannot be negative',
+  [INVENTORY_IMPORT_ELIGIBILITY_BLOCKER.LOCATION_BINDING_UNMAPPED]:
+    'Map each quantity column to a workspace storage',
+  [INVENTORY_IMPORT_ELIGIBILITY_BLOCKER.LOCATION_BINDING_AMBIGUOUS]:
+    'Resolve ambiguous storage bindings for quantity columns',
+  [INVENTORY_IMPORT_ELIGIBILITY_BLOCKER.DUPLICATE_LOCATION_DESTINATION]:
+    'Two quantity columns cannot target the same storage',
 })
 
 const IMPORT_ELIGIBILITY_WARNING_LABELS = Object.freeze({
@@ -383,6 +399,9 @@ export function InventoryImportWizardShell({
   const [importSessionPolicy, setImportSessionPolicy] = useState(() => ({
     ...DEFAULT_IMPORT_SESSION_POLICY,
   }))
+  const [workspaceStorages, setWorkspaceStorages] = useState(
+    /** @type {Array<{ id: string, locationKey: string, name?: string, active?: boolean }>|null} */ (null),
+  )
   const [isApplyingImport, setIsApplyingImport] = useState(false)
   const [applyImportError, setApplyImportError] = useState('')
   const [applyImportResult, setApplyImportResult] = useState(null)
@@ -475,13 +494,66 @@ export function InventoryImportWizardShell({
     }
   }, [resolutionOperationalImportPreview, newProductDrafts])
 
+  useEffect(() => {
+    let cancelled = false
+    const workspaceKey = `${workspaceId ?? ''}`.trim()
+    const shouldLoad = Boolean(workspaceKey)
+      && isOperationalFormat
+      && (
+        wizardView === 'preview'
+        || wizardView === 'ready'
+        || wizardView === 'data'
+      )
+
+    if (!shouldLoad) return undefined
+
+    ;(async () => {
+      try {
+        const storages = await listWorkspaceStorages(workspaceKey)
+        if (cancelled) return
+        setWorkspaceStorages(Array.isArray(storages) ? storages : [])
+      } catch {
+        if (!cancelled) setWorkspaceStorages([])
+      }
+    })()
+
+    return () => {
+      cancelled = true
+    }
+  }, [workspaceId, isOperationalFormat, wizardView])
+
+  const importPolicyWithLocationBindings = useMemo(() => ({
+    ...importSessionPolicy,
+    workspaceStorages: Array.isArray(workspaceStorages) ? workspaceStorages : null,
+    existingStockItems: workspaceStockCatalog.status === 'success'
+      ? workspaceStockCatalog.items
+      : null,
+  }), [importSessionPolicy, workspaceStorages, workspaceStockCatalog.status, workspaceStockCatalog.items])
+
+  const barBindingStatus = useMemo(() => {
+    if (!Array.isArray(workspaceStorages)) return null
+    return resolveWorkspaceStorageByLocationKey(
+      workspaceStorages,
+      INVENTORY_OPERATIONAL_BAR_LOCATION_KEY,
+    )
+  }, [workspaceStorages])
+
+  const sessionLocationBindingsPreview = useMemo(() => {
+    if (!Array.isArray(workspaceStorages)) return null
+    const fallbackKey = importSessionPolicy.newProductLocationFallback
+    return buildOperationalLocationColumnBindings({
+      workspaceStorages,
+      storageDestination: fallbackKey ? { locationKey: fallbackKey } : null,
+    })
+  }, [workspaceStorages, importSessionPolicy.newProductLocationFallback])
+
   const readyEligibility = useMemo(() => {
     if (!resolvedOperationalImportPreview) return null
     return evaluateInventoryImportReadyEligibility({
       preview: resolvedOperationalImportPreview,
-      policy: importSessionPolicy,
+      policy: importPolicyWithLocationBindings,
     })
-  }, [resolvedOperationalImportPreview, importSessionPolicy])
+  }, [resolvedOperationalImportPreview, importPolicyWithLocationBindings])
 
   const columnMappingSummary = useMemo(
     () => buildInventoryImportColumnMappingSummary(parseResult),
@@ -890,7 +962,7 @@ export function InventoryImportWizardShell({
         headerRowNumber: parseResult?.headerRowNumber ?? null,
         sourceFormat: formatDetection?.signals?.sourceFormat ?? selectedFile.extension ?? null,
         preview: resolvedOperationalImportPreview,
-        policy: importSessionPolicy,
+        policy: importPolicyWithLocationBindings,
         eligibility: readyEligibility,
       })
 
@@ -1432,6 +1504,50 @@ export function InventoryImportWizardShell({
                           ? '1 unresolved new product will use this fallback'
                           : `${locationFallbackAffectedCount} unresolved new products will use this fallback`}
                       </p>
+                    </div>
+                  ) : null}
+
+                  {Array.isArray(workspaceStorages) ? (
+                    <div
+                      className="inventory-import-policy-section"
+                      data-testid="inventory-import-location-bindings"
+                    >
+                      <p className="inventory-import-policy-field-label">
+                        Location quantity columns
+                      </p>
+                      <p className="inventory-import-policy-field-copy">
+                        Storage quantities use each product&apos;s selected location.
+                        BAR maps to the workspace storage named Bar when present.
+                      </p>
+                      <ul className="inventory-import-eligibility-summary-list">
+                        <li>
+                          Storage → product / fallback location
+                          {importSessionPolicy.newProductLocationFallback
+                            ? ` (${importSessionPolicy.newProductLocationFallback})`
+                            : ''}
+                        </li>
+                        <li>
+                          BAR →
+                          {' '}
+                          {barBindingStatus?.status === 'mapped'
+                            ? `Bar (${barBindingStatus.storage?.id})`
+                            : barBindingStatus?.status === 'ambiguous'
+                              ? 'ambiguous Bar storage — resolve in workspace storages'
+                              : 'unmapped (add a Bar storage to import BAR quantities)'}
+                        </li>
+                      </ul>
+                      {sessionLocationBindingsPreview
+                        && sessionLocationBindingsPreview.some((binding) => (
+                          binding.sourceField === 'bar' && binding.bindingStatus !== 'mapped'
+                        ))
+                        && importSessionPolicy.quantityPolicy
+                          === INVENTORY_IMPORT_QUANTITY_POLICY.OPENING_STOCK
+                        ? (
+                          <p className="inventory-import-policy-affected" role="status">
+                            Non-empty BAR cells require a mapped Bar workspace storage.
+                          </p>
+                        )
+                        : null}
                     </div>
                   ) : null}
 

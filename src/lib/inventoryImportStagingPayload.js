@@ -20,7 +20,11 @@ import {
   isImportEligibilitySkippedAction,
   isImportEligibilityUnresolvedAction,
   normalizeInventoryImportSessionPolicy,
+  resolveImportRowLocationQuantities,
 } from './inventoryImportEligibility.js'
+import {
+  INVENTORY_LOCATION_QUANTITY_VALIDATION_STATE,
+} from './inventoryLocationQuantityParser.js'
 import {
   INVENTORY_OPERATIONAL_IMPORT_PREVIEW_ACTION,
   INVENTORY_OPERATIONAL_IMPORT_PREVIEW_VERSION,
@@ -52,6 +56,7 @@ export const INVENTORY_IMPORT_STAGING_ERROR = Object.freeze({
   MISSING_CREATE_UNIT: 'missing_create_unit',
   MISSING_CREATE_STORAGE: 'missing_create_storage',
   INVALID_OPENING_QUANTITY: 'invalid_opening_quantity',
+  INVALID_LOCATION_QUANTITY: 'invalid_location_quantity',
   MISSING_OVERWRITE_CONFIRMATION: 'missing_overwrite_confirmation',
   DUPLICATE_EXISTING_TARGET: 'duplicate_existing_target',
   MISSING_LINK_TARGET: 'missing_link_target',
@@ -110,6 +115,52 @@ function cloneJsonValue(value) {
     if (typeof File !== 'undefined' && entry instanceof File) continue
     if (typeof Blob !== 'undefined' && entry instanceof Blob) continue
     out[key] = cloneJsonValue(entry)
+  }
+  return out
+}
+
+/**
+ * Serialize locationQuantities for Apply.
+ *
+ * Empty cells are omitted (no opening balance).
+ * Blocker entries must never be serialized into a Ready payload.
+ * Expression warnings are emitted with validationState "valid" so the current
+ * Apply RPC (which applies only validationState=valid) still writes balances,
+ * while parseStatus/warnings/evidence preserve expression evidence.
+ *
+ * @param {ReadonlyArray<object>|object[]} entries
+ * @returns {object[]}
+ */
+export function serializeLocationQuantitiesForApply(entries) {
+  const list = Array.isArray(entries) ? entries : []
+  /** @type {object[]} */
+  const out = []
+  for (const entry of list) {
+    if (!isPlainObject(entry)) continue
+    if (entry.validationState === INVENTORY_LOCATION_QUANTITY_VALIDATION_STATE.BLOCKER) {
+      continue
+    }
+    if (entry.parseStatus === 'empty' || entry.parsedQuantity == null) {
+      continue
+    }
+    if (!asTrimmedString(entry.destinationStorageId)
+      || !asTrimmedString(entry.destinationLocationKey)
+    ) {
+      continue
+    }
+    out.push({
+      sourceColumnIndex: entry.sourceColumnIndex ?? null,
+      sourceHeader: entry.sourceHeader ?? null,
+      destinationStorageId: String(entry.destinationStorageId),
+      destinationLocationKey: String(entry.destinationLocationKey),
+      rawEvidence: entry.rawEvidence ?? null,
+      parsedQuantity: entry.parsedQuantity,
+      parseStatus: entry.parseStatus,
+      // Apply consumes only validationState === 'valid' (P8.29.9 SQL).
+      validationState: INVENTORY_LOCATION_QUANTITY_VALIDATION_STATE.VALID,
+      warnings: Array.isArray(entry.warnings) ? [...entry.warnings] : [],
+      evidence: isPlainObject(entry.evidence) ? { ...entry.evidence } : {},
+    })
   }
   return out
 }
@@ -407,6 +458,35 @@ export function buildInventoryImportRowPayload({
   let confirmQuantityUpdate = false
   let confirmLocationFallback = false
 
+  const hasLocationBindingContext = Array.isArray(normalizedPolicy.workspaceStorages)
+    || Array.isArray(normalizedPolicy.locationColumnBindings)
+    || Array.isArray(row?.locationQuantities)
+  const locationResult = (
+    stagedAction === INVENTORY_IMPORT_STAGED_ACTION.CREATE
+    || stagedAction === INVENTORY_IMPORT_STAGED_ACTION.LINK
+  ) && hasLocationBindingContext
+    ? resolveImportRowLocationQuantities(row, normalizedPolicy)
+    : null
+
+  if (
+    locationResult
+    && locationResult.blockers.length > 0
+    && normalizedPolicy.quantityPolicy === INVENTORY_IMPORT_QUANTITY_POLICY.OPENING_STOCK
+  ) {
+    throwStagingError(
+      INVENTORY_IMPORT_STAGING_ERROR.INVALID_LOCATION_QUANTITY,
+      `row locationQuantities blocked: ${locationResult.blockers.join(',')}`,
+    )
+  }
+
+  if (locationResult) {
+    const serialized = serializeLocationQuantitiesForApply(locationResult.locationQuantities)
+    normalizedPayload.locationQuantities = normalizedPolicy.quantityPolicy
+      === INVENTORY_IMPORT_QUANTITY_POLICY.NO_CHANGE
+      ? cloneJsonValue(locationResult.locationQuantities)
+      : serialized
+  }
+
   if (stagedAction === INVENTORY_IMPORT_STAGED_ACTION.CREATE) {
     const fields = getCreateDraftFields(row)
     if (!fields.productName) {
@@ -444,13 +524,18 @@ export function buildInventoryImportRowPayload({
 
     if (normalizedPolicy.quantityPolicy === INVENTORY_IMPORT_QUANTITY_POLICY.OPENING_STOCK) {
       const quantity = getResolvedImportQuantity(row)
-      if (quantity.status !== 'valid' || quantity.value == null) {
+      if (quantity.status === 'valid' && quantity.value != null) {
+        normalizedPayload.resolvedQuantity = quantity.value
+      } else if (locationResult && locationResult.aggregateQuantity != null) {
+        normalizedPayload.resolvedQuantity = locationResult.aggregateQuantity
+      } else if (locationResult && Array.isArray(normalizedPayload.locationQuantities)) {
+        // Multi-location path: empty cells → no opening balances; legacy field optional.
+      } else {
         throwStagingError(
           INVENTORY_IMPORT_STAGING_ERROR.INVALID_OPENING_QUANTITY,
           'create row opening_stock requires finite quantity >= 0',
         )
       }
-      normalizedPayload.resolvedQuantity = quantity.value
     }
   } else if (stagedAction === INVENTORY_IMPORT_STAGED_ACTION.LINK) {
     matchedStockItemId = getImportEligibilityMatchedStockItemId(row)
@@ -470,7 +555,13 @@ export function buildInventoryImportRowPayload({
 
     if (normalizedPolicy.quantityPolicy === INVENTORY_IMPORT_QUANTITY_POLICY.OPENING_STOCK) {
       const quantity = getResolvedImportQuantity(row)
-      if (quantity.status !== 'valid' || quantity.value == null) {
+      if (quantity.status === 'valid' && quantity.value != null) {
+        normalizedPayload.resolvedQuantity = quantity.value
+      } else if (locationResult && locationResult.aggregateQuantity != null) {
+        normalizedPayload.resolvedQuantity = locationResult.aggregateQuantity
+      } else if (locationResult && Array.isArray(normalizedPayload.locationQuantities)) {
+        // Multi-location path present.
+      } else {
         throwStagingError(
           INVENTORY_IMPORT_STAGING_ERROR.INVALID_OPENING_QUANTITY,
           'link row opening_stock requires finite quantity >= 0',
@@ -482,7 +573,6 @@ export function buildInventoryImportRowPayload({
           'opening_stock link requires existingQuantityOverwriteConfirmed',
         )
       }
-      normalizedPayload.resolvedQuantity = quantity.value
       confirmQuantityUpdate = true
     }
   } else if (stagedAction === INVENTORY_IMPORT_STAGED_ACTION.SKIP) {
