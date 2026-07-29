@@ -240,26 +240,33 @@ export function getResolvedImportQuantity(row) {
  * Narrow resolved storage-location contract for create rows.
  * Does not silently fall back to Main Storage.
  *
- * Accepted sources (first canonical match):
+ * Accepted sources (first usable match):
+ * - row.draft.storage (explicit new-product row storage)
  * - row.resolvedStorageLocation
  * - row.locationProposal.resolvedStorageLocation
  * - row.locationProposal.proposedStorageLocation
  *
- * Non-canonical present values are ignored (treated as unresolved), not remapped.
+ * STOCK_LOCATIONS remain preferred when present. Other exact workspace keys
+ * (trimmed, ≤80) are accepted for P8.26 workspace storages.
  *
  * @param {object} row
  * @returns {string|null}
  */
 export function getResolvedImportStorageLocation(row) {
   const candidates = [
+    isPlainObject(row?.draft) ? row.draft.storage : null,
     row?.resolvedStorageLocation,
     row?.locationProposal?.resolvedStorageLocation,
     row?.locationProposal?.proposedStorageLocation,
   ]
 
   for (const candidate of candidates) {
-    const canonical = normalizeCanonicalStockLocation(candidate)
+    const trimmed = asTrimmedString(candidate)
+    if (!trimmed || trimmed.length > 80) continue
+    const canonical = normalizeCanonicalStockLocation(trimmed)
     if (canonical) return canonical
+    // Exact workspace storage key (not remapped / not fuzzy).
+    return trimmed
   }
   return null
 }

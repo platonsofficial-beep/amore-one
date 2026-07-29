@@ -139,26 +139,33 @@ export function getNewProductDraftDefaults(row) {
       ? String(sourceCategory).trim()
       : 'Other'
   const unitInference = inferInventoryUnitFromProductName(productName)
+  const proposedStorage = row?.locationProposal?.proposedStorageLocation
+    ?? row?.locationProposal?.resolvedStorageLocation
+  const storage = isMeaningfullyPopulated(proposedStorage)
+    ? String(proposedStorage).trim()
+    : null
   return {
     productName,
     category,
     unit: unitInference.status === INVENTORY_UNIT_INFERENCE_STATUS.INFERRED
       ? unitInference.proposedUnit
       : null,
+    storage,
     unitInference,
   }
 }
 
 /**
  * Merge stored draft over defaults. Unknown/partial drafts are safe.
- * Explicit draft.unit (including null) is never replaced by inference.
+ * Explicit draft.unit / draft.storage (including null) are never replaced by defaults.
  *
  * @param {object} row
- * @param {{ productName?: unknown, category?: unknown, unit?: unknown }|null|undefined} draft
+ * @param {{ productName?: unknown, category?: unknown, unit?: unknown, storage?: unknown }|null|undefined} draft
  * @returns {{
  *   productName: string,
  *   category: string,
  *   unit: string|null,
+ *   storage: string|null,
  *   unitInference: ReturnType<typeof inferInventoryUnitFromProductName>,
  * }}
  */
@@ -181,21 +188,27 @@ export function mergeNewProductDraft(row, draft) {
     : draft.unit == null || draft.unit === ''
       ? null
       : String(draft.unit)
+  const storage = draft.storage === undefined
+    ? defaults.storage
+    : draft.storage == null || draft.storage === ''
+      ? null
+      : String(draft.storage).trim() || null
 
   return {
     productName,
     category,
     unit,
+    storage,
     unitInference: defaults.unitInference,
   }
 }
 
 /**
- * @param {{ productName?: unknown, category?: unknown, unit?: unknown }|null|undefined} draft
+ * @param {{ productName?: unknown, category?: unknown, unit?: unknown, storage?: unknown }|null|undefined} draft
  * @returns {{
  *   valid: boolean,
  *   errors: { productName?: string, category?: string, unit?: string },
- *   normalized: { productName: string, category: string, unit: string|null },
+ *   normalized: { productName: string, category: string, unit: string|null, storage: string|null },
  * }}
  */
 export function validateNewProductDraft(draft) {
@@ -206,10 +219,14 @@ export function validateNewProductDraft(draft) {
   const unitRaw = draft?.unit == null || draft?.unit === ''
     ? null
     : String(draft.unit)
+  const storageRaw = draft?.storage == null || draft?.storage === ''
+    ? null
+    : String(draft.storage).trim() || null
 
   const productName = productNameRaw.trim()
   const category = categoryRaw.trim()
   const unit = unitRaw
+  const storage = storageRaw
 
   if (!productName) {
     errors.productName = 'Product name is required'
@@ -230,6 +247,7 @@ export function validateNewProductDraft(draft) {
       productName,
       category,
       unit,
+      storage,
     },
   }
 }
@@ -398,16 +416,30 @@ export function applyInventoryNewProductDrafts({
       proposedUnit: validation.normalized.unit,
       proposedActive: true,
     }
+    const storage = validation.normalized.storage
+    derived.locationProposal = {
+      ...derived.locationProposal,
+      proposedStorageLocation: storage,
+      resolvedStorageLocation: storage,
+      rule: storage ? 'new_product_draft_storage' : derived.locationProposal.rule,
+      status: storage
+        ? INVENTORY_OPERATIONAL_IMPORT_PREVIEW_PROPOSAL_STATUS.NOT_APPLICABLE
+        : derived.locationProposal.status,
+    }
     derived.draft = {
       productName: merged.productName,
       category: merged.category,
       unit: merged.unit,
+      storage: merged.storage,
       valid: validation.valid,
     }
 
-    const blockers = derived.blockers.filter((code) => code !== 'unit_missing')
+    let blockers = derived.blockers.filter((code) => code !== 'unit_missing')
     if (!validation.normalized.unit) {
       blockers.push('unit_missing')
+    }
+    if (storage) {
+      blockers = blockers.filter((code) => code !== 'location_policy_unset')
     }
     derived.blockers = blockers
 

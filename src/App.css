@@ -18413,6 +18413,10 @@
   padding: 20px;
 }
 
+.employee-modal-backdrop.create-workspace-storage-backdrop {
+  z-index: 80;
+}
+
 .employee-modal {
   width: min(720px, 100%);
   max-height: min(90dvh, 90vh);

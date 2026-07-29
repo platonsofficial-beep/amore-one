@@ -1,7 +1,7 @@
 /**
  * @vitest-environment jsdom
  */
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { act, createElement } from 'react'
 import { createRoot } from 'react-dom/client'
 import {
@@ -20,6 +20,15 @@ import {
   mergeNewProductDraft,
 } from '../../lib/inventoryNewProductDrafts'
 import { InventoryNewProductReview } from './InventoryNewProductReview'
+
+const { listWorkspaceStoragesMock } = vi.hoisted(() => ({
+  listWorkspaceStoragesMock: vi.fn(),
+}))
+
+vi.mock('../../services/workspaceStorageService', () => ({
+  listWorkspaceStorages: (...args) => listWorkspaceStoragesMock(...args),
+  createWorkspaceStorage: vi.fn(),
+}))
 
 function stock(partial) {
   return {
@@ -92,6 +101,14 @@ describe('InventoryNewProductReview', () => {
   let container
   let root
 
+  beforeEach(() => {
+    listWorkspaceStoragesMock.mockReset()
+    listWorkspaceStoragesMock.mockResolvedValue([
+      { id: 's1', locationKey: 'Bar', name: 'Bar', active: true, sortOrder: 0 },
+      { id: 's2', locationKey: 'Main Storage', name: 'Main Storage', active: true, sortOrder: 1 },
+    ])
+  })
+
   afterEach(() => {
     act(() => {
       root?.unmount()
@@ -106,11 +123,14 @@ describe('InventoryNewProductReview', () => {
     document.body.appendChild(container)
     root = createRoot(container)
     act(() => {
-      root.render(createElement(InventoryNewProductReview, props))
+      root.render(createElement(InventoryNewProductReview, {
+        workspaceId: 'ws-1',
+        ...props,
+      }))
     })
   }
 
-  it('renders new product cards with source facts and editable fields', () => {
+  it('renders new product cards with source facts and editable fields', async () => {
     const preview = buildPreviewWithCreateNew()
     const onChangeDraft = vi.fn()
     renderReview({
@@ -120,22 +140,27 @@ describe('InventoryNewProductReview', () => {
       onChangeDraft,
     })
 
+    await act(async () => {
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+
     expect(container.textContent).toContain('New Products')
     expect(container.textContent).toContain('Review every new product before importing it into ONE.')
     expect(container.textContent).toContain('Brand New Spirit')
     expect(container.textContent).toContain('New Product')
-    expect(container.textContent).toContain('Storage')
+    expect(container.textContent).toContain('Source storage')
     expect(container.textContent).toContain('2')
     expect(container.textContent).toContain('BAR')
     expect(container.textContent).toContain('1')
     expect(container.querySelector('input[type="text"]')).toBeTruthy()
-    expect(container.querySelectorAll('select')).toHaveLength(2)
+    expect(container.querySelectorAll('select')).toHaveLength(3)
     expect(container.textContent).toContain('Unit is required')
     expect(container.textContent).not.toContain('Suggested from product name')
     expect(onChangeDraft).not.toHaveBeenCalled()
   })
 
-  it('preselects inferred units and shows suggestion helper until overridden', () => {
+  it('preselects inferred units and shows suggestion helper until overridden', async () => {
     const operationalModel = {
       categories: [{
         name: 'APERITIVO',
@@ -186,6 +211,7 @@ describe('InventoryNewProductReview', () => {
         root.render(createElement(InventoryNewProductReview, {
           preview,
           drafts,
+          workspaceId: 'ws-1',
           categoryOptions: ['APERITIVO'],
           onChangeDraft,
         }))
@@ -197,6 +223,11 @@ describe('InventoryNewProductReview', () => {
       drafts,
       categoryOptions: ['APERITIVO'],
       onChangeDraft,
+    })
+
+    await act(async () => {
+      await Promise.resolve()
+      await Promise.resolve()
     })
 
     expect(container.textContent).toContain('Campari 1lt')
@@ -226,7 +257,7 @@ describe('InventoryNewProductReview', () => {
     expect(unitSelects[0].value).toBe('Liter')
   })
 
-  it('emits draft updates for name, category, and unit', () => {
+  it('emits draft updates for name, category, unit, and storage', async () => {
     const preview = buildPreviewWithCreateNew()
     const { key, row } = listCreateNewPreviewRows(preview)[0]
     /** @type {Record<string, object>} */
@@ -237,6 +268,7 @@ describe('InventoryNewProductReview', () => {
         root.render(createElement(InventoryNewProductReview, {
           preview,
           drafts,
+          workspaceId: 'ws-1',
           categoryOptions: ['Vodka', 'Gin', 'VODKA'],
           onChangeDraft,
         }))
@@ -248,6 +280,11 @@ describe('InventoryNewProductReview', () => {
       drafts,
       categoryOptions: ['Vodka', 'Gin', 'VODKA'],
       onChangeDraft,
+    })
+
+    await act(async () => {
+      await Promise.resolve()
+      await Promise.resolve()
     })
 
     const setNativeValue = (element, value) => {
@@ -266,7 +303,7 @@ describe('InventoryNewProductReview', () => {
     expect(onChangeDraft).toHaveBeenCalled()
     expect(drafts[key].productName).toBe('Renamed Spirit')
 
-    const selects = container.querySelectorAll('select')
+    const selects = container.querySelectorAll('.inventory-new-product-review-fields select')
     act(() => {
       setNativeValue(selects[0], 'Gin')
       selects[0].dispatchEvent(new Event('change', { bubbles: true }))
@@ -279,8 +316,15 @@ describe('InventoryNewProductReview', () => {
     })
     expect(drafts[key].unit).toBe('Bottle 700ml')
 
+    act(() => {
+      setNativeValue(selects[2], 'Bar')
+      selects[2].dispatchEvent(new Event('change', { bubbles: true }))
+    })
+    expect(drafts[key].storage).toBe('Bar')
+
     const merged = mergeNewProductDraft(row, drafts[key])
     expect(merged.unit).toBe('Bottle 700ml')
+    expect(merged.storage).toBe('Bar')
   })
 
   it('shows empty state when there are no create_new rows', () => {

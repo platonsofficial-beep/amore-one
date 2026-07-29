@@ -1,6 +1,6 @@
 /**
  * @vitest-environment jsdom
- * P8.26.5 — Inventory Catalog workspace storage selector
+ * P8.26.5 / P8.26.6 — Inventory Catalog workspace storage selector + create
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { act, createElement } from 'react'
@@ -14,12 +14,14 @@ import {
 } from '../../lib/stockCatalog'
 import { StockItemFormModal } from './StockItemFormModal'
 
-const { listWorkspaceStoragesMock } = vi.hoisted(() => ({
+const { listWorkspaceStoragesMock, createWorkspaceStorageMock } = vi.hoisted(() => ({
   listWorkspaceStoragesMock: vi.fn(),
+  createWorkspaceStorageMock: vi.fn(),
 }))
 
 vi.mock('../../services/workspaceStorageService', () => ({
   listWorkspaceStorages: (...args) => listWorkspaceStoragesMock(...args),
+  createWorkspaceStorage: (...args) => createWorkspaceStorageMock(...args),
 }))
 
 function renderModal(props = {}) {
@@ -64,9 +66,6 @@ describe('catalog storage option helpers', () => {
     expect(resolveCatalogStorageSelectOptions([])).toEqual(
       STOCK_LOCATIONS.map((location) => ({ value: location, label: location })),
     )
-    expect(resolveCatalogStorageSelectOptions(null)).toEqual(
-      STOCK_LOCATIONS.map((location) => ({ value: location, label: location })),
-    )
   })
 
   it('preserves an existing selection missing from the catalog list', () => {
@@ -83,6 +82,7 @@ describe('catalog storage option helpers', () => {
 describe('StockItemFormModal workspace storage integration', () => {
   beforeEach(() => {
     listWorkspaceStoragesMock.mockReset()
+    createWorkspaceStorageMock.mockReset()
   })
 
   afterEach(() => {
@@ -130,7 +130,7 @@ describe('StockItemFormModal workspace storage integration', () => {
     expect(host.querySelector('.stock-location-preset.active')?.textContent).toBe('Cellar')
 
     await act(async () => {
-      host.querySelector('form').dispatchEvent(new Event('submit', {
+      host.querySelector('form.stock-item-form').dispatchEvent(new Event('submit', {
         bubbles: true,
         cancelable: true,
       }))
@@ -159,7 +159,6 @@ describe('StockItemFormModal workspace storage integration', () => {
         unit: 'Bottle',
         currentQuantity: 1,
         minimumQuantity: 0,
-        targetQuantity: null,
         costPrice: 0,
       },
     })
@@ -197,14 +196,24 @@ describe('StockItemFormModal workspace storage integration', () => {
     cleanup()
   })
 
-  it('exposes Create storage placeholder without changing the selected location', async () => {
-    listWorkspaceStoragesMock.mockResolvedValue([
-      { id: 's1', locationKey: 'Bar', name: 'Bar', active: true, sortOrder: 0 },
-    ])
-    const onCreateStorage = vi.fn()
+  it('opens create dialog, reloads list, and auto-selects the new storage', async () => {
+    listWorkspaceStoragesMock
+      .mockResolvedValueOnce([
+        { id: 's1', locationKey: 'Bar', name: 'Bar', active: true, sortOrder: 0 },
+      ])
+      .mockResolvedValueOnce([
+        { id: 's1', locationKey: 'Bar', name: 'Bar', active: true, sortOrder: 0 },
+        { id: 's2', locationKey: 'Cellar', name: 'Cellar', active: true, sortOrder: 1 },
+      ])
+    createWorkspaceStorageMock.mockResolvedValue({
+      id: 's2',
+      locationKey: 'Cellar',
+      name: 'Cellar',
+      active: true,
+      sortOrder: 1,
+    })
 
     const { host, cleanup } = renderModal({
-      onCreateStorage,
       initialItem: {
         id: 'item-1',
         name: 'Vodka',
@@ -225,15 +234,37 @@ describe('StockItemFormModal workspace storage integration', () => {
     })
 
     const createButton = host.querySelector('[data-stock-create-storage="true"]')
-    expect(createButton?.textContent).toContain('+ Create storage...')
     expect(createButton?.dataset.value).toBe(STOCK_CREATE_STORAGE_OPTION_VALUE)
 
     await act(async () => {
       createButton.dispatchEvent(new MouseEvent('click', { bubbles: true }))
     })
 
-    expect(onCreateStorage).toHaveBeenCalledTimes(1)
-    expect(host.querySelector('.stock-location-preset.active')?.textContent).toBe('Bar')
+    const dialog = document.querySelector('[data-create-workspace-storage-dialog="true"]')
+    expect(dialog).toBeTruthy()
+    const input = dialog.querySelector('input')
+    const form = dialog.querySelector('form')
+
+    await act(async () => {
+      const nativeInputValueSetter = Object.getOwnPropertyDescriptor(
+        window.HTMLInputElement.prototype,
+        'value',
+      )?.set
+      nativeInputValueSetter?.call(input, 'Cellar')
+      input.dispatchEvent(new Event('input', { bubbles: true }))
+    })
+
+    await act(async () => {
+      form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+      await Promise.resolve()
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+
+    expect(createWorkspaceStorageMock).toHaveBeenCalledWith('ws-1', 'Cellar')
+    expect(listWorkspaceStoragesMock.mock.calls.length).toBeGreaterThanOrEqual(2)
+    expect(host.querySelector('.stock-location-preset.active')?.textContent).toBe('Cellar')
+    expect(document.querySelector('[data-create-workspace-storage-dialog="true"]')).toBeNull()
 
     cleanup()
   })

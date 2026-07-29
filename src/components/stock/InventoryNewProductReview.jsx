@@ -1,5 +1,5 @@
 /**
- * P8.16.14 — New product review & unit assignment workspace.
+ * P8.16.14 / P8.26.6 — New product review & unit/storage assignment workspace.
  *
  * Wizard-local drafts only. No database writes, product creation, or Apply.
  */
@@ -13,19 +13,32 @@ import {
 } from '../../lib/inventoryNewProductDrafts'
 import { INVENTORY_UNIT_INFERENCE_STATUS } from '../../lib/inventoryUnitInference'
 import { formatOperationalImportPreviewValue } from './InventoryOperationalImportPreview'
+import { WorkspaceStorageSelector } from './WorkspaceStorageSelector'
 
 /**
  * @param {{
  *   preview?: object|null,
- *   drafts?: Record<string, { productName?: string, category?: string, unit?: string|null }>,
+ *   drafts?: Record<string, {
+ *     productName?: string,
+ *     category?: string,
+ *     unit?: string|null,
+ *     storage?: string|null,
+ *   }>,
  *   categoryOptions?: string[],
- *   onChangeDraft?: (rowKey: string, next: { productName: string, category: string, unit: string|null }) => void,
+ *   workspaceId?: string,
+ *   onChangeDraft?: (rowKey: string, next: {
+ *     productName: string,
+ *     category: string,
+ *     unit: string|null,
+ *     storage: string|null,
+ *   }) => void,
  * }} props
  */
 export function InventoryNewProductReview({
   preview = null,
   drafts = {},
   categoryOptions = [],
+  workspaceId = '',
   onChangeDraft = undefined,
 } = {}) {
   const createRows = listCreateNewPreviewRows(preview)
@@ -54,6 +67,15 @@ export function InventoryNewProductReview({
       showingSuggested,
     }
   })
+
+  function emitDraft(key, merged, patch) {
+    onChangeDraft?.(key, {
+      productName: patch.productName ?? merged.productName,
+      category: patch.category ?? merged.category,
+      unit: patch.unit !== undefined ? patch.unit : merged.unit,
+      storage: patch.storage !== undefined ? patch.storage : merged.storage,
+    })
+  }
 
   return (
     <section
@@ -111,6 +133,7 @@ export function InventoryNewProductReview({
                   data-row-key={key}
                   data-draft-valid={validation.valid ? 'true' : 'false'}
                   data-unit-suggested={showingSuggested ? 'true' : 'false'}
+                  data-storage={merged.storage ?? ''}
                 >
                   <div className="inventory-new-product-review-card-head">
                     <div>
@@ -128,7 +151,7 @@ export function InventoryNewProductReview({
 
                   <dl className="inventory-new-product-review-facts">
                     <div>
-                      <dt>Storage</dt>
+                      <dt>Source storage</dt>
                       <dd>{formatOperationalImportPreviewValue(row.source?.storage)}</dd>
                     </div>
                     <div>
@@ -145,11 +168,7 @@ export function InventoryNewProductReview({
                         value={merged.productName}
                         aria-invalid={validation.errors.productName ? 'true' : undefined}
                         onChange={(event) => {
-                          onChangeDraft?.(key, {
-                            productName: event.target.value,
-                            category: merged.category,
-                            unit: merged.unit,
-                          })
+                          emitDraft(key, merged, { productName: event.target.value })
                         }}
                       />
                       {validation.errors.productName ? (
@@ -165,11 +184,7 @@ export function InventoryNewProductReview({
                         value={merged.category}
                         aria-invalid={validation.errors.category ? 'true' : undefined}
                         onChange={(event) => {
-                          onChangeDraft?.(key, {
-                            productName: merged.productName,
-                            category: event.target.value,
-                            unit: merged.unit,
-                          })
+                          emitDraft(key, merged, { category: event.target.value })
                         }}
                       >
                         {categories.length === 0 ? (
@@ -194,9 +209,7 @@ export function InventoryNewProductReview({
                         value={merged.unit ?? ''}
                         aria-invalid={validation.errors.unit ? 'true' : undefined}
                         onChange={(event) => {
-                          onChangeDraft?.(key, {
-                            productName: merged.productName,
-                            category: merged.category,
+                          emitDraft(key, merged, {
                             unit: event.target.value === '' ? null : event.target.value,
                           })
                         }}
@@ -218,6 +231,22 @@ export function InventoryNewProductReview({
                           {validation.errors.unit}
                         </span>
                       ) : null}
+                    </label>
+
+                    <label className="inventory-new-product-review-field">
+                      <span>Storage</span>
+                      <WorkspaceStorageSelector
+                        workspaceId={workspaceId}
+                        value={merged.storage ?? ''}
+                        variant="select"
+                        emptyLabel="Select storage"
+                        aria-label="Storage"
+                        onChange={(locationKey) => {
+                          emitDraft(key, merged, {
+                            storage: locationKey === '' ? null : locationKey,
+                          })
+                        }}
+                      />
                     </label>
                   </div>
                 </li>

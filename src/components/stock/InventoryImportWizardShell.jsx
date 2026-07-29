@@ -514,6 +514,7 @@ export function InventoryImportWizardShell({
         productName: next.productName,
         category: next.category,
         unit: next.unit ?? null,
+        storage: next.storage ?? null,
       },
     }))
   }
@@ -1316,6 +1317,7 @@ export function InventoryImportWizardShell({
                   preview={resolutionOperationalImportPreview}
                   drafts={newProductDrafts}
                   categoryOptions={newProductCategoryOptions}
+                  workspaceId={workspaceId}
                   onChangeDraft={handleNewProductDraftChange}
                 />
               ) : null}

@@ -6,10 +6,6 @@ import {
   resolveStockStorageLocation,
   stockItemToDuplicateForm,
   STOCK_CATEGORIES,
-  STOCK_CREATE_STORAGE_OPTION_VALUE,
-  STOCK_LOCATIONS,
-  resolveCatalogStorageSelectOptions,
-  withPreservedStorageSelection,
 } from '../../lib/stockCatalog'
 import {
   buildStockItemUpdatePayload,
@@ -57,7 +53,7 @@ import { StockItemFormModal } from './StockItemFormModal'
 import { StockItemMoreMenu } from './StockItemMoreMenu'
 import { StockItemPermanentDeleteDialog } from './StockItemPermanentDeleteDialog'
 import { StockProductHistoryDrawer } from './StockProductHistoryDrawer'
-import { listWorkspaceStorages } from '../../services/workspaceStorageService'
+import { WorkspaceStorageSelector } from './WorkspaceStorageSelector'
 
 function StockLayoutModeIcon({ icon }) {
   if (icon === 'grid') {
@@ -1126,14 +1122,10 @@ function StockBulkFieldModal({
   onSubmit,
   isSaving,
   workspaceId = '',
-  onCreateStorage,
 }) {
   const [value, setValue] = useState('')
   const [error, setError] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [storageOptions, setStorageOptions] = useState(() => (
-    STOCK_LOCATIONS.map((location) => ({ value: location, label: location }))
-  ))
   const isBusy = isSaving || isSubmitting
 
   const title = field === 'supplier'
@@ -1146,51 +1138,17 @@ function StockBulkFieldModal({
 
   const typeOptions = useMemo(() => getBulkTypeOptionsForItems(selectedItems), [selectedItems])
 
-  const locationOptions = useMemo(
-    () => withPreservedStorageSelection(storageOptions, value),
-    [storageOptions, value],
-  )
-
   useEffect(() => {
     setValue('')
     setError('')
   }, [field])
-
-  useEffect(() => {
-    if (field !== 'storageLocation') return undefined
-
-    let cancelled = false
-    const normalizedWorkspaceId = `${workspaceId ?? ''}`.trim()
-
-    if (!normalizedWorkspaceId) {
-      setStorageOptions(STOCK_LOCATIONS.map((location) => ({ value: location, label: location })))
-      return undefined
-    }
-
-    ;(async () => {
-      try {
-        const storages = await listWorkspaceStorages(normalizedWorkspaceId)
-        if (cancelled) return
-        setStorageOptions(resolveCatalogStorageSelectOptions(storages))
-      } catch (loadError) {
-        console.warn('[StockBulkFieldModal] listWorkspaceStorages failed:', loadError)
-        if (!cancelled) {
-          setStorageOptions(STOCK_LOCATIONS.map((location) => ({ value: location, label: location })))
-        }
-      }
-    })()
-
-    return () => {
-      cancelled = true
-    }
-  }, [field, workspaceId])
 
   const handleSubmit = async (event) => {
     event.preventDefault()
     if (isBusy) return
     const trimmed = `${value ?? ''}`.trim()
 
-    if (!trimmed || trimmed === STOCK_CREATE_STORAGE_OPTION_VALUE) {
+    if (!trimmed) {
       setError('Choose or enter a value.')
       return
     }
@@ -1210,16 +1168,6 @@ function StockBulkFieldModal({
   const handleDismiss = () => {
     if (isBusy) return
     onClose()
-  }
-
-  const handleStorageSelectChange = (event) => {
-    const nextValue = event.target.value
-    if (nextValue === STOCK_CREATE_STORAGE_OPTION_VALUE) {
-      // P8.26.6 — Create Storage dialog. Placeholder only in this sprint.
-      onCreateStorage?.()
-      return
-    }
-    setValue(nextValue)
   }
 
   return (
@@ -1250,18 +1198,15 @@ function StockBulkFieldModal({
           {field === 'storageLocation' ? (
             <label>
               Storage location
-              <select
+              <WorkspaceStorageSelector
+                workspaceId={workspaceId}
                 value={value}
-                onChange={handleStorageSelectChange}
+                variant="select"
+                disabled={isBusy}
                 required
-                aria-label="Storage location"
-              >
-                <option value="">Select location</option>
-                {locationOptions.map((option) => (
-                  <option key={option.value} value={option.value}>{option.label}</option>
-                ))}
-                <option value={STOCK_CREATE_STORAGE_OPTION_VALUE}>+ Create storage...</option>
-              </select>
+                emptyLabel="Select location"
+                onChange={setValue}
+              />
             </label>
           ) : null}
 
@@ -2186,9 +2131,6 @@ export function StockDashboardView({
           onClose={() => setBulkModalField(null)}
           isSaving={isSaving}
           onSubmit={handleBulkFieldSubmit}
-          onCreateStorage={() => {
-            // P8.26.6 — Create Storage dialog entry reserved.
-          }}
         />
       ) : null}
 
@@ -2296,9 +2238,6 @@ export function StockDashboardView({
           onOpenAddSupplier={onOpenAddSupplier}
           supplierPrefill={supplierPrefill}
           onSupplierPrefillApplied={onSupplierPrefillApplied}
-          onCreateStorage={() => {
-            // P8.26.6 — Create Storage dialog entry reserved.
-          }}
           onSubmit={async (payload) => {
             if (editingItem?.id) {
               await onUpdateItem(editingItem.id, payload)

@@ -1,8 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import {
   STOCK_CATEGORIES,
-  STOCK_CREATE_STORAGE_OPTION_VALUE,
-  STOCK_LOCATIONS,
   STOCK_UNIT_CUSTOM_VALUE,
   buildEmptyStockItemForm,
   getDefaultLocationForCategory,
@@ -10,15 +8,13 @@ import {
   getStockTypeOptionsForCategory,
   getStockUnitPresetsForCategory,
   normalizeStockCategory,
-  resolveCatalogStorageSelectOptions,
   resolveStockFormUnit,
   stockFormToPayload,
   stockItemToForm,
   validateStockItemForm,
-  withPreservedStorageSelection,
 } from '../../lib/stockCatalog'
 import { buildStockItemSupplierOptions, normalizeSupplierName } from '../../lib/stockSupplierUtils'
-import { listWorkspaceStorages } from '../../services/workspaceStorageService'
+import { WorkspaceStorageSelector } from './WorkspaceStorageSelector'
 
 function StockFormSection({ title, children }) {
   return (
@@ -27,10 +23,6 @@ function StockFormSection({ title, children }) {
       <div className="stock-form-section-body">{children}</div>
     </section>
   )
-}
-
-function buildFallbackStorageOptions() {
-  return STOCK_LOCATIONS.map((location) => ({ value: location, label: location }))
 }
 
 export function StockItemFormModal({
@@ -47,7 +39,6 @@ export function StockItemFormModal({
   onOpenAddSupplier,
   supplierPrefill = '',
   onSupplierPrefillApplied,
-  onCreateStorage,
 }) {
   const isEditing = Boolean(initialItem?.id)
   const isDuplicating = Boolean(initialForm && !initialItem?.id)
@@ -57,7 +48,6 @@ export function StockItemFormModal({
     return buildEmptyStockItemForm()
   })
   const [error, setError] = useState('')
-  const [storageOptions, setStorageOptions] = useState(buildFallbackStorageOptions)
 
   useEffect(() => {
     if (!supplierPrefill) return
@@ -66,33 +56,6 @@ export function StockItemFormModal({
     setForm((current) => ({ ...current, supplier: nextSupplier }))
     onSupplierPrefillApplied?.()
   }, [supplierPrefill, onSupplierPrefillApplied])
-
-  useEffect(() => {
-    let cancelled = false
-    const normalizedWorkspaceId = `${workspaceId ?? ''}`.trim()
-
-    if (!normalizedWorkspaceId) {
-      setStorageOptions(buildFallbackStorageOptions())
-      return undefined
-    }
-
-    ;(async () => {
-      try {
-        const storages = await listWorkspaceStorages(normalizedWorkspaceId)
-        if (cancelled) return
-        setStorageOptions(resolveCatalogStorageSelectOptions(storages))
-      } catch (loadError) {
-        console.warn('[StockItemFormModal] listWorkspaceStorages failed:', loadError)
-        if (!cancelled) {
-          setStorageOptions(buildFallbackStorageOptions())
-        }
-      }
-    })()
-
-    return () => {
-      cancelled = true
-    }
-  }, [workspaceId])
 
   const supplierOptions = useMemo(
     () => buildStockItemSupplierOptions(suppliers, form.supplier),
@@ -114,11 +77,6 @@ export function StockItemFormModal({
     [form.category],
   )
 
-  const locationOptions = useMemo(
-    () => withPreservedStorageSelection(storageOptions, form.storageLocation),
-    [storageOptions, form.storageLocation],
-  )
-
   const handleCategoryChange = (category) => {
     const normalizedCategory = normalizeStockCategory(category)
     const nextTypeOptions = getStockTypeOptionsForCategory(normalizedCategory)
@@ -131,11 +89,6 @@ export function StockItemFormModal({
       unitPreset: getDefaultUnitForCategory(normalizedCategory),
       customUnit: '',
     }))
-  }
-
-  const handleCreateStorageClick = () => {
-    // P8.26.6 — Create Storage dialog. Placeholder only in this sprint.
-    onCreateStorage?.()
   }
 
   const handleSubmit = async (event) => {
@@ -384,30 +337,16 @@ export function StockItemFormModal({
           <StockFormSection title="Location">
             <div className="stock-form-field stock-form-field-full">
               <span>Storage location</span>
-              <div className="stock-location-grid" role="group" aria-label="Storage locations">
-                {locationOptions.map((option) => (
-                  <button
-                    key={option.value}
-                    type="button"
-                    className={`stock-location-preset${form.storageLocation === option.value ? ' active' : ''}`}
-                    onClick={() => setForm((current) => ({
-                      ...current,
-                      storageLocation: option.value,
-                    }))}
-                  >
-                    {option.label}
-                  </button>
-                ))}
-                <button
-                  type="button"
-                  className="stock-location-preset stock-location-create"
-                  data-stock-create-storage="true"
-                  data-value={STOCK_CREATE_STORAGE_OPTION_VALUE}
-                  onClick={handleCreateStorageClick}
-                >
-                  + Create storage...
-                </button>
-              </div>
+              <WorkspaceStorageSelector
+                workspaceId={workspaceId}
+                value={form.storageLocation}
+                variant="grid"
+                disabled={isSaving}
+                onChange={(locationKey) => setForm((current) => ({
+                  ...current,
+                  storageLocation: locationKey,
+                }))}
+              />
             </div>
           </StockFormSection>
 

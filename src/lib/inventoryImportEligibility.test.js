@@ -198,7 +198,7 @@ describe('inventoryImportEligibility — resolved quantity/location helpers', ()
     })).toEqual({ status: 'missing', value: null })
   })
 
-  it('accepts only canonical locations and never remaps to Main Storage', () => {
+  it('resolves STOCK_LOCATIONS and exact workspace storage keys without remapping', () => {
     expect(STOCK_LOCATIONS).toContain('Main Storage')
     expect(isCanonicalStockLocation('Bar')).toBe(true)
     expect(normalizeCanonicalStockLocation('Cellar')).toBeNull()
@@ -207,7 +207,10 @@ describe('inventoryImportEligibility — resolved quantity/location helpers', ()
     })).toBe('Main Storage')
     expect(getResolvedImportStorageLocation({
       locationProposal: { proposedStorageLocation: 'Cellar' },
-    })).toBeNull()
+    })).toBe('Cellar')
+    expect(getResolvedImportStorageLocation({
+      draft: { storage: 'Wine Cave' },
+    })).toBe('Wine Cave')
     expect(getResolvedImportStorageLocation({
       source: { storage: 'Main Storage' },
     })).toBeNull()
