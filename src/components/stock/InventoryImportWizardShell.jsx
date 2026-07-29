@@ -28,6 +28,7 @@ import {
   INVENTORY_OPERATIONAL_BAR_LOCATION_KEY,
   resolveWorkspaceStorageByLocationKey,
 } from '../../lib/inventoryLocationColumnBindings'
+import { detectInventoryImportQuantitySourceColumns } from '../../lib/inventoryImportLocationAllocation'
 import {
   buildInventoryImportColumnMappingSummary,
   buildInventoryImportMapSamplePreview,
@@ -50,7 +51,10 @@ import {
   listOperationalPossibleMatchRows,
 } from './InventoryOperationalMatchResolution'
 import { InventoryNewProductReview } from './InventoryNewProductReview'
-import { WorkspaceStorageSelector } from './WorkspaceStorageSelector'
+import {
+  subscribeWorkspaceStorageListChanged,
+  WorkspaceStorageSelector,
+} from './WorkspaceStorageSelector'
 
 /**
  * @returns {string}
@@ -482,17 +486,31 @@ export function InventoryImportWizardShell({
     }
   }, [operationalImportPreviewState, matchResolutions])
 
+  const quantitySourceColumns = useMemo(
+    () => detectInventoryImportQuantitySourceColumns(parseResult),
+    [parseResult],
+  )
+
   const resolvedOperationalImportPreview = useMemo(() => {
     if (!resolutionOperationalImportPreview) return null
     try {
       return inventoryNewProductDrafts.applyInventoryNewProductDrafts({
         preview: resolutionOperationalImportPreview,
         drafts: newProductDrafts,
+        quantitySourceColumns,
+        workspaceStorages: Array.isArray(workspaceStorages) ? workspaceStorages : null,
+        preferredStorageLocationKey: importSessionPolicy.newProductLocationFallback,
       })
     } catch {
       return resolutionOperationalImportPreview
     }
-  }, [resolutionOperationalImportPreview, newProductDrafts])
+  }, [
+    resolutionOperationalImportPreview,
+    newProductDrafts,
+    quantitySourceColumns,
+    workspaceStorages,
+    importSessionPolicy.newProductLocationFallback,
+  ])
 
   useEffect(() => {
     let cancelled = false
@@ -505,9 +523,11 @@ export function InventoryImportWizardShell({
         || wizardView === 'data'
       )
 
-    if (!shouldLoad) return undefined
-
-    ;(async () => {
+    async function reloadStorages() {
+      if (!workspaceKey) {
+        setWorkspaceStorages(null)
+        return
+      }
       try {
         const storages = await listWorkspaceStorages(workspaceKey)
         if (cancelled) return
@@ -515,10 +535,18 @@ export function InventoryImportWizardShell({
       } catch {
         if (!cancelled) setWorkspaceStorages([])
       }
-    })()
+    }
+
+    if (!shouldLoad) return undefined
+
+    reloadStorages()
+    const unsubscribe = subscribeWorkspaceStorageListChanged(() => {
+      reloadStorages()
+    })
 
     return () => {
       cancelled = true
+      unsubscribe()
     }
   }, [workspaceId, isOperationalFormat, wizardView])
 
@@ -1369,6 +1397,9 @@ export function InventoryImportWizardShell({
                           drafts={newProductDrafts}
                           categoryOptions={newProductCategoryOptions}
                           workspaceId={workspaceId}
+                          workspaceStorages={Array.isArray(workspaceStorages) ? workspaceStorages : null}
+                          quantitySourceColumns={quantitySourceColumns}
+                          preferredStorageLocationKey={importSessionPolicy.newProductLocationFallback}
                           onChangeDraft={handleNewProductDraftChange}
                           onChangeDraftsBulk={handleNewProductDraftsBulk}
                         />

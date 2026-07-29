@@ -16,6 +16,16 @@ import {
   INVENTORY_OPERATIONAL_MATCH_RESOLUTION_SKIP_ACTION,
 } from './inventoryOperationalMatchResolutions.js'
 import {
+  buildDefaultInventoryLocationAllocations,
+  isLocationAllocationQuantityPresent,
+  isMultiLocationQuantityColumnSheet,
+  mergeInventoryLocationAllocations,
+  resolveCreateLocationKeyFromAllocations,
+  resolveInventoryLocationAllocations,
+  resolvePrimaryStorageLocationKeyFromAllocations,
+  serializeAllocationsToLocationQuantities,
+} from './inventoryImportLocationAllocation.js'
+import {
   INVENTORY_UNIT_INFERENCE_STATUS,
   inferInventoryUnitFromProductName,
 } from './inventoryUnitInference.js'
@@ -88,6 +98,15 @@ function isMeaningfullyPopulated(value) {
   if (value === null || value === undefined) return false
   if (typeof value === 'string') return value.trim() !== ''
   return false
+}
+
+/**
+ * @param {unknown} value
+ * @returns {string}
+ */
+function asTrimmedString(value) {
+  if (value == null) return ''
+  return String(value).trim()
 }
 
 /**
@@ -174,6 +193,7 @@ export function getNewProductDraftDefaults(row) {
  *   supplier?: unknown,
  *   supplierId?: unknown,
  *   skipped?: unknown,
+ *   locationAllocations?: unknown,
  * }|null|undefined} draft
  * @returns {{
  *   productName: string,
@@ -183,12 +203,18 @@ export function getNewProductDraftDefaults(row) {
  *   supplier: string,
  *   supplierId: string|null,
  *   skipped: boolean,
+ *   locationAllocations: object[]|null,
  *   unitInference: ReturnType<typeof inferInventoryUnitFromProductName>,
  * }}
  */
 export function mergeNewProductDraft(row, draft) {
   const defaults = getNewProductDraftDefaults(row)
-  if (!isPlainObject(draft)) return defaults
+  if (!isPlainObject(draft)) {
+    return {
+      ...defaults,
+      locationAllocations: null,
+    }
+  }
 
   const productName = draft.productName === undefined
     ? defaults.productName
@@ -223,6 +249,9 @@ export function mergeNewProductDraft(row, draft) {
   const skipped = draft.skipped === undefined
     ? defaults.skipped
     : draft.skipped === true
+  const locationAllocations = Array.isArray(draft.locationAllocations)
+    ? draft.locationAllocations
+    : null
 
   return {
     productName,
@@ -232,6 +261,7 @@ export function mergeNewProductDraft(row, draft) {
     supplier,
     supplierId,
     skipped,
+    locationAllocations,
     unitInference: defaults.unitInference,
   }
 }
@@ -296,20 +326,98 @@ export function validateNewProductDraft(draft) {
 }
 
 /**
+ * Resolve location allocations for one create_new row (defaults ⊕ draft ⊕ catalog).
+ *
+ * @param {{
+ *   row?: object|null,
+ *   draft?: object|null,
+ *   quantitySourceColumns?: unknown,
+ *   workspaceStorages?: unknown,
+ *   preferredStorageLocationKey?: string|null,
+ * }} [input]
+ */
+export function resolveNewProductLocationAllocationsState({
+  row = null,
+  draft = null,
+  quantitySourceColumns = null,
+  workspaceStorages = null,
+  preferredStorageLocationKey = null,
+} = {}) {
+  const merged = mergeNewProductDraft(row, draft)
+  const storageColumnOverride = Array.isArray(merged.locationAllocations)
+    ? merged.locationAllocations.find((entry) => entry?.sourceField === 'storage')
+    : null
+  const preferred = asTrimmedString(
+    storageColumnOverride?.destinationLocationKey
+      ?? merged.storage
+      ?? preferredStorageLocationKey,
+  ) || null
+  const defaults = buildDefaultInventoryLocationAllocations({
+    source: row?.source,
+    columns: quantitySourceColumns,
+    workspaceStorages,
+    preferredStorageLocationKey: preferred,
+  })
+  const allocations = mergeInventoryLocationAllocations(defaults, merged.locationAllocations)
+  const resolved = resolveInventoryLocationAllocations({
+    allocations,
+    workspaceStorages,
+  })
+  const storageDestination = resolvePrimaryStorageLocationKeyFromAllocations(resolved.allocations)
+  const createLocation = resolveCreateLocationKeyFromAllocations(resolved.allocations)
+    || preferred
+  return {
+    merged,
+    allocations,
+    resolved,
+    primaryStorage: storageDestination,
+    createLocation,
+    locationQuantities: serializeAllocationsToLocationQuantities(resolved.allocations),
+  }
+}
+
+/**
  * @param {{
  *   preview?: object|null,
  *   drafts?: Record<string, { productName?: unknown, category?: unknown, unit?: unknown }>,
+ *   quantitySourceColumns?: unknown,
+ *   workspaceStorages?: unknown,
  * }} [input]
  * @returns {boolean}
  */
-export function areAllNewProductDraftsValid({ preview, drafts = {} } = {}) {
+export function areAllNewProductDraftsValid({
+  preview,
+  drafts = {},
+  quantitySourceColumns = null,
+  workspaceStorages = null,
+  preferredStorageLocationKey = null,
+} = {}) {
   const createRows = listCreateNewPreviewRows(preview)
   if (createRows.length === 0) return true
   if (!isPlainObject(drafts)) return false
 
   return createRows.every(({ key, row }) => {
-    const merged = mergeNewProductDraft(row, drafts[key])
-    return validateNewProductDraft(merged).valid
+    const state = resolveNewProductLocationAllocationsState({
+      row,
+      draft: drafts[key],
+      quantitySourceColumns,
+      workspaceStorages,
+      preferredStorageLocationKey,
+    })
+    if (!validateNewProductDraft(state.merged).valid) return false
+    if (state.merged.skipped) return true
+    if (state.resolved.blockers.length > 0) return false
+    if (
+      isMultiLocationQuantityColumnSheet(quantitySourceColumns)
+      && state.locationQuantities.length === 0
+      && (
+        isLocationAllocationQuantityPresent(row?.source?.storage)
+        || isLocationAllocationQuantityPresent(row?.source?.bar)
+      )
+    ) {
+      return false
+    }
+    return true
   })
 }
 
@@ -400,11 +508,16 @@ function cloneRowShallow(row) {
  * @param {{
  *   preview?: unknown,
  *   drafts?: unknown,
+ *   quantitySourceColumns?: unknown,
+ *   workspaceStorages?: unknown,
  * }} [input]
  */
 export function applyInventoryNewProductDrafts({
   preview,
   drafts = {},
+  quantitySourceColumns = null,
+  workspaceStorages = null,
+  preferredStorageLocationKey = null,
 } = {}) {
   if (!isPlainObject(preview)) {
     throw new InventoryNewProductDraftError(
@@ -445,7 +558,14 @@ export function applyInventoryNewProductDrafts({
     }
 
     const key = getOperationalMatchResolutionRowKey(row, index)
-    const merged = mergeNewProductDraft(row, drafts[key])
+    const locationState = resolveNewProductLocationAllocationsState({
+      row,
+      draft: drafts[key],
+      quantitySourceColumns,
+      workspaceStorages,
+      preferredStorageLocationKey,
+    })
+    const merged = locationState.merged
     const validation = validateNewProductDraft(merged)
     const derived = cloneRowShallow(row)
 
@@ -460,7 +580,7 @@ export function applyInventoryNewProductDrafts({
       proposedSupplier: validation.normalized.supplier || null,
       proposedActive: true,
     }
-    const storage = validation.normalized.storage
+    const storage = locationState.createLocation || validation.normalized.storage
     derived.locationProposal = {
       ...derived.locationProposal,
       proposedStorageLocation: storage,
@@ -470,15 +590,27 @@ export function applyInventoryNewProductDrafts({
         ? INVENTORY_OPERATIONAL_IMPORT_PREVIEW_PROPOSAL_STATUS.NOT_APPLICABLE
         : derived.locationProposal.status,
     }
+    derived.locationQuantities = locationState.locationQuantities.map((entry) => ({ ...entry }))
+    if (locationState.resolved.totalOpeningStock != null) {
+      derived.resolvedQuantity = locationState.resolved.totalOpeningStock
+      derived.quantityProposal = {
+        ...derived.quantityProposal,
+        resolvedQuantity: locationState.resolved.totalOpeningStock,
+        proposedQuantity: locationState.resolved.totalOpeningStock,
+      }
+    }
     derived.draft = {
       productName: merged.productName,
       category: merged.category,
       unit: merged.unit,
-      storage: merged.storage,
+      storage: locationState.primaryStorage ?? merged.storage,
       supplier: merged.supplier,
       supplierId: merged.supplierId,
       skipped: merged.skipped,
-      valid: validation.valid,
+      locationAllocations: Array.isArray(merged.locationAllocations)
+        ? merged.locationAllocations
+        : null,
+      valid: validation.valid && locationState.resolved.blockers.length === 0,
     }
 
     if (merged.skipped) {
@@ -494,6 +626,9 @@ export function applyInventoryNewProductDrafts({
     }
     if (storage) {
       blockers = blockers.filter((code) => code !== 'location_policy_unset')
+    }
+    for (const code of locationState.resolved.blockers) {
+      if (!blockers.includes(code)) blockers.push(code)
     }
     derived.blockers = blockers
 

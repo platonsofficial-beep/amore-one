@@ -44022,6 +44022,138 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   font-weight: 600;
 }
 
+.inventory-import-location-allocations {
+  margin-top: 14px;
+  padding: 14px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(8, 8, 9, 0.55);
+}
+
+.inventory-import-location-allocations-title {
+  margin: 0;
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: rgba(255, 247, 232, 0.92);
+}
+
+.inventory-import-location-allocation-list {
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.inventory-import-location-allocation-row {
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.inventory-import-location-allocation-row.is-blocker {
+  border-color: rgba(255, 140, 140, 0.45);
+}
+
+.inventory-import-location-allocation-row.is-warning {
+  border-color: rgba(255, 200, 120, 0.35);
+}
+
+.inventory-import-location-allocation-row-main {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1.4fr) minmax(0, 1fr);
+  gap: 10px;
+  align-items: start;
+}
+
+.inventory-import-location-allocation-status {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  font-size: 1rem;
+  color: rgba(160, 230, 170, 0.95);
+}
+
+.inventory-import-location-allocation-row.is-blocker .inventory-import-location-allocation-status {
+  color: rgba(255, 190, 190, 0.95);
+}
+
+.inventory-import-location-allocation-location,
+.inventory-import-location-allocation-qty {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.inventory-import-location-allocation-source {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: rgba(255, 247, 232, 0.62);
+}
+
+.inventory-import-location-allocation-location select,
+.inventory-import-location-allocation-qty input {
+  min-height: 44px;
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(8, 8, 9, 0.92);
+  color: #fff7e8;
+  font-size: 0.95rem;
+}
+
+.inventory-import-location-allocation-evidence {
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: rgba(255, 247, 232, 0.55);
+}
+
+.inventory-import-location-allocation-messages {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 8px;
+}
+
+.inventory-import-location-allocation-warning {
+  color: rgba(255, 200, 140, 0.95);
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.inventory-import-location-allocations-total {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  color: rgba(255, 247, 232, 0.78);
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.inventory-import-location-allocations-total strong {
+  color: #fff7e8;
+  font-size: 1.05rem;
+}
+
+@media (max-width: 720px) {
+  .inventory-import-location-allocation-row-main {
+    grid-template-columns: 28px minmax(0, 1fr);
+  }
+
+  .inventory-import-location-allocation-qty {
+    grid-column: 2;
+  }
+}
+
 .inventory-operational-match-resolution-header {
   padding: 18px 20px;
   border-radius: 16px;

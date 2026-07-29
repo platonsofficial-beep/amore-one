@@ -316,6 +316,48 @@ describe('inventoryNewProductDrafts', () => {
     expect(areAllNewProductDraftsValid({ preview, drafts: {} })).toBe(true)
   })
 
+  it('attaches locationQuantities and total resolvedQuantity from allocations', () => {
+    const preview = buildResolvedPreview({ resolvePossibleAs: 'link' })
+    const { key } = listCreateNewPreviewRows(preview)[0]
+    const workspaceStorages = [
+      { id: 's-water', locationKey: 'Water Storage', name: 'Water Storage' },
+      { id: 's-bar', locationKey: 'Bar', name: 'Bar' },
+    ]
+    const derived = applyInventoryNewProductDrafts({
+      preview,
+      drafts: {
+        [key]: {
+          productName: 'Brand New Spirit',
+          category: 'Vodka',
+          unit: 'Bottle 700ml',
+          storage: 'Water Storage',
+          locationAllocations: [
+            {
+              sourceField: 'storage',
+              quantityInput: '288+180',
+              destinationLocationKey: 'Water Storage',
+            },
+            {
+              sourceField: 'bar',
+              quantityInput: 20,
+              destinationLocationKey: 'Bar',
+            },
+          ],
+        },
+      },
+      quantitySourceColumns: [
+        { sourceField: 'storage', sourceHeader: 'Storage', sourceColumnIndex: 1 },
+        { sourceField: 'bar', sourceHeader: 'BAR', sourceColumnIndex: 2 },
+      ],
+      workspaceStorages,
+    })
+    const derivedRow = listCreateNewPreviewRows(derived)[0].row
+    expect(derivedRow.locationQuantities).toHaveLength(2)
+    expect(derivedRow.resolvedQuantity).toBe(488)
+    expect(derivedRow.locationProposal.resolvedStorageLocation).toBe('Water Storage')
+    expect(derivedRow.blockers).not.toContain('duplicate_location_destination')
+  })
+
   it('lists category options from catalog and create_new defaults', () => {
     const preview = buildResolvedPreview({ resolvePossibleAs: 'link' })
     const options = listNewProductCategoryOptions({

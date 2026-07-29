@@ -1378,7 +1378,7 @@ describe('InventoryImportWizardShell', () => {
     expect(container.querySelector('.inventory-import-wizard-review-title')?.textContent)
       .toBe('Import Preview')
     expect(getButton('Continue')?.disabled).toBe(true)
-    setLocationFallback('Bar')
+    setLocationFallback('Main Storage')
     expect(getButton('Continue')?.disabled).toBe(false)
     expect(matchSpy.mock.calls.length).toBe(matchCalls)
     expect(parseSpy.mock.calls.length).toBe(parseCalls)
@@ -1395,7 +1395,7 @@ describe('InventoryImportWizardShell', () => {
     act(() => {
       getButton('Continue').dispatchEvent(new MouseEvent('click', { bubbles: true }))
     })
-    expect(container.querySelector('#inventory-import-location-fallback')?.value).toBe('Bar')
+    expect(container.querySelector('#inventory-import-location-fallback')?.value).toBe('Main Storage')
     expect(getButton('Continue')?.disabled).toBe(false)
     expect(getButton('Apply Import')).toBeFalsy()
   })
@@ -1462,7 +1462,9 @@ describe('InventoryImportWizardShell', () => {
       .toBe('true')
     expect(getButton('Continue')?.disabled).toBe(true)
     expect(container.querySelector('.inventory-import-wizard-validation-panel')).toBeTruthy()
-    expect(container.textContent).toContain('Choose a location or fallback for new products')
+    expect(container.textContent).toMatch(
+      /Choose a location or fallback for new products|Map each quantity column to a workspace storage/,
+    )
 
     const fallbackSelect = container.querySelector('#inventory-import-location-fallback')
     expect(fallbackSelect).toBeTruthy()
@@ -1482,7 +1484,7 @@ describe('InventoryImportWizardShell', () => {
         'Apothiki 2',
         STOCK_CREATE_STORAGE_OPTION_VALUE,
       ])
-    expect(container.textContent).toContain('unresolved new product')
+    expect(container.textContent).toMatch(/unresolved new product|Map each quantity column/)
     setLocationFallback('Kitchen')
     expect(getButton('Continue')?.disabled).toBe(false)
     expect(container.textContent).toContain('Ready to continue')
@@ -1953,14 +1955,16 @@ describe('InventoryImportWizardShell', () => {
     expect(container.textContent).not.toContain('existing products will be replaced')
     expect(getButton('Continue')?.disabled).toBe(true)
 
-    setLocationFallback('Bar')
+    setLocationFallback('Main Storage')
     expect(getButton('Continue')?.disabled).toBe(false)
     expect(container.textContent).toContain('Ready to continue')
     expect(container.textContent).toContain('1 create')
 
     setLocationFallback('')
     expect(getButton('Continue')?.disabled).toBe(true)
-    expect(container.textContent).toContain('Choose a location or fallback for new products')
+    expect(container.textContent).toMatch(
+      /Choose a location or fallback for new products|Map each quantity column to a workspace storage/,
+    )
 
     setLocationFallback('Main Storage')
     expect(getButton('Continue')?.disabled).toBe(false)

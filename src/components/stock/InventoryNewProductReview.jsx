@@ -7,15 +7,21 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import {
+  INVENTORY_LOCATION_ALLOCATION_SOURCE,
+  isLocationAllocationQuantityPresent,
+} from '../../lib/inventoryImportLocationAllocation'
+import {
   INVENTORY_NEW_PRODUCT_UNITS,
   getNewProductDraftDefaults,
   listCreateNewPreviewRows,
-  mergeNewProductDraft,
+  resolveNewProductLocationAllocationsState,
   validateNewProductDraft,
 } from '../../lib/inventoryNewProductDrafts'
+import { INVENTORY_LOCATION_QUANTITY_BLOCKER } from '../../lib/inventoryLocationColumnBindings'
 import { INVENTORY_UNIT_INFERENCE_STATUS } from '../../lib/inventoryUnitInference'
 import { buildStockItemSupplierOptions, normalizeSupplierName } from '../../lib/stockSupplierUtils'
 import { getSuppliers } from '../../services/supplierService'
+import { InventoryImportLocationAllocationEditor } from './InventoryImportLocationAllocationEditor'
 import { formatOperationalImportPreviewValue } from './InventoryOperationalImportPreview'
 import { WorkspaceStorageSelector } from './WorkspaceStorageSelector'
 
@@ -28,6 +34,7 @@ import { WorkspaceStorageSelector } from './WorkspaceStorageSelector'
  *   supplier?: string,
  *   supplierId?: string|null,
  *   skipped?: boolean,
+ *   locationAllocations?: object[]|null,
  * }} NewProductDraftValue
  */
 
@@ -36,7 +43,7 @@ import { WorkspaceStorageSelector } from './WorkspaceStorageSelector'
 export const INVENTORY_NEW_PRODUCT_FILTERS = Object.freeze([
   { id: 'all', label: 'All' },
   { id: 'missing_units', label: 'Missing Units' },
-  { id: 'missing_storage', label: 'Missing Storage' },
+  { id: 'missing_storage', label: 'Missing Destination' },
   { id: 'missing_supplier', label: 'Missing Supplier' },
   { id: 'new_products', label: 'New Products' },
   { id: 'duplicate_products', label: 'Duplicates' },
@@ -55,26 +62,50 @@ function toDraftPayload(merged) {
     supplier: merged.supplier ?? '',
     supplierId: merged.supplierId ?? null,
     skipped: merged.skipped === true,
+    locationAllocations: Array.isArray(merged.locationAllocations)
+      ? merged.locationAllocations
+      : null,
   }
+}
+
+/**
+ * @param {object|null|undefined} resolved
+ * @returns {boolean}
+ */
+function hasMissingAllocationDestination(resolved) {
+  if (!resolved || !Array.isArray(resolved.allocations)) return true
+  return resolved.allocations.some((allocation) => (
+    isLocationAllocationQuantityPresent(allocation.quantityInput)
+    && (
+      !allocation.destinationLocationKey
+      || allocation.warnings?.includes(
+        INVENTORY_LOCATION_QUANTITY_BLOCKER.LOCATION_BINDING_UNMAPPED,
+      )
+      || allocation.warnings?.includes(
+        INVENTORY_LOCATION_QUANTITY_BLOCKER.LOCATION_BINDING_AMBIGUOUS,
+      )
+    )
+  ))
 }
 
 /**
  * @param {{
  *   key: string,
  *   merged: NewProductDraftValue,
+ *   resolvedAllocations?: object|null,
  * }} card
  * @param {NewProductFilterId} filterId
  * @param {Set<string>} duplicateNameKeys
  * @returns {boolean}
  */
 export function matchesNewProductFilter(card, filterId, duplicateNameKeys) {
-  const { key, merged } = card
+  const { key, merged, resolvedAllocations } = card
   if (filterId === 'all' || filterId === 'new_products') return true
   if (filterId === 'missing_units') {
     return !merged.skipped && !merged.unit
   }
   if (filterId === 'missing_storage') {
-    return !merged.skipped && !merged.storage
+    return !merged.skipped && hasMissingAllocationDestination(resolvedAllocations)
   }
   if (filterId === 'missing_supplier') {
     return !merged.skipped && !`${merged.supplier ?? ''}`.trim()
@@ -91,6 +122,9 @@ export function matchesNewProductFilter(card, filterId, duplicateNameKeys) {
  *   drafts?: Record<string, NewProductDraftValue>,
  *   categoryOptions?: string[],
  *   workspaceId?: string,
+ *   workspaceStorages?: object[]|null,
+ *   quantitySourceColumns?: object[]|null,
+ *   preferredStorageLocationKey?: string|null,
  *   onChangeDraft?: (rowKey: string, next: NewProductDraftValue) => void,
  *   onChangeDraftsBulk?: (updates: Record<string, NewProductDraftValue>) => void,
  * }} props
@@ -100,6 +134,9 @@ export function InventoryNewProductReview({
   drafts = {},
   categoryOptions = [],
   workspaceId = '',
+  workspaceStorages = null,
+  quantitySourceColumns = null,
+  preferredStorageLocationKey = null,
   onChangeDraft = undefined,
   onChangeDraftsBulk = undefined,
 } = {}) {
@@ -137,7 +174,24 @@ export function InventoryNewProductReview({
 
     const mapped = createRows.map(({ key, row }) => {
       const defaults = getNewProductDraftDefaults(row)
-      const merged = mergeNewProductDraft(row, drafts[key] ?? defaults)
+      const locationState = resolveNewProductLocationAllocationsState({
+        row,
+        draft: drafts[key] ?? defaults,
+        quantitySourceColumns,
+        workspaceStorages,
+        preferredStorageLocationKey,
+      })
+      const merged = {
+        ...locationState.merged,
+        storage: locationState.primaryStorage ?? locationState.merged.storage,
+        locationAllocations: locationState.allocations.map((allocation) => ({
+          sourceField: allocation.sourceField,
+          quantityInput: allocation.quantityInput,
+          destinationLocationKey: allocation.destinationLocationKey,
+          destinationStorageId: allocation.destinationStorageId,
+          bindingStatus: allocation.bindingStatus,
+        })),
+      }
       const validation = validateNewProductDraft(merged)
       const inferredUnit = defaults.unitInference?.status === INVENTORY_UNIT_INFERENCE_STATUS.INFERRED
         ? defaults.unitInference.proposedUnit
@@ -155,11 +209,13 @@ export function InventoryNewProductReview({
         merged,
         validation,
         showingSuggested,
+        resolvedAllocations: locationState.resolved,
+        primaryStorage: locationState.primaryStorage,
       }
     })
 
     return { mapped, unitsSuggested, needUnitSelection }
-  }, [createRows, drafts])
+  }, [createRows, drafts, quantitySourceColumns, workspaceStorages, preferredStorageLocationKey])
 
   const allKeys = useMemo(() => cards.mapped.map((card) => card.key), [cards.mapped])
   const allKeysSignature = allKeys.join('\u0001')
@@ -220,6 +276,30 @@ export function InventoryNewProductReview({
       ...merged,
       ...patch,
     }))
+  }
+
+  /**
+   * @param {string} key
+   * @param {NewProductDraftValue} merged
+   * @param {object[]} currentAllocations
+   * @param {string} sourceField
+   * @param {object} patch
+   */
+  function emitAllocationChange(key, merged, currentAllocations, sourceField, patch) {
+    const nextAllocations = currentAllocations.map((allocation) => (
+      allocation.sourceField === sourceField
+        ? { ...allocation, ...patch }
+        : allocation
+    ))
+    const storageField = nextAllocations.find(
+      (allocation) => allocation.sourceField === INVENTORY_LOCATION_ALLOCATION_SOURCE.STORAGE,
+    )
+    emitDraft(key, merged, {
+      locationAllocations: nextAllocations,
+      storage: storageField?.destinationLocationKey
+        ?? merged.storage
+        ?? null,
+    })
   }
 
   /**
@@ -337,7 +417,7 @@ export function InventoryNewProductReview({
             Review every new product before import.
           </p>
           <p className="inventory-new-product-review-guidance">
-            ONE has suggested units where possible. Confirm Product Name, Category, Unit, and Storage.
+            ONE has suggested units where possible. Confirm Product Name, Category, Unit, and location quantities.
           </p>
         </div>
       </header>
@@ -440,7 +520,7 @@ export function InventoryNewProductReview({
             </div>
           ) : (
             <ul className="inventory-new-product-review-list">
-              {visibleCards.map(({ key, row, merged, validation, showingSuggested }) => {
+              {visibleCards.map(({ key, row, merged, validation, showingSuggested, resolvedAllocations }) => {
                 const categories = Array.from(new Set([
                   ...categoryOptions,
                   ...(merged.category ? [merged.category] : []),
@@ -451,13 +531,17 @@ export function InventoryNewProductReview({
                   merged.supplierId ?? null,
                 )
                 const isSelected = selectedKeys.has(key)
+                const allocationValid = !merged.skipped
+                  && Array.isArray(resolvedAllocations?.blockers)
+                  && resolvedAllocations.blockers.length === 0
+                const draftValid = validation.valid && (merged.skipped || allocationValid)
 
                 return (
                   <li
                     key={key}
                     className={`inventory-new-product-review-card${isSelected ? ' is-selected' : ''}${merged.skipped ? ' is-skipped' : ''}`}
                     data-row-key={key}
-                    data-draft-valid={validation.valid ? 'true' : 'false'}
+                    data-draft-valid={draftValid ? 'true' : 'false'}
                     data-unit-suggested={showingSuggested ? 'true' : 'false'}
                     data-storage={merged.storage ?? ''}
                     data-selected={isSelected ? 'true' : 'false'}
@@ -484,17 +568,6 @@ export function InventoryNewProductReview({
                         {merged.skipped ? 'Skipped' : 'New Product'}
                       </span>
                     </div>
-
-                    <dl className="inventory-new-product-review-facts">
-                      <div>
-                        <dt>Source storage</dt>
-                        <dd>{formatOperationalImportPreviewValue(row.source?.storage)}</dd>
-                      </div>
-                      <div>
-                        <dt>BAR</dt>
-                        <dd>{formatOperationalImportPreviewValue(row.source?.bar)}</dd>
-                      </div>
-                    </dl>
 
                     <div className="inventory-new-product-review-fields">
                       <label className="inventory-new-product-review-field">
@@ -573,23 +646,6 @@ export function InventoryNewProductReview({
                       </label>
 
                       <label className="inventory-new-product-review-field">
-                        <span>Storage</span>
-                        <WorkspaceStorageSelector
-                          workspaceId={workspaceId}
-                          value={merged.storage ?? ''}
-                          variant="select"
-                          disabled={merged.skipped}
-                          emptyLabel="Select storage"
-                          aria-label="Storage"
-                          onChange={(locationKey) => {
-                            emitDraft(key, merged, {
-                              storage: locationKey === '' ? null : locationKey,
-                            })
-                          }}
-                        />
-                      </label>
-
-                      <label className="inventory-new-product-review-field">
                         <span>Supplier</span>
                         <select
                           value={merged.supplier ?? ''}
@@ -618,6 +674,22 @@ export function InventoryNewProductReview({
                         </select>
                       </label>
                     </div>
+
+                    <InventoryImportLocationAllocationEditor
+                      allocations={resolvedAllocations?.allocations ?? []}
+                      totalOpeningStock={resolvedAllocations?.totalOpeningStock ?? null}
+                      workspaceId={workspaceId}
+                      disabled={merged.skipped}
+                      onChangeAllocation={(sourceField, patch) => {
+                        emitAllocationChange(
+                          key,
+                          merged,
+                          merged.locationAllocations ?? [],
+                          sourceField,
+                          patch,
+                        )
+                      }}
+                    />
                   </li>
                 )
               })}
@@ -632,7 +704,7 @@ export function InventoryNewProductReview({
                 selected
               </span>
               <button type="button" onClick={() => setBulkPanel(bulkPanel === 'storage' ? null : 'storage')}>
-                Assign Storage
+                Assign Storage Destination
               </button>
               <button type="button" onClick={() => setBulkPanel(bulkPanel === 'unit' ? null : 'unit')}>
                 Assign Unit
@@ -666,14 +738,49 @@ export function InventoryNewProductReview({
                     workspaceId={workspaceId}
                     value=""
                     variant="select"
-                    emptyLabel="Choose storage"
-                    aria-label="Bulk assign storage"
+                    emptyLabel="Choose storage destination"
+                    aria-label="Bulk assign storage destination"
                     onChange={(locationKey) => {
                       if (!locationKey) return
                       applyBulk(
                         bulkTargetKeys,
-                        () => ({ storage: locationKey, skipped: false }),
-                        `Storage assigned to ${bulkTargetCount} product${bulkTargetCount === 1 ? '' : 's'}.`,
+                        (merged) => {
+                          const baseAllocations = Array.isArray(merged.locationAllocations)
+                            ? merged.locationAllocations
+                            : []
+                          const hasStorage = baseAllocations.some(
+                            (allocation) => (
+                              allocation.sourceField === INVENTORY_LOCATION_ALLOCATION_SOURCE.STORAGE
+                            ),
+                          )
+                          const nextAllocations = hasStorage
+                            ? baseAllocations.map((allocation) => (
+                              allocation.sourceField === INVENTORY_LOCATION_ALLOCATION_SOURCE.STORAGE
+                                ? {
+                                    ...allocation,
+                                    destinationLocationKey: locationKey,
+                                    destinationStorageId: null,
+                                    bindingStatus: 'mapped',
+                                  }
+                                : allocation
+                            ))
+                            : [
+                              ...baseAllocations,
+                              {
+                                sourceField: INVENTORY_LOCATION_ALLOCATION_SOURCE.STORAGE,
+                                quantityInput: '',
+                                destinationLocationKey: locationKey,
+                                destinationStorageId: null,
+                                bindingStatus: 'mapped',
+                              },
+                            ]
+                          return {
+                            storage: locationKey,
+                            locationAllocations: nextAllocations,
+                            skipped: false,
+                          }
+                        },
+                        `Storage destination assigned to ${bulkTargetCount} product${bulkTargetCount === 1 ? '' : 's'}.`,
                       )
                     }}
                   />

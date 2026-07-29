@@ -239,7 +239,8 @@ function hasLocationQuantityBindingContext(row, normalizedPolicy) {
  * @param {ReturnType<typeof normalizeInventoryImportSessionPolicy>} normalizedPolicy
  */
 export function resolveImportRowLocationQuantities(row, normalizedPolicy) {
-  if (Array.isArray(row?.locationQuantities) && row.locationQuantities.length > 0) {
+  // Prefer explicit Review/staging payload (including empty) — do not rebuild.
+  if (Array.isArray(row?.locationQuantities)) {
     /** @type {string[]} */
     const blockers = []
     /** @type {string[]} */

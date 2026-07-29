@@ -135,6 +135,15 @@ describe('InventoryNewProductReview', () => {
     act(() => {
       root.render(createElement(InventoryNewProductReview, {
         workspaceId: 'ws-1',
+        workspaceStorages: [
+          { id: 's1', locationKey: 'Bar', name: 'Bar', active: true, sortOrder: 0 },
+          { id: 's2', locationKey: 'Main Storage', name: 'Main Storage', active: true, sortOrder: 1 },
+          { id: 's3', locationKey: 'Apothiki 2', name: 'Apothiki 2', active: true, sortOrder: 2 },
+        ],
+        quantitySourceColumns: [
+          { sourceField: 'storage', sourceHeader: 'Storage', sourceColumnIndex: 1 },
+          { sourceField: 'bar', sourceHeader: 'BAR', sourceColumnIndex: 2 },
+        ],
         ...props,
       }))
     })
@@ -158,21 +167,86 @@ describe('InventoryNewProductReview', () => {
     expect(container.textContent).toContain('New Products')
     expect(container.textContent).toContain('Review every new product before import.')
     expect(container.textContent).toContain(
-      'ONE has suggested units where possible. Confirm Product Name, Category, Unit, and Storage.',
+      'ONE has suggested units where possible. Confirm Product Name, Category, Unit, and location quantities.',
     )
     expect(container.textContent).toContain('Brand New Spirit')
     expect(container.textContent).toContain('New Product')
-    expect(container.textContent).toContain('Source storage')
-    expect(container.textContent).toContain('2')
-    expect(container.textContent).toContain('BAR')
-    expect(container.textContent).toContain('1')
+    expect(container.textContent).toContain('Location Quantities')
+    expect(container.textContent).toContain('Total Opening Stock')
+    expect(container.textContent).toContain('3')
+    expect(container.querySelector('[data-testid="inventory-import-location-allocations"]')).toBeTruthy()
     expect(container.querySelector('input[type="text"]')).toBeTruthy()
     expect(container.querySelectorAll('.inventory-new-product-review-fields select').length)
-      .toBeGreaterThanOrEqual(3)
+      .toBeGreaterThanOrEqual(2)
     expect(container.textContent).toContain('Supplier')
     expect(container.textContent).toContain('Unit is required')
     expect(container.textContent).not.toContain('Suggested from product name')
     expect(onChangeDraft).not.toHaveBeenCalled()
+  })
+
+  it('updates total opening stock when a location quantity is edited', async () => {
+    const preview = buildPreviewWithCreateNew()
+    /** @type {Record<string, object>} */
+    let drafts = {}
+    const sharedProps = {
+      workspaceId: 'ws-1',
+      preview,
+      categoryOptions: ['Vodka'],
+      workspaceStorages: [
+        { id: 's1', locationKey: 'Bar', name: 'Bar', active: true, sortOrder: 0 },
+        { id: 's2', locationKey: 'Main Storage', name: 'Main Storage', active: true, sortOrder: 1 },
+      ],
+      quantitySourceColumns: [
+        { sourceField: 'storage', sourceHeader: 'Storage', sourceColumnIndex: 1 },
+        { sourceField: 'bar', sourceHeader: 'BAR', sourceColumnIndex: 2 },
+      ],
+    }
+    const onChangeDraft = vi.fn((key, next) => {
+      drafts = { ...drafts, [key]: next }
+      act(() => {
+        root.render(createElement(InventoryNewProductReview, {
+          ...sharedProps,
+          drafts,
+          onChangeDraft,
+        }))
+      })
+    })
+    renderReview({
+      ...sharedProps,
+      drafts: {},
+      onChangeDraft,
+    })
+    await act(async () => {
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+
+    const setNativeValue = (element, value) => {
+      const prototype = element.tagName === 'SELECT'
+        ? window.HTMLSelectElement.prototype
+        : window.HTMLInputElement.prototype
+      const descriptor = Object.getOwnPropertyDescriptor(prototype, 'value')
+      descriptor?.set?.call(element, value)
+      element.dispatchEvent(new Event(element.tagName === 'SELECT' ? 'change' : 'input', { bubbles: true }))
+      if (element.tagName !== 'SELECT') {
+        element.dispatchEvent(new Event('change', { bubbles: true }))
+      }
+    }
+
+    const storageDestination = container.querySelector('select[aria-label="Storage destination"]')
+    act(() => {
+      setNativeValue(storageDestination, 'Main Storage')
+    })
+    expect(container.querySelector('[data-testid="inventory-import-opening-stock-total"]')?.textContent)
+      .toBe('3')
+
+    const storageQty = container.querySelector('input[aria-label="Storage quantity"]')
+    act(() => {
+      setNativeValue(storageQty, '10')
+    })
+    expect(onChangeDraft).toHaveBeenCalled()
+    expect(container.querySelector('[data-testid="inventory-import-opening-stock-total"]')?.textContent)
+      .toBe('11')
   })
 
   it('preselects inferred units and shows suggestion helper until overridden', async () => {
@@ -272,7 +346,7 @@ describe('InventoryNewProductReview', () => {
     expect(unitSelects[0].value).toBe('Liter')
   })
 
-  it('emits draft updates for name, category, unit, and storage', async () => {
+  it('emits draft updates for name, category, unit, and storage destination', async () => {
     const preview = buildPreviewWithCreateNew()
     const { key, row } = listCreateNewPreviewRows(preview)[0]
     /** @type {Record<string, object>} */
@@ -284,6 +358,15 @@ describe('InventoryNewProductReview', () => {
           preview,
           drafts,
           workspaceId: 'ws-1',
+          workspaceStorages: [
+            { id: 's1', locationKey: 'Bar', name: 'Bar', active: true, sortOrder: 0 },
+            { id: 's2', locationKey: 'Main Storage', name: 'Main Storage', active: true, sortOrder: 1 },
+            { id: 's3', locationKey: 'Apothiki 2', name: 'Apothiki 2', active: true, sortOrder: 2 },
+          ],
+          quantitySourceColumns: [
+            { sourceField: 'storage', sourceHeader: 'Storage', sourceColumnIndex: 1 },
+            { sourceField: 'bar', sourceHeader: 'BAR', sourceColumnIndex: 2 },
+          ],
           categoryOptions: ['Vodka', 'Gin', 'VODKA'],
           onChangeDraft,
         }))
@@ -310,7 +393,7 @@ describe('InventoryNewProductReview', () => {
       descriptor?.set?.call(element, value)
     }
 
-    const nameInput = container.querySelector('input[type="text"]')
+    const nameInput = container.querySelector('.inventory-new-product-review-fields input[type="text"]')
     act(() => {
       setNativeValue(nameInput, 'Renamed Spirit')
       nameInput.dispatchEvent(new Event('input', { bubbles: true }))
@@ -331,11 +414,20 @@ describe('InventoryNewProductReview', () => {
     })
     expect(drafts[key].unit).toBe('Bottle 700ml')
 
+    const storageDestination = container.querySelector('select[aria-label="Storage destination"]')
     act(() => {
-      setNativeValue(selects[2], 'Bar')
-      selects[2].dispatchEvent(new Event('change', { bubbles: true }))
+      setNativeValue(storageDestination, 'Bar')
+      storageDestination.dispatchEvent(new Event('change', { bubbles: true }))
     })
     expect(drafts[key].storage).toBe('Bar')
+    expect(drafts[key].locationAllocations).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          sourceField: 'storage',
+          destinationLocationKey: 'Bar',
+        }),
+      ]),
+    )
 
     const merged = mergeNewProductDraft(row, drafts[key])
     expect(merged.unit).toBe('Bottle 700ml')
@@ -479,6 +571,15 @@ describe('InventoryNewProductReview', () => {
           preview,
           drafts,
           workspaceId: 'ws-1',
+          workspaceStorages: [
+            { id: 's1', locationKey: 'Bar', name: 'Bar', active: true, sortOrder: 0 },
+            { id: 's2', locationKey: 'Main Storage', name: 'Main Storage', active: true, sortOrder: 1 },
+            { id: 's3', locationKey: 'Apothiki 2', name: 'Apothiki 2', active: true, sortOrder: 2 },
+          ],
+          quantitySourceColumns: [
+            { sourceField: 'storage', sourceHeader: 'Storage', sourceColumnIndex: 1 },
+            { sourceField: 'bar', sourceHeader: 'BAR', sourceColumnIndex: 2 },
+          ],
           categoryOptions: ['Vodka', 'Gin'],
           onChangeDraftsBulk,
         }))
@@ -505,7 +606,7 @@ describe('InventoryNewProductReview', () => {
 
     act(() => {
       Array.from(container.querySelectorAll('.inventory-new-product-bulk-bar button'))
-        .find((button) => button.textContent === 'Assign Storage')
+        .find((button) => button.textContent === 'Assign Storage Destination')
         ?.click()
     })
     await act(async () => {
@@ -513,7 +614,7 @@ describe('InventoryNewProductReview', () => {
       await Promise.resolve()
       await Promise.resolve()
     })
-    const bulkStorage = container.querySelector('select[aria-label="Bulk assign storage"]')
+    const bulkStorage = container.querySelector('select[aria-label="Bulk assign storage destination"]')
     expect(Array.from(bulkStorage.options).map((option) => option.value))
       .toEqual(expect.arrayContaining(['Bar', 'Main Storage', 'Apothiki 2']))
 
@@ -530,7 +631,7 @@ describe('InventoryNewProductReview', () => {
     createKeys.forEach((key) => {
       expect(drafts[key].storage).toBe('Apothiki 2')
     })
-    expect(container.textContent).toContain('Storage assigned to 2 products.')
+    expect(container.textContent).toContain('Storage destination assigned to 2 products.')
 
     act(() => {
       Array.from(container.querySelectorAll('button'))
@@ -628,6 +729,15 @@ describe('InventoryNewProductReview', () => {
           preview,
           drafts,
           workspaceId: 'ws-1',
+          workspaceStorages: [
+            { id: 's1', locationKey: 'Bar', name: 'Bar', active: true, sortOrder: 0 },
+            { id: 's2', locationKey: 'Main Storage', name: 'Main Storage', active: true, sortOrder: 1 },
+            { id: 's3', locationKey: 'Apothiki 2', name: 'Apothiki 2', active: true, sortOrder: 2 },
+          ],
+          quantitySourceColumns: [
+            { sourceField: 'storage', sourceHeader: 'Storage', sourceColumnIndex: 1 },
+            { sourceField: 'bar', sourceHeader: 'BAR', sourceColumnIndex: 2 },
+          ],
           categoryOptions: ['Vodka'],
           onChangeDraftsBulk,
         }))
@@ -692,7 +802,7 @@ describe('InventoryNewProductReview', () => {
 
     act(() => {
       Array.from(container.querySelectorAll('.inventory-new-product-bulk-bar button'))
-        .find((button) => button.textContent === 'Assign Storage')
+        .find((button) => button.textContent === 'Assign Storage Destination')
         ?.click()
     })
     await act(async () => {
@@ -700,7 +810,7 @@ describe('InventoryNewProductReview', () => {
       await Promise.resolve()
     })
     act(() => {
-      setNativeValue(container.querySelector('select[aria-label="Bulk assign storage"]'), 'Main Storage')
+      setNativeValue(container.querySelector('select[aria-label="Bulk assign storage destination"]'), 'Main Storage')
     })
     expect(drafts[createEntries[0].key].storage).toBe('Main Storage')
     expect(drafts[createEntries[1].key].storage).toBe('Bar')
@@ -735,8 +845,7 @@ describe('InventoryNewProductReview', () => {
       await Promise.resolve()
     })
     expect(listWorkspaceStoragesMock).toHaveBeenCalledWith('ws-1')
-    const storageSelect = Array.from(container.querySelectorAll('.inventory-new-product-review-fields select'))
-      .find((select) => select.getAttribute('aria-label') === 'Storage')
+    const storageSelect = container.querySelector('select[aria-label="Storage destination"]')
     expect(Array.from(storageSelect.options).map((option) => option.value))
       .toEqual(expect.arrayContaining(['Bar', 'Main Storage', 'Apothiki 2']))
   })

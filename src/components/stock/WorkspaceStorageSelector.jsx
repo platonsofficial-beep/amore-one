@@ -32,6 +32,20 @@ export function notifyWorkspaceStorageListChanged() {
 }
 
 /**
+ * Subscribe to shared storage-list reload notifications (Create Storage / explicit refresh).
+ *
+ * @param {(epoch: number) => void} listener
+ * @returns {() => void}
+ */
+export function subscribeWorkspaceStorageListChanged(listener) {
+  if (typeof listener !== 'function') return () => {}
+  workspaceStorageListListeners.add(listener)
+  return () => {
+    workspaceStorageListListeners.delete(listener)
+  }
+}
+
+/**
  * Shared workspace storage selector with Create Storage entry (P8.26.6 / P8.27.7 / P8.28.1).
  *
  * @param {{
