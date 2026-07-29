@@ -183,7 +183,7 @@ describe('updateStockItem catalog contract remains full serialize', () => {
     expect(payload).toMatchObject({
       name: 'KETEL ONE',
       supplier: 'Supplier',
-      supplier_id: 10,
+      supplier_id: '10',
       active: true,
     })
     expect(payload).toHaveProperty('category')

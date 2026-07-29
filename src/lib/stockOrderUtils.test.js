@@ -65,7 +65,7 @@ describe('buildSupplierOrderGroups (FK-first)', () => {
     ], [{ id: 10, companyName: 'Malakakos AE' }])
 
     expect(groups).toHaveLength(1)
-    expect(groups[0].supplierId).toBe(10)
+    expect(groups[0].supplierId).toBe('10')
     expect(groups[0].supplier).toBe('Malakakos AE')
     expect(groups[0].groupKey).toBe('id:10')
     expect(groups[0].items).toHaveLength(2)
@@ -135,7 +135,7 @@ describe('buildSupplierOrderGroups (FK-first)', () => {
     ], [{ id: 20, companyName: 'Wine House' }])
 
     expect(groups).toHaveLength(1)
-    expect(groups[0].supplierId).toBe(20)
+    expect(groups[0].supplierId).toBe('20')
     expect(groups[0].supplier).toBe('Wine House')
   })
 
@@ -161,8 +161,8 @@ describe('buildSupplierOrderGroups (FK-first)', () => {
     )
 
     expect(identityA.groupKey).not.toBe(identityB.groupKey)
-    expect(identityA.supplierId).toBe(1)
-    expect(identityB.supplierId).toBe(2)
+    expect(identityA.supplierId).toBe('1')
+    expect(identityB.supplierId).toBe('2')
   })
 
   it('excludes inactive products from new purchase order suggestions', () => {

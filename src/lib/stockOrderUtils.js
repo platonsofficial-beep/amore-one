@@ -1,4 +1,5 @@
 import { computeSuggestedOrder, itemNeedsOrder } from './stockCatalog'
+import { normalizeSupplierId } from './stockSupplierUtils'
 import { formatStockPurchasePrice, formatStockQuantity } from './stockUtils'
 
 export const STOCK_ORDER_STATUSES = ['draft', 'sent', 'received', 'cancelled']
@@ -122,23 +123,17 @@ export function replaceDraftOrderLineProduct(line, catalogItem) {
   }
 }
 
-function normalizeOrderSupplierId(value) {
-  if (value === null || value === undefined || `${value}`.trim() === '') return null
-  const parsed = Number(value)
-  return Number.isFinite(parsed) && parsed > 0 ? parsed : null
-}
-
 /**
- * Create-order group identity (P7.3.6).
+ * Create-order group identity (P7.3.6 / P8.26.6c).
  * supplier_id wins; legacy text only when FK missing; Unassigned preserved.
  */
 export function resolveOrderGroupIdentity(item, suppliers = []) {
-  const supplierId = normalizeOrderSupplierId(item?.supplierId ?? item?.supplier_id)
+  const supplierId = normalizeSupplierId(item?.supplierId ?? item?.supplier_id)
   const supplierText = `${item?.supplier ?? ''}`.trim()
 
   if (supplierId != null) {
     const list = Array.isArray(suppliers) ? suppliers : []
-    const matched = list.find((supplier) => Number(supplier?.id) === supplierId)
+    const matched = list.find((supplier) => normalizeSupplierId(supplier?.id) === supplierId)
     const directoryName = `${matched?.companyName ?? matched?.company_name ?? ''}`.trim()
     const displayName = directoryName || supplierText || `Supplier #${supplierId}`
 

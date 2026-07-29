@@ -6,6 +6,17 @@ export function normalizeSupplierName(name) {
   return `${name ?? ''}`.trim()
 }
 
+/**
+ * Canonical opaque supplier identity (P8.26.6c).
+ * Database remains authoritative — no Number/parseInt/finite checks.
+ * Blank / null / undefined → null; otherwise trimmed string.
+ */
+export function normalizeSupplierId(value) {
+  if (value === null || value === undefined) return null
+  const trimmed = `${value}`.trim()
+  return trimmed === '' ? null : trimmed
+}
+
 export function supplierNameMatches(left, right) {
   const normalizedLeft = normalizeSupplierName(left)
   const normalizedRight = normalizeSupplierName(right)
@@ -14,7 +25,7 @@ export function supplierNameMatches(left, right) {
 }
 
 /**
- * Resolve suppliers.id for dual-write (P7.3.2).
+ * Resolve suppliers.id for dual-write (P7.3.2 / P8.26.6c).
  * Text remains authority; FK is best-effort and may be null.
  * Never throws.
  */
@@ -23,12 +34,9 @@ export function resolveSupplierIdForWrite({
   supplierId = null,
   suppliers = null,
 } = {}) {
-  const explicitRaw = supplierId
-  if (explicitRaw !== null && explicitRaw !== undefined && `${explicitRaw}`.trim() !== '') {
-    const explicit = Number(explicitRaw)
-    if (Number.isFinite(explicit) && explicit > 0) {
-      return explicit
-    }
+  const explicit = normalizeSupplierId(supplierId)
+  if (explicit != null) {
+    return explicit
   }
 
   const name = normalizeSupplierName(supplierName)
@@ -42,13 +50,11 @@ export function resolveSupplierIdForWrite({
 
   if (!match) return null
 
-  const resolved = Number(match.id)
-  if (!Number.isFinite(resolved) || resolved <= 0) return null
-  return resolved
+  return normalizeSupplierId(match.id)
 }
 
 /**
- * Resolve a supplier entity for dual-read (P7.3.4).
+ * Resolve a supplier entity for dual-read (P7.3.4 / P8.26.6c).
  * Prefer supplier_id; fall back to normalized supplier text; never throw.
  */
 export function resolveSupplierForRead({
@@ -59,13 +65,10 @@ export function resolveSupplierForRead({
   try {
     const list = Array.isArray(suppliers) ? suppliers : []
 
-    const explicitRaw = supplierId
-    if (explicitRaw !== null && explicitRaw !== undefined && `${explicitRaw}`.trim() !== '') {
-      const explicit = Number(explicitRaw)
-      if (Number.isFinite(explicit) && explicit > 0) {
-        const byId = list.find((supplier) => Number(supplier?.id) === explicit)
-        if (byId) return byId
-      }
+    const explicit = normalizeSupplierId(supplierId)
+    if (explicit != null) {
+      const byId = list.find((supplier) => normalizeSupplierId(supplier?.id) === explicit)
+      if (byId) return byId
     }
 
     const name = normalizeSupplierName(supplierName)
@@ -102,14 +105,8 @@ export function isSupplierActive(supplier) {
   return supplier?.active !== false
 }
 
-function normalizeSupplierId(value) {
-  if (value === null || value === undefined || `${value}`.trim() === '') return null
-  const parsed = Number(value)
-  return Number.isFinite(parsed) && parsed > 0 ? parsed : null
-}
-
 /**
- * FK-first link for history/metrics/delete protection (P7.3.5).
+ * FK-first link for history/metrics/delete protection (P7.3.5 / P8.26.6c).
  * - If record has supplier_id → match by supplier.id only (never also by text)
  * - If record FK missing → legacy text match only
  * Never throws.

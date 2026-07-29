@@ -49,7 +49,7 @@ declare
   v_item_unit text;
   v_item_location text;
   v_item_supplier_text text := null;
-  v_supplier_id bigint := null;
+  v_supplier_id uuid := null;
   v_supplier_name text := null;
   v_has_supplier_id_column boolean := false;
   v_mov_receive integer := 0;
@@ -127,13 +127,15 @@ begin
       using hint = 'Stock item was not found in this workspace.';
   end if;
 
-  -- Optional supplier_id when the FK column has been applied (P7.3.1).
+  -- Optional supplier_id when the UUID FK column has been applied (P8.26.6c).
+  -- Ignore absent columns and leftover incompatible BIGINT columns.
   select exists (
     select 1
     from information_schema.columns c
     where c.table_schema = 'public'
       and c.table_name = 'stock_items'
       and c.column_name = 'supplier_id'
+      and c.udt_name = 'uuid'
   )
   into v_has_supplier_id_column;
 

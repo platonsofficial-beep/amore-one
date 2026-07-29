@@ -13,7 +13,7 @@ describe('resolveSupplierIdForWrite', () => {
     expect(resolveSupplierIdForWrite({
       supplierName: 'Malakakos AE',
       suppliers,
-    })).toBe(10)
+    })).toBe('10')
   })
 
   it('returns null when supplier name cannot be resolved', () => {
@@ -35,7 +35,7 @@ describe('resolveSupplierIdForWrite', () => {
       supplierName: 'Wine House',
       supplierId: 99,
       suppliers,
-    })).toBe(99)
+    })).toBe('99')
   })
 })
 

@@ -4,7 +4,7 @@ import {
   normalizeStockItemType,
   resolveStockStorageLocation,
 } from '../lib/stockCatalog'
-import { resolveSupplierIdForWrite } from '../lib/stockSupplierUtils'
+import { normalizeSupplierId, resolveSupplierIdForWrite } from '../lib/stockSupplierUtils'
 import { resolveStockItemStatus } from '../lib/stockUtils'
 import { getSuppliers } from './supplierService'
 
@@ -36,12 +36,7 @@ function mapStockItem(record) {
       record.item_type ?? record.itemType ?? 'Other',
     ),
     supplier: record.supplier ?? '',
-    supplierId: (() => {
-      const raw = record.supplier_id ?? record.supplierId ?? null
-      if (raw === null || raw === undefined || `${raw}`.trim() === '') return null
-      const parsed = Number(raw)
-      return Number.isFinite(parsed) && parsed > 0 ? parsed : null
-    })(),
+    supplierId: normalizeSupplierId(record.supplier_id ?? record.supplierId ?? null),
     storageLocation: resolveStockStorageLocation({
       category: record.category,
       storageLocation: record.storage_location ?? record.storageLocation,
