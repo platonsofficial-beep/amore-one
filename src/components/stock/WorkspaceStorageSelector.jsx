@@ -16,12 +16,15 @@ function buildFallbackOptions() {
 let workspaceStorageListEpoch = 0
 /** @type {Set<(epoch: number) => void>} */
 const workspaceStorageListListeners = new Set()
+/** @type {Map<string, Array<{ value: string, label: string }>>} */
+const workspaceStorageOptionsCache = new Map()
 
 /**
  * Notify all mounted WorkspaceStorageSelector instances to reload.
  * Does not introduce a second storage list — only bumps the shared reload epoch.
  */
 export function notifyWorkspaceStorageListChanged() {
+  workspaceStorageOptionsCache.clear()
   workspaceStorageListEpoch += 1
   workspaceStorageListListeners.forEach((listener) => {
     listener(workspaceStorageListEpoch)
@@ -29,7 +32,7 @@ export function notifyWorkspaceStorageListChanged() {
 }
 
 /**
- * Shared workspace storage selector with Create Storage entry (P8.26.6 / P8.27.7).
+ * Shared workspace storage selector with Create Storage entry (P8.26.6 / P8.27.7 / P8.28.1).
  *
  * @param {{
  *   workspaceId?: string,
@@ -58,7 +61,11 @@ export function WorkspaceStorageSelector({
   'aria-label': ariaLabel = 'Storage location',
   'aria-invalid': ariaInvalid,
 }) {
-  const [storageOptions, setStorageOptions] = useState(buildFallbackOptions)
+  const normalizedWorkspaceId = `${workspaceId ?? ''}`.trim()
+  const [storageOptions, setStorageOptions] = useState(() => {
+    if (!normalizedWorkspaceId) return buildFallbackOptions()
+    return workspaceStorageOptionsCache.get(normalizedWorkspaceId) ?? []
+  })
   const [reloadToken, setReloadToken] = useState(0)
   const [isCreateOpen, setIsCreateOpen] = useState(false)
 
@@ -74,22 +81,30 @@ export function WorkspaceStorageSelector({
 
   useEffect(() => {
     let cancelled = false
-    const normalizedWorkspaceId = `${workspaceId ?? ''}`.trim()
+    const workspaceKey = `${workspaceId ?? ''}`.trim()
 
-    if (!normalizedWorkspaceId) {
+    if (!workspaceKey) {
       setStorageOptions(buildFallbackOptions())
       return undefined
     }
 
+    const cached = workspaceStorageOptionsCache.get(workspaceKey)
+    if (cached) {
+      setStorageOptions(cached)
+    }
+
     ;(async () => {
       try {
-        const storages = await listWorkspaceStorages(normalizedWorkspaceId)
+        const storages = await listWorkspaceStorages(workspaceKey)
         if (cancelled) return
-        setStorageOptions(resolveCatalogStorageSelectOptions(storages))
+        const nextOptions = resolveCatalogStorageSelectOptions(storages)
+        workspaceStorageOptionsCache.set(workspaceKey, nextOptions)
+        setStorageOptions(nextOptions)
       } catch (loadError) {
         console.warn('[WorkspaceStorageSelector] listWorkspaceStorages failed:', loadError)
         if (!cancelled) {
-          setStorageOptions(buildFallbackOptions())
+          // Prefer cached workspace list over hardcoded STOCK_LOCATIONS.
+          setStorageOptions(workspaceStorageOptionsCache.get(workspaceKey) ?? [])
         }
       }
     })()

@@ -43753,6 +43753,111 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   background: rgba(12, 12, 13, 0.78);
 }
 
+.inventory-new-product-review-card.is-selected {
+  border-color: rgba(212, 175, 55, 0.42);
+  box-shadow: inset 0 0 0 1px rgba(212, 175, 55, 0.18);
+}
+
+.inventory-new-product-review-card.is-skipped {
+  opacity: 0.72;
+}
+
+.inventory-new-product-smart-select {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.inventory-new-product-smart-btn,
+.inventory-new-product-clear-selection,
+.inventory-new-product-bulk-bar button,
+.inventory-new-product-undo-banner button {
+  min-height: 44px;
+  padding: 0 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(20, 20, 22, 0.9);
+  color: #fff7e8;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.inventory-new-product-select-all-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 44px;
+}
+
+.inventory-new-product-select-control {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  color: rgba(255, 247, 232, 0.82);
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.inventory-new-product-select-control input {
+  width: 20px;
+  height: 20px;
+}
+
+.inventory-new-product-undo-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(120, 190, 130, 0.28);
+  background: rgba(40, 70, 48, 0.22);
+  color: rgba(210, 235, 210, 0.95);
+  font-size: 0.9rem;
+}
+
+.inventory-new-product-bulk-bar {
+  position: sticky;
+  bottom: 8px;
+  z-index: 4;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: 16px;
+  border: 1px solid rgba(212, 175, 55, 0.34);
+  background:
+    linear-gradient(180deg, rgba(36, 30, 18, 0.96), rgba(14, 14, 15, 0.96));
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.35);
+}
+
+.inventory-new-product-bulk-count {
+  margin-right: 4px;
+  color: rgba(255, 231, 168, 0.95);
+  font-size: 0.84rem;
+  font-weight: 700;
+}
+
+.inventory-new-product-bulk-panel {
+  flex: 1 1 100%;
+  min-width: 0;
+}
+
+.inventory-new-product-bulk-panel select {
+  width: 100%;
+  min-height: 44px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(10, 10, 12, 0.92);
+  color: #fff7e8;
+  padding: 0 12px;
+}
+
 .inventory-new-product-review-card-head {
   display: flex;
   align-items: flex-start;

@@ -11,7 +11,10 @@ import {
   INVENTORY_OPERATIONAL_IMPORT_PREVIEW_ACTION,
   INVENTORY_OPERATIONAL_IMPORT_PREVIEW_PROPOSAL_STATUS,
 } from './inventoryOperationalImportPreview.js'
-import { getOperationalMatchResolutionRowKey } from './inventoryOperationalMatchResolutions.js'
+import {
+  getOperationalMatchResolutionRowKey,
+  INVENTORY_OPERATIONAL_MATCH_RESOLUTION_SKIP_ACTION,
+} from './inventoryOperationalMatchResolutions.js'
 import {
   INVENTORY_UNIT_INFERENCE_STATUS,
   inferInventoryUnitFromProductName,
@@ -151,6 +154,9 @@ export function getNewProductDraftDefaults(row) {
       ? unitInference.proposedUnit
       : null,
     storage,
+    supplier: '',
+    supplierId: null,
+    skipped: false,
     unitInference,
   }
 }
@@ -160,12 +166,23 @@ export function getNewProductDraftDefaults(row) {
  * Explicit draft.unit / draft.storage (including null) are never replaced by defaults.
  *
  * @param {object} row
- * @param {{ productName?: unknown, category?: unknown, unit?: unknown, storage?: unknown }|null|undefined} draft
+ * @param {{
+ *   productName?: unknown,
+ *   category?: unknown,
+ *   unit?: unknown,
+ *   storage?: unknown,
+ *   supplier?: unknown,
+ *   supplierId?: unknown,
+ *   skipped?: unknown,
+ * }|null|undefined} draft
  * @returns {{
  *   productName: string,
  *   category: string,
  *   unit: string|null,
  *   storage: string|null,
+ *   supplier: string,
+ *   supplierId: string|null,
+ *   skipped: boolean,
  *   unitInference: ReturnType<typeof inferInventoryUnitFromProductName>,
  * }}
  */
@@ -193,12 +210,28 @@ export function mergeNewProductDraft(row, draft) {
     : draft.storage == null || draft.storage === ''
       ? null
       : String(draft.storage).trim() || null
+  const supplier = draft.supplier === undefined
+    ? defaults.supplier
+    : draft.supplier == null
+      ? ''
+      : String(draft.supplier).trim()
+  const supplierId = draft.supplierId === undefined
+    ? defaults.supplierId
+    : draft.supplierId == null || draft.supplierId === ''
+      ? null
+      : String(draft.supplierId).trim() || null
+  const skipped = draft.skipped === undefined
+    ? defaults.skipped
+    : draft.skipped === true
 
   return {
     productName,
     category,
     unit,
     storage,
+    supplier,
+    supplierId,
+    skipped,
     unitInference: defaults.unitInference,
   }
 }
@@ -222,22 +255,29 @@ export function validateNewProductDraft(draft) {
   const storageRaw = draft?.storage == null || draft?.storage === ''
     ? null
     : String(draft.storage).trim() || null
+  const supplierRaw = draft?.supplier == null ? '' : String(draft.supplier).trim()
+  const supplierIdRaw = draft?.supplierId == null || draft?.supplierId === ''
+    ? null
+    : String(draft.supplierId).trim() || null
+  const skipped = draft?.skipped === true
 
   const productName = productNameRaw.trim()
   const category = categoryRaw.trim()
   const unit = unitRaw
   const storage = storageRaw
 
-  if (!productName) {
-    errors.productName = 'Product name is required'
-  }
-  if (!category) {
-    errors.category = 'Category is required'
-  }
-  if (!unit) {
-    errors.unit = 'Unit is required'
-  } else if (!INVENTORY_NEW_PRODUCT_UNITS.includes(unit)) {
-    errors.unit = 'Select a valid unit'
+  if (!skipped) {
+    if (!productName) {
+      errors.productName = 'Product name is required'
+    }
+    if (!category) {
+      errors.category = 'Category is required'
+    }
+    if (!unit) {
+      errors.unit = 'Unit is required'
+    } else if (!INVENTORY_NEW_PRODUCT_UNITS.includes(unit)) {
+      errors.unit = 'Select a valid unit'
+    }
   }
 
   return {
@@ -248,6 +288,9 @@ export function validateNewProductDraft(draft) {
       category,
       unit,
       storage,
+      supplier: supplierRaw,
+      supplierId: supplierIdRaw,
+      skipped,
     },
   }
 }
@@ -414,6 +457,7 @@ export function applyInventoryNewProductDrafts({
       ...derived.metadataProposal,
       proposedCategory: validation.normalized.category || merged.category,
       proposedUnit: validation.normalized.unit,
+      proposedSupplier: validation.normalized.supplier || null,
       proposedActive: true,
     }
     const storage = validation.normalized.storage
@@ -431,7 +475,17 @@ export function applyInventoryNewProductDrafts({
       category: merged.category,
       unit: merged.unit,
       storage: merged.storage,
+      supplier: merged.supplier,
+      supplierId: merged.supplierId,
+      skipped: merged.skipped,
       valid: validation.valid,
+    }
+
+    if (merged.skipped) {
+      derived.proposedAction = INVENTORY_OPERATIONAL_MATCH_RESOLUTION_SKIP_ACTION
+      derived.blockers = []
+      rows.push(derived)
+      continue
     }
 
     let blockers = derived.blockers.filter((code) => code !== 'unit_missing')

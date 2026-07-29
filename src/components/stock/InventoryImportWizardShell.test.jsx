@@ -1002,7 +1002,7 @@ describe('InventoryImportWizardShell', () => {
     expect(container.querySelector('.inventory-import-validate-assistant')).toBeTruthy()
     expect(container.querySelector('[data-assistant-state]')).toBeTruthy()
     expect(container.textContent).not.toContain('unit_missing')
-    expect(container.textContent).not.toContain('Missing Units')
+    expect(container.textContent).not.toContain('manual_review')
     expect(container.querySelector('.inventory-import-step-summary')?.getAttribute('data-workspace-stock-status'))
       .toBe('success')
 

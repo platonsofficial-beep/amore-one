@@ -21,13 +21,18 @@ import {
 } from '../../lib/inventoryNewProductDrafts'
 import { InventoryNewProductReview } from './InventoryNewProductReview'
 
-const { listWorkspaceStoragesMock } = vi.hoisted(() => ({
+const { listWorkspaceStoragesMock, getSuppliersMock } = vi.hoisted(() => ({
   listWorkspaceStoragesMock: vi.fn(),
+  getSuppliersMock: vi.fn(),
 }))
 
 vi.mock('../../services/workspaceStorageService', () => ({
   listWorkspaceStorages: (...args) => listWorkspaceStoragesMock(...args),
   createWorkspaceStorage: vi.fn(),
+}))
+
+vi.mock('../../services/supplierService', () => ({
+  getSuppliers: (...args) => getSuppliersMock(...args),
 }))
 
 function stock(partial) {
@@ -103,9 +108,14 @@ describe('InventoryNewProductReview', () => {
 
   beforeEach(() => {
     listWorkspaceStoragesMock.mockReset()
+    getSuppliersMock.mockReset()
     listWorkspaceStoragesMock.mockResolvedValue([
       { id: 's1', locationKey: 'Bar', name: 'Bar', active: true, sortOrder: 0 },
       { id: 's2', locationKey: 'Main Storage', name: 'Main Storage', active: true, sortOrder: 1 },
+      { id: 's3', locationKey: 'Apothiki 2', name: 'Apothiki 2', active: true, sortOrder: 2 },
+    ])
+    getSuppliersMock.mockResolvedValue([
+      { id: 'sup-1', companyName: 'Amore Distillery', active: true },
     ])
   })
 
@@ -157,7 +167,9 @@ describe('InventoryNewProductReview', () => {
     expect(container.textContent).toContain('BAR')
     expect(container.textContent).toContain('1')
     expect(container.querySelector('input[type="text"]')).toBeTruthy()
-    expect(container.querySelectorAll('select')).toHaveLength(3)
+    expect(container.querySelectorAll('.inventory-new-product-review-fields select').length)
+      .toBeGreaterThanOrEqual(3)
+    expect(container.textContent).toContain('Supplier')
     expect(container.textContent).toContain('Unit is required')
     expect(container.textContent).not.toContain('Suggested from product name')
     expect(onChangeDraft).not.toHaveBeenCalled()
@@ -374,5 +386,211 @@ describe('InventoryNewProductReview', () => {
     })
     expect(container.textContent).toContain('Brand New Spirit')
     expect(container.textContent).not.toContain('Skipped Spirit')
+  })
+
+  function buildPreviewWithTwoCreates() {
+    const operationalModel = {
+      categories: [{
+        name: 'VODKA',
+        products: [
+          {
+            name: 'Brand New Spirit',
+            storage: 2,
+            bar: 1,
+            weekdays: null,
+            order: null,
+            stockControl: null,
+          },
+          {
+            name: 'Another New Spirit',
+            storage: null,
+            bar: null,
+            weekdays: null,
+            order: null,
+            stockControl: null,
+          },
+        ],
+      }],
+    }
+    const existingStockItems = [
+      stock({ id: 'ko', name: 'KETEL ONE', category: 'Vodka' }),
+    ]
+    const matchingResult = matchInventoryOperationalProducts({
+      operationalModel,
+      existingStockItems,
+    })
+    return buildInventoryOperationalImportPreview({
+      operationalModel,
+      matchingResult,
+      existingStockItems,
+    })
+  }
+
+  it('supports select all, clear selection, and smart missing-unit selection', async () => {
+    const preview = buildPreviewWithTwoCreates()
+    renderReview({
+      preview,
+      drafts: {},
+      categoryOptions: ['Vodka'],
+    })
+    await act(async () => {
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+
+    const selectAll = container.querySelector('input[aria-label="Select all new products"]')
+    act(() => {
+      selectAll.click()
+    })
+    expect(container.getAttribute('data-selected-count') || container.querySelector('[data-selected-count]')?.getAttribute('data-selected-count'))
+      .toBe('2')
+    expect(container.querySelector('[data-selected-count="2"]')).toBeTruthy()
+    expect(container.querySelector('.inventory-new-product-bulk-bar')).toBeTruthy()
+
+    act(() => {
+      Array.from(container.querySelectorAll('button'))
+        .find((button) => button.textContent === 'Clear Selection')
+        ?.click()
+    })
+    expect(container.querySelector('[data-selected-count="0"]')).toBeTruthy()
+    expect(container.querySelector('.inventory-new-product-bulk-bar')).toBeNull()
+
+    act(() => {
+      Array.from(container.querySelectorAll('button'))
+        .find((button) => button.textContent === 'Select Missing Units')
+        ?.click()
+    })
+    expect(Number(container.querySelector('[data-selected-count]')?.getAttribute('data-selected-count')))
+      .toBeGreaterThan(0)
+  })
+
+  it('bulk assigns storage/unit/category/supplier with undo', async () => {
+    const preview = buildPreviewWithTwoCreates()
+    const createKeys = listCreateNewPreviewRows(preview).map((entry) => entry.key)
+    /** @type {Record<string, object>} */
+    let drafts = {}
+    const onChangeDraftsBulk = vi.fn((updates) => {
+      drafts = { ...drafts, ...updates }
+      act(() => {
+        root.render(createElement(InventoryNewProductReview, {
+          preview,
+          drafts,
+          workspaceId: 'ws-1',
+          categoryOptions: ['Vodka', 'Gin'],
+          onChangeDraftsBulk,
+        }))
+      })
+    })
+
+    renderReview({
+      preview,
+      drafts,
+      categoryOptions: ['Vodka', 'Gin'],
+      onChangeDraftsBulk,
+    })
+    await act(async () => {
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+
+    expect(listWorkspaceStoragesMock).toHaveBeenCalledWith('ws-1')
+    expect(getSuppliersMock).toHaveBeenCalledWith('ws-1')
+
+    act(() => {
+      container.querySelector('input[aria-label="Select all new products"]').click()
+    })
+
+    act(() => {
+      Array.from(container.querySelectorAll('.inventory-new-product-bulk-bar button'))
+        .find((button) => button.textContent === 'Assign Storage')
+        ?.click()
+    })
+    await act(async () => {
+      await Promise.resolve()
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+    const bulkStorage = container.querySelector('select[aria-label="Bulk assign storage"]')
+    expect(Array.from(bulkStorage.options).map((option) => option.value))
+      .toEqual(expect.arrayContaining(['Bar', 'Main Storage', 'Apothiki 2']))
+
+    const setNativeValue = (element, value) => {
+      const descriptor = Object.getOwnPropertyDescriptor(window.HTMLSelectElement.prototype, 'value')
+      descriptor?.set?.call(element, value)
+      element.dispatchEvent(new Event('change', { bubbles: true }))
+    }
+
+    act(() => {
+      setNativeValue(bulkStorage, 'Apothiki 2')
+    })
+    expect(onChangeDraftsBulk).toHaveBeenCalled()
+    createKeys.forEach((key) => {
+      expect(drafts[key].storage).toBe('Apothiki 2')
+    })
+    expect(container.textContent).toContain('Storage assigned to 2 products.')
+
+    act(() => {
+      Array.from(container.querySelectorAll('button'))
+        .find((button) => button.textContent === 'Undo')
+        ?.click()
+    })
+    createKeys.forEach((key) => {
+      expect(drafts[key].storage).not.toBe('Apothiki 2')
+    })
+
+    const ensureSelected = () => {
+      if (container.querySelector('[data-selected-count="0"]')) {
+        act(() => {
+          container.querySelector('input[aria-label="Select all new products"]').click()
+        })
+      }
+    }
+
+    ensureSelected()
+    act(() => {
+      Array.from(container.querySelectorAll('.inventory-new-product-bulk-bar button'))
+        .find((button) => button.textContent === 'Assign Unit')
+        ?.click()
+    })
+    act(() => {
+      setNativeValue(container.querySelector('select[aria-label="Bulk assign unit"]'), 'Bottle 700ml')
+    })
+    createKeys.forEach((key) => {
+      expect(drafts[key].unit).toBe('Bottle 700ml')
+    })
+
+    ensureSelected()
+    act(() => {
+      Array.from(container.querySelectorAll('.inventory-new-product-bulk-bar button'))
+        .find((button) => button.textContent === 'Assign Category')
+        ?.click()
+    })
+    act(() => {
+      setNativeValue(container.querySelector('select[aria-label="Bulk assign category"]'), 'Gin')
+    })
+    createKeys.forEach((key) => {
+      expect(drafts[key].category).toBe('Gin')
+    })
+
+    ensureSelected()
+    act(() => {
+      Array.from(container.querySelectorAll('.inventory-new-product-bulk-bar button'))
+        .find((button) => button.textContent === 'Assign Supplier')
+        ?.click()
+    })
+    await act(async () => {
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+    act(() => {
+      setNativeValue(
+        container.querySelector('select[aria-label="Bulk assign supplier"]'),
+        'Amore Distillery',
+      )
+    })
+    createKeys.forEach((key) => {
+      expect(drafts[key].supplier).toBe('Amore Distillery')
+      expect(drafts[key].supplierId).toBe('sup-1')
+    })
   })
 })

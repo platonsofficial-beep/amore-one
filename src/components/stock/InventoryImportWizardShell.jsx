@@ -620,8 +620,29 @@ export function InventoryImportWizardShell({
         category: next.category,
         unit: next.unit ?? null,
         storage: next.storage ?? null,
+        supplier: next.supplier ?? '',
+        supplierId: next.supplierId ?? null,
+        skipped: next.skipped === true,
       },
     }))
+  }
+
+  function handleNewProductDraftsBulk(updates) {
+    setNewProductDrafts((current) => {
+      const next = { ...current }
+      Object.entries(updates ?? {}).forEach(([rowKey, draft]) => {
+        next[rowKey] = {
+          productName: draft.productName,
+          category: draft.category,
+          unit: draft.unit ?? null,
+          storage: draft.storage ?? null,
+          supplier: draft.supplier ?? '',
+          supplierId: draft.supplierId ?? null,
+          skipped: draft.skipped === true,
+        }
+      })
+      return next
+    })
   }
 
   function openFilePicker() {
@@ -1277,6 +1298,7 @@ export function InventoryImportWizardShell({
                           categoryOptions={newProductCategoryOptions}
                           workspaceId={workspaceId}
                           onChangeDraft={handleNewProductDraftChange}
+                          onChangeDraftsBulk={handleNewProductDraftsBulk}
                         />
                       )
                       : null
