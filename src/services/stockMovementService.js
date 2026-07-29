@@ -1,10 +1,9 @@
-import { applyStockMovementQuantity } from '../lib/stockUtils'
 import { supabase } from '../lib/supabaseClient'
 import { getMemberDisplayNamesByAuthUserIds } from './membershipService'
-import { getStockItems, updateStockItemQuantity } from './stockItemService'
+import { getStockItems } from './stockItemService'
+import { recordStockMutation } from './stockMutationService'
 
 const STOCK_MOVEMENTS_TABLE = 'stock_movements'
-const VALID_MOVEMENT_TYPES = new Set(['receive', 'usage', 'adjustment', 'stock_count'])
 
 function isTableUnavailableError(error) {
   const message = `${error?.message ?? ''}`.toLowerCase()
@@ -54,63 +53,13 @@ export async function getStockMovements(workspaceId, { itemId, limit = 50 } = {}
   return (data ?? []).map(mapStockMovement)
 }
 
-export async function recordStockMovement({
-  workspaceId,
-  itemId,
-  type,
-  quantity,
-  note = '',
-  createdBy = null,
-  currentQuantity = 0,
-}) {
-  const normalizedWorkspaceId = `${workspaceId ?? ''}`.trim()
-  const normalizedItemId = `${itemId ?? ''}`.trim()
-  const normalizedType = `${type ?? ''}`.trim()
-
-  if (!normalizedWorkspaceId || !normalizedItemId) {
-    throw new Error('Workspace and item are required for stock movements.')
-  }
-
-  if (!VALID_MOVEMENT_TYPES.has(normalizedType)) {
-    throw new Error('Invalid stock movement type.')
-  }
-
-  const movementQuantity = Number(quantity)
-
-  if (normalizedType === 'stock_count') {
-    if (!Number.isFinite(movementQuantity) || movementQuantity < 0) {
-      throw new Error('Count must be zero or greater.')
-    }
-  } else if (!Number.isFinite(movementQuantity) || movementQuantity === 0) {
-    throw new Error('Quantity must be a non-zero number.')
-  }
-
-  const nextQuantity = applyStockMovementQuantity(currentQuantity, normalizedType, movementQuantity)
-
-  const { data, error } = await supabase
-    .from(STOCK_MOVEMENTS_TABLE)
-    .insert([{
-      workspace_id: normalizedWorkspaceId,
-      item_id: normalizedItemId,
-      type: normalizedType,
-      quantity: movementQuantity,
-      note: `${note ?? ''}`.trim(),
-      created_by: createdBy,
-    }])
-    .select('*')
-    .single()
-
-  if (error) {
-    console.error('[stockMovementService] recordStockMovement error:', error)
-    if (isTableUnavailableError(error)) {
-      throw new Error('Stock movement tables are not ready yet. Run stock_movements_schema.sql in Supabase.')
-    }
-    throw new Error(error.message || 'Unable to record stock movement right now.')
-  }
-
-  await updateStockItemQuantity(normalizedItemId, normalizedWorkspaceId, nextQuantity)
-
-  return mapStockMovement(data)
+/**
+ * Public movement write entry.
+ * P8.29.7 — delegates to stockMutationService routing (legacy by default).
+ * Callers and return shape remain unchanged.
+ */
+export async function recordStockMovement(input) {
+  return recordStockMutation(input)
 }
 
 export async function getLatestStockMovementsByItem(workspaceId, itemIds = []) {
