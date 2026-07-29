@@ -330,8 +330,9 @@ describe('InventoryImportWizardShell', () => {
 
     expect(container.textContent).toContain('Map Columns')
     expect(container.textContent).toContain('products.csv')
-    expect(container.textContent).toContain('3 columns')
-    expect(container.textContent).toContain('1 data rows')
+    expect(container.textContent).toContain('Detected')
+    expect(container.textContent).toContain('3')
+    expect(container.textContent).toContain('Mapped')
     expect(container.textContent).toContain('Name')
     expect(container.textContent).toContain('Product name')
     expect(container.textContent).toContain('Duplicate header')
@@ -760,7 +761,9 @@ describe('InventoryImportWizardShell', () => {
     expect(container.querySelector('.inventory-import-wizard-format-card')
       ?.getAttribute('data-operational-product-count')).toBe('')
     expect(container.querySelector('.inventory-operational-review')).toBeNull()
-    expect(container.querySelector('.inventory-import-validate-summary-grid')).toBeNull()
+    expect(container.querySelector('.inventory-import-step-summary')?.getAttribute('data-step-summary'))
+      .toBe('columns')
+    expect(container.querySelector('.inventory-import-validate-groups')).toBeNull()
   })
 
   it('loads workspace stock only for operational layouts and shows the summary card', async () => {
@@ -803,11 +806,11 @@ describe('InventoryImportWizardShell', () => {
 
     await flushMicrotasks()
 
-    const summary = container.querySelector('.inventory-import-validate-summary-grid')
+    const summary = container.querySelector('.inventory-import-step-summary')
     expect(summary?.getAttribute('data-workspace-stock-status')).toBe('success')
     expect(summary?.getAttribute('data-workspace-stock-count')).toBe('2')
     expect(container.textContent).toContain('Validate Import')
-    expect(container.textContent).toContain('Rows')
+    expect(container.textContent).toContain('Products')
     expect(container.textContent).toContain('Ready')
   })
 
@@ -836,9 +839,9 @@ describe('InventoryImportWizardShell', () => {
       await Promise.resolve()
     })
 
-    const summary = container.querySelector('.inventory-import-validate-summary-grid')
+    const summary = container.querySelector('.inventory-import-step-summary')
     expect(summary?.getAttribute('data-workspace-stock-status')).toBe('success')
-    expect(container.textContent).toContain('Rows')
+    expect(container.textContent).toContain('Products')
   })
 
   it('shows a premium error state when workspace stock loading fails', async () => {
@@ -915,7 +918,7 @@ describe('InventoryImportWizardShell', () => {
     })
 
     expect(loadWorkspaceStockItems).toHaveBeenCalledWith('ws-a')
-    expect(container.querySelector('.inventory-import-validate-summary-grid')
+    expect(container.querySelector('.inventory-import-step-summary')
       ?.getAttribute('data-workspace-stock-count')).toBe('1')
   })
 
@@ -958,7 +961,11 @@ describe('InventoryImportWizardShell', () => {
     await continueToValidateImport()
 
     expect(matchSpy).not.toHaveBeenCalled()
-    expect(container.querySelector('.inventory-import-validate-summary-grid')).toBeNull()
+    expect(container.querySelector('.inventory-import-validate-groups')).toBeNull()
+    expect(container.querySelector('.inventory-import-step-summary')?.getAttribute('data-step-summary'))
+      .toBe('data')
+    expect(container.querySelector('.inventory-import-step-summary')?.getAttribute('data-workspace-stock-status'))
+      .toBe('loading')
 
     await act(async () => {
       resolveLoad(catalog)
@@ -969,7 +976,9 @@ describe('InventoryImportWizardShell', () => {
     expect(matchSpy.mock.calls[0][0].existingStockItems).toEqual(catalog)
     expect(container.textContent).toContain('Validate Import')
     expect(container.textContent).toContain('Missing Units')
-    expect(container.querySelector('.inventory-import-validate-summary-grid')).toBeTruthy()
+    expect(container.querySelector('.inventory-import-validate-groups')).toBeTruthy()
+    expect(container.querySelector('.inventory-import-step-summary')?.getAttribute('data-workspace-stock-status'))
+      .toBe('success')
 
     act(() => {
       root.render(createElement(InventoryImportWizardShell, {
@@ -1005,7 +1014,7 @@ describe('InventoryImportWizardShell', () => {
     ]))
     await continueToValidateImport()
     expect(matchSpy).not.toHaveBeenCalled()
-    expect(container.querySelector('.inventory-import-validate-summary-grid')).toBeNull()
+    expect(container.querySelector('.inventory-import-validate-groups')).toBeNull()
 
     await act(async () => {
       resolveLoad([])
@@ -1034,7 +1043,9 @@ describe('InventoryImportWizardShell', () => {
     })
 
     expect(matchSpy).not.toHaveBeenCalled()
-    expect(container.querySelector('.inventory-import-validate-summary-grid')).toBeNull()
+    expect(container.querySelector('.inventory-import-step-summary')?.getAttribute('data-step-summary'))
+      .toBe('columns')
+    expect(container.querySelector('.inventory-import-validate-groups')).toBeNull()
   })
 
   it('builds the operational import preview after catalog success and memoizes it', async () => {
@@ -1223,8 +1234,9 @@ describe('InventoryImportWizardShell', () => {
     expect(container.querySelector('.inventory-import-wizard-validate')).toBeTruthy()
     expect(container.querySelector('.inventory-import-wizard-map-columns')).toBeNull()
     expect(container.querySelector('.inventory-operational-import-preview')).toBeNull()
-    expect(container.textContent).toContain('Sheet: Inventory')
-    expect(container.textContent).toContain('5 products detected')
+    expect(container.textContent).toContain('Inventory')
+    expect(container.textContent).toContain('Products')
+    expect(container.textContent).toContain('5')
     expect(container.textContent).toContain('Glenfidich 12')
     expect(container.textContent).toContain('Resolve Possible Matches')
 
@@ -1455,7 +1467,8 @@ describe('InventoryImportWizardShell', () => {
     expect(container.querySelector('.inventory-import-wizard-review-title')?.textContent)
       .toBe('Ready to Import')
     expect(getButton('Apply Import')?.disabled).toBe(false)
-    expect(container.textContent).toContain('Ready to apply')
+    expect(container.textContent).toContain('Status')
+    expect(container.querySelector('.inventory-import-step-summary')?.textContent).toContain('Ready')
   })
 
   it('resets new product drafts when a different file is selected', async () => {
@@ -1910,7 +1923,8 @@ describe('InventoryImportWizardShell', () => {
     expect(container.querySelector('.inventory-import-wizard-review-title')?.textContent)
       .toBe('Ready to Import')
     expect(getButton('Apply Import')?.disabled).toBe(false)
-    expect(container.textContent).toContain('Ready to apply')
+    expect(container.textContent).toContain('Status')
+    expect(container.querySelector('.inventory-import-step-summary')?.textContent).toContain('Ready')
   })
 
   it('requires overwrite confirmation for opening stock on linked items and clears it when returning to no_change', async () => {

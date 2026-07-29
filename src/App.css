@@ -42325,6 +42325,90 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   padding: 22px 32px 6px;
 }
 
+.inventory-import-step-summary {
+  flex-shrink: 0;
+  min-height: 76px;
+  margin: 0 32px 4px;
+  padding: 12px 14px;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(14, 14, 15, 0.72));
+  transition:
+    border-color 180ms ease,
+    background 180ms ease,
+    opacity 180ms ease;
+}
+
+.inventory-import-step-summary.is-columns {
+  border-color: rgba(120, 170, 220, 0.28);
+}
+
+.inventory-import-step-summary.is-data {
+  border-color: rgba(220, 170, 90, 0.3);
+}
+
+.inventory-import-step-summary.is-preview {
+  border-color: rgba(140, 200, 140, 0.3);
+}
+
+.inventory-import-step-summary.is-ready,
+.inventory-import-step-summary.is-completed {
+  border-color: rgba(212, 175, 55, 0.34);
+}
+
+.inventory-import-step-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(108px, 1fr));
+  gap: 10px 12px;
+  align-items: start;
+}
+
+.inventory-import-step-summary-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.inventory-import-step-summary-label {
+  color: rgba(255, 247, 232, 0.55);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.inventory-import-step-summary-value {
+  color: #fff7e8;
+  font-size: 0.98rem;
+  font-weight: 650;
+  line-height: 1.25;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.inventory-import-step-summary-item.is-ok .inventory-import-step-summary-value {
+  color: rgba(170, 220, 170, 0.95);
+}
+
+.inventory-import-step-summary-item.is-warn .inventory-import-step-summary-value {
+  color: rgba(235, 190, 110, 0.98);
+}
+
+.inventory-import-step-summary-item.is-danger .inventory-import-step-summary-value {
+  color: rgba(235, 140, 140, 0.98);
+}
+
+.inventory-import-step-summary-item.is-create .inventory-import-step-summary-value {
+  color: rgba(150, 210, 255, 0.98);
+}
+
+.inventory-import-step-summary-item.is-link .inventory-import-step-summary-value {
+  color: rgba(170, 220, 170, 0.98);
+}
+
 .inventory-import-wizard-steps {
   list-style: none;
   margin: 0;
@@ -44238,9 +44322,15 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 
   .inventory-import-wizard-header,
   .inventory-import-wizard-progress,
+  .inventory-import-step-summary,
   .inventory-import-wizard-body {
     padding-left: 22px;
     padding-right: 22px;
+  }
+
+  .inventory-import-step-summary {
+    margin-left: 22px;
+    margin-right: 22px;
   }
 
   .inventory-import-wizard-steps {

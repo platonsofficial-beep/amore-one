@@ -339,3 +339,164 @@ export function buildInventoryImportValidateGroups(preview) {
     groups,
   }
 }
+
+/**
+ * Compact persistent Step Summary Header items for wizard steps 2–5.
+ *
+ * @param {{
+ *   wizardView?: string,
+ *   selectedFile?: { name?: string }|null,
+ *   selectedWorksheetName?: string,
+ *   parseResult?: object|null,
+ *   columnMappingSummary?: {
+ *     mapped?: Array<{ role?: string }>,
+ *     missingRequired?: string[],
+ *   }|null,
+ *   operationalModel?: { summary?: { productCount?: number } }|null,
+ *   validateImportGroups?: {
+ *     summary?: { rows?: number, ready?: number, errors?: number },
+ *     groups?: Array<{ id?: string, count?: number }>,
+ *   }|null,
+ *   readyEligibility?: {
+ *     isReady?: boolean,
+ *     counts?: { create?: number, link?: number, skip?: number },
+ *   }|null,
+ *   importSessionPolicy?: {
+ *     quantityPolicy?: string,
+ *     newProductLocationFallback?: string|null,
+ *   }|null,
+ * }} [input]
+ * @returns {{
+ *   stepId: string,
+ *   items: Array<{ id: string, label: string, value: string, tone?: string }>,
+ * }|null}
+ */
+export function buildInventoryImportStepSummary({
+  wizardView = '',
+  selectedFile = null,
+  selectedWorksheetName = '',
+  parseResult = null,
+  columnMappingSummary = null,
+  operationalModel = null,
+  validateImportGroups = null,
+  readyEligibility = null,
+  importSessionPolicy = null,
+} = {}) {
+  const fileName = `${selectedFile?.name ?? ''}`.trim() || '—'
+  const worksheet = `${selectedWorksheetName ?? ''}`.trim() || '—'
+  const openingStock = importSessionPolicy?.quantityPolicy === 'opening_stock'
+    ? 'Yes'
+    : 'No'
+  const destination = `${importSessionPolicy?.newProductLocationFallback ?? ''}`.trim() || '—'
+
+  if (wizardView === 'columns') {
+    const mappedRows = Array.isArray(columnMappingSummary?.mapped)
+      ? columnMappingSummary.mapped
+      : []
+    const mappedCount = mappedRows.filter(
+      (item) => item.role !== 'unmapped' && item.role !== 'blank',
+    ).length
+    const detected = Number.isFinite(parseResult?.summary?.sourceColumnCount)
+      ? parseResult.summary.sourceColumnCount
+      : mappedRows.length
+    const missing = Array.isArray(columnMappingSummary?.missingRequired)
+      && columnMappingSummary.missingRequired.length > 0
+      ? columnMappingSummary.missingRequired.join(', ')
+      : 'None'
+
+    return {
+      stepId: 'columns',
+      items: [
+        { id: 'file', label: 'File', value: fileName },
+        { id: 'worksheet', label: 'Worksheet', value: worksheet },
+        { id: 'detected', label: 'Detected', value: String(detected) },
+        { id: 'mapped', label: 'Mapped', value: String(mappedCount) },
+        {
+          id: 'missing',
+          label: 'Missing',
+          value: missing,
+          tone: missing === 'None' ? 'ok' : 'warn',
+        },
+      ],
+    }
+  }
+
+  if (wizardView === 'data') {
+    const products = Number.isFinite(operationalModel?.summary?.productCount)
+      ? operationalModel.summary.productCount
+      : (validateImportGroups?.summary?.rows ?? 0)
+    const ready = Number(validateImportGroups?.summary?.ready) || 0
+    const blocked = Number(
+      validateImportGroups?.groups?.find((group) => group.id === 'blocked_rows')?.count,
+    ) || 0
+    const errors = Number(validateImportGroups?.summary?.errors) || 0
+    const needAttention = Math.max(0, errors - blocked)
+
+    return {
+      stepId: 'data',
+      items: [
+        { id: 'file', label: 'File', value: fileName },
+        { id: 'worksheet', label: 'Worksheet', value: worksheet },
+        { id: 'products', label: 'Products', value: String(products) },
+        { id: 'ready', label: 'Ready', value: String(ready), tone: 'ok' },
+        {
+          id: 'attention',
+          label: 'Need Attention',
+          value: String(needAttention),
+          tone: needAttention > 0 ? 'warn' : 'ok',
+        },
+        {
+          id: 'blocked',
+          label: 'Blocked',
+          value: String(blocked),
+          tone: blocked > 0 ? 'danger' : 'ok',
+        },
+      ],
+    }
+  }
+
+  if (wizardView === 'preview') {
+    const create = Number(readyEligibility?.counts?.create) || 0
+    const link = Number(readyEligibility?.counts?.link) || 0
+    const skip = Number(readyEligibility?.counts?.skip) || 0
+
+    return {
+      stepId: 'preview',
+      items: [
+        { id: 'create', label: 'Create', value: String(create), tone: 'create' },
+        { id: 'link', label: 'Link', value: String(link), tone: 'link' },
+        { id: 'skip', label: 'Skip', value: String(skip) },
+        { id: 'opening', label: 'Opening Stock', value: openingStock },
+        { id: 'storage', label: 'Storage', value: destination },
+      ],
+    }
+  }
+
+  if (wizardView === 'ready' || wizardView === 'completed') {
+    const create = Number(readyEligibility?.counts?.create) || 0
+    const link = Number(readyEligibility?.counts?.link) || 0
+    const skip = Number(readyEligibility?.counts?.skip) || 0
+    const total = create + link + skip
+    const readyStatus = readyEligibility?.isReady === true ? 'Ready' : 'Not ready'
+
+    return {
+      stepId: wizardView === 'completed' ? 'completed' : 'ready',
+      items: [
+        { id: 'total', label: 'Total', value: String(total) },
+        { id: 'create', label: 'Create', value: String(create), tone: 'create' },
+        { id: 'link', label: 'Link', value: String(link), tone: 'link' },
+        { id: 'skip', label: 'Skip', value: String(skip) },
+        { id: 'opening', label: 'Opening Stock', value: openingStock },
+        { id: 'destination', label: 'Destination', value: destination },
+        {
+          id: 'status',
+          label: 'Status',
+          value: readyStatus,
+          tone: readyEligibility?.isReady === true ? 'ok' : 'warn',
+        },
+      ],
+    }
+  }
+
+  return null
+}
