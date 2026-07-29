@@ -1,7 +1,8 @@
 /**
- * P8.27.1 — Inventory Import Session Staging service.
+ * P8.27.1 / P8.27.2 — Inventory Import Session Staging + Ready service.
  *
- * Thin RPC wrappers for create / stage / cancel. No Apply, no Ready, no UI.
+ * Thin RPC wrappers for create / stage / cancel / mark ready.
+ * No Apply, no UI.
  */
 
 import { supabase } from '../lib/supabaseClient'
@@ -9,6 +10,7 @@ import { supabase } from '../lib/supabaseClient'
 export const CREATE_INVENTORY_IMPORT_SESSION_RPC = 'create_inventory_import_session'
 export const STAGE_INVENTORY_IMPORT_ROWS_RPC = 'stage_inventory_import_rows'
 export const CANCEL_INVENTORY_IMPORT_SESSION_RPC = 'cancel_inventory_import_session'
+export const MARK_INVENTORY_IMPORT_SESSION_READY_RPC = 'mark_inventory_import_session_ready'
 
 /**
  * @param {unknown} workspaceId
@@ -105,6 +107,8 @@ export function mapInventoryImportSessionResult(record) {
     createdAt: record.created_at ?? record.createdAt ?? null,
     updatedAt: record.updated_at ?? record.updatedAt ?? null,
     cancelledAt: record.cancelled_at ?? record.cancelledAt ?? null,
+    readyAt: record.ready_at ?? record.readyAt ?? null,
+    quantityPolicy: record.quantity_policy ?? record.quantityPolicy ?? null,
     idempotent: record.idempotent === true,
   }
 }
@@ -233,6 +237,37 @@ export async function cancelInventoryImportSession(input = {}) {
   const mapped = mapInventoryImportSessionResult(firstRpcPayload(data))
   if (!mapped?.sessionId) {
     throw new Error('Cancel inventory import session returned no session.')
+  }
+  return mapped
+}
+
+/**
+ * Mark a reviewed import session Ready (server-authoritative eligibility).
+ *
+ * @param {{
+ *   workspaceId: string,
+ *   sessionId: string,
+ * }} input
+ */
+export async function markInventoryImportSessionReady(input = {}) {
+  const workspaceId = requireWorkspaceId(
+    input.workspaceId,
+    'Workspace is required to mark an import session ready.',
+  )
+  const sessionId = requireSessionId(input.sessionId)
+
+  const { data, error } = await supabase.rpc(MARK_INVENTORY_IMPORT_SESSION_READY_RPC, {
+    p_workspace_id: workspaceId,
+    p_session_id: sessionId,
+  })
+
+  if (error) {
+    throw mapInventoryImportRpcError(error, 'Failed to mark inventory import session ready.')
+  }
+
+  const mapped = mapInventoryImportSessionResult(firstRpcPayload(data))
+  if (!mapped?.sessionId) {
+    throw new Error('Mark inventory import session ready returned no session.')
   }
   return mapped
 }

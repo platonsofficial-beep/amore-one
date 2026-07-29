@@ -22,11 +22,13 @@ import * as inventoryImportService from './inventoryImportService'
 import {
   CANCEL_INVENTORY_IMPORT_SESSION_RPC,
   CREATE_INVENTORY_IMPORT_SESSION_RPC,
+  MARK_INVENTORY_IMPORT_SESSION_READY_RPC,
   STAGE_INVENTORY_IMPORT_ROWS_RPC,
   cancelInventoryImportSession,
   createInventoryImportSession,
   mapInventoryImportRpcError,
   mapInventoryImportSessionResult,
+  markInventoryImportSessionReady,
   stageInventoryImportRows,
 } from './inventoryImportService'
 
@@ -249,14 +251,85 @@ describe('cancelInventoryImportSession', () => {
   })
 })
 
+describe('markInventoryImportSessionReady', () => {
+  beforeEach(() => {
+    rpcMock.mockReset()
+  })
+
+  it('requires workspace and session', async () => {
+    await expect(markInventoryImportSessionReady({
+      workspaceId: '',
+      sessionId: 'sess-1',
+    })).rejects.toThrow(/Workspace is required/)
+
+    await expect(markInventoryImportSessionReady({
+      workspaceId: 'ws-1',
+      sessionId: '',
+    })).rejects.toThrow(/Import session is required/)
+
+    expect(rpcMock).not.toHaveBeenCalled()
+  })
+
+  it('calls ready RPC and maps status/counters/readyAt', async () => {
+    rpcMock.mockResolvedValue({
+      data: {
+        session_id: 'sess-1',
+        workspace_id: 'ws-1',
+        status: 'ready',
+        ready_at: '2026-07-29T12:00:00Z',
+        quantity_policy: 'no_change',
+        counters: {
+          total_rows: 2,
+          create_rows: 1,
+          link_rows: 1,
+          update_rows: 0,
+          skip_rows: 0,
+          valid_rows: 2,
+          warning_rows: 0,
+          error_rows: 0,
+          manual_review_rows: 0,
+        },
+        updated_by: 'user-1',
+      },
+      error: null,
+    })
+
+    const result = await markInventoryImportSessionReady({
+      workspaceId: 'ws-1',
+      sessionId: 'sess-1',
+    })
+
+    expect(rpcMock).toHaveBeenCalledWith(MARK_INVENTORY_IMPORT_SESSION_READY_RPC, {
+      p_workspace_id: 'ws-1',
+      p_session_id: 'sess-1',
+    })
+    expect(result.status).toBe('ready')
+    expect(result.readyAt).toBe('2026-07-29T12:00:00Z')
+    expect(result.quantityPolicy).toBe('no_change')
+    expect(result.counters.createRows).toBe(1)
+    expect(result.counters.linkRows).toBe(1)
+  })
+
+  it('propagates Supabase errors', async () => {
+    rpcMock.mockResolvedValue({
+      data: null,
+      error: { message: 'inventory_import_ready_unresolved_row' },
+    })
+    await expect(markInventoryImportSessionReady({
+      workspaceId: 'ws-1',
+      sessionId: 'sess-1',
+    })).rejects.toThrow('inventory_import_ready_unresolved_row')
+  })
+})
+
 describe('service scope guards', () => {
-  it('does not export Apply/markReady and does not use direct table inserts', () => {
+  it('exports Ready wrapper but not Apply, and does not use direct table inserts', () => {
+    expect(inventoryImportService).toHaveProperty('markInventoryImportSessionReady')
     expect(inventoryImportService).not.toHaveProperty('applyInventoryImport')
-    expect(inventoryImportService).not.toHaveProperty('markInventoryImportReady')
-    expect(inventoryImportService).not.toHaveProperty('markReady')
     expect(inventoryImportService).not.toHaveProperty('apply')
     expect(SERVICE_SOURCE).not.toMatch(/\.from\(['"]inventory_import_/)
     expect(SERVICE_SOURCE).not.toMatch(/\.insert\(/)
     expect(SERVICE_SOURCE).toContain('supabase.rpc')
+    expect(SERVICE_SOURCE).toContain('mark_inventory_import_session_ready')
   })
 })
