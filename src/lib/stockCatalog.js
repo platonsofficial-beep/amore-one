@@ -21,6 +21,55 @@ export const STOCK_LOCATIONS = [
   'Other',
 ]
 
+/** Placeholder select/button value reserved for P8.26.6 Create Storage dialog. */
+export const STOCK_CREATE_STORAGE_OPTION_VALUE = '__create_storage__'
+
+/**
+ * Map workspace storage rows to catalog select options.
+ * Uses locationKey as the stored value and name as the label.
+ *
+ * @param {Array<{ locationKey?: string, location_key?: string, name?: string }>|null|undefined} storages
+ * @returns {Array<{ value: string, label: string }>}
+ */
+export function mapWorkspaceStoragesToSelectOptions(storages) {
+  return (Array.isArray(storages) ? storages : [])
+    .map((row) => {
+      const value = `${row?.locationKey ?? row?.location_key ?? ''}`.trim()
+      if (!value) return null
+      const label = `${row?.name ?? value}`.trim() || value
+      return { value, label }
+    })
+    .filter(Boolean)
+}
+
+/**
+ * Prefer active workspace storages; fall back to STOCK_LOCATIONS when empty.
+ * Does not remove STOCK_LOCATIONS from the codebase.
+ *
+ * @param {Array|null|undefined} workspaceStorages
+ * @returns {Array<{ value: string, label: string }>}
+ */
+export function resolveCatalogStorageSelectOptions(workspaceStorages) {
+  const mapped = mapWorkspaceStoragesToSelectOptions(workspaceStorages)
+  if (mapped.length > 0) return mapped
+  return STOCK_LOCATIONS.map((location) => ({ value: location, label: location }))
+}
+
+/**
+ * Keep the current selection visible even when it is not in the catalog list.
+ *
+ * @param {Array<{ value: string, label: string }>|null|undefined} options
+ * @param {string|null|undefined} selectedValue
+ * @returns {Array<{ value: string, label: string }>}
+ */
+export function withPreservedStorageSelection(options, selectedValue) {
+  const list = Array.isArray(options) ? [...options] : []
+  const selected = `${selectedValue ?? ''}`.trim()
+  if (!selected) return list
+  if (list.some((option) => option.value === selected)) return list
+  return [...list, { value: selected, label: selected }]
+}
+
 const LEGACY_STOCK_CATEGORY_MAP = {
   Wines: 'Wine',
   Wine: 'Wine',
