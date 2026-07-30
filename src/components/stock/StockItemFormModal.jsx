@@ -228,29 +228,14 @@ export function StockItemFormModal({
                       {preset}
                     </button>
                   ))}
-                  <button
-                    type="button"
-                    className={`stock-unit-preset${form.unitPreset === STOCK_UNIT_CUSTOM_VALUE ? ' active' : ''}`}
-                    onClick={() => setForm((current) => ({
-                      ...current,
-                      unitPreset: STOCK_UNIT_CUSTOM_VALUE,
-                    }))}
-                  >
-                    Custom
-                  </button>
                 </div>
               </div>
 
-              {form.unitPreset === STOCK_UNIT_CUSTOM_VALUE ? (
-                <label className="stock-form-field stock-form-field-full">
-                  <span>Custom unit</span>
-                  <input
-                    type="text"
-                    value={form.customUnit}
-                    onChange={(event) => setForm((current) => ({ ...current, customUnit: event.target.value }))}
-                    placeholder="Enter custom unit"
-                  />
-                </label>
+              {form.unitPreset === STOCK_UNIT_CUSTOM_VALUE && form.customUnit ? (
+                <p className="stock-unit-selected">
+                  Current: {form.customUnit}. Select a physical unit above to update.
+                  Size belongs in Size; packaging belongs in Packaging Note.
+                </p>
               ) : (
                 <p className="stock-unit-selected">Selected: {resolvedUnit || '—'}</p>
               )}

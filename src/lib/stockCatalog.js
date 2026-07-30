@@ -1,9 +1,16 @@
 import {
   SELECTABLE_INVENTORY_UNIT_PRESETS,
   normalizePackagingNote,
+  resolveProductCreateEditInventoryUnit,
+  toSelectableInventoryUnit,
 } from './inventoryUnitStandard.js'
 
 export { normalizePackagingNote }
+export {
+  PRODUCT_CREATE_EDIT_INVENTORY_UNIT_ERROR,
+  PRODUCT_CREATE_EDIT_LEGACY_COMPOSITE_UNIT_ERROR,
+  resolveProductCreateEditInventoryUnit,
+} from './inventoryUnitStandard.js'
 
 /** P8.31.6a/b — optional product metadata write limits (app-enforced). */
 export const PRODUCT_METADATA_LIMITS = Object.freeze({
@@ -337,6 +344,21 @@ export function resolveStockFormUnit(form) {
   return `${form.unitPreset ?? ''}`.trim()
 }
 
+/**
+ * Resolve the inventory unit string to persist from Product Create/Edit.
+ * Unchanged legacy persisted units are preserved; new/changed values must be canonical.
+ *
+ * @param {object} form
+ * @returns {string}
+ */
+export function resolveStockFormUnitForSave(form) {
+  const resolved = resolveProductCreateEditInventoryUnit({
+    proposedUnit: resolveStockFormUnit(form),
+    persistedUnit: form?.persistedUnit ?? '',
+  })
+  return resolved.unitToSave ?? ''
+}
+
 export function resolveUnitFieldsForForm(unit, category) {
   const normalizedCategory = normalizeStockCategory(category)
   const presets = getStockUnitPresetsForCategory(normalizedCategory)
@@ -346,7 +368,13 @@ export function resolveUnitFieldsForForm(unit, category) {
     return { unitPreset: normalizedUnit, customUnit: '' }
   }
 
+  const selectable = toSelectableInventoryUnit(normalizedUnit)
+  if (selectable && presets.includes(selectable) && selectable === normalizedUnit) {
+    return { unitPreset: selectable, customUnit: '' }
+  }
+
   if (normalizedUnit) {
+    // Legacy / non-preset display only — Custom free-text entry is locked in the UI.
     return { unitPreset: STOCK_UNIT_CUSTOM_VALUE, customUnit: normalizedUnit }
   }
 
@@ -369,6 +397,7 @@ export function buildEmptyStockItemForm(category = 'Spirits') {
     storageLocation: getDefaultLocationForCategory(normalizedCategory),
     unitPreset: getDefaultUnitForCategory(normalizedCategory),
     customUnit: '',
+    persistedUnit: '',
     size: '',
     packagingNote: '',
     barcode: '',
@@ -382,11 +411,17 @@ export function buildEmptyStockItemForm(category = 'Spirits') {
 
 export function stockItemToDuplicateForm(item) {
   const form = stockItemToForm(item)
+  const selectable = toSelectableInventoryUnit(item?.unit)
+  const category = form.category
 
   return {
     ...form,
     name: '',
     currentQuantity: '',
+    // Duplicate is a new product — must save a canonical physical unit.
+    persistedUnit: '',
+    unitPreset: selectable || getDefaultUnitForCategory(category),
+    customUnit: '',
   }
 }
 
@@ -396,6 +431,7 @@ export function stockItemToForm(item) {
   const unitFields = resolveUnitFieldsForForm(item?.unit, category)
   const orderQuantity = item?.orderQuantity ?? item?.order_quantity
   const targetQuantity = item?.targetQuantity ?? item?.target_quantity
+  const persistedUnit = `${item?.unit ?? ''}`.trim()
 
   return {
     name: item?.name ?? '',
@@ -405,6 +441,7 @@ export function stockItemToForm(item) {
     supplier: item?.supplier ?? '',
     storageLocation: resolveStockStorageLocation(item),
     ...unitFields,
+    persistedUnit,
     size: normalizeProductSize(item?.size ?? null) ?? '',
     packagingNote: normalizePackagingNote(
       item?.packagingNote ?? item?.packaging_note ?? null,
@@ -442,6 +479,14 @@ export function validateStockItemForm(form) {
 
   const unit = resolveStockFormUnit(form)
   if (!unit) return 'Please choose or enter a unit.'
+
+  const unitGate = resolveProductCreateEditInventoryUnit({
+    proposedUnit: unit,
+    persistedUnit: form?.persistedUnit ?? '',
+  })
+  if (!unitGate.ok) {
+    return unitGate.error
+  }
 
   const currentQuantity = Number(form.currentQuantity)
   if (!Number.isFinite(currentQuantity) || currentQuantity < 0) {
@@ -492,7 +537,7 @@ export function stockFormToPayload(form) {
     itemType: `${form.itemType ?? ''}`.trim() || 'Other',
     supplier: `${form.supplier ?? ''}`.trim(),
     storageLocation: `${form.storageLocation ?? ''}`.trim() || 'Main Storage',
-    unit: resolveStockFormUnit(form),
+    unit: resolveStockFormUnitForSave(form),
     size: normalizeProductSize(form.size ?? null),
     packagingNote: normalizePackagingNote(form.packagingNote ?? null),
     barcode: normalizeProductBarcode(form.barcode ?? null),

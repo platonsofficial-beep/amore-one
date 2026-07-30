@@ -499,3 +499,85 @@ export function toSelectableInventoryUnit(value) {
   }
   return null
 }
+
+/**
+ * P8.31.6c — Product Create/Edit inventory-unit save gate.
+ * Canonical selectable physical units only for new/changed unit values.
+ * Unchanged persisted legacy units may be re-saved (no silent rewrite).
+ * Never multiplies quantities.
+ */
+export const PRODUCT_CREATE_EDIT_INVENTORY_UNIT_ERROR = [
+  'Inventory Unit must be a physical unit such as Bottle, Can, Piece, Kilogram or Liter.',
+  'Packaging belongs in Packaging Note.',
+].join(' ')
+
+export const PRODUCT_CREATE_EDIT_LEGACY_COMPOSITE_UNIT_ERROR = [
+  'Inventory Unit must be a physical unit such as Bottle or Can.',
+  'Put size (e.g. 700 ml) in the Size field. Packaging belongs in Packaging Note.',
+].join(' ')
+
+/**
+ * @param {{ proposedUnit?: unknown, persistedUnit?: unknown }} args
+ * @returns {{ ok: boolean, unitToSave: string|null, error: string, classification: string|null }}
+ */
+export function resolveProductCreateEditInventoryUnit({
+  proposedUnit = '',
+  persistedUnit = '',
+} = {}) {
+  const proposed = normalizeInventoryUnitInput(proposedUnit)
+  const persisted = normalizeInventoryUnitInput(persistedUnit)
+
+  if (!proposed) {
+    return {
+      ok: false,
+      unitToSave: null,
+      error: PRODUCT_CREATE_EDIT_INVENTORY_UNIT_ERROR,
+      classification: 'empty_unit',
+    }
+  }
+
+  // Edit compatibility: re-saving the exact persisted unit (including legacy) is allowed.
+  if (persisted && proposed === persisted) {
+    return {
+      ok: true,
+      unitToSave: persisted,
+      error: '',
+      classification: classifyInventoryUnit(persisted).classification,
+    }
+  }
+
+  const classified = classifyInventoryUnit(proposed)
+
+  if (classified.classification === 'canonical_physical_unit' && classified.canonicalUnit) {
+    return {
+      ok: true,
+      unitToSave: classified.canonicalUnit,
+      error: '',
+      classification: classified.classification,
+    }
+  }
+
+  if (classified.classification === 'legacy_composite_physical_unit') {
+    return {
+      ok: false,
+      unitToSave: null,
+      error: PRODUCT_CREATE_EDIT_LEGACY_COMPOSITE_UNIT_ERROR,
+      classification: classified.classification,
+    }
+  }
+
+  return {
+    ok: false,
+    unitToSave: null,
+    error: PRODUCT_CREATE_EDIT_INVENTORY_UNIT_ERROR,
+    classification: classified.classification,
+  }
+}
+
+/**
+ * @param {{ proposedUnit?: unknown, persistedUnit?: unknown }} args
+ * @returns {boolean}
+ */
+export function isProductCreateEditInventoryUnitAllowed(args) {
+  return resolveProductCreateEditInventoryUnit(args).ok
+}
