@@ -174,7 +174,7 @@ function buildSeed(dataset) {
 --   movements: d0318a00-2026-4000-8000-<balance hex>
 --
 -- Creates:
---   7 fictional suppliers
+--   7 fictional suppliers (global public.suppliers — no workspace_id column)
 --   180 stock_items
 --   ${balanceIndex} stock_item_location_balances
 --   ${balanceIndex} opening stock_count movements (ledger parity for seeded balances)
@@ -316,11 +316,10 @@ begin
   end if;
 
   -- ---------------------------------------------------------------------------
-  -- 3) Insert 7 fictional temporary suppliers
+  -- 3) Insert 7 fictional temporary suppliers (global rows — no workspace_id)
   -- ---------------------------------------------------------------------------
   insert into public.suppliers (
     id,
-    workspace_id,
     company_name,
     contact_person,
     phone,
@@ -334,7 +333,6 @@ begin
   )
   select
     v.id,
-    v_workspace_id,
     v.company_name,
     ''::text,
     ''::text,
@@ -595,7 +593,7 @@ from public.workspaces w
 where w.slug = 'amore-nicosia'
    or w.name = 'AMORE.NICOSIA';
 
--- B) Temporary suppliers
+-- B) Temporary suppliers (global table — identify by UUID namespace + batch notes)
 select
   count(*)::bigint as temporary_suppliers,
   count(*) filter (where s.notes like '%${BATCH}%')::bigint as suppliers_with_batch_note

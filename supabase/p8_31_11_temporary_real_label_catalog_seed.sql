@@ -18,7 +18,7 @@
 --   movements: d0318a00-2026-4000-8000-<balance hex>
 --
 -- Creates:
---   7 fictional suppliers
+--   7 fictional suppliers (global public.suppliers — no workspace_id column)
 --   180 stock_items
 --   336 stock_item_location_balances
 --   336 opening stock_count movements (ledger parity for seeded balances)
@@ -160,11 +160,10 @@ begin
   end if;
 
   -- ---------------------------------------------------------------------------
-  -- 3) Insert 7 fictional temporary suppliers
+  -- 3) Insert 7 fictional temporary suppliers (global rows — no workspace_id)
   -- ---------------------------------------------------------------------------
   insert into public.suppliers (
     id,
-    workspace_id,
     company_name,
     contact_person,
     phone,
@@ -178,7 +177,6 @@ begin
   )
   select
     v.id,
-    v_workspace_id,
     v.company_name,
     ''::text,
     ''::text,

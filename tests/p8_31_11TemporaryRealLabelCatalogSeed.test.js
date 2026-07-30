@@ -60,6 +60,40 @@ describe('P8.31.11 temporary real-label catalog seed SQL contract', () => {
     }
   })
 
+  it('aligns supplier INSERT/verification to live global suppliers schema', () => {
+    const insertStart = SEED.indexOf('insert into public.suppliers')
+    const supplierInsert = SEED.slice(
+      insertStart,
+      SEED.indexOf('insert into public.stock_items'),
+    )
+    expect(supplierInsert).not.toContain('workspace_id')
+    expect(supplierInsert).toContain('company_name')
+    expect(supplierInsert).toContain('contact_person')
+    expect(supplierInsert).toContain('phone')
+    expect(supplierInsert).toContain('email')
+    expect(supplierInsert).toContain('address')
+    expect(supplierInsert).toContain('payment_terms')
+    expect(supplierInsert).toContain('delivery_days')
+    expect(supplierInsert).toContain('notes')
+    expect(supplierInsert).toContain('tax_id')
+    expect(supplierInsert).toContain('active')
+    expect(SEED).toContain('global public.suppliers — no workspace_id column')
+    expect(SEED).toContain('global rows — no workspace_id')
+
+    const supplierVerify = VERIFY.slice(
+      VERIFY.indexOf('Temporary suppliers'),
+      VERIFY.indexOf('Batch products'),
+    )
+    expect(supplierVerify).not.toContain('workspace_id')
+    expect(supplierVerify).toContain('c0318b00-2026-4000-8000-')
+    expect(supplierVerify).toContain(P8_31_11_BATCH_ID)
+
+    for (let i = 1; i <= 7; i += 1) {
+      expect(SEED).toContain(`'${supplierUuid(i)}'::uuid`)
+    }
+    expect(SEED).toContain(`${P8_31_11_BATCH_ID} | temporary disposable test supplier`)
+  })
+
   it('aborts clearly on second run / supplier name conflicts', () => {
     expect(SEED).toContain('batch product UUID namespace already present')
     expect(SEED).toContain('batch supplier markers already present')

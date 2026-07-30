@@ -16,7 +16,7 @@ from public.workspaces w
 where w.slug = 'amore-nicosia'
    or w.name = 'AMORE.NICOSIA';
 
--- B) Temporary suppliers
+-- B) Temporary suppliers (global table — identify by UUID namespace + batch notes)
 select
   count(*)::bigint as temporary_suppliers,
   count(*) filter (where s.notes like '%ONE_REAL_LABEL_TEST_2026_07%')::bigint as suppliers_with_batch_note
