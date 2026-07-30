@@ -32489,6 +32489,82 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   color: rgba(255, 170, 160, 0.95);
 }
 
+.stock-movement-destination-lock {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-bottom: 4px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.stock-movement-destination-lock-label {
+  color: rgba(255, 247, 232, 0.5);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.stock-movement-destination-lock-value {
+  color: #fff7e8;
+  font-size: 0.98rem;
+}
+
+.stock-movement-destination-lock-note {
+  color: rgba(255, 247, 232, 0.55);
+  font-size: 0.8rem;
+}
+
+.stock-storage-receive-picker-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 4px 0 8px;
+}
+
+.stock-storage-receive-picker-copy {
+  margin: 0;
+  color: rgba(255, 247, 232, 0.68);
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+
+.stock-storage-receive-picker-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: min(52vh, 420px);
+  overflow: auto;
+}
+
+.stock-storage-receive-picker-item {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  width: 100%;
+  min-height: 48px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(8, 8, 9, 0.72);
+  color: #fff7e8;
+  text-align: left;
+  cursor: pointer;
+}
+
+.stock-storage-receive-picker-name {
+  font-weight: 650;
+}
+
+.stock-storage-receive-picker-meta {
+  color: rgba(255, 247, 232, 0.55);
+  font-size: 0.82rem;
+}
+
 .stock-storage-product-list {
   display: flex;
   flex-direction: column;

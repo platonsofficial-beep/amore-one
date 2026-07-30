@@ -60,6 +60,7 @@ describe('StockStorageCenter navigation contract', () => {
     expect(appSource).toContain('searchTerm={searchTerm}')
     expect(appSource).toContain('canManage={canManageStockRole}')
     expect(appSource).toContain('onOpenActiveCountSession={handleOpenInventoryCountSession}')
+    expect(appSource).toContain('onRecordReceive={handleRecordStockMovement}')
     expect(appSource).toContain('handleOpenInventoryCountSession')
     expect(appSource).toContain("stockSection === 'dashboard'")
     expect(appSource).toContain("stockSection === 'count'")

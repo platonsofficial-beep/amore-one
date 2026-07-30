@@ -234,9 +234,14 @@ export async function recordStockMutationLocationAware(input) {
 /**
  * Single internal routing entry. Not a UI API.
  * Chooses exactly one path — never both.
+ *
+ * P8.30.5 — when a caller supplies workspaceStorageId (Storage Receive),
+ * use the existing location-aware mutation path so destination balances update.
+ * Dashboard callers without storage id keep the production legacy default.
  */
 export async function recordStockMutation(input) {
-  if (getSupportsLocationBalances()) {
+  const storageId = `${input?.workspaceStorageId ?? ''}`.trim()
+  if (getSupportsLocationBalances() || storageId) {
     return recordStockMutationLocationAware(input)
   }
   return recordStockMutationLegacy(input)

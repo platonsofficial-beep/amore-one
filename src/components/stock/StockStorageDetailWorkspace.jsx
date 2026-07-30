@@ -20,6 +20,8 @@ import { startStorageFastCountSession } from '../../services/stockStorageFastCou
 import { StockProductHistoryDrawer } from './StockProductHistoryDrawer'
 import { StockStorageDetailActionBar } from './StockStorageDetailActionBar'
 import { StockStorageActionPlaceholder } from './StockStorageActionPlaceholder'
+import { StockMovementModal } from './StockMovementModal'
+import { StockStorageReceiveProductPicker } from './StockStorageReceiveProductPicker'
 
 /**
  * @param {{
@@ -148,8 +150,10 @@ function StorageProductRow({
  *   onOpenActiveCountSession?: (sessionId: string) => void,
  *   onStartFastCount?: (storage: object) => void|Promise<void>,
  *   onReceive?: (storage: object) => void,
+ *   onRecordReceive?: (payload: object) => void|Promise<void>,
  *   onTransfer?: (storage: object) => void,
  *   onAdjustment?: (storage: object) => void,
+ *   isSavingReceive?: boolean,
  *   loadProducts?: typeof getWorkspaceStorageProducts,
  *   startFastCountSession?: typeof startStorageFastCountSession,
  * }} props
@@ -163,8 +167,10 @@ export function StockStorageDetailWorkspace({
   onOpenActiveCountSession,
   onStartFastCount,
   onReceive,
+  onRecordReceive,
   onTransfer,
   onAdjustment,
+  isSavingReceive = false,
   loadProducts = getWorkspaceStorageProducts,
   startFastCountSession = startStorageFastCountSession,
 } = {}) {
@@ -178,6 +184,8 @@ export function StockStorageDetailWorkspace({
   const [placeholder, setPlaceholder] = useState(/** @type {{ actionId: string, productName?: string }|null} */ (null))
   const [isLaunchingFastCount, setIsLaunchingFastCount] = useState(false)
   const [fastCountError, setFastCountError] = useState('')
+  const [receivePickerOpen, setReceivePickerOpen] = useState(false)
+  const [receiveRow, setReceiveRow] = useState(/** @type {object|null} */ (null))
   const listRef = useRef(/** @type {HTMLDivElement|null} */ (null))
   const fastCountRequestIdRef = useRef(0)
 
@@ -297,9 +305,53 @@ export function StockStorageDetailWorkspace({
     setHistoryItem(row.item)
   }
 
+  const handleStartReceive = () => {
+    if (storage?.active === false) return
+    setOpenMenuItemId(null)
+    setPlaceholder(null)
+    if (typeof onReceive === 'function') {
+      onReceive(storage)
+      return
+    }
+    setReceiveRow(null)
+    setReceivePickerOpen(true)
+  }
+
+  const handleReceiveProductSelected = (row) => {
+    setReceivePickerOpen(false)
+    setReceiveRow(row)
+  }
+
+  const handleRecordReceiveSubmit = async ({ item, type, quantity, note, workspaceStorageId, expectedQuantityVersion }) => {
+    if (typeof onRecordReceive !== 'function') {
+      throw new Error('Receiving is not available right now.')
+    }
+    await onRecordReceive({
+      item,
+      type,
+      quantity,
+      note,
+      workspaceStorageId,
+      expectedQuantityVersion,
+      storage,
+    })
+    setReceiveRow(null)
+    setReloadToken((token) => token + 1)
+  }
+
   const handleMenuAction = (actionId, row) => {
     if (actionId === 'fast_count') {
       void handleStartFastCount()
+      return
+    }
+    if (actionId === 'receive') {
+      setOpenMenuItemId(null)
+      setPlaceholder(null)
+      if (typeof onReceive === 'function') {
+        onReceive(storage)
+        return
+      }
+      setReceiveRow(row)
       return
     }
     openPlaceholder(actionId, row.name)
@@ -350,7 +402,7 @@ export function StockStorageDetailWorkspace({
           canManage={canManage}
           isLaunchingFastCount={isLaunchingFastCount}
           onStartFastCount={() => { void handleStartFastCount() }}
-          onReceive={() => runStorageAction('receive', onReceive)}
+          onReceive={() => handleStartReceive()}
           onTransfer={() => runStorageAction('transfer', onTransfer)}
           onAdjustment={() => runStorageAction('adjustment', onAdjustment)}
         />
@@ -460,6 +512,28 @@ export function StockStorageDetailWorkspace({
           workspaceId={workspaceId}
           canManage={false}
           onClose={() => setHistoryItem(null)}
+        />
+      ) : null}
+
+      {receivePickerOpen ? (
+        <StockStorageReceiveProductPicker
+          storage={storage}
+          products={payload?.products ?? []}
+          onClose={() => setReceivePickerOpen(false)}
+          onSelectProduct={handleReceiveProductSelected}
+        />
+      ) : null}
+
+      {receiveRow ? (
+        <StockMovementModal
+          item={receiveRow.item}
+          movementType="receive"
+          isSaving={isSavingReceive}
+          destinationStorage={storage}
+          destinationLocked
+          expectedQuantityVersion={receiveRow.quantityVersion}
+          onClose={() => setReceiveRow(null)}
+          onSubmit={handleRecordReceiveSubmit}
         />
       ) : null}
 

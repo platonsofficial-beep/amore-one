@@ -192,6 +192,7 @@ describe('buildStorageProductRows', () => {
       name: 'Vodka',
       category: 'Spirits',
       quantity: 4,
+      quantityVersion: 1,
       unit: 'btl',
       active: true,
       lineValue: 48,

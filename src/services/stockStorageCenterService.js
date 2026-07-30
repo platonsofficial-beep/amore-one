@@ -27,6 +27,7 @@ export const STOCK_STORAGE_CENTER_BALANCE_COLUMNS = [
   'workspace_storage_id',
   'location_key',
   'quantity',
+  'quantity_version',
 ].join(', ')
 
 export const STOCK_STORAGE_CENTER_COST_COLUMNS = 'id, cost_price'
@@ -356,6 +357,10 @@ export function buildStorageProductRows({ balances = [], items = [] } = {}) {
     const stockItemId = asTrimmedString(balance?.stock_item_id ?? balance?.stockItemId)
     if (!stockItemId) continue
     const quantity = asFiniteNumber(balance?.quantity)
+    const quantityVersion = Math.max(
+      1,
+      Math.floor(asFiniteNumber(balance?.quantity_version ?? balance?.quantityVersion) || 1),
+    )
     const catalogItem = itemsById.get(stockItemId)
     const item = catalogItem ?? {
       id: stockItemId,
@@ -385,6 +390,7 @@ export function buildStorageProductRows({ balances = [], items = [] } = {}) {
       unit: item.unit || '',
       active: item.active !== false,
       quantity,
+      quantityVersion,
       costPrice,
       lineValue: quantity * costPrice,
       item: Object.freeze(item),

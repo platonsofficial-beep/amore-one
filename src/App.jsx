@@ -22435,7 +22435,14 @@ function App() {
     }
   }
 
-  const handleRecordStockMovement = async ({ item, type, quantity, note }) => {
+  const handleRecordStockMovement = async ({
+    item,
+    type,
+    quantity,
+    note,
+    workspaceStorageId = null,
+    expectedQuantityVersion = null,
+  }) => {
     if (!activeWorkspaceId || !item?.id) {
       throw new Error(stockWorkspaceSetupMessage || 'Workspace and item are required for stock movements.')
     }
@@ -22454,6 +22461,8 @@ function App() {
         note,
         createdBy: user?.id ?? null,
         currentQuantity: item.currentQuantity,
+        workspaceStorageId,
+        expectedQuantityVersion,
       })
       await refreshStockItems()
       setStockItemsNotice('Stock movement recorded.')
@@ -24398,6 +24407,8 @@ function App() {
             searchTerm={searchTerm}
             canManage={canManageStockRole}
             onOpenActiveCountSession={handleOpenInventoryCountSession}
+            onRecordReceive={handleRecordStockMovement}
+            isSavingReceive={isSavingStockItem}
           />
         ) : null}
 

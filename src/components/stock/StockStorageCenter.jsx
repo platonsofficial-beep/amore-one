@@ -70,8 +70,10 @@ function StorageSummaryCard({ storage, selected = false, onSelect }) {
  *   onOpenActiveCountSession?: (sessionId: string) => void,
  *   onStartFastCount?: (storage: object) => void|Promise<void>,
  *   onReceive?: (storage: object) => void,
+ *   onRecordReceive?: (payload: object) => void|Promise<void>,
  *   onTransfer?: (storage: object) => void,
  *   onAdjustment?: (storage: object) => void,
+ *   isSavingReceive?: boolean,
  *   loadSummaries?: typeof getWorkspaceStorageSummaries,
  * }} props
  */
@@ -82,8 +84,10 @@ export function StockStorageCenter({
   onOpenActiveCountSession,
   onStartFastCount,
   onReceive,
+  onRecordReceive,
   onTransfer,
   onAdjustment,
+  isSavingReceive = false,
   loadSummaries = getWorkspaceStorageSummaries,
 } = {}) {
   const [status, setStatus] = useState(/** @type {'loading'|'ready'|'empty'|'error'} */ ('loading'))
@@ -168,8 +172,10 @@ export function StockStorageCenter({
         onOpenActiveCountSession={onOpenActiveCountSession}
         onStartFastCount={onStartFastCount}
         onReceive={onReceive}
+        onRecordReceive={onRecordReceive}
         onTransfer={onTransfer}
         onAdjustment={onAdjustment}
+        isSavingReceive={isSavingReceive}
       />
     )
   }

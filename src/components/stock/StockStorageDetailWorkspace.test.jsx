@@ -25,6 +25,7 @@ function makeRow({
   unit = 'btl',
   active = true,
   quantity = 4,
+  quantityVersion = 1,
 } = {}) {
   return {
     stockItemId: id,
@@ -33,6 +34,7 @@ function makeRow({
     unit,
     active,
     quantity,
+    quantityVersion,
     costPrice: 10,
     lineValue: quantity * 10,
     item: {
@@ -230,10 +232,83 @@ describe('StockStorageDetailWorkspace — actions + Fast Count launch', () => {
       .toContain('Vodka')
   })
 
-  it('opens placeholder architecture from row overflow for deferred actions', async () => {
+  it('opens Storage Receive into existing movement modal with destination locked', async () => {
     const loadProducts = vi.fn(async () => ({
       storageId: 's-main',
-      products: [makeRow({ name: 'Gin' })],
+      products: [makeRow({ id: 'i1', name: 'Vodka', quantityVersion: 3 })],
+      summary: {
+        productCount: 1,
+        totalQuantity: 4,
+        nonZeroBalanceCount: 1,
+        inventoryValue: 40,
+      },
+    }))
+    const onRecordReceive = vi.fn(async () => {})
+
+    renderWorkspace({
+      workspaceId: 'ws-1',
+      storage: {
+        id: 'stor-main',
+        name: 'Main Storage',
+        locationKey: 'Main Storage',
+        active: true,
+      },
+      canManage: true,
+      loadProducts,
+      onRecordReceive,
+    })
+
+    await settle()
+
+    await act(async () => {
+      container.querySelector('[data-storage-action="receive"]').click()
+    })
+
+    expect(container.querySelector('[data-testid="stock-storage-receive-product-picker"]')).toBeTruthy()
+    expect(container.textContent).toContain('Destination: Main Storage')
+
+    await act(async () => {
+      container
+        .querySelector('[data-testid="stock-storage-receive-product-picker"] [data-stock-item-id="i1"]')
+        .click()
+    })
+
+    expect(container.querySelector('[data-testid="stock-movement-modal"]')).toBeTruthy()
+    expect(container.querySelector('[data-testid="stock-receive-destination-lock"]')?.textContent)
+      .toContain('Main Storage')
+    expect(container.querySelector('[data-testid="stock-receive-destination-lock"]')?.textContent)
+      .toContain('Locked to this storage')
+    expect(container.textContent).toContain('Receive stock')
+    expect(container.textContent).toContain('Vodka')
+
+    const quantityInput = container.querySelector('[data-testid="stock-movement-modal"] input[type="number"]')
+    await act(async () => {
+      const nativeInputValueSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value')?.set
+      nativeInputValueSetter?.call(quantityInput, '2')
+      quantityInput.dispatchEvent(new Event('input', { bubbles: true }))
+      quantityInput.dispatchEvent(new Event('change', { bubbles: true }))
+    })
+
+    await act(async () => {
+      container.querySelector('[data-testid="stock-movement-modal"] form')
+        .dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+
+    expect(onRecordReceive).toHaveBeenCalledWith(expect.objectContaining({
+      type: 'receive',
+      quantity: 2,
+      workspaceStorageId: 'stor-main',
+      expectedQuantityVersion: 3,
+      item: expect.objectContaining({ id: 'i1', name: 'Vodka' }),
+    }))
+  })
+
+  it('opens receive modal directly from product row overflow', async () => {
+    const loadProducts = vi.fn(async () => ({
+      storageId: 's-main',
+      products: [makeRow({ name: 'Gin', quantityVersion: 2 })],
       summary: {
         productCount: 1,
         totalQuantity: 4,
@@ -244,9 +319,10 @@ describe('StockStorageDetailWorkspace — actions + Fast Count launch', () => {
 
     renderWorkspace({
       workspaceId: 'ws-1',
-      storage: { id: 's-main', name: 'Main Storage', active: true },
+      storage: { id: 'stor-main', name: 'Main Storage', active: true },
       canManage: true,
       loadProducts,
+      onRecordReceive: vi.fn(async () => {}),
     })
 
     await settle()
@@ -255,13 +331,12 @@ describe('StockStorageDetailWorkspace — actions + Fast Count launch', () => {
       container.querySelector('[data-storage-product-menu-trigger="true"]').click()
     })
     await act(async () => {
-      container.querySelector('[data-menu-action="transfer"]').click()
+      container.querySelector('[data-menu-action="receive"]').click()
     })
 
-    const placeholder = container.querySelector('[data-testid="stock-storage-action-placeholder"]')
-    expect(placeholder?.getAttribute('data-action')).toBe('transfer')
-    expect(placeholder?.textContent).toContain('Transfers for this storage will be available in a later sprint.')
-    expect(placeholder?.textContent).toContain('Gin')
+    expect(container.querySelector('[data-testid="stock-storage-receive-product-picker"]')).toBeNull()
+    expect(container.querySelector('[data-testid="stock-movement-modal"]')?.textContent).toContain('Gin')
+    expect(container.querySelector('[data-testid="stock-receive-destination-lock"]')).toBeTruthy()
   })
 
   it('disables actions for archived storage and forwards stable callbacks when provided', async () => {

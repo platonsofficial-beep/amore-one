@@ -107,6 +107,57 @@ describe('stockMutationService — P8.29.7 dual-write foundation', () => {
     })
   })
 
+  it('routes Storage Receive through location RPC when workspaceStorageId is provided', async () => {
+    expect(getSupportsLocationBalances()).toBe(false)
+
+    rpcMock.mockResolvedValue({
+      data: {
+        ok: true,
+        movement_id: 'mov-storage-1',
+        quantity_after: 6,
+        quantity_version: 2,
+        current_quantity: 6,
+      },
+      error: null,
+    })
+
+    const loadQuery = createSelectByIdQuery({
+      data: {
+        id: 'mov-storage-1',
+        workspace_id: 'ws-1',
+        item_id: 'item-1',
+        type: 'receive',
+        quantity: 2,
+        note: 'Storage receive',
+        created_by: 'user-1',
+        created_at: '2026-07-30T10:00:00Z',
+      },
+      error: null,
+    })
+    fromMock.mockReturnValue(loadQuery)
+
+    await recordStockMutation({
+      workspaceId: 'ws-1',
+      itemId: 'item-1',
+      type: 'receive',
+      quantity: 2,
+      note: 'Storage receive',
+      createdBy: 'user-1',
+      currentQuantity: 4,
+      workspaceStorageId: 'stor-main',
+      expectedQuantityVersion: 1,
+    })
+
+    expect(rpcMock).toHaveBeenCalledWith('record_location_receive', expect.objectContaining({
+      p_workspace_id: 'ws-1',
+      p_stock_item_id: 'item-1',
+      p_workspace_storage_id: 'stor-main',
+      p_quantity: 2,
+      p_expected_quantity_version: 1,
+    }))
+    expect(updateStockItemQuantityMock).not.toHaveBeenCalled()
+  })
+
   it('location path routes only through balance RPC and does not double-write', async () => {
     __setSupportsLocationBalancesForTests(true)
 
