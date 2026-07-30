@@ -6,6 +6,7 @@
  */
 
 import { useEffect, useMemo, useState } from 'react'
+import { buildProductDisplayNameFromItem } from '../../lib/stockProductIdentity'
 import { formatStockQuantity } from '../../lib/stockUtils'
 import { getStockItemLocationBalances } from '../../services/stockLocationBalanceService'
 import { listWorkspaceStorages } from '../../services/workspaceStorageService'
@@ -200,7 +201,7 @@ export function StockTransferModal({
         <div className="drawer-header">
           <div>
             <h3>Transfer stock</h3>
-            <p className="stock-modal-subtitle">{item?.name}</p>
+            <p className="stock-modal-subtitle">{buildProductDisplayNameFromItem(item)}</p>
           </div>
           <button type="button" className="icon-btn" onClick={handleDismiss} disabled={isBusy} aria-label="Close">✕</button>
         </div>

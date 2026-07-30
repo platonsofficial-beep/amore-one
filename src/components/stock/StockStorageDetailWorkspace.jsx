@@ -7,7 +7,7 @@
  */
 
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { formatStockProductBrandSizeLine } from '../../lib/stockProductMetadataDisplay'
+import { buildProductDisplayNameFromItem } from '../../lib/stockProductIdentity'
 import { formatStockInventoryValue, formatStockQuantity } from '../../lib/stockUtils'
 import {
   STOCK_STORAGE_PRODUCT_SORT_OPTIONS,
@@ -52,12 +52,7 @@ function StorageProductRow({
         onClick={() => onOpenDetails?.(row)}
       >
         <div className="stock-storage-product-row-main">
-          <strong className="stock-storage-product-name">{row.name}</strong>
-          {formatStockProductBrandSizeLine(row) ? (
-            <span className="stock-product-brand-size stock-storage-product-brand-size">
-              {formatStockProductBrandSizeLine(row)}
-            </span>
-          ) : null}
+          <strong className="stock-storage-product-name">{buildProductDisplayNameFromItem(row)}</strong>
           <span className="stock-storage-product-category">{row.category || 'Other'}</span>
         </div>
         <div className="stock-storage-product-row-meta">
@@ -74,7 +69,7 @@ function StorageProductRow({
         className={`ghost-btn stock-storage-product-more-btn${menuOpen ? ' is-open' : ''}`}
         aria-expanded={menuOpen}
         aria-haspopup="menu"
-        aria-label={`More actions for ${row.name}`}
+        aria-label={`More actions for ${buildProductDisplayNameFromItem(row)}`}
         data-storage-product-menu-trigger="true"
         onClick={(event) => {
           event.stopPropagation()
@@ -87,7 +82,7 @@ function StorageProductRow({
         <div
           className="stock-storage-product-menu"
           role="menu"
-          aria-label={`Actions for ${row.name}`}
+          aria-label={`Actions for ${buildProductDisplayNameFromItem(row)}`}
           data-testid="stock-storage-product-menu"
         >
           <button

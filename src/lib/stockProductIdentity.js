@@ -1,7 +1,8 @@
 /**
  * P8.31.7a — Product Identity & Computed Display Name Contract
+ * P8.31.7b — buildProductDisplayName may be used for read-only presentation.
  *
- * Pure helpers only. No I/O. No mutations. No production wiring in this sprint.
+ * Pure helpers. No I/O. No mutations of stored product fields.
  *
  * Identity components (locked): Brand + Product Name + Size.
  * No Variant field. No duplicate-word cleanup. No quantity/packaging math.
@@ -31,6 +32,23 @@ export function buildProductDisplayName({ brand, name, size } = {}) {
     .map((part) => normalizeProductIdentityComponent(part))
     .filter(Boolean)
     .join(' ')
+}
+
+/**
+ * Read-only title from a stock item / storage row shape.
+ * Does not mutate the item. Falls back to trimmed name when all parts empty.
+ *
+ * @param {{ brand?: unknown, name?: unknown, size?: unknown }|null|undefined} item
+ * @returns {string}
+ */
+export function buildProductDisplayNameFromItem(item) {
+  const display = buildProductDisplayName({
+    brand: item?.brand,
+    name: item?.name,
+    size: item?.size,
+  })
+  if (display) return display
+  return normalizeProductIdentityComponent(item?.name)
 }
 
 /**

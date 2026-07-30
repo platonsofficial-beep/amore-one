@@ -3,7 +3,7 @@
  * Scoped to products with balances in the current storage.
  */
 
-import { formatStockProductBrandSizeLine } from '../../lib/stockProductMetadataDisplay'
+import { buildProductDisplayNameFromItem } from '../../lib/stockProductIdentity'
 
 /**
  * @param {{
@@ -61,7 +61,7 @@ export function StockStorageReceiveProductPicker({
           ) : (
             <div className="stock-storage-receive-picker-list" role="list">
               {list.map((row) => {
-                const brandSize = formatStockProductBrandSizeLine(row)
+                const displayTitle = buildProductDisplayNameFromItem(row)
                 return (
                   <button
                     key={row.stockItemId}
@@ -71,12 +71,7 @@ export function StockStorageReceiveProductPicker({
                     data-stock-item-id={row.stockItemId}
                     onClick={() => onSelectProduct(row)}
                   >
-                    <span className="stock-storage-receive-picker-name">{row.name}</span>
-                    {brandSize ? (
-                      <span className="stock-product-brand-size stock-storage-receive-picker-brand-size">
-                        {brandSize}
-                      </span>
-                    ) : null}
+                    <span className="stock-storage-receive-picker-name">{displayTitle}</span>
                     <span className="stock-storage-receive-picker-meta">
                       {row.category || 'Other'}
                     </span>

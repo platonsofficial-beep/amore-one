@@ -166,13 +166,16 @@ describe('surface wiring and count deferral', () => {
     const picker = readFileSync(resolve('src/components/stock/StockStorageReceiveProductPicker.jsx'), 'utf8')
     const count = readFileSync(resolve('src/components/stock/InventoryCountSessionWorkspace.jsx'), 'utf8')
 
-    expect(dashboard).toContain('formatStockProductBrandSizeLine')
-    expect(storage).toContain('formatStockProductBrandSizeLine')
+    expect(dashboard).toContain('buildProductDisplayNameFromItem')
+    expect(storage).toContain('buildProductDisplayNameFromItem')
     expect(history).toContain('buildStockProductInformationRows')
     expect(history).toContain('Product information')
-    expect(picker).toContain('formatStockProductBrandSizeLine')
+    expect(history).toContain('buildProductDisplayNameFromItem')
+    expect(picker).toContain('buildProductDisplayNameFromItem')
     expect(count).not.toContain('formatStockProductBrandSizeLine')
+    expect(count).not.toContain('buildProductDisplayNameFromItem')
     expect(count).not.toContain('stock-product-brand-size')
+    expect(count).not.toContain('stockProductIdentity')
   })
 
   it('does not introduce scanner or mutation helpers', () => {

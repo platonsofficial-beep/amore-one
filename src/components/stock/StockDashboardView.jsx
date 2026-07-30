@@ -7,7 +7,7 @@ import {
   stockItemToDuplicateForm,
   STOCK_CATEGORIES,
 } from '../../lib/stockCatalog'
-import { formatStockProductBrandSizeLine } from '../../lib/stockProductMetadataDisplay'
+import { buildProductDisplayNameFromItem } from '../../lib/stockProductIdentity'
 import {
   buildStockItemUpdatePayload,
   exportStockItemsToCsv,
@@ -167,6 +167,7 @@ function StockItemCard({
   const location = resolveStockStorageLocation(item)
   const supplierLabel = `${item.supplier ?? ''}`.trim()
   const insights = getStockItemInsights(item, { canManage })
+  const displayTitle = buildProductDisplayNameFromItem(item)
 
   const handleCardClick = () => {
     if (selectionMode) {
@@ -189,18 +190,15 @@ function StockItemCard({
               onToggleSelect?.()
             }}
             aria-pressed={isSelected}
-            aria-label={isSelected ? `Deselect ${item.name}` : `Select ${item.name}`}
+            aria-label={isSelected ? `Deselect ${displayTitle}` : `Select ${displayTitle}`}
           >
             {isSelected ? '✓' : ''}
           </button>
         ) : null}
         <div className="stock-item-card-title-block">
-          <h3 className="stock-item-name" title={item.name || undefined}>
-            {item.name}
+          <h3 className="stock-item-name" title={displayTitle || undefined}>
+            {displayTitle}
           </h3>
-          {formatStockProductBrandSizeLine(item) ? (
-            <p className="stock-product-brand-size">{formatStockProductBrandSizeLine(item)}</p>
-          ) : null}
           {item.active === false ? (
             <span className="stock-item-status-badge tone-muted">Inactive</span>
           ) : (
@@ -374,7 +372,7 @@ function StockItemRowActions({
           onClick={onToggleMenu}
           aria-expanded={isMenuOpen}
           aria-haspopup="menu"
-          aria-label={`More actions for ${item.name}`}
+          aria-label={`More actions for ${buildProductDisplayNameFromItem(item)}`}
         >
           {compact ? '⋯' : 'More'}
         </button>
@@ -398,6 +396,7 @@ function StockListRow({
   const itemType = resolveStockItemType(item)
   const location = resolveStockStorageLocation(item)
   const supplierLabel = `${item.supplier ?? ''}`.trim() || '—'
+  const displayTitle = buildProductDisplayNameFromItem(item)
 
   return (
     <tr className={`stock-list-row tone-${item.status}${item.active === false ? ' is-inactive' : ''}${isSelected ? ' is-selected' : ''}${isMenuOpen ? ' is-menu-open' : ''}`}>
@@ -408,7 +407,7 @@ function StockListRow({
             className={`stock-item-select-btn stock-list-select-btn${isSelected ? ' is-selected' : ''}`}
             onClick={onToggleSelect}
             aria-pressed={isSelected}
-            aria-label={isSelected ? `Deselect ${item.name}` : `Select ${item.name}`}
+            aria-label={isSelected ? `Deselect ${displayTitle}` : `Select ${displayTitle}`}
           >
             {isSelected ? '✓' : ''}
           </button>
@@ -416,14 +415,9 @@ function StockListRow({
       ) : null}
       <th scope="row" className="stock-list-cell stock-list-cell-product">
         <div className="stock-list-product-block">
-          <span className="stock-list-product-name" title={item.name || undefined}>
-            {item.name}
+          <span className="stock-list-product-name" title={displayTitle || undefined}>
+            {displayTitle}
           </span>
-          {formatStockProductBrandSizeLine(item) ? (
-            <span className="stock-product-brand-size stock-list-product-brand-size">
-              {formatStockProductBrandSizeLine(item)}
-            </span>
-          ) : null}
           {item.active === false ? (
             <span className="stock-item-status-badge tone-muted stock-list-product-inactive">
               Inactive
@@ -493,6 +487,7 @@ function StockListMobileCard({
   const itemType = resolveStockItemType(item)
   const location = resolveStockStorageLocation(item)
   const supplierLabel = `${item.supplier ?? ''}`.trim() || '—'
+  const displayTitle = buildProductDisplayNameFromItem(item)
 
   return (
     <article className={`stock-list-mobile-card panel staff-panel tone-${item.status}${isSelected ? ' is-selected' : ''}`}>
@@ -503,16 +498,13 @@ function StockListMobileCard({
             className={`stock-item-select-btn${isSelected ? ' is-selected' : ''}`}
             onClick={onToggleSelect}
             aria-pressed={isSelected}
-            aria-label={isSelected ? `Deselect ${item.name}` : `Select ${item.name}`}
+            aria-label={isSelected ? `Deselect ${displayTitle}` : `Select ${displayTitle}`}
           >
             {isSelected ? '✓' : ''}
           </button>
         ) : null}
         <div className="stock-list-mobile-title-wrap">
-          <h3 className="stock-list-mobile-name">{item.name}</h3>
-          {formatStockProductBrandSizeLine(item) ? (
-            <p className="stock-product-brand-size">{formatStockProductBrandSizeLine(item)}</p>
-          ) : null}
+          <h3 className="stock-list-mobile-name">{displayTitle}</h3>
           <span className={`stock-item-status-badge stock-list-mobile-status-badge tone-${item.status}`}>
             {getStockStatusShortLabel(item.status)}
           </span>
@@ -644,6 +636,7 @@ function StockCompactRow({
 }) {
   const location = resolveStockStorageLocation(item)
   const supplierLabel = `${item.supplier ?? ''}`.trim() || '—'
+  const displayTitle = buildProductDisplayNameFromItem(item)
 
   return (
     <article
@@ -655,18 +648,13 @@ function StockCompactRow({
           className={`stock-item-select-btn${isSelected ? ' is-selected' : ''}`}
           onClick={onToggleSelect}
           aria-pressed={isSelected}
-          aria-label={isSelected ? `Deselect ${item.name}` : `Select ${item.name}`}
+          aria-label={isSelected ? `Deselect ${displayTitle}` : `Select ${displayTitle}`}
         >
           {isSelected ? '✓' : ''}
         </button>
       ) : null}
       <div className="stock-compact-copy">
-        <h3 className="stock-compact-name">{item.name}</h3>
-        {formatStockProductBrandSizeLine(item) ? (
-          <p className="stock-product-brand-size stock-compact-brand-size">
-            {formatStockProductBrandSizeLine(item)}
-          </p>
-        ) : null}
+        <h3 className="stock-compact-name">{displayTitle}</h3>
         <span className={`stock-item-status-badge stock-compact-status-badge tone-${item.status}`}>
           {getStockStatusShortLabel(item.status)}
         </span>
@@ -751,6 +739,7 @@ function StockAttentionRow({
 }) {
   const itemType = resolveStockItemType(item)
   const location = resolveStockStorageLocation(item)
+  const displayTitle = buildProductDisplayNameFromItem(item)
   const showReceive = groupId === 'out' || groupId === 'low'
   const showCount = groupId === 'out' || groupId === 'low' || groupId === 'count'
   const showEdit = groupId === 'data'
@@ -759,12 +748,7 @@ function StockAttentionRow({
   return (
     <li className={`stock-attention-row tone-${item.status}`}>
       <div className="stock-attention-copy">
-        <p className="stock-attention-name">{item.name}</p>
-        {formatStockProductBrandSizeLine(item) ? (
-          <p className="stock-product-brand-size stock-attention-brand-size">
-            {formatStockProductBrandSizeLine(item)}
-          </p>
-        ) : null}
+        <p className="stock-attention-name">{displayTitle}</p>
         {showStockLevels ? (
           <span className={`stock-item-status-badge stock-attention-status-badge tone-${item.status}`}>
             {getStockStatusLabel(item.status)}
@@ -791,7 +775,7 @@ function StockAttentionRow({
       </div>
 
       {canManage ? (
-        <div className="stock-attention-actions" aria-label={`Actions for ${item.name}`}>
+        <div className="stock-attention-actions" aria-label={`Actions for ${displayTitle}`}>
           {showReceive ? (
             <button type="button" className="ghost-btn stock-attention-action-btn" onClick={onReceive}>
               Receive
@@ -1211,7 +1195,7 @@ function StockItemDeactivateConfirmModal({
           </p>
           {item.name ? (
             <p>
-              <strong>{item.name}</strong>
+              <strong>{buildProductDisplayNameFromItem(item)}</strong>
             </p>
           ) : null}
           {submitError ? (

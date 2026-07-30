@@ -5,7 +5,8 @@ import {
   resolveStockStorageLocation,
   resolveStockTargetQuantity,
 } from '../../lib/stockCatalog'
-import { buildStockProductInformationRows, formatStockProductBrandSizeLine } from '../../lib/stockProductMetadataDisplay'
+import { buildStockProductInformationRows } from '../../lib/stockProductMetadataDisplay'
+import { buildProductDisplayNameFromItem } from '../../lib/stockProductIdentity'
 import {
   buildStockMonthlyInsights,
   buildStockMovementTimeline,
@@ -200,7 +201,7 @@ export function StockProductHistoryDrawer({
           <div className="stock-product-history-header-copy">
             <div className="stock-product-history-title-row">
               <h2 id="stock-product-history-title" className="stock-product-history-title">
-                {item.name}
+                {buildProductDisplayNameFromItem(item)}
               </h2>
               <span className={`stock-item-status-badge tone-${item.status}`}>
                 {getStockStatusShortLabel(item.status)}
@@ -209,11 +210,6 @@ export function StockProductHistoryDrawer({
             <p className="stock-product-history-subtitle">
               {formatStockCategoryTypeLine(item.category, itemType)}
             </p>
-            {formatStockProductBrandSizeLine(item) ? (
-              <p className="stock-product-brand-size stock-product-history-brand-size">
-                {formatStockProductBrandSizeLine(item)}
-              </p>
-            ) : null}
           </div>
           <button
             type="button"

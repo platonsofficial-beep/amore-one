@@ -196,7 +196,7 @@ describe('product identity contract boundaries', () => {
     expect(source).toContain('buildProductIdentityKey')
   })
 
-  it('is not imported by production modules yet', () => {
+  it('is only imported by approved read-presentation consumers', () => {
     /** @param {string} dir */
     function walk(dir) {
       /** @type {string[]} */
@@ -212,11 +212,21 @@ describe('product identity contract boundaries', () => {
       return files
     }
 
+    const allowed = new Set([
+      resolve(process.cwd(), 'src/components/stock/StockDashboardView.jsx'),
+      resolve(process.cwd(), 'src/components/stock/StockStorageDetailWorkspace.jsx'),
+      resolve(process.cwd(), 'src/components/stock/StockProductHistoryDrawer.jsx'),
+      resolve(process.cwd(), 'src/components/stock/StockStorageReceiveProductPicker.jsx'),
+      resolve(process.cwd(), 'src/components/stock/StockMovementModal.jsx'),
+      resolve(process.cwd(), 'src/components/stock/StockTransferModal.jsx'),
+    ])
+
     const root = resolve(process.cwd(), 'src')
     const offenders = walk(root)
       .filter((file) => !file.includes('stockProductIdentity'))
       .filter((file) => !/\.(test|spec)\.(js|jsx|ts|tsx)$/.test(file))
       .filter((file) => readFileSync(file, 'utf8').includes('stockProductIdentity'))
+      .filter((file) => !allowed.has(file))
 
     expect(offenders).toEqual([])
   })

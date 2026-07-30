@@ -5,6 +5,7 @@
  */
 
 import { useEffect, useMemo, useState } from 'react'
+import { buildProductDisplayNameFromItem } from '../../lib/stockProductIdentity'
 import { formatStockQuantity } from '../../lib/stockUtils'
 
 /** @typedef {'remove'|'add'} StockAdjustmentOperation */
@@ -223,7 +224,7 @@ export function StockMovementModal({
         <div className="drawer-header">
           <div>
             <h3>{title}</h3>
-            <p className="stock-modal-subtitle">{item.name}</p>
+            <p className="stock-modal-subtitle">{buildProductDisplayNameFromItem(item)}</p>
           </div>
           <button type="button" className="icon-btn" onClick={handleDismiss} disabled={isBusy} aria-label="Close">✕</button>
         </div>
