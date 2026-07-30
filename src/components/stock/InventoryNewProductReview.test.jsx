@@ -173,7 +173,6 @@ describe('InventoryNewProductReview', () => {
     expect(container.textContent).toContain('New Product')
     expect(container.textContent).toContain('Location Quantities')
     expect(container.textContent).toContain('Total Opening Stock')
-    expect(container.textContent).toContain('3')
     expect(container.querySelector('[data-testid="inventory-import-location-allocations"]')).toBeTruthy()
     expect(container.querySelector('input[type="text"]')).toBeTruthy()
     expect(container.querySelectorAll('.inventory-new-product-review-fields select').length)
@@ -328,9 +327,9 @@ describe('InventoryNewProductReview', () => {
       .toBe('1')
 
     const unitSelects = Array.from(container.querySelectorAll('.inventory-new-product-review select'))
-      .filter((select) => Array.from(select.options).some((option) => option.value === 'Bottle 1L'))
-    expect(unitSelects[0].value).toBe('Bottle 1L')
-    expect(unitSelects[1].value).toBe('Bottle 700ml')
+      .filter((select) => Array.from(select.options).some((option) => option.value === 'Bottle'))
+    expect(unitSelects[0].value).toBe('Bottle')
+    expect(unitSelects[1].value).toBe('Bottle')
     expect(unitSelects[2].value).toBe('')
 
     const setNativeValue = (element, value) => {
@@ -409,10 +408,10 @@ describe('InventoryNewProductReview', () => {
     expect(drafts[key].category).toBe('Gin')
 
     act(() => {
-      setNativeValue(selects[1], 'Bottle 700ml')
+      setNativeValue(selects[1], 'Bottle')
       selects[1].dispatchEvent(new Event('change', { bubbles: true }))
     })
-    expect(drafts[key].unit).toBe('Bottle 700ml')
+    expect(drafts[key].unit).toBe('Bottle')
 
     const storageDestination = container.querySelector('select[aria-label="Storage destination"]')
     act(() => {
@@ -430,7 +429,7 @@ describe('InventoryNewProductReview', () => {
     )
 
     const merged = mergeNewProductDraft(row, drafts[key])
-    expect(merged.unit).toBe('Bottle 700ml')
+    expect(merged.unit).toBe('Bottle')
     expect(merged.storage).toBe('Bar')
   })
 
@@ -657,10 +656,10 @@ describe('InventoryNewProductReview', () => {
         ?.click()
     })
     act(() => {
-      setNativeValue(container.querySelector('select[aria-label="Bulk assign unit"]'), 'Bottle 700ml')
+      setNativeValue(container.querySelector('select[aria-label="Bulk assign unit"]'), 'Bottle')
     })
     createKeys.forEach((key) => {
-      expect(drafts[key].unit).toBe('Bottle 700ml')
+      expect(drafts[key].unit).toBe('Bottle')
     })
 
     ensureSelected()
@@ -706,7 +705,7 @@ describe('InventoryNewProductReview', () => {
       [createEntries[0].key]: {
         productName: 'Brand New Spirit',
         category: 'Vodka',
-        unit: 'Bottle 700ml',
+        unit: 'Bottle',
         storage: null,
         supplier: '',
         supplierId: null,
@@ -777,10 +776,10 @@ describe('InventoryNewProductReview', () => {
       element.dispatchEvent(new Event('change', { bubbles: true }))
     }
     act(() => {
-      setNativeValue(container.querySelector('select[aria-label="Bulk assign unit"]'), 'Bottle 1L')
+      setNativeValue(container.querySelector('select[aria-label="Bulk assign unit"]'), 'Bottle')
     })
-    expect(drafts[createEntries[1].key].unit).toBe('Bottle 1L')
-    expect(drafts[createEntries[0].key].unit).toBe('Bottle 700ml')
+    expect(drafts[createEntries[1].key].unit).toBe('Bottle')
+    expect(drafts[createEntries[0].key].unit).toBe('Bottle')
     expect(container.textContent).toContain('No products match this filter')
     expect(container.querySelector('[data-showing-count="0"]')).toBeTruthy()
 

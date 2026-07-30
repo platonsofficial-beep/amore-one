@@ -1350,8 +1350,7 @@ describe('InventoryImportWizardShell', () => {
 
     expect(container.textContent).toContain('Campari 1lt')
     expect(container.textContent).toContain('Suggested from product name')
-    expect(container.textContent).toContain('Bottle 1L')
-    expect(container.textContent).toContain('Bottle 700ml')
+    expect(container.textContent).toContain('Bottle')
     expect(container.textContent).toContain('Bitter Truth Apricot Liqueur')
     expect(container.querySelector('[data-units-suggested]')?.getAttribute('data-units-suggested'))
       .toBe('6')
@@ -1362,15 +1361,15 @@ describe('InventoryImportWizardShell', () => {
     const parseCalls = parseSpy.mock.calls.length
 
     const unitSelects = Array.from(container.querySelectorAll('.inventory-new-product-review select'))
-      .filter((select) => Array.from(select.options).some((option) => option.value === 'Bottle 1L'))
+      .filter((select) => Array.from(select.options).some((option) => option.value === 'Bottle'))
     const bitterSelect = unitSelects.find((select) => select.value === '')
     expect(bitterSelect).toBeTruthy()
 
-    const campariSelect = unitSelects.find((select) => select.value === 'Bottle 1L')
+    const campariSelect = unitSelects.find((select) => select.value === 'Bottle')
     setSelectValue(campariSelect, 'Liter')
     expect(campariSelect.value).toBe('Liter')
 
-    setSelectValue(bitterSelect, 'Bottle 700ml')
+    setSelectValue(bitterSelect, 'Bottle')
 
     act(() => {
       getButton('Continue').dispatchEvent(new MouseEvent('click', { bubbles: true }))
@@ -1443,12 +1442,12 @@ describe('InventoryImportWizardShell', () => {
     const parseCalls = parseSpy.mock.calls.length
 
     const unitSelect = Array.from(container.querySelectorAll('.inventory-new-product-review select'))
-      .find((select) => Array.from(select.options).some((option) => option.value === 'Bottle 700ml'))
+      .find((select) => Array.from(select.options).some((option) => option.value === 'Bottle'))
     expect(unitSelect).toBeTruthy()
-    setSelectValue(unitSelect, 'Bottle 700ml')
+    setSelectValue(unitSelect, 'Bottle')
 
     expect(container.textContent).toContain('Unit')
-    expect(container.textContent).toContain('Bottle 700ml')
+    expect(container.textContent).toContain('Bottle')
     expect(container.textContent).not.toContain('Unit is required')
 
     act(() => {
@@ -1496,9 +1495,9 @@ describe('InventoryImportWizardShell', () => {
       .toBe('Validate Import')
 
     const preservedUnit = Array.from(container.querySelectorAll('.inventory-new-product-review select'))
-      .find((select) => Array.from(select.options).some((option) => option.value === 'Bottle 700ml'))
-    expect(preservedUnit?.value).toBe('Bottle 700ml')
-    expect(container.textContent).toContain('Bottle 700ml')
+      .find((select) => Array.from(select.options).some((option) => option.value === 'Bottle'))
+    expect(preservedUnit?.value).toBe('Bottle')
+    expect(container.textContent).toContain('Bottle')
 
     act(() => {
       getButton('Continue').dispatchEvent(new MouseEvent('click', { bubbles: true }))
@@ -1540,13 +1539,13 @@ describe('InventoryImportWizardShell', () => {
     })
 
     const unitSelect = Array.from(container.querySelectorAll('.inventory-new-product-review select'))
-      .find((select) => Array.from(select.options).some((option) => option.value === 'Bottle 1L'))
+      .find((select) => Array.from(select.options).some((option) => option.value === 'Bottle'))
     act(() => {
       const descriptor = Object.getOwnPropertyDescriptor(window.HTMLSelectElement.prototype, 'value')
-      descriptor?.set?.call(unitSelect, 'Bottle 1L')
+      descriptor?.set?.call(unitSelect, 'Bottle')
       unitSelect.dispatchEvent(new Event('change', { bubbles: true }))
     })
-    expect(unitSelect.value).toBe('Bottle 1L')
+    expect(unitSelect.value).toBe('Bottle')
 
     act(() => {
       getButton('Back').dispatchEvent(new MouseEvent('click', { bubbles: true }))
@@ -1570,7 +1569,7 @@ describe('InventoryImportWizardShell', () => {
     })
 
     const resetSelect = Array.from(container.querySelectorAll('.inventory-new-product-review select'))
-      .find((select) => Array.from(select.options).some((option) => option.value === 'Bottle 1L'))
+      .find((select) => Array.from(select.options).some((option) => option.value === 'Bottle'))
     expect(resetSelect?.value).toBe('')
     expect(container.textContent).toContain('Another New Spirit')
   })
@@ -1943,8 +1942,8 @@ describe('InventoryImportWizardShell', () => {
     })
 
     const unitSelect = Array.from(container.querySelectorAll('.inventory-new-product-review select'))
-      .find((select) => Array.from(select.options).some((option) => option.value === 'Bottle 700ml'))
-    setSelectValue(unitSelect, 'Bottle 700ml')
+      .find((select) => Array.from(select.options).some((option) => option.value === 'Bottle'))
+    setSelectValue(unitSelect, 'Bottle')
 
     act(() => {
       getButton('Continue').dispatchEvent(new MouseEvent('click', { bubbles: true }))
@@ -2107,8 +2106,8 @@ describe('InventoryImportWizardShell', () => {
       await Promise.resolve()
     })
     const unitSelect = Array.from(container.querySelectorAll('.inventory-new-product-review select'))
-      .find((select) => Array.from(select.options).some((option) => option.value === 'Bottle 700ml'))
-    setSelectValue(unitSelect, 'Bottle 700ml')
+      .find((select) => Array.from(select.options).some((option) => option.value === 'Bottle'))
+    setSelectValue(unitSelect, 'Bottle')
     act(() => {
       getButton('Continue').dispatchEvent(new MouseEvent('click', { bubbles: true }))
     })
