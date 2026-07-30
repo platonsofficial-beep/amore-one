@@ -23,7 +23,7 @@ export const STOCK_STORAGE_ACTION_PLACEHOLDERS = Object.freeze({
   adjustment: Object.freeze({
     id: 'adjustment',
     title: 'Adjustment',
-    message: 'Adjustments for this storage will be available in a later sprint.',
+    message: 'Adjustments launch from Storage Detail into the shared stock movement workflow.',
   }),
 })
 

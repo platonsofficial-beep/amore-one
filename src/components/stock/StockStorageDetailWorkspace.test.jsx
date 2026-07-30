@@ -564,7 +564,120 @@ describe('StockStorageDetailWorkspace — actions + Fast Count launch', () => {
     expect(container.querySelector('[data-testid="stock-receive-destination-lock"]')).toBeTruthy()
   })
 
-  it('opens placeholder architecture from row overflow for deferred Adjustment only', async () => {
+  it('opens Storage Adjustment picker then locked shared modal with mandatory reason', async () => {
+    const loadProducts = vi.fn(async () => ({
+      storageId: 'stor-main',
+      products: [makeRow({ id: 'i1', name: 'Vodka', quantity: 5, quantityVersion: 4 })],
+      summary: {
+        productCount: 1,
+        totalQuantity: 5,
+        nonZeroBalanceCount: 1,
+        inventoryValue: 50,
+      },
+    }))
+    const onRecordAdjustment = vi.fn(async () => {})
+
+    renderWorkspace({
+      workspaceId: 'ws-1',
+      storage: {
+        id: 'stor-main',
+        name: 'Main Storage',
+        locationKey: 'Main Storage',
+        active: true,
+      },
+      canManage: true,
+      loadProducts,
+      onRecordAdjustment,
+    })
+
+    await settle()
+
+    await act(async () => {
+      container.querySelector('[data-storage-action="adjustment"]').click()
+    })
+
+    expect(container.querySelector('[data-testid="stock-storage-adjustment-product-picker"]')).toBeTruthy()
+    expect(container.textContent).toContain('Storage: Main Storage')
+
+    await act(async () => {
+      container
+        .querySelector('[data-testid="stock-storage-adjustment-product-picker"] [data-stock-item-id="i1"]')
+        .click()
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+    await settle()
+
+    expect(container.querySelector('[data-testid="stock-movement-modal"]')).toBeTruthy()
+    expect(container.querySelector('[data-testid="stock-adjustment-storage-lock"]')?.textContent)
+      .toContain('Locked')
+    expect(container.querySelector('[data-testid="stock-adjustment-reason-select"]')).toBeTruthy()
+    expect(container.querySelector('[data-testid="stock-storage-action-placeholder"]')).toBeNull()
+
+    const quantityInput = container.querySelector('[data-testid="stock-adjustment-quantity"]')
+    const reasonSelect = container.querySelector('[data-testid="stock-adjustment-reason-select"]')
+    await act(async () => {
+      const nativeInputValueSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value')?.set
+      nativeInputValueSetter?.call(quantityInput, '-1')
+      quantityInput.dispatchEvent(new Event('input', { bubbles: true }))
+      quantityInput.dispatchEvent(new Event('change', { bubbles: true }))
+      reasonSelect.value = 'Waste'
+      reasonSelect.dispatchEvent(new Event('change', { bubbles: true }))
+    })
+
+    await act(async () => {
+      container.querySelector('[data-testid="stock-movement-modal"] form')
+        .dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+
+    expect(onRecordAdjustment).toHaveBeenCalledWith(expect.objectContaining({
+      type: 'adjustment',
+      quantity: -1,
+      note: 'Waste',
+      workspaceStorageId: 'stor-main',
+      expectedQuantityVersion: 4,
+      item: expect.objectContaining({ id: 'i1', name: 'Vodka' }),
+    }))
+  })
+
+  it('launches adjustment modal from row menu with storage locked', async () => {
+    const loadProducts = vi.fn(async () => ({
+      storageId: 'stor-main',
+      products: [makeRow({ id: 'i1', name: 'Gin', quantity: 4, quantityVersion: 2 })],
+      summary: {
+        productCount: 1,
+        totalQuantity: 4,
+        nonZeroBalanceCount: 1,
+        inventoryValue: 40,
+      },
+    }))
+
+    renderWorkspace({
+      workspaceId: 'ws-1',
+      storage: { id: 'stor-main', name: 'Main Storage', active: true },
+      canManage: true,
+      loadProducts,
+      onRecordAdjustment: vi.fn(async () => {}),
+    })
+
+    await settle()
+
+    await act(async () => {
+      container.querySelector('[data-storage-product-menu-trigger="true"]').click()
+    })
+    await act(async () => {
+      container.querySelector('[data-menu-action="adjustment"]').click()
+    })
+
+    expect(container.querySelector('[data-testid="stock-storage-adjustment-product-picker"]')).toBeNull()
+    expect(container.querySelector('[data-testid="stock-movement-modal"]')?.textContent).toContain('Gin')
+    expect(container.querySelector('[data-testid="stock-adjustment-storage-lock"]')).toBeTruthy()
+    expect(container.querySelector('[data-testid="stock-storage-action-placeholder"]')).toBeNull()
+  })
+
+  it('does not open placeholder for Adjustment when launch path is live', async () => {
     const loadProducts = vi.fn(async () => ({
       storageId: 's-main',
       products: [makeRow({ name: 'Gin' })],
@@ -581,20 +694,17 @@ describe('StockStorageDetailWorkspace — actions + Fast Count launch', () => {
       storage: { id: 's-main', name: 'Main Storage', active: true },
       canManage: true,
       loadProducts,
+      onRecordAdjustment: vi.fn(async () => {}),
     })
 
     await settle()
 
     await act(async () => {
-      container.querySelector('[data-storage-product-menu-trigger="true"]').click()
-    })
-    await act(async () => {
-      container.querySelector('[data-menu-action="adjustment"]').click()
+      container.querySelector('[data-storage-action="adjustment"]').click()
     })
 
-    const placeholder = container.querySelector('[data-testid="stock-storage-action-placeholder"]')
-    expect(placeholder?.getAttribute('data-action')).toBe('adjustment')
-    expect(placeholder?.textContent).toContain('Adjustments for this storage will be available in a later sprint.')
+    expect(container.querySelector('[data-testid="stock-storage-action-placeholder"]')).toBeNull()
+    expect(container.querySelector('[data-testid="stock-storage-adjustment-product-picker"]')).toBeTruthy()
   })
 
   it('disables actions for archived storage and forwards stable callbacks when provided', async () => {
