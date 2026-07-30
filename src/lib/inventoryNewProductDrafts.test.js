@@ -152,7 +152,7 @@ describe('inventoryNewProductDrafts', () => {
     const soda = rows.find(({ row }) => row.source.productName === 'Soda 330ml')
     const coke = rows.find(({ row }) => row.source.productName === 'Coke Can 330ml')
 
-    expect(getNewProductDraftDefaults(campari.row).unit).toBe('Bottle 1L')
+    expect(getNewProductDraftDefaults(campari.row).unit).toBe('Bottle')
     expect(getNewProductDraftDefaults(soda.row).unit).toBeNull()
     expect(getNewProductDraftDefaults(coke.row).unit).toBeNull()
 
@@ -168,7 +168,7 @@ describe('inventoryNewProductDrafts', () => {
     const derivedCampari = listCreateNewPreviewRows(derived)
       .find(({ row }) => row.source.productName === 'Campari 1lt')
       ?.row
-    expect(derivedCampari?.metadataProposal.proposedUnit).toBe('Bottle 1L')
+    expect(derivedCampari?.metadataProposal.proposedUnit).toBe('Bottle')
     expect(derivedCampari?.blockers).not.toContain('unit_missing')
   })
 
@@ -206,27 +206,26 @@ describe('inventoryNewProductDrafts', () => {
       unit: 'Not A Unit',
     }).errors.unit).toBe('Select a valid unit')
 
-    expect(INVENTORY_NEW_PRODUCT_UNITS).toContain('Bottle 700ml')
+    expect(validateNewProductDraft({
+      productName: 'X',
+      category: 'Vodka',
+      unit: 'Case',
+    }).errors.unit).toBe('Select a valid unit')
+
+    expect(INVENTORY_NEW_PRODUCT_UNITS).toContain('Bottle')
     expect(INVENTORY_NEW_PRODUCT_UNITS).toContain('Milliliter')
+    expect(INVENTORY_NEW_PRODUCT_UNITS).not.toContain('Case')
+    expect(INVENTORY_NEW_PRODUCT_UNITS).not.toContain('Bottle 700ml')
     expect(INVENTORY_NEW_PRODUCT_UNITS).toEqual([
-      'Bottle 200ml',
-      'Bottle 250ml',
-      'Bottle 275ml',
-      'Bottle 330ml',
-      'Bottle 500ml',
-      'Bottle 700ml',
-      'Bottle 750ml',
-      'Bottle 1L',
-      'Bottle 1.5L',
-      'Bottle 2L',
+      'Bottle',
       'Can',
-      'Case',
-      'Pack',
       'Piece',
-      'Kg',
+      'Kilogram',
       'Gram',
       'Liter',
       'Milliliter',
+      'Keg',
+      'Roll',
     ])
     expect(new Set(INVENTORY_NEW_PRODUCT_UNITS).size).toBe(INVENTORY_NEW_PRODUCT_UNITS.length)
     expect(validateNewProductDraft({
@@ -237,7 +236,7 @@ describe('inventoryNewProductDrafts', () => {
     expect(validateNewProductDraft({
       productName: 'Mixer',
       category: 'Beverages',
-      unit: 'Bottle 200ml',
+      unit: 'Bottle',
     }).valid).toBe(true)
   })
 

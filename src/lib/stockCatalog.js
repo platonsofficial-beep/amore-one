@@ -1,3 +1,7 @@
+import {
+  SELECTABLE_INVENTORY_UNIT_PRESETS,
+} from './inventoryUnitStandard.js'
+
 export const STOCK_UNIT_CUSTOM_VALUE = '__custom__'
 
 export const STOCK_CATEGORIES = [
@@ -166,78 +170,30 @@ export const STOCK_TYPES_BY_CATEGORY = {
   Other: ['Other'],
 }
 
-export const STOCK_GENERAL_UNIT_PRESETS = [
-  'Bottle',
-  'Case',
-  'Litre',
-  'Kg',
-  'Gram',
-  'Piece',
-  'Pack',
-  'Box',
-]
+/** P8.31.2 — thin consumer of inventoryUnitStandard selectable vocabulary. */
+export const STOCK_GENERAL_UNIT_PRESETS = [...SELECTABLE_INVENTORY_UNIT_PRESETS]
 
+/**
+ * Category lists share the same canonical physical vocabulary.
+ * Packaging-only and legacy composites are not selectable inventory units.
+ */
 export const STOCK_UNIT_PRESETS_BY_CATEGORY = {
-  Spirits: [
-    'Bottle 700ml',
-    'Bottle 1L',
-    'Case 6 bottles',
-    'Case 12 bottles',
-    'Litre',
-    ...STOCK_GENERAL_UNIT_PRESETS,
-  ],
-  'Syrups & Purées': [
-    'Bottle',
-    'Litre',
-    'Kg',
-    'Pack',
-    'Container',
-    ...STOCK_GENERAL_UNIT_PRESETS,
-  ],
-  Beverages: [
-    'Bottle',
-    'Can',
-    'Keg',
-    'Case 24',
-    'Case 12',
-    'Litre',
-    ...STOCK_GENERAL_UNIT_PRESETS,
-  ],
-  Wine: [
-    'Bottle 750ml',
-    'Case 6 bottles',
-    'Case 12 bottles',
-    'Magnum',
-    'Glass bottle',
-    ...STOCK_GENERAL_UNIT_PRESETS,
-  ],
-  Fresh: [
-    'Kg',
-    'Gram',
-    'Piece',
-    'Bunch',
-    'Box',
-    'Pack',
-    ...STOCK_GENERAL_UNIT_PRESETS,
-  ],
-  Consumables: [
-    'Piece',
-    'Pack',
-    'Box',
-    'Case',
-    'Roll',
-    ...STOCK_GENERAL_UNIT_PRESETS,
-  ],
+  Spirits: [...STOCK_GENERAL_UNIT_PRESETS],
+  'Syrups & Purées': [...STOCK_GENERAL_UNIT_PRESETS],
+  Beverages: [...STOCK_GENERAL_UNIT_PRESETS],
+  Wine: [...STOCK_GENERAL_UNIT_PRESETS],
+  Fresh: [...STOCK_GENERAL_UNIT_PRESETS],
+  Consumables: [...STOCK_GENERAL_UNIT_PRESETS],
   Other: [...STOCK_GENERAL_UNIT_PRESETS],
 }
 
 export const STOCK_DEFAULT_UNIT_BY_CATEGORY = {
-  Spirits: 'Bottle 700ml',
+  Spirits: 'Bottle',
   'Syrups & Purées': 'Bottle',
   Beverages: 'Bottle',
-  Wine: 'Bottle 750ml',
-  Fresh: 'Kg',
-  Consumables: 'Pack',
+  Wine: 'Bottle',
+  Fresh: 'Kilogram',
+  Consumables: 'Piece',
   Other: 'Piece',
 }
 

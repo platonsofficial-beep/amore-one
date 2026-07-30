@@ -1,20 +1,11 @@
+import {
+  SELECTABLE_INVENTORY_UNIT_PRESETS,
+} from './inventoryUnitStandard.js'
+
 export const INVENTORY_TARGET_STOCK_LABEL = 'Target Stock (PAR)'
 
-export const INVENTORY_UNIT_PRESETS = [
-  'Bottle 0.7L',
-  'Bottle 1L',
-  'Bottle 1.5L',
-  'Case 6',
-  'Case 12',
-  'Keg',
-  'Kg',
-  'Gram',
-  'Liter',
-  'Piece',
-  'Box',
-  'Bag',
-  'Pack',
-]
+/** P8.31.2 — thin consumer of inventoryUnitStandard selectable vocabulary. */
+export const INVENTORY_UNIT_PRESETS = [...SELECTABLE_INVENTORY_UNIT_PRESETS]
 
 export const INVENTORY_UNIT_CUSTOM_VALUE = '__custom__'
 

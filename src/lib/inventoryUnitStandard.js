@@ -1,12 +1,12 @@
 /**
- * P8.31.1 — Consumable Inventory Unit Product Contract Lock
+ * P8.31.1 / P8.31.2 — Consumable Inventory Unit Product Contract
  *
  * Pure source of truth for inventory-unit semantics.
  * Classifies unit text only. No quantity conversion. No I/O. No mutations.
  *
- * Not wired into production UI/Import/Count/Orders in this sprint.
- * Legacy preset arrays in stockCatalog / inventoryNewProductDrafts / inventoryUtils
- * remain the live sources until later consolidation sprints.
+ * P8.31.2 — Canonical selectable vocabulary is consumed by repository preset
+ * lists (stockCatalog / inventoryNewProductDrafts / inventoryUtils).
+ * Packaging-only labels are not selectable inventory units.
  */
 
 /** @typedef {'canonical_physical_unit'|'legacy_composite_physical_unit'|'packaging_only_unit'|'ambiguous_unit'|'unknown_unit'|'empty_unit'} InventoryUnitClassification */
@@ -48,6 +48,12 @@ export const CANONICAL_PHYSICAL_INVENTORY_UNITS = Object.freeze([
   'Keg',
   'Roll',
 ])
+
+/**
+ * Selectable inventory-unit vocabulary for create/edit/import pickers.
+ * Identical to the canonical physical list — packaging-only terms excluded.
+ */
+export const SELECTABLE_INVENTORY_UNIT_PRESETS = CANONICAL_PHYSICAL_INVENTORY_UNITS
 
 /**
  * Case-insensitive aliases → canonical label.
@@ -161,8 +167,7 @@ export const INVENTORY_UNIT_HISTORICAL_CONTRACT = Object.freeze({
 })
 
 /**
- * Known legacy preset module paths — remain live until consolidation sprints.
- * This module must not replace them in P8.31.1.
+ * Known legacy preset module paths — now thin consumers of SELECTABLE_INVENTORY_UNIT_PRESETS.
  */
 export const LEGACY_UNIT_PRESET_SOURCES = Object.freeze([
   'src/lib/stockCatalog.js#STOCK_GENERAL_UNIT_PRESETS',
@@ -426,4 +431,51 @@ export function isCanonicalPhysicalInventoryUnit(value) {
  */
 export function isPackagingOnlyInventoryUnit(value) {
   return classifyInventoryUnit(value).classification === 'packaging_only_unit'
+}
+
+/**
+ * True when value is an exact selectable inventory-unit preset label.
+ *
+ * @param {unknown} value
+ * @returns {boolean}
+ */
+export function isSelectableInventoryUnitPreset(value) {
+  const normalized = normalizeInventoryUnitInput(value)
+  return SELECTABLE_INVENTORY_UNIT_PRESETS.includes(normalized)
+}
+
+/**
+ * Acceptable unit values for new-product drafts / validation:
+ * selectable canonical presets, or recognized legacy composites (still classified).
+ * Packaging-only and ambiguous values are rejected for new selection.
+ *
+ * @param {unknown} value
+ * @returns {boolean}
+ */
+export function isAcceptedInventoryUnitValue(value) {
+  if (isSelectableInventoryUnitPreset(value)) return true
+  const result = classifyInventoryUnit(value)
+  return result.classification === 'canonical_physical_unit'
+    || result.classification === 'legacy_composite_physical_unit'
+}
+
+/**
+ * Map free-text / inferred unit → selectable canonical label when safe.
+ * Legacy composites map to their physical canonical unit (Bottle/Can).
+ * Packaging / ambiguous / unknown → null (caller keeps review path).
+ *
+ * Does not multiply quantities. Does not mutate products.
+ *
+ * @param {unknown} value
+ * @returns {string|null}
+ */
+export function toSelectableInventoryUnit(value) {
+  const result = classifyInventoryUnit(value)
+  if (result.classification === 'canonical_physical_unit') {
+    return result.canonicalUnit
+  }
+  if (result.classification === 'legacy_composite_physical_unit') {
+    return result.canonicalUnit
+  }
+  return null
 }

@@ -12,11 +12,18 @@ import {
   LEGACY_UNIT_PRESET_SOURCES,
   PACKAGING_NOTE_CONTRACT,
   PACKAGING_ONLY_INVENTORY_UNIT_TERMS,
+  SELECTABLE_INVENTORY_UNIT_PRESETS,
   classifyInventoryUnit,
   isCanonicalPhysicalInventoryUnit,
   isPackagingOnlyInventoryUnit,
   normalizeInventoryUnitInput,
 } from './inventoryUnitStandard.js'
+import {
+  STOCK_GENERAL_UNIT_PRESETS,
+  STOCK_UNIT_PRESETS_BY_CATEGORY,
+} from './stockCatalog.js'
+import { INVENTORY_NEW_PRODUCT_UNITS } from './inventoryNewProductDrafts.js'
+import { INVENTORY_UNIT_PRESETS } from './inventoryUtils.js'
 
 describe('inventoryUnitStandard — canonical physical units', () => {
   it.each([
@@ -187,7 +194,7 @@ describe('inventoryUnitStandard — safety / purity', () => {
 })
 
 describe('inventoryUnitStandard — repository boundary', () => {
-  it('is not imported by production modules yet', () => {
+  it('is only imported by the known vocabulary consumer modules', () => {
     const { readdirSync, readFileSync, statSync } = require('node:fs')
     const { join } = require('node:path')
 
@@ -206,35 +213,36 @@ describe('inventoryUnitStandard — repository boundary', () => {
       return files
     }
 
+    const allowed = new Set([
+      resolve(process.cwd(), 'src/lib/stockCatalog.js'),
+      resolve(process.cwd(), 'src/lib/inventoryNewProductDrafts.js'),
+      resolve(process.cwd(), 'src/lib/inventoryUtils.js'),
+    ])
+
     const offenders = walk(resolve(process.cwd(), 'src'))
       .filter((file) => !file.includes('inventoryUnitStandard'))
       .filter((file) => readFileSync(file, 'utf8').includes('inventoryUnitStandard'))
+      .filter((file) => !allowed.has(file))
 
     expect(offenders).toEqual([])
   })
 
-  it('documents legacy preset sources and leaves them unchanged', () => {
+  it('documents legacy preset sources as thin consumers of the canonical list', () => {
     expect(LEGACY_UNIT_PRESET_SOURCES.length).toBeGreaterThanOrEqual(3)
 
-    const stockCatalog = readFileSync(
-      resolve(process.cwd(), 'src/lib/stockCatalog.js'),
-      'utf8',
-    )
-    expect(stockCatalog).toContain('Case 6 bottles')
-    expect(stockCatalog).toContain('STOCK_GENERAL_UNIT_PRESETS')
+    expect(STOCK_GENERAL_UNIT_PRESETS).toEqual([...SELECTABLE_INVENTORY_UNIT_PRESETS])
+    expect(INVENTORY_NEW_PRODUCT_UNITS).toEqual([...SELECTABLE_INVENTORY_UNIT_PRESETS])
+    expect(INVENTORY_UNIT_PRESETS).toEqual([...SELECTABLE_INVENTORY_UNIT_PRESETS])
 
-    const newProduct = readFileSync(
-      resolve(process.cwd(), 'src/lib/inventoryNewProductDrafts.js'),
-      'utf8',
-    )
-    expect(newProduct).toContain("'Case'")
-    expect(newProduct).toContain('INVENTORY_NEW_PRODUCT_UNITS')
+    for (const presets of Object.values(STOCK_UNIT_PRESETS_BY_CATEGORY)) {
+      expect(presets).toEqual([...SELECTABLE_INVENTORY_UNIT_PRESETS])
+      for (const blocked of ['Case', 'Case 6 bottles', 'Box', 'Pack', 'Kg', 'Litre']) {
+        expect(presets).not.toContain(blocked)
+      }
+    }
 
-    const legacyInventory = readFileSync(
-      resolve(process.cwd(), 'src/lib/inventoryUtils.js'),
-      'utf8',
-    )
-    expect(legacyInventory).toContain('Case 6')
-    expect(legacyInventory).toContain('INVENTORY_UNIT_PRESETS')
+    expect(STOCK_GENERAL_UNIT_PRESETS).not.toContain('Case')
+    expect(INVENTORY_NEW_PRODUCT_UNITS).not.toContain('Case')
+    expect(INVENTORY_UNIT_PRESETS).not.toContain('Case 6')
   })
 })

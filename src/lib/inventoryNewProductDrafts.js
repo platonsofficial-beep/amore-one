@@ -29,26 +29,15 @@ import {
   INVENTORY_UNIT_INFERENCE_STATUS,
   inferInventoryUnitFromProductName,
 } from './inventoryUnitInference.js'
+import {
+  SELECTABLE_INVENTORY_UNIT_PRESETS,
+  isAcceptedInventoryUnitValue,
+  toSelectableInventoryUnit,
+} from './inventoryUnitStandard.js'
 
+/** P8.31.2 — thin consumer of inventoryUnitStandard selectable vocabulary. */
 export const INVENTORY_NEW_PRODUCT_UNITS = Object.freeze([
-  'Bottle 200ml',
-  'Bottle 250ml',
-  'Bottle 275ml',
-  'Bottle 330ml',
-  'Bottle 500ml',
-  'Bottle 700ml',
-  'Bottle 750ml',
-  'Bottle 1L',
-  'Bottle 1.5L',
-  'Bottle 2L',
-  'Can',
-  'Case',
-  'Pack',
-  'Piece',
-  'Kg',
-  'Gram',
-  'Liter',
-  'Milliliter',
+  ...SELECTABLE_INVENTORY_UNIT_PRESETS,
 ])
 
 export class InventoryNewProductDraftError extends Error {
@@ -161,6 +150,12 @@ export function getNewProductDraftDefaults(row) {
       ? String(sourceCategory).trim()
       : 'Other'
   const unitInference = inferInventoryUnitFromProductName(productName)
+  const inferredUnit = unitInference.status === INVENTORY_UNIT_INFERENCE_STATUS.INFERRED
+    ? unitInference.proposedUnit
+    : null
+  const selectableUnit = inferredUnit == null
+    ? null
+    : toSelectableInventoryUnit(inferredUnit)
   const proposedStorage = row?.locationProposal?.proposedStorageLocation
     ?? row?.locationProposal?.resolvedStorageLocation
   const storage = isMeaningfullyPopulated(proposedStorage)
@@ -169,14 +164,17 @@ export function getNewProductDraftDefaults(row) {
   return {
     productName,
     category,
-    unit: unitInference.status === INVENTORY_UNIT_INFERENCE_STATUS.INFERRED
-      ? unitInference.proposedUnit
-      : null,
+    unit: selectableUnit,
     storage,
     supplier: '',
     supplierId: null,
     skipped: false,
-    unitInference,
+    unitInference: selectableUnit != null && unitInference.status === INVENTORY_UNIT_INFERENCE_STATUS.INFERRED
+      ? {
+          ...unitInference,
+          proposedUnit: selectableUnit,
+        }
+      : unitInference,
   }
 }
 
@@ -305,7 +303,7 @@ export function validateNewProductDraft(draft) {
     }
     if (!unit) {
       errors.unit = 'Unit is required'
-    } else if (!INVENTORY_NEW_PRODUCT_UNITS.includes(unit)) {
+    } else if (!isAcceptedInventoryUnitValue(unit)) {
       errors.unit = 'Select a valid unit'
     }
   }
