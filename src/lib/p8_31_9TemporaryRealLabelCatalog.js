@@ -24,13 +24,14 @@ export const P8_31_9_FICTIONAL_SUPPLIERS = Object.freeze([
   'Local Produce Partners',
 ])
 
+/** P8.31.10 finalized domain mix — consumables minimized for beverage focus. */
 export const P8_31_9_DOMAIN_TARGETS = Object.freeze({
-  spirits: 55,
-  wine: 35,
-  beer: 18,
-  nonAlcoholicBeverages: 30,
-  barIngredients: 25,
-  operationalConsumables: 17,
+  spirits: 58,
+  wine: 38,
+  beer: 22,
+  nonAlcoholicBeverages: 32,
+  barIngredients: 26,
+  operationalConsumables: 4,
 })
 
 export const P8_31_9_EXPECTED_PRODUCT_COUNT = 180

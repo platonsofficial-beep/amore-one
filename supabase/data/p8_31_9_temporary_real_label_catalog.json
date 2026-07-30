@@ -1,8 +1,8 @@
 {
   "batchId": "ONE_REAL_LABEL_TEST_2026_07",
-  "version": "P8.31.9",
+  "version": "P8.31.10",
   "workspaceTarget": "AMORE.NICOSIA",
-  "description": "Temporary disposable real-label test catalog. Not a Reference Catalog. Costs and quantities are fictional operational test data.",
+  "description": "Temporary disposable real-label test catalog (P8.31.10 finalized). Not a Reference Catalog. Costs and quantities are fictional operational test data. Greek/Cypriot HORECA-focused mix.",
   "products": [
     {
       "batchId": "ONE_REAL_LABEL_TEST_2026_07",
@@ -193,35 +193,35 @@
       "batchId": "ONE_REAL_LABEL_TEST_2026_07",
       "sequence": 6,
       "domain": "spirits",
-      "brand": "Cîroc",
-      "name": "Snap Frost Vodka",
+      "brand": "Stolichnaya",
+      "name": "Premium Vodka",
       "category": "Spirits",
       "itemType": "Vodka",
-      "size": "70 cl",
+      "size": "1 L",
       "unit": "Bottle",
       "packagingNote": "Often delivered in cases of 6.",
       "barcode": null,
       "supplierName": "Premium Spirits Distribution Ltd",
-      "costPrice": 26,
+      "costPrice": 13.5,
       "minimumQuantity": 6,
       "targetQuantity": 24,
       "orderQuantity": 12,
-      "currentQuantity": 3,
+      "currentQuantity": 24,
       "active": true,
       "defaultStorage": "Main Storage",
       "locationQuantities": [
         {
           "locationKey": "Main Storage",
-          "quantity": 2
+          "quantity": 18
         },
         {
           "locationKey": "Bar",
-          "quantity": 1
+          "quantity": 6
         }
       ],
       "research": {
         "status": "verified",
-        "sourceUrl": "https://www.ciroc.com/en-gb/products/ciroc-vodka",
+        "sourceUrl": "https://www.stoli.com/",
         "sizeVerified": true,
         "barcodeVerified": false
       }
@@ -503,7 +503,7 @@
       "targetQuantity": 24,
       "orderQuantity": 12,
       "currentQuantity": 3,
-      "active": true,
+      "active": false,
       "defaultStorage": "Main Storage",
       "locationQuantities": [
         {
@@ -1184,35 +1184,35 @@
       "batchId": "ONE_REAL_LABEL_TEST_2026_07",
       "sequence": 33,
       "domain": "spirits",
-      "brand": "Ballantine's",
-      "name": "Finest",
+      "brand": "Monkey Shoulder",
+      "name": "Blended Malt Scotch Whisky",
       "category": "Spirits",
       "itemType": "Whiskey",
-      "size": "1 L",
+      "size": "70 cl",
       "unit": "Bottle",
       "packagingNote": "Often delivered in cases of 6.",
       "barcode": null,
       "supplierName": "Premium Spirits Distribution Ltd",
-      "costPrice": 15,
+      "costPrice": 22,
       "minimumQuantity": 6,
       "targetQuantity": 24,
       "orderQuantity": 12,
-      "currentQuantity": 0,
+      "currentQuantity": 16,
       "active": true,
       "defaultStorage": "Main Storage",
       "locationQuantities": [
         {
           "locationKey": "Main Storage",
-          "quantity": 0
+          "quantity": 12
         },
         {
           "locationKey": "Bar",
-          "quantity": 0
+          "quantity": 4
         }
       ],
       "research": {
         "status": "verified",
-        "sourceUrl": "https://www.ballantines.com/en-gb/products/ballantines-finest",
+        "sourceUrl": "https://www.monkeyshoulder.com/",
         "sizeVerified": true,
         "barcodeVerified": false
       }
@@ -1439,8 +1439,8 @@
       "batchId": "ONE_REAL_LABEL_TEST_2026_07",
       "sequence": 40,
       "domain": "spirits",
-      "brand": "Courvoisier",
-      "name": "V.S",
+      "brand": "Metaxa",
+      "name": "5 Stars",
       "category": "Spirits",
       "itemType": "Cognac",
       "size": "70 cl",
@@ -1448,22 +1448,26 @@
       "packagingNote": "Often delivered in cases of 6.",
       "barcode": null,
       "supplierName": "Premium Spirits Distribution Ltd",
-      "costPrice": 30,
+      "costPrice": 14,
       "minimumQuantity": 6,
       "targetQuantity": 24,
       "orderQuantity": 12,
-      "currentQuantity": 20,
+      "currentQuantity": 22,
       "active": true,
       "defaultStorage": "Main Storage",
       "locationQuantities": [
         {
           "locationKey": "Main Storage",
-          "quantity": 20
+          "quantity": 16
+        },
+        {
+          "locationKey": "Bar",
+          "quantity": 6
         }
       ],
       "research": {
         "status": "verified",
-        "sourceUrl": "https://www.courvoisier.com/en-gb/our-cognacs/courvoisier-vs",
+        "sourceUrl": "https://www.metaxa.com/",
         "sizeVerified": true,
         "barcodeVerified": false
       }
@@ -1583,35 +1587,35 @@
       "batchId": "ONE_REAL_LABEL_TEST_2026_07",
       "sequence": 44,
       "domain": "spirits",
-      "brand": "Ricard",
-      "name": "Pastis de Marseille",
+      "brand": "Mini",
+      "name": "Ouzo",
       "category": "Spirits",
       "itemType": "Aperitif",
-      "size": "1 L",
+      "size": "70 cl",
       "unit": "Bottle",
       "packagingNote": "Often delivered in cases of 6.",
       "barcode": null,
       "supplierName": "Premium Spirits Distribution Ltd",
-      "costPrice": 15,
+      "costPrice": 8.5,
       "minimumQuantity": 6,
-      "targetQuantity": 24,
+      "targetQuantity": 18,
       "orderQuantity": 12,
-      "currentQuantity": 24,
+      "currentQuantity": 16,
       "active": true,
       "defaultStorage": "Main Storage",
       "locationQuantities": [
         {
           "locationKey": "Main Storage",
-          "quantity": 18
+          "quantity": 12
         },
         {
           "locationKey": "Bar",
-          "quantity": 6
+          "quantity": 4
         }
       ],
       "research": {
         "status": "verified",
-        "sourceUrl": "https://www.ricard.com/en-gb/products/ricard",
+        "sourceUrl": "https://www.miniouzo.gr/",
         "sizeVerified": true,
         "barcodeVerified": false
       }
@@ -1620,8 +1624,8 @@
       "batchId": "ONE_REAL_LABEL_TEST_2026_07",
       "sequence": 45,
       "domain": "spirits",
-      "brand": "Pernod",
-      "name": "Anise",
+      "brand": "Ouzo 12",
+      "name": "Ouzo",
       "category": "Spirits",
       "itemType": "Aperitif",
       "size": "70 cl",
@@ -1629,9 +1633,9 @@
       "packagingNote": "Often delivered in cases of 6.",
       "barcode": null,
       "supplierName": "Premium Spirits Distribution Ltd",
-      "costPrice": 14,
+      "costPrice": 9.5,
       "minimumQuantity": 6,
-      "targetQuantity": 24,
+      "targetQuantity": 18,
       "orderQuantity": 12,
       "currentQuantity": 20,
       "active": true,
@@ -1639,12 +1643,16 @@
       "locationQuantities": [
         {
           "locationKey": "Main Storage",
-          "quantity": 20
+          "quantity": 14
+        },
+        {
+          "locationKey": "Bar",
+          "quantity": 6
         }
       ],
       "research": {
         "status": "verified",
-        "sourceUrl": "https://www.pernod.com/en-gb/products/pernod",
+        "sourceUrl": "https://www.ouzo12.com/",
         "sizeVerified": true,
         "barcodeVerified": false
       }
@@ -1848,7 +1856,7 @@
       "targetQuantity": 24,
       "orderQuantity": 12,
       "currentQuantity": 24,
-      "active": true,
+      "active": false,
       "defaultStorage": "Main Storage",
       "locationQuantities": [
         {
@@ -1908,35 +1916,35 @@
       "batchId": "ONE_REAL_LABEL_TEST_2026_07",
       "sequence": 53,
       "domain": "spirits",
-      "brand": "Amaro Averna",
-      "name": "Sicilian Amaro",
+      "brand": "Plomari",
+      "name": "Ouzo",
       "category": "Spirits",
-      "itemType": "Vermouth & Liqueur",
+      "itemType": "Aperitif",
       "size": "70 cl",
       "unit": "Bottle",
       "packagingNote": "Often delivered in cases of 6.",
       "barcode": null,
       "supplierName": "Premium Spirits Distribution Ltd",
-      "costPrice": 17,
+      "costPrice": 10,
       "minimumQuantity": 6,
-      "targetQuantity": 24,
+      "targetQuantity": 18,
       "orderQuantity": 12,
-      "currentQuantity": 24,
+      "currentQuantity": 14,
       "active": true,
       "defaultStorage": "Main Storage",
       "locationQuantities": [
         {
           "locationKey": "Main Storage",
-          "quantity": 18
+          "quantity": 10
         },
         {
           "locationKey": "Bar",
-          "quantity": 6
+          "quantity": 4
         }
       ],
       "research": {
         "status": "verified",
-        "sourceUrl": "https://www.averna.com/en-gb/products/averna",
+        "sourceUrl": "https://www.isidorosarvanitis.gr/",
         "sizeVerified": true,
         "barcodeVerified": false
       }
@@ -1982,31 +1990,35 @@
       "batchId": "ONE_REAL_LABEL_TEST_2026_07",
       "sequence": 55,
       "domain": "spirits",
-      "brand": "Fee Brothers",
-      "name": "Orange Bitters",
+      "brand": "Δεκαράκι",
+      "name": "Τσίπουρο",
       "category": "Spirits",
       "itemType": "Other",
-      "size": "150 ml",
+      "size": "500 ml",
       "unit": "Bottle",
-      "packagingNote": "Often delivered in cases of 6.",
+      "packagingNote": "Usually delivered as individual bottles.",
       "barcode": null,
       "supplierName": "Premium Spirits Distribution Ltd",
-      "costPrice": 8.5,
-      "minimumQuantity": 6,
-      "targetQuantity": 24,
-      "orderQuantity": 12,
-      "currentQuantity": 20,
+      "costPrice": 7.5,
+      "minimumQuantity": 4,
+      "targetQuantity": 12,
+      "orderQuantity": 6,
+      "currentQuantity": 11,
       "active": true,
       "defaultStorage": "Main Storage",
       "locationQuantities": [
         {
           "locationKey": "Main Storage",
-          "quantity": 20
+          "quantity": 8
+        },
+        {
+          "locationKey": "Bar",
+          "quantity": 3
         }
       ],
       "research": {
         "status": "verified",
-        "sourceUrl": "https://feebrothers.com/products/orange-bitters",
+        "sourceUrl": "https://www.tirnavos.gr/",
         "sizeVerified": true,
         "barcodeVerified": false
       }
@@ -2048,7 +2060,7 @@
       "batchId": "ONE_REAL_LABEL_TEST_2026_07",
       "sequence": 57,
       "domain": "wine",
-      "brand": "Boutari",
+      "brand": "Μπουτάρη",
       "name": "Moschofilero",
       "category": "Wine",
       "itemType": "White Wine",
@@ -2122,7 +2134,7 @@
       "batchId": "ONE_REAL_LABEL_TEST_2026_07",
       "sequence": 59,
       "domain": "wine",
-      "brand": "Santa Marina",
+      "brand": "Κτήμα Άλφα",
       "name": "Sauvignon Blanc",
       "category": "Wine",
       "itemType": "White Wine",
@@ -2131,26 +2143,26 @@
       "packagingNote": "Usually delivered as individual bottles.",
       "barcode": null,
       "supplierName": "Cyprus Fine Wines Trading",
-      "costPrice": 9,
+      "costPrice": 14,
       "minimumQuantity": 4,
       "targetQuantity": 18,
       "orderQuantity": 6,
-      "currentQuantity": 18,
+      "currentQuantity": 15,
       "active": true,
       "defaultStorage": "Wine Storage",
       "locationQuantities": [
         {
           "locationKey": "Wine Storage",
-          "quantity": 14
+          "quantity": 12
         },
         {
           "locationKey": "Bar",
-          "quantity": 4
+          "quantity": 3
         }
       ],
       "research": {
         "status": "verified",
-        "sourceUrl": "https://www.santamarina.gr/",
+        "sourceUrl": "https://www.alpha-estate.com/",
         "sizeVerified": true,
         "barcodeVerified": false
       }
@@ -2159,8 +2171,8 @@
       "batchId": "ONE_REAL_LABEL_TEST_2026_07",
       "sequence": 60,
       "domain": "wine",
-      "brand": "Oyster Bay",
-      "name": "Sauvignon Blanc",
+      "brand": "Κτήμα Γεροβασιλείου",
+      "name": "Ασύρτικο",
       "category": "Wine",
       "itemType": "White Wine",
       "size": "750 ml",
@@ -2168,9 +2180,9 @@
       "packagingNote": "Usually delivered as individual bottles.",
       "barcode": null,
       "supplierName": "Cyprus Fine Wines Trading",
-      "costPrice": 10.5,
+      "costPrice": 16,
       "minimumQuantity": 4,
-      "targetQuantity": 18,
+      "targetQuantity": 16,
       "orderQuantity": 6,
       "currentQuantity": 0,
       "active": true,
@@ -2187,7 +2199,7 @@
       ],
       "research": {
         "status": "verified",
-        "sourceUrl": "https://www.oysterbaywines.com/wines/sauvignon-blanc/",
+        "sourceUrl": "https://www.gerovassiliou.gr/en/",
         "sizeVerified": true,
         "barcodeVerified": false
       }
@@ -2196,8 +2208,8 @@
       "batchId": "ONE_REAL_LABEL_TEST_2026_07",
       "sequence": 61,
       "domain": "wine",
-      "brand": "Cloudy Bay",
-      "name": "Sauvignon Blanc",
+      "brand": "Κυπερούντα",
+      "name": "Xynisteri",
       "category": "Wine",
       "itemType": "White Wine",
       "size": "750 ml",
@@ -2205,26 +2217,26 @@
       "packagingNote": "Usually delivered as individual bottles.",
       "barcode": null,
       "supplierName": "Cyprus Fine Wines Trading",
-      "costPrice": 18,
+      "costPrice": 11,
       "minimumQuantity": 4,
-      "targetQuantity": 18,
+      "targetQuantity": 16,
       "orderQuantity": 6,
-      "currentQuantity": 18,
+      "currentQuantity": 12,
       "active": true,
       "defaultStorage": "Wine Storage",
       "locationQuantities": [
         {
           "locationKey": "Wine Storage",
-          "quantity": 14
+          "quantity": 10
         },
         {
           "locationKey": "Bar",
-          "quantity": 4
+          "quantity": 2
         }
       ],
       "research": {
         "status": "verified",
-        "sourceUrl": "https://www.cloudybay.com/en/wines/sauvignon-blanc",
+        "sourceUrl": "https://www.kyperoundawinery.com.cy/",
         "sizeVerified": true,
         "barcodeVerified": false
       }
@@ -2377,7 +2389,7 @@
       "batchId": "ONE_REAL_LABEL_TEST_2026_07",
       "sequence": 66,
       "domain": "wine",
-      "brand": "Boutari",
+      "brand": "Μπουτάρη",
       "name": "Naoussa",
       "category": "Wine",
       "itemType": "Red Wine",
@@ -2414,35 +2426,35 @@
       "batchId": "ONE_REAL_LABEL_TEST_2026_07",
       "sequence": 67,
       "domain": "wine",
-      "brand": "Campo Viejo",
-      "name": "Rioja Tempranillo",
+      "brand": "Ζαμπάρτας",
+      "name": "Xynisteri",
       "category": "Wine",
-      "itemType": "Red Wine",
+      "itemType": "White Wine",
       "size": "750 ml",
       "unit": "Bottle",
       "packagingNote": "Usually delivered as individual bottles.",
       "barcode": null,
       "supplierName": "Cyprus Fine Wines Trading",
-      "costPrice": 8,
+      "costPrice": 12.5,
       "minimumQuantity": 4,
-      "targetQuantity": 18,
+      "targetQuantity": 16,
       "orderQuantity": 6,
-      "currentQuantity": 18,
+      "currentQuantity": 14,
       "active": true,
       "defaultStorage": "Wine Storage",
       "locationQuantities": [
         {
           "locationKey": "Wine Storage",
-          "quantity": 14
+          "quantity": 11
         },
         {
           "locationKey": "Bar",
-          "quantity": 4
+          "quantity": 3
         }
       ],
       "research": {
         "status": "verified",
-        "sourceUrl": "https://www.campoviejo.com/en/wines/tempranillo",
+        "sourceUrl": "https://www.zambartaswineries.com/",
         "sizeVerified": true,
         "barcodeVerified": false
       }
@@ -2451,31 +2463,35 @@
       "batchId": "ONE_REAL_LABEL_TEST_2026_07",
       "sequence": 68,
       "domain": "wine",
-      "brand": "Yellow Tail",
-      "name": "Shiraz",
+      "brand": "Τσιάκκας",
+      "name": "Xynisteri",
       "category": "Wine",
-      "itemType": "Red Wine",
+      "itemType": "White Wine",
       "size": "750 ml",
       "unit": "Bottle",
       "packagingNote": "Usually delivered as individual bottles.",
       "barcode": null,
       "supplierName": "Cyprus Fine Wines Trading",
-      "costPrice": 7,
+      "costPrice": 10.5,
       "minimumQuantity": 4,
-      "targetQuantity": 18,
+      "targetQuantity": 16,
       "orderQuantity": 6,
-      "currentQuantity": 12,
+      "currentQuantity": 1,
       "active": true,
       "defaultStorage": "Wine Storage",
       "locationQuantities": [
         {
           "locationKey": "Wine Storage",
-          "quantity": 12
+          "quantity": 1
+        },
+        {
+          "locationKey": "Bar",
+          "quantity": 0
         }
       ],
       "research": {
         "status": "verified",
-        "sourceUrl": "https://www.yellowtailwine.com/en/wines/shiraz/",
+        "sourceUrl": "https://www.tsiakkawinery.com/",
         "sizeVerified": true,
         "barcodeVerified": false
       }
@@ -2484,35 +2500,35 @@
       "batchId": "ONE_REAL_LABEL_TEST_2026_07",
       "sequence": 69,
       "domain": "wine",
-      "brand": "Hardys",
-      "name": "Stamp Shiraz Cabernet",
+      "brand": "Αργυρού",
+      "name": "Assyrtiko Santorini",
       "category": "Wine",
-      "itemType": "Red Wine",
+      "itemType": "White Wine",
       "size": "750 ml",
       "unit": "Bottle",
       "packagingNote": "Usually delivered as individual bottles.",
       "barcode": null,
       "supplierName": "Cyprus Fine Wines Trading",
-      "costPrice": 6.5,
-      "minimumQuantity": 4,
-      "targetQuantity": 18,
+      "costPrice": 18,
+      "minimumQuantity": 3,
+      "targetQuantity": 12,
       "orderQuantity": 6,
-      "currentQuantity": 18,
+      "currentQuantity": 10,
       "active": true,
       "defaultStorage": "Wine Storage",
       "locationQuantities": [
         {
           "locationKey": "Wine Storage",
-          "quantity": 14
+          "quantity": 8
         },
         {
           "locationKey": "Bar",
-          "quantity": 4
+          "quantity": 2
         }
       ],
       "research": {
         "status": "verified",
-        "sourceUrl": "https://www.hardys.com.au/wines",
+        "sourceUrl": "https://www.estate-argyros.com/",
         "sizeVerified": true,
         "barcodeVerified": false
       }
@@ -2521,18 +2537,18 @@
       "batchId": "ONE_REAL_LABEL_TEST_2026_07",
       "sequence": 70,
       "domain": "wine",
-      "brand": "Mouton Cadet",
-      "name": "Rouge",
+      "brand": "Γαία",
+      "name": "Thalassitis Assyrtiko",
       "category": "Wine",
-      "itemType": "Red Wine",
+      "itemType": "White Wine",
       "size": "750 ml",
       "unit": "Bottle",
       "packagingNote": "Usually delivered as individual bottles.",
       "barcode": null,
       "supplierName": "Cyprus Fine Wines Trading",
-      "costPrice": 9.5,
-      "minimumQuantity": 4,
-      "targetQuantity": 18,
+      "costPrice": 17,
+      "minimumQuantity": 3,
+      "targetQuantity": 12,
       "orderQuantity": 6,
       "currentQuantity": 9,
       "active": false,
@@ -2549,7 +2565,7 @@
       ],
       "research": {
         "status": "verified",
-        "sourceUrl": "https://www.moutoncadet.com/en/",
+        "sourceUrl": "https://www.gaiawines.gr/",
         "sizeVerified": true,
         "barcodeVerified": false
       }
@@ -2595,8 +2611,8 @@
       "batchId": "ONE_REAL_LABEL_TEST_2026_07",
       "sequence": 72,
       "domain": "wine",
-      "brand": "Penfolds",
-      "name": "Koonunga Hill Shiraz Cabernet",
+      "brand": "Κτήμα Άλφα",
+      "name": "Ξινόμαυρο Hedgehog",
       "category": "Wine",
       "itemType": "Red Wine",
       "size": "750 ml",
@@ -2604,9 +2620,9 @@
       "packagingNote": "Usually delivered as individual bottles.",
       "barcode": null,
       "supplierName": "Cyprus Fine Wines Trading",
-      "costPrice": 12,
+      "costPrice": 15,
       "minimumQuantity": 4,
-      "targetQuantity": 18,
+      "targetQuantity": 14,
       "orderQuantity": 6,
       "currentQuantity": 12,
       "active": true,
@@ -2614,12 +2630,16 @@
       "locationQuantities": [
         {
           "locationKey": "Wine Storage",
-          "quantity": 12
+          "quantity": 10
+        },
+        {
+          "locationKey": "Bar",
+          "quantity": 2
         }
       ],
       "research": {
         "status": "verified",
-        "sourceUrl": "https://www.penfolds.com/en-au/wines/koonunga-hill",
+        "sourceUrl": "https://www.alpha-estate.com/",
         "sizeVerified": true,
         "barcodeVerified": false
       }
@@ -2739,8 +2759,8 @@
       "batchId": "ONE_REAL_LABEL_TEST_2026_07",
       "sequence": 76,
       "domain": "wine",
-      "brand": "Mateus",
-      "name": "Rosé",
+      "brand": "Κτήμα Καριπίδη",
+      "name": "Ροζέ",
       "category": "Wine",
       "itemType": "Rosé Wine",
       "size": "750 ml",
@@ -2748,9 +2768,9 @@
       "packagingNote": "Usually delivered as individual bottles.",
       "barcode": null,
       "supplierName": "Cyprus Fine Wines Trading",
-      "costPrice": 6.5,
+      "costPrice": 10,
       "minimumQuantity": 4,
-      "targetQuantity": 18,
+      "targetQuantity": 14,
       "orderQuantity": 6,
       "currentQuantity": 12,
       "active": true,
@@ -2758,12 +2778,16 @@
       "locationQuantities": [
         {
           "locationKey": "Wine Storage",
-          "quantity": 12
+          "quantity": 9
+        },
+        {
+          "locationKey": "Bar",
+          "quantity": 3
         }
       ],
       "research": {
         "status": "verified",
-        "sourceUrl": "https://www.mateusrose.com/",
+        "sourceUrl": "https://www.karipidisestate.gr/",
         "sizeVerified": true,
         "barcodeVerified": false
       }
@@ -3426,8 +3450,8 @@
       "batchId": "ONE_REAL_LABEL_TEST_2026_07",
       "sequence": 95,
       "domain": "beer",
-      "brand": "Peroni",
-      "name": "Nastro Azzurro",
+      "brand": "Alpha",
+      "name": "Hellénique",
       "category": "Beverages",
       "itemType": "Beer",
       "size": "330 ml",
@@ -3435,7 +3459,7 @@
       "packagingNote": "Often delivered in cases of 24.",
       "barcode": null,
       "supplierName": "Mediterranean Beverage Partners",
-      "costPrice": 0.95,
+      "costPrice": 0.75,
       "minimumQuantity": 24,
       "targetQuantity": 96,
       "orderQuantity": 48,
@@ -3454,7 +3478,7 @@
       ],
       "research": {
         "status": "verified",
-        "sourceUrl": "https://www.peroniitaly.com/",
+        "sourceUrl": "https://www.athenianbrewery.gr/",
         "sizeVerified": true,
         "barcodeVerified": false
       }
@@ -3463,8 +3487,8 @@
       "batchId": "ONE_REAL_LABEL_TEST_2026_07",
       "sequence": 96,
       "domain": "beer",
-      "brand": "Birra Moretti",
-      "name": "Lager",
+      "brand": "Fix",
+      "name": "Hellas",
       "category": "Beverages",
       "itemType": "Beer",
       "size": "330 ml",
@@ -3472,22 +3496,26 @@
       "packagingNote": "Often delivered in cases of 24.",
       "barcode": null,
       "supplierName": "Mediterranean Beverage Partners",
-      "costPrice": 0.9,
+      "costPrice": 0.8,
       "minimumQuantity": 24,
       "targetQuantity": 96,
       "orderQuantity": 48,
-      "currentQuantity": 72,
+      "currentQuantity": 60,
       "active": true,
       "defaultStorage": "Fridge",
       "locationQuantities": [
         {
           "locationKey": "Fridge",
-          "quantity": 72
+          "quantity": 40
+        },
+        {
+          "locationKey": "Bar",
+          "quantity": 20
         }
       ],
       "research": {
         "status": "verified",
-        "sourceUrl": "https://www.birramoretti.com/",
+        "sourceUrl": "https://www.fix-beer.gr/",
         "sizeVerified": true,
         "barcodeVerified": false
       }
@@ -3533,7 +3561,7 @@
       "batchId": "ONE_REAL_LABEL_TEST_2026_07",
       "sequence": 98,
       "domain": "beer",
-      "brand": "Keo",
+      "brand": "KEO",
       "name": "Beer",
       "category": "Beverages",
       "itemType": "Beer",
@@ -3571,7 +3599,7 @@
       "sequence": 99,
       "domain": "beer",
       "brand": "Carlsberg",
-      "name": "Danish Pilsner",
+      "name": "Cyprus",
       "category": "Beverages",
       "itemType": "Beer",
       "size": "330 ml",
@@ -3598,7 +3626,7 @@
       ],
       "research": {
         "status": "verified",
-        "sourceUrl": "https://www.carlsberg.com/",
+        "sourceUrl": "https://www.carlsberg.com.cy/",
         "sizeVerified": true,
         "barcodeVerified": false
       }
@@ -3607,8 +3635,45 @@
       "batchId": "ONE_REAL_LABEL_TEST_2026_07",
       "sequence": 100,
       "domain": "beer",
-      "brand": "Amstel",
+      "brand": "Vergina",
       "name": "Lager",
+      "category": "Beverages",
+      "itemType": "Beer",
+      "size": "330 ml",
+      "unit": "Bottle",
+      "packagingNote": "Often delivered in cases of 24.",
+      "barcode": null,
+      "supplierName": "Mediterranean Beverage Partners",
+      "costPrice": 0.78,
+      "minimumQuantity": 24,
+      "targetQuantity": 96,
+      "orderQuantity": 48,
+      "currentQuantity": 54,
+      "active": true,
+      "defaultStorage": "Fridge",
+      "locationQuantities": [
+        {
+          "locationKey": "Fridge",
+          "quantity": 36
+        },
+        {
+          "locationKey": "Bar",
+          "quantity": 18
+        }
+      ],
+      "research": {
+        "status": "verified",
+        "sourceUrl": "https://www.macedonianthracebrewery.gr/",
+        "sizeVerified": true,
+        "barcodeVerified": false
+      }
+    },
+    {
+      "batchId": "ONE_REAL_LABEL_TEST_2026_07",
+      "sequence": 101,
+      "domain": "beer",
+      "brand": "Leon",
+      "name": "Beer",
       "category": "Beverages",
       "itemType": "Beer",
       "size": "330 ml",
@@ -3626,53 +3691,12 @@
       "locationQuantities": [
         {
           "locationKey": "Fridge",
-          "quantity": 48
-        },
-        {
-          "locationKey": "Bar",
-          "quantity": 24
+          "quantity": 72
         }
       ],
       "research": {
         "status": "verified",
-        "sourceUrl": "https://www.amstel.com/",
-        "sizeVerified": true,
-        "barcodeVerified": false
-      }
-    },
-    {
-      "batchId": "ONE_REAL_LABEL_TEST_2026_07",
-      "sequence": 101,
-      "domain": "beer",
-      "brand": "Beck's",
-      "name": "Pilsner",
-      "category": "Beverages",
-      "itemType": "Beer",
-      "size": "330 ml",
-      "unit": "Bottle",
-      "packagingNote": "Often delivered in cases of 24.",
-      "barcode": null,
-      "supplierName": "Mediterranean Beverage Partners",
-      "costPrice": 0.85,
-      "minimumQuantity": 24,
-      "targetQuantity": 96,
-      "orderQuantity": 48,
-      "currentQuantity": 72,
-      "active": true,
-      "defaultStorage": "Fridge",
-      "locationQuantities": [
-        {
-          "locationKey": "Fridge",
-          "quantity": 48
-        },
-        {
-          "locationKey": "Bar",
-          "quantity": 24
-        }
-      ],
-      "research": {
-        "status": "verified",
-        "sourceUrl": "https://www.becks.com/",
+        "sourceUrl": "https://www.photosphotiades.com.cy/",
         "sizeVerified": true,
         "barcodeVerified": false
       }
@@ -3714,16 +3738,16 @@
       "batchId": "ONE_REAL_LABEL_TEST_2026_07",
       "sequence": 103,
       "domain": "beer",
-      "brand": "Sol",
-      "name": "Mexican Lager",
+      "brand": "KEO",
+      "name": "Beer",
       "category": "Beverages",
       "itemType": "Beer",
-      "size": "330 ml",
-      "unit": "Bottle",
+      "size": "330 ml can",
+      "unit": "Can",
       "packagingNote": "Often delivered in cases of 24.",
       "barcode": null,
       "supplierName": "Mediterranean Beverage Partners",
-      "costPrice": 0.9,
+      "costPrice": 0.7,
       "minimumQuantity": 24,
       "targetQuantity": 96,
       "orderQuantity": 48,
@@ -3733,16 +3757,16 @@
       "locationQuantities": [
         {
           "locationKey": "Fridge",
-          "quantity": 48
+          "quantity": 50
         },
         {
           "locationKey": "Bar",
-          "quantity": 24
+          "quantity": 22
         }
       ],
       "research": {
         "status": "verified",
-        "sourceUrl": "https://www.solbeer.com/",
+        "sourceUrl": "https://www.keo.com.cy/",
         "sizeVerified": true,
         "barcodeVerified": false
       }
@@ -3751,35 +3775,35 @@
       "batchId": "ONE_REAL_LABEL_TEST_2026_07",
       "sequence": 104,
       "domain": "beer",
-      "brand": "Desperados",
-      "name": "Tequila Flavoured Beer",
+      "brand": "Alpha",
+      "name": "Weiss",
       "category": "Beverages",
       "itemType": "Beer",
-      "size": "330 ml",
+      "size": "500 ml",
       "unit": "Bottle",
-      "packagingNote": "Often delivered in cases of 24.",
+      "packagingNote": "Often delivered in cases of 12.",
       "barcode": null,
       "supplierName": "Mediterranean Beverage Partners",
       "costPrice": 1.1,
-      "minimumQuantity": 24,
-      "targetQuantity": 96,
-      "orderQuantity": 48,
-      "currentQuantity": 72,
+      "minimumQuantity": 12,
+      "targetQuantity": 48,
+      "orderQuantity": 24,
+      "currentQuantity": 36,
       "active": true,
       "defaultStorage": "Fridge",
       "locationQuantities": [
         {
           "locationKey": "Fridge",
-          "quantity": 48
+          "quantity": 24
         },
         {
           "locationKey": "Bar",
-          "quantity": 24
+          "quantity": 12
         }
       ],
       "research": {
         "status": "verified",
-        "sourceUrl": "https://www.desperados.com/",
+        "sourceUrl": "https://www.athenianbrewery.gr/",
         "sizeVerified": true,
         "barcodeVerified": false
       }
@@ -3788,8 +3812,8 @@
       "batchId": "ONE_REAL_LABEL_TEST_2026_07",
       "sequence": 105,
       "domain": "beer",
-      "brand": "Budweiser",
-      "name": "Lager",
+      "brand": "Fix",
+      "name": "Dark",
       "category": "Beverages",
       "itemType": "Beer",
       "size": "330 ml",
@@ -3799,8 +3823,8 @@
       "supplierName": "Mediterranean Beverage Partners",
       "costPrice": 0.85,
       "minimumQuantity": 24,
-      "targetQuantity": 96,
-      "orderQuantity": 48,
+      "targetQuantity": 72,
+      "orderQuantity": 24,
       "currentQuantity": 48,
       "active": false,
       "defaultStorage": "Fridge",
@@ -3816,7 +3840,7 @@
       ],
       "research": {
         "status": "verified",
-        "sourceUrl": "https://www.budweiser.com/",
+        "sourceUrl": "https://www.fix-beer.gr/",
         "sizeVerified": true,
         "barcodeVerified": false
       }
@@ -4039,18 +4063,18 @@
       "batchId": "ONE_REAL_LABEL_TEST_2026_07",
       "sequence": 112,
       "domain": "nonAlcoholicBeverages",
-      "brand": "Pepsi",
-      "name": "Cola",
+      "brand": "Three Cents",
+      "name": "Aegean Tonic Water",
       "category": "Beverages",
-      "itemType": "Soft Drink",
-      "size": "330 ml",
-      "unit": "Can",
+      "itemType": "Soda / Tonic",
+      "size": "200 ml",
+      "unit": "Bottle",
       "packagingNote": "Often delivered in cases of 24.",
       "barcode": null,
       "supplierName": "Mediterranean Beverage Partners",
-      "costPrice": 0.4,
-      "minimumQuantity": 36,
-      "targetQuantity": 144,
+      "costPrice": 0.9,
+      "minimumQuantity": 24,
+      "targetQuantity": 96,
       "orderQuantity": 48,
       "currentQuantity": 18,
       "active": true,
@@ -4067,7 +4091,7 @@
       ],
       "research": {
         "status": "verified",
-        "sourceUrl": "https://www.pepsi.com/",
+        "sourceUrl": "https://www.three-cents.com/",
         "sizeVerified": true,
         "barcodeVerified": false
       }
@@ -4582,26 +4606,26 @@
       "batchId": "ONE_REAL_LABEL_TEST_2026_07",
       "sequence": 127,
       "domain": "nonAlcoholicBeverages",
-      "brand": "Canada Dry",
-      "name": "Ginger Ale",
+      "brand": "Three Cents",
+      "name": "Pink Grapefruit Soda",
       "category": "Beverages",
       "itemType": "Soda / Tonic",
-      "size": "330 ml",
-      "unit": "Can",
+      "size": "200 ml",
+      "unit": "Bottle",
       "packagingNote": "Often delivered in cases of 24.",
       "barcode": null,
       "supplierName": "Mediterranean Beverage Partners",
-      "costPrice": 0.5,
-      "minimumQuantity": 36,
-      "targetQuantity": 144,
+      "costPrice": 0.9,
+      "minimumQuantity": 24,
+      "targetQuantity": 96,
       "orderQuantity": 48,
-      "currentQuantity": 88,
+      "currentQuantity": 72,
       "active": true,
       "defaultStorage": "Main Storage",
       "locationQuantities": [
         {
           "locationKey": "Main Storage",
-          "quantity": 64
+          "quantity": 48
         },
         {
           "locationKey": "Bar",
@@ -4610,7 +4634,7 @@
       ],
       "research": {
         "status": "verified",
-        "sourceUrl": "https://www.canadadry.com/",
+        "sourceUrl": "https://www.three-cents.com/",
         "sizeVerified": true,
         "barcodeVerified": false
       }
@@ -4726,7 +4750,7 @@
       "batchId": "ONE_REAL_LABEL_TEST_2026_07",
       "sequence": 131,
       "domain": "nonAlcoholicBeverages",
-      "brand": "Acqua Panna",
+      "brand": "Zagori",
       "name": "Natural Mineral Water",
       "category": "Beverages",
       "itemType": "Water",
@@ -4735,17 +4759,17 @@
       "packagingNote": "Often delivered in cases of 24.",
       "barcode": null,
       "supplierName": "Island Water & Refreshments",
-      "costPrice": 0.6,
+      "costPrice": 0.35,
       "minimumQuantity": 24,
       "targetQuantity": 120,
       "orderQuantity": 48,
-      "currentQuantity": 88,
+      "currentQuantity": 104,
       "active": true,
       "defaultStorage": "Main Storage",
       "locationQuantities": [
         {
           "locationKey": "Main Storage",
-          "quantity": 64
+          "quantity": 80
         },
         {
           "locationKey": "Bar",
@@ -4754,7 +4778,7 @@
       ],
       "research": {
         "status": "verified",
-        "sourceUrl": "https://www.acquapanna.com/",
+        "sourceUrl": "https://www.zagori.gr/",
         "sizeVerified": true,
         "barcodeVerified": false
       }
@@ -4763,35 +4787,35 @@
       "batchId": "ONE_REAL_LABEL_TEST_2026_07",
       "sequence": 132,
       "domain": "nonAlcoholicBeverages",
-      "brand": "VOSS",
-      "name": "Still Water",
+      "brand": "Theoni",
+      "name": "Natural Mineral Water",
       "category": "Beverages",
       "itemType": "Water",
-      "size": "800 ml",
+      "size": "500 ml",
       "unit": "Bottle",
       "packagingNote": "Often delivered in cases of 24.",
       "barcode": null,
       "supplierName": "Island Water & Refreshments",
-      "costPrice": 1.8,
+      "costPrice": 0.4,
       "minimumQuantity": 24,
       "targetQuantity": 120,
       "orderQuantity": 48,
-      "currentQuantity": 88,
+      "currentQuantity": 90,
       "active": true,
       "defaultStorage": "Main Storage",
       "locationQuantities": [
         {
           "locationKey": "Main Storage",
-          "quantity": 64
+          "quantity": 70
         },
         {
           "locationKey": "Bar",
-          "quantity": 24
+          "quantity": 20
         }
       ],
       "research": {
         "status": "verified",
-        "sourceUrl": "https://vosswater.com/",
+        "sourceUrl": "https://www.theoni.gr/",
         "sizeVerified": true,
         "barcodeVerified": false
       }
@@ -4800,31 +4824,31 @@
       "batchId": "ONE_REAL_LABEL_TEST_2026_07",
       "sequence": 133,
       "domain": "nonAlcoholicBeverages",
-      "brand": "Tropicana",
-      "name": "Orange Juice",
+      "brand": "Agros",
+      "name": "Natural Mineral Water",
       "category": "Beverages",
-      "itemType": "Juice",
-      "size": "1 L",
+      "itemType": "Water",
+      "size": "500 ml",
       "unit": "Bottle",
       "packagingNote": "Often delivered in cases of 24.",
       "barcode": null,
       "supplierName": "Island Water & Refreshments",
-      "costPrice": 2.2,
-      "minimumQuantity": 36,
-      "targetQuantity": 144,
+      "costPrice": 0.35,
+      "minimumQuantity": 24,
+      "targetQuantity": 120,
       "orderQuantity": 48,
       "currentQuantity": 72,
       "active": true,
-      "defaultStorage": "Fridge",
+      "defaultStorage": "Main Storage",
       "locationQuantities": [
         {
-          "locationKey": "Fridge",
+          "locationKey": "Main Storage",
           "quantity": 72
         }
       ],
       "research": {
         "status": "verified",
-        "sourceUrl": "https://www.tropicana.com/",
+        "sourceUrl": "https://www.agros.com.cy/",
         "sizeVerified": true,
         "barcodeVerified": false
       }
@@ -5376,20 +5400,20 @@
       "batchId": "ONE_REAL_LABEL_TEST_2026_07",
       "sequence": 149,
       "domain": "barIngredients",
-      "brand": "Monin",
-      "name": "Cucumber Syrup",
+      "brand": "1883",
+      "name": "Vanilla Syrup",
       "category": "Syrups & Purées",
       "itemType": "Syrup",
-      "size": "70 cl",
+      "size": "1 L",
       "unit": "Bottle",
       "packagingNote": "Usually delivered as individual bottles.",
       "barcode": null,
       "supplierName": "FreshServe Food Solutions",
-      "costPrice": 8,
+      "costPrice": 8.5,
       "minimumQuantity": 3,
       "targetQuantity": 12,
       "orderQuantity": 6,
-      "currentQuantity": 6,
+      "currentQuantity": 10,
       "active": true,
       "defaultStorage": "Bar",
       "locationQuantities": [
@@ -5398,13 +5422,13 @@
           "quantity": 4
         },
         {
-          "locationKey": "Kitchen",
-          "quantity": 2
+          "locationKey": "Main Storage",
+          "quantity": 6
         }
       ],
       "research": {
         "status": "verified",
-        "sourceUrl": "https://www.monin.com/us/cucumber-syrup",
+        "sourceUrl": "https://www.1883.com/",
         "sizeVerified": true,
         "barcodeVerified": false
       }
@@ -5413,12 +5437,12 @@
       "batchId": "ONE_REAL_LABEL_TEST_2026_07",
       "sequence": 150,
       "domain": "barIngredients",
-      "brand": "Funkin",
-      "name": "Strawberry Purée",
+      "brand": "Fabbri",
+      "name": "Strawberry Syrup",
       "category": "Syrups & Purées",
-      "itemType": "Purée",
-      "size": "1 kg",
-      "unit": "Kilogram",
+      "itemType": "Syrup",
+      "size": "1 L",
+      "unit": "Bottle",
       "packagingNote": "Usually delivered as individual bottles.",
       "barcode": null,
       "supplierName": "FreshServe Food Solutions",
@@ -5428,10 +5452,10 @@
       "orderQuantity": 6,
       "currentQuantity": 1,
       "active": true,
-      "defaultStorage": "Fridge",
+      "defaultStorage": "Bar",
       "locationQuantities": [
         {
-          "locationKey": "Fridge",
+          "locationKey": "Bar",
           "quantity": 1
         },
         {
@@ -5441,7 +5465,7 @@
       ],
       "research": {
         "status": "verified",
-        "sourceUrl": "https://www.funkincocktails.co.uk/",
+        "sourceUrl": "https://www.fabbri1905.com/",
         "sizeVerified": true,
         "barcodeVerified": false
       }
@@ -5932,13 +5956,17 @@
       "minimumQuantity": 50,
       "targetQuantity": 200,
       "orderQuantity": 100,
-      "currentQuantity": 120,
+      "currentQuantity": 140,
       "active": true,
       "defaultStorage": "Main Storage",
       "locationQuantities": [
         {
           "locationKey": "Main Storage",
-          "quantity": 120
+          "quantity": 100
+        },
+        {
+          "locationKey": "Bar",
+          "quantity": 40
         }
       ],
       "research": {
@@ -5965,43 +5993,6 @@
       "minimumQuantity": 50,
       "targetQuantity": 200,
       "orderQuantity": 100,
-      "currentQuantity": 140,
-      "active": true,
-      "defaultStorage": "Main Storage",
-      "locationQuantities": [
-        {
-          "locationKey": "Main Storage",
-          "quantity": 100
-        },
-        {
-          "locationKey": "Bar",
-          "quantity": 40
-        }
-      ],
-      "research": {
-        "status": "operational_generic",
-        "sourceUrl": "",
-        "sizeVerified": true,
-        "barcodeVerified": false
-      }
-    },
-    {
-      "batchId": "ONE_REAL_LABEL_TEST_2026_07",
-      "sequence": 166,
-      "domain": "operationalConsumables",
-      "brand": "",
-      "name": "Takeaway Cup 8 oz",
-      "category": "Consumables",
-      "itemType": "Packaging",
-      "size": "8 oz",
-      "unit": "Piece",
-      "packagingNote": "Often delivered in sleeves.",
-      "barcode": null,
-      "supplierName": "Nicosia HORECA Supplies",
-      "costPrice": 0.08,
-      "minimumQuantity": 50,
-      "targetQuantity": 200,
-      "orderQuantity": 100,
       "currentQuantity": 30,
       "active": true,
       "defaultStorage": "Main Storage",
@@ -6024,37 +6015,74 @@
     },
     {
       "batchId": "ONE_REAL_LABEL_TEST_2026_07",
-      "sequence": 167,
-      "domain": "operationalConsumables",
-      "brand": "",
-      "name": "Takeaway Cup 12 oz",
-      "category": "Consumables",
-      "itemType": "Packaging",
-      "size": "12 oz",
-      "unit": "Piece",
-      "packagingNote": "Often delivered in sleeves.",
+      "sequence": 166,
+      "domain": "spirits",
+      "brand": "Metaxa",
+      "name": "12 Stars",
+      "category": "Spirits",
+      "itemType": "Cognac",
+      "size": "70 cl",
+      "unit": "Bottle",
+      "packagingNote": "Often delivered in cases of 6.",
       "barcode": null,
-      "supplierName": "Nicosia HORECA Supplies",
-      "costPrice": 0.1,
-      "minimumQuantity": 50,
-      "targetQuantity": 200,
-      "orderQuantity": 100,
-      "currentQuantity": 140,
+      "supplierName": "Premium Spirits Distribution Ltd",
+      "costPrice": 22,
+      "minimumQuantity": 4,
+      "targetQuantity": 12,
+      "orderQuantity": 6,
+      "currentQuantity": 14,
       "active": true,
       "defaultStorage": "Main Storage",
       "locationQuantities": [
         {
           "locationKey": "Main Storage",
-          "quantity": 100
+          "quantity": 10
         },
         {
           "locationKey": "Bar",
-          "quantity": 40
+          "quantity": 4
         }
       ],
       "research": {
-        "status": "operational_generic",
-        "sourceUrl": "",
+        "status": "verified",
+        "sourceUrl": "https://www.metaxa.com/",
+        "sizeVerified": true,
+        "barcodeVerified": false
+      }
+    },
+    {
+      "batchId": "ONE_REAL_LABEL_TEST_2026_07",
+      "sequence": 167,
+      "domain": "spirits",
+      "brand": "Tsipouro Tirnavou",
+      "name": "Without Anise",
+      "category": "Spirits",
+      "itemType": "Other",
+      "size": "500 ml",
+      "unit": "Bottle",
+      "packagingNote": "Usually delivered as individual bottles.",
+      "barcode": null,
+      "supplierName": "Premium Spirits Distribution Ltd",
+      "costPrice": 8,
+      "minimumQuantity": 4,
+      "targetQuantity": 12,
+      "orderQuantity": 6,
+      "currentQuantity": 12,
+      "active": true,
+      "defaultStorage": "Main Storage",
+      "locationQuantities": [
+        {
+          "locationKey": "Main Storage",
+          "quantity": 9
+        },
+        {
+          "locationKey": "Bar",
+          "quantity": 3
+        }
+      ],
+      "research": {
+        "status": "verified",
+        "sourceUrl": "https://www.tirnavos.gr/",
         "sizeVerified": true,
         "barcodeVerified": false
       }
@@ -6062,32 +6090,36 @@
     {
       "batchId": "ONE_REAL_LABEL_TEST_2026_07",
       "sequence": 168,
-      "domain": "operationalConsumables",
-      "brand": "",
-      "name": "Bar Cloth",
-      "category": "Consumables",
-      "itemType": "Other",
-      "size": "Standard",
-      "unit": "Piece",
-      "packagingNote": "Supplier packaging may vary.",
+      "domain": "spirits",
+      "brand": "Metaxa",
+      "name": "7 Stars",
+      "category": "Spirits",
+      "itemType": "Cognac",
+      "size": "70 cl",
+      "unit": "Bottle",
+      "packagingNote": "Often delivered in cases of 6.",
       "barcode": null,
-      "supplierName": "Nicosia HORECA Supplies",
-      "costPrice": 1.2,
-      "minimumQuantity": 50,
-      "targetQuantity": 200,
-      "orderQuantity": 100,
-      "currentQuantity": 120,
+      "supplierName": "Premium Spirits Distribution Ltd",
+      "costPrice": 16.5,
+      "minimumQuantity": 4,
+      "targetQuantity": 14,
+      "orderQuantity": 6,
+      "currentQuantity": 16,
       "active": true,
       "defaultStorage": "Main Storage",
       "locationQuantities": [
         {
           "locationKey": "Main Storage",
-          "quantity": 120
+          "quantity": 12
+        },
+        {
+          "locationKey": "Bar",
+          "quantity": 4
         }
       ],
       "research": {
-        "status": "operational_generic",
-        "sourceUrl": "",
+        "status": "verified",
+        "sourceUrl": "https://www.metaxa.com/",
         "sizeVerified": true,
         "barcodeVerified": false
       }
@@ -6095,36 +6127,36 @@
     {
       "batchId": "ONE_REAL_LABEL_TEST_2026_07",
       "sequence": 169,
-      "domain": "operationalConsumables",
-      "brand": "",
-      "name": "Bin Liner Heavy Duty",
-      "category": "Consumables",
-      "itemType": "Other",
-      "size": "Large",
-      "unit": "Piece",
-      "packagingNote": "Often delivered in rolls.",
+      "domain": "wine",
+      "brand": "Κτήμα Γεροβασιλείου",
+      "name": "Ερυθρός",
+      "category": "Wine",
+      "itemType": "Red Wine",
+      "size": "750 ml",
+      "unit": "Bottle",
+      "packagingNote": "Usually delivered as individual bottles.",
       "barcode": null,
-      "supplierName": "Nicosia HORECA Supplies",
-      "costPrice": 0.15,
-      "minimumQuantity": 50,
-      "targetQuantity": 200,
-      "orderQuantity": 100,
-      "currentQuantity": 140,
+      "supplierName": "Cyprus Fine Wines Trading",
+      "costPrice": 18,
+      "minimumQuantity": 3,
+      "targetQuantity": 12,
+      "orderQuantity": 6,
+      "currentQuantity": 10,
       "active": true,
-      "defaultStorage": "Main Storage",
+      "defaultStorage": "Wine Storage",
       "locationQuantities": [
         {
-          "locationKey": "Main Storage",
-          "quantity": 100
+          "locationKey": "Wine Storage",
+          "quantity": 8
         },
         {
           "locationKey": "Bar",
-          "quantity": 40
+          "quantity": 2
         }
       ],
       "research": {
-        "status": "operational_generic",
-        "sourceUrl": "",
+        "status": "verified",
+        "sourceUrl": "https://www.gerovassiliou.gr/en/",
         "sizeVerified": true,
         "barcodeVerified": false
       }
@@ -6169,311 +6201,27 @@
     {
       "batchId": "ONE_REAL_LABEL_TEST_2026_07",
       "sequence": 171,
-      "domain": "operationalConsumables",
-      "brand": "",
-      "name": "Glass Polish",
-      "category": "Consumables",
-      "itemType": "Cleaning",
-      "size": "500 ml",
+      "domain": "wine",
+      "brand": "Ζαμπάρτας",
+      "name": "Shiraz",
+      "category": "Wine",
+      "itemType": "Red Wine",
+      "size": "750 ml",
       "unit": "Bottle",
       "packagingNote": "Usually delivered as individual bottles.",
       "barcode": null,
-      "supplierName": "Nicosia HORECA Supplies",
-      "costPrice": 3,
-      "minimumQuantity": 2,
-      "targetQuantity": 6,
-      "orderQuantity": 3,
-      "currentQuantity": 4,
+      "supplierName": "Cyprus Fine Wines Trading",
+      "costPrice": 13.5,
+      "minimumQuantity": 3,
+      "targetQuantity": 12,
+      "orderQuantity": 6,
+      "currentQuantity": 11,
       "active": true,
-      "defaultStorage": "Main Storage",
+      "defaultStorage": "Wine Storage",
       "locationQuantities": [
         {
-          "locationKey": "Main Storage",
-          "quantity": 3
-        },
-        {
-          "locationKey": "Bar",
-          "quantity": 1
-        }
-      ],
-      "research": {
-        "status": "operational_generic",
-        "sourceUrl": "",
-        "sizeVerified": true,
-        "barcodeVerified": false
-      }
-    },
-    {
-      "batchId": "ONE_REAL_LABEL_TEST_2026_07",
-      "sequence": 172,
-      "domain": "operationalConsumables",
-      "brand": "",
-      "name": "Washing Up Liquid",
-      "category": "Consumables",
-      "itemType": "Cleaning",
-      "size": "5 L",
-      "unit": "Liter",
-      "packagingNote": "Supplier packaging may vary.",
-      "barcode": null,
-      "supplierName": "Nicosia HORECA Supplies",
-      "costPrice": 6,
-      "minimumQuantity": 2,
-      "targetQuantity": 6,
-      "orderQuantity": 3,
-      "currentQuantity": 4,
-      "active": true,
-      "defaultStorage": "Main Storage",
-      "locationQuantities": [
-        {
-          "locationKey": "Main Storage",
-          "quantity": 4
-        }
-      ],
-      "research": {
-        "status": "operational_generic",
-        "sourceUrl": "",
-        "sizeVerified": true,
-        "barcodeVerified": false
-      }
-    },
-    {
-      "batchId": "ONE_REAL_LABEL_TEST_2026_07",
-      "sequence": 173,
-      "domain": "operationalConsumables",
-      "brand": "",
-      "name": "Cocktail Stick",
-      "category": "Consumables",
-      "itemType": "Other",
-      "size": "Pack count varies",
-      "unit": "Piece",
-      "packagingNote": "Often delivered in boxes.",
-      "barcode": null,
-      "supplierName": "Nicosia HORECA Supplies",
-      "costPrice": 0.01,
-      "minimumQuantity": 50,
-      "targetQuantity": 200,
-      "orderQuantity": 100,
-      "currentQuantity": 140,
-      "active": true,
-      "defaultStorage": "Main Storage",
-      "locationQuantities": [
-        {
-          "locationKey": "Main Storage",
-          "quantity": 100
-        },
-        {
-          "locationKey": "Bar",
-          "quantity": 40
-        }
-      ],
-      "research": {
-        "status": "operational_generic",
-        "sourceUrl": "",
-        "sizeVerified": true,
-        "barcodeVerified": false
-      }
-    },
-    {
-      "batchId": "ONE_REAL_LABEL_TEST_2026_07",
-      "sequence": 174,
-      "domain": "operationalConsumables",
-      "brand": "",
-      "name": "Bar Coaster",
-      "category": "Consumables",
-      "itemType": "Other",
-      "size": "Standard",
-      "unit": "Piece",
-      "packagingNote": "Often delivered in cases.",
-      "barcode": null,
-      "supplierName": "Nicosia HORECA Supplies",
-      "costPrice": 0.05,
-      "minimumQuantity": 50,
-      "targetQuantity": 200,
-      "orderQuantity": 100,
-      "currentQuantity": 120,
-      "active": true,
-      "defaultStorage": "Main Storage",
-      "locationQuantities": [
-        {
-          "locationKey": "Main Storage",
-          "quantity": 120
-        }
-      ],
-      "research": {
-        "status": "operational_generic",
-        "sourceUrl": "",
-        "sizeVerified": true,
-        "barcodeVerified": false
-      }
-    },
-    {
-      "batchId": "ONE_REAL_LABEL_TEST_2026_07",
-      "sequence": 175,
-      "domain": "operationalConsumables",
-      "brand": "",
-      "name": "Disposable Gloves",
-      "category": "Consumables",
-      "itemType": "Other",
-      "size": "Medium",
-      "unit": "Piece",
-      "packagingNote": "Often delivered in boxes of 100.",
-      "barcode": null,
-      "supplierName": "Nicosia HORECA Supplies",
-      "costPrice": 0.04,
-      "minimumQuantity": 50,
-      "targetQuantity": 200,
-      "orderQuantity": 100,
-      "currentQuantity": 100,
-      "active": false,
-      "defaultStorage": "Main Storage",
-      "locationQuantities": [
-        {
-          "locationKey": "Main Storage",
-          "quantity": 80
-        },
-        {
-          "locationKey": "Kitchen",
-          "quantity": 20
-        }
-      ],
-      "research": {
-        "status": "operational_generic",
-        "sourceUrl": "",
-        "sizeVerified": true,
-        "barcodeVerified": false
-      }
-    },
-    {
-      "batchId": "ONE_REAL_LABEL_TEST_2026_07",
-      "sequence": 176,
-      "domain": "operationalConsumables",
-      "brand": "",
-      "name": "Cling Film Roll",
-      "category": "Consumables",
-      "itemType": "Packaging",
-      "size": "300 m",
-      "unit": "Roll",
-      "packagingNote": "Usually delivered as individual rolls.",
-      "barcode": null,
-      "supplierName": "Nicosia HORECA Supplies",
-      "costPrice": 4.5,
-      "minimumQuantity": 2,
-      "targetQuantity": 6,
-      "orderQuantity": 3,
-      "currentQuantity": 4,
-      "active": true,
-      "defaultStorage": "Main Storage",
-      "locationQuantities": [
-        {
-          "locationKey": "Main Storage",
-          "quantity": 4
-        }
-      ],
-      "research": {
-        "status": "operational_generic",
-        "sourceUrl": "",
-        "sizeVerified": true,
-        "barcodeVerified": false
-      }
-    },
-    {
-      "batchId": "ONE_REAL_LABEL_TEST_2026_07",
-      "sequence": 177,
-      "domain": "operationalConsumables",
-      "brand": "",
-      "name": "Aluminium Foil Roll",
-      "category": "Consumables",
-      "itemType": "Packaging",
-      "size": "150 m",
-      "unit": "Roll",
-      "packagingNote": "Usually delivered as individual rolls.",
-      "barcode": null,
-      "supplierName": "Nicosia HORECA Supplies",
-      "costPrice": 5,
-      "minimumQuantity": 2,
-      "targetQuantity": 6,
-      "orderQuantity": 3,
-      "currentQuantity": 4,
-      "active": true,
-      "defaultStorage": "Main Storage",
-      "locationQuantities": [
-        {
-          "locationKey": "Main Storage",
-          "quantity": 3
-        },
-        {
-          "locationKey": "Bar",
-          "quantity": 1
-        }
-      ],
-      "research": {
-        "status": "operational_generic",
-        "sourceUrl": "",
-        "sizeVerified": true,
-        "barcodeVerified": false
-      }
-    },
-    {
-      "batchId": "ONE_REAL_LABEL_TEST_2026_07",
-      "sequence": 178,
-      "domain": "operationalConsumables",
-      "brand": "",
-      "name": "Paper Towel Roll",
-      "category": "Consumables",
-      "itemType": "Other",
-      "size": "Standard",
-      "unit": "Roll",
-      "packagingNote": "Usually delivered as individual rolls.",
-      "barcode": null,
-      "supplierName": "Nicosia HORECA Supplies",
-      "costPrice": 1.8,
-      "minimumQuantity": 2,
-      "targetQuantity": 6,
-      "orderQuantity": 3,
-      "currentQuantity": 0,
-      "active": true,
-      "defaultStorage": "Main Storage",
-      "locationQuantities": [
-        {
-          "locationKey": "Main Storage",
-          "quantity": 0
-        },
-        {
-          "locationKey": "Kitchen",
-          "quantity": 0
-        }
-      ],
-      "research": {
-        "status": "operational_generic",
-        "sourceUrl": "",
-        "sizeVerified": true,
-        "barcodeVerified": false
-      }
-    },
-    {
-      "batchId": "ONE_REAL_LABEL_TEST_2026_07",
-      "sequence": 179,
-      "domain": "operationalConsumables",
-      "brand": "",
-      "name": "Bottle Pourer",
-      "category": "Consumables",
-      "itemType": "Other",
-      "size": "Standard",
-      "unit": "Piece",
-      "packagingNote": "Supplier packaging may vary.",
-      "barcode": null,
-      "supplierName": "Nicosia HORECA Supplies",
-      "costPrice": 0.9,
-      "minimumQuantity": 50,
-      "targetQuantity": 200,
-      "orderQuantity": 100,
-      "currentQuantity": 6,
-      "active": false,
-      "defaultStorage": "Main Storage",
-      "locationQuantities": [
-        {
-          "locationKey": "Main Storage",
-          "quantity": 4
+          "locationKey": "Wine Storage",
+          "quantity": 9
         },
         {
           "locationKey": "Bar",
@@ -6481,8 +6229,304 @@
         }
       ],
       "research": {
-        "status": "operational_generic",
-        "sourceUrl": "",
+        "status": "verified",
+        "sourceUrl": "https://www.zambartaswineries.com/",
+        "sizeVerified": true,
+        "barcodeVerified": false
+      }
+    },
+    {
+      "batchId": "ONE_REAL_LABEL_TEST_2026_07",
+      "sequence": 172,
+      "domain": "wine",
+      "brand": "Τσιάκκας",
+      "name": "Maratheftiko",
+      "category": "Wine",
+      "itemType": "Red Wine",
+      "size": "750 ml",
+      "unit": "Bottle",
+      "packagingNote": "Usually delivered as individual bottles.",
+      "barcode": null,
+      "supplierName": "Cyprus Fine Wines Trading",
+      "costPrice": 14,
+      "minimumQuantity": 3,
+      "targetQuantity": 12,
+      "orderQuantity": 6,
+      "currentQuantity": 9,
+      "active": true,
+      "defaultStorage": "Wine Storage",
+      "locationQuantities": [
+        {
+          "locationKey": "Wine Storage",
+          "quantity": 7
+        },
+        {
+          "locationKey": "Bar",
+          "quantity": 2
+        }
+      ],
+      "research": {
+        "status": "verified",
+        "sourceUrl": "https://www.tsiakkawinery.com/",
+        "sizeVerified": true,
+        "barcodeVerified": false
+      }
+    },
+    {
+      "batchId": "ONE_REAL_LABEL_TEST_2026_07",
+      "sequence": 173,
+      "domain": "beer",
+      "brand": "Mythos",
+      "name": "Red",
+      "category": "Beverages",
+      "itemType": "Beer",
+      "size": "330 ml",
+      "unit": "Bottle",
+      "packagingNote": "Often delivered in cases of 24.",
+      "barcode": null,
+      "supplierName": "Mediterranean Beverage Partners",
+      "costPrice": 0.85,
+      "minimumQuantity": 24,
+      "targetQuantity": 72,
+      "orderQuantity": 24,
+      "currentQuantity": 48,
+      "active": true,
+      "defaultStorage": "Fridge",
+      "locationQuantities": [
+        {
+          "locationKey": "Fridge",
+          "quantity": 30
+        },
+        {
+          "locationKey": "Bar",
+          "quantity": 18
+        }
+      ],
+      "research": {
+        "status": "verified",
+        "sourceUrl": "https://www.mythosbrewery.gr/",
+        "sizeVerified": true,
+        "barcodeVerified": false
+      }
+    },
+    {
+      "batchId": "ONE_REAL_LABEL_TEST_2026_07",
+      "sequence": 174,
+      "domain": "beer",
+      "brand": "Vergina",
+      "name": "Weiss",
+      "category": "Beverages",
+      "itemType": "Beer",
+      "size": "500 ml",
+      "unit": "Bottle",
+      "packagingNote": "Often delivered in cases of 12.",
+      "barcode": null,
+      "supplierName": "Mediterranean Beverage Partners",
+      "costPrice": 1.15,
+      "minimumQuantity": 12,
+      "targetQuantity": 48,
+      "orderQuantity": 12,
+      "currentQuantity": 30,
+      "active": true,
+      "defaultStorage": "Fridge",
+      "locationQuantities": [
+        {
+          "locationKey": "Fridge",
+          "quantity": 20
+        },
+        {
+          "locationKey": "Bar",
+          "quantity": 10
+        }
+      ],
+      "research": {
+        "status": "verified",
+        "sourceUrl": "https://www.macedonianthracebrewery.gr/",
+        "sizeVerified": true,
+        "barcodeVerified": false
+      }
+    },
+    {
+      "batchId": "ONE_REAL_LABEL_TEST_2026_07",
+      "sequence": 175,
+      "domain": "beer",
+      "brand": "Fix",
+      "name": "Áneu",
+      "category": "Beverages",
+      "itemType": "Beer",
+      "size": "330 ml",
+      "unit": "Bottle",
+      "packagingNote": "Often delivered in cases of 24.",
+      "barcode": null,
+      "supplierName": "Mediterranean Beverage Partners",
+      "costPrice": 0.9,
+      "minimumQuantity": 24,
+      "targetQuantity": 72,
+      "orderQuantity": 24,
+      "currentQuantity": 42,
+      "active": true,
+      "defaultStorage": "Fridge",
+      "locationQuantities": [
+        {
+          "locationKey": "Fridge",
+          "quantity": 28
+        },
+        {
+          "locationKey": "Bar",
+          "quantity": 14
+        }
+      ],
+      "research": {
+        "status": "verified",
+        "sourceUrl": "https://www.fix-beer.gr/",
+        "sizeVerified": true,
+        "barcodeVerified": false
+      }
+    },
+    {
+      "batchId": "ONE_REAL_LABEL_TEST_2026_07",
+      "sequence": 176,
+      "domain": "beer",
+      "brand": "Alpha",
+      "name": "Fresh",
+      "category": "Beverages",
+      "itemType": "Beer",
+      "size": "330 ml",
+      "unit": "Can",
+      "packagingNote": "Often delivered in cases of 24.",
+      "barcode": null,
+      "supplierName": "Mediterranean Beverage Partners",
+      "costPrice": 0.7,
+      "minimumQuantity": 24,
+      "targetQuantity": 96,
+      "orderQuantity": 48,
+      "currentQuantity": 60,
+      "active": true,
+      "defaultStorage": "Fridge",
+      "locationQuantities": [
+        {
+          "locationKey": "Fridge",
+          "quantity": 40
+        },
+        {
+          "locationKey": "Bar",
+          "quantity": 20
+        }
+      ],
+      "research": {
+        "status": "verified",
+        "sourceUrl": "https://www.athenianbrewery.gr/",
+        "sizeVerified": true,
+        "barcodeVerified": false
+      }
+    },
+    {
+      "batchId": "ONE_REAL_LABEL_TEST_2026_07",
+      "sequence": 177,
+      "domain": "nonAlcoholicBeverages",
+      "brand": "Zagori",
+      "name": "Sparkling Water",
+      "category": "Beverages",
+      "itemType": "Water",
+      "size": "330 ml",
+      "unit": "Bottle",
+      "packagingNote": "Often delivered in cases of 24.",
+      "barcode": null,
+      "supplierName": "Island Water & Refreshments",
+      "costPrice": 0.4,
+      "minimumQuantity": 24,
+      "targetQuantity": 96,
+      "orderQuantity": 48,
+      "currentQuantity": 70,
+      "active": true,
+      "defaultStorage": "Main Storage",
+      "locationQuantities": [
+        {
+          "locationKey": "Main Storage",
+          "quantity": 50
+        },
+        {
+          "locationKey": "Bar",
+          "quantity": 20
+        }
+      ],
+      "research": {
+        "status": "verified",
+        "sourceUrl": "https://www.zagori.gr/",
+        "sizeVerified": true,
+        "barcodeVerified": false
+      }
+    },
+    {
+      "batchId": "ONE_REAL_LABEL_TEST_2026_07",
+      "sequence": 178,
+      "domain": "nonAlcoholicBeverages",
+      "brand": "Three Cents",
+      "name": "Ginger Beer",
+      "category": "Beverages",
+      "itemType": "Soda / Tonic",
+      "size": "200 ml",
+      "unit": "Bottle",
+      "packagingNote": "Often delivered in cases of 24.",
+      "barcode": null,
+      "supplierName": "Mediterranean Beverage Partners",
+      "costPrice": 0.95,
+      "minimumQuantity": 24,
+      "targetQuantity": 96,
+      "orderQuantity": 48,
+      "currentQuantity": 60,
+      "active": true,
+      "defaultStorage": "Main Storage",
+      "locationQuantities": [
+        {
+          "locationKey": "Main Storage",
+          "quantity": 40
+        },
+        {
+          "locationKey": "Bar",
+          "quantity": 20
+        }
+      ],
+      "research": {
+        "status": "verified",
+        "sourceUrl": "https://www.three-cents.com/",
+        "sizeVerified": true,
+        "barcodeVerified": false
+      }
+    },
+    {
+      "batchId": "ONE_REAL_LABEL_TEST_2026_07",
+      "sequence": 179,
+      "domain": "barIngredients",
+      "brand": "1883",
+      "name": "Caramel Syrup",
+      "category": "Syrups & Purées",
+      "itemType": "Syrup",
+      "size": "1 L",
+      "unit": "Bottle",
+      "packagingNote": "Usually delivered as individual bottles.",
+      "barcode": null,
+      "supplierName": "FreshServe Food Solutions",
+      "costPrice": 8.5,
+      "minimumQuantity": 3,
+      "targetQuantity": 12,
+      "orderQuantity": 6,
+      "currentQuantity": 7,
+      "active": true,
+      "defaultStorage": "Bar",
+      "locationQuantities": [
+        {
+          "locationKey": "Bar",
+          "quantity": 3
+        },
+        {
+          "locationKey": "Main Storage",
+          "quantity": 4
+        }
+      ],
+      "research": {
+        "status": "verified",
+        "sourceUrl": "https://www.1883.com/",
         "sizeVerified": true,
         "barcodeVerified": false
       }
@@ -6501,9 +6545,9 @@
       "barcode": null,
       "supplierName": "Nicosia HORECA Supplies",
       "costPrice": 3.5,
-      "minimumQuantity": 50,
-      "targetQuantity": 200,
-      "orderQuantity": 100,
+      "minimumQuantity": 2,
+      "targetQuantity": 6,
+      "orderQuantity": 2,
       "currentQuantity": 3,
       "active": true,
       "defaultStorage": "Main Storage",
