@@ -3,6 +3,9 @@ import {
   normalizeStockCategory,
   normalizeStockItemType,
   normalizePackagingNote,
+  normalizeProductBarcode,
+  normalizeProductBrand,
+  normalizeProductSize,
   resolveStockStorageLocation,
 } from '../lib/stockCatalog'
 import { normalizeSupplierId, resolveSupplierIdForWrite } from '../lib/stockSupplierUtils'
@@ -31,6 +34,7 @@ function mapStockItem(record) {
     id: record.id,
     workspaceId: record.workspace_id ?? record.workspaceId ?? '',
     name: record.name ?? '',
+    brand: normalizeProductBrand(record.brand ?? null),
     category: normalizeStockCategory(record.category ?? 'Other'),
     itemType: normalizeStockItemType(
       record.category ?? 'Other',
@@ -43,9 +47,11 @@ function mapStockItem(record) {
       storageLocation: record.storage_location ?? record.storageLocation,
     }),
     unit: record.unit ?? '',
+    size: normalizeProductSize(record.size ?? null),
     packagingNote: normalizePackagingNote(
       record.packaging_note ?? record.packagingNote ?? null,
     ),
+    barcode: normalizeProductBarcode(record.barcode ?? null),
     currentQuantity,
     minimumQuantity,
     targetQuantity: targetQuantity === null || targetQuantity === undefined
@@ -71,14 +77,17 @@ export function serializeStockItem(item, workspaceId, { supplierId = null } = {}
   return {
     workspace_id: workspaceId,
     name: `${item.name ?? ''}`.trim(),
+    brand: normalizeProductBrand(item.brand ?? null),
     category: `${item.category ?? 'Other'}`.trim() || 'Other',
     item_type: `${item.itemType ?? item.item_type ?? 'Other'}`.trim() || 'Other',
     supplier,
     supplier_id: supplierId,
     unit: `${item.unit ?? ''}`.trim(),
+    size: normalizeProductSize(item.size ?? null),
     packaging_note: normalizePackagingNote(
       item.packagingNote ?? item.packaging_note ?? null,
     ),
+    barcode: normalizeProductBarcode(item.barcode ?? null),
     current_quantity: Math.max(0, Number(item.currentQuantity ?? item.current_quantity ?? 0) || 0),
     minimum_quantity: Math.max(0, Number(item.minimumQuantity ?? item.minimum_quantity ?? 0) || 0),
     target_quantity: item.targetQuantity === null || item.targetQuantity === undefined || item.targetQuantity === ''

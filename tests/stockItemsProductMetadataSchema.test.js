@@ -17,7 +17,7 @@ const additiveSql = readFileSync(additivePath, 'utf8')
 const greenfieldSql = readFileSync(greenfieldPath, 'utf8')
 const packagingNoteSql = readFileSync(packagingNotePath, 'utf8')
 
-/** Recommended write-path limits (app enforcement deferred to P8.31.6b). */
+/** Recommended write-path limits (enforced in P8.31.6b app wiring). */
 export const PRODUCT_METADATA_LENGTH_CONTRACT = Object.freeze({
   brand: 120,
   size: 80,
@@ -97,8 +97,8 @@ describe('stock_items_schema.sql — P8.31.6a greenfield parity', () => {
   })
 })
 
-describe('P8.31.6a boundary — no production JS wiring yet', () => {
-  it('does not introduce brand/size/barcode into stockItemService or stockCatalog', () => {
+describe('P8.31.6b boundary — product metadata is wired in create/edit path', () => {
+  it('wires brand, size, and barcode through service, catalog, and form modal', () => {
     const service = readFileSync(
       join(HERE, '../src/services/stockItemService.js'),
       'utf8',
@@ -112,16 +112,20 @@ describe('P8.31.6a boundary — no production JS wiring yet', () => {
       'utf8',
     )
 
-    for (const source of [service, catalog, formModal]) {
-      expect(source).not.toMatch(/\bbrand\b/)
-      expect(source).not.toMatch(/\bbarcode\b/)
-      // "size" appears in CSS/layout; require product-field wiring shapes only.
-    }
-
-    expect(service).not.toMatch(/packaging_note[\s\S]{0,80}brand/)
-    expect(service).not.toMatch(/\bbrand\b|\bbarcode\b|item\.size|form\.size/)
-    expect(catalog).not.toMatch(/\bbrand\b|\bbarcode\b|packagingNote[\s\S]{0,40}size/)
-    expect(formModal).not.toMatch(/\bbrand\b|\bbarcode\b/)
-    expect(formModal).not.toMatch(/form\.size|Size:/)
+    expect(service).toMatch(/normalizeProductBrand/)
+    expect(service).toMatch(/normalizeProductSize/)
+    expect(service).toMatch(/normalizeProductBarcode/)
+    expect(service).toMatch(/\bbrand:/)
+    expect(service).toMatch(/\bbarcode:/)
+    expect(catalog).toMatch(/PRODUCT_METADATA_LIMITS/)
+    expect(catalog).toMatch(/normalizeProductBrand/)
+    expect(formModal).toMatch(/Identity/)
+    expect(formModal).toMatch(/Inventory/)
+    expect(formModal).toMatch(/Purchasing/)
+    expect(formModal).toMatch(/Storage/)
+    expect(formModal).toMatch(/Subcategory/)
+    expect(formModal).toMatch(/form\.brand/)
+    expect(formModal).toMatch(/form\.size/)
+    expect(formModal).toMatch(/form\.barcode/)
   })
 })

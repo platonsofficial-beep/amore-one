@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import {
+  PRODUCT_METADATA_LIMITS,
   STOCK_CATEGORIES,
   STOCK_UNIT_CUSTOM_VALUE,
   buildEmptyStockItemForm,
@@ -158,211 +159,246 @@ export function StockItemFormModal({
               <div className="staff-status-banner">{workspaceSetupMessage}</div>
             ) : null}
 
-            <StockFormSection title="Product details">
-            <label className="stock-form-field stock-form-field-full">
-              <span>Name</span>
-              <input
-                type="text"
-                value={form.name}
-                onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))}
-                placeholder="e.g. Ketel One"
-                autoFocus
-              />
-            </label>
-
-            <div className="stock-form-row">
-              <label className="stock-form-field">
-                <span>Category</span>
-                <select
-                  value={form.category}
-                  onChange={(event) => handleCategoryChange(event.target.value)}
-                >
-                  {STOCK_CATEGORIES.map((category) => (
-                    <option key={category} value={category}>{category}</option>
-                  ))}
-                </select>
-              </label>
-
-              <label className="stock-form-field">
-                <span>Type</span>
-                <select
-                  value={form.itemType}
-                  onChange={(event) => setForm((current) => ({ ...current, itemType: event.target.value }))}
-                  required
-                >
-                  {typeOptions.map((type) => (
-                    <option key={type} value={type}>{type}</option>
-                  ))}
-                </select>
-              </label>
-            </div>
-
-            <div className="stock-form-field stock-form-field-full stock-supplier-field">
-              <span>Supplier</span>
-              <div className="stock-supplier-field-row">
-                <select
-                  className="stock-supplier-select"
-                  value={form.supplier}
-                  onChange={(event) => setForm((current) => ({
-                    ...current,
-                    supplier: normalizeSupplierName(event.target.value),
-                  }))}
-                  aria-describedby={hasInactiveSupplierSelected ? 'stock-supplier-inactive-note' : undefined}
-                >
-                  {supplierOptions.map((option) => (
-                    <option
-                      key={option.value || 'no-supplier'}
-                      value={option.value}
-                      disabled={option.disabled}
-                    >
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-                {canManage ? (
-                  <button
-                    type="button"
-                    className="ghost-btn stock-add-supplier-btn"
-                    onClick={onOpenAddSupplier}
-                    disabled={isSaving}
-                  >
-                    + Add supplier
-                  </button>
-                ) : null}
-              </div>
-              {hasInactiveSupplierSelected ? (
-                <p id="stock-supplier-inactive-note" className="stock-supplier-field-note">
-                  Current supplier is inactive or not in the directory. Select an active supplier to update.
-                </p>
-              ) : null}
-            </div>
-          </StockFormSection>
-
-          <StockFormSection title="Stock control">
-            <div className="stock-form-field stock-form-field-full">
-              <span>Unit</span>
-              <div className="stock-unit-preset-grid" role="group" aria-label="Unit presets">
-                {unitPresets.map((preset) => (
-                  <button
-                    key={preset}
-                    type="button"
-                    className={`stock-unit-preset${form.unitPreset === preset ? ' active' : ''}`}
-                    onClick={() => setForm((current) => ({
-                      ...current,
-                      unitPreset: preset,
-                      customUnit: '',
-                    }))}
-                  >
-                    {preset}
-                  </button>
-                ))}
-                <button
-                  type="button"
-                  className={`stock-unit-preset${form.unitPreset === STOCK_UNIT_CUSTOM_VALUE ? ' active' : ''}`}
-                  onClick={() => setForm((current) => ({
-                    ...current,
-                    unitPreset: STOCK_UNIT_CUSTOM_VALUE,
-                  }))}
-                >
-                  Custom
-                </button>
-              </div>
-            </div>
-
-            {form.unitPreset === STOCK_UNIT_CUSTOM_VALUE ? (
+            <StockFormSection title="Identity">
               <label className="stock-form-field stock-form-field-full">
-                <span>Custom unit</span>
+                <span>Product Name</span>
                 <input
                   type="text"
-                  value={form.customUnit}
-                  onChange={(event) => setForm((current) => ({ ...current, customUnit: event.target.value }))}
-                  placeholder="Enter custom unit"
+                  value={form.name}
+                  onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))}
+                  placeholder="e.g. Belvedere Vodka"
+                  autoFocus
                 />
               </label>
-            ) : (
-              <p className="stock-unit-selected">Selected: {resolvedUnit || '—'}</p>
-            )}
 
-            <label className="stock-form-field stock-form-field-full">
-              <span>Packaging note (optional)</span>
-              <input
-                type="text"
-                value={form.packagingNote ?? ''}
-                maxLength={240}
-                onChange={(event) => setForm((current) => ({
-                  ...current,
-                  packagingNote: event.target.value,
-                }))}
-                placeholder="e.g. Usually supplied in cases"
-              />
-            </label>
+              <label className="stock-form-field stock-form-field-full">
+                <span>Brand (optional)</span>
+                <input
+                  type="text"
+                  value={form.brand ?? ''}
+                  maxLength={PRODUCT_METADATA_LIMITS.brand}
+                  onChange={(event) => setForm((current) => ({ ...current, brand: event.target.value }))}
+                  placeholder="e.g. Belvedere"
+                />
+              </label>
 
-            <div className="stock-form-row stock-form-row-triple">
-              <label className="stock-form-field">
-                <span>Current quantity</span>
+              <div className="stock-form-row">
+                <label className="stock-form-field">
+                  <span>Category</span>
+                  <select
+                    value={form.category}
+                    onChange={(event) => handleCategoryChange(event.target.value)}
+                  >
+                    {STOCK_CATEGORIES.map((category) => (
+                      <option key={category} value={category}>{category}</option>
+                    ))}
+                  </select>
+                </label>
+
+                <label className="stock-form-field">
+                  <span>Subcategory</span>
+                  <select
+                    value={form.itemType}
+                    onChange={(event) => setForm((current) => ({ ...current, itemType: event.target.value }))}
+                    required
+                  >
+                    {typeOptions.map((type) => (
+                      <option key={type} value={type}>{type}</option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+            </StockFormSection>
+
+            <StockFormSection title="Inventory">
+              <div className="stock-form-field stock-form-field-full">
+                <span>Inventory Unit</span>
+                <div className="stock-unit-preset-grid" role="group" aria-label="Inventory unit presets">
+                  {unitPresets.map((preset) => (
+                    <button
+                      key={preset}
+                      type="button"
+                      className={`stock-unit-preset${form.unitPreset === preset ? ' active' : ''}`}
+                      onClick={() => setForm((current) => ({
+                        ...current,
+                        unitPreset: preset,
+                        customUnit: '',
+                      }))}
+                    >
+                      {preset}
+                    </button>
+                  ))}
+                  <button
+                    type="button"
+                    className={`stock-unit-preset${form.unitPreset === STOCK_UNIT_CUSTOM_VALUE ? ' active' : ''}`}
+                    onClick={() => setForm((current) => ({
+                      ...current,
+                      unitPreset: STOCK_UNIT_CUSTOM_VALUE,
+                    }))}
+                  >
+                    Custom
+                  </button>
+                </div>
+              </div>
+
+              {form.unitPreset === STOCK_UNIT_CUSTOM_VALUE ? (
+                <label className="stock-form-field stock-form-field-full">
+                  <span>Custom unit</span>
+                  <input
+                    type="text"
+                    value={form.customUnit}
+                    onChange={(event) => setForm((current) => ({ ...current, customUnit: event.target.value }))}
+                    placeholder="Enter custom unit"
+                  />
+                </label>
+              ) : (
+                <p className="stock-unit-selected">Selected: {resolvedUnit || '—'}</p>
+              )}
+
+              <label className="stock-form-field stock-form-field-full">
+                <span>Size (optional)</span>
+                <input
+                  type="text"
+                  value={form.size ?? ''}
+                  maxLength={PRODUCT_METADATA_LIMITS.size}
+                  onChange={(event) => setForm((current) => ({ ...current, size: event.target.value }))}
+                  placeholder="e.g. 700 ml, 1 L, 250 ml"
+                />
+              </label>
+
+              <label className="stock-form-field stock-form-field-full">
+                <span>Packaging note (optional)</span>
+                <input
+                  type="text"
+                  value={form.packagingNote ?? ''}
+                  maxLength={240}
+                  onChange={(event) => setForm((current) => ({
+                    ...current,
+                    packagingNote: event.target.value,
+                  }))}
+                  placeholder="e.g. Usually supplied in cases"
+                />
+              </label>
+
+              <label className="stock-form-field stock-form-field-full">
+                <span>Barcode (optional)</span>
+                <input
+                  type="text"
+                  value={form.barcode ?? ''}
+                  maxLength={PRODUCT_METADATA_LIMITS.barcode}
+                  onChange={(event) => setForm((current) => ({ ...current, barcode: event.target.value }))}
+                  placeholder="Optional product barcode"
+                />
+              </label>
+            </StockFormSection>
+
+            <StockFormSection title="Purchasing">
+              <div className="stock-form-field stock-form-field-full stock-supplier-field">
+                <span>Supplier</span>
+                <div className="stock-supplier-field-row">
+                  <select
+                    className="stock-supplier-select"
+                    value={form.supplier}
+                    onChange={(event) => setForm((current) => ({
+                      ...current,
+                      supplier: normalizeSupplierName(event.target.value),
+                    }))}
+                    aria-describedby={hasInactiveSupplierSelected ? 'stock-supplier-inactive-note' : undefined}
+                  >
+                    {supplierOptions.map((option) => (
+                      <option
+                        key={option.value || 'no-supplier'}
+                        value={option.value}
+                        disabled={option.disabled}
+                      >
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                  {canManage ? (
+                    <button
+                      type="button"
+                      className="ghost-btn stock-add-supplier-btn"
+                      onClick={onOpenAddSupplier}
+                      disabled={isSaving}
+                    >
+                      + Add supplier
+                    </button>
+                  ) : null}
+                </div>
+                {hasInactiveSupplierSelected ? (
+                  <p id="stock-supplier-inactive-note" className="stock-supplier-field-note">
+                    Current supplier is inactive or not in the directory. Select an active supplier to update.
+                  </p>
+                ) : null}
+              </div>
+
+              <label className="stock-form-field stock-form-field-full">
+                <span>Purchase price (€ per unit)</span>
                 <input
                   type="number"
                   min="0"
-                  step="any"
-                  value={form.currentQuantity}
-                  onChange={(event) => setForm((current) => ({ ...current, currentQuantity: event.target.value }))}
-                  placeholder="0"
+                  step="0.01"
+                  value={form.purchasePrice}
+                  onChange={(event) => setForm((current) => ({ ...current, purchasePrice: event.target.value }))}
+                  placeholder="0.00"
                 />
               </label>
+            </StockFormSection>
 
-              <label className="stock-form-field">
-                <span>Minimum alert</span>
-                <input
-                  type="number"
-                  min="0"
-                  step="any"
-                  value={form.minimumQuantity}
-                  onChange={(event) => setForm((current) => ({ ...current, minimumQuantity: event.target.value }))}
-                  placeholder="0"
+            <StockFormSection title="Storage">
+              <div className="stock-form-field stock-form-field-full">
+                <span>Default Storage</span>
+                <WorkspaceStorageSelector
+                  workspaceId={workspaceId}
+                  value={form.storageLocation}
+                  variant="grid"
+                  disabled={isSaving}
+                  onChange={(locationKey) => setForm((current) => ({
+                    ...current,
+                    storageLocation: locationKey,
+                  }))}
                 />
-              </label>
+              </div>
 
-              <label className="stock-form-field">
-                <span>Target stock</span>
-                <input
-                  type="number"
-                  min="0"
-                  step="any"
-                  value={form.targetQuantity}
-                  onChange={(event) => setForm((current) => ({ ...current, targetQuantity: event.target.value }))}
-                  placeholder="Par level"
-                />
-              </label>
-            </div>
+              <div className="stock-form-row stock-form-row-triple">
+                <label className="stock-form-field">
+                  <span>Minimum</span>
+                  <input
+                    type="number"
+                    min="0"
+                    step="any"
+                    value={form.minimumQuantity}
+                    onChange={(event) => setForm((current) => ({ ...current, minimumQuantity: event.target.value }))}
+                    placeholder="0"
+                  />
+                </label>
 
-            <label className="stock-form-field stock-form-field-full">
-              <span>Purchase price (€ per unit)</span>
-              <input
-                type="number"
-                min="0"
-                step="0.01"
-                value={form.purchasePrice}
-                onChange={(event) => setForm((current) => ({ ...current, purchasePrice: event.target.value }))}
-                placeholder="0.00"
-              />
-            </label>
-          </StockFormSection>
+                <label className="stock-form-field">
+                  <span>Target</span>
+                  <input
+                    type="number"
+                    min="0"
+                    step="any"
+                    value={form.targetQuantity}
+                    onChange={(event) => setForm((current) => ({ ...current, targetQuantity: event.target.value }))}
+                    placeholder="Par level"
+                  />
+                </label>
 
-          <StockFormSection title="Location">
-            <div className="stock-form-field stock-form-field-full">
-              <span>Storage location</span>
-              <WorkspaceStorageSelector
-                workspaceId={workspaceId}
-                value={form.storageLocation}
-                variant="grid"
-                disabled={isSaving}
-                onChange={(locationKey) => setForm((current) => ({
-                  ...current,
-                  storageLocation: locationKey,
-                }))}
-              />
-            </div>
-          </StockFormSection>
+                <label className="stock-form-field">
+                  <span>Current</span>
+                  <input
+                    type="number"
+                    min="0"
+                    step="any"
+                    value={form.currentQuantity}
+                    onChange={(event) => setForm((current) => ({ ...current, currentQuantity: event.target.value }))}
+                    placeholder="0"
+                  />
+                </label>
+              </div>
+            </StockFormSection>
 
             {error ? <div className="staff-status-banner">{error}</div> : null}
           </div>

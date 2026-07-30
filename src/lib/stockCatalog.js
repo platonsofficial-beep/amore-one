@@ -4,6 +4,43 @@ import {
 } from './inventoryUnitStandard.js'
 
 export { normalizePackagingNote }
+
+/** P8.31.6a/b — optional product metadata write limits (app-enforced). */
+export const PRODUCT_METADATA_LIMITS = Object.freeze({
+  brand: 120,
+  size: 80,
+  barcode: 64,
+})
+
+/**
+ * Normalize optional product metadata text.
+ * Empty → null. Trim + collapse whitespace. Cap at maxLength.
+ *
+ * @param {unknown} value
+ * @param {number} maxLength
+ * @returns {string|null}
+ */
+export function normalizeOptionalProductMetadata(value, maxLength) {
+  if (value == null) return null
+  const trimmed = `${value}`.replace(/\s+/g, ' ').trim()
+  if (!trimmed) return null
+  const max = Number(maxLength)
+  if (!Number.isFinite(max) || max <= 0) return trimmed
+  return trimmed.length > max ? trimmed.slice(0, max) : trimmed
+}
+
+export function normalizeProductBrand(value) {
+  return normalizeOptionalProductMetadata(value, PRODUCT_METADATA_LIMITS.brand)
+}
+
+export function normalizeProductSize(value) {
+  return normalizeOptionalProductMetadata(value, PRODUCT_METADATA_LIMITS.size)
+}
+
+export function normalizeProductBarcode(value) {
+  return normalizeOptionalProductMetadata(value, PRODUCT_METADATA_LIMITS.barcode)
+}
+
 export const STOCK_UNIT_CUSTOM_VALUE = '__custom__'
 
 export const STOCK_CATEGORIES = [
@@ -325,13 +362,16 @@ export function buildEmptyStockItemForm(category = 'Spirits') {
 
   return {
     name: '',
+    brand: '',
     category: normalizedCategory,
     itemType: typeOptions[0] ?? 'Other',
     supplier: '',
     storageLocation: getDefaultLocationForCategory(normalizedCategory),
     unitPreset: getDefaultUnitForCategory(normalizedCategory),
     customUnit: '',
+    size: '',
     packagingNote: '',
+    barcode: '',
     currentQuantity: '',
     minimumQuantity: '',
     targetQuantity: '',
@@ -359,14 +399,17 @@ export function stockItemToForm(item) {
 
   return {
     name: item?.name ?? '',
+    brand: normalizeProductBrand(item?.brand ?? null) ?? '',
     category,
     itemType,
     supplier: item?.supplier ?? '',
     storageLocation: resolveStockStorageLocation(item),
     ...unitFields,
+    size: normalizeProductSize(item?.size ?? null) ?? '',
     packagingNote: normalizePackagingNote(
       item?.packagingNote ?? item?.packaging_note ?? null,
     ) ?? '',
+    barcode: normalizeProductBarcode(item?.barcode ?? null) ?? '',
     currentQuantity: item?.currentQuantity ?? item?.current_quantity ?? '',
     minimumQuantity: item?.minimumQuantity ?? item?.minimum_quantity ?? '',
     targetQuantity: targetQuantity === null || targetQuantity === undefined || targetQuantity === ''
@@ -444,12 +487,15 @@ export function stockFormToPayload(form) {
 
   return {
     name: `${form.name ?? ''}`.trim(),
+    brand: normalizeProductBrand(form.brand ?? null),
     category: normalizeStockCategory(form.category),
     itemType: `${form.itemType ?? ''}`.trim() || 'Other',
     supplier: `${form.supplier ?? ''}`.trim(),
     storageLocation: `${form.storageLocation ?? ''}`.trim() || 'Main Storage',
     unit: resolveStockFormUnit(form),
+    size: normalizeProductSize(form.size ?? null),
     packagingNote: normalizePackagingNote(form.packagingNote ?? null),
+    barcode: normalizeProductBarcode(form.barcode ?? null),
     currentQuantity: Number(form.currentQuantity) || 0,
     minimumQuantity: Number(form.minimumQuantity) || 0,
     targetQuantity: targetQuantityRaw ? Number(targetQuantityRaw) : null,
