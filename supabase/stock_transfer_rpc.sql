@@ -1,5 +1,6 @@
 -- =============================================================================
 -- P8.29.6 — Transfer RPC Foundation
+-- P8.30.6a — Automatic destination balance creation
 -- =============================================================================
 -- Run manually in the Supabase SQL editor after:
 --   1. supabase/stock_item_location_balances_schema.sql (P8.29.2)
@@ -14,15 +15,118 @@
 --   Moves quantity between two location balances of the SAME stock item
 --   in one transaction with two ledger rows (transfer_out + transfer_in).
 --
+-- P8.30.6a:
+--   If the destination balance row is missing, create it in the same
+--   transaction (quantity = 0, quantity_version = 1) then continue.
+--   Source balance must still already exist.
+--
 -- Does NOT:
 --   - Wire services / UI / Count / Import / Dashboard
---   - Auto-create missing balance rows
 --   - Change receive/usage/adjustment/stock_count RPCs
 --   - Change existing movement writers
+--   - Change optimistic locking / transfer pair / aggregate refresh
 --
 -- Authorization:
 --   owner / general_manager / manager via public.can_manage_workspace_stock
 -- =============================================================================
+
+-- -----------------------------------------------------------------------------
+-- Internal helper (P8.30.6a): lock existing balance or insert zero-row then lock.
+-- Not granted to clients. Safe for later Receive reuse without changing Receive now.
+-- -----------------------------------------------------------------------------
+drop function if exists public.ensure_stock_item_location_balance(
+  uuid, uuid, uuid, text, uuid
+);
+
+create or replace function public.ensure_stock_item_location_balance(
+  p_workspace_id uuid,
+  p_stock_item_id uuid,
+  p_workspace_storage_id uuid,
+  p_location_key text,
+  p_updated_by uuid
+)
+returns public.stock_item_location_balances
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_balance public.stock_item_location_balances%rowtype;
+  v_location_key text := btrim(coalesce(p_location_key, ''));
+begin
+  if p_workspace_id is null
+     or p_stock_item_id is null
+     or p_workspace_storage_id is null then
+    raise exception 'stock_location_balance_ensure_required';
+  end if;
+
+  if v_location_key = '' then
+    raise exception 'stock_location_balance_ensure_location_key_required';
+  end if;
+
+  select *
+  into v_balance
+  from public.stock_item_location_balances b
+  where b.workspace_id = p_workspace_id
+    and b.stock_item_id = p_stock_item_id
+    and b.workspace_storage_id = p_workspace_storage_id
+  for update;
+
+  if found then
+    return v_balance;
+  end if;
+
+  insert into public.stock_item_location_balances (
+    workspace_id,
+    stock_item_id,
+    workspace_storage_id,
+    location_key,
+    quantity,
+    quantity_version,
+    updated_by
+  )
+  values (
+    p_workspace_id,
+    p_stock_item_id,
+    p_workspace_storage_id,
+    v_location_key,
+    0,
+    1,
+    p_updated_by
+  )
+  on conflict (workspace_id, stock_item_id, workspace_storage_id)
+  do nothing;
+
+  select *
+  into v_balance
+  from public.stock_item_location_balances b
+  where b.workspace_id = p_workspace_id
+    and b.stock_item_id = p_stock_item_id
+    and b.workspace_storage_id = p_workspace_storage_id
+  for update;
+
+  if not found then
+    raise exception 'stock_location_balance_ensure_failed';
+  end if;
+
+  return v_balance;
+end;
+$$;
+
+comment on function public.ensure_stock_item_location_balance(
+  uuid, uuid, uuid, text, uuid
+) is
+  'P8.30.6a Internal SECURITY DEFINER helper. Locks an existing location balance or inserts quantity=0 / quantity_version=1 then locks it. Not granted to clients. Reusable later by Receive.';
+
+revoke all on function public.ensure_stock_item_location_balance(
+  uuid, uuid, uuid, text, uuid
+) from public;
+revoke all on function public.ensure_stock_item_location_balance(
+  uuid, uuid, uuid, text, uuid
+) from anon;
+revoke all on function public.ensure_stock_item_location_balance(
+  uuid, uuid, uuid, text, uuid
+) from authenticated;
 
 drop function if exists public.transfer_stock_between_locations(
   uuid, uuid, uuid, uuid, numeric, bigint, bigint, text, uuid
@@ -194,6 +298,7 @@ begin
   end if;
 
   -- Lock both balances in the same deterministic storage-id order.
+  -- P8.30.6a: destination missing → ensure zero-row (qty 0, version 1) then lock.
   if p_source_workspace_storage_id < p_destination_workspace_storage_id then
     select *
     into v_source_balance
@@ -207,29 +312,21 @@ begin
       raise exception 'stock_transfer_source_balance_not_found';
     end if;
 
-    select *
-    into v_dest_balance
-    from public.stock_item_location_balances b
-    where b.workspace_id = p_workspace_id
-      and b.stock_item_id = p_stock_item_id
-      and b.workspace_storage_id = p_destination_workspace_storage_id
-    for update;
-
-    if not found then
-      raise exception 'stock_transfer_destination_balance_not_found';
-    end if;
+    v_dest_balance := public.ensure_stock_item_location_balance(
+      p_workspace_id,
+      p_stock_item_id,
+      p_destination_workspace_storage_id,
+      v_dest_storage.location_key,
+      v_auth_user_id
+    );
   else
-    select *
-    into v_dest_balance
-    from public.stock_item_location_balances b
-    where b.workspace_id = p_workspace_id
-      and b.stock_item_id = p_stock_item_id
-      and b.workspace_storage_id = p_destination_workspace_storage_id
-    for update;
-
-    if not found then
-      raise exception 'stock_transfer_destination_balance_not_found';
-    end if;
+    v_dest_balance := public.ensure_stock_item_location_balance(
+      p_workspace_id,
+      p_stock_item_id,
+      p_destination_workspace_storage_id,
+      v_dest_storage.location_key,
+      v_auth_user_id
+    );
 
     select *
     into v_source_balance
@@ -451,7 +548,7 @@ $$;
 comment on function public.transfer_stock_between_locations(
   uuid, uuid, uuid, uuid, numeric, bigint, bigint, text, uuid
 ) is
-  'P8.29.6 SECURITY DEFINER atomic transfer between two location balances. Writes transfer_out + transfer_in with shared transfer_group_id; optimistic locks both versions; refreshes current_quantity = SUM(balances); total unchanged.';
+  'P8.29.6 / P8.30.6a SECURITY DEFINER atomic transfer between two location balances. Auto-creates missing destination balance (qty 0, version 1) in-transaction. Writes transfer_out + transfer_in with shared transfer_group_id; optimistic locks both versions; refreshes current_quantity = SUM(balances); total unchanged.';
 
 revoke all on function public.transfer_stock_between_locations(
   uuid, uuid, uuid, uuid, numeric, bigint, bigint, text, uuid
@@ -466,8 +563,10 @@ grant execute on function public.transfer_stock_between_locations(
 -- =============================================================================
 -- Verification (commented — run after apply; do not auto-execute)
 -- =============================================================================
+-- select pg_get_functiondef('public.ensure_stock_item_location_balance(uuid,uuid,uuid,text,uuid)'::regprocedure);
 -- select pg_get_functiondef('public.transfer_stock_between_locations(uuid,uuid,uuid,uuid,numeric,bigint,bigint,text,uuid)'::regprocedure);
 -- =============================================================================
 -- Rollback (emergency only)
 -- =============================================================================
 -- drop function if exists public.transfer_stock_between_locations(uuid, uuid, uuid, uuid, numeric, bigint, bigint, text, uuid);
+-- drop function if exists public.ensure_stock_item_location_balance(uuid, uuid, uuid, text, uuid);

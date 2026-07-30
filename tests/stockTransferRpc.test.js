@@ -61,15 +61,47 @@ describe('stock_transfer_rpc.sql — P8.29.6 contract', () => {
     expect(BODY).toContain('stock_transfer_storage_inactive')
   })
 
-  it('rejects missing balances, insufficient stock, and cross-workspace mismatch', () => {
+  it('rejects missing source balance, insufficient stock, and cross-workspace mismatch', () => {
     expect(BODY).toContain('stock_transfer_source_balance_not_found')
-    expect(BODY).toContain('stock_transfer_destination_balance_not_found')
+    expect(BODY).not.toContain("raise exception 'stock_transfer_destination_balance_not_found'")
     expect(BODY).toContain('stock_transfer_insufficient_source')
     expect(BODY).toContain('if v_source_before < v_qty then')
     expect(BODY).toContain('si.workspace_id = p_workspace_id')
     expect(BODY).toContain('ws.workspace_id = p_workspace_id')
     expect(BODY).toContain('stock_transfer_item_not_found')
     expect(BODY).toContain('stock_transfer_storage_not_found')
+  })
+
+  it('auto-creates missing destination balance at qty 0 / version 1 in-transaction (P8.30.6a)', () => {
+    expect(sql).toContain('create or replace function public.ensure_stock_item_location_balance(')
+    expect(sql).toContain('insert into public.stock_item_location_balances (')
+    expect(sql).toContain('quantity_version')
+    expect(BODY).toContain('ensure_stock_item_location_balance(')
+    expect(BODY).toContain('v_dest_storage.location_key')
+    expect(BODY).toContain('v_auth_user_id')
+
+    const ensureStart = sql.indexOf(
+      'create or replace function public.ensure_stock_item_location_balance(',
+    )
+    const ensureEnd = sql.indexOf(
+      'comment on function public.ensure_stock_item_location_balance(',
+    )
+    const ensureBody = sql.slice(ensureStart, ensureEnd)
+    expect(ensureBody).toContain('quantity')
+    expect(ensureBody).toContain('0')
+    expect(ensureBody).toContain('quantity_version')
+    expect(ensureBody).toContain('1')
+    expect(ensureBody).toContain('updated_by')
+    expect(ensureBody).toContain(
+      'on conflict (workspace_id, stock_item_id, workspace_storage_id)',
+    )
+    expect(ensureBody).toContain('for update')
+    expect(sql).toContain(
+      'revoke all on function public.ensure_stock_item_location_balance(',
+    )
+    expect(sql).not.toContain(
+      'grant execute on function public.ensure_stock_item_location_balance(',
+    )
   })
 
   it('enforces optimistic locks on source and destination versions', () => {
@@ -141,8 +173,18 @@ describe('stock_transfer_rpc.sql — P8.29.6 contract', () => {
     expect(countPostSql).not.toContain('transfer_stock_between_locations')
     expect(importApplySql).not.toContain('transfer_stock_between_locations')
     expect(mutationRpc).toContain('record_location_receive')
+    expect(mutationRpc).toContain('stock_location_balance_not_found')
     expect(mutationRpc).toContain('stock_location_balance_transfer_not_supported')
+    expect(mutationRpc).not.toContain('ensure_stock_item_location_balance')
     expect(sql).toContain('Wire services / UI / Count / Import / Dashboard')
     expect(sql).not.toContain('create or replace function public.record_location_')
+  })
+})
+
+describe('stock_transfer_rpc.sql — P8.30.6a Receive reuse readiness', () => {
+  it('keeps Receive mutation core on explicit not-found (helper unused by Receive yet)', () => {
+    expect(mutationRpc).toContain("raise exception 'stock_location_balance_not_found'")
+    expect(mutationRpc).not.toContain('ensure_stock_item_location_balance')
+    expect(sql).toContain('Reusable later by Receive')
   })
 })
