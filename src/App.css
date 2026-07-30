@@ -32518,6 +32518,13 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   font-size: 0.8rem;
 }
 
+.stock-transfer-new-destination-hint {
+  margin: -2px 0 4px;
+  color: rgba(255, 247, 232, 0.6);
+  font-size: 0.8rem;
+  line-height: 1.4;
+}
+
 .stock-storage-receive-picker-body {
   display: flex;
   flex-direction: column;

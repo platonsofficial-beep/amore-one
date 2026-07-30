@@ -22,6 +22,7 @@ vi.mock('../../services/workspaceStorageService', () => ({
   listWorkspaceStorages: vi.fn(async () => ([
     { id: 'stor-main', name: 'Main Storage', locationKey: 'Main Storage', active: true },
     { id: 'stor-bar', name: 'Bar', locationKey: 'Bar', active: true },
+    { id: 'stor-freezer', name: 'Freezer', locationKey: 'Freezer', active: true },
     { id: 'stor-old', name: 'Old Cellar', locationKey: 'Old Cellar', active: false },
   ])),
 }))
@@ -374,10 +375,16 @@ describe('StockStorageDetailWorkspace — actions + Fast Count launch', () => {
       .toContain('Locked')
 
     const select = container.querySelector('[data-testid="stock-transfer-destination-select"]')
-    const optionValues = [...select.querySelectorAll('option')].map((option) => option.value)
+    const options = [...select.querySelectorAll('option')].filter((option) => option.value)
+    const optionValues = options.map((option) => option.value)
+    const optionLabels = options.map((option) => option.textContent)
     expect(optionValues).toContain('stor-bar')
+    expect(optionValues).toContain('stor-freezer')
     expect(optionValues).not.toContain('stor-main')
     expect(optionValues).not.toContain('stor-old')
+    expect(optionLabels).toContain('Bar')
+    expect(optionLabels).toContain('Freezer (New)')
+    expect(getStockItemLocationBalances).toHaveBeenCalledWith('ws-1', 'i1')
 
     await act(async () => {
       select.value = 'stor-bar'
@@ -386,8 +393,6 @@ describe('StockStorageDetailWorkspace — actions + Fast Count launch', () => {
       await Promise.resolve()
     })
     await settle()
-
-    expect(getStockItemLocationBalances).toHaveBeenCalledWith('ws-1', 'i1')
 
     const quantityInput = container.querySelector('[data-testid="stock-transfer-modal"] input[type="number"]')
     await act(async () => {
@@ -411,6 +416,80 @@ describe('StockStorageDetailWorkspace — actions + Fast Count launch', () => {
       expectedSourceQuantityVersion: 2,
       expectedDestinationQuantityVersion: 7,
       item: expect.objectContaining({ id: 'i1', name: 'Vodka' }),
+    }))
+  })
+
+  it('submits destination version 1 and shows helper when destination has no balance', async () => {
+    const loadProducts = vi.fn(async () => ({
+      storageId: 'stor-main',
+      products: [makeRow({ id: 'i1', name: 'Vodka', quantity: 5, quantityVersion: 2 })],
+      summary: {
+        productCount: 1,
+        totalQuantity: 5,
+        nonZeroBalanceCount: 1,
+        inventoryValue: 50,
+      },
+    }))
+    const onRecordTransfer = vi.fn(async () => {})
+
+    renderWorkspace({
+      workspaceId: 'ws-1',
+      storage: {
+        id: 'stor-main',
+        name: 'Main Storage',
+        locationKey: 'Main Storage',
+        active: true,
+      },
+      canManage: true,
+      loadProducts,
+      onRecordTransfer,
+    })
+
+    await settle()
+
+    await act(async () => {
+      container.querySelector('[data-storage-action="transfer"]').click()
+    })
+    await act(async () => {
+      container
+        .querySelector('[data-testid="stock-storage-transfer-product-picker"] [data-stock-item-id="i1"]')
+        .click()
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+    await settle()
+
+    const select = container.querySelector('[data-testid="stock-transfer-destination-select"]')
+    await act(async () => {
+      select.value = 'stor-freezer'
+      select.dispatchEvent(new Event('change', { bubbles: true }))
+      await Promise.resolve()
+    })
+
+    expect(container.querySelector('[data-testid="stock-transfer-new-destination-hint"]')?.textContent)
+      .toContain('automatically create its inventory balance')
+    expect(container.querySelector('[data-testid="stock-transfer-submit"]')?.disabled).toBe(false)
+
+    const quantityInput = container.querySelector('[data-testid="stock-transfer-modal"] input[type="number"]')
+    await act(async () => {
+      const nativeInputValueSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value')?.set
+      nativeInputValueSetter?.call(quantityInput, '1')
+      quantityInput.dispatchEvent(new Event('input', { bubbles: true }))
+      quantityInput.dispatchEvent(new Event('change', { bubbles: true }))
+    })
+
+    await act(async () => {
+      container.querySelector('[data-testid="stock-transfer-modal"] form')
+        .dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+
+    expect(onRecordTransfer).toHaveBeenCalledWith(expect.objectContaining({
+      destinationWorkspaceStorageId: 'stor-freezer',
+      expectedDestinationQuantityVersion: 1,
+      expectedSourceQuantityVersion: 2,
+      quantity: 1,
     }))
   })
 

@@ -1,6 +1,7 @@
 /**
- * P8.30.6 — Shared stock transfer dialog.
+ * P8.30.6 / P8.30.6b — Shared stock transfer dialog.
  * Source storage is locked; operator chooses destination, quantity, note.
+ * Missing destination balances are allowed: RPC auto-creates; UI sends version 1.
  * Submits through the existing transfer_stock_between_locations RPC wrapper.
  */
 
@@ -8,6 +9,24 @@ import { useEffect, useMemo, useState } from 'react'
 import { formatStockQuantity } from '../../lib/stockUtils'
 import { getStockItemLocationBalances } from '../../services/stockLocationBalanceService'
 import { listWorkspaceStorages } from '../../services/workspaceStorageService'
+
+const NEW_DESTINATION_HELPER =
+  'First transfer to this storage will automatically create its inventory balance.'
+
+/**
+ * @param {object[]} balances
+ * @returns {Map<string, number>}
+ */
+function buildDestinationVersionMap(balances) {
+  /** @type {Map<string, number>} */
+  const map = new Map()
+  for (const balance of Array.isArray(balances) ? balances : []) {
+    const storageId = `${balance?.workspaceStorageId ?? ''}`.trim()
+    if (!storageId) continue
+    map.set(storageId, Math.max(1, Math.floor(Number(balance.quantityVersion) || 1)))
+  }
+  return map
+}
 
 /**
  * @param {{
@@ -41,9 +60,9 @@ export function StockTransferModal({
   const [error, setError] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [destinations, setDestinations] = useState(/** @type {object[]} */ ([]))
-  const [destinationVersion, setDestinationVersion] = useState(/** @type {number|null} */ (null))
+  const [destinationVersions, setDestinationVersions] = useState(() => new Map())
   const [isLoadingDestinations, setIsLoadingDestinations] = useState(true)
-  const [isLoadingDestVersion, setIsLoadingDestVersion] = useState(false)
+  const [isLoadingBalances, setIsLoadingBalances] = useState(true)
 
   const isBusy = isSaving || isSubmitting
   const sourceId = `${sourceStorage?.id ?? ''}`.trim()
@@ -55,70 +74,67 @@ export function StockTransferModal({
       `${entry?.id ?? ''}`.trim()
       && `${entry.id}`.trim() !== sourceId
       && entry.active !== false
-    )),
-    [destinations, sourceId],
+    )).map((entry) => {
+      const id = `${entry.id}`.trim()
+      const label = entry.name || entry.locationKey || entry.id
+      const hasBalance = destinationVersions.has(id)
+      return {
+        id,
+        label,
+        hasBalance,
+        displayLabel: hasBalance ? label : `${label} (New)`,
+        quantityVersion: hasBalance ? destinationVersions.get(id) : 1,
+      }
+    }),
+    [destinations, destinationVersions, sourceId],
   )
+
+  const selectedDestination = useMemo(
+    () => destinationOptions.find((entry) => entry.id === `${destinationId ?? ''}`.trim()) ?? null,
+    [destinationId, destinationOptions],
+  )
+
+  const destinationHasBalance = Boolean(selectedDestination?.hasBalance)
+  const expectedDestinationQuantityVersion = selectedDestination
+    ? selectedDestination.quantityVersion
+    : null
 
   useEffect(() => {
     let cancelled = false
+    const itemId = `${item?.id ?? ''}`.trim()
     setIsLoadingDestinations(true)
+    setIsLoadingBalances(true)
     setError('')
+    setDestinationVersions(new Map())
 
     ;(async () => {
       try {
-        const rows = await loadDestinations(workspaceId)
+        const [rows, balances] = await Promise.all([
+          loadDestinations(workspaceId),
+          itemId && workspaceId
+            ? loadItemBalances(workspaceId, itemId)
+            : Promise.resolve([]),
+        ])
         if (cancelled) return
         setDestinations(Array.isArray(rows) ? rows : [])
+        setDestinationVersions(buildDestinationVersionMap(balances))
       } catch (loadError) {
         if (cancelled) return
         setDestinations([])
+        setDestinationVersions(new Map())
         setError(loadError?.message || 'Unable to load destination storages.')
       } finally {
-        if (!cancelled) setIsLoadingDestinations(false)
-      }
-    })()
-
-    return () => {
-      cancelled = true
-    }
-  }, [workspaceId, loadDestinations])
-
-  useEffect(() => {
-    let cancelled = false
-    const destId = `${destinationId ?? ''}`.trim()
-    const itemId = `${item?.id ?? ''}`.trim()
-    setDestinationVersion(null)
-
-    if (!destId || !itemId || !workspaceId) return undefined
-
-    setIsLoadingDestVersion(true)
-    ;(async () => {
-      try {
-        const balances = await loadItemBalances(workspaceId, itemId)
-        if (cancelled) return
-        const match = (Array.isArray(balances) ? balances : []).find((balance) => (
-          `${balance?.workspaceStorageId ?? ''}`.trim() === destId
-        ))
-        if (!match) {
-          setDestinationVersion(null)
-          setError('This product has no balance at the selected destination yet.')
-          return
+        if (!cancelled) {
+          setIsLoadingDestinations(false)
+          setIsLoadingBalances(false)
         }
-        setError('')
-        setDestinationVersion(Math.max(1, Math.floor(Number(match.quantityVersion) || 1)))
-      } catch (loadError) {
-        if (cancelled) return
-        setDestinationVersion(null)
-        setError(loadError?.message || 'Unable to load destination balance.')
-      } finally {
-        if (!cancelled) setIsLoadingDestVersion(false)
       }
     })()
 
     return () => {
       cancelled = true
     }
-  }, [destinationId, item?.id, workspaceId, loadItemBalances])
+  }, [workspaceId, item?.id, loadDestinations, loadItemBalances])
 
   const handleDismiss = () => {
     if (isBusy) return
@@ -144,8 +160,11 @@ export function StockTransferModal({
       setError(`Transfer cannot exceed on-hand quantity (${formatStockQuantity(maxQuantity, item?.unit)}).`)
       return
     }
-    if (!Number.isFinite(Number(destinationVersion)) || Number(destinationVersion) < 1) {
-      setError('This product has no balance at the selected destination yet.')
+    if (
+      !Number.isFinite(Number(expectedDestinationQuantityVersion))
+      || Number(expectedDestinationQuantityVersion) < 1
+    ) {
+      setError('Choose a destination storage.')
       return
     }
 
@@ -159,7 +178,7 @@ export function StockTransferModal({
         sourceWorkspaceStorageId: sourceId,
         destinationWorkspaceStorageId: destId,
         expectedSourceQuantityVersion: sourceQuantityVersion,
-        expectedDestinationQuantityVersion: destinationVersion,
+        expectedDestinationQuantityVersion: expectedDestinationQuantityVersion,
       })
       onClose()
     } catch (submitError) {
@@ -168,6 +187,8 @@ export function StockTransferModal({
       setIsSubmitting(false)
     }
   }
+
+  const isLoading = isLoadingDestinations || isLoadingBalances
 
   return (
     <div className="employee-modal-backdrop task-modal-backdrop" onClick={handleDismiss}>
@@ -197,22 +218,38 @@ export function StockTransferModal({
             Destination
             <select
               value={destinationId}
-              onChange={(event) => setDestinationId(event.target.value)}
+              onChange={(event) => {
+                setDestinationId(event.target.value)
+                setError('')
+              }}
               required
-              disabled={isBusy || isLoadingDestinations}
+              disabled={isBusy || isLoading}
               aria-label="Destination storage"
               data-testid="stock-transfer-destination-select"
             >
               <option value="">
-                {isLoadingDestinations ? 'Loading storages…' : 'Select destination'}
+                {isLoading ? 'Loading storages…' : 'Select destination'}
               </option>
               {destinationOptions.map((entry) => (
-                <option key={entry.id} value={entry.id}>
-                  {entry.name || entry.locationKey || entry.id}
+                <option
+                  key={entry.id}
+                  value={entry.id}
+                  data-has-balance={entry.hasBalance ? 'true' : 'false'}
+                >
+                  {entry.displayLabel}
                 </option>
               ))}
             </select>
           </label>
+
+          {selectedDestination && !destinationHasBalance ? (
+            <p
+              className="stock-transfer-new-destination-hint"
+              data-testid="stock-transfer-new-destination-hint"
+            >
+              {NEW_DESTINATION_HELPER}
+            </p>
+          ) : null}
 
           <label>
             Quantity
@@ -224,7 +261,7 @@ export function StockTransferModal({
               onChange={(event) => setQuantity(event.target.value)}
               placeholder="0"
               required
-              disabled={isBusy || isLoadingDestVersion}
+              disabled={isBusy || isLoading}
             />
           </label>
 
@@ -246,7 +283,8 @@ export function StockTransferModal({
             <button
               type="submit"
               className="primary-btn"
-              disabled={isBusy || isLoadingDestinations || isLoadingDestVersion}
+              disabled={isBusy || isLoading}
+              data-testid="stock-transfer-submit"
             >
               {isBusy ? 'Transferring…' : 'Transfer'}
             </button>
