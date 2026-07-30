@@ -4,7 +4,7 @@ import {
   computeOrderLineTotal,
   UNASSIGNED_SUPPLIER,
 } from '../../lib/stockOrderUtils'
-import { formatStockPurchasePrice, formatStockQuantity } from '../../lib/stockUtils'
+import { formatStockPurchasePrice, formatStockQuantity, formatInventoryUnitLabel } from '../../lib/stockUtils'
 
 function SupplierOrderGroup({
   group,
@@ -67,7 +67,7 @@ function SupplierOrderGroup({
                   )}
                 />
               </label>
-              <span className="stock-create-order-item-unit">{item.unit || 'units'}</span>
+              <span className="stock-create-order-item-unit">{formatInventoryUnitLabel(item.unit) || 'units'}</span>
               <button
                 type="button"
                 className="icon-btn stock-create-order-remove-item"

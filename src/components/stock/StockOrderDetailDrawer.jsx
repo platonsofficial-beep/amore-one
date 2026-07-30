@@ -23,7 +23,7 @@ import {
   normalizeStockOrderStatus,
   replaceDraftOrderLineProduct,
 } from '../../lib/stockOrderUtils'
-import { formatStockPurchasePrice, formatStockQuantity } from '../../lib/stockUtils'
+import { formatStockPurchasePrice, formatStockQuantity, formatInventoryUnitLabel } from '../../lib/stockUtils'
 import { LoadingButton } from '../LoadingButton'
 import { StockOrderReceiveConfirmModal } from './StockOrderReceiveConfirmModal'
 
@@ -109,7 +109,7 @@ function DraftOrderItem({
             <span className="stock-order-status-badge tone-muted">Inactive</span>
           ) : null}
         </div>
-        <span>{item.unit || 'units'}</span>
+        <span>{formatInventoryUnitLabel(item.unit) || 'units'}</span>
       </div>
 
       {isInactive ? (
@@ -234,7 +234,7 @@ function ReceivingOrderItem({
               onChange={(event) => onReceiveNowChange(item.id, event.target.value, remaining)}
               aria-label={`Receive now for ${item.itemName}`}
             />
-            <span>{item.unit || 'units'}</span>
+            <span>{formatInventoryUnitLabel(item.unit) || 'units'}</span>
           </label>
           <button
             type="button"

@@ -1,6 +1,13 @@
 import { computeSuggestedOrder, itemNeedsOrder } from './stockCatalog'
 import { getCurrentDateKey } from './currentDateUtils'
+import { formatInventoryUnit } from './inventoryUnitDisplay'
 import { formatTimestampTime24 } from './timeFormatUtils'
+
+export {
+  formatInventoryQuantityNumber,
+  formatInventoryUnit,
+  formatInventoryUnitLabel,
+} from './inventoryUnitDisplay'
 
 export const STOCK_MOVEMENT_TYPES = ['receive', 'usage', 'adjustment', 'stock_count']
 
@@ -241,12 +248,7 @@ export function formatStockInventoryValue(value) {
 }
 
 export function formatStockQuantity(value, unit = '') {
-  const quantity = Number(value)
-  const formatted = Number.isFinite(quantity)
-    ? (Number.isInteger(quantity) ? String(quantity) : quantity.toFixed(2).replace(/\.?0+$/, ''))
-    : '0'
-  const normalizedUnit = `${unit ?? ''}`.trim()
-  return normalizedUnit ? `${formatted} ${normalizedUnit}` : formatted
+  return formatInventoryUnit(value, unit)
 }
 
 export function applyStockMovementQuantity(currentQuantity, type, quantity) {

@@ -21,6 +21,7 @@ import {
   formatStockInventoryValue,
   formatStockPurchasePrice,
   formatStockQuantity,
+  formatInventoryUnitLabel,
   getStockStatusShortLabel,
 } from '../../lib/stockUtils'
 import { getStockItemLocationBalances } from '../../services/stockLocationBalanceService'
@@ -258,7 +259,7 @@ export function StockProductHistoryDrawer({
                   <OverviewRow
                     label="Cost"
                     value={hasCost
-                      ? `${formatStockPurchasePrice(costPrice)} / ${item.unit || 'unit'}`
+                      ? `${formatStockPurchasePrice(costPrice)} / ${formatInventoryUnitLabel(item.unit) || 'unit'}`
                       : '—'}
                   />
                   <OverviewRow
