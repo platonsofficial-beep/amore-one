@@ -1,9 +1,14 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import {
+  buildStorageProductRows,
   buildWorkspaceStorageSummaries,
+  filterStorageProductRows,
+  getWorkspaceStorageProducts,
   getWorkspaceStorageSummaries,
+  sortStorageProductRows,
   STOCK_STORAGE_CENTER_BALANCE_COLUMNS,
   STOCK_STORAGE_CENTER_COST_COLUMNS,
+  STOCK_STORAGE_PRODUCT_ITEM_COLUMNS,
 } from './stockStorageCenterService.js'
 
 const { fromMock } = vi.hoisted(() => ({
@@ -146,5 +151,143 @@ describe('getWorkspaceStorageSummaries', () => {
     })
     fromMock.mockReturnValue(failing)
     await expect(getWorkspaceStorageSummaries('ws-1')).rejects.toThrow(/permission denied/i)
+  })
+})
+
+describe('buildStorageProductRows', () => {
+  it('uses THIS storage quantity only and keeps catalog item for the drawer', () => {
+    const rows = buildStorageProductRows({
+      balances: [
+        { stock_item_id: 'i1', workspace_storage_id: 's-main', quantity: 4 },
+        { stock_item_id: 'i2', workspace_storage_id: 's-main', quantity: 0 },
+      ],
+      items: [
+        {
+          id: 'i1',
+          name: 'Vodka',
+          category: 'Spirits',
+          item_type: 'Spirit',
+          unit: 'btl',
+          active: true,
+          current_quantity: 20,
+          minimum_quantity: 2,
+          cost_price: 12,
+        },
+        {
+          id: 'i2',
+          name: 'Old Syrup',
+          category: 'Syrups & Purées',
+          unit: 'L',
+          active: false,
+          current_quantity: 5,
+          minimum_quantity: 1,
+          cost_price: 3,
+        },
+      ],
+    })
+
+    expect(rows).toHaveLength(2)
+    expect(rows[0]).toMatchObject({
+      stockItemId: 'i1',
+      name: 'Vodka',
+      category: 'Spirits',
+      quantity: 4,
+      unit: 'btl',
+      active: true,
+      lineValue: 48,
+    })
+    expect(rows[0].item.currentQuantity).toBe(20)
+    expect(rows[1]).toMatchObject({
+      stockItemId: 'i2',
+      quantity: 0,
+      active: false,
+    })
+  })
+
+  it('filters and sorts with Stock-style search haystack', () => {
+    const rows = buildStorageProductRows({
+      balances: [
+        { stock_item_id: 'i1', quantity: 2 },
+        { stock_item_id: 'i2', quantity: 9 },
+        { stock_item_id: 'i3', quantity: 1 },
+      ],
+      items: [
+        { id: 'i1', name: 'Vodka', category: 'Spirits', unit: 'btl', active: true, cost_price: 1 },
+        { id: 'i2', name: 'Lime Juice', category: 'Fresh', unit: 'L', active: true, cost_price: 1 },
+        { id: 'i3', name: 'Gin', category: 'Spirits', unit: 'btl', active: true, cost_price: 1 },
+      ],
+    })
+
+    expect(filterStorageProductRows(rows, 'lime').map((row) => row.name)).toEqual(['Lime Juice'])
+    expect(sortStorageProductRows(rows, 'qty-desc').map((row) => row.name))
+      .toEqual(['Lime Juice', 'Vodka', 'Gin'])
+    expect(sortStorageProductRows(rows, 'name-asc').map((row) => row.name))
+      .toEqual(['Gin', 'Lime Juice', 'Vodka'])
+  })
+})
+
+describe('getWorkspaceStorageProducts', () => {
+  beforeEach(() => {
+    fromMock.mockReset()
+  })
+
+  it('queries balances for one storage and catalog items without mutations', async () => {
+    const balancesQuery = createQuery({
+      data: [
+        {
+          stock_item_id: 'i1',
+          workspace_storage_id: 's-main',
+          location_key: 'Main Storage',
+          quantity: 4,
+        },
+      ],
+      error: null,
+    })
+    const itemsQuery = createQuery({
+      data: [{
+        id: 'i1',
+        name: 'Vodka',
+        category: 'Spirits',
+        item_type: 'Spirit',
+        unit: 'btl',
+        active: true,
+        current_quantity: 11,
+        minimum_quantity: 2,
+        cost_price: 5,
+      }],
+      error: null,
+    })
+
+    fromMock.mockImplementation((table) => {
+      if (table === 'stock_item_location_balances') return balancesQuery
+      if (table === 'stock_items') return itemsQuery
+      throw new Error(`unexpected table ${table}`)
+    })
+
+    const result = await getWorkspaceStorageProducts('ws-1', 's-main')
+    expect(balancesQuery.eq).toHaveBeenCalledWith('workspace_id', 'ws-1')
+    expect(balancesQuery.eq).toHaveBeenCalledWith('workspace_storage_id', 's-main')
+    expect(balancesQuery.select).toHaveBeenCalledWith(STOCK_STORAGE_CENTER_BALANCE_COLUMNS)
+    expect(itemsQuery.select).toHaveBeenCalledWith(STOCK_STORAGE_PRODUCT_ITEM_COLUMNS)
+    expect(itemsQuery.in).toHaveBeenCalledWith('id', ['i1'])
+    expect(result.products[0]).toMatchObject({
+      stockItemId: 'i1',
+      quantity: 4,
+      name: 'Vodka',
+    })
+    expect(result.summary).toEqual({
+      productCount: 1,
+      totalQuantity: 4,
+      nonZeroBalanceCount: 1,
+      inventoryValue: 20,
+    })
+    expect(fromMock.mock.calls.every(([table]) => (
+      table === 'stock_item_location_balances' || table === 'stock_items'
+    ))).toBe(true)
+  })
+
+  it('requires workspace and storage ids', async () => {
+    await expect(getWorkspaceStorageProducts('', 's-main')).rejects.toThrow(/Workspace is required/i)
+    await expect(getWorkspaceStorageProducts('ws-1', '')).rejects.toThrow(/Storage is required/i)
   })
 })

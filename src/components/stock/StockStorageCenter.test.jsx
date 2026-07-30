@@ -6,8 +6,27 @@ import { act, createElement } from 'react'
 import { createRoot } from 'react-dom/client'
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
-import { STOCK_SECTIONS, getModuleTitle } from '../../lib/appNavigation'
+import { STOCK_SECTIONS, getModuleTitle, getSearchPlaceholder } from '../../lib/appNavigation'
 import { StockStorageCenter } from './StockStorageCenter'
+
+vi.mock('./StockProductHistoryDrawer.jsx', () => ({
+  StockProductHistoryDrawer: ({ item, onClose }) => createElement(
+    'div',
+    { 'data-testid': 'stock-product-history-drawer' },
+    createElement('span', null, item?.name),
+    createElement('button', { type: 'button', onClick: onClose }, 'Close'),
+  ),
+}))
+
+vi.mock('../../services/stockStorageCenterService', async () => {
+  const actual = await vi.importActual('../../services/stockStorageCenterService')
+  return {
+    ...actual,
+    getWorkspaceStorageProducts: vi.fn(),
+  }
+})
+
+import { getWorkspaceStorageProducts } from '../../services/stockStorageCenterService'
 
 describe('StockStorageCenter navigation contract', () => {
   it('registers Storages in Stock sections after Inventory Count', () => {
@@ -25,13 +44,15 @@ describe('StockStorageCenter navigation contract', () => {
       label: 'Storages',
     })
     expect(getModuleTitle('stock', { stockSection: 'storages' })).toBe('Storages')
+    expect(getSearchPlaceholder('stock', { stockSection: 'storages' })).toBe('Search storages or products')
   })
 
-  it('mounts StockStorageCenter from the Stock workspace section switch', () => {
+  it('mounts StockStorageCenter from the Stock workspace section switch with searchTerm', () => {
     const appSource = readFileSync(resolve(process.cwd(), 'src/App.jsx'), 'utf8')
     expect(appSource).toContain("import { StockStorageCenter } from './components/stock/StockStorageCenter'")
     expect(appSource).toContain("stockSection === 'storages'")
     expect(appSource).toContain('<StockStorageCenter')
+    expect(appSource).toContain('searchTerm={searchTerm}')
     expect(appSource).toContain("stockSection === 'dashboard'")
     expect(appSource).toContain("stockSection === 'count'")
     expect(appSource).toContain("stockSection === 'suppliers'")
@@ -51,6 +72,7 @@ describe('StockStorageCenter UI', () => {
     container?.remove()
     container = null
     root = null
+    getWorkspaceStorageProducts.mockReset()
   })
 
   function renderCenter(props) {
@@ -62,11 +84,43 @@ describe('StockStorageCenter UI', () => {
     })
   }
 
-  it('renders loading, empty, error, active/archived cards, and selection detail', async () => {
+  it('renders loading, empty, error, active/archived cards, and opens products workspace', async () => {
     let resolveLoad
     const loadSummaries = vi.fn(() => new Promise((resolve) => {
       resolveLoad = resolve
     }))
+
+    getWorkspaceStorageProducts.mockResolvedValue({
+      storageId: 's-main',
+      products: [
+        {
+          stockItemId: 'i1',
+          name: 'Vodka',
+          category: 'Spirits',
+          unit: 'btl',
+          active: true,
+          quantity: 4,
+          costPrice: 10,
+          lineValue: 40,
+          item: {
+            id: 'i1',
+            name: 'Vodka',
+            category: 'Spirits',
+            unit: 'btl',
+            active: true,
+            currentQuantity: 10,
+            minimumQuantity: 2,
+            status: 'ok',
+          },
+        },
+      ],
+      summary: {
+        productCount: 1,
+        totalQuantity: 4,
+        nonZeroBalanceCount: 1,
+        inventoryValue: 40,
+      },
+    })
 
     renderCenter({
       workspaceId: 'ws-1',
@@ -136,22 +190,34 @@ describe('StockStorageCenter UI', () => {
     expect(container.textContent).toContain('Main Storage')
     expect(container.textContent).toContain('Old Cellar')
     expect(container.textContent).toContain('Archived')
-    expect(container.textContent).toContain('Select a storage to inspect its summary.')
     expect(container.textContent).not.toContain('Create storage')
     expect(container.textContent).not.toContain('Transfer')
     expect(container.textContent).not.toContain('Fast Count')
     expect(container.querySelector('button[data-action="archive"]')).toBeNull()
     expect(container.querySelector('button[data-action="create"]')).toBeNull()
 
-    act(() => {
+    await act(async () => {
       container.querySelector('[data-storage-id="s-main"]').click()
+      await Promise.resolve()
+      await Promise.resolve()
     })
-    expect(container.querySelector('[data-testid="stock-storage-center-detail"]')?.textContent)
-      .toContain('Main Storage')
-    expect(container.querySelector('[data-testid="stock-storage-center-detail"]')?.textContent)
-      .toContain('Products')
-    expect(container.querySelector('[data-testid="stock-storage-center-detail"]')?.textContent)
-      .toContain('12')
+
+    expect(container.querySelector('[data-testid="stock-storage-detail-workspace"]')).toBeTruthy()
+    expect(getWorkspaceStorageProducts).toHaveBeenCalledWith('ws-1', 's-main')
+    expect(container.textContent).toContain('Main Storage')
+    expect(container.textContent).toContain('Vodka')
+    expect(container.textContent).toContain('Spirits')
+    expect(container.textContent).toContain('← Storages')
+    expect(container.textContent).not.toContain('Receive')
+    expect(container.textContent).not.toContain('Transfer')
+    expect(container.textContent).not.toContain('Fast Count')
+
+    await act(async () => {
+      container.querySelector('[data-stock-item-id="i1"]').click()
+      await Promise.resolve()
+    })
+    expect(container.querySelector('[data-testid="stock-product-history-drawer"]')?.textContent)
+      .toContain('Vodka')
 
     const emptyLoad = vi.fn(async () => ({
       storages: [],

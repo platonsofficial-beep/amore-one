@@ -1,12 +1,14 @@
 /**
- * P8.30.1 — Storage Center read-only foundation.
+ * P8.30.1 / P8.30.2 — Storage Center read-only foundation + detail products.
  *
- * Lists workspace storages with balance summaries. No mutations.
+ * Lists workspace storages with balance summaries. Selecting a storage opens
+ * the read-only products workspace. No mutations.
  */
 
 import { useEffect, useMemo, useState } from 'react'
 import { formatStockInventoryValue, formatStockQuantity } from '../../lib/stockUtils'
 import { getWorkspaceStorageSummaries } from '../../services/stockStorageCenterService'
+import { StockStorageDetailWorkspace } from './StockStorageDetailWorkspace'
 
 /**
  * @param {{
@@ -63,11 +65,13 @@ function StorageSummaryCard({ storage, selected = false, onSelect }) {
 /**
  * @param {{
  *   workspaceId?: string,
+ *   searchTerm?: string,
  *   loadSummaries?: typeof getWorkspaceStorageSummaries,
  * }} props
  */
 export function StockStorageCenter({
   workspaceId = '',
+  searchTerm = '',
   loadSummaries = getWorkspaceStorageSummaries,
 } = {}) {
   const [status, setStatus] = useState(/** @type {'loading'|'ready'|'empty'|'error'} */ ('loading'))
@@ -119,7 +123,38 @@ export function StockStorageCenter({
     return payload.storages.find((storage) => storage.id === selectedId) ?? null
   }, [payload, selectedId])
 
+  const filteredActiveStorages = useMemo(() => {
+    const needle = `${searchTerm ?? ''}`.trim().toLowerCase()
+    const list = payload?.activeStorages ?? []
+    if (!needle || selectedStorage) return list
+    return list.filter((storage) => {
+      const haystack = `${storage.name ?? ''} ${storage.locationKey ?? ''}`.toLowerCase()
+      return haystack.includes(needle)
+    })
+  }, [payload, searchTerm, selectedStorage])
+
+  const filteredArchivedStorages = useMemo(() => {
+    const needle = `${searchTerm ?? ''}`.trim().toLowerCase()
+    const list = payload?.archivedStorages ?? []
+    if (!needle || selectedStorage) return list
+    return list.filter((storage) => {
+      const haystack = `${storage.name ?? ''} ${storage.locationKey ?? ''}`.toLowerCase()
+      return haystack.includes(needle)
+    })
+  }, [payload, searchTerm, selectedStorage])
+
   const summary = payload?.summary
+
+  if (selectedStorage) {
+    return (
+      <StockStorageDetailWorkspace
+        workspaceId={workspaceId}
+        storage={selectedStorage}
+        searchTerm={searchTerm}
+        onBack={() => setSelectedId(null)}
+      />
+    )
+  }
 
   return (
     <section className="stock-storage-center-page" aria-label="Storages">
@@ -178,29 +213,33 @@ export function StockStorageCenter({
       ) : null}
 
       {status === 'ready' && payload ? (
-        <div className="stock-storage-center-layout">
-          <div className="stock-storage-center-list">
-            <h3 className="stock-storage-center-section-title">Active</h3>
-            {payload.activeStorages.length === 0 ? (
-              <p className="stock-storage-center-section-empty">No active storages.</p>
-            ) : (
-              <div className="stock-storage-center-grid">
-                {payload.activeStorages.map((storage) => (
-                  <StorageSummaryCard
-                    key={storage.id}
-                    storage={storage}
-                    selected={selectedId === storage.id}
-                    onSelect={(next) => setSelectedId(next.id)}
-                  />
-                ))}
-              </div>
-            )}
+        <div className="stock-storage-center-list">
+          <h3 className="stock-storage-center-section-title">Active</h3>
+          {filteredActiveStorages.length === 0 ? (
+            <p className="stock-storage-center-section-empty">
+              {`${searchTerm ?? ''}`.trim() ? 'No active storages match this search.' : 'No active storages.'}
+            </p>
+          ) : (
+            <div className="stock-storage-center-grid">
+              {filteredActiveStorages.map((storage) => (
+                <StorageSummaryCard
+                  key={storage.id}
+                  storage={storage}
+                  selected={selectedId === storage.id}
+                  onSelect={(next) => setSelectedId(next.id)}
+                />
+              ))}
+            </div>
+          )}
 
-            {payload.archivedStorages.length > 0 ? (
-              <div className="stock-storage-center-archived">
-                <h3 className="stock-storage-center-section-title">Archived</h3>
+          {payload.archivedStorages.length > 0 ? (
+            <div className="stock-storage-center-archived">
+              <h3 className="stock-storage-center-section-title">Archived</h3>
+              {filteredArchivedStorages.length === 0 ? (
+                <p className="stock-storage-center-section-empty">No archived storages match this search.</p>
+              ) : (
                 <div className="stock-storage-center-grid is-archived">
-                  {payload.archivedStorages.map((storage) => (
+                  {filteredArchivedStorages.map((storage) => (
                     <StorageSummaryCard
                       key={storage.id}
                       storage={storage}
@@ -209,52 +248,9 @@ export function StockStorageCenter({
                     />
                   ))}
                 </div>
-              </div>
-            ) : null}
-          </div>
-
-          <aside
-            className="stock-storage-center-detail"
-            aria-label="Selected storage"
-            data-testid="stock-storage-center-detail"
-          >
-            {selectedStorage ? (
-              <>
-                <p className="stock-storage-center-detail-eyebrow">Selected storage</p>
-                <h3 className="stock-storage-center-detail-title">
-                  {selectedStorage.name || selectedStorage.locationKey}
-                </h3>
-                <p className="stock-storage-center-detail-status">
-                  {selectedStorage.active ? 'Active' : 'Archived'}
-                </p>
-                <dl className="stock-storage-center-detail-stats">
-                  <div>
-                    <dt>Products</dt>
-                    <dd>{selectedStorage.productCount}</dd>
-                  </div>
-                  <div>
-                    <dt>Total quantity</dt>
-                    <dd>{formatStockQuantity(selectedStorage.totalQuantity)}</dd>
-                  </div>
-                  <div>
-                    <dt>Non-zero balances</dt>
-                    <dd>{selectedStorage.nonZeroBalanceCount}</dd>
-                  </div>
-                  <div>
-                    <dt>Inventory value</dt>
-                    <dd>{formatStockInventoryValue(selectedStorage.inventoryValue)}</dd>
-                  </div>
-                </dl>
-                <p className="stock-storage-center-detail-note">
-                  Product detail, Fast Count, receiving, and transfers arrive in later sprints.
-                </p>
-              </>
-            ) : (
-              <p className="stock-storage-center-detail-placeholder">
-                Select a storage to inspect its summary.
-              </p>
-            )}
-          </aside>
+              )}
+            </div>
+          ) : null}
         </div>
       ) : null}
     </section>

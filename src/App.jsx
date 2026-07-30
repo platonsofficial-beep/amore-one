@@ -24395,6 +24395,7 @@ function App() {
         {isActiveViewAllowed && activeView === 'stock' && stockSection === 'storages' ? (
           <StockStorageCenter
             workspaceId={activeWorkspaceId}
+            searchTerm={searchTerm}
           />
         ) : null}
 

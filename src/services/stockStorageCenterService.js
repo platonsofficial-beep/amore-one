@@ -1,11 +1,18 @@
 /**
- * P8.30.1 — Storage Center read-only summaries.
+ * P8.30.1 / P8.30.2 — Storage Center read-only summaries + products.
  *
  * Aggregates workspace_storages + stock_item_location_balances for the
  * Storages Stock destination. No mutations. No SQL/RPC changes.
  */
 
 import { supabase } from '../lib/supabaseClient'
+import {
+  normalizeStockCategory,
+  normalizeStockItemType,
+  resolveStockStorageLocation,
+} from '../lib/stockCatalog'
+import { resolveStockItemStatus } from '../lib/stockUtils'
+import { normalizeSupplierId } from '../lib/stockSupplierUtils'
 import {
   WORKSPACE_STORAGE_LIST_COLUMNS,
   mapWorkspaceStorage,
@@ -23,6 +30,34 @@ export const STOCK_STORAGE_CENTER_BALANCE_COLUMNS = [
 ].join(', ')
 
 export const STOCK_STORAGE_CENTER_COST_COLUMNS = 'id, cost_price'
+
+/** Columns needed for storage product rows + existing history drawer. */
+export const STOCK_STORAGE_PRODUCT_ITEM_COLUMNS = [
+  'id',
+  'name',
+  'category',
+  'item_type',
+  'unit',
+  'active',
+  'current_quantity',
+  'minimum_quantity',
+  'target_quantity',
+  'order_quantity',
+  'cost_price',
+  'storage_location',
+  'supplier',
+  'supplier_id',
+  'created_at',
+  'updated_at',
+].join(', ')
+
+export const STOCK_STORAGE_PRODUCT_SORT_OPTIONS = Object.freeze([
+  { id: 'name-asc', label: 'A–Z' },
+  { id: 'name-desc', label: 'Z–A' },
+  { id: 'qty-desc', label: 'Qty high → low' },
+  { id: 'qty-asc', label: 'Qty low → high' },
+  { id: 'category', label: 'Category' },
+])
 
 /**
  * Zero-balance policy (P8.30.1):
@@ -233,5 +268,249 @@ export async function getWorkspaceStorageSummaries(workspaceId) {
     storages,
     balances: balanceRows ?? [],
     costByItemId,
+  })
+}
+
+/**
+ * Map a stock_items row into the shape StockProductHistoryDrawer already expects.
+ * Quantity on `item` remains catalog current_quantity (drawer shows location splits).
+ *
+ * @param {Record<string, unknown>} record
+ */
+function mapStorageProductCatalogItem(record) {
+  const currentQuantity = asFiniteNumber(record?.current_quantity ?? record?.currentQuantity)
+  const minimumQuantity = asFiniteNumber(record?.minimum_quantity ?? record?.minimumQuantity)
+  const orderQuantity = record?.order_quantity ?? record?.orderQuantity
+  const targetQuantity = record?.target_quantity ?? record?.targetQuantity
+  const costPrice = asFiniteNumber(record?.cost_price ?? record?.costPrice)
+
+  const item = {
+    id: record?.id,
+    workspaceId: asTrimmedString(record?.workspace_id ?? record?.workspaceId),
+    name: asTrimmedString(record?.name),
+    category: normalizeStockCategory(record?.category ?? 'Other'),
+    itemType: normalizeStockItemType(
+      record?.category ?? 'Other',
+      record?.item_type ?? record?.itemType ?? 'Other',
+    ),
+    supplier: asTrimmedString(record?.supplier),
+    supplierId: normalizeSupplierId(record?.supplier_id ?? record?.supplierId ?? null),
+    storageLocation: resolveStockStorageLocation({
+      category: record?.category,
+      storageLocation: record?.storage_location ?? record?.storageLocation,
+    }),
+    unit: asTrimmedString(record?.unit),
+    currentQuantity,
+    minimumQuantity,
+    targetQuantity: targetQuantity === null || targetQuantity === undefined
+      ? null
+      : asFiniteNumber(targetQuantity),
+    orderQuantity: orderQuantity === null || orderQuantity === undefined
+      ? null
+      : asFiniteNumber(orderQuantity),
+    costPrice,
+    active: record?.active !== false,
+    createdAt: record?.created_at ?? record?.createdAt ?? null,
+    updatedAt: record?.updated_at ?? record?.updatedAt ?? null,
+  }
+
+  return {
+    ...item,
+    status: resolveStockItemStatus(item),
+  }
+}
+
+/**
+ * Pure join of per-storage balances + catalog items.
+ * Row quantity is THIS storage only — never catalog total.
+ *
+ * @param {{
+ *   balances?: unknown,
+ *   items?: unknown,
+ * }} [input]
+ */
+export function buildStorageProductRows({ balances = [], items = [] } = {}) {
+  const balanceList = Array.isArray(balances) ? balances : []
+  /** @type {Map<string, ReturnType<typeof mapStorageProductCatalogItem>>} */
+  const itemsById = new Map()
+  for (const record of Array.isArray(items) ? items : []) {
+    const id = asTrimmedString(record?.id)
+    if (!id) continue
+    itemsById.set(id, mapStorageProductCatalogItem(record))
+  }
+
+  /** @type {Array<{
+   *   stockItemId: string,
+   *   name: string,
+   *   category: string,
+   *   unit: string,
+   *   active: boolean,
+   *   quantity: number,
+   *   costPrice: number,
+   *   lineValue: number,
+   *   item: ReturnType<typeof mapStorageProductCatalogItem>,
+   * }>} */
+  const rows = []
+
+  for (const balance of balanceList) {
+    const stockItemId = asTrimmedString(balance?.stock_item_id ?? balance?.stockItemId)
+    if (!stockItemId) continue
+    const quantity = asFiniteNumber(balance?.quantity)
+    const catalogItem = itemsById.get(stockItemId)
+    const item = catalogItem ?? {
+      id: stockItemId,
+      workspaceId: '',
+      name: 'Unknown product',
+      category: 'Other',
+      itemType: 'Other',
+      supplier: '',
+      supplierId: null,
+      storageLocation: '—',
+      unit: '',
+      currentQuantity: 0,
+      minimumQuantity: 0,
+      targetQuantity: null,
+      orderQuantity: null,
+      costPrice: 0,
+      active: true,
+      createdAt: null,
+      updatedAt: null,
+      status: 'ok',
+    }
+    const costPrice = asFiniteNumber(item.costPrice)
+    rows.push(Object.freeze({
+      stockItemId,
+      name: item.name || 'Unknown product',
+      category: item.category || 'Other',
+      unit: item.unit || '',
+      active: item.active !== false,
+      quantity,
+      costPrice,
+      lineValue: quantity * costPrice,
+      item: Object.freeze(item),
+    }))
+  }
+
+  return Object.freeze(rows)
+}
+
+/**
+ * @param {unknown} rows
+ * @param {string} [searchTerm]
+ */
+export function filterStorageProductRows(rows = [], searchTerm = '') {
+  const needle = `${searchTerm ?? ''}`.trim().toLowerCase()
+  const list = Array.isArray(rows) ? rows : []
+  if (!needle) return list
+
+  return list.filter((row) => {
+    const haystack = `${row?.name ?? ''} ${row?.category ?? ''} ${row?.unit ?? ''} ${row?.item?.itemType ?? ''} ${row?.item?.supplier ?? ''}`
+      .toLowerCase()
+    return haystack.includes(needle)
+  })
+}
+
+/**
+ * @param {unknown} rows
+ * @param {string} [sortKey]
+ */
+export function sortStorageProductRows(rows = [], sortKey = 'name-asc') {
+  const list = [...(Array.isArray(rows) ? rows : [])]
+  const compareName = (left, right) => (
+    `${left?.name ?? ''}`.localeCompare(`${right?.name ?? ''}`, undefined, { sensitivity: 'base' })
+  )
+
+  list.sort((left, right) => {
+    if (sortKey === 'name-desc') return compareName(right, left)
+    if (sortKey === 'qty-desc') {
+      const delta = asFiniteNumber(right?.quantity) - asFiniteNumber(left?.quantity)
+      return delta !== 0 ? delta : compareName(left, right)
+    }
+    if (sortKey === 'qty-asc') {
+      const delta = asFiniteNumber(left?.quantity) - asFiniteNumber(right?.quantity)
+      return delta !== 0 ? delta : compareName(left, right)
+    }
+    if (sortKey === 'category') {
+      const categoryDelta = `${left?.category ?? ''}`.localeCompare(
+        `${right?.category ?? ''}`,
+        undefined,
+        { sensitivity: 'base' },
+      )
+      return categoryDelta !== 0 ? categoryDelta : compareName(left, right)
+    }
+    return compareName(left, right)
+  })
+
+  return list
+}
+
+/**
+ * Read-only products for one workspace storage (balances in THIS storage only).
+ *
+ * @param {string} workspaceId
+ * @param {string} storageId
+ */
+export async function getWorkspaceStorageProducts(workspaceId, storageId) {
+  const normalizedWorkspaceId = asTrimmedString(workspaceId)
+  const normalizedStorageId = asTrimmedString(storageId)
+  if (!normalizedWorkspaceId) {
+    throw new Error('Workspace is required to load storage products.')
+  }
+  if (!normalizedStorageId) {
+    throw new Error('Storage is required to load storage products.')
+  }
+
+  const { data: balanceRows, error: balanceError } = await supabase
+    .from(STOCK_ITEM_LOCATION_BALANCES_TABLE)
+    .select(STOCK_STORAGE_CENTER_BALANCE_COLUMNS)
+    .eq('workspace_id', normalizedWorkspaceId)
+    .eq('workspace_storage_id', normalizedStorageId)
+
+  if (balanceError) {
+    console.error('[stockStorageCenterService] storage products balances error:', balanceError)
+    throw new Error(balanceError.message || 'Unable to load storage products right now.')
+  }
+
+  const balances = balanceRows ?? []
+  const itemIds = [...new Set(
+    balances
+      .map((row) => asTrimmedString(row?.stock_item_id))
+      .filter(Boolean),
+  )]
+
+  let items = []
+  if (itemIds.length > 0) {
+    const { data: itemRows, error: itemError } = await supabase
+      .from(STOCK_ITEMS_TABLE)
+      .select(STOCK_STORAGE_PRODUCT_ITEM_COLUMNS)
+      .eq('workspace_id', normalizedWorkspaceId)
+      .in('id', itemIds)
+
+    if (itemError) {
+      console.error('[stockStorageCenterService] storage products items error:', itemError)
+      throw new Error(itemError.message || 'Unable to load storage products right now.')
+    }
+    items = itemRows ?? []
+  }
+
+  const products = buildStorageProductRows({ balances, items })
+  let totalQuantity = 0
+  let inventoryValue = 0
+  let nonZeroBalanceCount = 0
+  for (const row of products) {
+    totalQuantity += row.quantity
+    inventoryValue += row.lineValue
+    if (row.quantity !== 0) nonZeroBalanceCount += 1
+  }
+
+  return Object.freeze({
+    storageId: normalizedStorageId,
+    products: Object.freeze(products),
+    summary: Object.freeze({
+      productCount: products.length,
+      totalQuantity,
+      nonZeroBalanceCount,
+      inventoryValue,
+    }),
   })
 }

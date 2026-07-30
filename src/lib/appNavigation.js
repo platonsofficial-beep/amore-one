@@ -184,7 +184,7 @@ export function getSearchPlaceholder(activeView, {
   if (activeView === 'stock' && stockSection === 'dashboard') return 'Search stock item'
   if (activeView === 'stock' && stockSection === 'inventory') return 'Search legacy inventory'
   if (activeView === 'stock' && stockSection === 'count') return 'Search counts'
-  if (activeView === 'stock' && stockSection === 'storages') return 'Search storages'
+  if (activeView === 'stock' && stockSection === 'storages') return 'Search storages or products'
   if (activeView === 'stock' && stockSection === 'suppliers') return 'Search supplier'
   if (activeView === 'stock' && stockSection === 'migration') return 'Search migration stages'
   if (activeView === 'operations' && operationsSection === 'checklists') return 'Search checklists'

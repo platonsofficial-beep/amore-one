@@ -32353,6 +32353,204 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   }
 }
 
+/* P8.30.2 — Storage detail products workspace */
+.stock-storage-detail-workspace {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+}
+
+.stock-storage-detail-workspace-header {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px 16px;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(8, 8, 9, 0.62);
+}
+
+.stock-storage-detail-workspace-header-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.stock-storage-detail-back {
+  min-height: 44px;
+  padding: 0 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.05);
+  color: rgba(255, 247, 232, 0.88);
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.stock-storage-detail-workspace-title {
+  margin: 0;
+  color: #fff7e8;
+  font-size: 1.3rem;
+  font-weight: 650;
+}
+
+.stock-storage-detail-workspace-key {
+  margin: 4px 0 0;
+  color: rgba(255, 247, 232, 0.55);
+  font-size: 0.85rem;
+}
+
+.stock-storage-detail-workspace-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin: 0;
+}
+
+.stock-storage-detail-workspace-stats div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.stock-storage-detail-workspace-stats dt {
+  color: rgba(255, 247, 232, 0.5);
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+
+.stock-storage-detail-workspace-stats dd {
+  margin: 0;
+  color: #fff7e8;
+  font-size: 1rem;
+  font-weight: 650;
+}
+
+.stock-storage-detail-workspace-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px 16px;
+}
+
+.stock-storage-detail-sort {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: rgba(255, 247, 232, 0.68);
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.stock-storage-detail-sort select {
+  min-height: 44px;
+  min-width: 148px;
+  padding: 0 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(8, 8, 9, 0.72);
+  color: #fff7e8;
+}
+
+.stock-storage-detail-result-count {
+  margin: 0;
+  color: rgba(255, 247, 232, 0.55);
+  font-size: 0.85rem;
+}
+
+.stock-storage-product-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.stock-storage-product-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  min-height: 56px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(8, 8, 9, 0.72);
+  color: #fff7e8;
+  text-align: left;
+  cursor: pointer;
+}
+
+.stock-storage-product-row.is-inactive {
+  opacity: 0.78;
+}
+
+.stock-storage-product-row-main {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.stock-storage-product-name {
+  font-size: 0.98rem;
+  font-weight: 650;
+}
+
+.stock-storage-product-category {
+  color: rgba(255, 247, 232, 0.55);
+  font-size: 0.82rem;
+}
+
+.stock-storage-product-row-meta {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 10px;
+}
+
+.stock-storage-product-qty {
+  font-size: 0.95rem;
+  font-weight: 650;
+  white-space: nowrap;
+}
+
+.stock-storage-product-badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 0 10px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.stock-storage-product-badge.tone-active {
+  background: rgba(110, 180, 120, 0.16);
+  color: rgba(170, 230, 180, 0.95);
+}
+
+.stock-storage-product-badge.tone-inactive {
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 247, 232, 0.62);
+}
+
+@media (max-width: 700px) {
+  .stock-storage-detail-workspace-stats {
+    grid-template-columns: 1fr;
+  }
+
+  .stock-storage-product-row {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
+
 .inventory-count-page {
   display: flex;
   flex-direction: column;
