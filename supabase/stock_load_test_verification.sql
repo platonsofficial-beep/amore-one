@@ -1,9 +1,12 @@
 -- =============================================================================
--- P8.17.2a — Stock Load-Test Dataset VERIFICATION (AMORE.NICOSIA)
+-- P8.17.2a / P8.31.5 — Stock Load-Test Dataset VERIFICATION (AMORE.NICOSIA)
 -- =============================================================================
 -- MANUAL EXECUTION ONLY — Supabase SQL Editor.
 -- Read-only queries. Safe to run before/after seed and cleanup.
 -- Do NOT auto-run from the app.
+--
+-- Official cleanup (P8.31.5):
+--   supabase/p8_31_5_controlled_test_catalog_cleanup.sql
 --
 -- Run sections independently as needed. All statements are SELECTs / notices.
 -- =============================================================================
@@ -239,3 +242,40 @@ where (
 );
 
 -- Expect: 0
+
+-- -----------------------------------------------------------------------------
+-- I) P8.31.5 after-cleanup gate (balances + import FKs + empty batch)
+-- -----------------------------------------------------------------------------
+with ws as (
+  select w.id
+  from public.workspaces w
+  where w.slug = 'amore-nicosia'
+     or w.name = 'AMORE.NICOSIA'
+)
+select
+  (select count(*) from public.stock_items s
+    where s.workspace_id = (select id from ws)
+      and (
+        s.name like 'ONE_STOCK_LOAD_TEST_2026_07 | %'
+        or s.id::text like 'a0172a00-2026-4000-8000-%'
+      )) as remaining_batch_items,
+  (select count(*) from public.stock_movements m
+    where m.workspace_id = (select id from ws)
+      and (
+        m.note = 'ONE_STOCK_LOAD_TEST_2026_07'
+        or m.id::text like 'b0172a00-2026-4000-8000-%'
+      )) as remaining_batch_movements,
+  (select count(*) from public.stock_item_location_balances b
+    where b.workspace_id = (select id from ws)
+      and b.stock_item_id::text like 'a0172a00-2026-4000-8000-%') as remaining_batch_balances,
+  (select count(*) from public.inventory_import_rows r
+    where r.workspace_id = (select id from ws)
+      and (
+        r.matched_stock_item_id::text like 'a0172a00-2026-4000-8000-%'
+        or r.applied_stock_item_id::text like 'a0172a00-2026-4000-8000-%'
+      )) as remaining_import_batch_fks,
+  (select count(*) from public.stock_items s
+    where s.workspace_id = (select id from ws)
+      and s.name not like 'ONE_STOCK_LOAD_TEST_2026_07 | %') as non_test_items;
+
+-- After successful P8.31.5 cleanup: all remaining_* = 0; non_test_items unchanged.

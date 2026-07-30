@@ -23,6 +23,9 @@
 --   1) Run stock_load_test_verification.sql (before section)
 --   2) Run THIS file
 --   3) Run stock_load_test_verification.sql (after-seed section)
+--
+-- Cleanup (P8.31.5 official):
+--   supabase/p8_31_5_controlled_test_catalog_cleanup.sql
 -- =============================================================================
 
 begin;
