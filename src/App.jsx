@@ -24450,8 +24450,10 @@ function App() {
             onOpenActiveCountSession={handleOpenInventoryCountSession}
             onRecordReceive={handleRecordStockMovement}
             onRecordTransfer={handleRecordStockTransfer}
+            onRecordAdjustment={handleRecordStockMovement}
             isSavingReceive={isSavingStockItem}
             isSavingTransfer={isSavingStockItem}
+            isSavingAdjustment={isSavingStockItem}
           />
         ) : null}
 

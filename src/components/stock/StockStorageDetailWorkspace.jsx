@@ -1,10 +1,8 @@
 /**
- * P8.30.2 / P8.30.3 / P8.30.4 — Storage detail products + Fast Count launch.
+ * P8.30.2–P8.30.7 — Storage detail products + action launches.
  *
  * Shows products with quantity in THIS storage only.
- * Fast Count creates a normal Inventory Count session for this storage only
- * and opens the existing Active Count workspace. No Fast Count engine.
- * Other actions remain placeholders.
+ * Fast Count / Receive / Transfer / Adjustment reuse existing engines.
  * Reuses StockProductHistoryDrawer for product detail — no forked drawer.
  */
 
@@ -155,8 +153,10 @@ function StorageProductRow({
  *   onTransfer?: (storage: object) => void,
  *   onRecordTransfer?: (payload: object) => void|Promise<void>,
  *   onAdjustment?: (storage: object) => void,
+ *   onRecordAdjustment?: (payload: object) => void|Promise<void>,
  *   isSavingReceive?: boolean,
  *   isSavingTransfer?: boolean,
+ *   isSavingAdjustment?: boolean,
  *   loadProducts?: typeof getWorkspaceStorageProducts,
  *   startFastCountSession?: typeof startStorageFastCountSession,
  * }} props
@@ -174,8 +174,10 @@ export function StockStorageDetailWorkspace({
   onTransfer,
   onRecordTransfer,
   onAdjustment,
+  onRecordAdjustment,
   isSavingReceive = false,
   isSavingTransfer = false,
+  isSavingAdjustment = false,
   loadProducts = getWorkspaceStorageProducts,
   startFastCountSession = startStorageFastCountSession,
 } = {}) {
@@ -193,6 +195,8 @@ export function StockStorageDetailWorkspace({
   const [receiveRow, setReceiveRow] = useState(/** @type {object|null} */ (null))
   const [transferPickerOpen, setTransferPickerOpen] = useState(false)
   const [transferRow, setTransferRow] = useState(/** @type {object|null} */ (null))
+  const [adjustmentPickerOpen, setAdjustmentPickerOpen] = useState(false)
+  const [adjustmentRow, setAdjustmentRow] = useState(/** @type {object|null} */ (null))
   const listRef = useRef(/** @type {HTMLDivElement|null} */ (null))
   const fastCountRequestIdRef = useRef(0)
 
@@ -260,14 +264,6 @@ export function StockStorageDetailWorkspace({
   const openPlaceholder = (actionId, productName = '') => {
     setOpenMenuItemId(null)
     setPlaceholder({ actionId, productName })
-  }
-
-  const runStorageAction = (actionId, callback) => {
-    if (typeof callback === 'function') {
-      callback(storage)
-      return
-    }
-    openPlaceholder(actionId)
   }
 
   const handleStartFastCount = async () => {
@@ -375,6 +371,47 @@ export function StockStorageDetailWorkspace({
     setReloadToken((token) => token + 1)
   }
 
+  const handleStartAdjustment = () => {
+    if (storage?.active === false) return
+    setOpenMenuItemId(null)
+    setPlaceholder(null)
+    if (typeof onAdjustment === 'function') {
+      onAdjustment(storage)
+      return
+    }
+    setAdjustmentRow(null)
+    setAdjustmentPickerOpen(true)
+  }
+
+  const handleAdjustmentProductSelected = (row) => {
+    setAdjustmentPickerOpen(false)
+    setAdjustmentRow(row)
+  }
+
+  const handleRecordAdjustmentSubmit = async ({
+    item,
+    type,
+    quantity,
+    note,
+    workspaceStorageId,
+    expectedQuantityVersion,
+  }) => {
+    if (typeof onRecordAdjustment !== 'function') {
+      throw new Error('Adjustment is not available right now.')
+    }
+    await onRecordAdjustment({
+      item,
+      type,
+      quantity,
+      note,
+      workspaceStorageId,
+      expectedQuantityVersion,
+      storage,
+    })
+    setAdjustmentRow(null)
+    setReloadToken((token) => token + 1)
+  }
+
   const handleMenuAction = (actionId, row) => {
     if (actionId === 'fast_count') {
       void handleStartFastCount()
@@ -398,6 +435,16 @@ export function StockStorageDetailWorkspace({
         return
       }
       setTransferRow(row)
+      return
+    }
+    if (actionId === 'adjustment') {
+      setOpenMenuItemId(null)
+      setPlaceholder(null)
+      if (typeof onAdjustment === 'function') {
+        onAdjustment(storage)
+        return
+      }
+      setAdjustmentRow(row)
       return
     }
     openPlaceholder(actionId, row.name)
@@ -450,7 +497,7 @@ export function StockStorageDetailWorkspace({
           onStartFastCount={() => { void handleStartFastCount() }}
           onReceive={() => handleStartReceive()}
           onTransfer={() => handleStartTransfer()}
-          onAdjustment={() => runStorageAction('adjustment', onAdjustment)}
+          onAdjustment={() => handleStartAdjustment()}
         />
         {isLaunchingFastCount ? (
           <div
@@ -605,6 +652,32 @@ export function StockStorageDetailWorkspace({
           isSaving={isSavingTransfer}
           onClose={() => setTransferRow(null)}
           onSubmit={handleRecordTransferSubmit}
+        />
+      ) : null}
+
+      {adjustmentPickerOpen ? (
+        <StockStorageReceiveProductPicker
+          storage={storage}
+          products={payload?.products ?? []}
+          title="Adjust stock"
+          subtitlePrefix="Storage"
+          testId="stock-storage-adjustment-product-picker"
+          onClose={() => setAdjustmentPickerOpen(false)}
+          onSelectProduct={handleAdjustmentProductSelected}
+        />
+      ) : null}
+
+      {adjustmentRow ? (
+        <StockMovementModal
+          item={adjustmentRow.item}
+          movementType="adjustment"
+          isSaving={isSavingAdjustment}
+          destinationStorage={storage}
+          destinationLocked
+          requireAdjustmentReason
+          expectedQuantityVersion={adjustmentRow.quantityVersion}
+          onClose={() => setAdjustmentRow(null)}
+          onSubmit={handleRecordAdjustmentSubmit}
         />
       ) : null}
 

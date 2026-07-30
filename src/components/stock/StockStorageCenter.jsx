@@ -74,8 +74,10 @@ function StorageSummaryCard({ storage, selected = false, onSelect }) {
  *   onTransfer?: (storage: object) => void,
  *   onRecordTransfer?: (payload: object) => void|Promise<void>,
  *   onAdjustment?: (storage: object) => void,
+ *   onRecordAdjustment?: (payload: object) => void|Promise<void>,
  *   isSavingReceive?: boolean,
  *   isSavingTransfer?: boolean,
+ *   isSavingAdjustment?: boolean,
  *   loadSummaries?: typeof getWorkspaceStorageSummaries,
  * }} props
  */
@@ -90,8 +92,10 @@ export function StockStorageCenter({
   onTransfer,
   onRecordTransfer,
   onAdjustment,
+  onRecordAdjustment,
   isSavingReceive = false,
   isSavingTransfer = false,
+  isSavingAdjustment = false,
   loadSummaries = getWorkspaceStorageSummaries,
 } = {}) {
   const [status, setStatus] = useState(/** @type {'loading'|'ready'|'empty'|'error'} */ ('loading'))
@@ -180,8 +184,10 @@ export function StockStorageCenter({
         onTransfer={onTransfer}
         onRecordTransfer={onRecordTransfer}
         onAdjustment={onAdjustment}
+        onRecordAdjustment={onRecordAdjustment}
         isSavingReceive={isSavingReceive}
         isSavingTransfer={isSavingTransfer}
+        isSavingAdjustment={isSavingAdjustment}
       />
     )
   }

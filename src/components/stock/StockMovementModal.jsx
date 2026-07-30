@@ -1,10 +1,34 @@
 /**
  * Shared stock movement dialog (Dashboard + Storage Center).
  * P8.30.5 — optional locked destination for Storage Receive.
+ * P8.30.7 — Storage Adjustment: locked storage + mandatory reason.
  */
 
 import { useEffect, useState } from 'react'
 import { formatStockQuantity } from '../../lib/stockUtils'
+
+export const STOCK_ADJUSTMENT_REASON_OPTIONS = Object.freeze([
+  'Damage',
+  'Waste',
+  'Expired',
+  'Manual correction',
+  'Found stock',
+  'Other',
+])
+
+/**
+ * @param {string} reason
+ * @param {string} note
+ * @returns {string}
+ */
+export function buildAdjustmentMovementNote(reason, note = '') {
+  const trimmedReason = `${reason ?? ''}`.trim()
+  const trimmedNote = `${note ?? ''}`.trim()
+  if (!trimmedReason) return trimmedNote
+  if (trimmedReason === 'Other') return trimmedNote || 'Other'
+  if (!trimmedNote) return trimmedReason
+  return `${trimmedReason}: ${trimmedNote}`
+}
 
 /**
  * @param {{
@@ -16,6 +40,7 @@ import { formatStockQuantity } from '../../lib/stockUtils'
  *   destinationStorage?: { id?: string, name?: string, locationKey?: string }|null,
  *   destinationLocked?: boolean,
  *   expectedQuantityVersion?: number|null,
+ *   requireAdjustmentReason?: boolean,
  * }} props
  */
 export function StockMovementModal({
@@ -27,11 +52,15 @@ export function StockMovementModal({
   destinationStorage = null,
   destinationLocked = false,
   expectedQuantityVersion = null,
+  requireAdjustmentReason = false,
 }) {
   const isStockCount = movementType === 'stock_count'
+  const isAdjustment = movementType === 'adjustment'
+  const reasonRequired = isAdjustment && requireAdjustmentReason
   const [quantity, setQuantity] = useState(
     () => (isStockCount ? `${item.currentQuantity ?? ''}` : ''),
   )
+  const [reason, setReason] = useState('')
   const [note, setNote] = useState('')
   const [error, setError] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -47,6 +76,7 @@ export function StockMovementModal({
     } else {
       setQuantity('')
     }
+    setReason('')
     setNote('')
     setError('')
   }, [item, movementType, isStockCount])
@@ -94,6 +124,22 @@ export function StockMovementModal({
       return
     }
 
+    if (reasonRequired) {
+      const trimmedReason = reason.trim()
+      if (!trimmedReason) {
+        setError('Choose an adjustment reason.')
+        return
+      }
+      if (trimmedReason === 'Other' && !note.trim()) {
+        setError('Enter a note for Other.')
+        return
+      }
+    }
+
+    const resolvedNote = reasonRequired
+      ? buildAdjustmentMovementNote(reason, note)
+      : note.trim()
+
     try {
       setError('')
       setIsSubmitting(true)
@@ -101,7 +147,8 @@ export function StockMovementModal({
         item,
         type: movementType,
         quantity: parsed,
-        note: note.trim(),
+        note: resolvedNote,
+        reason: reasonRequired ? reason.trim() : undefined,
         workspaceStorageId: destinationStorage?.id ?? null,
         expectedQuantityVersion,
       })
@@ -112,6 +159,12 @@ export function StockMovementModal({
       setIsSubmitting(false)
     }
   }
+
+  const lockTestId = isAdjustment
+    ? 'stock-adjustment-storage-lock'
+    : 'stock-receive-destination-lock'
+  const lockLabel = isAdjustment ? 'Storage' : 'Destination'
+  const lockNote = isAdjustment ? 'Locked' : 'Locked to this storage'
 
   return (
     <div className="employee-modal-backdrop task-modal-backdrop" onClick={handleDismiss}>
@@ -130,42 +183,77 @@ export function StockMovementModal({
 
         <form className="employee-form" onSubmit={handleSubmit}>
           {destinationLocked && destinationLabel ? (
-            <div className="stock-movement-destination-lock" data-testid="stock-receive-destination-lock">
-              <span className="stock-movement-destination-lock-label">Destination</span>
+            <div className="stock-movement-destination-lock" data-testid={lockTestId}>
+              <span className="stock-movement-destination-lock-label">{lockLabel}</span>
               <strong className="stock-movement-destination-lock-value">{destinationLabel}</strong>
-              <span className="stock-movement-destination-lock-note">Locked to this storage</span>
+              <span className="stock-movement-destination-lock-note">{lockNote}</span>
             </div>
           ) : null}
 
           <label>
-            {isStockCount ? 'Counted quantity' : 'Quantity'}
+            {isStockCount ? 'Counted quantity' : isAdjustment ? 'Adjustment amount' : 'Quantity'}
             <input
               type="number"
               step="any"
               min={isStockCount ? '0' : undefined}
               value={quantity}
               onChange={(event) => setQuantity(event.target.value)}
-              placeholder={isStockCount ? `${item.currentQuantity ?? 0}` : movementType === 'adjustment' ? 'Use negative to reduce' : '0'}
+              placeholder={isStockCount ? `${item.currentQuantity ?? 0}` : isAdjustment ? 'Use negative to reduce' : '0'}
               required
               disabled={isBusy}
+              aria-label={isAdjustment ? 'Adjustment amount' : undefined}
+              data-testid={isAdjustment ? 'stock-adjustment-quantity' : undefined}
             />
           </label>
+
+          {reasonRequired ? (
+            <label>
+              Reason
+              <select
+                value={reason}
+                onChange={(event) => setReason(event.target.value)}
+                required
+                disabled={isBusy}
+                aria-label="Adjustment reason"
+                data-testid="stock-adjustment-reason-select"
+              >
+                <option value="">Select reason</option>
+                {STOCK_ADJUSTMENT_REASON_OPTIONS.map((option) => (
+                  <option key={option} value={option}>{option}</option>
+                ))}
+              </select>
+            </label>
+          ) : null}
+
           <label>
             Note
             <input
               type="text"
               value={note}
               onChange={(event) => setNote(event.target.value)}
-              placeholder={isStockCount ? 'e.g. Monday bar count' : 'Optional'}
+              placeholder={
+                isStockCount
+                  ? 'e.g. Monday bar count'
+                  : reasonRequired
+                    ? (reason === 'Other' ? 'Required for Other' : 'Optional')
+                    : 'Optional'
+              }
+              required={reasonRequired && reason === 'Other'}
               disabled={isBusy}
+              data-testid={reasonRequired ? 'stock-adjustment-note' : undefined}
             />
           </label>
 
-          {error ? <div className="staff-status-banner">{error}</div> : null}
+          {error ? <div className="staff-status-banner" role="alert">{error}</div> : null}
 
           <div className="modal-actions">
             <button type="button" className="ghost-btn" onClick={handleDismiss} disabled={isBusy}>Cancel</button>
-            <button type="submit" className="primary-btn" disabled={isBusy}>
+            <button
+              type="submit"
+              className="primary-btn"
+              disabled={isBusy}
+              data-testid={isAdjustment ? 'stock-adjustment-submit' : undefined}
+            >
               {isBusy ? 'Saving…' : isStockCount ? 'Save stock count' : 'Save'}
             </button>
           </div>
