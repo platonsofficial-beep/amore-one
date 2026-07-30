@@ -9,8 +9,13 @@ import { supabase } from '../lib/supabaseClient'
 import {
   normalizeStockCategory,
   normalizeStockItemType,
+  normalizePackagingNote,
+  normalizeProductBarcode,
+  normalizeProductBrand,
+  normalizeProductSize,
   resolveStockStorageLocation,
 } from '../lib/stockCatalog'
+import { buildStockProductSearchHaystack } from '../lib/stockProductMetadataDisplay'
 import { resolveStockItemStatus } from '../lib/stockUtils'
 import { normalizeSupplierId } from '../lib/stockSupplierUtils'
 import {
@@ -48,6 +53,10 @@ export const STOCK_STORAGE_PRODUCT_ITEM_COLUMNS = [
   'storage_location',
   'supplier',
   'supplier_id',
+  'brand',
+  'size',
+  'barcode',
+  'packaging_note',
   'created_at',
   'updated_at',
 ].join(', ')
@@ -289,6 +298,7 @@ function mapStorageProductCatalogItem(record) {
     id: record?.id,
     workspaceId: asTrimmedString(record?.workspace_id ?? record?.workspaceId),
     name: asTrimmedString(record?.name),
+    brand: normalizeProductBrand(record?.brand ?? null),
     category: normalizeStockCategory(record?.category ?? 'Other'),
     itemType: normalizeStockItemType(
       record?.category ?? 'Other',
@@ -301,6 +311,11 @@ function mapStorageProductCatalogItem(record) {
       storageLocation: record?.storage_location ?? record?.storageLocation,
     }),
     unit: asTrimmedString(record?.unit),
+    size: normalizeProductSize(record?.size ?? null),
+    packagingNote: normalizePackagingNote(
+      record?.packaging_note ?? record?.packagingNote ?? null,
+    ),
+    barcode: normalizeProductBarcode(record?.barcode ?? null),
     currentQuantity,
     minimumQuantity,
     targetQuantity: targetQuantity === null || targetQuantity === undefined
@@ -386,6 +401,10 @@ export function buildStorageProductRows({ balances = [], items = [] } = {}) {
     rows.push(Object.freeze({
       stockItemId,
       name: item.name || 'Unknown product',
+      brand: item.brand ?? null,
+      size: item.size ?? null,
+      barcode: item.barcode ?? null,
+      packagingNote: item.packagingNote ?? null,
       category: item.category || 'Other',
       unit: item.unit || '',
       active: item.active !== false,
@@ -410,8 +429,18 @@ export function filterStorageProductRows(rows = [], searchTerm = '') {
   if (!needle) return list
 
   return list.filter((row) => {
-    const haystack = `${row?.name ?? ''} ${row?.category ?? ''} ${row?.unit ?? ''} ${row?.item?.itemType ?? ''} ${row?.item?.supplier ?? ''}`
-      .toLowerCase()
+    const haystack = buildStockProductSearchHaystack({
+      name: row?.name,
+      brand: row?.brand ?? row?.item?.brand,
+      size: row?.size ?? row?.item?.size,
+      barcode: row?.barcode ?? row?.item?.barcode,
+      supplier: row?.item?.supplier,
+      category: row?.category,
+      unit: row?.unit,
+    }, {
+      itemType: row?.item?.itemType,
+      location: '',
+    })
     return haystack.includes(needle)
   })
 }

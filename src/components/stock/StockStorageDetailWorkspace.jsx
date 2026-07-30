@@ -7,6 +7,7 @@
  */
 
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { formatStockProductBrandSizeLine } from '../../lib/stockProductMetadataDisplay'
 import { formatStockInventoryValue, formatStockQuantity } from '../../lib/stockUtils'
 import {
   STOCK_STORAGE_PRODUCT_SORT_OPTIONS,
@@ -52,6 +53,11 @@ function StorageProductRow({
       >
         <div className="stock-storage-product-row-main">
           <strong className="stock-storage-product-name">{row.name}</strong>
+          {formatStockProductBrandSizeLine(row) ? (
+            <span className="stock-product-brand-size stock-storage-product-brand-size">
+              {formatStockProductBrandSizeLine(row)}
+            </span>
+          ) : null}
           <span className="stock-storage-product-category">{row.category || 'Other'}</span>
         </div>
         <div className="stock-storage-product-row-meta">

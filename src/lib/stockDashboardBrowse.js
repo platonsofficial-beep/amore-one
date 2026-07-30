@@ -3,6 +3,7 @@ import {
   resolveStockItemType,
   resolveStockStorageLocation,
 } from './stockCatalog'
+import { buildStockProductSearchHaystack } from './stockProductMetadataDisplay'
 import { resolveStockItemQuantityStatus } from './stockUtils'
 
 export const STOCK_LAYOUT_MODES = [
@@ -44,8 +45,7 @@ function getItemSearchHaystack(item) {
   const itemType = resolveStockItemType(item)
   const location = resolveStockStorageLocation(item)
 
-  return `${item.name ?? ''} ${item.supplier ?? ''} ${item.category ?? ''} ${itemType} ${location}`
-    .toLowerCase()
+  return buildStockProductSearchHaystack(item, { itemType, location })
 }
 
 function getItemUpdatedTimestamp(item) {

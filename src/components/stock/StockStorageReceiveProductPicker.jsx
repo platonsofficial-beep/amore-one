@@ -3,6 +3,8 @@
  * Scoped to products with balances in the current storage.
  */
 
+import { formatStockProductBrandSizeLine } from '../../lib/stockProductMetadataDisplay'
+
 /**
  * @param {{
  *   storage: object,
@@ -58,21 +60,29 @@ export function StockStorageReceiveProductPicker({
             </div>
           ) : (
             <div className="stock-storage-receive-picker-list" role="list">
-              {list.map((row) => (
-                <button
-                  key={row.stockItemId}
-                  type="button"
-                  role="listitem"
-                  className="stock-storage-receive-picker-item"
-                  data-stock-item-id={row.stockItemId}
-                  onClick={() => onSelectProduct(row)}
-                >
-                  <span className="stock-storage-receive-picker-name">{row.name}</span>
-                  <span className="stock-storage-receive-picker-meta">
-                    {row.category || 'Other'}
-                  </span>
-                </button>
-              ))}
+              {list.map((row) => {
+                const brandSize = formatStockProductBrandSizeLine(row)
+                return (
+                  <button
+                    key={row.stockItemId}
+                    type="button"
+                    role="listitem"
+                    className="stock-storage-receive-picker-item"
+                    data-stock-item-id={row.stockItemId}
+                    onClick={() => onSelectProduct(row)}
+                  >
+                    <span className="stock-storage-receive-picker-name">{row.name}</span>
+                    {brandSize ? (
+                      <span className="stock-product-brand-size stock-storage-receive-picker-brand-size">
+                        {brandSize}
+                      </span>
+                    ) : null}
+                    <span className="stock-storage-receive-picker-meta">
+                      {row.category || 'Other'}
+                    </span>
+                  </button>
+                )
+              })}
             </div>
           )}
         </div>

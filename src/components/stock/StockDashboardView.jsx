@@ -7,6 +7,7 @@ import {
   stockItemToDuplicateForm,
   STOCK_CATEGORIES,
 } from '../../lib/stockCatalog'
+import { formatStockProductBrandSizeLine } from '../../lib/stockProductMetadataDisplay'
 import {
   buildStockItemUpdatePayload,
   exportStockItemsToCsv,
@@ -197,6 +198,9 @@ function StockItemCard({
           <h3 className="stock-item-name" title={item.name || undefined}>
             {item.name}
           </h3>
+          {formatStockProductBrandSizeLine(item) ? (
+            <p className="stock-product-brand-size">{formatStockProductBrandSizeLine(item)}</p>
+          ) : null}
           {item.active === false ? (
             <span className="stock-item-status-badge tone-muted">Inactive</span>
           ) : (
@@ -415,6 +419,11 @@ function StockListRow({
           <span className="stock-list-product-name" title={item.name || undefined}>
             {item.name}
           </span>
+          {formatStockProductBrandSizeLine(item) ? (
+            <span className="stock-product-brand-size stock-list-product-brand-size">
+              {formatStockProductBrandSizeLine(item)}
+            </span>
+          ) : null}
           {item.active === false ? (
             <span className="stock-item-status-badge tone-muted stock-list-product-inactive">
               Inactive
@@ -501,6 +510,9 @@ function StockListMobileCard({
         ) : null}
         <div className="stock-list-mobile-title-wrap">
           <h3 className="stock-list-mobile-name">{item.name}</h3>
+          {formatStockProductBrandSizeLine(item) ? (
+            <p className="stock-product-brand-size">{formatStockProductBrandSizeLine(item)}</p>
+          ) : null}
           <span className={`stock-item-status-badge stock-list-mobile-status-badge tone-${item.status}`}>
             {getStockStatusShortLabel(item.status)}
           </span>
@@ -650,6 +662,11 @@ function StockCompactRow({
       ) : null}
       <div className="stock-compact-copy">
         <h3 className="stock-compact-name">{item.name}</h3>
+        {formatStockProductBrandSizeLine(item) ? (
+          <p className="stock-product-brand-size stock-compact-brand-size">
+            {formatStockProductBrandSizeLine(item)}
+          </p>
+        ) : null}
         <span className={`stock-item-status-badge stock-compact-status-badge tone-${item.status}`}>
           {getStockStatusShortLabel(item.status)}
         </span>
@@ -743,6 +760,11 @@ function StockAttentionRow({
     <li className={`stock-attention-row tone-${item.status}`}>
       <div className="stock-attention-copy">
         <p className="stock-attention-name">{item.name}</p>
+        {formatStockProductBrandSizeLine(item) ? (
+          <p className="stock-product-brand-size stock-attention-brand-size">
+            {formatStockProductBrandSizeLine(item)}
+          </p>
+        ) : null}
         {showStockLevels ? (
           <span className={`stock-item-status-badge stock-attention-status-badge tone-${item.status}`}>
             {getStockStatusLabel(item.status)}

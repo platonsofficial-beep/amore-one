@@ -28948,6 +28948,32 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   min-height: calc(1.25em * 2);
 }
 
+/* P8.31.6d — compact Brand · Size secondary identity (omit when empty) */
+.stock-product-brand-size {
+  margin: 0;
+  color: rgba(255, 247, 232, 0.62);
+  font-size: 0.82rem;
+  font-weight: 500;
+  line-height: 1.3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+}
+
+.stock-list-product-brand-size {
+  display: block;
+  margin-top: 2px;
+}
+
+.stock-compact-brand-size,
+.stock-attention-brand-size,
+.stock-product-history-brand-size,
+.stock-storage-product-brand-size,
+.stock-storage-receive-picker-brand-size {
+  margin-top: 1px;
+}
+
 .stock-item-status-badge {
   display: inline-flex;
   align-items: center;

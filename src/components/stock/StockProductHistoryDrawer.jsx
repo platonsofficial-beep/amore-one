@@ -5,6 +5,7 @@ import {
   resolveStockStorageLocation,
   resolveStockTargetQuantity,
 } from '../../lib/stockCatalog'
+import { buildStockProductInformationRows, formatStockProductBrandSizeLine } from '../../lib/stockProductMetadataDisplay'
 import {
   buildStockMonthlyInsights,
   buildStockMovementTimeline,
@@ -180,6 +181,11 @@ export function StockProductHistoryDrawer({
   }, [movements])
 
   const lastCountedLabel = formatLastCountedLabel(item.lastCount)
+  const productInformationRows = buildStockProductInformationRows(item, {
+    supplierLabel,
+    storageLabel: location,
+    unitLabel: item.unit,
+  })
 
   return (
     <div className="stock-product-history-backdrop" onClick={onClose}>
@@ -203,6 +209,11 @@ export function StockProductHistoryDrawer({
             <p className="stock-product-history-subtitle">
               {formatStockCategoryTypeLine(item.category, itemType)}
             </p>
+            {formatStockProductBrandSizeLine(item) ? (
+              <p className="stock-product-brand-size stock-product-history-brand-size">
+                {formatStockProductBrandSizeLine(item)}
+              </p>
+            ) : null}
           </div>
           <button
             type="button"
@@ -220,6 +231,17 @@ export function StockProductHistoryDrawer({
 
           {!isLoading && !error ? (
             <>
+              {productInformationRows.length > 0 ? (
+                <section className="stock-product-history-section" aria-label="Product information">
+                  <h3 className="stock-product-history-section-title">Product information</h3>
+                  <dl className="stock-product-history-overview">
+                    {productInformationRows.map((row) => (
+                      <OverviewRow key={row.key} label={row.label} value={row.value} />
+                    ))}
+                  </dl>
+                </section>
+              ) : null}
+
               <section className="stock-product-history-section" aria-label="Product overview">
                 <h3 className="stock-product-history-section-title">Product overview</h3>
                 <dl className="stock-product-history-overview">
@@ -237,8 +259,6 @@ export function StockProductHistoryDrawer({
                       ? 'Not set'
                       : formatStockQuantity(targetQuantity, item.unit)}
                   />
-                  <OverviewRow label="Primary location" value={location} />
-                  <OverviewRow label="Supplier" value={supplierLabel} />
                   <OverviewRow
                     label="Cost"
                     value={hasCost
