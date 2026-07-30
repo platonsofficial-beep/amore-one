@@ -10,6 +10,7 @@ create table if not exists public.stock_items (
   item_type text not null default 'Other',
   supplier text not null default '',
   unit text not null default '',
+  packaging_note text,
   current_quantity numeric(12, 3) not null default 0,
   minimum_quantity numeric(12, 3) not null default 0,
   target_quantity numeric(12, 3),

@@ -283,6 +283,20 @@ export function StockItemFormModal({
               <p className="stock-unit-selected">Selected: {resolvedUnit || '—'}</p>
             )}
 
+            <label className="stock-form-field stock-form-field-full">
+              <span>Packaging note (optional)</span>
+              <input
+                type="text"
+                value={form.packagingNote ?? ''}
+                maxLength={240}
+                onChange={(event) => setForm((current) => ({
+                  ...current,
+                  packagingNote: event.target.value,
+                }))}
+                placeholder="e.g. Usually supplied in cases"
+              />
+            </label>
+
             <div className="stock-form-row stock-form-row-triple">
               <label className="stock-form-field">
                 <span>Current quantity</span>

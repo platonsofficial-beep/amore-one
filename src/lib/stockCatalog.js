@@ -1,7 +1,9 @@
 import {
   SELECTABLE_INVENTORY_UNIT_PRESETS,
+  normalizePackagingNote,
 } from './inventoryUnitStandard.js'
 
+export { normalizePackagingNote }
 export const STOCK_UNIT_CUSTOM_VALUE = '__custom__'
 
 export const STOCK_CATEGORIES = [
@@ -329,6 +331,7 @@ export function buildEmptyStockItemForm(category = 'Spirits') {
     storageLocation: getDefaultLocationForCategory(normalizedCategory),
     unitPreset: getDefaultUnitForCategory(normalizedCategory),
     customUnit: '',
+    packagingNote: '',
     currentQuantity: '',
     minimumQuantity: '',
     targetQuantity: '',
@@ -361,6 +364,9 @@ export function stockItemToForm(item) {
     supplier: item?.supplier ?? '',
     storageLocation: resolveStockStorageLocation(item),
     ...unitFields,
+    packagingNote: normalizePackagingNote(
+      item?.packagingNote ?? item?.packaging_note ?? null,
+    ) ?? '',
     currentQuantity: item?.currentQuantity ?? item?.current_quantity ?? '',
     minimumQuantity: item?.minimumQuantity ?? item?.minimum_quantity ?? '',
     targetQuantity: targetQuantity === null || targetQuantity === undefined || targetQuantity === ''
@@ -443,6 +449,7 @@ export function stockFormToPayload(form) {
     supplier: `${form.supplier ?? ''}`.trim(),
     storageLocation: `${form.storageLocation ?? ''}`.trim() || 'Main Storage',
     unit: resolveStockFormUnit(form),
+    packagingNote: normalizePackagingNote(form.packagingNote ?? null),
     currentQuantity: Number(form.currentQuantity) || 0,
     minimumQuantity: Number(form.minimumQuantity) || 0,
     targetQuantity: targetQuantityRaw ? Number(targetQuantityRaw) : null,

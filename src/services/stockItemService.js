@@ -2,6 +2,7 @@ import { supabase } from '../lib/supabaseClient'
 import {
   normalizeStockCategory,
   normalizeStockItemType,
+  normalizePackagingNote,
   resolveStockStorageLocation,
 } from '../lib/stockCatalog'
 import { normalizeSupplierId, resolveSupplierIdForWrite } from '../lib/stockSupplierUtils'
@@ -42,6 +43,9 @@ function mapStockItem(record) {
       storageLocation: record.storage_location ?? record.storageLocation,
     }),
     unit: record.unit ?? '',
+    packagingNote: normalizePackagingNote(
+      record.packaging_note ?? record.packagingNote ?? null,
+    ),
     currentQuantity,
     minimumQuantity,
     targetQuantity: targetQuantity === null || targetQuantity === undefined
@@ -72,6 +76,9 @@ export function serializeStockItem(item, workspaceId, { supplierId = null } = {}
     supplier,
     supplier_id: supplierId,
     unit: `${item.unit ?? ''}`.trim(),
+    packaging_note: normalizePackagingNote(
+      item.packagingNote ?? item.packaging_note ?? null,
+    ),
     current_quantity: Math.max(0, Number(item.currentQuantity ?? item.current_quantity ?? 0) || 0),
     minimum_quantity: Math.max(0, Number(item.minimumQuantity ?? item.minimum_quantity ?? 0) || 0),
     target_quantity: item.targetQuantity === null || item.targetQuantity === undefined || item.targetQuantity === ''

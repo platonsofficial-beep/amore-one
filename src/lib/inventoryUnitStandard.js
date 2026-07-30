@@ -121,12 +121,15 @@ export const AMBIGUOUS_INVENTORY_UNIT_TERMS = Object.freeze([
 ])
 
 /**
- * Future conceptual field — not a DB column in this sprint (deferred to P8.31.3).
- * Optional free-text packaging note. No calculation / multiplier semantics.
+ * Packaging note field contract.
+ * Optional free-text packaging metadata. No calculation / multiplier semantics.
+ * DB column: public.stock_items.packaging_note (see supabase/stock_items_packaging_note.sql).
  */
 export const PACKAGING_NOTE_CONTRACT = Object.freeze({
   fieldName: 'packaging_note',
+  camelFieldName: 'packagingNote',
   optional: true,
+  nullable: true,
   freeText: true,
   maxLength: 240,
   affectsQuantity: false,
@@ -137,8 +140,25 @@ export const PACKAGING_NOTE_CONTRACT = Object.freeze({
     'Supplier packaging varies',
     'May arrive loose or in cases of 12',
     'Case 24',
+    'Usually supplied in cases.',
+    'Loose bottles accepted.',
   ]),
 })
+
+/**
+ * Normalize packaging note for product storage.
+ * Optional, trimmed, nullable. Empty → null. Does not affect quantities/units.
+ *
+ * @param {unknown} value
+ * @returns {string|null}
+ */
+export function normalizePackagingNote(value) {
+  if (value == null) return null
+  const trimmed = `${value}`.replace(/\s+/g, ' ').trim()
+  if (!trimmed) return null
+  const max = PACKAGING_NOTE_CONTRACT.maxLength
+  return trimmed.length > max ? trimmed.slice(0, max) : trimmed
+}
 
 /**
  * Later repair classification labels for existing non-canonical catalog rows.

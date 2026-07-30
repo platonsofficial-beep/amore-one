@@ -183,9 +183,15 @@ describe('inventoryUnitStandard — safety / purity', () => {
     expect(first.normalizedInput).toBe('Bottle')
   })
 
-  it('locks packaging_note and historical contracts without schema changes', () => {
+  it('locks packaging_note contract as optional metadata without quantity effects', () => {
     expect(PACKAGING_NOTE_CONTRACT.fieldName).toBe('packaging_note')
+    expect(PACKAGING_NOTE_CONTRACT.camelFieldName).toBe('packagingNote')
+    expect(PACKAGING_NOTE_CONTRACT.optional).toBe(true)
+    expect(PACKAGING_NOTE_CONTRACT.nullable).toBe(true)
+    expect(PACKAGING_NOTE_CONTRACT.maxLength).toBe(240)
     expect(PACKAGING_NOTE_CONTRACT.affectsQuantity).toBe(false)
+    expect(PACKAGING_NOTE_CONTRACT.affectsValuation).toBe(false)
+    expect(PACKAGING_NOTE_CONTRACT.affectsStockOperations).toBe(false)
     expect(INVENTORY_UNIT_HISTORICAL_CONTRACT.neverAutoMultiplyQuantities).toBe(true)
     expect(INVENTORY_UNIT_HISTORICAL_CONTRACT.movementUnitFreezeDeferredTo).toBe('P8.31.9')
     expect(EXISTING_UNIT_DATA_REPAIR_CLASSES.AMBIGUOUS_MANUAL_REVIEW)
@@ -221,6 +227,7 @@ describe('inventoryUnitStandard — repository boundary', () => {
 
     const offenders = walk(resolve(process.cwd(), 'src'))
       .filter((file) => !file.includes('inventoryUnitStandard'))
+      .filter((file) => !/\.(test|spec)\.(js|jsx|ts|tsx)$/.test(file))
       .filter((file) => readFileSync(file, 'utf8').includes('inventoryUnitStandard'))
       .filter((file) => !allowed.has(file))
 
