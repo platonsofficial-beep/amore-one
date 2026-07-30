@@ -18,6 +18,23 @@ vi.mock('./StockProductHistoryDrawer.jsx', () => ({
   ),
 }))
 
+vi.mock('../../services/workspaceStorageService', () => ({
+  listWorkspaceStorages: vi.fn(async () => ([
+    { id: 'stor-main', name: 'Main Storage', locationKey: 'Main Storage', active: true },
+    { id: 'stor-bar', name: 'Bar', locationKey: 'Bar', active: true },
+    { id: 'stor-old', name: 'Old Cellar', locationKey: 'Old Cellar', active: false },
+  ])),
+}))
+
+vi.mock('../../services/stockLocationBalanceService', () => ({
+  getStockItemLocationBalances: vi.fn(async () => ([
+    { workspaceStorageId: 'stor-bar', quantityVersion: 7, quantity: 1 },
+  ])),
+}))
+
+import { listWorkspaceStorages } from '../../services/workspaceStorageService'
+import { getStockItemLocationBalances } from '../../services/stockLocationBalanceService'
+
 function makeRow({
   id = 'i1',
   name = 'Vodka',
@@ -61,6 +78,8 @@ describe('StockStorageDetailWorkspace — actions + Fast Count launch', () => {
     container?.remove()
     container = null
     root = null
+    listWorkspaceStorages.mockClear()
+    getStockItemLocationBalances.mockClear()
   })
 
   function renderWorkspace(props) {
@@ -305,6 +324,133 @@ describe('StockStorageDetailWorkspace — actions + Fast Count launch', () => {
     }))
   })
 
+  it('opens Storage Transfer picker then modal with locked source and active destinations only', async () => {
+    const loadProducts = vi.fn(async () => ({
+      storageId: 'stor-main',
+      products: [makeRow({ id: 'i1', name: 'Vodka', quantity: 5, quantityVersion: 2 })],
+      summary: {
+        productCount: 1,
+        totalQuantity: 5,
+        nonZeroBalanceCount: 1,
+        inventoryValue: 50,
+      },
+    }))
+    const onRecordTransfer = vi.fn(async () => {})
+
+    renderWorkspace({
+      workspaceId: 'ws-1',
+      storage: {
+        id: 'stor-main',
+        name: 'Main Storage',
+        locationKey: 'Main Storage',
+        active: true,
+      },
+      canManage: true,
+      loadProducts,
+      onRecordTransfer,
+    })
+
+    await settle()
+
+    await act(async () => {
+      container.querySelector('[data-storage-action="transfer"]').click()
+    })
+
+    expect(container.querySelector('[data-testid="stock-storage-transfer-product-picker"]')).toBeTruthy()
+    expect(container.textContent).toContain('Source: Main Storage')
+
+    await act(async () => {
+      container
+        .querySelector('[data-testid="stock-storage-transfer-product-picker"] [data-stock-item-id="i1"]')
+        .click()
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+    await settle()
+
+    expect(listWorkspaceStorages).toHaveBeenCalledWith('ws-1')
+    expect(container.querySelector('[data-testid="stock-transfer-modal"]')).toBeTruthy()
+    expect(container.querySelector('[data-testid="stock-transfer-source-lock"]')?.textContent)
+      .toContain('Locked')
+
+    const select = container.querySelector('[data-testid="stock-transfer-destination-select"]')
+    const optionValues = [...select.querySelectorAll('option')].map((option) => option.value)
+    expect(optionValues).toContain('stor-bar')
+    expect(optionValues).not.toContain('stor-main')
+    expect(optionValues).not.toContain('stor-old')
+
+    await act(async () => {
+      select.value = 'stor-bar'
+      select.dispatchEvent(new Event('change', { bubbles: true }))
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+    await settle()
+
+    expect(getStockItemLocationBalances).toHaveBeenCalledWith('ws-1', 'i1')
+
+    const quantityInput = container.querySelector('[data-testid="stock-transfer-modal"] input[type="number"]')
+    await act(async () => {
+      const nativeInputValueSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value')?.set
+      nativeInputValueSetter?.call(quantityInput, '2')
+      quantityInput.dispatchEvent(new Event('input', { bubbles: true }))
+      quantityInput.dispatchEvent(new Event('change', { bubbles: true }))
+    })
+
+    await act(async () => {
+      container.querySelector('[data-testid="stock-transfer-modal"] form')
+        .dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+
+    expect(onRecordTransfer).toHaveBeenCalledWith(expect.objectContaining({
+      quantity: 2,
+      sourceWorkspaceStorageId: 'stor-main',
+      destinationWorkspaceStorageId: 'stor-bar',
+      expectedSourceQuantityVersion: 2,
+      expectedDestinationQuantityVersion: 7,
+      item: expect.objectContaining({ id: 'i1', name: 'Vodka' }),
+    }))
+  })
+
+  it('launches transfer modal from row menu with source locked', async () => {
+    const loadProducts = vi.fn(async () => ({
+      storageId: 'stor-main',
+      products: [makeRow({ id: 'i1', name: 'Gin', quantity: 4, quantityVersion: 3 })],
+      summary: {
+        productCount: 1,
+        totalQuantity: 4,
+        nonZeroBalanceCount: 1,
+        inventoryValue: 40,
+      },
+    }))
+
+    renderWorkspace({
+      workspaceId: 'ws-1',
+      storage: { id: 'stor-main', name: 'Main Storage', active: true },
+      canManage: true,
+      loadProducts,
+      onRecordTransfer: vi.fn(async () => {}),
+    })
+
+    await settle()
+
+    await act(async () => {
+      container.querySelector('[data-storage-product-menu-trigger="true"]').click()
+    })
+    await act(async () => {
+      container.querySelector('[data-menu-action="transfer"]').click()
+    })
+    await settle()
+
+    expect(container.querySelector('[data-testid="stock-transfer-modal"]')).toBeTruthy()
+    expect(container.querySelector('[data-testid="stock-transfer-source-lock"]')?.textContent)
+      .toContain('Main Storage')
+    expect(container.textContent).toContain('Gin')
+    expect(container.querySelector('[data-testid="stock-storage-action-placeholder"]')).toBeNull()
+  })
+
   it('opens receive modal directly from product row overflow', async () => {
     const loadProducts = vi.fn(async () => ({
       storageId: 's-main',
@@ -337,6 +483,39 @@ describe('StockStorageDetailWorkspace — actions + Fast Count launch', () => {
     expect(container.querySelector('[data-testid="stock-storage-receive-product-picker"]')).toBeNull()
     expect(container.querySelector('[data-testid="stock-movement-modal"]')?.textContent).toContain('Gin')
     expect(container.querySelector('[data-testid="stock-receive-destination-lock"]')).toBeTruthy()
+  })
+
+  it('opens placeholder architecture from row overflow for deferred Adjustment only', async () => {
+    const loadProducts = vi.fn(async () => ({
+      storageId: 's-main',
+      products: [makeRow({ name: 'Gin' })],
+      summary: {
+        productCount: 1,
+        totalQuantity: 4,
+        nonZeroBalanceCount: 1,
+        inventoryValue: 40,
+      },
+    }))
+
+    renderWorkspace({
+      workspaceId: 'ws-1',
+      storage: { id: 's-main', name: 'Main Storage', active: true },
+      canManage: true,
+      loadProducts,
+    })
+
+    await settle()
+
+    await act(async () => {
+      container.querySelector('[data-storage-product-menu-trigger="true"]').click()
+    })
+    await act(async () => {
+      container.querySelector('[data-menu-action="adjustment"]').click()
+    })
+
+    const placeholder = container.querySelector('[data-testid="stock-storage-action-placeholder"]')
+    expect(placeholder?.getAttribute('data-action')).toBe('adjustment')
+    expect(placeholder?.textContent).toContain('Adjustments for this storage will be available in a later sprint.')
   })
 
   it('disables actions for archived storage and forwards stable callbacks when provided', async () => {
