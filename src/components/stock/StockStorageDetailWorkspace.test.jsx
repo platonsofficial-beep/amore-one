@@ -48,7 +48,7 @@ function makeRow({
   }
 }
 
-describe('StockStorageDetailWorkspace — P8.30.3 actions foundation', () => {
+describe('StockStorageDetailWorkspace — actions + Fast Count launch', () => {
   let container
   let root
 
@@ -77,7 +77,7 @@ describe('StockStorageDetailWorkspace — P8.30.3 actions foundation', () => {
     })
   }
 
-  it('shows action bar for managers and opens Fast Count placeholder only', async () => {
+  it('launches a normal Inventory Count for one storage and opens Active Count', async () => {
     const loadProducts = vi.fn(async () => ({
       storageId: 's-main',
       products: [makeRow()],
@@ -88,6 +88,11 @@ describe('StockStorageDetailWorkspace — P8.30.3 actions foundation', () => {
         inventoryValue: 40,
       },
     }))
+    let resolveStart
+    const startFastCountSession = vi.fn(() => new Promise((resolve) => {
+      resolveStart = resolve
+    }))
+    const onOpenActiveCountSession = vi.fn()
 
     renderWorkspace({
       workspaceId: 'ws-1',
@@ -102,6 +107,8 @@ describe('StockStorageDetailWorkspace — P8.30.3 actions foundation', () => {
       },
       canManage: true,
       loadProducts,
+      startFastCountSession,
+      onOpenActiveCountSession,
     })
 
     await settle()
@@ -110,21 +117,77 @@ describe('StockStorageDetailWorkspace — P8.30.3 actions foundation', () => {
     expect(actionBar).toBeTruthy()
     expect(actionBar.querySelector('[data-storage-action="fast_count"]')).toBeTruthy()
     expect(actionBar.querySelector('[data-storage-action="receive"]')).toBeTruthy()
-    expect(actionBar.querySelector('[data-storage-action="transfer"]')).toBeTruthy()
-    expect(actionBar.querySelector('[data-storage-action="adjustment"]')).toBeTruthy()
 
     await act(async () => {
       actionBar.querySelector('[data-storage-action="fast_count"]').click()
     })
 
-    const placeholder = container.querySelector('[data-testid="stock-storage-action-placeholder"]')
-    expect(placeholder).toBeTruthy()
-    expect(placeholder.getAttribute('data-action')).toBe('fast_count')
-    expect(placeholder.textContent).toContain(
-      'Fast Count for this storage will be available in the next sprint.',
-    )
-    expect(container.textContent).not.toContain('Create inventory count')
+    expect(container.querySelector('[data-testid="stock-storage-fast-count-loading"]')).toBeTruthy()
+    expect(actionBar.querySelector('[data-storage-action="fast_count"]').textContent).toContain('Starting')
+
+    await act(async () => {
+      resolveStart({
+        session: { id: 'sess-fast-1', status: 'in_progress' },
+        snapshot: { sessionId: 'sess-fast-1', itemsCreated: 2 },
+        locationKey: 'Main Storage',
+      })
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+
+    expect(startFastCountSession).toHaveBeenCalledWith({
+      workspaceId: 'ws-1',
+      storage: expect.objectContaining({
+        id: 's-main',
+        locationKey: 'Main Storage',
+      }),
+    })
+    expect(onOpenActiveCountSession).toHaveBeenCalledWith('sess-fast-1')
+    expect(container.querySelector('[data-testid="stock-storage-action-placeholder"]')).toBeNull()
+    expect(container.textContent).not.toContain('Fast Count for this storage will be available')
     expect(container.textContent).not.toContain('Confirm receive')
+  })
+
+  it('shows Fast Count launch errors without creating a second count engine', async () => {
+    const loadProducts = vi.fn(async () => ({
+      storageId: 's-main',
+      products: [makeRow()],
+      summary: {
+        productCount: 1,
+        totalQuantity: 4,
+        nonZeroBalanceCount: 1,
+        inventoryValue: 40,
+      },
+    }))
+    const startFastCountSession = vi.fn(async () => {
+      throw new Error('Select at least one location for this inventory count.')
+    })
+
+    renderWorkspace({
+      workspaceId: 'ws-1',
+      storage: {
+        id: 's-main',
+        name: 'Main Storage',
+        locationKey: 'Main Storage',
+        active: true,
+      },
+      canManage: true,
+      loadProducts,
+      startFastCountSession,
+      onOpenActiveCountSession: vi.fn(),
+    })
+
+    await settle()
+
+    await act(async () => {
+      container.querySelector('[data-storage-action="fast_count"]').click()
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+    await settle()
+
+    expect(container.querySelector('[data-testid="stock-storage-fast-count-error"]')?.textContent)
+      .toContain('Select at least one location')
   })
 
   it('hides action bar for staff and keeps View Details only in overflow', async () => {

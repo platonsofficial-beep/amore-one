@@ -1,8 +1,10 @@
 /**
- * P8.30.2 / P8.30.3 — Storage detail products workspace + action foundation.
+ * P8.30.2 / P8.30.3 / P8.30.4 — Storage detail products + Fast Count launch.
  *
  * Shows products with quantity in THIS storage only.
- * Action bar / row menu are entry points only — placeholders, no mutations.
+ * Fast Count creates a normal Inventory Count session for this storage only
+ * and opens the existing Active Count workspace. No Fast Count engine.
+ * Other actions remain placeholders.
  * Reuses StockProductHistoryDrawer for product detail — no forked drawer.
  */
 
@@ -14,6 +16,7 @@ import {
   getWorkspaceStorageProducts,
   sortStorageProductRows,
 } from '../../services/stockStorageCenterService'
+import { startStorageFastCountSession } from '../../services/stockStorageFastCountService'
 import { StockProductHistoryDrawer } from './StockProductHistoryDrawer'
 import { StockStorageDetailActionBar } from './StockStorageDetailActionBar'
 import { StockStorageActionPlaceholder } from './StockStorageActionPlaceholder'
@@ -142,11 +145,13 @@ function StorageProductRow({
  *   searchTerm?: string,
  *   canManage?: boolean,
  *   onBack?: () => void,
- *   onStartFastCount?: (storage: object) => void,
+ *   onOpenActiveCountSession?: (sessionId: string) => void,
+ *   onStartFastCount?: (storage: object) => void|Promise<void>,
  *   onReceive?: (storage: object) => void,
  *   onTransfer?: (storage: object) => void,
  *   onAdjustment?: (storage: object) => void,
  *   loadProducts?: typeof getWorkspaceStorageProducts,
+ *   startFastCountSession?: typeof startStorageFastCountSession,
  * }} props
  */
 export function StockStorageDetailWorkspace({
@@ -155,11 +160,13 @@ export function StockStorageDetailWorkspace({
   searchTerm = '',
   canManage = false,
   onBack,
+  onOpenActiveCountSession,
   onStartFastCount,
   onReceive,
   onTransfer,
   onAdjustment,
   loadProducts = getWorkspaceStorageProducts,
+  startFastCountSession = startStorageFastCountSession,
 } = {}) {
   const [status, setStatus] = useState(/** @type {'loading'|'ready'|'empty'|'error'} */ ('loading'))
   const [errorMessage, setErrorMessage] = useState('')
@@ -169,7 +176,10 @@ export function StockStorageDetailWorkspace({
   const [reloadToken, setReloadToken] = useState(0)
   const [openMenuItemId, setOpenMenuItemId] = useState(/** @type {string|null} */ (null))
   const [placeholder, setPlaceholder] = useState(/** @type {{ actionId: string, productName?: string }|null} */ (null))
+  const [isLaunchingFastCount, setIsLaunchingFastCount] = useState(false)
+  const [fastCountError, setFastCountError] = useState('')
   const listRef = useRef(/** @type {HTMLDivElement|null} */ (null))
+  const fastCountRequestIdRef = useRef(0)
 
   const storageId = `${storage?.id ?? ''}`.trim()
   const storageTitle = storage?.name || storage?.locationKey || 'Storage'
@@ -245,9 +255,54 @@ export function StockStorageDetailWorkspace({
     openPlaceholder(actionId)
   }
 
+  const handleStartFastCount = async () => {
+    if (isLaunchingFastCount || storage?.active === false) return
+
+    setOpenMenuItemId(null)
+    setPlaceholder(null)
+    setFastCountError('')
+
+    const requestId = fastCountRequestIdRef.current + 1
+    fastCountRequestIdRef.current = requestId
+    setIsLaunchingFastCount(true)
+
+    try {
+      if (typeof onStartFastCount === 'function') {
+        await onStartFastCount(storage)
+        return
+      }
+
+      const { session } = await startFastCountSession({
+        workspaceId,
+        storage,
+      })
+      const sessionId = `${session?.id ?? ''}`.trim()
+      if (!sessionId) {
+        throw new Error('Inventory count session response was empty or invalid.')
+      }
+      if (fastCountRequestIdRef.current !== requestId) return
+      onOpenActiveCountSession?.(sessionId)
+    } catch (error) {
+      if (fastCountRequestIdRef.current !== requestId) return
+      setFastCountError(error?.message || 'Unable to start Fast Count right now.')
+    } finally {
+      if (fastCountRequestIdRef.current === requestId) {
+        setIsLaunchingFastCount(false)
+      }
+    }
+  }
+
   const handleOpenDetails = (row) => {
     setOpenMenuItemId(null)
     setHistoryItem(row.item)
+  }
+
+  const handleMenuAction = (actionId, row) => {
+    if (actionId === 'fast_count') {
+      void handleStartFastCount()
+      return
+    }
+    openPlaceholder(actionId, row.name)
   }
 
   return (
@@ -293,11 +348,30 @@ export function StockStorageDetailWorkspace({
         <StockStorageDetailActionBar
           storage={storage}
           canManage={canManage}
-          onStartFastCount={() => runStorageAction('fast_count', onStartFastCount)}
+          isLaunchingFastCount={isLaunchingFastCount}
+          onStartFastCount={() => { void handleStartFastCount() }}
           onReceive={() => runStorageAction('receive', onReceive)}
           onTransfer={() => runStorageAction('transfer', onTransfer)}
           onAdjustment={() => runStorageAction('adjustment', onAdjustment)}
         />
+        {isLaunchingFastCount ? (
+          <div
+            className="stock-storage-fast-count-status"
+            role="status"
+            data-testid="stock-storage-fast-count-loading"
+          >
+            Starting Inventory Count…
+          </div>
+        ) : null}
+        {fastCountError ? (
+          <div
+            className="stock-storage-fast-count-status is-error"
+            role="alert"
+            data-testid="stock-storage-fast-count-error"
+          >
+            {fastCountError}
+          </div>
+        ) : null}
       </header>
 
       <div className="stock-storage-detail-workspace-toolbar">
@@ -373,7 +447,7 @@ export function StockStorageDetailWorkspace({
                     current === next.stockItemId ? null : next.stockItemId
                   ))
                 }}
-                onMenuAction={(actionId, next) => openPlaceholder(actionId, next.name)}
+                onMenuAction={handleMenuAction}
               />
             </div>
           ))}

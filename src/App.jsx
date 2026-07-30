@@ -24397,6 +24397,7 @@ function App() {
             workspaceId={activeWorkspaceId}
             searchTerm={searchTerm}
             canManage={canManageStockRole}
+            onOpenActiveCountSession={handleOpenInventoryCountSession}
           />
         ) : null}
 

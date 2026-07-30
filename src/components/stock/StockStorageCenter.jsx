@@ -67,7 +67,8 @@ function StorageSummaryCard({ storage, selected = false, onSelect }) {
  *   workspaceId?: string,
  *   searchTerm?: string,
  *   canManage?: boolean,
- *   onStartFastCount?: (storage: object) => void,
+ *   onOpenActiveCountSession?: (sessionId: string) => void,
+ *   onStartFastCount?: (storage: object) => void|Promise<void>,
  *   onReceive?: (storage: object) => void,
  *   onTransfer?: (storage: object) => void,
  *   onAdjustment?: (storage: object) => void,
@@ -78,6 +79,7 @@ export function StockStorageCenter({
   workspaceId = '',
   searchTerm = '',
   canManage = false,
+  onOpenActiveCountSession,
   onStartFastCount,
   onReceive,
   onTransfer,
@@ -163,6 +165,7 @@ export function StockStorageCenter({
         searchTerm={searchTerm}
         canManage={canManage}
         onBack={() => setSelectedId(null)}
+        onOpenActiveCountSession={onOpenActiveCountSession}
         onStartFastCount={onStartFastCount}
         onReceive={onReceive}
         onTransfer={onTransfer}

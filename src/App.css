@@ -32478,6 +32478,17 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   cursor: not-allowed;
 }
 
+.stock-storage-fast-count-status {
+  margin-top: 4px;
+  color: rgba(255, 247, 232, 0.7);
+  font-size: 0.88rem;
+  line-height: 1.4;
+}
+
+.stock-storage-fast-count-status.is-error {
+  color: rgba(255, 170, 160, 0.95);
+}
+
 .stock-storage-product-list {
   display: flex;
   flex-direction: column;

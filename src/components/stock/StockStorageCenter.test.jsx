@@ -26,7 +26,12 @@ vi.mock('../../services/stockStorageCenterService', async () => {
   }
 })
 
+vi.mock('../../services/stockStorageFastCountService', () => ({
+  startStorageFastCountSession: vi.fn(),
+}))
+
 import { getWorkspaceStorageProducts } from '../../services/stockStorageCenterService'
+import { startStorageFastCountSession } from '../../services/stockStorageFastCountService'
 
 describe('StockStorageCenter navigation contract', () => {
   it('registers Storages in Stock sections after Inventory Count', () => {
@@ -54,6 +59,8 @@ describe('StockStorageCenter navigation contract', () => {
     expect(appSource).toContain('<StockStorageCenter')
     expect(appSource).toContain('searchTerm={searchTerm}')
     expect(appSource).toContain('canManage={canManageStockRole}')
+    expect(appSource).toContain('onOpenActiveCountSession={handleOpenInventoryCountSession}')
+    expect(appSource).toContain('handleOpenInventoryCountSession')
     expect(appSource).toContain("stockSection === 'dashboard'")
     expect(appSource).toContain("stockSection === 'count'")
     expect(appSource).toContain("stockSection === 'suppliers'")
@@ -74,6 +81,7 @@ describe('StockStorageCenter UI', () => {
     container = null
     root = null
     getWorkspaceStorageProducts.mockReset()
+    startStorageFastCountSession.mockReset()
   })
 
   function renderCenter(props) {
@@ -122,11 +130,19 @@ describe('StockStorageCenter UI', () => {
         inventoryValue: 40,
       },
     })
+    startStorageFastCountSession.mockResolvedValue({
+      session: { id: 'sess-fast-1', status: 'in_progress' },
+      snapshot: { sessionId: 'sess-fast-1', itemsCreated: 1 },
+      locationKey: 'Main Storage',
+    })
+
+    const onOpenActiveCountSession = vi.fn()
 
     renderCenter({
       workspaceId: 'ws-1',
       loadSummaries,
       canManage: true,
+      onOpenActiveCountSession,
     })
     expect(container.querySelector('[data-testid="stock-storage-center-loading"]')).toBeTruthy()
 
@@ -193,8 +209,6 @@ describe('StockStorageCenter UI', () => {
     expect(container.textContent).toContain('Old Cellar')
     expect(container.textContent).toContain('Archived')
     expect(container.textContent).not.toContain('Create storage')
-    expect(container.textContent).not.toContain('Transfer')
-    expect(container.textContent).not.toContain('Fast Count')
     expect(container.querySelector('button[data-action="archive"]')).toBeNull()
     expect(container.querySelector('button[data-action="create"]')).toBeNull()
 
@@ -218,13 +232,22 @@ describe('StockStorageCenter UI', () => {
     await act(async () => {
       container.querySelector('[data-storage-action="fast_count"]').click()
       await Promise.resolve()
-    })
-    expect(container.querySelector('[data-testid="stock-storage-action-placeholder"]')?.textContent)
-      .toContain('Fast Count for this storage will be available in the next sprint.')
-    await act(async () => {
-      container.querySelector('[data-testid="stock-storage-action-placeholder"] .primary-btn').click()
       await Promise.resolve()
     })
+    await act(async () => {
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+
+    expect(startStorageFastCountSession).toHaveBeenCalledWith({
+      workspaceId: 'ws-1',
+      storage: expect.objectContaining({
+        id: 's-main',
+        locationKey: 'Main Storage',
+      }),
+    })
+    expect(onOpenActiveCountSession).toHaveBeenCalledWith('sess-fast-1')
+    expect(container.querySelector('[data-testid="stock-storage-action-placeholder"]')).toBeNull()
 
     await act(async () => {
       container.querySelector('[data-stock-item-id="i1"] .stock-storage-product-row').click()
