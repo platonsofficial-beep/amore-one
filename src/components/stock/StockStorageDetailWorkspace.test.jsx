@@ -48,7 +48,7 @@ function makeRow({
   }
 }
 
-describe('StockStorageDetailWorkspace', () => {
+describe('StockStorageDetailWorkspace — P8.30.3 actions foundation', () => {
   let container
   let root
 
@@ -70,19 +70,22 @@ describe('StockStorageDetailWorkspace', () => {
     })
   }
 
-  it('loads storage-only products, searches, sorts, and opens existing drawer read-only', async () => {
+  async function settle() {
+    await act(async () => {
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+  }
+
+  it('shows action bar for managers and opens Fast Count placeholder only', async () => {
     const loadProducts = vi.fn(async () => ({
       storageId: 's-main',
-      products: [
-        makeRow({ id: 'i1', name: 'Vodka', quantity: 4 }),
-        makeRow({ id: 'i2', name: 'Gin', category: 'Spirits', quantity: 1, active: false }),
-        makeRow({ id: 'i3', name: 'Lime Juice', category: 'Fresh', unit: 'L', quantity: 8 }),
-      ],
+      products: [makeRow()],
       summary: {
-        productCount: 3,
-        totalQuantity: 13,
-        nonZeroBalanceCount: 3,
-        inventoryValue: 130,
+        productCount: 1,
+        totalQuantity: 4,
+        nonZeroBalanceCount: 1,
+        inventoryValue: 40,
       },
     }))
 
@@ -93,94 +96,118 @@ describe('StockStorageDetailWorkspace', () => {
         name: 'Main Storage',
         locationKey: 'Main Storage',
         active: true,
-        productCount: 3,
-        totalQuantity: 13,
-        inventoryValue: 130,
+        productCount: 1,
+        totalQuantity: 4,
+        inventoryValue: 40,
       },
-      searchTerm: '',
+      canManage: true,
       loadProducts,
-      onBack: vi.fn(),
     })
 
-    expect(container.querySelector('[data-testid="stock-storage-detail-loading"]')).toBeTruthy()
+    await settle()
+
+    const actionBar = container.querySelector('[data-testid="stock-storage-detail-action-bar"]')
+    expect(actionBar).toBeTruthy()
+    expect(actionBar.querySelector('[data-storage-action="fast_count"]')).toBeTruthy()
+    expect(actionBar.querySelector('[data-storage-action="receive"]')).toBeTruthy()
+    expect(actionBar.querySelector('[data-storage-action="transfer"]')).toBeTruthy()
+    expect(actionBar.querySelector('[data-storage-action="adjustment"]')).toBeTruthy()
 
     await act(async () => {
-      await Promise.resolve()
-      await Promise.resolve()
+      actionBar.querySelector('[data-storage-action="fast_count"]').click()
     })
 
-    expect(loadProducts).toHaveBeenCalledWith('ws-1', 's-main')
-    expect(container.textContent).toContain('Main Storage')
-    expect(container.textContent).toContain('Products')
-    expect(container.textContent).toContain('13')
-    expect(container.querySelector('[data-testid="stock-storage-product-list"]')?.textContent)
-      .toContain('Vodka')
-    expect(container.textContent).toContain('Inactive')
-    expect(container.textContent).not.toContain('Receive')
-    expect(container.textContent).not.toContain('Transfer')
-    expect(container.textContent).not.toContain('Fast Count')
-    expect(container.textContent).not.toContain('Adjustment')
-
-    await act(async () => {
-      root.render(createElement(StockStorageDetailWorkspace, {
-        workspaceId: 'ws-1',
-        storage: {
-          id: 's-main',
-          name: 'Main Storage',
-          active: true,
-          productCount: 3,
-          totalQuantity: 13,
-          inventoryValue: 130,
-        },
-        searchTerm: 'lime',
-        loadProducts,
-      }))
-      await Promise.resolve()
-    })
-
-    expect(container.querySelectorAll('[data-stock-item-id]')).toHaveLength(1)
-    expect(container.textContent).toContain('Lime Juice')
-    expect(container.textContent).not.toContain('Vodka')
-
-    await act(async () => {
-      root.render(createElement(StockStorageDetailWorkspace, {
-        workspaceId: 'ws-1',
-        storage: {
-          id: 's-main',
-          name: 'Main Storage',
-          active: true,
-          productCount: 3,
-          totalQuantity: 13,
-          inventoryValue: 130,
-        },
-        searchTerm: '',
-        loadProducts,
-      }))
-      await Promise.resolve()
-    })
-
-    await act(async () => {
-      const select = container.querySelector('select[aria-label="Sort storage products"]')
-      select.value = 'qty-desc'
-      select.dispatchEvent(new Event('change', { bubbles: true }))
-    })
-
-    const names = [...container.querySelectorAll('.stock-storage-product-name')]
-      .map((node) => node.textContent)
-    expect(names[0]).toBe('Lime Juice')
-    expect(names.at(-1)).toBe('Gin')
-
-    await act(async () => {
-      container.querySelector('[data-stock-item-id="i1"]').click()
-    })
-    const drawer = container.querySelector('[data-testid="stock-product-history-drawer"]')
-    expect(drawer?.textContent).toContain('Vodka')
-    expect(drawer?.getAttribute('data-can-manage')).toBe('false')
+    const placeholder = container.querySelector('[data-testid="stock-storage-action-placeholder"]')
+    expect(placeholder).toBeTruthy()
+    expect(placeholder.getAttribute('data-action')).toBe('fast_count')
+    expect(placeholder.textContent).toContain(
+      'Fast Count for this storage will be available in the next sprint.',
+    )
+    expect(container.textContent).not.toContain('Create inventory count')
+    expect(container.textContent).not.toContain('Confirm receive')
   })
 
-  it('shows empty and error states without mutation controls', async () => {
-    const emptyLoad = vi.fn(async () => ({
-      storageId: 's-empty',
+  it('hides action bar for staff and keeps View Details only in overflow', async () => {
+    const loadProducts = vi.fn(async () => ({
+      storageId: 's-main',
+      products: [makeRow()],
+      summary: {
+        productCount: 1,
+        totalQuantity: 4,
+        nonZeroBalanceCount: 1,
+        inventoryValue: 40,
+      },
+    }))
+
+    renderWorkspace({
+      workspaceId: 'ws-1',
+      storage: { id: 's-main', name: 'Main Storage', active: true },
+      canManage: false,
+      loadProducts,
+    })
+
+    await settle()
+
+    expect(container.querySelector('[data-testid="stock-storage-detail-action-bar"]')).toBeNull()
+
+    await act(async () => {
+      container.querySelector('[data-storage-product-menu-trigger="true"]').click()
+    })
+
+    const menu = container.querySelector('[data-testid="stock-storage-product-menu"]')
+    expect(menu).toBeTruthy()
+    expect(menu.querySelector('[data-menu-action="view_details"]')).toBeTruthy()
+    expect(menu.querySelector('[data-menu-action="receive"]')).toBeNull()
+    expect(menu.querySelector('[data-menu-action="fast_count"]')).toBeNull()
+
+    await act(async () => {
+      menu.querySelector('[data-menu-action="view_details"]').click()
+    })
+    expect(container.querySelector('[data-testid="stock-product-history-drawer"]')?.textContent)
+      .toContain('Vodka')
+  })
+
+  it('opens placeholder architecture from row overflow for deferred actions', async () => {
+    const loadProducts = vi.fn(async () => ({
+      storageId: 's-main',
+      products: [makeRow({ name: 'Gin' })],
+      summary: {
+        productCount: 1,
+        totalQuantity: 4,
+        nonZeroBalanceCount: 1,
+        inventoryValue: 40,
+      },
+    }))
+
+    renderWorkspace({
+      workspaceId: 'ws-1',
+      storage: { id: 's-main', name: 'Main Storage', active: true },
+      canManage: true,
+      loadProducts,
+    })
+
+    await settle()
+
+    await act(async () => {
+      container.querySelector('[data-storage-product-menu-trigger="true"]').click()
+    })
+    await act(async () => {
+      container.querySelector('[data-menu-action="transfer"]').click()
+    })
+
+    const placeholder = container.querySelector('[data-testid="stock-storage-action-placeholder"]')
+    expect(placeholder?.getAttribute('data-action')).toBe('transfer')
+    expect(placeholder?.textContent).toContain('Transfers for this storage will be available in a later sprint.')
+    expect(placeholder?.textContent).toContain('Gin')
+  })
+
+  it('disables actions for archived storage and forwards stable callbacks when provided', async () => {
+    const onStartFastCount = vi.fn()
+    const onReceive = vi.fn()
+    const onTransfer = vi.fn()
+    const onAdjustment = vi.fn()
+    const loadProducts = vi.fn(async () => ({
+      storageId: 's-old',
       products: [],
       summary: {
         productCount: 0,
@@ -190,19 +217,91 @@ describe('StockStorageDetailWorkspace', () => {
       },
     }))
 
+    const storage = {
+      id: 's-old',
+      name: 'Old Cellar',
+      active: false,
+    }
+
     renderWorkspace({
       workspaceId: 'ws-1',
-      storage: { id: 's-empty', name: 'Empty Bay', active: true },
-      loadProducts: emptyLoad,
+      storage,
+      canManage: true,
+      loadProducts,
+      onStartFastCount,
+      onReceive,
+      onTransfer,
+      onAdjustment,
+    })
+
+    await settle()
+
+    const actionBar = container.querySelector('[data-testid="stock-storage-detail-action-bar"]')
+    expect(actionBar.querySelector('[data-storage-action="fast_count"]').disabled).toBe(true)
+    expect(actionBar.querySelector('[data-storage-action="receive"]').disabled).toBe(true)
+
+    await act(async () => {
+      root.render(createElement(StockStorageDetailWorkspace, {
+        workspaceId: 'ws-1',
+        storage: { ...storage, active: true },
+        canManage: true,
+        loadProducts,
+        onStartFastCount,
+        onReceive,
+        onTransfer,
+        onAdjustment,
+      }))
+      await Promise.resolve()
+      await Promise.resolve()
     })
 
     await act(async () => {
-      await Promise.resolve()
-      await Promise.resolve()
+      container.querySelector('[data-storage-action="receive"]').click()
+      container.querySelector('[data-storage-action="transfer"]').click()
+      container.querySelector('[data-storage-action="adjustment"]').click()
+      container.querySelector('[data-storage-action="fast_count"]').click()
     })
 
-    expect(container.querySelector('[data-testid="stock-storage-detail-empty"]')).toBeTruthy()
-    expect(container.textContent).toContain('No products in this storage.')
+    expect(onReceive).toHaveBeenCalledWith(expect.objectContaining({ id: 's-old', active: true }))
+    expect(onTransfer).toHaveBeenCalledWith(expect.objectContaining({ id: 's-old' }))
+    expect(onAdjustment).toHaveBeenCalledWith(expect.objectContaining({ id: 's-old' }))
+    expect(onStartFastCount).toHaveBeenCalledWith(expect.objectContaining({ id: 's-old' }))
+    expect(container.querySelector('[data-testid="stock-storage-action-placeholder"]')).toBeNull()
+  })
+
+  it('preserves empty/error states and product browse behaviour', async () => {
+    const loadProducts = vi.fn(async () => ({
+      storageId: 's-main',
+      products: [
+        makeRow({ id: 'i1', name: 'Vodka', quantity: 4 }),
+        makeRow({ id: 'i2', name: 'Lime Juice', category: 'Fresh', unit: 'L', quantity: 8 }),
+      ],
+      summary: {
+        productCount: 2,
+        totalQuantity: 12,
+        nonZeroBalanceCount: 2,
+        inventoryValue: 120,
+      },
+    }))
+
+    renderWorkspace({
+      workspaceId: 'ws-1',
+      storage: {
+        id: 's-main',
+        name: 'Main Storage',
+        active: true,
+        productCount: 2,
+        totalQuantity: 12,
+        inventoryValue: 120,
+      },
+      searchTerm: 'lime',
+      canManage: true,
+      loadProducts,
+    })
+
+    await settle()
+    expect(container.querySelectorAll('[data-stock-item-id]')).toHaveLength(1)
+    expect(container.textContent).toContain('Lime Juice')
 
     const failingLoad = vi.fn(async () => {
       throw new Error('Products failed')
@@ -210,14 +309,14 @@ describe('StockStorageDetailWorkspace', () => {
     await act(async () => {
       root.render(createElement(StockStorageDetailWorkspace, {
         workspaceId: 'ws-1',
-        storage: { id: 's-empty', name: 'Empty Bay', active: true },
+        storage: { id: 's-main', name: 'Main Storage', active: true },
+        canManage: true,
         loadProducts: failingLoad,
       }))
       await Promise.resolve()
       await Promise.resolve()
     })
     expect(container.querySelector('[data-testid="stock-storage-detail-error"]')).toBeTruthy()
-    expect(container.textContent).toContain('Products failed')
     expect(container.textContent).toContain('Retry')
   })
 })

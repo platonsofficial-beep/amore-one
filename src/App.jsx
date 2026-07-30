@@ -24396,6 +24396,7 @@ function App() {
           <StockStorageCenter
             workspaceId={activeWorkspaceId}
             searchTerm={searchTerm}
+            canManage={canManageStockRole}
           />
         ) : null}
 

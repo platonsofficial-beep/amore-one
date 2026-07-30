@@ -1,11 +1,12 @@
 /**
- * P8.30.2 — Storage detail products workspace (read-only).
+ * P8.30.2 / P8.30.3 — Storage detail products workspace + action foundation.
  *
  * Shows products with quantity in THIS storage only.
+ * Action bar / row menu are entry points only — placeholders, no mutations.
  * Reuses StockProductHistoryDrawer for product detail — no forked drawer.
  */
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { formatStockInventoryValue, formatStockQuantity } from '../../lib/stockUtils'
 import {
   STOCK_STORAGE_PRODUCT_SORT_OPTIONS,
@@ -14,34 +15,123 @@ import {
   sortStorageProductRows,
 } from '../../services/stockStorageCenterService'
 import { StockProductHistoryDrawer } from './StockProductHistoryDrawer'
+import { StockStorageDetailActionBar } from './StockStorageDetailActionBar'
+import { StockStorageActionPlaceholder } from './StockStorageActionPlaceholder'
 
 /**
  * @param {{
  *   row: object,
- *   onOpen?: (row: object) => void,
+ *   canManage?: boolean,
+ *   menuOpen?: boolean,
+ *   onOpenDetails?: (row: object) => void,
+ *   onToggleMenu?: (row: object, anchorEl: HTMLElement|null) => void,
+ *   onMenuAction?: (actionId: string, row: object) => void,
  * }} props
  */
-function StorageProductRow({ row, onOpen }) {
+function StorageProductRow({
+  row,
+  canManage = false,
+  menuOpen = false,
+  onOpenDetails,
+  onToggleMenu,
+  onMenuAction,
+}) {
   return (
-    <button
-      type="button"
-      className={`stock-storage-product-row${row.active ? '' : ' is-inactive'}`}
+    <div
+      className={`stock-storage-product-row-wrap${row.active ? '' : ' is-inactive'}${menuOpen ? ' is-menu-open' : ''}`}
       data-stock-item-id={row.stockItemId}
-      onClick={() => onOpen?.(row)}
     >
-      <div className="stock-storage-product-row-main">
-        <strong className="stock-storage-product-name">{row.name}</strong>
-        <span className="stock-storage-product-category">{row.category || 'Other'}</span>
-      </div>
-      <div className="stock-storage-product-row-meta">
-        <span className="stock-storage-product-qty">
-          {formatStockQuantity(row.quantity, row.unit)}
-        </span>
-        <span className={`stock-storage-product-badge tone-${row.active ? 'active' : 'inactive'}`}>
-          {row.active ? 'Active' : 'Inactive'}
-        </span>
-      </div>
-    </button>
+      <button
+        type="button"
+        className="stock-storage-product-row"
+        onClick={() => onOpenDetails?.(row)}
+      >
+        <div className="stock-storage-product-row-main">
+          <strong className="stock-storage-product-name">{row.name}</strong>
+          <span className="stock-storage-product-category">{row.category || 'Other'}</span>
+        </div>
+        <div className="stock-storage-product-row-meta">
+          <span className="stock-storage-product-qty">
+            {formatStockQuantity(row.quantity, row.unit)}
+          </span>
+          <span className={`stock-storage-product-badge tone-${row.active ? 'active' : 'inactive'}`}>
+            {row.active ? 'Active' : 'Inactive'}
+          </span>
+        </div>
+      </button>
+      <button
+        type="button"
+        className={`ghost-btn stock-storage-product-more-btn${menuOpen ? ' is-open' : ''}`}
+        aria-expanded={menuOpen}
+        aria-haspopup="menu"
+        aria-label={`More actions for ${row.name}`}
+        data-storage-product-menu-trigger="true"
+        onClick={(event) => {
+          event.stopPropagation()
+          onToggleMenu?.(row, event.currentTarget)
+        }}
+      >
+        ⋯
+      </button>
+      {menuOpen ? (
+        <div
+          className="stock-storage-product-menu"
+          role="menu"
+          aria-label={`Actions for ${row.name}`}
+          data-testid="stock-storage-product-menu"
+        >
+          <button
+            type="button"
+            role="menuitem"
+            className="stock-storage-product-menu-item"
+            data-menu-action="view_details"
+            onClick={() => onOpenDetails?.(row)}
+          >
+            View Details
+          </button>
+          {canManage ? (
+            <>
+              <button
+                type="button"
+                role="menuitem"
+                className="stock-storage-product-menu-item"
+                data-menu-action="receive"
+                onClick={() => onMenuAction?.('receive', row)}
+              >
+                Receive
+              </button>
+              <button
+                type="button"
+                role="menuitem"
+                className="stock-storage-product-menu-item"
+                data-menu-action="transfer"
+                onClick={() => onMenuAction?.('transfer', row)}
+              >
+                Transfer
+              </button>
+              <button
+                type="button"
+                role="menuitem"
+                className="stock-storage-product-menu-item"
+                data-menu-action="adjustment"
+                onClick={() => onMenuAction?.('adjustment', row)}
+              >
+                Adjustment
+              </button>
+              <button
+                type="button"
+                role="menuitem"
+                className="stock-storage-product-menu-item"
+                data-menu-action="fast_count"
+                onClick={() => onMenuAction?.('fast_count', row)}
+              >
+                Fast Count
+              </button>
+            </>
+          ) : null}
+        </div>
+      ) : null}
+    </div>
   )
 }
 
@@ -50,7 +140,12 @@ function StorageProductRow({ row, onOpen }) {
  *   workspaceId?: string,
  *   storage: object,
  *   searchTerm?: string,
+ *   canManage?: boolean,
  *   onBack?: () => void,
+ *   onStartFastCount?: (storage: object) => void,
+ *   onReceive?: (storage: object) => void,
+ *   onTransfer?: (storage: object) => void,
+ *   onAdjustment?: (storage: object) => void,
  *   loadProducts?: typeof getWorkspaceStorageProducts,
  * }} props
  */
@@ -58,7 +153,12 @@ export function StockStorageDetailWorkspace({
   workspaceId = '',
   storage,
   searchTerm = '',
+  canManage = false,
   onBack,
+  onStartFastCount,
+  onReceive,
+  onTransfer,
+  onAdjustment,
   loadProducts = getWorkspaceStorageProducts,
 } = {}) {
   const [status, setStatus] = useState(/** @type {'loading'|'ready'|'empty'|'error'} */ ('loading'))
@@ -67,6 +167,9 @@ export function StockStorageDetailWorkspace({
   const [sortKey, setSortKey] = useState('name-asc')
   const [historyItem, setHistoryItem] = useState(/** @type {object|null} */ (null))
   const [reloadToken, setReloadToken] = useState(0)
+  const [openMenuItemId, setOpenMenuItemId] = useState(/** @type {string|null} */ (null))
+  const [placeholder, setPlaceholder] = useState(/** @type {{ actionId: string, productName?: string }|null} */ (null))
+  const listRef = useRef(/** @type {HTMLDivElement|null} */ (null))
 
   const storageId = `${storage?.id ?? ''}`.trim()
   const storageTitle = storage?.name || storage?.locationKey || 'Storage'
@@ -104,6 +207,21 @@ export function StockStorageDetailWorkspace({
     }
   }, [workspaceId, storageId, loadProducts, reloadToken])
 
+  useEffect(() => {
+    if (!openMenuItemId) return undefined
+
+    const handlePointerDown = (event) => {
+      const target = event.target
+      if (!(target instanceof Element)) return
+      if (target.closest('[data-testid="stock-storage-product-menu"]')) return
+      if (target.closest('[data-storage-product-menu-trigger="true"]')) return
+      setOpenMenuItemId(null)
+    }
+
+    document.addEventListener('pointerdown', handlePointerDown)
+    return () => document.removeEventListener('pointerdown', handlePointerDown)
+  }, [openMenuItemId])
+
   const visibleProducts = useMemo(() => {
     const rows = payload?.products ?? []
     return sortStorageProductRows(filterStorageProductRows(rows, searchTerm), sortKey)
@@ -113,6 +231,24 @@ export function StockStorageDetailWorkspace({
   const headerProductCount = summary?.productCount ?? storage?.productCount ?? 0
   const headerQuantity = summary?.totalQuantity ?? storage?.totalQuantity ?? 0
   const headerValue = summary?.inventoryValue ?? storage?.inventoryValue ?? 0
+
+  const openPlaceholder = (actionId, productName = '') => {
+    setOpenMenuItemId(null)
+    setPlaceholder({ actionId, productName })
+  }
+
+  const runStorageAction = (actionId, callback) => {
+    if (typeof callback === 'function') {
+      callback(storage)
+      return
+    }
+    openPlaceholder(actionId)
+  }
+
+  const handleOpenDetails = (row) => {
+    setOpenMenuItemId(null)
+    setHistoryItem(row.item)
+  }
 
   return (
     <section
@@ -154,6 +290,14 @@ export function StockStorageDetailWorkspace({
             <dd>{formatStockInventoryValue(headerValue)}</dd>
           </div>
         </dl>
+        <StockStorageDetailActionBar
+          storage={storage}
+          canManage={canManage}
+          onStartFastCount={() => runStorageAction('fast_count', onStartFastCount)}
+          onReceive={() => runStorageAction('receive', onReceive)}
+          onTransfer={() => runStorageAction('transfer', onTransfer)}
+          onAdjustment={() => runStorageAction('adjustment', onAdjustment)}
+        />
       </header>
 
       <div className="stock-storage-detail-workspace-toolbar">
@@ -211,10 +355,26 @@ export function StockStorageDetailWorkspace({
       ) : null}
 
       {status === 'ready' && visibleProducts.length > 0 ? (
-        <div className="stock-storage-product-list" role="list" data-testid="stock-storage-product-list">
+        <div
+          className="stock-storage-product-list"
+          role="list"
+          data-testid="stock-storage-product-list"
+          ref={listRef}
+        >
           {visibleProducts.map((row) => (
             <div key={row.stockItemId} role="listitem">
-              <StorageProductRow row={row} onOpen={(next) => setHistoryItem(next.item)} />
+              <StorageProductRow
+                row={row}
+                canManage={canManage}
+                menuOpen={openMenuItemId === row.stockItemId}
+                onOpenDetails={handleOpenDetails}
+                onToggleMenu={(next) => {
+                  setOpenMenuItemId((current) => (
+                    current === next.stockItemId ? null : next.stockItemId
+                  ))
+                }}
+                onMenuAction={(actionId, next) => openPlaceholder(actionId, next.name)}
+              />
             </div>
           ))}
         </div>
@@ -226,6 +386,15 @@ export function StockStorageDetailWorkspace({
           workspaceId={workspaceId}
           canManage={false}
           onClose={() => setHistoryItem(null)}
+        />
+      ) : null}
+
+      {placeholder ? (
+        <StockStorageActionPlaceholder
+          actionId={placeholder.actionId}
+          storageName={storageTitle}
+          productName={placeholder.productName}
+          onClose={() => setPlaceholder(null)}
         />
       ) : null}
     </section>

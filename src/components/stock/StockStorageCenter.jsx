@@ -66,12 +66,22 @@ function StorageSummaryCard({ storage, selected = false, onSelect }) {
  * @param {{
  *   workspaceId?: string,
  *   searchTerm?: string,
+ *   canManage?: boolean,
+ *   onStartFastCount?: (storage: object) => void,
+ *   onReceive?: (storage: object) => void,
+ *   onTransfer?: (storage: object) => void,
+ *   onAdjustment?: (storage: object) => void,
  *   loadSummaries?: typeof getWorkspaceStorageSummaries,
  * }} props
  */
 export function StockStorageCenter({
   workspaceId = '',
   searchTerm = '',
+  canManage = false,
+  onStartFastCount,
+  onReceive,
+  onTransfer,
+  onAdjustment,
   loadSummaries = getWorkspaceStorageSummaries,
 } = {}) {
   const [status, setStatus] = useState(/** @type {'loading'|'ready'|'empty'|'error'} */ ('loading'))
@@ -151,7 +161,12 @@ export function StockStorageCenter({
         workspaceId={workspaceId}
         storage={selectedStorage}
         searchTerm={searchTerm}
+        canManage={canManage}
         onBack={() => setSelectedId(null)}
+        onStartFastCount={onStartFastCount}
+        onReceive={onReceive}
+        onTransfer={onTransfer}
+        onAdjustment={onAdjustment}
       />
     )
   }

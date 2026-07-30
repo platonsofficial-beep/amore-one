@@ -53,6 +53,7 @@ describe('StockStorageCenter navigation contract', () => {
     expect(appSource).toContain("stockSection === 'storages'")
     expect(appSource).toContain('<StockStorageCenter')
     expect(appSource).toContain('searchTerm={searchTerm}')
+    expect(appSource).toContain('canManage={canManageStockRole}')
     expect(appSource).toContain("stockSection === 'dashboard'")
     expect(appSource).toContain("stockSection === 'count'")
     expect(appSource).toContain("stockSection === 'suppliers'")
@@ -125,6 +126,7 @@ describe('StockStorageCenter UI', () => {
     renderCenter({
       workspaceId: 'ws-1',
       loadSummaries,
+      canManage: true,
     })
     expect(container.querySelector('[data-testid="stock-storage-center-loading"]')).toBeTruthy()
 
@@ -208,12 +210,24 @@ describe('StockStorageCenter UI', () => {
     expect(container.textContent).toContain('Vodka')
     expect(container.textContent).toContain('Spirits')
     expect(container.textContent).toContain('← Storages')
-    expect(container.textContent).not.toContain('Receive')
-    expect(container.textContent).not.toContain('Transfer')
-    expect(container.textContent).not.toContain('Fast Count')
+    expect(container.querySelector('[data-testid="stock-storage-detail-action-bar"]')).toBeTruthy()
+    expect(container.textContent).not.toContain('Create storage')
+    expect(container.textContent).not.toContain('Confirm Finish')
+    expect(container.querySelector('button[data-action="archive"]')).toBeNull()
 
     await act(async () => {
-      container.querySelector('[data-stock-item-id="i1"]').click()
+      container.querySelector('[data-storage-action="fast_count"]').click()
+      await Promise.resolve()
+    })
+    expect(container.querySelector('[data-testid="stock-storage-action-placeholder"]')?.textContent)
+      .toContain('Fast Count for this storage will be available in the next sprint.')
+    await act(async () => {
+      container.querySelector('[data-testid="stock-storage-action-placeholder"] .primary-btn').click()
+      await Promise.resolve()
+    })
+
+    await act(async () => {
+      container.querySelector('[data-stock-item-id="i1"] .stock-storage-product-row').click()
       await Promise.resolve()
     })
     expect(container.querySelector('[data-testid="stock-product-history-drawer"]')?.textContent)
