@@ -282,6 +282,7 @@ import {
 import { createSupplier, deleteSupplier, getSuppliers, updateSupplier } from './services/supplierService'
 import { createStockItem, updateStockItem, updateStockItemActive } from './services/stockItemService'
 import { getStockItemsWithLastMovement, recordStockMovement } from './services/stockMovementService'
+import { transferStockBetweenLocations } from './services/stockMutationService'
 import {
   createStockOrdersFromGroups,
   getStockOrdersWithAuthors,
@@ -22475,6 +22476,46 @@ function App() {
     }
   }
 
+  const handleRecordStockTransfer = async ({
+    item,
+    quantity,
+    note,
+    sourceWorkspaceStorageId,
+    destinationWorkspaceStorageId,
+    expectedSourceQuantityVersion,
+    expectedDestinationQuantityVersion,
+  }) => {
+    if (!activeWorkspaceId || !item?.id) {
+      throw new Error(stockWorkspaceSetupMessage || 'Workspace and item are required for stock transfers.')
+    }
+    if (isSavingStockItemRef.current) return
+
+    isSavingStockItemRef.current = true
+    setIsSavingStockItem(true)
+    setStockItemsNotice('')
+
+    try {
+      await transferStockBetweenLocations({
+        workspaceId: activeWorkspaceId,
+        stockItemId: item.id,
+        sourceWorkspaceStorageId,
+        destinationWorkspaceStorageId,
+        quantity,
+        expectedSourceQuantityVersion,
+        expectedDestinationQuantityVersion,
+        note,
+      })
+      await refreshStockItems()
+      setStockItemsNotice('Stock transfer recorded.')
+    } catch (error) {
+      setStockItemsNotice(error.message || 'Unable to transfer stock right now.')
+      throw error
+    } finally {
+      isSavingStockItemRef.current = false
+      setIsSavingStockItem(false)
+    }
+  }
+
   const handleCreateStockOrders = async (groups) => {
     if (!activeWorkspaceId) {
       throw new Error(stockWorkspaceSetupMessage || 'Workspace is required to create orders.')
@@ -24408,7 +24449,9 @@ function App() {
             canManage={canManageStockRole}
             onOpenActiveCountSession={handleOpenInventoryCountSession}
             onRecordReceive={handleRecordStockMovement}
+            onRecordTransfer={handleRecordStockTransfer}
             isSavingReceive={isSavingStockItem}
+            isSavingTransfer={isSavingStockItem}
           />
         ) : null}
 

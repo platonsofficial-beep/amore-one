@@ -1,13 +1,16 @@
 /**
- * P8.30.5 — Choose a product already in this storage before Receive.
- * Existing Inventory Count location RPC requires a balance row; picker is scoped
- * to products with balances in the destination storage.
+ * P8.30.5 / P8.30.6 — Choose a product already in this storage.
+ * Scoped to products with balances in the current storage.
  */
 
 /**
  * @param {{
  *   storage: object,
  *   products?: object[],
+ *   title?: string,
+ *   subtitlePrefix?: string,
+ *   emptyMessage?: string,
+ *   testId?: string,
  *   onClose: () => void,
  *   onSelectProduct: (row: object) => void,
  * }} props
@@ -15,6 +18,10 @@
 export function StockStorageReceiveProductPicker({
   storage,
   products = [],
+  title = 'Receive stock',
+  subtitlePrefix = 'Destination',
+  emptyMessage = 'No products with a balance in this storage yet.',
+  testId = 'stock-storage-receive-product-picker',
   onClose,
   onSelectProduct,
 } = {}) {
@@ -25,7 +32,7 @@ export function StockStorageReceiveProductPicker({
     <div
       className="employee-modal-backdrop task-modal-backdrop"
       onClick={onClose}
-      data-testid="stock-storage-receive-product-picker"
+      data-testid={testId}
     >
       <div
         className="employee-modal stock-dashboard-modal task-form-modal is-responsive-sheet"
@@ -33,9 +40,9 @@ export function StockStorageReceiveProductPicker({
       >
         <div className="drawer-header">
           <div>
-            <h3>Receive stock</h3>
+            <h3>{title}</h3>
             <p className="stock-modal-subtitle">
-              Destination: {storageTitle}
+              {subtitlePrefix}: {storageTitle}
             </p>
           </div>
           <button type="button" className="icon-btn" onClick={onClose} aria-label="Close">✕</button>
@@ -43,11 +50,11 @@ export function StockStorageReceiveProductPicker({
 
         <div className="stock-storage-receive-picker-body">
           <p className="stock-storage-receive-picker-copy">
-            Choose a product to receive into this storage.
+            Choose a product for this storage.
           </p>
           {list.length === 0 ? (
             <div className="staff-status-banner" role="status">
-              No products with a balance in this storage yet.
+              {emptyMessage}
             </div>
           ) : (
             <div className="stock-storage-receive-picker-list" role="list">

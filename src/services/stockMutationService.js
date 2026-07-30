@@ -231,6 +231,121 @@ export async function recordStockMutationLocationAware(input) {
   return mapStockMovement(movementRow)
 }
 
+const TRANSFER_RPC = 'transfer_stock_between_locations'
+
+const TRANSFER_ERROR_MESSAGES = Object.freeze({
+  stock_transfer_unauthenticated: 'Sign in to transfer stock.',
+  stock_transfer_workspace_required: 'Workspace is required to transfer stock.',
+  stock_transfer_item_required: 'Product is required to transfer stock.',
+  stock_transfer_storage_required: 'Source and destination storages are required.',
+  stock_transfer_same_storage: 'Choose a different destination storage.',
+  stock_transfer_version_required: 'Balance versions are required to transfer stock.',
+  stock_transfer_quantity_invalid: 'Enter a valid transfer quantity.',
+  stock_transfer_quantity_zero: 'Transfer quantity must be greater than zero.',
+  stock_transfer_quantity_negative: 'Transfer quantity must be positive.',
+  stock_transfer_workspace_not_found: 'Workspace was not found.',
+  stock_transfer_forbidden: 'You do not have permission to transfer stock.',
+  stock_transfer_item_not_found: 'Product was not found in this workspace.',
+  stock_transfer_storage_not_found: 'Storage was not found in this workspace.',
+  stock_transfer_storage_inactive: 'Inactive storages cannot be used for transfers.',
+  stock_transfer_source_balance_not_found: 'Source storage has no balance for this product.',
+  stock_transfer_destination_balance_not_found: 'Destination storage has no balance for this product yet.',
+  stock_transfer_insufficient_source: 'Not enough quantity in the source storage.',
+  stock_transfer_source_version_mismatch: 'Source quantity changed. Refresh and try again.',
+  stock_transfer_destination_version_mismatch: 'Destination quantity changed. Refresh and try again.',
+})
+
+/**
+ * Map transfer RPC errors to operator-facing messages.
+ * @param {unknown} error
+ * @returns {Error}
+ */
+export function mapStockTransferRpcError(error) {
+  const raw = `${error?.message ?? error?.code ?? ''}`.trim()
+  for (const [code, message] of Object.entries(TRANSFER_ERROR_MESSAGES)) {
+    if (raw.includes(code)) return new Error(message)
+  }
+  return new Error(raw || 'Unable to transfer stock right now.')
+}
+
+/**
+ * P8.30.6 — Thin wrapper around production transfer_stock_between_locations.
+ * No direct quantity patches or movement inserts.
+ *
+ * @param {{
+ *   workspaceId?: string,
+ *   stockItemId?: string,
+ *   sourceWorkspaceStorageId?: string,
+ *   destinationWorkspaceStorageId?: string,
+ *   quantity?: number,
+ *   expectedSourceQuantityVersion?: number,
+ *   expectedDestinationQuantityVersion?: number,
+ *   note?: string,
+ *   originRefId?: string|null,
+ * }} [input]
+ */
+export async function transferStockBetweenLocations({
+  workspaceId = '',
+  stockItemId = '',
+  sourceWorkspaceStorageId = '',
+  destinationWorkspaceStorageId = '',
+  quantity,
+  expectedSourceQuantityVersion,
+  expectedDestinationQuantityVersion,
+  note = '',
+  originRefId = null,
+} = {}) {
+  const p_workspace_id = `${workspaceId ?? ''}`.trim()
+  const p_stock_item_id = `${stockItemId ?? ''}`.trim()
+  const p_source_workspace_storage_id = `${sourceWorkspaceStorageId ?? ''}`.trim()
+  const p_destination_workspace_storage_id = `${destinationWorkspaceStorageId ?? ''}`.trim()
+  const p_quantity = Number(quantity)
+  const p_expected_source_quantity_version = Number(expectedSourceQuantityVersion)
+  const p_expected_destination_quantity_version = Number(expectedDestinationQuantityVersion)
+
+  if (!p_workspace_id) throw new Error('Workspace is required to transfer stock.')
+  if (!p_stock_item_id) throw new Error('Product is required to transfer stock.')
+  if (!p_source_workspace_storage_id || !p_destination_workspace_storage_id) {
+    throw new Error('Source and destination storages are required.')
+  }
+  if (p_source_workspace_storage_id === p_destination_workspace_storage_id) {
+    throw new Error('Choose a different destination storage.')
+  }
+  if (!Number.isFinite(p_quantity) || p_quantity <= 0) {
+    throw new Error('Enter a positive quantity to transfer.')
+  }
+  if (!Number.isFinite(p_expected_source_quantity_version) || p_expected_source_quantity_version < 1) {
+    throw new Error('Source balance version is required to transfer stock.')
+  }
+  if (!Number.isFinite(p_expected_destination_quantity_version) || p_expected_destination_quantity_version < 1) {
+    throw new Error('Destination balance version is required to transfer stock.')
+  }
+
+  const { data, error } = await supabase.rpc(TRANSFER_RPC, {
+    p_workspace_id,
+    p_stock_item_id,
+    p_source_workspace_storage_id,
+    p_destination_workspace_storage_id,
+    p_quantity,
+    p_expected_source_quantity_version: Math.floor(p_expected_source_quantity_version),
+    p_expected_destination_quantity_version: Math.floor(p_expected_destination_quantity_version),
+    p_note: `${note ?? ''}`,
+    p_origin_ref_id: originRefId,
+  })
+
+  if (error) {
+    console.error('[stockMutationService] transferStockBetweenLocations error:', error)
+    throw mapStockTransferRpcError(error)
+  }
+
+  const payload = firstRpcPayload(data)
+  if (payload == null) {
+    throw new Error('Transfer response was empty.')
+  }
+
+  return payload
+}
+
 /**
  * Single internal routing entry. Not a UI API.
  * Chooses exactly one path — never both.

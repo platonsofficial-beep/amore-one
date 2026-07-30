@@ -21,9 +21,11 @@ vi.mock('./stockItemService', () => ({
 import {
   __setSupportsLocationBalancesForTests,
   getSupportsLocationBalances,
+  mapStockTransferRpcError,
   recordStockMutation,
   recordStockMutationLegacy,
   recordStockMutationLocationAware,
+  transferStockBetweenLocations,
 } from './stockMutationService'
 import { recordStockMovement } from './stockMovementService'
 
@@ -417,5 +419,79 @@ describe('stockMutationService — P8.29.7 dual-write foundation', () => {
       createdAt: '2026-07-29T15:00:00Z',
     })
     expect(updateStockItemQuantityMock).toHaveBeenCalledWith('item-1', 'ws-1', 8)
+  })
+})
+
+describe('transferStockBetweenLocations — P8.30.6', () => {
+  beforeEach(() => {
+    fromMock.mockReset()
+    rpcMock.mockReset()
+    updateStockItemQuantityMock.mockReset()
+  })
+
+  it('calls transfer_stock_between_locations and never patches quantities directly', async () => {
+    rpcMock.mockResolvedValue({
+      data: {
+        ok: true,
+        transfer_out_movement_id: 'mov-out',
+        transfer_in_movement_id: 'mov-in',
+      },
+      error: null,
+    })
+
+    const result = await transferStockBetweenLocations({
+      workspaceId: 'ws-1',
+      stockItemId: 'item-1',
+      sourceWorkspaceStorageId: 'stor-a',
+      destinationWorkspaceStorageId: 'stor-b',
+      quantity: 3,
+      expectedSourceQuantityVersion: 2,
+      expectedDestinationQuantityVersion: 4,
+      note: 'Bar restock',
+    })
+
+    expect(rpcMock).toHaveBeenCalledWith('transfer_stock_between_locations', {
+      p_workspace_id: 'ws-1',
+      p_stock_item_id: 'item-1',
+      p_source_workspace_storage_id: 'stor-a',
+      p_destination_workspace_storage_id: 'stor-b',
+      p_quantity: 3,
+      p_expected_source_quantity_version: 2,
+      p_expected_destination_quantity_version: 4,
+      p_note: 'Bar restock',
+      p_origin_ref_id: null,
+    })
+    expect(updateStockItemQuantityMock).not.toHaveBeenCalled()
+    expect(fromMock).not.toHaveBeenCalled()
+    expect(result).toMatchObject({ ok: true })
+  })
+
+  it('maps RPC error codes and rejects same-storage / invalid quantity locally', async () => {
+    expect(mapStockTransferRpcError({ message: 'stock_transfer_insufficient_source' }).message)
+      .toMatch(/Not enough quantity/i)
+
+    await expect(transferStockBetweenLocations({
+      workspaceId: 'ws-1',
+      stockItemId: 'item-1',
+      sourceWorkspaceStorageId: 'stor-a',
+      destinationWorkspaceStorageId: 'stor-a',
+      quantity: 1,
+      expectedSourceQuantityVersion: 1,
+      expectedDestinationQuantityVersion: 1,
+    })).rejects.toThrow(/different destination/i)
+
+    rpcMock.mockResolvedValue({
+      data: null,
+      error: { message: 'stock_transfer_destination_balance_not_found' },
+    })
+    await expect(transferStockBetweenLocations({
+      workspaceId: 'ws-1',
+      stockItemId: 'item-1',
+      sourceWorkspaceStorageId: 'stor-a',
+      destinationWorkspaceStorageId: 'stor-b',
+      quantity: 1,
+      expectedSourceQuantityVersion: 1,
+      expectedDestinationQuantityVersion: 1,
+    })).rejects.toThrow(/no balance for this product/i)
   })
 })

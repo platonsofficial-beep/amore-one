@@ -22,6 +22,7 @@ import { StockStorageDetailActionBar } from './StockStorageDetailActionBar'
 import { StockStorageActionPlaceholder } from './StockStorageActionPlaceholder'
 import { StockMovementModal } from './StockMovementModal'
 import { StockStorageReceiveProductPicker } from './StockStorageReceiveProductPicker'
+import { StockTransferModal } from './StockTransferModal'
 
 /**
  * @param {{
@@ -152,8 +153,10 @@ function StorageProductRow({
  *   onReceive?: (storage: object) => void,
  *   onRecordReceive?: (payload: object) => void|Promise<void>,
  *   onTransfer?: (storage: object) => void,
+ *   onRecordTransfer?: (payload: object) => void|Promise<void>,
  *   onAdjustment?: (storage: object) => void,
  *   isSavingReceive?: boolean,
+ *   isSavingTransfer?: boolean,
  *   loadProducts?: typeof getWorkspaceStorageProducts,
  *   startFastCountSession?: typeof startStorageFastCountSession,
  * }} props
@@ -169,8 +172,10 @@ export function StockStorageDetailWorkspace({
   onReceive,
   onRecordReceive,
   onTransfer,
+  onRecordTransfer,
   onAdjustment,
   isSavingReceive = false,
+  isSavingTransfer = false,
   loadProducts = getWorkspaceStorageProducts,
   startFastCountSession = startStorageFastCountSession,
 } = {}) {
@@ -186,6 +191,8 @@ export function StockStorageDetailWorkspace({
   const [fastCountError, setFastCountError] = useState('')
   const [receivePickerOpen, setReceivePickerOpen] = useState(false)
   const [receiveRow, setReceiveRow] = useState(/** @type {object|null} */ (null))
+  const [transferPickerOpen, setTransferPickerOpen] = useState(false)
+  const [transferRow, setTransferRow] = useState(/** @type {object|null} */ (null))
   const listRef = useRef(/** @type {HTMLDivElement|null} */ (null))
   const fastCountRequestIdRef = useRef(0)
 
@@ -339,6 +346,35 @@ export function StockStorageDetailWorkspace({
     setReloadToken((token) => token + 1)
   }
 
+  const handleStartTransfer = () => {
+    if (storage?.active === false) return
+    setOpenMenuItemId(null)
+    setPlaceholder(null)
+    if (typeof onTransfer === 'function') {
+      onTransfer(storage)
+      return
+    }
+    setTransferRow(null)
+    setTransferPickerOpen(true)
+  }
+
+  const handleTransferProductSelected = (row) => {
+    setTransferPickerOpen(false)
+    setTransferRow(row)
+  }
+
+  const handleRecordTransferSubmit = async (payload) => {
+    if (typeof onRecordTransfer !== 'function') {
+      throw new Error('Transfer is not available right now.')
+    }
+    await onRecordTransfer({
+      ...payload,
+      storage,
+    })
+    setTransferRow(null)
+    setReloadToken((token) => token + 1)
+  }
+
   const handleMenuAction = (actionId, row) => {
     if (actionId === 'fast_count') {
       void handleStartFastCount()
@@ -352,6 +388,16 @@ export function StockStorageDetailWorkspace({
         return
       }
       setReceiveRow(row)
+      return
+    }
+    if (actionId === 'transfer') {
+      setOpenMenuItemId(null)
+      setPlaceholder(null)
+      if (typeof onTransfer === 'function') {
+        onTransfer(storage)
+        return
+      }
+      setTransferRow(row)
       return
     }
     openPlaceholder(actionId, row.name)
@@ -403,7 +449,7 @@ export function StockStorageDetailWorkspace({
           isLaunchingFastCount={isLaunchingFastCount}
           onStartFastCount={() => { void handleStartFastCount() }}
           onReceive={() => handleStartReceive()}
-          onTransfer={() => runStorageAction('transfer', onTransfer)}
+          onTransfer={() => handleStartTransfer()}
           onAdjustment={() => runStorageAction('adjustment', onAdjustment)}
         />
         {isLaunchingFastCount ? (
@@ -534,6 +580,31 @@ export function StockStorageDetailWorkspace({
           expectedQuantityVersion={receiveRow.quantityVersion}
           onClose={() => setReceiveRow(null)}
           onSubmit={handleRecordReceiveSubmit}
+        />
+      ) : null}
+
+      {transferPickerOpen ? (
+        <StockStorageReceiveProductPicker
+          storage={storage}
+          products={payload?.products ?? []}
+          title="Transfer stock"
+          subtitlePrefix="Source"
+          testId="stock-storage-transfer-product-picker"
+          onClose={() => setTransferPickerOpen(false)}
+          onSelectProduct={handleTransferProductSelected}
+        />
+      ) : null}
+
+      {transferRow ? (
+        <StockTransferModal
+          item={transferRow.item}
+          sourceStorage={storage}
+          sourceQuantity={transferRow.quantity}
+          sourceQuantityVersion={transferRow.quantityVersion}
+          workspaceId={workspaceId}
+          isSaving={isSavingTransfer}
+          onClose={() => setTransferRow(null)}
+          onSubmit={handleRecordTransferSubmit}
         />
       ) : null}
 
