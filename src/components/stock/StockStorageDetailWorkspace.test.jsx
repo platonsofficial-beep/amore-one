@@ -625,6 +625,10 @@ describe('StockStorageDetailWorkspace — actions + Fast Count launch', () => {
       reasonSelect.dispatchEvent(new Event('change', { bubbles: true }))
     })
 
+    expect(container.querySelector('[data-testid="stock-adjustment-preview"]')).toBeTruthy()
+    expect(container.querySelector('[data-testid="stock-adjustment-preview-delta"]')?.textContent)
+      .toContain('-1')
+
     await act(async () => {
       container.querySelector('[data-testid="stock-movement-modal"] form')
         .dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))

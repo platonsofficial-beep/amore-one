@@ -2,9 +2,10 @@
  * Shared stock movement dialog (Dashboard + Storage Center).
  * P8.30.5 — optional locked destination for Storage Receive.
  * P8.30.7 — Storage Adjustment: locked storage + mandatory reason.
+ * P8.30.7a — Signed adjustment amount + iPad-stable string input + preview.
  */
 
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { formatStockQuantity } from '../../lib/stockUtils'
 
 export const STOCK_ADJUSTMENT_REASON_OPTIONS = Object.freeze([
@@ -15,6 +16,46 @@ export const STOCK_ADJUSTMENT_REASON_OPTIONS = Object.freeze([
   'Found stock',
   'Other',
 ])
+
+/**
+ * Intermediate drafts allowed while typing on iPad (must not be coerced away).
+ * @param {string} raw
+ * @returns {boolean}
+ */
+export function isAdjustmentQuantityIntermediate(raw) {
+  const text = `${raw ?? ''}`.trim()
+  return text === ''
+    || text === '-'
+    || text === '+'
+    || text === '.'
+    || text === '-.'
+    || text === '+.'
+}
+
+/**
+ * Accept only editable signed numeric drafts (intermediate or complete).
+ * Rejects letters and multiple signs/decimals.
+ * @param {string} raw
+ * @returns {boolean}
+ */
+export function isAdjustmentQuantityDraftAllowed(raw) {
+  const text = `${raw ?? ''}`
+  if (text === '') return true
+  return /^[+-]?(\d+(\.\d*)?|\.\d*)?$/.test(text)
+}
+
+/**
+ * @param {string} raw
+ * @returns {number|null}
+ */
+export function parseSignedAdjustmentQuantity(raw) {
+  if (isAdjustmentQuantityIntermediate(raw)) return null
+  const text = `${raw ?? ''}`.trim()
+  if (!text) return null
+  const parsed = Number(text)
+  if (!Number.isFinite(parsed) || parsed === 0) return null
+  return parsed
+}
 
 /**
  * @param {string} reason
@@ -31,6 +72,16 @@ export function buildAdjustmentMovementNote(reason, note = '') {
 }
 
 /**
+ * @param {number} value
+ * @returns {string}
+ */
+function formatSignedAdjustmentPreview(value) {
+  if (!Number.isFinite(value) || value === 0) return formatStockQuantity(value)
+  if (value > 0) return `+${formatStockQuantity(value)}`
+  return formatStockQuantity(value)
+}
+
+/**
  * @param {{
  *   item: object,
  *   movementType: string,
@@ -41,6 +92,7 @@ export function buildAdjustmentMovementNote(reason, note = '') {
  *   destinationLocked?: boolean,
  *   expectedQuantityVersion?: number|null,
  *   requireAdjustmentReason?: boolean,
+ *   balanceQuantity?: number|null,
  * }} props
  */
 export function StockMovementModal({
@@ -53,10 +105,12 @@ export function StockMovementModal({
   destinationLocked = false,
   expectedQuantityVersion = null,
   requireAdjustmentReason = false,
+  balanceQuantity = null,
 }) {
   const isStockCount = movementType === 'stock_count'
   const isAdjustment = movementType === 'adjustment'
   const reasonRequired = isAdjustment && requireAdjustmentReason
+  const itemId = `${item?.id ?? ''}`
   const [quantity, setQuantity] = useState(
     () => (isStockCount ? `${item.currentQuantity ?? ''}` : ''),
   )
@@ -70,16 +124,36 @@ export function StockMovementModal({
     ? (destinationStorage.name || destinationStorage.locationKey || 'Storage')
     : ''
 
+  const currentBalance = useMemo(() => {
+    if (balanceQuantity != null && Number.isFinite(Number(balanceQuantity))) {
+      return Number(balanceQuantity)
+    }
+    return Number(item?.currentQuantity) || 0
+  }, [balanceQuantity, item?.currentQuantity])
+
+  const parsedAdjustment = isAdjustment ? parseSignedAdjustmentQuantity(quantity) : null
+  const previewNewBalance = parsedAdjustment == null
+    ? null
+    : currentBalance + parsedAdjustment
+  const wouldGoNegative = previewNewBalance != null && previewNewBalance < 0
+  const hasValidAdjustmentAmount = parsedAdjustment != null && !wouldGoNegative
+  const hasValidReason = !reasonRequired
+    || (Boolean(reason.trim()) && (reason.trim() !== 'Other' || Boolean(note.trim())))
+  const canSubmitAdjustment = !isAdjustment
+    || (hasValidAdjustmentAmount && hasValidReason)
+
   useEffect(() => {
     if (isStockCount) {
-      setQuantity(`${item.currentQuantity ?? ''}`)
+      setQuantity(`${item?.currentQuantity ?? ''}`)
     } else {
       setQuantity('')
     }
     setReason('')
     setNote('')
     setError('')
-  }, [item, movementType, isStockCount])
+    // Reset only when the opened product / movement type changes — not on object identity.
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional: item.currentQuantity seed for stock_count only
+  }, [itemId, movementType, isStockCount])
 
   const handleDismiss = () => {
     if (isBusy) return
@@ -94,10 +168,31 @@ export function StockMovementModal({
         ? 'Stock count'
         : 'Adjust stock'
 
+  const handleAdjustmentQuantityChange = (event) => {
+    const next = event.target.value
+    if (!isAdjustmentQuantityDraftAllowed(next)) return
+    setQuantity(next)
+    setError('')
+  }
+
   const handleSubmit = async (event) => {
     event.preventDefault()
     if (isBusy) return
-    const parsed = Number(quantity)
+
+    let parsed
+    if (isAdjustment) {
+      parsed = parseSignedAdjustmentQuantity(quantity)
+      if (parsed == null) {
+        setError('Enter a non-zero adjustment amount.')
+        return
+      }
+      if (currentBalance + parsed < 0) {
+        setError('Adjustment would make the balance negative.')
+        return
+      }
+    } else {
+      parsed = Number(quantity)
+    }
 
     if (isStockCount) {
       if (!Number.isFinite(parsed) || parsed < 0) {
@@ -119,7 +214,7 @@ export function StockMovementModal({
         setError(`Usage cannot exceed on-hand quantity (${formatStockQuantity(onHand, item.unit)}).`)
         return
       }
-    } else if (!Number.isFinite(parsed) || parsed === 0) {
+    } else if (!isAdjustment && (!Number.isFinite(parsed) || parsed === 0)) {
       setError('Enter a non-zero quantity.')
       return
     }
@@ -165,6 +260,7 @@ export function StockMovementModal({
     : 'stock-receive-destination-lock'
   const lockLabel = isAdjustment ? 'Storage' : 'Destination'
   const lockNote = isAdjustment ? 'Locked' : 'Locked to this storage'
+  const saveDisabled = isBusy || (isAdjustment && !canSubmitAdjustment)
 
   return (
     <div className="employee-modal-backdrop task-modal-backdrop" onClick={handleDismiss}>
@@ -192,26 +288,81 @@ export function StockMovementModal({
 
           <label>
             {isStockCount ? 'Counted quantity' : isAdjustment ? 'Adjustment amount' : 'Quantity'}
-            <input
-              type="number"
-              step="any"
-              min={isStockCount ? '0' : undefined}
-              value={quantity}
-              onChange={(event) => setQuantity(event.target.value)}
-              placeholder={isStockCount ? `${item.currentQuantity ?? 0}` : isAdjustment ? 'Use negative to reduce' : '0'}
-              required
-              disabled={isBusy}
-              aria-label={isAdjustment ? 'Adjustment amount' : undefined}
-              data-testid={isAdjustment ? 'stock-adjustment-quantity' : undefined}
-            />
+            {isAdjustment ? (
+              <input
+                type="text"
+                inputMode="decimal"
+                autoComplete="off"
+                enterKeyHint="done"
+                value={quantity}
+                onChange={handleAdjustmentQuantityChange}
+                placeholder="Use negative to reduce"
+                required
+                disabled={isBusy}
+                aria-label="Adjustment amount"
+                data-testid="stock-adjustment-quantity"
+              />
+            ) : (
+              <input
+                type="number"
+                step="any"
+                min={isStockCount ? '0' : undefined}
+                value={quantity}
+                onChange={(event) => setQuantity(event.target.value)}
+                placeholder={isStockCount ? `${item.currentQuantity ?? 0}` : '0'}
+                required
+                disabled={isBusy}
+              />
+            )}
           </label>
+
+          {isAdjustment ? (
+            <div
+              className={`stock-adjustment-preview${wouldGoNegative ? ' is-blocked' : ''}`}
+              data-testid="stock-adjustment-preview"
+              aria-live="polite"
+            >
+              <div className="stock-adjustment-preview-row">
+                <span>Current</span>
+                <strong>{formatStockQuantity(currentBalance, item?.unit)}</strong>
+              </div>
+              <div className="stock-adjustment-preview-row">
+                <span>Adjustment</span>
+                <strong data-testid="stock-adjustment-preview-delta">
+                  {parsedAdjustment == null
+                    ? '—'
+                    : formatSignedAdjustmentPreview(parsedAdjustment)}
+                </strong>
+              </div>
+              <div className="stock-adjustment-preview-row">
+                <span>New balance</span>
+                <strong data-testid="stock-adjustment-preview-result">
+                  {previewNewBalance == null
+                    ? '—'
+                    : formatStockQuantity(previewNewBalance, item?.unit)}
+                </strong>
+              </div>
+              {wouldGoNegative ? (
+                <p
+                  className="stock-adjustment-preview-blocker"
+                  role="alert"
+                  data-testid="stock-adjustment-negative-blocker"
+                >
+                  Adjustment would make the balance negative.
+                </p>
+              ) : null}
+            </div>
+          ) : null}
 
           {reasonRequired ? (
             <label>
               Reason
               <select
                 value={reason}
-                onChange={(event) => setReason(event.target.value)}
+                onChange={(event) => {
+                  setReason(event.target.value)
+                  setError('')
+                }}
                 required
                 disabled={isBusy}
                 aria-label="Adjustment reason"
@@ -230,7 +381,10 @@ export function StockMovementModal({
             <input
               type="text"
               value={note}
-              onChange={(event) => setNote(event.target.value)}
+              onChange={(event) => {
+                setNote(event.target.value)
+                setError('')
+              }}
               placeholder={
                 isStockCount
                   ? 'e.g. Monday bar count'
@@ -247,11 +401,19 @@ export function StockMovementModal({
           {error ? <div className="staff-status-banner" role="alert">{error}</div> : null}
 
           <div className="modal-actions">
-            <button type="button" className="ghost-btn" onClick={handleDismiss} disabled={isBusy}>Cancel</button>
+            <button
+              type="button"
+              className="ghost-btn"
+              onClick={handleDismiss}
+              disabled={isBusy}
+              data-testid={isAdjustment ? 'stock-adjustment-cancel' : undefined}
+            >
+              Cancel
+            </button>
             <button
               type="submit"
               className="primary-btn"
-              disabled={isBusy}
+              disabled={saveDisabled}
               data-testid={isAdjustment ? 'stock-adjustment-submit' : undefined}
             >
               {isBusy ? 'Saving…' : isStockCount ? 'Save stock count' : 'Save'}

@@ -32525,6 +32525,43 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   line-height: 1.4;
 }
 
+.stock-adjustment-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 2px 0 6px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.stock-adjustment-preview-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  color: rgba(255, 247, 232, 0.72);
+  font-size: 0.86rem;
+}
+
+.stock-adjustment-preview-row strong {
+  color: #fff7e8;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.stock-adjustment-preview.is-blocked {
+  border-color: rgba(255, 140, 130, 0.45);
+}
+
+.stock-adjustment-preview-blocker {
+  margin: 2px 0 0;
+  color: rgba(255, 170, 160, 0.95);
+  font-size: 0.8rem;
+  line-height: 1.35;
+}
+
 .stock-storage-receive-picker-body {
   display: flex;
   flex-direction: column;

@@ -675,6 +675,7 @@ export function StockStorageDetailWorkspace({
           destinationStorage={storage}
           destinationLocked
           requireAdjustmentReason
+          balanceQuantity={adjustmentRow.quantity}
           expectedQuantityVersion={adjustmentRow.quantityVersion}
           onClose={() => setAdjustmentRow(null)}
           onSubmit={handleRecordAdjustmentSubmit}
