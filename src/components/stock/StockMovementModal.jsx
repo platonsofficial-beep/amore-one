@@ -1,84 +1,49 @@
 /**
  * Shared stock movement dialog (Dashboard + Storage Center).
  * P8.30.5 — optional locked destination for Storage Receive.
- * P8.30.7 — Storage Adjustment: locked storage + mandatory reason.
- * P8.30.7a — Signed adjustment amount + iPad-stable string input + preview.
+ * P8.30.7 / P8.30.7a / P8.30.7b — Adjustment: operation selector + positive qty + notes.
  */
 
 import { useEffect, useMemo, useState } from 'react'
 import { formatStockQuantity } from '../../lib/stockUtils'
 
-export const STOCK_ADJUSTMENT_REASON_OPTIONS = Object.freeze([
-  'Damage',
-  'Waste',
-  'Expired',
-  'Manual correction',
-  'Found stock',
-  'Other',
-])
+/** @typedef {'remove'|'add'} StockAdjustmentOperation */
 
 /**
- * Intermediate drafts allowed while typing on iPad (must not be coerced away).
+ * Positive-only drafts (no sign characters). Intermediate "." allowed while typing.
  * @param {string} raw
  * @returns {boolean}
  */
-export function isAdjustmentQuantityIntermediate(raw) {
-  const text = `${raw ?? ''}`.trim()
-  return text === ''
-    || text === '-'
-    || text === '+'
-    || text === '.'
-    || text === '-.'
-    || text === '+.'
-}
-
-/**
- * Accept only editable signed numeric drafts (intermediate or complete).
- * Rejects letters and multiple signs/decimals.
- * @param {string} raw
- * @returns {boolean}
- */
-export function isAdjustmentQuantityDraftAllowed(raw) {
+export function isPositiveAdjustmentQuantityDraftAllowed(raw) {
   const text = `${raw ?? ''}`
   if (text === '') return true
-  return /^[+-]?(\d+(\.\d*)?|\.\d*)?$/.test(text)
+  return /^(\d+(\.\d*)?|\.\d*)?$/.test(text)
 }
 
 /**
  * @param {string} raw
  * @returns {number|null}
  */
-export function parseSignedAdjustmentQuantity(raw) {
-  if (isAdjustmentQuantityIntermediate(raw)) return null
+export function parsePositiveAdjustmentQuantity(raw) {
   const text = `${raw ?? ''}`.trim()
-  if (!text) return null
+  if (!text || text === '.') return null
   const parsed = Number(text)
-  if (!Number.isFinite(parsed) || parsed === 0) return null
+  if (!Number.isFinite(parsed) || parsed <= 0) return null
   return parsed
 }
 
 /**
- * @param {string} reason
- * @param {string} note
- * @returns {string}
+ * UI operation chooses the sign. Never Math.abs. Never typed signs.
+ * @param {StockAdjustmentOperation} operation
+ * @param {number} positiveQuantity
+ * @returns {number}
  */
-export function buildAdjustmentMovementNote(reason, note = '') {
-  const trimmedReason = `${reason ?? ''}`.trim()
-  const trimmedNote = `${note ?? ''}`.trim()
-  if (!trimmedReason) return trimmedNote
-  if (trimmedReason === 'Other') return trimmedNote || 'Other'
-  if (!trimmedNote) return trimmedReason
-  return `${trimmedReason}: ${trimmedNote}`
-}
-
-/**
- * @param {number} value
- * @returns {string}
- */
-function formatSignedAdjustmentPreview(value) {
-  if (!Number.isFinite(value) || value === 0) return formatStockQuantity(value)
-  if (value > 0) return `+${formatStockQuantity(value)}`
-  return formatStockQuantity(value)
+export function toSignedAdjustmentQuantity(operation, positiveQuantity) {
+  const qty = Number(positiveQuantity)
+  if (!Number.isFinite(qty) || qty <= 0) {
+    throw new Error('Adjustment quantity must be a positive number.')
+  }
+  return operation === 'remove' ? 0 - qty : qty
 }
 
 /**
@@ -104,17 +69,17 @@ export function StockMovementModal({
   destinationStorage = null,
   destinationLocked = false,
   expectedQuantityVersion = null,
-  requireAdjustmentReason = false,
+  // Kept for call-site compatibility; P8.30.7b removed predefined reasons.
+  requireAdjustmentReason: _requireAdjustmentReason = false,
   balanceQuantity = null,
 }) {
   const isStockCount = movementType === 'stock_count'
   const isAdjustment = movementType === 'adjustment'
-  const reasonRequired = isAdjustment && requireAdjustmentReason
   const itemId = `${item?.id ?? ''}`
   const [quantity, setQuantity] = useState(
     () => (isStockCount ? `${item.currentQuantity ?? ''}` : ''),
   )
-  const [reason, setReason] = useState('')
+  const [operation, setOperation] = useState(/** @type {StockAdjustmentOperation} */ ('remove'))
   const [note, setNote] = useState('')
   const [error, setError] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -131,16 +96,16 @@ export function StockMovementModal({
     return Number(item?.currentQuantity) || 0
   }, [balanceQuantity, item?.currentQuantity])
 
-  const parsedAdjustment = isAdjustment ? parseSignedAdjustmentQuantity(quantity) : null
-  const previewNewBalance = parsedAdjustment == null
+  const positiveQuantity = isAdjustment ? parsePositiveAdjustmentQuantity(quantity) : null
+  const signedAdjustment = positiveQuantity == null
     ? null
-    : currentBalance + parsedAdjustment
+    : toSignedAdjustmentQuantity(operation, positiveQuantity)
+  const previewNewBalance = signedAdjustment == null
+    ? null
+    : currentBalance + signedAdjustment
   const wouldGoNegative = previewNewBalance != null && previewNewBalance < 0
-  const hasValidAdjustmentAmount = parsedAdjustment != null && !wouldGoNegative
-  const hasValidReason = !reasonRequired
-    || (Boolean(reason.trim()) && (reason.trim() !== 'Other' || Boolean(note.trim())))
   const canSubmitAdjustment = !isAdjustment
-    || (hasValidAdjustmentAmount && hasValidReason)
+    || (positiveQuantity != null && !wouldGoNegative)
 
   useEffect(() => {
     if (isStockCount) {
@@ -148,7 +113,7 @@ export function StockMovementModal({
     } else {
       setQuantity('')
     }
-    setReason('')
+    setOperation('remove')
     setNote('')
     setError('')
     // Reset only when the opened product / movement type changes — not on object identity.
@@ -170,7 +135,7 @@ export function StockMovementModal({
 
   const handleAdjustmentQuantityChange = (event) => {
     const next = event.target.value
-    if (!isAdjustmentQuantityDraftAllowed(next)) return
+    if (!isPositiveAdjustmentQuantityDraftAllowed(next)) return
     setQuantity(next)
     setError('')
   }
@@ -181,11 +146,12 @@ export function StockMovementModal({
 
     let parsed
     if (isAdjustment) {
-      parsed = parseSignedAdjustmentQuantity(quantity)
-      if (parsed == null) {
-        setError('Enter a non-zero adjustment amount.')
+      const positive = parsePositiveAdjustmentQuantity(quantity)
+      if (positive == null) {
+        setError('Enter a positive quantity.')
         return
       }
+      parsed = toSignedAdjustmentQuantity(operation, positive)
       if (currentBalance + parsed < 0) {
         setError('Adjustment would make the balance negative.')
         return
@@ -219,22 +185,6 @@ export function StockMovementModal({
       return
     }
 
-    if (reasonRequired) {
-      const trimmedReason = reason.trim()
-      if (!trimmedReason) {
-        setError('Choose an adjustment reason.')
-        return
-      }
-      if (trimmedReason === 'Other' && !note.trim()) {
-        setError('Enter a note for Other.')
-        return
-      }
-    }
-
-    const resolvedNote = reasonRequired
-      ? buildAdjustmentMovementNote(reason, note)
-      : note.trim()
-
     try {
       setError('')
       setIsSubmitting(true)
@@ -242,8 +192,8 @@ export function StockMovementModal({
         item,
         type: movementType,
         quantity: parsed,
-        note: resolvedNote,
-        reason: reasonRequired ? reason.trim() : undefined,
+        note: note.trim(),
+        operation: isAdjustment ? operation : undefined,
         workspaceStorageId: destinationStorage?.id ?? null,
         expectedQuantityVersion,
       })
@@ -261,6 +211,7 @@ export function StockMovementModal({
   const lockLabel = isAdjustment ? 'Storage' : 'Destination'
   const lockNote = isAdjustment ? 'Locked' : 'Locked to this storage'
   const saveDisabled = isBusy || (isAdjustment && !canSubmitAdjustment)
+  const previewOperationLabel = operation === 'remove' ? 'Remove' : 'Add'
 
   return (
     <div className="employee-modal-backdrop task-modal-backdrop" onClick={handleDismiss}>
@@ -286,8 +237,45 @@ export function StockMovementModal({
             </div>
           ) : null}
 
+          {isAdjustment ? (
+            <fieldset className="stock-adjustment-operation" disabled={isBusy}>
+              <legend>Operation</legend>
+              <div
+                className="stock-adjustment-operation-toggle"
+                role="group"
+                aria-label="Adjustment operation"
+                data-testid="stock-adjustment-operation"
+              >
+                <button
+                  type="button"
+                  className={`stock-adjustment-operation-btn${operation === 'remove' ? ' is-selected' : ''}`}
+                  aria-pressed={operation === 'remove'}
+                  data-testid="stock-adjustment-operation-remove"
+                  onClick={() => {
+                    setOperation('remove')
+                    setError('')
+                  }}
+                >
+                  − Remove
+                </button>
+                <button
+                  type="button"
+                  className={`stock-adjustment-operation-btn${operation === 'add' ? ' is-selected' : ''}`}
+                  aria-pressed={operation === 'add'}
+                  data-testid="stock-adjustment-operation-add"
+                  onClick={() => {
+                    setOperation('add')
+                    setError('')
+                  }}
+                >
+                  + Add
+                </button>
+              </div>
+            </fieldset>
+          ) : null}
+
           <label>
-            {isStockCount ? 'Counted quantity' : isAdjustment ? 'Adjustment amount' : 'Quantity'}
+            {isStockCount ? 'Counted quantity' : 'Quantity'}
             {isAdjustment ? (
               <input
                 type="text"
@@ -296,10 +284,10 @@ export function StockMovementModal({
                 enterKeyHint="done"
                 value={quantity}
                 onChange={handleAdjustmentQuantityChange}
-                placeholder="Use negative to reduce"
+                placeholder="0"
                 required
                 disabled={isBusy}
-                aria-label="Adjustment amount"
+                aria-label="Adjustment quantity"
                 data-testid="stock-adjustment-quantity"
               />
             ) : (
@@ -327,11 +315,11 @@ export function StockMovementModal({
                 <strong>{formatStockQuantity(currentBalance, item?.unit)}</strong>
               </div>
               <div className="stock-adjustment-preview-row">
-                <span>Adjustment</span>
+                <span>{previewOperationLabel}</span>
                 <strong data-testid="stock-adjustment-preview-delta">
-                  {parsedAdjustment == null
+                  {positiveQuantity == null
                     ? '—'
-                    : formatSignedAdjustmentPreview(parsedAdjustment)}
+                    : formatStockQuantity(positiveQuantity, item?.unit)}
                 </strong>
               </div>
               <div className="stock-adjustment-preview-row">
@@ -354,30 +342,8 @@ export function StockMovementModal({
             </div>
           ) : null}
 
-          {reasonRequired ? (
-            <label>
-              Reason
-              <select
-                value={reason}
-                onChange={(event) => {
-                  setReason(event.target.value)
-                  setError('')
-                }}
-                required
-                disabled={isBusy}
-                aria-label="Adjustment reason"
-                data-testid="stock-adjustment-reason-select"
-              >
-                <option value="">Select reason</option>
-                {STOCK_ADJUSTMENT_REASON_OPTIONS.map((option) => (
-                  <option key={option} value={option}>{option}</option>
-                ))}
-              </select>
-            </label>
-          ) : null}
-
           <label>
-            Note
+            {isAdjustment ? 'Notes' : 'Note'}
             <input
               type="text"
               value={note}
@@ -388,13 +354,12 @@ export function StockMovementModal({
               placeholder={
                 isStockCount
                   ? 'e.g. Monday bar count'
-                  : reasonRequired
-                    ? (reason === 'Other' ? 'Required for Other' : 'Optional')
+                  : isAdjustment
+                    ? 'Describe why this adjustment was made...'
                     : 'Optional'
               }
-              required={reasonRequired && reason === 'Other'}
               disabled={isBusy}
-              data-testid={reasonRequired ? 'stock-adjustment-note' : undefined}
+              data-testid={isAdjustment ? 'stock-adjustment-note' : undefined}
             />
           </label>
 
@@ -416,7 +381,13 @@ export function StockMovementModal({
               disabled={saveDisabled}
               data-testid={isAdjustment ? 'stock-adjustment-submit' : undefined}
             >
-              {isBusy ? 'Saving…' : isStockCount ? 'Save stock count' : 'Save'}
+              {isBusy
+                ? 'Saving…'
+                : isStockCount
+                  ? 'Save stock count'
+                  : isAdjustment
+                    ? 'Apply Adjustment'
+                    : 'Save'}
             </button>
           </div>
         </form>

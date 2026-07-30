@@ -611,23 +611,24 @@ describe('StockStorageDetailWorkspace — actions + Fast Count launch', () => {
     expect(container.querySelector('[data-testid="stock-movement-modal"]')).toBeTruthy()
     expect(container.querySelector('[data-testid="stock-adjustment-storage-lock"]')?.textContent)
       .toContain('Locked')
-    expect(container.querySelector('[data-testid="stock-adjustment-reason-select"]')).toBeTruthy()
+    expect(container.querySelector('[data-testid="stock-adjustment-operation"]')).toBeTruthy()
+    expect(container.querySelector('[data-testid="stock-adjustment-reason-select"]')).toBeNull()
     expect(container.querySelector('[data-testid="stock-storage-action-placeholder"]')).toBeNull()
+    expect(container.querySelector('[data-testid="stock-adjustment-submit"]')?.textContent)
+      .toContain('Apply Adjustment')
 
     const quantityInput = container.querySelector('[data-testid="stock-adjustment-quantity"]')
-    const reasonSelect = container.querySelector('[data-testid="stock-adjustment-reason-select"]')
     await act(async () => {
+      container.querySelector('[data-testid="stock-adjustment-operation-remove"]').click()
       const nativeInputValueSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value')?.set
-      nativeInputValueSetter?.call(quantityInput, '-1')
+      nativeInputValueSetter?.call(quantityInput, '1')
       quantityInput.dispatchEvent(new Event('input', { bubbles: true }))
       quantityInput.dispatchEvent(new Event('change', { bubbles: true }))
-      reasonSelect.value = 'Waste'
-      reasonSelect.dispatchEvent(new Event('change', { bubbles: true }))
     })
 
     expect(container.querySelector('[data-testid="stock-adjustment-preview"]')).toBeTruthy()
-    expect(container.querySelector('[data-testid="stock-adjustment-preview-delta"]')?.textContent)
-      .toContain('-1')
+    expect(container.querySelector('[data-testid="stock-adjustment-preview"]')?.textContent)
+      .toContain('Remove')
 
     await act(async () => {
       container.querySelector('[data-testid="stock-movement-modal"] form')
@@ -639,7 +640,7 @@ describe('StockStorageDetailWorkspace — actions + Fast Count launch', () => {
     expect(onRecordAdjustment).toHaveBeenCalledWith(expect.objectContaining({
       type: 'adjustment',
       quantity: -1,
-      note: 'Waste',
+      note: '',
       workspaceStorageId: 'stor-main',
       expectedQuantityVersion: 4,
       item: expect.objectContaining({ id: 'i1', name: 'Vodka' }),
