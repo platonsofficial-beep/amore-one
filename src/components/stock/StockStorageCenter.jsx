@@ -15,6 +15,7 @@ import {
   validateWorkspaceDepartmentName,
 } from '../../lib/stockDepartmentGroups'
 import { formatStockInventoryValue, formatStockQuantity } from '../../lib/stockUtils'
+import { formatItemsBelowPar } from '../../lib/stockStoragePar'
 import { getWorkspaceStorageSummaries } from '../../services/stockStorageCenterService'
 import {
   assignWorkspaceStorageDepartment,
@@ -125,6 +126,14 @@ function StorageSummaryCard({
             </div>
           ) : null}
         </dl>
+        {typeof storage.belowParCount === 'number' ? (
+          <p
+            className={`stock-storage-below-par${storage.belowParCount > 0 ? ' is-short' : ''}`}
+            data-testid="storage-below-par"
+          >
+            {formatItemsBelowPar(storage.belowParCount)}
+          </p>
+        ) : null}
       </button>
       {canAssign ? (
         <div className="stock-storage-center-card-actions">

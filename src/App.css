@@ -33479,6 +33479,103 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   color: rgba(255, 247, 232, 0.62);
 }
 
+.stock-storage-product-par {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: minmax(72px, 0.7fr) minmax(0, 1.4fr) minmax(72px, 0.7fr);
+  gap: 8px;
+  align-items: start;
+  padding: 8px 10px 10px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(8, 8, 9, 0.45);
+}
+
+.stock-storage-product-par.is-below-par {
+  border-color: rgba(212, 175, 55, 0.45);
+}
+
+.stock-storage-par-readout,
+.stock-storage-par-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  color: rgba(255, 247, 232, 0.62);
+  font-size: 0.75rem;
+  font-weight: 650;
+}
+
+.stock-storage-par-readout strong {
+  color: #fff7e8;
+  font-size: 0.95rem;
+}
+
+.stock-storage-par-edit {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.stock-storage-par-input,
+.stock-storage-par-clear,
+.stock-storage-below-par-filter {
+  min-height: 44px;
+  min-width: 44px;
+}
+
+.stock-storage-par-input {
+  flex: 1 1 88px;
+  width: 100%;
+  padding: 0 10px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(8, 8, 9, 0.92);
+  color: #fff7e8;
+  font-size: 1rem;
+}
+
+.stock-storage-par-clear,
+.stock-storage-below-par-filter {
+  padding: 0 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.06);
+  color: #fff7e8;
+  font-weight: 650;
+}
+
+.stock-storage-below-par-filter.is-on {
+  border-color: rgba(212, 175, 55, 0.55);
+  background: rgba(212, 175, 55, 0.16);
+  color: #f4d391;
+}
+
+.stock-storage-par-error {
+  color: rgba(255, 180, 180, 0.95);
+  font-size: 0.75rem;
+  font-weight: 650;
+}
+
+.stock-storage-par-note {
+  margin: 0;
+  color: rgba(255, 247, 232, 0.68);
+  font-size: 0.85rem;
+  line-height: 1.4;
+}
+
+.stock-storage-below-par {
+  margin: 0;
+  color: rgba(255, 247, 232, 0.62);
+  font-size: 0.78rem;
+  font-weight: 650;
+}
+
+.stock-storage-below-par.is-short {
+  color: #f4d391;
+}
+
 @media (max-width: 700px) {
   .stock-storage-detail-workspace-stats {
     grid-template-columns: 1fr;

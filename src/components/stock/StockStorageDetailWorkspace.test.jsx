@@ -834,4 +834,127 @@ describe('StockStorageDetailWorkspace — actions + Fast Count launch', () => {
     expect(container.querySelector('[data-testid="stock-storage-detail-error"]')).toBeTruthy()
     expect(container.textContent).toContain('Retry')
   })
+
+  it('edits per-shelf par without using the catalog par, and staff cannot write it', async () => {
+    const products = [
+      {
+        ...makeRow({ id: 'cola', name: 'Cola', quantity: 9, quantityVersion: 2 }),
+        parQuantity: 10,
+        shortQuantity: 1,
+        item: {
+          ...makeRow({ id: 'cola', name: 'Cola', quantity: 9 }).item,
+          minimumQuantity: 2,
+          targetQuantity: 20,
+        },
+      },
+      {
+        ...makeRow({ id: 'gin', name: 'Gin', quantity: 4, quantityVersion: 1 }),
+        parQuantity: null,
+        shortQuantity: null,
+        item: {
+          ...makeRow({ id: 'gin', name: 'Gin', quantity: 4 }).item,
+          minimumQuantity: 8,
+          targetQuantity: 8,
+        },
+      },
+    ]
+    const loadProducts = vi.fn(async () => ({
+      storageId: 's-main',
+      parsAvailable: true,
+      products,
+      summary: {
+        productCount: 2,
+        totalQuantity: 13,
+        nonZeroBalanceCount: 2,
+        inventoryValue: 0,
+      },
+    }))
+    const saveStoragePar = vi.fn(async () => ({ parQuantity: 6 }))
+    const clearStoragePar = vi.fn(async () => ({ parQuantity: null }))
+
+    renderWorkspace({
+      workspaceId: 'ws-1',
+      storage: { id: 's-main', name: 'Soft drinks', active: true },
+      canManage: true,
+      loadProducts,
+      saveStoragePar,
+      clearStoragePar,
+    })
+    await settle()
+
+    expect(container.querySelector('[data-testid="storage-par-note"]')?.textContent)
+      .toMatch(/not tracked on this shelf/)
+    expect(container.textContent).toContain('On hand')
+    expect(container.textContent).toContain('Short')
+    const cola = container.querySelector('[data-stock-item-id="cola"]')
+    const gin = container.querySelector('[data-stock-item-id="gin"]')
+    expect(cola?.textContent).toContain('Short')
+    expect(gin?.querySelector('[data-storage-par-input="true"]')?.value).toBe('')
+    expect(gin?.textContent).toContain('—')
+
+    await act(async () => {
+      container.querySelector('[data-action="filter-below-par"]').click()
+    })
+    const visibleCola = container.querySelector('[data-stock-item-id="cola"]')
+    expect(visibleCola).toBeTruthy()
+    expect(container.querySelector('[data-stock-item-id="gin"]')).toBeNull()
+
+    const input = visibleCola.querySelector('[data-storage-par-input="true"]')
+    await act(async () => {
+      const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set
+      setter.call(input, '6')
+      input.dispatchEvent(new Event('input', { bubbles: true }))
+      input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }))
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+    expect(saveStoragePar).toHaveBeenCalledWith('ws-1', 'cola', 's-main', 6)
+
+    await act(async () => {
+      container.querySelector('[data-action="filter-below-par"]').click()
+      await Promise.resolve()
+    })
+    expect(container.textContent).toContain('Cola')
+    expect(container.textContent).toContain('Gin')
+
+    await act(async () => {
+      root.render(createElement(StockStorageDetailWorkspace, {
+        workspaceId: 'ws-1',
+        storage: { id: 's-main', name: 'Soft drinks', active: true },
+        canManage: false,
+        loadProducts,
+      }))
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+    expect(container.querySelector('[data-storage-par-input="true"]')).toBeNull()
+    expect(container.querySelector('[data-action="clear-par"]')).toBeNull()
+    expect(container.textContent).toContain('Per-shelf par')
+    expect(container.textContent).toContain('Cola')
+  })
+
+  it('keeps on hand visible when shelf pars are not available yet', async () => {
+    renderWorkspace({
+      workspaceId: 'ws-1',
+      storage: { id: 's-main', name: 'Main Storage', active: true },
+      canManage: true,
+      loadProducts: async () => ({
+        storageId: 's-main',
+        parsAvailable: false,
+        products: [makeRow({ id: 'i1', name: 'Vodka', quantity: 4 })],
+        summary: {
+          productCount: 1,
+          totalQuantity: 4,
+          nonZeroBalanceCount: 1,
+          inventoryValue: 40,
+        },
+      }),
+    })
+    await settle()
+    expect(container.querySelector('[data-testid="storage-pars-unavailable"]')?.textContent)
+      .toMatch(/On hand still shows/)
+    expect(container.textContent).toContain('Vodka')
+    expect(container.querySelector('[data-storage-par-input="true"]')).toBeNull()
+    expect(container.querySelector('[data-action="filter-below-par"]')).toBeNull()
+  })
 })
