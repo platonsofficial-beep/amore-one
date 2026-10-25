@@ -389,8 +389,12 @@ describe('StockStorageCenter UI', () => {
     expect(container.textContent).toContain('Soft drinks')
     expect(container.textContent).toContain('Spirits')
     expect(container.textContent).toContain('Back bar')
-    expect(container.textContent).toContain('Supply storage')
-    expect(container.textContent).toContain('Αποθήκη τροφοδοσίας')
+    expect(container.querySelector('[data-testid="supply-storage-pill"]')?.textContent).toBe('Supply')
+    expect(container.querySelector('[data-testid="supply-storage-pill"]')?.getAttribute('title'))
+      .toContain('Αποθήκη τροφοδοσίας')
+    expect(container.textContent).toContain('Mark as supply')
+    expect(container.textContent).toContain('Unmark supply')
+    expect(container.textContent).not.toContain('Mark as supply storage')
     expect(container.querySelectorAll('[data-testid="supply-storage-pill"]')).toHaveLength(2)
     expect(container.querySelector('[data-action="new-department"]')).toBeTruthy()
     expect(container.querySelector('[data-department-group="d-bar"] [data-action="rename-department"]')).toBeTruthy()
@@ -492,8 +496,9 @@ describe('StockStorageCenter UI', () => {
     expect(container.textContent).toContain('Bar')
     expect(container.textContent).toContain('Unassigned')
     expect(container.textContent).toContain('Soft drinks')
-    expect(container.textContent).toContain('Supply storage')
-    expect(container.textContent).toContain('Αποθήκη τροφοδοσίας')
+    expect(container.querySelector('[data-testid="supply-storage-pill"]')?.textContent).toBe('Supply')
+    expect(container.querySelector('[data-testid="supply-storage-pill"]')?.getAttribute('title'))
+      .toContain('Αποθήκη τροφοδοσίας')
     expect(container.textContent).not.toContain('Kitchen')
     expect(container.textContent).not.toContain('Value')
     expect(container.querySelector('[data-action="new-department"]')).toBeNull()
@@ -604,5 +609,80 @@ describe('StockStorageCenter UI', () => {
     expect(container.querySelector('[data-testid="storage-below-par"]')?.textContent)
       .toBe('1 item below par')
     expect(container.textContent).toContain('Soft drinks')
+  })
+
+  it('refreshes below-par counts when returning from a storage', async () => {
+    let belowParCount = 1
+    const storage = () => ({
+      id: 's-soft',
+      name: 'Soft drinks',
+      locationKey: 'Soft drinks',
+      active: true,
+      status: 'active',
+      productCount: 2,
+      belowParCount,
+      totalQuantity: 9,
+      nonZeroBalanceCount: 1,
+      inventoryValue: 18,
+    })
+    const loadSummaries = vi.fn(async () => {
+      const row = storage()
+      return {
+        storages: [row],
+        activeStorages: [row],
+        archivedStorages: [],
+        departmentsAvailable: false,
+        summary: {
+          activeStorageCount: 1,
+          archivedStorageCount: 0,
+          totalProductsWithBalances: 2,
+          totalQuantity: 9,
+        },
+      }
+    })
+    getWorkspaceStorageProducts.mockResolvedValue({
+      storageId: 's-soft',
+      parsAvailable: true,
+      products: [],
+      summary: {
+        productCount: 0,
+        totalQuantity: 0,
+        nonZeroBalanceCount: 0,
+        inventoryValue: 0,
+      },
+    })
+
+    renderCenter({
+      workspaceId: 'ws-1',
+      canManage: true,
+      loadSummaries,
+    })
+
+    await act(async () => {
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+    expect(container.querySelector('[data-testid="storage-below-par"]')?.textContent)
+      .toBe('1 item below par')
+
+    await act(async () => {
+      container.querySelector('[data-storage-id="s-soft"]').click()
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+    expect(container.querySelector('[data-testid="stock-storage-detail-workspace"]')).toBeTruthy()
+
+    belowParCount = 0
+    await act(async () => {
+      container.querySelector('.stock-storage-detail-back').click()
+      await Promise.resolve()
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+
+    expect(loadSummaries).toHaveBeenCalledTimes(2)
+    expect(container.querySelector('[data-testid="storage-below-par"]')?.textContent)
+      .toBe('0 items below par')
+    expect(container.querySelector('[data-testid="stock-storage-center-loading"]')).toBeNull()
   })
 })

@@ -61,6 +61,38 @@ describe('stockItemStorageParService', () => {
     expect(JSON.stringify(query.upsert.mock.calls)).not.toMatch(/target_quantity|minimum_quantity|location_key/)
   })
 
+  it('keeps a saved par of 0 when the row returns 0 or omits the quantity', async () => {
+    const zeroQuery = createQuery({
+      data: {
+        id: 'p-0',
+        workspace_id: 'ws-1',
+        stock_item_id: 'cola',
+        workspace_storage_id: 'soft',
+        par_quantity: 0,
+      },
+      error: null,
+    })
+    fromMock.mockReturnValue(zeroQuery)
+    await expect(setStockItemStoragePar('ws-1', 'cola', 'soft', 0)).resolves.toMatchObject({
+      parQuantity: 0,
+    })
+
+    const missingQuery = createQuery({
+      data: {
+        id: 'p-0',
+        workspace_id: 'ws-1',
+        stock_item_id: 'cola',
+        workspace_storage_id: 'soft',
+        par_quantity: null,
+      },
+      error: null,
+    })
+    fromMock.mockReturnValue(missingQuery)
+    await expect(setStockItemStoragePar('ws-1', 'cola', 'soft', 0)).resolves.toMatchObject({
+      parQuantity: 0,
+    })
+  })
+
   it('clears a par by deleting the row', async () => {
     const query = createQuery({ error: null })
     fromMock.mockReturnValue(query)

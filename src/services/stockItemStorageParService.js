@@ -2,6 +2,7 @@ import { supabase } from '../lib/supabaseClient'
 import {
   STORAGE_PAR_UNAVAILABLE_MESSAGE,
   isStockStorageParSchemaMissing,
+  normalizeStorageParQuantity,
   parseStorageParInput,
 } from '../lib/stockStoragePar'
 
@@ -69,12 +70,13 @@ export async function setStockItemStoragePar(workspaceId, stockItemId, workspace
     throw mapParWriteError(error, 'Unable to save the shelf par right now.')
   }
 
+  const returnedPar = normalizeStorageParQuantity(data?.par_quantity)
   return {
     id: data?.id ?? null,
     workspaceId: normalizedWorkspaceId,
     stockItemId: normalizedItemId,
     workspaceStorageId: normalizedStorageId,
-    parQuantity: Number(data?.par_quantity),
+    parQuantity: returnedPar ?? parsed.value,
   }
 }
 

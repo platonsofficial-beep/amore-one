@@ -505,3 +505,34 @@ export function buildTodayServiceTimeline({
     (parseTimeToMinutes(left.time) ?? 0) - (parseTimeToMinutes(right.time) ?? 0)
   ))
 }
+
+/**
+ * Today reads the same stock catalog and orders as the Stock screens.
+ * Those screens load on visit; the dashboard has to request the same snapshot.
+ *
+ * @param {{
+ *   canAccessStock?: boolean,
+ *   activeView?: string,
+ *   useMobileExperience?: boolean,
+ *   isManagerMobileShell?: boolean,
+ *   mobileExpandedView?: string,
+ *   mobileManagerTab?: string,
+ * }} [input]
+ * @returns {boolean}
+ */
+export function shouldLoadOperationalStockSnapshot({
+  canAccessStock = false,
+  activeView = '',
+  useMobileExperience = false,
+  isManagerMobileShell = false,
+  mobileExpandedView = '',
+  mobileManagerTab = '',
+} = {}) {
+  if (!canAccessStock) return false
+  if (!useMobileExperience && activeView === 'today') return true
+  return Boolean(
+    isManagerMobileShell
+    && !`${mobileExpandedView ?? ''}`.trim()
+    && mobileManagerTab === 'today',
+  )
+}

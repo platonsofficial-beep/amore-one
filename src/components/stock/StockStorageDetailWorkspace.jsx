@@ -12,6 +12,7 @@ import {
   STORAGE_PAR_LABEL,
   STORAGE_PAR_UNAVAILABLE_MESSAGE,
   isBelowStoragePar,
+  normalizeStorageParQuantity,
   parseStorageParInput,
   storageParShort,
 } from '../../lib/stockStoragePar'
@@ -34,31 +35,45 @@ import { StockMovementModal } from './StockMovementModal'
 import { StockStorageReceiveProductPicker } from './StockStorageReceiveProductPicker'
 import { StockTransferModal } from './StockTransferModal'
 
-function focusNextStoragePar(input) {
+function escapeParItemSelector(value) {
+  const text = `${value ?? ''}`
+  if (typeof CSS !== 'undefined' && typeof CSS.escape === 'function') return CSS.escape(text)
+  return text.replace(/\\/g, '\\\\').replace(/"/g, '\\"')
+}
+
+function readNextStorageParItemId(currentItemId) {
   const inputs = [...document.querySelectorAll('[data-storage-par-input="true"]')]
-  const index = inputs.indexOf(input)
-  const next = inputs[index + 1]
-  if (next instanceof HTMLElement) next.focus()
+  const index = inputs.findIndex((node) => node.getAttribute('data-par-item-id') === `${currentItemId}`)
+  if (index < 0) return ''
+  return `${inputs[index + 1]?.getAttribute('data-par-item-id') ?? ''}`
+}
+
+function formatStorageShort(shortQuantity, unit) {
+  if (shortQuantity == null || Number(shortQuantity) === 0) return '—'
+  return formatStockQuantity(shortQuantity, unit)
 }
 
 /**
  * @param {{
  *   row: object,
  *   disabled?: boolean,
- *   onCommit?: (row: object, parsed: { clear: boolean, value: number|null }) => Promise<void>,
+ *   onCommit?: (row: object, parsed: { clear: boolean, value: number|null }, meta?: { nextItemId?: string }) => Promise<void>,
+ *   onFocusItem?: (stockItemId: string) => void,
  * }} props
  */
-function StorageParEditor({ row, disabled = false, onCommit }) {
+function StorageParEditor({ row, disabled = false, onCommit, onFocusItem }) {
   const [draft, setDraft] = useState(row.parQuantity == null ? '' : `${row.parQuantity}`)
   const [error, setError] = useState('')
   const lastCommitted = useRef(row.parQuantity ?? null)
+  const commitLock = useRef(false)
 
   useEffect(() => {
-    lastCommitted.current = row.parQuantity ?? null
-    setDraft(row.parQuantity == null ? '' : `${row.parQuantity}`)
+    const parQuantity = row.parQuantity == null ? null : row.parQuantity
+    lastCommitted.current = parQuantity
+    setDraft(parQuantity == null ? '' : `${parQuantity}`)
   }, [row.stockItemId, row.parQuantity])
 
-  const commit = async (raw, { focusNext = false, input = null } = {}) => {
+  const commit = async (raw, { nextItemId = '' } = {}) => {
     const parsed = parseStorageParInput(raw)
     if (!parsed.ok) {
       setError(parsed.error)
@@ -67,16 +82,19 @@ function StorageParEditor({ row, disabled = false, onCommit }) {
     const nextValue = parsed.clear ? null : parsed.value
     if (Object.is(nextValue, lastCommitted.current)) {
       setError('')
-      if (focusNext && input) focusNextStoragePar(input)
+      if (nextItemId) onFocusItem?.(nextItemId)
       return
     }
+    if (commitLock.current) return
+    commitLock.current = true
     try {
       setError('')
-      await onCommit?.(row, parsed)
+      await onCommit?.(row, parsed, { nextItemId })
       lastCommitted.current = nextValue
-      if (focusNext && input) focusNextStoragePar(input)
     } catch (commitError) {
       setError(commitError?.message || 'Unable to save the shelf par.')
+    } finally {
+      commitLock.current = false
     }
   }
 
@@ -87,6 +105,7 @@ function StorageParEditor({ row, disabled = false, onCommit }) {
         <input
           className="stock-storage-par-input"
           data-storage-par-input="true"
+          data-par-item-id={row.stockItemId}
           inputMode="decimal"
           aria-label={`${STORAGE_PAR_LABEL} for ${row.name || 'product'}`}
           value={draft}
@@ -98,15 +117,14 @@ function StorageParEditor({ row, disabled = false, onCommit }) {
             if (error) setError('')
           }}
           onBlur={(event) => {
+            if (commitLock.current) return
             void commit(event.target.value)
           }}
           onKeyDown={(event) => {
             if (event.key !== 'Enter') return
             event.preventDefault()
-            void commit(event.currentTarget.value, {
-              focusNext: true,
-              input: event.currentTarget,
-            })
+            const nextItemId = readNextStorageParItemId(row.stockItemId)
+            void commit(event.currentTarget.value, { nextItemId })
           }}
         />
         <button
@@ -140,7 +158,8 @@ function StorageParEditor({ row, disabled = false, onCommit }) {
  *   onOpenDetails?: (row: object) => void,
  *   onToggleMenu?: (row: object, anchorEl: HTMLElement|null) => void,
  *   onMenuAction?: (actionId: string, row: object) => void,
- *   onCommitPar?: (row: object, parsed: { clear: boolean, value: number|null }) => Promise<void>,
+ *   onCommitPar?: (row: object, parsed: { clear: boolean, value: number|null }, meta?: { nextItemId?: string }) => Promise<void>,
+ *   onFocusParItem?: (stockItemId: string) => void,
  * }} props
  */
 function StorageProductRow({
@@ -153,6 +172,7 @@ function StorageProductRow({
   onToggleMenu,
   onMenuAction,
   onCommitPar,
+  onFocusParItem,
 }) {
   return (
     <div
@@ -259,7 +279,12 @@ function StorageProductRow({
             <strong>{formatStockQuantity(row.quantity, row.unit)}</strong>
           </div>
           {canManage ? (
-            <StorageParEditor row={row} disabled={parBusy} onCommit={onCommitPar} />
+            <StorageParEditor
+              row={row}
+              disabled={parBusy}
+              onCommit={onCommitPar}
+              onFocusItem={onFocusParItem}
+            />
           ) : (
             <div className="stock-storage-par-readout">
               <span>Par</span>
@@ -268,7 +293,7 @@ function StorageProductRow({
           )}
           <div className="stock-storage-par-readout">
             <span>Short</span>
-            <strong>{row.shortQuantity == null ? '—' : formatStockQuantity(row.shortQuantity, row.unit)}</strong>
+            <strong data-testid="storage-par-short">{formatStorageShort(row.shortQuantity, row.unit)}</strong>
           </div>
         </div>
       ) : null}
@@ -339,11 +364,35 @@ export function StockStorageDetailWorkspace({
   const [belowParOnly, setBelowParOnly] = useState(false)
   const [parBusy, setParBusy] = useState(false)
   const [parError, setParError] = useState('')
+  const [parFocusRequest, setParFocusRequest] = useState(0)
   const listRef = useRef(/** @type {HTMLDivElement|null} */ (null))
+  const pendingParFocusIdRef = useRef('')
   const fastCountRequestIdRef = useRef(0)
 
   const storageId = `${storage?.id ?? ''}`.trim()
   const storageTitle = storage?.name || storage?.locationKey || 'Storage'
+
+  const requestParFocus = (stockItemId) => {
+    const itemId = `${stockItemId ?? ''}`.trim()
+    if (!itemId) return
+    pendingParFocusIdRef.current = itemId
+    setParFocusRequest((current) => current + 1)
+  }
+
+  useEffect(() => {
+    if (parBusy) return
+    const itemId = pendingParFocusIdRef.current
+    if (!itemId) return
+    const input = listRef.current?.querySelector(
+      `[data-storage-par-input="true"][data-par-item-id="${escapeParItemSelector(itemId)}"]`,
+    )
+    if (!(input instanceof HTMLInputElement) || input.disabled) {
+      if (!parBusy) pendingParFocusIdRef.current = ''
+      return
+    }
+    pendingParFocusIdRef.current = ''
+    input.focus()
+  }, [parBusy, parFocusRequest, payload])
 
   useEffect(() => {
     let cancelled = false
@@ -600,19 +649,20 @@ export function StockStorageDetailWorkspace({
     openPlaceholder(actionId, row.name)
   }
 
-  const handleCommitPar = async (row, parsed) => {
+  const handleCommitPar = async (row, parsed, { nextItemId = '' } = {}) => {
     if (parBusy) return
     const workspaceKey = `${workspaceId ?? ''}`.trim()
     if (!workspaceKey || !storageId) return
+    if (nextItemId) pendingParFocusIdRef.current = nextItemId
     setParError('')
     setParBusy(true)
     try {
-      if (parsed.clear) {
-        await clearStoragePar(workspaceKey, row.stockItemId, storageId)
-      } else {
-        await saveStoragePar(workspaceKey, row.stockItemId, storageId, parsed.value)
-      }
-      const parQuantity = parsed.clear ? null : parsed.value
+      const saved = parsed.clear
+        ? await clearStoragePar(workspaceKey, row.stockItemId, storageId)
+        : await saveStoragePar(workspaceKey, row.stockItemId, storageId, parsed.value)
+      const parQuantity = parsed.clear
+        ? null
+        : (normalizeStorageParQuantity(saved?.parQuantity) ?? parsed.value)
       setPayload((current) => {
         if (!current) return current
         const products = current.products.map((product) => {
@@ -627,6 +677,7 @@ export function StockStorageDetailWorkspace({
         return { ...current, products }
       })
     } catch (commitError) {
+      pendingParFocusIdRef.current = ''
       const message = commitError?.message || 'Unable to save the shelf par.'
       setParError(message)
       throw commitError
@@ -661,28 +712,28 @@ export function StockStorageDetailWorkspace({
             <p className="stock-storage-detail-workspace-key">{storage.locationKey}</p>
           ) : null}
         </div>
-        <dl className="stock-storage-detail-workspace-stats">
+        <div className="stock-storage-detail-workspace-stats">
           <div>
-            <dt>Products</dt>
-            <dd>{headerProductCount}</dd>
+            <span className="stock-storage-stat-label">Products</span>
+            <strong className="stock-storage-stat-value">{headerProductCount}</strong>
           </div>
           <div>
-            <dt>Quantity</dt>
-            <dd>{formatStockQuantity(headerQuantity)}</dd>
+            <span className="stock-storage-stat-label">Quantity</span>
+            <strong className="stock-storage-stat-value">{formatStockQuantity(headerQuantity)}</strong>
           </div>
           {canManage ? (
             <div>
-              <dt>Inventory value</dt>
-              <dd>{formatStockInventoryValue(headerValue)}</dd>
+              <span className="stock-storage-stat-label">Inventory value</span>
+              <strong className="stock-storage-stat-value">{formatStockInventoryValue(headerValue)}</strong>
             </div>
           ) : null}
           {parsAvailable ? (
             <div>
-              <dt>Below par</dt>
-              <dd>{belowParCount}</dd>
+              <span className="stock-storage-stat-label">Below par</span>
+              <strong className="stock-storage-stat-value">{belowParCount}</strong>
             </div>
           ) : null}
-        </dl>
+        </div>
         <StockStorageDetailActionBar
           storage={storage}
           canManage={canManage}
@@ -820,6 +871,7 @@ export function StockStorageDetailWorkspace({
                 }}
                 onMenuAction={handleMenuAction}
                 onCommitPar={handleCommitPar}
+                onFocusParItem={requestParFocus}
               />
             </div>
           ))}

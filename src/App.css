@@ -32649,6 +32649,7 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 }
 
 .stock-storage-center-card-stats dt,
+.stock-storage-center-card-stats .stock-storage-stat-label,
 .stock-storage-center-detail-stats dt {
   color: rgba(255, 247, 232, 0.5);
   font-size: 0.72rem;
@@ -32656,6 +32657,7 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 }
 
 .stock-storage-center-card-stats dd,
+.stock-storage-center-card-stats .stock-storage-stat-value,
 .stock-storage-center-detail-stats dd {
   margin: 0;
   font-size: 0.95rem;
@@ -32763,9 +32765,8 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 
 .stock-storage-supply-pill {
   display: inline-flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 1px;
+  align-items: center;
+  max-width: 7.5rem;
   padding: 4px 8px;
   border-radius: 999px;
   background: rgba(212, 175, 55, 0.16);
@@ -32773,11 +32774,14 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   font-size: 0.72rem;
   font-weight: 700;
   line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.stock-storage-supply-pill-el {
-  color: rgba(244, 211, 145, 0.82);
-  font-weight: 650;
+.stock-storage-center-card-open:focus-visible {
+  outline: 2px solid rgba(244, 211, 145, 0.85);
+  outline-offset: 2px;
 }
 
 .stock-department-banner {
@@ -32961,13 +32965,15 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   min-width: 0;
 }
 
-.stock-storage-detail-workspace-stats dt {
+.stock-storage-detail-workspace-stats dt,
+.stock-storage-detail-workspace-stats .stock-storage-stat-label {
   color: rgba(255, 247, 232, 0.5);
   font-size: 0.72rem;
   font-weight: 600;
 }
 
-.stock-storage-detail-workspace-stats dd {
+.stock-storage-detail-workspace-stats dd,
+.stock-storage-detail-workspace-stats .stock-storage-stat-value {
   margin: 0;
   color: #fff7e8;
   font-size: 1rem;

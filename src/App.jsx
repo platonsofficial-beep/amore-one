@@ -458,6 +458,7 @@ import {
   buildTodayServiceTimeline,
   buildTodayStatusSummary,
   buildTeamTodayGroups,
+  shouldLoadOperationalStockSnapshot,
 } from './lib/todayViewUtils'
 import { buildTodayCommandHeaderChips } from './lib/todayCommandHeaderUtils'
 import {
@@ -534,9 +535,9 @@ import {
 } from './lib/stockSupplierUtils'
 import {
   areWorkspaceProfilesEqual,
-  buildBrandDisplay,
   buildDashboardGreeting,
   buildProfileChipDisplay,
+  resolveDashboardBrandDisplay,
   shouldInitializeWorkspaceProfileDraft,
 } from './lib/workspaceProfileUtils'
 import { readAndClearInviteAcceptedNotice } from './lib/inviteNoticeStorage'
@@ -16262,8 +16263,8 @@ function App() {
   const isViewingTodayWeekInScheduler = scheduleWeekStart === todayWeekStart
 
   const brandDisplay = useMemo(
-    () => buildBrandDisplay(workspaceProfile),
-    [workspaceProfile],
+    () => resolveDashboardBrandDisplay(workspaceProfile, workspace?.name),
+    [workspaceProfile, workspace?.name],
   )
 
   const profileChipDisplay = useMemo(
@@ -17902,6 +17903,15 @@ function App() {
     }
   }, [refreshInventory])
 
+  const dashboardNeedsStockSnapshot = shouldLoadOperationalStockSnapshot({
+    canAccessStock: canAccessStockModule,
+    activeView,
+    useMobileExperience,
+    isManagerMobileShell,
+    mobileExpandedView,
+    mobileManagerTab,
+  })
+
   useEffect(() => {
     const isDesktopStockCatalogView = activeView === 'stock'
       && (stockSection === 'dashboard' || stockSection === 'orders' || stockSection === 'suppliers')
@@ -17912,11 +17922,22 @@ function App() {
       && mobileExpandedView === 'workspace'
       && activeView === 'stock'
 
-    if (!isDesktopStockCatalogView && !isManagerMobileStockTab && !isMobileStockWorkspace) return undefined
+    if (!isDesktopStockCatalogView && !isManagerMobileStockTab && !isMobileStockWorkspace && !dashboardNeedsStockSnapshot) {
+      return undefined
+    }
 
     loadStockCatalog()
     return undefined
-  }, [activeView, stockSection, loadStockCatalog, isManagerMobileShell, mobileManagerTab, mobileExpandedView, useMobileExperience])
+  }, [
+    activeView,
+    stockSection,
+    loadStockCatalog,
+    isManagerMobileShell,
+    mobileManagerTab,
+    mobileExpandedView,
+    useMobileExperience,
+    dashboardNeedsStockSnapshot,
+  ])
 
   useEffect(() => {
     const isDesktopStockOrdersView = activeView === 'stock'
@@ -17928,7 +17949,9 @@ function App() {
       && mobileExpandedView === 'workspace'
       && activeView === 'stock'
 
-    if (!isDesktopStockOrdersView && !isManagerMobileStockTab && !isMobileStockWorkspace) return undefined
+    if (!isDesktopStockOrdersView && !isManagerMobileStockTab && !isMobileStockWorkspace && !dashboardNeedsStockSnapshot) {
+      return undefined
+    }
 
     let isMounted = true
 
@@ -17953,7 +17976,16 @@ function App() {
     return () => {
       isMounted = false
     }
-  }, [activeView, stockSection, refreshStockOrders, isManagerMobileShell, mobileManagerTab, mobileExpandedView, useMobileExperience])
+  }, [
+    activeView,
+    stockSection,
+    refreshStockOrders,
+    isManagerMobileShell,
+    mobileManagerTab,
+    mobileExpandedView,
+    useMobileExperience,
+    dashboardNeedsStockSnapshot,
+  ])
 
   useEffect(() => {
     if (activeView !== 'operations') return undefined

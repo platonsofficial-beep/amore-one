@@ -273,10 +273,19 @@ export async function getWorkspaceStorageSummaries(workspaceId) {
 
   const storages = (storageRows ?? []).map(mapWorkspaceStorage)
 
-  const { data: balanceRows, error: balanceError } = await supabase
-    .from(STOCK_ITEM_LOCATION_BALANCES_TABLE)
-    .select(STOCK_STORAGE_CENTER_BALANCE_COLUMNS)
-    .eq('workspace_id', normalizedWorkspaceId)
+  const [balanceResult, parResult] = await Promise.all([
+    supabase
+      .from(STOCK_ITEM_LOCATION_BALANCES_TABLE)
+      .select(STOCK_STORAGE_CENTER_BALANCE_COLUMNS)
+      .eq('workspace_id', normalizedWorkspaceId),
+    supabase
+      .from(STOCK_ITEM_STORAGE_PARS_TABLE)
+      .select(STOCK_STORAGE_PAR_COLUMNS)
+      .eq('workspace_id', normalizedWorkspaceId),
+  ])
+
+  const { data: balanceRows, error: balanceError } = balanceResult
+  const { data: parData, error: parError } = parResult
 
   if (balanceError) {
     console.error('[stockStorageCenterService] balances error:', balanceError)
@@ -311,10 +320,6 @@ export async function getWorkspaceStorageSummaries(workspaceId) {
 
   let parsAvailable = true
   let parRows = []
-  const { data: parData, error: parError } = await supabase
-    .from(STOCK_ITEM_STORAGE_PARS_TABLE)
-    .select(STOCK_STORAGE_PAR_COLUMNS)
-    .eq('workspace_id', normalizedWorkspaceId)
 
   if (parError && isStockStorageParSchemaMissing(parError)) {
     parsAvailable = false
@@ -565,11 +570,21 @@ export async function getWorkspaceStorageProducts(workspaceId, storageId) {
     throw new Error('Storage is required to load storage products.')
   }
 
-  const { data: balanceRows, error: balanceError } = await supabase
-    .from(STOCK_ITEM_LOCATION_BALANCES_TABLE)
-    .select(STOCK_STORAGE_CENTER_BALANCE_COLUMNS)
-    .eq('workspace_id', normalizedWorkspaceId)
-    .eq('workspace_storage_id', normalizedStorageId)
+  const [balanceResult, parResult] = await Promise.all([
+    supabase
+      .from(STOCK_ITEM_LOCATION_BALANCES_TABLE)
+      .select(STOCK_STORAGE_CENTER_BALANCE_COLUMNS)
+      .eq('workspace_id', normalizedWorkspaceId)
+      .eq('workspace_storage_id', normalizedStorageId),
+    supabase
+      .from(STOCK_ITEM_STORAGE_PARS_TABLE)
+      .select(STOCK_STORAGE_PAR_COLUMNS)
+      .eq('workspace_id', normalizedWorkspaceId)
+      .eq('workspace_storage_id', normalizedStorageId),
+  ])
+
+  const { data: balanceRows, error: balanceError } = balanceResult
+  const { data: parData, error: parError } = parResult
 
   if (balanceError) {
     console.error('[stockStorageCenterService] storage products balances error:', balanceError)
@@ -580,11 +595,6 @@ export async function getWorkspaceStorageProducts(workspaceId, storageId) {
 
   let parsAvailable = true
   let parRows = []
-  const { data: parData, error: parError } = await supabase
-    .from(STOCK_ITEM_STORAGE_PARS_TABLE)
-    .select(STOCK_STORAGE_PAR_COLUMNS)
-    .eq('workspace_id', normalizedWorkspaceId)
-    .eq('workspace_storage_id', normalizedStorageId)
 
   if (parError && isStockStorageParSchemaMissing(parError)) {
     parsAvailable = false
