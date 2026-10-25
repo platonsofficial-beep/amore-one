@@ -25,8 +25,44 @@ const LOCATION_RPC_BY_TYPE = Object.freeze({
   stock_count: 'record_location_stock_count',
 })
 
-/** Hardcoded internal capability. Default FALSE = legacy production path. */
+/** Hardcoded internal capability. Default FALSE = legacy production path.
+ *  Dashboard callers pass a storage id instead of flipping this flag. */
 let supportsLocationBalances = false
+
+/**
+ * Fail closed before a movement is written. The legacy client-math path stays
+ * in this module for direct callers, but the UI must not reach it without a
+ * storage and that balance's quantity_version.
+ */
+export function assertLocationStockMovementTarget(workspaceStorageId, expectedQuantityVersion) {
+  const storageId = `${workspaceStorageId ?? ''}`.trim()
+  const version = Number(expectedQuantityVersion)
+  if (!storageId || !Number.isFinite(version) || version < 1) {
+    throw new Error('Choose a storage before recording this stock change.')
+  }
+  return {
+    workspaceStorageId: storageId,
+    expectedQuantityVersion: Math.floor(version),
+  }
+}
+
+export function isStockLocationVersionMismatch(error) {
+  const raw = `${error?.message ?? ''} ${error?.code ?? ''} ${error?.details ?? ''}`
+  return raw.includes('stock_location_balance_version_mismatch')
+}
+
+function throwLocationMutationError(error) {
+  if (isStockLocationVersionMismatch(error)) {
+    const mapped = new Error('This balance changed. The storage quantity was refreshed. Check it and try again.')
+    mapped.code = 'stock_location_balance_version_mismatch'
+    throw mapped
+  }
+  const raw = `${error?.message ?? ''}`
+  if (raw.includes('stock_location_balance_not_found')) {
+    throw new Error('This storage has no balance for this product yet.')
+  }
+  throw new Error(raw || 'Unable to record location stock movement right now.')
+}
 
 export function getSupportsLocationBalances() {
   return supportsLocationBalances === true
@@ -207,7 +243,7 @@ export async function recordStockMutationLocationAware(input) {
 
   if (error) {
     console.error('[stockMutationService] recordStockMutationLocationAware error:', error)
-    throw new Error(error.message || 'Unable to record location stock movement right now.')
+    throwLocationMutationError(error)
   }
 
   const payload = firstRpcPayload(data)

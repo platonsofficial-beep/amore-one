@@ -14,7 +14,6 @@ const IMPORT_HEADERS = [
   'type',
   'supplier',
   'unit',
-  'quantity',
   'minimum alert',
   'cost price',
   'storage location',
@@ -26,7 +25,6 @@ const TEMPLATE_EXAMPLE_ROW = [
   'Vodka',
   'Malakakos AE',
   'bottle',
-  '12',
   '6',
   '24.50',
   'Bar',
@@ -175,11 +173,6 @@ export function validateStockImportRow(row) {
     issues.push('Unit is required.')
   }
 
-  const currentQuantity = parseOptionalNumber(row.currentQuantity, { allowEmpty: false })
-  if (!Number.isFinite(currentQuantity) || currentQuantity < 0) {
-    issues.push('Current quantity must be zero or greater.')
-  }
-
   const minimumQuantity = parseOptionalNumber(row.minimumQuantity, { allowEmpty: false })
   if (!Number.isFinite(minimumQuantity) || minimumQuantity < 0) {
     issues.push('Minimum must be zero or greater.')
@@ -213,7 +206,6 @@ export function validateStockImportRow(row) {
       itemType,
       supplier: `${row.supplier ?? ''}`.trim(),
       unit,
-      currentQuantity,
       minimumQuantity,
       targetQuantity,
       costPrice: costPrice ?? 0,

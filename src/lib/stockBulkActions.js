@@ -24,7 +24,6 @@ export function buildStockItemUpdatePayload(item, changes = {}) {
     supplier: `${changes.supplier ?? item.supplier ?? ''}`.trim(),
     storageLocation: `${changes.storageLocation ?? resolveStockStorageLocation(item)}`.trim() || 'Main Storage',
     unit: item.unit,
-    currentQuantity: item.currentQuantity,
     minimumQuantity: item.minimumQuantity,
     targetQuantity: item.targetQuantity,
     orderQuantity: item.orderQuantity,

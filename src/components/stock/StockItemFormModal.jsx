@@ -346,7 +346,7 @@ export function StockItemFormModal({
                 />
               </div>
 
-              <div className="stock-form-row stock-form-row-triple">
+              <div className="stock-form-row">
                 <label className="stock-form-field">
                   <span>Minimum</span>
                   <input
@@ -370,19 +370,10 @@ export function StockItemFormModal({
                     placeholder="Par level"
                   />
                 </label>
-
-                <label className="stock-form-field">
-                  <span>Current</span>
-                  <input
-                    type="number"
-                    min="0"
-                    step="any"
-                    value={form.currentQuantity}
-                    onChange={(event) => setForm((current) => ({ ...current, currentQuantity: event.target.value }))}
-                    placeholder="0"
-                  />
-                </label>
               </div>
+              <p className="stock-form-opening-hint" data-testid="stock-opening-quantity-hint">
+                Opening stock is set by receiving or counting a storage.
+              </p>
             </StockFormSection>
 
             {error ? <div className="staff-status-banner">{error}</div> : null}

@@ -6,7 +6,11 @@
  */
 
 import { supabase } from '../lib/supabaseClient'
-import { buildStockLocationBalanceDisplayList } from '../lib/stockLocationBalanceDisplay'
+import {
+  buildStockLocationBalanceDisplayList,
+  mapStockLocationBalanceDisplay,
+  sortStockLocationBalancesForDisplay,
+} from '../lib/stockLocationBalanceDisplay'
 import { listWorkspaceStorages } from './workspaceStorageService'
 
 const STOCK_ITEM_LOCATION_BALANCES_TABLE = 'stock_item_location_balances'
@@ -69,9 +73,14 @@ export function enrichStockLocationBalancesWithStorages(balanceRows, storages) {
  *
  * @param {string} workspaceId
  * @param {string} stockItemId
+ * @param {{ includeZeroBalances?: boolean }} [options]
+ *   includeZeroBalances keeps quantity 0 rows so a movement can send quantity_version.
+ *   Item detail panels leave this false and hide empty shelves.
  * @returns {Promise<Array<ReturnType<import('../lib/stockLocationBalanceDisplay').mapStockLocationBalanceDisplay>>>}
  */
-export async function getStockItemLocationBalances(workspaceId, stockItemId) {
+export async function getStockItemLocationBalances(workspaceId, stockItemId, {
+  includeZeroBalances = false,
+} = {}) {
   const normalizedWorkspaceId = `${workspaceId ?? ''}`.trim()
   const normalizedItemId = `${stockItemId ?? ''}`.trim()
   if (!normalizedWorkspaceId || !normalizedItemId) return []
@@ -97,5 +106,10 @@ export async function getStockItemLocationBalances(workspaceId, stockItemId) {
   }
 
   const enriched = enrichStockLocationBalancesWithStorages(data ?? [], storages)
+  if (includeZeroBalances) {
+    return sortStockLocationBalancesForDisplay(
+      enriched.map((row) => mapStockLocationBalanceDisplay(row)),
+    )
+  }
   return buildStockLocationBalanceDisplayList(enriched)
 }

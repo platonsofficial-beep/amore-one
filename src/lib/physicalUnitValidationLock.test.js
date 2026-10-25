@@ -91,7 +91,7 @@ describe('size separation — composites cannot be newly saved as unit', () => {
     const payload = stockFormToPayload(form)
     expect(payload.unit).toBe('Bottle')
     expect(payload.size).toBe('700 ml')
-    expect(payload.currentQuantity).toBe(18)
+    expect(payload).not.toHaveProperty('currentQuantity')
   })
 
   it('rejects Can 330ml as a new unit and accepts Can + Size', () => {
@@ -172,7 +172,7 @@ describe('edit compatibility — legacy unit preserve / canonical change', () =>
     expect(payload.barcode).toBe('123')
     expect(payload.packagingNote).toBe('Usually supplied in cases of 6')
     expect(payload.size).toBe('700 ml')
-    expect(payload.currentQuantity).toBe(12)
+    expect(payload).not.toHaveProperty('currentQuantity')
   })
 
   it('requires canonical unit when the operator explicitly changes Inventory Unit', () => {
@@ -195,7 +195,7 @@ describe('edit compatibility — legacy unit preserve / canonical change', () =>
     expect(validateStockItemForm(form)).toBe('')
     const payload = stockFormToPayload(form)
     expect(payload.unit).toBe('Bottle')
-    expect(payload.currentQuantity).toBe(12)
+    expect(payload).not.toHaveProperty('currentQuantity')
   })
 
   it('does not mutate quantity or packaging note when only unit is canonicalized by operator', () => {
@@ -216,7 +216,8 @@ describe('edit compatibility — legacy unit preserve / canonical change', () =>
     const payload = stockFormToPayload(form)
     expect(payload.unit).toBe('Bottle')
     expect(payload.packagingNote).toBe(noteBefore)
-    expect(payload.currentQuantity).toBe(qtyBefore)
+    expect(form.currentQuantity).toBe(qtyBefore)
+    expect(payload).not.toHaveProperty('currentQuantity')
   })
 })
 

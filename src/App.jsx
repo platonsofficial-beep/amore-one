@@ -283,7 +283,7 @@ import {
 import { createSupplier, deleteSupplier, getSuppliers, updateSupplier } from './services/supplierService'
 import { createStockItem, updateStockItem, updateStockItemActive } from './services/stockItemService'
 import { getStockItemsWithLastMovement, recordStockMovement } from './services/stockMovementService'
-import { transferStockBetweenLocations } from './services/stockMutationService'
+import { assertLocationStockMovementTarget, transferStockBetweenLocations } from './services/stockMutationService'
 import {
   createStockOrdersFromGroups,
   getStockOrdersWithAuthors,
@@ -22549,6 +22549,10 @@ function App() {
     setStockItemsNotice('')
 
     try {
+      const locationTarget = assertLocationStockMovementTarget(
+        workspaceStorageId,
+        expectedQuantityVersion,
+      )
       await recordStockMovement({
         workspaceId: activeWorkspaceId,
         itemId: item.id,
@@ -22557,8 +22561,8 @@ function App() {
         note,
         createdBy: user?.id ?? null,
         currentQuantity: item.currentQuantity,
-        workspaceStorageId,
-        expectedQuantityVersion,
+        workspaceStorageId: locationTarget.workspaceStorageId,
+        expectedQuantityVersion: locationTarget.expectedQuantityVersion,
       })
       await refreshStockItems()
       setStockItemsNotice('Stock movement recorded.')

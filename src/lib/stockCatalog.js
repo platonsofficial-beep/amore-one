@@ -489,11 +489,6 @@ export function validateStockItemForm(form) {
     return unitGate.error
   }
 
-  const currentQuantity = Number(form.currentQuantity)
-  if (!Number.isFinite(currentQuantity) || currentQuantity < 0) {
-    return 'Current quantity must be zero or greater.'
-  }
-
   const minimumQuantity = Number(form.minimumQuantity)
   if (!Number.isFinite(minimumQuantity) || minimumQuantity < 0) {
     return 'Minimum alert must be zero or greater.'
@@ -542,7 +537,6 @@ export function stockFormToPayload(form) {
     size: normalizeProductSize(form.size ?? null),
     packagingNote: normalizePackagingNote(form.packagingNote ?? null),
     barcode: normalizeProductBarcode(form.barcode ?? null),
-    currentQuantity: Number(form.currentQuantity) || 0,
     minimumQuantity: Number(form.minimumQuantity) || 0,
     targetQuantity: targetQuantityRaw ? Number(targetQuantityRaw) : null,
     orderQuantity: orderQuantityRaw ? Number(orderQuantityRaw) : null,
