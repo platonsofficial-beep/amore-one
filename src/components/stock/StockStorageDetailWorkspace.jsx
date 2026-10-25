@@ -34,6 +34,11 @@ import { StockStorageActionPlaceholder } from './StockStorageActionPlaceholder'
 import { StockMovementModal } from './StockMovementModal'
 import { StockStorageReceiveProductPicker } from './StockStorageReceiveProductPicker'
 import { StockTransferModal } from './StockTransferModal'
+import { StockSupplyRefillSheet } from './StockSupplyRefillSheet'
+import {
+  REFILL_ACTION_LABEL,
+  STAFF_REFILL_BLOCKED_MESSAGE,
+} from '../../lib/stockSupplyRefill'
 
 function escapeParItemSelector(value) {
   const text = `${value ?? ''}`
@@ -319,6 +324,7 @@ function StorageProductRow({
  *   isSavingReceive?: boolean,
  *   isSavingTransfer?: boolean,
  *   isSavingAdjustment?: boolean,
+ *   onSupplyRefillComplete?: () => void|Promise<void>,
  *   loadProducts?: typeof getWorkspaceStorageProducts,
  *   startFastCountSession?: typeof startStorageFastCountSession,
  * }} props
@@ -340,6 +346,7 @@ export function StockStorageDetailWorkspace({
   isSavingReceive = false,
   isSavingTransfer = false,
   isSavingAdjustment = false,
+  onSupplyRefillComplete,
   loadProducts = getWorkspaceStorageProducts,
   startFastCountSession = startStorageFastCountSession,
   saveStoragePar = setStockItemStoragePar,
@@ -362,6 +369,7 @@ export function StockStorageDetailWorkspace({
   const [adjustmentPickerOpen, setAdjustmentPickerOpen] = useState(false)
   const [adjustmentRow, setAdjustmentRow] = useState(/** @type {object|null} */ (null))
   const [belowParOnly, setBelowParOnly] = useState(false)
+  const [refillOpen, setRefillOpen] = useState(false)
   const [parBusy, setParBusy] = useState(false)
   const [parError, setParError] = useState('')
   const [parFocusRequest, setParFocusRequest] = useState(0)
@@ -743,6 +751,34 @@ export function StockStorageDetailWorkspace({
           onTransfer={() => handleStartTransfer()}
           onAdjustment={() => handleStartAdjustment()}
         />
+        {storage?.isSupply === true ? null : (
+          <div className="stock-storage-refill-launch">
+            <button
+              type="button"
+              className="primary-btn stock-storage-detail-action-btn"
+              data-testid="supply-refill-open"
+              disabled={!canManage || storage?.active === false || isLaunchingFastCount || status === 'loading' || status === 'error'}
+              title={
+                !canManage
+                  ? STAFF_REFILL_BLOCKED_MESSAGE
+                  : storage?.active === false
+                    ? 'Unavailable for archived storage'
+                    : undefined
+              }
+              onClick={() => {
+                if (!canManage || storage?.active === false) return
+                setRefillOpen(true)
+              }}
+            >
+              {REFILL_ACTION_LABEL}
+            </button>
+            {!canManage ? (
+              <p className="stock-supply-refill-staff-note" role="status" data-testid="supply-refill-staff-note">
+                {STAFF_REFILL_BLOCKED_MESSAGE}
+              </p>
+            ) : null}
+          </div>
+        )}
         {isLaunchingFastCount ? (
           <div
             className="stock-storage-fast-count-status"
@@ -840,6 +876,23 @@ export function StockStorageDetailWorkspace({
               : 'Products appear here when they have a balance in this location.'}
           </p>
         </div>
+      ) : null}
+
+      {refillOpen ? (
+        <StockSupplyRefillSheet
+          workspaceId={workspaceId}
+          destinationStorage={storage}
+          products={payload?.products ?? []}
+          onClose={() => {
+            if (isLaunchingFastCount) return
+            setRefillOpen(false)
+          }}
+          onCompleted={async () => {
+            setReloadToken((token) => token + 1)
+            await onSupplyRefillComplete?.()
+          }}
+          loadProducts={loadProducts}
+        />
       ) : null}
 
       {status === 'ready' && visibleProducts.length === 0 ? (

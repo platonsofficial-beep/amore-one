@@ -310,6 +310,7 @@ function DepartmentNameDialog({ mode, initialName = '', onClose, onSubmit }) {
  *   isSavingReceive?: boolean,
  *   isSavingTransfer?: boolean,
  *   isSavingAdjustment?: boolean,
+ *   onSupplyRefillComplete?: () => void|Promise<void>,
  *   loadSummaries?: typeof getWorkspaceStorageSummaries,
  *   loadDepartments?: typeof listWorkspaceDepartments,
  *   departmentActions?: typeof defaultDepartmentActions,
@@ -330,6 +331,7 @@ export function StockStorageCenter({
   isSavingReceive = false,
   isSavingTransfer = false,
   isSavingAdjustment = false,
+  onSupplyRefillComplete,
   loadSummaries = getWorkspaceStorageSummaries,
   loadDepartments = listWorkspaceDepartments,
   departmentActions = defaultDepartmentActions,
@@ -495,6 +497,10 @@ export function StockStorageCenter({
         isSavingReceive={isSavingReceive}
         isSavingTransfer={isSavingTransfer}
         isSavingAdjustment={isSavingAdjustment}
+        onSupplyRefillComplete={async () => {
+          setReloadToken((token) => token + 1)
+          await onSupplyRefillComplete?.()
+        }}
       />
     )
   }
