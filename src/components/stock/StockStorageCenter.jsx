@@ -1,66 +1,279 @@
 /**
- * P8.30.1 / P8.30.2 — Storage Center read-only foundation + detail products.
- *
- * Lists workspace storages with balance summaries. Selecting a storage opens
- * the read-only products workspace. No mutations.
+ * Storage Center. Active storages group by department once the departments
+ * update is applied. Supply storages are a per-storage flag, with no
+ * one-per-venue limit. Quantity summaries are unchanged.
  */
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useId, useMemo, useState } from 'react'
+import { createPortal } from 'react-dom'
+import {
+  DEPARTMENTS_UNAVAILABLE_MESSAGE,
+  SUPPLY_STORAGE_LABEL,
+  SUPPLY_STORAGE_LABEL_EL,
+  groupActiveStoragesByDepartment,
+  isWorkspaceDepartmentSchemaMissing,
+  validateWorkspaceDepartmentName,
+} from '../../lib/stockDepartmentGroups'
 import { formatStockInventoryValue, formatStockQuantity } from '../../lib/stockUtils'
 import { getWorkspaceStorageSummaries } from '../../services/stockStorageCenterService'
+import {
+  assignWorkspaceStorageDepartment,
+  createWorkspaceDepartment,
+  listWorkspaceDepartments,
+  renameWorkspaceDepartment,
+  setWorkspaceDepartmentActive,
+  setWorkspaceStorageSupply,
+} from '../../services/workspaceDepartmentService'
 import { StockStorageDetailWorkspace } from './StockStorageDetailWorkspace'
+
+const defaultDepartmentActions = {
+  createDepartment: createWorkspaceDepartment,
+  renameDepartment: renameWorkspaceDepartment,
+  setDepartmentActive: setWorkspaceDepartmentActive,
+  assignStorageDepartment: assignWorkspaceStorageDepartment,
+  setStorageSupply: setWorkspaceStorageSupply,
+}
+
+const EMPTY_DEPARTMENTS = Object.freeze([])
 
 /**
  * @param {{
  *   storage: object,
  *   selected?: boolean,
  *   onSelect?: (storage: object) => void,
+ *   showValue?: boolean,
+ *   departmentName?: string,
+ *   canAssign?: boolean,
+ *   departments?: Array<{ id: string, name: string, active?: boolean }>,
+ *   actionsDisabled?: boolean,
+ *   onAssignDepartment?: (storage: object, departmentId: string) => void,
+ *   onToggleSupply?: (storage: object) => void,
  * }} props
  */
-function StorageSummaryCard({ storage, selected = false, onSelect, showValue = true }) {
+function StorageSummaryCard({
+  storage,
+  selected = false,
+  onSelect,
+  showValue = true,
+  departmentName = '',
+  canAssign = false,
+  departments = [],
+  actionsDisabled = false,
+  onAssignDepartment,
+  onToggleSupply,
+}) {
+  const currentDepartmentId = `${storage.departmentId ?? ''}`
+  const knownIds = new Set(departments.map((department) => department.id))
+  const options = departments.filter((department) => (
+    department.active !== false || department.id === currentDepartmentId
+  ))
+
   return (
-    <button
-      type="button"
-      className={`stock-storage-center-card${selected ? ' is-selected' : ''}${storage.active ? '' : ' is-archived'}`}
-      data-storage-id={storage.id}
+    <article
+      className={`stock-storage-center-card${selected ? ' is-selected' : ''}${storage.active ? '' : ' is-archived'}${storage.isSupply ? ' is-supply' : ''}`}
+      data-storage-card={storage.id}
       data-storage-status={storage.status}
-      aria-pressed={selected}
-      onClick={() => onSelect?.(storage)}
     >
-      <div className="stock-storage-center-card-top">
-        <div>
-          <strong className="stock-storage-center-card-name">
-            {storage.name || storage.locationKey || 'Unnamed storage'}
-          </strong>
-          {storage.locationKey && storage.locationKey !== storage.name ? (
-            <span className="stock-storage-center-card-key">{storage.locationKey}</span>
-          ) : null}
-        </div>
-        <span className={`stock-storage-center-status tone-${storage.active ? 'active' : 'archived'}`}>
-          {storage.active ? 'Active' : 'Archived'}
-        </span>
-      </div>
-      <dl className="stock-storage-center-card-stats">
-        <div>
-          <dt>Products</dt>
-          <dd>{storage.productCount}</dd>
-        </div>
-        <div>
-          <dt>Total qty</dt>
-          <dd>{formatStockQuantity(storage.totalQuantity)}</dd>
-        </div>
-        <div>
-          <dt>Non-zero</dt>
-          <dd>{storage.nonZeroBalanceCount}</dd>
-        </div>
-        {showValue ? (
+      <button
+        type="button"
+        className="stock-storage-center-card-open"
+        data-storage-id={storage.id}
+        aria-pressed={selected}
+        onClick={() => onSelect?.(storage)}
+      >
+        <div className="stock-storage-center-card-top">
           <div>
-            <dt>Value</dt>
-            <dd>{formatStockInventoryValue(storage.inventoryValue)}</dd>
+            <strong className="stock-storage-center-card-name">
+              {storage.name || storage.locationKey || 'Unnamed storage'}
+            </strong>
+            {storage.locationKey && storage.locationKey !== storage.name ? (
+              <span className="stock-storage-center-card-key">{storage.locationKey}</span>
+            ) : null}
+            {departmentName ? (
+              <span className="stock-storage-center-card-key">{departmentName}</span>
+            ) : null}
           </div>
-        ) : null}
-      </dl>
-    </button>
+          <span className="stock-storage-center-card-badges">
+            {storage.isSupply ? (
+              <span className="stock-storage-supply-pill" data-testid="supply-storage-pill">
+                <span>{SUPPLY_STORAGE_LABEL}</span>
+                <span className="stock-storage-supply-pill-el">{SUPPLY_STORAGE_LABEL_EL}</span>
+              </span>
+            ) : null}
+            <span className={`stock-storage-center-status tone-${storage.active ? 'active' : 'archived'}`}>
+              {storage.active ? 'Active' : 'Archived'}
+            </span>
+          </span>
+        </div>
+        <dl className="stock-storage-center-card-stats">
+          <div>
+            <dt>Products</dt>
+            <dd>{storage.productCount}</dd>
+          </div>
+          <div>
+            <dt>Total qty</dt>
+            <dd>{formatStockQuantity(storage.totalQuantity)}</dd>
+          </div>
+          <div>
+            <dt>Non-zero</dt>
+            <dd>{storage.nonZeroBalanceCount}</dd>
+          </div>
+          {showValue ? (
+            <div>
+              <dt>Value</dt>
+              <dd>{formatStockInventoryValue(storage.inventoryValue)}</dd>
+            </div>
+          ) : null}
+        </dl>
+      </button>
+      {canAssign ? (
+        <div className="stock-storage-center-card-actions">
+          <label className="stock-storage-department-field">
+            <span>Department</span>
+            <select
+              className="stock-storage-department-select"
+              data-action="assign-department"
+              aria-label={`Department for ${storage.name || 'storage'}`}
+              value={knownIds.has(currentDepartmentId) ? currentDepartmentId : ''}
+              disabled={actionsDisabled}
+              onChange={(event) => onAssignDepartment?.(storage, event.target.value)}
+            >
+              <option value="">Unassigned</option>
+              {options.map((department) => (
+                <option key={department.id} value={department.id}>
+                  {department.active === false ? `${department.name} · archived` : department.name}
+                </option>
+              ))}
+            </select>
+          </label>
+          <button
+            type="button"
+            className="stock-storage-supply-toggle"
+            data-action="toggle-supply"
+            aria-pressed={storage.isSupply === true}
+            disabled={actionsDisabled}
+            onClick={() => onToggleSupply?.(storage)}
+          >
+            {storage.isSupply
+              ? `${SUPPLY_STORAGE_LABEL} · ${SUPPLY_STORAGE_LABEL_EL}`
+              : 'Mark as supply storage'}
+          </button>
+        </div>
+      ) : null}
+    </article>
+  )
+}
+
+/**
+ * @param {{
+ *   mode: 'create'|'rename',
+ *   initialName?: string,
+ *   onClose: () => void,
+ *   onSubmit: (name: string) => Promise<void>,
+ * }} props
+ */
+function DepartmentNameDialog({ mode, initialName = '', onClose, onSubmit }) {
+  const titleId = useId()
+  const inputId = useId()
+  const [name, setName] = useState(initialName)
+  const [error, setError] = useState('')
+  const [isSaving, setIsSaving] = useState(false)
+  const title = mode === 'rename' ? 'Rename department' : 'New department'
+
+  useEffect(() => {
+    const previousOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => {
+      document.body.style.overflow = previousOverflow
+    }
+  }, [])
+
+  const handleDismiss = () => {
+    if (isSaving) return
+    onClose?.()
+  }
+
+  const handleSubmit = async (event) => {
+    event.preventDefault()
+    if (isSaving) return
+    const validation = validateWorkspaceDepartmentName(name)
+    if (!validation.ok) {
+      setError(validation.error)
+      return
+    }
+    try {
+      setError('')
+      setIsSaving(true)
+      await onSubmit(validation.value)
+    } catch (submitError) {
+      setError(submitError?.message || 'Unable to save the department right now.')
+      setIsSaving(false)
+    }
+  }
+
+  return createPortal(
+    <div
+      className="employee-modal-backdrop create-workspace-storage-backdrop"
+      onClick={handleDismiss}
+      data-testid="stock-department-name-dialog"
+    >
+      <div
+        className="employee-modal stock-dashboard-modal task-form-modal is-responsive-sheet create-workspace-storage-dialog stock-department-dialog"
+        onClick={(event) => event.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+      >
+        <div className="drawer-header">
+          <div>
+            <p className="eyebrow">Stock</p>
+            <h3 id={titleId}>{title}</h3>
+          </div>
+          <button
+            type="button"
+            className="icon-btn"
+            onClick={handleDismiss}
+            disabled={isSaving}
+            aria-label="Close"
+          >
+            ✕
+          </button>
+        </div>
+        <form className="employee-form" onSubmit={handleSubmit}>
+          <label htmlFor={inputId}>
+            Department name
+            <input
+              id={inputId}
+              type="text"
+              value={name}
+              maxLength={80}
+              autoFocus
+              disabled={isSaving}
+              placeholder="e.g. Bar"
+              onChange={(event) => {
+                setName(event.target.value)
+                if (error) setError('')
+              }}
+              aria-invalid={error ? 'true' : undefined}
+            />
+          </label>
+          {error ? (
+            <div className="staff-status-banner" role="alert">
+              {error}
+            </div>
+          ) : null}
+          <div className="modal-actions">
+            <button type="button" className="ghost-btn" onClick={handleDismiss} disabled={isSaving}>
+              Cancel
+            </button>
+            <button type="submit" className="primary-btn" disabled={isSaving}>
+              {isSaving ? 'Saving…' : 'Save department'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>,
+    document.body,
   )
 }
 
@@ -81,6 +294,8 @@ function StorageSummaryCard({ storage, selected = false, onSelect, showValue = t
  *   isSavingTransfer?: boolean,
  *   isSavingAdjustment?: boolean,
  *   loadSummaries?: typeof getWorkspaceStorageSummaries,
+ *   loadDepartments?: typeof listWorkspaceDepartments,
+ *   departmentActions?: typeof defaultDepartmentActions,
  * }} props
  */
 export function StockStorageCenter({
@@ -99,12 +314,23 @@ export function StockStorageCenter({
   isSavingTransfer = false,
   isSavingAdjustment = false,
   loadSummaries = getWorkspaceStorageSummaries,
+  loadDepartments = listWorkspaceDepartments,
+  departmentActions = defaultDepartmentActions,
 } = {}) {
   const [status, setStatus] = useState(/** @type {'loading'|'ready'|'empty'|'error'} */ ('loading'))
   const [errorMessage, setErrorMessage] = useState('')
   const [payload, setPayload] = useState(/** @type {Awaited<ReturnType<typeof getWorkspaceStorageSummaries>>|null} */ (null))
+  const [departmentCatalog, setDepartmentCatalog] = useState(
+    /** @type {{ available: boolean, departments: Array<{ id: string, name: string, active: boolean, sortOrder: number }> }|null} */ (null),
+  )
   const [selectedId, setSelectedId] = useState(/** @type {string|null} */ (null))
   const [reloadToken, setReloadToken] = useState(0)
+  const [departmentError, setDepartmentError] = useState('')
+  const [departmentBusy, setDepartmentBusy] = useState(false)
+  const [nameDialog, setNameDialog] = useState(
+    /** @type {null|{ mode: 'create' }|{ mode: 'rename', departmentId: string, name: string }} */ (null),
+  )
+  const [pendingArchiveId, setPendingArchiveId] = useState(/** @type {string|null} */ (null))
 
   useEffect(() => {
     let cancelled = false
@@ -113,18 +339,31 @@ export function StockStorageCenter({
     if (!workspaceKey) {
       setStatus('empty')
       setPayload(null)
+      setDepartmentCatalog(null)
       setErrorMessage('')
       return undefined
     }
 
     setStatus('loading')
     setErrorMessage('')
+    setDepartmentError('')
 
     ;(async () => {
       try {
         const next = await loadSummaries(workspaceKey)
         if (cancelled) return
+        let catalog = /** @type {{ available: boolean, departments: Array<{ id: string, name: string, active: boolean, sortOrder: number }> }|null} */ (null)
+        if (next.departmentsAvailable === true) {
+          try {
+            catalog = await loadDepartments(workspaceKey)
+          } catch (departmentLoadError) {
+            if (!isWorkspaceDepartmentSchemaMissing(departmentLoadError)) throw departmentLoadError
+            catalog = { available: false, departments: [] }
+          }
+        }
+        if (cancelled) return
         setPayload(next)
+        setDepartmentCatalog(catalog)
         setStatus(next.storages.length === 0 ? 'empty' : 'ready')
         setSelectedId((current) => {
           if (current && next.storages.some((storage) => storage.id === current)) return current
@@ -133,6 +372,7 @@ export function StockStorageCenter({
       } catch (error) {
         if (cancelled) return
         setPayload(null)
+        setDepartmentCatalog(null)
         setSelectedId(null)
         setStatus('error')
         setErrorMessage(error?.message || 'Unable to load storages right now.')
@@ -142,7 +382,7 @@ export function StockStorageCenter({
     return () => {
       cancelled = true
     }
-  }, [workspaceId, loadSummaries, reloadToken])
+  }, [workspaceId, loadSummaries, loadDepartments, reloadToken])
 
   const selectedStorage = useMemo(() => {
     if (!selectedId || !payload) return null
@@ -169,7 +409,44 @@ export function StockStorageCenter({
     })
   }, [payload, searchTerm, selectedStorage])
 
+  const departmentsReady = payload?.departmentsAvailable === true && departmentCatalog?.available === true
+  const showUnavailable = payload?.departmentsAvailable === false || departmentCatalog?.available === false
+  const departments = departmentCatalog?.departments ?? EMPTY_DEPARTMENTS
+
+  const departmentGroups = useMemo(() => {
+    if (!departmentsReady) return []
+    return groupActiveStoragesByDepartment({
+      storages: filteredActiveStorages,
+      departments,
+      includeEmptyDepartments: canManage && !`${searchTerm ?? ''}`.trim(),
+    })
+  }, [departmentsReady, filteredActiveStorages, departments, canManage, searchTerm])
+
   const summary = payload?.summary
+
+  const runDepartmentAction = async (action) => {
+    if (departmentBusy) return
+    setDepartmentError('')
+    setDepartmentBusy(true)
+    try {
+      await action()
+      setNameDialog(null)
+      setPendingArchiveId(null)
+      setReloadToken((token) => token + 1)
+    } catch (actionError) {
+      const message = actionError?.message || 'Unable to update departments right now.'
+      setDepartmentError(message)
+      throw actionError
+    } finally {
+      setDepartmentBusy(false)
+    }
+  }
+
+  const departmentNameById = useMemo(() => {
+    const names = new Map()
+    for (const department of departments) names.set(department.id, department.name)
+    return names
+  }, [departments])
 
   if (selectedStorage) {
     return (
@@ -194,6 +471,34 @@ export function StockStorageCenter({
     )
   }
 
+  const renderCard = (storage, { showDepartmentOnCard = false } = {}) => (
+    <StorageSummaryCard
+      key={storage.id}
+      storage={storage}
+      showValue={canManage}
+      selected={selectedId === storage.id}
+      departmentName={showDepartmentOnCard ? (departmentNameById.get(storage.departmentId) || '') : ''}
+      canAssign={canManage && departmentsReady}
+      departments={departments}
+      actionsDisabled={departmentBusy}
+      onSelect={(next) => setSelectedId(next.id)}
+      onAssignDepartment={(next, departmentId) => {
+        runDepartmentAction(() => departmentActions.assignStorageDepartment(
+          workspaceId,
+          next.id,
+          departmentId,
+        )).catch(() => {})
+      }}
+      onToggleSupply={(next) => {
+        runDepartmentAction(() => departmentActions.setStorageSupply(
+          workspaceId,
+          next.id,
+          next.isSupply !== true,
+        )).catch(() => {})
+      }}
+    />
+  )
+
   return (
     <section className="stock-storage-center-page" aria-label="Storages">
       <header className="stock-storage-center-header">
@@ -203,7 +508,32 @@ export function StockStorageCenter({
             Understand and manage stock by physical location.
           </p>
         </div>
+        {canManage && departmentsReady ? (
+          <div className="stock-department-toolbar">
+            <button
+              type="button"
+              className="stock-department-toolbar-btn"
+              data-action="new-department"
+              disabled={departmentBusy}
+              onClick={() => setNameDialog({ mode: 'create' })}
+            >
+              New department
+            </button>
+          </div>
+        ) : null}
       </header>
+
+      {showUnavailable && status !== 'loading' && status !== 'error' ? (
+        <div className="stock-department-banner" role="status" data-testid="stock-departments-unavailable">
+          {DEPARTMENTS_UNAVAILABLE_MESSAGE}
+        </div>
+      ) : null}
+
+      {departmentError ? (
+        <div className="stock-department-banner is-error" role="alert" data-testid="stock-department-error">
+          {departmentError}
+        </div>
+      ) : null}
 
       {status === 'ready' && summary ? (
         <div className="stock-storage-center-overview" role="status">
@@ -241,7 +571,7 @@ export function StockStorageCenter({
         </div>
       ) : null}
 
-      {status === 'empty' ? (
+      {status === 'empty' && departmentGroups.length === 0 ? (
         <div className="stock-storage-center-state" role="status" data-testid="stock-storage-center-empty">
           <p className="stock-storage-center-empty-title">No storages yet.</p>
           <p className="stock-storage-center-empty-copy">
@@ -250,26 +580,116 @@ export function StockStorageCenter({
         </div>
       ) : null}
 
-      {status === 'ready' && payload ? (
+      {payload && (status === 'ready' || departmentGroups.length > 0) ? (
         <div className="stock-storage-center-list">
-          <h3 className="stock-storage-center-section-title">Active</h3>
-          {filteredActiveStorages.length === 0 ? (
-            <p className="stock-storage-center-section-empty">
-              {`${searchTerm ?? ''}`.trim() ? 'No active storages match this search.' : 'No active storages.'}
-            </p>
-          ) : (
-            <div className="stock-storage-center-grid">
-              {filteredActiveStorages.map((storage) => (
-                <StorageSummaryCard
-                  key={storage.id}
-                  storage={storage}
-                  showValue={canManage}
-                  selected={selectedId === storage.id}
-                  onSelect={(next) => setSelectedId(next.id)}
-                />
-              ))}
-            </div>
-          )}
+          {departmentsReady ? (
+            departmentGroups.map((group) => (
+              <section
+                key={group.id}
+                className="stock-department-group"
+                data-department-group={group.id}
+                aria-label={group.name}
+              >
+                <div className="stock-department-group-header">
+                  <h3 className="stock-storage-center-section-title">
+                    {group.active ? group.name : `${group.name} · archived`}
+                  </h3>
+                  {canManage && !group.isUnassigned ? (
+                    <div className="stock-department-group-actions">
+                      <button
+                        type="button"
+                        className="stock-department-toolbar-btn"
+                        data-action="rename-department"
+                        disabled={departmentBusy}
+                        onClick={() => setNameDialog({
+                          mode: 'rename',
+                          departmentId: group.id,
+                          name: group.name,
+                        })}
+                      >
+                        Rename
+                      </button>
+                      {group.active ? (
+                        pendingArchiveId === group.id ? (
+                          <>
+                            <button
+                              type="button"
+                              className="stock-department-toolbar-btn"
+                              data-action="confirm-archive-department"
+                              disabled={departmentBusy}
+                              onClick={() => {
+                                runDepartmentAction(() => departmentActions.setDepartmentActive(
+                                  workspaceId,
+                                  group.id,
+                                  false,
+                                )).catch(() => {})
+                              }}
+                            >
+                              Confirm archive
+                            </button>
+                            <button
+                              type="button"
+                              className="stock-department-toolbar-btn"
+                              disabled={departmentBusy}
+                              onClick={() => setPendingArchiveId(null)}
+                            >
+                              Cancel
+                            </button>
+                          </>
+                        ) : (
+                          <button
+                            type="button"
+                            className="stock-department-toolbar-btn"
+                            data-action="archive-department"
+                            disabled={departmentBusy}
+                            onClick={() => setPendingArchiveId(group.id)}
+                          >
+                            Archive
+                          </button>
+                        )
+                      ) : (
+                        <button
+                          type="button"
+                          className="stock-department-toolbar-btn"
+                          data-action="restore-department"
+                          disabled={departmentBusy}
+                          onClick={() => {
+                            runDepartmentAction(() => departmentActions.setDepartmentActive(
+                              workspaceId,
+                              group.id,
+                              true,
+                            )).catch(() => {})
+                          }}
+                        >
+                          Restore
+                        </button>
+                      )}
+                    </div>
+                  ) : null}
+                </div>
+                {group.storages.length === 0 ? (
+                  <p className="stock-storage-center-section-empty">No storages in this department.</p>
+                ) : (
+                  <div className="stock-storage-center-grid">
+                    {group.storages.map((storage) => renderCard(storage))}
+                  </div>
+                )}
+              </section>
+            ))
+          ) : status === 'ready' ? (
+            <>
+              <h3 className="stock-storage-center-section-title">Active</h3>
+              {filteredActiveStorages.length === 0 ? (
+                <p className="stock-storage-center-section-empty">
+                  {`${searchTerm ?? ''}`.trim() ? 'No active storages match this search.' : 'No active storages.'}
+                </p>
+              ) : (
+                <div className="stock-storage-center-grid">
+                  {filteredActiveStorages.map((storage) => renderCard(storage))}
+                </div>
+              )}
+            </>
+          ) : null}
 
           {payload.archivedStorages.length > 0 ? (
             <div className="stock-storage-center-archived">
@@ -278,20 +698,36 @@ export function StockStorageCenter({
                 <p className="stock-storage-center-section-empty">No archived storages match this search.</p>
               ) : (
                 <div className="stock-storage-center-grid is-archived">
-                  {filteredArchivedStorages.map((storage) => (
-                    <StorageSummaryCard
-                      key={storage.id}
-                      storage={storage}
-                      showValue={canManage}
-                      selected={selectedId === storage.id}
-                      onSelect={(next) => setSelectedId(next.id)}
-                    />
-                  ))}
+                  {filteredArchivedStorages.map((storage) => renderCard(storage, {
+                    showDepartmentOnCard: departmentsReady,
+                  }))}
                 </div>
               )}
             </div>
           ) : null}
         </div>
+      ) : null}
+
+      {nameDialog ? (
+        <DepartmentNameDialog
+          mode={nameDialog.mode}
+          initialName={nameDialog.mode === 'rename' ? nameDialog.name : ''}
+          onClose={() => {
+            if (departmentBusy) return
+            setNameDialog(null)
+          }}
+          onSubmit={async (name) => {
+            if (nameDialog.mode === 'rename') {
+              await runDepartmentAction(() => departmentActions.renameDepartment(
+                workspaceId,
+                nameDialog.departmentId,
+                name,
+              ))
+              return
+            }
+            await runDepartmentAction(() => departmentActions.createDepartment(workspaceId, name))
+          }}
+        />
       ) : null}
     </section>
   )

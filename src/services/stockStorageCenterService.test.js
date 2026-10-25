@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { WORKSPACE_STORAGE_LIST_COLUMNS } from './workspaceStorageService.js'
 import {
   buildStorageProductRows,
   buildWorkspaceStorageSummaries,
@@ -9,6 +10,7 @@ import {
   STOCK_STORAGE_CENTER_BALANCE_COLUMNS,
   STOCK_STORAGE_CENTER_COST_COLUMNS,
   STOCK_STORAGE_PRODUCT_ITEM_COLUMNS,
+  WORKSPACE_STORAGE_DEPARTMENT_COLUMNS,
 } from './stockStorageCenterService.js'
 
 const { fromMock } = vi.hoisted(() => ({
@@ -70,6 +72,66 @@ describe('buildWorkspaceStorageSummaries', () => {
       totalProductsWithBalances: 3,
       totalQuantity: 15,
     })
+    expect(result.storages[0]).toMatchObject({
+      departmentId: null,
+      isSupply: false,
+      totalQuantity: 10,
+    })
+  })
+
+  it('keeps quantity totals when storages carry a department and several supply flags', () => {
+    const result = buildWorkspaceStorageSummaries({
+      storages: [
+        {
+          id: 's-soft',
+          locationKey: 'Soft drinks',
+          name: 'Soft drinks',
+          active: true,
+          sortOrder: 0,
+          departmentId: null,
+          isSupply: true,
+        },
+        {
+          id: 's-spirits',
+          locationKey: 'Spirits',
+          name: 'Spirits',
+          active: true,
+          sortOrder: 1,
+          departmentId: 'd-bar',
+          isSupply: true,
+        },
+        {
+          id: 's-back',
+          locationKey: 'Back bar',
+          name: 'Back bar',
+          active: true,
+          sortOrder: 2,
+          department_id: 'd-bar',
+          is_supply: false,
+        },
+      ],
+      balances: [
+        { workspace_storage_id: 's-soft', stock_item_id: 'cola', quantity: 9 },
+        { workspace_storage_id: 's-spirits', stock_item_id: 'vodka', quantity: 4 },
+        { workspace_storage_id: 's-back', stock_item_id: 'cola', quantity: 1 },
+      ],
+      costByItemId: { cola: 2, vodka: 10 },
+    })
+
+    expect(result.storages.map((storage) => [storage.id, storage.departmentId, storage.isSupply]))
+      .toEqual([
+        ['s-soft', null, true],
+        ['s-spirits', 'd-bar', true],
+        ['s-back', 'd-bar', false],
+      ])
+    expect(result.summary).toEqual({
+      activeStorageCount: 3,
+      archivedStorageCount: 0,
+      totalProductsWithBalances: 2,
+      totalQuantity: 14,
+    })
+    expect(result.storages[0].inventoryValue).toBe(18)
+    expect(result.storages[1].inventoryValue).toBe(40)
   })
 
   it('returns graceful empty aggregates', () => {
@@ -94,6 +156,8 @@ describe('getWorkspaceStorageSummaries', () => {
           name: 'Main Storage',
           active: true,
           sort_order: 1,
+          department_id: 'd-1',
+          is_supply: true,
         },
       ],
       error: null,
@@ -134,12 +198,60 @@ describe('getWorkspaceStorageSummaries', () => {
       productCount: 1,
       totalQuantity: 4,
       inventoryValue: 10,
+      departmentId: 'd-1',
+      isSupply: true,
     })
+    expect(storagesQuery.select).toHaveBeenCalledWith(WORKSPACE_STORAGE_DEPARTMENT_COLUMNS)
+    expect(result.departmentsAvailable).toBe(true)
     expect(fromMock.mock.calls.every(([table]) => (
       table === 'workspace_storages'
       || table === 'stock_item_location_balances'
       || table === 'stock_items'
     ))).toBe(true)
+  })
+
+  it('falls back to the narrow storage select when department columns are missing', async () => {
+    const narrowQuery = createQuery({
+      data: [{
+        id: 's-main',
+        workspace_id: 'ws-1',
+        location_key: 'Bar',
+        name: 'Bar',
+        active: true,
+        sort_order: 0,
+      }],
+      error: null,
+    })
+    const extendedQuery = createQuery({
+      data: null,
+      error: {
+        code: 'PGRST204',
+        message: "Could not find the 'department_id' column of 'workspace_storages' in the schema cache",
+      },
+    })
+    const balancesQuery = createQuery({ data: [], error: null })
+    const storagesQuery = {
+      select: vi.fn((columns) => (
+        `${columns}`.includes('department_id') ? extendedQuery : narrowQuery
+      )),
+    }
+
+    fromMock.mockImplementation((table) => {
+      if (table === 'workspace_storages') return storagesQuery
+      if (table === 'stock_item_location_balances') return balancesQuery
+      throw new Error(`unexpected table ${table}`)
+    })
+
+    const result = await getWorkspaceStorageSummaries('ws-1')
+    expect(result.departmentsAvailable).toBe(false)
+    expect(result.storages[0]).toMatchObject({
+      name: 'Bar',
+      departmentId: null,
+      isSupply: false,
+      totalQuantity: 0,
+    })
+    expect(storagesQuery.select).toHaveBeenCalledWith(WORKSPACE_STORAGE_LIST_COLUMNS)
+    expect(narrowQuery.eq).toHaveBeenCalledWith('workspace_id', 'ws-1')
   })
 
   it('requires workspace id and propagates server errors', async () => {

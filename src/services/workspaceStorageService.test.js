@@ -61,6 +61,23 @@ describe('mapWorkspaceStorage', () => {
       sortOrder: 2,
     })
   })
+
+  it('carries department and supply fields only when the row includes them', () => {
+    expect(mapWorkspaceStorage({
+      id: 'st-2',
+      workspace_id: 'ws-1',
+      location_key: 'Soft drinks',
+      name: 'Soft drinks',
+      active: true,
+      sort_order: 1,
+      department_id: null,
+      is_supply: true,
+    })).toMatchObject({
+      locationKey: 'Soft drinks',
+      departmentId: null,
+      isSupply: true,
+    })
+  })
 })
 
 describe('normalizeWorkspaceStorageLocationKey', () => {

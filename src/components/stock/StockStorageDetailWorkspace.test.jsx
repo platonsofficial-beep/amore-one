@@ -18,14 +18,18 @@ vi.mock('./StockProductHistoryDrawer.jsx', () => ({
   ),
 }))
 
-vi.mock('../../services/workspaceStorageService', () => ({
-  listWorkspaceStorages: vi.fn(async () => ([
-    { id: 'stor-main', name: 'Main Storage', locationKey: 'Main Storage', active: true },
-    { id: 'stor-bar', name: 'Bar', locationKey: 'Bar', active: true },
-    { id: 'stor-freezer', name: 'Freezer', locationKey: 'Freezer', active: true },
-    { id: 'stor-old', name: 'Old Cellar', locationKey: 'Old Cellar', active: false },
-  ])),
-}))
+vi.mock('../../services/workspaceStorageService', async (importOriginal) => {
+  const actual = await importOriginal()
+  return {
+    ...actual,
+    listWorkspaceStorages: vi.fn(async () => ([
+      { id: 'stor-main', name: 'Main Storage', locationKey: 'Main Storage', active: true },
+      { id: 'stor-bar', name: 'Bar', locationKey: 'Bar', active: true },
+      { id: 'stor-freezer', name: 'Freezer', locationKey: 'Freezer', active: true },
+      { id: 'stor-old', name: 'Old Cellar', locationKey: 'Old Cellar', active: false },
+    ])),
+  }
+})
 
 vi.mock('../../services/stockLocationBalanceService', () => ({
   getStockItemLocationBalances: vi.fn(async () => ([
