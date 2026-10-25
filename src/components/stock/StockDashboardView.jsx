@@ -2010,6 +2010,7 @@ export function StockDashboardView({
           item={activeHistoryItem}
           workspaceId={workspaceId}
           canManage={canManage}
+          showCost={canManage}
           onClose={() => setHistoryItem(null)}
           onReceive={() => {
             const item = activeHistoryItem

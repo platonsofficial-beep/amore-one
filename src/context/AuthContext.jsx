@@ -58,6 +58,12 @@ const DEV_MOCK_WORKSPACE = {
   updatedAt: null,
 }
 
+function resolveDevMockRole() {
+  if (typeof window === 'undefined') return 'owner'
+  const requested = new URLSearchParams(window.location.search).get('devRole')
+  return normalizeWorkspaceRole(requested, 'owner')
+}
+
 function buildDevMembership(displayName = '') {
   const trimmedName = `${displayName ?? ''}`.trim()
 
@@ -68,7 +74,8 @@ function buildDevMembership(displayName = '') {
     employeeId: null,
     displayName: trimmedName || 'Development user',
     email: DEV_MOCK_USER.email,
-    role: 'owner',
+    // Local auth-disabled sessions only. ?devRole=staff previews a non-manager.
+    role: resolveDevMockRole(),
     createdAt: null,
     lastSeenAt: null,
   }

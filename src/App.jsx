@@ -553,6 +553,7 @@ import { WorkspaceView } from './components/workspace/WorkspaceView'
 import { createDefaultSeatingForm } from './components/workspace/WorkspaceReservationSeatingsSection'
 import { AccessRestrictedView } from './components/auth/AccessRestrictedView'
 import { ModuleSectionTabs } from './components/shell/ModuleSectionTabs'
+import { StockSectionNav } from './components/shell/StockSectionNav'
 import { UserMenu } from './components/auth/UserMenu'
 import { MobileManagerApp } from './components/mobile/MobileManagerApp'
 import { MobileStaffApp } from './components/mobile/MobileStaffApp'
@@ -587,7 +588,6 @@ import { useAuth } from './context/AuthContext'
 import {
   NAV_ITEMS,
   OPERATIONS_SECTIONS,
-  STOCK_SECTIONS,
   TEAM_SECTIONS,
   getDefaultTeamSection,
   getModuleSubtitle,
@@ -601,6 +601,10 @@ import {
   shouldShowModuleSearch,
   shouldUseCommandTopbar,
 } from './lib/appNavigation'
+import {
+  resolvePermittedStockSection,
+  resolveStockSectionNav,
+} from './lib/stockSectionNav'
 import {
   canAccessModule,
   canAccessTeamSection,
@@ -15936,6 +15940,14 @@ function App() {
     () => canManageStock(role),
     [role],
   )
+  const stockAccessReady = !isAuthLoading && !isAuthBootstrapping
+  const stockSectionNav = useMemo(
+    () => resolveStockSectionNav({
+      canManage: stockAccessReady ? canManageStockRole : true,
+      compactPhone: useMobileExperience,
+    }),
+    [stockAccessReady, canManageStockRole, useMobileExperience],
+  )
 
   const canManageOperationsRole = useMemo(
     () => canManageOperations(role),
@@ -16165,15 +16177,33 @@ function App() {
   }, [role, activeView, settingsSection, stockSection, operationsSection, isEmployeeModalOpen, handleCloseEmployeeModal])
 
   const handleStockSectionChange = useCallback((nextSection) => {
-    setStockSection(nextSection)
+    const permitted = stockAccessReady
+      ? resolvePermittedStockSection(nextSection, canManageStockRole)
+      : nextSection
+    setStockSection(permitted)
     persistNavigation({
       activeView,
       settingsSection,
       teamSection,
-      stockSection: nextSection,
+      stockSection: permitted,
       operationsSection,
     })
-  }, [activeView, settingsSection, teamSection, operationsSection])
+  }, [
+    activeView,
+    settingsSection,
+    teamSection,
+    operationsSection,
+    stockAccessReady,
+    canManageStockRole,
+  ])
+
+  useEffect(() => {
+    if (!stockAccessReady) return
+    const permitted = resolvePermittedStockSection(stockSection, canManageStockRole)
+    if (permitted !== stockSection) {
+      handleStockSectionChange(permitted)
+    }
+  }, [stockAccessReady, stockSection, canManageStockRole, handleStockSectionChange])
 
   const handleOpenStockOrders = useCallback((statusFilter = 'all') => {
     if (statusFilter && statusFilter !== 'all') {
@@ -24057,7 +24087,7 @@ function App() {
     if (!canAccessMobileExpandedModule(role, 'stock')) return
 
     handleActiveViewChange('stock')
-    handleStockSectionChange('dashboard')
+    handleStockSectionChange('count')
     setMobileExpandedView('workspace')
   }, [role, handleActiveViewChange, handleStockSectionChange])
 
@@ -24261,11 +24291,11 @@ function App() {
         ) : null}
 
         {activeView === 'stock' && isActiveViewAllowed ? (
-          <ModuleSectionTabs
-            sections={STOCK_SECTIONS}
+          <StockSectionNav
+            primary={stockSectionNav.primary}
+            overflow={stockSectionNav.overflow}
             activeSection={stockSection}
             onSectionChange={handleStockSectionChange}
-            ariaLabel="Stock sections"
           />
         ) : null}
 
@@ -24519,6 +24549,7 @@ function App() {
           <InventoryCountView
             initialOpenSessionId={inventoryCountOpenSessionId}
             onInitialOpenSessionApplied={handleInventoryCountOpenSessionApplied}
+            canManage={canManageStockRole}
           />
         ) : null}
 

@@ -486,10 +486,12 @@ export function StockStorageDetailWorkspace({
             <dt>Quantity</dt>
             <dd>{formatStockQuantity(headerQuantity)}</dd>
           </div>
-          <div>
-            <dt>Inventory value</dt>
-            <dd>{formatStockInventoryValue(headerValue)}</dd>
-          </div>
+          {canManage ? (
+            <div>
+              <dt>Inventory value</dt>
+              <dd>{formatStockInventoryValue(headerValue)}</dd>
+            </div>
+          ) : null}
         </dl>
         <StockStorageDetailActionBar
           storage={storage}
@@ -605,6 +607,7 @@ export function StockStorageDetailWorkspace({
           item={historyItem}
           workspaceId={workspaceId}
           canManage={false}
+          showCost={canManage}
           onClose={() => setHistoryItem(null)}
         />
       ) : null}

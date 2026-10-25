@@ -280,7 +280,7 @@ function formatReceivedOrderDifference(ordered, received, unit) {
   }
 }
 
-function ReceivedOrderItem({ item }) {
+function ReceivedOrderItem({ item, showCost = true }) {
   const ordered = Number(item.quantity) || 0
   const received = getOrderLineReceivedQuantity(item)
   const summary = formatStockOrderLineSummary(item)
@@ -290,7 +290,7 @@ function ReceivedOrderItem({ item }) {
     <article className="stock-order-detail-line stock-order-completed-line is-received">
       <div className="stock-order-detail-line-copy">
         <strong>{item.itemName}</strong>
-        <span>{summary.headline}</span>
+        <span>{showCost ? summary.headline : formatStockQuantity(ordered, item.unit)}</span>
       </div>
 
       <ReceiveProgressBar received={received} ordered={ordered} unit={item.unit} />
@@ -315,12 +315,12 @@ function ReceivedOrderItem({ item }) {
         </div>
       </dl>
 
-      <span className="stock-order-detail-line-total">{summary.total}</span>
+      {showCost ? <span className="stock-order-detail-line-total">{summary.total}</span> : null}
     </article>
   )
 }
 
-function CompletedOrderItem({ item }) {
+function CompletedOrderItem({ item, showCost = true }) {
   const ordered = Number(item.quantity) || 0
   const received = getOrderLineReceivedQuantity(item)
   const remaining = getOrderLineRemainingQuantity(item)
@@ -331,7 +331,7 @@ function CompletedOrderItem({ item }) {
     <article className="stock-order-detail-line stock-order-completed-line">
       <div className="stock-order-detail-line-copy">
         <strong>{item.itemName}</strong>
-        <span>{summary.headline}</span>
+        <span>{showCost ? summary.headline : formatStockQuantity(ordered, item.unit)}</span>
       </div>
 
       <dl className="stock-order-receive-metrics">
@@ -359,7 +359,7 @@ function CompletedOrderItem({ item }) {
         </p>
       ) : null}
 
-      <span className="stock-order-detail-line-total">{summary.total}</span>
+      {showCost ? <span className="stock-order-detail-line-total">{summary.total}</span> : null}
     </article>
   )
 }
@@ -782,10 +782,12 @@ export function StockOrderDetailDrawer({
                   <dt>Products</dt>
                   <dd>{displayItems.length}</dd>
                 </div>
-                <div className="stock-product-history-overview-row">
-                  <dt>{isReceived ? 'Final total' : 'Estimated total'}</dt>
-                  <dd>{formatStockPurchasePrice(isEditable ? totalCost : order.totalCost)}</dd>
-                </div>
+                {canManage ? (
+                  <div className="stock-product-history-overview-row">
+                    <dt>{isReceived ? 'Final total' : 'Estimated total'}</dt>
+                    <dd>{formatStockPurchasePrice(isEditable ? totalCost : order.totalCost)}</dd>
+                  </div>
+                ) : null}
                 {showReceivingMode || isReceived ? (
                   <>
                     <div className="stock-product-history-overview-row">
@@ -855,11 +857,11 @@ export function StockOrderDetailDrawer({
                 )) : null}
 
                 {isReceived ? displayItems.map((item) => (
-                  <ReceivedOrderItem key={item.id} item={item} />
+                  <ReceivedOrderItem key={item.id} item={item} showCost={canManage} />
                 )) : null}
 
                 {!isEditable && !showReceivingMode && !isReceived ? displayItems.map((item) => (
-                  <CompletedOrderItem key={item.id} item={item} />
+                  <CompletedOrderItem key={item.id} item={item} showCost={canManage} />
                 )) : null}
               </div>
             </section>

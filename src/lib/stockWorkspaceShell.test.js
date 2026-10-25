@@ -30,7 +30,9 @@ describe('Stock full-screen workspace shell wiring', () => {
     expect(appSource).toContain('className="stock-focus-header"')
     expect(appSource).toContain('stock-focus-search')
     expect(appSource).toContain("activeView === 'stock' && stockSection === 'dashboard'")
-    expect(appSource).toContain('sections={STOCK_SECTIONS}')
+    expect(appSource).toContain('<StockSectionNav')
+    expect(appSource).toContain('resolveStockSectionNav')
+    expect(appSource).toContain("handleStockSectionChange('count')")
   })
 
   it('does not use browser history back for Exit Stock', () => {

@@ -1,4 +1,4 @@
-import { computeSuggestedOrder, itemNeedsOrder } from './stockCatalog'
+import { computeSuggestedOrder, itemNeedsOrder, resolveStockParQuantity } from './stockCatalog'
 import { getCurrentDateKey } from './currentDateUtils'
 import { formatInventoryUnit } from './inventoryUnitDisplay'
 import { formatTimestampTime24 } from './timeFormatUtils'
@@ -13,15 +13,36 @@ export const STOCK_MOVEMENT_TYPES = ['receive', 'usage', 'adjustment', 'stock_co
 
 /**
  * Quantity health only (out / low / ok). Ignores active/inactive lifecycle.
- * Used when Status and Visibility filters must compose independently.
+ * Low uses the same par as To order: positive target, otherwise minimum.
+ * Out stays on-hand <= 0 so an empty item is not also labeled low.
  */
 export function resolveStockItemQuantityStatus(item) {
   const quantity = Number(item?.currentQuantity ?? item?.current_quantity ?? 0)
-  const minimum = Number(item?.minimumQuantity ?? item?.minimum_quantity ?? 0)
 
-  if (quantity <= 0) return 'out'
-  if (quantity < minimum) return 'low'
+  if (!Number.isFinite(quantity) || quantity <= 0) return 'out'
+  const par = resolveStockParQuantity(item)
+  if (par > 0 && quantity < par) return 'low'
   return 'ok'
+}
+
+/**
+ * Usage ceiling for the movement modal.
+ * A selected storage must use that location's balance. Null means the
+ * location balance is unknown — do not fall back to global on-hand.
+ * With no storage, the ceiling is global on-hand.
+ */
+export function resolveStockUsageCeiling({
+  destinationStorage = null,
+  balanceQuantity = null,
+  currentQuantity = 0,
+} = {}) {
+  if (destinationStorage) {
+    if (balanceQuantity == null || balanceQuantity === '') return null
+    const locationBalance = Number(balanceQuantity)
+    return Number.isFinite(locationBalance) ? locationBalance : null
+  }
+  const onHand = Number(currentQuantity)
+  return Number.isFinite(onHand) ? onHand : 0
 }
 
 export function resolveStockItemStatus(item) {

@@ -79,7 +79,7 @@ function StockOrderSortDropdown({ value, options, onChange }) {
   )
 }
 
-function StockOrderCard({ order, onOpen }) {
+function StockOrderCard({ order, onOpen, showCost = true }) {
   const status = normalizeStockOrderStatus(order.status)
   const statusTone = getStockOrderStatusTone(order.status)
   const nextAction = getStockOrderNextAction(order)
@@ -123,12 +123,14 @@ function StockOrderCard({ order, onOpen }) {
           <span className="stock-order-card-stat-label">Products</span>
           <span className="stock-order-card-stat-value">{itemCount}</span>
         </div>
-        <div className="stock-order-card-stat">
-          <span className="stock-order-card-stat-label">Est. total</span>
-          <span className="stock-order-card-stat-value stock-order-card-stat-value-gold">
-            {formatStockPurchasePrice(order.totalCost)}
-          </span>
-        </div>
+        {showCost ? (
+          <div className="stock-order-card-stat">
+            <span className="stock-order-card-stat-label">Est. total</span>
+            <span className="stock-order-card-stat-value stock-order-card-stat-value-gold">
+              {formatStockPurchasePrice(order.totalCost)}
+            </span>
+          </div>
+        ) : null}
       </div>
 
       <div className="stock-order-card-footer-meta">
@@ -325,6 +327,7 @@ export function StockOrdersView({
             <StockOrderCard
               key={order.id}
               order={order}
+              showCost={canManage}
               onOpen={setSelectedOrder}
             />
           ))}

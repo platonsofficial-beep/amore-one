@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { computeSuggestedOrder, itemNeedsOrder, resolveStockParQuantity } from './stockCatalog'
 import {
   buildStockDashboardSummary,
   buildStockManagerDailySnapshot,
@@ -9,6 +10,7 @@ import {
   resolveDashboardStockAlerts,
   resolveStockItemQuantityStatus,
   resolveStockItemStatus,
+  resolveStockUsageCeiling,
 } from './stockUtils'
 
 const TODAY = '2026-07-08'
@@ -61,8 +63,71 @@ describe('stockUtils', () => {
 
     expect(summary.totalItems).toBe(4)
     expect(summary.outOfStock).toBe(1)
-    expect(summary.lowStock).toBe(1)
+    expect(summary.lowStock).toBe(2)
     expect(summary.toOrder).toBe(3)
+  })
+
+  it('uses one par for low stock and suggested order quantity', () => {
+    const targetWins = makeItem({
+      currentQuantity: 20,
+      minimumQuantity: 10,
+      targetQuantity: 25,
+    })
+    const minimumOnly = makeItem({
+      currentQuantity: 8,
+      minimumQuantity: 10,
+    })
+    const aboveTarget = makeItem({
+      currentQuantity: 8,
+      minimumQuantity: 10,
+      targetQuantity: 6,
+    })
+    const out = makeItem({
+      currentQuantity: 0,
+      minimumQuantity: 2,
+      targetQuantity: 5,
+    })
+
+    expect(resolveStockParQuantity(targetWins)).toBe(25)
+    expect(resolveStockItemQuantityStatus(targetWins)).toBe('low')
+    expect(itemNeedsOrder(targetWins)).toBe(true)
+    expect(computeSuggestedOrder(targetWins)).toBe(5)
+
+    expect(resolveStockParQuantity(minimumOnly)).toBe(10)
+    expect(resolveStockItemQuantityStatus(minimumOnly)).toBe('low')
+    expect(computeSuggestedOrder(minimumOnly)).toBe(2)
+
+    expect(resolveStockParQuantity(aboveTarget)).toBe(6)
+    expect(resolveStockItemQuantityStatus(aboveTarget)).toBe('ok')
+    expect(itemNeedsOrder(aboveTarget)).toBe(false)
+    expect(computeSuggestedOrder(aboveTarget)).toBe(0)
+
+    expect(resolveStockItemQuantityStatus(out)).toBe('out')
+    expect(computeSuggestedOrder(out)).toBe(5)
+  })
+
+  it('validates usage against the selected storage balance', () => {
+    expect(resolveStockUsageCeiling({
+      currentQuantity: 10,
+    })).toBe(10)
+
+    expect(resolveStockUsageCeiling({
+      destinationStorage: { id: 'bar' },
+      balanceQuantity: 2,
+      currentQuantity: 10,
+    })).toBe(2)
+
+    expect(resolveStockUsageCeiling({
+      destinationStorage: { id: 'bar' },
+      balanceQuantity: 0,
+      currentQuantity: 10,
+    })).toBe(0)
+
+    expect(resolveStockUsageCeiling({
+      destinationStorage: { id: 'bar' },
+      balanceQuantity: null,
+      currentQuantity: 10,
+    })).toBeNull()
   })
 
   it('maps stock module alerts with out items ranked before low items', () => {

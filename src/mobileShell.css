@@ -3345,7 +3345,7 @@
 
 .mobile-manager-stock-chip {
   flex: 0 0 auto;
-  min-height: 30px;
+  min-height: 44px;
   padding: 0 11px;
   border: 0;
   border-radius: 999px;
@@ -3366,8 +3366,8 @@
 
 .mobile-manager-app .mobile-manager-stock-action-bar {
   position: fixed;
-  left: 14px;
-  right: 14px;
+  left: max(14px, env(safe-area-inset-left, 0px));
+  right: max(14px, env(safe-area-inset-right, 0px));
   bottom: calc(66px + env(safe-area-inset-bottom, 0px));
   z-index: 6;
   display: grid;
@@ -4120,6 +4120,75 @@
   overflow-y: hidden;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
+}
+
+.app-shell.is-mobile-shell.is-mobile-expanded .stock-section-nav {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin: 0 0 10px;
+  padding: 4px;
+  min-width: 0;
+}
+
+.app-shell.is-mobile-shell.is-mobile-expanded .stock-section-nav .module-section-tabs {
+  flex: 1 1 auto;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  gap: 6px;
+}
+
+.app-shell.is-mobile-shell.is-mobile-expanded .stock-section-nav .module-section-tabs .module-section-tab {
+  flex: 1 1 auto;
+  min-width: max-content;
+  padding-inline: 12px;
+}
+
+.app-shell.is-mobile-shell .stock-section-more {
+  position: relative;
+  flex: 0 0 auto;
+}
+
+.app-shell.is-mobile-shell .stock-section-more-btn {
+  flex: 0 0 auto;
+  min-width: 64px;
+}
+
+.app-shell.is-mobile-shell .stock-section-more-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 220px;
+  padding: 6px;
+  border-radius: 16px;
+  border: 1px solid rgba(212, 175, 55, 0.18);
+  background: rgba(16, 16, 18, 0.98);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4);
+}
+
+.app-shell.is-mobile-shell .stock-section-more-item {
+  min-height: 44px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  color: #f3e6cf;
+  font: inherit;
+  font-size: 0.9rem;
+  text-align: left;
+  cursor: pointer;
+}
+
+.app-shell.is-mobile-shell .stock-section-more-item.active {
+  color: #1a1204;
+  background: linear-gradient(135deg, #f3d28d 0%, #c9982d 100%);
 }
 
 .app-shell.is-mobile-expanded .module-section-tabs::-webkit-scrollbar {

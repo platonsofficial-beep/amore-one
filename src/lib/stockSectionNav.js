@@ -1,0 +1,48 @@
+import { STOCK_SECTIONS } from './appNavigation'
+
+/** Phone stock row. The rest stay reachable from More. */
+export const STOCK_PHONE_PRIMARY_SECTION_IDS = ['dashboard', 'count', 'storages', 'orders']
+
+/** RPCs and legacy tools that staff cannot use. */
+export const STOCK_MANAGER_ONLY_SECTION_IDS = ['inventory', 'migration']
+
+const STOCK_PHONE_OVERFLOW_ORDER = ['suppliers', 'inventory', 'migration']
+
+export function isStockSectionVisible(sectionId, canManage) {
+  if (!canManage && STOCK_MANAGER_ONLY_SECTION_IDS.includes(sectionId)) return false
+  return STOCK_SECTIONS.some((section) => section.id === sectionId)
+}
+
+export function resolvePermittedStockSection(sectionId, canManage) {
+  return isStockSectionVisible(sectionId, canManage) ? sectionId : 'dashboard'
+}
+
+/**
+ * Managers on iPad/desktop keep every stock section.
+ * Staff never see Legacy Inventory or Import & Migration.
+ * Compact phone layouts keep four primary tabs on one row and park the rest in More.
+ */
+export function resolveStockSectionNav({ canManage = false, compactPhone = false } = {}) {
+  const visible = STOCK_SECTIONS.filter((section) => isStockSectionVisible(section.id, canManage))
+
+  if (!compactPhone) {
+    return { primary: visible, overflow: [] }
+  }
+
+  const primary = STOCK_PHONE_PRIMARY_SECTION_IDS
+    .map((id) => visible.find((section) => section.id === id))
+    .filter(Boolean)
+    .map((section) => (
+      section.id === 'count'
+        ? { ...section, label: 'Count' }
+        : section
+    ))
+
+  const overflow = STOCK_PHONE_OVERFLOW_ORDER
+    .filter((id) => visible.some((section) => section.id === id))
+    .filter((id) => !STOCK_PHONE_PRIMARY_SECTION_IDS.includes(id))
+    .map((id) => visible.find((section) => section.id === id))
+    .filter(Boolean)
+
+  return { primary, overflow }
+}

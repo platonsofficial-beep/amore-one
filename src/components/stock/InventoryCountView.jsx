@@ -179,25 +179,27 @@ function InventoryCountSessionCard({
   onDelete,
   busyAction,
   actionError,
+  canManage = true,
 }) {
   const isCountingComplete = session.status === 'counting_complete'
   const isPosted = session.status === 'posted'
   const canOpenActive = OPENABLE_STATUSES.has(session.status) && !isCountingComplete
-  const canOpen = canOpenActive || isPosted
+  const canOpen = canManage && (canOpenActive || isPosted)
   const isBusy = Boolean(busyAction)
   const displayStatusLabel = formatInventoryCountSessionStatusLabel(session)
 
   if (isCountingComplete) {
     return (
       <div
-        className={`inventory-count-session-card is-${session.status} has-actions`}
+        className={`inventory-count-session-card is-${session.status}${canManage ? ' has-actions' : ''}`}
         aria-label={`${session.countTypeLabel}, ${displayStatusLabel}`}
       >
         <InventoryCountSessionCardMeta
           session={session}
-          onDelete={onDelete}
+          onDelete={canManage ? onDelete : undefined}
           deleteDisabled={isBusy}
         />
+        {canManage ? (
         <div className="inventory-count-session-card-actions">
           <button
             type="button"
@@ -224,6 +226,7 @@ function InventoryCountSessionCard({
             {busyAction === 'cancel' ? 'Cancelling…' : 'Cancel Count'}
           </button>
         </div>
+        ) : null}
         {actionError ? (
           <p className="inventory-count-session-card-error" role="alert">{actionError}</p>
         ) : null}
@@ -252,7 +255,7 @@ function InventoryCountSessionCard({
     >
       <InventoryCountSessionCardMeta
         session={session}
-        onDelete={onDelete}
+        onDelete={canManage ? onDelete : undefined}
         deleteDisabled={isBusy}
       />
       {actionError ? (
@@ -276,6 +279,7 @@ function InventoryCountSessionPanel({
   busySessionId,
   busyAction,
   actionErrors,
+  canManage = true,
 }) {
   const hasSessions = sessions.length > 0
 
@@ -297,6 +301,7 @@ function InventoryCountSessionPanel({
                 onDelete={onDeleteSession}
                 busyAction={busySessionId === session.id ? busyAction : ''}
                 actionError={actionErrors?.[session.id] || ''}
+                canManage={canManage}
               />
             </div>
           ))}
@@ -314,6 +319,7 @@ function InventoryCountSessionPanel({
 export function InventoryCountView({
   initialOpenSessionId = null,
   onInitialOpenSessionApplied,
+  canManage = true,
 } = {}) {
   const { workspace } = useAuth()
   const workspaceId = `${workspace?.id ?? ''}`.trim()
@@ -372,6 +378,14 @@ export function InventoryCountView({
   }, [loadHomeSessions])
 
   useEffect(() => {
+    if (!canManage) {
+      if (`${initialOpenSessionId ?? ''}`.trim()) {
+        onInitialOpenSessionApplied?.()
+      }
+      pendingOpenSessionIdRef.current = ''
+      return undefined
+    }
+
     const fromProp = `${initialOpenSessionId ?? ''}`.trim()
     if (fromProp) {
       pendingOpenSessionIdRef.current = fromProp
@@ -450,6 +464,7 @@ export function InventoryCountView({
       cancelled = true
     }
   }, [
+    canManage,
     initialOpenSessionId,
     workspaceId,
     loadHomeSessions,
@@ -473,6 +488,7 @@ export function InventoryCountView({
   }
 
   const openSession = (session) => {
+    if (!canManage) return
     const sessionId = `${session?.id ?? ''}`.trim()
     const nextWorkspaceId = `${session?.workspaceId ?? workspaceId}`.trim()
     if (!sessionId || !nextWorkspaceId) return
@@ -490,6 +506,7 @@ export function InventoryCountView({
   }
 
   const openPostedReview = (session) => {
+    if (!canManage) return
     const sessionId = `${session?.id ?? ''}`.trim()
     const nextWorkspaceId = `${session?.workspaceId ?? workspaceId}`.trim()
     if (!sessionId || !nextWorkspaceId) return
@@ -556,6 +573,7 @@ export function InventoryCountView({
   }
 
   const handlePostSession = async (session) => {
+    if (!canManage) return
     const sessionId = `${session?.id ?? ''}`.trim()
     const nextWorkspaceId = `${session?.workspaceId ?? workspaceId}`.trim()
     if (!sessionId || !nextWorkspaceId || busySessionId) return
@@ -593,6 +611,7 @@ export function InventoryCountView({
   }
 
   const handleCancelSession = async (session) => {
+    if (!canManage) return
     const sessionId = `${session?.id ?? ''}`.trim()
     const nextWorkspaceId = `${session?.workspaceId ?? workspaceId}`.trim()
     if (!sessionId || !nextWorkspaceId || busySessionId) return
@@ -623,6 +642,7 @@ export function InventoryCountView({
   }
 
   const handleRequestDeleteSession = (session) => {
+    if (!canManage) return
     const sessionId = `${session?.id ?? ''}`.trim()
     if (!sessionId || busySessionId) return
     // P8.22.1: posted sessions are not deletable (server also enforces).
@@ -708,13 +728,15 @@ export function InventoryCountView({
             Count inventory by location, review variances, and post verified stock levels.
           </p>
         </div>
-        <button
-          type="button"
-          className="primary-btn inventory-count-start-btn"
-          onClick={() => setIsWizardOpen(true)}
-        >
-          Start new count
-        </button>
+        {canManage ? (
+          <button
+            type="button"
+            className="primary-btn inventory-count-start-btn"
+            onClick={() => setIsWizardOpen(true)}
+          >
+            Start new count
+          </button>
+        ) : null}
       </header>
 
       {pageNotice ? (
@@ -744,6 +766,7 @@ export function InventoryCountView({
           busySessionId={busySessionId}
           busyAction={busyAction}
           actionErrors={actionErrors}
+          canManage={canManage}
         />
         <InventoryCountSessionPanel
           title="Paused counts"
@@ -756,6 +779,7 @@ export function InventoryCountView({
           busySessionId={busySessionId}
           busyAction={busyAction}
           actionErrors={actionErrors}
+          canManage={canManage}
         />
         <InventoryCountSessionPanel
           title="Recent counts"
@@ -768,6 +792,7 @@ export function InventoryCountView({
           busySessionId={busySessionId}
           busyAction={busyAction}
           actionErrors={actionErrors}
+          canManage={canManage}
         />
       </div>
 
@@ -780,29 +805,33 @@ export function InventoryCountView({
         </ol>
       </aside>
 
-      <InventoryCountWizard
-        isOpen={isWizardOpen}
-        onClose={() => setIsWizardOpen(false)}
-        onStartSession={(result) => {
-          const sessionId = `${result?.sessionId ?? result?.session?.id ?? ''}`.trim()
-          const nextWorkspaceId = `${result?.workspaceId ?? result?.session?.workspaceId ?? ''}`.trim()
-          setPageNotice('')
-          setActiveSessionId(sessionId)
-          setActiveWorkspaceId(nextWorkspaceId)
-          setIsWizardOpen(false)
-          setIsSessionOpen(true)
-        }}
-      />
+      {canManage ? (
+        <>
+          <InventoryCountWizard
+            isOpen={isWizardOpen}
+            onClose={() => setIsWizardOpen(false)}
+            onStartSession={(result) => {
+              const sessionId = `${result?.sessionId ?? result?.session?.id ?? ''}`.trim()
+              const nextWorkspaceId = `${result?.workspaceId ?? result?.session?.workspaceId ?? ''}`.trim()
+              setPageNotice('')
+              setActiveSessionId(sessionId)
+              setActiveWorkspaceId(nextWorkspaceId)
+              setIsWizardOpen(false)
+              setIsSessionOpen(true)
+            }}
+          />
 
-      <InventoryCountDeleteDialog
-        session={pendingDeleteSession}
-        isDeleting={busyAction === 'delete' && busySessionId === pendingDeleteSession?.id}
-        error={deleteDialogError}
-        onCancel={handleCloseDeleteDialog}
-        onConfirm={() => {
-          void handleConfirmDeleteSession()
-        }}
-      />
+          <InventoryCountDeleteDialog
+            session={pendingDeleteSession}
+            isDeleting={busyAction === 'delete' && busySessionId === pendingDeleteSession?.id}
+            error={deleteDialogError}
+            onCancel={handleCloseDeleteDialog}
+            onConfirm={() => {
+              void handleConfirmDeleteSession()
+            }}
+          />
+        </>
+      ) : null}
     </section>
   )
 }
