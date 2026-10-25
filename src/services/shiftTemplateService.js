@@ -1,7 +1,19 @@
 import { supabase } from '../lib/supabaseClient'
 import { normalizeShiftTemplateId } from '../lib/shiftIntegrity'
+import {
+  createWorkspaceColumnProbe,
+  isMissingWorkspaceIdColumnError,
+  payloadWithoutWorkspaceId,
+  readWorkspaceId,
+} from '../lib/workspaceScopedTable'
 
 const SHIFT_TEMPLATES_TABLE = 'shift_templates'
+
+const shiftTemplatesWorkspaceColumn = createWorkspaceColumnProbe(supabase, SHIFT_TEMPLATES_TABLE)
+
+export function resetShiftTemplateWorkspaceColumnCacheForTests() {
+  shiftTemplatesWorkspaceColumn.reset()
+}
 
 export const SHIFT_TEMPLATE_SORT_ORDER_SETUP_MESSAGE = 'Run supabase/shift_templates_sort_order.sql in Supabase to enable manual shift template ordering.'
 
@@ -98,10 +110,11 @@ function mapShiftTemplate(record) {
     isActive: record.is_active ?? record.isActive ?? true,
     sortOrder: normalizeSortOrder(record.sort_order ?? record.sortOrder ?? 0),
     notes: record.notes ?? '',
+    workspaceId: record.workspace_id ?? record.workspaceId ?? null,
   }
 }
 
-function serializeShiftTemplate(template, { includeExtended = true, includeSortOrder = true } = {}) {
+function serializeShiftTemplate(template, { includeExtended = true, includeSortOrder = true, includeWorkspace = true } = {}) {
   const payload = {
     template_name: template.name ?? template.template_name ?? '',
     start_time: template.startTime ?? template.start_time ?? '',
@@ -113,6 +126,11 @@ function serializeShiftTemplate(template, { includeExtended = true, includeSortO
 
   if (includeSortOrder && (template.sortOrder !== undefined || template.sort_order !== undefined)) {
     payload.sort_order = normalizeSortOrder(template.sortOrder ?? template.sort_order)
+  }
+
+  if (includeWorkspace) {
+    const workspaceId = readWorkspaceId(template)
+    if (workspaceId) payload.workspace_id = workspaceId
   }
 
   if (includeExtended) {
@@ -199,14 +217,28 @@ async function resolveCreateSortOrder(template) {
 }
 
 async function writeShiftTemplate({ id, template }) {
+  const column = await shiftTemplatesWorkspaceColumn.ensure()
   const includeExtended = !usedLegacyShiftTemplateSchema
   const includeSortOrder = !usedLegacyShiftTemplateSortOrder
-  const payload = serializeShiftTemplate(template, { includeExtended, includeSortOrder })
+  const includeWorkspace = column !== 'missing'
+  let payload = serializeShiftTemplate(template, { includeExtended, includeSortOrder, includeWorkspace })
+  if (!includeWorkspace) payload = payloadWithoutWorkspaceId(payload)
   const query = id
     ? supabase.from(SHIFT_TEMPLATES_TABLE).update(payload).eq('id', id)
     : supabase.from(SHIFT_TEMPLATES_TABLE).insert([payload])
 
   let { data, error } = await query.select(TEMPLATE_SELECT_LEGACY).single()
+
+  if (error && payload.workspace_id && isMissingWorkspaceIdColumnError(error)) {
+    shiftTemplatesWorkspaceColumn.rememberMissing()
+    payload = payloadWithoutWorkspaceId(payload)
+    const retryWorkspace = id
+      ? supabase.from(SHIFT_TEMPLATES_TABLE).update(payload).eq('id', id)
+      : supabase.from(SHIFT_TEMPLATES_TABLE).insert([payload])
+    const retried = await retryWorkspace.select(TEMPLATE_SELECT_LEGACY).single()
+    data = retried.data
+    error = retried.error
+  }
 
   if (error && (isExtendedSchemaError(error) || isSortOrderColumnError(error))) {
     if (isExtendedSchemaError(error)) {
@@ -216,11 +248,15 @@ async function writeShiftTemplate({ id, template }) {
       markLegacyShiftTemplateSortOrder()
     }
 
-    const legacyPayload = omitSortOrderField(
+    const legacyPayload = payloadWithoutWorkspaceId(omitSortOrderField(
       omitExtendedTemplateFields(
-        serializeShiftTemplate(template, { includeExtended: true, includeSortOrder: true }),
+        serializeShiftTemplate(template, {
+          includeExtended: true,
+          includeSortOrder: true,
+          includeWorkspace: false,
+        }),
       ),
-    )
+    ))
     const retryQuery = id
       ? supabase.from(SHIFT_TEMPLATES_TABLE).update(legacyPayload).eq('id', id)
       : supabase.from(SHIFT_TEMPLATES_TABLE).insert([legacyPayload])
@@ -233,18 +269,47 @@ async function writeShiftTemplate({ id, template }) {
   return { data, error }
 }
 
-export async function getShiftTemplates({ includeInactive = false } = {}) {
+export async function getShiftTemplates({ includeInactive = false, workspaceId = '' } = {}) {
+  let column
+  try {
+    column = await shiftTemplatesWorkspaceColumn.ensure()
+  } catch (error) {
+    console.warn('[shiftTemplateService] getShiftTemplates error:', error)
+    return []
+  }
+
+  const normalizedWorkspaceId = `${workspaceId ?? ''}`.trim()
+  if (column === 'present' && !normalizedWorkspaceId) return []
+
+  const selectList = column === 'present' ? `${TEMPLATE_SELECT}, workspace_id` : TEMPLATE_SELECT
   let query = supabase
     .from(SHIFT_TEMPLATES_TABLE)
-    .select(TEMPLATE_SELECT)
+    .select(selectList)
     .order('sort_order', { ascending: true })
     .order('template_name', { ascending: true })
+
+  if (column === 'present') {
+    query = query.eq('workspace_id', normalizedWorkspaceId)
+  }
 
   if (!includeInactive) {
     query = query.eq('is_active', true)
   }
 
   let { data, error } = await query
+
+  if (error && isMissingWorkspaceIdColumnError(error)) {
+    shiftTemplatesWorkspaceColumn.rememberMissing()
+    let unscoped = supabase
+      .from(SHIFT_TEMPLATES_TABLE)
+      .select(TEMPLATE_SELECT)
+      .order('sort_order', { ascending: true })
+      .order('template_name', { ascending: true })
+    if (!includeInactive) unscoped = unscoped.eq('is_active', true)
+    const retried = await unscoped
+    data = retried.data
+    error = retried.error
+  }
 
   if (error) {
     const sortMissing = isSortOrderColumnError(error)
@@ -305,6 +370,11 @@ export async function getShiftCountForTemplate(templateId) {
 }
 
 export async function createShiftTemplate(template) {
+  const column = await shiftTemplatesWorkspaceColumn.ensure()
+  if (column === 'present' && !readWorkspaceId(template)) {
+    throw new Error('Workspace is required.')
+  }
+
   const sortOrder = await resolveCreateSortOrder(template)
   const { data, error } = await writeShiftTemplate({
     template: {
