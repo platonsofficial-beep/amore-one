@@ -1035,7 +1035,7 @@ describe('StockStorageDetailWorkspace — actions + Fast Count launch', () => {
     })
     await settle()
     const open = container.querySelector('[data-testid="supply-refill-open"]')
-    expect(open?.textContent).toContain('Αναπλήρωση')
+    expect(open?.textContent).toContain('Από τροφοδοσία')
     expect(open.disabled).toBe(false)
     await act(async () => {
       open.click()

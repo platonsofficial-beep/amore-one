@@ -1,8 +1,12 @@
-import { isBelowStoragePar, storageParShort } from './stockStoragePar'
+import { isBelowStoragePar, normalizeStorageParQuantity, storageParShort } from './stockStoragePar'
 
 export const REFILL_ACTION_LABEL = 'Refill / Αναπλήρωση'
 export const TAKE_SELECTED_LABEL = 'Take selected / Λήψη'
 export const TAKE_FROM_SUPPLY_LABEL = 'Take from supply / Από τροφοδοσία'
+export const TAKE_SUBMIT_LABEL = 'Take / Λήψη'
+export const TAKE_LIST_LABEL = 'Take list'
+export const SUGGESTED_TAB_LABEL = 'Suggested / Πρόταση'
+export const SUGGESTED_BASIS_LABEL = 'Based on the last recorded quantity, not a live count.'
 export const NEEDS_SUPPLIER_ORDER_LABEL = 'Not in any supply storage. Needs a supplier order.'
 export const NO_SUPPLY_STORAGE_HINT = 'Mark a storage as supply (Αποθήκη τροφοδοσίας) before this shelf can refill from it.'
 export const SUPPLY_FLAG_UNAVAILABLE_MESSAGE = 'Supply storages are not available yet.'
@@ -320,7 +324,7 @@ export function keepFailedRefillLines(freshLines = [], previousLines = [], resul
  * @param {{
  *   supplyStorages?: object[],
  *   supplyBalances?: object[],
- *   itemsById?: Map<string, { name?: string, unit?: string }>,
+ *   itemsById?: Map<string, { name?: string, unit?: string, brand?: string }>,
  *   destinationStorageId?: string,
  * }} [input]
  */
@@ -381,4 +385,410 @@ export function createSingleFlight() {
       })
     return current
   }
+}
+
+/**
+ * Plain on-hand number. The unit is shown separately on the row.
+ *
+ * @param {unknown} quantity
+ * @returns {string}
+ */
+export function formatSupplyOnHand(quantity) {
+  const value = Number(quantity)
+  if (!Number.isFinite(value)) return '0'
+  const rounded = roundQuantity(value)
+  if (Object.is(rounded, -0)) return '0'
+  return `${rounded}`
+}
+
+/**
+ * @param {{ storageName?: string, name?: string, quantity?: number, sourceAvailable?: number }} source
+ * @returns {string}
+ */
+export function formatSourceStockLabel(source) {
+  const name = `${source?.storageName ?? source?.name ?? ''}`.trim() || 'Supply'
+  const quantity = source?.quantity ?? source?.sourceAvailable ?? 0
+  return `${name}: ${formatSupplyOnHand(quantity)}`
+}
+
+/**
+ * @param {unknown} available
+ * @param {unknown} quantity
+ * @returns {string}
+ */
+export function formatRemainingLabel(available, quantity) {
+  const avail = Number(available)
+  const qty = Number(quantity)
+  const safeAvail = Number.isFinite(avail) ? roundQuantity(Math.max(0, avail)) : 0
+  const safeQty = Number.isFinite(qty) && qty > 0 ? roundQuantity(qty) : 0
+  const remaining = roundQuantity(Math.max(0, safeAvail - safeQty))
+  return `${formatSupplyOnHand(safeAvail)} → ${formatSupplyOnHand(remaining)}`
+}
+
+/**
+ * @param {unknown} sourceName
+ * @param {unknown} available
+ * @returns {string}
+ */
+export function takeOverSourceWarning(sourceName, available) {
+  const name = `${sourceName ?? ''}`.trim() || 'this storage'
+  return `Only ${formatSupplyOnHand(available)} in ${name}.`
+}
+
+function productItemId(product) {
+  return `${product?.stockItemId ?? product?.id ?? ''}`.trim()
+}
+
+function isShelfRelevant(product) {
+  if (normalizeStorageParQuantity(product?.parQuantity) != null) return true
+  const version = Number(product?.quantityVersion)
+  if (Number.isFinite(version) && version >= 1) return true
+  const quantity = Number(product?.quantity)
+  return Number.isFinite(quantity) && quantity !== 0
+}
+
+function compareTakeName(left, right) {
+  return `${left?.name ?? ''}`.localeCompare(`${right?.name ?? ''}`, undefined, { sensitivity: 'base' })
+}
+
+/**
+ * Active supply storages except the destination, keyed by id.
+ *
+ * @param {object[]} supplyStorages
+ * @param {string} destinationId
+ */
+function supplyStorageIndex(supplyStorages, destinationId) {
+  /** @type {Map<string, { id: string, name: string }>} */
+  const supplyById = new Map()
+  for (const storage of Array.isArray(supplyStorages) ? supplyStorages : []) {
+    const id = storageIdOf(storage)
+    if (!id || id === destinationId) continue
+    if (storage?.isSupply !== true && storage?.is_supply !== true) continue
+    if (storage?.active === false) continue
+    supplyById.set(id, {
+      id,
+      name: `${storage?.name ?? storage?.locationKey ?? 'Supply'}`.trim() || 'Supply',
+    })
+  }
+  return supplyById
+}
+
+/**
+ * Positive balances in indexed supply storages, grouped by item.
+ * A later higher quantity for the same storage replaces the earlier one.
+ *
+ * @param {object[]} supplyBalances
+ * @param {Map<string, { id: string, name: string }>} supplyById
+ */
+function sourcesByItemFromBalances(supplyBalances, supplyById) {
+  /** @type {Map<string, object[]>} */
+  const sourcesByItem = new Map()
+  for (const balance of Array.isArray(supplyBalances) ? supplyBalances : []) {
+    const storageId = `${balance?.storageId ?? balance?.workspaceStorageId ?? balance?.workspace_storage_id ?? ''}`.trim()
+    const stockItemId = `${balance?.stockItemId ?? balance?.stock_item_id ?? ''}`.trim()
+    const storage = supplyById.get(storageId)
+    if (!storage || !stockItemId) continue
+    const quantity = Number(balance?.quantity)
+    if (!Number.isFinite(quantity) || quantity <= 0) continue
+    const source = {
+      storageId,
+      storageName: storage.name,
+      quantity: roundQuantity(quantity),
+      quantityVersion: readVersion(balance?.quantityVersion ?? balance?.quantity_version),
+      active: true,
+    }
+    const existing = sourcesByItem.get(stockItemId) ?? []
+    const prior = existing.findIndex((entry) => entry.storageId === storageId)
+    if (prior >= 0) {
+      if (source.quantity > existing[prior].quantity) existing[prior] = source
+    } else {
+      existing.push(source)
+    }
+    sourcesByItem.set(stockItemId, existing)
+  }
+  return sourcesByItem
+}
+
+/**
+ * Quick-pick rows for a department shelf.
+ * Shelf items (par or a balance here) come first, then every other item
+ * held in a supply storage. Default source is the one with the most on hand.
+ *
+ * @param {{
+ *   shelfProducts?: object[],
+ *   supplyStorages?: object[],
+ *   supplyBalances?: object[],
+ *   itemsById?: Map<string, { name?: string, unit?: string, brand?: string }>,
+ *   destinationStorageId?: string,
+ * }} [input]
+ */
+export function buildTakeRows({
+  shelfProducts = [],
+  supplyStorages = [],
+  supplyBalances = [],
+  itemsById = new Map(),
+  destinationStorageId = '',
+} = {}) {
+  const destinationId = `${destinationStorageId ?? ''}`.trim()
+  const supplyById = supplyStorageIndex(supplyStorages, destinationId)
+  const sourcesByItem = sourcesByItemFromBalances(supplyBalances, supplyById)
+  const catalog = itemsById instanceof Map ? itemsById : new Map()
+
+  const makeRow = (stockItemId, identity, onShelf, shelfProduct) => {
+    const sources = rankSupplySources(sourcesByItem.get(stockItemId) ?? [])
+    const source = sources[0] ?? null
+    const onHand = Number(shelfProduct?.quantity)
+    return {
+      stockItemId,
+      name: identity.name,
+      unit: identity.unit,
+      brand: identity.brand,
+      onShelf,
+      shelfQuantity: Number.isFinite(onHand) ? onHand : null,
+      parQuantity: shelfProduct?.parQuantity ?? null,
+      sources,
+      sourceStorageId: source?.storageId ?? '',
+      sourceStorageName: source?.storageName ?? '',
+      sourceAvailable: source ? source.quantity : 0,
+      sourceQuantityVersion: source?.quantityVersion ?? 0,
+      destinationQuantityVersion: readVersion(shelfProduct?.quantityVersion, 1),
+      quantity: 0,
+      quantityInput: '',
+      warning: '',
+      error: '',
+    }
+  }
+
+  /** @type {object[]} */
+  const shelfRows = []
+  const seen = new Set()
+  for (const product of Array.isArray(shelfProducts) ? shelfProducts : []) {
+    const stockItemId = productItemId(product)
+    if (!stockItemId || seen.has(stockItemId) || !isShelfRelevant(product)) continue
+    seen.add(stockItemId)
+    const item = catalog.get(stockItemId)
+    shelfRows.push(makeRow(stockItemId, {
+      name: `${product?.name ?? item?.name ?? 'Unknown product'}`.trim() || 'Unknown product',
+      unit: `${product?.unit ?? item?.unit ?? ''}`.trim(),
+      brand: `${product?.brand ?? item?.brand ?? ''}`.trim(),
+    }, true, product))
+  }
+  shelfRows.sort(compareTakeName)
+
+  /** @type {object[]} */
+  const supplyRows = []
+  for (const stockItemId of sourcesByItem.keys()) {
+    if (seen.has(stockItemId)) continue
+    const item = catalog.get(stockItemId)
+    supplyRows.push(makeRow(stockItemId, {
+      name: `${item?.name ?? 'Unknown product'}`.trim() || 'Unknown product',
+      unit: `${item?.unit ?? ''}`.trim(),
+      brand: `${item?.brand ?? ''}`.trim(),
+    }, false, null))
+  }
+  supplyRows.sort(compareTakeName)
+  return [...shelfRows, ...supplyRows]
+}
+
+/**
+ * Case-insensitive match on name, unit, brand, and source storage names.
+ * An empty query keeps the shelf-first order.
+ *
+ * @param {object[]} rows
+ * @param {unknown} query
+ */
+export function searchTakeRows(rows = [], query = '') {
+  const list = Array.isArray(rows) ? rows : []
+  const needle = `${query ?? ''}`.trim().toLowerCase()
+  if (!needle) return list.slice()
+  return list.filter((row) => {
+    const fields = [
+      row?.name,
+      row?.unit,
+      row?.brand,
+      ...(Array.isArray(row?.sources) ? row.sources.map((source) => source?.storageName) : []),
+    ]
+    return fields.some((field) => `${field ?? ''}`.toLowerCase().includes(needle))
+  })
+}
+
+/**
+ * Type a take quantity. Over-asks are capped and warned. Invalid text stays
+ * visible and is not added to the take list.
+ *
+ * @param {object} row
+ * @param {unknown} raw
+ */
+export function setTakeQuantity(row, raw) {
+  const text = `${raw ?? ''}`
+  if (!text.trim()) {
+    return { ...row, quantity: 0, quantityInput: '', warning: '', error: '' }
+  }
+  const parsed = parseRefillQuantity(text)
+  if (!parsed.ok) {
+    return { ...row, quantity: 0, quantityInput: text, warning: '', error: parsed.error }
+  }
+  const available = Number(row?.sourceAvailable)
+  const hasSource = Boolean(`${row?.sourceStorageId ?? ''}`.trim()) && Number.isFinite(available) && available > 0
+  if (!hasSource) {
+    return {
+      ...row,
+      quantity: 0,
+      quantityInput: text,
+      warning: '',
+      error: NEEDS_SUPPLIER_ORDER_LABEL,
+    }
+  }
+  if (parsed.value > roundQuantity(available)) {
+    const quantity = capRefillQuantity(parsed.value, available)
+    return {
+      ...row,
+      quantity,
+      quantityInput: quantity > 0 ? `${quantity}` : '',
+      warning: takeOverSourceWarning(row?.sourceStorageName, available),
+      error: '',
+    }
+  }
+  return {
+    ...row,
+    quantity: parsed.value,
+    quantityInput: `${parsed.value}`,
+    warning: '',
+    error: '',
+  }
+}
+
+/**
+ * Step by a whole amount. Plus stays usable at the cap so the warning can show.
+ *
+ * @param {object} row
+ * @param {number} delta
+ */
+export function stepTakeQuantity(row, delta) {
+  if (!`${row?.sourceStorageId ?? ''}`.trim()) return row
+  const current = Number(row?.quantity)
+  const base = Number.isFinite(current) && current > 0 ? current : 0
+  const next = roundQuantity(base + Number(delta || 0))
+  if (!Number.isFinite(next) || next <= 0) {
+    return { ...row, quantity: 0, quantityInput: '', warning: '', error: '' }
+  }
+  return setTakeQuantity(row, `${next}`)
+}
+
+/**
+ * Choose a supply source and recap any quantity already entered.
+ *
+ * @param {object} row
+ * @param {string} storageId
+ */
+export function withTakeSource(row, storageId) {
+  const nextId = `${storageId ?? ''}`.trim()
+  const source = (row?.sources ?? []).find((entry) => entry.storageId === nextId)
+  if (!source) return row
+  const switched = {
+    ...row,
+    sourceStorageId: source.storageId,
+    sourceStorageName: source.storageName,
+    sourceAvailable: source.quantity,
+    sourceQuantityVersion: source.quantityVersion,
+    warning: '',
+    error: '',
+  }
+  const raw = `${row?.quantityInput ?? ''}`.trim()
+    ? row.quantityInput
+    : (Number(row?.quantity) > 0 ? `${row.quantity}` : '')
+  if (!`${raw ?? ''}`.trim()) return switched
+  return setTakeQuantity(switched, raw)
+}
+
+/**
+ * Lines the existing transfer helper can send. Quantity must be above zero.
+ *
+ * @param {object[]} rows
+ * @param {object[]} [shelfProducts]
+ */
+export function takeRowsToTransfer(rows = [], shelfProducts = []) {
+  /** @type {Map<string, number>} */
+  const versionById = new Map()
+  for (const product of Array.isArray(shelfProducts) ? shelfProducts : []) {
+    const id = productItemId(product)
+    if (!id) continue
+    versionById.set(id, readVersion(product?.quantityVersion, 1))
+  }
+  return (Array.isArray(rows) ? rows : []).flatMap((row) => {
+    const quantity = Number(row?.quantity)
+    const sourceStorageId = `${row?.sourceStorageId ?? ''}`.trim()
+    const stockItemId = `${row?.stockItemId ?? ''}`.trim()
+    if (!stockItemId || !(quantity > 0) || !sourceStorageId) return []
+    return [{
+      stockItemId,
+      selected: true,
+      transferable: true,
+      needsSupplierOrder: false,
+      quantity,
+      sourceStorageId,
+      sourceQuantityVersion: readVersion(row?.sourceQuantityVersion, 1),
+      destinationQuantityVersion: versionById.has(stockItemId)
+        ? versionById.get(stockItemId)
+        : readVersion(row?.destinationQuantityVersion, 1),
+    }]
+  })
+}
+
+/**
+ * Clear lines that moved. Keep a failed quantity and attach the error.
+ *
+ * @param {object[]} rows
+ * @param {Array<{ stockItemId: string, ok: boolean, error?: string }>} results
+ */
+export function applyTakeResults(rows = [], results = []) {
+  const byId = new Map((Array.isArray(results) ? results : []).map((result) => [result.stockItemId, result]))
+  return (Array.isArray(rows) ? rows : []).map((row) => {
+    const result = byId.get(row.stockItemId)
+    if (!result) return row
+    if (result.ok) {
+      return { ...row, quantity: 0, quantityInput: '', warning: '', error: '' }
+    }
+    return {
+      ...row,
+      error: result.error || 'Unable to transfer stock right now.',
+    }
+  })
+}
+
+/**
+ * After a refetch, drop quantities that moved and restore failures onto the
+ * fresh on-hand figures. Rows that were not part of this take keep their quantity.
+ *
+ * @param {object[]} freshRows
+ * @param {object[]} previousRows
+ * @param {Array<{ stockItemId: string, ok: boolean, error?: string }>} results
+ */
+export function keepFailedTakeRows(freshRows = [], previousRows = [], results = []) {
+  const resultById = new Map((Array.isArray(results) ? results : []).map((result) => [result.stockItemId, result]))
+  const previousById = new Map((Array.isArray(previousRows) ? previousRows : []).map((row) => [row.stockItemId, row]))
+  return (Array.isArray(freshRows) ? freshRows : []).map((fresh) => {
+    const result = resultById.get(fresh.stockItemId)
+    if (result?.ok) {
+      return { ...fresh, quantity: 0, quantityInput: '', warning: '', error: '' }
+    }
+    const previous = previousById.get(fresh.stockItemId)
+    if (!previous) return fresh
+    let row = fresh
+    if (previous.sourceStorageId) {
+      const switched = withTakeSource(fresh, previous.sourceStorageId)
+      if (switched.sourceStorageId === previous.sourceStorageId) row = switched
+    }
+    const raw = `${previous.quantityInput ?? ''}`.trim()
+      ? previous.quantityInput
+      : (Number(previous.quantity) > 0 ? `${previous.quantity}` : '')
+    if (`${raw ?? ''}`.trim()) row = setTakeQuantity(row, raw)
+    if (result && result.ok === false) {
+      return {
+        ...row,
+        error: result.error || 'Unable to transfer stock right now.',
+      }
+    }
+    return row
+  })
 }

@@ -1,15 +1,26 @@
 import { describe, expect, it, vi } from 'vitest'
 import {
   applyRefillResults,
+  applyTakeResults,
   buildRefillLines,
+  buildTakeRows,
   capRefillQuantity,
   createSingleFlight,
+  formatRemainingLabel,
+  formatSourceStockLabel,
   keepFailedRefillLines,
+  keepFailedTakeRows,
   listAdHocSupplyChoices,
   rankSupplySources,
   refillLinesToTake,
+  searchTakeRows,
+  setTakeQuantity,
+  stepTakeQuantity,
+  takeOverSourceWarning,
+  takeRowsToTransfer,
   withRefillQuantity,
   withRefillSource,
+  withTakeSource,
 } from './stockSupplyRefill'
 
 const spirits = { id: 'spirits', name: 'Spirits', isSupply: true, active: true }
@@ -268,6 +279,237 @@ describe('ad-hoc supply choices', () => {
       ['soft', 'Coca-Cola', 4],
       ['spirits', 'Vodka', 1],
     ])
+  })
+})
+
+describe('buildTakeRows', () => {
+  const shelf = [
+    product({
+      stockItemId: 'zucchini',
+      name: 'Zucchini',
+      quantity: 1,
+      quantityVersion: 2,
+      parQuantity: 4,
+    }),
+    product({
+      stockItemId: 'tonic',
+      name: 'Tonic',
+      quantity: 0,
+      quantityVersion: 0,
+      parQuantity: 2,
+    }),
+    product({ quantity: 2, quantityVersion: 5, parQuantity: 10 }),
+  ]
+
+  const balances = [
+    { stockItemId: 'cola', storageId: 'soft', quantity: 48, quantityVersion: 2 },
+    { stockItemId: 'cola', storageId: 'spirits', quantity: 9, quantityVersion: 3 },
+    { stockItemId: 'apple', storageId: 'soft', quantity: 12, quantityVersion: 1 },
+    { stockItemId: 'apple', storageId: 'back-bar', quantity: 30, quantityVersion: 1 },
+    { stockItemId: 'gin', storageId: 'closed', quantity: 7, quantityVersion: 1 },
+    { stockItemId: 'vodka', storageId: 'spirits', quantity: 0, quantityVersion: 4 },
+  ]
+
+  function rows() {
+    return buildTakeRows({
+      destinationStorageId: 'back-bar',
+      shelfProducts: shelf,
+      supplyStorages: [
+        spirits,
+        soft,
+        backBar,
+        { id: 'closed', name: 'Closed', isSupply: true, active: false },
+      ],
+      supplyBalances: balances,
+      itemsById: new Map([
+        ['cola', { name: 'Coca-Cola', unit: 'bt', brand: 'Classic' }],
+        ['apple', { name: 'Apple Juice', unit: 'bt', brand: 'Fizz' }],
+        ['gin', { name: 'Gin', unit: 'bt', brand: '' }],
+      ]),
+    })
+  }
+
+  it('lists this shelf first, then other items held in supply, with on-hand per source', () => {
+    const built = rows()
+    expect(built.map((row) => [row.stockItemId, row.onShelf])).toEqual([
+      ['cola', true],
+      ['tonic', true],
+      ['zucchini', true],
+      ['apple', false],
+    ])
+    const cola = built[0]
+    expect(cola.unit).toBe('bt')
+    expect(cola.brand).toBe('Classic')
+    expect(cola.sources.map((source) => formatSourceStockLabel(source))).toEqual([
+      'Soft drinks: 48',
+      'Spirits: 9',
+    ])
+    expect(cola.sourceStorageId).toBe('soft')
+    expect(cola.sourceAvailable).toBe(48)
+    expect(cola.quantity).toBe(0)
+    expect(built[1].sources).toEqual([])
+    expect(built[3].name).toBe('Apple Juice')
+    expect(built[3].destinationQuantityVersion).toBe(1)
+    expect(built[0].destinationQuantityVersion).toBe(5)
+  })
+
+  it('searches name, unit, brand, and source storage without losing shelf-first order', () => {
+    const built = rows()
+    expect(searchTakeRows(built, '  ').map((row) => row.stockItemId)).toEqual([
+      'cola', 'tonic', 'zucchini', 'apple',
+    ])
+    expect(searchTakeRows(built, 'fizz').map((row) => row.stockItemId)).toEqual(['apple'])
+    expect(searchTakeRows(built, 'SOFT').map((row) => row.stockItemId)).toEqual(['cola', 'apple'])
+    expect(searchTakeRows(built, 'bt').map((row) => row.name)).toEqual([
+      'Coca-Cola', 'Tonic', 'Zucchini', 'Apple Juice',
+    ])
+  })
+})
+
+describe('take quantity caps and multi-line transfer', () => {
+  function colaRow() {
+    return buildTakeRows({
+      destinationStorageId: 'back-bar',
+      shelfProducts: [product({ quantity: 2, quantityVersion: 5, parQuantity: 10 })],
+      supplyStorages: [soft, spirits],
+      supplyBalances: [
+        { stockItemId: 'cola', storageId: 'soft', quantity: 48, quantityVersion: 2 },
+        { stockItemId: 'cola', storageId: 'spirits', quantity: 9, quantityVersion: 3 },
+      ],
+      itemsById: new Map([['cola', { name: 'Coca-Cola', unit: 'bt', brand: '' }]]),
+    })[0]
+  }
+
+  it('caps an over-ask, warns, and shows what would remain', () => {
+    const row = colaRow()
+    const over = setTakeQuantity(row, '60')
+    expect(over.quantity).toBe(48)
+    expect(over.quantityInput).toBe('48')
+    expect(over.warning).toBe(takeOverSourceWarning('Soft drinks', 48))
+    expect(over.warning).toBe('Only 48 in Soft drinks.')
+    expect(formatRemainingLabel(over.sourceAvailable, over.quantity)).toBe('48 → 0')
+
+    const six = setTakeQuantity(over, '6')
+    expect(six.quantity).toBe(6)
+    expect(six.warning).toBe('')
+    expect(formatRemainingLabel(six.sourceAvailable, six.quantity)).toBe('48 → 42')
+
+    const atCap = stepTakeQuantity(setTakeQuantity(row, '48'), 1)
+    expect(atCap.quantity).toBe(48)
+    expect(atCap.warning).toBe('Only 48 in Soft drinks.')
+
+    const cleared = stepTakeQuantity(six, -6)
+    expect(cleared.quantity).toBe(0)
+    expect(cleared.quantityInput).toBe('')
+
+    const invalid = setTakeQuantity(six, 'nope')
+    expect(invalid.quantity).toBe(0)
+    expect(invalid.quantityInput).toBe('nope')
+    expect(invalid.error).toMatch(/greater than zero/)
+  })
+
+  it('recaps when the tapped source holds less, and sends every positive line', () => {
+    const capped = withTakeSource(setTakeQuantity(colaRow(), '40'), 'spirits')
+    expect(capped.sourceStorageId).toBe('spirits')
+    expect(capped.sourceQuantityVersion).toBe(3)
+    expect(capped.quantity).toBe(9)
+    expect(capped.warning).toBe('Only 9 in Spirits.')
+
+    const vodka = {
+      ...colaRow(),
+      stockItemId: 'vodka',
+      name: 'Vodka',
+      sourceStorageId: 'spirits',
+      sourceAvailable: 1,
+      sourceQuantityVersion: 4,
+      destinationQuantityVersion: 0,
+      quantity: 1,
+      quantityInput: '1',
+    }
+    const lines = takeRowsToTransfer([
+      setTakeQuantity(colaRow(), '6'),
+      { ...colaRow(), quantity: 0, quantityInput: '' },
+      vodka,
+    ], [
+      product({ quantityVersion: 5 }),
+      product({ stockItemId: 'vodka', quantityVersion: 0 }),
+    ])
+    expect(lines.map((line) => line.stockItemId)).toEqual(['cola', 'vodka'])
+    expect(lines[0]).toMatchObject({
+      quantity: 6,
+      sourceStorageId: 'soft',
+      sourceQuantityVersion: 2,
+      destinationQuantityVersion: 5,
+      selected: true,
+      transferable: true,
+    })
+    expect(lines[1].destinationQuantityVersion).toBe(1)
+    expect(refillLinesToTake(lines)).toHaveLength(2)
+  })
+})
+
+describe('take partial results', () => {
+  it('clears a moved line, keeps a failed quantity, and leaves an unattempted line', () => {
+    const previous = [
+      {
+        stockItemId: 'cola',
+        sourceStorageId: 'soft',
+        quantity: 6,
+        quantityInput: '6',
+        sources: [{ storageId: 'soft' }],
+      },
+      {
+        stockItemId: 'vodka',
+        sourceStorageId: 'spirits',
+        quantity: 1,
+        quantityInput: '1',
+        sources: [{ storageId: 'spirits' }],
+      },
+      {
+        stockItemId: 'apple',
+        sourceStorageId: 'soft',
+        quantity: 2,
+        quantityInput: '2',
+        sources: [{ storageId: 'soft' }],
+      },
+    ]
+    const fresh = buildTakeRows({
+      destinationStorageId: 'back-bar',
+      shelfProducts: [
+        product({ quantity: 8, quantityVersion: 6, parQuantity: 10 }),
+        product({ stockItemId: 'vodka', name: 'Vodka', quantity: 0, quantityVersion: 1, parQuantity: 4 }),
+      ],
+      supplyStorages: [soft, spirits],
+      supplyBalances: [
+        { stockItemId: 'cola', storageId: 'soft', quantity: 42, quantityVersion: 3 },
+        { stockItemId: 'vodka', storageId: 'spirits', quantity: 1, quantityVersion: 4 },
+        { stockItemId: 'apple', storageId: 'soft', quantity: 12, quantityVersion: 2 },
+      ],
+      itemsById: new Map([
+        ['apple', { name: 'Apple Juice', unit: 'bt', brand: '' }],
+        ['vodka', { name: 'Vodka', unit: 'bt', brand: '' }],
+      ]),
+    })
+    const results = [
+      { stockItemId: 'cola', ok: true, error: '' },
+      { stockItemId: 'vodka', ok: false, error: 'Not enough quantity in the source storage.' },
+    ]
+    const kept = keepFailedTakeRows(fresh, previous, results)
+    const cola = kept.find((row) => row.stockItemId === 'cola')
+    const vodka = kept.find((row) => row.stockItemId === 'vodka')
+    const apple = kept.find((row) => row.stockItemId === 'apple')
+    expect(cola.quantity).toBe(0)
+    expect(cola.sourceAvailable).toBe(42)
+    expect(cola.error).toBe('')
+    expect(vodka.quantity).toBe(1)
+    expect(vodka.sourceStorageId).toBe('spirits')
+    expect(vodka.error).toMatch(/Not enough quantity/)
+    expect(apple.quantity).toBe(2)
+
+    const stale = applyTakeResults(previous, results)
+    expect(stale.find((row) => row.stockItemId === 'cola').quantity).toBe(0)
+    expect(stale.find((row) => row.stockItemId === 'vodka').error).toMatch(/Not enough/)
+    expect(stale.find((row) => row.stockItemId === 'apple').quantity).toBe(2)
   })
 })
 

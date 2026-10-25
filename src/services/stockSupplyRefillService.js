@@ -100,6 +100,7 @@ export async function loadSupplyRefillCatalog(workspaceId) {
       itemsById.set(id, {
         name: `${item?.name ?? ''}`.trim(),
         unit: `${item?.unit ?? ''}`.trim(),
+        brand: `${item?.brand ?? ''}`.trim(),
       })
     }
   }

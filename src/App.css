@@ -33180,6 +33180,184 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   font-size: 1rem;
 }
 
+.stock-supply-refill-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.stock-supply-refill-tabs button {
+  min-height: 44px;
+  min-width: 44px;
+  padding: 0 16px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: transparent;
+  color: #fff7e8;
+  font-weight: 650;
+}
+
+.stock-supply-refill-tabs button[aria-selected='true'] {
+  border-color: rgba(244, 211, 145, 0.85);
+  background: rgba(244, 211, 145, 0.16);
+  color: #f4d391;
+}
+
+.stock-take-search {
+  width: 100%;
+  min-height: 44px;
+  margin: 0;
+  padding: 0 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(8, 8, 9, 0.72);
+  color: #fff7e8;
+  font-size: 1rem;
+}
+
+.stock-take-list {
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.stock-take-row {
+  display: grid;
+  grid-template-columns: minmax(140px, 1.1fr) minmax(0, 1.6fr) auto;
+  gap: 8px 12px;
+  align-items: center;
+  padding: 12px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.stock-take-identity {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.stock-take-identity strong {
+  color: #fff7e8;
+}
+
+.stock-take-identity span,
+.stock-take-remaining,
+.stock-take-summary p,
+.stock-take-summary li {
+  margin: 0;
+  color: rgba(255, 247, 232, 0.68);
+  font-size: 0.88rem;
+}
+
+.stock-take-sources {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.stock-take-source {
+  min-height: 44px;
+  min-width: 44px;
+  padding: 0 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: transparent;
+  color: #fff7e8;
+  font-weight: 650;
+}
+
+.stock-take-source[aria-pressed='true'] {
+  border-color: rgba(244, 211, 145, 0.9);
+  background: rgba(244, 211, 145, 0.16);
+  color: #f4d391;
+}
+
+.stock-take-source:disabled,
+.stock-take-stepper button:disabled {
+  opacity: 0.4;
+}
+
+.stock-take-stepper {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.stock-take-stepper button {
+  min-width: 44px;
+  min-height: 44px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.06);
+  color: #fff7e8;
+  font-size: 1.35rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.stock-take-stepper input {
+  width: 84px;
+  min-height: 44px;
+  padding: 0 8px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(8, 8, 9, 0.72);
+  color: #fff7e8;
+  font-size: 1.15rem;
+  text-align: center;
+}
+
+.stock-take-remaining,
+.stock-take-warning,
+.stock-take-row .stock-supply-refill-line-error,
+.stock-take-row .stock-supply-refill-order {
+  grid-column: 1 / -1;
+}
+
+.stock-take-warning {
+  margin: 0;
+  color: #f4d391;
+  font-size: 0.88rem;
+  font-weight: 650;
+}
+
+.stock-take-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 14px;
+  padding: 12px;
+  border-radius: 14px;
+  border: 1px solid rgba(244, 211, 145, 0.35);
+  background: rgba(244, 211, 145, 0.08);
+}
+
+.stock-take-summary h4 {
+  margin: 0;
+  color: #fff7e8;
+  font-size: 1rem;
+}
+
+.stock-take-summary ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.stock-take-submit {
+  min-height: 44px;
+  align-self: flex-end;
+}
+
 @media (max-width: 760px) {
   .stock-supply-refill-sheet {
     width: 100%;
@@ -33200,8 +33378,23 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 
   .stock-storage-refill-launch,
   .stock-supply-refill-actions .primary-btn,
-  .stock-supply-refill-adhoc .ghost-btn {
+  .stock-supply-refill-adhoc .ghost-btn,
+  .stock-take-submit {
     width: 100%;
+  }
+
+  .stock-take-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .stock-take-stepper {
+    width: 100%;
+  }
+
+  .stock-take-stepper input {
+    flex: 1;
+    width: auto;
+    font-size: 1.25rem;
   }
 }
 
