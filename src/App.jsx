@@ -7,7 +7,8 @@ import { createShift, deleteShift, getShifts, updateShift } from './services/sch
 import { createShiftTemplate, deleteShiftTemplate, getShiftTemplates, moveShiftTemplatesByDrag, reorderShiftTemplates, sortShiftTemplates, updateShiftTemplate, archiveShiftTemplate, getShiftCountForTemplate, didUseLegacyShiftTemplateSchema } from './services/shiftTemplateService'
 import { getScheduleCapacities, upsertScheduleCapacity, deleteScheduleCapacitiesForDates, copyScheduleCapacitiesForWeek, applyScheduleCapacitiesForWeek, applyMinimumCapacitiesFromShifts } from './services/scheduleCapacityService'
 import { draftMatchesPublishedSnapshot } from './services/publishedShiftService'
-import { getWeekSchedulePublicationState, publishWeekSchedule, unpublishWeekSchedule } from './services/schedulePublicationService'
+import { getWeekSchedulePublicationState, publishWeekSchedule, serializePublicationDraftShift, unpublishWeekSchedule } from './services/schedulePublicationService'
+import { getMutationRequestId } from './lib/mutationRequest'
 import { createPosition, deletePosition, getPositions, reorderPositions, updatePosition } from './services/positionsService'
 import {
   createReservationSeating,
@@ -15650,6 +15651,9 @@ function App() {
   const [isSavingStockOrder, setIsSavingStockOrder] = useState(false)
   const isCreatingStockOrdersRef = useRef(false)
   const isReceivingStockOrderRef = useRef(false)
+  const stockOrderReceiveRequestRef = useRef(null)
+  const schedulePublishRequestRef = useRef(null)
+  const scheduleUnpublishRequestRef = useRef(null)
   const isSavingStockItemRef = useRef(false)
   const [barRefills, setBarRefills] = useState([])
   const [barRefillsNotice, setBarRefillsNotice] = useState('')
@@ -16270,11 +16274,11 @@ function App() {
 
   const refreshTodayWeekPublishedData = useCallback(async (weekStartDate = todayWeekStart) => {
     const normalizedWeekStart = `${weekStartDate ?? ''}`.trim() || todayWeekStart
-    if (!normalizedWeekStart) {
+    if (!normalizedWeekStart || !activeWorkspaceId) {
       return { publication: null, publishedShifts: [] }
     }
 
-    const state = await getWeekSchedulePublicationState(normalizedWeekStart)
+    const state = await getWeekSchedulePublicationState(normalizedWeekStart, activeWorkspaceId)
 
     if (normalizedWeekStart === scheduleWeekStart) {
       setSchedulePublication(state.publication ?? {
@@ -17392,7 +17396,20 @@ function App() {
     let isMounted = true
     setIsMobileWeekLoading(true)
 
-    getWeekSchedulePublicationState(mobileWeekStart)
+    if (!activeWorkspaceId) {
+      setMobileWeekPublishedShifts([])
+      setMobileWeekPublication({
+        weekStartDate: mobileWeekStart,
+        status: 'draft',
+        publishedAt: null,
+        unpublishedAt: null,
+        publishedBy: null,
+      })
+      setIsMobileWeekLoading(false)
+      return undefined
+    }
+
+    getWeekSchedulePublicationState(mobileWeekStart, activeWorkspaceId)
       .then((state) => {
         if (!isMounted) return
         setMobileWeekPublishedShifts(Array.isArray(state.publishedShifts) ? state.publishedShifts : [])
@@ -17424,7 +17441,7 @@ function App() {
     return () => {
       isMounted = false
     }
-  }, [isMobileViewport, mobileWeekStart, scheduleWeekStart, todayWeekStart])
+  }, [activeWorkspaceId, isMobileViewport, mobileWeekStart, scheduleWeekStart, todayWeekStart])
 
   useEffect(() => {
     if (activeView !== 'insights') return undefined
@@ -17614,7 +17631,7 @@ function App() {
             endDate: weekDateKeys[weekDateKeys.length - 1],
           }),
           getScheduleCapacities({ shiftDates: weekDateKeys }),
-          getWeekSchedulePublicationState(todayWeekStart),
+          getWeekSchedulePublicationState(todayWeekStart, activeWorkspaceId),
         ])
         if (!isMounted) return
 
@@ -18079,7 +18096,7 @@ function App() {
             endDate: weekDateKeys[weekDateKeys.length - 1],
           }),
           getScheduleCapacities({ shiftDates: weekDateKeys }),
-          getWeekSchedulePublicationState(weekStartDate),
+          getWeekSchedulePublicationState(weekStartDate, activeWorkspaceId),
         ])
         if (!isMounted) return
 
@@ -18543,8 +18560,13 @@ function App() {
   }
 
   const refreshSchedulePublication = async (weekStartDate = scheduleWeekStart) => {
+    if (!activeWorkspaceId) {
+      setScheduleNotice('Workspace is required.')
+      return null
+    }
+
     try {
-      const state = await getWeekSchedulePublicationState(weekStartDate)
+      const state = await getWeekSchedulePublicationState(weekStartDate, activeWorkspaceId)
       setSchedulePublication(state.publication ?? {
         weekStartDate,
         status: 'draft',
@@ -18567,12 +18589,26 @@ function App() {
     const weekDateSet = new Set(normalizedKeys.length > 0 ? normalizedKeys : getWeekDateKeys(weekStartDate))
     const draftWeekShifts = shifts.filter((shift) => weekDateSet.has(`${shift.date ?? ''}`.slice(0, 10)))
 
+    const publicationMatchesWeek = `${schedulePublication?.weekStartDate ?? ''}`.slice(0, 10) === `${weekStartDate ?? ''}`.slice(0, 10)
+    const expectedRevision = publicationMatchesWeek ? Number(schedulePublication.revision) : Number.NaN
+    const requestId = getMutationRequestId(schedulePublishRequestRef, {
+      workspaceId: activeWorkspaceId,
+      weekStartDate,
+      expectedRevision,
+      status: 'published',
+      shifts: draftWeekShifts
+        .map(serializePublicationDraftShift)
+        .sort((left, right) => `${left.id}`.localeCompare(`${right.id}`)),
+    })
+
     try {
       const result = await publishWeekSchedule({
+        workspaceId: activeWorkspaceId,
         weekStartDate,
-        weekDateKeys: Array.from(weekDateSet),
         draftShifts: draftWeekShifts,
         knownTemplateIds: buildKnownShiftTemplateIdSet(shiftTemplates),
+        expectedRevision,
+        requestId,
       })
 
       if (!result?.publication) {
@@ -18604,7 +18640,20 @@ function App() {
 
   const handleUnpublishWeekSchedule = async (weekStartDate) => {
     if (!canEditScheduleRole || !activeWorkspaceId) return
-    const result = await unpublishWeekSchedule({ weekStartDate })
+    const publicationMatchesWeek = `${schedulePublication?.weekStartDate ?? ''}`.slice(0, 10) === `${weekStartDate ?? ''}`.slice(0, 10)
+    const expectedRevision = publicationMatchesWeek ? Number(schedulePublication.revision) : Number.NaN
+    const requestId = getMutationRequestId(scheduleUnpublishRequestRef, {
+      workspaceId: activeWorkspaceId,
+      weekStartDate,
+      expectedRevision,
+      status: 'draft',
+    })
+    const result = await unpublishWeekSchedule({
+      workspaceId: activeWorkspaceId,
+      weekStartDate,
+      expectedRevision,
+      requestId,
+    })
 
     if (weekStartDate === scheduleWeekStart) {
       setSchedulePublication(result.publication)
@@ -22583,12 +22632,27 @@ function App() {
     }
   }
 
-  const handleReceiveStockOrder = async (orderId, { receiveItems, orderNumber }) => {
+  const handleReceiveStockOrder = async (orderId, { receiveItems, workspaceStorageId }) => {
     if (!activeWorkspaceId) {
       const message = stockWorkspaceSetupMessage || 'Workspace is required to receive orders.'
       throw new Error(message)
     }
     if (isReceivingStockOrderRef.current) return
+
+    const lines = (receiveItems ?? [])
+      .filter((entry) => Number(entry.receiveNow) !== 0)
+      .map((entry) => ({
+        id: entry.id,
+        receiveNow: Number(entry.receiveNow),
+        expectedReceivedQuantity: Number(entry.expectedReceivedQuantity),
+      }))
+      .sort((left, right) => `${left.id}`.localeCompare(`${right.id}`))
+    const requestId = getMutationRequestId(stockOrderReceiveRequestRef, {
+      workspaceId: activeWorkspaceId,
+      orderId,
+      workspaceStorageId,
+      lines,
+    })
 
     isReceivingStockOrderRef.current = true
     setIsSavingStockOrder(true)
@@ -22597,8 +22661,8 @@ function App() {
     try {
       const updatedOrder = await receiveStockOrderPartial(activeWorkspaceId, orderId, {
         receiveItems,
-        createdBy: user?.id ?? null,
-        orderNumber,
+        workspaceStorageId,
+        requestId,
       })
       await refreshStockOrders()
       await refreshStockItems()
