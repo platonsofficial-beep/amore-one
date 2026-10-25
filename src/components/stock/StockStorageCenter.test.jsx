@@ -297,4 +297,263 @@ describe('StockStorageCenter UI', () => {
     expect(container.textContent).toContain('Read failed')
     expect(container.textContent).toContain('Retry')
   })
+
+  it('groups storages by department, marks many supply storages, and lets a manager edit', async () => {
+    const storages = [
+      {
+        id: 'soft',
+        name: 'Soft drinks',
+        locationKey: 'Soft drinks',
+        active: true,
+        status: 'active',
+        departmentId: null,
+        isSupply: true,
+        productCount: 1,
+        totalQuantity: 9,
+        nonZeroBalanceCount: 1,
+        inventoryValue: 18,
+      },
+      {
+        id: 'spirits',
+        name: 'Spirits',
+        locationKey: 'Spirits',
+        active: true,
+        status: 'active',
+        departmentId: 'd-bar',
+        isSupply: true,
+        productCount: 1,
+        totalQuantity: 4,
+        nonZeroBalanceCount: 1,
+        inventoryValue: 40,
+      },
+      {
+        id: 'back',
+        name: 'Back bar',
+        locationKey: 'Back bar',
+        active: true,
+        status: 'active',
+        departmentId: 'd-bar',
+        isSupply: false,
+        productCount: 1,
+        totalQuantity: 1,
+        nonZeroBalanceCount: 1,
+        inventoryValue: 2,
+      },
+    ]
+    const payload = {
+      storages,
+      activeStorages: storages,
+      archivedStorages: [],
+      departmentsAvailable: true,
+      summary: {
+        activeStorageCount: 3,
+        archivedStorageCount: 0,
+        totalProductsWithBalances: 2,
+        totalQuantity: 14,
+      },
+    }
+    const departments = {
+      available: true,
+      departments: [
+        { id: 'd-bar', name: 'Bar', active: true, sortOrder: 0 },
+        { id: 'd-kitchen', name: 'Kitchen', active: true, sortOrder: 1 },
+      ],
+    }
+    const loadSummaries = vi.fn(async () => payload)
+    const loadDepartments = vi.fn(async () => departments)
+    const departmentActions = {
+      createDepartment: vi.fn(async () => ({ id: 'd-new', name: 'Floor' })),
+      renameDepartment: vi.fn(async () => ({ id: 'd-bar', name: 'Service bar' })),
+      setDepartmentActive: vi.fn(async () => ({ id: 'd-bar', active: false })),
+      assignStorageDepartment: vi.fn(async () => ({ id: 'soft', departmentId: 'd-bar' })),
+      setStorageSupply: vi.fn(async () => ({ id: 'back', isSupply: true })),
+    }
+
+    renderCenter({
+      workspaceId: 'ws-1',
+      canManage: true,
+      loadSummaries,
+      loadDepartments,
+      departmentActions,
+    })
+
+    await act(async () => {
+      await Promise.resolve()
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+
+    expect(container.textContent).toContain('Bar')
+    expect(container.textContent).toContain('Kitchen')
+    expect(container.textContent).toContain('Unassigned')
+    expect(container.textContent).toContain('Soft drinks')
+    expect(container.textContent).toContain('Spirits')
+    expect(container.textContent).toContain('Back bar')
+    expect(container.textContent).toContain('Supply storage')
+    expect(container.textContent).toContain('Αποθήκη τροφοδοσίας')
+    expect(container.querySelectorAll('[data-testid="supply-storage-pill"]')).toHaveLength(2)
+    expect(container.querySelector('[data-action="new-department"]')).toBeTruthy()
+    expect(container.querySelector('[data-department-group="d-bar"] [data-action="rename-department"]')).toBeTruthy()
+    expect(container.querySelector('[data-department-group="d-bar"] [data-action="archive-department"]')).toBeTruthy()
+    expect(container.querySelector('[data-department-group="unassigned"] [data-action="archive-department"]')).toBeNull()
+
+    const backCard = container.querySelector('[data-storage-card="back"]')
+    await act(async () => {
+      backCard.querySelector('[data-action="toggle-supply"]').click()
+      await Promise.resolve()
+    })
+    expect(departmentActions.setStorageSupply).toHaveBeenCalledWith('ws-1', 'back', true)
+
+    const softCard = container.querySelector('[data-storage-card="soft"]')
+    const softSelect = softCard.querySelector('[data-action="assign-department"]')
+    await act(async () => {
+      softSelect.value = 'd-bar'
+      softSelect.dispatchEvent(new Event('change', { bubbles: true }))
+      await Promise.resolve()
+    })
+    expect(departmentActions.assignStorageDepartment).toHaveBeenCalledWith('ws-1', 'soft', 'd-bar')
+
+    await act(async () => {
+      container.querySelector('[data-action="new-department"]').click()
+    })
+    const dialog = document.querySelector('[data-testid="stock-department-name-dialog"]')
+    expect(dialog).toBeTruthy()
+    const input = dialog.querySelector('input')
+    await act(async () => {
+      const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set
+      setter.call(input, 'Floor')
+      input.dispatchEvent(new Event('input', { bubbles: true }))
+      dialog.querySelector('form').dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+    expect(departmentActions.createDepartment).toHaveBeenCalledWith('ws-1', 'Floor')
+  })
+
+  it('shows groups and supply labels to staff without department controls', async () => {
+    const storages = [
+      {
+        id: 'soft',
+        name: 'Soft drinks',
+        locationKey: 'Soft drinks',
+        active: true,
+        status: 'active',
+        departmentId: null,
+        isSupply: true,
+        productCount: 1,
+        totalQuantity: 9,
+        nonZeroBalanceCount: 1,
+        inventoryValue: 18,
+      },
+      {
+        id: 'back',
+        name: 'Back bar',
+        locationKey: 'Back bar',
+        active: true,
+        status: 'active',
+        departmentId: 'd-bar',
+        isSupply: false,
+        productCount: 0,
+        totalQuantity: 0,
+        nonZeroBalanceCount: 0,
+        inventoryValue: 0,
+      },
+    ]
+    renderCenter({
+      workspaceId: 'ws-1',
+      canManage: false,
+      loadSummaries: async () => ({
+        storages,
+        activeStorages: storages,
+        archivedStorages: [],
+        departmentsAvailable: true,
+        summary: {
+          activeStorageCount: 2,
+          archivedStorageCount: 0,
+          totalProductsWithBalances: 1,
+          totalQuantity: 9,
+        },
+      }),
+      loadDepartments: async () => ({
+        available: true,
+        departments: [
+          { id: 'd-bar', name: 'Bar', active: true, sortOrder: 0 },
+          { id: 'd-empty', name: 'Kitchen', active: true, sortOrder: 1 },
+        ],
+      }),
+    })
+
+    await act(async () => {
+      await Promise.resolve()
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+
+    expect(container.textContent).toContain('Bar')
+    expect(container.textContent).toContain('Unassigned')
+    expect(container.textContent).toContain('Soft drinks')
+    expect(container.textContent).toContain('Supply storage')
+    expect(container.textContent).toContain('Αποθήκη τροφοδοσίας')
+    expect(container.textContent).not.toContain('Kitchen')
+    expect(container.textContent).not.toContain('Value')
+    expect(container.querySelector('[data-action="new-department"]')).toBeNull()
+    expect(container.querySelector('[data-action="rename-department"]')).toBeNull()
+    expect(container.querySelector('[data-action="archive-department"]')).toBeNull()
+    expect(container.querySelector('[data-action="toggle-supply"]')).toBeNull()
+    expect(container.querySelector('[data-action="assign-department"]')).toBeNull()
+  })
+
+  it('keeps the storage list and explains when departments are not available yet', async () => {
+    renderCenter({
+      workspaceId: 'ws-1',
+      canManage: true,
+      loadSummaries: async () => ({
+        storages: [{
+          id: 's-main',
+          name: 'Main Storage',
+          locationKey: 'Main Storage',
+          active: true,
+          status: 'active',
+          productCount: 1,
+          totalQuantity: 4,
+          nonZeroBalanceCount: 1,
+          inventoryValue: 10,
+        }],
+        activeStorages: [{
+          id: 's-main',
+          name: 'Main Storage',
+          locationKey: 'Main Storage',
+          active: true,
+          status: 'active',
+          productCount: 1,
+          totalQuantity: 4,
+          nonZeroBalanceCount: 1,
+          inventoryValue: 10,
+        }],
+        archivedStorages: [],
+        departmentsAvailable: false,
+        summary: {
+          activeStorageCount: 1,
+          archivedStorageCount: 0,
+          totalProductsWithBalances: 1,
+          totalQuantity: 4,
+        },
+      }),
+      loadDepartments: vi.fn(async () => {
+        throw new Error('departments should not be queried')
+      }),
+    })
+
+    await act(async () => {
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+
+    expect(container.querySelector('[data-testid="stock-departments-unavailable"]')?.textContent)
+      .toMatch(/Storages still work/)
+    expect(container.textContent).toContain('Main Storage')
+    expect(container.textContent).toContain('Active')
+    expect(container.querySelector('[data-action="new-department"]')).toBeNull()
+    expect(container.querySelector('[data-storage-id="s-main"]')).toBeTruthy()
+  })
 })

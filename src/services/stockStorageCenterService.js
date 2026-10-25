@@ -18,6 +18,7 @@ import {
 import { buildStockProductSearchHaystack } from '../lib/stockProductMetadataDisplay'
 import { resolveStockItemStatus } from '../lib/stockUtils'
 import { normalizeSupplierId } from '../lib/stockSupplierUtils'
+import { isWorkspaceDepartmentSchemaMissing } from '../lib/stockDepartmentGroups'
 import {
   WORKSPACE_STORAGE_LIST_COLUMNS,
   mapWorkspaceStorage,
@@ -36,6 +37,10 @@ export const STOCK_STORAGE_CENTER_BALANCE_COLUMNS = [
 ].join(', ')
 
 export const STOCK_STORAGE_CENTER_COST_COLUMNS = 'id, cost_price'
+
+/** Storage Center select. Falls back to WORKSPACE_STORAGE_LIST_COLUMNS when unset. */
+export const WORKSPACE_STORAGE_DEPARTMENT_COLUMNS =
+  `${WORKSPACE_STORAGE_LIST_COLUMNS}, department_id, is_supply`
 
 /** Columns needed for storage product rows + existing history drawer. */
 export const STOCK_STORAGE_PRODUCT_ITEM_COLUMNS = [
@@ -162,6 +167,7 @@ export function buildWorkspaceStorageSummaries({
       inventoryValue: 0,
     }
     const active = storage?.active !== false
+    const departmentId = asTrimmedString(storage?.departmentId ?? storage?.department_id) || null
     return Object.freeze({
       id,
       workspaceId: asTrimmedString(storage?.workspaceId ?? storage?.workspace_id),
@@ -170,6 +176,8 @@ export function buildWorkspaceStorageSummaries({
       active,
       status: active ? 'active' : 'archived',
       sortOrder: Number(storage?.sortOrder ?? storage?.sort_order ?? 0) || 0,
+      departmentId,
+      isSupply: storage?.isSupply === true || storage?.is_supply === true,
       productCount: aggregate.productIds.size,
       totalQuantity: aggregate.totalQuantity,
       nonZeroBalanceCount: aggregate.nonZeroBalanceCount,
@@ -224,12 +232,22 @@ export async function getWorkspaceStorageSummaries(workspaceId) {
     throw new Error('Workspace is required to load storage summaries.')
   }
 
-  const { data: storageRows, error: storageError } = await supabase
+  const loadStorageRows = (columns) => supabase
     .from(WORKSPACE_STORAGES_TABLE)
-    .select(WORKSPACE_STORAGE_LIST_COLUMNS)
+    .select(columns)
     .eq('workspace_id', normalizedWorkspaceId)
     .order('sort_order', { ascending: true })
     .order('name', { ascending: true })
+
+  let departmentsAvailable = true
+  let storageResult = await loadStorageRows(WORKSPACE_STORAGE_DEPARTMENT_COLUMNS)
+  if (storageResult.error && isWorkspaceDepartmentSchemaMissing(storageResult.error)) {
+    departmentsAvailable = false
+    storageResult = await loadStorageRows(WORKSPACE_STORAGE_LIST_COLUMNS)
+  }
+
+  const storageRows = storageResult.data
+  const storageError = storageResult.error
 
   if (storageError) {
     console.error('[stockStorageCenterService] workspace_storages error:', storageError)
@@ -274,10 +292,13 @@ export async function getWorkspaceStorageSummaries(workspaceId) {
     }
   }
 
-  return buildWorkspaceStorageSummaries({
-    storages,
-    balances: balanceRows ?? [],
-    costByItemId,
+  return Object.freeze({
+    ...buildWorkspaceStorageSummaries({
+      storages,
+      balances: balanceRows ?? [],
+      costByItemId,
+    }),
+    departmentsAvailable,
   })
 }
 

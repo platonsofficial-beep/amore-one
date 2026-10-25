@@ -22,7 +22,7 @@ const LOCATION_KEY_MAX_LENGTH = 80
  * }}
  */
 export function mapWorkspaceStorage(record) {
-  return {
+  const mapped = {
     id: record?.id ?? null,
     workspaceId: record?.workspace_id ?? record?.workspaceId ?? '',
     locationKey: record?.location_key ?? record?.locationKey ?? '',
@@ -30,6 +30,16 @@ export function mapWorkspaceStorage(record) {
     active: record?.active !== false,
     sortOrder: Number(record?.sort_order ?? record?.sortOrder ?? 0),
   }
+  if (record && (Object.prototype.hasOwnProperty.call(record, 'department_id')
+    || Object.prototype.hasOwnProperty.call(record, 'departmentId'))) {
+    const departmentId = record.department_id ?? record.departmentId ?? null
+    mapped.departmentId = departmentId == null ? null : `${departmentId}`
+  }
+  if (record && (Object.prototype.hasOwnProperty.call(record, 'is_supply')
+    || Object.prototype.hasOwnProperty.call(record, 'isSupply'))) {
+    mapped.isSupply = record.is_supply === true || record.isSupply === true
+  }
+  return mapped
 }
 
 function requireWorkspaceId(workspaceId, message = 'Workspace is required.') {
