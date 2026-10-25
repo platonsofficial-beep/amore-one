@@ -93,6 +93,7 @@ describe('mobileScheduleUtils', () => {
       isTemplatesPanelOpen: false,
     })
 
+    expect(columnWidth).toBeGreaterThanOrEqual(96)
     expect(columnWidth).toBeLessThan(156)
     expect(getScheduleGridTableMinWidth(7, columnWidth)).toBeLessThanOrEqual(844)
   })
