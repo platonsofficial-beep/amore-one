@@ -3805,7 +3805,7 @@
   overflow: hidden;
   /* Clear the slim landscape nav. The inherited bottom inset is resolved
      from the taller shell nav and would eat a row of shift cards. */
-  padding: 2px 4px calc(58px + var(--one-safe-area-bottom, env(safe-area-inset-bottom, 0px)));
+  padding: 2px 2px calc(68px + var(--one-safe-area-bottom, env(safe-area-inset-bottom, 0px)));
 }
 
 .app-shell.is-mobile-shell.is-mobile-expanded:has(.schedule-workspace.is-compact-landscape) .module-section-tabs {
@@ -4261,8 +4261,8 @@
   }
 
   .mobile-manager-app .mobile-bottom-nav-item {
-    min-height: 40px;
-    padding: 1px 2px;
+    min-height: 44px;
+    padding: 2px 2px;
     gap: 1px;
     border-radius: 14px;
   }
@@ -4355,7 +4355,7 @@
   }
 
   .app-shell.is-mobile-expanded .schedule-workspace.is-compact-landscape.is-templates-collapsed .schedule-grid-hero {
-    padding-right: 22px;
+    padding-right: 2px;
   }
 
   .app-shell.is-mobile-expanded .schedule-workspace.is-compact-landscape .schedule-grid-hero .blend-grid-scroll {
