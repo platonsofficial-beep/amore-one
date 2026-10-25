@@ -910,7 +910,11 @@
   display: flex;
   align-items: flex-end;
   justify-content: center;
-  padding: 0;
+  padding:
+    0
+    var(--one-safe-area-right, env(safe-area-inset-right, 0px))
+    0
+    var(--one-safe-area-left, env(safe-area-inset-left, 0px));
   background: rgba(0, 0, 0, 0.58);
   overflow: hidden;
 }
@@ -1452,8 +1456,8 @@
 
 .mobile-bottom-nav {
   position: fixed;
-  left: 0;
-  right: 0;
+  left: var(--one-safe-area-left, env(safe-area-inset-left, 0px));
+  right: var(--one-safe-area-right, env(safe-area-inset-right, 0px));
   bottom: 0;
   z-index: 40;
   display: grid;
@@ -1501,8 +1505,8 @@
 }
 
 .mobile-manager-app .mobile-bottom-nav {
-  left: 14px;
-  right: 14px;
+  left: max(14px, var(--one-safe-area-left, env(safe-area-inset-left, 0px)));
+  right: max(14px, var(--one-safe-area-right, env(safe-area-inset-right, 0px)));
   bottom: calc(10px + env(safe-area-inset-bottom, 0px));
   width: auto;
   gap: 2px;
@@ -3685,6 +3689,7 @@
   max-width: 100%;
   overflow: hidden;
   overflow-x: hidden;
+  background: #0a0a0b;
 }
 
 .app-shell.is-mobile-shell .sidebar {
@@ -4201,8 +4206,8 @@
   }
 
   .mobile-manager-app .mobile-bottom-nav {
-    left: 10px;
-    right: 10px;
+    left: max(10px, var(--one-safe-area-left, env(safe-area-inset-left, 0px)));
+    right: max(10px, var(--one-safe-area-right, env(safe-area-inset-right, 0px)));
     bottom: calc(6px + env(safe-area-inset-bottom, 0px));
     padding: 4px 6px;
     border-radius: 20px;
@@ -4594,7 +4599,11 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: max(16px, env(safe-area-inset-top, 0px)) 16px max(16px, env(safe-area-inset-bottom, 0px));
+  padding:
+    max(16px, env(safe-area-inset-top, 0px))
+    max(16px, var(--one-safe-area-right, env(safe-area-inset-right, 0px)))
+    max(16px, env(safe-area-inset-bottom, 0px))
+    max(16px, var(--one-safe-area-left, env(safe-area-inset-left, 0px)));
   background: rgba(0, 0, 0, 0.58);
 }
 
@@ -6783,7 +6792,11 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: max(16px, env(safe-area-inset-top, 0px)) 16px max(16px, env(safe-area-inset-bottom, 0px));
+  padding:
+    max(16px, env(safe-area-inset-top, 0px))
+    max(16px, var(--one-safe-area-right, env(safe-area-inset-right, 0px)))
+    max(16px, env(safe-area-inset-bottom, 0px))
+    max(16px, var(--one-safe-area-left, env(safe-area-inset-left, 0px)));
   background: rgba(0, 0, 0, 0.58);
 }
 
@@ -7548,7 +7561,11 @@ html[data-one-debug-scroll='1'] .floor-plan-viewport.is-host-viewport {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: max(16px, env(safe-area-inset-top, 0px)) 20px max(16px, env(safe-area-inset-bottom, 0px));
+  padding:
+    max(16px, env(safe-area-inset-top, 0px))
+    max(20px, var(--one-safe-area-right, env(safe-area-inset-right, 0px)))
+    max(16px, env(safe-area-inset-bottom, 0px))
+    max(20px, var(--one-safe-area-left, env(safe-area-inset-left, 0px)));
   background: rgba(0, 0, 0, 0.62);
 }
 
@@ -7557,8 +7574,9 @@ html[data-one-debug-scroll='1'] .floor-plan-viewport.is-host-viewport {
   justify-content: center;
   padding:
     max(16px, env(safe-area-inset-top, 0px))
-    20px
-    var(--one-mobile-bottom-inset);
+    max(20px, var(--one-safe-area-right, env(safe-area-inset-right, 0px)))
+    var(--one-mobile-bottom-inset)
+    max(20px, var(--one-safe-area-left, env(safe-area-inset-left, 0px)));
 }
 
 .app-shell.is-host-station-shell .mobile-sheet-backdrop {
