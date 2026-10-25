@@ -17,7 +17,7 @@ import { StockStorageDetailWorkspace } from './StockStorageDetailWorkspace'
  *   onSelect?: (storage: object) => void,
  * }} props
  */
-function StorageSummaryCard({ storage, selected = false, onSelect }) {
+function StorageSummaryCard({ storage, selected = false, onSelect, showValue = true }) {
   return (
     <button
       type="button"
@@ -53,10 +53,12 @@ function StorageSummaryCard({ storage, selected = false, onSelect }) {
           <dt>Non-zero</dt>
           <dd>{storage.nonZeroBalanceCount}</dd>
         </div>
-        <div>
-          <dt>Value</dt>
-          <dd>{formatStockInventoryValue(storage.inventoryValue)}</dd>
-        </div>
+        {showValue ? (
+          <div>
+            <dt>Value</dt>
+            <dd>{formatStockInventoryValue(storage.inventoryValue)}</dd>
+          </div>
+        ) : null}
       </dl>
     </button>
   )
@@ -261,6 +263,7 @@ export function StockStorageCenter({
                 <StorageSummaryCard
                   key={storage.id}
                   storage={storage}
+                  showValue={canManage}
                   selected={selectedId === storage.id}
                   onSelect={(next) => setSelectedId(next.id)}
                 />
@@ -279,6 +282,7 @@ export function StockStorageCenter({
                     <StorageSummaryCard
                       key={storage.id}
                       storage={storage}
+                      showValue={canManage}
                       selected={selectedId === storage.id}
                       onSelect={(next) => setSelectedId(next.id)}
                     />

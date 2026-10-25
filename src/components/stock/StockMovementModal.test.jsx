@@ -284,3 +284,70 @@ describe('StockMovementModal — Receive / Dashboard regression', () => {
     }))
   })
 })
+
+describe('StockMovementModal — location usage ceiling', () => {
+  let container
+  let root
+
+  afterEach(() => {
+    act(() => {
+      root?.unmount()
+    })
+    container?.remove()
+    container = null
+    root = null
+  })
+
+  async function setUsageQuantity(value) {
+    const quantityInput = container.querySelector('input[type="number"]')
+    await act(async () => {
+      const nativeInputValueSetter = Object.getOwnPropertyDescriptor(
+        window.HTMLInputElement.prototype,
+        'value',
+      )?.set
+      nativeInputValueSetter?.call(quantityInput, value)
+      quantityInput.dispatchEvent(new Event('input', { bubbles: true }))
+      quantityInput.dispatchEvent(new Event('change', { bubbles: true }))
+    })
+  }
+
+  async function submitUsage() {
+    await act(async () => {
+      container.querySelector('[data-testid="stock-movement-modal"] form')
+        .dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+      await Promise.resolve()
+    })
+  }
+
+  it('rejects usage above the selected storage balance and allows usage within it', async () => {
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+    const onSubmit = vi.fn(async () => {})
+    act(() => {
+      root.render(createElement(StockMovementModal, {
+        item: { id: 'i1', name: 'Vodka', unit: 'btl', currentQuantity: 10 },
+        movementType: 'usage',
+        destinationStorage: { id: 'stor-bar', name: 'Main Bar' },
+        balanceQuantity: 2,
+        onClose: vi.fn(),
+        onSubmit,
+      }))
+    })
+
+    await setUsageQuantity('5')
+    await submitUsage()
+
+    expect(onSubmit).not.toHaveBeenCalled()
+    expect(container.textContent).toContain('balance in this storage')
+
+    await setUsageQuantity('2')
+    await submitUsage()
+
+    expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({
+      type: 'usage',
+      quantity: 2,
+      workspaceStorageId: 'stor-bar',
+    }))
+  })
+})

@@ -158,9 +158,11 @@ export function StockSupplierDetailDrawer({
                         <span className={`stock-order-status-badge tone-${orderTone}`}>
                           {getStockOrderStatusLabel(order.status)}
                         </span>
-                        <span className="stock-supplier-order-value">
-                          {formatStockPurchasePrice(order.totalCost)}
-                        </span>
+                        {canManage ? (
+                          <span className="stock-supplier-order-value">
+                            {formatStockPurchasePrice(order.totalCost)}
+                          </span>
+                        ) : null}
                       </div>
                     </li>
                   )
@@ -176,14 +178,18 @@ export function StockSupplierDetailDrawer({
                 <dt>Total orders</dt>
                 <dd>{metrics.totalOrders}</dd>
               </div>
-              <div className="stock-product-history-overview-row">
-                <dt>Total spend</dt>
-                <dd>{formatStockPurchasePrice(metrics.totalSpend)}</dd>
-              </div>
-              <div className="stock-product-history-overview-row">
-                <dt>Average order value</dt>
-                <dd>{formatStockPurchasePrice(metrics.averageOrderValue)}</dd>
-              </div>
+              {canManage ? (
+                <div className="stock-product-history-overview-row">
+                  <dt>Total spend</dt>
+                  <dd>{formatStockPurchasePrice(metrics.totalSpend)}</dd>
+                </div>
+              ) : null}
+              {canManage ? (
+                <div className="stock-product-history-overview-row">
+                  <dt>Average order value</dt>
+                  <dd>{formatStockPurchasePrice(metrics.averageOrderValue)}</dd>
+                </div>
+              ) : null}
               <div className="stock-product-history-overview-row">
                 <dt>Last delivery</dt>
                 <dd>{metrics.lastDelivery ? formatSupplierMetricDate(metrics.lastDelivery) : '—'}</dd>

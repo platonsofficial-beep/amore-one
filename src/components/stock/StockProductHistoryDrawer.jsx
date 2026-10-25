@@ -102,6 +102,7 @@ export function StockProductHistoryDrawer({
   workspaceId,
   onClose,
   canManage = false,
+  showCost = true,
   onReceive,
   onStockCount,
   onEdit,
@@ -256,16 +257,20 @@ export function StockProductHistoryDrawer({
                       ? 'Not set'
                       : formatStockQuantity(targetQuantity, item.unit)}
                   />
-                  <OverviewRow
-                    label="Cost"
-                    value={hasCost
-                      ? `${formatStockPurchasePrice(costPrice)} / ${formatInventoryUnitLabel(item.unit) || 'unit'}`
-                      : '—'}
-                  />
-                  <OverviewRow
-                    label="Inventory value"
-                    value={hasCost ? formatStockInventoryValue(inventoryValue) : '—'}
-                  />
+                  {showCost ? (
+                    <OverviewRow
+                      label="Cost"
+                      value={hasCost
+                        ? `${formatStockPurchasePrice(costPrice)} / ${formatInventoryUnitLabel(item.unit) || 'unit'}`
+                        : '—'}
+                    />
+                  ) : null}
+                  {showCost ? (
+                    <OverviewRow
+                      label="Inventory value"
+                      value={hasCost ? formatStockInventoryValue(inventoryValue) : '—'}
+                    />
+                  ) : null}
                 </dl>
               </section>
 

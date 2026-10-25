@@ -6,7 +6,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { buildProductDisplayNameFromItem } from '../../lib/stockProductIdentity'
-import { formatStockQuantity } from '../../lib/stockUtils'
+import { formatStockQuantity, resolveStockUsageCeiling } from '../../lib/stockUtils'
 
 /** @typedef {'remove'|'add'} StockAdjustmentOperation */
 
@@ -176,9 +176,18 @@ export function StockMovementModal({
         setError('Enter a positive usage quantity.')
         return
       }
-      const onHand = Number(item.currentQuantity) || 0
-      if (parsed > onHand) {
-        setError(`Usage cannot exceed on-hand quantity (${formatStockQuantity(onHand, item.unit)}).`)
+      const usageCeiling = resolveStockUsageCeiling({
+        destinationStorage,
+        balanceQuantity,
+        currentQuantity: item?.currentQuantity,
+      })
+      if (usageCeiling == null) {
+        setError('This storage balance is not available yet. Refresh the location before recording usage.')
+        return
+      }
+      if (parsed > usageCeiling) {
+        const limitLabel = destinationStorage ? 'balance in this storage' : 'on-hand quantity'
+        setError(`Usage cannot exceed the ${limitLabel} (${formatStockQuantity(usageCeiling, item.unit)}).`)
         return
       }
     } else if (!isAdjustment && (!Number.isFinite(parsed) || parsed === 0)) {

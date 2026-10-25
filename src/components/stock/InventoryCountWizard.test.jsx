@@ -9,6 +9,7 @@ import { InventoryCountView } from './InventoryCountView'
 import { InventoryCountWizard } from './InventoryCountWizard'
 import {
   createInventoryCountSessionWithSnapshot,
+  listInventoryCountHomeSessions,
   listInventoryCountStorageLocations,
 } from '../../services/inventoryCountService'
 
@@ -784,6 +785,34 @@ describe('InventoryCountWizard live location scope (P8.21.1)', () => {
     )
     expect(container.querySelectorAll('[role="checkbox"]')).toHaveLength(0)
     expect(getButtonByText(container, 'Continue')?.disabled).toBe(true)
+
+    cleanup()
+  })
+
+  it('hides inventory count write actions when the viewer cannot manage stock', async () => {
+    listInventoryCountHomeSessions.mockResolvedValue({
+      active: [{
+        id: 'session-staff-1',
+        status: 'counting_complete',
+        statusLabel: 'Ready',
+        countTypeLabel: 'Full count',
+        startedAt: '2026-07-20T12:00:00.000Z',
+        operatorName: 'Alex',
+      }],
+      paused: [],
+      recent: [],
+    })
+
+    const { container, cleanup } = render(createElement(InventoryCountView, { canManage: false }))
+    await flushAsync()
+    await flushAsync()
+
+    expect(container.textContent).not.toContain('Start new count')
+    expect(container.textContent).not.toContain('Post Count')
+    expect(container.textContent).not.toContain('Cancel Count')
+    expect(container.textContent).not.toContain('Review')
+    expect(container.textContent).toContain('Full count')
+    expect(container.querySelector('[data-inventory-count-card-openable="true"]')).toBeNull()
 
     cleanup()
   })

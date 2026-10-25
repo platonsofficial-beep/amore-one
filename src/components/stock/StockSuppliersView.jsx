@@ -77,7 +77,7 @@ function StockSupplierSortDropdown({ value, options, onChange }) {
   )
 }
 
-function StockSupplierCard({ supplier, metrics, onOpen }) {
+function StockSupplierCard({ supplier, metrics, onOpen, showSpend = true }) {
   const statusTone = getSupplierStatusTone(supplier)
 
   return (
@@ -123,12 +123,14 @@ function StockSupplierCard({ supplier, metrics, onOpen }) {
             {metrics.lastOrderDate ? formatSupplierMetricDate(metrics.lastOrderDate) : '—'}
           </span>
         </div>
-        <div className="stock-supplier-card-stat">
-          <span className="stock-supplier-card-stat-label">Total spend</span>
-          <span className="stock-supplier-card-stat-value stock-supplier-card-stat-value-gold">
-            {formatStockPurchasePrice(metrics.totalSpend)}
-          </span>
-        </div>
+        {showSpend ? (
+          <div className="stock-supplier-card-stat">
+            <span className="stock-supplier-card-stat-label">Total spend</span>
+            <span className="stock-supplier-card-stat-value stock-supplier-card-stat-value-gold">
+              {formatStockPurchasePrice(metrics.totalSpend)}
+            </span>
+          </div>
+        ) : null}
       </div>
     </button>
   )
@@ -345,10 +347,12 @@ export function StockSuppliersView({
           <p className="stock-summary-label">Products supplied</p>
           <p className="stock-summary-value">{dashboardSummary.totalProductsSupplied}</p>
         </article>
-        <article className="stock-summary-card">
-          <p className="stock-summary-label">Total purchase value</p>
-          <p className="stock-summary-value">{formatStockPurchasePrice(dashboardSummary.totalPurchaseValue)}</p>
-        </article>
+        {canManage ? (
+          <article className="stock-summary-card">
+            <p className="stock-summary-label">Total purchase value</p>
+            <p className="stock-summary-value">{formatStockPurchasePrice(dashboardSummary.totalPurchaseValue)}</p>
+          </article>
+        ) : null}
         <article className="stock-summary-card tone-warning">
           <p className="stock-summary-label">Pending orders</p>
           <p className="stock-summary-value">{dashboardSummary.pendingOrders}</p>
@@ -420,6 +424,7 @@ export function StockSuppliersView({
               key={supplier.id}
               supplier={supplier}
               metrics={metricsBySupplierId.get(supplier.id) ?? buildSupplierMetrics(supplier, stockItems, stockOrders)}
+              showSpend={canManage}
               onOpen={setSelectedSupplier}
             />
           ))}

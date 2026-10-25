@@ -315,26 +315,27 @@ export function resolveStockTargetQuantity(item) {
   return Number.isFinite(parsed) && parsed > 0 ? parsed : null
 }
 
+/**
+ * One par for Low and To order.
+ * Positive target_quantity wins (it is already the order source of truth).
+ * Otherwise a positive minimum_quantity is the par. Neither column is dropped.
+ */
+export function resolveStockParQuantity(item) {
+  const target = resolveStockTargetQuantity(item)
+  if (target !== null) return target
+  const minimum = Number(item?.minimumQuantity ?? item?.minimum_quantity ?? 0)
+  return Number.isFinite(minimum) && minimum > 0 ? minimum : 0
+}
+
 export function computeSuggestedOrder(item) {
   const current = Number(item?.currentQuantity ?? item?.current_quantity ?? 0) || 0
-  const target = resolveStockTargetQuantity(item)
-  const minimum = Number(item?.minimumQuantity ?? item?.minimum_quantity ?? 0) || 0
-
-  if (target !== null) {
-    if (current >= target) return 0
-    return Math.max(0, target - current)
-  }
-
-  if (current >= minimum) return 0
-  return Math.max(0, minimum - current)
+  const par = resolveStockParQuantity(item)
+  if (!(par > 0) || current >= par) return 0
+  return Math.max(0, par - current)
 }
 
 export function itemNeedsOrder(item) {
-  const current = Number(item?.currentQuantity ?? item?.current_quantity ?? 0) || 0
-  const target = resolveStockTargetQuantity(item)
-  if (target !== null) return current < target
-  const minimum = Number(item?.minimumQuantity ?? item?.minimum_quantity ?? 0) || 0
-  return current < minimum
+  return computeSuggestedOrder(item) > 0
 }
 
 export function resolveStockFormUnit(form) {
