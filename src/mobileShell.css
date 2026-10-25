@@ -3821,6 +3821,98 @@
   overflow: hidden;
 }
 
+/* Schedule section only: Back, the title, and Today / People / Schedule share
+   one 44px row. The schedule stays mounted on the other team sections, so
+   this follows the visible host (not inside [hidden]). */
+.app-shell.is-mobile-shell.is-mobile-expanded:has(.schedule-workspace.is-compact-landscape):not(:has([hidden] .schedule-workspace.is-compact-landscape)) .mobile-expanded-scroll {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, max-content);
+  grid-template-rows: 44px auto minmax(0, 1fr);
+  align-items: stretch;
+  column-gap: 0;
+  row-gap: 0;
+}
+
+.app-shell.is-mobile-shell.is-mobile-expanded:has(.schedule-workspace.is-compact-landscape):not(:has([hidden] .schedule-workspace.is-compact-landscape)) .mobile-expanded-header {
+  grid-column: 1;
+  grid-row: 1;
+  height: 44px;
+  min-height: 44px;
+  max-height: 44px;
+  min-width: 0;
+  margin: 0;
+  padding: 0 6px;
+  gap: 4px;
+  border: 0;
+  box-sizing: border-box;
+  background: rgba(10, 10, 11, 0.96);
+  box-shadow: inset 0 -1px 0 rgba(255, 255, 255, 0.08);
+  z-index: 3;
+}
+
+.app-shell.is-mobile-shell.is-mobile-expanded:has(.schedule-workspace.is-compact-landscape):not(:has([hidden] .schedule-workspace.is-compact-landscape)) .mobile-expanded-header h1 {
+  font-size: 0.92rem;
+  line-height: 1.1;
+}
+
+.app-shell.is-mobile-shell.is-mobile-expanded:has(.schedule-workspace.is-compact-landscape):not(:has([hidden] .schedule-workspace.is-compact-landscape)) .mobile-back-btn {
+  width: auto;
+  height: 44px;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0 8px;
+  box-sizing: border-box;
+}
+
+.app-shell.is-mobile-shell.is-mobile-expanded:has(.schedule-workspace.is-compact-landscape):not(:has([hidden] .schedule-workspace.is-compact-landscape)) .mobile-workspace-module.is-mobile-expanded {
+  display: contents;
+}
+
+.app-shell.is-mobile-shell.is-mobile-expanded:has(.schedule-workspace.is-compact-landscape):not(:has([hidden] .schedule-workspace.is-compact-landscape)) .module-section-tabs {
+  grid-column: 2;
+  grid-row: 1;
+  align-self: stretch;
+  height: 44px;
+  min-height: 44px;
+  max-height: 44px;
+  min-width: 0;
+  margin: 0;
+  padding: 0 4px 0 0;
+  gap: 4px;
+  flex-wrap: nowrap;
+  align-items: center;
+  box-sizing: border-box;
+  background: rgba(10, 10, 11, 0.96);
+  box-shadow: inset 0 -1px 0 rgba(255, 255, 255, 0.08);
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+.app-shell.is-mobile-shell.is-mobile-expanded:has(.schedule-workspace.is-compact-landscape):not(:has([hidden] .schedule-workspace.is-compact-landscape)) .module-section-tab {
+  flex: 0 0 auto;
+  height: 44px;
+  min-height: 44px;
+  min-width: 44px;
+  padding: 0 10px;
+  font-size: 0.72rem;
+  box-sizing: border-box;
+}
+
+.app-shell.is-mobile-shell.is-mobile-expanded:has(.schedule-workspace.is-compact-landscape):not(:has([hidden] .schedule-workspace.is-compact-landscape)) .mobile-workspace-module.is-mobile-expanded > :not(.module-section-tabs):not(:has(.schedule-workspace.is-compact-landscape)) {
+  grid-column: 1 / -1;
+  grid-row: 2;
+  min-width: 0;
+}
+
+.app-shell.is-mobile-shell.is-mobile-expanded:has(.schedule-workspace.is-compact-landscape):not(:has([hidden] .schedule-workspace.is-compact-landscape)) .mobile-workspace-module.is-mobile-expanded > div:has(.schedule-workspace.is-compact-landscape) {
+  grid-column: 1 / -1;
+  grid-row: 3;
+  min-height: 0;
+  max-height: 100%;
+  box-sizing: border-box;
+  padding: 0 2px calc(68px + var(--one-safe-area-bottom, env(safe-area-inset-bottom, 0px)));
+}
+
 .app-shell.is-mobile-shell .mobile-workspace-module.is-mobile-expanded .reservations-workspace-host {
   display: flex;
   flex-direction: column;
