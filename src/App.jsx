@@ -5604,7 +5604,9 @@ function ScheduleView({
                     className="blend-grid-header-day-select"
                     onClick={() => setSelectedDay(day.key)}
                   >
-                    <strong className="blend-grid-header-day-name">{dayHeader.weekdayLabel}</strong>
+                    <strong className="blend-grid-header-day-name" title={dayHeader.weekdayLabel}>
+                      {isScheduleCompactLandscape ? dayHeader.weekdayShortLabel : dayHeader.weekdayLabel}
+                    </strong>
                     <div className="blend-grid-header-day-meta">
                       <span className="blend-grid-header-day-date">{dayHeader.calendarLabel}</span>
                     </div>

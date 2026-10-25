@@ -70,6 +70,7 @@ export function formatScheduleDayHeader(dateKey) {
   const date = parseLocalDate(dateKey)
   return {
     weekdayLabel: date.toLocaleDateString('en-US', { weekday: 'long' }).toUpperCase(),
+    weekdayShortLabel: date.toLocaleDateString('en-US', { weekday: 'short' }).replace(/\./g, '').toUpperCase(),
     calendarLabel: `${date.getDate()} ${date.toLocaleDateString('en-US', { month: 'short' }).toUpperCase()}`,
   }
 }
