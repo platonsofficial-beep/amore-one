@@ -20,13 +20,22 @@ import { resolveStockItemStatus } from '../lib/stockUtils'
 import { normalizeSupplierId } from '../lib/stockSupplierUtils'
 import { isWorkspaceDepartmentSchemaMissing } from '../lib/stockDepartmentGroups'
 import {
+  countBelowParByStorage,
+  isStockStorageParSchemaMissing,
+  normalizeStorageParQuantity,
+  storageParShort,
+} from '../lib/stockStoragePar'
+import {
   WORKSPACE_STORAGE_LIST_COLUMNS,
   mapWorkspaceStorage,
 } from './workspaceStorageService'
 
 const WORKSPACE_STORAGES_TABLE = 'workspace_storages'
 const STOCK_ITEM_LOCATION_BALANCES_TABLE = 'stock_item_location_balances'
+const STOCK_ITEM_STORAGE_PARS_TABLE = 'stock_item_storage_pars'
 const STOCK_ITEMS_TABLE = 'stock_items'
+
+export const STOCK_STORAGE_PAR_COLUMNS = 'stock_item_id, workspace_storage_id, par_quantity'
 
 export const STOCK_STORAGE_CENTER_BALANCE_COLUMNS = [
   'stock_item_id',
@@ -106,12 +115,14 @@ function asTrimmedString(value) {
  *   storages?: unknown,
  *   balances?: unknown,
  *   costByItemId?: Map<string, number>|Record<string, number>|null,
+ *   pars?: unknown,
  * }} [input]
  */
 export function buildWorkspaceStorageSummaries({
   storages = [],
   balances = [],
   costByItemId = null,
+  pars = null,
 } = {}) {
   const storageList = Array.isArray(storages) ? storages : []
   const balanceList = Array.isArray(balances) ? balances : []
@@ -157,6 +168,11 @@ export function buildWorkspaceStorageSummaries({
     aggregates.set(storageId, current)
   }
 
+  const parsTracked = Array.isArray(pars)
+  const belowParByStorage = parsTracked
+    ? countBelowParByStorage({ balances: balanceList, pars })
+    : null
+
   const summaries = storageList.map((storage) => {
     const id = asTrimmedString(storage?.id)
     const aggregate = aggregates.get(id) ?? {
@@ -179,6 +195,7 @@ export function buildWorkspaceStorageSummaries({
       departmentId,
       isSupply: storage?.isSupply === true || storage?.is_supply === true,
       productCount: aggregate.productIds.size,
+      belowParCount: belowParByStorage ? (belowParByStorage.get(id) ?? 0) : null,
       totalQuantity: aggregate.totalQuantity,
       nonZeroBalanceCount: aggregate.nonZeroBalanceCount,
       balanceRowCount: aggregate.balanceRowCount,
@@ -292,13 +309,31 @@ export async function getWorkspaceStorageSummaries(workspaceId) {
     }
   }
 
+  let parsAvailable = true
+  let parRows = []
+  const { data: parData, error: parError } = await supabase
+    .from(STOCK_ITEM_STORAGE_PARS_TABLE)
+    .select(STOCK_STORAGE_PAR_COLUMNS)
+    .eq('workspace_id', normalizedWorkspaceId)
+
+  if (parError && isStockStorageParSchemaMissing(parError)) {
+    parsAvailable = false
+  } else if (parError) {
+    console.error('[stockStorageCenterService] storage pars error:', parError)
+    throw new Error(parError.message || 'Unable to load shelf pars right now.')
+  } else {
+    parRows = parData ?? []
+  }
+
   return Object.freeze({
     ...buildWorkspaceStorageSummaries({
       storages,
       balances: balanceRows ?? [],
       costByItemId,
+      pars: parsAvailable ? parRows : null,
     }),
     departmentsAvailable,
+    parsAvailable,
   })
 }
 
@@ -364,9 +399,10 @@ function mapStorageProductCatalogItem(record) {
  * @param {{
  *   balances?: unknown,
  *   items?: unknown,
+ *   pars?: unknown,
  * }} [input]
  */
-export function buildStorageProductRows({ balances = [], items = [] } = {}) {
+export function buildStorageProductRows({ balances = [], items = [], pars = [] } = {}) {
   const balanceList = Array.isArray(balances) ? balances : []
   /** @type {Map<string, ReturnType<typeof mapStorageProductCatalogItem>>} */
   const itemsById = new Map()
@@ -376,27 +412,21 @@ export function buildStorageProductRows({ balances = [], items = [] } = {}) {
     itemsById.set(id, mapStorageProductCatalogItem(record))
   }
 
-  /** @type {Array<{
-   *   stockItemId: string,
-   *   name: string,
-   *   category: string,
-   *   unit: string,
-   *   active: boolean,
-   *   quantity: number,
-   *   costPrice: number,
-   *   lineValue: number,
-   *   item: ReturnType<typeof mapStorageProductCatalogItem>,
-   * }>} */
-  const rows = []
+  /** @type {Map<string, number>} */
+  const parByItemId = new Map()
+  for (const par of Array.isArray(pars) ? pars : []) {
+    const stockItemId = asTrimmedString(par?.stock_item_id ?? par?.stockItemId)
+    const parQuantity = normalizeStorageParQuantity(par?.par_quantity ?? par?.parQuantity)
+    if (!stockItemId || parQuantity == null) continue
+    parByItemId.set(stockItemId, parQuantity)
+  }
 
-  for (const balance of balanceList) {
-    const stockItemId = asTrimmedString(balance?.stock_item_id ?? balance?.stockItemId)
-    if (!stockItemId) continue
-    const quantity = asFiniteNumber(balance?.quantity)
-    const quantityVersion = Math.max(
-      1,
-      Math.floor(asFiniteNumber(balance?.quantity_version ?? balance?.quantityVersion) || 1),
-    )
+  const rows = []
+  const seenItemIds = new Set()
+
+  const pushRow = (stockItemId, quantity, quantityVersion) => {
+    if (!stockItemId || seenItemIds.has(stockItemId)) return
+    seenItemIds.add(stockItemId)
     const catalogItem = itemsById.get(stockItemId)
     const item = catalogItem ?? {
       id: stockItemId,
@@ -419,6 +449,7 @@ export function buildStorageProductRows({ balances = [], items = [] } = {}) {
       status: 'ok',
     }
     const costPrice = asFiniteNumber(item.costPrice)
+    const parQuantity = parByItemId.has(stockItemId) ? parByItemId.get(stockItemId) : null
     rows.push(Object.freeze({
       stockItemId,
       name: item.name || 'Unknown product',
@@ -431,10 +462,28 @@ export function buildStorageProductRows({ balances = [], items = [] } = {}) {
       active: item.active !== false,
       quantity,
       quantityVersion,
+      parQuantity,
+      shortQuantity: storageParShort(parQuantity, quantity),
       costPrice,
       lineValue: quantity * costPrice,
       item: Object.freeze(item),
     }))
+  }
+
+  for (const balance of balanceList) {
+    const stockItemId = asTrimmedString(balance?.stock_item_id ?? balance?.stockItemId)
+    if (!stockItemId) continue
+    const quantity = asFiniteNumber(balance?.quantity)
+    const quantityVersion = Math.max(
+      1,
+      Math.floor(asFiniteNumber(balance?.quantity_version ?? balance?.quantityVersion) || 1),
+    )
+    pushRow(stockItemId, quantity, quantityVersion)
+  }
+
+  for (const [stockItemId] of parByItemId) {
+    if (seenItemIds.has(stockItemId)) continue
+    pushRow(stockItemId, 0, 0)
   }
 
   return Object.freeze(rows)
@@ -528,11 +577,28 @@ export async function getWorkspaceStorageProducts(workspaceId, storageId) {
   }
 
   const balances = balanceRows ?? []
-  const itemIds = [...new Set(
-    balances
-      .map((row) => asTrimmedString(row?.stock_item_id))
-      .filter(Boolean),
-  )]
+
+  let parsAvailable = true
+  let parRows = []
+  const { data: parData, error: parError } = await supabase
+    .from(STOCK_ITEM_STORAGE_PARS_TABLE)
+    .select(STOCK_STORAGE_PAR_COLUMNS)
+    .eq('workspace_id', normalizedWorkspaceId)
+    .eq('workspace_storage_id', normalizedStorageId)
+
+  if (parError && isStockStorageParSchemaMissing(parError)) {
+    parsAvailable = false
+  } else if (parError) {
+    console.error('[stockStorageCenterService] storage product pars error:', parError)
+    throw new Error(parError.message || 'Unable to load shelf pars right now.')
+  } else {
+    parRows = parData ?? []
+  }
+
+  const itemIds = [...new Set([
+    ...balances.map((row) => asTrimmedString(row?.stock_item_id)),
+    ...parRows.map((row) => asTrimmedString(row?.stock_item_id)),
+  ].filter(Boolean))]
 
   let items = []
   if (itemIds.length > 0) {
@@ -549,7 +615,11 @@ export async function getWorkspaceStorageProducts(workspaceId, storageId) {
     items = itemRows ?? []
   }
 
-  const products = buildStorageProductRows({ balances, items })
+  const products = buildStorageProductRows({
+    balances,
+    items,
+    pars: parsAvailable ? parRows : [],
+  })
   let totalQuantity = 0
   let inventoryValue = 0
   let nonZeroBalanceCount = 0
@@ -561,6 +631,7 @@ export async function getWorkspaceStorageProducts(workspaceId, storageId) {
 
   return Object.freeze({
     storageId: normalizedStorageId,
+    parsAvailable,
     products: Object.freeze(products),
     summary: Object.freeze({
       productCount: products.length,

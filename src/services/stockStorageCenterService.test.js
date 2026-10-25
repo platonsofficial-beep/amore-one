@@ -132,6 +132,34 @@ describe('buildWorkspaceStorageSummaries', () => {
     })
     expect(result.storages[0].inventoryValue).toBe(18)
     expect(result.storages[1].inventoryValue).toBe(40)
+    expect(result.storages.map((storage) => storage.belowParCount)).toEqual([null, null, null])
+  })
+
+  it('counts items below a shelf par without changing quantity totals', () => {
+    const result = buildWorkspaceStorageSummaries({
+      storages: [
+        { id: 's-soft', locationKey: 'Soft drinks', name: 'Soft drinks', active: true, sortOrder: 0 },
+        { id: 's-spirits', locationKey: 'Spirits', name: 'Spirits', active: true, sortOrder: 1 },
+      ],
+      balances: [
+        { workspace_storage_id: 's-soft', stock_item_id: 'cola', quantity: 9 },
+        { workspace_storage_id: 's-spirits', stock_item_id: 'vodka', quantity: 4 },
+      ],
+      pars: [
+        { workspace_storage_id: 's-soft', stock_item_id: 'cola', par_quantity: 10 },
+        { workspace_storage_id: 's-soft', stock_item_id: 'tonic', par_quantity: 2 },
+        { workspace_storage_id: 's-spirits', stock_item_id: 'vodka', par_quantity: 4 },
+        { workspace_storage_id: 's-spirits', stock_item_id: 'gin', par_quantity: 0 },
+      ],
+      costByItemId: { cola: 2, vodka: 10 },
+    })
+
+    expect(result.storages.map((storage) => [storage.id, storage.belowParCount, storage.totalQuantity]))
+      .toEqual([
+        ['s-soft', 2, 9],
+        ['s-spirits', 0, 4],
+      ])
+    expect(result.summary.totalQuantity).toBe(13)
   })
 
   it('returns graceful empty aggregates', () => {
@@ -178,10 +206,13 @@ describe('getWorkspaceStorageSummaries', () => {
       error: null,
     })
 
+    const parsQuery = createQuery({ data: [], error: null })
+
     fromMock.mockImplementation((table) => {
       if (table === 'workspace_storages') return storagesQuery
       if (table === 'stock_item_location_balances') return balancesQuery
       if (table === 'stock_items') return costsQuery
+      if (table === 'stock_item_storage_pars') return parsQuery
       throw new Error(`unexpected table ${table}`)
     })
 
@@ -203,10 +234,13 @@ describe('getWorkspaceStorageSummaries', () => {
     })
     expect(storagesQuery.select).toHaveBeenCalledWith(WORKSPACE_STORAGE_DEPARTMENT_COLUMNS)
     expect(result.departmentsAvailable).toBe(true)
+    expect(result.parsAvailable).toBe(true)
+    expect(result.storages[0].belowParCount).toBe(0)
     expect(fromMock.mock.calls.every(([table]) => (
       table === 'workspace_storages'
       || table === 'stock_item_location_balances'
       || table === 'stock_items'
+      || table === 'stock_item_storage_pars'
     ))).toBe(true)
   })
 
@@ -236,9 +270,12 @@ describe('getWorkspaceStorageSummaries', () => {
       )),
     }
 
+    const parsQuery = createQuery({ data: [], error: null })
+
     fromMock.mockImplementation((table) => {
       if (table === 'workspace_storages') return storagesQuery
       if (table === 'stock_item_location_balances') return balancesQuery
+      if (table === 'stock_item_storage_pars') return parsQuery
       throw new Error(`unexpected table ${table}`)
     })
 
@@ -310,6 +347,8 @@ describe('buildStorageProductRows', () => {
       lineValue: 48,
     })
     expect(rows[0].item.currentQuantity).toBe(20)
+    expect(rows[0].parQuantity).toBeNull()
+    expect(rows[0].shortQuantity).toBeNull()
     expect(rows[1]).toMatchObject({
       stockItemId: 'i2',
       quantity: 0,
@@ -336,6 +375,52 @@ describe('buildStorageProductRows', () => {
       .toEqual(['Lime Juice', 'Vodka', 'Gin'])
     expect(sortStorageProductRows(rows, 'name-asc').map((row) => row.name))
       .toEqual(['Gin', 'Lime Juice', 'Vodka'])
+  })
+
+  it('uses the shelf par only, treats a missing balance as zero, and ignores the catalog par', () => {
+    const rows = buildStorageProductRows({
+      balances: [
+        { stock_item_id: 'cola', workspace_storage_id: 's-soft', quantity: 9 },
+      ],
+      items: [
+        {
+          id: 'cola',
+          name: 'Cola',
+          unit: 'btl',
+          active: true,
+          current_quantity: 40,
+          minimum_quantity: 2,
+          target_quantity: 30,
+          cost_price: 1,
+        },
+        {
+          id: 'vodka',
+          name: 'Vodka',
+          unit: 'btl',
+          active: true,
+          current_quantity: 8,
+          minimum_quantity: 6,
+          target_quantity: 12,
+          cost_price: 4,
+        },
+      ],
+      pars: [
+        { stock_item_id: 'cola', workspace_storage_id: 's-soft', par_quantity: 10 },
+        { stock_item_id: 'vodka', workspace_storage_id: 's-soft', par_quantity: 5 },
+        { stock_item_id: 'syrup', workspace_storage_id: 's-soft', par_quantity: 0 },
+      ],
+    })
+
+    expect(rows.map((row) => [row.stockItemId, row.quantity, row.parQuantity, row.shortQuantity, row.quantityVersion]))
+      .toEqual([
+        ['cola', 9, 10, 1, 1],
+        ['vodka', 0, 5, 5, 0],
+        ['syrup', 0, 0, 0, 0],
+      ])
+    expect(rows[0].item.minimumQuantity).toBe(2)
+    expect(rows[0].item.targetQuantity).toBe(30)
+    expect(rows[0].lineValue).toBe(9)
+    expect(rows.find((row) => row.stockItemId === 'syrup')?.shortQuantity).toBe(0)
   })
 })
 
@@ -371,9 +456,19 @@ describe('getWorkspaceStorageProducts', () => {
       error: null,
     })
 
+    const parsQuery = createQuery({
+      data: [{
+        stock_item_id: 'i1',
+        workspace_storage_id: 's-main',
+        par_quantity: 10,
+      }],
+      error: null,
+    })
+
     fromMock.mockImplementation((table) => {
       if (table === 'stock_item_location_balances') return balancesQuery
       if (table === 'stock_items') return itemsQuery
+      if (table === 'stock_item_storage_pars') return parsQuery
       throw new Error(`unexpected table ${table}`)
     })
 
@@ -387,7 +482,11 @@ describe('getWorkspaceStorageProducts', () => {
       stockItemId: 'i1',
       quantity: 4,
       name: 'Vodka',
+      parQuantity: 10,
+      shortQuantity: 6,
     })
+    expect(result.products[0].item.minimumQuantity).toBe(2)
+    expect(result.parsAvailable).toBe(true)
     expect(result.summary).toEqual({
       productCount: 1,
       totalQuantity: 4,
@@ -395,7 +494,9 @@ describe('getWorkspaceStorageProducts', () => {
       inventoryValue: 20,
     })
     expect(fromMock.mock.calls.every(([table]) => (
-      table === 'stock_item_location_balances' || table === 'stock_items'
+      table === 'stock_item_location_balances'
+      || table === 'stock_items'
+      || table === 'stock_item_storage_pars'
     ))).toBe(true)
   })
 

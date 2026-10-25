@@ -556,4 +556,53 @@ describe('StockStorageCenter UI', () => {
     expect(container.querySelector('[data-action="new-department"]')).toBeNull()
     expect(container.querySelector('[data-storage-id="s-main"]')).toBeTruthy()
   })
+
+  it('shows how many items are below the per-shelf par', async () => {
+    renderCenter({
+      workspaceId: 'ws-1',
+      canManage: true,
+      loadSummaries: async () => ({
+        storages: [{
+          id: 's-soft',
+          name: 'Soft drinks',
+          locationKey: 'Soft drinks',
+          active: true,
+          status: 'active',
+          productCount: 2,
+          belowParCount: 1,
+          totalQuantity: 9,
+          nonZeroBalanceCount: 1,
+          inventoryValue: 18,
+        }],
+        activeStorages: [{
+          id: 's-soft',
+          name: 'Soft drinks',
+          locationKey: 'Soft drinks',
+          active: true,
+          status: 'active',
+          productCount: 2,
+          belowParCount: 1,
+          totalQuantity: 9,
+          nonZeroBalanceCount: 1,
+          inventoryValue: 18,
+        }],
+        archivedStorages: [],
+        summary: {
+          activeStorageCount: 1,
+          archivedStorageCount: 0,
+          totalProductsWithBalances: 2,
+          totalQuantity: 9,
+        },
+      }),
+    })
+
+    await act(async () => {
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+
+    expect(container.querySelector('[data-testid="storage-below-par"]')?.textContent)
+      .toBe('1 item below par')
+    expect(container.textContent).toContain('Soft drinks')
+  })
 })

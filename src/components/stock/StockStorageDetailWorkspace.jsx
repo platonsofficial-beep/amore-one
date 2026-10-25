@@ -8,6 +8,13 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { buildProductDisplayNameFromItem } from '../../lib/stockProductIdentity'
+import {
+  STORAGE_PAR_LABEL,
+  STORAGE_PAR_UNAVAILABLE_MESSAGE,
+  isBelowStoragePar,
+  parseStorageParInput,
+  storageParShort,
+} from '../../lib/stockStoragePar'
 import { formatStockInventoryValue, formatStockQuantity } from '../../lib/stockUtils'
 import {
   STOCK_STORAGE_PRODUCT_SORT_OPTIONS,
@@ -15,6 +22,10 @@ import {
   getWorkspaceStorageProducts,
   sortStorageProductRows,
 } from '../../services/stockStorageCenterService'
+import {
+  clearStockItemStoragePar,
+  setStockItemStoragePar,
+} from '../../services/stockItemStorageParService'
 import { startStorageFastCountSession } from '../../services/stockStorageFastCountService'
 import { StockProductHistoryDrawer } from './StockProductHistoryDrawer'
 import { StockStorageDetailActionBar } from './StockStorageDetailActionBar'
@@ -23,23 +34,125 @@ import { StockMovementModal } from './StockMovementModal'
 import { StockStorageReceiveProductPicker } from './StockStorageReceiveProductPicker'
 import { StockTransferModal } from './StockTransferModal'
 
+function focusNextStoragePar(input) {
+  const inputs = [...document.querySelectorAll('[data-storage-par-input="true"]')]
+  const index = inputs.indexOf(input)
+  const next = inputs[index + 1]
+  if (next instanceof HTMLElement) next.focus()
+}
+
+/**
+ * @param {{
+ *   row: object,
+ *   disabled?: boolean,
+ *   onCommit?: (row: object, parsed: { clear: boolean, value: number|null }) => Promise<void>,
+ * }} props
+ */
+function StorageParEditor({ row, disabled = false, onCommit }) {
+  const [draft, setDraft] = useState(row.parQuantity == null ? '' : `${row.parQuantity}`)
+  const [error, setError] = useState('')
+  const lastCommitted = useRef(row.parQuantity ?? null)
+
+  useEffect(() => {
+    lastCommitted.current = row.parQuantity ?? null
+    setDraft(row.parQuantity == null ? '' : `${row.parQuantity}`)
+  }, [row.stockItemId, row.parQuantity])
+
+  const commit = async (raw, { focusNext = false, input = null } = {}) => {
+    const parsed = parseStorageParInput(raw)
+    if (!parsed.ok) {
+      setError(parsed.error)
+      return
+    }
+    const nextValue = parsed.clear ? null : parsed.value
+    if (Object.is(nextValue, lastCommitted.current)) {
+      setError('')
+      if (focusNext && input) focusNextStoragePar(input)
+      return
+    }
+    try {
+      setError('')
+      await onCommit?.(row, parsed)
+      lastCommitted.current = nextValue
+      if (focusNext && input) focusNextStoragePar(input)
+    } catch (commitError) {
+      setError(commitError?.message || 'Unable to save the shelf par.')
+    }
+  }
+
+  return (
+    <div className="stock-storage-par-field">
+      <span>Par</span>
+      <div className="stock-storage-par-edit">
+        <input
+          className="stock-storage-par-input"
+          data-storage-par-input="true"
+          inputMode="decimal"
+          aria-label={`${STORAGE_PAR_LABEL} for ${row.name || 'product'}`}
+          value={draft}
+          disabled={disabled}
+          placeholder="Not tracked"
+          onClick={(event) => event.stopPropagation()}
+          onChange={(event) => {
+            setDraft(event.target.value)
+            if (error) setError('')
+          }}
+          onBlur={(event) => {
+            void commit(event.target.value)
+          }}
+          onKeyDown={(event) => {
+            if (event.key !== 'Enter') return
+            event.preventDefault()
+            void commit(event.currentTarget.value, {
+              focusNext: true,
+              input: event.currentTarget,
+            })
+          }}
+        />
+        <button
+          type="button"
+          className="stock-storage-par-clear"
+          data-action="clear-par"
+          disabled={disabled || row.parQuantity == null}
+          onPointerDown={(event) => event.preventDefault()}
+          onClick={() => {
+            setDraft('')
+            void commit('')
+          }}
+        >
+          Clear
+        </button>
+      </div>
+      {error ? (
+        <span className="stock-storage-par-error" role="alert">{error}</span>
+      ) : null}
+    </div>
+  )
+}
+
 /**
  * @param {{
  *   row: object,
  *   canManage?: boolean,
+ *   showPar?: boolean,
+ *   parBusy?: boolean,
  *   menuOpen?: boolean,
  *   onOpenDetails?: (row: object) => void,
  *   onToggleMenu?: (row: object, anchorEl: HTMLElement|null) => void,
  *   onMenuAction?: (actionId: string, row: object) => void,
+ *   onCommitPar?: (row: object, parsed: { clear: boolean, value: number|null }) => Promise<void>,
  * }} props
  */
 function StorageProductRow({
   row,
   canManage = false,
+  showPar = false,
+  parBusy = false,
   menuOpen = false,
   onOpenDetails,
   onToggleMenu,
   onMenuAction,
+  onCommitPar,
 }) {
   return (
     <div
@@ -136,6 +249,29 @@ function StorageProductRow({
           ) : null}
         </div>
       ) : null}
+      {showPar ? (
+        <div
+          className={`stock-storage-product-par${isBelowStoragePar(row.parQuantity, row.quantity) ? ' is-below-par' : ''}`}
+          data-testid="storage-par-line"
+        >
+          <div className="stock-storage-par-readout">
+            <span>On hand</span>
+            <strong>{formatStockQuantity(row.quantity, row.unit)}</strong>
+          </div>
+          {canManage ? (
+            <StorageParEditor row={row} disabled={parBusy} onCommit={onCommitPar} />
+          ) : (
+            <div className="stock-storage-par-readout">
+              <span>Par</span>
+              <strong>{row.parQuantity == null ? '—' : formatStockQuantity(row.parQuantity, row.unit)}</strong>
+            </div>
+          )}
+          <div className="stock-storage-par-readout">
+            <span>Short</span>
+            <strong>{row.shortQuantity == null ? '—' : formatStockQuantity(row.shortQuantity, row.unit)}</strong>
+          </div>
+        </div>
+      ) : null}
     </div>
   )
 }
@@ -181,6 +317,8 @@ export function StockStorageDetailWorkspace({
   isSavingAdjustment = false,
   loadProducts = getWorkspaceStorageProducts,
   startFastCountSession = startStorageFastCountSession,
+  saveStoragePar = setStockItemStoragePar,
+  clearStoragePar = clearStockItemStoragePar,
 } = {}) {
   const [status, setStatus] = useState(/** @type {'loading'|'ready'|'empty'|'error'} */ ('loading'))
   const [errorMessage, setErrorMessage] = useState('')
@@ -198,6 +336,9 @@ export function StockStorageDetailWorkspace({
   const [transferRow, setTransferRow] = useState(/** @type {object|null} */ (null))
   const [adjustmentPickerOpen, setAdjustmentPickerOpen] = useState(false)
   const [adjustmentRow, setAdjustmentRow] = useState(/** @type {object|null} */ (null))
+  const [belowParOnly, setBelowParOnly] = useState(false)
+  const [parBusy, setParBusy] = useState(false)
+  const [parError, setParError] = useState('')
   const listRef = useRef(/** @type {HTMLDivElement|null} */ (null))
   const fastCountRequestIdRef = useRef(0)
 
@@ -254,10 +395,18 @@ export function StockStorageDetailWorkspace({
 
   const visibleProducts = useMemo(() => {
     const rows = payload?.products ?? []
-    return sortStorageProductRows(filterStorageProductRows(rows, searchTerm), sortKey)
-  }, [payload, searchTerm, sortKey])
+    const filtered = filterStorageProductRows(rows, searchTerm)
+    const shelfFiltered = belowParOnly
+      ? filtered.filter((row) => isBelowStoragePar(row?.parQuantity, row?.quantity))
+      : filtered
+    return sortStorageProductRows(shelfFiltered, sortKey)
+  }, [payload, searchTerm, sortKey, belowParOnly])
 
   const summary = payload?.summary
+  const parsAvailable = payload?.parsAvailable === true
+  const belowParCount = (payload?.products ?? []).filter((row) => (
+    isBelowStoragePar(row?.parQuantity, row?.quantity)
+  )).length
   const headerProductCount = summary?.productCount ?? storage?.productCount ?? 0
   const headerQuantity = summary?.totalQuantity ?? storage?.totalQuantity ?? 0
   const headerValue = summary?.inventoryValue ?? storage?.inventoryValue ?? 0
@@ -451,6 +600,41 @@ export function StockStorageDetailWorkspace({
     openPlaceholder(actionId, row.name)
   }
 
+  const handleCommitPar = async (row, parsed) => {
+    if (parBusy) return
+    const workspaceKey = `${workspaceId ?? ''}`.trim()
+    if (!workspaceKey || !storageId) return
+    setParError('')
+    setParBusy(true)
+    try {
+      if (parsed.clear) {
+        await clearStoragePar(workspaceKey, row.stockItemId, storageId)
+      } else {
+        await saveStoragePar(workspaceKey, row.stockItemId, storageId, parsed.value)
+      }
+      const parQuantity = parsed.clear ? null : parsed.value
+      setPayload((current) => {
+        if (!current) return current
+        const products = current.products.map((product) => {
+          if (product.stockItemId !== row.stockItemId) return product
+          const shortQuantity = storageParShort(parQuantity, product.quantity)
+          return {
+            ...product,
+            parQuantity,
+            shortQuantity,
+          }
+        })
+        return { ...current, products }
+      })
+    } catch (commitError) {
+      const message = commitError?.message || 'Unable to save the shelf par.'
+      setParError(message)
+      throw commitError
+    } finally {
+      setParBusy(false)
+    }
+  }
+
   return (
     <section
       className="stock-storage-detail-workspace"
@@ -490,6 +674,12 @@ export function StockStorageDetailWorkspace({
             <div>
               <dt>Inventory value</dt>
               <dd>{formatStockInventoryValue(headerValue)}</dd>
+            </div>
+          ) : null}
+          {parsAvailable ? (
+            <div>
+              <dt>Below par</dt>
+              <dd>{belowParCount}</dd>
             </div>
           ) : null}
         </dl>
@@ -535,12 +725,41 @@ export function StockStorageDetailWorkspace({
             ))}
           </select>
         </label>
+        {parsAvailable ? (
+          <button
+            type="button"
+            className={`stock-storage-below-par-filter${belowParOnly ? ' is-on' : ''}`}
+            data-action="filter-below-par"
+            aria-pressed={belowParOnly}
+            onClick={() => setBelowParOnly((current) => !current)}
+          >
+            Below par
+          </button>
+        ) : null}
         <p className="stock-storage-detail-result-count" role="status">
           {status === 'ready' || status === 'empty'
             ? `${visibleProducts.length} product${visibleProducts.length === 1 ? '' : 's'}`
             : null}
         </p>
       </div>
+
+      {parsAvailable && status !== 'loading' && status !== 'error' ? (
+        <p className="stock-storage-par-note" data-testid="storage-par-note">
+          {STORAGE_PAR_LABEL}. A blank par means this item is not tracked on this shelf.
+        </p>
+      ) : null}
+
+      {payload?.parsAvailable === false && status !== 'loading' && status !== 'error' ? (
+        <div className="stock-department-banner" role="status" data-testid="storage-pars-unavailable">
+          {STORAGE_PAR_UNAVAILABLE_MESSAGE}
+        </div>
+      ) : null}
+
+      {parError ? (
+        <div className="stock-department-banner is-error" role="alert" data-testid="storage-par-error">
+          {parError}
+        </div>
+      ) : null}
 
       {status === 'loading' ? (
         <div className="stock-storage-center-state" role="status" data-testid="stock-storage-detail-loading">
@@ -565,14 +784,16 @@ export function StockStorageDetailWorkspace({
         <div className="stock-storage-center-state" role="status" data-testid="stock-storage-detail-empty">
           <p className="stock-storage-center-empty-title">No products in this storage.</p>
           <p className="stock-storage-center-empty-copy">
-            Products appear here when they have a balance in this location.
+            {parsAvailable
+              ? 'Products appear here when they have a balance or a per-shelf par in this location.'
+              : 'Products appear here when they have a balance in this location.'}
           </p>
         </div>
       ) : null}
 
       {status === 'ready' && visibleProducts.length === 0 ? (
         <div className="stock-storage-center-state" role="status" data-testid="stock-storage-detail-no-matches">
-          No products match this search.
+          {belowParOnly ? 'No products are below par on this shelf.' : 'No products match this search.'}
         </div>
       ) : null}
 
@@ -588,6 +809,8 @@ export function StockStorageDetailWorkspace({
               <StorageProductRow
                 row={row}
                 canManage={canManage}
+                showPar={parsAvailable}
+                parBusy={parBusy}
                 menuOpen={openMenuItemId === row.stockItemId}
                 onOpenDetails={handleOpenDetails}
                 onToggleMenu={(next) => {
@@ -596,6 +819,7 @@ export function StockStorageDetailWorkspace({
                   ))
                 }}
                 onMenuAction={handleMenuAction}
+                onCommitPar={handleCommitPar}
               />
             </div>
           ))}
