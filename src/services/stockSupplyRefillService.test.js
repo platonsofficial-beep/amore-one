@@ -62,7 +62,7 @@ describe('loadSupplyRefillCatalog', () => {
     expect(catalog.balances).toEqual([
       { stockItemId: 'cola', storageId: 'soft', quantity: 6, quantityVersion: 3 },
     ])
-    expect(catalog.itemsById.get('cola')).toEqual({ name: 'Coca-Cola', unit: 'bt' })
+    expect(catalog.itemsById.get('cola')).toEqual({ name: 'Coca-Cola', unit: 'bt', brand: '' })
   })
 
   it('reports supply as unavailable when is_supply is missing', async () => {

@@ -36,8 +36,8 @@ import { StockStorageReceiveProductPicker } from './StockStorageReceiveProductPi
 import { StockTransferModal } from './StockTransferModal'
 import { StockSupplyRefillSheet } from './StockSupplyRefillSheet'
 import {
-  REFILL_ACTION_LABEL,
   STAFF_REFILL_BLOCKED_MESSAGE,
+  TAKE_FROM_SUPPLY_LABEL,
 } from '../../lib/stockSupplyRefill'
 
 function escapeParItemSelector(value) {
@@ -770,7 +770,7 @@ export function StockStorageDetailWorkspace({
                 setRefillOpen(true)
               }}
             >
-              {REFILL_ACTION_LABEL}
+              {TAKE_FROM_SUPPLY_LABEL}
             </button>
             {!canManage ? (
               <p className="stock-supply-refill-staff-note" role="status" data-testid="supply-refill-staff-note">
