@@ -37,7 +37,11 @@
 -- more than one workspace exists. A NOT NULL constraint would abort the
 -- script on those rows.
 --
--- Policies dropped by name when present:
+-- Policies dropped by name when present (each drop raises a notice):
+--   Allow public read suppliers
+--   Allow public insert suppliers
+--   Allow public update suppliers
+--   Allow public delete suppliers
 --   suppliers_dev_select_all
 --   suppliers_dev_insert_all
 --   suppliers_dev_update_all
@@ -47,7 +51,8 @@
 --   suppliers_insert_managers     (recreated below)
 --   suppliers_update_managers     (recreated below)
 -- Any other suppliers policy whose USING or WITH CHECK expression is exactly
--- true is also dropped. The apply raises a notice with each dropped name.
+-- true is also dropped, with a notice. The eight open names above are dropped
+-- by name even if that sweep were skipped.
 --
 -- Policies created:
 --   suppliers_select_members
@@ -435,6 +440,10 @@ declare
   v_qual text;
   v_check text;
   v_known text[] := array[
+    'Allow public read suppliers',
+    'Allow public insert suppliers',
+    'Allow public update suppliers',
+    'Allow public delete suppliers',
     'suppliers_dev_select_all',
     'suppliers_dev_insert_all',
     'suppliers_dev_update_all',

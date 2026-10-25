@@ -13,19 +13,20 @@
 --     with the column.
 --   - Drops the same-workspace triggers and the move-prevention trigger.
 --   - Drops the three member/manager policies.
---   - Restores the open policies that supabase/suppliers_schema.sql and
---     supabase/suppliers_rls_policies.sql document as the previous allow-all
---     set, for anon and authenticated, USING/WITH CHECK (true):
---       suppliers_dev_select_all
---       suppliers_dev_insert_all
---       suppliers_dev_update_all
---       suppliers_dev_delete_all
---   - Does not restore suppliers_delete_managers.
+--   - Restores the exact open policy set confirmed read-only in production
+--     before this change (8 policies). suppliers_delete_managers did not
+--     exist and is not restored.
+--       TO public, USING/WITH CHECK (true):
+--         "Allow public read suppliers"    SELECT
+--         "Allow public insert suppliers"  INSERT
+--         "Allow public update suppliers"  UPDATE
+--         "Allow public delete suppliers"  DELETE
+--       TO anon, authenticated, USING/WITH CHECK (true):
+--         suppliers_dev_select_all
+--         suppliers_dev_insert_all
+--         suppliers_dev_update_all
+--         suppliers_dev_delete_all
 --   - Does not restore a supplier workspace_id that this rollback dropped.
---
--- If production had no suppliers_dev_* policies before the forward script,
--- this rollback puts those four open policies back. Confirm the live policy
--- list before applying the forward script.
 --
 -- stock_items and stock_orders rows are not deleted or rewritten.
 -- =============================================================================
@@ -47,10 +48,40 @@ drop policy if exists suppliers_delete_managers on public.suppliers;
 alter table public.suppliers
   drop column if exists workspace_id;
 
+drop policy if exists "Allow public read suppliers" on public.suppliers;
+drop policy if exists "Allow public insert suppliers" on public.suppliers;
+drop policy if exists "Allow public update suppliers" on public.suppliers;
+drop policy if exists "Allow public delete suppliers" on public.suppliers;
+
 drop policy if exists suppliers_dev_select_all on public.suppliers;
 drop policy if exists suppliers_dev_insert_all on public.suppliers;
 drop policy if exists suppliers_dev_update_all on public.suppliers;
 drop policy if exists suppliers_dev_delete_all on public.suppliers;
+
+create policy "Allow public read suppliers"
+  on public.suppliers
+  for select
+  to public
+  using (true);
+
+create policy "Allow public insert suppliers"
+  on public.suppliers
+  for insert
+  to public
+  with check (true);
+
+create policy "Allow public update suppliers"
+  on public.suppliers
+  for update
+  to public
+  using (true)
+  with check (true);
+
+create policy "Allow public delete suppliers"
+  on public.suppliers
+  for delete
+  to public
+  using (true);
 
 create policy suppliers_dev_select_all
   on public.suppliers

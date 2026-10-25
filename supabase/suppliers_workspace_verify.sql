@@ -25,6 +25,7 @@ declare
   v_has_item_supplier boolean;
   v_has_order_supplier boolean;
   v_null_suppliers bigint;
+  v_open_names text;
 begin
   if to_regclass('public.suppliers') is null then
     raise exception 'suppliers_workspace verify: public.suppliers is missing';
@@ -137,6 +138,27 @@ begin
       and pg_get_expr(pol.polwithcheck, pol.polrelid) ilike '%can_manage_workspace_stock%'
   ) then
     raise exception 'suppliers_workspace verify: suppliers_update_managers is missing or not manager-scoped';
+  end if;
+
+  select string_agg(pol.polname, ', ' order by pol.polname)
+    into v_open_names
+  from pg_policy pol
+  where pol.polrelid = 'public.suppliers'::regclass
+    and pol.polname in (
+      'Allow public read suppliers',
+      'Allow public insert suppliers',
+      'Allow public update suppliers',
+      'Allow public delete suppliers',
+      'suppliers_dev_select_all',
+      'suppliers_dev_insert_all',
+      'suppliers_dev_update_all',
+      'suppliers_dev_delete_all'
+    );
+
+  if v_open_names is not null then
+    raise exception
+      'suppliers_workspace verify: previous open suppliers policies still present: %',
+      v_open_names;
   end if;
 
   if exists (
