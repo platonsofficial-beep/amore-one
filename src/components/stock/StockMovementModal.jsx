@@ -13,7 +13,10 @@ import {
   resolveStockMovementStorage,
   stockMovementStorageActionLabel,
 } from '../../lib/stockMovementStorage'
-import { isStockLocationVersionMismatch } from '../../services/stockMutationService'
+import {
+  ABSENT_LOCATION_BALANCE_VERSION,
+  isStockLocationVersionMismatch,
+} from '../../services/stockMutationService'
 import { formatStockQuantity, resolveStockUsageCeiling } from '../../lib/stockUtils'
 
 /** @typedef {'remove'|'add'} StockAdjustmentOperation */
@@ -180,17 +183,32 @@ export function StockMovementModal({
   const signedAdjustment = positiveQuantity == null
     ? null
     : toSignedAdjustmentQuantity(operation, positiveQuantity)
-  const previewNewBalance = signedAdjustment == null || currentBalance == null
+  const createsAbsentBalance = Boolean(
+    pickerMode
+    && selectedStorage
+    && effectiveVersion == null
+    && (
+      movementType === 'receive'
+      || movementType === 'stock_count'
+      || (isAdjustment && operation === 'add')
+    ),
+  )
+  const adjustmentBalance = currentBalance == null && createsAbsentBalance && isAdjustment
+    ? 0
+    : currentBalance
+  const previewNewBalance = signedAdjustment == null || adjustmentBalance == null
     ? null
-    : currentBalance + signedAdjustment
+    : adjustmentBalance + signedAdjustment
   const wouldGoNegative = previewNewBalance != null && previewNewBalance < 0
   const canSubmitAdjustment = !isAdjustment
-    || (currentBalance != null && positiveQuantity != null && !wouldGoNegative)
-  const missingLocationBalance = pickerMode && selectedStorage && effectiveVersion == null
+    || (adjustmentBalance != null && positiveQuantity != null && !wouldGoNegative)
+  const missingLocationBalance = Boolean(
+    pickerMode && selectedStorage && effectiveVersion == null && !createsAbsentBalance,
+  )
   const saveBlocked = isBusy
     || storagesLoading
     || (isAdjustment && !canSubmitAdjustment)
-    || (pickerMode && (!selectedStorage || effectiveVersion == null))
+    || (pickerMode && (!selectedStorage || (effectiveVersion == null && !createsAbsentBalance)))
 
   useEffect(() => {
     setOperation('remove')
@@ -246,10 +264,12 @@ export function StockMovementModal({
     event.preventDefault()
     if (isBusy) return
 
-    if (pickerMode && (!selectedStorage?.id || effectiveVersion == null)) {
-      setError(selectedStorage
-        ? `No balance at ${destinationLabel} yet. Choose a storage that already holds this product.`
-        : 'Choose a storage.')
+    if (pickerMode && !selectedStorage?.id) {
+      setError('Choose a storage.')
+      return
+    }
+    if (pickerMode && effectiveVersion == null && !createsAbsentBalance) {
+      setError(`No balance at ${destinationLabel} yet. Choose a storage that already holds this product.`)
       return
     }
 
@@ -261,11 +281,11 @@ export function StockMovementModal({
         return
       }
       parsed = toSignedAdjustmentQuantity(operation, positive)
-      if (currentBalance == null) {
+      if (adjustmentBalance == null) {
         setError('This storage balance is not available yet. Choose a storage that already holds this product.')
         return
       }
-      if (currentBalance + parsed < 0) {
+      if (adjustmentBalance + parsed < 0) {
         setError('Adjustment would make the balance negative.')
         return
       }
@@ -314,7 +334,9 @@ export function StockMovementModal({
     const workspaceStorageId = pickerMode
       ? selectedStorage.id
       : (destinationStorage?.id ?? null)
-    const versionForSubmit = pickerMode ? effectiveVersion : expectedQuantityVersion
+    const versionForSubmit = pickerMode
+      ? (effectiveVersion == null ? ABSENT_LOCATION_BALANCE_VERSION : effectiveVersion)
+      : expectedQuantityVersion
 
     try {
       setError('')
@@ -426,6 +448,11 @@ export function StockMovementModal({
                   {`No balance at ${destinationLabel} yet. Choose a storage that already holds this product.`}
                 </p>
               ) : null}
+              {createsAbsentBalance ? (
+                <p className="stock-movement-storage-gap" data-testid="stock-movement-balance-start">
+                  {`No balance at ${destinationLabel} yet. Saving starts this storage at the quantity you enter.`}
+                </p>
+              ) : null}
               {otherLocationNote ? (
                 <p className="stock-movement-other-locations" data-testid="stock-movement-other-locations">
                   {otherLocationNote}
@@ -511,7 +538,7 @@ export function StockMovementModal({
             >
               <div className="stock-adjustment-preview-row">
                 <span>Current</span>
-                <strong>{currentBalance == null ? '—' : formatStockQuantity(currentBalance, item?.unit)}</strong>
+                <strong>{adjustmentBalance == null ? '—' : formatStockQuantity(adjustmentBalance, item?.unit)}</strong>
               </div>
               <div className="stock-adjustment-preview-row">
                 <span>{previewOperationLabel}</span>

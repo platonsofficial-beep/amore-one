@@ -30,14 +30,60 @@ const LOCATION_RPC_BY_TYPE = Object.freeze({
 let supportsLocationBalances = false
 
 /**
+ * Expected version sent when the chosen storage has no balance row yet.
+ * SQL treats null and 0 as "expect no row". The client always sends 0.
+ * A real balance version is always >= 1.
+ */
+export const ABSENT_LOCATION_BALANCE_VERSION = 0
+
+/**
+ * Explicit 0 means "expect no balance row". Null and undefined do not.
+ * Number(null) is 0, so this must not go through Number() first.
+ * @param {unknown} value
+ */
+export function isAbsentLocationBalanceVersion(value) {
+  if (typeof value === 'number') return value === 0
+  if (typeof value === 'string' && value.trim() === '0') return true
+  return false
+}
+
+/**
+ * Receive, stock count, and a positive adjustment may start an empty shelf.
+ * Usage and a negative adjustment must already have a balance row.
+ * @param {string} type
+ * @param {number} quantity
+ */
+export function allowsAbsentLocationBalance(type, quantity) {
+  if (type === 'receive' || type === 'stock_count') return true
+  if (type === 'adjustment' && Number(quantity) > 0) return true
+  return false
+}
+
+/**
  * Fail closed before a movement is written. The legacy client-math path stays
  * in this module for direct callers, but the UI must not reach it without a
- * storage and that balance's quantity_version.
+ * storage. Version >= 1 is that balance's quantity_version. Version 0 is
+ * allowed only for movements that may create the first row.
+ * @param {string} workspaceStorageId
+ * @param {number|null|undefined} expectedQuantityVersion
+ * @param {{ type?: string, quantity?: number }} [movement]
  */
-export function assertLocationStockMovementTarget(workspaceStorageId, expectedQuantityVersion) {
+export function assertLocationStockMovementTarget(workspaceStorageId, expectedQuantityVersion, movement = {}) {
   const storageId = `${workspaceStorageId ?? ''}`.trim()
   const version = Number(expectedQuantityVersion)
-  if (!storageId || !Number.isFinite(version) || version < 1) {
+  if (!storageId) {
+    throw new Error('Choose a storage before recording this stock change.')
+  }
+  if (isAbsentLocationBalanceVersion(expectedQuantityVersion)) {
+    if (!allowsAbsentLocationBalance(movement.type, movement.quantity)) {
+      throw new Error('Choose a storage before recording this stock change.')
+    }
+    return {
+      workspaceStorageId: storageId,
+      expectedQuantityVersion: ABSENT_LOCATION_BALANCE_VERSION,
+    }
+  }
+  if (!Number.isFinite(version) || version < 1) {
     throw new Error('Choose a storage before recording this stock change.')
   }
   return {
@@ -51,15 +97,22 @@ export function isStockLocationVersionMismatch(error) {
   return raw.includes('stock_location_balance_version_mismatch')
 }
 
-function throwLocationMutationError(error) {
+function throwLocationMutationError(error, { absentBalance = false } = {}) {
   if (isStockLocationVersionMismatch(error)) {
     const mapped = new Error('This balance changed. The storage quantity was refreshed. Check it and try again.')
     mapped.code = 'stock_location_balance_version_mismatch'
     throw mapped
   }
   const raw = `${error?.message ?? ''}`
-  if (raw.includes('stock_location_balance_not_found')) {
+  // Before the empty-shelf SQL is applied, version 0 is rejected as
+  // stock_location_balance_version_required. Show the same message as a
+  // missing row so this client can ship before or after that SQL.
+  if (raw.includes('stock_location_balance_not_found')
+    || (absentBalance && raw.includes('stock_location_balance_version_required'))) {
     throw new Error('This storage has no balance for this product yet.')
+  }
+  if (raw.includes('stock_location_balance_reconciliation_required')) {
+    throw new Error('On-hand does not match the storage balances. Reconcile this product before starting a new storage.')
   }
   throw new Error(raw || 'Unable to record location stock movement right now.')
 }
@@ -221,7 +274,12 @@ export async function recordStockMutationLocationAware(input) {
   }
 
   const version = Number(expectedQuantityVersion)
-  if (!Number.isFinite(version) || version < 1) {
+  const absentBalance = isAbsentLocationBalanceVersion(expectedQuantityVersion)
+  if (absentBalance) {
+    if (!allowsAbsentLocationBalance(type, quantity)) {
+      throw new Error('Expected quantity version is required for location balance mutations.')
+    }
+  } else if (!Number.isFinite(version) || version < 1) {
     throw new Error('Expected quantity version is required for location balance mutations.')
   }
 
@@ -235,7 +293,7 @@ export async function recordStockMutationLocationAware(input) {
     p_stock_item_id: itemId,
     p_workspace_storage_id: workspaceStorageId,
     p_quantity: quantity,
-    p_expected_quantity_version: version,
+    p_expected_quantity_version: absentBalance ? ABSENT_LOCATION_BALANCE_VERSION : Math.floor(version),
     p_note: note,
     p_origin_workflow: originWorkflow,
     p_origin_ref_id: originRefId,
@@ -243,7 +301,7 @@ export async function recordStockMutationLocationAware(input) {
 
   if (error) {
     console.error('[stockMutationService] recordStockMutationLocationAware error:', error)
-    throwLocationMutationError(error)
+    throwLocationMutationError(error, { absentBalance })
   }
 
   const payload = firstRpcPayload(data)

@@ -22552,6 +22552,7 @@ function App() {
       const locationTarget = assertLocationStockMovementTarget(
         workspaceStorageId,
         expectedQuantityVersion,
+        { type, quantity },
       )
       await recordStockMovement({
         workspaceId: activeWorkspaceId,

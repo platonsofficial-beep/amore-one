@@ -22,6 +22,8 @@ vi.mock('./stockItemService', () => ({
 
 import {
   __setSupportsLocationBalancesForTests,
+  ABSENT_LOCATION_BALANCE_VERSION,
+  allowsAbsentLocationBalance,
   assertLocationStockMovementTarget,
   getSupportsLocationBalances,
   isStockLocationVersionMismatch,
@@ -74,6 +76,18 @@ describe('stockMutationService — P8.29.7 dual-write foundation', () => {
       workspaceStorageId: 'stor-1',
       expectedQuantityVersion: 4,
     })
+    expect(ABSENT_LOCATION_BALANCE_VERSION).toBe(0)
+    expect(allowsAbsentLocationBalance('receive', 1)).toBe(true)
+    expect(allowsAbsentLocationBalance('stock_count', 0)).toBe(true)
+    expect(allowsAbsentLocationBalance('adjustment', 2)).toBe(true)
+    expect(allowsAbsentLocationBalance('adjustment', -2)).toBe(false)
+    expect(allowsAbsentLocationBalance('usage', 1)).toBe(false)
+    expect(assertLocationStockMovementTarget('stor-1', 0, { type: 'receive', quantity: 3 })).toEqual({
+      workspaceStorageId: 'stor-1',
+      expectedQuantityVersion: 0,
+    })
+    expect(() => assertLocationStockMovementTarget('stor-1', 0, { type: 'usage', quantity: 1 }))
+      .toThrow(/Choose a storage/)
   })
 
   it('maps a stale balance version to a refresh message and does not patch quantity', async () => {
@@ -387,6 +401,95 @@ describe('stockMutationService — P8.29.7 dual-write foundation', () => {
 
     expect(rpcMock).not.toHaveBeenCalled()
     expect(updateStockItemQuantityMock).not.toHaveBeenCalled()
+  })
+
+  it('sends version 0 for an empty shelf and keeps the current message if that SQL is not applied yet', async () => {
+    __setSupportsLocationBalancesForTests(true)
+    rpcMock.mockResolvedValue({
+      data: { movement_id: 'mov-new-shelf' },
+      error: null,
+    })
+    fromMock.mockReturnValue(createSelectByIdQuery({
+      data: {
+        id: 'mov-new-shelf',
+        workspace_id: 'ws-1',
+        item_id: 'item-1',
+        type: 'receive',
+        quantity: 4,
+        note: '',
+        created_by: null,
+        created_at: '2026-07-29T16:00:00Z',
+      },
+      error: null,
+    }))
+
+    await recordStockMutationLocationAware({
+      workspaceId: 'ws-1',
+      itemId: 'item-1',
+      type: 'receive',
+      quantity: 4,
+      workspaceStorageId: 'stor-new',
+      expectedQuantityVersion: 0,
+    })
+    expect(rpcMock).toHaveBeenCalledWith('record_location_receive', expect.objectContaining({
+      p_expected_quantity_version: 0,
+    }))
+
+    rpcMock.mockResolvedValue({
+      data: null,
+      error: { message: 'stock_location_balance_version_required' },
+    })
+    await expect(recordStockMutationLocationAware({
+      workspaceId: 'ws-1',
+      itemId: 'item-1',
+      type: 'stock_count',
+      quantity: 2,
+      workspaceStorageId: 'stor-new',
+      expectedQuantityVersion: 0,
+    })).rejects.toThrow(/no balance for this product yet/i)
+
+    rpcMock.mockResolvedValue({
+      data: null,
+      error: { message: 'stock_location_balance_not_found' },
+    })
+    await expect(recordStockMutationLocationAware({
+      workspaceId: 'ws-1',
+      itemId: 'item-1',
+      type: 'receive',
+      quantity: 1,
+      workspaceStorageId: 'stor-new',
+      expectedQuantityVersion: 0,
+    })).rejects.toThrow(/no balance for this product yet/i)
+
+    rpcMock.mockResolvedValue({
+      data: null,
+      error: { message: 'stock_location_balance_reconciliation_required' },
+    })
+    await expect(recordStockMutationLocationAware({
+      workspaceId: 'ws-1',
+      itemId: 'item-1',
+      type: 'adjustment',
+      quantity: 1,
+      workspaceStorageId: 'stor-new',
+      expectedQuantityVersion: 0,
+    })).rejects.toThrow(/does not match the storage balances/i)
+
+    await expect(recordStockMutationLocationAware({
+      workspaceId: 'ws-1',
+      itemId: 'item-1',
+      type: 'usage',
+      quantity: 1,
+      workspaceStorageId: 'stor-new',
+      expectedQuantityVersion: 0,
+    })).rejects.toThrow(/expected quantity version is required/i)
+    await expect(recordStockMutationLocationAware({
+      workspaceId: 'ws-1',
+      itemId: 'item-1',
+      type: 'adjustment',
+      quantity: -1,
+      workspaceStorageId: 'stor-new',
+      expectedQuantityVersion: 0,
+    })).rejects.toThrow(/expected quantity version is required/i)
   })
 
   it('stockMovementService.recordStockMovement delegates to the router', async () => {
