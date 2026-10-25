@@ -24599,6 +24599,7 @@ function App() {
             onRecordReceive={handleRecordStockMovement}
             onRecordTransfer={handleRecordStockTransfer}
             onRecordAdjustment={handleRecordStockMovement}
+            onSupplyRefillComplete={refreshStockItems}
             isSavingReceive={isSavingStockItem}
             isSavingTransfer={isSavingStockItem}
             isSavingAdjustment={isSavingStockItem}

@@ -33029,6 +33029,182 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   cursor: not-allowed;
 }
 
+.stock-storage-refill-launch {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+}
+
+.stock-supply-refill-staff-note,
+.stock-supply-refill-hint,
+.stock-supply-refill-status,
+.stock-supply-refill-notice {
+  margin: 0;
+  color: rgba(255, 247, 232, 0.72);
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
+.stock-supply-refill-status.is-error,
+.stock-supply-refill-line-error {
+  margin: 0;
+  color: rgba(255, 170, 160, 0.95);
+  font-size: 0.88rem;
+  grid-column: 1 / -1;
+}
+
+.stock-supply-refill-sheet {
+  width: min(960px, calc(100vw - 32px));
+  max-height: min(88vh, 900px);
+  overflow: auto;
+}
+
+.stock-supply-refill-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.stock-supply-refill-line {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1.4fr) minmax(180px, 1fr);
+  gap: 10px 12px;
+  align-items: center;
+  padding: 12px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.stock-supply-refill-line.needs-order {
+  grid-template-columns: 44px minmax(0, 1fr);
+}
+
+.stock-supply-refill-check {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+}
+
+.stock-supply-refill-check input {
+  width: 22px;
+  height: 22px;
+}
+
+.stock-supply-refill-identity {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.stock-supply-refill-identity strong {
+  color: #fff7e8;
+}
+
+.stock-supply-refill-identity span,
+.stock-supply-refill-source p,
+.stock-supply-refill-adhoc p {
+  margin: 0;
+  color: rgba(255, 247, 232, 0.62);
+  font-size: 0.85rem;
+}
+
+.stock-supply-refill-source,
+.stock-supply-refill-adhoc {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 10px;
+}
+
+.stock-supply-refill-source label,
+.stock-supply-refill-adhoc label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  color: rgba(255, 247, 232, 0.7);
+  font-size: 0.78rem;
+  font-weight: 650;
+}
+
+.stock-supply-refill-source select,
+.stock-supply-refill-source input,
+.stock-supply-refill-adhoc select,
+.stock-supply-refill-adhoc input,
+.stock-supply-refill-actions .primary-btn,
+.stock-supply-refill-adhoc .ghost-btn,
+.stock-storage-refill-launch .stock-storage-detail-action-btn {
+  min-height: 44px;
+}
+
+.stock-supply-refill-source input,
+.stock-supply-refill-adhoc input {
+  width: 96px;
+  padding: 0 10px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(8, 8, 9, 0.72);
+  color: #fff7e8;
+}
+
+.stock-supply-refill-order {
+  margin: 0;
+  color: #f4d391;
+  font-size: 0.88rem;
+}
+
+.stock-supply-refill-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.stock-supply-refill-adhoc {
+  margin-top: 8px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.stock-supply-refill-adhoc h4 {
+  margin: 0;
+  color: #fff7e8;
+  font-size: 1rem;
+}
+
+@media (max-width: 760px) {
+  .stock-supply-refill-sheet {
+    width: 100%;
+    max-height: 100%;
+    border-radius: 16px 16px 0 0;
+  }
+
+  .stock-supply-refill-line,
+  .stock-supply-refill-line.needs-order {
+    grid-template-columns: 44px minmax(0, 1fr);
+  }
+
+  .stock-supply-refill-source,
+  .stock-supply-refill-line-error,
+  .stock-supply-refill-order {
+    grid-column: 1 / -1;
+  }
+
+  .stock-storage-refill-launch,
+  .stock-supply-refill-actions .primary-btn,
+  .stock-supply-refill-adhoc .ghost-btn {
+    width: 100%;
+  }
+}
+
 .stock-storage-fast-count-status {
   margin-top: 4px;
   color: rgba(255, 247, 232, 0.7);

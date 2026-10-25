@@ -1020,4 +1020,65 @@ describe('StockStorageDetailWorkspace — actions + Fast Count launch', () => {
     expect(container.querySelector('[data-storage-par-input="true"]')).toBeNull()
     expect(container.querySelector('[data-action="filter-below-par"]')).toBeNull()
   })
+
+  it('lets a manager open refill and keeps the action off a supply storage', async () => {
+    renderWorkspace({
+      workspaceId: 'ws-1',
+      storage: { id: 's-bar', name: 'Back bar', active: true, isSupply: false },
+      canManage: true,
+      loadProducts: async () => ({
+        storageId: 's-bar',
+        parsAvailable: true,
+        products: [],
+        summary: { productCount: 0, totalQuantity: 0, nonZeroBalanceCount: 0, inventoryValue: 0 },
+      }),
+    })
+    await settle()
+    const open = container.querySelector('[data-testid="supply-refill-open"]')
+    expect(open?.textContent).toContain('Αναπλήρωση')
+    expect(open.disabled).toBe(false)
+    await act(async () => {
+      open.click()
+      await Promise.resolve()
+    })
+    expect(container.querySelector('[data-testid="supply-refill-sheet"]')).toBeTruthy()
+
+    await act(async () => {
+      root.render(createElement(StockStorageDetailWorkspace, {
+        workspaceId: 'ws-1',
+        storage: { id: 's-soft', name: 'Soft drinks', active: true, isSupply: true },
+        canManage: true,
+        loadProducts: async () => ({
+          storageId: 's-soft',
+          parsAvailable: true,
+          products: [],
+          summary: { productCount: 0, totalQuantity: 0, nonZeroBalanceCount: 0, inventoryValue: 0 },
+        }),
+      }))
+      await Promise.resolve()
+    })
+    expect(container.querySelector('[data-testid="supply-refill-open"]')).toBeNull()
+  })
+
+  it('disables refill for staff and does not show cost', async () => {
+    renderWorkspace({
+      workspaceId: 'ws-1',
+      storage: { id: 's-bar', name: 'Back bar', active: true, isSupply: false },
+      canManage: false,
+      loadProducts: async () => ({
+        storageId: 's-bar',
+        parsAvailable: true,
+        products: [makeRow({ id: 'cola', name: 'Cola', quantity: 1, costPrice: 12 })],
+        summary: { productCount: 1, totalQuantity: 1, nonZeroBalanceCount: 1, inventoryValue: 12 },
+      }),
+    })
+    await settle()
+    const open = container.querySelector('[data-testid="supply-refill-open"]')
+    expect(open.disabled).toBe(true)
+    expect(container.querySelector('[data-testid="supply-refill-staff-note"]')?.textContent)
+      .toMatch(/limited to managers/)
+    expect(container.querySelector('[data-testid="supply-refill-sheet"]')).toBeNull()
+    expect(container.textContent).not.toContain('Inventory value')
+    expect(container.textContent).not.toContain('12')
+  })
 })
