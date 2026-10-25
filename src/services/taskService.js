@@ -1,6 +1,13 @@
 import { supabase } from '../lib/supabaseClient'
 import { isTaskDepartmentKey, normalizeTaskDepartmentKey } from '../lib/taskDepartments'
 import { normalizeTimeValue } from '../lib/timeFormatUtils'
+import {
+  createWorkspaceColumnProbe,
+  isMissingWorkspaceIdColumnError,
+  isTableMissingError,
+  payloadWithoutWorkspaceId,
+  readWorkspaceId,
+} from '../lib/workspaceScopedTable'
 
 const TASKS_TABLE = 'tasks'
 
@@ -9,8 +16,13 @@ const TASK_RECURRENCES = new Set(['none', 'daily', 'weekly', 'monthly'])
 const TASK_STATUSES = new Set(['active', 'completed'])
 
 function isTableUnavailableError(error) {
-  const message = error?.message?.toLowerCase() ?? ''
-  return message.includes('does not exist') || message.includes('relation') || message.includes('could not find the table')
+  return isTableMissingError(error)
+}
+
+const tasksWorkspaceColumn = createWorkspaceColumnProbe(supabase, TASKS_TABLE)
+
+export function resetTaskWorkspaceColumnCacheForTests() {
+  tasksWorkspaceColumn.reset()
 }
 
 function normalizeTaskDateKey(value) {
@@ -52,6 +64,7 @@ function mapTask(record) {
     completedAt: record.completed_at ?? record.completedAt ?? null,
     createdAt: record.created_at ?? record.createdAt ?? null,
     updatedAt: record.updated_at ?? record.updatedAt ?? null,
+    workspaceId: record.workspace_id ?? record.workspaceId ?? null,
   }
 }
 
@@ -140,30 +153,79 @@ function handleServiceError(error, actionLabel) {
   throw new Error(error.message || `Unable to ${actionLabel} right now.`)
 }
 
-export async function getTasks() {
-  const { data, error } = await supabase
+async function loadTasks(workspaceFilter) {
+  let query = supabase
     .from(TASKS_TABLE)
     .select('*')
     .order('due_date', { ascending: true })
     .order('priority', { ascending: true })
     .order('title', { ascending: true })
 
-  if (error) {
+  if (workspaceFilter) {
+    query = query.eq('workspace_id', workspaceFilter)
+  }
+
+  const { data, error } = await query
+  if (error) return { data: null, error }
+  return { data: (data ?? []).map(mapTask), error: null }
+}
+
+export async function getTasks(workspaceId) {
+  let column
+  try {
+    column = await tasksWorkspaceColumn.ensure()
+  } catch (error) {
     handleServiceError(error, 'load tasks')
   }
 
-  return (data ?? []).map(mapTask)
+  const normalizedWorkspaceId = `${workspaceId ?? ''}`.trim()
+  if (column === 'present' && !normalizedWorkspaceId) return []
+
+  let result = await loadTasks(column === 'present' ? normalizedWorkspaceId : '')
+  if (result.error && isMissingWorkspaceIdColumnError(result.error)) {
+    tasksWorkspaceColumn.rememberMissing()
+    result = await loadTasks('')
+  }
+
+  if (result.error) {
+    handleServiceError(result.error, 'load tasks')
+  }
+
+  return result.data ?? []
+}
+
+async function insertTask(payload) {
+  return supabase
+    .from(TASKS_TABLE)
+    .insert([payload])
+    .select('*')
+    .single()
 }
 
 export async function createTask(task) {
   const payload = serializeTask(task)
   validateTaskPayload(payload)
+  const workspaceId = readWorkspaceId(task)
+  if (workspaceId) payload.workspace_id = workspaceId
 
-  const { data, error } = await supabase
-    .from(TASKS_TABLE)
-    .insert([payload])
-    .select('*')
-    .single()
+  let column
+  try {
+    column = await tasksWorkspaceColumn.ensure()
+  } catch (error) {
+    handleServiceError(error, 'create task')
+  }
+
+  if (column === 'present' && !payload.workspace_id) {
+    throw new Error('Workspace is required.')
+  }
+
+  let nextPayload = column === 'missing' ? payloadWithoutWorkspaceId(payload) : payload
+  let { data, error } = await insertTask(nextPayload)
+  if (error && nextPayload.workspace_id && isMissingWorkspaceIdColumnError(error)) {
+    tasksWorkspaceColumn.rememberMissing()
+    nextPayload = payloadWithoutWorkspaceId(nextPayload)
+    ;({ data, error } = await insertTask(nextPayload))
+  }
 
   if (error) {
     handleServiceError(error, 'create task')
@@ -172,20 +234,46 @@ export async function createTask(task) {
   return mapTask(data)
 }
 
-export async function updateTask(taskId, updates) {
-  const payload = serializeTask(updates, { partial: true })
-  validateTaskPayload(payload, { requireTitle: false, requireDueDate: false })
-
-  if (Object.keys(payload).length === 0) {
-    throw new Error('No task updates were provided.')
-  }
-
-  const { data, error } = await supabase
+async function updateTaskRow(taskId, payload) {
+  return supabase
     .from(TASKS_TABLE)
     .update(payload)
     .eq('id', taskId)
     .select('*')
     .single()
+}
+
+export async function updateTask(taskId, updates) {
+  const payload = serializeTask(updates, { partial: true })
+  validateTaskPayload(payload, { requireTitle: false, requireDueDate: false })
+  const workspaceId = readWorkspaceId(updates)
+  if (workspaceId) payload.workspace_id = workspaceId
+
+  if (Object.keys(payloadWithoutWorkspaceId(payload)).length === 0 && !payload.workspace_id) {
+    throw new Error('No task updates were provided.')
+  }
+
+  let column
+  try {
+    column = await tasksWorkspaceColumn.ensure()
+  } catch (error) {
+    handleServiceError(error, 'update task')
+  }
+
+  let nextPayload = column === 'missing' ? payloadWithoutWorkspaceId(payload) : payload
+  if (Object.keys(nextPayload).length === 0) {
+    throw new Error('No task updates were provided.')
+  }
+
+  let { data, error } = await updateTaskRow(taskId, nextPayload)
+  if (error && nextPayload.workspace_id && isMissingWorkspaceIdColumnError(error)) {
+    tasksWorkspaceColumn.rememberMissing()
+    nextPayload = payloadWithoutWorkspaceId(nextPayload)
+    if (Object.keys(nextPayload).length === 0) {
+      throw new Error('No task updates were provided.')
+    }
+    ;({ data, error } = await updateTaskRow(taskId, nextPayload))
+  }
 
   if (error) {
     handleServiceError(error, 'update task')

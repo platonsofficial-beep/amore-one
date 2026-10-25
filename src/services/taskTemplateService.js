@@ -1,6 +1,13 @@
 import { supabase } from '../lib/supabaseClient'
 import { isTaskDepartmentKey, normalizeTaskDepartmentKey } from '../lib/taskDepartments'
 import { normalizeTimeValue } from '../lib/timeFormatUtils'
+import {
+  createWorkspaceColumnProbe,
+  isMissingWorkspaceIdColumnError,
+  isTableMissingError,
+  payloadWithoutWorkspaceId,
+  readWorkspaceId,
+} from '../lib/workspaceScopedTable'
 import { replaceTaskChecklist } from './taskChecklistService'
 import { getTemplateChecklistItems } from './taskTemplateChecklistService'
 import { createTask, getTasks } from './taskService'
@@ -11,8 +18,13 @@ const TEMPLATE_PRIORITIES = new Set(['normal', 'important', 'urgent'])
 const TEMPLATE_RECURRENCES = new Set(['daily', 'weekly', 'monthly'])
 
 function isTableUnavailableError(error) {
-  const message = error?.message?.toLowerCase() ?? ''
-  return message.includes('does not exist') || message.includes('relation') || message.includes('could not find the table')
+  return isTableMissingError(error)
+}
+
+const taskTemplatesWorkspaceColumn = createWorkspaceColumnProbe(supabase, TASK_TEMPLATES_TABLE)
+
+export function resetTaskTemplateWorkspaceColumnCacheForTests() {
+  taskTemplatesWorkspaceColumn.reset()
 }
 
 function normalizeTaskDateKey(value) {
@@ -46,6 +58,7 @@ function mapTaskTemplate(record) {
     isActive: record.is_active ?? record.isActive ?? true,
     createdAt: record.created_at ?? record.createdAt ?? null,
     updatedAt: record.updated_at ?? record.updatedAt ?? null,
+    workspaceId: record.workspace_id ?? record.workspaceId ?? null,
   }
 }
 
@@ -125,29 +138,78 @@ function buildTaskDuplicateKey(title, department, dueDate) {
   ].join('::')
 }
 
-export async function getTaskTemplates() {
-  const { data, error } = await supabase
+async function loadTaskTemplates(workspaceFilter) {
+  let query = supabase
     .from(TASK_TEMPLATES_TABLE)
     .select('*')
     .order('department', { ascending: true })
     .order('title', { ascending: true })
 
-  if (error) {
+  if (workspaceFilter) {
+    query = query.eq('workspace_id', workspaceFilter)
+  }
+
+  const { data, error } = await query
+  if (error) return { data: null, error }
+  return { data: (data ?? []).map(mapTaskTemplate), error: null }
+}
+
+export async function getTaskTemplates(workspaceId) {
+  let column
+  try {
+    column = await taskTemplatesWorkspaceColumn.ensure()
+  } catch (error) {
     handleServiceError(error, 'load task templates')
   }
 
-  return (data ?? []).map(mapTaskTemplate)
+  const normalizedWorkspaceId = `${workspaceId ?? ''}`.trim()
+  if (column === 'present' && !normalizedWorkspaceId) return []
+
+  let result = await loadTaskTemplates(column === 'present' ? normalizedWorkspaceId : '')
+  if (result.error && isMissingWorkspaceIdColumnError(result.error)) {
+    taskTemplatesWorkspaceColumn.rememberMissing()
+    result = await loadTaskTemplates('')
+  }
+
+  if (result.error) {
+    handleServiceError(result.error, 'load task templates')
+  }
+
+  return result.data ?? []
+}
+
+async function insertTaskTemplate(payload) {
+  return supabase
+    .from(TASK_TEMPLATES_TABLE)
+    .insert([payload])
+    .select('*')
+    .single()
 }
 
 export async function createTaskTemplate(template) {
   const payload = serializeTaskTemplate(template)
   validateTaskTemplatePayload(payload)
+  const workspaceId = readWorkspaceId(template)
+  if (workspaceId) payload.workspace_id = workspaceId
 
-  const { data, error } = await supabase
-    .from(TASK_TEMPLATES_TABLE)
-    .insert([payload])
-    .select('*')
-    .single()
+  let column
+  try {
+    column = await taskTemplatesWorkspaceColumn.ensure()
+  } catch (error) {
+    handleServiceError(error, 'create task template')
+  }
+
+  if (column === 'present' && !payload.workspace_id) {
+    throw new Error('Workspace is required.')
+  }
+
+  let nextPayload = column === 'missing' ? payloadWithoutWorkspaceId(payload) : payload
+  let { data, error } = await insertTaskTemplate(nextPayload)
+  if (error && nextPayload.workspace_id && isMissingWorkspaceIdColumnError(error)) {
+    taskTemplatesWorkspaceColumn.rememberMissing()
+    nextPayload = payloadWithoutWorkspaceId(nextPayload)
+    ;({ data, error } = await insertTaskTemplate(nextPayload))
+  }
 
   if (error) {
     handleServiceError(error, 'create task template')
@@ -156,20 +218,46 @@ export async function createTaskTemplate(template) {
   return mapTaskTemplate(data)
 }
 
-export async function updateTaskTemplate(templateId, updates) {
-  const payload = serializeTaskTemplate(updates, { partial: true })
-  validateTaskTemplatePayload(payload, { requireTitle: false })
-
-  if (Object.keys(payload).length === 0) {
-    throw new Error('No template updates were provided.')
-  }
-
-  const { data, error } = await supabase
+async function updateTaskTemplateRow(templateId, payload) {
+  return supabase
     .from(TASK_TEMPLATES_TABLE)
     .update(payload)
     .eq('id', templateId)
     .select('*')
     .single()
+}
+
+export async function updateTaskTemplate(templateId, updates) {
+  const payload = serializeTaskTemplate(updates, { partial: true })
+  const workspaceId = readWorkspaceId(updates)
+  if (workspaceId) payload.workspace_id = workspaceId
+  validateTaskTemplatePayload(payload, { requireTitle: false })
+
+  if (Object.keys(payloadWithoutWorkspaceId(payload)).length === 0 && !payload.workspace_id) {
+    throw new Error('No template updates were provided.')
+  }
+
+  let column
+  try {
+    column = await taskTemplatesWorkspaceColumn.ensure()
+  } catch (error) {
+    handleServiceError(error, 'update task template')
+  }
+
+  let nextPayload = column === 'missing' ? payloadWithoutWorkspaceId(payload) : payload
+  if (Object.keys(nextPayload).length === 0) {
+    throw new Error('No template updates were provided.')
+  }
+
+  let { data, error } = await updateTaskTemplateRow(templateId, nextPayload)
+  if (error && nextPayload.workspace_id && isMissingWorkspaceIdColumnError(error)) {
+    taskTemplatesWorkspaceColumn.rememberMissing()
+    nextPayload = payloadWithoutWorkspaceId(nextPayload)
+    if (Object.keys(nextPayload).length === 0) {
+      throw new Error('No template updates were provided.')
+    }
+    ;({ data, error } = await updateTaskTemplateRow(templateId, nextPayload))
+  }
 
   if (error) {
     handleServiceError(error, 'update task template')
@@ -189,7 +277,7 @@ export async function deleteTaskTemplate(templateId) {
   }
 }
 
-export async function generateTasksFromTemplates({ templates, selectedDate }) {
+export async function generateTasksFromTemplates({ templates, selectedDate, workspaceId = '' }) {
   const dueDate = normalizeTaskDateKey(selectedDate)
   if (!dueDate) {
     throw new Error('A valid date is required to generate tasks.')
@@ -200,7 +288,7 @@ export async function generateTasksFromTemplates({ templates, selectedDate }) {
     return { createdCount: 0, skippedCount: 0 }
   }
 
-  const existingTasks = await getTasks()
+  const existingTasks = await getTasks(workspaceId)
   const existingKeys = new Set(
     existingTasks.map((task) => buildTaskDuplicateKey(task.title, task.department, task.dueDate)),
   )
@@ -229,6 +317,7 @@ export async function generateTasksFromTemplates({ templates, selectedDate }) {
       recurrence: template.recurrence,
       notes: template.notes,
       status: 'active',
+      workspaceId: workspaceId || template.workspaceId || '',
     })
 
     const templateChecklistItems = templateChecklistsById[String(template.id)] ?? []

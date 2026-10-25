@@ -17239,7 +17239,7 @@ function App() {
     setTasksError('')
 
     try {
-      const remoteTasks = await getTasks()
+      const remoteTasks = await getTasks(activeWorkspaceId)
       setTasks(remoteTasks)
       setIsTasksModuleConnected(true)
       await refreshTaskChecklists(remoteTasks)
@@ -17253,14 +17253,14 @@ function App() {
     } finally {
       setIsTasksLoading(false)
     }
-  }, [refreshTaskChecklists])
+  }, [activeWorkspaceId, refreshTaskChecklists])
 
   const refreshTaskTemplates = useCallback(async () => {
     setIsTaskTemplatesLoading(true)
     setTaskTemplatesError('')
 
     try {
-      const remoteTemplates = await getTaskTemplates()
+      const remoteTemplates = await getTaskTemplates(activeWorkspaceId)
       setTaskTemplates(remoteTemplates)
       await refreshTemplateChecklists(remoteTemplates)
       return remoteTemplates
@@ -17272,7 +17272,7 @@ function App() {
     } finally {
       setIsTaskTemplatesLoading(false)
     }
-  }, [refreshTemplateChecklists])
+  }, [activeWorkspaceId, refreshTemplateChecklists])
 
   const refreshDashboardModuleData = useCallback(async () => {
     await Promise.allSettled([
@@ -18102,7 +18102,7 @@ function App() {
       setScheduleNotice('')
 
       try {
-        const remoteTemplates = await getShiftTemplates()
+        const remoteTemplates = await getShiftTemplates({ workspaceId: activeWorkspaceId })
         if (!isMounted) return
         setShiftTemplates(composeShiftTemplates(remoteTemplates))
         syncScheduleTemplateSetupState()
@@ -18625,7 +18625,7 @@ function App() {
   }
 
   const refreshShiftTemplates = async () => {
-    const remoteTemplates = await getShiftTemplates()
+    const remoteTemplates = await getShiftTemplates({ workspaceId: activeWorkspaceId })
     const mergedTemplates = composeShiftTemplates(remoteTemplates)
     setShiftTemplates(mergedTemplates)
     syncScheduleTemplateSetupState()
@@ -18839,7 +18839,7 @@ function App() {
       notes: template.notes ?? '',
     }
 
-    await createShiftTemplate(payload)
+    await createShiftTemplate({ ...payload, workspaceId: activeWorkspaceId })
     await refreshShiftTemplates()
     setScheduleNotice('Shift template duplicated.')
   }
@@ -21585,8 +21585,11 @@ function App() {
 
     try {
       const savedTemplate = editingTemplate?.templateId
-        ? await updateShiftTemplate(editingTemplate.templateId, payload)
-        : await createShiftTemplate(payload)
+        ? await updateShiftTemplate(editingTemplate.templateId, {
+          ...payload,
+          workspaceId: editingTemplate.workspaceId ?? activeWorkspaceId,
+        })
+        : await createShiftTemplate({ ...payload, workspaceId: activeWorkspaceId })
 
       const mergedTemplates = await refreshShiftTemplates()
       const selectedTemplate = mergedTemplates.find((template) => template.templateId === savedTemplate.id)
@@ -23631,7 +23634,7 @@ function App() {
     setTasksNotice('')
 
     try {
-      await createTask(payload)
+      await createTask({ ...payload, workspaceId: activeWorkspaceId })
       await refreshTasks()
       setTasksNotice('Task created successfully.')
     } catch (error) {
@@ -23747,7 +23750,10 @@ function App() {
 
     try {
       const { checklistItems = [], ...templatePayload } = payload
-      const createdTemplate = await createTaskTemplate(templatePayload)
+      const createdTemplate = await createTaskTemplate({
+        ...templatePayload,
+        workspaceId: activeWorkspaceId,
+      })
       await replaceTemplateChecklist(createdTemplate.id, checklistItems)
       await refreshTaskTemplates()
       setTaskTemplatesNotice('Template created successfully.')
@@ -23800,6 +23806,7 @@ function App() {
       const { createdCount, skippedCount } = await generateTasksFromTemplates({
         templates: taskTemplates,
         selectedDate: currentDateKey,
+        workspaceId: activeWorkspaceId,
       })
 
       await refreshTasks()
