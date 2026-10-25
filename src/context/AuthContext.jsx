@@ -11,6 +11,7 @@ import { resolveWorkspaceInviteOnBootstrap } from '../services/inviteBootstrapSe
 import {
   createOwnerMembershipIfMissing,
   getCurrentMembership,
+  getCurrentMembershipContext,
   getCurrentMembershipContextWithRetry,
 } from '../services/membershipService'
 import { getWorkspaceRoleLabel, isOwnerRole, normalizeWorkspaceRole } from '../lib/membershipRoles'

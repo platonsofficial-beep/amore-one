@@ -1,204 +1,95 @@
 import { supabase } from '../lib/supabaseClient'
-import { assertShiftsReadyForPublish } from '../lib/shiftIntegrity'
-import {
-  deletePublishedShiftsForWeek,
-  getPublishedShifts,
-  replacePublishedShifts,
-} from './publishedShiftService'
-
-const SCHEDULE_PUBLICATIONS_TABLE = 'schedule_publications'
-const SCHEDULE_PUBLICATION_COLUMNS = 'id, week_start_date, status, published_at, unpublished_at, created_at'
-
-function normalizeWeekStartDate(value) {
-  if (!value) return ''
-  const raw = `${value}`.trim()
-  if (!raw) return ''
-  if (raw.includes('T')) return raw.split('T')[0]
-  return raw.slice(0, 10)
-}
-
-function normalizeShiftDate(value) {
-  if (!value) return ''
-  const raw = `${value}`.trim()
-  if (!raw) return ''
-  if (raw.includes('T')) return raw.split('T')[0]
-  return raw.slice(0, 10)
-}
-
-function isTableUnavailableError(error) {
-  const message = `${error?.message ?? ''}`.toLowerCase()
-  return message.includes('does not exist') || message.includes('relation') || message.includes('could not find the table')
-}
+import { assertShiftsReadyForPublish, normalizeShiftTemplateId } from '../lib/shiftIntegrity'
+import { mapPublishedShift, normalizeShiftForComparison } from './publishedShiftService'
 
 function mapPublication(record) {
-  if (!record) return null
   return {
     id: record.id,
-    weekStartDate: normalizeWeekStartDate(record.week_start_date),
-    status: `${record.status ?? 'draft'}`.toLowerCase() === 'published' ? 'published' : 'draft',
+    weekStartDate: `${record.week_start_date}`.slice(0, 10),
+    status: record.status,
     publishedAt: record.published_at ?? null,
     unpublishedAt: record.unpublished_at ?? null,
     publishedBy: record.published_by ?? null,
     createdAt: record.created_at ?? null,
+    revision: Number(record.revision ?? 0),
   }
 }
 
-export async function getSchedulePublication(weekStartDate) {
-  const normalizedWeekStartDate = normalizeWeekStartDate(weekStartDate)
-  if (!normalizedWeekStartDate) return null
-
-  const { data, error } = await supabase
-    .from(SCHEDULE_PUBLICATIONS_TABLE)
-    .select(SCHEDULE_PUBLICATION_COLUMNS)
-    .eq('week_start_date', normalizedWeekStartDate)
-    .maybeSingle()
-
-  if (error) {
-    if (isTableUnavailableError(error)) {
-      return null
-    }
-    throw new Error(error.message || 'Unable to load schedule publication status right now.')
+function mapSnapshot(data) {
+  if (!data?.publication || !Array.isArray(data.published_shifts)) {
+    throw new Error('The published schedule could not be verified. Refresh before trying again.')
   }
-
-  return mapPublication(data)
+  return { publication: mapPublication(data.publication), publishedShifts: data.published_shifts.map(mapPublishedShift) }
 }
 
-export async function getWeekSchedulePublicationState(weekStartDate) {
-  const publication = await getSchedulePublication(weekStartDate)
-  let publishedShifts = []
-
-  if (publication?.status === 'published') {
-    try {
-      publishedShifts = await getPublishedShifts(weekStartDate)
-    } catch (error) {
-      console.error('[schedulePublicationService] getPublishedShifts failed:', error)
-      publishedShifts = []
-    }
+function publicationError(error) {
+  const message = `${error?.message ?? ''}`
+  if (message.includes('stale_revision') || message.includes('draft_changed')) {
+    return new Error('The schedule changed since you opened it. Refresh the week and review it before publishing again.')
   }
+  if (message.includes('single_workspace_required')) {
+    return new Error('Publishing requires a single-venue database. Multi-workspace scheduling must be migrated first.')
+  }
+  if (message.includes('invalid_assignment')) return new Error('Every shift needs a valid employee, template and start/end time.')
+  if (message.includes('forbidden')) return new Error('You do not have permission to access or publish this schedule.')
+  if (error?.code === 'PGRST202' || error?.code === '42883') {
+    return new Error('Schedule publishing is not ready. Apply the schedule publication database update.')
+  }
+  return new Error(message || 'Unable to update the schedule. Retry the same action or refresh to check its status.')
+}
 
+function requireContext(workspaceId, weekStartDate) {
+  if (!`${workspaceId ?? ''}`.trim()) throw new Error('Workspace is required.')
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(weekStartDate ?? '')) throw new Error('A valid week start date is required.')
+}
+
+export async function getWeekSchedulePublicationState(weekStartDate, workspaceId) {
+  requireContext(workspaceId, weekStartDate)
+  const { data, error } = await supabase.rpc('get_week_schedule_snapshot', {
+    p_workspace_id: workspaceId, p_week_start_date: weekStartDate,
+  })
+  if (error) throw publicationError(error)
+  return mapSnapshot(data)
+}
+
+export function serializePublicationDraftShift(shift) {
+  const value = normalizeShiftForComparison(shift)
   return {
-    publication: publication ?? {
-      weekStartDate: normalizeWeekStartDate(weekStartDate),
-      status: 'draft',
-      publishedAt: null,
-      unpublishedAt: null,
-      publishedBy: null,
-    },
-    publishedShifts,
+    id: shift.id,
+    employee_id: value.employeeId,
+    shift_template_id: normalizeShiftTemplateId(value.shiftTemplateId),
+    shift_date: value.date, start_time: value.startTime, end_time: value.endTime,
+    role: value.role, area: value.area, status: value.status, notes: value.notes,
   }
 }
 
-async function upsertSchedulePublicationRecord({ weekStartDate, status }) {
-  const normalizedWeekStartDate = normalizeWeekStartDate(weekStartDate)
-  if (!normalizedWeekStartDate) {
-    throw new Error('Week start date is required.')
+async function setPublication({ workspaceId, weekStartDate, expectedRevision, requestId, status, shifts = [] }) {
+  requireContext(workspaceId, weekStartDate)
+  if (!requestId || !Number.isSafeInteger(expectedRevision) || expectedRevision < 0) {
+    throw new Error('Refresh the schedule before publishing.')
   }
-
-  const normalizedStatus = `${status ?? 'draft'}`.toLowerCase() === 'published' ? 'published' : 'draft'
-  const nowIso = new Date().toISOString()
-
-  const payload = {
-    week_start_date: normalizedWeekStartDate,
-    status: normalizedStatus,
-    published_at: normalizedStatus === 'published' ? nowIso : null,
-    unpublished_at: normalizedStatus === 'draft' ? nowIso : null,
-  }
-
-  const { data, error } = await supabase
-    .from(SCHEDULE_PUBLICATIONS_TABLE)
-    .upsert(payload, { onConflict: 'week_start_date' })
-    .select(SCHEDULE_PUBLICATION_COLUMNS)
-    .single()
-
-  if (error) {
-    if (isTableUnavailableError(error)) {
-      throw new Error('schedule_publications table is not ready yet.')
-    }
-    throw new Error(error.message || 'Unable to update schedule publication status right now.')
-  }
-
-  return mapPublication(data)
-}
-
-export async function publishWeekSchedule({ weekStartDate, weekDateKeys = [], draftShifts = [], knownTemplateIds = null }) {
-  const normalizedWeekStartDate = normalizeWeekStartDate(weekStartDate)
-  if (!normalizedWeekStartDate) {
-    throw new Error('Week start date is required.')
-  }
-
-  const weekDateSet = new Set(
-    (weekDateKeys ?? []).map((item) => normalizeShiftDate(item)).filter(Boolean),
-  )
-
-  const draftWeekShifts = (draftShifts ?? []).filter((shift) => {
-    const shiftDate = normalizeShiftDate(shift.date ?? shift.shift_date)
-    return weekDateSet.size === 0 ? shiftDate >= normalizedWeekStartDate : weekDateSet.has(shiftDate)
+  const { data, error } = await supabase.rpc('set_week_schedule_publication', {
+    p_workspace_id: workspaceId, p_week_start_date: weekStartDate, p_status: status,
+    p_expected_revision: expectedRevision, p_request_id: requestId, p_draft_shifts: shifts,
   })
-
-  if (draftWeekShifts.length > 0) {
-    assertShiftsReadyForPublish(draftWeekShifts, { knownTemplateIds })
-  }
-
-  const publication = await upsertSchedulePublicationRecord({
-    weekStartDate: normalizedWeekStartDate,
-    status: 'published',
-  })
-
-  if (!publication?.id) {
-    throw new Error('Publication record could not be created.')
-  }
-
-  try {
-    const publishedShifts = await replacePublishedShifts({
-      publicationId: publication.id,
-      weekStartDate: normalizedWeekStartDate,
-      draftShifts: draftWeekShifts,
-      knownTemplateIds,
-    })
-
-    return {
-      publication,
-      publishedShifts,
-    }
-  } catch (error) {
-    try {
-      await upsertSchedulePublicationRecord({
-        weekStartDate: normalizedWeekStartDate,
-        status: 'draft',
-      })
-    } catch (rollbackError) {
-      console.error('[schedulePublicationService] publish rollback failed:', rollbackError)
-    }
-    throw error
-  }
+  if (error) throw publicationError(error)
+  return mapSnapshot(data)
 }
 
-export async function unpublishWeekSchedule({ weekStartDate }) {
-  const normalizedWeekStartDate = normalizeWeekStartDate(weekStartDate)
-  if (!normalizedWeekStartDate) {
-    throw new Error('Week start date is required.')
-  }
-
-  await deletePublishedShiftsForWeek(normalizedWeekStartDate)
-
-  const publication = await upsertSchedulePublicationRecord({
-    weekStartDate: normalizedWeekStartDate,
-    status: 'draft',
+export async function publishWeekSchedule({ workspaceId, weekStartDate, draftShifts = [], knownTemplateIds = null, expectedRevision, requestId }) {
+  requireContext(workspaceId, weekStartDate)
+  const weekEnd = new Date(`${weekStartDate}T00:00:00Z`)
+  weekEnd.setUTCDate(weekEnd.getUTCDate() + 7)
+  const endKey = weekEnd.toISOString().slice(0, 10)
+  const weekShifts = draftShifts.filter((shift) => {
+    const date = `${shift.date ?? shift.shift_date ?? ''}`.slice(0, 10)
+    return date >= weekStartDate && date < endKey
   })
-
-  return {
-    publication,
-    publishedShifts: [],
-  }
+  assertShiftsReadyForPublish(weekShifts, { knownTemplateIds })
+  return setPublication({ workspaceId, weekStartDate, expectedRevision, requestId,
+    status: 'published', shifts: weekShifts.map(serializePublicationDraftShift).sort((a, b) => a.id.localeCompare(b.id)) })
 }
 
-/** @deprecated Use publishWeekSchedule or unpublishWeekSchedule */
-export async function upsertSchedulePublication({ weekStartDate, status }) {
-  if (`${status ?? ''}`.toLowerCase() === 'published') {
-    const result = await publishWeekSchedule({ weekStartDate, draftShifts: [] })
-    return result.publication
-  }
-
-  const result = await unpublishWeekSchedule({ weekStartDate })
-  return result.publication
+export async function unpublishWeekSchedule({ workspaceId, weekStartDate, expectedRevision, requestId }) {
+  return setPublication({ workspaceId, weekStartDate, expectedRevision, requestId, status: 'draft' })
 }

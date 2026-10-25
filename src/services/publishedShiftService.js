@@ -1,5 +1,4 @@
 import { supabase } from '../lib/supabaseClient'
-import { validateShiftTemplateReference } from '../lib/shiftIntegrity'
 
 const PUBLISHED_SHIFTS_TABLE = 'published_shifts'
 
@@ -19,8 +18,6 @@ function normalizeTimeValue(value) {
   return raw
 }
 
-const PUBLISHED_SHIFTS_SETUP_HINT = 'Run supabase/published_shifts_schema.sql in the Supabase SQL editor, then try publishing again.'
-
 function isTableUnavailableError(error) {
   const message = `${error?.message ?? ''}`.toLowerCase()
   const code = `${error?.code ?? ''}`.toUpperCase()
@@ -31,10 +28,6 @@ function isTableUnavailableError(error) {
     || message.includes('relation')
     || message.includes('could not find the table')
   )
-}
-
-function buildPublishedShiftsUnavailableError() {
-  return new Error(`published_shifts table is not ready yet. ${PUBLISHED_SHIFTS_SETUP_HINT}`)
 }
 
 export function normalizeShiftForComparison(shift) {
@@ -63,7 +56,7 @@ export function draftMatchesPublishedSnapshot(draftShifts = [], publishedShifts 
   return draftKeys.every((key, index) => key === publishedKeys[index])
 }
 
-function mapPublishedShift(record) {
+export function mapPublishedShift(record) {
   const relatedEmployee = Array.isArray(record.employees) ? record.employees[0] : record.employees
   const employeeFullName = `${relatedEmployee?.full_name ?? ''}`.trim()
 
@@ -84,28 +77,6 @@ function mapPublishedShift(record) {
     area: record.area ?? '',
     status: record.status ?? 'Scheduled',
     notes: record.notes ?? '',
-  }
-}
-
-function serializePublishedShift({ publicationId, weekStartDate, shift }, options = {}) {
-  const shiftTemplateId = validateShiftTemplateReference({
-    shiftTemplateId: shift.shiftTemplateId ?? shift.shift_template_id,
-    knownTemplateIds: options.knownTemplateIds ?? null,
-    requireTemplateId: options.requireTemplateId ?? false,
-  })
-
-  return {
-    publication_id: publicationId,
-    week_start_date: weekStartDate,
-    employee_id: shift.employeeId ?? shift.employee_id ?? null,
-    shift_template_id: shiftTemplateId,
-    shift_date: normalizeShiftDate(shift.date ?? shift.shift_date),
-    start_time: normalizeTimeValue(shift.startTime ?? shift.start_time),
-    end_time: normalizeTimeValue(shift.endTime ?? shift.end_time),
-    role: shift.role ?? '',
-    area: shift.area ?? '',
-    status: shift.status ?? 'Scheduled',
-    notes: shift.notes ?? '',
   }
 }
 
@@ -135,74 +106,3 @@ export async function getPublishedShifts(weekStartDate) {
   return (data ?? []).map(mapPublishedShift)
 }
 
-export async function replacePublishedShifts({ publicationId, weekStartDate, draftShifts = [], knownTemplateIds = null }) {
-  const normalizedWeekStartDate = normalizeShiftDate(weekStartDate)
-  if (!publicationId || !normalizedWeekStartDate) {
-    throw new Error('Publication and week start date are required to publish.')
-  }
-
-  const { error: deleteError } = await supabase
-    .from(PUBLISHED_SHIFTS_TABLE)
-    .delete()
-    .eq('week_start_date', normalizedWeekStartDate)
-
-  if (deleteError) {
-    if (isTableUnavailableError(deleteError)) {
-      throw buildPublishedShiftsUnavailableError()
-    }
-    throw new Error(deleteError.message || 'Unable to clear previous published schedule.')
-  }
-
-  const publishOptions = { knownTemplateIds, requireTemplateId: true }
-  const payload = []
-
-  for (const shift of draftShifts ?? []) {
-    try {
-      const serialized = serializePublishedShift(
-        { publicationId, weekStartDate: normalizedWeekStartDate, shift },
-        publishOptions,
-      )
-      if (serialized.shift_date && serialized.start_time && serialized.end_time) {
-        payload.push(serialized)
-      }
-    } catch (error) {
-      const shiftDate = normalizeShiftDate(shift?.date ?? shift?.shift_date) || 'unknown date'
-      throw new Error(`Unable to publish shift on ${shiftDate}: ${error?.message || 'Invalid shift data.'}`)
-    }
-  }
-
-  if (payload.length === 0) {
-    return []
-  }
-
-  const { data, error } = await supabase
-    .from(PUBLISHED_SHIFTS_TABLE)
-    .insert(payload)
-    .select(PUBLISHED_SHIFT_SELECT)
-
-  if (error) {
-    if (isTableUnavailableError(error)) {
-      throw buildPublishedShiftsUnavailableError()
-    }
-    throw new Error(error.message || 'Unable to save published schedule.')
-  }
-
-  return (data ?? []).map(mapPublishedShift)
-}
-
-export async function deletePublishedShiftsForWeek(weekStartDate) {
-  const normalizedWeekStartDate = normalizeShiftDate(weekStartDate)
-  if (!normalizedWeekStartDate) return
-
-  const { error } = await supabase
-    .from(PUBLISHED_SHIFTS_TABLE)
-    .delete()
-    .eq('week_start_date', normalizedWeekStartDate)
-
-  if (error) {
-    if (isTableUnavailableError(error)) {
-      throw buildPublishedShiftsUnavailableError()
-    }
-    throw new Error(error.message || 'Unable to remove published schedule.')
-  }
-}
