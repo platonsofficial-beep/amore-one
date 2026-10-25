@@ -84,3 +84,17 @@ export function getScheduleGridTableMinWidth(dayCount, columnWidth) {
 export function shouldUseFluidScheduleDayColumns(columnWidth) {
   return Number(columnWidth) < SCHEDULE_GRID_DEFAULT_DAY_COLUMN_WIDTH
 }
+
+/** Phone/tablet landscape already shows a Draft changes pill, so the banner is redundant. */
+export function shouldShowScheduleDraftChangesBanner({
+  hasUnpublishedChanges = false,
+  isWeekPublished = false,
+  isCompactLandscape = false,
+} = {}) {
+  return Boolean(hasUnpublishedChanges && isWeekPublished && !isCompactLandscape)
+}
+
+/** En dash keeps the range on one card line. Desktop keeps the spaced hyphen. */
+export function getScheduleShiftTimeSeparator(isCompactLandscape = false) {
+  return isCompactLandscape ? '–' : ' - '
+}

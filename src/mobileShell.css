@@ -3776,6 +3776,51 @@
   padding-bottom: 0;
 }
 
+/* Landscape schedule fills the safe width and scrolls above the bottom nav.
+   height:auto !important on the expanded scroller would otherwise grow with
+   the grid and slide the SERVICE row under the fixed nav. */
+.app-shell.is-mobile-shell.is-mobile-expanded:has(.schedule-workspace.is-compact-landscape) .mobile-expanded-scroll {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 0% !important;
+  min-height: 0 !important;
+  height: 0 !important;
+  max-height: 100% !important;
+  overflow: hidden !important;
+  padding-bottom: 0 !important;
+}
+
+.app-shell.is-mobile-shell.is-mobile-expanded:has(.schedule-workspace.is-compact-landscape) .mobile-expanded-header {
+  flex: 0 0 auto;
+  position: static;
+}
+
+.app-shell.is-mobile-shell.is-mobile-expanded:has(.schedule-workspace.is-compact-landscape) .mobile-workspace-module.is-mobile-expanded {
+  flex: 1 1 0%;
+  min-height: 0;
+  height: auto;
+  max-height: none;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  /* Clear the slim landscape nav. The inherited bottom inset is resolved
+     from the taller shell nav and would eat a row of shift cards. */
+  padding: 2px 4px calc(58px + var(--one-safe-area-bottom, env(safe-area-inset-bottom, 0px)));
+}
+
+.app-shell.is-mobile-shell.is-mobile-expanded:has(.schedule-workspace.is-compact-landscape) .module-section-tabs {
+  flex: 0 0 auto;
+  margin-bottom: 4px;
+}
+
+.app-shell.is-mobile-shell.is-mobile-expanded:has(.schedule-workspace.is-compact-landscape) .mobile-workspace-module.is-mobile-expanded > div:has(.schedule-workspace.is-compact-landscape) {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
 .app-shell.is-mobile-shell .mobile-workspace-module.is-mobile-expanded .reservations-workspace-host {
   display: flex;
   flex-direction: column;
@@ -4091,8 +4136,10 @@
   }
 
   .app-shell.is-mobile-shell .mobile-manager-app {
-    --one-mobile-nav-float-gap: 6px;
-    --one-mobile-nav-content-spacing: 18px;
+    --one-mobile-nav-item-height: 36px;
+    --one-mobile-nav-block-padding: 4px;
+    --one-mobile-nav-float-gap: 4px;
+    --one-mobile-nav-content-spacing: 8px;
   }
 
   html,
@@ -4208,15 +4255,21 @@
   .mobile-manager-app .mobile-bottom-nav {
     left: max(10px, var(--one-safe-area-left, env(safe-area-inset-left, 0px)));
     right: max(10px, var(--one-safe-area-right, env(safe-area-inset-right, 0px)));
-    bottom: calc(6px + env(safe-area-inset-bottom, 0px));
-    padding: 4px 6px;
-    border-radius: 20px;
+    bottom: calc(4px + env(safe-area-inset-bottom, 0px));
+    padding: 2px 4px;
+    border-radius: 18px;
   }
 
   .mobile-manager-app .mobile-bottom-nav-item {
-    min-height: 44px;
-    padding: 2px 2px;
+    min-height: 40px;
+    padding: 1px 2px;
+    gap: 1px;
     border-radius: 14px;
+  }
+
+  .mobile-bottom-nav-label {
+    font-size: 0.58rem;
+    line-height: 1.05;
   }
 
   .mobile-manager-command-center .mobile-manager-command-header {
@@ -4306,8 +4359,10 @@
   }
 
   .app-shell.is-mobile-expanded .schedule-workspace.is-compact-landscape .schedule-grid-hero .blend-grid-scroll {
-    min-height: calc(100dvh - 100px);
-    max-height: calc(100dvh - 100px);
+    flex: 1 1 auto;
+    min-height: 0;
+    max-height: none;
+    height: auto;
   }
 
   .app-shell.is-mobile-expanded .schedule-workspace.is-compact-landscape .schedule-staff-availability {

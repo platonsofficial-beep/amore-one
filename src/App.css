@@ -16737,6 +16737,9 @@
 }
 
 .schedule-assign-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   align-self: stretch;
   width: 100%;
   min-width: 44px;
@@ -17150,14 +17153,11 @@
 }
 
 .schedule-workspace.is-compact-landscape .schedule-grid-hero .blend-grid-scroll {
-  min-height: min(58vh, 520px);
-  max-height: calc(100dvh - 108px);
-  padding-bottom: 2px;
-}
-
-.schedule-workspace.is-compact-landscape.is-templates-collapsed .schedule-grid-hero .blend-grid-scroll {
-  min-height: calc(100dvh - 108px);
-  max-height: calc(100dvh - 108px);
+  flex: 1 1 auto;
+  min-height: 0;
+  max-height: none;
+  overflow: auto;
+  padding-bottom: 8px;
 }
 
 .schedule-workspace.is-compact-landscape .schedule-day-grid {
@@ -17176,8 +17176,12 @@
 }
 
 .schedule-workspace.is-compact-landscape .schedule-day-grid .blend-grid-header-day {
-  min-height: 44px;
-  height: 44px;
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  min-height: 32px;
+  height: 32px;
+  background: #141311;
 }
 
 .schedule-workspace.is-compact-landscape .blend-grid-header-day-select {
@@ -17206,9 +17210,9 @@
 .schedule-workspace.is-compact-landscape .blend-grid-header-day-menu-btn {
   top: 0;
   right: 0;
-  width: 44px;
-  height: 44px;
-  font-size: 0.95rem;
+  width: 28px;
+  height: 28px;
+  font-size: 0.85rem;
 }
 
 .schedule-workspace.is-compact-landscape .schedule-grid-area-group-header {
@@ -17262,10 +17266,278 @@
 }
 
 .schedule-workspace.is-compact-landscape .schedule-assign-btn {
-  min-height: 36px;
+  grid-area: add;
+  width: 32px;
+  min-width: 32px;
+  height: 32px;
+  min-height: 32px;
+  align-self: center;
+  padding: 0;
+  font-size: 1.05rem;
+  line-height: 1;
+  border-radius: 8px;
+}
+
+.schedule-shift-staff-ratio-compact {
+  display: none;
+}
+
+.schedule-workspace.is-compact-landscape .schedule-shift-staff-ratio-full {
+  display: none;
+}
+
+.schedule-workspace.is-compact-landscape .schedule-shift-staff-ratio-compact {
+  display: inline;
+}
+
+.schedule-workspace.is-compact-landscape {
+  flex: 1 1 auto;
+  min-height: 0;
+  gap: 4px;
+  overflow: hidden;
+}
+
+.schedule-workspace.is-compact-landscape .mobile-manager-schedule-toolbar {
+  display: flex;
+  flex: 0 0 auto;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  padding: 4px 6px;
+}
+
+.schedule-workspace.is-compact-landscape > .schedule-workspace-banner {
+  flex: 0 0 auto;
   padding: 4px 8px;
+  font-size: 0.72rem;
+  line-height: 1.25;
+}
+
+.schedule-workspace.is-compact-landscape > .schedule-draft-banner {
+  flex-wrap: nowrap;
+  gap: 6px;
+}
+
+.schedule-workspace.is-compact-landscape > .schedule-draft-banner span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.schedule-workspace.is-compact-landscape .mobile-manager-schedule-toolbar-top {
+  display: contents;
+}
+
+.schedule-workspace.is-compact-landscape .mobile-manager-schedule-toolbar .eyebrow {
+  display: none;
+}
+
+.schedule-workspace.is-compact-landscape .mobile-manager-schedule-toolbar-copy {
+  order: 1;
+  flex: 1 1 120px;
+  min-width: 0;
+}
+
+.schedule-workspace.is-compact-landscape .mobile-manager-schedule-week-label {
+  margin: 0;
+  font-size: 0.82rem;
+  line-height: 1.15;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  overflow-wrap: normal;
+  word-break: normal;
+}
+
+.schedule-workspace.is-compact-landscape .mobile-week-nav {
+  order: 2;
+  width: auto;
+  flex: 0 0 auto;
+  grid-template-columns: repeat(3, auto);
+  gap: 4px;
+  margin: 0;
+}
+
+.schedule-workspace.is-compact-landscape .mobile-week-nav-btn {
+  width: auto;
+  min-height: 40px;
+  height: 40px;
+  padding: 0 8px;
+  border-radius: 10px;
+  font-size: 0.72rem;
+}
+
+.schedule-workspace.is-compact-landscape .schedule-focus-header-actions {
+  order: 3;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 0;
+}
+
+.schedule-workspace.is-compact-landscape .schedule-focus-header-actions .ghost-btn,
+.schedule-workspace.is-compact-landscape .schedule-focus-exit-btn,
+.schedule-workspace.is-compact-landscape .schedule-header-tertiary-btn {
+  min-height: 40px;
+  height: 40px;
+  padding: 0 8px;
+  font-size: 0.72rem;
+}
+
+.schedule-workspace.is-compact-landscape .mobile-manager-schedule-status {
+  order: 4;
+  margin-top: 0;
+}
+
+.schedule-workspace.is-compact-landscape .mobile-manager-schedule-actions {
+  order: 5;
+  flex: 0 0 auto;
+  width: auto;
+}
+
+.schedule-workspace.is-compact-landscape .mobile-manager-schedule-publish-btn,
+.schedule-workspace.is-compact-landscape .mobile-manager-schedule-unpublish-btn {
+  flex: 0 0 auto;
+  width: auto;
+  min-height: 40px;
+  height: 40px;
+  padding: 0 10px;
+  white-space: nowrap;
+  font-size: 0.74rem;
+}
+
+.schedule-workspace.is-compact-landscape .schedule-workspace-layout,
+.schedule-workspace.is-compact-landscape .schedule-workspace-main,
+.schedule-workspace.is-compact-landscape .schedule-grid-section {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.schedule-workspace.is-compact-landscape .schedule-staff-availability {
+  flex: 0 0 auto;
+}
+
+.schedule-workspace.is-compact-landscape .schedule-grid-hero {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding: 4px 2px 2px;
+}
+
+.schedule-workspace.is-compact-landscape .blend-grid-assignment-cell.schedule-shift-instance-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto auto;
+  grid-template-areas: "copy ratio add menu";
+  align-items: center;
+  gap: 1px 4px;
+  min-height: 0;
+  padding: 4px 4px 4px 6px;
+}
+
+.schedule-workspace.is-compact-landscape .schedule-shift-instance-header,
+.schedule-workspace.is-compact-landscape .schedule-shift-assigned-block {
+  display: contents;
+}
+
+.schedule-workspace.is-compact-landscape .schedule-shift-instance-copy {
+  grid-area: copy;
+  display: flex;
+  flex-flow: row wrap;
+  align-items: baseline;
+  gap: 0 4px;
+  min-width: 0;
+}
+
+.schedule-workspace.is-compact-landscape .schedule-shift-instance-dept,
+.schedule-workspace.is-compact-landscape .schedule-shift-instance-name,
+.schedule-workspace.is-compact-landscape .schedule-shift-instance-time,
+.schedule-workspace.is-compact-landscape .schedule-assigned-pill-name {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  overflow-wrap: normal;
+  word-break: normal;
+}
+
+.schedule-workspace.is-compact-landscape .schedule-shift-instance-dept {
+  flex: 0 1 auto;
+  max-width: 46%;
+  font-size: 0.52rem;
+}
+
+.schedule-workspace.is-compact-landscape .schedule-shift-instance-name {
+  flex: 1 1 0;
+  min-width: 0;
+  font-size: 0.72rem;
+}
+
+.schedule-workspace.is-compact-landscape .schedule-shift-instance-time {
+  flex: 1 0 100%;
+  font-size: 0.62rem;
+}
+
+.schedule-workspace.is-compact-landscape .schedule-shift-staff-ratio {
+  grid-area: ratio;
+  margin: 0;
+  padding: 0 5px;
+  min-height: 22px;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.05);
+  font-size: 0.62rem;
+  white-space: nowrap;
+}
+
+.schedule-workspace.is-compact-landscape .blend-grid-cell-actions {
+  grid-area: menu;
+}
+
+.schedule-workspace.is-compact-landscape .blend-grid-cell-menu-btn {
+  width: 28px;
+  height: 28px;
+}
+
+.schedule-workspace.is-compact-landscape .schedule-assign-btn-label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.schedule-workspace.is-compact-landscape .schedule-shift-assigned-list {
+  grid-column: 1 / -1;
+  grid-row: 2;
+}
+
+.schedule-workspace.is-compact-landscape .schedule-shift-assigned-item,
+.schedule-workspace.is-compact-landscape .schedule-assigned-pill {
+  max-width: 100%;
+  min-width: 0;
+  min-height: 22px;
+  padding: 2px 6px;
   font-size: 0.68rem;
-  border-radius: 6px;
+}
+
+.schedule-workspace.is-compact-landscape .schedule-shift-coverage-status:not(.tone-conflict) {
+  display: none;
+}
+
+.schedule-workspace.is-compact-landscape .schedule-shift-coverage-status.tone-conflict {
+  grid-column: 1 / -1;
+  grid-row: 3;
+  padding-top: 2px;
 }
 
 .schedule-workspace.is-compact-landscape .schedule-shift-coverage-status {

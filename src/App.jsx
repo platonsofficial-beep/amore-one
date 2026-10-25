@@ -565,7 +565,9 @@ import { shouldUseMobileShell } from './lib/viewportUtils'
 import {
   getScheduleGridDayColumnWidth,
   getScheduleGridTableMinWidth,
+  getScheduleShiftTimeSeparator,
   isMobileScheduleCompactLandscape,
+  shouldShowScheduleDraftChangesBanner,
   shouldUseFluidScheduleDayColumns,
 } from './lib/mobileScheduleUtils'
 import {
@@ -5266,7 +5268,7 @@ function ScheduleView({
       <div className="mobile-manager-schedule-toolbar-top">
         <div className="mobile-manager-schedule-toolbar-copy">
           <p className="eyebrow">Schedule</p>
-          <h2 className="mobile-manager-schedule-week-label">{formatScheduleHeaderWeekRange(weekDays)}</h2>
+          <h2 className="mobile-manager-schedule-week-label" title={formatScheduleHeaderWeekRange(weekDays)}>{formatScheduleHeaderWeekRange(weekDays)}</h2>
         </div>
         <div className="schedule-focus-header-actions">
           {renderShiftTemplatesToggle()}
@@ -5432,7 +5434,11 @@ function ScheduleView({
     <section className={scheduleWorkspaceClassName} onClick={() => { setCapacityPickerKey(''); setDayActionMenuKey(null); setCellActionMenuKey(''); setIsScheduleMoreMenuOpen(false); setTemplateActionMenuId(null) }}>
       {scheduleHeader}
 
-      {hasUnpublishedChanges && isWeekPublished ? (
+      {shouldShowScheduleDraftChangesBanner({
+        hasUnpublishedChanges,
+        isWeekPublished,
+        isCompactLandscape: isScheduleCompactLandscape,
+      }) ? (
         <div className="staff-status-banner schedule-draft-changes-banner schedule-workspace-banner">
           Unpublished changes in this week&apos;s schedule.
         </div>
@@ -5672,7 +5678,11 @@ function ScheduleView({
                 const templateShiftName = `${row.template.name || row.template.defaultArea || 'Shift'}`.trim()
                 const templateDepartment = `${row.template.defaultArea || row.template.defaultRole || 'General'}`.trim()
                 const templateShiftDisplayName = formatScheduleShiftDisplayName(templateShiftName, templateDepartment)
-                const templateTimeLabel = formatTimeRange24(row.template.startTime, row.template.endTime, ' - ')
+                const templateTimeLabel = formatTimeRange24(
+                  row.template.startTime,
+                  row.template.endTime,
+                  getScheduleShiftTimeSeparator(isScheduleCompactLandscape),
+                )
                 const capacityKey = (dayKey) => `${row.template.templateId ?? row.template.id}|${dayKey}`
                 return (
                 <Fragment key={`row-${row.template.id}`}>
@@ -5714,10 +5724,10 @@ function ScheduleView({
                     >
                       <header className="schedule-shift-instance-header">
                         <div className="schedule-shift-instance-copy">
-                          <span className="schedule-shift-instance-dept">{templateDepartment}</span>
-                          <h4 className="schedule-shift-instance-name">{templateShiftDisplayName}</h4>
+                          <span className="schedule-shift-instance-dept" title={templateDepartment}>{templateDepartment}</span>
+                          <h4 className="schedule-shift-instance-name" title={templateShiftDisplayName}>{templateShiftDisplayName}</h4>
                           {templateTimeLabel ? (
-                            <span className="schedule-shift-instance-time">{templateTimeLabel}</span>
+                            <span className="schedule-shift-instance-time" title={templateTimeLabel}>{templateTimeLabel}</span>
                           ) : null}
                         </div>
                         <div className="blend-grid-cell-actions" onClick={(event) => event.stopPropagation()}>
@@ -5802,8 +5812,11 @@ function ScheduleView({
                       </header>
 
                       <p className="schedule-shift-staff-ratio" aria-label={`${cell.assignedCount} of ${cell.requiredCount} staff scheduled`}>
-                        <span className="schedule-shift-staff-ratio-value">
+                        <span className="schedule-shift-staff-ratio-value schedule-shift-staff-ratio-full">
                           {cell.assignedCount} / {isCapacitySaving ? '…' : cell.requiredCount} scheduled
+                        </span>
+                        <span className="schedule-shift-staff-ratio-value schedule-shift-staff-ratio-compact" aria-hidden="true">
+                          {cell.assignedCount}/{isCapacitySaving ? '…' : cell.requiredCount}
                         </span>
                       </p>
 
@@ -5863,8 +5876,11 @@ function ScheduleView({
                             handleOpenAssignmentModal(row.template, cell.day)
                           }}
                           disabled={isSaving}
+                          aria-label="Add employee"
+                          title="Add employee"
                         >
-                          + Add employee
+                          <span className="schedule-assign-btn-icon" aria-hidden="true">+</span>
+                          <span className="schedule-assign-btn-label"> Add employee</span>
                         </button>
                       </div>
 
