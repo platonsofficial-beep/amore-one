@@ -19801,8 +19801,6 @@ function App() {
       salary: resolveEmployeeSalaryForSave({
         canViewSalary: canAssignManagerInviteRoleFlag,
         formSalary: employeeForm.salary,
-        existingSalary: editingEmployee?.salary,
-        isEditing: Boolean(editingEmployee),
       }),
       emergencyContact: employeeForm.emergencyContact.trim() || 'Not provided',
       weeklyHours: normalizeNumericValue(employeeForm.weeklyHours),

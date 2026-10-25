@@ -65,11 +65,16 @@ function render(ui) {
 }
 
 beforeEach(() => {
+  vi.useFakeTimers({ toFake: ['Date'] })
+  vi.setSystemTime(new Date('2026-07-20T12:00:00.000Z'))
+  vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true)
   mockMatchMedia(true)
   window.localStorage.clear()
 })
 
 afterEach(() => {
+  vi.useRealTimers()
+  vi.unstubAllGlobals()
   document.body.innerHTML = ''
   window.localStorage.clear()
 })

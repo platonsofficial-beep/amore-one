@@ -1,10 +1,11 @@
 import { isPaletteColorId } from '../lib/identity/identityColorPalette'
 import { supabase } from '../lib/supabaseClient'
+import { EMPLOYEE_PUBLIC_COLUMNS } from './employeeReadColumns'
 import { ensurePositionByName, getPositions } from './positionsService'
 
 const EMPLOYEE_POSITIONS_TABLE = 'employee_positions'
 const EMPLOYEE_SELECT = `
-  *,
+  ${EMPLOYEE_PUBLIC_COLUMNS},
   employee_positions(
     position_id,
     positions(id, name)
@@ -142,13 +143,16 @@ const serializeEmployee = (employee) => {
     phone: employee.phone ?? '',
     email: employee.email ?? '',
     hire_date: employee.hireDate ?? employee.hire_date ?? '',
-    salary: normalizeNumericValue(employee.salary),
     emergency_contact: employee.emergencyContact ?? employee.emergency_contact ?? '',
     weekly_hours: normalizeNumericValue(employee.weeklyHours ?? employee.weekly_hours),
     notes: employee.notes ?? '',
     shift: employee.shift ?? 'Evening',
     status: employee.status ?? 'Working',
     department: employee.department ?? 'Service',
+  }
+
+  if (employee.salary !== undefined) {
+    payload.salary = normalizeNumericValue(employee.salary)
   }
 
   if (Object.prototype.hasOwnProperty.call(employee, 'identityColor')) {
@@ -185,6 +189,25 @@ const isTableUnavailableError = (error) => {
   return message.includes('does not exist') || message.includes('relation') || message.includes('could not find the table')
 }
 
+async function hydratePrivateEmployeeFields(workspaceId, rows) {
+  if (rows.length === 0) return []
+  const { data, error } = await supabase.rpc('get_employee_private_fields', {
+    p_workspace_id: workspaceId,
+    p_employee_ids: rows.map((row) => row.id),
+  })
+  if (error) {
+    throw new Error(error.message || 'Unable to load employee details. Apply the employee access hardening migration.')
+  }
+  const privateById = new Map((data ?? []).map((row) => [row.id, row]))
+  return rows.map((row) => mapEmployee({
+    ...row,
+    // Never fall back to sensitive values from an older unrestricted response.
+    salary: privateById.get(row.id)?.salary ?? null,
+    emergency_contact: privateById.get(row.id)?.emergency_contact ?? '',
+    notes: privateById.get(row.id)?.notes ?? '',
+  }))
+}
+
 async function fetchEmployeeById(workspaceId, employeeId) {
   const normalizedWorkspaceId = requireWorkspaceId(workspaceId)
 
@@ -204,7 +227,8 @@ async function fetchEmployeeById(workspaceId, employeeId) {
     throw new Error('Employee record could not be found after save.')
   }
 
-  return mapEmployee(data)
+  const [employee] = await hydratePrivateEmployeeFields(normalizedWorkspaceId, [data])
+  return employee
 }
 
 async function resolvePositionsForSync(workspaceId, positions = []) {
@@ -300,19 +324,19 @@ export async function getEmployees(workspaceId) {
     .order('full_name', { ascending: true })
 
   if (!primary.error) {
-    return (primary.data ?? []).map(mapEmployee)
+    return hydratePrivateEmployeeFields(normalizedWorkspaceId, primary.data ?? [])
   }
 
   console.warn('[staffService] getEmployees joined select failed, falling back to basic select:', primary.error)
 
   const fallback = await supabase
     .from('employees')
-    .select('*')
+    .select(EMPLOYEE_PUBLIC_COLUMNS)
     .eq('workspace_id', normalizedWorkspaceId)
     .order('full_name', { ascending: true })
 
   if (!fallback.error) {
-    return (fallback.data ?? []).map(mapEmployee)
+    return hydratePrivateEmployeeFields(normalizedWorkspaceId, fallback.data ?? [])
   }
 
   console.error('[staffService] getEmployees fallback error:', fallback.error)
@@ -334,7 +358,7 @@ export async function createEmployee(workspaceId, employee) {
   let { data, error } = await supabase
     .from('employees')
     .insert([serialized])
-    .select('*')
+    .select(EMPLOYEE_PUBLIC_COLUMNS)
     .single()
 
   if (error && isMissingColumnError(error, EMPLOYEE_NEW_POSITION_COLUMNS)) {
@@ -342,7 +366,7 @@ export async function createEmployee(workspaceId, employee) {
     const retry = await supabase
       .from('employees')
       .insert([legacySerialized])
-      .select('*')
+      .select(EMPLOYEE_PUBLIC_COLUMNS)
       .single()
 
     data = retry.data
@@ -378,7 +402,7 @@ export async function updateEmployee(workspaceId, id, employee) {
     .update(serialized)
     .eq('id', id)
     .eq('workspace_id', normalizedWorkspaceId)
-    .select('*')
+    .select(EMPLOYEE_PUBLIC_COLUMNS)
     .single()
 
   if (error && isMissingColumnError(error, EMPLOYEE_NEW_POSITION_COLUMNS)) {
@@ -388,7 +412,7 @@ export async function updateEmployee(workspaceId, id, employee) {
       .update(legacySerialized)
       .eq('id', id)
       .eq('workspace_id', normalizedWorkspaceId)
-      .select('*')
+      .select(EMPLOYEE_PUBLIC_COLUMNS)
       .single()
 
     error = retry.error
@@ -428,7 +452,7 @@ export async function updateLinkedEmployeePhone(workspaceId, employeeId, phone) 
     .update({ phone: normalizedPhone })
     .eq('id', normalizedEmployeeId)
     .eq('workspace_id', normalizedWorkspaceId)
-    .select('*')
+    .select(EMPLOYEE_PUBLIC_COLUMNS)
     .single()
 
   if (error) {

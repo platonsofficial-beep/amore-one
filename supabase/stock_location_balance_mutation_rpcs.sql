@@ -59,7 +59,6 @@ as $$
 declare
   v_auth_user_id uuid := auth.uid();
   v_workspace_exists boolean := false;
-  v_item_exists boolean := false;
   v_storage public.workspace_storages%rowtype;
   v_balance public.stock_item_location_balances%rowtype;
   v_movement_id uuid;
@@ -123,15 +122,13 @@ begin
     raise exception 'stock_location_balance_forbidden';
   end if;
 
-  select exists (
-    select 1
-    from public.stock_items si
-    where si.id = p_stock_item_id
-      and si.workspace_id = p_workspace_id
-  )
-  into v_item_exists;
+  -- Serialize all location changes for a product before storage/balance locks.
+  -- SUM(balances) must be read only after any concurrent product writer commits.
+  perform 1 from public.stock_items si
+  where si.id = p_stock_item_id and si.workspace_id = p_workspace_id
+  for update;
 
-  if not v_item_exists then
+  if not found then
     raise exception 'stock_location_balance_item_not_found';
   end if;
 

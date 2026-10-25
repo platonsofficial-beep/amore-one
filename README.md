@@ -21,15 +21,17 @@ Remove the variable or set it to `false` to require Supabase email/password sign
 Run these in the Supabase SQL editor (in order):
 
 1. `supabase/workspaces_schema.sql`
-2. `supabase/workspace_members_schema.sql`
-3. `supabase/workspace_members_rls_policies.sql`
-4. `supabase/workspace_invites_schema.sql`
-5. `supabase/workspace_invites_rls_policies.sql`
-6. `supabase/employees_schema.sql`
-7. `supabase/stock_rls_policies.sql` (workspace member helpers)
+2. `supabase/employees_schema.sql`
+3. `supabase/workspace_members_schema.sql`
+4. `supabase/workspace_members_rls_policies.sql`
+5. `supabase/stock_rls_policies.sql` (workspace member helpers; requires stock tables)
+6. `supabase/workspace_invites_schema.sql`
+7. `supabase/workspace_invites_rls_policies.sql`
 8. `supabase/weekly_schedule_templates_schema.sql`
 
-On first authenticated sign-in, the app creates a workspace membership automatically. The first member becomes **Owner**; later members default to **Staff**.
+This is the membership foundation sequence, not a complete database installation.
+On first authenticated sign-in, the first member becomes **Owner**. Later users
+join through invitations; they are not automatically enrolled as staff.
 
 Staff invites use a pending token in `sessionStorage` (captured from `?invite=<token>`). After sign-in, the app accepts the invite before default workspace bootstrap so `workspace_members.employee_id` links to the invited employee record.
 
@@ -45,6 +47,15 @@ VITE_SUPABASE_PUBLISHABLE_KEY=...
 - `npm run dev` — start dev server
 - `npm run build` — production build
 - `npm run lint` — oxlint
+- `npm test` — Vitest, including in-memory PostgreSQL access-policy tests
+
+## Access hardening release
+
+The current client requires `supabase/member_employee_access_hardening.sql`.
+Apply it after the existing employee, membership and invitation policies and the
+employee identity schema. Database and client must be released together; see
+[deployment order, access rules and staging checks](docs/access_hardening_rollout.md).
+The SQL has not been automatically applied to any remote database.
 
 ## Module status
 

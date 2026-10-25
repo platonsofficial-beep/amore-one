@@ -27,20 +27,20 @@ describe('employee salary form privacy', () => {
     })).toBe(null)
   })
 
-  it('preserves the existing salary when an unauthorized editor saves', () => {
+  it('omits salary when an unauthorized editor saves', () => {
     expect(resolveEmployeeSalaryForSave({
       canViewSalary: false,
       formSalary: '',
       existingSalary: '42000',
       isEditing: true,
-    })).toBe(42000)
+    })).toBeUndefined()
 
     expect(resolveEmployeeSalaryForSave({
       canViewSalary: false,
       formSalary: '999',
       existingSalary: '42000',
       isEditing: true,
-    })).toBe(42000)
+    })).toBeUndefined()
   })
 
   it('does not invent a salary on unauthorized create', () => {
@@ -49,6 +49,6 @@ describe('employee salary form privacy', () => {
       formSalary: '999',
       existingSalary: '',
       isEditing: false,
-    })).toBe(null)
+    })).toBeUndefined()
   })
 })

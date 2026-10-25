@@ -25,7 +25,7 @@ import {
 import { getHostListEmptyState } from '../../lib/reservationServiceIntelligence'
 import { groupHostQueueOperationalSections } from '../../lib/hostQueuePipeline'
 import { groupHostQueueReservationsByTime } from '../../lib/hostQueueTimeGroups'
-import { HostQueueReservationDetails, HostQueueNameIndicators, HostReservationGuestTypeBadge, HostReservationPurposeLabel } from '../mobile/reservations/HostQueueReservationDetails'
+import { HostReservationMetaLine, HostQueueReservationDetails, HostQueueNameIndicators, HostReservationGuestTypeBadge, HostReservationPurposeLabel } from '../mobile/reservations/HostQueueReservationDetails'
 import { buildHostQueueRowPresentation } from '../../lib/hostQueuePipeline'
 import { getHostNameGuestTypeBadgeMeta } from './hostReservationListUtils'
 import { HostReservationStatusPicker } from './HostReservationStatusPicker'

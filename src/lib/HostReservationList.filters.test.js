@@ -4,8 +4,11 @@
 import { createElement } from 'react'
 import { createRoot } from 'react-dom/client'
 import { act } from 'react'
-import { describe, expect, it, vi } from 'vitest'
+import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest'
 import { HostReservationList } from '../components/reservations/HostReservationList'
+
+beforeEach(() => vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true))
+afterEach(() => vi.unstubAllGlobals())
 
 const helpers = {
   formatReservationGuestName: (name) => `${name ?? 'Guest'}`.trim() || 'Guest',
@@ -38,7 +41,8 @@ describe('HostReservationList operational sections', () => {
     expect(container.querySelector('.host-reservation-group')).not.toBeNull()
     expect(container.querySelector('.host-reservation-group-label')?.textContent).toBe('Upcoming')
     expect(container.querySelectorAll('.host-reservation-card')).toHaveLength(1)
-    expect(container.querySelector('.host-reservation-card-meta')?.textContent).toBe('2 • T12')
+    expect(Array.from(container.querySelectorAll('.host-queue-row-meta-text'), (node) => node.textContent))
+      .toEqual(['2', 'T12'])
     expect(container.querySelector('.host-reservation-card-status-pill')?.textContent?.trim()).toBe('Confirmed')
 
     act(() => {

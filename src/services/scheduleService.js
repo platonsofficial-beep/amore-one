@@ -1,4 +1,5 @@
 import { supabase } from '../lib/supabaseClient'
+import { EMPLOYEE_PUBLIC_COLUMNS } from './employeeReadColumns'
 import { validateShiftTemplateReference } from '../lib/shiftIntegrity'
 
 function mapShift(record) {
@@ -71,7 +72,7 @@ export async function getShifts(workspaceId, options = {}) {
     .from('shifts')
     .select(`
       *,
-      employees(*)
+      employees(${EMPLOYEE_PUBLIC_COLUMNS})
     `)
     .eq('workspace_id', normalizedWorkspaceId)
     .order('shift_date', { ascending: true })
@@ -110,7 +111,7 @@ export async function createShift(workspaceId, shift, options = {}) {
     .insert([payload])
     .select(`
       *,
-      employees(*)
+      employees(${EMPLOYEE_PUBLIC_COLUMNS})
     `)
     .single()
 
@@ -138,7 +139,7 @@ export async function updateShift(workspaceId, id, shift, options = {}) {
     .eq('workspace_id', normalizedWorkspaceId)
     .select(`
       *,
-      employees(*)
+      employees(${EMPLOYEE_PUBLIC_COLUMNS})
     `)
     .single()
 
