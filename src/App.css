@@ -5,11 +5,22 @@
   max-height: 100vh;
   min-height: 100vh;
   overflow: hidden;
+  /* Side insets clear the landscape notch / Dynamic Island. The shell
+     background still paints through the padding, edge to edge. */
+  padding-left: var(--one-safe-area-left, env(safe-area-inset-left, 0px));
+  padding-right: var(--one-safe-area-right, env(safe-area-inset-right, 0px));
   background:
     radial-gradient(circle at top left, rgba(212, 175, 55, 0.18), transparent 32%),
     radial-gradient(circle at bottom right, rgba(255, 255, 255, 0.04), transparent 24%),
     linear-gradient(135deg, #060606 0%, #121214 100%);
   isolation: isolate;
+}
+
+/* iPad and other coarse full-window shells. The phone shell, host station,
+   and active inventory count already pad top and bottom themselves. */
+.app-shell:not(.is-mobile-shell):not(.is-host-station-shell):not(.stock-focus-mode) {
+  padding-top: var(--one-safe-area-top, env(safe-area-inset-top, 0px));
+  padding-bottom: var(--one-safe-area-bottom, env(safe-area-inset-bottom, 0px));
 }
 
 .sidebar {
@@ -7717,7 +7728,11 @@
   display: flex;
   align-items: flex-end;
   justify-content: center;
-  padding: 0;
+  padding:
+    0
+    var(--one-safe-area-right, env(safe-area-inset-right, 0px))
+    0
+    var(--one-safe-area-left, env(safe-area-inset-left, 0px));
   pointer-events: none;
 }
 
@@ -8064,7 +8079,11 @@
   display: flex;
   align-items: flex-end;
   justify-content: center;
-  padding: 0;
+  padding:
+    0
+    var(--one-safe-area-right, env(safe-area-inset-right, 0px))
+    0
+    var(--one-safe-area-left, env(safe-area-inset-left, 0px));
   pointer-events: none;
 }
 
@@ -12507,7 +12526,11 @@
   z-index: 120;
   display: grid;
   place-items: start center;
-  padding: 12vh 16px 24px;
+  padding:
+    12vh
+    max(16px, var(--one-safe-area-right, env(safe-area-inset-right, 0px)))
+    24px
+    max(16px, var(--one-safe-area-left, env(safe-area-inset-left, 0px)));
   background: rgba(4, 4, 5, 0.62);
   backdrop-filter: blur(8px);
   animation: command-palette-backdrop-in 150ms ease;
@@ -16208,7 +16231,7 @@
 .schedule-focus-workspace.is-templates-open .schedule-templates-panel.schedule-templates-overlay.is-overlay-open {
   position: fixed;
   top: clamp(72px, 10vh, 120px);
-  right: 0;
+  right: var(--one-safe-area-right, env(safe-area-inset-right, 0px));
   bottom: max(16px, env(safe-area-inset-bottom, 0px));
   width: min(360px, calc(100vw - 24px));
   min-width: 0;
@@ -17257,7 +17280,7 @@
 .schedule-workspace.is-compact-landscape.is-templates-open .schedule-templates-panel.is-overlay-open {
   position: fixed;
   top: max(4px, env(safe-area-inset-top, 0px));
-  right: 0;
+  right: var(--one-safe-area-right, env(safe-area-inset-right, 0px));
   bottom: calc(52px + env(safe-area-inset-bottom, 0px));
   width: min(300px, 72vw);
   min-width: 0;
@@ -18326,8 +18349,8 @@
 .employee-drawer {
   position: fixed;
   top: 0;
-  right: 0;
-  width: min(420px, 100%);
+  right: var(--one-safe-area-right, env(safe-area-inset-right, 0px));
+  width: min(420px, calc(100% - var(--one-safe-area-left, env(safe-area-inset-left, 0px)) - var(--one-safe-area-right, env(safe-area-inset-right, 0px))));
   height: 100dvh;
   padding: calc(24px + env(safe-area-inset-top, 0px)) 24px calc(24px + env(safe-area-inset-bottom, 0px));
   background: rgba(8, 8, 9, 0.98);
@@ -18410,7 +18433,11 @@
   z-index: 50;
   display: grid;
   place-items: center;
-  padding: 20px;
+  padding:
+    20px
+    max(20px, var(--one-safe-area-right, env(safe-area-inset-right, 0px)))
+    20px
+    max(20px, var(--one-safe-area-left, env(safe-area-inset-left, 0px)));
 }
 
 .employee-modal-backdrop.create-workspace-storage-backdrop {
@@ -30182,6 +30209,8 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   display: flex;
   justify-content: flex-end;
   align-items: stretch;
+  padding-left: var(--one-safe-area-left, env(safe-area-inset-left, 0px));
+  padding-right: var(--one-safe-area-right, env(safe-area-inset-right, 0px));
   background: rgba(0, 0, 0, 0.52);
   backdrop-filter: blur(5px);
 }
@@ -42608,8 +42637,9 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   z-index: 1400;
   padding:
     calc(10px + env(safe-area-inset-top, 0px))
-    16px
-    10px;
+    max(16px, var(--one-safe-area-right, env(safe-area-inset-right, 0px)))
+    10px
+    max(16px, var(--one-safe-area-left, env(safe-area-inset-left, 0px)));
   border-bottom: 1px solid rgba(224, 113, 104, 0.32);
   background: rgba(42, 18, 16, 0.96);
   backdrop-filter: blur(12px);
