@@ -1,15 +1,11 @@
 import {
   computeOrderTotalCost,
-  getOrderLineReceivedQuantity,
-  isOrderFullyReceived,
   normalizeStockOrderStatus,
   serializeDraftOrderItems,
 } from '../lib/stockOrderUtils'
 import { normalizeSupplierId, resolveSupplierIdForWrite } from '../lib/stockSupplierUtils'
 import { supabase } from '../lib/supabaseClient'
 import { getMemberDisplayNamesByAuthUserIds } from './membershipService'
-import { getStockItems } from './stockItemService'
-import { recordStockMovement } from './stockMovementService'
 import { getSuppliers } from './supplierService'
 
 const STOCK_ORDERS_TABLE = 'stock_orders'
@@ -438,135 +434,37 @@ export async function updateStockOrderStatus(workspaceId, orderId, nextStatus, {
 }
 
 export async function receiveStockOrderPartial(workspaceId, orderId, {
-  receiveItems = [],
-  createdBy = null,
-  orderNumber = null,
+  receiveItems = [], workspaceStorageId, requestId,
 } = {}) {
-  const normalizedWorkspaceId = `${workspaceId ?? ''}`.trim()
-  const normalizedOrderId = `${orderId ?? ''}`.trim()
-
-  if (!normalizedWorkspaceId || !normalizedOrderId) {
-    const message = 'Workspace and order are required.'
-    console.error('[stockOrderService] receiveStockOrderPartial error:', message)
-    throw new Error(message)
+  if (!workspaceId || !orderId || !workspaceStorageId || !requestId) {
+    throw new Error('Order, destination storage and receipt request are required.')
   }
-
-  const existing = await getStockOrderById(normalizedWorkspaceId, normalizedOrderId)
-  if (!existing) {
-    const message = 'Order not found.'
-    console.error('[stockOrderService] receiveStockOrderPartial error:', message)
-    throw new Error(message)
+  const lines = receiveItems.filter((entry) => Number(entry.receiveNow) !== 0).map((entry) => ({
+    id: entry.id, quantity: Number(entry.receiveNow), expected_received: Number(entry.expectedReceivedQuantity),
+  }))
+  if (!lines.length || lines.some((line) => !line.id || !Number.isFinite(line.quantity)
+    || line.quantity <= 0 || !Number.isFinite(line.expected_received) || line.expected_received < 0)) {
+    throw new Error('Enter valid receiving quantities and refresh the order if its received quantities are missing.')
   }
-
-  if (existing.status !== 'sent') {
-    const message = 'Only sent orders can be received.'
-    console.error('[stockOrderService] receiveStockOrderPartial error:', message)
-    throw new Error(message)
-  }
-
-  const receiveByItemId = Object.fromEntries(
-    receiveItems.map((entry) => [entry.id, Math.max(0, Number(entry.receiveNow) || 0)]),
-  )
-
-  const hasReceiveNow = Object.values(receiveByItemId).some((value) => value > 0)
-  if (!hasReceiveNow) {
-    throw new Error('Enter at least one quantity to receive.')
-  }
-
-  const stockItems = await getStockItems(normalizedWorkspaceId)
-  const stockItemsById = Object.fromEntries(stockItems.map((item) => [item.id, item]))
-  const runningQuantities = Object.fromEntries(
-    stockItems.map((item) => [item.id, item.currentQuantity]),
-  )
-  const orderLabel = orderNumber
-    ? `order #${String(orderNumber).padStart(4, '0')}`
-    : 'supplier order'
-
-  const updatedItems = []
-
-  for (const line of existing.items ?? []) {
-    const receiveNow = receiveByItemId[line.id] ?? 0
-    const currentReceived = getOrderLineReceivedQuantity(line)
-    const remaining = Math.max(0, line.quantity - currentReceived)
-
-    if (receiveNow > remaining) {
-      throw new Error(`Cannot receive more than remaining quantity for ${line.itemName}.`)
-    }
-
-    const nextReceived = currentReceived + receiveNow
-
-    if (receiveNow > 0 && line.stockItemId) {
-      const stockItem = stockItemsById[line.stockItemId]
-      if (!stockItem) {
-        throw new Error(`Cannot receive ${line.itemName}: linked product is missing.`)
-      }
-
-      const currentQuantity = runningQuantities[line.stockItemId] ?? stockItem.currentQuantity
-
-      await recordStockMovement({
-        workspaceId: normalizedWorkspaceId,
-        itemId: line.stockItemId,
-        type: 'receive',
-        quantity: receiveNow,
-        note: `Received from ${orderLabel}`,
-        createdBy,
-        currentQuantity,
-      })
-
-      runningQuantities[line.stockItemId] = currentQuantity + receiveNow
-    } else if (receiveNow > 0) {
-      throw new Error(`Cannot receive ${line.itemName}: order line is not linked to a product.`)
-    }
-
-    if (receiveNow > 0) {
-      const { error: lineError } = await supabase
-        .from(STOCK_ORDER_ITEMS_TABLE)
-        .update({ received_quantity: nextReceived })
-        .eq('id', line.id)
-
-      if (lineError) {
-        console.error('[stockOrderService] receiveStockOrderPartial item error:', lineError)
-        throw new Error(lineError.message || 'Unable to update received quantities right now.')
-      }
-    }
-
-    updatedItems.push({
-      ...line,
-      receivedQuantity: nextReceived,
-    })
-  }
-
-  const orderAfterReceive = {
-    ...existing,
-    items: updatedItems,
-  }
-
-  const fullyReceived = isOrderFullyReceived(orderAfterReceive)
-  const now = new Date().toISOString()
-  const orderUpdate = fullyReceived
-    ? {
-      status: 'received',
-      received_at: now,
-      received_by: createdBy,
-    }
-    : {
-      partial_received_at: now,
-      partial_received_by: createdBy,
-    }
-
-  const { error } = await supabase
-    .from(STOCK_ORDERS_TABLE)
-    .update(orderUpdate)
-    .eq('workspace_id', normalizedWorkspaceId)
-    .eq('id', normalizedOrderId)
-
+  const { data, error } = await supabase.rpc('receive_stock_order', {
+    p_workspace_id: workspaceId, p_order_id: orderId, p_workspace_storage_id: workspaceStorageId,
+    p_request_id: requestId, p_lines: lines,
+  })
   if (error) {
-    console.error('[stockOrderService] receiveStockOrderPartial order error:', error)
-    throw new Error(error.message || 'Unable to update order receiving status right now.')
+    const message = `${error.message ?? ''}`
+    if (message.includes('stale_quantity') || message.includes('exceeds_remaining')) {
+      throw new Error('This order has changed. Refresh it and check the remaining quantities before receiving.')
+    }
+    if (message.includes('balance_reconciliation_required')) {
+      throw new Error('Stock totals and storage balances do not match. Reconcile the product balances before receiving.')
+    }
+    if (message.includes('storage_unavailable')) throw new Error('Choose an active destination storage in this workspace.')
+    if (message.includes('product_unavailable')) throw new Error('A product is missing or inactive. Review this order before receiving.')
+    if (error.code === 'PGRST202' || error.code === '42883') throw new Error('Receiving is not ready. Apply the order receiving database update.')
+    throw new Error(message || 'Unable to confirm delivery. Retry the same submission or refresh to check its status.')
   }
-
-  const result = await getStockOrderById(normalizedWorkspaceId, normalizedOrderId)
-  return result
+  if (!data?.order || !Array.isArray(data.order.items)) throw new Error('Delivery response could not be verified. Retry the same submission.')
+  return mapStockOrder(data.order, data.order.items)
 }
 
 export async function deleteStockOrder(workspaceId, orderId) {

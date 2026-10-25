@@ -24,6 +24,7 @@ import {
   replaceDraftOrderLineProduct,
 } from '../../lib/stockOrderUtils'
 import { formatStockPurchasePrice, formatStockQuantity, formatInventoryUnitLabel } from '../../lib/stockUtils'
+import { listWorkspaceStorages } from '../../services/workspaceStorageService'
 import { LoadingButton } from '../LoadingButton'
 import { StockOrderReceiveConfirmModal } from './StockOrderReceiveConfirmModal'
 
@@ -382,6 +383,9 @@ export function StockOrderDetailDrawer({
   const [notes, setNotes] = useState(order.notes ?? '')
   const [expectedDeliveryDate, setExpectedDeliveryDate] = useState(order.expectedDeliveryDate ?? '')
   const [receiveNowByItemId, setReceiveNowByItemId] = useState({})
+  const [destinationStorages, setDestinationStorages] = useState([])
+  const [workspaceStorageId, setWorkspaceStorageId] = useState('')
+  const [isLoadingStorages, setIsLoadingStorages] = useState(false)
   const [isReceiveConfirmOpen, setIsReceiveConfirmOpen] = useState(false)
   const [replacingItemId, setReplacingItemId] = useState(null)
   const [error, setError] = useState('')
@@ -395,6 +399,42 @@ export function StockOrderDetailDrawer({
     setReplacingItemId(null)
     setError('')
   }, [order])
+
+  useEffect(() => {
+    const workspaceId = `${order.workspaceId ?? ''}`.trim()
+    if (!canReceive || !workspaceId) {
+      setDestinationStorages([])
+      setWorkspaceStorageId('')
+      setIsLoadingStorages(false)
+      return undefined
+    }
+
+    let cancelled = false
+    setIsLoadingStorages(true)
+    listWorkspaceStorages(workspaceId)
+      .then((storages) => {
+        if (cancelled) return
+        const activeStorages = (storages ?? []).filter((storage) => storage?.id && storage.active !== false)
+        setDestinationStorages(activeStorages)
+        setWorkspaceStorageId((current) => {
+          if (current && activeStorages.some((storage) => `${storage.id}` === `${current}`)) return current
+          return activeStorages.length === 1 ? activeStorages[0].id : ''
+        })
+      })
+      .catch((loadError) => {
+        if (cancelled) return
+        setDestinationStorages([])
+        setWorkspaceStorageId('')
+        setError(loadError?.message || 'Unable to load destination storages.')
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoadingStorages(false)
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [canReceive, order.id, order.workspaceId])
 
   useEffect(() => {
     const handleKeyDown = (event) => {
@@ -520,6 +560,13 @@ export function StockOrderDetailDrawer({
       return
     }
 
+    if (!`${workspaceStorageId ?? ''}`.trim()) {
+      const message = 'Choose a destination storage.'
+      console.warn('[StockOrderDetailDrawer] Receive blocked:', message)
+      setError(message)
+      return
+    }
+
     setIsReceiveConfirmOpen(true)
   }
 
@@ -530,9 +577,14 @@ export function StockOrderDetailDrawer({
     const receiveItems = (order.items ?? []).map((item) => ({
       id: item.id,
       receiveNow: Number(receiveNowByItemId[item.id]) || 0,
+      expectedReceivedQuantity: getOrderLineReceivedQuantity(item),
     }))
 
-    const payload = { receiveItems, orderNumber: order.orderNumber }
+    const payload = {
+      receiveItems,
+      orderNumber: order.orderNumber,
+      workspaceStorageId,
+    }
 
     try {
       await onReceiveOrder(payload)
@@ -637,6 +689,23 @@ export function StockOrderDetailDrawer({
                   {receiveSummary.remainingTotal} unit{receiveSummary.remainingTotal === 1 ? '' : 's'} still
                   outstanding across {displayItems.length} product{displayItems.length === 1 ? '' : 's'}.
                 </p>
+                <label className="stock-form-field">
+                  <span>Destination storage</span>
+                  <select
+                    className="stock-order-date-input"
+                    aria-label="Destination storage"
+                    value={workspaceStorageId}
+                    disabled={isSaving || isLoadingStorages}
+                    onChange={(event) => setWorkspaceStorageId(event.target.value)}
+                  >
+                    <option value="">{isLoadingStorages ? 'Loading storages…' : 'Select storage'}</option>
+                    {destinationStorages.map((storage) => (
+                      <option key={storage.id} value={storage.id}>
+                        {storage.name || storage.locationKey}
+                      </option>
+                    ))}
+                  </select>
+                </label>
               </div>
             ) : null}
 
@@ -862,7 +931,7 @@ export function StockOrderDetailDrawer({
                   className="stock-product-history-action-btn"
                   loading={isSaving}
                   loadingLabel="Receiving..."
-                  disabled={!hasReceiveInput}
+                  disabled={!hasReceiveInput || !workspaceStorageId || isLoadingStorages}
                   onClick={openReceiveConfirm}
                 >
                   {`Review receive${hasReceiveInput ? '' : ' — enter quantities'}`}

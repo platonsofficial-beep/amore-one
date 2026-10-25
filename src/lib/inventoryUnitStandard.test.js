@@ -220,6 +220,8 @@ describe('inventoryUnitStandard — repository boundary', () => {
     }
 
     const allowed = new Set([
+      // Build/test-only seed validation shares the canonical vocabulary and identity rules.
+      resolve(process.cwd(), 'src/lib/p8_31_9TemporaryRealLabelCatalog.js'),
       resolve(process.cwd(), 'src/lib/stockCatalog.js'),
       resolve(process.cwd(), 'src/lib/inventoryNewProductDrafts.js'),
       resolve(process.cwd(), 'src/lib/inventoryUtils.js'),

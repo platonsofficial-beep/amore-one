@@ -196,7 +196,7 @@ describe('product identity contract boundaries', () => {
     expect(source).toContain('buildProductIdentityKey')
   })
 
-  it('is only imported by approved read-presentation consumers', () => {
+  it('is only imported by approved presentation and seed-validation consumers', () => {
     /** @param {string} dir */
     function walk(dir) {
       /** @type {string[]} */
@@ -213,6 +213,8 @@ describe('product identity contract boundaries', () => {
     }
 
     const allowed = new Set([
+      // Build/test-only seed validation shares the canonical vocabulary and identity rules.
+      resolve(process.cwd(), 'src/lib/p8_31_9TemporaryRealLabelCatalog.js'),
       resolve(process.cwd(), 'src/components/stock/StockDashboardView.jsx'),
       resolve(process.cwd(), 'src/components/stock/StockStorageDetailWorkspace.jsx'),
       resolve(process.cwd(), 'src/components/stock/StockProductHistoryDrawer.jsx'),

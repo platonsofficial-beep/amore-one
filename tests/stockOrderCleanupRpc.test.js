@@ -17,6 +17,10 @@ const ORDER_SERVICE_SOURCE = readFileSync(
   join(HERE, '../src/services/stockOrderService.js'),
   'utf8',
 )
+const RECEIVE_SQL = readFileSync(
+  join(HERE, '../supabase/stock_order_receive_rpc.sql'),
+  'utf8',
+)
 const APP_SOURCE = readFileSync(join(HERE, '../src/App.jsx'), 'utf8')
 
 const { rpcMock } = vi.hoisted(() => ({
@@ -241,7 +245,10 @@ describe('P8.16.20 regression: no UI / no order-service mutation', () => {
     expect(ORDER_SERVICE_SOURCE).toContain('export async function createStockOrder')
     expect(ORDER_SERVICE_SOURCE).toContain('export async function updateStockOrderStatus')
     expect(ORDER_SERVICE_SOURCE).toContain('export async function receiveStockOrderPartial')
-    expect(ORDER_SERVICE_SOURCE).toContain("type: 'receive'")
+    // Receive movements are posted inside receive_stock_order, not the client service.
+    expect(ORDER_SERVICE_SOURCE).toContain("supabase.rpc('receive_stock_order'")
+    expect(RECEIVE_SQL).toContain('mutate_stock_item_location_balance_core')
+    expect(RECEIVE_SQL).toContain("'receive'")
     expect(ORDER_SERVICE_SOURCE).not.toContain('cleanup_purchase_order_documents')
     expect(SERVICE_SOURCE).toContain('cleanup_purchase_order_documents')
   })

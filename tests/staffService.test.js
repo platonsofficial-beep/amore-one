@@ -5,6 +5,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 const supabaseMocks = vi.hoisted(() => {
   let queryResult = { data: [], error: null }
   let updatePayload = null
+  const rpc = vi.fn(async () => ({ data: [], error: null }))
 
   const builder = {
     select: vi.fn(() => builder),
@@ -25,6 +26,7 @@ const supabaseMocks = vi.hoisted(() => {
 
   return {
     builder,
+    rpc,
     getUpdatePayload() {
       return updatePayload
     },
@@ -32,6 +34,7 @@ const supabaseMocks = vi.hoisted(() => {
       queryResult = result
     },
     reset() {
+      rpc.mockReset().mockResolvedValue({ data: [], error: null })
       queryResult = { data: [], error: null }
       updatePayload = null
       Object.values(builder).forEach((mock) => {
@@ -55,6 +58,7 @@ const supabaseMocks = vi.hoisted(() => {
 vi.mock('../src/lib/supabaseClient', () => ({
   supabase: {
     from: vi.fn(() => supabaseMocks.builder),
+    rpc: supabaseMocks.rpc,
   },
 }))
 
@@ -187,5 +191,43 @@ describe('staffService identity mapping', () => {
       department: 'Service',
       identityColor: 'neutral',
     })).rejects.toThrow('Invalid employee identity color.')
+  })
+})
+
+
+describe('staffService private fields', () => {
+  beforeEach(() => supabaseMocks.reset())
+
+  it('uses authorized private fields and never a legacy unrestricted salary', async () => {
+    supabaseMocks.setQueryResult({ data: [buildEmployeeRow({ salary: 42000 })], error: null })
+    const [employee] = await getEmployees(WORKSPACE_ID)
+    expect(employee.salary).toBe('')
+    expect(employee.notes).toBe('')
+    expect(employee.emergencyContact).toBe('')
+    expect(supabaseMocks.rpc).toHaveBeenCalledWith('get_employee_private_fields', {
+      p_workspace_id: WORKSPACE_ID, p_employee_ids: [EMPLOYEE_ID],
+    })
+    expect(supabaseMocks.builder.select.mock.calls[0][0]).not.toContain('*')
+    expect(supabaseMocks.builder.select.mock.calls[0][0]).not.toMatch(/salary|emergency_contact|notes/)
+  })
+
+  it('hydrates authorized salary and manager details', async () => {
+    supabaseMocks.setQueryResult({ data: [buildEmployeeRow()], error: null })
+    supabaseMocks.rpc.mockResolvedValue({ data: [{ id: EMPLOYEE_ID, salary: 42000,
+      emergency_contact: 'Contact', notes: 'Private note' }], error: null })
+    const [employee] = await getEmployees(WORKSPACE_ID)
+    expect(employee).toMatchObject({ salary: 42000, emergencyContact: 'Contact', notes: 'Private note' })
+  })
+
+  it('fails closed if the private-fields RPC is unavailable', async () => {
+    supabaseMocks.setQueryResult({ data: [buildEmployeeRow({ salary: 42000 })], error: null })
+    supabaseMocks.rpc.mockResolvedValue({ data: null, error: { message: 'RPC unavailable' } })
+    await expect(getEmployees(WORKSPACE_ID)).rejects.toThrow('RPC unavailable')
+  })
+
+  it('omits an unauthorized salary instead of overwriting the stored value', async () => {
+    supabaseMocks.setQueryResult({ data: buildEmployeeRow(), error: null })
+    await updateEmployee(WORKSPACE_ID, EMPLOYEE_ID, { name: 'Alex Morgan', salary: undefined })
+    expect(supabaseMocks.getUpdatePayload()).not.toHaveProperty('salary')
   })
 })

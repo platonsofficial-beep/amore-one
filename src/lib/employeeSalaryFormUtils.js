@@ -10,24 +10,10 @@ function normalizeNumericValue(value) {
   return Number.isFinite(parsed) ? parsed : null
 }
 
-/**
- * Resolve salary for employee create/update payloads.
- * Unauthorized editors must preserve the existing stored salary on edit
- * and must not invent a blank overwrite.
- */
+/** Unauthorized editors omit salary entirely; the database preserves it. */
 export function resolveEmployeeSalaryForSave({
   canViewSalary = false,
   formSalary = '',
-  existingSalary = '',
-  isEditing = false,
 } = {}) {
-  if (canViewSalary) {
-    return normalizeNumericValue(formSalary)
-  }
-
-  if (isEditing) {
-    return normalizeNumericValue(existingSalary)
-  }
-
-  return null
+  return canViewSalary ? normalizeNumericValue(formSalary) : undefined
 }
