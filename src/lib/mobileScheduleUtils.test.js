@@ -136,6 +136,33 @@ describe('mobileScheduleUtils', () => {
     expect(shouldUseFluidScheduleDayColumns(columnWidth)).toBe(false)
   })
 
+  it('hides the unpublished-changes banner only when the landscape pill already says so', async () => {
+    const { shouldShowScheduleDraftChangesBanner } = await import('./mobileScheduleUtils')
+
+    expect(shouldShowScheduleDraftChangesBanner({
+      hasUnpublishedChanges: true,
+      isWeekPublished: true,
+      isCompactLandscape: true,
+    })).toBe(false)
+    expect(shouldShowScheduleDraftChangesBanner({
+      hasUnpublishedChanges: true,
+      isWeekPublished: true,
+      isCompactLandscape: false,
+    })).toBe(true)
+    expect(shouldShowScheduleDraftChangesBanner({
+      hasUnpublishedChanges: false,
+      isWeekPublished: true,
+      isCompactLandscape: false,
+    })).toBe(false)
+  })
+
+  it('uses a single-line time separator on compact landscape cards', async () => {
+    const { getScheduleShiftTimeSeparator } = await import('./mobileScheduleUtils')
+
+    expect(getScheduleShiftTimeSeparator(true)).toBe('–')
+    expect(getScheduleShiftTimeSeparator(false)).toBe(' - ')
+  })
+
   it('keeps default column width when templates panel is open', async () => {
     const { getScheduleGridDayColumnWidth, SCHEDULE_GRID_DEFAULT_DAY_COLUMN_WIDTH } = await import('./mobileScheduleUtils')
 
