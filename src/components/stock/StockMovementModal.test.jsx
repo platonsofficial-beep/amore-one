@@ -467,6 +467,78 @@ describe('StockMovementModal — dashboard storage picker', () => {
       .toBe('Set Main Bar to 4')
   })
 
+  it('sends version 0 when receive starts a storage that has no balance row', async () => {
+    const { onSubmit } = renderPicker({
+      storageChoices: [choices[0]],
+      locationBalances: [],
+      lastUsedStorageId: '',
+    })
+    expect(container.querySelector('[data-testid="stock-movement-balance-gap"]')).toBeNull()
+    expect(container.querySelector('[data-testid="stock-movement-balance-start"]')?.textContent)
+      .toContain('Saving starts this storage')
+    expect(container.querySelector('[data-testid="stock-movement-submit"]')?.disabled).toBe(false)
+    await setNumber('5')
+    await submit()
+    expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({
+      type: 'receive',
+      quantity: 5,
+      workspaceStorageId: 'stor-bar',
+      expectedQuantityVersion: 0,
+    }))
+  })
+
+  it('sends version 0 for a positive adjustment onto an empty shelf and blocks remove', async () => {
+    const { onSubmit } = renderPicker({
+      movementType: 'adjustment',
+      storageChoices: [choices[0]],
+      locationBalances: [],
+      lastUsedStorageId: '',
+    })
+    expect(container.querySelector('[data-testid="stock-movement-balance-gap"]')?.textContent)
+      .toContain('No balance at Main Bar')
+    expect(container.querySelector('[data-testid="stock-adjustment-submit"]')?.disabled).toBe(true)
+
+    await act(async () => {
+      container.querySelector('[data-testid="stock-adjustment-operation-add"]').click()
+    })
+    expect(container.querySelector('[data-testid="stock-movement-balance-start"]')?.textContent)
+      .toContain('Saving starts this storage')
+    const input = container.querySelector('[data-testid="stock-adjustment-quantity"]')
+    await act(async () => {
+      const nativeInputValueSetter = Object.getOwnPropertyDescriptor(
+        window.HTMLInputElement.prototype,
+        'value',
+      )?.set
+      nativeInputValueSetter?.call(input, '2')
+      input.dispatchEvent(new Event('input', { bubbles: true }))
+    })
+    expect(container.querySelector('[data-testid="stock-adjustment-submit"]')?.disabled).toBe(false)
+    await submit()
+    expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({
+      type: 'adjustment',
+      quantity: 2,
+      workspaceStorageId: 'stor-bar',
+      expectedQuantityVersion: 0,
+    }))
+  })
+
+  it('sends version 0 when a count starts a storage that has no balance row', async () => {
+    const { onSubmit } = renderPicker({
+      movementType: 'stock_count',
+      storageChoices: [choices[0]],
+      locationBalances: [],
+      lastUsedStorageId: '',
+    })
+    expect(container.querySelector('[data-testid="stock-movement-balance-start"]')).toBeTruthy()
+    await setNumber('4')
+    await submit()
+    expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({
+      type: 'stock_count',
+      quantity: 4,
+      expectedQuantityVersion: 0,
+    }))
+  })
+
   it('blocks usage when the chosen storage has no balance row', async () => {
     const { onSubmit } = renderPicker({
       movementType: 'usage',
