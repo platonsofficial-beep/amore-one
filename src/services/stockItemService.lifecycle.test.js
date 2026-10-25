@@ -187,6 +187,6 @@ describe('updateStockItem catalog contract remains full serialize', () => {
       active: true,
     })
     expect(payload).toHaveProperty('category')
-    expect(payload).toHaveProperty('current_quantity')
+    expect(payload).not.toHaveProperty('current_quantity')
   })
 })

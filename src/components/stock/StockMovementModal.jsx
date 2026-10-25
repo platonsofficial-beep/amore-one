@@ -5,7 +5,15 @@
  */
 
 import { useEffect, useMemo, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { buildProductDisplayNameFromItem } from '../../lib/stockProductIdentity'
+import {
+  describeOtherLocationStock,
+  rememberLastUsedStockMovementStorage,
+  resolveStockMovementStorage,
+  stockMovementStorageActionLabel,
+} from '../../lib/stockMovementStorage'
+import { isStockLocationVersionMismatch } from '../../services/stockMutationService'
 import { formatStockQuantity, resolveStockUsageCeiling } from '../../lib/stockUtils'
 
 /** @typedef {'remove'|'add'} StockAdjustmentOperation */
@@ -59,6 +67,14 @@ export function toSignedAdjustmentQuantity(operation, positiveQuantity) {
  *   expectedQuantityVersion?: number|null,
  *   requireAdjustmentReason?: boolean,
  *   balanceQuantity?: number|null,
+ *   storageChoices?: Array<object>|null,
+ *   locationBalances?: Array<object>,
+ *   lastUsedStorageId?: string,
+ *   workspaceId?: string,
+ *   storagesLoading?: boolean,
+ *   storagesError?: string,
+ *   onRetryStorages?: () => void,
+ *   onReloadBalances?: () => void|Promise<void>,
  * }} props
  */
 export function StockMovementModal({
@@ -73,6 +89,14 @@ export function StockMovementModal({
   // Kept for call-site compatibility; P8.30.7b removed predefined reasons.
   requireAdjustmentReason: _requireAdjustmentReason = false,
   balanceQuantity = null,
+  storageChoices = null,
+  locationBalances = [],
+  lastUsedStorageId = '',
+  workspaceId = '',
+  storagesLoading = false,
+  storagesError = '',
+  onRetryStorages,
+  onReloadBalances,
 }) {
   const isStockCount = movementType === 'stock_count'
   const isAdjustment = movementType === 'adjustment'
@@ -84,42 +108,119 @@ export function StockMovementModal({
   const [note, setNote] = useState('')
   const [error, setError] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [pickerOpen, setPickerOpen] = useState(false)
+  const [storageOverrideId, setStorageOverrideId] = useState('')
   const isBusy = isSaving || isSubmitting
+  const pickerMode = !destinationLocked && Array.isArray(storageChoices)
 
-  const destinationLabel = destinationStorage
-    ? (destinationStorage.name || destinationStorage.locationKey || 'Storage')
+  const resolution = useMemo(() => {
+    if (!pickerMode) return null
+    return resolveStockMovementStorage({
+      item,
+      balances: locationBalances,
+      storages: storageChoices,
+      lastUsedStorageId,
+    })
+  }, [pickerMode, item, locationBalances, storageChoices, lastUsedStorageId])
+
+  const selectedStorageId = storageOverrideId || resolution?.storage?.id || ''
+  const selectedChoice = pickerMode
+    ? (storageChoices.find((storage) => `${storage?.id ?? ''}` === selectedStorageId) ?? null)
+    : null
+  const selectedStorage = pickerMode
+    ? (selectedChoice
+      ? {
+        id: `${selectedChoice.id}`,
+        name: selectedChoice.name || selectedChoice.locationKey || 'Storage',
+        locationKey: selectedChoice.locationKey || selectedChoice.name || '',
+      }
+      : null)
+    : destinationStorage
+  const selectedBalance = pickerMode
+    ? (locationBalances.find((balance) => {
+      const storageId = `${balance?.workspaceStorageId ?? balance?.workspace_storage_id ?? ''}`
+      return storageId === selectedStorageId
+    }) ?? null)
+    : null
+  const selectedVersion = pickerMode
+    ? Number(selectedBalance?.quantityVersion ?? selectedBalance?.quantity_version)
+    : Number(expectedQuantityVersion)
+  const effectiveVersion = Number.isFinite(selectedVersion) && selectedVersion >= 1
+    ? Math.floor(selectedVersion)
+    : null
+  const effectiveBalanceQuantity = pickerMode
+    ? (selectedBalance == null
+      ? null
+      : Number(selectedBalance.quantity ?? selectedBalance.balanceQuantity))
+    : balanceQuantity
+
+  const destinationLabel = selectedStorage
+    ? (selectedStorage.name || selectedStorage.locationKey || 'Storage')
+    : ''
+
+  const otherLocationNote = pickerMode && movementType === 'stock_count' && selectedStorage
+    ? describeOtherLocationStock(
+      locationBalances,
+      selectedStorage.id,
+      formatStockQuantity,
+      item?.unit,
+    )
     : ''
 
   const currentBalance = useMemo(() => {
-    if (balanceQuantity != null && Number.isFinite(Number(balanceQuantity))) {
-      return Number(balanceQuantity)
+    if (effectiveBalanceQuantity != null && effectiveBalanceQuantity !== ''
+      && Number.isFinite(Number(effectiveBalanceQuantity))) {
+      return Number(effectiveBalanceQuantity)
     }
+    if (pickerMode) return null
     return Number(item?.currentQuantity) || 0
-  }, [balanceQuantity, item?.currentQuantity])
+  }, [effectiveBalanceQuantity, item?.currentQuantity, pickerMode])
 
   const positiveQuantity = isAdjustment ? parsePositiveAdjustmentQuantity(quantity) : null
   const signedAdjustment = positiveQuantity == null
     ? null
     : toSignedAdjustmentQuantity(operation, positiveQuantity)
-  const previewNewBalance = signedAdjustment == null
+  const previewNewBalance = signedAdjustment == null || currentBalance == null
     ? null
     : currentBalance + signedAdjustment
   const wouldGoNegative = previewNewBalance != null && previewNewBalance < 0
   const canSubmitAdjustment = !isAdjustment
-    || (positiveQuantity != null && !wouldGoNegative)
+    || (currentBalance != null && positiveQuantity != null && !wouldGoNegative)
+  const missingLocationBalance = pickerMode && selectedStorage && effectiveVersion == null
+  const saveBlocked = isBusy
+    || storagesLoading
+    || (isAdjustment && !canSubmitAdjustment)
+    || (pickerMode && (!selectedStorage || effectiveVersion == null))
 
   useEffect(() => {
-    if (isStockCount) {
-      setQuantity(`${item?.currentQuantity ?? ''}`)
-    } else {
-      setQuantity('')
-    }
     setOperation('remove')
     setNote('')
     setError('')
-    // Reset only when the opened product / movement type changes — not on object identity.
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional: item.currentQuantity seed for stock_count only
+    setPickerOpen(false)
+    setStorageOverrideId('')
+    if (!isStockCount) setQuantity('')
   }, [itemId, movementType, isStockCount])
+
+  useEffect(() => {
+    if (!isStockCount) return
+    if (pickerMode) {
+      if (effectiveBalanceQuantity == null || !Number.isFinite(Number(effectiveBalanceQuantity))) {
+        setQuantity('')
+        return
+      }
+      setQuantity(String(effectiveBalanceQuantity))
+      return
+    }
+    setQuantity(`${item?.currentQuantity ?? ''}`)
+  }, [
+    itemId,
+    movementType,
+    isStockCount,
+    pickerMode,
+    selectedStorageId,
+    effectiveBalanceQuantity,
+    item?.currentQuantity,
+  ])
 
   const handleDismiss = () => {
     if (isBusy) return
@@ -145,6 +246,13 @@ export function StockMovementModal({
     event.preventDefault()
     if (isBusy) return
 
+    if (pickerMode && (!selectedStorage?.id || effectiveVersion == null)) {
+      setError(selectedStorage
+        ? `No balance at ${destinationLabel} yet. Choose a storage that already holds this product.`
+        : 'Choose a storage.')
+      return
+    }
+
     let parsed
     if (isAdjustment) {
       const positive = parsePositiveAdjustmentQuantity(quantity)
@@ -153,6 +261,10 @@ export function StockMovementModal({
         return
       }
       parsed = toSignedAdjustmentQuantity(operation, positive)
+      if (currentBalance == null) {
+        setError('This storage balance is not available yet. Choose a storage that already holds this product.')
+        return
+      }
       if (currentBalance + parsed < 0) {
         setError('Adjustment would make the balance negative.')
         return
@@ -176,17 +288,21 @@ export function StockMovementModal({
         setError('Enter a positive usage quantity.')
         return
       }
+      const usageDestination = pickerMode
+        ? (selectedStorage || { id: 'pending' })
+        : destinationStorage
+      const usageBalance = pickerMode ? effectiveBalanceQuantity : balanceQuantity
       const usageCeiling = resolveStockUsageCeiling({
-        destinationStorage,
-        balanceQuantity,
-        currentQuantity: item?.currentQuantity,
+        destinationStorage: usageDestination,
+        balanceQuantity: usageBalance,
+        currentQuantity: pickerMode ? null : item?.currentQuantity,
       })
       if (usageCeiling == null) {
         setError('This storage balance is not available yet. Refresh the location before recording usage.')
         return
       }
       if (parsed > usageCeiling) {
-        const limitLabel = destinationStorage ? 'balance in this storage' : 'on-hand quantity'
+        const limitLabel = usageDestination ? 'balance in this storage' : 'on-hand quantity'
         setError(`Usage cannot exceed the ${limitLabel} (${formatStockQuantity(usageCeiling, item.unit)}).`)
         return
       }
@@ -194,6 +310,11 @@ export function StockMovementModal({
       setError('Enter a non-zero quantity.')
       return
     }
+
+    const workspaceStorageId = pickerMode
+      ? selectedStorage.id
+      : (destinationStorage?.id ?? null)
+    const versionForSubmit = pickerMode ? effectiveVersion : expectedQuantityVersion
 
     try {
       setError('')
@@ -204,11 +325,24 @@ export function StockMovementModal({
         quantity: parsed,
         note: note.trim(),
         operation: isAdjustment ? operation : undefined,
-        workspaceStorageId: destinationStorage?.id ?? null,
-        expectedQuantityVersion,
+        workspaceStorageId,
+        expectedQuantityVersion: versionForSubmit,
       })
+      if (pickerMode) {
+        rememberLastUsedStockMovementStorage(workspaceId, item?.id, workspaceStorageId)
+      }
       onClose()
     } catch (submitError) {
+      if (isStockLocationVersionMismatch(submitError)) {
+        try {
+          if (typeof onReloadBalances === 'function') await onReloadBalances()
+        } catch (reloadError) {
+          setError(reloadError?.message || 'This balance changed, and the refresh failed. Try again.')
+          return
+        }
+        setError('This balance changed. The storage quantity was refreshed. Check it and try again.')
+        return
+      }
       setError(submitError?.message || 'Unable to save movement right now.')
     } finally {
       setIsSubmitting(false)
@@ -220,7 +354,21 @@ export function StockMovementModal({
     : 'stock-receive-destination-lock'
   const lockLabel = isAdjustment ? 'Storage' : 'Destination'
   const lockNote = isAdjustment ? 'Locked' : 'Locked to this storage'
-  const saveDisabled = isBusy || (isAdjustment && !canSubmitAdjustment)
+  const saveDisabled = saveBlocked
+  const countButtonQuantity = (() => {
+    const text = `${quantity ?? ''}`.trim()
+    if (!text || text === '.') return null
+    const parsed = Number(text)
+    if (!Number.isFinite(parsed) || parsed < 0) return null
+    return text
+  })()
+  const submitLabel = isBusy
+    ? 'Saving…'
+    : (pickerMode && isStockCount
+      ? `Set ${destinationLabel || 'storage'} to ${countButtonQuantity ?? '…'}`
+      : (isStockCount
+        ? 'Save stock count'
+        : (isAdjustment ? 'Apply Adjustment' : 'Save')))
   const previewOperationLabel = operation === 'remove' ? 'Remove' : 'Add'
 
   return (
@@ -245,6 +393,45 @@ export function StockMovementModal({
               <strong className="stock-movement-destination-lock-value">{destinationLabel}</strong>
               <span className="stock-movement-destination-lock-note">{lockNote}</span>
             </div>
+          ) : null}
+
+          {pickerMode ? (
+            <>
+              <button
+                type="button"
+                className="stock-movement-storage-row"
+                data-testid="stock-movement-storage-row"
+                disabled={isBusy || storagesLoading}
+                aria-haspopup="dialog"
+                aria-expanded={pickerOpen}
+                onClick={() => setPickerOpen(true)}
+              >
+                {storagesLoading
+                  ? 'Loading storages…'
+                  : stockMovementStorageActionLabel(movementType, destinationLabel)}
+              </button>
+              {storagesError ? (
+                <p className="stock-movement-storage-gap" role="alert">
+                  {storagesError}
+                  {typeof onRetryStorages === 'function' ? (
+                    <>
+                      {' '}
+                      <button type="button" className="ghost-btn" onClick={onRetryStorages}>Retry</button>
+                    </>
+                  ) : null}
+                </p>
+              ) : null}
+              {missingLocationBalance ? (
+                <p className="stock-movement-storage-gap" data-testid="stock-movement-balance-gap">
+                  {`No balance at ${destinationLabel} yet. Choose a storage that already holds this product.`}
+                </p>
+              ) : null}
+              {otherLocationNote ? (
+                <p className="stock-movement-other-locations" data-testid="stock-movement-other-locations">
+                  {otherLocationNote}
+                </p>
+              ) : null}
+            </>
           ) : null}
 
           {isAdjustment ? (
@@ -307,7 +494,9 @@ export function StockMovementModal({
                 min={isStockCount ? '0' : undefined}
                 value={quantity}
                 onChange={(event) => setQuantity(event.target.value)}
-                placeholder={isStockCount ? `${item.currentQuantity ?? 0}` : '0'}
+                placeholder={isStockCount
+                  ? `${pickerMode ? (effectiveBalanceQuantity ?? 0) : (item.currentQuantity ?? 0)}`
+                  : '0'}
                 required
                 disabled={isBusy}
               />
@@ -322,7 +511,7 @@ export function StockMovementModal({
             >
               <div className="stock-adjustment-preview-row">
                 <span>Current</span>
-                <strong>{formatStockQuantity(currentBalance, item?.unit)}</strong>
+                <strong>{currentBalance == null ? '—' : formatStockQuantity(currentBalance, item?.unit)}</strong>
               </div>
               <div className="stock-adjustment-preview-row">
                 <span>{previewOperationLabel}</span>
@@ -389,18 +578,60 @@ export function StockMovementModal({
               type="submit"
               className="primary-btn"
               disabled={saveDisabled}
-              data-testid={isAdjustment ? 'stock-adjustment-submit' : undefined}
+              data-testid={isAdjustment ? 'stock-adjustment-submit' : 'stock-movement-submit'}
             >
-              {isBusy
-                ? 'Saving…'
-                : isStockCount
-                  ? 'Save stock count'
-                  : isAdjustment
-                    ? 'Apply Adjustment'
-                    : 'Save'}
+              {submitLabel}
             </button>
           </div>
         </form>
+        {pickerOpen ? createPortal(
+          <div
+            className="stock-movement-storage-sheet-backdrop"
+            data-testid="stock-movement-storage-sheet"
+            onClick={() => setPickerOpen(false)}
+          >
+            <div
+              className="stock-movement-storage-sheet"
+              role="dialog"
+              aria-label="Choose storage"
+              onClick={(event) => event.stopPropagation()}
+            >
+              <h4>Choose storage</h4>
+              {storageChoices.length === 0 ? (
+                <p className="stock-movement-storage-gap">No active storage is available.</p>
+              ) : storageChoices.map((storage) => {
+                const storageId = `${storage?.id ?? ''}`
+                const storageName = storage?.name || storage?.locationKey || 'Storage'
+                const balance = locationBalances.find((entry) => {
+                  const id = `${entry?.workspaceStorageId ?? entry?.workspace_storage_id ?? ''}`
+                  return id === storageId
+                })
+                const quantityLabel = balance == null
+                  ? 'No balance'
+                  : formatStockQuantity(balance.quantity, item?.unit)
+                const selected = storageId === selectedStorageId
+                return (
+                  <button
+                    key={storageId || storageName}
+                    type="button"
+                    className={`stock-movement-storage-option${selected ? ' is-selected' : ''}`}
+                    data-testid={`stock-movement-storage-option-${storageId}`}
+                    aria-pressed={selected}
+                    onClick={() => {
+                      setStorageOverrideId(storageId)
+                      setPickerOpen(false)
+                      setError('')
+                    }}
+                  >
+                    <span>{storageName}</span>
+                    <span className="stock-movement-storage-option-qty">{quantityLabel}</span>
+                  </button>
+                )
+              })}
+            </div>
+          </div>,
+          document.body,
+        ) : null}
       </div>
     </div>
   )

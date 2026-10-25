@@ -351,3 +351,151 @@ describe('StockMovementModal — location usage ceiling', () => {
     }))
   })
 })
+
+describe('StockMovementModal — dashboard storage picker', () => {
+  let container
+  let root
+
+  const choices = [
+    { id: 'stor-bar', name: 'Main Bar', locationKey: 'Main Bar', active: true },
+    { id: 'stor-main', name: 'Main Storage', locationKey: 'Main Storage', active: true },
+  ]
+  const balances = [
+    { workspaceStorageId: 'stor-bar', locationName: 'Main Bar', locationKey: 'Main Bar', quantity: 2, quantityVersion: 4, storageActive: true },
+    { workspaceStorageId: 'stor-main', locationName: 'Main Storage', locationKey: 'Main Storage', quantity: 3, quantityVersion: 2, storageActive: true },
+  ]
+
+  afterEach(() => {
+    act(() => {
+      root?.unmount()
+    })
+    container?.remove()
+    container = null
+    root = null
+    sessionStorage.clear()
+  })
+
+  function renderPicker(props = {}) {
+    const onSubmit = props.onSubmit ?? vi.fn(async () => {})
+    const onClose = props.onClose ?? vi.fn()
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+    act(() => {
+      root.render(createElement(StockMovementModal, {
+        item: {
+          id: 'i1',
+          name: 'Vodka',
+          unit: 'btl',
+          currentQuantity: 10,
+          storageLocation: 'Main Bar',
+        },
+        movementType: 'receive',
+        workspaceId: 'ws-1',
+        storageChoices: choices,
+        locationBalances: balances,
+        onClose,
+        onSubmit,
+        ...props,
+      }))
+    })
+    return { onSubmit, onClose }
+  }
+
+  async function setNumber(value) {
+    const input = container.querySelector('input[type="number"]')
+    await act(async () => {
+      const nativeInputValueSetter = Object.getOwnPropertyDescriptor(
+        window.HTMLInputElement.prototype,
+        'value',
+      )?.set
+      nativeInputValueSetter?.call(input, String(value))
+      input.dispatchEvent(new Event('input', { bubbles: true }))
+      input.dispatchEvent(new Event('change', { bubbles: true }))
+    })
+  }
+
+  async function submit() {
+    await act(async () => {
+      container.querySelector('[data-testid="stock-movement-modal"] form')
+        .dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+  }
+
+  it('defaults to the catalog storage and can switch in the sheet', async () => {
+    const { onSubmit, onClose } = renderPicker()
+    const row = container.querySelector('[data-testid="stock-movement-storage-row"]')
+    expect(row?.textContent).toBe('Receive into Main Bar')
+    expect(row?.getBoundingClientRect).toBeTypeOf('function')
+
+    await act(async () => {
+      row.click()
+    })
+    const option = document.body.querySelector('[data-testid="stock-movement-storage-option-stor-main"]')
+    expect(option?.textContent).toContain('Main Storage')
+    await act(async () => {
+      option.click()
+    })
+    expect(container.querySelector('[data-testid="stock-movement-storage-row"]')?.textContent)
+      .toBe('Receive into Main Storage')
+
+    await setNumber('1')
+    await submit()
+
+    expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({
+      type: 'receive',
+      quantity: 1,
+      workspaceStorageId: 'stor-main',
+      expectedQuantityVersion: 2,
+    }))
+    expect(onClose).toHaveBeenCalled()
+    expect(sessionStorage.getItem('one.stockMovementStorage:ws-1:i1')).toBe('stor-main')
+  })
+
+  it('labels quick count with the storage and notes stock held elsewhere', async () => {
+    renderPicker({ movementType: 'stock_count' })
+    expect(container.querySelector('[data-testid="stock-movement-storage-row"]')?.textContent)
+      .toBe('Count Main Bar')
+    expect(container.querySelector('[data-testid="stock-movement-other-locations"]')?.textContent)
+      .toContain('Main Storage keeps')
+    const input = container.querySelector('input[type="number"]')
+    expect(input.value).toBe('2')
+    await setNumber('4')
+    expect(container.querySelector('[data-testid="stock-movement-submit"]')?.textContent)
+      .toBe('Set Main Bar to 4')
+  })
+
+  it('blocks usage when the chosen storage has no balance row', async () => {
+    const { onSubmit } = renderPicker({
+      movementType: 'usage',
+      storageChoices: [choices[0]],
+      locationBalances: [],
+      lastUsedStorageId: '',
+    })
+    expect(container.querySelector('[data-testid="stock-movement-balance-gap"]')?.textContent)
+      .toContain('No balance at Main Bar')
+    expect(container.querySelector('[data-testid="stock-movement-submit"]')?.disabled).toBe(true)
+    await setNumber('1')
+    await submit()
+    expect(onSubmit).not.toHaveBeenCalled()
+    expect(container.textContent).toContain('No balance at Main Bar')
+  })
+
+  it('keeps the modal open and reloads the balance when the version is stale', async () => {
+    const mismatch = new Error('stock_location_balance_version_mismatch')
+    const onSubmit = vi.fn(async () => {
+      throw mismatch
+    })
+    const onClose = vi.fn()
+    const onReloadBalances = vi.fn(async () => {})
+    renderPicker({ onSubmit, onClose, onReloadBalances })
+    await setNumber('1')
+    await submit()
+    expect(onReloadBalances).toHaveBeenCalledTimes(1)
+    expect(onClose).not.toHaveBeenCalled()
+    expect(container.textContent).toContain('This balance changed')
+    expect(container.querySelector('[data-testid="stock-movement-modal"]')).toBeTruthy()
+  })
+})

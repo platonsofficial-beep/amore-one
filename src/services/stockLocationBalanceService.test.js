@@ -111,6 +111,16 @@ describe('getStockItemLocationBalances', () => {
       { name: 'Water Storage', quantity: 468 },
       { name: 'Bar', quantity: 66 },
     ])
+
+    const withZeros = await getStockItemLocationBalances('ws-1', 'item-1', {
+      includeZeroBalances: true,
+    })
+    expect(withZeros.map((entry) => entry.locationName)).toEqual([
+      'Water Storage',
+      'Bar',
+      'Kitchen',
+    ])
+    expect(withZeros.find((entry) => entry.locationName === 'Kitchen')?.quantityVersion).toBe(1)
   })
 
   it('returns [] for missing ids or unavailable table', async () => {

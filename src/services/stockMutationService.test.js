@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs'
+import { resolve } from 'node:path'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const { fromMock, rpcMock, updateStockItemQuantityMock } = vi.hoisted(() => ({
@@ -20,7 +22,9 @@ vi.mock('./stockItemService', () => ({
 
 import {
   __setSupportsLocationBalancesForTests,
+  assertLocationStockMovementTarget,
   getSupportsLocationBalances,
+  isStockLocationVersionMismatch,
   mapStockTransferRpcError,
   recordStockMutation,
   recordStockMutationLegacy,
@@ -58,6 +62,39 @@ describe('stockMutationService — P8.29.7 dual-write foundation', () => {
 
   it('defaults supportsLocationBalances to false (legacy production path)', () => {
     expect(getSupportsLocationBalances()).toBe(false)
+    const appSource = readFileSync(resolve(process.cwd(), 'src/App.jsx'), 'utf8')
+    expect(appSource).toContain('assertLocationStockMovementTarget')
+    expect(appSource).not.toContain('__setSupportsLocationBalancesForTests(true)')
+  })
+
+  it('rejects a movement that has no storage or balance version', () => {
+    expect(() => assertLocationStockMovementTarget('', 1)).toThrow(/Choose a storage/)
+    expect(() => assertLocationStockMovementTarget('stor-1', null)).toThrow(/Choose a storage/)
+    expect(assertLocationStockMovementTarget('stor-1', 4)).toEqual({
+      workspaceStorageId: 'stor-1',
+      expectedQuantityVersion: 4,
+    })
+  })
+
+  it('maps a stale balance version to a refresh message and does not patch quantity', async () => {
+    rpcMock.mockResolvedValue({
+      data: null,
+      error: { message: 'stock_location_balance_version_mismatch expected=2 actual=3' },
+    })
+
+    await expect(recordStockMutationLocationAware({
+      workspaceId: 'ws-1',
+      itemId: 'item-1',
+      type: 'receive',
+      quantity: 1,
+      workspaceStorageId: 'stor-bar',
+      expectedQuantityVersion: 2,
+    })).rejects.toMatchObject({
+      message: 'This balance changed. The storage quantity was refreshed. Check it and try again.',
+      code: 'stock_location_balance_version_mismatch',
+    })
+    expect(isStockLocationVersionMismatch({ code: 'stock_location_balance_version_mismatch' })).toBe(true)
+    expect(updateStockItemQuantityMock).not.toHaveBeenCalled()
   })
 
   it('legacy path inserts movement and patches current_quantity; never calls RPCs', async () => {

@@ -81,7 +81,7 @@ describe('product form metadata save/load', () => {
     expect(payload.barcode).toBe('5901234123457')
     expect(payload.packagingNote).toBe('Usually supplied in cases of 6')
     expect(payload.unit).toBe('Bottle')
-    expect(payload.currentQuantity).toBe(18)
+    expect(payload).not.toHaveProperty('currentQuantity')
   })
 
   it('serializes blank metadata as null', () => {
@@ -99,7 +99,7 @@ describe('product form metadata save/load', () => {
     expect(payload.size).toBeNull()
     expect(payload.barcode).toBeNull()
     expect(payload.packagingNote).toBeNull()
-    expect(payload.currentQuantity).toBe(12)
+    expect(payload).not.toHaveProperty('currentQuantity')
     expect(payload.unit).toBe('Bottle')
   })
 })
@@ -126,7 +126,7 @@ describe('serializeStockItem product metadata', () => {
     expect(payload.barcode).toBe('5449000000996')
     expect(payload.packaging_note).toBe('Often delivered in cases of 24')
     expect(payload.unit).toBe('Bottle')
-    expect(payload.current_quantity).toBe(48)
+    expect(payload).not.toHaveProperty('current_quantity')
   })
 
   it('defaults missing metadata to null', () => {
@@ -143,7 +143,6 @@ describe('serializeStockItem product metadata', () => {
       barcode: null,
       packaging_note: null,
       unit: 'Can',
-      current_quantity: 96,
     })
   })
 })
@@ -164,6 +163,7 @@ describe('StockItemFormModal section layout contract', () => {
     expect(source).toContain('Default Storage')
     expect(source).toContain('Minimum')
     expect(source).toContain('Target')
-    expect(source).toContain('Current')
+    expect(source).toContain('Opening stock is set by receiving or counting a storage.')
+    expect(source).not.toContain('value={form.currentQuantity}')
   })
 })

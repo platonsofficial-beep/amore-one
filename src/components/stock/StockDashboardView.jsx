@@ -52,7 +52,7 @@ import { buildStockOrdersOperationsSummary } from '../../lib/stockOrderUtils'
 import { StockCreateOrderModal } from './StockCreateOrderModal'
 import { StockItemFormModal } from './StockItemFormModal'
 import { StockItemMoreMenu } from './StockItemMoreMenu'
-import { StockMovementModal } from './StockMovementModal'
+import { StockDashboardMovementDialog } from './StockDashboardMovementDialog'
 import { StockItemPermanentDeleteDialog } from './StockItemPermanentDeleteDialog'
 import { StockProductHistoryDrawer } from './StockProductHistoryDrawer'
 import { WorkspaceStorageSelector } from './WorkspaceStorageSelector'
@@ -2031,9 +2031,10 @@ export function StockDashboardView({
       ) : null}
 
       {movementModal ? (
-        <StockMovementModal
+        <StockDashboardMovementDialog
           item={movementModal.item}
           movementType={movementModal.type}
+          workspaceId={workspaceId}
           onClose={() => setMovementModal(null)}
           isSaving={isSaving}
           onSubmit={onRecordMovement}

@@ -80,7 +80,7 @@ describe('product form packaging note save/load', () => {
     const payload = stockFormToPayload(form)
     expect(payload.packagingNote).toBe('Usually supplied in cases.')
     expect(payload.unit).toBe('Bottle')
-    expect(payload.currentQuantity).toBe(42)
+    expect(payload).not.toHaveProperty('currentQuantity')
   })
 
   it('serializes blank packaging note as null without touching inventory fields', () => {
@@ -92,7 +92,7 @@ describe('product form packaging note save/load', () => {
       minimumQuantity: '4',
     })
     expect(withBlank.packagingNote).toBeNull()
-    expect(withBlank.currentQuantity).toBe(18)
+    expect(withBlank).not.toHaveProperty('currentQuantity')
     expect(withBlank.unit).toBe('Bottle')
 
     const withNull = stockFormToPayload({
@@ -103,7 +103,7 @@ describe('product form packaging note save/load', () => {
       minimumQuantity: '4',
     })
     expect(withNull.packagingNote).toBeNull()
-    expect(withNull.currentQuantity).toBe(18)
+    expect(withNull).not.toHaveProperty('currentQuantity')
   })
 
   it('loads null packaging_note from persistence as empty form text', () => {
@@ -138,7 +138,7 @@ describe('serializeStockItem packaging_note', () => {
 
     expect(payload.packaging_note).toBe('Loose bottles accepted.')
     expect(payload.unit).toBe('Bottle')
-    expect(payload.current_quantity).toBe(42)
+    expect(payload).not.toHaveProperty('current_quantity')
     expect(payload.minimum_quantity).toBe(6)
   })
 
@@ -151,7 +151,7 @@ describe('serializeStockItem packaging_note', () => {
     }, 'ws-1', { supplierId: null })
 
     expect(payload).toHaveProperty('packaging_note', null)
-    expect(payload.current_quantity).toBe(12)
+    expect(payload).not.toHaveProperty('current_quantity')
     expect(payload.unit).toBe('Bottle')
   })
 
@@ -164,7 +164,7 @@ describe('serializeStockItem packaging_note', () => {
       minimumQuantity: 1,
     }, 'ws-1', { supplierId: null })
 
-    expect(payload.current_quantity).toBe(6)
+    expect(payload).not.toHaveProperty('current_quantity')
     expect(payload.packaging_note).toBe('Usually arrives in Case 24')
   })
 })

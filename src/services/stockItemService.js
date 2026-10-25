@@ -88,7 +88,6 @@ export function serializeStockItem(item, workspaceId, { supplierId = null } = {}
       item.packagingNote ?? item.packaging_note ?? null,
     ),
     barcode: normalizeProductBarcode(item.barcode ?? null),
-    current_quantity: Math.max(0, Number(item.currentQuantity ?? item.current_quantity ?? 0) || 0),
     minimum_quantity: Math.max(0, Number(item.minimumQuantity ?? item.minimum_quantity ?? 0) || 0),
     target_quantity: item.targetQuantity === null || item.targetQuantity === undefined || item.targetQuantity === ''
       ? null

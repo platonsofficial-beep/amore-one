@@ -146,7 +146,6 @@ describe('stock item packaging_note persistence', () => {
     const inserted = query.insert.mock.calls[0][0]
     expect(inserted).toEqual([expect.objectContaining({
       packaging_note: 'Usually supplied in cases.',
-      current_quantity: 42,
       unit: 'Bottle',
     })])
     expect(created.packagingNote).toBe('Usually supplied in cases.')
@@ -191,7 +190,7 @@ describe('stock item packaging_note persistence', () => {
 
     const payload = query.update.mock.calls[0][0]
     expect(payload.packaging_note).toBe('Loose bottles accepted.')
-    expect(payload.current_quantity).toBe(42)
+    expect(payload).not.toHaveProperty('current_quantity')
     expect(payload.unit).toBe('Bottle')
   })
 })
