@@ -4,6 +4,7 @@ import {
   buildWorkspaceIdentityLines,
   isWorkspaceProfileConfigured,
   normalizeLocationDisplayValue,
+  resolveDashboardBrandDisplay,
   shouldInitializeWorkspaceProfileDraft,
 } from './workspaceProfileUtils'
 
@@ -42,6 +43,21 @@ describe('workspaceProfileUtils', () => {
     expect(identity.primary).toBe('Amore Nicosia')
     expect(identity.technicalName).toBe('amore-nicosia')
     expect(identity.hint).toContain('Business Profile')
+  })
+
+  it('uses the active workspace name when the business profile name is blank', () => {
+    const display = resolveDashboardBrandDisplay({ businessName: '' }, 'Amore Nicosia')
+    expect(display.businessName).toBe('Amore Nicosia')
+    expect(display.businessNameLabel).toBe('Amore Nicosia')
+    expect(display.mark).toBe('A')
+  })
+
+  it('keeps a saved business name ahead of the workspace record name', () => {
+    const display = resolveDashboardBrandDisplay(
+      { businessName: 'Amore', logoUrl: '' },
+      'amore-nicosia',
+    )
+    expect(display.businessNameLabel).toBe('Amore')
   })
 
   it('only initializes the profile draft when entering settings', () => {

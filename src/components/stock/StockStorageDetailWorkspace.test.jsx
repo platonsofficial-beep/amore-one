@@ -933,6 +933,69 @@ describe('StockStorageDetailWorkspace — actions + Fast Count launch', () => {
     expect(container.textContent).toContain('Cola')
   })
 
+  it('saves a par of 0, shows no short, and moves Enter to the next par', async () => {
+    const products = [
+      {
+        ...makeRow({ id: 'cola', name: 'Cola', unit: 'Piece', quantity: 4 }),
+        parQuantity: null,
+        shortQuantity: null,
+      },
+      {
+        ...makeRow({ id: 'gin', name: 'Gin', unit: 'Piece', quantity: 2 }),
+        parQuantity: 3,
+        shortQuantity: 1,
+      },
+    ]
+    const saveStoragePar = vi.fn(async () => ({ parQuantity: null }))
+    const clearStoragePar = vi.fn(async () => ({ parQuantity: null }))
+    renderWorkspace({
+      workspaceId: 'ws-1',
+      storage: { id: 's-main', name: 'Soft drinks', active: true },
+      canManage: true,
+      loadProducts: async () => ({
+        storageId: 's-main',
+        parsAvailable: true,
+        products,
+        summary: {
+          productCount: 2,
+          totalQuantity: 6,
+          nonZeroBalanceCount: 2,
+          inventoryValue: 0,
+        },
+      }),
+      saveStoragePar,
+      clearStoragePar,
+    })
+    await settle()
+
+    const colaInput = container.querySelector('[data-par-item-id="cola"]')
+    const ginInput = container.querySelector('[data-par-item-id="gin"]')
+    expect(colaInput).toBeTruthy()
+    expect(ginInput.value).toBe('3')
+
+    await act(async () => {
+      const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set
+      setter.call(colaInput, '0')
+      colaInput.dispatchEvent(new Event('input', { bubbles: true }))
+      colaInput.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }))
+      colaInput.dispatchEvent(new FocusEvent('focusout', { bubbles: true }))
+      await Promise.resolve()
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+
+    expect(saveStoragePar).toHaveBeenCalledTimes(1)
+    expect(saveStoragePar).toHaveBeenCalledWith('ws-1', 'cola', 's-main', 0)
+    expect(clearStoragePar).not.toHaveBeenCalled()
+    const savedCola = container.querySelector('[data-par-item-id="cola"]')
+    expect(savedCola.value).toBe('0')
+    expect(savedCola.getAttribute('placeholder')).toBe('Not tracked')
+    expect(container.querySelector('[data-stock-item-id="cola"] [data-testid="storage-par-short"]')?.textContent)
+      .toBe('—')
+    expect(container.querySelector('[data-stock-item-id="cola"]')?.textContent).not.toContain('0 Pieces')
+    expect(document.activeElement).toBe(container.querySelector('[data-par-item-id="gin"]'))
+  })
+
   it('keeps on hand visible when shelf pars are not available yet', async () => {
     renderWorkspace({
       workspaceId: 'ws-1',

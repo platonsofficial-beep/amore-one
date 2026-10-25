@@ -4,7 +4,7 @@
  * one-per-venue limit. Quantity summaries are unchanged.
  */
 
-import { useEffect, useId, useMemo, useState } from 'react'
+import { useEffect, useId, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import {
   DEPARTMENTS_UNAVAILABLE_MESSAGE,
@@ -75,12 +75,18 @@ function StorageSummaryCard({
       data-storage-card={storage.id}
       data-storage-status={storage.status}
     >
-      <button
-        type="button"
+      <div
+        role="button"
+        tabIndex={0}
         className="stock-storage-center-card-open"
         data-storage-id={storage.id}
         aria-pressed={selected}
         onClick={() => onSelect?.(storage)}
+        onKeyDown={(event) => {
+          if (event.key !== 'Enter' && event.key !== ' ') return
+          event.preventDefault()
+          onSelect?.(storage)
+        }}
       >
         <div className="stock-storage-center-card-top">
           <div>
@@ -96,9 +102,13 @@ function StorageSummaryCard({
           </div>
           <span className="stock-storage-center-card-badges">
             {storage.isSupply ? (
-              <span className="stock-storage-supply-pill" data-testid="supply-storage-pill">
-                <span>{SUPPLY_STORAGE_LABEL}</span>
-                <span className="stock-storage-supply-pill-el">{SUPPLY_STORAGE_LABEL_EL}</span>
+              <span
+                className="stock-storage-supply-pill"
+                data-testid="supply-storage-pill"
+                title={`${SUPPLY_STORAGE_LABEL} · ${SUPPLY_STORAGE_LABEL_EL}`}
+                aria-label={`${SUPPLY_STORAGE_LABEL}. ${SUPPLY_STORAGE_LABEL_EL}`}
+              >
+                Supply
               </span>
             ) : null}
             <span className={`stock-storage-center-status tone-${storage.active ? 'active' : 'archived'}`}>
@@ -106,26 +116,26 @@ function StorageSummaryCard({
             </span>
           </span>
         </div>
-        <dl className="stock-storage-center-card-stats">
+        <div className="stock-storage-center-card-stats">
           <div>
-            <dt>Products</dt>
-            <dd>{storage.productCount}</dd>
+            <span className="stock-storage-stat-label">Products</span>
+            <strong className="stock-storage-stat-value">{storage.productCount}</strong>
           </div>
           <div>
-            <dt>Total qty</dt>
-            <dd>{formatStockQuantity(storage.totalQuantity)}</dd>
+            <span className="stock-storage-stat-label">Total qty</span>
+            <strong className="stock-storage-stat-value">{formatStockQuantity(storage.totalQuantity)}</strong>
           </div>
           <div>
-            <dt>Non-zero</dt>
-            <dd>{storage.nonZeroBalanceCount}</dd>
+            <span className="stock-storage-stat-label">Non-zero</span>
+            <strong className="stock-storage-stat-value">{storage.nonZeroBalanceCount}</strong>
           </div>
           {showValue ? (
             <div>
-              <dt>Value</dt>
-              <dd>{formatStockInventoryValue(storage.inventoryValue)}</dd>
+              <span className="stock-storage-stat-label">Value</span>
+              <strong className="stock-storage-stat-value">{formatStockInventoryValue(storage.inventoryValue)}</strong>
             </div>
           ) : null}
-        </dl>
+        </div>
         {typeof storage.belowParCount === 'number' ? (
           <p
             className={`stock-storage-below-par${storage.belowParCount > 0 ? ' is-short' : ''}`}
@@ -134,7 +144,7 @@ function StorageSummaryCard({
             {formatItemsBelowPar(storage.belowParCount)}
           </p>
         ) : null}
-      </button>
+      </div>
       {canAssign ? (
         <div className="stock-storage-center-card-actions">
           <label className="stock-storage-department-field">
@@ -163,9 +173,7 @@ function StorageSummaryCard({
             disabled={actionsDisabled}
             onClick={() => onToggleSupply?.(storage)}
           >
-            {storage.isSupply
-              ? `${SUPPLY_STORAGE_LABEL} · ${SUPPLY_STORAGE_LABEL_EL}`
-              : 'Mark as supply storage'}
+            {storage.isSupply ? 'Unmark supply' : 'Mark as supply'}
           </button>
         </div>
       ) : null}
@@ -340,12 +348,14 @@ export function StockStorageCenter({
     /** @type {null|{ mode: 'create' }|{ mode: 'rename', departmentId: string, name: string }} */ (null),
   )
   const [pendingArchiveId, setPendingArchiveId] = useState(/** @type {string|null} */ (null))
+  const loadedWorkspaceRef = useRef('')
 
   useEffect(() => {
     let cancelled = false
     const workspaceKey = `${workspaceId ?? ''}`.trim()
 
     if (!workspaceKey) {
+      loadedWorkspaceRef.current = ''
       setStatus('empty')
       setPayload(null)
       setDepartmentCatalog(null)
@@ -353,7 +363,13 @@ export function StockStorageCenter({
       return undefined
     }
 
-    setStatus('loading')
+    const workspaceChanged = loadedWorkspaceRef.current !== workspaceKey
+    loadedWorkspaceRef.current = workspaceKey
+    if (workspaceChanged) {
+      setStatus('loading')
+      setPayload(null)
+      setDepartmentCatalog(null)
+    }
     setErrorMessage('')
     setDepartmentError('')
 
@@ -464,7 +480,10 @@ export function StockStorageCenter({
         storage={selectedStorage}
         searchTerm={searchTerm}
         canManage={canManage}
-        onBack={() => setSelectedId(null)}
+        onBack={() => {
+          setSelectedId(null)
+          setReloadToken((token) => token + 1)
+        }}
         onOpenActiveCountSession={onOpenActiveCountSession}
         onStartFastCount={onStartFastCount}
         onReceive={onReceive}

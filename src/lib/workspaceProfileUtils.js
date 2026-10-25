@@ -70,6 +70,21 @@ export function buildBrandDisplay(profile) {
   }
 }
 
+/**
+ * Dashboard identity uses the business profile name, then the same workspace
+ * record Stock uses for its id. An empty profile must not hide that name.
+ *
+ * @param {object} [profile]
+ * @param {unknown} [workspaceName]
+ */
+export function resolveDashboardBrandDisplay(profile, workspaceName = '') {
+  const businessName = resolveDisplayBusinessName(profile, workspaceName)
+  return buildBrandDisplay({
+    ...(profile ?? {}),
+    businessName,
+  })
+}
+
 const WORKSPACE_PROFILE_FIELDS = [
   'businessName',
   'managerName',

@@ -5,6 +5,7 @@ import {
   buildTodayAttentionItems,
   buildTodayStatusSummary,
   getTodayAttentionBucket,
+  shouldLoadOperationalStockSnapshot,
   sortTodayAttentionItems,
 } from './todayViewUtils'
 import { buildTodayCommandCenterAttentionItems } from './mobileManagerTodayUtils'
@@ -212,5 +213,28 @@ describe('buildTodayCommandCenterAttentionItems', () => {
     expect(items.some((item) => item.key === 'orders:awaiting')).toBe(true)
     expect(items.some((item) => item.key === 'task:t1')).toBe(true)
     expect(items.some((item) => item.key === 'schedule-issues')).toBe(true)
+  })
+
+  it('loads the stock snapshot on the today dashboard that can open stock', () => {
+    expect(shouldLoadOperationalStockSnapshot({
+      canAccessStock: true,
+      activeView: 'today',
+      useMobileExperience: false,
+    })).toBe(true)
+    expect(shouldLoadOperationalStockSnapshot({
+      canAccessStock: true,
+      activeView: 'team',
+      useMobileExperience: false,
+    })).toBe(false)
+    expect(shouldLoadOperationalStockSnapshot({
+      canAccessStock: false,
+      activeView: 'today',
+    })).toBe(false)
+    expect(shouldLoadOperationalStockSnapshot({
+      canAccessStock: true,
+      useMobileExperience: true,
+      isManagerMobileShell: true,
+      mobileManagerTab: 'today',
+    })).toBe(true)
   })
 })
