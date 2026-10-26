@@ -27,6 +27,7 @@ import {
   undoAutoClosedReservation,
   updateReservation,
 } from './services/reservationService'
+import { ONE_TAGLINE, OneFullLogo } from './components/brand/OneFullLogo'
 import { SeatingConfirmPanel } from './components/seating/SeatingConfirmPanel'
 import TasksView from './components/tasks/TasksView'
 import { HostReservationEditPanel, createHostReservationEditForm } from './components/reservations/HostReservationEditPanel'
@@ -286,6 +287,7 @@ import { createSupplier, deleteSupplier, getSuppliers, updateSupplier } from './
 import { createStockItem, updateStockItem, updateStockItemActive } from './services/stockItemService'
 import { getStockItemsWithLastMovement, recordStockMovement } from './services/stockMovementService'
 import { assertLocationStockMovementTarget, transferStockBetweenLocations } from './services/stockMutationService'
+import { prepareSupplyOrderDrafts } from './services/stockSupplyOrderDraftService'
 import {
   createStockOrdersFromGroups,
   getStockOrdersWithAuthors,
@@ -23501,6 +23503,47 @@ function App() {
     }
   }
 
+  const handlePrepareSupplyOrderDrafts = async () => {
+    if (!activeWorkspaceId) {
+      throw new Error(stockWorkspaceSetupMessage || 'Workspace is required to prepare orders.')
+    }
+    if (isCreatingStockOrdersRef.current) return
+
+    isCreatingStockOrdersRef.current = true
+    setIsSavingStockOrder(true)
+    setStockOrdersNotice('')
+    setStockItemsNotice('')
+
+    try {
+      const result = await prepareSupplyOrderDrafts(activeWorkspaceId, {
+        items: stockItems,
+        suppliers,
+        existingOrders: stockOrders,
+        createdBy: user?.id ?? null,
+      })
+      setStockOrdersNotice(result.message)
+      setStockItemsNotice(result.message)
+      setMobileNotice(result.message)
+      if (!result.unavailable) {
+        await refreshStockOrders()
+        handleOpenStockOrders('draft')
+        if (isManagerMobileShell) {
+          handleActiveViewChange('stock')
+          setMobileExpandedView('workspace')
+        }
+      }
+    } catch (error) {
+      const message = error.message || 'Unable to prepare order drafts right now.'
+      setStockOrdersNotice(message)
+      setStockItemsNotice(message)
+      setMobileNotice(message)
+      throw error
+    } finally {
+      isCreatingStockOrdersRef.current = false
+      setIsSavingStockOrder(false)
+    }
+  }
+
   const handleSaveStockOrderDraft = async (orderId, payload) => {
     if (!activeWorkspaceId) {
       throw new Error(stockWorkspaceSetupMessage || 'Workspace is required to update orders.')
@@ -25125,22 +25168,15 @@ function App() {
       {!hideGlobalAppSidebar ? (
       <aside className="sidebar">
         <div className="brand-block">
-          <div className="brand-avatar" aria-hidden="true">
-            {brandDisplay.logoUrl ? (
-              <img src={brandDisplay.logoUrl} alt="" className="brand-logo" />
-            ) : (
-              <div className="brand-mark">{brandDisplay.mark}</div>
-            )}
-          </div>
-          <div className="brand-copy">
-            <h1
-              className="brand-business-name"
-              title={brandDisplay.businessName || undefined}
-            >
-              {brandDisplay.businessNameLabel}
-            </h1>
-            <p className="brand-powered-by">Powered by ONE</p>
-          </div>
+          <img src="/brand/one-mark.svg" alt="" className="brand-product-mark" />
+          <p className="brand-wordmark">ONE</p>
+          <p className="brand-tagline">{ONE_TAGLINE}</p>
+          <h1
+            className="brand-business-name"
+            title={brandDisplay.businessName || undefined}
+          >
+            {brandDisplay.businessNameLabel}
+          </h1>
         </div>
 
         <nav className="nav-links" aria-label="Sidebar navigation">
@@ -25478,6 +25514,7 @@ function App() {
             onBulkUpdateItems={handleBulkUpdateStockItems}
             onRecordMovement={handleRecordStockMovement}
             onCreateOrders={handleCreateStockOrders}
+            onPrepareDrafts={handlePrepareSupplyOrderDrafts}
             onOpenOrders={handleOpenStockOrders}
             onOpenInventoryCountSession={handleOpenInventoryCountSession}
             isSavingOrders={isSavingStockOrder}
@@ -25522,6 +25559,7 @@ function App() {
             initialStatusFilter={stockOrdersFilterHint}
             onStatusFilterApplied={() => setStockOrdersFilterHint(null)}
             onCreateOrders={handleCreateStockOrders}
+            onPrepareDrafts={handlePrepareSupplyOrderDrafts}
             onSaveDraft={handleSaveStockOrderDraft}
             onMarkSent={handleMarkStockOrderSent}
             onReceiveOrder={handleReceiveStockOrder}
@@ -25832,7 +25870,7 @@ function App() {
                     return (
                       <div className="auth-page auth-loading-page mobile-auth-loading" aria-busy="true" aria-live="polite">
                         <div className="auth-loading-card panel staff-panel">
-                          <p className="auth-brand">ONE</p>
+                          <OneFullLogo compact />
                           <p className="auth-loading-text">Loading workspace…</p>
                         </div>
                       </div>
@@ -25976,6 +26014,7 @@ function App() {
                           isWorkspaceReady: isStockWorkspaceReady,
                           isSavingOrders: isSavingStockOrder,
                           onCreateOrders: handleCreateStockOrders,
+                          onPrepareDrafts: handlePrepareSupplyOrderDrafts,
                           onCountStock: handleMobileManagerCountStock,
                           onOpenOrders: handleMobileManagerOpenStockOrders,
                           onReceiveDeliveries: handleMobileManagerReceiveDeliveries,

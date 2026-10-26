@@ -17,6 +17,7 @@ import {
   listWorkspaceDepartments,
   renameWorkspaceDepartment,
   setWorkspaceDepartmentActive,
+  setWorkspaceStorageBuying,
   setWorkspaceStorageSupply,
 } from './workspaceDepartmentService.js'
 
@@ -168,5 +169,31 @@ describe('workspaceDepartmentService', () => {
     })
     expect(supply.update).toHaveBeenCalledWith({ is_supply: true })
     expect(JSON.stringify(supply.update.mock.calls)).not.toMatch(/location_key/)
+  })
+
+  it('sets the buying flag and explains a missing column without touching supply', async () => {
+    const buying = createQuery({
+      data: { id: 's-bar', is_buying: true },
+      error: null,
+    })
+    fromMock.mockReturnValue(buying)
+    await expect(setWorkspaceStorageBuying('ws-1', 's-bar', true)).resolves.toEqual({
+      id: 's-bar',
+      isBuying: true,
+    })
+    expect(buying.update).toHaveBeenCalledWith({ is_buying: true })
+    expect(JSON.stringify(buying.update.mock.calls)).not.toMatch(/is_supply|location_key/)
+
+    const missing = createQuery({
+      data: null,
+      error: {
+        code: '42703',
+        message: 'column workspace_storages.is_buying does not exist',
+      },
+    })
+    fromMock.mockReturnValue(missing)
+    await expect(setWorkspaceStorageBuying('ws-1', 's-bar', true)).rejects.toThrow(
+      /Buying storages are not available yet/,
+    )
   })
 })

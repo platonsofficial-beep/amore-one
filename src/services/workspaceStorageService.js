@@ -39,6 +39,10 @@ export function mapWorkspaceStorage(record) {
     || Object.prototype.hasOwnProperty.call(record, 'isSupply'))) {
     mapped.isSupply = record.is_supply === true || record.isSupply === true
   }
+  if (record && (Object.prototype.hasOwnProperty.call(record, 'is_buying')
+    || Object.prototype.hasOwnProperty.call(record, 'isBuying'))) {
+    mapped.isBuying = record.is_buying === true || record.isBuying === true
+  }
   return mapped
 }
 

@@ -686,4 +686,57 @@ describe('StockStorageCenter UI', () => {
       .toBe('0 items below par')
     expect(container.querySelector('[data-testid="stock-storage-center-loading"]')).toBeNull()
   })
+
+  it('marks a storage as buying only after the buying column is available', async () => {
+    const storage = {
+      id: 'bar',
+      name: 'Back bar',
+      locationKey: 'Back bar',
+      active: true,
+      status: 'active',
+      departmentId: null,
+      isSupply: false,
+      isBuying: false,
+      productCount: 0,
+      totalQuantity: 0,
+      nonZeroBalanceCount: 0,
+      inventoryValue: 0,
+    }
+    const loadSummaries = vi.fn(async () => ({
+      storages: [storage],
+      activeStorages: [storage],
+      archivedStorages: [],
+      departmentsAvailable: true,
+      buyingAvailable: true,
+      summary: { activeStorageCount: 1, archivedStorageCount: 0, totalProductsWithBalances: 0, totalQuantity: 0 },
+    }))
+    const setStorageBuying = vi.fn(async () => ({ id: 'bar', isBuying: true }))
+    renderCenter({
+      workspaceId: 'ws-1',
+      canManage: true,
+      loadSummaries,
+      loadDepartments: vi.fn(async () => ({ available: true, departments: [] })),
+      departmentActions: {
+        createDepartment: vi.fn(),
+        renameDepartment: vi.fn(),
+        setDepartmentActive: vi.fn(),
+        assignStorageDepartment: vi.fn(),
+        setStorageSupply: vi.fn(),
+        setStorageBuying,
+      },
+    })
+
+    await act(async () => {
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+
+    const button = container.querySelector('[data-action="toggle-buying"]')
+    expect(button?.textContent).toBe('Mark as buying')
+    await act(async () => {
+      button.click()
+      await Promise.resolve()
+    })
+    expect(setStorageBuying).toHaveBeenCalledWith('ws-1', 'bar', true)
+  })
 })

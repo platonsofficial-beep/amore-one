@@ -162,6 +162,7 @@ export function StockOrdersView({
   initialStatusFilter = null,
   onStatusFilterApplied,
   onCreateOrders,
+  onPrepareDrafts,
   onSaveDraft,
   onMarkSent,
   onReceiveOrder,
@@ -243,9 +244,19 @@ export function StockOrdersView({
             >
               Delete purchase orders…
             </button>
+            {onPrepareDrafts ? (
+              <button
+                type="button"
+                className="primary-btn stock-prepare-drafts-btn"
+                onClick={() => { void onPrepareDrafts() }}
+                disabled={!isWorkspaceReady || isActionBusy}
+              >
+                {isSaving ? 'Preparing…' : 'Prepare drafts'}
+              </button>
+            ) : null}
             <button
               type="button"
-              className="primary-btn stock-create-order-btn"
+              className="ghost-btn stock-create-order-btn"
               onClick={() => setIsCreateModalOpen(true)}
               disabled={!isWorkspaceReady || isActionBusy}
             >
@@ -311,14 +322,26 @@ export function StockOrdersView({
           <h4>{emptyState.title}</h4>
           <p>{emptyState.description}</p>
           {canManage && emptyState.showCreate ? (
-            <button
-              type="button"
-              className="primary-btn"
-              onClick={() => setIsCreateModalOpen(true)}
-              disabled={!isWorkspaceReady || isActionBusy}
-            >
-              {isSaving ? 'Creating…' : 'Create order'}
-            </button>
+            <div className="stock-orders-toolbar-actions">
+              {onPrepareDrafts ? (
+                <button
+                  type="button"
+                  className="primary-btn stock-prepare-drafts-btn"
+                  onClick={() => { void onPrepareDrafts() }}
+                  disabled={!isWorkspaceReady || isActionBusy}
+                >
+                  {isSaving ? 'Preparing…' : 'Prepare drafts'}
+                </button>
+              ) : null}
+              <button
+                type="button"
+                className="ghost-btn"
+                onClick={() => setIsCreateModalOpen(true)}
+                disabled={!isWorkspaceReady || isActionBusy}
+              >
+                {isSaving ? 'Creating…' : 'Create order'}
+              </button>
+            </div>
           ) : null}
         </div>
       ) : (
