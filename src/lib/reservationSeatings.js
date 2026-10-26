@@ -292,16 +292,27 @@ export function resolveNearestActiveSeatingId(timeValue, dateKey, seatings = [])
   return bestId
 }
 
+/**
+ * Host-list seating for every status.
+ * A time inside a window keeps a stored seating id, including a host override.
+ * A time outside every window uses the nearest seating. A stored id must not
+ * pin that booking to a farther seating.
+ */
 export function resolveHostQueueSeatingId(reservation, seatings = [], dateKey = null) {
-  const matched = resolveReservationSeatingId(reservation, seatings, dateKey)
-  if (matched) return matched
-
   const resolvedDateKey = dateKey ?? reservation?.date ?? reservation?.reservation_date ?? ''
-  return resolveNearestActiveSeatingId(
-    reservation?.time ?? reservation?.reservation_time,
-    resolvedDateKey,
-    seatings,
-  )
+  const timeValue = reservation?.time ?? reservation?.reservation_time
+  const windowMatch = matchReservationTimeToSeating(timeValue, resolvedDateKey, seatings)
+
+  if (windowMatch) {
+    const explicitSeatingId = reservation?.seatingId ?? reservation?.seating_id ?? null
+    const activeSeatings = getActiveSeatingsForDate(seatings, resolvedDateKey)
+    if (explicitSeatingId && activeSeatings.some((entry) => entry.id === explicitSeatingId)) {
+      return explicitSeatingId
+    }
+    return windowMatch.id
+  }
+
+  return resolveNearestActiveSeatingId(timeValue, resolvedDateKey, seatings)
 }
 
 export function reservationMatchesTableDayViewSeating(

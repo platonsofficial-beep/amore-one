@@ -215,6 +215,7 @@ export function buildStockDashboardSummary(items = []) {
   const activeItems = (items ?? []).filter((item) => item.active !== false)
 
   const totalItems = activeItems.length
+  // Catalog minimum (on hand > 0 and <= minimum). Not the shelf below-par count.
   const lowStock = activeItems.filter((item) => resolveStockItemStatus(item) === 'low').length
   const outOfStock = activeItems.filter((item) => resolveStockItemStatus(item) === 'out').length
   const totalValue = activeItems.reduce((sum, item) => {

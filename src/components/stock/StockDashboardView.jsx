@@ -1935,7 +1935,7 @@ export function StockDashboardView({
           }}
         />
         <StockSummaryCard
-          label="Low stock"
+          label="At minimum"
           value={summary.lowStock}
           tone={summary.lowStock > 0 ? 'warning' : 'default'}
           isInteractive

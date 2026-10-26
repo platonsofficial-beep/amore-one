@@ -161,7 +161,7 @@ describe('StockDashboardView Needs Attention density (P8.17.2 / P8.17.3)', () =>
     expect(section.textContent).toContain('Showing top 5 per group')
 
     const outGroup = section.querySelector('[aria-label="Out of stock"]')
-    const lowGroup = section.querySelector('[aria-label="Low stock"]')
+    const lowGroup = section.querySelector('[aria-label="At minimum"]')
     const previewNames = Array.from(outGroup.querySelectorAll('.stock-attention-name'))
       .map((node) => node.textContent)
     expect(previewNames).toEqual(['OUT 00', 'OUT 01', 'OUT 02', 'OUT 03', 'OUT 04'])

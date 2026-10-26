@@ -4,7 +4,7 @@ const STALE_COUNT_DAYS = 14
 
 export const STOCK_ATTENTION_GROUPS = [
   { id: 'out', label: 'Out of stock', tone: 'danger' },
-  { id: 'low', label: 'Low stock', tone: 'warning' },
+  { id: 'low', label: 'At minimum', tone: 'warning' },
   { id: 'count', label: 'Needs count', tone: 'warning' },
   { id: 'data', label: 'Missing supplier or cost', tone: 'muted' },
 ]

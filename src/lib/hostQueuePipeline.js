@@ -6,11 +6,7 @@ import {
   getReservationSeatingAssignment,
 } from './seatingAssignment'
 import { isReservationProblemForHostFilter } from './hostServiceDashboard'
-import { isOperationalReservation } from './reservationHostStatus'
-import {
-  reservationMatchesTableDayViewSeating,
-  resolveHostQueueSeatingId,
-} from './reservationSeatings'
+import { resolveHostQueueSeatingId } from './reservationSeatings'
 import { findLayoutUnit } from './reservationTableOptions'
 import {
   groupHostListOperationalSections,
@@ -134,15 +130,6 @@ export function filterReservationsBySelectedSeating(
   const seatingsList = seatings.length > 0 ? seatings : [selectedSeating]
 
   return reservations.filter((reservation) => {
-    if (!isOperationalReservation(reservation)) {
-      return reservationMatchesTableDayViewSeating(
-        reservation,
-        selectedSeating,
-        dateKey,
-        seatingsList,
-      )
-    }
-
     const seatingId = resolveHostQueueSeatingId(reservation, seatingsList, dateKey)
     return Boolean(seatingId) && String(seatingId) === String(selectedSeating.id)
   })
@@ -482,6 +469,8 @@ export function includeAutoClosedHostReservations(
   {
     dateKey = '',
     timeZone = '',
+    selectedSeating = null,
+    seatings = [],
   } = {},
 ) {
   const listed = reservations ?? []
@@ -492,6 +481,10 @@ export function includeAutoClosedHostReservations(
     const id = String(reservation?.id ?? '')
     if (!id || seen.has(id)) return
     if (!isAutoClosedHostReservation(reservation, { dateKey, timeZone })) return
+    if (selectedSeating?.id) {
+      const seatingId = resolveHostQueueSeatingId(reservation, seatings, dateKey)
+      if (`${seatingId ?? ''}` !== `${selectedSeating.id}`) return
+    }
     seen.add(id)
     extras.push(reservation)
   })
@@ -550,6 +543,8 @@ export function buildHostQueueReservationList(
   filtered = includeAutoClosedHostReservations(filtered, reservations, {
     dateKey,
     timeZone,
+    selectedSeating: hasSearch ? null : selectedSeating,
+    seatings,
   })
 
   filtered = applyHostQueueOperationalFilters(filtered, activeFilterIds, {
