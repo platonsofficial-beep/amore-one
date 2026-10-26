@@ -1,4 +1,5 @@
 import { computeSuggestedOrder, itemNeedsOrder, resolveStockParQuantity } from './stockCatalog'
+import { isWasteNote } from './stockWaste'
 import { getCurrentDateKey } from './currentDateUtils'
 import { formatInventoryUnit } from './inventoryUnitDisplay'
 import { calendarDayKey, formatInVenueZone, formatTimestampTime24, previousCalendarDayKey } from './timeFormatUtils'
@@ -302,11 +303,15 @@ export function applyStockMovementQuantity(currentQuantity, type, quantity) {
   return current
 }
 
-export function getStockMovementLabel(type) {
-  if (type === 'receive') return 'Receive'
-  if (type === 'usage') return 'Usage'
-  if (type === 'adjustment') return 'Adjustment'
-  if (type === 'stock_count') return 'Stock count'
+export function getStockMovementLabel(type, note = '') {
+  const movement = type && typeof type === 'object' ? type : null
+  const resolvedType = movement ? movement.type : type
+  const resolvedNote = movement ? movement.note : note
+  if (resolvedType === 'usage' && isWasteNote(resolvedNote)) return 'Waste'
+  if (resolvedType === 'receive') return 'Receive'
+  if (resolvedType === 'usage') return 'Usage'
+  if (resolvedType === 'adjustment') return 'Adjustment'
+  if (resolvedType === 'stock_count') return 'Stock count'
   return 'Update'
 }
 
@@ -336,7 +341,7 @@ export function formatStockMovementTimestamp(value) {
 
 export function formatStockLastMovementLine(movement) {
   if (!movement?.type) return ''
-  const label = getStockMovementLabel(movement.type)
+  const label = getStockMovementLabel(movement)
   const when = formatStockMovementRelativeTime(movement.createdAt)
   return when ? `${label} • ${when}` : label
 }

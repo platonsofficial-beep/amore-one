@@ -571,3 +571,103 @@ describe('StockMovementModal — dashboard storage picker', () => {
     expect(container.querySelector('[data-testid="stock-movement-modal"]')).toBeTruthy()
   })
 })
+
+describe('StockMovementModal — waste', () => {
+  let container
+  let root
+
+  afterEach(() => {
+    act(() => {
+      root?.unmount()
+    })
+    container?.remove()
+    container = null
+    root = null
+  })
+
+  async function setQuantity(value) {
+    const quantityInput = container.querySelector('input[type="number"]')
+    await act(async () => {
+      const nativeInputValueSetter = Object.getOwnPropertyDescriptor(
+        window.HTMLInputElement.prototype,
+        'value',
+      )?.set
+      nativeInputValueSetter?.call(quantityInput, value)
+      quantityInput.dispatchEvent(new Event('input', { bubbles: true }))
+      quantityInput.dispatchEvent(new Event('change', { bubbles: true }))
+    })
+  }
+
+  it('records waste as usage with a structured reason and refuses to exceed the shelf', async () => {
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+    const onSubmit = vi.fn(async () => {})
+    const onClose = vi.fn()
+    act(() => {
+      root.render(createElement(StockMovementModal, {
+        item: { id: 'i1', name: 'Vodka', unit: 'btl', currentQuantity: 10 },
+        movementType: 'waste',
+        destinationStorage: { id: 'stor-bar', name: 'Main Bar' },
+        destinationLocked: true,
+        balanceQuantity: 2,
+        expectedQuantityVersion: 4,
+        onClose,
+        onSubmit,
+      }))
+    })
+
+    expect(container.textContent).toContain('Waste')
+    expect(container.textContent).toContain('Broken')
+    expect(container.querySelector('[data-testid="stock-waste-storage-lock"]')?.textContent)
+      .toContain('Main Bar')
+
+    await setQuantity('1')
+    await act(async () => {
+      container.querySelector('[data-testid="stock-movement-modal"] form')
+        .dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+      await Promise.resolve()
+    })
+    expect(onSubmit).not.toHaveBeenCalled()
+    expect(container.textContent).toContain('Choose a reason.')
+
+    await act(async () => {
+      container.querySelector('[data-waste-reason="spilled"]').click()
+    })
+    await setQuantity('5')
+    await act(async () => {
+      container.querySelector('[data-testid="stock-movement-modal"] form')
+        .dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+      await Promise.resolve()
+    })
+    expect(onSubmit).not.toHaveBeenCalled()
+    expect(container.textContent).toContain('Waste cannot exceed')
+
+    await setQuantity('2')
+    const note = container.querySelector('input[type="text"]')
+    await act(async () => {
+      const nativeInputValueSetter = Object.getOwnPropertyDescriptor(
+        window.HTMLInputElement.prototype,
+        'value',
+      )?.set
+      nativeInputValueSetter?.call(note, 'end of night')
+      note.dispatchEvent(new Event('input', { bubbles: true }))
+      note.dispatchEvent(new Event('change', { bubbles: true }))
+    })
+    await act(async () => {
+      container.querySelector('[data-testid="stock-movement-modal"] form')
+        .dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+      await Promise.resolve()
+    })
+
+    expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({
+      type: 'usage',
+      quantity: 2,
+      note: 'Waste · Spilled · end of night',
+      wasteReasonId: 'spilled',
+      workspaceStorageId: 'stor-bar',
+      expectedQuantityVersion: 4,
+    }))
+    expect(onClose).toHaveBeenCalled()
+  })
+})

@@ -139,6 +139,7 @@ describe('session last-used storage', () => {
     expect(readLastUsedStockMovementStorage('ws-1', 'item-2')).toBe('')
     expect(stockMovementStorageActionLabel('receive', 'Main Bar')).toBe('Receive into Main Bar')
     expect(stockMovementStorageActionLabel('usage', 'Main Bar')).toBe('Use from Main Bar')
+    expect(stockMovementStorageActionLabel('waste', 'Main Bar')).toBe('Waste from Main Bar')
     expect(stockMovementStorageActionLabel('adjustment', 'Main Bar')).toBe('Adjust Main Bar')
     expect(stockMovementStorageActionLabel('stock_count', 'Main Bar')).toBe('Count Main Bar')
     expect(stockMovementStorageActionLabel('receive', '')).toBe('Choose a storage')

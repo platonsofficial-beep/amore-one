@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { formatLastCountedLabel, formatStockMovementHeadline, resolveLastCountedRecord } from './stockProductHistory'
+import { formatLastCountedLabel, formatStockMovementHeadline, formatStockMovementTypeLabel, resolveLastCountedRecord } from './stockProductHistory'
 
 describe('formatStockMovementHeadline', () => {
   it('shows a stock count as before → after', () => {
@@ -9,6 +9,12 @@ describe('formatStockMovementHeadline', () => {
       quantityBefore: 0,
       quantityAfter: 4,
     }, 'Bottle')).toBe('Count 0 Bottle → 4 Bottle')
+  })
+
+  it('labels a waste usage movement as waste', () => {
+    const movement = { type: 'usage', quantity: 1, note: 'Waste · Broken' }
+    expect(formatStockMovementTypeLabel(movement.type, movement.note)).toBe('Waste')
+    expect(formatStockMovementHeadline(movement, 'Bottle')).toBe('Waste −1 Bottle')
   })
 
   it('shows an adjustment as before → after', () => {

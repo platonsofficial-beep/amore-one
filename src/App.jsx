@@ -23534,7 +23534,8 @@ function App() {
         expectedQuantityVersion: locationTarget.expectedQuantityVersion,
       })
       await refreshStockItems()
-      setStockItemsNotice('Stock movement recorded.')
+      const recordedWaste = `${note ?? ''}`.startsWith('Waste · ')
+      setStockItemsNotice(recordedWaste ? 'Waste recorded.' : 'Stock movement recorded.')
     } catch (error) {
       setStockItemsNotice(error.message || 'Unable to record stock movement right now.')
       throw error
@@ -25708,6 +25709,7 @@ function App() {
             onRecordReceive={handleRecordStockMovement}
             onRecordTransfer={handleRecordStockTransfer}
             onRecordAdjustment={handleRecordStockMovement}
+            onRecordWaste={handleRecordStockMovement}
             onSupplyRefillComplete={refreshStockItems}
             isSavingReceive={isSavingStockItem}
             isSavingTransfer={isSavingStockItem}

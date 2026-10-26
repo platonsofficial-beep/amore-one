@@ -147,6 +147,7 @@ export function stockMovementStorageActionLabel(movementType, storageName) {
   if (!name) return 'Choose a storage'
   if (movementType === 'receive') return `Receive into ${name}`
   if (movementType === 'usage') return `Use from ${name}`
+  if (movementType === 'waste') return `Waste from ${name}`
   if (movementType === 'adjustment') return `Adjust ${name}`
   if (movementType === 'stock_count') return `Count ${name}`
   return name
