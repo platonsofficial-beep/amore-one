@@ -288,6 +288,7 @@ import { createStockItem, updateStockItem, updateStockItemActive } from './servi
 import { getStockItemsWithLastMovement, recordStockMovement } from './services/stockMovementService'
 import { assertLocationStockMovementTarget, transferStockBetweenLocations } from './services/stockMutationService'
 import { prepareSupplyOrderDrafts } from './services/stockSupplyOrderDraftService'
+import { loadStockLiveSnapshot } from './services/stockLiveCardService'
 import {
   createStockOrdersFromGroups,
   getStockOrdersWithAuthors,
@@ -546,6 +547,7 @@ import {
   getAvailableIdentityColorsForWorkspace,
 } from './services/employeeIdentityService'
 import { StockDashboardView } from './components/stock/StockDashboardView'
+import { StockLiveCard } from './components/stock/StockLiveCard'
 import { InventoryCountView } from './components/stock/InventoryCountView'
 import { StockStorageCenter } from './components/stock/StockStorageCenter'
 import { StockOrdersView } from './components/stock/StockOrdersView'
@@ -1175,6 +1177,7 @@ function CommandCenterView({
   attentionPermissions = {},
   onMarkAnnouncementSeen,
   onStatusCardSelect,
+  stockLive = null,
 }) {
   const attentionHasUrgent = hasUrgentAttentionItems(attentionItems)
   const showStockAttention = Boolean(onViewStock) && attentionItems.some((item) => (
@@ -1205,6 +1208,8 @@ function CommandCenterView({
         showStock={showStockStatus}
         onSelect={onStatusCardSelect}
       />
+
+      {stockLive ? <StockLiveCard {...stockLive} /> : null}
 
       <div className="today-layout">
         <div className="today-main">
@@ -16185,6 +16190,11 @@ function App() {
   const [isStockItemModalOpen, setIsStockItemModalOpen] = useState(false)
   const [stockSupplierPrefill, setStockSupplierPrefill] = useState('')
   const [stockOrders, setStockOrders] = useState([])
+  const [stockLiveSnapshot, setStockLiveSnapshot] = useState({
+    belowParCount: 0,
+    parsReady: false,
+    status: 'idle',
+  })
   const [stockOrdersNotice, setStockOrdersNotice] = useState('')
   const [stockOrdersFilterHint, setStockOrdersFilterHint] = useState(null)
   const [inventoryCountOpenSessionId, setInventoryCountOpenSessionId] = useState(null)
@@ -16771,6 +16781,17 @@ function App() {
     }
     handleStockSectionChange('orders')
   }, [handleStockSectionChange])
+
+  const handleOpenStockLiveSection = useCallback((section, orderFilter = '') => {
+    const allowed = useMobileExperience
+      ? canAccessMobileExpandedModule(role, 'stock')
+      : canAccessModule(role, 'stock')
+    if (!allowed) return
+    handleActiveViewChange('stock')
+    if (orderFilter) setStockOrdersFilterHint(orderFilter)
+    handleStockSectionChange(section)
+    if (useMobileExperience) setMobileExpandedView('workspace')
+  }, [useMobileExperience, role, handleActiveViewChange, handleStockSectionChange])
 
   const handleOpenInventoryCountSession = useCallback((sessionId = '') => {
     const nextSessionId = `${sessionId ?? ''}`.trim()
@@ -18699,6 +18720,42 @@ function App() {
     mobileExpandedView,
     useMobileExperience,
     dashboardNeedsStockSnapshot,
+  ])
+
+  useEffect(() => {
+    const managerMobileToday = isManagerMobileShell
+      && mobileManagerTab === 'today'
+      && !mobileExpandedView
+    const showLiveCard = canAccessStockModule && activeWorkspaceId && (
+      activeView === 'today'
+      || (activeView === 'stock' && stockSection === 'dashboard')
+      || managerMobileToday
+    )
+    if (!showLiveCard) return undefined
+
+    let cancelled = false
+    setStockLiveSnapshot((current) => ({ ...current, status: 'loading' }))
+    loadStockLiveSnapshot(activeWorkspaceId)
+      .then((result) => {
+        if (cancelled) return
+        setStockLiveSnapshot({ ...result, status: 'ready' })
+      })
+      .catch(() => {
+        if (cancelled) return
+        setStockLiveSnapshot({ belowParCount: 0, parsReady: false, status: 'error' })
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [
+    canAccessStockModule,
+    activeWorkspaceId,
+    activeView,
+    stockSection,
+    isManagerMobileShell,
+    mobileManagerTab,
+    mobileExpandedView,
   ])
 
   useEffect(() => {
@@ -25306,6 +25363,16 @@ function App() {
             attentionPermissions={todayAttentionPermissions}
             onMarkAnnouncementSeen={handleMarkOperationsAnnouncementSeen}
             onStatusCardSelect={handleTodayChipSelect}
+            stockLive={canAccessModule(role, 'stock') ? {
+              belowParCount: stockLiveSnapshot.belowParCount,
+              parsReady: stockLiveSnapshot.parsReady,
+              parsStatus: stockLiveSnapshot.status,
+              stockItems,
+              stockOrders,
+              onOpenBelowPar: () => handleOpenStockLiveSection('storages'),
+              onOpenDrafts: () => handleOpenStockLiveSection('orders', 'draft'),
+              onOpenCounts: () => handleOpenStockLiveSection('count'),
+            } : null}
           />
         ) : null}
 
@@ -25516,6 +25583,10 @@ function App() {
             onCreateOrders={handleCreateStockOrders}
             onPrepareDrafts={handlePrepareSupplyOrderDrafts}
             onOpenOrders={handleOpenStockOrders}
+            stockLiveSnapshot={stockLiveSnapshot}
+            onOpenBelowPar={() => handleOpenStockLiveSection('storages')}
+            onOpenDrafts={() => handleOpenStockLiveSection('orders', 'draft')}
+            onOpenCounts={() => handleOpenStockLiveSection('count')}
             onOpenInventoryCountSession={handleOpenInventoryCountSession}
             isSavingOrders={isSavingStockOrder}
           />
@@ -25905,6 +25976,12 @@ function App() {
                       isAnnouncementsSaving: isSavingOperations,
                       onMarkAnnouncementSeen: handleMarkOperationsAnnouncementSeen,
                       onOpenStock: handleMobileManagerOpenStock,
+                      onOpenBelowPar: () => handleOpenStockLiveSection('storages'),
+                      onOpenDrafts: () => handleOpenStockLiveSection('orders', 'draft'),
+                      onOpenCounts: () => handleOpenStockLiveSection('count'),
+                      stockLiveSnapshot,
+                      stockItems,
+                      stockOrders,
                       onReceiveDeliveries: handleMobileManagerReceiveDeliveries,
                       onOpenTasks: handleMobileManagerOpenTasks,
                       onOpenTeamToday: handleMobileManagerOpenTeamToday,

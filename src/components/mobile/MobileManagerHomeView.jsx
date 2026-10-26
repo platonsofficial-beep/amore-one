@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { sortManagerMobileAttentionFeed } from '../../lib/mobileManagerTodayUtils'
 import { TodayAttentionListItem } from '../today/TodayAttentionListItem'
 import { TodayAnnouncementsPanel } from '../today/TodayAnnouncementsPanel'
+import { StockLiveCard } from '../stock/StockLiveCard'
 
 const ATTENTION_PREVIEW_LIMIT = 3
 
@@ -113,6 +114,12 @@ export function MobileManagerHomeView({
   isAnnouncementsSaving = false,
   onMarkAnnouncementSeen,
   onOpenStock,
+  onOpenBelowPar,
+  onOpenDrafts,
+  onOpenCounts,
+  stockLiveSnapshot = null,
+  stockItems = [],
+  stockOrders = [],
   onReceiveDeliveries,
   onOpenTasks,
   onOpenTeamToday,
@@ -195,6 +202,18 @@ export function MobileManagerHomeView({
               />
             ) : null}
           </div>
+          {canOpenStock && stockLiveSnapshot ? (
+            <StockLiveCard
+              belowParCount={stockLiveSnapshot.belowParCount}
+              parsReady={stockLiveSnapshot.parsReady}
+              parsStatus={stockLiveSnapshot.status}
+              stockItems={stockItems}
+              stockOrders={stockOrders}
+              onOpenBelowPar={onOpenBelowPar}
+              onOpenDrafts={onOpenDrafts}
+              onOpenCounts={onOpenCounts}
+            />
+          ) : null}
         </div>
 
         {hasQuickActions ? (

@@ -30546,6 +30546,57 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   min-height: 44px;
 }
 
+.stock-live-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px 16px;
+}
+
+.stock-live-card-title {
+  margin: 0;
+  color: #d4c4a8;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.stock-live-card-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.stock-live-card-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  min-height: 44px;
+  margin: 0;
+  padding: 8px 12px;
+  border: 0;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.04);
+  color: #f7f4ee;
+  font: inherit;
+  font-size: 0.95rem;
+  text-align: left;
+  cursor: pointer;
+}
+
+.stock-live-card-row.tone-warning {
+  background: rgba(201, 146, 62, 0.16);
+}
+
+.stock-live-card-chevron {
+  color: #d4c4a8;
+  font-size: 1.2rem;
+  line-height: 1;
+}
+
 .stock-today-activity {
   display: flex;
   flex-direction: column;
