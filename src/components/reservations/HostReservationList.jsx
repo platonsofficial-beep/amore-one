@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   formatHostReservationListTime,
 } from '../../lib/timeFormatUtils'
@@ -22,7 +22,7 @@ import {
   HOST_LIST_OPERATIONAL_SECTION_DEFS,
   HOST_LIST_SECTION_COLLAPSE_STORAGE_KEY,
 } from './hostReservationListUtils'
-import { getHostListEmptyState } from '../../lib/reservationServiceIntelligence'
+import { formatStillSeatedReservationLabel, getHostListEmptyState } from '../../lib/reservationServiceIntelligence'
 import { groupHostQueueOperationalSections } from '../../lib/hostQueuePipeline'
 import { groupHostQueueReservationsByTime } from '../../lib/hostQueueTimeGroups'
 import { HostReservationMetaLine, HostQueueReservationDetails, HostQueueNameIndicators, HostReservationGuestTypeBadge, HostReservationPurposeLabel } from '../mobile/reservations/HostQueueReservationDetails'
@@ -77,6 +77,8 @@ function HostReservationListRow({
   hideScheduleTime = false,
   useHostQueuePresentation = false,
   helpers,
+  stillSeatedLabel = '',
+  isAttentionFocus = false,
 }) {
   const {
     formatReservationGuestName,
@@ -134,7 +136,8 @@ function HostReservationListRow({
 
   return (
     <article
-      className={`host-reservation-card tone-${statusMeta.tone}${isSelected ? ' is-selected' : ''}${isEditing ? ' is-editing' : ''}${isDragging ? ' is-dragging' : ''}${isStatusPickerOpen ? ' is-status-picker-open' : ''}${isNextArrival ? ' is-next-arrival' : ''}${isCompactTablet ? ' is-compact-tablet' : ''}${hideScheduleTime ? ' is-time-grouped' : ''}`}
+      className={`host-reservation-card tone-${statusMeta.tone}${isSelected ? ' is-selected' : ''}${isEditing ? ' is-editing' : ''}${isDragging ? ' is-dragging' : ''}${isStatusPickerOpen ? ' is-status-picker-open' : ''}${isNextArrival ? ' is-next-arrival' : ''}${isAttentionFocus ? ' is-attention-focus' : ''}${isCompactTablet ? ' is-compact-tablet' : ''}${hideScheduleTime ? ' is-time-grouped' : ''}`}
+      data-reservation-id={reservation.id}
       role="listitem"
       tabIndex={0}
       draggable={!isCompactTablet}
@@ -164,6 +167,9 @@ function HostReservationListRow({
           <div className="host-reservation-card-name-purpose">
           <strong className="host-reservation-card-guest">{guestName}</strong>
           <HostReservationPurposeLabel reservation={reservation} />
+          {stillSeatedLabel ? (
+            <span className="host-reservation-still-seated">{stillSeatedLabel}</span>
+          ) : null}
           </div>
           <HostQueueNameIndicators indicators={nameIndicators} />
           {warnings.length > 0 && !isLateWithDuration ? (
@@ -262,6 +268,9 @@ export function HostReservationList({
   onClearQueueFilters = null,
   useHostQueuePresentation = false,
   helpers,
+  focusReservationId = '',
+  serviceTodayKey = '',
+  timeZone = '',
 }) {
   const operationalSections = useMemo(
     () => (
@@ -286,6 +295,29 @@ export function HostReservationList({
 
   const [collapsedSections, setCollapsedSections] = useState(readCollapsedSections)
   const [statusPicker, setStatusPicker] = useState(null)
+  const listRef = useRef(null)
+  const focusId = `${focusReservationId ?? ''}`.trim()
+
+  useEffect(() => {
+    if (!focusId) return
+    const section = operationalSections.find((entry) => (
+      entry.reservations.some((reservation) => String(reservation.id) === focusId)
+    ))
+    if (!section) return
+    setCollapsedSections((current) => {
+      if (!current.has(section.id)) return current
+      const next = new Set(current)
+      next.delete(section.id)
+      return next
+    })
+  }, [focusId, operationalSections])
+
+  useEffect(() => {
+    if (!focusId || !listRef.current) return
+    const node = [...listRef.current.querySelectorAll('[data-reservation-id]')]
+      .find((entry) => entry.getAttribute('data-reservation-id') === focusId)
+    node?.scrollIntoView?.({ block: 'center' })
+  }, [focusId, collapsedSections, operationalSections])
 
   useEffect(() => {
     if (typeof window === 'undefined') return
@@ -385,6 +417,7 @@ export function HostReservationList({
   return (
     <>
       <div
+        ref={listRef}
         className={`host-reservation-list host-reservation-list-grouped host-reservation-list-sections${listLayoutClass}`}
         aria-label="Reservations"
       >
@@ -460,6 +493,8 @@ export function HostReservationList({
                             hideScheduleTime
                             useHostQueuePresentation={useHostQueuePresentation}
                             helpers={helpers}
+                            stillSeatedLabel={formatStillSeatedReservationLabel(reservation, serviceTodayKey, timeZone)}
+                            isAttentionFocus={String(reservation.id) === focusId}
                           />
                         ))}
                       </div>
@@ -488,6 +523,8 @@ export function HostReservationList({
                       floorLayout={floorLayout}
                       useHostQueuePresentation={useHostQueuePresentation}
                       helpers={helpers}
+                      stillSeatedLabel={formatStillSeatedReservationLabel(reservation, serviceTodayKey, timeZone)}
+                      isAttentionFocus={String(reservation.id) === focusId}
                     />
                   ))}
                 </div>

@@ -4,6 +4,7 @@ import {
   WAITING_TOO_LONG_MINUTES,
   buildDailyServiceSnapshot,
   buildHostReservationAlerts,
+  formatStillSeatedReservationLabel,
   getHostListEmptyState,
   getHostReservationAlertReasons,
   getReservationOccupiedMinutes,
@@ -105,6 +106,31 @@ describe('reservationServiceIntelligence', () => {
     expect(alerts[0]?.label).toBe('Marika still seated from 5 Jul')
     expect(alerts[0]?.reservationDate).toBe('2026-07-05')
     expect(alerts.some((alert) => alert.type === HOST_ALERT_TYPES.OCCUPIED_LONG)).toBe(false)
+    expect(formatStillSeatedReservationLabel(
+      reservation({ date: '2026-07-05', status: 'Checked In' }),
+      '2026-10-26',
+    )).toBe('still seated from 5 Jul')
+  })
+
+  it('places a timestamped seated reservation on the workspace day', () => {
+    const seated = reservation({
+      id: 'marika',
+      guestName: 'Marika',
+      date: '2026-07-07T21:30:00.000Z',
+      status: 'Checked In',
+    })
+    const alerts = buildHostReservationAlerts(
+      [seated],
+      12 * 60,
+      '2026-10-26',
+      new Date('2026-10-26T12:00:00Z'),
+      { timeZone: 'Europe/Nicosia' },
+    )
+
+    expect(alerts[0]?.reservationDate).toBe('2026-07-08')
+    expect(alerts[0]?.label).toBe('Marika still seated from 8 Jul')
+    expect(formatStillSeatedReservationLabel(seated, '2026-10-26', 'Europe/Nicosia'))
+      .toBe('still seated from 8 Jul')
   })
 
   it('prioritizes active service before upcoming and completed reservations', () => {
