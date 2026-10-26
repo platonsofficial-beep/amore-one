@@ -14633,6 +14633,7 @@ function App() {
   const [stockOrdersFilterHint, setStockOrdersFilterHint] = useState(null)
   const [inventoryCountOpenSessionId, setInventoryCountOpenSessionId] = useState(null)
   const [isInventoryImportWizardOpen, setIsInventoryImportWizardOpen] = useState(false)
+  const [inventoryImportHistoryRefresh, setInventoryImportHistoryRefresh] = useState(0)
   const [isStockOrdersLoading, setIsStockOrdersLoading] = useState(false)
   const [isSavingStockOrder, setIsSavingStockOrder] = useState(false)
   const isCreatingStockOrdersRef = useRef(false)
@@ -23862,8 +23863,8 @@ function App() {
         {isActiveViewAllowed && activeView === 'stock' && stockSection === 'migration' ? (
           <StockInventoryMigrationView
             workspaceId={activeWorkspaceId}
-            workspaceLabel={`${workspace?.name ?? workspaceProfile.businessName ?? ''}`.trim()}
-            isWorkspaceReady={isStockWorkspaceReady}
+            timeZone={workspaceTimeZone}
+            historyRefresh={inventoryImportHistoryRefresh}
             onOpenInventoryImport={() => setIsInventoryImportWizardOpen(true)}
           />
         ) : null}
@@ -23871,7 +23872,10 @@ function App() {
         {isInventoryImportWizardOpen ? (
           <InventoryImportWizardShell
             workspaceId={activeWorkspaceId}
-            onClose={() => setIsInventoryImportWizardOpen(false)}
+            onClose={() => {
+              setIsInventoryImportWizardOpen(false)
+              setInventoryImportHistoryRefresh((current) => current + 1)
+            }}
           />
         ) : null}
 
