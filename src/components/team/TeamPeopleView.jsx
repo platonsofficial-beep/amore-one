@@ -1,4 +1,5 @@
 import { EmployeeAccountConnectionSection } from './EmployeeAccountConnectionSection'
+import { useEscapeToClose } from '../../lib/useEscapeToClose'
 import { ManagerLeaveInbox } from './ManagerLeaveInbox'
 import {
   buildEmployeeTodayStatusCardPresentation,
@@ -266,6 +267,7 @@ export function TeamPeopleView({
   const departmentCount = countPeopleDepartmentsWithStaff(metricsSource)
   const metricsLine = formatTeamPeopleMetrics(employeeCount, workingCount, departmentCount)
   const showSearch = typeof onSearchTermChange === 'function'
+  useEscapeToClose(() => onSelectEmployee?.(null), { enabled: Boolean(selectedEmployee) })
   const selectedEmployeeTodayStatus = selectedEmployee
     ? readEmployeeTodayStatus(selectedEmployee, employeeTodayStatusById)
     : null
@@ -401,10 +403,8 @@ export function TeamPeopleView({
       )}
 
       {selectedEmployee ? (
+        <div className="employee-profile-drawer-layer">
         <div className="drawer-backdrop" onClick={() => onSelectEmployee(null)} />
-      ) : null}
-
-      {selectedEmployee ? (
         <aside className="employee-drawer employee-profile-drawer" aria-label={`${selectedEmployee.name} profile`}>
           <div className="employee-profile-drawer-top">
             <p className="eyebrow">Employee profile</p>
@@ -526,6 +526,7 @@ export function TeamPeopleView({
             </button>
           </div>
         </aside>
+        </div>
       ) : null}
     </section>
   )

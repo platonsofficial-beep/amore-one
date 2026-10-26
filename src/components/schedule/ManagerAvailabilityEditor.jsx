@@ -1,4 +1,5 @@
 import { EMPLOYEE_AVAILABILITY_DAYS, EMPLOYEE_AVAILABILITY_STATUS } from '../../lib/employeeAvailabilityUtils'
+import { useEscapeToClose } from '../../lib/useEscapeToClose'
 
 const DAY_LABELS = Object.freeze({
   monday: 'Mon',
@@ -32,6 +33,7 @@ export function ManagerAvailabilityEditor({
   onSave,
   onClose,
 }) {
+  useEscapeToClose(() => onClose?.(), { enabled: !isSaving })
   const days = Array.isArray(week?.days) ? week.days : []
 
   return (

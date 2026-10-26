@@ -3082,6 +3082,42 @@ function ScheduleView({
     setEditingAssignmentShift(null)
     setAssignmentError('')
   }, { enabled: Boolean(editingAssignmentShift) })
+  useEscapeToClose(() => setIsSaveWeekTemplateModalOpen(false), { enabled: isSaveWeekTemplateModalOpen })
+  useEscapeToClose(() => setIsLoadWeekTemplateModalOpen(false), { enabled: isLoadWeekTemplateModalOpen })
+  useEscapeToClose(() => {
+    setRenamingTemplateId(null)
+    setRenameTemplateName('')
+  }, { enabled: Boolean(renamingTemplateId) })
+  useEscapeToClose(() => setIsDeleteShiftTemplateModalOpen(false), { enabled: isDeleteShiftTemplateModalOpen })
+  useEscapeToClose(() => {
+    setShiftTemplatePendingRename(null)
+    setShiftTemplateRenameName('')
+  }, { enabled: Boolean(shiftTemplatePendingRename) })
+  useEscapeToClose(() => setIsCopyThisWeekModalOpen(false), { enabled: isCopyThisWeekModalOpen })
+  useEscapeToClose(() => {
+    setIsCopyDayModalOpen(false)
+    setCopyDaySourceDay(null)
+    setCopyDayTargetKey('')
+  }, { enabled: isCopyDayModalOpen })
+  useEscapeToClose(() => {
+    setIsClearDayModalOpen(false)
+    setClearDayTarget(null)
+  }, { enabled: isClearDayModalOpen })
+  useEscapeToClose(() => setIsCopyWeekModalOpen(false), { enabled: isCopyWeekModalOpen })
+  useEscapeToClose(() => setIsClearWeekModalOpen(false), { enabled: isClearWeekModalOpen })
+  useEscapeToClose(() => setIsAutoFillModalOpen(false), { enabled: isAutoFillModalOpen })
+  useEscapeToClose(() => handleCloseAssignmentModal(), { enabled: isAssignmentModalOpen })
+  useEscapeToClose(() => handleCloseShiftDetails(), {
+    enabled: Boolean(selectedShift) && !shiftPendingDelete,
+  })
+  useEscapeToClose(() => {
+    if (isPublishing) return
+    setPublishError('')
+    setIsPublishConfirmOpen(false)
+  }, { enabled: isPublishConfirmOpen })
+  useEscapeToClose(() => setIsUnpublishConfirmOpen(false), {
+    enabled: isUnpublishConfirmOpen && !isPublishing,
+  })
   useEscapeToClose(() => setShiftPendingDelete(null), { enabled: Boolean(shiftPendingDelete) })
   useEscapeToClose(() => {
     setAssignmentTimeEdit(null)
@@ -15933,6 +15969,7 @@ function App() {
     setEmployeeIdentityAvailability({ assignments: [], availableColors: [] })
     setIsEmployeeIdentityLoading(false)
   }, [])
+  useEscapeToClose(() => handleCloseEmployeeModal(), { enabled: isEmployeeModalOpen })
   const [positions, setPositions] = useState([])
   const [positionsNotice, setPositionsNotice] = useState('')
   const [isPositionsLoading, setIsPositionsLoading] = useState(true)
@@ -20837,6 +20874,9 @@ function App() {
       notes: '',
     })
   }
+
+  useEscapeToClose(() => handleCloseShiftModal(), { enabled: isShiftModalOpen })
+  useEscapeToClose(() => resolveShiftOverlapConfirmation(false), { enabled: isShiftOverlapConfirmOpen })
 
   const handleDeleteShift = async (id) => {
     if (!canEditScheduleRole || !activeWorkspaceId) return
