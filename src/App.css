@@ -31466,7 +31466,8 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   gap: 10px;
 }
 
-.stock-order-cleanup-open-btn {
+.stock-order-cleanup-open-btn,
+.stock-prepare-drafts-btn {
   min-height: 44px;
 }
 
@@ -33102,6 +33103,7 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 
 .stock-department-toolbar-btn,
 .stock-storage-supply-toggle,
+.stock-storage-buying-toggle,
 .stock-storage-department-select,
 .stock-department-dialog .primary-btn,
 .stock-department-dialog .ghost-btn,
@@ -33111,7 +33113,8 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 }
 
 .stock-department-toolbar-btn,
-.stock-storage-supply-toggle {
+.stock-storage-supply-toggle,
+.stock-storage-buying-toggle {
   padding: 0 14px;
   border-radius: 12px;
   border: 1px solid rgba(255, 255, 255, 0.14);
@@ -33120,7 +33123,8 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   font-weight: 650;
 }
 
-.stock-storage-supply-toggle[aria-pressed="true"] {
+.stock-storage-supply-toggle[aria-pressed="true"],
+.stock-storage-buying-toggle[aria-pressed="true"] {
   border-color: rgba(212, 175, 55, 0.55);
   background: rgba(212, 175, 55, 0.16);
   color: #f4d391;
@@ -33186,6 +33190,7 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 
   .stock-storage-department-field,
   .stock-storage-supply-toggle,
+  .stock-storage-buying-toggle,
   .stock-department-group-actions .stock-department-toolbar-btn {
     flex: 1 1 auto;
   }

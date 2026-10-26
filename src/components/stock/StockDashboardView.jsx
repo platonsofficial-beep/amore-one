@@ -1324,6 +1324,7 @@ export function StockDashboardView({
   onBulkUpdateItems,
   onRecordMovement,
   onCreateOrders,
+  onPrepareDrafts,
   onOpenOrders,
   onOpenInventoryCountSession,
   isSavingOrders = false,
@@ -1839,6 +1840,16 @@ export function StockDashboardView({
           >
             + Add item
           </button>
+          {onPrepareDrafts ? (
+            <button
+              type="button"
+              className="primary-btn stock-prepare-drafts-btn"
+              onClick={() => { void onPrepareDrafts() }}
+              disabled={!isWorkspaceReady || isStockActionBusy}
+            >
+              {isSavingOrders ? 'Preparing…' : 'Prepare drafts'}
+            </button>
+          ) : null}
           <button
             type="button"
             className="ghost-btn stock-create-order-btn"
