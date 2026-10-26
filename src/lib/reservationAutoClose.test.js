@@ -4,6 +4,7 @@ import {
   DEFAULT_RESERVATION_AUTO_CLOSE_TIME,
   isAutoClosedReservation,
   isMissingAutoClosedColumnError,
+  resolveAutoCloseUndoStatus,
   normalizeReservationAutoCloseTime,
 } from './reservationAutoClose'
 
@@ -29,6 +30,13 @@ describe('reservationAutoClose', () => {
       auto_closed_at: '2026-10-27T02:00:00.000Z',
     })).toBe(false)
     expect(AUTO_CLOSED_BADGE_LABEL).toBe('κλείστηκε αυτόματα / Auto-closed')
+  })
+
+  it('restores the in-house status the auto-close recorded', () => {
+    expect(resolveAutoCloseUndoStatus({ autoClosedFromStatus: 'Walk In' })).toBe('Walk In')
+    expect(resolveAutoCloseUndoStatus({ auto_closed_from_status: 'Checked In (Partial)' })).toBe('Checked In (Partial)')
+    expect(resolveAutoCloseUndoStatus({ autoClosedFromStatus: null })).toBe('Checked In')
+    expect(resolveAutoCloseUndoStatus({})).toBe('Checked In')
   })
 
   it('recognises a missing auto_closed_at column without treating every error as missing', () => {

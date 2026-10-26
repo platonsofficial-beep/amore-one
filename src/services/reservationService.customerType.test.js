@@ -230,6 +230,15 @@ describe('legacy edit persistence roundtrip', () => {
     const undo = buildUndoAutoClosePayload(mapped)
     expect(undo.status).toBe('Checked In')
     expect(undo.auto_closed_at).toBeNull()
+    expect(undo.auto_closed_from_status).toBeUndefined()
     expect(undo.guest_name).toBe('Old Guest')
+
+    const walkInUndo = buildUndoAutoClosePayload({
+      ...mapped,
+      autoClosedFromStatus: 'Walk In',
+    })
+    expect(walkInUndo.status).toBe('Walk In')
+    expect(walkInUndo.auto_closed_at).toBeNull()
+    expect(walkInUndo.auto_closed_from_status).toBeNull()
   })
 })

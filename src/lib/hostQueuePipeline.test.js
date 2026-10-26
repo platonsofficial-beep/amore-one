@@ -10,6 +10,7 @@ import {
   buildHostQueueSearchHaystack,
   deriveReservationAreaZoneIds,
   filterReservationsBySelectedSeating,
+  includeAutoClosedHostReservations,
   includeFocusedHostReservation,
   includeStaleSeatedHostReservations,
   getReservationPrimaryTableSortLabel,
@@ -684,6 +685,83 @@ describe('hostQueuePipeline reservation purpose filters', () => {
       dateKey: '2026-07-08',
       workspaceTodayKey: '2026-10-26',
     }).map((entry) => entry.id)).toEqual(['marika'])
+  })
+
+  it('keeps auto-closed reservations visible on their day when seating filters hide them', () => {
+    const seatings = [
+      {
+        id: 'brunch',
+        name: 'Brunch',
+        startTime: '10:00',
+        durationMinutes: 150,
+        daysOfWeek: [0, 1, 2, 3, 4, 5, 6],
+        sortOrder: 0,
+        isActive: true,
+      },
+      {
+        id: 'lunch',
+        name: 'Lunch',
+        startTime: '12:30',
+        durationMinutes: 180,
+        daysOfWeek: [0, 1, 2, 3, 4, 5, 6],
+        sortOrder: 1,
+        isActive: true,
+      },
+      {
+        id: 'dinner-1',
+        name: 'Dinner 1',
+        startTime: '18:30',
+        durationMinutes: 90,
+        daysOfWeek: [0, 1, 2, 3, 4, 5, 6],
+        sortOrder: 2,
+        isActive: true,
+      },
+    ]
+    const closed = buildReservation({
+      id: 'closed-guest',
+      guestName: 'Closed Guest',
+      date: '2026-07-08',
+      time: '17:00',
+      status: 'Checked Out',
+      autoClosedAt: '2026-07-09T02:00:00.000Z',
+      seatingId: null,
+    })
+
+    seatings.forEach((seating) => {
+      expect(filterReservationsBySelectedSeating(
+        [closed],
+        seating,
+        seatings,
+        '2026-07-08',
+      )).toEqual([])
+      expect(buildHostQueueReservationList([closed], {
+        selectedSeating: seating,
+        seatings,
+        dateKey: '2026-07-08',
+        timeZone: 'Europe/Nicosia',
+      }).map((entry) => entry.id)).toEqual(['closed-guest'])
+    })
+
+    expect(buildHostQueueReservationList([{
+      ...closed,
+      id: 'manual-checkout',
+      autoClosedAt: null,
+    }], {
+      selectedSeating: seatings[0],
+      seatings,
+      dateKey: '2026-07-08',
+    }).map((entry) => entry.id)).toEqual([])
+
+    expect(includeAutoClosedHostReservations([], [closed], {
+      dateKey: '2026-07-09',
+    })).toEqual([])
+    expect(includeAutoClosedHostReservations([], [{
+      ...closed,
+      status: 'Checked Out',
+      autoClosedAt: null,
+    }], {
+      dateKey: '2026-07-08',
+    })).toEqual([])
   })
 
   it('keeps a focused reservation when seating filters hide it', () => {

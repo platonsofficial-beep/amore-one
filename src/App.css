@@ -16772,6 +16772,22 @@
   text-overflow: clip;
 }
 
+.schedule-assigned-pill-hours {
+  display: block;
+  margin-top: 2px;
+  color: #d47a6a;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  line-height: 1.2;
+}
+
+.schedule-issue-banner {
+  color: #e6d3a1;
+  background: rgba(196, 163, 90, 0.12);
+  border-radius: 10px;
+}
+
 .schedule-assigned-pill-custom {
   display: block;
   margin-top: 2px;

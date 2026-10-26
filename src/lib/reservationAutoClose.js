@@ -1,4 +1,4 @@
-import { normalizeReservationStatus } from './reservationHostStatus'
+import { isReservationInHouseStatus, normalizeReservationStatus } from './reservationHostStatus'
 
 export const DEFAULT_RESERVATION_AUTO_CLOSE_TIME = '05:00'
 export const AUTO_CLOSED_BADGE_LABEL = 'κλείστηκε αυτόματα / Auto-closed'
@@ -23,9 +23,18 @@ export function isAutoClosedReservation(reservation) {
   return normalizeReservationStatus(reservation?.status) === 'Checked Out'
 }
 
+export function resolveAutoCloseUndoStatus(reservation) {
+  const prior = normalizeReservationStatus(
+    reservation?.autoClosedFromStatus ?? reservation?.auto_closed_from_status ?? '',
+  )
+  if (isReservationInHouseStatus(prior)) return prior
+  return 'Checked In'
+}
+
 export function isMissingAutoClosedColumnError(error) {
   const message = `${error?.message ?? error ?? ''}`.toLowerCase()
-  return message.includes('auto_closed_at')
+  const mentionsColumn = message.includes('auto_closed_at') || message.includes('auto_closed_from_status')
+  return mentionsColumn
     && (
       message.includes('schema cache')
       || message.includes('column')
