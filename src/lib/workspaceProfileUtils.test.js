@@ -49,6 +49,23 @@ describe('workspaceProfileUtils', () => {
     expect(identity.hint).toContain('Business Profile')
   })
 
+  it('never shows the Workspace placeholder as the venue or account name', () => {
+    const placeholder = buildWorkspaceIdentityLines({
+      workspaceName: 'Workspace',
+      businessName: 'Workspace',
+    })
+    expect(placeholder.primary).toBe('Venue')
+    expect(placeholder.technicalName).toBe('')
+    expect(`${placeholder.primary} ${placeholder.technicalName}`).not.toMatch(/workspace/i)
+
+    const named = buildWorkspaceIdentityLines({
+      workspaceName: 'Workspace',
+      businessName: 'Amore Nicosia',
+    })
+    expect(named.primary).toBe('Amore Nicosia')
+    expect(named.technicalName).toBe('')
+  })
+
   it('uses the active workspace name when the business profile name is blank', () => {
     const display = resolveDashboardBrandDisplay({ businessName: '' }, 'Amore Nicosia')
     expect(display.businessName).toBe('Amore Nicosia')

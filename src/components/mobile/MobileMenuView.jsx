@@ -20,7 +20,7 @@ const MANAGER_WORKSPACE_SUBTITLES = {
   team: 'Staff, shifts and roles',
   operations: 'Tasks, checklists and handovers',
   insights: 'Reports and performance',
-  settings: 'Workspace preferences',
+  settings: 'Venue preferences',
 }
 
 function ManagerNavCard({
@@ -123,7 +123,7 @@ export function MobileMenuView({
     || (menuVariant === 'manager'
       ? managerWorkspaceItems.length > 0 || canViewLeaveInbox
       : visibleModules.length > 0 || showSettings)
-  const identityStatusLine = venueName ? 'Workspace ready' : 'Workspace profile loading'
+  const identityStatusLine = venueName ? 'Venue ready' : 'Venue profile loading'
 
   if (menuVariant === 'manager') {
     return (
@@ -142,8 +142,8 @@ export function MobileMenuView({
         </article>
 
         {showWorkspaceSection ? (
-          <section className="mobile-manager-menu-section" aria-label="Workspace">
-            <h2 className="mobile-manager-menu-section-title">Workspace</h2>
+          <section className="mobile-manager-menu-section" aria-label="Venue">
+            <h2 className="mobile-manager-menu-section-title">Venue</h2>
             <div className="mobile-manager-menu-nav-list">
               {showFullSchedule ? (
                 <ManagerNavCard
@@ -207,8 +207,8 @@ export function MobileMenuView({
       </header>
 
       {showWorkspaceSection ? (
-        <section className="mobile-menu-section" aria-label="Workspace">
-          <h2 className="mobile-menu-section-title">Workspace</h2>
+        <section className="mobile-menu-section" aria-label="Venue">
+          <h2 className="mobile-menu-section-title">Venue</h2>
           <div className="mobile-menu-actions">
             {showFullSchedule ? (
               <button type="button" className="mobile-menu-btn" onClick={onOpenFullSchedule}>

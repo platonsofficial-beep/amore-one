@@ -33,7 +33,7 @@ export function WorkspaceLinkEmployeeModal({
       <div className="employee-modal blend-compact-modal workspace-link-employee-modal is-responsive-sheet" onClick={(event) => event.stopPropagation()}>
         <div className="drawer-header">
           <div>
-            <p className="eyebrow">Workspace member</p>
+            <p className="eyebrow">Team member</p>
             <h3>Link employee</h3>
           </div>
           <button type="button" className="icon-btn" onClick={onClose} aria-label="Close">✕</button>
@@ -41,7 +41,7 @@ export function WorkspaceLinkEmployeeModal({
 
         <div className="workspace-link-employee-body">
           <p className="workspace-link-employee-copy">
-            Connect your signed-in workspace member to an existing staff record.
+            Connect your signed-in account to an existing staff record.
           </p>
 
           <label className="form-field full-width">

@@ -177,13 +177,13 @@ export function WorkspaceTeamSection({
     <>
       <div className="workspace-section-header">
         <div>
-          <p className="eyebrow">Workspace</p>
+          <p className="eyebrow">Venue</p>
           <h3 className="workspace-section-heading">
             <span className="workspace-section-icon" aria-hidden="true">👥</span>
             Team
           </h3>
           <p className="workspace-section-subtitle">
-            Your workspace membership and staff overview.
+            Your venue membership and staff overview.
           </p>
         </div>
         <button type="button" className="ghost-btn workspace-action-btn workspace-link-btn" onClick={onManageStaff}>
@@ -232,7 +232,7 @@ export function WorkspaceTeamSection({
             </dd>
           </div>
           <div className="workspace-member-row">
-            <dt>Workspace</dt>
+            <dt>Venue</dt>
             <dd>
               <div className="workspace-member-linked-value">
                 <span>{workspaceIdentity.primary}</span>

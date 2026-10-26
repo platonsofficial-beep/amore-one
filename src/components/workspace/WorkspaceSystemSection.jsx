@@ -66,7 +66,7 @@ export function WorkspaceSystemSection({ moduleConnections = {} }) {
     <>
       <div className="workspace-section-header">
         <div>
-          <p className="eyebrow">Workspace</p>
+          <p className="eyebrow">Venue</p>
           <h3 className="workspace-section-heading">
             <span className="workspace-section-icon" aria-hidden="true">⚙️</span>
             System

@@ -446,7 +446,7 @@ export function InventoryCountWizard({ isOpen, onClose, onStartSession }) {
                       <span className="inventory-count-type-card-copy">
                         <span className="inventory-count-type-card-title">{location}</span>
                         <span className="inventory-count-type-card-description">
-                          Workspace stock location
+                          Venue stock location
                         </span>
                       </span>
                     </button>
