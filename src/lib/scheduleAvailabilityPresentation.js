@@ -1,4 +1,4 @@
-import { EMPLOYEE_AVAILABILITY_STATUS } from './employeeAvailabilityUtils'
+import { EMPLOYEE_AVAILABILITY_STATUS, summarizeAvailabilityWeek } from './employeeAvailabilityUtils'
 
 export const SCHEDULE_AVAILABILITY_INDICATORS = Object.freeze({
   available: Object.freeze({
@@ -98,6 +98,16 @@ export function buildScheduleAvailabilityDayIndicators({
       indicator,
     }
   })
+}
+
+export function formatScheduleAvailabilityChipLabel(employeeAvailability, {
+  isLoading = false,
+  loadFailed = false,
+} = {}) {
+  if (isLoading) return 'Loading availability'
+  if (loadFailed) return 'Availability unavailable'
+  if (!employeeAvailability?.hasSubmitted) return 'No availability'
+  return summarizeAvailabilityWeek(employeeAvailability.week)
 }
 
 export function buildScheduleAvailabilityLookupKey(workspaceId, weekStartDate, employeeIds = []) {

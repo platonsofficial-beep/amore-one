@@ -15467,8 +15467,8 @@
   color: #fff7e8;
   font-size: 0.95rem;
   font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
+  letter-spacing: 0;
+  text-transform: none;
   line-height: 1.35;
 }
 
@@ -20905,6 +20905,123 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   gap: 1px;
   min-width: 5.75rem;
   flex: 1 1 auto;
+}
+
+.schedule-staff-chip-wrap {
+  display: flex;
+  align-items: stretch;
+  gap: 4px;
+}
+
+.schedule-availability-edit-btn {
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0 10px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 247, 232, 0.16);
+  background: rgba(255, 247, 232, 0.06);
+  color: #fff7e8;
+  font: inherit;
+  font-size: 0.78rem;
+}
+
+.schedule-assigned-pill.is-unavailable {
+  box-shadow: inset 0 0 0 1px #c45c4a;
+}
+
+.schedule-assigned-pill-availability {
+  display: block;
+  color: #e7a094;
+  font-size: 0.68rem;
+}
+
+.assignment-employee-availability {
+  display: block;
+}
+
+.assignment-employee-availability.tone-unavailable {
+  color: #e7a094;
+}
+
+.schedule-warnings-toggle {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  min-height: 44px;
+  cursor: pointer;
+}
+
+.schedule-warnings-list {
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+  text-align: left;
+  font-size: 0.78rem;
+  line-height: 1.35;
+}
+
+.schedule-warnings-list li {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-top: 8px;
+}
+
+.schedule-warnings-empty {
+  margin: 8px 0 0;
+  font-size: 0.78rem;
+}
+
+.manager-availability-modal {
+  width: min(720px, calc(100vw - 24px));
+  max-height: min(90vh, 900px);
+  overflow: auto;
+}
+
+.manager-availability-days {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.manager-availability-day h4 {
+  margin: 0 0 8px;
+}
+
+.manager-availability-status-row,
+.manager-availability-times {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.manager-availability-status {
+  min-height: 44px;
+  min-width: 44px;
+  padding: 0 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 247, 232, 0.16);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+}
+
+.manager-availability-status.is-selected {
+  border-color: #c89d42;
+}
+
+.manager-availability-times label,
+.manager-availability-note {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1 1 140px;
+}
+
+.manager-availability-note {
+  margin-top: 8px;
 }
 
 .schedule-staff-chip-name {

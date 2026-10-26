@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import {
   DEPARTMENT_FILTERS,
+  buildPeopleDepartmentFilters,
+  countPeopleDepartmentsWithStaff,
   employeeMatchesPeopleDepartmentFilter,
   employeeMatchesPeopleSearch,
 } from './TeamPeopleView'
@@ -29,6 +31,17 @@ const ROSTER = [
 describe('People department filter chips', () => {
   it('keeps the existing People filter chip values', () => {
     expect(DEPARTMENT_FILTERS).toEqual(['All', 'Bar', 'Service', 'Kitchen', 'Management'])
+  })
+
+  it('counts and lists only departments that have staff', () => {
+    const employees = [
+      { department: 'Bar' },
+      { department: 'Bar / Beverage' },
+      { department: 'Service' },
+    ]
+
+    expect(countPeopleDepartmentsWithStaff(employees)).toBe(2)
+    expect(buildPeopleDepartmentFilters(employees)).toEqual(['All', 'Bar', 'Service'])
   })
 })
 

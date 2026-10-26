@@ -16,6 +16,49 @@ export function getEmployeeFirstName(employee) {
   return fullName.split(/\s+/)[0]
 }
 
+export function collectEmployeePositionNames(employee) {
+  const names = [
+    ...getEmployeePositionNames(employee),
+    employee?.primaryPosition,
+    ...(Array.isArray(employee?.additionalPositions) ? employee.additionalPositions : []),
+  ]
+
+  const unique = []
+  const seen = new Set()
+  names.forEach((name) => {
+    const trimmed = `${name ?? ''}`.trim()
+    const key = trimmed.toLowerCase()
+    if (!trimmed || seen.has(key)) return
+    seen.add(key)
+    unique.push(trimmed)
+  })
+  return unique
+}
+
+export function buildSchedulePositionFilterOptions({
+  positions = [],
+  shifts = [],
+  employees = [],
+} = {}) {
+  const names = new Set()
+
+  ;(positions ?? []).forEach((position) => {
+    const name = `${position?.name ?? ''}`.trim()
+    if (name) names.add(name)
+  })
+
+  ;(shifts ?? []).forEach((shift) => {
+    const role = `${shift?.role ?? ''}`.trim()
+    if (role) names.add(role)
+  })
+
+  ;(employees ?? []).forEach((employee) => {
+    collectEmployeePositionNames(employee).forEach((name) => names.add(name))
+  })
+
+  return ['All', ...Array.from(names).sort((left, right) => left.localeCompare(right))]
+}
+
 export function getEmployeePrimaryPosition(employee) {
   const names = getEmployeePositionNames(employee)
   if (names.length > 0) return names[0]

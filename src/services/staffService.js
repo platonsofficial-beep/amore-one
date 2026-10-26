@@ -208,30 +208,25 @@ async function hydratePrivateEmployeeFields(workspaceId, rows) {
   }))
 }
 
-async function fetchEmployeeById(workspaceId, employeeId) {
-  const normalizedWorkspaceId = requireWorkspaceId(workspaceId)
-
-  const { data, error } = await supabase
-    .from('employees')
-    .select(EMPLOYEE_SELECT)
-    .eq('id', employeeId)
-    .eq('workspace_id', normalizedWorkspaceId)
-    .maybeSingle()
-
-  if (error) {
-    console.error('[staffService] fetchEmployeeById error:', error)
-    throw new Error(error.message || 'Unable to load employee right now.')
-  }
-
-  if (!data) {
-    throw new Error('Employee record could not be found after save.')
-  }
-
-  const [employee] = await hydratePrivateEmployeeFields(normalizedWorkspaceId, [data])
-  return employee
-}
-
 async function resolvePositionsForSync(workspaceId, positions = []) {
+  const incoming = (positions ?? []).filter((position) => `${position?.name ?? ''}`.trim())
+  const allHaveIds = incoming.length > 0 && incoming.every((position) => Number.isFinite(Number(position?.id)))
+  if (allHaveIds) {
+    const resolved = []
+    const seenIds = new Set()
+    incoming.forEach((position) => {
+      const positionId = Number(position.id)
+      if (!Number.isFinite(positionId) || seenIds.has(positionId)) return
+      seenIds.add(positionId)
+      resolved.push({
+        id: positionId,
+        name: `${position.name}`.trim(),
+        department: position.department ?? 'Other',
+      })
+    })
+    return resolved
+  }
+
   const catalog = await getPositions(workspaceId)
   const catalogByName = new Map(
     catalog.map((position) => [`${position.name ?? ''}`.trim().toLowerCase(), position]),
@@ -390,14 +385,14 @@ export async function createEmployee(workspaceId, employee) {
     throw new Error(syncError.message || 'Employee saved, but positions could not be synchronized.')
   }
 
-  return fetchEmployeeById(normalizedWorkspaceId, data.id)
+  return { id: data.id }
 }
 
 export async function updateEmployee(workspaceId, id, employee) {
   const normalizedWorkspaceId = requireWorkspaceId(workspaceId)
   const serialized = serializeEmployee(employee)
 
-  let { error } = await supabase
+  let { data, error } = await supabase
     .from('employees')
     .update(serialized)
     .eq('id', id)
@@ -415,6 +410,7 @@ export async function updateEmployee(workspaceId, id, employee) {
       .select(EMPLOYEE_PUBLIC_COLUMNS)
       .single()
 
+    data = retry.data
     error = retry.error
   }
 
@@ -435,7 +431,7 @@ export async function updateEmployee(workspaceId, id, employee) {
     throw new Error(syncError.message || 'Employee updated, but positions could not be synchronized.')
   }
 
-  return fetchEmployeeById(normalizedWorkspaceId, id)
+  return { id: data?.id ?? id }
 }
 
 export async function updateLinkedEmployeePhone(workspaceId, employeeId, phone) {
