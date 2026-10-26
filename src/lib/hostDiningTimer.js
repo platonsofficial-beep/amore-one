@@ -28,6 +28,23 @@ function getReservationTimeValue(reservation) {
   return reservation?.time || reservation?.reservation_time || ''
 }
 
+function getSeatedAtDate(reservation) {
+  const raw = reservation?.seatedAt ?? reservation?.seated_at ?? null
+  if (raw == null || `${raw}`.trim() === '') return null
+  const date = new Date(raw)
+  return Number.isNaN(date.getTime()) ? null : date
+}
+
+function serviceDayMinutesFromDate(date) {
+  const hours = String(date.getHours()).padStart(2, '0')
+  const minutes = String(date.getMinutes()).padStart(2, '0')
+  return toServiceDayMinutes(`${hours}:${minutes}`)
+}
+
+function resolveNowDate(nowDate) {
+  return nowDate instanceof Date && !Number.isNaN(nowDate.getTime()) ? nowDate : null
+}
+
 function toServiceDayMinutes(timeValue) {
   const minutes = parseReservationTimeToMinutes(timeValue)
   if (minutes === null) return null
@@ -83,6 +100,7 @@ export function getReservationInServiceElapsedMinutes(
   reservation,
   nowMinutes,
   todayKey,
+  nowDate = null,
 ) {
   if (!isReservationInHouse(reservation)) return null
 
@@ -92,6 +110,19 @@ export function getReservationInServiceElapsedMinutes(
   const normalizedTodayKey = normalizeReservationDateKey(todayKey)
   if (!dateKey || dateKey !== normalizedTodayKey) return null
 
+  const seatedAt = getSeatedAtDate(reservation)
+  if (seatedAt) {
+    const now = resolveNowDate(nowDate)
+    if (now) {
+      return Math.max(0, Math.floor((now.getTime() - seatedAt.getTime()) / 60000))
+    }
+
+    const seatedMinutes = serviceDayMinutesFromDate(seatedAt)
+    const nowKey = toServiceDayNowMinutes(nowMinutes)
+    if (seatedMinutes === null || nowKey === null) return null
+    return Math.max(0, nowKey - seatedMinutes)
+  }
+
   const arrivalMinutes = toServiceDayMinutes(getReservationTimeValue(reservation))
   const nowKey = toServiceDayNowMinutes(nowMinutes)
   if (arrivalMinutes === null || nowKey === null || nowKey < arrivalMinutes) return null
@@ -99,9 +130,15 @@ export function getReservationInServiceElapsedMinutes(
   return nowKey - arrivalMinutes
 }
 
-export function formatHostDiningTimerLabel(elapsedMinutes) {
+function getTimerStartServiceDayMinutes(reservation) {
+  const seatedAt = getSeatedAtDate(reservation)
+  if (seatedAt) return serviceDayMinutesFromDate(seatedAt)
+  return toServiceDayMinutes(getReservationTimeValue(reservation))
+}
+
+export function formatHostDiningTimerLabel(elapsedMinutes, { showZero = false } = {}) {
   const minutes = Math.max(0, Number(elapsedMinutes) || 0)
-  if (minutes < 1) return null
+  if (minutes < 1) return showZero ? '⏱ 0m' : null
 
   if (minutes < 60) return `⏱ ${minutes}m`
 
@@ -144,6 +181,7 @@ export function buildHostFloorDiningTimerPresentation(
     hostIndicator = null,
     nowMinutes = 0,
     todayKey = '',
+    nowDate = null,
   } = {},
 ) {
   if (!reservation || !isHostFloorDiningTimerTable({ phase, hostIndicator })) return null
@@ -152,14 +190,19 @@ export function buildHostFloorDiningTimerPresentation(
     reservation,
     nowMinutes,
     todayKey,
+    nowDate,
   )
   if (elapsedMinutes === null) return null
 
-  const elapsedLabel = formatHostDiningTimerLabel(elapsedMinutes)
+  const seatedAt = getSeatedAtDate(reservation)
+  const elapsedLabel = formatHostDiningTimerLabel(elapsedMinutes, { showZero: Boolean(seatedAt) })
   if (!elapsedLabel) return null
 
   const expectedDurationMinutes = getHostDiningTimerExpectedDurationMinutes(reservation)
-  const estimatedFreeServiceDayMinutes = getReservationEstimatedFreeServiceDayMinutes(reservation)
+  const timerStartMinutes = getTimerStartServiceDayMinutes(reservation)
+  const estimatedFreeServiceDayMinutes = timerStartMinutes === null
+    ? null
+    : timerStartMinutes + expectedDurationMinutes
   const estimatedFreeExternalLabel = formatHostDiningTimerExternalFreeLabel(estimatedFreeServiceDayMinutes)
   if (!estimatedFreeExternalLabel) return null
 

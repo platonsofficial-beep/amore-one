@@ -44,6 +44,7 @@ function mapReservation(record) {
     createdAt: record.created_at ?? record.createdAt ?? null,
     autoClosedAt: record.auto_closed_at ?? record.autoClosedAt ?? null,
     autoClosedFromStatus: record.auto_closed_from_status ?? record.autoClosedFromStatus ?? null,
+    seatedAt: record.seated_at ?? record.seatedAt ?? null,
   }
 
   return enrichReservationWithSeatingAssignment({
