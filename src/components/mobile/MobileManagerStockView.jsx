@@ -195,6 +195,7 @@ export function MobileManagerStockView({
   isWorkspaceReady = false,
   isSavingOrders = false,
   onCreateOrders,
+  onPrepareDrafts,
   onCountStock,
   onOpenOrders,
   onReceiveDeliveries,
@@ -450,9 +451,19 @@ export function MobileManagerStockView({
           >
             Count stock
           </button>
+          {onPrepareDrafts ? (
+            <button
+              type="button"
+              className="mobile-manager-stock-quick-btn mobile-manager-stock-quick-btn-primary"
+              onClick={() => { void onPrepareDrafts() }}
+              disabled={!isWorkspaceReady || isSavingOrders}
+            >
+              {isSavingOrders ? 'Preparing…' : 'Prepare drafts'}
+            </button>
+          ) : null}
           <button
             type="button"
-            className="mobile-manager-stock-quick-btn mobile-manager-stock-quick-btn-primary"
+            className="mobile-manager-stock-quick-btn"
             onClick={openCreateOrderModal}
             disabled={!isWorkspaceReady}
           >

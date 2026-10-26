@@ -10,7 +10,7 @@ import {
   STOCK_STORAGE_CENTER_BALANCE_COLUMNS,
   STOCK_STORAGE_CENTER_COST_COLUMNS,
   STOCK_STORAGE_PRODUCT_ITEM_COLUMNS,
-  WORKSPACE_STORAGE_DEPARTMENT_COLUMNS,
+  WORKSPACE_STORAGE_BUYING_COLUMNS,
 } from './stockStorageCenterService.js'
 
 const { fromMock } = vi.hoisted(() => ({
@@ -232,8 +232,10 @@ describe('getWorkspaceStorageSummaries', () => {
       departmentId: 'd-1',
       isSupply: true,
     })
-    expect(storagesQuery.select).toHaveBeenCalledWith(WORKSPACE_STORAGE_DEPARTMENT_COLUMNS)
+    expect(storagesQuery.select).toHaveBeenCalledWith(WORKSPACE_STORAGE_BUYING_COLUMNS)
     expect(result.departmentsAvailable).toBe(true)
+    expect(result.buyingAvailable).toBe(true)
+    expect(result.storages[0].isBuying).toBe(false)
     expect(result.parsAvailable).toBe(true)
     expect(result.storages[0].belowParCount).toBe(0)
     expect(fromMock.mock.calls.every(([table]) => (
@@ -281,6 +283,7 @@ describe('getWorkspaceStorageSummaries', () => {
 
     const result = await getWorkspaceStorageSummaries('ws-1')
     expect(result.departmentsAvailable).toBe(false)
+    expect(result.buyingAvailable).toBe(false)
     expect(result.storages[0]).toMatchObject({
       name: 'Bar',
       departmentId: null,

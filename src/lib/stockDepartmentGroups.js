@@ -7,6 +7,9 @@ export const UNASSIGNED_STORAGE_GROUP_ID = 'unassigned'
 export const DEPARTMENTS_UNAVAILABLE_MESSAGE =
   'Departments are not available yet. Storages still work. Grouping appears after the departments update is applied.'
 
+export const BUYING_STORAGE_UNAVAILABLE_MESSAGE =
+  'Buying storages are not available yet. Supply storages still count toward what to order.'
+
 const DEPARTMENT_NAME_MAX_LENGTH = 80
 
 /**
@@ -27,6 +30,26 @@ export function isWorkspaceDepartmentSchemaMissing(error) {
   if (!mentionsSchema) return false
   return code === '42703'
     || code === '42P01'
+    || code === 'PGRST204'
+    || code === 'PGRST205'
+    || message.includes('schema cache')
+    || message.includes('column')
+    || message.includes('does not exist')
+    || message.includes('could not find')
+}
+
+/**
+ * True when workspace_storages.is_buying is not in the database yet.
+ * Supply storages keep working.
+ *
+ * @param {unknown} error
+ * @returns {boolean}
+ */
+export function isBuyingStorageColumnMissing(error) {
+  const message = `${error?.message ?? ''}`.toLowerCase()
+  const code = `${error?.code ?? ''}`
+  if (!message.includes('is_buying')) return false
+  return code === '42703'
     || code === 'PGRST204'
     || code === 'PGRST205'
     || message.includes('schema cache')

@@ -1,6 +1,8 @@
 import { supabase } from '../lib/supabaseClient'
 import {
+  BUYING_STORAGE_UNAVAILABLE_MESSAGE,
   DEPARTMENTS_UNAVAILABLE_MESSAGE,
+  isBuyingStorageColumnMissing,
   isWorkspaceDepartmentSchemaMissing,
   validateWorkspaceDepartmentName,
 } from '../lib/stockDepartmentGroups'
@@ -43,6 +45,9 @@ function requireStorageId(storageId) {
 }
 
 function mapDepartmentWriteError(error, fallbackMessage) {
+  if (isBuyingStorageColumnMissing(error)) {
+    return new Error(BUYING_STORAGE_UNAVAILABLE_MESSAGE)
+  }
   if (isWorkspaceDepartmentSchemaMissing(error)) {
     return new Error(DEPARTMENTS_UNAVAILABLE_MESSAGE)
   }
@@ -233,5 +238,37 @@ export async function setWorkspaceStorageSupply(workspaceId, storageId, isSupply
   return {
     id: data.id,
     isSupply: data.is_supply === true,
+  }
+}
+
+/**
+ * Mark or clear the buying-storage flag. Safe to call only after
+ * workspace_storage_buying.sql is applied. A missing column raises a
+ * message and does not change is_supply.
+ *
+ * @param {string} workspaceId
+ * @param {string} storageId
+ * @param {boolean} isBuying
+ */
+export async function setWorkspaceStorageBuying(workspaceId, storageId, isBuying) {
+  const normalizedWorkspaceId = requireWorkspaceId(workspaceId)
+  const normalizedStorageId = requireStorageId(storageId)
+
+  const { data, error } = await supabase
+    .from(STORAGES_TABLE)
+    .update({ is_buying: isBuying === true })
+    .eq('workspace_id', normalizedWorkspaceId)
+    .eq('id', normalizedStorageId)
+    .select('id, is_buying')
+    .maybeSingle()
+
+  if (error) {
+    console.error('[workspaceDepartmentService] setWorkspaceStorageBuying error:', error)
+    throw mapDepartmentWriteError(error, 'Unable to update the buying storage right now.')
+  }
+  if (!data) throw new Error('Storage was not found in this workspace.')
+  return {
+    id: data.id,
+    isBuying: data.is_buying === true,
   }
 }
