@@ -34,6 +34,7 @@ import {
   sliceStockNeedsAttentionGroupItems,
   STOCK_NEEDS_ATTENTION_PREVIEW_LIMIT,
 } from '../../lib/stockInsights'
+import { StockLiveCard } from './StockLiveCard'
 import {
   buildStockDashboardSummary,
   buildTodayStockActivitySummary,
@@ -1326,6 +1327,10 @@ export function StockDashboardView({
   onCreateOrders,
   onPrepareDrafts,
   onOpenOrders,
+  stockLiveSnapshot = null,
+  onOpenBelowPar,
+  onOpenDrafts,
+  onOpenCounts,
   onOpenInventoryCountSession,
   isSavingOrders = false,
 }) {
@@ -1892,6 +1897,19 @@ export function StockDashboardView({
             Retry
           </button>
         </div>
+      ) : null}
+
+      {stockLiveSnapshot ? (
+        <StockLiveCard
+          belowParCount={stockLiveSnapshot.belowParCount}
+          parsReady={stockLiveSnapshot.parsReady}
+          parsStatus={stockLiveSnapshot.status}
+          stockItems={stockItems}
+          stockOrders={stockOrders}
+          onOpenBelowPar={onOpenBelowPar}
+          onOpenDrafts={onOpenDrafts}
+          onOpenCounts={onOpenCounts}
+        />
       ) : null}
 
       <section className={`stock-summary-grid${canManage ? ' stock-summary-grid-five' : ''}`} aria-label="Stock summary">
