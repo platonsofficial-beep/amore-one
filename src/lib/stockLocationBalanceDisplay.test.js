@@ -11,6 +11,28 @@ import {
 } from './stockLocationBalanceDisplay.js'
 
 describe('mapStockLocationBalanceDisplay', () => {
+  it('keeps the balance location key when the storage display name changes', () => {
+    expect(mapStockLocationBalanceDisplay({
+      id: 'bal-1',
+      workspace_storage_id: 'stor-main',
+      location_key: 'Main Storage',
+      quantity: 12,
+      quantity_version: 3,
+      workspace_storages: {
+        id: 'stor-main',
+        location_key: 'Main Storage',
+        name: 'Cellar',
+        active: true,
+        sort_order: 0,
+      },
+    })).toMatchObject({
+      workspaceStorageId: 'stor-main',
+      locationKey: 'Main Storage',
+      locationName: 'Cellar',
+      quantity: 12,
+    })
+  })
+
   it('maps balance + storage catalog fields', () => {
     expect(mapStockLocationBalanceDisplay({
       id: 'bal-1',

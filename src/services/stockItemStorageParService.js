@@ -113,7 +113,10 @@ export async function clearStockItemStoragePar(workspaceId, stockItemId, workspa
 }
 
 /**
- * Match the catalog default storage (location key or name) to a workspace storage row.
+ * Match a catalog storage_location to a workspace storage.
+ * location_key wins. A renamed display name must not steal a product whose
+ * storage_location still equals another storage's location_key.
+ * Name is only a fallback when no location_key matches.
  *
  * @param {Array<{ id?: string, locationKey?: string, location_key?: string, name?: string }>|null|undefined} storages
  * @param {unknown} storageLocation
@@ -121,10 +124,15 @@ export async function clearStockItemStoragePar(workspaceId, stockItemId, workspa
 export function findWorkspaceStorageForLocation(storages, storageLocation) {
   const key = `${storageLocation ?? ''}`.trim().toLocaleLowerCase('en-US')
   if (!key) return null
-  return (Array.isArray(storages) ? storages : []).find((storage) => {
+  const list = Array.isArray(storages) ? storages : []
+  const byKey = list.find((storage) => {
     const locationKey = `${storage?.locationKey ?? storage?.location_key ?? ''}`.trim().toLocaleLowerCase('en-US')
+    return locationKey === key
+  })
+  if (byKey) return byKey
+  return list.find((storage) => {
     const name = `${storage?.name ?? ''}`.trim().toLocaleLowerCase('en-US')
-    return locationKey === key || name === key
+    return name === key
   }) ?? null
 }
 

@@ -33338,6 +33338,7 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 .stock-department-toolbar-btn,
 .stock-storage-supply-toggle,
 .stock-storage-buying-toggle,
+.stock-storage-rename-btn,
 .stock-storage-department-select,
 .stock-department-dialog .primary-btn,
 .stock-department-dialog .ghost-btn,
@@ -33354,6 +33355,15 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   border: 1px solid rgba(255, 255, 255, 0.14);
   background: rgba(255, 255, 255, 0.06);
   color: #fff7e8;
+  font-weight: 650;
+}
+
+.stock-storage-rename-btn {
+  padding: 0 14px;
+  border-radius: 12px;
+  border: 1px solid var(--one-border);
+  background: var(--one-surface-raised);
+  color: var(--one-text);
   font-weight: 650;
 }
 
@@ -33425,6 +33435,7 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   .stock-storage-department-field,
   .stock-storage-supply-toggle,
   .stock-storage-buying-toggle,
+  .stock-storage-rename-btn,
   .stock-department-group-actions .stock-department-toolbar-btn {
     flex: 1 1 auto;
   }
@@ -33559,6 +33570,13 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 .stock-storage-detail-action-btn:disabled {
   opacity: 0.45;
   cursor: not-allowed;
+}
+
+.employee-modal.stock-storage-rename-dialog {
+  width: min(440px, 100%);
+  background: linear-gradient(165deg, var(--one-navy-800), var(--one-navy-900));
+  border: 1px solid var(--one-border);
+  padding-bottom: max(24px, var(--one-safe-area-bottom, env(safe-area-inset-bottom, 0px)));
 }
 
 .employee-modal.staff-shelf-count-sheet {

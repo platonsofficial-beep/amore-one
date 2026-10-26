@@ -327,6 +327,7 @@ function StorageProductRow({
  *   onRecordTransfer?: (payload: object) => void|Promise<void>,
  *   onAdjustment?: (storage: object) => void,
  *   onRecordAdjustment?: (payload: object) => void|Promise<void>,
+ *   onRename?: (storage: object) => void,
  *   isSavingReceive?: boolean,
  *   isSavingTransfer?: boolean,
  *   isSavingAdjustment?: boolean,
@@ -350,6 +351,7 @@ export function StockStorageDetailWorkspace({
   onRecordTransfer,
   onAdjustment,
   onRecordAdjustment,
+  onRename,
   isSavingReceive = false,
   isSavingTransfer = false,
   isSavingAdjustment = false,
@@ -785,6 +787,7 @@ export function StockStorageDetailWorkspace({
           onReceive={() => handleStartReceive()}
           onTransfer={() => handleStartTransfer()}
           onAdjustment={() => handleStartAdjustment()}
+          onRename={canManage ? onRename : undefined}
         />
         {storage?.isSupply === true ? null : (
           <div className="stock-storage-refill-launch">
