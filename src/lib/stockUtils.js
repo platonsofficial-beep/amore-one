@@ -236,6 +236,22 @@ export function buildStockDashboardSummary(items = []) {
   }
 }
 
+/**
+ * The one stock health line. Out is on hand <= 0. Low is 0 < on hand <= catalog
+ * minimum. Shelf below-par is a different number and is not folded in here.
+ */
+export function formatSharedStockHealthLine(summary = {}) {
+  const outCount = Math.max(0, Number(summary?.outOfStock) || 0)
+  const lowCount = Math.max(0, Number(summary?.lowStock) || 0)
+
+  if (outCount > 0 && lowCount > 0) return `${outCount} out · ${lowCount} low`
+  if (outCount === 1) return '1 item out'
+  if (outCount > 1) return `${outCount} items out`
+  if (lowCount === 1) return '1 item low'
+  if (lowCount > 1) return `${lowCount} items low`
+  return 'Stock levels OK'
+}
+
 export function formatStockTotalItemsLabel(totalItems, inactiveItems = 0) {
   const total = Number(totalItems) || 0
   const inactive = Number(inactiveItems) || 0

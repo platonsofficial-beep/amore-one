@@ -209,7 +209,7 @@ export function formatStockOrderDate(value, timeZone = '') {
 
   return formatInVenueZone(date, {
     day: 'numeric',
-    month: 'long',
+    month: 'short',
   }, timeZone)
 }
 

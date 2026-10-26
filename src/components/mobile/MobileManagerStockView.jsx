@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import {
   filterStockDashboardItems,
   sortStockDashboardItems,
@@ -54,72 +54,96 @@ function buildMobileOrderGroupsForItem(item) {
 
 function MobileManagerStockItemCard({
   item,
+  onOpen,
+}) {
+  const currentQuantity = Number(item.currentQuantity) || 0
+  const statusLabel = getStockStatusShortLabel(item.status)
+
+  return (
+    <button
+      type="button"
+      className={`mobile-manager-stock-card mobile-manager-stock-row tone-${item.status}`}
+      onClick={() => onOpen?.(item)}
+    >
+      <span className="mobile-manager-stock-card-name">{item.name}</span>
+      <span className={`mobile-manager-stock-row-qty tone-${item.status}`}>
+        {formatHumanQuantityValue(currentQuantity)} {formatHumanUnitLabel(item.unit, currentQuantity)}
+      </span>
+      <span className={`mobile-manager-stock-status-pill tone-${item.status}`}>
+        {statusLabel}
+      </span>
+    </button>
+  )
+}
+
+function MobileStockDetailSheet({
+  item,
   canManageStock,
   isWorkspaceReady,
+  onClose,
   onAddToOrder,
 }) {
+  useEffect(() => {
+    if (!item) return undefined
+    const handleKeyDown = (event) => {
+      if (event.key !== 'Escape') return
+      event.preventDefault()
+      onClose?.()
+    }
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [item, onClose])
+
+  if (!item) return null
   const supplierLabel = `${item.supplier ?? ''}`.trim()
   const categoryLabel = `${item.category ?? ''}`.trim() || 'Uncategorized'
   const currentQuantity = Number(item.currentQuantity) || 0
   const minimumQuantity = Number(item.minimumQuantity) || 0
-  const statusLabel = getStockStatusShortLabel(item.status).toUpperCase()
   const showAddToOrder = (item.status === 'low' || item.status === 'out') && canManageStock
 
   return (
-    <article className={`mobile-manager-stock-card tone-${item.status}`}>
-      <header className="mobile-manager-stock-card-header">
-        <div className="mobile-manager-stock-card-title-wrap">
-          <h3 className="mobile-manager-stock-card-name">{item.name}</h3>
-          <p className="mobile-manager-stock-card-category">{categoryLabel}</p>
-        </div>
-        <span className={`mobile-manager-stock-status-pill tone-${item.status}`}>
-          {statusLabel}
-        </span>
-      </header>
-
-      <div className="mobile-manager-stock-card-qty-grid">
-        <div className="mobile-manager-stock-card-qty-block">
-          <span className="mobile-manager-stock-card-qty-label">Current</span>
-          <p className={`mobile-manager-stock-card-qty-line tone-${item.status}`}>
-            <span className="mobile-manager-stock-card-qty-value">
-              {formatHumanQuantityValue(currentQuantity)}
-            </span>
-            <span className="mobile-manager-stock-card-qty-unit">
-              {formatHumanUnitLabel(item.unit, currentQuantity)}
-            </span>
-          </p>
-        </div>
-        <div className="mobile-manager-stock-card-qty-block">
-          <span className="mobile-manager-stock-card-qty-label">Minimum</span>
-          <p className="mobile-manager-stock-card-qty-line">
-            <span className="mobile-manager-stock-card-qty-value">
-              {formatHumanQuantityValue(minimumQuantity)}
-            </span>
-            <span className="mobile-manager-stock-card-qty-unit">
-              {formatHumanUnitLabel(item.unit, minimumQuantity)}
-            </span>
-          </p>
-        </div>
-      </div>
-
-      {supplierLabel ? (
-        <div className="mobile-manager-stock-card-supplier">
-          <span className="mobile-manager-stock-card-supplier-label">Supplier</span>
-          <span className="mobile-manager-stock-card-supplier-name">{supplierLabel}</span>
-        </div>
-      ) : null}
-
-      {showAddToOrder ? (
-        <button
-          type="button"
-          className="mobile-manager-stock-card-order-btn"
-          onClick={() => onAddToOrder?.(item)}
-          disabled={!isWorkspaceReady}
-        >
-          Add to order
-        </button>
-      ) : null}
-    </article>
+    <div className="mobile-stock-detail-sheet" role="presentation">
+      <button type="button" className="mobile-stock-detail-backdrop" aria-label="Close product" onClick={onClose} />
+      <section className="mobile-stock-detail-card" role="dialog" aria-modal="true" aria-labelledby="mobile-stock-detail-title">
+        <header className="mobile-stock-detail-header">
+          <div>
+            <h2 id="mobile-stock-detail-title">{item.name}</h2>
+            <p>{categoryLabel}</p>
+          </div>
+          <button type="button" className="ghost-btn" onClick={onClose}>Close</button>
+        </header>
+        <dl>
+          <div>
+            <dt>On hand</dt>
+            <dd>{formatHumanQuantityValue(currentQuantity)} {formatHumanUnitLabel(item.unit, currentQuantity)}</dd>
+          </div>
+          <div>
+            <dt>Minimum</dt>
+            <dd>{formatHumanQuantityValue(minimumQuantity)} {formatHumanUnitLabel(item.unit, minimumQuantity)}</dd>
+          </div>
+          <div>
+            <dt>Status</dt>
+            <dd>{getStockStatusShortLabel(item.status)}</dd>
+          </div>
+          {supplierLabel ? (
+            <div>
+              <dt>Supplier</dt>
+              <dd>{supplierLabel}</dd>
+            </div>
+          ) : null}
+        </dl>
+        {showAddToOrder ? (
+          <button
+            type="button"
+            className="primary-btn"
+            onClick={() => onAddToOrder?.(item)}
+            disabled={!isWorkspaceReady}
+          >
+            Add to order
+          </button>
+        ) : null}
+      </section>
+    </div>
   )
 }
 
@@ -204,6 +228,7 @@ export function MobileManagerStockView({
   const [statusFilter, setStatusFilter] = useState('all')
   const [categoryFilter, setCategoryFilter] = useState('All')
   const [orderModalGroups, setOrderModalGroups] = useState(null)
+  const [detailItem, setDetailItem] = useState(null)
 
   const totalItems = Number(stockSummary?.totalItems) || 0
   const lowCount = Number(stockSummary?.lowStock) || 0
@@ -431,9 +456,7 @@ export function MobileManagerStockView({
             <li key={item.id}>
               <MobileManagerStockItemCard
                 item={item}
-                canManageStock={canManageStock}
-                isWorkspaceReady={isWorkspaceReady}
-                onAddToOrder={handleAddItemToOrder}
+                onOpen={setDetailItem}
               />
             </li>
           ))}
@@ -441,8 +464,21 @@ export function MobileManagerStockView({
       )}
       </div>
 
+      {detailItem ? (
+        <MobileStockDetailSheet
+          item={detailItem}
+          canManageStock={canManageStock}
+          isWorkspaceReady={isWorkspaceReady}
+          onClose={() => setDetailItem(null)}
+          onAddToOrder={(item) => {
+            setDetailItem(null)
+            handleAddItemToOrder(item)
+          }}
+        />
+      ) : null}
+
       {canManageStock ? (
-        <section className="mobile-manager-stock-action-bar" aria-label="Stock quick actions">
+        <section className="mobile-manager-stock-action-bar is-compact" aria-label="Stock quick actions">
           <button
             type="button"
             className="mobile-manager-stock-quick-btn"

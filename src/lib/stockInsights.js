@@ -1,10 +1,12 @@
+import { resolveStockStorageLocation } from './stockCatalog'
 import { filterStockDashboardItems } from './stockDashboardBrowse'
+import { resolveStockItemQuantityStatus } from './stockUtils'
 
 const STALE_COUNT_DAYS = 14
 
 export const STOCK_ATTENTION_GROUPS = [
   { id: 'out', label: 'Out of stock', tone: 'danger' },
-  { id: 'low', label: 'At minimum', tone: 'warning' },
+  { id: 'low', label: 'Low', tone: 'warning' },
   { id: 'count', label: 'Needs count', tone: 'warning' },
   { id: 'data', label: 'Missing supplier or cost', tone: 'muted' },
 ]
@@ -75,6 +77,57 @@ function itemMissingSupplierOrCost(item, canManage = false) {
   if (!supplier) return true
   if (canManage && (!Number.isFinite(costPrice) || costPrice <= 0)) return true
   return false
+}
+
+function quantityStatus(item) {
+  return item?.status || resolveStockItemQuantityStatus(item)
+}
+
+/**
+ * Out and low products, grouped by supplier. Uses the shared quantity status.
+ */
+export function buildToOrderSupplierGroups(items = []) {
+  const groups = new Map()
+
+  ;(items ?? []).forEach((item) => {
+    if (!item || item.active === false) return
+    const status = quantityStatus(item)
+    if (status !== 'out' && status !== 'low') return
+    const supplier = `${item.supplier ?? ''}`.trim() || 'No supplier'
+    const current = groups.get(supplier) ?? { supplier, out: 0, low: 0 }
+    current[status] += 1
+    groups.set(supplier, current)
+  })
+
+  return Array.from(groups.values()).sort((left, right) => {
+    const leftCount = left.out + left.low
+    const rightCount = right.out + right.low
+    if (leftCount !== rightCount) return rightCount - leftCount
+    return left.supplier.localeCompare(right.supplier)
+  })
+}
+
+/**
+ * Products that are in stock but stale or never counted, grouped by storage.
+ * Out and low stay on To order so this number stays small.
+ */
+export function buildToCountStorageGroups(items = [], { canManage = false, now = new Date() } = {}) {
+  const groups = new Map()
+
+  ;(items ?? []).forEach((item) => {
+    if (!item || item.active === false) return
+    const annotated = item.status ? item : { ...item, status: resolveStockItemQuantityStatus(item) }
+    if (getStockItemAttentionPriority(annotated, { canManage, now }) !== 'count') return
+    const storage = resolveStockStorageLocation(annotated) || 'Unassigned'
+    const current = groups.get(storage) ?? { storage, count: 0 }
+    current.count += 1
+    groups.set(storage, current)
+  })
+
+  return Array.from(groups.values()).sort((left, right) => {
+    if (left.count !== right.count) return right.count - left.count
+    return left.storage.localeCompare(right.storage)
+  })
 }
 
 export function getStockItemAttentionPriority(item, { canManage = false, now = new Date() } = {}) {

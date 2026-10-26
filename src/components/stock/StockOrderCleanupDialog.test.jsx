@@ -132,6 +132,12 @@ describe('StockOrdersView cleanup entry point', () => {
       isWorkspaceReady: true,
       workspaceId: 'ws-1',
     }))
+    expect(managed.container.textContent).not.toContain('Delete purchase orders…')
+    const more = Array.from(managed.container.querySelectorAll('button')).find((node) => node.textContent === 'More')
+    expect(more).toBeTruthy()
+    act(() => {
+      more.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    })
     expect(managed.container.textContent).toContain('Delete purchase orders…')
     managed.cleanup()
 

@@ -159,6 +159,8 @@ function StorageSummaryCard({
         ) : null}
       </div>
       {canAssign || canRename ? (
+        <details className="stock-storage-edit">
+          <summary>Edit</summary>
         <div className="stock-storage-center-card-actions">
           {canAssign ? (
           <>
@@ -216,6 +218,7 @@ function StorageSummaryCard({
             </button>
           ) : null}
         </div>
+        </details>
       ) : null}
     </article>
   )

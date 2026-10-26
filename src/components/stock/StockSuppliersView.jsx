@@ -80,6 +80,7 @@ function StockSupplierSortDropdown({ value, options, onChange }) {
 
 function StockSupplierCard({ supplier, metrics, onOpen, showSpend = true }) {
   const statusTone = getSupplierStatusTone(supplier)
+  const hasOrderHistory = Boolean(metrics.lastOrderDate) || Number(metrics.totalSpend) > 0
 
   return (
     <button
@@ -118,13 +119,15 @@ function StockSupplierCard({ supplier, metrics, onOpen, showSpend = true }) {
           <span className="stock-supplier-card-stat-label">Open orders</span>
           <span className="stock-supplier-card-stat-value">{metrics.openOrdersCount}</span>
         </div>
-        <div className="stock-supplier-card-stat">
-          <span className="stock-supplier-card-stat-label">Last order</span>
-          <span className="stock-supplier-card-stat-value stock-supplier-card-stat-value-compact">
-            {metrics.lastOrderDate ? formatSupplierMetricDate(metrics.lastOrderDate) : '—'}
-          </span>
-        </div>
-        {showSpend ? (
+        {hasOrderHistory ? (
+          <div className="stock-supplier-card-stat">
+            <span className="stock-supplier-card-stat-label">Last order</span>
+            <span className="stock-supplier-card-stat-value stock-supplier-card-stat-value-compact">
+              {metrics.lastOrderDate ? formatSupplierMetricDate(metrics.lastOrderDate) : '—'}
+            </span>
+          </div>
+        ) : null}
+        {showSpend && hasOrderHistory ? (
           <div className="stock-supplier-card-stat">
             <span className="stock-supplier-card-stat-label">Total spend</span>
             <span className="stock-supplier-card-stat-value stock-supplier-card-stat-value-gold">

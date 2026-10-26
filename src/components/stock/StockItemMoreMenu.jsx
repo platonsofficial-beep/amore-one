@@ -206,7 +206,7 @@ export function StockItemMoreMenu({
               return (
                 <div
                   key={entry.id}
-                  className="stock-item-more-menu-separator"
+                  className={`stock-item-more-menu-separator${entry.id === 'sep-lifecycle' ? ' is-destructive' : ''}`}
                   role="separator"
                 />
               )

@@ -7,9 +7,11 @@ import {
 import { isStockStorageParSchemaMissing, STORAGE_PAR_UNAVAILABLE_MESSAGE } from '../lib/stockStoragePar'
 import {
   buildSupplyOrderDraftGroups,
+  buildSupplyOrderDraftReview,
   formatSupplyOrderDraftNotice,
   formatSupplyOrderDraftPreview,
   planSupplyOrderDraftWrites,
+  reviewPlanToWrites,
   SUPPLY_ORDER_DRAFT_EMPTY_MESSAGE,
 } from '../lib/stockSupplyOrderDraft'
 import {
@@ -142,11 +144,13 @@ export async function previewSupplyOrderDrafts(workspaceId, {
   })
   const plan = planSupplyOrderDraftWrites(groups, existingOrders)
   const lines = formatSupplyOrderDraftPreview(plan, existingOrders)
+  const review = buildSupplyOrderDraftReview(plan)
 
   return {
     unavailable: false,
     parsReady: true,
     lines,
+    review,
     message: lines.length > 0
       ? 'Review these drafts before they are saved.'
       : SUPPLY_ORDER_DRAFT_EMPTY_MESSAGE,
@@ -158,6 +162,7 @@ export async function prepareSupplyOrderDrafts(workspaceId, {
   suppliers = [],
   existingOrders = [],
   createdBy = null,
+  review = null,
   loadSource = loadSupplyOrderSource,
   createOrder = createStockOrder,
   updateDraft = updateStockOrderDraft,
@@ -176,14 +181,17 @@ export async function prepareSupplyOrderDrafts(workspaceId, {
     }
   }
 
-  const groups = buildSupplyOrderDraftGroups({
-    items,
-    suppliers,
-    storages: source.storages ?? [],
-    balances: source.balances ?? [],
-    pars: source.pars ?? [],
-  })
-  const plan = planSupplyOrderDraftWrites(groups, existingOrders)
+  const reviewedPlan = Array.isArray(review) ? reviewPlanToWrites(review) : null
+  const groups = reviewedPlan
+    ? []
+    : buildSupplyOrderDraftGroups({
+      items,
+      suppliers,
+      storages: source.storages ?? [],
+      balances: source.balances ?? [],
+      pars: source.pars ?? [],
+    })
+  const plan = reviewedPlan ?? planSupplyOrderDraftWrites(groups, existingOrders)
   const created = []
   const updated = []
 

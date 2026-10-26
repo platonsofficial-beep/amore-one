@@ -3372,9 +3372,9 @@
   bottom: calc(66px + env(safe-area-inset-bottom, 0px));
   z-index: 6;
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8px;
-  padding: 8px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+  padding: 6px;
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 18px;
   background: rgba(16, 16, 18, 0.94);
@@ -3430,7 +3430,7 @@
   flex-direction: column;
   gap: 5px;
   margin: 0;
-  padding: 0 0 12px;
+  padding: 0 0 88px;
   list-style: none;
 }
 
@@ -8567,4 +8567,88 @@ html[data-one-debug-scroll='1'] .floor-plan-viewport.is-host-viewport {
 .mobile-host-floor-selection-card.is-compact-context .mobile-host-floor-selection-meta {
   font-size: 0.68rem;
   color: rgba(168, 159, 146, 0.68);
+}
+
+.mobile-manager-stock-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 52px;
+  padding: 8px 10px;
+  border: 0;
+  text-align: left;
+  color: inherit;
+  cursor: pointer;
+}
+
+.mobile-manager-stock-row .mobile-manager-stock-card-name {
+  font-size: 1rem;
+}
+
+.mobile-manager-stock-row-qty {
+  font-size: 0.95rem;
+  font-weight: 650;
+  white-space: nowrap;
+}
+
+.mobile-stock-detail-sheet {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: flex;
+  align-items: flex-end;
+}
+
+.mobile-stock-detail-backdrop {
+  position: absolute;
+  inset: 0;
+  border: 0;
+  background: rgba(6, 12, 22, 0.62);
+}
+
+.mobile-stock-detail-card {
+  position: relative;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 18px 16px calc(18px + env(safe-area-inset-bottom, 0px));
+  border-radius: 20px 20px 0 0;
+  background: #102033;
+  color: #fff7e8;
+}
+
+.mobile-stock-detail-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.mobile-stock-detail-header h2 {
+  margin: 0;
+  font-size: 1.25rem;
+}
+
+.mobile-stock-detail-header p,
+.mobile-stock-detail-card dt {
+  margin: 0;
+  color: rgba(255, 247, 232, 0.68);
+}
+
+.mobile-stock-detail-card dl {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0;
+}
+
+.mobile-stock-detail-card dd {
+  margin: 2px 0 0;
+  font-size: 1.05rem;
+}
+
+.mobile-manager-stock-chip-scroll {
+  padding-inline: 2px 12px;
 }

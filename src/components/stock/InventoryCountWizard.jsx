@@ -356,8 +356,29 @@ export function InventoryCountWizard({ isOpen, onClose, onStartSession }) {
         ) : null}
 
         {step === 1 ? (
+          <div className="inventory-count-wizard-body">
+            <div className="inventory-count-front-door">
+              {COUNT_TYPES.filter((countType) => countType.id === 'new' || countType.id === 'partial').map((countType) => (
+                <button
+                  key={countType.id}
+                  type="button"
+                  className={`inventory-count-door-choice${selectedType === countType.id ? ' is-selected' : ''}`}
+                  onClick={() => setSelectedType(countType.id)}
+                >
+                  <span className="inventory-count-type-card-title">
+                    {countType.id === 'new' ? 'Full count' : 'Quick count'}
+                  </span>
+                  <span className="inventory-count-type-card-description">
+                    {countType.id === 'new'
+                      ? 'Every storage in this count.'
+                      : 'One storage.'}
+                  </span>
+                </button>
+              ))}
+            </div>
+            <details className="inventory-count-more-types">
+              <summary>More options</summary>
           <div
-            className="inventory-count-wizard-body"
             role="radiogroup"
             aria-label="Count Type"
           >
@@ -389,6 +410,8 @@ export function InventoryCountWizard({ isOpen, onClose, onStartSession }) {
                 </button>
               )
             })}
+          </div>
+            </details>
           </div>
         ) : null}
 

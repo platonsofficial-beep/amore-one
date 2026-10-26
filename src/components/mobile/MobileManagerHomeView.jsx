@@ -204,12 +204,14 @@ export function MobileManagerHomeView({
           </div>
           {canOpenStock && stockLiveSnapshot ? (
             <StockLiveCard
+              stockSummary={stockSummary}
               belowParCount={stockLiveSnapshot.belowParCount}
               parsReady={stockLiveSnapshot.parsReady}
               parsStatus={stockLiveSnapshot.status}
               stockOrders={stockOrders}
               lastInventoryCountAt={stockLiveSnapshot.lastInventoryCountAt}
               timeZone={timeZone}
+              onOpenHealth={onOpenStock}
               onOpenBelowPar={onOpenBelowPar}
               onOpenDrafts={onOpenDrafts}
               onOpenCounts={onOpenCounts}

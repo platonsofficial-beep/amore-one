@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { formatVenueDateTime } from '../../lib/timeFormatUtils'
+import { formatTimestampDayAndTime24 } from '../../lib/timeFormatUtils'
 import {
   checkInventoryImportUndoEligibility as checkInventoryImportUndoEligibilityDefault,
   formatInventoryImportWizardError,
@@ -146,7 +146,18 @@ export function InventoryImportHistoryList({
       ) : null}
 
       {sessions.length > 0 ? (
-        <ul className="inventory-import-history-list">
+        <table className="inventory-import-history-table">
+          <thead>
+            <tr>
+              <th>When</th>
+              <th>Who</th>
+              <th>File</th>
+              <th>Result</th>
+              <th>Status</th>
+              <th />
+            </tr>
+          </thead>
+          <tbody>
           {sessions.map((session) => {
             const eligibility = eligibilityById[session.id]
             const showUndo = session.status === 'completed' && eligibility?.allowed === true
@@ -154,22 +165,25 @@ export function InventoryImportHistoryList({
               ? eligibility.reasons
               : []
             return (
-              <li
+              <tr
                 key={session.id}
                 className="inventory-import-history-item"
                 data-import-history-session={session.id}
               >
-                <p className="inventory-import-history-when">
-                  {formatVenueDateTime(session.occurredAt, timeZone)}
-                </p>
-                <p className="inventory-import-history-who">{session.actorName || 'Unknown'}</p>
-                {session.sourceFilename ? (
-                  <p className="inventory-import-history-file">{session.sourceFilename}</p>
-                ) : null}
-                <p className="inventory-import-history-counts">
+                <td className="inventory-import-history-when">
+                  {formatTimestampDayAndTime24(session.occurredAt, '—', timeZone)}
+                </td>
+                <td className="inventory-import-history-who">{session.actorName || 'Unknown'}</td>
+                <td className="inventory-import-history-file">{session.sourceFilename || '—'}</td>
+                <td className="inventory-import-history-counts">
                   Created {session.createdCount} · Linked {session.linkedCount}
-                </p>
-                <p className="inventory-import-history-status-label">{session.statusLabel}</p>
+                </td>
+                <td>
+                  <span className={`inventory-import-status-pill tone-${session.status || 'unknown'}`}>
+                    {session.statusLabel}
+                  </span>
+                </td>
+                <td>
                 {showUndo ? (
                   <button
                     type="button"
@@ -193,10 +207,12 @@ export function InventoryImportHistoryList({
                 {session.status === 'completed' && eligibility && !eligibility.allowed && !eligibility.hidden && reasons.length === 0 ? (
                   <p className="inventory-import-history-reasons">This import cannot be undone.</p>
                 ) : null}
-              </li>
+              </td>
+              </tr>
             )
           })}
-        </ul>
+          </tbody>
+        </table>
       ) : null}
 
       {undoError ? (
