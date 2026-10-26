@@ -28,13 +28,19 @@ import {
 import { getStockItemLocationBalances } from '../../services/stockLocationBalanceService'
 import { getStockMovementsWithAuthors } from '../../services/stockMovementService'
 
-function OverviewRow({ label, value }) {
+function OverviewRow({ label, value, emphasize = false }) {
   return (
-    <div className="stock-product-history-overview-row">
+    <div className={`stock-product-history-overview-row${emphasize ? ' is-emphasized' : ''}`}>
       <dt>{label}</dt>
       <dd>{value}</dd>
     </div>
   )
+}
+
+function isStaleCountLabel(label) {
+  if (label === 'Never') return true
+  const match = /^(\d+) days ago$/.exec(`${label ?? ''}`)
+  return Boolean(match) && Number(match[1]) > 14
 }
 
 function LocationBalanceRow({ balance, unit }) {
@@ -322,7 +328,15 @@ export function StockProductHistoryDrawer({
                     label="Adjustments"
                     value={formatMonthlyMovementStat('adjustments', monthlyInsights.adjustments, item.unit)}
                   />
-                  <OverviewRow label="Last counted" value={lastCountedLabel} />
+                  <OverviewRow
+                    label="Last counted"
+                    value={
+                      lastCountedLabel !== 'Never' && isStaleCountLabel(lastCountedLabel)
+                        ? `Last counted ${lastCountedLabel}`
+                        : lastCountedLabel
+                    }
+                    emphasize={isStaleCountLabel(lastCountedLabel)}
+                  />
                 </dl>
               </section>
 
@@ -353,11 +367,11 @@ export function StockProductHistoryDrawer({
 
         {canManage ? (
           <footer className="stock-product-history-footer" aria-label="Quick actions">
-            <button type="button" className="ghost-btn stock-product-history-action-btn" onClick={onReceive}>
-              Receive
+            <button type="button" className={`${item.status === 'out' || item.status === 'low' ? 'primary-btn' : 'ghost-btn'} stock-product-history-action-btn`} onClick={onReceive}>
+              Receive delivery
             </button>
-            <button type="button" className="ghost-btn stock-product-history-action-btn" onClick={onStockCount}>
-              Stock count
+            <button type="button" className={`${item.status === 'out' || item.status === 'low' ? 'ghost-btn' : 'primary-btn'} stock-product-history-action-btn`} onClick={onStockCount}>
+              Count
             </button>
             <button type="button" className="ghost-btn stock-product-history-action-btn" onClick={onEdit}>
               Edit

@@ -175,6 +175,7 @@ export function StockOrdersView({
 }) {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
   const [isCleanupDialogOpen, setIsCleanupDialogOpen] = useState(false)
+  const [ordersMenuOpen, setOrdersMenuOpen] = useState(false)
   const [selectedOrder, setSelectedOrder] = useState(null)
   const [statusFilter, setStatusFilter] = useState('all')
   const [sortKey, setSortKey] = useState('newest')
@@ -240,14 +241,32 @@ export function StockOrdersView({
         </p>
         {canManage ? (
           <div className="stock-orders-toolbar-actions">
-            <button
-              type="button"
-              className="ghost-btn stock-order-cleanup-open-btn"
-              onClick={() => setIsCleanupDialogOpen(true)}
-              disabled={!isWorkspaceReady || isActionBusy || !workspaceId}
-            >
-              Delete purchase orders…
-            </button>
+            <div className="stock-orders-overflow">
+              <button
+                type="button"
+                className="ghost-btn"
+                aria-expanded={ordersMenuOpen}
+                aria-haspopup="menu"
+                onClick={() => setOrdersMenuOpen((open) => !open)}
+                disabled={!isWorkspaceReady || isActionBusy}
+              >
+                More
+              </button>
+              {ordersMenuOpen ? (
+                <button
+                  type="button"
+                  className="ghost-btn danger-text stock-order-cleanup-open-btn"
+                  role="menuitem"
+                  onClick={() => {
+                    setOrdersMenuOpen(false)
+                    setIsCleanupDialogOpen(true)
+                  }}
+                  disabled={!isWorkspaceReady || isActionBusy || !workspaceId}
+                >
+                  Delete orders
+                </button>
+              ) : null}
+            </div>
             {onPrepareDrafts ? (
               <button
                 type="button"
@@ -255,7 +274,7 @@ export function StockOrdersView({
                 onClick={() => { void onPrepareDrafts() }}
                 disabled={!isWorkspaceReady || isActionBusy}
               >
-                {isSaving ? 'Preparing…' : 'Prepare drafts'}
+                {isSaving ? 'Saving…' : 'Suggest order'}
               </button>
             ) : null}
             <button
@@ -334,7 +353,7 @@ export function StockOrdersView({
                   onClick={() => { void onPrepareDrafts() }}
                   disabled={!isWorkspaceReady || isActionBusy}
                 >
-                  {isSaving ? 'Preparing…' : 'Prepare drafts'}
+                  {isSaving ? 'Saving…' : 'Suggest order'}
                 </button>
               ) : null}
               <button

@@ -315,6 +315,8 @@ describe('StockDashboardView visibility UI', () => {
 
     const labels = Array.from(document.querySelectorAll('[role="menuitem"]')).map((node) => node.textContent)
     expect(labels).toEqual([
+      'Receive delivery',
+      'Count',
       'Usage',
       'Waste',
       'Adjust',
@@ -322,15 +324,15 @@ describe('StockDashboardView visibility UI', () => {
       'Duplicate',
       'History & details',
       'Reactivate',
-      'Permanently Delete…',
+      'Delete product',
     ])
     expect(document.querySelectorAll('[role="separator"]')).toHaveLength(3)
-    expect(labels).toContain('Permanently Delete…')
+    expect(labels).toContain('Delete product')
     expect(labels).toContain('Edit')
 
     act(() => {
       Array.from(document.querySelectorAll('[role="menuitem"]'))
-        .find((node) => node.textContent === 'Permanently Delete…')
+        .find((node) => node.textContent === 'Delete product')
         ?.dispatchEvent(new MouseEvent('click', { bubbles: true }))
     })
 

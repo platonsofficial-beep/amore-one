@@ -139,6 +139,11 @@ export function formatStockMovementHeadline(movement, unit = '') {
   if (!Number.isFinite(quantity)) return ''
 
   if (movement.type === 'stock_count') {
+    const before = Number(movement?.quantityBefore)
+    const after = Number(movement?.quantityAfter)
+    if (Number.isFinite(before) && Number.isFinite(after) && before === 0) {
+      return `Opening count ${formatQuantityWithUnit(after, unit)}`
+    }
     const transition = readQuantityTransition(movement, unit)
     if (transition) return `Count ${transition}`
     return `Counted ${formatQuantityWithUnit(Math.abs(quantity), unit)}`

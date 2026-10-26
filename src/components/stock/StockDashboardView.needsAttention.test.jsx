@@ -144,7 +144,7 @@ describe('StockDashboardView Needs Attention density (P8.17.2 / P8.17.3)', () =>
     return [...outItems, ...lowItems, okItem]
   }
 
-  it('shows Needs Attention with a deterministic preview and per-group expand control', () => {
+  it('summarises out and low on To order instead of listing every attention row', () => {
     const catalog = buildLargeAttentionCatalog()
     const { container, cleanup } = render(createElement(StockDashboardView, {
       stockItems: catalog,
@@ -155,41 +155,12 @@ describe('StockDashboardView Needs Attention density (P8.17.2 / P8.17.3)', () =>
       catalogLoadFailed: false,
     }))
 
-    const section = container.querySelector('[aria-label="Needs attention"]')
-    expect(section).toBeTruthy()
-    expect(section.textContent).toContain('13 products may need attention')
-    expect(section.textContent).toContain('Showing top 5 per group')
-
-    const outGroup = section.querySelector('[aria-label="Out of stock"]')
-    const lowGroup = section.querySelector('[aria-label="At minimum"]')
-    const previewNames = Array.from(outGroup.querySelectorAll('.stock-attention-name'))
-      .map((node) => node.textContent)
-    expect(previewNames).toEqual(['OUT 00', 'OUT 01', 'OUT 02', 'OUT 03', 'OUT 04'])
-    expect(outGroup.querySelectorAll('.stock-attention-name')).toHaveLength(5)
-    expect(lowGroup.querySelectorAll('.stock-attention-name')).toHaveLength(5)
-
-    const outToggle = Array.from(outGroup.querySelectorAll('button'))
-      .find((node) => node.textContent === 'Show all 7')
-    const lowToggle = Array.from(lowGroup.querySelectorAll('button'))
-      .find((node) => node.textContent === 'Show all 6')
-    expect(outToggle).toBeTruthy()
-    expect(lowToggle).toBeTruthy()
-    expect(outToggle.getAttribute('aria-expanded')).toBe('false')
-    expect(section.querySelector('.stock-needs-attention-toggle')).toBeNull()
-    expect(section.textContent).not.toContain('Show all 13')
-
-    act(() => {
-      outToggle.dispatchEvent(new MouseEvent('click', { bubbles: true }))
-    })
-
-    expect(outToggle.getAttribute('aria-expanded')).toBe('true')
-    expect(outToggle.textContent).toBe('Show less')
-    expect(Array.from(outGroup.querySelectorAll('.stock-attention-name')).map((node) => node.textContent))
-      .toEqual(['OUT 00', 'OUT 01', 'OUT 02', 'OUT 03', 'OUT 04', 'OUT 05', 'OUT 06'])
-    // Low group stays collapsed independently
-    expect(lowGroup.querySelectorAll('.stock-attention-name')).toHaveLength(5)
-    expect(lowToggle.textContent).toBe('Show all 6')
-    expect(lowToggle.getAttribute('aria-expanded')).toBe('false')
+    const today = container.querySelector('[aria-label="What to do today"]')
+    expect(today).toBeTruthy()
+    expect(today.textContent).toContain('7 out · 6 low')
+    expect(container.querySelector('[aria-label="Needs attention"]')).toBeNull()
+    expect(today.textContent).not.toContain('OUT 00')
+    expect(today.textContent).not.toContain('Show all')
 
     cleanup()
   })
@@ -253,7 +224,7 @@ describe('StockDashboardView Needs Attention density (P8.17.2 / P8.17.3)', () =>
 
     expect(container.querySelector('[aria-label="Needs attention"]')).toBeNull()
     expect(container.textContent).toContain('No products yet')
-    expect(container.textContent).toContain('+ Add item')
+    expect(container.textContent).toContain('Add item')
 
     cleanup()
   })

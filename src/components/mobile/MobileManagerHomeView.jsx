@@ -62,7 +62,7 @@ function MobileManagerQuickActions({
           className="mobile-manager-action-btn mobile-manager-action-btn-primary mobile-manager-action-btn-featured"
           onClick={onReceiveDeliveries}
         >
-          Receive deliveries
+          Receive delivery
         </button>
       ) : null}
       <div className="mobile-manager-actions-grid">
@@ -204,12 +204,14 @@ export function MobileManagerHomeView({
           </div>
           {canOpenStock && stockLiveSnapshot ? (
             <StockLiveCard
+              stockSummary={stockSummary}
               belowParCount={stockLiveSnapshot.belowParCount}
               parsReady={stockLiveSnapshot.parsReady}
               parsStatus={stockLiveSnapshot.status}
               stockOrders={stockOrders}
               lastInventoryCountAt={stockLiveSnapshot.lastInventoryCountAt}
               timeZone={timeZone}
+              onOpenHealth={onOpenStock}
               onOpenBelowPar={onOpenBelowPar}
               onOpenDrafts={onOpenDrafts}
               onOpenCounts={onOpenCounts}

@@ -6,6 +6,8 @@ const MENU_MARGIN = 8
 const MOBILE_SHEET_QUERY = '(max-width: 900px)'
 
 const MENU_ITEMS = [
+  { id: 'receive', label: 'Receive delivery', group: 'operations' },
+  { id: 'count', label: 'Count', group: 'operations' },
   { id: 'usage', label: 'Usage', group: 'operations' },
   { id: 'waste', label: 'Waste', group: 'operations' },
   { id: 'adjust', label: 'Adjust', group: 'operations' },
@@ -16,7 +18,7 @@ const MENU_ITEMS = [
   { id: 'sep-management', type: 'separator' },
   { id: 'deactivate', label: 'Deactivate', group: 'lifecycle' },
   { id: 'sep-lifecycle', type: 'separator' },
-  { id: 'permanently_delete', label: 'Permanently Delete…', danger: true, group: 'destructive' },
+  { id: 'permanently_delete', label: 'Delete product', danger: true, group: 'destructive' },
 ]
 
 function computeMenuPosition(anchorRect, menuWidth, menuHeight) {
@@ -60,6 +62,8 @@ export function StockItemMoreMenu({
   onHistory,
   onDeactivate,
   onPermanentlyDelete,
+  onReceive,
+  onCount,
 }) {
   const panelRef = useRef(null)
   const [position, setPosition] = useState({ top: 0, left: 0, placement: 'below' })
@@ -143,6 +147,8 @@ export function StockItemMoreMenu({
   if (!isMobileSheet && !hasValidAnchorRect(anchorEl)) return null
 
   const handlers = {
+    receive: onReceive,
+    count: onCount,
     usage: onUsage,
     waste: onWaste,
     adjust: onAdjust,
@@ -206,7 +212,7 @@ export function StockItemMoreMenu({
               return (
                 <div
                   key={entry.id}
-                  className="stock-item-more-menu-separator"
+                  className={`stock-item-more-menu-separator${entry.id === 'sep-lifecycle' ? ' is-destructive' : ''}`}
                   role="separator"
                 />
               )

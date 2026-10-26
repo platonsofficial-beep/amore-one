@@ -8,6 +8,8 @@ const COUNTABLE_UNIT_FORMS = Object.freeze({
   piece: { singular: 'Piece', plural: 'Pieces' },
   bottle: { singular: 'Bottle', plural: 'Bottles' },
   can: { singular: 'Can', plural: 'Cans' },
+  tin: { singular: 'Tin', plural: 'Tins' },
+  tins: { singular: 'Tin', plural: 'Tins' },
   roll: { singular: 'Roll', plural: 'Rolls' },
   keg: { singular: 'Keg', plural: 'Kegs' },
 })
@@ -17,20 +19,37 @@ const MEASURED_UNIT_LABELS = Object.freeze({
   kilogram: 'kg',
   kilograms: 'kg',
   kg: 'kg',
+  kgs: 'kg',
   gram: 'g',
   grams: 'g',
   g: 'g',
+  gs: 'g',
   liter: 'L',
   liters: 'L',
   litre: 'L',
   litres: 'L',
   l: 'L',
+  ls: 'L',
   milliliter: 'mL',
   milliliters: 'mL',
   millilitre: 'mL',
   millilitres: 'mL',
   ml: 'mL',
+  mls: 'mL',
 })
+
+function lookupMeasuredUnit(key) {
+  if (Object.prototype.hasOwnProperty.call(MEASURED_UNIT_LABELS, key)) {
+    return MEASURED_UNIT_LABELS[key]
+  }
+  if (key.endsWith('s')) {
+    const stem = key.slice(0, -1)
+    if (Object.prototype.hasOwnProperty.call(MEASURED_UNIT_LABELS, stem)) {
+      return MEASURED_UNIT_LABELS[stem]
+    }
+  }
+  return ''
+}
 
 /**
  * @param {unknown} value
@@ -55,9 +74,8 @@ export function formatInventoryUnitLabel(unit) {
   if (!normalized) return ''
 
   const key = normalized.toLocaleLowerCase('en-US')
-  if (Object.prototype.hasOwnProperty.call(MEASURED_UNIT_LABELS, key)) {
-    return MEASURED_UNIT_LABELS[key]
-  }
+  const measured = lookupMeasuredUnit(key)
+  if (measured) return measured
   if (Object.prototype.hasOwnProperty.call(COUNTABLE_UNIT_FORMS, key)) {
     return COUNTABLE_UNIT_FORMS[key].singular
   }
@@ -82,9 +100,8 @@ export function formatInventoryUnit(quantity, unit = '') {
   const numericQuantity = Number(quantity)
   const isSingular = Number.isFinite(numericQuantity) && numericQuantity === 1
 
-  if (Object.prototype.hasOwnProperty.call(MEASURED_UNIT_LABELS, key)) {
-    return `${formattedQuantity} ${MEASURED_UNIT_LABELS[key]}`
-  }
+  const measured = lookupMeasuredUnit(key)
+  if (measured) return `${formattedQuantity} ${measured}`
 
   if (Object.prototype.hasOwnProperty.call(COUNTABLE_UNIT_FORMS, key)) {
     const forms = COUNTABLE_UNIT_FORMS[key]

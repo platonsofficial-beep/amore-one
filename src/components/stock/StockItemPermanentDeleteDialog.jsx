@@ -315,7 +315,7 @@ export function StockItemPermanentDeleteDialog({
           <div>
             <p className="eyebrow">Destructive action</p>
             <h3 id="stock-item-permanent-delete-title">
-              {phase === 'success' ? 'Product deleted' : '⚠ Permanently Delete Product'}
+              {phase === 'success' ? 'Product deleted' : 'Delete product'}
             </h3>
             {phase !== 'success' ? (
               <p className="stock-item-permanent-delete-subtitle">
@@ -559,7 +559,7 @@ export function StockItemPermanentDeleteDialog({
                   className="primary-btn stock-item-permanent-delete-submit"
                   disabled={!canSubmit || phase === 'loading' || phase === 'preview_error'}
                 >
-                  {phase === 'executing' || isBusy ? 'Deleting…' : 'Permanently delete'}
+                  {phase === 'executing' || isBusy ? 'Deleting…' : 'Delete product'}
                 </button>
               </div>
             </div>

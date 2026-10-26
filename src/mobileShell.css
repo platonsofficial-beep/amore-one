@@ -3347,12 +3347,12 @@
 .mobile-manager-stock-chip {
   flex: 0 0 auto;
   min-height: 44px;
-  padding: 0 11px;
+  padding: 0 12px;
   border: 0;
   border-radius: 999px;
-  background: var(--one-bronze);
-  box-shadow: none;
-  color: var(--one-bronze-ink);
+  background: transparent;
+  box-shadow: inset 0 0 0 1px rgba(168, 196, 224, 0.38);
+  color: #d5e4f4;
   font-size: 0.82rem;
   font-weight: 600;
   white-space: nowrap;
@@ -3372,9 +3372,9 @@
   bottom: calc(66px + env(safe-area-inset-bottom, 0px));
   z-index: 6;
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8px;
-  padding: 8px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+  padding: 6px;
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 18px;
   background: rgba(16, 16, 18, 0.94);
@@ -3430,7 +3430,7 @@
   flex-direction: column;
   gap: 5px;
   margin: 0;
-  padding: 0 0 12px;
+  padding: 0 0 88px;
   list-style: none;
 }
 
@@ -8567,4 +8567,353 @@ html[data-one-debug-scroll='1'] .floor-plan-viewport.is-host-viewport {
 .mobile-host-floor-selection-card.is-compact-context .mobile-host-floor-selection-meta {
   font-size: 0.68rem;
   color: rgba(168, 159, 146, 0.68);
+}
+
+.mobile-manager-stock-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 52px;
+  padding: 8px 10px;
+  border: 0;
+  text-align: left;
+  color: inherit;
+  cursor: pointer;
+}
+
+.mobile-manager-stock-row .mobile-manager-stock-card-name {
+  font-size: 1rem;
+}
+
+.mobile-manager-stock-row-qty {
+  font-size: 0.95rem;
+  font-weight: 650;
+  white-space: nowrap;
+}
+
+.mobile-stock-detail-sheet {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: flex;
+  align-items: flex-end;
+}
+
+.mobile-stock-detail-backdrop {
+  position: absolute;
+  inset: 0;
+  border: 0;
+  background: rgba(6, 12, 22, 0.62);
+}
+
+.mobile-stock-detail-card {
+  position: relative;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 18px 16px calc(18px + env(safe-area-inset-bottom, 0px));
+  border-radius: 20px 20px 0 0;
+  background: #102033;
+  color: #fff7e8;
+}
+
+.mobile-stock-detail-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.mobile-stock-detail-header h2 {
+  margin: 0;
+  font-size: 1.25rem;
+}
+
+.mobile-stock-detail-header p,
+.mobile-stock-detail-card dt {
+  margin: 0;
+  color: rgba(255, 247, 232, 0.68);
+}
+
+.mobile-stock-detail-card dl {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0;
+}
+
+.mobile-stock-detail-card dd {
+  margin: 2px 0 0;
+  font-size: 1.05rem;
+}
+
+.mobile-manager-stock-chip-scroll {
+  padding-inline: 2px 12px;
+}
+
+/* Phone landscape for manager stock and Today. Portrait staff screens
+   keep the fixed sheet and the portrait action bar. */
+@media (orientation: landscape) and (max-height: 520px) {
+  .mobile-manager-app:has(.mobile-manager-stock-inventory) {
+    display: flex;
+    flex-direction: column;
+    height: 100dvh;
+    max-height: 100dvh;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .mobile-app-content:has(.mobile-manager-stock-inventory) {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    padding-top: 4px;
+    padding-bottom: 4px;
+  }
+
+  .mobile-manager-stock-inventory {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-height: 0;
+    max-height: none;
+    overflow: hidden;
+    padding-bottom: 0;
+  }
+
+  .mobile-manager-stock-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    min-width: 0;
+  }
+
+  .mobile-manager-stock-command {
+    flex: 1 1 auto;
+    flex-direction: row;
+    align-items: baseline;
+    gap: 10px;
+    min-width: 0;
+    padding: 0;
+  }
+
+  .mobile-manager-stock-command-title {
+    font-size: 1.12rem;
+  }
+
+  .mobile-manager-stock-command-stats {
+    flex-wrap: nowrap;
+    overflow: hidden;
+    font-size: 0.75rem;
+  }
+
+  .mobile-manager-app .mobile-manager-stock-inventory .mobile-manager-stock-action-bar {
+    position: static;
+    left: auto;
+    right: auto;
+    bottom: auto;
+    z-index: 1;
+    flex: 0 0 auto;
+    width: auto;
+    grid-template-columns: repeat(3, max-content);
+    gap: 4px;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+    backdrop-filter: none;
+  }
+
+  .mobile-manager-stock-inventory .mobile-manager-stock-quick-btn {
+    min-height: 36px;
+    padding: 0 10px;
+    border-radius: 10px;
+    font-size: 0.78rem;
+    white-space: nowrap;
+  }
+
+  .mobile-manager-stock-pending-banner {
+    flex-wrap: nowrap;
+    align-items: center;
+    gap: 8px;
+    margin: 0;
+    min-height: 36px;
+    padding: 0 8px;
+    border-radius: 10px;
+  }
+
+  .mobile-manager-stock-pending-copy {
+    display: flex;
+    flex: 1 1 auto;
+    flex-wrap: nowrap;
+    align-items: baseline;
+    gap: 8px;
+    min-width: 0;
+    overflow: hidden;
+  }
+
+  .mobile-manager-stock-pending-title,
+  .mobile-manager-stock-pending-message {
+    margin: 0;
+    overflow: hidden;
+    font-size: 0.78rem;
+    line-height: 1.2;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+
+  .mobile-manager-stock-pending-message {
+    flex: 1 1 auto;
+    color: #b8c7dc;
+  }
+
+  .mobile-manager-stock-pending-actions {
+    flex-direction: row;
+    gap: 6px;
+  }
+
+  .mobile-manager-stock-pending-btn {
+    min-height: 32px;
+    padding: 0 10px;
+    white-space: nowrap;
+  }
+
+  .mobile-manager-stock-row {
+    min-height: 40px;
+    padding: 0 8px;
+  }
+
+  .mobile-manager-stock-row .mobile-manager-stock-card-name {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .mobile-manager-stock-sticky-tools {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    position: static;
+    margin: 0;
+    padding: 0;
+    background: transparent;
+    box-shadow: none;
+  }
+
+  .mobile-manager-stock-search {
+    flex: 0 1 220px;
+    min-width: 140px;
+    margin: 0;
+  }
+
+  .mobile-manager-stock-search input {
+    min-height: 36px;
+  }
+
+  .mobile-manager-stock-filters {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .mobile-manager-stock-inventory .mobile-manager-stock-chip {
+    min-height: 32px;
+    padding: 0 10px;
+  }
+
+  .mobile-manager-stock-stage {
+    flex: 1 1 auto;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 10px;
+    min-height: 0;
+  }
+
+  .mobile-manager-stock-inventory.is-detail-open .mobile-manager-stock-stage {
+    grid-template-columns: minmax(0, 1.15fr) minmax(220px, 0.82fr);
+  }
+
+  .mobile-manager-stock-scroll-body {
+    min-height: 0;
+    overflow: auto;
+  }
+
+  .mobile-manager-stock-list {
+    gap: 2px;
+    padding-bottom: 2px;
+  }
+
+  .mobile-manager-stock-inventory.is-detail-open .mobile-stock-detail-sheet {
+    position: relative;
+    inset: auto;
+    z-index: 1;
+    display: flex;
+    align-items: stretch;
+    min-height: 0;
+    height: 100%;
+  }
+
+  .mobile-manager-stock-inventory.is-detail-open .mobile-stock-detail-backdrop {
+    display: none;
+  }
+
+  .mobile-manager-stock-inventory.is-detail-open .mobile-stock-detail-card {
+    width: 100%;
+    height: 100%;
+    max-height: 100%;
+    overflow: auto;
+    gap: 8px;
+    padding: 12px;
+    border-radius: 16px;
+  }
+
+  .mobile-manager-command-center.mobile-manager-home {
+    display: grid;
+    grid-template-columns: minmax(0, 1.2fr) minmax(210px, 0.8fr);
+    gap: 8px;
+    align-items: start;
+    padding-bottom: 0;
+  }
+
+  .mobile-manager-command-center .mobile-manager-command-header {
+    grid-column: 1 / -1;
+  }
+
+  .mobile-manager-command-center .mobile-manager-command-greeting {
+    font-size: 1.05rem;
+  }
+
+  .mobile-manager-command-center .mobile-manager-command-primary {
+    grid-column: 1;
+    grid-row: 2 / span 2;
+    min-height: 0;
+    padding: 8px;
+  }
+
+  .mobile-manager-command-center .mobile-manager-command-secondary {
+    grid-column: 2;
+    grid-row: 2;
+    min-height: 0;
+    padding: 8px;
+  }
+
+  .mobile-manager-command-center .mobile-manager-command-announcements {
+    grid-column: 2;
+    grid-row: 3;
+    min-height: 0;
+  }
+
+  .mobile-manager-command-center .mobile-manager-status-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 4px;
+  }
+
+  .mobile-manager-command-center .mobile-manager-status-card {
+    min-height: 44px;
+    padding: 6px 8px;
+  }
 }

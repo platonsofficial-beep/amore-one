@@ -50,8 +50,7 @@ describe('StockDashboardView compact browse CSS contract (P8.24.3)', () => {
 
     expect(DASHBOARD_SOURCE).toContain('className="sr-only" id="stock-layout-label"')
     expect(DASHBOARD_SOURCE).not.toMatch(/stock-browse-control-label" id="stock-layout-label">View</)
-    expect(DASHBOARD_SOURCE).toContain("compact ? 'Count' : 'Stock count'")
-    expect(DASHBOARD_SOURCE).toContain('aria-label="Stock count"')
+    expect(DASHBOARD_SOURCE).toContain('aria-label="Count"')
   })
 
   it('preserves P8.24.5 visual hierarchy presentation hooks without layout redesign', () => {
@@ -71,7 +70,7 @@ describe('StockDashboardView compact browse CSS contract (P8.24.3)', () => {
     expect(DASHBOARD_SOURCE).toContain('data-stock-bulk-utility-cluster')
     expect(DASHBOARD_SOURCE).toContain('data-stock-widget-density')
     expect(DASHBOARD_SOURCE).not.toContain('Quick stock count')
-    expect(DASHBOARD_SOURCE).toMatch(/stock-compact-count-btn[\s\S]{0,120}Stock count/)
+    expect(DASHBOARD_SOURCE).toMatch(/stock-compact-count-btn[\s\S]{0,80}Count/)
     expect(APP_CSS).toContain('.stock-operations-banner.is-dense')
     expect(APP_CSS).toContain('.stock-today-activity.is-dense')
     expect(APP_CSS).toContain('.stock-bulk-action-cluster')
@@ -123,7 +122,7 @@ describe('StockDashboardView compact browse CSS contract (P8.24.3)', () => {
   })
 
   it('removes Dashboard import entry points while preserving core manager actions (P8.25.3)', () => {
-    expect(DASHBOARD_SOURCE).toContain('+ Add item')
+    expect(DASHBOARD_SOURCE).toContain('Add item')
     expect(DASHBOARD_SOURCE).toContain('Create order')
     expect(DASHBOARD_SOURCE).toContain("selectionMode ? 'Done' : 'Select'")
     expect(DASHBOARD_SOURCE).not.toContain('StockToolbarOverflowMenu')

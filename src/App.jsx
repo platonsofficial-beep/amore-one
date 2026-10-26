@@ -21878,7 +21878,7 @@ function App() {
     }
   }
 
-  const handleConfirmSupplyOrderDrafts = async () => {
+  const handleConfirmSupplyOrderDrafts = async (review) => {
     if (!activeWorkspaceId) {
       throw new Error(stockWorkspaceSetupMessage || 'Workspace is required to prepare orders.')
     }
@@ -21895,6 +21895,7 @@ function App() {
         suppliers,
         existingOrders: stockOrders,
         createdBy: user?.id ?? null,
+        review: Array.isArray(review) ? review : null,
       })
       setSupplyDraftPreview(null)
       setStockOrdersNotice(result.message)
@@ -23548,12 +23549,14 @@ function App() {
             onMarkAnnouncementSeen={handleMarkOperationsAnnouncementSeen}
             onStatusCardSelect={handleTodayChipSelect}
             stockLive={canAccessModule(role, 'stock') ? {
+              stockSummary: managerMobileStockSummary,
               belowParCount: stockLiveSnapshot.belowParCount,
               parsReady: stockLiveSnapshot.parsReady,
               parsStatus: stockLiveSnapshot.status,
               stockOrders,
               lastInventoryCountAt: stockLiveSnapshot.lastInventoryCountAt,
               timeZone: workspaceTimeZone,
+              onOpenHealth: handleDashboardViewStock,
               onOpenBelowPar: () => handleOpenStockLiveSection('storages'),
               onOpenDrafts: () => handleOpenStockLiveSection('orders', 'draft'),
               onOpenCounts: () => handleOpenStockLiveSection('count'),
@@ -23741,9 +23744,10 @@ function App() {
 
         <SupplyOrderDraftPreviewDialog
           lines={supplyDraftPreview?.lines ?? []}
+          review={supplyDraftPreview?.review ?? []}
           isSaving={isSavingStockOrder}
           onCancel={() => setSupplyDraftPreview(null)}
-          onConfirm={() => { void handleConfirmSupplyOrderDrafts() }}
+          onConfirm={(review) => { void handleConfirmSupplyOrderDrafts(review) }}
         />
 
         {isActiveViewAllowed && activeView === 'stock' && stockSection === 'dashboard' ? (

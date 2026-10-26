@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import {
   filterStockDashboardItems,
   sortStockDashboardItems,
@@ -14,26 +14,7 @@ import {
   getStockStatusShortLabel,
 } from '../../lib/stockUtils'
 import { StockCreateOrderModal } from '../stock/StockCreateOrderModal'
-
-function formatHumanQuantityValue(value) {
-  const quantity = Number(value)
-  if (!Number.isFinite(quantity)) return '0'
-  return Number.isInteger(quantity)
-    ? String(quantity)
-    : quantity.toFixed(2).replace(/\.?0+$/, '')
-}
-
-function formatHumanUnitLabel(unit, quantity) {
-  const normalized = `${unit ?? ''}`.trim().toLowerCase()
-  if (!normalized) {
-    return quantity === 1 ? 'unit' : 'units'
-  }
-
-  const base = normalized.split(/\s+/)[0]
-  if (quantity === 1) return base
-  if (base.endsWith('s')) return base
-  return `${base}s`
-}
+import { formatInventoryUnit } from '../../lib/inventoryUnitDisplay'
 
 function buildMobileOrderGroupsForItem(item) {
   const line = buildSuggestedOrderLine(item)
@@ -54,72 +35,96 @@ function buildMobileOrderGroupsForItem(item) {
 
 function MobileManagerStockItemCard({
   item,
+  onOpen,
+}) {
+  const currentQuantity = Number(item.currentQuantity) || 0
+  const statusLabel = getStockStatusShortLabel(item.status)
+
+  return (
+    <button
+      type="button"
+      className={`mobile-manager-stock-card mobile-manager-stock-row tone-${item.status}`}
+      onClick={() => onOpen?.(item)}
+    >
+      <span className="mobile-manager-stock-card-name">{item.name}</span>
+      <span className={`mobile-manager-stock-row-qty tone-${item.status}`}>
+        {formatInventoryUnit(currentQuantity, item.unit)}
+      </span>
+      <span className={`mobile-manager-stock-status-pill tone-${item.status}`}>
+        {statusLabel}
+      </span>
+    </button>
+  )
+}
+
+function MobileStockDetailSheet({
+  item,
   canManageStock,
   isWorkspaceReady,
+  onClose,
   onAddToOrder,
 }) {
+  useEffect(() => {
+    if (!item) return undefined
+    const handleKeyDown = (event) => {
+      if (event.key !== 'Escape') return
+      event.preventDefault()
+      onClose?.()
+    }
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [item, onClose])
+
+  if (!item) return null
   const supplierLabel = `${item.supplier ?? ''}`.trim()
   const categoryLabel = `${item.category ?? ''}`.trim() || 'Uncategorized'
   const currentQuantity = Number(item.currentQuantity) || 0
   const minimumQuantity = Number(item.minimumQuantity) || 0
-  const statusLabel = getStockStatusShortLabel(item.status).toUpperCase()
   const showAddToOrder = (item.status === 'low' || item.status === 'out') && canManageStock
 
   return (
-    <article className={`mobile-manager-stock-card tone-${item.status}`}>
-      <header className="mobile-manager-stock-card-header">
-        <div className="mobile-manager-stock-card-title-wrap">
-          <h3 className="mobile-manager-stock-card-name">{item.name}</h3>
-          <p className="mobile-manager-stock-card-category">{categoryLabel}</p>
-        </div>
-        <span className={`mobile-manager-stock-status-pill tone-${item.status}`}>
-          {statusLabel}
-        </span>
-      </header>
-
-      <div className="mobile-manager-stock-card-qty-grid">
-        <div className="mobile-manager-stock-card-qty-block">
-          <span className="mobile-manager-stock-card-qty-label">Current</span>
-          <p className={`mobile-manager-stock-card-qty-line tone-${item.status}`}>
-            <span className="mobile-manager-stock-card-qty-value">
-              {formatHumanQuantityValue(currentQuantity)}
-            </span>
-            <span className="mobile-manager-stock-card-qty-unit">
-              {formatHumanUnitLabel(item.unit, currentQuantity)}
-            </span>
-          </p>
-        </div>
-        <div className="mobile-manager-stock-card-qty-block">
-          <span className="mobile-manager-stock-card-qty-label">Minimum</span>
-          <p className="mobile-manager-stock-card-qty-line">
-            <span className="mobile-manager-stock-card-qty-value">
-              {formatHumanQuantityValue(minimumQuantity)}
-            </span>
-            <span className="mobile-manager-stock-card-qty-unit">
-              {formatHumanUnitLabel(item.unit, minimumQuantity)}
-            </span>
-          </p>
-        </div>
-      </div>
-
-      {supplierLabel ? (
-        <div className="mobile-manager-stock-card-supplier">
-          <span className="mobile-manager-stock-card-supplier-label">Supplier</span>
-          <span className="mobile-manager-stock-card-supplier-name">{supplierLabel}</span>
-        </div>
-      ) : null}
-
-      {showAddToOrder ? (
-        <button
-          type="button"
-          className="mobile-manager-stock-card-order-btn"
-          onClick={() => onAddToOrder?.(item)}
-          disabled={!isWorkspaceReady}
-        >
-          Add to order
-        </button>
-      ) : null}
-    </article>
+    <div className="mobile-stock-detail-sheet" role="presentation">
+      <button type="button" className="mobile-stock-detail-backdrop" aria-label="Close product" onClick={onClose} />
+      <section className="mobile-stock-detail-card" role="dialog" aria-modal="true" aria-labelledby="mobile-stock-detail-title">
+        <header className="mobile-stock-detail-header">
+          <div>
+            <h2 id="mobile-stock-detail-title">{item.name}</h2>
+            <p>{categoryLabel}</p>
+          </div>
+          <button type="button" className="ghost-btn" onClick={onClose}>Close</button>
+        </header>
+        <dl>
+          <div>
+            <dt>On hand</dt>
+            <dd>{formatInventoryUnit(currentQuantity, item.unit)}</dd>
+          </div>
+          <div>
+            <dt>Minimum</dt>
+            <dd>{formatInventoryUnit(minimumQuantity, item.unit)}</dd>
+          </div>
+          <div>
+            <dt>Status</dt>
+            <dd>{getStockStatusShortLabel(item.status)}</dd>
+          </div>
+          {supplierLabel ? (
+            <div>
+              <dt>Supplier</dt>
+              <dd>{supplierLabel}</dd>
+            </div>
+          ) : null}
+        </dl>
+        {showAddToOrder ? (
+          <button
+            type="button"
+            className="primary-btn"
+            onClick={() => onAddToOrder?.(item)}
+            disabled={!isWorkspaceReady}
+          >
+            Add to order
+          </button>
+        ) : null}
+      </section>
+    </div>
   )
 }
 
@@ -169,7 +174,7 @@ function MobileStockPendingOrdersBanner({
             className="mobile-manager-stock-pending-btn mobile-manager-stock-pending-btn-primary"
             onClick={onReceiveDeliveries}
           >
-            Receive
+            Receive delivery
           </button>
         ) : null}
         <button
@@ -204,6 +209,7 @@ export function MobileManagerStockView({
   const [statusFilter, setStatusFilter] = useState('all')
   const [categoryFilter, setCategoryFilter] = useState('All')
   const [orderModalGroups, setOrderModalGroups] = useState(null)
+  const [detailItem, setDetailItem] = useState(null)
 
   const totalItems = Number(stockSummary?.totalItems) || 0
   const lowCount = Number(stockSummary?.lowStock) || 0
@@ -295,8 +301,40 @@ export function MobileManagerStockView({
     setOrderModalGroups(null)
   }
 
+  const quickActions = canManageStock ? (
+    <section className="mobile-manager-stock-action-bar is-compact" aria-label="Stock quick actions">
+      <button
+        type="button"
+        className="mobile-manager-stock-quick-btn"
+        onClick={onCountStock}
+        disabled={!isWorkspaceReady}
+      >
+        Count
+      </button>
+      {onPrepareDrafts ? (
+        <button
+          type="button"
+          className="mobile-manager-stock-quick-btn mobile-manager-stock-quick-btn-primary"
+          onClick={() => { void onPrepareDrafts() }}
+          disabled={!isWorkspaceReady || isSavingOrders}
+        >
+          {isSavingOrders ? 'Saving…' : 'Suggest order'}
+        </button>
+      ) : null}
+      <button
+        type="button"
+        className="mobile-manager-stock-quick-btn"
+        onClick={openCreateOrderModal}
+        disabled={!isWorkspaceReady}
+      >
+        Create order
+      </button>
+    </section>
+  ) : null
+
   return (
-    <div className="mobile-screen mobile-manager-stock mobile-manager-stock-inventory">
+    <div className={`mobile-screen mobile-manager-stock mobile-manager-stock-inventory${detailItem ? ' is-detail-open' : ''}`}>
+      <div className="mobile-manager-stock-top">
       <header className="mobile-manager-stock-command" aria-label="Stock overview">
         <h1 className="mobile-manager-stock-command-title">Stock</h1>
         <p className="mobile-manager-stock-command-stats">
@@ -325,6 +363,8 @@ export function MobileManagerStockView({
           ) : null}
         </p>
       </header>
+      {quickActions}
+      </div>
 
       {!isLoading && pendingOrders > 0 ? (
         <MobileStockPendingOrdersBanner
@@ -407,6 +447,7 @@ export function MobileManagerStockView({
       </div>
       </div>
 
+      <div className="mobile-manager-stock-stage">
       <div className="mobile-manager-stock-scroll-body">
       {isLoading ? (
         <p className="mobile-manager-stock-loading">Loading stock…</p>
@@ -431,9 +472,7 @@ export function MobileManagerStockView({
             <li key={item.id}>
               <MobileManagerStockItemCard
                 item={item}
-                canManageStock={canManageStock}
-                isWorkspaceReady={isWorkspaceReady}
-                onAddToOrder={handleAddItemToOrder}
+                onOpen={setDetailItem}
               />
             </li>
           ))}
@@ -441,36 +480,19 @@ export function MobileManagerStockView({
       )}
       </div>
 
-      {canManageStock ? (
-        <section className="mobile-manager-stock-action-bar" aria-label="Stock quick actions">
-          <button
-            type="button"
-            className="mobile-manager-stock-quick-btn"
-            onClick={onCountStock}
-            disabled={!isWorkspaceReady}
-          >
-            Count stock
-          </button>
-          {onPrepareDrafts ? (
-            <button
-              type="button"
-              className="mobile-manager-stock-quick-btn mobile-manager-stock-quick-btn-primary"
-              onClick={() => { void onPrepareDrafts() }}
-              disabled={!isWorkspaceReady || isSavingOrders}
-            >
-              {isSavingOrders ? 'Preparing…' : 'Prepare drafts'}
-            </button>
-          ) : null}
-          <button
-            type="button"
-            className="mobile-manager-stock-quick-btn"
-            onClick={openCreateOrderModal}
-            disabled={!isWorkspaceReady}
-          >
-            Create order
-          </button>
-        </section>
+      {detailItem ? (
+        <MobileStockDetailSheet
+          item={detailItem}
+          canManageStock={canManageStock}
+          isWorkspaceReady={isWorkspaceReady}
+          onClose={() => setDetailItem(null)}
+          onAddToOrder={(item) => {
+            setDetailItem(null)
+            handleAddItemToOrder(item)
+          }}
+        />
       ) : null}
+      </div>
 
       {orderModalGroups ? (
         <StockCreateOrderModal

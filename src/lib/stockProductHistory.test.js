@@ -2,13 +2,22 @@ import { describe, expect, it } from 'vitest'
 import { formatLastCountedLabel, formatStockMovementHeadline, formatStockMovementTypeLabel, resolveLastCountedRecord } from './stockProductHistory'
 
 describe('formatStockMovementHeadline', () => {
-  it('shows a stock count as before → after', () => {
+  it('shows an opening stock count as the counted quantity', () => {
     expect(formatStockMovementHeadline({
       type: 'stock_count',
       quantity: 4,
       quantityBefore: 0,
       quantityAfter: 4,
-    }, 'Bottle')).toBe('Count 0 Bottle → 4 Bottle')
+    }, 'Bottle')).toBe('Opening count 4 Bottle')
+  })
+
+  it('shows a later stock count as before → after', () => {
+    expect(formatStockMovementHeadline({
+      type: 'stock_count',
+      quantity: 2,
+      quantityBefore: 4,
+      quantityAfter: 6,
+    }, 'Bottle')).toBe('Count 4 Bottle → 6 Bottle')
   })
 
   it('labels a waste usage movement as waste', () => {

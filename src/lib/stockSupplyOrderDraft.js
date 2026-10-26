@@ -2,6 +2,7 @@ import { normalizeSupplierId } from './stockSupplierUtils'
 import { normalizeStorageParQuantity, storageParShort } from './stockStoragePar'
 import {
   buildSuggestedOrderLine,
+  computeOrderLineTotal,
   computeOrderTotalCost,
   formatStockOrderNumber,
   normalizeStockOrderStatus,
@@ -236,6 +237,60 @@ export function formatSupplyOrderDraftPreview(plan = [], existingOrders = []) {
     const previousTotal = formatEuroAmount(orderTotalAmount(existing))
     return `Update draft ${number} for ${supplier} · ${previousTotal} → ${nextTotal}`
   })
+}
+
+/**
+ * Editable review rows: one group per supplier, with the planned lines.
+ */
+export function buildSupplyOrderDraftReview(plan = []) {
+  return (Array.isArray(plan) ? plan : []).map((step) => ({
+    action: step?.action === 'update' ? 'update' : 'create',
+    orderId: step?.orderId ?? null,
+    supplier: `${step?.group?.supplier ?? ''}`.trim() || 'Supplier',
+    supplierId: step?.group?.supplierId ?? null,
+    notes: step?.notes ?? '',
+    expectedDeliveryDate: step?.expectedDeliveryDate ?? null,
+    items: (Array.isArray(step?.group?.items) ? step.group.items : []).map((item) => ({ ...item })),
+  })).filter((group) => group.items.length > 0)
+}
+
+export function updateSupplyOrderDraftReviewQuantity(groups = [], groupIndex, itemIndex, rawQuantity) {
+  const quantity = Number(rawQuantity)
+
+  return (Array.isArray(groups) ? groups : []).map((group, currentGroupIndex) => {
+    if (currentGroupIndex !== groupIndex) return group
+    const items = (group.items ?? []).flatMap((item, currentItemIndex) => {
+      if (currentItemIndex !== itemIndex) return [item]
+      if (!Number.isFinite(quantity) || quantity <= 0) return []
+      return [{
+        ...item,
+        quantity,
+        totalPrice: computeOrderLineTotal(quantity, item.costPrice),
+        needLabel: formatStockQuantity(quantity, item.unit),
+      }]
+    })
+    return {
+      ...group,
+      items,
+    }
+  }).filter((group) => Array.isArray(group.items) && group.items.length > 0)
+}
+
+export function reviewPlanToWrites(groups = []) {
+  return (Array.isArray(groups) ? groups : [])
+    .filter((group) => Array.isArray(group?.items) && group.items.length > 0)
+    .map((group) => ({
+      action: group.action === 'update' ? 'update' : 'create',
+      orderId: group.orderId ?? null,
+      notes: group.notes ?? '',
+      expectedDeliveryDate: group.expectedDeliveryDate ?? null,
+      group: {
+        supplier: group.supplier,
+        supplierId: group.supplierId ?? null,
+        items: group.items,
+        totalCost: computeOrderTotalCost(group.items),
+      },
+    }))
 }
 
 export function formatSupplyOrderDraftNotice({ created = [], updated = [] } = {}) {

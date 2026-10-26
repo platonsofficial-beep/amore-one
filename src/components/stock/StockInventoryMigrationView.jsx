@@ -8,12 +8,14 @@ export function StockInventoryMigrationView({
   timeZone = '',
   historyRefresh = 0,
   onOpenInventoryImport = undefined,
+  listRecentInventoryImportSessions = undefined,
+  checkInventoryImportUndoEligibility = undefined,
+  undoInventoryImportSession = undefined,
 }) {
   return (
     <section className="stock-migration-page" aria-label="Import">
       <header className="stock-migration-header">
         <div className="stock-migration-header-copy">
-          <p className="stock-migration-eyebrow">Import</p>
           <h2 className="stock-migration-title">Spreadsheet Import</h2>
           <p className="stock-migration-subtitle">
             Bring products in from CSV or Excel. Review every row before it is applied to live stock.
@@ -27,8 +29,6 @@ export function StockInventoryMigrationView({
           data-stock-migration-ownership="spreadsheet-import"
         >
           <div className="stock-migration-ownership-card-copy">
-            <p className="stock-migration-ownership-status">Catalog onboarding</p>
-            <h3 className="stock-migration-ownership-title">Spreadsheet Import</h3>
             <p className="stock-migration-ownership-description">
               Import your products from CSV or Excel using the guided import workflow.
             </p>
@@ -56,6 +56,9 @@ export function StockInventoryMigrationView({
         workspaceId={workspaceId}
         timeZone={timeZone}
         refreshKey={historyRefresh}
+        listRecentInventoryImportSessions={listRecentInventoryImportSessions}
+        checkInventoryImportUndoEligibility={checkInventoryImportUndoEligibility}
+        undoInventoryImportSession={undoInventoryImportSession}
       />
     </section>
   )
