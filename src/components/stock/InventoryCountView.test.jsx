@@ -5,6 +5,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { act, createElement } from 'react'
 import { createRoot } from 'react-dom/client'
+import { formatVenueDateTime } from '../../lib/timeFormatUtils'
 import { InventoryCountView } from './InventoryCountView'
 
 const listHomeSessionsMock = vi.fn()
@@ -873,13 +874,7 @@ describe('InventoryCountView home reversed status (P8.23.0 / P8.23.2)', () => {
     expect(reversedTimestamp.textContent).toContain('Reversed on')
     expect(reversedTimestamp.textContent).not.toContain('Last update')
     expect(reversedTimestamp.querySelector('dd')?.textContent).toContain(
-      new Date('2026-07-28T18:00:00.000Z').toLocaleString(undefined, {
-        month: 'short',
-        day: 'numeric',
-        year: 'numeric',
-        hour: 'numeric',
-        minute: '2-digit',
-      }),
+      formatVenueDateTime('2026-07-28T18:00:00.000Z'),
     )
 
     const postedPills = Array.from(

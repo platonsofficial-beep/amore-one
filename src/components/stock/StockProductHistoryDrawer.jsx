@@ -51,7 +51,7 @@ function LocationBalanceRow({ balance, unit }) {
   )
 }
 
-function MovementTimelineCard({ movement, unit }) {
+function MovementTimelineCard({ movement, unit, timeZone = '' }) {
   const tone = getStockMovementTone(movement.type)
 
   return (
@@ -84,7 +84,7 @@ function MovementTimelineCard({ movement, unit }) {
           By: <span>{movement.createdByName || 'System'}</span>
         </p>
         <p className="stock-product-history-movement-when">
-          {formatStockProductHistoryTimestamp(movement.createdAt)}
+          {formatStockProductHistoryTimestamp(movement.createdAt, timeZone)}
         </p>
       </div>
 
@@ -107,6 +107,7 @@ export function StockProductHistoryDrawer({
   onReceive,
   onStockCount,
   onEdit,
+  timeZone = '',
 }) {
   const [movements, setMovements] = useState([])
   const [locationBalances, setLocationBalances] = useState([])
@@ -340,6 +341,7 @@ export function StockProductHistoryDrawer({
                         key={movement.id}
                         movement={movement}
                         unit={item.unit}
+                        timeZone={timeZone}
                       />
                     ))}
                   </div>

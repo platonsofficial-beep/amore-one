@@ -25410,6 +25410,7 @@ function App() {
               parsStatus: stockLiveSnapshot.status,
               stockOrders,
               lastInventoryCountAt: stockLiveSnapshot.lastInventoryCountAt,
+              timeZone: workspaceTimeZone,
               onOpenBelowPar: () => handleOpenStockLiveSection('storages'),
               onOpenDrafts: () => handleOpenStockLiveSection('orders', 'draft'),
               onOpenCounts: () => handleOpenStockLiveSection('count'),
@@ -25630,6 +25631,7 @@ function App() {
             onOpenCounts={() => handleOpenStockLiveSection('count')}
             onOpenInventoryCountSession={handleOpenInventoryCountSession}
             isSavingOrders={isSavingStockOrder}
+            timeZone={workspaceTimeZone}
           />
         ) : null}
 
@@ -25638,6 +25640,7 @@ function App() {
             initialOpenSessionId={inventoryCountOpenSessionId}
             onInitialOpenSessionApplied={handleInventoryCountOpenSessionApplied}
             canManage={canManageStockRole}
+            timeZone={workspaceTimeZone}
           />
         ) : null}
 
@@ -25654,6 +25657,7 @@ function App() {
             isSavingReceive={isSavingStockItem}
             isSavingTransfer={isSavingStockItem}
             isSavingAdjustment={isSavingStockItem}
+            timeZone={workspaceTimeZone}
           />
         ) : null}
 
@@ -25683,6 +25687,7 @@ function App() {
               setStockOrdersNotice('Purchase order documents deleted. Inventory quantities were not changed.')
               await refreshStockOrders()
             }}
+            timeZone={workspaceTimeZone}
           />
         ) : null}
 
@@ -26022,6 +26027,7 @@ function App() {
                       onOpenDrafts: () => handleOpenStockLiveSection('orders', 'draft'),
                       onOpenCounts: () => handleOpenStockLiveSection('count'),
                       stockLiveSnapshot,
+                      timeZone: workspaceTimeZone,
                       stockItems,
                       stockOrders,
                       onReceiveDeliveries: handleMobileManagerReceiveDeliveries,

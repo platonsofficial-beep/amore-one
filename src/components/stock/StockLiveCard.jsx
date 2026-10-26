@@ -20,6 +20,7 @@ export function StockLiveCard({
   stockOrders = [],
   lastInventoryCountAt = null,
   now = new Date(),
+  timeZone = '',
   onOpenBelowPar,
   onOpenDrafts,
   onOpenCounts,
@@ -30,6 +31,7 @@ export function StockLiveCard({
     orders: stockOrders,
     lastInventoryCountAt,
     now,
+    timeZone,
   })
   const belowParLabel = parsStatus === 'loading'
     ? 'Checking pars…'

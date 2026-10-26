@@ -37760,6 +37760,12 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   text-align: right;
 }
 
+.inventory-count-session-spreadsheet.is-blind-count > .inventory-count-session-sheet-frozen-head > .inventory-count-session-spreadsheet-cell.is-head:nth-child(4),
+.inventory-count-session-spreadsheet.is-blind-count > .inventory-count-session-table-head > .inventory-count-session-spreadsheet-cell.is-head:nth-child(4) {
+  justify-content: flex-start;
+  text-align: left;
+}
+
 .inventory-count-session-spreadsheet-cell.is-counted {
   display: flex;
   align-items: center;
@@ -37788,11 +37794,9 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   line-height: 1.2;
   letter-spacing: -0.01em;
   display: block;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  word-break: normal;
-  overflow-wrap: normal;
+  overflow: visible;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 
 .inventory-count-session-spreadsheet .inventory-count-session-item-meta {

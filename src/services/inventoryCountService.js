@@ -1403,9 +1403,44 @@ export async function getInventoryCountSessionItems({
     throw new Error(error.message || 'Unable to load inventory count items right now.')
   }
 
-  return (data ?? [])
+  const mapped = (data ?? [])
     .map(mapInventoryCountSessionItemRow)
     .filter(Boolean)
+  const identities = await loadStockItemIdentityMap(
+    normalizedWorkspaceId,
+    mapped.map((item) => item.itemId),
+  )
+  if (identities.size === 0) return mapped
+  return mapped.map((item) => {
+    const identity = item.itemId ? identities.get(item.itemId) : null
+    return identity ? { ...item, ...identity } : item
+  })
+}
+
+async function loadStockItemIdentityMap(workspaceId, itemIds) {
+  const ids = [...new Set((itemIds ?? []).map((id) => `${id ?? ''}`.trim()).filter(Boolean))]
+  if (!ids.length || !supabase) return new Map()
+  try {
+    const { data, error } = await supabase
+      .from('stock_items')
+      .select('id, brand, name, size')
+      .eq('workspace_id', workspaceId)
+      .in('id', ids)
+    if (error || !Array.isArray(data)) return new Map()
+    const identities = new Map()
+    data.forEach((row) => {
+      const id = `${row?.id ?? ''}`.trim()
+      if (!id) return
+      identities.set(id, {
+        brand: row.brand ?? '',
+        productName: row.name ?? '',
+        size: row.size ?? '',
+      })
+    })
+    return identities
+  } catch {
+    return new Map()
+  }
 }
 
 /**

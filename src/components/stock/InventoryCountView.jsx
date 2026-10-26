@@ -13,20 +13,12 @@ import { InventoryCountSessionWorkspace } from './InventoryCountSessionWorkspace
 import { InventoryCountPostedReview } from './InventoryCountPostedReview'
 import { InventoryCountCorrectionReview } from './InventoryCountCorrectionReview'
 import { staffShelfCountPresentation } from '../../lib/staffShelfCount'
+import { formatVenueDateTime } from '../../lib/timeFormatUtils'
 
 const OPENABLE_STATUSES = new Set(['in_progress', 'paused', 'counting_complete'])
 
-function formatSessionDate(value) {
-  if (!value) return '—'
-  const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return '—'
-  return date.toLocaleString(undefined, {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit',
-  })
+function formatSessionDate(value, timeZone = '') {
+  return formatVenueDateTime(value, timeZone)
 }
 
 function formatProgress(session) {
@@ -51,7 +43,7 @@ export function formatInventoryCountSessionStatusLabel(session) {
   return `${session?.statusLabel ?? ''}`.trim() || '—'
 }
 
-function InventoryCountSessionCardMeta({ session, onDelete, deleteDisabled = false }) {
+function InventoryCountSessionCardMeta({ session, onDelete, deleteDisabled = false, timeZone = '' }) {
   const lastUpdate = session.updatedAt || session.postedAt || session.pausedAt || session.startedAt
   const operator = `${session.operatorName ?? ''}`.trim() || '—'
   const shelfCount = staffShelfCountPresentation(session)
@@ -92,7 +84,7 @@ function InventoryCountSessionCardMeta({ session, onDelete, deleteDisabled = fal
       <dl className="inventory-count-session-card-meta">
         <div>
           <dt>Started</dt>
-          <dd>{formatSessionDate(session.startedAt)}</dd>
+          <dd>{formatSessionDate(session.startedAt, timeZone)}</dd>
         </div>
         <div>
           <dt>Operator</dt>
@@ -114,7 +106,7 @@ function InventoryCountSessionCardMeta({ session, onDelete, deleteDisabled = fal
         ) : null}
         <div data-inventory-count-home-timestamp={isReversed ? 'reversed' : 'updated'}>
           <dt>{isReversed ? 'Reversed on' : 'Last update'}</dt>
-          <dd>{formatSessionDate(isReversed ? session.reversedAt : lastUpdate)}</dd>
+          <dd>{formatSessionDate(isReversed ? session.reversedAt : lastUpdate, timeZone)}</dd>
         </div>
       </dl>
     </>
@@ -189,6 +181,7 @@ function InventoryCountSessionCard({
   busyAction,
   actionError,
   canManage = true,
+  timeZone = '',
 }) {
   const isCountingComplete = session.status === 'counting_complete'
   const isPosted = session.status === 'posted'
@@ -207,6 +200,7 @@ function InventoryCountSessionCard({
           session={session}
           onDelete={canManage ? onDelete : undefined}
           deleteDisabled={isBusy}
+          timeZone={timeZone}
         />
         {canManage ? (
         <div className="inventory-count-session-card-actions">
@@ -266,6 +260,7 @@ function InventoryCountSessionCard({
         session={session}
         onDelete={canManage ? onDelete : undefined}
         deleteDisabled={isBusy}
+        timeZone={timeZone}
       />
       {actionError ? (
         <p className="inventory-count-session-card-error" role="alert">{actionError}</p>
@@ -289,6 +284,7 @@ function InventoryCountSessionPanel({
   busyAction,
   actionErrors,
   canManage = true,
+  timeZone = '',
 }) {
   const hasSessions = sessions.length > 0
 
@@ -311,6 +307,7 @@ function InventoryCountSessionPanel({
                 busyAction={busySessionId === session.id ? busyAction : ''}
                 actionError={actionErrors?.[session.id] || ''}
                 canManage={canManage}
+                timeZone={timeZone}
               />
             </div>
           ))}
@@ -329,6 +326,7 @@ export function InventoryCountView({
   initialOpenSessionId = null,
   onInitialOpenSessionApplied,
   canManage = true,
+  timeZone = '',
 } = {}) {
   const { workspace } = useAuth()
   const workspaceId = `${workspace?.id ?? ''}`.trim()
@@ -713,6 +711,7 @@ export function InventoryCountView({
         onClose={handleExitPostedReview}
         onSuggestCorrection={handleOpenCorrectionReview}
         notice={postedReviewNotice}
+        timeZone={timeZone}
       />
     )
   }
@@ -776,6 +775,7 @@ export function InventoryCountView({
           busyAction={busyAction}
           actionErrors={actionErrors}
           canManage={canManage}
+          timeZone={timeZone}
         />
         <InventoryCountSessionPanel
           title="Paused counts"
@@ -789,6 +789,7 @@ export function InventoryCountView({
           busyAction={busyAction}
           actionErrors={actionErrors}
           canManage={canManage}
+          timeZone={timeZone}
         />
         <InventoryCountSessionPanel
           title="Recent counts"
@@ -802,6 +803,7 @@ export function InventoryCountView({
           busyAction={busyAction}
           actionErrors={actionErrors}
           canManage={canManage}
+          timeZone={timeZone}
         />
       </div>
 

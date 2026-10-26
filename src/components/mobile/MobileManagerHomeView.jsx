@@ -119,6 +119,7 @@ export function MobileManagerHomeView({
   onOpenCounts,
   stockLiveSnapshot = null,
   stockOrders = [],
+  timeZone = '',
   onReceiveDeliveries,
   onOpenTasks,
   onOpenTeamToday,
@@ -208,6 +209,7 @@ export function MobileManagerHomeView({
               parsStatus={stockLiveSnapshot.status}
               stockOrders={stockOrders}
               lastInventoryCountAt={stockLiveSnapshot.lastInventoryCountAt}
+              timeZone={timeZone}
               onOpenBelowPar={onOpenBelowPar}
               onOpenDrafts={onOpenDrafts}
               onOpenCounts={onOpenCounts}

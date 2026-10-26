@@ -359,6 +359,7 @@ export function StockStorageDetailWorkspace({
   saveStoragePar = setStockItemStoragePar,
   clearStoragePar = clearStockItemStoragePar,
   staffTakeAvailable = staffTakeFromSupplyAvailable,
+  timeZone = '',
 } = {}) {
   const [status, setStatus] = useState(/** @type {'loading'|'ready'|'empty'|'error'} */ ('loading'))
   const [errorMessage, setErrorMessage] = useState('')
@@ -980,6 +981,7 @@ export function StockStorageDetailWorkspace({
         <StockProductHistoryDrawer
           item={historyItem}
           workspaceId={workspaceId}
+          timeZone={timeZone}
           canManage={false}
           showCost={canManage}
           onClose={() => setHistoryItem(null)}

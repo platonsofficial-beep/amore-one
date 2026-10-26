@@ -253,38 +253,98 @@ export function snapDateTimeLocalValue(value) {
   return `${datePart}T${snappedTime || timePart}`
 }
 
-export function formatTimestampTime24(value, fallback = '—') {
-  if (!value) return fallback
+function coerceDate(value) {
+  if (value == null || value === '') return null
+  if (value instanceof Date) return Number.isNaN(value.getTime()) ? null : value
   const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return fallback
-  return new Intl.DateTimeFormat('en-GB', CLOCK_24H).format(date)
+  return Number.isNaN(date.getTime()) ? null : date
 }
 
-export function formatTimestampDayAndTime24(value, fallback = '') {
-  if (!value) return fallback
-  const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return fallback
+/**
+ * Format an instant in the venue time zone. An empty or invalid zone uses the device zone.
+ */
+export function formatInVenueZone(date, options, timeZone = '') {
+  const tz = `${timeZone ?? ''}`.trim()
+  if (!tz) return new Intl.DateTimeFormat('en-GB', options).format(date)
+  try {
+    return new Intl.DateTimeFormat('en-GB', { ...options, timeZone: tz }).format(date)
+  } catch {
+    return new Intl.DateTimeFormat('en-GB', options).format(date)
+  }
+}
 
-  const day = new Intl.DateTimeFormat('en-GB', {
+/** Calendar day as YYYY-MM-DD in the venue zone, or the device zone when empty. */
+export function calendarDayKey(date, timeZone = '') {
+  const instant = coerceDate(date)
+  if (!instant) return ''
+  const tz = `${timeZone ?? ''}`.trim()
+  if (!tz) {
+    const month = String(instant.getMonth() + 1).padStart(2, '0')
+    const day = String(instant.getDate()).padStart(2, '0')
+    return `${instant.getFullYear()}-${month}-${day}`
+  }
+  try {
+    return new Intl.DateTimeFormat('en-CA', {
+      timeZone: tz,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    }).format(instant)
+  } catch {
+    return calendarDayKey(instant, '')
+  }
+}
+
+export function previousCalendarDayKey(dayKey) {
+  const match = `${dayKey ?? ''}`.match(/^(\d{4})-(\d{2})-(\d{2})$/)
+  if (!match) return ''
+  const utc = new Date(Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3])))
+  utc.setUTCDate(utc.getUTCDate() - 1)
+  return utc.toISOString().slice(0, 10)
+}
+
+export function formatVenueDateTime(value, timeZone = '', fallback = '—') {
+  const date = coerceDate(value)
+  if (!date) return fallback
+  return formatInVenueZone(date, {
     day: 'numeric',
     month: 'short',
-  }).format(date)
-  const time = new Intl.DateTimeFormat('en-GB', CLOCK_24H).format(date)
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  }, timeZone)
+}
+
+export function formatTimestampTime24(value, fallback = '—', timeZone = '') {
+  const date = coerceDate(value)
+  if (!date) return fallback
+  return formatInVenueZone(date, CLOCK_24H, timeZone)
+}
+
+export function formatTimestampDayAndTime24(value, fallback = '', timeZone = '') {
+  const date = coerceDate(value)
+  if (!date) return fallback
+
+  const day = formatInVenueZone(date, {
+    day: 'numeric',
+    month: 'short',
+  }, timeZone)
+  const time = formatInVenueZone(date, CLOCK_24H, timeZone)
 
   return `${day} ${time}`
 }
 
-export function formatTimestampDateTime24(value, { weekday = false } = {}, fallback = '') {
-  if (!value) return fallback
-  const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return fallback
+export function formatTimestampDateTime24(value, { weekday = false, timeZone = '' } = {}, fallback = '') {
+  const date = coerceDate(value)
+  if (!date) return fallback
 
-  return new Intl.DateTimeFormat('en-GB', {
+  return formatInVenueZone(date, {
     ...(weekday ? { weekday: 'short' } : {}),
     day: 'numeric',
     month: 'short',
     ...CLOCK_24H,
-  }).format(date)
+  }, timeZone)
 }
 
 export const TIME_INPUT_PROPS = {

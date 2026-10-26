@@ -177,8 +177,8 @@ function formatQuantityWithUnit(value, unit = '') {
   return normalizedUnit ? `${formatted} ${normalizedUnit}` : formatted
 }
 
-export function formatStockProductHistoryTimestamp(value) {
-  return formatTimestampDayAndTime24(value)
+export function formatStockProductHistoryTimestamp(value, timeZone = '') {
+  return formatTimestampDayAndTime24(value, '', timeZone)
 }
 
 export function formatMonthlyMovementStat(type, value, unit = '') {

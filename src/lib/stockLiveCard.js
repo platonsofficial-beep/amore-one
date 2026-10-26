@@ -1,4 +1,5 @@
 import { formatLastCountedLabel } from './stockProductHistory'
+import { calendarDayKey, formatInVenueZone } from './timeFormatUtils'
 import { buildStockOrdersOperationsSummary } from './stockOrderUtils'
 import { countBelowParByStorage, formatItemsBelowPar } from './stockStoragePar'
 
@@ -40,23 +41,22 @@ export function formatLastCountFact(lastCountedAt, now = new Date()) {
 
 /**
  * Label for the Today row that opens Inventory Count.
- * Uses the latest inventory-count session start, the same order as that screen.
+ * Uses the latest posted inventory count, not an unfinished session start.
  */
-export function formatInventoryCountFact(startedAt, now = new Date()) {
-  if (!startedAt) return 'No inventory counts yet'
-  const date = new Date(startedAt)
+export function formatInventoryCountFact(postedAt, now = new Date(), timeZone = '') {
+  if (!postedAt) return 'No inventory counts yet'
+  const date = new Date(postedAt)
   if (Number.isNaN(date.getTime())) return 'No inventory counts yet'
 
-  const sameDay = date.getFullYear() === now.getFullYear()
-    && date.getMonth() === now.getMonth()
-    && date.getDate() === now.getDate()
+  const sameDay = calendarDayKey(date, timeZone) === calendarDayKey(now, timeZone)
   if (sameDay) return 'Last inventory count today'
 
-  const label = new Intl.DateTimeFormat('en-GB', {
+  const sameYear = calendarDayKey(date, timeZone).slice(0, 4) === calendarDayKey(now, timeZone).slice(0, 4)
+  const label = formatInVenueZone(date, {
     day: 'numeric',
     month: 'short',
-    ...(date.getFullYear() === now.getFullYear() ? {} : { year: 'numeric' }),
-  }).format(date)
+    ...(sameYear ? {} : { year: 'numeric' }),
+  }, timeZone)
   return `Last inventory count ${label}`
 }
 
@@ -66,6 +66,7 @@ export function buildStockLiveFacts({
   orders = [],
   lastInventoryCountAt = null,
   now = new Date(),
+  timeZone = '',
 } = {}) {
   const draftCount = buildStockOrdersOperationsSummary(orders).draftCount
   const belowPar = Math.max(0, Number(belowParCount) || 0)
@@ -76,6 +77,6 @@ export function buildStockLiveFacts({
     draftCount,
     draftLabel: draftCount === 1 ? '1 open draft' : `${draftCount} open drafts`,
     draftTone: draftCount > 0 ? 'warning' : 'default',
-    lastCountLabel: formatInventoryCountFact(lastInventoryCountAt, now),
+    lastCountLabel: formatInventoryCountFact(lastInventoryCountAt, now, timeZone),
   }
 }

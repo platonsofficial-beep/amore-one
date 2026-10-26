@@ -80,7 +80,7 @@ function ReceiveProgressBar({ received, ordered, unit }) {
   )
 }
 
-function OrderTimeline({ order }) {
+function OrderTimeline({ order, timeZone = '' }) {
   const steps = useMemo(() => buildStockOrderTimeline(order), [order])
 
   return (
@@ -97,7 +97,7 @@ function OrderTimeline({ order }) {
               <>
                 {step.actorName ? <span>{step.actorName}</span> : null}
                 {step.timestamp ? (
-                  <span>{formatStockOrderDateTime(step.timestamp)}</span>
+                  <span>{formatStockOrderDateTime(step.timestamp, timeZone)}</span>
                 ) : null}
               </>
             ) : (
@@ -401,6 +401,7 @@ export function StockOrderDetailDrawer({
   onMarkSent,
   onReceiveOrder,
   onCancel,
+  timeZone = '',
 }) {
   const isDraft = canEditStockOrder(order)
   const isEditable = canManage && isDraft
@@ -488,7 +489,7 @@ export function StockOrderDetailDrawer({
 
   const statusTone = getStockOrderStatusTone(order.status)
   const nextAction = getStockOrderNextAction(order)
-  const deliveryLabel = formatStockOrderDeliveryDate(order.expectedDeliveryDate)
+  const deliveryLabel = formatStockOrderDeliveryDate(order.expectedDeliveryDate, timeZone)
   const receiveSummary = useMemo(() => getOrderReceivedSummary(order), [order])
   const partiallyReceived = isOrderPartiallyReceived(order)
 
@@ -803,7 +804,7 @@ export function StockOrderDetailDrawer({
                 <p>
                   Received by {order.receivedByName || 'System'}
                   {' · '}
-                  {formatStockOrderDateTime(order.receivedAt)}
+                  {formatStockOrderDateTime(order.receivedAt, timeZone)}
                 </p>
                 <p className="stock-order-completion-summary">
                   {receiveSummary.receivedTotal} of {receiveSummary.orderedTotal} units received across {displayItems.length} product{displayItems.length === 1 ? '' : 's'}.
@@ -819,7 +820,7 @@ export function StockOrderDetailDrawer({
                   <dd>
                     {order.createdByName || 'System'}
                     {' · '}
-                    {formatStockOrderDateTime(order.createdAt)}
+                    {formatStockOrderDateTime(order.createdAt, timeZone)}
                   </dd>
                 </div>
                 <div className="stock-product-history-overview-row">
@@ -844,7 +845,7 @@ export function StockOrderDetailDrawer({
                     <dd>
                       {order.sentByName || 'System'}
                       {' · '}
-                      {formatStockOrderDateTime(order.sentAt)}
+                      {formatStockOrderDateTime(order.sentAt, timeZone)}
                     </dd>
                   </div>
                 ) : null}
@@ -854,7 +855,7 @@ export function StockOrderDetailDrawer({
                     <dd>
                       {order.receivedByName || 'System'}
                       {' · '}
-                      {formatStockOrderDateTime(order.receivedAt)}
+                      {formatStockOrderDateTime(order.receivedAt, timeZone)}
                     </dd>
                   </div>
                 ) : null}
@@ -974,7 +975,7 @@ export function StockOrderDetailDrawer({
 
             <section className="stock-product-history-section" aria-label="Order timeline">
               <h3 className="stock-product-history-section-title">Timeline</h3>
-              <OrderTimeline order={order} />
+              <OrderTimeline order={order} timeZone={timeZone} />
             </section>
           </div>
 

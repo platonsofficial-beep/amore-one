@@ -1,6 +1,7 @@
 import { computeSuggestedOrder, itemNeedsOrder } from './stockCatalog'
 import { normalizeSupplierId } from './stockSupplierUtils'
 import { formatStockPurchasePrice, formatStockQuantity } from './stockUtils'
+import { formatInVenueZone } from './timeFormatUtils'
 
 export const STOCK_ORDER_STATUSES = ['draft', 'sent', 'received', 'cancelled']
 
@@ -200,44 +201,45 @@ export function formatStockOrderNumber(orderNumber) {
   return `#${String(value).padStart(4, '0')}`
 }
 
-export function formatStockOrderDate(value) {
+export function formatStockOrderDate(value, timeZone = '') {
   if (!value) return '—'
 
   const date = new Date(value)
   if (Number.isNaN(date.getTime())) return '—'
 
-  return new Intl.DateTimeFormat('en-GB', {
+  return formatInVenueZone(date, {
     day: 'numeric',
     month: 'long',
-  }).format(date)
+  }, timeZone)
 }
 
-export function formatStockOrderDateTime(value) {
+export function formatStockOrderDateTime(value, timeZone = '') {
   if (!value) return '—'
 
   const date = new Date(value)
   if (Number.isNaN(date.getTime())) return '—'
 
-  return new Intl.DateTimeFormat('en-GB', {
+  return formatInVenueZone(date, {
     day: 'numeric',
     month: 'short',
     year: 'numeric',
     hour: '2-digit',
     minute: '2-digit',
-  }).format(date)
+    hour12: false,
+  }, timeZone)
 }
 
-export function formatStockOrderDeliveryDate(value) {
+export function formatStockOrderDeliveryDate(value, timeZone = '') {
   if (!value) return null
 
   const date = new Date(value)
   if (Number.isNaN(date.getTime())) return null
 
-  return new Intl.DateTimeFormat('en-GB', {
+  return formatInVenueZone(date, {
     day: 'numeric',
     month: 'short',
     year: 'numeric',
-  }).format(date)
+  }, timeZone)
 }
 
 export function getOrderLineReceivedQuantity(item) {

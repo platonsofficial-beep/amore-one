@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useAuth } from '../../context/AuthContext'
+import { formatInventoryCountItemLabel } from '../../lib/inventoryCountItemName'
 import { canManageStock } from '../../lib/permissions'
+import { formatVenueDateTime } from '../../lib/timeFormatUtils'
 import {
   getInventoryCountPostedReview,
   reverseInventoryCountSession,
@@ -45,32 +47,14 @@ const VISIBILITY_LABELS = {
   open: 'Open Count',
 }
 
-function formatSessionDate(value) {
-  if (!value) return '—'
-  const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return '—'
-  return date.toLocaleString(undefined, {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit',
-  })
+function formatSessionDate(value, timeZone = '') {
+  return formatVenueDateTime(value, timeZone)
 }
 
-function formatAppliedAt(value) {
-  if (!value) return '—'
-  const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return '—'
-  const day = date.getDate()
-  const month = date.toLocaleString(undefined, { month: 'short' })
-  const year = date.getFullYear()
-  const time = date.toLocaleTimeString(undefined, {
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: false,
-  })
-  return `${day} ${month} ${year} at ${time}`
+function formatAppliedAt(value, timeZone = '') {
+  const formatted = formatVenueDateTime(value, timeZone, '')
+  if (!formatted) return '—'
+  return formatted.replace(',', ' at')
 }
 
 function formatQuantity(value) {
@@ -280,6 +264,7 @@ export function InventoryCountPostedReview({
   onClose,
   onSuggestCorrection,
   notice = '',
+  timeZone = '',
 }) {
   const { role } = useAuth()
   const canManage = canManageStock(role)
@@ -483,11 +468,11 @@ export function InventoryCountPostedReview({
           <dl className="inventory-count-posted-review-meta">
             <div>
               <dt>Started</dt>
-              <dd>{formatSessionDate(session?.startedAt)}</dd>
+              <dd>{formatSessionDate(session?.startedAt, timeZone)}</dd>
             </div>
             <div>
               <dt>Posted</dt>
-              <dd>{formatSessionDate(session?.postedAt)}</dd>
+              <dd>{formatSessionDate(session?.postedAt, timeZone)}</dd>
             </div>
             <div>
               <dt>Operator</dt>
@@ -509,7 +494,7 @@ export function InventoryCountPostedReview({
               <>
                 <div data-inventory-count-reversed-at="true">
                   <dt>Reversed at</dt>
-                  <dd>{formatSessionDate(session?.reversedAt)}</dd>
+                  <dd>{formatSessionDate(session?.reversedAt, timeZone)}</dd>
                 </div>
                 <div data-inventory-count-reversed-by="true">
                   <dt>Reversed by</dt>
@@ -753,7 +738,7 @@ export function InventoryCountPostedReview({
                   <p className="inventory-count-posted-review-version-summary">
                     Posted inventory count ·
                     {' '}
-                    {formatSessionDate(session?.postedAt)}
+                    {formatSessionDate(session?.postedAt, timeZone)}
                     {' · '}
                     {postedByName}
                   </p>
@@ -789,7 +774,7 @@ export function InventoryCountPostedReview({
                         <p className="inventory-count-posted-review-version-summary">
                           Applied
                           {' '}
-                          {formatAppliedAt(version.createdAt)}
+                          {formatAppliedAt(version.createdAt, timeZone)}
                           {' · '}
                           {version.operatorName}
                         </p>
@@ -839,7 +824,7 @@ export function InventoryCountPostedReview({
                     <p className="inventory-count-posted-review-version-summary">
                       Inventory count reversed ·
                       {' '}
-                      {formatSessionDate(session?.reversedAt)}
+                      {formatSessionDate(session?.reversedAt, timeZone)}
                       {' · '}
                       {reversedByLabel}
                     </p>
@@ -912,7 +897,7 @@ export function InventoryCountPostedReview({
                     const lineAudit = lineAuditByItemId.get(`${item.id ?? ''}`.trim()) || null
                     const deltaSincePosted = lineAudit?.deltaSincePosted
                     const deltaTone = deltaToneClass(deltaSincePosted)
-                    const itemName = `${item.itemName ?? ''}`.trim() || '—'
+                    const itemName = formatInventoryCountItemLabel(item)
                     const locationLabel = `${item.storageLocation ?? ''}`.trim() || '—'
                     const unitMeta = [
                       `${item.unit ?? ''}`.trim() || '—',

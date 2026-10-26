@@ -358,6 +358,7 @@ export function StockStorageCenter({
   loadSummaries = getWorkspaceStorageSummaries,
   loadDepartments = listWorkspaceDepartments,
   departmentActions = defaultDepartmentActions,
+  timeZone = '',
 } = {}) {
   const [status, setStatus] = useState(/** @type {'loading'|'ready'|'empty'|'error'} */ ('loading'))
   const [errorMessage, setErrorMessage] = useState('')
@@ -524,6 +525,7 @@ export function StockStorageCenter({
           setReloadToken((token) => token + 1)
           await onSupplyRefillComplete?.()
         }}
+        timeZone={timeZone}
       />
     )
   }

@@ -1,7 +1,7 @@
 import { computeSuggestedOrder, itemNeedsOrder, resolveStockParQuantity } from './stockCatalog'
 import { getCurrentDateKey } from './currentDateUtils'
 import { formatInventoryUnit } from './inventoryUnitDisplay'
-import { formatTimestampTime24 } from './timeFormatUtils'
+import { calendarDayKey, formatInVenueZone, formatTimestampTime24, previousCalendarDayKey } from './timeFormatUtils'
 
 export {
   formatInventoryQuantityNumber,
@@ -310,24 +310,22 @@ export function getStockMovementLabel(type) {
   return 'Update'
 }
 
-export function formatStockMovementRelativeTime(value, now = new Date()) {
+export function formatStockMovementRelativeTime(value, now = new Date(), timeZone = '') {
   if (!value) return ''
   const date = new Date(value)
   if (Number.isNaN(date.getTime())) return ''
 
-  const time = formatTimestampTime24(date, '')
+  const time = formatTimestampTime24(date, '', timeZone)
+  const todayKey = calendarDayKey(now, timeZone)
+  const dateKey = calendarDayKey(date, timeZone)
 
-  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate())
-  const startOfDate = new Date(date.getFullYear(), date.getMonth(), date.getDate())
-  const dayDiff = Math.round((startOfToday.getTime() - startOfDate.getTime()) / 86_400_000)
+  if (dateKey && dateKey === todayKey) return `Today ${time}`
+  if (dateKey && dateKey === previousCalendarDayKey(todayKey)) return `Yesterday ${time}`
 
-  if (dayDiff === 0) return `Today ${time}`
-  if (dayDiff === 1) return `Yesterday ${time}`
-
-  const dayLabel = new Intl.DateTimeFormat('en-GB', {
+  const dayLabel = formatInVenueZone(date, {
     day: 'numeric',
     month: 'short',
-  }).format(date)
+  }, timeZone)
 
   return `${dayLabel} ${time}`
 }

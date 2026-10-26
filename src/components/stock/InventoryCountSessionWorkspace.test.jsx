@@ -4937,6 +4937,9 @@ describe('InventoryCountSessionWorkspace active count table premium typography (
     expect(appCss).toMatch(
       /\.inventory-count-session-spreadsheet-row\s*\{[^}]*min-height:\s*42px/s,
     )
+    expect(appCss).toMatch(
+      /\.inventory-count-session-spreadsheet\s+\.inventory-count-session-item-name\s*\{[^}]*white-space:\s*normal/s,
+    )
   })
 
   it('aligns Expected/Counted as spreadsheet values and polishes counted inputs + status pills', () => {
@@ -4961,5 +4964,125 @@ describe('InventoryCountSessionWorkspace active count table premium typography (
     expect(appCss).toMatch(
       /\.inventory-count-session-spreadsheet\s+\.inventory-count-session-status-pill\s*\{[^}]*letter-spacing:\s*0\.06em/s,
     )
+  })
+})
+
+describe('Inventory count blind mode and full product names', () => {
+  beforeEach(() => {
+    getInventoryCountSession.mockReset()
+    getInventoryCountSessionLocations.mockReset()
+    getInventoryCountSessionItems.mockReset()
+    updateInventoryCountItem.mockReset()
+
+    getInventoryCountSessionLocations.mockResolvedValue([
+      sessionLocation('loc-1', 'Main Bar', 0, 'current'),
+    ])
+    updateInventoryCountItem.mockImplementation(async ({ sessionItemId, countedQuantity }) => ({
+      id: sessionItemId,
+      countedQuantity,
+      lineStatus: 'counted',
+    }))
+  })
+
+  it('hides the Expected column while a blind count is open', async () => {
+    getInventoryCountSession.mockResolvedValue({
+      id: 'session-real-1',
+      workspaceId: 'workspace-test-id',
+      status: 'in_progress',
+      visibility: 'blind',
+    })
+    getInventoryCountSessionItems.mockResolvedValue([
+      sessionItem({
+        id: 'blind-1',
+        itemName: 'Coca-Cola',
+        storageLocation: 'Main Bar',
+        expectedSnapshot: 72,
+      }),
+    ])
+
+    const { container, cleanup } = await renderWorkspace()
+    const labels = Array.from(container.querySelectorAll('[role="columnheader"]'))
+      .map((node) => node.textContent)
+    expect(labels).toEqual(['Item', 'Unit', 'Counted', 'Status'])
+    expect(container.querySelector('.is-expected')).toBeNull()
+    expect(container.textContent).not.toContain('72')
+    const sheet = container.querySelector('.inventory-count-session-spreadsheet')
+    expect(sheet.className).toContain('is-blind-count')
+    expect(sheet.style.getPropertyValue('--ic-cols')).not.toContain('--ic-col-expected')
+    cleanup()
+  })
+
+  it('keeps Expected on an open count', async () => {
+    getInventoryCountSession.mockResolvedValue({
+      id: 'session-real-1',
+      workspaceId: 'workspace-test-id',
+      status: 'in_progress',
+      visibility: 'open',
+    })
+    getInventoryCountSessionItems.mockResolvedValue([
+      sessionItem({
+        id: 'open-1',
+        itemName: 'Coca-Cola',
+        storageLocation: 'Main Bar',
+        expectedSnapshot: 72,
+      }),
+    ])
+
+    const { container, cleanup } = await renderWorkspace()
+    const labels = Array.from(container.querySelectorAll('[role="columnheader"]'))
+      .map((node) => node.textContent)
+    expect(labels).toEqual(['Item', 'Unit', 'Expected', 'Counted', 'Status'])
+    expect(container.querySelector('.is-expected')?.textContent).toBe('72')
+    cleanup()
+  })
+
+  it('shows brand, product name, and size instead of the short stored name', async () => {
+    getInventoryCountSession.mockResolvedValue({
+      id: 'session-real-1',
+      workspaceId: 'workspace-test-id',
+      status: 'in_progress',
+      visibility: 'blind',
+    })
+    getInventoryCountSessionItems.mockResolvedValue([
+      {
+        ...sessionItem({
+          id: 'name-1',
+          itemName: '12 Stars',
+          storageLocation: 'Main Bar',
+        }),
+        brand: 'Metaxa',
+        productName: '12 Stars',
+        size: '700 ml',
+      },
+      {
+        ...sessionItem({
+          id: 'name-2',
+          itemName: 'Blanco',
+          storageLocation: 'Main Bar',
+        }),
+        brand: 'Olmeca',
+        productName: 'Blanco',
+      },
+      {
+        ...sessionItem({
+          id: 'name-3',
+          itemName: 'Vodka',
+          storageLocation: 'Main Bar',
+        }),
+        brand: 'Belvedere',
+        productName: 'Vodka',
+        size: '1 L',
+      },
+    ])
+
+    const { container, cleanup } = await renderWorkspace()
+    const names = Array.from(container.querySelectorAll('.inventory-count-session-item-name'))
+      .map((node) => node.textContent)
+    expect(names).toEqual([
+      'Metaxa 12 Stars 700 ml',
+      'Olmeca Blanco',
+      'Belvedere Vodka 1 L',
+    ])
+    cleanup()
   })
 })

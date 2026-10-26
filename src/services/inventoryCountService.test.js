@@ -950,9 +950,51 @@ describe('getInventoryCountSessionItems', () => {
     expect(query.order).toHaveBeenCalledWith('item_name', { ascending: true })
     expect(items).toHaveLength(1)
     expect(items[0].itemName).toBe('Coca-Cola')
+    expect(items[0].brand).toBeUndefined()
     expect(items[0].expectedSnapshot).toBe(10)
     expect(items[0].countedQuantity).toBe(8)
     expect(items[0].lineStatus).toBe('counted')
+  })
+
+  it('attaches catalog brand and size without replacing the frozen item name', async () => {
+    const sessionQuery = createQuery({
+      data: [
+        {
+          id: 'line-1',
+          session_id: 'session-1',
+          workspace_id: 'workspace-1',
+          item_id: 'item-1',
+          item_name: '12 Stars',
+          category: 'Spirits',
+          item_type: 'Brandy',
+          unit: 'Bottle',
+          storage_location: 'Main Bar',
+          expected_snapshot: 22,
+          counted_quantity: null,
+          line_status: 'pending',
+          note: '',
+        },
+      ],
+      error: null,
+    })
+    const identityQuery = createQuery({
+      data: [{ id: 'item-1', brand: 'Metaxa', name: '12 Stars', size: '700 ml' }],
+      error: null,
+    })
+    fromMock.mockImplementation((table) => (
+      table === 'stock_items' ? identityQuery : sessionQuery
+    ))
+
+    const items = await getInventoryCountSessionItems({
+      workspaceId: 'workspace-1',
+      sessionId: 'session-1',
+    })
+
+    expect(items[0].itemName).toBe('12 Stars')
+    expect(items[0].brand).toBe('Metaxa')
+    expect(items[0].productName).toBe('12 Stars')
+    expect(items[0].size).toBe('700 ml')
+    expect(identityQuery.in).toHaveBeenCalledWith('id', ['item-1'])
   })
 
   it('returns an empty list when the session has no items', async () => {
