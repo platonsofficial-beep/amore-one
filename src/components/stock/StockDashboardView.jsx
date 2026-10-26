@@ -35,6 +35,7 @@ import {
   STOCK_NEEDS_ATTENTION_PREVIEW_LIMIT,
 } from '../../lib/stockInsights'
 import { StockLiveCard } from './StockLiveCard'
+import { StockUsageCostReport } from './StockUsageCostReport'
 import {
   buildStockDashboardSummary,
   buildTodayStockActivitySummary,
@@ -1354,6 +1355,7 @@ export function StockDashboardView({
   const [movementModal, setMovementModal] = useState(null)
   const [historyItem, setHistoryItem] = useState(null)
   const [isCreateOrderModalOpen, setIsCreateOrderModalOpen] = useState(false)
+  const [usageReportOpen, setUsageReportOpen] = useState(false)
   const [isItemModalOpen, setIsItemModalOpen] = useState(false)
   const [editingItem, setEditingItem] = useState(null)
   const [duplicateForm, setDuplicateForm] = useState(null)
@@ -1872,6 +1874,14 @@ export function StockDashboardView({
           </button>
           <button
             type="button"
+            className="ghost-btn stock-usage-report-btn"
+            onClick={() => setUsageReportOpen(true)}
+            disabled={!isWorkspaceReady || isStockActionBusy}
+          >
+            Usage & cost
+          </button>
+          <button
+            type="button"
             className={`ghost-btn stock-select-mode-btn${selectionMode ? ' active' : ''}`}
             onClick={toggleSelectionMode}
             disabled={isStockActionBusy}
@@ -2140,6 +2150,15 @@ export function StockDashboardView({
             setHistoryItem(null)
             openEditItem(item)
           }}
+        />
+      ) : null}
+
+      {usageReportOpen && canManage ? (
+        <StockUsageCostReport
+          workspaceId={workspaceId}
+          items={catalogItems}
+          timeZone={timeZone}
+          onClose={() => setUsageReportOpen(false)}
         />
       ) : null}
 

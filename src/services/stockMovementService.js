@@ -58,6 +58,46 @@ export async function getStockMovements(workspaceId, { itemId, limit = 50 } = {}
 }
 
 /**
+ * Movements strictly after `after` and strictly before `before`.
+ * Read-only. Throws when the query fails so a report cannot look empty by mistake.
+ * `truncated` is true when the row cap was hit.
+ */
+export async function getStockMovementsInPeriod(workspaceId, {
+  after,
+  before,
+  limit = 2000,
+} = {}) {
+  const normalizedWorkspaceId = `${workspaceId ?? ''}`.trim()
+  const afterIso = `${after ?? ''}`.trim()
+  const beforeIso = `${before ?? ''}`.trim()
+  if (!normalizedWorkspaceId || !afterIso || !beforeIso) {
+    return { movements: [], truncated: false }
+  }
+
+  const capped = Math.max(1, Math.min(2000, Number(limit) || 2000))
+  const { data, error } = await supabase
+    .from(STOCK_MOVEMENTS_TABLE)
+    .select('*')
+    .eq('workspace_id', normalizedWorkspaceId)
+    .gt('created_at', afterIso)
+    .lt('created_at', beforeIso)
+    .order('created_at', { ascending: true })
+    .limit(capped)
+
+  if (error) {
+    console.warn('[stockMovementService] getStockMovementsInPeriod error:', error)
+    if (isTableUnavailableError(error)) return { movements: [], truncated: false }
+    throw new Error(error.message || 'Unable to load stock movements for this period.')
+  }
+
+  const movements = (data ?? []).map(mapStockMovement)
+  return {
+    movements,
+    truncated: movements.length >= capped,
+  }
+}
+
+/**
  * Public movement write entry.
  * P8.29.7 — delegates to stockMutationService routing (legacy by default).
  * Callers and return shape remain unchanged.
