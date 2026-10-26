@@ -118,7 +118,6 @@ export function MobileManagerHomeView({
   onOpenDrafts,
   onOpenCounts,
   stockLiveSnapshot = null,
-  stockItems = [],
   stockOrders = [],
   onReceiveDeliveries,
   onOpenTasks,
@@ -207,8 +206,8 @@ export function MobileManagerHomeView({
               belowParCount={stockLiveSnapshot.belowParCount}
               parsReady={stockLiveSnapshot.parsReady}
               parsStatus={stockLiveSnapshot.status}
-              stockItems={stockItems}
               stockOrders={stockOrders}
+              lastInventoryCountAt={stockLiveSnapshot.lastInventoryCountAt}
               onOpenBelowPar={onOpenBelowPar}
               onOpenDrafts={onOpenDrafts}
               onOpenCounts={onOpenCounts}

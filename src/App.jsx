@@ -1169,6 +1169,7 @@ function CommandCenterView({
   isAnnouncementsSaving = false,
   isScheduleLoading,
   now = new Date(),
+  timeZone = '',
   todayKey = '',
   onViewStock,
   onViewSchedule,
@@ -1220,12 +1221,13 @@ function CommandCenterView({
             defaultExpanded={getDefaultTodayPanelExpanded(TODAY_PANEL_IDS.SERVICE_TIMELINE)}
             title="Service Timeline"
             ariaLabel="Service timeline"
-            summary={formatTodayTimelineCollapsedSummary(timelineEvents, { isLoading: isScheduleLoading, now })}
+            summary={formatTodayTimelineCollapsedSummary(timelineEvents, { isLoading: isScheduleLoading, now, timeZone })}
           >
             <TodayTimeline
               events={timelineEvents}
               isLoading={isScheduleLoading}
               now={now}
+              timeZone={timeZone}
               todayKey={todayKey}
             />
           </TodayCollapsiblePanel>
@@ -13949,7 +13951,7 @@ function ReservationsWorkspaceBody({
   )
   const workspaceTodayRef = useRef(workspaceTodayKey)
   const [selectedDateKey, setSelectedDateKey] = useState(workspaceTodayKey)
-  const nowMinutes = liveNow.getHours() * 60 + liveNow.getMinutes()
+  const nowMinutes = getWorkspaceNowMinutes(liveNow, workspaceTimeZone).minutes ?? 0
   const selectedDateLabel = useMemo(
     () => formatHostWorkspaceDateNavLabel(selectedDateKey, workspaceTodayKey),
     [selectedDateKey, workspaceTodayKey],
@@ -16841,7 +16843,7 @@ function App() {
   const currentDateLabel = formatCurrentDateLabel(localNow, workspaceTimeZone)
   const currentDateKey = getCurrentDateKey(localNow, workspaceTimeZone)
   const currentTimeGreeting = getTimeGreeting(localNow, workspaceTimeZone)
-  const hostNowMinutes = localNow.getHours() * 60 + localNow.getMinutes()
+  const hostNowMinutes = getWorkspaceNowMinutes(localNow, workspaceTimeZone).minutes ?? 0
   const todayWeekStart = useMemo(
     () => getWeekStartDate(parseLocalDate(currentDateKey)),
     [currentDateKey],
@@ -17291,7 +17293,7 @@ function App() {
     [stockOrders],
   )
 
-  const dashboardNowMinutes = localNow.getHours() * 60 + localNow.getMinutes()
+  const dashboardNowMinutes = getWorkspaceNowMinutes(localNow, workspaceTimeZone).minutes ?? 0
 
   const dashboardServiceSnapshot = useMemo(
     () => (
@@ -17649,11 +17651,10 @@ function App() {
     canAccessStockModule,
   ])
 
-  const todayWorkspaceBadge = useMemo(() => {
-    const workspaceName = `${workspace?.name ?? ''}`.trim()
-    if (workspaceName) return workspaceName
-    return `${brandDisplay.businessNameLabel ?? ''}`.trim()
-  }, [workspace?.name, brandDisplay.businessNameLabel])
+  const todayWorkspaceBadge = useMemo(
+    () => resolveSupplierOrderVenueName(workspace?.name),
+    [workspace?.name],
+  )
 
   const supplierOrderVenueName = useMemo(
     () => resolveSupplierOrderVenueName(
@@ -25392,6 +25393,7 @@ function App() {
             isAnnouncementsSaving={isSavingOperations}
             isScheduleLoading={isDashboardScheduleLoading}
             now={localNow}
+            timeZone={workspaceTimeZone}
             todayKey={currentDateKey}
             onViewStock={canAccessModule(role, 'stock') ? handleDashboardViewStock : undefined}
             onViewSchedule={canAccessTeamSection(role, 'schedule') ? handleDashboardViewSchedule : undefined}
@@ -25406,8 +25408,8 @@ function App() {
               belowParCount: stockLiveSnapshot.belowParCount,
               parsReady: stockLiveSnapshot.parsReady,
               parsStatus: stockLiveSnapshot.status,
-              stockItems,
               stockOrders,
+              lastInventoryCountAt: stockLiveSnapshot.lastInventoryCountAt,
               onOpenBelowPar: () => handleOpenStockLiveSection('storages'),
               onOpenDrafts: () => handleOpenStockLiveSection('orders', 'draft'),
               onOpenCounts: () => handleOpenStockLiveSection('count'),

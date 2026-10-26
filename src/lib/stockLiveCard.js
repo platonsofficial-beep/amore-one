@@ -38,11 +38,33 @@ export function formatLastCountFact(lastCountedAt, now = new Date()) {
   return `Last count ${label.charAt(0).toLowerCase()}${label.slice(1)}`
 }
 
+/**
+ * Label for the Today row that opens Inventory Count.
+ * Uses the latest inventory-count session start, the same order as that screen.
+ */
+export function formatInventoryCountFact(startedAt, now = new Date()) {
+  if (!startedAt) return 'No inventory counts yet'
+  const date = new Date(startedAt)
+  if (Number.isNaN(date.getTime())) return 'No inventory counts yet'
+
+  const sameDay = date.getFullYear() === now.getFullYear()
+    && date.getMonth() === now.getMonth()
+    && date.getDate() === now.getDate()
+  if (sameDay) return 'Last inventory count today'
+
+  const label = new Intl.DateTimeFormat('en-GB', {
+    day: 'numeric',
+    month: 'short',
+    ...(date.getFullYear() === now.getFullYear() ? {} : { year: 'numeric' }),
+  }).format(date)
+  return `Last inventory count ${label}`
+}
+
 export function buildStockLiveFacts({
   belowParCount = 0,
   parsReady = false,
   orders = [],
-  items = [],
+  lastInventoryCountAt = null,
   now = new Date(),
 } = {}) {
   const draftCount = buildStockOrdersOperationsSummary(orders).draftCount
@@ -54,6 +76,6 @@ export function buildStockLiveFacts({
     draftCount,
     draftLabel: draftCount === 1 ? '1 open draft' : `${draftCount} open drafts`,
     draftTone: draftCount > 0 ? 'warning' : 'default',
-    lastCountLabel: formatLastCountFact(latestStockCountAt(items), now),
+    lastCountLabel: formatInventoryCountFact(lastInventoryCountAt, now),
   }
 }

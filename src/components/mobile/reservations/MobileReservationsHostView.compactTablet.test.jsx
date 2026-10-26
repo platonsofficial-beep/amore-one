@@ -251,8 +251,9 @@ describe('MobileReservationsHostView compact tablet list', () => {
       reservations: [],
     })
 
-    expect(container.textContent).toContain('No reservations match the current filters.')
-    expect(container.querySelector('.host-queue-toolbar-clear')).not.toBeNull()
+    expect(container.textContent).toContain('No reservations in this queue')
+    expect(container.textContent).not.toContain('No reservations match the current filters')
+    expect(container.querySelector('.host-queue-toolbar-clear')).toBeNull()
 
     unmount()
   })
@@ -284,14 +285,35 @@ describe('MobileReservationsHostView clear filters behavior', () => {
       selectedServiceSeatingId: 'dinner-1',
     })
 
+    const filterButton = container.querySelector('button[aria-label="Operational filters"]')
+    expect(filterButton).not.toBeNull()
+
+    await act(async () => {
+      filterButton.click()
+    })
+
+    const problemsOption = [...document.querySelectorAll('.host-queue-toolbar-menu-item')]
+      .find((button) => button.textContent?.includes('Problems'))
+    expect(problemsOption).toBeTruthy()
+
+    await act(async () => {
+      problemsOption.click()
+    })
+
+    expect(container.textContent).toContain('No reservations match the current filters')
+    expect(container.textContent).toContain('Dinner 1')
+
     const clearButton = container.querySelector('.host-queue-toolbar-clear')
     expect(clearButton).not.toBeNull()
 
     await act(async () => {
-      clearButton?.click()
+      clearButton.click()
     })
 
     expect(window.localStorage.getItem(HOST_QUEUE_SORT_STORAGE_KEY)).toBe('name-asc')
+    expect(container.textContent).toContain('Sort · Guest name — A–Z')
+    expect(container.textContent).toContain('No reservations in this queue')
+    expect(container.querySelector('.host-queue-toolbar-clear')).toBeNull()
 
     unmount()
   })

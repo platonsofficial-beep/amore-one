@@ -399,10 +399,17 @@ export function HostReservationList({
 
   if (!totalVisible) {
     if (useHostQueuePresentation) {
+      const title = queueEmptyState?.title || 'No reservations match the current filters.'
+      const showClearFilters = queueEmptyState
+        ? queueEmptyState.showClearFilters
+        : Boolean(onClearQueueFilters)
       return (
         <div className="host-reservation-list-empty is-host-queue-empty">
-          <p className="host-reservation-list-empty-title">No reservations match the current filters.</p>
-          {onClearQueueFilters ? (
+          <p className="host-reservation-list-empty-title">{title}</p>
+          {queueEmptyState?.copy ? (
+            <p className="host-reservation-list-empty-copy">{queueEmptyState.copy}</p>
+          ) : null}
+          {showClearFilters && onClearQueueFilters ? (
             <button
               type="button"
               className="host-queue-toolbar-clear"

@@ -43,6 +43,14 @@ function renderModal(props = {}) {
 }
 
 describe('StockOrderReceiveConfirmModal confirm button', () => {
+  it('names the destination storage', () => {
+    const { container, cleanup } = renderModal({
+      destinationLabel: 'Main Storage · Supply',
+    })
+    expect(container.textContent).toContain('Into Main Storage · Supply')
+    cleanup()
+  })
+
   it('keeps the loading spinner inside the confirm button while receiving', async () => {
     let resolveConfirm
     const onConfirm = vi.fn(() => new Promise((resolve) => {

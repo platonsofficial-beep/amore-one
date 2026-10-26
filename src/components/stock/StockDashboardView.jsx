@@ -1904,8 +1904,8 @@ export function StockDashboardView({
           belowParCount={stockLiveSnapshot.belowParCount}
           parsReady={stockLiveSnapshot.parsReady}
           parsStatus={stockLiveSnapshot.status}
-          stockItems={stockItems}
           stockOrders={stockOrders}
+          lastInventoryCountAt={stockLiveSnapshot.lastInventoryCountAt}
           onOpenBelowPar={onOpenBelowPar}
           onOpenDrafts={onOpenDrafts}
           onOpenCounts={onOpenCounts}

@@ -1,6 +1,19 @@
 import { formatTime24, formatTimeRange24, normalizeTimeValue } from './timeFormatUtils'
 import { isTerminalReservationStatus } from './reservationHostStatus'
 import { parseTimeToMinutes } from './shiftHoursUtils'
+import { getWorkspaceNowMinutes } from './employeeTodayStatusUtils'
+
+export function getTimelineNowMinutes(now = new Date(), timeZone = '') {
+  const resolved = getWorkspaceNowMinutes(now, timeZone)
+  const raw = Number.isFinite(resolved?.minutes) ? resolved.minutes : 0
+  return ((raw % 1440) + 1440) % 1440
+}
+
+function formatTimelineNowLabel(minutes) {
+  const hours = Math.floor(minutes / 60)
+  const mins = minutes % 60
+  return formatTime24(`${String(hours).padStart(2, '0')}:${String(mins).padStart(2, '0')}`)
+}
 
 export const TIMELINE_PREVIEW_LIMIT = 10
 export const TIMELINE_SCROLL_LIMIT = 10
@@ -262,11 +275,11 @@ export function groupTimelineEvents(events = []) {
   return groups.filter((group) => group.events.length > 0)
 }
 
-export function formatTodayTimelineCollapsedSummary(events = [], { isLoading = false, now = new Date() } = {}) {
+export function formatTodayTimelineCollapsedSummary(events = [], { isLoading = false, now = new Date(), timeZone = '' } = {}) {
   if (isLoading) return 'Loading…'
   if (!events.length) return 'No events today'
 
-  const nowMinutes = now.getHours() * 60 + now.getMinutes()
+  const nowMinutes = getTimelineNowMinutes(now, timeZone)
   const shiftEvents = events.filter((event) => event.type === 'shift')
   const reservationEvents = events.filter((event) => event.type === 'reservation')
   const taskEvents = events.filter((event) => event.type === 'task')
@@ -383,9 +396,9 @@ function compareTimelineEventsByTime(left, right) {
   return `${left?.title ?? ''}`.localeCompare(`${right?.title ?? ''}`)
 }
 
-export function sortTimelineEventsChronologically(events = [], now = new Date()) {
+export function sortTimelineEventsChronologically(events = [], now = new Date(), timeZone = '') {
   const filtered = filterTimelineEventsForDayFlow(events)
-  const nowMinutes = now.getHours() * 60 + now.getMinutes()
+  const nowMinutes = getTimelineNowMinutes(now, timeZone)
   const activeNow = []
   const upcoming = []
   const completed = []
@@ -409,9 +422,9 @@ export function sortTimelineEventsChronologically(events = [], now = new Date())
   return [...activeNow, ...upcoming, ...completed]
 }
 
-export function partitionTimelineEvents(events = [], now = new Date()) {
-  const sorted = sortTimelineEventsChronologically(events, now)
-  const nowMinutes = now.getHours() * 60 + now.getMinutes()
+export function partitionTimelineEvents(events = [], now = new Date(), timeZone = '') {
+  const sorted = sortTimelineEventsChronologically(events, now, timeZone)
+  const nowMinutes = getTimelineNowMinutes(now, timeZone)
   const activeAndUpcoming = sorted.filter((event) => !isTimelineEventCompleted(event, nowMinutes))
   const completed = sorted.filter((event) => isTimelineEventCompleted(event, nowMinutes))
   return { activeAndUpcoming, completed }
@@ -439,11 +452,10 @@ function isEventUpcoming(event, nowMinutes) {
 export function buildTimelineEventRows(events = [], {
   now = new Date(),
   showNow = false,
+  timeZone = '',
 } = {}) {
-  const nowMinutes = now.getHours() * 60 + now.getMinutes()
-  const nowLabel = formatTime24(
-    `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`,
-  )
+  const nowMinutes = getTimelineNowMinutes(now, timeZone)
+  const nowLabel = formatTimelineNowLabel(nowMinutes)
   const rows = []
   let nowInserted = false
 
@@ -478,12 +490,13 @@ export function buildTimelineEventRows(events = [], {
 export function buildTimelineDisplayRows(events = [], {
   now = new Date(),
   showNow = false,
+  timeZone = '',
 } = {}) {
-  const { activeAndUpcoming, completed } = partitionTimelineEvents(events, now)
+  const { activeAndUpcoming, completed } = partitionTimelineEvents(events, now, timeZone)
 
   return {
-    activeRows: buildTimelineEventRows(activeAndUpcoming, { now, showNow }),
-    completedRows: buildTimelineEventRows(completed, { now, showNow: false }),
+    activeRows: buildTimelineEventRows(activeAndUpcoming, { now, showNow, timeZone }),
+    completedRows: buildTimelineEventRows(completed, { now, showNow: false, timeZone }),
     completedCount: completed.length,
     activeCount: activeAndUpcoming.length,
   }

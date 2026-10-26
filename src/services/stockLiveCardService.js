@@ -8,6 +8,29 @@ import {
 
 const BALANCES_TABLE = 'stock_item_location_balances'
 const PARS_TABLE = 'stock_item_storage_pars'
+const INVENTORY_COUNT_SESSIONS_TABLE = 'inventory_count_sessions'
+
+function isInventoryCountSessionSchemaMissing(error) {
+  const message = `${error?.message ?? ''}`.toLowerCase()
+  const code = `${error?.code ?? ''}`
+  if (!message.includes('inventory_count_sessions')) return false
+  return code === '42P01'
+    || code === 'PGRST204'
+    || code === 'PGRST205'
+    || message.includes('schema cache')
+    || message.includes('does not exist')
+    || message.includes('could not find')
+}
+
+function readLatestInventoryCountStartedAt(result) {
+  if (result?.error) {
+    if (isInventoryCountSessionSchemaMissing(result.error)) return null
+    throw new Error(result.error.message || 'Unable to load inventory counts right now.')
+  }
+  const row = Array.isArray(result?.data) ? result.data[0] : null
+  const startedAt = row?.started_at ?? row?.startedAt ?? null
+  return startedAt ? `${startedAt}` : null
+}
 
 function requireWorkspaceId(workspaceId) {
   const normalized = `${workspaceId ?? ''}`.trim()
@@ -24,7 +47,7 @@ function requireWorkspaceId(workspaceId) {
 export async function loadStockLiveSnapshot(workspaceId) {
   const normalizedWorkspaceId = requireWorkspaceId(workspaceId)
 
-  const [parResult, balanceResult] = await Promise.all([
+  const [parResult, balanceResult, sessionResult] = await Promise.all([
     supabase
       .from(PARS_TABLE)
       .select(STOCK_STORAGE_PAR_COLUMNS)
@@ -33,10 +56,18 @@ export async function loadStockLiveSnapshot(workspaceId) {
       .from(BALANCES_TABLE)
       .select(STOCK_STORAGE_CENTER_BALANCE_COLUMNS)
       .eq('workspace_id', normalizedWorkspaceId),
+    supabase
+      .from(INVENTORY_COUNT_SESSIONS_TABLE)
+      .select('started_at')
+      .eq('workspace_id', normalizedWorkspaceId)
+      .order('started_at', { ascending: false })
+      .limit(1),
   ])
 
+  const lastInventoryCountAt = readLatestInventoryCountStartedAt(sessionResult)
+
   if (parResult.error && isStockStorageParSchemaMissing(parResult.error)) {
-    return { belowParCount: 0, parsReady: false }
+    return { belowParCount: 0, parsReady: false, lastInventoryCountAt }
   }
   if (parResult.error) {
     throw new Error(parResult.error.message || 'Unable to load shelf pars right now.')
@@ -51,5 +82,6 @@ export async function loadStockLiveSnapshot(workspaceId) {
       pars: parResult.data ?? [],
     }),
     parsReady: true,
+    lastInventoryCountAt,
   }
 }

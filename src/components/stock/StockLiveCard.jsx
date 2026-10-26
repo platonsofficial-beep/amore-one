@@ -17,8 +17,8 @@ export function StockLiveCard({
   belowParCount = 0,
   parsReady = false,
   parsStatus = 'ready',
-  stockItems = [],
   stockOrders = [],
+  lastInventoryCountAt = null,
   now = new Date(),
   onOpenBelowPar,
   onOpenDrafts,
@@ -28,7 +28,7 @@ export function StockLiveCard({
     belowParCount,
     parsReady: parsStatus === 'ready' && parsReady,
     orders: stockOrders,
-    items: stockItems,
+    lastInventoryCountAt,
     now,
   })
   const belowParLabel = parsStatus === 'loading'

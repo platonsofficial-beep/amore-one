@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   buildStockLiveFacts,
   countWorkspaceItemsBelowPar,
+  formatInventoryCountFact,
   formatLastCountFact,
   latestStockCountAt,
 } from './stockLiveCard'
@@ -32,30 +33,36 @@ describe('stock live card', () => {
     expect(formatLastCountFact('2026-10-26T08:00:00.000Z', new Date('2026-10-26T18:00:00.000Z'))).toBe('Last count today')
   })
 
-  it('builds the three live facts', () => {
+  it('labels the latest inventory count session, not a product stock movement', () => {
+    const now = new Date(2026, 9, 26, 16, 0, 0)
+    const today = new Date(2026, 9, 26, 9, 0, 0)
+    const july = new Date(2026, 6, 30, 12, 0, 0)
+    expect(formatInventoryCountFact(null, now)).toBe('No inventory counts yet')
+    expect(formatInventoryCountFact(today.toISOString(), now)).toBe('Last inventory count today')
+    expect(formatInventoryCountFact(july.toISOString(), now)).toBe('Last inventory count 30 Jul')
+
     const facts = buildStockLiveFacts({
       belowParCount: 2,
       parsReady: true,
       orders: [{ status: 'draft' }, { status: 'sent' }, { status: 'draft' }],
-      items: [{ id: 'cola', active: true, lastCount: { createdAt: '2026-10-25T10:00:00.000Z' } }],
-      now: new Date('2026-10-26T10:00:00.000Z'),
+      lastInventoryCountAt: july.toISOString(),
+      now,
     })
 
     expect(facts.belowParLabel).toBe('2 items below par')
     expect(facts.belowParTone).toBe('warning')
     expect(facts.draftLabel).toBe('2 open drafts')
     expect(facts.draftTone).toBe('warning')
-    expect(facts.lastCountLabel).toBe('Last count 1 day ago')
+    expect(facts.lastCountLabel).toBe('Last inventory count 30 Jul')
   })
 
   it('keeps drafts and counts visible when pars are not in the database', () => {
     const facts = buildStockLiveFacts({
       parsReady: false,
       orders: [],
-      items: [],
     })
     expect(facts.belowParLabel).toBe('Pars not available yet')
     expect(facts.draftLabel).toBe('0 open drafts')
-    expect(facts.lastCountLabel).toBe('No counts yet')
+    expect(facts.lastCountLabel).toBe('No inventory counts yet')
   })
 })
