@@ -1,8 +1,8 @@
 import { getTableHalfExtents } from './hostFloorPlanViewport'
 
 export const DINING_TIMER_EXTERNAL_LABEL_SIZE = {
-  widthPercent: 5.5,
-  heightPercent: 2.6,
+  widthPercent: 11,
+  heightPercent: 3.2,
 }
 
 export const DINING_TIMER_EXTERNAL_LABEL_SAFETY_GAP_PERCENT = 0.55

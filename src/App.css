@@ -9323,57 +9323,26 @@
   flex-shrink: 0;
 }
 
-.floor-plan-workspace.is-host-floor .floor-table-content .floor-table-dining-timer {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0;
-  font-size: clamp(0.44rem, 7.2cqb, 0.58rem);
-  font-weight: 600;
-  font-variant-numeric: tabular-nums;
-  line-height: 1.08;
-  flex-shrink: 0;
-  pointer-events: none;
-}
-
-.floor-plan-workspace.is-host-floor .floor-table-content .floor-table-dining-timer.is-urgency-normal {
-  color: rgba(159, 212, 176, 0.92);
-}
-
-.floor-plan-workspace.is-host-floor .floor-table-content .floor-table-dining-timer.is-urgency-approaching {
-  color: rgba(212, 175, 55, 0.96);
-}
-
-.floor-plan-workspace.is-host-floor .floor-table-content .floor-table-dining-timer.is-urgency-overdue {
-  color: rgba(224, 124, 124, 0.95);
-}
-
-.floor-plan-workspace.is-host-floor .floor-table-content .floor-table-dining-timer-elapsed {
-  white-space: nowrap;
-}
-
-.floor-plan-workspace.is-host-floor .floor-table-content.is-tier-very-small .floor-table-dining-timer {
-  font-size: clamp(0.38rem, 6.2cqb, 0.5rem);
-}
-
 .floor-plan-workspace.is-host-floor .floor-table-node:has(.floor-table-dining-timer-external) {
   z-index: 6;
+  overflow: visible;
 }
 
 .floor-plan-workspace.is-host-floor .floor-table-dining-timer-external {
   position: absolute;
   z-index: 3;
-  font-size: clamp(0.42rem, 6.8cqb, 0.56rem);
-  font-weight: 500;
+  font-size: 0.75rem;
+  font-weight: 600;
   font-variant-numeric: tabular-nums;
-  line-height: 1.1;
+  line-height: 1.15;
   letter-spacing: 0.01em;
   white-space: nowrap;
   pointer-events: none;
-  padding: 1px 4px;
-  border-radius: 4px;
-  background: rgba(10, 10, 11, 0.78);
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.34);
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--one-navy-800) 92%, #000);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.45);
+  color: #b7e4c7;
 }
 
 .floor-plan-workspace.is-host-floor .floor-table-dining-timer-external.is-placement-below {
@@ -9403,15 +9372,15 @@
 }
 
 .floor-plan-workspace.is-host-floor .floor-table-dining-timer-external.is-urgency-normal {
-  color: rgba(159, 212, 176, 0.78);
+  color: #b7e4c7;
 }
 
 .floor-plan-workspace.is-host-floor .floor-table-dining-timer-external.is-urgency-approaching {
-  color: rgba(212, 175, 55, 0.84);
+  color: #f3d27a;
 }
 
 .floor-plan-workspace.is-host-floor .floor-table-dining-timer-external.is-urgency-overdue {
-  color: rgba(224, 124, 124, 0.82);
+  color: #f0a0a0;
 }
 
 .floor-plan-workspace.is-host-floor .floor-table-content .floor-table-number {

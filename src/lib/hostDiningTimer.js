@@ -160,6 +160,24 @@ export function formatHostDiningTimerExternalFreeLabel(estimatedFreeServiceDayMi
   return `🕒 ${timeLabel}`
 }
 
+export function formatHostDiningTimerCompactElapsed(elapsedMinutes, { showZero = false } = {}) {
+  const minutes = Math.max(0, Math.floor(Number(elapsedMinutes) || 0))
+  if (minutes < 1) return showZero ? '0m' : null
+  if (minutes < 60) return `${minutes}m`
+
+  const hours = Math.floor(minutes / 60)
+  const remainder = minutes % 60
+  if (remainder === 0) return `${hours}h`
+  return `${hours}h${String(remainder).padStart(2, '0')}`
+}
+
+export function formatHostDiningTimerFloorPill(compactElapsed, estimatedFreeServiceDayMinutes) {
+  if (!compactElapsed) return null
+  const timeLabel = formatServiceDayMinutesAsTime24(estimatedFreeServiceDayMinutes)
+  if (!timeLabel) return null
+  return `⏱ ${compactElapsed} · ${timeLabel}`
+}
+
 export function formatHostDiningTimerCompactLine(elapsedLabel, estimatedFreeTimeLabel) {
   if (!elapsedLabel || !estimatedFreeTimeLabel) return null
   const timeOnly = estimatedFreeTimeLabel.replace(/^Est\. free\s+/, '')
@@ -204,13 +222,17 @@ export function buildHostFloorDiningTimerPresentation(
     ? null
     : timerStartMinutes + expectedDurationMinutes
   const estimatedFreeExternalLabel = formatHostDiningTimerExternalFreeLabel(estimatedFreeServiceDayMinutes)
-  if (!estimatedFreeExternalLabel) return null
+  const compactElapsed = formatHostDiningTimerCompactElapsed(elapsedMinutes, { showZero: Boolean(seatedAt) })
+  const externalLabel = formatHostDiningTimerFloorPill(compactElapsed, estimatedFreeServiceDayMinutes)
+  if (!estimatedFreeExternalLabel || !externalLabel) return null
 
   const urgency = resolveHostDiningTimerUrgency(elapsedMinutes, expectedDurationMinutes)
 
   return {
     elapsedLabel,
+    compactElapsed,
     estimatedFreeExternalLabel,
+    externalLabel,
     urgency,
   }
 }
