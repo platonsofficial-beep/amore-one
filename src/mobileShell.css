@@ -8669,15 +8669,15 @@ html[data-one-debug-scroll='1'] .floor-plan-viewport.is-host-viewport {
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    padding-top: 8px;
-    padding-bottom: 8px;
+    padding-top: 4px;
+    padding-bottom: 4px;
   }
 
   .mobile-manager-stock-inventory {
     flex: 1 1 auto;
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: 4px;
     min-height: 0;
     max-height: none;
     overflow: hidden;
@@ -8720,42 +8720,84 @@ html[data-one-debug-scroll='1'] .floor-plan-viewport.is-host-viewport {
     flex: 0 0 auto;
     width: auto;
     grid-template-columns: repeat(3, max-content);
-    padding: 4px;
-    border-radius: 14px;
+    gap: 4px;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+    backdrop-filter: none;
   }
 
-  .mobile-manager-stock-quick-btn {
-    min-height: 44px;
-    padding: 0 12px;
+  .mobile-manager-stock-inventory .mobile-manager-stock-quick-btn {
+    min-height: 36px;
+    padding: 0 10px;
+    border-radius: 10px;
+    font-size: 0.78rem;
     white-space: nowrap;
   }
 
   .mobile-manager-stock-pending-banner {
+    flex-wrap: nowrap;
     align-items: center;
+    gap: 8px;
     margin: 0;
-    padding: 4px 8px;
+    min-height: 36px;
+    padding: 0 8px;
+    border-radius: 10px;
   }
 
   .mobile-manager-stock-pending-copy {
     display: flex;
-    flex-wrap: wrap;
+    flex: 1 1 auto;
+    flex-wrap: nowrap;
     align-items: baseline;
-    gap: 4px 8px;
+    gap: 8px;
     min-width: 0;
+    overflow: hidden;
   }
 
   .mobile-manager-stock-pending-title,
   .mobile-manager-stock-pending-message {
     margin: 0;
-    font-size: 0.8rem;
+    overflow: hidden;
+    font-size: 0.78rem;
+    line-height: 1.2;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+
+  .mobile-manager-stock-pending-message {
+    flex: 1 1 auto;
+    color: #b8c7dc;
+  }
+
+  .mobile-manager-stock-pending-actions {
+    flex-direction: row;
+    gap: 6px;
+  }
+
+  .mobile-manager-stock-pending-btn {
+    min-height: 32px;
+    padding: 0 10px;
+    white-space: nowrap;
   }
 
   .mobile-manager-stock-row {
-    min-height: 44px;
-    padding: 4px 8px;
+    min-height: 40px;
+    padding: 0 8px;
+  }
+
+  .mobile-manager-stock-row .mobile-manager-stock-card-name {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   .mobile-manager-stock-sticky-tools {
+    display: flex;
+    align-items: center;
+    gap: 8px;
     position: static;
     margin: 0;
     padding: 0;
@@ -8764,11 +8806,23 @@ html[data-one-debug-scroll='1'] .floor-plan-viewport.is-host-viewport {
   }
 
   .mobile-manager-stock-search {
-    margin-bottom: 4px;
+    flex: 0 1 220px;
+    min-width: 140px;
+    margin: 0;
   }
 
   .mobile-manager-stock-search input {
-    min-height: 44px;
+    min-height: 36px;
+  }
+
+  .mobile-manager-stock-filters {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .mobile-manager-stock-inventory .mobile-manager-stock-chip {
+    min-height: 32px;
+    padding: 0 10px;
   }
 
   .mobile-manager-stock-stage {
@@ -8789,7 +8843,8 @@ html[data-one-debug-scroll='1'] .floor-plan-viewport.is-host-viewport {
   }
 
   .mobile-manager-stock-list {
-    padding-bottom: 8px;
+    gap: 2px;
+    padding-bottom: 2px;
   }
 
   .mobile-manager-stock-inventory.is-detail-open .mobile-stock-detail-sheet {

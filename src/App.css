@@ -48706,20 +48706,19 @@ summary:focus-visible {
   }
 
   .stock-today-board {
-    grid-template-columns: minmax(148px, 0.7fr) minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     align-items: stretch;
   }
 
   .stock-today-kpis {
-    grid-column: auto;
-    grid-row: 1 / span 3;
-    grid-template-columns: 1fr;
+    grid-column: 1 / -1;
+    grid-row: auto;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     align-content: start;
-    gap: 4px;
   }
 
   .stock-today-activity {
-    grid-column: 2 / -1;
+    grid-column: auto;
   }
 
   .today-layout {
