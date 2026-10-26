@@ -62,7 +62,7 @@ function MobileManagerQuickActions({
           className="mobile-manager-action-btn mobile-manager-action-btn-primary mobile-manager-action-btn-featured"
           onClick={onReceiveDeliveries}
         >
-          Receive deliveries
+          Receive delivery
         </button>
       ) : null}
       <div className="mobile-manager-actions-grid">

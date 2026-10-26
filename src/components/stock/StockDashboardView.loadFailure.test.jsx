@@ -98,7 +98,7 @@ describe('StockDashboardView load failure vs empty (P8.17.1)', () => {
     expect(container.textContent).not.toContain('Add your first product')
     expect(
       Array.from(container.querySelectorAll('.stock-empty-state:not(.stock-catalog-load-failed) button'))
-        .some((node) => node.textContent === '+ Add item'),
+        .some((node) => node.textContent.includes('Add item')),
     ).toBe(false)
 
     cleanup()
@@ -190,7 +190,7 @@ describe('StockDashboardView load failure vs empty (P8.17.1)', () => {
     expect(container.textContent).not.toContain('No products yet')
     expect(
       Array.from(container.querySelectorAll('.stock-empty-state:not(.stock-catalog-load-failed) button'))
-        .some((node) => node.textContent === '+ Add item'),
+        .some((node) => node.textContent.includes('Add item')),
     ).toBe(false)
 
     cleanup()
@@ -209,7 +209,7 @@ describe('StockDashboardView load failure vs empty (P8.17.1)', () => {
     expect(container.textContent).toContain('No products yet')
     expect(container.textContent).toContain('Add your first product')
     expect(
-      Array.from(container.querySelectorAll('button')).some((node) => node.textContent === '+ Add item'),
+      Array.from(container.querySelectorAll('button')).some((node) => node.textContent.includes('Add item')),
     ).toBe(true)
     expect(container.textContent).not.toContain("Stock couldn't be loaded")
     expect(
@@ -231,7 +231,7 @@ describe('StockDashboardView load failure vs empty (P8.17.1)', () => {
 
     expect(container.textContent).toContain('No stock items')
     expect(
-      Array.from(container.querySelectorAll('button')).some((node) => node.textContent === '+ Add item'),
+      Array.from(container.querySelectorAll('button')).some((node) => node.textContent.includes('Add item')),
     ).toBe(false)
 
     cleanup()

@@ -263,7 +263,7 @@ export function StockOrdersView({
                   }}
                   disabled={!isWorkspaceReady || isActionBusy || !workspaceId}
                 >
-                  Delete purchase orders…
+                  Delete orders
                 </button>
               ) : null}
             </div>
@@ -274,7 +274,7 @@ export function StockOrdersView({
                 onClick={() => { void onPrepareDrafts() }}
                 disabled={!isWorkspaceReady || isActionBusy}
               >
-                {isSaving ? 'Preparing…' : 'Prepare drafts'}
+                {isSaving ? 'Saving…' : 'Suggest order'}
               </button>
             ) : null}
             <button
@@ -353,7 +353,7 @@ export function StockOrdersView({
                   onClick={() => { void onPrepareDrafts() }}
                   disabled={!isWorkspaceReady || isActionBusy}
                 >
-                  {isSaving ? 'Preparing…' : 'Prepare drafts'}
+                  {isSaving ? 'Saving…' : 'Suggest order'}
                 </button>
               ) : null}
               <button

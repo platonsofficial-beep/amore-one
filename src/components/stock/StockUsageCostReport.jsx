@@ -142,7 +142,7 @@ export function StockUsageCostReport({
       >
         <div className="drawer-header">
           <div>
-            <h3 id="stock-usage-report-title">Usage & cost</h3>
+            <h3 id="stock-usage-report-title">Usage report</h3>
             <p className="stock-modal-subtitle">
               Opening + Received − Waste − Logged use ± Transfers ± Adjustments − Closing = Used
             </p>

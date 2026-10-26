@@ -193,7 +193,7 @@ function MobileStockPendingOrdersBanner({
             className="mobile-manager-stock-pending-btn mobile-manager-stock-pending-btn-primary"
             onClick={onReceiveDeliveries}
           >
-            Receive
+            Receive delivery
           </button>
         ) : null}
         <button
@@ -485,7 +485,7 @@ export function MobileManagerStockView({
             onClick={onCountStock}
             disabled={!isWorkspaceReady}
           >
-            Count stock
+            Count
           </button>
           {onPrepareDrafts ? (
             <button
@@ -494,7 +494,7 @@ export function MobileManagerStockView({
               onClick={() => { void onPrepareDrafts() }}
               disabled={!isWorkspaceReady || isSavingOrders}
             >
-              {isSavingOrders ? 'Preparing…' : 'Prepare drafts'}
+              {isSavingOrders ? 'Saving…' : 'Suggest order'}
             </button>
           ) : null}
           <button

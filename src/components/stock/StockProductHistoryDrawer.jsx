@@ -367,11 +367,11 @@ export function StockProductHistoryDrawer({
 
         {canManage ? (
           <footer className="stock-product-history-footer" aria-label="Quick actions">
-            <button type="button" className="ghost-btn stock-product-history-action-btn" onClick={onReceive}>
-              Receive
+            <button type="button" className={`${item.status === 'out' || item.status === 'low' ? 'primary-btn' : 'ghost-btn'} stock-product-history-action-btn`} onClick={onReceive}>
+              Receive delivery
             </button>
-            <button type="button" className="ghost-btn stock-product-history-action-btn" onClick={onStockCount}>
-              Stock count
+            <button type="button" className={`${item.status === 'out' || item.status === 'low' ? 'ghost-btn' : 'primary-btn'} stock-product-history-action-btn`} onClick={onStockCount}>
+              Count
             </button>
             <button type="button" className="ghost-btn stock-product-history-action-btn" onClick={onEdit}>
               Edit

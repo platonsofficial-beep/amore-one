@@ -377,7 +377,7 @@ describe('StockDashboardView filtered catalog density (P8.17.3d)', () => {
 
   function buttonByText(container, text) {
     return Array.from(container.querySelectorAll('button'))
-      .find((node) => node.textContent === text)
+      .find((node) => node.textContent.trim() === text)
   }
 
   it('1. Filtered context label, count, and Clear filter share one coherent wrapper', () => {
@@ -445,13 +445,15 @@ describe('StockDashboardView filtered catalog density (P8.17.3d)', () => {
     expect(browseRow.querySelector('[aria-label="Group stock items"]')).toBeTruthy()
     expect(browseRow.querySelector('[aria-label="Sort stock items"]')).toBeTruthy()
 
-    expect(buttonByText(actionsRow, 'Create order')).toBeTruthy()
-    expect(buttonByText(actionsRow, 'Select')).toBeTruthy()
-    expect(buttonByText(actionsRow, '+ Add item')).toBeTruthy()
+    expect(buttonByText(actionsRow, 'Add item')).toBeTruthy()
     expect(buttonByText(actionsRow, 'Import CSV')).toBeFalsy()
     expect(buttonByText(actionsRow, 'Inventory Import')).toBeFalsy()
     expect(buttonByText(actionsRow, 'More')).toBeFalsy()
-    expect(actionsRow.querySelector('[aria-label="More catalog actions"]')).toBeNull()
+    const moreActions = actionsRow.querySelector('[aria-label="More catalog actions"]')
+    expect(moreActions).toBeTruthy()
+    click(moreActions)
+    expect(buttonByText(actionsRow, 'Create order')).toBeTruthy()
+    expect(buttonByText(actionsRow, 'Select')).toBeTruthy()
     expect(container.querySelector('[data-stock-toolbar-overflow="true"]')).toBeNull()
     expect(container.querySelector('[data-stock-toolbar-overflow-import-csv="true"]')).toBeNull()
     expect(container.querySelector('[data-stock-toolbar-overflow-inventory-import="true"]')).toBeNull()
@@ -593,7 +595,11 @@ describe('StockDashboardView compact browse workspace (P8.24.3)', () => {
 
   function buttonByText(root, text) {
     return Array.from(root.querySelectorAll('button'))
-      .find((node) => node.textContent === text)
+      .find((node) => node.textContent.trim() === text)
+  }
+
+  function openCatalogMore(container) {
+    click(container.querySelector('[aria-label="More catalog actions"]'))
   }
 
   it('renders shared compact toolbar with browse controls and visible manager actions', () => {
@@ -612,13 +618,14 @@ describe('StockDashboardView compact browse workspace (P8.24.3)', () => {
     expect(browseRow.querySelector('[aria-label="Sort stock items"]')).toBeTruthy()
     expect(resultCountText(container)).toMatch(/Showing 1 of 1/)
 
-    expect(buttonByText(actionsRow, '+ Add item')).toBeTruthy()
-    expect(buttonByText(actionsRow, 'Create order')).toBeTruthy()
-    expect(buttonByText(actionsRow, 'Select')).toBeTruthy()
+    expect(buttonByText(actionsRow, 'Add item')).toBeTruthy()
     expect(buttonByText(actionsRow, 'Import CSV')).toBeFalsy()
     expect(buttonByText(actionsRow, 'Inventory Import')).toBeFalsy()
     expect(buttonByText(actionsRow, 'More')).toBeFalsy()
-    expect(actionsRow.querySelector('[aria-label="More catalog actions"]')).toBeNull()
+    expect(actionsRow.querySelector('[aria-label="More catalog actions"]')).toBeTruthy()
+    openCatalogMore(container)
+    expect(buttonByText(actionsRow, 'Create order')).toBeTruthy()
+    expect(buttonByText(actionsRow, 'Select')).toBeTruthy()
     expect(container.querySelector('[data-stock-toolbar-overflow="true"]')).toBeNull()
     expect(container.querySelector('[data-stock-toolbar-overflow-import-csv="true"]')).toBeNull()
     expect(container.querySelector('[data-stock-toolbar-overflow-inventory-import="true"]')).toBeNull()
@@ -666,11 +673,11 @@ describe('StockDashboardView compact browse workspace (P8.24.3)', () => {
     expect(row.querySelector('.stock-list-cell-movement')?.textContent).not.toBe('')
 
     const actions = row.querySelector('.stock-list-cell-actions')
-    expect(buttonByText(actions, 'Receive')).toBeTruthy()
+    expect(buttonByText(actions, 'Receive delivery')).toBeTruthy()
     const countBtn = actions.querySelector('[data-stock-row-count-action="true"]')
     expect(countBtn).toBeTruthy()
-    expect(countBtn.getAttribute('aria-label')).toBe('Stock count')
-    expect(countBtn.textContent).toBe('Count')
+    expect(countBtn.getAttribute('aria-label')).toBe('Count')
+    expect(countBtn.textContent.trim()).toBe('Count')
     expect(actions.querySelector('[aria-label="More actions for LIST PRODUCT"]')).toBeTruthy()
     expect(actions.querySelectorAll('.stock-row-action-btn, .stock-row-more-btn')).toHaveLength(3)
     expect(actions.querySelectorAll('[data-stock-row-count-action="true"]')).toHaveLength(1)
@@ -680,6 +687,7 @@ describe('StockDashboardView compact browse workspace (P8.24.3)', () => {
   it('keeps selection mode functional without duplicating toolbar chrome', () => {
     const { container, cleanup } = mount()
     setLayoutMode(container, 'List')
+    openCatalogMore(container)
     click(buttonByText(container, 'Select'))
     expect(buttonByText(container, 'Done')).toBeTruthy()
     expect(container.querySelector('.stock-selection-bar')).toBeTruthy()
@@ -762,6 +770,7 @@ describe('StockDashboardView compact browse workspace (P8.24.3)', () => {
   it('selects a list row in selection mode instead of opening detail', () => {
     const { container, cleanup } = mount()
     setLayoutMode(container, 'List')
+    openCatalogMore(container)
     click(buttonByText(container, 'Select'))
     click(container.querySelector('.stock-list-row'))
     expect(container.querySelector('#stock-product-history-title')).toBeNull()

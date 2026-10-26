@@ -83,7 +83,7 @@ function formatDestinationAction(destination) {
   if (!destination) return 'Open'
 
   if (destination.view === 'stock') {
-    if (destination.action === 'receive-deliveries') return 'Receive deliveries'
+    if (destination.action === 'receive-deliveries') return 'Receive delivery'
     if (destination.section === 'orders') return 'Open stock orders'
     return 'Open stock'
   }

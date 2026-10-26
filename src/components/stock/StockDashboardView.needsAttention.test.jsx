@@ -224,7 +224,7 @@ describe('StockDashboardView Needs Attention density (P8.17.2 / P8.17.3)', () =>
 
     expect(container.querySelector('[aria-label="Needs attention"]')).toBeNull()
     expect(container.textContent).toContain('No products yet')
-    expect(container.textContent).toContain('+ Add item')
+    expect(container.textContent).toContain('Add item')
 
     cleanup()
   })

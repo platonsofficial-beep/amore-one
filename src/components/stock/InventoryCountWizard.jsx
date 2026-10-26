@@ -314,7 +314,7 @@ export function InventoryCountWizard({ isOpen, onClose, onStartSession }) {
       onClick={handleClose}
     >
       <div
-        className="inventory-count-wizard"
+        className={`inventory-count-wizard${step === 1 ? ' is-type-step' : ''}`}
         role="dialog"
         aria-modal="true"
         aria-labelledby="inventory-count-wizard-title"
@@ -365,13 +365,19 @@ export function InventoryCountWizard({ isOpen, onClose, onStartSession }) {
                   className={`inventory-count-door-choice${selectedType === countType.id ? ' is-selected' : ''}`}
                   onClick={() => setSelectedType(countType.id)}
                 >
-                  <span className="inventory-count-type-card-title">
-                    {countType.id === 'new' ? 'Full count' : 'Quick count'}
-                  </span>
-                  <span className="inventory-count-type-card-description">
-                    {countType.id === 'new'
-                      ? 'Every storage in this count.'
-                      : 'One storage.'}
+                  <span className="inventory-count-door-icon" aria-hidden="true">{countType.icon}</span>
+                  <span className="inventory-count-door-copy">
+                    <span className="inventory-count-type-card-title">
+                      {countType.id === 'new' ? 'Full count' : 'Quick count'}
+                    </span>
+                    <span className="inventory-count-type-card-description">
+                      {countType.id === 'new'
+                        ? 'Count every storage.'
+                        : 'Count one storage.'}
+                    </span>
+                    <span className="inventory-count-door-effort">
+                      {countType.id === 'new' ? 'Takes longer' : 'Usually faster'}
+                    </span>
                   </span>
                 </button>
               ))}

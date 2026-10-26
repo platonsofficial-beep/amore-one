@@ -52,7 +52,9 @@ import { useEscapeToClose } from '../../lib/useEscapeToClose'
 import { buildStockOrdersOperationsSummary } from '../../lib/stockOrderUtils'
 import { StockCreateOrderModal } from './StockCreateOrderModal'
 import { StockItemFormModal } from './StockItemFormModal'
+import { StockActionIcon } from './StockActionIcon'
 import { StockItemMoreMenu } from './StockItemMoreMenu'
+import { formatInventoryQuantityNumber, formatInventoryUnitLabel } from '../../lib/inventoryUnitDisplay'
 import { StockDashboardMovementDialog } from './StockDashboardMovementDialog'
 import { StockItemPermanentDeleteDialog } from './StockItemPermanentDeleteDialog'
 import { StockProductHistoryDrawer } from './StockProductHistoryDrawer'
@@ -152,6 +154,20 @@ function StockSortDropdown({
   )
 }
 
+function stockLevelPercent(item) {
+  const qty = Number(item?.currentQuantity)
+  const minimum = Number(item?.minimumQuantity)
+  const target = Number(item?.targetQuantity)
+  const safeQty = Number.isFinite(qty) ? Math.max(0, qty) : 0
+  const goal = Math.max(
+    Number.isFinite(target) && target > 0 ? target : 0,
+    Number.isFinite(minimum) && minimum > 0 ? minimum : 0,
+    safeQty,
+    1,
+  )
+  return Math.max(0, Math.min(100, Math.round((safeQty / goal) * 100)))
+}
+
 function StockItemCard({
   item,
   canManage,
@@ -168,7 +184,11 @@ function StockItemCard({
   const location = resolveStockStorageLocation(item)
   const supplierLabel = `${item.supplier ?? ''}`.trim()
   const insights = getStockItemInsights(item, { canManage })
+  const staleCount = insights.find((insight) => insight.id === 'not-counted')
   const displayTitle = buildProductDisplayNameFromItem(item)
+  const needsDelivery = item.status === 'out' || item.status === 'low'
+  const level = stockLevelPercent(item)
+  const metaLine = [supplierLabel || 'No supplier', location].filter(Boolean).join(' · ')
 
   const handleCardClick = () => {
     if (selectionMode) {
@@ -212,62 +232,37 @@ function StockItemCard({
         </div>
       </header>
 
-      <p className="stock-item-category-type">
-        {formatStockCategoryTypeLine(item.category, itemType)}
+      <p className="stock-item-quiet-meta">
+        {metaLine}
+        {staleCount ? ` · ${staleCount.label}` : ''}
       </p>
 
-      <div className="stock-item-meta-lines">
-        <p className="stock-item-meta-line is-supplier">
-          <span className="stock-item-meta-label">Supplier</span>
-          <span>{supplierLabel || '—'}</span>
-        </p>
-        <p className="stock-item-meta-line is-location">
-          <span className="stock-item-meta-label">Location</span>
-          <span>{location}</span>
-        </p>
+      <p className={`stock-item-qty-figure tone-${item.status}`}>
+        <span className="stock-item-qty-number">{formatInventoryQuantityNumber(item.currentQuantity)}</span>
+        <span className="stock-item-qty-unit">{formatInventoryUnitLabel(item.unit) || itemType}</span>
+      </p>
+      <div className="stock-item-level" aria-hidden="true">
+        <span className={`stock-item-level-fill tone-${item.status}`} style={{ width: `${level}%` }} />
       </div>
-
-      {insights.length > 0 ? (
-        <div className="stock-item-insights" aria-label="Stock insights">
-          {insights.map((insight) => (
-            <span key={insight.id} className={`stock-item-insight tone-${insight.tone}`}>
-              {insight.label}
-            </span>
-          ))}
-        </div>
-      ) : null}
-
-      <div className="stock-item-hero">
-        <span className="stock-item-hero-label">On hand</span>
-        <p className={`stock-item-hero-qty${item.status === 'out' || item.status === 'low' ? ` tone-${item.status}` : ''}`}>
-          {formatStockQuantity(item.currentQuantity, item.unit)}
-        </p>
-        {item.status === 'low' || item.status === 'out' ? (
-          <p className="stock-item-qty-context">
-            Min {formatStockQuantity(item.minimumQuantity, item.unit)}
-            {item.status === 'out' ? ' · needs restock' : ' · below minimum'}
-          </p>
-        ) : null}
-      </div>
-
-      <div className="stock-item-secondary">
-        <div className="stock-item-minimum">
-          <span className="stock-item-minimum-label">MINIMUM</span>
-          <strong className="stock-item-minimum-value">
-            {formatStockQuantity(item.minimumQuantity, item.unit)}
-          </strong>
-        </div>
-      </div>
+      <p className="stock-item-level-caption">
+        Minimum {formatStockQuantity(item.minimumQuantity, item.unit)}
+      </p>
 
       {canManage ? (
         <div className="stock-item-card-footer">
           <div className={`stock-item-actions-wrap${isMenuOpen ? ' is-menu-open' : ''}`}>
           <div className="stock-item-actions">
-            <button type="button" className="ghost-btn stock-item-action-primary is-receive" onClick={(event) => { event.stopPropagation(); onReceive() }}>
-              Receive
-            </button>
-            <button type="button" className="ghost-btn stock-item-action-primary is-count" onClick={(event) => { event.stopPropagation(); onCount() }}>
-              Stock count
+            <button
+              type="button"
+              className={`ghost-btn stock-item-action-primary ${needsDelivery ? 'is-receive' : 'is-count'}`}
+              onClick={(event) => {
+                event.stopPropagation()
+                if (needsDelivery) onReceive()
+                else onCount()
+              }}
+            >
+              <StockActionIcon name={needsDelivery ? 'box' : 'clipboard'} />
+              <span>{needsDelivery ? 'Receive delivery' : 'Count'}</span>
             </button>
             <button
               type="button"
@@ -362,17 +357,18 @@ function StockItemRowActions({
           type="button"
           className="ghost-btn stock-row-action-btn is-receive"
           onClick={keepRow(onReceive)}
+          aria-label="Receive delivery"
         >
-          Receive
+          Receive delivery
         </button>
         <button
           type="button"
           className="ghost-btn stock-row-action-btn is-count"
           onClick={keepRow(onCount)}
-          aria-label="Stock count"
+          aria-label="Count"
           data-stock-row-count-action="true"
         >
-          {compact ? 'Count' : 'Stock count'}
+          Count
         </button>
         <button
           type="button"
@@ -725,7 +721,7 @@ function StockCompactRow({
       <div className="stock-compact-actions" onClick={(event) => event.stopPropagation()}>
         {canManage ? (
           <button type="button" className="ghost-btn stock-compact-count-btn" onClick={onCount}>
-            Stock count
+            Count
           </button>
         ) : (
           <button type="button" className="ghost-btn stock-compact-count-btn" onClick={onOpenHistory}>
@@ -787,16 +783,17 @@ function StockSummaryCard({
 
 function StockTodayActivitySection({ activityLine }) {
   if (!activityLine) return null
+  const isEmpty = activityLine === 'No stock updates today'
 
   return (
     <section
-      className="stock-today-activity panel staff-panel is-dense"
+      className={`stock-today-activity panel staff-panel is-dense${isEmpty ? ' is-empty' : ''}`}
       aria-label="Today's stock activity"
       data-stock-widget-density="dense"
     >
       <header className="stock-today-activity-header">
         <h3 className="stock-today-activity-title">What changed today</h3>
-        <p className="stock-today-activity-line">{activityLine}</p>
+        <p className="stock-today-activity-line">{isEmpty ? 'Nothing moved today' : activityLine}</p>
       </header>
     </section>
   )
@@ -1106,6 +1103,7 @@ export function StockDashboardView({
   const [historyItem, setHistoryItem] = useState(null)
   const [isCreateOrderModalOpen, setIsCreateOrderModalOpen] = useState(false)
   const [usageReportOpen, setUsageReportOpen] = useState(false)
+  const [catalogMoreOpen, setCatalogMoreOpen] = useState(false)
   const [isItemModalOpen, setIsItemModalOpen] = useState(false)
   const [editingItem, setEditingItem] = useState(null)
   const [duplicateForm, setDuplicateForm] = useState(null)
@@ -1119,6 +1117,15 @@ export function StockDashboardView({
   useEffect(() => {
     persistStockBrowsePreferences({ layoutMode, groupBy, sortKey, visibilityFilter })
   }, [layoutMode, groupBy, sortKey, visibilityFilter])
+
+  useEffect(() => {
+    if (!catalogMoreOpen) return undefined
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') setCatalogMoreOpen(false)
+    }
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [catalogMoreOpen])
 
   useEffect(() => {
     if (!canManage && visibilityFilter !== 'active') {
@@ -1590,14 +1597,6 @@ export function StockDashboardView({
 
       {canManage ? (
         <div className="stock-compact-actions-row stock-toolbar-actions" data-stock-compact-actions-row="true">
-          <button
-            type="button"
-            className={`${onPrepareDrafts || emptyState?.showAddButton ? 'secondary-btn' : 'primary-btn'} stock-add-item-btn`}
-            onClick={openCreateItem}
-            disabled={!isWorkspaceReady || isStockActionBusy}
-          >
-            + Add item
-          </button>
           {onPrepareDrafts ? (
             <button
               type="button"
@@ -1605,33 +1604,90 @@ export function StockDashboardView({
               onClick={() => { void onPrepareDrafts() }}
               disabled={!isWorkspaceReady || isStockActionBusy}
             >
-              {isSavingOrders ? 'Preparing…' : 'Prepare drafts'}
+              <StockActionIcon name="bag" />
+              <span>{isSavingOrders ? 'Saving…' : 'Suggest order'}</span>
             </button>
           ) : null}
           <button
             type="button"
-            className="ghost-btn stock-create-order-btn"
-            onClick={() => setIsCreateOrderModalOpen(true)}
+            className={`${onPrepareDrafts ? 'secondary-btn' : 'primary-btn'} stock-add-item-btn`}
+            onClick={openCreateItem}
             disabled={!isWorkspaceReady || isStockActionBusy}
           >
-            {isSavingOrders ? 'Creating…' : 'Create order'}
+            <StockActionIcon name="plus" />
+            <span>Add item</span>
           </button>
-          <button
-            type="button"
-            className="ghost-btn stock-usage-report-btn"
-            onClick={() => setUsageReportOpen(true)}
-            disabled={!isWorkspaceReady || isStockActionBusy}
-          >
-            Usage & cost
-          </button>
-          <button
-            type="button"
-            className={`ghost-btn stock-select-mode-btn${selectionMode ? ' active' : ''}`}
-            onClick={toggleSelectionMode}
-            disabled={isStockActionBusy}
-          >
-            {selectionMode ? 'Done' : 'Select'}
-          </button>
+          {selectionMode ? (
+            <button
+              type="button"
+              className="secondary-btn stock-select-mode-btn active"
+              onClick={toggleSelectionMode}
+              disabled={isStockActionBusy}
+            >
+              Done
+            </button>
+          ) : null}
+          <div className="stock-catalog-more">
+            <button
+              type="button"
+              className="ghost-btn stock-catalog-more-btn"
+              aria-label="More catalog actions"
+              aria-expanded={catalogMoreOpen}
+              aria-haspopup="menu"
+              onClick={() => setCatalogMoreOpen((open) => !open)}
+              disabled={isStockActionBusy}
+            >
+              <StockActionIcon name="more" />
+            </button>
+            {catalogMoreOpen ? (
+              <>
+                <button
+                  type="button"
+                  className="stock-catalog-more-backdrop"
+                  aria-label="Close catalog menu"
+                  onClick={() => setCatalogMoreOpen(false)}
+                />
+                <div className="stock-catalog-more-menu" role="menu">
+                  <button
+                    type="button"
+                    className="stock-catalog-more-option stock-create-order-btn"
+                    role="menuitem"
+                    onClick={() => {
+                      setCatalogMoreOpen(false)
+                      setIsCreateOrderModalOpen(true)
+                    }}
+                    disabled={!isWorkspaceReady || isStockActionBusy}
+                  >
+                    {isSavingOrders ? 'Saving…' : 'Create order'}
+                  </button>
+                  <button
+                    type="button"
+                    className="stock-catalog-more-option stock-usage-report-btn"
+                    role="menuitem"
+                    onClick={() => {
+                      setCatalogMoreOpen(false)
+                      setUsageReportOpen(true)
+                    }}
+                    disabled={!isWorkspaceReady || isStockActionBusy}
+                  >
+                    Usage report
+                  </button>
+                  <button
+                    type="button"
+                    className="stock-catalog-more-option stock-select-mode-btn"
+                    role="menuitem"
+                    onClick={() => {
+                      setCatalogMoreOpen(false)
+                      toggleSelectionMode()
+                    }}
+                    disabled={isStockActionBusy}
+                  >
+                    {selectionMode ? 'Done' : 'Select'}
+                  </button>
+                </div>
+              </>
+            ) : null}
+          </div>
         </div>
       ) : null}
     </div>
@@ -1687,6 +1743,32 @@ export function StockDashboardView({
 
       {!isLoading && !catalogLoadFailed ? (
         <section className="stock-today-board" aria-label="What to do today" data-stock-widget-density="dense">
+          <div className="stock-today-kpis">
+            <StockSummaryCard
+              label="Low"
+              value={summary.lowStock}
+              tone={summary.lowStock > 0 ? 'warning' : 'default'}
+              isInteractive
+              isSelected={statusFilter === 'low'}
+              onClick={() => applyKpiStatusFilter('low')}
+            />
+            <StockSummaryCard
+              label="Out of stock"
+              value={summary.outOfStock}
+              tone={summary.outOfStock > 0 ? 'danger' : 'default'}
+              isInteractive
+              isSelected={statusFilter === 'out'}
+              onClick={() => applyKpiStatusFilter('out')}
+            />
+            <StockSummaryCard
+              label="To order"
+              value={summary.toOrder}
+              tone={summary.toOrder > 0 ? 'warning' : 'default'}
+              isInteractive
+              isSelected={statusFilter === 'order'}
+              onClick={() => applyKpiStatusFilter('order')}
+            />
+          </div>
           <article className="stock-today-card" aria-label="To order">
             <header className="stock-today-card-header">
               <h3>To order</h3>
@@ -1711,46 +1793,22 @@ export function StockDashboardView({
             {hiddenOrderGroups > 0 ? (
               <p className="stock-today-card-more">+{hiddenOrderGroups} more supplier{hiddenOrderGroups === 1 ? '' : 's'}</p>
             ) : null}
-            {stockLiveSnapshot?.parsReady && Number(stockLiveSnapshot.belowParCount) > 0 ? (
-              <button type="button" className="ghost-btn" onClick={onOpenBelowPar}>
-                {stockLiveSnapshot.belowParCount} below par on shelves
-              </button>
-            ) : null}
-            {ordersSummary.draftCount > 0 && typeof onOpenDrafts === 'function' ? (
-              <button type="button" className="ghost-btn" onClick={onOpenDrafts}>
-                Review drafts
-              </button>
-            ) : null}
-            {ordersSummary.pendingCount > 0 && typeof onOpenOrders === 'function' ? (
-              <button type="button" className="ghost-btn" onClick={() => onOpenOrders('all')}>
-                View orders
-              </button>
-            ) : null}
-            <div className="stock-today-filters">
-              <StockSummaryCard
-                label="Low"
-                value={summary.lowStock}
-                tone={summary.lowStock > 0 ? 'warning' : 'default'}
-                isInteractive
-                isSelected={statusFilter === 'low'}
-                onClick={() => applyKpiStatusFilter('low')}
-              />
-              <StockSummaryCard
-                label="Out of stock"
-                value={summary.outOfStock}
-                tone={summary.outOfStock > 0 ? 'danger' : 'default'}
-                isInteractive
-                isSelected={statusFilter === 'out'}
-                onClick={() => applyKpiStatusFilter('out')}
-              />
-              <StockSummaryCard
-                label="To order"
-                value={summary.toOrder}
-                tone={summary.toOrder > 0 ? 'warning' : 'default'}
-                isInteractive
-                isSelected={statusFilter === 'order'}
-                onClick={() => applyKpiStatusFilter('order')}
-              />
+            <div className="stock-today-links">
+              {stockLiveSnapshot?.parsReady && Number(stockLiveSnapshot.belowParCount) > 0 ? (
+                <button type="button" className="stock-text-btn" onClick={onOpenBelowPar}>
+                  {stockLiveSnapshot.belowParCount} running low on shelves
+                </button>
+              ) : null}
+              {ordersSummary.draftCount > 0 && typeof onOpenDrafts === 'function' ? (
+                <button type="button" className="stock-text-btn" onClick={onOpenDrafts}>
+                  Review order
+                </button>
+              ) : null}
+              {ordersSummary.pendingCount > 0 && typeof onOpenOrders === 'function' ? (
+                <button type="button" className="stock-text-btn" onClick={() => onOpenOrders('all')}>
+                  View orders
+                </button>
+              ) : null}
             </div>
           </article>
 
@@ -1759,8 +1817,8 @@ export function StockDashboardView({
               <h3>To count</h3>
               <p>
                 {toCountTotal === 0
-                  ? 'Counts are up to date'
-                  : `${toCountTotal} stale ${toCountTotal === 1 ? 'item' : 'items'}`}
+                  ? 'Nothing waiting'
+                  : `${toCountTotal} ${toCountTotal === 1 ? 'item' : 'items'} to count`}
               </p>
             </header>
             {toCountGroups.length > 0 ? (
@@ -1776,8 +1834,9 @@ export function StockDashboardView({
               <p className="stock-today-card-empty">Only items not counted in the last 14 days show here.</p>
             )}
             {typeof onOpenCounts === 'function' && toCountTotal > 0 ? (
-              <button type="button" className="ghost-btn" onClick={onOpenCounts}>
-                Open count
+              <button type="button" className="stock-text-btn" onClick={onOpenCounts}>
+                <StockActionIcon name="clipboard" />
+                <span>Start count</span>
               </button>
             ) : null}
           </article>
@@ -1889,7 +1948,8 @@ export function StockDashboardView({
               onClick={openCreateItem}
               disabled={!isWorkspaceReady}
             >
-              + Add item
+              <StockActionIcon name="plus" />
+              <span>Add item</span>
             </button>
           ) : null}
         </div>
@@ -1977,6 +2037,8 @@ export function StockDashboardView({
           onHistory={() => openHistory(activeMenuItem)}
           onDeactivate={openDeactivateItem}
           onPermanentlyDelete={openPermanentDeleteItem}
+          onReceive={() => openMovement(activeMenuItem, 'receive')}
+          onCount={() => openMovement(activeMenuItem, 'stock_count')}
         />
       ) : null}
 

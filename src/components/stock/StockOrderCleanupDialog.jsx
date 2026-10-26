@@ -234,7 +234,7 @@ export function StockOrderCleanupDialog({
           <div>
             <p className="eyebrow">Administrative cleanup</p>
             <h3 id="stock-order-cleanup-title">
-              {phase === 'success' ? 'Cleanup complete' : 'Delete purchase orders'}
+              {phase === 'success' ? 'Cleanup complete' : 'Delete orders'}
             </h3>
           </div>
           <button
@@ -380,7 +380,7 @@ export function StockOrderCleanupDialog({
                 className="primary-btn stock-order-cleanup-delete-btn"
                 disabled={!canSubmit || phase === 'empty' || phase === 'loading' || !preview}
               >
-                {phase === 'executing' || isBusy ? 'Deleting…' : 'Delete purchase orders'}
+                {phase === 'executing' || isBusy ? 'Deleting…' : 'Delete orders'}
               </button>
             </div>
           </form>

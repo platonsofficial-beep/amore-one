@@ -40,7 +40,7 @@ export function SupplyOrderDraftPreviewDialog({
         aria-modal="true"
         aria-labelledby="supply-draft-preview-title"
       >
-        <h2 id="supply-draft-preview-title">Prepare drafts</h2>
+        <h2 id="supply-draft-preview-title">Suggest order</h2>
         <p>Check each supplier, product, and quantity. Nothing is saved until you confirm.</p>
         {groups.length > 0 ? (
           <div className="supply-draft-review">
@@ -87,7 +87,7 @@ export function SupplyOrderDraftPreviewDialog({
             onClick={() => onConfirm?.(usingReview ? groups : undefined)}
             disabled={isSaving || (usingReview ? groups.length === 0 : lines.length === 0)}
           >
-            {isSaving ? 'Preparing…' : 'Confirm drafts'}
+            {isSaving ? 'Saving…' : 'Save order'}
           </button>
         </div>
       </section>

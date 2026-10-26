@@ -154,7 +154,7 @@ describe('todayAttentionNavigation', () => {
     expect(formatTodayAttentionActionLabel(
       { label: '2 deliveries to receive', detail: 'Sent supplier orders waiting' },
       { view: 'stock', section: 'orders', action: 'receive-deliveries' },
-    )).toBe('Receive deliveries: 2 deliveries to receive. Sent supplier orders waiting')
+    )).toBe('Receive delivery: 2 deliveries to receive. Sent supplier orders waiting')
 
     expect(formatTodayAttentionActionLabel(
       { label: 'Close checklist', detail: 'Overdue task' },

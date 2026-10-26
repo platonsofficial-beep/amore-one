@@ -141,7 +141,7 @@ function getDialog() {
 
 function getDeleteBtn() {
   return Array.from(getDialog()?.querySelectorAll('button') ?? [])
-    .find((node) => `${node.textContent}`.includes('Permanently delete') || node.textContent === 'Deleting…')
+    .find((node) => `${node.textContent}`.includes('Delete product') || node.textContent === 'Deleting…')
 }
 
 async function waitForPreview() {
@@ -292,12 +292,12 @@ describe('StockItemMoreMenu permanent delete entry', () => {
     const labels = Array.from(document.querySelectorAll('[role="menuitem"]')).map((node) => node.textContent)
     expect(labels).toContain('Edit')
     expect(labels).toContain('Deactivate')
-    expect(labels).toContain('Permanently Delete…')
+    expect(labels).toContain('Delete product')
     expect(document.querySelector('[role="separator"]')).toBeTruthy()
 
     act(() => {
       Array.from(document.querySelectorAll('[role="menuitem"]'))
-        .find((node) => node.textContent === 'Permanently Delete…')
+        .find((node) => node.textContent === 'Delete product')
         ?.click()
     })
 
@@ -651,7 +651,7 @@ describe('StockDashboardView permanent delete wiring', () => {
     })
 
     const deleteMenuBtn = Array.from(document.querySelectorAll('[role="menuitem"]'))
-      .find((node) => node.textContent === 'Permanently Delete…')
+      .find((node) => node.textContent === 'Delete product')
     expect(deleteMenuBtn).toBeTruthy()
 
     await act(async () => {
@@ -659,7 +659,7 @@ describe('StockDashboardView permanent delete wiring', () => {
     })
 
     await waitForPreview()
-    expect(getDialog()?.textContent ?? '').toContain('Permanently Delete Product')
+    expect(getDialog()?.textContent ?? '').toContain('Delete product')
 
     await act(async () => {
       setNativeValue(
@@ -985,8 +985,8 @@ describe('Permanent Delete execution error visibility (P8.16.36)', () => {
 
     expect(deleteMock).toHaveBeenCalledTimes(1)
     expect(onCompleted).not.toHaveBeenCalled()
-    expect(getDialog()?.textContent).toContain('Permanently Delete Product')
-    expect(getDeleteBtn()?.textContent).toBe('Permanently delete')
+    expect(getDialog()?.textContent).toContain('Delete product')
+    expect(getDeleteBtn()?.textContent).toBe('Delete product')
     expect(getDeleteBtn()?.disabled).toBe(false)
 
     const alert = getFooterExecutionAlert()
@@ -1013,7 +1013,7 @@ describe('Permanent Delete execution error visibility (P8.16.36)', () => {
 
     expect(signInMock).toHaveBeenCalled()
     expect(deleteMock).not.toHaveBeenCalled()
-    expect(getDeleteBtn()?.textContent).toBe('Permanently delete')
+    expect(getDeleteBtn()?.textContent).toBe('Delete product')
 
     const alert = getFooterExecutionAlert()
     expect(alert).toBeTruthy()
