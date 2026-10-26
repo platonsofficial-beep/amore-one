@@ -4,6 +4,7 @@
  */
 
 import { buildProductDisplayNameFromItem } from '../../lib/stockProductIdentity'
+import { useEscapeToClose } from '../../lib/useEscapeToClose'
 
 /**
  * @param {{
@@ -27,6 +28,8 @@ export function StockStorageReceiveProductPicker({
   onClose,
   onSelectProduct,
 } = {}) {
+  useEscapeToClose(() => onClose?.())
+
   const storageTitle = storage?.name || storage?.locationKey || 'Storage'
   const list = Array.isArray(products) ? products : []
 

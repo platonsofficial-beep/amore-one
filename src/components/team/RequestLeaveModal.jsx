@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { useEscapeToClose } from '../../lib/useEscapeToClose'
 import { LEAVE_TYPES } from '../../lib/leave/leaveConstants'
 import { validateLeaveDates } from '../../lib/leave/leaveValidation'
 import { requestLeave } from '../../services/leaveService'
@@ -90,6 +91,10 @@ export function RequestLeaveModal({
     setIsSubmitting(false)
     submitInFlightRef.current = false
   }, [isOpen])
+
+  useEscapeToClose(() => {
+    if (!isSubmitting) onClose?.()
+  }, { enabled: isOpen && !isSubmitting })
 
   if (!isOpen) return null
 

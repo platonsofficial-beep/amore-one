@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useEscapeToClose } from '../../lib/useEscapeToClose'
 import { getWorkspaceRoleLabel } from '../../lib/membershipRoles'
 import { buildInviteUrl, createEmployeeInvite } from '../../services/inviteService'
 
@@ -64,6 +65,10 @@ export function EmployeeInviteModal({
     setCreatedInvite(null)
     setCopyNotice('')
   }, [isOpen, employee?.id, employee?.email])
+
+  useEscapeToClose(() => {
+    if (!isSaving) onClose?.()
+  }, { enabled: Boolean(isOpen && employee) && !isSaving })
 
   if (!isOpen || !employee) return null
 

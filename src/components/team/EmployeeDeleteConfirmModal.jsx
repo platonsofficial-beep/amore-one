@@ -1,3 +1,5 @@
+import { useEscapeToClose } from '../../lib/useEscapeToClose'
+
 export function getEmployeeDeleteConfirmName(employee) {
   const name = `${employee?.name ?? ''}`.trim()
   return name || 'this employee'
@@ -9,6 +11,8 @@ export function EmployeeDeleteConfirmModal({
   onCancel,
   onConfirm,
 }) {
+  useEscapeToClose(() => onCancel?.(), { enabled: Boolean(employee) && !isDeleting })
+
   if (!employee) return null
 
   const employeeName = getEmployeeDeleteConfirmName(employee)

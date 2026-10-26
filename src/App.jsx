@@ -3123,6 +3123,10 @@ function ScheduleView({
     setAssignmentTimeEdit(null)
     setAssignmentError('')
   }, { enabled: Boolean(assignmentTimeEdit) })
+  useEscapeToClose(() => setClearCellPending(null), { enabled: Boolean(clearCellPending) })
+  useEscapeToClose(() => setCapacityEditPending(null), { enabled: Boolean(capacityEditPending) })
+  useEscapeToClose(() => setCellCopyPending(null), { enabled: Boolean(cellCopyPending) })
+  useEscapeToClose(() => handleCloseShiftDropPrompt(), { enabled: Boolean(pendingShiftDrop) })
 
   useEffect(() => {
     setCapacityDraftMap({})
@@ -16821,7 +16825,7 @@ function App() {
     : isTodayWeekLoading
 
   const operationalSnapshot = useMemo(() => buildOperationalSnapshot({
-    shifts: dashboardShifts,
+    shifts: isTodayWeekPublished ? dashboardPublishedShifts : dashboardShifts,
     shiftTemplates,
     scheduleCapacities: dashboardCapacities,
     employees: scheduleEmployees,
@@ -16831,6 +16835,8 @@ function App() {
     businessName: workspaceProfile.businessName,
     userName: workspaceProfile.managerName,
   }), [
+    isTodayWeekPublished,
+    dashboardPublishedShifts,
     dashboardShifts,
     shiftTemplates,
     dashboardCapacities,
@@ -17161,11 +17167,18 @@ function App() {
   ), [isTodayWeekPublished, dashboardPublishedShifts, dashboardShifts])
 
   const scheduleAttentionCoverageBreakdown = useMemo(() => buildTeamTodayCoverageBreakdown({
-    shifts: dashboardShifts,
+    shifts: isTodayWeekPublished ? dashboardPublishedShifts : dashboardShifts,
     shiftTemplates,
     scheduleCapacities: dashboardCapacities,
     todayKey: currentDateKey,
-  }), [dashboardShifts, shiftTemplates, dashboardCapacities, currentDateKey])
+  }), [
+    isTodayWeekPublished,
+    dashboardPublishedShifts,
+    dashboardShifts,
+    shiftTemplates,
+    dashboardCapacities,
+    currentDateKey,
+  ])
 
   const teamTodayDisplayCoverageBreakdown = useMemo(() => buildTeamTodayCoverageBreakdown({
     shifts: teamTodayShiftSource,

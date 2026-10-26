@@ -3,7 +3,10 @@ import {
   buildHostManagerSummary,
   getHostWorkspaceReservations,
 } from '../../reservations/hostReservationListUtils'
-import { buildHostQueueServiceMetricsFromReservations } from '../../../lib/hostQueueServiceMetrics'
+import {
+  buildHostQueueServiceMetrics,
+  buildHostQueueServiceMetricsFromReservations,
+} from '../../../lib/hostQueueServiceMetrics'
 import { formatStillSeatedReservationLabel, getHostListEmptyState } from '../../../lib/reservationServiceIntelligence'
 import {
   filterMobileHostReservations,
@@ -21,7 +24,6 @@ import {
   HOST_QUEUE_ALL_AREAS,
   HOST_QUEUE_SORT_OPTIONS,
   reservationIsVisibleInHostQueue,
-  buildHostQueueScopeReservations,
 } from '../../../lib/hostQueuePipeline'
 import {
   readHostQueueSortPreference,
@@ -120,24 +122,6 @@ export function MobileReservationsHostView({
     [layout],
   )
 
-  const scopeReservations = useMemo(
-    () => buildHostQueueScopeReservations(workspaceReservations, {
-      selectedSeating,
-      seatings: reservationSeatings,
-      dateKey: todayKey,
-      areaFilterId,
-      layout,
-    }),
-    [
-      areaFilterId,
-      layout,
-      reservationSeatings,
-      selectedSeating,
-      todayKey,
-      workspaceReservations,
-    ],
-  )
-
   const serviceMetrics = useMemo(
     () => buildHostQueueServiceMetricsFromReservations(workspaceReservations, {
       selectedSeating,
@@ -219,9 +203,21 @@ export function MobileReservationsHostView({
   )
 
   const summary = useMemo(
-    () => buildHostManagerSummary(scopeReservations, nowMinutes, todayKey),
-    [scopeReservations, nowMinutes, todayKey],
+    () => buildHostManagerSummary(queueReservations, nowMinutes, todayKey),
+    [queueReservations, nowMinutes, todayKey],
   )
+
+  const visibleServiceMetrics = useMemo(() => {
+    const listed = buildHostQueueServiceMetrics(queueReservations, {
+      layout,
+      areaFilterId: HOST_QUEUE_ALL_AREAS,
+    })
+    return {
+      ...serviceMetrics,
+      seatedTables: listed.seatedTables,
+      inHouseGuests: listed.inHouseGuests,
+    }
+  }, [layout, queueReservations, serviceMetrics])
 
   const queueEmptyState = useMemo(
     () => buildHostQueueEmptyState({
@@ -636,12 +632,12 @@ export function MobileReservationsHostView({
         </div>
         <div className="mobile-host-sticky-center" aria-label="Service summary">
           {isSplitLayout ? (
-            <HostQueueServiceSummary {...serviceMetrics} />
+            <HostQueueServiceSummary {...visibleServiceMetrics} />
           ) : (
             <>
               <span><strong>{summary.totalCovers ?? summary.totalGuests}</strong> covers</span>
               <span><strong>{summary.upcomingArrivals ?? 0}</strong> upcoming</span>
-              <span><strong>{summary.seatedGuests ?? summary.inHouse}</strong> seated</span>
+              <span><strong>{summary.seatedGuests || summary.inHouse || 0}</strong> seated</span>
             </>
           )}
         </div>

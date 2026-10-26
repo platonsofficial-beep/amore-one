@@ -1,3 +1,5 @@
+import { useEscapeToClose } from '../../lib/useEscapeToClose'
+
 function resolveEmployeeLabel(employee) {
   const name = `${employee?.name ?? employee?.fullName ?? ''}`.trim() || 'Unnamed employee'
   const position = `${employee?.primaryPosition ?? employee?.position ?? ''}`.trim()
@@ -14,6 +16,10 @@ export function WorkspaceLinkEmployeeModal({
   onClose,
   onSave,
 }) {
+  useEscapeToClose(() => {
+    if (!isSaving) onClose?.()
+  }, { enabled: Boolean(isOpen) && !isSaving })
+
   if (!isOpen) return null
 
   const sortedEmployees = [...employees].sort((left, right) => {

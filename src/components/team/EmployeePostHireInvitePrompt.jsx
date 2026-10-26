@@ -1,9 +1,13 @@
+import { useEscapeToClose } from '../../lib/useEscapeToClose'
+
 export function EmployeePostHireInvitePrompt({
   employee = null,
   isOpen = false,
   onInviteNow,
   onLater,
 }) {
+  useEscapeToClose(() => onLater?.(), { enabled: Boolean(isOpen && employee) })
+
   if (!isOpen || !employee) return null
 
   const employeeName = `${employee.name ?? ''}`.trim() || 'this employee'
