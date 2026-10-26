@@ -285,6 +285,27 @@ export function getOrderLineReceiveProgress(item) {
   return { ordered, received, percent }
 }
 
+export function isReceiveSupplyStorage(storage) {
+  return storage?.isSupply === true || storage?.is_supply === true
+}
+
+export function formatReceiveDestinationLabel(storage) {
+  const name = `${storage?.name || storage?.locationKey || 'Storage'}`.trim() || 'Storage'
+  return isReceiveSupplyStorage(storage) ? `${name} · Supply` : name
+}
+
+/**
+ * Prefer the only supply storage. Otherwise keep the previous single-storage default.
+ * Several supply storages stay unselected so the manager chooses the room.
+ */
+export function pickDefaultReceiveStorageId(storages = []) {
+  const active = (storages ?? []).filter((storage) => storage?.id && storage.active !== false)
+  const supply = active.filter((storage) => isReceiveSupplyStorage(storage))
+  if (supply.length === 1) return `${supply[0].id}`
+  if (active.length === 1) return `${active[0].id}`
+  return ''
+}
+
 export function buildPendingReceiveLines(order, receiveNowByItemId = {}) {
   return (order?.items ?? [])
     .map((item) => ({

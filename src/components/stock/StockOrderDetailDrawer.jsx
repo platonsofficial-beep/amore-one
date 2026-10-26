@@ -9,8 +9,10 @@ import {
   formatStockOrderDateTime,
   formatStockOrderDeliveryDate,
   formatStockOrderLineSummary,
+  formatReceiveDestinationLabel,
   formatStockOrderNumber,
   getActiveStockItemsForDraftReplace,
+  pickDefaultReceiveStorageId,
   getOrderLineReceiveProgress,
   getOrderLineReceivedQuantity,
   getOrderLineRemainingQuantity,
@@ -37,9 +39,18 @@ import {
   resolveStockOrderSupplierContact,
 } from '../../lib/stockOrderSend'
 import { formatStockPurchasePrice, formatStockQuantity, formatInventoryUnitLabel } from '../../lib/stockUtils'
-import { listWorkspaceStorages } from '../../services/workspaceStorageService'
+import { listReceiveDestinationStorages } from '../../services/workspaceStorageService'
 import { LoadingButton } from '../LoadingButton'
 import { StockOrderReceiveConfirmModal } from './StockOrderReceiveConfirmModal'
+
+function receiveDestinationHint(storages = []) {
+  const supplyCount = storages.filter((storage) => storage?.isSupply === true).length
+  if (supplyCount === 1) {
+    return 'This delivery is received into the supply storage. Choose another shelf only when it belongs somewhere else.'
+  }
+  if (supplyCount > 1) return 'Choose which supply storage should receive this delivery.'
+  return 'Choose where this delivery should be stored.'
+}
 
 function ReceiveProgressBar({ received, ordered, unit }) {
   const { percent } = getOrderLineReceiveProgress({ quantity: ordered, receivedQuantity: received })
@@ -428,14 +439,14 @@ export function StockOrderDetailDrawer({
 
     let cancelled = false
     setIsLoadingStorages(true)
-    listWorkspaceStorages(workspaceId)
+    listReceiveDestinationStorages(workspaceId)
       .then((storages) => {
         if (cancelled) return
         const activeStorages = (storages ?? []).filter((storage) => storage?.id && storage.active !== false)
         setDestinationStorages(activeStorages)
         setWorkspaceStorageId((current) => {
           if (current && activeStorages.some((storage) => `${storage.id}` === `${current}`)) return current
-          return activeStorages.length === 1 ? activeStorages[0].id : ''
+          return pickDefaultReceiveStorageId(activeStorages)
         })
       })
       .catch((loadError) => {
@@ -780,11 +791,12 @@ export function StockOrderDetailDrawer({
                     <option value="">{isLoadingStorages ? 'Loading storages…' : 'Select storage'}</option>
                     {destinationStorages.map((storage) => (
                       <option key={storage.id} value={storage.id}>
-                        {storage.name || storage.locationKey}
+                        {formatReceiveDestinationLabel(storage)}
                       </option>
                     ))}
                   </select>
                 </label>
+                <p>{receiveDestinationHint(destinationStorages)}</p>
               </div>
             ) : null}
 
