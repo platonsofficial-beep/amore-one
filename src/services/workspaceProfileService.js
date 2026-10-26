@@ -4,6 +4,10 @@ import {
   getDefaultWorkspaceTimezone,
 } from '../lib/workspaceProfileOptions'
 import { normalizeLocationDisplayValue } from '../lib/workspaceProfileUtils'
+import {
+  DEFAULT_RESERVATION_AUTO_CLOSE_TIME,
+  normalizeReservationAutoCloseTime,
+} from '../lib/reservationAutoClose'
 
 const WORKSPACE_PROFILES_TABLE = 'workspace_profiles'
 const WORKSPACE_KEY = 'default'
@@ -20,6 +24,7 @@ export const EMPTY_WORKSPACE_PROFILE = {
   countryName: '',
   city: '',
   defaultPhoneCountryCode: '',
+  reservationAutoCloseTime: DEFAULT_RESERVATION_AUTO_CLOSE_TIME,
 }
 
 function isTableUnavailableError(error) {
@@ -33,6 +38,22 @@ function isMissingColumnError(error) {
   const message = error?.message?.toLowerCase() ?? ''
   return message.includes('schema cache')
     && message.includes('column')
+}
+
+export function isMissingReservationAutoCloseColumnError(error) {
+  const message = `${error?.message ?? ''}`.toLowerCase()
+  return message.includes('reservation_auto_close_time')
+    && (
+      message.includes('schema cache')
+      || message.includes('column')
+      || message.includes('does not exist')
+    )
+}
+
+export function withoutReservationAutoCloseColumn(payload = {}) {
+  const next = { ...payload }
+  delete next.reservation_auto_close_time
+  return next
 }
 
 function getWorkspaceProfileErrorMessage(error, action = 'load') {
@@ -60,6 +81,9 @@ function normalizeProfile(profile = {}) {
     countryName: normalizeLocationDisplayValue(profile.countryName ?? profile.country_name ?? ''),
     city: normalizeLocationDisplayValue(profile.city ?? ''),
     defaultPhoneCountryCode: `${profile.defaultPhoneCountryCode ?? profile.default_phone_country_code ?? ''}`.trim(),
+    reservationAutoCloseTime: normalizeReservationAutoCloseTime(
+      profile.reservationAutoCloseTime ?? profile.reservation_auto_close_time,
+    ),
   }
 }
 
@@ -78,6 +102,7 @@ function mapWorkspaceProfile(record) {
     countryName: record.country_name ?? record.countryName ?? '',
     city: record.city ?? '',
     defaultPhoneCountryCode: record.default_phone_country_code ?? record.defaultPhoneCountryCode ?? '',
+    reservationAutoCloseTime: record.reservation_auto_close_time ?? record.reservationAutoCloseTime,
   })
 }
 
@@ -96,6 +121,7 @@ function serializeWorkspaceProfile(profile) {
     country_name: normalized.countryName,
     city: normalized.city,
     default_phone_country_code: normalized.defaultPhoneCountryCode,
+    reservation_auto_close_time: normalized.reservationAutoCloseTime,
   }
 }
 
@@ -165,6 +191,34 @@ export async function saveWorkspaceProfile(profile) {
       .single()
 
   const { data, error } = await request
+
+  if (error && isMissingReservationAutoCloseColumnError(error)) {
+    const retryPayload = withoutReservationAutoCloseColumn(payload)
+    const retry = existing?.id
+      ? supabase
+        .from(WORKSPACE_PROFILES_TABLE)
+        .update(retryPayload)
+        .eq('id', existing.id)
+        .select('*')
+        .single()
+      : supabase
+        .from(WORKSPACE_PROFILES_TABLE)
+        .insert([retryPayload])
+        .select('*')
+        .single()
+    const retried = await retry
+
+    if (retried.error) {
+      console.error('[workspaceProfileService] saveWorkspaceProfile error:', retried.error)
+      throw new Error(getWorkspaceProfileErrorMessage(retried.error, 'save'))
+    }
+
+    return {
+      ...mapWorkspaceProfile(retried.data),
+      reservationAutoCloseTime: normalized.reservationAutoCloseTime,
+      reservationAutoClosePending: true,
+    }
+  }
 
   if (error) {
     console.error('[workspaceProfileService] saveWorkspaceProfile error:', error)

@@ -32,6 +32,10 @@ describe('workspaceProfileUtils', () => {
 
     expect(areWorkspaceProfilesEqual(saved, { ...saved })).toBe(true)
     expect(areWorkspaceProfilesEqual(saved, { ...saved, businessName: 'Amore 2' })).toBe(false)
+    expect(areWorkspaceProfilesEqual(
+      { ...saved, reservationAutoCloseTime: '05:00' },
+      { ...saved, reservationAutoCloseTime: '06:00' },
+    )).toBe(false)
   })
 
   it('builds workspace identity lines when business and account names differ', () => {

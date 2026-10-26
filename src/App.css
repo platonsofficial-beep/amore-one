@@ -6017,6 +6017,49 @@
   line-height: 1.3;
 }
 
+.reservation-auto-closed {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.reservation-auto-closed-badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(196, 163, 90, 0.16);
+  color: #e6d3a1;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.reservation-auto-closed-undo,
+.reservation-auto-close-time,
+.reservation-auto-close-save {
+  min-width: 44px;
+  min-height: 44px;
+}
+
+.reservation-auto-closed-undo {
+  padding: 0 12px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.92);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 650;
+}
+
+.reservation-auto-close-time {
+  max-width: 160px;
+}
+
 .host-reservation-card-quick-actions {
   display: flex;
   flex-wrap: wrap;

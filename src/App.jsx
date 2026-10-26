@@ -24,6 +24,7 @@ import {
   assignReservationTablesPayload,
   deleteReservation,
   getReservations,
+  undoAutoClosedReservation,
   updateReservation,
 } from './services/reservationService'
 import { SeatingConfirmPanel } from './components/seating/SeatingConfirmPanel'
@@ -31,6 +32,7 @@ import TasksView from './components/tasks/TasksView'
 import { HostReservationEditPanel, createHostReservationEditForm } from './components/reservations/HostReservationEditPanel'
 import { HostReservationEditErrorBoundary } from './components/reservations/HostReservationEditErrorBoundary'
 import { HostReservationList } from './components/reservations/HostReservationList'
+import { ReservationAutoClosedBadge } from './components/reservations/ReservationAutoClosedBadge'
 import { HOST_LIST_HELPERS } from './components/reservations/hostReservationListHelpers'
 import { normalizeStoredCustomerType } from './lib/reservationCustomerType'
 import { HostManagerSummaryBar } from './components/reservations/HostManagerSummaryBar'
@@ -653,6 +655,7 @@ import {
   getMobileBottomTabs,
   getTodayQuickActions,
   isHostMobileRole,
+  isManagerRole,
   isManagementMobileRole,
   resolveHostMobileTabChange,
   resolveMobileShellVariant,
@@ -11447,6 +11450,8 @@ function MobileReservationsHostShell({
   workspaceId = '',
   useControlledReloadReturn = false,
   reservationAttentionFocus = null,
+  canUndoAutoClose = false,
+  onUndoAutoClose = null,
 }) {
   const workspaceTodayKey = todayKey
   const workspaceTodayRef = useRef(workspaceTodayKey)
@@ -11511,6 +11516,8 @@ function MobileReservationsHostShell({
         hostSettingsProps={hostSettingsProps}
         workspaceId={workspaceId}
         useControlledReloadReturn={useControlledReloadReturn}
+        canUndoAutoClose={canUndoAutoClose}
+        onUndoAutoClose={onUndoAutoClose}
       />
     </ReservationWorkspaceProvider>
   )
@@ -11540,6 +11547,8 @@ function MobileReservationsHostShellBody({
   hostSettingsProps = null,
   workspaceId = '',
   useControlledReloadReturn = false,
+  canUndoAutoClose = false,
+  onUndoAutoClose = null,
 }) {
   const {
     selectedReservation,
@@ -11871,6 +11880,8 @@ function MobileReservationsHostShellBody({
       onFloorEditReservationConsumed={() => setFloorEditReservation(null)}
       focusReservationId={focusReservationId}
       focusToken={focusToken}
+      canUndoAutoClose={canUndoAutoClose}
+      onUndoAutoClose={onUndoAutoClose}
       renderRightPane={rightPane}
       selectedReservationId={selectedReservation?.id ?? null}
       onSelectReservation={handleHostSelectReservation}
@@ -12887,6 +12898,9 @@ function GuestProfileDrawer({
   onClose,
   onOpenEditReservation,
   onQuickStatusUpdate,
+  canUndoAutoClose = false,
+  onUndoAutoClose = null,
+  isSavingAutoClose = false,
 }) {
   if (!reservation) return null
 
@@ -12911,6 +12925,12 @@ function GuestProfileDrawer({
           <div>
             <strong>{guestName}</strong>
             <p>{reservation.phone || 'No phone on file'}</p>
+            <ReservationAutoClosedBadge
+              reservation={reservation}
+              canUndo={canUndoAutoClose}
+              onUndo={onUndoAutoClose}
+              isSaving={isSavingAutoClose}
+            />
           </div>
         </div>
 
@@ -13238,6 +13258,9 @@ function ReservationArrivalCard({
   onOpenEditReservation,
   onQuickStatusUpdate,
   enableWorkspaceSelection = true,
+  canUndoAutoClose = false,
+  onUndoAutoClose = null,
+  isSavingAutoClose = false,
 }) {
   const workspace = useReservationWorkspace()
   const displayStatus = getReservationDisplayStatus(reservation, nowMinutes, todayKey)
@@ -13308,6 +13331,12 @@ function ReservationArrivalCard({
         </button>
         <div className="reservation-card-status-column">
           <span className={`reservation-status-badge tone-${statusAccent}`}>{statusBadgeLabel}</span>
+          <ReservationAutoClosedBadge
+            reservation={reservation}
+            canUndo={canUndoAutoClose}
+            onUndo={onUndoAutoClose}
+            isSaving={isSaving || isSavingAutoClose}
+          />
           {confidence.tone !== 'muted' ? (
             <ReservationConfidenceBadge reservation={reservation} allReservations={allReservations} />
           ) : null}
@@ -13557,6 +13586,8 @@ function ReservationsUnifiedCanvas({
   nextArrivalId = null,
   serviceTodayKey = '',
   timeZone = '',
+  canUndoAutoClose = false,
+  onUndoAutoClose = null,
 }) {
   const { layout, hasDisplayableLayout, reload } = usePublishedFloorPlan()
   const canEditFloorPlan = floorPlanProps.canEditFloorPlan !== false
@@ -13697,6 +13728,8 @@ function ReservationsUnifiedCanvas({
             focusReservationId={focusReservationId}
             serviceTodayKey={serviceTodayKey}
             timeZone={timeZone}
+            canUndoAutoClose={canUndoAutoClose}
+            onUndoAutoClose={onUndoAutoClose}
           />
         </div>
       </section>
@@ -13813,6 +13846,8 @@ function ReservationsWorkspaceBody({
   canEditFloorPlan = true,
   reservationSeatings = [],
   reservationAttentionFocus = null,
+  canUndoAutoClose = false,
+  onUndoAutoClose = null,
 }) {
   const [searchTerm, setSearchTerm] = useState('')
   const [listSort, setListSort] = useState('service')
@@ -14068,6 +14103,8 @@ function ReservationsWorkspaceBody({
     onOpenAddNote: handleOpenAddNote,
     onOpenEditReservation,
     onQuickStatusUpdate,
+    canUndoAutoClose,
+    onUndoAutoClose,
   }
 
   const timelinePanelProps = {
@@ -14189,6 +14226,8 @@ function ReservationsWorkspaceBody({
         onSaveNote={handleSaveNote}
         onOpenHostMode={onOpenHostMode}
         canEditFloorPlan={canEditFloorPlan}
+        canUndoAutoClose={canUndoAutoClose}
+        onUndoAutoClose={onUndoAutoClose}
       />
       </ReservationWorkspaceProvider>
   )
@@ -14243,6 +14282,8 @@ function ReservationsWorkspaceContent({
   onSaveNote,
   onOpenHostMode,
   canEditFloorPlan: _canEditFloorPlan = true,
+  canUndoAutoClose = false,
+  onUndoAutoClose = null,
 }) {
   const {
     selectedReservation,
@@ -14337,6 +14378,8 @@ function ReservationsWorkspaceContent({
           isSavingStatus={isSaving}
           serviceTodayKey={workspaceTodayKey}
           timeZone={workspaceTimeZone}
+          canUndoAutoClose={canUndoAutoClose}
+          onUndoAutoClose={onUndoAutoClose}
         />
       </div>
 
@@ -14349,6 +14392,9 @@ function ReservationsWorkspaceContent({
           onClose={clearSelection}
           onOpenEditReservation={onOpenEditReservation}
           onQuickStatusUpdate={onQuickStatusUpdate}
+          canUndoAutoClose={canUndoAutoClose}
+          onUndoAutoClose={onUndoAutoClose}
+          isSavingAutoClose={isSaving}
         />
       ) : null}
 
@@ -18095,7 +18141,9 @@ function App() {
       const savedProfile = await saveWorkspaceProfile(workspaceProfileDraft)
       setWorkspaceProfile(savedProfile)
       setWorkspaceProfileDraft(savedProfile)
-      setWorkspaceProfileNotice('Workspace profile saved.')
+      setWorkspaceProfileNotice(savedProfile.reservationAutoClosePending
+        ? 'Workspace profile saved. The auto-close cutoff applies after the database update is approved.'
+        : 'Workspace profile saved.')
     } catch (error) {
       setWorkspaceProfileNotice(error.message || 'Unable to save workspace profile right now.')
     } finally {
@@ -22720,6 +22768,32 @@ function App() {
     }
   }
 
+  const handleUndoAutoClosedReservation = async (reservation) => {
+    if (!isManagerRole(role)) return
+    if (isSavingReservationRef.current) return
+
+    isSavingReservationRef.current = true
+    setIsSavingReservation(true)
+    upsertReservationInState({
+      ...reservation,
+      status: 'Checked In',
+      autoClosedAt: null,
+    })
+
+    try {
+      const updated = await undoAutoClosedReservation(activeWorkspaceId, reservation)
+      upsertReservationInState(updated)
+      await reloadTodayReservations()
+      setReservationNotice('Auto-close undone. Reservation is seated again.')
+    } catch (error) {
+      upsertReservationInState(reservation)
+      setReservationNotice(error.message || 'Unable to undo the auto-close right now.')
+    } finally {
+      isSavingReservationRef.current = false
+      setIsSavingReservation(false)
+    }
+  }
+
   const handleQuickReservationStatus = async (reservation, status) => {
     if (!canManageReservationsRole) return
 
@@ -25191,6 +25265,8 @@ function App() {
               workspaceId={activeWorkspaceId}
               useControlledReloadReturn={isHostMobileRole(role)}
               reservationAttentionFocus={reservationAttentionFocus}
+              canUndoAutoClose={isManagerRole(role)}
+              onUndoAutoClose={handleUndoAutoClosedReservation}
             />
           ) : (
             <ReservationsView
@@ -25204,6 +25280,8 @@ function App() {
               onCloseCommandPalette={handleCloseCommandPalette}
               onOpenEditReservation={handleOpenEditReservation}
               onQuickStatusUpdate={handleQuickReservationStatus}
+              canUndoAutoClose={isManagerRole(role)}
+              onUndoAutoClose={handleUndoAutoClosedReservation}
               onQuickNoteUpdate={handleQuickReservationNote}
               onTableReassign={handleQuickReservationTableReassign}
               onAssignReservationTables={handleAssignReservationTables}
@@ -25561,6 +25639,16 @@ function App() {
               onRequestDelete: handleRequestDeleteReservationSeating,
               onMoveSeating: handleMoveReservationSeating,
               onToggleActive: handleToggleReservationSeatingActive,
+              autoCloseTime: workspaceProfileDraft.reservationAutoCloseTime,
+              onAutoCloseTimeChange: (reservationAutoCloseTime) => {
+                setWorkspaceProfileDraft((current) => ({
+                  ...current,
+                  reservationAutoCloseTime,
+                }))
+              },
+              onSaveAutoClose: handleWorkspaceProfileSubmit,
+              isSavingAutoClose: isSavingWorkspaceProfile,
+              autoCloseNotice: workspaceProfileNotice,
             } : {
               seatings: [],
               isLoading: false,
@@ -25699,6 +25787,8 @@ function App() {
                       isSaving={isSavingReservation}
                       noticeMessage={reservationNotice}
                       onQuickStatusUpdate={handleQuickReservationStatus}
+                      canUndoAutoClose={isManagerRole(role)}
+                      onUndoAutoClose={handleUndoAutoClosedReservation}
                       onHostEditSave={handleHostEditSave}
                       onHostEditDelete={handleHostEditDelete}
                       onReservationNotice={setReservationNotice}
