@@ -40,6 +40,7 @@ import {
   formatStockInventoryValue,
   formatStockMovementRelativeTime,
   formatStockQuantity,
+  formatStockTotalItemsLabel,
   formatTodayStockActivityLine,
   getStockCategoryFilters,
   getStockMovementLabel,
@@ -48,6 +49,7 @@ import {
   STOCK_MOVEMENT_TYPES,
 } from '../../lib/stockUtils'
 import { getCurrentDateKey } from '../../lib/currentDateUtils'
+import { useEscapeToClose } from '../../lib/useEscapeToClose'
 import { buildStockOrdersOperationsSummary } from '../../lib/stockOrderUtils'
 import { StockCreateOrderModal } from './StockCreateOrderModal'
 import { StockItemFormModal } from './StockItemFormModal'
@@ -172,13 +174,15 @@ function StockItemCard({
   const handleCardClick = () => {
     if (selectionMode) {
       onToggleSelect?.()
+      return
     }
+    onOpenHistory?.()
   }
 
   return (
     <article
       className={`stock-item-card panel staff-panel tone-${item.status}${item.status === 'low' || item.status === 'out' ? ' is-alert' : ''}${item.active === false ? ' is-inactive' : ''}${selectionMode ? ' is-selectable' : ''}${isSelected ? ' is-selected' : ''}${isMenuOpen ? ' is-menu-open' : ''}`}
-      onClick={selectionMode ? handleCardClick : undefined}
+      onClick={handleCardClick}
     >
       <header className="stock-item-card-header">
         {selectionMode ? (
@@ -339,9 +343,14 @@ function StockItemRowActions({
   onOpenHistory,
   compact = false,
 }) {
+  const keepRow = (handler) => (event) => {
+    event.stopPropagation()
+    handler?.(event)
+  }
+
   if (!canManage) {
     return (
-      <button type="button" className="ghost-btn stock-row-action-btn" onClick={onOpenHistory}>
+      <button type="button" className="ghost-btn stock-row-action-btn" onClick={keepRow(onOpenHistory)}>
         Details
       </button>
     )
@@ -353,14 +362,14 @@ function StockItemRowActions({
         <button
           type="button"
           className="ghost-btn stock-row-action-btn is-receive"
-          onClick={onReceive}
+          onClick={keepRow(onReceive)}
         >
           Receive
         </button>
         <button
           type="button"
           className="ghost-btn stock-row-action-btn is-count"
-          onClick={onCount}
+          onClick={keepRow(onCount)}
           aria-label="Stock count"
           data-stock-row-count-action="true"
         >
@@ -369,7 +378,7 @@ function StockItemRowActions({
         <button
           type="button"
           className={`ghost-btn stock-row-more-btn is-more${isMenuOpen ? ' is-open' : ''}`}
-          onClick={onToggleMenu}
+          onClick={keepRow(onToggleMenu)}
           aria-expanded={isMenuOpen}
           aria-haspopup="menu"
           aria-label={`More actions for ${buildProductDisplayNameFromItem(item)}`}
@@ -397,15 +406,28 @@ function StockListRow({
   const location = resolveStockStorageLocation(item)
   const supplierLabel = `${item.supplier ?? ''}`.trim() || '—'
   const displayTitle = buildProductDisplayNameFromItem(item)
+  const handleRowClick = () => {
+    if (selectionMode) {
+      onToggleSelect?.()
+      return
+    }
+    onOpenHistory?.()
+  }
 
   return (
-    <tr className={`stock-list-row tone-${item.status}${item.active === false ? ' is-inactive' : ''}${isSelected ? ' is-selected' : ''}${isMenuOpen ? ' is-menu-open' : ''}`}>
+    <tr
+      className={`stock-list-row tone-${item.status}${item.active === false ? ' is-inactive' : ''}${isSelected ? ' is-selected' : ''}${isMenuOpen ? ' is-menu-open' : ''}`}
+      onClick={handleRowClick}
+    >
       {selectionMode && canManage ? (
         <td className="stock-list-cell stock-list-cell-select">
           <button
             type="button"
             className={`stock-item-select-btn stock-list-select-btn${isSelected ? ' is-selected' : ''}`}
-            onClick={onToggleSelect}
+            onClick={(event) => {
+              event.stopPropagation()
+              onToggleSelect?.()
+            }}
             aria-pressed={isSelected}
             aria-label={isSelected ? `Deselect ${displayTitle}` : `Select ${displayTitle}`}
           >
@@ -489,14 +511,28 @@ function StockListMobileCard({
   const supplierLabel = `${item.supplier ?? ''}`.trim() || '—'
   const displayTitle = buildProductDisplayNameFromItem(item)
 
+  const handleRowClick = () => {
+    if (selectionMode) {
+      onToggleSelect?.()
+      return
+    }
+    onOpenHistory?.()
+  }
+
   return (
-    <article className={`stock-list-mobile-card panel staff-panel tone-${item.status}${isSelected ? ' is-selected' : ''}`}>
+    <article
+      className={`stock-list-mobile-card panel staff-panel tone-${item.status}${isSelected ? ' is-selected' : ''}`}
+      onClick={handleRowClick}
+    >
       <header className="stock-list-mobile-header">
         {selectionMode && canManage ? (
           <button
             type="button"
             className={`stock-item-select-btn${isSelected ? ' is-selected' : ''}`}
-            onClick={onToggleSelect}
+            onClick={(event) => {
+              event.stopPropagation()
+              onToggleSelect?.()
+            }}
             aria-pressed={isSelected}
             aria-label={isSelected ? `Deselect ${displayTitle}` : `Select ${displayTitle}`}
           >
@@ -540,7 +576,10 @@ function StockListMobileCard({
         </div>
       </dl>
 
-      <div className="stock-list-mobile-actions">
+      <div
+        className="stock-list-mobile-actions"
+        onClick={(event) => event.stopPropagation()}
+      >
         <StockItemRowActions
           item={item}
           canManage={canManage}
@@ -638,15 +677,27 @@ function StockCompactRow({
   const supplierLabel = `${item.supplier ?? ''}`.trim() || '—'
   const displayTitle = buildProductDisplayNameFromItem(item)
 
+  const handleRowClick = () => {
+    if (selectionMode) {
+      onToggleSelect?.()
+      return
+    }
+    onOpenHistory?.()
+  }
+
   return (
     <article
       className={`stock-compact-row panel staff-panel tone-${item.status}${isSelected ? ' is-selected' : ''}`}
+      onClick={handleRowClick}
     >
       {selectionMode && canManage ? (
         <button
           type="button"
           className={`stock-item-select-btn${isSelected ? ' is-selected' : ''}`}
-          onClick={onToggleSelect}
+          onClick={(event) => {
+            event.stopPropagation()
+            onToggleSelect?.()
+          }}
           aria-pressed={isSelected}
           aria-label={isSelected ? `Deselect ${displayTitle}` : `Select ${displayTitle}`}
         >
@@ -667,7 +718,7 @@ function StockCompactRow({
           <span className="stock-compact-qty-min">min {formatStockQuantity(item.minimumQuantity, item.unit)}</span>
         </p>
       </div>
-      <div className="stock-compact-actions">
+      <div className="stock-compact-actions" onClick={(event) => event.stopPropagation()}>
         {canManage ? (
           <button type="button" className="ghost-btn stock-compact-count-btn" onClick={onCount}>
             Stock count
@@ -736,6 +787,7 @@ function StockAttentionRow({
   onReceive,
   onCount,
   onEdit,
+  onOpenHistory,
 }) {
   const itemType = resolveStockItemType(item)
   const location = resolveStockStorageLocation(item)
@@ -746,7 +798,10 @@ function StockAttentionRow({
   const showStockLevels = groupId === 'out' || groupId === 'low'
 
   return (
-    <li className={`stock-attention-row tone-${item.status}`}>
+    <li
+      className={`stock-attention-row tone-${item.status}`}
+      onClick={() => onOpenHistory?.()}
+    >
       <div className="stock-attention-copy">
         <p className="stock-attention-name">{displayTitle}</p>
         {showStockLevels ? (
@@ -775,7 +830,11 @@ function StockAttentionRow({
       </div>
 
       {canManage ? (
-        <div className="stock-attention-actions" aria-label={`Actions for ${displayTitle}`}>
+        <div
+          className="stock-attention-actions"
+          aria-label={`Actions for ${displayTitle}`}
+          onClick={(event) => event.stopPropagation()}
+        >
           {showReceive ? (
             <button type="button" className="ghost-btn stock-attention-action-btn" onClick={onReceive}>
               Receive
@@ -899,6 +958,7 @@ function StockNeedsAttentionSection({
   onReceive,
   onCount,
   onEdit,
+  onOpenHistory,
 }) {
   // P8.17.3 — each attention group owns its own expand/collapse state.
   const [expandedGroupIds, setExpandedGroupIds] = useState(() => new Set())
@@ -964,6 +1024,7 @@ function StockNeedsAttentionSection({
                   onReceive={() => onReceive(item)}
                   onCount={() => onCount(item)}
                   onEdit={() => onEdit(item)}
+                  onOpenHistory={() => onOpenHistory?.(item)}
                 />
               ))}
             </ul>
@@ -1013,6 +1074,11 @@ function StockBulkFieldModal({
     setValue('')
     setError('')
   }, [field])
+
+  useEscapeToClose(() => {
+    if (isBusy) return
+    onClose?.()
+  })
 
   const handleSubmit = async (event) => {
     event.preventDefault()
@@ -1135,6 +1201,11 @@ function StockItemDeactivateConfirmModal({
     const timer = window.setTimeout(() => setCanDismiss(true), 0)
     return () => window.clearTimeout(timer)
   }, [])
+
+  useEscapeToClose(() => {
+    if (isSaving || isSubmitting || !canDismiss) return
+    onClose?.()
+  }, { enabled: Boolean(item) })
 
   if (!item || typeof document === 'undefined') return null
 
@@ -1656,6 +1727,7 @@ export function StockDashboardView({
       onReceive={(item) => openMovement(item, 'receive')}
       onCount={(item) => openMovement(item, 'stock_count')}
       onEdit={openEditItem}
+      onOpenHistory={openHistory}
     />
   ) : null
 
@@ -1814,7 +1886,10 @@ export function StockDashboardView({
       <section className={`stock-summary-grid${canManage ? ' stock-summary-grid-five' : ''}`} aria-label="Stock summary">
         <StockSummaryCard
           label="Total items"
-          value={summary.totalItems}
+          value={formatStockTotalItemsLabel(
+            summary.totalItems,
+            catalogItems.filter((entry) => entry.active === false).length,
+          )}
           isInteractive
           isSelected={categoryFilter === 'All' && statusFilter === 'all'}
           onClick={() => {

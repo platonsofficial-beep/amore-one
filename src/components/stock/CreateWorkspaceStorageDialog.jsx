@@ -1,5 +1,6 @@
 import { useEffect, useId, useState } from 'react'
 import { createPortal } from 'react-dom'
+import { useEscapeToClose } from '../../lib/useEscapeToClose'
 import { createWorkspaceStorage } from '../../services/workspaceStorageService'
 
 const STORAGE_NAME_MAX_LENGTH = 80
@@ -49,6 +50,10 @@ export function CreateWorkspaceStorageDialog({
   const [name, setName] = useState('')
   const [error, setError] = useState('')
   const [isSaving, setIsSaving] = useState(false)
+
+  useEscapeToClose(() => {
+    if (!isSaving) onClose?.()
+  })
 
   useEffect(() => {
     const previousOverflow = document.body.style.overflow

@@ -6,6 +6,7 @@
  */
 
 import { useEffect, useMemo, useState } from 'react'
+import { useEscapeToClose } from '../../lib/useEscapeToClose'
 import { buildProductDisplayNameFromItem } from '../../lib/stockProductIdentity'
 import { formatStockQuantity } from '../../lib/stockUtils'
 import { getStockItemLocationBalances } from '../../services/stockLocationBalanceService'
@@ -136,6 +137,11 @@ export function StockTransferModal({
       cancelled = true
     }
   }, [workspaceId, item?.id, loadDestinations, loadItemBalances])
+
+  useEscapeToClose(() => {
+    if (isBusy) return
+    onClose?.()
+  })
 
   const handleDismiss = () => {
     if (isBusy) return

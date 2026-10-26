@@ -5,6 +5,7 @@
  */
 
 import { useEffect, useMemo, useState } from 'react'
+import { useEscapeToClose } from '../../lib/useEscapeToClose'
 import { createPortal } from 'react-dom'
 import { buildProductDisplayNameFromItem } from '../../lib/stockProductIdentity'
 import {
@@ -239,6 +240,15 @@ export function StockMovementModal({
     effectiveBalanceQuantity,
     item?.currentQuantity,
   ])
+
+  useEscapeToClose(() => {
+    if (pickerOpen) {
+      setPickerOpen(false)
+      return
+    }
+    if (isBusy) return
+    onClose?.()
+  })
 
   const handleDismiss = () => {
     if (isBusy) return

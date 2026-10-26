@@ -751,4 +751,30 @@ describe('StockDashboardView compact browse workspace (P8.24.3)', () => {
     expect(container.querySelector('.stock-compact-count-btn, .stock-compact-row')).toBeTruthy()
     cleanup()
   })
+
+  it('shows inactive items beside the active total and opens detail from the row', () => {
+    const { container, cleanup } = mount()
+    const total = summaryCard(container, 'Total items')
+    expect(total?.querySelector('.stock-summary-value')?.textContent).toBe('1 · +1 inactive')
+
+    setLayoutMode(container, 'List')
+    const row = container.querySelector('.stock-list-row')
+    expect(row?.querySelector('[aria-label="More actions for LIST PRODUCT"]')).toBeTruthy()
+    click(row?.querySelector('[data-stock-row-count-action="true"]'))
+    expect(container.querySelector('#stock-product-history-title')).toBeNull()
+
+    click(row)
+    expect(container.querySelector('#stock-product-history-title')?.textContent).toContain('LIST PRODUCT')
+    cleanup()
+  })
+
+  it('selects a list row in selection mode instead of opening detail', () => {
+    const { container, cleanup } = mount()
+    setLayoutMode(container, 'List')
+    click(buttonByText(container, 'Select'))
+    click(container.querySelector('.stock-list-row'))
+    expect(container.querySelector('#stock-product-history-title')).toBeNull()
+    expect(container.querySelector('.stock-list-row.is-selected')).toBeTruthy()
+    cleanup()
+  })
 })

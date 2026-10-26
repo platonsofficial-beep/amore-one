@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useEscapeToClose } from '../../lib/useEscapeToClose'
 import {
   buildPendingReceiveLines,
   formatStockOrderNumber,
@@ -18,6 +19,11 @@ export function StockOrderReceiveConfirmModal({
   const willComplete = willCompleteOrderAfterReceive(order, receiveNowByItemId)
   const totalUnitsReceiving = pendingLines.reduce((sum, line) => sum + line.receiveNow, 0)
   const [isSubmitting, setIsSubmitting] = useState(false)
+
+  useEscapeToClose(() => {
+    if (isSaving || isSubmitting) return
+    onClose?.()
+  })
 
   const handleDismiss = () => {
     if (isSaving || isSubmitting) return

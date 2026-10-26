@@ -6,6 +6,7 @@
 
 import { useEffect, useId, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
+import { useEscapeToClose } from '../../lib/useEscapeToClose'
 import {
   DEPARTMENTS_UNAVAILABLE_MESSAGE,
   SUPPLY_STORAGE_LABEL,
@@ -196,6 +197,10 @@ function DepartmentNameDialog({ mode, initialName = '', onClose, onSubmit }) {
   const [error, setError] = useState('')
   const [isSaving, setIsSaving] = useState(false)
   const title = mode === 'rename' ? 'Rename department' : 'New department'
+
+  useEscapeToClose(() => {
+    if (!isSaving) onClose?.()
+  })
 
   useEffect(() => {
     const previousOverflow = document.body.style.overflow

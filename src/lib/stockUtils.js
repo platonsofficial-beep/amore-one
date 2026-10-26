@@ -234,6 +234,13 @@ export function buildStockDashboardSummary(items = []) {
   }
 }
 
+export function formatStockTotalItemsLabel(totalItems, inactiveItems = 0) {
+  const total = Number(totalItems) || 0
+  const inactive = Number(inactiveItems) || 0
+  if (inactive <= 0) return String(total)
+  return `${total} · +${inactive} inactive`
+}
+
 export function getStockCategoryFilters(items = []) {
   const categories = new Set()
 

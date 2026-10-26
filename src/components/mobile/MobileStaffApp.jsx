@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { readPersistedMobileWeekStart } from '../../lib/mobileNavigationPersistence'
-import { getWeekDays, getWeekStartDate } from '../../lib/weekUtils'
+import { getCurrentWeekStartDate, getWeekDays } from '../../lib/weekUtils'
 import { resolveEmployeeWorkspaceId } from '../../services/availabilityService'
 import { MobileAvailabilityView } from './MobileAvailabilityView'
 import { MobileBottomNav } from './MobileBottomNav'
@@ -81,7 +81,7 @@ export function MobileStaffApp({
       return
     }
 
-    const weekStartDate = readPersistedMobileWeekStart(getWeekStartDate())
+    const weekStartDate = readPersistedMobileWeekStart(getCurrentWeekStartDate())
     setIsAvailabilityContextLoading(true)
 
     try {

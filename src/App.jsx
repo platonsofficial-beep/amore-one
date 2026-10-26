@@ -569,9 +569,11 @@ import {
   getScheduleGridTableMinWidth,
   getScheduleShiftTimeSeparator,
   isMobileScheduleCompactLandscape,
+  shouldFillScheduleGridWidth,
   shouldShowScheduleDraftChangesBanner,
   shouldUseFluidScheduleDayColumns,
 } from './lib/mobileScheduleUtils'
+import { formatScheduleShiftDisplayName } from './lib/scheduleShiftDisplayName'
 import {
   isMobileScrollDebugEnabled,
   scheduleMobileReservationsScrollDebug,
@@ -750,33 +752,6 @@ function formatScheduleCellCoverageLabel(cell) {
   if (cell.staffingState === 'understaffed' || cell.staffingState === 'attention') return 'Understaffed'
   if (cell.assignedCount === 0) return 'Empty'
   return 'Covered'
-}
-
-function formatScheduleShiftDisplayName(templateName, department) {
-  const name = `${templateName ?? ''}`.trim()
-  const dept = `${department ?? ''}`.trim()
-
-  const toTitleWords = (value) => (
-    `${value ?? ''}`
-      .trim()
-      .split(/\s+/)
-      .filter(Boolean)
-      .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-      .join(' ')
-  )
-
-  if (!name) return 'Shift'
-  if (!dept) return toTitleWords(name)
-
-  const normalizedName = name.toLowerCase()
-  const normalizedDept = dept.toLowerCase()
-
-  if (normalizedName.startsWith(normalizedDept)) {
-    const remainder = name.slice(dept.length).trim().replace(/^[-–—\s]+/, '')
-    if (remainder) return toTitleWords(remainder)
-  }
-
-  return toTitleWords(name)
 }
 
 function formatScheduleCellCoverageDetail(cell) {
@@ -2836,6 +2811,7 @@ function ScheduleView({
   schedulePublication,
   publishedShifts,
   weekStartDate,
+  timeZone = '',
   onWeekStartDateChange,
   onPublishWeekSchedule,
   onUnpublishWeekSchedule,
@@ -2986,7 +2962,12 @@ function ScheduleView({
     [weekDays.length, scheduleViewportWidth, isScheduleCompactLandscape],
   )
 
-  const scheduleUsesFluidDayColumns = shouldUseFluidScheduleDayColumns(scheduleDayColumnWidth)
+  const scheduleFillsWidth = shouldFillScheduleGridWidth({
+    viewportWidth: scheduleViewportWidth,
+    isCompactLandscape: isScheduleCompactLandscape,
+  })
+  const scheduleUsesFluidDayColumns = scheduleFillsWidth
+    || shouldUseFluidScheduleDayColumns(scheduleDayColumnWidth)
 
   const scheduleGridTableMinWidth = useMemo(
     () => getScheduleGridTableMinWidth(weekDays.length, scheduleDayColumnWidth),
@@ -3294,7 +3275,7 @@ function ScheduleView({
   const getWeekDaysFromAnchor = (anchorDateInput) => {
     const weekStart = anchorDateInput
       ? getWeekStartDate(parseLocalDate(anchorDateInput))
-      : getWeekStartDate(new Date())
+      : getCurrentWeekStartDate(timeZone)
     return getWeekDays(weekStart)
   }
 
@@ -5266,7 +5247,7 @@ function ScheduleView({
   }
 
   const isScheduleWeekNavigationDisabled = isLoading || isSaving || isPublishing
-  const isViewingCurrentScheduleWeek = isCurrentWeek(weekStartDate)
+  const isViewingCurrentScheduleWeek = isCurrentWeek(weekStartDate, timeZone)
 
   const scheduleHeader = isMobileScheduleShell ? (
     <header className="mobile-manager-schedule-toolbar panel schedule-focus-header" aria-label="Schedule controls">
@@ -5290,7 +5271,7 @@ function ScheduleView({
         isWeekUpdating={isScheduleWeekNavigationDisabled}
         isViewingCurrentWeek={isViewingCurrentScheduleWeek}
         onPreviousWeek={() => onWeekStartDateChange(addWeeks(weekStartDate, -1))}
-        onGoToCurrentWeek={() => onWeekStartDateChange(getCurrentWeekStartDate())}
+        onGoToCurrentWeek={() => onWeekStartDateChange(getCurrentWeekStartDate(timeZone))}
         onNextWeek={() => onWeekStartDateChange(addWeeks(weekStartDate, 1))}
       />
 
@@ -5344,7 +5325,7 @@ function ScheduleView({
           <button
             type="button"
             className="ghost-btn schedule-header-nav-btn"
-            onClick={() => onWeekStartDateChange(getCurrentWeekStartDate())}
+            onClick={() => onWeekStartDateChange(getCurrentWeekStartDate(timeZone))}
             disabled={isScheduleWeekNavigationDisabled || isViewingCurrentScheduleWeek}
           >
             This week
@@ -5971,7 +5952,7 @@ function ScheduleView({
                   >
                     <div className="schedule-template-card-heading-row">
                       <div className="schedule-template-card-heading">
-                        <p className="schedule-template-card-name">{templateName}</p>
+                        <p className="schedule-template-card-name">{formatScheduleShiftDisplayName(templateName)}</p>
                       </div>
                       <div className="template-card-actions schedule-template-card-actions">
                         <button
@@ -6084,7 +6065,7 @@ function ScheduleView({
             <select value={selectedWeeklyTemplateId} onChange={(event) => setSelectedWeeklyTemplateId(event.target.value)}>
               <option value="">Choose a saved weekly schedule</option>
               {weeklyTemplates.map((template) => (
-                <option key={`weekly-template-${template.id}`} value={String(template.id)}>{template.name}</option>
+                <option key={`weekly-template-${template.id}`} value={String(template.id)}>{formatScheduleShiftDisplayName(template.name)}</option>
               ))}
             </select>
           </label>
@@ -7044,7 +7025,7 @@ function ScheduleView({
             <form className="employee-form" onSubmit={handleSaveAssignmentTimeEdit}>
               <div className="assignment-context-card">
                 <h4>{assignmentTimeEdit.shift.employees?.full_name || assignmentTimeEdit.shift.employeeName || 'Employee'}</h4>
-                <p>{assignmentTimeEdit.template.name}</p>
+                <p>{formatScheduleShiftDisplayName(assignmentTimeEdit.template.name)}</p>
                 <p>Template: {formatTimeRange24(assignmentTimeEdit.template.startTime, assignmentTimeEdit.template.endTime)}</p>
               </div>
 
@@ -18102,36 +18083,21 @@ function App() {
       setScheduleNotice('')
 
       try {
-        const remoteTemplates = await getShiftTemplates({ workspaceId: activeWorkspaceId })
+        const [templatesResult, weeklyResult] = await Promise.allSettled([
+          getShiftTemplates({ workspaceId: activeWorkspaceId }),
+          getWeeklyScheduleTemplates(),
+        ])
         if (!isMounted) return
-        setShiftTemplates(composeShiftTemplates(remoteTemplates))
-        syncScheduleTemplateSetupState()
-      } catch (error) {
-        if (!isMounted) return
-        setShiftTemplates([])
-        setScheduleNotice(error.message || 'Unable to load shift templates right now.')
-      }
 
-      try {
-        const remoteWeeklyTemplates = await getWeeklyScheduleTemplates()
-        if (!isMounted) return
-        setWeeklyTemplates(remoteWeeklyTemplates)
-      } catch (_error) {
-        if (!isMounted) return
-        setWeeklyTemplates([])
-      }
+        if (templatesResult.status === 'fulfilled') {
+          setShiftTemplates(composeShiftTemplates(templatesResult.value))
+          syncScheduleTemplateSetupState()
+        } else {
+          setShiftTemplates([])
+          setScheduleNotice(templatesResult.reason?.message || 'Unable to load shift templates right now.')
+        }
 
-      try {
-        const remoteEmployees = await getEmployees(activeWorkspaceId)
-        if (!isMounted) return
-        setEmployees(remoteEmployees)
-        setScheduleEmployees(remoteEmployees)
-      } catch (error) {
-        if (!isMounted) return
-        setScheduleEmployees((current) => (current.length > 0 ? current : []))
-        setScheduleNotice((current) => (
-          current || error.message || 'Unable to load employees right now.'
-        ))
+        setWeeklyTemplates(weeklyResult.status === 'fulfilled' ? weeklyResult.value : [])
       } finally {
         if (isMounted) {
           setIsWeeklyTemplatesLoading(false)
@@ -24471,6 +24437,7 @@ function App() {
               schedulePublication={schedulePublication}
               publishedShifts={publishedShifts}
               weekStartDate={scheduleWeekStart}
+              timeZone={workspaceTimeZone}
               onWeekStartDateChange={handleScheduleWeekStartChange}
               onPublishWeekSchedule={handlePublishWeekSchedule}
               onUnpublishWeekSchedule={handleUnpublishWeekSchedule}
@@ -25569,7 +25536,7 @@ function App() {
                           <option value="" disabled>No custom templates yet</option>
                         ) : null}
                         {shiftTemplates.map((template) => (
-                          <option key={template.id} value={template.id}>{template.name}</option>
+                          <option key={template.id} value={template.id}>{formatScheduleShiftDisplayName(template.name)}</option>
                         ))}
                       </select>
                     </label>
@@ -25701,7 +25668,7 @@ function App() {
                         ☰
                       </button>
                       <div className="schedule-template-list-main">
-                        <strong>{template.name}</strong>
+                        <strong>{formatScheduleShiftDisplayName(template.name)}</strong>
                         <p>{formatTimeRange24(template.startTime, template.endTime, ' - ')} · {template.defaultArea || 'No area'} · Staff {getTemplateDefaultRequiredCount(template)}</p>
                       </div>
                       <div className="action-group schedule-template-list-actions">

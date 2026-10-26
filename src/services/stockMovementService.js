@@ -140,14 +140,11 @@ export async function getStockItemsWithLastMovement(workspaceId, options = {}) {
   const items = await getStockItems(workspaceId, options)
   if (items.length === 0) return items
 
-  const latestByItemId = await getLatestStockMovementsByItem(
-    workspaceId,
-    items.map((item) => item.id).filter(Boolean),
-  )
-  const latestCountsByItemId = await getLatestStockCountsByItem(
-    workspaceId,
-    items.map((item) => item.id).filter(Boolean),
-  )
+  const itemIds = items.map((item) => item.id).filter(Boolean)
+  const [latestByItemId, latestCountsByItemId] = await Promise.all([
+    getLatestStockMovementsByItem(workspaceId, itemIds),
+    getLatestStockCountsByItem(workspaceId, itemIds),
+  ])
 
   return items.map((item) => ({
     ...item,

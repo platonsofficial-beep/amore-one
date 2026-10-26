@@ -1,7 +1,31 @@
+/** Venue calendar. Asia/Nicosia and Europe/Nicosia are the same zone. */
+export const NICOSIA_TIME_ZONE = 'Asia/Nicosia'
+
 export function formatLocalDateKey(date) {
   const year = date.getFullYear()
   const month = String(date.getMonth() + 1).padStart(2, '0')
   const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
+export function resolveWeekTimeZone(timeZone) {
+  const trimmed = `${timeZone ?? ''}`.trim()
+  return trimmed || NICOSIA_TIME_ZONE
+}
+
+export function getDateKeyInTimeZone(date, timeZone = NICOSIA_TIME_ZONE) {
+  const resolved = resolveWeekTimeZone(timeZone)
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: resolved,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(date)
+
+  const year = parts.find((part) => part.type === 'year')?.value
+  const month = parts.find((part) => part.type === 'month')?.value
+  const day = parts.find((part) => part.type === 'day')?.value
+  if (!year || !month || !day) return formatLocalDateKey(date)
   return `${year}-${month}-${day}`
 }
 
@@ -13,13 +37,27 @@ export function parseLocalDate(dateKey) {
   return new Date(year, month - 1, day)
 }
 
-export function getWeekStartDate(anchor = new Date()) {
-  const date = anchor instanceof Date ? new Date(anchor) : parseLocalDate(anchor)
-  date.setHours(0, 0, 0, 0)
-  const day = date.getDay()
-  const diff = date.getDate() - day + (day === 0 ? -6 : 1)
-  date.setDate(diff)
-  return formatLocalDateKey(date)
+function mondayOfCalendarDate(date) {
+  const cursor = new Date(date)
+  cursor.setHours(12, 0, 0, 0)
+  const day = cursor.getDay()
+  const diff = cursor.getDate() - day + (day === 0 ? -6 : 1)
+  cursor.setDate(diff)
+  return formatLocalDateKey(cursor)
+}
+
+export function getWeekStartDate(anchor = new Date(), timeZone = '') {
+  if (typeof anchor === 'string') {
+    return mondayOfCalendarDate(parseLocalDate(anchor))
+  }
+
+  const instant = anchor instanceof Date ? anchor : new Date()
+  const zone = `${timeZone ?? ''}`.trim()
+  if (zone) {
+    return mondayOfCalendarDate(parseLocalDate(getDateKeyInTimeZone(instant, zone)))
+  }
+
+  return mondayOfCalendarDate(instant)
 }
 
 export function getWeekDateKeys(weekStartDate) {
@@ -57,8 +95,8 @@ export function addCalendarDays(dateKey, days) {
   return formatLocalDateKey(date)
 }
 
-export function isCurrentWeek(weekStartDate) {
-  return weekStartDate === getWeekStartDate(new Date())
+export function isCurrentWeek(weekStartDate, timeZone = NICOSIA_TIME_ZONE) {
+  return weekStartDate === getCurrentWeekStartDate(timeZone)
 }
 
 export function formatWeekRange(days) {
@@ -75,8 +113,8 @@ export function formatScheduleDayHeader(dateKey) {
   }
 }
 
-export function getCurrentWeekStartDate() {
-  return getWeekStartDate(new Date())
+export function getCurrentWeekStartDate(timeZone = NICOSIA_TIME_ZONE) {
+  return getWeekStartDate(new Date(), resolveWeekTimeZone(timeZone))
 }
 
 export function getCurrentWeekDateKeys() {
