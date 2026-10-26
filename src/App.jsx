@@ -442,7 +442,6 @@ import { resolveAddShiftDate } from './lib/scheduleAddShiftDate'
 import { shiftsInWeek } from './lib/scheduleBrowseWeek'
 import { buildCopyDayPayloads } from './lib/scheduleCopyDay'
 import { appendUnplacedScheduleShifts, isCustomScheduleRow } from './lib/scheduleCustomRow'
-import { useEscapeToClose } from './lib/useEscapeToClose'
 import { buildEmployeeWeekScheduleView } from './lib/employeeWeekScheduleView'
 import {
   getEmployeeAvailabilityWeek,
@@ -16801,6 +16800,14 @@ function App() {
     [todayActionableTasks, operationsTasks, currentDateKey, operationsAnnouncements],
   )
 
+  // Board tasks only. The Today chip adds operationsOpenCount next to this
+  // so the label stays "N board · M ops". The shared window is the Operations
+  // list and must not be passed into that chip.
+  const boardTaskOverview = useMemo(
+    () => calculateTaskOverview(todayActionableTasks, currentDateKey),
+    [todayActionableTasks, currentDateKey],
+  )
+
   const dashboardTaskOverview = useMemo(
     () => calculateTaskOverview(sharedOperationalTasks, currentDateKey),
     [sharedOperationalTasks, currentDateKey],
@@ -17045,7 +17052,7 @@ function App() {
     reservationsConnected: isReservationsModuleConnected,
     reservationsFooter: dashboardReservationsFooter,
     serviceSnapshot: dashboardServiceSnapshot,
-    tasksOverview: dashboardTaskOverview,
+    tasksOverview: boardTaskOverview,
     tasksConnected: isTasksModuleConnected,
     operationsOpenCount,
     stockSummary: managerMobileStockSummary,
@@ -17059,7 +17066,7 @@ function App() {
     isReservationsModuleConnected,
     dashboardReservationsFooter,
     dashboardServiceSnapshot,
-    dashboardTaskOverview,
+    boardTaskOverview,
     operationsOpenCount,
     isTasksModuleConnected,
     managerMobileStockSummary,
@@ -17363,7 +17370,7 @@ function App() {
   const todayCommandHeaderChips = useMemo(() => buildTodayCommandHeaderChips({
     dashboardLiveStatus,
     todayStatusSummary,
-    dashboardTaskOverview,
+    dashboardTaskOverview: boardTaskOverview,
     operationsOpenCount,
     todayReservationsSummary,
     reservationsConnected: isReservationsModuleConnected,
@@ -17372,7 +17379,7 @@ function App() {
   }), [
     dashboardLiveStatus,
     todayStatusSummary,
-    dashboardTaskOverview,
+    boardTaskOverview,
     operationsOpenCount,
     todayReservationsSummary,
     isReservationsModuleConnected,
@@ -25317,7 +25324,7 @@ function App() {
             onOpenChecklistRun={setActiveChecklistRunTemplateId}
             focusTaskId={operationsFocusTaskId}
             onFocusTaskHandled={() => setOperationsFocusTaskId(null)}
-            boardOverdueCount={dashboardTaskOverview.overdue}
+            boardOverdueCount={boardTaskOverview.overdue}
             onOpenTaskBoards={handleDashboardViewTasks}
           />
         ) : null}
