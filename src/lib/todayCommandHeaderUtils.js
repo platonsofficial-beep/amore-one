@@ -30,6 +30,7 @@ function formatTaskChip(boardOpen = 0, operationsOpen = 0) {
 
 export function buildTodayCommandHeaderChips({
   dashboardLiveStatus = {},
+  scheduleIssueCount = 0,
   todayStatusSummary = {},
   dashboardTaskOverview = {},
   operationsOpenCount = 0,
@@ -41,12 +42,13 @@ export function buildTodayCommandHeaderChips({
   const chips = []
 
   const scheduleTone = `${dashboardLiveStatus.tone ?? 'standby'}`.trim() || 'standby'
+  const issueCount = Math.max(0, Number(scheduleIssueCount) || 0)
   chips.push({
     id: 'schedule',
-    icon: scheduleTone === 'draft' ? '🟡' : '🟢',
+    icon: issueCount > 0 ? '⚠️' : (scheduleTone === 'draft' ? '🟡' : '🟢'),
     label: 'Schedule',
-    value: `${dashboardLiveStatus.chipValue ?? '—'}`.trim() || '—',
-    tone: scheduleTone,
+    value: String(issueCount),
+    tone: issueCount > 0 ? 'warning' : scheduleTone,
   })
 
   const onShiftCount = liveFloorState.state === 'live'

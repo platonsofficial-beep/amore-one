@@ -30,7 +30,7 @@ describe('buildTodayCommandHeaderChips', () => {
         id: 'schedule',
         icon: '🟡',
         label: 'Schedule',
-        value: 'Draft',
+        value: '0',
         tone: 'draft',
       },
       {
@@ -83,6 +83,22 @@ describe('buildTodayCommandHeaderChips', () => {
       'tasks',
     ])
     expect(chips.find((chip) => chip.id === 'tasks')?.value).toBe('Clear')
+    expect(chips.find((chip) => chip.id === 'schedule')?.value).toBe('0')
+  })
+
+  it('shows the shared schedule issue count on the Schedule chip', () => {
+    const chips = buildTodayCommandHeaderChips({
+      dashboardLiveStatus: { tone: 'live', chipValue: '2' },
+      scheduleIssueCount: 1,
+      liveFloorState: { state: 'live', onShiftCount: 2 },
+    })
+
+    expect(chips.find((chip) => chip.id === 'schedule')).toMatchObject({
+      label: 'Schedule',
+      value: '1',
+      tone: 'warning',
+    })
+    expect(chips.find((chip) => chip.id === 'on-shift')?.value).toBe('2')
   })
 
   it('labels board tasks and operations tasks on the same chip', () => {

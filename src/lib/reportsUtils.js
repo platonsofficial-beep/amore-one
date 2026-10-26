@@ -1,4 +1,4 @@
-import { buildOperationalSnapshot, buildScheduleAttentionDetail } from './operationalSnapshotUtils'
+import { selectScheduleIssues } from './operationalSnapshotUtils'
 import {
   getHostStatusGroupId,
   isReservationInHouseStatus,
@@ -376,17 +376,16 @@ export function buildScheduleReport(
   let issues = null
   let coverageDetail = null
   if (period === REPORT_PERIOD_TODAY) {
-    const snapshot = buildOperationalSnapshot({
-      shifts: periodShifts,
+    const scheduleIssues = selectScheduleIssues({
+      shifts,
       shiftTemplates,
       scheduleCapacities,
       employees,
       todayKey,
+      coverageBreakdown,
     })
-    issues = snapshot.issues
-    if (issues > 0) {
-      coverageDetail = buildScheduleAttentionDetail(snapshot, coverageBreakdown ?? {})
-    }
+    issues = scheduleIssues.count
+    coverageDetail = scheduleIssues.detail || null
   }
 
   return {

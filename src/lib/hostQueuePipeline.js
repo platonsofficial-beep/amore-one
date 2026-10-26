@@ -21,6 +21,8 @@ import {
   summarizeHostQueueNoteBadges,
 } from './hostQueueNoteBadges'
 import { getReservationPurpose } from './reservationPurpose'
+import { isReservationInHouseStatus } from './reservationHostStatus'
+import { reservationDateKey } from './reservationServiceIntelligence'
 
 export const HOST_QUEUE_ALL_AREAS = '__all__'
 export const HOST_QUEUE_UNASSIGNED_AREA = '__unassigned__'
@@ -412,6 +414,47 @@ export function sortHostQueueReservations(
   return sorted
 }
 
+export function isStaleSeatedHostReservation(
+  reservation,
+  {
+    dateKey = '',
+    workspaceTodayKey = '',
+    timeZone = '',
+  } = {},
+) {
+  const viewedDay = `${dateKey ?? ''}`.slice(0, 10)
+  const today = `${workspaceTodayKey ?? ''}`.slice(0, 10)
+  if (!viewedDay || !today || viewedDay >= today) return false
+  if (reservationDateKey(reservation, timeZone) !== viewedDay) return false
+  return isReservationInHouseStatus(reservation?.status)
+}
+
+export function includeStaleSeatedHostReservations(
+  reservations = [],
+  sourceReservations = [],
+  {
+    dateKey = '',
+    workspaceTodayKey = '',
+    timeZone = '',
+  } = {},
+) {
+  const listed = reservations ?? []
+  if (!workspaceTodayKey) return listed
+
+  const seen = new Set(listed.map((entry) => String(entry?.id ?? '')))
+  const extras = []
+
+  ;(sourceReservations ?? []).forEach((reservation) => {
+    const id = String(reservation?.id ?? '')
+    if (!id || seen.has(id)) return
+    if (!isStaleSeatedHostReservation(reservation, { dateKey, workspaceTodayKey, timeZone })) return
+    seen.add(id)
+    extras.push(reservation)
+  })
+
+  return extras.length > 0 ? [...listed, ...extras] : listed
+}
+
 export function includeFocusedHostReservation(
   reservations = [],
   focusReservationId = '',
@@ -435,6 +478,8 @@ export function buildHostQueueReservationList(
     selectedSeating = null,
     seatings = [],
     dateKey = '',
+    workspaceTodayKey = '',
+    timeZone = '',
     areaFilterId = HOST_QUEUE_ALL_AREAS,
     activeFilterIds = [],
     searchTerm = '',
@@ -449,6 +494,12 @@ export function buildHostQueueReservationList(
     dateKey,
     areaFilterId,
     layout,
+  })
+
+  filtered = includeStaleSeatedHostReservations(filtered, reservations, {
+    dateKey,
+    workspaceTodayKey,
+    timeZone,
   })
 
   filtered = applyHostQueueOperationalFilters(filtered, activeFilterIds, {
