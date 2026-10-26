@@ -32,6 +32,12 @@ describe('stockUtils', () => {
   it('resolves out and low stock status from quantity thresholds', () => {
     expect(resolveStockItemStatus(makeItem({ currentQuantity: 0 }))).toBe('out')
     expect(resolveStockItemStatus(makeItem({ currentQuantity: 4, minimumQuantity: 10 }))).toBe('low')
+    expect(resolveStockItemStatus(makeItem({ currentQuantity: 10, minimumQuantity: 10 }))).toBe('low')
+    expect(resolveStockItemStatus(makeItem({
+      currentQuantity: 72,
+      minimumQuantity: 36,
+      targetQuantity: 200,
+    }))).toBe('ok')
     expect(resolveStockItemStatus(makeItem({ currentQuantity: 12, minimumQuantity: 10 }))).toBe('ok')
     expect(resolveStockItemStatus(makeItem({ active: false }))).toBe('inactive')
   })
@@ -66,11 +72,11 @@ describe('stockUtils', () => {
     expect(formatStockTotalItemsLabel(summary.totalItems, 0)).toBe('4')
     expect(formatStockTotalItemsLabel(172, 8)).toBe('172 · +8 inactive')
     expect(summary.outOfStock).toBe(1)
-    expect(summary.lowStock).toBe(2)
+    expect(summary.lowStock).toBe(1)
     expect(summary.toOrder).toBe(3)
   })
 
-  it('uses one par for low stock and suggested order quantity', () => {
+  it('marks low from the minimum and still orders up to the target', () => {
     const targetWins = makeItem({
       currentQuantity: 20,
       minimumQuantity: 10,
@@ -92,7 +98,7 @@ describe('stockUtils', () => {
     })
 
     expect(resolveStockParQuantity(targetWins)).toBe(25)
-    expect(resolveStockItemQuantityStatus(targetWins)).toBe('low')
+    expect(resolveStockItemQuantityStatus(targetWins)).toBe('ok')
     expect(itemNeedsOrder(targetWins)).toBe(true)
     expect(computeSuggestedOrder(targetWins)).toBe(5)
 
@@ -101,7 +107,7 @@ describe('stockUtils', () => {
     expect(computeSuggestedOrder(minimumOnly)).toBe(2)
 
     expect(resolveStockParQuantity(aboveTarget)).toBe(6)
-    expect(resolveStockItemQuantityStatus(aboveTarget)).toBe('ok')
+    expect(resolveStockItemQuantityStatus(aboveTarget)).toBe('low')
     expect(itemNeedsOrder(aboveTarget)).toBe(false)
     expect(computeSuggestedOrder(aboveTarget)).toBe(0)
 

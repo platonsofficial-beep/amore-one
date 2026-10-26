@@ -3,6 +3,7 @@ import { normalizeStorageParQuantity, storageParShort } from './stockStoragePar'
 import {
   buildSuggestedOrderLine,
   computeOrderTotalCost,
+  formatStockOrderNumber,
   normalizeStockOrderStatus,
   resolveOrderGroupIdentity,
 } from './stockOrderUtils'
@@ -203,6 +204,40 @@ export function planSupplyOrderDraftWrites(groups, existingOrders) {
  * @param {{ created?: unknown, updated?: unknown }} [result]
  * @returns {string}
  */
+function formatEuroAmount(value) {
+  const amount = Number(value)
+  const safe = Number.isFinite(amount) ? amount : 0
+  return `€${safe.toLocaleString('en-GB', { maximumFractionDigits: 2 })}`
+}
+
+function orderTotalAmount(order) {
+  if (!order) return 0
+  const direct = Number(order.totalCost ?? order.total_cost)
+  if (Number.isFinite(direct)) return direct
+  return computeOrderTotalCost(order.items ?? [])
+}
+
+/**
+ * Lines shown before Prepare drafts writes anything.
+ *
+ * @param {unknown} plan
+ * @param {unknown} existingOrders
+ */
+export function formatSupplyOrderDraftPreview(plan = [], existingOrders = []) {
+  const orders = Array.isArray(existingOrders) ? existingOrders : []
+  return (Array.isArray(plan) ? plan : []).map((step) => {
+    const supplier = `${step?.group?.supplier ?? ''}`.trim() || 'Supplier'
+    const nextTotal = formatEuroAmount(step?.group?.totalCost)
+    if (step?.action !== 'update') {
+      return `Create a draft for ${supplier} · ${nextTotal}`
+    }
+    const existing = orders.find((order) => String(order?.id) === String(step.orderId))
+    const number = formatStockOrderNumber(existing?.orderNumber ?? existing?.order_number)
+    const previousTotal = formatEuroAmount(orderTotalAmount(existing))
+    return `Update draft ${number} for ${supplier} · ${previousTotal} → ${nextTotal}`
+  })
+}
+
 export function formatSupplyOrderDraftNotice({ created = [], updated = [] } = {}) {
   const createdCount = Array.isArray(created) ? created.length : 0
   const updatedCount = Array.isArray(updated) ? updated.length : 0

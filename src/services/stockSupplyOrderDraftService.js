@@ -8,7 +8,9 @@ import { isStockStorageParSchemaMissing, STORAGE_PAR_UNAVAILABLE_MESSAGE } from 
 import {
   buildSupplyOrderDraftGroups,
   formatSupplyOrderDraftNotice,
+  formatSupplyOrderDraftPreview,
   planSupplyOrderDraftWrites,
+  SUPPLY_ORDER_DRAFT_EMPTY_MESSAGE,
 } from '../lib/stockSupplyOrderDraft'
 import {
   STOCK_STORAGE_CENTER_BALANCE_COLUMNS,
@@ -113,6 +115,44 @@ export async function loadSupplyOrderSource(workspaceId) {
  *   updateDraft?: typeof updateStockOrderDraft,
  * }} [options]
  */
+export async function previewSupplyOrderDrafts(workspaceId, {
+  items = [],
+  suppliers = [],
+  existingOrders = [],
+  loadSource = loadSupplyOrderSource,
+} = {}) {
+  const normalizedWorkspaceId = requireWorkspaceId(workspaceId)
+  const source = await loadSource(normalizedWorkspaceId)
+
+  if (!source?.parsReady) {
+    return {
+      unavailable: true,
+      parsReady: false,
+      lines: [],
+      message: STORAGE_PAR_UNAVAILABLE_MESSAGE,
+    }
+  }
+
+  const groups = buildSupplyOrderDraftGroups({
+    items,
+    suppliers,
+    storages: source.storages ?? [],
+    balances: source.balances ?? [],
+    pars: source.pars ?? [],
+  })
+  const plan = planSupplyOrderDraftWrites(groups, existingOrders)
+  const lines = formatSupplyOrderDraftPreview(plan, existingOrders)
+
+  return {
+    unavailable: false,
+    parsReady: true,
+    lines,
+    message: lines.length > 0
+      ? 'Review these drafts before they are saved.'
+      : SUPPLY_ORDER_DRAFT_EMPTY_MESSAGE,
+  }
+}
+
 export async function prepareSupplyOrderDrafts(workspaceId, {
   items = [],
   suppliers = [],

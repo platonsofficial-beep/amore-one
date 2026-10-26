@@ -201,19 +201,16 @@ export function buildStockOrderPrintHtml({ title, body }) {
  */
 export function openStockOrderExternalLink(url) {
   if (!url || typeof document === 'undefined') return false
+  const anchor = document.createElement('a')
+  anchor.href = url
   if (url.startsWith('https://') || url.startsWith('http://')) {
-    const anchor = document.createElement('a')
-    anchor.href = url
     anchor.target = '_blank'
     anchor.rel = 'noopener noreferrer'
     anchor.referrerPolicy = 'no-referrer'
-    document.body.appendChild(anchor)
-    anchor.click()
-    anchor.remove()
-    return true
   }
-  if (typeof window === 'undefined') return false
-  window.location.assign(url)
+  document.body.appendChild(anchor)
+  anchor.click()
+  anchor.remove()
   return true
 }
 

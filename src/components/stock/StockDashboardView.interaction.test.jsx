@@ -150,7 +150,7 @@ const CATALOG = [
     targetQuantity: 10,
     status: 'out',
   }),
-  // Below target par, so it is both low and to order (same par).
+  // Above minimum, so it is not Low. Target still puts it on To order.
   stock({
     id: 'order-1',
     name: 'ORDER ITEM',
@@ -234,10 +234,10 @@ describe('StockDashboardView KPI → All Products pipeline (P8.17.3b)', () => {
     click(lowCard)
 
     expect(lowCard.getAttribute('aria-pressed')).toBe('true')
-    expect(catalogProductNames(container)).toEqual(['LOW ITEM', 'ORDER ITEM'])
+    expect(catalogProductNames(container)).toEqual(['LOW ITEM'])
     expect(catalogProductNames(container)).not.toContain('HEALTHY OK')
     expect(catalogProductNames(container)).not.toContain('OUT ITEM')
-    expect(resultCountText(container)).toMatch(/Showing 2 of 4/)
+    expect(resultCountText(container)).toMatch(/Showing 1 of 4/)
     cleanup()
   })
 
@@ -264,7 +264,7 @@ describe('StockDashboardView KPI → All Products pipeline (P8.17.3b)', () => {
     const { container, cleanup } = mount()
     const lowCard = summaryCard(container, 'Low stock')
     click(lowCard)
-    expect(catalogProductNames(container)).toEqual(['LOW ITEM', 'ORDER ITEM'])
+    expect(catalogProductNames(container)).toEqual(['LOW ITEM'])
     click(lowCard)
     expect(lowCard.getAttribute('aria-pressed')).toBe('false')
     expect(catalogProductNames(container).sort()).toEqual([
@@ -282,7 +282,7 @@ describe('StockDashboardView KPI → All Products pipeline (P8.17.3b)', () => {
     const lowCard = summaryCard(container, 'Low stock')
     const outCard = summaryCard(container, 'Out of stock')
     click(lowCard)
-    expect(catalogProductNames(container)).toEqual(['LOW ITEM', 'ORDER ITEM'])
+    expect(catalogProductNames(container)).toEqual(['LOW ITEM'])
     click(outCard)
     expect(outCard.getAttribute('aria-pressed')).toBe('true')
     expect(lowCard.getAttribute('aria-pressed')).toBe('false')
@@ -294,16 +294,16 @@ describe('StockDashboardView KPI → All Products pipeline (P8.17.3b)', () => {
     const { container, cleanup } = mount()
     click(summaryCard(container, 'Low stock'))
 
-    expect(catalogProductNames(container)).toEqual(['LOW ITEM', 'ORDER ITEM'])
+    expect(catalogProductNames(container)).toEqual(['LOW ITEM'])
 
     setLayoutMode(container, 'List')
-    expect(catalogProductNames(container)).toEqual(['LOW ITEM', 'ORDER ITEM'])
+    expect(catalogProductNames(container)).toEqual(['LOW ITEM'])
 
     setLayoutMode(container, 'Count')
-    expect(catalogProductNames(container)).toEqual(['LOW ITEM', 'ORDER ITEM'])
+    expect(catalogProductNames(container)).toEqual(['LOW ITEM'])
 
     setLayoutMode(container, 'Cards')
-    expect(catalogProductNames(container)).toEqual(['LOW ITEM', 'ORDER ITEM'])
+    expect(catalogProductNames(container)).toEqual(['LOW ITEM'])
     cleanup()
   })
 
@@ -337,7 +337,7 @@ describe('StockDashboardView KPI → All Products pipeline (P8.17.3b)', () => {
     // Needs Attention is intentionally unfiltered by statusFilter — Out still appears there.
     expect(attentionNames(container)).toEqual(expect.arrayContaining(['OUT ITEM', 'LOW ITEM']))
     // All Products catalog is filtered.
-    expect(catalogProductNames(container)).toEqual(['LOW ITEM', 'ORDER ITEM'])
+    expect(catalogProductNames(container)).toEqual(['LOW ITEM'])
     // While filtered, All Products catalog precedes Needs Attention in document order.
     const catalog = catalogRoot(container)
     expect(
@@ -361,7 +361,7 @@ describe('StockDashboardView KPI → All Products pipeline (P8.17.3b)', () => {
     expect(lowCard.getAttribute('aria-pressed')).toBe('true')
     expect(orderCard.getAttribute('aria-pressed')).toBe('false')
     expect(outCard.getAttribute('aria-pressed')).toBe('false')
-    expect(catalogProductNames(container)).toEqual(['LOW ITEM', 'ORDER ITEM'])
+    expect(catalogProductNames(container)).toEqual(['LOW ITEM'])
     cleanup()
   })
 
@@ -402,7 +402,7 @@ describe('StockDashboardView filtered catalog density (P8.17.3d)', () => {
     expect(context).toBeTruthy()
     expect(main).toBeTruthy()
     expect(main.querySelector('.stock-filtered-context-title')?.textContent).toBe('Low stock')
-    expect(main.querySelector('.stock-filtered-context-count')?.textContent).toBe('2 products')
+    expect(main.querySelector('.stock-filtered-context-count')?.textContent).toBe('1 product')
     expect(main.querySelector('.stock-filtered-context-clear')?.textContent).toBe('Clear filter')
     expect(catalogRoot(container).className).toContain('is-filtered-mode')
     cleanup()
@@ -481,7 +481,7 @@ describe('StockDashboardView filtered catalog density (P8.17.3d)', () => {
       .toBe('Low stock')
     expect(container.querySelector('[aria-label="Stock status"]')).toBeNull()
     expect(container.querySelectorAll('.stock-summary-card.is-selected')).toHaveLength(1)
-    expect(catalogProductNames(container)).toEqual(['LOW ITEM', 'ORDER ITEM'])
+    expect(catalogProductNames(container)).toEqual(['LOW ITEM'])
     cleanup()
   })
 
@@ -641,7 +641,7 @@ describe('StockDashboardView compact browse workspace (P8.24.3)', () => {
     expect(container.querySelector('#stock-filtered-context .stock-filtered-context-title')?.textContent)
       .toBe('Low stock')
     expect(buttonByText(container, 'Clear filter')).toBeTruthy()
-    expect(resultCountText(container)).toMatch(/Showing 2 of 4/)
+    expect(resultCountText(container)).toMatch(/Showing 1 of 4/)
     expect(container.querySelectorAll('[data-stock-compact-browse-toolbar="true"]')).toHaveLength(1)
     cleanup()
   })

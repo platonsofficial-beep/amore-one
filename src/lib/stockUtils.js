@@ -13,15 +13,15 @@ export const STOCK_MOVEMENT_TYPES = ['receive', 'usage', 'adjustment', 'stock_co
 
 /**
  * Quantity health only (out / low / ok). Ignores active/inactive lifecycle.
- * Low uses the same par as To order: positive target, otherwise minimum.
- * Out stays on-hand <= 0 so an empty item is not also labeled low.
+ * Low is on hand at or below the catalog minimum. Target quantity is the
+ * order par and does not mark an item Low. Out stays on-hand <= 0.
  */
 export function resolveStockItemQuantityStatus(item) {
   const quantity = Number(item?.currentQuantity ?? item?.current_quantity ?? 0)
 
   if (!Number.isFinite(quantity) || quantity <= 0) return 'out'
-  const par = resolveStockParQuantity(item)
-  if (par > 0 && quantity < par) return 'low'
+  const minimum = Number(item?.minimumQuantity ?? item?.minimum_quantity ?? 0)
+  if (Number.isFinite(minimum) && minimum > 0 && quantity <= minimum) return 'low'
   return 'ok'
 }
 
