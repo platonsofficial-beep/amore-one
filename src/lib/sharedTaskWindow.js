@@ -23,18 +23,97 @@ export function isSharedTaskOverdue(task, todayKey = '') {
   return Boolean(dueDate && today && dueDate < today)
 }
 
+function checklistTemplateName(templateId, checklistTemplates = []) {
+  const match = (checklistTemplates ?? []).find((template) => (
+    `${template?.id ?? ''}` === `${templateId ?? ''}`
+  ))
+  const name = `${match?.name ?? ''}`.trim()
+  return name || 'Checklist'
+}
+
+function checklistRunKey(task) {
+  const templateId = `${task?.checklistTemplateId ?? ''}`.trim()
+  if (!templateId) return ''
+  return `${templateId}:${taskDueDate(task) || 'undated'}`
+}
+
 /**
- * One task set for Today and Operations.
- * Workspace tasks (the `tasks` table) and operations tasks share open /
- * past-due / completed-today. Checklist rows stay on the checklist panel
- * when they are due today; past-due checklist rows are included because
- * that panel only shows today's run.
+ * One checklist occurrence (BAR OPENING on a date) is one task.
+ * The underlying step rows stay on the task as checklistSteps.
+ */
+export function collapseChecklistRuns(tasks = [], checklistTemplates = []) {
+  const groups = new Map()
+  const rest = []
+
+  ;(tasks ?? []).forEach((task) => {
+    const key = checklistRunKey(task)
+    if (!key) {
+      if (taskStatus(task) === 'skipped') return
+      rest.push(task)
+      return
+    }
+    const bucket = groups.get(key) ?? []
+    bucket.push(task)
+    groups.set(key, bucket)
+  })
+
+  const runs = []
+  groups.forEach((steps, key) => {
+    const sorted = [...steps].sort((left, right) => {
+      const leftIndex = Number(left.checklistOrderIndex ?? left.checklist_order_index ?? 0)
+      const rightIndex = Number(right.checklistOrderIndex ?? right.checklist_order_index ?? 0)
+      if (leftIndex !== rightIndex) return leftIndex - rightIndex
+      return `${left.title ?? ''}`.localeCompare(`${right.title ?? ''}`)
+    })
+    const openSteps = sorted.filter((step) => isSharedOpenTask(step))
+    const completedSteps = sorted.filter((step) => taskStatus(step) === 'completed')
+    if (openSteps.length === 0 && completedSteps.length === 0) return
+
+    const templateId = `${sorted[0].checklistTemplateId ?? ''}`.trim()
+    const dueDate = taskDueDate(sorted[0])
+    const completedAt = completedSteps
+      .map((step) => `${step.completedAt ?? step.completed_at ?? ''}`.trim())
+      .filter(Boolean)
+      .sort()
+      .at(-1) ?? null
+    const dueTimes = sorted
+      .map((step) => `${step.dueTime ?? step.due_time ?? ''}`.trim())
+      .filter(Boolean)
+      .sort()
+
+    runs.push({
+      id: `checklist-run:${key}`,
+      title: checklistTemplateName(templateId, checklistTemplates),
+      description: '',
+      status: openSteps.length > 0 ? 'pending' : 'completed',
+      dueDate,
+      dueTime: dueTimes[0] ?? null,
+      category: sorted[0].category || 'other',
+      priority: sorted[0].priority || 'normal',
+      assignedTo: null,
+      taskSource: 'operations',
+      checklistRun: true,
+      checklistTemplateId: templateId,
+      checklistSteps: sorted,
+      checklistStepCount: sorted.length,
+      checklistCompletedCount: completedSteps.length,
+      completedAt: openSteps.length > 0 ? null : completedAt,
+    })
+  })
+
+  return [...rest, ...runs]
+}
+
+/**
+ * One task set for Today, Operations, and Insights.
+ * A checklist run is one task with optional steps, not one task per step.
  */
 export function combineOperationalTasks(
   workspaceTasks = [],
   operationsTasks = [],
   todayKey = '',
   announcements = [],
+  checklistTemplates = [],
 ) {
   const workspaceRows = filterTasksExcludingAnnouncementDuplicates(workspaceTasks, announcements)
     .filter((task) => taskStatus(task) !== 'skipped')
@@ -47,14 +126,12 @@ export function combineOperationalTasks(
     }))
 
   const operationsRows = filterTasksExcludingAnnouncementDuplicates(operationsTasks, announcements)
-    .filter((task) => taskStatus(task) !== 'skipped')
-    .filter((task) => !task.checklistTemplateId || isSharedTaskOverdue(task, todayKey))
     .map((task) => ({
       ...task,
       taskSource: task.taskSource || 'operations',
     }))
 
-  return [...workspaceRows, ...operationsRows]
+  return collapseChecklistRuns([...workspaceRows, ...operationsRows], checklistTemplates)
 }
 
 export function buildSharedTaskWindow(tasks = [], todayKey = '') {
@@ -109,12 +186,14 @@ export function buildUnifiedOperationalTaskCounts({
   operationsTasks = [],
   todayKey = '',
   announcements = [],
+  checklistTemplates = [],
 } = {}) {
   const combined = combineOperationalTasks(
     boardTasks,
     operationsTasks,
     todayKey,
     announcements,
+    checklistTemplates,
   )
   const window = buildSharedTaskWindow(combined, todayKey)
   const openTasks = combined.filter((task) => isSharedOpenTask(task))

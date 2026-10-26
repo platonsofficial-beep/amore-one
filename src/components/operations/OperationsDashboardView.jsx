@@ -97,7 +97,9 @@ function OperationsTaskRow({
         className={`operations-task-checkbox${isDone ? ' is-checked' : ''}`}
         onClick={() => onToggleComplete(task)}
         disabled={!canComplete && !canManage}
-        aria-label={isDone ? `Reopen ${task.title}` : `Complete ${task.title}`}
+        aria-label={task.checklistRun
+          ? `Open ${task.title}, ${task.checklistCompletedCount ?? 0} of ${task.checklistStepCount ?? 0} steps`
+          : (isDone ? `Reopen ${task.title}` : `Complete ${task.title}`)}
         aria-pressed={isDone}
       >
         {isDone ? '✓' : ''}
@@ -116,6 +118,12 @@ function OperationsTaskRow({
           <span>{assigneeName}</span>
           <span aria-hidden="true">·</span>
           <span>{formatOperationsDueTime(task.dueTime)}</span>
+          {task.checklistRun ? (
+            <>
+              <span aria-hidden="true">·</span>
+              <span>{task.checklistCompletedCount ?? 0}/{task.checklistStepCount ?? 0} steps</span>
+            </>
+          ) : null}
         </p>
         {task.description ? (
           <p className="operations-task-description">{task.description}</p>
@@ -125,7 +133,7 @@ function OperationsTaskRow({
         ) : null}
       </div>
 
-      {canManage ? (
+      {canManage && !task.checklistRun ? (
         <div className="operations-task-actions">
           <button type="button" className="ghost-btn operations-task-action" onClick={() => onEdit(task)}>
             Edit
@@ -307,7 +315,8 @@ export function OperationsDashboardView({
     : summary
 
   const checklistProgressRows = useMemo(
-    () => buildChecklistProgressRows(checklistTemplates, tasks, todayKey),
+    () => buildChecklistProgressRows(checklistTemplates, tasks, todayKey)
+      .filter((row) => !row.started),
     [checklistTemplates, tasks, todayKey],
   )
 
@@ -358,9 +367,16 @@ export function OperationsDashboardView({
     if (!normalizedFocusTaskId || isLoading || focusHandledRef.current) return undefined
 
     const focusPool = countedTasks ? scopedCountedTasks : staffScopedStandaloneTasks
-    const taskExists = focusPool.some(
+    const focused = focusPool.find(
       (task) => `${task.id}` === normalizedFocusTaskId,
     )
+    if (focused?.checklistRun) {
+      focusHandledRef.current = true
+      onOpenChecklistRun?.(focused.checklistTemplateId)
+      onFocusTaskHandled?.()
+      return undefined
+    }
+    const taskExists = Boolean(focused)
     if (!taskExists) {
       focusHandledRef.current = true
       onFocusTaskHandled?.()
@@ -394,6 +410,7 @@ export function OperationsDashboardView({
     staffScopedStandaloneTasks,
     visibleTasks,
     onFocusTaskHandled,
+    onOpenChecklistRun,
   ])
 
   const visibleLogs = useMemo(() => {
@@ -425,6 +442,10 @@ export function OperationsDashboardView({
   }, [announcements, logs, role, employeeDepartment, canManageAnnouncements])
 
   const handleEditTask = (task) => {
+    if (task?.checklistRun) {
+      onOpenChecklistRun?.(task.checklistTemplateId)
+      return
+    }
     if (task?.taskSource === 'workspace') {
       onEditWorkspaceTask?.(task)
       return
@@ -442,6 +463,10 @@ export function OperationsDashboardView({
   }
 
   const handleToggleComplete = (task) => {
+    if (task?.checklistRun) {
+      onOpenChecklistRun?.(task.checklistTemplateId)
+      return
+    }
     const isWorkspaceTask = task?.taskSource === 'workspace'
     const isDone = isWorkspaceTask
       ? `${task?.status ?? ''}`.trim().toLowerCase() === 'completed'
@@ -774,7 +799,7 @@ export function OperationsDashboardView({
           <header className="operations-section-header">
             <div>
               <p className="eyebrow">Checklists</p>
-              <h3>Today&apos;s progress</h3>
+              <h3>Start a checklist</h3>
             </div>
           </header>
           <div className="operations-checklist-progress-grid">
