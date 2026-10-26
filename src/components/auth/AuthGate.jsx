@@ -1,3 +1,4 @@
+import { OneFullLogo } from '../brand/OneFullLogo'
 import { useAuth } from '../../context/AuthContext'
 import { formatInviteErrorMessage, shouldShowJoiningWorkspaceMessage } from '../../lib/inviteFlowUtils'
 import { readPendingInviteToken } from '../../lib/inviteTokenStorage'
@@ -23,7 +24,7 @@ export function AuthGate({ children }) {
     return (
       <div className="auth-page auth-loading-page" aria-busy="true" aria-live="polite">
         <div className="auth-loading-card panel staff-panel">
-          <p className="auth-brand">ONE</p>
+          <OneFullLogo compact />
           <p className="auth-loading-text">Loading session…</p>
         </div>
       </div>
@@ -45,7 +46,7 @@ export function AuthGate({ children }) {
     return (
       <div className="auth-page auth-loading-page" aria-busy="true" aria-live="polite">
         <div className="auth-loading-card panel staff-panel">
-          <p className="auth-brand">ONE</p>
+          <OneFullLogo compact />
           <p className="auth-loading-text">
             {isJoiningWorkspace || readPendingInviteToken()
               ? 'Joining your workspace…'
@@ -63,7 +64,7 @@ export function AuthGate({ children }) {
       <div className="auth-page">
         <div className="auth-card panel staff-panel">
           <header className="auth-header">
-            <p className="auth-brand">ONE</p>
+            <OneFullLogo compact />
             <h1 className="auth-title">Unable to join workspace</h1>
           </header>
           <div className="auth-banner auth-banner-error" role="alert">
@@ -82,7 +83,7 @@ export function AuthGate({ children }) {
       <div className="auth-page">
         <div className="auth-card panel staff-panel">
           <header className="auth-header">
-            <p className="auth-brand">ONE</p>
+            <OneFullLogo compact />
             <h1 className="auth-title">Workspace unavailable</h1>
           </header>
           <div className="auth-banner auth-banner-error" role="alert">

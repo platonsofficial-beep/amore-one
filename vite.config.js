@@ -26,11 +26,15 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       includeAssets: [
-        'favicon.svg',
+        'favicon.ico',
+        'favicon-32.png',
         'apple-touch-icon.png',
         'icon-192.png',
         'icon-512.png',
-        'app-icon.svg',
+        'icon-512-maskable.png',
+        'brand/one-mark.svg',
+        'brand/one-full-logo.svg',
+        'brand/one-app-icon.svg',
       ],
       manifest: pwaManifest,
       workbox: {
