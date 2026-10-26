@@ -11,6 +11,7 @@ import { LoadingButton } from '../LoadingButton'
 export function StockOrderReceiveConfirmModal({
   order,
   receiveNowByItemId,
+  destinationLabel = '',
   isSaving = false,
   onClose,
   onConfirm,
@@ -82,6 +83,12 @@ export function StockOrderReceiveConfirmModal({
               <dt>Order</dt>
               <dd>{formatStockOrderNumber(order.orderNumber)}</dd>
             </div>
+            {`${destinationLabel ?? ''}`.trim() ? (
+              <div className="stock-product-history-overview-row">
+                <dt>Destination</dt>
+                <dd>{`Into ${`${destinationLabel}`.trim()}`}</dd>
+              </div>
+            ) : null}
           </dl>
 
           <section className="stock-order-receive-confirm-products" aria-label="Products being received">

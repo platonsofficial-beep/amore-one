@@ -2,6 +2,7 @@ import { useState } from 'react'
 import {
   buildTimelineEventRows,
   formatTimelineEventRow,
+  getTimelineNowMinutes,
   partitionTimelineEvents,
   shouldShowTimelineNowMarker,
   TIMELINE_LEGEND_ITEMS,
@@ -108,20 +109,20 @@ function TodayTimelineEventRow({ row, nowMinutes }) {
   )
 }
 
-export function TodayServiceTimeline({ events, isLoading, now = new Date(), todayKey = '' }) {
+export function TodayServiceTimeline({ events, isLoading, now = new Date(), todayKey = '', timeZone = '' }) {
   const [showAll, setShowAll] = useState(false)
   const [showCompleted, setShowCompleted] = useState(false)
-  const { activeAndUpcoming, completed } = partitionTimelineEvents(events, now)
+  const { activeAndUpcoming, completed } = partitionTimelineEvents(events, now, timeZone)
   const totalActiveCount = activeAndUpcoming.length
   const completedCount = completed.length
-  const nowMinutes = now.getHours() * 60 + now.getMinutes()
+  const nowMinutes = getTimelineNowMinutes(now, timeZone)
   const visibleActiveEvents = showAll
     ? activeAndUpcoming
     : activeAndUpcoming.slice(0, TIMELINE_PREVIEW_LIMIT)
   const showNowMarker = shouldShowTimelineNowMarker({ todayKey, currentDateKey: todayKey })
-  const activeRows = buildTimelineEventRows(visibleActiveEvents, { now, showNow: showNowMarker })
+  const activeRows = buildTimelineEventRows(visibleActiveEvents, { now, showNow: showNowMarker, timeZone })
   const completedRows = showCompleted
-    ? buildTimelineEventRows(completed, { now, showNow: false })
+    ? buildTimelineEventRows(completed, { now, showNow: false, timeZone })
     : []
   const isScrollable = showAll && totalActiveCount > TIMELINE_SCROLL_LIMIT
 

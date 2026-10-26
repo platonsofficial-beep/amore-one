@@ -20,6 +20,8 @@ function query(result) {
   const builder = {
     select: vi.fn(() => builder),
     eq: vi.fn(() => builder),
+    order: vi.fn(() => builder),
+    limit: vi.fn(() => builder),
     then: (onFulfilled, onRejected) => Promise.resolve(result).then(onFulfilled, onRejected),
   }
   return builder
@@ -39,14 +41,23 @@ describe('loadStockLiveSnapshot', () => {
       data: [{ workspace_storage_id: 'cellar', stock_item_id: 'cola', quantity: 1 }],
       error: null,
     })
-    fromMock.mockImplementation((table) => (
-      table === 'stock_item_storage_pars' ? pars : balances
-    ))
+    const sessions = query({
+      data: [{ started_at: '2026-07-30T09:00:00.000Z' }],
+      error: null,
+    })
+    fromMock.mockImplementation((table) => {
+      if (table === 'stock_item_storage_pars') return pars
+      if (table === 'inventory_count_sessions') return sessions
+      return balances
+    })
 
     await expect(loadStockLiveSnapshot('ws-1')).resolves.toEqual({
       belowParCount: 1,
       parsReady: true,
+      lastInventoryCountAt: '2026-07-30T09:00:00.000Z',
     })
+    expect(sessions.order).toHaveBeenCalledWith('started_at', { ascending: false })
+    expect(sessions.limit).toHaveBeenCalledWith(1)
     expect(pars.select).toHaveBeenCalledWith(STOCK_STORAGE_PAR_COLUMNS)
     expect(balances.select).toHaveBeenCalledWith(STOCK_STORAGE_CENTER_BALANCE_COLUMNS)
     expect(pars.eq).toHaveBeenCalledWith('workspace_id', 'ws-1')
@@ -62,6 +73,7 @@ describe('loadStockLiveSnapshot', () => {
     await expect(loadStockLiveSnapshot('ws-1')).resolves.toEqual({
       belowParCount: 0,
       parsReady: false,
+      lastInventoryCountAt: null,
     })
   })
 })

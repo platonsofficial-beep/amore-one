@@ -1076,6 +1076,10 @@ export function StockOrderDetailDrawer({
         <StockOrderReceiveConfirmModal
           order={order}
           receiveNowByItemId={receiveNowByItemId}
+          destinationLabel={(() => {
+            const selected = destinationStorages.find((storage) => `${storage.id}` === `${workspaceStorageId}`)
+            return selected ? formatReceiveDestinationLabel(selected) : ''
+          })()}
           isSaving={isSaving}
           onClose={() => setIsReceiveConfirmOpen(false)}
           onConfirm={handleConfirmReceive}

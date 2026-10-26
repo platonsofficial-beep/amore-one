@@ -4151,7 +4151,7 @@
   gap: 8px;
   padding-bottom: 4px;
   background:
-    linear-gradient(180deg, rgba(6, 6, 6, 0.98) 0%, rgba(6, 6, 6, 0.94) 82%, rgba(6, 6, 6, 0) 100%);
+    linear-gradient(180deg, var(--one-bg) 0%, color-mix(in srgb, var(--one-bg) 94%, transparent) 82%, transparent 100%);
 }
 
 .reservations-host-header {
@@ -4933,7 +4933,7 @@
   max-width: 100%;
   border-radius: 12px;
   border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(11, 15, 23, 0.55);
+  background: var(--one-navy-800);
   overflow: hidden;
 }
 
@@ -6907,7 +6907,7 @@
   position: sticky;
   top: 0;
   z-index: 1;
-  background: rgba(18, 18, 22, 0.96);
+  background: var(--one-navy-800);
   border-bottom: 1px solid rgba(255, 255, 255, 0.05);
   color: rgba(255, 255, 255, 0.48);
   font-size: 0.68rem;
@@ -7209,7 +7209,7 @@
   overflow: hidden;
   border-radius: 12px;
   border: 1px solid rgba(255, 255, 255, 0.06);
-  background: rgba(0, 0, 0, 0.14);
+  background: color-mix(in srgb, var(--one-navy-900) 35%, transparent);
 }
 
 .floor-plan-host-shell {
@@ -9121,7 +9121,7 @@
   border: 1px solid rgba(212, 175, 55, 0.16);
   border-radius: 10px;
   background:
-    linear-gradient(180deg, rgba(11, 15, 23, 0.42), rgba(6, 6, 7, 0.58));
+    linear-gradient(180deg, color-mix(in srgb, var(--one-navy-800) 72%, transparent), color-mix(in srgb, var(--one-navy-900) 88%, transparent));
   overflow: hidden;
   isolation: isolate;
 }
@@ -9830,7 +9830,7 @@
   padding: clamp(4px, 0.8%, 10px);
   border-color: rgba(255, 255, 255, 0.04);
   border-radius: 6px;
-  background: rgba(6, 6, 7, 0.42);
+  background: color-mix(in srgb, var(--one-navy-900) 72%, transparent);
 }
 
 .host-operations-floor .floor-plan-viewport .floor-plan-canvas-area-title {
@@ -9839,7 +9839,7 @@
   padding: 3px 7px;
   border-radius: 6px;
   border: 1px solid rgba(255, 255, 255, 0.06);
-  background: rgba(10, 10, 11, 0.78);
+  background: color-mix(in srgb, var(--one-navy-900) 88%, transparent);
   color: rgba(216, 205, 189, 0.82);
   font-size: 0.58rem;
   font-weight: 700;
@@ -30204,7 +30204,7 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   padding: 0;
   border-radius: 22px;
   border: 1px solid rgba(212, 175, 55, 0.22);
-  background: linear-gradient(165deg, rgba(18, 18, 20, 0.98), rgba(10, 10, 11, 0.98));
+  background: linear-gradient(165deg, var(--one-navy-800), var(--one-navy-900));
   box-shadow: 0 24px 80px rgba(0, 0, 0, 0.55);
   overflow: hidden;
   display: flex;
@@ -30219,7 +30219,7 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   flex-shrink: 0;
   padding: 22px 24px 16px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-  background: linear-gradient(180deg, rgba(18, 18, 20, 0.98), rgba(14, 14, 15, 0.96));
+  background: linear-gradient(180deg, var(--one-navy-700), var(--one-navy-800));
 }
 
 .stock-item-form-header h3 {
@@ -30624,7 +30624,7 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   padding: 8px 12px;
   border: 0;
   border-radius: 12px;
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--one-navy-600);
   color: #f7f4ee;
   font: inherit;
   font-size: 0.95rem;
@@ -32736,6 +32736,27 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   border-radius: 12px;
   border: 1px solid rgba(255, 255, 255, 0.06);
   background: rgba(255, 255, 255, 0.03);
+}
+
+.stock-order-detail-line.stock-order-receive-line,
+.stock-order-detail-line.stock-order-completed-line {
+  align-items: stretch;
+  text-align: left;
+}
+
+.stock-order-detail-line.stock-order-receive-line .stock-order-detail-line-copy,
+.stock-order-detail-line.stock-order-completed-line .stock-order-detail-line-copy {
+  align-items: flex-start;
+  width: 100%;
+  text-align: left;
+}
+
+.stock-order-receive-now .stock-create-order-qty-input {
+  width: 9rem;
+  min-width: 9rem;
+  flex: 1 1 9rem;
+  max-width: 14rem;
+  text-align: left;
 }
 
 .stock-order-detail-line-copy {

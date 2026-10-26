@@ -32,8 +32,8 @@ describe('StockLiveCard', () => {
       parsReady: true,
       parsStatus: 'ready',
       stockOrders: [{ status: 'draft' }],
-      stockItems: [{ id: 'cola', active: true, lastCount: { createdAt: '2026-10-26T08:00:00.000Z' } }],
-      now: new Date('2026-10-26T12:00:00.000Z'),
+      lastInventoryCountAt: new Date(2026, 6, 30, 12, 0, 0).toISOString(),
+      now: new Date(2026, 9, 26, 12, 0, 0),
       onOpenBelowPar,
       onOpenDrafts,
       onOpenCounts,
@@ -43,7 +43,7 @@ describe('StockLiveCard', () => {
     expect(rows.map((row) => row.textContent)).toEqual([
       '1 item below par›',
       '1 open draft›',
-      'Last count today›',
+      'Last inventory count 30 Jul›',
     ])
     rows.forEach((row) => {
       expect(row.className).toContain('stock-live-card-row')
