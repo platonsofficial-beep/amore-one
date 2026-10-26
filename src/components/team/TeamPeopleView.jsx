@@ -9,6 +9,11 @@ import {
   isResolvedEmployeeOnLeaveToday,
 } from '../../lib/employeeTodayStatusPresentation'
 import { findDepartment } from '../../lib/venueCatalogTemplates'
+import {
+  formatEmployeeSalaryDisplay,
+  formatEmployeeWeeklyHoursDisplay,
+  formatStoredPhoneForDisplay,
+} from '../../lib/teamPeopleDisplay'
 
 export const DEPARTMENT_FILTERS = ['All', 'Bar', 'Service', 'Kitchen', 'Management']
 
@@ -93,15 +98,37 @@ function handleEmployeeCardKeyDown(event, employee, onSelectEmployee) {
   onSelectEmployee(employee)
 }
 
-function countUniqueDepartments(employeeList = []) {
-  const departments = new Set()
+export function buildPeopleDepartmentFilters(employeeList = []) {
+  const matched = new Set()
+  const extras = []
+  const extraSeen = new Set()
+  const knownFilters = DEPARTMENT_FILTERS.filter((filter) => filter !== 'All')
 
-  employeeList.forEach((employee) => {
-    const department = `${employee?.department ?? ''}`.trim()
-    if (department) departments.add(department)
+  ;(employeeList ?? []).forEach((employee) => {
+    const raw = `${employee?.department ?? ''}`.trim()
+    if (!raw) return
+
+    const known = knownFilters.find((filter) => employeeMatchesPeopleDepartmentFilter(raw, filter))
+    if (known) {
+      matched.add(known)
+      return
+    }
+
+    const key = raw.toLowerCase()
+    if (extraSeen.has(key)) return
+    extraSeen.add(key)
+    extras.push(raw)
   })
 
-  return departments.size
+  return [
+    'All',
+    ...knownFilters.filter((filter) => matched.has(filter)),
+    ...extras.sort((left, right) => left.localeCompare(right)),
+  ]
+}
+
+export function countPeopleDepartmentsWithStaff(employeeList = []) {
+  return Math.max(0, buildPeopleDepartmentFilters(employeeList).length - 1)
 }
 
 function formatTeamPeopleMetrics(employeeCount, workingCount, departmentCount) {
@@ -235,7 +262,8 @@ export function TeamPeopleView({
   const metricsSource = rosterEmployees.length > 0 ? rosterEmployees : employees
   const employeeCount = totalEmployeeCount
   const workingCount = countEmployeesWorkingNow(metricsSource, employeeTodayStatusById)
-  const departmentCount = countUniqueDepartments(metricsSource)
+  const departmentFilters = buildPeopleDepartmentFilters(metricsSource)
+  const departmentCount = countPeopleDepartmentsWithStaff(metricsSource)
   const metricsLine = formatTeamPeopleMetrics(employeeCount, workingCount, departmentCount)
   const showSearch = typeof onSearchTermChange === 'function'
   const selectedEmployeeTodayStatus = selectedEmployee
@@ -285,7 +313,7 @@ export function TeamPeopleView({
 
         <div className="staff-toolbar team-people-toolbar">
           <div className="filter-group team-people-filter-group">
-            {DEPARTMENT_FILTERS.map((filter) => (
+            {departmentFilters.map((filter) => (
               <button
                 key={filter}
                 type="button"
@@ -439,11 +467,11 @@ export function TeamPeopleView({
               </EmployeeProfileDrawerField>
               {canViewSalary ? (
                 <EmployeeProfileDrawerField label="Salary">
-                  {formatDrawerFieldValue(selectedEmployee.salary)}
+                  {formatEmployeeSalaryDisplay(selectedEmployee.salary)}
                 </EmployeeProfileDrawerField>
               ) : null}
               <EmployeeProfileDrawerField label="Weekly hours">
-                {formatDrawerFieldValue(selectedEmployee.weeklyHours)}
+                {formatEmployeeWeeklyHoursDisplay(selectedEmployee.weeklyHours)}
               </EmployeeProfileDrawerField>
               <EmployeeProfileDrawerField label="Preferred Shift">
                 {formatDrawerFieldValue(selectedEmployee.shift)}
@@ -452,7 +480,7 @@ export function TeamPeopleView({
 
             <EmployeeProfileDrawerSection title="Contact">
               <EmployeeProfileDrawerField label="Phone">
-                {formatDrawerFieldValue(selectedEmployee.phone)}
+                {formatDrawerFieldValue(formatStoredPhoneForDisplay(selectedEmployee.phone))}
               </EmployeeProfileDrawerField>
               <EmployeeProfileDrawerField label="Email">
                 {formatDrawerFieldValue(selectedEmployee.email)}

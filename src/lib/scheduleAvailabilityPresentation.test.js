@@ -7,6 +7,7 @@ import {
   buildScheduleAvailabilityLookupKey,
   getAvailabilityDayOfWeekFromDateKey,
   mapAvailabilityStatusToIndicator,
+  formatScheduleAvailabilityChipLabel,
   resolveScheduleAvailabilityDayIndicator,
   SCHEDULE_AVAILABILITY_INDICATORS,
 } from './scheduleAvailabilityPresentation'
@@ -92,5 +93,14 @@ describe('scheduleAvailabilityPresentation', () => {
 
     expect(first).toBe(second)
     expect(first).toBe('ws-1|2026-07-13|a|b')
+  })
+
+  it('does not label an unsubmitted week as Available', () => {
+    expect(formatScheduleAvailabilityChipLabel({ hasSubmitted: false, week: null })).toBe('No availability')
+
+    const week = setAvailabilityForDay(createEmptyAvailabilityWeek(), 'monday', {
+      status: 'UNAVAILABLE',
+    })
+    expect(formatScheduleAvailabilityChipLabel({ hasSubmitted: true, week })).toBe('Unavailable Monday')
   })
 })

@@ -365,6 +365,7 @@ import {
   resolveShiftTemplateId,
 } from './lib/shiftIntegrity'
 import {
+  buildSchedulePositionFilterOptions,
   getEmployeePositionNames,
   getEmployeePrimaryPosition,
   inferAreaFromTemplate,
@@ -433,14 +434,29 @@ import {
   parseTimeToMinutes,
 } from './lib/shiftHoursUtils'
 import { buildEmployeeWeekScheduleView } from './lib/employeeWeekScheduleView'
-import { getWorkspaceScheduleAvailabilityByEmployee } from './services/availabilityService'
+import {
+  getEmployeeAvailabilityWeek,
+  getWorkspaceScheduleAvailabilityByEmployee,
+  saveEmployeeAvailabilityWeek,
+} from './services/availabilityService'
+import { ManagerAvailabilityEditor } from './components/schedule/ManagerAvailabilityEditor'
+import {
+  normalizeAvailabilityWeek,
+  setAvailabilityForDay,
+} from './lib/employeeAvailabilityUtils'
 import { fetchApprovedLeaveForWorkspace } from './services/leaveService'
 import {
   buildScheduleAvailabilityDayIndicators,
   buildScheduleAvailabilityLookupKey,
+  formatScheduleAvailabilityChipLabel,
   getAvailabilityDayOfWeekFromDateKey,
   resolveScheduleAvailabilityDayIndicator,
 } from './lib/scheduleAvailabilityPresentation'
+import {
+  buildScheduleDayWarnings,
+  countScheduleRosterEmployees,
+} from './lib/scheduleInsights'
+import { useEscapeToClose } from './lib/useEscapeToClose'
 import {
   getRestOfWeekDateKeys,
   getShiftSchedulingConflictType,
@@ -2921,6 +2937,11 @@ function ScheduleView({
   const [isPublishing, setIsPublishing] = useState(false)
   const [publishError, setPublishError] = useState('')
   const [isScheduleMoreMenuOpen, setIsScheduleMoreMenuOpen] = useState(false)
+  const scheduleMoreMenuRef = useRef(null)
+  const scheduleTemplatesPanelRef = useRef(null)
+  const [availabilityRevision, setAvailabilityRevision] = useState(0)
+  const [availabilityEditor, setAvailabilityEditor] = useState(null)
+  const [isScheduleWarningsOpen, setIsScheduleWarningsOpen] = useState(false)
   const [browseWeekShifts, setBrowseWeekShifts] = useState([])
   const [isBrowseWeekLoading, setIsBrowseWeekLoading] = useState(false)
   const [dragPayload, setDragPayload] = useState(null)
@@ -3012,20 +3033,29 @@ function ScheduleView({
     setIsShiftTemplatesOpen(false)
   }, [isScheduleSectionActive])
 
-  useEffect(() => {
-    if (!isShiftTemplatesOpen) return undefined
+  useEscapeToClose(() => setIsShiftTemplatesOpen(false), { enabled: isShiftTemplatesOpen })
+  useEscapeToClose(() => setIsScheduleMoreMenuOpen(false), { enabled: isScheduleMoreMenuOpen && !isShiftTemplatesOpen })
 
-    const handleEscapeKey = (event) => {
-      if (event.key === 'Escape') {
-        setIsShiftTemplatesOpen(false)
+  useEffect(() => {
+    if (!isScheduleMoreMenuOpen && !isShiftTemplatesOpen) return undefined
+
+    const handlePointerDown = (event) => {
+      const target = event.target
+      if (!(target instanceof Node)) return
+
+      if (isScheduleMoreMenuOpen && scheduleMoreMenuRef.current && !scheduleMoreMenuRef.current.contains(target)) {
+        setIsScheduleMoreMenuOpen(false)
+      }
+
+      if (isShiftTemplatesOpen && scheduleTemplatesPanelRef.current && !scheduleTemplatesPanelRef.current.contains(target)) {
+        const toggle = target.closest?.('.schedule-templates-toggle')
+        if (!toggle) setIsShiftTemplatesOpen(false)
       }
     }
 
-    window.addEventListener('keydown', handleEscapeKey)
-    return () => {
-      window.removeEventListener('keydown', handleEscapeKey)
-    }
-  }, [isShiftTemplatesOpen])
+    document.addEventListener('pointerdown', handlePointerDown)
+    return () => document.removeEventListener('pointerdown', handlePointerDown)
+  }, [isScheduleMoreMenuOpen, isShiftTemplatesOpen])
 
   useEffect(() => {
     setCapacityDraftMap({})
@@ -3997,18 +4027,13 @@ function ScheduleView({
     })
   }, [filters.department, filters.position, filters.publishedOnly, filters.search, filters.shift, filters.status, publishedShifts, selectedDayShifts])
 
-  const positionFilterOptions = useMemo(() => {
-    const names = new Set()
-    ;(positions ?? []).forEach((position) => {
-      const name = `${position?.name ?? ''}`.trim()
-      if (name) names.add(name)
+  const positionFilterOptions = useMemo(() => (
+    buildSchedulePositionFilterOptions({
+      positions,
+      shifts: visibleWeekShifts,
+      employees,
     })
-    visibleWeekShifts.forEach((shift) => {
-      const role = `${shift.role ?? ''}`.trim()
-      if (role) names.add(role)
-    })
-    return ['All', ...Array.from(names).sort((left, right) => left.localeCompare(right))]
-  }, [positions, visibleWeekShifts])
+  ), [employees, positions, visibleWeekShifts])
 
   const departmentGroups = useMemo(() => {
     const groups = ['Bar', 'Service', 'Host', 'Kitchen', 'Management'].map((department) => ({
@@ -4028,8 +4053,7 @@ function ScheduleView({
   }, [filteredDayShifts])
 
   const weekSummary = useMemo(() => {
-    const weekShifts = shifts.filter((shift) => weekDays.some((day) => day.key === shift.date))
-    const workingEmployees = new Set(weekShifts.map((shift) => shift.employeeId).filter(Boolean))
+    const weekShifts = visibleWeekShifts
     const totalHours = weekShifts.reduce((sum, shift) => {
       if (!shift.startTime || !shift.endTime) return sum
       const startMinutes = parseTimeToMinutes(shift.startTime)
@@ -4043,12 +4067,12 @@ function ScheduleView({
     const employeesOff = employees.filter((employee) => isEmployeeUnavailable(employee)).length
 
     return {
-      employeesScheduled: workingEmployees.size,
+      employeeCount: countScheduleRosterEmployees(employees),
       totalShifts: weekShifts.length,
       totalHours: totalHours.toFixed(1),
       employeesOff,
     }
-  }, [employees, shifts, weekDays])
+  }, [employees, visibleWeekShifts])
 
   const weekLabourSummary = useMemo(() => buildExecutiveLabourSummary({
     snapshot: { labourHoursLabel: weekSummary.totalHours },
@@ -4119,7 +4143,7 @@ function ScheduleView({
     return () => {
       cancelled = true
     }
-  }, [scheduleAvailabilityEmployeeIdsKey, weekStartDate, workspaceId, employees])
+  }, [availabilityRevision, scheduleAvailabilityEmployeeIdsKey, weekStartDate, workspaceId, employees])
 
   const blendGridRows = useMemo(() => {
     const shiftsByDayKey = {}
@@ -4295,13 +4319,10 @@ function ScheduleView({
     return summaries
   }, [blendGridRows, employees, visibleWeekShifts, weekDays])
 
-  const scheduleWarningCount = useMemo(() => (
-    Object.values(dayHeaderSummariesByKey).filter(
-      (summary) => summary.status === 'understaffed'
-        || summary.status === 'overstaffed'
-        || summary.status === 'conflict',
-    ).length
-  ), [dayHeaderSummariesByKey])
+  const scheduleDayWarnings = useMemo(
+    () => buildScheduleDayWarnings(weekDays, blendGridRows),
+    [blendGridRows, weekDays],
+  )
 
   const todayDateKey = formatLocalDateKey(new Date())
 
@@ -4991,6 +5012,97 @@ function ScheduleView({
     setFocusedEmployeeId((current) => (current === employeeKey ? null : employeeKey))
   }
 
+  const closeAvailabilityEditor = () => {
+    if (!availabilityEditor || availabilityEditor.isSaving) return
+    const saved = JSON.stringify(availabilityEditor.savedWeek ?? null)
+    const draft = JSON.stringify(availabilityEditor.week ?? null)
+    if (availabilityEditor.savedWeek && draft !== saved) {
+      const discard = window.confirm('Discard unsaved availability changes?')
+      if (!discard) return
+    }
+    setAvailabilityEditor(null)
+  }
+
+  const openAvailabilityEditor = async (employee) => {
+    const employeeId = `${employee?.id ?? ''}`.trim()
+    if (!employeeId || !canEditSchedule) return
+
+    const employeeName = employee.full_name || employee.name || 'Staff'
+    setAvailabilityEditor({
+      employeeId,
+      employeeName,
+      week: null,
+      savedWeek: null,
+      isLoading: true,
+      isSaving: false,
+      error: '',
+    })
+
+    try {
+      const loaded = await getEmployeeAvailabilityWeek({
+        workspaceId,
+        employeeId,
+        weekStartDate,
+      })
+      const week = normalizeAvailabilityWeek(loaded)
+      setAvailabilityEditor((current) => {
+        if (!current || current.employeeId !== employeeId) return current
+        return {
+          ...current,
+          week,
+          savedWeek: week,
+          isLoading: false,
+        }
+      })
+    } catch (error) {
+      setAvailabilityEditor((current) => {
+        if (!current || current.employeeId !== employeeId) return current
+        return {
+          ...current,
+          isLoading: false,
+          error: error?.message || 'Unable to load availability right now.',
+        }
+      })
+    }
+  }
+
+  const handleAvailabilityDayChange = (dayOfWeek, patch) => {
+    setAvailabilityEditor((current) => {
+      if (!current?.week) return current
+      return {
+        ...current,
+        week: setAvailabilityForDay(current.week, dayOfWeek, patch),
+        error: '',
+      }
+    })
+  }
+
+  const handleSaveAvailabilityEditor = async () => {
+    if (!availabilityEditor?.week || availabilityEditor.isSaving) return
+
+    const { employeeId, week } = availabilityEditor
+    setAvailabilityEditor((current) => ({ ...current, isSaving: true, error: '' }))
+
+    try {
+      const saved = normalizeAvailabilityWeek(await saveEmployeeAvailabilityWeek({
+        workspaceId,
+        employeeId,
+        weekStartDate,
+        week,
+      }))
+      setAvailabilityRevision((current) => current + 1)
+      setAvailabilityEditor(null)
+      return saved
+    } catch (error) {
+      setAvailabilityEditor((current) => ({
+        ...current,
+        isSaving: false,
+        error: error?.message || 'Unable to save availability right now.',
+      }))
+      return null
+    }
+  }
+
   const handleDragEnd = () => {
     dragSessionRef.current = null
     setDragPayload(null)
@@ -5217,7 +5329,7 @@ function ScheduleView({
     return (
       <button
         type="button"
-        className={`ghost-btn schedule-more-menu-btn schedule-header-tertiary-btn schedule-header-control-surface${isShiftTemplatesOpen ? ' is-active' : ''}`}
+        className={`ghost-btn schedule-more-menu-btn schedule-header-tertiary-btn schedule-header-control-surface schedule-templates-toggle${isShiftTemplatesOpen ? ' is-active' : ''}`}
         onClick={(event) => {
           event.stopPropagation()
           setIsShiftTemplatesOpen((current) => !current)
@@ -5353,7 +5465,7 @@ function ScheduleView({
         </span>
 
         {canEditSchedule ? (
-        <div className="schedule-more-menu schedule-header-control-surface" onClick={(event) => event.stopPropagation()}>
+        <div ref={scheduleMoreMenuRef} className="schedule-more-menu schedule-header-control-surface" onClick={(event) => event.stopPropagation()}>
           <button
             type="button"
             className="ghost-btn schedule-more-menu-btn schedule-header-tertiary-btn"
@@ -5519,36 +5631,62 @@ function ScheduleView({
                         const isEmployeeFocused = focusedEmployeeId === employeeKey
                         const chipMatchesSearch = !scheduleVisualSearchNeedle
                           || employeeName.toLowerCase().includes(scheduleVisualSearchNeedle)
+                        const availabilityLabel = formatScheduleAvailabilityChipLabel(
+                          scheduleAvailabilityOverlay.byEmployeeId[employeeKey],
+                          {
+                            isLoading: isScheduleAvailabilityLoading,
+                            loadFailed: scheduleAvailabilityOverlay.loadFailed,
+                          },
+                        )
+                        const chipStatusLabel = workloadStatus.label === 'Available'
+                          ? availabilityLabel
+                          : `${availabilityLabel} · ${workloadStatus.label}`
 
                         return (
-                          <button
+                          <div
                             key={`staff-chip-${employee.id}`}
-                            type="button"
-                            className={`schedule-staff-chip ${isEmployeeFocused ? 'focused' : ''} ${isScheduleVisualFilterActive && !chipMatchesSearch ? 'visual-faded' : ''} ${dragPayload?.type === 'employee' && String(dragPayload.employeeId) === employeeKey ? 'dragging' : ''}`}
-                            draggable={!isDragDropDisabled}
-                            onDragStart={(event) => handleEmployeeDragStart(event, employee)}
-                            onDragEnd={handleDragEnd}
-                            onClick={(event) => {
-                              event.stopPropagation()
-                              handleEmployeeChipFocusToggle(employee.id)
-                            }}
-                            aria-label={`${isEmployeeFocused ? 'Clear focus for' : 'Focus'} ${employeeName}, ${workloadStatus.label}, ${positionLabel}`}
-                            aria-pressed={isEmployeeFocused}
+                            className="schedule-staff-chip-wrap"
                           >
-                            <span className="schedule-staff-chip-identity">
-                              <EmployeeIdentity employee={resolveScheduleIdentityEmployee(employee, employeeName)} size="xs" />
-                            </span>
-                            <span className="schedule-staff-chip-body">
-                              <strong className="schedule-staff-chip-name" title={employeeName}>{displayNameLabel}</strong>
-                              <span className="schedule-staff-chip-role">{positionLabel}</span>
-                              <span className="schedule-staff-chip-meta">
-                                <span className={`schedule-staff-workload-status tone-${workloadStatus.tone}`}>
-                                  {workloadStatus.label}
-                                </span>
-                                <span className="schedule-staff-hours-primary">{hoursTracker.primaryLabel}</span>
+                            <button
+                              type="button"
+                              className={`schedule-staff-chip ${isEmployeeFocused ? 'focused' : ''} ${isScheduleVisualFilterActive && !chipMatchesSearch ? 'visual-faded' : ''} ${dragPayload?.type === 'employee' && String(dragPayload.employeeId) === employeeKey ? 'dragging' : ''}`}
+                              draggable={!isDragDropDisabled}
+                              onDragStart={(event) => handleEmployeeDragStart(event, employee)}
+                              onDragEnd={handleDragEnd}
+                              onClick={(event) => {
+                                event.stopPropagation()
+                                handleEmployeeChipFocusToggle(employee.id)
+                              }}
+                              aria-label={`${isEmployeeFocused ? 'Clear focus for' : 'Focus'} ${employeeName}, ${chipStatusLabel}, ${positionLabel}`}
+                              aria-pressed={isEmployeeFocused}
+                            >
+                              <span className="schedule-staff-chip-identity">
+                                <EmployeeIdentity employee={resolveScheduleIdentityEmployee(employee, employeeName)} size="xs" />
                               </span>
-                            </span>
-                          </button>
+                              <span className="schedule-staff-chip-body">
+                                <strong className="schedule-staff-chip-name" title={employeeName}>{displayNameLabel}</strong>
+                                <span className="schedule-staff-chip-role">{positionLabel}</span>
+                                <span className="schedule-staff-chip-meta">
+                                  <span className={`schedule-staff-workload-status tone-${workloadStatus.tone}`}>
+                                    {chipStatusLabel}
+                                  </span>
+                                  <span className="schedule-staff-hours-primary">{hoursTracker.primaryLabel}</span>
+                                </span>
+                              </span>
+                            </button>
+                            {canEditSchedule ? (
+                              <button
+                                type="button"
+                                className="schedule-availability-edit-btn"
+                                onClick={(event) => {
+                                  event.stopPropagation()
+                                  openAvailabilityEditor(employee)
+                                }}
+                              >
+                                Edit
+                              </button>
+                            ) : null}
+                          </div>
                         )
                       })
                     )}
@@ -5831,12 +5969,19 @@ function ScheduleView({
                                 focusedEmployeeId,
                                 searchNeedle: scheduleVisualSearchNeedle,
                               })
+                              const assignedDayAvailability = resolveScheduleAvailabilityDayIndicator({
+                                dayOfWeek: getAvailabilityDayOfWeekFromDateKey(cell.day.key),
+                                employeeAvailability: scheduleAvailabilityOverlay.byEmployeeId[employeeKey] ?? null,
+                                isLoading: isScheduleAvailabilityLoading,
+                                loadFailed: scheduleAvailabilityOverlay.loadFailed,
+                              })
+                              const isAssignedUnavailable = assignedDayAvailability.tone === 'unavailable'
 
                               return (
                                 <li key={`shift-assigned-${shift.id}`}>
                                   <button
                                     type="button"
-                                    className={`schedule-shift-assigned-item schedule-assigned-pill ${hasPersonalIdentityColor ? 'schedule-assigned-pill--identity' : 'schedule-assigned-pill--neutral'} ${dragPayload?.shiftId === shift.id ? 'dragging' : ''} ${isScheduleVisualFilterActive ? (pillIsEmphasized ? 'visual-emphasis' : 'visual-faded') : ''}`}
+                                    className={`schedule-shift-assigned-item schedule-assigned-pill ${hasPersonalIdentityColor ? 'schedule-assigned-pill--identity' : 'schedule-assigned-pill--neutral'} ${isAssignedUnavailable ? 'is-unavailable' : ''} ${dragPayload?.shiftId === shift.id ? 'dragging' : ''} ${isScheduleVisualFilterActive ? (pillIsEmphasized ? 'visual-emphasis' : 'visual-faded') : ''}`}
                                     style={hasPersonalIdentityColor ? {
                                       '--schedule-pill-identity-ring': identityPresentation.ring,
                                       '--schedule-pill-identity-background': identityPresentation.background,
@@ -5848,10 +5993,11 @@ function ScheduleView({
                                       event.stopPropagation()
                                       handleOpenAssignmentActions(shift)
                                     }}
-                                    title={employeeName}
-                                    aria-label={employeeName}
+                                    title={isAssignedUnavailable ? `${employeeName} · Unavailable` : employeeName}
+                                    aria-label={isAssignedUnavailable ? `${employeeName}, unavailable` : employeeName}
                                   >
                                     <span className="schedule-assigned-pill-name">{displayNameLabel}</span>
+                                    {isAssignedUnavailable ? <span className="schedule-assigned-pill-availability">Unavailable</span> : null}
                                   </button>
                                 </li>
                               )
@@ -5897,6 +6043,7 @@ function ScheduleView({
         {scheduleGridTemplates.length > 0 ? (
           <aside
             id="schedule-templates-panel"
+            ref={scheduleTemplatesPanelRef}
             className={`schedule-templates-panel schedule-templates-overlay panel staff-panel${isShiftTemplatesOpen ? ' is-overlay-open' : ''}`}
             aria-label="Shift templates"
             aria-hidden={!isShiftTemplatesOpen}
@@ -6031,7 +6178,7 @@ function ScheduleView({
           <section className="schedule-weekly-stats" aria-label="Weekly statistics">
             <article className="schedule-weekly-stat">
               <p className="schedule-weekly-stat-label">Employees</p>
-              <p className="schedule-weekly-stat-value">{weekSummary.employeesScheduled}</p>
+              <p className="schedule-weekly-stat-value">{weekSummary.employeeCount}</p>
             </article>
             <article className="schedule-weekly-stat">
               <p className="schedule-weekly-stat-label">Shifts</p>
@@ -6053,9 +6200,27 @@ function ScheduleView({
             </article>
             <article className="schedule-weekly-stat">
               <p className="schedule-weekly-stat-label">Warnings</p>
-              <p className={`schedule-weekly-stat-value ${scheduleWarningCount > 0 ? 'tone-warning' : 'tone-muted'}`}>
-                {scheduleWarningCount > 0 ? scheduleWarningCount : 'None'}
-              </p>
+              <button
+                type="button"
+                className={`schedule-weekly-stat-value schedule-warnings-toggle ${scheduleDayWarnings.length > 0 ? 'tone-warning' : 'tone-muted'}`}
+                aria-expanded={isScheduleWarningsOpen}
+                onClick={() => setIsScheduleWarningsOpen((current) => !current)}
+              >
+                {scheduleDayWarnings.length > 0 ? scheduleDayWarnings.length : 'None'}
+              </button>
+              {isScheduleWarningsOpen && scheduleDayWarnings.length > 0 ? (
+                <ul className="schedule-warnings-list">
+                  {scheduleDayWarnings.map((warning) => (
+                    <li key={warning.id}>
+                      <strong>{warning.label}</strong>
+                      <span>{warning.detail}</span>
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
+              {isScheduleWarningsOpen && scheduleDayWarnings.length === 0 ? (
+                <p className="schedule-warnings-empty">No coverage warnings this week.</p>
+              ) : null}
             </article>
           </section>
 
@@ -6260,6 +6425,20 @@ function ScheduleView({
         </div>
           </div>
         </ScheduleCollapsibleSection>
+      ) : null}
+
+      {availabilityEditor ? (
+        <ManagerAvailabilityEditor
+          employeeName={availabilityEditor.employeeName}
+          weekLabel={formatScheduleHeaderWeekRange(weekDays)}
+          week={availabilityEditor.week}
+          isLoading={availabilityEditor.isLoading}
+          isSaving={availabilityEditor.isSaving}
+          error={availabilityEditor.error}
+          onChangeDay={handleAvailabilityDayChange}
+          onSave={handleSaveAvailabilityEditor}
+          onClose={closeAvailabilityEditor}
+        />
       ) : null}
 
       {isSaveWeekTemplateModalOpen ? (
@@ -6909,6 +7088,12 @@ function ScheduleView({
                       ? isEmployeeAssignedInCell(assignmentContext.cell, employee.id)
                       : false
                     const positionLabel = getEmployeePrimaryPosition(employee) || 'Team member'
+                    const dayAvailability = resolveScheduleAvailabilityDayIndicator({
+                      dayOfWeek: getAvailabilityDayOfWeekFromDateKey(assignmentDraft.shiftDate),
+                      employeeAvailability: scheduleAvailabilityOverlay.byEmployeeId[employeeId] ?? null,
+                      isLoading: isScheduleAvailabilityLoading,
+                      loadFailed: scheduleAvailabilityOverlay.loadFailed,
+                    })
                     return (
                       <label key={`assignment-employee-${employee.id}`} className="inline-check-row assignment-employee-item">
                         <input
@@ -6938,6 +7123,9 @@ function ScheduleView({
                         <div className="assignment-employee-meta">
                           <strong>{employee.full_name || employee.name}</strong>
                           <span>{positionLabel}</span>
+                          <small className={`assignment-employee-availability tone-${dayAvailability.tone}`}>
+                            {dayAvailability.label}
+                          </small>
                           {alreadyAssigned ? (
                             <small className="assignment-employee-warning">Already assigned to this shift</small>
                           ) : null}
@@ -15559,12 +15747,24 @@ function App() {
   const employeePremiumFormModalRef = useRef(null)
   const [editingEmployee, setEditingEmployee] = useState(null)
   const [employeeForm, setEmployeeForm] = useState(() => buildEmployeeForm())
+  const employeeFormRef = useRef(employeeForm)
+  employeeFormRef.current = employeeForm
+  const employeeFormBaselineRef = useRef(null)
+  const skipEmployeeCloseConfirmRef = useRef(false)
   const [employeeIdentityAvailability, setEmployeeIdentityAvailability] = useState({
     assignments: [],
     availableColors: [],
   })
   const [isEmployeeIdentityLoading, setIsEmployeeIdentityLoading] = useState(false)
   const handleCloseEmployeeModal = useCallback(() => {
+    const baseline = employeeFormBaselineRef.current
+    const currentForm = JSON.stringify(employeeFormRef.current)
+    if (!skipEmployeeCloseConfirmRef.current && baseline != null && currentForm !== baseline) {
+      const discard = window.confirm('Discard unsaved employee changes?')
+      if (!discard) return
+    }
+    skipEmployeeCloseConfirmRef.current = false
+    employeeFormBaselineRef.current = null
     setIsEmployeeModalOpen(false)
     setEditingEmployee(null)
     setSaveError('')
@@ -19487,20 +19687,24 @@ function App() {
   }
 
   const handleOpenAddEmployee = () => {
+    const nextForm = buildEmployeeForm()
+    employeeFormBaselineRef.current = JSON.stringify(nextForm)
     setEditingEmployee(null)
     setSaveError('')
     setEmployeeFormOpenMenuId(null)
     setPendingEmployeePositionDeletions(clearPendingEmployeePositionDeletions())
-    setEmployeeForm(buildEmployeeForm())
+    setEmployeeForm(nextForm)
     setIsEmployeeModalOpen(true)
   }
 
   const handleOpenEditEmployee = (employee) => {
+    const nextForm = buildEmployeeForm(employee)
+    employeeFormBaselineRef.current = JSON.stringify(nextForm)
     setEditingEmployee(employee)
     setSaveError('')
     setEmployeeFormOpenMenuId(null)
     setPendingEmployeePositionDeletions(clearPendingEmployeePositionDeletions())
-    setEmployeeForm(buildEmployeeForm(employee))
+    setEmployeeForm(nextForm)
     setIsEmployeeModalOpen(true)
   }
 
@@ -19922,8 +20126,10 @@ function App() {
         ? await updateEmployee(activeWorkspaceId, editingEmployee.id, payload)
         : await createEmployee(activeWorkspaceId, payload)
 
-      await refreshPositions()
-      const refreshedEmployees = await refreshStaffEmployees()
+      const [refreshedEmployees] = await Promise.all([
+        refreshStaffEmployees(),
+        refreshPositions(),
+      ])
       const cleanupFailureCount = await processPendingEmployeePositionDeletions(
         pendingDeletions,
         refreshedEmployees,
@@ -19949,8 +20155,13 @@ function App() {
             identityColor: identityColorDraft,
           }
 
-          const postIdentityEmployees = await refreshStaffEmployees()
-          finalEmployee = postIdentityEmployees.find((employee) => employee.id === savedEmployee.id) ?? finalEmployee
+          const applyIdentityColor = (list) => (list ?? []).map((employee) => (
+            employee.id === savedEmployee.id
+              ? { ...employee, identityColor: identityColorDraft }
+              : employee
+          ))
+          setEmployees((current) => applyIdentityColor(current))
+          setScheduleEmployees((current) => applyIdentityColor(current))
         } catch (identityError) {
           const identityMessage = identityError.message || 'Unable to update the employee color. Please try again.'
           const combinedMessage = `Employee saved, but ${identityMessage.charAt(0).toLowerCase()}${identityMessage.slice(1)}`
@@ -19997,6 +20208,7 @@ function App() {
         setPostHireInvitePromptEmployee(finalEmployee)
       }
 
+      skipEmployeeCloseConfirmRef.current = true
       handleCloseEmployeeModal()
     } catch (error) {
       const message = error.message || 'Unable to save employee right now. Please try again.'
