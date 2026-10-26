@@ -18,8 +18,10 @@ vi.mock('../lib/supabaseClient', () => ({
 import * as workspaceStorageService from './workspaceStorageService'
 import {
   WORKSPACE_STORAGE_LIST_COLUMNS,
+  WORKSPACE_STORAGE_RECEIVE_COLUMNS,
   archiveWorkspaceStorage,
   createWorkspaceStorage,
+  listReceiveDestinationStorages,
   listWorkspaceStorages,
   mapWorkspaceStorage,
   normalizeWorkspaceStorageLocationKey,
@@ -155,6 +157,70 @@ describe('listWorkspaceStorages', () => {
     }))
 
     await expect(listWorkspaceStorages('ws-1')).rejects.toThrow('permission denied')
+  })
+})
+
+describe('listReceiveDestinationStorages', () => {
+  beforeEach(() => {
+    fromMock.mockReset()
+    rpcMock.mockReset()
+  })
+
+  it('includes is_supply and maps the supply flag', async () => {
+    const query = createListQuery({
+      data: [{
+        id: 'cellar',
+        workspace_id: 'ws-1',
+        location_key: 'Cellar',
+        name: 'Cellar',
+        active: true,
+        sort_order: 1,
+        is_supply: true,
+      }],
+      error: null,
+    })
+    fromMock.mockReturnValue(query)
+
+    await expect(listReceiveDestinationStorages('ws-1')).resolves.toEqual([{
+      id: 'cellar',
+      workspaceId: 'ws-1',
+      locationKey: 'Cellar',
+      name: 'Cellar',
+      active: true,
+      sortOrder: 1,
+      isSupply: true,
+    }])
+    expect(query.select).toHaveBeenCalledWith(WORKSPACE_STORAGE_RECEIVE_COLUMNS)
+  })
+
+  it('falls back to the base storage columns when is_supply is not in the schema', async () => {
+    const missing = createListQuery({
+      data: null,
+      error: { message: 'column workspace_storages.is_supply does not exist', code: '42703' },
+    })
+    const fallback = createListQuery({
+      data: [{
+        id: 'bar',
+        workspace_id: 'ws-1',
+        location_key: 'Bar',
+        name: 'Bar',
+        active: true,
+        sort_order: 0,
+      }],
+      error: null,
+    })
+    fromMock.mockReturnValueOnce(missing).mockReturnValueOnce(fallback)
+
+    await expect(listReceiveDestinationStorages('ws-1')).resolves.toEqual([{
+      id: 'bar',
+      workspaceId: 'ws-1',
+      locationKey: 'Bar',
+      name: 'Bar',
+      active: true,
+      sortOrder: 0,
+    }])
+    expect(missing.select).toHaveBeenCalledWith(WORKSPACE_STORAGE_RECEIVE_COLUMNS)
+    expect(fallback.select).toHaveBeenCalledWith(WORKSPACE_STORAGE_LIST_COLUMNS)
   })
 })
 

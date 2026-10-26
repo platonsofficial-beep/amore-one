@@ -1,3 +1,4 @@
+import { isWorkspaceDepartmentSchemaMissing } from '../lib/stockDepartmentGroups'
 import { supabase } from '../lib/supabaseClient'
 
 const WORKSPACE_STORAGES_TABLE = 'workspace_storages'
@@ -7,6 +8,10 @@ const ARCHIVE_RPC = 'archive_workspace_storage'
 /** Narrow select — list contract only; expand only in an explicit sprint. */
 export const WORKSPACE_STORAGE_LIST_COLUMNS =
   'id, workspace_id, location_key, name, active, sort_order'
+
+/** Receive destinations. Falls back to WORKSPACE_STORAGE_LIST_COLUMNS when is_supply is absent. */
+export const WORKSPACE_STORAGE_RECEIVE_COLUMNS =
+  `${WORKSPACE_STORAGE_LIST_COLUMNS}, is_supply`
 
 const LOCATION_KEY_MAX_LENGTH = 80
 
@@ -168,6 +173,39 @@ export async function listWorkspaceStorages(workspaceId) {
   }
 
   return (data ?? []).map(mapWorkspaceStorage)
+}
+
+/**
+ * Active storages for receiving a supplier delivery, including the supply flag
+ * when that column exists.
+ *
+ * @param {string} workspaceId
+ */
+export async function listReceiveDestinationStorages(workspaceId) {
+  const normalizedWorkspaceId = requireWorkspaceId(
+    workspaceId,
+    'Workspace is required to load storages.',
+  )
+
+  const load = (columns) => supabase
+    .from(WORKSPACE_STORAGES_TABLE)
+    .select(columns)
+    .eq('workspace_id', normalizedWorkspaceId)
+    .eq('active', true)
+    .order('sort_order', { ascending: true })
+    .order('name', { ascending: true })
+
+  let result = await load(WORKSPACE_STORAGE_RECEIVE_COLUMNS)
+  if (result.error && isWorkspaceDepartmentSchemaMissing(result.error)) {
+    result = await load(WORKSPACE_STORAGE_LIST_COLUMNS)
+  }
+
+  if (result.error) {
+    console.error('[workspaceStorageService] listReceiveDestinationStorages error:', result.error)
+    throw new Error(result.error.message || 'Unable to load workspace storages right now.')
+  }
+
+  return (result.data ?? []).map(mapWorkspaceStorage)
 }
 
 /**

@@ -2,8 +2,10 @@ import { describe, expect, it } from 'vitest'
 import {
   buildStockOrdersOperationsSummary,
   buildSupplierOrderGroups,
+  formatReceiveDestinationLabel,
   getActiveStockItemsForDraftReplace,
   isStockOrderLineInactive,
+  pickDefaultReceiveStorageId,
   replaceDraftOrderLineProduct,
   resolveOrderGroupIdentity,
   UNASSIGNED_SUPPLIER,
@@ -234,5 +236,33 @@ describe('draft inactive line helpers (P8.16.15)', () => {
       costPrice: 30,
       totalPrice: 210,
     })
+  })
+
+  it('defaults a delivery to the only supply storage', () => {
+    const storages = [
+      { id: 'bar', name: 'Back bar', active: true, isSupply: false },
+      { id: 'cellar', name: 'Cellar', active: true, isSupply: true },
+      { id: 'old', name: 'Old supply', active: false, isSupply: true },
+    ]
+    expect(pickDefaultReceiveStorageId(storages)).toBe('cellar')
+    expect(formatReceiveDestinationLabel(storages[1])).toBe('Cellar · Supply')
+    expect(formatReceiveDestinationLabel(storages[0])).toBe('Back bar')
+  })
+
+  it('leaves the destination blank when more than one supply storage can receive', () => {
+    expect(pickDefaultReceiveStorageId([
+      { id: 'dry', name: 'Dry', isSupply: true },
+      { id: 'cold', name: 'Cold', is_supply: true },
+    ])).toBe('')
+  })
+
+  it('keeps the single-storage default when no supply storage is marked', () => {
+    expect(pickDefaultReceiveStorageId([
+      { id: 'bar', name: 'Back bar', isSupply: false },
+    ])).toBe('bar')
+    expect(pickDefaultReceiveStorageId([
+      { id: 'bar', name: 'Back bar' },
+      { id: 'kitchen', name: 'Kitchen' },
+    ])).toBe('')
   })
 })
