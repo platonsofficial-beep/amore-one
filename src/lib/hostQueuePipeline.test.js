@@ -138,6 +138,54 @@ describe('hostQueuePipeline seating filter', () => {
     expect(filtered).toHaveLength(1)
   })
 
+  it('keeps a booking between seatings on the nearest seating and searchable from any seating', () => {
+    const seatings = [
+      {
+        id: 'lunch',
+        name: 'Lunch',
+        startTime: '12:00',
+        durationMinutes: 150,
+        daysOfWeek: [0, 1, 2, 3, 4, 5, 6],
+        sortOrder: 0,
+        isActive: true,
+      },
+      {
+        id: 'dinner',
+        name: 'Dinner 1',
+        startTime: '19:00',
+        durationMinutes: 150,
+        daysOfWeek: [0, 1, 2, 3, 4, 5, 6],
+        sortOrder: 1,
+        isActive: true,
+      },
+    ]
+    const gap = buildReservation({
+      id: 'gap',
+      seatingId: null,
+      time: '17:00',
+      guestName: 'Gap Guest',
+      guests: 3,
+    })
+
+    expect(filterReservationsBySelectedSeating([gap], seatings[0], seatings, '2026-07-10')).toHaveLength(0)
+    expect(filterReservationsBySelectedSeating([gap], seatings[1], seatings, '2026-07-10').map((entry) => entry.id)).toEqual(['gap'])
+
+    const hiddenOnLunch = buildHostQueueReservationList([gap], {
+      selectedSeating: seatings[0],
+      seatings,
+      dateKey: '2026-07-10',
+    })
+    const foundFromLunch = buildHostQueueReservationList([gap], {
+      selectedSeating: seatings[0],
+      seatings,
+      dateKey: '2026-07-10',
+      searchTerm: 'gap',
+    })
+
+    expect(hiddenOnLunch).toHaveLength(0)
+    expect(foundFromLunch.map((entry) => entry.id)).toEqual(['gap'])
+  })
+
   it('never duplicates the same reservation across seatings', () => {
     const reservation = buildReservation({ id: 'only-one', seatingId: 'dinner-2', time: '21:00' })
     const dinnerOne = filterReservationsBySelectedSeating([reservation], SEATINGS[0], SEATINGS, '2026-07-10')
@@ -638,7 +686,7 @@ describe('hostQueuePipeline reservation purpose filters', () => {
         layout,
       })
 
-      expect(hidden.map((entry) => entry.id)).toEqual([])
+      expect(hidden.map((entry) => entry.id)).toEqual(seating.id === 'dinner-1' ? ['marika'] : [])
       expect(listed.map((entry) => entry.id)).toEqual(['marika'])
       expect(buildHostQueueServiceMetrics(listed, {
         layout,
@@ -670,7 +718,7 @@ describe('hostQueuePipeline reservation purpose filters', () => {
       workspaceTodayKey: '2026-07-08',
       layout,
     })
-    expect(stillToday).toEqual([])
+    expect(stillToday.map((entry) => entry.id)).toEqual(['marika'])
 
     const notSeated = buildHostQueueReservationList([
       { ...marika, id: 'booked', status: 'Confirmed' },

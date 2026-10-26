@@ -16901,12 +16901,14 @@ function App() {
     employees: scheduleEmployees,
     todayKey: currentDateKey,
     now: localNow,
+    timeZone: workspaceTimeZone,
   }), [
     dashboardPublishedShifts,
     isTodayWeekPublished,
     scheduleEmployees,
     currentDateKey,
     localNow,
+    workspaceTimeZone,
   ])
 
   const refreshTodayWeekPublishedData = useCallback(async (weekStartDate = todayWeekStart) => {
@@ -17278,8 +17280,10 @@ function App() {
   )
 
   const dashboardReservationsFooter = useMemo(
-    () => buildReservationsFooter(reservations, currentDateKey, localNow),
-    [reservations, currentDateKey, localNow],
+    () => buildReservationsFooter(reservations, currentDateKey, localNow, {
+      timeZone: workspaceTimeZone,
+    }),
+    [reservations, currentDateKey, localNow, workspaceTimeZone],
   )
 
   const managerMobileStockSummary = useMemo(
@@ -17538,7 +17542,7 @@ function App() {
   const dashboardTimelineEvents = useMemo(() => buildTodayServiceTimeline({
     // Service timeline uses actionable tasks only, not announcements or operations tasks.
     timelineEvents: buildTodayCommandTimeline({
-      shifts: dashboardShifts,
+      shifts: isTodayWeekPublished ? dashboardPublishedShifts : dashboardShifts,
       employees: scheduleEmployees,
       reservations,
       todayKey: currentDateKey,
@@ -17548,7 +17552,9 @@ function App() {
     todayKey: currentDateKey,
     tasksConnected: isTasksModuleConnected,
   }), [
+    dashboardPublishedShifts,
     dashboardShifts,
+    isTodayWeekPublished,
     scheduleEmployees,
     reservations,
     currentDateKey,

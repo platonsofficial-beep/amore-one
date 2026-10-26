@@ -2,7 +2,12 @@ import { formatTime24, formatTimeRange24, normalizeTimeValue } from './timeForma
 import { calculateShiftDurationHours, parseTimeToMinutes } from './shiftHoursUtils'
 import { getCurrentDateKey } from './currentDateUtils'
 import { getWeekDateKeys } from './weekUtils'
-import { isOperationalReservation } from './reservationHostStatus'
+import { getWorkspaceNowMinutes } from './employeeTodayStatusUtils'
+import {
+  isOperationalReservation,
+  isReservationInHouseStatus,
+  normalizeReservationStatus,
+} from './reservationHostStatus'
 
 function normalizeDate(value) {
   if (!value) return ''
@@ -99,12 +104,13 @@ export function buildLiveFloorState({
   employees = [],
   todayKey = getCurrentDateKey(),
   now = new Date(),
+  timeZone = '',
 } = {}) {
   const todayPublishedShifts = (publishedShifts ?? []).filter(
     (shift) => normalizeDate(shift.date) === todayKey,
   )
 
-  if (!isWeekPublished || todayPublishedShifts.length === 0) {
+  if (todayPublishedShifts.length === 0) {
     return {
       state: 'unpublished',
       eyebrow: 'Live floor',
@@ -118,7 +124,8 @@ export function buildLiveFloorState({
     }
   }
 
-  const nowMinutes = now.getHours() * 60 + now.getMinutes()
+  const nowMinutes = getWorkspaceNowMinutes(now, timeZone).minutes
+    ?? (now.getHours() * 60 + now.getMinutes())
   const employeesById = new Map(employees.map((employee) => [String(employee.id), employee]))
   const onShift = []
   const seenOnShift = new Set()
@@ -169,6 +176,20 @@ export function buildLiveFloorState({
     return members.sort((left, right) => (
       (parseTimeToMinutes(left.startTime) ?? 0) - (parseTimeToMinutes(right.startTime) ?? 0)
     ))
+  }
+
+  if (!isWeekPublished && onShift.length === 0) {
+    return {
+      state: 'unpublished',
+      eyebrow: 'Live floor',
+      heading: 'Staff on shift',
+      title: 'No published schedule',
+      message: "Publish today's schedule to monitor live operations.",
+      onShift: [],
+      onShiftCount: 0,
+      nextShiftStartLabel: null,
+      nextShifts: [],
+    }
   }
 
   if (onShift.length > 0) {
@@ -593,10 +614,31 @@ export function buildDashboardContextMessage({
   return 'Everything is running smoothly today.'
 }
 
+function resolveVenueNowMinutes(now = new Date(), timeZone = '') {
+  return getWorkspaceNowMinutes(now, timeZone).minutes
+    ?? (now.getHours() * 60 + now.getMinutes())
+}
+
+function isNotYetArrivedReservation(reservation) {
+  if (!isOperationalReservation(reservation)) return false
+  const status = normalizeReservationStatus(reservation?.status)
+  if (isReservationInHouseStatus(status) || status === 'Waiting') return false
+  return true
+}
+
+function findNextNotYetArrivedReservation(reservations = [], nowMinutes = 0) {
+  return reservations.find((reservation) => {
+    if (!isNotYetArrivedReservation(reservation)) return false
+    const minutes = parseTimeToMinutes(reservation.time)
+    return minutes !== null && minutes >= nowMinutes
+  }) ?? null
+}
+
 export function buildReservationsContextLine(
   reservations = [],
   todayKey = getCurrentDateKey(),
   now = new Date(),
+  { timeZone = '' } = {},
 ) {
   const todayReservations = getOperationalTodayReservations(reservations, todayKey)
 
@@ -604,14 +646,12 @@ export function buildReservationsContextLine(
     return 'No reservations booked today.'
   }
 
-  const nowMinutes = now.getHours() * 60 + now.getMinutes()
-  const upcoming = todayReservations.find((reservation) => {
-    const minutes = parseTimeToMinutes(reservation.time)
-    return minutes !== null && minutes >= nowMinutes
-  }) ?? todayReservations[todayReservations.length - 1]
+  const nowMinutes = resolveVenueNowMinutes(now, timeZone)
+  const upcoming = findNextNotYetArrivedReservation(todayReservations, nowMinutes)
+    ?? todayReservations[todayReservations.length - 1]
 
   const timeLabel = formatTime24(normalizeTimeValue(upcoming.time))
-  if (!timeLabel) {
+  if (!timeLabel || !isNotYetArrivedReservation(upcoming)) {
     return `${todayReservations.length === 1 ? '1 reservation' : `${todayReservations.length} reservations`} booked today.`
   }
 
@@ -622,6 +662,7 @@ export function buildReservationsFooter(
   reservations = [],
   todayKey = getCurrentDateKey(),
   now = new Date(),
+  { timeZone = '' } = {},
 ) {
   const todayReservations = getOperationalTodayReservations(reservations, todayKey)
 
@@ -629,11 +670,8 @@ export function buildReservationsFooter(
     return { type: 'empty', message: 'No upcoming reservations.' }
   }
 
-  const nowMinutes = now.getHours() * 60 + now.getMinutes()
-  const upcoming = todayReservations.find((reservation) => {
-    const minutes = parseTimeToMinutes(reservation.time)
-    return minutes !== null && minutes >= nowMinutes
-  })
+  const nowMinutes = resolveVenueNowMinutes(now, timeZone)
+  const upcoming = findNextNotYetArrivedReservation(todayReservations, nowMinutes)
 
   if (!upcoming) {
     return { type: 'empty', message: 'No upcoming reservations.' }
