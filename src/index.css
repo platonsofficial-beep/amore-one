@@ -1,9 +1,11 @@
+@import './theme/brandTokens.css';
+
 :root {
   font-family: Inter, 'Segoe UI', Roboto, sans-serif;
   line-height: 1.5;
   font-weight: 400;
-  color: #f7efe1;
-  background-color: #060606;
+  color: var(--one-text);
+  background-color: var(--one-bg);
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
@@ -15,8 +17,6 @@
   --one-safe-area-left: env(safe-area-inset-left, 0px);
   --one-scrollbar-size: 6px;
   --one-scrollbar-track: transparent;
-  --one-scrollbar-thumb: rgba(68, 64, 58, 0.92);
-  --one-scrollbar-thumb-hover: rgba(212, 175, 55, 0.52);
 }
 
 * {
@@ -62,7 +62,8 @@ body,
 }
 
 body {
-  background: #060606;
+  background: var(--one-bg);
+  color: var(--one-text);
 }
 
 button {
