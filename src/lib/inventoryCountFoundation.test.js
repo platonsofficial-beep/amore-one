@@ -23,16 +23,14 @@ describe('Inventory Count section foundation', () => {
       { id: 'dashboard', label: 'Dashboard' },
       { id: 'count', label: 'Inventory Count' },
       { id: 'storages', label: 'Storages' },
-      { id: 'inventory', label: 'Legacy Inventory' },
       { id: 'suppliers', label: 'Suppliers' },
       { id: 'orders', label: 'Orders' },
-      { id: 'migration', label: 'Import & Migration' },
+      { id: 'migration', label: 'Import' },
     ]))
     expect(STOCK_SECTIONS.map((section) => section.id)).toEqual([
       'dashboard',
       'count',
       'storages',
-      'inventory',
       'suppliers',
       'orders',
       'migration',

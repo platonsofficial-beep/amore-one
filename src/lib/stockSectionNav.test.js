@@ -10,7 +10,6 @@ describe('resolveStockSectionNav', () => {
       'dashboard',
       'count',
       'storages',
-      'inventory',
       'suppliers',
       'orders',
       'migration',
@@ -29,12 +28,11 @@ describe('resolveStockSectionNav', () => {
     ])
     expect(nav.overflow.map((section) => section.label)).toEqual([
       'Suppliers',
-      'Legacy Inventory',
-      'Import & Migration',
+      'Import',
     ])
   })
 
-  it('hides legacy inventory and import from staff without removing suppliers', () => {
+  it('hides import from staff without removing suppliers', () => {
     const desktop = resolveStockSectionNav({ canManage: false, compactPhone: false })
     const phone = resolveStockSectionNav({ canManage: false, compactPhone: true })
 

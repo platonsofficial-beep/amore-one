@@ -5,7 +5,6 @@ import {
   isReservationInHouseStatus,
   normalizeReservationStatus,
 } from './reservationHostStatus'
-import { needsOrder } from './inventoryUtils'
 import { getStockItemsForSupplier, countInventoryItemsForSupplier } from './stockSupplierUtils'
 import { buildStockDashboardSummary } from './stockUtils'
 import { buildStockOrdersOperationsSummary } from './stockOrderUtils'
@@ -56,13 +55,6 @@ function taskCompletedInPeriod(task, period, todayKey, weekDateKeys) {
 
   if (period === REPORT_PERIOD_TODAY) return completedAt === todayKey
   return weekDateKeys.includes(completedAt)
-}
-
-function barRefillMatchesPeriod(refill, period, todayKey, weekDateKeys) {
-  const dateKey = normalizeDateKey(refill?.refillDate ?? refill?.refill_date)
-  if (!dateKey) return false
-  if (period === REPORT_PERIOD_TODAY) return dateKey === todayKey
-  return weekDateKeys.includes(dateKey)
 }
 
 function filterShiftsForPeriod(shifts, period, todayKey, weekDateKeys) {
@@ -217,121 +209,45 @@ export function buildTasksReport(
   }
 }
 
-function buildBarRefillsCompletedCount(barRefills, period, todayKey, weekStartDate, barRefillsConnected) {
-  if (!barRefillsConnected) return null
-
-  const weekDateKeys = getWeekDateKeys(weekStartDate || todayKey)
-  return barRefills.filter((refill) => (
-    refill.status === 'picked'
-    && barRefillMatchesPeriod(refill, period, todayKey, weekDateKeys)
-  )).length
-}
-
-export function buildStockReport(
-  inventoryItems = [],
-  barRefills = [],
-  {
-    period = REPORT_PERIOD_TODAY,
-    todayKey = '',
-    weekStartDate = '',
-    inventoryConnected = true,
-    barRefillsConnected = true,
-  } = {},
-) {
-  const itemsToOrder = inventoryConnected
-    ? inventoryItems.filter(needsOrder).length
-    : null
-  const lowStock = inventoryConnected
-    ? inventoryItems.filter((item) => item.status === 'Low Stock').length
-    : null
-  const outOfStock = inventoryConnected
-    ? inventoryItems.filter((item) => item.status === 'Out of Stock').length
-    : null
-  const totalStockValue = inventoryConnected
-    ? inventoryItems.reduce(
-      (sum, item) => sum + ((Number(item.quantity) || 0) * (Number(item.cost) || 0)),
-      0,
-    )
-    : null
-
-  const completedRefills = buildBarRefillsCompletedCount(
-    barRefills,
-    period,
-    todayKey,
-    weekStartDate,
-    barRefillsConnected,
-  )
-
-  return {
-    inventoryConnected,
-    barRefillsConnected,
-    stockModuleConnected: false,
-    connected: inventoryConnected,
-    empty: inventoryConnected && inventoryItems.length === 0,
-    metrics: {
-      itemsToOrder,
-      lowStock,
-      outOfStock,
-      totalStockValue,
-      barRefillsCompleted: completedRefills,
-      pendingOrders: null,
-      awaitingDelivery: null,
-    },
-  }
+const EMPTY_STOCK_METRICS = {
+  itemsToOrder: null,
+  lowStock: null,
+  outOfStock: null,
+  totalStockValue: null,
+  pendingOrders: null,
+  awaitingDelivery: null,
 }
 
 export function buildInsightsStockReport({
   stockItems = [],
   stockOrders = [],
-  inventoryItems = [],
-  barRefills = [],
-  period = REPORT_PERIOD_TODAY,
-  todayKey = '',
-  weekStartDate = '',
   stockModuleConnected = false,
-  inventoryConnected = true,
-  barRefillsConnected = true,
 } = {}) {
-  const hasStockModuleData = (stockItems ?? []).length > 0
-  const completedRefills = buildBarRefillsCompletedCount(
-    barRefills,
-    period,
-    todayKey,
-    weekStartDate,
-    barRefillsConnected,
-  )
-
-  if (stockModuleConnected && hasStockModuleData) {
-    const summary = buildStockDashboardSummary(stockItems)
-    const ordersSummary = buildStockOrdersOperationsSummary(stockOrders)
-
+  if (!stockModuleConnected) {
     return {
-      inventoryConnected: true,
-      barRefillsConnected,
-      stockModuleConnected: true,
-      connected: true,
-      empty: summary.totalItems === 0,
-      metrics: {
-        itemsToOrder: summary.toOrder,
-        lowStock: summary.lowStock,
-        outOfStock: summary.outOfStock,
-        totalStockValue: summary.totalValue,
-        barRefillsCompleted: completedRefills,
-        pendingOrders: ordersSummary.pendingCount,
-        awaitingDelivery: ordersSummary.awaitingDeliveryCount + ordersSummary.partialCount,
-      },
+      stockModuleConnected: false,
+      connected: false,
+      empty: true,
+      metrics: { ...EMPTY_STOCK_METRICS },
     }
   }
 
-  const legacyReport = buildStockReport(inventoryItems, barRefills, {
-    period,
-    todayKey,
-    weekStartDate,
-    inventoryConnected,
-    barRefillsConnected,
-  })
+  const summary = buildStockDashboardSummary(stockItems ?? [])
+  const ordersSummary = buildStockOrdersOperationsSummary(stockOrders)
 
-  return legacyReport
+  return {
+    stockModuleConnected: true,
+    connected: true,
+    empty: summary.totalItems === 0,
+    metrics: {
+      itemsToOrder: summary.toOrder,
+      lowStock: summary.lowStock,
+      outOfStock: summary.outOfStock,
+      totalStockValue: summary.totalValue,
+      pendingOrders: ordersSummary.pendingCount,
+      awaitingDelivery: ordersSummary.awaitingDeliveryCount + ordersSummary.partialCount,
+    },
+  }
 }
 
 export function buildScheduleReport(
@@ -611,10 +527,10 @@ export function buildReportsOverview({
       format: 'count',
     },
     {
-      key: 'bar-refills',
-      label: 'Bar refills completed',
-      value: stockReport?.barRefillsConnected ? stockReport.metrics.barRefillsCompleted : null,
-      connected: stockReport?.barRefillsConnected,
+      key: 'items-to-order',
+      label: 'Items to order',
+      value: stockReport?.connected ? stockReport.metrics.itemsToOrder : null,
+      connected: stockReport?.connected,
       format: 'count',
     },
     {
@@ -654,7 +570,6 @@ export function buildReportsBundle({
   inventoryItems,
   stockItems = [],
   stockOrders = [],
-  barRefills,
   suppliers,
   schedule,
   connections = {},
@@ -684,14 +599,7 @@ export function buildReportsBundle({
   const stockReport = buildInsightsStockReport({
     stockItems,
     stockOrders,
-    inventoryItems,
-    barRefills,
-    period,
-    todayKey,
-    weekStartDate,
     stockModuleConnected: connections.stockModuleConnected,
-    inventoryConnected: connections.inventoryConnected,
-    barRefillsConnected: connections.barRefillsConnected,
   })
   const scheduleReport = buildScheduleReport({
     ...schedule,
