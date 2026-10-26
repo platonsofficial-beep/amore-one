@@ -12,6 +12,8 @@ export const STAGE_INVENTORY_IMPORT_ROWS_RPC = 'stage_inventory_import_rows'
 export const CANCEL_INVENTORY_IMPORT_SESSION_RPC = 'cancel_inventory_import_session'
 export const MARK_INVENTORY_IMPORT_SESSION_READY_RPC = 'mark_inventory_import_session_ready'
 export const APPLY_INVENTORY_IMPORT_SESSION_RPC = 'apply_inventory_import_session'
+export const INVENTORY_IMPORT_UNDO_ELIGIBILITY_RPC = 'inventory_import_undo_eligibility'
+export const UNDO_INVENTORY_IMPORT_SESSION_RPC = 'undo_inventory_import_session'
 
 /**
  * @param {unknown} workspaceId
@@ -181,6 +183,21 @@ export function formatInventoryImportWizardError(error, fallback = 'Failed to ap
   }
 
   return message || fallback
+}
+
+/**
+ * True when PostgREST cannot see the function yet.
+ * @param {unknown} error
+ * @returns {boolean}
+ */
+export function isInventoryImportFunctionMissing(error) {
+  const message = `${error?.message ?? error ?? ''}`.trim()
+  const code = `${error?.code ?? error?.cause?.code ?? ''}`.trim()
+  const combined = `${code} ${message}`.toLowerCase()
+  return code === 'PGRST202'
+    || combined.includes('schema cache')
+    || combined.includes('could not find the function')
+    || /function .* does not exist/.test(combined)
 }
 
 /**
@@ -359,6 +376,68 @@ export async function applyInventoryImportSession(input = {}) {
   const mapped = mapInventoryImportSessionResult(firstRpcPayload(data))
   if (!mapped?.sessionId) {
     throw new Error('Apply inventory import session returned no result.')
+  }
+  return mapped
+}
+
+/**
+ * Read-only. Missing function and any other failure are for the caller to hide.
+ * @param {{ workspaceId: string, sessionId: string }} input
+ */
+export async function checkInventoryImportUndoEligibility(input = {}) {
+  const workspaceId = requireWorkspaceId(input.workspaceId, 'Workspace is required to check import undo.')
+  const sessionId = requireSessionId(input.sessionId)
+  if (!supabase) {
+    throw new Error('Import undo is not available yet.')
+  }
+
+  const { data, error } = await supabase.rpc(INVENTORY_IMPORT_UNDO_ELIGIBILITY_RPC, {
+    p_workspace_id: workspaceId,
+    p_session_id: sessionId,
+  })
+
+  if (error) {
+    throw mapInventoryImportRpcError(error, 'Failed to check whether this import can be undone.')
+  }
+
+  const payload = firstRpcPayload(data) ?? {}
+  const reasons = Array.isArray(payload.reasons) ? payload.reasons.map((reason) => `${reason}`) : []
+  return {
+    allowed: payload.allowed === true,
+    reasons,
+    sessionId: payload.session_id ?? payload.sessionId ?? sessionId,
+    status: payload.status ?? null,
+  }
+}
+
+/**
+ * Undo a completed import. The server re-checks every refusal.
+ * @param {{ workspaceId: string, sessionId: string }} input
+ */
+export async function undoInventoryImportSession(input = {}) {
+  const workspaceId = requireWorkspaceId(input.workspaceId, 'Workspace is required to undo an import.')
+  const sessionId = requireSessionId(input.sessionId)
+  if (!supabase) {
+    throw new Error('Import undo is not available yet.')
+  }
+
+  const { data, error } = await supabase.rpc(UNDO_INVENTORY_IMPORT_SESSION_RPC, {
+    p_workspace_id: workspaceId,
+    p_session_id: sessionId,
+  })
+
+  if (error) {
+    const hint = `${error.hint ?? ''}`.trim()
+    const message = `${error.message ?? ''}`.trim()
+    throw mapInventoryImportRpcError(
+      { ...error, message: hint || message },
+      'Failed to undo this import.',
+    )
+  }
+
+  const mapped = mapInventoryImportSessionResult(firstRpcPayload(data))
+  if (!mapped?.sessionId) {
+    throw new Error('Undo inventory import session returned no result.')
   }
   return mapped
 }

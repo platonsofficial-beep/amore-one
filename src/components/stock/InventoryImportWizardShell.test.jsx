@@ -1692,7 +1692,7 @@ describe('InventoryImportWizardShell', () => {
     expect(reviewRows[1].textContent).toContain('12')
     expect(reviewRows[1].textContent).toContain('Ready')
     expect(getButton('Continue')?.disabled).toBe(true)
-    expect(container.textContent).toContain('Standard inventory tables finish at this validation.')
+    expect(container.textContent).toContain('A workspace is required before this list can be previewed.')
   })
 
   it('resolves possible matches locally and keeps decisions across Back navigation', async () => {
@@ -2229,6 +2229,7 @@ describe('InventoryImportWizardShell', () => {
     expect(applyInventoryImportSession).toHaveBeenCalledTimes(1)
     expect(applyInventoryImportSession.mock.calls[0][0].sessionId).toBe('sess-apply-1')
     expect(applyInventoryImportSession.mock.calls[0][0].workspaceId).toBe('ws-ops')
+    expect(createInventoryImportSession.mock.calls[0][0].confirmations.quantityPolicy).toBe('no_change')
     expect(`${applyInventoryImportSession.mock.calls[0][0].applyIdempotencyKey ?? ''}`.length)
       .toBeGreaterThan(0)
     expect(stageInventoryImportRows.mock.calls[0][0].rows).toEqual(
@@ -2246,6 +2247,184 @@ describe('InventoryImportWizardShell', () => {
     expect(container.textContent).toContain('Total processed: 6')
     expect(getButton('Apply Import')).toBeFalsy()
     expect(getButton('Done')).toBeTruthy()
+    expect(container.querySelector('[data-undo-import="open"]')).toBeNull()
+  })
+
+  it('imports one-import-test.csv through preview and apply, and hides undo until it is allowed', async () => {
+    const csv = [
+      'Name,Category,Unit,Quantity,Minimum,Cost price,Supplier,Storage',
+      'TEST Import Lemon Syrup,Syrups,Bottle,3,1,4.50,TEST GrokBot Supplier,Main Storage',
+      'TEST Import Tonic,Beverages,Bottle,12,6,0.80,TEST GrokBot Supplier,Bar',
+    ].join('\n')
+    const createInventoryImportSession = vi.fn(async () => ({
+      sessionId: 'sess-standard-1',
+      status: 'review',
+    }))
+    const stageInventoryImportRows = vi.fn(async () => ({
+      sessionId: 'sess-standard-1',
+      status: 'review',
+    }))
+    const markInventoryImportSessionReady = vi.fn(async () => ({
+      sessionId: 'sess-standard-1',
+      status: 'ready',
+    }))
+    const applyInventoryImportSession = vi.fn(async () => ({
+      sessionId: 'sess-standard-1',
+      status: 'completed',
+      createdCount: 2,
+      linkedCount: 0,
+      skippedCount: 0,
+      movementCount: 2,
+      eligibleRowCount: 2,
+    }))
+    const missing = new Error('Could not find the function public.inventory_import_undo_eligibility')
+    missing.code = 'PGRST202'
+    const checkInventoryImportUndoEligibility = vi.fn(async () => {
+      throw missing
+    })
+    const undoInventoryImportSession = vi.fn()
+
+    renderShell({
+      workspaceId: 'ws-ops',
+      loadWorkspaceStockItems: vi.fn(async () => []),
+      createInventoryImportSession,
+      stageInventoryImportRows,
+      markInventoryImportSessionReady,
+      applyInventoryImportSession,
+      checkInventoryImportUndoEligibility,
+      undoInventoryImportSession,
+    })
+
+    selectFile(new File([csv], 'one-import-test.csv', { type: 'text/csv' }))
+    await continueToValidateImport()
+    await flushMicrotasks(6)
+
+    expect(getButton('Continue')?.disabled).toBe(false)
+    act(() => {
+      getButton('Continue').dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    })
+    await flushMicrotasks(4)
+
+    expect(container.querySelector('.inventory-import-wizard-review-title')?.textContent)
+      .toBe('Import Preview')
+    expect(getPolicyRadio('Apply spreadsheet quantities as opening stock')?.getAttribute('aria-checked'))
+      .toBe('true')
+    expect(getPolicyRadio('Do not change current stock quantities')?.getAttribute('aria-checked'))
+      .toBe('false')
+    expect(container.textContent).toContain('stored with cost 0')
+    expect(container.textContent).toContain('TEST Import Lemon Syrup')
+    expect(container.textContent).toContain('TEST Import Tonic')
+    expect(container.textContent).toContain('Main Storage 3')
+    expect(container.textContent).toContain('Bar 12')
+    expect(getButton('Continue')?.disabled).toBe(false)
+
+    act(() => {
+      getButton('Continue').dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    })
+    expect(container.querySelector('.inventory-import-wizard-review-title')?.textContent)
+      .toBe('Ready to Import')
+    expect(getButton('Apply Import')?.disabled).toBe(false)
+
+    await act(async () => {
+      getButton('Apply Import').dispatchEvent(new MouseEvent('click', { bubbles: true }))
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+    await flushMicrotasks(4)
+
+    expect(createInventoryImportSession.mock.calls[0][0].confirmations.quantityPolicy)
+      .toBe('opening_stock')
+    const staged = stageInventoryImportRows.mock.calls[0][0].rows
+    expect(staged).toHaveLength(2)
+    expect(staged[0].normalized_payload).toMatchObject({
+      name: 'TEST Import Lemon Syrup',
+      costPrice: 4.5,
+      minimumQuantity: 1,
+      supplier: 'TEST GrokBot Supplier',
+      resolvedQuantity: 3,
+      locationKey: 'Main Storage',
+      locationQuantities: [
+        expect.objectContaining({
+          destinationStorageId: '1',
+          destinationLocationKey: 'Main Storage',
+          parsedQuantity: 3,
+          validationState: 'valid',
+        }),
+      ],
+    })
+    expect(staged[1].normalized_payload).toMatchObject({
+      name: 'TEST Import Tonic',
+      costPrice: 0.8,
+      minimumQuantity: 6,
+      supplier: 'TEST GrokBot Supplier',
+      resolvedQuantity: 12,
+      locationKey: 'Bar',
+    })
+    expect(container.textContent).toContain('Products created: 2')
+    expect(container.querySelector('[data-undo-import="open"]')).toBeNull()
+    expect(undoInventoryImportSession).not.toHaveBeenCalled()
+  })
+
+  it('shows Undo import only when eligibility allows it and confirms before calling undo', async () => {
+    const checkInventoryImportUndoEligibility = vi.fn(async () => ({
+      allowed: true,
+      reasons: [],
+      sessionId: 'sess-apply-1',
+      status: 'completed',
+    }))
+    const undoInventoryImportSession = vi.fn(async () => ({
+      sessionId: 'sess-apply-1',
+      status: 'cancelled',
+    }))
+    renderShell({
+      workspaceId: 'ws-ops',
+      loadWorkspaceStockItems: vi.fn(async () => []),
+      createInventoryImportSession: vi.fn(async () => ({ sessionId: 'sess-apply-1', status: 'draft' })),
+      stageInventoryImportRows: vi.fn(async () => ({ sessionId: 'sess-apply-1', status: 'review' })),
+      markInventoryImportSessionReady: vi.fn(async () => ({ sessionId: 'sess-apply-1', status: 'ready' })),
+      applyInventoryImportSession: vi.fn(async () => ({
+        sessionId: 'sess-apply-1',
+        status: 'completed',
+        createdCount: 1,
+        linkedCount: 0,
+        skippedCount: 0,
+        movementCount: 0,
+        eligibleRowCount: 1,
+      })),
+      checkInventoryImportUndoEligibility,
+      undoInventoryImportSession,
+    })
+
+    await continueReadyCreateOnlyFlow()
+    await act(async () => {
+      getButton('Apply Import').dispatchEvent(new MouseEvent('click', { bubbles: true }))
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+    await flushMicrotasks(4)
+
+    const openUndo = container.querySelector('[data-undo-import="open"]')
+    expect(openUndo).toBeTruthy()
+    act(() => {
+      openUndo.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    })
+    expect(container.textContent).toContain('Undo this import?')
+    expect(undoInventoryImportSession).not.toHaveBeenCalled()
+
+    await act(async () => {
+      container.querySelector('[data-undo-import="confirm"]').dispatchEvent(
+        new MouseEvent('click', { bubbles: true }),
+      )
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+
+    expect(undoInventoryImportSession).toHaveBeenCalledWith({
+      workspaceId: 'ws-ops',
+      sessionId: 'sess-apply-1',
+    })
+    expect(container.textContent).toContain('Import undone. Created products were removed.')
+    expect(container.querySelector('[data-undo-import="open"]')).toBeNull()
   })
 
   it('shows a plain message when the import session function is missing', async () => {
