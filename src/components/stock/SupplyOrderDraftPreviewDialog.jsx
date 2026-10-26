@@ -4,6 +4,7 @@ import { updateSupplyOrderDraftReviewQuantity } from '../../lib/stockSupplyOrder
 export function SupplyOrderDraftPreviewDialog({
   lines = [],
   review = [],
+  summary = '',
   isSaving = false,
   onCancel,
   onConfirm,
@@ -41,6 +42,9 @@ export function SupplyOrderDraftPreviewDialog({
         aria-labelledby="supply-draft-preview-title"
       >
         <h2 id="supply-draft-preview-title">Suggest order</h2>
+        {`${summary ?? ''}`.trim() ? (
+          <p className="supply-draft-preview-summary">{`${summary}`.trim()}</p>
+        ) : null}
         <p>Check each supplier, product, and quantity. Nothing is saved until you confirm.</p>
         {groups.length > 0 ? (
           <div className="supply-draft-review">

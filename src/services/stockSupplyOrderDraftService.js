@@ -4,6 +4,7 @@ import {
   isBuyingStorageColumnMissing,
   isWorkspaceDepartmentSchemaMissing,
 } from '../lib/stockDepartmentGroups'
+import { formatToOrderBreakdown } from '../lib/stockInsights'
 import { isStockStorageParSchemaMissing, STORAGE_PAR_UNAVAILABLE_MESSAGE } from '../lib/stockStoragePar'
 import {
   buildSupplyOrderDraftGroups,
@@ -151,6 +152,7 @@ export async function previewSupplyOrderDrafts(workspaceId, {
     parsReady: true,
     lines,
     review,
+    summary: formatToOrderBreakdown(items),
     message: lines.length > 0
       ? 'Review these drafts before they are saved.'
       : SUPPLY_ORDER_DRAFT_EMPTY_MESSAGE,

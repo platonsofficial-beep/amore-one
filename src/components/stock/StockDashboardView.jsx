@@ -30,6 +30,7 @@ import {
 import {
   buildToCountStorageGroups,
   buildToOrderSupplierGroups,
+  formatToOrderBreakdown,
   getStockDashboardEmptyState,
   getStockItemInsights,
 } from '../../lib/stockInsights'
@@ -1788,7 +1789,7 @@ export function StockDashboardView({
             <header className="stock-today-card-header">
               <h3>To order</h3>
               <p>
-                {summary.toOrder === 1 ? '1 item' : `${summary.toOrder} items`}
+                {formatToOrderBreakdown(activeCatalogItems)}
                 {toOrderEstimate > 0 ? ` · Est. ${formatStockPurchasePrice(toOrderEstimate)}` : ''}
               </p>
             </header>

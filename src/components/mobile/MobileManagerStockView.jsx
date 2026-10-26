@@ -40,7 +40,7 @@ function MobileManagerStockItemCard({
 }) {
   const currentQuantity = Number(item.currentQuantity) || 0
   const statusLabel = getStockStatusShortLabel(item.status)
-  const sizeDetail = formatProductSizeDetail(item)
+  const sizeDetail = formatProductSizeDetail(item, item.name)
 
   return (
     <button
@@ -94,8 +94,8 @@ function MobileStockDetailSheet({
         <header className="mobile-stock-detail-header">
           <div>
             <h2 id="mobile-stock-detail-title">{item.name}</h2>
-            {formatProductSizeDetail(item) ? (
-              <p className="stock-item-size-detail">{formatProductSizeDetail(item)}</p>
+            {formatProductSizeDetail(item, item.name) ? (
+              <p className="stock-item-size-detail">{formatProductSizeDetail(item, item.name)}</p>
             ) : null}
             <p>{categoryLabel}</p>
           </div>

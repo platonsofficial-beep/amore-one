@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { selectItemsToOrder } from './stockCatalog'
 import { filterStockDashboardItems } from './stockDashboardBrowse'
-import { buildToOrderSupplierGroups } from './stockInsights'
+import { buildToOrderSupplierGroups, formatToOrderBreakdown } from './stockInsights'
 import { buildSupplierOrderGroups, computeOrderTotalCost, sumSuggestedOrderCost } from './stockOrderUtils'
 import { buildSupplyOrderDraftGroups } from './stockSupplyOrderDraft'
 import { countWorkspaceItemsBelowPar, sumBelowParCounts } from './stockLiveCard'
@@ -102,6 +102,7 @@ describe('to order agreement', () => {
     const expectedTotal = sumSuggestedOrderCost(catalog)
 
     expect(toOrder.map((item) => item.id)).toEqual(['out', 'between', 'low'])
+    expect(formatToOrderBreakdown(catalog)).toBe('3 items · 1 out · 1 low · 1 under target')
     expect(summary.outOfStock + summary.lowStock).toBe(2)
     expect(summary.toOrder).toBe(3)
     expect(summary.toOrder).not.toBe(summary.outOfStock + summary.lowStock)

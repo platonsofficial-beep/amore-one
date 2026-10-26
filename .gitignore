@@ -15,6 +15,10 @@ dist-ssr
 .env.*
 !.env.example
 
+# Local audit captures. Proof screenshots live outside the repo.
+/artifacts/
+/audit.html
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

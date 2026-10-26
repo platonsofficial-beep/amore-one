@@ -23745,6 +23745,7 @@ function App() {
         <SupplyOrderDraftPreviewDialog
           lines={supplyDraftPreview?.lines ?? []}
           review={supplyDraftPreview?.review ?? []}
+          summary={supplyDraftPreview?.summary ?? ''}
           isSaving={isSavingStockOrder}
           onCancel={() => setSupplyDraftPreview(null)}
           onConfirm={(review) => { void handleConfirmSupplyOrderDrafts(review) }}

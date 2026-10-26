@@ -87,6 +87,35 @@ function quantityStatus(item) {
  * To-order products grouped by supplier. Membership is selectItemsToOrder,
  * so the group counts add up to the To order KPI (not Out + Low).
  */
+/**
+ * Out, low, and under-target counts inside the one To order set.
+ * Under target is a to-order item whose quantity status is still OK
+ * (on hand above the minimum, below the catalog target).
+ */
+export function summarizeToOrderBreakdown(items = []) {
+  let out = 0
+  let low = 0
+  const selected = selectItemsToOrder(items)
+  selected.forEach((item) => {
+    const status = resolveStockItemQuantityStatus(item)
+    if (status === 'out') out += 1
+    else if (status === 'low') low += 1
+  })
+  return {
+    total: selected.length,
+    out,
+    low,
+    underTarget: selected.length - out - low,
+  }
+}
+
+/** "131 items · 16 out · 24 low · 91 under target" */
+export function formatToOrderBreakdown(items = []) {
+  const { total, out, low, underTarget } = summarizeToOrderBreakdown(items)
+  const itemsLabel = total === 1 ? '1 item' : `${total} items`
+  return `${itemsLabel} · ${out} out · ${low} low · ${underTarget} under target`
+}
+
 export function buildToOrderSupplierGroups(items = []) {
   const groups = new Map()
 
