@@ -190,6 +190,44 @@ export function buildOperationalSnapshot({
   }
 }
 
+/**
+ * One schedule-issues result for Today attention, the Today Schedule chip,
+ * Insights needs-attention, the Manager Brief, and the Schedule module card.
+ * `shifts` must be the full week (published when that week is published).
+ * Weekly-hours-over-target uses that week, not the shifts that fall on today.
+ */
+export function selectScheduleIssues({
+  shifts = [],
+  shiftTemplates = [],
+  scheduleCapacities = [],
+  employees = [],
+  todayKey = getCurrentDateKey(),
+  todayDateLabel = '',
+  timeGreeting = getTimeGreeting(),
+  businessName = '',
+  userName = '',
+  coverageBreakdown = null,
+} = {}) {
+  const snapshot = buildOperationalSnapshot({
+    shifts,
+    shiftTemplates,
+    scheduleCapacities,
+    employees,
+    todayKey,
+    todayDateLabel,
+    timeGreeting,
+    businessName,
+    userName,
+  })
+  const count = Number(snapshot.issues) || 0
+
+  return {
+    count,
+    detail: count > 0 ? buildScheduleAttentionDetail(snapshot, coverageBreakdown ?? {}) : '',
+    snapshot,
+  }
+}
+
 function formatTemplateAreaLabel(template) {
   return `${template?.defaultArea ?? template?.default_area ?? template?.name ?? 'Shift'}`.trim() || 'Shift'
 }

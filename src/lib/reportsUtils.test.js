@@ -12,6 +12,9 @@ import {
   buildSuppliersReport,
   buildTasksReport,
 } from './reportsUtils'
+import { selectScheduleIssues } from './operationalSnapshotUtils'
+import { buildTodayAttentionItems } from './todayViewUtils'
+import { buildTodayCommandHeaderChips } from './todayCommandHeaderUtils'
 
 const TODAY = '2026-07-08'
 const WEEK_START = '2026-07-06'
@@ -221,6 +224,73 @@ describe('reportsUtils', () => {
     expect(report.usesDraftSchedule).toBe(false)
     expect(report.metrics.scheduledStaff).toBe(1)
     expect(report.metrics.scheduledHours).toBe(4)
+  })
+
+  it('counts weekly hours over target from the full week on every schedule issue surface', () => {
+    const shifts = [
+      { id: 'mon', date: '2026-07-06', employeeId: 'e1', startTime: '09:00', endTime: '17:00' },
+      { id: 'tue', date: '2026-07-07', employeeId: 'e1', startTime: '09:00', endTime: '17:00' },
+      { id: 'wed', date: TODAY, employeeId: 'e1', startTime: '09:00', endTime: '13:00' },
+    ]
+    const employees = [{ id: 'e1', name: 'TEST GrokBot', weeklyHours: 10 }]
+    const shared = selectScheduleIssues({
+      shifts,
+      employees,
+      todayKey: TODAY,
+    })
+    const report = buildScheduleReport({
+      shifts,
+      employees,
+      period: REPORT_PERIOD_TODAY,
+      todayKey: TODAY,
+      weekStartDate: WEEK_START,
+      connected: true,
+    })
+    const weekReport = buildScheduleReport({
+      shifts,
+      employees,
+      period: REPORT_PERIOD_WEEK,
+      todayKey: TODAY,
+      weekStartDate: WEEK_START,
+      connected: true,
+    })
+    const overview = buildReportsOverview({
+      period: REPORT_PERIOD_TODAY,
+      reservationsReport: { connected: false },
+      tasksReport: { connected: false },
+      stockReport: { connected: false },
+      scheduleReport: report,
+    })
+    const attention = buildTodayAttentionItems({
+      todayKey: TODAY,
+      snapshot: shared.snapshot,
+    })
+    const chips = buildTodayCommandHeaderChips({
+      dashboardLiveStatus: { tone: 'live', chipValue: '2' },
+      scheduleIssueCount: shared.count,
+      liveFloorState: { state: 'live', onShiftCount: 2 },
+    })
+
+    expect(shared.count).toBe(1)
+    expect(shared.detail).toBe('TEST GrokBot is over weekly hours')
+    expect(report.metrics.issues).toBe(1)
+    expect(report.metrics.scheduledHours).toBe(4)
+    expect(report.coverageDetail).toBe('TEST GrokBot is over weekly hours')
+    expect(weekReport.metrics.issues).toBeNull()
+    expect(overview.find((card) => card.key === 'schedule-issues')?.value).toBe(1)
+    expect(attention).toEqual([
+      expect.objectContaining({
+        key: 'schedule-issues',
+        label: 'Schedule issue',
+        detail: 'TEST GrokBot is over weekly hours',
+      }),
+    ])
+    expect(chips.find((chip) => chip.id === 'schedule')?.value).toBe('1')
+    expect(selectScheduleIssues({
+      shifts: shifts.filter((shift) => shift.date === TODAY),
+      employees,
+      todayKey: TODAY,
+    }).count).toBe(0)
   })
 
   it('shows items to order in overview when pending orders are zero', () => {

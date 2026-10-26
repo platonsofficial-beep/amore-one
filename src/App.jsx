@@ -477,7 +477,7 @@ import {
   mapWeeklyTemplateCapacitySnapshotToWeek,
   saveWeeklyTemplateCapacitySnapshot,
 } from './lib/weeklyTemplateCapacitySnapshots'
-import { buildOperationalSnapshot, buildTeamTodayCoverageBreakdown } from './lib/operationalSnapshotUtils'
+import { selectScheduleIssues, buildTeamTodayCoverageBreakdown } from './lib/operationalSnapshotUtils'
 import {
   buildTodayServiceTimeline,
   buildTodayStatusSummary,
@@ -16824,7 +16824,7 @@ function App() {
     ? isScheduleLoading
     : isTodayWeekLoading
 
-  const operationalSnapshot = useMemo(() => buildOperationalSnapshot({
+  const operationalSnapshot = useMemo(() => selectScheduleIssues({
     shifts: isTodayWeekPublished ? dashboardPublishedShifts : dashboardShifts,
     shiftTemplates,
     scheduleCapacities: dashboardCapacities,
@@ -16834,7 +16834,7 @@ function App() {
     timeGreeting: currentTimeGreeting,
     businessName: workspaceProfile.businessName,
     userName: workspaceProfile.managerName,
-  }), [
+  }).snapshot, [
     isTodayWeekPublished,
     dashboardPublishedShifts,
     dashboardShifts,
@@ -17465,6 +17465,7 @@ function App() {
 
   const todayCommandHeaderChips = useMemo(() => buildTodayCommandHeaderChips({
     dashboardLiveStatus,
+    scheduleIssueCount: operationalSnapshot.issues,
     todayStatusSummary,
     dashboardTaskOverview: { active: unifiedOperationalTaskCounts.boardOpen },
     operationsOpenCount,
@@ -17474,6 +17475,7 @@ function App() {
     showStock: canAccessStockModule,
   }), [
     dashboardLiveStatus,
+    operationalSnapshot.issues,
     todayStatusSummary,
     unifiedOperationalTaskCounts.boardOpen,
     operationsOpenCount,

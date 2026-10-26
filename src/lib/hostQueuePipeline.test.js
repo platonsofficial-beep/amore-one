@@ -11,12 +11,14 @@ import {
   deriveReservationAreaZoneIds,
   filterReservationsBySelectedSeating,
   includeFocusedHostReservation,
+  includeStaleSeatedHostReservations,
   getReservationPrimaryTableSortLabel,
   reservationMatchesHostQueueArea,
   reservationMatchesHostQueueSearch,
   sortHostQueueReservations,
 } from './hostQueuePipeline'
 import { readHostQueueSortPreference, writeHostQueueSortPreference } from './hostQueuePersistence'
+import { buildHostQueueServiceMetrics } from './hostQueueServiceMetrics'
 
 const SEATINGS = [
   {
@@ -565,6 +567,123 @@ describe('hostQueuePipeline reservation purpose filters', () => {
     })
 
     expect(filtered.map((entry) => entry.id)).toEqual(['late-drinks'])
+  })
+
+  it('keeps a stale seated reservation on a past day when no seating window matches', () => {
+    const seatings = [
+      {
+        id: 'brunch',
+        name: 'Brunch',
+        startTime: '10:00',
+        durationMinutes: 150,
+        daysOfWeek: [0, 1, 2, 3, 4, 5, 6],
+        sortOrder: 0,
+        isActive: true,
+      },
+      {
+        id: 'lunch',
+        name: 'Lunch',
+        startTime: '12:30',
+        durationMinutes: 180,
+        daysOfWeek: [0, 1, 2, 3, 4, 5, 6],
+        sortOrder: 1,
+        isActive: true,
+      },
+      {
+        id: 'dinner-1',
+        name: 'Dinner 1',
+        startTime: '18:30',
+        durationMinutes: 90,
+        daysOfWeek: [0, 1, 2, 3, 4, 5, 6],
+        sortOrder: 2,
+        isActive: true,
+      },
+    ]
+    const marika = buildReservation({
+      id: 'marika',
+      guestName: 'Marika',
+      date: '2026-07-08',
+      time: '17:00',
+      guests: 2,
+      status: 'Checked In',
+      seatingId: null,
+      area: 'Main Dining',
+      seatingAssignment: {
+        assignedUnits: [{ id: 't1', label: 'T1' }],
+        extraChairs: 0,
+        standingGuests: 0,
+      },
+    })
+    const layout = {
+      zones: [
+        { id: 'main', label: 'Main Dining' },
+        { id: 'bar', label: 'Bar' },
+      ],
+      tables: [{ id: 't1', label: 'T1', zoneId: 'main', seats: 2 }],
+    }
+
+    seatings.forEach((seating) => {
+      const hidden = buildHostQueueReservationList([marika], {
+        selectedSeating: seating,
+        seatings,
+        dateKey: '2026-07-08',
+        layout,
+      })
+      const listed = buildHostQueueReservationList([marika], {
+        selectedSeating: seating,
+        seatings,
+        dateKey: '2026-07-08',
+        workspaceTodayKey: '2026-10-26',
+        layout,
+      })
+
+      expect(hidden.map((entry) => entry.id)).toEqual([])
+      expect(listed.map((entry) => entry.id)).toEqual(['marika'])
+      expect(buildHostQueueServiceMetrics(listed, {
+        layout,
+        areaFilterId: '__all__',
+      })).toMatchObject({
+        seatedTables: 1,
+        inHouseGuests: 2,
+      })
+    })
+
+    const areaScoped = buildHostQueueReservationList([marika], {
+      dateKey: '2026-07-08',
+      areaFilterId: 'bar',
+      layout,
+    })
+    const areaHidden = buildHostQueueReservationList([marika], {
+      dateKey: '2026-07-08',
+      workspaceTodayKey: '2026-10-26',
+      areaFilterId: 'bar',
+      layout,
+    })
+    expect(areaScoped.map((entry) => entry.id)).toEqual([])
+    expect(areaHidden.map((entry) => entry.id)).toEqual(['marika'])
+
+    const stillToday = buildHostQueueReservationList([marika], {
+      selectedSeating: seatings[2],
+      seatings,
+      dateKey: '2026-07-08',
+      workspaceTodayKey: '2026-07-08',
+      layout,
+    })
+    expect(stillToday).toEqual([])
+
+    const notSeated = buildHostQueueReservationList([
+      { ...marika, id: 'booked', status: 'Confirmed' },
+    ], {
+      selectedSeating: seatings[0],
+      seatings,
+      dateKey: '2026-07-08',
+      workspaceTodayKey: '2026-10-26',
+    })
+    expect(notSeated).toEqual([])
+    expect(includeStaleSeatedHostReservations([], [marika], {
+      dateKey: '2026-07-08',
+      workspaceTodayKey: '2026-10-26',
+    }).map((entry) => entry.id)).toEqual(['marika'])
   })
 
   it('keeps a focused reservation when seating filters hide it', () => {

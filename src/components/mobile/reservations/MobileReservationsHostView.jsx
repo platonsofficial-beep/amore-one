@@ -146,6 +146,8 @@ export function MobileReservationsHostView({
         selectedSeating,
         seatings: reservationSeatings,
         dateKey: todayKey,
+        workspaceTodayKey: workspaceTodayKey || '',
+        timeZone: workspaceTimeZone,
         areaFilterId,
         activeFilterIds,
         searchTerm,
@@ -167,6 +169,8 @@ export function MobileReservationsHostView({
       selectedSeating,
       todayKey,
       workspaceReservations,
+      workspaceTimeZone,
+      workspaceTodayKey,
     ],
   )
 
