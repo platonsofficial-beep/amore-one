@@ -177,7 +177,6 @@ export default function ReportsView({
   inventoryItems,
   stockItems = [],
   stockOrders = [],
-  barRefills,
   suppliers,
   schedule,
   connections,
@@ -205,7 +204,6 @@ export default function ReportsView({
     inventoryItems,
     stockItems,
     stockOrders,
-    barRefills,
     suppliers,
     schedule,
     connections,
@@ -224,7 +222,6 @@ export default function ReportsView({
     inventoryItems,
     stockItems,
     stockOrders,
-    barRefills,
     suppliers,
     schedule,
     connections,
@@ -399,14 +396,6 @@ export default function ReportsView({
       },
     )
   }
-
-  stockMetrics.push({
-    key: 'bar-refills',
-    label: 'Bar refills completed',
-    value: formatSectionMetric(reports.stockReport.metrics.barRefillsCompleted, {
-      connected: reports.stockReport.barRefillsConnected,
-    }),
-  })
 
   const scheduleNote = [
     reports.scheduleReport.usesDraftSchedule ? 'Draft schedule data' : null,

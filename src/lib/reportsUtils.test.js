@@ -143,24 +143,40 @@ describe('reportsUtils', () => {
     expect(report.metrics.totalStockValue).toBe(40)
   })
 
-  it('falls back to legacy inventory when stock module data is unavailable', () => {
+  it('uses real stock metrics when the catalog is empty instead of legacy inventory rows', () => {
     const report = buildInsightsStockReport({
       stockItems: [],
       inventoryItems: [
         { id: '1', quantity: 2, cost: 10, status: 'Low Stock' },
         { id: '2', quantity: 0, cost: 5, status: 'Out of Stock', reorderLevel: 5 },
       ],
-      stockModuleConnected: false,
+      stockModuleConnected: true,
       inventoryConnected: true,
       barRefillsConnected: false,
       period: REPORT_PERIOD_TODAY,
       todayKey: TODAY,
     })
 
-    expect(report.stockModuleConnected).toBe(false)
-    expect(report.metrics.lowStock).toBe(1)
-    expect(report.metrics.outOfStock).toBe(1)
-    expect(report.metrics.pendingOrders).toBeNull()
+    expect(report.stockModuleConnected).toBe(true)
+    expect(report.connected).toBe(true)
+    expect(report.empty).toBe(true)
+    expect(report.metrics.lowStock).toBe(0)
+    expect(report.metrics.outOfStock).toBe(0)
+    expect(report.metrics.itemsToOrder).toBe(0)
+    expect(report.metrics.barRefillsCompleted).toBeUndefined()
+  })
+
+  it('stays disconnected when the stock module is off instead of reading legacy inventory', () => {
+    const report = buildInsightsStockReport({
+      stockItems: [],
+      inventoryItems: [{ id: '1', quantity: 2, cost: 10, status: 'Low Stock' }],
+      stockModuleConnected: false,
+      inventoryConnected: true,
+    })
+
+    expect(report.connected).toBe(false)
+    expect(report.metrics.lowStock).toBeNull()
+    expect(report.metrics.outOfStock).toBeNull()
   })
 
   it('calculates schedule issues for today only', () => {
