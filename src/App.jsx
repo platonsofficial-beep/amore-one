@@ -9694,7 +9694,6 @@ function FloorTableNode({
             content={hostCompactContent}
             linkMeta={linkMeta}
             seatingIndicators={tableState.meta?.seatingIndicators ?? []}
-            diningTimerPresentation={diningTimerPresentation}
           />
         ) : (
           <>
@@ -9761,14 +9760,14 @@ function FloorTableNode({
         )}
       </div>
 
-      {diningTimerPresentation?.estimatedFreeExternalLabel ? (
+      {diningTimerPresentation?.externalLabel ? (
         <span
           className={`floor-table-dining-timer-external is-placement-${diningTimerLabelPlacement?.position ?? 'below'} is-urgency-${diningTimerPresentation.urgency}`}
           data-testid="floor-table-dining-timer-external"
           data-placement={diningTimerLabelPlacement?.position ?? 'below'}
           data-urgency={diningTimerPresentation.urgency}
         >
-          {diningTimerPresentation.estimatedFreeExternalLabel}
+          {diningTimerPresentation.externalLabel}
         </span>
       ) : null}
 
@@ -10282,7 +10281,7 @@ function FloorPlanView({
         nowDate: diningTimerReferenceDate,
       })
 
-      if (!presentation?.estimatedFreeExternalLabel) return []
+      if (!presentation?.externalLabel) return []
 
       return [{ id: tableState.table.id, table: tableState.table }]
     })

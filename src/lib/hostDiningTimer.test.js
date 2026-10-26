@@ -14,8 +14,10 @@ import {
   HOST_DINING_TIMER_URGENCY_LEVELS,
   buildHostFloorDiningTimerLabel,
   buildHostFloorDiningTimerPresentation,
+  formatHostDiningTimerCompactElapsed,
   formatHostDiningTimerEstimatedFreeLabel,
   formatHostDiningTimerExternalFreeLabel,
+  formatHostDiningTimerFloorPill,
   formatHostDiningTimerLabel,
   formatServiceDayMinutesAsTime24,
   getHostDiningTimerExpectedDurationMinutes,
@@ -134,7 +136,9 @@ describe('hostDiningTimer', () => {
       })
 
       expect(presentation?.elapsedLabel).toBe('⏱ 0m')
+      expect(presentation?.compactElapsed).toBe('0m')
       expect(presentation?.estimatedFreeExternalLabel).toBe('🕒 18:15')
+      expect(presentation?.externalLabel).toBe('⏱ 0m · 18:15')
     })
 
     it('supports Walk In reservations', () => {
@@ -163,6 +167,22 @@ describe('hostDiningTimer', () => {
 
     it('returns null for zero elapsed minutes', () => {
       expect(formatHostDiningTimerLabel(0)).toBeNull()
+    })
+  })
+
+  describe('formatHostDiningTimerCompactElapsed', () => {
+    it('formats the floor pill without spaces so it stays readable', () => {
+      expect(formatHostDiningTimerCompactElapsed(82)).toBe('1h22')
+      expect(formatHostDiningTimerCompactElapsed(18)).toBe('18m')
+      expect(formatHostDiningTimerCompactElapsed(120)).toBe('2h')
+      expect(formatHostDiningTimerCompactElapsed(61)).toBe('1h01')
+      expect(formatHostDiningTimerCompactElapsed(0)).toBeNull()
+      expect(formatHostDiningTimerCompactElapsed(0, { showZero: true })).toBe('0m')
+    })
+
+    it('joins compact elapsed time with the expected end', () => {
+      expect(formatHostDiningTimerFloorPill('1h22', 18 * 60 + 30)).toBe('⏱ 1h22 · 18:30')
+      expect(formatHostDiningTimerFloorPill(null, 18 * 60 + 30)).toBeNull()
     })
   })
 
@@ -277,7 +297,9 @@ describe('hostDiningTimer', () => {
 
       expect(presentation).toEqual({
         elapsedLabel: '⏱ 1h 48m',
+        compactElapsed: '1h48',
         estimatedFreeExternalLabel: '🕒 23:30',
+        externalLabel: '⏱ 1h48 · 23:30',
         urgency: HOST_DINING_TIMER_URGENCY_LEVELS.APPROACHING,
       })
     })
@@ -298,7 +320,7 @@ describe('hostDiningTimer', () => {
       expect(presentation?.urgency).toBe(HOST_DINING_TIMER_URGENCY_LEVELS.NORMAL)
     })
 
-    it('keeps elapsed label readable on very small tables without compact line', () => {
+    it('puts a compact elapsed time in the external pill for small tables', () => {
       const reservation = buildReservation({ status: 'Checked In', time: '21:00' })
       const presentation = buildHostFloorDiningTimerPresentation(reservation, {
         phase: 'seated',
@@ -307,7 +329,9 @@ describe('hostDiningTimer', () => {
       })
 
       expect(presentation?.elapsedLabel).toBe('⏱ 48m')
+      expect(presentation?.compactElapsed).toBe('48m')
       expect(presentation?.estimatedFreeExternalLabel).toBe('🕒 23:30')
+      expect(presentation?.externalLabel).toBe('⏱ 48m · 23:30')
       expect(presentation?.compactLine).toBeUndefined()
     })
   })

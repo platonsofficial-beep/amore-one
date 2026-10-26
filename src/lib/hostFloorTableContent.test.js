@@ -29,8 +29,6 @@ import {
   resolveHostFloorLegendToneToken,
 } from './hostFloorSemanticTokens'
 import { HostFloorCompactTableContent } from '../components/floor/HostFloorCompactTableContent'
-import { buildHostFloorDiningTimerPresentation } from './hostDiningTimer'
-
 const SEATINGS = buildSeatingsById([
   {
     id: 'dinner-1',
@@ -459,18 +457,21 @@ describe('host floor dining timer display', () => {
   function renderCompactTableContent({
     reservation,
     nowMinutes = 22 * 60 + 18,
-    diningTimerPresentation = null,
     tier = 'normal',
+    shape = 'round',
   } = {}) {
     const operational = resolveFloorTableOperationalState(
       reservation ? [reservation] : [],
       nowMinutes,
       '2026-07-09',
     )
+    const sizedTable = tier === 'very-small'
+      ? { ...TABLE, widthPercent: 5, heightPercent: 5, shape }
+      : tier === 'large'
+        ? { ...TABLE, widthPercent: 18, heightPercent: 18, shape }
+        : { ...TABLE, shape }
     const content = buildHostFloorCompactTableContent({
-      table: tier === 'very-small'
-        ? { ...TABLE, widthPercent: 5, heightPercent: 5 }
-        : TABLE,
+      table: sizedTable,
       operational,
       displayReservation: reservation,
     })
@@ -482,7 +483,6 @@ describe('host floor dining timer display', () => {
         content,
         linkMeta: { isMultiLinked: false },
         seatingIndicators: [],
-        diningTimerPresentation,
       }))
     })
 
@@ -504,101 +504,33 @@ describe('host floor dining timer display', () => {
     unmount()
   })
 
-  it('renders elapsed timer inside the table when timer presentation is enabled', () => {
-    const reservation = buildReservation({ status: 'Checked In', time: '21:00' })
-    const diningTimerPresentation = buildHostFloorDiningTimerPresentation(reservation, {
-      phase: 'seated',
-      nowMinutes: 22 * 60 + 48,
-      todayKey: '2026-07-09',
-    })
-    const { container, unmount } = renderCompactTableContent({
-      reservation,
-      diningTimerPresentation,
-    })
+  it('keeps the table number, time, and guests inside the circle', () => {
+    const reservation = buildReservation({ status: 'Checked In', time: '16:00' })
+    const shapes = ['round', 'square']
+    const tiers = ['very-small', 'normal', 'large']
 
-    const timer = container.querySelector('[data-testid="floor-table-dining-timer"]')
-    expect(timer?.querySelector('.floor-table-dining-timer-elapsed')?.textContent).toBe('⏱ 1h 48m')
-    expect(timer?.querySelector('.floor-table-dining-timer-est-free')).toBeNull()
-    expect(timer?.querySelector('.floor-table-dining-timer-compact')).toBeNull()
-    expect(timer?.getAttribute('data-urgency')).toBe('approaching')
-    expect(container.textContent).not.toContain('Est. free')
-    expect(container.textContent).not.toContain('🕒')
-    expect(container.textContent).toContain('T11')
-    expect(container.textContent).toContain('👤2')
-    unmount()
-  })
+    shapes.forEach((shape) => {
+      tiers.forEach((tier) => {
+        const { container, unmount } = renderCompactTableContent({
+          reservation,
+          shape,
+          tier,
+        })
 
-  it('does not truncate elapsed timer text with ellipsis markup', () => {
-    const reservation = buildReservation({ status: 'Checked In', time: '17:28' })
-    const diningTimerPresentation = buildHostFloorDiningTimerPresentation(reservation, {
-      phase: 'seated',
-      nowMinutes: 22 * 60,
-      todayKey: '2026-07-09',
-    })
-    const { container, unmount } = renderCompactTableContent({
-      reservation,
-      diningTimerPresentation,
-      tier: 'very-small',
-    })
-
-    const elapsed = container.querySelector('.floor-table-dining-timer-elapsed')
-    expect(elapsed?.textContent).toBe('⏱ 4h 32m')
-    expect(elapsed?.textContent).not.toMatch(/\.\.\./)
-    expect(container.querySelector('.floor-table-dining-timer-compact')).toBeNull()
-    unmount()
-  })
-
-  it('renders urgency classes for normal, approaching, and overdue', () => {
-    const reservation = buildReservation({ status: 'Checked In', time: '21:00' })
-    const cases = [
-      { nowMinutes: 21 * 60 + 30, urgency: 'normal' },
-      { nowMinutes: 22 * 60 + 48, urgency: 'approaching' },
-      { nowMinutes: 23 * 60 + 45, urgency: 'overdue' },
-    ]
-
-    cases.forEach(({ nowMinutes, urgency }) => {
-      const diningTimerPresentation = buildHostFloorDiningTimerPresentation(reservation, {
-        phase: 'seated',
-        nowMinutes,
-        todayKey: '2026-07-09',
+        expect(container.querySelector('[data-testid="floor-table-dining-timer"]')).toBeNull()
+        expect(container.querySelector('.floor-table-dining-timer-elapsed')).toBeNull()
+        expect(container.textContent).toContain('T11')
+        expect(container.textContent).toContain('16:00')
+        expect(container.textContent).toContain('👤2')
+        expect(container.textContent).not.toContain('⏱')
+        expect(container.textContent).not.toContain('Est. free')
+        unmount()
       })
-      const { container, unmount } = renderCompactTableContent({
-        reservation,
-        nowMinutes,
-        diningTimerPresentation,
-      })
-
-      expect(container.querySelector('.floor-table-dining-timer')?.classList.contains(`is-urgency-${urgency}`)).toBe(true)
-      unmount()
     })
-  })
-
-  it('renders elapsed only on very small tables without compact combined line', () => {
-    const reservation = buildReservation({ status: 'Checked In', time: '21:00' })
-    const diningTimerPresentation = buildHostFloorDiningTimerPresentation(reservation, {
-      phase: 'seated',
-      nowMinutes: 21 * 60 + 48,
-      todayKey: '2026-07-09',
-    })
-    const { container, unmount } = renderCompactTableContent({
-      reservation,
-      diningTimerPresentation,
-      tier: 'very-small',
-    })
-
-    expect(container.querySelector('.floor-table-dining-timer-elapsed')?.textContent).toBe('⏱ 48m')
-    expect(container.querySelector('.floor-table-dining-timer-compact')).toBeNull()
-    expect(container.textContent).not.toContain('Est. free')
-    unmount()
   })
 
   it('does not render dining timer overlays for available tables', () => {
-    const diningTimerPresentation = buildHostFloorDiningTimerPresentation(null, {
-      phase: 'available',
-      nowMinutes: 22 * 60,
-      todayKey: '2026-07-09',
-    })
-    const { container, unmount } = renderCompactTableContent({ diningTimerPresentation })
+    const { container, unmount } = renderCompactTableContent({})
 
     expect(container.querySelector('[data-testid="floor-table-dining-timer"]')).toBeNull()
     unmount()
@@ -606,33 +538,13 @@ describe('host floor dining timer display', () => {
 
   it('does not render dining timer overlays for reserved but not seated tables', () => {
     const reservation = buildReservation({ status: 'Confirmed', time: '21:00' })
-    const diningTimerPresentation = buildHostFloorDiningTimerPresentation(reservation, {
-      phase: 'upcoming',
-      nowMinutes: 20 * 60,
-      todayKey: '2026-07-09',
-    })
     const { container, unmount } = renderCompactTableContent({
       reservation,
-      diningTimerPresentation,
+      nowMinutes: 20 * 60,
     })
 
     expect(container.querySelector('[data-testid="floor-table-dining-timer"]')).toBeNull()
-    unmount()
-  })
-
-  it('keeps dining timer overlay markup for non-interactive styling', () => {
-    const reservation = buildReservation({ status: 'Checked In', time: '21:00' })
-    const diningTimerPresentation = buildHostFloorDiningTimerPresentation(reservation, {
-      phase: 'seated',
-      nowMinutes: 22 * 60,
-      todayKey: '2026-07-09',
-    })
-    const { container, unmount } = renderCompactTableContent({
-      reservation,
-      diningTimerPresentation,
-    })
-
-    expect(container.querySelector('.floor-table-dining-timer.is-urgency-normal')).toBeTruthy()
+    expect(container.textContent).toContain('T11')
     unmount()
   })
 })
