@@ -3804,28 +3804,39 @@ describe('InventoryCountSessionWorkspace iPad scroll ownership (P8.18.2a)', () =
 
   it('counted inputs do not auto-reveal on focus (manual scroll wins)', async () => {
     const { container, cleanup } = await renderWorkspace()
+    // Mount schedules a keyboard layout frame. Let it finish before focus,
+    // or it can reveal the newly focused input and clamp scrollTop to 0.
+    const flushLayoutFrames = () => act(async () => {
+      await new Promise((resolve) => {
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => resolve())
+        })
+      })
+    })
+    await flushLayoutFrames()
+
     const input = container.querySelector('input[aria-label="Counted quantity for Paper Straws"]')
     const scroll = container.querySelector('[data-inventory-count-row-scroll="true"]')
+    let scrollTop = 140
     Object.defineProperty(scroll, 'scrollTop', {
       configurable: true,
-      writable: true,
-      value: 140,
+      get: () => scrollTop,
+      set: (value) => {
+        scrollTop = value
+      },
     })
-    const revealSpy = vi.spyOn(
-      await import('./InventoryCountSessionWorkspace'),
-      'scrollInventoryCountRowIntoView',
-    )
+    Object.defineProperty(scroll, 'scrollHeight', { configurable: true, value: 2000 })
+    Object.defineProperty(scroll, 'clientHeight', { configurable: true, value: 400 })
 
     await act(async () => {
-      input.focus()
+      input.focus({ preventScroll: true })
       input.dispatchEvent(new FocusEvent('focus', { bubbles: true }))
     })
+    await flushLayoutFrames()
 
     expect(scroll.scrollTop).toBe(140)
-    // Module spy may not intercept local binding; assert no onFocus attribute path by scroll stability.
     expect(input.getAttribute('onFocus')).toBeNull()
 
-    revealSpy.mockRestore()
     cleanup()
   })
 
