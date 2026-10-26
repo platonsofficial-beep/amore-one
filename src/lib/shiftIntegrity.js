@@ -128,16 +128,32 @@ export function prepareShiftForSave(shift, options = {}) {
   }
 }
 
+function normalizePublishTime(value) {
+  return normalizeTimeValue(value)
+}
+
+/**
+ * Custom shifts are stored with a null template id. A present id must still
+ * match an active template. Employee and distinct times are required.
+ */
 export function assertShiftsReadyForPublish(draftShifts = [], options = {}) {
   const { knownTemplateIds = null } = options
   const invalidIndexes = []
 
   ;(draftShifts ?? []).forEach((shift, index) => {
+    const employeeId = `${shift?.employeeId ?? shift?.employee_id ?? ''}`.trim()
+    const startTime = normalizePublishTime(shift?.startTime ?? shift?.start_time)
+    const endTime = normalizePublishTime(shift?.endTime ?? shift?.end_time)
+    if (!employeeId || !startTime || !endTime || startTime === endTime) {
+      invalidIndexes.push(index)
+      return
+    }
+
     try {
       validateShiftTemplateReference({
         shiftTemplateId: shift.shiftTemplateId ?? shift.shift_template_id,
         knownTemplateIds,
-        requireTemplateId: true,
+        requireTemplateId: false,
       })
     } catch {
       invalidIndexes.push(index)
@@ -145,6 +161,6 @@ export function assertShiftsReadyForPublish(draftShifts = [], options = {}) {
   })
 
   if (invalidIndexes.length > 0) {
-    throw new Error('Cannot publish: one or more shifts are missing a valid shift template reference.')
+    throw new Error('Cannot publish: one or more shifts are missing a valid employee, time, or shift template reference.')
   }
 }

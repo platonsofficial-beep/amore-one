@@ -30,7 +30,9 @@ function publicationError(error) {
   if (message.includes('single_workspace_required')) {
     return new Error('Publishing requires a single-venue database. Multi-workspace scheduling must be migrated first.')
   }
-  if (message.includes('invalid_assignment')) return new Error('Every shift needs a valid employee, template and start/end time.')
+  if (message.includes('invalid_assignment')) {
+    return new Error('Every shift needs a valid employee and distinct start and end times. A template, when set, must match an active template. Custom shifts stay blocked until the publication database update is applied.')
+  }
   if (message.includes('forbidden')) return new Error('You do not have permission to access or publish this schedule.')
   if (error?.code === 'PGRST202' || error?.code === '42883') {
     return new Error('Schedule publishing is not ready. Apply the schedule publication database update.')
