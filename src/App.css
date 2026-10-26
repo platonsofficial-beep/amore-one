@@ -47451,6 +47451,38 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   color: #ffb4a8;
 }
 
+.inventory-import-wizard-status-pill.is-unmapped {
+  border-color: rgba(255, 180, 120, 0.34);
+  background: rgba(255, 180, 120, 0.1);
+  color: #ffd2a8;
+}
+
+.inventory-import-wizard-status-pill.is-ignored {
+  border-color: rgba(255, 247, 232, 0.16);
+  background: rgba(255, 247, 232, 0.06);
+  color: rgba(255, 247, 232, 0.62);
+}
+
+.inventory-import-column-map-select {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 11rem;
+  min-height: 44px;
+  padding: 8px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(212, 175, 55, 0.35);
+  background: rgba(10, 14, 20, 0.92);
+  color: #fff7e8;
+  font: inherit;
+  font-size: 0.95rem;
+}
+
+.inventory-import-standard-review {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
 @media (max-width: 1100px) {
   .inventory-import-wizard-steps {
     gap: 12px;

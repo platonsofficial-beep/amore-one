@@ -8,17 +8,157 @@ import { INVENTORY_OPERATIONAL_IMPORT_PREVIEW_ACTION } from './inventoryOperatio
 
 export const INVENTORY_IMPORT_MAP_PREVIEW_ROW_LIMIT = 5
 
+const WEEKDAY_NAMES = Object.freeze([
+  'monday',
+  'tuesday',
+  'wednesday',
+  'thursday',
+  'friday',
+  'saturday',
+  'sunday',
+])
+
 /**
+ * ONE fields a manager can assign on Map Columns.
+ * `unmapped` clears a column. `ignore` keeps the column out of the import.
+ */
+const INVENTORY_IMPORT_COLUMN_FIELD_DEFS = Object.freeze([
+  Object.freeze({ id: 'product_name', oneField: 'Product name', required: true, optional: false, role: 'product_name' }),
+  Object.freeze({ id: 'category', oneField: 'Category', required: false, optional: true, role: 'category' }),
+  Object.freeze({ id: 'unit', oneField: 'Unit', required: true, optional: false, role: 'unit' }),
+  Object.freeze({ id: 'quantity', oneField: 'Quantity', required: true, optional: false, role: 'quantity' }),
+  Object.freeze({ id: 'minimum', oneField: 'Minimum', required: false, optional: true, role: 'minimum' }),
+  Object.freeze({ id: 'par', oneField: 'Par', required: false, optional: true, role: 'par' }),
+  Object.freeze({ id: 'cost', oneField: 'Cost price', required: false, optional: true, role: 'cost' }),
+  Object.freeze({ id: 'supplier', oneField: 'Supplier', required: false, optional: true, role: 'supplier' }),
+  Object.freeze({ id: 'storage', oneField: 'Storage / location', required: false, optional: true, role: 'storage' }),
+  Object.freeze({ id: 'brand', oneField: 'Brand', required: false, optional: true, role: 'brand' }),
+  Object.freeze({ id: 'size', oneField: 'Size', required: false, optional: true, role: 'size' }),
+  Object.freeze({ id: 'barcode', oneField: 'Barcode', required: false, optional: true, role: 'barcode' }),
+  Object.freeze({ id: 'bar', oneField: 'Bar quantity', required: false, optional: true, role: 'bar' }),
+  Object.freeze({ id: 'order', oneField: 'Order (evidence)', required: false, optional: true, role: 'order' }),
+  Object.freeze({ id: 'stock_control', oneField: 'Stock Control (evidence)', required: false, optional: true, role: 'stock_control' }),
+  ...WEEKDAY_NAMES.map((day) => Object.freeze({
+    id: `weekday_${day}`,
+    oneField: `Weekday · ${day.charAt(0).toUpperCase()}${day.slice(1)}`,
+    required: false,
+    optional: true,
+    role: 'weekday',
+  })),
+  Object.freeze({ id: 'ignore', oneField: 'Ignore', required: false, optional: false, role: 'ignore' }),
+  Object.freeze({ id: 'unmapped', oneField: 'Unmapped', required: false, optional: false, role: 'unmapped' }),
+])
+
+const COLUMN_FIELD_BY_ID = new Map(
+  INVENTORY_IMPORT_COLUMN_FIELD_DEFS.map((field) => [field.id, field]),
+)
+
+/** Dropdown order: clear, ignore, then ONE fields. */
+export const INVENTORY_IMPORT_COLUMN_FIELD_OPTIONS = Object.freeze(
+  [
+    COLUMN_FIELD_BY_ID.get('unmapped'),
+    COLUMN_FIELD_BY_ID.get('ignore'),
+    ...INVENTORY_IMPORT_COLUMN_FIELD_DEFS.filter((field) => (
+      field.id !== 'ignore' && field.id !== 'unmapped'
+    )),
+  ].map((field) => Object.freeze({ id: field.id, label: field.oneField })),
+)
+
+const STANDARD_REQUIRED_COLUMN_FIELDS = Object.freeze([
+  Object.freeze({ role: 'product_name', label: 'Product name', message: 'Map a Product name column' }),
+  Object.freeze({ role: 'unit', label: 'Unit', message: 'Map a Unit column' }),
+  Object.freeze({ role: 'quantity', label: 'Quantity', message: 'Map a Quantity column' }),
+])
+
+/** Operational sheets repeat these roles on purpose (several storages, one column per weekday). */
+const REPEATABLE_COLUMN_ROLES = new Set([
+  'storage',
+  'bar',
+  'weekday',
+  'order',
+  'stock_control',
+  'ignore',
+  'unmapped',
+  'blank',
+])
+
+/**
+ * Case- and space-insensitive header key.
+ * Strips Greek tonos and folds final sigma so Τιμή κόστους and ΤΙΜΗ ΚΟΣΤΟΥΣ match.
+ *
  * @param {unknown} header
  * @returns {string}
  */
 function normalizeHeaderLabel(header) {
   if (header === null || header === undefined) return ''
-  return `${header}`.trim().toLowerCase().replace(/\s+/g, ' ')
+  return `${header}`
+    .trim()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/ς/g, 'σ')
+    .replace(/[._]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
+/** @type {Map<string, string>} */
+const HEADER_ALIAS_TO_FIELD_ID = new Map()
+
+/**
+ * @param {string[]} aliases
+ * @param {string} fieldId
+ */
+function registerHeaderAliases(aliases, fieldId) {
+  aliases.forEach((alias) => {
+    HEADER_ALIAS_TO_FIELD_ID.set(normalizeHeaderLabel(alias), fieldId)
+  })
+}
+
+registerHeaderAliases(['name', 'product', 'product name', 'προϊόν', 'προιον'], 'product_name')
+registerHeaderAliases(['category', 'κατηγορία', 'κατηγορια'], 'category')
+registerHeaderAliases(['unit', 'μονάδα', 'μοναδα'], 'unit')
+registerHeaderAliases(['quantity', 'qty', 'ποσότητα', 'ποσοτητα'], 'quantity')
+registerHeaderAliases(['minimum', 'min', 'ελάχιστο', 'ελαχιστο'], 'minimum')
+registerHeaderAliases(['par', 'par level'], 'par')
+registerHeaderAliases(['cost', 'cost price', 'τιμή κόστους', 'τιμη κοστους', 'τιμή κόστος'], 'cost')
+registerHeaderAliases(['supplier', 'προμηθευτής', 'προμηθευτης'], 'supplier')
+registerHeaderAliases(['storage', 'location', 'storage location', 'αποθήκη', 'αποθηκη'], 'storage')
+registerHeaderAliases(['brand', 'μάρκα', 'μαρκα'], 'brand')
+registerHeaderAliases(['size', 'μέγεθος', 'μεγεθος'], 'size')
+registerHeaderAliases(['barcode', 'bar code'], 'barcode')
+registerHeaderAliases(['bar'], 'bar')
+registerHeaderAliases(['order'], 'order')
+registerHeaderAliases(['stock control', 'stock_control'], 'stock_control')
+WEEKDAY_NAMES.forEach((day) => {
+  registerHeaderAliases([day], `weekday_${day}`)
+})
+
+/**
+ * @param {string} fieldId
+ * @returns {{
+ *   id: string,
+ *   oneField: string,
+ *   required: boolean,
+ *   optional: boolean,
+ *   role: string,
+ * }}
+ */
+function columnFieldById(fieldId) {
+  const field = COLUMN_FIELD_BY_ID.get(fieldId) ?? COLUMN_FIELD_BY_ID.get('unmapped')
+  return {
+    id: field.id,
+    oneField: field.oneField,
+    required: field.required,
+    optional: field.optional,
+    role: field.role,
+  }
 }
 
 /**
  * Map a source header to a ONE field role for Map Columns.
+ * A blank first column stays Product name so operational weekly sheets keep working.
+ * Any other header is matched by alias, including Greek labels.
  *
  * @param {{
  *   columnIndex?: number,
@@ -27,123 +167,96 @@ function normalizeHeaderLabel(header) {
  *   isBlank?: boolean,
  * }} header
  * @returns {{
+ *   id: string,
  *   oneField: string,
  *   required: boolean,
  *   optional: boolean,
- *   role: 'product_name'|'storage'|'bar'|'weekday'|'order'|'stock_control'|'unmapped'|'blank',
+ *   role: string,
  * }}
  */
 export function mapInventoryImportHeaderToOneField(header) {
   const columnIndex = Number.isInteger(header?.columnIndex) ? header.columnIndex : -1
 
   // Operational weekly sheets use a blank header for the product-name column.
-  if (columnIndex === 0) {
-    return {
-      oneField: 'Product name',
-      required: true,
-      optional: false,
-      role: 'product_name',
-    }
+  if (columnIndex === 0 && header?.isBlank) {
+    return columnFieldById('product_name')
   }
 
   if (header?.isBlank) {
     return {
-      oneField: 'Unmapped',
-      required: false,
-      optional: false,
+      ...columnFieldById('unmapped'),
       role: 'blank',
     }
   }
 
   const normalized = normalizeHeaderLabel(header?.normalized || header?.sourceHeader)
-
-  if (normalized === 'product' || normalized === 'product name' || normalized === 'name') {
-    return {
-      oneField: 'Product name',
-      required: true,
-      optional: false,
-      role: 'product_name',
-    }
-  }
+  const aliasId = HEADER_ALIAS_TO_FIELD_ID.get(normalized)
+  if (aliasId) return columnFieldById(aliasId)
 
   if (
     normalized === 'storage'
     || normalized.startsWith('storage ')
     || normalized.includes(' storage')
   ) {
-    return {
-      oneField: 'Storage / location',
-      required: false,
-      optional: true,
-      role: 'storage',
-    }
+    return columnFieldById('storage')
   }
 
-  if (normalized === 'bar') {
-    return {
-      oneField: 'Bar quantity',
-      required: false,
-      optional: true,
-      role: 'bar',
-    }
-  }
+  return columnFieldById('unmapped')
+}
 
-  if (
-    ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']
-      .includes(normalized)
-  ) {
-    return {
-      oneField: `Weekday · ${normalized.charAt(0).toUpperCase()}${normalized.slice(1)}`,
-      required: false,
-      optional: true,
-      role: 'weekday',
+/**
+ * Manual choice wins over the header alias.
+ *
+ * @param {object} header
+ * @param {unknown} overrideId
+ */
+export function resolveInventoryImportColumnField(header, overrideId) {
+  if (typeof overrideId === 'string' && COLUMN_FIELD_BY_ID.has(overrideId)) {
+    const chosen = columnFieldById(overrideId)
+    if (chosen.id === 'unmapped' && header?.isBlank) {
+      return { ...chosen, role: 'blank' }
     }
+    return chosen
   }
-
-  if (normalized === 'order') {
-    return {
-      oneField: 'Order (evidence)',
-      required: false,
-      optional: true,
-      role: 'order',
-    }
-  }
-
-  if (normalized === 'stock control' || normalized === 'stock_control') {
-    return {
-      oneField: 'Stock Control (evidence)',
-      required: false,
-      optional: true,
-      role: 'stock_control',
-    }
-  }
-
-  return {
-    oneField: 'Unmapped',
-    required: false,
-    optional: false,
-    role: 'unmapped',
-  }
+  return mapInventoryImportHeaderToOneField(header)
 }
 
 /**
  * @param {object|null|undefined} parseResult
+ * @param {{
+ *   overrides?: Record<string, string>|null,
+ *   requireStandardFields?: boolean,
+ * }} [options]
  * @returns {{
- *   mapped: Array<{ columnIndex: number, sourceHeader: string, oneField: string, required: boolean }>,
+ *   mapped: Array<{
+ *     columnIndex: number,
+ *     sourceHeader: string,
+ *     id: string,
+ *     oneField: string,
+ *     required: boolean,
+ *     optional: boolean,
+ *     role: string,
+ *     duplicate: boolean,
+ *   }>,
  *   missingRequired: string[],
  *   optionalMapped: string[],
  *   unmappedCount: number,
  * }}
  */
-export function buildInventoryImportColumnMappingSummary(parseResult) {
+export function buildInventoryImportColumnMappingSummary(parseResult, options = {}) {
   const headers = Array.isArray(parseResult?.headers) ? parseResult.headers : []
+  const overrides = options?.overrides && typeof options.overrides === 'object'
+    ? options.overrides
+    : null
   const mapped = []
-  const optionalMapped = []
   let hasProductName = false
+  let hasUnit = false
+  let hasQuantity = false
   let unmappedCount = 0
 
   headers.forEach((header) => {
-    const field = mapInventoryImportHeaderToOneField(header)
+    const overrideId = overrides?.[header.columnIndex] ?? overrides?.[String(header.columnIndex)]
+    const field = resolveInventoryImportColumnField(header, overrideId)
     const sourceHeader = header?.isBlank
       ? '(blank)'
       : `${header?.sourceHeader ?? ''}`.trim() || '(blank)'
@@ -151,24 +264,188 @@ export function buildInventoryImportColumnMappingSummary(parseResult) {
     mapped.push({
       columnIndex: header.columnIndex,
       sourceHeader,
+      id: field.id,
       oneField: field.oneField,
       required: field.required,
+      optional: field.optional,
       role: field.role,
+      duplicate: false,
     })
 
     if (field.role === 'product_name') hasProductName = true
-    if (field.optional) optionalMapped.push(field.oneField)
-    if (field.role === 'unmapped' || field.role === 'blank') unmappedCount += 1
+    if (field.role === 'unit') hasUnit = true
+    if (field.role === 'quantity') hasQuantity = true
+    if (field.role === 'unmapped' || field.role === 'blank' || field.role === 'ignore') {
+      unmappedCount += 1
+    }
   })
+
+  // A field that can belong to only one column is a duplicate on every column that uses it.
+  const roleCounts = new Map()
+  mapped.forEach((field) => {
+    if (REPEATABLE_COLUMN_ROLES.has(field.role)) return
+    roleCounts.set(field.role, (roleCounts.get(field.role) ?? 0) + 1)
+  })
+  mapped.forEach((field) => {
+    if ((roleCounts.get(field.role) ?? 0) > 1) field.duplicate = true
+  })
+  const optionalMapped = mapped
+    .filter((field) => field.optional && !field.duplicate)
+    .map((field) => field.oneField)
 
   const missingRequired = []
   if (!hasProductName) missingRequired.push('Product name')
+  if (options?.requireStandardFields === true) {
+    if (!hasUnit) missingRequired.push('Unit')
+    if (!hasQuantity) missingRequired.push('Quantity')
+  }
 
   return {
     mapped,
     missingRequired,
     optionalMapped: [...new Set(optionalMapped)],
     unmappedCount,
+  }
+}
+
+/**
+ * Plain reasons for a disabled Map Columns Continue button.
+ * Operational weekly sheets keep their existing product-count gate.
+ * Every other worksheet needs one Product name, one Unit, and one Quantity.
+ *
+ * @param {{
+ *   isOperational?: boolean,
+ *   operationalProductCount?: number,
+ *   mappings?: Array<{ role?: string, oneField?: string, duplicate?: boolean }>,
+ * }} [input]
+ * @returns {string[]}
+ */
+export function listInventoryImportColumnsContinueMessages({
+  isOperational = false,
+  operationalProductCount = 0,
+  mappings = [],
+} = {}) {
+  if (isOperational) {
+    if (Number.isFinite(operationalProductCount) && operationalProductCount > 0) return []
+    return ['No products were found in this worksheet.']
+  }
+
+  const fields = Array.isArray(mappings) ? mappings : []
+  /** @type {Map<string, { count: number, label: string }>} */
+  const counts = new Map()
+  fields.forEach((field) => {
+    const role = field?.role
+    if (!role || REPEATABLE_COLUMN_ROLES.has(role)) return
+    const current = counts.get(role) ?? { count: 0, label: field.oneField || role }
+    current.count += 1
+    counts.set(role, current)
+  })
+
+  /** @type {string[]} */
+  const messages = []
+  STANDARD_REQUIRED_COLUMN_FIELDS.forEach((required) => {
+    const count = counts.get(required.role)?.count ?? 0
+    if (count === 0) messages.push(required.message)
+    else if (count > 1) messages.push(`${required.label} is mapped more than once`)
+  })
+
+  counts.forEach((entry, role) => {
+    if (entry.count < 2) return
+    if (STANDARD_REQUIRED_COLUMN_FIELDS.some((required) => required.role === role)) return
+    messages.push(`${entry.label} is mapped more than once`)
+  })
+
+  return messages
+}
+
+/**
+ * @param {object|null|undefined} row
+ * @param {number} columnIndex
+ * @returns {string}
+ */
+function mappedCellText(row, columnIndex) {
+  if (!Number.isInteger(columnIndex) || columnIndex < 0) return ''
+  const cell = Array.isArray(row?.cells) ? row.cells[columnIndex] : null
+  const value = cell?.normalized?.value
+  if (value !== null && value !== undefined && `${value}`.trim() !== '') return `${value}`.trim()
+  const raw = cell?.raw
+  if (raw === null || raw === undefined || `${raw}`.trim() === '') return ''
+  return `${raw}`.trim()
+}
+
+/**
+ * Row check for a standard inventory table after Map Columns.
+ * Uses the mapped Product name, Unit, and Quantity columns only.
+ *
+ * @param {object|null|undefined} parseResult
+ * @param {{ mapped?: Array<{ role?: string, columnIndex?: number, duplicate?: boolean }> }|null} [columnMappingSummary]
+ * @returns {{
+ *   rows: Array<{
+ *     sourceRowNumber: number,
+ *     productName: string,
+ *     unit: string,
+ *     quantity: string,
+ *     status: 'Ready'|'Needs attention',
+ *     issues: string[],
+ *   }>,
+ *   groups: {
+ *     summary: { rows: number, ready: number, warnings: number, errors: number },
+ *     groups: Array<{ id: string, title: string, count: number, items: string[] }>,
+ *   },
+ * }|null}
+ */
+export function buildStandardInventoryImportRowReview(parseResult, columnMappingSummary = null) {
+  if (!parseResult || !Array.isArray(parseResult.headers)) return null
+
+  const mappings = Array.isArray(columnMappingSummary?.mapped) ? columnMappingSummary.mapped : []
+  const columnForRole = (role) => {
+    const match = mappings.find((field) => field.role === role && field.duplicate !== true)
+    return Number.isInteger(match?.columnIndex) ? match.columnIndex : -1
+  }
+  const nameIndex = columnForRole('product_name')
+  const unitIndex = columnForRole('unit')
+  const quantityIndex = columnForRole('quantity')
+
+  const sourceRows = Array.isArray(parseResult.rows) ? parseResult.rows : []
+  const rows = sourceRows.filter((row) => row?.isBlank !== true).map((row) => {
+    const productName = mappedCellText(row, nameIndex)
+    const unit = mappedCellText(row, unitIndex)
+    const quantity = mappedCellText(row, quantityIndex)
+    /** @type {string[]} */
+    const issues = []
+    if (!productName) issues.push('Product name is empty')
+    if (!unit) issues.push('Unit is empty')
+    if (!quantity) issues.push('Quantity is empty')
+    return {
+      sourceRowNumber: Number(row?.sourceRowNumber) || 0,
+      productName,
+      unit,
+      quantity,
+      status: issues.length === 0 ? 'Ready' : 'Needs attention',
+      issues,
+    }
+  })
+
+  const ready = rows.filter((row) => row.status === 'Ready').length
+  const errors = rows.length - ready
+  return {
+    rows,
+    groups: {
+      summary: {
+        rows: rows.length,
+        ready,
+        warnings: 0,
+        errors,
+      },
+      groups: [
+        {
+          id: 'blocked_rows',
+          title: 'Blocked Rows',
+          count: 0,
+          items: [],
+        },
+      ],
+    },
   }
 }
 
@@ -643,7 +920,7 @@ export function buildInventoryImportStepSummary({
       ? columnMappingSummary.mapped
       : []
     const mappedCount = mappedRows.filter(
-      (item) => item.role !== 'unmapped' && item.role !== 'blank',
+      (item) => item.role !== 'unmapped' && item.role !== 'blank' && item.role !== 'ignore',
     ).length
     const detected = Number.isFinite(parseResult?.summary?.sourceColumnCount)
       ? parseResult.summary.sourceColumnCount
