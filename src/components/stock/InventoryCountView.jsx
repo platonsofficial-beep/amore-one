@@ -378,14 +378,6 @@ export function InventoryCountView({
   }, [loadHomeSessions])
 
   useEffect(() => {
-    if (!canManage) {
-      if (`${initialOpenSessionId ?? ''}`.trim()) {
-        onInitialOpenSessionApplied?.()
-      }
-      pendingOpenSessionIdRef.current = ''
-      return undefined
-    }
-
     const fromProp = `${initialOpenSessionId ?? ''}`.trim()
     if (fromProp) {
       pendingOpenSessionIdRef.current = fromProp
@@ -416,6 +408,10 @@ export function InventoryCountView({
           setIsSessionOpen(false)
           setActiveSessionId('')
           setActiveWorkspaceId('')
+          if (!canManage) {
+            setPageNotice('A manager reviews posted counts.')
+            return
+          }
           setPostedReviewSessionId(session.id)
           setPostedReviewWorkspaceId(`${session.workspaceId || workspaceId}`)
           setPostedReviewNotice('')

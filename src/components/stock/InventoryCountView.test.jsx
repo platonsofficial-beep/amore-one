@@ -524,6 +524,34 @@ describe('InventoryCountView deep link open (P8.16.30)', () => {
     cleanup()
   })
 
+  it('opens a shelf count for staff from the storage link', async () => {
+    const onApplied = vi.fn()
+    getSessionMock.mockResolvedValue(sessionFixture({
+      id: 'shelf-session',
+      status: 'in_progress',
+      workspaceId: 'workspace-test-id',
+    }))
+
+    const { container, cleanup } = render(createElement(InventoryCountView, {
+      canManage: false,
+      initialOpenSessionId: 'shelf-session',
+      onInitialOpenSessionApplied: onApplied,
+    }))
+
+    await flush()
+    await act(async () => {
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+
+    expect(onApplied).toHaveBeenCalled()
+    expect(container.querySelector('.inventory-count-session')?.getAttribute('data-session-id'))
+      .toBe('shelf-session')
+    expect(container.textContent).not.toContain('Start new count')
+
+    cleanup()
+  })
+
   it('falls back to Inventory Count home with a notice when the session is missing', async () => {
     const onApplied = vi.fn()
     getSessionMock.mockRejectedValue(new Error('Inventory count session was not found.'))

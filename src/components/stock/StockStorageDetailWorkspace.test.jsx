@@ -216,7 +216,7 @@ describe('StockStorageDetailWorkspace — actions + Fast Count launch', () => {
       .toContain('Select at least one location')
   })
 
-  it('hides action bar for staff and keeps View Details only in overflow', async () => {
+  it('shows a shelf count for staff and keeps manager stock actions hidden', async () => {
     const loadProducts = vi.fn(async () => ({
       storageId: 's-main',
       products: [makeRow()],
@@ -227,17 +227,29 @@ describe('StockStorageDetailWorkspace — actions + Fast Count launch', () => {
         inventoryValue: 40,
       },
     }))
+    const onStartFastCount = vi.fn()
 
     renderWorkspace({
       workspaceId: 'ws-1',
       storage: { id: 's-main', name: 'Main Storage', active: true },
       canManage: false,
       loadProducts,
+      onStartFastCount,
     })
 
     await settle()
 
-    expect(container.querySelector('[data-testid="stock-storage-detail-action-bar"]')).toBeNull()
+    const countButton = container.querySelector('[data-storage-action="staff_count"]')
+    expect(countButton?.textContent).toBe('Count shelf')
+    expect(container.querySelector('[data-storage-action="receive"]')).toBeNull()
+    expect(container.querySelector('[data-storage-action="transfer"]')).toBeNull()
+    expect(container.querySelector('[data-storage-action="adjustment"]')).toBeNull()
+    expect(container.querySelector('[data-storage-action="fast_count"]')).toBeNull()
+
+    await act(async () => {
+      countButton.click()
+    })
+    expect(onStartFastCount).toHaveBeenCalled()
 
     await act(async () => {
       container.querySelector('[data-storage-product-menu-trigger="true"]').click()
@@ -1099,6 +1111,7 @@ describe('StockStorageDetailWorkspace — actions + Fast Count launch', () => {
     const open = container.querySelector('[data-testid="supply-refill-open"]')
     expect(open.disabled).toBe(false)
     expect(container.querySelector('[data-testid="supply-refill-staff-note"]')).toBeNull()
-    expect(container.querySelector('[data-testid="stock-storage-detail-action-bar"]')).toBeNull()
+    expect(container.querySelector('[data-storage-action="staff_count"]')?.textContent).toBe('Count shelf')
+    expect(container.querySelector('[data-storage-action="receive"]')).toBeNull()
   })
 })

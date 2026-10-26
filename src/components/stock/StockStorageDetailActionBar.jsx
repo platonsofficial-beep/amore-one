@@ -22,7 +22,28 @@ export function StockStorageDetailActionBar({
   onTransfer,
   onAdjustment,
 } = {}) {
-  if (!canManage) return null
+  if (!canManage) {
+    const isArchived = storage?.active === false
+    const unavailableReason = isArchived ? 'Unavailable for archived storage' : undefined
+    return (
+      <div
+        className="stock-storage-detail-action-bar"
+        data-testid="stock-storage-detail-action-bar"
+      >
+        <button
+          type="button"
+          className="primary-btn stock-storage-detail-action-btn"
+          data-storage-action="staff_count"
+          disabled={isArchived || isLaunchingFastCount}
+          aria-busy={isLaunchingFastCount}
+          title={unavailableReason}
+          onClick={() => onStartFastCount?.(storage)}
+        >
+          {isLaunchingFastCount ? 'Starting…' : 'Count shelf'}
+        </button>
+      </div>
+    )
+  }
 
   const isArchived = storage?.active === false
   const fastCountDisabled = isArchived || isLaunchingFastCount
