@@ -1,5 +1,7 @@
 # Stock Inventory Migration Runbook
 
+**Retired:** The Operator Panel and Legacy Inventory screen are no longer in the app. This runbook and the SQL files stay in the repo for reference. Do not run the migration.
+
 **Pipeline:** P7.4.x → P7.5.0 → P7.8.x session stages → **P8.13.0 Phase 1 production verification**
 **Document:** Production operator runbook
 **Audience:** Operators running migration via ONE Operator Panel and/or Supabase SQL editor

@@ -51,7 +51,6 @@ describe('StockStorageCenter navigation contract', () => {
       'dashboard',
       'count',
       'storages',
-      'inventory',
       'suppliers',
       'orders',
       'migration',

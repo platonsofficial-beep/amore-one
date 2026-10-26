@@ -18,10 +18,9 @@ export const STOCK_SECTIONS = [
   { id: 'dashboard', label: 'Dashboard' },
   { id: 'count', label: 'Inventory Count' },
   { id: 'storages', label: 'Storages' },
-  { id: 'inventory', label: 'Legacy Inventory' },
   { id: 'suppliers', label: 'Suppliers' },
   { id: 'orders', label: 'Orders' },
-  { id: 'migration', label: 'Import & Migration' },
+  { id: 'migration', label: 'Import' },
 ]
 
 export const OPERATIONS_SECTIONS = [
@@ -127,9 +126,8 @@ export function getModuleTitle(activeView, {
     if (stockSection === 'count') return 'Inventory Count'
     if (stockSection === 'storages') return 'Storages'
     if (stockSection === 'suppliers') return 'Suppliers'
-    if (stockSection === 'inventory') return 'Legacy Inventory'
     if (stockSection === 'orders') return 'Orders'
-    if (stockSection === 'migration') return 'Import & Migration'
+    if (stockSection === 'migration') return 'Import'
     return 'Stock'
   }
   if (activeView === 'operations') {
@@ -161,13 +159,10 @@ export function getModuleSubtitle(activeView, currentDateLabel, {
   if (activeView === 'stock' && stockSection === 'storages') {
     return 'Understand and manage stock by physical location.'
   }
-  if (activeView === 'stock' && stockSection === 'inventory') {
-    return 'Legacy product records retained for migration and historical reference. Live stock products are managed from Dashboard.'
-  }
   if (activeView === 'stock' && stockSection === 'suppliers') return 'Supplier contacts, products, and purchase history.'
   if (activeView === 'stock' && stockSection === 'orders') return 'Supplier purchase orders and receiving.'
   if (activeView === 'stock' && stockSection === 'migration') {
-    return 'Spreadsheet import for catalog onboarding, or one-time legacy inventory cutover.'
+    return 'Bring products in from a spreadsheet. Review every row before it is applied.'
   }
   if (activeView === 'operations' && operationsSection === 'checklists') return 'Build reusable opening, closing, and prep procedures.'
   if (activeView === 'operations' && operationsSection === 'tasks') return 'Department task boards, separate from the operations checklist.'
@@ -185,11 +180,10 @@ export function getSearchPlaceholder(activeView, {
   if (activeView === 'team' && teamSection === 'members') return 'Search employee'
   if (activeView === 'stock' && stockSection === 'orders') return 'Search order #, supplier, product'
   if (activeView === 'stock' && stockSection === 'dashboard') return 'Search stock item'
-  if (activeView === 'stock' && stockSection === 'inventory') return 'Search legacy inventory'
   if (activeView === 'stock' && stockSection === 'count') return 'Search counts'
   if (activeView === 'stock' && stockSection === 'storages') return 'Search storages or products'
   if (activeView === 'stock' && stockSection === 'suppliers') return 'Search supplier'
-  if (activeView === 'stock' && stockSection === 'migration') return 'Search migration stages'
+  if (activeView === 'stock' && stockSection === 'migration') return 'Search import'
   if (activeView === 'operations' && operationsSection === 'checklists') return 'Search checklists'
   if (activeView === 'operations' && operationsSection === 'tasks') return 'Search board tasks'
   if (activeView === 'operations' && operationsSection === 'dashboard') return 'Search tasks and notes'
@@ -197,11 +191,12 @@ export function getSearchPlaceholder(activeView, {
   return 'Search'
 }
 
-export function shouldShowModuleSearch(activeView, teamSection) {
+export function shouldShowModuleSearch(activeView, teamSection, stockSection = 'dashboard') {
   if (isTodayView(activeView)) return false
   if (isTeamScheduleView(activeView, teamSection)) return false
   if (activeView === 'team' && teamSection === 'today') return false
   if (activeView === 'settings') return false
+  if (activeView === 'stock' && stockSection === 'migration') return false
   return true
 }
 

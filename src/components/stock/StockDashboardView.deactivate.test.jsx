@@ -482,9 +482,10 @@ describe('inactive stock items leave alert surfaces', () => {
   })
 })
 
-describe('inventory catalog delete remains independent', () => {
-  it('does not wire inventory delete to stock deactivate helpers', () => {
-    expect(APP_SOURCE).toContain('await deleteInventoryItem(inventoryPendingDelete.id)')
+describe('legacy catalog delete is retired', () => {
+  it('does not keep a legacy inventory delete path on the stock screen', () => {
+    expect(APP_SOURCE).not.toContain('deleteInventoryItem')
     expect(APP_SOURCE).not.toContain('buildStockItemDeactivatePayload')
+    expect(APP_SOURCE).toContain('handleDeactivateStockItem')
   })
 })

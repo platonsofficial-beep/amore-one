@@ -1,6 +1,6 @@
 // @vitest-environment node
 
-import { readFileSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
@@ -29,9 +29,6 @@ describe('P8.13.0 Phase 1 production verification artifacts', () => {
   const validationSql = readFileSync(validationPath, 'utf8')
   const phase1Rpc = readFileSync(phase1RpcPath, 'utf8')
   const runbook = readFileSync(runbookPath, 'utf8')
-  const service = readFileSync(servicePath, 'utf8')
-  const operator = readFileSync(operatorPath, 'utf8')
-  const eligibility = readFileSync(eligibilityPath, 'utf8')
 
   it('provides read-only Phase 1 runtime validation SQL', () => {
     expect(validationSql).toContain('P8.13.0')
@@ -84,17 +81,12 @@ describe('P8.13.0 Phase 1 production verification artifacts', () => {
     expect(runbook).toMatch(/Operator Panel/)
   })
 
-  it('keeps Operator Panel + service on the canonical RPC only', () => {
-    expect(service).toContain("const RUN_PHASE1_RPC = 'run_inventory_migration_phase1'")
-    expect(service).toContain('export async function runInventoryMigrationPhase1')
-    expect(service).not.toContain('inventory_movement_execute_phase1')
-    expect(operator).toContain('runInventoryMigrationPhase1')
-    expect(operator).toContain("'Phase 1': 'phase-1'")
-    expect(operator).toContain('onRefresh')
-    expect(operator).not.toContain('inventory_movement_execute_phase1')
-    expect(eligibility).toContain("'phase-1'")
-    expect(eligibility).toContain("stepName: 'phase1'")
-    expect(eligibility).toContain("predecessor: 'preview'")
-    expect(eligibility).toContain("attentionPriorStep: 'preview'")
+  it('retires the Operator Panel UI and keeps the SQL files', () => {
+    expect(runbook).toMatch(/Retired:/)
+    expect(existsSync(servicePath)).toBe(false)
+    expect(existsSync(operatorPath)).toBe(false)
+    expect(existsSync(eligibilityPath)).toBe(false)
+    expect(existsSync(phase1RpcPath)).toBe(true)
+    expect(existsSync(validationPath)).toBe(true)
   })
 })

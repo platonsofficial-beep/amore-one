@@ -3,10 +3,10 @@ import { STOCK_SECTIONS } from './appNavigation'
 /** Phone stock row. The rest stay reachable from More. */
 export const STOCK_PHONE_PRIMARY_SECTION_IDS = ['dashboard', 'count', 'storages', 'orders']
 
-/** RPCs and legacy tools that staff cannot use. */
-export const STOCK_MANAGER_ONLY_SECTION_IDS = ['inventory', 'migration']
+/** Spreadsheet import is a manager tool. Staff do not see it. */
+export const STOCK_MANAGER_ONLY_SECTION_IDS = ['migration']
 
-const STOCK_PHONE_OVERFLOW_ORDER = ['suppliers', 'inventory', 'migration']
+const STOCK_PHONE_OVERFLOW_ORDER = ['suppliers', 'migration']
 
 export function isStockSectionVisible(sectionId, canManage) {
   if (!canManage && STOCK_MANAGER_ONLY_SECTION_IDS.includes(sectionId)) return false
@@ -29,7 +29,7 @@ export function nextStockSearchTerm(currentSection, nextSection, searchTerm = ''
 
 /**
  * Managers on iPad/desktop keep every stock section.
- * Staff never see Legacy Inventory or Import & Migration.
+ * Staff never see Import.
  * Compact phone layouts keep four primary tabs on one row and park the rest in More.
  */
 export function resolveStockSectionNav({ canManage = false, compactPhone = false } = {}) {
