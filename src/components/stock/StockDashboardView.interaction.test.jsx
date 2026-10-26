@@ -230,7 +230,7 @@ describe('StockDashboardView KPI → All Products pipeline (P8.17.3b)', () => {
 
   it('1. Low KPI removes OK and Out products from All Products', () => {
     const { container, cleanup } = mount()
-    const lowCard = summaryCard(container, 'Low stock')
+    const lowCard = summaryCard(container, 'At minimum')
     click(lowCard)
 
     expect(lowCard.getAttribute('aria-pressed')).toBe('true')
@@ -262,7 +262,7 @@ describe('StockDashboardView KPI → All Products pipeline (P8.17.3b)', () => {
 
   it('4. Second Low tap restores the full eligible catalog', () => {
     const { container, cleanup } = mount()
-    const lowCard = summaryCard(container, 'Low stock')
+    const lowCard = summaryCard(container, 'At minimum')
     click(lowCard)
     expect(catalogProductNames(container)).toEqual(['LOW ITEM'])
     click(lowCard)
@@ -279,7 +279,7 @@ describe('StockDashboardView KPI → All Products pipeline (P8.17.3b)', () => {
 
   it('5. Switching KPI replaces the prior All Products result set', () => {
     const { container, cleanup } = mount()
-    const lowCard = summaryCard(container, 'Low stock')
+    const lowCard = summaryCard(container, 'At minimum')
     const outCard = summaryCard(container, 'Out of stock')
     click(lowCard)
     expect(catalogProductNames(container)).toEqual(['LOW ITEM'])
@@ -292,7 +292,7 @@ describe('StockDashboardView KPI → All Products pipeline (P8.17.3b)', () => {
 
   it('6–8. Cards, List, and Count views share the same filtered dataset', () => {
     const { container, cleanup } = mount()
-    click(summaryCard(container, 'Low stock'))
+    click(summaryCard(container, 'At minimum'))
 
     expect(catalogProductNames(container)).toEqual(['LOW ITEM'])
 
@@ -330,7 +330,7 @@ describe('StockDashboardView KPI → All Products pipeline (P8.17.3b)', () => {
 
   it('11. Needs Attention remains present and still lists attention products while KPI filters All Products', () => {
     const { container, cleanup } = mount()
-    click(summaryCard(container, 'Low stock'))
+    click(summaryCard(container, 'At minimum'))
 
     const attention = container.querySelector('[aria-label="Needs attention"]')
     expect(attention).toBeTruthy()
@@ -348,7 +348,7 @@ describe('StockDashboardView KPI → All Products pipeline (P8.17.3b)', () => {
 
   it('12. KPI selected state stays synchronized with the filtered dataset', () => {
     const { container, cleanup } = mount()
-    const lowCard = summaryCard(container, 'Low stock')
+    const lowCard = summaryCard(container, 'At minimum')
     const outCard = summaryCard(container, 'Out of stock')
     const orderCard = summaryCard(container, 'To order')
 
@@ -389,19 +389,19 @@ describe('StockDashboardView filtered catalog density (P8.17.3d)', () => {
   }
 
   it('1. Filtered context label, count, and Clear filter share one coherent wrapper', () => {
-    expect(getStockStatusFilterLabel('low')).toBe('Low stock')
+    expect(getStockStatusFilterLabel('low')).toBe('At minimum')
     expect(getStockStatusFilterLabel('out')).toBe('Out of stock')
     expect(getStockStatusFilterLabel('order')).toBe('To order')
 
     const { container, cleanup } = mount()
     expect(container.querySelector('#stock-filtered-context')).toBeNull()
 
-    click(summaryCard(container, 'Low stock'))
+    click(summaryCard(container, 'At minimum'))
     const context = container.querySelector('#stock-filtered-context')
     const main = context?.querySelector('.stock-filtered-context-main')
     expect(context).toBeTruthy()
     expect(main).toBeTruthy()
-    expect(main.querySelector('.stock-filtered-context-title')?.textContent).toBe('Low stock')
+    expect(main.querySelector('.stock-filtered-context-title')?.textContent).toBe('At minimum')
     expect(main.querySelector('.stock-filtered-context-count')?.textContent).toBe('1 product')
     expect(main.querySelector('.stock-filtered-context-clear')?.textContent).toBe('Clear filter')
     expect(catalogRoot(container).className).toContain('is-filtered-mode')
@@ -410,7 +410,7 @@ describe('StockDashboardView filtered catalog density (P8.17.3d)', () => {
 
   it('2 / 16. Clear filter and KPI second-tap both clear the active KPI filter', () => {
     const { container, cleanup } = mount()
-    const lowCard = summaryCard(container, 'Low stock')
+    const lowCard = summaryCard(container, 'At minimum')
     click(lowCard)
     expect(container.querySelector('#stock-filtered-context')).toBeTruthy()
 
@@ -473,12 +473,12 @@ describe('StockDashboardView filtered catalog density (P8.17.3d)', () => {
 
   it('9–10. Active status stays KPI-synced without a contradictory second status chooser', () => {
     const { container, cleanup } = mount()
-    const lowCard = summaryCard(container, 'Low stock')
+    const lowCard = summaryCard(container, 'At minimum')
     click(lowCard)
 
     expect(lowCard.getAttribute('aria-pressed')).toBe('true')
     expect(container.querySelector('#stock-filtered-context .stock-filtered-context-title')?.textContent)
-      .toBe('Low stock')
+      .toBe('At minimum')
     expect(container.querySelector('[aria-label="Stock status"]')).toBeNull()
     expect(container.querySelectorAll('.stock-summary-card.is-selected')).toHaveLength(1)
     expect(catalogProductNames(container)).toEqual(['LOW ITEM'])
@@ -637,9 +637,9 @@ describe('StockDashboardView compact browse workspace (P8.24.3)', () => {
     const { container, cleanup } = mount({
       stockItems: CATALOG,
     })
-    click(summaryCard(container, 'Low stock'))
+    click(summaryCard(container, 'At minimum'))
     expect(container.querySelector('#stock-filtered-context .stock-filtered-context-title')?.textContent)
-      .toBe('Low stock')
+      .toBe('At minimum')
     expect(buttonByText(container, 'Clear filter')).toBeTruthy()
     expect(resultCountText(container)).toMatch(/Showing 1 of 4/)
     expect(container.querySelectorAll('[data-stock-compact-browse-toolbar="true"]')).toHaveLength(1)

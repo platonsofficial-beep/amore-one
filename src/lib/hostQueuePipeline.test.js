@@ -138,6 +138,69 @@ describe('hostQueuePipeline seating filter', () => {
     expect(filtered).toHaveLength(1)
   })
 
+  it('shows a completed 17:00 booking under Dinner 1 with the live seating windows', () => {
+    const seatings = [
+      {
+        id: 'brunch',
+        name: 'Brunch',
+        startTime: '10:00',
+        durationMinutes: 120,
+        daysOfWeek: [0, 1, 2, 3, 4, 5, 6],
+        sortOrder: 0,
+        isActive: true,
+      },
+      {
+        id: 'lunch',
+        name: 'Lunch',
+        startTime: '12:00',
+        durationMinutes: 120,
+        daysOfWeek: [0, 1, 2, 3, 4, 5, 6],
+        sortOrder: 1,
+        isActive: true,
+      },
+      {
+        id: 'dinner-1',
+        name: 'Dinner 1',
+        startTime: '19:00',
+        durationMinutes: 120,
+        daysOfWeek: [0, 1, 2, 3, 4, 5, 6],
+        sortOrder: 2,
+        isActive: true,
+      },
+      {
+        id: 'dinner-2',
+        name: 'Dinner 2',
+        startTime: '21:00',
+        durationMinutes: 120,
+        daysOfWeek: [0, 1, 2, 3, 4, 5, 6],
+        sortOrder: 3,
+        isActive: true,
+      },
+    ]
+    const date = '2026-10-26'
+    const completed = buildReservation({
+      id: 'timer',
+      guestName: 'Test Grokbot Timer',
+      time: '17:00',
+      status: 'Checked Out',
+      seatingId: 'dinner-2',
+      date,
+    })
+    const afternoon = buildReservation({
+      id: 'sixteen',
+      time: '16:00',
+      status: 'Checked Out',
+      seatingId: 'dinner-1',
+      date,
+    })
+
+    const dinnerOne = seatings[2]
+    const dinnerTwo = seatings[3]
+    expect(filterReservationsBySelectedSeating([completed, afternoon], dinnerOne, seatings, date).map((entry) => entry.id))
+      .toEqual(['timer', 'sixteen'])
+    expect(filterReservationsBySelectedSeating([completed], dinnerTwo, seatings, date)).toHaveLength(0)
+  })
+
   it('keeps a booking between seatings on the nearest seating and searchable from any seating', () => {
     const seatings = [
       {
@@ -775,20 +838,22 @@ describe('hostQueuePipeline reservation purpose filters', () => {
       seatingId: null,
     })
 
-    seatings.forEach((seating) => {
-      expect(filterReservationsBySelectedSeating(
-        [closed],
-        seating,
-        seatings,
-        '2026-07-08',
-      )).toEqual([])
-      expect(buildHostQueueReservationList([closed], {
-        selectedSeating: seating,
-        seatings,
-        dateKey: '2026-07-08',
-        timeZone: 'Europe/Nicosia',
-      }).map((entry) => entry.id)).toEqual(['closed-guest'])
-    })
+    const dinner = seatings[2]
+    expect(filterReservationsBySelectedSeating([closed], dinner, seatings, '2026-07-08').map((entry) => entry.id))
+      .toEqual(['closed-guest'])
+    expect(filterReservationsBySelectedSeating([closed], seatings[0], seatings, '2026-07-08')).toEqual([])
+    expect(buildHostQueueReservationList([closed], {
+      selectedSeating: dinner,
+      seatings,
+      dateKey: '2026-07-08',
+      timeZone: 'Europe/Nicosia',
+    }).map((entry) => entry.id)).toEqual(['closed-guest'])
+    expect(buildHostQueueReservationList([closed], {
+      selectedSeating: seatings[0],
+      seatings,
+      dateKey: '2026-07-08',
+      timeZone: 'Europe/Nicosia',
+    })).toEqual([])
 
     expect(buildHostQueueReservationList([{
       ...closed,

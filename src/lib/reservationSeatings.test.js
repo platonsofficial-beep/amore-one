@@ -174,6 +174,73 @@ describe('reservationSeatings', () => {
     expect(seatingId).toBeNull()
   })
 
+  it('places a 17:00 booking on Dinner 1 for every status, including a stored Dinner 2 id', () => {
+    const seatings = sortReservationSeatings([
+      {
+        id: 'brunch',
+        name: 'Brunch',
+        start_time: '10:00',
+        duration_minutes: 120,
+        days_of_week: [0, 1, 2, 3, 4, 5, 6],
+        sort_order: 0,
+        is_active: true,
+      },
+      {
+        id: 'lunch',
+        name: 'Lunch',
+        start_time: '12:00',
+        duration_minutes: 120,
+        days_of_week: [0, 1, 2, 3, 4, 5, 6],
+        sort_order: 1,
+        is_active: true,
+      },
+      {
+        id: 'dinner-1',
+        name: 'Dinner 1',
+        start_time: '19:00',
+        duration_minutes: 120,
+        days_of_week: [0, 1, 2, 3, 4, 5, 6],
+        sort_order: 2,
+        is_active: true,
+      },
+      {
+        id: 'dinner-2',
+        name: 'Dinner 2',
+        start_time: '21:00',
+        duration_minutes: 120,
+        days_of_week: [0, 1, 2, 3, 4, 5, 6],
+        sort_order: 3,
+        is_active: true,
+      },
+    ])
+    const date = '2026-10-26'
+
+    expect(resolveHostQueueSeatingId({
+      date,
+      time: '17:00',
+      status: 'Checked Out',
+      seatingId: 'dinner-2',
+    }, seatings, date)).toBe('dinner-1')
+    expect(resolveHostQueueSeatingId({
+      date,
+      time: '17:00',
+      status: 'Confirmed',
+      seatingId: 'dinner-2',
+    }, seatings, date)).toBe('dinner-1')
+    expect(resolveHostQueueSeatingId({
+      date,
+      time: '16:00',
+      status: 'Checked Out',
+      seatingId: 'dinner-1',
+    }, seatings, date)).toBe('dinner-1')
+    expect(resolveHostQueueSeatingId({
+      date,
+      time: '21:15',
+      status: 'Checked Out',
+      seatingId: 'dinner-2',
+    }, seatings, date)).toBe('dinner-2')
+  })
+
   it('shows a booking between seatings on the nearest seating', () => {
     const seatings = sortReservationSeatings([
       {

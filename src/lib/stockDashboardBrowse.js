@@ -187,9 +187,11 @@ export function dismissStockSearchKeyboardOnEnter(event) {
 /**
  * P8.17.3c — Human labels for the existing statusFilter values.
  * Matches KPI card wording; does not invent new terminology.
+ * "At minimum" is catalog on-hand at or under the minimum. It is not the
+ * shelf below-par count shown on Today and the Stock live row.
  */
 export function getStockStatusFilterLabel(statusFilter = 'all') {
-  if (statusFilter === 'low') return 'Low stock'
+  if (statusFilter === 'low') return 'At minimum'
   if (statusFilter === 'out') return 'Out of stock'
   if (statusFilter === 'order') return 'To order'
   return 'All products'
