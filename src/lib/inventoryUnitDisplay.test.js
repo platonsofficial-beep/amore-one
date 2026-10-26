@@ -52,6 +52,32 @@ describe('formatInventoryUnit', () => {
     expect(formatInventoryUnit(2, 'Gram')).not.toContain('Grams')
     expect(formatInventoryUnit(2, 'Liter')).not.toContain('Liters')
     expect(formatInventoryUnit(2, 'Milliliter')).not.toContain('Milliliters')
+
+    expect(formatInventoryUnit(3, 'kg')).toBe('3 kg')
+    expect(formatInventoryUnit(12, 'Kg')).toBe('12 kg')
+    expect(formatInventoryUnit(12, 'kgs')).toBe('12 kg')
+    expect(formatInventoryUnit(12, 'Kgs')).toBe('12 kg')
+    expect(formatInventoryUnit(3, 'g')).toBe('3 g')
+    expect(formatInventoryUnit(3, 'gs')).toBe('3 g')
+    expect(formatInventoryUnit(2, 'l')).toBe('2 L')
+    expect(formatInventoryUnit(2, 'ls')).toBe('2 L')
+    expect(formatInventoryUnit(250, 'ml')).toBe('250 mL')
+    expect(formatInventoryUnit(250, 'mls')).toBe('250 mL')
+    expect(formatInventoryUnit(12, 'kgs')).not.toContain('kgs')
+  })
+
+  it('pluralizes tins and bottles, and the mobile stock list uses that formatter', () => {
+    expect(formatInventoryUnit(1, 'Tin')).toBe('1 Tin')
+    expect(formatInventoryUnit(3, 'Tin')).toBe('3 Tins')
+    expect(formatInventoryUnit(2, 'tins')).toBe('2 Tins')
+    expect(formatInventoryUnit(2, 'Bottle')).toBe('2 Bottles')
+
+    const mobileStock = readFileSync(
+      resolve('src/components/mobile/MobileManagerStockView.jsx'),
+      'utf8',
+    )
+    expect(mobileStock).not.toContain('formatHumanUnitLabel')
+    expect(mobileStock).toContain('formatInventoryUnit')
   })
 
   it('is case-insensitive for canonical countable and measured units', () => {

@@ -28385,15 +28385,16 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 
 .stock-compact-browse-row {
   display: flex;
-  flex-wrap: nowrap;
+  flex-wrap: wrap;
   align-items: flex-end;
   gap: 12px 14px;
   min-width: 0;
 }
 
 .stock-compact-browse-toolbar .stock-browse-control {
-  flex: 0 1 auto;
+  flex: 0 0 auto;
   gap: 5px;
+  min-width: max-content;
 }
 
 .stock-compact-browse-toolbar .stock-browse-view,
@@ -28405,9 +28406,10 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 
 .stock-browse-refine-cluster {
   display: flex;
-  flex-wrap: nowrap;
+  flex-wrap: wrap;
   align-items: flex-end;
   gap: 8px 10px;
+  flex: 1 1 220px;
   min-width: 0;
   margin-left: 2px;
   padding: 4px 8px 4px 10px;
@@ -28461,23 +28463,31 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 }
 
 .stock-compact-browse-toolbar .stock-visibility-segment {
+  flex: 0 0 auto;
   flex-wrap: nowrap;
   gap: 4px;
+  min-width: max-content;
 }
 
 .stock-compact-browse-toolbar .stock-visibility-filter {
+  flex: 0 0 auto;
   min-height: 44px;
   padding: 0 11px;
   border-radius: 10px;
+  white-space: nowrap;
 }
 
 .stock-compact-browse-toolbar .stock-layout-mode-control {
+  flex: 0 0 auto;
   flex-wrap: nowrap;
   gap: 4px;
+  min-width: max-content;
 }
 
 .stock-compact-browse-toolbar .stock-layout-mode-btn {
+  flex: 0 0 auto;
   min-height: 44px;
+  min-width: 44px;
   padding: 0 11px;
   gap: 6px;
   border-radius: 10px;
@@ -33416,12 +33426,14 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   flex-wrap: wrap;
 }
 
-@media (max-width: 900px) {
+@media (max-width: 900px) and (orientation: portrait) {
   .stock-storage-center-overview,
   .stock-storage-center-layout {
     grid-template-columns: 1fr;
   }
+}
 
+@media (max-width: 900px) {
   .stock-department-group-header,
   .stock-storage-center-card-actions {
     align-items: stretch;
@@ -48417,12 +48429,13 @@ summary:focus-visible {
 
   .stock-compact-browse-row,
   .stock-browse-refine-cluster {
-    flex-wrap: nowrap;
+    flex-wrap: wrap;
     align-items: center;
-    overflow-x: auto;
+    overflow: visible;
     border: 0;
     margin: 0;
     padding: 0 0 4px;
+    min-width: 0;
   }
 
   .stock-compact-browse-toolbar .stock-browse-control,
@@ -48448,7 +48461,7 @@ summary:focus-visible {
   }
 }
 
-@media (max-width: 900px) {
+@media (max-width: 900px) and (orientation: portrait) {
   .stock-today-board,
   .inventory-count-front-door {
     grid-template-columns: 1fr;
@@ -48461,5 +48474,259 @@ summary:focus-visible {
 
   .supply-draft-preview-card {
     border-radius: 20px 20px 0 0;
+  }
+}
+
+@media (max-width: 1180px) {
+  .stock-compact-browse-toolbar .stock-layout-mode-btn {
+    position: relative;
+    padding-inline: 10px;
+  }
+
+  .stock-compact-browse-toolbar .stock-layout-mode-btn span {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+}
+
+/* Manager stock is landscape on phones and tablets. Keep the short
+   window usable: summary beside the catalog, details in a side pane. */
+@media (orientation: landscape) and (max-height: 520px) {
+  .app-shell.stock-focus-mode .main-panel-stock:has(.stock-dashboard-page) {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .app-shell.stock-focus-mode .main-panel-stock:has(.stock-dashboard-page) > .stock-dashboard-page {
+    flex: 1 1 auto;
+    min-height: 0;
+    max-height: none;
+  }
+
+  .stock-dashboard-page {
+    display: grid;
+    grid-template-columns: minmax(250px, 0.9fr) minmax(0, 1.25fr);
+    grid-template-rows: auto minmax(0, 1fr);
+    gap: 8px 12px;
+    align-items: stretch;
+    min-height: 0;
+    max-height: calc(100dvh - 16px);
+  }
+
+  .stock-dashboard-page > .staff-status-banner,
+  .stock-dashboard-page > .stock-loading-skeleton,
+  .stock-dashboard-page > .stock-catalog-load-failed {
+    grid-column: 1 / -1;
+  }
+
+  .stock-calm-header {
+    grid-column: 1;
+    grid-row: 1;
+    align-items: center;
+    padding: 0 2px;
+  }
+
+  .stock-calm-kicker {
+    display: none;
+  }
+
+  .stock-calm-title {
+    margin: 0;
+    font-size: 1.28rem;
+  }
+
+  .stock-calm-value strong {
+    font-size: 1.12rem;
+  }
+
+  .stock-today-board {
+    grid-column: 1;
+    grid-row: 2;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    min-height: 0;
+    overflow: auto;
+    align-content: start;
+  }
+
+  .stock-today-kpis {
+    gap: 2px;
+  }
+
+  .stock-today-kpis .stock-summary-value {
+    font-size: 1.28rem;
+  }
+
+  .stock-today-kpis .stock-summary-label {
+    font-size: 0.78rem;
+  }
+
+  .stock-today-card,
+  .stock-today-activity {
+    gap: 4px;
+    padding: 10px 12px;
+    border-radius: 14px;
+  }
+
+  .stock-today-activity {
+    grid-column: 1 / -1;
+  }
+
+  .stock-today-card-header h3 {
+    font-size: 0.98rem;
+  }
+
+  .stock-today-groups li,
+  .stock-today-card-header p,
+  .stock-today-card-empty,
+  .stock-today-activity-line {
+    font-size: 0.86rem;
+  }
+
+  .stock-all-products-catalog {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-width: 0;
+    min-height: 0;
+    overflow: auto;
+  }
+
+  .stock-item-grid {
+    grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  }
+
+  .stock-item-card.panel {
+    padding: 12px;
+  }
+
+  .stock-item-qty-number {
+    font-size: 1.5rem;
+  }
+
+  .stock-compact-browse-toolbar {
+    padding: 8px 10px;
+    gap: 6px;
+  }
+
+  .stock-product-history-backdrop {
+    align-items: stretch;
+    justify-content: flex-end;
+  }
+
+  .stock-product-history-drawer {
+    width: min(380px, 48vw);
+    height: 100%;
+    max-height: none;
+    border-radius: 0;
+    border-top: 0;
+    border-left: 1px solid rgba(212, 175, 55, 0.24);
+    box-shadow: -14px 0 42px rgba(0, 0, 0, 0.48);
+  }
+
+  .inventory-count-wizard.is-type-step {
+    width: min(96vw, 760px);
+    max-height: calc(100dvh - 12px);
+    overflow: auto;
+  }
+
+  .inventory-count-front-door {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .inventory-count-door-choice {
+    min-height: 0;
+    padding: 10px 12px;
+  }
+
+  .supply-draft-preview {
+    align-items: center;
+    padding: 8px;
+  }
+
+  .supply-draft-preview-card {
+    width: min(880px, 100%);
+    max-height: calc(100dvh - 16px);
+    border-radius: 16px;
+  }
+
+  .today-page {
+    gap: 10px;
+  }
+
+  .today-layout {
+    grid-template-columns: minmax(0, 1.35fr) minmax(200px, 0.75fr);
+    gap: 10px;
+  }
+
+  .today-status-premium-grid {
+    grid-template-columns: repeat(auto-fit, minmax(112px, 1fr));
+    gap: 8px;
+  }
+
+  .today-status-premium-card {
+    min-height: 0;
+    padding: 8px 10px;
+  }
+
+  .stock-orders-page,
+  .stock-suppliers-page,
+  .stock-migration-page {
+    gap: 10px;
+  }
+
+  .stock-orders-grid,
+  .stock-supplier-card-grid,
+  .stock-storage-center-grid {
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  }
+
+  .stock-storage-center-layout {
+    grid-template-columns: minmax(0, 1.45fr) minmax(210px, 0.8fr);
+  }
+
+  .stock-migration-ownership-card.is-primary {
+    padding: 14px 16px;
+  }
+}
+
+@media (orientation: landscape) and (min-width: 1000px) and (max-width: 1279px) and (max-height: 900px) {
+  .stock-dashboard-page {
+    gap: 14px;
+  }
+
+  .stock-today-board {
+    grid-template-columns: minmax(148px, 0.7fr) minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr);
+    align-items: stretch;
+  }
+
+  .stock-today-kpis {
+    grid-column: auto;
+    grid-row: 1 / span 3;
+    grid-template-columns: 1fr;
+    align-content: start;
+    gap: 4px;
+  }
+
+  .stock-today-activity {
+    grid-column: 2 / -1;
+  }
+
+  .today-layout {
+    grid-template-columns: minmax(0, 1.4fr) minmax(240px, 0.8fr);
+  }
+
+  .today-status-premium-grid {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
   }
 }
