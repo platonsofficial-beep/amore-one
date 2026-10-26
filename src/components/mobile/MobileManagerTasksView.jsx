@@ -126,6 +126,9 @@ function ManagerTodayTaskCard({ task, employees = [], todayKey = '', onSelect })
         </div>
         <p className="mobile-manager-today-task-department">
           {getOperationsCategoryLabel(task.category)}
+          {(task.checklistStepCount ?? task.checklistSteps?.length ?? 0) > 0
+            ? ` · ${task.checklistCompletedCount ?? 0}/${task.checklistStepCount ?? task.checklistSteps.length} steps`
+            : ''}
         </p>
         {assigneeName ? (
           <p className="mobile-manager-today-task-owner">{assigneeName}</p>
@@ -223,7 +226,11 @@ export function MobileManagerTasksView({
 
   const handleSelectTask = (task) => {
     if (task?.checklistRun && onOpenChecklist) {
-      onOpenChecklist(task.checklistTemplateId)
+      onOpenChecklist({ templateId: task.checklistTemplateId, started: true })
+      return
+    }
+    if ((task?.checklistSteps?.length ?? 0) > 0 && onOpenChecklist) {
+      onOpenChecklist({ taskId: task.id, started: true })
       return
     }
     setSelectedTask(task)

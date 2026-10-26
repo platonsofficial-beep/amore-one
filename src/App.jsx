@@ -294,13 +294,16 @@ import {
   updateStockOrderStatus,
 } from './services/stockOrderService'
 import {
-  completeOperationsTask,
   createOperationsTask,
   deleteOperationsTask,
-  getOperationsTasks,
-  reopenOperationsTask,
   updateOperationsTask,
 } from './services/operationsTaskService'
+import {
+  completeOperationalWorkItem,
+  loadMergedOperationsTasks,
+  reopenOperationalWorkItem,
+  saveOperationsTaskChecklistSteps,
+} from './services/operationsChecklistRunService'
 import {
   createOperationsLog,
   deleteOperationsLog,
@@ -16228,6 +16231,7 @@ function App() {
   const [operationsAnnouncements, setOperationsAnnouncements] = useState([])
   const [operationsChecklistTemplates, setOperationsChecklistTemplates] = useState([])
   const [activeChecklistRunTemplateId, setActiveChecklistRunTemplateId] = useState(null)
+  const [activeChecklistTaskId, setActiveChecklistTaskId] = useState(null)
   const [operationsNotice, setOperationsNotice] = useState('')
   const [isOperationsLoading, setIsOperationsLoading] = useState(false)
   const [isSavingOperations, setIsSavingOperations] = useState(false)
@@ -16563,6 +16567,23 @@ function App() {
     ) ?? null,
     [operationsChecklistTemplates, activeChecklistRunTemplateId],
   )
+  const activeChecklistTask = useMemo(
+    () => operationsTasks.find((task) => `${task.id}` === `${activeChecklistTaskId}`) ?? null,
+    [operationsTasks, activeChecklistTaskId],
+  )
+  const checklistExecutionOpen = Boolean(activeChecklistRunTemplateId || activeChecklistTaskId)
+  const openChecklistTemplate = useCallback((templateId) => {
+    setActiveChecklistTaskId(null)
+    setActiveChecklistRunTemplateId(templateId || null)
+  }, [])
+  const openTaskChecklist = useCallback((taskId) => {
+    setActiveChecklistRunTemplateId(null)
+    setActiveChecklistTaskId(taskId || null)
+  }, [])
+  const closeChecklistExecution = useCallback(() => {
+    setActiveChecklistRunTemplateId(null)
+    setActiveChecklistTaskId(null)
+  }, [])
 
   const isActiveViewAllowed = !isAuthLoading && canAccessModule(role, activeView)
   const shouldRenderReservationsHostView = useMemo(
@@ -17722,7 +17743,7 @@ function App() {
     }
 
     try {
-      const remoteTasks = await getOperationsTasks(activeWorkspaceId)
+      const remoteTasks = await loadMergedOperationsTasks(activeWorkspaceId)
       setOperationsTasks(remoteTasks)
       return remoteTasks
     } catch (error) {
@@ -17740,7 +17761,7 @@ function App() {
     setIsMobileOperationsTasksLoading(true)
 
     try {
-      const remoteTasks = await getOperationsTasks(activeWorkspaceId)
+      const remoteTasks = await loadMergedOperationsTasks(activeWorkspaceId)
       setMobileOperationsTasks(remoteTasks)
       return remoteTasks
     } catch (error) {
@@ -18741,6 +18762,7 @@ function App() {
   useEffect(() => {
     if (activeView !== 'operations') {
       setActiveChecklistRunTemplateId(null)
+      setActiveChecklistTaskId(null)
       setOperationsFocusTaskId(null)
     }
   }, [activeView])
@@ -22647,6 +22669,7 @@ function App() {
       handleOperationsSectionChange(destination.section)
       if (destination.taskId) {
         setActiveChecklistRunTemplateId(null)
+        setActiveChecklistTaskId(null)
         setOperationsFocusTaskId(`${destination.taskId}`)
       }
     }
@@ -23599,9 +23622,26 @@ function App() {
     setOperationsNotice('')
 
     try {
-      await createOperationsTask(activeWorkspaceId, payload, user?.id ?? null)
+      const created = await createOperationsTask(activeWorkspaceId, payload, user?.id ?? null)
+      const hadSteps = (payload.steps ?? []).length > 0
+      let stepsSaved = true
+      if (hadSteps) {
+        try {
+          const stepResult = await saveOperationsTaskChecklistSteps(
+            activeWorkspaceId,
+            created,
+            payload.steps,
+          )
+          stepsSaved = stepResult?.saved !== false
+        } catch (stepError) {
+          console.error('[App] save task steps error:', stepError)
+          stepsSaved = false
+        }
+      }
       await refreshOperationsTasks()
-      setOperationsNotice('Task created.')
+      setOperationsNotice(hadSteps && !stepsSaved
+        ? 'Task created. Checklist steps could not be saved yet, so they were not stored.'
+        : 'Task created.')
     } catch (error) {
       setOperationsNotice(error.message || 'Unable to create task right now.')
       throw error
@@ -23619,9 +23659,28 @@ function App() {
     setOperationsNotice('')
 
     try {
-      await updateOperationsTask(activeWorkspaceId, taskId, payload)
+      const updated = await updateOperationsTask(activeWorkspaceId, taskId, payload)
+      const hadSteps = (payload.steps ?? []).length > 0
+      let stepsSaved = true
+      try {
+        const stepResult = await saveOperationsTaskChecklistSteps(
+          activeWorkspaceId,
+          updated,
+          payload.steps ?? [],
+        )
+        stepsSaved = stepResult?.saved !== false
+      } catch (stepError) {
+        console.error('[App] save task steps error:', stepError)
+        stepsSaved = false
+      }
       await refreshOperationsTasks()
-      setOperationsNotice('Task updated.')
+      if (!stepsSaved && hadSteps) {
+        setOperationsNotice('Task updated. Checklist steps could not be saved yet, so the previous steps are unchanged.')
+      } else if (!stepsSaved) {
+        setOperationsNotice('Task updated. Checklist steps could not be changed yet.')
+      } else {
+        setOperationsNotice('Task updated.')
+      }
     } catch (error) {
       setOperationsNotice(error.message || 'Unable to update task right now.')
       throw error
@@ -23635,26 +23694,14 @@ function App() {
       throw new Error(operationsWorkspaceSetupMessage || 'Workspace and task are required.')
     }
 
-    const stepIds = task.checklistRun
-      ? (task.checklistSteps ?? [])
-        .filter((step) => {
-          const status = `${step?.status ?? ''}`.trim().toLowerCase()
-          return status !== 'completed' && status !== 'skipped'
-        })
-        .map((step) => step.id)
-        .filter(Boolean)
-      : [task.id]
-
     setIsSavingOperations(true)
     setOperationsNotice('')
 
     try {
-      for (const stepId of stepIds) {
-        await completeOperationsTask(activeWorkspaceId, stepId, {
-          completedBy: user?.id ?? null,
-          completionNote,
-        })
-      }
+      await completeOperationalWorkItem(activeWorkspaceId, task, {
+        completedBy: user?.id ?? null,
+        completionNote,
+      })
       await Promise.all([
         refreshOperationsTasks(),
         isMobileViewport ? refreshMobileOperationsTasks() : Promise.resolve(),
@@ -23687,8 +23734,11 @@ function App() {
     setOperationsNotice('')
 
     try {
-      await reopenOperationsTask(activeWorkspaceId, task.id)
-      await refreshOperationsTasks()
+      await reopenOperationalWorkItem(activeWorkspaceId, task)
+      await Promise.all([
+        refreshOperationsTasks(),
+        isMobileViewport ? refreshMobileOperationsTasks() : Promise.resolve(),
+      ])
       if (!silent) setOperationsNotice('Task reopened.')
     } catch (error) {
       setOperationsNotice(error.message || 'Unable to reopen task right now.')
@@ -24038,7 +24088,7 @@ function App() {
         user?.id ?? null,
       )
       await refreshOperationsTasks()
-      setActiveChecklistRunTemplateId(template.id)
+      openChecklistTemplate(template.id)
       setOperationsNotice(
         result.alreadyExists
           ? `${template.name} is already running for today.`
@@ -24966,10 +25016,22 @@ function App() {
     handleOperationsSectionChange('dashboard')
     setMobileExpandedView('workspace')
 
-    if (row?.started && row?.templateId) {
-      setActiveChecklistRunTemplateId(row.templateId)
+    if (row?.taskId) {
+      openTaskChecklist(row.taskId)
+      return
     }
-  }, [role, handleActiveViewChange, handleOperationsSectionChange])
+
+    const templateId = `${row?.templateId ?? (typeof row === 'string' ? row : '')}`.trim()
+    if (templateId && (typeof row === 'string' || row?.started)) {
+      openChecklistTemplate(templateId)
+    }
+  }, [
+    role,
+    handleActiveViewChange,
+    handleOperationsSectionChange,
+    openChecklistTemplate,
+    openTaskChecklist,
+  ])
 
   const handleMobileGoToCurrentWeek = () => {
     setMobileWeekStart(todayWeekStart)
@@ -25167,7 +25229,7 @@ function App() {
           />
         ) : null}
 
-        {activeView === 'operations' && isActiveViewAllowed && !activeChecklistRunTemplateId && !useMobileExperience ? (
+        {activeView === 'operations' && isActiveViewAllowed && !checklistExecutionOpen && !useMobileExperience ? (
           <ModuleSectionTabs
             sections={visibleOperationsSections}
             activeSection={operationsSection}
@@ -25557,19 +25619,21 @@ function App() {
           />
         ) : null}
 
-        {isActiveViewAllowed && activeView === 'operations' && activeChecklistRunTemplateId ? (
+        {isActiveViewAllowed && activeView === 'operations' && checklistExecutionOpen ? (
           <OperationsChecklistExecutionView
             template={activeChecklistRunTemplate}
+            title={activeChecklistTask?.title ?? ''}
+            taskId={activeChecklistTaskId}
             tasks={operationsTasks}
             todayKey={currentDateKey}
             canComplete
             isSaving={isSavingOperations}
-            onBack={() => setActiveChecklistRunTemplateId(null)}
+            onBack={closeChecklistExecution}
             onToggleComplete={handleToggleChecklistExecutionTask}
           />
         ) : null}
 
-        {isActiveViewAllowed && activeView === 'operations' && operationsSection === 'dashboard' && !activeChecklistRunTemplateId ? (
+        {isActiveViewAllowed && activeView === 'operations' && operationsSection === 'dashboard' && !checklistExecutionOpen ? (
           <OperationsDashboardView
             tasks={operationsTasks}
             countedTasks={sharedOperationalTasks}
@@ -25608,7 +25672,8 @@ function App() {
             onHideAnnouncement={handleHideOperationsAnnouncement}
             onPublishAnnouncement={handlePublishOperationsAnnouncement}
             onStartChecklist={handleStartOperationsChecklist}
-            onOpenChecklistRun={setActiveChecklistRunTemplateId}
+            onOpenChecklistRun={openChecklistTemplate}
+            onOpenTaskSteps={openTaskChecklist}
             focusTaskId={operationsFocusTaskId}
             onFocusTaskHandled={() => setOperationsFocusTaskId(null)}
             boardOverdueCount={unifiedOperationalTaskCounts.boardPastDue}
@@ -25616,7 +25681,7 @@ function App() {
           />
         ) : null}
 
-        {isActiveViewAllowed && activeView === 'operations' && operationsSection === 'checklists' && !activeChecklistRunTemplateId ? (
+        {isActiveViewAllowed && activeView === 'operations' && operationsSection === 'checklists' && !checklistExecutionOpen ? (
           <OperationsChecklistsView
             templates={operationsChecklistTemplates}
             isLoading={isOperationsLoading}

@@ -1,8 +1,11 @@
 import { describe, expect, it } from 'vitest'
 import {
   buildOperationsDashboardSummary,
+  buildOperationsTaskSubmitPayload,
   canStaffCompleteTask,
   getTaskAssigneeId,
+  operationsTaskToForm,
+  validateOperationsTaskForm,
 } from './operationsUtils'
 
 const TODAY = '2026-07-08'
@@ -77,5 +80,54 @@ describe('buildOperationsDashboardSummary', () => {
 
     expect(summary.urgentIssues).toBe(1)
     expect(summary.teamNotes).toBe(1)
+  })
+})
+
+describe('operations task steps form', () => {
+  it('keeps step titles on the submit payload and drops blank rows', () => {
+    expect(buildOperationsTaskSubmitPayload({
+      title: ' Close bar ',
+      description: ' Night ',
+      category: 'closing',
+      priority: 'normal',
+      assignedTo: '',
+      dueDate: '2026-10-26',
+      dueTime: '',
+      steps: [
+        { id: 'step-1', title: ' Wipe ' },
+        { id: '', title: '   ' },
+        { title: 'Lock' },
+      ],
+    })).toMatchObject({
+      title: 'Close bar',
+      description: 'Night',
+      assignedTo: null,
+      steps: [
+        { id: 'step-1', title: 'Wipe' },
+        { id: null, title: 'Lock' },
+      ],
+    })
+  })
+
+  it('asks for a due date when steps are present', () => {
+    expect(validateOperationsTaskForm({
+      title: 'Close bar',
+      dueDate: '',
+      steps: [{ title: 'Lock' }],
+    })).toBe('Add a due date to save checklist steps.')
+  })
+
+  it('loads saved steps into the edit form', () => {
+    expect(operationsTaskToForm({
+      title: 'Close bar',
+      category: 'closing',
+      priority: 'normal',
+      dueDate: '2026-10-26',
+      checklistSteps: [
+        { runStepId: 'step-1', title: 'Wipe' },
+      ],
+    }).steps).toEqual([
+      { id: 'step-1', title: 'Wipe', key: 'step-1' },
+    ])
   })
 })

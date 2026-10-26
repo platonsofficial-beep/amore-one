@@ -162,7 +162,17 @@ export function buildEmptyOperationsTaskForm(todayKey = '') {
     dueDate: todayKey,
     dueTime: '',
     repeatRule: '',
+    steps: [],
   }
+}
+
+export function normalizeOperationsTaskFormSteps(steps = []) {
+  return (steps ?? [])
+    .map((step) => ({
+      id: `${step?.id ?? ''}`.trim() || null,
+      title: `${step?.title ?? ''}`.trim(),
+    }))
+    .filter((step) => step.title)
 }
 
 export function buildOperationsDashboardSummary(tasks = [], logs = [], todayKey = '') {
@@ -230,7 +240,27 @@ export function validateOperationsTaskForm(form) {
   if (!`${form.title ?? ''}`.trim()) {
     return 'Please enter a task title.'
   }
+  if (
+    normalizeOperationsTaskFormSteps(form?.steps).length > 0
+    && !normalizeOperationsTaskDate(form?.dueDate)
+  ) {
+    return 'Add a due date to save checklist steps.'
+  }
   return ''
+}
+
+export function buildOperationsTaskSubmitPayload(form) {
+  return {
+    title: `${form.title ?? ''}`.trim(),
+    description: `${form.description ?? ''}`.trim(),
+    category: form.category,
+    priority: form.priority,
+    assignedTo: form.assignedTo || null,
+    dueDate: form.dueDate || null,
+    dueTime: form.dueTime || null,
+    repeatRule: '',
+    steps: normalizeOperationsTaskFormSteps(form.steps),
+  }
 }
 
 export function validateOperationsLogForm(form) {
@@ -241,6 +271,14 @@ export function validateOperationsLogForm(form) {
 }
 
 export function operationsTaskToForm(task) {
+  const steps = task?.checklistRun
+    ? []
+    : (task?.checklistSteps ?? []).map((step, index) => ({
+      id: `${step.runStepId ?? step.id ?? ''}`,
+      title: step.title ?? '',
+      key: `${step.runStepId ?? step.id ?? index}`,
+    }))
+
   return {
     title: task.title ?? '',
     description: task.description ?? '',
@@ -250,5 +288,6 @@ export function operationsTaskToForm(task) {
     dueDate: normalizeOperationsTaskDate(task.dueDate),
     dueTime: task.dueTime ?? '',
     repeatRule: task.repeatRule ?? '',
+    steps,
   }
 }

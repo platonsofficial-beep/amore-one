@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useEscapeToClose } from '../../lib/useEscapeToClose'
 import {
   buildEmptyOperationsTaskForm,
+  buildOperationsTaskSubmitPayload,
   getOperationsCategoryLabel,
   OPERATIONS_CATEGORIES,
   OPERATIONS_PRIORITIES,
@@ -30,6 +31,30 @@ export function OperationsTaskFormModal({
 
   if (!isOpen) return null
 
+  const updateStep = (key, title) => {
+    setForm((current) => ({
+      ...current,
+      steps: (current.steps ?? []).map((step) => (
+        step.key === key ? { ...step, title } : step
+      )),
+    }))
+  }
+
+  const addStep = () => {
+    const key = `step-${Date.now()}`
+    setForm((current) => ({
+      ...current,
+      steps: [...(current.steps ?? []), { id: '', title: '', key }],
+    }))
+  }
+
+  const removeStep = (key) => {
+    setForm((current) => ({
+      ...current,
+      steps: (current.steps ?? []).filter((step) => step.key !== key),
+    }))
+  }
+
   const handleSubmit = async (event) => {
     event.preventDefault()
     const validationError = validateOperationsTaskForm(form)
@@ -40,16 +65,7 @@ export function OperationsTaskFormModal({
 
     try {
       setError('')
-      await onSubmit({
-        title: form.title.trim(),
-        description: form.description.trim(),
-        category: form.category,
-        priority: form.priority,
-        assignedTo: form.assignedTo || null,
-        dueDate: form.dueDate || null,
-        dueTime: form.dueTime || null,
-        repeatRule: '',
-      })
+      await onSubmit(buildOperationsTaskSubmitPayload(form))
       onClose()
     } catch (submitError) {
       setError(submitError?.message || 'Unable to save task right now.')
@@ -154,6 +170,36 @@ export function OperationsTaskFormModal({
                 placeholder="Optional"
               />
             </label>
+          </div>
+
+          <div className="operations-task-steps">
+            <div className="operations-task-steps-header">
+              <span>Steps</span>
+              <button type="button" className="ghost-btn operations-form-action" onClick={addStep}>
+                Add step
+              </button>
+            </div>
+            <p className="operations-field-help">
+              Optional. Steps stay part of this one task.
+            </p>
+            {(form.steps ?? []).map((step, index) => (
+              <div className="operations-task-step-row" key={step.key || step.id || index}>
+                <input
+                  value={step.title}
+                  onChange={(event) => updateStep(step.key, event.target.value)}
+                  placeholder={`Step ${index + 1}`}
+                  aria-label={`Step ${index + 1}`}
+                />
+                <button
+                  type="button"
+                  className="ghost-btn operations-form-action"
+                  onClick={() => removeStep(step.key)}
+                  aria-label={`Remove step ${index + 1}`}
+                >
+                  Remove
+                </button>
+              </div>
+            ))}
           </div>
 
           <label className="form-field full-width operations-repeat-placeholder">
