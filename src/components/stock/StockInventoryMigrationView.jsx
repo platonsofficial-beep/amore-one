@@ -1,7 +1,12 @@
+import { InventoryImportHistoryList } from './InventoryImportHistoryList'
+
 /**
  * Stock spreadsheet import. The legacy migration operator panel is retired.
  */
 export function StockInventoryMigrationView({
+  workspaceId = '',
+  timeZone = '',
+  historyRefresh = 0,
   onOpenInventoryImport = undefined,
 }) {
   return (
@@ -46,6 +51,12 @@ export function StockInventoryMigrationView({
           </div>
         </article>
       </section>
+
+      <InventoryImportHistoryList
+        workspaceId={workspaceId}
+        timeZone={timeZone}
+        refreshKey={historyRefresh}
+      />
     </section>
   )
 }

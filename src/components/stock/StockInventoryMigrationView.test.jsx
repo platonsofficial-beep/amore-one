@@ -46,6 +46,7 @@ describe('Stock spreadsheet import', () => {
     })
 
     expect(host.textContent).toContain('Spreadsheet Import')
+    expect(host.textContent).toContain('Recent imports')
     expect(host.textContent).not.toContain('Legacy Inventory')
     expect(host.querySelector('[data-stock-migration-open-legacy]')).toBeNull()
     expect(host.querySelector('[data-stock-migration-ownership="legacy-migration"]')).toBeNull()

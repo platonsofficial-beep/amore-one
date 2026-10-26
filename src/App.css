@@ -47718,3 +47718,66 @@ summary:focus-visible {
   flex-wrap: wrap;
   gap: 8px;
 }
+
+.inventory-import-history {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(10, 22, 40, 0.55);
+}
+
+.inventory-import-history-title {
+  margin: 0;
+  color: #fff7e8;
+  font-size: 1.05rem;
+}
+
+.inventory-import-history-copy,
+.inventory-import-history-status,
+.inventory-import-history-when,
+.inventory-import-history-who,
+.inventory-import-history-file,
+.inventory-import-history-counts,
+.inventory-import-history-status-label {
+  margin: 0;
+  color: rgba(255, 247, 232, 0.78);
+  line-height: 1.4;
+}
+
+.inventory-import-history-who,
+.inventory-import-history-status-label {
+  color: #fff7e8;
+  font-weight: 650;
+}
+
+.inventory-import-history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.inventory-import-history-item {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.inventory-import-history-reasons {
+  margin: 4px 0 0;
+  padding-left: 1.1rem;
+  color: rgba(255, 247, 232, 0.86);
+}
+
+.inventory-import-history-error {
+  margin: 0;
+  color: #ffc8c2;
+}

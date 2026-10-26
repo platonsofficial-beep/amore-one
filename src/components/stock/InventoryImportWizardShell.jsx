@@ -54,6 +54,7 @@ import {
   undoInventoryImportSession as undoInventoryImportSessionDefault,
 } from '../../services/inventoryImportService'
 import { listWorkspaceStorages } from '../../services/workspaceStorageService'
+import { InventoryImportUndoConfirm } from './InventoryImportUndoConfirm'
 import { InventoryImportValidateAssistant } from './InventoryImportValidateAssistant'
 import { InventoryOperationalImportPreview } from './InventoryOperationalImportPreview'
 import {
@@ -2132,6 +2133,9 @@ export function InventoryImportWizardShell({
                 <p className="inventory-operational-review-empty-copy">
                   Total processed: {applyProcessedTotal ?? 0}
                 </p>
+                <p className="inventory-operational-review-empty-copy">
+                  Done returns to Import. This import stays under Recent imports, where Undo remains available when it is still allowed.
+                </p>
               </div>
               {undoCompleted ? (
                 <p className="inventory-import-wizard-step-purpose" role="status">
@@ -2157,36 +2161,13 @@ export function InventoryImportWizardShell({
                 </p>
               ) : null}
               {undoConfirmOpen ? (
-                <div
-                  className="inventory-import-undo-dialog"
-                  role="dialog"
-                  aria-modal="true"
-                  aria-labelledby="inventory-import-undo-title"
-                >
-                  <h4 id="inventory-import-undo-title">Undo this import?</h4>
-                  <p>
-                    Products created by this import will be removed. This cannot be undone.
-                  </p>
-                  <div className="inventory-import-undo-dialog-actions">
-                    <button
-                      type="button"
-                      className="ghost-btn inventory-import-undo-btn"
-                      onClick={() => setUndoConfirmOpen(false)}
-                      disabled={isUndoingImport}
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      type="button"
-                      className="primary-btn inventory-import-undo-btn"
-                      data-undo-import="confirm"
-                      onClick={handleConfirmUndo}
-                      disabled={isUndoingImport}
-                    >
-                      {isUndoingImport ? 'Undoing…' : 'Undo import'}
-                    </button>
-                  </div>
-                </div>
+                <InventoryImportUndoConfirm
+                  onCancel={() => {
+                    if (!isUndoingImport) setUndoConfirmOpen(false)
+                  }}
+                  onConfirm={handleConfirmUndo}
+                  isUndoing={isUndoingImport}
+                />
               ) : null}
             </div>
           ) : null}
