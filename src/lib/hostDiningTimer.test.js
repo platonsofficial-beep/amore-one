@@ -94,6 +94,49 @@ describe('hostDiningTimer', () => {
       expect(getReservationInServiceElapsedMinutes(reservation, 20 * 60 + 30, '2026-07-09')).toBeNull()
     })
 
+    it('counts from seated_at and shows before the booking time', () => {
+      const seatedAt = new Date(2026, 9, 26, 15, 45, 0)
+      const now = new Date(2026, 9, 26, 15, 47, 20)
+      const reservation = buildReservation({
+        date: '2026-10-26',
+        time: '16:00',
+        status: 'Checked In',
+        seatedAt: seatedAt.toISOString(),
+      })
+
+      expect(getReservationInServiceElapsedMinutes(
+        reservation,
+        15 * 60 + 47,
+        '2026-10-26',
+        now,
+      )).toBe(2)
+      expect(getReservationInServiceElapsedMinutes(
+        { ...reservation, seatedAt: null },
+        15 * 60 + 47,
+        '2026-10-26',
+        now,
+      )).toBeNull()
+    })
+
+    it('shows a zero-minute timer in the minute the guest is seated', () => {
+      const seatedAt = new Date(2026, 9, 26, 15, 45, 10)
+      const reservation = buildReservation({
+        date: '2026-10-26',
+        time: '16:00',
+        status: 'Checked In',
+        seated_at: seatedAt.toISOString(),
+      })
+      const presentation = buildHostFloorDiningTimerPresentation(reservation, {
+        hostIndicator: 'seated',
+        nowMinutes: 15 * 60 + 45,
+        todayKey: '2026-10-26',
+        nowDate: seatedAt,
+      })
+
+      expect(presentation?.elapsedLabel).toBe('⏱ 0m')
+      expect(presentation?.estimatedFreeExternalLabel).toBe('🕒 18:15')
+    })
+
     it('supports Walk In reservations', () => {
       const reservation = buildReservation({ status: 'Walk In', time: '20:00' })
       expect(getReservationInServiceElapsedMinutes(reservation, 21 * 60 + 12, '2026-07-09')).toBe(72)

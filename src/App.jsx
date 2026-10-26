@@ -9385,6 +9385,7 @@ function FloorTableNode({
   onDrop,
   showDiningTimers = false,
   diningTimerNowMinutes = nowMinutes,
+  diningTimerNowDate = null,
   diningTimerLabelPlacement = null,
 }) {
   const { isSelected, selectionPulseKey, seatingDraftUnitIds, hostEditUnitIds, isHostFloorPickActive, selectedReservation } = useReservationWorkspace()
@@ -9413,8 +9414,9 @@ function FloorTableNode({
     ? buildHostFloorDiningTimerPresentation(displayReservation, {
       phase: hostOperational?.phase,
       hostIndicator: hostOperational?.hostIndicator,
-      nowMinutes,
+      nowMinutes: diningTimerNowMinutes,
       todayKey,
+      nowDate: diningTimerNowDate,
     })
     : null
   const tableStatusClass = isHostFloor && !isHeatmap && hostOperational
@@ -10275,6 +10277,7 @@ function FloorPlanView({
         hostIndicator: tableState.operational?.hostIndicator,
         nowMinutes: diningTimerNowMinutes,
         todayKey,
+        nowDate: diningTimerReferenceDate,
       })
 
       if (!presentation?.estimatedFreeExternalLabel) return []
@@ -10288,6 +10291,7 @@ function FloorPlanView({
     })
   }, [
     diningTimerNowMinutes,
+    diningTimerReferenceDate,
     isCompact,
     isHeatmap,
     showDiningTimers,
@@ -11405,6 +11409,7 @@ function FloorPlanView({
             onDrop={handleDrop}
             showDiningTimers={showDiningTimers}
             diningTimerNowMinutes={diningTimerNowMinutes}
+            diningTimerNowDate={diningTimerReferenceDate}
             diningTimerLabelPlacement={diningTimerExternalLabelPlacements.get(tableState.table.id) ?? null}
           />
         ))}

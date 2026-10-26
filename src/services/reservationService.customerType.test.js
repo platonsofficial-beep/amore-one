@@ -222,9 +222,18 @@ describe('legacy edit persistence roundtrip', () => {
     })
     expect(mapped.autoClosedAt).toBe('2026-10-27T02:00:00.000Z')
     expect(mapReservationRecord(LEGACY_DB_RECORD).autoClosedAt).toBeNull()
+    expect(mapReservationRecord({
+      ...LEGACY_DB_RECORD,
+      seated_at: '2026-10-26T12:45:00.000Z',
+    }).seatedAt).toBe('2026-10-26T12:45:00.000Z')
+    expect(mapReservationRecord(LEGACY_DB_RECORD).seatedAt).toBeNull()
 
-    const saved = serializeReservationForPersistence(mapped)
+    const saved = serializeReservationForPersistence({
+      ...mapped,
+      seatedAt: '2026-10-26T12:45:00.000Z',
+    })
     expect(saved.auto_closed_at).toBeUndefined()
+    expect(saved.seated_at).toBeUndefined()
     expect(saved.status).toBe('Checked Out')
 
     const undo = buildUndoAutoClosePayload(mapped)
