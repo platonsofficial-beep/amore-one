@@ -28,6 +28,7 @@ import {
   applyInventoryImportSession,
   cancelInventoryImportSession,
   createInventoryImportSession,
+  formatInventoryImportWizardError,
   mapInventoryImportRpcError,
   mapInventoryImportSessionResult,
   markInventoryImportSessionReady,
@@ -81,6 +82,25 @@ describe('mapInventoryImportRpcError', () => {
       'fallback',
     )
     expect(error.message).toBe('inventory_import_session_forbidden')
+  })
+})
+
+describe('formatInventoryImportWizardError', () => {
+  it('turns a missing function into a plain install message', () => {
+    const error = new Error(
+      'Could not find the function public.create_inventory_import_session in the schema cache',
+    )
+    error.code = 'PGRST202'
+    expect(formatInventoryImportWizardError(error)).toBe(
+      'Import is not available yet. The import session functions have not been installed.',
+    )
+  })
+
+  it('explains a manager-only refusal and keeps other server messages', () => {
+    expect(formatInventoryImportWizardError(new Error('inventory_import_session_forbidden')))
+      .toBe('Only an owner, general manager, or manager can import stock.')
+    expect(formatInventoryImportWizardError(new Error('Apply failed: stock write blocked')))
+      .toBe('Apply failed: stock write blocked')
   })
 })
 

@@ -40,6 +40,7 @@ import {
 import {
   applyInventoryImportSession as applyInventoryImportSessionDefault,
   createInventoryImportSession as createInventoryImportSessionDefault,
+  formatInventoryImportWizardError,
   markInventoryImportSessionReady as markInventoryImportSessionReadyDefault,
   stageInventoryImportRows as stageInventoryImportRowsDefault,
 } from '../../services/inventoryImportService'
@@ -1043,9 +1044,7 @@ export function InventoryImportWizardShell({
       setApplyImportResult(result)
       setWizardView('completed')
     } catch (error) {
-      const message = `${error?.message ?? ''}`.trim()
-        || 'Failed to apply inventory import.'
-      setApplyImportError(message)
+      setApplyImportError(formatInventoryImportWizardError(error))
     } finally {
       setIsApplyingImport(false)
       applyLockRef.current = false
