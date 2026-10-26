@@ -33562,6 +33562,108 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   gap: 8px;
 }
 
+.stock-usage-report {
+  width: min(720px, 100%);
+  max-height: min(92dvh, 92vh);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  overflow: hidden;
+}
+
+.stock-usage-report-controls {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.stock-usage-report-controls label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  color: rgba(255, 247, 232, 0.72);
+  font-size: 0.86rem;
+  font-weight: 600;
+}
+
+.stock-usage-report-controls select {
+  min-height: 44px;
+  border-radius: 12px;
+}
+
+.stock-usage-report-status {
+  margin: 0;
+  color: rgba(255, 247, 232, 0.78);
+}
+
+.stock-usage-report-status.is-error,
+.stock-usage-report-gap {
+  color: rgba(255, 170, 160, 0.95);
+}
+
+.stock-usage-report-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  color: rgba(255, 247, 232, 0.86);
+  font-size: 0.92rem;
+}
+
+.stock-usage-report-list {
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-height: 0;
+}
+
+.stock-usage-report-category h4,
+.stock-usage-report-category p,
+.stock-usage-report-gap {
+  margin: 0;
+}
+
+.stock-usage-report-category p {
+  color: rgba(255, 247, 232, 0.68);
+  font-size: 0.88rem;
+}
+
+.stock-usage-report-card {
+  margin-top: 10px;
+  padding: 12px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.stock-usage-report-card dl {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px 12px;
+  margin: 8px 0 0;
+}
+
+.stock-usage-report-card dl div {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.stock-usage-report-card dt {
+  color: rgba(255, 247, 232, 0.62);
+}
+
+.stock-usage-report-card dd {
+  margin: 0;
+  font-weight: 650;
+}
+
+@media (max-width: 700px) {
+  .stock-usage-report-controls,
+  .stock-usage-report-card dl {
+    grid-template-columns: 1fr;
+  }
+}
+
 .stock-storage-detail-action-btn {
   min-height: 44px;
   padding: 0 14px;

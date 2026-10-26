@@ -220,6 +220,7 @@ describe('product identity contract boundaries', () => {
       resolve(process.cwd(), 'src/components/stock/StockProductHistoryDrawer.jsx'),
       resolve(process.cwd(), 'src/components/stock/StockStorageReceiveProductPicker.jsx'),
       resolve(process.cwd(), 'src/components/stock/StockMovementModal.jsx'),
+      resolve(process.cwd(), 'src/components/stock/StockUsageCostReport.jsx'),
       resolve(process.cwd(), 'src/components/stock/StockTransferModal.jsx'),
       resolve(process.cwd(), 'src/components/stock/StaffShelfCountSheet.jsx'),
       resolve(process.cwd(), 'src/lib/inventoryCountItemName.js'),
