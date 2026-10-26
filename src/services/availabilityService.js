@@ -26,7 +26,7 @@ const AVAILABILITY_SELECT = `
   updated_at
 `
 
-const AVAILABILITY_SETUP_HINT = 'Run supabase/employee_availability_schema.sql in the Supabase SQL editor, then try again.'
+const AVAILABILITY_SETUP_HINT = 'Run supabase/employee_availability.sql in the Supabase SQL editor, then try again.'
 
 function normalizeWeekStartDate(value) {
   const raw = `${value ?? ''}`.trim()

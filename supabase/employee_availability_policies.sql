@@ -1,3 +1,7 @@
+-- Superseded by supabase/employee_availability.sql.
+-- Do not apply this file. Its select policy hides coworker rows from
+-- members, and it has no delete_self policy.
+--
 -- RLS policies for employee_availability.
 -- Run after employee_availability_schema.sql and stock_rls_policies.sql.
 

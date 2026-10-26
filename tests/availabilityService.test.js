@@ -300,7 +300,28 @@ describe('availabilityService', () => {
         employeeId: EMPLOYEE_ID,
         weekStartDate: WEEK_START,
         week: { days: [] },
-      })).rejects.toThrow('employee_availability table is not ready yet.')
+      })).rejects.toThrow('supabase/employee_availability.sql')
+    })
+
+    it('treats a PostgREST missing-table 404 as not ready', async () => {
+      supabaseMocks.setQueryResult({
+        data: null,
+        error: { code: 'PGRST205', message: 'Could not find the table public.employee_availability in the schema cache' },
+      })
+
+      await expect(getEmployeeAvailabilityWeek({
+        workspaceId: WORKSPACE_ID,
+        employeeId: EMPLOYEE_ID,
+        weekStartDate: WEEK_START,
+      })).resolves.toMatchObject({
+        days: expect.any(Array),
+      })
+
+      await expect(deleteAvailabilityWeek({
+        workspaceId: WORKSPACE_ID,
+        employeeId: EMPLOYEE_ID,
+        weekStartDate: WEEK_START,
+      })).rejects.toThrow('supabase/employee_availability.sql')
     })
   })
 
