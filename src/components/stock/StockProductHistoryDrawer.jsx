@@ -60,7 +60,7 @@ function MovementTimelineCard({ movement, unit, timeZone = '' }) {
         <div className="stock-product-history-movement-title-wrap">
           <span className={`stock-product-history-movement-dot tone-${tone}`} aria-hidden="true" />
           <strong className="stock-product-history-movement-type">
-            {formatStockMovementTypeLabel(movement.type)}
+            {formatStockMovementTypeLabel(movement.type, movement.note)}
           </strong>
         </div>
         <span className="stock-product-history-movement-headline">

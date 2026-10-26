@@ -351,6 +351,7 @@ function DepartmentNameDialog({ mode, initialName = '', onClose, onSubmit }) {
  *   onRecordTransfer?: (payload: object) => void|Promise<void>,
  *   onAdjustment?: (storage: object) => void,
  *   onRecordAdjustment?: (payload: object) => void|Promise<void>,
+ *   onRecordWaste?: (payload: object) => void|Promise<void>,
  *   isSavingReceive?: boolean,
  *   isSavingTransfer?: boolean,
  *   isSavingAdjustment?: boolean,
@@ -373,6 +374,7 @@ export function StockStorageCenter({
   onRecordTransfer,
   onAdjustment,
   onRecordAdjustment,
+  onRecordWaste,
   isSavingReceive = false,
   isSavingTransfer = false,
   isSavingAdjustment = false,
@@ -566,6 +568,7 @@ export function StockStorageCenter({
         onRecordTransfer={onRecordTransfer}
         onAdjustment={onAdjustment}
         onRecordAdjustment={onRecordAdjustment}
+        onRecordWaste={onRecordWaste}
         isSavingReceive={isSavingReceive}
         isSavingTransfer={isSavingTransfer}
         isSavingAdjustment={isSavingAdjustment}

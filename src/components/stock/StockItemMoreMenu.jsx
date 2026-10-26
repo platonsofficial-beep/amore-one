@@ -7,6 +7,7 @@ const MOBILE_SHEET_QUERY = '(max-width: 900px)'
 
 const MENU_ITEMS = [
   { id: 'usage', label: 'Usage', group: 'operations' },
+  { id: 'waste', label: 'Waste', group: 'operations' },
   { id: 'adjust', label: 'Adjust', group: 'operations' },
   { id: 'sep-operations', type: 'separator' },
   { id: 'edit', label: 'Edit', group: 'management' },
@@ -52,6 +53,7 @@ export function StockItemMoreMenu({
   item = null,
   itemName = 'product',
   onUsage,
+  onWaste,
   onAdjust,
   onEdit,
   onDuplicate,
@@ -142,6 +144,7 @@ export function StockItemMoreMenu({
 
   const handlers = {
     usage: onUsage,
+    waste: onWaste,
     adjust: onAdjust,
     edit: onEdit,
     duplicate: onDuplicate,

@@ -1,4 +1,5 @@
 import { formatTimestampDayAndTime24 } from './timeFormatUtils'
+import { isWasteNote } from './stockWaste'
 import { applyStockMovementQuantity } from './stockUtils'
 
 export function buildStockMovementTimeline(movements = [], currentQuantity = 0) {
@@ -152,6 +153,10 @@ export function formatStockMovementHeadline(movement, unit = '') {
     return `+${formatQuantityWithUnit(Math.abs(quantity), unit)}`
   }
 
+  if (movement.type === 'usage' && isWasteNote(movement.note)) {
+    return `Waste −${formatQuantityWithUnit(Math.abs(quantity), unit)}`
+  }
+
   if (movement.type === 'usage') {
     return `-${formatQuantityWithUnit(Math.abs(quantity), unit)}`
   }
@@ -160,7 +165,8 @@ export function formatStockMovementHeadline(movement, unit = '') {
   return `${sign}${formatQuantityWithUnit(Math.abs(quantity), unit)}`
 }
 
-export function formatStockMovementTypeLabel(type) {
+export function formatStockMovementTypeLabel(type, note = '') {
+  if (type === 'usage' && isWasteNote(note)) return 'Waste'
   if (type === 'receive') return 'Receive'
   if (type === 'usage') return 'Usage'
   if (type === 'adjustment') return 'Adjustment'

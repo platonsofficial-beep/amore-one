@@ -271,6 +271,15 @@ function StorageProductRow({
                 type="button"
                 role="menuitem"
                 className="stock-storage-product-menu-item"
+                data-menu-action="waste"
+                onClick={() => onMenuAction?.('waste', row)}
+              >
+                Waste
+              </button>
+              <button
+                type="button"
+                role="menuitem"
+                className="stock-storage-product-menu-item"
                 data-menu-action="fast_count"
                 onClick={() => onMenuAction?.('fast_count', row)}
               >
@@ -327,6 +336,7 @@ function StorageProductRow({
  *   onRecordTransfer?: (payload: object) => void|Promise<void>,
  *   onAdjustment?: (storage: object) => void,
  *   onRecordAdjustment?: (payload: object) => void|Promise<void>,
+ *   onRecordWaste?: (payload: object) => void|Promise<void>,
  *   onRename?: (storage: object) => void,
  *   isSavingReceive?: boolean,
  *   isSavingTransfer?: boolean,
@@ -351,6 +361,7 @@ export function StockStorageDetailWorkspace({
   onRecordTransfer,
   onAdjustment,
   onRecordAdjustment,
+  onRecordWaste,
   onRename,
   isSavingReceive = false,
   isSavingTransfer = false,
@@ -380,6 +391,8 @@ export function StockStorageDetailWorkspace({
   const [transferRow, setTransferRow] = useState(/** @type {object|null} */ (null))
   const [adjustmentPickerOpen, setAdjustmentPickerOpen] = useState(false)
   const [adjustmentRow, setAdjustmentRow] = useState(/** @type {object|null} */ (null))
+  const [wastePickerOpen, setWastePickerOpen] = useState(false)
+  const [wasteRow, setWasteRow] = useState(/** @type {object|null} */ (null))
   const [belowParOnly, setBelowParOnly] = useState(false)
   const [refillOpen, setRefillOpen] = useState(false)
   const [staffTakeReady, setStaffTakeReady] = useState(false)
@@ -651,6 +664,43 @@ export function StockStorageDetailWorkspace({
     setReloadToken((token) => token + 1)
   }
 
+  const handleStartWaste = () => {
+    if (storage?.active === false) return
+    setOpenMenuItemId(null)
+    setPlaceholder(null)
+    setWasteRow(null)
+    setWastePickerOpen(true)
+  }
+
+  const handleWasteProductSelected = (row) => {
+    setWastePickerOpen(false)
+    setWasteRow(row)
+  }
+
+  const handleRecordWasteSubmit = async ({
+    item,
+    type,
+    quantity,
+    note,
+    workspaceStorageId,
+    expectedQuantityVersion,
+  }) => {
+    if (typeof onRecordWaste !== 'function') {
+      throw new Error('Waste is not available right now.')
+    }
+    await onRecordWaste({
+      item,
+      type,
+      quantity,
+      note,
+      workspaceStorageId,
+      expectedQuantityVersion,
+      storage,
+    })
+    setWasteRow(null)
+    setReloadToken((token) => token + 1)
+  }
+
   const handleMenuAction = (actionId, row) => {
     if (actionId === 'fast_count') {
       void handleStartFastCount()
@@ -684,6 +734,12 @@ export function StockStorageDetailWorkspace({
         return
       }
       setAdjustmentRow(row)
+      return
+    }
+    if (actionId === 'waste') {
+      setOpenMenuItemId(null)
+      setPlaceholder(null)
+      setWasteRow(row)
       return
     }
     openPlaceholder(actionId, row.name)
@@ -787,6 +843,7 @@ export function StockStorageDetailWorkspace({
           onReceive={() => handleStartReceive()}
           onTransfer={() => handleStartTransfer()}
           onAdjustment={() => handleStartAdjustment()}
+          onWaste={() => handleStartWaste()}
           onRename={canManage ? onRename : undefined}
         />
         {storage?.isSupply === true ? null : (
@@ -1062,6 +1119,32 @@ export function StockStorageDetailWorkspace({
           expectedQuantityVersion={adjustmentRow.quantityVersion}
           onClose={() => setAdjustmentRow(null)}
           onSubmit={handleRecordAdjustmentSubmit}
+        />
+      ) : null}
+
+      {wastePickerOpen ? (
+        <StockStorageReceiveProductPicker
+          storage={storage}
+          products={payload?.products ?? []}
+          title="Waste"
+          subtitlePrefix="Storage"
+          testId="stock-storage-waste-product-picker"
+          onClose={() => setWastePickerOpen(false)}
+          onSelectProduct={handleWasteProductSelected}
+        />
+      ) : null}
+
+      {wasteRow ? (
+        <StockMovementModal
+          item={wasteRow.item}
+          movementType="waste"
+          isSaving={isSavingAdjustment}
+          destinationStorage={storage}
+          destinationLocked
+          balanceQuantity={wasteRow.quantity}
+          expectedQuantityVersion={wasteRow.quantityVersion}
+          onClose={() => setWasteRow(null)}
+          onSubmit={handleRecordWasteSubmit}
         />
       ) : null}
 

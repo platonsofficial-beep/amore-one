@@ -64,6 +64,7 @@ describe('StockStorageCenter navigation contract', () => {
     expect(appSource).toContain('onRecordTransfer={handleRecordStockTransfer}')
     expect(appSource).toContain('onSupplyRefillComplete={refreshStockItems}')
     expect(appSource).toContain('onRecordAdjustment={handleRecordStockMovement}')
+    expect(appSource).toContain('onRecordWaste={handleRecordStockMovement}')
     expect(appSource).toContain('isSavingAdjustment={isSavingStockItem}')
     expect(appSource).toContain('handleOpenInventoryCountSession')
     expect(appSource).toContain("stockSection === 'dashboard'")

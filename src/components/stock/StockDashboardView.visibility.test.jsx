@@ -316,6 +316,7 @@ describe('StockDashboardView visibility UI', () => {
     const labels = Array.from(document.querySelectorAll('[role="menuitem"]')).map((node) => node.textContent)
     expect(labels).toEqual([
       'Usage',
+      'Waste',
       'Adjust',
       'Edit',
       'Duplicate',

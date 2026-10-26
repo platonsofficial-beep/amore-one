@@ -19,6 +19,7 @@ import {
   isStockLocationVersionMismatch,
 } from '../../services/stockMutationService'
 import { formatStockQuantity, resolveStockUsageCeiling } from '../../lib/stockUtils'
+import { WASTE_REASONS, formatWasteNote } from '../../lib/stockWaste'
 
 /** @typedef {'remove'|'add'} StockAdjustmentOperation */
 
@@ -104,12 +105,14 @@ export function StockMovementModal({
 }) {
   const isStockCount = movementType === 'stock_count'
   const isAdjustment = movementType === 'adjustment'
+  const isWaste = movementType === 'waste'
   const itemId = `${item?.id ?? ''}`
   const [quantity, setQuantity] = useState(
     () => (isStockCount ? `${item.currentQuantity ?? ''}` : ''),
   )
   const [operation, setOperation] = useState(/** @type {StockAdjustmentOperation} */ ('remove'))
   const [note, setNote] = useState('')
+  const [wasteReasonId, setWasteReasonId] = useState('')
   const [error, setError] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [pickerOpen, setPickerOpen] = useState(false)
@@ -214,6 +217,7 @@ export function StockMovementModal({
   useEffect(() => {
     setOperation('remove')
     setNote('')
+    setWasteReasonId('')
     setError('')
     setPickerOpen(false)
     setStorageOverrideId('')
@@ -259,9 +263,11 @@ export function StockMovementModal({
     ? 'Receive stock'
     : movementType === 'usage'
       ? 'Record usage'
-      : movementType === 'stock_count'
-        ? 'Stock count'
-        : 'Adjust stock'
+      : isWaste
+        ? 'Waste'
+        : movementType === 'stock_count'
+          ? 'Stock count'
+          : 'Adjust stock'
 
   const handleAdjustmentQuantityChange = (event) => {
     const next = event.target.value
@@ -274,6 +280,10 @@ export function StockMovementModal({
     event.preventDefault()
     if (isBusy) return
 
+    if (isWaste && !wasteReasonId) {
+      setError('Choose a reason.')
+      return
+    }
     if (pickerMode && !selectedStorage?.id) {
       setError('Choose a storage.')
       return
@@ -313,9 +323,9 @@ export function StockMovementModal({
         setError('Enter a positive quantity to receive.')
         return
       }
-    } else if (movementType === 'usage') {
+    } else if (movementType === 'usage' || isWaste) {
       if (!Number.isFinite(parsed) || parsed <= 0) {
-        setError('Enter a positive usage quantity.')
+        setError(isWaste ? 'Enter a positive quantity.' : 'Enter a positive usage quantity.')
         return
       }
       const usageDestination = pickerMode
@@ -333,7 +343,8 @@ export function StockMovementModal({
       }
       if (parsed > usageCeiling) {
         const limitLabel = usageDestination ? 'balance in this storage' : 'on-hand quantity'
-        setError(`Usage cannot exceed the ${limitLabel} (${formatStockQuantity(usageCeiling, item.unit)}).`)
+        const verb = isWaste ? 'Waste' : 'Usage'
+        setError(`${verb} cannot exceed the ${limitLabel} (${formatStockQuantity(usageCeiling, item.unit)}).`)
         return
       }
     } else if (!isAdjustment && (!Number.isFinite(parsed) || parsed === 0)) {
@@ -353,9 +364,10 @@ export function StockMovementModal({
       setIsSubmitting(true)
       await onSubmit({
         item,
-        type: movementType,
+        type: isWaste ? 'usage' : movementType,
         quantity: parsed,
-        note: note.trim(),
+        note: isWaste ? formatWasteNote(wasteReasonId, note) : note.trim(),
+        wasteReasonId: isWaste ? wasteReasonId : undefined,
         operation: isAdjustment ? operation : undefined,
         workspaceStorageId,
         expectedQuantityVersion: versionForSubmit,
@@ -381,11 +393,13 @@ export function StockMovementModal({
     }
   }
 
-  const lockTestId = isAdjustment
-    ? 'stock-adjustment-storage-lock'
-    : 'stock-receive-destination-lock'
-  const lockLabel = isAdjustment ? 'Storage' : 'Destination'
-  const lockNote = isAdjustment ? 'Locked' : 'Locked to this storage'
+  const lockTestId = isWaste
+    ? 'stock-waste-storage-lock'
+    : (isAdjustment
+      ? 'stock-adjustment-storage-lock'
+      : 'stock-receive-destination-lock')
+  const lockLabel = isAdjustment || isWaste ? 'Storage' : 'Destination'
+  const lockNote = isAdjustment || isWaste ? 'Locked' : 'Locked to this storage'
   const saveDisabled = saveBlocked
   const countButtonQuantity = (() => {
     const text = `${quantity ?? ''}`.trim()
@@ -398,9 +412,9 @@ export function StockMovementModal({
     ? 'Saving…'
     : (pickerMode && isStockCount
       ? `Set ${destinationLabel || 'storage'} to ${countButtonQuantity ?? '…'}`
-      : (isStockCount
+        : (isStockCount
         ? 'Save stock count'
-        : (isAdjustment ? 'Apply Adjustment' : 'Save')))
+        : (isWaste ? 'Log waste' : (isAdjustment ? 'Apply Adjustment' : 'Save'))))
   const previewOperationLabel = operation === 'remove' ? 'Remove' : 'Add'
 
   return (
@@ -508,6 +522,29 @@ export function StockMovementModal({
             </fieldset>
           ) : null}
 
+          {isWaste ? (
+            <fieldset className="stock-waste-reasons" disabled={isBusy}>
+              <legend>Reason</legend>
+              <div role="group" aria-label="Waste reason" data-testid="stock-waste-reasons">
+                {WASTE_REASONS.map((reason) => (
+                  <button
+                    key={reason.id}
+                    type="button"
+                    className={`stock-waste-reason-btn${wasteReasonId === reason.id ? ' is-selected' : ''}`}
+                    aria-pressed={wasteReasonId === reason.id}
+                    data-waste-reason={reason.id}
+                    onClick={() => {
+                      setWasteReasonId(reason.id)
+                      setError('')
+                    }}
+                  >
+                    {reason.label}
+                  </button>
+                ))}
+              </div>
+            </fieldset>
+          ) : null}
+
           <label>
             {isStockCount ? 'Counted quantity' : 'Quantity'}
             {isAdjustment ? (
@@ -592,7 +629,9 @@ export function StockMovementModal({
                   ? 'e.g. Monday bar count'
                   : isAdjustment
                     ? 'Describe why this adjustment was made...'
-                    : 'Optional'
+                    : isWaste
+                      ? 'Optional'
+                      : 'Optional'
               }
               disabled={isBusy}
               data-testid={isAdjustment ? 'stock-adjustment-note' : undefined}

@@ -305,7 +305,7 @@ function StockItemCard({
 function formatLastMovementCell(item, timeZone = '') {
   const movement = item.lastMovement
   if (!movement?.type) return '—'
-  const label = getStockMovementLabel(movement.type)
+  const label = getStockMovementLabel(movement)
   const when = movement.createdAt ? formatStockListUpdatedWhen(movement.createdAt, timeZone) : ''
   return when ? `${label} · ${when}` : label
 }
@@ -323,7 +323,7 @@ function StockListUpdatedCell({ item, timeZone = '' }) {
     return <span className="stock-list-updated is-empty">—</span>
   }
 
-  const label = getStockMovementLabel(movement.type)
+  const label = getStockMovementLabel(movement)
   const when = movement.createdAt ? formatStockListUpdatedWhen(movement.createdAt, timeZone) : ''
 
   return (
@@ -2162,6 +2162,7 @@ export function StockDashboardView({
           item={activeMenuItem}
           itemName={activeMenuItem.name}
           onUsage={() => openMovement(activeMenuItem, 'usage')}
+          onWaste={() => openMovement(activeMenuItem, 'waste')}
           onAdjust={() => openMovement(activeMenuItem, 'adjustment')}
           onEdit={() => openEditItem(activeMenuItem)}
           onDuplicate={() => openDuplicateItem(activeMenuItem)}
