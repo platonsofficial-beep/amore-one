@@ -302,29 +302,29 @@ function StockItemCard({
   )
 }
 
-function formatLastMovementCell(item) {
+function formatLastMovementCell(item, timeZone = '') {
   const movement = item.lastMovement
   if (!movement?.type) return '—'
   const label = getStockMovementLabel(movement.type)
-  const when = movement.createdAt ? formatStockListUpdatedWhen(movement.createdAt) : ''
+  const when = movement.createdAt ? formatStockListUpdatedWhen(movement.createdAt, timeZone) : ''
   return when ? `${label} · ${when}` : label
 }
 
 /** Presentation-only Updated timestamp: "24 Jul · 15:35" / "Today · 15:35". */
-function formatStockListUpdatedWhen(value) {
-  const raw = formatStockMovementRelativeTime(value)
+function formatStockListUpdatedWhen(value, timeZone = '') {
+  const raw = formatStockMovementRelativeTime(value, new Date(), timeZone)
   if (!raw) return ''
   return raw.replace(/^(.+?)\s+(\d{1,2}:\d{2})$/u, '$1 · $2')
 }
 
-function StockListUpdatedCell({ item }) {
+function StockListUpdatedCell({ item, timeZone = '' }) {
   const movement = item.lastMovement
   if (!movement?.type) {
     return <span className="stock-list-updated is-empty">—</span>
   }
 
   const label = getStockMovementLabel(movement.type)
-  const when = movement.createdAt ? formatStockListUpdatedWhen(movement.createdAt) : ''
+  const when = movement.createdAt ? formatStockListUpdatedWhen(movement.createdAt, timeZone) : ''
 
   return (
     <div className="stock-list-updated" title={when ? `${label} · ${when}` : label}>
@@ -402,6 +402,7 @@ function StockListRow({
   onReceive,
   onCount,
   onOpenHistory,
+  timeZone = '',
 }) {
   const itemType = resolveStockItemType(item)
   const location = resolveStockStorageLocation(item)
@@ -477,7 +478,7 @@ function StockListRow({
         </span>
       </td>
       <td className="stock-list-cell stock-list-cell-movement">
-        <StockListUpdatedCell item={item} />
+        <StockListUpdatedCell item={item} timeZone={timeZone} />
       </td>
       <td className="stock-list-cell stock-list-cell-actions">
         <StockItemRowActions
@@ -506,6 +507,7 @@ function StockListMobileCard({
   onReceive,
   onCount,
   onOpenHistory,
+  timeZone = '',
 }) {
   const itemType = resolveStockItemType(item)
   const location = resolveStockStorageLocation(item)
@@ -573,7 +575,7 @@ function StockListMobileCard({
         </div>
         <div className="stock-list-mobile-meta-row">
           <dt>Last movement</dt>
-          <dd>{formatLastMovementCell(item)}</dd>
+          <dd>{formatLastMovementCell(item, timeZone)}</dd>
         </div>
       </dl>
 
@@ -606,6 +608,7 @@ function StockListTable({
   onReceive,
   onCount,
   onOpenHistory,
+  timeZone = '',
 }) {
   return (
     <>
@@ -638,6 +641,7 @@ function StockListTable({
                 onReceive={() => onReceive(item)}
                 onCount={() => onCount(item)}
                 onOpenHistory={() => onOpenHistory(item)}
+                timeZone={timeZone}
               />
             ))}
           </tbody>
@@ -658,6 +662,7 @@ function StockListTable({
             onReceive={() => onReceive(item)}
             onCount={() => onCount(item)}
             onOpenHistory={() => onOpenHistory(item)}
+            timeZone={timeZone}
           />
         ))}
       </div>
@@ -1333,6 +1338,7 @@ export function StockDashboardView({
   onOpenCounts,
   onOpenInventoryCountSession,
   isSavingOrders = false,
+  timeZone = '',
 }) {
   const [categoryFilter, setCategoryFilter] = useState('All')
   const [statusFilter, setStatusFilter] = useState('all')
@@ -1675,6 +1681,7 @@ export function StockDashboardView({
                 onReceive={(item) => openMovement(item, 'receive')}
                 onCount={(item) => openMovement(item, 'stock_count')}
                 onOpenHistory={openHistory}
+                timeZone={timeZone}
               />
             ) : null}
 
@@ -1906,6 +1913,7 @@ export function StockDashboardView({
           parsStatus={stockLiveSnapshot.status}
           stockOrders={stockOrders}
           lastInventoryCountAt={stockLiveSnapshot.lastInventoryCountAt}
+          timeZone={timeZone}
           onOpenBelowPar={onOpenBelowPar}
           onOpenDrafts={onOpenDrafts}
           onOpenCounts={onOpenCounts}
@@ -2113,6 +2121,7 @@ export function StockDashboardView({
         <StockProductHistoryDrawer
           item={activeHistoryItem}
           workspaceId={workspaceId}
+          timeZone={timeZone}
           canManage={canManage}
           showCost={canManage}
           onClose={() => setHistoryItem(null)}

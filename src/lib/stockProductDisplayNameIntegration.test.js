@@ -79,14 +79,13 @@ describe('P8.31.7b computed display name integration', () => {
     expect(item.name).toBe('Vodka')
   })
 
-  it('defers Inventory Count — no identity display wiring', () => {
+  it('shows Brand + Name + Size on the inventory count list', () => {
     const count = readFileSync(
       resolve('src/components/stock/InventoryCountSessionWorkspace.jsx'),
       'utf8',
     )
-    expect(count).not.toContain('stockProductIdentity')
-    expect(count).not.toContain('buildProductDisplayName')
-    expect(count).not.toContain('buildProductDisplayNameFromItem')
+    expect(count).toContain('formatInventoryCountItemLabel')
     expect(count).toContain('{item.name}')
+    expect(count).not.toContain('stockProductIdentity')
   })
 })

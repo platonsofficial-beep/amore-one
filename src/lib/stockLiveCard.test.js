@@ -40,6 +40,12 @@ describe('stock live card', () => {
     expect(formatInventoryCountFact(null, now)).toBe('No inventory counts yet')
     expect(formatInventoryCountFact(today.toISOString(), now)).toBe('Last inventory count today')
     expect(formatInventoryCountFact(july.toISOString(), now)).toBe('Last inventory count 30 Jul')
+    const venueNow = new Date('2026-10-26T21:00:00.000Z')
+    const postedAfterMidnightNicosia = '2026-10-26T22:30:00.000Z'
+    expect(formatInventoryCountFact(postedAfterMidnightNicosia, venueNow, 'Europe/Nicosia'))
+      .toBe('Last inventory count 27 Oct')
+    expect(formatInventoryCountFact(venueNow.toISOString(), venueNow, 'Europe/Nicosia'))
+      .toBe('Last inventory count today')
 
     const facts = buildStockLiveFacts({
       belowParCount: 2,

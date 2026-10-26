@@ -79,12 +79,12 @@ function StockOrderSortDropdown({ value, options, onChange }) {
   )
 }
 
-function StockOrderCard({ order, onOpen, showCost = true }) {
+function StockOrderCard({ order, onOpen, showCost = true, timeZone = '' }) {
   const status = normalizeStockOrderStatus(order.status)
   const statusTone = getStockOrderStatusTone(order.status)
   const nextAction = getStockOrderNextAction(order)
   const itemCount = order.items?.length ?? 0
-  const deliveryLabel = formatStockOrderDeliveryDate(order.expectedDeliveryDate)
+  const deliveryLabel = formatStockOrderDeliveryDate(order.expectedDeliveryDate, timeZone)
   const showPartialBadge = isOrderPartiallyReceived(order)
   const isActionable = status === 'draft' || status === 'sent'
 
@@ -137,7 +137,7 @@ function StockOrderCard({ order, onOpen, showCost = true }) {
         <p className="stock-order-card-created">
           <span>{order.createdByName || 'System'}</span>
           <span aria-hidden="true">·</span>
-          <span>{formatStockOrderDate(order.createdAt)}</span>
+          <span>{formatStockOrderDate(order.createdAt, timeZone)}</span>
         </p>
         {deliveryLabel ? (
           <p className="stock-order-card-delivery">
@@ -171,6 +171,7 @@ export function StockOrdersView({
   onReceiveOrder,
   onCancelOrder,
   onOrdersChanged,
+  timeZone = '',
 }) {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
   const [isCleanupDialogOpen, setIsCleanupDialogOpen] = useState(false)
@@ -354,6 +355,7 @@ export function StockOrdersView({
               key={order.id}
               order={order}
               showCost={canManage}
+              timeZone={timeZone}
               onOpen={setSelectedOrder}
             />
           ))}
@@ -376,6 +378,7 @@ export function StockOrdersView({
           suppliers={suppliers}
           venueName={venueName}
           senderName={senderName}
+          timeZone={timeZone}
           onClose={() => setSelectedOrder(null)}
           canManage={canManage}
           isSaving={isSaving}

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useAuth } from '../../context/AuthContext'
+import { formatInventoryCountItemLabel } from '../../lib/inventoryCountItemName'
 import {
   completeInventoryCountLocation,
   getInventoryCountSession,
@@ -34,6 +35,13 @@ export const INVENTORY_COUNT_SPREADSHEET_COLUMNS = {
   '--ic-col-status': 'minmax(52px, 0.48fr)',
   '--ic-cols':
     'var(--ic-col-item) var(--ic-col-unit) var(--ic-col-expected) var(--ic-col-counted) var(--ic-col-status)',
+}
+
+/** Blind counts drop the Expected column. Open counts keep the locked five-column contract. */
+export const INVENTORY_COUNT_BLIND_SPREADSHEET_COLUMNS = {
+  ...INVENTORY_COUNT_SPREADSHEET_COLUMNS,
+  '--ic-cols':
+    'var(--ic-col-item) var(--ic-col-unit) var(--ic-col-counted) var(--ic-col-status)',
 }
 
 function formatItemMetaLine(category, itemType) {
@@ -91,7 +99,7 @@ function mapItemForDisplay(item) {
   const itemType = `${item.itemType ?? ''}`.trim() || 'Other'
   return {
     id: item.id,
-    name: item.itemName || 'Untitled item',
+    name: formatInventoryCountItemLabel(item),
     meta: formatItemMetaLine(category, itemType),
     unit: item.unit || '—',
     expected: formatQuantity(item.expectedSnapshot),
@@ -612,6 +620,7 @@ export function InventoryCountSessionWorkspace({
   const [isSaving, setIsSaving] = useState(false)
   const [isCompletingLocation, setIsCompletingLocation] = useState(false)
   const [sessionStatus, setSessionStatus] = useState('in_progress')
+  const [sessionVisibility, setSessionVisibility] = useState('')
   const [isTogglingPause, setIsTogglingPause] = useState(false)
   const [isFinishPreviewOpen, setIsFinishPreviewOpen] = useState(false)
   const [isLoadingFinishPreview, setIsLoadingFinishPreview] = useState(false)
@@ -766,6 +775,7 @@ export function InventoryCountSessionWorkspace({
       setLoadError('')
       setSaveError('')
       setSessionStatus('in_progress')
+      setSessionVisibility('')
       setIsCompletingLocation(false)
       setIsTogglingPause(false)
       setIsFinishPreviewOpen(false)
@@ -800,6 +810,7 @@ export function InventoryCountSessionWorkspace({
 
         const nextStatus = `${session?.status || ''}`.trim() || 'in_progress'
         setSessionStatus(nextStatus)
+        setSessionVisibility(`${session?.visibility ?? ''}`.trim().toLowerCase())
         setHasPostedFinish(nextStatus === 'posted')
 
         const nextLocations = buildLocationsFromSession(sessionLocations, sessionItems)
@@ -1119,6 +1130,7 @@ export function InventoryCountSessionWorkspace({
       ? 'Paused'
       : 'In Progress'
   const showCountingCompleteBanner = sessionStatus === 'counting_complete'
+  const hideExpected = sessionVisibility === 'blind'
   const showPausedBanner = isSessionPaused
   const canOpenFinishCount = sessionStatus === 'counting_complete'
   const finishCountDisabledReason = canOpenFinishCount
@@ -1636,8 +1648,8 @@ export function InventoryCountSessionWorkspace({
               ) : null}
 
               <div
-                className="inventory-count-session-spreadsheet"
-                style={INVENTORY_COUNT_SPREADSHEET_COLUMNS}
+                className={`inventory-count-session-spreadsheet${hideExpected ? ' is-blind-count' : ''}`}
+                style={hideExpected ? INVENTORY_COUNT_BLIND_SPREADSHEET_COLUMNS : INVENTORY_COUNT_SPREADSHEET_COLUMNS}
                 aria-label={`${selectedLocationName} items`}
               >
                 {selectedLocation?.items.length === 0 ? (
@@ -1663,9 +1675,11 @@ export function InventoryCountSessionWorkspace({
                       <div className="inventory-count-session-spreadsheet-cell is-head" role="columnheader">
                         Unit
                       </div>
-                      <div className="inventory-count-session-spreadsheet-cell is-head" role="columnheader">
-                        Expected
-                      </div>
+                      {hideExpected ? null : (
+                        <div className="inventory-count-session-spreadsheet-cell is-head" role="columnheader">
+                          Expected
+                        </div>
+                      )}
                       <div className="inventory-count-session-spreadsheet-cell is-head" role="columnheader">
                         Counted
                       </div>
@@ -1687,13 +1701,15 @@ export function InventoryCountSessionWorkspace({
                           data-count-item-id={item.id}
                         >
                           <div className="inventory-count-session-spreadsheet-cell inventory-count-session-item-cell">
-                            <span className="inventory-count-session-item-name">{item.name}</span>
+                            <span className="inventory-count-session-item-name" title={item.name}>{item.name}</span>
                             {item.meta ? (
                               <span className="inventory-count-session-item-meta">{item.meta}</span>
                             ) : null}
                           </div>
                           <div className="inventory-count-session-spreadsheet-cell is-unit">{item.unit}</div>
-                          <div className="inventory-count-session-spreadsheet-cell is-expected">{item.expected}</div>
+                          {hideExpected ? null : (
+                            <div className="inventory-count-session-spreadsheet-cell is-expected">{item.expected}</div>
+                          )}
                           <div className="inventory-count-session-spreadsheet-cell is-counted">
                             <input
                               type="text"

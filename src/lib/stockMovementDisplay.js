@@ -1,8 +1,8 @@
 import { formatTimestampDayAndTime24 } from './timeFormatUtils'
 import { getStockMovementLabel, formatStockQuantity } from './stockUtils'
 
-export function formatStockHistoryTimestamp(value) {
-  return formatTimestampDayAndTime24(value)
+export function formatStockHistoryTimestamp(value, timeZone = '') {
+  return formatTimestampDayAndTime24(value, '', timeZone)
 }
 
 export function formatStockMovementQuantityLine(movement, unit = '') {

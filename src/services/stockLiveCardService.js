@@ -22,14 +22,14 @@ function isInventoryCountSessionSchemaMissing(error) {
     || message.includes('could not find')
 }
 
-function readLatestInventoryCountStartedAt(result) {
+function readLatestPostedInventoryCountAt(result) {
   if (result?.error) {
     if (isInventoryCountSessionSchemaMissing(result.error)) return null
     throw new Error(result.error.message || 'Unable to load inventory counts right now.')
   }
   const row = Array.isArray(result?.data) ? result.data[0] : null
-  const startedAt = row?.started_at ?? row?.startedAt ?? null
-  return startedAt ? `${startedAt}` : null
+  const postedAt = row?.posted_at ?? row?.postedAt ?? row?.completed_at ?? row?.completedAt ?? null
+  return postedAt ? `${postedAt}` : null
 }
 
 function requireWorkspaceId(workspaceId) {
@@ -58,13 +58,14 @@ export async function loadStockLiveSnapshot(workspaceId) {
       .eq('workspace_id', normalizedWorkspaceId),
     supabase
       .from(INVENTORY_COUNT_SESSIONS_TABLE)
-      .select('started_at')
+      .select('posted_at, completed_at')
       .eq('workspace_id', normalizedWorkspaceId)
-      .order('started_at', { ascending: false })
+      .eq('status', 'posted')
+      .order('posted_at', { ascending: false, nullsFirst: false })
       .limit(1),
   ])
 
-  const lastInventoryCountAt = readLatestInventoryCountStartedAt(sessionResult)
+  const lastInventoryCountAt = readLatestPostedInventoryCountAt(sessionResult)
 
   if (parResult.error && isStockStorageParSchemaMissing(parResult.error)) {
     return { belowParCount: 0, parsReady: false, lastInventoryCountAt }

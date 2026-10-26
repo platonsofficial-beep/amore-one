@@ -42,7 +42,7 @@ describe('loadStockLiveSnapshot', () => {
       error: null,
     })
     const sessions = query({
-      data: [{ started_at: '2026-07-30T09:00:00.000Z' }],
+      data: [{ posted_at: '2026-07-30T09:00:00.000Z', status: 'posted' }],
       error: null,
     })
     fromMock.mockImplementation((table) => {
@@ -56,7 +56,8 @@ describe('loadStockLiveSnapshot', () => {
       parsReady: true,
       lastInventoryCountAt: '2026-07-30T09:00:00.000Z',
     })
-    expect(sessions.order).toHaveBeenCalledWith('started_at', { ascending: false })
+    expect(sessions.eq).toHaveBeenCalledWith('status', 'posted')
+    expect(sessions.order).toHaveBeenCalledWith('posted_at', { ascending: false, nullsFirst: false })
     expect(sessions.limit).toHaveBeenCalledWith(1)
     expect(pars.select).toHaveBeenCalledWith(STOCK_STORAGE_PAR_COLUMNS)
     expect(balances.select).toHaveBeenCalledWith(STOCK_STORAGE_CENTER_BALANCE_COLUMNS)
