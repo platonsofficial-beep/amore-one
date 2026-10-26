@@ -48079,11 +48079,17 @@ summary:focus-visible {
   font-weight: 700;
 }
 
+.inventory-count-wizard-body:has(.inventory-count-front-door) {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
 .inventory-count-front-door {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
-  margin-bottom: 12px;
+  width: 100%;
 }
 
 .inventory-count-door-choice {
@@ -48096,7 +48102,7 @@ summary:focus-visible {
   border: 0;
   border-radius: 18px;
   background: rgba(255, 247, 232, 0.06);
-  box-shadow: inset 0 0 0 1px rgba(212, 175, 55, 0.28);
+  box-shadow: inset 0 0 0 1px rgba(168, 196, 224, 0.35);
   color: #fff7e8;
   text-align: left;
   cursor: pointer;
@@ -48104,6 +48110,7 @@ summary:focus-visible {
 
 .inventory-count-door-choice.is-selected {
   background: rgba(212, 175, 55, 0.16);
+  box-shadow: inset 0 0 0 1px rgba(212, 175, 55, 0.72);
 }
 
 .inventory-count-more-types > summary {
@@ -48112,6 +48119,10 @@ summary:focus-visible {
   min-height: 44px;
   color: #d5e4f4;
   cursor: pointer;
+}
+
+.inventory-count-more-types:not([open]) > :not(summary) {
+  display: none;
 }
 
 .stock-migration-page,

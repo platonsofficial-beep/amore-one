@@ -8,6 +8,9 @@ export function StockInventoryMigrationView({
   timeZone = '',
   historyRefresh = 0,
   onOpenInventoryImport = undefined,
+  listRecentInventoryImportSessions = undefined,
+  checkInventoryImportUndoEligibility = undefined,
+  undoInventoryImportSession = undefined,
 }) {
   return (
     <section className="stock-migration-page" aria-label="Import">
@@ -53,6 +56,9 @@ export function StockInventoryMigrationView({
         workspaceId={workspaceId}
         timeZone={timeZone}
         refreshKey={historyRefresh}
+        listRecentInventoryImportSessions={listRecentInventoryImportSessions}
+        checkInventoryImportUndoEligibility={checkInventoryImportUndoEligibility}
+        undoInventoryImportSession={undoInventoryImportSession}
       />
     </section>
   )
