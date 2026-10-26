@@ -1,6 +1,8 @@
 /**
  * @vitest-environment node
- * Unapplied supplier match-or-create on top of the costPrice apply function.
+ * Contract for the applied supplier function. That file already includes
+ * costPrice. The separate cost-only scripts were not applied and are not
+ * part of this branch.
  */
 import { readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
@@ -9,7 +11,6 @@ import { describe, expect, it } from 'vitest'
 
 const HERE = dirname(fileURLToPath(import.meta.url))
 const STEP2 = readFileSync(join(HERE, '../supabase/stock_location_quantity_step2.sql'), 'utf8')
-const COST = readFileSync(join(HERE, '../supabase/inventory_import_apply_cost.sql'), 'utf8')
 const SQL = readFileSync(join(HERE, '../supabase/inventory_import_apply_suppliers.sql'), 'utf8')
 const ROLLBACK = readFileSync(join(HERE, '../supabase/inventory_import_apply_suppliers_rollback.sql'), 'utf8')
 const VERIFY = readFileSync(join(HERE, '../supabase/inventory_import_apply_suppliers_verify.sql'), 'utf8')
@@ -77,8 +78,29 @@ function stripSuppliers(body) {
   return out
 }
 
+function stripCost(body) {
+  const costBlockStart = body.indexOf('      v_cost := 0;')
+  const costBlockEnd = body.indexOf('      v_supplier_id := null;')
+  expect(costBlockStart).toBeGreaterThan(0)
+  expect(costBlockEnd).toBeGreaterThan(costBlockStart)
+  return (
+    body.slice(0, costBlockStart) + body.slice(costBlockEnd)
+  )
+    .replace(
+      '  v_target numeric(12, 3);\n  v_cost numeric(12, 2);\n',
+      '  v_target numeric(12, 3);\n',
+    )
+    .replaceAll(
+      `          v_target,
+          v_cost,
+          v_storage,`,
+      `          v_target,
+          0,
+          v_storage,`,
+    )
+}
+
 const LIVE = extractApply(STEP2)
-const COST_BODY = extractApply(COST)
 const CHANGE = extractApply(SQL)
 
 describe('apply_inventory_import_session supplier match-or-create', () => {
@@ -99,13 +121,18 @@ describe('apply_inventory_import_session supplier match-or-create', () => {
     expect(SQL).toContain('APPLY ORDER')
   })
 
-  it('is the cost function plus the supplier block', () => {
-    expect(stripSuppliers(CHANGE)).toBe(COST_BODY)
+  it('is the live function plus costPrice plus the supplier block', () => {
+    const withoutSuppliers = stripSuppliers(CHANGE)
+    expect(withoutSuppliers).toContain("normalized_payload->>'costPrice'")
+    expect(withoutSuppliers).not.toContain('created_supplier_ids')
+    expect(stripCost(withoutSuppliers)).toBe(LIVE)
   })
 
   it('rolls back to the exact current live body, not the cost-only body', () => {
-    expect(extractApply(ROLLBACK)).toBe(LIVE)
-    expect(extractApply(ROLLBACK)).not.toBe(COST_BODY)
+    const rolledBack = extractApply(ROLLBACK)
+    expect(rolledBack).toBe(LIVE)
+    expect(rolledBack).not.toContain('costPrice')
+    expect(rolledBack).not.toContain('created_supplier_ids')
     expect(ROLLBACK).not.toMatch(/\bdrop table\b/i)
     expect(ROLLBACK).not.toMatch(/\bdelete from\b/i)
   })
