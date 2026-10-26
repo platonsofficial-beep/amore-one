@@ -339,7 +339,6 @@ import {
   updateTaskTemplate,
 } from './services/taskTemplateService'
 import { selectTemplatesDueForDate } from './lib/taskTemplateRecurrence'
-import { countOpenOperationsTasksForTodayChip } from './lib/todayCommandHeaderUtils'
 import { useEscapeToClose } from './lib/useEscapeToClose'
 import {
   getChecklistItemsForTasks,
@@ -703,7 +702,7 @@ import {
 import ReportsView from './components/reports/ReportsView'
 import { ScheduleCardActionMenu } from './components/schedule/ScheduleCardActionMenu'
 import { UNASSIGNED_CUSTOM_DEPARTMENT_NAME } from './lib/taskDepartments'
-import { combineOperationalTasks } from './lib/sharedTaskWindow'
+import { buildUnifiedOperationalTaskCounts, combineOperationalTasks } from './lib/sharedTaskWindow'
 import {
   persistNavigation,
   readPersistedNavigation,
@@ -16855,26 +16854,33 @@ function App() {
     [todayActionableTasks, operationsTasks, currentDateKey, operationsAnnouncements],
   )
 
-  // Board tasks only. The Today chip adds operationsOpenCount next to this
-  // so the label stays "N board · M ops". The shared window is the Operations
-  // list and must not be passed into that chip.
+  // One open / past-due set for Insights, the Today chip, and Operations.
+  // The chip still splits "N board · M ops", and those parts add up to openCount.
+  const unifiedOperationalTaskCounts = useMemo(
+    () => buildUnifiedOperationalTaskCounts({
+      boardTasks: todayActionableTasks,
+      operationsTasks,
+      todayKey: currentDateKey,
+      announcements: operationsAnnouncements,
+    }),
+    [todayActionableTasks, operationsTasks, currentDateKey, operationsAnnouncements],
+  )
+
+  const operationsOpenCount = unifiedOperationalTaskCounts.opsOpen
+
+  // Department boards keep their own overview. The Today chip uses the
+  // shared board slice so it matches Insights and Operations.
   const boardTaskOverview = useMemo(
     () => calculateTaskOverview(todayActionableTasks, currentDateKey),
     [todayActionableTasks, currentDateKey],
   )
 
-  const dashboardTaskOverview = useMemo(
-    () => calculateTaskOverview(sharedOperationalTasks, currentDateKey),
-    [sharedOperationalTasks, currentDateKey],
-  )
-
-  const operationsOpenCount = useMemo(
-    () => countOpenOperationsTasksForTodayChip(
-      filterStandaloneOperationsTasks(operationsTasks),
-      currentDateKey,
-    ),
-    [operationsTasks, currentDateKey],
-  )
+  const sharedTaskOverview = useMemo(() => ({
+    ...boardTaskOverview,
+    active: unifiedOperationalTaskCounts.boardOpen,
+    overdue: unifiedOperationalTaskCounts.pastDueCount,
+    completedToday: unifiedOperationalTaskCounts.completedToday,
+  }), [boardTaskOverview, unifiedOperationalTaskCounts])
 
   const currentTaskEmployeeId = useMemo(() => {
     const linkedEmployeeId = `${membership?.employeeId ?? ''}`.trim()
@@ -17107,7 +17113,7 @@ function App() {
     reservationsConnected: isReservationsModuleConnected,
     reservationsFooter: dashboardReservationsFooter,
     serviceSnapshot: dashboardServiceSnapshot,
-    tasksOverview: boardTaskOverview,
+    tasksOverview: sharedTaskOverview,
     tasksConnected: isTasksModuleConnected,
     operationsOpenCount,
     stockSummary: managerMobileStockSummary,
@@ -17121,7 +17127,7 @@ function App() {
     isReservationsModuleConnected,
     dashboardReservationsFooter,
     dashboardServiceSnapshot,
-    boardTaskOverview,
+    sharedTaskOverview,
     operationsOpenCount,
     isTasksModuleConnected,
     managerMobileStockSummary,
@@ -17395,7 +17401,7 @@ function App() {
 
   const todayExecutiveMessage = useMemo(() => buildTodayExecutiveMessage({
     hasUrgentAttention: hasUrgentAttentionItems(todayAttentionItems),
-    overdueTaskCount: dashboardTaskOverview?.overdue ?? 0,
+    overdueTaskCount: unifiedOperationalTaskCounts.pastDueCount,
     hasScheduleGaps: (Number(operationalSnapshot?.coverageGaps) || 0) > 0
       || todayAttentionItems.some((item) => item.key === 'schedule-issues'),
     reservationsTodayCount: isReservationsModuleConnected
@@ -17410,7 +17416,7 @@ function App() {
     }),
   }), [
     todayAttentionItems,
-    dashboardTaskOverview?.overdue,
+    unifiedOperationalTaskCounts.pastDueCount,
     operationalSnapshot?.coverageGaps,
     isReservationsModuleConnected,
     todayReservationsSummary?.bookings,
@@ -17425,7 +17431,7 @@ function App() {
   const todayCommandHeaderChips = useMemo(() => buildTodayCommandHeaderChips({
     dashboardLiveStatus,
     todayStatusSummary,
-    dashboardTaskOverview: boardTaskOverview,
+    dashboardTaskOverview: { active: unifiedOperationalTaskCounts.boardOpen },
     operationsOpenCount,
     todayReservationsSummary,
     reservationsConnected: isReservationsModuleConnected,
@@ -17434,7 +17440,7 @@ function App() {
   }), [
     dashboardLiveStatus,
     todayStatusSummary,
-    boardTaskOverview,
+    unifiedOperationalTaskCounts.boardOpen,
     operationsOpenCount,
     todayReservationsSummary,
     isReservationsModuleConnected,
@@ -17761,11 +17767,19 @@ function App() {
   ])
 
   const reportsScheduleData = useMemo(() => ({
-    shifts: dashboardShifts,
+    shifts: isTodayWeekPublished ? dashboardPublishedShifts : dashboardShifts,
     shiftTemplates,
     scheduleCapacities: dashboardCapacities,
     employees: scheduleEmployees,
-  }), [dashboardShifts, shiftTemplates, dashboardCapacities, scheduleEmployees])
+    usesDraftSchedule: !isTodayWeekPublished,
+  }), [
+    isTodayWeekPublished,
+    dashboardPublishedShifts,
+    dashboardShifts,
+    shiftTemplates,
+    dashboardCapacities,
+    scheduleEmployees,
+  ])
 
   const reportsConnections = useMemo(() => ({
     reservationsConnected: isReservationsModuleConnected,
@@ -25334,6 +25348,9 @@ function App() {
             suppliers={suppliers}
             schedule={reportsScheduleData}
             connections={reportsConnections}
+            timeZone={workspaceTimeZone}
+            operationsTasks={operationsTasks}
+            announcements={operationsAnnouncements}
             serviceSnapshot={dashboardServiceSnapshot}
             coverageBreakdown={scheduleAttentionCoverageBreakdown}
             attentionItems={todayAttentionItems}
@@ -25400,7 +25417,7 @@ function App() {
             onOpenChecklistRun={setActiveChecklistRunTemplateId}
             focusTaskId={operationsFocusTaskId}
             onFocusTaskHandled={() => setOperationsFocusTaskId(null)}
-            boardOverdueCount={boardTaskOverview.overdue}
+            boardOverdueCount={unifiedOperationalTaskCounts.boardPastDue}
             onOpenTaskBoards={handleDashboardViewTasks}
           />
         ) : null}

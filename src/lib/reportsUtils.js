@@ -8,7 +8,10 @@ import { needsOrder } from './inventoryUtils'
 import { getStockItemsForSupplier, countInventoryItemsForSupplier } from './stockSupplierUtils'
 import { buildStockDashboardSummary } from './stockUtils'
 import { buildStockOrdersOperationsSummary } from './stockOrderUtils'
-import { calculateTaskOverview, buildTaskAlerts } from './taskUtils'
+import { buildTaskAlerts } from './taskUtils'
+import { buildUnifiedOperationalTaskCounts } from './sharedTaskWindow'
+import { isReservationExpectedForServiceMetrics } from './hostQueueServiceMetrics'
+import { getCurrentDateKey } from './currentDateUtils'
 import {
   calculateShiftDurationHours,
   formatHoursLabel,
@@ -26,8 +29,19 @@ function normalizeDateKey(value) {
   return raw.slice(0, 10)
 }
 
-function reservationMatchesPeriod(reservation, period, todayKey, weekDateKeys) {
-  const dateKey = normalizeDateKey(reservation?.date ?? reservation?.reservation_date)
+function reservationReportDateKey(reservation, timeZone = '') {
+  const rawText = `${reservation?.date ?? reservation?.reservation_date ?? ''}`.trim()
+  if (timeZone && rawText.includes('T')) {
+    const parsed = new Date(rawText)
+    if (!Number.isNaN(parsed.getTime())) {
+      return getCurrentDateKey(parsed, timeZone)
+    }
+  }
+  return normalizeDateKey(rawText)
+}
+
+function reservationMatchesPeriod(reservation, period, todayKey, weekDateKeys, timeZone = '') {
+  const dateKey = reservationReportDateKey(reservation, timeZone)
   if (!dateKey) return false
   if (period === REPORT_PERIOD_TODAY) return dateKey === todayKey
   return weekDateKeys.includes(dateKey)
@@ -90,12 +104,20 @@ export function buildReservationsReport(
     weekStartDate = '',
     connected = true,
     serviceSnapshot = null,
+    timeZone = '',
   } = {},
 ) {
   const weekDateKeys = getWeekDateKeys(weekStartDate || todayKey)
   const scoped = connected
-    ? reservations.filter((reservation) => reservationMatchesPeriod(reservation, period, todayKey, weekDateKeys))
+    ? reservations.filter((reservation) => reservationMatchesPeriod(
+      reservation,
+      period,
+      todayKey,
+      weekDateKeys,
+      timeZone,
+    ))
     : []
+  const expected = scoped.filter((reservation) => isReservationExpectedForServiceMetrics(reservation))
 
   let guests = 0
   let inHouse = 0
@@ -103,12 +125,14 @@ export function buildReservationsReport(
   let cancelled = 0
   let noShow = 0
 
-  scoped.forEach((reservation) => {
+  expected.forEach((reservation) => {
     const partySize = Number(reservation.guests)
     if (Number.isFinite(partySize) && partySize > 0) {
       guests += partySize
     }
+  })
 
+  scoped.forEach((reservation) => {
     const status = normalizeReservationStatus(reservation.status)
     if (isReservationInHouseStatus(status)) inHouse += 1
     if (getHostStatusGroupId(status) === 'completed') completed += 1
@@ -117,7 +141,7 @@ export function buildReservationsReport(
   })
 
   const metrics = {
-    bookings: scoped.length,
+    bookings: expected.length,
     guests,
     inHouse,
     completed,
@@ -150,6 +174,8 @@ export function buildTasksReport(
     todayKey = '',
     weekStartDate = '',
     connected = true,
+    operationsTasks = [],
+    announcements = [],
   } = {},
 ) {
   if (!connected) {
@@ -167,7 +193,12 @@ export function buildTasksReport(
   }
 
   const weekDateKeys = getWeekDateKeys(weekStartDate || todayKey)
-  const overview = calculateTaskOverview(tasks, todayKey)
+  const overview = buildUnifiedOperationalTaskCounts({
+    boardTasks: tasks,
+    operationsTasks,
+    todayKey,
+    announcements,
+  })
   const alerts = buildTaskAlerts(tasks, todayKey)
   const completed = period === REPORT_PERIOD_TODAY
     ? overview.completedToday
@@ -177,8 +208,8 @@ export function buildTasksReport(
     connected: true,
     empty: tasks.length === 0,
     metrics: {
-      active: overview.active,
-      overdue: overview.overdue,
+      active: overview.openCount,
+      overdue: overview.pastDueCount,
       urgent: alerts.urgent.length,
       completed,
       completionPercent: period === REPORT_PERIOD_TODAY ? overview.completionPercent : null,
@@ -314,6 +345,7 @@ export function buildScheduleReport(
     weekStartDate = '',
     connected = true,
     coverageBreakdown = null,
+    usesDraftSchedule = true,
   } = {},
 ) {
   if (!connected) {
@@ -360,7 +392,7 @@ export function buildScheduleReport(
   return {
     connected: true,
     empty: periodShifts.length === 0,
-    usesDraftSchedule: true,
+    usesDraftSchedule: usesDraftSchedule !== false,
     coverageDetail,
     metrics: {
       scheduledStaff: uniqueEmployees.size,
@@ -630,6 +662,9 @@ export function buildReportsBundle({
   serviceSnapshot = null,
   coverageBreakdown = null,
   attentionItems = [],
+  timeZone = '',
+  operationsTasks = [],
+  announcements = [],
 }) {
   const reservationsReport = buildReservationsReport(reservations, {
     period,
@@ -637,12 +672,15 @@ export function buildReportsBundle({
     weekStartDate,
     connected: connections.reservationsConnected,
     serviceSnapshot: period === REPORT_PERIOD_TODAY ? serviceSnapshot : null,
+    timeZone,
   })
   const tasksReport = buildTasksReport(tasks, {
     period,
     todayKey,
     weekStartDate,
     connected: connections.tasksConnected,
+    operationsTasks,
+    announcements,
   })
   const stockReport = buildInsightsStockReport({
     stockItems,

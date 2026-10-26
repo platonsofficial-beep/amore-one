@@ -190,6 +190,9 @@ export default function ReportsView({
   onViewModule,
   onAttentionItemClick,
   onCompleteAttentionItem,
+  timeZone = '',
+  operationsTasks = [],
+  announcements = [],
 }) {
   const [period, setPeriod] = useState(REPORT_PERIOD_TODAY)
 
@@ -209,6 +212,9 @@ export default function ReportsView({
     serviceSnapshot,
     coverageBreakdown,
     attentionItems,
+    timeZone,
+    operationsTasks,
+    announcements,
   }), [
     period,
     todayKey,
@@ -225,6 +231,9 @@ export default function ReportsView({
     serviceSnapshot,
     coverageBreakdown,
     attentionItems,
+    timeZone,
+    operationsTasks,
+    announcements,
   ])
 
   const showAttentionPanel = period === REPORT_PERIOD_TODAY
@@ -240,7 +249,9 @@ export default function ReportsView({
     ? 'No stock items available.'
     : null
   const scheduleEmpty = reports.scheduleReport.connected && reports.scheduleReport.empty
-    ? 'No draft schedule shifts for this period.'
+    ? (reports.scheduleReport.usesDraftSchedule
+      ? 'No draft schedule shifts for this period.'
+      : 'No published schedule shifts for this period.')
     : null
   const suppliersEmpty = reports.suppliersReport.connected && reports.suppliersReport.empty
     ? 'No suppliers available.'

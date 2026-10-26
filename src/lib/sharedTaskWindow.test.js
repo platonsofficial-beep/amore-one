@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { calculateTaskOverview } from './taskUtils'
 import {
   buildSharedTaskWindow,
+  buildUnifiedOperationalTaskCounts,
   combineOperationalTasks,
   sharedWindowMatchesTaskOverview,
 } from './sharedTaskWindow'
@@ -49,5 +50,43 @@ describe('combineOperationalTasks', () => {
     expect(window.dueTodayCount).toBe(0)
     expect(window.pastDueCount).toBe(1)
     expect(window.listTasks.map((task) => task.title)).toEqual(['Late standalone'])
+  })
+
+  it('keeps future-due open tasks in the list so the list matches the open count', () => {
+    const window = buildSharedTaskWindow([
+      { id: 'later', title: 'Next week', status: 'pending', dueDate: '2026-11-02' },
+      { id: 'today', title: 'Today', status: 'active', dueDate: TODAY },
+    ], TODAY)
+
+    expect(window.openCount).toBe(2)
+    expect(window.listTasks.map((task) => task.id)).toEqual(['today', 'later'])
+  })
+})
+
+describe('buildUnifiedOperationalTaskCounts', () => {
+  it('splits board and operations open counts that add up to one open total', () => {
+    const counts = buildUnifiedOperationalTaskCounts({
+      boardTasks: [
+        { id: 'board-late', status: 'active', dueDate: '2026-10-20' },
+        { id: 'board-later', status: 'active', dueDate: '2026-11-02' },
+        { id: 'board-skipped', status: 'skipped', dueDate: '2026-10-01' },
+      ],
+      operationsTasks: [
+        { id: 'ops-late', status: 'pending', dueDate: '2026-10-20' },
+        { id: 'ops-today-check', status: 'pending', dueDate: TODAY, checklistTemplateId: 'tpl' },
+      ],
+      todayKey: TODAY,
+    })
+
+    expect(counts.boardOpen).toBe(2)
+    expect(counts.opsOpen).toBe(1)
+    expect(counts.openCount).toBe(counts.boardOpen + counts.opsOpen)
+    expect(counts.pastDueCount).toBe(2)
+    expect(counts.boardPastDue).toBe(1)
+    expect(counts.listTasks.map((task) => task.id)).toEqual([
+      'board-late',
+      'ops-late',
+      'board-later',
+    ])
   })
 })
