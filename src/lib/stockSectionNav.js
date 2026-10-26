@@ -18,6 +18,16 @@ export function resolvePermittedStockSection(sectionId, canManage) {
 }
 
 /**
+ * Stock search is one field shared by every stock tab.
+ * A dashboard product search must not hide storages, so the text clears
+ * when the tab actually changes and stays put when the same tab is selected again.
+ */
+export function nextStockSearchTerm(currentSection, nextSection, searchTerm = '') {
+  if (`${currentSection ?? ''}` === `${nextSection ?? ''}`) return `${searchTerm ?? ''}`
+  return ''
+}
+
+/**
  * Managers on iPad/desktop keep every stock section.
  * Staff never see Legacy Inventory or Import & Migration.
  * Compact phone layouts keep four primary tabs on one row and park the rest in More.

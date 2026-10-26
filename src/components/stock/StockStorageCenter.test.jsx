@@ -26,9 +26,21 @@ vi.mock('../../services/stockStorageCenterService', async () => {
   }
 })
 
-vi.mock('../../services/stockStorageFastCountService', () => ({
-  startStorageFastCountSession: vi.fn(),
-}))
+vi.mock('../../services/stockStorageFastCountService', async (importOriginal) => {
+  const actual = await importOriginal()
+  return {
+    ...actual,
+    startStorageFastCountSession: vi.fn(),
+  }
+})
+
+vi.mock('../../services/inventoryCountService', async (importOriginal) => {
+  const actual = await importOriginal()
+  return {
+    ...actual,
+    listInventoryCountHomeSessions: vi.fn(async () => ({ active: [], paused: [], recent: [] })),
+  }
+})
 
 import { getWorkspaceStorageProducts } from '../../services/stockStorageCenterService'
 import { startStorageFastCountSession } from '../../services/stockStorageFastCountService'
@@ -262,7 +274,10 @@ describe('StockStorageCenter UI', () => {
       await Promise.resolve()
       await Promise.resolve()
     })
+    expect(container.textContent).toContain('Start a fast count for Main Storage?')
+    expect(startStorageFastCountSession).not.toHaveBeenCalled()
     await act(async () => {
+      container.querySelector('[data-testid="stock-fast-count-confirm-start"]').click()
       await Promise.resolve()
       await Promise.resolve()
     })

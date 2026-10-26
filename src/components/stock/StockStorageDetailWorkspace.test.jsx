@@ -6,6 +6,14 @@ import { act, createElement } from 'react'
 import { createRoot } from 'react-dom/client'
 import { StockStorageDetailWorkspace } from './StockStorageDetailWorkspace'
 
+vi.mock('../../services/inventoryCountService', async (importOriginal) => {
+  const actual = await importOriginal()
+  return {
+    ...actual,
+    listInventoryCountHomeSessions: vi.fn(async () => ({ active: [], paused: [], recent: [] })),
+  }
+})
+
 vi.mock('./StockProductHistoryDrawer.jsx', () => ({
   StockProductHistoryDrawer: ({ item, canManage, onClose }) => createElement(
     'div',
@@ -146,6 +154,15 @@ describe('StockStorageDetailWorkspace — actions + Fast Count launch', () => {
 
     await act(async () => {
       actionBar.querySelector('[data-storage-action="fast_count"]').click()
+      await Promise.resolve()
+    })
+
+    expect(container.querySelector('[data-testid="stock-fast-count-confirm"]')?.textContent)
+      .toContain('Start a fast count for Main Storage?')
+    expect(startFastCountSession).not.toHaveBeenCalled()
+
+    await act(async () => {
+      container.querySelector('[data-testid="stock-fast-count-confirm-start"]').click()
     })
 
     expect(container.querySelector('[data-testid="stock-storage-fast-count-loading"]')).toBeTruthy()
@@ -172,6 +189,56 @@ describe('StockStorageDetailWorkspace — actions + Fast Count launch', () => {
     expect(container.querySelector('[data-testid="stock-storage-action-placeholder"]')).toBeNull()
     expect(container.textContent).not.toContain('Fast Count for this storage will be available')
     expect(container.textContent).not.toContain('Confirm receive')
+  })
+
+  it('resumes an open count for this storage without a confirm step', async () => {
+    const loadProducts = vi.fn(async () => ({
+      storageId: 's-main',
+      products: [makeRow()],
+      summary: {
+        productCount: 1,
+        totalQuantity: 4,
+        nonZeroBalanceCount: 1,
+        inventoryValue: 40,
+      },
+    }))
+    const startFastCountSession = vi.fn()
+    const onOpenActiveCountSession = vi.fn()
+
+    renderWorkspace({
+      workspaceId: 'ws-1',
+      storage: {
+        id: 's-main',
+        name: 'Main Storage',
+        locationKey: 'Main Storage',
+        active: true,
+      },
+      canManage: true,
+      loadProducts,
+      startFastCountSession,
+      onOpenActiveCountSession,
+      loadCountHome: async () => ({
+        active: [{
+          id: 'open-main',
+          status: 'in_progress',
+          startedAt: '2026-10-26T10:00:00.000Z',
+          locations: ['Main Storage'],
+        }],
+        paused: [],
+        recent: [],
+      }),
+    })
+
+    await settle()
+
+    await act(async () => {
+      container.querySelector('[data-storage-action="fast_count"]').click()
+      await Promise.resolve()
+    })
+
+    expect(startFastCountSession).not.toHaveBeenCalled()
+    expect(container.querySelector('[data-testid="stock-fast-count-confirm"]')).toBeNull()
+    expect(onOpenActiveCountSession).toHaveBeenCalledWith('open-main')
   })
 
   it('shows Fast Count launch errors without creating a second count engine', async () => {
@@ -207,6 +274,11 @@ describe('StockStorageDetailWorkspace — actions + Fast Count launch', () => {
 
     await act(async () => {
       container.querySelector('[data-storage-action="fast_count"]').click()
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+    await act(async () => {
+      container.querySelector('[data-testid="stock-fast-count-confirm-start"]').click()
       await Promise.resolve()
       await Promise.resolve()
     })
@@ -777,6 +849,11 @@ describe('StockStorageDetailWorkspace — actions + Fast Count launch', () => {
       container.querySelector('[data-storage-action="transfer"]').click()
       container.querySelector('[data-storage-action="adjustment"]').click()
       container.querySelector('[data-storage-action="fast_count"]').click()
+      await Promise.resolve()
+    })
+    await act(async () => {
+      container.querySelector('[data-testid="stock-fast-count-confirm-start"]').click()
+      await Promise.resolve()
     })
 
     expect(onReceive).toHaveBeenCalledWith(expect.objectContaining({ id: 's-old', active: true }))

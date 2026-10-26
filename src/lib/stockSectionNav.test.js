@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { resolvePermittedStockSection, resolveStockSectionNav } from './stockSectionNav'
+import { nextStockSearchTerm, resolvePermittedStockSection, resolveStockSectionNav } from './stockSectionNav'
 
 describe('resolveStockSectionNav', () => {
   it('keeps every stock section for managers outside the phone shell', () => {
@@ -50,5 +50,10 @@ describe('resolveStockSectionNav', () => {
     expect(resolvePermittedStockSection('inventory', false)).toBe('dashboard')
     expect(resolvePermittedStockSection('orders', false)).toBe('orders')
     expect(resolvePermittedStockSection('migration', true)).toBe('migration')
+  })
+
+  it('clears stock search when the tab changes and keeps it on the same tab', () => {
+    expect(nextStockSearchTerm('dashboard', 'storages', 'vodka')).toBe('')
+    expect(nextStockSearchTerm('dashboard', 'dashboard', 'vodka')).toBe('vodka')
   })
 })

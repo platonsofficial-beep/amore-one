@@ -33669,6 +33669,20 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   padding: 0 14px;
 }
 
+.stock-fast-count-confirm {
+  width: min(440px, 100%);
+}
+
+.stock-fast-count-confirm p {
+  margin: 0;
+}
+
+.stock-fast-count-confirm-actions .primary-btn,
+.stock-fast-count-confirm-actions .ghost-btn {
+  min-height: 44px;
+  min-width: 44px;
+}
+
 .stock-storage-detail-action-btn:disabled {
   opacity: 0.45;
   cursor: not-allowed;
