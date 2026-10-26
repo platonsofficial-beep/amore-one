@@ -8,6 +8,11 @@ import {
   isStandaloneDisplayMode,
   readNetworkStatus,
 } from '../../lib/pwaUtils.js'
+import {
+  isPwaUpdateAvailable,
+  reloadPwaForUpdate,
+  subscribePwaUpdateAvailable,
+} from '../../lib/pwaUpdate.js'
 
 const ONLINE_BANNER_MS = 3200
 
@@ -29,6 +34,24 @@ function NetworkStatusBanner({ isOnline, showBackOnline }) {
       <p className="pwa-offline-banner-copy">
         <strong>Back online.</strong> Live data and saves are available again.
       </p>
+    </div>
+  )
+}
+
+function PwaUpdateBanner({ onRefresh }) {
+  return (
+    <div className="pwa-update-banner" role="status" aria-live="polite">
+      <p className="pwa-offline-banner-copy">
+        <strong>New version available — Refresh</strong>
+      </p>
+      <button
+        type="button"
+        className="primary-btn pwa-update-refresh-btn"
+        data-pwa-update="refresh"
+        onClick={onRefresh}
+      >
+        Refresh
+      </button>
     </div>
   )
 }
@@ -76,8 +99,11 @@ export function PwaShell({ children }) {
   const [deferredPrompt, setDeferredPrompt] = useState(null)
   const [showIosHint, setShowIosHint] = useState(() => canShowIosInstallHint())
   const [installDismissed, setInstallDismissed] = useState(() => isInstallPromptDismissed())
+  const [updateAvailable, setUpdateAvailable] = useState(() => isPwaUpdateAvailable())
   const wasOfflineRef = useRef(!readNetworkStatus())
   const onlineBannerTimerRef = useRef(null)
+
+  useEffect(() => subscribePwaUpdateAvailable(setUpdateAvailable), [])
 
   useEffect(() => {
     const handleOnline = () => {
@@ -164,10 +190,21 @@ export function PwaShell({ children }) {
 
   const shouldShowInstall = canShowInstallPrompt(installDismissed)
     && (deferredPrompt || showIosHint)
+  const showNetworkStatus = !isOnline || showBackOnline
+  const showStatusStack = showNetworkStatus || updateAvailable
+
+  const handlePwaRefresh = () => {
+    reloadPwaForUpdate(window.location, window.sessionStorage, { force: true })
+  }
 
   return (
     <>
-      <NetworkStatusBanner isOnline={isOnline} showBackOnline={showBackOnline} />
+      {showStatusStack ? (
+        <div className="pwa-status-stack">
+          <NetworkStatusBanner isOnline={isOnline} showBackOnline={showBackOnline} />
+          {updateAvailable ? <PwaUpdateBanner onRefresh={handlePwaRefresh} /> : null}
+        </div>
+      ) : null}
       {shouldShowInstall ? (
         <PwaInstallBanner
           deferredPrompt={deferredPrompt}

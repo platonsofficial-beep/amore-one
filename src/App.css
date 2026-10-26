@@ -44463,12 +44463,25 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 }
 
 /* Phase 13 — PWA production package */
-.pwa-offline-banner {
+.pwa-status-stack {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   z-index: 1400;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  pointer-events: none;
+}
+
+.pwa-status-stack > * {
+  pointer-events: auto;
+}
+
+.pwa-offline-banner {
+  position: relative;
+  width: 100%;
   padding:
     calc(10px + env(safe-area-inset-top, 0px))
     max(16px, var(--one-safe-area-right, env(safe-area-inset-right, 0px)))
@@ -44501,6 +44514,38 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
 
 .pwa-online-banner .pwa-offline-banner-copy strong {
   color: #b8f0c8;
+}
+
+.pwa-update-banner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 8px 12px;
+  width: 100%;
+  padding:
+    10px
+    max(16px, var(--one-safe-area-right, env(safe-area-inset-right, 0px)))
+    10px
+    max(16px, var(--one-safe-area-left, env(safe-area-inset-left, 0px)));
+  border-bottom: 1px solid rgba(212, 175, 55, 0.35);
+  background: rgba(10, 22, 40, 0.97);
+  backdrop-filter: blur(12px);
+}
+
+.pwa-status-stack > .pwa-update-banner:first-child {
+  padding-top: calc(10px + env(safe-area-inset-top, 0px));
+}
+
+.pwa-update-banner .pwa-offline-banner-copy strong {
+  color: #fff7e8;
+}
+
+.pwa-update-refresh-btn {
+  min-height: 44px;
+  min-width: 44px;
+  padding-left: 16px;
+  padding-right: 16px;
 }
 
 .pwa-install-banner {
