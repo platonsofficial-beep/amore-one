@@ -43662,6 +43662,24 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   }
 }
 
+.schedule-card-action-menu-portal {
+  position: fixed;
+  right: auto;
+  margin: 0;
+  max-height: calc(100dvh - 16px);
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+.schedule-card-action-menu-portal .template-card-menu-item {
+  box-sizing: border-box;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+}
+
 .schedule-card-action-menu-backdrop {
   position: fixed;
   inset: 0;
