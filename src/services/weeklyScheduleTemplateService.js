@@ -43,11 +43,16 @@ function mapTemplateShift(record) {
   }
 }
 
+function optionalUuid(value) {
+  const normalized = `${value ?? ''}`.trim()
+  return normalized || null
+}
+
 function serializeTemplateShift(templateId, shift) {
   const payload = {
     template_id: templateId,
     day_index: shift.dayIndex,
-    employee_id: shift.employeeId ?? null,
+    employee_id: optionalUuid(shift.employeeId ?? shift.employee_id),
     role: shift.role ?? '',
     area: shift.area ?? '',
     start_time: shift.startTime ?? '',
@@ -104,17 +109,37 @@ export async function getWeeklyTemplateShifts(templateId) {
   return (data ?? []).map(mapTemplateShift)
 }
 
+function createWeeklyTemplateId() {
+  const id = globalThis.crypto?.randomUUID?.()
+  if (!id) {
+    throw new Error('Unable to create weekly template right now.')
+  }
+  return id
+}
+
 export async function createWeeklyScheduleTemplate({ workspaceId, name, shifts }) {
   const normalizedWorkspaceId = `${workspaceId ?? ''}`.trim()
   if (!normalizedWorkspaceId) {
     throw new Error('Workspace is required to save a weekly template.')
   }
 
-  const { data: templateData, error: templateError } = await supabase
+  const normalizedName = `${name ?? ''}`.trim()
+  if (!normalizedName) {
+    throw new Error('Template name is required.')
+  }
+
+  // Insert without RETURNING. PostgREST `.select()` sends the new row back,
+  // and Postgres then applies the member SELECT policy as an insert check.
+  // A miss raises "new row violates row-level security policy" even when
+  // can_manage_workspace_stock(workspace_id) would allow the write.
+  const templateId = createWeeklyTemplateId()
+  const { error: templateError } = await supabase
     .from(WEEKLY_TEMPLATES_TABLE)
-    .insert([{ name, workspace_id: normalizedWorkspaceId }])
-    .select('*')
-    .single()
+    .insert([{
+      id: templateId,
+      name: normalizedName,
+      workspace_id: normalizedWorkspaceId,
+    }])
 
   if (templateError) {
     console.error('[weeklyScheduleTemplateService] createWeeklyScheduleTemplate template insert error:', templateError)
@@ -124,7 +149,7 @@ export async function createWeeklyScheduleTemplate({ workspaceId, name, shifts }
     throw new Error(templateError.message || 'Unable to create weekly template right now.')
   }
 
-  const template = mapTemplate(templateData)
+  const template = mapTemplate({ id: templateId, name: normalizedName })
   const normalizedShifts = (shifts ?? []).map((shift) => serializeTemplateShift(template.id, shift))
 
   if (normalizedShifts.length > 0) {
