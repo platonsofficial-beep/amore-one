@@ -46,6 +46,13 @@ const SUPPLIER_ORDER_VENUE_PLACEHOLDERS = new Set([
   '-',
 ])
 
+function isSupplierOrderPlaceholderName(value) {
+  const name = `${value ?? ''}`.trim()
+  if (!name) return true
+  return SUPPLIER_ORDER_VENUE_PLACEHOLDERS.has(name.toLocaleLowerCase('en-US'))
+    || name.toLocaleLowerCase('en-US') === 'profile not set'
+}
+
 /** First real venue name. Skips the hydrated "Workspace" placeholder. */
 export function resolveSupplierOrderVenueName(...candidates) {
   const list = candidates.flat()
@@ -58,26 +65,37 @@ export function resolveSupplierOrderVenueName(...candidates) {
   return ''
 }
 
+/**
+ * Name printed where the venue used to appear: the person sending the order,
+ * or the venue when that person has no stored name.
+ */
+export function resolveSupplierOrderFromName(senderName = '', ...venueCandidates) {
+  const person = `${senderName ?? ''}`.trim()
+  if (!isSupplierOrderPlaceholderName(person)) return person
+  return resolveSupplierOrderVenueName(...venueCandidates)
+}
+
 /** Greek app language gets the evening greeting used with suppliers. */
 export function stockOrderGreeting(language = '') {
   const lang = `${language ?? ''}`.trim().toLowerCase()
   return lang.startsWith('el') ? 'Καλησπέρα,' : 'Hello,'
 }
 
-export function buildStockOrderSendSubject(order, venueName = '') {
+export function buildStockOrderSendSubject(order, venueName = '', senderName = '') {
   const number = formatStockOrderNumber(order?.orderNumber)
-  const venue = resolveSupplierOrderVenueName(venueName)
-  return venue ? `${venue} – Order ${number}` : `Order ${number}`
+  const fromName = resolveSupplierOrderFromName(senderName, venueName)
+  return fromName ? `${fromName} – Order ${number}` : `Order ${number}`
 }
 
 export function formatStockOrderSendText(order, {
   supplierName = '',
   venueName = '',
+  senderName = '',
   includeCost = false,
   language = '',
 } = {}) {
   const supplier = `${supplierName || order?.supplier || 'Supplier'}`.trim() || 'Supplier'
-  const venue = resolveSupplierOrderVenueName(venueName)
+  const fromName = resolveSupplierOrderFromName(senderName, venueName)
   const delivery = formatStockOrderDeliveryDate(
     order?.expectedDeliveryDate ?? order?.expected_delivery_date,
   )
@@ -113,9 +131,9 @@ export function formatStockOrderSendText(order, {
     lines.push(`Notes: ${notes}`)
   }
 
-  if (venue || delivery) {
+  if (fromName || delivery) {
     lines.push('')
-    if (venue) lines.push(venue)
+    if (fromName) lines.push(fromName)
     if (delivery) lines.push(`Requested delivery: ${delivery}`)
   }
 
@@ -123,7 +141,7 @@ export function formatStockOrderSendText(order, {
 }
 
 export function buildStockOrderSendMessage(order, options = {}) {
-  const subject = buildStockOrderSendSubject(order, options.venueName)
+  const subject = buildStockOrderSendSubject(order, options.venueName, options.senderName)
   const body = formatStockOrderSendText(order, options)
   return `${subject}\n\n${body}`
 }

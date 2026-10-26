@@ -15,6 +15,7 @@ import {
   openStockOrderExternalLink,
   openStockOrderPrintWindow,
   resolveStockOrderSupplierContact,
+  resolveSupplierOrderFromName,
   resolveSupplierOrderVenueName,
   stockOrderGreeting,
 } from './stockOrderSend'
@@ -94,6 +95,56 @@ describe('stock order send', () => {
     expect(staffText).toContain('4 Bottles KETEL ONE')
     expect(staffText).not.toContain('€')
     expect(staffText).not.toContain('Total:')
+  })
+
+  it('uses the sender name in the subject and sign-off, and falls back to the venue', () => {
+    const po = {
+      orderNumber: 2,
+      supplier: 'TEST GrokBot Supplier',
+      items: [{ itemName: 'TEST GrokBot Cola', quantity: 20, costPrice: 0 }],
+    }
+    expect(resolveSupplierOrderFromName('Platon Sachinis', 'Workspace', 'AMORE.NICOSIA')).toBe('Platon Sachinis')
+    expect(resolveSupplierOrderFromName('Workspace', 'Workspace', 'AMORE.NICOSIA')).toBe('AMORE.NICOSIA')
+    expect(resolveSupplierOrderFromName('', 'amore 23')).toBe('amore 23')
+    expect(resolveSupplierOrderFromName('Profile not set', 'AMORE.NICOSIA')).toBe('AMORE.NICOSIA')
+
+    const shared = {
+      supplierName: 'TEST GrokBot Supplier',
+      venueName: 'AMORE.NICOSIA',
+      includeCost: true,
+    }
+    expect(buildStockOrderSendMessage(po, { ...shared, senderName: 'Platon Sachinis', language: 'el' })).toBe(
+      [
+        'Platon Sachinis – Order #0002',
+        '',
+        'Καλησπέρα,',
+        '',
+        'Supplier: TEST GrokBot Supplier',
+        '',
+        '20 TEST GrokBot Cola',
+        '',
+        'Platon Sachinis',
+      ].join('\n'),
+    )
+    expect(buildStockOrderSendMessage(po, { ...shared, senderName: 'Platon Sachinis', language: 'en' })).toBe(
+      [
+        'Platon Sachinis – Order #0002',
+        '',
+        'Hello,',
+        '',
+        'Supplier: TEST GrokBot Supplier',
+        '',
+        '20 TEST GrokBot Cola',
+        '',
+        'Platon Sachinis',
+      ].join('\n'),
+    )
+
+    const fallback = buildStockOrderSendMessage(po, { ...shared, senderName: '', language: 'en' })
+    expect(fallback.startsWith('AMORE.NICOSIA – Order #0002\n\nHello,')).toBe(true)
+    expect(fallback.trimEnd().endsWith('AMORE.NICOSIA')).toBe(true)
+    expect(fallback).not.toContain('Workspace')
+    expect(fallback).not.toContain('€')
   })
 
   it('opens https links with an anchor click and prints from an iframe', () => {

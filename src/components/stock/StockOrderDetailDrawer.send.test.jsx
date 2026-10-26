@@ -85,6 +85,7 @@ describe('StockOrderDetailDrawer send draft', () => {
       order: draftOrder(),
       suppliers: [{ id: 'sup-1', companyName: 'Wine Co', email: 'orders@wine.test', phone: '+357 99 000111' }],
       venueName: 'Amore',
+      senderName: 'Platon Sachinis',
       canManage: true,
       onClose: vi.fn(),
       onMarkSent,
@@ -98,8 +99,10 @@ describe('StockOrderDetailDrawer send draft', () => {
 
     act(() => { buttonNamed(container, 'Email').click() })
     expect(opened[0]).toContain('mailto:orders@wine.test')
-    expect(decodeURIComponent(opened[0].replace(/\+/g, ' '))).toContain('Amore – Order #0004')
-    expect(decodeURIComponent(opened[0].replace(/\+/g, ' '))).toContain('Morning delivery')
+    const emailed = decodeURIComponent(opened[0].replace(/\+/g, ' '))
+    expect(emailed).toContain('Platon Sachinis – Order #0004')
+    expect(emailed).toContain('Morning delivery')
+    expect(emailed).not.toContain('Amore – Order')
 
     act(() => { buttonNamed(container, 'WhatsApp').click() })
     expect(opened.some((url) => url.startsWith('https://wa.me/35799000111?text='))).toBe(true)
@@ -108,7 +111,7 @@ describe('StockOrderDetailDrawer send draft', () => {
     expect(opened.some((url) => url.startsWith('viber://forward?text='))).toBe(true)
 
     act(() => { buttonNamed(container, 'Print').click() })
-    expect(printed[0]).toContain('Amore – Order #0004')
+    expect(printed[0]).toContain('Platon Sachinis – Order #0004')
     expect(printed[0]).toContain('Morning delivery')
     expect(container.textContent).not.toContain('Allow pop-ups')
     expect(onMarkSent).not.toHaveBeenCalled()

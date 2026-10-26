@@ -393,6 +393,7 @@ export function StockOrderDetailDrawer({
   stockItems = [],
   suppliers = [],
   venueName = '',
+  senderName = '',
   onClose,
   canManage = false,
   isSaving = false,
@@ -661,11 +662,12 @@ export function StockOrderDetailDrawer({
   const sendLanguage = typeof navigator === 'undefined' ? 'en' : (navigator.language || 'en')
   const sendCopy = {
     venueName,
+    senderName,
     supplierName,
     includeCost: canManage === true,
     language: sendLanguage,
   }
-  const sendSubject = buildStockOrderSendSubject(sendOrder, venueName)
+  const sendSubject = buildStockOrderSendSubject(sendOrder, venueName, senderName)
   const sendBody = formatStockOrderSendText(sendOrder, sendCopy)
   const sendMessage = buildStockOrderSendMessage(sendOrder, sendCopy)
   const supplierEmail = `${supplierContact?.email ?? ''}`.trim()

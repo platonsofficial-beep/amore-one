@@ -10,7 +10,12 @@ function resolveAuthEmailFallback(membership, user) {
   return localPart || email
 }
 
-export function resolveUserDisplayName({ membership, employees = [], user } = {}) {
+/**
+ * Personal name stored for the signed-in member.
+ * Linked employee full name, then workspace_members.display_name.
+ * An email local-part is not a personal name.
+ */
+export function resolveStoredUserDisplayName({ membership, employees = [] } = {}) {
   const employeeId = `${membership?.employeeId ?? membership?.employee_id ?? ''}`.trim()
 
   if (employeeId && Array.isArray(employees) && employees.length > 0) {
@@ -19,8 +24,12 @@ export function resolveUserDisplayName({ membership, employees = [], user } = {}
     if (employeeName) return employeeName
   }
 
-  const displayName = `${membership?.displayName ?? ''}`.trim()
-  if (displayName) return displayName
+  return `${membership?.displayName ?? membership?.display_name ?? ''}`.trim()
+}
+
+export function resolveUserDisplayName({ membership, employees = [], user } = {}) {
+  const storedName = resolveStoredUserDisplayName({ membership, employees })
+  if (storedName) return storedName
 
   return resolveAuthEmailFallback(membership, user)
 }
