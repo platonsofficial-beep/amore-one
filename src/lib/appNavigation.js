@@ -173,7 +173,7 @@ export function getModuleSubtitle(activeView, currentDateLabel, {
   if (activeView === 'operations' && operationsSection === 'tasks') return 'Department task boards, separate from the operations checklist.'
   if (activeView === 'operations') return 'Daily tasks, issues, and shift communication.'
   if (activeView === 'insights') return 'Business intelligence from live data.'
-  if (activeView === 'settings') return 'Workspace and account configuration.'
+  if (activeView === 'settings') return 'Venue and account configuration.'
   return ''
 }
 

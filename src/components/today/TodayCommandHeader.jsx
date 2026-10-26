@@ -35,7 +35,7 @@ export function TodayCommandHeader({
               ) : null}
               <div className="today-command-venue-row">
                 {workspaceBadge ? (
-                  <span className="today-command-workspace-badge" aria-label="Workspace">
+                  <span className="today-command-workspace-badge" aria-label="Venue">
                     {workspaceBadge}
                   </span>
                 ) : null}

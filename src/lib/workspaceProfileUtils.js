@@ -129,13 +129,27 @@ export function isWorkspaceProfileConfigured(profile = {}) {
   )
 }
 
+const PLACEHOLDER_VENUE_NAMES = new Set([
+  'workspace',
+  'workspace not set',
+  '—',
+  '-',
+])
+
+function readableVenueName(value) {
+  const name = normalizeProfileField(value)
+  if (!name) return ''
+  if (PLACEHOLDER_VENUE_NAMES.has(name.toLocaleLowerCase('en-US'))) return ''
+  return name
+}
+
 export function buildWorkspaceIdentityLines({
   workspaceName = '',
   businessName = '',
 } = {}) {
-  const technicalName = normalizeProfileField(workspaceName)
-  const displayBusinessName = normalizeProfileField(businessName)
-  const primary = displayBusinessName || technicalName || '—'
+  const technicalName = readableVenueName(workspaceName)
+  const displayBusinessName = readableVenueName(businessName)
+  const primary = displayBusinessName || technicalName || 'Venue'
   const showTechnicalName = Boolean(
     technicalName
     && displayBusinessName
@@ -148,7 +162,7 @@ export function buildWorkspaceIdentityLines({
     hint: showTechnicalName
       ? 'Business name is shown across ONE. Update it in Business Profile.'
       : (!displayBusinessName && technicalName
-        ? 'Set a business name in Business Profile for a clearer workspace label.'
+        ? 'Set a business name in Business Profile.'
         : ''),
   }
 }
