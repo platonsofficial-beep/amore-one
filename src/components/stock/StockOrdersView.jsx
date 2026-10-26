@@ -154,6 +154,7 @@ export function StockOrdersView({
   stockItems = [],
   suppliers = [],
   venueName = '',
+  senderName = '',
   isLoading = false,
   noticeMessage = '',
   searchTerm = '',
@@ -374,6 +375,7 @@ export function StockOrdersView({
           stockItems={stockItems}
           suppliers={suppliers}
           venueName={venueName}
+          senderName={senderName}
           onClose={() => setSelectedOrder(null)}
           canManage={canManage}
           isSaving={isSaving}
