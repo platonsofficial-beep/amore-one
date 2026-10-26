@@ -101,4 +101,67 @@ describe('StockUsageCostReport', () => {
     expect(container.textContent).toContain('Post two inventory counts')
     expect(container.querySelector('[data-testid="stock-usage-report-summary"]')).toBeNull()
   })
+
+  it('lists posted counts from the home object and skips a reversed count', async () => {
+    const loadSessions = vi.fn(async () => ({
+      active: [{
+        id: 'open-partial',
+        status: 'in_progress',
+        countTypeLabel: 'Partial Count',
+        postedAt: null,
+      }],
+      paused: [],
+      recent: [
+        {
+          id: 'posted-partial',
+          status: 'posted',
+          postedAt: '2026-10-01T09:00:00.000Z',
+          countTypeLabel: 'Partial Count',
+          reversedAt: null,
+        },
+        {
+          id: 'posted-new',
+          status: 'posted',
+          postedAt: '2026-10-20T09:00:00.000Z',
+          countTypeLabel: 'New Count',
+          reversedAt: null,
+        },
+        {
+          id: 'reversed-new',
+          status: 'posted',
+          postedAt: '2026-10-10T09:00:00.000Z',
+          countTypeLabel: 'New Count',
+          reversedAt: '2026-10-21T09:00:00.000Z',
+        },
+      ],
+    }))
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+    await act(async () => {
+      root.render(createElement(StockUsageCostReport, {
+        workspaceId: 'ws-1',
+        items: [{ id: 'vodka', name: 'Vodka', category: 'Spirits', unit: 'btl', costPrice: 10 }],
+        onClose: vi.fn(),
+        loadSessions,
+        loadLines: async ({ sessionId }) => (
+          sessionId === 'posted-partial'
+            ? [{ itemId: 'vodka', countedQuantity: 10 }]
+            : [{ itemId: 'vodka', countedQuantity: 8 }]
+        ),
+        loadMovements: async () => ({ movements: [], truncated: false }),
+      }))
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+
+    const opening = container.querySelector('[data-testid="stock-usage-opening-count"]')
+    const labels = Array.from(opening?.querySelectorAll('option') ?? []).map((option) => option.textContent)
+    expect(labels).toHaveLength(2)
+    expect(labels.join(' ')).toContain('Partial Count')
+    expect(labels.join(' ')).toContain('New Count')
+    expect(container.textContent).not.toContain('filter is not a function')
+    expect(container.querySelector('[data-stock-item-id="vodka"]')?.textContent).toContain('Used')
+    expect(container.querySelector('[role="alert"]')).toBeNull()
+  })
 })

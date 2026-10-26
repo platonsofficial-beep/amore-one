@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { buildStockUsageCostReport } from './stockUsageCostReport'
+import { buildStockUsageCostReport, listPostedUsageCounts } from './stockUsageCostReport'
 
 const vodka = {
   id: 'vodka',
@@ -9,6 +9,54 @@ const vodka = {
   category: 'Spirits',
   costPrice: 20,
 }
+
+describe('listPostedUsageCounts', () => {
+  it('reads the inventory count home object and drops reversed counts', () => {
+    const home = {
+      active: [{
+        id: 'open-partial',
+        status: 'in_progress',
+        countTypeLabel: 'Partial Count',
+        postedAt: null,
+      }],
+      paused: [],
+      recent: [
+        {
+          id: 'posted-partial',
+          status: 'posted',
+          postedAt: '2026-10-01T09:00:00.000Z',
+          countTypeLabel: 'Partial Count',
+          reversedAt: null,
+        },
+        {
+          id: 'posted-new',
+          status: 'posted',
+          postedAt: '2026-10-20T09:00:00.000Z',
+          countTypeLabel: 'New Count',
+          reversedAt: null,
+        },
+        {
+          id: 'reversed-new',
+          status: 'posted',
+          postedAt: '2026-10-10T09:00:00.000Z',
+          countTypeLabel: 'New Count',
+          reversedAt: '2026-10-21T09:00:00.000Z',
+        },
+      ],
+    }
+
+    expect(() => listPostedUsageCounts(home)).not.toThrow()
+    expect(listPostedUsageCounts(home).map((session) => session.id)).toEqual([
+      'posted-partial',
+      'posted-new',
+    ])
+    expect(listPostedUsageCounts({ data: home.recent }).map((session) => session.id)).toEqual([
+      'posted-partial',
+      'reversed-new',
+      'posted-new',
+    ].filter((id) => id !== 'reversed-new'))
+  })
+})
 
 describe('buildStockUsageCostReport', () => {
   it('computes used and waste cost between two posted counts', () => {

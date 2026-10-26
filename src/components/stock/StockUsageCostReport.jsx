@@ -1,7 +1,11 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useEscapeToClose } from '../../lib/useEscapeToClose'
 import { buildProductDisplayNameFromItem } from '../../lib/stockProductIdentity'
-import { buildStockUsageCostReport } from '../../lib/stockUsageCostReport'
+import {
+  asUsageReportList,
+  buildStockUsageCostReport,
+  listPostedUsageCounts,
+} from '../../lib/stockUsageCostReport'
 import { formatStockPurchasePrice, formatStockQuantity } from '../../lib/stockUtils'
 import { formatTimestampDayAndTime24 } from '../../lib/timeFormatUtils'
 import {
@@ -9,13 +13,6 @@ import {
   listInventoryCountHomeSessions,
 } from '../../services/inventoryCountService'
 import { getStockMovementsInPeriod } from '../../services/stockMovementService'
-
-function postedCounts(sessions) {
-  return (sessions ?? [])
-    .filter((session) => session?.status === 'posted' && session.postedAt && !`${session.reversedAt ?? ''}`.trim())
-    .slice()
-    .sort((left, right) => Date.parse(left.postedAt) - Date.parse(right.postedAt))
-}
 
 function countLabel(session, timeZone) {
   const when = formatTimestampDayAndTime24(session.postedAt, 'Posted', timeZone)
@@ -55,7 +52,7 @@ export function StockUsageCostReport({
   const [report, setReport] = useState(null)
   const [reportError, setReportError] = useState('')
   const [reportLoading, setReportLoading] = useState(false)
-  const namedItems = useMemo(() => (items ?? []).map((item) => ({
+  const namedItems = useMemo(() => asUsageReportList(items).map((item) => ({
     ...item,
     displayName: buildProductDisplayNameFromItem(item),
   })), [items])
@@ -68,7 +65,7 @@ export function StockUsageCostReport({
     setSessionsError('')
     loadSessions({ workspaceId }).then((rows) => {
       if (cancelled) return
-      const posted = postedCounts(rows)
+      const posted = listPostedUsageCounts(rows)
       setSessions(posted)
       if (posted.length >= 2) {
         setOpeningId(posted[posted.length - 2].id)
@@ -110,9 +107,9 @@ export function StockUsageCostReport({
     ]).then(([openingLines, closingLines, movementResult]) => {
       if (cancelled) return
       setReport(buildStockUsageCostReport({
-        openingLines,
-        closingLines,
-        movements: movementResult?.movements ?? [],
+        openingLines: asUsageReportList(openingLines),
+        closingLines: asUsageReportList(closingLines),
+        movements: asUsageReportList(movementResult?.movements),
         items: namedItems,
         movementHistoryTruncated: movementResult?.truncated === true,
       }))

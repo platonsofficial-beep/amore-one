@@ -1,6 +1,44 @@
 /** Same note contract as waste logging. Waste is usage whose note starts with this prefix. */
 export const USAGE_REPORT_WASTE_PREFIX = 'Waste · '
 
+/**
+ * Inventory Count home returns `{ active, paused, recent }`, not a list.
+ * A raw session list and a `{ data }` payload are accepted too.
+ * Anything else becomes an empty list so `.filter` cannot throw.
+ * @param {unknown} payload
+ * @returns {object[]}
+ */
+export function collectUsageReportSessions(payload) {
+  if (Array.isArray(payload)) return payload
+  if (!payload || typeof payload !== 'object') return []
+  if (Array.isArray(payload.data)) return payload.data
+  const buckets = ['active', 'paused', 'recent']
+  if (buckets.some((key) => Array.isArray(payload[key]))) {
+    return buckets.flatMap((key) => (Array.isArray(payload[key]) ? payload[key] : []))
+  }
+  return []
+}
+
+/**
+ * Posted counts only. Reversed posted counts stay out of the picker.
+ * @param {unknown} payload
+ */
+export function listPostedUsageCounts(payload) {
+  return collectUsageReportSessions(payload)
+    .filter((session) => (
+      session?.status === 'posted'
+      && Boolean(session.postedAt)
+      && !`${session.reversedAt ?? ''}`.trim()
+    ))
+    .slice()
+    .sort((left, right) => Date.parse(left.postedAt) - Date.parse(right.postedAt))
+}
+
+/** @param {unknown} value */
+export function asUsageReportList(value) {
+  return Array.isArray(value) ? value : []
+}
+
 function roundQty(value) {
   return Math.round(Number(value) * 10000) / 10000
 }

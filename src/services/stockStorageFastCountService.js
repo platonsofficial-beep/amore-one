@@ -21,6 +21,29 @@ export function resolveStorageFastCountLocationKey(storage) {
 }
 
 /**
+ * Open count already covering this storage. Home payload is
+ * `{ active, paused, recent }` from listInventoryCountHomeSessions.
+ * Posted and reversed counts are not open.
+ * @param {unknown} home
+ * @param {object|null|undefined} storage
+ * @returns {object|null}
+ */
+export function findOpenCountForStorage(home, storage) {
+  const key = resolveStorageFastCountLocationKey(storage).trim()
+  if (!key || !home || typeof home !== 'object') return null
+  const sessions = [
+    ...(Array.isArray(home.active) ? home.active : []),
+    ...(Array.isArray(home.paused) ? home.paused : []),
+  ]
+  const matches = sessions.filter((session) => {
+    const locations = Array.isArray(session?.locations) ? session.locations : []
+    return locations.some((location) => `${location ?? ''}`.trim() === key)
+  })
+  matches.sort((left, right) => Date.parse(right?.startedAt || 0) - Date.parse(left?.startedAt || 0))
+  return matches[0] ?? null
+}
+
+/**
  * Create a normal Inventory Count session scoped to one storage and build its snapshot.
  *
  * Defaults mirror the wizard:

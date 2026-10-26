@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import {
+  findOpenCountForStorage,
   resolveStorageFastCountLocationKey,
   startStorageFastCountSession,
 } from './stockStorageFastCountService.js'
@@ -24,6 +25,26 @@ describe('stockStorageFastCountService', () => {
       locationKey: 'Main Storage',
       name: 'Cellar',
     })).toBe('Main Storage')
+  })
+
+  it('resumes an open count for the same storage and ignores posted counts', () => {
+    const home = {
+      active: [{
+        id: 'open-main',
+        status: 'in_progress',
+        startedAt: '2026-10-26T10:00:00.000Z',
+        locations: ['Main Storage'],
+      }],
+      paused: [],
+      recent: [{
+        id: 'posted-main',
+        status: 'posted',
+        locations: ['Main Storage'],
+        reversedAt: null,
+      }],
+    }
+    expect(findOpenCountForStorage(home, { locationKey: 'Main Storage' })?.id).toBe('open-main')
+    expect(findOpenCountForStorage(home, { locationKey: 'Bar' })).toBeNull()
   })
 
   it('starts a normal Inventory Count session for exactly one storage', async () => {

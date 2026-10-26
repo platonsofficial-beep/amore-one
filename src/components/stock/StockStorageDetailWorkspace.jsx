@@ -27,7 +27,12 @@ import {
   clearStockItemStoragePar,
   setStockItemStoragePar,
 } from '../../services/stockItemStorageParService'
-import { startStorageFastCountSession } from '../../services/stockStorageFastCountService'
+import {
+  findOpenCountForStorage,
+  startStorageFastCountSession,
+} from '../../services/stockStorageFastCountService'
+import { listInventoryCountHomeSessions } from '../../services/inventoryCountService'
+import { useEscapeToClose } from '../../lib/useEscapeToClose'
 import { StaffShelfCountSheet } from './StaffShelfCountSheet'
 import {
   staffTakeFromSupplyAvailable,
@@ -343,6 +348,7 @@ function StorageProductRow({
  *   onSupplyRefillComplete?: () => void|Promise<void>,
  *   loadProducts?: typeof getWorkspaceStorageProducts,
  *   startFastCountSession?: typeof startStorageFastCountSession,
+ *   loadCountHome?: typeof listInventoryCountHomeSessions,
  *   staffTakeAvailable?: typeof staffTakeFromSupplyAvailable,
  * }} props
  */
@@ -368,6 +374,7 @@ export function StockStorageDetailWorkspace({
   onSupplyRefillComplete,
   loadProducts = getWorkspaceStorageProducts,
   startFastCountSession = startStorageFastCountSession,
+  loadCountHome = listInventoryCountHomeSessions,
   saveStoragePar = setStockItemStoragePar,
   clearStoragePar = clearStockItemStoragePar,
   staffTakeAvailable = staffTakeFromSupplyAvailable,
@@ -381,6 +388,7 @@ export function StockStorageDetailWorkspace({
   const [reloadToken, setReloadToken] = useState(0)
   const [openMenuItemId, setOpenMenuItemId] = useState(/** @type {string|null} */ (null))
   const [isLaunchingFastCount, setIsLaunchingFastCount] = useState(false)
+  const [fastCountConfirmOpen, setFastCountConfirmOpen] = useState(false)
   const [fastCountError, setFastCountError] = useState('')
   const [shelfCountOpen, setShelfCountOpen] = useState(false)
   const [receivePickerOpen, setReceivePickerOpen] = useState(false)
@@ -512,9 +520,38 @@ export function StockStorageDetailWorkspace({
   const headerValue = summary?.inventoryValue ?? storage?.inventoryValue ?? 0
 
   const handleStartFastCount = async () => {
-    if (isLaunchingFastCount || storage?.active === false) return
+    if (isLaunchingFastCount || fastCountConfirmOpen || storage?.active === false) return
 
     setOpenMenuItemId(null)
+    setFastCountError('')
+
+    const requestId = fastCountRequestIdRef.current + 1
+    fastCountRequestIdRef.current = requestId
+    setIsLaunchingFastCount(true)
+
+    try {
+      const home = await loadCountHome({ workspaceId })
+      if (fastCountRequestIdRef.current !== requestId) return
+      const existingId = `${findOpenCountForStorage(home, storage)?.id ?? ''}`.trim()
+      if (existingId) {
+        onOpenActiveCountSession?.(existingId)
+        return
+      }
+      setFastCountConfirmOpen(true)
+    } catch (error) {
+      if (fastCountRequestIdRef.current !== requestId) return
+      setFastCountError(error?.message || 'Unable to check open counts right now.')
+    } finally {
+      if (fastCountRequestIdRef.current === requestId) {
+        setIsLaunchingFastCount(false)
+      }
+    }
+  }
+
+  const handleConfirmFastCount = async () => {
+    if (isLaunchingFastCount || storage?.active === false) return
+
+    setFastCountConfirmOpen(false)
     setFastCountError('')
 
     const requestId = fastCountRequestIdRef.current + 1
@@ -546,6 +583,8 @@ export function StockStorageDetailWorkspace({
       }
     }
   }
+
+  useEscapeToClose(() => setFastCountConfirmOpen(false), { enabled: fastCountConfirmOpen })
 
   const handleOpenDetails = (row) => {
     setOpenMenuItemId(null)
@@ -1130,6 +1169,42 @@ export function StockStorageDetailWorkspace({
           onClose={() => setWasteRow(null)}
           onSubmit={handleRecordWasteSubmit}
         />
+      ) : null}
+
+      {fastCountConfirmOpen ? (
+        <div
+          className="employee-modal-backdrop task-modal-backdrop"
+          data-testid="stock-fast-count-confirm"
+          onClick={() => setFastCountConfirmOpen(false)}
+        >
+          <div
+            className="employee-modal stock-dashboard-modal task-form-modal is-responsive-sheet stock-fast-count-confirm"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="stock-fast-count-confirm-title"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <h3 id="stock-fast-count-confirm-title">Fast Count</h3>
+            <p>Start a fast count for {storageTitle}?</p>
+            <div className="modal-actions stock-fast-count-confirm-actions">
+              <button
+                type="button"
+                className="ghost-btn"
+                onClick={() => setFastCountConfirmOpen(false)}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="primary-btn"
+                data-testid="stock-fast-count-confirm-start"
+                onClick={() => { void handleConfirmFastCount() }}
+              >
+                Start
+              </button>
+            </div>
+          </div>
+        </div>
       ) : null}
     </section>
   )

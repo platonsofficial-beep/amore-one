@@ -640,6 +640,7 @@ import {
   shouldUseCommandTopbar,
 } from './lib/appNavigation'
 import {
+  nextStockSearchTerm,
   resolvePermittedStockSection,
   resolveStockSectionNav,
 } from './lib/stockSectionNav'
@@ -16760,6 +16761,7 @@ function App() {
     const permitted = stockAccessReady
       ? resolvePermittedStockSection(nextSection, canManageStockRole)
       : nextSection
+    setSearchTerm((current) => nextStockSearchTerm(stockSection, permitted, current))
     setStockSection(permitted)
     persistNavigation({
       activeView,
@@ -16772,6 +16774,7 @@ function App() {
     activeView,
     settingsSection,
     teamSection,
+    stockSection,
     operationsSection,
     stockAccessReady,
     canManageStockRole,
