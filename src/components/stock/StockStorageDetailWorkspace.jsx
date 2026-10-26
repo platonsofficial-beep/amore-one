@@ -28,6 +28,7 @@ import {
   setStockItemStoragePar,
 } from '../../services/stockItemStorageParService'
 import { startStorageFastCountSession } from '../../services/stockStorageFastCountService'
+import { StaffShelfCountSheet } from './StaffShelfCountSheet'
 import {
   staffTakeFromSupplyAvailable,
   takeFromSupplyStorage,
@@ -369,6 +370,7 @@ export function StockStorageDetailWorkspace({
   const [placeholder, setPlaceholder] = useState(/** @type {{ actionId: string, productName?: string }|null} */ (null))
   const [isLaunchingFastCount, setIsLaunchingFastCount] = useState(false)
   const [fastCountError, setFastCountError] = useState('')
+  const [shelfCountOpen, setShelfCountOpen] = useState(false)
   const [receivePickerOpen, setReceivePickerOpen] = useState(false)
   const [receiveRow, setReceiveRow] = useState(/** @type {object|null} */ (null))
   const [transferPickerOpen, setTransferPickerOpen] = useState(false)
@@ -773,6 +775,11 @@ export function StockStorageDetailWorkspace({
           storage={storage}
           canManage={canManage}
           isLaunchingFastCount={isLaunchingFastCount}
+          countDisabled={status === 'loading' || status === 'error'}
+          onCountShelf={() => {
+            if (storage?.active === false || status === 'loading' || status === 'error') return
+            setShelfCountOpen(true)
+          }}
           onStartFastCount={() => { void handleStartFastCount() }}
           onReceive={() => handleStartReceive()}
           onTransfer={() => handleStartTransfer()}
@@ -957,6 +964,16 @@ export function StockStorageDetailWorkspace({
             </div>
           ))}
         </div>
+      ) : null}
+
+      {shelfCountOpen && !canManage && storage?.isSupply !== true ? (
+        <StaffShelfCountSheet
+          workspaceId={workspaceId}
+          storage={storage}
+          products={payload?.products ?? []}
+          parsAvailable={parsAvailable}
+          onClose={() => setShelfCountOpen(false)}
+        />
       ) : null}
 
       {historyItem ? (

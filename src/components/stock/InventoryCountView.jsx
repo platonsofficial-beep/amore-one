@@ -12,6 +12,7 @@ import { InventoryCountWizard } from './InventoryCountWizard'
 import { InventoryCountSessionWorkspace } from './InventoryCountSessionWorkspace'
 import { InventoryCountPostedReview } from './InventoryCountPostedReview'
 import { InventoryCountCorrectionReview } from './InventoryCountCorrectionReview'
+import { staffShelfCountPresentation } from '../../lib/staffShelfCount'
 
 const OPENABLE_STATUSES = new Set(['in_progress', 'paused', 'counting_complete'])
 
@@ -53,6 +54,8 @@ export function formatInventoryCountSessionStatusLabel(session) {
 function InventoryCountSessionCardMeta({ session, onDelete, deleteDisabled = false }) {
   const lastUpdate = session.updatedAt || session.postedAt || session.pausedAt || session.startedAt
   const operator = `${session.operatorName ?? ''}`.trim() || '—'
+  const shelfCount = staffShelfCountPresentation(session)
+  const title = shelfCount?.title || session.countTypeLabel
   const canDelete = typeof onDelete === 'function' && session?.status !== 'posted'
   const statusLabel = formatInventoryCountSessionStatusLabel(session)
   const isReversed = Boolean(`${session?.reversedAt ?? ''}`.trim())
@@ -60,7 +63,7 @@ function InventoryCountSessionCardMeta({ session, onDelete, deleteDisabled = fal
   return (
     <>
       <div className="inventory-count-session-card-top">
-        <strong className="inventory-count-session-card-title">{session.countTypeLabel}</strong>
+        <strong className="inventory-count-session-card-title">{title}</strong>
         <div className="inventory-count-session-card-top-end">
           <span
             className={`inventory-count-session-pill is-status${isReversed ? ' is-reversed' : ''}`.trim()}
@@ -72,7 +75,7 @@ function InventoryCountSessionCardMeta({ session, onDelete, deleteDisabled = fal
             <button
               type="button"
               className="inventory-count-session-delete-btn"
-              aria-label={`Delete ${session.countTypeLabel} inventory count`}
+              aria-label={`Delete ${title} inventory count`}
               title="Delete inventory count"
               disabled={deleteDisabled}
               onClick={(event) => {
@@ -103,6 +106,12 @@ function InventoryCountSessionCardMeta({ session, onDelete, deleteDisabled = fal
           <dt>Progress</dt>
           <dd>{formatProgress(session)}</dd>
         </div>
+        {shelfCount?.detail ? (
+          <div>
+            <dt>Approval</dt>
+            <dd>{shelfCount.detail}</dd>
+          </div>
+        ) : null}
         <div data-inventory-count-home-timestamp={isReversed ? 'reversed' : 'updated'}>
           <dt>{isReversed ? 'Reversed on' : 'Last update'}</dt>
           <dd>{formatSessionDate(isReversed ? session.reversedAt : lastUpdate)}</dd>
@@ -192,7 +201,7 @@ function InventoryCountSessionCard({
     return (
       <div
         className={`inventory-count-session-card is-${session.status}${canManage ? ' has-actions' : ''}`}
-        aria-label={`${session.countTypeLabel}, ${displayStatusLabel}`}
+        aria-label={`${staffShelfCountPresentation(session)?.title || session.countTypeLabel}, ${displayStatusLabel}`}
       >
         <InventoryCountSessionCardMeta
           session={session}
@@ -240,7 +249,7 @@ function InventoryCountSessionCard({
       role={canOpen ? 'button' : undefined}
       tabIndex={canOpen && !isBusy ? 0 : undefined}
       aria-disabled={canOpen ? undefined : true}
-      aria-label={`${session.countTypeLabel}, ${displayStatusLabel}`}
+      aria-label={`${staffShelfCountPresentation(session)?.title || session.countTypeLabel}, ${displayStatusLabel}`}
       data-inventory-count-card-openable={canOpen ? 'true' : 'false'}
       onClick={() => {
         if (canOpen && !isBusy) onOpen?.(session)

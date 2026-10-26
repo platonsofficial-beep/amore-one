@@ -7,6 +7,8 @@
  *   storage: object,
  *   canManage?: boolean,
  *   isLaunchingFastCount?: boolean,
+ *   countDisabled?: boolean,
+ *   onCountShelf?: (storage: object) => void,
  *   onStartFastCount?: (storage: object) => void,
  *   onReceive?: (storage: object) => void,
  *   onTransfer?: (storage: object) => void,
@@ -17,12 +19,37 @@ export function StockStorageDetailActionBar({
   storage,
   canManage = false,
   isLaunchingFastCount = false,
+  countDisabled = false,
+  onCountShelf,
   onStartFastCount,
   onReceive,
   onTransfer,
   onAdjustment,
 } = {}) {
-  if (!canManage) return null
+  if (!canManage) {
+    if (storage?.isSupply === true) return null
+    const isArchived = storage?.active === false
+    const shelfCountDisabled = isArchived || countDisabled
+    return (
+      <div
+        className="stock-storage-detail-action-bar"
+        role="toolbar"
+        aria-label="Storage actions"
+        data-testid="stock-storage-detail-action-bar"
+      >
+        <button
+          type="button"
+          className="primary-btn stock-storage-detail-action-btn"
+          data-storage-action="staff_count"
+          disabled={shelfCountDisabled}
+          title={isArchived ? 'Unavailable for archived storage' : undefined}
+          onClick={() => onCountShelf?.(storage)}
+        >
+          Count shelf
+        </button>
+      </div>
+    )
+  }
 
   const isArchived = storage?.active === false
   const fastCountDisabled = isArchived || isLaunchingFastCount
