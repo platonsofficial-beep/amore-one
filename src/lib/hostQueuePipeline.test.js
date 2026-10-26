@@ -10,6 +10,7 @@ import {
   buildHostQueueSearchHaystack,
   deriveReservationAreaZoneIds,
   filterReservationsBySelectedSeating,
+  includeFocusedHostReservation,
   getReservationPrimaryTableSortLabel,
   reservationMatchesHostQueueArea,
   reservationMatchesHostQueueSearch,
@@ -564,6 +565,18 @@ describe('hostQueuePipeline reservation purpose filters', () => {
     })
 
     expect(filtered.map((entry) => entry.id)).toEqual(['late-drinks'])
+  })
+
+  it('keeps a focused reservation when seating filters hide it', () => {
+    const listed = includeFocusedHostReservation(
+      [{ id: 'visible' }],
+      'marika',
+      [{ id: 'visible' }, { id: 'marika', guestName: 'Marika' }],
+    )
+
+    expect(listed.map((entry) => entry.id)).toEqual(['marika', 'visible'])
+    expect(includeFocusedHostReservation(listed, 'marika', listed).map((entry) => entry.id))
+      .toEqual(['marika', 'visible'])
   })
 
   it('preserves sort order after purpose filtering', () => {

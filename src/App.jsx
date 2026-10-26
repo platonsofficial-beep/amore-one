@@ -8013,6 +8013,8 @@ function ReservationWorkspaceProvider({
     floorCanvasRef,
     canvasRef,
     filteredTodayReservations,
+    focusReservationId,
+    focusToken,
     futureModules: RESERVATION_WORKSPACE_MODULES,
   }), [
     clearSelection,
@@ -8052,6 +8054,8 @@ function ReservationWorkspaceProvider({
     startHostFloorPick,
     toggleHostEditUnit,
     openHostEdit,
+    focusReservationId,
+    focusToken,
   ])
 
   return (
@@ -11543,6 +11547,8 @@ function MobileReservationsHostShellBody({
     setFloorPlanMode,
     activeFloorAreaId,
     setActiveFloorAreaId,
+    focusReservationId,
+    focusToken,
   } = useReservationWorkspace()
   const {
     hasLayout,
@@ -11859,6 +11865,8 @@ function MobileReservationsHostShellBody({
       onFloorCreatePrefillConsumed={() => setFloorCreatePrefill(null)}
       floorEditReservation={floorEditReservation}
       onFloorEditReservationConsumed={() => setFloorEditReservation(null)}
+      focusReservationId={focusReservationId}
+      focusToken={focusToken}
       renderRightPane={rightPane}
       selectedReservationId={selectedReservation?.id ?? null}
       onSelectReservation={handleHostSelectReservation}
@@ -13543,6 +13551,8 @@ function ReservationsUnifiedCanvas({
   upcomingNext30Min = 0,
   nextArrivalHint = '',
   nextArrivalId = null,
+  serviceTodayKey = '',
+  timeZone = '',
 }) {
   const { layout, hasDisplayableLayout, reload } = usePublishedFloorPlan()
   const canEditFloorPlan = floorPlanProps.canEditFloorPlan !== false
@@ -13570,6 +13580,7 @@ function ReservationsUnifiedCanvas({
     draggingReservationId,
     setDraggingReservationId,
     clearDragState,
+    focusReservationId,
   } = useReservationWorkspace()
   const [isSavingListStatus, setIsSavingListStatus] = useState(false)
   const [showHourFilter, setShowHourFilter] = useState(false)
@@ -13679,6 +13690,9 @@ function ReservationsUnifiedCanvas({
             problemFilterOptions={hostProblemFilterOptions}
             onStatusChange={handleStatusChange}
             helpers={HOST_LIST_HELPERS}
+            focusReservationId={focusReservationId}
+            serviceTodayKey={serviceTodayKey}
+            timeZone={timeZone}
           />
         </div>
       </section>
@@ -14094,6 +14108,8 @@ function ReservationsWorkspaceBody({
 
   useEffect(() => {
     if (!reservationAttentionFocus?.dateKey) return
+    setServiceHourFilter(null)
+    setSearchTerm('')
     setSelectedDateKey(normalizeReservationDateKey(reservationAttentionFocus.dateKey))
   }, [reservationAttentionFocus?.token, reservationAttentionFocus?.dateKey])
 
@@ -14138,6 +14154,7 @@ function ReservationsWorkspaceBody({
         todayLabel={selectedDateLabel}
         isViewingToday={isViewingToday}
         workspaceTodayKey={workspaceTodayKey}
+        workspaceTimeZone={workspaceTimeZone}
         onPreviousDay={handlePreviousDay}
         onNextDay={handleNextDay}
         onGoToToday={handleGoToToday}
@@ -14191,6 +14208,7 @@ function ReservationsWorkspaceContent({
   todayLabel,
   isViewingToday,
   workspaceTodayKey,
+  workspaceTimeZone = '',
   onPreviousDay,
   onNextDay,
   onGoToToday,
@@ -14313,6 +14331,8 @@ function ReservationsWorkspaceContent({
           isLoading={isLoading}
           onQuickStatusUpdate={onQuickStatusUpdate}
           isSavingStatus={isSaving}
+          serviceTodayKey={workspaceTodayKey}
+          timeZone={workspaceTimeZone}
         />
       </div>
 
@@ -17227,6 +17247,7 @@ function App() {
     nowMinutes: dashboardNowMinutes,
     now: localNow,
     serviceSnapshot: dashboardServiceSnapshot,
+    timeZone: workspaceTimeZone,
     stockOrdersSummary: managerMobileOrdersSummary,
     stockSummary: managerMobileStockSummary,
     hasStockModuleData: stockItems.length > 0,
@@ -17246,6 +17267,7 @@ function App() {
     dashboardNowMinutes,
     localNow,
     dashboardServiceSnapshot,
+    workspaceTimeZone,
     managerMobileOrdersSummary,
     managerMobileStockSummary,
     stockItems.length,

@@ -1,3 +1,4 @@
+import { getCurrentDateKey } from './currentDateUtils'
 import { parseTimeToMinutes } from './shiftHoursUtils'
 import {
   getHostListGroupId,
@@ -25,8 +26,23 @@ export const HOST_ALERT_TYPES = {
 
 const EXCLUDED_COVER_STATUS_IDS = new Set(['Cancelled', 'Not Shown', 'Rejected'])
 
-function reservationDateKey(reservation) {
-  return `${reservation?.date ?? ''}`.slice(0, 10)
+export function reservationDateKey(reservation, timeZone = '') {
+  const rawText = `${reservation?.date ?? reservation?.reservation_date ?? ''}`.trim()
+  if (timeZone && rawText.includes('T')) {
+    const parsed = new Date(rawText)
+    if (!Number.isNaN(parsed.getTime())) {
+      return getCurrentDateKey(parsed, timeZone)
+    }
+  }
+  return rawText.slice(0, 10)
+}
+
+export function formatStillSeatedReservationLabel(reservation, todayKey = '', timeZone = '') {
+  const reservationDay = reservationDateKey(reservation, timeZone)
+  const today = `${todayKey ?? ''}`.slice(0, 10)
+  if (!reservationDay || !today || reservationDay >= today) return ''
+  if (!isReservationInHouseStatus(reservation?.status)) return ''
+  return `still seated from ${formatStaleSeatedDate(reservationDay)}`
 }
 
 function reservationBelongsToDay(reservation, todayKey) {
@@ -113,7 +129,7 @@ export function getHostReservationAlertReasons(
     })
   }
 
-  const reservationDay = reservationDateKey(reservation)
+  const reservationDay = reservationDateKey(reservation, options.timeZone)
   const isStaleSeated = Boolean(
     reservationDay
     && todayKey
@@ -202,7 +218,7 @@ export function buildHostReservationAlerts(
         tone: reason.tone,
         reservation,
         reservationId: reservation.id,
-        reservationDate: reason.reservationDate ?? reservationDateKey(reservation),
+        reservationDate: reason.reservationDate ?? reservationDateKey(reservation, options.timeZone),
         label: formatHostAlertLabel(reason, guestName),
         delayMinutes: reason.delayMinutes ?? null,
         severity: reason.type === HOST_ALERT_TYPES.LATE ? 0 : 1,

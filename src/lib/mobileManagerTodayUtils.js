@@ -94,6 +94,7 @@ export function buildTodayCommandCenterAttentionItems({
   nowMinutes = 0,
   now = new Date(),
   serviceSnapshot = null,
+  timeZone = '',
   stockOrdersSummary = null,
   stockSummary = null,
   hasStockModuleData = false,
@@ -122,6 +123,7 @@ export function buildTodayCommandCenterAttentionItems({
     todayKey,
     now,
     serviceSnapshot,
+    timeZone,
   })
 
   const announcementItems = buildAnnouncementAttentionItems({

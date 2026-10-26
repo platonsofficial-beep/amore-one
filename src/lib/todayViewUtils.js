@@ -304,6 +304,7 @@ export function buildReservationAttentionItems({
   todayKey = getCurrentDateKey(),
   now = new Date(),
   serviceSnapshot = null,
+  timeZone = '',
 } = {}) {
   if (!reservationsConnected) return []
 
@@ -329,7 +330,7 @@ export function buildReservationAttentionItems({
     })
   }
 
-  const alerts = buildHostReservationAlerts(reservations, nowMinutes, todayKey, now)
+  const alerts = buildHostReservationAlerts(reservations, nowMinutes, todayKey, now, { timeZone })
   const filteredAlerts = snapshot.waitingLateCount > 0
     ? alerts.filter((alert) => (
       alert.type !== HOST_ALERT_TYPES.LATE

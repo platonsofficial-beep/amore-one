@@ -34,6 +34,8 @@ function MobileHostReservationCompactRow({
   onOpenRowMenu,
   floorLayout = null,
   useHostQueuePresentation = false,
+  stillSeatedLabel = '',
+  isAttentionFocus = false,
 }) {
   const guestName = `${reservation?.guestName ?? 'Guest'}`.trim() || 'Guest'
   const partySize = Number(reservation?.guests) || 0
@@ -56,7 +58,7 @@ function MobileHostReservationCompactRow({
   return (
     <li className="mobile-host-reservation-item">
       <article
-        className={`mobile-host-reservation-row is-compact${isSelected ? ' is-selected' : ''}${isStatusMenuOpen ? ' is-status-menu-open' : ''}`}
+        className={`mobile-host-reservation-row is-compact${isSelected ? ' is-selected' : ''}${isAttentionFocus ? ' is-attention-focus' : ''}${isStatusMenuOpen ? ' is-status-menu-open' : ''}`}
       >
         <span
           className={`mobile-host-reservation-row-indicator tone-${statusMeta.tone}`}
@@ -80,6 +82,9 @@ function MobileHostReservationCompactRow({
                   <HostQueueNameIndicators indicators={nameIndicators} />
                 </span>
                 <HostReservationPurposeLabel reservation={reservation} />
+                {stillSeatedLabel ? (
+                  <span className="host-reservation-still-seated">{stillSeatedLabel}</span>
+                ) : null}
               </div>
               {guestTypeBadge ? (
                 <div className="host-reservation-card-guest-type-row">
@@ -151,6 +156,8 @@ export function MobileReservationHostCard({
   isSaving = false,
   layout = null,
   useHostQueuePresentation = false,
+  stillSeatedLabel = '',
+  isAttentionFocus = false,
 }) {
   const guestName = `${reservation?.guestName ?? 'Guest'}`.trim() || 'Guest'
   const partySize = Number(reservation?.guests) || 0
@@ -193,13 +200,15 @@ export function MobileReservationHostCard({
         onOpenRowMenu={onOpenRowMenu}
         floorLayout={layout}
         useHostQueuePresentation={useHostQueuePresentation}
+        stillSeatedLabel={stillSeatedLabel}
+        isAttentionFocus={isAttentionFocus}
       />
     )
   }
 
   return (
     <li className="mobile-host-reservation-item">
-      <article className={`mobile-host-reservation-card${isSelected ? ' is-selected' : ''}`}>
+      <article className={`mobile-host-reservation-card${isSelected ? ' is-selected' : ''}${isAttentionFocus ? ' is-attention-focus' : ''}`}>
         <button
           type="button"
           className="mobile-host-reservation-card-main"
@@ -214,6 +223,9 @@ export function MobileReservationHostCard({
 
           <div className="mobile-host-reservation-card-body">
             <h3 className="mobile-host-reservation-guest">{guestName}</h3>
+            {stillSeatedLabel ? (
+              <p className="host-reservation-still-seated">{stillSeatedLabel}</p>
+            ) : null}
             <p className="mobile-host-reservation-meta">
               {partySize} {partySize === 1 ? 'guest' : 'guests'}
               {phone ? ` · ${phone}` : ''}

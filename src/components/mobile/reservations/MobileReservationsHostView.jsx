@@ -4,7 +4,7 @@ import {
   getHostWorkspaceReservations,
 } from '../../reservations/hostReservationListUtils'
 import { buildHostQueueServiceMetricsFromReservations } from '../../../lib/hostQueueServiceMetrics'
-import { getHostListEmptyState } from '../../../lib/reservationServiceIntelligence'
+import { formatStillSeatedReservationLabel, getHostListEmptyState } from '../../../lib/reservationServiceIntelligence'
 import {
   filterMobileHostReservations,
   isMobileHostSplitViewport,
@@ -16,6 +16,7 @@ import {
   buildHostQueueAreaOptions,
   buildHostQueueEmptyState,
   buildHostQueueReservationList,
+  includeFocusedHostReservation,
   countActiveHostQueueFilters,
   HOST_QUEUE_ALL_AREAS,
   HOST_QUEUE_SORT_OPTIONS,
@@ -34,7 +35,7 @@ import {
   MobileHostReservationRowMenu,
   MobileHostReservationStatusMenu,
 } from './MobileHostReservationStatusMenu'
-import { getReservationDisplayStatus } from '../../../lib/reservationHostStatus'
+import { getHostListGroupId, getReservationDisplayStatus } from '../../../lib/reservationHostStatus'
 import { MobileReservationQuickCreateSheet } from './MobileReservationQuickCreateSheet'
 import { buildHostWalkInCreatePrefill } from '../../../lib/hostQuickCreateForm'
 import { HostSettingsPanel } from '../../host/HostSettingsPanel'
@@ -73,6 +74,8 @@ export function MobileReservationsHostView({
   onFloorCreatePrefillConsumed,
   floorEditReservation = null,
   onFloorEditReservationConsumed,
+  focusReservationId = '',
+  focusToken = 0,
 }) {
   const { layout } = usePublishedFloorPlan()
   const [activeTab, setActiveTab] = useState('upcoming')
@@ -154,20 +157,25 @@ export function MobileReservationsHostView({
   )
 
   const queueReservations = useMemo(
-    () => buildHostQueueReservationList(workspaceReservations, {
-      selectedSeating,
-      seatings: reservationSeatings,
-      dateKey: todayKey,
-      areaFilterId,
-      activeFilterIds,
-      searchTerm,
-      layout,
-      nowMinutes,
-      problemFilterOptions: { includeUnassigned: true, includeCapacity: true },
-    }),
+    () => includeFocusedHostReservation(
+      buildHostQueueReservationList(workspaceReservations, {
+        selectedSeating,
+        seatings: reservationSeatings,
+        dateKey: todayKey,
+        areaFilterId,
+        activeFilterIds,
+        searchTerm,
+        layout,
+        nowMinutes,
+        problemFilterOptions: { includeUnassigned: true, includeCapacity: true },
+      }),
+      focusReservationId,
+      workspaceReservations,
+    ),
     [
       activeFilterIds,
       areaFilterId,
+      focusReservationId,
       layout,
       nowMinutes,
       reservationSeatings,
@@ -177,6 +185,19 @@ export function MobileReservationsHostView({
       workspaceReservations,
     ],
   )
+
+  useEffect(() => {
+    const focusId = `${focusReservationId ?? ''}`.trim()
+    if (!focusId) return
+    const match = workspaceReservations.find((reservation) => String(reservation.id) === focusId)
+    if (!match) return
+    const groupId = getHostListGroupId(match)
+    if (groupId) setActiveTab(groupId)
+    setLocalSelectedReservationId(match.id)
+    setAreaFilterId(HOST_QUEUE_ALL_AREAS)
+    setActiveFilterIds([])
+    setSearchTerm('')
+  }, [focusReservationId, focusToken, workspaceReservations])
 
   const activeFilterCount = countActiveHostQueueFilters(activeFilterIds)
   const selectedAreaLabel = areaOptions.find((entry) => entry.id === areaFilterId)?.label ?? ''
@@ -478,6 +499,8 @@ export function MobileReservationsHostView({
           todayKey={todayKey}
           nowMinutes={nowMinutes}
           isSelected={`${effectiveSelectedReservationId}` === `${reservation.id}`}
+          isAttentionFocus={`${focusReservationId ?? ''}` === `${reservation.id}`}
+          stillSeatedLabel={formatStillSeatedReservationLabel(reservation, workspaceTodayKey, workspaceTimeZone)}
           isLandscapeLayout={isSplitLayout}
           isStatusMenuOpen={statusMenu?.reservation?.id === reservation.id}
           onSelect={handleSelectReservation}
@@ -517,6 +540,9 @@ export function MobileReservationsHostView({
       floorLayout={layout}
       sortId={sortId}
       queueEmptyState={queueEmptyState}
+      focusReservationId={focusReservationId}
+      serviceTodayKey={workspaceTodayKey}
+      timeZone={workspaceTimeZone}
       onClearQueueFilters={handleClearFilters}
       useHostQueuePresentation
     />

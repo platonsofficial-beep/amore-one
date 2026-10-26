@@ -412,6 +412,23 @@ export function sortHostQueueReservations(
   return sorted
 }
 
+export function includeFocusedHostReservation(
+  reservations = [],
+  focusReservationId = '',
+  sourceReservations = [],
+) {
+  const focusId = `${focusReservationId ?? ''}`.trim()
+  if (!focusId) return reservations ?? []
+
+  const listed = reservations ?? []
+  if (listed.some((reservation) => String(reservation.id) === focusId)) return listed
+
+  const match = (sourceReservations ?? []).find(
+    (reservation) => String(reservation.id) === focusId,
+  )
+  return match ? [match, ...listed] : listed
+}
+
 export function buildHostQueueReservationList(
   reservations = [],
   {
