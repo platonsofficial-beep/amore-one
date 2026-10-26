@@ -152,6 +152,8 @@ function StockOrderCard({ order, onOpen, showCost = true }) {
 export function StockOrdersView({
   orders = [],
   stockItems = [],
+  suppliers = [],
+  venueName = '',
   isLoading = false,
   noticeMessage = '',
   searchTerm = '',
@@ -370,6 +372,8 @@ export function StockOrdersView({
         <StockOrderDetailDrawer
           order={selectedOrderRecord}
           stockItems={stockItems}
+          suppliers={suppliers}
+          venueName={venueName}
           onClose={() => setSelectedOrder(null)}
           canManage={canManage}
           isSaving={isSaving}

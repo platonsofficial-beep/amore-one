@@ -23,6 +23,19 @@ import {
   normalizeStockOrderStatus,
   replaceDraftOrderLineProduct,
 } from '../../lib/stockOrderUtils'
+import {
+  buildStockOrderMailtoUrl,
+  buildStockOrderPrintHtml,
+  buildStockOrderSendMessage,
+  buildStockOrderSendSubject,
+  formatStockOrderSendText,
+  buildStockOrderViberUrl,
+  buildStockOrderWhatsAppUrl,
+  formatSupplierPhoneDigits,
+  openStockOrderExternalLink,
+  openStockOrderPrintWindow,
+  resolveStockOrderSupplierContact,
+} from '../../lib/stockOrderSend'
 import { formatStockPurchasePrice, formatStockQuantity, formatInventoryUnitLabel } from '../../lib/stockUtils'
 import { listWorkspaceStorages } from '../../services/workspaceStorageService'
 import { LoadingButton } from '../LoadingButton'
@@ -367,6 +380,8 @@ function CompletedOrderItem({ item, showCost = true }) {
 export function StockOrderDetailDrawer({
   order,
   stockItems = [],
+  suppliers = [],
+  venueName = '',
   onClose,
   canManage = false,
   isSaving = false,
@@ -389,6 +404,7 @@ export function StockOrderDetailDrawer({
   const [isReceiveConfirmOpen, setIsReceiveConfirmOpen] = useState(false)
   const [replacingItemId, setReplacingItemId] = useState(null)
   const [error, setError] = useState('')
+  const [sendNotice, setSendNotice] = useState('')
 
   useEffect(() => {
     setDraftItems(order.items ?? [])
@@ -398,6 +414,7 @@ export function StockOrderDetailDrawer({
     setIsReceiveConfirmOpen(false)
     setReplacingItemId(null)
     setError('')
+    setSendNotice('')
   }, [order])
 
   useEffect(() => {
@@ -619,6 +636,68 @@ export function StockOrderDetailDrawer({
     } catch (actionError) {
       setError(actionError?.message || 'Unable to update order right now.')
     }
+  }
+
+  const supplierContact = useMemo(
+    () => resolveStockOrderSupplierContact(order, suppliers),
+    [order, suppliers],
+  )
+  const sendOrder = useMemo(() => ({
+    ...order,
+    notes,
+    expectedDeliveryDate,
+    items: draftItems,
+  }), [order, notes, expectedDeliveryDate, draftItems])
+  const supplierName = `${supplierContact?.companyName ?? supplierContact?.company_name ?? order.supplier ?? ''}`.trim()
+  const sendSubject = buildStockOrderSendSubject(sendOrder, venueName)
+  const sendBody = formatStockOrderSendText(sendOrder, { supplierName })
+  const sendMessage = buildStockOrderSendMessage(sendOrder, { venueName, supplierName })
+  const supplierEmail = `${supplierContact?.email ?? ''}`.trim()
+  const supplierPhone = `${supplierContact?.phone ?? ''}`.trim()
+  const canEmailSupplier = Boolean(buildStockOrderMailtoUrl(supplierEmail, {
+    subject: sendSubject,
+    body: sendBody,
+  }))
+  const canMessageSupplier = Boolean(formatSupplierPhoneDigits(supplierPhone))
+  let missingContactHint = ''
+  if (!canEmailSupplier && !canMessageSupplier) {
+    missingContactHint = 'Add an email or phone on this supplier to send the draft. Print still works.'
+  } else if (!canEmailSupplier) {
+    missingContactHint = 'Add an email on this supplier to send by email.'
+  } else if (!canMessageSupplier) {
+    missingContactHint = 'Add a phone on this supplier to send by WhatsApp or Viber.'
+  }
+
+  const handleSendEmail = () => {
+    const url = buildStockOrderMailtoUrl(supplierEmail, { subject: sendSubject, body: sendBody })
+    if (!url) return
+    setSendNotice('')
+    openStockOrderExternalLink(url)
+  }
+
+  const handleSendWhatsApp = () => {
+    const url = buildStockOrderWhatsAppUrl(supplierPhone, sendMessage)
+    if (!url) return
+    if (!openStockOrderExternalLink(url)) {
+      setSendNotice('Allow pop-ups to open WhatsApp.')
+      return
+    }
+    setSendNotice('')
+  }
+
+  const handleSendViber = () => {
+    if (!canMessageSupplier) return
+    setSendNotice('')
+    openStockOrderExternalLink(buildStockOrderViberUrl(sendMessage))
+  }
+
+  const handlePrintOrder = () => {
+    const html = buildStockOrderPrintHtml({ title: sendSubject, body: sendBody })
+    if (!openStockOrderPrintWindow(html)) {
+      setSendNotice('Allow pop-ups to print this order.')
+      return
+    }
+    setSendNotice('')
   }
 
   const displayItems = isEditable ? draftItems : order.items
@@ -897,9 +976,52 @@ export function StockOrderDetailDrawer({
                   {error}
                 </div>
               ) : null}
-              <footer className="stock-product-history-footer stock-order-detail-footer">
+              <footer className={`stock-product-history-footer stock-order-detail-footer${isEditable ? ' has-send-actions' : ''}`}>
               {isEditable ? (
                 <>
+                  <div className="stock-order-send-row" role="group" aria-label="Send draft">
+                    <button
+                      type="button"
+                      className="ghost-btn stock-product-history-action-btn"
+                      onClick={handleSendEmail}
+                      disabled={isSaving || !canEmailSupplier}
+                    >
+                      Email
+                    </button>
+                    <button
+                      type="button"
+                      className="ghost-btn stock-product-history-action-btn"
+                      onClick={handleSendWhatsApp}
+                      disabled={isSaving || !canMessageSupplier}
+                    >
+                      WhatsApp
+                    </button>
+                    <button
+                      type="button"
+                      className="ghost-btn stock-product-history-action-btn"
+                      onClick={handleSendViber}
+                      disabled={isSaving || !canMessageSupplier}
+                    >
+                      Viber
+                    </button>
+                    <button
+                      type="button"
+                      className="ghost-btn stock-product-history-action-btn"
+                      onClick={handlePrintOrder}
+                      disabled={isSaving}
+                    >
+                      Print
+                    </button>
+                  </div>
+                  {missingContactHint ? (
+                    <p className="stock-order-send-hint">{missingContactHint}</p>
+                  ) : null}
+                  {sendNotice ? (
+                    <div className="staff-status-banner stock-order-detail-footer-error" role="alert">
+                      {sendNotice}
+                    </div>
+                  ) : null}
+                  <div className="stock-order-detail-footer-actions">
                   <button
                     type="button"
                     className="ghost-btn stock-product-history-action-btn"
@@ -924,6 +1046,7 @@ export function StockOrderDetailDrawer({
                   >
                     {isSaving ? 'Saving…' : 'Mark sent'}
                   </button>
+                  </div>
                 </>
               ) : null}
 
