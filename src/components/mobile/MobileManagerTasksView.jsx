@@ -168,6 +168,7 @@ function RecentNoteCard({ log }) {
 
 export function MobileManagerTasksView({
   tasks = [],
+  checklistSourceTasks = null,
   taskOverview = {},
   employees = [],
   checklistTemplates = [],
@@ -212,9 +213,21 @@ export function MobileManagerTasksView({
   )
 
   const checklistRows = useMemo(
-    () => buildChecklistProgressRows(checklistTemplates, tasks, todayKey),
-    [checklistTemplates, tasks, todayKey],
+    () => buildChecklistProgressRows(
+      checklistTemplates,
+      checklistSourceTasks ?? tasks,
+      todayKey,
+    ).filter((row) => !row.started),
+    [checklistSourceTasks, checklistTemplates, tasks, todayKey],
   )
+
+  const handleSelectTask = (task) => {
+    if (task?.checklistRun && onOpenChecklist) {
+      onOpenChecklist(task.checklistTemplateId)
+      return
+    }
+    setSelectedTask(task)
+  }
 
   const recentNotes = useMemo(
     () => sortLogsNewestFirst(operationsLogs).slice(0, RECENT_NOTES_LIMIT),
@@ -304,7 +317,7 @@ export function MobileManagerTasksView({
                     task={task}
                     employees={employees}
                     todayKey={todayKey}
-                    onSelect={setSelectedTask}
+                    onSelect={handleSelectTask}
                   />
                 ))}
               </ul>
@@ -332,7 +345,7 @@ export function MobileManagerTasksView({
           ) : null}
 
           <section className="mobile-manager-tasks-section" aria-label="Today's checklist">
-            <p className="mobile-manager-tasks-block-label">Today&apos;s checklist</p>
+            <p className="mobile-manager-tasks-block-label">Start a checklist</p>
             {checklistRows.length > 0 ? (
               <ul className="mobile-manager-tasks-checklist-list">
                 {checklistRows.map((row) => (
@@ -340,7 +353,7 @@ export function MobileManagerTasksView({
                 ))}
               </ul>
             ) : (
-              <p className="mobile-manager-tasks-inline-empty">No checklists scheduled</p>
+              <p className="mobile-manager-tasks-inline-empty">No checklists to start</p>
             )}
           </section>
 

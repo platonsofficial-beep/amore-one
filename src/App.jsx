@@ -605,7 +605,6 @@ import {
   scheduleMobileReservationsScrollDebug,
   setMobileScrollDebugAttribute,
 } from './lib/mobileScrollDebug'
-import { filterStandaloneOperationsTasks } from './lib/operationsChecklistUtils'
 import {
   buildMobileEmployeeShiftSummary,
   buildMobileEmployeeWeekSchedule,
@@ -16922,8 +16921,15 @@ function App() {
       operationsTasks,
       currentDateKey,
       operationsAnnouncements,
+      operationsChecklistTemplates,
     ),
-    [todayActionableTasks, operationsTasks, currentDateKey, operationsAnnouncements],
+    [
+      todayActionableTasks,
+      operationsTasks,
+      currentDateKey,
+      operationsAnnouncements,
+      operationsChecklistTemplates,
+    ],
   )
 
   // One open / past-due set for Insights, the Today chip, and Operations.
@@ -16934,8 +16940,15 @@ function App() {
       operationsTasks,
       todayKey: currentDateKey,
       announcements: operationsAnnouncements,
+      checklistTemplates: operationsChecklistTemplates,
     }),
-    [todayActionableTasks, operationsTasks, currentDateKey, operationsAnnouncements],
+    [
+      todayActionableTasks,
+      operationsTasks,
+      currentDateKey,
+      operationsAnnouncements,
+      operationsChecklistTemplates,
+    ],
   )
 
   const operationsOpenCount = unifiedOperationalTaskCounts.opsOpen
@@ -17051,12 +17064,25 @@ function App() {
     mobileWeekPublication?.status,
   ])
 
+  const sharedOperationsTasks = useMemo(
+    () => sharedOperationalTasks.filter((task) => task.taskSource === 'operations'),
+    [sharedOperationalTasks],
+  )
+
   const mobileStaffOperationsTasks = useMemo(() => (
-    filterTasksExcludingAnnouncementDuplicates(
-      filterStandaloneOperationsTasks(mobileOperationsTasks),
+    combineOperationalTasks(
+      [],
+      mobileOperationsTasks,
+      currentDateKey,
       operationsAnnouncements,
+      operationsChecklistTemplates,
     )
-  ), [mobileOperationsTasks, operationsAnnouncements])
+  ), [
+    mobileOperationsTasks,
+    currentDateKey,
+    operationsAnnouncements,
+    operationsChecklistTemplates,
+  ])
 
   const mobileAssignedTasks = useMemo(() => {
     if (!mobileEmployeeId) return []
@@ -17287,11 +17313,8 @@ function App() {
   ])
 
   const todayAttentionOperationsTasks = useMemo(() => (
-    filterTasksExcludingAnnouncementDuplicates(
-      filterStandaloneOperationsTasks(operationsTasks),
-      operationsAnnouncements,
-    )
-  ), [operationsTasks, operationsAnnouncements])
+    sharedOperationalTasks.filter((task) => task.taskSource === 'operations')
+  ), [sharedOperationalTasks])
 
   const todayAttentionItems = useMemo(() => buildTodayCommandCenterAttentionItems({
     stockAlerts: dashboardStockAlerts,
@@ -17335,12 +17358,7 @@ function App() {
     currentEmployeeDepartment,
   ])
 
-  const managerMobileOperationsTasks = useMemo(() => (
-    filterTasksExcludingAnnouncementDuplicates(
-      filterStandaloneOperationsTasks(operationsTasks),
-      operationsAnnouncements,
-    )
-  ), [operationsTasks, operationsAnnouncements])
+  const managerMobileOperationsTasks = sharedOperationsTasks
 
   const managerMobileTaskOverview = useMemo(
     () => calculateMobileOperationsTaskOverview(managerMobileOperationsTasks, currentDateKey),
@@ -23568,20 +23586,32 @@ function App() {
       throw new Error(operationsWorkspaceSetupMessage || 'Workspace and task are required.')
     }
 
+    const stepIds = task.checklistRun
+      ? (task.checklistSteps ?? [])
+        .filter((step) => {
+          const status = `${step?.status ?? ''}`.trim().toLowerCase()
+          return status !== 'completed' && status !== 'skipped'
+        })
+        .map((step) => step.id)
+        .filter(Boolean)
+      : [task.id]
+
     setIsSavingOperations(true)
     setOperationsNotice('')
 
     try {
-      await completeOperationsTask(activeWorkspaceId, task.id, {
-        completedBy: user?.id ?? null,
-        completionNote,
-      })
+      for (const stepId of stepIds) {
+        await completeOperationsTask(activeWorkspaceId, stepId, {
+          completedBy: user?.id ?? null,
+          completionNote,
+        })
+      }
       await Promise.all([
         refreshOperationsTasks(),
         isMobileViewport ? refreshMobileOperationsTasks() : Promise.resolve(),
       ])
       if (!silent) {
-        const successMessage = 'Task completed.'
+        const successMessage = task.checklistRun ? 'Checklist completed.' : 'Task completed.'
         setOperationsNotice(successMessage)
         if (isMobileViewport) {
           setMobileNotice(successMessage)
@@ -25838,6 +25868,7 @@ function App() {
                         }}
                         managerTasksProps={{
                           tasks: managerMobileOperationsTasks,
+                          checklistSourceTasks: operationsTasks,
                           taskOverview: managerMobileTaskOverview,
                           employees: scheduleEmployees,
                           checklistTemplates: operationsChecklistTemplates,
