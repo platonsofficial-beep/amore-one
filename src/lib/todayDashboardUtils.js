@@ -1,4 +1,5 @@
 import { formatTime24, formatTimeRange24, normalizeTimeValue } from './timeFormatUtils'
+import { isTerminalReservationStatus } from './reservationHostStatus'
 import { parseTimeToMinutes } from './shiftHoursUtils'
 
 export const TIMELINE_PREVIEW_LIMIT = 10
@@ -79,11 +80,14 @@ export function getTimelineEventStatus(event, nowMinutes = null) {
   }
 
   if (event?.type === 'reservation') {
+    if (isTimelineReservationFinished(event)) {
+      return { icon: '⚫', state: 'completed', tone: 'completed' }
+    }
     const isUpcoming = Number.isFinite(nowMinutes) && getEventSortMinutes(event) > nowMinutes
     return {
-      icon: isUpcoming ? '🟡' : '⚫',
-      state: isUpcoming ? 'upcoming' : 'completed',
-      tone: isUpcoming ? 'upcoming' : 'completed',
+      icon: '🟡',
+      state: isUpcoming ? 'upcoming' : 'active',
+      tone: 'upcoming',
     }
   }
 
@@ -110,11 +114,20 @@ export function isTimelineEventActiveNow(event, nowMinutes) {
   return false
 }
 
+function isTimelineReservationFinished(event) {
+  const status = `${event?.reservationStatus ?? ''}`.trim()
+  if (!status) return false
+  return isTerminalReservationStatus(status)
+}
+
 export function isTimelineEventCompleted(event, nowMinutes) {
   if (event?.type === 'shift') {
     return getShiftTimelineState(event, nowMinutes) === 'finished'
   }
   if (event?.type === 'reservation') {
+    if (`${event?.reservationStatus ?? ''}`.trim()) {
+      return isTimelineReservationFinished(event)
+    }
     return Number.isFinite(nowMinutes) && getEventSortMinutes(event) <= nowMinutes
   }
   if (event?.type === 'task') {

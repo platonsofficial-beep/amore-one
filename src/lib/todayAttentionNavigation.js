@@ -52,10 +52,12 @@ export function resolveTodayAttentionDestination(item, permissions = {}) {
     if (!permissions.canViewReservations) return null
     const reservationId = item?.reservationId ?? null
     if (reservationId) {
+      const dateKey = `${item?.reservationDate ?? ''}`.slice(0, 10)
       return {
         view: 'reservations',
         action: 'host',
         reservationId,
+        ...(dateKey ? { dateKey } : {}),
       }
     }
     return { view: 'reservations' }

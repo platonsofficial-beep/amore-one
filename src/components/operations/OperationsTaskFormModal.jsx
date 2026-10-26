@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useEscapeToClose } from '../../lib/useEscapeToClose'
 import {
   buildEmptyOperationsTaskForm,
   getOperationsCategoryLabel,
@@ -22,6 +23,10 @@ export function OperationsTaskFormModal({
     task ? operationsTaskToForm(task) : buildEmptyOperationsTaskForm(todayKey)
   ))
   const [error, setError] = useState('')
+
+  useEscapeToClose(() => {
+    if (!isSaving) onClose?.()
+  }, { enabled: isOpen && !isSaving })
 
   if (!isOpen) return null
 

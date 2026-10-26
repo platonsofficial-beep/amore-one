@@ -5,6 +5,7 @@ export function TodayAttentionListItem({
   item,
   attentionPermissions = {},
   onAttentionItemClick,
+  onCompleteAttentionItem,
   variant = 'desktop',
   category = '',
 }) {
@@ -58,6 +59,18 @@ export function TodayAttentionListItem({
           {copy}
         </button>
       ) : copy}
+      {item?.canComplete ? (
+        <button
+          type="button"
+          className="today-attention-complete-btn"
+          onClick={(event) => {
+            event.stopPropagation()
+            onCompleteAttentionItem?.(item)
+          }}
+        >
+          Complete
+        </button>
+      ) : null}
     </li>
   )
 }

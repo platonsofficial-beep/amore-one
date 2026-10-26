@@ -42,6 +42,7 @@ export function HostReservationStatusPicker({
   reservation,
   currentStatusId,
   anchorRect,
+  anchorLabel = '',
   isOpen,
   onClose,
   onSelectStatus,
@@ -144,6 +145,22 @@ export function HostReservationStatusPicker({
         aria-hidden="true"
         onClick={onClose}
       />
+      {anchorLabel ? (
+        <span
+          className={`host-reservation-card-status-pill host-status-picker-anchor tone-${currentStatus.tone} is-compact`}
+          style={{
+            position: 'fixed',
+            top: `${anchorRect.top}px`,
+            left: `${anchorRect.left}px`,
+            width: `${anchorRect.width}px`,
+            minHeight: `${Math.max(anchorRect.height, 44)}px`,
+            zIndex: PICKER_Z_INDEX + 1,
+            pointerEvents: 'none',
+          }}
+        >
+          {anchorLabel}
+        </span>
+      ) : null}
       <div
         ref={panelRef}
         className={`host-status-picker is-portal is-${position.placement}${isPositioned ? ' is-positioned' : ''}${isSaving ? ' is-saving' : ''}`}

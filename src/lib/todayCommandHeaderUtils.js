@@ -1,7 +1,38 @@
+export function countOpenOperationsTasksForTodayChip(tasks = [], todayKey = '') {
+  const normalizedToday = `${todayKey ?? ''}`.slice(0, 10)
+  return (tasks ?? []).filter((task) => {
+    const status = `${task?.status ?? ''}`.trim().toLowerCase()
+    if (status === 'completed' || status === 'skipped' || status === 'done') return false
+    if (task?.checklistTemplateId) return false
+    const dueDate = `${task?.dueDate ?? task?.due_date ?? ''}`.slice(0, 10)
+    return Boolean(dueDate) && (!normalizedToday || dueDate <= normalizedToday)
+  }).length
+}
+
+function formatTaskChip(boardOpen = 0, operationsOpen = 0) {
+  const board = Number(boardOpen) || 0
+  const operations = Number(operationsOpen) || 0
+  const total = board + operations
+  if (total <= 0) {
+    return { value: 'Clear', detail: '', tone: 'default' }
+  }
+
+  const parts = []
+  if (board > 0) parts.push(`${board} board`)
+  if (operations > 0) parts.push(`${operations} ops`)
+
+  return {
+    value: `${total} Open`,
+    detail: parts.join(' · '),
+    tone: 'warning',
+  }
+}
+
 export function buildTodayCommandHeaderChips({
   dashboardLiveStatus = {},
   todayStatusSummary = {},
   dashboardTaskOverview = {},
+  operationsOpenCount = 0,
   todayReservationsSummary = {},
   reservationsConnected = false,
   liveFloorState = {},
@@ -66,13 +97,14 @@ export function buildTodayCommandHeaderChips({
     })
   }
 
-  const openTasks = Number(dashboardTaskOverview.active) || 0
+  const taskChip = formatTaskChip(dashboardTaskOverview.active, operationsOpenCount)
   chips.push({
     id: 'tasks',
     icon: '✅',
     label: 'Tasks',
-    value: openTasks > 0 ? `${openTasks} Open` : 'Clear',
-    tone: openTasks > 0 ? 'warning' : 'default',
+    value: taskChip.value,
+    detail: taskChip.detail,
+    tone: taskChip.tone,
   })
 
   return chips

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useAuth } from '../../context/AuthContext'
+import { resolveDisplayedLinkedEmployee } from '../../lib/linkedEmployeeDisplay'
 import { canLinkMembershipEmployee } from '../../lib/permissions'
 import { getWorkspaceRoleLabel } from '../../lib/membershipRoles'
 import { buildWorkspaceIdentityLines } from '../../lib/workspaceProfileUtils'
@@ -116,7 +117,12 @@ export function WorkspaceTeamSection({
   const memberDisplayName = `${membership?.displayName ?? ''}`.trim() || trimmedManager || 'Not set'
   const resolvedRoleLabel = roleLabel || getWorkspaceRoleLabel(role)
   const memberEmail = `${membership?.email ?? user?.email ?? ''}`.trim()
-  const linkedEmployeeName = resolveLinkedEmployeeName(employees, effectiveLinkedEmployeeId)
+  const linkedEmployee = resolveDisplayedLinkedEmployee(employees, {
+    employeeId: effectiveLinkedEmployeeId,
+    displayName: memberDisplayName,
+    managerName: trimmedManager,
+  })
+  const linkedEmployeeName = linkedEmployee.name || resolveLinkedEmployeeName(employees, effectiveLinkedEmployeeId)
   const resolvedWorkspace = workspace ?? authWorkspace
   const workspaceIdentity = buildWorkspaceIdentityLines({
     workspaceName: resolvedWorkspace?.name,
@@ -210,13 +216,16 @@ export function WorkspaceTeamSection({
             <dd>
               <div className="workspace-member-linked-value">
                 <span>{linkedEmployeeName || 'Not linked'}</span>
+                {linkedEmployee.matchedByName ? (
+                  <span className="workspace-member-meta">Name match · not saved</span>
+                ) : null}
                 {canLinkEmployee ? (
                   <button
                     type="button"
                     className="ghost-btn workspace-link-employee-btn"
                     onClick={handleOpenLinkModal}
                   >
-                    {linkedEmployeeName ? 'Change link' : 'Link employee'}
+                    {linkedEmployee.persisted ? 'Change link' : 'Link employee'}
                   </button>
                 ) : null}
               </div>

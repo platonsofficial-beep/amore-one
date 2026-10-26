@@ -26,6 +26,7 @@ export const STOCK_SECTIONS = [
 
 export const OPERATIONS_SECTIONS = [
   { id: 'dashboard', label: 'Dashboard' },
+  { id: 'tasks', label: 'Task boards' },
   { id: 'checklists', label: 'Checklists' },
 ]
 
@@ -133,6 +134,7 @@ export function getModuleTitle(activeView, {
   }
   if (activeView === 'operations') {
     if (operationsSection === 'checklists') return 'Checklists'
+    if (operationsSection === 'tasks') return 'Task boards'
     return 'Operations'
   }
   if (activeView === 'insights') return 'Insights'
@@ -168,6 +170,7 @@ export function getModuleSubtitle(activeView, currentDateLabel, {
     return 'Spreadsheet import for catalog onboarding, or one-time legacy inventory cutover.'
   }
   if (activeView === 'operations' && operationsSection === 'checklists') return 'Build reusable opening, closing, and prep procedures.'
+  if (activeView === 'operations' && operationsSection === 'tasks') return 'Department task boards, separate from the operations checklist.'
   if (activeView === 'operations') return 'Daily tasks, issues, and shift communication.'
   if (activeView === 'insights') return 'Business intelligence from live data.'
   if (activeView === 'settings') return 'Workspace and account configuration.'
@@ -188,6 +191,7 @@ export function getSearchPlaceholder(activeView, {
   if (activeView === 'stock' && stockSection === 'suppliers') return 'Search supplier'
   if (activeView === 'stock' && stockSection === 'migration') return 'Search migration stages'
   if (activeView === 'operations' && operationsSection === 'checklists') return 'Search checklists'
+  if (activeView === 'operations' && operationsSection === 'tasks') return 'Search board tasks'
   if (activeView === 'operations' && operationsSection === 'dashboard') return 'Search tasks and notes'
   if (activeView === 'insights') return 'Search insights'
   return 'Search'

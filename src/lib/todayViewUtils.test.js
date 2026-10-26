@@ -53,6 +53,16 @@ describe('todayViewUtils', () => {
     expect(summary.stockSummaryLine).toBe('1 out · 2 low')
   })
 
+  it('adds open operations tasks to the board task count', () => {
+    const summary = buildTodayStatusSummary({
+      tasksOverview: { active: 3, overdue: 3, completedToday: 0, showEmptyToday: false },
+      tasksConnected: true,
+      operationsOpenCount: 2,
+    })
+
+    expect(summary.tasksSummary).toContain('5 open tasks')
+  })
+
   it('shows no products copy when stock module has no inventory yet', () => {
     const summary = buildTodayStatusSummary({
       liveFloor: { state: 'idle', onShiftCount: 0 },

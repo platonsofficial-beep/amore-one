@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useEscapeToClose } from '../../lib/useEscapeToClose'
 import { createPortal } from 'react-dom'
 import {
   ANNOUNCEMENT_AUDIENCES,
@@ -37,6 +38,10 @@ export function OperationsAnnouncementFormModal({
     hasAdvancedAnnouncementOptions(announcement)
   ))
   const [error, setError] = useState('')
+
+  useEscapeToClose(() => {
+    if (!isSaving) onClose?.()
+  }, { enabled: isOpen && !isSaving })
 
   useEffect(() => {
     if (!isOpen) return undefined

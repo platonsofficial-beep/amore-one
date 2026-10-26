@@ -1,9 +1,13 @@
 import { useMemo } from 'react'
 import { buildTodayStatusCardsFromSummary } from '../../lib/todayStatusPresentationUtils'
 
-function TodayStatusCard({ card }) {
+function TodayStatusCard({ card, onSelect }) {
   return (
-    <article className={`today-status-premium-card tone-${card.tone ?? 'default'}`}>
+    <button
+      type="button"
+      className={`today-status-premium-card tone-${card.tone ?? 'default'}`}
+      onClick={() => onSelect?.(card.id)}
+    >
       <div className="today-status-premium-icon" aria-hidden="true">{card.icon}</div>
       <div className="today-status-premium-copy">
         <p className="today-status-premium-title">{card.title}</p>
@@ -12,11 +16,11 @@ function TodayStatusCard({ card }) {
           <p className="today-status-premium-secondary">{card.secondary}</p>
         ) : null}
       </div>
-    </article>
+    </button>
   )
 }
 
-export function TodayStatusCards({ statusSummary = {}, showStock = false }) {
+export function TodayStatusCards({ statusSummary = {}, showStock = false, onSelect }) {
   const cards = useMemo(
     () => buildTodayStatusCardsFromSummary(statusSummary, { showStock }),
     [statusSummary, showStock],
@@ -25,7 +29,7 @@ export function TodayStatusCards({ statusSummary = {}, showStock = false }) {
   return (
     <section className="today-status-premium-grid" aria-label="Business status">
       {cards.map((card) => (
-        <TodayStatusCard key={card.id} card={card} />
+        <TodayStatusCard key={card.id} card={card} onSelect={onSelect} />
       ))}
     </section>
   )

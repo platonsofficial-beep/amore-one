@@ -118,6 +118,7 @@ export function MobileManagerHomeView({
   onOpenTeamToday,
   onOpenReservations,
   onAttentionItemClick,
+  onCompleteAttentionItem,
   attentionPermissions = {},
 }) {
   const [showAllAttention, setShowAllAttention] = useState(false)
@@ -240,6 +241,7 @@ export function MobileManagerHomeView({
                     category={getAttentionCategory(item)}
                     attentionPermissions={attentionPermissions}
                     onAttentionItemClick={onAttentionItemClick}
+                    onCompleteAttentionItem={onCompleteAttentionItem}
                   />
                 ))}
               </ul>

@@ -244,6 +244,8 @@ export function OperationsDashboardView({
   onOpenChecklistRun,
   focusTaskId = null,
   onFocusTaskHandled,
+  boardOverdueCount = 0,
+  onOpenTaskBoards,
 }) {
   const [isTaskFormOpen, setIsTaskFormOpen] = useState(false)
   const [editingTask, setEditingTask] = useState(null)
@@ -735,7 +737,23 @@ export function OperationsDashboardView({
         <OperationsSummaryCard label="Completed today" value={taskSummary.completedToday} tone="success" />
         <OperationsSummaryCard label="Urgent issues" value={summary.urgentIssues} tone="danger" />
         <OperationsSummaryCard label="Team notes" value={summary.teamNotes} tone="gold" />
+        <OperationsSummaryCard
+          label="Board tasks overdue"
+          value={boardOverdueCount}
+          tone={boardOverdueCount > 0 ? 'danger' : 'default'}
+        />
       </div>
+      {onOpenTaskBoards ? (
+        <div className="operations-dashboard-actions">
+          <button
+            type="button"
+            className="ghost-btn operations-dashboard-action"
+            onClick={onOpenTaskBoards}
+          >
+            Open task boards{boardOverdueCount > 0 ? ` · ${boardOverdueCount} overdue` : ''}
+          </button>
+        </div>
+      ) : null}
 
       <div className="operations-dashboard-sections">
       <OperationsAnnouncementsSection

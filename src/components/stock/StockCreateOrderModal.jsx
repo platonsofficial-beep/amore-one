@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
+import { useEscapeToClose } from '../../lib/useEscapeToClose'
 import {
   buildSupplierOrderGroups,
   computeOrderLineTotal,
@@ -128,17 +129,9 @@ export function StockCreateOrderModal({
   const [isSubmitting, setIsSubmitting] = useState(false)
   const isBusy = isSaving || isSubmitting
 
-  useEffect(() => {
-    const handleKeyDown = (event) => {
-      if (event.key === 'Escape' && !isBusy) {
-        event.preventDefault()
-        onClose()
-      }
-    }
-
-    document.addEventListener('keydown', handleKeyDown)
-    return () => document.removeEventListener('keydown', handleKeyDown)
-  }, [onClose, isBusy])
+  useEscapeToClose(() => {
+    if (!isBusy) onClose?.()
+  }, { enabled: !isBusy })
 
   const handleDismiss = () => {
     if (isBusy) return
