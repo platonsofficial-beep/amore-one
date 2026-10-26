@@ -23,16 +23,21 @@ import {
   APPLY_INVENTORY_IMPORT_SESSION_RPC,
   CANCEL_INVENTORY_IMPORT_SESSION_RPC,
   CREATE_INVENTORY_IMPORT_SESSION_RPC,
+  INVENTORY_IMPORT_UNDO_ELIGIBILITY_RPC,
   MARK_INVENTORY_IMPORT_SESSION_READY_RPC,
   STAGE_INVENTORY_IMPORT_ROWS_RPC,
+  UNDO_INVENTORY_IMPORT_SESSION_RPC,
   applyInventoryImportSession,
   cancelInventoryImportSession,
+  checkInventoryImportUndoEligibility,
   createInventoryImportSession,
   formatInventoryImportWizardError,
+  isInventoryImportFunctionMissing,
   mapInventoryImportRpcError,
   mapInventoryImportSessionResult,
   markInventoryImportSessionReady,
   stageInventoryImportRows,
+  undoInventoryImportSession,
 } from './inventoryImportService'
 
 const HERE = dirname(fileURLToPath(import.meta.url))
@@ -421,6 +426,71 @@ describe('applyInventoryImportSession', () => {
       sessionId: 'sess-1',
       applyIdempotencyKey: 'key-1',
     })).rejects.toThrow('inventory_import_apply_not_ready')
+  })
+})
+
+describe('import undo', () => {
+  beforeEach(() => {
+    rpcMock.mockReset()
+  })
+
+  it('recognises a missing function', () => {
+    const error = new Error('Could not find the function public.inventory_import_undo_eligibility')
+    error.code = 'PGRST202'
+    expect(isInventoryImportFunctionMissing(error)).toBe(true)
+    expect(isInventoryImportFunctionMissing(new Error('network down'))).toBe(false)
+  })
+
+  it('reads eligibility without treating a refusal as success', async () => {
+    rpcMock.mockResolvedValue({
+      data: {
+        allowed: false,
+        reasons: ['This import replaced the quantity on an existing product.'],
+        session_id: 'sess-1',
+        status: 'completed',
+      },
+      error: null,
+    })
+    await expect(checkInventoryImportUndoEligibility({
+      workspaceId: 'ws-1',
+      sessionId: 'sess-1',
+    })).resolves.toEqual({
+      allowed: false,
+      reasons: ['This import replaced the quantity on an existing product.'],
+      sessionId: 'sess-1',
+      status: 'completed',
+    })
+    expect(rpcMock).toHaveBeenCalledWith(INVENTORY_IMPORT_UNDO_ELIGIBILITY_RPC, {
+      p_workspace_id: 'ws-1',
+      p_session_id: 'sess-1',
+    })
+  })
+
+  it('undoes a session and surfaces the server hint', async () => {
+    rpcMock.mockResolvedValueOnce({
+      data: { session_id: 'sess-1', workspace_id: 'ws-1', status: 'cancelled' },
+      error: null,
+    })
+    await expect(undoInventoryImportSession({
+      workspaceId: 'ws-1',
+      sessionId: 'sess-1',
+    })).resolves.toMatchObject({ sessionId: 'sess-1', status: 'cancelled' })
+    expect(rpcMock).toHaveBeenCalledWith(UNDO_INVENTORY_IMPORT_SESSION_RPC, {
+      p_workspace_id: 'ws-1',
+      p_session_id: 'sess-1',
+    })
+
+    rpcMock.mockResolvedValueOnce({
+      data: null,
+      error: {
+        message: 'inventory_import_undo_refused',
+        hint: 'A product from this import was changed again after it was applied.',
+      },
+    })
+    await expect(undoInventoryImportSession({
+      workspaceId: 'ws-1',
+      sessionId: 'sess-1',
+    })).rejects.toThrow('changed again')
   })
 })
 

@@ -18,6 +18,11 @@ import * as inventoryOperationalMatchResolutions from '../../lib/inventoryOperat
 import * as inventoryNewProductDrafts from '../../lib/inventoryNewProductDrafts'
 import { buildInventoryImportStagingPayload } from '../../lib/inventoryImportStagingPayload'
 import {
+  buildStandardInventoryImportPreview,
+  buildStandardInventoryImportStagingPayload,
+  listStandardImportContinueMessages,
+} from '../../lib/inventoryStandardImportPreview'
+import {
   INVENTORY_IMPORT_ELIGIBILITY_BLOCKER,
   INVENTORY_IMPORT_ELIGIBILITY_WARNING,
   INVENTORY_IMPORT_QUANTITY_POLICY,
@@ -41,10 +46,12 @@ import {
 } from '../../lib/inventoryImportWizardUx'
 import {
   applyInventoryImportSession as applyInventoryImportSessionDefault,
+  checkInventoryImportUndoEligibility as checkInventoryImportUndoEligibilityDefault,
   createInventoryImportSession as createInventoryImportSessionDefault,
   formatInventoryImportWizardError,
   markInventoryImportSessionReady as markInventoryImportSessionReadyDefault,
   stageInventoryImportRows as stageInventoryImportRowsDefault,
+  undoInventoryImportSession as undoInventoryImportSessionDefault,
 } from '../../services/inventoryImportService'
 import { listWorkspaceStorages } from '../../services/workspaceStorageService'
 import { InventoryImportValidateAssistant } from './InventoryImportValidateAssistant'
@@ -395,6 +402,8 @@ function detectAndParseDecodedTable(decoded) {
  *   stageInventoryImportRows?: typeof stageInventoryImportRowsDefault,
  *   markInventoryImportSessionReady?: typeof markInventoryImportSessionReadyDefault,
  *   applyInventoryImportSession?: typeof applyInventoryImportSessionDefault,
+ *   checkInventoryImportUndoEligibility?: typeof checkInventoryImportUndoEligibilityDefault,
+ *   undoInventoryImportSession?: typeof undoInventoryImportSessionDefault,
  * }} props
  */
 export function InventoryImportWizardShell({
@@ -405,12 +414,15 @@ export function InventoryImportWizardShell({
   stageInventoryImportRows = stageInventoryImportRowsDefault,
   markInventoryImportSessionReady = markInventoryImportSessionReadyDefault,
   applyInventoryImportSession = applyInventoryImportSessionDefault,
+  checkInventoryImportUndoEligibility = checkInventoryImportUndoEligibilityDefault,
+  undoInventoryImportSession = undoInventoryImportSessionDefault,
 } = {}) {
   const fileInputRef = useRef(null)
   const processingLockRef = useRef(false)
   const applyLockRef = useRef(false)
   const importApplySessionIdRef = useRef(/** @type {string|null} */ (null))
   const importApplySessionReadyRef = useRef(false)
+  const standardOpeningDefaultAppliedRef = useRef(false)
   const [wizardView, setWizardView] = useState('upload')
   const [selectedFile, setSelectedFile] = useState(null)
   const [selectionError, setSelectionError] = useState('')
@@ -432,17 +444,29 @@ export function InventoryImportWizardShell({
   const [isApplyingImport, setIsApplyingImport] = useState(false)
   const [applyImportError, setApplyImportError] = useState('')
   const [applyImportResult, setApplyImportResult] = useState(null)
+  const [standardActionOverrides, setStandardActionOverrides] = useState({})
+  const [undoEligibility, setUndoEligibility] = useState(null)
+  const [undoConfirmOpen, setUndoConfirmOpen] = useState(false)
+  const [undoError, setUndoError] = useState('')
+  const [undoCompleted, setUndoCompleted] = useState(false)
+  const [isUndoingImport, setIsUndoingImport] = useState(false)
 
   const isOperationalFormat = formatDetection?.format
     === inventoryImportFormatDetector.INVENTORY_IMPORT_FORMAT.OPERATIONAL
+  const isStandardFormat = formatDetection?.format
+    === inventoryImportFormatDetector.INVENTORY_IMPORT_FORMAT.STANDARD
+  const catalogViews = wizardView === 'data'
+    || wizardView === 'preview'
+    || wizardView === 'ready'
+    || wizardView === 'completed'
   const workspaceStockCatalog = useWorkspaceStockCatalog({
     workspaceId,
-    enabled: (wizardView === 'data'
-      || wizardView === 'preview'
-      || wizardView === 'ready'
-      || wizardView === 'completed')
-      && isOperationalFormat
-      && Boolean(operationalModel),
+    enabled: Boolean(`${workspaceId ?? ''}`.trim())
+      && catalogViews
+      && (
+        (isOperationalFormat && Boolean(operationalModel))
+        || isStandardFormat
+      ),
     ...(loadWorkspaceStockItems ? { loadItems: loadWorkspaceStockItems } : {}),
   })
 
@@ -538,13 +562,12 @@ export function InventoryImportWizardShell({
   useEffect(() => {
     let cancelled = false
     const workspaceKey = `${workspaceId ?? ''}`.trim()
+    const storageViews = wizardView === 'preview'
+      || wizardView === 'ready'
+      || wizardView === 'data'
     const shouldLoad = Boolean(workspaceKey)
-      && isOperationalFormat
-      && (
-        wizardView === 'preview'
-        || wizardView === 'ready'
-        || wizardView === 'data'
-      )
+      && storageViews
+      && (isOperationalFormat || isStandardFormat)
 
     async function reloadStorages() {
       if (!workspaceKey) {
@@ -571,7 +594,7 @@ export function InventoryImportWizardShell({
       cancelled = true
       unsubscribe()
     }
-  }, [workspaceId, isOperationalFormat, wizardView])
+  }, [workspaceId, isOperationalFormat, isStandardFormat, wizardView])
 
   const importPolicyWithLocationBindings = useMemo(() => ({
     ...importSessionPolicy,
@@ -652,6 +675,47 @@ export function InventoryImportWizardShell({
     resolvedOperationalImportPreview,
     operationalImportPreviewState,
   ])
+  const standardPreview = useMemo(() => {
+    if (!isStandardFormat || operationalModel) return null
+    if (workspaceStockCatalog.status !== 'success') return null
+    if (!Array.isArray(workspaceStorages)) return null
+    return buildStandardInventoryImportPreview({
+      parseResult,
+      columnMappingSummary,
+      existingStockItems: workspaceStockCatalog.items,
+      workspaceStorages,
+      actionOverrides: standardActionOverrides,
+      quantityPolicy: importSessionPolicy.quantityPolicy,
+    })
+  }, [
+    isStandardFormat,
+    operationalModel,
+    workspaceStockCatalog.status,
+    workspaceStockCatalog.items,
+    workspaceStorages,
+    parseResult,
+    columnMappingSummary,
+    standardActionOverrides,
+    importSessionPolicy.quantityPolicy,
+  ])
+
+  const standardReady = Boolean(
+    standardPreview?.isReady
+    && !(
+      importSessionPolicy.quantityPolicy === INVENTORY_IMPORT_QUANTITY_POLICY.OPENING_STOCK
+      && (standardPreview?.counts?.link ?? 0) > 0
+      && !importSessionPolicy.existingQuantityOverwriteConfirmed
+    ),
+  )
+  const summaryEligibility = useMemo(() => (
+    standardPreview && !operationalModel
+      ? {
+          isReady: standardReady,
+          counts: standardPreview.counts,
+        }
+      : readyEligibility
+  ), [standardPreview, operationalModel, standardReady, readyEligibility])
+
   const stepSummary = useMemo(() => buildInventoryImportStepSummary({
     wizardView,
     selectedFile,
@@ -660,7 +724,7 @@ export function InventoryImportWizardShell({
     columnMappingSummary,
     operationalModel,
     validateImportGroups,
-    readyEligibility,
+    readyEligibility: summaryEligibility,
     importSessionPolicy,
   }), [
     wizardView,
@@ -670,8 +734,8 @@ export function InventoryImportWizardShell({
     columnMappingSummary,
     operationalModel,
     validateImportGroups,
-    readyEligibility,
     importSessionPolicy,
+    summaryEligibility,
   ])
 
   const newProductCategoryOptions = useMemo(() => (
@@ -703,6 +767,11 @@ export function InventoryImportWizardShell({
     setIsApplyingImport(false)
     setApplyImportError('')
     setApplyImportResult(null)
+    setUndoEligibility(null)
+    setUndoConfirmOpen(false)
+    setUndoError('')
+    setUndoCompleted(false)
+    setIsUndoingImport(false)
   }
 
   function clearDetectionAndParse() {
@@ -712,6 +781,8 @@ export function InventoryImportWizardShell({
     setOperationalModel(null)
     setMatchResolutions({})
     setNewProductDrafts({})
+    setStandardActionOverrides({})
+    standardOpeningDefaultAppliedRef.current = false
     setImportSessionPolicy({ ...DEFAULT_IMPORT_SESSION_POLICY })
     resetImportApplyState()
   }
@@ -978,6 +1049,14 @@ export function InventoryImportWizardShell({
   }
 
   function canContinueFromDataToImportPreview() {
+    if (isStandardFormat && !operationalModel) {
+      if (!standardRowReview || standardRowReview.rows.length === 0) return false
+      if ((standardRowReview.groups?.summary?.errors ?? 0) > 0) return false
+      if (!`${workspaceId ?? ''}`.trim()) return false
+      if (workspaceStockCatalog.status !== 'success') return false
+      if (!Array.isArray(workspaceStorages)) return false
+      return true
+    }
     if (operationalImportPreviewState.status === 'error') return true
     if (operationalImportPreviewState.status !== 'ready') return false
     if (!resolvedOperationalImportPreview?.summary) return false
@@ -987,6 +1066,13 @@ export function InventoryImportWizardShell({
   function handleContinueFromData() {
     if (wizardView !== 'data') return
     if (!canContinueFromDataToImportPreview()) return
+    if (isStandardFormat && !operationalModel && !standardOpeningDefaultAppliedRef.current) {
+      standardOpeningDefaultAppliedRef.current = true
+      setImportSessionPolicy((current) => ({
+        ...current,
+        quantityPolicy: INVENTORY_IMPORT_QUANTITY_POLICY.OPENING_STOCK,
+      }))
+    }
     setWizardView('preview')
   }
 
@@ -996,6 +1082,7 @@ export function InventoryImportWizardShell({
   }
 
   function canContinueFromPreviewToReady() {
+    if (isStandardFormat && !operationalModel) return standardReady
     if (operationalImportPreviewState.status === 'error') return false
     if (operationalImportPreviewState.status !== 'ready') return false
     return readyEligibility?.isReady === true
@@ -1023,8 +1110,10 @@ export function InventoryImportWizardShell({
   async function handleApplyImport() {
     if (applyLockRef.current || isApplyingImport) return
     if (wizardView !== 'ready') return
-    if (!readyEligibility?.isReady) return
-    if (!resolvedOperationalImportPreview || !selectedFile) return
+    const usingStandard = isStandardFormat && !operationalModel && standardReady && standardPreview
+    if (!usingStandard && !readyEligibility?.isReady) return
+    if (!usingStandard && !resolvedOperationalImportPreview) return
+    if (!selectedFile) return
 
     const normalizedWorkspaceId = `${workspaceId ?? ''}`.trim()
     if (!normalizedWorkspaceId) {
@@ -1037,16 +1126,26 @@ export function InventoryImportWizardShell({
     setApplyImportError('')
 
     try {
-      const stagingPayload = buildInventoryImportStagingPayload({
-        workspaceId: normalizedWorkspaceId,
-        selectedFile,
-        selectedWorksheetName,
-        headerRowNumber: parseResult?.headerRowNumber ?? null,
-        sourceFormat: formatDetection?.signals?.sourceFormat ?? selectedFile.extension ?? null,
-        preview: resolvedOperationalImportPreview,
-        policy: importPolicyWithLocationBindings,
-        eligibility: readyEligibility,
-      })
+      const stagingPayload = usingStandard
+        ? buildStandardInventoryImportStagingPayload({
+          workspaceId: normalizedWorkspaceId,
+          selectedFile,
+          selectedWorksheetName,
+          headerRowNumber: parseResult?.headerRowNumber ?? null,
+          preview: standardPreview,
+          policy: importSessionPolicy,
+          mapping: columnMappingSummary ?? {},
+        })
+        : buildInventoryImportStagingPayload({
+          workspaceId: normalizedWorkspaceId,
+          selectedFile,
+          selectedWorksheetName,
+          headerRowNumber: parseResult?.headerRowNumber ?? null,
+          sourceFormat: formatDetection?.signals?.sourceFormat ?? selectedFile.extension ?? null,
+          preview: resolvedOperationalImportPreview,
+          policy: importPolicyWithLocationBindings,
+          eligibility: readyEligibility,
+        })
 
       let sessionId = importApplySessionIdRef.current
       if (!sessionId) {
@@ -1104,6 +1203,53 @@ export function InventoryImportWizardShell({
     }
   }
 
+  async function handleConfirmUndo() {
+    if (isUndoingImport) return
+    const sessionId = `${applyImportResult?.sessionId ?? importApplySessionIdRef.current ?? ''}`.trim()
+    const normalizedWorkspaceId = `${workspaceId ?? ''}`.trim()
+    if (!sessionId || !normalizedWorkspaceId) return
+    setIsUndoingImport(true)
+    setUndoError('')
+    try {
+      await undoInventoryImportSession({
+        workspaceId: normalizedWorkspaceId,
+        sessionId,
+      })
+      setUndoCompleted(true)
+      setUndoConfirmOpen(false)
+      setUndoEligibility(null)
+    } catch (error) {
+      setUndoError(formatInventoryImportWizardError(error, 'Failed to undo this import.'))
+    } finally {
+      setIsUndoingImport(false)
+    }
+  }
+
+  useEffect(() => {
+    if (wizardView !== 'completed' || undoCompleted) return undefined
+    const sessionId = `${applyImportResult?.sessionId ?? importApplySessionIdRef.current ?? ''}`.trim()
+    const normalizedWorkspaceId = `${workspaceId ?? ''}`.trim()
+    if (!sessionId || !normalizedWorkspaceId) return undefined
+    let cancelled = false
+    checkInventoryImportUndoEligibility({
+      workspaceId: normalizedWorkspaceId,
+      sessionId,
+    }).then((result) => {
+      if (!cancelled) setUndoEligibility(result?.allowed === true ? result : null)
+    }).catch(() => {
+      if (!cancelled) setUndoEligibility(null)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [
+    wizardView,
+    undoCompleted,
+    applyImportResult,
+    workspaceId,
+    checkInventoryImportUndoEligibility,
+  ])
+
   const hasSelectedFile = selectedFile != null
   const showUploadFooter = hasSelectedFile && wizardView === 'upload'
   const showWorksheetFooter = wizardView === 'worksheets'
@@ -1117,11 +1263,16 @@ export function InventoryImportWizardShell({
   const canContinueFromData = canContinueFromDataToImportPreview()
   const canContinueFromPreview = canContinueFromPreviewToReady()
   const canApplyImport = (
-    readyEligibility?.isReady === true
-    && !isApplyingImport
+    !isApplyingImport
     && Boolean(`${workspaceId ?? ''}`.trim())
-    && Boolean(resolvedOperationalImportPreview)
     && Boolean(selectedFile)
+    && (
+      (
+        readyEligibility?.isReady === true
+        && Boolean(resolvedOperationalImportPreview)
+      )
+      || (isStandardFormat && !operationalModel && standardReady)
+    )
   )
   const applyProcessedTotal = applyImportResult
     ? (
@@ -1133,21 +1284,54 @@ export function InventoryImportWizardShell({
       )
     )
     : null
-  const reviewDataContinueMessages = wizardView === 'data' && !operationalModel
-    ? ['Standard inventory tables finish at this validation.']
+  const reviewDataContinueMessages = wizardView === 'data' && isStandardFormat && !operationalModel
+    ? (
+      canContinueFromData
+        ? []
+        : [
+          ...(!`${workspaceId ?? ''}`.trim()
+            ? ['A workspace is required before this list can be previewed.']
+            : []),
+          ...(workspaceStockCatalog.status === 'loading' || (
+            `${workspaceId ?? ''}`.trim() && workspaceStorages == null
+          )
+            ? ['Loading workspace stock…']
+            : []),
+          ...(workspaceStockCatalog.status === 'error'
+            ? ['Unable to load workspace stock']
+            : []),
+          ...((standardRowReview?.groups?.summary?.errors ?? 0) > 0
+            ? ['Fix rows that need attention before preview.']
+            : []),
+          ...(
+            `${workspaceId ?? ''}`.trim()
+            && workspaceStockCatalog.status === 'success'
+            && Array.isArray(workspaceStorages)
+            && (standardRowReview?.groups?.summary?.errors ?? 0) === 0
+            && !canContinueFromData
+              ? ['Finish required validation before continuing.']
+              : []
+          ),
+        ]
+    )
     : listInventoryImportReviewDataContinueMessages({
       canContinue: canContinueFromData,
       previewStatus: operationalImportPreviewState.status,
       unresolvedPossibleMatches:
         resolvedOperationalImportPreview?.summary?.unresolvedPossibleMatches ?? null,
     })
-  const previewContinueMessages = listInventoryImportPreviewContinueMessages({
-    canContinue: canContinueFromPreview,
-    eligibility: readyEligibility,
-  })
+  const previewContinueMessages = isStandardFormat && !operationalModel
+    ? (canContinueFromPreview ? [] : listStandardImportContinueMessages(standardPreview, importSessionPolicy))
+    : listInventoryImportPreviewContinueMessages({
+      canContinue: canContinueFromPreview,
+      eligibility: readyEligibility,
+    })
+  const linkedOpeningCount = isStandardFormat && !operationalModel
+    ? (standardPreview?.counts?.link ?? 0)
+    : (readyEligibility?.quantity?.linkedItemsAffectedByOpeningStock ?? 0)
   const showOverwriteConfirmation = (
     importSessionPolicy.quantityPolicy === INVENTORY_IMPORT_QUANTITY_POLICY.OPENING_STOCK
-    && (readyEligibility?.quantity?.linkedItemsAffectedByOpeningStock ?? 0) > 0
+    && linkedOpeningCount > 0
   )
   const showLocationFallbackControl = (readyEligibility?.counts?.create ?? 0) > 0
   const locationFallbackAffectedCount = importSessionPolicy.newProductLocationFallback
@@ -1524,7 +1708,7 @@ export function InventoryImportWizardShell({
             </div>
           ) : null}
 
-          {wizardView === 'preview' && operationalModel ? (
+          {wizardView === 'preview' && (operationalModel || standardPreview) ? (
             <div className="inventory-import-wizard-import-preview">
               <div className="inventory-import-wizard-step-hero is-preview">
                 <p className="inventory-import-wizard-step-kicker">Step 4 · Preview</p>
@@ -1536,7 +1720,7 @@ export function InventoryImportWizardShell({
                 </p>
               </div>
 
-              {operationalImportPreviewState.status === 'ready' && readyEligibility ? (
+              {(operationalImportPreviewState.status === 'ready' && readyEligibility) || standardPreview ? (
                 <section
                   className="inventory-import-policy-panel"
                   aria-label="Import policies"
@@ -1613,7 +1797,7 @@ export function InventoryImportWizardShell({
                       <span>
                         I understand that the current quantities of
                         {' '}
-                        {readyEligibility.quantity.linkedItemsAffectedByOpeningStock}
+                        {linkedOpeningCount}
                         {' '}
                         existing products will be replaced.
                       </span>
@@ -1651,7 +1835,7 @@ export function InventoryImportWizardShell({
                     </div>
                   ) : null}
 
-                  {Array.isArray(workspaceStorages) ? (
+                  {operationalModel && Array.isArray(workspaceStorages) ? (
                     <div
                       className="inventory-import-policy-section"
                       data-testid="inventory-import-location-bindings"
@@ -1697,26 +1881,26 @@ export function InventoryImportWizardShell({
 
                   <div
                     className={`inventory-import-eligibility-summary${
-                      readyEligibility.isReady ? ' is-ready' : ' is-blocked'
+                      summaryEligibility?.isReady ? ' is-ready' : ' is-blocked'
                     }`}
                     role="status"
                     aria-live="polite"
                   >
-                    {readyEligibility.isReady ? (
+                    {summaryEligibility?.isReady ? (
                       <>
                         <p className="inventory-import-eligibility-summary-title">
                           Ready to continue
                         </p>
                         <p className="inventory-import-eligibility-summary-meta">
-                          {readyEligibility.counts.create}
+                          {summaryEligibility.counts?.create ?? 0}
                           {' '}
                           create ·
                           {' '}
-                          {readyEligibility.counts.link}
+                          {summaryEligibility.counts?.link ?? 0}
                           {' '}
                           link ·
                           {' '}
-                          {readyEligibility.counts.skip}
+                          {summaryEligibility.counts?.skip ?? 0}
                           {' '}
                           skip
                           {importSessionPolicy.quantityPolicy
@@ -1726,7 +1910,7 @@ export function InventoryImportWizardShell({
                                 {' '}
                                 ·
                                 {' '}
-                                {readyEligibility.quantity.linkedItemsAffectedByOpeningStock}
+                                {linkedOpeningCount}
                                 {' '}
                                 existing quantities replaced
                               </>
@@ -1740,15 +1924,23 @@ export function InventoryImportWizardShell({
                           Resolve the remaining items before continuing
                         </p>
                         <ul className="inventory-import-eligibility-summary-list">
-                          {readyEligibility.blockingReasons.map((code) => (
+                          {(readyEligibility?.blockingReasons ?? []).map((code) => (
                             <li key={code}>
                               {getInventoryImportEligibilityBlockerLabel(code)}
                             </li>
                           ))}
+                          {isStandardFormat && !operationalModel
+                            ? listStandardImportContinueMessages(
+                              standardPreview,
+                              importSessionPolicy,
+                            ).map((message) => (
+                              <li key={message}>{message}</li>
+                            ))
+                            : null}
                         </ul>
                       </>
                     )}
-                    {readyEligibility.warningReasons.length > 0 ? (
+                    {(readyEligibility?.warningReasons ?? []).length > 0 ? (
                       <ul className="inventory-import-eligibility-warning-list">
                         {readyEligibility.warningReasons.map((code) => (
                           <li key={code}>
@@ -1761,18 +1953,117 @@ export function InventoryImportWizardShell({
                 </section>
               ) : null}
 
-              {operationalImportPreviewState.status === 'ready'
+              {operationalModel && (
+                operationalImportPreviewState.status === 'ready'
                 || operationalImportPreviewState.status === 'error'
-                ? (
-                  <InventoryOperationalImportPreview
-                    preview={resolvedOperationalImportPreview}
-                    errorMessage={operationalImportPreviewState.errorMessage}
-                  />
-                ) : null}
+              ) ? (
+                <InventoryOperationalImportPreview
+                  preview={resolvedOperationalImportPreview}
+                  errorMessage={operationalImportPreviewState.errorMessage}
+                />
+              ) : null}
+
+              {standardPreview && !operationalModel ? (
+                <section
+                  className="inventory-import-standard-preview"
+                  aria-label="Standard import preview"
+                  data-standard-import-preview="true"
+                >
+                  <p className="inventory-import-wizard-step-purpose">
+                    Cost price is sent with each new product. If the cost update is not installed yet, new products are stored with cost 0.
+                  </p>
+                  <p className="inventory-import-wizard-step-purpose">
+                    Supplier names are saved on each product. A matching supplier record is linked, or created, only after that update is installed.
+                  </p>
+                  <div className="inventory-import-wizard-review-table-wrap">
+                    <table className="inventory-import-wizard-review-table">
+                      <thead>
+                        <tr>
+                          <th scope="col">Product</th>
+                          <th scope="col">Action</th>
+                          <th scope="col">Opening stock</th>
+                          <th scope="col">Notes</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {standardPreview.rows.map((row) => (
+                          <tr key={row.productKey} data-standard-product={row.productKey}>
+                            <td>
+                              <div>{row.name || '—'}</div>
+                              <div>{row.unit || '—'} · {row.category || 'Other'}</div>
+                            </td>
+                            <td>
+                              <div
+                                className="inventory-import-standard-actions"
+                                role="group"
+                                aria-label={`Action for ${row.name || 'this row'}`}
+                              >
+                                {row.createOffered ? (
+                                  <button
+                                    type="button"
+                                    className={`ghost-btn inventory-import-standard-action${row.action === 'create' ? ' is-selected' : ''}`}
+                                    aria-pressed={row.action === 'create'}
+                                    onClick={() => {
+                                      setStandardActionOverrides((current) => ({
+                                        ...current,
+                                        [row.productKey]: 'create',
+                                      }))
+                                    }}
+                                  >
+                                    Create
+                                  </button>
+                                ) : null}
+                                {row.linkOffered ? (
+                                  <button
+                                    type="button"
+                                    className={`ghost-btn inventory-import-standard-action${row.action === 'link' ? ' is-selected' : ''}`}
+                                    aria-pressed={row.action === 'link'}
+                                    onClick={() => {
+                                      setStandardActionOverrides((current) => ({
+                                        ...current,
+                                        [row.productKey]: 'link',
+                                      }))
+                                    }}
+                                  >
+                                    Link
+                                  </button>
+                                ) : null}
+                                {row.skipOffered ? (
+                                  <button
+                                    type="button"
+                                    className={`ghost-btn inventory-import-standard-action${row.action === 'skip' ? ' is-selected' : ''}`}
+                                    aria-pressed={row.action === 'skip'}
+                                    onClick={() => {
+                                      setStandardActionOverrides((current) => ({
+                                        ...current,
+                                        [row.productKey]: 'skip',
+                                      }))
+                                    }}
+                                  >
+                                    Skip
+                                  </button>
+                                ) : null}
+                              </div>
+                            </td>
+                            <td>
+                              {row.locationQuantities.length === 0
+                                ? '—'
+                                : row.locationQuantities.map((location) => (
+                                  `${location.destinationLocationKey} ${location.parsedQuantity}`
+                                )).join(', ')}
+                            </td>
+                            <td>{row.messages.join(' ') || '—'}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </section>
+              ) : null}
             </div>
           ) : null}
 
-          {wizardView === 'ready' && operationalModel ? (
+          {wizardView === 'ready' && (operationalModel || standardPreview) ? (
             <div className="inventory-import-wizard-ready">
               <div className="inventory-import-wizard-step-hero is-ready">
                 <p className="inventory-import-wizard-step-kicker">Step 5 · Import</p>
@@ -1842,6 +2133,61 @@ export function InventoryImportWizardShell({
                   Total processed: {applyProcessedTotal ?? 0}
                 </p>
               </div>
+              {undoCompleted ? (
+                <p className="inventory-import-wizard-step-purpose" role="status">
+                  Import undone. Created products were removed.
+                </p>
+              ) : null}
+              {undoEligibility?.allowed === true && !undoCompleted ? (
+                <button
+                  type="button"
+                  className="ghost-btn inventory-import-undo-btn"
+                  data-undo-import="open"
+                  onClick={() => {
+                    setUndoError('')
+                    setUndoConfirmOpen(true)
+                  }}
+                >
+                  Undo import
+                </button>
+              ) : null}
+              {undoError ? (
+                <p className="inventory-import-wizard-selection-error" role="alert">
+                  {undoError}
+                </p>
+              ) : null}
+              {undoConfirmOpen ? (
+                <div
+                  className="inventory-import-undo-dialog"
+                  role="dialog"
+                  aria-modal="true"
+                  aria-labelledby="inventory-import-undo-title"
+                >
+                  <h4 id="inventory-import-undo-title">Undo this import?</h4>
+                  <p>
+                    Products created by this import will be removed. This cannot be undone.
+                  </p>
+                  <div className="inventory-import-undo-dialog-actions">
+                    <button
+                      type="button"
+                      className="ghost-btn inventory-import-undo-btn"
+                      onClick={() => setUndoConfirmOpen(false)}
+                      disabled={isUndoingImport}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="button"
+                      className="primary-btn inventory-import-undo-btn"
+                      data-undo-import="confirm"
+                      onClick={handleConfirmUndo}
+                      disabled={isUndoingImport}
+                    >
+                      {isUndoingImport ? 'Undoing…' : 'Undo import'}
+                    </button>
+                  </div>
+                </div>
+              ) : null}
             </div>
           ) : null}
 

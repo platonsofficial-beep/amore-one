@@ -47679,3 +47679,42 @@ summary:focus-visible {
   min-height: 44px;
   min-width: 44px;
 }
+
+.inventory-import-standard-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.inventory-import-standard-action,
+.inventory-import-undo-btn {
+  min-height: 44px;
+  min-width: 44px;
+  padding: 10px 14px;
+}
+
+.inventory-import-standard-action.is-selected {
+  border-color: rgba(212, 175, 55, 0.72);
+}
+
+.inventory-import-standard-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.inventory-import-undo-dialog {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 12px;
+  padding: 16px;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.inventory-import-undo-dialog-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
