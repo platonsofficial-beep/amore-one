@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEscapeToClose } from '../../../lib/useEscapeToClose'
 import { ReservationDateField } from '../../reservations/ReservationDateField'
 import { ReservationPhoneField } from '../../reservations/ReservationPhoneField'
 import { HostQuickCreateTimePicker } from './HostQuickCreateTimePicker'
@@ -12,6 +13,7 @@ import {
 import { normalizeReservationDateKey } from '../../../lib/timeFormatUtils'
 import { usePublishedFloorPlan } from '../../../lib/PublishedFloorPlanContext'
 import { getActiveSeatingsForDate } from '../../../lib/reservationSeatings'
+import { getLayoutUnitsForArea } from '../../../lib/reservationTableOptions'
 import {
   applyHostQuickCreateFormPatch,
   buildHostQuickCreateAvailabilityKey,
@@ -57,6 +59,16 @@ function HostReservationQuickCreateFields({
     [form.date, seatings, todayKey],
   )
   const zones = layout?.zones ?? []
+  const areaChoices = zones.map((zone) => ({
+    zone,
+    tableCount: getLayoutUnitsForArea(layout, zone.id).length,
+  }))
+  const visibleAreas = areaChoices.filter((entry) => (
+    entry.tableCount > 0 || entry.zone.id === form.seatingAreaId
+  ))
+  const selectedAreaHasNoTables = areaChoices.some((entry) => (
+    entry.zone.id === form.seatingAreaId && entry.tableCount === 0
+  ))
 
   const updateForm = (patch) => {
     setForm((current) => applyHostQuickCreateFormPatch(current, patch, {
@@ -238,12 +250,19 @@ function HostReservationQuickCreateFields({
             data-testid="host-quick-create-area"
           >
             <option value="">Choose an area</option>
-            {zones.map((zone) => (
-              <option key={zone.id} value={zone.id}>{zone.label}</option>
+            {visibleAreas.map(({ zone, tableCount }) => (
+              <option key={zone.id} value={zone.id} disabled={tableCount === 0}>
+                {tableCount === 0 ? `${zone.label} (no tables)` : zone.label}
+              </option>
             ))}
           </select>
         </label>
       </div>
+      {selectedAreaHasNoTables ? (
+        <p className="mobile-host-form-hint" role="status">
+          This area has no tables. Choose an area that has tables before seating the party.
+        </p>
+      ) : null}
 
       <HostQuickCreateTableField
         form={form}
@@ -427,6 +446,15 @@ export function MobileReservationQuickCreateSheet({
       reservations: availabilityReservations,
     }))
   }, [isOpen, layout, seatings, availabilityKey, availabilityReservations])
+
+  useEscapeToClose(() => {
+    if (isSaving) return
+    setForm(EMPTY_HOST_QUICK_CREATE_FORM)
+    setFirstName('')
+    setLastName('')
+    setNameError('')
+    onClose?.()
+  }, { enabled: isOpen && !isSaving })
 
   if (!isOpen) return null
 

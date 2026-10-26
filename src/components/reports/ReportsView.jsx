@@ -112,6 +112,7 @@ function InsightsAttentionPanel({
   attentionItems,
   attentionPermissions,
   onAttentionItemClick,
+  onCompleteAttentionItem,
   isLoading,
 }) {
   if (isLoading) {
@@ -157,6 +158,7 @@ function InsightsAttentionPanel({
               item={item}
               attentionPermissions={attentionPermissions}
               onAttentionItemClick={onAttentionItemClick}
+              onCompleteAttentionItem={onCompleteAttentionItem}
             />
           ))}
         </ul>
@@ -184,8 +186,10 @@ export default function ReportsView({
   attentionItems = [],
   attentionPermissions = {},
   isLoading,
+  loadError = '',
   onViewModule,
   onAttentionItemClick,
+  onCompleteAttentionItem,
 }) {
   const [period, setPeriod] = useState(REPORT_PERIOD_TODAY)
 
@@ -417,6 +421,12 @@ export default function ReportsView({
         </button>
       </div>
 
+      {loadError ? (
+        <div className="staff-status-banner reports-load-error" role="alert">
+          {loadError}
+        </div>
+      ) : null}
+
       <section className="reports-overview panel staff-panel" aria-label="Manager Brief">
         <header className="reports-overview-header">
           <div>
@@ -457,6 +467,7 @@ export default function ReportsView({
           attentionItems={reports.insightsAttention}
           attentionPermissions={attentionPermissions}
           onAttentionItemClick={onAttentionItemClick}
+          onCompleteAttentionItem={onCompleteAttentionItem}
           isLoading={isLoading}
         />
       ) : null}

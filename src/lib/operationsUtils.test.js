@@ -68,4 +68,14 @@ describe('buildOperationsDashboardSummary', () => {
     expect(summary.openTasks).toBe(1)
     expect(summary.completedToday).toBe(1)
   })
+
+  it('counts issue logs as urgent issues', () => {
+    const summary = buildOperationsDashboardSummary([], [
+      { id: 'issue', type: 'incident', message: 'Walk-in overflow' },
+      { id: 'note', type: 'note', message: 'Handover' },
+    ], TODAY)
+
+    expect(summary.urgentIssues).toBe(1)
+    expect(summary.teamNotes).toBe(1)
+  })
 })

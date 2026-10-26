@@ -18,14 +18,29 @@ export const HOST_ALERT_TYPES = {
   LATE: 'late',
   WAITING_LONG: 'waiting-long',
   OCCUPIED_LONG: 'occupied-long',
+  STALE_SEATED: 'stale-seated',
   UNASSIGNED: 'unassigned',
   CAPACITY: 'capacity',
 }
 
 const EXCLUDED_COVER_STATUS_IDS = new Set(['Cancelled', 'Not Shown', 'Rejected'])
 
+function reservationDateKey(reservation) {
+  return `${reservation?.date ?? ''}`.slice(0, 10)
+}
+
 function reservationBelongsToDay(reservation, todayKey) {
-  return `${reservation?.date ?? ''}`.slice(0, 10) === todayKey
+  return reservationDateKey(reservation) === todayKey
+}
+
+function formatStaleSeatedDate(dateKey) {
+  const [year, month, day] = `${dateKey ?? ''}`.split('-').map(Number)
+  if (!year || !month || !day) return dateKey
+  return new Date(Date.UTC(year, month - 1, day)).toLocaleDateString('en-GB', {
+    day: 'numeric',
+    month: 'short',
+    timeZone: 'UTC',
+  })
 }
 
 export function getReservationUpdatedAtMs(reservation) {
@@ -98,13 +113,29 @@ export function getHostReservationAlertReasons(
     })
   }
 
-  const occupiedMinutes = getReservationOccupiedMinutes(reservation, referenceDate)
-  if (occupiedMinutes !== null && occupiedMinutes >= TABLE_OCCUPIED_TOO_LONG_MINUTES) {
+  const reservationDay = reservationDateKey(reservation)
+  const isStaleSeated = Boolean(
+    reservationDay
+    && todayKey
+    && reservationDay < todayKey
+    && isReservationInHouseStatus(status),
+  )
+
+  if (isStaleSeated) {
     reasons.push({
-      type: HOST_ALERT_TYPES.OCCUPIED_LONG,
+      type: HOST_ALERT_TYPES.STALE_SEATED,
       tone: 'occupied',
-      delayMinutes: occupiedMinutes,
+      reservationDate: reservationDay,
     })
+  } else {
+    const occupiedMinutes = getReservationOccupiedMinutes(reservation, referenceDate)
+    if (occupiedMinutes !== null && occupiedMinutes >= TABLE_OCCUPIED_TOO_LONG_MINUTES) {
+      reasons.push({
+        type: HOST_ALERT_TYPES.OCCUPIED_LONG,
+        tone: 'occupied',
+        delayMinutes: occupiedMinutes,
+      })
+    }
   }
 
   if (includeUnassigned && options.isUnassigned?.(reservation)) {
@@ -134,6 +165,8 @@ export function formatHostAlertLabel(reason, guestName = 'Guest') {
       return `${guestName} waiting ${reason.delayMinutes} min`
     case HOST_ALERT_TYPES.OCCUPIED_LONG:
       return `${guestName} seated ${reason.delayMinutes} min`
+    case HOST_ALERT_TYPES.STALE_SEATED:
+      return `${guestName} still seated from ${formatStaleSeatedDate(reason.reservationDate)}`
     case HOST_ALERT_TYPES.UNASSIGNED:
       return `${guestName} needs a table`
     case HOST_ALERT_TYPES.CAPACITY:
@@ -169,6 +202,7 @@ export function buildHostReservationAlerts(
         tone: reason.tone,
         reservation,
         reservationId: reservation.id,
+        reservationDate: reason.reservationDate ?? reservationDateKey(reservation),
         label: formatHostAlertLabel(reason, guestName),
         delayMinutes: reason.delayMinutes ?? null,
         severity: reason.type === HOST_ALERT_TYPES.LATE ? 0 : 1,

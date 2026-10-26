@@ -11,6 +11,7 @@ export function TodayCommandHeader({
   profileChipDisplay,
   employees = [],
   onQuickAction,
+  onChipSelect,
   onOpenWorkspaceProfile,
   canOpenWorkspaceProfile = true,
 }) {
@@ -60,17 +61,22 @@ export function TodayCommandHeader({
             <div className="today-command-row today-command-row-chips">
               <div className="today-command-chip-strip" role="list" aria-label="Operational status">
                 {chips.map((chip) => (
-                  <div
+                  <button
                     key={chip.id}
+                    type="button"
                     className={`today-command-chip tone-${chip.tone ?? 'default'}`}
                     role="listitem"
+                    onClick={() => onChipSelect?.(chip.id)}
                   >
                     <span className="today-command-chip-icon" aria-hidden="true">{chip.icon}</span>
                     <span className="today-command-chip-copy">
                       <span className="today-command-chip-label">{chip.label}</span>
                       <strong className="today-command-chip-value">{chip.value}</strong>
+                      {chip.detail ? (
+                        <span className="today-command-chip-detail">{chip.detail}</span>
+                      ) : null}
                     </span>
-                  </div>
+                  </button>
                 ))}
               </div>
             </div>

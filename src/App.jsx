@@ -338,6 +338,9 @@ import {
   getTaskTemplates,
   updateTaskTemplate,
 } from './services/taskTemplateService'
+import { selectTemplatesDueForDate } from './lib/taskTemplateRecurrence'
+import { countOpenOperationsTasksForTodayChip } from './lib/todayCommandHeaderUtils'
+import { useEscapeToClose } from './lib/useEscapeToClose'
 import {
   getChecklistItemsForTasks,
   toggleChecklistItem,
@@ -1162,8 +1165,10 @@ function CommandCenterView({
   onViewTasks,
   onViewReservations,
   onAttentionItemClick,
+  onCompleteAttentionItem,
   attentionPermissions = {},
   onMarkAnnouncementSeen,
+  onStatusCardSelect,
 }) {
   const attentionHasUrgent = hasUrgentAttentionItems(attentionItems)
   const showStockAttention = Boolean(onViewStock) && attentionItems.some((item) => (
@@ -1192,6 +1197,7 @@ function CommandCenterView({
       <TodayStatusCards
         statusSummary={statusSummary}
         showStock={showStockStatus}
+        onSelect={onStatusCardSelect}
       />
 
       <div className="today-layout">
@@ -1251,6 +1257,7 @@ function CommandCenterView({
               attentionItems={attentionItems}
               attentionPermissions={attentionPermissions}
               onAttentionItemClick={onAttentionItemClick}
+              onCompleteAttentionItem={onCompleteAttentionItem}
               showReservationAttention={showReservationAttention}
               showStockAttention={showStockAttention}
               showTasksAttention={showTasksAttention}
@@ -7586,6 +7593,8 @@ function ReservationWorkspaceProvider({
   onReservationNotice,
   isSavingHostEdit = false,
   reservationSeatings = [],
+  focusReservationId = '',
+  focusToken = 0,
 }) {
   const { layout } = usePublishedFloorPlan()
   const [selectedReservation, setSelectedReservation] = useState(null)
@@ -7633,6 +7642,16 @@ function ReservationWorkspaceProvider({
       syncHostWorkspaceReservationSelection(current, filteredTodayReservations)
     ))
   }, [filteredTodayReservations])
+
+  useEffect(() => {
+    if (!focusReservationId) return
+    const match = filteredTodayReservations.find(
+      (entry) => String(entry.id) === String(focusReservationId),
+    )
+    if (!match) return
+    setSelectedReservation(match)
+    setSelectionPulseKey((current) => current + 1)
+  }, [filteredTodayReservations, focusReservationId, focusToken])
 
   useEffect(() => {
     if (!hostEditingReservation?.id) return
@@ -11367,6 +11386,7 @@ function MobileReservationsHostShell({
   hostSettingsProps = null,
   workspaceId = '',
   useControlledReloadReturn = false,
+  reservationAttentionFocus = null,
 }) {
   const workspaceTodayKey = todayKey
   const workspaceTodayRef = useRef(workspaceTodayKey)
@@ -11386,6 +11406,11 @@ function MobileReservationsHostShell({
     setSelectedDateKey(normalizeReservationDateKey(dateKey))
   }, [])
 
+  useEffect(() => {
+    if (!reservationAttentionFocus?.dateKey) return
+    setSelectedDateKey(normalizeReservationDateKey(reservationAttentionFocus.dateKey))
+  }, [reservationAttentionFocus?.token, reservationAttentionFocus?.dateKey])
+
   const workspaceReservations = useMemo(
     () => getHostWorkspaceReservations(reservations, selectedDateKey, workspaceTimeZone),
     [reservations, selectedDateKey, workspaceTimeZone],
@@ -11399,6 +11424,8 @@ function MobileReservationsHostShell({
       onReservationNotice={onReservationNotice}
       isSavingHostEdit={isSaving}
       reservationSeatings={reservationSeatings}
+      focusReservationId={reservationAttentionFocus?.reservationId ?? ''}
+      focusToken={reservationAttentionFocus?.token ?? 0}
     >
       <MobileReservationsHostShellBody
         reservations={reservations}
@@ -13715,6 +13742,7 @@ function ReservationsWorkspaceBody({
   onOpenHostMode,
   canEditFloorPlan = true,
   reservationSeatings = [],
+  reservationAttentionFocus = null,
 }) {
   const [searchTerm, setSearchTerm] = useState('')
   const [listSort, setListSort] = useState('service')
@@ -14013,6 +14041,11 @@ function ReservationsWorkspaceBody({
   }
 
   useEffect(() => {
+    if (!reservationAttentionFocus?.dateKey) return
+    setSelectedDateKey(normalizeReservationDateKey(reservationAttentionFocus.dateKey))
+  }, [reservationAttentionFocus?.token, reservationAttentionFocus?.dateKey])
+
+  useEffect(() => {
     const activeSeatings = getActiveSeatingsForDate(reservationSeatings, selectedDateKey)
     if (!activeSeatings.length) {
       setSelectedServiceSeatingId('')
@@ -14032,6 +14065,8 @@ function ReservationsWorkspaceBody({
         onReservationNotice={onReservationNotice}
         isSavingHostEdit={isSaving}
         reservationSeatings={reservationSeatings}
+        focusReservationId={reservationAttentionFocus?.reservationId ?? ''}
+        focusToken={reservationAttentionFocus?.token ?? 0}
       >
         <ReservationsWorkspaceContent
         reservations={reservations}
@@ -15988,10 +16023,11 @@ function App() {
   const isSavingStockItemRef = useRef(false)
   const [barRefills, setBarRefills] = useState([])
   const [barRefillsNotice, setBarRefillsNotice] = useState('')
-  const [isBarRefillsLoading, setIsBarRefillsLoading] = useState(true)
+  const [isBarRefillsLoading, setIsBarRefillsLoading] = useState(false)
   const [isBarRefillsModuleConnected, setIsBarRefillsModuleConnected] = useState(false)
   const [isSavingBarRefill, setIsSavingBarRefill] = useState(false)
   const [isReportsLoading, setIsReportsLoading] = useState(false)
+  const [reportsLoadError, setReportsLoadError] = useState('')
   const [suppliers, setSuppliers] = useState([])
   const [suppliersNotice, setSuppliersNotice] = useState('')
   const [isSuppliersLoading, setIsSuppliersLoading] = useState(true)
@@ -16062,6 +16098,14 @@ function App() {
   const [inviteAcceptedNotice, setInviteAcceptedNotice] = useState('')
   const previousActiveViewRef = useRef(activeView)
   const preReservationsHostViewRef = useRef('today')
+  const scheduleEntryRef = useRef({ view: 'today', teamSection: 'today' })
+  const templateGenerationKeyRef = useRef('')
+  const closeReservationModalRef = useRef(() => {})
+  const [reservationAttentionFocus, setReservationAttentionFocus] = useState(null)
+  useEscapeToClose(() => closeReservationModalRef.current(), { enabled: isReservationModalOpen })
+  useEscapeToClose(() => setIsDashboardAnnouncementFormOpen(false), { enabled: isDashboardAnnouncementFormOpen })
+  useEscapeToClose(() => setIsDashboardStockCreateOrderOpen(false), { enabled: isDashboardStockCreateOrderOpen })
+  useEscapeToClose(() => setIsDashboardReservationQuickCreateOpen(false), { enabled: isDashboardReservationQuickCreateOpen })
   const preStockViewRef = useRef('today')
 
   const {
@@ -16323,8 +16367,8 @@ function App() {
   )
 
   const visibleOperationsSections = useMemo(
-    () => filterOperationsSections(OPERATIONS_SECTIONS, role, { hideMobileTasks: useMobileExperience }),
-    [role, useMobileExperience],
+    () => filterOperationsSections(OPERATIONS_SECTIONS, role),
+    [role],
   )
 
   const permittedTodayQuickActions = useMemo(
@@ -16439,6 +16483,21 @@ function App() {
       ? resolvePermittedTeamSection(role, teamSection || getDefaultTeamSection(role, canAccessTeamSection))
       : teamSection
 
+    if (permittedView === 'reservations' && activeView !== 'reservations') {
+      preReservationsHostViewRef.current = activeView || 'today'
+    }
+
+    if (
+      permittedView === 'team'
+      && nextTeamSection === 'schedule'
+      && !(activeView === 'team' && teamSection === 'schedule')
+    ) {
+      scheduleEntryRef.current = {
+        view: activeView || 'today',
+        teamSection: teamSection || 'today',
+      }
+    }
+
     if (isEmployeeModalOpen) {
       const remainsOnPeople = permittedView === 'team' && nextTeamSection === 'members'
       if (!remainsOnPeople) {
@@ -16461,7 +16520,7 @@ function App() {
       stockSection,
       operationsSection,
     })
-  }, [role, settingsSection, teamSection, stockSection, operationsSection, isEmployeeModalOpen, handleCloseEmployeeModal, canAccessTeamSection])
+  }, [role, activeView, settingsSection, teamSection, stockSection, operationsSection, isEmployeeModalOpen, handleCloseEmployeeModal, canAccessTeamSection])
 
   const handleTeamSectionChange = useCallback((nextSection) => {
     const permittedSection = resolvePermittedTeamSection(role, nextSection)
@@ -16747,6 +16806,14 @@ function App() {
     [sharedOperationalTasks, currentDateKey],
   )
 
+  const operationsOpenCount = useMemo(
+    () => countOpenOperationsTasksForTodayChip(
+      filterStandaloneOperationsTasks(operationsTasks),
+      currentDateKey,
+    ),
+    [operationsTasks, currentDateKey],
+  )
+
   const currentTaskEmployeeId = useMemo(() => {
     const linkedEmployeeId = `${membership?.employeeId ?? ''}`.trim()
     if (linkedEmployeeId) return linkedEmployeeId
@@ -16980,6 +17047,7 @@ function App() {
     serviceSnapshot: dashboardServiceSnapshot,
     tasksOverview: dashboardTaskOverview,
     tasksConnected: isTasksModuleConnected,
+    operationsOpenCount,
     stockSummary: managerMobileStockSummary,
     stockOrdersSummary: managerMobileOrdersSummary,
     stockConnected: canAccessStockModule,
@@ -16992,6 +17060,7 @@ function App() {
     dashboardReservationsFooter,
     dashboardServiceSnapshot,
     dashboardTaskOverview,
+    operationsOpenCount,
     isTasksModuleConnected,
     managerMobileStockSummary,
     managerMobileOrdersSummary,
@@ -17295,6 +17364,7 @@ function App() {
     dashboardLiveStatus,
     todayStatusSummary,
     dashboardTaskOverview,
+    operationsOpenCount,
     todayReservationsSummary,
     reservationsConnected: isReservationsModuleConnected,
     liveFloorState,
@@ -17303,6 +17373,7 @@ function App() {
     dashboardLiveStatus,
     todayStatusSummary,
     dashboardTaskOverview,
+    operationsOpenCount,
     todayReservationsSummary,
     isReservationsModuleConnected,
     liveFloorState,
@@ -17599,7 +17670,7 @@ function App() {
   }, [refreshInventory, refreshReservations, refreshTasks])
 
   const refreshReportsData = useCallback(async () => {
-    await Promise.allSettled([
+    const results = await Promise.allSettled([
       refreshReservations(),
       refreshInventory(),
       refreshTasks(),
@@ -17609,6 +17680,12 @@ function App() {
       refreshSuppliers(),
       refreshTodayWeekDraftData(todayWeekStart),
     ])
+    const rejected = results.filter((result) => result.status === 'rejected')
+    return {
+      failedCount: rejected.length,
+      totalCount: results.length,
+      message: rejected[0]?.reason?.message || '',
+    }
   }, [
     refreshBarRefills,
     refreshInventory,
@@ -17813,10 +17890,34 @@ function App() {
 
     let isMounted = true
     setIsReportsLoading(true)
+    setReportsLoadError('')
+    const timeoutMs = 20000
+    let timeoutId = 0
+    const timeout = new Promise((_, reject) => {
+      timeoutId = window.setTimeout(() => {
+        reject(new Error('Insights took too long to load.'))
+      }, timeoutMs)
+    })
 
-    refreshReportsData()
-      .catch(() => {})
+    Promise.race([refreshReportsData(), timeout])
+      .then((summary) => {
+        if (!isMounted) return
+        if (summary?.failedCount > 0) {
+          setReportsLoadError(
+            summary.failedCount === summary.totalCount
+              ? (summary.message || 'Unable to prepare insights.')
+              : 'Some insights could not be loaded. Showing what is available.',
+          )
+        } else {
+          setReportsLoadError('')
+        }
+      })
+      .catch((error) => {
+        if (!isMounted) return
+        setReportsLoadError(error?.message || 'Unable to prepare insights.')
+      })
       .finally(() => {
+        window.clearTimeout(timeoutId)
         if (isMounted) {
           setIsReportsLoading(false)
         }
@@ -17824,6 +17925,7 @@ function App() {
 
     return () => {
       isMounted = false
+      window.clearTimeout(timeoutId)
     }
   }, [activeView, refreshReportsData])
 
@@ -17842,7 +17944,7 @@ function App() {
 
   useEffect(() => {
     if (activeView !== 'reservations') {
-      preReservationsHostViewRef.current = activeView
+      preReservationsHostViewRef.current = activeView || 'today'
     }
   }, [activeView])
 
@@ -18187,11 +18289,56 @@ function App() {
   }, [activeWorkspaceId])
 
   useEffect(() => {
-    if (activeView !== 'operations') return undefined
-    refreshTasks()
-    refreshTaskTemplates()
-    return undefined
-  }, [activeView, refreshTasks, refreshTaskTemplates])
+    if (activeView !== 'operations' && activeView !== 'today') return undefined
+    if (!activeWorkspaceId || !currentDateKey) return undefined
+
+    let cancelled = false
+
+    const loadBoardTasks = async () => {
+      const [loadedTasks, loadedTemplates] = await Promise.all([
+        refreshTasks().catch(() => []),
+        refreshTaskTemplates().catch(() => []),
+        activeView === 'today' ? refreshOperationsTasks().catch(() => []) : Promise.resolve([]),
+      ])
+      if (cancelled) return
+
+      const generationKey = `${activeWorkspaceId}:${currentDateKey}`
+      if (templateGenerationKeyRef.current === generationKey) return
+      templateGenerationKeyRef.current = generationKey
+
+      const dueTemplates = selectTemplatesDueForDate(
+        Array.isArray(loadedTemplates) ? loadedTemplates : [],
+        Array.isArray(loadedTasks) ? loadedTasks : [],
+        currentDateKey,
+      )
+      if (dueTemplates.length === 0) return
+
+      try {
+        await generateTasksFromTemplates({
+          templates: dueTemplates,
+          selectedDate: currentDateKey,
+          workspaceId: activeWorkspaceId,
+        })
+        if (!cancelled) await refreshTasks()
+      } catch (error) {
+        templateGenerationKeyRef.current = ''
+        console.warn('[App] generate due task templates error:', error)
+      }
+    }
+
+    loadBoardTasks()
+
+    return () => {
+      cancelled = true
+    }
+  }, [
+    activeView,
+    activeWorkspaceId,
+    currentDateKey,
+    refreshTasks,
+    refreshTaskTemplates,
+    refreshOperationsTasks,
+  ])
 
   useEffect(() => {
     let isMounted = true
@@ -18375,11 +18522,6 @@ function App() {
       handleOperationsSectionChange('dashboard')
     }
   }, [activeView, operationsSection, canManageOperationsRole, handleOperationsSectionChange])
-
-  useEffect(() => {
-    if (!useMobileExperience || activeView !== 'operations' || operationsSection !== 'tasks') return
-    handleOperationsSectionChange('dashboard')
-  }, [useMobileExperience, activeView, operationsSection, handleOperationsSectionChange])
 
   useEffect(() => {
     if (activeView !== 'stock') return undefined
@@ -22144,7 +22286,7 @@ function App() {
     if (actionId === 'create-order') {
       if (!canManageStockRole) return
       handleActiveViewChange('stock')
-      handleStockSectionChange('dashboard')
+      handleStockSectionChange('orders')
       setIsDashboardStockCreateOrderOpen(true)
     }
   }
@@ -22170,6 +22312,36 @@ function App() {
   const handleDashboardViewReservations = () => {
     if (!canAccessModule(role, 'reservations')) return
     handleActiveViewChange('reservations')
+  }
+
+  const handleTodayChipSelect = (chipId) => {
+    if (chipId === 'schedule' || chipId === 'team') {
+      handleDashboardViewSchedule()
+      return
+    }
+    if (chipId === 'on-shift') {
+      if (!canAccessTeamSection(role, 'today')) return
+      handleActiveViewChange('team')
+      handleTeamSectionChange('today')
+      return
+    }
+    if (chipId === 'reservations') {
+      handleDashboardViewReservations()
+      return
+    }
+    if (chipId === 'stock') {
+      handleDashboardViewStock()
+      return
+    }
+    if (chipId === 'tasks') {
+      handleDashboardViewTasks()
+    }
+  }
+
+  const handleCompleteStaleSeatedReservation = (item) => {
+    const reservation = reservations.find((entry) => String(entry.id) === String(item?.reservationId))
+    if (!reservation) return
+    handleQuickReservationStatus(reservation, 'Checked Out')
   }
 
   const todayAttentionPermissions = useMemo(() => ({
@@ -22201,6 +22373,13 @@ function App() {
       if (useMobileExperience && (isManagementMobileRole(role) || isHostMobileRole(role))) {
         setMobileReservationsHostMode(destination.action === 'host')
         setMobileExpandedView('workspace')
+      }
+      if (destination.reservationId) {
+        setReservationAttentionFocus({
+          reservationId: destination.reservationId,
+          dateKey: destination.dateKey || currentDateKey,
+          token: Date.now(),
+        })
       }
       handleActiveViewChange('reservations')
       return
@@ -22244,6 +22423,7 @@ function App() {
     handleStockSectionChange,
     handleOperationsSectionChange,
     handleTeamSectionChange,
+    currentDateKey,
   ])
 
   const handleInsightsViewModule = (moduleId) => {
@@ -22287,7 +22467,7 @@ function App() {
     setIsReservationModalOpen(true)
   }
 
-  const handleCloseReservationModal = () => {
+  closeReservationModalRef.current = () => {
     setIsReservationModalOpen(false)
     setEditingReservation(null)
     setReservationForm({
@@ -22306,6 +22486,10 @@ function App() {
       standingGuests: 0,
       seatingId: null,
     })
+  }
+
+  const handleCloseReservationModal = () => {
+    closeReservationModalRef.current()
   }
 
   const handleHostEditSave = async (reservation, form, selectedDateKey) => {
@@ -23171,7 +23355,7 @@ function App() {
     }
   }
 
-  const handleCompleteOperationsTask = async (task, { completionNote = '' } = {}) => {
+  const handleCompleteOperationsTask = async (task, { completionNote = '', silent = false } = {}) => {
     if (!activeWorkspaceId || !task?.id) {
       throw new Error(operationsWorkspaceSetupMessage || 'Workspace and task are required.')
     }
@@ -23188,10 +23372,12 @@ function App() {
         refreshOperationsTasks(),
         isMobileViewport ? refreshMobileOperationsTasks() : Promise.resolve(),
       ])
-      const successMessage = 'Task completed.'
-      setOperationsNotice(successMessage)
-      if (isMobileViewport) {
-        setMobileNotice(successMessage)
+      if (!silent) {
+        const successMessage = 'Task completed.'
+        setOperationsNotice(successMessage)
+        if (isMobileViewport) {
+          setMobileNotice(successMessage)
+        }
       }
     } catch (error) {
       const errorMessage = error.message || 'Unable to complete task right now.'
@@ -23205,7 +23391,7 @@ function App() {
     }
   }
 
-  const handleReopenOperationsTask = async (task) => {
+  const handleReopenOperationsTask = async (task, { silent = false } = {}) => {
     if (!activeWorkspaceId || !task?.id) {
       throw new Error(operationsWorkspaceSetupMessage || 'Workspace and task are required.')
     }
@@ -23216,7 +23402,7 @@ function App() {
     try {
       await reopenOperationsTask(activeWorkspaceId, task.id)
       await refreshOperationsTasks()
-      setOperationsNotice('Task reopened.')
+      if (!silent) setOperationsNotice('Task reopened.')
     } catch (error) {
       setOperationsNotice(error.message || 'Unable to reopen task right now.')
       throw error
@@ -23582,10 +23768,10 @@ function App() {
   const handleToggleChecklistExecutionTask = async (task) => {
     const isDone = `${task.status ?? ''}`.toLowerCase() === 'completed'
     if (isDone) {
-      await handleReopenOperationsTask(task)
+      await handleReopenOperationsTask(task, { silent: true })
       return
     }
-    await handleCompleteOperationsTask(task, { completionNote: '' })
+    await handleCompleteOperationsTask(task, { completionNote: '', silent: true })
   }
 
   const persistBarRefillDraftChanges = async (refillId, { notes, items = [] }) => {
@@ -24397,15 +24583,25 @@ function App() {
   const handleMobileExitReservationsHostMode = useCallback(() => {
     setMobileReservationsHostMode(false)
     setMobileExpandedView(null)
-    handleActiveViewChange(resolveExitReservationsHostDestination(
-      preReservationsHostViewRef.current,
+    const destination = resolveExitReservationsHostDestination(
+      preReservationsHostViewRef.current || 'today',
       role,
-    ))
-  }, [role, handleActiveViewChange])
+    )
+    handleActiveViewChange(destination)
+    if (destination === 'team' && teamSection === 'members' && preReservationsHostViewRef.current === 'today') {
+      handleTeamSectionChange('today')
+    }
+  }, [role, teamSection, handleActiveViewChange, handleTeamSectionChange])
 
   const handleExitScheduleFocusMode = useCallback(() => {
-    handleTeamSectionChange('members')
-  }, [handleTeamSectionChange])
+    const entry = scheduleEntryRef.current ?? { view: 'today', teamSection: 'today' }
+    if (entry.view && entry.view !== 'team') {
+      handleActiveViewChange(entry.view)
+      return
+    }
+    handleActiveViewChange('team')
+    handleTeamSectionChange(entry.teamSection && entry.teamSection !== 'schedule' ? entry.teamSection : 'today')
+  }, [handleActiveViewChange, handleTeamSectionChange])
 
   const handleExitStockFocusMode = useCallback(() => {
     handleActiveViewChange(resolveExitStockDestination(preStockViewRef.current))
@@ -24721,8 +24917,10 @@ function App() {
             onViewTasks={canAccessModule(role, 'operations') ? handleDashboardViewTasks : undefined}
             onViewReservations={canAccessModule(role, 'reservations') ? handleDashboardViewReservations : undefined}
             onAttentionItemClick={handleTodayAttentionItemClick}
+            onCompleteAttentionItem={handleCompleteStaleSeatedReservation}
             attentionPermissions={todayAttentionPermissions}
             onMarkAnnouncementSeen={handleMarkOperationsAnnouncementSeen}
+            onStatusCardSelect={handleTodayChipSelect}
           />
         ) : null}
 
@@ -24858,10 +25056,12 @@ function App() {
               reservationSeatings={reservationSeatings}
               workspaceId={activeWorkspaceId}
               useControlledReloadReturn={isHostMobileRole(role)}
+              reservationAttentionFocus={reservationAttentionFocus}
             />
           ) : (
             <ReservationsView
               reservations={reservations}
+              reservationAttentionFocus={reservationAttentionFocus}
               workspaceTimeZone={workspaceTimeZone}
               onOpenAddReservation={handleOpenAddReservation}
               onOpenQuickReservation={handleOpenQuickReservation}
@@ -25055,19 +25255,11 @@ function App() {
             coverageBreakdown={scheduleAttentionCoverageBreakdown}
             attentionItems={todayAttentionItems}
             attentionPermissions={todayAttentionPermissions}
-            isLoading={
-              isReportsLoading
-              || isReservationsLoading
-              || isTasksLoading
-              || isInventoryLoading
-              || isBarRefillsLoading
-              || isStockItemsLoading
-              || isStockOrdersLoading
-              || isDashboardScheduleLoading
-              || isSuppliersLoading
-            }
+            isLoading={isReportsLoading}
+            loadError={reportsLoadError}
             onViewModule={handleInsightsViewModule}
             onAttentionItemClick={handleTodayAttentionItemClick}
+            onCompleteAttentionItem={handleCompleteStaleSeatedReservation}
           />
         ) : null}
 
@@ -25125,6 +25317,8 @@ function App() {
             onOpenChecklistRun={setActiveChecklistRunTemplateId}
             focusTaskId={operationsFocusTaskId}
             onFocusTaskHandled={() => setOperationsFocusTaskId(null)}
+            boardOverdueCount={dashboardTaskOverview.overdue}
+            onOpenTaskBoards={handleDashboardViewTasks}
           />
         ) : null}
 
@@ -25307,6 +25501,7 @@ function App() {
                       onOpenTeamToday: handleMobileManagerOpenTeamToday,
                       onOpenReservations: handleMobileManagerOpenReservations,
                       onAttentionItemClick: handleTodayAttentionItemClick,
+                      onCompleteAttentionItem: handleCompleteStaleSeatedReservation,
                       attentionPermissions: todayAttentionPermissions,
                     }
                     : {
@@ -25372,6 +25567,7 @@ function App() {
                       onReservationNotice={setReservationNotice}
                       onCreateReservation={handleMobileHostReservationCreate}
                       onExitHostMode={undefined}
+                      reservationAttentionFocus={reservationAttentionFocus}
                       onAssignReservationTables={handleAssignReservationTables}
                       canEditFloorPlan={canEditFloorPlanRole}
                       reservationSeatings={reservationSeatings}
@@ -25542,6 +25738,7 @@ function App() {
                     dateLabel={dashboardHeroDateLabel}
                     workspaceBadge={todayWorkspaceBadge}
                     chips={todayCommandHeaderChips}
+                    onChipSelect={handleTodayChipSelect}
                     quickActions={permittedTodayQuickActions}
                     profileChipDisplay={profileChipDisplay}
                     employees={scheduleEmployees}

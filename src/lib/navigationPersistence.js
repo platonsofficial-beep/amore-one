@@ -21,7 +21,7 @@ const VALID_ACTIVE_VIEWS = new Set([
 
 const VALID_TEAM_SECTIONS = new Set(['today', 'members', 'schedule'])
 const VALID_STOCK_SECTIONS = new Set(['dashboard', 'count', 'storages', 'inventory', 'suppliers', 'orders', 'migration'])
-const VALID_OPERATIONS_SECTIONS = new Set(['dashboard', 'checklists'])
+const VALID_OPERATIONS_SECTIONS = new Set(['dashboard', 'tasks', 'checklists'])
 
 const VALID_SETTINGS_SECTIONS = new Set([
   'profile',
@@ -43,7 +43,6 @@ function normalizeStockSection(value) {
 
 function normalizeOperationsSection(value) {
   const normalized = `${value ?? ''}`.trim()
-  if (normalized === 'tasks') return DEFAULT_OPERATIONS_SECTION
   return VALID_OPERATIONS_SECTIONS.has(normalized) ? normalized : DEFAULT_OPERATIONS_SECTION
 }
 

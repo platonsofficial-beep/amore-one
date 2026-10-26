@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useEscapeToClose } from '../../lib/useEscapeToClose'
 import { buildTaskForm } from '../../lib/taskFormUtils'
 import { parseDepartmentBoardKey } from '../../lib/taskDepartments'
 import { TimeSelect } from '../TimeSelect'
@@ -29,6 +30,10 @@ export default function TaskFormModal({
   isSaving = false,
   errorMessage = '',
 }) {
+  useEscapeToClose(() => {
+    if (!isSaving) onClose?.()
+  }, { enabled: isOpen && !isSaving })
+
   const buildInitialForm = () => {
     if (editingTask) return buildTaskForm(editingTask, 'service')
 

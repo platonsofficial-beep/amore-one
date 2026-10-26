@@ -90,6 +90,23 @@ describe('reservationServiceIntelligence', () => {
     expect(alerts[0]?.label).toContain('150 min')
   })
 
+  it('labels in-house reservations from earlier dates as still seated, not huge minute counts', () => {
+    const alerts = buildHostReservationAlerts([
+      reservation({
+        id: 'marika',
+        guestName: 'Marika',
+        date: '2026-07-05',
+        status: 'Checked In',
+        updatedAt: '2026-07-05T19:00:00',
+      }),
+    ], 21 * 60, '2026-10-26', new Date('2026-10-26T21:00:00'))
+
+    expect(alerts[0]?.type).toBe(HOST_ALERT_TYPES.STALE_SEATED)
+    expect(alerts[0]?.label).toBe('Marika still seated from 5 Jul')
+    expect(alerts[0]?.reservationDate).toBe('2026-07-05')
+    expect(alerts.some((alert) => alert.type === HOST_ALERT_TYPES.OCCUPIED_LONG)).toBe(false)
+  })
+
   it('prioritizes active service before upcoming and completed reservations', () => {
     const late = getServiceOrderRank(reservation({ time: '18:30', status: 'Confirmed' }), 19 * 60, TODAY)
     const waiting = getServiceOrderRank(reservation({ status: 'Waiting' }), 19 * 60, TODAY)

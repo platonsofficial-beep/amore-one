@@ -1,3 +1,4 @@
+import { isTerminalReservationStatus } from './reservationHostStatus'
 import { buildReservationUpdatePayload } from '../services/reservationService'
 
 export function normalizeCanonicalReservation(reservation) {
@@ -73,8 +74,11 @@ export function syncHostWorkspaceReservationSelection(
   reservations = [],
 ) {
   if (!selectedReservation?.id) return selectedReservation ?? null
-  const fresh = resolveHostFloorReservationRecord(selectedReservation, reservations)
-  if (!fresh || !hostFloorReservationVisualStateChanged(selectedReservation, fresh)) {
+  const fresh = (reservations ?? []).find(
+    (entry) => String(entry.id) === String(selectedReservation.id),
+  )
+  if (!fresh || isTerminalReservationStatus(fresh.status)) return null
+  if (!hostFloorReservationVisualStateChanged(selectedReservation, fresh)) {
     return selectedReservation
   }
   return fresh

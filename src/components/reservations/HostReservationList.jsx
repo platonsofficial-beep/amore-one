@@ -316,6 +316,7 @@ export function HostReservationList({
       reservation,
       anchorRect,
       currentStatusId: displayStatus,
+      anchorLabel: `${event.currentTarget?.textContent ?? ''}`.trim(),
     })
   }
 
@@ -500,6 +501,7 @@ export function HostReservationList({
         reservation={statusPicker?.reservation}
         currentStatusId={statusPicker?.currentStatusId}
         anchorRect={statusPicker?.anchorRect}
+        anchorLabel={statusPicker?.anchorLabel}
         isOpen={Boolean(statusPicker)}
         isSaving={isSavingStatus}
         onClose={handleCloseStatusPicker}

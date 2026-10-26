@@ -108,6 +108,16 @@ describe('todayAttentionNavigation', () => {
       action: 'host',
       reservationId: 'r1',
     })
+
+    expect(resolveTodayAttentionDestination(
+      { key: 'reservation:alert-stale-r1-0', reservationId: 'r1', reservationDate: '2026-07-05' },
+      fullPermissions,
+    )).toEqual({
+      view: 'reservations',
+      action: 'host',
+      reservationId: 'r1',
+      dateKey: '2026-07-05',
+    })
   })
 
   it('resolves announcement destination to today announcements', () => {

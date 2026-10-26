@@ -133,7 +133,7 @@ export function HostQuickCreateTableField({
         </div>
       ) : null}
 
-      {capacityTotals.isUnderCapacity ? (
+      {hasSelection && capacityTotals.isUnderCapacity ? (
         <p className="mobile-host-quick-create-table-capacity-warning" role="status">
           Selected capacity is below party size by {capacityTotals.capacityGap} guest{capacityTotals.capacityGap === 1 ? '' : 's'}.
         </p>

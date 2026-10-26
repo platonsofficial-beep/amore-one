@@ -193,6 +193,7 @@ export function buildTodayStatusSummary({
   serviceSnapshot = null,
   tasksOverview = {},
   tasksConnected = false,
+  operationsOpenCount = 0,
   stockSummary = null,
   stockOrdersSummary = null,
   stockConnected = false,
@@ -238,11 +239,13 @@ export function buildTodayStatusSummary({
     }
   }
 
+  const operationsOpen = Math.max(0, Number(operationsOpenCount) || 0)
   let tasksSummary = tasksConnected ? 'No open tasks today' : 'Tasks not connected'
-  if (tasksConnected && !tasksOverview.showEmptyToday) {
-    const active = Number(tasksOverview.active) || 0
-    const overdue = Number(tasksOverview.overdue) || 0
-    const completedToday = Number(tasksOverview.completedToday) || 0
+  const boardHasTasks = tasksConnected && !tasksOverview.showEmptyToday
+  if (boardHasTasks || operationsOpen > 0) {
+    const active = (tasksConnected ? (Number(tasksOverview.active) || 0) : 0) + operationsOpen
+    const overdue = tasksConnected ? (Number(tasksOverview.overdue) || 0) : 0
+    const completedToday = tasksConnected ? (Number(tasksOverview.completedToday) || 0) : 0
 
     if (active > 0) {
       tasksSummary = active === 1 ? '1 open task' : `${active} open tasks`
@@ -341,8 +344,12 @@ export function buildReservationAttentionItems({
       tone: alert.type === HOST_ALERT_TYPES.LATE ? 'critical' : 'warning',
       priority: alert.type === HOST_ALERT_TYPES.LATE ? 'urgent' : 'reminder',
       label: alert.label,
-      detail: 'Reservation service',
+      detail: alert.type === HOST_ALERT_TYPES.STALE_SEATED
+        ? 'Still seated from an earlier date'
+        : 'Reservation service',
       reservationId: alert.reservationId ?? alert.reservation?.id ?? null,
+      reservationDate: alert.reservationDate ?? `${alert.reservation?.date ?? ''}`.slice(0, 10),
+      canComplete: alert.type === HOST_ALERT_TYPES.STALE_SEATED,
     })
   })
 

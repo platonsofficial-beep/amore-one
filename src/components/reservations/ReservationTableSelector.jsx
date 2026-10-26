@@ -80,6 +80,20 @@ export function ReservationTableSelector({
     [layout, selectedAreaId],
   )
 
+  const areaChoices = useMemo(() => (
+    (layout?.zones ?? []).map((zone) => ({
+      zone,
+      tableCount: getLayoutUnitsForArea(layout, zone.id).length,
+    }))
+  ), [layout])
+
+  const visibleAreas = areaChoices.filter((entry) => (
+    entry.tableCount > 0 || entry.zone.id === selectedAreaId
+  ))
+  const selectedAreaHasNoTables = areaChoices.some((entry) => (
+    entry.zone.id === selectedAreaId && entry.tableCount === 0
+  ))
+
   const visibleUnits = useMemo(() => {
     if (showUnavailable) return areaUnits
     return areaUnits.filter((unit) => (
@@ -120,11 +134,19 @@ export function ReservationTableSelector({
           value={selectedAreaId}
           onChange={(event) => onAreaChange(event.target.value)}
         >
-          {zones.map((zone) => (
-            <option key={zone.id} value={zone.id}>{zone.label}</option>
+          {visibleAreas.map(({ zone, tableCount }) => (
+            <option key={zone.id} value={zone.id} disabled={tableCount === 0}>
+              {tableCount === 0 ? `${zone.label} (no tables)` : zone.label}
+            </option>
           ))}
         </select>
       </label>
+
+      {selectedAreaHasNoTables ? (
+        <p className="host-reservation-edit-warning">
+          This area has no tables. Choose an area that has tables before seating the party.
+        </p>
+      ) : null}
 
       {assignedUnits.length > 0 ? (
         <div className="reservation-table-selector-chips" aria-label="Selected tables">
@@ -212,7 +234,7 @@ export function ReservationTableSelector({
         </div>
       </dl>
 
-      {totals.isUnderCapacity ? (
+      {assignedUnits.length > 0 && totals.isUnderCapacity ? (
         <p className="host-reservation-edit-warning">
           Selected capacity is below party size by {totals.capacityGap} guest{totals.capacityGap === 1 ? '' : 's'}. You can still save.
         </p>

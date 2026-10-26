@@ -420,6 +420,7 @@
   display: flex;
   align-items: flex-start;
   gap: 12px;
+  width: 100%;
   min-height: 96px;
   padding: 14px 16px;
   border-radius: 16px;
@@ -428,6 +429,10 @@
     linear-gradient(160deg, rgba(212, 175, 55, 0.04), transparent 58%),
     rgba(12, 12, 13, 0.92);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
 }
 
 .today-status-premium-card.tone-live {
@@ -1116,6 +1121,21 @@
   gap: 2px;
   padding: 12px 0;
   border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.today-attention-complete-btn {
+  align-self: flex-start;
+  min-height: 44px;
+  margin: 4px 10px 8px;
+  padding: 0 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(212, 175, 55, 0.35);
+  background: rgba(212, 175, 55, 0.12);
+  color: #f3e6c4;
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
 }
 
 .today-attention-panel .today-attention-item {
@@ -1922,6 +1942,17 @@
   border: 1px solid rgba(255, 255, 255, 0.08);
   background: rgba(255, 255, 255, 0.03);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.today-command-chip-detail {
+  display: block;
+  color: rgba(184, 173, 156, 0.82);
+  font-size: 0.68rem;
+  font-weight: 600;
 }
 
 .today-command-chip.tone-live {
@@ -9235,6 +9266,10 @@
 
 .floor-plan-workspace.is-host-floor .floor-table-content.is-tier-very-small .floor-table-dining-timer {
   font-size: clamp(0.38rem, 6.2cqb, 0.5rem);
+}
+
+.floor-plan-workspace.is-host-floor .floor-table-node:has(.floor-table-dining-timer-external) {
+  z-index: 6;
 }
 
 .floor-plan-workspace.is-host-floor .floor-table-dining-timer-external {

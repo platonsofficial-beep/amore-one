@@ -176,10 +176,12 @@ export function buildOperationsDashboardSummary(tasks = [], logs = [], todayKey 
     const dueDate = normalizeOperationsTaskDate(task.dueDate ?? task?.due_date)
     return dueDate && todayKey && dueDate < normalizedToday
   }).length
-  const urgentIssues = todayTasks.filter(
+  const urgentTaskCount = todayTasks.filter(
     (task) => normalizeOperationsPriority(task.priority) === 'urgent'
       && normalizeOperationsStatus(task.status) === 'pending',
   ).length
+  const incidentNotes = logs.filter((log) => normalizeOperationsLogType(log.type) === 'incident').length
+  const urgentIssues = urgentTaskCount + incidentNotes
   const teamNotes = logs.filter((log) => normalizeOperationsLogType(log.type) === 'note').length
 
   return {

@@ -59,6 +59,7 @@ describe('buildTodayCommandHeaderChips', () => {
         icon: '✅',
         label: 'Tasks',
         value: '3 Open',
+        detail: '3 board',
         tone: 'warning',
       },
     ])
@@ -82,5 +83,15 @@ describe('buildTodayCommandHeaderChips', () => {
       'tasks',
     ])
     expect(chips.find((chip) => chip.id === 'tasks')?.value).toBe('Clear')
+  })
+
+  it('labels board tasks and operations tasks on the same chip', () => {
+    const chips = buildTodayCommandHeaderChips({
+      dashboardTaskOverview: { active: 3 },
+      operationsOpenCount: 2,
+    })
+    const tasks = chips.find((chip) => chip.id === 'tasks')
+    expect(tasks?.value).toBe('5 Open')
+    expect(tasks?.detail).toBe('3 board · 2 ops')
   })
 })

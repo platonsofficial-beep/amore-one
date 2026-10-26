@@ -6,6 +6,7 @@ export function TodayAttentionPanel({
   attentionItems = [],
   attentionPermissions = {},
   onAttentionItemClick,
+  onCompleteAttentionItem,
   showReservationAttention = false,
   showStockAttention = false,
   showTasksAttention = false,
@@ -54,6 +55,7 @@ export function TodayAttentionPanel({
                   item={item}
                   attentionPermissions={attentionPermissions}
                   onAttentionItemClick={onAttentionItemClick}
+                  onCompleteAttentionItem={onCompleteAttentionItem}
                 />
               ))}
             </ul>
