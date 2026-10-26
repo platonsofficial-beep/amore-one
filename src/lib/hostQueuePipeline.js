@@ -22,6 +22,7 @@ import {
 } from './hostQueueNoteBadges'
 import { getReservationPurpose } from './reservationPurpose'
 import { isReservationInHouseStatus } from './reservationHostStatus'
+import { isAutoClosedReservation } from './reservationAutoClose'
 import { reservationDateKey } from './reservationServiceIntelligence'
 
 export const HOST_QUEUE_ALL_AREAS = '__all__'
@@ -455,6 +456,42 @@ export function includeStaleSeatedHostReservations(
   return extras.length > 0 ? [...listed, ...extras] : listed
 }
 
+export function isAutoClosedHostReservation(
+  reservation,
+  {
+    dateKey = '',
+    timeZone = '',
+  } = {},
+) {
+  const viewedDay = `${dateKey ?? ''}`.slice(0, 10)
+  if (!viewedDay) return false
+  if (reservationDateKey(reservation, timeZone) !== viewedDay) return false
+  return isAutoClosedReservation(reservation)
+}
+
+export function includeAutoClosedHostReservations(
+  reservations = [],
+  sourceReservations = [],
+  {
+    dateKey = '',
+    timeZone = '',
+  } = {},
+) {
+  const listed = reservations ?? []
+  const seen = new Set(listed.map((entry) => String(entry?.id ?? '')))
+  const extras = []
+
+  ;(sourceReservations ?? []).forEach((reservation) => {
+    const id = String(reservation?.id ?? '')
+    if (!id || seen.has(id)) return
+    if (!isAutoClosedHostReservation(reservation, { dateKey, timeZone })) return
+    seen.add(id)
+    extras.push(reservation)
+  })
+
+  return extras.length > 0 ? [...listed, ...extras] : listed
+}
+
 export function includeFocusedHostReservation(
   reservations = [],
   focusReservationId = '',
@@ -499,6 +536,11 @@ export function buildHostQueueReservationList(
   filtered = includeStaleSeatedHostReservations(filtered, reservations, {
     dateKey,
     workspaceTodayKey,
+    timeZone,
+  })
+
+  filtered = includeAutoClosedHostReservations(filtered, reservations, {
+    dateKey,
     timeZone,
   })
 

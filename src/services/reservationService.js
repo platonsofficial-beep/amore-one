@@ -1,5 +1,5 @@
 import { normalizeReservationStatus } from '../lib/reservationHostStatus'
-import { isMissingAutoClosedColumnError } from '../lib/reservationAutoClose'
+import { isMissingAutoClosedColumnError, resolveAutoCloseUndoStatus } from '../lib/reservationAutoClose'
 import { supabase } from '../lib/supabaseClient'
 import {
   buildSeatingAssignment,
@@ -43,6 +43,7 @@ function mapReservation(record) {
     updatedAt: record.updated_at ?? record.updatedAt ?? null,
     createdAt: record.created_at ?? record.createdAt ?? null,
     autoClosedAt: record.auto_closed_at ?? record.autoClosedAt ?? null,
+    autoClosedFromStatus: record.auto_closed_from_status ?? record.autoClosedFromStatus ?? null,
   }
 
   return enrichReservationWithSeatingAssignment({
@@ -128,13 +129,20 @@ export function serializeReservationForPersistence(reservation) {
 }
 
 export function buildUndoAutoClosePayload(reservation) {
-  return {
+  const priorStatus = reservation?.autoClosedFromStatus ?? reservation?.auto_closed_from_status ?? null
+  const payload = {
     ...serializeReservation({
       ...reservation,
-      status: 'Checked In',
+      status: resolveAutoCloseUndoStatus(reservation),
     }),
     auto_closed_at: null,
   }
+
+  if (priorStatus) {
+    payload.auto_closed_from_status = null
+  }
+
+  return payload
 }
 
 export function mapReservationRecord(record) {

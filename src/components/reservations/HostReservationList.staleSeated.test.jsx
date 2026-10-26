@@ -68,4 +68,28 @@ describe('HostReservationList stale seated focus', () => {
 
     unmount()
   })
+
+  it('expands completed auto-closed rows so the badge and undo are visible', () => {
+    const { container, unmount } = renderList([{
+      id: 'closed-guest',
+      guestName: 'Closed Guest',
+      guests: 2,
+      time: '17:00',
+      date: '2026-07-08',
+      status: 'Checked Out',
+      autoClosedAt: '2026-07-09T02:00:00.000Z',
+    }], {
+      canUndoAutoClose: true,
+      onUndoAutoClose: vi.fn(),
+    })
+
+    const completedHeader = [...container.querySelectorAll('.host-reservation-group-header')]
+      .find((button) => button.textContent?.includes('Completed'))
+
+    expect(completedHeader?.getAttribute('aria-expanded')).toBe('true')
+    expect(container.textContent).toContain('κλείστηκε αυτόματα / Auto-closed')
+    expect(container.querySelector('.reservation-auto-closed-undo')?.textContent).toBe('Undo')
+
+    unmount()
+  })
 })

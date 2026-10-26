@@ -30,6 +30,7 @@ import { buildHostQueueRowPresentation } from '../../lib/hostQueuePipeline'
 import { getHostNameGuestTypeBadgeMeta } from './hostReservationListUtils'
 import { HostReservationStatusPicker } from './HostReservationStatusPicker'
 import { ReservationAutoClosedBadge } from './ReservationAutoClosedBadge'
+import { isAutoClosedReservation } from '../../lib/reservationAutoClose'
 
 function formatHostListScheduleLabel(reservation, todayKey) {
   return formatHostReservationListTime(reservation, todayKey)
@@ -322,6 +323,20 @@ export function HostReservationList({
       return next
     })
   }, [focusId, operationalSections])
+
+  useEffect(() => {
+    const completed = operationalSections.find((section) => section.id === 'completed')
+    const hasAutoClosed = completed?.reservations?.some((reservation) => (
+      isAutoClosedReservation(reservation)
+    ))
+    if (!hasAutoClosed) return
+    setCollapsedSections((current) => {
+      if (!current.has('completed')) return current
+      const next = new Set(current)
+      next.delete('completed')
+      return next
+    })
+  }, [operationalSections])
 
   useEffect(() => {
     if (!focusId || !listRef.current) return

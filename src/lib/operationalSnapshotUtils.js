@@ -228,6 +228,55 @@ export function selectScheduleIssues({
   }
 }
 
+const WEEKLY_HOURS_ISSUE_SUFFIX = ' is over weekly hours'
+
+/**
+ * Schedule-page view of the same issue list Today uses.
+ * Only the week that contains todayKey is compared, and a published week
+ * uses the published shifts so the grid warning matches Today.
+ */
+export function selectViewedWeekScheduleIssues({
+  weekDateKeys = [],
+  todayKey = '',
+  isWeekPublished = false,
+  publishedShifts = [],
+  draftShifts = [],
+  shiftTemplates = [],
+  scheduleCapacities = [],
+  employees = [],
+} = {}) {
+  if (!todayKey || !(weekDateKeys ?? []).includes(todayKey)) {
+    return {
+      count: 0,
+      detail: '',
+      snapshot: null,
+      weeklyHoursLabels: [],
+      employeeNames: [],
+    }
+  }
+
+  const issues = selectScheduleIssues({
+    shifts: isWeekPublished ? publishedShifts : draftShifts,
+    shiftTemplates,
+    scheduleCapacities,
+    employees,
+    todayKey,
+  })
+  const weeklyHoursLabels = (issues.snapshot?.otherIssueLabels ?? [])
+    .map((label) => `${label ?? ''}`.trim())
+    .filter((label) => label.endsWith(WEEKLY_HOURS_ISSUE_SUFFIX))
+
+  return {
+    count: issues.count,
+    detail: issues.detail,
+    snapshot: issues.snapshot,
+    weeklyHoursLabels,
+    employeeNames: weeklyHoursLabels.map((label) => (
+      label.slice(0, -WEEKLY_HOURS_ISSUE_SUFFIX.length)
+    )),
+  }
+}
+
 function formatTemplateAreaLabel(template) {
   return `${template?.defaultArea ?? template?.default_area ?? template?.name ?? 'Shift'}`.trim() || 'Shift'
 }

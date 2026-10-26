@@ -479,7 +479,7 @@ import {
   mapWeeklyTemplateCapacitySnapshotToWeek,
   saveWeeklyTemplateCapacitySnapshot,
 } from './lib/weeklyTemplateCapacitySnapshots'
-import { selectScheduleIssues, buildTeamTodayCoverageBreakdown } from './lib/operationalSnapshotUtils'
+import { selectScheduleIssues, selectViewedWeekScheduleIssues, buildTeamTodayCoverageBreakdown } from './lib/operationalSnapshotUtils'
 import {
   buildTodayServiceTimeline,
   buildTodayStatusSummary,
@@ -4410,6 +4410,43 @@ function ScheduleView({
     [blendGridRows, weekDays],
   )
 
+  const scheduleIssueNotice = useMemo(() => {
+    const issueTodayKey = getCurrentDateKey(new Date(), timeZone)
+    return selectViewedWeekScheduleIssues({
+      weekDateKeys,
+      todayKey: issueTodayKey,
+      isWeekPublished,
+      publishedShifts,
+      draftShifts: visibleWeekShifts,
+      shiftTemplates,
+      scheduleCapacities,
+      employees,
+    })
+  }, [
+    employees,
+    isWeekPublished,
+    publishedShifts,
+    scheduleCapacities,
+    shiftTemplates,
+    timeZone,
+    visibleWeekShifts,
+    weekDateKeys,
+  ])
+
+  const weeklyHoursOverNames = useMemo(
+    () => new Set(scheduleIssueNotice.employeeNames ?? []),
+    [scheduleIssueNotice],
+  )
+
+  const scheduleWarningItems = useMemo(() => {
+    const hoursWarnings = (scheduleIssueNotice.weeklyHoursLabels ?? []).map((label) => ({
+      id: `weekly-hours-${label}`,
+      label: label.replace(/ is over weekly hours$/, ''),
+      detail: 'Over weekly hours',
+    }))
+    return [...hoursWarnings, ...scheduleDayWarnings]
+  }, [scheduleDayWarnings, scheduleIssueNotice])
+
   const todayDateKey = formatLocalDateKey(new Date())
 
   const weekCompletion = useMemo(() => {
@@ -5678,6 +5715,14 @@ function ScheduleView({
         </div>
       ) : null}
       {isLoading ? <div className="staff-status-banner schedule-workspace-banner">Loading schedule…</div> : null}
+      {scheduleIssueNotice.count > 0 ? (
+        <div className="staff-status-banner schedule-workspace-banner schedule-issue-banner" role="status">
+          {scheduleIssueNotice.count === 1
+            ? 'Schedule issue'
+            : `${scheduleIssueNotice.count} schedule issues`}
+          {scheduleIssueNotice.detail ? `: ${scheduleIssueNotice.detail}` : ''}
+        </div>
+      ) : null}
 
       <div className={`schedule-workspace-layout ${scheduleGridTemplates.length === 0 ? 'schedule-workspace-layout-empty' : ''}`}>
         <div className="schedule-workspace-main">
@@ -6106,6 +6151,7 @@ function ScheduleView({
                                 loadFailed: scheduleAvailabilityOverlay.loadFailed,
                               })
                               const isAssignedUnavailable = assignedDayAvailability.tone === 'unavailable'
+                              const isOverWeeklyHours = weeklyHoursOverNames.has(employeeName)
                               const usesCustomTime = isCustomRow || isAssignmentUsingCustomTime(shift, row.template)
                               const customTimeLabel = usesCustomTime
                                 ? formatTimeRange24(shift.startTime, shift.endTime, '–')
@@ -6129,16 +6175,19 @@ function ScheduleView({
                                     }}
                                     title={[
                                       employeeName,
+                                      isOverWeeklyHours ? 'Over weekly hours' : '',
                                       isAssignedUnavailable ? 'Unavailable' : '',
                                       customTimeLabel ? `Custom ${customTimeLabel}` : '',
                                     ].filter(Boolean).join(' · ')}
                                     aria-label={[
                                       employeeName,
+                                      isOverWeeklyHours ? 'over weekly hours' : '',
                                       isAssignedUnavailable ? 'unavailable' : '',
                                       customTimeLabel ? `custom time ${customTimeLabel}` : '',
                                     ].filter(Boolean).join(', ')}
                                   >
                                     <span className="schedule-assigned-pill-name">{displayNameLabel}</span>
+                                    {isOverWeeklyHours ? <span className="schedule-assigned-pill-hours">Over weekly hours</span> : null}
                                     {isAssignedUnavailable ? <span className="schedule-assigned-pill-availability">Unavailable</span> : null}
                                     {customTimeLabel ? <span className="schedule-assigned-pill-custom">Custom {customTimeLabel}</span> : null}
                                   </button>
@@ -6355,15 +6404,15 @@ function ScheduleView({
               <p className="schedule-weekly-stat-label">Warnings</p>
               <button
                 type="button"
-                className={`schedule-weekly-stat-value schedule-warnings-toggle ${scheduleDayWarnings.length > 0 ? 'tone-warning' : 'tone-muted'}`}
+                className={`schedule-weekly-stat-value schedule-warnings-toggle ${scheduleWarningItems.length > 0 ? 'tone-warning' : 'tone-muted'}`}
                 aria-expanded={isScheduleWarningsOpen}
                 onClick={() => setIsScheduleWarningsOpen((current) => !current)}
               >
-                {scheduleDayWarnings.length > 0 ? scheduleDayWarnings.length : 'None'}
+                {scheduleWarningItems.length > 0 ? scheduleWarningItems.length : 'None'}
               </button>
-              {isScheduleWarningsOpen && scheduleDayWarnings.length > 0 ? (
+              {isScheduleWarningsOpen && scheduleWarningItems.length > 0 ? (
                 <ul className="schedule-warnings-list">
-                  {scheduleDayWarnings.map((warning) => (
+                  {scheduleWarningItems.map((warning) => (
                     <li key={warning.id}>
                       <strong>{warning.label}</strong>
                       <span>{warning.detail}</span>
@@ -6371,7 +6420,7 @@ function ScheduleView({
                   ))}
                 </ul>
               ) : null}
-              {isScheduleWarningsOpen && scheduleDayWarnings.length === 0 ? (
+              {isScheduleWarningsOpen && scheduleWarningItems.length === 0 ? (
                 <p className="schedule-warnings-empty">No coverage warnings this week.</p>
               ) : null}
             </article>

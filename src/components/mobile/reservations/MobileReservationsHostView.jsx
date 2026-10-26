@@ -8,6 +8,7 @@ import {
   buildHostQueueServiceMetricsFromReservations,
 } from '../../../lib/hostQueueServiceMetrics'
 import { formatStillSeatedReservationLabel, getHostListEmptyState } from '../../../lib/reservationServiceIntelligence'
+import { isAutoClosedReservation } from '../../../lib/reservationAutoClose'
 import {
   filterMobileHostReservations,
   isMobileHostSplitViewport,
@@ -200,13 +201,19 @@ export function MobileReservationsHostView({
     [queueReservations],
   )
 
-  const visibleReservations = useMemo(
-    () => filterMobileHostReservations(queueReservations, {
+  const visibleReservations = useMemo(() => {
+    const tabRows = filterMobileHostReservations(queueReservations, {
       tabId: activeTab,
       searchTerm: '',
-    }),
-    [queueReservations, activeTab],
-  )
+    })
+    if (activeTab === 'completed') return tabRows
+
+    const seen = new Set(tabRows.map((reservation) => String(reservation.id)))
+    const autoClosed = queueReservations.filter((reservation) => (
+      isAutoClosedReservation(reservation) && !seen.has(String(reservation.id))
+    ))
+    return autoClosed.length > 0 ? [...autoClosed, ...tabRows] : tabRows
+  }, [queueReservations, activeTab])
 
   const summary = useMemo(
     () => buildHostManagerSummary(queueReservations, nowMinutes, todayKey),

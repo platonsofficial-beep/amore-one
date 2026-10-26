@@ -12,7 +12,7 @@ import {
   buildSuppliersReport,
   buildTasksReport,
 } from './reportsUtils'
-import { selectScheduleIssues } from './operationalSnapshotUtils'
+import { selectScheduleIssues, selectViewedWeekScheduleIssues } from './operationalSnapshotUtils'
 import { buildTodayAttentionItems } from './todayViewUtils'
 import { buildTodayCommandHeaderChips } from './todayCommandHeaderUtils'
 
@@ -290,6 +290,30 @@ describe('reportsUtils', () => {
       shifts: shifts.filter((shift) => shift.date === TODAY),
       employees,
       todayKey: TODAY,
+    }).count).toBe(0)
+
+    const onSchedule = selectViewedWeekScheduleIssues({
+      weekDateKeys: ['2026-07-06', '2026-07-07', '2026-07-08', '2026-07-09', '2026-07-10', '2026-07-11', '2026-07-12'],
+      todayKey: TODAY,
+      draftShifts: shifts,
+      employees,
+    })
+    expect(onSchedule.count).toBe(1)
+    expect(onSchedule.detail).toBe('TEST GrokBot is over weekly hours')
+    expect(onSchedule.employeeNames).toEqual(['TEST GrokBot'])
+    expect(selectViewedWeekScheduleIssues({
+      weekDateKeys: ['2026-07-13', '2026-07-14'],
+      todayKey: TODAY,
+      draftShifts: shifts,
+      employees,
+    }).count).toBe(0)
+    expect(selectViewedWeekScheduleIssues({
+      weekDateKeys: ['2026-07-06', '2026-07-07', '2026-07-08'],
+      todayKey: TODAY,
+      isWeekPublished: true,
+      publishedShifts: shifts.filter((shift) => shift.date === TODAY),
+      draftShifts: shifts,
+      employees,
     }).count).toBe(0)
   })
 
