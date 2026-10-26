@@ -29,6 +29,7 @@ import { HostReservationMetaLine, HostQueueReservationDetails, HostQueueNameIndi
 import { buildHostQueueRowPresentation } from '../../lib/hostQueuePipeline'
 import { getHostNameGuestTypeBadgeMeta } from './hostReservationListUtils'
 import { HostReservationStatusPicker } from './HostReservationStatusPicker'
+import { ReservationAutoClosedBadge } from './ReservationAutoClosedBadge'
 
 function formatHostListScheduleLabel(reservation, todayKey) {
   return formatHostReservationListTime(reservation, todayKey)
@@ -79,6 +80,8 @@ function HostReservationListRow({
   helpers,
   stillSeatedLabel = '',
   isAttentionFocus = false,
+  canUndoAutoClose = false,
+  onUndoAutoClose = null,
 }) {
   const {
     formatReservationGuestName,
@@ -170,6 +173,12 @@ function HostReservationListRow({
           {stillSeatedLabel ? (
             <span className="host-reservation-still-seated">{stillSeatedLabel}</span>
           ) : null}
+          <ReservationAutoClosedBadge
+            reservation={reservation}
+            canUndo={canUndoAutoClose}
+            onUndo={onUndoAutoClose}
+            isSaving={isSavingStatus}
+          />
           </div>
           <HostQueueNameIndicators indicators={nameIndicators} />
           {warnings.length > 0 && !isLateWithDuration ? (
@@ -271,6 +280,8 @@ export function HostReservationList({
   focusReservationId = '',
   serviceTodayKey = '',
   timeZone = '',
+  canUndoAutoClose = false,
+  onUndoAutoClose = null,
 }) {
   const operationalSections = useMemo(
     () => (
@@ -495,6 +506,8 @@ export function HostReservationList({
                             helpers={helpers}
                             stillSeatedLabel={formatStillSeatedReservationLabel(reservation, serviceTodayKey, timeZone)}
                             isAttentionFocus={String(reservation.id) === focusId}
+                            canUndoAutoClose={canUndoAutoClose}
+                            onUndoAutoClose={onUndoAutoClose}
                           />
                         ))}
                       </div>
@@ -525,6 +538,8 @@ export function HostReservationList({
                       helpers={helpers}
                       stillSeatedLabel={formatStillSeatedReservationLabel(reservation, serviceTodayKey, timeZone)}
                       isAttentionFocus={String(reservation.id) === focusId}
+                      canUndoAutoClose={canUndoAutoClose}
+                      onUndoAutoClose={onUndoAutoClose}
                     />
                   ))}
                 </div>

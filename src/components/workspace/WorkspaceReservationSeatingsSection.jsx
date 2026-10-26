@@ -4,6 +4,7 @@ import {
   formatSeatingDaysLabel,
   normalizeReservationSeating,
 } from '../../lib/reservationSeatings'
+import { normalizeReservationAutoCloseTime } from '../../lib/reservationAutoClose'
 import { ReservationTimeSelect } from '../reservations/ReservationTimeSelect'
 
 function SeatingDaysToggle({ daysOfWeek, onChange }) {
@@ -46,7 +47,17 @@ export function WorkspaceReservationSeatingsSection({
   onRequestDelete,
   onMoveSeating,
   onToggleActive,
+  autoCloseTime = '',
+  onAutoCloseTimeChange,
+  onSaveAutoClose,
+  isSavingAutoClose = false,
+  autoCloseNotice = '',
 }) {
+  const showAutoClose = typeof onAutoCloseTimeChange === 'function'
+  const autoCloseNoticeIsError = Boolean(
+    autoCloseNotice && !/saved|updated|success|applied/i.test(autoCloseNotice),
+  )
+
   return (
     <>
       <div className="workspace-section-header">
@@ -61,6 +72,58 @@ export function WorkspaceReservationSeatingsSection({
           </p>
         </div>
       </div>
+
+      {showAutoClose ? (
+        <div className="panel staff-panel workspace-panel">
+          <div className="panel-heading">
+            <div>
+              <p className="eyebrow">End of day</p>
+              <h3>Auto-close seated tables</h3>
+            </div>
+          </div>
+          <form
+            className="employee-form"
+            onSubmit={(event) => {
+              event.preventDefault()
+              onSaveAutoClose?.()
+            }}
+          >
+            <p className="workspace-section-subtitle">
+              At this Europe/Nicosia time, reservations still seated from a previous business day are checked out and marked auto-closed. Default 05:00.
+            </p>
+            {autoCloseNotice ? (
+              <div
+                className={`staff-status-banner${autoCloseNoticeIsError ? ' auth-banner-error' : ' auth-banner-success'}`}
+                role="status"
+              >
+                {autoCloseNotice}
+              </div>
+            ) : null}
+            <label className="form-field">
+              <span>Cutoff time</span>
+              <input
+                type="time"
+                className="reservation-auto-close-time"
+                value={normalizeReservationAutoCloseTime(autoCloseTime)}
+                onChange={(event) => onAutoCloseTimeChange(
+                  normalizeReservationAutoCloseTime(event.target.value),
+                )}
+                disabled={isSavingAutoClose}
+                required
+              />
+            </label>
+            <div className="modal-actions">
+              <button
+                type="submit"
+                className="primary-btn workspace-action-btn reservation-auto-close-save"
+                disabled={isSavingAutoClose}
+              >
+                {isSavingAutoClose ? 'Saving…' : 'Save cutoff'}
+              </button>
+            </div>
+          </form>
+        </div>
+      ) : null}
 
       {noticeMessage ? <div className="staff-status-banner">{noticeMessage}</div> : null}
       {isLoading ? <div className="staff-status-banner">Loading seatings…</div> : null}

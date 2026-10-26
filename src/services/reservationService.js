@@ -1,4 +1,5 @@
 import { normalizeReservationStatus } from '../lib/reservationHostStatus'
+import { isMissingAutoClosedColumnError } from '../lib/reservationAutoClose'
 import { supabase } from '../lib/supabaseClient'
 import {
   buildSeatingAssignment,
@@ -41,6 +42,7 @@ function mapReservation(record) {
     seatingId: record.seating_id ?? record.seatingId ?? null,
     updatedAt: record.updated_at ?? record.updatedAt ?? null,
     createdAt: record.created_at ?? record.createdAt ?? null,
+    autoClosedAt: record.auto_closed_at ?? record.autoClosedAt ?? null,
   }
 
   return enrichReservationWithSeatingAssignment({
@@ -123,6 +125,16 @@ function serializeReservation(reservation) {
 
 export function serializeReservationForPersistence(reservation) {
   return serializeReservation(reservation)
+}
+
+export function buildUndoAutoClosePayload(reservation) {
+  return {
+    ...serializeReservation({
+      ...reservation,
+      status: 'Checked In',
+    }),
+    auto_closed_at: null,
+  }
 }
 
 export function mapReservationRecord(record) {
@@ -322,6 +334,38 @@ export async function updateReservation(workspaceId, id, reservation) {
     }
 
     throw new Error(error.message || 'Unable to update reservation right now.')
+  }
+
+  return mapReservation(data)
+}
+
+export async function undoAutoClosedReservation(workspaceId, reservation) {
+  const normalizedWorkspaceId = requireWorkspaceId(workspaceId)
+  const normalizedId = `${reservation?.id ?? ''}`.trim()
+  if (!normalizedId) {
+    throw new Error('Reservation is required.')
+  }
+
+  const { data, error } = await supabase
+    .from('reservations')
+    .update(buildUndoAutoClosePayload(reservation))
+    .eq('workspace_id', normalizedWorkspaceId)
+    .eq('id', normalizedId)
+    .select('*')
+    .single()
+
+  if (error) {
+    console.error('[reservationService] undoAutoClosedReservation error:', error)
+
+    if (isMissingAutoClosedColumnError(error)) {
+      throw new Error('Auto-close is not available until the database update is applied.')
+    }
+
+    if (isTableUnavailableError(error)) {
+      throw new Error('Reservations table is not ready yet.')
+    }
+
+    throw new Error(error.message || 'Unable to undo the auto-close right now.')
   }
 
   return mapReservation(data)

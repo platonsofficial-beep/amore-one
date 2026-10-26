@@ -78,6 +78,8 @@ export function MobileReservationsHostView({
   onFloorEditReservationConsumed,
   focusReservationId = '',
   focusToken = 0,
+  canUndoAutoClose = false,
+  onUndoAutoClose = null,
 }) {
   const { layout } = usePublishedFloorPlan()
   const [activeTab, setActiveTab] = useState('upcoming')
@@ -511,6 +513,8 @@ export function MobileReservationsHostView({
           isSaving={isSaving}
           layout={layout}
           useHostQueuePresentation={isSplitLayout}
+          canUndoAutoClose={canUndoAutoClose}
+          onUndoAutoClose={onUndoAutoClose}
         />
       ))}
     </ul>
@@ -545,6 +549,8 @@ export function MobileReservationsHostView({
       timeZone={workspaceTimeZone}
       onClearQueueFilters={handleClearFilters}
       useHostQueuePresentation
+      canUndoAutoClose={canUndoAutoClose}
+      onUndoAutoClose={onUndoAutoClose}
     />
   )
 

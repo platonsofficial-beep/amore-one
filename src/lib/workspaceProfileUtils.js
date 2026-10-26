@@ -96,6 +96,7 @@ const WORKSPACE_PROFILE_FIELDS = [
   'countryName',
   'city',
   'defaultPhoneCountryCode',
+  'reservationAutoCloseTime',
 ]
 
 function normalizeProfileField(value) {

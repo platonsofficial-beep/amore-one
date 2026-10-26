@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   buildReservationUpdatePayload,
+  buildUndoAutoClosePayload,
   mapReservationRecord,
   serializeReservationForPersistence,
 } from './reservationService'
@@ -211,5 +212,24 @@ describe('legacy edit persistence roundtrip', () => {
       expect(markerMatches.length).toBeLessThanOrEqual(1)
       expect(legacyInState.customerType).toBe(type === 'Regular' ? 'Regular' : type)
     }
+  })
+
+  it('reads auto_closed_at when present and leaves ordinary saves without that column', () => {
+    const mapped = mapReservationRecord({
+      ...LEGACY_DB_RECORD,
+      status: 'Checked Out',
+      auto_closed_at: '2026-10-27T02:00:00.000Z',
+    })
+    expect(mapped.autoClosedAt).toBe('2026-10-27T02:00:00.000Z')
+    expect(mapReservationRecord(LEGACY_DB_RECORD).autoClosedAt).toBeNull()
+
+    const saved = serializeReservationForPersistence(mapped)
+    expect(saved.auto_closed_at).toBeUndefined()
+    expect(saved.status).toBe('Checked Out')
+
+    const undo = buildUndoAutoClosePayload(mapped)
+    expect(undo.status).toBe('Checked In')
+    expect(undo.auto_closed_at).toBeNull()
+    expect(undo.guest_name).toBe('Old Guest')
   })
 })

@@ -12,6 +12,7 @@ import { HostQueueReservationDetails, HostQueueNameIndicators, HostReservationGu
 import { buildHostQueueRowPresentation } from '../../../lib/hostQueuePipeline'
 import { HOST_LIST_HELPERS } from '../../reservations/hostReservationListHelpers'
 import { getHostNameGuestTypeBadgeMeta } from '../../reservations/hostReservationListUtils'
+import { ReservationAutoClosedBadge } from '../../reservations/ReservationAutoClosedBadge'
 
 function getActionClassName(action) {
   if (action.id === 'edit') return 'mobile-host-reservation-action is-ghost'
@@ -36,6 +37,8 @@ function MobileHostReservationCompactRow({
   useHostQueuePresentation = false,
   stillSeatedLabel = '',
   isAttentionFocus = false,
+  canUndoAutoClose = false,
+  onUndoAutoClose = null,
 }) {
   const guestName = `${reservation?.guestName ?? 'Guest'}`.trim() || 'Guest'
   const partySize = Number(reservation?.guests) || 0
@@ -85,6 +88,12 @@ function MobileHostReservationCompactRow({
                 {stillSeatedLabel ? (
                   <span className="host-reservation-still-seated">{stillSeatedLabel}</span>
                 ) : null}
+                <ReservationAutoClosedBadge
+                  reservation={reservation}
+                  canUndo={canUndoAutoClose}
+                  onUndo={onUndoAutoClose}
+                  isSaving={isSaving}
+                />
               </div>
               {guestTypeBadge ? (
                 <div className="host-reservation-card-guest-type-row">
@@ -158,6 +167,8 @@ export function MobileReservationHostCard({
   useHostQueuePresentation = false,
   stillSeatedLabel = '',
   isAttentionFocus = false,
+  canUndoAutoClose = false,
+  onUndoAutoClose = null,
 }) {
   const guestName = `${reservation?.guestName ?? 'Guest'}`.trim() || 'Guest'
   const partySize = Number(reservation?.guests) || 0
@@ -202,6 +213,8 @@ export function MobileReservationHostCard({
         useHostQueuePresentation={useHostQueuePresentation}
         stillSeatedLabel={stillSeatedLabel}
         isAttentionFocus={isAttentionFocus}
+        canUndoAutoClose={canUndoAutoClose}
+        onUndoAutoClose={onUndoAutoClose}
       />
     )
   }
@@ -226,6 +239,12 @@ export function MobileReservationHostCard({
             {stillSeatedLabel ? (
               <p className="host-reservation-still-seated">{stillSeatedLabel}</p>
             ) : null}
+            <ReservationAutoClosedBadge
+              reservation={reservation}
+              canUndo={canUndoAutoClose}
+              onUndo={onUndoAutoClose}
+              isSaving={isSaving}
+            />
             <p className="mobile-host-reservation-meta">
               {partySize} {partySize === 1 ? 'guest' : 'guests'}
               {phone ? ` · ${phone}` : ''}
