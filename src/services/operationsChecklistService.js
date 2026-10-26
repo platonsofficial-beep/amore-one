@@ -1,3 +1,4 @@
+import { checklistRunFallbackError, planDailyChecklistStart } from '../lib/checklistRunModel'
 import {
   inferChecklistCategory,
   normalizeChecklistDepartment,
@@ -5,6 +6,10 @@ import {
 } from '../lib/operationsChecklistUtils'
 import { normalizeOperationsTaskDate } from '../lib/operationsUtils'
 import { supabase } from '../lib/supabaseClient'
+import {
+  createTemplateChecklistRun,
+  getChecklistRuns,
+} from './operationsChecklistRunService'
 import { createOperationsTasksBatch, getOperationsTasks } from './operationsTaskService'
 
 const TEMPLATES_TABLE = 'operations_checklist_templates'
@@ -257,18 +262,62 @@ export async function generateDailyChecklistTasks(workspaceId, templateId, dueDa
   }
 
   const existingTasks = await getOperationsTasks(normalizedWorkspaceId, { dueDate: normalizedDueDate })
-  const existingRun = existingTasks.filter(
-    (task) => `${task.checklistTemplateId ?? ''}` === normalizedTemplateId,
-  )
+  const runs = await getChecklistRuns(normalizedWorkspaceId)
+  const plan = planDailyChecklistStart({
+    runs,
+    legacyTasks: existingTasks,
+    templateId: normalizedTemplateId,
+    dueDate: normalizedDueDate,
+  })
 
-  if (existingRun.length > 0) {
+  if (plan.action === 'run-exists' || plan.action === 'legacy-exists') {
     return {
-      tasks: existingRun,
+      tasks: plan.tasks ?? [],
       alreadyExists: true,
       template,
     }
   }
 
+  if (plan.action === 'create-run') {
+    try {
+      const created = await createTemplateChecklistRun({
+        workspaceId: normalizedWorkspaceId,
+        template,
+        dueDate: normalizedDueDate,
+        fillRunId: plan.fillRunId,
+      })
+      if (created?.alreadyExists) {
+        return {
+          tasks: [],
+          alreadyExists: true,
+          template,
+        }
+      }
+      return {
+        tasks: [],
+        alreadyExists: false,
+        template,
+      }
+    } catch (error) {
+      if (!checklistRunFallbackError(error)) throw error
+    }
+  }
+
+  const createdTasks = await createLegacyChecklistTasks(
+    normalizedWorkspaceId,
+    template,
+    normalizedDueDate,
+    createdBy,
+  )
+
+  return {
+    tasks: createdTasks,
+    alreadyExists: false,
+    template,
+  }
+}
+
+async function createLegacyChecklistTasks(workspaceId, template, dueDate, createdBy) {
   const category = inferChecklistCategory(template.name, template.department)
   const payloads = sortChecklistItems(template.items).map((item, index) => ({
     title: item.title,
@@ -276,17 +325,11 @@ export async function generateDailyChecklistTasks(workspaceId, templateId, dueDa
     category,
     priority: 'normal',
     status: 'pending',
-    dueDate: normalizedDueDate,
+    dueDate,
     checklistTemplateId: template.id,
     checklistItemId: item.id,
     checklistOrderIndex: item.orderIndex ?? index,
   }))
 
-  const createdTasks = await createOperationsTasksBatch(normalizedWorkspaceId, payloads, createdBy)
-
-  return {
-    tasks: createdTasks,
-    alreadyExists: false,
-    template,
-  }
+  return createOperationsTasksBatch(workspaceId, payloads, createdBy)
 }

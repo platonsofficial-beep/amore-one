@@ -46,6 +46,11 @@ export function collapseChecklistRuns(tasks = [], checklistTemplates = []) {
   const rest = []
 
   ;(tasks ?? []).forEach((task) => {
+    if (task?.checklistRun) {
+      if (taskStatus(task) === 'skipped') return
+      rest.push(task)
+      return
+    }
     const key = checklistRunKey(task)
     if (!key) {
       if (taskStatus(task) === 'skipped') return

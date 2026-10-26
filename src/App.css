@@ -42280,6 +42280,35 @@ input[type='datetime-local']::-webkit-datetime-edit-text {
   font-size: 0.78rem;
 }
 
+.operations-task-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.operations-task-steps-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.operations-task-step-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.operations-task-step-row input {
+  flex: 1;
+  min-width: 0;
+}
+
+.operations-task-step-row .operations-form-action {
+  min-width: 44px;
+  flex-shrink: 0;
+}
+
 .operations-announcement-list {
   display: flex;
   flex-direction: column;

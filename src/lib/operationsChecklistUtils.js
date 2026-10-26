@@ -168,19 +168,37 @@ export function formatChecklistCompletionMeta(task) {
   return timeLabel ? `${completedBy} · ${timeLabel}` : completedBy
 }
 
+function checklistStepsForDisplay(steps = []) {
+  return sortChecklistItems(
+    (steps ?? []).map((step) => ({
+      ...step,
+      orderIndex: step.orderIndex ?? step.checklistOrderIndex ?? 0,
+    })),
+  )
+}
+
 export function getChecklistTasksForTemplate(tasks = [], templateId, todayKey = '') {
   const normalizedToday = normalizeOperationsTaskDate(todayKey)
-  return sortChecklistItems(
-    (tasks ?? [])
-      .filter((task) => (
-        `${task.checklistTemplateId ?? ''}` === `${templateId}`
-        && normalizeOperationsTaskDate(task.dueDate) === normalizedToday
-      ))
+  const matches = (tasks ?? []).filter((task) => (
+    `${task.checklistTemplateId ?? ''}` === `${templateId}`
+    && normalizeOperationsTaskDate(task.dueDate) === normalizedToday
+  ))
+  const run = matches.find((task) => task.checklistRun && (task.checklistSteps?.length ?? 0) > 0)
+  if (run) return checklistStepsForDisplay(run.checklistSteps)
+
+  return checklistStepsForDisplay(
+    matches
+      .filter((task) => !task.checklistRun)
       .map((task) => ({
         ...task,
         orderIndex: task.checklistOrderIndex ?? 0,
       })),
   )
+}
+
+export function getChecklistStepsForTask(tasks = [], taskId) {
+  const task = (tasks ?? []).find((entry) => `${entry?.id ?? ''}` === `${taskId ?? ''}`)
+  return checklistStepsForDisplay(task?.checklistSteps ?? [])
 }
 
 export function filterStandaloneOperationsTasks(tasks = []) {

@@ -1,6 +1,7 @@
 import { useMemo } from 'react'
 import {
   formatChecklistCompletionMeta,
+  getChecklistStepsForTask,
   getChecklistTasksForTemplate,
 } from '../../lib/operationsChecklistUtils'
 import { normalizeOperationsStatus } from '../../lib/operationsUtils'
@@ -39,6 +40,8 @@ function ChecklistExecutionItem({
 
 export function OperationsChecklistExecutionView({
   template = null,
+  title = '',
+  taskId = '',
   tasks = [],
   todayKey = '',
   canComplete = true,
@@ -46,10 +49,12 @@ export function OperationsChecklistExecutionView({
   onBack,
   onToggleComplete,
 }) {
-  const checklistTasks = useMemo(
-    () => getChecklistTasksForTemplate(tasks, template?.id, todayKey),
-    [tasks, template?.id, todayKey],
-  )
+  const heading = template?.name || title || 'Checklist'
+  const checklistTasks = useMemo(() => (
+    taskId
+      ? getChecklistStepsForTask(tasks, taskId)
+      : getChecklistTasksForTemplate(tasks, template?.id, todayKey)
+  ), [taskId, tasks, template?.id, todayKey])
 
   const completedCount = checklistTasks.filter(
     (task) => normalizeOperationsStatus(task.status) === 'completed',
@@ -58,13 +63,13 @@ export function OperationsChecklistExecutionView({
   const progressPercent = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0
 
   return (
-    <section className="operations-checklist-exec-page" aria-label={`${template?.name ?? 'Checklist'} execution`}>
+    <section className="operations-checklist-exec-page" aria-label={`${heading} execution`}>
       <header className="operations-checklist-exec-header">
         <button type="button" className="ghost-btn operations-checklist-exec-back" onClick={onBack}>
           ← Back
         </button>
         <div className="operations-checklist-exec-heading">
-          <h3>{template?.name ?? 'Checklist'}</h3>
+          <h3>{heading}</h3>
           <p className="operations-checklist-exec-progress-label">
             {completedCount}/{totalCount} done
           </p>
@@ -77,7 +82,7 @@ export function OperationsChecklistExecutionView({
         aria-valuemin={0}
         aria-valuemax={100}
         aria-valuenow={progressPercent}
-        aria-label={`${template?.name ?? 'Checklist'} progress`}
+        aria-label={`${heading} progress`}
       >
         <span className="operations-checklist-exec-progress-fill" style={{ width: `${progressPercent}%` }} />
       </div>

@@ -86,6 +86,8 @@ function OperationsTaskRow({
 }) {
   const isDone = normalizeOperationsStatus(task.status) !== 'pending'
   const priorityTone = getOperationsPriorityTone(task.priority)
+  const stepCount = Number(task.checklistStepCount ?? task.checklistSteps?.length ?? 0)
+  const showSteps = Boolean(task.checklistRun) || stepCount > 0
 
   return (
     <li
@@ -97,8 +99,8 @@ function OperationsTaskRow({
         className={`operations-task-checkbox${isDone ? ' is-checked' : ''}`}
         onClick={() => onToggleComplete(task)}
         disabled={!canComplete && !canManage}
-        aria-label={task.checklistRun
-          ? `Open ${task.title}, ${task.checklistCompletedCount ?? 0} of ${task.checklistStepCount ?? 0} steps`
+        aria-label={showSteps
+          ? `Open ${task.title}, ${task.checklistCompletedCount ?? 0} of ${stepCount} steps`
           : (isDone ? `Reopen ${task.title}` : `Complete ${task.title}`)}
         aria-pressed={isDone}
       >
@@ -118,10 +120,10 @@ function OperationsTaskRow({
           <span>{assigneeName}</span>
           <span aria-hidden="true">·</span>
           <span>{formatOperationsDueTime(task.dueTime)}</span>
-          {task.checklistRun ? (
+          {showSteps ? (
             <>
               <span aria-hidden="true">·</span>
-              <span>{task.checklistCompletedCount ?? 0}/{task.checklistStepCount ?? 0} steps</span>
+              <span>{task.checklistCompletedCount ?? 0}/{stepCount} steps</span>
             </>
           ) : null}
         </p>
@@ -250,6 +252,7 @@ export function OperationsDashboardView({
   canManageAnnouncements = false,
   onStartChecklist,
   onOpenChecklistRun,
+  onOpenTaskSteps,
   focusTaskId = null,
   onFocusTaskHandled,
   boardOverdueCount = 0,
@@ -465,6 +468,10 @@ export function OperationsDashboardView({
   const handleToggleComplete = (task) => {
     if (task?.checklistRun) {
       onOpenChecklistRun?.(task.checklistTemplateId)
+      return
+    }
+    if ((task?.checklistSteps?.length ?? 0) > 0 && onOpenTaskSteps) {
+      onOpenTaskSteps(task.id)
       return
     }
     const isWorkspaceTask = task?.taskSource === 'workspace'
