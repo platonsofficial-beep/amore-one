@@ -25549,6 +25549,8 @@ function App() {
           <StockOrdersView
             orders={stockOrders}
             stockItems={stockItems}
+            suppliers={suppliers}
+            venueName={todayWorkspaceBadge}
             isLoading={isStockOrdersLoading}
             noticeMessage={stockOrdersNotice}
             searchTerm={searchTerm}
