@@ -581,7 +581,7 @@ import {
   shouldShowWorkspaceLoadError,
   USER_WORKSPACE_LOADING_MESSAGE,
 } from './lib/workspaceLoadUtils'
-import { resolveUserDisplayName } from './lib/userDisplayName'
+import { resolveStoredUserDisplayName, resolveUserDisplayName } from './lib/userDisplayName'
 import { MAX_WORKSPACE_LOGO_BYTES } from './lib/workspaceProfileOptions'
 import { TASK_PRESET_DEPARTMENTS } from './lib/taskDepartments'
 import { DEFAULT_RESTAURANT_AREAS } from './floor-plan-builder/models/floorPlans'
@@ -17664,6 +17664,14 @@ function App() {
     [workspaceProfile?.businessName, workspace?.name, brandDisplay.businessName],
   )
 
+  const supplierOrderSenderName = useMemo(
+    () => resolveStoredUserDisplayName({
+      membership,
+      employees: scheduleEmployees,
+    }),
+    [membership, scheduleEmployees],
+  )
+
   const refreshReservations = useCallback(async () => {
     if (!activeWorkspaceId) {
       setReservations([])
@@ -25653,6 +25661,7 @@ function App() {
             stockItems={stockItems}
             suppliers={suppliers}
             venueName={supplierOrderVenueName}
+            senderName={supplierOrderSenderName}
             isLoading={isStockOrdersLoading}
             noticeMessage={stockOrdersNotice}
             searchTerm={searchTerm}

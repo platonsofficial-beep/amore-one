@@ -393,6 +393,7 @@ export function StockOrderDetailDrawer({
   stockItems = [],
   suppliers = [],
   venueName = '',
+  senderName = '',
   onClose,
   canManage = false,
   isSaving = false,
@@ -661,6 +662,7 @@ export function StockOrderDetailDrawer({
   const sendLanguage = typeof navigator === 'undefined' ? 'en' : (navigator.language || 'en')
   const sendCopy = {
     venueName,
+    senderName,
     supplierName,
     includeCost: canManage === true,
     language: sendLanguage,

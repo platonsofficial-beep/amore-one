@@ -9,6 +9,7 @@ import {
   buildStockOrderSendSubject,
   buildStockOrderViberUrl,
   buildStockOrderWhatsAppUrl,
+  formatStockOrderSenderLine,
   formatStockOrderSendText,
   formatSupplierPhoneDigits,
   isSupplierEmail,
@@ -94,6 +95,64 @@ describe('stock order send', () => {
     expect(staffText).toContain('4 Bottles KETEL ONE')
     expect(staffText).not.toContain('€')
     expect(staffText).not.toContain('Total:')
+  })
+
+  it('signs off with the stored manager name under the venue, and omits that line when there is no name', () => {
+    const po = {
+      orderNumber: 2,
+      supplier: 'TEST GrokBot Supplier',
+      items: [{ itemName: 'TEST GrokBot Cola', quantity: 20, costPrice: 0 }],
+    }
+    const shared = {
+      supplierName: 'TEST GrokBot Supplier',
+      venueName: 'AMORE.NICOSIA',
+      senderName: 'Platon Sachinis',
+      includeCost: true,
+    }
+
+    expect(formatStockOrderSenderLine('  Platon Sachinis  ', 'el-GR')).toBe('Στάλθηκε από τον/την Platon Sachinis')
+    expect(formatStockOrderSenderLine('Platon Sachinis', 'en-GB')).toBe('Sent by Platon Sachinis')
+    expect(formatStockOrderSenderLine('   ', 'el')).toBe('')
+
+    expect(buildStockOrderSendMessage(po, { ...shared, language: 'el' })).toBe(
+      [
+        'AMORE.NICOSIA – Order #0002',
+        '',
+        'Καλησπέρα,',
+        '',
+        'Supplier: TEST GrokBot Supplier',
+        '',
+        '20 TEST GrokBot Cola',
+        '',
+        'AMORE.NICOSIA',
+        'Στάλθηκε από τον/την Platon Sachinis',
+      ].join('\n'),
+    )
+    expect(buildStockOrderSendMessage(po, { ...shared, language: 'en' })).toBe(
+      [
+        'AMORE.NICOSIA – Order #0002',
+        '',
+        'Hello,',
+        '',
+        'Supplier: TEST GrokBot Supplier',
+        '',
+        '20 TEST GrokBot Cola',
+        '',
+        'AMORE.NICOSIA',
+        'Sent by Platon Sachinis',
+      ].join('\n'),
+    )
+
+    const unnamed = formatStockOrderSendText(po, {
+      supplierName: 'TEST GrokBot Supplier',
+      venueName: 'Workspace',
+      senderName: '',
+      language: 'el',
+    })
+    expect(unnamed).not.toContain('Στάλθηκε')
+    expect(unnamed).not.toContain('Sent by')
+    expect(unnamed).not.toContain('Workspace')
+    expect(unnamed.trimEnd().endsWith('20 TEST GrokBot Cola')).toBe(true)
   })
 
   it('opens https links with an anchor click and prints from an iframe', () => {

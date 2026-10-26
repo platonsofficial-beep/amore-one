@@ -64,6 +64,19 @@ export function stockOrderGreeting(language = '') {
   return lang.startsWith('el') ? 'Καλησπέρα,' : 'Hello,'
 }
 
+/**
+ * Sign-off line under the venue. The Greek article is the literal "τον/την".
+ * The manager name is printed as stored. No name means no line.
+ */
+export function formatStockOrderSenderLine(senderName = '', language = '') {
+  const name = `${senderName ?? ''}`.trim()
+  if (!name) return ''
+  const lang = `${language ?? ''}`.trim().toLowerCase()
+  return lang.startsWith('el')
+    ? `Στάλθηκε από τον/την ${name}`
+    : `Sent by ${name}`
+}
+
 export function buildStockOrderSendSubject(order, venueName = '') {
   const number = formatStockOrderNumber(order?.orderNumber)
   const venue = resolveSupplierOrderVenueName(venueName)
@@ -73,11 +86,13 @@ export function buildStockOrderSendSubject(order, venueName = '') {
 export function formatStockOrderSendText(order, {
   supplierName = '',
   venueName = '',
+  senderName = '',
   includeCost = false,
   language = '',
 } = {}) {
   const supplier = `${supplierName || order?.supplier || 'Supplier'}`.trim() || 'Supplier'
   const venue = resolveSupplierOrderVenueName(venueName)
+  const senderLine = formatStockOrderSenderLine(senderName, language)
   const delivery = formatStockOrderDeliveryDate(
     order?.expectedDeliveryDate ?? order?.expected_delivery_date,
   )
@@ -113,9 +128,10 @@ export function formatStockOrderSendText(order, {
     lines.push(`Notes: ${notes}`)
   }
 
-  if (venue || delivery) {
+  if (venue || senderLine || delivery) {
     lines.push('')
     if (venue) lines.push(venue)
+    if (senderLine) lines.push(senderLine)
     if (delivery) lines.push(`Requested delivery: ${delivery}`)
   }
 
