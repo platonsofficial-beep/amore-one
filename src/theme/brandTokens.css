@@ -1,0 +1,85 @@
+/*
+  ONE brand tokens. The app does not use Tailwind, so these custom
+  properties are the theme. There is no light mode: color-scheme stays dark.
+
+  Contrast on the navy field (WCAG):
+  - #F7F4EE on #0B0F17 is 17.5:1
+  - #A9C0D6 on #0A1628 is 9.7:1 (links, muted text)
+  - #0A1628 on #D4AF37 is 8.6:1 and on #F3D27A is 12.4:1 (gold buttons)
+  - #0A1628 on #A9832A is 5.2:1 (pressed gold, still AA)
+  - #0A1628 on #D2BFA4 is 10.1:1 (bronze fills)
+  - #D2BFA4 on #0B0F17 is 10.7:1 (bronze text)
+  - #F7F4EE on #46617C is 5.9:1 (steel fills)
+  Status red, green, and amber stay separate from gold, steel, and bronze.
+*/
+
+:root {
+  --one-navy-950: #0b0f17;
+  --one-navy-900: #0a1628;
+  --one-navy-800: #122033;
+  --one-navy-700: #18283d;
+  --one-navy-600: #21344c;
+  --one-navy-500: #2c4260;
+
+  --one-bg: var(--one-navy-950);
+  --one-surface: var(--one-navy-900);
+  --one-surface-raised: var(--one-navy-800);
+  --one-surface-muted: rgba(11, 15, 23, 0.96);
+  --one-surface-card: rgba(18, 32, 51, 0.94);
+
+  --one-gold: #d4af37;
+  --one-gold-light: #f3d27a;
+  --one-gold-dark: #a9832a;
+  --one-gold-ink: #0a1628;
+  --one-gold-soft: rgba(212, 175, 55, 0.16);
+  --one-gold-line: rgba(212, 175, 55, 0.32);
+
+  --one-steel: #6e8daa;
+  --one-steel-light: #a9c0d6;
+  --one-steel-dark: #46617c;
+  --one-steel-soft: rgba(110, 141, 170, 0.18);
+  --one-steel-line: rgba(169, 192, 214, 0.28);
+
+  --one-bronze: #a68e73;
+  --one-bronze-light: #d2bfa4;
+  --one-bronze-dark: #7e6a55;
+  --one-bronze-ink: #0a1628;
+  --one-bronze-soft: rgba(166, 142, 115, 0.18);
+  --one-bronze-line: rgba(166, 142, 115, 0.45);
+
+  --one-text: #f7f4ee;
+  --one-text-soft: #e6e0d6;
+  --one-text-muted: #a9c0d6;
+
+  --one-border: rgba(169, 192, 214, 0.16);
+  --one-focus-ring: var(--one-gold);
+
+  --one-primary-bg: linear-gradient(135deg, var(--one-gold-light) 0%, var(--one-gold) 100%);
+  --one-primary-text: var(--one-gold-ink);
+  --one-secondary-bg: var(--one-bronze-soft);
+  --one-secondary-text: var(--one-bronze-light);
+
+  --one-success: #8fcb9b;
+  --one-success-bg: rgba(112, 168, 122, 0.18);
+  --one-warning: #e6b15a;
+  --one-warning-bg: rgba(201, 146, 62, 0.2);
+  --one-danger: #e3928c;
+  --one-danger-bg: rgba(184, 84, 78, 0.2);
+  --one-status-info: #9bb6e0;
+  --one-status-info-bg: rgba(110, 140, 190, 0.18);
+
+  --one-chart-1: var(--one-steel);
+  --one-chart-2: var(--one-bronze);
+  --one-chart-3: var(--one-gold);
+
+  --one-scrollbar-thumb: rgba(70, 97, 124, 0.85);
+  --one-scrollbar-thumb-hover: rgba(212, 175, 55, 0.55);
+}
+
+a {
+  color: var(--one-steel-light);
+}
+
+a:hover {
+  color: var(--one-text);
+}

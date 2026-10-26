@@ -158,7 +158,7 @@
   flex-direction: column;
   min-height: 100dvh;
   max-width: 100%;
-  background: #0a0a0b;
+  background: var(--one-bg);
   overflow-x: hidden;
 }
 
@@ -1142,16 +1142,17 @@
 }
 
 .mobile-primary-btn {
-  border: 1px solid rgba(214, 178, 106, 0.28);
-  background: rgba(214, 178, 106, 0.14);
-  color: #f7efe1;
+  border: 0;
+  background: var(--one-primary-bg);
+  color: var(--one-primary-text);
 }
 
 .mobile-secondary-btn {
   margin-top: 4px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(255, 255, 255, 0.03);
-  color: #d6b26a;
+  border: 0;
+  background: var(--one-secondary-bg);
+  color: var(--one-secondary-text);
+  box-shadow: inset 0 0 0 1px var(--one-bronze-line);
 }
 
 .mobile-menu-section {
