@@ -63,6 +63,22 @@ describe('resolveStockMovementStorage', () => {
     expect(resolved.quantityVersion).toBe(3)
   })
 
+  it('keeps catalog receive on location_key after the display name changes', () => {
+    const resolved = resolveStockMovementStorage({
+      item: { storage_location: 'Main Storage' },
+      balances: [
+        { workspaceStorageId: 'stor-bar', locationKey: 'Bar', quantity: 4, quantityVersion: 2, storageActive: true },
+        { workspaceStorageId: 'stor-main', locationKey: 'Main Storage', quantity: 4, quantityVersion: 3, storageActive: true },
+      ],
+      storages: [
+        { id: 'stor-bar', name: 'Main Storage', locationKey: 'Bar', active: true },
+        { id: 'stor-main', name: 'Cellar', locationKey: 'Main Storage', active: true },
+      ],
+    })
+    expect(resolved.source).toBe('catalog')
+    expect(resolved.storage).toMatchObject({ id: 'stor-main', locationKey: 'Main Storage', name: 'Cellar' })
+  })
+
   it('matches storage_location exactly and does not fold case', () => {
     const resolved = resolveStockMovementStorage({
       item: { storageLocation: 'main bar' },

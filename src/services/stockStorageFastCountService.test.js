@@ -19,6 +19,11 @@ describe('stockStorageFastCountService', () => {
       id: 'uuid-1',
       location_key: 'Bar',
     })).toBe('Bar')
+    expect(resolveStorageFastCountLocationKey({
+      id: 'uuid-1',
+      locationKey: 'Main Storage',
+      name: 'Cellar',
+    })).toBe('Main Storage')
   })
 
   it('starts a normal Inventory Count session for exactly one storage', async () => {

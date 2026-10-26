@@ -19,12 +19,16 @@ import * as workspaceStorageService from './workspaceStorageService'
 import {
   WORKSPACE_STORAGE_LIST_COLUMNS,
   WORKSPACE_STORAGE_RECEIVE_COLUMNS,
+  WORKSPACE_STORAGE_DUPLICATE_NAME_MESSAGE,
+  WORKSPACE_STORAGE_RENAME_UNAVAILABLE_MESSAGE,
   archiveWorkspaceStorage,
   createWorkspaceStorage,
   listReceiveDestinationStorages,
   listWorkspaceStorages,
   mapWorkspaceStorage,
+  normalizeWorkspaceStorageDisplayName,
   normalizeWorkspaceStorageLocationKey,
+  renameWorkspaceStorage,
 } from './workspaceStorageService'
 
 const HERE = dirname(fileURLToPath(import.meta.url))
@@ -344,12 +348,107 @@ describe('archiveWorkspaceStorage', () => {
   })
 })
 
+describe('normalizeWorkspaceStorageDisplayName', () => {
+  it('trims a display name and rejects blank or overlong names', () => {
+    expect(normalizeWorkspaceStorageDisplayName('  Cellar  ')).toBe('Cellar')
+    expect(() => normalizeWorkspaceStorageDisplayName('   ')).toThrow('Storage name is required.')
+    expect(() => normalizeWorkspaceStorageDisplayName('x'.repeat(81))).toThrow(/80 characters or fewer/)
+  })
+})
+
+describe('renameWorkspaceStorage', () => {
+  beforeEach(() => {
+    fromMock.mockReset()
+    rpcMock.mockReset()
+  })
+
+  function createUpdateQuery(result) {
+    const query = {
+      update: vi.fn(() => query),
+      eq: vi.fn(() => query),
+      select: vi.fn(() => query),
+      maybeSingle: vi.fn(() => Promise.resolve(result)),
+    }
+    return query
+  }
+
+  it('updates only the display name and keeps the returned location key', async () => {
+    const query = createUpdateQuery({
+      data: {
+        id: 'st-1',
+        workspace_id: 'ws-1',
+        location_key: 'Main Storage',
+        name: 'Cellar',
+        active: true,
+        sort_order: 1,
+      },
+      error: null,
+    })
+    fromMock.mockReturnValue(query)
+
+    await expect(renameWorkspaceStorage('ws-1', 'st-1', '  Cellar  ')).resolves.toEqual({
+      id: 'st-1',
+      workspaceId: 'ws-1',
+      locationKey: 'Main Storage',
+      name: 'Cellar',
+      active: true,
+      sortOrder: 1,
+    })
+
+    expect(fromMock).toHaveBeenCalledWith('workspace_storages')
+    expect(query.update).toHaveBeenCalledWith({ name: 'Cellar' })
+    expect(JSON.stringify(query.update.mock.calls)).not.toMatch(/location_key/)
+    expect(query.eq).toHaveBeenNthCalledWith(1, 'workspace_id', 'ws-1')
+    expect(query.eq).toHaveBeenNthCalledWith(2, 'id', 'st-1')
+    expect(query.select).toHaveBeenCalledWith(WORKSPACE_STORAGE_LIST_COLUMNS)
+    expect(rpcMock).not.toHaveBeenCalled()
+  })
+
+  it('keeps the duplicate-name check', async () => {
+    fromMock.mockReturnValue(createUpdateQuery({
+      data: null,
+      error: {
+        code: '23505',
+        message: 'duplicate key value violates unique constraint "workspace_storages_workspace_name_normalized_uidx"',
+      },
+    }))
+
+    await expect(renameWorkspaceStorage('ws-1', 'st-1', 'Bar')).rejects.toThrow(
+      WORKSPACE_STORAGE_DUPLICATE_NAME_MESSAGE,
+    )
+  })
+
+  it('explains the unapplied name = location_key check', async () => {
+    fromMock.mockReturnValue(createUpdateQuery({
+      data: null,
+      error: {
+        code: '23514',
+        message: 'new row for relation "workspace_storages" violates check constraint "workspace_storages_name_equals_location_key_chk"',
+      },
+    }))
+
+    await expect(renameWorkspaceStorage('ws-1', 'st-1', 'Cellar')).rejects.toThrow(
+      WORKSPACE_STORAGE_RENAME_UNAVAILABLE_MESSAGE,
+    )
+  })
+
+  it('requires a workspace and a storage before writing', async () => {
+    await expect(renameWorkspaceStorage('', 'st-1', 'Cellar')).rejects.toThrow(
+      'Workspace is required to rename a storage.',
+    )
+    await expect(renameWorkspaceStorage('ws-1', '', 'Cellar')).rejects.toThrow(
+      'Storage is required to rename.',
+    )
+    expect(fromMock).not.toHaveBeenCalled()
+  })
+})
+
 describe('write surface + RPC SQL contract', () => {
-  it('exports create/archive and does not export rename/delete/update', () => {
+  it('exports create, archive, and display-name rename, and does not export delete', () => {
     expect(typeof workspaceStorageService.createWorkspaceStorage).toBe('function')
     expect(typeof workspaceStorageService.archiveWorkspaceStorage).toBe('function')
+    expect(typeof workspaceStorageService.renameWorkspaceStorage).toBe('function')
     expect(typeof workspaceStorageService.listWorkspaceStorages).toBe('function')
-    expect(workspaceStorageService.renameWorkspaceStorage).toBeUndefined()
     expect(workspaceStorageService.deleteWorkspaceStorage).toBeUndefined()
     expect(workspaceStorageService.updateWorkspaceStorage).toBeUndefined()
   })

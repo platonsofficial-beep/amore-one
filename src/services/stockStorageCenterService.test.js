@@ -162,6 +162,37 @@ describe('buildWorkspaceStorageSummaries', () => {
     expect(result.summary.totalQuantity).toBe(13)
   })
 
+  it('keeps balances and pars on the storage id after a display rename', () => {
+    const result = buildWorkspaceStorageSummaries({
+      storages: [{
+        id: 's-main',
+        workspaceId: 'ws-1',
+        locationKey: 'Main Storage',
+        name: 'Cellar',
+        active: true,
+        sortOrder: 0,
+      }],
+      balances: [{
+        workspace_storage_id: 's-main',
+        stock_item_id: 'cola',
+        location_key: 'Main Storage',
+        quantity: 12,
+      }],
+      pars: [{
+        workspace_storage_id: 's-main',
+        stock_item_id: 'cola',
+        par_quantity: 20,
+      }],
+    })
+    expect(result.storages[0]).toMatchObject({
+      id: 's-main',
+      locationKey: 'Main Storage',
+      name: 'Cellar',
+      totalQuantity: 12,
+      belowParCount: 1,
+    })
+  })
+
   it('returns graceful empty aggregates', () => {
     const result = buildWorkspaceStorageSummaries({ storages: [], balances: [] })
     expect(result.storages).toEqual([])

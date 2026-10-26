@@ -507,6 +507,7 @@ describe('StockStorageCenter UI', () => {
     expect(container.querySelector('[data-action="archive-department"]')).toBeNull()
     expect(container.querySelector('[data-action="toggle-supply"]')).toBeNull()
     expect(container.querySelector('[data-action="assign-department"]')).toBeNull()
+    expect(container.querySelector('[data-action="rename-storage"]')).toBeNull()
   })
 
   it('keeps the storage list and explains when departments are not available yet', async () => {
@@ -738,5 +739,79 @@ describe('StockStorageCenter UI', () => {
       await Promise.resolve()
     })
     expect(setStorageBuying).toHaveBeenCalledWith('ws-1', 'bar', true)
+  })
+
+  it('renames a storage from the card and from the storage actions', async () => {
+    const renameStorage = vi.fn().mockResolvedValue({
+      id: 's-main',
+      name: 'Cellar',
+      locationKey: 'Main Storage',
+    })
+    const storage = {
+      id: 's-main',
+      name: 'Main Storage',
+      locationKey: 'Main Storage',
+      active: true,
+      status: 'active',
+      productCount: 1,
+      totalQuantity: 4,
+      nonZeroBalanceCount: 1,
+      inventoryValue: 10,
+    }
+    const loadSummaries = vi.fn().mockResolvedValue({
+      storages: [storage],
+      activeStorages: [storage],
+      archivedStorages: [],
+      departmentsAvailable: false,
+      summary: {
+        activeStorageCount: 1,
+        archivedStorageCount: 0,
+        totalProductsWithBalances: 1,
+        totalQuantity: 4,
+      },
+    })
+    getWorkspaceStorageProducts.mockResolvedValue({
+      storageId: 's-main',
+      products: [],
+      summary: { productCount: 0, totalQuantity: 0, nonZeroBalanceCount: 0, inventoryValue: 0 },
+    })
+
+    renderCenter({
+      workspaceId: 'ws-1',
+      canManage: true,
+      loadSummaries,
+      renameStorage,
+    })
+
+    await act(async () => {
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+
+    expect(container.querySelector('[data-action="rename-storage"]')?.textContent).toBe('Rename')
+    await act(async () => {
+      container.querySelector('[data-action="rename-storage"]').click()
+    })
+    const dialog = document.body.querySelector('[data-testid="rename-storage-dialog"]')
+    expect(dialog?.textContent).toContain('Key stays Main Storage')
+    const input = dialog.querySelector('input')
+    await act(async () => {
+      const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set
+      setter.call(input, 'Cellar')
+      input.dispatchEvent(new Event('input', { bubbles: true }))
+    })
+    await act(async () => {
+      dialog.querySelector('form').dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+    expect(renameStorage).toHaveBeenCalledWith('ws-1', 's-main', 'Cellar')
+
+    await act(async () => {
+      container.querySelector('[data-storage-id="s-main"]').click()
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+    expect(container.querySelector('[data-storage-action="rename"]')?.textContent).toBe('Rename')
   })
 })

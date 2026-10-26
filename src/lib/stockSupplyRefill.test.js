@@ -91,6 +91,22 @@ describe('buildRefillLines', () => {
     expect(vodka.suggestedQuantity).toBe(5)
   })
 
+  it('keeps the supply source id when that storage display name changes', () => {
+    const lines = buildRefillLines({
+      destinationStorageId: 'back-bar',
+      products: [product()],
+      supplyStorages: [{ id: 'spirits', name: 'Cage', locationKey: 'Spirits', isSupply: true, active: true }],
+      supplyBalances: [
+        { stockItemId: 'cola', storageId: 'spirits', quantity: 9, quantityVersion: 8 },
+      ],
+    })
+    expect(lines[0]).toMatchObject({
+      sourceStorageId: 'spirits',
+      sourceStorageName: 'Cage',
+      quantity: 8,
+    })
+  })
+
   it('breaks a quantity tie by storage name', () => {
     const ranked = rankSupplySources([
       { storageId: 'b', storageName: 'Spirits', quantity: 4, active: true },

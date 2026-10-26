@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { parseStorageParInput } from '../../lib/stockStoragePar'
 import { listWorkspaceStorages } from '../../services/workspaceStorageService'
+import { findWorkspaceStorageForLocation } from '../../services/stockItemStorageParService'
 import { useEscapeToClose } from '../../lib/useEscapeToClose'
 import {
   PRODUCT_METADATA_LIMITS,
@@ -78,11 +79,7 @@ export function StockItemFormModal({
 
   const parStorageLabel = useMemo(() => {
     const key = `${form.storageLocation ?? ''}`.trim()
-    const match = workspaceStorages.find((storage) => {
-      const locationKey = `${storage?.locationKey ?? storage?.location_key ?? ''}`.trim()
-      const name = `${storage?.name ?? ''}`.trim()
-      return locationKey === key || name === key
-    })
+    const match = findWorkspaceStorageForLocation(workspaceStorages, key)
     return `${match?.name ?? ''}`.trim() || key || 'default storage'
   }, [form.storageLocation, workspaceStorages])
 

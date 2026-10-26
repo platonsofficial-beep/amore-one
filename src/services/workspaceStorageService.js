@@ -59,13 +59,44 @@ function requireWorkspaceId(workspaceId, message = 'Workspace is required.') {
   return normalizedWorkspaceId
 }
 
-function requireStorageId(storageId) {
+function requireStorageId(storageId, message = 'Storage is required to archive.') {
   const normalized = `${storageId ?? ''}`.trim()
   if (!normalized) {
-    throw new Error('Storage is required to archive.')
+    throw new Error(message)
   }
   return normalized
 }
+
+/** Case-folded display name. Matches workspace_storages.name_normalized (lower(btrim(name))). */
+export function workspaceStorageNameKey(name) {
+  return `${name ?? ''}`.trim().toLowerCase()
+}
+
+/**
+ * Display name only. location_key is never derived from this value.
+ *
+ * @param {unknown} name
+ * @returns {string}
+ */
+export function normalizeWorkspaceStorageDisplayName(name) {
+  if (typeof name !== 'string') {
+    throw new Error('Storage name is required.')
+  }
+  const trimmed = name.trim()
+  if (!trimmed) {
+    throw new Error('Storage name is required.')
+  }
+  if (trimmed.length > LOCATION_KEY_MAX_LENGTH) {
+    throw new Error(`Storage name must be ${LOCATION_KEY_MAX_LENGTH} characters or fewer.`)
+  }
+  return trimmed
+}
+
+export const WORKSPACE_STORAGE_DUPLICATE_NAME_MESSAGE =
+  'A storage with this name already exists in this workspace.'
+
+export const WORKSPACE_STORAGE_RENAME_UNAVAILABLE_MESSAGE =
+  'Rename is not available until the storage name update is applied.'
 
 /**
  * Validate and normalize location_key for create.
@@ -112,7 +143,7 @@ function mapWorkspaceStorageRpcError(error, fallbackMessage) {
   const lower = message.toLowerCase()
 
   if (lower.includes('workspace_storage_duplicate')) {
-    return new Error('A storage with this name already exists in this workspace.')
+    return new Error(WORKSPACE_STORAGE_DUPLICATE_NAME_MESSAGE)
   }
   if (lower.includes('workspace_storage_blocked_active_items')) {
     return new Error(
@@ -275,4 +306,69 @@ export async function archiveWorkspaceStorage(workspaceId, storageId) {
   }
 
   return mapWorkspaceStorage(row)
+}
+
+function mapWorkspaceStorageRenameError(error) {
+  const message = `${error?.message ?? ''}`
+  const lower = message.toLowerCase()
+  const code = `${error?.code ?? ''}`
+
+  if (
+    code === '23505'
+    || lower.includes('workspace_storages_workspace_name_normalized_uidx')
+    || lower.includes('workspace_storage_duplicate')
+    || lower.includes('duplicate key')
+  ) {
+    return new Error(WORKSPACE_STORAGE_DUPLICATE_NAME_MESSAGE)
+  }
+  if (
+    code === '23514'
+    && lower.includes('workspace_storages_name_equals_location_key')
+  ) {
+    return new Error(WORKSPACE_STORAGE_RENAME_UNAVAILABLE_MESSAGE)
+  }
+  if (lower.includes('workspace_storages_location_key_immutable')) {
+    return new Error('Storage location key cannot be changed.')
+  }
+  if (code === '42501' || lower.includes('permission denied') || lower.includes('workspace_storage_forbidden')) {
+    return new Error('Only owner, general manager, or manager can manage storages.')
+  }
+  return new Error(message || 'Unable to rename storage right now.')
+}
+
+/**
+ * Change the display name only. Does not write location_key.
+ * Duplicate names stay blocked by workspace_storages_workspace_name_normalized_uidx.
+ * Managers already have UPDATE via workspace_storages_update_managers.
+ * Until workspace_storage_rename.sql drops name = location_key, the database rejects the write.
+ *
+ * @param {string} workspaceId
+ * @param {string} storageId
+ * @param {string} name
+ */
+export async function renameWorkspaceStorage(workspaceId, storageId, name) {
+  const normalizedWorkspaceId = requireWorkspaceId(
+    workspaceId,
+    'Workspace is required to rename a storage.',
+  )
+  const normalizedStorageId = requireStorageId(storageId, 'Storage is required to rename.')
+  const nextName = normalizeWorkspaceStorageDisplayName(name)
+
+  const { data, error } = await supabase
+    .from(WORKSPACE_STORAGES_TABLE)
+    .update({ name: nextName })
+    .eq('workspace_id', normalizedWorkspaceId)
+    .eq('id', normalizedStorageId)
+    .select(WORKSPACE_STORAGE_LIST_COLUMNS)
+    .maybeSingle()
+
+  if (error) {
+    console.error('[workspaceStorageService] renameWorkspaceStorage error:', error)
+    throw mapWorkspaceStorageRenameError(error)
+  }
+  if (!data) {
+    throw new Error('Storage was not found in this workspace.')
+  }
+
+  return mapWorkspaceStorage(data)
 }

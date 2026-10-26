@@ -27,6 +27,8 @@ import {
   setWorkspaceStorageBuying,
   setWorkspaceStorageSupply,
 } from '../../services/workspaceDepartmentService'
+import { renameWorkspaceStorage } from '../../services/workspaceStorageService'
+import { RenameWorkspaceStorageDialog } from './RenameWorkspaceStorageDialog'
 import { StockStorageDetailWorkspace } from './StockStorageDetailWorkspace'
 
 const defaultDepartmentActions = {
@@ -54,6 +56,8 @@ const EMPTY_DEPARTMENTS = Object.freeze([])
  *   onToggleSupply?: (storage: object) => void,
  *   showBuyingToggle?: boolean,
  *   onToggleBuying?: (storage: object) => void,
+ *   canRename?: boolean,
+ *   onRename?: (storage: object) => void,
  * }} props
  */
 function StorageSummaryCard({
@@ -69,6 +73,8 @@ function StorageSummaryCard({
   onAssignDepartment,
   onToggleSupply,
   onToggleBuying,
+  canRename = false,
+  onRename,
 }) {
   const currentDepartmentId = `${storage.departmentId ?? ''}`
   const knownIds = new Set(departments.map((department) => department.id))
@@ -152,8 +158,10 @@ function StorageSummaryCard({
           </p>
         ) : null}
       </div>
-      {canAssign ? (
+      {canAssign || canRename ? (
         <div className="stock-storage-center-card-actions">
+          {canAssign ? (
+          <>
           <label className="stock-storage-department-field">
             <span>Department</span>
             <select
@@ -192,6 +200,19 @@ function StorageSummaryCard({
               onClick={() => onToggleBuying?.(storage)}
             >
               {storage.isBuying ? 'Unmark buying' : 'Mark as buying'}
+            </button>
+          ) : null}
+          </>
+          ) : null}
+          {canRename ? (
+            <button
+              type="button"
+              className="stock-storage-rename-btn"
+              data-action="rename-storage"
+              disabled={actionsDisabled}
+              onClick={() => onRename?.(storage)}
+            >
+              Rename
             </button>
           ) : null}
         </div>
@@ -337,6 +358,7 @@ function DepartmentNameDialog({ mode, initialName = '', onClose, onSubmit }) {
  *   loadSummaries?: typeof getWorkspaceStorageSummaries,
  *   loadDepartments?: typeof listWorkspaceDepartments,
  *   departmentActions?: typeof defaultDepartmentActions,
+ *   renameStorage?: typeof renameWorkspaceStorage,
  * }} props
  */
 export function StockStorageCenter({
@@ -358,6 +380,7 @@ export function StockStorageCenter({
   loadSummaries = getWorkspaceStorageSummaries,
   loadDepartments = listWorkspaceDepartments,
   departmentActions = defaultDepartmentActions,
+  renameStorage = renameWorkspaceStorage,
   timeZone = '',
 } = {}) {
   const [status, setStatus] = useState(/** @type {'loading'|'ready'|'empty'|'error'} */ ('loading'))
@@ -374,6 +397,7 @@ export function StockStorageCenter({
     /** @type {null|{ mode: 'create' }|{ mode: 'rename', departmentId: string, name: string }} */ (null),
   )
   const [pendingArchiveId, setPendingArchiveId] = useState(/** @type {string|null} */ (null))
+  const [renameTarget, setRenameTarget] = useState(/** @type {object|null} */ (null))
   const loadedWorkspaceRef = useRef('')
 
   useEffect(() => {
@@ -499,13 +523,37 @@ export function StockStorageCenter({
     return names
   }, [departments])
 
+  const openRename = (storage) => {
+    if (!canManage || !storage) return
+    setRenameTarget(storage)
+  }
+
+  const takenStorageNames = (payload?.storages ?? [])
+    .filter((storage) => storage.id !== renameTarget?.id)
+    .map((storage) => storage.name)
+
+  const renameDialog = renameTarget ? (
+    <RenameWorkspaceStorageDialog
+      storage={renameTarget}
+      takenNames={takenStorageNames}
+      onClose={() => setRenameTarget(null)}
+      onSubmit={async (name) => {
+        await renameStorage(workspaceId, renameTarget.id, name)
+        setRenameTarget(null)
+        setReloadToken((token) => token + 1)
+      }}
+    />
+  ) : null
+
   if (selectedStorage) {
     return (
+      <>
       <StockStorageDetailWorkspace
         workspaceId={workspaceId}
         storage={selectedStorage}
         searchTerm={searchTerm}
         canManage={canManage}
+        onRename={canManage ? openRename : undefined}
         onBack={() => {
           setSelectedId(null)
           setReloadToken((token) => token + 1)
@@ -527,6 +575,8 @@ export function StockStorageCenter({
         }}
         timeZone={timeZone}
       />
+      {renameDialog}
+      </>
     )
   }
 
@@ -538,6 +588,7 @@ export function StockStorageCenter({
       selected={selectedId === storage.id}
       departmentName={showDepartmentOnCard ? (departmentNameById.get(storage.departmentId) || '') : ''}
       canAssign={canManage && departmentsReady}
+      canRename={canManage}
       departments={departments}
       actionsDisabled={departmentBusy}
       showBuyingToggle={payload?.buyingAvailable === true}
@@ -563,6 +614,7 @@ export function StockStorageCenter({
           next.isBuying !== true,
         )).catch(() => {})
       }}
+      onRename={openRename}
     />
   )
 
@@ -775,6 +827,7 @@ export function StockStorageCenter({
         </div>
       ) : null}
 
+      {renameDialog}
       {nameDialog ? (
         <DepartmentNameDialog
           mode={nameDialog.mode}

@@ -13,6 +13,7 @@
  *   onReceive?: (storage: object) => void,
  *   onTransfer?: (storage: object) => void,
  *   onAdjustment?: (storage: object) => void,
+ *   onRename?: (storage: object) => void,
  * }} props
  */
 export function StockStorageDetailActionBar({
@@ -25,6 +26,7 @@ export function StockStorageDetailActionBar({
   onReceive,
   onTransfer,
   onAdjustment,
+  onRename,
 } = {}) {
   if (!canManage) {
     if (storage?.isSupply === true) return null
@@ -107,6 +109,16 @@ export function StockStorageDetailActionBar({
       >
         Adjustment
       </button>
+      {onRename ? (
+        <button
+          type="button"
+          className="ghost-btn stock-storage-detail-action-btn"
+          data-storage-action="rename"
+          onClick={() => onRename(storage)}
+        >
+          Rename
+        </button>
+      ) : null}
     </div>
   )
 }

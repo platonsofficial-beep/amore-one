@@ -13,6 +13,7 @@ vi.mock('../lib/supabaseClient', () => ({
 
 import {
   clearStockItemStoragePar,
+  findWorkspaceStorageForLocation,
   saveNewItemDefaultStoragePar,
   setStockItemStoragePar,
 } from './stockItemStorageParService.js'
@@ -151,5 +152,26 @@ describe('stockItemStorageParService', () => {
     })).resolves.toBeNull()
     expect(savePar).not.toHaveBeenCalled()
     expect(listStorages).toHaveBeenCalledTimes(1)
+  })
+
+  it('keeps a renamed display name from stealing another storage location key', async () => {
+    const storages = [
+      { id: 'bar', locationKey: 'Bar', name: 'Main Storage' },
+      { id: 'main', locationKey: 'Main Storage', name: 'Cellar' },
+    ]
+    expect(findWorkspaceStorageForLocation(storages, 'Main Storage')?.id).toBe('main')
+    expect(findWorkspaceStorageForLocation(storages, 'Bar')?.id).toBe('bar')
+    expect(findWorkspaceStorageForLocation(storages, 'Cellar')?.id).toBe('main')
+
+    const savePar = vi.fn().mockResolvedValue({ parQuantity: 6 })
+    await saveNewItemDefaultStoragePar({
+      workspaceId: 'ws-1',
+      stockItemId: 'item-1',
+      storageLocation: 'Main Storage',
+      parInput: '6',
+      listStorages: async () => storages,
+      savePar,
+    })
+    expect(savePar).toHaveBeenCalledWith('ws-1', 'item-1', 'main', 6)
   })
 })
