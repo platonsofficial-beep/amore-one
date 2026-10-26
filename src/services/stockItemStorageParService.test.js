@@ -13,6 +13,7 @@ vi.mock('../lib/supabaseClient', () => ({
 
 import {
   clearStockItemStoragePar,
+  saveNewItemDefaultStoragePar,
   setStockItemStoragePar,
 } from './stockItemStorageParService.js'
 
@@ -120,5 +121,35 @@ describe('stockItemStorageParService', () => {
     await expect(setStockItemStoragePar('ws-1', 'cola', 'soft', 4)).rejects.toThrow(
       STORAGE_PAR_UNAVAILABLE_MESSAGE,
     )
+  })
+
+  it('writes the add-item par onto the chosen default storage and skips a blank par', async () => {
+    const savePar = vi.fn().mockResolvedValue({ parQuantity: 6 })
+    const listStorages = vi.fn().mockResolvedValue([
+      { id: 'supply', locationKey: 'Main Storage', name: 'Main Storage' },
+      { id: 'bar', locationKey: 'Bar', name: 'Bar' },
+    ])
+
+    await expect(saveNewItemDefaultStoragePar({
+      workspaceId: 'ws-1',
+      stockItemId: 'item-1',
+      storageLocation: 'Main Storage',
+      parInput: '6',
+      listStorages,
+      savePar,
+    })).resolves.toMatchObject({ parQuantity: 6 })
+    expect(savePar).toHaveBeenCalledWith('ws-1', 'item-1', 'supply', 6)
+
+    savePar.mockClear()
+    await expect(saveNewItemDefaultStoragePar({
+      workspaceId: 'ws-1',
+      stockItemId: 'item-1',
+      storageLocation: 'Main Storage',
+      parInput: '  ',
+      listStorages,
+      savePar,
+    })).resolves.toBeNull()
+    expect(savePar).not.toHaveBeenCalled()
+    expect(listStorages).toHaveBeenCalledTimes(1)
   })
 })

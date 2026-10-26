@@ -39,22 +39,54 @@ export function resolveStockOrderSupplierContact(order, suppliers = []) {
   return list.find((supplier) => supplierDisplayName(supplier).toLocaleLowerCase('en-US') === orderName) ?? null
 }
 
-export function buildStockOrderSendSubject(order, venueName = '') {
-  const number = formatStockOrderNumber(order?.orderNumber)
-  const venue = `${venueName ?? ''}`.trim()
-  return venue ? `${venue} order ${number}` : `Order ${number}`
+const SUPPLIER_ORDER_VENUE_PLACEHOLDERS = new Set([
+  'workspace',
+  'workspace not set',
+  '—',
+  '-',
+])
+
+/** First real venue name. Skips the hydrated "Workspace" placeholder. */
+export function resolveSupplierOrderVenueName(...candidates) {
+  const list = candidates.flat()
+  for (const candidate of list) {
+    const name = `${candidate ?? ''}`.trim()
+    if (!name) continue
+    if (SUPPLIER_ORDER_VENUE_PLACEHOLDERS.has(name.toLocaleLowerCase('en-US'))) continue
+    return name
+  }
+  return ''
 }
 
-export function formatStockOrderSendText(order, { supplierName = '' } = {}) {
+/** Greek app language gets the evening greeting used with suppliers. */
+export function stockOrderGreeting(language = '') {
+  const lang = `${language ?? ''}`.trim().toLowerCase()
+  return lang.startsWith('el') ? 'Καλησπέρα,' : 'Hello,'
+}
+
+export function buildStockOrderSendSubject(order, venueName = '') {
+  const number = formatStockOrderNumber(order?.orderNumber)
+  const venue = resolveSupplierOrderVenueName(venueName)
+  return venue ? `${venue} – Order ${number}` : `Order ${number}`
+}
+
+export function formatStockOrderSendText(order, {
+  supplierName = '',
+  venueName = '',
+  includeCost = false,
+  language = '',
+} = {}) {
   const supplier = `${supplierName || order?.supplier || 'Supplier'}`.trim() || 'Supplier'
-  const lines = [`Supplier: ${supplier}`]
+  const venue = resolveSupplierOrderVenueName(venueName)
   const delivery = formatStockOrderDeliveryDate(
     order?.expectedDeliveryDate ?? order?.expected_delivery_date,
   )
+  const lines = [stockOrderGreeting(language), '', `Supplier: ${supplier}`]
   if (delivery) lines.push(`Expected: ${delivery}`)
   lines.push('')
 
   const items = Array.isArray(order?.items) ? order.items : []
+  let pricedLineCount = 0
   if (items.length === 0) {
     lines.push('No products listed.')
   } else {
@@ -63,12 +95,16 @@ export function formatStockOrderSendText(order, { supplierName = '' } = {}) {
       const quantity = formatStockQuantity(item?.quantity, item?.unit)
       const cost = Number(item?.costPrice ?? item?.cost_price) || 0
       const total = Number(item?.totalPrice ?? item?.total_price) || computeOrderLineTotal(item?.quantity, cost)
-      lines.push(cost > 0
+      const showPrice = includeCost === true && cost > 0
+      if (showPrice) pricedLineCount += 1
+      lines.push(showPrice
         ? `${quantity} ${name} — ${formatStockPurchasePrice(cost)} each (${formatStockPurchasePrice(total)})`
         : `${quantity} ${name}`)
     })
-    lines.push('')
-    lines.push(`Total: ${formatStockPurchasePrice(computeOrderTotalCost(items))}`)
+    if (includeCost === true && pricedLineCount > 0) {
+      lines.push('')
+      lines.push(`Total: ${formatStockPurchasePrice(computeOrderTotalCost(items))}`)
+    }
   }
 
   const notes = `${order?.notes ?? ''}`.trim()
@@ -77,12 +113,18 @@ export function formatStockOrderSendText(order, { supplierName = '' } = {}) {
     lines.push(`Notes: ${notes}`)
   }
 
+  if (venue || delivery) {
+    lines.push('')
+    if (venue) lines.push(venue)
+    if (delivery) lines.push(`Requested delivery: ${delivery}`)
+  }
+
   return lines.join('\n')
 }
 
-export function buildStockOrderSendMessage(order, { venueName = '', supplierName = '' } = {}) {
-  const subject = buildStockOrderSendSubject(order, venueName)
-  const body = formatStockOrderSendText(order, { supplierName })
+export function buildStockOrderSendMessage(order, options = {}) {
+  const subject = buildStockOrderSendSubject(order, options.venueName)
+  const body = formatStockOrderSendText(order, options)
   return `${subject}\n\n${body}`
 }
 
@@ -136,27 +178,62 @@ export function buildStockOrderPrintHtml({ title, body }) {
 </html>`
 }
 
+/**
+ * Open http(s) with a user-gesture anchor click.
+ * window.open(..., 'noopener') returns null even when the tab opens, so that
+ * return value is not a popup-blocked signal.
+ */
 export function openStockOrderExternalLink(url) {
-  if (!url || typeof window === 'undefined') return false
+  if (!url || typeof document === 'undefined') return false
   if (url.startsWith('https://') || url.startsWith('http://')) {
-    return Boolean(window.open(url, '_blank', 'noopener,noreferrer'))
+    const anchor = document.createElement('a')
+    anchor.href = url
+    anchor.target = '_blank'
+    anchor.rel = 'noopener noreferrer'
+    anchor.referrerPolicy = 'no-referrer'
+    document.body.appendChild(anchor)
+    anchor.click()
+    anchor.remove()
+    return true
   }
+  if (typeof window === 'undefined') return false
   window.location.assign(url)
   return true
 }
 
+/** Print from a hidden iframe so the order sheet does not depend on window.open. */
 export function openStockOrderPrintWindow(html) {
-  if (typeof window === 'undefined') return false
-  const popup = window.open('', '_blank', 'width=820,height=960')
-  if (!popup) return false
-  popup.document.open()
-  popup.document.write(html)
-  popup.document.close()
-  popup.focus()
-  try {
-    popup.print()
-  } catch {
-    // The printable page is still open if the browser blocks print.
+  if (typeof document === 'undefined') return false
+  const frame = document.createElement('iframe')
+  frame.setAttribute('title', 'Print order')
+  frame.setAttribute('aria-hidden', 'true')
+  frame.style.position = 'fixed'
+  frame.style.right = '0'
+  frame.style.bottom = '0'
+  frame.style.width = '0'
+  frame.style.height = '0'
+  frame.style.border = '0'
+  document.body.appendChild(frame)
+  const doc = frame.contentDocument || frame.contentWindow?.document
+  const printWindow = frame.contentWindow
+  if (!doc || !printWindow) {
+    frame.remove()
+    return false
   }
+  doc.open()
+  doc.write(html)
+  doc.close()
+  const removeFrame = () => {
+    window.setTimeout(() => frame.remove(), 400)
+  }
+  try {
+    printWindow.focus()
+    printWindow.print()
+  } catch {
+    frame.remove()
+    return false
+  }
+  printWindow.addEventListener?.('afterprint', removeFrame)
+  window.setTimeout(removeFrame, 60000)
   return true
 }

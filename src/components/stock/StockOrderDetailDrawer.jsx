@@ -404,7 +404,6 @@ export function StockOrderDetailDrawer({
   const [isReceiveConfirmOpen, setIsReceiveConfirmOpen] = useState(false)
   const [replacingItemId, setReplacingItemId] = useState(null)
   const [error, setError] = useState('')
-  const [sendNotice, setSendNotice] = useState('')
 
   useEffect(() => {
     setDraftItems(order.items ?? [])
@@ -414,7 +413,6 @@ export function StockOrderDetailDrawer({
     setIsReceiveConfirmOpen(false)
     setReplacingItemId(null)
     setError('')
-    setSendNotice('')
   }, [order])
 
   useEffect(() => {
@@ -649,9 +647,16 @@ export function StockOrderDetailDrawer({
     items: draftItems,
   }), [order, notes, expectedDeliveryDate, draftItems])
   const supplierName = `${supplierContact?.companyName ?? supplierContact?.company_name ?? order.supplier ?? ''}`.trim()
+  const sendLanguage = typeof navigator === 'undefined' ? 'en' : (navigator.language || 'en')
+  const sendCopy = {
+    venueName,
+    supplierName,
+    includeCost: canManage === true,
+    language: sendLanguage,
+  }
   const sendSubject = buildStockOrderSendSubject(sendOrder, venueName)
-  const sendBody = formatStockOrderSendText(sendOrder, { supplierName })
-  const sendMessage = buildStockOrderSendMessage(sendOrder, { venueName, supplierName })
+  const sendBody = formatStockOrderSendText(sendOrder, sendCopy)
+  const sendMessage = buildStockOrderSendMessage(sendOrder, sendCopy)
   const supplierEmail = `${supplierContact?.email ?? ''}`.trim()
   const supplierPhone = `${supplierContact?.phone ?? ''}`.trim()
   const canEmailSupplier = Boolean(buildStockOrderMailtoUrl(supplierEmail, {
@@ -671,33 +676,23 @@ export function StockOrderDetailDrawer({
   const handleSendEmail = () => {
     const url = buildStockOrderMailtoUrl(supplierEmail, { subject: sendSubject, body: sendBody })
     if (!url) return
-    setSendNotice('')
     openStockOrderExternalLink(url)
   }
 
   const handleSendWhatsApp = () => {
     const url = buildStockOrderWhatsAppUrl(supplierPhone, sendMessage)
     if (!url) return
-    if (!openStockOrderExternalLink(url)) {
-      setSendNotice('Allow pop-ups to open WhatsApp.')
-      return
-    }
-    setSendNotice('')
+    openStockOrderExternalLink(url)
   }
 
   const handleSendViber = () => {
     if (!canMessageSupplier) return
-    setSendNotice('')
     openStockOrderExternalLink(buildStockOrderViberUrl(sendMessage))
   }
 
   const handlePrintOrder = () => {
     const html = buildStockOrderPrintHtml({ title: sendSubject, body: sendBody })
-    if (!openStockOrderPrintWindow(html)) {
-      setSendNotice('Allow pop-ups to print this order.')
-      return
-    }
-    setSendNotice('')
+    openStockOrderPrintWindow(html)
   }
 
   const displayItems = isEditable ? draftItems : order.items
@@ -1016,11 +1011,6 @@ export function StockOrderDetailDrawer({
                   {missingContactHint ? (
                     <p className="stock-order-send-hint">{missingContactHint}</p>
                   ) : null}
-                  {sendNotice ? (
-                    <div className="staff-status-banner stock-order-detail-footer-error" role="alert">
-                      {sendNotice}
-                    </div>
-                  ) : null}
                   <div className="stock-order-detail-footer-actions">
                   <button
                     type="button"
@@ -1053,7 +1043,7 @@ export function StockOrderDetailDrawer({
               {showReceivingMode ? (
                 <LoadingButton
                   type="button"
-                  className="stock-product-history-action-btn"
+                  className="stock-product-history-action-btn stock-order-receive-review"
                   loading={isSaving}
                   loadingLabel="Receiving..."
                   disabled={!hasReceiveInput || !workspaceStorageId || isLoadingStorages}

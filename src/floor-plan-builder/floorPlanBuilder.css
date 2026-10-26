@@ -69,7 +69,7 @@
   border: 1px solid rgba(255, 255, 255, 0.07);
   border-radius: 7px;
   background: rgba(255, 255, 255, 0.025);
-  color: #cfc4b4;
+  color: var(--one-text-muted);
   font-size: 0.7rem;
   font-weight: 600;
   letter-spacing: 0.01em;
@@ -474,7 +474,7 @@
   border: 1px solid transparent;
   border-radius: 8px;
   background: transparent;
-  color: #c9bfb0;
+  color: var(--one-text-muted);
   font-size: 0.68rem;
   font-weight: 600;
   text-align: left;
@@ -1252,7 +1252,7 @@
 
 .fpb-inspector-empty-title {
   margin: 0;
-  color: #c9bfb0;
+  color: var(--one-text-muted);
   font-size: 0.82rem;
   font-weight: 700;
   letter-spacing: -0.01em;
@@ -1406,7 +1406,7 @@
 .fpb-inspector-secondary-btn {
   border: 1px solid rgba(255, 255, 255, 0.08);
   background: rgba(255, 255, 255, 0.03);
-  color: #cfc4b4;
+  color: var(--one-text-muted);
 }
 
 .fpb-inspector-checkbox {
@@ -1477,7 +1477,7 @@
 }
 
 .fpb-status-item strong {
-  color: #cfc4b4;
+  color: var(--one-text-muted);
   font-size: 0.66rem;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
@@ -1640,7 +1640,7 @@
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 8px;
   background: rgba(255, 255, 255, 0.03);
-  color: #cfc4b4;
+  color: var(--one-text-muted);
   font-size: 1.1rem;
   line-height: 1;
 }
@@ -1652,7 +1652,7 @@
 }
 
 .fpb-toolbar-area-label {
-  color: #8f8778;
+  color: var(--one-text-muted);
 }
 
 .fpb-toolbar-actions-end {
@@ -1665,7 +1665,7 @@
 }
 
 .fpb-area-current-label {
-  color: #8f8778;
+  color: var(--one-text-muted);
   font-size: 0.72rem;
   font-weight: 600;
   letter-spacing: 0.02em;
@@ -1760,7 +1760,7 @@
   display: flex;
   flex-direction: column;
   gap: 4px;
-  color: #8f8778;
+  color: var(--one-text-muted);
   font-size: 0.62rem;
   font-weight: 600;
   letter-spacing: 0.04em;

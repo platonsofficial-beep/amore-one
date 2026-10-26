@@ -98,7 +98,7 @@ describe('StockOrderDetailDrawer send draft', () => {
 
     act(() => { buttonNamed(container, 'Email').click() })
     expect(opened[0]).toContain('mailto:orders@wine.test')
-    expect(decodeURIComponent(opened[0].replace(/\+/g, ' '))).toContain('Amore order #0004')
+    expect(decodeURIComponent(opened[0].replace(/\+/g, ' '))).toContain('Amore – Order #0004')
     expect(decodeURIComponent(opened[0].replace(/\+/g, ' '))).toContain('Morning delivery')
 
     act(() => { buttonNamed(container, 'WhatsApp').click() })
@@ -108,8 +108,9 @@ describe('StockOrderDetailDrawer send draft', () => {
     expect(opened.some((url) => url.startsWith('viber://forward?text='))).toBe(true)
 
     act(() => { buttonNamed(container, 'Print').click() })
-    expect(printed[0]).toContain('Amore order #0004')
+    expect(printed[0]).toContain('Amore – Order #0004')
     expect(printed[0]).toContain('Morning delivery')
+    expect(container.textContent).not.toContain('Allow pop-ups')
     expect(onMarkSent).not.toHaveBeenCalled()
 
     cleanup()
