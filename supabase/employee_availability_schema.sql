@@ -1,3 +1,7 @@
+-- Superseded by supabase/employee_availability.sql.
+-- Do not apply this file. It has no RLS. The approved file creates the
+-- table and the member/self/manager policies in one transaction.
+--
 -- Weekly employee availability rows for the Team module.
 -- Prerequisite: public.workspaces and public.employees must exist.
 -- Run before employee_availability_policies.sql.
