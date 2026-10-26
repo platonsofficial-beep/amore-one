@@ -15,6 +15,13 @@ export function parseTimeToMinutes(value) {
   return hours * 60 + minutes
 }
 
+export function sumShiftDurationHours(shifts = []) {
+  return (shifts ?? []).reduce(
+    (sum, shift) => sum + calculateShiftDurationHours(shift?.startTime ?? shift?.start_time, shift?.endTime ?? shift?.end_time),
+    0,
+  )
+}
+
 export function calculateShiftDurationHours(startTime, endTime) {
   const startMinutes = parseTimeToMinutes(startTime)
   const endMinutes = parseTimeToMinutes(endTime)

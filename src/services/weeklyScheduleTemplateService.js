@@ -64,11 +64,18 @@ function serializeTemplateShift(templateId, shift) {
   return payload
 }
 
-export async function getWeeklyScheduleTemplates() {
-  const { data, error } = await supabase
+export async function getWeeklyScheduleTemplates(workspaceId = '') {
+  const normalizedWorkspaceId = `${workspaceId ?? ''}`.trim()
+  let query = supabase
     .from(WEEKLY_TEMPLATES_TABLE)
     .select('*')
     .order('updated_at', { ascending: false })
+
+  if (normalizedWorkspaceId) {
+    query = query.eq('workspace_id', normalizedWorkspaceId)
+  }
+
+  const { data, error } = await query
 
   if (error) {
     console.warn('[weeklyScheduleTemplateService] getWeeklyScheduleTemplates error:', error)
@@ -97,10 +104,15 @@ export async function getWeeklyTemplateShifts(templateId) {
   return (data ?? []).map(mapTemplateShift)
 }
 
-export async function createWeeklyScheduleTemplate({ name, shifts }) {
+export async function createWeeklyScheduleTemplate({ workspaceId, name, shifts }) {
+  const normalizedWorkspaceId = `${workspaceId ?? ''}`.trim()
+  if (!normalizedWorkspaceId) {
+    throw new Error('Workspace is required to save a weekly template.')
+  }
+
   const { data: templateData, error: templateError } = await supabase
     .from(WEEKLY_TEMPLATES_TABLE)
-    .insert([{ name }])
+    .insert([{ name, workspace_id: normalizedWorkspaceId }])
     .select('*')
     .single()
 

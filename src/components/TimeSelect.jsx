@@ -1,4 +1,5 @@
-import { useEffect, useId, useMemo, useRef, useState } from 'react'
+import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import {
   getTimeSelectOptions,
   normalizeTimeValue,
@@ -25,6 +26,7 @@ export function TimeSelect({
     return getTimeSelectOptions(normalizedValue)
   }, [optionsProp, normalizedValue])
   const [isOpen, setIsOpen] = useState(false)
+  const [menuStyle, setMenuStyle] = useState(null)
   const rootRef = useRef(null)
   const menuRef = useRef(null)
   const suppressToggleRef = useRef(false)
@@ -32,9 +34,8 @@ export function TimeSelect({
 
   useEffect(() => {
     const handlePointerDown = (event) => {
-      if (!rootRef.current?.contains(event.target)) {
-        setIsOpen(false)
-      }
+      if (rootRef.current?.contains(event.target) || menuRef.current?.contains(event.target)) return
+      setIsOpen(false)
     }
 
     const handleKeyDown = (event) => {
@@ -54,6 +55,37 @@ export function TimeSelect({
       setIsOpen(false)
     }
   }, [disabled])
+
+  useLayoutEffect(() => {
+    if (!isOpen) {
+      setMenuStyle(null)
+      return undefined
+    }
+
+    const placeMenu = () => {
+      const rect = rootRef.current?.getBoundingClientRect()
+      if (!rect) return
+      const spaceBelow = window.innerHeight - rect.bottom
+      const openUpward = spaceBelow < 180 && rect.top > spaceBelow
+      setMenuStyle({
+        position: 'fixed',
+        left: `${Math.max(8, rect.left)}px`,
+        right: 'auto',
+        width: `${Math.max(rect.width, 96)}px`,
+        zIndex: 120,
+        top: openUpward ? 'auto' : `${rect.bottom + 4}px`,
+        bottom: openUpward ? `${window.innerHeight - rect.top + 4}px` : 'auto',
+      })
+    }
+
+    placeMenu()
+    window.addEventListener('resize', placeMenu)
+    window.addEventListener('scroll', placeMenu, true)
+    return () => {
+      window.removeEventListener('resize', placeMenu)
+      window.removeEventListener('scroll', placeMenu, true)
+    }
+  }, [isOpen])
 
   const handleSelect = (time) => {
     onChange(snapTimeToQuarter(normalizeTimeValue(time)))
@@ -126,12 +158,13 @@ export function TimeSelect({
         <span className={`${prefix}-chevron`} aria-hidden="true">▾</span>
       </button>
 
-      {isOpen ? (
+      {isOpen && menuStyle ? createPortal(
         <ul
           ref={menuRef}
           className={`${prefix}-menu`}
           role="listbox"
           aria-labelledby={fieldId}
+          style={menuStyle}
           onPointerDown={handleMenuPointerDown}
           onPointerMove={handleMenuPointerMove}
           onPointerUp={resetPointerGesture}
@@ -161,7 +194,8 @@ export function TimeSelect({
               </button>
             </li>
           ))}
-        </ul>
+        </ul>,
+        document.body,
       ) : null}
 
       {required ? (

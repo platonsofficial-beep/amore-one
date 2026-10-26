@@ -351,6 +351,7 @@ import {
   addCalendarDays,
   formatWeekRange,
   getCurrentWeekStartDate,
+  getDateKeyInTimeZone,
   getWeekDateKeys,
   getWeekDays,
   getWeekStartDate,
@@ -432,7 +433,13 @@ import {
   isAssignmentUsingCustomTime,
   parseWeeklyHoursTarget,
   parseTimeToMinutes,
+  sumShiftDurationHours,
 } from './lib/shiftHoursUtils'
+import { resolveAddShiftDate } from './lib/scheduleAddShiftDate'
+import { shiftsInWeek } from './lib/scheduleBrowseWeek'
+import { buildCopyDayPayloads } from './lib/scheduleCopyDay'
+import { appendUnplacedScheduleShifts, isCustomScheduleRow } from './lib/scheduleCustomRow'
+import { useEscapeToClose } from './lib/useEscapeToClose'
 import { buildEmployeeWeekScheduleView } from './lib/employeeWeekScheduleView'
 import {
   getEmployeeAvailabilityWeek,
@@ -456,7 +463,6 @@ import {
   buildScheduleDayWarnings,
   countScheduleRosterEmployees,
 } from './lib/scheduleInsights'
-import { useEscapeToClose } from './lib/useEscapeToClose'
 import {
   getRestOfWeekDateKeys,
   getShiftSchedulingConflictType,
@@ -2846,6 +2852,7 @@ function ScheduleView({
   onOpenRequestLeave,
 }) {
   const [selectedDay, setSelectedDay] = useState(null)
+  const selectedScheduleDayExplicitRef = useRef(false)
   const [scheduleAvailabilityOverlay, setScheduleAvailabilityOverlay] = useState({
     byEmployeeId: {},
     loadFailed: false,
@@ -3057,9 +3064,28 @@ function ScheduleView({
     return () => document.removeEventListener('pointerdown', handlePointerDown)
   }, [isScheduleMoreMenuOpen, isShiftTemplatesOpen])
 
+  useEscapeToClose(() => {
+    setDayActionMenuKey(null)
+    dayActionMenuAnchorRef.current = null
+  }, { enabled: Boolean(dayActionMenuKey) })
+  useEscapeToClose(() => {
+    setCellActionMenuKey('')
+    cellActionMenuAnchorRef.current = null
+  }, { enabled: Boolean(cellActionMenuKey) })
+  useEscapeToClose(() => {
+    setEditingAssignmentShift(null)
+    setAssignmentError('')
+  }, { enabled: Boolean(editingAssignmentShift) })
+  useEscapeToClose(() => setShiftPendingDelete(null), { enabled: Boolean(shiftPendingDelete) })
+  useEscapeToClose(() => {
+    setAssignmentTimeEdit(null)
+    setAssignmentError('')
+  }, { enabled: Boolean(assignmentTimeEdit) })
+
   useEffect(() => {
     setCapacityDraftMap({})
     setCapacityPickerKey('')
+    selectedScheduleDayExplicitRef.current = false
     setSelectedDay(null)
     setDayActionMenuKey(null)
     setCellActionMenuKey('')
@@ -3304,16 +3330,16 @@ function ScheduleView({
     return getTemplateDefaultRequiredCount(template)
   }
 
-  const getWeekDaysFromAnchor = (anchorDateInput) => {
-    const weekStart = anchorDateInput
-      ? getWeekStartDate(parseLocalDate(anchorDateInput))
-      : getCurrentWeekStartDate(timeZone)
-    return getWeekDays(weekStart)
-  }
+  const browseWeekDays = useMemo(() => {
+    const anchor = browseWeekAnchorDate || weekStartDate
+    return getWeekDays(anchor ? getWeekStartDate(parseLocalDate(anchor)) : weekStartDate)
+  }, [browseWeekAnchorDate, weekStartDate])
 
-  const browseWeekDays = useMemo(() => getWeekDaysFromAnchor(browseWeekAnchorDate), [browseWeekAnchorDate])
-
-  const browsedWeekShifts = browseWeekShifts
+  const browsedWeekShifts = useMemo(() => {
+    const openWeek = !browseWeekAnchorDate || getWeekStartDate(parseLocalDate(browseWeekAnchorDate)) === weekStartDate
+    if (openWeek) return visibleWeekShifts
+    return shiftsInWeek(browseWeekShifts, browseWeekDays.map((day) => day.key))
+  }, [browseWeekAnchorDate, browseWeekDays, browseWeekShifts, visibleWeekShifts, weekStartDate])
 
   const browsedWeekPreview = useMemo(() => {
     return [...browsedWeekShifts]
@@ -3483,7 +3509,7 @@ function ScheduleView({
   }
 
   const copyDayTargetShiftCount = copyDayTargetKey
-    ? visibleWeekShifts.filter((shift) => shift.date === copyDayTargetKey).length
+    ? visibleWeekShifts.filter((shift) => normalizeCellDate(shift.date) === copyDayTargetKey).length
     : 0
 
   const handleConfirmCopyDay = async () => {
@@ -3497,16 +3523,16 @@ function ScheduleView({
       return
     }
 
+    const sourceDate = copyDaySourceDay.key
+    const targetDate = copyDayTargetKey
+    const overwrite = copyDayTargetShiftCount > 0
+    setIsCopyDayModalOpen(false)
+    setCopyDaySourceDay(null)
+    setCopyDayTargetKey('')
+    setAssignmentError('')
+
     try {
-      await onCopyDay({
-        sourceDate: copyDaySourceDay.key,
-        targetDate: copyDayTargetKey,
-        overwrite: copyDayTargetShiftCount > 0,
-      })
-      setIsCopyDayModalOpen(false)
-      setCopyDaySourceDay(null)
-      setCopyDayTargetKey('')
-      setAssignmentError('')
+      await onCopyDay({ sourceDate, targetDate, overwrite })
     } catch (error) {
       setAssignmentError(error?.message || 'Unable to copy this day right now.')
     }
@@ -3514,12 +3540,13 @@ function ScheduleView({
 
   const handleConfirmClearDay = async () => {
     if (!clearDayTarget?.key) return
+    const dateKey = clearDayTarget.key
+    setIsClearDayModalOpen(false)
+    setClearDayTarget(null)
+    setAssignmentError('')
 
     try {
-      await onClearDay(clearDayTarget.key)
-      setIsClearDayModalOpen(false)
-      setClearDayTarget(null)
-      setAssignmentError('')
+      await onClearDay(dateKey)
     } catch (error) {
       setAssignmentError(error?.message || 'Unable to clear this day right now.')
     }
@@ -4054,22 +4081,13 @@ function ScheduleView({
 
   const weekSummary = useMemo(() => {
     const weekShifts = visibleWeekShifts
-    const totalHours = weekShifts.reduce((sum, shift) => {
-      if (!shift.startTime || !shift.endTime) return sum
-      const startMinutes = parseTimeToMinutes(shift.startTime)
-      const endMinutes = parseTimeToMinutes(shift.endTime)
-      if (Number.isFinite(startMinutes) && Number.isFinite(endMinutes) && endMinutes > startMinutes) {
-        return sum + (endMinutes - startMinutes) / 60
-      }
-      return sum
-    }, 0)
-
+    const totalHours = sumShiftDurationHours(weekShifts)
     const employeesOff = employees.filter((employee) => isEmployeeUnavailable(employee)).length
 
     return {
       employeeCount: countScheduleRosterEmployees(employees),
       totalShifts: weekShifts.length,
-      totalHours: totalHours.toFixed(1),
+      totalHours: formatHoursLabel(totalHours),
       employeesOff,
     }
   }, [employees, visibleWeekShifts])
@@ -4157,7 +4175,7 @@ function ScheduleView({
       shiftsByDayKey[dayKey].push(shift)
     })
 
-    return scheduleGridTemplates.map((template) => {
+    const templateRows = scheduleGridTemplates.map((template) => {
       const dayCells = weekDays.map((day) => {
         const requiredCount = getRequiredCountForCell(template, day.key)
         const cellKeys = getTemplateCellKeys(template, day.key)
@@ -4216,6 +4234,12 @@ function ScheduleView({
         dayCells,
       }
     })
+
+    return appendUnplacedScheduleShifts(templateRows, {
+      weekDays,
+      shifts: visibleWeekShifts,
+      employees,
+    })
   }, [employees, scheduleGridTemplates, weekDays, capacityLookup, capacityDraftMap, assignmentsByCell, visibleWeekShifts])
 
   const blendGridAreaGroups = useMemo(
@@ -4258,6 +4282,7 @@ function ScheduleView({
       let issueCount = 0
 
       blendGridRows.forEach((row) => {
+        if (isCustomScheduleRow(row)) return
         const cell = row.dayCells.find((entry) => entry.day.key === dayKey)
         if (!cell) return
         if (cell.assignedCount > cell.requiredCount) hasOverstaffed = true
@@ -4269,6 +4294,7 @@ function ScheduleView({
       let totalRequired = 0
       let totalAssignedSlots = 0
       blendGridRows.forEach((row) => {
+        if (isCustomScheduleRow(row)) return
         const cell = row.dayCells.find((entry) => entry.day.key === dayKey)
         if (!cell) return
         totalRequired += cell.requiredCount
@@ -4331,6 +4357,7 @@ function ScheduleView({
     let totalAssigned = 0
 
     blendGridRows.forEach((row) => {
+      if (isCustomScheduleRow(row)) return
       row.dayCells.forEach((cell) => {
         totalRequired += cell.requiredCount
         totalAssigned += cell.assignedCount
@@ -4369,6 +4396,21 @@ function ScheduleView({
     () => buildEmployeeWeeklyHoursMap(visibleWeekShifts),
     [visibleWeekShifts],
   )
+
+  const weeklyHoursWarnings = useMemo(() => (
+    activeStaffMembers.flatMap((employee) => {
+      const scheduled = employeeWeeklyHoursMap.get(String(employee.id)) ?? 0
+      const target = parseWeeklyHoursTarget(employee.weeklyHours ?? employee.weekly_hours)
+      if (target == null || scheduled <= target + 0.05) return []
+      const name = employee.full_name || employee.name || 'Employee'
+      const over = Math.round((scheduled - target) * 10) / 10
+      return [{
+        id: String(employee.id),
+        name,
+        detail: `${formatHoursLabel(scheduled)}/${formatHoursLabel(target)}h · ${formatHoursLabel(over)}h over weekly hours`,
+      }]
+    })
+  ), [activeStaffMembers, employeeWeeklyHoursMap])
 
   const assignmentTemplate = useMemo(
     () => scheduleGridTemplates.find((template) => template.id === assignmentDraft.templateId) ?? null,
@@ -4851,6 +4893,8 @@ function ScheduleView({
         timeMode: usesCustomTime ? 'custom' : 'template',
         startTime: normalizeTimeValue(editingAssignmentShift.startTime) || normalizeTimeValue(matchedTemplate.startTime),
         endTime: normalizeTimeValue(editingAssignmentShift.endTime) || normalizeTimeValue(matchedTemplate.endTime),
+        role: `${editingAssignmentShift.role ?? ''}`.trim(),
+        notes: editingAssignmentShift.notes ?? '',
       })
       setAssignmentError('')
       handleCloseAssignmentActions()
@@ -4897,13 +4941,19 @@ function ScheduleView({
       ? normalizeTimeValue(template.endTime)
       : normalizeTimeValue(assignmentTimeEdit.endTime)
 
+    const role = `${assignmentTimeEdit.role ?? ''}`.trim()
+    const notes = assignmentTimeEdit.notes ?? ''
     if (!startTime || !endTime || startTime === endTime) {
       setAssignmentError('Please add a valid start and end time.')
       return
     }
+    if (!role) {
+      setAssignmentError('Role is required.')
+      return
+    }
 
     try {
-      await onUpdateAssignmentTime(shift.id, { startTime, endTime })
+      await onUpdateAssignmentTime(shift.id, { startTime, endTime, role, notes })
       setAssignmentTimeEdit(null)
       setAssignmentError('')
     } catch (error) {
@@ -4974,7 +5024,12 @@ function ScheduleView({
   }
 
   const handleOpenAddShiftForDate = (date) => {
-    onOpenAddShift(date || selectedDate || '')
+    const requestedDate = selectedScheduleDayExplicitRef.current ? (date || selectedDate || '') : ''
+    onOpenAddShift(resolveAddShiftDate({
+      requestedDate,
+      weekDateKeys: weekDays.map((day) => day.key),
+      todayKey: getDateKeyInTimeZone(new Date(), timeZone),
+    }))
   }
 
   const handleShiftDragStart = (event, shift) => {
@@ -5478,7 +5533,7 @@ function ScheduleView({
           {isScheduleMoreMenuOpen ? (
             <div className="template-card-menu schedule-more-menu-dropdown" role="menu">
               <button type="button" className="template-card-menu-item" role="menuitem" onClick={() => { setIsScheduleMoreMenuOpen(false); handleOpenAddShiftForDate(selectedDate) }} disabled={isSaving}>Add Shift</button>
-              <button type="button" className="template-card-menu-item" role="menuitem" onClick={() => { setIsScheduleMoreMenuOpen(false); handleOpenSaveWeekTemplateModal() }} disabled={isSaving}>Save Week</button>
+              <button type="button" className="template-card-menu-item" role="menuitem" onClick={() => { setIsScheduleMoreMenuOpen(false); handleOpenSaveWeekTemplateModal() }} disabled={isSaving}>Save as weekly template</button>
               {selectedWeeklyTemplateId ? (
                 <>
                   <button type="button" className="template-card-menu-item" role="menuitem" onClick={() => { setIsScheduleMoreMenuOpen(false); handleOpenLoadWeekTemplateModal() }} disabled={isSaving}>Load Week</button>
@@ -5657,7 +5712,7 @@ function ScheduleView({
                                 event.stopPropagation()
                                 handleEmployeeChipFocusToggle(employee.id)
                               }}
-                              aria-label={`${isEmployeeFocused ? 'Clear focus for' : 'Focus'} ${employeeName}, ${chipStatusLabel}, ${positionLabel}`}
+                              aria-label={`${isEmployeeFocused ? 'Clear focus for' : 'Focus'} ${employeeName}, ${chipStatusLabel}, ${hoursTracker.primaryLabel}${hoursTracker.status === 'over' ? ', over weekly hours' : ''}, ${positionLabel}`}
                               aria-pressed={isEmployeeFocused}
                             >
                               <span className="schedule-staff-chip-identity">
@@ -5670,7 +5725,7 @@ function ScheduleView({
                                   <span className={`schedule-staff-workload-status tone-${workloadStatus.tone}`}>
                                     {chipStatusLabel}
                                   </span>
-                                  <span className="schedule-staff-hours-primary">{hoursTracker.primaryLabel}</span>
+                                  <span className={`schedule-staff-hours-primary${hoursTracker.status === 'over' ? ' is-over' : ''}`}>{hoursTracker.primaryLabel}</span>
                                 </span>
                               </span>
                             </button>
@@ -5697,7 +5752,7 @@ function ScheduleView({
           </details>
 
       <div className={`schedule-grid-section panel staff-panel blend-grid-panel schedule-grid-hero ${isScheduleVisualFilterActive ? 'schedule-visual-filter-active' : ''}`}>
-        {scheduleGridTemplates.length === 0 ? (
+        {blendGridRows.length === 0 ? (
           <div className="schedule-empty-state">
             <h4>No shift templates available.</h4>
             <p>Create templates first, then assign employees directly in this grid.</p>
@@ -5728,7 +5783,10 @@ function ScheduleView({
                   <button
                     type="button"
                     className="blend-grid-header-day-select"
-                    onClick={() => setSelectedDay(day.key)}
+                    onClick={() => {
+                    selectedScheduleDayExplicitRef.current = true
+                    setSelectedDay(day.key)
+                  }}
                   >
                     <strong className="blend-grid-header-day-name" title={dayHeader.weekdayLabel}>
                       {isScheduleCompactLandscape ? dayHeader.weekdayShortLabel : dayHeader.weekdayLabel}
@@ -5803,6 +5861,7 @@ function ScheduleView({
                   </button>
 
                   {isAreaExpanded ? group.rows.map((row) => {
+                const isCustomRow = isCustomScheduleRow(row)
                 const templateShiftName = `${row.template.name || row.template.defaultArea || 'Shift'}`.trim()
                 const templateDepartment = `${row.template.defaultArea || row.template.defaultRole || 'General'}`.trim()
                 const templateShiftDisplayName = formatScheduleShiftDisplayName(templateShiftName, templateDepartment)
@@ -5826,7 +5885,7 @@ function ScheduleView({
                         draggedShift
                         && resolveShiftTemplateId(draggedShift) === resolveShiftTemplateId(row.template)
                       )
-                    const canAcceptEmployeeDrop = dragPayload?.type === 'employee'
+                    const canAcceptEmployeeDrop = dragPayload?.type === 'employee' && !isCustomRow
                     const canAcceptShiftCopyDrop = isShiftCopyDrag && isSameTemplateForCopy
                     const canAcceptShiftMoveDrop = isShiftPromptDrag
                     const canAcceptDrop = canAcceptEmployeeDrop || canAcceptShiftCopyDrop || canAcceptShiftMoveDrop
@@ -5846,7 +5905,10 @@ function ScheduleView({
                     <article
                       key={`cell-${row.template.id}-${cell.day.key}`}
                       className={`blend-grid-assignment-cell schedule-shift-instance-card ${selectedDay === cell.day.key ? 'active' : ''} ${cell.assignedCount === 0 ? 'empty' : ''} ${cell.hasRealConflict ? 'has-conflict' : cell.staffingState} ${isDropTarget ? 'drop-target' : ''} ${isTodayColumn ? 'is-today' : ''} ${isScheduleVisualFilterActive && !cellHasVisualEmphasis ? 'visual-faded' : ''}`}
-                      onClick={() => setSelectedDay(cell.day.key)}
+                      onClick={() => {
+                      selectedScheduleDayExplicitRef.current = true
+                      setSelectedDay(cell.day.key)
+                    }}
                       onDragOver={(event) => handleCellDragOver(event, cellDropKey, { canAcceptDrop })}
                       onDrop={(event) => handleCellDrop(event, row.template, cell.day, cell)}
                     >
@@ -5854,11 +5916,12 @@ function ScheduleView({
                         <div className="schedule-shift-instance-copy">
                           <span className="schedule-shift-instance-dept" title={templateDepartment}>{templateDepartment}</span>
                           <h4 className="schedule-shift-instance-name" title={templateShiftDisplayName}>{templateShiftDisplayName}</h4>
-                          {templateTimeLabel ? (
+                          {templateTimeLabel && !isCustomRow ? (
                             <span className="schedule-shift-instance-time" title={templateTimeLabel}>{templateTimeLabel}</span>
                           ) : null}
                         </div>
                         <div className="blend-grid-cell-actions" onClick={(event) => event.stopPropagation()}>
+                          {isCustomRow ? null : <>
                           <button
                             type="button"
                             className="blend-grid-cell-menu-btn"
@@ -5936,9 +5999,15 @@ function ScheduleView({
                               Remove shift
                             </button>
                           </ScheduleCardActionMenu>
+                          </>}
                         </div>
                       </header>
 
+                      {isCustomRow ? (
+                        <p className="schedule-shift-staff-ratio" aria-label={`${cell.assignedCount} custom ${cell.assignedCount === 1 ? 'shift' : 'shifts'}`}>
+                          <span className="schedule-shift-staff-ratio-value">{cell.assignedCount} custom</span>
+                        </p>
+                      ) : (
                       <p className="schedule-shift-staff-ratio" aria-label={`${cell.assignedCount} of ${cell.requiredCount} staff scheduled`}>
                         <span className="schedule-shift-staff-ratio-value schedule-shift-staff-ratio-full">
                           {cell.assignedCount} / {isCapacitySaving ? '…' : cell.requiredCount} scheduled
@@ -5947,6 +6016,7 @@ function ScheduleView({
                           {cell.assignedCount}/{isCapacitySaving ? '…' : cell.requiredCount}
                         </span>
                       </p>
+                      )}
 
                       <div className="schedule-shift-assigned-block">
                         {cell.shifts.length > 0 ? (
@@ -5976,6 +6046,10 @@ function ScheduleView({
                                 loadFailed: scheduleAvailabilityOverlay.loadFailed,
                               })
                               const isAssignedUnavailable = assignedDayAvailability.tone === 'unavailable'
+                              const usesCustomTime = isCustomRow || isAssignmentUsingCustomTime(shift, row.template)
+                              const customTimeLabel = usesCustomTime
+                                ? formatTimeRange24(shift.startTime, shift.endTime, '–')
+                                : ''
 
                               return (
                                 <li key={`shift-assigned-${shift.id}`}>
@@ -5993,18 +6067,27 @@ function ScheduleView({
                                       event.stopPropagation()
                                       handleOpenAssignmentActions(shift)
                                     }}
-                                    title={isAssignedUnavailable ? `${employeeName} · Unavailable` : employeeName}
-                                    aria-label={isAssignedUnavailable ? `${employeeName}, unavailable` : employeeName}
+                                    title={[
+                                      employeeName,
+                                      isAssignedUnavailable ? 'Unavailable' : '',
+                                      customTimeLabel ? `Custom ${customTimeLabel}` : '',
+                                    ].filter(Boolean).join(' · ')}
+                                    aria-label={[
+                                      employeeName,
+                                      isAssignedUnavailable ? 'unavailable' : '',
+                                      customTimeLabel ? `custom time ${customTimeLabel}` : '',
+                                    ].filter(Boolean).join(', ')}
                                   >
                                     <span className="schedule-assigned-pill-name">{displayNameLabel}</span>
                                     {isAssignedUnavailable ? <span className="schedule-assigned-pill-availability">Unavailable</span> : null}
+                                    {customTimeLabel ? <span className="schedule-assigned-pill-custom">Custom {customTimeLabel}</span> : null}
                                   </button>
                                 </li>
                               )
                             })}
                           </ul>
                         ) : null}
-                        <button
+                        {isCustomRow ? null : <button
                           type="button"
                           className="schedule-assign-btn"
                           onClick={(event) => {
@@ -6017,7 +6100,7 @@ function ScheduleView({
                         >
                           <span className="schedule-assign-btn-icon" aria-hidden="true">+</span>
                           <span className="schedule-assign-btn-label"> Add employee</span>
-                        </button>
+                        </button>}
                       </div>
 
                       {coverageDetail.show ? (
@@ -6187,6 +6270,16 @@ function ScheduleView({
             <article className="schedule-weekly-stat">
               <p className="schedule-weekly-stat-label">Scheduled Hours</p>
               <p className="schedule-weekly-stat-value">{weekSummary.totalHours}h</p>
+              {weeklyHoursWarnings.length > 0 ? (
+                <ul className="schedule-hours-warnings">
+                  {weeklyHoursWarnings.map((warning) => (
+                    <li key={warning.id}>
+                      <strong>{warning.name}</strong>
+                      <span>{warning.detail}</span>
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
             </article>
             <article className="schedule-weekly-stat">
               <p className="schedule-weekly-stat-label">Coverage</p>
@@ -6237,7 +6330,7 @@ function ScheduleView({
             </select>
           </label>
 
-          <p className="schedule-saved-weeks-hint">Use More ▾ in the toolbar for Save, Load, Rename, Delete, Auto Fill, and Clear Week actions.</p>
+          <p className="schedule-saved-weeks-hint">Use More ▾ in the toolbar for Save as weekly template, Load, Rename, Delete, Auto Fill, and Clear Week.</p>
         </div>
 
         <div className="weekly-history-panel">
@@ -6245,14 +6338,14 @@ function ScheduleView({
             <span>Week Picker</span>
             <input
               type="date"
-              value={browseWeekAnchorDate}
+              value={browseWeekAnchorDate || weekStartDate}
               onChange={(event) => setBrowseWeekAnchorDate(event.target.value)}
             />
           </label>
 
           <div className="weekly-history-meta">
             <p><strong>Selected Week:</strong> {weekRangeLabel(browseWeekDays)}</p>
-            <p><strong>Shifts Found:</strong> {isBrowseWeekLoading ? 'Loading…' : browsedWeekShifts.length}</p>
+            <p><strong>Shifts Found:</strong> {isBrowseWeekLoading && browseWeekAnchorDate && getWeekStartDate(parseLocalDate(browseWeekAnchorDate)) !== weekStartDate ? 'Loading…' : browsedWeekShifts.length}</p>
             {browsedWeekPreview.length > 0 ? (
               <div className="weekly-history-preview">
                 {browsedWeekPreview.map((item) => (
@@ -6447,7 +6540,7 @@ function ScheduleView({
             <div className="drawer-header">
               <div>
                 <p className="eyebrow">Save current week</p>
-                <h3>Weekly template</h3>
+                <h3>Save as weekly template</h3>
               </div>
               <button type="button" className="icon-btn" onClick={() => setIsSaveWeekTemplateModalOpen(false)}>✕</button>
             </div>
@@ -6467,7 +6560,7 @@ function ScheduleView({
 
               <div className="modal-actions">
                 <button type="button" className="ghost-btn" onClick={() => setIsSaveWeekTemplateModalOpen(false)}>Cancel</button>
-                <button type="submit" className="primary-btn" disabled={isSaving}>{isSaving ? 'Saving…' : 'Save Current Week'}</button>
+                <button type="submit" className="primary-btn" disabled={isSaving}>{isSaving ? 'Saving…' : 'Save as weekly template'}</button>
               </div>
             </form>
           </div>
@@ -7207,7 +7300,7 @@ function ScheduleView({
             <div className="drawer-header">
               <div>
                 <p className="eyebrow">Edit assignment</p>
-                <h3>Assignment time</h3>
+                <h3>Edit shift</h3>
               </div>
               <button type="button" className="icon-btn" onClick={handleCloseAssignmentTimeEdit}>✕</button>
             </div>
@@ -7268,6 +7361,32 @@ function ScheduleView({
                 </label>
               </div>
 
+              <label className="form-field full-width">
+                <span>Role</span>
+                <input
+                  value={assignmentTimeEdit.role ?? ''}
+                  onChange={(event) => setAssignmentTimeEdit((current) => ({
+                    ...current,
+                    role: event.target.value,
+                  }))}
+                  disabled={isSaving}
+                  required
+                />
+              </label>
+              <label className="form-field full-width">
+                <span>Note</span>
+                <textarea
+                  rows="2"
+                  value={assignmentTimeEdit.notes ?? ''}
+                  onChange={(event) => setAssignmentTimeEdit((current) => ({
+                    ...current,
+                    notes: event.target.value,
+                  }))}
+                  disabled={isSaving}
+                  placeholder="Add a note"
+                />
+              </label>
+
               {assignmentTimeEdit.timeMode === 'custom' ? (
                 <p className="template-delete-copy">
                   Custom time applies only to this employee. The shift template time stays unchanged.
@@ -7282,7 +7401,7 @@ function ScheduleView({
 
               <div className="modal-actions">
                 <button type="button" className="ghost-btn" onClick={handleCloseAssignmentTimeEdit}>Cancel</button>
-                <button type="submit" className="primary-btn" disabled={isSaving}>{isSaving ? 'Saving…' : 'Save Time'}</button>
+                <button type="submit" className="primary-btn" disabled={isSaving}>{isSaving ? 'Saving…' : 'Save'}</button>
               </div>
             </form>
           </div>
@@ -15722,6 +15841,12 @@ function App() {
   const templateReorderPointerRef = useRef(null)
   const templateReorderInitialOrderRef = useRef(null)
   const [templateNotice, setTemplateNotice] = useState('')
+  useEscapeToClose(() => {
+    setTemplateNotice('')
+    setEditingTemplate(null)
+    setTemplateForm(buildTemplateForm())
+    setIsTemplateModalOpen(false)
+  }, { enabled: isTemplateModalOpen })
   const [weeklyTemplates, setWeeklyTemplates] = useState([])
   const [isWeeklyTemplatesLoading, setIsWeeklyTemplatesLoading] = useState(true)
   const [formData, setFormData] = useState({
@@ -18295,7 +18420,7 @@ function App() {
       try {
         const [templatesResult, weeklyResult] = await Promise.allSettled([
           getShiftTemplates({ workspaceId: activeWorkspaceId }),
-          getWeeklyScheduleTemplates(),
+          getWeeklyScheduleTemplates(activeWorkspaceId),
         ])
         if (!isMounted) return
 
@@ -19083,7 +19208,7 @@ function App() {
   }
 
   const refreshWeeklyTemplates = async () => {
-    const remoteTemplates = await getWeeklyScheduleTemplates()
+    const remoteTemplates = await getWeeklyScheduleTemplates(activeWorkspaceId)
     setWeeklyTemplates(remoteTemplates)
     return remoteTemplates
   }
@@ -19126,6 +19251,7 @@ function App() {
     })
 
     const createdTemplate = await createWeeklyScheduleTemplate({
+      workspaceId: activeWorkspaceId,
       name: name.trim(),
       shifts: uniqueTemplateShifts,
     })
@@ -19395,31 +19521,62 @@ function App() {
       throw new Error('Source and target day must be different.')
     }
 
-    const sourceShifts = shifts.filter((shift) => shift.date === sourceDate)
+    const sameDay = (shift, dateKey) => normalizeCellDateKey(shift.date) === dateKey
+    const sourceShifts = shifts.filter((shift) => sameDay(shift, sourceDate))
     if (sourceShifts.length === 0) {
       throw new Error('No assignments found on the source day.')
     }
 
-    const targetShifts = shifts.filter((shift) => shift.date === targetDate)
+    const targetShifts = shifts.filter((shift) => sameDay(shift, targetDate))
     if (targetShifts.length > 0 && !overwrite) {
       throw new Error('Target day has existing assignments. Confirm overwrite to continue.')
     }
 
+    const payloads = buildCopyDayPayloads({
+      sourceShifts,
+      targetDate,
+      shiftTemplates,
+    })
+
     setIsSavingShift(true)
     setScheduleNotice('')
 
+    const created = []
+    let copiesCommitted = false
     try {
-      if (overwrite) {
-        for (const existingShift of targetShifts) {
-          await deleteShift(activeWorkspaceId, existingShift.id)
-        }
+      for (const payload of payloads) {
+        const saved = await createShift(activeWorkspaceId, payload, {
+          knownTemplateIds: buildKnownShiftTemplateIdSet(shiftTemplates),
+          requireTemplateId: Boolean(payload.shiftTemplateId),
+        })
+        created.push(saved)
+      }
+      copiesCommitted = true
+
+      if (overwrite && targetShifts.length > 0) {
+        await Promise.all(targetShifts.map((shift) => deleteShift(activeWorkspaceId, shift.id)))
       }
 
-      const created = await bulkCreateShiftsFromSource(sourceShifts, () => targetDate)
-      await refreshScheduleViewData()
+      const removedIds = new Set(
+        overwrite ? targetShifts.map((shift) => String(shift.id)) : [],
+      )
+      setShifts((current) => [
+        ...current.filter((shift) => !removedIds.has(String(shift.id))),
+        ...created,
+      ])
       setScheduleNotice(`Copied ${created.length} assignment${created.length === 1 ? '' : 's'} to the target day.`)
       return created
     } catch (error) {
+      if (!copiesCommitted && created.length > 0) {
+        const rolledBack = await Promise.all(created.map((shift) => (
+          deleteShift(activeWorkspaceId, shift.id).then(() => true).catch(() => false)
+        )))
+        if (rolledBack.some((ok) => !ok)) {
+          await refreshScheduleViewData().catch(() => {})
+        }
+      } else if (copiesCommitted) {
+        await refreshScheduleViewData().catch(() => {})
+      }
       const message = getSupabaseErrorMessage(error)
       setScheduleNotice(message)
       throw new Error(message)
@@ -19498,22 +19655,21 @@ function App() {
       throw new Error('Day is required.')
     }
 
-    const dayShifts = shifts.filter((shift) => shift.date === dateKey)
+    const dayShifts = shifts.filter((shift) => normalizeCellDateKey(shift.date) === dateKey)
     if (dayShifts.length === 0) {
       throw new Error('No assignments found on this day.')
     }
 
+    const removedIds = new Set(dayShifts.map((shift) => String(shift.id)))
     setIsSavingShift(true)
     setScheduleNotice('')
+    setShifts((current) => current.filter((shift) => !removedIds.has(String(shift.id))))
 
     try {
-      for (const shift of dayShifts) {
-        await deleteShift(activeWorkspaceId, shift.id)
-      }
-
-      await refreshScheduleViewData()
+      await Promise.all(dayShifts.map((shift) => deleteShift(activeWorkspaceId, shift.id)))
       setScheduleNotice(`Cleared ${dayShifts.length} assignment${dayShifts.length === 1 ? '' : 's'} from the day.`)
     } catch (error) {
+      await refreshScheduleViewData()
       const message = getSupabaseErrorMessage(error)
       setScheduleNotice(message)
       throw new Error(message)
@@ -20599,17 +20755,11 @@ function App() {
 
     try {
       const createdShift = await createShift(activeWorkspaceId, payload, gridShiftOptions)
-      console.log("Created shift", createdShift)
-      const refreshedShifts = await refreshScheduleViewData()
-      const targetCellKey = buildTemplateCellKey({ template, shiftDate })
-      const placed = refreshedShifts.some((shift) => {
-        if (String(shift.id) !== String(createdShift.id)) return false
-        return buildShiftCellKeyFromRecord(shift) === targetCellKey
-      })
-      if (!placed) {
-        setScheduleNotice('Shift saved, but could not be placed in the grid. Check shift_template_id or cell key.')
-        return createdShift
-      }
+      setShifts((current) => (
+        current.some((shift) => String(shift.id) === String(createdShift.id))
+          ? current
+          : [...current, createdShift]
+      ))
       const nextAssigned = Number(currentAssignedCount) + 1
       setScheduleNotice(formatStaffingNotice(requiredCount, nextAssigned))
       return createdShift
@@ -20696,7 +20846,7 @@ function App() {
     }
   }
 
-  const handleUpdateAssignmentTime = async (shiftId, { startTime, endTime }) => {
+  const handleUpdateAssignmentTime = async (shiftId, { startTime, endTime, role: nextRole, notes: nextNotes }) => {
     const targetShift = shifts.find((shift) => String(shift.id) === String(shiftId))
     if (!targetShift) {
       throw new Error('Shift assignment could not be found.')
@@ -20704,8 +20854,9 @@ function App() {
 
     const normalizedStartTime = normalizeTimeValue(startTime)
     const normalizedEndTime = normalizeTimeValue(endTime)
-    const role = `${targetShift.role ?? ''}`.trim()
+    const role = `${nextRole ?? targetShift.role ?? ''}`.trim()
     const area = `${targetShift.area ?? ''}`.trim()
+    const notes = nextNotes ?? targetShift.notes ?? ''
 
     if (!validateShiftRequiredFields({
       employeeId: targetShift.employeeId,
@@ -20754,7 +20905,7 @@ function App() {
       role,
       area,
       status: targetShift.status ?? 'Scheduled',
-      notes: targetShift.notes ?? '',
+      notes,
       shiftTemplateId: targetShift.shiftTemplateId ?? null,
     }
 
@@ -20762,8 +20913,10 @@ function App() {
 
     try {
       const savedShift = await updateShift(activeWorkspaceId, shiftId, payload, gridShiftOptions)
-      await refreshScheduleViewData()
-      setScheduleNotice('Assignment time updated.')
+      setShifts((current) => current.map((shift) => (
+        String(shift.id) === String(savedShift.id) ? savedShift : shift
+      )))
+      setScheduleNotice('Shift updated.')
       return savedShift
     } catch (error) {
       const message = getSupabaseErrorMessage(error)
