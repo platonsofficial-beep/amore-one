@@ -6,8 +6,10 @@ import {
   getReservationSeatingAssignment,
 } from './seatingAssignment'
 import { isReservationProblemForHostFilter } from './hostServiceDashboard'
+import { isOperationalReservation } from './reservationHostStatus'
 import {
   reservationMatchesTableDayViewSeating,
+  resolveHostQueueSeatingId,
 } from './reservationSeatings'
 import { findLayoutUnit } from './reservationTableOptions'
 import {
@@ -131,14 +133,19 @@ export function filterReservationsBySelectedSeating(
 
   const seatingsList = seatings.length > 0 ? seatings : [selectedSeating]
 
-  return reservations.filter((reservation) => (
-    reservationMatchesTableDayViewSeating(
-      reservation,
-      selectedSeating,
-      dateKey,
-      seatingsList,
-    )
-  ))
+  return reservations.filter((reservation) => {
+    if (!isOperationalReservation(reservation)) {
+      return reservationMatchesTableDayViewSeating(
+        reservation,
+        selectedSeating,
+        dateKey,
+        seatingsList,
+      )
+    }
+
+    const seatingId = resolveHostQueueSeatingId(reservation, seatingsList, dateKey)
+    return Boolean(seatingId) && String(seatingId) === String(selectedSeating.id)
+  })
 }
 
 export function deriveReservationAreaZoneIds(reservation, layout = null) {
@@ -525,8 +532,9 @@ export function buildHostQueueReservationList(
     problemFilterOptions = {},
   } = {},
 ) {
+  const hasSearch = `${searchTerm ?? ''}`.trim().length > 0
   let filtered = buildHostQueueScopeReservations(reservations, {
-    selectedSeating,
+    selectedSeating: hasSearch ? null : selectedSeating,
     seatings,
     dateKey,
     areaFilterId,

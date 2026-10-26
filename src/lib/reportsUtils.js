@@ -1,6 +1,7 @@
 import { selectScheduleIssues } from './operationalSnapshotUtils'
 import {
   getHostStatusGroupId,
+  isOperationalReservation,
   isReservationInHouseStatus,
   normalizeReservationStatus,
 } from './reservationHostStatus'
@@ -10,7 +11,6 @@ import { buildStockDashboardSummary } from './stockUtils'
 import { buildStockOrdersOperationsSummary } from './stockOrderUtils'
 import { buildTaskAlerts } from './taskUtils'
 import { buildUnifiedOperationalTaskCounts } from './sharedTaskWindow'
-import { isReservationExpectedForServiceMetrics } from './hostQueueServiceMetrics'
 import { getCurrentDateKey } from './currentDateUtils'
 import {
   calculateShiftDurationHours,
@@ -117,7 +117,7 @@ export function buildReservationsReport(
       timeZone,
     ))
     : []
-  const expected = scoped.filter((reservation) => isReservationExpectedForServiceMetrics(reservation))
+  const operational = scoped.filter((reservation) => isOperationalReservation(reservation))
 
   let guests = 0
   let inHouse = 0
@@ -125,7 +125,7 @@ export function buildReservationsReport(
   let cancelled = 0
   let noShow = 0
 
-  expected.forEach((reservation) => {
+  operational.forEach((reservation) => {
     const partySize = Number(reservation.guests)
     if (Number.isFinite(partySize) && partySize > 0) {
       guests += partySize
@@ -141,7 +141,7 @@ export function buildReservationsReport(
   })
 
   const metrics = {
-    bookings: expected.length,
+    bookings: operational.length,
     guests,
     inHouse,
     completed,

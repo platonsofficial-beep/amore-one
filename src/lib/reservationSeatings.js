@@ -262,6 +262,48 @@ export function resolveReservationSeatingId(reservation, seatings = [], dateKey 
   return matched?.id ?? null
 }
 
+/**
+ * Seatings the host list can show a booking in when its time sits in no window.
+ * Nearest start wins. An equal distance stays with the earlier seating.
+ */
+export function resolveNearestActiveSeatingId(timeValue, dateKey, seatings = []) {
+  const normalizedTime = normalizeReservationTimeValue(timeValue)
+  if (!normalizedTime) return null
+
+  const timeMinutes = parseReservationTimeToMinutes(normalizedTime)
+  if (timeMinutes === null) return null
+
+  const activeSeatings = getActiveSeatingsForDate(seatings, dateKey)
+  let bestId = null
+  let bestDistance = Infinity
+  let bestStart = Infinity
+
+  activeSeatings.forEach((seating) => {
+    const startMinutes = parseReservationTimeToMinutes(seating.startTime)
+    if (startMinutes === null) return
+    const distance = Math.abs(timeMinutes - startMinutes)
+    if (distance < bestDistance || (distance === bestDistance && startMinutes < bestStart)) {
+      bestId = seating.id
+      bestDistance = distance
+      bestStart = startMinutes
+    }
+  })
+
+  return bestId
+}
+
+export function resolveHostQueueSeatingId(reservation, seatings = [], dateKey = null) {
+  const matched = resolveReservationSeatingId(reservation, seatings, dateKey)
+  if (matched) return matched
+
+  const resolvedDateKey = dateKey ?? reservation?.date ?? reservation?.reservation_date ?? ''
+  return resolveNearestActiveSeatingId(
+    reservation?.time ?? reservation?.reservation_time,
+    resolvedDateKey,
+    seatings,
+  )
+}
+
 export function reservationMatchesTableDayViewSeating(
   reservation,
   seating,

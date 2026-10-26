@@ -68,7 +68,7 @@ describe('reportsUtils', () => {
     expect(weekReport.metrics.bookings).toBe(2)
   })
 
-  it('counts bookings the way Reservations counts expected guests', () => {
+  it('counts bookings the same way Today counts operational reservations', () => {
     const report = buildReservationsReport([
       makeReservation({ id: 'pending', status: 'Pending', guests: 2 }),
       makeReservation({ id: 'seated', status: 'Checked In', guests: 4 }),
@@ -81,8 +81,8 @@ describe('reportsUtils', () => {
       connected: true,
     })
 
-    expect(report.metrics.bookings).toBe(1)
-    expect(report.metrics.guests).toBe(2)
+    expect(report.metrics.bookings).toBe(2)
+    expect(report.metrics.guests).toBe(6)
     expect(report.metrics.inHouse).toBe(1)
     expect(report.metrics.completed).toBe(1)
     expect(report.metrics.cancelled).toBe(1)

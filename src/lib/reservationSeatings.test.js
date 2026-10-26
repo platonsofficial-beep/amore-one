@@ -8,7 +8,7 @@ import {
   normalizeReservationSeating,
   normalizeReservationSeatingInput,
   isReservationTimeInSeatingWindow,
-  reservationMatchesTableDayViewSeating,
+  resolveHostQueueSeatingId,
   resolveReservationSeatingId,
   serializeReservationSeatingRow,
   sortReservationSeatings,
@@ -172,6 +172,33 @@ describe('reservationSeatings', () => {
     }, seatings)
 
     expect(seatingId).toBeNull()
+  })
+
+  it('shows a booking between seatings on the nearest seating', () => {
+    const seatings = sortReservationSeatings([
+      {
+        id: 'lunch',
+        name: 'Lunch',
+        start_time: '12:00',
+        duration_minutes: 150,
+        days_of_week: [0, 1, 2, 3, 4, 5, 6],
+        sort_order: 0,
+        is_active: true,
+      },
+      {
+        id: 'dinner-1',
+        name: 'Dinner 1',
+        start_time: '19:00',
+        duration_minutes: 150,
+        days_of_week: [0, 1, 2, 3, 4, 5, 6],
+        sort_order: 1,
+        is_active: true,
+      },
+    ])
+
+    const reservation = { date: '2026-07-10', time: '17:00', status: 'Confirmed' }
+    expect(resolveReservationSeatingId(reservation, seatings)).toBeNull()
+    expect(resolveHostQueueSeatingId(reservation, seatings, '2026-07-10')).toBe('dinner-1')
   })
 
   it('filters active seatings for a date', () => {
