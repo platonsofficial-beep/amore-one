@@ -678,9 +678,11 @@ import {
 import ReportsView from './components/reports/ReportsView'
 import { ScheduleCardActionMenu } from './components/schedule/ScheduleCardActionMenu'
 import { UNASSIGNED_CUSTOM_DEPARTMENT_NAME } from './lib/taskDepartments'
+import { combineOperationalTasks } from './lib/sharedTaskWindow'
 import {
   persistNavigation,
   readPersistedNavigation,
+  resolveInitialScheduleWeekStart,
 } from './lib/navigationPersistence'
 import {
   persistManagerMobileTab,
@@ -15513,7 +15515,7 @@ function App() {
   })
   const [publishedShifts, setPublishedShifts] = useState([])
   const [scheduleWeekStart, setScheduleWeekStart] = useState(
-    () => persistedNavigation.scheduleWeekStart ?? getCurrentWeekStartDate(),
+    () => resolveInitialScheduleWeekStart(getCurrentWeekStartDate()),
   )
   const [scheduleEmployees, setScheduleEmployees] = useState([])
   const [isScheduleLoading, setIsScheduleLoading] = useState(true)
@@ -16052,10 +16054,9 @@ function App() {
       teamSection,
       stockSection,
       operationsSection,
-      scheduleWeekStart,
       ...overrides,
     })
-  }, [activeView, settingsSection, teamSection, stockSection, operationsSection, scheduleWeekStart])
+  }, [activeView, settingsSection, teamSection, stockSection, operationsSection])
 
   const syncScheduleTemplateSetupState = useCallback(() => {
     setScheduleLegacyTemplateSchema(didUseLegacyShiftTemplateSchema())
@@ -16069,7 +16070,6 @@ function App() {
       teamSection,
       stockSection,
       operationsSection,
-      scheduleWeekStart: nextWeekStart,
     })
   }, [activeView, settingsSection, teamSection, stockSection, operationsSection])
 
@@ -16407,9 +16407,19 @@ function App() {
     [tasks, operationsAnnouncements],
   )
 
+  const sharedOperationalTasks = useMemo(
+    () => combineOperationalTasks(
+      todayActionableTasks,
+      operationsTasks,
+      currentDateKey,
+      operationsAnnouncements,
+    ),
+    [todayActionableTasks, operationsTasks, currentDateKey, operationsAnnouncements],
+  )
+
   const dashboardTaskOverview = useMemo(
-    () => calculateTaskOverview(todayActionableTasks, currentDateKey),
-    [todayActionableTasks, currentDateKey],
+    () => calculateTaskOverview(sharedOperationalTasks, currentDateKey),
+    [sharedOperationalTasks, currentDateKey],
   )
 
   const currentTaskEmployeeId = useMemo(() => {
@@ -24711,6 +24721,11 @@ function App() {
         {isActiveViewAllowed && activeView === 'operations' && operationsSection === 'dashboard' && !activeChecklistRunTemplateId ? (
           <OperationsDashboardView
             tasks={operationsTasks}
+            countedTasks={sharedOperationalTasks}
+            onCompleteWorkspaceTask={(task) => handleCompleteTask(task?.id)}
+            onReopenWorkspaceTask={(task) => handleReopenTask(task?.id)}
+            onDeleteWorkspaceTask={(task) => handleDeleteTask(task?.id)}
+            onEditWorkspaceTask={() => handleOperationsSectionChange('tasks')}
             logs={operationsLogs}
             announcements={operationsAnnouncements}
             checklistTemplates={operationsChecklistTemplates}

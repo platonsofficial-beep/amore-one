@@ -1,6 +1,11 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { resolvePermittedActiveView } from './permissions'
-import { normalizeActiveView, readPersistedNavigation } from './navigationPersistence'
+import {
+  normalizeActiveView,
+  persistNavigation,
+  readPersistedNavigation,
+  resolveInitialScheduleWeekStart,
+} from './navigationPersistence'
 
 describe('navigationPersistence', () => {
   afterEach(() => {
@@ -30,6 +35,31 @@ describe('navigationPersistence', () => {
     expect(resolvePermittedActiveView('host', normalizeActiveView('settings'))).toBe('reservations')
     expect(resolvePermittedActiveView('host', normalizeActiveView('stock'))).toBe('reservations')
     expect(resolvePermittedActiveView('host', normalizeActiveView('reservations'))).toBe('reservations')
+  })
+
+  it('opens the schedule on the current week instead of a stored previous week', () => {
+    const store = new Map([
+      ['one.navigation.v2', JSON.stringify({
+        activeView: 'team',
+        teamSection: 'schedule',
+        scheduleWeekStart: '2026-10-19',
+      })],
+    ])
+    vi.stubGlobal('window', {
+      localStorage: {
+        getItem: (key) => store.get(key) ?? null,
+        setItem: (key, value) => store.set(key, value),
+        removeItem: (key) => store.delete(key),
+      },
+    })
+
+    expect(readPersistedNavigation().scheduleWeekStart).toBeNull()
+    expect(resolveInitialScheduleWeekStart('2026-10-26')).toBe('2026-10-26')
+    expect(resolveInitialScheduleWeekStart('2026-10-19')).toBe('2026-10-19')
+
+    persistNavigation({ activeView: 'team', teamSection: 'schedule', scheduleWeekStart: '2026-10-19' })
+    expect(JSON.parse(store.get('one.navigation.v2')).scheduleWeekStart).toBeUndefined()
+    expect(resolveInitialScheduleWeekStart('2026-10-26')).toBe('2026-10-26')
   })
 
   it('redirects managers away from persisted settings', () => {

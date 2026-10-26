@@ -65,8 +65,44 @@ export function buildStockMonthlyInsights(movements = [], now = new Date()) {
   return { received, used, adjustments }
 }
 
+function movementInstant(movement) {
+  const createdAt = movement?.createdAt ?? movement?.created_at ?? null
+  const parsed = Date.parse(createdAt ?? '')
+  return Number.isFinite(parsed) ? parsed : 0
+}
+
+function movementLocationKeys(movement) {
+  return [
+    movement?.destinationLocationKey,
+    movement?.destination_location_key,
+    movement?.sourceLocationKey,
+    movement?.source_location_key,
+  ].map((value) => `${value ?? ''}`.trim().toLowerCase()).filter(Boolean)
+}
+
+/**
+ * Last counted is the newest stock_count movement for the item.
+ * When a location is shown, a count for that location wins over a newer
+ * count stored somewhere else. Falls back to the catalog lastCount.
+ */
+export function resolveLastCountedRecord(movements = [], fallback = null, { locationKey = '' } = {}) {
+  const counts = (movements ?? []).filter((movement) => `${movement?.type ?? ''}` === 'stock_count' && movementInstant(movement) > 0)
+  const wantedLocation = `${locationKey ?? ''}`.trim().toLowerCase()
+  const located = wantedLocation
+    ? counts.filter((movement) => movementLocationKeys(movement).includes(wantedLocation))
+    : []
+  const pool = located.length > 0 ? located : counts
+  const latest = [...pool].sort((left, right) => movementInstant(right) - movementInstant(left))[0]
+  if (latest) {
+    return { createdAt: latest.createdAt ?? latest.created_at }
+  }
+
+  const fallbackAt = fallback?.createdAt ?? fallback?.created_at ?? null
+  return fallbackAt ? { createdAt: fallbackAt } : null
+}
+
 export function formatLastCountedLabel(lastCount, now = new Date()) {
-  const createdAt = lastCount?.createdAt
+  const createdAt = lastCount?.createdAt ?? lastCount?.created_at
   if (!createdAt) return 'Never'
 
   const date = new Date(createdAt)

@@ -53,6 +53,15 @@ function normalizeScheduleWeekStart(value) {
   return normalized
 }
 
+/**
+ * Team schedule always opens on the current venue week.
+ * A week saved in localStorage is ignored, including a previous week that
+ * was left open the last time the app was used.
+ */
+export function resolveInitialScheduleWeekStart(currentWeekStart) {
+  return normalizeScheduleWeekStart(currentWeekStart)
+}
+
 export function normalizeActiveView(value) {
   const normalized = `${value ?? ''}`.trim()
   if (VALID_ACTIVE_VIEWS.has(normalized)) {
@@ -127,7 +136,7 @@ export function readPersistedNavigation() {
     teamSection: normalizeTeamSection(migrated?.teamSection ?? stored.teamSection),
     stockSection: normalizeStockSection(migrated?.stockSection ?? stored.stockSection),
     operationsSection: normalizeOperationsSection(migrated?.operationsSection ?? stored.operationsSection),
-    scheduleWeekStart: normalizeScheduleWeekStart(stored.scheduleWeekStart),
+    scheduleWeekStart: null,
   }
 }
 
@@ -137,14 +146,10 @@ export function persistNavigation({
   teamSection,
   stockSection,
   operationsSection,
-  scheduleWeekStart,
 }) {
   if (typeof window === 'undefined') return
 
   const current = readPersistedNavigation()
-  const nextScheduleWeekStart = scheduleWeekStart === undefined
-    ? current.scheduleWeekStart
-    : normalizeScheduleWeekStart(scheduleWeekStart)
 
   window.localStorage.setItem(NAVIGATION_STORAGE_KEY, JSON.stringify({
     activeView: normalizeActiveView(activeView ?? current.activeView),
@@ -152,7 +157,6 @@ export function persistNavigation({
     teamSection: normalizeTeamSection(teamSection ?? current.teamSection),
     stockSection: normalizeStockSection(stockSection ?? current.stockSection),
     operationsSection: normalizeOperationsSection(operationsSection ?? current.operationsSection),
-    ...(nextScheduleWeekStart ? { scheduleWeekStart: nextScheduleWeekStart } : {}),
   }))
 }
 

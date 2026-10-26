@@ -24,6 +24,10 @@ function mapStockMovement(record) {
     note: record.note ?? '',
     createdBy: record.created_by ?? record.createdBy ?? null,
     createdAt: record.created_at ?? record.createdAt ?? null,
+    sourceWorkspaceStorageId: record.source_workspace_storage_id ?? record.sourceWorkspaceStorageId ?? null,
+    destinationWorkspaceStorageId: record.destination_workspace_storage_id ?? record.destinationWorkspaceStorageId ?? null,
+    sourceLocationKey: record.source_location_key ?? record.sourceLocationKey ?? '',
+    destinationLocationKey: record.destination_location_key ?? record.destinationLocationKey ?? '',
   }
 }
 
