@@ -2184,6 +2184,39 @@ describe('InventoryImportWizardShell', () => {
     expect(getButton('Done')).toBeTruthy()
   })
 
+  it('shows a plain message when the import session function is missing', async () => {
+    const missing = new Error(
+      'Could not find the function public.create_inventory_import_session in the schema cache',
+    )
+    missing.code = 'PGRST202'
+    renderShell({
+      workspaceId: 'ws-ops',
+      loadWorkspaceStockItems: vi.fn(async () => []),
+      createInventoryImportSession: vi.fn(async () => {
+        throw missing
+      }),
+      stageInventoryImportRows: vi.fn(),
+      markInventoryImportSessionReady: vi.fn(),
+      applyInventoryImportSession: vi.fn(),
+    })
+
+    await continueReadyCreateOnlyFlow()
+
+    await act(async () => {
+      getButton('Apply Import').dispatchEvent(new MouseEvent('click', { bubbles: true }))
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+
+    expect(container.querySelector('.inventory-import-wizard-review-title')?.textContent)
+      .toBe('Ready to Import')
+    expect(container.textContent).toContain(
+      'Import is not available yet. The import session functions have not been installed.',
+    )
+    expect(container.textContent).not.toContain('schema cache')
+    expect(getButton('Apply Import')?.disabled).toBe(false)
+  })
+
   it('keeps review state on apply failure, allows retry, and creates the session only once', async () => {
     const createInventoryImportSession = vi.fn(async () => ({
       sessionId: 'sess-retry-1',

@@ -152,6 +152,38 @@ export function mapInventoryImportRpcError(error, fallbackMessage) {
 }
 
 /**
+ * Plain message for the import wizard. Missing functions and permission
+ * failures stay on the review step instead of showing a database error.
+ * @param {unknown} error
+ * @param {string} [fallback]
+ * @returns {string}
+ */
+export function formatInventoryImportWizardError(error, fallback = 'Failed to apply inventory import.') {
+  const message = `${error?.message ?? error ?? ''}`.trim()
+  const code = `${error?.code ?? error?.cause?.code ?? ''}`.trim()
+  const combined = `${code} ${message}`.toLowerCase()
+
+  if (
+    code === 'PGRST202'
+    || combined.includes('schema cache')
+    || combined.includes('could not find the function')
+    || /function .* does not exist/.test(combined)
+  ) {
+    return 'Import is not available yet. The import session functions have not been installed.'
+  }
+
+  if (combined.includes('inventory_import_session_forbidden')) {
+    return 'Only an owner, general manager, or manager can import stock.'
+  }
+
+  if (combined.includes('inventory_import_session_unauthenticated')) {
+    return 'Sign in again, then retry the import.'
+  }
+
+  return message || fallback
+}
+
+/**
  * @param {{
  *   workspaceId: string,
  *   sourceFilename: string,
