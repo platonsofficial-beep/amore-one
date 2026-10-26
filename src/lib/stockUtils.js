@@ -1,4 +1,4 @@
-import { computeSuggestedOrder, itemNeedsOrder, resolveStockParQuantity } from './stockCatalog'
+import { computeSuggestedOrder, selectItemsToOrder } from './stockCatalog'
 import { isWasteNote } from './stockWaste'
 import { getCurrentDateKey } from './currentDateUtils'
 import { formatInventoryUnit } from './inventoryUnitDisplay'
@@ -53,7 +53,7 @@ export function resolveStockItemStatus(item) {
 
 export function getStockStatusLabel(status) {
   if (status === 'out') return 'Out of stock'
-  if (status === 'low') return 'Low stock'
+  if (status === 'low') return 'Low'
   if (status === 'inactive') return 'Inactive'
   return 'In stock'
 }
@@ -225,7 +225,7 @@ export function buildStockDashboardSummary(items = []) {
     return sum + (quantity * cost)
   }, 0)
 
-  const toOrder = activeItems.filter((item) => itemNeedsOrder(item)).length
+  const toOrder = selectItemsToOrder(items).length
 
   return {
     totalItems,
@@ -252,11 +252,14 @@ export function formatSharedStockHealthLine(summary = {}) {
   return 'Stock levels OK'
 }
 
-export function formatStockTotalItemsLabel(totalItems, inactiveItems = 0) {
-  const total = Number(totalItems) || 0
+export function formatStockTotalItemsLabel(totalItems) {
+  return String(Number(totalItems) || 0)
+}
+
+export function formatStockInactiveNote(inactiveItems = 0) {
   const inactive = Number(inactiveItems) || 0
-  if (inactive <= 0) return String(total)
-  return `${total} · +${inactive} inactive`
+  if (inactive <= 0) return ''
+  return `+${inactive} inactive`
 }
 
 export function getStockCategoryFilters(items = []) {

@@ -14,7 +14,7 @@ describe('resolveStockSectionNav', () => {
       'orders',
       'migration',
     ])
-    expect(nav.primary.find((section) => section.id === 'count')?.label).toBe('Inventory Count')
+    expect(nav.primary.find((section) => section.id === 'count')?.label).toBe('Counts')
   })
 
   it('puts phone stock tabs on one primary row and keeps the rest in More', () => {
@@ -22,7 +22,7 @@ describe('resolveStockSectionNav', () => {
 
     expect(nav.primary.map((section) => section.label)).toEqual([
       'Dashboard',
-      'Count',
+      'Counts',
       'Storages',
       'Orders',
     ])

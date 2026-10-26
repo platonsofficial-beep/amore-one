@@ -195,7 +195,7 @@ describe('todayViewUtils', () => {
     })
     expect(items[1]).toMatchObject({
       key: 'stock:s2',
-      detail: 'Low stock',
+      detail: 'Low',
     })
   })
 

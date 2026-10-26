@@ -1,4 +1,4 @@
-import { resolveStockStorageLocation } from './stockCatalog'
+import { resolveStockStorageLocation, selectItemsToOrder, computeSuggestedOrder } from './stockCatalog'
 import { filterStockDashboardItems } from './stockDashboardBrowse'
 import { resolveStockItemQuantityStatus } from './stockUtils'
 
@@ -84,25 +84,24 @@ function quantityStatus(item) {
 }
 
 /**
- * Out and low products, grouped by supplier. Uses the shared quantity status.
+ * To-order products grouped by supplier. Membership is selectItemsToOrder,
+ * so the group counts add up to the To order KPI (not Out + Low).
  */
 export function buildToOrderSupplierGroups(items = []) {
   const groups = new Map()
 
-  ;(items ?? []).forEach((item) => {
-    if (!item || item.active === false) return
+  selectItemsToOrder(items).forEach((item) => {
     const status = quantityStatus(item)
-    if (status !== 'out' && status !== 'low') return
     const supplier = `${item.supplier ?? ''}`.trim() || 'No supplier'
-    const current = groups.get(supplier) ?? { supplier, out: 0, low: 0 }
-    current[status] += 1
+    const current = groups.get(supplier) ?? { supplier, count: 0, out: 0, low: 0, quantity: 0 }
+    current.count += 1
+    current.quantity += computeSuggestedOrder(item)
+    if (status === 'out' || status === 'low') current[status] += 1
     groups.set(supplier, current)
   })
 
   return Array.from(groups.values()).sort((left, right) => {
-    const leftCount = left.out + left.low
-    const rightCount = right.out + right.low
-    if (leftCount !== rightCount) return rightCount - leftCount
+    if (left.count !== right.count) return right.count - left.count
     return left.supplier.localeCompare(right.supplier)
   })
 }

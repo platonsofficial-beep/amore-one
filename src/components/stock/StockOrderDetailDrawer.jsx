@@ -41,6 +41,7 @@ import {
 import { formatStockPurchasePrice, formatStockQuantity, formatInventoryUnitLabel } from '../../lib/stockUtils'
 import { listReceiveDestinationStorages } from '../../services/workspaceStorageService'
 import { LoadingButton } from '../LoadingButton'
+import { OverlayPortal } from './OverlayPortal'
 import { StockOrderReceiveConfirmModal } from './StockOrderReceiveConfirmModal'
 
 function receiveDestinationHint(storages = []) {
@@ -680,7 +681,7 @@ export function StockOrderDetailDrawer({
   const canMessageSupplier = Boolean(formatSupplierPhoneDigits(supplierPhone))
   let missingContactHint = ''
   if (!canEmailSupplier && !canMessageSupplier) {
-    missingContactHint = 'Add an email or phone on this supplier to send the draft. Print still works.'
+    missingContactHint = 'Add an email or phone on this supplier to send the order. Print still works.'
   } else if (!canEmailSupplier) {
     missingContactHint = 'Add an email on this supplier to send by email.'
   } else if (!canMessageSupplier) {
@@ -716,8 +717,8 @@ export function StockOrderDetailDrawer({
   )
 
   return (
-    <>
-      <div className="stock-product-history-backdrop" onClick={handleDismiss}>
+    <OverlayPortal>
+      <div className="stock-product-history-backdrop stock-overlay" onClick={handleDismiss}>
         <aside
           className="stock-product-history-drawer stock-order-detail-drawer"
           onClick={(event) => event.stopPropagation()}
@@ -977,6 +978,9 @@ export function StockOrderDetailDrawer({
               <h3 className="stock-product-history-section-title">Timeline</h3>
               <OrderTimeline order={order} timeZone={timeZone} />
             </section>
+            {isEditable && missingContactHint ? (
+              <p className="stock-order-send-hint">{missingContactHint}</p>
+            ) : null}
           </div>
 
           {canManage ? (
@@ -988,45 +992,39 @@ export function StockOrderDetailDrawer({
               ) : null}
               <footer className={`stock-product-history-footer stock-order-detail-footer${isEditable ? ' has-send-actions' : ''}`}>
               {isEditable ? (
-                <>
-                  <div className="stock-order-send-row" role="group" aria-label="Send draft">
-                    <button
-                      type="button"
-                      className="ghost-btn stock-product-history-action-btn"
-                      onClick={handleSendEmail}
-                      disabled={isSaving || !canEmailSupplier}
-                    >
-                      Email
-                    </button>
-                    <button
-                      type="button"
-                      className="ghost-btn stock-product-history-action-btn"
-                      onClick={handleSendWhatsApp}
-                      disabled={isSaving || !canMessageSupplier}
-                    >
-                      WhatsApp
-                    </button>
-                    <button
-                      type="button"
-                      className="ghost-btn stock-product-history-action-btn"
-                      onClick={handleSendViber}
-                      disabled={isSaving || !canMessageSupplier}
-                    >
-                      Viber
-                    </button>
-                    <button
-                      type="button"
-                      className="ghost-btn stock-product-history-action-btn"
-                      onClick={handlePrintOrder}
-                      disabled={isSaving}
-                    >
-                      Print
-                    </button>
-                  </div>
-                  {missingContactHint ? (
-                    <p className="stock-order-send-hint">{missingContactHint}</p>
-                  ) : null}
-                  <div className="stock-order-detail-footer-actions">
+                <div className="stock-order-send-row" role="group" aria-label="Send order">
+                  <button
+                    type="button"
+                    className="ghost-btn stock-product-history-action-btn"
+                    onClick={handleSendEmail}
+                    disabled={isSaving || !canEmailSupplier}
+                  >
+                    Email
+                  </button>
+                  <button
+                    type="button"
+                    className="ghost-btn stock-product-history-action-btn"
+                    onClick={handleSendWhatsApp}
+                    disabled={isSaving || !canMessageSupplier}
+                  >
+                    WhatsApp
+                  </button>
+                  <button
+                    type="button"
+                    className="ghost-btn stock-product-history-action-btn"
+                    onClick={handleSendViber}
+                    disabled={isSaving || !canMessageSupplier}
+                  >
+                    Viber
+                  </button>
+                  <button
+                    type="button"
+                    className="ghost-btn stock-product-history-action-btn"
+                    onClick={handlePrintOrder}
+                    disabled={isSaving}
+                  >
+                    Print
+                  </button>
                   <button
                     type="button"
                     className="ghost-btn stock-product-history-action-btn"
@@ -1041,7 +1039,7 @@ export function StockOrderDetailDrawer({
                     onClick={handleSaveDraft}
                     disabled={isSaving}
                   >
-                    {isSaving ? 'Saving…' : 'Save draft'}
+                    {isSaving ? 'Saving…' : 'Save order'}
                   </button>
                   <button
                     type="button"
@@ -1051,8 +1049,7 @@ export function StockOrderDetailDrawer({
                   >
                     {isSaving ? 'Saving…' : 'Mark sent'}
                   </button>
-                  </div>
-                </>
+                </div>
               ) : null}
 
               {showReceivingMode ? (
@@ -1086,6 +1083,6 @@ export function StockOrderDetailDrawer({
           onConfirm={handleConfirmReceive}
         />
       ) : null}
-    </>
+    </OverlayPortal>
   )
 }

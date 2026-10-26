@@ -16,6 +16,8 @@ const cola = {
   active: true,
   unit: 'btl',
   costPrice: 2,
+  currentQuantity: 0,
+  targetQuantity: 2,
   supplierId: 'sup-wine',
   supplier: 'Wrong text',
 }
@@ -26,6 +28,8 @@ const tonic = {
   active: true,
   unit: 'btl',
   costPrice: 1.5,
+  currentQuantity: 0,
+  minimumQuantity: 1,
   supplierId: null,
   supplier: 'Local',
 }
@@ -78,12 +82,12 @@ describe('supply order drafts', () => {
     })).toBe(0)
   })
 
-  it('builds one group per supplier and skips items that are not short', () => {
+  it('builds one group per supplier from the shared to-order set', () => {
     const groups = buildSupplyOrderDraftGroups({
       items: [
-        cola,
-        tonic,
-        { ...cola, id: 'full', name: 'Full', currentQuantity: 0, minimumQuantity: 99 },
+        { ...cola, currentQuantity: 1, targetQuantity: 4 },
+        { ...tonic, minimumQuantity: 2 },
+        { ...cola, id: 'full', name: 'Full', currentQuantity: 5, targetQuantity: 5, minimumQuantity: 5 },
       ],
       suppliers: [{ id: 'sup-wine', companyName: 'Wine House' }],
       storages: [{ id: 'soft', active: true, isSupply: true }],
@@ -150,8 +154,8 @@ describe('supply order drafts', () => {
       orderNumber: 1,
       totalCost: 0,
     }])).toEqual(expect.arrayContaining([
-      'Update draft #0001 for Wine House · €0 → €4',
-      expect.stringContaining('Create a draft for Local · €'),
+      'Update order #0001 for Wine House · €0 → €4',
+      expect.stringContaining('Create an order for Local · €'),
     ]))
     expect(wine).toMatchObject({
       action: 'update',
@@ -168,6 +172,6 @@ describe('supply order drafts', () => {
     expect(formatSupplyOrderDraftNotice({
       created: [{ id: 'a' }],
       updated: [{ id: 'b' }, { id: 'c' }],
-    })).toBe('Created 1 draft and updated 2 drafts from supply pars. Edit them before sending.')
+    })).toBe('Created 1 order and updated 2 orders. Edit them before sending.')
   })
 })

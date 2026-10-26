@@ -182,7 +182,7 @@ describe('InventoryCountView live home hydration (P8.16.27)', () => {
 
     expect(listHomeSessionsMock).toHaveBeenCalledWith({ workspaceId: 'workspace-test-id' })
     expect(container.textContent).toContain('No active counts.')
-    expect(container.textContent).toContain('No paused counts.')
+    expect(container.querySelector('.inventory-count-quiet-empty')).toBeTruthy()
     expect(container.textContent).toContain('No completed counts yet.')
     expect(container.querySelector('.inventory-count-session-card')).toBeNull()
 

@@ -8,7 +8,7 @@ import {
 const COUNT_TYPES = [
   {
     id: 'new',
-    title: 'New Count',
+    title: 'New count',
     description: 'Complete inventory count for selected locations.',
     icon: '▣',
   },
@@ -206,7 +206,7 @@ export function InventoryCountWizard({ isOpen, onClose, onStartSession }) {
         : isStep4Valid
 
   const primaryActionLabel = step === 4
-    ? (isStartingSession ? 'Starting…' : 'Start Inventory Count Session')
+    ? (isStartingSession ? 'Starting…' : 'Start count')
     : 'Continue'
   const isPrimaryDisabled = !canContinue || isStartingSession
 
@@ -324,7 +324,7 @@ export function InventoryCountWizard({ isOpen, onClose, onStartSession }) {
         <header className="inventory-count-wizard-header">
           <div className="inventory-count-wizard-header-copy">
             <h2 id="inventory-count-wizard-title" className="inventory-count-wizard-title">
-              Inventory Count
+              New count
             </h2>
             <p id="inventory-count-wizard-subtitle" className="inventory-count-wizard-subtitle">
               {stepCopy.subtitle}
@@ -368,7 +368,7 @@ export function InventoryCountWizard({ isOpen, onClose, onStartSession }) {
                   <span className="inventory-count-door-icon" aria-hidden="true">{countType.icon}</span>
                   <span className="inventory-count-door-copy">
                     <span className="inventory-count-type-card-title">
-                      {countType.id === 'new' ? 'Full count' : 'Quick count'}
+                      {countType.title}
                     </span>
                     <span className="inventory-count-type-card-description">
                       {countType.id === 'new'
@@ -670,7 +670,14 @@ export function InventoryCountWizard({ isOpen, onClose, onStartSession }) {
                 <dl className="inventory-count-review-dl">
                   <div>
                     <dt>Visibility</dt>
-                    <dd>{selectedVisibility.title}</dd>
+                    <dd>
+                      {selectedVisibility.title}
+                      <span className="inventory-count-review-plain">
+                        {selectedVisibility.id === 'blind'
+                          ? "Counters don't see expected quantities."
+                          : 'Counters see expected quantities.'}
+                      </span>
+                    </dd>
                   </div>
                   <div>
                     <dt>Include zero-stock items</dt>

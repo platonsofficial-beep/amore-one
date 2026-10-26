@@ -16,7 +16,7 @@ export const TEAM_SECTIONS = [
 
 export const STOCK_SECTIONS = [
   { id: 'dashboard', label: 'Dashboard' },
-  { id: 'count', label: 'Inventory Count' },
+  { id: 'count', label: 'Counts' },
   { id: 'storages', label: 'Storages' },
   { id: 'suppliers', label: 'Suppliers' },
   { id: 'orders', label: 'Orders' },
@@ -123,7 +123,7 @@ export function getModuleTitle(activeView, {
     return 'Team'
   }
   if (activeView === 'stock') {
-    if (stockSection === 'count') return 'Inventory Count'
+    if (stockSection === 'count') return 'Counts'
     if (stockSection === 'storages') return 'Storages'
     if (stockSection === 'suppliers') return 'Suppliers'
     if (stockSection === 'orders') return 'Orders'

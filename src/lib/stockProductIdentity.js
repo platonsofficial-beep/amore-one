@@ -41,6 +41,17 @@ export function buildProductDisplayName({ brand, name, size } = {}) {
  * @param {{ brand?: unknown, name?: unknown, size?: unknown }|null|undefined} item
  * @returns {string}
  */
+/**
+ * Bottle or pack size when the product row actually has one.
+ * Empty when size was never stored. Does not read the unit or invent a size.
+ *
+ * @param {{ size?: unknown }|null|undefined} item
+ * @returns {string}
+ */
+export function formatProductSizeDetail(item) {
+  return normalizeProductIdentityComponent(item?.size)
+}
+
 export function buildProductDisplayNameFromItem(item) {
   const display = buildProductDisplayName({
     brand: item?.brand,

@@ -223,6 +223,7 @@ describe('product identity contract boundaries', () => {
       resolve(process.cwd(), 'src/components/stock/StockUsageCostReport.jsx'),
       resolve(process.cwd(), 'src/components/stock/StockTransferModal.jsx'),
       resolve(process.cwd(), 'src/components/stock/StaffShelfCountSheet.jsx'),
+      resolve(process.cwd(), 'src/components/mobile/MobileManagerStockView.jsx'),
       resolve(process.cwd(), 'src/lib/inventoryCountItemName.js'),
     ])
 

@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import { useEscapeToClose } from '../../lib/useEscapeToClose'
+import { OverlayPortal } from './OverlayPortal'
 import {
   buildSupplierOrderGroups,
   computeOrderLineTotal,
@@ -216,7 +217,8 @@ export function StockCreateOrderModal({
   const orderCount = groups.filter((group) => group.items.some((item) => item.quantity > 0)).length
 
   return (
-    <div className="employee-modal-backdrop task-modal-backdrop" onClick={handleDismiss}>
+    <OverlayPortal>
+    <div className="employee-modal-backdrop task-modal-backdrop stock-create-order-backdrop stock-overlay" onClick={handleDismiss}>
       <form
         className="employee-modal stock-create-order-modal task-form-modal is-responsive-sheet"
         onClick={(event) => event.stopPropagation()}
@@ -285,10 +287,11 @@ export function StockCreateOrderModal({
           >
             {isBusy
               ? 'Creating…'
-              : `Create ${orderCount} draft order${orderCount === 1 ? '' : 's'}`}
+              : `Create ${orderCount} order${orderCount === 1 ? '' : 's'}`}
           </button>
         </footer>
       </form>
     </div>
+    </OverlayPortal>
   )
 }

@@ -8917,3 +8917,57 @@ html[data-one-debug-scroll='1'] .floor-plan-viewport.is-host-viewport {
     padding: 6px 8px;
   }
 }
+
+/* Stock drawers and dialogs must cover the floating nav.
+   On iPhone the overlay is inside an overflow scroller, so fixed
+   positioning stays in that layer and the nav paints on top. Lift the
+   scroller while an overlay is open, and hide the nav so the sheet can
+   use the full safe height. The active inventory count sheet is left
+   alone: its scroll owner stays as shipped. */
+body:has(:is(
+  .stock-overlay,
+  .stock-product-history-backdrop,
+  .employee-modal-backdrop,
+  .supply-draft-preview,
+  .inventory-import-wizard-backdrop,
+  .inventory-count-wizard-backdrop,
+  .inventory-count-finish-preview-overlay,
+  .inventory-count-delete-dialog-overlay,
+  .inventory-count-reverse-overlay,
+  .inventory-count-correction-confirm-overlay,
+  .inventory-count-correction-summary-overlay,
+  .staff-shelf-count-backdrop,
+  .create-workspace-storage-backdrop,
+  .stock-item-more-menu-backdrop,
+  .mobile-sheet-backdrop,
+  .drawer-backdrop
+)) .mobile-bottom-nav,
+body.has-one-overlay .mobile-bottom-nav {
+  display: none !important;
+}
+
+body:not(:has(.inventory-count-session)) :is(
+  .app-shell.is-mobile-shell,
+  .app-shell.is-mobile-shell .main-panel,
+  .mobile-app,
+  .mobile-app.mobile-app-expanded,
+  .mobile-expanded-scroll,
+  .mobile-app-content,
+  .mobile-workspace-module,
+  .mobile-workspace-module.is-mobile-expanded
+):has(:is(
+  .stock-overlay,
+  .stock-product-history-backdrop,
+  .employee-modal-backdrop,
+  .supply-draft-preview,
+  .inventory-import-wizard-backdrop,
+  .inventory-count-wizard-backdrop,
+  .staff-shelf-count-backdrop,
+  .create-workspace-storage-backdrop,
+  .mobile-sheet-backdrop,
+  .drawer-backdrop
+)) {
+  overflow: visible !important;
+  position: relative;
+  z-index: 60;
+}

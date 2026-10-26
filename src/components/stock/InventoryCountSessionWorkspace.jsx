@@ -1450,7 +1450,7 @@ export function InventoryCountSessionWorkspace({
             <span className="inventory-count-session-pill is-status">{sessionStatusLabel}</span>
             <span className="inventory-count-session-meta-item">
               <span className="inventory-count-session-meta-label">Count Type</span>
-              <span className="inventory-count-session-meta-value">New Count</span>
+              <span className="inventory-count-session-meta-value">New count</span>
             </span>
             <span className="inventory-count-session-meta-item">
               <span className="inventory-count-session-meta-label">Mode</span>

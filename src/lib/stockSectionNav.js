@@ -42,11 +42,6 @@ export function resolveStockSectionNav({ canManage = false, compactPhone = false
   const primary = STOCK_PHONE_PRIMARY_SECTION_IDS
     .map((id) => visible.find((section) => section.id === id))
     .filter(Boolean)
-    .map((section) => (
-      section.id === 'count'
-        ? { ...section, label: 'Count' }
-        : section
-    ))
 
   const overflow = STOCK_PHONE_OVERFLOW_ORDER
     .filter((id) => visible.some((section) => section.id === id))

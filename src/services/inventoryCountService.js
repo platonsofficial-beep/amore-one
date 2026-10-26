@@ -26,11 +26,11 @@ const VALID_VISIBILITY = new Set(['blind', 'open'])
 const NOTE_MAX_LENGTH = 250
 
 const COUNT_TYPE_LABELS = {
-  new: 'New Count',
-  quick: 'Quick Count',
-  partial: 'Partial Count',
-  scheduled: 'Scheduled Count',
-  emergency: 'Emergency Count',
+  new: 'New count',
+  quick: 'Quick count',
+  partial: 'Partial count',
+  scheduled: 'Scheduled count',
+  emergency: 'Emergency count',
 }
 
 const SESSION_STATUS_LABELS = {

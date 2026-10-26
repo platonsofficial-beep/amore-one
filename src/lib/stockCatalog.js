@@ -338,6 +338,20 @@ export function itemNeedsOrder(item) {
   return computeSuggestedOrder(item) > 0
 }
 
+/**
+ * The only "To order" set: active products whose on-hand is under the catalog
+ * target (or the minimum when no target is set). KPI, the To order card,
+ * the order filter, Create order, Suggest order, Today, and the mobile header
+ * all use this list.
+ *
+ * @param {unknown} items
+ */
+export function selectItemsToOrder(items = []) {
+  return (Array.isArray(items) ? items : []).filter((item) => (
+    item && item.active !== false && itemNeedsOrder(item)
+  ))
+}
+
 export function resolveStockFormUnit(form) {
   if (form.unitPreset === STOCK_UNIT_CUSTOM_VALUE) {
     return `${form.customUnit ?? ''}`.trim()
