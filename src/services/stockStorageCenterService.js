@@ -18,7 +18,10 @@ import {
 import { buildStockProductSearchHaystack } from '../lib/stockProductMetadataDisplay'
 import { resolveStockItemStatus } from '../lib/stockUtils'
 import { normalizeSupplierId } from '../lib/stockSupplierUtils'
-import { isWorkspaceDepartmentSchemaMissing } from '../lib/stockDepartmentGroups'
+import {
+  isBuyingStorageColumnMissing,
+  isWorkspaceDepartmentSchemaMissing,
+} from '../lib/stockDepartmentGroups'
 import {
   countBelowParByStorage,
   isStockStorageParSchemaMissing,
@@ -50,6 +53,10 @@ export const STOCK_STORAGE_CENTER_COST_COLUMNS = 'id, cost_price'
 /** Storage Center select. Falls back to WORKSPACE_STORAGE_LIST_COLUMNS when unset. */
 export const WORKSPACE_STORAGE_DEPARTMENT_COLUMNS =
   `${WORKSPACE_STORAGE_LIST_COLUMNS}, department_id, is_supply`
+
+/** Adds is_buying. Falls back to the department select when that column is absent. */
+export const WORKSPACE_STORAGE_BUYING_COLUMNS =
+  `${WORKSPACE_STORAGE_DEPARTMENT_COLUMNS}, is_buying`
 
 /** Columns needed for storage product rows + existing history drawer. */
 export const STOCK_STORAGE_PRODUCT_ITEM_COLUMNS = [
@@ -194,6 +201,7 @@ export function buildWorkspaceStorageSummaries({
       sortOrder: Number(storage?.sortOrder ?? storage?.sort_order ?? 0) || 0,
       departmentId,
       isSupply: storage?.isSupply === true || storage?.is_supply === true,
+      isBuying: storage?.isBuying === true || storage?.is_buying === true,
       productCount: aggregate.productIds.size,
       belowParCount: belowParByStorage ? (belowParByStorage.get(id) ?? 0) : null,
       totalQuantity: aggregate.totalQuantity,
@@ -257,9 +265,15 @@ export async function getWorkspaceStorageSummaries(workspaceId) {
     .order('name', { ascending: true })
 
   let departmentsAvailable = true
-  let storageResult = await loadStorageRows(WORKSPACE_STORAGE_DEPARTMENT_COLUMNS)
+  let buyingAvailable = true
+  let storageResult = await loadStorageRows(WORKSPACE_STORAGE_BUYING_COLUMNS)
+  if (storageResult.error && isBuyingStorageColumnMissing(storageResult.error)) {
+    buyingAvailable = false
+    storageResult = await loadStorageRows(WORKSPACE_STORAGE_DEPARTMENT_COLUMNS)
+  }
   if (storageResult.error && isWorkspaceDepartmentSchemaMissing(storageResult.error)) {
     departmentsAvailable = false
+    buyingAvailable = false
     storageResult = await loadStorageRows(WORKSPACE_STORAGE_LIST_COLUMNS)
   }
 
@@ -338,6 +352,7 @@ export async function getWorkspaceStorageSummaries(workspaceId) {
       pars: parsAvailable ? parRows : null,
     }),
     departmentsAvailable,
+    buyingAvailable,
     parsAvailable,
   })
 }

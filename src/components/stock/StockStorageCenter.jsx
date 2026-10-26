@@ -24,6 +24,7 @@ import {
   listWorkspaceDepartments,
   renameWorkspaceDepartment,
   setWorkspaceDepartmentActive,
+  setWorkspaceStorageBuying,
   setWorkspaceStorageSupply,
 } from '../../services/workspaceDepartmentService'
 import { StockStorageDetailWorkspace } from './StockStorageDetailWorkspace'
@@ -34,6 +35,7 @@ const defaultDepartmentActions = {
   setDepartmentActive: setWorkspaceDepartmentActive,
   assignStorageDepartment: assignWorkspaceStorageDepartment,
   setStorageSupply: setWorkspaceStorageSupply,
+  setStorageBuying: setWorkspaceStorageBuying,
 }
 
 const EMPTY_DEPARTMENTS = Object.freeze([])
@@ -50,6 +52,8 @@ const EMPTY_DEPARTMENTS = Object.freeze([])
  *   actionsDisabled?: boolean,
  *   onAssignDepartment?: (storage: object, departmentId: string) => void,
  *   onToggleSupply?: (storage: object) => void,
+ *   showBuyingToggle?: boolean,
+ *   onToggleBuying?: (storage: object) => void,
  * }} props
  */
 function StorageSummaryCard({
@@ -61,8 +65,10 @@ function StorageSummaryCard({
   canAssign = false,
   departments = [],
   actionsDisabled = false,
+  showBuyingToggle = false,
   onAssignDepartment,
   onToggleSupply,
+  onToggleBuying,
 }) {
   const currentDepartmentId = `${storage.departmentId ?? ''}`
   const knownIds = new Set(departments.map((department) => department.id))
@@ -176,6 +182,18 @@ function StorageSummaryCard({
           >
             {storage.isSupply ? 'Unmark supply' : 'Mark as supply'}
           </button>
+          {showBuyingToggle ? (
+            <button
+              type="button"
+              className="stock-storage-buying-toggle"
+              data-action="toggle-buying"
+              aria-pressed={storage.isBuying === true}
+              disabled={actionsDisabled}
+              onClick={() => onToggleBuying?.(storage)}
+            >
+              {storage.isBuying ? 'Unmark buying' : 'Mark as buying'}
+            </button>
+          ) : null}
         </div>
       ) : null}
     </article>
@@ -520,6 +538,7 @@ export function StockStorageCenter({
       canAssign={canManage && departmentsReady}
       departments={departments}
       actionsDisabled={departmentBusy}
+      showBuyingToggle={payload?.buyingAvailable === true}
       onSelect={(next) => setSelectedId(next.id)}
       onAssignDepartment={(next, departmentId) => {
         runDepartmentAction(() => departmentActions.assignStorageDepartment(
@@ -533,6 +552,13 @@ export function StockStorageCenter({
           workspaceId,
           next.id,
           next.isSupply !== true,
+        )).catch(() => {})
+      }}
+      onToggleBuying={(next) => {
+        runDepartmentAction(() => departmentActions.setStorageBuying(
+          workspaceId,
+          next.id,
+          next.isBuying !== true,
         )).catch(() => {})
       }}
     />
