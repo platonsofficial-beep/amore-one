@@ -200,7 +200,7 @@
 
 .mobile-screen-eyebrow {
   margin: 0;
-  color: #c89d42;
+  color: var(--one-gold);
   font-size: 0.72rem;
   font-weight: 600;
   letter-spacing: 0.14em;
@@ -229,7 +229,7 @@
   padding: 16px;
   border-radius: 16px;
   border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(12, 12, 13, 0.92);
+  background: rgba(18, 32, 51, 0.92);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
   min-width: 0;
   max-width: 100%;
@@ -264,7 +264,7 @@
 
 .mobile-shift-card.tone-live {
   border-color: rgba(111, 207, 108, 0.24);
-  background: linear-gradient(160deg, rgba(111, 207, 108, 0.08), rgba(12, 12, 13, 0.92));
+  background: linear-gradient(160deg, rgba(111, 207, 108, 0.08), rgba(18, 32, 51, 0.92));
 }
 
 .mobile-shift-card.tone-upcoming {
@@ -355,7 +355,7 @@
 
 .mobile-week-updating {
   margin: 6px 0 0;
-  color: #c89d42;
+  color: var(--one-gold);
   font-size: 0.82rem;
   font-weight: 600;
 }
@@ -476,7 +476,7 @@
   padding: 14px 16px;
   border-radius: 16px;
   border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(12, 12, 13, 0.92);
+  background: rgba(18, 32, 51, 0.92);
   min-width: 0;
   max-width: 100%;
 }
@@ -543,7 +543,7 @@
 }
 
 .mobile-schedule-day-status {
-  color: #c89d42;
+  color: var(--one-gold);
   font-size: 0.8rem;
   font-weight: 600;
   white-space: nowrap;
@@ -623,9 +623,9 @@
 }
 
 .mobile-segmented-btn.is-active {
-  border-color: rgba(214, 178, 106, 0.28);
-  background: rgba(214, 178, 106, 0.1);
-  color: #f7efe1;
+  border-color: transparent;
+  background: var(--one-steel-light);
+  color: var(--one-navy-900);
 }
 
 .mobile-segmented-count {
@@ -657,7 +657,7 @@
   padding: 14px 16px;
   border-radius: 14px;
   border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(12, 12, 13, 0.92);
+  background: rgba(18, 32, 51, 0.92);
   min-width: 0;
   max-width: 100%;
   min-height: 44px;
@@ -700,7 +700,7 @@
 }
 
 .mobile-task-ownership.is-mine {
-  color: #d4af37;
+  color: var(--one-gold);
 }
 
 .mobile-task-ownership.is-team {
@@ -928,7 +928,7 @@
   border-radius: 24px 24px 0 0;
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-bottom: none;
-  background: #121214;
+  background: var(--one-surface-raised);
   padding: 8px 16px calc(16px + env(safe-area-inset-bottom, 0px));
   min-width: 0;
 }
@@ -1188,7 +1188,7 @@
   padding: 12px 16px;
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 14px;
-  background: rgba(12, 12, 13, 0.92);
+  background: rgba(18, 32, 51, 0.92);
   color: #f7efe1;
   font-size: 0.95rem;
   font-weight: 500;
@@ -1487,8 +1487,8 @@
 }
 
 .mobile-bottom-nav-item.is-active {
-  color: #f7efe1;
-  background: rgba(214, 178, 106, 0.1);
+  color: var(--one-text);
+  background: var(--one-gold-soft);
 }
 
 .mobile-bottom-nav-icon {
@@ -1514,7 +1514,7 @@
   padding: 6px 8px;
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 24px;
-  background: rgba(16, 16, 18, 0.88);
+  background: rgba(11, 15, 23, 0.92);
   box-shadow:
     0 10px 36px rgba(0, 0, 0, 0.42),
     inset 0 1px 0 rgba(255, 255, 255, 0.06);
@@ -1534,9 +1534,9 @@
 }
 
 .mobile-manager-app .mobile-bottom-nav-item.is-active {
-  color: #f6dca2;
-  background: rgba(212, 175, 55, 0.16);
-  box-shadow: inset 0 0 0 1px rgba(212, 175, 55, 0.22);
+  color: var(--one-gold-light);
+  background: var(--one-gold-soft);
+  box-shadow: inset 0 0 0 1px var(--one-gold-line);
 }
 
 .mobile-manager-app .mobile-bottom-nav-icon {
@@ -1710,7 +1710,7 @@
 }
 
 .mobile-manager-command-date {
-  color: #c89d42;
+  color: var(--one-gold);
   font-size: 0.68rem;
   font-weight: 600;
   letter-spacing: 0.1em;
@@ -1954,14 +1954,14 @@
   box-shadow: inset 0 0 0 1px rgba(255, 152, 0, 0.18);
   background:
     linear-gradient(165deg, rgba(255, 152, 0, 0.08), rgba(255, 152, 0, 0.02)),
-    rgba(8, 8, 9, 0.72);
+    rgba(11, 15, 23, 0.72);
 }
 
 .mobile-manager-command-center .mobile-manager-status-card.tone-critical {
   box-shadow: inset 0 0 0 1px rgba(212, 140, 90, 0.22);
   background:
     linear-gradient(165deg, rgba(212, 140, 90, 0.1), rgba(212, 140, 90, 0.02)),
-    rgba(8, 8, 9, 0.72);
+    rgba(11, 15, 23, 0.72);
 }
 
 .mobile-manager-command-center .mobile-manager-status-card.tone-critical .mobile-manager-status-value {
@@ -2132,7 +2132,7 @@
   border: 0;
   background:
     linear-gradient(165deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0.01)),
-    rgba(8, 8, 9, 0.72);
+    rgba(11, 15, 23, 0.72);
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
   text-align: left;
 }
@@ -2158,7 +2158,7 @@
     0 6px 16px rgba(0, 0, 0, 0.16);
   background:
     linear-gradient(165deg, rgba(212, 175, 55, 0.1), rgba(255, 255, 255, 0.02)),
-    rgba(8, 8, 9, 0.82);
+    rgba(11, 15, 23, 0.82);
 }
 
 .mobile-manager-status-chevron {
@@ -2176,14 +2176,14 @@
   box-shadow: inset 0 0 0 1px rgba(255, 152, 0, 0.24);
   background:
     linear-gradient(165deg, rgba(255, 152, 0, 0.12), rgba(255, 152, 0, 0.03)),
-    rgba(8, 8, 9, 0.72);
+    rgba(11, 15, 23, 0.72);
 }
 
 .mobile-manager-status-card.tone-critical {
   box-shadow: inset 0 0 0 1px rgba(244, 67, 54, 0.28);
   background:
     linear-gradient(165deg, rgba(244, 67, 54, 0.14), rgba(244, 67, 54, 0.04)),
-    rgba(8, 8, 9, 0.72);
+    rgba(11, 15, 23, 0.72);
 }
 
 .mobile-manager-status-label {
@@ -3181,7 +3181,7 @@
 
 .mobile-manager-tasks-quick-btn-primary {
   color: #1a1408;
-  background: linear-gradient(165deg, #e8c97a, #d4af37);
+  background: linear-gradient(165deg, #e8c97a, var(--one-gold));
   box-shadow: 0 6px 18px rgba(212, 175, 55, 0.22);
 }
 
@@ -3415,7 +3415,7 @@
 
 .mobile-manager-stock-quick-btn-primary {
   color: #1a1408;
-  background: linear-gradient(165deg, #e8c97a, #d4af37);
+  background: linear-gradient(165deg, #e8c97a, var(--one-gold));
   box-shadow: 0 6px 18px rgba(212, 175, 55, 0.22);
 }
 
@@ -3690,7 +3690,7 @@
   max-width: 100%;
   overflow: hidden;
   overflow-x: hidden;
-  background: #0a0a0b;
+  background: var(--one-surface);
 }
 
 .app-shell.is-mobile-shell .sidebar {
@@ -4188,8 +4188,8 @@
 }
 
 .app-shell.is-mobile-shell .stock-section-more-item.active {
-  color: #1a1204;
-  background: linear-gradient(135deg, #f3d28d 0%, #c9982d 100%);
+  color: var(--one-navy-900);
+  background: var(--one-steel-light);
 }
 
 .app-shell.is-mobile-expanded .module-section-tabs::-webkit-scrollbar {
@@ -4565,7 +4565,7 @@
   max-height: 100dvh;
   overflow: hidden;
   z-index: 1200;
-  background: #0a0a0b;
+  background: var(--one-surface);
 }
 
 .app-shell.is-mobile-shell.is-reservations-host-mode .main-panel {
@@ -4588,7 +4588,7 @@
   min-height: 0;
   overflow: hidden;
   overflow-x: hidden;
-  background: #0a0a0b;
+  background: var(--one-surface);
 }
 
 .mobile-app-host-station.mobile-app-host-mode .mobile-host-mode-screen {
@@ -4625,7 +4625,7 @@
   max-height: 100dvh;
   overflow: hidden;
   overflow-x: hidden;
-  background: #0a0a0b;
+  background: var(--one-surface);
 }
 
 .mobile-app-host-mode .mobile-host-mode-screen {
@@ -4738,7 +4738,7 @@
 
 .mobile-host-sticky-date-step-btn:hover,
 .mobile-host-sticky-date-step-btn:focus-visible {
-  color: #d4af37;
+  color: var(--one-gold);
   background: rgba(212, 175, 55, 0.08);
   outline: none;
 }
@@ -4768,7 +4768,7 @@
 
 .mobile-host-sticky-date-btn:hover,
 .mobile-host-sticky-date-btn:focus-visible {
-  color: #d4af37;
+  color: var(--one-gold);
   outline: none;
 }
 
@@ -4794,7 +4794,7 @@
 
 .mobile-host-sticky-date-calendar-btn:hover,
 .mobile-host-sticky-date-calendar-btn:focus-visible {
-  color: #d4af37;
+  color: var(--one-gold);
   background: rgba(212, 175, 55, 0.08);
   outline: none;
 }
@@ -5215,7 +5215,7 @@
   min-height: 0;
   height: 100%;
   overflow: hidden;
-  background: #060606;
+  background: var(--one-bg);
 }
 
 .mobile-host-floor-plan-editor .unified-floor-editor,
@@ -5440,7 +5440,7 @@
 }
 
 .host-queue-toolbar-clear {
-  color: #d4af37;
+  color: var(--one-gold);
   background: transparent;
   box-shadow: none;
 }
@@ -5545,7 +5545,7 @@
 }
 
 .host-queue-row-chip.is-overflow {
-  color: #d4af37;
+  color: var(--one-gold);
 }
 
 .mobile-host-reservations.is-host-queue .host-reservation-card-details.host-queue-row-details {
@@ -5588,7 +5588,7 @@
   padding: 0 12px;
   border: 0;
   border-radius: 12px;
-  background: linear-gradient(165deg, #e8c97a, #d4af37);
+  background: linear-gradient(165deg, #e8c97a, var(--one-gold));
   color: #1a1408;
   font-size: 0.82rem;
   font-weight: 700;
@@ -5669,9 +5669,9 @@
 }
 
 .mobile-host-reservations-tab.is-active {
-  color: #f7efe1;
-  background: rgba(212, 175, 55, 0.12);
-  box-shadow: inset 0 0 0 1px rgba(212, 175, 55, 0.28);
+  color: var(--one-navy-900);
+  background: var(--one-steel-light);
+  box-shadow: none;
 }
 
 .mobile-host-reservations-tab-count {
@@ -5913,7 +5913,7 @@
   padding: 6px;
   border-radius: 12px;
   border: 1px solid rgba(255, 255, 255, 0.1);
-  background: rgba(12, 12, 13, 0.98);
+  background: rgba(18, 32, 51, 0.98);
   box-shadow: 0 16px 40px rgba(0, 0, 0, 0.42);
   opacity: 0;
   pointer-events: none;
@@ -5986,7 +5986,7 @@
 
 .mobile-host-status-menu-check {
   flex-shrink: 0;
-  color: #d4af37;
+  color: var(--one-gold);
   font-size: 0.82rem;
 }
 
@@ -6964,7 +6964,7 @@
 
 .mobile-host-form-field .reservation-date-field-calendar-btn[aria-expanded='true'],
 .mobile-host-form-field .reservation-date-field-calendar-btn:hover {
-  color: #d4af37;
+  color: var(--one-gold);
   box-shadow: inset 0 0 0 1px rgba(212, 175, 55, 0.35);
 }
 
@@ -7073,9 +7073,9 @@
 }
 
 .host-quick-create-time-picker-tab.is-active {
-  background: rgba(212, 175, 55, 0.16);
-  box-shadow: inset 0 0 0 1px rgba(212, 175, 55, 0.28);
-  color: #f3dfaa;
+  background: var(--one-steel-light);
+  box-shadow: none;
+  color: var(--one-navy-900);
 }
 
 .host-quick-create-time-picker-slots {
@@ -7165,7 +7165,7 @@
 
 .mobile-host-form-notice {
   margin: 0;
-  color: #d4af37;
+  color: var(--one-gold);
   font-size: 0.74rem;
 }
 
@@ -7198,7 +7198,7 @@
   border-radius: 10px;
   background: rgba(255, 255, 255, 0.05);
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
-  color: #d4af37;
+  color: var(--one-gold);
   font: inherit;
   font-size: 0.74rem;
   font-weight: 600;
@@ -7313,7 +7313,7 @@
 }
 
 .mobile-host-quick-create-table-capacity-warning {
-  color: #d4af37;
+  color: var(--one-gold);
 }
 
 .mobile-host-quick-create-table-option.is-selected {
@@ -7617,7 +7617,7 @@ html[data-one-debug-scroll='1'] .floor-plan-viewport.is-host-viewport {
   margin-top: 8px;
   padding-top: 12px;
   padding-bottom: 8px;
-  background: linear-gradient(180deg, transparent, rgba(8, 8, 9, 0.98) 24%);
+  background: linear-gradient(180deg, transparent, rgba(11, 15, 23, 0.98) 24%);
 }
 
 .app-shell.is-mobile-shell .mobile-sheet {
@@ -7688,7 +7688,7 @@ html[data-one-debug-scroll='1'] .floor-plan-viewport.is-host-viewport {
   max-height: 100dvh;
   overflow: hidden;
   z-index: 1000;
-  background: #0a0a0b;
+  background: var(--one-surface);
 }
 
 .app-shell.is-host-station-shell .sidebar {
@@ -7814,7 +7814,7 @@ html[data-one-debug-scroll='1'] .floor-plan-viewport.is-host-viewport {
   display: flex;
   flex-direction: column;
   border-radius: 18px;
-  background: #121214;
+  background: var(--one-surface-raised);
   box-shadow: 0 24px 64px rgba(0, 0, 0, 0.45);
   border: 1px solid rgba(255, 255, 255, 0.08);
 }

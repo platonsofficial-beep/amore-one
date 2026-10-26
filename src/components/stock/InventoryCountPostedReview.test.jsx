@@ -902,7 +902,7 @@ describe('posted audit table CSS contracts (P8.20.11 / P8.20.12 / P8.20.13 / P8.
     expect(tableCss).toMatch(/position:\s*sticky/)
     expect(tableCss).toMatch(/top:\s*0/)
     expect(tableCss).toMatch(/z-index:\s*3/)
-    expect(tableCss).toContain('background: #121214')
+    expect(tableCss).toContain('background: var(--one-surface-raised)')
     expect(tableCss).toContain('background-clip: padding-box')
     expect(tableCss).toMatch(/box-shadow:\s*inset 0 -1px 0/)
 

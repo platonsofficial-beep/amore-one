@@ -19,7 +19,7 @@
   min-height: 0;
   height: 100%;
   margin: 0;
-  background: #060606;
+  background: var(--one-bg);
   overflow: hidden;
 }
 
@@ -39,7 +39,7 @@
   border-bottom: 1px solid rgba(255, 255, 255, 0.06);
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0.012)),
-    #0a0a0b;
+    var(--one-surface);
   flex-shrink: 0;
 }
 
@@ -95,7 +95,7 @@
 .fpb-toolbar-btn-primary {
   border-color: rgba(212, 175, 55, 0.24);
   background: rgba(212, 175, 55, 0.1);
-  color: #f3d28d;
+  color: var(--one-gold-light);
 }
 
 .fpb-toolbar-btn-danger {
@@ -213,7 +213,7 @@
 }
 
 .fpb-toolbar-btn.is-active {
-  color: #f3d28d;
+  color: var(--one-gold-light);
   border-color: rgba(212, 175, 55, 0.32);
   background: rgba(212, 175, 55, 0.12);
   box-shadow: 0 0 0 1px rgba(212, 175, 55, 0.08) inset;
@@ -281,7 +281,7 @@
   z-index: 30;
   min-width: 0;
   overflow: hidden;
-  background: #0a0a0b;
+  background: var(--one-surface);
 }
 
 .fpb-editor-sidebar {
@@ -1834,7 +1834,7 @@
   flex: 1;
   min-height: 0;
   height: 100%;
-  background: #060606;
+  background: var(--one-bg);
 }
 
 .unified-floor-editor .fpb-editor-embedded {
@@ -2082,7 +2082,7 @@
   min-height: 220px;
   padding: 24px;
   color: rgba(245, 230, 196, 0.88);
-  background: #0a0a0b;
+  background: var(--one-surface);
 }
 
 .floor-plan-refreshing-state p,
@@ -2128,7 +2128,7 @@
   pointer-events: none;
   background:
     radial-gradient(circle at center, rgba(212, 175, 55, 0.08), transparent 58%),
-    rgba(8, 8, 9, 0.18);
+    rgba(11, 15, 23, 0.18);
 }
 
 .fpb-canvas-empty-guide-eyebrow {
