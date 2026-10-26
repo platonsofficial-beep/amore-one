@@ -6,8 +6,8 @@ export function normalizeScheduleDateKey(value) {
 }
 
 /**
- * Prefer the day the manager clicked. Otherwise use today, even when the open
- * week does not contain today. The first visible day is only a last resort.
+ * Prefer the day the manager clicked. Otherwise stay on the week on screen:
+ * today when that week contains it, then the week's first day.
  */
 export function resolveAddShiftDate({ requestedDate = '', weekDateKeys = [], todayKey = '' } = {}) {
   const keys = (weekDateKeys ?? []).map(normalizeScheduleDateKey).filter(Boolean)
@@ -15,7 +15,7 @@ export function resolveAddShiftDate({ requestedDate = '', weekDateKeys = [], tod
   if (requested && (keys.length === 0 || keys.includes(requested))) return requested
 
   const today = normalizeScheduleDateKey(todayKey)
-  if (today) return today
+  if (today && (keys.length === 0 || keys.includes(today))) return today
 
   return keys[0] || ''
 }

@@ -115,12 +115,12 @@ describe('schedule live fixes', () => {
     })).toBe('2026-10-31')
   })
 
-  it('defaults Add Shift to today when the open week starts on Saturday', () => {
+  it('defaults Add Shift to the viewed week when today is outside it', () => {
     expect(resolveAddShiftDate({
       requestedDate: '',
       weekDateKeys: ['2026-10-17', '2026-10-18'],
       todayKey: '2026-10-26',
-    })).toBe('2026-10-26')
+    })).toBe('2026-10-17')
   })
 
   it('uses the clicked day for Add Shift', () => {

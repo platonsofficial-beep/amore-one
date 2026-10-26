@@ -441,6 +441,7 @@ import {
 import { resolveAddShiftDate } from './lib/scheduleAddShiftDate'
 import { shiftsInWeek } from './lib/scheduleBrowseWeek'
 import { buildCopyDayPayloads } from './lib/scheduleCopyDay'
+import { buildCopyDayTargetGroups } from './lib/scheduleCopyDayTargets'
 import { appendUnplacedScheduleShifts, isCustomScheduleRow } from './lib/scheduleCustomRow'
 import { buildEmployeeWeekScheduleView } from './lib/employeeWeekScheduleView'
 import {
@@ -3550,9 +3551,20 @@ function ScheduleView({
     setIsClearDayModalOpen(true)
   }
 
-  const copyDayTargetShiftCount = copyDayTargetKey
+  const copyDayTargetGroups = buildCopyDayTargetGroups({
+    weekStartDate,
+    sourceDate: copyDaySourceDay?.key ?? '',
+    weeksAhead: 2,
+  })
+  const copyDayTargetIsInOpenWeek = Boolean(
+    copyDayTargetKey && weekDateKeys.includes(copyDayTargetKey),
+  )
+  const copyDayTargetShiftCount = copyDayTargetIsInOpenWeek
     ? visibleWeekShifts.filter((shift) => normalizeCellDate(shift.date) === copyDayTargetKey).length
     : 0
+  const copyDayWillReplaceTarget = copyDayTargetShiftCount > 0 || (
+    Boolean(copyDayTargetKey) && !copyDayTargetIsInOpenWeek
+  )
 
   const handleConfirmCopyDay = async () => {
     if (!copyDaySourceDay?.key || !copyDayTargetKey) {
@@ -3567,7 +3579,7 @@ function ScheduleView({
 
     const sourceDate = copyDaySourceDay.key
     const targetDate = copyDayTargetKey
-    const overwrite = copyDayTargetShiftCount > 0
+    const overwrite = copyDayWillReplaceTarget
     setIsCopyDayModalOpen(false)
     setCopyDaySourceDay(null)
     setCopyDayTargetKey('')
@@ -6781,19 +6793,25 @@ function ScheduleView({
                 onChange={(event) => setCopyDayTargetKey(event.target.value)}
               >
                 <option value="">Select target day</option>
-                {weekDays
-                  .filter((day) => day.key !== copyDaySourceDay.key)
-                  .map((day) => (
-                    <option key={`copy-day-target-${day.key}`} value={day.key}>
-                      {day.label} ({day.shortDate})
-                    </option>
-                  ))}
+                {copyDayTargetGroups.map((group) => (
+                  <optgroup key={`copy-day-week-${group.weekStart}`} label={group.label}>
+                    {group.days.map((day) => (
+                      <option key={`copy-day-target-${day.key}`} value={day.key}>
+                        {day.label} ({day.shortDate})
+                      </option>
+                    ))}
+                  </optgroup>
+                ))}
               </select>
             </label>
 
             {copyDayTargetShiftCount > 0 ? (
               <p className="template-delete-copy">
                 {copyDayTargetShiftCount} assignment{copyDayTargetShiftCount === 1 ? '' : 's'} already exist on the target day. Copying will replace them.
+              </p>
+            ) : copyDayWillReplaceTarget ? (
+              <p className="template-delete-copy">
+                Any assignments already on that day will be replaced.
               </p>
             ) : (
               <p className="template-delete-copy">
@@ -6806,7 +6824,7 @@ function ScheduleView({
             <div className="modal-actions">
               <button type="button" className="ghost-btn" onClick={() => setIsCopyDayModalOpen(false)}>Cancel</button>
               <button type="button" className="primary-btn" onClick={handleConfirmCopyDay} disabled={isSaving || !copyDayTargetKey}>
-                {copyDayTargetShiftCount > 0 ? 'Replace & Copy' : 'Copy Day'}
+                {copyDayWillReplaceTarget ? 'Replace & Copy' : 'Copy Day'}
               </button>
             </div>
           </div>
@@ -19713,7 +19731,20 @@ function App() {
       throw new Error('No assignments found on the source day.')
     }
 
-    const targetShifts = shifts.filter((shift) => sameDay(shift, targetDate))
+    const loadedTargetShifts = shifts.filter((shift) => sameDay(shift, targetDate))
+    let targetShifts = loadedTargetShifts
+    if (overwrite) {
+      const remoteTargetShifts = await getShifts(activeWorkspaceId, {
+        startDate: targetDate,
+        endDate: targetDate,
+      })
+      const targetById = new Map()
+      ;[...loadedTargetShifts, ...(remoteTargetShifts ?? [])].forEach((shift) => {
+        const shiftId = `${shift?.id ?? ''}`.trim()
+        if (shiftId) targetById.set(shiftId, shift)
+      })
+      targetShifts = [...targetById.values()]
+    }
     if (targetShifts.length > 0 && !overwrite) {
       throw new Error('Target day has existing assignments. Confirm overwrite to continue.')
     }
@@ -19746,10 +19777,15 @@ function App() {
       const removedIds = new Set(
         overwrite ? targetShifts.map((shift) => String(shift.id)) : [],
       )
-      setShifts((current) => [
-        ...current.filter((shift) => !removedIds.has(String(shift.id))),
-        ...created,
-      ])
+      const openWeekKeys = new Set(getWeekDateKeys(scheduleWeekStart))
+      if (openWeekKeys.has(targetDate)) {
+        setShifts((current) => [
+          ...current.filter((shift) => !removedIds.has(String(shift.id))),
+          ...created,
+        ])
+      } else if (removedIds.size > 0) {
+        setShifts((current) => current.filter((shift) => !removedIds.has(String(shift.id))))
+      }
       setScheduleNotice(`Copied ${created.length} assignment${created.length === 1 ? '' : 's'} to the target day.`)
       return created
     } catch (error) {
