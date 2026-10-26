@@ -6,7 +6,10 @@ import {
   buildInventoryImportStepSummary,
   buildInventoryImportValidateAssistant,
   buildInventoryImportValidateGroups,
+  buildStandardInventoryImportRowReview,
+  listInventoryImportColumnsContinueMessages,
   mapInventoryImportHeaderToOneField,
+  resolveInventoryImportColumnField,
 } from './inventoryImportWizardUx'
 import { INVENTORY_OPERATIONAL_IMPORT_PREVIEW_ACTION } from './inventoryOperationalImportPreview'
 
@@ -254,5 +257,160 @@ describe('inventoryImportWizardUx', () => {
     expect(readySummary?.items.find((item) => item.id === 'total')?.value).toBe('144')
     expect(readySummary?.items.find((item) => item.id === 'opening')?.value).toBe('No')
     expect(readySummary?.items.find((item) => item.id === 'status')?.value).toBe('Ready')
+  })
+
+  it('maps common English and Greek headers without caring about case or spacing', () => {
+    const cases = [
+      ['Name', 'product_name'],
+      ['  PRODUCT   NAME ', 'product_name'],
+      ['Προϊόν', 'product_name'],
+      ['ΠΡΟΪΟΝ', 'product_name'],
+      ['Category', 'category'],
+      ['Κατηγορία', 'category'],
+      ['Unit', 'unit'],
+      ['Μονάδα', 'unit'],
+      ['Quantity', 'quantity'],
+      ['Qty', 'quantity'],
+      ['Ποσότητα', 'quantity'],
+      ['Minimum', 'minimum'],
+      ['Min', 'minimum'],
+      ['Ελάχιστο', 'minimum'],
+      ['Par', 'par'],
+      ['Cost price', 'cost'],
+      ['COST', 'cost'],
+      ['Τιμή κόστους', 'cost'],
+      ['ΤΙΜΗ ΚΟΣΤΟΥΣ', 'cost'],
+      ['Supplier', 'supplier'],
+      ['Προμηθευτής', 'supplier'],
+      ['Storage', 'storage'],
+      ['Location', 'storage'],
+      ['Αποθήκη', 'storage'],
+      ['Brand', 'brand'],
+      ['Size', 'size'],
+      ['Barcode', 'barcode'],
+      ['Bar code', 'barcode'],
+    ]
+
+    cases.forEach(([sourceHeader, id]) => {
+      const mapped = mapInventoryImportHeaderToOneField({
+        columnIndex: 1,
+        sourceHeader,
+        normalized: sourceHeader,
+        isBlank: false,
+      })
+      expect([sourceHeader, mapped.id]).toEqual([sourceHeader, id])
+    })
+
+    expect(mapInventoryImportHeaderToOneField({
+      columnIndex: 3,
+      sourceHeader: 'Notes',
+      isBlank: false,
+    })).toMatchObject({ id: 'unmapped', role: 'unmapped', oneField: 'Unmapped' })
+  })
+
+  it('lets a manual choice replace the alias, including Ignore', () => {
+    const header = {
+      columnIndex: 2,
+      sourceHeader: 'Quantity',
+      isBlank: false,
+    }
+    expect(resolveInventoryImportColumnField(header, 'ignore')).toMatchObject({
+      id: 'ignore',
+      role: 'ignore',
+      oneField: 'Ignore',
+    })
+    expect(resolveInventoryImportColumnField(header, 'unmapped')).toMatchObject({
+      role: 'unmapped',
+    })
+    expect(resolveInventoryImportColumnField(header, 'unit').role).toBe('unit')
+  })
+
+  it('requires product name, unit, and quantity before a standard table can continue', () => {
+    const headers = ['Name', 'Category', 'Unit', 'Quantity', 'Minimum', 'Cost price', 'Supplier', 'Storage']
+      .map((sourceHeader, columnIndex) => ({
+        columnIndex,
+        sourceHeader,
+        normalized: sourceHeader,
+        isBlank: false,
+      }))
+    const summary = buildInventoryImportColumnMappingSummary(
+      { headers, rows: [] },
+      { requireStandardFields: true },
+    )
+    expect(summary.missingRequired).toEqual([])
+    expect(summary.mapped.map((field) => field.id)).toEqual([
+      'product_name',
+      'category',
+      'unit',
+      'quantity',
+      'minimum',
+      'cost',
+      'supplier',
+      'storage',
+    ])
+    expect(listInventoryImportColumnsContinueMessages({
+      mappings: summary.mapped,
+    })).toEqual([])
+
+    const partial = buildInventoryImportColumnMappingSummary({
+      headers: [
+        { columnIndex: 0, sourceHeader: 'Name', isBlank: false },
+        { columnIndex: 1, sourceHeader: 'Storage', isBlank: false },
+      ],
+    }, { requireStandardFields: true })
+    expect(partial.missingRequired).toEqual(['Unit', 'Quantity'])
+    expect(listInventoryImportColumnsContinueMessages({
+      mappings: partial.mapped,
+    })).toEqual([
+      'Map a Unit column',
+      'Map a Quantity column',
+    ])
+  })
+
+  it('reviews mapped standard rows for the validate step', () => {
+    const headers = ['Name', 'Unit', 'Quantity'].map((sourceHeader, columnIndex) => ({
+      columnIndex,
+      sourceHeader,
+      isBlank: false,
+    }))
+    const summary = buildInventoryImportColumnMappingSummary({ headers })
+    const review = buildStandardInventoryImportRowReview({
+      headers,
+      rows: [
+        {
+          sourceRowNumber: 2,
+          isBlank: false,
+          cells: [
+            { normalized: { value: 'Lemon' }, raw: 'Lemon' },
+            { normalized: { value: 'Bottle' }, raw: 'Bottle' },
+            { normalized: { value: '3' }, raw: '3' },
+          ],
+        },
+        {
+          sourceRowNumber: 3,
+          isBlank: false,
+          cells: [
+            { normalized: { value: 'Tonic' }, raw: 'Tonic' },
+            { normalized: { value: '' }, raw: '' },
+            { normalized: { value: null }, raw: '' },
+          ],
+        },
+      ],
+    }, summary)
+
+    expect(review.rows[0]).toMatchObject({
+      productName: 'Lemon',
+      unit: 'Bottle',
+      quantity: '3',
+      status: 'Ready',
+    })
+    expect(review.rows[1].status).toBe('Needs attention')
+    expect(review.rows[1].issues).toEqual(['Unit is empty', 'Quantity is empty'])
+    expect(review.groups.summary).toEqual({
+      rows: 2,
+      ready: 1,
+      warnings: 0,
+      errors: 1,
+    })
   })
 })

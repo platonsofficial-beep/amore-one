@@ -30,12 +30,14 @@ import {
 } from '../../lib/inventoryLocationColumnBindings'
 import { detectInventoryImportQuantitySourceColumns } from '../../lib/inventoryImportLocationAllocation'
 import {
+  INVENTORY_IMPORT_COLUMN_FIELD_OPTIONS,
   buildInventoryImportColumnMappingSummary,
   buildInventoryImportMapSamplePreview,
   buildInventoryImportStepSummary,
   buildInventoryImportValidateAssistant,
   buildInventoryImportValidateGroups,
-  mapInventoryImportHeaderToOneField,
+  buildStandardInventoryImportRowReview,
+  listInventoryImportColumnsContinueMessages,
 } from '../../lib/inventoryImportWizardUx'
 import {
   applyInventoryImportSession as applyInventoryImportSessionDefault,
@@ -290,13 +292,32 @@ function isAcceptedInventoryImportExtension(extension) {
 }
 
 /**
+ * Honest Map Columns status. A header that is not assigned to a ONE field
+ * is Unmapped, never Ready.
+ *
  * @param {{ isBlank?: boolean, isDuplicate?: boolean }} header
- * @returns {'Ready'|'Blank header'|'Duplicate header'}
+ * @param {{ role?: string, duplicate?: boolean }|null} [field]
+ * @returns {'Ready'|'Blank header'|'Duplicate header'|'Duplicate mapping'|'Unmapped'|'Ignored'}
  */
-export function getInventoryImportHeaderStatusLabel(header) {
+export function getInventoryImportHeaderStatusLabel(header, field = null) {
+  if (field?.role === 'ignore') return 'Ignored'
   if (header?.isBlank) return 'Blank header'
   if (header?.isDuplicate) return 'Duplicate header'
+  if (field?.duplicate) return 'Duplicate mapping'
+  if (!field || field.role === 'unmapped' || field.role === 'blank') return 'Unmapped'
   return 'Ready'
+}
+
+/**
+ * @param {string} status
+ * @returns {string}
+ */
+function inventoryImportHeaderStatusPillClass(status) {
+  if (status === 'Ready') return 'ready'
+  if (status === 'Blank header') return 'blank'
+  if (status === 'Ignored') return 'ignored'
+  if (status === 'Unmapped') return 'unmapped'
+  return 'duplicate'
 }
 
 /**
@@ -394,6 +415,7 @@ export function InventoryImportWizardShell({
   const [selectedFile, setSelectedFile] = useState(null)
   const [selectionError, setSelectionError] = useState('')
   const [parseResult, setParseResult] = useState(null)
+  const [columnFieldOverrides, setColumnFieldOverrides] = useState({})
   const [formatDetection, setFormatDetection] = useState(null)
   const [operationalModel, setOperationalModel] = useState(null)
   const [isProcessing, setIsProcessing] = useState(false)
@@ -585,17 +607,35 @@ export function InventoryImportWizardShell({
   }, [resolvedOperationalImportPreview, importPolicyWithLocationBindings])
 
   const columnMappingSummary = useMemo(
-    () => buildInventoryImportColumnMappingSummary(parseResult),
-    [parseResult],
+    () => buildInventoryImportColumnMappingSummary(parseResult, {
+      overrides: columnFieldOverrides,
+      requireStandardFields: !isOperationalFormat,
+    }),
+    [parseResult, columnFieldOverrides, isOperationalFormat],
+  )
+  const standardRowReview = useMemo(
+    () => (
+      isOperationalFormat
+        ? null
+        : buildStandardInventoryImportRowReview(parseResult, columnMappingSummary)
+    ),
+    [isOperationalFormat, parseResult, columnMappingSummary],
   )
   const mapSamplePreview = useMemo(
     () => buildInventoryImportMapSamplePreview(parseResult),
     [parseResult],
   )
-  const validateImportGroups = useMemo(
-    () => buildInventoryImportValidateGroups(resolvedOperationalImportPreview),
-    [resolvedOperationalImportPreview],
-  )
+  const validateImportGroups = useMemo(() => {
+    if (!isOperationalFormat && wizardView === 'data' && standardRowReview) {
+      return standardRowReview.groups
+    }
+    return buildInventoryImportValidateGroups(resolvedOperationalImportPreview)
+  }, [
+    isOperationalFormat,
+    wizardView,
+    standardRowReview,
+    resolvedOperationalImportPreview,
+  ])
   const validateAssistant = useMemo(() => {
     const basePreview = operationalImportPreviewState.status === 'ready'
       ? operationalImportPreviewState.preview
@@ -667,6 +707,7 @@ export function InventoryImportWizardShell({
 
   function clearDetectionAndParse() {
     setParseResult(null)
+    setColumnFieldOverrides({})
     setFormatDetection(null)
     setOperationalModel(null)
     setMatchResolutions({})
@@ -901,16 +942,28 @@ export function InventoryImportWizardShell({
     resetWorksheetState()
   }
 
+  function columnsContinueBlockers() {
+    return listInventoryImportColumnsContinueMessages({
+      isOperational: isOperationalFormat,
+      operationalProductCount: operationalModel?.summary?.productCount,
+      mappings: columnMappingSummary?.mapped ?? [],
+    })
+  }
+
   function canContinueFromColumnsToReviewData() {
-    if (
-      formatDetection?.format
-      !== inventoryImportFormatDetector.INVENTORY_IMPORT_FORMAT.OPERATIONAL
-    ) {
-      return false
-    }
-    if (!operationalModel) return false
-    const productCount = operationalModel.summary?.productCount
-    return Number.isFinite(productCount) && productCount > 0
+    return columnsContinueBlockers().length === 0
+  }
+
+  function handleColumnFieldChange(columnIndex, nextFieldId) {
+    setColumnFieldOverrides((current) => {
+      const next = { ...current }
+      if (!nextFieldId) {
+        delete next[columnIndex]
+        return next
+      }
+      next[columnIndex] = nextFieldId
+      return next
+    })
   }
 
   function handleContinueFromColumns() {
@@ -1059,7 +1112,8 @@ export function InventoryImportWizardShell({
   const showPreviewFooter = wizardView === 'preview'
   const showReadyFooter = wizardView === 'ready'
   const showCompletedFooter = wizardView === 'completed'
-  const canContinueFromColumns = canContinueFromColumnsToReviewData()
+  const columnsContinueMessages = columnsContinueBlockers()
+  const canContinueFromColumns = columnsContinueMessages.length === 0
   const canContinueFromData = canContinueFromDataToImportPreview()
   const canContinueFromPreview = canContinueFromPreviewToReady()
   const canApplyImport = (
@@ -1079,12 +1133,14 @@ export function InventoryImportWizardShell({
       )
     )
     : null
-  const reviewDataContinueMessages = listInventoryImportReviewDataContinueMessages({
-    canContinue: canContinueFromData,
-    previewStatus: operationalImportPreviewState.status,
-    unresolvedPossibleMatches:
-      resolvedOperationalImportPreview?.summary?.unresolvedPossibleMatches ?? null,
-  })
+  const reviewDataContinueMessages = wizardView === 'data' && !operationalModel
+    ? ['Standard inventory tables finish at this validation.']
+    : listInventoryImportReviewDataContinueMessages({
+      canContinue: canContinueFromData,
+      previewStatus: operationalImportPreviewState.status,
+      unresolvedPossibleMatches:
+        resolvedOperationalImportPreview?.summary?.unresolvedPossibleMatches ?? null,
+    })
   const previewContinueMessages = listInventoryImportPreviewContinueMessages({
     canContinue: canContinueFromPreview,
     eligibility: readyEligibility,
@@ -1258,8 +1314,10 @@ export function InventoryImportWizardShell({
                   </thead>
                   <tbody>
                     {parseResult.headers.map((header) => {
-                      const status = getInventoryImportHeaderStatusLabel(header)
-                      const field = mapInventoryImportHeaderToOneField(header)
+                      const field = columnMappingSummary.mapped.find(
+                        (item) => item.columnIndex === header.columnIndex,
+                      ) ?? null
+                      const status = getInventoryImportHeaderStatusLabel(header, field)
                       const sourceDisplay = formatInventoryImportSourceHeaderDisplay(
                         header.sourceHeader,
                         header.isBlank,
@@ -1280,14 +1338,25 @@ export function InventoryImportWizardShell({
                             </span>
                           </td>
                           <td>
-                            <span className={`inventory-import-map-one-field is-${field.role}`}>
-                              {field.oneField}
-                              {field.required ? ' · required' : field.optional ? ' · optional' : ''}
-                            </span>
+                            <select
+                              className="inventory-import-column-map-select"
+                              aria-label={`ONE field for ${sourceDisplay}`}
+                              data-column-index={header.columnIndex}
+                              value={field?.id || 'unmapped'}
+                              onChange={(event) => {
+                                handleColumnFieldChange(header.columnIndex, event.target.value)
+                              }}
+                            >
+                              {INVENTORY_IMPORT_COLUMN_FIELD_OPTIONS.map((option) => (
+                                <option key={option.id} value={option.id}>
+                                  {option.label}
+                                </option>
+                              ))}
+                            </select>
                           </td>
                           <td>
                             <span
-                              className={`inventory-import-wizard-status-pill is-${status === 'Ready' ? 'ready' : status === 'Blank header' ? 'blank' : 'duplicate'}`}
+                              className={`inventory-import-wizard-status-pill is-${inventoryImportHeaderStatusPillClass(status)}`}
                             >
                               {status}
                             </span>
@@ -1339,7 +1408,7 @@ export function InventoryImportWizardShell({
             </div>
           ) : null}
 
-          {wizardView === 'data' && operationalModel ? (
+          {wizardView === 'data' && (operationalModel || standardRowReview) ? (
             <div className="inventory-import-wizard-validate">
               <div className="inventory-import-wizard-step-hero is-validate">
                 <p className="inventory-import-wizard-step-kicker">Step 3 · Validate</p>
@@ -1373,7 +1442,52 @@ export function InventoryImportWizardShell({
                 </div>
               ) : null}
 
-              {workspaceStockCatalog.status === 'success' ? (
+              {!operationalModel && standardRowReview ? (
+                <section
+                  className="inventory-import-standard-review"
+                  aria-label="Validated rows"
+                  data-standard-import-review="true"
+                >
+                  <p className="inventory-import-wizard-step-purpose">
+                    {standardRowReview.rows.length === 1
+                      ? '1 row uses the column mapping from the previous step.'
+                      : `${standardRowReview.rows.length} rows use the column mapping from the previous step.`}
+                  </p>
+                  {standardRowReview.rows.length === 0 ? (
+                    <p className="inventory-import-map-sample-empty" role="status">
+                      No data rows to validate.
+                    </p>
+                  ) : (
+                    <div className="inventory-import-wizard-review-table-wrap">
+                      <table className="inventory-import-wizard-review-table">
+                        <thead>
+                          <tr>
+                            <th scope="col">Product name</th>
+                            <th scope="col">Unit</th>
+                            <th scope="col">Quantity</th>
+                            <th scope="col">Status</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {standardRowReview.rows.map((row) => (
+                            <tr key={`std-${row.sourceRowNumber}`}>
+                              <td>{row.productName || '—'}</td>
+                              <td>{row.unit || '—'}</td>
+                              <td>{row.quantity || '—'}</td>
+                              <td>
+                                {row.status}
+                                {row.issues.length > 0 ? ` · ${row.issues.join(', ')}` : ''}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </section>
+              ) : null}
+
+              {operationalModel && workspaceStockCatalog.status === 'success' ? (
                 <InventoryImportValidateAssistant
                   assistant={validateAssistant}
                   decisionsContent={
@@ -1931,23 +2045,26 @@ export function InventoryImportWizardShell({
         ) : null}
 
         {showColumnsFooter ? (
-          <footer className="inventory-import-wizard-footer">
-            <button
-              type="button"
-              className="ghost-btn inventory-import-wizard-nav-btn"
-              onClick={handleBackFromColumns}
-            >
-              Back
-            </button>
-            <button
-              type="button"
-              className="primary-btn inventory-import-wizard-nav-btn inventory-import-wizard-continue-btn"
-              onClick={handleContinueFromColumns}
-              disabled={!canContinueFromColumns}
-              aria-disabled={!canContinueFromColumns ? 'true' : undefined}
-            >
-              Continue
-            </button>
+          <footer className="inventory-import-wizard-footer inventory-import-wizard-footer-stack">
+            <InventoryImportContinueValidationPanel messages={columnsContinueMessages} />
+            <div className="inventory-import-wizard-footer-actions">
+              <button
+                type="button"
+                className="ghost-btn inventory-import-wizard-nav-btn"
+                onClick={handleBackFromColumns}
+              >
+                Back
+              </button>
+              <button
+                type="button"
+                className="primary-btn inventory-import-wizard-nav-btn inventory-import-wizard-continue-btn"
+                onClick={handleContinueFromColumns}
+                disabled={!canContinueFromColumns}
+                aria-disabled={!canContinueFromColumns ? 'true' : undefined}
+              >
+                Continue
+              </button>
+            </div>
           </footer>
         ) : null}
 

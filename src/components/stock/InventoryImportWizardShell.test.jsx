@@ -1598,27 +1598,8 @@ describe('InventoryImportWizardShell', () => {
     expect(container.querySelector('.inventory-import-wizard-validate')).toBeNull()
   })
 
-  it('keeps Continue disabled for standard and unknown layouts', async () => {
+  it('keeps Continue disabled for an unknown layout and says which columns are missing', async () => {
     renderShell()
-
-    selectFile(new File(
-      ['Name,Quantity,Unit\nFlour,10,kg\n'],
-      'flat.csv',
-      { type: 'text/csv' },
-    ))
-    await continueToColumnReview()
-    expect(container.textContent).toContain('Standard Inventory Table')
-    expect(getButton('Continue')?.disabled).toBe(true)
-
-    act(() => {
-      getButton('Continue').dispatchEvent(new MouseEvent('click', { bubbles: true }))
-    })
-    expect(container.querySelector('.inventory-import-wizard-map-columns')).toBeTruthy()
-    expect(container.querySelector('.inventory-import-wizard-validate')).toBeNull()
-
-    act(() => {
-      getButton('Back').dispatchEvent(new MouseEvent('click', { bubbles: true }))
-    })
 
     selectFile(new File(
       ['Alpha,Beta\nx,y\n'],
@@ -1628,7 +1609,90 @@ describe('InventoryImportWizardShell', () => {
     await continueToColumnReview()
     expect(container.textContent).toContain('Unknown Worksheet Layout')
     expect(getButton('Continue')?.disabled).toBe(true)
+    expect(container.textContent).toContain('Map a Product name column')
+    expect(container.textContent).toContain('Map a Unit column')
+    expect(container.textContent).toContain('Map a Quantity column')
+    const pills = container.querySelectorAll(
+      '.inventory-import-wizard-map-columns .inventory-import-wizard-status-pill',
+    )
+    expect(Array.from(pills).map((pill) => pill.textContent)).toEqual(['Unmapped', 'Unmapped'])
     expect(container.querySelector('.inventory-import-wizard-validate')).toBeNull()
+  })
+
+  it('maps the live import CSV and opens Validate Import', async () => {
+    const csv = [
+      'Name,Category,Unit,Quantity,Minimum,Cost price,Supplier,Storage',
+      'TEST Import Lemon Syrup,Syrups,Bottle,3,1,4.50,TEST GrokBot Supplier,Main Storage',
+      'TEST Import Tonic,Beverages,Bottle,12,6,0.80,TEST GrokBot Supplier,Bar',
+    ].join('\n')
+
+    renderShell()
+    selectFile(new File([csv], 'one-import-test.csv', { type: 'text/csv' }))
+    await continueToColumnReview()
+
+    expect(container.textContent).toContain('Standard Inventory Table')
+    expect(container.textContent).toContain('Strong match')
+
+    const selects = container.querySelectorAll('.inventory-import-column-map-select')
+    expect(Array.from(selects).map((select) => select.value)).toEqual([
+      'product_name',
+      'category',
+      'unit',
+      'quantity',
+      'minimum',
+      'cost',
+      'supplier',
+      'storage',
+    ])
+    const pills = container.querySelectorAll(
+      '.inventory-import-wizard-map-columns .inventory-import-wizard-status-pill',
+    )
+    expect(Array.from(pills).map((pill) => pill.textContent)).toEqual([
+      'Ready',
+      'Ready',
+      'Ready',
+      'Ready',
+      'Ready',
+      'Ready',
+      'Ready',
+      'Ready',
+    ])
+    expect(getButton('Continue')?.disabled).toBe(false)
+
+    const quantitySelect = container.querySelector('.inventory-import-column-map-select[data-column-index="3"]')
+    setSelectValue(quantitySelect, 'ignore')
+    expect(quantitySelect.value).toBe('ignore')
+    expect(container.querySelector(
+      '.inventory-import-wizard-map-columns tbody tr:nth-child(4) .inventory-import-wizard-status-pill',
+    )?.textContent).toBe('Ignored')
+    expect(getButton('Continue')?.disabled).toBe(true)
+    expect(container.textContent).toContain('Map a Quantity column')
+
+    setSelectValue(quantitySelect, 'quantity')
+    expect(getButton('Continue')?.disabled).toBe(false)
+
+    act(() => {
+      getButton('Continue').dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    })
+
+    expect(container.querySelector('.inventory-import-wizard-review-title')?.textContent)
+      .toBe('Validate Import')
+    expect(container.querySelector('[data-standard-import-review="true"]')).toBeTruthy()
+    expect(container.querySelector('.inventory-import-step-summary')?.getAttribute('data-step-summary'))
+      .toBe('data')
+    expect(container.querySelectorAll('.inventory-import-wizard-step')[2].className)
+      .toContain('is-active')
+    const reviewRows = container.querySelectorAll('[data-standard-import-review="true"] tbody tr')
+    expect(reviewRows).toHaveLength(2)
+    expect(reviewRows[0].textContent).toContain('TEST Import Lemon Syrup')
+    expect(reviewRows[0].textContent).toContain('Bottle')
+    expect(reviewRows[0].textContent).toContain('3')
+    expect(reviewRows[0].textContent).toContain('Ready')
+    expect(reviewRows[1].textContent).toContain('TEST Import Tonic')
+    expect(reviewRows[1].textContent).toContain('12')
+    expect(reviewRows[1].textContent).toContain('Ready')
+    expect(getButton('Continue')?.disabled).toBe(true)
+    expect(container.textContent).toContain('Standard inventory tables finish at this validation.')
   })
 
   it('resolves possible matches locally and keeps decisions across Back navigation', async () => {
