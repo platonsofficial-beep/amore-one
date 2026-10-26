@@ -28,10 +28,12 @@ import {
   getOperationsPriorityTone,
   getOperationsShiftNoteDetail,
   getOperationsShiftNoteHeadline,
+  getTaskAssigneeId,
   normalizeOperationsStatus,
   normalizeOperationsTaskDate,
   resolveEmployeeName,
 } from '../../lib/operationsUtils'
+import { buildSharedTaskWindow } from '../../lib/sharedTaskWindow'
 import DepartmentPerformanceSummary from '../tasks/DepartmentPerformanceSummary'
 import { OperationsAnnouncementsSection } from './OperationsAnnouncementsSection'
 import { OperationsLogFormModal } from './OperationsLogFormModal'
@@ -203,6 +205,7 @@ function OperationsMobileCommunicationItem({ item, canManage, onEditLog, onDelet
 
 export function OperationsDashboardView({
   tasks = [],
+  countedTasks = null,
   logs = [],
   announcements = [],
   checklistTemplates = [],
@@ -223,8 +226,12 @@ export function OperationsDashboardView({
   onCreateTask,
   onUpdateTask,
   onCompleteTask,
+  onCompleteWorkspaceTask,
   onReopenTask,
+  onReopenWorkspaceTask,
   onDeleteTask,
+  onDeleteWorkspaceTask,
+  onEditWorkspaceTask,
   onCreateLog,
   onUpdateLog,
   onDeleteLog,
@@ -277,21 +284,42 @@ export function OperationsDashboardView({
     [staffScopedStandaloneTasks, logs, todayKey],
   )
 
+  const scopedCountedTasks = useMemo(() => {
+    const source = countedTasks ?? staffScopedStandaloneTasks
+    if (canManage) return source
+    return source.filter((task) => canStaffCompleteTask(task, currentEmployeeId))
+  }, [countedTasks, staffScopedStandaloneTasks, canManage, currentEmployeeId])
+
+  const sharedWindow = useMemo(
+    () => buildSharedTaskWindow(scopedCountedTasks, todayKey),
+    [scopedCountedTasks, todayKey],
+  )
+
+  const taskSummary = countedTasks
+    ? {
+      ...summary,
+      openTasks: sharedWindow.openCount,
+      overdueTasks: sharedWindow.pastDueCount,
+      completedToday: sharedWindow.completedToday,
+    }
+    : summary
+
   const checklistProgressRows = useMemo(
     () => buildChecklistProgressRows(checklistTemplates, tasks, todayKey),
     [checklistTemplates, tasks, todayKey],
   )
 
   const mobileMetrics = useMemo(() => ({
-    openTasks: summary.openTasks,
-    overdueTasks: summary.overdueTasks,
-    issues: summary.urgentIssues,
+    openTasks: taskSummary.openTasks,
+    overdueTasks: taskSummary.overdueTasks,
+    issues: taskSummary.urgentIssues,
     notes: logs.length,
     checklists: checklistTemplates.filter((template) => template.active !== false).length,
-  }), [summary.openTasks, summary.overdueTasks, summary.urgentIssues, logs.length, checklistTemplates])
+  }), [taskSummary.openTasks, taskSummary.overdueTasks, taskSummary.urgentIssues, logs.length, checklistTemplates])
 
   const visibleTasks = useMemo(() => {
-    const filtered = filterOperationsTasks(todayStandaloneTasks, {
+    const listSource = countedTasks ? sharedWindow.listTasks : todayStandaloneTasks
+    const filtered = filterOperationsTasks(listSource, {
       searchTerm,
       assigneeNameById,
     })
@@ -300,21 +328,23 @@ export function OperationsDashboardView({
     if (!normalizedFocusTaskId) return sorted
     if (sorted.some((task) => `${task.id}` === normalizedFocusTaskId)) return sorted
 
-    const focusedTask = staffScopedStandaloneTasks.find(
+    const focusPool = countedTasks ? scopedCountedTasks : staffScopedStandaloneTasks
+    const focusedTask = focusPool.find(
       (task) => `${task.id}` === normalizedFocusTaskId,
     )
     if (!focusedTask) return sorted
 
     return sortOperationsTasks([...sorted, focusedTask])
-  }, [todayStandaloneTasks, searchTerm, assigneeNameById, focusTaskId, staffScopedStandaloneTasks])
+  }, [countedTasks, sharedWindow.listTasks, todayStandaloneTasks, searchTerm, assigneeNameById, focusTaskId, staffScopedStandaloneTasks, scopedCountedTasks])
 
   const focusedTask = useMemo(() => {
     const normalizedFocusTaskId = `${focusTaskId ?? ''}`.trim()
     if (!normalizedFocusTaskId) return null
-    return staffScopedStandaloneTasks.find(
+    const focusPool = countedTasks ? scopedCountedTasks : staffScopedStandaloneTasks
+    return focusPool.find(
       (task) => `${task.id}` === normalizedFocusTaskId,
     ) ?? null
-  }, [focusTaskId, staffScopedStandaloneTasks])
+  }, [focusTaskId, countedTasks, scopedCountedTasks, staffScopedStandaloneTasks])
 
   useEffect(() => {
     focusHandledRef.current = false
@@ -325,7 +355,8 @@ export function OperationsDashboardView({
     const normalizedFocusTaskId = `${focusTaskId ?? ''}`.trim()
     if (!normalizedFocusTaskId || isLoading || focusHandledRef.current) return undefined
 
-    const taskExists = staffScopedStandaloneTasks.some(
+    const focusPool = countedTasks ? scopedCountedTasks : staffScopedStandaloneTasks
+    const taskExists = focusPool.some(
       (task) => `${task.id}` === normalizedFocusTaskId,
     )
     if (!taskExists) {
@@ -356,6 +387,8 @@ export function OperationsDashboardView({
   }, [
     focusTaskId,
     isLoading,
+    countedTasks,
+    scopedCountedTasks,
     staffScopedStandaloneTasks,
     visibleTasks,
     onFocusTaskHandled,
@@ -389,16 +422,38 @@ export function OperationsDashboardView({
       .slice(0, MOBILE_COMMUNICATION_LIMIT)
   }, [announcements, logs, role, employeeDepartment, canManageAnnouncements])
 
+  const handleEditTask = (task) => {
+    if (task?.taskSource === 'workspace') {
+      onEditWorkspaceTask?.(task)
+      return
+    }
+    setEditingTask(task)
+    setIsTaskFormOpen(true)
+  }
+
+  const handleDeleteTask = (task) => {
+    if (task?.taskSource === 'workspace') {
+      onDeleteWorkspaceTask?.(task)
+      return
+    }
+    onDeleteTask?.(task)
+  }
+
   const handleToggleComplete = (task) => {
-    const isDone = normalizeOperationsStatus(task.status) !== 'pending'
+    const isWorkspaceTask = task?.taskSource === 'workspace'
+    const isDone = isWorkspaceTask
+      ? `${task?.status ?? ''}`.trim().toLowerCase() === 'completed'
+      : normalizeOperationsStatus(task.status) !== 'pending'
 
     if (isDone) {
-      onReopenTask?.(task)
+      if (isWorkspaceTask) onReopenWorkspaceTask?.(task)
+      else onReopenTask?.(task)
       return
     }
 
     if (canManage) {
-      onCompleteTask?.(task, { completionNote: '' })
+      if (isWorkspaceTask) onCompleteWorkspaceTask?.(task)
+      else onCompleteTask?.(task, { completionNote: '' })
       return
     }
 
@@ -472,7 +527,7 @@ export function OperationsDashboardView({
         </header>
 
         <div className="operations-summary-grid operations-mobile-metrics" aria-label="Operations metrics">
-          <OperationsSummaryCard label="Open tasks (today)" value={mobileMetrics.openTasks} tone="warning" />
+          <OperationsSummaryCard label="Open tasks" value={mobileMetrics.openTasks} tone="warning" />
           <OperationsSummaryCard
             label="Past due"
             value={mobileMetrics.overdueTasks}
@@ -520,16 +575,13 @@ export function OperationsDashboardView({
             <ul className="operations-task-list">
               <OperationsTaskRow
                 task={focusedTask}
-                assigneeName={assigneeNameById(focusedTask.assignedTo)}
+                assigneeName={assigneeNameById(getTaskAssigneeId(focusedTask))}
                 canManage={canManage}
                 canComplete={canManage || canStaffCompleteTask(focusedTask, currentEmployeeId)}
                 isFocused={`${activeFocusTaskId ?? ''}` === `${focusedTask.id}`}
                 onToggleComplete={handleToggleComplete}
-                onEdit={(item) => {
-                  setEditingTask(item)
-                  setIsTaskFormOpen(true)
-                }}
-                onDelete={onDeleteTask}
+                onEdit={handleEditTask}
+                onDelete={handleDeleteTask}
               />
             </ul>
           </section>
@@ -674,13 +726,13 @@ export function OperationsDashboardView({
       </div>
 
       <div className="operations-summary-grid" aria-label="Today at a glance">
-        <OperationsSummaryCard label="Open tasks (today)" value={summary.openTasks} tone="warning" />
+        <OperationsSummaryCard label="Open tasks" value={taskSummary.openTasks} tone="warning" />
         <OperationsSummaryCard
           label="Past due"
-          value={summary.overdueTasks}
-          tone={summary.overdueTasks > 0 ? 'danger' : 'default'}
+          value={taskSummary.overdueTasks}
+          tone={taskSummary.overdueTasks > 0 ? 'danger' : 'default'}
         />
-        <OperationsSummaryCard label="Completed today" value={summary.completedToday} tone="success" />
+        <OperationsSummaryCard label="Completed today" value={taskSummary.completedToday} tone="success" />
         <OperationsSummaryCard label="Urgent issues" value={summary.urgentIssues} tone="danger" />
         <OperationsSummaryCard label="Team notes" value={summary.teamNotes} tone="gold" />
       </div>
@@ -720,18 +772,18 @@ export function OperationsDashboardView({
         </section>
       ) : null}
 
-      <section className="operations-section panel staff-panel" aria-label="Today's tasks">
+      <section className="operations-section panel staff-panel" aria-label="Open tasks">
         <header className="operations-section-header">
           <div>
             <p className="eyebrow">Tasks</p>
-            <h3>Today&apos;s task list</h3>
+            <h3>Open tasks</h3>
           </div>
           <p className="operations-section-count">{visibleTasks.length} task{visibleTasks.length === 1 ? '' : 's'}</p>
         </header>
 
         {visibleTasks.length === 0 && !isLoading ? (
           <div className="operations-empty-state">
-            <h4>No tasks for today</h4>
+            <h4>No open tasks</h4>
             <p>{canManage ? 'Create a task to get the team started.' : 'Check back when tasks are assigned.'}</p>
           </div>
         ) : (
@@ -740,16 +792,13 @@ export function OperationsDashboardView({
               <OperationsTaskRow
                 key={task.id}
                 task={task}
-                assigneeName={assigneeNameById(task.assignedTo)}
+                assigneeName={assigneeNameById(getTaskAssigneeId(task))}
                 canManage={canManage}
                 canComplete={canManage || canStaffCompleteTask(task, currentEmployeeId)}
                 isFocused={`${activeFocusTaskId ?? ''}` === `${task.id}`}
                 onToggleComplete={handleToggleComplete}
-                onEdit={(item) => {
-                  setEditingTask(item)
-                  setIsTaskFormOpen(true)
-                }}
-                onDelete={onDeleteTask}
+                onEdit={handleEditTask}
+                onDelete={handleDeleteTask}
               />
             ))}
           </ul>

@@ -16,6 +16,7 @@ import {
   formatStockMovementTypeLabel,
   formatStockProductHistoryTimestamp,
   getStockMovementTone,
+  resolveLastCountedRecord,
 } from '../../lib/stockProductHistory'
 import {
   formatStockInventoryValue,
@@ -183,7 +184,11 @@ export function StockProductHistoryDrawer({
     return buildStockMonthlyInsights(movements)
   }, [movements])
 
-  const lastCountedLabel = formatLastCountedLabel(item.lastCount)
+  const lastCountedLabel = formatLastCountedLabel(resolveLastCountedRecord(
+    movements,
+    item.lastCount,
+    { locationKey: location },
+  ))
   const productInformationRows = buildStockProductInformationRows(item, {
     supplierLabel,
     storageLabel: location,
