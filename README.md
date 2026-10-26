@@ -2,6 +2,10 @@
 
 Operations platform for hospitality teams.
 
+## Product vision
+
+Every change should be checked against [docs/VISION.md](docs/VISION.md): Operate. Navigate. Elevate. Sell Time, Organization, Certainty. Surface problems before they happen. Fewer clicks, everything connected and real-time.
+
 ## Local development
 
 ### Auth bypass
