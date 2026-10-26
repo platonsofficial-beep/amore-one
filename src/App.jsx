@@ -463,7 +463,6 @@ import {
   buildScheduleDayWarnings,
   countScheduleRosterEmployees,
 } from './lib/scheduleInsights'
-import { useEscapeToClose } from './lib/useEscapeToClose'
 import {
   getRestOfWeekDateKeys,
   getShiftSchedulingConflictType,
