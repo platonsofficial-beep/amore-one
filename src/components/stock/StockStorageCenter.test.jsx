@@ -4,7 +4,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { act, createElement } from 'react'
 import { createRoot } from 'react-dom/client'
-import { readFileSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { STOCK_SECTIONS, getModuleTitle, getSearchPlaceholder } from '../../lib/appNavigation'
 import { StockStorageCenter } from './StockStorageCenter'
@@ -50,6 +50,28 @@ describe('StockStorageCenter navigation contract', () => {
     })
     expect(getModuleTitle('stock', { stockSection: 'storages' })).toBe('Storages')
     expect(getSearchPlaceholder('stock', { stockSection: 'storages' })).toBe('Search storages or products')
+  })
+
+  it('does not keep a Coming soon shell for storage actions that already exist', () => {
+    const workspaceSource = readFileSync(
+      resolve(process.cwd(), 'src/components/stock/StockStorageDetailWorkspace.jsx'),
+      'utf8',
+    )
+    const actionBarSource = readFileSync(
+      resolve(process.cwd(), 'src/components/stock/StockStorageDetailActionBar.jsx'),
+      'utf8',
+    )
+    expect(existsSync(resolve(process.cwd(), 'src/components/stock/StockStorageActionPlaceholder.jsx'))).toBe(false)
+    expect(workspaceSource).not.toContain('StockStorageActionPlaceholder')
+    expect(workspaceSource).not.toContain('Coming soon')
+    expect(actionBarSource).toContain('data-storage-action="fast_count"')
+    expect(actionBarSource).toContain('data-storage-action="receive"')
+    expect(actionBarSource).toContain('data-storage-action="transfer"')
+    expect(actionBarSource).toContain('data-storage-action="adjustment"')
+    expect(workspaceSource).toContain('data-menu-action="receive"')
+    expect(workspaceSource).toContain('data-menu-action="transfer"')
+    expect(workspaceSource).toContain('data-menu-action="adjustment"')
+    expect(workspaceSource).toContain('data-menu-action="fast_count"')
   })
 
   it('mounts StockStorageCenter from the Stock workspace section switch with searchTerm', () => {

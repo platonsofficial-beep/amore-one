@@ -36,7 +36,6 @@ import {
 } from '../../services/stockMutationService'
 import { StockProductHistoryDrawer } from './StockProductHistoryDrawer'
 import { StockStorageDetailActionBar } from './StockStorageDetailActionBar'
-import { StockStorageActionPlaceholder } from './StockStorageActionPlaceholder'
 import { StockMovementModal } from './StockMovementModal'
 import { StockStorageReceiveProductPicker } from './StockStorageReceiveProductPicker'
 import { StockTransferModal } from './StockTransferModal'
@@ -381,7 +380,6 @@ export function StockStorageDetailWorkspace({
   const [historyItem, setHistoryItem] = useState(/** @type {object|null} */ (null))
   const [reloadToken, setReloadToken] = useState(0)
   const [openMenuItemId, setOpenMenuItemId] = useState(/** @type {string|null} */ (null))
-  const [placeholder, setPlaceholder] = useState(/** @type {{ actionId: string, productName?: string }|null} */ (null))
   const [isLaunchingFastCount, setIsLaunchingFastCount] = useState(false)
   const [fastCountError, setFastCountError] = useState('')
   const [shelfCountOpen, setShelfCountOpen] = useState(false)
@@ -513,16 +511,10 @@ export function StockStorageDetailWorkspace({
   const headerQuantity = summary?.totalQuantity ?? storage?.totalQuantity ?? 0
   const headerValue = summary?.inventoryValue ?? storage?.inventoryValue ?? 0
 
-  const openPlaceholder = (actionId, productName = '') => {
-    setOpenMenuItemId(null)
-    setPlaceholder({ actionId, productName })
-  }
-
   const handleStartFastCount = async () => {
     if (isLaunchingFastCount || storage?.active === false) return
 
     setOpenMenuItemId(null)
-    setPlaceholder(null)
     setFastCountError('')
 
     const requestId = fastCountRequestIdRef.current + 1
@@ -563,7 +555,6 @@ export function StockStorageDetailWorkspace({
   const handleStartReceive = () => {
     if (storage?.active === false) return
     setOpenMenuItemId(null)
-    setPlaceholder(null)
     if (typeof onReceive === 'function') {
       onReceive(storage)
       return
@@ -597,7 +588,6 @@ export function StockStorageDetailWorkspace({
   const handleStartTransfer = () => {
     if (storage?.active === false) return
     setOpenMenuItemId(null)
-    setPlaceholder(null)
     if (typeof onTransfer === 'function') {
       onTransfer(storage)
       return
@@ -626,7 +616,6 @@ export function StockStorageDetailWorkspace({
   const handleStartAdjustment = () => {
     if (storage?.active === false) return
     setOpenMenuItemId(null)
-    setPlaceholder(null)
     if (typeof onAdjustment === 'function') {
       onAdjustment(storage)
       return
@@ -667,7 +656,6 @@ export function StockStorageDetailWorkspace({
   const handleStartWaste = () => {
     if (storage?.active === false) return
     setOpenMenuItemId(null)
-    setPlaceholder(null)
     setWasteRow(null)
     setWastePickerOpen(true)
   }
@@ -708,7 +696,6 @@ export function StockStorageDetailWorkspace({
     }
     if (actionId === 'receive') {
       setOpenMenuItemId(null)
-      setPlaceholder(null)
       if (typeof onReceive === 'function') {
         onReceive(storage)
         return
@@ -718,7 +705,6 @@ export function StockStorageDetailWorkspace({
     }
     if (actionId === 'transfer') {
       setOpenMenuItemId(null)
-      setPlaceholder(null)
       if (typeof onTransfer === 'function') {
         onTransfer(storage)
         return
@@ -728,7 +714,6 @@ export function StockStorageDetailWorkspace({
     }
     if (actionId === 'adjustment') {
       setOpenMenuItemId(null)
-      setPlaceholder(null)
       if (typeof onAdjustment === 'function') {
         onAdjustment(storage)
         return
@@ -738,11 +723,10 @@ export function StockStorageDetailWorkspace({
     }
     if (actionId === 'waste') {
       setOpenMenuItemId(null)
-      setPlaceholder(null)
       setWasteRow(row)
       return
     }
-    openPlaceholder(actionId, row.name)
+    setOpenMenuItemId(null)
   }
 
   const handleCommitPar = async (row, parsed, { nextItemId = '' } = {}) => {
@@ -1145,15 +1129,6 @@ export function StockStorageDetailWorkspace({
           expectedQuantityVersion={wasteRow.quantityVersion}
           onClose={() => setWasteRow(null)}
           onSubmit={handleRecordWasteSubmit}
-        />
-      ) : null}
-
-      {placeholder ? (
-        <StockStorageActionPlaceholder
-          actionId={placeholder.actionId}
-          storageName={storageTitle}
-          productName={placeholder.productName}
-          onClose={() => setPlaceholder(null)}
         />
       ) : null}
     </section>
