@@ -5,6 +5,7 @@ import {
   resolveTeamMemberShiftState,
 } from './teamViewUtils'
 import {
+  buildOperationalSnapshot,
   buildScheduleAttentionDetail,
   buildTeamTodayCoverageBreakdown,
   formatTeamCoverageSummaryLine,
@@ -132,10 +133,44 @@ describe('operationalSnapshotUtils team coverage', () => {
     expect(formatTeamCoverageSummaryLine(breakdown.gaps)).toContain('Kitchen')
   })
 
-  it('builds schedule attention detail from gaps and other issues', () => {
+  it('builds schedule attention detail from gaps and named issues', () => {
     expect(buildScheduleAttentionDetail(
-      { issues: 3, coverageGaps: 2 },
+      {
+        issues: 3,
+        coverageGaps: 2,
+        otherIssueLabels: ['Alex is over weekly hours'],
+      },
       { gapCount: 2, summaryLine: '2 gaps · Kitchen, Bar' },
-    )).toBe('2 gaps · Kitchen, Bar · 1 other issue')
+    )).toBe('2 gaps · Kitchen, Bar · Alex is over weekly hours')
+  })
+
+  it('names overtime instead of a generic other issue', () => {
+    const snapshot = buildOperationalSnapshot({
+      todayKey: TODAY,
+      employees: [{ id: 'e1', name: 'Alex', weeklyHours: 40 }],
+      shiftTemplates: [{
+        id: '11111111-1111-4111-8111-111111111111',
+        name: 'Dinner',
+        defaultArea: 'Service',
+        startTime: '18:00',
+        endTime: '22:00',
+        defaultRequiredCount: 1,
+      }],
+      shifts: [{
+        id: 's1',
+        date: TODAY,
+        employeeId: 'e1',
+        shiftTemplateId: '11111111-1111-4111-8111-111111111111',
+        startTime: '18:00',
+        endTime: '23:00',
+      }],
+    })
+
+    expect(snapshot.issues).toBe(1)
+    expect(snapshot.coverageGaps).toBe(0)
+    expect(snapshot.otherIssueLabels).toEqual(["Alex's shift runs longer than the template"])
+    expect(buildScheduleAttentionDetail(snapshot, { gapCount: 0 })).toBe(
+      "Alex's shift runs longer than the template",
+    )
   })
 })

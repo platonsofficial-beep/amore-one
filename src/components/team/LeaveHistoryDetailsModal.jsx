@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { useEscapeToClose } from '../../lib/useEscapeToClose'
 import { LEAVE_STATUS } from '../../lib/leave/leaveConstants'
 import { validateLeaveDates } from '../../lib/leave/leaveValidation'
 import { withdrawLeaveRequest } from '../../services/leaveService'
@@ -85,29 +86,13 @@ export function LeaveHistoryDetailsModal({
     withdrawInFlightRef.current = false
   }, [entry])
 
-  useEffect(() => {
-    if (!entry) return undefined
-
-    const handleKeyDown = (event) => {
-      if (event.key !== 'Escape' || isWithdrawPending) return
-
-      event.preventDefault()
-      event.stopPropagation()
-
-      if (confirmWithdraw) {
-        setConfirmWithdraw(false)
-        return
-      }
-
-      onClose?.()
+  useEscapeToClose(() => {
+    if (confirmWithdraw) {
+      setConfirmWithdraw(false)
+      return
     }
-
-    document.addEventListener('keydown', handleKeyDown, true)
-
-    return () => {
-      document.removeEventListener('keydown', handleKeyDown, true)
-    }
-  }, [confirmWithdraw, entry, isWithdrawPending, onClose])
+    onClose?.()
+  }, { enabled: Boolean(entry) && !isWithdrawPending })
 
   if (!entry) return null
 

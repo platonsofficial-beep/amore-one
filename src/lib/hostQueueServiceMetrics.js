@@ -141,6 +141,7 @@ export function buildHostQueueServiceMetrics(
   let expectedGuests = 0
   const reservedTableIds = new Set()
   const seatedTableIds = new Set()
+  let unplacedSeatedReservations = 0
   let inHouseGuests = 0
 
   reservations.forEach((reservation) => {
@@ -154,11 +155,19 @@ export function buildHostQueueServiceMetrics(
     getReservedTableIdsForScope(reservation, layout, areaFilterId)
       .forEach((tableId) => reservedTableIds.add(tableId))
 
-    getSeatedTableIdsForScope(reservation, layout, areaFilterId)
-      .forEach((tableId) => seatedTableIds.add(tableId))
+    const seatedIds = getSeatedTableIdsForScope(reservation, layout, areaFilterId)
+    seatedIds.forEach((tableId) => seatedTableIds.add(tableId))
+    if (isReservationSeatedForTableMetrics(reservation) && seatedIds.size === 0) {
+      const seatedAnywhere = areaFilterId !== HOST_QUEUE_ALL_AREAS
+        ? getSeatedTableIdsForScope(reservation, layout, HOST_QUEUE_ALL_AREAS)
+        : seatedIds
+      if (seatedAnywhere.size === 0) {
+        unplacedSeatedReservations += 1
+      }
+    }
 
     if (isReservationInHouseStatus(status)) {
-      inHouseGuests += guests
+      inHouseGuests += guests > 0 ? guests : 1
     }
   })
 
@@ -171,7 +180,7 @@ export function buildHostQueueServiceMetrics(
     reservedTables,
     totalPublishedTables,
     freeTables,
-    seatedTables: seatedTableIds.size,
+    seatedTables: seatedTableIds.size + unplacedSeatedReservations,
     inHouseGuests,
   }
 }

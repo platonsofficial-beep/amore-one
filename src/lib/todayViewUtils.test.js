@@ -9,6 +9,8 @@ import {
   sortTodayAttentionItems,
 } from './todayViewUtils'
 import { buildTodayCommandCenterAttentionItems } from './mobileManagerTodayUtils'
+import { buildOperationalSnapshot } from './operationalSnapshotUtils'
+import { buildScheduleReport } from './reportsUtils'
 
 const TODAY = '2026-07-08'
 
@@ -28,6 +30,61 @@ describe('todayViewUtils', () => {
       key: 'schedule-issues',
       detail: '1 gap · Kitchen missing 1',
     })
+  })
+
+  it('names the schedule issue with the same count the insights card uses', () => {
+    const templateId = '11111111-1111-4111-8111-111111111111'
+    const shifts = [{
+      id: 's1',
+      date: TODAY,
+      employeeId: 'e1',
+      shiftTemplateId: templateId,
+      startTime: '18:00',
+      endTime: '23:00',
+    }]
+    const shiftTemplates = [{
+      id: templateId,
+      name: 'Dinner',
+      defaultArea: 'Service',
+      startTime: '18:00',
+      endTime: '22:00',
+      defaultRequiredCount: 1,
+    }]
+    const employees = [{ id: 'e1', name: 'Alex', weeklyHours: 40 }]
+    const snapshot = buildOperationalSnapshot({
+      shifts,
+      shiftTemplates,
+      employees,
+      todayKey: TODAY,
+    })
+    const report = buildScheduleReport({
+      shifts,
+      shiftTemplates,
+      employees,
+      period: 'today',
+      todayKey: TODAY,
+      weekStartDate: '2026-07-06',
+      connected: true,
+    })
+
+    expect(report.metrics.issues).toBe(snapshot.issues)
+    const items = buildTodayAttentionItems({
+      todayKey: TODAY,
+      snapshot,
+      coverageBreakdown: { gapCount: snapshot.coverageGaps },
+    })
+    expect(items.find((item) => item.key === 'schedule-issues')?.detail).toBe(
+      "Alex's shift runs longer than the template",
+    )
+  })
+
+  it('hides the schedule attention item when that shared count is zero', () => {
+    const items = buildTodayAttentionItems({
+      todayKey: TODAY,
+      snapshot: { issues: 0, coverageGaps: 0, otherIssueLabels: [] },
+    })
+
+    expect(items.some((item) => item.key === 'schedule-issues')).toBe(false)
   })
 
   it('builds a richer status summary with covers, open tasks, and stock', () => {

@@ -322,6 +322,22 @@ describe('buildHostQueueServiceMetrics', () => {
     expect([...tableIds]).toEqual([])
   })
 
+  it('counts a seated reservation the list would show when its table is not on the layout', () => {
+    const metrics = buildHostQueueServiceMetrics([
+      buildReservation({
+        id: 'marika',
+        guestName: 'Marika',
+        guests: 0,
+        status: 'Checked In',
+        tableNumber: 'Old patio',
+        date: '2026-07-08',
+      }),
+    ], { layout: LAYOUT })
+
+    expect(metrics.seatedTables).toBe(1)
+    expect(metrics.inHouseGuests).toBe(1)
+  })
+
   it('updates seated tables when a walk-in is seated immediately', () => {
     const metrics = buildHostQueueServiceMetrics([
       buildReservation({

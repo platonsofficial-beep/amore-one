@@ -63,6 +63,13 @@ function resolveTemplateForShift(shift, shiftTemplates) {
   return shiftTemplates.find((template) => resolveShiftTemplateId(template) === templateId) ?? null
 }
 
+function resolveEmployeeDisplayName(employee, shift) {
+  const fromEmployee = `${employee?.full_name ?? employee?.fullName ?? employee?.name ?? ''}`.trim()
+  if (fromEmployee) return fromEmployee
+  const fromShift = `${shift?.employeeName ?? shift?.employees?.full_name ?? shift?.employees?.name ?? ''}`.trim()
+  return fromShift || 'Staff'
+}
+
 export function resolveWorkspaceBusinessName(name) {
   return `${name ?? ''}`.trim()
 }
@@ -105,7 +112,9 @@ export function buildOperationalSnapshot({
 
   let issues = 0
   let coverageGaps = 0
+  const otherIssueLabels = []
   const countedOvertimeShiftIds = new Set()
+  const employeesById = new Map(employees.map((employee) => [String(employee.id), employee]))
 
   shiftTemplates.forEach((template) => {
     const requiredCount = getRequiredCountForCell(template, todayKey, capacityLookup)
@@ -121,6 +130,7 @@ export function buildOperationalSnapshot({
       issues += 1
     } else if (assignedCount > requiredCount) {
       issues += 1
+      otherIssueLabels.push(`${formatTemplateAreaLabel(template)} is overstaffed`)
     }
   })
 
@@ -132,6 +142,9 @@ export function buildOperationalSnapshot({
     if (template && getAssignmentOvertimeHours(shift, template) > 0) {
       countedOvertimeShiftIds.add(shiftId)
       issues += 1
+      const employee = employeesById.get(shift.employeeId ? String(shift.employeeId) : '')
+      const name = resolveEmployeeDisplayName(employee, shift)
+      otherIssueLabels.push(`${name}'s shift runs longer than the template`)
     }
   })
 
@@ -139,7 +152,6 @@ export function buildOperationalSnapshot({
   const weekDateKeys = new Set(getWeekDateKeys(weekStartDate))
   const weekShifts = shifts.filter((shift) => weekDateKeys.has(normalizeDate(shift.date)))
   const weeklyHoursMap = buildEmployeeWeeklyHoursMap(weekShifts)
-  const employeesById = new Map(employees.map((employee) => [String(employee.id), employee]))
   const weeklyOvertimeEmployees = new Set()
 
   todayShifts.forEach((shift) => {
@@ -153,6 +165,7 @@ export function buildOperationalSnapshot({
     if (tracker.status === 'over') {
       weeklyOvertimeEmployees.add(employeeId)
       issues += 1
+      otherIssueLabels.push(`${resolveEmployeeDisplayName(employee, shift)} is over weekly hours`)
     }
   })
 
@@ -171,6 +184,7 @@ export function buildOperationalSnapshot({
     labourHoursLabel: formatHoursLabel(labourHours),
     issues,
     coverageGaps,
+    otherIssueLabels,
     statusMessage: issues === 0 ? 'Everything is ready.' : 'Needs attention.',
     closingMessage: issues === 0 ? 'Have a great service!' : '',
   }
@@ -256,11 +270,12 @@ export function buildScheduleAttentionDetail(snapshot = {}, coverageBreakdown = 
     parts.push(coverageBreakdown?.summaryLine || `${gapCount} coverage gap${gapCount === 1 ? '' : 's'}`)
   }
 
-  if (issueCount > gapCount) {
-    const otherIssues = issueCount - gapCount
-    if (otherIssues > 0) {
-      parts.push(otherIssues === 1 ? '1 other issue' : `${otherIssues} other issues`)
-    }
+  const otherLabels = (snapshot.otherIssueLabels ?? []).map((label) => `${label ?? ''}`.trim()).filter(Boolean)
+  if (otherLabels.length > 0) {
+    const shown = otherLabels.slice(0, 3)
+    const extra = otherLabels.length - shown.length
+    const labelText = shown.join(', ')
+    parts.push(extra > 0 ? `${labelText} +${extra} more` : labelText)
   }
 
   return parts.join(' · ')
