@@ -198,6 +198,8 @@ export function buildTodayStatusSummary({
   stockOrdersSummary = null,
   stockConnected = false,
   hasStockModuleData = false,
+  parsReady = false,
+  belowParCount = 0,
 } = {}) {
   const workingCount = liveFloor.state === 'live' ? Number(liveFloor.onShiftCount) || 0 : 0
   let onShiftSummary = 'No one working now'
@@ -266,16 +268,21 @@ export function buildTodayStatusSummary({
   if (stockConnected) {
     const outCount = Number(stockSummary?.outOfStock) || 0
     const lowCount = Number(stockSummary?.lowStock) || 0
+    const belowPar = Math.max(0, Number(belowParCount) || 0)
+    const shortCount = parsReady ? belowPar : lowCount
+    const shortLabel = parsReady ? 'below par' : 'low'
     const pendingDeliveries = (Number(stockOrdersSummary?.awaitingDeliveryCount) || 0)
       + (Number(stockOrdersSummary?.partialCount) || 0)
 
     if (hasStockModuleData || pendingDeliveries > 0) {
-      if (outCount > 0 && lowCount > 0) {
-        stockSummaryLine = `${outCount} out · ${lowCount} low`
+      if (outCount > 0 && shortCount > 0) {
+        stockSummaryLine = `${outCount} out · ${shortCount} ${shortLabel}`
       } else if (outCount > 0) {
         stockSummaryLine = outCount === 1 ? '1 item out' : `${outCount} items out`
-      } else if (lowCount > 0) {
-        stockSummaryLine = lowCount === 1 ? '1 item low' : `${lowCount} items low`
+      } else if (shortCount > 0) {
+        stockSummaryLine = shortCount === 1
+          ? `1 item ${shortLabel}`
+          : `${shortCount} items ${shortLabel}`
       } else if (pendingDeliveries > 0) {
         stockSummaryLine = pendingDeliveries === 1
           ? '1 delivery pending'

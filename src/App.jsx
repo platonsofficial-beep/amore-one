@@ -287,7 +287,8 @@ import { createSupplier, deleteSupplier, getSuppliers, updateSupplier } from './
 import { createStockItem, updateStockItem, updateStockItemActive } from './services/stockItemService'
 import { getStockItemsWithLastMovement, recordStockMovement } from './services/stockMovementService'
 import { assertLocationStockMovementTarget, transferStockBetweenLocations } from './services/stockMutationService'
-import { prepareSupplyOrderDrafts } from './services/stockSupplyOrderDraftService'
+import { prepareSupplyOrderDrafts, previewSupplyOrderDrafts } from './services/stockSupplyOrderDraftService'
+import { SupplyOrderDraftPreviewDialog } from './components/stock/SupplyOrderDraftPreviewDialog'
 import { loadStockLiveSnapshot } from './services/stockLiveCardService'
 import {
   createStockOrdersFromGroups,
@@ -16204,6 +16205,7 @@ function App() {
     status: 'idle',
   })
   const [stockOrdersNotice, setStockOrdersNotice] = useState('')
+  const [supplyDraftPreview, setSupplyDraftPreview] = useState(null)
   const [stockOrdersFilterHint, setStockOrdersFilterHint] = useState(null)
   const [inventoryCountOpenSessionId, setInventoryCountOpenSessionId] = useState(null)
   const [isInventoryImportWizardOpen, setIsInventoryImportWizardOpen] = useState(false)
@@ -17323,6 +17325,8 @@ function App() {
     stockOrdersSummary: managerMobileOrdersSummary,
     stockConnected: canAccessStockModule,
     hasStockModuleData: stockItems.length > 0,
+    parsReady: stockLiveSnapshot.parsReady === true,
+    belowParCount: stockLiveSnapshot.belowParCount,
   }), [
     liveFloorState,
     operationalSnapshot,
@@ -17337,6 +17341,8 @@ function App() {
     managerMobileOrdersSummary,
     canAccessStockModule,
     stockItems.length,
+    stockLiveSnapshot.belowParCount,
+    stockLiveSnapshot.parsReady,
   ])
 
   const teamTodayShiftSource = useMemo(() => (
@@ -23617,12 +23623,49 @@ function App() {
     setStockItemsNotice('')
 
     try {
+      const preview = await previewSupplyOrderDrafts(activeWorkspaceId, {
+        items: stockItems,
+        suppliers,
+        existingOrders: stockOrders,
+      })
+      if (preview.unavailable || preview.lines.length === 0) {
+        setStockOrdersNotice(preview.message)
+        setStockItemsNotice(preview.message)
+        setMobileNotice(preview.message)
+        return
+      }
+      setSupplyDraftPreview(preview)
+    } catch (error) {
+      const message = error.message || 'Unable to prepare order drafts right now.'
+      setStockOrdersNotice(message)
+      setStockItemsNotice(message)
+      setMobileNotice(message)
+      throw error
+    } finally {
+      isCreatingStockOrdersRef.current = false
+      setIsSavingStockOrder(false)
+    }
+  }
+
+  const handleConfirmSupplyOrderDrafts = async () => {
+    if (!activeWorkspaceId) {
+      throw new Error(stockWorkspaceSetupMessage || 'Workspace is required to prepare orders.')
+    }
+    if (isCreatingStockOrdersRef.current) return
+
+    isCreatingStockOrdersRef.current = true
+    setIsSavingStockOrder(true)
+    setStockOrdersNotice('')
+    setStockItemsNotice('')
+
+    try {
       const result = await prepareSupplyOrderDrafts(activeWorkspaceId, {
         items: stockItems,
         suppliers,
         existingOrders: stockOrders,
         createdBy: user?.id ?? null,
       })
+      setSupplyDraftPreview(null)
       setStockOrdersNotice(result.message)
       setStockItemsNotice(result.message)
       setMobileNotice(result.message)
@@ -25599,6 +25642,13 @@ function App() {
             </button>
           </div>
         ) : null}
+
+        <SupplyOrderDraftPreviewDialog
+          lines={supplyDraftPreview?.lines ?? []}
+          isSaving={isSavingStockOrder}
+          onCancel={() => setSupplyDraftPreview(null)}
+          onConfirm={() => { void handleConfirmSupplyOrderDrafts() }}
+        />
 
         {isActiveViewAllowed && activeView === 'stock' && stockSection === 'dashboard' ? (
           <StockDashboardView

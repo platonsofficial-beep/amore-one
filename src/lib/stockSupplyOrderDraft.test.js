@@ -3,6 +3,7 @@ import {
   buildSupplyOrderDraftGroups,
   findOpenSupplierDraft,
   formatSupplyOrderDraftNotice,
+  formatSupplyOrderDraftPreview,
   isOrderSourceStorage,
   planSupplyOrderDraftWrites,
   SUPPLY_ORDER_DRAFT_EMPTY_MESSAGE,
@@ -141,6 +142,17 @@ describe('supply order drafts', () => {
 
     const wine = plan.find((step) => step.group.supplierId === 'sup-wine')
     const local = plan.find((step) => step.group.supplier === 'Local')
+    expect(formatSupplyOrderDraftPreview(plan, [{
+      id: 'draft-wine',
+      status: 'draft',
+      supplierId: 'sup-wine',
+      supplier: 'Wine House',
+      orderNumber: 1,
+      totalCost: 0,
+    }])).toEqual(expect.arrayContaining([
+      'Update draft #0001 for Wine House · €0 → €4',
+      expect.stringContaining('Create a draft for Local · €'),
+    ]))
     expect(wine).toMatchObject({
       action: 'update',
       orderId: 'draft-wine',

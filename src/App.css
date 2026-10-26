@@ -47431,3 +47431,55 @@ summary:focus-visible {
   outline: 2px solid var(--one-focus-ring);
   outline-offset: 2px;
 }
+
+.supply-draft-preview {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: grid;
+  align-items: end;
+  justify-content: center;
+  padding: 16px;
+  background: rgba(10, 22, 40, 0.72);
+}
+
+.supply-draft-preview-card {
+  width: min(520px, 100%);
+  max-height: min(70vh, 560px);
+  overflow: auto;
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+  border-radius: 16px;
+  background: var(--one-navy-800);
+  color: #f4f7fb;
+}
+
+.supply-draft-preview-card h2 {
+  margin: 0;
+  font-size: 1.15rem;
+}
+
+.supply-draft-preview-card p,
+.supply-draft-preview-card li {
+  margin: 0;
+  line-height: 1.4;
+}
+
+.supply-draft-preview-card ul {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding-left: 1.1rem;
+}
+
+.supply-draft-preview-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.supply-draft-preview-actions button {
+  min-height: 44px;
+  min-width: 44px;
+}

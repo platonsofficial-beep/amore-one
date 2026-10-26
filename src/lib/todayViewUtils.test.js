@@ -110,6 +110,18 @@ describe('todayViewUtils', () => {
     expect(summary.stockSummaryLine).toBe('1 out · 2 low')
   })
 
+  it('uses the same below-par count as the Stock card when pars are ready', () => {
+    const summary = buildTodayStatusSummary({
+      stockSummary: { outOfStock: 16, lowStock: 116 },
+      stockConnected: true,
+      hasStockModuleData: true,
+      parsReady: true,
+      belowParCount: 4,
+    })
+
+    expect(summary.stockSummaryLine).toBe('16 out · 4 below par')
+  })
+
   it('adds open operations tasks to the board task count', () => {
     const summary = buildTodayStatusSummary({
       tasksOverview: { active: 3, overdue: 3, completedToday: 0, showEmptyToday: false },
