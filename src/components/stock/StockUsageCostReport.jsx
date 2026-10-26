@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useEscapeToClose } from '../../lib/useEscapeToClose'
+import { buildProductDisplayNameFromItem } from '../../lib/stockProductIdentity'
 import { buildStockUsageCostReport } from '../../lib/stockUsageCostReport'
 import { formatStockPurchasePrice, formatStockQuantity } from '../../lib/stockUtils'
 import { formatTimestampDayAndTime24 } from '../../lib/timeFormatUtils'
@@ -54,6 +55,10 @@ export function StockUsageCostReport({
   const [report, setReport] = useState(null)
   const [reportError, setReportError] = useState('')
   const [reportLoading, setReportLoading] = useState(false)
+  const namedItems = useMemo(() => (items ?? []).map((item) => ({
+    ...item,
+    displayName: buildProductDisplayNameFromItem(item),
+  })), [items])
 
   useEscapeToClose(() => onClose?.())
 
@@ -108,7 +113,7 @@ export function StockUsageCostReport({
         openingLines,
         closingLines,
         movements: movementResult?.movements ?? [],
-        items,
+        items: namedItems,
         movementHistoryTruncated: movementResult?.truncated === true,
       }))
       setReportLoading(false)
@@ -121,7 +126,7 @@ export function StockUsageCostReport({
     return () => {
       cancelled = true
     }
-  }, [workspaceId, sessions, openingId, closingId, items, loadLines, loadMovements])
+  }, [workspaceId, sessions, openingId, closingId, namedItems, loadLines, loadMovements])
 
   const summary = report?.summary
 

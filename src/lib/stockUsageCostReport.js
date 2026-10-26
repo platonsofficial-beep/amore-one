@@ -1,5 +1,3 @@
-import { buildProductDisplayNameFromItem } from './stockProductIdentity'
-
 /** Same note contract as waste logging. Waste is usage whose note starts with this prefix. */
 export const USAGE_REPORT_WASTE_PREFIX = 'Waste · '
 
@@ -125,7 +123,7 @@ export function buildStockUsageCostReport({
     const id = `${item?.id ?? ''}`.trim()
     if (!id) return
     names.set(id, {
-      name: buildProductDisplayNameFromItem(item) || 'Product',
+      name: `${item.displayName ?? item.name ?? ''}`.trim() || 'Product',
       category: `${item.category ?? ''}`.trim() || 'Other',
       unit: `${item.unit ?? ''}`.trim(),
       cost: positiveCost(item),
