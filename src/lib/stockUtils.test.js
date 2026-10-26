@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { computeSuggestedOrder, itemNeedsOrder, resolveStockParQuantity } from './stockCatalog'
 import {
   buildStockDashboardSummary,
+  formatStockTotalItemsLabel,
   buildStockManagerDailySnapshot,
   buildTodayStockActivitySummary,
   formatTodayStockActivityLine,
@@ -62,6 +63,8 @@ describe('stockUtils', () => {
     ])
 
     expect(summary.totalItems).toBe(4)
+    expect(formatStockTotalItemsLabel(summary.totalItems, 0)).toBe('4')
+    expect(formatStockTotalItemsLabel(172, 8)).toBe('172 · +8 inactive')
     expect(summary.outOfStock).toBe(1)
     expect(summary.lowStock).toBe(2)
     expect(summary.toOrder).toBe(3)

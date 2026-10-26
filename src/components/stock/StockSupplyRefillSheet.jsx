@@ -5,6 +5,7 @@
  */
 
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEscapeToClose } from '../../lib/useEscapeToClose'
 import { formatStockQuantity } from '../../lib/stockUtils'
 import {
   AD_HOC_TRANSFER_NOTE,
@@ -222,6 +223,10 @@ export function StockSupplyRefillSheet({
       lines,
     )
   }
+
+  useEscapeToClose(() => {
+    if (!busy) onClose?.()
+  })
 
   const patchTakeRow = (stockItemId, updater) => {
     setTakeRows((current) => current.map((entry) => (

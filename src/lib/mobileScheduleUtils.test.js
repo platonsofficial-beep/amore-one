@@ -118,22 +118,27 @@ describe('mobileScheduleUtils', () => {
     expect(getScheduleGridTableMinWidth(7, columnWidth)).toBeLessThanOrEqual(1024)
   })
 
-  it('keeps default column width on wide desktop viewports', async () => {
+  it('fills the schedule grid on wide landscape manager widths', async () => {
+    const { shouldFillScheduleGridWidth } = await import('./mobileScheduleUtils')
+
+    expect(shouldFillScheduleGridWidth({ viewportWidth: 1440, isCompactLandscape: false })).toBe(true)
+    expect(shouldFillScheduleGridWidth({ viewportWidth: 1180, isCompactLandscape: true })).toBe(true)
+  })
+
+  it('keeps narrow portrait column sizing', async () => {
     const {
       getScheduleGridDayColumnWidth,
-      shouldUseFluidScheduleDayColumns,
-      SCHEDULE_GRID_DEFAULT_DAY_COLUMN_WIDTH,
+      shouldFillScheduleGridWidth,
+      SCHEDULE_GRID_COMPACT_MIN_DAY_COLUMN_WIDTH,
     } = await import('./mobileScheduleUtils')
 
-    const columnWidth = getScheduleGridDayColumnWidth({
+    expect(shouldFillScheduleGridWidth({ viewportWidth: 390, isCompactLandscape: false })).toBe(false)
+    expect(getScheduleGridDayColumnWidth({
       dayCount: 7,
-      viewportWidth: 1440,
+      viewportWidth: 390,
       isCompactLandscape: false,
       isTemplatesPanelOpen: false,
-    })
-
-    expect(columnWidth).toBe(SCHEDULE_GRID_DEFAULT_DAY_COLUMN_WIDTH)
-    expect(shouldUseFluidScheduleDayColumns(columnWidth)).toBe(false)
+    })).toBeGreaterThanOrEqual(SCHEDULE_GRID_COMPACT_MIN_DAY_COLUMN_WIDTH)
   })
 
   it('hides the unpublished-changes banner only when the landscape pill already says so', async () => {

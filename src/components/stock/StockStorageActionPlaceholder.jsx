@@ -1,3 +1,5 @@
+import { useEscapeToClose } from '../../lib/useEscapeToClose'
+
 /**
  * P8.30.3 — Storage action placeholder shell (entry points only).
  *
@@ -42,6 +44,7 @@ export function StockStorageActionPlaceholder({
   onClose,
 } = {}) {
   const spec = actionId ? STOCK_STORAGE_ACTION_PLACEHOLDERS[actionId] : null
+  useEscapeToClose(() => onClose?.(), { enabled: Boolean(spec) })
   if (!spec) return null
 
   const contextLabel = productName

@@ -86,12 +86,30 @@ export function getStockMovementTone(type) {
   return 'neutral'
 }
 
+function formatQuantityTransition(before, after, unit = '') {
+  return `${formatQuantityWithUnit(before, unit)} → ${formatQuantityWithUnit(after, unit)}`
+}
+
+function readQuantityTransition(movement, unit = '') {
+  const before = Number(movement?.quantityBefore)
+  const after = Number(movement?.quantityAfter)
+  if (!Number.isFinite(before) || !Number.isFinite(after)) return ''
+  return formatQuantityTransition(before, after, unit)
+}
+
 export function formatStockMovementHeadline(movement, unit = '') {
   const quantity = Number(movement?.quantity)
   if (!Number.isFinite(quantity)) return ''
 
   if (movement.type === 'stock_count') {
-    return `Set to ${formatQuantityWithUnit(Math.abs(quantity), unit)}`
+    const transition = readQuantityTransition(movement, unit)
+    if (transition) return `Count ${transition}`
+    return `Counted ${formatQuantityWithUnit(Math.abs(quantity), unit)}`
+  }
+
+  if (movement.type === 'adjustment') {
+    const transition = readQuantityTransition(movement, unit)
+    if (transition) return `Adjustment ${transition}`
   }
 
   if (movement.type === 'receive') {

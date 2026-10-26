@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useEscapeToClose } from '../../lib/useEscapeToClose'
 
 const EMPTY_FORM = {
   companyName: '',
@@ -30,6 +31,10 @@ export function StockSupplierFormModal({
         }
       : EMPTY_FORM
   ))
+
+  useEscapeToClose(() => {
+    if (!isSaving) onClose?.()
+  }, { enabled: isOpen && !isSaving })
 
   if (!isOpen) return null
 

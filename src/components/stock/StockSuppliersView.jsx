@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEscapeToClose } from '../../lib/useEscapeToClose'
 import {
   filterStockSuppliers,
   getStockSuppliersEmptyState,
@@ -144,6 +145,10 @@ function StockSupplierDeleteModal({
   onConfirmDelete,
   onConfirmDeactivate,
 }) {
+  useEscapeToClose(() => {
+    if (!isSaving) onClose?.()
+  }, { enabled: Boolean(supplier) && !isSaving })
+
   if (!supplier) return null
 
   return (

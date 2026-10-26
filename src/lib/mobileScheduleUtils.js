@@ -85,6 +85,20 @@ export function shouldUseFluidScheduleDayColumns(columnWidth) {
   return Number(columnWidth) < SCHEDULE_GRID_DEFAULT_DAY_COLUMN_WIDTH
 }
 
+/**
+ * Landscape manager and desktop schedule grids grow to the available width.
+ * A narrow portrait width keeps the existing column sizing so the staff
+ * portrait schedule is unchanged.
+ */
+export function shouldFillScheduleGridWidth({
+  viewportWidth = 0,
+  isCompactLandscape = false,
+} = {}) {
+  if (isCompactLandscape) return true
+  if (!(viewportWidth > 0)) return true
+  return viewportWidth >= 760
+}
+
 /** Phone/tablet landscape already shows a Draft changes pill, so the banner is redundant. */
 export function shouldShowScheduleDraftChangesBanner({
   hasUnpublishedChanges = false,

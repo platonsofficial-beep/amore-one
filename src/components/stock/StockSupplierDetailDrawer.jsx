@@ -1,4 +1,5 @@
 import { useMemo } from 'react'
+import { useEscapeToClose } from '../../lib/useEscapeToClose'
 import {
   formatStockOrderNumber,
   getStockOrderStatusLabel,
@@ -54,6 +55,8 @@ export function StockSupplierDetailDrawer({
   )
 
   const statusTone = getSupplierStatusTone(supplier)
+
+  useEscapeToClose(onClose)
 
   return (
     <div className="stock-product-history-backdrop" onClick={onClose}>

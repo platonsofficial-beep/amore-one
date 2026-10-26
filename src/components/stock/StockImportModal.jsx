@@ -1,4 +1,5 @@
 import { useMemo, useRef, useState } from 'react'
+import { useEscapeToClose } from '../../lib/useEscapeToClose'
 import {
   buildStockImportPlan,
   downloadStockImportTemplate,
@@ -17,6 +18,10 @@ export function StockImportModal({
   const [parseErrors, setParseErrors] = useState([])
   const [importSummary, setImportSummary] = useState(null)
   const [error, setError] = useState('')
+
+  useEscapeToClose(() => {
+    if (!isSaving) onClose?.()
+  })
 
   const parsed = useMemo(() => {
     if (!csvText.trim()) {

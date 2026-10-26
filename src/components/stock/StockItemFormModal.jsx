@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { useEscapeToClose } from '../../lib/useEscapeToClose'
 import {
   PRODUCT_METADATA_LIMITS,
   STOCK_CATEGORIES,
@@ -49,6 +50,10 @@ export function StockItemFormModal({
     return buildEmptyStockItemForm()
   })
   const [error, setError] = useState('')
+
+  useEscapeToClose(() => {
+    if (!isSaving) onClose?.()
+  })
 
   useEffect(() => {
     if (!supplierPrefill) return
